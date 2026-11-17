@@ -1,6 +1,40 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: F1-F3 done; the applier at a window IN PROGRESS (WIP commit, downstream broken))
+## START HERE (S4, 2026-11-17, item 7b: the applier at a window done at the apply layer; server at defaults; F4 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last three
+  entries: etcd-grove-03's decision on the applier forms and F4's token; the agent's forms "applier at a window,
+  continued"). Not built since `00b09c1360` (lean-check only, `--fast`); the ONE leaves build comes after F4.
+- **Done (this commit, lean-checked):** backend `DeleteRange/Txn/LeaseRevoke/LeaseGrant` at `E.win` (lemmas
+  `apply.delWinTgt/delWinDrops/txnWinTgt/txnWinOps` in `WriteLemmas`, `revokeWinTgt/revokeWinDrops` in the Revoke file);
+  `envAus`' end builder's target premise only for `pend ≠ []`; auth layer (`putPreW/deletePreW/txnPreW/revokePreW`
+  carry `winTgt`); the auth checks at any window (`checkLeasePuts*/checkPutAuth/checkTxn*/CheckTxnAuth.spec` + `specL`s:
+  last binder `w`, `lessorView γl U w`); wrappers (Corrupt/Capped/quota/newQuota); `dispatch.spec`, `uberApplier.Apply.spec`,
+  `Apply.specRec`, `dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `uberKVC`, `Apply.kvSpecL`: pure premise
+  `(E.lg = true → winTgt E.win rq log T) ∧ (E.lg = false → E.win = none)`; server at the defaults: `srvEnvOk` gains
+  `E.win = none` (3rd conjunct; destructurings fixed), `applyEntryNormal` passes the premise from `HEo.2.2.1`,
+  NewServer/NewServerR's `envAus` end builder from `kvAusG`'s (`Wt = True`), `snapE_win/Wt`.
+- **Status of the check (lean-check `--fast`):** all of `apply/` that mentions the changed names checks, incl. the
+  auth layer, wrappers, `DispatchKVL`, `uberApplier__dispatch/Apply`, `ApplyRec/KVL/FnKVL`; server: `EtcdServer__Txn`,
+  `EtcdServer__applyEntryNormal`, `SnapApplyOpts`, `SnapApplyWalk`, `SnapApplyIsServer` check. **Known broken:**
+  `SnapApplyKV.lean:115` rebuilds `leasesLive` at `snapE` and now needs `E.Wt E.win` (the walk binds it as `HlWt` in
+  `SnapApplyWalk` after `rw [hwin]`, but does not pass it into `snapWalkPost`): thread `HlWt` through the post, or
+  (simpler until F4) add `E.Wt = fun _ => True` to `srvEnvOk` beside `E.win = none` (F4 then replaces it by the tie
+  token). `NewServer.lean:2100` fixed (one more `rfl`) but not re-checked. Not yet checked: `NewServerR`, the server
+  `Link`/`Results`, `apply/Link`/`Results`, `EtcdServer__apply`, `SnapApplyPost`, the examples (`restart*`,
+  `mvccfull`, `auth/WorkCalls`), `StopShutdown`, `SnapSendBranch` (destructurings of `srvEnvOk` fixed by hand).
+- **Next, in order:** (1) finish the server check list (`python3 etc/importers.py --files <changed>` filtered by
+  the changed names; `/shared/tmp/rs56-loop.sh LIST` runs lean-check over a list). (2) F4 (approved, conditions in
+  questions.md): tie invariant at `kvsN .@ "win"`, store invariant at `kvsN .@ "st"`, allocated in NewServer after
+  `NewLessor`; the server's base `E` has `win = none` (now in `srvEnvOk`) and `Wt :=` the tie token; per entry
+  `applyEntryNormal` pushes the window and calls the applier at `{E with win := some (s, T)}` (applier facts held for
+  every window); `kvAusG`'s end update must record the commit in the tie (replace the default-`True` builder in
+  NewServer/NewServerR). (3) ONE leaves build from `00b09c1360`; steps 7, 8; c6b merge; full build; tcb; interfaces.
+- **Pitfalls:** fresh lean-check of a file rebuilds its imports through Lake (minutes for server files). In proofs with
+  a local `%w` (txn op patterns) name the window `wn`/`win`. `ipureintro` merges trailing pure conjuncts: a new pure
+  conjunct after a big one needs `⟨⟨…big…⟩, W⟩`. `pkill -f rs56-loop.sh` kills your own shell: use the task id.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: F1-F3 done; the applier at a window IN PROGRESS (WIP commit, downstream broken))
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last: "F1-F3 forms: reviewed",
   then the agent's forms of this session, "Item 7b applier: forms", for review). Not built since `00b09c1360` (lean-check

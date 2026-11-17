@@ -14,6 +14,7 @@ Follow-up: factor the shared tail of the two proofs.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVBuild
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerRFacts
@@ -2169,7 +2170,11 @@ theorem NewServer.wp_proofRG
         isplitr
         · imodintro; iExactEq HR1; rfl
         isplitr
-        · imodintro; iExactEq HE1; rfl
+        · -- (item 7b) the end builder with the default window token (`True`)
+          iintro !> %log %c %pend %w Hw - Hnx %_ -
+          ihave He := HE1 $$ %log %c %pend Hw Hnx
+          iapply (apply.auEnd_wand _ _ _ _ _) $$ He
+          iintro HY; iframe HY
         isplitr
         · imodintro; iExactEq HC1; rfl
         isplitr

@@ -44,11 +44,12 @@ theorem apply.applierV3backend.Txn.wp_proof
   iunfold apply.applyTok at Htt
   icases Htt with Hmr
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hrq, #Hr, %L, #Hcp, Hpre⟩
+  icases Hpre with ⟨%Hrq, #Hr, %L, %Hwn, #Hcp, Hpre⟩
+  obtain ⟨Hwt, hnd⟩ := Hwn
   iunfold apply.mPreAt at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLiveAt at Hlive
-  icases Hlive with ⟨#Hknown, Hu, HltL⟩
+  icases Hlive with ⟨#Hknown, Hu, HltL, HWt⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -67,10 +68,10 @@ theorem apply.applierV3backend.Txn.wp_proof
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   have hlen : log.length + 4 ≤ 2 ^ 63 := hput
   -- the read update, at the writer's state
-  ihave Hau0 := HauR $$ %log %c %(srvApi.wSt E.γs log c) Hw []
-  · iintro Hw; iexact Hw
+  ihave Hau0 := HauR $$ %log %c %iprop(srvApi.wSt E.γs log c ∗ E.Wt E.win) Hw [HWt]
+  · iintro Hw; iframe Hw HWt
   ihave Hau : srvApi.auRead E.γ (fun σ => iprop(⌜σ.log = log⌝ ∗
-      (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ)) $$ [Hau0]
+      (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c ∗ E.Wt E.win)) σ)) $$ [Hau0]
   · iapply apply.auRead_wand $$ Hau0
     iintro %σ ⟨%Hσ, Hw⟩
     subst Hσ
@@ -84,20 +85,23 @@ theorem apply.applierV3backend.Txn.wp_proof
       iprop(∀ σ : MvccState,
         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
           txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
-        (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c)) σ -∗
-        txn.txnBeginAU E.γ log t (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-          srvApi.wSt E.γs (mvcc.commitLog log (txn.txnChs log t)) c)))) $$ []
+        (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c ∗ E.Wt E.win)) σ -∗
+        txn.txnBeginAUW E.γ E.win log t (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
+          srvApi.wSt E.γs (mvcc.commitLog log (txn.txnChs log t)) c ∗ E.Wt E.win)))) $$ []
   · cases hro : txn.txnReadonly t
     · simp only [Bool.false_eq_true, ↓reduceIte]
-      iintro %σ %hig ⟨%Hσ, Hw⟩
+      iintro %σ %hig ⟨%Hσ, Hw, HWt⟩
       subst Hσ
-      unfold txn.txnBeginAU txn.txnBeginAUW
+      unfold txn.txnBeginAUW
       iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
       iapply HauB $$ %log %c %_ Hw
       iintro Hw
       isplitr
-      · ipureintro; rfl
-      iintro -
+      · ipureintro; exact ⟨rfl, apply.txnWinOps E.win rq t log L Hwt ht hk hro hnd hig⟩
+      iintro #Hwit
+      ihave #Hwit' : Perennial.EtcdGrove.lease.winWit (mvcc.api.mvccLeases E.γ) E.win (mvcc.leaseItemsOf (mvcc.stateAfter
+          (mvcc.commitLog log (txn.txnChs log t)))) $$ [Hwit]
+      · rw [← txn.pendItems_commitLog]; simp only [srvApi.stAt] at *; iexact Hwit
       iapply apply.commitAU_of_auEnd
       iunfold apply.certPreT at Hcp
       ihave Hnx := Hcp $$ %(apply.Outcome.applied (mvcc.commitLog log
@@ -109,7 +113,8 @@ theorem apply.applierV3backend.Txn.wp_proof
           intro t' ht'; rw [ht] at ht'; cases ht'
           exact ⟨fun _ => hig.2, fun _ h => by cases h⟩)
       simp only [apply.Outcome.logAfter]
-      ihave He := HauE $$ %log %c %_ Hw Hnx
+      ihave He := HauE $$ %log %c %_ %E.win Hw HWt Hnx
+        %(fun _ => apply.txnWinTgt E.win rq t log L Hwt ht hk hro hig) Hwit'
       iapply apply.auEnd_wand $$ He
       iintro HY
       isplitr
@@ -126,7 +131,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   wp_apply hTODO
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.γ log t 1 B (E.Pk B) Pre Q Post E.f L none false _ _ none)
+      opts.KV' opts.Lessor' skip E.γ log t 1 B (E.Pk B) Pre Q Post E.f L none false _ _ E.win)
       $$ [$Hkv $Hmr $Hkb $Hle $Hr $Hu $HlgN $Hcs $Hau $Hwand]
     as %resp %trace %err ⟨Hmr, Hkb, %σr, -, Hout⟩
   · isplitr
@@ -138,9 +143,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitr
     · iapply mvcc.neverDone_neverCd
     iframe Hknown
-    isplitl []
-    · ipureintro; exact hpre
-    ipureintro; exact txn.winOps_none _ _ _ _
+    ipureintro; exact hpre
   iunfold txn.kvBackend at Hkb
   icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ

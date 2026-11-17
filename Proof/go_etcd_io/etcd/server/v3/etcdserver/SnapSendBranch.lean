@@ -563,7 +563,7 @@ theorem mergedCreate_window
   iunfold srvBeHooked at Hbh
   icases Hbh with ⟨%B, %bh, %lgh, %gx, %Hd, -, #Hbhk, #HhkAt, #HB⟩
   obtain ⟨hBT, hcK, hhP, hPk⟩ := Hd
-  obtain ⟨-, -, γB, H, hRO, -, B', al, stl, lp, hBT', hγB, -⟩ := Henv
+  obtain ⟨-, -, -, γB, H, hRO, -, B', al, stl, lp, hBT', hγB, -⟩ := Henv
   have hBB' : B' = B := srvBkTie_inj B' B (hBT'.symm.trans hBT)
   subst B γB
   iunfold isServerCI at HCI

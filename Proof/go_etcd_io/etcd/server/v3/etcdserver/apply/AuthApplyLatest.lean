@@ -169,7 +169,7 @@ def putPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
-    ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
+    ∃ T : List w64, ⌜winTgt E.win rq log T⌝ ∗ certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
       mPreAt E c a info log T Pre Q Post)
 
 /-- `deletePre` with the certificates of the outcomes `X` admits (`certPreW`). -/
@@ -177,15 +177,16 @@ def deletePreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.et
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(⌜rq.deleteRange = some o ∧ dispatchKind rq = .deleteRange ∧ delOk log o⌝ ∗
-    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post)
+    certPreW E c rq log X ∗ txn.deleteRangeRequestIs r o ∗ mPre E c a info log Pre Q Post ∗
+    ∃ T : List w64, ⌜winTgt E.win rq log T⌝)
 
 /-- `txnPre` with the certificates of the outcomes `X` admits (`certPreW`), at the live set (as `putPreW`). -/
 def txnPreW (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF)
     (X : Outcome → Prop) : IProp GF :=
   iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
-    txn.txnRequestIs r t ∗ ∃ T : List w64, certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗
-      mPreAt E c a info log T Pre Q Post)
+    txn.txnRequestIs r t ∗ ∃ T : List w64, ⌜winTgt E.win rq log T ∧ txn.txnKeysNodup t⌝ ∗
+      certPreW E c rq log (fun oc => X oc ∧ leaseExactL T rq log oc) ∗ mPreAt E c a info log T Pre Q Post)
 
 end defs
 
@@ -504,7 +505,7 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.deletePreW at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, %Tw, %Hwt⟩
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hkv⟩ := apply.mPreRest_rd E log Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
@@ -589,8 +590,10 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
       iframe #
       isplitr
       · ipureintro; exact Hk
-      iapply apply.mPre_of_rest
-      iframe
+      isplitl
+      · iapply apply.mPre_of_rest
+        iframe
+      iexists Tw; ipureintro; exact Hwt
     iapply HΦ
     iframe HL Htt
     isplitr [Htrc]
@@ -664,8 +667,10 @@ theorem apply.authApplierV3.DeleteRange.wp_latest :
     iframe #
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
-    iframe
+    isplitl
+    · iapply apply.mPre_of_rest
+      iframe
+    iexists Tw; ipureintro; exact Hwt
   iapply HΦ
   iframe HL Htt
   isplitr [Htrc]

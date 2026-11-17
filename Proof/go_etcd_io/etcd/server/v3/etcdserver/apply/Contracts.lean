@@ -451,15 +451,18 @@ path (`EtcdServer.Txn`'s `CheckTxnAuth`), which holds none and walks only read-o
 `none`). -/
 abbrev LeaseView := Option (List w64 × GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
 
-/-- The owner's resource of the view (`lease.lessorUser`), nothing without one. -/
-def lessorView (γl : GName) : LeaseView → IProp GF
+/-- The owner's resource of the view (`lease.lessorUser`), nothing without one; (auth-lease S4 item 7b) in the lessor
+window `w` (`lease.lessorUserW`; none by default). -/
+def lessorView (γl : GName) (U : LeaseView) (w : Option lease.LWin := none) : IProp GF :=
+  match U with
   | none => iprop(True)
-  | some (L, I) => lease.lessorUser γl L I
+  | some (L, I) => lease.lessorUserW γl L I w
 
-theorem lessorView_none (γl : GName) : lessorView (GF := GF) γl none = iprop(True) := rfl
+theorem lessorView_none (γl : GName) (w : Option lease.LWin) :
+    lessorView (GF := GF) γl none w = iprop(True) := rfl
 theorem lessorView_some (γl : GName) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) :
-    lessorView (GF := GF) γl (some (L, I)) = lease.lessorUser γl L I := rfl
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin) :
+    lessorView (GF := GF) γl (some (L, I)) w = lease.lessorUserW γl L I w := rfl
 /-! ## The alarm store, the cluster, the raft status, the snapshot server -/
 
 /-- The `*pb.AlarmMember` `m` (not nil): its `Alarm`, read-only. -/

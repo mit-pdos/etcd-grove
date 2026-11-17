@@ -616,9 +616,10 @@ interim restriction: `applySnapshot.specSnapM`'s `d.cm = false`, until restore i
 (`isWatchableStore_frozen`) for `Restore`. (Strict M1, 2026-11-05: over mvcc's API the backend is
 a `mvcc.KBReal`, the epoch's `B`, which the chain's tie `E.BkTie` names (`srvBkTie B`, in place of the
 store's names' `E.γ.kb = some d`); the two mode clauses gone, the API's backend always compacting
-and the store having no mode.) -/
+and the store having no mode.) (Auth-lease S4 item 7b) No lessor window open (`E.win = none`): the server opens one per
+entry, on a copy of `E`. -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧
+  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧ E.win = none ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH E.authMode γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (B : mvcc.KBReal) (al st lp : Loc), E.BkTie = srvBkTie B ∧ B.γB = γB ∧
         H = srvObjsOn al st lp cl B.be

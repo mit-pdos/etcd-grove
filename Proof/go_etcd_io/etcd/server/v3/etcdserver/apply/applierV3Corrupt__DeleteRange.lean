@@ -36,7 +36,7 @@ theorem apply.applierV3Corrupt.DeleteRange.wp_proof :
   icases Hai with ⟨-, -, #Hev⟩
   icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   iunfold apply.deletePre at Hpre
-  icases Hpre with ⟨%Hk, -, -, Hm⟩
+  icases Hpre with ⟨%Hk, -, -, Hm, -⟩
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
   ihave Hkv := apply.kvOwn_rejected E log rq .corrupt (by decide) $$ Hkv

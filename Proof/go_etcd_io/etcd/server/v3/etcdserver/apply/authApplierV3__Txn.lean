@@ -35,11 +35,11 @@ theorem apply.authApplierV3.Txn.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.txnPre at Hpre
-  icases Hpre with ⟨%Hk, #Hr, %T, #Hcp, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, %T, %Hwn, #Hcp, Hm⟩
   ihave #Hcp := apply.certPreT_auth E E.authOn c rq log T $$ Hcp
   icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hu, Hkv⟩ := apply.mPreRestAt_lend E log T Pre Q Post $$ Hm
-  ihave Hu : apply.lessorView (mvcc.api.mvccLeases E.γ) (some (T, mvcc.leaseItemsOf (mvcc.stateAfter log))) $$ [Hu]
+  ihave Hu : apply.lessorView (mvcc.api.mvccLeases E.γ) (some (T, mvcc.leaseItemsOf (mvcc.stateAfter log))) E.win $$ [Hu]
   · rw [apply.lessorView_some]; iexact Hu
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
   ihave #Hin := Hinner
@@ -52,10 +52,10 @@ theorem apply.authApplierV3.Txn.wp_proof
   wp_auto
   ihave #HleA := apply.isApplyLessorAny_of _ _ _ _ _ _ $$ Hle
   wp_apply (hTxn st le E.γ E.Pk E.f E.BkTie E.RD E.authMode E.RW _ info (DFrac.own 1) r t
-      (some (T, mvcc.leaseItemsOf (mvcc.stateAfter log)))) $$ [$Hst $HleA $Hinfo $Hard $Hu $Hr]
+      (some (T, mvcc.leaseItemsOf (mvcc.stateAfter log))) E.win) $$ [$Hst $HleA $Hinfo $Hard $Hu $Hr]
     as %err ⟨Hinfo, Hard, Hu, #HeI, %Hoff, #Hcls⟩
   · ipureintro; intro h; cases h
-  ihave Hu : lease.lessorUser (mvcc.api.mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) $$ [Hu]
+  ihave Hu : lease.lessorUserW (mvcc.api.mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win $$ [Hu]
   · rw [← apply.lessorView_some]; iexact Hu
   ihave Hkv := Hkv $$ Hard Hu
   cases err with
@@ -92,6 +92,8 @@ theorem apply.authApplierV3.Txn.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hwn
     iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ

@@ -36,7 +36,7 @@ theorem apply.applierV3Corrupt.LeaseRevoke.wp_proof :
   icases Hai with ⟨-, -, #Hev⟩
   icases applyErrVars_corrupt $$ Hev with ⟨%eC, #HeC, #HeI⟩
   iunfold apply.revokePre at Hpre
-  icases Hpre with ⟨%Hk, -, -, Hm, Hrr⟩
+  icases Hpre with ⟨%Hk, -, -, Hm, Hrr, -⟩
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   icases apply.mPreRest_reject _ _ _ _ _ $$ Hm with ⟨Hkv, HPre⟩
   wp_auto

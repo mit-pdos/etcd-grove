@@ -99,6 +99,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Un
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorContract
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.KVBuild
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
@@ -2096,7 +2097,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuiltNA srvLeadInv
     iframe #
-    ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, d.γB, _, rfl, rfl,
+    ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, rfl, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
   isplitr
   · -- `#Hreqb`
@@ -2483,7 +2484,11 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     isplitr
     · imodintro; iExactEq HR1; rfl
     isplitr
-    · imodintro; iExactEq HE1; rfl
+    · -- (item 7b) the end builder with the default window token (`True`)
+      iintro !> %log %c %pend %w Hw - Hnx %_ -
+      ihave He := HE1 $$ %log %c %pend Hw Hnx
+      iapply (apply.auEnd_wand _ _ _ _ _) $$ He
+      iintro HY; iframe HY
     isplitr
     · imodintro; iExactEq HC1; rfl
     isplitr

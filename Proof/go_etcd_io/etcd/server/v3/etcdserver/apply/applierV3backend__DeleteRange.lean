@@ -43,12 +43,12 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.applyTok at Htt
   icases Htt with Hmr
   iunfold apply.deletePre at Hpre
-  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre⟩
+  icases Hpre with ⟨%Hrq, #Hcp, #Hr, Hpre, %Tw, %Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
-  icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
-  iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
+  icases Hlive with ⟨%L, #Hknown, Hu, HltL, HWt⟩
+  iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
@@ -72,22 +72,25 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false) := by
     unfold apply.backendStep; rw [hk]; exact ⟨o, hdel, rfl⟩
   -- the delete's updates (either outcome of its range read)
-  ihave Hau : txn.delAU E.γ o (mvcc.leaseItemsOf (mvcc.stateAfter log))
+  ihave Hau : txn.delAUW E.γ E.win o (mvcc.leaseItemsOf (mvcc.stateAfter log))
       (fun σ ok => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-        srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c)) $$ [Hw]
-  · unfold txn.delAU txn.delAUW
+        srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c ∗ E.Wt E.win)) $$ [Hw HWt]
+  · unfold txn.delAUW
     iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
     iapply HauB $$ %log %c %_ Hw
     iintro Hw
     isplitr
     · ipureintro; rfl
-    iintro %ok -
+    iintro %ok #Hwit
+    ihave #Hwit' : Perennial.EtcdGrove.lease.winWit (mvcc.api.mvccLeases E.γ) E.win (mvcc.leaseItemsOf (mvcc.stateAfter
+        (mvcc.commitLog log (txn.delPend o (srvApi.stAt log c) ok)))) $$ [Hwit]
+    · rw [← txn.pendItems_commitLog]; simp only [srvApi.stAt] at *; iexact Hwit
     iapply apply.commitAU_of_auEnd
     cases ok
     · simp only [txn.delPend, Bool.false_eq_true, ↓reduceIte]
       ihave Hnx : E.Nx (mvcc.commitLog log []) $$ []
       · unfold mvcc.commitLog; simp only [↓reduceIte]; iexact Hnx0
-      ihave He := HauE $$ %log %c %_ Hw Hnx
+      ihave He := HauE $$ %log %c %_ %E.win Hw HWt Hnx %(fun h => absurd rfl h) Hwit'
       iapply apply.auEnd_wand $$ He
       iintro HY
       isplitr
@@ -95,7 +98,8 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       iexact HY
     · simp only [txn.delPend, ↓reduceIte, srvApi.stAt]
       ihave Hnx := apply.certPre_backend_applied E rq log _ false hstep $$ Hcp
-      ihave He := HauE $$ %log %c %_ Hw Hnx
+      ihave He := HauE $$ %log %c %_ %E.win Hw HWt Hnx
+        %(fun _ => apply.delWinTgt E.win rq o log Tw Hwt hdel hk) Hwit'
       iapply apply.auEnd_wand $$ He
       iintro HY
       isplitr
@@ -110,11 +114,11 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   wp_apply hTODO
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o 1 B (E.Pk B)
-      Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ none)
+      Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ E.win)
       $$ [$Hkv $Hmr $Hr $Hown $Hwit $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, HPost, ⟨%te', Htrc⟩, -, %σ₀, -, Hout⟩
   · isplitl []
-    · ipureintro; exact Perennial.EtcdGrove.lease.winDrops_none _ _
+    · ipureintro; exact apply.delWinDrops E.win rq o log Tw Hwt hdel hk
     isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
@@ -154,7 +158,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       iframe Hw Htie Hbk Hhk Hard
       isplitr [Hown Hrdo Hrvk HltL]
       · iapply apply.leasesKnown_commit_delete $$ Hknown
-      iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW
+      iunfold EtcdGrove.lease.lessorUserW
       rw [txn.stateAfter_commitLog]
       iframe Hown Hrdo Hrvk HltL
     ileft; iexact HPost

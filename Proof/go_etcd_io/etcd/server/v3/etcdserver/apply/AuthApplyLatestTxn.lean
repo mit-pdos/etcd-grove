@@ -261,15 +261,16 @@ abbrev apply.checkTxnPermission.specL : Prop :=
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (γl : GName) (Lw : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW)
+    (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl Lw I ∗
+      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
       ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t ∗
       ⌜apply.shapedMay on hs (apply.txnMay t) ∧
         ∀ o ∈ apply.txnPutsW t, apply.leaseShapedL on hs I o.leaseID⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; lease.lessorUser γl Lw I ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
+  {{ (err : GoInterface), RET #err; lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil,
         apply.txnClass on info t.toModel ∗ apply.txnLeaseClass on info I t.toModel) ∗
@@ -284,15 +285,16 @@ abbrev apply.CheckTxnAuth.specL : Prop :=
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (γl : GName) (Lw : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (rt : Loc) (t : txn.TxnModelW)
+    (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl Lw I ∗
+      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
       ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t ∗
       ⌜apply.shapedMay on hs (apply.txnMay t) ∧
         ∀ o ∈ apply.txnPutsW t, apply.leaseShapedL on hs I o.leaseID⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.CheckTxnAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #rt))
-  {{ (err : GoInterface), RET #err; lease.lessorUser γl Lw I ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
+  {{ (err : GoInterface), RET #err; lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil,
         apply.txnClass on info t.toModel ∗ apply.txnLeaseClass on info I t.toModel) ∗
@@ -344,14 +346,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 def apply.txnPermTL (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (γl : GName) (Lw : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) : IProp GF :=
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (w : Option lease.LWin) : IProp GF :=
   iprop(□ ∀ (rt : Loc) (t : txn.TxnModelW) (Φ : val → IProp GF),
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl Lw I ∗
+      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
       ai ↦{dq} info ∗ RD ∗ Lr hs ∗ txn.txnRequestIsW rt t ∗
       ⌜apply.shapedMay on hs (apply.txnMay t) ∧
         ∀ o ∈ apply.txnPutsW t, apply.leaseShapedL on hs I o.leaseID⌝ -∗
-    (▷ ∀ err : GoInterface, lease.lessorUser γl Lw I ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
+    (▷ ∀ err : GoInterface, lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
         authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
         (∀ _ : err = GoInterface.nil,
           apply.txnClass on info t.toModel ∗ apply.txnLeaseClass on info I t.toModel) ∗
@@ -367,8 +369,8 @@ def apply.txnPermTL (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
 instance apply.txnPermTL_persistent (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode)
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (γl : GName) (Lw : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) :
-    Persistent (apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq) := by
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (w : Option lease.LWin) :
+    Persistent (apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq w) := by
   unfold apply.txnPermTL; infer_instance
 
 /-- **`checkTxnReqsPermission` on the apply thread**, over `checkTxnPermission`'s latest triple. -/
@@ -378,16 +380,16 @@ theorem apply.checkTxnReqs_latest
     (Lr : List auth.AuthState → IProp GF) (hs : List auth.AuthState) (γl : GName) (Lw : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ai : Loc)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (reqs : GoSlice)
-    (ps : List Loc) (ops : List txn.TxnOpW),
+    (ps : List Loc) (ops : List txn.TxnOpW) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl Lw I ∗
+      apply.isAuthStoreL st RD on Lr ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl Lw I w ∗
       ai ↦{dq} info ∗ RD ∗ Lr hs ∗
-      reqs ↦*□ ps ∗ txn.requestOpsIsW ps ops ∗ apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq ∗
+      reqs ↦*□ ps ∗ txn.requestOpsIsW ps ops ∗ apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq w ∗
       ⌜apply.shapedMay on hs (apply.opsMay ops) ∧
         ∀ o ∈ apply.opsPutsW ops, apply.leaseShapedL on hs I o.leaseID⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkTxnReqsPermission))
       (Val #st)) (Val #ai)) (Val #le)) (Val #reqs))
-  {{ (err : GoInterface), RET #err; lease.lessorUser γl Lw I ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
+  {{ (err : GoInterface), RET #err; lease.lessorUserW γl Lw I w ∗ ai ↦{dq} info ∗ RD ∗ Lr hs ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.opsClass on info (txn.TxnOpW.toOps ops) ∗
         apply.opsLeaseClass on info I (txn.TxnOpW.toOps ops)) ∗
@@ -396,7 +398,7 @@ theorem apply.checkTxnReqs_latest
           ∀ o ∈ apply.opsPutsW ops, apply.leasePassedL on hs (auth.authInfoM info) I o.leaseID) ∧
         (err ≠ GoInterface.nil → apply.refusedMay on hs (auth.authInfoM info) (apply.opsMay ops) ∨
           ∃ o ∈ apply.opsPutsW ops, apply.leaseRefusedL on hs (auth.authInfoM info) I o.leaseID)⌝ }} := by
-  intro st le RD on Lr hs γl Lw I ai info dq reqs ps ops
+  intro st le RD on Lr hs γl Lw I ai info dq reqs ps ops wn
   wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hreqs, #Hops, #IH, %Hsh⟩
   obtain ⟨Hsh, Hshl⟩ := Hsh
   ihave %Hsll := ownSlice_len _ _ _ $$ Hreqs
@@ -410,7 +412,7 @@ theorem apply.checkTxnReqs_latest
   irename «as» => Has
   ihave HI : iprop(∃ (n : w64) (q : Loc),
       "i" ∷ i_ptr ↦ n ∗ "requ" ∷ requ_ptr ↦ q ∗ "Hai" ∷ ai ↦{dq} info ∗ "Hrd" ∷ RD ∗ "HL" ∷ Lr hs ∗
-      "Hu" ∷ lease.lessorUser γl Lw I ∗
+      "Hu" ∷ lease.lessorUserW γl Lw I wn ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z reqs.len⌝ ∗
       "#Hlcls" ∷ apply.opsLeaseClass on info I (txn.TxnOpW.toOps (ops.take (sint.nat n))) ∗
       "%Hlpass" ∷ ⌜∀ o ∈ apply.opsPutsW (ops.take (sint.nat n)),
@@ -535,7 +537,7 @@ theorem apply.checkTxnReqs_latest
       wp_auto
       simp only [Hrn, decide_false]
       wp_auto
-      wp_apply (hPut _ le RD on Lr hs γl Lw I ai info dq r o)
+      wp_apply (hPut _ le RD on Lr hs γl Lw I ai info dq r o wn)
         $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hr] as %err ⟨Hu, Hai, Hrd, HL, #HeI2, %Hof2, #Hcls2, %Hvd⟩
       · ipureintro
         exact ⟨hshp, Hshl o (apply.opsPutsW_of_getElem ops _ _ o hop' (by simp [apply.opPutsW]))⟩
@@ -832,11 +834,11 @@ theorem apply.checkTxnReqs_latest
 theorem apply.checkTxnPermission.wp_latest
     (hPut : apply.checkPutAuth.specL (GF := GF) (hG := hG)) :
     apply.checkTxnPermission.specL (GF := GF) (hG := hG) := by
-  intro st le RD on Lr hs γl Lw I ai info dq rt t
+  intro st le RD on Lr hs γl Lw I ai info dq rt t wn
   iloeb as IH generalizing %rt %t
   wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hrt, %Hsh⟩
   obtain ⟨Hsh, Hshl⟩ := Hsh
-  ihave #IHT : apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq $$ []
+  ihave #IHT : apply.txnPermTL st le RD on Lr hs γl Lw I ai info dq wn $$ []
   · iunfold apply.txnPermTL; iexact IH
   iclear IH
   iunfold txn.txnRequestIsW at Hrt
@@ -854,7 +856,7 @@ theorem apply.checkTxnPermission.wp_latest
   irename «as» => Has
   ihave HI : iprop(∃ (n : w64) (q : Loc),
       "i" ∷ i_ptr ↦ n ∗ "c" ∷ c_ptr ↦ q ∗ "Hai" ∷ ai ↦{dq} info ∗ "Hrd" ∷ RD ∗ "HL" ∷ Lr hs ∗
-      "Hu" ∷ lease.lessorUser γl Lw I ∗
+      "Hu" ∷ lease.lessorUserW γl Lw I wn ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z csl.len⌝ ∗
       "#Hcc" ∷ apply.cmpsClass on info (t.cmps.take (sint.nat n)) ∗
       "%Hpass" ∷ ⌜∃ L, apply.cmpsChecked (t.cmps.take (sint.nat n)) L ∧
@@ -933,7 +935,7 @@ theorem apply.checkTxnPermission.wp_latest
     apply.shapedMay_mono _ _ _ _ (fun x hx => Or.inr (Or.inl hx)) Hsh
   have hshe : apply.shapedMay on hs (apply.opsMay t.elseOps) :=
     apply.shapedMay_mono _ _ _ _ (fun x hx => Or.inr (Or.inr hx)) Hsh
-  wp_apply (apply.checkTxnReqs_latest hPut _ le RD on Lr hs γl Lw I ai info dq ssl sps t.thenOps)
+  wp_apply (apply.checkTxnReqs_latest hPut _ le RD on Lr hs γl Lw I ai info dq ssl sps t.thenOps wn)
     $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hssl $Hss $IHT] as %err ⟨Hu, Hai, Hrd, HL, #HeI8, %Hof8, #Hcls8, %Hvd8⟩
   · ipureintro
     exact ⟨hsht, fun o ho => Hshl o (List.mem_append_left _ ho)⟩
@@ -952,7 +954,7 @@ theorem apply.checkTxnPermission.wp_latest
     · exact Or.inr ⟨o, List.mem_append_left _ ho, h⟩
   | nil =>
   wp_auto
-  wp_apply (apply.checkTxnReqs_latest hPut _ le RD on Lr hs γl Lw I ai info dq fsl fps t.elseOps)
+  wp_apply (apply.checkTxnReqs_latest hPut _ le RD on Lr hs γl Lw I ai info dq fsl fps t.elseOps wn)
     $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hfsl $Hfs $IHT] as %err ⟨Hu, Hai, Hrd, HL, #HeI9, %Hof9, #Hcls9, %Hvd9⟩
   · ipureintro
     exact ⟨hshe, fun o ho => Hshl o (List.mem_append_right _ ho)⟩
@@ -993,10 +995,10 @@ theorem apply.checkTxnPermission.wp_latest
 theorem apply.CheckTxnAuth.wp_latest
     (hTxn : apply.checkTxnPermission.specL (GF := GF) (hG := hG)) :
     apply.CheckTxnAuth.specL (GF := GF) (hG := hG) := by
-  intro st le RD on Lr hs γl Lw I ai info dq rt t
+  intro st le RD on Lr hs γl Lw I ai info dq rt t wn
   wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HL, #Hrt, %Hsh⟩
   wp_auto
-  wp_apply (hTxn st le RD on Lr hs γl Lw I ai info dq rt t) $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hrt] as %err Hai
+  wp_apply (hTxn st le RD on Lr hs γl Lw I ai info dq rt t wn) $$ [$Hst $Htl $Hu $Hai $Hrd $HL $Hrt] as %err Hai
   · ipureintro; exact Hsh
   iapply HΦ; iexact Hai
 
@@ -1012,7 +1014,7 @@ theorem apply.authApplierV3.Txn.wp_latest
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.txnPreW at Hpre
-  icases Hpre with ⟨%Hk, #Hr, %Lw, #Hcp, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, %Lw, %Hwn, #Hcp, Hm⟩
   icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hu, Hkv⟩ := apply.mPreRestAt_lend E log Lw Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
@@ -1028,7 +1030,7 @@ theorem apply.authApplierV3.Txn.wp_latest
     have h1 : rq.txn = some tw.toModel := by rw [← apply.IRRModel.txnW_map, Htw]; rfl
     rw [Hk.1] at h1; exact Option.some.inj h1
   wp_apply (hTxn st le E.RD E.authMode Lr hs (mvcc.api.mvccLeases E.γ) Lw
-      (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) r tw)
+      (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) r tw E.win)
     $$ [$Hst $Htl $Hu $Hinfo $Hard $HL $Hrw] as %err ⟨Hu, Hinfo, Hard, HL, #HeI, %Hoff, #Hcls, %Hvd⟩
   · ipureintro; exact Hsh
   ihave Hkv := Hkv $$ Hard Hu
@@ -1070,6 +1072,8 @@ theorem apply.authApplierV3.Txn.wp_latest
     iframe #
     isplitr
     · ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hwn
     iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ

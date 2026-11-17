@@ -466,11 +466,19 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iunfold srvApi.wSt; iframe HwSt1 HwSt2
   ihave HcrO : srvApi.crOwn (GF := GF) E.γs x.crev $$ [HcrO]
   · iunfold srvApi.crOwn; iexact HcrO
+  -- (auth-lease S4 item 7b) no lessor window at the server's environment (`srvEnvOk`)
+  ihave #HsrvW := Hsrv
+  iunfold isServerM at HsrvW
+  icases HsrvW with ⟨-, -, ⟨%vW, HfW⟩, -⟩
+  iunfold srvFieldsAtM at HfW
+  icases HfW with ⟨-, -, -, -, -, %HenvW, -⟩
+  have hwin : E.win = none := HenvW.2.2.1
   iunfold apply.leasesLive at HlLive
-  icases HlLive with ⟨%Ll, #HlK, HlUser, HlLt⟩
+  icases HlLive with ⟨%Ll, #HlK, HlUser, HlLt, HlWt⟩
+  rw [hwin]
   -- (S2–S4, Probe 4) the two halves of the live set agree, and move to the records' ids
   imod ltHalf_agree_upd E Ll L0 Lr $$ HlLt HL0 with ⟨%HLeq, HLt1, HLt2⟩
-  iunfold lease.lessorUser at HlUser; iunfold lease.lessorUserW at HlUser
+  iunfold lease.lessorUserW at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
   -- the store invariant and the store's handle (`isServer`'s `srvKVInvs`)
   ihave #Hsrv3 := Hsrv

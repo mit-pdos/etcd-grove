@@ -126,6 +126,83 @@ theorem putWinMove (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : m
     rw [ht, ← e1, ← txn.pendItems_commitLog, txn.pendItems_putChangeOf, txn.pendItems_commitLog, e0]
     exact txn.winMove_to_target s _ _
 
+/-- **A range delete's lessor-window target** (item 7b): the window's target is the item map after the delete. -/
+theorem delWinTgt (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.deleteRange = some o) (hk : dispatchKind rq = .deleteRange) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o))) := by
+  intro s T' hw
+  have := h s T' hw (.applied (mvcc.commitLog log (txn.delChanges (mvcc.stateAfter log) o)) false)
+    (by unfold backendStep; rw [hk]; exact ⟨o, hrq, rfl⟩)
+    (leaseExactL_other T rq log _ (by rw [hk]; decide) (by rw [hk]; decide))
+  simpa [Outcome.logAfter] using this
+
+/-- **A range delete's window drops its range's items** (item 7b): `txn.DeleteRange.spec`'s `winDrops`. -/
+theorem delWinDrops (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.deleteRange = some o) (hk : dispatchKind rq = .deleteRange) :
+    Perennial.EtcdGrove.lease.winDrops w (mvcc.leaseItemsOf (mvcc.stateAfter log)) (txn.delSelOf o) := by
+  intro v hv it hsel hpres
+  obtain ⟨s, T'⟩ := v
+  have ht := delWinTgt w rq o log T h hrq hk s T' hv
+  simp only at ht ⊢
+  subst ht
+  rw [txn.stateAfter_commitLog]
+  simp only [mvcc.leaseItemsOf_lookup] at hpres ⊢
+  obtain ⟨kv, hkv⟩ : ∃ kv, mvcc.findKey it.Key' (mvcc.stateAfter log) = some kv := by
+    cases h' : mvcc.findKey it.Key' (mvcc.stateAfter log) with
+    | none => rw [h'] at hpres; exact absurd rfl hpres
+    | some kv => exact ⟨kv, rfl⟩
+  have hmem : kv ∈ mvcc.stateAfter log := List.mem_of_find?_eq_some hkv
+  have hkk : kv.key = it.Key' := by simpa using List.find?_some hkv
+  have hin : kv ∈ rangeIn (mvcc.stateAfter log) o := by
+    unfold rangeIn
+    rw [List.mem_filter]
+    exact ⟨hmem, by rw [hkk]; exact (txn.delSelOf_iff o it).1 hsel⟩
+  have hks : it.Key' ∈ (rangeIn (mvcc.stateAfter log) o).map EtcdKv.key := by
+    rw [← hkk]; exact List.mem_map_of_mem hin
+  have hdel : txn.delChanges (mvcc.stateAfter log) o =
+      ((rangeIn (mvcc.stateAfter log) o).map EtcdKv.key).map .del := by
+    unfold txn.delChanges; rw [List.map_map]; rfl
+  rw [hdel, txn.findKey_applyChanges_dels_mem _ _ _ _ hks]
+  rfl
+
+/-- **A writing transaction's lessor-window target** (item 7b): with its checks passed at the live set `L`, the
+window's target is the item map after its run. -/
+theorem txnWinTgt (w : Option lease.LWin) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (L : List w64)
+    (h : winTgt w rq log L) (hrq : rq.txn = some t) (hk : dispatchKind rq = .txn)
+    (hro : txn.txnReadonly t = false)
+    (hig : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+      txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.txnChs log t))) := by
+  intro s T' hw
+  have := h s T' hw (.applied (mvcc.commitLog log
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1) false)
+    (by unfold backendStep; rw [hk]
+        exact ⟨t, hrq, Or.inr ⟨rfl, fun h => (by rw [hro] at h; cases h), hig.1⟩⟩)
+    (by simp only [leaseExactL, hk]
+        intro t' ht'; rw [hrq] at ht'; cases ht'
+        exact ⟨fun _ => hig.2, fun _ h => by cases h⟩)
+  simp only [Outcome.logAfter] at this
+  exact this
+
+/-- **A writing transaction's run is within the window** (item 7b): `txnBeginAUW`'s begin premise, from its keys'
+distinctness (`txnKeysNodup`, etcd's `checkIntervals`). -/
+theorem txnWinOps (w : Option lease.LWin) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (L : List w64)
+    (h : winTgt w rq log L) (hrq : rq.txn = some t) (hk : dispatchKind rq = .txn)
+    (hro : txn.txnReadonly t = false) (hnd : txn.txnKeysNodup t)
+    (hig : txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
+      txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))) :
+    txn.WinOps w (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
+      (t.branch (txn.txnOk (mvcc.stateAfter log) t)) := by
+  cases w with
+  | none => exact txn.winOps_none _ _ _ _
+  | some v =>
+    obtain ⟨s, T'⟩ := v
+    rw [txnWinTgt _ rq t log L h hrq hk hro hig s T' rfl, txn.stateAfter_commitLog]
+    exact txn.winOps_txn_of_nodup s log t
+      (by simpa [txn.txnChs, txn.srvRunTxn] using hnd (mvcc.stateAfter log) _ (mvcc.stateAfter_sorted log))
+
 /-- The thread's KV resources at the live set `L`, from the split's pieces (auth-lease S3a). -/
 theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) (L : List w64) :
     (srvApi.wSt E.γs log cr ∗ E.Wt E.win) ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗

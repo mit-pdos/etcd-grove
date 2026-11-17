@@ -50,6 +50,7 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq ∧
         (v3 = true → apply.cmpAdmit x.log rq)⌝ ∗
+      ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗

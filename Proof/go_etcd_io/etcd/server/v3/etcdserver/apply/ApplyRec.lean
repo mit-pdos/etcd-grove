@@ -79,6 +79,7 @@ abbrev apply.Apply.specRec : Prop :=
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
         apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit x.log rq) ∧
         apply.restReqOk rq rs⌝ ∗
+      ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗ apply.applyTok E ∗
@@ -145,7 +146,7 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.spec (GF := GF) (hG := hG)) :
     apply.Apply.specRec (GF := GF) (hG := hG) := by
   intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot F rs T U
-  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, #Hcpr,
+  wp_start_folded as ⟨#Hfor, #Hwok, HRD, HK, #Hlg, #He, Htoks, HPre, Hkv, #Hcp, %Hprem, %Hwin, #Hcpr,
     #Hgp, HLt, HEv, #HGf, Hrv, Htt, #HF, HFS, HSp, HRO⟩
   obtain ⟨Hdec, Hid, Hrq, Hdk, Hca, Hrr⟩ := Hprem
   ihave #Hpk : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
@@ -189,6 +190,8 @@ theorem apply.Apply.spec_rec (hA : apply.Apply.spec (GF := GF) (hG := hG))
     · iframe # Hown Hkp Htt HFS HSp HRO Hco HLt HEv Hrv
       isplitr
       · ipureintro; exact ⟨Hrq, Hdk, Hca⟩
+      isplitr
+      · ipureintro; exact Hwin
       isplitr
       · ipureintro; exact Hskt
       ipureintro; exact Hrr

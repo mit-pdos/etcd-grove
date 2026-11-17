@@ -903,14 +903,17 @@ migration's choice: the KV methods' floor `floorOkO`, which the sole writer's pi
 the writer's floor: its log extends every floor `kvLogLb E.γs F` (`KVStoreCore.writer_floor`).
 (R8, 2026-11-07) The writer's facts include a floor of its log, `kvLogLb E.γs log`, as
 `KVStoreCore.writer_facts` gives, and the witness persistent (the server's `kvNx` is) (for
-`newHeader`'s, so the lease responses' headers, `grantHdr`, whose `srvRevLb` needs both). -/
+`newHeader`'s, so the lease responses' headers, `grantHdr`, whose `srvRevLb` needs both).
+(Auth-lease S4 item 7b, F4) The end builder takes the window token `E.Wt w`, the lessor's witness at `w` for the items
+after the commit and, for a commit that changes the log (`pend ≠ []`), that they are the window's target; an empty
+commit leaves the log, so the window has nothing to record (a context error's commit, before the backend runs). -/
 def envAus (E : AEnv GF) : IProp GF :=
   iprop(□ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
         auBegin E.γ (stAt log c) X) ∗
     □ (∀ log c (X : IProp GF), wSt E.γs log c -∗ (wSt E.γs log c -∗ X) -∗
         auRead E.γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X))) ∗
     □ (∀ log c pend (w : Option lease.LWin), wSt E.γs log c -∗ E.Wt w -∗ E.Nx (mvcc.commitLog log pend) -∗
-        ⌜∀ (s : Nat) (T : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T) →
+        ⌜pend ≠ [] → ∀ (s : Nat) (T : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T) →
           T = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log pend))⌝ -∗
         lease.winWit (mvccLeases E.γ) w (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log pend))) -∗
         auEnd E.γ (stAt log c) pend iprop(wSt E.γs (mvcc.commitLog log pend) c ∗ E.Wt w)) ∗

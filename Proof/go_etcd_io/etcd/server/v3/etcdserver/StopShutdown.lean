@@ -487,7 +487,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvBeHooked at Hbh
   icases Hbh with ⟨%d, %bh, %lgh, %gx, %Hd, -, #Hbhk, #HhkAt, -⟩
   obtain ⟨hBT, hcK, hhP, hPk⟩ := Hd
-  obtain ⟨-, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
+  obtain ⟨-, -, -, γB, HH, hRO, -, d', _al, _stl, _lp, hBT', hγB, -⟩ := Henv
   have hdd' : d' = d := srvBkTie_inj d' d (hBT'.symm.trans hBT)
   subst d' γB
   -- the store invariant (`srvKVInvs`'s)

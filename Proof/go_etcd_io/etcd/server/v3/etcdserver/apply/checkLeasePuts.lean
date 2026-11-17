@@ -28,9 +28,9 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.checkLeasePuts.wp_proof
     (hKeys : apply.checkLeasePutsKeys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePuts.spec (GF := GF) (hG := hG) := by
-  intro st le γ Pk f BT RD on RW ai info dq id L I
+  intro st le γ Pk f BT RD on RW ai info dq id L I w
   wp_start as ⟨#Hst, #Hle, Hai, Hrd, Hu⟩
-  ihave ⟨Hu, %HI⟩ := lease.lessorUser_items (mvcc.api.mvccLeases γ) L I $$ Hu
+  ihave ⟨Hu, %HI⟩ := lease.lessorUserW_items (mvcc.api.mvccLeases γ) L I w $$ Hu
   ihave #Hle' := Hle
   iunfold apply.isApplyLessorAny at Hle'
   icases Hle' with ⟨%RO, Hle'⟩
@@ -40,7 +40,7 @@ theorem apply.checkLeasePuts.wp_proof
   icases Htl with ⟨-, %li, %Hli, #HLookup, -⟩
   subst Hli
   wp_auto
-  wp_apply HLookup $$ %id %L %I [$Hu] as %l ⟨Hu, %Hlid⟩
+  wp_apply HLookup $$ %id %L %I %w [$Hu] as %l ⟨Hu, %Hlid⟩
   -- a lease the lessor does not have holds no key
   have hnone : l = null → ∀ it, I.lookup it ≠ some id := by
     intro hl it hit
@@ -50,7 +50,7 @@ theorem apply.checkLeasePuts.wp_proof
     wp_auto
     iapply HΦ; iframe Hai Hrd
     isplitl [Hu]
-    · iapply lease.lessorUserOpen_close $$ Hu
+    · iapply lease.lessorUserOpenW_close $$ Hu
     isplitl []
     · iapply authApplyErrIs_nil
     isplitl []
@@ -63,12 +63,12 @@ theorem apply.checkLeasePuts.wp_proof
     · exact absurd Hn hln
     simp only [hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st γ Pk f BT RD on RW ai info dq l id (mvcc.api.mvccLeases γ) L I) $$ [$Hst $Hai $Hrd $Ho]
+    wp_apply (hKeys st γ Pk f BT RD on RW ai info dq l id (mvcc.api.mvccLeases γ) L I w) $$ [$Hst $Hai $Hrd $Ho]
       as %err ⟨Hai, Hrd, Ho, #HeI, %Hoff, #Hcls⟩
     iapply HΦ; iframe Hai Hrd HeI Hcls
     isplitl [Hrdl Hrv Ho]
-    · iapply lease.lessorUserOpen_close (mvcc.api.mvccLeases γ) L I id l
-      iunfold lease.lessorUserOpen; iunfold lease.lessorUserOpenW
+    · iapply lease.lessorUserOpenW_close (mvcc.api.mvccLeases γ) L I id l w
+      iunfold lease.lessorUserOpenW
       iright
       iframe Hrdl Hrv Ho
     ipureintro; exact Hoff

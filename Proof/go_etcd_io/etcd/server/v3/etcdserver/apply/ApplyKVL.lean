@@ -61,6 +61,7 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log T) ∗
       ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
+      ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
       ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗
@@ -118,7 +119,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     (hD : apply.uberApplier.dispatch.kvSpecL (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.kvSpecL (GF := GF) (hG := hG) := by
   intro E p opts x r rq skip v3 F Pre Q Post rs ci L hs T
-  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, %Hok, %Hskip, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #Hbase, HL, %Hx⟩
+  wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, %Hok, %Hwin, %Hskip, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #Hbase, HL, %Hx⟩
   obtain ⟨Hch, Hkk, Hsh⟩ := Hx
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
@@ -164,7 +165,7 @@ theorem apply.uberApplier.Apply.wp_kvL
       $$ [Hres Ha Hkv Htt HFS HSp HRO HLt Hrv HL]
     · iframe #
       iframe Hres Ha Hkv Htt HFS HSp HRO HLt Hrv HL
-      ipureintro; exact ⟨Hok, HcE, Hkk, Hsh⟩
+      ipureintro; exact ⟨Hok, Hwin, HcE, Hkk, Hsh⟩
     inext
     iintro %ar ⟨Htt, Hrt, Hres, HFS, Hrv, Hra, HB⟩
     iapply HΦ'

@@ -117,7 +117,7 @@ theorem apply.applierV3backend.Put.wp_proof
       · rw [← txn.pendItems_commitLog]; simp only [srvApi.stAt] at *; iexact Hwit
       iapply apply.commitAU_of_auEnd
       ihave He := HauE $$ %log %c %_ %E.win Hw HWt Hnx
-        %(apply.putWinTgt E.win rq o log c L Hwt Hrq.1 Hrq.2.1 hl) Hwit'
+        %(fun _ => apply.putWinTgt E.win rq o log c L Hwt Hrq.1 Hrq.2.1 hl) Hwit'
       iapply apply.auEnd_wand $$ He
       iintro HY
       isplitr

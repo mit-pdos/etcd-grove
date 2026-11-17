@@ -38,13 +38,13 @@ abbrev apply.checkLeasePutsKeys.specL : Prop :=
   ∀ (st : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (Lf : List auth.AuthState → IProp GF)
     (hs : List auth.AuthState)
     (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (l : Loc) (id : w64)
-    (γl : GName) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
+    (γl : GName) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lf ∗ ai ↦{dq} info ∗ lease.leaseOwnOpen γl L I id l ∗ RD ∗ Lf hs ∗
+      apply.isAuthStoreL st RD on Lf ∗ ai ↦{dq} info ∗ lease.leaseOwnOpenW γl L I id l w ∗ RD ∗ Lf hs ∗
       ⌜apply.leaseShapedL on hs I id⌝ }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePutsKeys))
       (Val #st)) (Val #ai)) (Val #l))
-  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lf hs ∗ lease.leaseOwnOpen γl L I id l ∗
+  {{ (err : GoInterface), RET #err; ai ↦{dq} info ∗ RD ∗ Lf hs ∗ lease.leaseOwnOpenW γl L I id l w ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.leaseKeysClass on info I id) ∗
       ⌜(err = GoInterface.nil → apply.leasePassedL on hs (auth.authInfoM info) I id) ∧
@@ -57,13 +57,13 @@ abbrev apply.checkLeasePuts.specL : Prop :=
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (Lf : List auth.AuthState → IProp GF)
     (hs : List auth.AuthState) (γl : GName) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
-    (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64),
+    (ai : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (id : w64) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lf ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl L I ∗
+      apply.isAuthStoreL st RD on Lf ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl L I w ∗
       ai ↦{dq} info ∗ RD ∗ Lf hs ∗ ⌜apply.leaseShapedL on hs I id⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkLeasePuts))
       (Val #st)) (Val #ai)) (Val #le)) (Val #id))
-  {{ (err : GoInterface), RET #err; lease.lessorUser γl L I ∗ ai ↦{dq} info ∗ RD ∗ Lf hs ∗
+  {{ (err : GoInterface), RET #err; lease.lessorUserW γl L I w ∗ ai ↦{dq} info ∗ RD ∗ Lf hs ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.leaseKeysClass on info I id) ∗
       ⌜(err = GoInterface.nil → apply.leasePassedL on hs (auth.authInfoM info) I id) ∧
@@ -76,14 +76,14 @@ abbrev apply.checkPutAuth.specL : Prop :=
   ∀ (st le : GoInterface) (RD : IProp GF) (on : auth.AuthMode) (Lf : List auth.AuthState → IProp GF)
     (hs : List auth.AuthState) (γl : GName) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (ai : Loc)
-    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (r : Loc) (o : OpFull),
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac) (r : Loc) (o : OpFull) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.isAuthStoreL st RD on Lf ∗ txn.isTxnLessor le γl ∗ lease.lessorUser γl L I ∗
+      apply.isAuthStoreL st RD on Lf ∗ txn.isTxnLessor le γl ∗ lease.lessorUserW γl L I w ∗
       ai ↦{dq} info ∗ RD ∗ Lf hs ∗
       txn.putRequestIs r o ∗ ⌜apply.shapedL on hs (apply.putPerms o) ∧ apply.leaseShapedL on hs I o.leaseID⌝ }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.checkPutAuth))
       (Val #st)) (Val #ai)) (Val #le)) (Val #r))
-  {{ (err : GoInterface), RET #err; lease.lessorUser γl L I ∗ ai ↦{dq} info ∗ RD ∗ Lf hs ∗
+  {{ (err : GoInterface), RET #err; lease.lessorUserW γl L I w ∗ ai ↦{dq} info ∗ RD ∗ Lf hs ∗
       authApplyErrIs err ∗ ⌜on.isOn = false → err = GoInterface.nil⌝ ∗
       (∀ _ : err = GoInterface.nil, apply.putClass on info o ∗ apply.leaseKeysClass on info I o.leaseID) ∗
       ⌜(err = GoInterface.nil → apply.passedL on hs (auth.authInfoM info) (apply.putPerms o) ∧
@@ -128,17 +128,18 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- `l.Keys()` by the owner: exactly the keys `I` attaches to `id`. -/
 private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γl : GName)
-    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) (l : Loc) :
+    (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64) (l : Loc)
+    (w : Option lease.LWin) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-        lease.leaseOwnOpen γl L I id l }}
+        lease.leaseOwnOpenW γl L I id l w }}
       (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.Lease.ty @!! go!"Keys"))
         (Val #()))
-    {{ (sl : GoSlice), RET #sl; ∃ ks : List GoString, sl ↦* ks ∗ lease.leaseOwnOpen γl L I id l ∗
+    {{ (sl : GoSlice), RET #sl; ∃ ks : List GoString, sl ↦* ks ∗ lease.leaseOwnOpenW γl L I id l w ∗
         ⌜∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1⌝ ∗
         ⌜∀ k : GoString, k ∈ ks ↔
           I.lookup (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk k) = some id⌝ }} := by
   iintro %Φ ⟨#Hpkg, Ho⟩ HΦ
-  iunfold lease.leaseOwnOpen at Ho; iunfold lease.leaseOwnOpenW at Ho
+  iunfold lease.leaseOwnOpenW at Ho
   icases Ho with ⟨%HIS, #Hl, Hio, Hslot, Hback⟩
   iapply (hK γl l id (.owner I)) $$ [Hio Hslot]
   · iframe Hpkg Hl; rw [lease.keysPre_owner]; iframe Hio Hslot
@@ -154,7 +155,7 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
   iexists ks
   iframe Hs
   isplitl [Hio Hslot Hback]
-  · iunfold lease.leaseOwnOpen; iunfold lease.leaseOwnOpenW; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
+  · iunfold lease.leaseOwnOpenW; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
   ipureintro
   exact ⟨fun k hk => HIS _ id ((Hks k).1 hk), Hks⟩
 
@@ -162,7 +163,7 @@ private def keysPerms (ks : List GoString) : List apply.Perm3 := ks.map (fun k =
 
 theorem apply.checkLeasePutsKeys.wp_latest (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     apply.checkLeasePutsKeys.specL (GF := GF) (hG := hG) := by
-  intro st RD on Lf hs ai info dq l id γl L I
+  intro st RD on Lf hs ai info dq l id γl L I w
   wp_start as ⟨#Hst, Hai, Hv, Hrd, HLf, %Hsh⟩
   ihave #Hlp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
@@ -211,7 +212,7 @@ theorem apply.checkLeasePutsKeys.wp_latest (hK : lease.Lease.Keys.spec (GF := GF
     | off => cases Hadm
     | any => right; rfl
   wp_auto
-  wp_apply (keys_open hK γl L I id l) $$ [$Hlp $Hv] as %sl ⟨%ks, Hks, Hv, %Hksb, %Hkall⟩
+  wp_apply (keys_open hK γl L I id l w) $$ [$Hlp $Hv] as %sl ⟨%ks, Hks, Hv, %Hksb, %Hkall⟩
   ihave %Hsll := ownSlice_len _ _ _ $$ Hks
   irename «as» => Has
   iunfold apply.permCheck2L at HPut
@@ -336,15 +337,15 @@ theorem apply.checkLeasePutsKeys.wp_latest (hK : lease.Lease.Keys.spec (GF := GF
 theorem apply.checkLeasePuts.wp_latest
     (hKeys : apply.checkLeasePutsKeys.specL (GF := GF) (hG := hG)) :
     apply.checkLeasePuts.specL (GF := GF) (hG := hG) := by
-  intro st le RD on Lf hs γl L I ai info dq id
+  intro st le RD on Lf hs γl L I ai info dq id w
   wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HLf, %Hsh⟩
-  ihave ⟨Hu, %HI⟩ := lease.lessorUser_items γl L I $$ Hu
+  ihave ⟨Hu, %HI⟩ := lease.lessorUserW_items γl L I w $$ Hu
   ihave #Htl' := Htl
   iunfold txn.isTxnLessor at Htl'
   icases Htl' with ⟨-, %li, %Hli, #HLookup, -⟩
   subst Hli
   wp_auto
-  wp_apply HLookup $$ %id %L %I [$Hu] as %l ⟨Hu, %Hlid⟩
+  wp_apply HLookup $$ %id %L %I %w [$Hu] as %l ⟨Hu, %Hlid⟩
   have hnone : l = null → ∀ it, I.lookup it ≠ some id := by
     intro hl it hit
     exact (Hlid.1 hl) (HI.2 it id hit)
@@ -353,7 +354,7 @@ theorem apply.checkLeasePuts.wp_latest
     wp_auto
     iapply HΦ; iframe Hai Hrd HLf
     isplitl [Hu]
-    · iapply lease.lessorUserOpen_close $$ Hu
+    · iapply lease.lessorUserOpenW_close $$ Hu
     isplitl []
     · iapply authApplyErrIs_nil
     isplitl []
@@ -374,13 +375,13 @@ theorem apply.checkLeasePuts.wp_latest
     · exact absurd Hn hln
     simp only [hln, decide_false, Bool.not_false]
     wp_auto
-    wp_apply (hKeys st RD on Lf hs ai info dq l id γl L I) $$ [$Hst $Hai $Hrd $Ho $HLf]
+    wp_apply (hKeys st RD on Lf hs ai info dq l id γl L I w) $$ [$Hst $Hai $Hrd $Ho $HLf]
       as %err ⟨Hai, Hrd, HLf, Ho, #HeI, %Hoff, #Hcls, %Hvd⟩
     · ipureintro; exact Hsh
     iapply HΦ; iframe Hai Hrd HeI Hcls HLf
     isplitl [Hrdl Hrv Ho]
-    · iapply lease.lessorUserOpen_close γl L I id l
-      iunfold lease.lessorUserOpen; iunfold lease.lessorUserOpenW
+    · iapply lease.lessorUserOpenW_close γl L I id l w
+      iunfold lease.lessorUserOpenW
       iright
       iframe Hrdl Hrv Ho
     ipureintro; exact ⟨Hoff, Hvd⟩
@@ -388,7 +389,7 @@ theorem apply.checkLeasePuts.wp_latest
 theorem apply.checkPutAuth.wp_latest
     (hLP : apply.checkLeasePuts.specL (GF := GF) (hG := hG)) :
     apply.checkPutAuth.specL (GF := GF) (hG := hG) := by
-  intro st le RD on Lf hs γl L I ai info dq r o
+  intro st le RD on Lf hs γl L I ai info dq r o w
   wp_start as ⟨#Hst, #Htl, Hu, Hai, Hrd, HLr, #Hr, %Hsh⟩
   obtain ⟨Hsh, Hshl⟩ := Hsh
   ihave #Hst' := Hst
@@ -426,7 +427,7 @@ theorem apply.checkPutAuth.wp_latest
   | nil =>
   wp_auto
   rw [← Hsti]
-  wp_apply (hLP st le RD on Lf hs γl L I ai info dq lease) $$ [$Hst $Htl $Hu $Hai $Hrd $HLr]
+  wp_apply (hLP st le RD on Lf hs γl L I ai info dq lease w) $$ [$Hst $Htl $Hu $Hai $Hrd $HLr]
     as %err2 ⟨Hu, Hai, Hrd, HLr, #HeI2, %Hoff2, #Hlc, %Hvl⟩
   · ipureintro; exact Hshl'
   cases err2 with
@@ -518,7 +519,7 @@ theorem apply.authApplierV3.Put.wp_latest
   iunfold apply.authIsL at HauthL
   icases HauthL with ⟨%st, #Hasf, #Hst⟩
   iunfold apply.putPreW at Hpre
-  icases Hpre with ⟨%Hk, #Hr, %Lw, #Hcp, Hm⟩
+  icases Hpre with ⟨%Hk, #Hr, %Lw, %Hwt, #Hcp, Hm⟩
   icases apply.mPreAt_split_chain _ _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, Hu, Hkv⟩ := apply.mPreRestAt_lend E log Lw Pre Q Post $$ Hm
   ihave ⟨Hinfo, Hres⟩ := apply.chainRes_auth_out c p inner info $$ Happ Hres
@@ -531,7 +532,7 @@ theorem apply.authApplierV3.Put.wp_latest
   have hk : apply.authChecks (dispatchKind rq) = true := by rw [Hk.2.1]; rfl
   wp_auto
   wp_apply (hPut st le E.RD E.authMode L hs (mvcc.api.mvccLeases E.γ) Lw
-      (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) r o)
+      (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ info (DFrac.own 1) r o E.win)
     $$ [$Hst $Htl $Hu $Hinfo $Hard $HL $Hr] as %err ⟨Hu, Hinfo, Hard, HL, #HeI, %Hoff, #Hcls, %Hvd⟩
   · ipureintro; exact Hsh
   ihave Hkv := Hkv $$ Hard Hu
@@ -578,6 +579,8 @@ theorem apply.authApplierV3.Put.wp_latest
     iframe #
     isplitr
     · ipureintro; exact Hk
+    isplitr
+    · ipureintro; exact Hwt
     iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ

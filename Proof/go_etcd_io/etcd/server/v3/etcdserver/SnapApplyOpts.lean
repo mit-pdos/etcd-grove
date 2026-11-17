@@ -117,7 +117,7 @@ theorem snap_backendOptsOk
   · ipureintro; rfl
   isplitr
   · iunfold apply.envAus
-    simp only [snapE_γ, snapE_γs, snapE_Nx, snapE_Cp]
+    simp only [snapE_γ, snapE_γs, snapE_Nx, snapE_Cp, snapE_Wt]
     iunfold apply.envAus at Haus
     iexact Haus
   isplitr

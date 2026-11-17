@@ -58,6 +58,7 @@ abbrev apply.uberApplier.dispatch.spec : Prop :=
       apply.kvOwnPre v3 E log Pre Q Post ∗ apply.certPreV v3 E c rq log ∗
       ⌜apply.rqOk E.lm log rq ∧ apply.dispatchOk E.authOn rq ∧
         (v3 = true → apply.cmpAdmit log rq)⌝ ∗
+      ⌜(E.lg = true → apply.winTgt E.win rq log T) ∧ (E.lg = false → E.win = none)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗

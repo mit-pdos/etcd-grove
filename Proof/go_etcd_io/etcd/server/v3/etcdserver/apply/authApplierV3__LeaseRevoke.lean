@@ -37,7 +37,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, ⟨%le, #Hlef, #Hle⟩, -⟩
   iunfold apply.revokePre at Hpre
-  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr⟩
+  icases Hpre with ⟨%Hk, #Hcp, #Hr, Hm, Hrr, %Hwt⟩
   ihave #Hcp := apply.certPre_auth E E.authOn c rq log $$ Hcp
   icases apply.mPre_split_chain _ _ _ _ _ _ _ _ $$ Hm with ⟨Hm, Hres⟩
   ihave ⟨Hard, %L, Hu, Hkv⟩ := apply.mPreRest_lend E log Pre Q Post $$ Hm
@@ -88,8 +88,10 @@ theorem apply.authApplierV3.LeaseRevoke.wp_proof
     iframe # Hrr
     isplitr
     · ipureintro; exact Hk
-    iapply apply.mPre_of_rest
-    iframe
+    isplitl
+    · iapply apply.mPre_of_rest
+      iframe
+    ipureintro; exact Hwt
   iapply HΦ
   iframe Htt
   ihave #Hrc : apply.reqClass (GF := GF) E.authMode info rq $$ []
