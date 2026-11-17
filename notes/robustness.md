@@ -24,7 +24,10 @@ machines that never crash and [e1', ..., em'] on machines that crash and restart
 extensions you choose to plug in), then there will never be a top-level panic"; no linearizability
 in the top-level theorem, no reading bytes off the network):
 
+    Fresh lctx σ := σ.goState.goLctx = lctx ∧ σ.goState.packageState = ∅ ∧ σ.threads = 1
+
     Robust crashing stable g bound :=
+      (∀ m ∈ crashing ++ stable, Fresh lctx m.2) →
       ∀ n κs c, DistCrashNsteps (crashing.map Prod.fst) n (distInit (crashing ++ stable) g) κs c →
         n < bound → ∀ i tp σ, c.nodes[i]? = some (tp, σ) →
           ∀ e ∈ tp, RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e
@@ -32,6 +35,12 @@ in the top-level theorem, no reading bytes off the network):
 - **No semantics of its own.** The executions are Perennial's `DistCrashNsteps`
   (`DistLang.lean`), the relation `goose_dist_crash_adequacy` is about; the extensions are the
   instances `[GooseExts] [GooseSemantics]`.
+- **Every machine is a fresh Go process** (`Fresh`, a premise inside `Robust`; 2026-11-17, the
+  user's: the hypotheses `Hlctx` and `Hinit` of every closed theorem are generic, fold them in; the
+  agent added `Hthreads`, as generic): the Go context the theorem's `go.Semantics` is about (the
+  instance `[GoLocalContext]`, one for all machines, as echo's), no package initialized, one thread.
+  An instance states only what is its own (kvdurable: none of its files exists; kvnet: no listener,
+  the plan, the directories).
 - **A machine that never crashes is one with no boot program**: `DistCrashStep`'s crash needs
   `boots[i]? = some e`, and the boot list is `crashing`'s, so the machines of `stable`, listed after
   them, never crash (`distCrashStep_cases`, proved).
@@ -50,7 +59,8 @@ panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness doe
 **First instance proved** (2026-11-17): `raft_kvdurable_robust`
 (`Proof/.../examples/raft/kvdurable/AdequacyLinked.lean`; restated as
 `raft_kvdurable_porcupine_robust` in its `Results.lean`): `Robust [] [(kvdurableProgram dir, σ)] g
-(2^61)`, under `raft_kvdurable_adequate`'s hypotheses on the start state and on the same 328 axioms,
+(2^61)`, under `raft_kvdurable_adequate`'s hypotheses on the start state (only `Hfiles` is the theorem's;
+`Robust` has the rest) and on the same 328 axioms,
 no `sorry`. One machine that never crashes and none that does: kvdurable's replicas are goroutines
 of one process and its crashes are the program's own (`Cluster.Crash`, restarts from the files).
 - `Robust.of_single` (`Statement.lean`): the single-node adequacy conclusion gives `Robust [] [(e,

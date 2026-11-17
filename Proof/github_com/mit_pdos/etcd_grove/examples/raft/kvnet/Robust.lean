@@ -11,9 +11,9 @@ crash, no top-level panic):
 
 **For every deployment** of replica processes, each running `replica cfg` (its node configuration
 `cfg`: id, directory, every replica's address, the cluster's options) on a machine of its own
-**that may crash at any step and restart**, with an empty directory of its own, no listener and
-no package initialized; and of **one client machine that never crashes**, running `client addrs`
-(the replicas' addresses) on another host, with no listener and no package initialized; on a
+**that may crash at any step and restart**, with an empty directory of its own and no listener;
+and of **one client machine that never crashes**, running `client addrs` (the replicas'
+addresses) on another host, with no listener; each a fresh Go process (`Robust`'s premise); on a
 fresh network (no connection) with a well-formed plan of addresses that puts each replica's
 address on its machine; **in every execution** (Perennial's `DistCrashNsteps`: any interleaving,
 any crash of any replica at any step -- a power loss, or a kill followed by a sync, the file
@@ -112,29 +112,24 @@ def FreshNet (plan : List (GoString × GoString)) (g : GlobalState) : Prop :=
   Tcp.PlanWellFormed plan ∧ (extGlobal Tcp.tcpExt g.globalWorld).plan = GMap.ofList plan ∧
   (extGlobal Tcp.tcpExt g.globalWorld).conns = ∅
 
-/-- A machine at the deployment's start: the Go context `lctx`, no package initialized, the main
-thread only, no listener. -/
-def MachineStart (lctx : GoLocalContext) (σ : state) : Prop :=
-  σ.goState.goLctx = lctx ∧ σ.goState.packageState = ∅ ∧ σ.threads = 1 ∧
-  (extLocal Tcp.tcpExt σ.world).lis = ∅
+/-- The machine with the local state `σ` has no listener. -/
+abbrev NoListener (σ : state) : Prop := (extLocal Tcp.tcpExt σ.world).lis = ∅
 
-/-- A replica's machine at the deployment's start (`MachineStart`): its files as on disk, its
-directory one of the file system's roots and empty; and every replica address in the plan, its
-own at its host. -/
-def ReplicaStart (lctx : GoLocalContext) (plan : List (GoString × GoString)) (cfg : NodeConfig)
-    (σ : state) : Prop :=
-  MachineStart lctx σ ∧
+/-- A replica's machine at the deployment's start (a fresh Go process: `Robust`'s premise): no
+listener; its files as on disk, its directory one of the file system's roots and empty; and every
+replica address in the plan, its own at its host. -/
+def ReplicaStart (plan : List (GoString × GoString)) (cfg : NodeConfig) (σ : state) : Prop :=
+  NoListener σ ∧
   Fs.FsInit (extLocal Fs.fsExt σ.world) ∧
   (∃ j, (cfg.dir, j) ∈ (extLocal Fs.fsExt σ.world).fs.roots) ∧
   (∀ c, (extLocal Fs.fsExt σ.world).lookup (joinPath cfg.dir [c]) = none) ∧
   (∀ p ∈ cfg.addrs, ∃ h, (p.2, h) ∈ plan) ∧
   (∀ a, (cfg.id, a) ∈ cfg.addrs → (a, hostOf σ) ∈ plan)
 
-/-- The client's machine at the deployment's start (`MachineStart`), on a host where the plan
-puts no replica's address. -/
-def ClientStart (lctx : GoLocalContext) (cfgs : List NodeConfig)
-    (plan : List (GoString × GoString)) (σ : state) : Prop :=
-  MachineStart lctx σ ∧ ∀ a h, (a, h) ∈ plan → a ∈ replicaAddrs cfgs → h ≠ hostOf σ
+/-- The client's machine at the deployment's start (a fresh Go process: `Robust`'s premise): no
+listener, on a host where the plan puts no replica's address. -/
+def ClientStart (cfgs : List NodeConfig) (plan : List (GoString × GoString)) (σ : state) : Prop :=
+  NoListener σ ∧ ∀ a h, (a, h) ∈ plan → a ∈ replicaAddrs cfgs → h ≠ hostOf σ
 
 /-- **kvnet's robustness statement** (see the file header), for the replicas' program `replica`
 and the client's program `client`: every deployment of replicas configured by `cfgs`, on machines
@@ -146,8 +141,8 @@ def kvnetRobust [lctx : GoLocalContext] [go.Semantics] (replica : NodeConfig →
   ∀ (cfgs : List NodeConfig) (sys : List state) (σc : state)
     (plan : List (GoString × GoString)) (g : GlobalState),
     ClusterOk cfgs → cfgs.length = sys.length →
-    (∀ p ∈ cfgs.zip sys, ReplicaStart lctx plan p.1 p.2) →
-    ClientStart lctx cfgs plan σc →
+    (∀ p ∈ cfgs.zip sys, ReplicaStart plan p.1 p.2) →
+    ClientStart cfgs plan σc →
     FreshNet plan g →
     Robust ((cfgs.zip sys).map (fun p => (replica p.1, p.2)))
       [(client (replicaAddrs cfgs), σc)] g (2 ^ 61)

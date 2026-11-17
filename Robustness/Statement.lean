@@ -19,6 +19,12 @@ again, or starts late, is one it does not pick), the crashes, and the faults the
 semantics allow (the TCP extension: a direction cut at any read or write, any delay, a dial
 failing; a partition is such an execution).
 
+**Every machine starts as a fresh Go process** (`Fresh`, a premise inside `Robust`, so that no
+instance repeats it): its Go context is the one the theorem's Go semantics is about (`lctx`, the
+instance `[GoLocalContext]`: the meaning of the Go instructions, shared by the machines as echo's
+three programs share one), no package is initialized, and it has its main thread only. What an
+extension needs of a start state (no connection, a file system's roots) stays the instance's.
+
 The statement says nothing of what the programs compute. A property of a system (its clients'
 history is linearizable) is a theorem of this form about a deployment that includes a program
 checking it and panicking if it fails, e.g. a client on a machine that does not crash, which
@@ -43,11 +49,18 @@ open Iris.ProgramLogic
 section statement
 variable [GooseExts] [GooseSemantics] [GoGlobalContext]
 
+/-- The machine with the local state `σ` is a fresh Go process with the Go context `lctx`: no
+package initialized, its main thread only. -/
+def Fresh (lctx : GoLocalContext) (σ : state) : Prop :=
+  σ.goState.goLctx = lctx ∧ σ.goState.packageState = ∅ ∧ σ.threads = 1
+
 /-- **A robustness statement** (see the file header): in every execution of fewer than `bound`
 steps of the machines `crashing` (which may crash and restart) and `stable` (which never crash),
-each running its program from its local state, on the shared state `g`, no thread of any machine
-is stuck or has an unrecovered panic. -/
-def Robust (crashing stable : List (Expr × state)) (g : GlobalState) (bound : Nat) : Prop :=
+each running its program from its local state, a fresh Go process with the context `lctx`, on
+the shared state `g`, no thread of any machine is stuck or has an unrecovered panic. -/
+def Robust [lctx : GoLocalContext] (crashing stable : List (Expr × state)) (g : GlobalState)
+    (bound : Nat) : Prop :=
+  (∀ m, m ∈ crashing ++ stable → Fresh lctx m.2) →
   ∀ (n : Nat) (κs : List Observation) (c : DistCfg),
     DistCrashNsteps (crashing.map Prod.fst) n (distInit (crashing ++ stable) g) κs c →
     n < bound →
@@ -91,10 +104,11 @@ theorem distCrashNsteps_more_boots {boots : List Expr} (rest : List Expr) {n : N
 /-- A deployment that is robust when every machine may crash is robust when only some may: the
 distributed crash adequacy theorem (`goose_dist_crash_adequacy`, about executions in which every
 node may crash) proves statements of this form. -/
-theorem Robust.of_all_crashing {crashing stable : List (Expr × state)} {g : GlobalState}
-    {bound : Nat} (h : Robust (crashing ++ stable) [] g bound) : Robust crashing stable g bound := by
-  intro n κs c hsteps hn
-  refine h n κs c ?_ hn
+theorem Robust.of_all_crashing [GoLocalContext] {crashing stable : List (Expr × state)}
+    {g : GlobalState} {bound : Nat} (h : Robust (crashing ++ stable) [] g bound) :
+    Robust crashing stable g bound := by
+  intro hfresh n κs c hsteps hn
+  refine h (by simpa using hfresh) n κs c ?_ hn
   rw [List.map_append, List.append_nil]
   exact distCrashNsteps_more_boots _ hsteps
 
@@ -126,15 +140,17 @@ theorem distCrashNsteps_single {n : Nat} {tp : List Expr} {σ : state} {g : Glob
 /-- **A single process that never crashes**: the conclusion of the single-node adequacy theorem
 (`goose_adequacy`: no thread stuck, none with an unrecovered panic, in every real execution of the
 program of fewer than `bound` steps) is the robustness statement of the program alone on a
-machine that does not crash. -/
-theorem Robust.of_single {e : Expr} {σ : state} {g : GlobalState} {bound : Nat}
-    (h : ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState), n < bound →
+machine that does not crash, a fresh Go process (`Fresh`). -/
+theorem Robust.of_single [lctx : GoLocalContext] {e : Expr} {σ : state} {g : GlobalState}
+    {bound : Nat}
+    (h : Fresh lctx σ →
+      ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState), n < bound →
       RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2) →
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
     Robust [] [(e, σ)] g bound := by
-  intro n κs c hsteps hn i tp' σ' hi e' he'
+  intro hfresh n κs c hsteps hn i tp' σ' hi e' he'
   obtain ⟨tp₁, σ₁, g₁, rfl, hreal⟩ := distCrashNsteps_single (tp := [e]) hsteps
-  obtain ⟨hns, hnp⟩ := h n κs tp₁ (σ₁, g₁) hn hreal
+  obtain ⟨hns, hnp⟩ := h (hfresh (e, σ) (by simp)) n κs tp₁ (σ₁, g₁) hn hreal
   obtain rfl : i = 0 := by
     have := (List.getElem?_eq_some_iff.mp hi).1
     simp only [List.length_singleton] at this
