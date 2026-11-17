@@ -67,12 +67,18 @@ instance Input_decEq : DecidableEq Input := fun a b =>
       a.Behavior' = b.Behavior' ∧ a.Skip' = b.Skip')
     (by cases a; cases b; simp)
 
+/-- `Raw` (stage 7g: the store's own answer, which the model ignores) holds Go values; its
+equality is decided classically. -/
+instance Raw_decEq : DecidableEq github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw :=
+  fun _ _ => Classical.propDecidable _
+
 instance Output_decEq : DecidableEq Output := fun a b =>
   decidable_of_iff (a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧
       a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
       a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
       a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧
-      a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed')
+      a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed' ∧
+      a.Raw' = b.Raw')
     (by cases a; cases b; simp)
 
 /-! ## The store's helpers -/
@@ -120,7 +126,7 @@ instance GSt_decEq : DecidableEq GSt := fun a b =>
 /-- An output with no object and no list: the error `e`, its key `k` and resource version `r`
 (`Output{Err: e, ErrKey: k, ErrRV: r}`). -/
 def errOutL (e : w64) (k : GoString) (r : w64) : Output :=
-  ⟨e, k, r, [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false⟩
+  ⟨e, k, r, [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, zeroValDef⟩
 
 /-- `notFound(st, key)` of a store at the resource version `rv`. -/
 def notFoundL (rv : w64) (key : GoString) : Output := errOutL (W64 1) (mkeyL key) rv
@@ -131,7 +137,7 @@ def invalidObjL (key : GoString) : Output := errOutL (W64 5) (mkeyL key) 0
 /-- `objOut(o)`. -/
 def objOutL (o : Obj) : Output :=
   ⟨W64 0, [], 0, o.Namespace', o.Name', o.UID', o.Value', o.Node', o.App', o.ResourceVersion',
-    [], 0, [], false, 0, [], false⟩
+    [], 0, [], false, 0, [], false, zeroValDef⟩
 
 /-- `objOf(out)`: an answer's object. -/
 def objOfL (y : Output) : Obj :=
