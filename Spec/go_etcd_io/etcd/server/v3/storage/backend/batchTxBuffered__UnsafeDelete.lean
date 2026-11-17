@@ -39,20 +39,23 @@ R12-1.) In a safe-range bucket (the user's decision, 2026-11-04, probe M2: a sna
 knows the safe-range bucket exactly), with the client's half of the deleted entries (`dlPut`: inside
 `fkOwn`), given back updated, and an entry of the writer's contents the readers see (so that the
 deleted entries stay the logical view's: the compaction deletes what its range read of the
-committed data returned). -/
+committed data returned). (A1.4 of `auth-schema-srv`, 2026-11-17) In either mode `c` of the batch lock (`true`: a claimed
+session's), with the part of either kind (`k`: the claimed part `rbPutR`, only in a claimed session, the
+write recorded as the bucket's claimed write `st.cw`); `c = k = false` is the statement until A1.4. -/
 abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess)
     (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
   P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → ¬ fkKey bi.name kb →
   (P.SB bi.name = true → (sData P st.S).lookup (bi.name, kb) ≠ none →
     (vData P (st.C, st.R)).lookup (bi.name, kb) ≠ none) →
+  ∀ (c k : Bool) {_hkc : k ≤ c},
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st c ∗ isBucket bk bi ∗
       (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
-      rbPut γ P bi.name st.S ∗ dlPut γ P bi.name }}
+      rbPut γ P bi.name st.S k ∗ dlPut γ P bi.name }}
     (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
-  {{ RET #(); batchLocked γ P b (st.del bi kb) ∗
-      (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗ rbPut γ P bi.name (st.del bi kb).S ∗
+  {{ RET #(); batchLocked γ P b (st.del bi kb k) c ∗
+      (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗ rbPut γ P bi.name (st.del bi kb k).S k ∗
       dlPut γ P bi.name }}
 
 end spec

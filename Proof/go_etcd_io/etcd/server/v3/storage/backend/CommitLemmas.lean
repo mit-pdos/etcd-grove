@@ -184,7 +184,7 @@ theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
 
 theorem hookStep_refl (P : BParams) (st : BSess) : hookStep P st st :=
   ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, Int.le_refl _, by omega, Int.le_refl _, rfl, rfl, rfl, rfl,
-    ⟨fun _ _ _ _ => rfl, fun _ _ => rfl⟩⟩
+    ⟨fun _ _ _ _ => rfl, fun _ _ => rfl, rfl⟩⟩
 
 /-- A free state leaves room for a commit's hook. -/
 theorem room_of_freeOk {P : BParams} {st : BSess} (hP : P.Wf) (h : freeOk P st) :
@@ -234,7 +234,7 @@ or unchanged if nothing was committed), the read buffer reset, nothing pending, 
 transaction `tx'`, the counters `cnt'`. -/
 def commitSt (st : BSess) (C' : Data) (tx' : Loc) (cnt' : BCnt) : BSess :=
   { st with C := C', R := st.R.reset, pend := W64 0, ndel := W64 0, tx := tx', cnt := cnt',
-            win := false, tk := tkIdle }
+            win := false, tk := tkIdle, cw := fun _ => false }
 
 section commitSt_proj
 variable (st : BSess) (C' : Data) (tx' : Loc) (cnt' : BCnt)

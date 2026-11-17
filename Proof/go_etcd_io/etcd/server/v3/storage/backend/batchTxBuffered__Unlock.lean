@@ -149,6 +149,8 @@ private theorem unlock_core
     %Hbg⟩, %Hwf⟩
   icombine Ht Ht1 gives %Heq1
   subst Heq1
+  icases trkSide_cw γ P st false $$ Hhkd with ⟨Hhkd, %Hcw0⟩
+  have Hcw : ∀ n, st.cw n = false := Hcw0 rfl Hhw
   unfold batchPhys
   icases Hph with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
   wp_auto
@@ -197,7 +199,7 @@ private theorem unlock_core
       have hsame := vData_writeback_same P st.C st.W st.R Hnw
       ihave Hupd := trkSide_upd γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) rfl rfl rfl
         (fun n hn hi => ⟨by simp [wbSt, tkWb, hi],
-          (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) $$ Hhkd
+          (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) Hcw Hcw $$ Hhkd
       imod (rtRes_wb_close_same γ P rt st.W st.C st.R (trkSide γ P (wbSt P st)) Hwf.2.2.1 hver hsame
         hsafe (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr $Hupd]
         with ⟨Hrr, Hrvs, Hhkd⟩
@@ -271,13 +273,13 @@ private theorem unlock_core
         -- to `relog` (R11-2)
         ihave Hupd := trkSide_upd γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) rfl rfl
           rfl (fun n hn hi => ⟨by simp [wbSt, tkWb, hi],
-            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) $$ Hhkd
+            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) Hcw Hcw $$ Hhkd
         imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) true
           (trkSide γ P (wbSt P st)) Hwf.2.2.1 hver hsafe)
           $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr $Hupd] with ⟨Hrr, Hrvs, Hhkd, Hv, -⟩
         · simp only [↓reduceIte]; itrivial
         ihave Hhkd := trkSide_congr γ P (wbSt P st) ({ wbSt P st with win := true }) rfl rfl rfl
-          (fun _ _ => rfl) $$ Hhkd
+          (fun _ _ => rfl) rfl false (fun h => h) $$ Hhkd
         ihave Hv : batchViewQ0 γ P ({ wbSt P st with win := true }) $$ [Hv]
         · unfold batchViewQ0; simp only [wbSt_C, wbSt_R]; iexists _; iframe Hv; ipureintro
           exact HdlS
@@ -307,7 +309,7 @@ private theorem unlock_core
           rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2.1, wbSt_C, wbSt_R]
         ihave Hupd := trkSide_upd γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) rfl rfl
           rfl (fun n hn hi => ⟨by simp [wbSt, tkWb, hi],
-            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) $$ Hhkd
+            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) Hcw Hcw $$ Hhkd
         imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) false
           (trkSide γ P (wbSt P st)) Hwf.2.2.1 hver hsafe)
           $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr $Hupd] with ⟨Hrr, Hrvs, Hhkd, Hv, Hbvw⟩

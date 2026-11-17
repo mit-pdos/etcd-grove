@@ -66,6 +66,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   -- out of a window, the state is out of an `Unlock`'s (the batch lock's quarter's agreement)
   icases batchViewQW_win γ P st win $$ Hv with ⟨Hv, %Hwin00⟩
   have Hwin0 : win = false → st.win = false := fun h => Hwin00 h Hhw0
+  icases trkSide_cw γ P st false $$ Hhkd with ⟨Hhkd, %Hcw0⟩
+  have Hcw : ∀ n, st.cw n = false := Hcw0 rfl Hhw0
   ihave Hl : batchLocked γ P b (st.setHw true) $$ [Hown Hph Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
   · ihave Hv := batchViewQ_setHw γ P st win (fun h => (Hdlw h).1) $$ Hv
     iapply batchLocked_setHw_mk γ P b t db0' st
@@ -144,6 +146,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       exact Hwin0 rfl
   icombine Ht Ht1 gives %Heq1
   subst Heq1
+  have Hcw' : ∀ n, st'.cw n = false := fun n => by
+    rw [Hs.2.2.2.2.2.2.2.2.2.2.2.2.2.2]; exact Hcw n
   have Hs0 := Hs
   obtain ⟨hC, hR, hSs, hWs, hp1, hp2, hn, htx, hcnt⟩ := Hs0
   imod ghostVar_update_halves (((st'.C, st'.R) : RView), win) γ.rvs _ _ $$ Hrvs Hrvs2 with
@@ -202,7 +206,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
       ihave Hupd := trkSide_upd γ P st' (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
         (st'.C, st'.R.reset) rfl rfl rfl (fun n hn hi => ⟨rfl, rvBkt_commit_idle Hs Htk
-          Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inr ⟨HA.1, rfl⟩) hn hi⟩) $$ Hhkd
+          Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inr ⟨HA.1, rfl⟩) hn hi⟩) Hcw' (fun _ => rfl) $$ Hhkd
       imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L'
         (trkSide γ P (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩))) $$
         [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd Hrd]
@@ -247,7 +251,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
       ihave Hupd := trkSide_upd γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
         (st'.S, st'.R.reset) rfl rfl rfl (fun n hn hi => ⟨rfl, rvBkt_commit_idle Hs Htk
-          Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩) $$ Hhkd
+          Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩) Hcw' (fun _ => rfl) $$ Hhkd
       imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L'
         (trkSide γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩))) $$
         [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd Hrd]
@@ -292,7 +296,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       $$ Hfkh with ⟨Hfkh, #Hfkr⟩
     ihave Hupd := trkSide_upd γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
       (st'.S, st'.R.reset) rfl rfl rfl (fun n hn hi => ⟨rfl, rvBkt_commit_idle Hs Htk
-        Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩) $$ Hhkd
+        Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩) Hcw' (fun _ => rfl) $$ Hhkd
     imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L'
       (trkSide γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩))) $$
       [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd] with ⟨Hrr, -, Hhkd, Hvq, -⟩

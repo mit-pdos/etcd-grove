@@ -134,7 +134,7 @@ def hookRun (P : BParams) (st0 st : BSess) (ui ut : Bool) : Prop :=
 theorem hookRun_refl (P : BParams) (st0 : BSess) :
     hookRun P st0 st0 false false :=
   ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, by simp, rfl, rfl, rfl, rfl, rfl,
-    fun _ _ _ _ => rfl, fun _ _ => rfl⟩
+    fun _ _ _ _ => rfl, fun _ _ => rfl, rfl⟩
 
 /-- A run of the hook is a hook step (at most two puts). -/
 theorem hookStep_of_run {P : BParams} (hP : ciKeys P) {st0 st : BSess} {ui ut : Bool}
@@ -301,7 +301,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk : P.hk mvcc.metaBI.name schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)))
+      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
     rw [fkPut_eq γ _ _ (by decide)]
@@ -368,7 +368,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk : P.hk mvcc.metaBI.name schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)))
+      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
     rw [fkPut_eq γ _ _ (by decide)]

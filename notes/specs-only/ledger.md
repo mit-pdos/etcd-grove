@@ -2764,3 +2764,9 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   new ghost field `BSess.tk`, the session's bucket kinds). Stronger only: as a post (`cindex_hook_backend`,
   `OnPreCommitUnsafe`) it says more; as the hook's obligation it asks more of the hook, which the server's meets.
 - **Decision.** Accepted by etcd-grove-03 (2026-11-17, A1 Scope decision 4); the user to be told by etcd-grove-03.
+- **Addendum (A1.4, 2026-11-17, form decided by the agent, reviewed at checkpoint).** One more conjunct in `trkKept`:
+  `∧ st'.cw = st.cw` (`cw` the new ghost field `BSess.cw`, the claimed buckets written through a claimed part). Same
+  direction (stronger as a post, more asked of a hook: the server's writes `meta` through an unclaimed part, which
+  keeps `cw`). Needed by `unsafeCommit`: the commit after the hook needs every claimed bucket still idle (or, from
+  A1.5, handed to `Unlock`'s accessor), and the hook's batch lock is in the client-facing mode, which allows claimed
+  writes inside the hook's window (`cwOk`).

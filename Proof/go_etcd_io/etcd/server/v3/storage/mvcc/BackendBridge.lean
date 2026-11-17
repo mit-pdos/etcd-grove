@@ -2086,7 +2086,7 @@ theorem bt_leaseDel (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF)
       (st.S.insert leaseName ((bktOf st.S leaseName).delete k)) =
       rbPart γ (· = leaseName) (rbDel (rbData P st.S) leaseName k) := by
     unfold rbPut; rw [hrb]
-    simp only [↓reduceIte]
+    simp only [Bool.false_eq_true, ↓reduceIte]
     rw [rbData_del hrb]
   have hcg : ∀ n, n = leaseName →
       (rbDel (rbData P st.S) leaseName k).lookup n = (rbDel r leaseName k).lookup n := by

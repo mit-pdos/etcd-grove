@@ -691,7 +691,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   · iexact Hmx
   · inext
     ihave Hrbs : rbrSide γ P (st0 D wtx) $$ [Hrbra Hrbca Hrbrb]
-    · iapply rbrSide_init γ P (st0 D wtx) (rbDomOf_rb P D)
+    · iapply rbrSide_init γ P (st0 D wtx) (rbDomOf_rb P D) (fun _ => rfl)
       iframe
     iapply batchFree_init γ P (W γ) (Pk γ) b t db wtx D hP
     unfold trkSide trkHalf

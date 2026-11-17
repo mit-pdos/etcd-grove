@@ -67,7 +67,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     isplitr
     · ipureintro; rfl
     ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
-      (fun _ _ => rfl) $$ Hk
+      (fun _ _ => rfl) rfl false (fun _ _ _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
       ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
@@ -96,7 +96,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     isplitr
     · ipureintro; rfl
     ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
-      (fun _ _ => rfl) $$ Hk
+      (fun _ _ => rfl) rfl false (fun _ _ _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
       ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
@@ -122,7 +122,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     isplitr
     · ipureintro; rfl
     ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
-      (fun _ _ => rfl) $$ Hk
+      (fun _ _ => rfl) rfl false (fun _ _ _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
       ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
@@ -195,7 +195,8 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
     batchLocked γ P b (st.setHw true) := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨#Ht, Hown, Hph, Hv, ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
-  ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) $$ Hk
+  ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) rfl false
+    (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
   iexists t, db
   rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
   simp only [setHw_C, setHw_R, setHw_S]

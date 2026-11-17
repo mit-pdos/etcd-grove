@@ -282,7 +282,7 @@ the agreement. -/
 theorem trkOk_hook {st' : BSess} (h : trkOk P st st.tk) (hs : hookStep P st st')
     (hp0 : 0 ≤ sint.Z st.pend) (hn0 : 0 ≤ sint.Z st.ndel) : trkOk P st' st'.tk := by
   obtain ⟨hk, hpz, hd⟩ := h
-  obtain ⟨hC, hR, -, hB, -, hp1, -, hn1, -, -, -, -, hWt, htk⟩ := hs
+  obtain ⟨hC, hR, -, hB, -, hp1, -, hn1, -, -, -, -, hWt, htk, -⟩ := hs
   have hV : viewOf P st' = viewOf P st := by unfold viewOf; rw [hC, hR]
   have hS : ∀ n, P.RB n = true → ∀ k, dget st'.S n k = dget st.S n k := by
     intro n hn k
@@ -392,7 +392,7 @@ theorem trkOk_commitG {st st' : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt} (hs
     (hst' : sessWf P st') (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) :
     trkOk P (commitSt st' C' tx' cnt') tkIdle ∧
       ∀ n, P.RB n = true → rvBkt P (C', st'.R.reset) n = bktOf st'.S n := by
-  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hst⟩ := hs
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hst, -⟩ := hs
   have hWt : ∀ n, P.RB n = true → wEmpty P st'.W n := by
     intro n hn
     have hkn := h'.1 n hn
@@ -405,14 +405,14 @@ theorem trkOk_commitG {st st' : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt} (hs
 theorem trkKept_put_other {P : BParams} {st0 st : BSess} (hP : P.Wf) {bi : BucketInfo}
     (hb : P.has bi) (hrb : P.RB bi.name = false) {k v : GoString} {seq : Bool}
     (h : trkKept P st0 st) : trkKept P st0 (st.put bi k v seq) := by
-  refine ⟨fun n i hi hn => ?_, fun n hn => ?_⟩
+  refine ⟨fun n i hi hn => ?_, fun n hn => ?_, h.2.2⟩
   · have hne : n ≠ bi.name := fun e => by rw [e, hrb] at hn; cases hn
     have hid : bi.id ≠ i := fun e => hne (hP.1 n bi.name i hi (e ▸ hb))
     show bkOf (if seq then st.W.putSeq bi.id (k, v) else st.W.put bi.id (k, v)).bks i = _
     rw [putW_bks, bkOf_wbAdd]; simp only [hid, ↓reduceIte]; exact h.1 n i hi hn
   · have hne : n ≠ bi.name := fun e => by rw [e, hrb] at hn; cases hn
     show tkSet st.tk bi.name .put n = _
-    rw [tkSet_ne _ _ hne]; exact h.2 n hn
+    rw [tkSet_ne _ _ hne]; exact h.2.1 n hn
 
 /-- **The commit, an untouched tracked bucket**: the readers' contents stay (the commit's are the
 writer's, which an untouched bucket's already were). -/
