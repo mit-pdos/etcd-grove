@@ -27,7 +27,10 @@ theorem NewEmptyModel.wp_proof : NewEmptyModel.spec (GF := GF) (hG := hG) := by
   intro pfx nf nlf v
   wp_start as -
   wp_auto
-  sorry
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface) go.string
+    k8s_io.apimachinery.pkg.runtime.Object.ty) as %il Hil
+  iapply HΦ
+  iframe «$r0» Hil
 
 end proof
 
