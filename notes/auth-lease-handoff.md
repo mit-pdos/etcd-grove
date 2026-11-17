@@ -27,7 +27,11 @@
   `kvNxOff`/`kvNxOn` unfold), then call `hA` at `E' := {E with win := some (s, itemsOfLog Lt)}` (convert each
   `E`-resource in and out by `iExactEq H; rfl`), the premise `winTgt` via `KVOutcomeOn.backendLog_of_step` (KV kinds)
   / `revokeLog_eq_backendLog` (revoke) / `Lt = x.log` (kinds that leave the log); repack `srvApplyKVW` with the new
-  window (`⌜E.lg = false → …⌝` vacuous). The `v3 = false` replay arms also call `hA`: same push. (2) NewServer /
+  window (`⌜E.lg = false → …⌝` vacuous). The `v3 = false` replay arms also call `hA`: same push. Lead for `Lt` in the off
+  arm: `kv_applied_step` (l.554) already runs before `Apply` and gives `kvAppliedL … (A ++ [m]) (kvEntry c0 x.chain
+  (kvLeases A) x.log m)`, so `Lt := kvEntry …` with `□ E.Nx Lt` by `kvAppliedL_nx'`; `winTgt` then needs, for every
+  backend outcome at the live set, `oc.logAfter x.log = kvEntry …` (the per-outcome form of the post-`Apply` equality
+  the arm proves from `Hstep`); the on arms the same with `kv_applied_step_on`/`kvAppliedLOn_nx`. (2) NewServer /
   NewServerR: previous START HERE's step (3) (split `bootStore.law`'s `wSt` into `wStQ ¼` ×2, `tie_alloc` after
   `NewLessor` with `Lt = log`, `Wt := winTok γt`, `stq := ¼` in the `AEnv` literals (sed on `γlt := γlt }`), `Haus`
   by `envAus_tie`, the tie into `srvKVInvs`; at `E.lg = false`, `tie_free` right after (Fr from `E.lg = false`), the
