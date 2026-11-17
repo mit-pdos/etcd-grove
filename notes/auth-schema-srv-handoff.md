@@ -1,6 +1,32 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A0 accepted, lean merged; STOP at the land stop)
+## START HERE (2026-11-17, A1 Scope written; STOP for its decisions)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; A0 landed (lean 722a6314a7). Decisions:
+  `questions.md`. Plan: `notes/auth-schema-srv-scope.md` §3 (A1-A7).
+- Done: A1's Scope `notes/auth-schema-srv-a1-scope.md` (notes only): per-bucket kinds `RbK` in `BSess.tk`,
+  readers' contents `rvBkt`, the readers' ghost `γ.rbr` claimed per bucket (sealed `rbOwnInR`), the readers'
+  law, `Unlock`'s accessor run at the write-back and the commit; no trusted text restated in text.
+  Go test `notes/auth-schema-srv-a1/zz_a1_trackedwindow_test.go` (M1/M2/M4 never violated, M3 control seen;
+  3 runs). Lean probe `/shared/tmp/auth-schema-srv/A1Probe.lean` (0 errors; `Scratch/` is untracked).
+- Waiting on: the coordinator, A1 Scope §6 decisions 1-5 (recommended: claim per bucket; kinds; the
+  accessor; `hookStep` strengthened, which changes the exported `Results.lean:1081` post; `OpenBackend`'s
+  meaning via `isBackend` routine).
+- Next, once decided: merge lean (the origin/lean merge, Perennial pin c6b39d4f8), then A1.1 (pure model)
+  checkpoint, A1.2-A1.5 (checkpoint at `Unlock`'s statement), A1.6-A1.9. A3/A4 can run beside A1.
+- Go tests: copy the test into `server/storage/backend` (or `storage/schema` for A0's) of the clone
+  `/shared/tmp/auth-schema-srv/etcd` (fork pin 6e8f0c004); `cd server; PATH=/usr/local/go/bin:$PATH
+  TMPDIR=/shared/tmp systemd-run --scope -q -p MemoryMax=32G env GOWORK=off GOTOOLCHAIN=go1.27.3 go test
+  ./storage/backend/ -run TestA1 -count=1 -v` (~35 s).
+- Pitfalls: `Model.lean` already has an `AuthView`: the bucket view is `BkView`. `lean-check` on a fresh
+  file first rebuilds imports (4-5 min; it says "stopped when the edited declaration was done": rerun with
+  `-a` for the whole file). Builds via `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json
+  build ...`; `LAKE_OPTS=--packages=...` for `etc/lean-check.py`; `--stop` it before ending a turn. A stray
+  Perennial clone was moved out of `.lake/packages` (to `/shared/tmp/auth-schema-srv/perennial-stray-from-worktree`).
+
+## History
+
+### A0 land stop (2026-11-17)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`. Session row in `/shared/etcd-grove-sessions.md`.
   Decisions: `questions.md` (Q1 (a), Q2-Q9; the A0 items, accepted).
@@ -22,8 +48,6 @@
   `etc/lean-check.py` (it printed nothing on a module whose import failed to build: build first). The worktree's
   `.lake/packages` had a stray Perennial clone (at e9e6351d9); moved to
   `/shared/tmp/auth-schema-srv/perennial-stray-from-worktree` so gates link PERENNIAL_CHECKOUT.
-
-## History
 
 ### Scope (2026-11-16, HARD STOP, refutation)
 
