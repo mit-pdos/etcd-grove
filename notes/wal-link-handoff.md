@@ -44,6 +44,29 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`
   (`--stop` before builds and at the end). **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
 
+## L1b by (iii): cost stop (2026-11-17; reported to etcd-grove-03; no Lean changed)
+
+- **Why (iii) is not internal to RaftModel/WalApi.** Layer 1 fixes `Mr : WalMarshal` (model -> bytes) as a
+  parameter of `walInv` (`PW/Inv.lean:2128`), allocated before any entry exists, and every stream function
+  (`opDs`, `cutHdrDs`, `segsDs`, `recsOfSegs`, `tailStream`, `tailRecs`, `allRecs`, `segStream`,
+  `St/WalEncRecs.lean`, `St/WalEncSegs.lean`, `PW/Handle.lean`) computes the bytes from `H.map WalOpG.toM`.
+  Per-record bytes need a new argument (an annotated history `X` with `strip X = H.map toM`, kept per directory
+  in `walInv` and in the tail record, maintained by Save/SaveSnapshot/cut/Create/ReadAll/crash): 105 files,
+  919 uses of the stream functions, 176 of `map WalOpG.toM` (57 files): est. 2-4k lines changed, about (ii)'s cost.
+- **Entries alone are cheap (no layer-1 change):** the server's WAL-level model of content `c` keeps term/index/
+  type and puts `entryEncC c` in `Data'` (`Mr.encEntry` := those bytes when the model is such a wrap of a `ufWire`
+  content, else injective stand-in bytes as `walEntJunk`); round trip from `entryEncC`'s injectivity on `ufWire`
+  (MsgAppV2.lean:567-570). The history then holds wrapped models; L0/L3 map them back (fold commutes with maps
+  keeping Index/Term, ~100 lines). Est. 300-600 lines.
+- **The hard state is the blocker:** `WalOpG.save (h : HardStateM)` (trusted `GooseLang/Ext/AbsDisk/Impl.lean:83`)
+  has no room for content, and `cut` repeats the last state record (wal.go:931, `w.state = s`, :1098). Options:
+  (a) raft's exported Ready results give the hard state canonical (`raft.hardState` builds all three cells, uf = []:
+  `raft__hardState.lean:31-35`): a stronger post on `RawNode.wp_Ready`/`node.wp_Ready`/`isReadyChan_recvAu`
+  (exported statements: user/coordinator stop); (b) layer 1 over per-record state bytes (the annotated history
+  above, state part only; most of the 2-4k); (c) `walInv`'s `encState` a ghost map extended at first use, with a
+  no-conflicting-repeat premise on Save (raft's hard-state monotonicity at `raftNode.start`: not exported today).
+- Recommendation in the report: entries by the wrap; hard state by (a).
+
 ## L1b at the R5 stop (2026-11-17; HARD STOP (b), reported to etcd-grove-03; no Lean changed for L1b)
 
 - **R5 (fraction vs frozen): no client change.** `storage.SaveSnap` (S/storage/storage.go:59-70) shares raft's
