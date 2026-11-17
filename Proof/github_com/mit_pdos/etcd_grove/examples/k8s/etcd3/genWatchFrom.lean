@@ -1,6 +1,6 @@
 /-
-Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/genWatchFrom.lean` and
-`genWatch.lean` (stage E of 7f-6). Lean-first (no Rocq counterpart).
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/genWatchFrom.lean`
+(stage E of 7f-6). Lean-first (no Rocq counterpart).
 
 The fifteen `pick`s, then each statement-level `if` joined (`wp_join`) at what the watch needs of
 it: the mode draw below 7, a cached object at `2^62` or above dropped (G1), a relative RV drawn
@@ -12,7 +12,6 @@ initial-events options (`WatchInOk`, `kModeOk_of`'s premises).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatchFrom
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatch
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadKeys
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadNodes
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadApps
@@ -323,18 +322,6 @@ theorem genWatchFrom.wp_proof (wp_pick : pick.spec (GF := GF) (hG := hG))
   obtain ⟨⟨h1, h2, h3, ⟨h4a, h4b, h4c⟩, h5⟩, hw, hb, hs⟩ := Hy
   refine ⟨h1, h2, ?_, fun _ => ⟨h4a, h4b _, h4c, r, by rw [h5]; exact hr0, by word, hw, hb, hs⟩⟩
   intro h; rw [h3] at h; cases h
-
-theorem genWatch.wp_proof (wp_genWatchFrom : genWatchFrom.spec (GF := GF) (hG := hG)) :
-    genWatch.spec (GF := GF) (hG := hG) := by
-  intro id c hasC
-  wp_start
-  wp_auto
-  wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %n _
-  (try wp_auto)
-  wp_apply wp_genWatchFrom n id c hasC as %x %Hx
-  (try wp_auto)
-  iapply HΦ
-  ipureintro; exact Hx
 
 end proof
 
