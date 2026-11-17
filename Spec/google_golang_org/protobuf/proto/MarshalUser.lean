@@ -2,8 +2,9 @@
 `proto.Marshal` on an `authpb.User`: the trust boundary (`google.golang.org/protobuf` is
 names-only; the encoding `auth.userEncode` is opaque, `auth/Buckets.lean`), the twin of
 `proto.Unmarshal` on the message (`UnmarshalUser.lean`), as `proto.Marshal` on `mvccpb.KeyValue`
-(`Marshal.lean`). auth-schema-srv A3 (2026-11-17; Draft `notes/auth-schema-srv-a3-draft.md`): not
-yet an axiom (no `Proof/` file until the attack). Its Go tests:
+(`Marshal.lean`). auth-schema-srv A3 (2026-11-17; Draft `notes/auth-schema-srv-a3-draft.md`): an axiom
+(`Proof/google_golang_org/protobuf/proto/MarshalUser.lean`), attacked independently
+(`notes/axiom-review/auth-a3-marshal.md`). Its Go tests:
 `examples/authpbmarshal/marshal_test.go`.
 -/
 module

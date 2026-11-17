@@ -135,12 +135,8 @@ theorem auth.authStore.UserChangePassword.wp_tie
   · wp_if_destruct
     · iframe; ipureintro; simp
     · iunfold userOptsIs at Huo
-      icases Huo with (%Hn | ⟨%Honn, %oms, %ouf, %osc, %ou, -, #Hom, -⟩)
+      icases Huo with (%Hn | ⟨%Honn, %ouf, %ou, -, #NoPassword, -, -, -⟩)
       · exact absurd Hn.1 Hif
-      ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hom
-      icases typedPointsto_split _ _ _ $$ Hom with Homf
-      simp only [TypedPointsto.typedPointstoDef]
-      iNamed Homf
       (try wp_auto)
       iframe
       ipureintro

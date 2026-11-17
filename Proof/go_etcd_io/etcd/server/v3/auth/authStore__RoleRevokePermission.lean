@@ -259,11 +259,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
       $$ Hperms
     ihave #Hpw2 := Hpw
     iunfold ownPermS at Hpw2
-    icases Hpw2 with ⟨%Hppnn, %pms, %kk, %kre, %psc, #Hpp, #Hkk, #Hkre⟩
-    ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hpp
-    icases typedPointsto_split _ _ _ $$ Hpp with Hpp
-    simp only [TypedPointsto.typedPointstoDef]
-    iNamed Hpp
+    icases Hpw2 with ⟨%Hppnn, %kk, %kre, #PermType, #Key, #RangeEnd, -, -, #Hkk, #Hkre⟩
+    have Hrespnn : pp ≠ null := Hppnn.1
     (try wp_auto)
     have hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     wp_apply (_root_.Perennial.bytes.wp_Equal kk ks DFrac.discard DFrac.discard w.key key)

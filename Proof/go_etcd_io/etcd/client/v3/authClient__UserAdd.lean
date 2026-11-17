@@ -34,20 +34,13 @@ theorem authClient.UserAdd.wp_proof
   icases Hapi with ⟨%rac, %sl, #Hremote, #Hrac, #Hconn, #Hcopts, #Hsl⟩
   wp_auto
   ihave %Hvn := typedPointsto_not_null _ _ _ $$ «$v2»
-  ipersist «$v2»
+  imod auth.userOptsIs_freeze ⊤ «$v2_ptr» _ false _ [] _ $$ [«$v2»] with #Hoi
+  · iframe «$v2»; iapply ownSlice_nil
   ihave #Hopt : userOptsFalse (GF := GF) «$v2_ptr» $$ []
-  · unfold userOptsFalse auth.userOptsAt auth.userOptsIs
+  · unfold userOptsFalse auth.userOptsAt
     iexists some []
-    isplitr
-    · ipureintro; exact auth.userOptsUfOk_empty
-    iright
-    isplitr
-    · ipureintro; exact Hvn
-    iexists _, _, _, []
-    isplitr
-    · ipureintro; rfl
-    iframe «$v2»
-    iapply ownSlice_nil
+    iframe Hoi
+    ipureintro; exact auth.userOptsUfOk_empty
   ihave Hsend : (pbAuthUserAddRequest (GF := GF)).send «$a1_ptr» ⟨name, pw⟩ $$ [«$a1»]
   · simp only [pbAuthUserAddRequest]
     iexists _

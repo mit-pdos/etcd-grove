@@ -1,6 +1,34 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A3 Draft written; STOP for the attack)
+## START HERE (2026-11-17, A3 done; STOP: report A3's end)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A2-A7); decisions `questions.md` (untracked).
+- Done: A1 (52d85a42f6 … 6fe91f236f); A2 (72c59c8aff, f546a2dbb9); **A3 (this commit)**: Draft
+  `notes/auth-schema-srv-a3-draft.md` applied with the attack's MINORs (`notes/axiom-review/auth-a3-marshal.md`):
+  `Buckets.lean` (`pbSizeCacheN`, the three predicates per field, `permSizeCache_alloc`, `ownPermS_freeze`,
+  `ownPermW_freeze`, `userOptsIs_freeze`, persist lemmas → `|={E}=>`), axiom files `Proof/.../proto/Marshal{User,Role}.lean`,
+  `MarshalIRR` docstring, callers (auth store, `EtcdServer.UserAdd`, schema `GetRole`, `InvAuthBackend`, client
+  `PerTypeAuth`/`authClient.{UserAdd,RoleGrantPermission}`); ledger entry; full build green
+  (`/shared/tmp/auth-schema-srv/a3-build1.log`); `tcb-report --check` matches unchanged (894: the two new axioms
+  are reached by no root until A5); no interface changed.
+- Next: A4, the put budget in `authBatchTxLk(R)` (Q6, decision 2). **Open point to settle first**: `RoleDelete` puts
+  one user per holder of the role, the backend needs `pend + 1 < 2^58`, and `authSmall` bounds the users only through
+  the revision (≤ k + b + 1, b ≤ 2^61): the budget needs a users-count bound below 2^58 (e.g. a users-count field in
+  `authSmall`, ≤ revision, with a tighter base), or a budget not derived from the state. Then A5, A6; A7 HARD STOP.
+- Pitfalls: (1) `wp_join` cases end at the bare `R` (no update): to allocate an invariant in a case, make `R` an
+  update `iprop(|={⊤}=> …)` and `imod` it in the continuation (`authStore__UserAdd*.lean`). (2) the per-field
+  predicates: after `iunfold ownPermS`, name the field cells `#PermType, #Key, #RangeEnd` (wp_load finds them).
+  (3) `BigSepL2.bigSepL_fupd E` is the list fupd lemma (odd namespace). (4) a hand-written `if m = n` picks
+  `instDecidableEqString`: write `@ite _ (m = n) (Classical.propDecidable _) …`. (5) Stray Perennial clone: keep
+  `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6) `etc/gen-interface.py --layout`
+  builds every package module: build first. (7) lean-check of a server file rebuilds its imports outside a slot
+  (EtcdServer__UserAdd: 450 s): prefer the slot build for many importers.
+
+## History
+
+### A3 Draft written (2026-11-17, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -23,8 +51,6 @@
   `etc/gen-interface.py --layout` builds every package module: build first. (7) simp normalizes
   `decide (a ∉ l)` to `!decide (a ∈ l)` inside Iris hyps. (8) Go tests: reading unexported fields with
   `reflect`+`unsafe` under `-race` needs `unsafe.Pointer(v.UnsafeAddr())` in one expression (checkptr).
-
-## History
 
 ### A2 done (2026-11-17, superseded)
 

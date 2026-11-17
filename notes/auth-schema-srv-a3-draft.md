@@ -1,6 +1,6 @@
 # auth-schema-srv A3: Draft (Marshal of `authpb.User`/`Role`; size caches out of `↦□`)
 
-2026-11-17. Scope: `notes/auth-schema-srv-scope.md` §3 (A3), Q3 (Marshal axioms mirroring the Unmarshal
+**Applied 2026-11-17** (decisions §7 accepted by etcd-grove-03 after the attack, `notes/axiom-review/auth-a3-marshal.md`; MINORs m1-m3 folded in). 2026-11-17. Scope: `notes/auth-schema-srv-scope.md` §3 (A3), Q3 (Marshal axioms mirroring the Unmarshal
 ones), Q4 (follow-up (a)). Status: **texts for an independent attack; no axiom file yet.** Nothing in
 `Buckets.lean` is changed yet; the restated predicates are elaborated in `Scratch/A3Preds.lean`
 (untracked; `lean-check -a`: 0 errors), the two new specs are `Spec/.../proto/MarshalUser.lean` and

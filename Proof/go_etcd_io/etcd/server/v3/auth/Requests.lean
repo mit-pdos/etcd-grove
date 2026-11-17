@@ -4,11 +4,13 @@ methods read of their request messages (`etcdserverpb.Auth*Request`), as persist
 fields, the shape of the apply package's request predicates (`apply/InvRequest.lean`,
 `authUserAddIs`, which now are these). A request's `[]byte` fields (`RoleRevokePermission`'s
 `Key`/`RangeEnd`, `RoleGrantPermission`'s `Perm`) are read-only slices, as `proto.Unmarshal`
-leaves them; the permission of a `RoleGrantPermission` is a read-only message (`ownPermW`,
-`Buckets.lean`; its unknown fields free: a client's newer fields), of which the store copies
+leaves them; the permission of a `RoleGrantPermission` is a message with read-only wire fields
+(`ownPermW`, `Buckets.lean`: its size cache in an invariant, auth-schema-srv A3; its unknown fields
+any bytes: a client's newer fields), of which the store copies
 `Key`, `RangeEnd` and `PermType` into a fresh message for the role's record (`newPerm`, store.go;
-a stored permission has none, `ownPermS`). A `UserAdd`'s `Options` is a read-only message whose
-unknown fields are valid wire format (`userOptsAt`), which the store does put into the user's
+a stored permission has none, `ownPermS`). A `UserAdd`'s `Options` is a message with read-only
+wire fields (its size cache in an invariant, as the permission's) whose unknown fields are valid
+wire format (`userOptsAt`), which the store does put into the user's
 record as it is (`Options: options`; the record keeps those bytes, `UserRec.optsUF`).
 -/
 module
@@ -118,7 +120,7 @@ def roleRevokePermissionReqIs (r : Loc) (role key rangeEnd : GoString) : IProp G
       res ↦*□ rangeEnd))
 
 /-- The `*pb.AuthRoleGrantPermissionRequest` `r` (not nil): its `Name`, and its `Perm`: nil
-(`w = none`), or a read-only permission message holding the wire permission `w` (`ownPermW`). -/
+(`w = none`), or a permission message holding the wire permission `w` (`ownPermW`). -/
 def roleGrantPermissionReqIs (r : Loc) (name : GoString) (w : Option PermW) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthRoleGrantPermissionRequest go!"Name" r ↦□ name ∗
     ∃ p : Loc, structFieldRef etcdserverpb.AuthRoleGrantPermissionRequest go!"Perm" r ↦□ p ∗

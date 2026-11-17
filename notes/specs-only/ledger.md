@@ -2770,3 +2770,26 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   keeps `cw`). Needed by `unsafeCommit`: the commit after the hook needs every claimed bucket still idle (or, from
   A1.5, handed to `Unlock`'s accessor), and the hook's batch lock is in the client-facing mode, which allows claimed
   writes inside the hook's window (`cwOk`).
+
+## 2026-11-17: a nested auth message's size cache in an invariant, its `state` not held (auth-schema-srv A3)
+
+- **Specs.** The predicates `auth.userOptsIs` (and through it `auth.userOptsAt`), `auth.ownPermW`, `auth.ownPermS`
+  (`auth/Buckets.lean`); through them the trusted `proto.UnmarshalUser`, `proto.MarshalIRR`,
+  `pbutil.MustUnmarshalMessage`, the gRPC models of `AuthUserAddRequest`/`AuthRoleGrantPermissionRequest`
+  (`PerTypeAuth.lean`), and the exported `v3rpc.userAdd_end_to_end_on` (`api/v3rpc/Results.lean:794`, premise
+  `auth.userOptsAt o b`; its only linked caller, `Results.lean:959`, still goes through).
+- **Defect.** The predicates held the nested message's whole struct `↦□`, its `sizeCache` and `state` included: false
+  of Go (`proto.Marshal` of a message holding it stores the nested size caches; `String()` and any `ProtoReflect` store
+  a nested `state`), so no spec of `Marshal` (`proto.MarshalUser`/`MarshalRole`, A3) could be stated over them, and
+  `MarshalIRR`'s precondition held read-only cells the call writes.
+- **Evidence.** `examples/authpbmarshal/` (`TestMarshalWritesNestedSizeCache`, `TestStateWrites`,
+  `TestConcurrentSharedNested`; the attack's `TestNestedOnlySizeCache`, `TestConcurrentEverything`); review
+  `notes/axiom-review/auth-a3-marshal.md`; Draft `notes/auth-schema-srv-a3-draft.md` §1-§4.
+- **Change.** Old: `o ↦□ {state' := st, NoPassword' := b, unknownFields' := uf, sizeCache' := sc} ∗ uf ↦*□ u` (and
+  likewise the `Permission` of `ownPermW`/`ownPermS`, `ownPermW`'s unknown-field bytes not held). New: each wire field
+  `↦□` (`NoPassword`, `unknownFields` with its bytes; `PermType`, `Key`, `RangeEnd`, `unknownFields`, with
+  `ownPermW` now holding `∃ ub, uf ↦*□ ub`), `inv pbSizeCacheN (∃ sc, sizeCache ↦ sc)`, no `state`.
+  `userAdd_end_to_end_on`'s premise text is unchanged; its meaning moves: old, the request's `Options` whole struct
+  read-only; new, its wire fields read-only and its size cache in an invariant. Incomparable; both follow from a
+  freshly allocated or decoded message, which is what gRPC's decoder and a client's literal give.
+- **Decision.** Accepted by etcd-grove-03 (2026-11-17, A3 decisions 1-3, after the independent attack).

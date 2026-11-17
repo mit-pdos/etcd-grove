@@ -38,9 +38,14 @@ theorem authClient.RoleGrantPermission.wp_proof
   wp_apply wp_string_to_bytes rangeEnd as %rsl ⟨Hrsl, -⟩
   try wp_auto
   ihave %Hpn := typedPointsto_not_null _ _ _ $$ «$r0»
-  ipersist «$r0»
   ipersist Hksl
   ipersist Hrsl
+  imod auth.ownPermW_freeze ⊤ «$r0_ptr» ⟨permType, key, rangeEnd⟩ _ ksl rsl _ [] _
+    $$ [«$r0»] with #Hpw
+  · iframe «$r0» Hksl Hrsl
+    isplitr
+    · ipureintro; exact ⟨Hpn, Hkl⟩
+    iapply ownSlice_nil
   ihave Hsend : (pbAuthRoleGrantPermissionRequest (GF := GF)).send «$a1_ptr»
       (name, ⟨permType, key, rangeEnd⟩) $$ [«$a1»]
   · simp only [pbAuthRoleGrantPermissionRequest]
@@ -48,11 +53,7 @@ theorem authClient.RoleGrantPermission.wp_proof
     iframe «$a1»
     isplitr
     · ipureintro; exact ⟨rfl, rfl⟩
-    unfold auth.ownPermW
-    isplitr
-    · ipureintro; exact ⟨Hpn, Hkl⟩
-    iexists _, _, _, _, _
-    iframe #
+    iexact Hpw
   iunfold callOptsAt at Hsl
   icases Hsl with ⟨%vs, #Hvs, -, #Hvok, -⟩
   wp_apply wp_retry rac conn addr Spec Q ci cd «$a1_ptr» (name, ⟨permType, key, rangeEnd⟩) sl vs

@@ -124,14 +124,14 @@ theorem userOutDX_persist (u : Loc) (m : backend.BktData) (name : GoString) :
     imod auth.ownUserX_persist u ur $$ Hu with Hu
     imodintro; iexists ur; iframe Hu; ipureintro; exact H
 
-theorem roleOutDX_persist (r : Loc) (m : backend.BktData) (name : GoString) :
-    roleOutDX (GF := GF) r m name ⊢ |==> roleOutD r m name := by
+theorem roleOutDX_persist (E : CoPset) (r : Loc) (m : backend.BktData) (name : GoString) :
+    roleOutDX (GF := GF) r m name ⊢ |={E}=> roleOutD r m name := by
   unfold roleOutDX roleOutD
   cases m.lookup name with
   | none => iintro H; imodintro; iexact H
   | some v =>
     iintro ⟨%rr, %H, Hr⟩
-    imod auth.ownRoleX_persist r rr $$ Hr with Hr
+    imod auth.ownRoleX_persist E r rr $$ Hr with Hr
     imodintro; iexists rr; iframe Hr; ipureintro; exact H
 
 /-! ## The buckets hold the state -/
