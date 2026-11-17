@@ -1,6 +1,34 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L2: T1 and the ReleaseSnapDBs axiom done)
+## START HERE (2026-11-17, L2 proper: goose config done; STOP on two findings)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
+  Coordinator: etcd-grove-03. Scope §2-§3, §7-§8; `questions.md` (T1, ReleaseSnapDBs accepted).
+- **Done:** 771d63dd6b `storage.toml` translates `NewStorage`, `storage.{SaveSnap,Release,Save,Close,Sync}` with bodies
+  (imports `wal`, `walpb`); goose regenerated (`--src etcd=/shared/tmp/wallink/etcd --perennial /shared/perennial-c6b39d4f8`,
+  PATH with go); `gen-init` (storage's init runs wal's/walpb's: storage and apply `Init` gain the `Fs`/`log.NewModel`
+  instance variables, 24 PkgTables renumbered); `apply/Base.lean` imports wal's `PkgInit`. Built: storage/apply `Init`
+  only (no full build yet). The `storage` struct is now translated (its two `sorry -- axiomatized type` gone).
+- **Stopped (reported to etcd-grove-03), no spec written yet:**
+  (F1) `storage.Release`'s axiom cannot go in L2 alone: a proof needs the storage's representation (RWMutex over
+  `p.w ↦ w`, `p.s ↦□ ss`) and layer 1's `ReleaseLockTo` premises (`walOpenWS` share, `walAreaOk`, `walSyncedLb`, AU
+  over `walDiskAt`, a synced snap record); its clients (`applySnapshot`, `EtcdServer.snapshot`, `SnapApplyWalk`) get
+  only `storageSnap p ss` (opaque) and `walBaseLb (walOf …)` from `rnNewStorageOk`/`isWalStorage` (trusted until L3).
+  (F2) `storage.SaveSnap` shares raft's conf-state object in the `walpb.Snapshot` it builds; `walSrvMr.encSnap` is
+  `snapEnc (walSnapCanon md)` (conf state nil iff zero, `AutoLeave` present); `csOptA … false` allows a nil
+  `AutoLeave` cell and a non-nil zero conf state, so the record's bytes need not be `Mr.encSnap md` (R5's bridge
+  assumed canonical). Raft's own `ConfState()` sets `AutoLeave` (tracker.go:148-155); received snapshots: per sender.
+- **Planned forms (not yet written):** `storage.storageOver p w ss` (persistent: `p.s ↦□ ss`, `isRWMutexGuard`
+  and a thread pool of reader tokens over `P q := p.w ↦{q} w`); methods take/return `threadTok`, otherwise the WAL
+  spec's pre/post; `NewStorage` takes `threadBound GF ≤ 2^30` (bounds baseline +1 spec-thread for the storage pkg).
+- **Pitfalls:** gen-link/gen-init compare only with Perennial linked at `.lake/packages/perennial`; gen-init needs
+  `PERENNIAL_DIR=/shared/perennial-c6b39d4f8`. `questions.md` is git-ignored (local only).
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
+  **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
+
+## History
+
+### START HERE (2026-11-17, L2: T1 and the ReleaseSnapDBs axiom done)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
   Coordinator: etcd-grove-03. Scope §7-§8, `questions.md` for the decisions. L1 (L1a, L1b) accepted by etcd-grove-03.
@@ -21,8 +49,6 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
   **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
   **Go:** `cd examples && GOWORK=off TMPDIR=/shared/tmp go test -count=1 -v ./axiomcx/releasesnapdbs/`.
-
-## History
 
 ### START HERE (2026-11-17, after L1b)
 
