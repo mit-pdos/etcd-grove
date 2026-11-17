@@ -20,7 +20,7 @@ spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/txnlin 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/txnlinfaultsN 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/etcd/watch 1
 spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/compactor 2
-spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 1
+spec-thread github_com/mit_pdos/etcd_grove/examples/k8s/etcd3 2
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/cluster3 3
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/etcdstart 12
 spec-thread github_com/mit_pdos/etcd_grove/examples/lib/lintest/logkvrw 3

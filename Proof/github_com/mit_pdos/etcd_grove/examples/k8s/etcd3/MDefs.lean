@@ -19,7 +19,8 @@ As linkvtxn's `Defs.lean`:
 - `k8setcd3S h0`, the model's `ModelSpec` from the seeded store and its history `h0`:
   `pM (kSpec h0) decOp`, `rep k` = `stRepB h0 (k + h0.st.items.length + h0.hist.length + 1)` (a
   value made by `k` steps), and `ioOk i o` (a boxed `Input` and a boxed `Output`: what `Step`'s
-  type assertions need; the input not a watch, which `kSpec` does not cover, stage E).
+  type assertions need; a watch's output not an error and its resource version, parsed, below
+  `2^63`, stage E of 7f-6).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
 translation's field projections (`proj_eq`, as linkvtxn's).
@@ -315,7 +316,8 @@ instance stRepB_persistent (g0 : HSt) (n : Nat) (v : GoInterface) (S : linkv.PSe
 def k8setcd3S (g0 : HSt) : github_com.anishathalye.porcupine.ModelSpec GF (linkv.PSet HSt Input) where
   M := linkv.pM (kSpec g0) decOp
   rep k := stRepB g0 (k + g0.st.items.length + g0.hist.length + 1)
-  ioOk i o := iprop(⌜∃ x y, i = boxIn x ∧ o = boxOut y ∧ x.Kind' ≠ W64 5⌝)
+  ioOk i o := iprop(⌜∃ x y, i = boxIn x ∧ o = boxOut y ∧
+    (x.Kind' = W64 5 → y.Err' ≠ W64 4 ∧ ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63)⌝)
   ioOk_pers _ _ := by infer_instance
 
 end defs

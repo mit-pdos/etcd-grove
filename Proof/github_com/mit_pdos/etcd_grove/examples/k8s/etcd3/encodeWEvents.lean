@@ -42,7 +42,9 @@ theorem encodeWEvents.wp_proof
       "i" ∷ i_ptr ↦ j ∗ "Hiu" ∷ iu_ptr ↦ k ∗ "out" ∷ out_ptr ↦ out ∗
       "Ho" ∷ out ↦* encWEventsL ((ws.map wevOf).take (sint.nat j)) ∗
       "Hc" ∷ ownSliceCap w8 out (DFrac.own 1) ∗
-      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len⌝ : IProp GF) $$ [i Hiu out]
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len ∧
+        ∀ e ∈ (ws.map wevOf).take (sint.nat j), (encodeWith tagV1 e.o).length < 2 ^ 63⌝ : IProp GF)
+      $$ [i Hiu out]
   · iexists W64 0, _, slice.nil
     iframe
     isplitl
@@ -51,10 +53,14 @@ theorem encodeWEvents.wp_proof
       iapply ownSlice_nil
     isplitl
     · iapply ownSliceCap_nil
-    · ipureintro; refine ⟨by word, by word⟩
+    · ipureintro
+      refine ⟨by word, by word, fun e he => ?_⟩
+      rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero] at he
+      cases he
   wp_for HI
   wp_if_destruct
   · have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z sl.len := ⟨Hj.1, Hif⟩
+    have Hjall := Hj.2.2
     list_elem ws (sint.nat j) as w
     icases ownSlice_elem_acc (sint.Z j) w sl DFrac.discard _ Hj.1 Hw_lookup $$ Hs with ⟨#Hel, -⟩
     simp only [Hb', _root_.and_self, ↓reduceIte]
@@ -111,14 +117,22 @@ theorem encodeWEvents.wp_proof
       rw [← hb]
       simp only [Bool.false_eq_true, ↓reduceIte]
       iframe
-      ipureintro; refine ⟨by word, by word⟩
+      ipureintro
+      refine ⟨by word, by word, fun e he => ?_⟩
+      rcases List.mem_append.1 he with he | he
+      · exact Hjall e he
+      · simp only [List.mem_singleton] at he
+        subst he
+        simp only [wevOf]
+        have := Hel'.1; word
   · (try wp_auto)
     wp_apply wp_bytes_to_string $$ [$Ho] as -
     (try wp_auto)
     have : (ws.map wevOf).take (sint.nat j) = ws.map wevOf :=
       List.take_of_length_le (by simp; word)
-    rw [this]
-    iapply HΦ; itrivial
+    have Hall := Hj.2.2
+    rw [this] at Hall ⊢
+    iapply HΦ; ipureintro; exact Hall
 
 end proof
 

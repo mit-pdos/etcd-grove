@@ -89,6 +89,13 @@ func genWatchFrom(n uint64, id int, c Obj, hasC bool) Input {
 	if watchList && m == 6 {
 		m = m2
 	}
+	// The proof's bound (runWatch's resource version below 2^63 - 1, which the store's Watch
+	// needs; the watchers' cached objects carry no fact): a cached object at 2^62 or above counts
+	// as none, as minRV's clamp, so every drawn RV parses below 2^62 + 201. Unreachable in a real
+	// run, whose resource versions stay far below 2^62.
+	if hasC && c.ResourceVersion >= 1<<62 {
+		hasC = false
+	}
 	if !hasC && m >= 3 {
 		m = m3
 	}

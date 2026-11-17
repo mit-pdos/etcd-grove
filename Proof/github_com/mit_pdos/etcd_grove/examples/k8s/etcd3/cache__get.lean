@@ -30,20 +30,21 @@ theorem cache.get.wp_proof :
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isCache at Hc
+  icases Hc with ⟨#Hc, -, -⟩
   (try wp_auto)
   wp_apply (sync.Mutex.wp_Lock _ (cacheInv c tbl)) $$ [] as ⟨Hlocked, HR⟩
   · iframe #
   iunfold cacheInv at HR
-  icases HR with ⟨%mp, %m, Hobjs, Hm, #Hall⟩
+  icases HR with ⟨%mp, %m, %mpw, %mw, Hobjs, Hm, #Hall, Hw, Hwm⟩
   (try wp_auto)
   wp_apply wp_map_lookup2 $$ Hm as Hm
   (try wp_auto)
-  wp_apply (sync.Mutex.wp_Unlock _ (cacheInv c tbl)) $$ [Hlocked Hobjs Hm]
+  wp_apply (sync.Mutex.wp_Unlock _ (cacheInv c tbl)) $$ [Hlocked Hobjs Hm Hw Hwm]
   · iframe #
     iframe Hlocked
     inext
     iunfold cacheInv
-    iexists mp, m
+    iexists mp, m, mpw, mw
     iframe
     iframe #
   (try wp_auto)

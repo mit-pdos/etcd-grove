@@ -15,6 +15,12 @@ powerset construction): `pSeq.step S (i, o)` is the configurations reachable fro
 pending writes, then `(i, o)` (`PStep`), then pending writes again. `lintest`'s theorem applies
 unchanged. An answer is `ok o` (the call returned `o`) or `err`.
 
+**Observations** (k8s 7f-6 E, 2026-11-17): an input may be an observation (`isObs`, default none),
+whose answer is not a function of the state but checked against it (`obsOk`, default never): it
+answers `ok o` for an `o` the state allows and changes nothing (`PStep.obs`); the other rules are
+for the other inputs. A store with no observations (the defaults, every instance before the k8s
+driver's) has the same steps as before.
+
 `TxnModel.lean` instantiates it with etcd's KV operations (gets, lists, puts, deletes, flat
 transactions, every answer with its revision).
 Moved from `examples/linkv/` when linkv was retired (2026-10-22, `notes/decisions.md` D34); the
@@ -45,6 +51,10 @@ structure PendSpec (St I O : Type) where
   init : St
   step : I → St → St × O
   isWrite : I → Bool
+  /-- (k8s 7f-6 E) the observations: their answers are checked by `obsOk`, not computed -/
+  isObs : I → Bool := fun _ => false
+  /-- (k8s 7f-6 E) an observation's answers the state allows -/
+  obsOk : I → St → O → Prop := fun _ _ _ => False
 
 variable (P : PendSpec St I O)
 
@@ -66,11 +76,17 @@ inductive PReach : PCfg St I → PCfg St I → Prop where
   | step {c c₁ c₂ : PCfg St I} : PSilent P c c₁ → PReach c₁ c₂ → PReach c c₂
 
 /-- **One operation on a configuration**: a call that returned `o` takes effect and answered the
-step's output; a failed write becomes pending; a failed read does nothing. -/
+step's output; a failed write becomes pending; a failed read does nothing; (k8s 7f-6 E) an
+observation answers what the state allows and changes nothing. -/
 inductive PStep : PCfg St I → I → Ans O → PCfg St I → Prop where
-  | ok (c : PCfg St I) (i : I) : PStep c i (.ok (P.step i c.st).2) ⟨(P.step i c.st).1, c.pend⟩
-  | errW (c : PCfg St I) (i : I) (h : P.isWrite i = true) : PStep c i .err ⟨c.st, i :: c.pend⟩
-  | errR (c : PCfg St I) (i : I) (h : P.isWrite i = false) : PStep c i .err c
+  | ok (c : PCfg St I) (i : I) (ho : P.isObs i = false) :
+      PStep c i (.ok (P.step i c.st).2) ⟨(P.step i c.st).1, c.pend⟩
+  | errW (c : PCfg St I) (i : I) (h : P.isWrite i = true) (ho : P.isObs i = false) :
+      PStep c i .err ⟨c.st, i :: c.pend⟩
+  | errR (c : PCfg St I) (i : I) (h : P.isWrite i = false) (ho : P.isObs i = false) :
+      PStep c i .err c
+  | obs (c : PCfg St I) (i : I) (o : O) (h : P.isObs i = true) (ho : P.obsOk i c.st o) :
+      PStep c i (.ok o) c
 
 /-- The model's state: the configurations the history may have reached. -/
 abbrev PSet (St I : Type) := PCfg St I → Prop
@@ -159,30 +175,38 @@ theorem pSeq_step_closed {S S' : PSet St I} {i : I} {o : Ans O}
   rw [pSeq_step_some h]; exact ppost_closed S i o
 
 /-- A call that returned its output, at the real configuration `c ∈ S`. -/
-theorem pSeq_ok {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I) :
+theorem pSeq_ok {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I)
+    (ho : P.isObs i = false := by rfl) :
     ∃ S', (pSeq P).step S (i, .ok (P.step i c.st).2) = some S' ∧
       S' ⟨(P.step i c.st).1, c.pend⟩ :=
-  pSeq_step_of_pstep hS (.ok c i) (.refl _)
+  pSeq_step_of_pstep hS (.ok c i ho) (.refl _)
+
+/-- (k8s 7f-6 E) An observation the real configuration `c ∈ S` allows. -/
+theorem pSeq_obs {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I) (o : O)
+    (h : P.isObs i = true) (ho : P.obsOk i c.st o) :
+    ∃ S', (pSeq P).step S (i, .ok o) = some S' ∧ S' c :=
+  pSeq_step_of_pstep hS (.obs c i o h ho) (.refl _)
 
 /-- A write that failed, having taken effect at the commit (the server applied it during the
 call): pending, then applied. -/
 theorem pSeq_errW_applied {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I)
-    (hw : P.isWrite i = true) :
+    (hw : P.isWrite i = true) (ho : P.isObs i = false := by rfl) :
     ∃ S', (pSeq P).step S (i, .err) = some S' ∧ S' ⟨(P.step i c.st).1, c.pend⟩ := by
-  refine pSeq_step_of_pstep hS (.errW c i hw) (.single ?_)
+  refine pSeq_step_of_pstep hS (.errW c i hw ho) (.single ?_)
   have h := PSilent.apply (P := P) ⟨c.st, i :: c.pend⟩ i List.mem_cons_self
   simpa [List.erase_cons_head] using h
 
 /-- A write that failed, not (yet) applied at the commit (the call's return): pending. -/
 theorem pSeq_errW_pending {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I)
-    (hw : P.isWrite i = true) :
+    (hw : P.isWrite i = true) (ho : P.isObs i = false := by rfl) :
     ∃ S', (pSeq P).step S (i, .err) = some S' ∧ S' ⟨c.st, i :: c.pend⟩ :=
-  pSeq_step_of_pstep hS (.errW c i hw) (.refl _)
+  pSeq_step_of_pstep hS (.errW c i hw ho) (.refl _)
 
 /-- A read that failed. -/
-theorem pSeq_errR {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I) (hw : P.isWrite i = false) :
+theorem pSeq_errR {S : PSet St I} {c : PCfg St I} (hS : S c) (i : I) (hw : P.isWrite i = false)
+    (ho : P.isObs i = false := by rfl) :
     ∃ S', (pSeq P).step S (i, .err) = some S' ∧ S' c :=
-  pSeq_step_of_pstep hS (.errR c i hw) (.refl _)
+  pSeq_step_of_pstep hS (.errR c i hw ho) (.refl _)
 
 /-- A pending write takes effect late (no operation of the log). -/
 theorem PSet.Closed.apply {S : PSet St I} (hS : PSet.Closed P S) {c : PCfg St I} (hc : S c)

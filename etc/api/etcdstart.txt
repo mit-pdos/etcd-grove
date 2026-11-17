@@ -62,6 +62,11 @@ importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
 # compacting member from its writers' plan (`OnceUpTo`)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
+# (k8s 7f-6 stage E, checkpoint E-1 approved by etcd-grove-03, 2026-11-17) a member served with its
+# watch registration (`kvWatch_served`, `watchRegAt`), and the client's watch environment over a list
+# of members (`watchEnvL`, `watchEnvL_conn`)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServed
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchEnvL
 
 ## Debt: proof internals the examples import today
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base

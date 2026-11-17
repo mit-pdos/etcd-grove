@@ -27,6 +27,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Refine
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Callbacks
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.History
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Steps
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.MvccCountable
 
 @[expose] public section
 
@@ -547,7 +548,7 @@ theorem cfg_step (hc : CfgD c) (eD eU : GoInterface) (x : Input) (hx : InOk x)
 which has room (`hr`, the firing's), stepped by the input to the store's model of `σ'`. -/
 theorem kOk_ok (hc : CfgD c) {S : linkv.PSet HSt Input} {σ σ' : KVState} {M : GMap Nat Input}
     {nx : Nat} (H : KOk c g0 S σ M nx) (eD eU : GoInterface) (x : Input) (hx : InOk x)
-    (hk4 : x.Kind' ≠ W64 4)
+    (hk4 : x.Kind' ≠ W64 4) (h5 : x.Kind' ≠ W64 5)
     (habs : c.abs σ' = (kStep eD eU x (c.abs σ)).1) (hw' : kvWf c σ') (hn : k8s.KvNext σ σ')
     (hki : k8s.KeysIn c.pfx σ σ') (hr : σ.rev + 2 < 2 ^ 63) :
     ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .ok (kStep eD eU x (c.abs σ)).2) = some S' ∧
@@ -555,7 +556,7 @@ theorem kOk_ok (hc : CfgD c) {S : linkv.PSet HSt Input} {σ σ' : KVState} {M : 
   obtain ⟨cf, hcf, hrel, hlen, hp⟩ := H.cfg
   have hwh' := kvWfHist_step c σ σ' H.hwf hw' hn
   obtain ⟨hrel', hlen', hout⟩ := cfg_step hc eD eU x hx hk4 cf.st σ σ' hrel hlen habs hn hwh' hr
-  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_ok (P := kSpec g0) hcf x
+  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_ok (P := kSpec g0) hcf x (decide_eq_false h5)
   have hKw : mkeyL x.Key' ∈ wkKeysL.map mkeyL := List.mem_map_of_mem hx.1
   have hkeys := keysOk_step c σ σ' H.keys hw' hn hki _ hKw
     (fun k hk => by rw [habs]; exact kStep_items eD eU x _ k hk)
@@ -570,6 +571,7 @@ theorem kOk_list {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} 
     ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .ok (lOut x σ)) = some S' ∧ KOk c g0 S' σ M nx := by
   obtain ⟨cf, hcf, hrel, hlen, hp⟩ := H.cfg
   obtain ⟨S', hS', hc'⟩ := linkv.pSeq_ok (P := kSpec g0) hcf x
+    (decide_eq_false (by rw [hk4]; decide))
   have hst : kstepL x cf.st = (cf.st, mlistL x cf.st) := by unfold kstepL; rw [if_pos hk4]
   rw [show (kSpec g0).step x cf.st = (cf.st, mlistL x cf.st) from hst] at hS' hc'
   refine ⟨S', ?_, linkv.pSeq_step_closed hS', H.wf, H.hwf, H.keys, H.fresh, H.ins,
@@ -582,7 +584,9 @@ theorem kOk_errW {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} 
     ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .err) = some S' ∧
       KOk c g0 S' σ (GMap.insert nx x M) (nx + 1) := by
   obtain ⟨cf, hc, hst, hlen, hp⟩ := H.cfg
-  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errW_pending (P := kSpec g0) hc x hw
+  have h5 : x.Kind' ≠ W64 5 := by
+    intro e; simp [isWriteL, e] at hw
+  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errW_pending (P := kSpec g0) hc x hw (decide_eq_false h5)
   refine ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, H.hwf, H.keys, ?_, ?_, ⟨_, hc', hst, hlen, ?_⟩⟩
   · intro n hn
     show (GMap.insert nx x M) !! n = none
@@ -602,10 +606,23 @@ theorem kOk_errW {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} 
 
 /-- A read that failed. -/
 theorem kOk_errR {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
-    (H : KOk c g0 S σ M nx) (x : Input) (hw : isWriteL x = false) :
+    (H : KOk c g0 S σ M nx) (x : Input) (hw : isWriteL x = false) (h5 : x.Kind' ≠ W64 5) :
     ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .err) = some S' ∧ KOk c g0 S' σ M nx := by
   obtain ⟨cf, hc, hst, hlen, hp⟩ := H.cfg
-  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errR (P := kSpec g0) hc x hw
+  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_errR (P := kSpec g0) hc x hw (decide_eq_false h5)
+  exact ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, H.hwf, H.keys, H.fresh, H.ins,
+    ⟨cf, hc', hst, hlen, hp⟩⟩
+
+/-- (stage E of 7f-6) A watch whose answer every configuration of `S` at etcd's state `σ`
+allows (`watchOkL`): the model's observation, nothing moved. -/
+theorem kOk_obs {S : linkv.PSet HSt Input} {σ : KVState} {M : GMap Nat Input} {nx : Nat}
+    (H : KOk c g0 S σ M nx) (x : Input) (y : Output) (hk5 : x.Kind' = W64 5)
+    (hw : ∀ cf : linkv.PCfg HSt Input, S cf → KRelH cf.st σ → cf.st.hist.length = σ.rev →
+      watchOkL x y cf.st = true) :
+    ∃ S', (linkv.pSeq (kSpec g0)).step S (x, .ok y) = some S' ∧ KOk c g0 S' σ M nx := by
+  obtain ⟨cf, hc, hst, hlen, hp⟩ := H.cfg
+  obtain ⟨S', hS', hc'⟩ := linkv.pSeq_obs (P := kSpec g0) hc x y (decide_eq_true hk5)
+    (hw cf hc hst hlen)
   exact ⟨S', hS', linkv.pSeq_step_closed hS', H.wf, H.hwf, H.keys, H.fresh, H.ins,
     ⟨cf, hc', hst, hlen, hp⟩⟩
 
@@ -726,11 +743,14 @@ variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- The instance's ghost names: the history's variable, the pending writes' map, the revisions'
-states' map. -/
+states' map; (stage E of 7f-6) the mono list of etcd's changes, and the base store of etcd's state
+(a value: no compaction, so every state's). -/
 structure KNames where
   h : GName
   p : GName
   r : GName
+  ch : GName
+  b0 : KVStore
 
 /-- The instance's namespace: its invariant's (`drvInvN`) and a call's (`callN`). -/
 def drvN : Namespace := nroot .@ "k8setcd3"
@@ -825,11 +845,22 @@ def RevOk (Mr : GMap Nat KVState) (σ : KVState) : Prop :=
   Mr !! σ.rev = some σ ∧ (∀ n, σ.rev < n → Mr !! n = none) ∧
     ∀ n s, Mr !! n = some s → k8s.KvExt s σ
 
+/-- **One change per revision** (stage E of 7f-6): every revision of `σ` changes one key at most
+(the store's single-operation transactions, `KvOne`; the seed's puts). -/
+def OneChange (σ : KVState) : Prop := ∀ cs ∈ σ.changes, cs.length ≤ 1
+
+/-- **etcd's history facts the watches need** (stage E of 7f-6): no compaction, the base store
+`γ.b0`, one change per revision, past etcd's first revision. -/
+def KHistI (γ : KNames) (σ : KVState) : Prop :=
+  σ.compacted = 0 ∧ σ.base = γ.b0 ∧ OneChange σ ∧ 1 ≤ σ.rev
+
 /-- **The revisions' states**, with the current one's element, read-only: a revision determines
-the state. -/
+the state; (stage E of 7f-6) the mono list of etcd's changes, whose lower bounds a watch's read
+update keeps, and `KHistI`. -/
 def revOwn (γ : KNames) (σ : KVState) : IProp GF :=
   iprop(∃ Mr : GMap Nat KVState, ghostMapAuth γ.r 1 Mr ∗
-    ghostMapElem γ.r σ.rev DFrac.discard σ ∗ ⌜RevOk Mr σ⌝)
+    ghostMapElem γ.r σ.rev DFrac.discard σ ∗ ⌜RevOk Mr σ⌝ ∗
+    monoListAuthOwn γ.ch 1 σ.changes ∗ ⌜KHistI γ σ⌝)
 
 instance revOwn_timeless (γ : KNames) (σ : KVState) : Timeless (revOwn (GF := GF) γ σ) := by
   unfold revOwn; infer_instance
