@@ -76,7 +76,7 @@ private theorem rd_szOk {E : Type} {Obj : Type} [DecidableEq Obj] (c : StoreCfg 
       c.S.fromS v = some (d, stl) → c.S.decode d = some o → f o n = .ok o' →
       (stl = true ∨ c.S.encode o' ≠ d) → c.S.storedSizeOk o')
     (hzsz : ign = true → ∀ o', f c.S.zero 0 = .ok o' → c.S.storedSizeOk o')
-    (hrd : rdOf c key ign σ s) (hv : ∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27) : szOk c f s := by
+    (hrd : rdOf c key ign σ s) (hv : ∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax) : szOk c f s := by
   rcases hrd with ⟨kv, hf, hs⟩ | ⟨hf, hi, rfl⟩
   · intro o' hok hw
     refine hfsz kv.value s.data s.stale s.o _ o' (hv kv (mvcc.findKey_mem hf)) hs.2.1 hs.2.2.1 hok ?_

@@ -9,21 +9,17 @@ def bbolt.Bucket.Put_kv.spec : Prop :=
       S !! n = some m →
         0 < List.length kb →
           List.length kb ≤ backend.maxKeySize →
-            ⊢
-              ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.bbolt ∗
-                    backend.ownWTxG tx γ D S G ∗
-                      backend.wBkt tx γ b n g ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
-                  (▷
-                      ∀ err,
-                        ownSlice key kb dk ∗
-                            (⌜List.length vb ≤ backend.maxValueSize ∧ err = GoInterface.nil⌝ ∗
-                                backend.ownWTxG tx γ D (<[n := <[kb := vb]>m]>S) G ∨
-                              ⌜backend.maxValueSize < List.length vb ∧ err ≠ GoInterface.nil⌝ ∗
-                                backend.ownWTxG tx γ D S G) -∗
-                          Φ (intoVal err)) -∗
-                    WP
-                      (((intoVal (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"Put" (intoVal b)))
-                          (intoVal key))
-                        (intoVal value))
-                      {{ Φ }}
+            List.length kb + List.length vb ≤ bbolt.bboltEntryMax →
+              ⊢
+                ∀ Φ,
+                  isPkgInit pkg_id.go_etcd_io.bbolt ∗
+                      backend.ownWTxG tx γ D S G ∗
+                        backend.wBkt tx γ b n g ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
+                    ▷
+                        (ownSlice key kb dk ∗ backend.ownWTxG tx γ D (<[n := <[kb := vb]>m]>S) G -∗
+                          Φ (intoVal GoInterface.nil)) -∗
+                      WP
+                        (((intoVal (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"Put" (intoVal b)))
+                            (intoVal key))
+                          (intoVal value))
+                        {{ Φ }}

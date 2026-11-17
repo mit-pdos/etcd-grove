@@ -211,7 +211,11 @@ theorem writer.writeOp.wp_proof
       · exact Or.inr ((HLm l).1 h)
     wp_apply (hPutC γ.kv trace te σ pend ks vs kk (go!"v" ++ itoaM (sint.nat (n + W64 1))) l L)
       $$ [$Hmv $Htx $Htrc $Hks $Hvs $Hlo] as ⟨Htx, Htrc, Hlo⟩
-    · ipureintro; exact ⟨by omega, hlL⟩
+    · ipureintro
+      have h63 : sint.Z (n + W64 1) < 2 ^ 63 := by word
+      have hvl := newVal_short (sint.nat (n + W64 1)) (by
+        show (sint.Z (n + W64 1)).toNat < 2 ^ 64; omega)
+      exact ⟨by omega, ⟨by unfold etcdKeyMax; omega, by unfold etcdKeyMax; omega⟩, hlL⟩
     (try wp_auto)
     iunfold ownPending at Hp
     icases Hp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩

@@ -267,7 +267,6 @@ axiom backend.fileHolds
 axiom backend.snapshot.Close.wp_proof
 axiom backend.snapshot.Size.wp_proof
 axiom backend.snapshot.WriteTo.wp_proof
-axiom bbolt.Bucket.Put_kv.wp_proof
 axiom bbolt.DB.Close_kv.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof

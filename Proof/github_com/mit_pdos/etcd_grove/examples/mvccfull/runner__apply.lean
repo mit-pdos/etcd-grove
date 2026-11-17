@@ -231,7 +231,7 @@ theorem runner.apply.wp_proof
       iunfold rangeIs; iframe #; ipureintro; simp
     (try wp_auto)
     -- `p.put(…)`, `tw.Put(…)`
-    obtain ⟨hkks, hlL⟩ := hvput hk0
+    obtain ⟨hkks, hlL, hkl0, hvl0⟩ := hvput hk0
     wp_apply wp_bytes_to_string ov.key' o.key DFrac.discard $$ [$Hok] as -
     (try wp_auto)
     rw [hval, hlease]
@@ -247,7 +247,7 @@ theorem runner.apply.wp_proof
     wp_apply (hTPut v.ι.kv trc true (σOf ks ops v.ops) [] ov.key' vs o.key o.val o.lease
         (leasesAfter ks ops v.ops)) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
     · iframe; iframe #
-      ipureintro; exact ⟨Hkslen _ hkks, hlL⟩
+      ipureintro; exact ⟨Hkslen _ hkks, ⟨hkl0, hvl0⟩, hlL⟩
     (try wp_auto)
     iunfold ownPending at Hpp
     icases Hpp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
