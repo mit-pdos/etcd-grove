@@ -1,17 +1,18 @@
 # incomingof handoff
 
-## START HERE (2026-11-17, Part A refuted; B0)
+## START HERE (2026-11-17, Part B texts at the attack stop)
 
 - Branch `incomingof-scope`, worktree /shared/etcd-grove-incomingof; lean 5fb716b5eb merged (5ef8f6520f).
-- Part A (897f63a6e5) REFUTED by 03's independent attack (persistent-auth fresh world builds
-  `incomingKept`): not linked; its Lean is reverted on the branch (the four files equal lean's). Record:
-  `notes/axiom-review/incomingof.md` ("The refutation"), Go `examples/axiomcx/incomingof-attack/`, audit row,
-  `notes/incomingof-crossworld.md`.
-- Now: B0, the read-only inventory of the consumers of the client's KV error outcomes
-  (`notes/incomingof-scope.md` §B.0, done), then STOP. Part B only after 03's go; its new texts must first be checked
-  against the persistent-auth fresh-world attack in a soundness note (they get an independent attack).
-- Pitfall (new): a persistent resource that is a wand from heap cells to a pure fact is buildable in a
-  fresh world with `Auth DFrac.discard σ`; "only an uninterpreted call delivers it" does not protect it.
+- Part A refuted, not linked, Lean reverted (5dab7c3336; land the branch with it, decided). B0 done (Scope §B.0).
+- Part B approved (Scope, top). Exact texts + soundness note: `notes/axiom-review/incomingof-b.md` (T1-T7);
+  Go: `examples/axiomcx/incomingof/is_test.go`. **STOP: waiting for 03's independent attack.**
+- Next after the go: implement T1-T7 (files listed in each T); merge lean (if the pin moved to 6d365ee1a use
+  /shared/tmp/manifest-6d3.json and update .lake/package-overrides.json); full build via build-slot
+  (LEAN_NUM_THREADS=4, retry); tcb-report --check (no axiom delta; trusted texts: ContextReadErrs,
+  ctxErrsErr/ctxErrClient, IsStatusErr.spec); interfaces; gates under flock
+  /shared/tmp/etcd-grove-full-build.lock; STATUS entry; STOP at the land stop with client_range_any old → new.
+- Pitfalls: a persistent-auth fresh world makes every WP form true and any wand from cells to a pure fact
+  buildable; only entailments (axioms, premise fields) are exposed: keep pure errDesc facts out of them.
 
 ## History
 

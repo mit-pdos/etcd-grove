@@ -11,6 +11,15 @@ A fresh world owning a persistent authoritative heap builds `incomingKept` (`not
 "The refutation"). The user decided: B0 next, then STOP; Part B only after 03's go, its new texts checked
 against the persistent-auth fresh-world attack first; the per-heap redesign (`incomingIs`, `errDesc`
 analogue) gets its own Scope.
+
+**Part B APPROVED BY THE USER, 2026-11-17, via etcd-grove-03:** (1) delete `ContextReadErrs`' `Canceled` half
+(`descDeadline` stays); (2) `ctxErrsErr`'s conjunct in message form, server per-run facts from
+`toGRPCErrorMap_init`'s conjuncts; (3) the context-error case in the client's Range error outcome
+(`client_range_any`'s text changes; exact old → new at the land stop), ruled out by k8s Get/List; (4)
+`errors.IsStatusErr.spec` strengthened for an `EtcdError` target. Also decided: land the branch with Part A's
+revert (5dab7c3336) as is. Exact texts and the soundness note (crossWorld, persistent-auth fresh world, §0.2):
+`notes/axiom-review/incomingof-b.md`; stop for the independent attack before implementing. Deviation for
+review: (4) is guarded by "no `Is` method" (the literal form is false in Go, `TestIsEtcdTarget`).
 Forms decided by the agent (reviewed at checkpoint): `metadata.incomingKept_apply` (A1) not added, and
 `incomingOf_cancelCtx_parent_unique`/`v3rpc.incomingOf_cancellableContext_field_unique` deleted: nothing
 would use them (the restated axiom takes `incomingKept` directly).
