@@ -1,17 +1,17 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-16, A0: the soundness repair; STOP before etc/land.sh)
+## START HERE (2026-11-17, A0 accepted, lean merged; STOP at the land stop)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`. Session row in `/shared/etcd-grove-sessions.md`.
-  Decisions: `questions.md` (Q1 (a), Q2-Q9; the A0 items).
-- Done: Scope (b4528c167d); **A0** (this checkpoint): the read contract per bucket (`BkView`, `authViewSnap(From)`,
-  `authReaderOkV`, `authTxReadsV`; `authReadTxOk`, `authReadTxLocked(From)` restated), `passwordChecked` weakened,
-  the write contract's session token `Sw`/`AuthSess` (`authBatchTxLk(R)`), every auth proof re-threaded; Go tests
-  `nonissues/etcd-auth-readtx-delete-window-mixed-state/zz_authschema_perbucket_test.go`; ledger entry; review
-  `/shared/tmp/auth-schema-srv/a0/review/report.md`.
-- Next, after the coordinator's go and the land: A1's own Scope (the backend read model over tracked hook buckets,
-  with the window: per bucket, put buckets after, delete buckets before; build it over the backend's `RdSt` window
-  flag and `dls`, per the Q9 audit), then A2-A6, A7 (closed statements, to the user). Scope §3.
+  Decisions: `questions.md` (Q1 (a), Q2-Q9; the A0 items, accepted).
+- Done: Scope (b4528c167d); A0, the soundness repair (73ca90894e; accepted by the coordinator); lean 1612a1143a
+  (k8s 7f-6 D) merged (2913cbf0a7: STATUS Last-updated ten newest, 7f-5a-P and kvreconfN moved to status-history;
+  ledger both sides). Full build ok; `etc/gates.sh` all passed (tcb 877/4 = baseline, 65 collections, axiom-tok,
+  bounds 390, mode 453, interfaces, links current), log `/shared/tmp/auth-schema-srv/gates-merge.log`.
+- Now: the coordinator runs `etc/land.sh`. No commits to this branch until it says the land finished.
+- Next, after the land: A1's own Scope (the backend read model over tracked hook buckets, with the window: per
+  bucket, put buckets after, delete buckets before; over the backend's `RdSt` window flag and `dls`, per the Q9
+  audit), then stop; then A2-A6, A7 (closed statements, to the user). Scope §3.
 - Go tests: copy the test files into `server/storage/schema` of the clone `/shared/tmp/auth-schema-srv/etcd`
   (fork pin 6e8f0c004); `cd server; PATH=/usr/local/go/bin:$PATH TMPDIR=/shared/tmp systemd-run --scope -q -p
   MemoryMax=32G env GOWORK=off GOTOOLCHAIN=go1.27.3 go test ./storage/schema/ -run TestAuthSchemaRead -count=1 -v`.
@@ -19,7 +19,9 @@
   `iexact` does not see through `(fun st => Hs (BkView.uni st)) st` vs `Hs (BkView.uni st)` or
   `(BkView.uni st).atUsers`: `dsimp only [BkView.uni]` first. Builds: `/shared/tmp/build-slot.sh lake
   --packages=/shared/tmp/manifest-e9e.json build ...`; `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json` for
-  `etc/lean-check.py` (it printed nothing on a module whose import failed to build: build first).
+  `etc/lean-check.py` (it printed nothing on a module whose import failed to build: build first). The worktree's
+  `.lake/packages` had a stray Perennial clone (at e9e6351d9); moved to
+  `/shared/tmp/auth-schema-srv/perennial-stray-from-worktree` so gates link PERENNIAL_CHECKOUT.
 
 ## History
 
