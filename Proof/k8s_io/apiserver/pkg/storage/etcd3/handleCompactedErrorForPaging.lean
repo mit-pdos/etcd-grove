@@ -44,7 +44,7 @@ theorem handleCompactedErrorForPaging.wp_proof
   obtain ⟨-, rfl⟩ := Henc
   wp_auto
   iapply wp_fupd
-  wp_apply wp_NewResourceExpired as %p ⟨%st, Hp, %Hst⟩
+  wp_apply wp_NewResourceExpired as %p ⟨%st, Hp, -, %Hst⟩
   ipersist Hp
   imodintro
   iapply HΦ

@@ -74,7 +74,7 @@ theorem Server.list.wp_proof
   ihave #Hinit : (github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.apimodelInit :
     IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨⟨%eS, #HeS⟩, ⟨%eR, #HeR⟩, ⟨%sA, #HeA⟩⟩
+  icases Hinit with ⟨⟨%eS, #HeS, #HeSok⟩, ⟨%eR, #HeR, #HeRok⟩, ⟨%sA, #HeA⟩⟩
   ihave #Hsrv := Hs
   iunfold isServer at Hs
   icases Hs with ⟨%L, #Hs⟩
@@ -242,7 +242,8 @@ theorem Server.list.wp_proof
           listRet γ cfg.FailReads' admin r ns lo σ sl rv err -∗ Φ (PairV (PairV #sl #rv) #err)))) $$ HΦ
           with ⟨%σ, HΦ⟩
         wp_auto
-        wp_apply +noauto wp_NewInternalError as %p ⟨%st, Hp, %Hst⟩
+        wp_apply +noauto wp_NewInternalError as %p ⟨%st, %c, Hp, #Hd, %Hst⟩
+        · first | iexact HeRok | iexact HeSok
         ipersist Hp
         wp_auto
         iapply HΦ
@@ -256,9 +257,9 @@ theorem Server.list.wp_proof
         iexists p, st
         iframe #
         ipureintro
-        exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+        exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
     · -- a field selector
-      wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+      wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
       ipersist Hp
       imod (au_read_any γ (fun σ => iprop(∀ sl rv err, kd.meta.ListOptions.own opts dq lo ∗
         listRet γ cfg.FailReads' admin r ns lo σ sl rv err -∗ Φ (PairV (PairV #sl #rv) #err)))) $$ HΦ
@@ -274,7 +275,7 @@ theorem Server.list.wp_proof
       ipureintro
       exact ⟨rfl, Hst.2.1, Hst.2.2⟩
   · -- a label selector
-    wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+    wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
     ipersist Hp
     imod (au_read_any γ (fun σ => iprop(∀ sl rv err, kd.meta.ListOptions.own opts dq lo ∗
       listRet γ cfg.FailReads' admin r ns lo σ sl rv err -∗ Φ (PairV (PairV #sl #rv) #err)))) $$ HΦ

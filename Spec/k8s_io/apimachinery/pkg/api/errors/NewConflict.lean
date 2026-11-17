@@ -1,9 +1,21 @@
 /-
 `apierrors.NewConflict` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 409: the status `Failure`, reason `Conflict`, code 409. The trust boundary: its message formats an error (`%v`), which Perennial's `fmt.Sprintf` model does not cover; names only. Lean-first (no Rocq counterpart).
+
+(apierrors-fix, 2026-11-17; HasStatusCause fix (a), `notes/hasstatuscause-later-view.md`) The
+post also gives the details, read-only, with no causes (`statusDetailsAt st []`): Go sets `Details`
+to a fresh `&StatusDetails{Group, Kind, Name}`, whose `Causes` is `nil`. And a precondition, which
+the former statement lacked (it was false; the attack of 2026-11-17,
+`notes/axiom-review/apierrors-fix.md`): the message formats `err` with `%v`, and `fmt` calls its
+`Format` in place of `Error()` when it has one, and re-panics when the panic value's own `Error()`
+panics (`print.go:591-594`, `630-634`), so `err` is `fmt.argOk` (`nil`, or no `Format` and an
+`Error()` that returns). Go: `examples/premisefix/apierrorsdetails` `TestNewConflict`,
+`TestNestedPanics`.
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
+public import Spec.fmt.Errorf
 
 @[expose] public section
 
@@ -24,12 +36,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-/-- `apierrors.NewConflict(...)`: a 409: the status `Failure`, reason `Conflict`, code 409. -/
+/-- `apierrors.NewConflict(gr, name, err)`, of an `err` `fmt` prints without panicking: a 409: the
+status `Failure`, reason `Conflict`, code 409, with details and no causes (see the file header). -/
 abbrev NewConflict.spec : Prop :=
   ∀ (gr : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (name : GoString) (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors ∗ fmt.argOk err }}
     (App (App (App (Val (@! k8s_io.apimachinery.pkg.api.errors.NewConflict)) (Val #gr)) (Val #name)) (Val #err))
   {{ (p : Loc), RET #p; ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status, p ↦ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
+      statusDetailsAt st [] ∗
       ⌜st.Status' = go!"Failure" ∧ st.Reason' = go!"Conflict" ∧ st.Code' = W32 409⌝ }}
 
 end spec
