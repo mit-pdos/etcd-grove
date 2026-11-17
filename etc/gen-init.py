@@ -2697,6 +2697,10 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# The trust-boundary demonstration (notes/axiom-review/cellmint.md): a buggy program proved
+# adequate over an unsound cell axiom.
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.axiomcx.cellmint'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/cellmint/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`

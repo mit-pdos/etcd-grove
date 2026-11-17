@@ -797,6 +797,18 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "axiomcx", "bboltnan")],
     ),
     Project(
+        name="axiomcx-cellmint",
+        # A concurrency-safe cell (a uint64 under a mutex) and a program that uses it, for the
+        # trust-boundary demonstration (notes/axiom-review/cellmint.md). A package of the examples'
+        # Go module; only `sync` (Perennial's) is used.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "axiomcx", "cellmint"),
+        lean_roots=["github.com/mit-pdos/etcd-grove="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "axiomcx", "cellmint")],
+    ),
+    Project(
         name="putgetc",
         # putget with the auto-compactor on (notes/m2-plan.md, M2's first result): one member
         # started in-process with the compactor in revision mode (common.StartCompactingServer),
