@@ -34,17 +34,22 @@
   pre/post is a `match` on a state: `dsimp only` first in the call's side goal; a nested `isPkgInit` needs
   `iPkgInit`. Names in a binder the Link copies must resolve without `open WalFs` (`WalFs.ioNone`). A
   `lean-check` "0 errors" once hid an unknown identifier: build the Links before committing.
-- **Open: SaveSnapshot under (B)** (the user chose (B), 2026-11-17; BLOCKER reported to etcd-grove-03, no Lean
-  changed). A covered-case EFBIG arm loses the handle (a crossing write lands a page-cut prefix of the frame:
-  `Impl.lean` PWriteFinish, measured on C in `examples/osfs/semantics/data_maxbytes.go`), so the failing holder
-  cannot return `walHdl` to `walShInv` before the deferred `Unlock`. `Save`'s error arm escapes by `q = 1`; the
-  server's raft loop and apply thread each hold `q < 1`, and `lg.Fatal` (post `False`) stops only its goroutine,
-  so the other thread can lock the broken handle next and its call is unverifiable. Even success past `2^43`
-  breaks `walShInv`'s room (Save's `saveRoom ≤ walFreshRoom` reads it). Options: (B1) error arm only at `q = 1`
-  (server unusable); (B2) a "failed" invariant state in which every method runs on a broken handle (all four
-  shared methods re-proved in a lax mode, crash invariant weakened: L6 meaning change, several k lines);
-  (A) room budget; (C) the server's count. Recommendation in the report: (A) in the form of an
-  index-monotone budget, or the server-side bound (C).
+- **SaveSnapshot's room: (A), the user's choice 2026-11-17** ((B) closed: a covered-case error cannot lose a
+  shared handle). Design (form decided by the agent, `HandleShared.lean`): `WalShN` gains `γu`; `walUsed γ u` :=
+  `ghostVar γ.γu ½ u` (the client's view: bytes of room the snapshot records took since the tail was last fresh);
+  `walHdl … γ` := `∃ u, ghostVar γ.γu ½ u ∗ ⌜walCov → u ≤ walSnapBudget⌝ ∗ ((⌜¬walCov⌝ ∗ walOpenWF) ∨ walOpenWFR
+  (walFreshRoom - u))` (the old `walHdl` is `walHdlF`, the input of `walOpenWS_alloc`, which also returns
+  `walUsed γ 0`); `walSnapBudget := 2^42`, `walSaveRoom := walFreshRoom - walSnapBudget`, `snapRoom Mr md :=
+  |encSnap md| + 64`. The AUs carry the view: `SaveSnapshot`'s pre `walUsed γ u ∗ ⌜walCov → u + snapRoom ≤
+  walSnapBudget⌝`, post `walUsed γ (u + snapRoom)`; `Save`'s post `walUsed γ (if hsEmptyP hs ∧ es = [] then u
+  else 0)` (a writing Save ends below `2^43`: below `SegmentSizeBytes`, or a cut), its room premise `saveRoom ≤
+  walSaveRoom`. Two AU transformers (method side: the handle's half and the big AU give the `walDiskAt` AU whose
+  COMM returns the updated half and the budget fact; client side: the view and the fact turn a `walDiskAt` AU
+  into the big one), on `TracedCap.aupd_wand_post`'s `aupd_intro` pattern.
+- **SaveSnapshot's one spec:** a `match` on `WalSnapSt` (`shared γ q` | `pre …`, the former `specPre`'s binders),
+  as `Close`'s `WalCloseSt`; one proof by cases (`wp_shared`: the former `wp_proof`+`wp_proofNoErr` merged as in
+  `Save`; `wp_pre`: the former `specPre` proof). `WAL__SaveSnapshotNoErr` goes; `WAL__SaveSnapshotPre.lean` keeps
+  `walPreIn`/`snapFrame`/`walPreSyncOk`/`sync.specPre` (untouched family).
 - **Open (for L3/L5):** nothing produces `walOpenWFR` yet (Create's/ReadAll's posts give `walOpenWF`; room is an
   open layer-1 decision, `notes/wal-units/noioerr.md`): the server's shared handle needs the fresh room from
   bootstrap's slot (L3, trusted) and, in L5, from `Create` (headers < 2^43) and the restart's `ReadAll` (a tail bound).
