@@ -88,8 +88,8 @@ theorem member.sync.wp_proof
   -- back after it
   iapply fupd_wp
   imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-    with ⟨%γs, Hws⟩
-  · iunfold walHdl; ileft; iframe Hwf; ipureintro; exact walCov_ioNone
+    with ⟨%γs, Hws, -⟩
+  · iapply walHdlF_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
   imodintro
   wp_apply (lc := 1) (wp_Sync W e.R e.jr (e.area) w (tWalDir e.area) γs 1 d.H.length) $$ [Hws]
     as %err Hr
@@ -101,11 +101,7 @@ theorem member.sync.wp_proof
       with Hwf
     · iframe Hws Hlc1
     imodintro
-    ihave Hwf : walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) $$ [Hwf]
-    · iunfold walHdl at Hwf
-      icases Hwf with (⟨-, Hwf⟩ | Hwf)
-      · iexact Hwf
-      · iapply walOpenWFR_wf (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) walFreshRoom $$ Hwf
+    ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ _ $$ Hwf
     wp_auto
     ihave ⟨%hl, Hrep⟩ := oracleRep_synced v o $$ Hrep
     ihave #Hrel := tRelI_synced W e.area o c d hok hl hcwf $$ [Hsl Hnm]

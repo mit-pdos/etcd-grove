@@ -35,6 +35,22 @@ below `2 ^ 41` bytes, the state or the empty snapshot) end below `2 ^ 43`, so at
 `maxBytes - 2 ^ 43` bytes (about 8 TB) are left before ext4's `s_maxbytes`. -/
 def walFreshRoom : Nat := maxBytes - 2 ^ 43
 
+/-- **The snapshot records' budget** (wal-link L1a, SaveSnapshot's room (A), 2026-11-17): the bytes of room the
+snapshot records may take since the tail was last fresh (`walUsed`, `HandleShared.lean`); a writing `Save` ends
+below `2 ^ 43` and so frees it. -/
+def walSnapBudget : Nat := 2 ^ 42
+
+/-- **The room a `Save` may take** (`Save`'s room premise): the fresh room less the snapshots' budget. -/
+def walSaveRoom : Nat := walFreshRoom - walSnapBudget
+
+/-- **The room a snapshot record of `md` takes**: its frame is at most its data plus 64 bytes
+(`frame_walRecEnc_tight`). -/
+def snapRoom (Mr : WalMarshal) (md : SnapshotMetadataM) : Nat := (Mr.encSnap md).length + 64
+
+/-- The snapshots' budget fits the fresh room. -/
+theorem walSnapBudget_lt : walSnapBudget + walSaveRoom = walFreshRoom ∧ walSnapBudget < walFreshRoom := by
+  unfold walSaveRoom walSnapBudget walFreshRoom maxBytes; omega
+
 /-- A cut's headers end below `2 ^ 43`. -/
 theorem cutHdrs_room (Mr : WalMarshal) (md : List w8) (hs : HardStateM) (c : w32)
     (hsz : md.length + (Mr.encState hs).length < 2 ^ 42) :

@@ -55,12 +55,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
   imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hlocked Hlc1
   imodintro
+  icases walHdl_open Sio P Mr w dir γ $$ Hh with ⟨%u0, %h, Hu0, %hu0, Hh, %hD, %hmd, Hr, %hroom⟩
   by_cases hc : walCov Sio
   · -- every inode covered: no error, the room kept
-    iunfold walHdl at Hh
-    icases Hh with (⟨%hnc, -⟩ | Hh)
-    · exact absurd hc hnc
-    icases (walOpenWFR_iff P Mr w dir walFreshRoom).1 $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
     iapply (wp_notCrashed_acc _ _ rfl)
     iintro Hnc
     imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
@@ -68,22 +65,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     imodintro
     iframe Hnc
     (try wp_auto)
-    wp_apply (wp_syncNE hc R jr r w dir h hD.1 (by omega)) $$ [Hh] as %err Hpost
+    wp_apply (wp_syncNE hc R jr r w dir h hD.1 (by have := hroom hc; omega)) $$ [Hh] as %err Hpost
     · iframe Harea Hh
     icases Hpost with ⟨%Herr, Hh, #Hs⟩
     iapply fupd_wp
-    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hh Hr] with ⟨Hw, Hlocked⟩
+    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu0 Hh Hr] with ⟨Hw, Hlocked⟩
     · iframe Hpers Hheld
-      iunfold walHdl
-      iright
-      iapply (walOpenWFR_iff P Mr w dir walFreshRoom).2
-      iexists { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
+      iapply walHdl_close Sio P Mr w dir γ u0
+        { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
+        hu0 hD hmd (fun _ => by simp only [List.length_append, List.length_nil]; have := hroom hc; omega)
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-      iframe Hh Hr
-      ipureintro
-      refine ⟨hD, hmd, ?_⟩
-      simp only [List.length_append, List.length_nil]
-      omega
+      iframe Hu0 Hh Hr
     imodintro
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
@@ -95,12 +87,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     · ipureintro; exact Herr
     · iapply (WalFs.walSyncedLb_mono (W := W) dir h.H.length n hn) $$ Hs
   · -- some inode not covered: `sync.spec`, its error arm with the whole share
-    ihave Hh : walOpenWF (W := W) P Mr w dir $$ [Hh]
-    · iunfold walHdl at Hh
-      icases Hh with (⟨-, Hh⟩ | Hh)
-      · iexact Hh
-      · iapply walOpenWFR_wf P Mr w dir walFreshRoom $$ Hh
-    icases (walOpenWF_iff P Mr w dir).1 $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr⟩
     iapply (wp_notCrashed_acc _ _ rfl)
     iintro Hnc
     imod walHandleIn_lenLb walCodec Mr R jr r P ⊤ CoPset.subseteq_top w dir h n TailMetaW $$ Harea Hnc Hh Hn
@@ -112,17 +98,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     · iframe Harea Hh
     icases Hpost with (⟨%Herr, Hh, #Hs⟩ | %Herr)
     · iapply fupd_wp
-      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hh Hr] with ⟨Hw, Hlocked⟩
+      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu0 Hh Hr] with ⟨Hw, Hlocked⟩
       · iframe Hpers Hheld
-        iunfold walHdl
-        ileft
-        isplitr
-        · ipureintro; exact hc
-        iapply (walOpenWF_iff P Mr w dir).2
-        iexists { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
+        iapply walHdl_close Sio P Mr w dir γ u0
+          { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
+          hu0 hD hmd (fun h => absurd h hc)
         ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-        iframe Hh Hr
-        ipureintro; exact ⟨hD, hmd⟩
+        iframe Hu0 Hh Hr
       imodintro
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]

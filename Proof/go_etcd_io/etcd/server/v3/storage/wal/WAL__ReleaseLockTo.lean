@@ -67,7 +67,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hlocked Hlc1
   imodintro
-  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHdl_open Sio P Mr w dir γ $$ Hh with ⟨%u0, %h, Hu0, %hu0, Hh, %hD, %hmd, Hr, %hroom⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu', Henti, Hsnapi,
@@ -260,12 +260,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   · -- nothing to release
     (try wp_auto)
     iapply fupd_wp
-    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hr Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti
+    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu0 Hr Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti
       Hsnapi He Henc Hlocks Hls Hcap Hfp Hpipe Hopen Hf Hfdo Hoff Htk Hm Hbs Hv Hcl Hpd Hperm Hdfd Hout Hnf
       Htf HlksI] with ⟨Hw, Hlocked⟩
     · iframe Hpers Hheld
-      iapply walHdl_close Sio P Mr w dir h hD hmd hroom
-      iframe Hr
+      iapply walHdl_close Sio P Mr w dir γ u0 h hu0 hD hmd hroom
+      iframe Hu0 Hr
       iunfold walHandleIn
       iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
       iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc
@@ -397,12 +397,12 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   have hsmn : sint.nat sm' < lfs.length := by word
   wp_auto
   iapply fupd_wp
-  imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hr Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti
+  imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu0 Hr Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti
     Hsnapi He Henc Hlocks Hls Hcap Hfp Hpipe Hopen Hf Hfdo Hoff Htk Hm Hbs Hv Hcl Hpd Hperm Hdfd Hout Hnf
     Htf HlksI] with ⟨Hw, Hlocked⟩
   · iframe Hpers Hheld
-    iapply walHdl_close Sio P Mr w dir h hD hmd hroom
-    iframe Hr
+    iapply walHdl_close Sio P Mr w dir γ u0 h hu0 hD hmd hroom
+    iframe Hu0 Hr
     iunfold walHandleIn
     iexists lg, df, sp, e, fp, lt, f, mds, slice.slice locks Loc sm' locks.len,
       lfs.drop (sint.nat sm'), fd, dfd, name, dnm, j, rc

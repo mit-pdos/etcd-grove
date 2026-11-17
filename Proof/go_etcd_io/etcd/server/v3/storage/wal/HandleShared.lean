@@ -16,10 +16,14 @@ C2, `examples/wallink/link_test.go`). So the specs of those five methods take a 
   swaps its lock token in and takes the handle out (`walOpenWS_acquire`), keeping the other half
   `walHeld γ := γ.γl ↦ true`; before `Unlock` it swaps back (`walOpenWS_release`); `Close`, with the whole
   share, leaves the whole token (`walOpenWS_finish`), so no later share finds a handle.
-* `walHdl Sio`: the handle (`walOpenWF`) when the no-I/O-error set `Sio` does not cover every inode, else the
-  handle with the fresh room (`walOpenWFR … walFreshRoom`: the no-error specs need the pending bytes to end
-  before `maxBytes`, where a write fails with `EFBIG` whatever the premise). The specs' one form, parameterised
-  by `Sio`, is error-free exactly when `walCov Sio` (§8).
+* `walHdl Sio … γ`: half of the room-used variable `γ.γu ↦ u` (the other half is the client's, `walUsed γ u`:
+  the bytes of room the snapshot records took since the tail was last fresh, at most `walSnapBudget` when
+  covered), and the handle (`walOpenWF`) when the no-I/O-error set `Sio` does not cover every inode, else the
+  handle with the fresh room less `u` (`walOpenWFR … (walFreshRoom - u)`: the no-error specs need the pending
+  bytes to end before `maxBytes`, where a write fails with `EFBIG` whatever the premise). The specs' one form,
+  parameterised by `Sio`, is error-free exactly when `walCov Sio` (§8). The updates of `Save` and
+  `SaveSnapshot` carry the client's half (`walAu_save`/`walAu_snap` for the method, `walAu_saveC`/`walAu_snapC`
+  for the client). `walHdlF` is the handle before it is shared (`walOpenWS_alloc`'s input).
 -/
 module
 
@@ -38,10 +42,12 @@ namespace WalFs
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
 
-/-- The ghost names of a shared handle: the shares' token and the lock-state variable. -/
+/-- The ghost names of a shared handle: the shares' token, the lock-state variable, and the snapshot
+records' room used (`walUsed`). -/
 structure WalShN where
   γ : GName
   γl : GName
+  γu : GName
 
 /-- **The states of a handle `Close` takes** (`WAL.Close.spec`, one spec over them; wal-link L1a): the whole
 share of an open WAL (`shared`), a failed `ReadAll`'s handle (`failed`), `Open`'s handle before `ReadAll`
@@ -105,37 +111,81 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 handle, which `WAL.Close.spec` takes at a model it ignores in that state). -/
 def walPbNone : WalPbIn GF := ⟨fun _ _ => iprop(True), fun _ _ => iprop(True), fun _ _ => inferInstance, fun _ _ => inferInstance⟩
 
-/-- **The handle a holder of `w.mu` finds** (see the file header). -/
-def walHdl (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
+/-- **The handle before it is shared** (`walOpenWS_alloc`'s input): with the fresh room when covered. -/
+def walHdlF (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=
   iprop((⌜¬ walCov Sio⌝ ∗ walOpenWF (W := W) P Mr w dir) ∨ walOpenWFR (W := W) P Mr w dir walFreshRoom)
 
-/-- **The handle a lock holder finds, unfolded**: a quiescent handle, with the fresh room when `Sio` covers
-every inode. -/
-theorem walHdl_open (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
-    walHdl (W := W) Sio P Mr w dir ⊢
-      ∃ h : WalHS, walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
-        ⧗ h.pc ∗ ⌜walCov Sio → h.o0 + h.out.length + h.pend.length + walFreshRoom ≤ maxBytes⌝ := by
+/-- `walHdlF` of a handle, when `Sio` does not cover every inode. -/
+theorem walHdlF_of_wf (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (hc : ¬ walCov Sio) :
+    walOpenWF (W := W) P Mr w dir ⊢ walHdlF (W := W) Sio P Mr w dir := by
+  unfold walHdlF
+  iintro Hw
+  ileft
+  iframe Hw
+  ipureintro; exact hc
+
+/-- **The room the snapshot records took** since the tail was last fresh (the client's half; see the file
+header). -/
+def walUsed (γ : WalShN) (u : Nat) : IProp GF := ghostVar γ.γu (1 : Qp).half u
+
+instance walUsed_timeless (γ : WalShN) (u : Nat) : Timeless (walUsed (GF := GF) γ u) := by
+  unfold walUsed; infer_instance
+
+/-- The two halves agree. -/
+theorem walUsed_agree (γ : WalShN) (u1 u2 : Nat) :
+    walUsed (GF := GF) γ u1 ∗ walUsed γ u2 ⊢ walUsed γ u1 ∗ walUsed γ u2 ∗ ⌜u1 = u2⌝ := by
+  unfold walUsed
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  iframe H1 H2
+  ipureintro; exact h.2
+
+/-- Both halves update together. -/
+theorem walUsed_update (γ : WalShN) (u1 u2 u : Nat) :
+    ⊢ walUsed (GF := GF) γ u1 -∗ walUsed γ u2 ==∗ walUsed γ u ∗ walUsed γ u := by
+  unfold walUsed
+  exact ghostVar_update_halves (GF := GF) u γ.γu u1 u2
+
+/-- **The handle a holder of `w.mu` finds** (see the file header). -/
+def walHdl (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN) :
+    IProp GF :=
+  iprop(∃ u : Nat, walUsed γ u ∗ ⌜walCov Sio → u ≤ walSnapBudget⌝ ∗
+    ((⌜¬ walCov Sio⌝ ∗ walOpenWF (W := W) P Mr w dir) ∨ walOpenWFR (W := W) P Mr w dir (walFreshRoom - u)))
+
+/-- **The handle a lock holder finds, unfolded**: the handle's half of the room used, and a quiescent handle,
+with the fresh room less it when `Sio` covers every inode. -/
+theorem walHdl_open (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN) :
+    walHdl (W := W) Sio P Mr w dir γ ⊢
+      ∃ (u : Nat) (h : WalHS), walUsed γ u ∗ ⌜walCov Sio → u ≤ walSnapBudget⌝ ∗
+        walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⌜h.Done⌝ ∗ ⌜h.md.length < 2 ^ 41⌝ ∗
+        ⧗ h.pc ∗ ⌜walCov Sio → h.o0 + h.out.length + h.pend.length + (walFreshRoom - u) ≤ maxBytes⌝ := by
   unfold walHdl
-  iintro (⟨%hc, Hw⟩ | Hw)
+  iintro ⟨%u, Hu, %hu, Hw⟩
+  icases Hw with (⟨%hc, Hw⟩ | Hw)
   · icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
-    iexists h
-    iframe Hh Hr
-    ipureintro; exact ⟨hD, hmd, fun h => absurd h hc⟩
-  · icases (walOpenWFR_iff P Mr w dir walFreshRoom).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
-    iexists h
-    iframe Hh Hr
-    ipureintro; exact ⟨hD, hmd, fun _ => hb⟩
+    iexists u, h
+    iframe Hu Hh Hr
+    ipureintro; exact ⟨hu, hD, hmd, fun h => absurd h hc⟩
+  · icases (walOpenWFR_iff P Mr w dir _).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
+    iexists u, h
+    iframe Hu Hh Hr
+    ipureintro; exact ⟨hu, hD, hmd, fun _ => hb⟩
 
 /-- **The handle given back to the lock** (`walHdl_open`'s converse). -/
-theorem walHdl_close (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (h : WalHS)
-    (hD : h.Done) (hmd : h.md.length < 2 ^ 41)
-    (hroom : walCov Sio → h.o0 + h.out.length + h.pend.length + walFreshRoom ≤ maxBytes) :
-    walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⧗ h.pc ⊢ walHdl (W := W) Sio P Mr w dir := by
-  iintro ⟨Hh, Hr⟩
+theorem walHdl_close (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN)
+    (u : Nat) (h : WalHS) (hu : walCov Sio → u ≤ walSnapBudget) (hD : h.Done) (hmd : h.md.length < 2 ^ 41)
+    (hroom : walCov Sio → h.o0 + h.out.length + h.pend.length + (walFreshRoom - u) ≤ maxBytes) :
+    walUsed γ u ∗ walHandleIn (W := W) P Mr w dir h TailMetaW ∗ ⧗ h.pc ⊢ walHdl (W := W) Sio P Mr w dir γ := by
+  iintro ⟨Hu, Hh, Hr⟩
   unfold walHdl
+  iexists u
+  iframe Hu
+  isplitr
+  · ipureintro; exact hu
   by_cases hc : walCov Sio
   · iright
-    iapply (walOpenWFR_iff P Mr w dir walFreshRoom).2
+    iapply (walOpenWFR_iff P Mr w dir _).2
     iexists h
     iframe Hh Hr
     ipureintro; exact ⟨hD, hmd, hroom hc⟩
@@ -148,27 +198,18 @@ theorem walHdl_close (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) 
     ipureintro; exact ⟨hD, hmd⟩
 
 /-- **The handle of a client that assumes nothing of `Sio`** (WalTester's, between calls). -/
-theorem walHdl_wf (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) :
-    walHdl (W := W) Sio P Mr w dir ⊢ walOpenWF (W := W) P Mr w dir := by
+theorem walHdl_wf (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN) :
+    walHdl (W := W) Sio P Mr w dir γ ⊢ walOpenWF (W := W) P Mr w dir := by
   unfold walHdl
-  iintro (⟨-, Hw⟩ | Hw)
+  iintro ⟨%u, -, -, Hw⟩
+  icases Hw with (⟨-, Hw⟩ | Hw)
   · iexact Hw
-  · iapply walOpenWFR_wf P Mr w dir walFreshRoom $$ Hw
-
-/-- `walHdl_wf`'s converse, when `Sio` does not cover every inode. -/
-theorem walHdl_of_wf (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
-    (hc : ¬ walCov Sio) :
-    walOpenWF (W := W) P Mr w dir ⊢ walHdl (W := W) Sio P Mr w dir := by
-  unfold walHdl
-  iintro Hw
-  ileft
-  iframe Hw
-  ipureintro; exact hc
+  · iapply walOpenWFR_wf P Mr w dir _ $$ Hw
 
 /-- **The shared handle's invariant** (see the file header). -/
 def walShInv (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (γ : WalShN) :
     IProp GF :=
-  iprop((walHdl (W := W) Sio P Mr w dir ∗ ghostVar γ.γl 1 (none : Option Qp)) ∨
+  iprop((walHdl (W := W) Sio P Mr w dir γ ∗ ghostVar γ.γl 1 (none : Option Qp)) ∨
     (sync.ownMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) ∗
       ∃ q : Qp, ghostVar γ.γl (1 : Qp).half (some q) ∗ ghostVar γ.γ q true) ∨
     (ghostVar γ.γ 1 true ∗ ∃ v : Option Qp, ghostVar γ.γl 1 v))
@@ -233,23 +274,33 @@ theorem walShPers_facts (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Lo
   iintro ⟨-, #Hm, #Hp, #Hs⟩
   iframe Hm Hp Hs
 
-/-- **Sharing a handle** (a client's, once: after `Create`, after `ReadAll`): the handle as `walHdl` gives
-the whole share of fresh names. -/
+/-- **Sharing a handle** (a client's, once: after `Create`, after `ReadAll`): the handle as `walHdlF` gives
+the whole share of fresh names, and the client's half of the room used, none yet. -/
 theorem walOpenWS_alloc (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (E : CoPset) :
-    walHdl (W := W) Sio P Mr w dir ⊢ |={E}=> ∃ γ : WalShN, walOpenWS (W := W) Sio P Mr w dir γ 1 := by
+    walHdlF (W := W) Sio P Mr w dir ⊢
+      |={E}=> ∃ γ : WalShN, walOpenWS (W := W) Sio P Mr w dir γ 1 ∗ walUsed γ 0 := by
   iintro Hh
-  -- the persistent facts, from the handle
-  ihave ⟨Hh, #Hm, #Hp, #Hs⟩ : iprop(walHdl (W := W) Sio P Mr w dir ∗
+  imod ghostVar_alloc (GF := GF) (0 : Nat) with ⟨%γu, Hu⟩
+  icases ghostVar_split_half (GF := GF) γu 1 (0 : Nat) |>.1 $$ Hu with ⟨Hu1, Hu2⟩
+  imod ghostVar_alloc (GF := GF) true with ⟨%γt, Ht⟩
+  imod ghostVar_alloc (GF := GF) (none : Option Qp) with ⟨%γl, Hl⟩
+  -- the persistent facts, from the handle; the handle with its half of the room used
+  ihave ⟨Hh, #Hm, #Hp, #Hs⟩ : iprop(walHdl (W := W) Sio P Mr w dir ⟨γt, γl, γu⟩ ∗
       (sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) (BI.pure True : IProp GF) ∗
       isPkgInit (PROP := IProp GF) pkg_id.sync ∗
       globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000)))
-    $$ [Hh]
-  · unfold walHdl
+    $$ [Hh Hu1]
+  · unfold walHdlF walHdl
     icases Hh with (⟨%hc, Hw⟩ | Hw)
     · icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
       icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hm, #Hp, #Hs⟩
       iframe Hm Hp Hs
+      iexists 0
+      unfold walUsed
+      iframe Hu1
+      isplitr
+      · ipureintro; exact fun _ => Nat.zero_le _
       ileft
       isplitr
       · ipureintro; exact hc
@@ -260,29 +311,32 @@ theorem walOpenWS_alloc (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Lo
     · icases (walOpenWFR_iff P Mr w dir walFreshRoom).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
       icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hm, #Hp, #Hs⟩
       iframe Hm Hp Hs
+      iexists 0
+      unfold walUsed
+      iframe Hu1
+      isplitr
+      · ipureintro; exact fun _ => Nat.zero_le _
       iright
-      iapply (walOpenWFR_iff P Mr w dir walFreshRoom).2
+      iapply (walOpenWFR_iff P Mr w dir _).2
       iexists h
       iframe Hh Hr
-      ipureintro; exact ⟨hD, hmd, hb⟩
-  imod ghostVar_alloc (GF := GF) true with ⟨%γt, Ht⟩
-  imod ghostVar_alloc (GF := GF) (none : Option Qp) with ⟨%γl, Hl⟩
-  imod inv_alloc walShN E (walShInv (W := W) Sio P Mr w dir ⟨γt, γl⟩) $$ [Hh Hl] with #Hinv
+      ipureintro; exact ⟨hD, hmd, by rw [Nat.sub_zero]; exact hb⟩
+  imod inv_alloc walShN E (walShInv (W := W) Sio P Mr w dir ⟨γt, γl, γu⟩) $$ [Hh Hl] with #Hinv
   · inext
     unfold walShInv
     ileft
     iframe Hh Hl
   imodintro
-  iexists ⟨γt, γl⟩
-  unfold walOpenWS walShPers
-  iframe Ht Hinv Hm Hp Hs
+  iexists ⟨γt, γl, γu⟩
+  unfold walOpenWS walShPers walUsed
+  iframe Ht Hinv Hm Hp Hs Hu2
 
 /-- **After `w.mu.Lock()`**: the lock token and the share go into the invariant, the handle comes out. -/
 theorem walOpenWS_acquire (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (γ : WalShN) (q : Qp) :
     walOpenWS (W := W) Sio P Mr w dir γ q ∗
       sync.ownMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) ∗ £ 1 ⊢
-      |={⊤}=> walShPers (W := W) Sio P Mr w dir γ ∗ walHeld γ q ∗ walHdl (W := W) Sio P Mr w dir := by
+      |={⊤}=> walShPers (W := W) Sio P Mr w dir γ ∗ walHeld γ q ∗ walHdl (W := W) Sio P Mr w dir γ := by
   iintro ⟨Hw, Hl, Hlc⟩
   unfold walOpenWS
   icases Hw with ⟨Ht, #Hp⟩
@@ -311,7 +365,7 @@ theorem walOpenWS_acquire (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : 
 out. -/
 theorem walOpenWS_release (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (γ : WalShN) (q : Qp) :
-    walShPers (W := W) Sio P Mr w dir γ ∗ walHeld γ q ∗ walHdl (W := W) Sio P Mr w dir ⊢
+    walShPers (W := W) Sio P Mr w dir γ ∗ walHeld γ q ∗ walHdl (W := W) Sio P Mr w dir γ ⊢
       |={⊤}=> walOpenWS (W := W) Sio P Mr w dir γ q ∗
         sync.ownMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) := by
   iintro ⟨#Hp, Hg, Hh⟩
@@ -373,7 +427,7 @@ theorem walOpenWS_finish (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : L
 share again, outside any method: WalTester's member between calls is the case). -/
 theorem walOpenWS_reclaim (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (γ : WalShN) :
-    walOpenWS (W := W) Sio P Mr w dir γ 1 ∗ £ 1 ⊢ |={⊤}=> walHdl (W := W) Sio P Mr w dir := by
+    walOpenWS (W := W) Sio P Mr w dir γ 1 ∗ £ 1 ⊢ |={⊤}=> walHdl (W := W) Sio P Mr w dir γ := by
   iintro ⟨Hw, Hlc⟩
   unfold walOpenWS walShPers
   icases Hw with ⟨Ht, #Hinv, -, -, -⟩
@@ -392,6 +446,184 @@ theorem walOpenWS_reclaim (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : 
   · icombine Ht Ht' gives %hq2
     exfalso
     exact qp_add_one_not_le 1 hq2.1
+
+/-! ### The updates carry the room used
+
+`Save`'s and `SaveSnapshot`'s updates take the client's half of the room used (`walUsed γ u`, with
+`SaveSnapshot`'s budget fact `F u`) and give it back updated (`f u`). The method, holding the handle's half
+(`u0`), turns such an update into one on `walDiskAt` alone, whose commit returns its half updated (and the
+fact); a client turns its update on `walDiskAt` into such an update with its half (and the fact). -/
+
+/-- **`Save`'s update, for the method** (see above). -/
+theorem walAu_save (dir : GoString) (γ : WalShN) (o : WalOpG WalEnt) (sized : Bool) (f : Nat → Nat)
+    (Q : WalDur → IProp GF) (u0 : Nat) :
+    walUsed γ u0 ∗
+      AU <{ ∃∃ (d : WalDur) (u : Nat), walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u }>
+        @ walAuMask, ∅ <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] } ∗ walUsed γ (f u), COMM Q d }> ⊢
+      AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d ∗ walUsed γ (f u0) }> := by
+  refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
+  iintro ⟨-, ⟨Hu0, HAU⟩⟩
+  ihave HAC := aupd_aacc $$ HAU
+  iunfold atomic_acc at HAC
+  unfold atomic_acc
+  imod HAC with HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  icases HAC with ⟨%d, %u, Hα, Hcl⟩
+  icases Hα with ⟨Hd, %hs, Hu⟩
+  icases walUsed_agree γ u0 u $$ [Hu0 Hu] with ⟨Hu0, Hu, %hu⟩
+  · iframe Hu0 Hu
+  subst hu
+  imodintro
+  iexists d
+  iframe Hd
+  isplitr
+  · ipureintro; exact hs
+  isplit
+  · iintro ⟨Hd, %hs'⟩
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [Hd Hu] with HAU
+    · iframe Hd Hu
+      ipureintro; exact hs'
+    imodintro
+    isplitl [Hu0]
+    · iexact Hu0
+    iapply HAU
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    imod walUsed_update γ u0 u0 (f u0) $$ Hu0 Hu with ⟨Hu0, Hu⟩
+    imod Hcommit $$ [Hd Hu] with HQ
+    · iframe Hd Hu
+    imodintro
+    iframe HQ Hu0
+
+/-- **`SaveSnapshot`'s update, for the method** (see above): its commit also gives the budget fact. -/
+theorem walAu_snap (dir : GoString) (γ : WalShN) (o : WalOpG WalEnt) (sized : Bool) (F : Nat → Prop)
+    (f : Nat → Nat) (Q : WalDur → IProp GF) (u0 : Nat) :
+    walUsed γ u0 ∗
+      AU <{ ∃∃ (d : WalDur) (u : Nat), walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u ∗ ⌜F u⌝ }>
+        @ walAuMask, ∅ <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] } ∗ walUsed γ (f u), COMM Q d }> ⊢
+      AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d ∗ walUsed γ (f u0) ∗ ⌜F u0⌝ }> := by
+  refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
+  iintro ⟨-, ⟨Hu0, HAU⟩⟩
+  ihave HAC := aupd_aacc $$ HAU
+  iunfold atomic_acc at HAC
+  unfold atomic_acc
+  imod HAC with HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  icases HAC with ⟨%d, %u, Hα, Hcl⟩
+  icases Hα with ⟨Hd, %hs, Hu, %hF⟩
+  icases walUsed_agree γ u0 u $$ [Hu0 Hu] with ⟨Hu0, Hu, %hu⟩
+  · iframe Hu0 Hu
+  subst hu
+  imodintro
+  iexists d
+  iframe Hd
+  isplitr
+  · ipureintro; exact hs
+  isplit
+  · iintro ⟨Hd, %hs'⟩
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [Hd Hu] with HAU
+    · iframe Hd Hu
+      ipureintro; exact ⟨hs', hF⟩
+    imodintro
+    isplitl [Hu0]
+    · iexact Hu0
+    iapply HAU
+  · iintro Hd
+    icases Hcl with ⟨-, Hcommit⟩
+    imod walUsed_update γ u0 u0 (f u0) $$ Hu0 Hu with ⟨Hu0, Hu⟩
+    imod Hcommit $$ [Hd Hu] with HQ
+    · iframe Hd Hu
+    imodintro
+    iframe HQ Hu0
+    ipureintro; exact hF
+
+/-- **`Save`'s update, from a client's** (see above). -/
+theorem walAu_saveC (dir : GoString) (γ : WalShN) (o : WalOpG WalEnt) (sized : Bool) (f : Nat → Nat)
+    (Q : WalDur → IProp GF) (u0 : Nat) :
+    walUsed γ u0 ∗
+      AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }> ⊢
+      AU <{ ∃∃ (d : WalDur) (u : Nat), walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u }>
+        @ walAuMask, ∅ <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] } ∗ walUsed γ (f u),
+          COMM Q d ∗ walUsed γ (f u0) }> := by
+  refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
+  iintro ⟨-, ⟨Hu0, HAU⟩⟩
+  ihave HAC := aupd_aacc $$ HAU
+  iunfold atomic_acc at HAC
+  unfold atomic_acc
+  imod HAC with HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  icases HAC with ⟨%d, Hα, Hcl⟩
+  icases Hα with ⟨Hd, %hs⟩
+  imodintro
+  iexists d, u0
+  iframe Hd Hu0
+  isplitr
+  · ipureintro; exact hs
+  isplit
+  · iintro ⟨Hd, %hs', Hu0⟩
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [Hd] with HAU
+    · iframe Hd
+      ipureintro; exact hs'
+    imodintro
+    isplitl [Hu0]
+    · iexact Hu0
+    iapply HAU
+  · iintro ⟨Hd, Hu⟩
+    icases Hcl with ⟨-, Hcommit⟩
+    imod Hcommit $$ [Hd] with HQ
+    · iexact Hd
+    imodintro
+    iframe HQ Hu
+
+/-- **`SaveSnapshot`'s update, from a client's** (see above): the client gives the budget fact. -/
+theorem walAu_snapC (dir : GoString) (γ : WalShN) (o : WalOpG WalEnt) (sized : Bool) (F : Nat → Prop)
+    (f : Nat → Nat) (Q : WalDur → IProp GF) (u0 : Nat) (hF : F u0) :
+    walUsed γ u0 ∗
+      AU <{ ∃∃ d : WalDur, walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] }, COMM Q d }> ⊢
+      AU <{ ∃∃ (d : WalDur) (u : Nat), walDiskAt (W := W) dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u ∗ ⌜F u⌝ }>
+        @ walAuMask, ∅ <{ walDiskAt (W := W) dir { d with H := d.H ++ [o] } ∗ walUsed γ (f u),
+          COMM Q d ∗ walUsed γ (f u0) }> := by
+  refine (BI.and_intro BI.true_intro .rfl).trans (aupd_intro ?_)
+  iintro ⟨-, ⟨Hu0, HAU⟩⟩
+  ihave HAC := aupd_aacc $$ HAU
+  iunfold atomic_acc at HAC
+  unfold atomic_acc
+  imod HAC with HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at HAC
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  icases HAC with ⟨%d, Hα, Hcl⟩
+  icases Hα with ⟨Hd, %hs⟩
+  imodintro
+  iexists d, u0
+  iframe Hd Hu0
+  isplitr
+  · ipureintro; exact ⟨hs, hF⟩
+  isplit
+  · iintro ⟨Hd, %hs', Hu0, -⟩
+    icases Hcl with ⟨Habort, -⟩
+    imod Habort $$ [Hd] with HAU
+    · iframe Hd
+      ipureintro; exact hs'
+    imodintro
+    isplitl [Hu0]
+    · iexact Hu0
+    iapply HAU
+  · iintro ⟨Hd, Hu⟩
+    icases Hcl with ⟨-, Hcommit⟩
+    imod Hcommit $$ [Hd] with HQ
+    · iexact Hd
+    imodintro
+    iframe HQ Hu
 
 end handle
 

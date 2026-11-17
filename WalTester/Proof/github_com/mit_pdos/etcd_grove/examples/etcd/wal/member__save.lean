@@ -158,8 +158,11 @@ macro "save_main" : tactic => `(tactic| (
     -- taken back after it
     iapply fupd_wp
     imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-      with ⟨%γs, Hws⟩
-    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+      with ⟨%γs, Hws, Hu⟩
+    · iapply walHdlF_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+    ihave Hau := walAu_saveC (W := W) (tWalDir e.area) γs _ true
+      (fun u => walUsedAfterSave u (absHs h) (es.map absEnt)) _ 0 $$ [Hu Hau]
+    · iframe Hu Hau
     imodintro
     wp_apply (lc := 1) (wp_Save W e.R e.jr (e.area) w (tWalDir e.area) γs 1 hp (absHs h) rs ls
         (es.map absEnt) true _) $$ [Hws Hents Hau]
@@ -171,14 +174,14 @@ macro "save_main" : tactic => `(tactic| (
       · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
         iexact Hhp
       ipureintro; exact ⟨hidx, henc, fun hc => absurd hc walCov_ioNone⟩
-    icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
+    icases Hr with (⟨%Herr, Hws, %d0, ⟨⟨%hd0, Hwo, Ho⟩, -⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨⟨%hd0, Hwo, Ho⟩, -⟩⟩)
     · subst Herr
       iapply fupd_wp
       imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]
         with Hwf
       · iframe Hws Hlc1
       imodintro
-      ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ $$ Hwf
+      ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ _ $$ Hwf
       subst d0
       try wp_auto
       wp_apply wp_mustSync
