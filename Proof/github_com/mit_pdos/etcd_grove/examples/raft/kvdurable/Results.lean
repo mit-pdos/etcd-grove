@@ -17,6 +17,10 @@ checker in porcupine's, the files' `Read`/`Write` in the `durable` package's pro
   }}`, none of the replicas' files in `dir` among `fs`, for executions of fewer than `2^63` steps.
 * **Adequacy** (`raft_kvdurable_porcupine_safe`, from `AdequacyLinked.lean`'s `raft_kvdurable_adequate`): the
   same in the operational semantics, with package initialization proved (`Init.lean`).
+* **Robustness** (`raft_kvdurable_porcupine_robust`, from `AdequacyLinked.lean`'s
+  `raft_kvdurable_robust`): the same as an instance of the generic robustness statement
+  (`Robustness/Statement.lean`, `Robust`: the program alone on one machine that never crashes), with
+  the stronger conclusion that no thread has an unrecovered panic, finished or still unwinding.
 
 Every result here assumes `[NaInvG GF]` (the linked results of `Link.lean` take it), except the
 closed `raft_kvdurable_porcupine_safe`, whose bundle `durableGF` provides it.
@@ -116,9 +120,26 @@ theorem raft_kvdurable_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantic
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   raft_kvdurable_adequate dir σ g Hlctx Hinit Hthreads Hfiles n Hn κs t2 σ2 Hsteps
 
+/-- **The durable store's randomized linearizability test never fails, as a robustness
+statement** (`raft_kvdurable_robust`, `AdequacyLinked.lean`): `kvdurableProgram dir` on one machine
+that never crashes (`Robustness.Robust`, with no machine that crashes: the store's crashes are the
+program's own, with restarts from the files), from a fresh state with one thread whose files hold
+none of the replicas' files in `dir`: in every execution of fewer than `2^61` steps no thread is
+stuck and none has an unrecovered panic, so porcupine always answers `Ok`. -/
+theorem raft_kvdurable_porcupine_robust [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
+    [hLog : log.NewModel] (dir : GoString)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (Hfiles : ∀ i ∈ raft_kvreconf.allIds,
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none) :
+    Robustness.Robust [] [(kvdurableProgram dir, σ)] g (2 ^ 61) :=
+  raft_kvdurable_robust dir σ g Hlctx Hinit Hthreads Hfiles
+
 end closed
 
 #print axioms raft_kvdurable_porcupine_safe
+#print axioms raft_kvdurable_porcupine_robust
 
 end EtcdGrove
 end Perennial

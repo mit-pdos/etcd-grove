@@ -41,8 +41,10 @@ def progOkS [hG : HeapGS .hasLC GF] (S : IProp GF) (init : val) (body : Expr) (�
 
 /-- **A program's closed theorem over `goose_adequacy`, with its extensions' start resources**:
 `init_adequate`, the body proved also from the extensions' resources of the initial state
-(`extsGlobalStart g.globalWorld ∗ extsLocalStart σ.world`, at the instance's ghost state). -/
-theorem init_adequate_start [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+(`extsGlobalStart g.globalWorld ∗ extsLocalStart σ.world`, at the instance's ghost state); with
+`goose_adequacy`'s own third conclusion: no thread has an unrecovered panic, finished or still
+unwinding (`init_adequate_start` states its consequence, no thread has ended in a panic). -/
+theorem init_adequate_start_unrecovered [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
@@ -54,8 +56,7 @@ theorem init_adequate_start [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         iprop(extsGlobalStart (G := (heapWith hG lctx).goose_globalGS) g.globalWorld ∗
           extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  apply adequate_of_unrecovered
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine goose_adequacy (GF := GF) (n + 1) (n + 2) _ σ g φ hφ Hinitg Hinitw ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
@@ -73,6 +74,23 @@ theorem init_adequate_start [hPre : GooseGpreS GF] [lctx : GoLocalContext]
   wp_apply Hinitwp $$ Hown as ⟨-, HI⟩
   iapply Hbody $$ HI Htok
   iframe
+
+/-- `init_adequate_start_unrecovered`, as the examples state it: no thread has ended in a panic. -/
+theorem init_adequate_start [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
+    (Hinitw : extsInitP σ.world g.globalWorld)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+      progOkS (hG := heapWith hG lctx)
+        iprop(extsGlobalStart (G := (heapWith hG lctx).goose_globalGS) g.globalWorld ∗
+          extsLocalStart (L := (heapWith hG lctx).goose_localGS) σ.world) init body φ) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  adequate_of_unrecovered (init_adequate_start_unrecovered (GF := GF) init body φ hφ σ g Hinitg
+    Hinitw Hlctx Hinit Hthreads n κs t2 σ2 Hsteps Hprog)
 
 end adequacy
 

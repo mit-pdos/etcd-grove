@@ -89,6 +89,30 @@ theorem durable_localStart [L : GooseLocalGS GF] (w : ExtsLocalState exts) :
 of `n` steps, whose body is proved from the program's half of the initial files
 (`extLocal durableExt σ.world`): if the main thread has finished, its result is in `φ`; no thread
 is stuck; no thread has ended in a panic. -/
+theorem durable_init_adequate_unrecovered [hPre : GooseGpreS GF] [lctx : GoLocalContext]
+    (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
+    (σ : state) (g : GlobalState)
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
+    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 → threadBound GF = n + 2 →
+      progOkS (hG := heapWith hG lctx)
+        (durableOwn (L := (heapWith hG lctx).goose_localGS) (extLocal durableExt σ.world))
+        init body φ) :
+    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  refine init_adequate_start_unrecovered (GF := GF) init body φ hφ σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
+    Hthreads n κs t2 σ2 Hsteps ?_
+  intro hG HN HT
+  obtain ⟨getInit, I, Hinitwp, Hbody⟩ := Hprog hG HN HT
+  refine ⟨getInit, I, Hinitwp, ?_⟩
+  iintro HI Htok ⟨-, Hl⟩
+  iapply Hbody $$ HI Htok
+  iapply durable_localStart (L := (heapWith hG lctx).goose_localGS) σ.world $$ Hl
+
+/-- `durable_init_adequate_unrecovered` (the theorem above, with `goose_adequacy`'s own third
+conclusion: no thread has an unrecovered panic, finished or still unwinding), as the examples
+state it: no thread has ended in a panic. -/
 theorem durable_init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (σ : state) (g : GlobalState)
@@ -100,15 +124,9 @@ theorem durable_init_adequate [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         (durableOwn (L := (heapWith hG lctx).goose_localGS) (extLocal durableExt σ.world))
         init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine init_adequate_start (GF := GF) init body φ hφ σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
-    Hthreads n κs t2 σ2 Hsteps ?_
-  intro hG HN HT
-  obtain ⟨getInit, I, Hinitwp, Hbody⟩ := Hprog hG HN HT
-  refine ⟨getInit, I, Hinitwp, ?_⟩
-  iintro HI Htok ⟨-, Hl⟩
-  iapply Hbody $$ HI Htok
-  iapply durable_localStart (L := (heapWith hG lctx).goose_localGS) σ.world $$ Hl
+      (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  adequate_of_unrecovered (durable_init_adequate_unrecovered (GF := GF) init body φ hφ σ g Hlctx
+    Hinit Hthreads n κs t2 σ2 Hsteps Hprog)
 
 end adequacy
 

@@ -96,7 +96,7 @@ answered `Ok` in every interleaving and every choice of the scheduler.
 Parametric in the Go semantics: any `go.Semantics` at the state's local context, any package
 assumptions (the translated bodies behind the store's and its imports' names) and the model of
 `log.New`. -/
-theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
+theorem kvdurable_unrecovered_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
     [hLog : log.NewModel]
     (wp_Main : kdMainSpec) (dir : GoString)
@@ -108,8 +108,8 @@ theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
-  refine durable_init_adequate (GF := durableGF)
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
+  refine durable_init_adequate_unrecovered (GF := durableGF)
     github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Main) #dir)
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g Hlctx Hinit Hthreads n κs t2
@@ -128,6 +128,25 @@ theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     iexact Hown
   ipureintro
   rfl
+
+/-- `kvdurable_unrecovered_of` (the theorem above, whose third conclusion is `goose_adequacy`'s:
+no thread has an unrecovered panic, finished or still unwinding), with the examples' form of it:
+no thread has ended in a panic. -/
+theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Assumptions]
+    [hLog : log.NewModel]
+    (wp_Main : kdMainSpec) (dir : GoString)
+    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hthreads : σ.threads = 1)
+    (Hfiles : ∀ i ∈ raft_kvreconf.allIds,
+      extLocal durableExt σ.world !! raft_kvdurable.kdFileName dir i = none)
+    (n : Nat) (Hn : n < 2 ^ 61) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
+    (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
+    (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
+    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+  adequate_of_unrecovered (kvdurable_unrecovered_of wp_Main dir σ g Hlctx Hinit Hthreads Hfiles n
+    Hn κs t2 σ2 Hsteps)
 
 end adequacy
 

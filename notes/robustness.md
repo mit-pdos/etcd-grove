@@ -47,6 +47,22 @@ A property of a system is a `Robust` statement about a deployment with a program
 and panics. Linearizability of a store: a client on a machine of `stable` records its history and
 panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness does in one process.
 
+**First instance proved** (2026-11-17): `raft_kvdurable_robust`
+(`Proof/.../examples/raft/kvdurable/AdequacyLinked.lean`; restated as
+`raft_kvdurable_porcupine_robust` in its `Results.lean`): `Robust [] [(kvdurableProgram dir, σ)] g
+(2^61)`, under `raft_kvdurable_adequate`'s hypotheses on the start state and on the same 328 axioms,
+no `sorry`. One machine that never crashes and none that does: kvdurable's replicas are goroutines
+of one process and its crashes are the program's own (`Cluster.Crash`, restarts from the files).
+- `Robust.of_single` (`Statement.lean`): the single-node adequacy conclusion gives `Robust [] [(e,
+  σ)] g bound`, since a single machine with no boot program runs as `RealNsteps`
+  (`distCrashNsteps_single`). Every closed single-process theorem of the examples can be restated
+  the same way.
+- The conclusion is stronger than `raft_kvdurable_adequate`'s "no thread has ended in a panic":
+  `¬ UnrecoveredPanic` also excludes a thread still unwinding a panic nothing will recover. Perennial's
+  `goose_adequacy` proves it; the examples' wrappers weakened it (`adequate_of_unrecovered`). They
+  now have unweakened variants (`init_adequate_start_unrecovered`, `durable_init_adequate_unrecovered`,
+  `kvdurable_unrecovered_of`), the old ones corollaries with unchanged statements.
+
 **History.** Version 1 (2026-11-15) had a semantics of its own (`Run.lean`: `World`, `Who`, `Timed`,
 `RunStep`/`Run`), a `Deployment`, an abstract network class `StreamNet`, arbitrary environment nodes
 under an `Assume` on their events and a `Guarantee` on the trace. Version 2 (2026-11-15, the user's:

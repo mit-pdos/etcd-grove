@@ -98,6 +98,51 @@ theorem Robust.of_all_crashing {crashing stable : List (Expr × state)} {g : Glo
   rw [List.map_append, List.append_nil]
   exact distCrashNsteps_more_boots _ hsteps
 
+/-- One machine with no boot program runs as a single process: its executions are the real
+thread-pool executions (`RealNsteps`) of its threads. -/
+theorem distCrashNsteps_single {n : Nat} {tp : List Expr} {σ : state} {g : GlobalState}
+    {κs : List Observation} {c : DistCfg}
+    (h : DistCrashNsteps [] n ⟨[(tp, σ)], g⟩ κs c) :
+    ∃ tp' σ' g', c = ⟨[(tp', σ')], g'⟩ ∧ RealNsteps n (tp, (σ, g)) κs (tp', (σ', g')) := by
+  generalize hc₀ : (⟨[(tp, σ)], g⟩ : DistCfg) = c₀ at h
+  induction h generalizing tp σ g with
+  | refl c => subst hc₀; exact ⟨tp, σ, g, rfl, @Language.NSteps.refl _ _ _ _ gooseRealLang _⟩
+  | @cons n c₁ c₂ c₃ κ κs hstep _ ih =>
+    subst hc₀
+    cases hstep with
+    | crash _ hb _ => simp at hb
+    | step hstep =>
+      cases hstep with
+      | @node nodes g i tp₀ σ₀ κ tp₁ σ₁ g₁ hi hs =>
+        obtain rfl : i = 0 := by
+          have := (List.getElem?_eq_some_iff.mp hi).1
+          simp only [List.length_singleton] at this
+          omega
+        simp only [List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at hi
+        obtain ⟨rfl, rfl⟩ := hi
+        obtain ⟨tp', σ', g', rfl, hrest⟩ := ih (tp := tp₁) (σ := σ₁) (g := g₁) rfl
+        exact ⟨tp', σ', g', rfl, @Language.NSteps.cons _ _ _ _ gooseRealLang _ _ _ _ _ _ hs hrest⟩
+
+/-- **A single process that never crashes**: the conclusion of the single-node adequacy theorem
+(`goose_adequacy`: no thread stuck, none with an unrecovered panic, in every real execution of the
+program of fewer than `bound` steps) is the robustness statement of the program alone on a
+machine that does not crash. -/
+theorem Robust.of_single {e : Expr} {σ : state} {g : GlobalState} {bound : Nat}
+    (h : ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState), n < bound →
+      RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2) →
+      (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
+    Robust [] [(e, σ)] g bound := by
+  intro n κs c hsteps hn i tp' σ' hi e' he'
+  obtain ⟨tp₁, σ₁, g₁, rfl, hreal⟩ := distCrashNsteps_single (tp := [e]) hsteps
+  obtain ⟨hns, hnp⟩ := h n κs tp₁ (σ₁, g₁) hn hreal
+  obtain rfl : i = 0 := by
+    have := (List.getElem?_eq_some_iff.mp hi).1
+    simp only [List.length_singleton] at this
+    omega
+  simp only [List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at hi
+  obtain ⟨rfl, rfl⟩ := hi
+  exact ⟨hns e' he', hnp e' he'⟩
+
 end facts
 
 end Robustness
