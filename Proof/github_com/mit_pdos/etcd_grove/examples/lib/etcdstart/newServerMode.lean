@@ -140,13 +140,16 @@ theorem newServerMode.wp_proof
     $$ [Hbuilt Hgap]
   · iframe
   iunfold srvMonitorCfg at Hmon
-  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
   ihave #Hoff : srvMonitorsOff srv $$ []
   · iunfold srvMonitorsOff
     isplitr; · iExactEq Hmc; rfl
     isplitr; · iExactEq Hmd; rfl
-    iexists _
-    iframe Hmf Hfgc
+    isplitr
+    · iexists _
+      iframe Hmf Hfgc
+    -- (wal-link L2) no WAL purge: the literal leaves `MaxWALFiles` zero
+    iExactEq Hmw; rfl
   ihave #Hlr : srvLeaseRd srv E lm $$ []
   · iapply srvLeaseRd_of_srvInv srv E lm _ $$ Hlsrv
   -- (the lease-expiry plan's E3 (c) stage 2) the lease-TTL row's raft part, at the peers
@@ -252,13 +255,16 @@ theorem newServerMode.wp_proofRestart
     iapply HΦ; ileft; iframe Htok; ipureintro; exact Herr
   subst Herr
   iunfold srvMonitorCfg at Hmon
-  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
   ihave #Hoff : srvMonitorsOff srv $$ []
   · iunfold srvMonitorsOff
     isplitr; · iExactEq Hmc; rfl
     isplitr; · iExactEq Hmd; rfl
-    iexists _
-    iframe Hmf Hfgc
+    isplitr
+    · iexists _
+      iframe Hmf Hfgc
+    -- (wal-link L2) no WAL purge: the literal leaves `MaxWALFiles` zero
+    iExactEq Hmw; rfl
   -- the lessor at the snapshot it recovered of the image's `lease` bucket
   icases Hls with ⟨%recs, %ls, %mt, -, #Hlsrv⟩
   ihave #Hlr : srvLeaseRd srv E .none $$ []

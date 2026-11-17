@@ -2569,7 +2569,7 @@ theorem EtcdServer.wp_publishV3 :
 
 theorem EtcdServer.wp_purgeFile :
     EtcdServer.purgeFile.spec (GF := GF) (hG := hG) :=
-  EtcdServer.purgeFile.wp_proof
+  EtcdServer.purgeFile.wp_proof EtcdServer.wp_Logger
 
 theorem wp_monitorFileDescriptor :
     monitorFileDescriptor.spec (GF := GF) (hG := hG) :=

@@ -500,7 +500,7 @@ version_Cluster:
 prometheus_GaugeVec__With:
 EtcdServer__adjustTicks:
 EtcdServer__publishV3:
-EtcdServer__purgeFile:
+EtcdServer__purgeFile: EtcdServer__Logger
 monitorFileDescriptor:
 EtcdServer__monitorClusterVersions:
 EtcdServer__monitorStorageVersion:

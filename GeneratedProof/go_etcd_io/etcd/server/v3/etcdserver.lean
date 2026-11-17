@@ -12,6 +12,7 @@ public import GeneratedProof.github_com.dustin.go_humanize
 public import GeneratedProof.github_com.prometheus.client_golang.prometheus
 public import GeneratedProof.go_etcd_io.etcd.api.v3.etcdserverpb
 public import GeneratedProof.go_etcd_io.etcd.api.v3.version
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.logutil
 public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.types
 public import GeneratedProof.go_etcd_io.etcd.pkg.v3.contention

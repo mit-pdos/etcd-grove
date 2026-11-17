@@ -161,13 +161,16 @@ theorem startServer.wp_proof
     iapply isServerBuilt_of_gapM
     iframe
   iunfold srvMonitorCfg at Hmon
-  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm⟩
+  icases Hmon with ⟨#Hmc, #Hmd, #Hmf, Hlgm, #Hmw⟩
   ihave #Hoff : srvMonitorsOff srv $$ []
   · iunfold srvMonitorsOff
     isplitr; · iExactEq Hmc; rfl
     isplitr; · iExactEq Hmd; rfl
-    iexists _
-    iframe Hmf Hfgc
+    isplitr
+    · iexists _
+      iframe Hmf Hfgc
+    -- (wal-link L2) no WAL purge: the literal leaves `MaxWALFiles` zero
+    iExactEq Hmw; rfl
   iunfold srvServeBuilt at Hserve
   icases Hserve with ⟨#Hsf, Hbemu, Hlg1, Hlg2⟩
   -- `s.Start()` at the auth slot's `on γa`: the built part as the slot's row

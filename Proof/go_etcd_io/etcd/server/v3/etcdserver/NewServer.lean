@@ -1677,8 +1677,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   icases replicate_take2 _ _ (by omega) $$ Hlgrs with ⟨HlgS1, HlgS2, -⟩
   ipersist CorruptCheckTimeS
   ipersist DowngradeCheckTimeS
+  ipersist MaxWALFilesS
   ihave HMon : srvMonitorCfg s cfg $$ [HlgMon]
-  · iunfold srvMonitorCfg; rw [Hfgi]; iframe DowngradeCheckTimeS CorruptCheckTimeS ServerFeatureGateS; iframe HlgMon
+  · iunfold srvMonitorCfg; rw [Hfgi]; iframe DowngradeCheckTimeS CorruptCheckTimeS ServerFeatureGateS MaxWALFilesS; iframe HlgMon
   ipersist LoggerS
   ipersist MaxTxnOpsS
   ipersist WarningUnaryRequestDurationS
@@ -1695,7 +1696,6 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ipersist PeerURLsS
   ipersist DataDirS
   ipersist DedicatedWALDirS
-  ipersist MaxWALFilesS
   ipersist BackendBatchIntervalS
   ipersist BackendBatchLimitS
   ipersist BackendFreelistTypeS
