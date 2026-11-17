@@ -1,5 +1,10 @@
 # k8s 7g step 1: the trust-boundary texts of the maintainers' checker (2026-11-17)
 
+**Reviewed 2026-11-17** (`notes/axiom-review/k8s-7g-trust.md`): all survive and their axioms are
+added, except `SuggestsClientDelay.spec`, refuted with the existing `HasStatusCause.wp_proof`
+(`apiErrOk` does not hold the details); fix (a) and T land as their own stage; V then applies here,
+with M2.
+
 Hard stop (trust base). Every text below is written and elaborates (`etc/lean-check.py -a`); **no
 axiom file is added**. Each spec's file header says why it is faithful and names its Go tests.
 Go evidence: `examples/k8s/etcd3/trustspecs_test.go` (package `etcd3`) and
