@@ -1,6 +1,38 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L2 proper: goose config done; STOP on two findings)
+## START HERE (2026-11-17, L2 done; STOP at the L2 trust-base stop)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
+  Coordinator: etcd-grove-03. Scope §2-§3.5, §7-§8; `questions.md` (F1, F2, bounds, R6, purgeFile decided by etcd-grove-03).
+- **Done (L2):** 771d63dd6b storage.toml (accepted). 03d78a9a97 the storage package: `StorageRep.lean` (`storagePw`,
+  `storageOver`, `storageRd`, `metaWalC`, `walSnapAt_storageLit`), specs+proofs `NewStorage` (two reader tokens: bounds
+  unchanged), `storage.{Save,SaveSnap,Sync,Close}` (= the WAL method's triple + the storage's lock; SaveSnap over
+  `metaRoC` with the F2 premise `snapEnc (metaWalC m) = Mr.encSnap m.model`); `ReleaseNext.lean`
+  (`storage.storage.Release.wp_proofNext`, used by nothing: F1, becomes the spec in place at L3). Not linked yet (the
+  server link takes them at L3 with concrete `P`/`Mr`/`Sio`). dd04ec68ce `purgeFile` with its body (axiom gone): spec
+  over `srvGoAttachOk` + `MaxWALFiles ↦□ 0` + `threadTokFrom 1`; `srvMonitorCfg`/`srvMonitorsOff` gain the field;
+  `Start` via `wp_GoAttach_tokT`; 5 example sites; server Link regenerated. 6569184aad lean (5fb716b5eb) merged.
+- **R6 (checked before relying on `storageOver`):** `monitorStorageVersion`'s axiom gives no storage resource; Go
+  reaches `MinimalEtcdVersion` (which reassigns `st.w` under `mux.Lock`) only when `UnsafeMigrate`'s target (the cluster
+  version) is below the detected storage version (schema.go:69-71); the storage version is 3.5 (detected) or a value the
+  monitor wrote (= the cluster version); the cluster version is the members' minimum server version or 3.0 (skipped,
+  monitor.go:110) and goes down only through a downgrade (`DowngradeInfoSet`: `apply.rqOk` false, `monitorDowngrade` off
+  at `DowngradeCheckTime = 0`). So the branch is dead in every covered run: the invariant fixing `p.w` does not make
+  the axiom false (its docstring says "reads" of the WAL; a reopen, `notes/axiom-review/monitor-storage-version-receipt.md`).
+- **Next:** L3 (with L4), after the trust-base review: `rnNewStorageOk`/`isWalStorage` restated over `NewStorage`'s post;
+  `storage.Release.spec` replaced in place by `ReleaseNext`'s statement and the axiom removed; F2's discharge
+  (raft's snapshot conf state canonical, else a model wrap); link the storage proofs in the server's Link.
+- **Pitfalls:** gen-link/gen-init compare only with Perennial linked at `.lake/packages/perennial` (`ln -s
+  /shared/perennial-c6b39d4f8`, then `rm`); gen-init needs `PERENNIAL_DIR=/shared/perennial-c6b39d4f8`. goose:
+  `PATH=/usr/local/go/bin:$PATH etc/goose.py --project etcd --src etcd=/shared/tmp/wallink/etcd --perennial
+  /shared/perennial-c6b39d4f8`. `wp_apply` of RLock already runs `wp_auto` (a following `wp_auto` fails: `(try wp_auto)`).
+  A WAL spec's `match` pre: `dsimp only` in the side goal. `questions.md` is git-ignored (local only).
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
+  **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
+
+## History
+
+### START HERE (2026-11-17, L2 proper: goose config done; STOP on two findings)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
   Coordinator: etcd-grove-03. Scope §2-§3, §7-§8; `questions.md` (T1, ReleaseSnapDBs accepted).
@@ -26,7 +58,6 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
   **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
 
-## History
 
 ### START HERE (2026-11-17, L2: T1 and the ReleaseSnapDBs axiom done)
 
