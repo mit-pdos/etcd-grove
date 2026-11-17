@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan", "Robustness", "NetTcp"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "NetTcp"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftWitness", "PorcupineDag", "Bbolt", "SpecPlan
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "e9e6351d974e3d572b51cda1ba292bd6deaf5809"
+rev = "c6b39d4f8c0e6d4a08a615a4023516b8079a3b37"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -27,6 +27,19 @@ rev = "e9e6351d974e3d572b51cda1ba292bd6deaf5809"
 name = "EtcdGrove"
 globs = ["Code.+", "TrustedCode.+", "GeneratedProof.+", "ManualProof.+", "Spec.+", "Proof.+",
          "GooseLang.+"]
+
+# Raft's `with_tla` build (`state_trace.go`: the trace hooks with their bodies), for raft's TLA+ trace
+# validation (examples/raft/tracecheck) and nothing else: the main tree translates and verifies the
+# build without the tag, the one etcd ships. RaftTla/{Code,GeneratedProof}/ are etc/goose.py's
+# projects raft-tla (raft's own package) and tracecheck (the harness); RaftTla/{Spec,Proof}/ are the
+# main tree's specs and proofs of raft, copied by etc/gen-raft-tla.py (the files with its marker:
+# one proof source, compiled against both builds), and the hand-written modules specific to the
+# build (the logger's contract, the hooks' proofs, the package initializer) and to the trace check.
+# It imports the main tree, but not its raft, and nothing outside it imports it: its modules declare
+# the main raft's names.
+[[lean_lib]]
+name = "RaftTla"
+globs = ["RaftTla.+"]
 
 # The witness experiment (notes/raft-witness.md): raft with witness support (a candidate for
 # etcd-io/raft#133) and the key-value store on it, in a parallel tree with the same layout
@@ -65,6 +78,16 @@ globs = ["SpecPlan.+"]
 [[lean_lib]]
 name = "Bbolt"
 globs = ["Bbolt.+"]
+
+# etcd's WAL tester (examples/etcd/wal) and examples/lib/durable with its bodies over the per-byte
+# file extension (notes/wal-lean-integration.md), translated by etc/goose.py's project etcd-wal and
+# project durable's part into a parallel tree (WalTester/{Code,GeneratedProof,Spec,Proof}/): the
+# main tree keeps durable trusted over durableExt (kvdurable's), so the two declare the same names;
+# nothing outside WalTester imports it. (Until 2026-11-15 they were in the part LinuxFs/, with the
+# WAL and the file layer, now the main tree's.)
+[[lean_lib]]
+name = "WalTester"
+globs = ["WalTester.+"]
 
 # Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
 # every run of its nodes (the real programs) with crashes, the network's faults and any clients,

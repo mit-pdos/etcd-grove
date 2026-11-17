@@ -42,7 +42,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
-  obtain ⟨Hhb, Hwal⟩ := Hraft
+  obtain ⟨Hhb, Hwal, HtrC⟩ := Hraft
   icases typedPointsto_not_null_dup _ _ _ $$ Hb with ⟨Hb, %Hbnn⟩
   iStructNamedSuffix Hb "B"
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -109,7 +109,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           memSnapEmpty.Metadata'.ConfState' (raftState γr.cl cv.ID' RaftState.init) Q
           bv.peers' dq pv Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg) Hcfg.applied
-          rfl rfl rfl rfl rfl Hcfg.peers) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
+          rfl rfl rfl rfl rfl Hcfg.peers Hcfg.traceLogger HtrC) $$ [Hc Hbs Hboot Hvac Hau Hpeers]
         as %nd ⟨%n', %K, %Hnd, #Hfresh, #Hnode, Hdrv, Hncfg, Hrun, Hrst, HQ, Hpeers⟩
       · iframe #; iframe Hc Hpeers Hboot Hvac Hau
         iExactEq Hbs; rfl
@@ -168,7 +168,8 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
           (fun S'' => iprop(raftState γr.cl cv.ID' S'' ∗ ⌜S'' = S⌝)) Q
           Hcfg.valid Hcfg.logger Hcfg.storage Hcfg.inflight Hcfg.noForwarding
           Hcfg.readOnly Hcfg.ccValidation Hcfg.sizes Hcfg.noAsync (fun _ => Hcfg.maxMsg)
-          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs)
+          (Or.inl (by rw [Hcfg.applied]; rfl)) (by rw [Hcfg.applied]; simpa using Hba) Hac Hboot Hcs
+          Hcfg.traceLogger HtrC)
         $$ [Hc Hbs Hvac Hau]
         as %nd ⟨%n', %S', %l, %K, %Hnd, #Hnode, #Hl, %Hll, %-, Hdrv, Hncfg, Hrun, Hrst, HQ⟩
       · iframe #; iframe Hc Hvac Hau

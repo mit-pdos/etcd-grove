@@ -121,9 +121,11 @@ theorem wp_conf_apply (wp_ACC : node.ApplyConfChange.spec (GF := GF) (hG := hG))
   rw [kvrRule_decoded _ _ _ _ hd, if_pos hok]
   rw [show ConfDecision.ofRule (some o) = .apply o from rfl]
   obtain ⟨Hvm, Hva⟩ := Hvm
+  ihave %Huntr := kvrCluster_untraced γr vs $$ Hcl
   iapply wp_fupd
   wp_apply wp_ACC n γr.cluster kvrRaftN id c o o l k e v m' Hva hk
     (ccDecode_isConfChange hd) (by rw [Hvm]; exact Hstep) (by rw [Hvm]; exact Hstep)
+    (fun h => absurd Huntr h)
     $$ [$Hraft $Hnode $Hic $Hd $Hcc $Hv $Hdl $Hsk] as %csp' %cs Hr
   icases Hr with (⟨Hcs', Hv', %Hcsm⟩ | ⟨%Hnull, #Hst⟩)
   · imod csPts_persist csp' (DFrac.own 1) cs true $$ Hcs' with #Hcs'

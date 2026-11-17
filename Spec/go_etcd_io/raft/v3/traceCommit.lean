@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_traceCommit.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedCap
 
 @[expose] public section
 
@@ -19,16 +19,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceCommit(r)`: a tracing hook, and a **no-op** -- Goose translates it to
-`λ: <>, exception_do (do: #())` (`traceCommit.impl`,
-`Code/go_etcd_io/raft/v3.lean`). Same shape as the other trace hooks
-(`Spec/traceBecomeLeader.lean`): it owns nothing. `maybeCommit` calls it through a
-`defer`. -/
+/-- `traceCommit(r)`: the node event `Commit` (`rsmCommit`) of `r`'s state, through `traceNodeEvent`.
+
+One spec for both modes (Q8 stage 1, slice 2, 2026-11-09; `traceNodeEvent.spec`'s form): untraced
+(`s.gh.tr = none`) the gate `trOwn` is `emp` and `TraceFire` a nil logger and `Q`; traced, raft's state
+is lent through the gate and the caller's update fires with a `NodeEvOf` event. Its traced instance is
+the Draft's `traceCommit.tracedSpec` (`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`, giving
+`True` (increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceCommit.spec : Prop :=
-  ∀ (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 4) id s c) Q }}
     (App (Val #(functions traceCommit [])) (Val #r))
-  {{ RET #(); True }}
+  {{ RET #(); trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
 
 end spec
 

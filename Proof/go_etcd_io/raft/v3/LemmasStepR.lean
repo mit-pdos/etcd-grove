@@ -120,6 +120,55 @@ theorem ownConfChangeV2_changes (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
   iframe
   iframe cT Hccs Hcs Hpb
 
+/-- A `ConfChangeI` holding a `*pb.ConfChange` at `p` (2026-11-08, `traceChangeConfEvent`'s
+argument): folded. -/
+theorem ownConfChangeI_v1_intro (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p dq m ⊢
+      ownConfChangeI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p) dq
+        (some (.v1 m)) := by
+  iintro H
+  iunfold ownConfChangeI
+  iexists p
+  isplitr
+  · ipureintro; rfl
+  iexact H
+
+/-- ... and unfolded: the pointer is the interface's. -/
+theorem ownConfChangeI_v1_elim (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChangeI (GF := GF) (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p) dq
+        (some (.v1 m)) ⊢ ownConfChange p dq m := by
+  iintro H
+  iunfold ownConfChangeI at H
+  icases H with ⟨%p', %Hp, H⟩
+  obtain ⟨-, Hv⟩ := (interface_mkOk_inj _ _ _ _).1 Hp
+  have Hpp : p = p' := go.intoVal_inj Hv
+  subst Hpp
+  iexact H
+
+/-- A `ConfChangeI` holding a `*pb.ConfChangeV2` at `p`: folded. -/
+theorem ownConfChangeI_v2_intro (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
+    ownConfChangeV2 (GF := GF) p dq m ⊢
+      ownConfChangeI (interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p) dq
+        (some (.v2 m)) := by
+  iintro H
+  iunfold ownConfChangeI
+  iexists p
+  isplitr
+  · ipureintro; rfl
+  iexact H
+
+/-- ... and unfolded. -/
+theorem ownConfChangeI_v2_elim (p : Loc) (dq : DFrac) (m : ConfChangeV2M) :
+    ownConfChangeI (GF := GF) (interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p) dq
+        (some (.v2 m)) ⊢ ownConfChangeV2 p dq m := by
+  iintro H
+  iunfold ownConfChangeI at H
+  icases H with ⟨%p', %Hp, H⟩
+  obtain ⟨-, Hv⟩ := (interface_mkOk_inj _ _ _ _).1 Hp
+  have Hpp : p = p' := go.intoVal_inj Hv
+  subst Hpp
+  iexact H
+
 /-- The struct `&pb.Entry{Type: pb.EntryNormal.Enum()}` allocates, its `Type` cell at `pty`. -/
 abbrev normalEntryV (pty : Loc) : raftpb.Entry :=
   { state' := zeroValDef, Term' := null, Index' := null, Type' := pty, Data' := slice.nil,

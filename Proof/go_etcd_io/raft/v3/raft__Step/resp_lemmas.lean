@@ -202,7 +202,7 @@ theorem LeaderStepResultC.not_precand {c : CfgM} {id : w64} {s : NState} {m : Me
       | simp_all [sendMsgs, readRespondAll_role, readRespond_role, arriveState]
       | skip
     -- the accepted `MsgAppResp`
-    obtain ⟨x, pvs, n, hb, ms, -, -, -, -, H⟩ := H
+    obtain ⟨x, pvs, n, hb, ms, -, -, -, -, -, -, H⟩ := H
     split at H
     · obtain ⟨-, rfl⟩ := H; simp_all [sendMsgs]
     · rcases H with ⟨-, -, rfl⟩ | ⟨-, -, rfl⟩ <;>
@@ -341,7 +341,7 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
     rw [toPState_prvals (sendMsgs s ms) pvs (fun _ => Hpm), toPState_sendMsgs]
     exact .sendApps _ ms Hpr Hok.replOk Hok.commitEq (Hok.snapTo Hpc)
   · -- accepted
-    obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, Hms, Hrel⟩ := Hacc
+    obtain ⟨x, pvs, n0, hb, ms, Hx, Hpvs, Hc, -, -, Hms, Hrel⟩ := Hacc
     by_cases Hcc : n0 ≠ s.logst.committed
     · -- a commit, which releases the pending read-index requests (2026-10-13)
       rw [ite_eq_right Hcc] at Hrel
@@ -407,7 +407,8 @@ theorem leader_appresp_step (c : CfgM) {ctx : List w8} (id : w64) (s : NState) (
         · rw [H4e]; exact ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩
         · rw [H4e]; exact keep_frame rfl rfl rfl rfl rfl
       refine ⟨Hwf, ?_, keep_frame rfl rfl rfl rfl rfl
-        (hpc := ⟨fun h => absurd (h.symm.trans Hr) (by decide), fun h1 h2 => ⟨h1, h2⟩⟩)⟩
+        (hpc := ⟨fun h => absurd (h.symm.trans Hr) (by decide), fun h1 h2 => ⟨h1, h2⟩,
+          fun _ h2 => absurd (Hr.symm.trans h2) (by decide)⟩)⟩
       have Hpr1 : (toPState { s with prvals := pvs }).role = .leader := Hpr
       have H1 : StepCF c id (toPState s) [absMsg .appResp m ents]
           (toPState { s with prvals := pvs }) := by

@@ -270,11 +270,14 @@ theorem DB.Close.wp_proof
     omega
   imod close_res _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
+  -- the `flock` token (`dbPathLk`), for `close`'s `funlock` and `File.Close`
+  iunfold dbPathLk at Hpath
+  icases Hpath with ⟨Hpath, Htok⟩
   wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
-    Hres Hfile Hfo Hfd]
+    Hres Hfile Hfo Hfd Htok]
     as %err ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
   · iframe; iframe #
-    iright; iexists w.fd, p.path, _; iframe
+    iright; iexists w.fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
   try wp_auto
   -- the deferred unlocks
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩

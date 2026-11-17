@@ -56,13 +56,23 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 /-- What `hup` checked before it campaigned (2026-10-14, reconfiguration stage B7: the dynamic
 model's `StepR.campaign` guard): nothing done, or a campaign (`campaignState`) by a non-leader
 voter of either half, with no snapshot pending (`promotable`) and no conf-change entry committed
-but not applied (`hasUnappliedConfChanges`), asking every other voter. -/
+but not applied (`hasUnappliedConfChanges`), asking every other voter. `HupCampaigns` is the
+campaign's conditions (2026-11-10, slice 19a). -/
+def HupCampaigns (c : CfgM) (id : w64) (s : NState) : Prop :=
+  s.role ≠ .leader ∧ id ∈ c.voters ∧ s.logst.snap = none ∧
+  (¬ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e)
+
+/-- See `HupCampaigns`. (2026-11-10, trace-check Q8 stage 1 slice 19a) **Exclusive**: nothing done
+exactly when the campaign's conditions fail (until then `s' = s ∨ …`, which let a caller not tell a
+campaign from nothing done at `s' = s`: a traced `MsgHup`'s close, `notes/decisions.md`, "Q8 stage 1
+(slice 19a)"); `promotable`'s and `hasUnappliedConfChanges`' specs state their results exactly. And a
+pre-campaign only with pre-vote on (`hup`'s premise on a pre-election), so that the close tells an
+election from a pre-election too. -/
 def HupGuard (c : CfgM) (id : w64) (s s' : NState) : Prop :=
-  s' = s ∨
-  (s.role ≠ .leader ∧ id ∈ c.voters ∧ s.logst.snap = none ∧
-   (¬ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e) ∧
+  (¬ HupCampaigns c id s ∧ s' = s) ∨
+  (HupCampaigns c id s ∧
    ∃ (pre : Bool) (peers : List w64) (pvs : GMap w64 Progress) (cl : List w8),
-     peers ≡ₚ elements (c.voters \ {[id]}) ∧
+     (pre = true → s.prevote = true) ∧ peers ≡ₚ elements (c.voters \ {[id]}) ∧
      s' = { campaignState id s pre peers cl with prvals := pvs })
 
 /-- What `hup` leaves (its postcondition's pure part, 2026-10-13, for `stepFollower`'s
@@ -82,7 +92,7 @@ def HupOkC (c : CfgM) (id : w64) (s s' : NState) : Prop :=
 term; an election raises it, but makes a candidate). -/
 theorem HupGuard.precand {c : CfgM} {id : w64} {s s' : NState} (h : HupGuard c id s s')
     (hp : s'.role = .preCandidate) : s'.term = s.term := by
-  rcases h with rfl | ⟨-, -, -, -, pre, peers, pvs, cl, -, rfl⟩
+  rcases h with ⟨-, rfl⟩ | ⟨-, pre, peers, pvs, cl, -, -, rfl⟩
   · rfl
   · cases pre
     · simp [campaignState, sendMsgs, becomeCandidate] at hp

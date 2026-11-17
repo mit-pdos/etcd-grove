@@ -11,8 +11,10 @@ theorem node.run.wp_proof [package_sem : Assumptions] (wp_RawNode_HasReady : Raw
     (wp_GetFrom : raftpb.Message.GetFrom.spec) (wp_getStatus : getStatus.spec) : node.run.spec
   -- `Perennial.EtcdGrove.node.run.spec`, unfolded:
   ∀ (γ : NodeNames) (id : w64) (n : Loc),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ runPre γ id n -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
-            WP ((intoVal (methods node.ty.PointerType go!"run" (intoVal n))) (intoVal ())) {{ Φ }}
+    (γ.raft.reTrace ≠ none → RunTracedOk GF γ) →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+              isNodeChan γ id n ∗ runPre γ id n ∗ gateTr γ.raft.reTrace (rtkRun γ.esc none) -∗
+            ▷ (True -∗ Φ (intoVal ())) -∗
+              WP ((intoVal (methods node.ty.PointerType go!"run" (intoVal n))) (intoVal ())) {{ Φ }}

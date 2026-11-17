@@ -9,7 +9,8 @@
 // (measured, documented with a citation, or assumed), and which client needs
 // it; then a function shows the scenario, with "crash here" and the outcomes.
 // The functions are illustrations: nothing calls them, and no Goose
-// translation or proof covers this package. Every claim is about the target
+// translation or proof covers this package (models_test.go runs the
+// measurements the model_*.go files cite). Every claim is about the target
 // configuration C (env_config.go); the measurements cited were made on C with
 // the scripts in notes/axiom-review/fs-config/ (and fs-v2-f3/, fs-v2-r4/,
 // fs-v2-r6/).
@@ -25,7 +26,7 @@
 //	env_durable_at_first_start.go durable at first start (F2)        FsInit
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
-//	env_roots_only.go             only the roots' trees              TreeName, TreePath, CanonBelow, RootsOk
+//	env_roots_only.go             only the roots' trees              TreeName, TreePath, AtOrAboveRoot, CanonBelow, RootsOk
 //
 // File contents and sizes:
 //
@@ -37,10 +38,15 @@
 //	data_resize_chunks.go         partial resize (F5)                CrashFile (targets), FallocFinish
 //	data_durable_zeros.go         pages past a durable size: zeros   diskByte, OsFile.ofDisk, OsFile.synced
 //	data_append_old_block.go      the end's block is not ordered     diskByte (the end's page), CrashFile
+//	data_writeback_tail_zeros.go  writeback zeroes the end's tail    CrashFile (zero at or past sizeLo)
+//	data_truncate_tail_zeros.go   ftruncate zeroes the end's page    OsChange.ofResize (pageEnd), pageEnd
 //	data_extension_zeros.go       extensions read zeros (F3 refuted) OsFile.resized, OsFile.written
 //	data_keep_size.go             FALLOC_FL_KEEP_SIZE: no change     FallocKeep
 //	data_short_io.go              short and failed pread/pwrite      PRead, PWriteFinish
 //	data_inflight_changes.go      changes in flight (one per file)   OsChange, announce, land, BusyAt, osHole
+//	data_resize_stamps.go         resize stamps (bookkeeping only)   OsFile.rzs, OsChangeKind.isResize, announce
+//	data_maxbytes.go              no byte at or past s_maxbytes      maxBytes, PWriteFinish, FtruncateFinish,
+//	                              (pending review)                   FallocFinish, CrashFile, FsInit, OsWf.sizes
 //
 // The directory tree and metadata calls:
 //
@@ -51,9 +57,42 @@
 //	meta_file_fsync.go            a file fsync commits no name       Fsync, DirSync
 //	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext
+//	meta_enoent.go                ENOENT only for a missing path     ENOENT, Open, DirReadNext (pending review)
+//	                              or a removed directory
+//
+// File locks (2026-11-15, the user's approval of lock state; pending review,
+// notes/wal-units/locks.md; locks_test.go holds their measurements):
+//
+//	locks_ofd.go                  OFD locks per description          OsFd.ofd, LockConflict, LockStep, OfdLock
+//	locks_flock.go                flock locks per description        OsFd.flk, LockStep, flockReq, Flock
+//	locks_flock_vs_ofd.go         the two kinds are independent      LockKind, OsFd.lk, LockConflict
+//	locks_blocking.go             blocking requests wait (or fail)   LockStep (nb)
+//	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit (unchanged)
+//	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
+//
+// Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
+// models_test.go holds their measurements, run on C by run-models-on-c.sh):
+//
+//	model_syscall_fallocate.go    syscall.Fallocate as unix's        syscall.lean: Fallocate.impl
+//	model_syscall_fcntlflock.go   OFD commands; F_OFD_GETLK on any   syscall.lean: FcntlFlock.impl
+//	model_os_close_nil.go         nil *File Close: ErrInvalid        os.lean: File.Close.impl
+//	model_os_close_twice.go       closed *File Close: ErrClosed      os.lean: File.Close.impl
+//	model_os_stat.go              Stat/Lstat as open+fstat+close     os.lean: model.stat, arbitraryMode
+//	model_os_mkdirall.go          MkdirAll: Go's body over models    os.lean: MkdirAll.impl
+//	model_os_mkdirall_above.go    MkdirAll at or above a root        Impl.lean: PathKind; os.lean: mkdirAllAbove
+//	model_os_stat_above.go        Stat/Lstat above a root, no step   Impl.lean: PathKind, AboveRoot; os.lean: statAbove
+//	model_os_open_above.go        Open/Sync/Close above a root       Impl.lean: Open (OpenOutside), OutSync, OutClose
+//	model_os_filestat_name.go     fileStat.Name: base of the path    os.lean: fileStat, model.base; os.toml
+//	model_os_removeall.go         RemoveAll over paths, rename-free  os.lean: RemoveAll.impl, removeAllFrom
+//	model_os_writefile.go         WriteFile; an empty Write          os.lean: File.Write.impl; WriteFile
+//	model_os_readdirnames_len.go  Readdirnames: under 2^44 names     os.lean: File.Readdirnames.impl (assume)
+//	model_os_copy_file_range.go   io.Copy of files: copy_file_range  os.lean: model.copyFileRangeRound,
+//	                              as PRead + PWrite (pending review) pollCopyFileRange, File.copyFileRange.impl
 //
 // Client premises (not part of the semantics; a theorem states them):
 //
 //	premise_sector_whole.go       WAL sectors come back whole        SectorWhole, valAt (a known limitation)
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
+//	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
+//	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
 package semantics

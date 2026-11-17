@@ -43,7 +43,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) :
+    (ents : List EntryM) (R : StepG GF) :
     m.Type' = MsgHeartbeat →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -57,16 +57,21 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
     uint.Z s.term < uint.Z m.Term' →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .heartbeat m ents ctx) ∧
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hfid Hwf Hcommit Hgt
   wp_start as H
   iNamed H
@@ -75,7 +80,7 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   rw [decide_eq_false Hterm]
@@ -90,37 +95,49 @@ theorem wp_Step_MsgHeartbeat_gt (_P : raft.Step.Postulates (GF := GF) (hG := hG)
   -- MsgApp || MsgHeartbeat || MsgSnap: the second holds
   wp_drive _Q
   -- becomeFollower(m.Term, m.From): a leader's message
-  wp_apply _P.becomeFollower c r id s m.Term' m.From' (Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+  have hbf : PreBF m s := PreBF.of_gt Hgt (by rw [Hty]; w32_ne) (fun h => absurd (Hty.symm.trans h) (by w32_ne))
+  have hlead : preLead m = m.From' := preLead_from (.inr (.inl Hty))
+  ihave Hgb := preGate_bf c r id s m R.G0 R.G1 m.From' hbf hlead $$ Hgpre HG
+  wp_apply _P.becomeFollower c r id s m.Term' m.From' (R.G1 s.outbox) (Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+    as %pvs ⟨Hphys, HG⟩
+  phys_idx HG
   wp_drive _Q
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   rw [show ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).stepfn
       = functions stepFollower [] from rfl]
   ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
+  ihave Hfg := stepFnGates_follower c r id s m ents ctx R pvs _ (preState_bf' hbf hlead pvs) rfl $$ Hgstep
   wp_apply _P.stepFollower c ∅ r id
-      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs (zero_val _) ctx (.inr (.inr (.inr (.inl Hty))))
+      ({ becomeFollower s m.Term' m.From' with prvals := pvs } : NState) ml m ents sn rs (zero_val _) ctx
+      R.G1 R.GE (.inr (.inr (.inr (.inl Hty))))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne)) (by intro _; simp only [becomeFollower, resetTo, resetTo0]; exact Hterm)
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
       (fun _ => ⟨Hcommit, Hfid⟩)
       (fun Hc => by exfalso; rcases Hc with Hc | Hc <;> rw [Hty] at Hc <;> exact absurd Hc (by w32_ne))
       (fun Hc => by rw [Hty] at Hc; exact absurd Hc (by w32_ne))
-    (by notfwd_tac) $$ [$Hphys Hm Hmb $Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [$Hphys Hm Hmb $Hsrc0 $HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+  · isplitl [Hm Hmb]
+    · iapply msgInC_pass (by rw [Hty]; w32_ne) (by rw [Hty]; exact movesB_MsgHeartbeat) (fun h => by simpa [becomeFollower, resetTo, resetTo0] using h); iframe Hmb Hm
+    · iunfold followerGates at Hfg; iexact Hfg
+  ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_heartbeat _ _ _ _ _ _ _ _ _ Hty Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %_
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
-  refine ⟨nstateWf_heartbeatResult _ _ _ _ ?_, ?_, rfl,
+  refine ⟨StepEnd.fn_bf hbf hlead (by rw [Hty]; w32_ne) (by rw [Hty]; w32_ne) pvs
+      (StepFnEnd.follower rfl Hres), nstateWf_heartbeatResult _ _ _ _ ?_, ?_, rfl,
     stepdown_frame (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt) rfl rfl rfl rfl rfl⟩
   · exact ⟨rfl, rfl⟩
   · refine ⟨[absMsg .heartbeat m ents ctx] ++ [absMsg .heartbeat m ents ctx], ?_, ?_⟩
     · intro m' Hm'
-      simp only [List.mem_append, List.mem_singleton, or_self] at Hm'
+      simp only [List.mem_append, List.mem_singleton, _root_.or_self] at Hm'
       exact Hm'
     · refine StepCD.frame ?_ (by rframe)
       refine .trans _ _ _ _ _

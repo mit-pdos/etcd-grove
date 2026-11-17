@@ -94,6 +94,25 @@ def fileOwn (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) : IProp GF :=
 theorem fileOwn_eq [os.Assumptions] (f : Loc) (fd : w64) (name : GoString) (dq : DFrac) :
     fileOwn (GF := GF) f fd name dq = os.ownFile f fd name dq := rfl
 
+/-- The database file's open description once `Open`'s `flock` has taken the exclusive lock (the
+file-lock semantics of 2026-11-15): readable, writable, no OFD lock, `flock`'s exclusive lock. -/
+abbrev dbFd (i : Ino) : OsFd := ⟨i, true, true, none, some true⟩
+
+/-- The `path` field, with the token of the exclusive `flock` lock the database's descriptor `fd`
+holds (`Open`'s `flock`), which `close` gives back to `funlock` and `File.Close` (`lockToks`). The
+token rides with the field, which only `Open`, `close` and the remaps touch. -/
+def dbPathLk (db : Loc) (p : BFile) (fd : w64) : IProp GF :=
+  iprop(db.[DB, go!"path"] ↦ p.path ∗ osLock .flock p.ino fd)
+
+/-- The tokens of `dbFd`'s locks are the `flock` token. -/
+theorem dbFd_lockToks (i : Ino) (fd : w64) :
+    osLock (GF := GF) .flock i fd ⊢ lockToks (GF := GF) fd (dbFd i) := by
+  iintro H
+  unfold lockToks
+  isplitl []
+  · iapply lockTok_none; simp [OsFd.lk]
+  · iapply (lockTok_some (GF := GF) .flock fd (dbFd i) rfl).2; iexact H
+
 /-! ## `metalock` -/
 
 /-- The freelist's reader part, only when there is a freelist (round 2, F1/O4, F4.6): the
@@ -286,11 +305,11 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
       methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ db.[DB, go!"path"] ↦ p.path ∗
+    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ dbPathLk db p w.fd ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own mq) w.ms ∗
     osMeta p.ino (DFrac.own 1) w.m ∗ fileOwn w.f w.fd p.path (DFrac.own 1) ∗
-    osFd w.fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+    osFd w.fd (DFrac.own 1) (dbFd p.ino) ∗
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
     wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
     (match w.junk with

@@ -5,7 +5,8 @@ the file's `OsMeta`, so that no change in flight resizes it and the size is exac
 it stores in a fresh `fileStat`. On success the result is that `*fileStat` as a `FileInfo`, holding
 the size (`os.ownFileStat`, read by `Size`, `Spec/os/fileStat__Size.lean`); on failure a nil
 `FileInfo` and a non-nil error. The error is one `fmt` formats (`fmtErrorOkOrNil`) and, if
-non-nil, a pointer error (`IsPointerError`: the model's fresh `*PathError`), as `fmt.Errorf`'s.
+non-nil, the model's fresh `*PathError` of a nonzero errno (`os.errnoPathErr`; so never `io.EOF`, an
+`*errorString`: what the WAL's decoder needs of its readers' errors, `ReadBridge.lean`).
 Proved in `Proof/os/File__Stat.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -13,6 +14,7 @@ module
 public import Proof.os.Base
 public import Spec.fmt.ErrorOk
 public import Perennial.Proof.errors.Base
+public import Proof.os.ErrnoPathErr
 
 @[expose] public section
 
@@ -44,7 +46,7 @@ abbrev os.File.Stat.spec : Prop :=
           os.ownFileStat fs (W64 m.size)) ∨
        ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) ∗
       fmtErrorOkOrNil err ∗
-      ⌜∀ ii, err = GoInterface.ok ii → _root_.Perennial.errors.IsPointerError ii⌝ }}
+      (⌜err = GoInterface.nil⌝ ∨ ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e) }}
 
 end spec
 

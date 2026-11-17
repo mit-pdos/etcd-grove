@@ -75,6 +75,8 @@ private abbrev node.ProposeConfChange.specRaw : Prop :=
     -- (2026-10-28) the node in the API's cluster `γc`: what the clean `node.Step` takes
     (γc : ApiImpl.Cluster) (N : Namespace),
   ApiImpl.NodeOk γc γ →
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       ApiImpl.isNode n γc N id ∗ nodeCtx ctx cd ∗
       -- (out_size C3, P5) the change at its content, of model `o`, its encoding within the bound on
@@ -109,7 +111,7 @@ private theorem node.ProposeConfChange.wp_raw
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n c o cc dq ctx cd γc N HNo
+  intro γ id n c o cc dq ctx cd γc N HNo Htr
   wp_start as ⟨#Hnode, #HnodeA, #Hctx, Hc, %Hcc, Harg⟩
   obtain ⟨Ho, Hcsz⟩ := Hcc
   wp_auto
@@ -144,11 +146,14 @@ private theorem node.ProposeConfChange.wp_raw
     · unfold isMessage absMsg absMsgFrom
       isplitr
       · ipureintro
-        exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+        exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none Htr e⟩
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ.raft e)).2
       iexact Hent
-    iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
-    iexact Htk
+    isplitl [Htk]
+    · iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
+      iexact Htk
+    -- (2026-11-12, trace-check implementation step 1) `fwdP`'s gate, untraced (the refusal)
+    iapply fwdGate_none _ _ Htr
   iintro %err Herr
   wp_auto
   iapply HΦ
@@ -174,7 +179,7 @@ private theorem node.wp_ProposeConfChange_impl
     EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ProposeConfChange.spec EtcdGrove.Cluster EtcdGrove.isNode EtcdGrove.ownCommittedOps
     EtcdGrove.Cluster.dup
-  intro n γ N id c o cc dq ctx cd
+  intro n γ N id c o cc dq ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, %Hmd, Hau⟩ HΦ
   obtain ⟨Ho, Hmd⟩ := Hmd
   ihave #HnodeA := Hnode
@@ -191,7 +196,7 @@ private theorem node.wp_ProposeConfChange_impl
     obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 hs
     have := Hmd b hb; have := (Hmb b hb).1
     simp only [entBytesMax]; omega
-  iapply (hP γn id n c o cc dq ctx cd γ N Hf0) $$ [Hcc Hau]
+  iapply (hP γn id n c o cc dq ctx cd γ N Hf0 (by rw [Hγr]; exact Htr)) $$ [Hcc Hau]
   · iframe Hinit Hrn HnodeA Hctx Hcc
     isplitr
     · ipureintro; exact ⟨Ho, Hcsz⟩

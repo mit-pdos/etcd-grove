@@ -18,6 +18,9 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendAppend
 public import Spec.go_etcd_io.raft.v3.quorum.JointConfig__IDs
 public import Spec.go_etcd_io.raft.v3.raft__abortLeaderTransfer
 public import Spec.go_etcd_io.raft.v3.raft__becomeFollower
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
+public import Proof.go_etcd_io.raft.v3.TracedUntracedSend
+public import Proof.go_etcd_io.raft.v3.TracedApplyCC
 
 @[expose] public section
 
@@ -31,7 +34,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
@@ -44,6 +47,69 @@ private theorem learner_not_voter (c : CfgM) (f : GMap w64 Bool) (H : CfgInv ⟨
   rcases (GMap.elem_of_union _ _ _).1 hv with h | h
   · exact h2 h
   · exact h1 h
+
+/-- (step 4) The new configuration's halves are small (its progress map's bound). -/
+private theorem ownConfigC_sizeOk (c : CfgM) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc)
+    (pvs : GMap w64 Progress) :
+    ownConfigC (GF := GF) c cfgv prsm prs pvs ⊢ ⌜CfgSizeOk c⌝ ∗ ownConfigC c cfgv prsm prs pvs := by
+  iintro Hnew
+  iunfold ownConfigC at Hnew
+  iNamed Hnew
+  isplitr
+  · ipureintro
+    constructor
+    · have := size_le_of_sub_dom c.incoming prs (by rw [Hdom]; exact incoming_sub_ids c)
+      omega
+    · have := size_le_of_sub_dom c.outgoing prs (by rw [Hdom]; exact outgoing_sub_ids c)
+      omega
+  iunfold ownConfigC
+  iframe Hcfg Hprsm Hprogs
+  ipureintro; exact ⟨Hinv, Hdom, Hflags, Hsize⟩
+
+/-- (step 5) **`switchToConfig`'s hook, both modes, the line's fire the caller's**: untraced the nil
+logger and `Q`; traced, the `ApplyConfChange` line fired with raft's state lent read-only from the open
+struct: the core, the `trk` field (still the old tracker) and the old configuration's maps and size. -/
+private theorem wp_switch_hook (wp_traceConfChangeEvent : traceConfChangeEvent.spec (GF := GF) (hG := hG))
+    (c c0 : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
+    (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
+    (tl : GoInterface) (Q : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+        ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv0 ∗ ownConfigC c cfgv prsm prs pvs ∗
+        trOwn s.gh.tr iprop(ownCfgCC tv0.Config' (DFrac.own 1) c0 ∗ ⌜CfgSizeOk c0⌝) ∗
+        TraceFire s.gh.tr tl (CCEvOf id s c0 c) Q }}
+      (App (App (Val #(functions traceConfChangeEvent [])) (Val #cfgv)) (Val #r))
+    {{ RET #(); ownRaftCore r id s ∗ r.[raft, go!"trk"] ↦ tv0 ∗ ownConfigC c cfgv prsm prs pvs ∗ Q }} := by
+  iintro %Φ ⟨#Hpkg, #Htl, Hcore, Htrkf, Hnew, Hold, Hfire⟩ HΦ
+  cases htr : s.gh.tr with
+  | none =>
+    iapply wp_traceConfChangeEvent cfgv r tl none _ _ iprop(emp) $$ [$Hpkg $Htl $Hfire]
+    · iapply trOwn_none_intro
+    inext
+    iintro ⟨-, HQ⟩
+    iapply HΦ
+    iframe
+  | some γd =>
+    icases (trOwn_some γd _).1 $$ Hold with ⟨Hold, %Hsz⟩
+    iapply wp_traceConfChangeEvent cfgv r tl (some γd) _ _
+        iprop(ownRaftReadT c0 r id s tv0 ∗ ownConfigC c cfgv prsm prs pvs)
+      $$ [$Hpkg $Htl $Hfire Hcore Htrkf Hold Hnew]
+    · iapply (trOwn_some γd _).2
+      iexists c0, c, id, s, prsm, prs, pvs, ownRaftReadT c0 r id s tv0
+      iframe Hnew
+      isplitl [Hcore Htrkf Hold]
+      · iunfold ownRaftReadT; iframe; ipureintro; exact Hsz
+      isplitr
+      · iapply raftReadLend_frame; iapply raftReadLend_readT
+      isplitr
+      · ipureintro; exact fun _ h => h
+      iintro H; iexact H
+    inext
+    iintro ⟨HR, HQ⟩
+    icases (trOwn_some γd _).1 $$ HR with ⟨Hrd, Hnew⟩
+    iunfold ownRaftReadT at Hrd
+    icases Hrd with ⟨Hcore, Htrkf, -, -⟩
+    iapply HΦ
+    iframe
 
 /-- The body. After the install (`r.trk.Config = cfg; r.trk.Progress = trk`) the struct is at
 `c` with `Hvoter` at `c.voters ∪ {[id]}` (the wand the caller hands in) until the role is
@@ -61,11 +127,41 @@ theorem raft.switchToConfig.wp_proof
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG)) :
     raft.switchToConfig.spec (GF := GF) (hG := hG) := by
-  intro c r id s tv0 cfgv prsm prs pvs Hlead Hltz Hcand Hpok
+  have wp_raft_maybeCommit := raft.maybeCommit.untraced wp_raft_maybeCommit
+  have wp_raft_becomeFollower := raft.becomeFollower.untraced wp_raft_becomeFollower
+  -- (Q8 stage 1, slice 6) the untraced instance (`TracedUntracedSend.lean`)
+  have wp_raft_maybeSendAppend := raft.maybeSendAppend.untraced wp_raft_maybeSendAppend
+  have wp_raft_bcastAppend := raft.bcastAppend.untraced wp_raft_bcastAppend
+  intro c r id s tv0 cfgv prsm prs pvs tl c0 Q Hlead Hltz Hcand Hpok Htrg
   wp_start as H
   iNamed H
   wp_auto
-  wp_apply wp_traceConfChangeEvent
+  -- (2026-11-12, trace-check step 5) the hook, both modes, its fire the caller's
+  wp_apply (wp_switch_hook wp_traceConfChangeEvent c c0 r id s tv0 cfgv prsm prs pvs tl Q)
+    $$ [$Htl $Hcore $Htrkf $Hnew $Hold $Hfire] as ⟨Hcore, Htrkf, Hnew, Hcap⟩
+  -- `Q` set aside: the post without it
+  ihave HΦ : ▷ (∀ (cs : Loc) (xs os ls lns : List w64) (s' : NState),
+      ownRaftPhysCV c c.voters r id s' ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c.autoLeave) true ∗
+      ⌜xs ≡ₚ elements c.incoming ∧ os ≡ₚ elements c.outgoing ∧ ls ≡ₚ elements c.learners ∧
+        lns ≡ₚ elements c.learnersNext⌝ ∗
+      ⌜SwitchOkC c id { s with progress := prs, prvals := pvs, isLearner := learnerOfC c id } s'⌝ -∗
+      Φ #cs) $$ [HΦ Hcap]
+  · inext
+    iintro %cs %xs %os %ls %lns %s' ⟨Hp, Hc, %Hperm, %Hsw⟩
+    iapply HΦ
+    iframe Hp Hc
+    isplitr
+    · ipureintro; exact Hperm
+    isplitr
+    · ipureintro; exact Hsw
+    iexact Hcap
+  have HtrL : s.role = .leader → s.gh.tr = none := fun hl => by
+    cases h : s.gh.tr with
+    | none => rfl
+    | some _ =>
+      have := Htrg (by rw [h]; simp)
+      rw [hl] at this; cases this
   -- `r.trk.Config = cfg; r.trk.Progress = trk`: the one change of configuration
   icases typedPointsto_not_null_dup _ _ _ $$ Htrkf with ⟨Htrkf, %Hnn⟩
   iStructNamed Htrkf
@@ -76,7 +172,7 @@ theorem raft.switchToConfig.wp_proof
     simp only [TypedPointsto.typedPointstoDef]
     iframe
   ihave Htrk := ownTrackerC_reconfig c tv0 s.votes cfgv prsm prs pvs Hmi $$ Hvotes Hnew
-  ihave Hphys := Hback $$ %_ %prs %pvs Htrkf Htrk %Hpok
+  ihave Hphys := Hback $$ %_ %prs %pvs Hcore Htrkf Htrk %Hpok
   -- from here on the state is `s0`, and `s1` once `r.isLearner` is stored
   generalize Hs0 : ({ s with progress := prs, prvals := pvs } : NState) = s0
   have Hrole0 : s0.role = s.role := by rw [← Hs0]
@@ -112,7 +208,8 @@ theorem raft.switchToConfig.wp_proof
     · exact absurd h hv
     · exact h
   by_cases Hl : s.role = .leader
-  · by_cases Hin : id ∈ c.voters
+  · have Htr := HtrL Hl
+    by_cases Hin : id ∈ c.voters
     · ------------------------------------------------------------------
       -- a leader that stays a voter
       obtain ⟨pr, Hlk⟩ : ∃ pr, s0.progress !! id = some pr := by
@@ -141,6 +238,7 @@ theorem raft.switchToConfig.wp_proof
       ihave Hphys := ownRaftPhysCV_widen c c.voters r id _ (fun _ _ _ => Hin) $$ Hphys
       wp_apply raft.wp_load_isLearnerC $$ Hphys as Hphys
       generalize Hs1 : ({ s0 with isLearner := learnerOfC c id } : NState) = s1
+      have Htr1 : s1.gh.tr = none := by rw [← Hs1, ← Hs0]; exact Htr
       have Hs1l : s1.isLearner = false := by rw [← Hs1]; exact HLf
       rw [Hs1l]
       have Hrole1 : s1.role = s.role := by rw [← Hs1, ← Hs0]
@@ -176,7 +274,7 @@ theorem raft.switchToConfig.wp_proof
           by cases s1; simp [sendMsgs]⟩
       try wp_auto
       -- `if r.maybeCommit() { r.bcastAppend() } else { r.trk.Visit(...maybeSendAppend...) }`
-      wp_apply wp_raft_maybeCommit c r id s1 Hl1 $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
+      wp_apply wp_raft_maybeCommit c r id s1 Hl1 (by rw [← Hs1, ← Hs0]; exact Htr) $$ [$Hphys] as %b %N ⟨Hphys, %HN⟩
       -- after the broadcast, the state is `s2` with sends `ms` and values `pvs2`
       wp_join iprop(∃ (ms : List Msg) (pvs2 : GMap w64 Progress),
           "Hphys" ∷ ownRaftPhysCV c c.voters r id
@@ -259,7 +357,7 @@ theorem raft.switchToConfig.wp_proof
               wp_auto
               wp_apply wp_raft_maybeSendAppend _ _ _ _ i false Hii (by exact Hicfg) (by exact Hl1)
                 (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all)
-                $$ [$Hphys]
+                (by tr_none) $$ [$Hphys]
                 as %b' %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
               try wp_auto
               icases ownRaftPhysC_prvals_ok c r id _ $$ Hphys with ⟨%Hok', -, Hphys⟩
@@ -299,7 +397,7 @@ theorem raft.switchToConfig.wp_proof
           simp only [↓reduceIte]
           wp_auto
           wp_apply wp_raft_bcastAppend c r id _ (by exact Hl1)
-            (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all) $$ [$Hphys]
+            (by first | (simp only [sendMsgs]; rw [Ht1]; exact Hltz Hl) | (rw [Ht1]; exact Hltz Hl) | simp_all) (by tr_none) $$ [$Hphys]
             as %ms %pvs2 ⟨Hphys, %Hms, %Hmm⟩
           wp_join_done
           iexists ms, pvs2
@@ -416,7 +514,7 @@ theorem raft.switchToConfig.wp_proof
           rfl
         try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
+        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) (by rw [← He]; exact Htr) $$ [$Hphys]
           as %pvs' Hphys
         ihave Hphys := ownRaftPhysCV_widen c c.voters r id _
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys
@@ -470,7 +568,7 @@ theorem raft.switchToConfig.wp_proof
           rfl
         try wp_auto
         wp_apply raft.wp_load_TermC $$ Hphys as Hphys
-        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) $$ [$Hphys]
+        wp_apply wp_raft_becomeFollower c r id _ _ (W64 0) (Int.le_refl _) (by rw [← He]; exact Htr) $$ [$Hphys]
           as %pvs' Hphys
         ihave Hphys := ownRaftPhysCV_widen c c.voters r id _
           (fun _ h => absurd (show PRole.follower = PRole.follower from rfl) h) $$ Hphys

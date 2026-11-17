@@ -71,6 +71,8 @@ abbrev RawNode.readyWithoutAccept.spec : Prop :=
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
   rs.steps = [] →
   rs.unpersisted = [] →
+  -- (2026-11-09 to 2026-11-11, Q8 stage 0 to slice 28n: `γ.reTrace = none`, an untraced node; the
+  -- function logs nothing, and the node's logger is handed on in either mode, `TraceLoggerOkS`)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"readyWithoutAccept"))

@@ -99,7 +99,7 @@ theorem StartCluster.wp_proof
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro γ o dir Hok Hγm
   dsimp only
-  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, %Hsl, %Hmd, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
+  wp_start as ⟨#Hcci, #Hcl, #HstorInv, %Hdup, %Hbl0, %Htr0, %Hsl, %Hmd, #Hfits, Hvoters, Hjoin, Hfresh, Hopn, HnidA,
     Hrseqs, Hcur⟩
   obtain ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩ := Hok
   have HVn : uint.nat o.Voters' ≤ uint.nat o.MaxReplicas' := by word
@@ -218,7 +218,7 @@ theorem StartCluster.wp_proof
     unfold isReadSeqs
     iframe #
     ipureintro
-    exact ⟨⟨⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial, Hγm.symm⟩, Hdup, Hbl0, Hsl, Hmd⟩
+    exact ⟨⟨⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial, Hγm.symm⟩, Hdup, Hbl0, Htr0, Hsl, Hmd⟩
   -- every voter known: the next-id bound raised at once
   imod mono_nat_own_update (uint.nat o.Voters' + 1) (by omega) $$ HnidA with ⟨HnidA, #Hlb⟩
   try wp_auto

@@ -33,6 +33,8 @@ public import Perennial.Proof.sync.atomic
 public import Perennial.Proof.time
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptsDefs
+public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.PkgInit
+public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 
 @[expose] public section
 
@@ -54,28 +56,7 @@ variable [sem : go.Semantics]
 -- (`encoding/hex`'s, bbolt's and bbolt `errors`' instances, `bboltErrorsInit`:
 -- `Proof/go_etcd_io/bbolt/PkgInit.lean`)
 
-namespace go_etcd_io.etcd.client.pkg.v3.verify
 
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.client.pkg.v3.verify
-
-namespace github_com.prometheus.client_golang.prometheus
-
-set_option linter.iris.dupNamespace false in
-instance isPkgInit_inst :
-    IsPkgInit (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
-  define_is_pkg_init iprop(True)
-set_option linter.iris.dupNamespace false in
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
-  build_get_is_pkg_init_wf
-
-end github_com.prometheus.client_golang.prometheus
 
 namespace go_etcd_io.etcd.server.v3.storage.backend
 

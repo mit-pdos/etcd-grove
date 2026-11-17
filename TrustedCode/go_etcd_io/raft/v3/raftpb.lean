@@ -39,11 +39,54 @@ that do nothing (2026-10-20; until then each was an axiom of the translation, an
 trust-boundary axioms `raftpb.opaqueInitsOk` and `raftpb.initFuncsOk` said they return). Only the
 untranslated protobuf plumbing reads them (`file_raft_proto_init`, the messages' `ProtoReflect`
 through `file_raft_proto_msgTypes[i]`, the enums' `Descriptor`/`Type`), and a translated reader
-could not load them: nothing gives a points-to for them (`raftpb`'s `isPkgInit` is `True`).
+could not load them: nothing gives a points-to for them (`raftpb`'s package fact holds only
+`MessageType_name`, below).
+
+**`(MessageType).String`** (Q9 of `notes/trace-validation-plan.md`, the user's decision of
+2026-11-09; until then names-only, with the trust-boundary axiom that it returns some string). The
+generated method (`raft.pb.go`, protoc-gen-go v1.36.11) is
+
+```go
+func (x MessageType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+func (MessageType) Descriptor() protoreflect.EnumDescriptor {
+	return file_raft_proto_enumTypes[1].Descriptor()
+}
+```
+
+and `EnumStringOf` (protobuf-go v1.36.11, the version raft v3.7's `go.mod` requires,
+`internal/impl/api_export.go`) is
+
+```go
+func (Export) EnumStringOf(ed protoreflect.EnumDescriptor, n protoreflect.EnumNumber) string {
+	ev := ed.Values().ByNumber(n)
+	if ev != nil {
+		return string(ev.Name())
+	}
+	return strconv.Itoa(int(n))
+}
+```
+
+The model is `if s, ok := MessageType_name[int32(x)]; ok { return s }; return strconv.Itoa(int(x))`
+(`MessageType.String.impl` below). It is Go's because the descriptor's values and the table are the
+same: protoc-gen-go generates both `MessageType_name` (`raft.pb.go`, the map literal `{0: "MsgHup",
+..., 23: "MsgForgetLeader"}`) and the raw descriptor `file_raft_proto_rawDesc` that
+`file_raft_proto_enumTypes[1]` is built from, from the one `enum MessageType` of `raft.proto`, one
+entry per value, its name and number; the enum declares no aliases (no `allow_alias`), so
+`ByNumber(n)` finds the value of number `n` exactly when the table has key `n`, and its `Name()` is
+the table's entry. `EnumNumber` and `int32` are both `int32`, so `int(n)` is `int(x)`. A Go test
+checks that `MessageType(v).String() == MessageType_name[v]` for every key of the table
+(`examples/raft/tracecheck/msgtype_string_test.go`). What the model reads besides is the table
+itself, which nothing but the initializer writes (`raftpb`'s package fact holds it read-only); the
+descriptor's build and lookups do not fail and have no effect a translated reader sees (the
+descriptor is built in `init`, `init.0` above, before any call). The model's `strconv.Itoa` is
+Perennial's `strconv`'s (its spec `Spec/strconv/Itoa.lean`).
 -/
 module
 
-public import Perennial.Golang.Defn.Pre
+public import Perennial.Golang.Defn
+public import Perennial.Code.strconv
 
 @[expose] public section
 
@@ -52,6 +95,7 @@ set_option linter.iris.style.nameCheck false
 namespace Perennial
 
 namespace go_etcd_io.raft.v3.raftpb
+noncomputable section
 section code
 variable [GooseExts] [GoGlobalContext]
 
@@ -77,7 +121,68 @@ raft starts). The model does nothing: no translated code reads the registries, `
 def init.«0».impl : val :=
   λ: <>, #()
 
+/-- `MessageType`'s type (the translation's `MessageType.ty`: this module is imported by the
+translation, not the other way round). -/
+@[reducible] def model.MessageType : go.GoType :=
+  go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.MessageType" []
+
+/-- `MessageType_name`'s name (the translation's `MessageType_name`). -/
+@[reducible] def model.MessageType_name : GoString := go!"go.etcd.io/raft/v3/raftpb.MessageType_name"
+
+/-- `(MessageType).String` (Q9 of `notes/trace-validation-plan.md`, 2026-11-09): the GooseLang
+goose produces for
+
+```go
+func (x MessageType) String() string {
+	if s, ok := MessageType_name[int32(x)]; ok {
+		return s
+	}
+	return strconv.Itoa(int(x))
+}
+```
+
+(translated by the pinned goose from `raft.pb.go` with that body, its names replaced by the
+`model.` ones above). See the file header for why it is Go's. -/
+noncomputable def MessageType.String.impl : val :=
+  (LamV "x"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc model.MessageType))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (Convert model.MessageType go.int))) (App (Val (GoInstruction (GoLoad model.MessageType))) (Var "x")))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.strconv.Itoa []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (App (Val (map.lookup2 go.int32 go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.int32 go.string)))) (App (Val (GoInstruction (GlobalVarAddr model.MessageType_name))) (Val #())))) (App (Val (GoInstruction (GoLoad model.MessageType))) (Var "x")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 end code
+end
 end go_etcd_io.raft.v3.raftpb
 
 end Perennial

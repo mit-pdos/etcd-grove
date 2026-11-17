@@ -35,11 +35,21 @@ below 16, so every tag is one byte):
 - `ConfChangeSingle` (`raft.proto:164-167`): `type` 1, `node_id` 2 (varints).
 - `ConfChangeV2` (`raft.proto:201-205`): `transition` 1 (varint), `changes` 2, `context` 3
   (length-delimited).
+
+And the WAL's two registered types (2026-11-15, the WAL in the main tree: their registrations
+`pbRecordC_reg`, `pbSnapC_reg`, `wal/walpb/PbRecord.lean`, `PbSnapshot.lean`, are read by the
+descriptor check like raftpb's): `server/storage/wal/walpb/record.proto` at the etcd fork's pin
+`e115818f5` (proto2; every number below 16):
+- `Record` (`record.proto:8-12`): `type` 1 (`int64`), `crc` 2 (`uint32`) (varints), `data` 3
+  (length-delimited).
+- `Snapshot` (`record.proto:15-20`): `index` 1, `term` 2 (`uint64` varints), `conf_state` 3 (a
+  `raftpb.ConfState`, length-delimited; its schema is `csSchema`).
 -/
 module
 
 public import Proof.google_golang_org.protobuf.proto.UfWire
 public import Code.go_etcd_io.raft.v3.raftpb
+public import Code.go_etcd_io.etcd.server.v3.storage.wal.walpb
 
 @[expose] public section
 
@@ -76,11 +86,19 @@ def ccsSchema : FieldSchema := [(1, [0]), (2, [0])]
 /-- `raft.proto:201-205`: `transition` 1 (varint), `changes` 2, `context` 3 (length-delimited). -/
 def cc2Schema : FieldSchema := [(1, [0]), (2, [2]), (3, [2])]
 
+/-- **`record.proto`'s `Record` schema**: `type` 1 and `crc` 2 varints, `data` 3 length-delimited
+(the WAL's record bytes, `WalPbWire.lean`). -/
+def WalEnc.recSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [2])]
+
+/-- **`record.proto`'s `Snapshot` schema**: `index` 1 and `term` 2 varints, `conf_state` 3
+length-delimited (`WalPbSnapWire.lean`). -/
+def WalEnc.walSnapSchema : FieldSchema := [(1, [0]), (2, [0]), (3, [2])]
+
 section schemas
 variable [GooseExts] [GoGlobalContext]
 
-/-- **The schema of a message type** (see the file header): the registered raftpb types' and the
-three conf-change types', `[]` for every other type. -/
+/-- **The schema of a message type** (see the file header): the registered raftpb types', the
+three conf-change types' and the WAL's two registered `walpb` types', `[]` for every other type. -/
 def pbSchemaOf (ty : go.GoType) : FieldSchema :=
   open Classical in
   if ty = raftpb.Entry.ty then entrySchema
@@ -91,6 +109,8 @@ def pbSchemaOf (ty : go.GoType) : FieldSchema :=
   else if ty = raftpb.ConfChange.ty then ccSchema
   else if ty = raftpb.ConfChangeSingle.ty then ccsSchema
   else if ty = raftpb.ConfChangeV2.ty then cc2Schema
+  else if ty = go_etcd_io.etcd.server.v3.storage.wal.walpb.Record.ty then WalEnc.recSchema
+  else if ty = go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.ty then WalEnc.walSnapSchema
   else []
 
 theorem pbSchemaOf_entry : pbSchemaOf raftpb.Entry.ty = entrySchema := by

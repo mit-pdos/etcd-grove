@@ -25,6 +25,14 @@ two metric names and the nine addresses, over linkv's ghost-state bundle `linkvG
 **Its hypotheses** are `etcd_partition_adequate`'s, but `Run`'s bounds on `clients` and `ops`, plus the
 client watcher's (watchkv's `watch_adequate`: the class premises and `ContextErrsClient`) and
 watchkv's bounds on `nw` and `nops`.
+
+**Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
+`[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
+the environment), since `fileutil`'s package initializer, which the server's initialization runs,
+probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
+premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
+well formed), so it says that the program runs on a real file system. Until then the extensions were
+`TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -45,7 +53,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
@@ -91,7 +100,9 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_partition.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pWatchProgram nw nops steps], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -107,7 +118,7 @@ theorem etcd_partition_watch_adequate [lctx : GoLocalContext] [sem : go.Semantic
         (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) [(etcd_partition.name₁ ++ go!".etcd"), (etcd_partition.name₂ ++ go!".etcd"), (etcd_partition.name₃ ++ go!".etcd")] (by decide)
     -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
     -- up to order (peers, then clients, then bridges)
-    (cluster3.members etcd_partition.clusterCfg) (cluster3.bridges etcd_partition.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    (cluster3.members etcd_partition.clusterCfg) (cluster3.bridges etcd_partition.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG

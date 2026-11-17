@@ -56,7 +56,8 @@ theorem synced_good (m : OsMeta) (hsz : m.size = 8) (ys : List ByteG)
   refine ⟨h8, fun b hb => ?_⟩
   have hyb : b < ys.length := by omega
   rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := (ys[b]'hyb).1) (Nat.zero_le _)
-    (by simpa using hyb) (by simp) (by omega), ← hys, List.getElem?_map,
+    (by simpa using hyb) (by simp) (by omega) (by simp only [OsMeta.synced]; omega), ← hys,
+    List.getElem?_map,
     List.getElem?_eq_getElem hyb]; rfl
 
 theorem newMeta_size : newMeta.size = 0 := rfl
@@ -100,7 +101,7 @@ theorem dataGood_start {f : OsFile} (h : DataGood (some f)) :
         have e := contents_getElem?_of_lt (f := f) (show b < f.size by omega)
         rw [List.getElem?_eq_getElem (by rw [contents_length]; omega), Option.some.injEq] at e
         simp [e])
-      (by omega), ← hb b hb8, contents_getElem?_of_lt (by omega)]
+      (by omega) (by simp only [initMeta]; omega), ← hb b hb8, contents_getElem?_of_lt (by omega)]
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
@@ -259,15 +260,15 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   have h8 : sint.nat (W64 8) = 8 := rfl
   wp_apply wp_ReadAt f fd (child w segB) (DFrac.own 1) buf
       (List.replicate (sint.nat (W64 8)) (zero_val w8)) (W64 0) (DFrac.own 1)
-      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, false⟩ m bs rfl (by decide)
+      (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) ⟨i, true, false, none, none⟩ m bs rfl (by decide)
       (by rw [List.length_replicate, h8]; decide) (by rw [List.length_replicate, h8]; decide)
       (by rw [List.length_replicate, h8]; simp; omega)
       (by rw [List.length_replicate, h8]; exact hbl) $$ [Hos Hf Hbuf Hfd Hm Hb]
     as %n %err ⟨Hf, Hfd, Hm, Hb, %vs', Hbuf, %Hres, -⟩
   · iframe; iexact Hos
   (try wp_auto)
-  wp_apply wp_Close f fd (child w segB) ⟨i, true, false⟩ $$ [Hos Hf Hfd] as %e -
-  · iframe; iexact Hos
+  wp_apply wp_Close f fd (child w segB) ⟨i, true, false, none, none⟩ $$ [Hos Hf Hfd] as %e -
+  · iframe; isplitr; iexact Hos; iapply lockToks_unlocked <;> rfl
   obtain ⟨hl', ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
   · (try wp_auto)
     wp_apply wp_dataOk buf (DFrac.own 1) vs' (by rw [hvs', hbv]) $$ [Hbuf] as Hbuf

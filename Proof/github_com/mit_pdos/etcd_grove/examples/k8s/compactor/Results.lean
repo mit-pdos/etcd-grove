@@ -64,7 +64,8 @@ theorem k8s_compactor_MainPartition [go_etcd_io.etcd.cache.v3.Assumptions]
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 variable [go_gctx : GoGlobalContext]
 
 /-- **The compactor example is safe, in the operational semantics** (`k8s_compactor_adequate`, see
@@ -93,7 +94,9 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
         go!"127.0.0.1:23986" go!"127.0.0.1:23976" n id ctxs boot)
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([k8scompactorProgram], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -102,7 +105,7 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   k8s_compactor_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem Hafter
-    σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **The compactor example on three members under partitions is safe, in the operational
 semantics** (`k8s_compactor_partition_adequate`, see the file header and `Adequacy.lean`). -/
@@ -132,7 +135,9 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
         id₁ id₂ id₃ ps ctxs boot)
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([k8scompactorPProgram steps], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -141,7 +146,7 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   k8s_compactor_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo steps
-    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 end adequacy
 

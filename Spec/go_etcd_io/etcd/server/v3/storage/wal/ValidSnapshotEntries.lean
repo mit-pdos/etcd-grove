@@ -1,64 +1,62 @@
 /-
-`wal.ValidSnapshotEntries` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81); the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `c90b03b56` (S/ = `server/storage/wal/`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`wal.ValidSnapshotEntries` over `fsExt` (W8 of `notes/wal-fsext-plan.md`; the W7-W12 log, W8): the main
+tree's axiom `Spec/go_etcd_io/etcd/server/v3/storage/wal/ValidSnapshotEntries.lean` restated with plan §3's
+binders (over `fsExt`: the WAL layer `walAreaOk`, the area's spine and `walAreaRes`, the call permission, the
+update at `walAuMask`, plan §11), as `Repair`'s and `OpenForRead`'s (the same directory read the same way:
+`readWALNames`, then every segment opened read-only). S/ = `server/storage/wal/` at the pin with the local fork
+patches. Proved in `Proof/go_etcd_io/etcd/server/v3/storage/wal/ValidSnapshotEntries.lean`. Lean-first.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
-public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import Spec.go_uber_org.zap.Defs
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI
+open Fs WalEnc WalFs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt absDiskExt]
-variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-/-- **`ValidSnapshotEntries(lg, dir)`** (S/wal.go:688-775): decodes every remaining file read-only; its
-result is the snapshot records from the read position on at or below the history's last commit
-(`walValidSnaps`), or an error. The read position `cut` is the first remaining file's start: a crash
-or a purge round moves it. With no WAL at `dir` (`o = none`: no `.wal` file, or no directory) it
-fails (`readWALNames`). The caller holds the generation's lock token (`walUnlockedTok`; W4a.1,
-2026-11-12, finding F-W4b-2), so the whole history is in the files: with the token, every handle of
-this generation that wrote was closed successfully (`Close` flushes and fdatasyncs before it gives
-the token back; only `Close` returns a token that a handle took), and a handle left by a failed
-`Open` may still hold locks but wrote nothing; a handle dropped without `Close` took the token with
-it; the previous generation's records are the crash's image itself, which the files hold, unsynced
-records included (a torn record at the end is `ErrUnexpectedEOF`, which it tolerates). Go tests
-`w4a1-tests`: `TestW4a1VSEFullAfterClose`, `TestW4a1VSEKillImage` (a kill image holding unsynced
-commit records: VSE reads them, so a snapshot record they validate is returned) and
-`TestW4a1VSEDroppedHandle` (a handle dropped to finalizers loses its buffered records and VSE reads a
-prefix: the token, gone with the handle, is what keeps the triple from applying). Logically atomic
-(revision 1, the delta review's M2: the tester's invariant holds `walDirIs`): with the token held no
-write runs beside it (a write needs a handle, so the token), and `Repair` and `Exist` need
-`walDirIs`, which VSE's update holds open to its caller's invariant, so neither runs beside it; with
-the token no purge removes a file, so VSE's retry loop (S/wal.go:688-712) never fires. So the body
-linearizes at any point of its read; its result is a function of the
-accessed state, argued logically (the steps model writes; a read returns nothing). Revision 1
-dropped W4a's token-free triple (a prefix `H.take j`, `j ≥ m`, for a caller with a live append
-handle, whose encoder buffers records; Go tests `rev2-tests` `TestRev2VSELiveUnflushed`,
-`TestRev2VSELiveLargeBuffered`): neither the tester (W4c) nor etcd's bootstrap (C6) calls VSE with a
-live handle, and a plain triple would not compose with W4c's invariant. -/
-abbrev wal.ValidSnapshotEntries.spec : Prop :=
-  ∀ (lg : Loc) (r dir : GoString) (Q : Option WalDur → IProp GF), walAreaDir r dir →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗ walAreaOk r ∗ walUnlockedTok ∗
-      AU <{ ∃∃ o : Option WalDur, walDirIs dir o }> @ ⊤, ∅ <{ walDirIs dir o, COMM Q o }> }}
+/-- **`ValidSnapshotEntries(lg, dir)`** (S/wal.go:698-791): up to three attempts of
+`validSnapshotEntries` (the retry on an error `errors.Is` takes for `os.ErrNotExist`), each reading the
+WAL's names (`readWALNames`), opening every segment read-only (`openWALFilesFn`, `openWALFiles` in read
+mode, from the first), decoding them to the end (`io.EOF` and `io.ErrUnexpectedEOF` both accepted) and
+keeping the snapshot records at or below the last state record's commit. Its result is
+`walValidSnaps` of the history from the read position `cut` (the first remaining segment's start), or
+an error; with no WAL at `dir` (`o = none`) it fails (`readWALNames`).
+
+The caller holds the lock token (`walUnlockedTok`, framed, as the main tree's: W4a.1, finding F-W4b-2):
+no handle of the generation is open, so the whole history is in the segments and no segment changes
+while they are read (the token pins them: the program's halves of the segments and of the directory's
+claim, `walParked`), nor does a purge remove one (so the retry loop never sees a removed file, but the
+proof does not need that: every attempt reads the same pinned files). Logically atomic, committed
+unchanged at the pin (no step changes the state), as `Repair`'s. -/
+abbrev wal.ValidSnapshotEntries.spec (Mr : WalMarshal) : Prop :=
+  ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
+  InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
+      WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
+      osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
+        <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.ValidSnapshotEntries)) (Val #lg)) (Val #dir))
-  {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗
+  {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
+      osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      ∃ o : Option WalDur, Q o ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ (d : WalDur) (ps : List Loc), ⌜o = some d⌝ ∗ sl ↦*□ ps ∗
         walSnapsAt ps (walValidSnaps (d.H.map WalOpG.toM) d.cut)) }}
 

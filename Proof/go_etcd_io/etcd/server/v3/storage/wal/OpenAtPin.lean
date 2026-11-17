@@ -1,0 +1,221 @@
+/- Lean-first (no Rocq counterpart).
+
+# `openAtIndex`'s pin, at its first step (W3/W5 of `notes/wal-fsext-plan.md`, twelfth session)
+
+`openAtIndex` commits its update and pins its WAL at one step (the first call, `startSnap.Clone()`,
+`wp_notCrashed_acc`): it opens `walInv`, reads the area at the WAL's name from the program's area
+claim (`walInvBody_areaAt`), opens the client's update, and
+
+* if the WAL is absent, commits `Q none` unchanged, keeping the lock token (the area holds nothing at
+  `nm`: `selectWALFiles.specAbsent` then fails);
+* if it exists, commits (write mode: `unl` raised, `walInvBody_unl`; read mode: unchanged) and takes
+  the WAL's halves out of the parked state from the selected position on (`walOpenK`, what
+  `selectWALFiles` will compute).
+
+What the pin hands the program is `walInvBody_pin`'s (`OpenPinTake.lean`), `walPinOut`
+(`walInvBody_pinOut`). Until 2026-11-14 a hypothesis, `WalPinSized`, added two facts: a path to the
+WAL directory (now `walInv_dirPath`, from the pin's `walNamesFrag none`, `NameClaims.lean`) and the
+segments' size bound (now read at `openAtIndex`'s next step, `wp_segs_size`, `SegSize.lean`).
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenUnl
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenPin
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.searchIndex
+
+@[expose] public section
+
+noncomputable section
+
+set_option autoImplicit false
+
+namespace Perennial
+namespace EtcdGrove
+namespace WalFs
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode Fs WalEnc
+
+section pure
+variable [GooseExts]
+
+/-- **The position `openAtIndex` opens its WAL from** (`selectWALFiles`' `searchIndex` over the
+layout's names; the whole layout dropped if there is none, which `selectWALFiles` then reports). -/
+def walOpenK (idx : w64) (lay : WalLay) : Nat :=
+  (walSearch ((lay.segs.map (·.name)).map walNameIdx) idx).getD lay.segs.length
+
+theorem walAuMask_sub_top' : walAuMask ⊆ (⊤ : CoPset) \ ↑walN := by
+  intro p hp
+  unfold walAuMask at hp
+  obtain ⟨-, hn⟩ := LawfulSet.mem_diff.1 hp
+  exact LawfulSet.mem_diff.2 ⟨CoPset.mem_full, hn⟩
+
+theorem walN_osShN_top' : (↑osShN : CoPset) ⊆ (⊤ : CoPset) \ ↑walN := by
+  have h2 : (↑walN : CoPset) ## ↑osShN := ndot_ne_disjoint nroot (by decide)
+  intro p hp
+  exact LawfulSet.mem_diff.2 ⟨CoPset.mem_full, fun hn => h2 p ⟨hn, hp⟩⟩
+
+/-- The real WAL with `unl` raised stays above the program's copy raised the same way. -/
+theorem walDurLe_unl {dc ds : WalDur} (p : Nat) (h : walDurLe dc ds) :
+    walDurLe { dc with unl := max dc.unl p } { ds with unl := max ds.unl p } := by
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
+  exact ⟨h1, by simp only [h2], h3, h4, h5, h6, h7, h8⟩
+
+theorem unlSt_lookup_self (s : AbsDiskState) (dir : GoString) (p : Nat) (d : WalDur)
+    (hd : s.wal !! dir = some d) :
+    (unlSt s dir p).wal !! dir = some { d with unl := max d.unl p } := by
+  rw [unlSt_lookup, hd]
+  simp
+
+end pure
+
+section iris
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+  [GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
+  [W : WalGS GF]
+
+/-- **What the pin hands the program** (see the file header): `walInvBody_pin`'s outputs. -/
+def walPinOut (C : WalCodec) (Mr : WalMarshal) (jr : Ino) (dir : GoString) (d : WalDur)
+    (k : WalLay → Nat) (write : Bool) : IProp GF :=
+  iprop(∃ (lay : WalLay) (X : List GoString) (hj : NamesH),
+    ⌜lay.jr = jr ∧ (∀ b ∈ X, walNameP b = false) ∧
+      ClaimCoh hj lay.j (.except X) ∧ WalAbsD C Mr d lay hj.cur ∧
+      (lay.segs.map (·.ino)).Nodup ∧ SegsNamed lay.segs hj.cur⌝ ∗ walDirKey (W := W) dir lay.j X ∗
+    walLockedTok (W := W) ∗ (walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none) ∗
+    walOutFrag (W := W) ⟨(lay.segs.drop (k lay)).map (·.ino), [(lay.j, .except X)],
+      if write then [dir] else []⟩ ∗
+    ([∗list] g ∈ lay.segs.drop (k lay), segRes (L := L) g) ∗
+    osNames (L := L) lay.j (.except X) (DFrac.own (1 : Qp).half) hj ∗
+    (if write then walTmpsRes (hG := ⟨G, L⟩) lay.j else emp))
+
+/-- **The pin, as `walPinOut`** (`walInvBody_pin` repackaged). -/
+theorem walInvBody_pinOut (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (dir : GoString) (d : WalDur) (hd : s.wal !! dir = some d)
+    (k : WalLay → Nat) (write : Bool) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walUnlockedTok (W := W) ==∗
+      walInvBody (L := L) (W := W) C Mr R jr r s ∗ walPinOut (L := L) (W := W) C Mr jr dir d k write := by
+  iintro Hb Hu
+  imod walInvBody_pin C Mr R jr r s dir d hd k write $$ Hb Hu with
+    ⟨%lay, %X, %hj, %hp, Hkey, Hb, Hl, Htf, Hnf, Ho, HS, Hj, Ht⟩
+  obtain ⟨-, h1, h2, h3, h4, h5, h6⟩ := hp
+  imodintro
+  iframe Hb
+  unfold walPinOut
+  iexists lay, X, hj
+  iframe Hkey Hl Htf Hnf Ho HS Hj Ht
+  ipureintro; exact ⟨h1, h2, h3, h4, h5, h6⟩
+
+/-- The program's map is below the invariant's state. -/
+theorem walInvBody_mapLe (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (s : AbsDiskState) (M : GMap GoString WalDur) :
+    ⊢ walInvBody (L := L) (W := W) C Mr R jr r s -∗ walOwn (W := W) M -∗
+      ⌜walMapLe M s.wal⌝ ∗ walInvBody (L := L) (W := W) C Mr R jr r s ∗ walOwn (W := W) M := by
+  iintro Hb HM
+  unfold walInvBody
+  icases Hb with ⟨%Ls, %cl, %n, %F, Hg, Hrest⟩
+  icases walOwn_agree s M $$ Hg HM with %HMs
+  iframe HM
+  isplitr
+  · ipureintro; exact HMs
+  iexists Ls, cl, n, F
+  iframe
+
+/-- **`openAtIndex`'s update and pin** (see the file header). -/
+theorem walInv_openAt (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString)
+    (dir nm : GoString) (N : NameSet) (dq : DFrac)
+    (h : NamesH) (Wn : List GoString) (write : Bool) (idx : w64) (Q : Option WalDur → IProp GF)
+    (hin : InArea r dir nm) (hN : N.Mem nm ∨ nm ∈ Wn) :
+    ⊢ walInv (L := L) (W := W) C Mr R jr r -∗ osSharedInv (L := L) R -∗
+      notCrashed (hC := L.goose_crashGS) -∗ walUnlockedTok (W := W) -∗
+      (AU <{ ∃∃ o : Option WalDur, walDirIs (W := W) dir o }> @ walAuMask, ∅
+        <{ walDirIs (W := W) dir (if write then o.map (fun d =>
+            { d with unl := max d.unl (walOpenPos (d.H.map WalOpG.toM) idx) }) else o), COMM Q o }>) -∗
+      osNames (L := L) jr N dq h -∗ walSplitFrag (W := W) Wn ={⊤}=∗
+      notCrashed (hC := L.goose_crashGS) ∗ osNames (L := L) jr N dq h ∗ walSplitFrag (W := W) Wn ∗
+      ∃ o : Option WalDur, Q o ∗
+        ((⌜o = none ∧ N.Mem nm ∧ h.cur !! nm = none⌝ ∗ walUnlockedTok (W := W)) ∨
+         (⌜o ≠ none⌝ ∗ ∃ d, walPinOut (L := L) (W := W) C Mr jr dir d (walOpenK idx) write)) := by
+  iintro #Hinv #Hsi Hnc Hu Hau Hn Hsf
+  imod walInv_open C Mr R jr r ⊤ CoPset.subseteq_top $$ Hinv Hnc with ⟨⟨%s, Hb⟩, Hnc, Hcl⟩
+  imod walInvBody_areaAt C Mr R jr r s dir nm N dq h Wn hin hN walN_osShN_top' $$ Hb Hsi Hn Hsf
+    with ⟨Hb, Hn, Hsf, %Hat⟩
+  ihave Hau := atomic_update_mask_weaken walAuMask_sub_top' $$ Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%o, Ho, Hucl⟩
+  unfold walDirIs
+  icases Ho with ⟨%M, HM, %HMd⟩
+  icases walInvBody_mapLe C Mr R jr r s M $$ Hb HM with ⟨%HMs, Hb, HM⟩
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  cases o with
+  | none =>
+    have hMd : M !! dir = none := (walOptLe_none_iff _).1 HMd
+    have hsd : s.wal !! dir = none := by
+      have := HMs dir; rw [hMd] at this; exact (walOptLe_none_iff _).1 this
+    imod Hcommit $$ [HM] with HQ
+    · iexists M; iframe HM; ipureintro
+      cases write <;> exact HMd
+    imod Hcl $$ [Hb] with -
+    · iexists s; iexact Hb
+    imodintro
+    iframe Hnc Hn Hsf
+    iexists none
+    iframe HQ
+    ileft
+    iframe Hu
+    ipureintro; exact ⟨rfl, Hat hsd⟩
+  | some dc =>
+    obtain ⟨d0, hM0, hle0⟩ := (walOptLe_some_iff _ _).1 HMd
+    obtain ⟨ds, hsd, hle⟩ : ∃ ds, s.wal !! dir = some ds ∧ walDurLe dc ds := by
+      have h1 := HMs dir
+      rw [hM0] at h1
+      obtain ⟨ds, hds, hle1⟩ := (walOptLe_some_iff _ _).1 h1
+      exact ⟨ds, hds, walDurLe_trans hle0 hle1⟩
+    cases write with
+    | false =>
+      imod Hcommit $$ [HM] with HQ
+      · iexists M; iframe HM; ipureintro; exact HMd
+      imod walInvBody_pinOut C Mr R jr r s dir ds hsd (walOpenK idx) false $$ Hb Hu with ⟨Hb, Hp⟩
+      imod Hcl $$ [Hb] with -
+      · iexists s; iexact Hb
+      imodintro
+      iframe Hnc Hn Hsf
+      iexists (some dc)
+      iframe HQ
+      iright
+      isplitr
+      · ipureintro; simp
+      iexists ds; iexact Hp
+    | true =>
+      imod walInvBody_unl C Mr R jr r s dir (walOpenPos (dc.H.map WalOpG.toM) idx) M $$ Hb HM
+        with ⟨-, Hb, HM, -⟩
+      have hsd' := unlSt_lookup_self s dir (walOpenPos (dc.H.map WalOpG.toM) idx) ds hsd
+      imod Hcommit $$ [HM] with HQ
+      · iexists (unlSt s dir (walOpenPos (dc.H.map WalOpG.toM) idx)).wal
+        iframe HM
+        ipureintro
+        simp only [ite_true, Option.map_some, hsd', walOptLe]
+        exact walDurLe_unl _ hle
+      imod walInvBody_pinOut C Mr R jr r _ dir _ hsd' (walOpenK idx) true $$ Hb Hu with ⟨Hb, Hp⟩
+      imod Hcl $$ [Hb] with -
+      · iexists _; iexact Hb
+      imodintro
+      iframe Hnc Hn Hsf
+      iexists (some dc)
+      iframe HQ
+      iright
+      isplitr
+      · ipureintro; simp
+      iexists _; iexact Hp
+
+end iris
+
+end WalFs
+end EtcdGrove
+end Perennial
+
+end

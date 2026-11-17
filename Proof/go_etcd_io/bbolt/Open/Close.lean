@@ -113,7 +113,8 @@ abbrev DB.close.spec_closed : Prop :=
 /-- **`db.close()` over owned fields** (`Open`'s early failures, with nothing mapped; `DB.Close`,
 with the mapping gathered): `opened`, `freelist`, `ops.writeAt` cleared, the mapping unmapped
 (`invalidate` clears its fields whatever `munmap` returned), the file unlocked and closed if
-there is one (`db.file` nil after `OpenFile` failed), `file` and `path` cleared. The mapping's
+there is one (`db.file` nil after `OpenFile` failed: with the tokens of its description's locks,
+`lockToks`, which `funlock` and `File.Close` take), `file` and `path` cleared. The mapping's
 and the file's resources are lost (what `close` leaves of them is no one's: the database is
 closed, D9), and so is the error (`Open` ignores it, `DB.Close`'s post says nothing of it). -/
 abbrev DB.close.spec_owned : Prop :=
@@ -128,7 +129,7 @@ abbrev DB.close.spec_owned : Prop :=
       closeMapRes p ms ∗
       db.[DB, go!"file"] ↦ f ∗
       (⌜f = null⌝ ∨ ∃ (fd : w64) (name : GoString) (d : OsFd), fileOwn f fd name (DFrac.own 1) ∗
-        osFd fd (DFrac.own 1) d) }}
+        osFd fd (DFrac.own 1) d ∗ lockToks fd d) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
   {{ (err : GoInterface), RET #err; db.[DB, go!"readOnly"] ↦{dqr} false ∗
       db.[DB, go!"opened"] ↦ false ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
@@ -200,16 +201,24 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         iapply HΦ
         iframe
     · rw [decide_eq_false hf]
-      icases Hf with (%hf' | ⟨%fd, %name, %d, Hfo, Hfd⟩)
+      icases Hf with (%hf' | ⟨%fd, %name, %d, Hfo, Hfd, Hlt⟩)
       · exact absurd hf' hf
+      iunfold lockToks at Hlt
+      icases Hlt with ⟨Hlo, Hfl⟩
       try wp_auto
       wp_func_call
       try wp_auto
       wp_apply hFd f fd name (DFrac.own 1) $$ [Hfo] as Hfo
       · rw [← fileOwn_eq]; iexact Hfo
       try wp_auto
-      wp_apply hFlock fd _ _ d $$ [Hfd] as %e Hfd
+      wp_apply hFlock fd (W64 8) d none false rfl (fun h => absurd rfl h) $$ [Hfd Hfl] as %e Hout
       · iframe; iframe #
+      unfold lockOut
+      icases Hout with ⟨%d', Hfd, Hfl, %hd'⟩
+      ihave Hlo : lockTok LockKind.ofd fd d' $$ [Hlo]
+      · rcases hd'.1 with rfl | rfl
+        · iexact Hlo
+        · iapply (lockTok_setLk_ne fd d none (by decide)).2; iexact Hlo
       try wp_auto
       by_cases he : e = 0
       subst he
@@ -245,8 +254,8 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         · iexists _, _; iframe
         icases Herrs with ⟨%slE, %esE, errs, Hsl, Hcap⟩
         try wp_auto
-        wp_apply hClose f fd name d $$ [Hfo Hfd] as %err2 ⟨Hfo, #HeC⟩
-        · iframe; iframe #; try (rw [← fileOwn_eq]; iexact Hfo)
+        wp_apply hClose f fd name d' $$ [Hfo Hfd Hlo Hfl] as %err2 ⟨Hfo, #HeC⟩
+        · unfold lockToks; iframe; iframe #; try (rw [← fileOwn_eq]; iexact Hfo)
         try wp_auto
         rcases err2 with _ | ii2
         try wp_auto

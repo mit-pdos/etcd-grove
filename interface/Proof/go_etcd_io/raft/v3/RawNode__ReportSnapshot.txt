@@ -6,15 +6,16 @@ theorem RawNode.ReportSnapshot.wp_proof [package_sem : Assumptions] (wp_raft_Ste
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : RawNode.ReportSnapshot.spec
   -- `Perennial.EtcdGrove.RawNode.ReportSnapshot.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (to : w64) (st : SnapshotStatus),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
-          ▷ ("Hrn" ∷ ownRawNode γ rn id rs -∗ Φ (intoVal ())) -∗
-            WP
-              (((intoVal
-                    (methods RawNode.ty.PointerType
-                      go!"ReportSnapshot"
-                      (intoVal rn)))
-                  (intoVal to))
-                (intoVal st))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
+            ▷ ("Hrn" ∷ ownRawNode γ rn id rs -∗ Φ (intoVal ())) -∗
+              WP
+                (((intoVal
+                      (methods RawNode.ty.PointerType
+                        go!"ReportSnapshot"
+                        (intoVal rn)))
+                    (intoVal to))
+                  (intoVal st))
+                {{ Φ }}

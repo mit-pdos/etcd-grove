@@ -83,6 +83,11 @@ jobs:
       # etcd-raft and etcd.
       - name: Check the Goose translation
         run: ./etc/goose.py --check
+      # `RaftTla/` (raft's `with_tla` build, for the trace check) compiles the main tree's raft
+      # specs and proofs again: its copies must be what `etc/gen-raft-tla.py` generates from them.
+      # Reads the sources only.
+      - name: Check RaftTla's generated copies
+        run: ./etc/gen-raft-tla.py --check
       # Each package's clients import only its importable modules (`etc/api/<pkg>.txt`;
       # CLAUDE.md, "Package APIs"). Reads the sources only.
       - name: Check the packages' importable modules

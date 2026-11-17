@@ -11,15 +11,22 @@ check of the trusted definitions).
   source page migrated during the copy) or any mix (mechanism B, a page rewritten during its
   writeback), both measured on C (`notes/axiom-review/fs-v2-r6/e2e/`).
 * `crash_after_sync` (a guarantee): after a successful sync with nothing in flight, every crash
-  leaves the file exactly as it was synced.
+  leaves the file's contents exactly as they were synced (past the size, its last page may come
+  back zero: writeback's zeroing).
 * `crash_append_old_block`: an append into the block holding the old end, then a crash: the new
   size may come back with the block's old bytes, stale ones included (`fs-config/crash.sh
   append-end`).
+* `crash_wb_tail_zero`: the same append, then a crash: the appended byte may come back zero, though
+  neither its stale value nor the written one is (writeback zeroes the page holding the end past
+  the size, `ext4_bio_write_folio`; `notes/axiom-review/eof-page.md`, `pl-wb-zero`).
 * `crash_new_block_zeros`: a new file's first write, then a crash: the new size may come back with
   zeros where the write was (ext4 commits the unwritten extent first; `crash.sh empty-write`).
 * `crash_past_end_zeros` (a guarantee): a file grown past its durable size's last page, then a
   crash: the grown pages read zeros, whatever the disk held past the old end (durable zeros;
   `crash.sh shrink-grow`, `keep-size`).
+* `trunc_same_synced_zero` (a guarantee): `ftruncate` to the same size, then a sync: a byte past the
+  size in the page holding the end has the one candidate zero, whatever the disk held there
+  (`ext4_block_truncate_page`; `notes/axiom-review/eof-page.md`, `trunc-eq`).
 * `crash_current`: a crash may keep a file as it is, when its page cache is among its candidates
   (`CacheCand`). `CacheOk` (every file `CacheCand`; every change in flight's announced values
   candidates of its file) holds at the start (`cacheOk_init`), after every step (`cacheOk_step`,
@@ -39,6 +46,7 @@ module
 
 public import GooseLang.Ext.Fs.Lookup
 public import GooseLang.Ext.Fs.Premises
+public import GooseLang.Ext.Fs.CommitMono
 public import Perennial.Golang.Defn.PostLang
 
 @[expose] public section
@@ -58,14 +66,19 @@ def byt : w8 := 2
 
 /-- A crash leaving `ofDisk img sz`: a size in range and each byte a candidate. -/
 theorem crashFile_of (st : OsState) (i : Ino) (f : OsFile) (img : Nat → w8) (sz : Nat)
-    (hlo : f.sizeLo ≤ sz) (hhi : sz ≤ f.sizeHi) (hc : ∀ b, ∃ s, (img b, s) ∈ f.cand b) :
+    (hlo : f.sizeLo ≤ sz) (hhi : sz ≤ f.sizeHi) (hc : ∀ b, ∃ s, (img b, s) ∈ f.cand b)
+    (hmax : sz ≤ maxBytes := by simp [maxBytes, OsFile.ofBytes]) :
     CrashFile st i f (OsFile.ofDisk img sz) :=
-  ⟨sz, img, ⟨.inl hlo, .inl hhi⟩, hc, rfl⟩
+  ⟨sz, img, ⟨.inl hlo, .inl hhi⟩, hmax, fun b => .inl (hc b), rfl⟩
 
 /-- Write `c` at offset 0 as the change numbered `n`, announced and landed whole. -/
 def wr (f : OsFile) (c : List w8) (n : Nat) : OsFile :=
   let ch := OsChange.ofWrite 0 f 0 c
   (f.announce ch n).land ch c.length (max f.size c.length)
+
+theorem diskByte_lt (img : Nat → w8) {sz b : Nat} (hb : b < sz) : diskByte img sz b = img b := by
+  simp only [diskByte]
+  rw [if_pos (by simp only [pageIn, decide_eq_true_eq]; have := Nat.mul_div_le b 4096; omega)]
 
 theorem diskByte_page0 (img : Nat → w8) (sz b : Nat) (hsz : 0 < sz) (hb : b < 4096) :
     diskByte img sz b = img b := by
@@ -254,13 +267,13 @@ theorem crash_loses_unsynced (st : OsState) (i : Ino) :
   show _ ∈ [(diskByte (fun b => [bx].getD b 0) [bx].length b, 0)]
   rw [diskByte_list]; exact List.mem_singleton_self _
 
-/-- **After a successful sync, a crash leaves the file exactly as synced** (a guarantee, with no
-change in flight on it). -/
+/-- **After a successful sync, a crash leaves the file's contents exactly as synced** (a guarantee,
+with no change in flight on it; past the size, its last page may come back zero). -/
 theorem crash_after_sync (st : OsState) (i : Ino) (f f' : OsFile)
     (hnone : ∀ t c, st.proc.inflight !! t = some c → c.ino ≠ i)
     (hc : CrashFile st i (f.synced (fun _ => False)) f') :
-    f' = OsFile.ofDisk f.cache f.size := by
-  obtain ⟨sz, img, ⟨hlo, hhi⟩, himg, rfl⟩ := hc
+    f'.contents = f.contents := by
+  obtain ⟨sz, img, ⟨hlo, hhi⟩, -, himg, rfl⟩ := hc
   have hsz : sz = f.size := by
     rcases hlo with h | ⟨t, c, ht, hi, -⟩
     · rcases hhi with h' | ⟨t, c, ht, hi, -⟩
@@ -268,16 +281,15 @@ theorem crash_after_sync (st : OsState) (i : Ino) (f f' : OsFile)
       · exact absurd hi (hnone t c ht)
     · exact absurd hi (hnone t c ht)
   subst hsz
-  have hi : ∀ b, img b = diskByte f.cache f.size b := by
-    intro b; obtain ⟨s, h⟩ := himg b; simp [OsFile.synced] at h; exact h.1
-  have hd : ∀ b, diskByte img f.size b = diskByte f.cache f.size b := by
-    intro b; unfold diskByte; split
-    · rw [hi b, diskByte, if_pos (by assumption)]
-    · rfl
-  simp only [OsFile.ofDisk]
-  congr 1
-  · funext b; exact hd b
-  · funext b; rw [hd b]
+  have hi : ∀ b, b < f.size → img b = f.cache b := by
+    intro b hb
+    rcases himg b with ⟨s, h⟩ | ⟨h, -⟩
+    · simp [OsFile.synced] at h; rw [h.1, diskByte_lt _ hb]
+    · simp only [OsFile.synced] at h; omega
+  simp only [OsFile.contents, OsFile.ofDisk]
+  refine List.map_congr_left (fun b hb => ?_)
+  have hb := List.mem_range.1 hb
+  rw [diskByte_lt _ hb, hi b hb]
 
 /-- A one-byte file as a crash may find it on disk, its bytes `img` (stale past its end), `Y`
 appended at 1 as change `n`. -/
@@ -300,6 +312,28 @@ theorem crash_append_old_block (st : OsState) (i : Ino) (img : Nat → w8) (n : 
   refine mem_announce_old ?_ _ _
   rw [ofDisk_cand, hv]; simp
 
+/-- **Writeback zeroes the page holding the end past the size**: after the append of `Y` into the
+block holding the old end, a crash may keep the new size with the appended byte zero, though its
+candidates are the stale byte and `Y` (`ext4_bio_write_folio`; `eof-page.md`, `pl-wb-zero`). -/
+theorem crash_wb_tail_zero (st : OsState) (i : Ino) (img : Nat → w8) (n : Nat)
+    (hz : ∀ b, 4096 ≤ b → img b = 0) :
+    CrashFile st i (fApp img n) (OsFile.ofDisk (fun b => if b = 1 then 0 else img b) 2) := by
+  refine ⟨2, _, ⟨.inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk]),
+    .inl (by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk])⟩, by simp [maxBytes], fun b => ?_, rfl⟩
+  by_cases hb1 : b = 1
+  · subst hb1
+    exact .inr ⟨by simp [fApp, OsFile.land, OsFile.announce, OsFile.ofDisk], by simp⟩
+  refine .inl ⟨0, ?_⟩
+  show ((if b = 1 then (0 : w8) else img b), 0) ∈
+    ((OsFile.ofDisk img 1).announce (OsChange.ofWrite 0 (OsFile.ofDisk img 1) 1 [byt]) n).cand b
+  rw [if_neg hb1]
+  have hv : diskByte img 1 b = img b := by
+    by_cases hb : b < 4096
+    · exact diskByte_page0 img 1 b (by omega) hb
+    · rw [diskByte_past img 1 b (by omega), hz b (by omega)]
+  refine mem_announce_old ?_ _ _
+  rw [ofDisk_cand, hv]; simp
+
 /-- **A new block may come back as zeros under the size that covers it** (ext4 with
 `dioread_nolock` commits the unwritten extent with the size before the data). -/
 theorem crash_new_block_zeros (st : OsState) (i : Ino) (n : Nat) :
@@ -312,17 +346,20 @@ theorem crash_new_block_zeros (st : OsState) (i : Ino) (n : Nat) :
 /-- A file of size 1 as a crash may find it on disk, its bytes `img` (stale past its end), grown
 to 8192 bytes as change `n`. -/
 def fGrow (img : Nat → w8) (n : Nat) : OsFile :=
-  let ch := OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192
+  let ch := OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192 true
   ((OsFile.ofDisk img 1).announce ch n).land ch ch.hi ch.target
 
 /-- **Durable zeros** (a guarantee): after the file is grown past its durable size's last page, a
 crash leaves the grown pages zeros, whatever the disk held past the old end. -/
 theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Nat) (f' : OsFile)
     (hc : CrashFile st i (fGrow img n) f') (b : Nat) (hb : 4096 ≤ b) : f'.cache b = 0 := by
-  obtain ⟨sz, img', -, himg, rfl⟩ := hc
-  obtain ⟨s, h⟩ := himg b
+  obtain ⟨sz, img', -, -, himg, rfl⟩ := hc
+  obtain ⟨s, h⟩ | ⟨-, h0⟩ := himg b
+  rotate_left
+  · simp only [OsFile.ofDisk, diskByte, h0]; split <;> rfl
   have hcand : (fGrow img n).cand b =
-      ((OsFile.ofDisk img 1).announce (OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192) n).cand b := rfl
+      ((OsFile.ofDisk img 1).announce (OsChange.ofResize 0 (OsFile.ofDisk img 1) 8192 true) n).cand b :=
+    rfl
   rw [hcand] at h
   have hv : img' b = 0 := by
     rcases mem_announce h with h | h
@@ -331,23 +368,44 @@ theorem crash_past_end_zeros (st : OsState) (i : Ino) (img : Nat → w8) (n : Na
     · exact (Prod.mk.inj h).1
   simp only [OsFile.ofDisk, diskByte, hv]; split <;> rfl
 
+/-- A file of size 5000 as a crash may find it on disk (its bytes `img`, stale past its end),
+truncated to the same size as change `n` (`ftruncate(5000)`), then synced. -/
+def fTruncSynced (img : Nat → w8) (n : Nat) : OsFile :=
+  let ch := OsChange.ofResize 0 (OsFile.ofDisk img 5000) 5000 true
+  (((OsFile.ofDisk img 5000).announce ch n).land ch ch.hi ch.target).synced (fun _ => False)
+
+/-- **`ftruncate` zeroes the rest of the page holding the old end** (a guarantee, P2 of
+`notes/axiom-review/eof-page.md`; measured `trunc-eq`): after `ftruncate` to the same size and a
+sync, a byte past the size in the page holding the end has the one candidate `(0, 0)`, whatever
+the disk held there; so a crash leaves it zero. -/
+theorem trunc_same_synced_zero (img : Nat → w8) (n b : Nat) (h1 : 5000 ≤ b) (h2 : b < 8192) :
+    (fTruncSynced img n).cand b = [(0, 0)] := by
+  have hp : pageIn 5000 b = true := by simp only [pageIn, decide_eq_true_eq]; omega
+  have he : pageEnd 5000 = 8192 := by decide
+  have hr : inRange 5000 8192 b = true := by
+    simp only [inRange, Bool.and_eq_true, decide_eq_true_eq]; omega
+  have hs : (OsFile.ofDisk img 5000).size = 5000 := rfl
+  simp [fTruncSynced, OsFile.synced, OsFile.land, OsChange.ofResize, diskByte, hp, he, hr, hs]
+
 /-- Every byte has a candidate stamped 0 (its value as of the last sync). -/
 def Stamp0 (f : OsFile) : Prop := ∀ b, ∃ v, (v, 0) ∈ f.cand b
 
 /-- The page cache is among the candidates, byte by byte, every byte has a candidate stamped 0,
 and the size is in its range. -/
 def CacheCand (f : OsFile) : Prop :=
-  ((∀ b, ∃ s, (f.cache b, s) ∈ f.cand b) ∧ Stamp0 f) ∧ f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi
+  ((∀ b, ∃ s, (f.cache b, s) ∈ f.cand b) ∧ Stamp0 f) ∧ f.sizeLo ≤ f.size ∧ f.size ≤ f.sizeHi ∧
+    f.sizeHi ≤ maxBytes
 
 /-- **A crash may keep a file as it is** (its page cache and size; the pages past the size zeros):
 the crash rule never leaves a file without a crash. -/
 theorem crash_current (st : OsState) (i : Ino) (f : OsFile) (hok : CacheCand f) :
     CrashFile st i f (OsFile.ofDisk f.cache f.size) :=
-  crashFile_of _ _ _ _ _ hok.2.1 hok.2.2 hok.1.1
+  crashFile_of _ _ _ _ _ hok.2.1 hok.2.2.1 hok.1.1 (Nat.le_trans hok.2.2.1 hok.2.2.2)
 
-theorem cacheCand_ofDisk (img : Nat → w8) (sz : Nat) : CacheCand (OsFile.ofDisk img sz) :=
+theorem cacheCand_ofDisk (img : Nat → w8) (sz : Nat) (hmax : sz ≤ maxBytes) :
+    CacheCand (OsFile.ofDisk img sz) :=
   ⟨⟨fun b => ⟨0, by simp [OsFile.ofDisk]⟩, fun _ => ⟨_, List.mem_singleton_self _⟩⟩,
-    Nat.le_refl _, Nat.le_refl _⟩
+    Nat.le_refl _, Nat.le_refl _, hmax⟩
 
 theorem cacheCand_announce {f : OsFile} (hok : CacheCand f) (c : OsChange) (n : Nat) :
     CacheCand (f.announce c n) := by
@@ -359,7 +417,8 @@ theorem cacheCand_announce {f : OsFile} (hok : CacheCand f) (c : OsChange) (n : 
 
 theorem cacheCand_synced {f : OsFile} (hok : CacheCand f) (busy : Nat → Prop)
     [DecidablePred busy] : CacheCand (f.synced busy) := by
-  refine ⟨⟨fun b => ?_, fun b => ?_⟩, by simp [OsFile.synced], by simp [OsFile.synced]⟩
+  refine ⟨⟨fun b => ?_, fun b => ?_⟩, by simp [OsFile.synced], by simp [OsFile.synced],
+    by simp only [OsFile.synced]; have := hok.2.2; omega⟩
   · simp only [OsFile.synced]; split
     · exact hok.1.1 b
     · exact ⟨0, by simp⟩
@@ -370,10 +429,11 @@ theorem cacheCand_synced {f : OsFile} (hok : CacheCand f) (busy : Nat → Prop)
 /-- Landing a change keeps `CacheCand` when its announced values are candidates up to where it
 lands. -/
 theorem cacheCand_land {f : OsFile} (hok : CacheCand f) (c : OsChange) (e sz : Nat)
-    (hv : ∀ b, inRange c.lo e b = true → ∃ s, (c.val b, s) ∈ f.cand b) :
+    (hv : ∀ b, inRange c.lo e b = true → ∃ s, (c.val b, s) ∈ f.cand b) (hmax : sz ≤ maxBytes) :
     CacheCand (f.land c e sz) := by
+  have := hok.2.2
   refine ⟨⟨fun b => ?_, hok.1.2⟩, by simp only [OsFile.land]; omega,
-    by simp only [OsFile.land]; omega⟩
+    by simp only [OsFile.land]; omega, by simp only [OsFile.land]; omega⟩
   simp only [OsFile.land]; split
   · exact hv b (by assumption)
   · exact hok.1.1 b
@@ -387,7 +447,8 @@ def CacheOk (st : OsState) : Prop :=
   (∀ i f, st.fs.files !! i = some f → CacheCand f) ∧
   (∀ t c, st.proc.inflight !! t = some c → ∃ f, st.fs.files !! c.ino = some f ∧
     (∀ b, inRange c.lo c.hi b = true → ∃ s, (c.val b, s) ∈ f.cand b) ∧
-    ∀ off data, c.kind = .write off data → c.hi = off + data.length) ∧
+    (∀ off data, c.kind = .write off data → c.hi = off + data.length) ∧
+    (∀ sz, c.kind = .falloc sz → c.hi = c.target) ∧ c.lo ≤ maxBytes) ∧
   (∀ i, i ∈ st.fs.files → i < st.fs.nextIno)
 
 theorem cacheOk_of_eq {st st' : OsState} (h : CacheOk st) (hf : st'.fs.files = st.fs.files)
@@ -428,7 +489,8 @@ theorem cacheOk_setFile {st : OsState} (h : CacheOk st) {i : Ino} {f g : OsFile}
 /-- A change's first step (announce, then in flight) keeps the invariant. -/
 theorem cacheOk_start {st : OsState} (h : CacheOk st) {i : Ino} {f : OsFile} (t : Nat)
     (c : OsChange) (hf : st.fs.files !! i = some f) (hci : c.ino = i)
-    (hw : ∀ off data, c.kind = .write off data → c.hi = off + data.length) :
+    (hw : (∀ off data, c.kind = .write off data → c.hi = off + data.length) ∧
+      (∀ sz, c.kind = .falloc sz → c.hi = c.target) ∧ c.lo ≤ maxBytes) :
     CacheOk ((st.stampFile i (f.announce c)).addInflight t c) := by
   obtain ⟨h1, h2, h3⟩ := h
   simp only [CacheOk, OsState.addInflight, OsState.stampFile, GMap.lookup_insert_eq_iff,
@@ -463,12 +525,13 @@ theorem cacheOk_doneInflight {st : OsState} (h : CacheOk st) (t : Nat) :
 
 theorem cacheOk_finish {st : OsState} (h : CacheOk st) {t : Nat} {c : OsChange} {f : OsFile}
     (ht : st.proc.inflight !! t = some c) (hf : st.fs.files !! c.ino = some f) (e sz : Nat)
+    (hmax : sz ≤ maxBytes)
     (he : ∀ b, inRange c.lo e b = true → inRange c.lo c.hi b = true) :
     CacheOk ((st.doneInflight t).setFile c.ino (f.land c e sz)) := by
   obtain ⟨f0, hf0, hv, -⟩ := h.2.1 t c ht
   rw [hf] at hf0; cases hf0
   exact cacheOk_setFile (cacheOk_doneInflight h t) hf
-    (cacheCand_land (h.1 _ _ hf) c e sz fun b hb => hv b (he b hb))
+    (cacheCand_land (h.1 _ _ hf) c e sz (fun b hb => hv b (he b hb)) hmax)
     (fun _ _ _ _ _ _ e' he' => he')
 
 /-- A successful sync keeps the invariant: the bytes under the change in flight keep their
@@ -487,8 +550,8 @@ theorem cacheOk_crash {st st' : OsState} (h : CacheOk st) (hc : MachineCrash st 
   obtain ⟨hp, -, -, -, hn, -, -, hfiles⟩ := hc
   refine ⟨fun i f' hf' => ?_, fun t c ht => by simp [hp, ProcState.empty] at ht, fun i hi => ?_⟩
   · by_cases hn' : Named st'.fs.treeDur i
-    · obtain ⟨f, f'', -, ⟨sz, img, -, -, rfl⟩, hf''⟩ := (hfiles i).1 hn'
-      rw [hf''] at hf'; cases hf'; exact cacheCand_ofDisk img sz
+    · obtain ⟨f, f'', -, ⟨sz, img, -, hmx, -, rfl⟩, hf''⟩ := (hfiles i).1 hn'
+      rw [hf''] at hf'; cases hf'; exact cacheCand_ofDisk img sz hmx
     · rw [(hfiles i).2 hn'] at hf'; cases hf'
   · rw [hn]
     by_cases hn' : Named st'.fs.treeDur i
@@ -523,7 +586,7 @@ theorem cacheOk_newFile {st : OsState} (h : CacheOk st) :
   simp only [CacheOk, OsState.takeIno, OsState.setFile, GMap.lookup_insert_eq_iff, GMap.mem_iff]
   refine ⟨fun j f' hj => ?_, fun t c ht => ?_, fun j hj => ?_⟩
   · split at hj
-    · cases hj; exact cacheCand_ofDisk _ _
+    · cases hj; exact cacheCand_ofDisk _ _ (Nat.zero_le _)
     · exact h1 j f' hj
   · obtain ⟨f', hf', hv, hw⟩ := h2 t c ht
     split
@@ -561,7 +624,8 @@ theorem cacheOk_openEffect {st st1 : OsState} (h : CacheOk st) {p : GoString} {a
     split
     · rename_i htr
       refine cacheOk_stampFile h hf _ (fun n => cacheCand_land
-        (cacheCand_announce (h.1 _ _ hf) _ n) _ _ _ fun b hb => ⟨n, mem_announce_new f hb n⟩)
+        (cacheCand_announce (h.1 _ _ hf) _ n) _ _ _ (fun b hb => ⟨n, mem_announce_new f hb n⟩)
+        (Nat.zero_le _))
         (hnb htr i hl)
     · exact h
   · obtain ⟨-, j, b, -, rfl, -⟩ := he
@@ -573,28 +637,35 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   unfold IsFsStep at hs
   split at hs
   next => -- Open
-    obtain ⟨p, fl, t, start, -, -, -, -, hr⟩ := hs
-    dsimp only at hr
-    obtain ⟨hg, hr⟩ := hr
-    rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, rfl | ⟨tgt, he⟩⟩
-    · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) hg he
-      cases tgt <;> exact cacheOk_setProc h1 _ rfl
-    · exact cacheOk_metaEnd h t
-    · exact cacheOk_openEffect (cacheOk_metaEnd h t) hg he
+    rcases hs with ⟨p, fl, t, start, -, -, -, -, hr⟩ | ⟨p, fl, t, start, -, -, -, -, -, hr⟩
+    · dsimp only at hr
+      obtain ⟨hg, hr⟩ := hr
+      rcases hr with ⟨st1, tgt, fd, he, -, rfl, -⟩ | ⟨e, -, -, -, rfl | ⟨tgt, he⟩⟩
+      · have h1 := cacheOk_openEffect (cacheOk_metaEnd h t) hg he
+        cases tgt <;> exact cacheOk_setProc h1 _ rfl
+      · exact cacheOk_metaEnd h t
+      · exact cacheOk_openEffect (cacheOk_metaEnd h t) hg he
+    · rcases hr with ⟨fd, -, rfl, -⟩ | ⟨e, -, rfl, -⟩
+      · exact cacheOk_setProc (cacheOk_metaEnd h t) _ rfl
+      · exact cacheOk_metaEnd h t
   next => -- PRead
     obtain ⟨-, -, -, -, -, -, -, -, -, -, rfl, -⟩ := hs; exact h
   next => -- PWriteStart
     obtain ⟨-, off, data, d, f, t, -, -, -, -, -, hf, -, -, -, hst, -⟩ := hs
     subst hst
-    exact cacheOk_start h t _ hf rfl (fun o dd hk => by
+    exact cacheOk_start h t _ hf rfl ⟨fun o dd hk => by
       simp only [OsChange.ofWrite, OsChangeKind.write.injEq] at hk ⊢
-      obtain ⟨rfl, rfl⟩ := hk; rfl)
+      obtain ⟨rfl, rfl⟩ := hk; rfl, fun sz hk => by simp [OsChange.ofWrite] at hk,
+      by have := (h.1 _ _ hf).2.2; simp only [OsChange.ofWrite]; omega⟩
   next => -- PWriteFinish
-    obtain ⟨t, c, off, data, f, k, e, -, ht, hk, hf, hkl, -, -, hst, -⟩ := hs
+    obtain ⟨t, c, off, data, f, k, e, -, ht, hk, hf, hkl, -, -, hkm, hst, -⟩ := hs
     subst hst
     obtain ⟨-, -, -, hw⟩ := h.2.1 t c ht
-    have hhi := hw off data hk
-    refine cacheOk_finish h ht hf _ _ fun b hb => ?_
+    have hhi := hw.1 off data hk
+    have hmx := (h.1 _ _ hf).2.2.2
+    have hsz := (h.1 _ _ hf).2.2.1
+    have hclo := hw.2.2
+    refine cacheOk_finish h ht hf _ _ (by split <;> omega) fun b hb => ?_
     split at hb
     · simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb; omega
     · simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb ⊢; omega
@@ -603,22 +674,27 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- FtruncateStart
     obtain ⟨-, sz, t, d, f, -, -, -, -, -, hf, -, -, hst, -⟩ := hs
     subst hst
-    exact cacheOk_start h t _ hf rfl (fun o dd hk => by simp [OsChange.ofResize] at hk)
+    exact cacheOk_start h t _ hf rfl ⟨fun o dd hk => by simp [OsChange.ofResize] at hk,
+      fun sz hk => by simp [OsChange.ofResize] at hk,
+      by have := (h.1 _ _ hf).2.2; simp only [OsChange.ofResize]; omega⟩
   next => -- FtruncateFinish
     obtain ⟨t, c, sz, f, -, ht, -, hf, hr⟩ := hs
     dsimp only at hr
-    rcases hr with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩
-    · exact cacheOk_finish h ht hf _ _ fun b hb => by
+    rcases hr with ⟨htm, rfl, -⟩ | ⟨e, -, -, rfl | ⟨htm, rfl⟩⟩
+    · exact cacheOk_finish h ht hf _ _ htm fun b hb => by
         simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb ⊢; omega
     · exact cacheOk_doneInflight h t
-    · exact cacheOk_finish h ht hf _ _ fun b hb => by
+    · exact cacheOk_finish h ht hf _ _ htm fun b hb => by
         simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb ⊢; omega
   next => -- Fsync
     obtain ⟨-, d, f, -, -, hf, ⟨rfl, -⟩ | ⟨e, -, -, -, rfl⟩⟩ := hs
     · exact cacheOk_sync h hf
     · exact h
   next => -- Flock
-    obtain ⟨-, -, -, -, -, -, rfl, -⟩ := hs; exact h
+    obtain ⟨_, _, _, _, _, -, -, -, hl⟩ := hs
+    rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
+    · exact h
+    · exact cacheOk_setProc h _ rfl
   next => -- Close
     obtain ⟨-, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- Mmap
@@ -634,6 +710,12 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
     · exact cacheOk_setProc h _ rfl
   next => -- FdKind
     obtain ⟨-, -, rfl, -⟩ := hs; exact h
+  next => -- OutSync
+    obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact h
+  next => -- OutClose
+    obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
+  next => -- PathKind
+    obtain ⟨-, -, rfl, -⟩ := hs; exact h
   next => -- CallBegin
     obtain ⟨-, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- DirSync
@@ -643,7 +725,7 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- DirClose
     obtain ⟨-, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_setProc h _ rfl
   next => -- DirReadNext
-    obtain ⟨-, -, -, -, -, -, -, -, ⟨b, -, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨e, -, rfl, -⟩⟩ := hs
+    obtain ⟨-, -, -, -, -, -, -, -, ⟨b, -, -, rfl, -⟩ | ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩ := hs
     all_goals exact cacheOk_setProc h _ rfl
   next => -- LstatDir
     obtain ⟨-, -, -, t, -, -, -, -, rfl, -⟩ := hs; exact cacheOk_metaEnd h t
@@ -683,27 +765,35 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
   next => -- FallocStart
     obtain ⟨-, off, len, t, d, f, -, -, -, -, -, -, hf, -, -, hst, -⟩ := hs
     subst hst
-    exact cacheOk_start h t _ hf rfl (fun o dd hk => by simp [OsChange.ofResize] at hk)
+    exact cacheOk_start h t _ hf rfl ⟨fun o dd hk => by simp [OsChange.ofResize] at hk,
+      fun sz hk => by simp only [OsChange.ofResize, Bool.false_eq_true, if_false]; omega,
+      by have := (h.1 _ _ hf).2.2; simp only [OsChange.ofResize]; omega⟩
   next => -- FallocFinish
-    obtain ⟨t, c, sz, f, -, ht, -, hf, hr⟩ := hs
+    obtain ⟨t, c, sz, f, -, ht, hck, hf, hr⟩ := hs
     dsimp only at hr
-    rcases hr with ⟨rfl, -⟩ | ⟨e, -, -, rfl | ⟨w, hlo, hw, rfl⟩⟩
-    · exact cacheOk_finish h ht hf _ _ fun b hb => hb
+    rcases hr with ⟨htm, rfl, -⟩ | ⟨e, -, -, rfl | ⟨htm, w, hlo, hw, rfl⟩⟩
+    · exact cacheOk_finish h ht hf _ _ htm fun b hb => hb
     · exact cacheOk_doneInflight h t
-    · exact cacheOk_finish h ht hf _ _ fun b hb => by
+    · have hhi : c.hi ≤ maxBytes := by
+        obtain ⟨-, -, -, hw⟩ := h.2.1 t c ht
+        rw [hw.2.1 sz hck]; exact htm
+      exact cacheOk_finish h ht hf _ _ (by omega) fun b hb => by
         simp only [inRange, Bool.and_eq_true, decide_eq_true_eq] at hb ⊢; omega
   next => -- FallocKeep
     obtain ⟨-, -, -, -, -, -, -, -, -, -, rfl, -⟩ := hs; exact h
   next => -- OfdLock
-    obtain ⟨-, -, -, -, -, -, rfl, -⟩ := hs; exact h
+    obtain ⟨_, _, _, _, _, -, -, -, -, -, -, hl⟩ := hs
+    rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
+    · exact h
+    · exact cacheOk_setProc h _ rfl
   next => exact hs.elim
 
 /-- The invariant holds at the start: every file is on disk, nothing is in flight. -/
 theorem cacheOk_init {st : OsState} (h : FsInit st) : CacheOk st := by
   obtain ⟨hp, -, -, -, -, -, hf, hlt, -⟩ := h
   refine ⟨fun i f hi => ?_, fun t c ht => by simp [hp, ProcState.empty] at ht, hlt⟩
-  obtain ⟨-, img, sz, rfl⟩ := hf i f hi
-  exact cacheCand_ofDisk img sz
+  obtain ⟨-, img, sz, hmx, rfl⟩ := hf i f hi
+  exact cacheCand_ofDisk img sz hmx
 
 /-- `valAt l 0` is a candidate, when `l` has one stamped 0. -/
 theorem valAt_mem (l : Cands) (h : ∃ v, (v, 0) ∈ l) : ∃ s, (valAt l 0, s) ∈ l := by
@@ -724,12 +814,12 @@ theorem valAt_mem (l : Cands) (h : ∃ v, (v, 0) ∈ l) : ∃ s, (valAt l 0, s) 
 candidate stamped 0), at the smallest size since, is a crash, and leaves each sector below its size
 the state as of change 0. -/
 theorem sectorWhole_durable (st : OsState) (i : Ino) (f : OsFile) (hsz : f.sizeLo ≤ f.sizeHi)
-    (h0 : ∀ b, ∃ v, (v, 0) ∈ f.cand b) :
+    (hmax : f.sizeLo ≤ maxBytes) (h0 : ∀ b, ∃ v, (v, 0) ∈ f.cand b) :
     CrashFile st i f (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo) ∧
     ∀ n, 512 * n < (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo).size → ∀ j < 512,
       (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo).cache (512 * n + j) =
         valAt (f.cand (512 * n + j)) 0 := by
-  refine ⟨crashFile_of _ _ _ _ _ (Nat.le_refl _) hsz (fun b => valAt_mem _ (h0 b)),
+  refine ⟨crashFile_of _ _ _ _ _ (Nat.le_refl _) hsz (fun b => valAt_mem _ (h0 b)) hmax,
     fun n hn j hj => ?_⟩
   simp only [OsFile.ofDisk] at hn ⊢
   rw [diskByte, if_pos]
@@ -748,7 +838,8 @@ theorem sectorWhole_reachable {st : OsState} (h : CacheOk st) {i : Ino} {f : OsF
       (OsFile.ofDisk (fun b => valAt (f.cand b) 0) f.sizeLo).cache (512 * n + j) =
         valAt (f.cand (512 * n + j)) 0 :=
   have hc := h.1 i f hf
-  sectorWhole_durable st i f (Nat.le_trans hc.2.1 hc.2.2) hc.1.2
+  sectorWhole_durable st i f (Nat.le_trans hc.2.1 hc.2.2.1)
+    (Nat.le_trans hc.2.1 (Nat.le_trans hc.2.2.1 hc.2.2.2)) hc.1.2
 
 /-! ## The directory tree -/
 
@@ -889,10 +980,10 @@ theorem pwrite_page_cut [GooseExts] [GoGlobalContext] {v : val} {st st' : OsStat
     ∃ (t : Nat) (c : OsChange) (off : Nat) (data : List w8) (k : Nat) (e : w64),
       v = osTokV t ∧ st.proc.inflight !! t = some c ∧ c.kind = .write off data ∧
       e' = osRes (#(W64 k)) e ∧ k ≤ data.length ∧
-      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) := by
+      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) ∧ (k = 0 ∨ off + k ≤ maxBytes) := by
   simp only [IsFsStep] at h
-  obtain ⟨t, c, off, data, f, k, e, hv, ht, hk, -, hkl, -, hcut, -, he⟩ := h
-  exact ⟨t, c, off, data, k, e, hv, ht, hk, he, hkl, hcut⟩
+  obtain ⟨t, c, off, data, f, k, e, hv, ht, hk, -, hkl, -, hcut, hmax, -, he⟩ := h
+  exact ⟨t, c, off, data, k, e, hv, ht, hk, he, hkl, hcut, hmax⟩
 
 /-- So a write of at most one page at a page-aligned offset lands all of it or nothing, whatever
 it returns (bbolt's one-page meta write, D22). -/

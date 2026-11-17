@@ -20,6 +20,7 @@ axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
 axiom EtcdServer.purgeFile.wp_proof
+axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.base64.RawURLEncoding_init
 axiom Perennial.encoding.base64.StdEncoding_init
@@ -205,7 +206,11 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.ScheduledCompactKeyName
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.initFuncsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.opaqueInitsOk
+axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walFsyncSec_init
+axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walWriteBytes_init
+axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walWriteSec_init
+axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.initFuncsOk
+axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.walpb.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.codes.opaqueInitsOk
@@ -228,6 +233,7 @@ axiom Perennial.google_golang_org.grpc.metadata.initFuncsOk
 axiom Perennial.google_golang_org.grpc.metadata.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.opaqueInitsOk
 axiom Perennial.google_golang_org.grpc.reflection.opaqueInitsOk
+axiom Perennial.hash.crc32.opaqueInitsOk
 axiom Perennial.internal.bytealg.initFuncsOk
 axiom Perennial.internal.runtime.sys.opaqueInitsOk
 axiom Perennial.math.rand.opaqueInitsOk
@@ -235,6 +241,7 @@ axiom Perennial.net.http.initFuncsOk
 axiom Perennial.net.http.opaqueInitsOk
 axiom Perennial.net.opaqueInitsOk
 axiom Perennial.net.url.opaqueInitsOk
+axiom Perennial.path.filepath.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
 axiom Perennial.runtime.GOARCH_amd64
@@ -454,7 +461,6 @@ axiom rafthttp.addPeerToProber.wp_proof
 axiom rafthttp.netErrNotRemoved_ok
 axiom rafthttp.newStreamRoundTripper.wp_proof
 axiom rafthttp.waitSchedule.wp_proof
-axiom raftpb.MessageType.String.wp_proof
 axiom rate.Every.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
@@ -488,6 +494,7 @@ axiom storage.OpenBackend.wp_proof
 axiom storage.storage.Release.wp_proof
 axiom strconv.FormatBool.wp_proof
 axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof

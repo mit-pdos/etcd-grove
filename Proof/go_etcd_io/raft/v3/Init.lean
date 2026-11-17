@@ -166,11 +166,17 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   iintro %depIdxs ⟨-, -⟩
   simp only [go.arrayLiteralSize, List.foldl]
   wp_auto
+  -- (Q9, 2026-11-09) the package fact: `MessageType_name`'s table, read-only
+  ipersist HMessageType_name
+  imod ownMap_persist _ _ _ $$ Hm2 with Hm2
+  ipersist Hm2
   -- init.0: its trusted model does nothing
   wp_func_call
   wp_call
   iframe Hown
   is_pkg_init_finish
+  unfold go_etcd_io.raft.v3.raftpb.msgTypeNames
+  iexact Hm2
 
 end init_lc
 
@@ -267,7 +273,7 @@ theorem isNewError_of_ptr {ii : GoInterfaceOk} (h : errors.IsPointerError ii) :
 theorem os_isPkgInit_Stderr :
     isPkgInit (PROP := IProp GF) pkg_id.os ⊢
       ∃ f : Loc, typedPointsto (globalAddr os.Stderr) f DFrac.discard := by
-  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.os
+  with_unfolding_all exact (isPkgInit_access (PROP := IProp GF) pkg_id.os).trans sep_elim_left
 
 theorem io_isPkgInit_Discard :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢
@@ -294,7 +300,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStepPeerNotFound go.error as HESP
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStepLocalMsg go.error as HESL
   wp_apply wp_GlobalAlloc (V := GoInterface) errBreak go.error as HEB
-  wp_apply wp_GlobalAlloc (V := GoArray GoString 4) stmap _ as _
+  wp_apply wp_GlobalAlloc (V := GoArray GoString 4) stmap _ as HSM
   wp_apply wp_GlobalAlloc (V := Loc) globalRand _ as HGR
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrProposalDropped go.error as HEPD
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrStopped go.error as HES
@@ -303,6 +309,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := sync.Mutex) raftLoggerMu _ as HraftLoggerMu
   wp_apply wp_GlobalAlloc (V := Loc) discardLogger _ as _
   wp_apply wp_GlobalAlloc (V := Loc) defaultLogger _ as _
+  -- (2026-11-08) `state_trace.go`'s imports (raft translated under the `goose` tag)
   wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd18⟩
   wp_apply go_etcd_io.raft.v3.tracker.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd17⟩
   wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd16⟩
@@ -371,6 +378,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ipersist HESOOD
   ipersist HisLocal
   ipersist HisResp
+  ipersist HSM
   iframe Hown
   imodintro
   isplitr
@@ -403,7 +411,11 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   ihave #HESOOD' : iprop(∃ e : GoInterface, (globalAddr ErrSnapOutOfDate ↦□ e : IProp GF))
       $$ [HESOOD]
   · iexists _; iexact HESOOD
-  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD' HloggerMu
+  -- (Q8 stage 1, slice 2) `stmap`'s literal, the role names
+  ihave #HSM' : (globalAddr stmap ↦□ stmapV : IProp GF) $$ [HSM]
+  · unfold stmapV
+    iexact HSM
+  iframe HES HEPD HGR HEmpty' HEC HEU HESU HESP HESL HisLocal HisResp Hmu HEB' HESOOD' HSM' HloggerMu
   simp only [named, EtcdGrove.errorsNewVar]
   iframe #
   ipureintro

@@ -26,14 +26,19 @@ variable [os.Assumptions]
 theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
   intro f fd name d
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hlt⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  rw [decide_eq_false hnn]
+  wp_auto
+  ihave %hfd0 := osFd_nonneg _ _ _ $$ Hosfd
+  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
   wp_auto
   wp_apply wp_osFdKind fd (DFrac.own 1) d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
-  wp_apply wp_osClose fd d CoPset.subseteq_top $$ [Hinv Hosfd] as %e -
+  wp_apply wp_osClose fd d CoPset.subseteq_top $$ [Hinv Hosfd Hlt] as %e -
   · iframe; iexact Hinv
   by_cases he : e = W64 0
   · rw [decide_eq_true he]

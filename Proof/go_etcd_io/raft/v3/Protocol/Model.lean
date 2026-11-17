@@ -214,6 +214,61 @@ unchanged. -/
 def Msg.plain (ty : MsgType) (src dst term : w64) (reject : Bool) : Msg :=
   Msg.mk ty src dst term reject (W64 0) (W64 0) (W64 0) (W64 0) []
 
+/-! ### (trace-check, Q8 stage 1 slice 10) A traced message's numbers
+
+The trace's bound (`traceNumBound`) and a message's numbers below a bound (`Msg.NumsBelow`), moved
+verbatim from `TraceSim.lean` and `TracedCap.lean` (the amendment A1 Draft's vocabulary, statements
+unchanged) so that raft's message facts can carry them (`isMessageC`'s trace-gated conjunct,
+`Protocol/GhostState.lean`). -/
+
+/-- **The bound on the events' numbers** (`Etcdraft.numBound`, Q12 (a)): `NewTrace`'s `Event.Bounded`
+asks each number below it. The traced cluster's time receipts must keep raft's terms and indices
+below it (a bound on `receiptBound` the adequacy theorem states, Q13). -/
+def traceNumBound : Nat := 2 ^ 61
+
+/-- **A message's numbers below `K`**: the ones its traced form carries (`MsgEvOf`'s, `TraceEv.NumsBelow`
+reads). A received message's are not its receiver's to prove (a `MsgApp`'s index is of its sender's
+log, not the receiver's): owed by the Prove phase, as a fact the send line records of the message
+(`notes/decisions.md`, "Amendment A1"). -/
+def Msg.NumsBelow (K : Nat) (m : Msg) : Prop :=
+  uint.nat m.term < K ∧ m.entries.length < K ∧ uint.nat m.logterm < K ∧ uint.nat m.index < K ∧
+  uint.nat m.commit < K ∧ uint.nat m.rejecthint < K
+
+/-- (Q8 stage 1 slice 10) The six message types the trace logs (`sendEvt`/`recvEvt`, `TracedCap.lean`:
+`MsgApp`, `MsgAppResp`, `MsgVote`, `MsgVoteResp`, `MsgHeartbeat`, `MsgHeartbeatResp`). -/
+def MsgType.traced : MsgType → Bool
+  | .app | .appResp | .vote | .voteResp | .heartbeat | .heartbeatResp => true
+  | _ => false
+
+/-- (Q8 stage 1 slice 10) **What a traced cluster's message carries of its numbers**: of a traced
+type, every number its traced form reads below `traceNumBound` (what a receive line's
+`TraceEv.Ok` needs of the message, `sendEvOf_ok`); and (trace-check Q18 (b), 2026-11-11) a
+heartbeat carries no entries and a heartbeat response does not reject (raft's `bcastHeartbeat`
+attaches none, `handleHeartbeat` never rejects): what a receive line reads of the physical message
+beyond its specification message (`TrRecvShape`'s first two clauses), the specification's heartbeat
+having no entries and its response being a success. -/
+def Msg.TrOk (m : Msg) : Prop :=
+  m.ty.traced = true → m.NumsBelow traceNumBound ∧ (m.ty = .heartbeat → m.entries = []) ∧
+    (m.ty = .heartbeatResp → m.reject = false)
+
+/-- A message of an untraced type is `TrOk`. -/
+theorem Msg.trOk_of_untraced {m : Msg} (h : m.ty.traced = false) : m.TrOk :=
+  fun h' => absurd (h.symm.trans h') (by decide)
+
+/-- A `TrOk` message's numbers (Q18: `TrOk`'s first clause). -/
+theorem Msg.TrOk.nums {m : Msg} (h : m.TrOk) (ht : m.ty.traced = true) : m.NumsBelow traceNumBound :=
+  (h ht).1
+
+/-- A `TrOk` message of a type other than the heartbeat's and its response's: its numbers only. -/
+theorem Msg.trOk_of_nums {m : Msg} (hh : m.ty ≠ .heartbeat) (hr : m.ty ≠ .heartbeatResp)
+    (hn : m.ty.traced = true → m.NumsBelow traceNumBound) : m.TrOk :=
+  fun ht => ⟨hn ht, fun e => absurd e hh, fun e => absurd e hr⟩
+
+/-- A `TrOk` heartbeat response: its numbers, not rejecting. -/
+theorem Msg.trOk_of_nums_hbresp {m : Msg} (hty : m.ty = .heartbeatResp) (hrj : m.reject = false)
+    (hn : m.ty.traced = true → m.NumsBelow traceNumBound) : m.TrOk :=
+  fun ht => ⟨hn ht, fun e => absurd (hty.symm.trans e) (by decide), fun _ => hrj⟩
+
 end msgs
 
 /-- Message types whose sender claims to be the leader of `term`. -/

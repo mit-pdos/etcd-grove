@@ -3,9 +3,9 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import GeneratedProof.go_uber_org.zap
 public import Spec.go_uber_org.zap.Defs
+public import Proof.go_uber_org.zap.PkgInit
 
 @[expose] public section
 

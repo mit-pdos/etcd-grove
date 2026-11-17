@@ -116,7 +116,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace apply
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3 go_uber_org
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.server.v3.etcdserver.txn go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3 go_uber_org
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp]

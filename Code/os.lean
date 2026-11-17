@@ -255,7 +255,9 @@ axiom kindNoPoll [GooseExts] [GoGlobalContext] : val
 
 axiom DevNull [GooseExts] [GoGlobalContext] : val
 
-axiom PathSeparator [GooseExts] [GoGlobalContext] : val
+/-- OS-specific path separator -/
+@[reducible] noncomputable def PathSeparator [GooseExts] [GoGlobalContext] : val :=
+  #(47 : Int)
 
 axiom PathListSeparator [GooseExts] [GoGlobalContext] : val
 
@@ -962,6 +964,68 @@ noncomputable def errDeadlineExceeded.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
+/-- go: error.go:54:24 -/
+noncomputable def SyscallError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SyscallError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef SyscallError.ty go!"Syscall"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SyscallError.ty)))) (Var "e")))) (Val #(go!": ")))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef SyscallError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SyscallError.ty)))) (Var "e"))))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: error.go:56:24 -/
+noncomputable def SyscallError.Unwrap.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SyscallError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef SyscallError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SyscallError.ty)))) (Var "e"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- NewSyscallError returns, as an error, a new [SyscallError]
+    with the given system call name and error details.
+    As a convenience, if err is nil, NewSyscallError returns nil.
+
+    go: error.go:67:6 -/
+noncomputable def NewSyscallError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "syscall"
+  (Lam "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "syscall" (App (Val (GoInstruction (GoAlloc go.string))) (Var "syscall"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType SyscallError.ty) go.error))) (App (Val (GoInstruction (GoAlloc SyscallError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "syscall"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral SyscallError.ty))) (LiteralValue [(KeyedElement none (ElementExpression go.string (Var "$v0"))), (KeyedElement none (ElementExpression go.error (Var "$v1")))]))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
 /-- Name returns the name of the file as presented to Open.
 
     It is safe to call Name after [Close].
@@ -980,6 +1044,275 @@ noncomputable def File.Name.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: file.go:110:21 -/
+noncomputable def LinkError.Error.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "e"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "e" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LinkError.ty)))) (Var "e"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"Op"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e")))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"Old"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e")))))) (Val #(go!" ")))) (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"New"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e")))))) (Val #(go!": ")))) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef LinkError.ty go!"Err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinkError.ty)))) (Var "e"))))) (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- ReadFrom implements io.ReaderFrom.
+
+    go: file.go:175:16 -/
+noncomputable def File.ReadFrom.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "r"
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res1" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"readFrom"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "e" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
+  (Let "$r1" (Let "$a0" (Val #(go!"write"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "e"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"wrapErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled")))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve genericReadFrom []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "e") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (Var "$r0"))))))))))))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"write"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+
+/-- ReadFrom hides another ReadFrom method.
+    It should never be called.
+
+    go: file.go:192:19 -/
+noncomputable def noReadFrom.ReadFrom.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"can't happen")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- go: file.go:204:6 -/
+noncomputable def genericReadFrom.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert fileWithoutReadFrom.ty _root_.Perennial.io.Writer.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))
+  (App (Val (GoInstruction (CompositeLiteral fileWithoutReadFrom.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"File")) (ElementExpression (go.GoType.PointerType File.ty) (Var "$v0")))]))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.Copy []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- WriteTo implements io.WriterTo.
+
+    go: file.go:265:16 -/
+noncomputable def File.WriteTo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "w"
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res0" (Var "n")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res1" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"writeTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (Let "e" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (App (App (App (Val (GoInstruction (FuncResolve genericWriteTo []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "n"))
+  (Let "$r1" (Let "$a0" (Val #(go!"read"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "e"))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"wrapErr"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "e") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (Var "$r0"))))))))))))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"read"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))))
+
+/-- WriteTo hides another WriteTo method.
+    It should never be called.
+
+    go: file.go:282:18 -/
+noncomputable def noWriteTo.WriteTo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"can't happen")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- go: file.go:294:6 -/
+noncomputable def genericWriteTo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "w"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "$a1" (App (Val (GoInstruction (Convert fileWithoutWriteTo.ty _root_.Perennial.io.Reader.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))
+  (App (Val (GoInstruction (CompositeLiteral fileWithoutWriteTo.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"File")) (ElementExpression (go.GoType.PointerType File.ty) (Var "$v0")))]))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.io.Copy []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0")))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
 
 /-- Open opens the named file for reading. If successful, methods on
     the returned file can be used for reading; the associated file
@@ -1011,6 +1344,345 @@ noncomputable def Open.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType File.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))))
   (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
 
+/-- wrapErr wraps an error that occurred during an operation on an open file.
+    It passes io.EOF through unchanged, otherwise converts
+    poll.ErrFileClosing to ErrClosed and wraps the error in a PathError.
+
+    go: file.go:466:16 -/
+noncomputable def File.wrapErr.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "op"
+  (Lam "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "op" (App (Val (GoInstruction (GoAlloc go.string))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType PathError.ty) go.error))) (App (Val (GoInstruction (GoAlloc PathError.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "op"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef file.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType file.ty)))) (App (Val (GoInstruction (StructFieldRef File.ty go!"file"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (Val (GoInstruction (CompositeLiteral PathError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Op")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Path")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Err")) (ElementExpression go.error (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.internal.poll.ErrFileClosing))) (Val #()))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrClosed))) (Val #())))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (GlobalVarAddr checkWrapErr))) (Val #()))) (Let "$a0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.internal.poll.ErrFileClosing))) (Val #())))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.Is []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"unexpected error wrapping poll.ErrFileClosing: ")) (App (App (Val (GoInstruction (MethodResolve go.error go!"Error"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))) (Val #())))))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.io.EOF))) (Val #())))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- SyscallConn returns a raw file.
+    This implements the syscall.Conn interface.
+
+    go: file.go:698:16 -/
+noncomputable def File.SyscallConn.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.syscall.RawConn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.syscall.RawConn.ty))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))
+  (App (App (Val (GoInstruction (FuncResolve newRawConn []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType rawConn.ty) _root_.Perennial.syscall.RawConn.ty))) (Var "$ret0"))
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.syscall.RawConn.ty))) (Pair (Var "$res0") (Var "$r0"))))))))))))
+  (Let "$r0" (Let "$a0" (Val #(go!"SyscallConn"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"checkValid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil _root_.Perennial.syscall.RawConn.ty))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.syscall.RawConn.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.syscall.RawConn.ty))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1"))))))))
+
+/-- WriteFile writes data to the named file, creating it if necessary.
+    If the file does not exist, WriteFile creates it with permissions perm (before umask);
+    otherwise WriteFile truncates it before writing, without changing permissions.
+    Since WriteFile requires multiple system calls to complete, a failure mid-operation
+    can leave the file in a partially written state.
+
+    go: file.go:939:6 -/
+noncomputable def WriteFile.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "data"
+  (Lam "perm"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "perm" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (Var "perm"))
+  (Let "data" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "data"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (App (Val (GoInstruction (GoOp GoOr go.int))) (Pair (Val O_WRONLY) (Val O_CREATE))) (Val O_TRUNC)))
+  (Let "$a2" (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "perm"))
+  (App (App (App (App (Val (GoInstruction (FuncResolve OpenFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType File.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "data"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Write"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"Close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Val #()))
+  (Let "err1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err1")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err1"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err1") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType File.ty)))) (Pair (Var "f") (Var "$r0"))))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))))
+
+/-- checkValid checks whether f is valid for use.
+    If not, it returns an appropriate error, perhaps incorporating the operation name op.
+
+    go: file_posix.go:247:16 -/
+noncomputable def File.checkValid.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "op"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "op" (App (Val (GoInstruction (GoAlloc go.string))) (Var "op"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType File.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType File.ty)))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrInvalid))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- endsWithDot reports whether the final component of path is ".".
+
+    go: path.go:78:6 -/
+noncomputable def endsWithDot.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))) (Val #(W8 46)))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 2))))))
+  (App (App (Val (GoInstruction (FuncResolve IsPathSeparator []))) (Val #())) (Var "$a0"))) (Val #false))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(go!".")))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- IsPathSeparator reports whether c is a directory separator character.
+
+    go: path_unix.go:15:6 -/
+noncomputable def IsPathSeparator.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.uint8))) (Var "c"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoEquals go.uint8))) (Pair (App (Val (GoInstruction (Convert go.untypedRune go.uint8))) (Val PathSeparator)) (App (Val (GoInstruction (GoLoad go.uint8))) (Var "c"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- splitPath returns the base name and parent directory.
+
+    go: path_unix.go:20:6 -/
+noncomputable def splitPath.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "path"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
+  (Let "$r0" (Val #(go!"."))
+  (Let "dirname" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1))))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (Let "basename" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "dirname"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.string))) (Var "basename"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 47)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doBreak) (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "basename") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 1)))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "dirname") (Var "$r0")))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "dirname") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "basename") (Var "$r0")))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))) (Val #(W8 47)))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "path") (Var "$r0")))))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(W64 0)))) (Val #(W8 47)))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "path")) (Val #(W64 1)))) (Val #(W8 47)))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "path"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "path") (Var "$r0")))))))
+  (Lam BAnon
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "dirname") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.string))) (Var "$res1")))))))
+
 /-- go: proc.go:18:6 -/
 noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1026,6 +1698,56 @@ noncomputable def init.«0».impl [GooseExts] [GoGlobalContext] : val :=
   (Val #())))))
   (Val #())))
 
+/-- go: rawconn.go:45:6 -/
+noncomputable def newRawConn.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "file"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType rawConn.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType rawConn.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "file" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "file"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc rawConn.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "file"))
+  (App (Val (GoInstruction (CompositeLiteral rawConn.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"file")) (ElementExpression (go.GoType.PointerType File.ty) (Var "$v0")))]))))
+  (Let "$r1" (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType rawConn.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType rawConn.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res1")))))))
+
+/-- go: types.go:60:21 -/
+noncomputable def fileStat.Name.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fs"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fileStat.ty)))) (Var "fs"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef fileStat.ty go!"name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fileStat.ty)))) (Var "fs"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
+/-- go: types.go:61:21 -/
+noncomputable def fileStat.IsDir.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fs"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fileStat.ty)))) (Var "fs"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.fs.FileMode.ty go!"IsDir"))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType fileStat.ty) go!"Mode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fileStat.ty)))) (Var "fs"))) (Val #()))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
 /-- go: types_unix.go:23:21 -/
 noncomputable def fileStat.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fs"
@@ -1040,6 +1762,367 @@ noncomputable def fileStat.Size.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0"))))))
+
+/-- go: types_unix.go:24:21 -/
+noncomputable def fileStat.Mode.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "fs"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (App (Val (GoInstruction (GoZeroVal FileMode.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType fileStat.ty)))) (Var "fs"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad FileMode.ty))) (App (Val (GoInstruction (StructFieldRef fileStat.ty go!"mode"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType fileStat.ty)))) (Var "fs"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore FileMode.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$res0"))))))
+
+/-- go: zero_copy_linux.go:18:16 -/
+noncomputable def File.writeTo.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "f"
+  (Lam "w"
+  (Let "written" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Let "$res0" (Var "written")
+  (Let "handled" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res1" (Var "handled")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "$res2" (Var "err")
+  (Seq (App (Val exceptionDo)
+  (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType File.ty)))) (Var "f"))
+  (Let "w" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Writer.ty))) (Var "w"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (Convert _root_.Perennial.io.Writer.ty go.any))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Writer.ty))) (Var "w")))
+  (App (App (Val (GoInstruction (FuncResolve getPollFDAndNetwork []))) (Val #())) (Var "$a0")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "network" (App (Val (GoInstruction (GoAlloc _root_.Perennial.internal.poll.String.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.internal.poll.String.ty))) (Val #())))
+  (Let "pfd" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType File.ty) go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType File.ty)))) (Var "f"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "sc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.syscall.RawConn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.syscall.RawConn.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Lam "fd"
+  (Let "done" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "$res0" (Var "done")
+  (Seq (App (Val exceptionDo)
+  (Let "fd" (App (Val (GoInstruction (GoAlloc go.uintptr))) (Var "fd"))
+  (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Var "pfd"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.uintptr))) (Var "fd"))
+  (Let "$a2" (Val #(W64 0))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.internal.poll.SendFile []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (Let "$ret0" (Fst (Fst (Var "__p")))
+  (Let "$ret1" (Snd (Fst (Var "__p")))
+  (Let "$ret2" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "$r2" (Var "$ret2")
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "handled") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "written") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+  (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.syscall.RawConn.ty go!"Read"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.syscall.RawConn.ty))) (Var "sc"))) (Var "$a0")))
+  (Let "rerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "written"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad go.bool))) (Var "handled"))
+  (Let "$r2" (Let "$a0" (Val #(go!"sendfile"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve wrapSyscallError []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "rerr"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "rerr") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.syscall.RawConn.ty))) (Pair (Var "sc") (Var "$r0")))))))))))))
+  (If (If (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Var "pfd")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Val UntypedNil)))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.internal.poll.FD.ty go!"IsStream"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Var "pfd")))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.internal.poll.String.ty))) (Var "network"))
+  (App (App (Val (GoInstruction (FuncResolve isUnixOrTCP []))) (Val #())) (Var "$a0")))))
+  (App (Val doReturn)
+  (Val #()))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.internal.poll.String.ty))) (Pair (Var "network") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Pair (Var "pfd") (Var "$r0")))))))))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res0")) (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.error))) (Var "$res2"))))))))))))
+
+/-- getPollFDAndNetwork tries to get the poll.FD and network type from the given interface
+    by expecting the underlying type of i to be the implementation of syscall.Conn
+    that contains a *net.rawConn.
+
+    go: zero_copy_linux.go:124:6 -/
+noncomputable def getPollFDAndNetwork.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "i"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.internal.poll.String.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.internal.poll.String.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.any))) (Var "i"))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.syscall.Conn.ty))) (App (Val (GoInstruction (GoLoad go.any))) (Var "i")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "sc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.syscall.Conn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.syscall.Conn.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.syscall.Conn.ty go!"SyscallConn"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.syscall.Conn.ty))) (Var "sc"))) (Val #()))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Let "rc" (App (Val (GoInstruction (GoAlloc _root_.Perennial.syscall.RawConn.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.syscall.RawConn.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))])))) (App (Val (GoInstruction (GoLoad _root_.Perennial.syscall.RawConn.ty))) (Var "rc")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "irc" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))])))) (App (Val (GoInstruction (GoZeroVal (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))])))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))]) go!"PollFD"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))])))) (Var "irc"))) (Val #()))
+  (Let "$r1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))]) go!"Network"))) (App (Val (GoInstruction (GoLoad (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))])))) (Var "irc"))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.internal.poll.String.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Val UntypedNil))
+  (Let "$r1" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.internal.poll.String.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Network" (go.signature.Signature [] false [_root_.Perennial.internal.poll.String.ty])), (go.InterfaceElem.MethodElem go!"PollFD" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)]))])))) (Pair (Var "irc") (Var "$r0")))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Val UntypedNil))
+  (Let "$r1" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.internal.poll.String.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.syscall.RawConn.ty))) (Pair (Var "rc") (Var "$r0"))))))))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Val UntypedNil))
+  (Let "$r1" (Val #(go!""))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.internal.poll.String.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.syscall.Conn.ty))) (Pair (Var "sc") (Var "$r0"))))))))))))))
+  (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.internal.poll.FD.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.internal.poll.String.ty))) (Var "$res1")))))))
+
+/-- go: zero_copy_linux.go:143:6 -/
+noncomputable def isUnixOrTCP.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "network"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "network" (App (Val (GoInstruction (GoAlloc go.string))) (Var "network"))
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.string))) (Var "network"))
+  (If (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"unix")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"tcp6")))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"tcp4")))) (Val #true) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (Var "$sw") (Val #(go!"tcp")))))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- wrapSyscallError takes an error and a syscall name. If the error is
+    a syscall.Errno, it wraps it in an os.SyscallError using the syscall name.
+
+    go: zero_copy_posix.go:16:6 -/
+noncomputable def wrapSyscallError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "name"
+  (Lam "err"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 _root_.Perennial.syscall.Errno.ty))) (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.error))) (Var "err"))
+  (App (App (App (Val (GoInstruction (FuncResolve NewSyscallError []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0"))))))
+
+/-- tryLimitedReader tries to assert the io.Reader to io.LimitedReader, it returns the io.LimitedReader,
+    the underlying io.Reader and the remaining amount of bytes if the assertion succeeds,
+    otherwise it just returns the original io.Reader and the theoretical unlimited remaining amount of bytes.
+
+    go: zero_copy_posix.go:26:6 -/
+noncomputable def tryLimitedReader.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Val #())))
+  (Let "$res1" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.io.Reader.ty))) (Val #())))
+  (Let "$res2" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (Let "$r0" (Val #(W64 9223372036854775807))
+  (Let "remain" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (Val (GoInstruction (TypeAssert2 (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "lr" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.io.LimitedReader.ty go!"N"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Var "lr"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Var "lr"))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.io.LimitedReader.ty go!"R"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Var "lr"))))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.int64))) (Var "remain"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.Reader.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "remain") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Val UntypedNil))
+  (Let "$r1" (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "r"))
+  (Let "$r2" (App (Val (GoInstruction (GoLoad go.int64))) (Var "remain"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "$res2") (Var "$r2")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.io.Reader.ty))) (Pair (Var "$res1") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Pair (Var "lr") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "remain") (Var "$r0")))))))))
+  (Pair (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.io.LimitedReader.ty)))) (Var "$res0")) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.Reader.ty))) (Var "$res1"))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "$res2"))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.os where
   pkgImportedPkgs := [pkg_id.io, pkg_id.io.fs, pkg_id.sync, pkg_id.syscall, pkg_id.internal.poll, pkg_id.errors]
@@ -1359,6 +2442,8 @@ class SyscallError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Err : ∀ (x : SyscallError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet SyscallError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : SyscallError)))
   method_set : go.MethodSetIs SyscallError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyscallError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType SyscallError.ty) go!"Error" SyscallError.Error.impl
+  ptr_Unwrap_unfold : MethodUnfold (go.GoType.PointerType SyscallError.ty) go!"Unwrap" SyscallError.Unwrap.impl
 
 attribute [instance] SyscallError.TypeAssumptions.type_repr
   SyscallError.TypeAssumptions.underlying
@@ -1368,6 +2453,8 @@ attribute [instance] SyscallError.TypeAssumptions.type_repr
   SyscallError.TypeAssumptions.set_Err
   SyscallError.TypeAssumptions.method_set
   SyscallError.TypeAssumptions.ptr_method_set
+  SyscallError.TypeAssumptions.ptr_Error_unfold
+  SyscallError.TypeAssumptions.ptr_Unwrap_unfold
 
 abbrev processStatus [GooseExts] : Type := w32
 
@@ -1570,6 +2657,7 @@ class LinkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Err : ∀ (x : LinkError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet LinkError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : LinkError)))
   method_set : go.MethodSetIs LinkError.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType LinkError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_Error_unfold : MethodUnfold (go.GoType.PointerType LinkError.ty) go!"Error" LinkError.Error.impl
 
 attribute [instance] LinkError.TypeAssumptions.type_repr
   LinkError.TypeAssumptions.underlying
@@ -1583,6 +2671,7 @@ attribute [instance] LinkError.TypeAssumptions.type_repr
   LinkError.TypeAssumptions.set_Err
   LinkError.TypeAssumptions.method_set
   LinkError.TypeAssumptions.ptr_method_set
+  LinkError.TypeAssumptions.ptr_Error_unfold
 
 structure noReadFrom [GooseExts] where
   mk ::
@@ -1608,11 +2697,16 @@ class noReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   underlying : go.UnderlyingDirectedEq noReadFrom.ty noReadFrom.underlying
   method_set : go.MethodSetIs noReadFrom.ty [(go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noReadFrom.ty) [(go!"ReadFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty] false [go.int64, go.error])))]
+  ReadFrom_unfold : MethodUnfold noReadFrom.ty go!"ReadFrom" noReadFrom.ReadFrom.impl
+  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType noReadFrom.ty) go!"ReadFrom" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noReadFrom.ty go!"ReadFrom"))) (App (Val (GoInstruction (GoLoad noReadFrom.ty))) (Var "$r"))))
 
 attribute [instance] noReadFrom.TypeAssumptions.type_repr
   noReadFrom.TypeAssumptions.underlying
   noReadFrom.TypeAssumptions.method_set
   noReadFrom.TypeAssumptions.ptr_method_set
+  noReadFrom.TypeAssumptions.ReadFrom_unfold
+  noReadFrom.TypeAssumptions.ptr_ReadFrom_unfold
 
 structure fileWithoutReadFrom [GooseExts] where
   mk ::
@@ -1679,11 +2773,16 @@ class noWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq noWriteTo.ty noWriteTo.underlying
   method_set : go.MethodSetIs noWriteTo.ty [(go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType noWriteTo.ty) [(go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int64, go.error])))]
+  WriteTo_unfold : MethodUnfold noWriteTo.ty go!"WriteTo" noWriteTo.WriteTo.impl
+  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType noWriteTo.ty) go!"WriteTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve noWriteTo.ty go!"WriteTo"))) (App (Val (GoInstruction (GoLoad noWriteTo.ty))) (Var "$r"))))
 
 attribute [instance] noWriteTo.TypeAssumptions.type_repr
   noWriteTo.TypeAssumptions.underlying
   noWriteTo.TypeAssumptions.method_set
   noWriteTo.TypeAssumptions.ptr_method_set
+  noWriteTo.TypeAssumptions.WriteTo_unfold
+  noWriteTo.TypeAssumptions.ptr_WriteTo_unfold
 
 structure fileWithoutWriteTo [GooseExts] where
   mk ::
@@ -1845,6 +2944,9 @@ class rawConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_file : ∀ (x : rawConn) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet rawConn.underlying go!"file") (PairV #x #y) (Val #(({ x with file' := y } : rawConn)))
   method_set : go.MethodSetIs rawConn.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawConn.ty) [(go!"Control", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error])))]
+  ptr_Control_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Control" rawConn.Control.impl
+  ptr_Read_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Read" rawConn.Read.impl
+  ptr_Write_unfold : MethodUnfold (go.GoType.PointerType rawConn.ty) go!"Write" rawConn.Write.impl
 
 attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.underlying
@@ -1852,6 +2954,9 @@ attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.set_file
   rawConn.TypeAssumptions.method_set
   rawConn.TypeAssumptions.ptr_method_set
+  rawConn.TypeAssumptions.ptr_Control_unfold
+  rawConn.TypeAssumptions.ptr_Read_unfold
+  rawConn.TypeAssumptions.ptr_Write_unfold
 
 structure Root [GooseExts] where
   mk ::
@@ -2007,13 +3112,22 @@ class File.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_Name_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Name" File.Name.impl
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Read" File.Read.impl
   ptr_ReadAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadAt" File.ReadAt.impl
+  ptr_ReadFrom_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"ReadFrom" File.ReadFrom.impl
   ptr_Readdirnames_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Readdirnames" File.Readdirnames.impl
   ptr_Seek_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Seek" File.Seek.impl
   ptr_Stat_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Stat" File.Stat.impl
   ptr_Sync_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Sync" File.Sync.impl
+  ptr_SyscallConn_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"SyscallConn" File.SyscallConn.impl
   ptr_Truncate_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Truncate" File.Truncate.impl
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"Write" File.Write.impl
   ptr_WriteAt_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteAt" File.WriteAt.impl
+  ptr_WriteTo_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"WriteTo" File.WriteTo.impl
+  ptr_checkValid_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"checkValid" File.checkValid.impl
+  ptr_copyFileRange_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"copyFileRange" File.copyFileRange.impl
+  ptr_readFrom_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"readFrom" File.readFrom.impl
+  ptr_spliceToFile_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"spliceToFile" File.spliceToFile.impl
+  ptr_wrapErr_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"wrapErr" File.wrapErr.impl
+  ptr_writeTo_unfold : MethodUnfold (go.GoType.PointerType File.ty) go!"writeTo" File.writeTo.impl
 
 attribute [instance] File.TypeAssumptions.type_repr
   File.TypeAssumptions.underlying
@@ -2026,25 +3140,40 @@ attribute [instance] File.TypeAssumptions.type_repr
   File.TypeAssumptions.ptr_Name_unfold
   File.TypeAssumptions.ptr_Read_unfold
   File.TypeAssumptions.ptr_ReadAt_unfold
+  File.TypeAssumptions.ptr_ReadFrom_unfold
   File.TypeAssumptions.ptr_Readdirnames_unfold
   File.TypeAssumptions.ptr_Seek_unfold
   File.TypeAssumptions.ptr_Stat_unfold
   File.TypeAssumptions.ptr_Sync_unfold
+  File.TypeAssumptions.ptr_SyscallConn_unfold
   File.TypeAssumptions.ptr_Truncate_unfold
   File.TypeAssumptions.ptr_Write_unfold
   File.TypeAssumptions.ptr_WriteAt_unfold
+  File.TypeAssumptions.ptr_WriteTo_unfold
+  File.TypeAssumptions.ptr_checkValid_unfold
+  File.TypeAssumptions.ptr_copyFileRange_unfold
+  File.TypeAssumptions.ptr_readFrom_unfold
+  File.TypeAssumptions.ptr_spliceToFile_unfold
+  File.TypeAssumptions.ptr_wrapErr_unfold
+  File.TypeAssumptions.ptr_writeTo_unfold
 
 class fileStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fileStat.underlying fileStat
   underlying : go.UnderlyingDirectedEq fileStat.ty fileStat.underlying
   method_set : go.MethodSetIs fileStat.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileStat.ty) [(go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"ModTime", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" [])]))), (go!"Mode", (some (go.signature.Signature [] false [FileMode.ty]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Size", (some (go.signature.Signature [] false [go.int64]))), (go!"Sys", (some (go.signature.Signature [] false [go.any])))]
+  ptr_IsDir_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"IsDir" fileStat.IsDir.impl
+  ptr_Mode_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Mode" fileStat.Mode.impl
+  ptr_Name_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Name" fileStat.Name.impl
   ptr_Size_unfold : MethodUnfold (go.GoType.PointerType fileStat.ty) go!"Size" fileStat.Size.impl
 
 attribute [instance] fileStat.TypeAssumptions.type_repr
   fileStat.TypeAssumptions.underlying
   fileStat.TypeAssumptions.method_set
   fileStat.TypeAssumptions.ptr_method_set
+  fileStat.TypeAssumptions.ptr_IsDir_unfold
+  fileStat.TypeAssumptions.ptr_Mode_unfold
+  fileStat.TypeAssumptions.ptr_Name_unfold
   fileStat.TypeAssumptions.ptr_Size_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2076,13 +3205,29 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   fileStat_instance : fileStat.TypeAssumptions
   errNoDeadline_unfold : FuncUnfold errNoDeadline [] errNoDeadline.impl
   errDeadlineExceeded_unfold : FuncUnfold errDeadlineExceeded [] errDeadlineExceeded.impl
+  NewSyscallError_unfold : FuncUnfold NewSyscallError [] NewSyscallError.impl
+  genericReadFrom_unfold : FuncUnfold genericReadFrom [] genericReadFrom.impl
+  genericWriteTo_unfold : FuncUnfold genericWriteTo [] genericWriteTo.impl
   Mkdir_unfold : FuncUnfold Mkdir [] Mkdir.impl
   Open_unfold : FuncUnfold Open [] Open.impl
   OpenFile_unfold : FuncUnfold OpenFile [] OpenFile.impl
   Rename_unfold : FuncUnfold Rename [] Rename.impl
+  WriteFile_unfold : FuncUnfold WriteFile [] WriteFile.impl
   Remove_unfold : FuncUnfold Remove [] Remove.impl
+  MkdirAll_unfold : FuncUnfold MkdirAll [] MkdirAll.impl
+  RemoveAll_unfold : FuncUnfold RemoveAll [] RemoveAll.impl
+  endsWithDot_unfold : FuncUnfold endsWithDot [] endsWithDot.impl
+  IsPathSeparator_unfold : FuncUnfold IsPathSeparator [] IsPathSeparator.impl
+  splitPath_unfold : FuncUnfold splitPath [] splitPath.impl
   «init.0_unfold» : FuncUnfold init.«0» [] init.«0».impl
   runtime_args_unfold : FuncUnfold runtime_args [] runtime_args.impl
+  newRawConn_unfold : FuncUnfold newRawConn [] newRawConn.impl
+  Stat_unfold : FuncUnfold Stat [] Stat.impl
+  Lstat_unfold : FuncUnfold Lstat [] Lstat.impl
+  getPollFDAndNetwork_unfold : FuncUnfold getPollFDAndNetwork [] getPollFDAndNetwork.impl
+  isUnixOrTCP_unfold : FuncUnfold isUnixOrTCP [] isUnixOrTCP.impl
+  wrapSyscallError_unfold : FuncUnfold wrapSyscallError [] wrapSyscallError.impl
+  tryLimitedReader_unfold : FuncUnfold tryLimitedReader [] tryLimitedReader.impl
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_fs_Assumption : _root_.Perennial.io.fs.Assumptions
   import_sync_Assumption : _root_.Perennial.sync.Assumptions
@@ -2118,13 +3263,29 @@ attribute [instance] Assumptions.readdirMode_instance
   Assumptions.fileStat_instance
   Assumptions.errNoDeadline_unfold
   Assumptions.errDeadlineExceeded_unfold
+  Assumptions.NewSyscallError_unfold
+  Assumptions.genericReadFrom_unfold
+  Assumptions.genericWriteTo_unfold
   Assumptions.Mkdir_unfold
   Assumptions.Open_unfold
   Assumptions.OpenFile_unfold
   Assumptions.Rename_unfold
+  Assumptions.WriteFile_unfold
   Assumptions.Remove_unfold
+  Assumptions.MkdirAll_unfold
+  Assumptions.RemoveAll_unfold
+  Assumptions.endsWithDot_unfold
+  Assumptions.IsPathSeparator_unfold
+  Assumptions.splitPath_unfold
   Assumptions.«init.0_unfold»
   Assumptions.runtime_args_unfold
+  Assumptions.newRawConn_unfold
+  Assumptions.Stat_unfold
+  Assumptions.Lstat_unfold
+  Assumptions.getPollFDAndNetwork_unfold
+  Assumptions.isUnixOrTCP_unfold
+  Assumptions.wrapSyscallError_unfold
+  Assumptions.tryLimitedReader_unfold
   Assumptions.import_io_Assumption
   Assumptions.import_fs_Assumption
   Assumptions.import_sync_Assumption

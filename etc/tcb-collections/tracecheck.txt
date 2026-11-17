@@ -1,0 +1,41 @@
+# The trace check (examples/raft/tracecheck, notes/trace-validation-plan.md; 2026-11-11, S7 part 1):
+# the results of Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results.lean. Since the
+# harness (2026-11-12, branch trace-check-harness): `raft_tracecheck_safe_of` and
+# `raft_tracecheck_accepts_of` (the design's §1.2 and §1.3 given `HarnessOpen`, the traced
+# `StartNode`; they lose the `_of` when it lands), `tcMainSpec_of`, `tc_wp_RunConcurrent` and the
+# corollary's core `tracecheck_Events_traceAccepts`; also the checker's linked results
+# (`etcdraft/Link.lean`, `etc/gen-link.py --tracecheck`).
+# The harness's proof brought five axioms into the baseline, all existing (in etc/tcb-baseline.txt;
+# notes/trace-check-design.md §6): proto.ClonePb (app's `proto.Clone` of each message),
+# proto.UnmarshalConfChange (handleReady's conf entries), strconv.Itoa (the proposer, Q33), and through
+# raft's linked node API proto.CloneSnapshot and proto.SizeEntry. Nothing new to the trust base.
+# (2026-11-12, trace-check step 5) `HarnessOpen` discharged (`harnessOpen`) and the hypothesis-free
+# `raft_tracecheck_safe`/`raft_tracecheck_accepts`: the results now rest on raft's linked traced
+# `StartNode` (newRaft, Bootstrap, run), which brings existing axioms of etc/tcb-baseline.txt (raft's
+# collection's: the protobuf boundary, fmt/strconv, `ccDecodeV2_nil`, ...). Nothing new to the trust base.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt            what it rests on
+#   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check    against the lines below
+#   etc/tcb-report.py --collection etc/tcb-collections/tracecheck.txt --check --update
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^RaftTla/Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/Results\.lean$
+roots ^Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link\.lean$
+axiom DescribeConfChange.wp_proof
+axiom ccDecodeV2_nil
+axiom entryEncC_ok
+axiom fmt.Errorf.wp_proof
+axiom msgEncC_ok
+axiom pbEntryC_reg
+axiom pbMessageC_reg
+axiom proto.CloneConfState.wp_proof
+axiom proto.ClonePb.wp_proof
+axiom proto.CloneSnapshot.wp_proof
+axiom proto.MarshalConfChange.wp_proof
+axiom proto.MarshalConfChangeV2.wp_proof
+axiom proto.SizePb.wp_proof
+axiom proto.UnmarshalConfChange.wp_proof
+axiom proto.UnmarshalConfChangeV2.wp_proof
+axiom strconv.FormatUint.wp_proof
+axiom strconv.Itoa.wp_proof

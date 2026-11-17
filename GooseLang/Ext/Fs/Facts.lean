@@ -144,12 +144,12 @@ theorem setFile_proc (st : OsState) (i : Ino) (f : OsFile) : (st.setFile i f).pr
 theorem MetaOk.transfer {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hm : st'.proc.maps = st.proc.maps) (hin : st'.proc.inflight = st.proc.inflight)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
-  ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, by rw [hin]; exact h.targets, h.dur, h.zf, h.tail⟩
+  ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, by rw [hin]; exact h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
 
 /-- `OsWf` after the file `i` is replaced by `f'` (and the stamp perhaps advanced): the new file's
 sizes in order and its stamps at most the new one. -/
 theorem osWf_setFile {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
-    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi) (n : Nat)
+    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi ∧ f'.sizeHi ≤ maxBytes) (n : Nat)
     (hn : st.fs.stamp ≤ n) (hst : ∀ b p, p ∈ f'.cand b → p.2 ≤ n) (p : ProcState)
     (hp : p.fds = st.proc.fds ∧ p.maps = st.proc.maps)
     (hinfl : ∀ t c, p.inflight !! t = some c → ∃ c', st.proc.inflight !! t = some c' ∧ c'.ino = c.ino)
@@ -183,7 +183,7 @@ theorem osWf_setFile {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
 
 /-- `osWf_setFile` for a step that leaves the process alone and the stamp as it is. -/
 theorem osWf_setFile' {st : OsState} {i : Ino} {f f' : OsFile} (hwf : OsWf st)
-    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi)
+    (hf : st.file i = some f) (hsz : f'.sizeLo ≤ f'.size ∧ f'.size ≤ f'.sizeHi ∧ f'.sizeHi ≤ maxBytes)
     (hst : ∀ b p, p ∈ f'.cand b → p.2 ≤ st.fs.stamp) : OsWf (st.setFile i f') :=
   osWf_setFile hwf hf hsz st.fs.stamp (Nat.le_refl _) hst st.proc ⟨rfl, rfl⟩
     (fun t c h => ⟨c, h, rfl⟩) hwf.infl_one
@@ -206,7 +206,7 @@ theorem osCoh_setFile {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
   refine ⟨fun q => ?_, fun q m hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
     by rw [hproc]; exact hcoh.fds, fun t => by rw [hproc]; exact hcoh.toks t,
     fun t ti c h hc => by rw [hproc] at hc; exact hcoh.tok_is t ti c h hc,
-    fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_, fun q m c hm hc => ?_⟩
+    fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_, fun t ti h hk => ?_, fun q m c hm hc => ?_⟩
   · rw [hst', GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -233,6 +233,8 @@ theorem osCoh_setFile {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_file t ti h
     exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
+    exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_rz t ti h hk
     exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t ti h))]; exact h1, hrest⟩
   · rw [GMap.lookup_insert_eq_iff] at hm
     split at hm
@@ -314,7 +316,7 @@ theorem osCoh_setMaps {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm 
       obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
       rw [he]
       exact ⟨f, hf, ⟨hmo.size, hmo.lo, hmo.hi, by rw [← he]; exact h6, hmo.targets, hmo.dur,
-        hmo.zf, hmo.tail⟩⟩
+        hmo.zf, hmo.tail, hmo.cz, hmo.rz, hmo.zc, hmo.ce⟩⟩
     bytes := fun q b x hx => by
       have hc : cutOf Γm' q = cutOf Γm q := by
         unfold cutOf

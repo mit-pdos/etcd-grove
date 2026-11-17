@@ -3,6 +3,29 @@ module
 
 public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 public import SpecPlan.Spec.PkgInit.Base
+public import Perennial.Proof.encoding.binary.Base
+public import Perennial.Proof.errors.Base
+public import Perennial.Proof.fmt.Base
+public import SpecPlan.Spec.PkgInit.hash
+public import Perennial.Proof.io.Base
+public import Perennial.Proof.sync.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.protobuf.proto
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.fileutil
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.crc
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.pbutil
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.storage.wal.walpb
+public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
+public import SpecPlan.Spec.PkgInit.os
+public import Perennial.Proof.time.Base
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.ioutil
+public import SpecPlan.Spec.PkgInit.path.filepath
+public import SpecPlan.Spec.PkgInit.go_uber_org.zap
+public import SpecPlan.Spec.PkgInit.github_com.prometheus.client_golang.prometheus
+public import Perennial.Proof.strings.Base
+public import SpecPlan.Spec.PkgInit.github_com.Masterminds.semver.v3
+public import Perennial.Proof.bytes.Base
+public import SpecPlan.Spec.PkgInit.hash.crc32
+public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3
 
 @[expose] public section
 noncomputable section

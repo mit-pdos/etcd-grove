@@ -27,6 +27,7 @@ import (
 	"strings"
 	"testing"
 
+	"go.etcd.io/etcd/server/v3/storage/wal/walpb"
 	"go.etcd.io/raft/v3/raftpb"
 	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
@@ -41,6 +42,9 @@ import (
 var known = map[string]protoreflect.MessageDescriptor{
 	"raftpb.Entry":   (&raftpb.Entry{}).ProtoReflect().Descriptor(),
 	"raftpb.Message": (&raftpb.Message{}).ProtoReflect().Descriptor(),
+	// the WAL's registered types (wal/walpb/PbRecord.lean, PbSnapshot.lean)
+	"walpb.Record":   (&walpb.Record{}).ProtoReflect().Descriptor(),
+	"walpb.Snapshot": (&walpb.Snapshot{}).ProtoReflect().Descriptor(),
 }
 
 func wireTypes(f protoreflect.FieldDescriptor) []int {

@@ -47,7 +47,7 @@ var (
 	flagKillPL  = flag.Float64("killpl", 0, "probability that a crash is a kill whose page cache the next incarnation runs on (no reboot), followed by a power loss during that incarnation (posix, ordered)")
 	flagKillTgt = flag.Bool("killtarget", false, "with -killpl: kill right after a write to a WAL file, and lose power early in the next incarnation")
 	flagWeakP4  = flag.Bool("weakp4", false, "garbage may garble synced bytes of a rewritten sector (the superseded weaker P4)")
-	flagKillDir = flag.String("killdir", "", "W3b (K-N): with -killpl, kill right after a directory operation: mkdir (TouchDirAll's data/member), create (Create's wal.tmp rename), cut (a cut's N.tmp rename), or all; no kill if the run has none")
+	flagKillDir = flag.String("killdir", "", "W3b (K-N): with -killpl, kill right after a directory operation: mkdir (none since Boot takes data/member from the environment; kn_test's TouchDirAll), create (Create's wal.tmp rename), cut (a cut's N.tmp rename), or all; no kill if the run has none")
 )
 
 func TestMain(m *testing.M) {
@@ -63,7 +63,8 @@ func TestMain(m *testing.M) {
 		seed, _ := strconv.ParseUint(os.Getenv("WALROBUST_SEED"), 10, 64)
 		ops, _ := strconv.ParseUint(os.Getenv("WALROBUST_OPS"), 10, 64)
 		etcdwal.SegmentSizeBytes = segSizeFor(seed)
-		st := Boot(os.Getenv("WALROBUST_ROOT"), seed, ops)
+		root := os.Getenv("WALROBUST_ROOT")
+		st := Boot(root+"/data/member", root+"/oracle", seed, ops)
 		fmt.Printf("STATUS %d\n", st)
 		os.Exit(0)
 	}
@@ -161,7 +162,12 @@ func runChain(t *testing.T, seed int64, scratch string, tl *tally) {
 	}
 	defer os.RemoveAll(base) // this run's own scratch
 	root := filepath.Join(base, "r0")
+	// the environment's two directories, which Boot takes (it creates neither): the oracle's and
+	// the member's WAL area data/member
 	if err := os.MkdirAll(filepath.Join(root, "oracle"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "data", "member"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	marker := filepath.Join(base, "markers")
