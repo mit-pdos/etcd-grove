@@ -4,7 +4,7 @@ step A1.1: the pure model). What a reader sees of a tracked bucket (`BParams.RB`
 bucket, outside `vData`), per bucket, through a batch session and its `Unlock`'s window: the session's
 kind of each tracked bucket (`RbK`), the readers' contents of a bucket (`rvBkt`), the batch state's
 agreement with them (`trkOk`), its preservation by the session's operations, the write-back, the
-pre-commit hook (`hookStepT`) and the commit, and the readers' contents at the write-back and the commit
+pre-commit hook (`hookStep`) and the commit, and the readers' contents at the write-back and the commit
 by kind. Go: `notes/auth-schema-srv-a1/zz_a1_trackedwindow_test.go`. Pure; where the kinds live (the
 batch lock's ghost state) is A1.2's. Lean-first (no Rocq counterpart).
 -/
@@ -24,35 +24,6 @@ namespace EtcdGrove
 namespace backend
 
 /-! ## The session's kind of a tracked bucket -/
-
-/-- **What a batch session did to a tracked bucket** since the last `Unlock`: nothing, only puts (a
-creation of the bucket leaves the kind: it changes no key), only deletes (of keys, or of the bucket),
-or both. A reader in the `Unlock`'s window sees a `put` bucket after the session, a `del` bucket before
-it, and a `mix` bucket in neither state (`TestA1TrackedBucketWindow`, M1-M3). -/
-inductive RbK
-  | idle
-  | put
-  | del
-  | mix
-  deriving DecidableEq
-
-/-- The kind after another write of kind `k`. -/
-def RbK.join : RbK → RbK → RbK
-  | .idle, k => k
-  | k, .idle => k
-  | .put, .put => .put
-  | .del, .del => .del
-  | _, _ => .mix
-
-/-- The session's kinds, by bucket name. -/
-abbrev TkMap := GoString → RbK
-
-/-- Every bucket untouched (a free batch lock). -/
-def tkIdle : TkMap := fun _ => .idle
-
-/-- The kinds after a write of kind `k` to bucket `n`. -/
-def tkSet (tk : TkMap) (n : GoString) (k : RbK) : TkMap :=
-  fun m => if m = n then (tk n).join k else tk m
 
 theorem tkSet_self (tk : TkMap) (n : GoString) (k : RbK) : tkSet tk n k n = (tk n).join k := by
   simp [tkSet]
@@ -82,42 +53,6 @@ theorem bktOf_ext_dget {B : BktData} {S : Data} {n : GoString} (h : ∀ k, B.loo
   apply GMap.ext; intro k; rw [h k, dget_eq_bktOf]
 
 /-! ## The batch state's agreement with the readers on the tracked buckets -/
-
-/-- The write buffer has nothing for bucket `n`. -/
-def wEmpty (P : BParams) (W : WBuf) (n : GoString) : Prop :=
-  ∀ i, P.BT.lookup n = some i → bkOf W.bks i = []
-
-/-- An empty write-buffer bucket adds nothing to a view at that bucket. -/
-theorem ovB_wEmpty {P : BParams} {W : WBuf} {n : GoString} (h : wEmpty P W n) (f : VFun) (k : GoString) :
-    ovB P.BT W.bks f n k = f n k := by
-  unfold ovB
-  cases hi : P.BT.lookup n with
-  | none => rfl
-  | some i => simp [h i hi, lastVal]
-
-/-- What a bucket of kind `k` promises: untouched, the write buffer has nothing for it and the readers
-see the writer's contents; put into, the write buffer over the readers' view is the writer's contents;
-deleted from, the write buffer has nothing for it (the readers see the session's start); both, nothing. -/
-def kOk (P : BParams) (st : BSess) (n : GoString) : RbK → Prop
-  | .idle => wEmpty P st.W n ∧ ∀ k, viewOf P st n k = dget st.S n k
-  | .put => ∀ k, ovB P.BT st.W.bks (viewOf P st) n k = dget st.S n k
-  | .del => wEmpty P st.W n
-  | .mix => True
-
-/-- **The batch state agrees with the readers on the tracked buckets, by the session's kinds `tk`**:
-each tracked bucket as its kind promises (`kOk`); with nothing pending, the write buffer has nothing for
-any tracked bucket; with no delete pending, no tracked bucket was deleted from. -/
-def trkOk (P : BParams) (st : BSess) (tk : TkMap) : Prop :=
-  (∀ n, P.RB n = true → kOk P st n (tk n)) ∧
-  (st.pend = W64 0 → ∀ n, P.RB n = true → wEmpty P st.W n) ∧
-  (st.ndel = W64 0 → ∀ n, P.RB n = true → tk n = .idle ∨ tk n = .put)
-
-/-- **The pre-commit hook's run, with the tracked buckets' write buffer kept** (`hookStep` leaves their
-contents, `rbData`; this also leaves what the write buffer holds for them, which the server's hook, a
-writer of `meta` only, meets). -/
-def hookStepT (P : BParams) (st st' : BSess) : Prop :=
-  hookStep P st st' ∧
-  ∀ n i, P.BT.lookup n = some i → P.RB n = true → bkOf st'.W.bks i = bkOf st.W.bks i
 
 /-! ## Readers' contents from the agreement -/
 
@@ -342,27 +277,12 @@ theorem trkOk_delBucket (h : trkOk P st tk) (bi : BucketInfo)
     change sint.Z (st.ndel + W64 1) = 0 at h0
     omega
 
-/-- **The write-back** keeps the agreement and the kinds (the write buffer over the readers' view
-becomes the readers' view). -/
-theorem trkOk_wb (h : trkOk P st tk) : trkOk P (wbSt P st) tk := by
-  obtain ⟨hk, -, hd⟩ := h
-  have hWe : ∀ n, wEmpty P (wbSt P st).W n := fun n i _ => bkOf_writebackW st.W st.R i
-  have hV : viewOf P (wbSt P st) = ovB P.BT st.W.bks (viewOf P st) := vOf_writeback P st.C st.W st.R
-  have hO : ∀ f, ovB P.BT (wbSt P st).W.bks f = f :=
-    fun f => ovB_empty P.BT _ f (fun i => bkOf_writebackW st.W st.R i)
-  refine ⟨fun n hn => ?_, fun _ n _ => hWe n, hd⟩
-  have hkn := hk n hn
-  cases htk : tk n <;> rw [htk] at hkn <;> simp only [kOk]
-  · refine ⟨hWe n, fun k => ?_⟩
-    rw [hV, ovB_wEmpty hkn.1]; exact hkn.2 k
-  · intro k; rw [hO, hV]; exact hkn k
-  · exact hWe n
-
-/-- **The pre-commit hook** (`hookStepT`) keeps the agreement and the kinds. -/
-theorem trkOk_hook {st' : BSess} (h : trkOk P st tk) (hs : hookStepT P st st')
-    (hp0 : 0 ≤ sint.Z st.pend) (hn0 : 0 ≤ sint.Z st.ndel) : trkOk P st' tk := by
+/-- **The pre-commit hook** (`hookStep`, which keeps the tracked buckets' write buffer and kinds) keeps
+the agreement. -/
+theorem trkOk_hook {st' : BSess} (h : trkOk P st st.tk) (hs : hookStep P st st')
+    (hp0 : 0 ≤ sint.Z st.pend) (hn0 : 0 ≤ sint.Z st.ndel) : trkOk P st' st'.tk := by
   obtain ⟨hk, hpz, hd⟩ := h
-  obtain ⟨⟨hC, hR, -, hB, -, hp1, -, hn1, -⟩, hWt⟩ := hs
+  obtain ⟨hC, hR, -, hB, -, hp1, -, hn1, -, -, -, -, hWt, htk⟩ := hs
   have hV : viewOf P st' = viewOf P st := by unfold viewOf; rw [hC, hR]
   have hS : ∀ n, P.RB n = true → ∀ k, dget st'.S n k = dget st.S n k := by
     intro n hn k
@@ -376,32 +296,33 @@ theorem trkOk_hook {st' : BSess} (h : trkOk P st tk) (hs : hookStepT P st st')
     cases hi : P.BT.lookup n with
     | none => rfl
     | some i => simp only [Option.bind_some, hWt n i hi hn]
-  refine ⟨fun n hn => ?_, fun hz n hn => ?_, fun hz => ?_⟩
+  refine ⟨fun n hn => ?_, fun hz n hn => ?_, fun hz n hn => ?_⟩
   · have hkn := hk n hn
-    cases htk : tk n <;> rw [htk] at hkn <;> simp only [kOk]
+    rw [htk n hn]
+    cases htk' : st.tk n <;> rw [htk'] at hkn <;> simp only [kOk]
     · exact ⟨hWe n hn hkn.1, fun k => by rw [hV, hS n hn]; exact hkn.2 k⟩
     · intro k; rw [hO n hn, hV, hS n hn]; exact hkn k
     · exact hWe n hn hkn
   · have : st.pend = W64 0 := by
       have : sint.Z st'.pend = 0 := by rw [hz]; rfl
       word
-    exact hWe n hn (hpz this n hn)
+    exact ⟨hWe n hn (hpz this n hn).1, by rw [htk n hn]; exact (hpz this n hn).2⟩
   · have : st.ndel = W64 0 := by
       have : sint.Z st'.ndel = 0 := by rw [hz]; rfl
       word
-    exact hd this
+    rw [htk n hn]; exact hd this n hn
 
 /-- **The commit** (`unsafeCommit`, from `st`, the hook having run into `st'`, the tracked buckets'
 write buffer empty: after a write-back, or with the lock free): every tracked bucket untouched, and the
-readers see the writer's contents there (a bucket deleted from or of both kinds now too). -/
+readers see the writer's contents there (a bucket deleted from, or of both kinds, now too). -/
 theorem trkOk_commit {st' : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt} (h : trkOk P st tk)
-    (hst : sessWf P st) (hs : hookStepT P st st')
+    (hst : sessWf P st) (hs : hookStep P st st')
     (hWt : ∀ n, P.RB n = true → wEmpty P st.W n)
     (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) :
     trkOk P (commitSt st' C' tx' cnt') tkIdle ∧
       ∀ n, P.RB n = true → rvBkt P (C', st'.R.reset) n = bktOf st.S n := by
   obtain ⟨hk, -, hd⟩ := h
-  obtain ⟨⟨hsC, hsR, -, hsB, -, hsp1, -, -, -⟩, hsW⟩ := hs
+  obtain ⟨hsC, hsR, -, hsB, -, hsp1, -, -, -, -, -, -, hsW, -⟩ := hs
   have hS : ∀ n, P.RB n = true → ∀ k, dget st'.S n k = dget st.S n k := by
     intro n hn k
     have := congrArg (fun m => GMap.lookup m n) hsB
@@ -435,12 +356,65 @@ theorem trkOk_commit {st' : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt} (h : tr
     fun n hn i hi => by
       show bkOf st'.W.bks i = []
       rw [hsW n i hi hn]; exact hWt n hn i hi
-  refine ⟨⟨fun n hn => ⟨hWe n hn, fun k => ?_⟩, fun _ => hWe, fun _ _ _ => Or.inl rfl⟩, fun n hn => ?_⟩
+  refine ⟨⟨fun n hn => ⟨hWe n hn, fun k => ?_⟩, fun _ n hn => ⟨hWe n hn, rfl⟩,
+    fun _ _ _ => Or.inl rfl⟩, fun n hn => ?_⟩
   · rw [hV, hCS n hn]; exact (hS n hn k).symm
   · apply bktOf_ext_dget; intro k
     rw [rvBkt_lookup, vOf_resetC]; exact hCS n hn k
 
 end ops
+
+/-! ## The operations' steps, from the state's facts -/
+
+section steps
+variable {P : BParams} {st : BSess}
+
+theorem trkOk_putS (hP : P.Wf) (hwf : sessWf P st) {bi : BucketInfo} (hb : P.has bi) (k v : GoString)
+    (seq : Bool) : trkOk P st st.tk → trkOk P (st.put bi k v seq) (st.put bi k v seq).tk :=
+  fun h => trkOk_put hP h hb k v seq hwf.2.2.2.2.1 hwf.2.2.2.2.2.1
+
+theorem trkOk_delS (hwf : sessWf P st) (bi : BucketInfo) (k : GoString) :
+    trkOk P st st.tk → trkOk P (st.del bi k) (st.del bi k).tk :=
+  fun h => trkOk_del h bi k hwf.2.2.2.2.1 hwf.2.2.2.2.2.1 hwf.2.2.2.2.2.2.1 hwf.2.2.2.2.2.2.2.1
+
+theorem trkOk_createS (hwf : sessWf P st) (bi : BucketInfo) :
+    trkOk P st st.tk → trkOk P (st.create bi) (st.create bi).tk :=
+  fun h => trkOk_create h bi hwf.2.2.2.2.1 hwf.2.2.2.2.2.1
+
+theorem trkOk_delBucketS (hwf : sessWf P st) (bi : BucketInfo) :
+    trkOk P st st.tk → trkOk P (st.delBucket bi) (st.delBucket bi).tk :=
+  fun h => trkOk_delBucket h bi hwf.2.2.2.2.1 hwf.2.2.2.2.2.1 hwf.2.2.2.2.2.2.1 hwf.2.2.2.2.2.2.2.1
+
+/-- **The commit's agreement, from the state after the hook** (`st'`, the hook having run from `st`,
+whose tracked buckets were untouched or deleted from: after a write-back, or with the lock free). -/
+theorem trkOk_commitG {st st' : BSess} {C' : Data} {tx' : Loc} {cnt' : BCnt} (hs : hookStep P st st')
+    (htk : ∀ n, P.RB n = true → st.tk n = .idle ∨ st.tk n = .del) (h' : trkOk P st' st'.tk)
+    (hst' : sessWf P st') (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) :
+    trkOk P (commitSt st' C' tx' cnt') tkIdle ∧
+      ∀ n, P.RB n = true → rvBkt P (C', st'.R.reset) n = bktOf st'.S n := by
+  obtain ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, hst⟩ := hs
+  have hWt : ∀ n, P.RB n = true → wEmpty P st'.W n := by
+    intro n hn
+    have hkn := h'.1 n hn
+    rcases htk n hn with ht | ht <;> rw [hst n hn, ht] at hkn
+    · exact hkn.1
+    · exact hkn
+  exact trkOk_commit h' hst' (hookStep_refl P st') hWt hC'
+
+/-- A put into an untracked bucket keeps the tracked buckets' write buffer and kinds. -/
+theorem trkKept_put_other {P : BParams} {st0 st : BSess} (hP : P.Wf) {bi : BucketInfo}
+    (hb : P.has bi) (hrb : P.RB bi.name = false) {k v : GoString} {seq : Bool}
+    (h : trkKept P st0 st) : trkKept P st0 (st.put bi k v seq) := by
+  refine ⟨fun n i hi hn => ?_, fun n hn => ?_⟩
+  · have hne : n ≠ bi.name := fun e => by rw [e, hrb] at hn; cases hn
+    have hid : bi.id ≠ i := fun e => hne (hP.1 n bi.name i hi (e ▸ hb))
+    show bkOf (if seq then st.W.putSeq bi.id (k, v) else st.W.put bi.id (k, v)).bks i = _
+    rw [putW_bks, bkOf_wbAdd]; simp only [hid, ↓reduceIte]; exact h.1 n i hi hn
+  · have hne : n ≠ bi.name := fun e => by rw [e, hrb] at hn; cases hn
+    show tkSet st.tk bi.name .put n = _
+    rw [tkSet_ne _ _ hne]; exact h.2 n hn
+
+end steps
 
 end backend
 end EtcdGrove

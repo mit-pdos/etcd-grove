@@ -28,7 +28,8 @@ abbrev backend.batchTxBuffered.unsafeCommit.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t rt : Loc) (st : BSess) (win stop : Bool) (m u : Nat)
     (X Y : IProp GF) (L' : VData),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ bF go!"readTx" b ↦□ rt ∗ batchLockedW γ P b st win ∗ Pk ∗ rtRes γ P rt 1 ∗
-      ⌜sint.Z st.pend + P.hookMax < 2 ^ 58 ∧ st.cnt.p0 = sint.nat st.pend ∧ (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false → bkOf st.W.bks i = [])⌝ ∗
+      ⌜sint.Z st.pend + P.hookMax < 2 ^ 58 ∧ st.cnt.p0 = sint.nat st.pend ∧ (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false → bkOf st.W.bks i = []) ∧
+        (∀ n, P.RB n = true → st.tk n = .idle ∨ st.tk n = .del)⌝ ∗
       (if win then thinV γ (sData P st.S) L' else thinV γ (sData P st.S) (vData P (st.C, st.R))) ∗
       ⌜win = true → st.win = true ∧ dlsOk P st L'⌝ ∗ ⌜st.cnt.hw = false⌝ ∗
       payIn γ st stop m u ∗ X ∗ commitReq γ P Pk b X Y }}

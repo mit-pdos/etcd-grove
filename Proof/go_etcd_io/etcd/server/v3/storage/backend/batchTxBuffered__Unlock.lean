@@ -86,13 +86,13 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
           iexists n - 1, w + 1, u0
           iframe
           ipureintro
-          exact bgOk_unfree hbg'
+          exact hbg' false (fun h => by cases h)
         · ipureintro
           exact hwf'
       iframe HPk
       isplitr
       · ipureintro
-        exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i⟩
+        exact ⟨Hroom, rfl, fun _ i _ _ => bkOf_writebackW _ _ i, fun n _ => tkWb_idle_del _ n⟩
       isplitl [Hpc]
       · simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hpc
       isplitr
@@ -224,7 +224,8 @@ private theorem unlock_core
         wp_if_destruct
         · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
         have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
-        bu_free (wbSt P st) hbg' hfo'
+          Hbg.2.2.2.2.2.2.2.2.2.2.1
+        bu_free (wbSt P st) (hbg' true (fun _ => tkWb_idle_of_ndel0 Hbg.2.2.2.2.2.2.2.2.2.2.1 hfo'.2.2.1)) hfo'
     · -- a put session: back at `relog P vd st`
       ihave ⟨Hv, Hbv, %Hdvw⟩ := batchViewQ_bView_dl γ P st 1 vd $$ [$Hv $Hbv]
       have Hdvd : dlsOk P st vd := Hdvw.2.1 (Hdvw.2.2 Hhw)
@@ -292,6 +293,7 @@ private theorem unlock_core
         · exact Hif (by have : sint.Z (W64 0) = 0 := rfl; omega)
       · -- not committed: the write-back's close moves the view to `relog`
         have hfo' := freeOk_writeback Hwf hp0 (by omega) (fun h => hcond (Or.inr h))
+          Hbg.2.2.2.2.2.2.2.2.2.2.1
         have hvf : vData P (st.C, writebackR st.W st.R) = sData P st.S := by
           rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2.1, wbSt_C, wbSt_R]
         imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) false Hwf.2.2.1 hver hsafe)
@@ -307,7 +309,7 @@ private theorem unlock_core
         wp_if_destruct
         · exfalso; exact hcond (Or.inr (by have : sint.Z (W64 0) = 0 := rfl; omega))
         icases HQw $$ Hbvw with ⟨HWv, HQ⟩
-        bu_free (wbSt P st) hbg' hfo'
+        bu_free (wbSt P st) (hbg' true (fun _ => tkWb_idle_of_ndel0 Hbg.2.2.2.2.2.2.2.2.2.2.1 hfo'.2.2.1)) hfo'
 
 /-- **`Unlock`'s ghost step** (`rbSide_idle`): the part handed in made idle, at the session's end.
 Private to this proof: anywhere else it would assert an idleness Go does not give. -/

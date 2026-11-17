@@ -48,7 +48,7 @@ theorem rv0_safe (P : BParams) (D : Data) : safeRv P (rv0 D) := by
 
 theorem st0_freeOk (P : BParams) (D : Data) (tx : Loc) (hP : P.Wf) : freeOk P (st0 D tx) := by
   have hview : viewOf P (st0 D tx) = dget D := ovB_empty _ _ _ (fun i => bkOf_empty i)
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, rfl, ?_, rfl⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, rfl, ?_, rfl, fun _ _ => rfl⟩
   · intro id es h; simp [st0] at h
   · intro id es h; simp [st0, rb0] at h
   · intro i es h; simp [st0] at h
@@ -67,8 +67,15 @@ theorem st0_freeOk (P : BParams) (D : Data) (tx : Loc) (hP : P.Wf) : freeOk P (s
   · simp only [st0]; exact hP.2.1
   · intro n i _ _; rfl
 
+/-- (A1 of `auth-schema-srv`) The first state agrees with the readers on the tracked buckets. -/
+theorem st0_trkOk (P : BParams) (D : Data) (tx : Loc) : trkOk P (st0 D tx) tkIdle := by
+  have hview : viewOf P (st0 D tx) = dget D := ovB_empty _ _ _ (fun i => bkOf_empty i)
+  refine ⟨fun n _ => ⟨fun i _ => bkOf_empty i, fun k => by rw [hview]; rfl⟩,
+    fun _ n _ => ⟨fun i _ => bkOf_empty i, rfl⟩, fun _ _ _ => Or.inl rfl⟩
+
 theorem st0_bgOk (P : BParams) (D : Data) (tx : Loc) : bgOk P (st0 D tx) true wbInit 0 0 := by
-  refine ⟨?_, Nat.le_refl 0, ?_, ?_, ⟨Or.inl rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, Nat.le_refl 0, ?_, ?_, ⟨Or.inl rfl, Or.inl rfl⟩, ?_, ?_, ?_, ?_, ?_, st0_trkOk P D tx,
+    fun _ _ _ => rfl⟩
   · simp only [st0, rb0, wbInit]; word
   · simp [st0]
   · simp [st0]

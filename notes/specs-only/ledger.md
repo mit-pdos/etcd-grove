@@ -2748,3 +2748,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`; every other premise and the conclusion unchanged.
 - **Decision.** The user's decision (A) of 2026-11-15 for this class of change; listed for the user's review
   with the earlier 25.
+
+## 2026-11-17: the backend's hook step keeps the tracked buckets' write buffer and kinds (auth-schema-srv A1)
+
+- **Spec.** `backend.hookStep` (`Model2.lean`): in the hooks' contract `hooksSpec`/`hookFnSpec` (inside `isBackend`),
+  in `BackendHooks.OnPreCommitUnsafe.spec`'s post and the exported `cindex_hook_backend`
+  (`etcdserver/Results.lean:1068`, post `⌜backend.hookStep P st st'⌝`).
+- **Defect.** None of Go; a gap of the model: the hook step left the tracked buckets' contents (`rbData`) but not what
+  the write buffer holds for them, so a hook could buffer a put there (one it then deletes) that a later write-back
+  shows readers; A1's read model over the tracked buckets (`notes/auth-schema-srv-a1-scope.md`, D2) needs it excluded.
+- **Evidence.** The server's hook (`BackendHooks.OnPreCommitUnsafe`) writes `meta` only (`storage/hooks.go`), not a
+  tracked bucket (`mvcc.KBReal.P`'s `RB`: the rest buckets).
+- **Change.** Old: `... ∧ dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win`. New: the same `∧ (∀ n i, P.BT.lookup n =
+  some i → P.RB n = true → bkOf st'.W.bks i = bkOf st.W.bks i) ∧ (∀ n, P.RB n = true → st'.tk n = st.tk n)` (`tk` the
+  new ghost field `BSess.tk`, the session's bucket kinds). Stronger only: as a post (`cindex_hook_backend`,
+  `OnPreCommitUnsafe`) it says more; as the hook's obligation it asks more of the hook, which the server's meets.
+- **Decision.** Accepted by etcd-grove-03 (2026-11-17, A1 Scope decision 4); the user to be told by etcd-grove-03.

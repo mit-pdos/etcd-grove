@@ -300,7 +300,7 @@ theorem viewSame_noPuts {P : BParams} (hP : bridgeParams P) {st : BSess} (hst : 
 /-- A free state holds no puts. -/
 theorem sessPuts_free {P : BParams} (hP : bridgeParams P) {st : BSess} (h : freeOk P st) :
     sessPuts P st [] := by
-  refine ⟨h.2.2.1, by simpa using h.2.1, ?_, by simp, h.2.2.2.2⟩
+  refine ⟨h.2.2.1, by simpa using h.2.1, ?_, by simp, h.2.2.2.2.1⟩
   have hk := hP.1
   unfold BParams.has keyBI at hk
   exact h.2.2.2.1 _ _ hk (key_not_HB hP)
@@ -2275,7 +2275,7 @@ theorem bt_lockOut (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := G
     iframe
     ipureintro
     exact ⟨Hfree.2.2.1, by simpa using Hfree.2.1, viewSame_of_freeOk Hfree, by omega,
-      Hfree.2.2.2.2⟩
+      Hfree.2.2.2.2.1⟩
   iunfold bkRTx
   iframe Hrd
   iexact Ho

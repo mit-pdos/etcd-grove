@@ -11,6 +11,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BatchLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.TrkModel
 public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
@@ -274,6 +275,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
     (hS : hkData P st'.S = hkData P st.S) (hB : rbData P st'.S = rbData P st.S)
     (hF : ∀ f g, fkOkG P f g st → fkOkG P f g st') (hV : fkVals st'.S = fkVals st.S)
     (hD : dlR P st'.dl = dlR P st.dl)
+    (hT : trkOk P st st.tk → trkOk P st' st'.tk)
     (hO : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
       dlsW P st L → dlsW P st' L) :
     batchGhost (GF := GF) γ P st ⊢ batchGhost γ P st' := by
@@ -288,7 +290,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
   isplitl
   · iapply fkHalf_mono γ P hF hV hD $$ Hfk
   ipureintro
-  exact bgOk_step Hok hR hc hp hW
+  exact bgOk_step Hok hR hc hp hW hT
 
 /-- Contents that differ only at `n` have tracked buckets that differ only at `n`. -/
 theorem rbData_other (P : BParams) {S S' : Data} {n : GoString}
@@ -339,6 +341,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
     (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m)
     (hD : dlR P st'.dl = dlR P st.dl)
+    (hT : trkOk P st st.tk → trkOk P st' st'.tk)
     (hDl : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
       dlsW P st L → dlsW P st' L) :
     ⊢ batchGhost (GF := GF) γ P st -∗ rbPut γ P n st.S ==∗
@@ -347,7 +350,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
   cases hb : P.RB n
   · simp only [Bool.false_eq_true, ↓reduceIte]
     iintro Hg -
-    ihave Hg := batchGhost_step γ P hC hR hc hp hW hS (hB hb) hF hV hD hDl $$ Hg
+    ihave Hg := batchGhost_step γ P hC hR hc hp hW hS (hB hb) hF hV hD hT hDl $$ Hg
     imodintro
     iframe Hg
   · simp only [↓reduceIte]
@@ -365,7 +368,7 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
       iexists n0, w, u
       iframe
       ipureintro
-      exact bgOk_step Hok hR hc hp hW
+      exact bgOk_step Hok hR hc hp hW hT
     · iexact Hc
 
 /-- **The batch lock's half of the flag and the safe-range deleted entries, with the client's
@@ -402,6 +405,7 @@ theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
     (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m)
     (hD : P.SB n = false → dlR P st'.dl = dlR P st.dl)
+    (hT : trkOk P st st.tk → trkOk P st' st'.tk)
     (hDl : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
       dlsW P st L → dlsW P st' L) :
     ⊢ batchGhost (GF := GF) γ P st -∗ rbPut γ P n st.S -∗ dlPut γ P n ==∗
@@ -411,7 +415,7 @@ theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     rw [hsb]
     simp only [Bool.false_eq_true, ↓reduceIte]
     iintro Hg Hr -
-    imod batchGhost_step_rb γ P hC hR hc hp hW n hS hB hF hV hBT hO (hD hsb) hDl $$ Hg Hr
+    imod batchGhost_step_rb γ P hC hR hc hp hW n hS hB hF hV hBT hO (hD hsb) hT hDl $$ Hg Hr
       with ⟨Hg, Hr⟩
     imodintro
     iframe Hg Hr
@@ -433,7 +437,7 @@ theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
       iexists n0, w, u
       iframe
       ipureintro
-      exact bgOk_step Hok hR hc hp hW
+      exact bgOk_step Hok hR hc hp hW hT
     · simp only [↓reduceIte] at *
       rw [hC, hR, hS]
       icases Hk with ⟨Hk, Hb⟩
@@ -444,7 +448,7 @@ theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
       iexists n0, w, u
       iframe
       ipureintro
-      exact bgOk_step Hok hR hc hp hW
+      exact bgOk_step Hok hR hc hp hW hT
 
 /-- A put of key `k` in bucket `n` (as `batchGhost_step`): with the client's half of the hook's
 own keys if `k` is one (`hkPut`), and of the tracked buckets if `n` is one (`rbPut`), both halves
@@ -460,6 +464,7 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
     (hBT : P.RB n = true → ∃ i, P.BT.lookup n = some i)
     (hO : ∀ m, m ≠ n → st'.S.lookup m = st.S.lookup m)
     (hD : dlR P st'.dl = dlR P st.dl)
+    (hT : trkOk P st st.tk → trkOk P st' st'.tk)
     (hDl : ∀ L : VData, (∀ nk v, (vData P (st.C, st.R)).lookup nk = some v → L.lookup nk = some v) →
       dlsW P st L → dlsW P st' L) :
     ⊢ batchGhost (GF := GF) γ P st -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S -∗ fkPut γ n k ==∗
@@ -499,7 +504,7 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
   iexists n0, w, u
   iframe
   ipureintro
-  exact bgOk_step Hok hR hc hp hW
+  exact bgOk_step Hok hR hc hp hW hT
 
 /-- The client's half of the hook's own keys agrees with the batch lock's state. -/
 theorem batchLocked_hk (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
@@ -635,8 +640,8 @@ theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
   iframe
   ipureintro
   unfold bgOk at Hok ⊢
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10⟩ := Hok
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp, h10⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, -, h10, ht, -⟩ := Hok
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8, by simp, h10, ht, by simp⟩
 
 /-- A slice a range of the writer returned, read under the batch lock in a state with the same
 write transaction (`UnsafeRange`'s capability). -/

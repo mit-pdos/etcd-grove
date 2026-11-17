@@ -60,7 +60,7 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (pend_succ_nat Hwf Hp) (fun i => put_W_le st bi kb vb true i)
     (hkData_put_other st bi kb vb true Hhk)
     (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) rfl
-    (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
+    (trkOk_putS HP Hwf Hhas kb vb true) (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
       (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd) $$ Hg
   iframe Hg
   isplitl

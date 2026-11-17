@@ -45,7 +45,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
     bi.name (hkData_del st bi kb Hhk)
     (rbData_del_other st bi kb) (fkOkG_del Hfk) (fkVals_del Hfk) (fun _ => ⟨bi.id, Hhas⟩)
     (BSess.del_S_other st bi kb) (fun h => dlR_del_other P st bi kb (Or.inl h))
-    (fun L hsub hd => dlsW_step dlsS_del (dlsOk_del (fun h1 _ hs => by
+    (trkOk_delS Hwf bi kb) (fun L hsub hd => dlsW_step dlsS_del (dlsOk_del (fun h1 _ hs => by
       have := Hsb h1 hs
       cases hq : (vData P (st.C, st.R)).lookup (bi.name, kb) with
       | none => exact absurd hq this

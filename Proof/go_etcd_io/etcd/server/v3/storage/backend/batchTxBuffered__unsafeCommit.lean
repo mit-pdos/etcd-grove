@@ -40,7 +40,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t rt st win stop m u X Y L'
   wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq⟩
-  obtain ⟨Hroom, Hp0, HWe⟩ := Hc
+  obtain ⟨Hroom, Hp0, HWe, Htk⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
@@ -140,7 +140,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     | false =>
       simp only [Bool.false_eq_true, ↓reduceIte]
       apply Hdlb.2.1
-      rw [Hs.2.2.2.2.2.2.2.2.2.2.2]
+      rw [Hs.2.2.2.2.2.2.2.2.2.2.2.1]
       exact Hwin0 rfl
   icombine Ht Ht1 gives %Heq1
   subst Heq1
@@ -206,7 +206,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
         iexact Hrd
       imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ HWe Hp0 Hs Hwf Hbg
-        (Or.inr rfl) Hdlc) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+        (Or.inr ⟨HA.1, rfl⟩) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
       imodintro
       iapply HΦ
@@ -245,7 +245,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
         iexact Hrd
       imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ HWe Hp0 Hs Hwf Hbg
-        (Or.inl rfl) Hdlc) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
+        (Or.inl rfl) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)
       imodintro
       iapply HΦ

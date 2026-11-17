@@ -104,6 +104,45 @@ structure BCnt where
   dropping its emptied buckets) -/
   hw : Bool
 
+/-- **What a batch session did to a tracked bucket** since its kind was last reset (A1 of
+`auth-schema-srv`, `notes/auth-schema-srv-a1-scope.md`, D1): nothing, only puts (a creation of the
+bucket leaves the kind: it changes no key), only deletes (of keys, or of the bucket), or both. A reader
+in an `Unlock`'s window sees a `put` bucket after the session, a `del` bucket before it, and a `mix`
+bucket in neither state (`notes/auth-schema-srv-a1/zz_a1_trackedwindow_test.go`, M1-M3). -/
+inductive RbK
+  | idle
+  | put
+  | del
+  | mix
+  deriving DecidableEq
+
+/-- The kind after another write of kind `k`. -/
+def RbK.join : RbK → RbK → RbK
+  | .idle, k => k
+  | k, .idle => k
+  | .put, .put => .put
+  | .del, .del => .del
+  | _, _ => .mix
+
+/-- The session's kinds, by bucket name. -/
+abbrev TkMap := GoString → RbK
+
+/-- Every bucket untouched. -/
+def tkIdle : TkMap := fun _ => .idle
+
+/-- The kinds after a write of kind `k` to bucket `n`. -/
+def tkSet (tk : TkMap) (n : GoString) (k : RbK) : TkMap :=
+  fun m => if m = n then (tk n).join k else tk m
+
+/-- The kinds after a write-back (which empties the write buffer): a bucket only put into is the
+writer's contents for the readers now (untouched); one deleted from, or both, waits for the commit with
+nothing in the write buffer (as one deleted from). -/
+def tkWb (tk : TkMap) : TkMap := fun n =>
+  match tk n with
+  | .put => .idle
+  | .mix => .del
+  | k => k
+
 /-- The batch transaction's state. -/
 structure BSess where
   C : Data
@@ -123,6 +162,10 @@ structure BSess where
   of the view at the exact new physical view until the commit's close moves it to the session's
   logical view, `relog`), where the deleted entries need not be the logical view's. -/
   win : Bool := false
+  /-- Ghost data (A1 of `auth-schema-srv`, 2026-11-17): the session's kind of each bucket
+  (`RbK`; read on the tracked buckets only, `trkOk`): set by the session's writes, reset per bucket
+  by a write-back (`tkWb`) and wholly by a commit. -/
+  tk : TkMap := tkIdle
 
 /-- What the readers see of a state: the committed data with the read buffer over it. -/
 def viewOf (P : BParams) (st : BSess) : VFun := ovB P.BT st.R.bks (dget st.C)
@@ -279,7 +322,9 @@ def sessWf (P : BParams) (st : BSess) : Prop :=
 /-- The state's facts when the batch lock is free. -/
 def freeOk (P : BParams) (st : BSess) : Prop :=
   sessWf P st ∧ sint.Z st.pend < sint.Z P.limit ∧ st.ndel = W64 0 ∧
-  (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []) ∧ st.cnt.hw = false
+  (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []) ∧ st.cnt.hw = false ∧
+  -- (A1 of `auth-schema-srv`, 2026-11-17) every tracked bucket untouched
+  (∀ n, P.RB n = true → st.tk n = .idle)
 
 /-- The read buffer has nothing off the hook's buckets (what a backend's readers' view promises
 while its `γ.cln` flag is `true`: the restore plan's R5a). -/
@@ -294,6 +339,28 @@ commits, which changes no `vData`). -/
 def viewSame (P : BParams) (st : BSess) : Prop :=
   vData P (st.C, st.R) = sData P st.S ∧
   ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []
+
+/-- The write buffer has nothing for bucket `n`. -/
+def wEmpty (P : BParams) (W : WBuf) (n : GoString) : Prop :=
+  ∀ i, P.BT.lookup n = some i → bkOf W.bks i = []
+
+/-- What a tracked bucket of kind `k` promises (A1, D2): untouched, the write buffer has nothing for
+it and the readers see the writer's contents; put into, the write buffer over the readers' view is the
+writer's contents; deleted from, the write buffer has nothing for it (the readers see the contents the
+session began with); both, nothing. -/
+def kOk (P : BParams) (st : BSess) (n : GoString) : RbK → Prop
+  | .idle => wEmpty P st.W n ∧ ∀ k, viewOf P st n k = dget st.S n k
+  | .put => ∀ k, ovB P.BT st.W.bks (viewOf P st) n k = dget st.S n k
+  | .del => wEmpty P st.W n
+  | .mix => True
+
+/-- **The batch state agrees with the readers on the tracked buckets, by the kinds `tk`** (A1, D2):
+each tracked bucket as its kind promises (`kOk`); with nothing pending, every tracked bucket untouched
+and the write buffer empty for it; with no delete pending, none deleted from. -/
+def trkOk (P : BParams) (st : BSess) (tk : TkMap) : Prop :=
+  (∀ n, P.RB n = true → kOk P st n (tk n)) ∧
+  (st.pend = W64 0 → ∀ n, P.RB n = true → wEmpty P st.W n ∧ tk n = .idle) ∧
+  (st.ndel = W64 0 → ∀ n, P.RB n = true → tk n = .idle ∨ tk n = .put)
 
 /-- The buffers' sizes, bounded through the batch lock's ghost counters (`st.cnt`, and `n` the
 write-back tokens out, `w` the write-backs so far, `u` the write-back after which the `run`
@@ -316,7 +383,10 @@ def bgOk (P : BParams) (st : BSess) (free : Bool) (n w u : Nat) : Prop :=
   (∀ nm i, P.BT.lookup nm = some i → P.HB nm = false →
     (bkOf st.W.bks i).length ≤ sint.nat st.pend - st.cnt.p0) ∧
   (free = true → st.cnt.p0 = sint.nat st.pend ∧ (st.pend ≠ W64 0 → u < w)) ∧
-  (w : Int) ≤ uint.Z st.R.ver
+  (w : Int) ≤ uint.Z st.R.ver ∧
+  -- (A1 of `auth-schema-srv`, 2026-11-17) the tracked buckets' agreement with the readers, every
+  -- tracked bucket untouched when the lock is free
+  trkOk P st st.tk ∧ (free = true → ∀ n, P.RB n = true → st.tk n = .idle)
 
 end backend
 end EtcdGrove
@@ -333,7 +403,7 @@ writer sets the entry, the write buffer gets it, one more pending operation. -/
 def BSess.put (st : BSess) (bi : BucketInfo) (k v : GoString) (seq : Bool) : BSess :=
   { st with S := st.S.insert bi.name ((bktOf st.S bi.name).insert k v),
             W := if seq then st.W.putSeq bi.id (k, v) else st.W.put bi.id (k, v),
-            pend := st.pend + W64 1 }
+            pend := st.pend + W64 1, tk := tkSet st.tk bi.name .put }
 
 /-- `UnsafeDelete(bucket, k)`: bbolt's writer deletes the entry (no buffer), one more pending
 operation and pending delete. -/
@@ -342,7 +412,8 @@ def BSess.del (st : BSess) (bi : BucketInfo) (k : GoString) : BSess :=
             pend := st.pend + W64 1, ndel := st.ndel + W64 1,
             dl := match (bktOf st.S bi.name).lookup k with
               | some v => st.dl.insert (bi.name, k) v
-              | none => st.dl }
+              | none => st.dl,
+            tk := tkSet st.tk bi.name .del }
 
 /-- `UnsafeCreateBucket(bucket)`: the bucket, empty if it was absent. -/
 def BSess.create (st : BSess) (bi : BucketInfo) : BSess :=
@@ -352,7 +423,8 @@ def BSess.create (st : BSess) (bi : BucketInfo) : BSess :=
 /-- `UnsafeDeleteBucket(bucket)`: the bucket deleted (absent or not), one more pending operation
 and pending delete. -/
 def BSess.delBucket (st : BSess) (bi : BucketInfo) : BSess :=
-  { st with S := st.S.delete bi.name, pend := st.pend + W64 1, ndel := st.ndel + W64 1 }
+  { st with S := st.S.delete bi.name, pend := st.pend + W64 1, ndel := st.ndel + W64 1,
+            tk := tkSet st.tk bi.name .del }
 
 /-! ## The safe-range buckets' deleted entries (the user's decision, 2026-11-04, probe M2)
 
@@ -397,18 +469,27 @@ def dlVd (P : BParams) (vd L X : GMap (GoString × GoString) GoString) : Prop :=
   (∀ nk, X.lookup nk ≠ none →
     P.SB nk.1 = true ∧ P.HB nk.1 = false ∧ vd.lookup nk = none ∧ L.lookup nk ≠ none)
 
+/-- From `st` to `st'`, the tracked buckets' write buffer and kinds kept (A1 of `auth-schema-srv`). -/
+abbrev trkKept (P : BParams) (st st' : BSess) : Prop :=
+  (∀ n i, P.BT.lookup n = some i → P.RB n = true → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
+  (∀ n, P.RB n = true → st'.tk n = st.tk n)
+
 /-- One run of the pre-commit hook, from `st` to `st'`: the committed data and the read buffer
 untouched, the writer's contents changed only in the hook's buckets, the write buffer's
 other buckets untouched, at most `hookMax` operations more, bbolt's write transaction and the
 batch lock's ghost counters unchanged (the hook only calls the batch transaction's operations,
 which keep them); and (D22, 2026-10-23) the tracked buckets untouched (`rbData`); and (2026-11-04)
-no safe-range entry deleted (`dlR`), the window marker kept. -/
+no safe-range entry deleted (`dlR`), the window marker kept; and (A1 of `auth-schema-srv`, 2026-11-17)
+the tracked buckets' write buffer and kinds kept (the server's hook writes `meta` only). -/
 def hookStep (P : BParams) (st st' : BSess) : Prop :=
   st'.C = st.C ∧ st'.R = st.R ∧ sData P st'.S = sData P st.S ∧ rbData P st'.S = rbData P st.S ∧
   (∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st'.W.bks i = bkOf st.W.bks i) ∧
   sint.Z st.pend ≤ sint.Z st'.pend ∧ sint.Z st'.pend ≤ sint.Z st.pend + P.hookMax ∧
   sint.Z st.ndel ≤ sint.Z st'.ndel ∧ st'.tx = st.tx ∧ st'.cnt = st.cnt ∧
-  dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win
+  dlR P st'.dl = dlR P st.dl ∧ st'.win = st.win ∧
+  -- (A1 of `auth-schema-srv`, 2026-11-17, decided by etcd-grove-03) the tracked buckets' write
+  -- buffer and kinds kept
+  trkKept P st st'
 
 /-- What the pre-commit hook may count on when it runs (`hooksSpec`): the hook's window is open,
 there is room for its operations, and every bucket of the write buffer is empty or has an empty

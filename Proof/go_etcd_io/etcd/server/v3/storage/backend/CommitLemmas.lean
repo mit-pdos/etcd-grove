@@ -76,6 +76,14 @@ theorem ovB_empty (BT : GMap GoString w64) (B : GMap w64 (List Ent)) (f : VFun)
   | none => rfl
   | some i => simp [h i, lastVal]
 
+/-- An empty write-buffer bucket adds nothing to a view at that bucket. -/
+theorem ovB_wEmpty {P : BParams} {W : WBuf} {n : GoString} (h : wEmpty P W n) (f : VFun) (k : GoString) :
+    ovB P.BT W.bks f n k = f n k := by
+  unfold ovB
+  cases hi : P.BT.lookup n with
+  | none => rfl
+  | some i => simp [h i hi, lastVal]
+
 /-- The write-back's read buffer reads as the write buffer over the read buffer. -/
 theorem ovB_wbMerge (BT : GMap GoString w64) (W R : GMap w64 (List Ent)) (f : VFun) :
     ovB BT (wbMerge W R) f = ovB BT W (ovB BT R f) := by
@@ -175,7 +183,8 @@ theorem idsOk_bksReset {P : BParams} {B : GMap w64 (List Ent)} (h : idsOk P B) :
   | some es0 => exact h i es0 hb
 
 theorem hookStep_refl (P : BParams) (st : BSess) : hookStep P st st :=
-  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, Int.le_refl _, by omega, Int.le_refl _, rfl, rfl, rfl, rfl⟩
+  ⟨rfl, rfl, rfl, rfl, fun _ _ _ _ => rfl, Int.le_refl _, by omega, Int.le_refl _, rfl, rfl, rfl, rfl,
+    ⟨fun _ _ _ _ => rfl, fun _ _ => rfl⟩⟩
 
 /-- A free state leaves room for a commit's hook. -/
 theorem room_of_freeOk {P : BParams} {st : BSess} (hP : P.Wf) (h : freeOk P st) :
@@ -224,7 +233,8 @@ theorem hookWin_of {P : BParams} {st : BSess} {n w u : Nat} (hb : bgOk P st fals
 or unchanged if nothing was committed), the read buffer reset, nothing pending, bbolt's write
 transaction `tx'`, the counters `cnt'`. -/
 def commitSt (st : BSess) (C' : Data) (tx' : Loc) (cnt' : BCnt) : BSess :=
-  { st with C := C', R := st.R.reset, pend := W64 0, ndel := W64 0, tx := tx', cnt := cnt', win := false }
+  { st with C := C', R := st.R.reset, pend := W64 0, ndel := W64 0, tx := tx', cnt := cnt',
+            win := false, tk := tkIdle }
 
 section commitSt_proj
 variable (st : BSess) (C' : Data) (tx' : Loc) (cnt' : BCnt)
@@ -290,7 +300,7 @@ theorem commit_final {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {cnt
     rw [ovB_empty P.BT _ _ (bkOf_bksResetC st'.R.bks)]
     refine agreeOff_trans ?_ (agreeOff_symm (agreeOff_ovB_nonHB P st'.W.bks _ hW'))
     exact agreeOff_trans (sData_agree P _ _ hsS) (agreeOff_symm hCS)
-  refine ⟨hsw, ⟨hsw, ?_, rfl, hW', hcnt⟩, hv⟩
+  refine ⟨hsw, ⟨hsw, ?_, rfl, hW', hcnt, fun _ _ => rfl⟩, hv⟩
   have := hP.2.1
   simp only [commitSt]
   exact this
@@ -303,7 +313,8 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
     (hb' : bgOk P st' false n w u) (n' w' u' : Nat)
     (hbud : uint.Z st.R.ver + n' + k' < 2 ^ 40) (huw : u' ≤ w')
-    (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) (hwv : (w' : Int) ≤ uint.Z st.R.ver) :
+    (hc : st.cnt.c + 1 ≤ k' + 1 + (if u' = w' then 1 else 0)) (hwv : (w' : Int) ≤ uint.Z st.R.ver)
+    (ht : trkOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) tkIdle) :
     bgOk P (commitSt st' C' tx' ⟨k', st.cnt.c + 1, 0, 0, false⟩) true n' w' u' := by
   obtain ⟨hsC, hsR, hsS, hsB, hsW, hsp1, hsp2, hsn, hstx, hscnt, -⟩ := hs
   obtain ⟨-, -, -, h4, -, -, h7, -, -⟩ := hb'
@@ -329,7 +340,8 @@ theorem commit_bgOk {P : BParams} {st st' : BSess} {C' : Data} {tx' : Loc} {n w 
     simp
   · intro _
     exact ⟨rfl, fun h => absurd rfl h⟩
-  · show (w' : Int) ≤ uint.Z (bksReset st'.R.bks, st'.R.ver).2
+  · refine ⟨?_, ht, fun _ _ _ => rfl⟩
+    show (w' : Int) ≤ uint.Z (bksReset st'.R.bks, st'.R.ver).2
     rw [hsR]; exact hwv
 
 end backend

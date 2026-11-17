@@ -33,7 +33,9 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     (m u n w u0 : Nat) (L : VData)
     (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
-    (hb' : bgOk P st' false n w u0) (hC' : C' = st'.S ∨ C' = st'.C) (hdl : dlsS P st' ∧ dlsOk P st' L) :
+    (hb' : bgOk P st' false n w u0) (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C))
+    (hdl : dlsS P st' ∧ dlsOk P st' L)
+    (htk : ∀ n, P.RB n = true → st.tk n = .idle ∨ st.tk n = .del) (hst' : sessWf P st') :
     payIn (GF := GF) γ st false m u ∗ ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       viewQ γ (1 : Qp).half.half (vData P (C', st'.R.reset)) L ∗
@@ -42,12 +44,15 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
       payOut γ false m := by
   iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk, Hfk⟩
+  have hC0 : C' = st'.S ∨ C' = st'.C := hC'.imp id (fun h => h.2)
+  have hT := fun (cnt' : BCnt) =>
+    (trkOk_commitG (tx' := tx') (cnt' := cnt') hs htk hb'.2.2.2.2.2.2.2.2.2.2.1 hst' hC').1
   have hR := hs.2.1
   have hcnt := hs.2.2.2.2.2.2.2.2.2.1
   have hb'0 := hb'
   obtain ⟨hb1, hb2, hb3, -⟩ := hb'0
   have hwv : (w : Int) ≤ uint.Z st.R.ver := by
-    have := hb'.2.2.2.2.2.2.2.2.2; rw [hR] at this; exact this
+    have := hb'.2.2.2.2.2.2.2.2.2.1; rw [hR] at this; exact this
   rw [hcnt, hR] at hb1
   rw [hcnt] at hb3
   unfold payIn payOut
@@ -63,7 +68,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     · ipureintro; rfl
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') rfl rfl $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -74,7 +79,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       have hb4 : uint.Z st.R.ver + ((n - 1 : Nat) : Int) + ((st.cnt.k + 1 : Nat) : Int) < 2 ^ 40 := by
         omega
       refine (commit_bgOk (k' := st.cnt.k + 1) hW hp0 hs hst hb' (n - 1) w u0
-        hb4 hb2 ?_ hwv)
+        hb4 hb2 ?_ hwv (hT _))
       split at hb3 <;> split <;> omega
     · itrivial
   by_cases hm1 : m = 1
@@ -90,7 +95,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     · ipureintro; rfl
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') rfl rfl $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -99,7 +104,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       iframe Hr Ha Hm Hu Ho
       ipureintro
       refine (commit_bgOk (k' := st.cnt.k) hW hp0 hs hst hb' n w w
-        hb1 (Nat.le_refl _) ?_ hwv)
+        hb1 (Nat.le_refl _) ?_ hwv (hT _))
       have : u0 ≠ w := by omega
       simp only [this, ↓reduceIte] at hb3
       simp only [↓reduceIte]
@@ -114,7 +119,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     · ipureintro; rfl
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
-      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC') rfl rfl $$ Hfk
+      ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
       simp only [commitSt_C, commitSt_R, commitSt_S]
       iframe Hk Hfk
       isplitl [Hv]
@@ -123,7 +128,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       iframe Hr Ha Hm Hu Ho
       ipureintro
       refine (commit_bgOk (k' := st.cnt.k) hW hp0 hs hst hb' n w u0
-        hb1 hb2 ?_ hwv)
+        hb1 hb2 ?_ hwv (hT _))
       rw [Hc0]
       split <;> omega
     · itrivial

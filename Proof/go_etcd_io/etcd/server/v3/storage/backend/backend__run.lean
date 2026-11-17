@@ -97,7 +97,7 @@ theorem backend.backend.run.wp_proof
       · iframe #
         isplitr
         · ipureintro
-          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1⟩
+          exact ⟨room_of_freeOk HP Hfo.1, Hfo.2, Hfo.1.2.2.2.1, fun n hn => Or.inl (Hfo.1.2.2.2.2.2 n hn)⟩
         isplitr
         · simp only [Bool.false_eq_true, ↓reduceIte]
           rw [vData_free P st Hfo.1.1 Hfo.1.2.2.1 Hfo.1.2.2.2.1]
@@ -105,7 +105,7 @@ theorem backend.backend.run.wp_proof
         isplitr
         · ipureintro; intro h; cases h
         isplitr
-        · ipureintro; exact Hfo.1.2.2.2.2
+        · ipureintro; exact Hfo.1.2.2.2.2.1
         unfold payIn
         rw [if_neg (by decide), if_neg (by decide), if_pos rfl]
         iframe Hus Hlb
