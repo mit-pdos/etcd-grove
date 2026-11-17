@@ -1,6 +1,30 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A3 done; STOP: report A3's end)
+## START HERE (2026-11-17, A4 STOP: the put budget's base is not internal)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A2-A7); decisions `questions.md` (untracked; read "A4 STOP").
+- Done: A1 (52d85a42f6 … 6fe91f236f); A2 (72c59c8aff, f546a2dbb9); A3 (7a843bfc54, forms ACCEPTED by etcd-grove-03).
+- A4: no Lean yet. The users-count route needs the fuel's base `b ≤ 2^61` (Fuel.lean `fuelOk`) tightened to
+  `b ≤ 2^55`; b is the installed image's log length, bounded by raft's `readyFits` (`receiptBound + bootLen ≤ 2^61`)
+  through the snapshot path, so tightening changes exported statements (raft `readyFits_intro`, `etcdstart.Alloc*`'s
+  `Hrb2`, ...): STOPPED, questions.md "A4 STOP" has the chain. Alternative R (recommended): every write of the
+  `authBatchTxLk(R)` contract costs `⧗ 1` (the store takes one at a Go step per loop iteration,
+  `wp_go_step_receipt'`); the realization bounds a session's writes by the receipts it holds
+  (`receipt_add_one_lt`: < receiptBound ≤ 2^48), so `pend0 + writes + hookMax < 2^57 + 2^48 + 2^16 < 2^58`.
+- Next: the coordinator's choice (R, or the tightening with its exported changes); then A4, A5, A6; A7 HARD STOP.
+- Pitfalls: (1) `wp_join` cases end at the bare `R` (no update): to allocate an invariant in a case, make `R` an
+  update `iprop(|={⊤}=> …)` and `imod` it in the continuation (`authStore__UserAdd*.lean`). (2) after `iunfold
+  ownPermS`, name the field cells `#PermType, #Key, #RangeEnd`. (3) `BigSepL2.bigSepL_fupd E` is the list fupd lemma.
+  (4) a hand-written `if m = n` picks `instDecidableEqString`: write `@ite _ (m = n) (Classical.propDecidable _) …`.
+  (5) keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6) `etc/gen-interface.py
+  --layout` builds every package module: build first. (7) lean-check of a server file rebuilds its imports outside a
+  slot (EtcdServer__UserAdd: 450 s): prefer the slot build for many importers.
+
+## History
+
+### A3 done (2026-11-17, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -25,8 +49,6 @@
   `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6) `etc/gen-interface.py --layout`
   builds every package module: build first. (7) lean-check of a server file rebuilds its imports outside a slot
   (EtcdServer__UserAdd: 450 s): prefer the slot build for many importers.
-
-## History
 
 ### A3 Draft written (2026-11-17, superseded)
 
