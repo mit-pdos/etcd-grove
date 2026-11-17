@@ -1,0 +1,178 @@
+/-
+Lean-first (no Rocq counterpart).
+
+# Kubernetes' checker in the heap (k8s 7g step 3, `notes/k8s-7g-scope.md` §2.3 "The Go side")
+
+The predicates the specs of `examples/k8s/etcd3/correctness` are written in, over the pure
+functions of `RModel.lean`/`RReplay.lean`:
+
+- `deepRO x d`: `k8sDeep.deepRep` read-only (`DFrac.discard`): the value `x` has the deep value
+  `d` and every cell `DeepEqual` reads of it is frozen. The checker never writes an object once
+  it is in a `Model`, a `Response` or a `Change` (each write is to a fresh copy, `DeepCopyObject`,
+  before it is shared), so every such object is held read-only;
+- `modelRep dq mp m`: the `*Model` `mp` holds `m : RM` (its items as read-only `*Obj`s at the
+  store keys, its resource version, `CompactResourceVersion` 0, the prefix, the driver's
+  `Versioner`, `NewFunc` and `NewListFunc`, and the D30g `NeedsRewrite` map), with fraction `dq`:
+  `modelAt` (persistent, `DFrac.discard`: what `Step` and porcupine see; a `Model` is never
+  written after `execute` returns it) and `modelOwn` (full: `Clone`'s result, which `create`,
+  `update` and `delete` write); it carries the driver's package initialization, which the
+  calls through its `NewFunc`, `Versioner` and objects need;
+- `respRep r rr`: the `Response` value `r` has the view `rr : RResp`; `errRep` of its error
+  (a deep value, storage's too-large error, or anything for `RErr.other`).
+-/
+module
+
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.RReplay
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Base
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace k8s_correctness
+
+open Iris Iris.BI map k8sDeep
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Obj Input)
+
+section vals
+variable [GooseExts] [GoSemanticsFunctions] [GoGlobalContext]
+
+/-! ## The model -/
+
+/-- The driver's `Versioner` (`versioner{}`), the Model's `Versioner`. -/
+abbrev versionerV : k8s_io.apiserver.pkg.storage.Versioner :=
+  interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.ty
+    #github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.mk
+
+/-- The driver's `newObj`, the Model's `NewFunc`. -/
+abbrev newFuncV : GoFunc := functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj []
+
+/-- The driver's `newObjList`, the Model's `NewListFunc`. -/
+abbrev newListFuncV : GoFunc :=
+  functions github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObjList []
+
+/-- The `Model` struct of `m` with its two maps at `il` (`Items`) and `rl` (`NeedsRewrite`). -/
+def modelVal (il rl : Loc) (m : RM) : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Model :=
+  ⟨il, m.rv, 0, m.pfx, versionerV, newFuncV, newListFuncV, rl⟩
+
+end vals
+
+section defs
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
+
+/-! ## Read-only deep values -/
+
+/-- **`x` has the deep value `d`, read-only** (see the file header). -/
+abbrev deepRO (x : GoInterface) (d : DeepV) : IProp GF := deepRep DFrac.discard x d
+
+instance itemsRep_discard_persistent (sl : GoSlice) (o : Option (List Obj)) :
+    Persistent (itemsRep (GF := GF) DFrac.discard sl o) := by
+  cases o <;> unfold itemsRep <;> infer_instance
+
+instance remRep_discard_persistent (rp : Loc) (o : Option w64) :
+    Persistent (remRep (GF := GF) DFrac.discard rp o) := by
+  cases o <;> unfold remRep <;> infer_instance
+
+instance deepRO_persistent (x : GoInterface) (d : DeepV) :
+    Persistent (deepRO (GF := GF) x d) := by
+  induction d generalizing x with
+  | nil => unfold deepRO deepRep; infer_instance
+  | obj o => unfold deepRO deepRep; infer_instance
+  | list items rv cont rem => unfold deepRO deepRep; infer_instance
+  | storageErr code key rv inner ih =>
+    unfold deepRO deepRep
+    have : ∀ e, Persistent (deepRep (GF := GF) DFrac.discard e inner) := ih
+    infer_instance
+  | errString s => unfold deepRO deepRep; infer_instance
+
+/-- A read-only `*Obj`. -/
+theorem deepRO_obj (p : Loc) (o : Obj) :
+    (p ↦□ o : IProp GF) ⊢ deepRO (interface.mkOk (go.GoType.PointerType
+      github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #p) (.obj o) := by
+  iintro #H
+  unfold deepRO deepRep
+  iexists p
+  iframe H
+  ipureintro; rfl
+
+/-- The items map's values: read-only `*Obj`s, key by key (`mapRep`, `reflect.DeepEqual`'s view of
+the map, at the objects' deep values). -/
+def itemsRO (M : GMap GoString GoInterface) (items : GMap GoString Obj) : IProp GF :=
+  mapRep DFrac.discard M (GMap.fmap DeepV.obj items)
+
+instance itemsRO_persistent (M : GMap GoString GoInterface) (items : GMap GoString Obj) :
+    Persistent (itemsRO (GF := GF) M items) := by
+  unfold itemsRO mapRep; infer_instance
+
+/-- **The `*Model` `mp` holds `m`**, with fraction `dq` on the struct and the two maps (see the
+file header). -/
+def modelRep (dq : DFrac) (mp : Loc) (m : RM) : IProp GF :=
+  iprop(isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
+    ∃ (il rl : Loc) (M : GMap GoString GoInterface),
+    mp ↦{dq} modelVal il rl m ∗ il ↦${dq} M ∗ itemsRO M m.items ∗ rl ↦${dq} m.rewrites)
+
+/-- **A frozen `*Model`** (persistent). -/
+abbrev modelAt (mp : Loc) (m : RM) : IProp GF := modelRep DFrac.discard mp m
+
+/-- **An owned `*Model`.** -/
+abbrev modelOwn (mp : Loc) (m : RM) : IProp GF := modelRep (DFrac.own 1) mp m
+
+instance modelAt_persistent (mp : Loc) (m : RM) : Persistent (modelAt (GF := GF) mp m) := by
+  unfold modelAt modelRep; infer_instance
+
+/-- An owned model can be frozen. -/
+theorem modelOwn_freeze (mp : Loc) (m : RM) : modelOwn (GF := GF) mp m ⊢ |==> modelAt mp m := by
+  unfold modelAt modelOwn modelRep
+  iintro ⟨#Hinit, %il, %rl, %M, Hm, HI, #Hit, HR⟩
+  ipersist Hm
+  imod ownMap_persist _ _ _ $$ HI with #HI
+  imod ownMap_persist _ _ _ $$ HR with #HR
+  imodintro
+  iframe Hinit
+  iexists il, rl, M
+  iframe Hm HI Hit HR
+
+/-! ## Responses -/
+
+/-- **A `Response.Err` with the view `e`** (persistent): a deep value read-only; storage's
+too-large error (`apierrors.tooLargeErrIs`; its `delay` bit is read by `SuggestsClientDelay`,
+whose spec is pending the soundness fix, `notes/k8s-7g-trust.md` §2); nothing for `other`. -/
+def errRep (x : GoInterface) : RErr → IProp GF
+  | .deep d => deepRO x d
+  | .tooLarge _ => apierrors.tooLargeErrIs x
+  | .other => iprop(True)
+
+instance errRep_persistent (x : GoInterface) (e : RErr) : Persistent (errRep (GF := GF) x e) := by
+  cases e <;> unfold errRep <;> infer_instance
+
+/-- **The `Response` `r` has the view `rr`** (persistent). -/
+def respRep (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response)
+    (rr : RResp) : IProp GF :=
+  iprop(deepRO r.Object' rr.obj ∗ errRep r.Err' rr.err)
+
+instance respRep_persistent (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response)
+    (rr : RResp) : Persistent (respRep (GF := GF) r rr) := by
+  unfold respRep; infer_instance
+
+/-! ## Read consistency -/
+
+/-- A `ReadConsistency`'s string. -/
+def rconsStr : RCons → GoString
+  | .consistent => go!"Consistent"
+  | .exact => go!"Exact"
+  | .notOlderThan => go!"NotOlderThan"
+
+end defs
+
+end k8s_correctness
+end EtcdGrove
+end Perennial

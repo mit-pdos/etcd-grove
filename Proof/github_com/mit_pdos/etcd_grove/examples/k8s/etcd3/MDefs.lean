@@ -249,9 +249,23 @@ theorem Input_intoVal_inj : Function.Injective (intoVal (V := Input)) := by
   cases x; cases y; simp_all
 
 include sem package_sem in
+theorem Raw_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Object y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Err x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Err y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Events x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Raw.TypeAssumptions.get_Events y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
 theorem Output_intoVal_inj : Function.Injective (intoVal (V := Output)) := by
   intro x y h
   have h : (#x : val) = #y := h
+  have := Raw_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (Output.TypeAssumptions.get_Raw x) (Output.TypeAssumptions.get_Raw y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
     (Output.TypeAssumptions.get_Err x) (Output.TypeAssumptions.get_Err y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
