@@ -6,8 +6,8 @@
 (1) now, on `soundness-1117`, a notes-only landing: item (4)'s bug records
 (`notes/ctxreaderrs-descs-unsound.md`, `hasstatuscause-later-view.md`,
 `apierrors-typednil-hypotheses.md`, `incomingof-crossworld.md`; added by etcd-grove-03: `release-snapdb-held-file.md`), the Go tests
-(`examples/axiomcx/{hasstatuscause,apierrorstypednil}`, own modules; `examples/axiomcx/releasesnap` in the examples module, outside the examples module and
-`GO_MOD_PINS`), audit verdicts, the STATUS entry. Done; at the land stop.
+(`examples/axiomcx/{hasstatuscause,apierrorstypednil}`, own modules outside the examples module and
+`GO_MOD_PINS`; `examples/axiomcx/releasesnap` inside it), audit verdicts, the STATUS entry. Done; at the land stop.
 (2) after it lands: branch `apierrors-fix` off `lean`: HasStatusCause fix (a) with stronger posts for
 the axioms `NewConflict.wp_proof`/`NewInternalError.wp_proof` (Go tests; STOP with their old -> new
 texts for an independent attack first), the four typed-nil specs in place (`apiErrOk`, answer per
