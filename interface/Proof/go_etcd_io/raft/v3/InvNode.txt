@@ -276,7 +276,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
       ownSlice rd.Messages' (List.map QMsg.loc ms) (DFrac.own 1) ∗
         ([∗list] q ∈ ms, iprop(msgOut γ q.loc (readyDq q.st) q.st ∗ msgCredits γ N q.st)) ∗
           ([∗list] q ∈ ms, snapTo γ id q.st) ∗
-            hsOpt rd.HardState' h ∗
+            hsOptC rd.HardState' h ∗
               softStateIs rd.SoftState' ss ∗
                 ⌜∃ Lx,
                       Lx < 2 ^ 64 ∧

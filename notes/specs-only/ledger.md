@@ -2748,3 +2748,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`; every other premise and the conclusion unchanged.
 - **Decision.** The user's decision (A) of 2026-11-15 for this class of change; listed for the user's review
   with the earlier 25.
+
+## 2026-11-17: raft's `Ready` hands out a canonical hard state (wal-link L1b, option (a))
+
+- **Specs.** `raft.hardState.spec`; `RawNode.readyWithoutAccept.spec`, `RawNode.Ready.spec` (and its traced triple);
+  the node API's `readyRest` (the post of `node.Ready`'s and `isReadyChan_recvAu`'s `Ready`), and the internal
+  predicates carrying a `Ready`'s hard state (`ownRawNodeReady`, `readyData`, `freshOk`, `staleOk`,
+  `ownRawNodeReady_abandon_keep`'s post).
+- **Defect.** The WAL's state records hold protobuf-go's bytes of the hard state's wire content; `hsRO` leaves the
+  unknown fields and the cells' presence free, so the bytes are not a function of the model and the WAL's crash
+  invariant (over a model marshaller) cannot hold the server's records (`notes/wal-link-handoff.md`, "L1b by (iii)").
+  Go's `r.hardState()` builds all three cells and no unknown fields (raft.go:504-510; its proof already showed it,
+  `raft__hardState.lean`), and a `Ready`'s `HardState` is that pointer or `nil`.
+- **Change (stronger posts only, no premise added).** `raft.hardState.spec`: post `hsRO p hs` → `hsROC p hs` (new,
+  `InvPb.lean`: `hsRO` with the cells set and no unknown fields; `hsROC_hsRO`). `RawNode.readyWithoutAccept.spec`,
+  `RawNode.Ready.spec`: post `"#Hhard" ∷ hsOpt rd.HardState' h` → `"#Hhard" ∷ hsOptC rd.HardState' h` (new,
+  `InvPbLog.lean`: `nil` and zero, or `hsROC`; `hsOptC_hsOpt`). `readyRest` (`InvNode.lean`, `InvApi.lean`):
+  conjunct `hsOpt rd.HardState' h` → `hsOptC rd.HardState' h`. Clients convert with `hsOptC_hsOpt` (kv, kvreconf,
+  kvdurable, the server's `InvRaftNode`); premises unchanged (`acceptReady`, `IsEmptyHardState`, `MustSync`,
+  `SetHardState` still take `hsOpt`). No closed statement's text changes; no trust-base change.
+- **Decision.** Decided by etcd-grove-03, 2026-11-17 (conditions: no premise added, no closed etcd/k8s statement text
+  changed, RaftTla regenerated); made by the wal-link agent on `wal-link`.

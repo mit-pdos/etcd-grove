@@ -1326,7 +1326,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       isplitr
       · iunfold hardStateAt
         rw [HardStateModel.toM_ofM]
-        iexact Hhs
+        iapply hsOptC_hsOpt; iexact Hhs
       isplitr
       · rw [HardStateModel.toM_ofM]; ipureintro; rfl
       iunfold readStatesPts at Hrs
@@ -1463,7 +1463,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     isplitr
     · iunfold hardStateAt
       rw [HardStateModel.toM_ofM]
-      iexact Hhs
+      iapply hsOptC_hsOpt; iexact Hhs
     isplitr
     · rw [HardStateModel.toM_ofM]; ipureintro; rfl
     isplitr

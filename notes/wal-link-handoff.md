@@ -1,6 +1,34 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, after L1a)
+## START HERE (2026-11-17, after L1b)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`, lean `3cd4b72599` merged (5ab12b6538); `.lake/package-overrides.json`
+  = `/shared/tmp/manifest-c6b.json`. Coordinator: etcd-grove-03. Scope §7-§8, `questions.md` for the decisions.
+- **Done:** Scope (72997e9e36); L0 `St/WalLinkPure.lean`; L1a (shared handle, the five collapses; see History);
+  **L1b** (decided by etcd-grove-03: entries by a model wrap, hard state by raft's canonical `Ready`):
+  - raft: `hsROC`/`hsOptC` (`InvPb.lean`, `InvPbLog.lean`); `raft.hardState.spec` post `hsROC`; `readyWithoutAccept`,
+    `RawNode.Ready` posts and `readyRest` carry `hsOptC` (internal `ownRawNodeReady`, `readyData`, `freshOk`,
+    `staleOk` too); clients convert by `hsOptC_hsOpt`; RaftTla regenerated (+ its hand-written `makeTracingState`);
+    ledger entry 2026-11-17.
+  - `PW/RaftModel/Srv.lean`: `walEntW`/`walEntUnwrap`, `walEncEntW`/`walDecEntW` (injective: the bytes fix the model,
+    `entryEncC_ok`), `walSrvMr`/`walSrvU`, `walEntInW`, `walSrvP` (hard states = `walHsIn`; `walHsIn_of_hsOptC`),
+    `walSrvPb_laws` (all `WalPbLaws`; `MarshalHsLaw`/`CloneHsLaw`/`WalHsOwn` stay hypotheses as for WalTester).
+  - `St/WalLinkPure.lean`: `walFoldChkFrom_map`, `walRead_map` (the fold commutes with `walOpMapE f`, `f` keeping
+    indices: `walEntUnwrap_index`).
+- **Next, in order:** L2: Go config (`storage.toml`), specs/proofs of `NewStorage`/`Save`/`SaveSnap`/`Sync`/`Close`/
+  `Release`, `purgeFile` under `MaxWALFiles = 0`; HARD STOP at the `ReleaseSnapDBs` axiom text (proposal in the
+  report of 2026-11-17). Then L3 (with L4).
+- **L3 obligations from L1b:** the server's `hardStateAt` becomes `hsOptC` (the Save law's premise; raft's `Ready`
+  gives it); `walEntInW` needs `ufWire` (from `entRoC`'s `pbMsg_ufWire`) and `0 < entrySize c` (index ≥ 1 sets
+  `Index`); `metaEnc` of `etcdserverpb.Metadata` moved from L1b to L3 (needed only by `walMetaIs`).
+- **Pitfalls:** gen-link/gen-init compare only with Perennial linked at `.lake/packages/perennial` (gates.sh does it:
+  `ln -s /shared/perennial-c6b39d4f8`, then remove). Lock + later credit and SaveSnapshot pitfalls: History.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
+  **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
+
+## History
+
+### START HERE (2026-11-17, after L1a)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, off `lean` `9702d5707e`; `.lake/build` from a full c6b
   build at 9702d5707e; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`. Coordinator: etcd-grove-03.
@@ -44,7 +72,7 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`
   (`--stop` before builds and at the end). **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
 
-## L1b by (iii): cost stop (2026-11-17; reported to etcd-grove-03; no Lean changed)
+### L1b by (iii): cost stop (2026-11-17; reported to etcd-grove-03; no Lean changed)
 
 - **Why (iii) is not internal to RaftModel/WalApi.** Layer 1 fixes `Mr : WalMarshal` (model -> bytes) as a
   parameter of `walInv` (`PW/Inv.lean:2128`), allocated before any entry exists, and every stream function
@@ -67,7 +95,7 @@
   no-conflicting-repeat premise on Save (raft's hard-state monotonicity at `raftNode.start`: not exported today).
 - Recommendation in the report: entries by the wrap; hard state by (a).
 
-## L1b at the R5 stop (2026-11-17; HARD STOP (b), reported to etcd-grove-03; no Lean changed for L1b)
+### L1b at the R5 stop (2026-11-17; HARD STOP (b), reported to etcd-grove-03; no Lean changed for L1b)
 
 - **R5 (fraction vs frozen): no client change.** `storage.SaveSnap` (S/storage/storage.go:59-70) shares raft's
   `Index`/`Term` cells and `ConfState` object in its `walpb.Snapshot`; layer 1's `walSnapAt` needs them frozen.
@@ -98,7 +126,7 @@
   `WalApi.lean`; WalTester's canonical instance stays a special case.
 - Server `SaveSnap` law, old → new: in the report (and `/shared/tmp/wallink/l1b-r5.md`).
 
-## History
+### Older
 
 ### START HERE (2026-11-17, Scope)
 

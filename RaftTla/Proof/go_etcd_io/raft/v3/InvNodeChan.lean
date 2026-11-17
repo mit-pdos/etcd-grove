@@ -785,7 +785,7 @@ def readyData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- term and commit index (`commitWit`), the commit index bounding the committed log handed out;
     -- (D22l) the witness of `prevHardSt` after the `Ready`, `p'` (`phsNext p h`, `p` the last
     -- non-empty one handed out, `RNState.phs`): a `nil` or empty one leaves it `p`
-    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
+    (∃ h : HardStateM, hsOptC rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
     hsWit γ.raft p' (d ++ ce).length ∗
     -- (2026-10-16, stage R7a, D10) the soft state: `nil`, or `Lead`/`RaftState` read-only
     softStateRO rd.SoftState' ∗
@@ -836,7 +836,7 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
-    (∃ h : HardStateM, hsOpt rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
+    (∃ h : HardStateM, hsOptC rd.HardState' h ∗ ⌜p' = phsNext p h⌝) ∗
     -- (2026-10-31) bounding the committed log up to the snapshot (until then `d ++ ce`)
     hsWit γ.raft p' l.dlv.length ∗
     softStateRO rd.SoftState' ∗

@@ -22,7 +22,7 @@ id st`; `wp_rn_raft_Step_prop`: a stamped proposal, `st.msg.From' = id`, no prop
 invariant: a conf-change entry's bytes are on the record, `propData_ccEnts` pure);
 `r.applyConfChange` takes a `*pb.ConfChangeV2` (`ownConfChangeV2`, given back) and returns a fresh
 `*pb.ConfState` (`csPts cs 1 … true`); the run loop's states over the new `Ready` fields
-(`staleOk`/`freshOk`: `hsOpt`, `entsRO`, `readStatesPts`, `rd.Snapshot' = null`, the messages
+(`staleOk`/`freshOk`: `hsOptC` (canonical, 2026-11-17), `entsRO`, `readStatesPts`, `rd.Snapshot' = null`, the messages
 handed out owned).
 
 **D22 S-d4 (2026-10-21).** `run` steps a `MsgSnap` at a node that takes snapshots
@@ -439,7 +439,7 @@ theorem ownRawNodeReady_abandon_keep (γ : RaftNames) (rn : Loc) (id : w64) (rs 
       ∃ (n : Nat) (u : Bool) (c : w64) (hb : HardStateM),
         -- (2026-11-01, durability stage II (m)) the hard state after it, the node's lower bound
         -- `hlb` raised to it (`ownRawNodeIdle_ready`'s premises)
-        (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗ phsWit γ hrd ∗ ⌜phsNext rs.phs hrd = hb⌝) ∗
+        (∃ hrd : HardStateM, hsOptC rd.HardState' hrd ∗ phsWit γ hrd ∗ ⌜phsNext rs.phs hrd = hb⌝) ∗
         ⌜ms.length ≤ n ∧ (es ≠ [] → u = true) ∧ (L.isSome = true → u = true) ∧
          (∀ e, ce.getLast? = some e → uint.Z e.Index' ≤ uint.Z c ∧
            uint.Z e.Index' = (rs.delivered.length : Int) + (ce.length : Int)) ∧
@@ -1891,7 +1891,7 @@ its read states `readStatesPts`, no snapshot `nil`.) (D22 S-d4, 2026-10-21) A sn
 def staleOk (γ : NodeNames) (rd : Ready) (rs : RNState) : IProp GF :=
   iprop(∃ (ce es : List EntryM) (k : Nat) (hrd : HardStateM),
     (⌜rd.SoftState' = null⌝ ∨ ∃ v : SoftState, rd.SoftState' ↦□ v) ∗
-    hsOpt rd.HardState' hrd ∗
+    hsOptC rd.HardState' hrd ∗
     -- (D22 S-b) its witness, as `readyWithoutAccept` computed it
     hsWit γ.raft (phsNext rs.phs hrd) (rs.delivered ++ ce).length ∗
     entsRO rd.CommittedEntries' ce ∗ ownSliceCap Loc rd.CommittedEntries' (DFrac.own 1) ∗
@@ -1923,7 +1923,7 @@ def freshOk (γ : NodeNames) (rd : Ready) (rs : RNState) (ce es : List EntryM)
     (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
       [∗list] st ∈ sts, readStateRaw γ.raft st) ∗
     -- (D22 S-b) with its witness (`hsWit`)
-    (∃ hrd : HardStateM, hsOpt rd.HardState' hrd ∗
+    (∃ hrd : HardStateM, hsOptC rd.HardState' hrd ∗
       hsWit γ.raft (phsNext rs.phs hrd) (dlvAfter rs.delivered ce L).length) ∗
     rdSnapOut γ.raft rs rd ce es L ∗
     ⌜(∀ q ∈ ms, uint.Z q.st.msg.Term' ≤ uint.Z rs.tc) ∧ (rs.psnap = false → L = none)⌝)
@@ -1978,14 +1978,14 @@ theorem readyDurable_term (S : RaftState) (h' : HardStateM) (L : Option SnapLoan
 within the term ceiling: the batch's entered term is covered by the budget (`readyCut`). -/
 theorem ownRawNodeReady_term_tc (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (rd : Ready)
     (ce es : List EntryM) (ms : List QMsg) (hb : Bool) (L : Option SnapLoan) (h : HardStateM) :
-    hsOpt rd.HardState' h ∗ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms hb L ⊢
+    hsOptC rd.HardState' h ∗ ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms hb L ⊢
       ⌜uint.Z (phsNext rs.phs h).Term' ≤ uint.Z rs.tc⌝ := by
   iintro ⟨#Hh, H⟩
   iunfold ownRawNodeReady at H
   icases H with ⟨%s, %c, %fp, %ds, %rnv, %sv, %hprev, H⟩
   iNamed H
   icases Hrdhard with ⟨%hrd, #Hh', -, %Heq⟩
-  ihave %He := hsOpt_agree rd.HardState' h hrd $$ [$Hh $Hh']
+  ihave %He := hsOptC_agree rd.HardState' h hrd $$ [$Hh $Hh']
   subst He
   ipureintro
   rw [Heq, Hpvoff.2.1]
@@ -2193,7 +2193,7 @@ theorem runMid_head (γ : NodeNames) (id : w64) (nv : node) (ac rc : GoChan) (rd
     icases ownRawNodeReady_abandon_keep γ.raft nv.rn' id rs rd ce es ms L Hsteps Hunp
       $$ Hmsgs Hmsgs_cap Hown Hrn with
       ⟨Hce_cap, #Hrdsoft, %n, %u, %c, %hb, ⟨%hrd1, #Hrdh1, -, %Hhb⟩, %Hnuc, Hrn⟩
-    ihave %Hhh := hsOpt_agree rd.HardState' hrd0 hrd1 $$ [Hrdh0 Hrdh1]
+    ihave %Hhh := hsOptC_agree rd.HardState' hrd0 hrd1 $$ [Hrdh0 Hrdh1]
     · isplitl [] <;> iassumption
     subst Hhh
     iexists { rs with outlb := n, unst := u, clb := c, hlb := hb }

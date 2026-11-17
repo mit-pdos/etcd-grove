@@ -280,6 +280,89 @@ theorem walIdxLe_snap {B : Nat} {m : SnapshotMetadataM} (hm : uint.nat m.Index' 
   · simp at ho
   · simp only [List.mem_singleton, WalOpG.snap.injEq] at ho; subst ho; exact hm
 
+/-! ## The fold commutes with a map of the entries keeping their indices (wal-link L1b)
+
+The server's WAL history holds wrapped entry models (`RaftModel/Srv.lean`, `walEntW`); the server reads
+them through `walEntUnwrap`, which keeps the index: the checked fold and the read of the mapped history
+are the mapped ones. -/
+
+/-- An operation with its entries mapped. -/
+def walOpMapE (f : EntryM → EntryM) : WalOp → WalOp
+  | .save h es => .save h (es.map f)
+  | .snap m => .snap m
+
+/-- A record state with its entries mapped. -/
+def storMapE (f : EntryM → EntryM) (σ : StorContents) : StorContents := { σ with ents := σ.ents.map f }
+
+theorem storMapE_b (f : EntryM → EntryM) (σ : StorContents) : (storMapE f σ).b = σ.b := rfl
+
+theorem readEnt_map (f : EntryM → EntryM) (hf : ∀ e, (f e).Index' = e.Index') (b : Nat)
+    (ents : List EntryM) (e : EntryM) :
+    readEnt b (ents.map f) (f e) = (readEnt b ents e).map (List.map f) := by
+  unfold readEnt
+  rw [hf e]
+  by_cases h1 : uint.nat e.Index' ≤ b
+  · simp [h1]
+  · by_cases h2 : uint.nat e.Index' - b - 1 ≤ ents.length
+    · simp [h1, h2, List.map_take]
+    · simp [h1, h2]
+
+theorem foldlM_readEnt_map (f : EntryM → EntryM) (hf : ∀ e, (f e).Index' = e.Index') (b : Nat)
+    (es ents : List EntryM) :
+    (es.map f).foldlM (fun ents e => readEnt b ents e) (ents.map f) =
+      (es.foldlM (fun ents e => readEnt b ents e) ents).map (List.map f) := by
+  induction es generalizing ents with
+  | nil => rfl
+  | cons e es ih =>
+    simp only [List.map_cons, List.foldlM_cons, readEnt_map f hf]
+    cases readEnt b ents e with
+    | none => rfl
+    | some x => exact ih x
+
+theorem walSaveSnap_map (f : EntryM → EntryM) (σ : StorContents) (m : SnapshotMetadataM) :
+    walSaveSnap (storMapE f σ) m = storMapE f (walSaveSnap σ m) := by
+  unfold walSaveSnap storMapE
+  simp only [StorContents.b, StorContents.commit]
+  by_cases h1 : uint.nat m.Index' < uint.nat σ.base.index' <;>
+    by_cases h2 : uint.nat m.Index' ≤ uint.nat σ.hs.Commit' <;> simp [h1, h2, List.map_drop]
+
+/-- **The checked fold of a mapped history is the mapped fold.** -/
+theorem walFoldChkFrom_map (f : EntryM → EntryM) (hf : ∀ e, (f e).Index' = e.Index') :
+    ∀ (σ : StorContents) (H : WalHist),
+      walFoldChkFrom (storMapE f σ) (H.map (walOpMapE f)) = (walFoldChkFrom σ H).map (storMapE f)
+  | σ, [] => rfl
+  | σ, .snap m :: H => by
+    simp only [List.map_cons, walOpMapE, walFoldChkFrom]
+    rw [walSaveSnap_map, walFoldChkFrom_map f hf _ H]
+  | σ, .save h es :: H => by
+    simp only [List.map_cons, walOpMapE, walFoldChkFrom]
+    rw [show (storMapE f σ).ents = σ.ents.map f from rfl, storMapE_b,
+      foldlM_readEnt_map f hf]
+    cases es.foldlM (fun ents e => readEnt σ.b ents e) σ.ents with
+    | none => rfl
+    | some x =>
+      simp only [Option.map_some, Option.bind_some]
+      exact walFoldChkFrom_map f hf { σ with hs := phsNext σ.hs h, ents := x } H
+
+theorem walLastHS_map (f : EntryM → EntryM) (H : WalHist) :
+    walLastHS (H.map (walOpMapE f)) = walLastHS H := by
+  unfold walLastHS
+  rw [List.foldl_map]
+  congr 1
+  funext p o
+  cases o <;> rfl
+
+/-- **The read of a mapped history is the mapped read.** -/
+theorem walRead_map (f : EntryM → EntryM) (hf : ∀ e, (f e).Index' = e.Index') (H : WalHist) :
+    walRead (H.map (walOpMapE f)) = (walRead H).map (storMapE f) := by
+  unfold walRead
+  rw [walLastHS_map]
+  have hk : (walKeep (uint.nat (walLastHS H).Commit') ∘ walOpMapE f) =
+      walKeep (uint.nat (walLastHS H).Commit') := by
+    funext o; cases o <;> rfl
+  rw [List.filter_map, hk]
+  exact walFoldChkFrom_map f hf walFresh _
+
 end link
 
 end EtcdGrove

@@ -2164,7 +2164,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     -- (restart S7.3, 2026-11-14) each message's `MsgSnap` facts (`snapToOk`: not to the node, to a
     -- voter or learner of a committed log's configuration), before the batch is durable
     ([∗list] q ∈ ms, snapToOk γ.raft id q.st) ∗
-    hsOpt rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
+    hsOptC rd.HardState' h ∗ softStateIs rd.SoftState' ss ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx ∧
