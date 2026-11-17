@@ -1,5 +1,14 @@
 # Scope: per-run restatement of the incoming-metadata axioms (A) and of the context errors' descriptions (B)
 
+**APPROVED BY THE USER, 2026-11-17, via etcd-grove-03, and prioritized ahead of other tracks:** Part A as
+recommended (A-C, variant C-ii; Q1 A-C now, A-D later as its own Scope; Q2 `srvRawStreamIs`; Q3 delete
+`incomingOf_wrapper`, apply the axiom directly; Q5 A first; Q6 restate `v3rpc.incomingOf_cancellableContext`
+in place, delete `incomingOf_cancelCtx`); then B0 (read-only inventory), STOP; Part B only after
+etcd-grove-03's go. Final texts and the cross-world argument: `notes/axiom-review/incomingof.md`.
+Forms decided by the agent (reviewed at checkpoint): `metadata.incomingKept_apply` (A1) not added, and
+`incomingOf_cancelCtx_parent_unique`/`v3rpc.incomingOf_cancellableContext_field_unique` deleted: nothing
+would use them (the restated axiom takes `incomingKept` directly).
+
 2026-11-17, incomingof agent of etcd-grove-03. Branch `incomingof-scope` off `lean` `3cd4b72599`. Notes only;
 no Lean changed. Part A was approved by the user on 2026-11-17 ("restate both axioms per execution"). Part B
 was added on the same day, also approved by the user via etcd-grove-03 (the Hctx repair, blocker B1 of
