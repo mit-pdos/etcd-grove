@@ -2,24 +2,37 @@
 
 ## START HERE
 
-- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), off `lean` 9702d5707e. There is no
-  `.lake/build`.
-- **Scope approved by the user, 2026-11-17, via etcd-grove-03**: design A' and the
-  recommendations on Q2-Q8 (`notes/k8s-7g-scope.md` §7; `questions.md`).
-- Done:
-  - Scope and Go experiment, `ecf71b5f6a`;
-  - `notes/k8s-7g-experiment.patch` (the driver diff and the tests) and `notes/k8s-7g-d30g.patch`;
-  - nonissue `k8s-correctness-watchvalidator-cut-before-bookmark`.
-- **Next: step 0, only after 7f-6 E+F lands** (the coordinator relaunches). First merge `lean`.
-  Step 0 is the Go work: the copy, the gate and the driver changes of Scope §1.4, then the
-  translation. Then steps 1-6 (Scope §5).
-- **Hard stops:** step 1's trust-spec texts (`DeepEqual`, `cmp.Diff`, `maps`/`slices`, …) and
-  step 6's Freeze.
+- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 3cd4b72599 (7f-6 E+F) merged
+  (`d41993afa5`). `.lake/build` moved from k8s-7f6 (built at lean). Pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json`; `.lake/package-overrides.json` is that manifest.
+- Scope approved by the user 2026-11-17 (design A', Q2-Q8): `notes/k8s-7g-scope.md`.
+- Done: **step 0 (Go)**, `e9bf69f83a`: the copy `examples/k8s/etcd3/correctness/` + gate
+  `etc/k8s-correctness-check.py` (gates.sh, CI) + `etc/k8s-correctness/d30g.patch` (moved from
+  notes/); the driver changes of Scope §1.4 (`realcheck.go`, `Output.Raw`, `floored`/`cache.floor`,
+  `Obj.SetResourceVersion`, `ObjList` accessors); tests (`realcheck_test.go`, `realfacts_test.go`,
+  `correctness/cmpdiff_test.go`); translation (project k8s-apiserver: `./correctness`, go-cmp's
+  `cmp` names only but `Option`/`applicableOption`, std `maps` names only).
+- **Step 0 report pending with the coordinator** (Lean breakage list, gen-init, forms decided).
+- Next, after the coordinator's answer: step 1, the trust-spec texts (HARD STOP: present each with
+  its Go evidence before use): `reflect.DeepEqual` (deepRep), `cmp.Diff`, `maps.Keys/Clone/Equal`,
+  `slices.Sorted`, maybe `meta.SetList`, `apierrors.SuggestsClientDelay`. Then steps 2-6 (Scope §5).
+- Open: the driver's Lean proofs do not build against the new translation until step 5 (so the
+  branch cannot land before step 5, unless split); `etc/gen-init.py --check` needs `IsPkgInit`
+  instances of `correctness`, `maps`, `cmp` (Lean) and regenerated driver init/PkgTable files.
 - Pitfalls:
-  - The experiment's partition test reads its schedule from `K8S7G_SCHED`: `inChild` overwrites
-    `K8SETCD3_SCHED`.
-  - Each run needs its own working directory: a leftover `k8s7g.etcd` makes the seeding fail.
+  - goose's config path for `github.com/google/go-cmp/cmp` is `Code/github_com/google/go_cmp/cmp.toml`
+    (underscore), not `go-cmp`.
+  - In partitions most runs have a failed call, so the real checker runs in few of them (2 of 10
+    partitioned runs failure-free, `/shared/tmp/k8s7g/step0-runs.out`).
   - `cmp.Diff` and `reflect.DeepEqual` tell nil from empty slices.
+- Go runs: `cd examples/k8s/etcd3; GOWORK=off systemd-run --scope -q -p MemoryMax=32G go test
+  -count=1 -v -run '^TestRealChecker$' .` (and `TestRealCheckerPartition`, `K8SETCD3_SCHED`).
+
+## History
+
+- Scope and Go experiment `ecf71b5f6a`; experiment patch `notes/k8s-7g-experiment.patch`
+  (scratch only; its switches are gone from the real driver); nonissue
+  `k8s-correctness-watchvalidator-cut-before-bookmark`.
 
 ## Re-running the experiment
 

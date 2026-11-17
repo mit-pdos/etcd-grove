@@ -9,6 +9,7 @@ public import Perennial.Proof.io.Base
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
+public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.time.Base
 public import SpecPlan.Spec.PkgInit.github_com.anishathalye.porcupine
 public import Perennial.Proof.github_com.goose_lang.primitive.Base
@@ -22,6 +23,7 @@ public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.labels
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.runtime.schema
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.types
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.watch
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage.etcd3
 public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.storage.value
@@ -30,7 +32,7 @@ public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.lintest
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.third_party.bridge
-public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.watch
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness
 
 @[expose] public section
 noncomputable section

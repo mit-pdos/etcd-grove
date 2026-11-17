@@ -20,6 +20,7 @@ public import Proof.errors.NewVarCell
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Base
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Base
 
 @[expose] public section
 
