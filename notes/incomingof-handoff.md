@@ -8,7 +8,7 @@
   `notes/axiom-review/incomingof.md` ("The refutation"), Go `examples/axiomcx/incomingof-attack/`, audit row,
   `notes/incomingof-crossworld.md`.
 - Now: B0, the read-only inventory of the consumers of the client's KV error outcomes
-  (`notes/incomingof-b0.md`), then STOP. Part B only after 03's go; its new texts must first be checked
+  (`notes/incomingof-scope.md` §B.0, done), then STOP. Part B only after 03's go; its new texts must first be checked
   against the persistent-auth fresh-world attack in a soundness note (they get an independent attack).
 - Pitfall (new): a persistent resource that is a wand from heap cells to a pure fact is buildable in a
   fresh world with `Auth DFrac.discard σ`; "only an uninterpreted call delivers it" does not protect it.

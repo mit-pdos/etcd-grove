@@ -348,6 +348,55 @@ user's `errors.New` with a handler description's text has that description. So `
 `*errorString` depends on its cell, not its type. This is why no pure fact about `Canceled`'s description
 can be stated, and why `∀ x, errDesc (*errorString x) ∉ handlerDescs` would be false.
 
+### B.0 Inventory (read-only, 2026-11-17, at lean 5fb716b5eb): the consumers of the client's KV error outcome
+
+**Only `Range` has an error outcome.** `ifcErrOut` appears in the specs of `kVClient.Range` and
+`retryKVClient.Range` only; Put/Txn/DeleteRange/Compact carry none. So the "siblings" of `rangeErrΨ` in B.2(6)
+and B5 do not exist. The outcome's compacted half has no client-side consumer (`k8s.rangeErrSound` keeps the
+future half only).
+
+The chain, producer to closed theorems:
+
+| step | file:line | what it does with `errDesc err` |
+|---|---|---|
+| retry interceptor | `client/v3/Client__unaryClientInterceptor.lean:199-544` (`ifcErrOut_of_attempt`), `:247` (`ifcErrOut_notin`, from `waitRetryBackoff.spec`'s `errDesc err ∉ handlerDescs`) | produces `ifcErrOut` |
+| `kVClient.Range`, `retryKVClient.Range` | `Spec/.../etcdserverpb/kVClient__Range.lean:48`, `Spec/.../client/v3/retryKVClient__Range.lean:42` | pass it on |
+| `kv.Do` (ContextError) | `client/v3/kv__Do.lean:126`, `kv__Get.lean:80` (`ifcErrOut_desc`, from `ContextError.spec`'s `errDesc err' = errDesc err ∨ ∉ handlerDescs`) | moves it to the returned error |
+| `kv.Get` | `client/v3/kv__Get.lean:123-125` (`rangeErrΨ_of_ifc`, `KVService.lean:1032`) | turns it into `rangeErrOut` (`KVService.lean:1021`) |
+| exported `client_range_any` | `client/v3/Results.lean:2865` (post `rangeErrOut ms c F … err`, :2884) | exported text |
+| (a) `ClientPutGet.lean:298`, `examples/etcd/txnlin/Calls.lean:344`, `k8s etcd3 watchChan__syncPaginated.lean:108` | | **drop it** (`⟨-, Hout, -⟩`): unaffected (B-i changes only the text they ignore) |
+| (b) k8s `Client.Get` | `client/v3/kubernetes/Client__Get.lean:227-246` | **consumes** the future half into `k8s.rangeErrSound` (`kubernetes/Defs.lean:311`: `□ (⌜errDesc err = futureRevDesc⌝ -∗ …)`) |
+| (b) k8s `Client.List` | `kubernetes/Client__List.lean:228` | the same |
+| `Client.Get.latest` | `kubernetes/GetLatest.lean:42` | **drops** `rangeErrSound` (→ `store.Get`, `getCurrentState`, `GetCurrentResourceVersion`: unaffected) |
+| `store.getList` | `k8s apiserver etcd3/store__getList.lean:141, 193` | passes `rangeErrSound` into `readErrIs` (`ListDefs.lean:369`, the same premise) |
+| **`store.listReadError`** | `etcd3/store__listReadError.lean:56-66` | **the only place the premise is discharged**: `errors.Is(err, rpctypes.ErrFutureRev)` (k8s `store.go:922-934`), through the trusted `errors.IsStatusErr.spec` (`Spec/errors/IsStatusErr.lean`), post `b = true → errDesc err = errDesc target`, and `rpctypesInit`'s `errDesc eFR = futureRevDesc` |
+| `store.pagedChunks` → `store.GetList` → k8s etcd3 closed theorems | `etcd3/store__pagedChunks.lean:338, 560`; `examples/k8s/etcd3/Adequacy.lean:133, 252, 344` (`k8s_etcd3_adequate`, `_cluster_adequate`, `_partition_adequate`) | |
+
+**Does a comparison resolve B-i's `ctxErrMsg err` disjunct?** Only one consumer needs to, `listReadError`, and
+it does in Go: `errors.Is(err, ErrFutureRev)` on a leaf error is `err == target || err.Is(target)`; a context
+error (`*errors.errorString`, `context.deadlineExceededError`) has no `Is` method and a dynamic type other than
+`EtcdError`, so `Is` returns false. But **the trusted post does not say so**: `IsStatusErr.spec` gives only
+`b = true → errDesc err = errDesc target`. To use it, B-i needs either
+- (i) `IsStatusErr.spec`'s post strengthened, for an `EtcdError` target, to `b = true → err.ty = EtcdError.ty`
+  (or "`err` is not of a type in `ctxErrTys`") — a trusted-spec change; location-free (a type fact), so it is not
+  exposed to `crossWorld` or to the persistent-auth fresh-world attack; or
+- (ii) `rangeErrSound`/`readErrIs` restated as `□ (⌜errDesc err = futureRevDesc⌝ ∗ ⌜err.ty ∉ ctxErrTys⌝ -∗ …)`,
+  with `listReadError` getting the type fact from (i) anyway.
+
+So B-i closes with one more trusted-text change (i), and B5 shrinks to: `rangeErrΨ_of_ifc`/`rangeErrOut`
+(client), `client_range_any`'s post text, `Client.Get`/`Client.List` and their specs, `rangeErrSound`, `readErrIs`,
+`getList`, `listReadError`, `IsStatusErr.spec` (and its other users, which ignore the new conjunct). Estimate
+100-150 lines instead of 100-400. R4 (a ghost-only consumer) does not occur.
+
+**Findings on the way, for the Part B soundness note and the per-heap Scope.**
+- `errors.IsStatusErr.spec`'s post `b = true → errDesc err = errDesc target` is a pure `errDesc` fact in the post
+  of `errors.Is`, which is Perennial code with Lean semantics: Scope §0.2 (adequacy plus nondeterministic
+  allocation) applies to it as to any pure `errDesc` post over interpreted code. Not new to this Scope, but in
+  the same family; to be checked with Part B.
+- `statusErrOk err` (`cache/v3/Base.lean:360`), which `IsStatusErr.spec` and `kClientErr` carry, is a
+  persistent resource holding `errorMsgIs` (a WP form); the persistent-auth fresh-world attack must be run on
+  every Part B text that concludes a pure fact from it.
+
 ### B.5 Steps and estimate
 
 | step | lines |
