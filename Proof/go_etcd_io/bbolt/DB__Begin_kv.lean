@@ -37,7 +37,7 @@ theorem bbolt.DB.Begin_kv.wp_proof
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.ownWTx, backend.ownWTxG,
       backend.txDB, onFs_some hfs]
     cases w <;> simp only [Bool.false_eq_true, ↓reduceIte] <;>
-      iintro %Φ ⟨-, ⟨#Hdb, Hs⟩, Htok⟩ HΦ
+      iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, Htok⟩ HΦ
     · ihave Hau := bbolt.boltState_read_au γ D $$ Hs
       have h' := h db γ false (fun D' => iprop(bbolt.boltState γ 1 D ∗ ⌜D' = D⌝))
       simp only [Bool.false_eq_true, ↓reduceIte] at h'
@@ -46,12 +46,12 @@ theorem bbolt.DB.Begin_kv.wp_proof
       icases Hr with (⟨%He, #Htd, %D', Htx, Hs, %HD⟩ | ⟨%He, Htok, Hau⟩)
       · subst HD
         imodintro
-        iapply HΦ; iframe Hs Hdb
+        iapply HΦ; iframe Hs Hdb Hrest
         iright; isplitr; · ipureintro; exact He
         iframe Htd Htx
       · imod (backend.boltState_au_back γ D) $$ Hau with Hs
         imodintro
-        iapply HΦ; iframe Hs Hdb
+        iapply HΦ; iframe Hs Hdb Hrest
         ileft; iframe Htok; ipureintro; exact He
     · have h' := h db γ true (fun _ => iprop(emp))
       simp only [↓reduceIte] at h'
@@ -62,13 +62,13 @@ theorem bbolt.DB.Begin_kv.wp_proof
         · iframe Htx Hs
         have HD : D' = D := Hb rfl
         subst HD
-        iapply HΦ; iframe Hs Hdb
+        iapply HΦ; iframe Hs Hdb Hrest
         iright; isplitr; · ipureintro; exact He
         iframe Htd
         iexists (fun _ => 0)
         rw [← wView_wr]
         iexact Htx
-      · iapply HΦ; iframe Hs Hdb
+      · iapply HΦ; iframe Hs Hdb Hrest
         ileft; unfold wrTok; isplitr; · ipureintro; exact He
         itrivial
 

@@ -50,7 +50,7 @@ theorem backend.newBackend.wp_proof
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
-  intro _ cfg P D W Pk K
+  intro _ _ cfg P D W Pk K hml
   wp_start as ⟨#Hzl, Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
@@ -110,9 +110,10 @@ theorem backend.newBackend.wp_proof
   icases optsAt_bool bo o go!"NoGrowSync" (by simp) $$ Hbo with ⟨%x4, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  icases optsAt_bool bo o go!"Mlock" (by simp) $$ Hbo with ⟨%x5, Hf, Hback⟩
+  icases optsAt_mlock bo o $$ Hbo with ⟨%x5, Hf, Hback⟩
   wp_auto
-  ihave Hbo := Hback $$ Hf
+  ihave Hbo := Hback $$ [Hf]
+  · simp only [hml]; iexact Hf
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlz
   wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
   · iexact Hlz
@@ -129,25 +130,7 @@ theorem backend.newBackend.wp_proof
     ipureintro
     obtain ⟨lc, rfl⟩ := Hlty
     exact OptsM.ok_withLogger o _ Hok ⟨_, lc, rfl, rfl⟩
-  icases Hres with (%Herr | ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile⟩)
-  · -- `Open` failed: `lg.Panic`
-    rcases err with ei | _
-    · wp_auto
-      wp_apply hStr as %f1 -
-      wp_apply hErr as %f2 -
-      wp_apply wp_slice_literal
-      try (isplitr; (ipureintro; rfl))
-      try iintro %_ ⟨_, -⟩
-      try wp_auto
-      wp_apply hPanic lg $$ [] as %v %Hv
-      · ipureintro; exact Hlg
-      subst Hv
-      wp_auto
-      iapply HΦ
-      iright
-      ipureintro
-      exact ⟨Herr.2, _, rfl⟩
-    · exact absurd rfl Herr.1
+  icases Hres with ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile⟩
   subst Herr
   wp_auto
   -- the backend's structure

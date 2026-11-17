@@ -66,7 +66,7 @@ theorem isBackend_dbFile (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
     isBackend γ P W Pk b ⊢
       ∃ (db : Loc) (path : GoString),
         sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-        isDB db γ.db ∗ bDBAt γ db path ∗ dbFile db path := by
+        isDB db γ.db ∗ bDBAt γ db path ∗ dbFile db γ.db path := by
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmu,

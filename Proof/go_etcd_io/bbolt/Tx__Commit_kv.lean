@@ -38,7 +38,7 @@ theorem bbolt.Tx.Commit_kv.wp_proof
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
       onFs_some hfs]
-    iintro %Φ ⟨-, ⟨#Hdb, Hs⟩, #Hd, ⟨%G, Hl⟩⟩ HΦ
+    iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, #Hd, ⟨%G, Hl⟩⟩ HΦ
     ihave Hau := bbolt.boltState_commit_au γ D S $$ Hs
     have h' := h tx γ (wView D S G) (bbolt.boltState γ 1 S)
     try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
@@ -47,7 +47,7 @@ theorem bbolt.Tx.Commit_kv.wp_proof
     iapply HΦ; iframe Hdn
     icases Hr with (⟨%He, Hs⟩ | ⟨%He, -⟩)
     · ileft; isplitr; · ipureintro; exact He
-      iframe Hs Hdb
+      iframe Hs Hdb Hrest
       unfold wrTok; itrivial
     · iright; ipureintro; exact He
 

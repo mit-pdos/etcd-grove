@@ -57,6 +57,17 @@ abbrev DB.Close_ownNoErrH.spec : Prop :=
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ fileHolds i D }}
 
+/-- **Pending S3d** (an interim axiom of branch `bbolt-files-backend`, never to land on `lean`):
+S3d's `Open_sharedNoErr.wp_proof`, linked (bbolt's `Link.lean`, with its `fs.FileMode.String`
+hypothesis), once S3d is merged. -/
+axiom Open_sharedNoErrH.pendingS3d [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+  Open_sharedNoErrH.spec (GF := GF) (hG := hG)
+
+/-- **Pending S3d** (an interim axiom, as `Open_sharedNoErrH.pendingS3d`): S3d's strengthened
+`DB.Close_ownNoErr.wp_proof`, linked. -/
+axiom DB.Close_ownNoErrH.pendingS3d [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] :
+  DB.Close_ownNoErrH.spec (GF := GF) (hG := hG)
+
 end spec
 
 end bbolt

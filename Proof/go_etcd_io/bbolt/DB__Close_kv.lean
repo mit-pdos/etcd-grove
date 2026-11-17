@@ -29,16 +29,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-theorem bbolt.DB.Close_kv.wp_proof
-    (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
-      bbolt.DB.Close_ownNoErrH.spec (GF := GF) (hG := hG)) :
+theorem bbolt.DB.Close_kv.wp_proof :
     bbolt.DB.Close_kv.spec (GF := GF) (hG := hG) := by
   intro db γ D path
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.isDB, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
-  · simp only [backend.fileHolds, backend.ownDB, backend.isDB, onFs_some hfs]
+  · haveI := fax; haveI := fsax
+    have h := bbolt.DB.Close_ownNoErrH.pendingS3d (GF := GF) (hG := hG)
+    simp only [backend.fileHolds, backend.ownDB, backend.isDB, onFs_some hfs]
     obtain ⟨Sio, hino, -, hs1, hs2⟩ := nex.ok
     iintro %Φ ⟨-, #Hdb, Hpath, -, Hst, Hrest⟩ HΦ
     iunfold dbFile at Hpath

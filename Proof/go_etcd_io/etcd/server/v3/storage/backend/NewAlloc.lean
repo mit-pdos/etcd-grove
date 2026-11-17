@@ -468,7 +468,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     bF go!"stopc" b ↦□ sc ∗ bF go!"donec" b ↦□ dc ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ isDB db γd ∗
-    dbFile db path ∗
+    dbFile db γd path ∗
     muOf t ↦ (false : Bool) ∗ txFOf t ↦ wtx ∗ pendOf t ↦ (W64 0) ∗ delOf t ↦ (W64 0) ∗
     ownWB (wbOf t) ⟨∅, ∅⟩ ∗ bF go!"txPostLockInsideApplyHook" b ↦ func.nil ∗
     ownDB db γd D ∗ ownWTx wtx γd D D ∗ txDB wtx γd db ∗

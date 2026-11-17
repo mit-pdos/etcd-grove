@@ -1390,7 +1390,7 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     isDB db γ.db ∗ ⌜P.Wf⌝ ∗
     -- (2026-11-04, R2b-3c) the database and its file
-    (∃ path : GoString, bDBAt γ db path ∗ dbFile db path) ∗
+    (∃ path : GoString, bDBAt γ db path ∗ dbFile db γ.db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
     envVerifyOff)
 

@@ -69,15 +69,13 @@ theorem backend.backend.Close.wp_proof
   obtain ⟨rfl, rfl⟩ := Hag
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmug2] as ⟨Hwl, Hdbp⟩
-  wp_apply (hClose db' γ.db C path') $$ [$Hisdb2 $Hfile $Hown] as %err Herr
+  wp_apply (hClose db' γ.db C path') $$ [$Hisdb2 $Hfile $Hown] as %err ⟨%He, Hf⟩
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $Hdbp]
   iapply HΦ
   iframe HY
   iexists C
   iframe Hsv
-  icases Herr with (⟨%He, Hf⟩ | %Hbad)
-  · ileft; iframe %He; iexists path'; iframe Hf; iunfold bFile; iexists db'; iexact Hdbat
-  · iright; ipureintro; exact Hbad
+  ileft; iframe %He; iexists path'; iframe Hf; iunfold bFile; iexists db'; iexact Hdbat
 
 end proof
 

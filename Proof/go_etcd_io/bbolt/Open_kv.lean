@@ -54,16 +54,16 @@ theorem crOut_file [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.Assumptions
     simp only [NamesH.log]
     exact GMap.lookup_insert _ _ _
 
-theorem bbolt.Open_kv.wp_proof
-    (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
-      bbolt.Open_sharedNoErrH.spec (GF := GF) (hG := hG)) :
+theorem bbolt.Open_kv.wp_proof :
     bbolt.Open_kv.spec (GF := GF) (hG := hG) := by
   intro hT hR path mode opts dq o D
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.fileHolds, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
-  · simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, hfs,
+  · haveI := fax; haveI := fsax
+    have h := bbolt.Open_sharedNoErrH.pendingS3d (GF := GF) (hG := hG)
+    simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, hfs,
       onFs_some hfs]
     obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := nex.ok
     iintro %Φ ⟨#Hpkg, Hf, Hbo, %Hok, #Hlog⟩ HΦ
