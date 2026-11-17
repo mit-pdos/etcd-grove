@@ -22,6 +22,12 @@
   `bootStore.law`'s `wSt` (½) into `wStQ ¼` ×2 in NewServer/NewServerR; (5) `srvApplyKV(On)` at `∃ w`, per-entry
   `win_push` in `applyEntryNormal`, first window in NewServer after `NewLessor`, snapshot `win_push none`;
   (6) ONE leaves build from `00b09c1360`; step 7 (law), step 8, c6b merge (see the task brief).
+- **Open point before F4 (1):** `kvStoreInv` (KVStoreApi, the conclusion of `bootStore.law`) is defined with `inv kvsN`
+  separately from `kvStoreInvG`; moving the store invariant to `kvsN .@ "st"` changes what `bootStore.law` asserts
+  (namespace only; text unchanged), and `etcdstart/Served.lean:112` exports `srvApi.kvsN` as the store's namespace,
+  `kvPeek.law` opens `kvsN`. Approved earlier as "text unchanged"; the K1 decision says "texts and meaning". If that
+  counts, the alternative is the tie at its own namespace outside `kvsN` (disjoint from `mvccN`, `kvsN`, `wsN`), with
+  the law's mask extended by it. Ask etcd-grove-03 which, before coding (1).
 - **Pitfalls:** `wStQ` is reducible: `icases` destructs it directly; `iframe` into a `wStQ` goal needs `iunfold wStQ`
   first. To turn `wStQ E.γs E.stq` into `wSt` use `rw [hstq]` inside a subgoal that closes (a goal-level `rw [← hstq]`
   would rewrite every `½`). `{E with win := w}.authOn` does not unify with `E.authOn` in the proof mode:
