@@ -328,13 +328,15 @@ as before (`rqOk_false_leaseGrant`), so `rqOk .none` means what `rqOk` meant unt
 (`(stateAfter log).length ≤ 2 ^ 62`, the lessor's sort premise, `lease.lessor.Revoke.spec`), as the
 transaction arm's `TxnPreA` bounds the log's changes: `dispatch` cannot derive it (the writer's
 receipt `⧖ (logCh log)` bounds it only under a bound on `receiptBound GF`, which no premise of
-`dispatch` or `Apply` states); the server derives it at its small log (`srvApplyKV_small`). -/
+`dispatch` or `Apply` states); the server derives it at its small log (`srvApplyKV_small`). (Auth-lease S4 item 7b step 6) The transaction
+arm also has the transaction's keys distinct (`txn.txnKeysNodup`, the gRPC layer's checks: `txnPermit`), which the
+applier turns into the lessor window's premise (`txn.winOps_txn_of_nodup`). -/
 def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
   | .put => putOk log
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
-  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log
+  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log ∧ txn.txnKeysNodup t
   | .leaseGrant => match lm with
     | .none => False
     | _ => grantKindOk rq

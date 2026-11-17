@@ -227,13 +227,6 @@ end
 
 /-! ### A transaction's keys distinct (auth-lease S4 item 7b step 6, decided by etcd-grove-03) -/
 
-/-- **A transaction's run changes each key at most once** at every (sorted) start state and revision (what
-`checkIntervals` gives, `v3rpc.txnKeysNodup_of_check`): the lessor's window needs it (each lease item moves once per
-entry, `txn.winOps_txn_of_nodup`). -/
-def txnKeysNodup (t : TxnModel) : Prop :=
-  ∀ (s0 : List EtcdKv) (r : w64), s0.Pairwise etcdKvLess →
-    ((srvOps s0 r s0 (t.branch (txnOk s0 t))).1.map Change.key).Nodup
-
 theorem delsPresent_append (r : w64) (s : List EtcdKv) (a b : List Change)
     (ha : DelsPresent r s a) (hb : DelsPresent r (applyChanges r s a) b) : DelsPresent r s (a ++ b) := by
   intro i k hi
@@ -421,16 +414,17 @@ theorem rqShape_of_plain (rq : apply.IRRModel) (h : plainCover rq)
   obtain ⟨h1, h2, h3, h4, h5, h6⟩ := hk
   split <;> simp_all
 
-/-- **The shape of a covered transaction request** from its transaction's shape. -/
+/-- **The shape of a covered transaction request** from its transaction's shape and distinct keys. -/
 theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
-    (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t) :
+    (hk : apply.dispatchKind rq = .txn) (ht : ∀ t, rq.txn = some t → txn.txnShape t)
+    (hn : ∀ t, rq.txn = some t → txn.txnKeysNodup t) :
     rqShape .none rq := by
   refine ⟨dispatchOk_of_plain rq h, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1, hn t ht'⟩
 
 end EtcdGrove
 end Perennial

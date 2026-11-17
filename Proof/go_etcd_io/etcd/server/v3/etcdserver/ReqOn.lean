@@ -959,13 +959,14 @@ theorem rqShape_put (lm : lease.Mode) (rq : apply.IRRModel) (hk : apply.dispatch
 /-- A transaction's shape at any lease mode, from its transaction's (`txn.TxnPre_of` needs only
 `txnShape`). -/
 theorem rqShape_txnL (lm : lease.Mode) (rq : apply.IRRModel) (hk : apply.dispatchKind rq = .txn)
-    (ht : ∀ t, rq.txn = some t → txn.txnShape t) : rqShape lm rq := by
+    (ht : ∀ t, rq.txn = some t → txn.txnShape t) (hn : ∀ t, rq.txn = some t → txn.txnKeysNodup t) :
+    rqShape lm rq := by
   refine ⟨fun on => ⟨by rw [hk]; decide, by rw [hk]; intro h; cases h⟩, fun log hs => ?_⟩
   unfold rqSmall at hs
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1, hn t ht'⟩
 
 /-- A grant's shape where the mode admits it. -/
 theorem rqShape_grant (lm : lease.Mode) (rq : apply.IRRModel) (hg : grantPropOk lm rq) :
@@ -1397,7 +1398,8 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
   have hs : rqShape γk.lm (irrTxn tw) := rqShape_txnL _ _ hk (fun t' h => by
-    simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.1)
+    simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.1) (fun t' h => by
+    simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.2)
   have hq : txnQhOn (GF := GF) γk tw γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn tw) hm) γc Q := rfl
   rw [hq]

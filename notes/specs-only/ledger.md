@@ -710,3 +710,7 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `txnPermit` (`InvRequest.lean`), `txnPermitOn`, `txnPermitM` (`ReqOn.lean`): `… ∧ txn.txnShape t⌝` →
   `… ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝`. Closed result whose premise text is unchanged and gets stronger:
   `etcdserver/Results.lean` `txn_applied` (`txnPermit`). `ServerKVOn.txnPermitM_of_dep`'s shape hypothesis gains it.
+- **Step 6, the apply thread's premise (2026-11-17).** Form (agent; `questions.md`, "rqShape's conjunct: forms"):
+  `apply.rqOk`'s transaction arm `txn.TxnPreA log t ∧ putOk log` → `… ∧ txn.txnKeysNodup t` (internal: no `Results`
+  statement mentions `rqOk`; producers `rqShape_txnL`/`rqShape_of_txn` discharge it from the permits).
+  `txn.txnKeysNodup` moved to `txn/TxnRun.lean`.

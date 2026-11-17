@@ -1,6 +1,43 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: steps 1-5 and step 6's permit part done; step 6 (applier) next)
+## START HERE (S4, 2026-11-17, item 7b: step 6's rqShape/rqOk part done; the window's delivery to the applier next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: "Item 7b step 6
+  decision", "rqShape's conjunct: forms"); ledger 2026-11-16 7b entry ("Step 3" .. "Step 6, the permits").
+- **Done:** steps 1-5 (`e1a57743a0`, `0fea6c849f`, `904deb4368`, `77d6bd24c7`); 6a permits (`94933020d5`); 6b (this
+  commit): `txn.txnKeysNodup` moved to `txn/TxnRun.lean`; `apply.rqOk`'s txn arm `TxnPreA ∧ putOk ∧ txnKeysNodup`
+  (so `rqShape`, `entryShape` and every apply spec taking `rqOk` carry it: `dispatch` has it); `rqShape_txnL`/
+  `rqShape_of_txn` take `hn` (from `txnPermitOn`/`txnPermit`). Built: the 51 leaves importing the changed files.
+- **Next: deliver the window to the backend applier.** Design (agent, not yet reviewed; refine before coding):
+  1. *Who opens.* The server's per-entry apply (`EtcdServer__applyEntryNormal` / `ApplyNormalOn`), which holds kvsN's
+     tie quarter (`lessorWinTie`, from `NewLessor` via boot into `kvStoreInvG`'s body, with a pure relation ws ↔ σ.log
+     and the raft entry: start index `s` with `items hs[s] = items (stateAfter log)`, `T` = the model's items after the
+     entry, the entry's `srvRLogLb`). `win_push (x := some T)` before `Apply`, the window kept after (next entry's push
+     replaces it), `win_push (x := none)` in `applySnapshot` (L1: never reached under `clusterNoSnap`, but needed).
+  2. *T before the outcome.* T = `leaseItemsOf` of the KV model's state after the entry (a pure function of the
+     committed log the server knows). If the model rejects, T = the current items, and `winStep` then freezes every item
+     (what the law needs for a rejected entry).
+  3. *What each applier layer takes:* `kvOwn`/`mPre`/`leasesLive` at a window (`lessorUserW … w`, `leasesLive`'s `W`
+     form; the plain names = `none`), and the pure premise "if the backend runs, `T` is its items after":
+     `∀ s T, w = some (s, T) → ∀ oc, backendStep rq log oc → leaseExactL Lv rq log oc → T = leaseItemsOf (stateAfter
+     (oc.logAfter log))`. The server discharges it by `KVOutcomeOn.backendLog_of_step` (the model's log is `backendLog`).
+     At `w = none` all trivial, so the closed `apply/Results` (`chain_*`, over `kvOwn`/`applierSpec`) keep their text;
+     `applierSpec`'s triples at `∀ w` strengthen their premise only (the step-3 pattern; STOP-check with the coordinator
+     if `applierSpec` turns out to be a client-supplied premise of a closed result that a client cannot discharge).
+  4. *Backend:* `applierV3backend.Txn` gets `WinOps` from `winOps_txn_of_nodup` (nodup from `rqOk` via `dispatch`; or add
+     nodup to `txnPre`'s pure part at `w ≠ none`), `Put` from `winMove_to_target`, `DeleteRange` from `winOp_of_nodup`
+     (`.delete`), `LeaseRevoke` from `Revoke.spec`'s `winDrops`.
+  Then step 7 (the law: `m` = the history's last index when `F` is applied; per index its window via kvsN's tie), step 8,
+  the lean merge (c6b), full build, tcb, interfaces.
+- **Pitfalls:** a change to `apply/Chain.lean` or `txn/TxnRun.lean` rebuilds ~2100 modules (51 leaves, ~1 h in a slot).
+  Proofs with a local `lease` need `Perennial.EtcdGrove.lease.winMove`; locals named `w` in `executeTxn`/`checkTxn`: the
+  window is `wn` there. An explicit `none` makes posts `leaseOwnW … none` (convert with `lease.leaseOwnW_eq`). Don't
+  `git stash` while a lean-check runs.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
+  --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
+  `/shared/tmp/auth-lease-s4/7b-*.log`. After the lean merge: `manifest-c6b.json`, and `.lake/package-overrides.json`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-5 and step 6's permit part done; step 6 (applier) next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: step 4 forms,
   "Item 7b step 6 decision" by etcd-grove-03); ledger 2026-11-16 7b entry ("Step 3" .. "Step 6, the permits").
