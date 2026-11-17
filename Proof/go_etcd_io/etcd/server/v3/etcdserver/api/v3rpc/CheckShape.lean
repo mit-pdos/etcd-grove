@@ -157,6 +157,27 @@ theorem txnShape_of_check (n : Int) (cs : List CmpModel) (ts es : List ReqOp)
   · exact branchIG_of_check _ es es' s0 r hs hes hcE (noFromKeyDelL_of es es' hes hz.2) hsib.2
       hivE (opsGets_of_check _ es es' hcE hes hpl.2 hnc.2)
 
+/-- **The gRPC layer's checks give a transaction's distinct keys** (`txn.txnKeysNodup`; auth-lease S4 item 7b step 6):
+`checkRequestOp` and `checkIntervals` of each branch, with no range end `[0]` (so no from-key delete) and the client's
+`siblingSafeL` (`check_gives_nodup`, `keys_nodup_iff_check`; the server's run deletes present keys,
+`txn.delsPresent_srvOps`). -/
+theorem txnKeysNodup_of_check (n : Int) (cs : List CmpModel) (ts es : List ReqOp)
+    (ts' es' : List TxnOp) (hts : ReqOp.toTxnOps ts = some ts') (hes : ReqOp.toTxnOps es = some es')
+    (hck : txnReqOk n cs ts es) (hivT : intervalsOk ts) (hivE : intervalsOk es)
+    (hz : txnOpsNoZeroEnd ts' ∧ txnOpsNoZeroEnd es')
+    (hsib : ReqOp.siblingSafeL ts ∧ ReqOp.siblingSafeL es) :
+    txn.txnKeysNodup { cmps := cs, thenOps := ts', elseOps := es' } := by
+  have hok := (txnCheck_ok_iff n cs ts es).1 hck
+  have hcT : opsCheck (n - txnWidth cs ts es) ts = none := (opsCheck_none_iff _ ts).2 hok.2.2.1
+  have hcE : opsCheck (n - txnWidth cs ts es) es = none := (opsCheck_none_iff _ es).2 hok.2.2.2
+  intro s0 r hs
+  unfold TxnModel.branch
+  split
+  · exact (txn.keys_nodup_iff_check _ s0 (txn.delsPresent_srvOps s0 r s0 ts' hs)).2
+      (check_gives_nodup _ ts ts' s0 s0 r hts hcT (noFromKeyDelL_of ts ts' hts hz.1) hsib.1 hivT)
+  · exact (txn.keys_nodup_iff_check _ s0 (txn.delsPresent_srvOps s0 r s0 es' hs)).2
+      (check_gives_nodup _ es es' s0 s0 r hes hcE (noFromKeyDelL_of es es' hes hz.2) hsib.2 hivE)
+
 end v3rpc
 end EtcdGrove
 end Perennial

@@ -478,7 +478,7 @@ theorem txnPermitM_of_dep (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
     (tok : Option GoString) (d : KVDep GF) (t : TxnModel) (Gb : apply.HeaderModel → IProp GF)
     (hGb : on = true → ∀ hm, Gb hm ⊢ hdrBoundT s E.authMode tok hm)
     (hd : (∃ Q, d = .op1 (.txn t) Q) ∧ (txn.txnPlain t ∨ (on = true ∧ ρ.kv.lm = .revocable ∧ txnPlainL t)) ∧
-      txnNoZeroEnd t) (hs : txn.txnShape t)
+      txnNoZeroEnd t) (hs : txn.txnShape t ∧ txn.txnKeysNodup t)
     (hsh : on = true → ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)) :
     kvDepOwnM on s E ρ γr tok d ⊢ txnPermitM on ρ.raft ρ.kv Gb t (opDepQ d) := by
   obtain ⟨⟨Q, rfl⟩, hp, hz⟩ := hd
@@ -1228,10 +1228,13 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       subst ht
       exact txnShape_of_check n' cs ts es ts' es' hts hes Hck HivT HivE ⟨hz.2.1, hz.2.2⟩
         ⟨hsT, hsE⟩ (hpl.elim (txn.txnLeased_of_plain _) (fun h => h.2)) ⟨hnT, hnE⟩
+    have hkn : txn.txnKeysNodup t := by
+      subst ht
+      exact txnKeysNodup_of_check n' cs ts es ts' es' hts hes Hck HivT HivE ⟨hz.2.1, hz.2.2⟩ ⟨hsT, hsE⟩
     ihave Hdep := txnPermitM_of_dep E.authOn s E ρ γr tok d t
       (hdrBoundM E.authOn s E (GoInterface.ok ci))
       (fun h hm => by rw [h, ← Htok h]; exact hdrBoundM_tok s E _ hm)
-      ⟨hq, hpl.imp id (fun h => ⟨h.1.1, h.1.2, h.2⟩), hz⟩ hsh
+      ⟨hq, hpl.imp id (fun h => ⟨h.1.1, h.1.2, h.2⟩), hz⟩ ⟨hsh, hkn⟩
       (fun h => Hsh h t hm hro) $$ Hdep
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
     wp_apply hT $$ [Hlt Hcred Hrc Hdep] as %resp %err ⟨Hlt, Hrc, Hres⟩

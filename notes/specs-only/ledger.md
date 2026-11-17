@@ -700,3 +700,13 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
     through; `isTxnLessor`'s `Lookup` is at any window since step 3).
   - Callers: `txn/Results.lean` `txn_runTxn` (statement unchanged, at `none`: `winOps_none`); the applier's
     `applierV3backend.{Put,DeleteRange,Txn}` at `none` until step 6.
+- **Step 5 (2026-11-17).** `txn/WinLemmas.lean`: `winOps_of_nodup`, `winOps_txn_of_nodup` (a run whose changes have
+  distinct keys is within the window targeting the items after it). No statement thawed.
+- **Step 6, the permits (2026-11-17).** Decided by etcd-grove-03 (`questions.md`, "Item 7b step 6 decision"): **premise
+  strengthened; every client (the v3rpc handlers) discharges it by `check_gives_nodup` from `siblingSafeL`/
+  `noFromKeyDelL`.** New `txn.txnKeysNodup t` (`WorkloadDefs.lean`: the run's change keys distinct at every sorted
+  start state, as `txnShape`), with `txn.delsPresent_srvOps` and `v3rpc.txnKeysNodup_of_check` (`CheckShape.lean`; no
+  new client premise: the handler's `checkIntervals`, `txnNoZeroEnd` and `siblingSafeL`). Old → new:
+  `txnPermit` (`InvRequest.lean`), `txnPermitOn`, `txnPermitM` (`ReqOn.lean`): `… ∧ txn.txnShape t⌝` →
+  `… ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝`. Closed result whose premise text is unchanged and gets stronger:
+  `etcdserver/Results.lean` `txn_applied` (`txnPermit`). `ServerKVOn.txnPermitM_of_dep`'s shape hypothesis gains it.

@@ -1344,7 +1344,7 @@ its write's range end, so the shape is `t`'s); (auth-lease S3b) plain, or, at th
 plain but for its puts' leases (`txnPlainL`), the update told the lease part of its grant. -/
 def txnPermitOn (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜(txn.txnPlain t ∨ (γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧ txn.txnShape t⌝ ∗
+  iprop(⌜(txn.txnPlain t ∨ (γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧ txn.txnShape t ∧ txn.txnKeysNodup t⌝ ∗
     ⌜∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.txn t)) (fun σ => iprop(∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
@@ -1397,7 +1397,7 @@ theorem txnPermitOn_reqPropOk (γ : ServerRaftNames) (γk : KVNames)
     · intro _ h; simp [irrTxn, apply.irrEmpty] at h
     · intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
   have hs : rqShape γk.lm (irrTxn tw) := rqShape_txnL _ _ hk (fun t' h => by
-    simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2)
+    simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.1)
   have hq : txnQhOn (GF := GF) γk tw γc Q =
       fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn tw) hm) γc Q := rfl
   rw [hq]
@@ -1438,7 +1438,7 @@ the caller's binding `Gb` (`writeGrantG`) told at the log `L₀` the caller saw.
 def txnPermitM (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (Gb : apply.HeaderModel → IProp GF)
     (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
   iprop(⌜(txn.txnPlain t ∨ (on = true ∧ γk.lm = .revocable ∧ txnPlainL t)) ∧ txnNoZeroEnd t ∧
-      txn.txnShape t⌝ ∗
+      txn.txnShape t ∧ txn.txnKeysNodup t⌝ ∗
     ⌜on = true → ∀ tw : txn.TxnModelW, tw.toModel = t → kvShapeAll (irrTxn tw)⌝ ∗
     ∃ L₀ : List EntryModel, srvReqLogLb γ L₀ ∗
       kvAu1G γk (kvOpStep (.txn t)) (fun σ => iprop(⌜on = true⌝ → ∃ tw : txn.TxnModelW,

@@ -318,7 +318,7 @@ theorem txnPermit_reqPropOk (纬k : KVNames) (tw : txn.TxnModelW) (Q : KVState 鈫
     路 intro _ h; simp [irrTxn, apply.irrEmpty] at h
     路 intro _ h; simp [irrTxn, apply.irrEmpty] at h
     路 intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.1
-  路 intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2
+  路 intro t' h; simp only [irrTxn_txn, Option.some.injEq] at h; subst h; exact Ht.2.2.1
 
 end defs
 

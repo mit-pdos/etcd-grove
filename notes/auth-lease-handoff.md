@@ -1,28 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: steps 1-5 done; step 6 (applier) next, open point below)
+## START HERE (S4, 2026-11-17, item 7b: steps 1-5 and step 6's permit part done; step 6 (applier) next)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: step 3 forms
-  reviewed by etcd-grove-03; step 4 forms); ledger 2026-11-16 7b entry ("Step 3", "Step 4").
-- **Done:** steps 1-2 (lease, `e1a57743a0`); step 3 (mvcc, `0fea6c849f`); step 4 (server txn, this commit):
-  `txn.WinOp`/`WinOps` (as `OpsOk`), `delSelOf`, `putItemsOf` (`ApiVocab`); `put`/`deleteRange`/`executeTxn`/`txn`/
-  `Txn.specSole`/`Put`/`DeleteRange` and `checkLease`/`checkPut`/`checkTxn` at `∀ w` (old → new in the ledger);
-  `txn_runTxn` and the applier's `applierV3backend.{Put,DeleteRange,Txn}` call them at `none`.
-- **Step 5 done (`txn/WinLemmas.lean`, built):** `winOps_of_nodup`,
-  `winOps_txn_of_nodup`: a run whose changes have distinct keys is within the window whose target is the items after
-  it. **Open for step 6:** the applier must know the entry's keys are distinct (`NoDupKeysPerRev` of the revision).
-  The request invariant (`InvRequest.lean:1158`, `ReqOn.lean:1347`) carries `txnPlain(L) ∧ txnNoZeroEnd ∧ txnShape`,
-  not distinctness; v3rpc has it (`v3rpc/Results.lean:80`, `check_gives_nodup`: `checkIntervals` + the client premise
-  `siblingSafeL`/`noFromKeyDelL`, `ServerKV(On).lean`'s handler spec). Without distinct keys the law is false in
-  etcd (a nested put then a sibling's delete of the key shows a transient item to a lessor reader). Next: carry the
-  check's fact into the proposal (a pure `txnKeysNodup t` conjunct beside `txnShape` in the request's predicate)
-  or STOP if that reaches a closed statement.
-- **Pitfalls:** in proofs with a local `lease` (put's `icases … %lease`), write `Perennial.EtcdGrove.lease.winMove`.
-  Locals named `w` exist in `executeTxn`/`checkTxn` proofs: the window is `wn` there. An explicit `none` makes posts
-  `leaseOwnW … none` (convert with `lease.leaseOwnW_eq`). Don't `git stash` while a lean-check runs.
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: step 4 forms,
+  "Item 7b step 6 decision" by etcd-grove-03); ledger 2026-11-16 7b entry ("Step 3" .. "Step 6, the permits").
+- **Done:** steps 1-2 (lease, `e1a57743a0`); 3 (mvcc, `0fea6c849f`); 4 (server txn, `904deb4368`: `txn.WinOp`/`WinOps`,
+  `delSelOf`, `putItemsOf`; the txn specs and `check*` at `∀ w`; the applier and `txn_runTxn` call at `none`);
+  5 (`77d6bd24c7`, `txn/WinLemmas.lean`: `winOps_txn_of_nodup`, `winMove_to_target`); 6a (this commit):
+  `txn.txnKeysNodup` (`WorkloadDefs`, with `delsPresent_srvOps`) in `txnPermit`/`txnPermitOn`/`txnPermitM`, discharged
+  at the v3rpc handler by `v3rpc.txnKeysNodup_of_check` (`CheckShape`, no new client premise); the issue file
+  `issues/etcd-txn-check-intervals-sibling.md` has the new consequence. Leaves since `77d6bd24c7` build.
+- **Next (step 6 proper):** carry `txnKeysNodup` from the permit into what the applier sees: `reqPropOk` →
+  `rqShape` (`InvProposer.txnPermit_reqPropOk` and `ReqOn.txnPermitOn_reqPropOk` call `rqShape_of_txn`/`rqShape_txnL`
+  with `Ht.2.2.1`; give `rqShape` the conjunct, `ReqOn.lean:962`), so the apply loop has distinct keys per txn entry.
+  Then the applier contracts (`apply/Contracts.lean`: `revokeClause`, `isApplyLessor(Any)`, put/txn contracts),
+  `applierV3backend.{Put,DeleteRange,Txn,LeaseRevoke}` at `w` (Txn: `winOps_txn_of_nodup`; Put: `winMove_to_target`;
+  DeleteRange: `winOp_of_nodup` on `.delete o` with `B = []`, keys of a sorted state's range distinct,
+  `keys_nodup_of_sorted`), then `Chain.lean` (window open per entry with `T` = items after it, keep between entries,
+  free in the snapshot branch; kvsN's tie share `lessorWinTie`), step 7 (the law), step 8, the merge (c6b).
+- **Pitfalls:** proofs with a local `lease` need `Perennial.EtcdGrove.lease.winMove`; locals named `w` in
+  `executeTxn`/`checkTxn`: the window is `wn` there. An explicit `none` makes posts `leaseOwnW … none` (convert with
+  `lease.leaseOwnW_eq`). Don't `git stash` while a lean-check runs. A pure fact a permit carries reaches the applier
+  only through `rqShape`.
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
   --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
-  `/shared/tmp/auth-lease-s4/7b-*.log`.
+  `/shared/tmp/auth-lease-s4/7b-*.log`. After the lean merge: `manifest-c6b.json`, and `.lake/package-overrides.json`.
 
 ## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-3 done; step 4 (server txn) next)
 
