@@ -1,7 +1,8 @@
 /-
 The `statlock` reader token a `DB.Stats` caller pays with (`statSlot`, U5 of
 `notes/bbolt-proof-plan.md`): a pool loan for its `threadTok`, or its whole read transaction's
-own token (taken from the transaction's exclusive part in `txsInv`).
+own token (taken from the transaction's exclusive part in `txsInv`), or its whole write
+transaction's: the spare pair's `statlock` token, in the writer's database side (`wdbLive`).
 -/
 module
 
@@ -46,7 +47,7 @@ theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × TxView)) (p 
     |={⊤}=> ▷ (sync.ownRWMutex db.[DB, go!"statlock"] (Ps sp) ∗
       (sync.ownRWMutex db.[DB, go!"statlock"] (Ps sp) ={⊤}=∗ statSlot γ o)) := by
   iintro ⟨#Hb, Hslot⟩
-  rcases o with _ | ⟨tx, T⟩
+  rcases o with _ | ⟨tx, D⟩
   · unfold statSlot
     unfold isBoltP
     icases Hb with ⟨-, -, #Hpool, -⟩
@@ -60,7 +61,102 @@ theorem statSlot_tok (db : Loc) (γ : BoltName) (o : Option (Loc × TxView)) (p 
     iintro Hs
     iapply threadPool.giveBack (poolN γ.ns) _ _ ⊤ CoPset.subseteq_top
     iframe Hpool Hloan Hm Hs
-  · sorry -- S1a (branch `bbolt-api-adds`: `statSlot` of any transaction; until it lands)
+  · unfold statSlot boltTx boltTxDef
+    by_cases hrwT : D.rw = true
+    · simp only [hrwT, ↓reduceIte]
+      icases Hslot with ⟨%db1, %p1, %sp1, %t01, %r, %c, %X, %Hc, #Hreg, #Hb1, Hv, Hex, Hw⟩
+      ihave #Hcore1 : isBoltCoreP (GF := GF) (bnsOf γ.gs) γ.ns db1 p1 sp1 t01 $$ []
+      · unfold isBoltP; icases Hb1 with ⟨$, -⟩
+      ihave %hdb : ⌜db = db1⌝ $$ []
+      · iapply isBolt_db_agree (bnsOf γ.gs) γ.ns db db1
+        isplitl
+        · unfold isBoltDef; iexists p, sp, t0; iexact Hb
+        · unfold isBoltCore; iexists p1, sp1, t01; iexact Hcore1
+      subst hdb
+      ihave %hag := isBoltP_agree _ _ db p p1 sp sp1 t0 t01 $$ [Hb Hcore1]
+      · iframe Hb Hcore1
+      obtain ⟨rfl, rfl⟩ := hag
+      obtain ⟨hT, hrdb, hrw⟩ := Hc
+      ihave #Hinv1 : inv (txsN γ.ns) (txsInv (GF := GF) (bnsOf γ.gs) p1 sp t0) $$ []
+      · unfold isBoltCoreP
+        icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $⟩
+      imod txExcl_take (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hex] with Hx
+      · iframe Hinv1 Hreg Hex
+      imodintro
+      inext
+      unfold txExcl
+      icases Hx with ⟨%c', %x, Hv', Hd, Hx⟩
+      icombine Hv Hv' gives %hv
+      obtain ⟨-, hv⟩ := hv
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj hv
+      icases Hx with ⟨Hrwl, Hcls, %w, %extra, Hlive, Hshape, %Hok⟩
+      unfold wdbLive sparePair rdPair
+      icases Hlive with ⟨Hcore, Hfl, ⟨⟨Hmm, Hst⟩, Hspt⟩, Hrec⟩
+      subst hrdb
+      iframe Hst
+      iintro Hst
+      imod txExcl_put' (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$
+        [Hv' Hd Hrwl Hcls Hcore Hfl Hmm Hst Hspt Hrec Hshape] with Hex
+      · iframe Hinv1 Hreg
+        unfold txExcl
+        iexists c, (TxX.wr X)
+        iframe Hv' Hd
+        dsimp only
+        iframe Hrwl Hcls
+        iexists w, extra
+        unfold wdbLive sparePair rdPair
+        iframe Hcore Hfl Hmm Hst Hspt Hrec Hshape
+        ipureintro; exact Hok
+      imodintro
+      iexists r.db, p1, sp, t0, r, c, X
+      iframe Hreg Hb1 Hv Hex Hw
+      ipureintro; exact ⟨hT, rfl, hrw⟩
+    have hro : D.rw = false := by simpa using hrwT
+    simp only [hro, Bool.false_eq_true, ↓reduceIte]
+    icases Hslot with ⟨%db', Hrd, #Hb'⟩
+    unfold rdTx
+    icases Hrd with ⟨%db1, %p1, %sp1, %t01, %r, %c, %v, %mv, %k, %Hc, #Hreg, #Hcore1, Hv, Hex, Hrt,
+      Hpool1⟩
+    ihave %hdb : ⌜db = db1⌝ $$ []
+    · iapply isBolt_db_agree (bnsOf γ.gs) γ.ns db db1
+      isplitl
+      · unfold isBoltDef; iexists p, sp, t0; iexact Hb
+      · unfold isBoltCore; iexists p1, sp1, t01; iexact Hcore1
+    subst hdb
+    ihave %hag := isBoltP_agree _ _ db p p1 sp sp1 t0 t01 $$ [Hb Hcore1]
+    · iframe Hb Hcore1
+    obtain ⟨rfl, rfl⟩ := hag
+    obtain ⟨hT, hrdb, hrw, hsrc⟩ := Hc
+    ihave #Hinv1 : inv (txsN γ.ns) (txsInv (GF := GF) (bnsOf γ.gs) p1 sp t0) $$ []
+    · unfold isBoltCoreP
+      icases Hcore1 with ⟨-, -, -, -, -, -, -, -, -, -, $⟩
+    imod txExcl_take (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hex] with Hx
+    · iframe Hinv1 Hreg Hex
+    imodintro
+    inext
+    unfold txExcl
+    icases Hx with ⟨%c', %x, Hv', Hd, Hx⟩
+    icombine Hv Hv' gives %hv
+    obtain ⟨-, hv⟩ := hv
+    obtain ⟨rfl, rfl⟩ := Prod.mk.inj hv
+    icases Hx with ⟨Hmm, Hloan, Hst, Hk⟩
+    subst hrdb
+    iframe Hst
+    iintro Hst
+    imod txExcl_put' (bnsOf γ.gs) γ.ns p1 sp t0 ⊤ CoPset.subseteq_top tx r $$ [Hv' Hd Hmm Hloan Hst Hk]
+      with Hex
+    · iframe Hinv1 Hreg
+      unfold txExcl
+      iexists c, (TxX.rd v mv k)
+      iframe Hv' Hd
+      dsimp only
+      iframe Hmm Hloan Hst Hk
+    imodintro
+    iexists db'
+    iframe Hb'
+    iexists r.db, p1, sp, t0, r, c, v, mv, k
+    iframe Hreg Hcore1 Hv Hex Hrt Hpool1
+    ipureintro; exact ⟨hT, rfl, hrw, hsrc⟩
 
 end slot
 end bbolt

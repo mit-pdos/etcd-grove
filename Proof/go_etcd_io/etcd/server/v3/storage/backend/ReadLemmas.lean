@@ -930,7 +930,7 @@ theorem rtIntv_size (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap
   unfold rtIntv
   split
   · iintro ⟨Hl, Hr⟩
-    icases persistent_entails_right (txLive_size rd.rtx γ.db p (bbolt.TxView.ro D)) $$ Hl
+    icases persistent_entails_right (txLive_size rd.rtx γ.db p D) $$ Hl
       with ⟨%Hs, Hl⟩
     iframe
     ipureintro; exact Hs

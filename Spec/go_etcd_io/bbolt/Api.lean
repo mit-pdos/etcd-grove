@@ -27,6 +27,7 @@ public import GooseLang.Ext.Fs.TreeSpecsOpen
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Data
 import Proof.go_etcd_io.bbolt.Inv.FileHolds
+import Proof.go_etcd_io.bbolt.Inv.TxSize
 
 @[expose] public section
 
@@ -300,18 +301,24 @@ theorem boltTx_valid (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
 theorem boltTx_nonnull (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
     boltTx (GF := GF) tx γ q T ⊢ ⌜tx ≠ Loc.null⌝ := by
   unfold boltTx; exact boltTxDef_nonnull _ _ _ _ _
--- S1a (branch `bbolt-api-adds`): the placeholder of its statement, until it lands.
-/-- **Each bucket of a live transaction's view holds fewer than `2 ^ 61` entries** (D-I3 of
-`notes/bbolt-integration-plan.md`; the backend's `rtxSnap_size` until then). -/
-theorem boltTx_size (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
-    boltTx (GF := GF) tx γ q T ⊢
-      ⌜∀ (n : GoString) (m : BktData), T.cur.lookup n = some m → m.size < 2 ^ 61⌝ := by
-  sorry -- S1a
 /-- **While a write transaction is live, the committed data is the one it began at** (it holds
 `rwlock`; only it can commit). How a client learns the data `Begin(true)` began at. -/
 theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Data) :
     boltTx (GF := GF) tx γ q T ∗ boltState γ q' D ⊢ ⌜T.rw = true → T.base = D⌝ := by
   unfold boltTx boltState; exact boltTxDef_base _ _ _ _ _ _ _
+
+/-- **A read transaction's buckets hold fewer than `2 ^ 61` entries** (S1a of
+`notes/bbolt-integration-plan.md`, D-I3; the backend's `rtxSnap_size`, an axiom until then). Every
+entry of a bucket of the snapshot is an element of a leaf page of the database's memory map (or of
+the inline page in such an element): a page holds at most `2 ^ 16` (its header's `count` is a
+`uint16`), the leaves of a bucket are distinct pages (no page is shared), and every page lies
+within the map, of at most `maxMapSize < 2 ^ 48` bytes, so there are fewer than `2 ^ 36` of them:
+at most `2 ^ 52` entries. For a read transaction only: a writer's view holds its nodes' entries,
+which no bound of the invariant counts (the backend needs it only for its read transactions). -/
+theorem boltTx_size (tx : Loc) (γ : BoltName) (q : Qp) (D : Data) :
+    boltTx (GF := GF) tx γ q (TxView.ro D) ⊢
+      ⌜∀ (n : GoString) (m : BktData), D.lookup n = some m → m.size < 2 ^ 61⌝ := by
+  unfold boltTx; exact boltTxDef_size_ro _ _ _ _ _
 
 @[instance] theorem txDB_persistent (tx : Loc) (γ : BoltName) (db : Loc) :
     Persistent (txDB (GF := GF) tx γ db) := by
@@ -418,15 +425,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
--- S1a (branch `bbolt-api-adds`): the placeholder of its statement (a write transaction pays too),
--- until it lands; `statSlot_tok`'s case of a transaction is `sorry` meanwhile.
 /-- What pays for `statlock`'s reader slot in `DB.Stats`: the caller's `threadTok` (`none`), or
-the whole of a read transaction (`some (tx, D)`), whose reader slot covers `statlock` too: for a
-caller whose token a read transaction holds, as the backend's `begin` right after
-`Begin(false)` (`notes/bbolt-spec-decisions.md`, D2). Sound because the implementation's reader pool lends a
-*pair* per token, an `mmaplock` reader token and a `statlock` one, so a read transaction's slot
-covers its `Stats`; it needs all of the transaction, since two holders of fractions calling
-`Stats` at once would need two `statlock` tokens. -/
+the whole of a transaction (`some (tx, T)`, S1a of `notes/bbolt-integration-plan.md`: a read or a
+write transaction), whose slot covers `statlock` too: for a caller whose token a transaction
+holds, as the backend's `begin` right after `Begin` (`notes/bbolt-spec-decisions.md`, D2). Sound
+because the implementation's reader pool lends a *pair* per token, an `mmaplock` reader token and a
+`statlock` one, so a read transaction's slot covers its `Stats`; a write transaction holds
+`rwlock`, whose resource keeps the spare pair (for `Commit`'s `freepages`, which borrows it only
+inside `Commit`, when no caller holds the transaction), whose `statlock` token covers its `Stats`.
+It needs all of the transaction, since two holders of fractions calling `Stats` at once would need
+two `statlock` tokens. -/
 def statSlot [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : Option (Loc × TxView) → IProp GF
   | none => threadTok
   | some (tx, T) => boltTx tx γ 1 T

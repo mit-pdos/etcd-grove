@@ -1893,3 +1893,27 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   post (`ErrBucketNotFound` for every absent name) was false there. The real behaviour is stated, no
   premise added; no bucket has the empty name (`CreateBucket` refuses it), so `T.cur.lookup [] =
   none` always, and a caller that never deletes the empty name sees the old two cases.
+
+## API additions for the integration (S1a, 2026-11-17; `notes/bbolt-integration-plan.md`)
+
+Two changes asked for by the integration's coordinator (session bbolt-integrate), so that the
+backend's `rtxSnap_size` axiom and `DB.Stats_kv` become corollaries of the proved bbolt:
+
+- **`boltTx_size`** (new law): `boltTx tx γ q (TxView.ro D) ⊢ ⌜∀ n m, D.lookup n = some m →
+  m.size < 2 ^ 61⌝`. For read transactions only: a reader's snapshot is the data of a well-formed
+  view whose pages lie inside the mapping (`rtxFrac`: `(id + 1) · 4096 ≤ l`; `mapFields`:
+  `l ≤ maxMapSize`), so its page ids are below `2 ^ 36`; a bucket's leaves are distinct pages of
+  the view (`viewUnique`, through the walk's ids `TxSize.leafIdsF`), each with at most `2 ^ 16`
+  elements (the header's `count` is a `uint16`): at most `2 ^ 52` entries
+  (`Proof/go_etcd_io/bbolt/Inv/TxSize.lean`). A writer's `T.cur` is its nodes' entries
+  (`wtxData X`), which no clause of the invariant counts (a node's inodes are a heap slice, and
+  the nodes are not bounded in number), so the law does not cover it; the backend needs it only
+  for its read transactions (`rtHeld_sizes`). Not SpecPlan's `boltTx_size` (`tx.Size()`'s value,
+  `txSize`): same name, a different law.
+- **`statSlot γ : Option (Loc × TxView) → IProp GF`** (was `Option (Loc × Data)`, the `some`
+  case `boltTx tx γ 1 (TxView.ro D)`): `some (tx, T) ↦ boltTx tx γ 1 T` for any view, as
+  SpecPlan's `statSlot`. A write transaction's `statlock` token is the spare pair's: the writer's
+  exclusive part (`txExcl`'s `wr` branch, in `txsInv` while no operation runs) holds `wdbLive`,
+  hence `sparePair` and its `statlock` reader token, which `freepages` borrows only inside
+  `Commit`, when the caller no longer holds `boltTx` (`Txn/StatSlot.statSlot_tok`). `DB.Stats.spec`
+  is otherwise unchanged and re-proved. No new axiom.

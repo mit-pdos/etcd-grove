@@ -78,3 +78,21 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
 ## Log
 
 * 2026-11-17: plan written (session bbolt-integrate).
+* 2026-11-17, **S1a** (branch `bbolt-api-adds`): two additions to bbolt's API (`Spec/go_etcd_io/bbolt/Api.lean`;
+  `notes/bbolt-spec-decisions.md`, "API additions for the integration").
+  - `boltTx_size (tx γ q D) : boltTx tx γ q (TxView.ro D) ⊢ ⌜∀ (n : GoString) (m : BktData),
+    D.lookup n = some m → m.size < 2 ^ 61⌝`, proved from `boltTxDef_size_ro`
+    (`Proof/go_etcd_io/bbolt/Inv/TxSize.lean`): the reader's view is well formed, its pages lie in
+    the mapping (ids below `2 ^ 36`), a bucket's leaves are distinct pages (`viewUnique`), at most
+    `2 ^ 16` elements each, so at most `2 ^ 52` entries. **For read transactions only** (the
+    fallback form): a writer's `T.cur` is its nodes' entries, which nothing in the invariant
+    counts. The backend needs only the reader case (`rtHeld_sizes`, `ReadLemmas.lean`, through
+    `rtxSnap tx D` = `boltTx tx γ q (ro D)` under D-I2), so `backend.rtxSnap_size` becomes this law
+    in S1. (SpecPlan's `boltTx_size` is another law, `tx.Size()`'s `txSize`: same name.)
+  - `statSlot γ : Option (Loc × TxView) → IProp GF`, `some (tx, T) ↦ boltTx tx γ 1 T` for any view
+    (SpecPlan's form). A writer's `statlock` token is the spare pair's, in its exclusive part
+    (`txExcl`'s `wr` branch: `wdbLive` holds `sparePair`); `freepages` borrows it only inside
+    `Commit`, which consumes `boltTx`. `Txn/StatSlot.statSlot_tok` gains the writer case;
+    `DB.Stats.spec` re-proved, statement otherwise unchanged.
+  No new axiom or `sorry`; `Link`/`Results` unchanged; interfaces regenerated. No client outside
+  bbolt used `statSlot` (the backend still goes through `DB.Stats_kv`).

@@ -288,15 +288,15 @@ theorem txLive_agree (tx : Loc) (γ : DBNames) (q1 q2 : Qp) (T1 T2 : bbolt.TxVie
   · iintro ⟨%H, -⟩; exact H.elim
   · exact bbolt.boltTx_agree tx γ q1 q2 T1 T2
 
-/-- **Each bucket of a live transaction's view holds fewer than `2 ^ 61` entries** (bbolt's
-`boltTx_size`: a view is read from the memory map of the database file, whose size `fileHolds`
+/-- **Each bucket of a read transaction's snapshot holds fewer than `2 ^ 61` entries** (bbolt's
+`boltTx_size`: a snapshot is read from the memory map of the database file, whose size `fileHolds`
 bounds; until S1 the axiom `rtxSnap_size`). -/
-theorem txLive_size (tx : Loc) (γ : DBNames) (q : Qp) (T : bbolt.TxView) :
-    txLive (GF := GF) tx γ q T ⊢
-      ⌜∀ (n : GoString) (m : BktData), T.cur.lookup n = some m → m.size < 2 ^ 61⌝ := by
+theorem txLive_size (tx : Loc) (γ : DBNames) (q : Qp) (D : Data) :
+    txLive (GF := GF) tx γ q (bbolt.TxView.ro D) ⊢
+      ⌜∀ (n : GoString) (m : BktData), D.lookup n = some m → m.size < 2 ^ 61⌝ := by
   fs_law
   · iintro %H; exact H.elim
-  · exact bbolt.boltTx_size tx γ q T
+  · exact bbolt.boltTx_size tx γ q D
 
 /-- A transaction's slice is read while the transaction is live. -/
 theorem txBytes_acc (tx : Loc) (γ : DBNames) (s : GoSlice) (b : GoString) (q : Qp)
