@@ -442,7 +442,7 @@ theorem hookTM_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) 
   irevert Hout
   rw [cursorRange_single _ _ _ (bktEnts_sorted _), lastVal_bktEnts]
   iintro Hout
-  imod mvcc.kvsOutRd_keyVals st.tx ks vs _ kn $$ Hout with #Hkv
+  imod mvcc.kvsOutRd_keyVals γ.db st.tx ks vs _ kn $$ Hout with #Hkv
   have hv : (bktOf st.S schema.metaName).lookup kn = encMeta (sel m) := by
     rw [← dget_eq_bktOf]; exact hsel st.S m hm
   ihave #Hkv2 := keyVals_enc hv $$ Hkv

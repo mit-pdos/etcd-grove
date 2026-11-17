@@ -1,12 +1,11 @@
 /-
 `delete(m, k)` on a map of the named type `pidSet` (`hashMap.delSpan`'s
-`delete(f.freemaps[size], start)`): Perennial's map semantics unfolds `go.delete` only at a literal
-map type (`MapSemantics.delete_map`, `[go.MapType key_type elem_type]`), where `len` takes any
-type whose underlying type is a map (`len_map`, `[t ↓u go.MapType ..]`). So the call goose emits,
-`delete [pidSet.ty]`, has no semantics, and no WP of it is provable. `PidSetDeleteUnfold` is the
-missing rule at `pidSet` (the literal map type's unfolding, at the named type); the proofs that
-need it take it as a hypothesis, until Perennial's `delete_map` is generalized as `len_map` was
-(a Perennial change to propose: `notes/perennial-changes.md`).
+`delete(f.freemaps[size], start)`). Perennial's `delete_map` now takes any type whose underlying
+type is a map (`[t ↓u go.MapType ..]`, Perennial `542338360`, as `len_map` does), so
+`wp_mapDelete_underlying` gives the WP at `pidSet` (`pidSetDelete_holds`). Until stage S1 of
+`notes/bbolt-integration-plan.md` (2026-11-17) `PidSetDeleteUnfold` was the missing unfolding,
+taken as a hypothesis of bbolt's linked results; it is now the WP itself, proved; the proofs still
+take it as an argument (`FLCallees`), given by `pidSetDelete_holds`.
 -/
 module
 
