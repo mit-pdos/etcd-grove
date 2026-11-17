@@ -30,9 +30,12 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 `ForEach_kvr` over the entries `bktEnts m`, the visitor holding half of the transaction's `txLive` and not its
 ownership (`ownWTxG`), which the walk keeps and gives back at the end.
 
-Why faithful (bbolt v1.5.0, `bucket.go:585-596`, `cursor.go:32-42`): as `ForEach_kvr`; the write
-transaction's cursor reads the materialized nodes, so the walk sees the transaction's own puts and deletes
-(`TestOrderWriteTxSeesOwnWrites`; `Cursor_kvw`'s `bktEnts m` of the contents `S` now).
+Why faithful (bbolt v1.5.0, `bucket.go:585-596`, fork `bucket.go:586-597`; `cursor.go` `First`/`first`
+35-62, `next` 215-247): as `ForEach_kvr` (nested buckets excluded there); the write transaction's cursor reads
+the materialized nodes, so the walk sees the transaction's own puts and deletes
+(`TestOrderWriteTxSeesOwnWrites`; `Cursor_kvw`'s `bktEnts m` of the contents `S` now), and `first()` skips
+the leaves its deletes emptied through `next()`, which loops over empty leaves (`TestWriteTxEmptyLeaves`,
+`TestWriteTxAllDeleted`: whole leaves and subtrees deleted, the walk is the sorted contents).
 What the visitor must not do ("The provided function must not modify the bucket; this will result in
 undefined behavior.", `bucket.go`), and the spec excludes by keeping `ownWTxG` (which `Put_kv`,
 `Delete_kv`, `Cursor_kvw`, `Commit_kv`, `CreateBucketIfNotExists_kv`, `DeleteBucket_kv` need):

@@ -32,14 +32,18 @@ transaction's life (`txBytes`) and half of the walk's `txLive`, it returns `nil`
 with `E i err` — it returns `nil` with `I es.length`, or the first error `err` the visitor returned, at an
 entry `i`, with `E i err`.
 
-Why faithful (bbolt v1.5.0, `bucket.go:585-596`; the fork `examples/go.mod` uses has the same `ForEach`,
-`First`, `Next`): `ForEach` checks `b.tx.db == nil` (`ErrTxClosed`: excluded, the transaction is open,
+Why faithful (bbolt v1.5.0, `bucket.go:585-596`; the fork `examples/go.mod` uses, `upamanyus/bbolt@ea4cab526797`,
+has the same body at `bucket.go:586-597` and a byte-identical `cursor.go`): `ForEach` checks `b.tx.db == nil` (`ErrTxClosed`: excluded, the transaction is open,
 `txLive`), takes `b.Cursor()` (the transaction's statistics: `rtxStats`, as `Cursor_kvr`), and runs
 `for k, v := c.First(); k != nil; k, v = c.Next()`, returning the visitor's first non-nil error (test
-`TestErrorStops`) and `nil` at the end. `First` (`cursor.go:32-42`) and `Next` walk the entries in key order
+`TestErrorStops`) and `nil` at the end. `First`/`first` (`cursor.go:35-62`) and `Next`/`next` (`next` at `cursor.go:215-247`, which skips empty
+leaves) walk the entries in key order
 (`es` is `bktEnts`, sorted: `TestOrderReadTx`), each key non-nil (`Seek_kv`'s `curAt`); an empty bucket calls
 no visitor (`TestEmpty`). The returned slices are "only valid for the life of the transaction" (`txBytes`).
-A nested bucket's entry has `v = nil`: excluded as for `Seek_kv` (etcd's buckets hold none).
+A nested bucket's entry has `v = nil`: excluded as for `Seek_kv`/`Next_kv`. The kv contract's `Data` cannot
+represent a nested bucket and no kv spec creates one (there is no `Bucket.CreateBucket_kv`), so only a file
+`Open_kv`'s `fileHolds path D` premise assumes could hold one, and that premise says the file holds `D`
+(etcd's buckets hold none).
 What the visitor must not do, and the spec excludes:
 - close the transaction (`TestVisitorRollbackPanics`: the next `Next` panics, "tx closed"): the walk keeps
   half of `txLive`, so the visitor cannot meet `Tx.Rollback_kv`'s `txLive tx 1`;
