@@ -316,6 +316,41 @@ theorem tie_pick {ws : List LWinRec} {log : mvcc.Log} {tw : List TWRec} {anc : L
     exact ⟨j0, L0, hmem, List.prefix_refl _, hj0, h3 T rfl,
       hW.2.2 _ s0 T j0 i hwn h2 hj0 hend⟩
 
+/-- With no window open, the last record is a free marker. -/
+theorem tieOk_free_last {ws : List LWinRec} {log : mvcc.Log} {tw : List TWRec} {anc : List TARec}
+    (h : tieOk ws log tw anc) (hw : lastWin ws = none) :
+    ∃ (s : Nat) (Lt : mvcc.Log), tw[tw.length - 1]? = some (s, none, Lt) := by
+  obtain ⟨hW, hne, -⟩ := h
+  cases hl : tw.getLast? with
+  | none => exact absurd (List.getLast?_eq_none_iff.1 hl) hne
+  | some r =>
+    obtain ⟨s, x, Lt⟩ := r
+    have hws : ws.getLast? = some (s, x) := by rw [← hW, List.getLast?_map, hl]; rfl
+    cases x with
+    | none => exact ⟨s, Lt, by rw [List.getLast?_eq_getElem?] at hl; exact hl⟩
+    | some T => unfold lastWin at hw; rw [hws] at hw; cases hw
+
+/-- Every anchor's window is a record. -/
+theorem tieOk_idx {ws : List LWinRec} {log : mvcc.Log} {tw : List TWRec} {anc : List TARec}
+    (h : tieOk ws log tw anc) : ∀ a ∈ anc, a.1 < tw.length := by
+  intro a ha
+  obtain ⟨s, x, Lt, h1, -⟩ := h.2.2.1 a ha
+  exact (List.getElem?_eq_some_iff.1 h1).1
+
+/-- **The law's conclusion at an index of a window** (pure): the snapshot `σl` at `i`, stable from the anchor's
+snapshot `σa` (at `ja`, of the items of `La`) in the window of target `T` (the items of `Lt`), holds every item that
+both `La` and `Lt` put on `id`, and `id` is live there. -/
+theorem tie_holds {hs : List lease.LSnap} {ja i : Nat} {σa σl : lease.LSnap} {La Lt : mvcc.Log}
+    {T : GMap LeaseItem w64} (ha : hs[ja]? = some σa) (haI : σa.2.1 = itemsOfLog La)
+    (hst : lease.winStable hs ja T i) (hi : hs[i]? = some σl) (hT : T = itemsOfLog Lt)
+    (hlive : lease.itemsLive σl) :
+    ∀ (it : LeaseItem) (id : w64), (itemsOfLog La).lookup it = some id →
+      (itemsOfLog Lt).lookup it = some id → σl.2.1.lookup it = some id ∧ (σl.1.lookup id).isSome := by
+  intro it id h1 h2
+  have h3 := hst σa σl ha hi it (by rw [haI, hT, h1, h2])
+  rw [hT, h2] at h3
+  exact ⟨h3, hlive it id h3⟩
+
 end pure
 
 /-! ## The invariant -/
@@ -830,6 +865,137 @@ theorem tie_alloc (Fr : Prop) (γl : GName) (γs : KVSNames) (L : List w64) (log
   iunfold winTieInv
   iunfold winTok
   iframe Hinv Ho Hwt
+
+/-- **The law's observation** (step 7): with no window free (`¬ Fr`: a free marker carries `Fr`), the tie's records
+`tw0` and anchors `anc0` now, whose last anchor `(tw0.length - 1, j0, L0)` is the open window's at the store's log
+`L0`, which extends the floor `F`; the lessor's history reaches `j0`. -/
+theorem tie_obs (kv : GoInterface) (γ : MvccName) (γs : KVSNames) (Fr : Prop) (hFr : ¬ Fr) (γl : GName)
+    (γt : WTNames) (F : mvcc.Log) (E : CoPset) (hE1 : ↑kvsN ⊆ E) (hE2 : ↑winTieN ⊆ E \ ↑kvsN) :
+    kvStoreInvG (GF := GF) kv γ Nx Cp γs ∗ winTieInv Nx Fr γl γs γt ∗ kvLogLb γs F ⊢ |={E}=>
+      ∃ (tw0 : List TWRec) (anc0 : List TARec) (j0 : Nat) (L0 : mvcc.Log),
+        monoListLbOwn γt.t tw0 ∗ monoListLbOwn γt.a anc0 ∗ lease.lessorLb γl j0 ∗
+        ⌜anc0.getLast? = some (tw0.length - 1, j0, L0) ∧ F <+: L0 ∧ ∀ a ∈ anc0, a.1 < tw0.length⌝ := by
+  iintro ⟨Hk, #Ht, #Hlb⟩
+  iunfold kvStoreInvG at Hk
+  icases Hk with ⟨-, #Hinv⟩
+  iunfold winTieInv at Ht
+  iunfold winTieBody at Ht
+  iunfold kvLogLb at Hlb
+  iinv Hinv with ⟨%σ, Hs, >Hst, >Hcr, >Hsl, >Hnl, >#Hnx1, >#Hnx2, >#Hrc, >#Hco⟩ Hclose
+  iinv Ht with ⟨%ws, %tl, %tp, %tw, %anc, >Hwt', >Hgw, >Hts, >Htw, >Han, >#Htf, >#Haf, >%Hok⟩ Hclose'
+  ihave %HF := mono_list_auth_lb_valid γs.slog 1 σ.log F $$ Hsl Hlb
+  ihave %Hag := ghostVar_agree γs.st _ _ _ _ $$ Hst Hts
+  simp only [Prod.mk.injEq] at Hag
+  obtain ⟨hl, -⟩ := Hag
+  subst hl
+  rcases Option.eq_none_or_eq_some (lastWin ws) with hlw | ⟨⟨s, T⟩, hlw⟩
+  · obtain ⟨s, Lt, hr⟩ := tieOk_free_last Hok hlw
+    ihave Hf := BigSepL.bigSepL_lookup (Φ := fun _ r => twFacts Nx Fr r) hr $$ Htf
+    iunfold twFacts at Hf
+    simp only
+    icases Hf with %Hf
+    exact absurd Hf hFr
+  · obtain ⟨j, hj⟩ := Hok.2.2.2.2.2.2 s T hlw
+    ihave #Ha := BigSepL.bigSepL_mem (Φ := fun a => ancFacts Nx γl a) (List.mem_of_getLast? hj) $$ Haf
+    iunfold ancFacts at Ha
+    icases Ha with ⟨%σa, #Has, -, -⟩
+    ihave #Hlj := lease.lessorAt_lb γl j σa $$ Has
+    ihave #Htw0 := monoListLbOwn_get γt.t 1 tw $$ Htw
+    ihave #Han0 := monoListLbOwn_get γt.a 1 anc $$ Han
+    imod Hclose' $$ [Hwt' Hgw Hts Htw Han] with -
+    · inext
+      iexists ws, σ.log, tp, tw, anc
+      iframe Hwt' Hgw Hts Htw Han Htf Haf
+      ipureintro; exact Hok
+    imod Hclose $$ [Hs Hst Hcr Hsl Hnl] with -
+    · inext
+      iexists σ
+      iframe Hs Hst Hcr Hsl Hnl Hnx1 Hnx2 Hrc Hco
+    imodintro
+    iexists tw, anc, j, σ.log
+    iframe Htw0 Han0 Hlj
+    ipureintro
+    exact ⟨hj, HF.2, tieOk_idx Hok⟩
+
+/-- **The law at an index** (step 7): for an index `i ≥ j0` of the lessor's history (at the snapshot `σl`), from the
+observation's records `tw0`/`anc0` (`tie_obs`), two committed logs `La` (extending the observation's `L0`) and `Lt`
+(`La`'s extension, or of `La`'s items) such that `σl` holds every item both put on `id`, with `id` live. -/
+theorem tie_law (Fr : Prop) (hFr : ¬ Fr) (γl : GName) (γs : KVSNames) (γt : WTNames) {tw0 : List TWRec}
+    {anc0 : List TARec} {j0 : Nat} {L0 : mvcc.Log} (hlast : anc0.getLast? = some (tw0.length - 1, j0, L0))
+    (hidx : ∀ a ∈ anc0, a.1 < tw0.length) (i : Nat) (σl : lease.LSnap) (hj0 : j0 ≤ i) (E : CoPset)
+    (hE1 : ↑winTieN ⊆ E) (hE2 : ↑lease.lessorRdN ⊆ E \ ↑winTieN) :
+    winTieInv (GF := GF) Nx Fr γl γs γt ∗ lease.lessorRdInv γl ∗ monoListLbOwn γt.t tw0 ∗
+      monoListLbOwn γt.a anc0 ∗ lessorAt γl i σl ⊢ |={E}=>
+      ∃ (La Lt : mvcc.Log), □ Nx La ∗ □ Nx Lt ∗ ⌜L0 <+: La ∧ (La <+: Lt ∨ itemsOfLog La = itemsOfLog Lt) ∧
+        ∀ (it : LeaseItem) (id : w64), (itemsOfLog La).lookup it = some id →
+          (itemsOfLog Lt).lookup it = some id → σl.2.1.lookup it = some id ∧ (σl.1.lookup id).isSome⌝ := by
+  iintro ⟨#Ht, #Hl, #Htw0, #Han0, #Hi⟩
+  iunfold winTieInv at Ht
+  iunfold winTieBody at Ht
+  iunfold lease.lessorRdInv at Hl
+  icases Hl with ⟨%γr, #Hpr, #Hinv⟩
+  iinv Ht with ⟨%ws, %tl, %tp, %tw, %anc, >Hwt', >Hgw, >Hts, >Htw, >Han, >#Htf, >#Haf, >%Hok⟩ Hclose'
+  ihave %Htw := mono_list_auth_lb_valid γt.t 1 tw tw0 $$ Htw Htw0
+  ihave %Han := mono_list_auth_lb_valid γt.a 1 anc anc0 $$ Han Han0
+  iinv Hinv with Hb Hclose
+  iunfold lease.lessorRdBody at Hb
+  icases Hb with ⟨%hs, %Sm, >Hh, HS, Hok1, Hmono, HU, Htie, Hids, >HW, HQ⟩
+  iunfold lease.lessorWinBody at HW
+  icases HW with ⟨%ws1, Hwi, %HWok⟩
+  iunfold lessorWinTie at Hwt'
+  icases Hwt' with ⟨%γr2, #Hpr2, Hwt'⟩
+  ihave %H2 := lease.lessorPinR_agree γl γr γr2 $$ [$Hpr $Hpr2]
+  subst H2
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws1 ws $$ Hwi Hwt'
+  obtain ⟨-, Hag⟩ := Hag
+  subst ws1
+  iunfold lessorAt at Hi
+  icases Hi with ⟨%γr3, #Hpr3, #Hidx⟩
+  ihave %H3 := lease.lessorPinR_agree γl γr γr3 $$ [$Hpr $Hpr3]
+  subst H3
+  ihave %hi := mono_list_auth_idx_lookup γr.1 _ hs i σl $$ Hh Hidx
+  obtain ⟨n, s, x, Lt, hr, hpick⟩ := tie_pick Hok HWok.1 Htw.2 Han.2 hlast hidx hi hj0
+  ihave #Hf := BigSepL.bigSepL_lookup (Φ := fun _ r => twFacts Nx Fr r) hr $$ Htf
+  iunfold twFacts at Hf
+  cases x with
+  | none =>
+    simp only
+    icases Hf with %Hf
+    exact absurd Hf hFr
+  | some T =>
+    simp only
+    obtain ⟨ja, La, hmem, hL0, -, hor, hst⟩ := hpick T rfl
+    obtain ⟨hT, -⟩ := Hok.2.2.2.1 n s T Lt hr
+    ihave #Ha := BigSepL.bigSepL_mem (Φ := fun a => ancFacts Nx γl a) hmem $$ Haf
+    iunfold ancFacts at Ha
+    simp only
+    icases Ha with ⟨%σa, #Has, %HaI, #HnA⟩
+    iunfold lessorAt at Has
+    icases Has with ⟨%γr4, #Hpr4, #Hidx4⟩
+    ihave %H4 := lease.lessorPinR_agree γl γr γr4 $$ [$Hpr $Hpr4]
+    subst H4
+    ihave %ha := mono_list_auth_idx_lookup γr.1 _ hs ja σa $$ Hh Hidx4
+    have hlive : lease.itemsLive σl := HWok.2 σl (List.mem_of_getElem? hi)
+    imod Hclose $$ [Hh HS Hok1 Hmono HU Htie Hids HQ Hwi] with -
+    · inext; iunfold lease.lessorRdBody; iexists hs, Sm; iframe Hh HS Hok1 Hmono HU Htie Hids HQ
+      iunfold lease.lessorWinBody
+      iexists ws; iframe Hwi
+      ipureintro; exact HWok
+    imod Hclose' $$ [Hwt' Hgw Hts Htw Han] with -
+    · inext
+      iexists ws, tl, tp, tw, anc
+      iframe Hgw Hts Htw Han Htf Haf
+      isplitl [Hwt']
+      · iunfold lessorWinTie; iexists γr; iframe Hpr Hwt'
+      ipureintro; exact Hok
+    imodintro
+    iexists La, Lt
+    iframe HnA Hf
+    ipureintro
+    refine ⟨hL0, ?_, tie_holds ha HaI hst hi hT hlive⟩
+    rcases hor with h | h
+    · exact Or.inl h
+    · exact Or.inr (h.trans hT)
 
 end laws
 
