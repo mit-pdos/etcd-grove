@@ -245,9 +245,9 @@ theorem runner.apply.wp_proof
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
       #Hreq, Hrdo, Hdel, Hlbe, Hrb, %Hrecs, Hstop, #Hpool⟩
     wp_apply (hTPut v.ι.kv trc true (σOf ks ops v.ops) [] ov.key' vs o.key o.val o.lease
-        (leasesAfter ks ops v.ops)) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
+        (leasesAfter ks ops v.ops) none) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
     · iframe; iframe #
-      ipureintro; exact ⟨Hkslen _ hkks, hlL⟩
+      ipureintro; exact ⟨Hkslen _ hkks, hlL, lease.winMove_none _ _⟩
     (try wp_auto)
     iunfold ownPending at Hpp
     icases Hpp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
@@ -327,6 +327,8 @@ theorem runner.apply.wp_proof
       iexists rd, r
       rw [hσ1, pendItems_commit]
       iframe; iframe #
+      isplitl [Hlo]
+      · iapply (lease.leaseOwnW_eq (by rfl)) $$ Hlo
       ipureintro; exact Hrecs
     ipureintro; exact HU
   simp only [hk0, _root_.decide_false]
@@ -928,7 +930,7 @@ theorem runner.apply.wp_proof
         · iframe; iframe #
         (try wp_auto)
         rw [hid]
-        wp_apply hR $$ [Hr1 Hrdo Hback Hpre Hlo Hrvk Hrb Hlbe Hau]
+        wp_apply (hR none) $$ [Hr1 Hrdo Hback Hpre Hlo Hrvk Hrb Hlbe Hau]
           as %err ⟨Hr1, Hrdo, Hback, Hlbe, Hres⟩
         · iframe Hlinv Hrevoc Hr1 Hrdo Hback Hhk Hrvk Hrb Hlbe
           isplitr
@@ -948,7 +950,7 @@ theorem runner.apply.wp_proof
             iexact Hau
           isplitl [Hlo]
           · rw [← pendItems_nil]; iexact Hlo
-          ipureintro; rw [HbkP.1]; exact mvccrand.rcP_lease _
+          ipureintro; rw [HbkP.1]; exact ⟨mvccrand.rcP_lease _, lease.winDrops_none _ _⟩
         icases Hres with (⟨%Hnin, -⟩ | ⟨%Hok2, HY, Hpost, Hlo, Hrvk, Hrb⟩)
         · exact absurd hidL Hnin
         obtain ⟨-, rfl⟩ := Hok2
@@ -958,6 +960,8 @@ theorem runner.apply.wp_proof
         (try wp_auto)
         iapply HΦ'
         icases HY with ⟨Hret, Hσw, Hbw⟩
+        ihave Hlo := lease.leaseOwnW_eq (γl := mvccLeases v.ι.kv) (L := List.filter (fun x => x != o.id) (leasesAfter ks ops v.ops)) (w := none) (I := leaseItemsOf (stateAfter (commitLog (logOfHist (histAt ks ops v.ops)) (leaseDels (stateAfter (logOfHist (histAt ks ops v.ops))) o.id)))) (J := leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+          (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) rfl $$ Hlo
         iframe
         iunfold incW; iframe; iframe #
       iframe

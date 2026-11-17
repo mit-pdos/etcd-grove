@@ -373,7 +373,7 @@ theorem histCover_snoc {hs : List LSnap} {U : List w64} (σ : LSnap) (h : histCo
 The apply loop opens a *window* per entry, `(start, T)`: `start` the history's last index when it opens, `T` the
 item map of the model after the entry. Every snapshot pushed while the window is open is *stable*: an item that the
 start snapshot already has at its target keeps it (`winStable`). The pushers that change items (`Attach`, `Detach`)
-take `winStep`: every item they change goes to its target. The windows' list also records *free* markers
+take `winStep`: every item at its target stays there. The windows' list also records *free* markers
 (`(start, none)`): the owner drops to no window (`leaseOwn`, for `Recover`/`Restore`) only through one (`win_free`),
 so the windows cover every index from the first one's start, contiguously (`winEnd`). -/
 
@@ -389,10 +389,10 @@ def lastWin (ws : List LWinRec) : Option LWin :=
   | some (s, some T) => some (s, T)
   | _ => none
 
-/-- **A step from the item map `I` to `I'` within the window `w`**: every item it changes goes to the window's
-target (`True` with no window). -/
+/-- **A step from the item map `I` to `I'` within the window `w`**: every item at the window's target stays there
+(`True` with no window). (So `put`'s `Detach` then `Attach` of a key moving to its target are both steps.) -/
 def winStep (w : Option LWin) (I I' : GMap LeaseItem w64) : Prop :=
-  ∀ v : LWin, w = some v → ∀ k : LeaseItem, I.lookup k ≠ I'.lookup k → I'.lookup k = v.2.lookup k
+  ∀ v : LWin, w = some v → ∀ k : LeaseItem, I.lookup k = v.2.lookup k → I'.lookup k = v.2.lookup k
 
 /-- **The index `j` of `hs` is stable in the window `(s, T)`**: every item at its target in the snapshot `s` is at
 its target in the snapshot `j`. -/
@@ -422,10 +422,84 @@ theorem winsOk_nil (hs : List LSnap) : winsOk hs [] :=
   ⟨fun _ _ h => by simp at h, fun _ _ _ h => by simp at h, fun _ _ _ _ h => by simp at h⟩
 
 theorem winStep_same (w : Option LWin) (I : GMap LeaseItem w64) : winStep w I I :=
-  fun _ _ _ h => absurd rfl h
+  fun _ _ _ h => h
+
+theorem winStep_trans {w : Option LWin} {I I' I'' : GMap LeaseItem w64} (h1 : winStep w I I')
+    (h2 : winStep w I' I'') : winStep w I I'' :=
+  fun v hv k hk => h2 v hv k (h1 v hv k hk)
 
 theorem winStep_none (I I' : GMap LeaseItem w64) : winStep none I I' :=
   fun _ h => by cases h
+
+/-- **A move from the item map `I` to `I'` toward the window `w`'s target**: every item it changes goes to the
+target (`True` with no window). The callers above the lessor (mvcc's writes, the txn layer) take it; it gives the
+lessor's `winStep` for each of the `Detach`/`Attach` calls the move makes (`winStep_pre`, `winStep_post`). -/
+def winMove (w : Option LWin) (I I' : GMap LeaseItem w64) : Prop :=
+  ∀ v : LWin, w = some v → ∀ k : LeaseItem, I.lookup k ≠ I'.lookup k → I'.lookup k = v.2.lookup k
+
+theorem winMove_none (I I' : GMap LeaseItem w64) : winMove none I I' :=
+  fun _ h => by cases h
+
+theorem winMove_same (w : Option LWin) (I : GMap LeaseItem w64) : winMove w I I :=
+  fun _ _ _ h => absurd rfl h
+
+/-- A move is a step. -/
+theorem winStep_of_move {w : Option LWin} {I I' : GMap LeaseItem w64} (h : winMove w I I') :
+    winStep w I I' := fun v hv k hk => by
+  by_cases hc : I.lookup k = I'.lookup k
+  · rw [← hc]; exact hk
+  · exact h v hv k hc
+
+/-- **A step to an intermediate map `J` of a move `I → I'`**: `J` changes only items the move changes. -/
+theorem winStep_pre {w : Option LWin} {I J I' : GMap LeaseItem w64} (h : winMove w I I')
+    (hJ : ∀ k : LeaseItem, J.lookup k ≠ I.lookup k → I.lookup k ≠ I'.lookup k) : winStep w I J :=
+  fun v hv k hk => by
+  by_cases hc : J.lookup k = I.lookup k
+  · rw [hc]; exact hk
+  · have h1 := hJ k hc
+    exact absurd (hk.trans (h v hv k h1).symm) h1
+
+/-- **A step from an intermediate map `J` of a move `I → I'`**: `J` differs from `I'` only on items the move
+changes. -/
+theorem winStep_post {w : Option LWin} {I J I' : GMap LeaseItem w64} (h : winMove w I I')
+    (hJ : ∀ k : LeaseItem, J.lookup k ≠ I'.lookup k → I.lookup k ≠ I'.lookup k) : winStep w J I' :=
+  fun v hv k hk => by
+  by_cases hc : J.lookup k = I'.lookup k
+  · rw [← hc]; exact hk
+  · exact h v hv k (hJ k hc)
+
+/-- **A move through a map between its ends** (each item at its start or its end value): the first part. -/
+theorem winMove_between_left {w : Option LWin} {I J I' : GMap LeaseItem w64} (h : winMove w I I')
+    (hJ : ∀ k : LeaseItem, J.lookup k = I.lookup k ∨ J.lookup k = I'.lookup k) : winMove w I J :=
+  fun v hv k hk => by
+  rcases hJ k with h1 | h1
+  · exact absurd h1.symm hk
+  · rw [h1]; exact h v hv k (by rw [← h1]; exact hk)
+
+/-- **A move through a map between its ends**: the second part. -/
+theorem winMove_between_right {w : Option LWin} {I J I' : GMap LeaseItem w64} (h : winMove w I I')
+    (hJ : ∀ k : LeaseItem, J.lookup k = I.lookup k ∨ J.lookup k = I'.lookup k) : winMove w J I' :=
+  fun v hv k hk => by
+  rcases hJ k with h1 | h1
+  · exact h v hv k (by rw [← h1]; exact hk)
+  · exact absurd h1 hk
+
+/-- **Items the window `w` drops**: every item of `I` that `sel` selects has no target lease (`True` with no
+window). A range delete takes it for its range (mvcc's `Txn.DeleteRange.contract`): its keys are selected, so the
+delete is a move (`winMove_of_drops`) whichever keys it finds. -/
+def winDrops (w : Option LWin) (I : GMap LeaseItem w64) (sel : LeaseItem → Prop) : Prop :=
+  ∀ v : LWin, w = some v → ∀ it : LeaseItem, sel it → I.lookup it ≠ none → v.2.lookup it = none
+
+theorem winDrops_none (I : GMap LeaseItem w64) (sel : LeaseItem → Prop) : winDrops none I sel :=
+  fun _ h => by cases h
+
+/-- **Removing selected items is a move** when the window drops them. -/
+theorem winMove_of_drops {w : Option LWin} {I J : GMap LeaseItem w64} {sel : LeaseItem → Prop}
+    (h : winDrops w I sel) (hJ : ∀ it : LeaseItem, J.lookup it = I.lookup it ∨ (J.lookup it = none ∧ sel it)) :
+    winMove w I J := fun v hv it hit => by
+  rcases hJ it with h1 | ⟨h1, hs⟩
+  · exact absurd h1.symm hit
+  · rw [h1]; exact (h v hv it hs (by rw [h1] at hit; exact hit)).symm
 
 def lessorRdN : Namespace := nroot .@ "lessor_rd"
 

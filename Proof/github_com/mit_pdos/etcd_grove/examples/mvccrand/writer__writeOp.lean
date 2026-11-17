@@ -209,9 +209,9 @@ theorem writer.writeOp.wp_proof
       rcases Hl with h | h
       · exact Or.inl h
       · exact Or.inr ((HLm l).1 h)
-    wp_apply (hPutC γ.kv trace te σ pend ks vs kk (go!"v" ++ itoaM (sint.nat (n + W64 1))) l L)
+    wp_apply (hPutC γ.kv trace te σ pend ks vs kk (go!"v" ++ itoaM (sint.nat (n + W64 1))) l L none)
       $$ [$Hmv $Htx $Htrc $Hks $Hvs $Hlo] as ⟨Htx, Htrc, Hlo⟩
-    · ipureintro; exact ⟨by omega, hlL⟩
+    · ipureintro; exact ⟨by omega, hlL, lease.winMove_none _ _⟩
     (try wp_auto)
     iunfold ownPending at Hp
     icases Hp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
@@ -246,8 +246,9 @@ theorem writer.writeOp.wp_proof
       wp_apply wp_del p P ks es kk e DFrac.discard DFrac.discard
         $$ [$Hpkg $Hp $Hks $Hes] as ⟨Hp, -, -⟩
       (try wp_auto)
-      wp_apply (hDelC γ.kv trace σ pend ks es kk e L) $$ [$Hmv $Htx $Hks $Hes $Hlo]
+      wp_apply (hDelC γ.kv trace σ pend ks es kk e L none) $$ [$Hmv $Htx $Hks $Hes $Hlo]
         as %n2 %rev ⟨Htx, Hlo, %Hnr, %Hlwf⟩
+      · ipureintro; exact lease.winDrops_none _ _
       have hks := delKeys_eq_match σ.log pend hne hLok (decide (es = slice.nil)) kk e P.st hok.2
       have hok' := pendOk_del' σ Hs pend P hok (decide (es = slice.nil)) kk e hks
       have hLog' : txn.LogOk (σ.log ++ [pend ++

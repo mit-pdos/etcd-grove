@@ -691,31 +691,37 @@ abbrev Txn.Range.contract (ty : go.GoType) (v : val) : Prop :=
         stateOk (stateAt k.readLog r')⌝ ∗
       ⌜LogWf' k.readLog ∧ ∀ cs ∈ k.readLog, cs.length < 2 ^ 63⌝ }}
 
+/-- A write transaction's put: appended to the pending revision. (Item 7b, 2026-11-17) In the lease owner's lessor
+window `w`, the put moves the key's item toward the window's target (`lease.winMove`; `True` at `w = none`). -/
 abbrev Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (te : Bool) (σ : MvccState) (pend : List Change)
-    (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64),
+    (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64) (w : Option lease.LWin),
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
       key ↦*□ k ∗ value ↦*□ vv ∗ ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ }}
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log pend) w ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      ⌜lease.winMove w (pendItems σ.log pend) (pendItems σ.log (pend ++ [.put k vv leaseID]))⌝ }}
     (App (App (App (Val #(methods ty go!"Put" v)) (Val #key)) (Val #value)) (Val #leaseID))
   {{ RET #(W64 (σ.log.length : Int) : w64);
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ [.put k vv leaseID])) ∗
       traceutil.ownTrace trace te ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (pend ++ [.put k vv leaseID])) }}
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log (pend ++ [.put k vv leaseID])) w }}
 
 /-- A write transaction's delete of a range: the deletes of the range's present keys appended to
 the pending revision; the state after them well formed, each revision of fewer than `2 ^ 63` changes
-(txn's migration, 2026-11-05: decided by the coordinator, F). -/
+(txn's migration, 2026-11-05: decided by the coordinator, F). (Item 7b, 2026-11-17) In the owner's lessor window
+`w`, the window drops the items of the range (`lease.winDrops`, over the keys the range selects, `delSel`: stated
+without the keys found, which the caller learns only after the call). -/
 abbrev Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : MvccName) (trace : Loc) (σ : MvccState) (pend : List Change) (key endk : GoSlice)
-    (k e : GoString) (L : List w64),
+    (k e : GoString) (L : List w64) (w : Option lease.LWin),
   let ds := (delKeys σ.log pend (decide (endk = slice.nil)) k e).map Change.del
   {{ pkgInit ∗ mvccTxn (interface.mkOk ty v) γ trace (.write σ pend) ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log pend) }}
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log pend) w ∗
+      ⌜lease.winDrops w (pendItems σ.log pend) (fun it => delSel (decide (endk = slice.nil)) k e it.Key')⌝ }}
     (App (App (Val #(methods ty go!"DeleteRange" v)) (Val #key)) (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev);
       mvccTxn (interface.mkOk ty v) γ trace (.write σ (pend ++ ds)) ∗
-      lease.leaseOwn (mvccLeases γ) L (pendItems σ.log (pend ++ ds)) ∗
+      lease.leaseOwnW (mvccLeases γ) L (pendItems σ.log (pend ++ ds)) w ∗
       ⌜n = W64 (ds.length : Int) ∧ rev = W64 ((writeRev σ.log (pend ++ ds) : Nat) : Int)⌝ ∗
       ⌜LogWf' (σ.log ++ [pend ++ ds]) ∧ ∀ cs ∈ σ.log ++ [pend ++ ds], cs.length < 2 ^ 63⌝ }}
 

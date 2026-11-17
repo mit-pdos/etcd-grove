@@ -219,11 +219,11 @@ theorem writer.put.wp_proof
   imod ownSlice_persist _ _ _ $$ Hvs with #Hvs
   (try wp_auto)
   have hkl := keyList_short kk Hkk
-  wp_apply (hPutC γ.kv trace true σ [] ks vs kk _ l L) $$ [$Hmv $Htx $Htrc $Hks $Hvs $Hlo]
+  wp_apply (hPutC γ.kv trace true σ [] ks vs kk _ l L none) $$ [$Hmv $Htx $Htrc $Hks $Hvs $Hlo]
     as ⟨Htx, Htrc, Hlo⟩
   · iframe
     ipureintro
-    refine ⟨by omega, ?_⟩
+    refine ⟨by omega, ?_, lease.winMove_none _ _⟩
     rcases Hl with h | h
     · exact Or.inl h
     · exact Or.inr ((HLm l).1 h)

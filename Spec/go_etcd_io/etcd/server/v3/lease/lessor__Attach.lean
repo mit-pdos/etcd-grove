@@ -26,7 +26,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 (`id ∈ L`) and items on no other lease: adds the items to the lease's item set and the item map
 (the owner's `I`, unit T3, L2b) and returns `nil`.
 (auth-lease S4 item 7b, 2026-11-17) In the owner's open window `w` (`leaseOwnW`; `leaseOwn` is `w = none`),
-the items it changes go to the window's target (`winStep`), so the snapshot it pushes is stable in the window. -/
+the items at the window's target stay there (`winStep`), so the snapshot it pushes is stable in the window. -/
 abbrev lease.lessor.Attach.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id : w64) (items : GoSlice) (xs : List LeaseItem) (dq : DFrac)
     (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin),

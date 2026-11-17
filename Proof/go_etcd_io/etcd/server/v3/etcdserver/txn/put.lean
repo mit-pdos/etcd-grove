@@ -69,11 +69,11 @@ set_option hygiene false in
 /-- The put of value `v` (slice `vsl`, `#HVS`) with lease `l`, the trace field, and the answer
 up to its `PrevKv`, which the caller gives (all ten cases). -/
 local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic| (
-    wp_apply (hPutM γ trace te σ pend ksl $vsl k $v $l L)
+    wp_apply (hPutM γ trace te σ pend ksl $vsl k $v $l L none)
       $$ [$(frameH `Htx) $(frameH `Htrc) $(frameH `Hks) $(frameH `HVS) $(frameH `Hlok)
         $(frameH `Hown)]
       as ⟨Htx, Htrc, Hown⟩
-    · ipureintro; exact Hklen
+    · ipureintro; exact ⟨Hklen, Perennial.EtcdGrove.lease.winMove_none _ _⟩
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl

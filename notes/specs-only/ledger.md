@@ -653,3 +653,29 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   - Closed results whose text is unchanged and whose meaning gets stronger (decided fine by etcd-grove-03,
     2026-11-17): `txn/Results.lean` `txn_runTxn` (`lessorUser`), `etcdserver/Results.lean` `server_kv_backend`
     (post `mvccDeleter`), `lessor_apply_contract` (`isApplyLessor`).
+- **Step 3 (mvcc, 2026-11-17).** Decided by etcd-grove-03 (option (a) of `questions.md`, "Item 7b step 3"):
+  **premise strengthened, discharged by every client.** Old → new:
+  - `mvcc.isLessor le γl` (`InvStore.lean`): the `GetLease`/`Attach`/`Detach` clauses over `leaseOwn γl L I` →
+    `∀ w`, over `leaseOwnW γl L I w` (`Attach`/`Detach` with `⌜winStep w I I'⌝`); `SetRangeDeleter` unchanged.
+  - `txn.isTxnLessor le γl` (`txn/Defs.lean`): `isLessor` as above, and the `Lookup` clause over `lessorUser γl L I`
+    / `lessorUserOpen …` → `∀ w`, over `lessorUserW γl L I w` / `lessorUserOpenW … w`.
+  - Closed results whose premise text is unchanged and whose premise gets stronger: `etcdserver/Results.lean`
+    `server_kv_backend` and its two siblings (lines 939, 1010, 1155: `mvcc.isLessor le γl`), `txn/Results.lean`
+    `txn_runTxn` (`isTxnLessor`). Every client discharges them from the real lessor (`isLessor_of_lessorInv`,
+    `isTxnLessor_of_lessorInv`, which the window-generic lessor specs prove at any `w`).
+  - Form: `winStep w I I'` is now monotone (`I k = T k → I' k = T k`: an item at its target stays there), weaker than
+    the step-1 form (an item changed goes to its target), so that `put`'s `Detach` then `Attach` of a key moving to its
+    target are both steps; `Attach`/`Detach`'s premise gets weaker (their specs stronger). Above the lessor the callers
+    take `winMove w I I'` (the step-1 form) for the whole write, which gives each lessor call's `winStep`
+    (`winStep_pre`/`winStep_post`/`winStep_of_move`).
+  - `mvcc.storeTxnWrite.{put,delete,deleteRange,Put,DeleteRange}.spec`, `metricsTxnWrite.{Put,DeleteRange}.spec`:
+    `leaseOwn γ.leases L (pendItems ilog pend)` → `leaseOwnW … w` in pre and post (∀ `w`, last binder), plus the
+    premise `⌜winMove w (pendItems ilog pend) (pendItems ilog (pend ++ ops))⌝` (`True` at `none`).
+  - `mvcc.api.Txn.Put.contract`: the same (`leaseOwnW … w`, `winMove w (pendItems σ.log pend) (pendItems σ.log (pend
+    ++ [.put k vv leaseID]))`). `Txn.DeleteRange.contract`: `leaseOwnW … w` and `⌜winDrops w (pendItems σ.log pend)
+    (fun it => delSel (decide (endk = slice.nil)) k e it.Key')⌝` (the window drops the range's items: stated over the
+    range, since the caller learns the keys found, `delKeys`, only after the call).
+  - `lease.lessor.Revoke.spec`: `leaseOwn γl L I₀` → `leaseOwnW γl L I₀ w` in pre and both posts (∀ `w`, last
+    binder), plus `⌜winDrops w I₀ (fun it => I₀.lookup it = some id)⌝` (the window drops the lease's items).
+  - Not thawed (left at `leaseOwn`): `KV.Put/DeleteRange.contract`, `writeView.{Put,DeleteRange}.spec` (no apply-loop
+    caller), `mvccDeleter` (the window is in the owner's resource, not in the deleter's transaction).

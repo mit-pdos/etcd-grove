@@ -239,7 +239,7 @@ theorem writeView_Put_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
   wp_apply (hPut γ t true σ [] key value k vv leaseID L) $$ [Htx Htrc Hown]
     as ⟨Htx, Htrc, Hown⟩
   · iframe Htx Htrc Hkey Hval Hown
-    ipureintro; exact ⟨Hklen, Hlease⟩
+    ipureintro; exact ⟨Hklen, Hlease, lease.winMove_none _ _⟩
   (try wp_auto)
   -- the deferred `tw.End()`: the client's update, at the begin state
   rw [List.nil_append] at *
@@ -300,6 +300,7 @@ theorem writeView_DeleteRange_api (hTODO : traceutil.TODO.spec (GF := GF) (hG :=
   wp_apply (hDel γ t σ [] key endk k e L) $$ [Htx Hown]
     as %n %rev ⟨Htx, Hown, %Hnr, -⟩
   · iframe Htx Hkey Hend Hown
+    ipureintro; exact lease.winDrops_none _ _
   (try wp_auto)
   -- the deferred `tw.End()`: the client's update, at the begin state
   rw [List.nil_append] at *

@@ -509,7 +509,7 @@ theorem writer.revoke.wp_proof
         iexact Hau
       isplitl [Hlo]
       · rw [← pendItems_nil]; iexact Hlo
-      ipureintro; exact HlP
+      ipureintro; exact ⟨HlP, lease.winDrops_none _ _⟩
     icases Hres with (⟨%Hnin, -⟩ | ⟨%Hok2, HY, Hpost, Hlo, Hrvk, Hrb⟩)
     · exact absurd hidL Hnin
     obtain ⟨-, rfl⟩ := Hok2

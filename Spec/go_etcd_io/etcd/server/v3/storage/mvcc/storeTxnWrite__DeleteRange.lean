@@ -23,19 +23,21 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- `tw.DeleteRange(key, end)`: `deleteRange`, returning the number of keys deleted and the
 transaction's revision after it (the pending one once it has a change, else the committed
-log's last). -/
+log's last). (Item 7b, 2026-11-17)
+In the owner's lessor window `w`, the deletes move their keys' items toward the target (`winMove`). -/
 abbrev mvcc.storeTxnWrite.DeleteRange.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z : IProp GF),
+    (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z : IProp GF) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
+      lease.leaseOwnW γ.leases L (mvcc.pendItems ilog pend) w ∗
+      ⌜lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del))⌝ }}
     (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"DeleteRange"))
       (Val #key)) (Val #endk))
   {{ (n rev : w64), RET (PairV #n #rev);
       mvcc.storeTxnWriteIs tw s γ trace ilog
         (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) crev Z ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del)) ∗
+      lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del)) w ∗
       ⌜n = W64 ((mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length : Int) ∧
         rev = W64 ((mvcc.writeRev ilog
           (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) : Nat) : Int)⌝ }}

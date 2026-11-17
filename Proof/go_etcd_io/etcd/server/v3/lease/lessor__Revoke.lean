@@ -48,10 +48,10 @@ theorem lease.lessor.Revoke.wp_proof
     (hisB : mvcc.api.mvccBackend_isBackend.law (GF := GF) (hG := hG))
     (hLD : mvcc.api.mvccTxn_leaseDelete.law (GF := GF) (hG := hG)) :
     lease.lessor.Revoke.spec (GF := GF) (hG := hG) := by
-  intro lp γ id rd q B P f σ₀ L r Pre Q Post Y
+  intro lp γ id rd q B P f σ₀ L r Pre Q Post Y w
   dsimp only
   wp_start as ⟨#Hinv, #Hrev, Hrdr, Hro, Hrd, Hbk, #Hhook, Hcs, %Hlen, Hau, Hown, Hrvk, Hrb, %Hlpar,
-    Hbeon⟩
+    Hbeon, %Hwd⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
@@ -69,7 +69,7 @@ theorem lease.lessor.Revoke.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
-  iunfold leaseOwn at Hown; iunfold leaseOwnW at Hown
+  iunfold leaseOwnW at Hown
   icases Hown with ⟨Hfr, Hcls⟩
   ihave %Hag := leaseFrag_agree (mvccLeases γ) _ _ _ _ $$ [$Hfr $Hg]
   subst Hag
@@ -100,7 +100,7 @@ theorem lease.lessor.Revoke.wp_proof
     · ipureintro; exact hnot
     isplitr
     · iexists enf; iframe Henf; ipureintro; rfl
-    iunfold leaseOwn; iunfold leaseOwnW; iframe Hfr Hcls
+    iunfold leaseOwnW; iframe Hfr Hcls
   | some l =>
     simp only [Option.getD_some]
     have hidL : id ∈ L := (HL id).2 (by rw [hM]; rfl)
@@ -183,8 +183,8 @@ theorem lease.lessor.Revoke.wp_proof
     ihave Hcm := Hcw $$ %(mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) %(fun _ _ _ => Iff.rfl)
       [He Hio Hslot]
     · iunfold closerAt; iframe He Hio Hslot
-    ihave Hown : leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) $$ [Hfr Him' HI' Hcm Hch]
-    · iunfold leaseOwn; iunfold leaseOwnW; iframe Hfr
+    ihave Hown : leaseOwnW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) w $$ [Hfr Him' HI' Hcm Hch]
+    · iunfold leaseOwnW; iframe Hfr
       iunfold leaseClosers
       iexists lp, γga, γcl, C, im'
       iframe Hp Him' HI' Hcm Hch
@@ -230,7 +230,7 @@ theorem lease.lessor.Revoke.wp_proof
         "%Hj" ∷ ⌜j ≤ ks'.length⌝ ∗
         "Htx" ∷ mvccTxn (interface.mkOk tyX vX) γ trace
           (.write σ₀ ((ks'.take j).map mvcc.Change.del)) ∗
-        "Hown" ∷ leaseOwn (mvccLeases γ) L (mvcc.pendItems σ₀.log ((ks'.take j).map mvcc.Change.del)))
+        "Hown" ∷ leaseOwnW (mvccLeases γ) L (mvcc.pendItems σ₀.log ((ks'.take j).map mvcc.Change.del)) w)
         $$ [i key Htx Hown]
     · iexists 0, _
       simp only [named, List.take_zero, List.map_nil]
@@ -285,8 +285,17 @@ theorem lease.lessor.Revoke.wp_proof
         | some _ => rfl
       -- `txn.DeleteRange([]byte(key), nil)`: the key alone (a key of the state, the log before
       -- the delete well formed: `txn.logOk_of_del`)
-      wp_apply (hDelC γ trace σ₀ ((ks'.take j).map mvcc.Change.del) ksb slice.nil kj [] L)
+      wp_apply (hDelC γ trace σ₀ ((ks'.take j).map mvcc.Change.del) ksb slice.nil kj [] L w)
         $$ [$Htx $Hksb $Hnil $Hown] as %n %rv ⟨Htx, Hown, -, %Hlwf'⟩
+      · -- the window drops the key: it is on the lease, not deleted yet
+        ipureintro
+        intro v hv it hsel hne
+        have hk : it.Key' = kj := by
+          simpa [mvcc.delSel] using hsel
+        have hit : it = LeaseItem.mk kj := by cases it; simp at hk; subst hk; rfl
+        subst hit
+        refine Hwd v hv _ ?_ (by rw [(Hks.1 kj).1 hkjks]; simp)
+        exact (Hks.1 kj).1 hkjks
       have hok' := txn.logOk_of_del σ₀ _ _ hreach Hlwf'.1 Hlwf'.2
       have hdk : mvcc.delKeys σ₀.log ((ks'.take j).map mvcc.Change.del) true kj [] = [kj] := by
         rw [txn.delKeys_eq σ₀.log _ hok' hne]
@@ -317,7 +326,7 @@ theorem lease.lessor.Revoke.wp_proof
       iunfold lessorMu at HR
       icases HR with ⟨%lm2, %im2, %M2, %I2, %rd2, %L2, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL2, #Hsz2, #Hls2, Hx,
         %γrl, %hsl, #Hprl, Hhl, %Hlastl⟩
-      iunfold leaseOwn at Hown; iunfold leaseOwnW at Hown
+      iunfold leaseOwnW at Hown
       icases Hown with ⟨Hfr, Hcls⟩
       ihave %Hag := leaseFrag_agree _ _ _ _ _ $$ [$Hfr $Hg]
       subst Hag
@@ -460,7 +469,7 @@ theorem lease.lessor.Revoke.wp_proof
             · exact hx
           · left; dsimp only at hx ⊢
             exact (HC4 x).1 (HIL4 it x hx))
-        none (winStep_none _ _) (fun _ => itemsLive_of _ hIL5 hC5)
+        w (winStep_same w _) (fun _ => itemsLive_of _ hIL5 hC5)
         $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hwo] with ⟨Ho, Hhl, HSo, Hwo⟩
       imodintro
       have hlast' : (hs ++ [(C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del),
@@ -511,7 +520,7 @@ theorem lease.lessor.Revoke.wp_proof
       iframe HY HPost Hrb
       rw [txn.stateAfter_commitLog]
       isplitl [Hfr Him4 HI4 Hcm Ho HSo Hwo]
-      · iunfold leaseOwn; iunfold leaseOwnW; iframe Hfr
+      · iunfold leaseOwnW; iframe Hfr
         iunfold leaseClosers
         iexists lp, γga, γcl, (C4.delete id), im4
         iframe Hp Him4 HI4 Hcm

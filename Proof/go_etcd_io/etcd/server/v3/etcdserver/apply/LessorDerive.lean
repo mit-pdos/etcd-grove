@@ -193,10 +193,10 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     ⟨Hmr, ⟨%rd, Hro, #Hdel⟩, #Hrev, Hbk, #Hhook, HBT, Hcs, %Hpure, Hau, Hown, Hrvk, #HK, HRO⟩ HΦ
   iunfold revokeLens at Hlens
   icases Hlens $$ %B %rs HBT HRO with ⟨HBT, Hrb, %hlp, Hbe, Hcl⟩
-  iapply (hRv lp γ id rd q B (Pk B) f σ₀ L rs.bk Pre Q Post Y) $$
+  iapply (hRv lp γ id rd q B (Pk B) f σ₀ L rs.bk Pre Q Post Y none) $$
     [Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe]
   · iframe Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrev Hdel Hhook
-    ipureintro; exact ⟨Hpure, hlp⟩
+    ipureintro; exact ⟨Hpure, hlp, lease.winDrops_none _ _⟩
   iintro !> %err ⟨Hmr, Hro, Hbk, Hbe, Hcase⟩
   icases Hcase with
     (⟨%Hnin, ⟨%e, #He, %Herr⟩, HPre, Hown, Hrvk, Hrb⟩ |

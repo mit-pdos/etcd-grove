@@ -40,12 +40,14 @@ lock) returns `nil` exactly when `id` is not live (`id ∉ L`; 2026-10-13, unit 
 derived from the lessor's proof, `lease.isTxnLessor_of_lessorInv`; unit T3, L3b, 2026-10-26: until
 then `nil` or a live lease), and a lease is the owner's lease of `id`: the owner's resource comes
 back opened at it (`lease.lessorUserOpen`, whose `Keys()` reads the item set; the lease-keys plan,
-item 4, 2026-10-31). -/
+item 4, 2026-10-31). (Item 7b, 2026-11-17, decided by etcd-grove-03: `Lookup` at any lessor window
+`w`, passed through, as mvcc's clauses.) -/
 def isTxnLessor (le : GoInterface) (γl : GName) : IProp GF :=
   iprop(mvcc.isLessor le γl ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
-    □ (∀ (id : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
-      {{ lease.lessorUser γl L I }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
-      {{ (l : Loc), RET #l; lease.lessorUserOpen γl L I id l ∗ ⌜l = null ↔ id ∉ L⌝ }}))
+    □ (∀ (id : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+        (w : Option lease.LWin),
+      {{ lease.lessorUserW γl L I w }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
+      {{ (l : Loc), RET #l; lease.lessorUserOpenW γl L I id l w ∗ ⌜l = null ↔ id ∉ L⌝ }}))
 
 instance isTxnLessor_persistent (le : GoInterface) (γl : GName) :
     Persistent (isTxnLessor (GF := GF) le γl) := by

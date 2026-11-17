@@ -58,7 +58,7 @@ theorem apply.checkLeasePuts.wp_proof
     iintro %_
     iapply apply.leaseKeysClass_empty
     exact hnone rfl
-  · iunfold lease.lessorUserOpen at Hu; iunfold lease.lessorUserOpenW at Hu
+  · (try iunfold lease.lessorUserOpen at Hu); iunfold lease.lessorUserOpenW at Hu
     icases Hu with (⟨%Hn, -⟩ | ⟨Hrdl, Hrv, Ho⟩)
     · exact absurd Hn hln
     simp only [hln, decide_false, Bool.not_false]

@@ -27,20 +27,22 @@ lessor's `GetLease` the old lease to detach, and `leaseID` is attached). The key
 value's bytes are read-only for good (the index and the change keep them); the lease, if
 any, is a granted one; the revision has room for the change. (Unit T3, L2b, 2026-10-25) The
 lease owner's item map is the pending state's (`pendItems`), before and after: `GetLease` finds
-the key's old lease in it, `Detach` and `Attach` move the key. -/
+the key's old lease in it, `Detach` and `Attach` move the key. (Item 7b, 2026-11-17) In the owner's lessor window
+`w`, the put moves the key's item toward the window's target (`winMove`; `True` at `w = none`). -/
 abbrev mvcc.storeTxnWrite.put.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
     (key value : GoSlice) (k v : GoString) (leaseID : w64) (L : List w64) (te : Bool) (crev : Int)
-    (Z : IProp GF),
+    (Z : IProp GF) (w : Option lease.LWin),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
       ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
-      traceutil.ownTrace trace te }}
+      lease.leaseOwnW γ.leases L (mvcc.pendItems ilog pend) w ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+      traceutil.ownTrace trace te ∗
+      ⌜lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ [.put k v leaseID]))⌝ }}
     (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"put")) (Val #key))
       (Val #value)) (Val #leaseID))
   {{ RET #(); mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.put k v leaseID]) crev Z ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) ∗
+      lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ [.put k v leaseID])) w ∗
       traceutil.ownTrace trace te }}
 
 end spec

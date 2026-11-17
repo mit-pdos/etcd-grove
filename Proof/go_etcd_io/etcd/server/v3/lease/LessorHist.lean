@@ -95,9 +95,7 @@ theorem winsOk_snoc {hs : List LSnap} {ws : List LWinRec} {τ σ' : LSnap} (h : 
       rw [getElem?_snoc_len] at hσj
       cases hσj
       have hτk := h3 n s T (hs.length - 1) hn (by omega) (by rw [hend0]; exact Nat.le_refl _) σs τ hσs hτ k hk
-      by_cases hc : τ.2.1.lookup k = σ'.2.1.lookup k
-      · rw [← hc]; exact hτk
-      · exact hstep (s, T) hlastw k hc
+      exact hstep (s, T) hlastw k hτk
   | some r =>
     have hend : winEnd (hs ++ [σ']) ws n = r.1 := by simp [winEnd, hnext]
     have hend' : winEnd hs ws n = r.1 := by simp [winEnd, hnext]

@@ -86,8 +86,9 @@ theorem txn.deleteRange.wp_proof
   · -- no `PrevKv`
     (try wp_auto)
     iapply wp_fupd
-    wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L)
+    wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L none)
       $$ [$Htx $Hks $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr, %Hlwf'⟩
+    · ipureintro; exact lease.winDrops_none _ _
     have hok' := txn.logOk_of_del σ pend _ Hreach Hlwf'.1 Hlwf'.2
     have hD := hD0 hok'
     rw [hD, show (txn.delChanges (txn.pendState σ.log pend) o).length =
@@ -173,8 +174,9 @@ theorem txn.deleteRange.wp_proof
       (try wp_auto)
       ipersist Hnsl
       iapply wp_fupd
-      wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L)
+      wp_apply (hDelC γ trace σ pend ksl endk k (txn.srvEnd o.base.rangeEnd).2 L none)
         $$ [$Htx $Hks $Hend $Hown] as %n %rev ⟨Htx, Hown, %Hnr, %Hlwf'⟩
+      · ipureintro; exact lease.winDrops_none _ _
       have hok' := txn.logOk_of_del σ pend _ Hreach Hlwf'.1 Hlwf'.2
       have hD := hD0 hok'
       rw [hD, show (txn.delChanges (txn.pendState σ.log pend) o).length =

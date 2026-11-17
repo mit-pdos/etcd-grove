@@ -220,8 +220,8 @@ theorem watchableStoreTxnWrite.Range.wp_api
 theorem watchableStoreTxnWrite.Put.wp_api
     (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG)) :
     watchableStoreTxnWrite.Put.spec (GF := GF) := by
-  intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L
-  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, Hown, %Hlease⟩ HΦ
+  intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L w
+  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, Hown, %Hlease, %Hwm⟩ HΦ
   iunfold mvccTxn at Htx
   icases pt_open t0 γ trace σ pend $$ Htx
     with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %sw, %Hk0, Htx, Hback, #Hfree, #Htw, Hclose⟩
@@ -231,9 +231,9 @@ theorem watchableStoreTxnWrite.Put.wp_api
   rw [method_unfold (t := go.GoType.PointerType watchableStoreTxnWrite.ty) (m := go!"Put")]; wp_call
   (try wp_auto)
   iapply (metricsTxnWrite_PutT hPut trace mw s (γ.withPhys p) σ.log pend puts deletes putSize key value
-      k vv leaseID L σ.crev te) $$ [Htx Hte Hown] [HΦ Hback Hclose]
+      k vv leaseID L σ.crev te w) $$ [Htx Hte Hown] [HΦ Hback Hclose]
   · iframe Hpkg Htx Hte Hkey Hval Hown
-    ipureintro; exact ⟨Hklen, Hlease⟩
+    ipureintro; exact ⟨Hklen, Hlease, Hwm⟩
   inext
   iintro ⟨Htx, Hte, Hown⟩
   iapply HΦ
@@ -247,8 +247,8 @@ theorem watchableStoreTxnWrite.DeleteRange.wp_api
     (hDel : mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     ∀ t : Loc,
       Txn.DeleteRange.contract (GF := GF) (go.GoType.PointerType watchableStoreTxnWrite.ty) #t := by
-  intro t0 (γ : mvcc.StoreNames) trace σ pend key endk k e L
-  iintro %Φ ⟨#Hpkg, Htx, #Hkey, #Hend, Hown⟩ HΦ
+  intro t0 (γ : mvcc.StoreNames) trace σ pend key endk k e L w
+  iintro %Φ ⟨#Hpkg, Htx, #Hkey, #Hend, Hown, %Hwm⟩ HΦ
   iunfold mvccTxn at Htx
   icases pt_open t0 γ trace σ pend $$ Htx
     with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %sw, %Hk0, Htx, Hback, #Hfree, #Htw, Hclose⟩
@@ -259,8 +259,9 @@ theorem watchableStoreTxnWrite.DeleteRange.wp_api
   wp_call
   (try wp_auto)
   iapply (hDel trace mw s (γ.withPhys p) σ.log pend puts deletes putSize key endk k e L σ.crev
-      iprop(True) iprop(True)) $$ [Htx Hown] [HΦ Hback Hclose]
+      iprop(True) iprop(True) w) $$ [Htx Hown] [HΦ Hback Hclose]
   · iframe Hpkg Htx Hkey Hend Hown
+    ipureintro; exact winMove_dels_of_drops Hwm
   inext
   iintro %n %rev ⟨Htx, Hown, %Hnr⟩
   ihave %Hsm := isTxnWriteT_small _ _ _ _ _ _ _ _ _ _ _ _ _ $$ [$Htx]
