@@ -30,6 +30,11 @@
 // drawn) and its no-op updates, and Gets with IgnoreNotFound and a minimum resource version (empty,
 // 0, 1, the cached object's, or relative to it). Main panics if porcupine finds the history not
 // linearizable; the theorem to prove is that it does not.
+//
+// (k8s 7g, notes/k8s-7g-scope.md) When no call failed, Check then also runs Kubernetes' own
+// checker on the history, as TestCorrectness does (realcheck.go: correctness.Model through
+// porcupine, Replay.Validate along its linearization, WatchValidator; the copy in ./correctness,
+// upstream plus D30g's patch), and Main panics if it rejects.
 package etcd3
 
 import (
@@ -56,6 +61,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/etcd3"
 	"k8s.io/apiserver/pkg/storage/value"
@@ -126,6 +132,24 @@ func (l *ObjList) DeepCopyObject() runtime.Object {
 	}
 	return &c
 }
+
+// The metav1.ListInterface, which the maintainers' checker reads through meta.ListAccessor (k8s
+// 7g): the resource version as the versioner's string (rvString, which parseRV parses; a string
+// that does not parse leaves it unchanged), the continue token and the remaining item count are
+// the list's; the self link is empty.
+func (l *ObjList) GetResourceVersion() string { return rvString(l.ResourceVersion) }
+func (l *ObjList) SetResourceVersion(version string) {
+	n, err := parseRV(version)
+	if err == nil {
+		l.ResourceVersion = n
+	}
+}
+func (l *ObjList) GetSelfLink() string            { return "" }
+func (l *ObjList) SetSelfLink(selfLink string)    {}
+func (l *ObjList) GetContinue() string            { return l.Continue }
+func (l *ObjList) SetContinue(c string)           { l.Continue = c }
+func (l *ObjList) GetRemainingItemCount() *int64  { return l.RemainingItemCount }
+func (l *ObjList) SetRemainingItemCount(c *int64) { l.RemainingItemCount = c }
 
 // The current encoding's tag, and the older one the codec still decodes.
 const (
@@ -282,16 +306,32 @@ func rvString(n uint64) string {
 // namespace, name, UID, labels and resource version (as the versioner's string) are the object's;
 // the rest of the metadata is empty and its setters do nothing.
 
-func (o *Obj) GetNamespace() string                        { return o.Namespace }
-func (o *Obj) SetNamespace(namespace string)               { o.Namespace = namespace }
-func (o *Obj) GetName() string                             { return o.Name }
-func (o *Obj) SetName(name string)                         { o.Name = name }
-func (o *Obj) GetGenerateName() string                     { return "" }
-func (o *Obj) SetGenerateName(name string)                 {}
-func (o *Obj) GetUID() types.UID                           { return types.UID(o.UID) }
-func (o *Obj) SetUID(uid types.UID)                        { o.UID = string(uid) }
-func (o *Obj) GetResourceVersion() string                  { return rvString(o.ResourceVersion) }
-func (o *Obj) SetResourceVersion(version string)           {}
+func (o *Obj) GetNamespace() string          { return o.Namespace }
+func (o *Obj) SetNamespace(namespace string) { o.Namespace = namespace }
+func (o *Obj) GetName() string               { return o.Name }
+func (o *Obj) SetName(name string)           { o.Name = name }
+func (o *Obj) GetGenerateName() string       { return "" }
+func (o *Obj) SetGenerateName(name string)   {}
+func (o *Obj) GetUID() types.UID             { return types.UID(o.UID) }
+func (o *Obj) SetUID(uid types.UID)          { o.UID = string(uid) }
+func (o *Obj) GetResourceVersion() string    { return rvString(o.ResourceVersion) }
+
+// SetResourceVersion parses a decimal string ("" is 0) and leaves the object unchanged on any
+// other: the form Kubernetes' APIObjectVersioner writes, which the maintainers' checker's Model
+// sets on its objects (strconv.FormatUint(rv, 10); k8s 7g, realCheck). The store never calls it
+// (its versioner is the driver's, which sets the field). GetResourceVersion keeps the versioner's
+// string (rvString), which preconditions and the checker's objectRV read: the two forms differ,
+// and each reader uses its own.
+func (o *Obj) SetResourceVersion(version string) {
+	if version == "" {
+		o.ResourceVersion = 0
+		return
+	}
+	n, err := strconv.ParseUint(version, 10, 64)
+	if err == nil {
+		o.ResourceVersion = n
+	}
+}
 func (o *Obj) GetGeneration() int64                        { return 0 }
 func (o *Obj) SetGeneration(generation int64)              {}
 func (o *Obj) GetSelfLink() string                         { return "" }
@@ -555,6 +595,18 @@ type Output struct {
 	// failed (the client's error) or was skipped
 	WEvents string
 	WFailed bool
+	// (7g) the store's answer itself, for the maintainers' checker (realCheck); not part of the
+	// plain value (outEqual and the model ignore it)
+	Raw Raw
+}
+
+// A Raw is what the store returned, as Kubernetes' checker reads it (k8s 7g): a unary call's
+// object (the fresh Obj, or the fresh ObjList of a List) or its error, or the events a watch
+// received, in their order (all of them: realCheck cuts them as departures D7g-2/3 say).
+type Raw struct {
+	Object runtime.Object
+	Err    error
+	Events []watch.Event
 }
 
 // The store's keys: Prefix + "/objs/" + key (the Model's Prefix and the store's resource prefix).
@@ -1317,11 +1369,23 @@ func withPre(in Input, uid bool, rv bool, c Obj, hasC bool) Input {
 	return in
 }
 
+// floored is the resource version r raised to floor if it is below it but not 0 (k8s 7g, departure
+// D7g-1: the seed floor). The maintainers' replay knows the store's states from the initial Model's
+// revision on, the seeded store's (floor), where TestCorrectness's fresh store starts at 1: a drawn
+// resource version in [1, floor) is the driver's "1", or one below the seeds.
+func floored(r uint64, floor uint64) uint64 {
+	if r != 0 && r < floor {
+		return floor
+	}
+	return r
+}
+
 // minRV is a Get's minimum resource version for the draw m (out of 100) and the offset d (1 to
 // 200), as the test's resolveResourceVersion: empty (30), 0 (15), 1 (10), the cached object's
 // (15), and relative to it (the test's are relative to the store's current one): current (14),
-// past (14), future (2); empty when a relative one has no cached object.
-func minRV(m uint64, d uint64, c Obj, hasC bool) string {
+// past (14), future (2); empty when a relative one has no cached object. A non-zero resource
+// version below floor is raised to it (floored).
+func minRV(m uint64, d uint64, c Obj, hasC bool, floor uint64) string {
 	if m < 30 {
 		return ""
 	}
@@ -1329,7 +1393,7 @@ func minRV(m uint64, d uint64, c Obj, hasC bool) string {
 		return rvBytes(0)
 	}
 	if m < 55 {
-		return rvBytes(1)
+		return rvBytes(floored(1, floor))
 	}
 	if !hasC {
 		return ""
@@ -1342,15 +1406,15 @@ func minRV(m uint64, d uint64, c Obj, hasC bool) string {
 		return ""
 	}
 	if m < 84 {
-		return rvBytes(r)
+		return rvBytes(floored(r, floor))
 	}
 	if m < 98 {
 		if r <= d {
-			return rvBytes(1)
+			return rvBytes(floored(1, floor))
 		}
-		return rvBytes(r - d)
+		return rvBytes(floored(r-d, floor))
 	}
-	return rvBytes(r + d)
+	return rvBytes(floored(r+d, floor))
 }
 
 // genList is the List client id picks for the random number n on the key key with its cached
@@ -1362,7 +1426,7 @@ func minRV(m uint64, d uint64, c Obj, hasC bool) string {
 // Exact 25); a limit (0 70, 1 15, 2 15) unless the resource version is set and 0. The test drops
 // an Exact list at resource version 0 and resolves RVs relative to the store's current one; the
 // driver makes it a legacy list, and its RVs are relative to the cached object (minRV).
-func genList(n uint64, in Input, c Obj, hasC bool) Input {
+func genList(n uint64, in Input, c Obj, hasC bool, floor uint64) Input {
 	ns, name := splitKey(in.Key)
 	sc, n := pick(n, 4)
 	rc, n := pick(n, 10)
@@ -1401,7 +1465,7 @@ func genList(n uint64, in Input, c Obj, hasC bool) Input {
 	if ls >= 60 {
 		in.SelApp = workloadApps()[1+ai]
 	}
-	in.MinRV = minRV(m, d+1, c, hasC)
+	in.MinRV = minRV(m, d+1, c, hasC, floor)
 	zero := false
 	if in.MinRV != "" {
 		r, _ := parseRV(in.MinRV)
@@ -1430,7 +1494,7 @@ func genList(n uint64, in Input, c Obj, hasC bool) Input {
 // update a UID and a resource-version precondition a fifth of the time each, a no-op, the cached
 // object and ignoreNotFound (not with a no-op) 15% each, and a tryUpdate rejecting a random node a
 // quarter; a Get ignores "not found" half the time, with a minimum (minRV).
-func genFrom(n uint64, id int, c Obj, hasC bool) Input {
+func genFrom(n uint64, id int, c Obj, hasC bool, floor uint64) Input {
 	keys := workloadKeys()
 	vals := workloadVals()
 	nodes := workloadNodes()
@@ -1474,11 +1538,11 @@ func genFrom(n uint64, id int, c Obj, hasC bool) Input {
 		d, _ := pick(n, 200)
 		in.Kind = KGet
 		in.IgnoreNotFound = ig == 0
-		in.MinRV = minRV(m, d+1, c, hasC)
+		in.MinRV = minRV(m, d+1, c, hasC, floor)
 		return in
 	}
 	if w < 70 {
-		return genList(n, in, c, hasC)
+		return genList(n, in, c, hasC, floor)
 	}
 	vi, n := pick(n, uint64(len(vals)))
 	ni, n := pick(n, uint64(len(nodes)))
@@ -1527,17 +1591,19 @@ type cache struct {
 	unary int
 	total int64
 	done  atomic.Int64
+	// (7g) the seed floor of the drawn resource versions (floored): the seeded store's revision
+	floor uint64
 }
 
 func newCache() *cache {
 	return &cache{objs: make(map[int]Obj), wobjs: make(map[int]Obj)}
 }
 
-// newWCache is a cache for Check's clients: the clients from unary on are watchers, and the unary
-// clients run total operations.
-func newWCache(unary int, total int64) *cache {
+// newWCache is a cache for Check's clients: the clients from unary on are watchers, the unary
+// clients run total operations, and the drawn resource versions are floored at floor.
+func newWCache(unary int, total int64, floor uint64) *cache {
 	return &cache{objs: make(map[int]Obj), wobjs: make(map[int]Obj), watch: true, unary: unary,
-		total: total}
+		total: total, floor: floor}
 }
 
 // get returns client id's cached object, if any.
@@ -1579,10 +1645,10 @@ func Gen(tbl *cache, id int) Input {
 			return Input{Kind: KWatch, Skip: true, Client: id}
 		}
 		wc, wok := tbl.getW(id)
-		return genWatch(id, wc, wok)
+		return genWatch(id, wc, wok, tbl.floor)
 	}
 	c, ok := tbl.get(id)
-	return genFrom(primitive.RandomUint64(), id, c, ok)
+	return genFrom(primitive.RandomUint64(), id, c, ok, tbl.floor)
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1647,15 +1713,19 @@ func listOut(l *ObjList) Output {
 }
 
 // call runs one operation through the store s: its output (the object it left in a fresh out, the
-// list it left in a fresh list, or its error).
+// list it left in a fresh list, or its error), with the store's answer itself as its Raw.
 func call(s storage.Interface, in Input) Output {
 	ctx := context.Background()
 	if in.Kind == KList {
 		l := &ObjList{}
 		if err := s.GetList(ctx, in.ListKey, listOptions(in), l); err != nil {
-			return errOut(err)
+			lo := errOut(err)
+			lo.Raw = Raw{Err: err}
+			return lo
 		}
-		return listOut(l)
+		lo := listOut(l)
+		lo.Raw = Raw{Object: l}
+		return lo
 	}
 	out := &Obj{}
 	var err error
@@ -1674,9 +1744,13 @@ func call(s storage.Interface, in Input) Output {
 			storage.GetOptions{IgnoreNotFound: in.IgnoreNotFound, ResourceVersion: in.MinRV}, out)
 	}
 	if err != nil {
-		return errOut(err)
+		o := errOut(err)
+		o.Raw = Raw{Err: err}
+		return o
 	}
-	return objOut(*out)
+	o := objOut(*out)
+	o.Raw = Raw{Object: out}
+	return o
 }
 
 // Apply runs one operation through the store s (a watch: runWatch, the object of its last event
@@ -1707,14 +1781,19 @@ func Apply(s storage.Interface, tbl *cache, input any) any {
 
 // Check runs lintest.RunLin2 of clients concurrent clients of the store s, each running ops
 // operations, and watchers watchers, each running wops watches (genWatch; skipped once the unary
-// operations are done), and returns porcupine's verdict against Model from the store st0 with its
-// history h0.
+// operations are done), the drawn resource versions floored at st0's revision (D7g-1), and checks
+// the history against Model from the store st0 with its history h0. When that verdict is Ok and no
+// call failed, it also runs Kubernetes' own checker on the same history (realCheck, k8s 7g) and
+// returns its verdict; otherwise the first one.
 func Check(s storage.Interface, st0 mstore, h0 []mstore, clients int, ops int, watchers int, wops int, timeout time.Duration) porcupine.CheckResult {
-	tbl := newWCache(clients, int64(clients)*int64(ops))
+	tbl := newWCache(clients, int64(clients)*int64(ops), st0.rv)
 	apply := func(input any) any { return Apply(s, tbl, input) }
 	gen := func(id int) any { return Gen(tbl, id) }
-	r, _ := lintest.RunLin2(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, watchers, wops, timeout)
-	return r
+	r, lops := lintest.RunLin2(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, watchers, wops, timeout)
+	if r != porcupine.Ok || !failureFree(lops) {
+		return r
+	}
+	return realCheck(st0, lops, timeout)
 }
 
 // seedOne writes the key k's object of value "x" (no node, no app) in the older encoding directly
@@ -1787,7 +1866,7 @@ func newStore(kc *kubernetes.Client) (storage.Interface, mstore, []mstore, bool)
 // Main starts one member of a new cluster (as examples/etcd/txnlin's Main does), connects a
 // kubernetes client configured for one attempt per call, seeds the keys, makes the store
 // (newStore) and runs Check with clients unary clients of ops operations each and watchers
-// watchers of wops watches each; it panics if porcupine finds the history illegal. An error from a
+// watchers of wops watches each; it panics if the check (Check) finds the history illegal. An error from a
 // step before Check ends Main without a check.
 func Main(clients int, ops int, watchers int, wops int) porcupine.CheckResult {
 	lg := zap.NewNop()
@@ -1904,7 +1983,7 @@ func startCluster(k uint64, lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.
 }
 
 // MainCluster is Main over a k-member cluster (startCluster): it seeds the keys, makes the store
-// (newStore) and runs Check; it panics if porcupine finds the history illegal. A failed start, or
+// (newStore) and runs Check; it panics if the check (Check) finds the history illegal. A failed start, or
 // k = 0, ends MainCluster without a check.
 func MainCluster(k uint64, clients int, ops int, watchers int, wops int) porcupine.CheckResult {
 	if k == 0 {

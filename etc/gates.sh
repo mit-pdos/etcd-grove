@@ -166,6 +166,10 @@ python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
 # (k8s 7f-4, Addendum T-i; reads the sources only)
 python3 etc/bgcancel-check.py || fail=1
+# the k8s etcd3 driver's copy of Kubernetes' checker (examples/k8s/etcd3/correctness) is upstream's
+# at the driver's k8s.io/apiserver pin plus etc/k8s-correctness/d30g.patch, byte for byte (k8s 7g,
+# notes/k8s-7g-scope.md §1.1; needs go and the module cache; seconds)
+python3 etc/k8s-correctness-check.py || fail=1
 # the default feature gate's environment assumption (B5, k8s 7f-5 T5-c, Gate.lean): every
 # feature-gate mutator in the programs' compiled closures has its verdict in
 # etc/featuregate-allow.txt (needs go and the module cache; seconds)
