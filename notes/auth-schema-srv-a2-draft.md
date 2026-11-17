@@ -1,5 +1,14 @@
 # auth-schema-srv A2: `UnsafeForEach` — the trust boundary (Draft, 2026-11-17)
 
+**Decided (2026-11-17, the user via etcd-grove-03): (B).** The texts are
+`Spec/go_etcd_io/bbolt/Bucket__ForEach_kvr.lean` and `Bucket__ForEach_kvw.lean` (each docstring says why it is
+faithful), backed by `examples/bbolt/foreachkv/foreach_test.go`; awaiting the independent attack before the
+axioms (`Proof/go_etcd_io/bbolt/Bucket__ForEach_kv{r,w}.lean`) are added and used. Design points: the visitor
+gets half of the walk's `txLive` (a visitor with all of it could meet `Tx.Rollback_kv` and close the read
+transaction mid-walk: `TestVisitorRollbackPanics`); the walk keeps `rtxStats` (kvr) and `ownWTxG` (kvw), so the
+visitor can neither walk the transaction again (conservative) nor write the bucket (`TestVisitorDeleteSkips`,
+`TestVisitorPutVisited`).
+
 Scope §3 A2, Q7 (decided by etcd-grove-02): "one bbolt kv axiom `Cursor.First_kv` (the twin of `Seek_kv`), and
 bbolt's `Bucket.ForEach` proved over it". This Draft gives that axiom's text and reports a gap in the plan:
 `Bucket.ForEach` cannot be proved over the kv contract with `First_kv` alone.

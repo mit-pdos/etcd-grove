@@ -10,8 +10,10 @@
   `UnlockClaimed.lean` gone); `trkSide_mode` private (`trkSide_mode_up`, `trkSide_mode_win` public); `rbPartR_idle`
   takes `tkI`; soundness §4.2/§5 updated. Full build ok (log `/shared/tmp/auth-schema-srv/a110-build1.log`), tcb
   baseline unchanged, interfaces regenerated.
-- Next: A2 waits on the Draft `notes/auth-schema-srv-a2-draft.md` (Q7's `First_kv` cannot prove `Bucket.ForEach`:
-  it reads `b.tx.db`; options (A) field law / (B) `ForEach_kv{r,w}` axioms, recommended). Then A3 (Draft: Marshal
+- A2: the user chose (B) (questions.md "A2 decided"); texts `Spec/go_etcd_io/bbolt/Bucket__ForEach_kv{r,w}.lean`
+  (built), Go tests `examples/bbolt/foreachkv/` (pass); WAITING on etcd-grove-03's independent attack. After it:
+  the axiom files `Proof/go_etcd_io/bbolt/Bucket__ForEach_kv{r,w}.lean`, tcb `--check --update`, then the backend
+  side (Draft §4). Merge lean (3cd4b72599 or later) before the next full build. Then A3 (Draft: Marshal
   axioms + `sizeCache` out of `↦□`, precedent: an invariant on the field, `restart1/Requests.lean`), A4 (budget in
   `authBatchTxLkR`: part of hD22's text, weaker), A5, A6, A7 (HARD STOP, user).
 - Pitfalls: (1) a hand-written `if m = n` picks `instDecidableEqString`, the laws' `if S n` (open Classical)
