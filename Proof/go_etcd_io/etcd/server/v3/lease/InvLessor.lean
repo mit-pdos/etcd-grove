@@ -132,9 +132,10 @@ to its item set); (the lease-grant plan's D2, 2026-11-02) and the lessor's **mod
 `NewLessor`'s caller; (the lease-expiry plan's E3 (c), 2026-11-05) and the ids the lessor ever
 had (`γr.2.2.2.1`, a ghost variable `U` in halves: `lessorRdBody`'s and the owner's, `leaseEver`);
 (the lease-expiry plan's S2–S4, Q-S6, 2026-11-05) and the TTLs the leases were requested at
-(`γr.2.2.2.2`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`).
-The mode is `γr.2.2.1`. -/
-abbrev LessorRdNames := GName × GName × Bool × GName × GName
+(`γr.2.2.2.2.1`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`);
+(auth-lease S4 item 7b, 2026-11-17) and the windows' mono-list (`γr.2.2.2.2.2`: `winsOk`, `lastWin`,
+`lessorWinTie`). The mode is `γr.2.2.1`. -/
+abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName
 
 /-- **A snapshot of the lessor**: its lease map (id to `*Lease`), its item map (item to id) and
 (the lease-expiry plan's R5, 2026-11-04) its TTLs (id to the lease's `ttl` field, which `Grant` and
@@ -367,6 +368,65 @@ theorem everIn_last (hs : List LSnap) (σ : LSnap) (id : w64) (h : (σ.1.lookup 
 theorem histCover_snoc {hs : List LSnap} {U : List w64} (σ : LSnap) (h : histCover hs U) :
     histCover (hs ++ [σ]) U := fun u hu => everIn_snoc_of σ (h u hu)
 
+/-! ### Windows (auth-lease S4 item 7b, 2026-11-17)
+
+The apply loop opens a *window* per entry, `(start, T)`: `start` the history's last index when it opens, `T` the
+item map of the model after the entry. Every snapshot pushed while the window is open is *stable*: an item that the
+start snapshot already has at its target keeps it (`winStable`). The pushers that change items (`Attach`, `Detach`)
+take `winStep`: every item they change goes to its target. The windows' list also records *free* markers
+(`(start, none)`): the owner drops to no window (`leaseOwn`, for `Recover`/`Restore`) only through one (`win_free`),
+so the windows cover every index from the first one's start, contiguously (`winEnd`). -/
+
+/-- **A window**: its start index and its target item map. -/
+abbrev LWin := Nat × GMap LeaseItem w64
+
+/-- **An entry of the windows' list**: a window's start and target, or a free marker's start (`none`). -/
+abbrev LWinRec := Nat × Option (GMap LeaseItem w64)
+
+/-- **The open window of the windows' list**: its last entry, if it is a window. -/
+def lastWin (ws : List LWinRec) : Option LWin :=
+  match ws.getLast? with
+  | some (s, some T) => some (s, T)
+  | _ => none
+
+/-- **A step from the item map `I` to `I'` within the window `w`**: every item it changes goes to the window's
+target (`True` with no window). -/
+def winStep (w : Option LWin) (I I' : GMap LeaseItem w64) : Prop :=
+  ∀ v : LWin, w = some v → ∀ k : LeaseItem, I.lookup k ≠ I'.lookup k → I'.lookup k = v.2.lookup k
+
+/-- **The index `j` of `hs` is stable in the window `(s, T)`**: every item at its target in the snapshot `s` is at
+its target in the snapshot `j`. -/
+def winStable (hs : List LSnap) (s : Nat) (T : GMap LeaseItem w64) (j : Nat) : Prop :=
+  ∀ σs σj : LSnap, hs[s]? = some σs → hs[j]? = some σj →
+    ∀ k : LeaseItem, σs.2.1.lookup k = T.lookup k → σj.2.1.lookup k = T.lookup k
+
+/-- **The last index of the `n`-th entry's range**: the next entry's start, or the history's last index. -/
+def winEnd (hs : List LSnap) (ws : List LWinRec) (n : Nat) : Nat :=
+  match ws[n + 1]? with
+  | some r => r.1
+  | none => hs.length - 1
+
+/-- **The windows' list agrees with the history**: every start an index of it, the starts in order, and every index
+of a window's range stable in it. -/
+def winsOk (hs : List LSnap) (ws : List LWinRec) : Prop :=
+  (∀ (n : Nat) (r : LWinRec), ws[n]? = some r → r.1 < hs.length) ∧
+  (∀ (n : Nat) (r r' : LWinRec), ws[n]? = some r → ws[n + 1]? = some r' → r.1 ≤ r'.1) ∧
+  ∀ (n s : Nat) (T : GMap LeaseItem w64) (j : Nat), ws[n]? = some (s, some T) → s ≤ j →
+    j ≤ winEnd hs ws n → winStable hs s T j
+
+/-- **Every item of the snapshot `σ` is on a live lease** (its lease map has the item's id). -/
+def itemsLive (σ : LSnap) : Prop :=
+  ∀ (it : LeaseItem) (id : w64), σ.2.1.lookup it = some id → (σ.1.lookup id).isSome
+
+theorem winsOk_nil (hs : List LSnap) : winsOk hs [] :=
+  ⟨fun _ _ h => by simp at h, fun _ _ _ h => by simp at h, fun _ _ _ _ h => by simp at h⟩
+
+theorem winStep_same (w : Option LWin) (I : GMap LeaseItem w64) : winStep w I I :=
+  fun _ _ _ h => absurd rfl h
+
+theorem winStep_none (I I' : GMap LeaseItem w64) : winStep none I I' :=
+  fun _ h => by cases h
+
 def lessorRdN : Namespace := nroot .@ "lessor_rd"
 
 /-- **The requested TTLs `Q` bound the history's TTLs from below** (the lease-expiry plan's S2–S4,
@@ -399,6 +459,16 @@ instance ttlTie_timeless (σ : LSnap) : Timeless (ttlTie (GF := GF) σ) := by
 instance ttlTies_timeless (hs : List LSnap) : Timeless ([∗list] σ ∈ hs, ttlTie (GF := GF) σ) :=
   BigSepL.bigSepL_timeless fun _ => inferInstance
 
+/-- **The lessor's windows in its reader-side invariant** (auth-lease S4 item 7b, 2026-11-17): half of the windows'
+list's authority, the list agreeing with the history `hs` (`winsOk`), and every snapshot's items on live leases. -/
+def lessorWinBody (γr : LessorRdNames) (hs : List LSnap) : IProp GF :=
+  iprop(∃ ws : List LWinRec, monoListAuthOwn γr.2.2.2.2.2 (1 : Qp).half ws ∗
+    ⌜winsOk hs ws ∧ ∀ σ ∈ hs, itemsLive σ⌝)
+
+instance lessorWinBody_timeless (γr : LessorRdNames) (hs : List LSnap) :
+    Timeless (lessorWinBody (GF := GF) γr hs) := by
+  unfold lessorWinBody; infer_instance
+
 /-- **The lessor's reader-side invariant** at the names `γr`: a quarter of the history's
 authority (`hs`; the owner holds half, `leaseClosers`, and `le.mu`'s invariant a quarter, so that
 the owner appends holding the write lock), half of the item sets' map's authority (`Sm`; the owner
@@ -410,7 +480,10 @@ half of the ids the lessor ever had, `U` (the owner holds the other half, `lease
 the history among them (`histIn`) and (the S2–S4 Probe, 2026-11-05) every one of them an id of the
 history (`histCover`); (the lease-expiry plan's R5, 2026-11-04) every snapshot's TTLs
 its leases' `ttl` fields (`ttlTie`); (the lease-expiry plan's S2–S4, Q-S6, 2026-11-05) the
-authority of the requested TTLs' map `Q`, which bounds the history's TTLs from below (`reqOk`). -/
+authority of the requested TTLs' map `Q`, which bounds the history's TTLs from below (`reqOk`);
+(auth-lease S4 item 7b, 2026-11-17) half of the windows' list's authority (`lessorWinBody`: the owner holds a
+quarter, `leaseClosers`, and the tie a quarter, `lessorWinTie`), which agrees with the history (`winsOk`), and every
+snapshot's items on live leases (`itemsLive`). -/
 def lessorRdBody (γr : LessorRdNames) : IProp GF :=
   iprop(∃ (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)),
     monoListAuthOwn γr.1 Qp.quarter hs ∗ ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗
@@ -418,8 +491,8 @@ def lessorRdBody (γr : LessorRdNames) : IProp GF :=
     (∃ U : List w64, dghostVar γr.2.2.2.1 (DFrac.own (1 : Qp).half) U ∗
       ⌜histOnce hs ∧ histIn hs U ∧ histCover hs U⌝) ∗
     ([∗list] σ ∈ hs, ttlTie σ) ∗
-    ([∗map] l ↦ _S ∈ Sm, ∃ id : w64, lsF go!"ID" l ↦□ id) ∗
-    ∃ Q : GMap w64 w64, ghostMapAuth γr.2.2.2.2 (1 : Qp) Q ∗ ⌜reqOk hs Q⌝)
+    ([∗map] l ↦ _S ∈ Sm, ∃ id : w64, lsF go!"ID" l ↦□ id) ∗ lessorWinBody γr hs ∗
+    ∃ Q : GMap w64 w64, ghostMapAuth γr.2.2.2.2.1 (1 : Qp) Q ∗ ⌜reqOk hs Q⌝)
 
 /-- **The lessor `γl`'s reader-side invariant** (persistent). -/
 def lessorRdInv (γl : GName) : IProp GF :=
@@ -449,7 +522,7 @@ def leaseEver (γl : GName) (U : List w64) : IProp GF :=
 lease (the TTL its caller names for the record). Every TTL the history gives `id` is at least `r`
 (`leaseTTLAt_ge_req`). -/
 def leaseReqIs (γl : GName) (id r : w64) : IProp GF :=
-  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostMapElem γr.2.2.2.2 id DFrac.discard r)
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostMapElem γr.2.2.2.2.1 id DFrac.discard r)
 
 instance leaseReqIs_persistent (γl : GName) (id r : w64) :
     Persistent (leaseReqIs (GF := GF) γl id r) := by
@@ -1013,6 +1086,16 @@ def closerAt (γl γcl : GName) (I : GMap LeaseItem w64) (id : w64) (l : Loc) : 
   iprop(ghostMapElem γcl id (DFrac.own (1 : Qp).half) l ∗ leaseItemsOwn l I id ∗
     sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l))
 
+/-- **The owner's quarter of the windows' list** (auth-lease S4 item 7b, 2026-11-17), whose open window is `w`. -/
+def winOwn (γr : LessorRdNames) (w : Option LWin) : IProp GF :=
+  iprop(∃ ws : List LWinRec, monoListAuthOwn γr.2.2.2.2.2 Qp.quarter ws ∗ ⌜lastWin ws = w⌝)
+
+/-- **The tie's quarter of the windows' list** (auth-lease S4 item 7b, 2026-11-17; exclusive): `NewLessor` gives it at
+`[]`; the apply loop keeps it in its store invariant, so that the list grows (`win_open`, `win_free`) only with the
+tie's record. -/
+def lessorWinTie (γl : GName) (ws : List LWinRec) : IProp GF :=
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ monoListAuthOwn γr.2.2.2.2.2 Qp.quarter ws)
+
 /-- **The lease owner's closers and items** (unit T3, 2026-10-24): for every lease of the live
 set `L`, the closers' map's element (its `*Lease`, which the lessor's map agrees with), the right
 to close its `revokec` and (L2b, 2026-10-25) the owner's half of its item set, the items the item
@@ -1020,9 +1103,9 @@ map `I` attaches to it; the owner's half of the item map `I`, every lease of whi
 (lease-keys Part B, 2026-10-31) half of the lessor's history, whose last snapshot is `(C, I)` (`C`
 is `lessorMu`'s map `M`: the two agree through `γcl`'s elements, and with `lessorMu`'s share the last
 snapshots are equal), and half of the item-sets map's authority (`γr.2.1`, the item set of each
-`*Lease` ever in the history; the other half is `lessorRdBody`'s). Exclusive, so outside `le.mu`'s
-fractional invariant. -/
-def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
+`*Lease` ever in the history; the other half is `lessorRdBody`'s); (auth-lease S4 item 7b) and the owner's quarter
+of the windows' list, whose open window is `w` (`winOwn`). Exclusive, so outside `le.mu`'s fractional invariant. -/
+def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) : IProp GF :=
   iprop(∃ (lp : Loc) (γga γcl : GName) (C : GMap w64 Loc) (im : Loc), lessorPinG γl lp γga γcl ∗
     ⌜∀ id : w64, id ∈ L ↔ (C.lookup id).isSome⌝ ∗
     lF go!"itemMap" lp ↦{DFrac.own (1 : Qp).half} im ∗ im ↦${DFrac.own (1 : Qp).half} I ∗
@@ -1030,7 +1113,7 @@ def leaseClosers (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp G
     ([∗map] id ↦ l ∈ C, closerAt γl γcl I id l) ∗
     (∃ (γr : LessorRdNames) (hs : List LSnap) (Sm : GMap Loc (GMap LeaseItem Unit)),
       lessorPinR γl γr ∗ monoListAuthOwn γr.1 (1 : Qp).half hs ∗ ⌜∃ T, hs.getLast? = some (C, I, T)⌝ ∗
-      ghostMapAuth γr.2.1 (1 : Qp).half Sm))
+      ghostMapAuth γr.2.1 (1 : Qp).half Sm ∗ winOwn γr w))
 
 /-- **The lease owner's revokers** (unit T3, 2026-10-25): for every lease of the live set `L`,
 the other half of the closers' map's element and the right to close its `revokec`. Apart from
@@ -1046,12 +1129,21 @@ def leaseRevokers (γl : GName) (L : List w64) : IProp GF :=
 /-- **The lease owner's half** of the live set: holding it, `L` is the live set (the apply
 thread's); (unit T3) with the live leases' closers and (L2b) the item map `I` (item to lease id)
 and the live leases' item sets, which agree with it. -/
-def leaseOwn (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
-  iprop(leaseFrag γl (1 : Qp).half L ∗ leaseClosers γl L I)
+def leaseOwnW (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) : IProp GF :=
+  iprop(leaseFrag γl (1 : Qp).half L ∗ leaseClosers γl L I w)
+
+/-- **The lease owner's half with no window open** (auth-lease S4 item 7b: `leaseOwnW … none`). -/
+abbrev leaseOwn (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
+  leaseOwnW γl L I none
 
 /-- The owner's resource at an equal item map. -/
 theorem leaseOwn_eq {γl : GName} {L : List w64} {I J : GMap LeaseItem w64} (h : I = J) :
     leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L J := by
+  subst h; exact .rfl
+
+/-- The owner's resource at an equal item map, in a window. -/
+theorem leaseOwnW_eq {γl : GName} {L : List w64} {I J : GMap LeaseItem w64} {w : Option LWin} (h : I = J) :
+    leaseOwnW (GF := GF) γl L I w ⊢ leaseOwnW γl L J w := by
   subst h; exact .rfl
 
 /-- A reader slot of the lessor of `γl`, wherever it is (`lessorPin`). -/
@@ -1077,8 +1169,12 @@ instance lessorRdPool_persistent (γl : GName) : Persistent (lessorRdPool (GF :=
 
 /-- **The lease owner's resource** at the txn layer: its half of the live set and a reader slot
 of the lessor's lock (`Lookup`); (unit T3) its revokers. -/
-def lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
-  iprop(leaseOwn γl L I ∗ lessorRdOf γl ∗ leaseRevokers γl L)
+def lessorUserW (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) : IProp GF :=
+  iprop(leaseOwnW γl L I w ∗ lessorRdOf γl ∗ leaseRevokers γl L)
+
+/-- The txn layer's owner resource with no window open (auth-lease S4 item 7b). -/
+abbrev lessorUser (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
+  lessorUserW γl L I none
 
 /-- **The owner's resource opened at the live lease `l` of `id`** (the lease-keys plan, item 1,
 2026-10-31): the item map's keys short (`itemKeysShort`, which `leaseClosers` keeps), the lease `l`
@@ -1087,41 +1183,55 @@ its lock, which `Keys()` takes, and the wand that closes the owner's resource ba
 by the owner gives it. Not persistent: a revoked lease keeps its `ID`
 and `id` can be granted again, so "`l` is the lease of `id`" holds only of the owner's closers
 at the time. -/
-def leaseOwnOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
-    IProp GF :=
+def leaseOwnOpenW (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc)
+    (w : Option LWin) : IProp GF :=
   iprop(⌜itemKeysShort I⌝ ∗ isLeaseObj γl l ∗ leaseItemsOwn l I id ∗
     sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) ∗
-    (leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) -∗ leaseOwn γl L I))
+    (leaseItemsOwn l I id ∗ sync.ownRWMutex (lsF go!"mu" l) (leaseItems γl l) -∗ leaseOwnW γl L I w))
+
+/-- The owner's resource opened at a lease, with no window open (auth-lease S4 item 7b). -/
+abbrev leaseOwnOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
+    IProp GF :=
+  leaseOwnOpenW γl L I id l none
 
 /-- **The txn layer's owner resource after `Lookup(id)` returned `l`**: `nil` and the resource as
 it was, or the reader slot, the revokers and the owner's resource opened at `l`. -/
-def lessorUserOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
+def lessorUserOpenW (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc)
+    (w : Option LWin) : IProp GF :=
+  iprop((⌜l = null⌝ ∗ lessorUserW γl L I w) ∨
+    (lessorRdOf γl ∗ leaseRevokers γl L ∗ leaseOwnOpenW γl L I id l w))
+
+/-- The txn layer's owner resource after `Lookup`, with no window open (auth-lease S4 item 7b). -/
+abbrev lessorUserOpen (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64) (l : Loc) :
     IProp GF :=
-  iprop((⌜l = null⌝ ∗ lessorUser γl L I) ∨
-    (lessorRdOf γl ∗ leaseRevokers γl L ∗ leaseOwnOpen γl L I id l))
+  lessorUserOpenW γl L I id l none
 
 /-- **The owner holds a lower bound of the history** (its index `0`: the history is never
 empty). -/
-theorem leaseOwn_lb (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
-    leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L I ∗ lessorLb γl 0 := by
-  unfold leaseOwn leaseClosers
+theorem leaseOwnW_lb (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) :
+    leaseOwnW (GF := GF) γl L I w ⊢ leaseOwnW γl L I w ∗ lessorLb γl 0 := by
+  unfold leaseOwnW leaseClosers
   iintro ⟨Hf, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm, #Hpr,
-    Ha, %Hlast, HSm⟩
+    Ha, %Hlast, HSm, HW⟩
   ihave #Hlb := monoListLbOwn_get γr.1 _ hs $$ Ha
-  isplitl [Hf Him HI Hcs Ha HSm]
+  isplitl [Hf Him HI Hcs Ha HSm HW]
   · iframe Hf
     iexists lp, γga, γcl, C, im
     iframe Hp Him HI Hcs
     isplitr; · ipureintro; exact HC
     isplitr; · ipureintro; exact HIL
     isplitr; · ipureintro; exact HIS
-    iexists γr, hs, Sm; iframe Hpr Ha HSm; ipureintro; exact Hlast
+    iexists γr, hs, Sm; iframe Hpr Ha HSm HW; ipureintro; exact Hlast
   iunfold lessorLb
   iexists γr, hs; iframe Hpr Hlb
   ipureintro
   cases hs with
   | nil => simp at Hlast
   | cons _ _ => simp
+
+theorem leaseOwn_lb (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L I ∗ lessorLb γl 0 :=
+  leaseOwnW_lb γl L I none
 
 /-! ### One spec for the owner and the readers (Part B, 2026-10-31)
 
@@ -1131,21 +1241,39 @@ nothing more than a reader's (Part A's `LeaseView` pattern). -/
 
 /-- **The owner's view before `Lookup(id)`**: the owner's resource at `(L, I)`, or nothing (a
 reader). -/
-def lookupView (γl : GName) : Option (List w64 × GMap LeaseItem w64) → IProp GF
+def lookupViewW (γl : GName) (w : Option LWin) : Option (List w64 × GMap LeaseItem w64) → IProp GF
   | none => iprop(True)
-  | some (L, I) => leaseOwn γl L I
+  | some (L, I) => leaseOwnW γl L I w
 
+/-- The owner's view before `Lookup(id)`, with no window open (auth-lease S4 item 7b). -/
+abbrev lookupView (γl : GName) (U : Option (List w64 × GMap LeaseItem w64)) : IProp GF :=
+  lookupViewW γl none U
+
+theorem lookupViewW_some (γl : GName) (w : Option LWin) (L : List w64) (I : GMap LeaseItem w64) :
+    lookupViewW (GF := GF) γl w (some (L, I)) = leaseOwnW γl L I w := rfl
 theorem lookupView_none (γl : GName) : lookupView (GF := GF) γl none = iprop(True) := rfl
 theorem lookupView_some (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
     lookupView (GF := GF) γl (some (L, I)) = leaseOwn γl L I := rfl
 
 /-- **The owner's view after `Lookup(id)` returned `l`**: `nil` exactly when `id` is not live, and
 the owner's resource as it was or opened at `l` (`leaseOwnOpen`); nothing for a reader. -/
-def lookupViewAfter (γl : GName) (id : w64) (l : Loc) :
+def lookupViewAfterW (γl : GName) (id : w64) (l : Loc) (w : Option LWin) :
     Option (List w64 × GMap LeaseItem w64) → IProp GF
   | none => iprop(True)
-  | some (L, I) => iprop(⌜l = null ↔ id ∉ L⌝ ∗ ((⌜l = null⌝ ∗ leaseOwn γl L I) ∨ leaseOwnOpen γl L I id l))
+  | some (L, I) => iprop(⌜l = null ↔ id ∉ L⌝ ∗
+      ((⌜l = null⌝ ∗ leaseOwnW γl L I w) ∨ leaseOwnOpenW γl L I id l w))
 
+/-- The owner's view after `Lookup(id)`, with no window open (auth-lease S4 item 7b). -/
+abbrev lookupViewAfter (γl : GName) (id : w64) (l : Loc) (U : Option (List w64 × GMap LeaseItem w64)) :
+    IProp GF :=
+  lookupViewAfterW γl id l none U
+
+theorem lookupViewAfterW_none (γl : GName) (id : w64) (l : Loc) (w : Option LWin) :
+    lookupViewAfterW (GF := GF) γl id l w none = iprop(True) := rfl
+theorem lookupViewAfterW_some (γl : GName) (id : w64) (l : Loc) (w : Option LWin) (L : List w64)
+    (I : GMap LeaseItem w64) :
+    lookupViewAfterW (GF := GF) γl id l w (some (L, I)) =
+      iprop(⌜l = null ↔ id ∉ L⌝ ∗ ((⌜l = null⌝ ∗ leaseOwnW γl L I w) ∨ leaseOwnOpenW γl L I id l w)) := rfl
 theorem lookupViewAfter_none (γl : GName) (id : w64) (l : Loc) :
     lookupViewAfter (GF := GF) γl id l none = iprop(True) := rfl
 theorem lookupViewAfter_some (γl : GName) (id : w64) (l : Loc) (L : List w64) (I : GMap LeaseItem w64) :
@@ -1426,28 +1554,36 @@ theorem leaseFrag_agree (γl : GName) (q1 q2 : Qp) (L1 L2 : List w64) :
   cases h2; rfl
 
 /-- The owner's resource, closed back from its opening at a lease. -/
-theorem leaseOwnOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
-    (l : Loc) : leaseOwnOpen (GF := GF) γl L I id l ⊢ leaseOwn γl L I := by
-  unfold leaseOwnOpen
+theorem leaseOwnOpenW_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
+    (l : Loc) (w : Option LWin) : leaseOwnOpenW (GF := GF) γl L I id l w ⊢ leaseOwnW γl L I w := by
+  unfold leaseOwnOpenW
   iintro ⟨-, -, Hio, Hslot, Hback⟩
   iapply Hback; iframe
 
+theorem leaseOwnOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
+    (l : Loc) : leaseOwnOpen (GF := GF) γl L I id l ⊢ leaseOwn γl L I :=
+  leaseOwnOpenW_close γl L I id l none
+
 /-- The txn layer's owner resource, closed back after `Lookup`. -/
-theorem lessorUserOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
-    (l : Loc) : lessorUserOpen (GF := GF) γl L I id l ⊢ lessorUser γl L I := by
-  unfold lessorUserOpen
+theorem lessorUserOpenW_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
+    (l : Loc) (w : Option LWin) : lessorUserOpenW (GF := GF) γl L I id l w ⊢ lessorUserW γl L I w := by
+  unfold lessorUserOpenW
   iintro (⟨-, Hu⟩ | ⟨Hrd, Hrvk, Ho⟩)
   · iexact Hu
-  · unfold lessorUser
+  · unfold lessorUserW
     iframe Hrd Hrvk
-    iapply leaseOwnOpen_close $$ Ho
+    iapply leaseOwnOpenW_close $$ Ho
+
+theorem lessorUserOpen_close (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (id : w64)
+    (l : Loc) : lessorUserOpen (GF := GF) γl L I id l ⊢ lessorUser γl L I :=
+  lessorUserOpenW_close γl L I id l none
 
 /-- **Every lease of the owner's item map is live** (the lease-keys plan, item 2): so a lease not
 in `L` (a `nil` `Lookup`) holds no key. -/
-theorem leaseOwn_items_live (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
-    leaseOwn (GF := GF) γl L I ⊢
-      leaseOwn γl L I ∗ ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ := by
-  unfold leaseOwn leaseClosers
+theorem leaseOwnW_items_live (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) :
+    leaseOwnW (GF := GF) γl L I w ⊢
+      leaseOwnW γl L I w ∗ ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ := by
+  unfold leaseOwnW leaseClosers
   iintro ⟨Hfr, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcm⟩
   isplitl
   · iframe Hfr
@@ -1456,10 +1592,15 @@ theorem leaseOwn_items_live (γl : GName) (L : List w64) (I : GMap LeaseItem w64
     ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIL
 
+theorem leaseOwn_items_live (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    leaseOwn (GF := GF) γl L I ⊢
+      leaseOwn γl L I ∗ ⌜∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ :=
+  leaseOwnW_items_live γl L I none
+
 /-- **Every key of the owner's item map is short** (Q4 (b)). -/
-theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
-    leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L I ∗ ⌜itemKeysShort I⌝ := by
-  unfold leaseOwn leaseClosers
+theorem leaseOwnW_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) :
+    leaseOwnW (GF := GF) γl L I w ⊢ leaseOwnW γl L I w ∗ ⌜itemKeysShort I⌝ := by
+  unfold leaseOwnW leaseClosers
   iintro ⟨Hfr, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcm⟩
   isplitl
   · iframe Hfr
@@ -1467,6 +1608,36 @@ theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w6
     iframe Hp Him HI Hcm
     ipureintro; exact ⟨HC, HIL, HIS⟩
   · ipureintro; exact HIS
+
+theorem leaseOwn_items_short (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    leaseOwn (GF := GF) γl L I ⊢ leaseOwn γl L I ∗ ⌜itemKeysShort I⌝ :=
+  leaseOwnW_items_short γl L I none
+
+/-- **The owner's open window is the windows' list's** (auth-lease S4 item 7b): the tie's quarter agrees. -/
+theorem leaseOwnW_tie (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin)
+    (ws : List LWinRec) :
+    leaseOwnW (GF := GF) γl L I w ∗ lessorWinTie γl ws ⊢ leaseOwnW γl L I w ∗ lessorWinTie γl ws ∗
+      ⌜lastWin ws = w⌝ := by
+  unfold leaseOwnW leaseClosers lessorWinTie winOwn
+  iintro ⟨⟨Hf, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs, %γr, %hs, %Sm, #Hpr,
+    Ha, %Hlast, HSm, %ws0, Hw, %Hw⟩, %γr', #Hpr', Ht⟩
+  ihave %Hr := lessorPinR_agree γl γr γr' $$ [$Hpr $Hpr']
+  subst Hr
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws $$ Hw Ht
+  obtain ⟨-, rfl⟩ := Hag
+  isplitl [Hf Him HI Hcs Ha HSm Hw]
+  · iframe Hf
+    iexists lp, γga, γcl, C, im
+    iframe Hp Him HI Hcs
+    isplitr; · ipureintro; exact HC
+    isplitr; · ipureintro; exact HIL
+    isplitr; · ipureintro; exact HIS
+    iexists γr, hs, Sm; iframe Hpr Ha HSm
+    isplitr; · ipureintro; exact Hlast
+    iexists ws0; iframe Hw; ipureintro; exact Hw
+  isplitl [Ht]
+  · iexists γr; iframe Hpr Ht
+  ipureintro; exact Hw
 
 /-- **A reader slot borrowed from the lessor's pool** with the level-0 token (`levelTok lessorLvl`),
 and the step that gives it back for the token. -/
@@ -1485,15 +1656,20 @@ theorem lessorRdPool_borrow (γl : GName) (E : CoPset) (HN : ↑lessorPoolN ⊆ 
 
 /-- **The owner's item map's facts, through the txn layer's resource**: its keys short, its
 leases live (the lease-keys plan: `checkLeasePuts` reads both before `Lookup`). -/
-theorem lessorUser_items (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
-    lessorUser (GF := GF) γl L I ⊢ lessorUser γl L I ∗
+theorem lessorUserW_items (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) :
+    lessorUserW (GF := GF) γl L I w ⊢ lessorUserW γl L I w ∗
       ⌜itemKeysShort I ∧ ∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ := by
-  unfold lessorUser
+  unfold lessorUserW
   iintro ⟨Ho, Hrd, Hrv⟩
-  ihave ⟨Ho, %HIS⟩ := leaseOwn_items_short γl L I $$ Ho
-  ihave ⟨Ho, %HIL⟩ := leaseOwn_items_live γl L I $$ Ho
+  ihave ⟨Ho, %HIS⟩ := leaseOwnW_items_short γl L I w $$ Ho
+  ihave ⟨Ho, %HIL⟩ := leaseOwnW_items_live γl L I w $$ Ho
   iframe Ho Hrd Hrv
   ipureintro; exact ⟨HIS, HIL⟩
+
+theorem lessorUser_items (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
+    lessorUser (GF := GF) γl L I ⊢ lessorUser γl L I ∗
+      ⌜itemKeysShort I ∧ ∀ (it : LeaseItem) (id : w64), I.lookup it = some id → id ∈ L⌝ :=
+  lessorUserW_items γl L I none
 
 end defs
 

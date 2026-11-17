@@ -470,7 +470,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HlLive with ⟨%Ll, #HlK, HlUser, HlLt⟩
   -- (S2–S4, Probe 4) the two halves of the live set agree, and move to the records' ids
   imod ltHalf_agree_upd E Ll L0 Lr $$ HlLt HL0 with ⟨%HLeq, HLt1, HLt2⟩
-  iunfold lease.lessorUser at HlUser
+  iunfold lease.lessorUser at HlUser; iunfold lease.lessorUserW at HlUser
   icases HlUser with ⟨HlOwn, HlRd, HlRv⟩
   -- the store invariant and the store's handle (`isServer`'s `srvKVInvs`)
   ihave #Hsrv3 := Hsrv

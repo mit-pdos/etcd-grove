@@ -48,7 +48,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   icases Hpre with ⟨⟨%c, Hw⟩, Hlive, Hard, Hres, %B, Hbk, Hhk, Htie, Hcs⟩
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu, HltL⟩
-  iunfold EtcdGrove.lease.lessorUser at Hu
+  iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
@@ -148,7 +148,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
       iframe Hw Htie Hbk Hhk Hard
       isplitr [Hown Hrdo Hrvk HltL]
       · iapply apply.leasesKnown_commit_delete $$ Hknown
-      iunfold EtcdGrove.lease.lessorUser
+      iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW
       rw [txn.stateAfter_commitLog]
       iframe Hown Hrdo Hrvk HltL
     ileft; iexact HPost

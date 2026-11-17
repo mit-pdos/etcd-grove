@@ -46,7 +46,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   ihave %HLT := apply.ltHalf_agree E L T Hlg $$ [HltL HltT]
   · iframe HltL HltT
   subst HLT
-  iunfold EtcdGrove.lease.lessorUser at Hu
+  iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
@@ -73,7 +73,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       iexists L
       isplitl []
       · iexact Hknown
-      iunfold EtcdGrove.lease.lessorUser
+      iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW
       iframe Hown Hrdo Hrvk HltL
     cases err with
     | nil => exact absurd rfl Hne.1
@@ -125,7 +125,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
       isplitl []
       · iapply EtcdGrove.apply.leasesKnown_mono L (L ++ [g.id]) _
           (fun x hx => List.mem_append_left _ hx) $$ Hknown
-      iunfold EtcdGrove.lease.lessorUser
+      iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW
       iframe Hown Hrdo Hrvk HltL
     iunfold apply.leaseTTLIs at Hlease
     icases Hlease with ⟨%Hln, #HlID, #HTTL⟩

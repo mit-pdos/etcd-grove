@@ -548,7 +548,7 @@ theorem runner.apply.wp_proof
       (lease.lessorBeOn v.lp v.bk.be) (apply.bkRT v.bk) (backend.rbPart v.bk.γB (· = leaseName)) r
       (hookPre mp (W64 ((v.ops + 1 : Nat) : Int)) s0)
       iprop(True ∗ hookPost mp (W64 ((v.ops + 1 : Nat) : Int)))
-      (hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) v.U)
+      (hookPost mp (W64 ((v.ops + 1 : Nat) : Int))) v.U none)
       $$ [Hlbk Hlo Hrvk Hwb Hlbe HRT Hrb Happ Hsav Hever]
       as %l %err ⟨HRT, Hlbe, Hres⟩
     · iframe Hlinv Hlcfg Hlbk Hlo Hrvk Hwb Hlbe HRT Hrb Hgr Hever
@@ -663,6 +663,7 @@ theorem runner.apply.wp_proof
     isplitl
     · iunfold lessorW
       iexists rd, _
+      iunfold lease.leaseOwn
       iframe
       iframe #
       isplitr
@@ -1042,9 +1043,9 @@ theorem runner.apply.wp_proof
     wp_apply (wp_Lookup v.lp (mvccLeases v.ι.kv) o.id 0
         (some ((leasesAfter ks ops v.ops).filter (· != o.id),
           leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
-            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))))
+            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))) none)
       $$ [Hlrd Hlo] as %l ⟨Hlrd, -, Ho⟩
-    · iframe Hlinv Hlrd Hlb0; rw [lease.lookupView_some]; iexact Hlo
+    · iframe Hlinv Hlrd Hlb0; rw [lease.lookupViewW_some]; iexact Hlo
     try rw [← hlog]
     ihave ⟨%Hl0, Ho⟩ : iprop(⌜l = null ↔ o.id ∉ (leasesAfter ks ops v.ops).filter (· != o.id)⌝ ∗
         ((⌜l = null⌝ ∗ lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))
@@ -1054,7 +1055,7 @@ theorem runner.apply.wp_proof
             (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
               (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id)))) o.id l))
       $$ [Ho]
-    · rw [← lease.lookupViewAfter_some]; iexact Ho
+    · rw [← lease.lookupViewAfterW_some]; iexact Ho
     have hnin : o.id ∉ (leasesAfter ks ops v.ops).filter (· != o.id) := by simp
     have hlnull : l = null := Hl0.2 hnin
     ihave Hlo : lease.leaseOwn (mvccLeases v.ι.kv) ((leasesAfter ks ops v.ops).filter (· != o.id))

@@ -1,18 +1,29 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b STOPPED at step 1: the window ghost reaches the `NewLessor` axiom)
+## START HERE (S4, 2026-11-17, item 7b: steps 1-2 (lease) done; STOPPED before step 3 (mvcc `isLessor`))
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. No Lean edit since `232df2b904`.
-- **Stop (open decision):** `questions.md`, "Item 7b step 1": the plan's step 1 adds the windows ghost and `itemsLive`
-  to `lessorRdBody` and the owner's window half to `leaseClosers`; both are inside the statement of the axiom
-  `lease.NewLessor.wp_proof` (post: `lessorInv`, `leaseOwn γl Lr ∅`; also `Demote/Promote/Renew`'s premises). Options:
-  (A) extend the axiom's ghost allocation as for E3 (c)/Q-S6 (recommended; the plan as written), (B) a separate
-  window invariant allocated by a lemma from the owner's half (no axiom change, +2-3 days).
-- **Also there:** the coverage point for steps 6-7 (free markers in the windows list; the apply loop keeps the last
-  window between entries and frees only in the snapshot branch, `¬ clusterNoSnap`; kvsN needs a share of the windows'
-  authority). Fold it into step 1's ghost once (A) or (B) is chosen.
-- `Scratch/` holds no 7b attempt (all probes predate 2026-11-16 18:09: S3*/S4Freeze/S56/S7).
-- Next after the decision: the 7b plan below from step 1.
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` ("Item 7b step 1 decision",
+  the soundness note, "Item 7b step 3"); ledger 2026-11-16 7b entry ("Landed (step 1-2, lease)").
+- **Done (this commit):** the window ghost (option (A): `NewLessor`'s allocation extended, post gains
+  `lessorWinTie γl []`): `InvLessor` vocabulary (`LWin`, `LWinRec`, `lastWin`, `winStep`, `winStable`, `winEnd`, `winsOk`,
+  `itemsLive`, `lessorWinBody` in `lessorRdBody`, `winOwn` in `leaseClosers … w`, `leaseOwnW`; `leaseOwn`, `lessorUser`,
+  `leaseOwnOpen`, `lessorUserOpen`, `lookupView(After)` are now `abbrev`s of their `W` forms at `none`); `LessorHist`
+  (`winsOk_snoc`, `winsOk_open`, `lastWin_snoc`); `LessorLemmas` (`winBody_push`, `itemsLive_of`, `win_full`, `win_push` =
+  win_open (`x = some T`) / win_free (`x = none`); push lemmas take `w`, `winStep`, `itemsLive`, `winOwn`); specs at `∀ w`:
+  `Attach`, `Detach` (+ `winStep`), `GetLease`, `Grant`, `Lookup` (pass-through). `Revoke` still at `none`.
+- **Stop:** step 3 needs mvcc's `isLessor` (premise of closed `server_kv_backend` ×3 and, via `isTxnLessor`,
+  `txn_runTxn`) at `∀ w`: a stronger premise of closed results. Options in `questions.md` ("Item 7b step 3").
+- **Next after the decision:** step 3 (mvcc: `isLessor` clauses `∀ w`, `storeTxnWrite.*`, `Txn.*.contract`,
+  `mvccDeleter`, `writeView_*`), then `Revoke.spec` at `w`, then steps 4-8 of the plan below. The free-marker / tie
+  design (questions.md "Item 7b step 1", design point; approved) is in the ghost now: `win_push` with the tie's quarter.
+- **Pitfalls:** `iunfold` takes one name (`iunfold leaseOwn; iunfold leaseOwnW`). Outside sites that `iunfold
+  lease.lessorUser` etc. now also unfold the `W` form (done by a regex). Positional calls of `Lookup.spec`/`Grant.spec`
+  need the extra `w` (`none`) after `U`. A change in `InvLessor` rebuilds ~5100 modules (a full build's worth).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
+  --git 232df2b904 --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
+  `/shared/tmp/auth-lease-s4/7b-*.log`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b stopped at step 1: resolved by option (A))
 
 ## Previous START HERE (S4, 2026-11-16, item 7b: option 2 APPROVED; plan below, no Lean edit yet)
 

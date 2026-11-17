@@ -112,7 +112,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iunfold apply.leasesLive
       iexists L
       iframe Hlk
-      iunfold lease.lessorUser
+      iunfold lease.lessorUser; iunfold lease.lessorUserW
       simp only [snapE_γ]
       iframe Hlo Hlr Hrv
       rw [show apply.ltHalf (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl

@@ -71,7 +71,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
   ihave %HLT := apply.ltHalf_agree E L T Hlgt $$ [HltL HltT]
   · iframe HltL HltT
   subst HLT
-  iunfold lease.lessorUser at Hu
+  iunfold lease.lessorUser at Hu; iunfold lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hlrd, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
@@ -178,7 +178,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       iunfold apply.leasesLive
       iexists L
       iframe Hknown HltL
-      iunfold lease.lessorUser
+      iunfold lease.lessorUser; iunfold lease.lessorUserW
       simp only [srvApi.stAt]
       iframe
     isplitr
@@ -250,7 +250,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
       iunfold apply.leasesLive
       iexists (L.filter (· != id))
       iframe Hknown' HltL
-      iunfold lease.lessorUser
+      iunfold lease.lessorUser; iunfold lease.lessorUserW
       iframe
     isplitr
     · simp only [apply.chainRes]; itrivial

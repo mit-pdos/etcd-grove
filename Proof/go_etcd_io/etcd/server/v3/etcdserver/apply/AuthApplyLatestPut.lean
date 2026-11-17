@@ -138,7 +138,7 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
         ⌜∀ k : GoString, k ∈ ks ↔
           I.lookup (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk k) = some id⌝ }} := by
   iintro %Φ ⟨#Hpkg, Ho⟩ HΦ
-  iunfold lease.leaseOwnOpen at Ho
+  iunfold lease.leaseOwnOpen at Ho; iunfold lease.leaseOwnOpenW at Ho
   icases Ho with ⟨%HIS, #Hl, Hio, Hslot, Hback⟩
   iapply (hK γl l id (.owner I)) $$ [Hio Hslot]
   · iframe Hpkg Hl; rw [lease.keysPre_owner]; iframe Hio Hslot
@@ -154,7 +154,7 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
   iexists ks
   iframe Hs
   isplitl [Hio Hslot Hback]
-  · iunfold lease.leaseOwnOpen; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
+  · iunfold lease.leaseOwnOpen; iunfold lease.leaseOwnOpenW; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
   ipureintro
   exact ⟨fun k hk => HIS _ id ((Hks k).1 hk), Hks⟩
 
@@ -369,7 +369,7 @@ theorem apply.checkLeasePuts.wp_latest
       intro stl _; right; intro k hk; exact absurd hk (hnone rfl ⟨k⟩)
     | off => trivial
     | any => trivial
-  · iunfold lease.lessorUserOpen at Hu
+  · iunfold lease.lessorUserOpen at Hu; iunfold lease.lessorUserOpenW at Hu
     icases Hu with (⟨%Hn, -⟩ | ⟨Hrdl, Hrv, Ho⟩)
     · exact absurd Hn hln
     simp only [hln, decide_false, Bool.not_false]
@@ -380,7 +380,7 @@ theorem apply.checkLeasePuts.wp_latest
     iapply HΦ; iframe Hai Hrd HeI Hcls HLf
     isplitl [Hrdl Hrv Ho]
     · iapply lease.lessorUserOpen_close γl L I id l
-      iunfold lease.lessorUserOpen
+      iunfold lease.lessorUserOpen; iunfold lease.lessorUserOpenW
       iright
       iframe Hrdl Hrv Ho
     ipureintro; exact ⟨Hoff, Hvd⟩

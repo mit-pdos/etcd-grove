@@ -624,7 +624,7 @@ theorem NewServer.wp_proofRG
       recs (tableReq (appliedTable ρ.rd A)) (appliedTable ρ.rd A).ids trivial HlP hrecs hreq
       hperm.symm)
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, HlEv,
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlmode, #Hlcfg, -, #Hlexp, #Hlgd, Hlrd, Hlown, -, HlEv,
       Hlrvk, Hro, HleOn, #Hlbe, Hlstop, #HlReq, ⟨%ls, %Hls, HlAt0⟩, #Hllk'⟩
   · iframe HB Hclok
     unfold backend.wbTok
@@ -2306,7 +2306,7 @@ theorem NewServer.wp_proofRG
       iexists (appliedTable ρ.rd A).ids
       isplitr
       · iapply leasesKnown_noLease _ _ hnl
-      iunfold lease.lessorUser
+      iunfold lease.lessorUser; iunfold lease.lessorUserW
       simp only
       rw [Hγl]
       iframe Hlrd2 Hlrvk

@@ -637,3 +637,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Decision.** Approved by the user, 2026-11-16, via etcd-grove-02: option 2 (in place; no `…specW` siblings). Limits:
   STOP if the change reaches a closed theorem's statement, needs an axiom, `sorry` or trusted text, or makes a thawed
   statement weaker for an existing client. `lessorLawMask` gains `lessorRdN` (the form approved with the Freeze).
+- **Landed (step 1-2, lease, 2026-11-17).** Vocabulary: `lease.LWin`, `LWinRec`, `lastWin`, `winStep`, `winStable`,
+  `winEnd`, `winsOk`, `itemsLive`, `winOwn`, `lessorWinTie`, `leaseOwnW γl L I w` (`leaseOwn γl L I` is now the
+  abbreviation `leaseOwnW γl L I none`, as are `lessorUser`/`leaseOwnOpen`/`lessorUserOpen`/`lookupView`/
+  `lookupViewAfter` of their `W` forms), `win_push` (open a window or a free marker). The `NewLessor` axiom's ghost
+  allocation extended (decided by etcd-grove-03, soundness note in `questions.md`, "Item 7b step 1"); its post gains
+  `lessorWinTie γl []`. Thawed, old → new:
+  - `lease.lessor.Attach.spec`: `leaseOwn γl L I` → `leaseOwnW γl L I w ∗ ⌜winStep w I (insertAll I xs id)⌝`, post
+    `leaseOwn γl L (insertAll I xs id)` → `leaseOwnW γl L (insertAll I xs id) w` (∀ `w`; at `none` the old spec).
+  - `lease.lessor.Detach.spec`: the same with `deleteAll I xs`.
+  - `lease.lessor.GetLease.spec`, `Grant.spec`: `leaseOwn γl L I` → `leaseOwnW γl L I w` in pre and post (`w` passed
+    through; at `none` the old spec). `Lookup.spec`: `lookupView γl U`/`lookupViewAfter γl id l U` →
+    `lookupViewW γl w U`/`lookupViewAfterW γl id l w U` (the same).
+  - `Revoke.spec` unchanged so far (its deletes need `mvccDeleter`'s window form, step 3).
+  - Closed results whose text is unchanged and whose meaning gets stronger (decided fine by etcd-grove-03,
+    2026-11-17): `txn/Results.lean` `txn_runTxn` (`lessorUser`), `etcdserver/Results.lean` `server_kv_backend`
+    (post `mvccDeleter`), `lessor_apply_contract` (`isApplyLessor`).

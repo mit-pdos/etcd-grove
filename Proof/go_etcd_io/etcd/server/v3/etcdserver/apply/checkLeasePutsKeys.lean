@@ -38,7 +38,7 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
         ⌜∀ k : GoString, I.lookup (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk k) = some id →
           k ∈ ks⌝ }} := by
   iintro %Φ ⟨#Hpkg, Ho⟩ HΦ
-  iunfold lease.leaseOwnOpen at Ho
+  iunfold lease.leaseOwnOpen at Ho; iunfold lease.leaseOwnOpenW at Ho
   icases Ho with ⟨%HIS, #Hl, Hio, Hslot, Hback⟩
   iapply (hK γl l id (.owner I)) $$ [Hio Hslot]
   · iframe Hpkg Hl; rw [lease.keysPre_owner]; iframe Hio Hslot
@@ -54,7 +54,7 @@ private theorem keys_open (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) (γ
   iexists ks
   iframe Hs
   isplitl [Hio Hslot Hback]
-  · iunfold lease.leaseOwnOpen; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
+  · iunfold lease.leaseOwnOpen; iunfold lease.leaseOwnOpenW; iframe Hl Hio Hslot Hback; ipureintro; exact HIS
   ipureintro
   exact ⟨fun k hk => HIS _ id ((Hks k).1 hk), fun k hk => (Hks k).2 hk⟩
 

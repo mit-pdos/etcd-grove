@@ -267,7 +267,7 @@ theorem txn.Txn_sole
       rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true, txn.MTxn.append, List.nil_append] at htxn'
     rw [Hlogw] at htxn'
-    iunfold EtcdGrove.lease.lessorUser at Hu
+    iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
     icases Hu with ⟨Hown, Hrdo, Hrvk⟩
     (try wp_auto)
     wp_apply htxn'
@@ -321,7 +321,7 @@ theorem txn.Txn_sole
     simp only [srvRunTxn]
     iframe Hresp Hk2 Hhdr
     isplitl [Hown Hrdo Hrvk]
-    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo Hrvk
+    · iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW; iframe Hown Hrdo Hrvk
     try simp only [hro, Bool.false_eq_true, ↓reduceIte]
     iframe HPost
     iexists σw

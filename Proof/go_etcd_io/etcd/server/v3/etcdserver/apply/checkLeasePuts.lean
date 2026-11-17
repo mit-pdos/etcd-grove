@@ -58,7 +58,7 @@ theorem apply.checkLeasePuts.wp_proof
     iintro %_
     iapply apply.leaseKeysClass_empty
     exact hnone rfl
-  · iunfold lease.lessorUserOpen at Hu
+  · iunfold lease.lessorUserOpen at Hu; iunfold lease.lessorUserOpenW at Hu
     icases Hu with (⟨%Hn, -⟩ | ⟨Hrdl, Hrv, Ho⟩)
     · exact absurd Hn hln
     simp only [hln, decide_false, Bool.not_false]
@@ -68,7 +68,7 @@ theorem apply.checkLeasePuts.wp_proof
     iapply HΦ; iframe Hai Hrd HeI Hcls
     isplitl [Hrdl Hrv Ho]
     · iapply lease.lessorUserOpen_close (mvcc.api.mvccLeases γ) L I id l
-      iunfold lease.lessorUserOpen
+      iunfold lease.lessorUserOpen; iunfold lease.lessorUserOpenW
       iright
       iframe Hrdl Hrv Ho
     ipureintro; exact Hoff

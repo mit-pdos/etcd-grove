@@ -69,7 +69,7 @@ theorem lease.lessor.Revoke.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L', Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
-  iunfold leaseOwn at Hown
+  iunfold leaseOwn at Hown; iunfold leaseOwnW at Hown
   icases Hown with ⟨Hfr, Hcls⟩
   ihave %Hag := leaseFrag_agree (mvccLeases γ) _ _ _ _ $$ [$Hfr $Hg]
   subst Hag
@@ -100,7 +100,7 @@ theorem lease.lessor.Revoke.wp_proof
     · ipureintro; exact hnot
     isplitr
     · iexists enf; iframe Henf; ipureintro; rfl
-    iunfold leaseOwn; iframe Hfr Hcls
+    iunfold leaseOwn; iunfold leaseOwnW; iframe Hfr Hcls
   | some l =>
     simp only [Option.getD_some]
     have hidL : id ∈ L := (HL id).2 (by rw [hM]; rfl)
@@ -184,7 +184,7 @@ theorem lease.lessor.Revoke.wp_proof
       [He Hio Hslot]
     · iunfold closerAt; iframe He Hio Hslot
     ihave Hown : leaseOwn (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) $$ [Hfr Him' HI' Hcm Hch]
-    · iunfold leaseOwn; iframe Hfr
+    · iunfold leaseOwn; iunfold leaseOwnW; iframe Hfr
       iunfold leaseClosers
       iexists lp, γga, γcl, C, im'
       iframe Hp Him' HI' Hcm Hch
@@ -317,13 +317,13 @@ theorem lease.lessor.Revoke.wp_proof
       iunfold lessorMu at HR
       icases HR with ⟨%lm2, %im2, %M2, %I2, %rd2, %L2, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL2, #Hsz2, #Hls2, Hx,
         %γrl, %hsl, #Hprl, Hhl, %Hlastl⟩
-      iunfold leaseOwn at Hown
+      iunfold leaseOwn at Hown; iunfold leaseOwnW at Hown
       icases Hown with ⟨Hfr, Hcls⟩
       ihave %Hag := leaseFrag_agree _ _ _ _ _ $$ [$Hfr $Hg]
       subst Hag
       iunfold leaseClosers at Hcls
       icases Hcls with ⟨%lp4, %γga4, %γcl4, %C4, %im4, #Hp4, %HC4, Him4, HI4, %HIL4, %HIS4, Hcm,
-        %γr, %hs, %Sm, #Hpr, Ho, %Hlast, HSo⟩
+        %γr, %hs, %Sm, #Hpr, Ho, %Hlast, HSo, Hwo⟩
       ihave %Hpp := lessorPinG_agree _ lp lp4 γga γga4 γcl γcl4 $$ [$Hp $Hp4]
       obtain ⟨rfl, rfl, rfl⟩ := Hpp
       -- the owner's and the lock's last snapshots agree: the lessor's map is the closers'
@@ -426,6 +426,27 @@ theorem lease.lessor.Revoke.wp_proof
       iapply fupd_wp
       -- (the lease-grant plan's D2) the lessor revocable: its history need not be monotone
       ihave %Hmode := lessorModeIs_pin _ false γr $$ [$Hrev $Hpr]
+      have hIL5 : ∀ (it : LeaseItem) (id' : w64),
+          (mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del)).lookup it = some id' →
+            id' ∈ L.filter (· != id) := by
+        intro it id' hit
+        rw [hfilt]
+        refine ⟨HIL4 it id' hit, ?_⟩
+        rintro rfl
+        rw [mvcc.leaseItemsOf_dels] at hit
+        by_cases hk : it.Key' ∈ ks'
+        · rw [if_pos hk] at hit; cases hit
+        · rw [if_neg hk] at hit
+          apply hk
+          apply Hperm.mem_iff.1
+          apply (Hks.1 it.Key').2
+          cases it; exact hit
+      have hC5 : ∀ x : w64, x ∈ L.filter (· != id) ↔ ((C4.delete id).lookup x).isSome := by
+        intro x
+        rw [hfilt, HC4 x, GMap.lookup_delete_iff]
+        by_cases hx : id = x
+        · subst hx; simp
+        · simp [hx, Ne.symm hx]
       imod hist_append _ γr hs Sm _ (C4.delete id, _, T.delete id) ⊤ (fun _ _ => CoPset.mem_full)
         Hlast (fun hT => tieSub_delete C4 _ _ T id hT)
         (fun hok hh => setsOk_delete Hlast hok hh) (fun h => by rw [Hmode] at h; cases h)
@@ -439,7 +460,8 @@ theorem lease.lessor.Revoke.wp_proof
             · exact hx
           · left; dsimp only at hx ⊢
             exact (HC4 x).1 (HIL4 it x hx))
-        $$ [$Hrdi $Hpr $Ho $Hhl $HSo] with ⟨Ho, Hhl, HSo⟩
+        none (winStep_none _ _) (fun _ => itemsLive_of _ hIL5 hC5)
+        $$ [$Hrdi $Hpr $Ho $Hhl $HSo $Hwo] with ⟨Ho, Hhl, HSo, Hwo⟩
       imodintro
       have hlast' : (hs ++ [(C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del),
           T.delete id)]).getLast? =
@@ -488,35 +510,18 @@ theorem lease.lessor.Revoke.wp_proof
       · ipureintro; exact ⟨hidL, rfl⟩
       iframe HY HPost Hrb
       rw [txn.stateAfter_commitLog]
-      isplitl [Hfr Him4 HI4 Hcm Ho HSo]
-      · iunfold leaseOwn; iframe Hfr
+      isplitl [Hfr Him4 HI4 Hcm Ho HSo Hwo]
+      · iunfold leaseOwn; iunfold leaseOwnW; iframe Hfr
         iunfold leaseClosers
         iexists lp, γga, γcl, (C4.delete id), im4
         iframe Hp Him4 HI4 Hcm
         isplitr
-        · ipureintro
-          intro x
-          rw [hfilt, HC4 x, GMap.lookup_delete_iff]
-          by_cases hx : id = x
-          · subst hx; simp
-          · simp [hx, Ne.symm hx]
+        · ipureintro; exact hC5
         isplitr
-        · ipureintro
-          intro it id' hit
-          rw [hfilt]
-          refine ⟨HIL4 it id' hit, ?_⟩
-          rintro rfl
-          rw [mvcc.leaseItemsOf_dels] at hit
-          by_cases hk : it.Key' ∈ ks'
-          · rw [if_pos hk] at hit; cases hit
-          · rw [if_neg hk] at hit
-            apply hk
-            apply Hperm.mem_iff.1
-            apply (Hks.1 it.Key').2
-            cases it; exact hit
+        · ipureintro; exact hIL5
         isplitr
         · ipureintro; exact HIS4
-        iexists γr, _, Sm; iframe Hpr Ho HSo; ipureintro; exact ⟨_, hlast'⟩
+        iexists γr, _, Sm; iframe Hpr Ho HSo Hwo; ipureintro; exact ⟨_, hlast'⟩
       iunfold leaseRevokers
       iexists lp, γga, γcl, (C3.delete id)
       iframe Hp Hrs

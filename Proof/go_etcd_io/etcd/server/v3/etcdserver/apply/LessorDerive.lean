@@ -295,7 +295,7 @@ theorem isApplyLessor_of_lessorInv
     icases Hbe0 $$ %B HBT with ⟨HBT, #Hbd⟩
     iapply (hGrant lp (mvccLeases γ) id ttl L I (Pk B) f (bkWT B) (lease.lessorBeOn lp B.be)
       (bkRT B) (backend.rbPart B.γB (· = mvcc.leaseName)) rs.bk
-      Pre Q Post U) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
+      Pre Q Post U none) $$ [Hcs Hown Hrvk Hwt Hrt Hbe Hrb HU HUf]
     · iframe; iframe #
     iintro !> %l %err ⟨Hrt, Hbe, (⟨%Hne, #Herr, Hown, Hrvk, HPre, Hrb, HU⟩ |
       ⟨%Hok, Hown, Hrvk, HPost, #HID, #Hlive, ⟨%mt, -, #Ht, Hrb, HU, #Hreq⟩⟩)⟩

@@ -177,7 +177,7 @@ theorem txn.Put.wp_proof
       iapply h $$ Hilok
   have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L
   simp only [txn.pendState_nil, List.nil_append] at hp
-  iunfold EtcdGrove.lease.lessorUser at Hu
+  iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   -- the owner's item map: the begin state's
   ihave Hown : EtcdGrove.lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) $$ [Hown]
@@ -217,7 +217,7 @@ theorem txn.Put.wp_proof
   iframe Hresp Hhdr Hlok2
   isplitl []
   · ipureintro; exact ⟨rfl, Hn⟩
-  iunfold EtcdGrove.lease.lessorUser; iframe Hrdo Hrvk
+  iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW; iframe Hrdo Hrvk
   rw [hpp]
   iexact Hown
 
