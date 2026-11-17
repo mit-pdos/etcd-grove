@@ -48,12 +48,12 @@ panic case no longer happens (`Open_kv` has no error), but is kept in the statem
 abbrev backend.newBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (cfg : BackendConfig) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF),
-  -- (S3e, 2026-11-17) `Mlock` off: bbolt's proved `Open` does not model `mlock`
-  cfg.Mlock' = false →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       -- (premise fixes 6, D2a) the logger nil (replaced by `zap.NewNop()`) or a zap logger
       zapLoggerOrNil cfg.Logger' ∗
-      fileHolds cfg.Path' D ∗ ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
+      fileHolds cfg.Path' D ∗
+      -- (S3e, 2026-11-17) `Mlock` off: bbolt's proved `Open` does not model `mlock`
+      ⌜P.Wf ∧ P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
       -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
       envVerifyOff ∗

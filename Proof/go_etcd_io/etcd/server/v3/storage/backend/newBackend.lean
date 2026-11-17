@@ -50,7 +50,7 @@ theorem backend.newBackend.wp_proof
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
-  intro _ _ cfg P D W Pk K hml
+  intro _ _ cfg P D W Pk K
   wp_start as ⟨#Hzl, Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
@@ -113,7 +113,7 @@ theorem backend.newBackend.wp_proof
   icases optsAt_mlock bo o $$ Hbo with ⟨%x5, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ [Hf]
-  · simp only [hml]; iexact Hf
+  · simp only [HP.2.2]; iexact Hf
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlz
   wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
   · iexact Hlz
@@ -186,7 +186,7 @@ theorem backend.newBackend.wp_proof
   · iframe
     iframe #
     ipureintro
-    rw [← HP.2]; exact HP.1.2.1
+    rw [← HP.2.1]; exact HP.1.2.1
   try wp_auto
   ipersist batchTx
   ipersist hooks
@@ -197,7 +197,7 @@ theorem backend.newBackend.wp_proof
       Hwtx Hst Hrtoks rtx Hlive rtxWg «$v2» btxBuffer bbufVersion Hm rbuckets Hcm «$v3» cmu
       cbuf cbufVersion Hsco Hdco Hsr1]
     with ⟨%γ, %Hγd, #Hbfile, Hpost, #Hstop, Hdcp, Hrtok, Hopnr, Husedr⟩
-  · rw [HP.2]
+  · rw [HP.2.1]
     iframe
     iframe #
   iunfold newPostK at Hpost

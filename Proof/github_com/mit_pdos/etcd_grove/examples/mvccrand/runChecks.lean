@@ -83,7 +83,7 @@ theorem runChecks.wp_proof
   (try wp_auto)
   wp_apply wp_DefaultBackendConfig as %bc %Hbc
   (try wp_auto)
-  obtain ⟨hlim, hhooks, hlgc⟩ := Hbc
+  obtain ⟨hlim, hhooks, hlgc, hmlk⟩ := Hbc
   -- (premise fixes 6) the logger `NewNop`'s, a zap logger, for `backend.New` and `mvcc.New`
   ihave #Hlgo : zapLoggerOrNil lg $$ []
   · iapply zapLoggerOk_orNil; iexact Hlgz
@@ -95,7 +95,8 @@ theorem runChecks.wp_proof
   · iframe Hfile Htok Hvoff Hblgo
     isplitr
     · ipureintro
-      refine ⟨rcP_wf _ (by rw [hlim]; decide) (by rw [hlim]; decide), rfl⟩
+      refine ⟨rcP_wf _ (by rw [hlim]; decide) (by rw [hlim]; decide), rfl, ?_⟩
+      first | exact hmlk | simpa using hmlk
     isplitr
     · iunfold backend.hooksOk
       iintro !> %γ %b %t _ _
