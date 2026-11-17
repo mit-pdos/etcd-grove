@@ -17,6 +17,39 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Generic maps and slices iterators: `maps.Keys`/`Clone`/`Equal`, `slices.Sorted`/`Collect`/`AppendSeq` (2026-11-17, k8s 7g)
+
+- **Missing.** Perennial translates the standard library's `maps` names only (no bodies), and
+  `slices.Sorted`, `slices.Collect`, `slices.AppendSeq`, `slices.Values` names only, so no generic
+  spec of them exists. They are small, generic and need no reflection: `maps.Keys(m)` is a closure
+  ranging over `m`; `slices.Sorted(seq)` is `Collect` then `Sort`; `Collect` is
+  `AppendSeq(nil, seq)`, a range over a function iterator (which goose already translates:
+  `testdata/examples/semantics/range_func.go`); `maps.Equal` is a length test and a loop with
+  `==` on a `comparable` value type; `maps.Clone` calls the runtime's `maps.clone` (linkname).
+- **Who needs it.** The maintainers' checker in the k8s etcd3 driver (k8s 7g,
+  `notes/k8s-7g-scope.md` Q8): `slices.Sorted(maps.Keys(s.Items))` in `Model.list`/`listItems`, and
+  the D30g patch's `maps.Clone`/`maps.Equal` of `NeedsRewrite`. Any later Go code ranging over
+  sorted map keys (a common idiom since Go 1.23) needs the same.
+- **Workaround here.** Four trust-boundary specs at the checker's types only
+  (`Spec/maps/Keys.lean`: `maps.Keys.spec_objMap`, which states what `slices.Sorted` returns on the
+  iterator; `Spec/maps/Clone.lean`, `Spec/maps/Equal.lean` at `map[string]bool`), each with a Go
+  test (`examples/k8s/etcd3/trustspecs_test.go`). They go when the pin reaches the change.
+- **Proposed change (translation and proofs only, no new assumption).**
+  1. Translate `maps` with bodies: `Keys`, `Values`, `All`, `Equal`, `EqualFunc`, `Copy`, `Collect`,
+     `Insert`, `DeleteFunc`; `Clone` with a model of `runtime.maps.clone` as a loop of inserts over a
+     fresh map (`make(M, len(m))` then `for k, v := range m { r[k] = v }`), which is the observable
+     behavior (a fresh map, same entries; `nil` for `nil`), stated in the model's docstring.
+  2. Translate `slices.Collect`, `AppendSeq`, `Sorted`, `SortedFunc`, `Values`, `All` with bodies.
+  3. Specs over `ownMap` (with `SafeMapKey` for the key type) and an iterator protocol: a predicate
+     `seqYields f P xs` ("running `f` with a yield that accepts yields `xs` in order, under the
+     resource `P`"), produced by `maps.Keys` (`xs` some order of the domain, `P` the map points-to),
+     consumed by `Collect`/`AppendSeq`/`Sorted` (`Sorted` at an ordered element type: the sorted
+     permutation, at `string` by `go.GoStringLt`, reusing `slices.Sort`'s spec); `Equal` at a
+     strictly comparable value type (`b = true ↔ m1 = m2` for non-nil maps; nil maps as empty);
+     `Clone` (`m ↦$ M` fresh, or `nil` for `nil`).
+- **Status (2026-11-17).** Proposed only (no Perennial branch). To be designed and reviewed on a
+  branch off Perennial's `lean` when the user wants it.
+
 ### The thread-token `WaitGroup` joins have no `Add` by a member, during a `Wait` (2026-11-16, k8s 7f-5b)
 
 - **Missing.** `sync.tokJoin` and `sync.tokJoinL` (`Perennial/Proof/sync/WaitGroupTokJoin{,L}.lean`)

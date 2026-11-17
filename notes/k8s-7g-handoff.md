@@ -2,29 +2,29 @@
 
 ## START HERE
 
-- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 3cd4b72599 (7f-6 E+F) merged
-  (`d41993afa5`). `.lake/build` moved from k8s-7f6 (built at lean). Pin c6b39d4f8:
-  `--packages=/shared/tmp/manifest-c6b.json`; `.lake/package-overrides.json` is that manifest.
-- Scope approved by the user 2026-11-17 (design A', Q2-Q8): `notes/k8s-7g-scope.md`.
-- Done: **step 0 (Go)**, `e9bf69f83a`: the copy `examples/k8s/etcd3/correctness/` + gate
-  `etc/k8s-correctness-check.py` (gates.sh, CI) + `etc/k8s-correctness/d30g.patch` (moved from
-  notes/); the driver changes of Scope §1.4 (`realcheck.go`, `Output.Raw`, `floored`/`cache.floor`,
-  `Obj.SetResourceVersion`, `ObjList` accessors); tests (`realcheck_test.go`, `realfacts_test.go`,
-  `correctness/cmpdiff_test.go`); translation (project k8s-apiserver: `./correctness`, go-cmp's
-  `cmp` names only but `Option`/`applicableOption`, std `maps` names only).
-- **Step 0 report pending with the coordinator.** Go: the package and ./correctness green (`/shared/tmp/k8s7g/step0-fulltest.out`); real checker Ok on 5/5 one-member runs and on every failure-free partitioned run (`step0-runs.out`). Lean: the first module that breaks is `KModel` (Output gains `Raw`), `step0-build.log`. Forms decided: `questions.md` (gitignored, local).
-- Next, after the coordinator's answer: step 1, the trust-spec texts (HARD STOP: present each with
-  its Go evidence before use): `reflect.DeepEqual` (deepRep), `cmp.Diff`, `maps.Keys/Clone/Equal`,
-  `slices.Sorted`, maybe `meta.SetList`, `apierrors.SuggestsClientDelay`. Then steps 2-6 (Scope §5).
-- Open: the driver's Lean proofs do not build against the new translation until step 5 (so the
-  branch cannot land before step 5, unless split); `etc/gen-init.py --check` needs `IsPkgInit`
-  instances of `correctness`, `maps`, `cmp` (Lean) and regenerated driver init/PkgTable files.
+- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 3cd4b72599 merged (`d41993afa5`).
+  Pin c6b39d4f8: `--packages=/shared/tmp/manifest-c6b.json`; `.lake/package-overrides.json` is that
+  manifest. Scope (approved 2026-11-17): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local).
+- Done: step 0 (Go) `e9bf69f83a`, `47eae5838c` (IsPkgInit, gen-init); step 0 report answered
+  (questions.md: land 0-5 together; cmp `opaqueInitsOk` accepted; Raw approved; Freeze wording).
+- **Step 1 (trust texts) written, HARD STOP pending the coordinator's attack/review**:
+  `notes/k8s-7g-trust.md` (index, proposals V and T, the IsTooManyRequests finding, delta). Seven
+  spec files + `Deep.lean` vocabulary, all elaborate; **no axiom files yet**. Go evidence
+  `examples/k8s/etcd3/trustspecs_test.go`, `correctness/cmpdiff_test.go` (green:
+  `/shared/tmp/k8s7g/step1-go.out`). Perennial proposal: `notes/perennial-changes.md`, "Generic maps
+  and slices iterators".
+- Next, after the review: add the axiom files (`Proof/reflect/DeepEqualK8s.lean`, ...), apply V/T
+  if approved, tcb baseline/collection update; then step 2 (pure real model, Scope §5).
+- Open: the driver's Lean proofs do not build against the new translation until step 5 (KModel:
+  Output gains `Raw`); `IsTooManyRequests.spec` is false today (typed nil `*StatusError`).
 - Pitfalls:
-  - goose's config path for `github.com/google/go-cmp/cmp` is `Code/github_com/google/go_cmp/cmp.toml`
-    (underscore), not `go-cmp`.
-  - In partitions most runs have a failed call, so the real checker runs in few of them (2 of 10
-    partitioned runs failure-free, `/shared/tmp/k8s7g/step0-runs.out`).
-  - `cmp.Diff` and `reflect.DeepEqual` tell nil from empty slices.
+  - goose's config path for go-cmp is `Code/github_com/google/go_cmp/cmp.toml` (underscore).
+  - In partitions most runs have a failed call, so the real checker runs in few of them.
+  - `cmp.Diff` and `reflect.DeepEqual` tell nil from empty slices; `meta.SetList` always makes a
+    non-nil `Items`.
+  - apierrors' `.plain` view does not cover nil or `*StorageError` (proposal V).
+  - In a def, `∀ e, … Φ #e` needs `(e : GoInterface)` or instance resolution of `go.Semantics`
+    gets stuck; a `Prop` over `go.typeSetContains` goes in a section without `go.Semantics`.
 - Go runs: `cd examples/k8s/etcd3; GOWORK=off systemd-run --scope -q -p MemoryMax=32G go test
   -count=1 -v -run '^TestRealChecker$' .` (and `TestRealCheckerPartition`, `K8SETCD3_SCHED`).
 
