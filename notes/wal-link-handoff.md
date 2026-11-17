@@ -1,6 +1,27 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17)
+## START HERE (2026-11-17, after L0)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`, off `lean` `9702d5707e`; `.lake/build` from a full c6b
+  build at 9702d5707e; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`. Coordinator: etcd-grove-03.
+- **Decisions** (Scope §7, `questions.md`): plan approved by the user; Q1 L3 lands with L4; Q2 P2 (`--wal-dir` under
+  per-member `fsExt` roots, examples' Go absolute); Q3 `NoIoErr` all inodes; Q4-Q6 as recommended (etcd-grove-03).
+- **Done:** Scope + Go evidence (72997e9e36); **L0** `St/WalLinkPure.lean` (proved, no trust change): the read bridge
+  `walRead_of_fold`, the eager steps `walFoldChkFrom_save_cons`/`_snoc_save`/`_snoc_snap` (`WalSaveOkC` = `WalSaveOk`
+  unfolded, so the sealed `WalRecs` can import it), `walCommitLe_of_fold`, `walCommitLeFrom_snoc/_nil`, `walIdxLe_*`.
+- **Next, in order:** L1a (`PW/Handle.lean`: shared handle `walOpenWS`, the five `NoErr` specs' shared variants,
+  history-prefix fragment + `walSnapRec` from `SaveSnapshot`) ∥ L1b (server `WalPbIn`/`WalMarshal`; R5 checked:
+  `hardStateAt` = `hsOpt` is frozen (`hsRO`), `entRoC` frozen, but `smPtsV mp dq md` is fractional: the `SaveSnap`
+  law's conf state must become discarded or layer 1 take a fraction); then L2 (HARD STOP: `ReleaseSnapDBs` axiom),
+  L3+L4 (HARD STOPs (a)-(c) of the brief before any trusted text / server statement / closed theorem change).
+- **Pitfalls:** WAL Go sources at the pin: `/shared/tmp/wallink/etcd` (shallow fetch of `8c28a4296`); `.lake/go-src/etcd`
+  is older. `E/WalApi.lean`'s header "NOT YET IN USE" is stale (fix in L3). `WalViews.lean` is over the old `absDiskExt`.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`
+  (`--stop` before builds and at the end). **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
+
+## History
+
+### START HERE (2026-11-17, Scope)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, off `lean` `9702d5707e`; no `.lake/build` (disk);
   `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`. Coordinator: etcd-grove-03.

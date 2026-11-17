@@ -275,3 +275,12 @@ allocation before L3 changes the slots: Q1).
   resources; `walSaveOk` leaves the restart contract's premise), `goose_adequacy_start_files` (its data-directory part
   narrowed to the backend), `dataDirFresh` (the backend's half).
 - **L4 adds:** the `fsExt` scoped-rename rule (trusted semantics, the user's review).
+
+## 7. Decisions
+
+- **Approved by the user, 2026-11-17, via etcd-grove-03:** the plan above; Q1 L3 lands together with L4 (no
+  temporary trusted text); Q2 P2, each WAL in a dedicated directory (`--wal-dir`, `DedicatedWALDir`) under a
+  per-member `fsExt` root, the examples' Go moving to absolute directories; Q3 `NoIoErr` over all inodes for now.
+- **Decided by etcd-grove-03, 2026-11-17:** Q4 a received snapshot's index and encoded size bounded by the
+  cluster's room invariant and member bound; Q5 `walFiles` exclusive, and the snapshot-record witness `walSnapRec`
+  that `Release` takes; Q6 the `sized = false` `Save` law (and `walRecs_unsize`) dropped.
