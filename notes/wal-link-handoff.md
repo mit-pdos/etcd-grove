@@ -1,6 +1,6 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, after L0)
+## START HERE (2026-11-17, after L1a)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, off `lean` `9702d5707e`; `.lake/build` from a full c6b
   build at 9702d5707e; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`. Coordinator: etcd-grove-03.
@@ -9,47 +9,28 @@
 - **Done:** Scope + Go evidence (72997e9e36); **L0** `St/WalLinkPure.lean` (proved, no trust change): the read bridge
   `walRead_of_fold`, the eager steps `walFoldChkFrom_save_cons`/`_snoc_save`/`_snoc_snap` (`WalSaveOkC` = `WalSaveOk`
   unfolded, so the sealed `WalRecs` can import it), `walCommitLe_of_fold`, `walCommitLeFrom_snoc/_nil`, `walIdxLe_*`.
-- **L1a in progress (no-twin collapses decided by etcd-grove-03, Scope §8).** Done: `PW/HandleShared.lean` (the shared
-  handle `walOpenWS Sio P Mr w dir γ q`; laws `_alloc/_split/_pers/_acquire/_release/_finish/_reclaim`, `walHdl`
-  + `walHdl_open/_close/_wf/_of_wf`, `ioNone`, `noErr_ioNone`); **`Sync` merged** (7eba580698; shape ACCEPTED by
-  etcd-grove-03, `questions.md`); **`Save` merged** (one spec, one proof; `WAL__SaveNoErr` spec+proof deleted;
-  `saveRoom` moved to `WAL__Save`'s spec, premise `walCov Sio → saveRoom … ≤ walFreshRoom`); `PW/CalleeCov.lean`:
-  the callees' two specs chosen at a call by `walCov` (`saveEntry`, `saveState`, `sync`, `cut`; bridges, not
-  specs, gone with the queued cleanup); `etc/link_walfs.py`: a binder's `(Sio := ioNone)` reaches the result's
-  hypotheses, and a no-error spec hypothesis at `ioNone` is discharged by `noErr_ioNone` (else WalTester's
-  `member.wp_save` would take the unproved `cut.specNoErr`); WalTester's `member__save` shares the handle.
-  **`ReleaseLockTo`** renamed (`specNoErr` is `spec`, over `walOpenWS`; the weak form is the corollary
-  `specR`/`spec_R`, which WalTester's `member__opOwnSnap` takes). **`Close`** merged: one spec over the
-  handle's state (`WalCloseSt`: `shared γ` | `failed` | `opening s` | `unnamed Rp qp tf`, `HandleShared.lean`;
-  pre and post a `match` on it); one proof by cases, the states' proofs its lemmas (`WAL.Close.wp_shared`,
-  merged from the former `wp_proof`/`wp_proofNoErr`; `wp_failed`, `wp_opening`, `wp_unnamed`); the four
-  other spec files and `WAL__CloseNoErr` deleted; users moved (`cleanupWAL`, `Open` at the P-free model
-  `walPbNone`, WalTester's `member__close` (shares the handle) and `restartRead`).
-- **Next, in order:** SaveSnapshot (`specPre` as a precondition
-  disjunct) once the (B) blocker is decided (see Open). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
-- **Pitfall (lock + later credit):** a method that needs the handle *before* its first resolution after `Lock`
-  (Save's step bound) takes `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand with
-  `wp_go_step_receipt'` (its `£ 1` strips the invariant's later), then `wp_raise_receipt` at the next resolution
-  (`WAL__Save.lean`). Macros in proofs: `$H` in spec patterns is an antiquotation; expand by hand. A spec whose
-  pre/post is a `match` on a state: `dsimp only` first in the call's side goal; a nested `isPkgInit` needs
-  `iPkgInit`. Names in a binder the Link copies must resolve without `open WalFs` (`WalFs.ioNone`). A
-  `lean-check` "0 errors" once hid an unknown identifier: build the Links before committing.
-- **SaveSnapshot's room: (A), the user's choice 2026-11-17** ((B) closed: a covered-case error cannot lose a
-  shared handle). Design (form decided by the agent, `HandleShared.lean`): `WalShN` gains `γu`; `walUsed γ u` :=
-  `ghostVar γ.γu ½ u` (the client's view: bytes of room the snapshot records took since the tail was last fresh);
-  `walHdl … γ` := `∃ u, ghostVar γ.γu ½ u ∗ ⌜walCov → u ≤ walSnapBudget⌝ ∗ ((⌜¬walCov⌝ ∗ walOpenWF) ∨ walOpenWFR
-  (walFreshRoom - u))` (the old `walHdl` is `walHdlF`, the input of `walOpenWS_alloc`, which also returns
-  `walUsed γ 0`); `walSnapBudget := 2^42`, `walSaveRoom := walFreshRoom - walSnapBudget`, `snapRoom Mr md :=
-  |encSnap md| + 64`. The AUs carry the view: `SaveSnapshot`'s pre `walUsed γ u ∗ ⌜walCov → u + snapRoom ≤
-  walSnapBudget⌝`, post `walUsed γ (u + snapRoom)`; `Save`'s post `walUsed γ (if hsEmptyP hs ∧ es = [] then u
-  else 0)` (a writing Save ends below `2^43`: below `SegmentSizeBytes`, or a cut), its room premise `saveRoom ≤
-  walSaveRoom`. Two AU transformers (method side: the handle's half and the big AU give the `walDiskAt` AU whose
-  COMM returns the updated half and the budget fact; client side: the view and the fact turn a `walDiskAt` AU
-  into the big one), on `TracedCap.aupd_wand_post`'s `aupd_intro` pattern.
-- **SaveSnapshot's one spec:** a `match` on `WalSnapSt` (`shared γ q` | `pre …`, the former `specPre`'s binders),
-  as `Close`'s `WalCloseSt`; one proof by cases (`wp_shared`: the former `wp_proof`+`wp_proofNoErr` merged as in
-  `Save`; `wp_pre`: the former `specPre` proof). `WAL__SaveSnapshotNoErr` goes; `WAL__SaveSnapshotPre.lean` keeps
-  `walPreIn`/`snapFrame`/`walPreSyncOk`/`sync.specPre` (untouched family).
+- **L1a done** (no-twin collapses, Scope §8; shapes accepted by etcd-grove-03): `PW/HandleShared.lean` (the shared
+  handle `walOpenWS`, its laws, `ioNone`, `noErr_ioNone`); one spec + one proof each for `Sync` (7eba580698), `Save`,
+  `Close` (over `WalCloseSt`), `ReleaseLockTo` (`spec`, corollary `spec_R`); `PW/CalleeCov.lean` chooses the
+  callees' two specs by `walCov`; `etc/link_walfs.py` handles `(Sio := ioNone)` binders.
+- **SaveSnapshot's room (A) done** (dcb795d4b3, then the SaveSnapshot commit after it): `HandleRoom.lean`
+  `walSnapBudget`/`walSaveRoom`/`snapRoom`; `HandleShared.lean` `WalShN.γu`, `walUsed`, γ-indexed `walHdl`
+  (`walHdlF` before sharing, `walOpenWS_alloc` also returns `walUsed γ 0`), `walShPers` holds the WAL's
+  `isPkgInit` (`walShPers_pkgInit`), AU transformers `walAu_save`/`walAu_snap` (method) and
+  `walAu_saveC`/`walAu_snapC` (client); `Save`'s AU carries `walUsed` (`walUsedAfterSave`), room premise
+  `walSaveRoom`. **SaveSnapshot: one spec** over `WalSnapSt` (`shared γ q` | `pre …`, `HandleShared.lean`), one
+  proof by cases (`wp_shared`, `wp_pre`); `WAL__SaveSnapshotNoErr` gone, `specPre` gone (its proof is `wp_pre`);
+  `CalleeCov.walCov_encodeTail`; Create at `.pre` (`Sio := ioNone`, `walPbNone`); WalTester's `member__saveSnap`
+  shares the handle. Links regenerated; both Links and the importers' leaves build.
+- **Next, in order:** L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+- **Pitfall (lock + later credit):** a method needing the handle before its first resolution after `Lock` takes
+  `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand (`wp_go_step_receipt'`, its `£ 1`), then
+  `wp_raise_receipt` at the next resolution (`WAL__Save.lean`, `WAL__SaveSnapshot.lean`). A spec whose pre/post is a
+  `match` on a state: `dsimp only` in the call's side goal. Build the Links before committing (lean-check once hid
+  an unknown identifier).
+- **Pitfall (SaveSnapshot):** the receipt is raised at `encode`'s resolution: `simp only [SnapshotType]` first,
+  or `wp_to_resolve` stops at the record's literal. A multi-line `{ h with … }` in a tactic term: fields of a
+  continuation line must align with the first field's column.
 - **Open (for L3/L5):** nothing produces `walOpenWFR` yet (Create's/ReadAll's posts give `walOpenWF`; room is an
   open layer-1 decision, `notes/wal-units/noioerr.md`): the server's shared handle needs the fresh room from
   bootstrap's slot (L3, trusted) and, in L5, from `Create` (headers < 2^43) and the restart's `ReadAll` (a tail bound).

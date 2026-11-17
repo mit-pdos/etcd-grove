@@ -3,7 +3,7 @@
 # The callees' two specs, chosen by coverage (wal-link L1a, 2026-11-17; `notes/wal-link-scope.md` §8)
 
 `Save`'s, `SaveSnapshot`'s and `Close`'s one spec each (over the shared handle, parameterised by `Sio`) call callees
-whose families the link leaves for the queued cleanup: `saveEntry`, `saveState`, `sync` (and its `specC`), `cut` each have a
+whose families the link leaves for the queued cleanup: `saveEntry`, `saveState`, `sync` (and its `specC`), `cut`, the encode on the tail (`encode.specTail`) each have a
 `spec` (any I/O error) and a `specNoErr` (when `Sio` covers every inode, with a room premise). The lemmas
 below are not specs: each derives, from a callee's two specs, the triple its caller uses at a call, the
 room premise and bound only when `walCov Sio`, the error only when not (`WAL__Sync.lean` chooses inline).
@@ -17,6 +17,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncC
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeTailNoErr
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 
 @[expose] public section
@@ -237,6 +238,51 @@ theorem walCov_syncC (P : WalPbIn GF) (Mr : WalMarshal)
     · iapply HΦ
       iright
       ipureintro; exact ⟨herr, hc⟩
+
+/-- The record's encode on the tail at a call (see the file header). -/
+theorem walCov_encodeTail (Mr : WalMarshal)
+    (wp : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (W := W) Mr)
+    (wpNE : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTailNoErr (Sio := Sio) (W := W) Mr)
+    (R : Roots) (jr : Ino) (r : GoString) (e f : Loc) (fd : w64) (name dir : GoString) (γ : GName)
+    (i : Ino) (H : List (WalOpG WalEnt)) (md : List w8) (cuts : List Nat) (o0 sz : Nat)
+    (out pend : List w8) (c : w32) (rp : Loc) (t : w64) (d : List w8)
+    (h1 : recSize (recOf ⟨t, hash.crc32.crc32c c d, d⟩) < 2 ^ 47)
+    (h2 : out ++ pend ++ frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩) <+: (tailStream Mr H md cuts).drop o0)
+    (h3 : o0 + out.length ≤ sz) (h4 : sz ≤ 0xffffffff000)
+    (hroom : walCov Sio → o0 + (out ++ pend ++ frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩)).length ≤ maxBytes) :
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ encEnv ∗ ownEncoder e (wal.fileWi f) c pend ∗
+      walTailW (W := W) f fd name dir γ i H md cuts o0 sz out TailMetaW ∗ encRecIn rp t d }}
+    (App (Val (e @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.encoder.ty @!!
+      go!"encode")) (Val #rp))
+  {{ (err : GoInterface), RET #err;
+      ∃ pend' : List w8, ownEncoder e (wal.fileWi f) (hash.crc32.crc32c c d) pend' ∗
+        recRoC rp (recOf ⟨t, hash.crc32.crc32c c d, d⟩) ∗
+        ((∃ (out' : List w8) (sz' : Nat), ⌜err = GoInterface.nil ∧
+            out' ++ pend' = out ++ pend ++ frame (walRecEnc ⟨t, hash.crc32.crc32c c d, d⟩) ∧
+            o0 + out'.length ≤ sz' ∧ sz' ≤ 0xffffffff000⌝ ∗
+            walTailW (W := W) f fd name dir γ i H md cuts o0 sz' out' TailMetaW) ∨
+         ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝) }} := by
+  iintro %Φ Hpre HΦ
+  by_cases hc : walCov Sio
+  · iapply (wpNE hc R jr r e f fd name dir γ i H md cuts o0 sz out pend c rp t d h1 h2 h3 h4 (hroom hc)) $$ Hpre
+    inext
+    iintro %err ⟨%pend', He, Hrec, %out', %sz', %hp, Htw⟩
+    iapply HΦ
+    iexists pend'
+    iframe He Hrec
+    ileft
+    iexists out', sz'
+    iframe Htw
+    ipureintro; exact hp
+  · iapply (wp R jr r e f fd name dir γ i H md cuts o0 sz out pend c rp t d h1 h2 h3 h4) $$ Hpre
+    inext
+    iintro %err ⟨%pend', He, Hrec, Hres⟩
+    iapply HΦ
+    iexists pend'
+    iframe He Hrec
+    icases Hres with (Hok | %herr)
+    · ileft; iexact Hok
+    · iright; ipureintro; exact ⟨herr, hc⟩
 
 end calls
 

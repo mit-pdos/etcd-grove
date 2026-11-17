@@ -32,7 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateSeg
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateLocked
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Preallocate
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.newFileEncoder
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PreSync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateHdr
 public import Proof.os.MkdirAllParts
@@ -459,8 +459,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       (hG := hG))
     (wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
     (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
-    (wp_SaveSnapPre : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.specPre (GF := GF)
-      (hG := hG) Mr)
+    (wp_SaveSnap : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (Sio := WalFs.ioNone)
+      WalFs.walPbNone Mr)
     (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
     (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
     (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
@@ -929,16 +929,34 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     have hlen2 := congrArg List.length hys2
     have hsyncOk := os.fileWI_preSyncOk wp_Fdatasync f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1) (⟨i, false, true, lo, lk⟩ : OsFd) m2
       (zs2.map (fun c => ((0 : w8), c)))
-    wp_apply (wp_SaveSnapPre wl lg (child r nm) mp md enc lf f (W64 0) (W64 0) _ _ _
-        (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
-        (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) «$a0_ptr» snapC0.model false
-        (Or.inl (by simp [snapC0, WalSnapC.model])) (by
-          rw [hFr]
-          simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega)
-        (by omega) hsyncOk)
-      $$ [Hws] [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, %hse3, Hr3⟩
-    · iexact Hws
-    · iframe; iframe #
+    have hfit3 : ([] ++ ys1 ++ ys2 ++ pend2 ++
+        snapFrame Mr (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md) snapC0.model).length ≤
+        (createStream Mr md).length := by
+      rw [hFr]
+      simp only [List.length_append, List.length_nil] at hlen1 hlen2 ⊢; omega
+    -- `SaveSnapshot.spec` at the state `pre` (the client model and `Sio` unused there)
+    wp_apply (wp_SaveSnap R jr r wl (child r nm)
+        (.pre lg mp md enc lf f (W64 0) (W64 0)
+          (os.fileWI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+            (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
+          (os.fileBI f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+            (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
+          (os.fileS f fd (child (child r (tmpName nm)) (walFileName 0 0)) (DFrac.own 1) (DFrac.own 1)
+            (⟨i, false, true, lo, lk⟩ : OsFd) m2 (zs2.map (fun c => ((0 : w8), c))))
+          (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
+          (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md))
+        «$a0_ptr» snapC0.model false true (fun _ => iprop(True)))
+      $$ [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, %hse3, Hr3⟩
+    · dsimp only
+      isplitr
+      · ipureintro; exact Or.inl (by simp [snapC0, WalSnapC.model])
+      isplitr
+      · ipureintro; exact hfit3
+      isplitr
+      · ipureintro; omega
+      isplitr
+      · ipureintro; exact hsyncOk
+      iframe; iframe #
     icases Hr3 with (⟨%he3, Henc, HS⟩ | ⟨%he3, %c3, %pend3, Henc, HBW⟩)
     rotate_left
     · -- `SaveSnapshot` failed: the deferred `f.Close()` and `RemoveAll(nm.tmp)`, the abort

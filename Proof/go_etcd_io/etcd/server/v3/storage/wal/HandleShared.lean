@@ -59,6 +59,17 @@ inductive WalCloseSt where
   | opening (s : w64 × w64)
   | unnamed (Rp : Roots) (qp : Qp) (tf : Loc)
 
+/-- **The states of a handle `SaveSnapshot` takes** (`WAL.SaveSnapshot.spec`, one spec over them; wal-link
+L1a): a share `q` of an open WAL (`shared`), or `Create`'s `w` before the rename (`pre`: its logger, metadata,
+encoder `e`, locked file `lt` of the `*os.File` `f`, indices (`walPreIn`); the writer's states `W`/`B` and
+what an fdatasync makes of them `S`, its bound `lim`, what it holds `out`, the encoder's pending bytes `pend`
+and CRC `c`; `WAL__SaveSnapshotPre.lean`). -/
+inductive WalSnapSt (GF : BundledGFunctors) where
+  | shared (γ : WalShN) (q : Qp)
+  | pre (lg : Loc) (mds : GoSlice) (md : List w8) (e lt f : Loc) (snapi enti : w64)
+      (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) (S : List w8 → IProp GF)
+      (lim : Nat) (out pend : List w8) (c : w32)
+
 /-- **`Sio` covers every inode** (coverage (a), `notes/decisions.md`, "fsExt: no I/O errors on chosen
 files"): the case in which the specs return no error. -/
 def walCov (Sio : IoSet) : Prop := ∀ st i, Sio.ino st i
@@ -221,7 +232,8 @@ def walShPers (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : 
   iprop(inv walShN (walShInv (W := W) Sio P Mr w dir γ) ∗
     sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) (BI.pure True : IProp GF) ∗
     isPkgInit (PROP := IProp GF) pkg_id.sync ∗
-    globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000))
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal)
 
 instance walShPers_persistent (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
     (γ : WalShN) : Persistent (walShPers (W := W) Sio P Mr w dir γ) := by
@@ -271,8 +283,17 @@ theorem walShPers_facts (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Lo
         isPkgInit (PROP := IProp GF) pkg_id.sync ∗
         globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) := by
   unfold walShPers
-  iintro ⟨-, #Hm, #Hp, #Hs⟩
+  iintro ⟨-, #Hm, #Hp, #Hs, -⟩
   iframe Hm Hp Hs
+
+/-- The WAL package's initialization (`SaveSnapshot` marshals the record before it holds the lock). -/
+theorem walShPers_pkgInit (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
+    (γ : WalShN) :
+    walShPers (W := W) Sio P Mr w dir γ ⊢
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal := by
+  unfold walShPers
+  iintro ⟨-, -, -, -, #Hw⟩
+  iexact Hw
 
 /-- **Sharing a handle** (a client's, once: after `Create`, after `ReadAll`): the handle as `walHdlF` gives
 the whole share of fresh names, and the client's half of the room used, none yet. -/
@@ -286,16 +307,18 @@ theorem walOpenWS_alloc (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Lo
   imod ghostVar_alloc (GF := GF) true with ⟨%γt, Ht⟩
   imod ghostVar_alloc (GF := GF) (none : Option Qp) with ⟨%γl, Hl⟩
   -- the persistent facts, from the handle; the handle with its half of the room used
-  ihave ⟨Hh, #Hm, #Hp, #Hs⟩ : iprop(walHdl (W := W) Sio P Mr w dir ⟨γt, γl, γu⟩ ∗
+  ihave ⟨Hh, #Hm, #Hp, #Hs, #Hwp⟩ : iprop(walHdl (W := W) Sio P Mr w dir ⟨γt, γl, γu⟩ ∗
       (sync.isMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) (BI.pure True : IProp GF) ∗
       isPkgInit (PROP := IProp GF) pkg_id.sync ∗
-      globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000)))
+      globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal))
     $$ [Hh Hu1]
   · unfold walHdlF walHdl
     icases Hh with (⟨%hc, Hw⟩ | Hw)
     · icases (walOpenWF_iff P Mr w dir).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr⟩
       icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hm, #Hp, #Hs⟩
-      iframe Hm Hp Hs
+      icases walHandleIn_pkgInit P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hwp⟩
+      iframe Hm Hp Hs Hwp
       iexists 0
       unfold walUsed
       iframe Hu1
@@ -310,7 +333,8 @@ theorem walOpenWS_alloc (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Lo
       ipureintro; exact ⟨hD, hmd⟩
     · icases (walOpenWFR_iff P Mr w dir walFreshRoom).1 $$ Hw with ⟨%h, Hh, %hD, %hmd, Hr, %hb⟩
       icases walHandleIn_lockFacts P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hm, #Hp, #Hs⟩
-      iframe Hm Hp Hs
+      icases walHandleIn_pkgInit P Mr w dir h TailMetaW $$ Hh with ⟨Hh, #Hwp⟩
+      iframe Hm Hp Hs Hwp
       iexists 0
       unfold walUsed
       iframe Hu1
@@ -329,7 +353,7 @@ theorem walOpenWS_alloc (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Lo
   imodintro
   iexists ⟨γt, γl, γu⟩
   unfold walOpenWS walShPers walUsed
-  iframe Ht Hinv Hm Hp Hs Hu2
+  iframe Ht Hinv Hm Hp Hs Hwp Hu2
 
 /-- **After `w.mu.Lock()`**: the lock token and the share go into the invariant, the handle comes out. -/
 theorem walOpenWS_acquire (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString)
@@ -342,7 +366,7 @@ theorem walOpenWS_acquire (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : 
   icases Hw with ⟨Ht, #Hp⟩
   ihave #Hp0 := Hp
   iunfold walShPers at Hp0
-  icases Hp0 with ⟨#Hinv, -, -, -⟩
+  icases Hp0 with ⟨#Hinv, -⟩
   iinv Hinv with Hc Hclose
   unfold walShInv
   icases Hc with (⟨Hh, >Hg⟩ | ⟨>Hl', -⟩ | ⟨>Ht', -⟩)
@@ -371,7 +395,7 @@ theorem walOpenWS_release (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : 
   iintro ⟨#Hp, Hg, Hh⟩
   ihave #Hp0 := Hp
   iunfold walShPers at Hp0
-  icases Hp0 with ⟨#Hinv, -, -, -⟩
+  icases Hp0 with ⟨#Hinv, -⟩
   unfold walHeld
   iinv Hinv with Hc Hclose
   unfold walShInv
@@ -402,7 +426,7 @@ theorem walOpenWS_finish (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : L
       |={⊤}=> sync.ownMutex (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"mu" w) := by
   iintro ⟨#Hp, Hg⟩
   unfold walShPers
-  icases Hp with ⟨#Hinv, -, -, -⟩
+  icases Hp with ⟨#Hinv, -⟩
   unfold walHeld
   iinv Hinv with Hc Hclose
   unfold walShInv
@@ -430,7 +454,7 @@ theorem walOpenWS_reclaim (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : 
     walOpenWS (W := W) Sio P Mr w dir γ 1 ∗ £ 1 ⊢ |={⊤}=> walHdl (W := W) Sio P Mr w dir γ := by
   iintro ⟨Hw, Hlc⟩
   unfold walOpenWS walShPers
-  icases Hw with ⟨Ht, #Hinv, -, -, -⟩
+  icases Hw with ⟨Ht, #Hinv, -⟩
   iinv Hinv with Hc Hclose
   unfold walShInv
   icases Hc with (⟨Hh, >Hg⟩ | ⟨-, > ⟨%q', -, Ht'⟩⟩ | ⟨>Ht', -⟩)
