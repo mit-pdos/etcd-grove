@@ -399,13 +399,12 @@ SPECIAL['go_etcd_io.bbolt'] = dict(
 `DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
-which the fact records: a `*nopLogger`).
-And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
-`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
+`errors`' variables (loads of them), `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`), and `DefaultOptions` (`&Options{...}`, an allocation;
+translated since 2026-11-17, `Code/go_etcd_io/bbolt.toml`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
-                     discardLogger='GoInterface'),
+                     discardLogger='GoInterface', DefaultOptions='Loc'),
     before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
@@ -413,6 +412,8 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar',
                 'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + ', -⟩'],
+            # `&Options{...}`: a literal of the translated struct, allocated (2026-11-17)
+            'DefaultOptions': ['try wp_auto'],
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},

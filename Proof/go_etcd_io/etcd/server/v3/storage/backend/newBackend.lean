@@ -1,6 +1,6 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/storage/backend/newBackend.lean`: bbolt's options through
-`BboltOptions.lean`'s trust boundary, `Open`, the backend's structure and the invariants
+`BboltOptions.lean`'s laws, `Open`, the backend's structure and the invariants
 `newBatchTxBuffered` needs (`b.mu`'s guard, the metrics, `readTx.mu` initialized), then the rest
 (`backend_init`), then `run` forked. Lean-first (no Rocq counterpart).
 -/
@@ -37,21 +37,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- `Options`' representation from the package's type assumptions, preferred to the one through
-its generated `IntoValTypedUnderlying` instance (`sorry -- axiomatized type`), which the
-`StructFieldRef` steps on `bopts` would otherwise use. -/
-local instance (priority := high) optsTypeRepr :
-    go.TypeReprUnderlying go_etcd_io.bbolt.Options.underlying go_etcd_io.bbolt.Options :=
-  go_etcd_io.bbolt.Options.TypeAssumptions.type_repr
-
-local instance (priority := high) optsTypeReprU :
-    TypeRepr go_etcd_io.bbolt.Options.underlying go_etcd_io.bbolt.Options :=
-  go.type_repr_underlying (u := go_etcd_io.bbolt.Options.underlying)
-
-local instance (priority := high) optsTypeRepr' :
-    TypeRepr go_etcd_io.bbolt.Options.ty go_etcd_io.bbolt.Options :=
-  go.type_repr_underlying (u := go_etcd_io.bbolt.Options.underlying)
-
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000 in
 theorem backend.newBackend.wp_proof
@@ -75,14 +60,11 @@ theorem backend.newBackend.wp_proof
     iexact H
   iunfold boltOpenOptionsOk at Hboo
   icases Hboo with ⟨%p, #Hgp, #Hpo⟩
+  -- `&bolt.Options{}`: `wp_auto` runs the literal and the allocation (the type is translated,
+  -- 2026-11-17), and `optsAt_zero` reads the zero value as `optsZero`
   wp_auto
-  -- the `Options` value through `BboltOptions.lean` only (`wp_apply_core`: no `wp_auto` on
-  -- an `Options` allocation, which would use the type's generated instance, `sorry`)
-  wp_apply_core wp_optsLit
-  iintro %v0 %hv0
-  wp_apply_core (wp_optsAlloc v0 optsZero hv0)
-  iintro %bo Hbo
-  wp_auto
+  obtain ⟨bo, rfl⟩ : ∃ bo, bo = «$r0_ptr» := ⟨_, rfl⟩
+  ihave Hbo := optsAt_zero bo $$ «$r0»
   -- `*bopts = *boltOpenOptions` when that is not nil
   wp_join iprop(bopts_ptr ↦ bo ∗ ∃ o : OptsM, optsAt bo (DFrac.own 1) o ∗ ⌜o.ok⌝) with [Hbo bopts]
     as ⟨bopts, %o, Hbo, %Hok⟩

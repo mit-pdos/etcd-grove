@@ -44,6 +44,8 @@ theorem bbolt.boltTx_fractional [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasE
 def bbolt.boltPageSize : Nat :=
   4096
 
+def (sealed) bbolt.boltImage (bs : List w8) (D : bbolt.Data) : Prop
+
 theorem bbolt.boltState_valid [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
     bbolt.BoltName) (q : Qp) (D : bbolt.Data) : bbolt.boltState γ q D ⊢ ⌜q ≤ 1⌝
 
@@ -89,6 +91,11 @@ theorem bbolt.boltState_read_au [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasE
 theorem bbolt.boltState_commit_au [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
     bbolt.BoltName) (D S : bbolt.Data) : bbolt.boltState γ 1 D ⊢ AU <{ ∃∃ D', bbolt.boltState γ 1 D'
     }> @ ⊤ \ ↑γ.ns, ∅ <{ ⌜D' = D⌝ ∗ bbolt.boltState γ 1 S, COMM bbolt.boltState γ 1 S }>
+
+theorem bbolt.fileHolds_of_image [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
+    Fs.Ino) (m : Fs.OsMeta) (xs : List Fs.ByteG) (D : bbolt.Data) (hmaps : m.maps = ∅) (hsize :
+    m.size = xs.length) (himg : bbolt.boltImage (List.map Prod.fst xs) D) : Fs.osMeta i (DFrac.own
+    1) m ∗ Fs.osBytes i 0 (DFrac.own 1) xs ⊢ bbolt.fileHolds i D
 
 theorem bbolt.curAt_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx :
     Loc) (γ : bbolt.BoltName) (es : List bbolt.BoltEnt) (i : Nat) (k v : GoSlice) : Persistent

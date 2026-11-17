@@ -2,13 +2,15 @@
 bbolt's `Options`, the part the backend's package facts need (item 8, 2026-10-17: moved here from
 `BboltOptions.lean`, which keeps the rest of the trust boundary, so that the backend's `Base.lean`
 can state `boltOpenOptionsOk` in `backendInit`): the model `OptsM` of an `Options` value and the
-abstract points-to `optsAt` (an axiom: `Options` is a type Goose does not translate; see
-`BboltOptions.lean`).
+points-to `optsAt`. (2026-11-17, S2 of `notes/bbolt-integration-plan.md`, D-I4) `Options` is
+translated: `optsAt` is bbolt's (`Spec/go_etcd_io/bbolt/Options.lean`), with the two fields bbolt's
+`OptsM` tracks beyond the backend's (`Mlock`, `MmapFlags`) left existential; until then an axiom.
 -/
 module
 
 public import Code.go_etcd_io.etcd.server.v3.storage.backend
 public import GeneratedProof.go_etcd_io.bbolt
+public import Spec.go_etcd_io.bbolt.Options
 public import Perennial.Proof.ProofPrelude
 
 @[expose] public section
@@ -38,6 +40,11 @@ structure OptsM where
 
 /-- `bolt.Options{}`'s fields. -/
 def optsZero : OptsM := ⟨false, W64 0, func.nil, GoInterface.nil⟩
+
+/-- bbolt's `OptsM` of the backend's `o`, with `Mlock` `m` and `MmapFlags` `f`. -/
+def OptsM.toBolt (o : OptsM) (m : Bool) (f : w64) : bbolt.OptsM :=
+  { readOnly := o.readOnly, pageSize := o.pageSize, openFile := o.openFile, logger := o.logger,
+    mlock := m, mmapFlags := f }
 
 end types
 
@@ -74,11 +81,14 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The `Options` at `l`, at fraction `dq`, has the fields `o`. -/
-axiom optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF
+/-- The `Options` at `l`, at fraction `dq`, has the fields `o`: bbolt's `optsAt`, whatever its
+`Mlock` and `MmapFlags` (2026-11-17: until then an axiom). -/
+def optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
+  iprop(∃ (m : Bool) (f : w64), bbolt.optsAt l dq (o.toBolt m f))
 
-@[instance] axiom optsAt_discard_persistent (l : Loc) (o : OptsM) :
-  Persistent (optsAt (GF := GF) l DFrac.discard o)
+instance optsAt_discard_persistent (l : Loc) (o : OptsM) :
+    Persistent (optsAt (GF := GF) l DFrac.discard o) := by
+  unfold optsAt; infer_instance
 
 /-- The backend's package variable `boltOpenOptions` (`config_linux.go`:
 `&bolt.Options{MmapFlags: syscall.MAP_POPULATE}`; nil on other systems), never written: nil, or

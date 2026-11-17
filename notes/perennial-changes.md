@@ -2737,3 +2737,16 @@ local copy of `spsc_send_au` whose token and element resource come from `X` at t
 `X ⊢ ∃ sent, spscProducer γ sent ∗ (spscProducer γ sent -∗ X)` to refute the closed states). General
 fix to propose on its own: that lemma in `Spsc.lean` (`spsc_send_au_inv`), or `isSpsc` with a namespace
 parameter.
+
+## 2026-11-17: `Sprintf`'s `%p` (bbolt's `(*Options).String`, S2 of `notes/bbolt-integration-plan.md`)
+
+- **Missing.** No spec of `fmt.Sprintf` (Perennial's `wp_Sprintf` over `ArgsWf`, this repository's
+  `Spec/fmt/Sprintf*.lean` over `fmt.argOkAt`) admits `%p` of a func or of a pointer: `ArgWf` takes predeclared basic
+  types and named integers only, and `argOkAt` asks the same under a verb that is not a method verb. Go's `%p` prints
+  the pointer's address (`fmt/print.go`, `fmtPointer`), calling no method and reading no memory. bbolt's
+  `(*Options).String` formats its `OpenFile` and `Logger` with `%p`.
+- **Workaround here.** `bbolt.Options.String.wp_proof` stays a trust-boundary axiom (now over the translated
+  `Options`' points-to); no new axiom.
+- **Proposed.** `ArgWf` (or a verb-indexed variant) admitting a func, pointer, map, channel or unsafe-pointer value
+  under `%p`, with the model's output arbitrary (`other`); a `%s` of a `Stringer` (`time.Duration`) then needs
+  `fmt.argOkAt`'s method-verb disjunct only.

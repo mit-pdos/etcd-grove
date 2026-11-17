@@ -96,6 +96,149 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `DB.Stats.spec` re-proved, statement otherwise unchanged.
   No new axiom or `sorry`; `Link`/`Results` unchanged; interfaces regenerated. No client outside
   bbolt used `statSlot` (the backend still goes through `DB.Stats_kv`).
+* 2026-11-17, **S4a** (branch `bbolt-writeto`, D-I6 bbolt side): **partly done; the proof of
+  `Tx.WriteTo` is blocked by the invariant**, findings for the coordinator below.
+  - Done: `boltImage (bs : List w8) (D : Data) : Prop` in bbolt's API (`Spec/go_etcd_io/bbolt/Api.lean`,
+    sealed `@[no_expose]`, pure): `bs.length < 2 ^ 62 ∧ fileOK bs bs.length D` (`fileHoldsDef`'s pure part
+    with the size the bytes' length). Its law `fileHolds_of_image (i m xs D) (hmaps : m.maps = ∅)
+    (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D) : osMeta i (own 1) m ∗
+    osBytes i 0 (own 1) xs ⊢ fileHolds i D` (the receiver's side: a file of exactly those bytes, no
+    mapping). The backend's opaque `backend.boltImage` can become this definition in S4b. No new axiom
+    or `sorry`.
+  - Not done: `Tx.WriteTo.spec`/proof. The intended statement (not committed, since it cannot be
+    proved without the changes below): for `boltTx tx γ q (TxView.ro D)`, the writer's contract
+    `writerOk w Wr` (copied from the backend) and `Wr c bs₀`, `tx.WriteTo(w)` returns `(n, err)` with
+    `boltTx tx γ q (ro D)` back, `Wr c' (bs₀ ++ bs)`, and `err = nil → boltImage bs D ∧ n = len bs`.
+  - **Why the proof is blocked** (what a read transaction holds today, `Inv/Tx.lean`'s `rtxFrac`, and
+    where the file's resources are):
+    1. **The file handle.** `tx.db.file`, the `*os.File`'s `fileOwn` and the descriptor's `osFd` are
+       all held whole in `rwlock`'s resource (`wdbCoreG`), i.e. by a live writer; a reader holds no
+       share, so it can neither load `db.file` nor call `ReadAt`. Fix: a share of the three in
+       `mmaplock`'s resource `Pm` (readers then hold `rfrac` of it; `close` holds all three locks and
+       gets them whole), the writer keeping the rest; touches `Pm`'s users (Open, remap, close, begin,
+       rollback) and `rtxFrac`.
+    2. **The synced freelist page.** `fileOK` requires a valid freelist page when the meta names one
+       (`flFileOK`; `init` always writes one, and `Open` reads it whatever `NoFreelistSync`). The current
+       synced freelist page is a `W` slot (`wdbOK`: `W` is the complement of tree and pending slots),
+       its page-cache bytes the writer's (`wBytes`); the reader's view and meta copy say nothing of it.
+       So the image's freelist page is unprovable. Fix: the current synced freelist extent a store
+       slot (in `slotsOf`), which reworks Commit's freelist part (`fbCond`/`fbInv`, `flCurOK` over `wb`),
+       or restrict the spec to metas without a synced freelist (no client can state that today).
+    3. **The page-cache bytes of the view's slots** are in `pagesInv` (`osSlot … (own 1)`), an
+       invariant: readable only through an accessor opened around each `pread`. Needs a variant of
+       `os.File.ReadAt.specRacy` taking an invariant accessor in place of held `osBytes` (provable over
+       the trusted `os` model, `Proof/os/File__ReadAt.lean`), and a lemma that a registered reader's
+       slots are store slots whose `σ.bytes` are its view's pages (via `viewCells` agreeing with
+       `storeCells`). (Reading through the mapped cells instead needs a mapping witness, `osMeta`,
+       which the writer holds whole.)
+    4. **The reader's meta copy.** `rtxFrac` records only `mv.txid' = v.txid` and the `pgid` bound;
+       the image's metas need `mv = metaOf (C.slot C.txid)` for a `C` with `C.metaOk`, `treeOK C`,
+       `1 ≤ C.txid < 2 ^ 62`, `View.ofC v.base C = v` (`rdTxK_intro` has all of it; `viewWF` keeps
+       only `∃ C, treeOK C`).
+    5. **`WriteFlag`.** `rtxFrac` holds `tx.WriteFlag ↦{q} t.WriteFlag'` with no fact; `Begin` leaves it
+       0 (`rdTxK_intro`'s `∃ wf`). Fix: the points-to at `W64 0` in `rtxFrac`, proved at begin.
+    6. **Stdlib.** `io.NewSectionReader`, `io.CopyN` (and `Copy`, `LimitReader`, `SectionReader.Read`)
+       are names-only in Perennial: trust-boundary specs needed, generic over a `ReadAt` contract.
+       `CopyN` goes through `io.Copy`, which calls `dst.ReadFrom` when `w`'s type has one (an
+       `*os.File` does; etcd's `*io.PipeWriter` does not), so the spec needs a premise that `w`'s
+       dynamic type has no `ReadFrom` method, or a contract for it; `writerOk` says nothing of
+       `ReadFrom`. bbolt's own callees (`Meta.DecTxid`, `SetChecksum`, `Sum64`, `Page.SetFlags`/`SetId`/
+       `Meta`, `fmt.Errorf`) have specs.
+  - So D-I6 needs a decision: the invariant work of items 1-4 (a large change to `Store`/`Locks` and
+    Commit's freelist proof), or the snapshot path kept as trust-boundary specs over the now-concrete
+    `boltImage`.
+* 2026-11-17: **S3a** (D-I5, bbolt's side; session `bbolt-files`, branch `bbolt-files` off
+  `bbolt-integrate`). Done: items 1, 2 (`Close.specNoErr`; not `Close.specOwn`), 3 (`Open.specS`;
+  not `Open.specSNoErr`), 4. No new `axiom` or `sorry`, no closed theorem's statement changed.
+  - **The premise** (`GooseLang/Ext/Fs/Premises.lean`, trusted, **pending the user's review**;
+    `examples/osfs/semantics/premise_no_map_lock_err.go`, indexed in `doc.go`): a separate
+    definition beside the approved `NoIoErr` (which stays as approved):
+    `NoMapLockErr (S : IoSet) : StepPrem := fun o v st e' _ => MapLockCovers S o v st →
+    (∃ e'' st'', IsFsStep o v st e'' st'' ∧ MapLockOk o v e'') → MapLockOk o v e'`, where
+    `MapLockCovers` names `flock` and `mmap` on an fd of a covered inode and `munmap` of a mapping of
+    one, and `MapLockOk` is errno 0, or `EAGAIN` for a non-blocking lock request
+    (`flockReq how = some (some ex, true)`, the conflict bbolt's `flock` retries on), or `ENOMEM` for
+    `mmap`. `noMapLockErr_keeps : StepKeeps (NoMapLockErr S)` (`NoMapLockErr.lean`, untrusted);
+    `StepPrem.and`, `noIoErr_noMapLockErr_keeps` (the two together keep steps: they name disjoint
+    operations), `fsStepSat_and_left/right`: a closed theorem runs over
+    `fsSemWithS (StepPrem.and (NoIoErr S) (NoMapLockErr S)) Q`. Error-free specs of the steps
+    (`NoMapLockErrSpecs.lean`: `wp_osMunmapNE`, `wp_osFlockNE`, `wp_osCloseNE`, `mmap_noErr`).
+    **`mmap`'s `ENOMEM` is not excluded**: the mappings share `(0, maxAddr]` with the Go heap, and a
+    premise on steps does not see the heap, so excluding it would leave no step from a state whose
+    heap leaves no room (`StepKeeps` fails). For the user: `Open` (its `mmap`) and every remap
+    (`Commit`'s `allocate`) may still fail with `ENOMEM` under the premise; excluding it needs a
+    premise that sees the heap (a `StepPrem` with the heap: a change to the trusted `fsSemWithS`) or
+    a named premise on the closed theorems.
+  - **`DB.Close_noErr.spec`** (`Spec/go_etcd_io/bbolt/DB__Close_noErr.lean`; the task's
+    `DB.Close.specNoErr`, named by the package's layout rule, as `DB.Begin_err`):
+    `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
+    [FsStepSat (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) → ∀ db γ,
+    {{ isBolt db γ }} db.Close() {{ err, RET #err; ⌜err = nil⌝ }}`. Proof: `DB.Close`'s proof made
+    generic in its `close`'s error (`DB.Close.wp_proofQ`, private in `DB__Close.lean`), over
+    `DB.close.spec_ownedNoErr` (`Open/CloseNoErr.lean`: `DB.munmap.specNoErr`,
+    `syscall.Flock.specNoErr`, `os.File.Close.specNoErr`, `unix.Munmap.specNoErr`, each proved).
+  - **`Open_shared.spec`** (`Spec/go_etcd_io/bbolt/Open_shared.lean`; the task's `Open.specS`):
+    `Open.spec` with `osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+    osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D` (`ApiS.lean`: `(∃ i, ⌜h.cur !! b =
+    some (.file i)⌝ ∗ fileHolds i D) ∨ ⌜h.cur !! b = none ∧ D = ∅⌝`) in place of
+    `osTree ∗ pathHolds`, `NameOk b`, the path `child d b`; post: `optsAt ∗ osPathS ∗ osCallPerm ∗
+    ∃ oc, crOut j b h (DFrac.own 1) oc ∗ ((⌜err = nil⌝ ∗ ∃ γ i, ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗
+    isBolt db γ ∗ boltState γ 1 D) ∨ ⌜err ≠ nil⌝)`. Proof: `Open`'s proof made generic in the open
+    of the file (`Open.wp_proofG` over `openFileDb.spec`, private in `Open.lean`; the tree's
+    instance gives `Open.spec` unchanged), with `os.OpenFile.specCreateS` (the claim's halves, the
+    trivial update `os.osAU_triv`; `Proof/os/WriteFile.lean`'s `osAU_triv` and `crOut_join` lose
+    their unused `os` assumptions). The option reads were not touched (S2).
+  - **Left** (why, and the design): `DB.Close.specOwn` (the file back as `fileHolds i D`) and
+    `Open.specSNoErr`. See `notes/bbolt-spec-decisions.md`, "S3a".
+
+### S2 (D-I4, branch `bbolt-options`, 2026-11-17)
+
+* **Translation.** `bbolt.toml` translates `Options` and `DefaultOptions` (`translate = ["*",
+  "!splitThreshold"]`; `splitThreshold` stays trusted). `os.FileMode`, the old gap, is this
+  repository's `os` since 2026-11-03, so the struct translates as is. No other project's
+  translation changes. `etc/gen-init.py`: `DefaultOptions` is a translated initializer (an
+  allocation of a literal), so `go_etcd_io.bbolt.opaqueInitsOk` (`Proof/go_etcd_io/bbolt/Init.lean`)
+  is gone.
+* **bbolt's vocabulary** (`Spec/go_etcd_io/bbolt/Options.lean`): `optsVal v o` (the six tracked
+  fields of the struct) and `optsAt l dq o := ∃ v, l ↦{dq} v ∗ ⌜optsVal v o⌝` are definitions,
+  `optsAt_discard_persistent` an instance. `Proof/go_etcd_io/bbolt/Options.lean`: every law a lemma,
+  statements unchanged (`optsAt_nonnull`, the twelve `optsAt_*_rd`, `optsAt_bool`/`_int`/`_mlock`/
+  `_mmapFlags`/`_freelist`/`_timeout`/`_logger`, `wp_optsLit`/`Alloc`/`Load`/`Store`), plus
+  `optsPt_eq` (the points-to field by field), `optsAt_acc`, `optsVal_zero`, `optsAt_zero`.
+* **The backend's** (`BboltOptsDefs.lean`, `BboltOptions.lean`): `optsAt l dq o := ∃ m f,
+  bbolt.optsAt l dq (o.toBolt m f)` (the backend's `OptsM` has no `Mlock`/`MmapFlags`: `newBackend`
+  stores `cfg.Mlock`, which the backend's `OptsM.ok` does not restrict), `optsVal` likewise; its
+  laws (`optsAt_discard_persistent`, `wp_opts*`, `optsAt_bool`/`_int`/`_freelist`/`_timeout`/`_logger`)
+  are corollaries of bbolt's, statements unchanged; new `optsAt_zero`. `boltLogger` (and its
+  persistence) stays an axiom, with `backend.newBoltLoggerZap.wp_proof`: bbolt's `boltLogger`
+  (`Spec/go_etcd_io/bbolt/Logger.lean`) takes the file extension's instances, which the backend's
+  statements do not carry until S1's `theFs`; zap is names-only, so `newBoltLoggerZap` stays a
+  trust-boundary axiom either way. `boltOpenOptions_init` (the backend's `Init.lean`, names-only:
+  `syscall.MAP_POPULATE`) stays an axiom, now over the defined `optsAt`.
+* **`Options.String`** stays an axiom (`Proof/go_etcd_io/bbolt/Options__String.lean`): its
+  `fmt.Sprintf` has `%p` of a func and of an interface, which no `Sprintf` spec admits
+  (`notes/perennial-changes.md`, 2026-11-17).
+* **Fallout.** `wp_auto` now runs `&bolt.Options{}` (literal and allocation) itself: `newBackend`
+  and `bboltnan.Run` take the allocated zero value through `optsAt_zero` (the `wp_optsLit`/
+  `wp_optsAlloc` steps and `newBackend`'s local `TypeRepr` instances, a workaround for the `sorry`
+  instances, are gone). `Spec/go_etcd_io/bbolt/Open_kv.lean`: `bbolt.Open_kv.spec` is declared in
+  namespace `bbolt`, so once bbolt's `Options` module is imported its `OptsM`/`optsAt` resolved to
+  bbolt's; they are now written `backend.OptsM`, `backend.optsAt`, `backend.boltLogger` (the same
+  constants as before: no change to the statement).
+* **Trust base** (`etc/tcb-baseline.txt`, 24 axioms and 2 `sorry`s fewer; 41 collections updated,
+  bbolt's, backend's, putget3's and mvccfull's among them, removals only): the axioms
+  `bbolt.optsAt_*_rd` (11), `bbolt.optsAt_nonnull`, `backend.optsAt`, `backend.optsVal`,
+  `backend.optsAt_discard_persistent`, `backend.wp_optsLit`/`Alloc`/`Load`/`Store`,
+  `backend.optsAt_bool`/`_int`/`_freelist`/`_timeout`/`_logger`, `go_etcd_io.bbolt.opaqueInitsOk`;
+  the `sorry`s `Options_typed_pointsto`, `Options_into_val_typed`. Also gone from the source (no
+  result reached them): bbolt's copies `bbolt.optsVal`, `bbolt.wp_opts*`, `bbolt.optsAt_bool`/
+  `_int`/`_mlock`/`_mmapFlags`/`_freelist`/`_timeout`/`_logger`, `bbolt.optsAt_discard_persistent`,
+  and the translation's `Options`, `Options.zero_val`, `Options.underlying`, `DefaultOptions.init`.
+  Left: `bbolt.Options.String.wp_proof`, `backend.boltLogger` (+ persistence),
+  `backend.newBoltLoggerZap.wp_proof`, `boltOpenOptions_init` (above). No statement of a closed
+  theorem changed; no axiom or `sorry` added.
+* **Gates.** All pass but `k8s client error types` (`examples/k8s/etcd3`'s Go test: `startCluster
+  failed`, an environment failure of the shared machine; this change touches no Go code).
 * 2026-11-17, **S1** (branch `bbolt-s1`, D-I1, D-I2): the backend over the proved bbolt.
   - **D-I1.** `backend.FsCtx GF` (`InvBbolt.lean`) packs `ExtSemantics fsExt`, `FsSemOk`,
     `HasExt fsExt` and, beyond the plan, `os.file.FieldAssumptions`/`os.fileStat.FieldAssumptions`
