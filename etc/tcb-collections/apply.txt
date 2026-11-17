@@ -9,7 +9,6 @@ roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/(Link|Results)\.lean$
 axiom apply.irrDecode_utf8
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
-axiom backend.dbFile
 axiom bbolt.Bucket.Put_kv.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
