@@ -34,10 +34,10 @@ from the tree at start (`start_fileHolds`, `Proof/runtime/StartFiles.lean`: no e
 in the root `r` at start), from `mvccrand`'s `wp_initialize'` (`Init.lean`, over the program's
 package table `PkgTable.lean`) and `mvccrand.wp_Run` (`Link.lean`).
 
-**Its hypotheses**:
-* pure facts of the program's environment: `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
-  do not fail for the environment's reasons: the user's decision, 2026-11-08; S3e: implied by the
-  semantics now, kept as premises of `Run.spec`), `verifyEnvOff` (`ETCD_VERIFY` unset), and the
+**Its hypotheses** (S3e: no longer `dbOpenOk` and `dbCloseOk`, bbolt's `Open` and `Close` not
+failing, the user's decision of 2026-11-08: the semantics' steps do not fail on files, `etcdSQ`, and
+the backend's `Open_kv`/`DB.Close_kv` are theorems with no error case; the two are `True` now):
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), and the
   execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccrand`'s, mvcc's, the server's,
@@ -132,7 +132,6 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
-    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (r : GoString)
     (HEnv : verifyEnvOff (mvccrandProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -184,7 +183,7 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
   wp_apply (mvccrand.wp_Run Hsort' (mvccrandCfg r) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) Hdbo Hdbc) $$ [Hfile Htok]
+    (by decide) (by decide) trivial trivial) $$ [Hfile Htok]
   · iframe Hfile Htok Hvoff
   ipureintro
   rfl

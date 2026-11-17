@@ -37,9 +37,7 @@ program's package table `PkgTable.lean`) and `mvccfull.wp_Main` (`Link.lean`; `R
 
 **Its hypotheses** are mvccrand's, but `sort.Slice.spec` (`mvccfull.wp_Main` takes no hypothesis:
 the tester's lease checks compare the lessor's list against the model's without sorting it):
-* pure facts of the program's environment: `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
-  do not fail for the environment's reasons; S3e: implied by the semantics, kept as `Run.spec`'s
-  premises) and `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
 * the semantics: `go.Semantics`, the package assumptions (`mvccfull`'s, mvcc's, the server's,
   the cache's) and (S3e) the `os` structs' field facts; the file extension's steps restricted by
@@ -327,7 +325,6 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
     (r : GoString)
     (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -377,7 +374,7 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iunfold mvccfull.mainMixOwn at Hmix
   icases Hmix with ⟨%Hp, Hs, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
   wp_apply (mvccfull.wp_Run (mvccfull.mainConfigM (Fs.child r go!"mvccfull") mx)
-      [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] (mvccfull.mainConfig_okAt _ mx) Hdbo Hdbc)
+      [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] (mvccfull.mainConfig_okAt _ mx) trivial trivial)
     $$ [Hfiles Htok Hvoff Hs Ho Hc Hrr Hrd Ha Hstt] as %rep -
   · iframe Htok Hvoff
     isplitl [Hs Ho Hc Hrr Hrd Ha Hstt]

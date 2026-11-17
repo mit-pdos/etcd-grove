@@ -5,11 +5,14 @@ bbolt as the backend sees it: a key-value contract over the **proved** bbolt's A
 `ownBTree` was before the btree was verified; `notes/decisions.md`, "The backend: the buffers,
 bbolt as a key-value contract, the locks and the views"); now each is a definition over bbolt's
 sealed predicates, and the `_kv` specs (`Spec/go_etcd_io/bbolt/*_kv*.lean`) are corollaries of
-bbolt's proved specs, but for `Open_kv` and `DB.Close_kv` (the file, stage S3), which stay axioms.
+bbolt's proved specs; since S3e (2026-11-17) `Open_kv` and `DB.Close_kv` too, over bbolt's
+error-free `Open` and `Close` in the tree's shared mode, and the file predicates are definitions.
 
 **The file extension's instances, packed (D-I1).** bbolt's API and specs are stated over the Linux
 file extension (`[ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]`); the backend and its clients take
-no such binders. `FsCtx` bundles the three; `HasExt.sem_eq` pins the semantics to the program's, so
+no such binders. `FsCtx` bundles the three (with the `os` structs' field facts and, since S3e,
+`FsNoErrAll`: the semantics' steps do not fail on files, the premise of bbolt's error-free `Open` and
+`Close`); `HasExt.sem_eq` pins the semantics to the program's, so
 `FsCtx` is a subsingleton (`FsCtx.eq`) and `theFs` names its one value, if any (a classical
 choice). Every predicate is `onFs` of bbolt's, at `theFs` (`False` where there is none); with the
 instances in scope, `theFs_eq` rewrites `theFs` to them (`onFs_eq`).
@@ -19,7 +22,7 @@ a bucket's cursor order is its sorted entry list (`bktEnts`, bbolt's by `bktEnts
 
 **Predicates** (over bbolt's, whose names `γ : DBNames := bbolt.BoltName` are):
 - `ownDB db γ D`: the open database `db` (`isBolt`) with committed data `D`, all of it
-  (`boltState γ 1 D`); `wrTok γ`: `emp` (bbolt's writer needs no token: `Begin(true)` waits for
+  (`boltState γ 1 D`), and (S3e) what it keeps of its file (`dbRestF γ`); `wrTok γ`: `emp` (bbolt's writer needs no token: `Begin(true)` waits for
   its lock); `isDB db γ`: `db` is the database `γ` (persistent).
 - `txLive tx γ q T`: the transaction `tx` of `γ`, live, with the view `T` (`boltTx`; fractional;
   not timeless, `txLive_later`). A read transaction over the snapshot `D` is `txLive tx γ q
@@ -37,9 +40,14 @@ a bucket's cursor order is its sorted entry list (`bktEnts`, bbolt's by `bktEnts
   `pos` (`none`: not positioned; `some i`: at the `i`-th, `es.length` past the end).
 - `txDone tx` (persistent): `tx` was committed or rolled back (its `Stats` can be read);
   `txDB tx γ db` (persistent): `tx`'s database.
-- `fileHolds path D` (an axiom until S3): the database file at `path` holds `D` (what
-  `bolt.Open` reads: the caller's assumption about the file; what `DB.Close` gives back).
-- `dbFile db path` (an axiom until S3, persistent): the open database `db` is the file at `path`.
+- `fileHolds path D` (S3e; an axiom until then): the database file at `path` holds `D` (what
+  `bolt.Open` reads; what `DB.Close` gives back): `path` is `d/b`, with the path of the directory
+  `d`, a share of the call permission and the whole claim on the name `b` in the tree's shared mode,
+  and `b` naming a file that holds `D` (bbolt's `fileHolds`) or nothing and `D = ∅` (`nameHolds`).
+- `dbFile db γ path` (S3e; an axiom until then, without `γ`; persistent): the open database `db`
+  named `γ` is the file at `path`: `γ.ns = dbNs path` (`Open_kv` opens it in that namespace). What
+  the open database keeps of its file (the claim, naming the inode it opened) is in `ownDB`
+  (`dbRestF`), which `DB.Close_kv` turns back into `fileHolds`.
 -/
 module
 
@@ -90,8 +98,11 @@ theorem seekIdx_eq (es : List Ent) (k : GoString) : seekIdx es k = bbolt.seekIdx
 receiver epochs, S8d, W7, 2026-10-25): `db.Close()` does not fail for the environment's reasons
 (unmapping the file, releasing its lock, closing it: I/O). `DB.Close_kv`'s axiom gives
 `¬ dbCloseOk` on an error; `storage.snapOpensOk` excludes it (`applySnapshot`'s goroutine closing
-the old backend panics on an error, `server.go:1137`). -/
-opaque dbCloseOk : Prop
+the old backend panics on an error, `server.go:1137`). (S3e, 2026-11-17) `DB.Close_kv` is a theorem
+now, with no error case (the semantics' steps do not fail on files, `FsNoErrAll`): nothing gives
+`¬ dbCloseOk` any more, and it is `True` (a definition): the specs that still state it as a premise
+or an error case are unchanged, their premise trivial and their error case `False`. -/
+def dbCloseOk : Prop := True
 
 /-- **bbolt's `Open` succeeds** (opaque, a named premise about the program's environment, as
 `dbCloseOk`; 2026-11-08, the user's decision for mvccrand's closed theorem: "an assumption that the
@@ -100,8 +111,10 @@ for the environment's reasons (the file's creation, lock, `mmap` of the initial 
 first meta pages' writes: I/O, address space, another process holding the lock). `Open_kv`'s axiom
 gives `¬ dbOpenOk` on an error, so `backend.New`, which panics on one (`backend.go:236`), panics
 only under `¬ dbOpenOk`. The server's `storage.dbOpensOk` (`InvOpen.lean`) states the same of
-the files `storage.OpenBackend` opens, for its own axiom. -/
-opaque dbOpenOk : Prop
+the files `storage.OpenBackend` opens, for its own axiom. (S3e, 2026-11-17) `Open_kv` is a theorem
+now, with no error case: nothing gives `¬ dbOpenOk` any more, and it is `True` (a definition), as
+`dbCloseOk`. -/
+def dbOpenOk : Prop := True
 
 /-- The ghost names of a database: bbolt's (D-I2; until S1 a structure of two names). -/
 abbrev DBNames := bbolt.BoltName
