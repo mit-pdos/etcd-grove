@@ -148,10 +148,16 @@ theorem driver_listContractOk (wp_GetItemsPtr : apimeta.GetItemsPtr.spec (GF := 
   isplitr
   · iintro !> %pl %os %rv %rv' %cont %cont' %rem %remV %rem0 %Φ Hl Hrem HΦ
     simp only [versionerI]
-    wp_apply (wp_UpdateList pl os rv rv' cont cont' rem remV rem0) $$ [$Hl $Hrem] as Hl
+    unfold ListSpec.listAtItems
+    icases Hl with ⟨%Hpl, %s, Hit, Hits, Hm⟩
+    simp only [driverListSpec]
+    wp_apply (wp_UpdateList pl rv rv' cont cont' rem remV rem0) $$ [$Hm $Hrem] as Hm
     iapply HΦ
+    isplitr
+    · ipureintro; rfl
+    try simp only [driverListSpec]
     iframe
-    ipureintro; rfl
+    ipureintro; exact Hpl
   ipureintro
   simp only [driverListSpec]
   intro h

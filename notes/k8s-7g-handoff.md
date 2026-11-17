@@ -2,55 +2,41 @@
 
 ## START HERE
 
+**Paused 2026-11-17 (user, via etcd-grove-03): the Hctx soundness repair goes first; 7g resumes after it lands.**
+
 - Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 3cd4b72599 merged. Pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json`; `.lake/package-overrides.json` is that manifest.
-  Scope (approved): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local; step 2 forms ACCEPTED).
-- Done: step 0 `e9bf69f83a`/`47eae5838c`; step 1 `11962185aa`/`50faaad1a3`; step 2 `2e775cc56e`.
-- **Step 3 in progress** (Go proofs of `correctness`, one spec per function over `RM`):
-  - `correctness/Defs.lean` (vocabulary), `ItemsRO.lean` (itemsRO lookup/insert/delete/empty/dom).
-  - Proved (no sorry): `keyInScope`, `checkKey`, `GetReadConsistency`, `ListReadConsistency`,
-    driver `Obj.DeepCopyObject`/`Obj.SetResourceVersion`; `NewEmptyModel`, `Model.Clone`
-    (`730a35dc0e`), `Model.Equal` (`4419c6a1d1`).
-  - `Model.get` proved (`54887034bf`; Lean premises on `opts`, ACCEPTED); `Model.create` proved
-    (`Defs`: `createObjL`, `optObjD`, `changeRep`; `iapply wp_fupd` before the last call lets the
-    final `*Change` points-to be persisted).
-  - **Decided (A), user 2026-11-17**: Perennial's `Sprintf` model gets `%v` of a string as `%s`
-    (a Perennial branch); after the pin moves, prove `update`/`delete` (precondition branch) and
-    `execute`. Until then do NOT prove update/delete/execute (questions.md "Step 3 STOP").
-  - `Model.validCacherContinue` proved (over `listItems.spec`; `predOk_driver`'s `Empty` triple, `opts`
-    made persistent and split). `listItems.spec` and `list.spec` stated (questions.md, Step 3 forms).
-  - STOP 2 decided (etcd-grove-03, questions.md): (a) `maps.Keys.spec_objMap` returns `(f : GoFunc)`,
-    (b) `ListAccessor.spec` has an `*ObjList` row (callers of the reflector row use `.1`); applied
-    `50be6070ef` (trust delta in `notes/k8s-7g-trust.md` §4, for the joint attack before step 6).
-  - `Model.listItems` proved (loop over `ks`, invariant over `itemsOfKeys … (ks.take j)`).
-  - Next: `list` (needs a `newObjList` spec/proof, driver, new; `versioner.UpdateList.spec`'s pre
-    weakened in place to `metaAtD` — a proved spec; `ListContract.lean` splits `listAtItems`);
-    `mlistPCT.wp_proof` for the token. Then `listResponseRV`, `equalListResponse` (ListAccessor `.2`),
-    then step-4 bridges not depending on blocked functions.
-  - **Blocked until the soundness-1117 fix lands** (V): `validateGet`, `validateList`, `Step`.
-- **Standing constraint**: do not touch View.lean / HasStatusCause / IsTooManyRequests /
-  SuggestsClientDelay until etcd-grove-03 says the soundness fix (a) + T landed.
+  Scope (approved): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local, untracked).
+- Done: steps 0-2 (`e9bf69f83a`, `47eae5838c`, `11962185aa`, `50faaad1a3`, `2e775cc56e`). Step 3 proved:
+  `keyInScope`, `checkKey`, `Get/ListReadConsistency`, driver `Obj.DeepCopyObject`/`SetResourceVersion`,
+  `NewEmptyModel`, `Model.Clone`, `Model.Equal`, `Model.get` (`54887034bf`), `Model.create` (`348f1a01da`),
+  `Model.validCacherContinue` (`540f6eab11`), `Model.listItems` (`105b090e97`).
+- STOP 2 applied (`50be6070ef`): `maps.Keys.spec_objMap` → `(f : GoFunc)`; `ListAccessor.spec` gains the
+  `*ObjList` row (reflector callers use `.1`). Both in `notes/k8s-7g-trust.md` §4 for the joint attack.
+- Last commit: `versioner.UpdateList.spec` pre weakened in place to `metaAtD` (proved spec;
+  `ListContract.lean` frames the items); `ListSpecD.listObjOutL` gets `Raw := zeroValDef`.
+- Next, in order: `newObjList` spec/proof (driver, new: `p ↦ zero ObjList`); `Model.list` (loop as
+  `listItems` plus `ListModel.lstep` for limit/hasMore/total/lastKey, `mlistPCT.wp_proof` for the token,
+  `meta.SetList.spec_objList`, then `UpdateList` on the fields `iStructNamed` gives); `listResponseRV`,
+  `equalListResponse` (ListAccessor `.2`); then the step-4 bridges that need no blocked function.
+- Blocked: `update`/`delete`/`execute` until the Perennial pin bump to 6d365ee1a (Sprintf `%v`);
+  `validateGet`/`validateList`/`Step` until the apierrors fix (soundness-1117). Do not touch View.lean,
+  HasStatusCause, IsTooManyRequests, SuggestsClientDelay.
+- Known breakage, pre-existing (step 0's `Output.Raw`/`call` change, fixed in step 5): `call.lean`
+  (and so the driver's `Link`) does not build; `RefineList`, `ListSpecD`, `ListContract` do.
 - Pitfalls:
-  - `RefineList` (and so `PredOk`) builds again (`Raw` added); other driver files past `KWatch` may not.
-  - Iris hypothesis with explicit args: `wp_apply HE $$ %_ %DFrac.discard [Pred]`; a struct field of a
-    read-only local: `ipersist opts; ihave #o' := opts; iStructNamed o'`; `iunfold` fails on `modelAt`
-    (use `modelAt_pkg`).
-  - A file whose imports are not built (new Spec imports) hangs lean-check at "elaborating line 1"
-    for 30+ min: build the imports first with the build slot, then open it.
-  - A fresh file in `etc/lean-check.py` can take 10-15 min (import load + lake building its Spec
-    import); then edits re-check in seconds. Keep the file open and iterate; `/shared/tmp/k8s7g-gl.sh
-    FILE LINE:COL` prints a filtered goal.
-  - `#versionerV` parses as the `#version` command: write `#(versionerV)`. `go!""` → `([] : GoString)`.
-  - Driver specs need `[reg : EtcdGrove.k8s.CompactorRegistry]` (its `isPkgInit` instance), and
-    `[driver_sem : ...etcd3.Assumptions]` in proofs (not in `correctness.Assumptions`).
-  - Generalize big option values before `wp_auto` (`generalize listOptsV x = opts` with field facts).
-  - `@[reducible]` constants (`ConsistencyConsistent`) block `wp_auto` stores: `simp only [...]` them.
-  - `W64 0` vs `0`/`0#64` in `if`s from simp: `have h0 : n = 0 := hn0; rw [if_pos h0]`.
-  - (older) structure-instance continuation columns; `!a || match` in `fun`; `W64 n` → `n#64` by simp.
+  - `wp_for` takes the whole spatial context: after `iStructNamed` on an owned struct, drop its
+    `"_" ∷ True` leftover (`irename : ("_" ∷ True : IProp GF) => H; iclear H`) or iNamed fails on "?".
+  - `wp_apply` already runs `wp_auto`: write `(try wp_auto)` after it.
+  - Iris hypothesis with explicit args: `wp_apply Hf $$ %M %DFrac.discard [] [HI]` (the `isPkgInit`
+    premise is discharged automatically). `iunfold` fails on `modelAt` (use `modelAt_pkg`).
+  - A file whose imports are not built hangs lean-check: build it first with the build slot.
+  - `#versionerV` parses as `#version`: write `#(versionerV)`. `go!""` → `([] : GoString)`.
+  - Driver specs need `[reg : EtcdGrove.k8s.CompactorRegistry]`; proofs `[driver_sem : ...etcd3.Assumptions]`.
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build MODULE...`;
   check: `LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
 - Go runs: `cd examples/k8s/etcd3; GOWORK=off systemd-run --scope -q -p MemoryMax=32G go test
-  -count=1 -v -run '^TestRealChecker$' .`
+  -count=1 -run 'TestListAccessorObjList|TestMapsKeys' .`
 
 ## History
 
