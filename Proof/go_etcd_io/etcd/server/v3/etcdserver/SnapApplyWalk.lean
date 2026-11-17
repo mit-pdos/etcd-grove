@@ -147,7 +147,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     -- (the lease-expiry plan's step 2) the range deleter's argument (the mvcc merge, 2026-11-06:
     -- `lean`'s `watchableStore.Write` and the compacting backend's safe-range specs dropped, the
     -- store's `Write` being `KV.Write.contract` at the handle's type, `shapes.law`)
-    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG)) :
+    (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
+    -- (auth-lease S4 item 7b F4) outside the no-snapshot mode: the lessor window freed before `Recover`
+    (hns : ¬ clusterNoSnap γr.raft.raft.cl) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗

@@ -218,6 +218,9 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
   -- grants no lease, the lease-grant plan's D2 interim restriction)
   -- the batch's term good for a log at least the snapshot's (the merge's guard)
   γn.node = γr.raft.raft → uint.nat sv.Metadata'.Index' ≤ n →
+  -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (the payload's, `rnApSnap`): the
+  -- snapshot path frees the lessor window
+  ¬ clusterNoSnap γr.raft.raft.cl →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗ srvMemberIDAddr s ↦□ nid ∗
       -- the payload (`rnApSnap`'s)

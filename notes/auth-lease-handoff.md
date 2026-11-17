@@ -1,6 +1,45 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4: step-7 Iris lemmas + apply-thread tie lemmas done; server wiring next)
+## START HERE (S4, 2026-11-17, item 7b F4: server wiring IN PROGRESS, WIP commits, does not compile)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP; nothing builds past the files
+  listed below). Base of the coming leaves build: `00b09c1360`. Decisions: `questions.md`, last entry (OPEN: Fr at
+  `E.lg = false`).
+- **Done (lean-check `--fast -a` clean):** `InvApplier` (imports `WinTieApply`; `srvKVInvs` last conjunct
+  `srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false)`; `srvEnvOk` 3rd conjunct `(E.win = none ∧
+  E.stq = ¼)`; new `srvApplyKVW E ua x := ∃ w, ⌜E.lg = false → w = none⌝ ∗ applyKV {E with win := w} ua x` and its
+  lemmas `_open` (pieces at `E`, window part in the closing wand: use it instead of unfolding inside long proofs),
+  `_crOwn`, `_writer`, `_authOn`; `InvApRes.srvApplyKVW_hookRO`); `srvKVInvsOn`, `srvKVInvsC` gain the same tie
+  conjunct; every applier row holds `srvApplyKVW` (`srvApplyKV`, `srvApplyKVOn`, `srvApplyKVC`, `srvApplyKVCore`,
+  `applyBuilt(C/On)`, `srvUberRowM`, InvBuild's `Hua`, `srvApplyKVM_open`); `SnapApplyDefs.srvKVInvsM_winTie`.
+  Checked clean: KVStoreApi, KVStoreLaws, InvApplier, InvRead, InvStart, InvBuild, KVApplyOn, ServerOnDefs, ServerOn,
+  UberOn, SnapRO, InvRunRes, StartOn, KVApply, ApplyEntryOn, AppliedOn, InvApRes, ApplyKVCore, ApplyNormalOn,
+  SnapApplyAuthM, ApplyCmpArm, SnapSendBranch, SnapRecvFacts, SnapRecvOn, MergedImageOn, RunOn, KVRead, ReadOn,
+  AuthComp, AuthCompRows, CompactEnv, EtcdServer__Compact, SnapApplyDefs.
+- **Edited, not yet checked:** `applyAll.specSnapM` and `applySnapshot.specSnapM` gain `¬ clusterNoSnap
+  γr.raft.raft.cl` (passed from `run_job_snapC`'s `hns`, ApplyAllSnap, EtcdServer__applySnapshot); `applySnapshot_walk`
+  gains `hns` (unused yet).
+- **Next, in order:** (1) the walk (SnapApplyWalk ~l.443): after `applierFor_envAus`, `srvKVInvsM_winTie` (from
+  `isServerM`'s atomics) + `srvApi.applyKV_free E _ (fun h => absurd h hns)` on `srvApplyKVW`'s window, then
+  `{E with win := none} = E` (`rw [← hwin]; rfl`) to get `applyKV E`; keep `HlWt : E.Wt none` (= `winTok γt none`);
+  restore: `restorePreA_of_au` + `au_restore_tie` (Q at `wStQ ¼`, `crOwn`, `winTok none`; build `kvNx γr on
+  (kvModelM …A')` as `restoreArgs_holds` does; mind the walk's `rw [Hkm.1, Hkm.2]` on the goal: destruct the tie
+  after it, or re-`rw`); l.641 `hstq` is now `HenvW.2.2.1.2 : E.stq = ¼`; thread `wStQ ¼` + `E.Wt none` through
+  `snapWalkPost` (SnapApplyPost) into `snap_applyKV` (its `hEw` premise → `(E.win = none ∧ E.stq = ¼)`, new
+  resource `E.Wt none`, wSt → `wStQ ¼`). (2) `applyEntryNormal` (arms at `grep -n winTgt_none`; admin arms
+  (`hAd`) need no push: call `adminEntryOn` at `{E with win := w}`): per `hA` arm, open `srvApplyKVW`, at
+  `E.lg = true` `applyKV_push` with `Lt` the committed model log after the entry (`□ E.Nx Lt` from the raft lb of
+  `A ++ [m]`; `winTgt` via `KVOutcomeOn.backendLog_of_step`/`revokeLog_eq_backendLog`), call `hA` at
+  `E' := {E with win := some (s, itemsOfLog Lt)}` (convert each `E`-resource by `iExactEq H; rfl`), at
+  `E.lg = false` call at `E` (window none); repack `srvApplyKVW`. (3) NewServer/NewServerR (handoff step (3) below;
+  at `E.lg = false` `tie_free` right after `tie_alloc`, Fr from `E.lg = false`). (4) remaining callers:
+  `importers.py --uses srvKVInvs --uses srvApplyKVW … InvApplier.lean` (EtcdServer__apply, StopShutdown, run,
+  start, examples, client). Then (6)-(8) of the previous START HERE.
+- **Pitfalls:** `rw [hX]` on the goal rewrites literal `{E with win := w}` pieces in the Iris context (SnapSendBranch,
+  ApplyNormalOn): open with `srvApplyKVW_open`, keep `E`-level pieces. `pkill -f rs56-chk.sh` kills your own shell.
+  `/shared/tmp/rs56-chk.sh FILE` checks one file and shows a failing import's errors.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: step-7 Iris lemmas + apply-thread tie lemmas done; server wiring next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
   (lean-check `--fast` only). Decisions: `questions.md`, last two entries (the tie ACCEPTED by etcd-grove-03; the agent's

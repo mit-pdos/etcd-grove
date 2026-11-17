@@ -163,7 +163,10 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (hany : E.authMode ≠ .any) (hauthI : snapAuthImgM E.authMode γr d.P D A A')
     -- (2026-11-01, J8a-1, item 8) the payload's two-receive `notifyc` (`rnApSnap`'s), before its
     -- first receive (until then a unit bag)
-    (γnc : NotifyNames),
+    (γnc : NotifyNames)
+    -- (auth-lease S4 item 7b F4) outside the cluster's no-snapshot mode (`applyAll`'s payload's): the walk
+    -- frees the lessor window before `Recover`
+    (hns : ¬ clusterNoSnap γr.raft.raft.cl),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
