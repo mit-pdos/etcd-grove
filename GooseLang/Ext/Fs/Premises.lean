@@ -127,7 +127,8 @@ def NoIoErr (S : IoSet) : StepPrem := fun o v st e' _ =>
 /-! ## No errors of `flock`, `mmap`, `munmap` on chosen files (pending the user's review) -/
 
 /-- `ENOMEM`: what a failing `mmap(2)` returns when the process has no room in its address space
-for the mapping (`NoMapLockErr` keeps it). -/
+for the mapping, or is at its map count or `RLIMIT_AS` (an error `NoMapLockErr` excludes; with no
+room, the model's `mmap` may not return instead, `MmapStall`). -/
 def ENOMEM : w64 := 12
 
 section noMapLockErr
@@ -144,15 +145,16 @@ def MapLockCovers (S : IoSet) (o : String) (v : val) (st : OsState) : Prop :=
   | _ => False
 
 /-- The outcome `e'` of the operation `o` on `v` is no error of the environment: errno 0; for a
-non-blocking `flock` lock request (`LOCK_SH` or `LOCK_EX` with `LOCK_NB`), also `EAGAIN`, the conflict with another description's lock (no
-error: the caller's to handle, bbolt's `flock` retries on it); for `mmap`, also `ENOMEM`, no room in
-the address space (see `NoMapLockErr`). -/
+non-blocking `flock` lock request (`LOCK_SH` or `LOCK_EX` with `LOCK_NB`), also `EAGAIN`, the
+conflict with another description's lock (no error: the caller's to handle, bbolt's `flock` retries
+on it); for `mmap`, also the step to itself with no room in the address space (`MmapStall`: the
+call does not return, Go's out of memory; see `NoMapLockErr`). -/
 def MapLockOk (o : String) (v : val) (e' : Expr) : Prop :=
   match o with
   | "Flock" => e' = Val (#(0 : w64)) ∨
       ∃ (fd how : w64) (ex : Bool), v = PairV (#fd) (#how) ∧ flockReq how.toNat = some (some ex, true) ∧
         e' = Val (#EAGAIN)
-  | "Mmap" => (∃ r : val, e' = osRes r 0) ∨ e' = osRes (#null) ENOMEM
+  | "Mmap" => (∃ r : val, e' = osRes r 0) ∨ e' = ExternalOp fsExt.name "Mmap" (Val v)
   | _ => e' = Val (#(0 : w64))
 
 end noMapLockErr
@@ -162,26 +164,29 @@ a premise on steps beside `NoIoErr`: a step of one of these calls on a file `S` 
 (`MapLockCovers`) has an outcome `MapLockOk` whenever the semantics has such an outcome for that call
 from that state. It excludes, on those files: a failing `flock` lock request where it can succeed
 (no conflicting lock: `ENOLCK`, `EINTR`, ...), a non-blocking one failing with another errno than
-`EWOULDBLOCK` on a conflict, a failing `LOCK_UN` (which can always succeed); a failing `mmap` with
-another errno than `ENOMEM` (`EAGAIN`, `ENFILE`, `ENODEV`, `EOVERFLOW`, `EPERM`, ...); a failing
-`munmap` of a whole mapping (which can always succeed), whether or not it unmapped.
+`EWOULDBLOCK` on a conflict, a failing `LOCK_UN` (which can always succeed); every failing `mmap`
+(`ENOMEM`, `EAGAIN`, `ENFILE`, `ENODEV`, `EOVERFLOW`, `EPERM`, ...: the semantics' success is there
+whenever the arguments are accepted, so a covered `mmap` returns a mapping, or, with no room left
+for it in `(0, maxAddr]`, does not return, `MmapStall`); a failing `munmap` of a whole mapping
+(which can always succeed), whether or not it unmapped.
 
 What it does **not** exclude: a blocking `flock` request on a conflict (the semantics has no success
-there, `LockStep`); `mmap`'s `ENOMEM`. The process's address space is shared by the mappings and
-the Go heap (both in `(0, maxAddr]`), and a premise on steps sees the extension's state, not the
-heap, so it cannot tell when the address space has room; excluding `ENOMEM` would leave no step
-from a state whose heap leaves no room, which no premise may do (`StepKeeps`). (Go's own allocator
-does not return there: an allocation with no room loops, Perennial's `AllocOOMS`.) Nor anything
-about the OFD lock (`fcntl`), which `NoIoErr` does not name either.
+there, `LockStep`); `mmap`'s step to itself when the address space has no room (the process's
+address space is shared by the mappings and the Go heap, both in `(0, maxAddr]`, and a premise on
+steps does not see the heap: the stall, a step of the semantics that sees it, is what is left from a
+state whose heap leaves no room, so the premise keeps a step there, `StepKeeps`; the model treats
+running out of address space as the Go runtime's out of memory, outside the model, as Perennial's
+`AllocOOMS`). Nor anything about the OFD lock (`fcntl`), which `NoIoErr` does not name either.
 
 An environment assumption, not a property of Linux (evidence: assumed): the kernel's lock and
-mapping calls do not fail on these files for want of kernel memory or descriptors, and no seal,
-`noexec` mount or file-system type refuses a shared read-only mapping
-(`examples/osfs/semantics/premise_no_map_lock_err.go`). It is the condition (with `NoIoErr`) under which
-bbolt's `Close` is shown to return no error (`Spec/go_etcd_io/bbolt/DB__Close_noErr.lean`), where
-etcd's backend panics on its error (`applySnapshot`), and the one `Open` (its `flock` and `mmap`)
-needs too, but for `mmap`'s `ENOMEM`. It never
-leaves a state without a step (`noMapLockErr_keeps`, `GooseLang/Ext/Fs/NoMapLockErr.lean`). -/
+mapping calls do not fail on these files for want of kernel memory or descriptors, the process is
+below its map count (`vm.max_map_count`) and its `RLIMIT_AS`, and no seal, `noexec` mount or
+file-system type refuses a shared read-only mapping
+(`examples/osfs/semantics/premise_no_map_lock_err.go`). It is the condition (with `NoIoErr`) under
+which bbolt's `Close` is shown to return no error (`Spec/go_etcd_io/bbolt/DB__Close_noErr.lean`),
+where etcd's backend panics on its error (`applySnapshot`), and the one `Open` (its `flock` and
+`mmap`) needs too (`NoMapLockErrSpecs.lean`). It never leaves a state without a step
+(`noMapLockErr_keeps`, `GooseLang/Ext/Fs/NoMapLockErr.lean`). -/
 def NoMapLockErr (S : IoSet) : StepPrem := fun o v st e' _ =>
   MapLockCovers S o v st → (∃ e'' st'', IsFsStep o v st e'' st'' ∧ MapLockOk o v e'') →
     MapLockOk o v e'

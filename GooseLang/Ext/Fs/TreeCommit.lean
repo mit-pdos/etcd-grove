@@ -49,12 +49,13 @@ theorem osCommitLb_zero : ⊢ |==> osCommitLb (L := L) 0 := by
 /-- `wp_fs_stepT`, with the committed prefix's authoritative bound too (`commitRes`). -/
 theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) (W : IProp GF) (hW : LegacyWit (L := L) W)
-    (hO : o ≠ "OutClose" := by decide) (hl : ¬ LockOp o := by simp [LockOp]) :
+    (hO : o ≠ "OutClose" := by decide) (hl : ¬ LockOp o := by simp [LockOp])
+    (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗ W -∗
       (W -∗ ∀ st Γb Γm Γf Γt V Γdf Γc h, osWorld st Γb Γm Γf Γt h -∗ treeWorld st V Γdf Γc -∗
           commitRes (gooseOsGS (L := L)) st ==∗
-        ⌜∃ e' h' st', FsStep o v h st () e' h' st' ()⌝ ∗
-        ▷ ∀ e' h' st', ⌜FsStep o v h st () e' h' st' ()⌝ ==∗
+        ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
+        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ==∗
           ∃ Γb' Γm' Γf' Γt' V' Γdf' Γc', osWorld st' Γb' Γm' Γf' Γt' h' ∗
             treeWorld st' V' Γdf' Γc' ∗ commitRes (gooseOsGS (L := L)) st' ∗
             WP e' @ s; E {{ Φ }}) -∗
@@ -85,10 +86,10 @@ theorem wp_fs_stepTC (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPa
   · ipureintro
     obtain ⟨e', h', st', Hst⟩ := Hex
     exact FsSemOk.step_ex _ _ _ _ g _ _ _ ()
-      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) Hst
+      (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) (Or.inl Hst)
   inext
   iintro %e' %h' %σ' %g' %Hst -
-  have Hst := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst
+  have Hst := fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)
   imod Hclose2
   imod Hcont $$ %e' %h' %σ' %Hst with
     ⟨%Γb', %Γm', %Γf', %Γt', %V', %Γdf', %Γc', Hw, Hn, Hcm, Hwp⟩
