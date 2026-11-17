@@ -26,7 +26,7 @@
   other spec files and `WAL__CloseNoErr` deleted; users moved (`cleanupWAL`, `Open` at the P-free model
   `walPbNone`, WalTester's `member__close` (shares the handle) and `restartRead`).
 - **Next, in order:** SaveSnapshot (`specPre` as a precondition
-  disjunct) after the room decision (see Open). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+  disjunct) once the (B) blocker is decided (see Open). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
 - **Pitfall (lock + later credit):** a method that needs the handle *before* its first resolution after `Lock`
   (Save's step bound) takes `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand with
   `wp_go_step_receipt'` (its `£ 1` strips the invariant's later), then `wp_raise_receipt` at the next resolution
@@ -34,10 +34,17 @@
   pre/post is a `match` on a state: `dsimp only` first in the call's side goal; a nested `isPkgInit` needs
   `iPkgInit`. Names in a binder the Link copies must resolve without `open WalFs` (`WalFs.ioNone`). A
   `lean-check` "0 errors" once hid an unknown identifier: build the Links before committing.
-- **Open (SaveSnapshot's room, reported to etcd-grove-03):** `walHdl`'s fixed room (`walFreshRoom`, the tail's
-  stream ≤ 2^43 when covered) is kept by `Save` (it cuts at 64 MB) and `Sync`, not by `SaveSnapshot` (one
-  record of up to 2^40+64 bytes, no cut; S/wal.go:1137-1162): repeated `SaveSnapshot`s without a `Save` grow
-  the tail. Options in the report.
+- **Open: SaveSnapshot under (B)** (the user chose (B), 2026-11-17; BLOCKER reported to etcd-grove-03, no Lean
+  changed). A covered-case EFBIG arm loses the handle (a crossing write lands a page-cut prefix of the frame:
+  `Impl.lean` PWriteFinish, measured on C in `examples/osfs/semantics/data_maxbytes.go`), so the failing holder
+  cannot return `walHdl` to `walShInv` before the deferred `Unlock`. `Save`'s error arm escapes by `q = 1`; the
+  server's raft loop and apply thread each hold `q < 1`, and `lg.Fatal` (post `False`) stops only its goroutine,
+  so the other thread can lock the broken handle next and its call is unverifiable. Even success past `2^43`
+  breaks `walShInv`'s room (Save's `saveRoom ≤ walFreshRoom` reads it). Options: (B1) error arm only at `q = 1`
+  (server unusable); (B2) a "failed" invariant state in which every method runs on a broken handle (all four
+  shared methods re-proved in a lax mode, crash invariant weakened: L6 meaning change, several k lines);
+  (A) room budget; (C) the server's count. Recommendation in the report: (A) in the form of an
+  index-monotone budget, or the server-side bound (C).
 - **Open (for L3/L5):** nothing produces `walOpenWFR` yet (Create's/ReadAll's posts give `walOpenWF`; room is an
   open layer-1 decision, `notes/wal-units/noioerr.md`): the server's shared handle needs the fresh room from
   bootstrap's slot (L3, trusted) and, in L5, from `Create` (headers < 2^43) and the restart's `ReadAll` (a tail bound).
