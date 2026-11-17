@@ -22,9 +22,12 @@
   posts carry the encodings' lengths (WEvOk); `GenInW`: skipped ⇒ `MinRV = []`.
 - **Done, built:** `runtime.Decode.spec`/proof (`Spec|Proof/k8s_io/apimachinery/pkg/runtime/Decode.lean`,
   generic over the decoder's method), `codec.Decode.spec`/proof (the driver's, `codec__Decode.lean`).
-- **Next, in order:** step 7(v): spec+proof of `storage.AnnotateInitialEventsEndBookmark` (`meta.Accessor` has a spec; the driver's
-  `GetAnnotations`/`SetAnnotations`) for `watchContractOk driverSpec driverW codec`; `newItemOk
-  driverSpec newObj`; 7(iii)-(iv): per member `cluster3.memberWatch` from `clusterUp` + `srvOnce`
+- **Done, built (step 7(v)):** `storage.AnnotateInitialEventsEndBookmark` spec/proof (generic over the
+  object's `GetAnnotations`/`SetAnnotations` contract), `Obj.GetAnnotations`/`Obj.SetAnnotations`
+  specs/proofs, `newObj.spec` post `objAtD x dzero []` (Main*'s `%o %ho` uses break until step 8),
+  `WContract.lean`: `watchContractOk_driver` (`isPkgInit driver ⊢ watchContractOk driverSpec driverW
+  codecI`) and `newItemOk_driver` (`newItemOk driverSpec (functions newObj [])`).
+- **Next, in order:** 7(iii)-(iv): per member `cluster3.memberWatch` from `clusterUp` + `srvOnce`
   (`one_read_au` + `etcdstart.srvOnce_of_plan`), `memberWatch_facts`, `watchEnvL_conn`,
   `isNewClient_watcher_of` ⇒ `clientWatchOk cl γk`, then New's wand ⇒ `storeWatchOk`; step 8
   `newStore`; step 9 `Main*` (single member: `kvWatch_served` at `clientAddr`). **E-2 hard stop**
