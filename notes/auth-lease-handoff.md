@@ -1,6 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: compiling again at the defaults; STOPPED before F4 on the free-range gap)
+## START HERE (S4, 2026-11-17, item 7b: F4 (A) decided; STOPPED before coding on the tie/store coupling)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (no Lean change since `ac1084fa33`,
+  which compiles at the defaults; not built since `00b09c1360`, lean-check `--fast` only).
+- **Decided (questions.md, "Item 7b F4 decision"):** SnapApplyKV fix accepted; F4 option (A): window kept open between
+  entries, loop state `∃ w, applyKV {E with win := w} …`, first window in NewServer after NewLessor, frees only in the
+  snapshot branch; tie design (ghost var γw of the current window, `E.Wt w := ghostVar γw ½ w`; mono-list of
+  push/commit/obs events at `kvsN .@ "win"`, store invariant moved to `kvsN .@ "st"`).
+- **Stop (questions.md, "Item 7b F4: the tie cannot see the store's log"):** step 7's case "window current at the law's
+  obs, `F` beyond the push's log" needs the tie to know the store's exact log; no ghost ties the two invariants.
+  Recommended K1: the tie owns ¼ of `γs.st` (split from the `wSt` bootStore gives), `AEnv.stq : Qp := ½`, `kvOwn`/
+  `envAus` at `wStQ E.γs E.stq`, KVStoreCore builders generalized over the share, server end/restore builders that open
+  the tie inside the commit AU. K2 (private `st` name) and K3 (drop the law) in the entry.
+- **Next after the decision, in order:** (1) form, any option: `applierSpecW E c a := □ ∀ w, applierSpec {E with win :=
+  w} c a` held by `uberIs`/`baseAuth`/`uberOwn` (sites: `grep -rn "unfold apply.uberOwn\|unfold apply.uberIs\|unfold
+  apply.baseAuth"`, 28; producers: `NewUberApplier` from `Hbase` at every window, the restoreAlarms chain); lemma
+  `applierSpecW_at`; holders then move between windows by `rfl` (`backendOptsOk`, `cmpOwn` do not read `win`).
+  (2) the coupling per the decision; (3) F4 proper (namespace split: `kvsN` sites in KVStoreCore 22, KVStoreApi 6,
+  etcdstart WatchSrv/Served 4, NewServerRFacts 1; tie definition and laws; `srvApplyKV(On)` at `∃ w`; per-entry
+  `win_push` in `applyEntryNormal`; NewServer/NewServerR: tie allocation, first window, `Wt :=` in the 20 `AEnv`
+  literals (sed `γlt := γlt }`); snapshot `win_push none`); (4) ONE leaves build from `00b09c1360`; steps 7, 8; c6b merge.
+- **Pitfalls:** fresh lean-check of a server file rebuilds its imports through Lake (minutes; examples > 25 min).
+  `win_push` returns `s` = the history's last index (no new snapshot). Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: compiling again at the defaults; STOPPED before F4 on the free-range gap)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last three
   entries: etcd-grove-03's review of forms 1-6 + the SnapApplyKV fix; the F4 STOP "the free range between entries").
