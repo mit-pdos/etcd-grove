@@ -33,10 +33,10 @@ theorem schema.authReadTx.RLock.wp_proof :
   wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
   iapply HRL $$ HR
   inext
-  iintro ⟨%D, %Hwf, HD, #Hrd⟩
+  iintro ⟨%x, %D, %Hwf, HD, #Hrd⟩
   (try wp_auto)
   iapply HΦ
-  iexists D
+  iexists x, D
   iframe HD Hrd
   ipureintro; exact Hwf
 

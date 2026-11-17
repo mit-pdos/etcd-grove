@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 /-- An `authBackend` over the backend `bi` (`authBE`: its read transactions are over the auth
 buckets for `R`) with the logger `lg`: returns a new `*authReadTx` over such a transaction. -/
 abbrev schema.authBackend.ReadTx.spec : Prop :=
-  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : schema.AuthData → IProp GF),
+  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abeF go!"be" abe ↦□ (GoInterface.ok bi : GoInterface) ∗ schema.abeF go!"lg" abe ↦□ lg ∗
       schema.authBE bi R Held }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"ReadTx")) (Val #()))

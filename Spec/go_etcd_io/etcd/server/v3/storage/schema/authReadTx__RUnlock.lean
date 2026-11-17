@@ -25,9 +25,9 @@ variable [sem : go.Semantics]
 /-- An `authReadTx` whose `tx` is the transaction `rt` over the auth buckets for `R`: the token
 of a snapshot becomes `R` again. -/
 abbrev schema.authReadTx.RUnlock.spec : Prop :=
-  ∀ (atx : Loc) (rt : GoInterfaceOk) (R : IProp GF) (Held : schema.AuthData → IProp GF)
-    (D : schema.AuthData),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.authRTx rt R Held ∗ Held D }}
+  ∀ (atx : Loc) (rt : GoInterfaceOk) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF)
+    (x : Loc) (D : schema.AuthData),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.atxF go!"tx" atx ↦□ (GoInterface.ok rt : GoInterface) ∗ schema.authRTx rt R Held ∗ Held x D }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
   {{ RET #(); R }}
 

@@ -28,10 +28,10 @@ returns the users of some well-formed snapshot `D` of the auth buckets (`usersOu
 every pure fact `Φ` the snapshot's token implies (the caller's: a token taken with the authority says
 which state the buckets hold). -/
 abbrev schema.authBackend.GetAllUsers.spec : Prop :=
-  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : schema.AuthData → IProp GF)
+  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF)
     (Φ : schema.AuthData → Prop),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abeF go!"be" abe ↦□ (GoInterface.ok bi : GoInterface) ∗ schema.abeF go!"lg" abe ↦□ lg ∗
-      schema.authBE bi R Held ∗ R ∗ □ (∀ D : schema.AuthData, Held D -∗ Held D ∗ ⌜Φ D⌝) }}
+      schema.authBE bi R Held ∗ R ∗ □ (∀ (x : Loc) (D : schema.AuthData), Held x D -∗ Held x D ∗ ⌜Φ D⌝) }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"GetAllUsers")) (Val #()))
   {{ (s : GoSlice), RET #s; R ∗ ∃ D : schema.AuthData, ⌜schema.authWf D ∧ Φ D⌝ ∗
       schema.usersOutD s D.users }}

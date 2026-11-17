@@ -261,24 +261,24 @@ instance authReader_persistent (r : GoInterfaceOk) (H : IProp GF) (D : AuthData)
 /-- **A `backend.ReadTx` over the auth buckets** `rt`, for the read resource `R` (persistent):
 `RLock()` turns `R` into the token `Held D` of a well-formed snapshot `D`, under which its reads
 are `authReader`'s, and `RUnlock()` turns the token back into `R`. -/
-def authRTx (rt : GoInterfaceOk) (R : IProp GF) (Held : AuthData → IProp GF) : IProp GF :=
+def authRTx (rt : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) : IProp GF :=
   iprop(□ ({{ R }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
-      {{ RET #(); ∃ D : AuthData, ⌜authWf D⌝ ∗ Held D ∗ authReader rt (Held D) D }}) ∗
-    □ (∀ D : AuthData,
-      {{ Held D }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); R }}))
+      {{ RET #(); ∃ (x : Loc) (D : AuthData), ⌜authWf D⌝ ∗ Held x D ∗ authReader rt (Held x D) D }}) ∗
+    □ (∀ (x : Loc) (D : AuthData),
+      {{ Held x D }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); R }}))
 
-instance authRTx_persistent (rt : GoInterfaceOk) (R : IProp GF) (Held : AuthData → IProp GF) :
+instance authRTx_persistent (rt : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) :
     Persistent (authRTx rt R Held) := by
   unfold authRTx; infer_instance
 
 /-- **A `backend.Backend` over the auth buckets** `bi` (persistent): `ReadTx()` returns an
 `authRTx` for `R`. -/
-def authBE (bi : GoInterfaceOk) (R : IProp GF) (Held : AuthData → IProp GF) : IProp GF :=
+def authBE (bi : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) : IProp GF :=
   iprop(□ ({{ True }} (App (Val #(methods bi.ty go!"ReadTx" bi.v)) (Val #()))
     {{ (rt : GoInterface), RET #rt;
         ∃ rti : GoInterfaceOk, ⌜rt = GoInterface.ok rti⌝ ∗ authRTx rti R Held }}))
 
-instance authBE_persistent (bi : GoInterfaceOk) (R : IProp GF) (Held : AuthData → IProp GF) :
+instance authBE_persistent (bi : GoInterfaceOk) (R : IProp GF) (Held : Loc → AuthData → IProp GF) :
     Persistent (authBE bi R Held) := by
   unfold authBE; infer_instance
 

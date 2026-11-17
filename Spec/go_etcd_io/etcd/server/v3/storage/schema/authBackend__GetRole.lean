@@ -26,12 +26,13 @@ variable [sem : go.Semantics]
 /-- An `authBackend` over the backend `bi` (`authBE`) with the logger `lg`, the read resource `R`:
 returns the role named `name` of some well-formed snapshot of the auth buckets, owned, or nil. -/
 abbrev schema.authBackend.GetRole.spec : Prop :=
-  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : schema.AuthData → IProp GF)
-    (name : GoString),
+  ∀ (abe : Loc) (bi : GoInterfaceOk) (lg : Loc) (R : IProp GF) (Held : Loc → schema.AuthData → IProp GF)
+    (Φ : schema.AuthData → Prop) (name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abeF go!"be" abe ↦□ (GoInterface.ok bi : GoInterface) ∗ schema.abeF go!"lg" abe ↦□ lg ∗
-      ⌜lg ≠ null⌝ ∗ schema.authBE bi R Held ∗ R }}
+      ⌜lg ≠ null⌝ ∗ schema.authBE bi R Held ∗ R ∗
+      □ (∀ (x : Loc) (D : schema.AuthData), Held x D -∗ Held x D ∗ ⌜Φ D⌝) }}
     (App (Val (abe @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty @!! go!"GetRole")) (Val #name))
-  {{ (u : Loc), RET #u; R ∗ ∃ D : schema.AuthData, ⌜schema.authWf D⌝ ∗
+  {{ (u : Loc), RET #u; R ∗ ∃ D : schema.AuthData, ⌜schema.authWf D ∧ Φ D⌝ ∗
       schema.roleOutD u D.roles name }}
 
 end spec

@@ -41,14 +41,14 @@ theorem schema.authBackend.GetAllUsers.wp_proof
   wp_apply (hRT abe bi lg R Held) $$ [$Hbe $Hlg $HBE] as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩
   subst Htx
   (try wp_auto)
-  wp_apply (hRL l rt R Held) $$ [$Htxf $Hrtx $HR] as ⟨%D, %Hwf, HD, #HrdD⟩
-  icases HΦp $$ %D HD with ⟨HD, %HΦD⟩
+  wp_apply (hRL l rt R Held) $$ [$Htxf $Hrtx $HR] as ⟨%x, %D, %Hwf, HD, #HrdD⟩
+  icases HΦp $$ %x %D HD with ⟨HD, %HΦD⟩
   (try wp_auto)
-  wp_apply (hGA l rt lg (Held D) D Hwf.1) $$ [$Htxf $Hlgf $HrdD $HD] as %s ⟨HD, Hs⟩
+  wp_apply (hGA l rt lg (Held x D) D Hwf.1) $$ [$Htxf $Hlgf $HrdD $HD] as %s ⟨HD, Hs⟩
   (try wp_auto)
   wp_bind (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
   -- `iapply`, not `wp_apply`: a Lean spec applied at the deferred call leaves a stray goal
-  iapply (hRU l rt R Held D) $$ [Hpkg Htxf Hrtx HD]
+  iapply (hRU l rt R Held x D) $$ [Hpkg Htxf Hrtx HD]
   · iframe Hpkg Htxf Hrtx HD
   inext
   iintro HR
