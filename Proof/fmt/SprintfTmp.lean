@@ -31,7 +31,7 @@ theorem fmt.SprintfOut_plain {f out : GoString} (hf : ∀ c ∈ f, c ≠ W8 37)
     rw [ih (fun c' hc' => hf c' (List.mem_cons_of_mem _ hc')) h']
 
 /-- `Sprintf("%d.tmp", n)` of an `int` is `n`'s decimal and `.tmp`. -/
-theorem fmt.SprintfOut_dtmp [go.IntoValInj w64] (n : w64) (out : GoString)
+theorem fmt.SprintfOut_dtmp [go.IntoValInj w64] [go.string ↓u go.string] (n : w64) (out : GoString)
     (h : _root_.Perennial.fmt.SprintfOut go!"%d.tmp" [interface.mkOk go.int #n] out) :
     out = _root_.Perennial.fmt.decimal (sint.Z n) ++ go!".tmp" := by
   have hf : go!"%d.tmp" = W8 37 :: go!"d.tmp" := rfl
