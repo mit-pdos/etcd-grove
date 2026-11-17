@@ -24,7 +24,13 @@ trip (D2). This check:
    `TestD2P2EntryEncoder`/`TestD2P2MessageEncoder` (the round trip D2 and the encoder axioms
    `entryEncC_ok`/`msgEncC_ok`), `TestSizeBoundCondition` (step 3's size bound condition), and
    (out_size B2) `TestB2CCDecoderUf`/`TestB2MustUnmarshalCC` (the conf-change decoders' unknown fields
-   at their schemas) and `TestA3CCLen`/`TestA3CC2Len` (`proto.MarshalConfChange[V2]`'s `ccLenMax`).
+   at their schemas) and `TestA3CCLen`/`TestA3CC2Len` (`proto.MarshalConfChange[V2]`'s `ccLenMax`);
+6. (2026-11-15, the WAL in the main tree) runs the WAL's encoder tests (`examples/stdlib/walpb`):
+   `TestRecordEncoder`/`TestSnapshotEncoder` (the encoder axioms `recEncC_ok`/`snapEncC_ok`, and
+   `recSize`/`walSnapSize` against `proto.Size`), `TestRecordSchema`/`TestSnapshotSchema` (the
+   descriptors against `recSchema`/`walSnapSchema`/`csSchema`), `TestMarshalAppendOwnership`/
+   `TestMarshalAppendStaleCache` (`proto.MarshalAppendCachedRecord`'s trust boundary). The roots
+   `walpb.Record`/`walpb.Snapshot` (`pbRecordC_reg`, `pbSnapC_reg`) are read by step 3 like raftpb's.
 
     etc/pbschema-check.py        prints one line, exits 1 on a failure
 
@@ -59,6 +65,8 @@ def lake(*args):
 
 
 # the tests of examples/pbschema that need no dump (d1post_test.go, descriptor_test.go)
+WAL_TESTS = ("^(TestRecordEncoder|TestSnapshotEncoder|TestRecordSchema|TestSnapshotSchema|"
+             "TestMarshalAppendOwnership|TestMarshalAppendStaleCache)$")
 POST_TESTS = "^(TestD1PostMessage|TestD1PostEntry|TestD2P2EntryEncoder|TestD2P2MessageEncoder|TestSizeBoundCondition|TestB2CCDecoderUf|TestB2MustUnmarshalCC|TestA3CCLen|TestA3CC2Len|TestC3DecodedFresh)$"
 
 
@@ -70,14 +78,14 @@ def go_toolchain():
     return os.environ.get("GOTOOLCHAIN", m.group(1))
 
 
-def go_test(dump, run="^TestSchemas$"):
+def go_test(dump, run="^TestSchemas$", pkg="./pbschema/"):
     env = dict(os.environ, GOWORK="off", GOTOOLCHAIN=go_toolchain(),
                PATH="/usr/local/go/bin:" + os.path.expanduser("~/go/bin") + ":" + os.environ["PATH"])
     if dump is not None:
         env["PBSCHEMA_DUMP"] = dump
     else:
         env.pop("PBSCHEMA_DUMP", None)
-    r = subprocess.run(["go", "test", "-count=1", "-v", "-run", run, "./pbschema/"],
+    r = subprocess.run(["go", "test", "-count=1", "-v", "-run", run, pkg],
                        cwd=os.path.join(ROOT, "examples"), env=env, capture_output=True, text=True)
     return r.returncode, r.stdout + r.stderr
 
@@ -144,6 +152,14 @@ def main():
                 or l.startswith("--- FAIL") or l.startswith("FAIL")))
         elif out.count("--- PASS") != 10:
             fail.append(f"the Go D1/D2/P2 and ConfChange tests: {out.count('--- PASS')} passed, want 10 ({POST_TESTS})")
+        # the WAL's walpb encoders and schemas (step 6)
+        rc, out = go_test(None, WAL_TESTS, "./stdlib/walpb/")
+        if rc != 0:
+            fail.append("the WAL's walpb tests failed:\n" + "\n".join(
+                l for l in out.splitlines() if ("_test.go" in l and ("FAIL" in l or "Error" in l))
+                or l.startswith("--- FAIL") or l.startswith("FAIL")))
+        elif out.count("--- PASS") != 6:
+            fail.append(f"the WAL's walpb tests: {out.count('--- PASS')} passed, want 6 ({WAL_TESTS})")
     if fail:
         print("pbschema: FAILED")
         for f in fail:
@@ -151,7 +167,8 @@ def main():
         sys.exit(1)
     print(f"pbschema: ok ({len(table)} schemas, roots {', '.join(sorted(roots))}; "
           f"3 negative tests refused; Go tests D1 post (Message, Entry), D2/P2 encoders (Entry, "
-          f"Message), the size bound condition, and the ConfChange decoders and length bound passed)")
+          f"Message), the size bound condition, the ConfChange decoders and length bound, and the WAL's "
+          f"walpb encoders and schemas passed)")
 
 
 if __name__ == "__main__":

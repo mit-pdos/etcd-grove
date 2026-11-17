@@ -3,7 +3,7 @@ Port of election_proof/spec_traceReplicate.v (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedCap
 
 @[expose] public section
 
@@ -21,23 +21,22 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceReplicate(r, es...)`: a tracing hook, and a **no-op** -- Goose translates it
-to `λ: <> <>, exception_do (do: #())` (`new/code/go_etcd_io/raft/v3.v:6364`). Same
-shape as `spec_traceSendMessage.v`; `appendEntry` is the caller, and it hands the entry
-slice over only so that the triple has a resource to thread (the body touches nothing).
+/-- `traceReplicate(r, es...)`: one `Replicate` node event of `r`'s state per normal entry of the
+batch (`traceNodeEvent(rsmReplicate, r)` in the loop), the entries read-only and given back.
 
-**It owns nothing** (changed 2026-09-23). Goose translates the hook to
-`exception_do (do: #())`: it reads nothing and writes nothing, so the honest triple
-takes no resource and gives none back. Until then it carried the entries slice in and
-out, which it never touches; the other five hooks carried a raw piece of the raft
-struct (`own_raft_misc`), and all six now own nothing (notes/decisions.md, "Three
-layers"). This is a fact about the no-op build that is translated; the tracing build
-reads `r` and would need a real spec on `ownRaftPhys`. -/
+One spec for both modes (Q8 stage 1, slice 2, 2026-11-09): untraced, the gate `trOwn` is `emp` and
+`TraceFireN` the nil logger and `Q`; traced, raft's state is lent through the gate and the caller's
+updates fire in a row, one per normal entry (`TraceFireN … (normalCount ents)`). Its traced instance
+is the Draft's `traceReplicate.tracedSpec` (`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`
+(increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceReplicate.spec : Prop :=
-  ∀ (r : Loc) (es : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice) (dq : DFrac) (ents : List EntryM)
+    (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ entsPts es dq ents ∗
+      r.[raft, go!"traceLogger"] ↦□ tl ∗ trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗
+      TraceFireN s.gh.tr tl (NodeEvOf (W64 5) id s c) (normalCount ents) Q }}
     (App (App (Val #(functions traceReplicate [])) (Val #r)) (Val #es))
-  {{ RET #(); True }}
+  {{ RET #(); entsPts es dq ents ∗ trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
 
 end spec
 

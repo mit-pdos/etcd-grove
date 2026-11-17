@@ -42,6 +42,14 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
 * (until 2026-10-20 also two marked hypotheses, false under the then Perennial pin,
   `EofFromIoInit` and `ClosedchanFromContextInit`: `io.EOF` and `context`'s `closedchan` now come
   from their packages' facts, `v3rpc.eofVar_of_init` and `context.isClosedchanInit_of_init`).
+
+**Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
+`[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
+the environment), since `fileutil`'s package initializer, which the server's initialization runs,
+probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
+premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
+well formed), so it says that the program runs on a real file system. Until then the extensions were
+`TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -50,7 +58,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.MainL
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 
 @[expose] public section
 
@@ -65,7 +73,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 /-! ## The ghost-state bundle -/
 
@@ -91,7 +100,7 @@ instance putgetcGF_gooseGpreS : GooseGpreS putgetcGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨putgetcGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨putgetcGF_allG⟩, ⟨putgetcGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetcGF_allG
 
@@ -138,7 +147,9 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putgetcProgram], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -150,7 +161,7 @@ theorem etcd_compacted_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23791"] (by decide) [go!"putgetc.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
-    [(go!"putgetc", ⟨none, some go!"127.0.0.1:23791"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    [(go!"putgetc", ⟨none, some go!"127.0.0.1:23791"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetcGF := heapAtC hG lctx
   haveI := Hctx hG

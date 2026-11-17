@@ -327,7 +327,7 @@ private theorem wp_OpenFile_db [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
         osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
         ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧
             lookupH R V' path = some (.file i)⌝ ∗
-          os.ownFile f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+          os.ownFile f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
           openedF i D) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) ∗
         fmtErrorOkOrNil err }} := by
@@ -621,11 +621,13 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   ihave Hopts := Hback $$ Hx
   rw [← fileOwn_eq] at *
-  wp_apply hFlock dbl f fd p _ (DFrac.own 1) true tmo $$ [file Hf Hfdo] as %ferr
-    ⟨file, Hf, Hfdo, #Hfe⟩
+  wp_apply hFlock dbl f fd p ⟨p.ino, true, true, none, none⟩ (DFrac.own 1) true tmo rfl $$ [file Hf Hfdo] as %ferr
+    ⟨file, Hf, #Hfe, Hlk⟩
   · iframe; iframe #
   cases ferr with
   | ok ei =>
+    icases Hlk with (⟨%hn, -⟩ | ⟨-, Hfdo⟩)
+    · exact absurd hn (by simp)
     ihave #Hek := fmtErrorOkOrNil_ne (GF := GF) (.ok ei) (by simp) $$ Hfe
     try wp_auto
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil func.nil _ none p f Hdbnn $$
@@ -633,10 +635,24 @@ theorem Open.wp_proof [sync.Assumptions]
     · iframe; iframe #
       isplitr
       · unfold closeMapRes; iempintro
-      iright; iexists fd, p.path, _; iframe
+      iright; iexists fd, p.path, _; iframe; iapply lockToks_unlocked <;> rfl
     open_exit fmtVerbs_lockErr
       [interface.mkOk go.string #(p.path), interface.mkOk go.bool #false, GoInterface.ok ei]
   | nil =>
+  icases Hlk with (⟨-, Hfdo, Htok⟩ | ⟨%hn, -⟩)
+  rotate_left
+  · exact absurd rfl hn
+  -- (the file-lock semantics, 2026-11-15) the descriptor holds `flock`'s exclusive lock: its token
+  -- rides with the `path` field (`dbPathLk`) until `close`
+  have hsl : (⟨p.ino, true, true, none, none⟩ : OsFd).setLk .flock (some true) = dbFd p.ino := rfl
+  ihave Hfdo : osFd fd (DFrac.own 1) (dbFd p.ino) $$ [Hfdo]
+  · rw [← hsl]; iexact Hfdo
+  ihave Htok : lockTok .flock fd (dbFd p.ino) $$ [Htok]
+  · rw [← hsl]; iexact Htok
+  ihave Htok : osLock .flock p.ino fd $$ [Htok]
+  · iapply (lockTok_some .flock fd (dbFd p.ino) rfl).1 $$ Htok
+  ihave path : dbPathLk dbl p fd $$ [path Htok]
+  · unfold dbPathLk; iframe
   try wp_auto
   -- the page size
   icases (optsAt_pageSize_rd opts dq o) $$ Hopts with ⟨%dqx, Hx, Hback⟩
@@ -651,7 +667,7 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   -- the file's size
   obtain ⟨hmaps, hxl, hsz, hbr⟩ := Hm
-  wp_apply hStat f fd p.path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) ⟨p.ino, true, true⟩ m $$
+  wp_apply hStat f fd p.path (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (dbFd p.ino) m $$
     [Hf Hfdo Hfm] as %fi %serr ⟨Hf, Hfdo, Hfm, Hfi, #Hse, -⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   rw [← fileOwn_eq]
@@ -662,12 +678,14 @@ theorem Open.wp_proof [sync.Assumptions]
     | nil => exact absurd rfl Herr
     | ok ei =>
     try wp_auto
+    iunfold dbPathLk at path
+    icases path with ⟨path, Htok⟩
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
-      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #
       isplitr
       · unfold closeMapRes; iempintro
-      iright; iexists fd, p.path, _; iframe
+      iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
     open_exit fmtVerbs_statErr [interface.mkOk go.string #(p.path), GoInterface.nil]
   obtain ⟨rfl, rfl⟩ := Hfi
   try wp_auto
@@ -676,7 +694,7 @@ theorem Open.wp_proof [sync.Assumptions]
   try wp_auto
   rw [← hxl]
   wp_apply hMZ dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨p.ino, true, true⟩ xs rfl rfl (by omega) $$ [file pageSize Hf Hfdo Hxs]
+    (dbFd p.ino) xs rfl rfl (by omega) $$ [file pageSize Hf Hfdo Hxs]
     as %z %zerr ⟨file, pageSize, Hf, Hfdo, Hxs, Hz⟩
   · iframe; iframe #
   icases Hz with (%Hz | ⟨%Hzerr, #Hze⟩)
@@ -685,12 +703,14 @@ theorem Open.wp_proof [sync.Assumptions]
     | nil => exact absurd rfl Hzerr
     | ok ei =>
     try wp_auto
+    iunfold dbPathLk at path
+    icases path with ⟨path, Htok⟩
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
-      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #
       isplitr
       · unfold closeMapRes; iempintro
-      iright; iexists fd, p.path, _; iframe
+      iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
     open_exit fmtVerbs_metaErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
   obtain ⟨rfl, hz⟩ := Hz
   try wp_auto
@@ -702,9 +722,9 @@ theorem Open.wp_proof [sync.Assumptions]
         dbl.[DB, go!"file"] ↦ f ∗ (∃ dqp, dbl.[DB, go!"pageSize"] ↦{dqp} W64 4096) ∗
         (dbl.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-        fileOwn f fd p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+        fileOwn f fd p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (dbFd p.ino) ∗
         dbl.[DB, go!"readOnly"] ↦ false ∗ dbl.[DB, go!"opened"] ↦ true ∗
-        dbl.[DB, go!"freelist"] ↦ GoInterface.nil ∗ dbl.[DB, go!"path"] ↦ p.path ∗
+        dbl.[DB, go!"freelist"] ↦ GoInterface.nil ∗ dbPathLk dbl p fd ∗
         mapFields dbl (DFrac.own 1) none ∗ dbl.[DB, go!"datasz"] ↦ W64 0 ∗
         err_ptr ↦ GoInterface.nil ∗ db_ptr ↦ dbl ∗ defer ↦ dv) ∨
     (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ GoInterface.nil⌝ ∗ err_ptr ↦ e ∗
@@ -744,12 +764,14 @@ theorem Open.wp_proof [sync.Assumptions]
         | nil => exact absurd rfl Hie
         | ok ei =>
         try wp_auto
+        iunfold dbPathLk at path
+        icases path with ⟨path, Htok⟩
         wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
-          [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+          [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
         · iframe; iframe #
           isplitr
           · unfold closeMapRes; iempintro
-          iright; iexists fd, p.path, _; iframe
+          iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
         open_exit_j fmtVerbs_initErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
     · -- an existing file: its page size
       obtain ⟨C, hC⟩ : ∃ C, openOK C D m xs := by
@@ -769,7 +791,7 @@ theorem Open.wp_proof [sync.Assumptions]
       try wp_auto
       have h8 := openOK_size C D m xs hC
       wp_apply hGPS dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-        (DFrac.own 1) ⟨p.ino, true, true⟩ m xs C rfl rfl hxl (by omega) hsz hC.2.1 hC.1.1 hC.1.2.1
+        (DFrac.own 1) (dbFd p.ino) m xs C rfl rfl hxl (by omega) hsz hC.2.1 hC.1.1 hC.1.2.1
         $$ [file pageSize Hf Hfdo Hfm Hxs] as %gsz %gerr ⟨file, pageSize, Hf, Hfdo, Hfm, Hxs, Hg⟩
       · iframe; iframe #
       icases Hg with (%Hg | ⟨%Hge, #Hek⟩)
@@ -786,12 +808,14 @@ theorem Open.wp_proof [sync.Assumptions]
         | nil => exact absurd rfl Hge
         | ok ei =>
         try wp_auto
+        iunfold dbPathLk at path
+        icases path with ⟨path, Htok⟩
         wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
-          [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+          [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
         · iframe; iframe #
           isplitr
           · unfold closeMapRes; iempintro
-          iright; iexists fd, p.path, _; iframe
+          iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
         open_exit_j fmtVerbs_psErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
   iintro (⟨%Hv, %m', %xs', %C, Hfm, Hxs, %HC, file, ⟨%dqp, pageSize⟩, writeAt, Hf, Hfdo, readOnly,
     opened, freelist, path, Hmf, datasz, err, db, Hdefer⟩ | ⟨%e, %He, err, #Hek, db, Hdefer⟩)
@@ -843,12 +867,14 @@ theorem Open.wp_proof [sync.Assumptions]
     | nil => exact absurd rfl Hme
     | ok ei =>
     try wp_auto
+    iunfold dbPathLk at path
+    icases path with ⟨path, Htok⟩
     wp_apply hclose dbl (.ok li) (DFrac.own 1) GoInterface.nil _ _ none p f Hdbnn $$
-      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo] as %cerr ⟨readOnly, -⟩
+      [readOnly opened freelist writeAt path Hmf datasz file Hf Hfdo Htok] as %cerr ⟨readOnly, -⟩
     · iframe; iframe #
       isplitr
       · unfold closeMapRes; iempintro
-      iright; iexists fd, p.path, _; iframe
+      iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
     open_exit fmtVerbs_mapErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
   subst Hme
   try wp_auto

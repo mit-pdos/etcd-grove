@@ -2,7 +2,7 @@
 // wal) under crashes: Boot is one incarnation of a member's WAL, run again after every crash.
 //
 // Each incarnation does what etcd's bootstrap does with the WAL directory (a first start:
-// TouchDirAll of the data and member directories, then wal.Create; a restart: wal.Exist,
+// wal.Create, in the member directory the environment provides; a restart: wal.Exist,
 // ValidSnapshotEntries, Open at the newest valid snapshot record, ReadAll, Repair once on a torn
 // tail), checks what the restart read, then runs random WAL operations mixed as etcd's raft loop,
 // apply thread and purge goroutine use the WAL (serialized):
@@ -51,6 +51,14 @@ import (
 // maxIndex bounds the indices the tester saves (and its terms): Save and SaveSnapshot take
 // indices below 2^64-1 (WAL W4a.2), and nameBound's index+1 must not wrap (WAL W4c, T-4).
 const maxIndex uint64 = 1 << 62
+
+// maxOracle bounds the oracle file: lib/durable holds files of at most 1 GiB. The tester stops
+// (the member goes down) rather than store a larger oracle (fits).
+const maxOracle uint64 = 1 << 30
+
+// oracleRoom is the room step asks of the oracle before an operation: at least what any
+// operation adds to the oracle's encoding (opEntries, a Save of four entries: 184 bytes).
+const oracleRoom uint64 = 256
 
 // Boot's results (a panic is the only failure).
 const (
@@ -163,9 +171,9 @@ func restartRead(lg *zap.Logger, walDir string, m *member) (uint64, contents, *e
 	var idx uint64
 	var term uint64
 	for i := 0; i < len(snaps); i++ {
-		if *snaps[i].Index >= idx {
-			idx = *snaps[i].Index
-			term = *snaps[i].Term
+		if snaps[i].GetIndex() >= idx {
+			idx = snaps[i].GetIndex()
+			term = snaps[i].GetTerm()
 		}
 	}
 	repaired := false
@@ -370,7 +378,7 @@ func (m *member) save(h hardState, es []entry) bool {
 func (m *member) saveSnap(idx uint64, term uint64) bool {
 	m.o.since = append(m.o.since, walOp{snap: true, idx: idx, term: term})
 	storeOracle(m.orPath, m.o)
-	cs := &raftpb.ConfState{Voters: []uint64{1}}
+	cs := &raftpb.ConfState{Voters: []uint64{1}, AutoLeave: new(bool)}
 	if m.w.SaveSnapshot(&walpb.Snapshot{Index: newU64(idx), Term: newU64(term), ConfState: cs}) != nil {
 		return false
 	}
@@ -399,13 +407,20 @@ func (m *member) close() bool {
 	return true
 }
 
-// restart is the restart path and its check; false if the read failed.
+// restart is the restart path and its check; false if the read failed, or if the oracle would
+// outgrow maxOracle (the two opens restartRead may add, then the checked oracle).
 func (m *member) restart() bool {
+	if !fits(m.o, 16) {
+		return false
+	}
 	st, c, w := restartRead(m.lg, m.walDir, m)
 	if st != readOK {
 		return false
 	}
 	m.o = checkRestart(m.o, c)
+	if !fits(m.o, 0) {
+		return false
+	}
 	storeOracle(m.orPath, m.o)
 	m.w = w
 	m.resume(c)
@@ -568,8 +583,12 @@ func (m *member) opRecvSnap() bool {
 	return m.sync()
 }
 
-// step runs one random operation; false if the member went down.
+// step runs one random operation; false if the member went down, or if the oracle has no room
+// for an operation (maxOracle).
 func (m *member) step() bool {
+	if !fits(m.o, oracleRoom) {
+		return false
+	}
 	k := m.r.choose(100)
 	if k < 30 {
 		return m.opEntries()
@@ -601,21 +620,18 @@ func (m *member) step() bool {
 	return true
 }
 
-// Boot is one incarnation on the directory root (which holds oracle/, an existing directory, and
-// the member's data/): the first start or the checked restart, then nOps operations, then possibly
-// a graceful Close. seed 0 takes every choice from primitive.RandomUint64.
-func Boot(root string, seed uint64, nOps uint64) uint64 {
-	m := &member{lg: zap.NewNop(), r: newRnd(seed), orPath: root + "/oracle/state"}
+// Boot is one incarnation on the member's WAL area area (an existing directory: the WAL is
+// area/wal) and the oracle's directory orDir (an existing directory, outside area): the first
+// start or the checked restart, then nOps operations, then possibly a graceful Close. seed 0
+// takes every choice from primitive.RandomUint64. The two directories are the environment's (as
+// a member's data directory is its operator's): Boot creates neither.
+func Boot(area string, orDir string, seed uint64, nOps uint64) uint64 {
+	m := &member{lg: zap.NewNop(), r: newRnd(seed), orPath: orDir + "/state"}
 	m.o = loadOracle(m.orPath)
-	data := root + "/data"
-	memberDir := data + "/member"
-	m.walDir = memberDir + "/wal"
+	m.walDir = area + "/wal"
 	if !etcdwal.Exist(m.walDir) {
 		if m.o.created {
 			panic("walrobust: the WAL vanished after wal.Create returned")
-		}
-		if fileutil.TouchDirAll(m.lg, data) != nil || fileutil.TouchDirAll(m.lg, memberDir) != nil {
-			return StatusDown
 		}
 		w, err := etcdwal.Create(m.lg, m.walDir, []byte("m"))
 		if err != nil {
@@ -645,8 +661,9 @@ func Boot(root string, seed uint64, nOps uint64) uint64 {
 	return StatusRan
 }
 
-// Main is the program: incarnations of Boot on root, every choice any value. The crash and
-// restart between incarnations are the machine's (the adequacy theorem's crash semantics).
-func Main(root string) {
-	Boot(root, 0, 40)
+// Main is the program: incarnations of Boot on the WAL area and the oracle's directory, every
+// choice any value. The crash and restart between incarnations are the machine's (the adequacy
+// theorem's crash semantics).
+func Main(area string, orDir string) {
+	Boot(area, orDir, 0, 40)
 }

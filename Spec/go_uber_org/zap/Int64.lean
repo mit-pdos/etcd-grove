@@ -3,8 +3,8 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import GeneratedProof.go_uber_org.zap
+public import Proof.go_uber_org.zap.PkgInit
 
 @[expose] public section
 

@@ -6,6 +6,7 @@ The Rocq `Forall (λ e, …) ents` premises are `∀ e ∈ ents, …`.
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -165,6 +166,19 @@ same bytes, and since D6 the record's `Data'` is the bytes), so the log grows by
 `ents.mapIdx (stamp ...)`, as before the retarget, when the batch itself was stamped in place
 and appended. (Phase 2 of R4 stated copies `ents'` whose `Data` slices differed,
 `EntsDataCopy`, with the bytes a premise `"#Hdata"`; D6 removed both.)
+
+### One spec for both trace modes (2026-11-09, trace-check Q8 stage 1 slice 6)
+
+The caller's resource goes through the two hook gates of the accept path in turn, `G` to `G1` to
+`G2` (each line may move the caller's state, as the capability's phase), and comes back as `G2`; on
+the reject path it comes back as `G`, no gate run. The gates: `traceReplicate`'s (`HookGateN`: one `Replicate` node event per normal entry of the
+batch, of the state before the append, which is when Go traces) and the self-acknowledgement's
+(`send`'s `HookGateOpt`, at the state with the batch appended). A traced caller's `Replicate` gate is
+where the line's `FxPresU` creates the records of the leader's new entries (the plan's round 6, F1):
+it runs before the append, and the records exist by the time the self-acknowledgement and any later
+`MsgApp` are traced. Until slice 6 the premise `s.gh.tr = none` (stage 0), now
+`raft.appendEntry.untraced`'s (`TracedUntracedSend.lean`).
+
 ### Sizes (out_size C3)
 The batch is taken at contents, sized when the node's flag `s.gh.sn.sz` is set (`entsPtsZ`), and the
 clones are `proto.ClonePb`'s at `pbEntryC` (the source's content exactly, owned): stamped, they keep
@@ -172,7 +186,7 @@ the source's size (`entBytes` counts only `Data` and the unknown fields), so the
 entries stay sized (`ownRaftLog`'s `entsROz ls.sn.sz`). `proto.CloneEntry` (model level) is gone. -/
 abbrev raft.appendEntry.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (es : GoSlice)
-    (ents : List EntryM) (dq : DFrac) (m : Nat),
+    (ents : List EntryM) (dq : DFrac) (m : Nat) (G G1 G2 : IProp GF),
   -- a batch small enough that `lastIndex()+1+k` does not wrap
   (ents.length : Int) < 2^61 →
   -- a leader's term (2026-10-10): the self-acknowledgement is stamped with it, and
@@ -181,7 +195,20 @@ abbrev raft.appendEntry.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
       "Hes" ∷ entsPtsZ s.gh.sn.sz es dq ents ∗
       -- (2026-10-18, D19b stage 5) a time receipt, raised by one per entry stamped
-      "#Hrc" ∷ ⧖ m }}
+      "#Hrc" ∷ ⧖ m ∗
+      -- (2026-11-09, Q8 stage 1 slice 6; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the gates below
+      "HG" ∷ G ∗
+      -- the `Replicate` lines' gate: one event per normal entry, of the state before the append;
+      -- (2026-11-11, slice 23a) with the receipt the clone loop raised (`⧖ (m + |ents|)`, before
+      -- `traceReplicate`), which a traced caller's propose ghost update consumes inside the gate
+      "Hgrep" ∷ (⧖ (m + ents.length) -∗ G -∗ HookGateN s.gh.tr r (NodeEvOf (W64 5) id s c) (normalCount ents) G1) ∗
+      -- the self-acknowledgement's gate, at the state with the batch appended
+      "Hgack" ∷ (G1 -∗ HookGateOpt s.gh.tr r (sendOutGate id
+          { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) } c
+          MsgAppResp
+          [selfAck id
+            { s with logst := logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) G2) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"appendEntry")) (Val #es))
   {{ (accepted : Bool), RET #accepted;
       ⧖ (m + ents.length) ∗
@@ -196,10 +223,10 @@ abbrev raft.appendEntry.spec : Prop :=
                 logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }
             [selfAck id
               { s with logst :=
-                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }])
+                  logAppend s.logst (ents.mapIdx (stamp s.term (logLast s.logst))) }]) ∗ G2
       else
         -- dropped: `Warningf` and `return false`, nothing written
-        ownRaftPhysCV c c.voters r id s }}
+        ownRaftPhysCV c c.voters r id s ∗ G }}
 
 end spec
 

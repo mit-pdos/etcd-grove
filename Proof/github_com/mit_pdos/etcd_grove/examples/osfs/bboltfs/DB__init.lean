@@ -6,6 +6,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.initPage
 public import Spec.os.File__WriteAt
 public import Spec.os.File__Fd
 public import Spec.syscall.Fdatasync
+public import Spec.os.CrashSt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Writer
 
 @[expose] public section
@@ -51,8 +52,8 @@ theorem pwPost_synced_size (m : OsMeta) (off n k : Nat) :
 
 /-- Two synced `OsMeta`s of the same size and mappings are the same. -/
 theorem synced_eq (m1 m2 : OsMeta) (hs : m1.size = m2.size) (hm : m1.maps = m2.maps)
-    (hc : m1.cut = m2.cut) : m1.synced = m2.synced := by
-  cases m1; cases m2; simp only at hs hm hc; subst hs; subst hm; subst hc; rfl
+    (hc : m1.cut = m2.cut) (hz : m1.cz = m2.cz) : m1.synced = m2.synced := by
+  cases m1; cases m2; simp only at hs hm hc hz; subst hs; subst hm; subst hc; subst hz; rfl
 
 end osbytes
 
@@ -143,7 +144,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   have he2 : (xs.take 16384).length =
       min ((W64 0).toNat + F.length) m.size - (W64 0).toNat := by
     rw [List.length_take, hw00, hF]; omega
-  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨i, true, true⟩ m
+  wp_apply wp_WriteAt f fd p dqf first F (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, some true⟩ m
       (xs.take 16384) rfl hw0' (by rw [hw00]; omega) (by rw [hw00, hF]; omega) (by rw [hF]; omega)
       (by rw [hF]; omega) he2
       $$ [Hinv Hf Hfirst Hfd Hm Hw Hc]
@@ -173,7 +174,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS1 : pwSize m.size 0 F.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ (by omega), hF]
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ (pwPost m 0 F.length F.length) 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ (pwPost m 0 F.length F.length) 0
       (ys ++ xs.drop 16384) (OsMeta.covers_whole _ (by
         show _ = pwSize m.size 0 F.length
         rw [hS1, List.length_append, List.length_drop, hysl, hxs]; omega)) $$ [Hinv Hfd Hm Hb] as %e ⟨Hfd, Hs⟩
@@ -238,7 +239,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   ihave Hc := (hmc1 4096 (4096 + D1.length)).2 $$ []
   · iempintro
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 4096) (W64 8192)) D1
-      (DFrac.own 1) (W64 4096) dq ⟨i, true, true⟩ m1 ((A.drop 4096).take 4096) rfl hw4'
+      (DFrac.own 1) (W64 4096) dq ⟨i, true, true, none, some true⟩ m1 ((A.drop 4096).take 4096) rfl hw4'
       (by rw [hw4, hm1s]; omega) (by rw [hw4, hD1l]; omega) (by rw [hD1l]; omega) (by rw [hD1l]; omega)
       he2 $$ [Hinv Hf Hbuf1 Hfd Hm HbW Hc]
     as %n2 %err2 ⟨Hf, Hbuf1, Hfd, %j2, %ys2, %Hres2, Hm, Hw, Hc, -⟩
@@ -272,7 +273,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS2 : pwSize m1.size 4096 D1.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ (by omega), hD1l, hm1s]; omega
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩
       (pwPost m1 4096 D1.length D1.length) 0
       (A.take 4096 ++ (ys2 ++ A.drop 8192)) (OsMeta.covers_whole _ (by
         show _ = pwSize m1.size 4096 D1.length
@@ -327,7 +328,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   ihave Hc := (hmc2 0 (0 + D0.length)).2 $$ []
   · iempintro
   wp_apply wp_WriteAt f fd p dqf (slice.slice buf w8 (W64 0) (W64 4096)) D0
-      (DFrac.own 1) (W64 0) dq ⟨i, true, true⟩ m2 (B.take 4096) rfl hw0z'
+      (DFrac.own 1) (W64 0) dq ⟨i, true, true, none, some true⟩ m2 (B.take 4096) rfl hw0z'
       (by rw [hw0z]; omega) (by rw [hw0z, hD0l]; omega) he0 (by omega) he3 $$ [Hinv Hf Hbuf0 Hfd Hm Hb0 Hc]
     as %n3 %err3 ⟨Hf, Hbuf0, Hfd, %j3, %ys3, %Hres3, Hm, Hw, Hc, -⟩
   · rw [hw0z]; iframe Hf Hm Hb0 Hc Hbuf0 Hfd; iframe #
@@ -355,7 +356,7 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
   (try wp_auto)
   have hS3 : pwSize m2.size 0 D0.length = max m.size 16384 := by
     rw [pwSize_full _ _ _ he0, hD0l, hm2s]; omega
-  wp_apply wp_Fdatasync fd dq ⟨i, true, true⟩ (pwPost m2 0 D0.length D0.length) 0
+  wp_apply wp_Fdatasync fd dq ⟨i, true, true, none, some true⟩ (pwPost m2 0 D0.length D0.length) 0
       (ys3 ++ B.drop 4096) (OsMeta.covers_whole _ (by
         show _ = pwSize m2.size 0 D0.length
         rw [hS3]; simp only [List.length_append, List.length_drop, hys3l, hBl]; omega))
@@ -382,12 +383,20 @@ theorem DB.init.wp_proof (wp_initPages : initPages.spec (GF := GF) (hG := hG))
     unfold initFile
     rw [hI, ← key, List.map_map]; rfl
   have hm3 : (pwPost m2 0 D0.length D0.length).synced =
-      ({ m with size := max m.size 16384 } : OsMeta).synced :=
+      ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced :=
     synced_eq _ _ hS3 ((announce_maps m2 _ _ (max m2.size (0 + D0.length))).trans (hm2m.trans hmaps.symm))
       (by
         have h1 : m1.cut = m.cut := by rw [← hm1']; simp [pwPost, OsMeta.synced]
         have h2 : m2.cut = m1.cut := by rw [← hm2']; simp [pwPost, OsMeta.synced]
         simp [pwPost, h2, h1])
+      (by
+        have h1 : m1.cz = pwCz m 0 16384 16384 := by rw [← hm1', ← hF]; rfl
+        obtain ⟨z1, hz1, hz1s⟩ : ∃ z, m1.zf = some z ∧ m1.size ≤ z := hm1' ▸ synced_zf_ge _
+        have h2 : m2.cz = m1.cz := by
+          rw [← hm2']; exact pwCz_eq_of_lt hz1 (by rw [hD1l]; omega)
+        obtain ⟨z2, hz2, hz2s⟩ : ∃ z, m2.zf = some z ∧ m2.size ≤ z := hm2' ▸ synced_zf_ge _
+        show pwCz m2 0 D0.length D0.length = _
+        rw [pwCz_eq_of_lt hz2 (by rw [hD0l]; omega), h2, h1])
   have hsz64 : sint.Z (W64 (m.size : Int)) = m.size := by
     have : (m.size : Int) < 2 ^ 63 := by omega
     word

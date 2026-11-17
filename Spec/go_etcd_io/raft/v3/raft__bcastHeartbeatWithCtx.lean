@@ -10,6 +10,7 @@ Lean notes: the type of Rocq's untyped binder `pvs` is written out
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -46,7 +47,7 @@ the `Progress` `Match` values only for a leader -- hence the premise
 stated: the model does not need it. `SentCommit` moves no `Match`. Each carries the
 context's list `cl` (2026-10-12). -/
 abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (ctx : GoSlice) (cl : List w8) (G : List Msg → IProp GF),
   s.role = .leader →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
   s.term ≠ W64 0 →
@@ -54,13 +55,29 @@ abbrev raft.bcastHeartbeatWithCtx.spec : Prop :=
   cl.length ≤ entBytesMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hctx" ∷ ctx ↦*□ cl }}
+      "#Hctx" ∷ ctx ↦*□ cl ∗
+      -- (2026-11-09, Q8 stage 1 slice 5; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- heartbeats' hook gates, one per heartbeat (to a peer `to`, at a commit `cm` within its
+      -- bounds), each taking the caller's resource `G` back to `G` (`raft.sendHeartbeat.spec`'s
+      -- gate, at `s`: what a heartbeat's event reads of the state no send changes)
+      -- (2026-11-10, slice 14) `G` indexed by the outbox (`o`, before the heartbeat; after it, `o` with
+      -- the heartbeat queued): the caller's resource follows the messages queued
+      -- (2026-11-10, slice 17) at the commit `min(committed, Match of to)` exactly (until then its
+      -- two bounds)
+      "#Hgate" ∷ □ (∀ (to cm : w64) (o : List Msg), ⌜to ≠ id ∧ to ∈ domSet s.progress⌝ -∗
+          ⌜uint.Z cm = min (uint.Z s.logst.committed)
+            (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗ G o -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]))) ∗
+      "HG" ∷ G s.outbox }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"bcastHeartbeatWithCtx"))
       (Val #ctx))
   {{ (ms : List Msg) (pvs : GMap w64 Progress), RET #();
       ownRaftPhysCV c c.voters r id { sendMsgs s ms with prvals := pvs } ∗
       ⌜∀ m ∈ ms, HeartbeatOk id (toPState s) m ∧ m.ctx = cl⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
+      G ({ sendMsgs s ms with prvals := pvs } : NState).outbox }}
 
 end spec
 

@@ -1,0 +1,45 @@
+# eof.sh on configuration C (Linux 7.0.0-38-generic), 2026-11-13; one run per scenario
+none: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+none: after: size 5000; read @SZ-2:  41 41; @SZ+998: ; mapping @SZ: 53 53 53 53 @SZ+998: 53 53 53 53
+none: on disk after the sync: size 5000; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+none: block 1 (65537) raw: @SZ-2  41 41 53 53 53 53 | @SZ+998  53 53 53 53 | @end-2  53 53
+trunc-eq: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+trunc-eq: after: size 5000; read @SZ-2:  41 41; @SZ+998: ; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 00 00
+trunc-eq: on disk after the sync: size 5000; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+trunc-eq: block 1 (65537) raw: @SZ-2  41 41 00 00 00 00 | @SZ+998  00 00 00 00 | @end-2  00 00
+trunc-down: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+trunc-down: after: size 4500; read @SZ-2: ; @SZ+998: ; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 00 00
+trunc-down: on disk after the sync: size 4500; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+trunc-down: block 1 (65537) raw: @SZ-2  00 00 00 00 00 00 | @SZ+998  00 00 00 00 | @end-2  00 00
+trunc-up-in: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+trunc-up-in: after: size 6000; read @SZ-2:  41 41 00 00 00 00; @SZ+998:  00 00; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 00 00
+trunc-up-in: on disk after the sync: size 6000; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+trunc-up-in: block 1 (65537) raw: @SZ-2  41 41 00 00 00 00 | @SZ+998  00 00 00 00 | @end-2  00 00
+trunc-up-past: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+trunc-up-past: after: size 9192; read @SZ-2:  41 41 00 00 00 00; @SZ+998:  00 00 00 00; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 00 00
+trunc-up-past: on disk after the sync: size 9192; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+trunc-up-past: block 1 (65537) raw: @SZ-2  41 41 00 00 00 00 | @SZ+998  00 00 00 00 | @end-2  00 00
+falloc-in: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+falloc-in: after: size 6000; read @SZ-2:  41 41 00 00 00 00; @SZ+998:  00 00; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 53 53
+falloc-in: on disk after the sync: size 6000; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+falloc-in: block 1 (65537) raw: @SZ-2  41 41 00 00 00 00 | @SZ+998  00 00 00 00 | @end-2  00 00
+falloc-past: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+falloc-past: after: size 9192; read @SZ-2:  41 41 00 00 00 00; @SZ+998:  00 00 00 00; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 00 00
+falloc-past: on disk after the sync: size 9192; extents:  0/ 0 1/ 2 0 - 1 65536 - 65537 2 ; 0/ 0 2/ 2 2 - 2 196608 - 196608 1 Uninit;
+falloc-past: block 1 (65537) raw: @SZ-2  41 41 00 00 00 00 | @SZ+998  00 00 00 00 | @end-2  00 00
+falloc-keep: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+falloc-keep: after: size 5000; read @SZ-2:  41 41; @SZ+998: ; mapping @SZ: 53 53 53 53 @SZ+998: 53 53 53 53
+falloc-keep: on disk after the sync: size 5000; extents:  0/ 0 1/ 2 0 - 1 65536 - 65537 2 ; 0/ 0 2/ 2 2 - 2 196608 - 196608 1 Uninit;
+falloc-keep: block 1 (65537) raw: @SZ-2  41 41 53 53 53 53 | @SZ+998  53 53 53 53 | @end-2  53 53
+write-append: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+write-append: after: size 5010; read @SZ-2:  41 41 42 42 42 42; @SZ+998: ; mapping @SZ: 42 42 42 42 @SZ+998: 53 53 53 53
+write-append: on disk after the sync: size 5010; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+write-append: block 1 (65537) raw: @SZ-2  41 41 42 42 42 42 | @SZ+998  00 00 00 00 | @end-2  00 00
+write-gap: start: size 5000; page cache past EOF (mapping) @SZ: 53 53 53 53
+write-gap: after: size 6010; read @SZ-2:  41 41 00 00 00 00; @SZ+998:  00 00 42 42; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 42 42
+write-gap: on disk after the sync: size 6010; extents:  0/ 0 1/ 1 0 - 1 65536 - 65537 2 ;
+write-gap: block 1 (65537) raw: @SZ-2  41 41 00 00 00 00 | @SZ+998  00 00 42 42 | @end-2  00 00
+zerotoend: start: size 9000; page cache past EOF (mapping) @SZ: 53 53 53 53
+zerotoend: after: size 9000; read @SZ-2:  00 00; @SZ+998: ; mapping @SZ: 00 00 00 00 @SZ+998: 00 00 00 00
+zerotoend: on disk after the sync: size 9000; extents:  0/ 0 1/ 2 0 - 0 65536 - 65536 1 ; 0/ 0 2/ 2 1 - 2 65540 - 65541 2 Uninit;
+zerotoend: block 2 (65541 (uninit)) raw: @SZ-2  | @SZ+998  | @end-2 

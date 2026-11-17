@@ -45,7 +45,7 @@ theorem RawNode.Ready.wp_proof
     (wp_RawNode_readyWithoutAccept : RawNode.readyWithoutAccept.spec (GF := GF) (hG := hG))
     (wp_RawNode_acceptReady : RawNode.acceptReady.spec (GF := GF) (hG := hG)) :
     RawNode.Ready.spec (GF := GF) (hG := hG) := by
-  intro γ rn id rs q g Hsteps0 Hunp0
+  intro γ rn id rs q g Hsteps0 Hunp0 HtrG
   wp_start as H
   iNamed H
   wp_auto
@@ -56,7 +56,7 @@ theorem RawNode.Ready.wp_proof
   imod ownRawNodeReady_handout ⊤ γ rn id rs rd ce es ms L q g h CoPset.subseteq_top
     $$ Hhard Hlive Hfree Hrn
     with ⟨%W, %ss0, Hrn, Happ, #Hfrz, #Hdk, Hcr, -, -, Hlive, Hpb, #Hss0, %Hssn0, #Hmw, #Hml, #Hmss, -⟩
-  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L $$ [$Hrn $Hhard]
+  wp_apply wp_RawNode_acceptReady γ rn id { rs with bw := W } rd ce es ms h L (fun h => absurd HtrG h) $$ [$Hrn $Hhard]
     as %steps %ss H
   iNamed H
   -- the soft state the node records is the cut's

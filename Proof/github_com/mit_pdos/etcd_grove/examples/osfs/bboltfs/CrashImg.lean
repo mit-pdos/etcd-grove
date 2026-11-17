@@ -277,15 +277,18 @@ theorem slotK_valid {s : CSt} {f : OsFile} {j : Nat} {X D : List w8} (hI : Crash
 /-- A slot the state knows as the same bytes whichever way (clean, or written over with the same
 bytes) is the crash image's raw slot, in a page that holds a byte of the file. -/
 theorem slotK_same {s : CSt} {f : OsFile} {j : Nat} {X : List w8} (hI : CrashImg s f)
-    (hK : SlotK s j X X) (hsz : 4096 * j < f.size) : rawSlot f j = X := by
+    (hK : SlotK s j X X) (hsz : 4096 * j < f.size) (hlo : 4096 * j + 80 ≤ s.vmeta.lo) :
+    rawSlot f j = X := by
   obtain ⟨hX, -, hK⟩ := hK
   refine rawSlot_ext hX fun k hk => ?_
   have hpg : pageIn f.size (4096 * j + 16 + k) = true := by unfold pageIn; simp; omega
   rcases hK with h | ⟨N, -, h⟩
-  · obtain ⟨q, hq⟩ := hI.byte _ _ hpg (h k hk)
+  · obtain ⟨q, hq⟩ | ⟨h0, -⟩ := hI.byte _ _ hpg (h k hk)
+    rotate_left; · omega
     simp only [List.mem_singleton, Prod.mk.injEq] at hq; exact hq.1
   · obtain ⟨L, hL, hLd⟩ := h k hk
-    obtain ⟨q, hq⟩ := hI.byte _ _ hpg hL
+    obtain ⟨q, hq⟩ | ⟨h0, -⟩ := hI.byte _ _ hpg hL
+    rotate_left; · omega
     rcases List.mem_cons.1 hq with e | hq
     · simp only [Prod.mk.injEq] at e; exact e.1
     rcases List.mem_cons.1 hq with e | hq
@@ -305,8 +308,10 @@ theorem fileMeta_contents {f : OsFile} {j : Nat} (h : 4096 * j + 80 ≤ f.size) 
 
 /-- A clean byte the state knows is the crash image's. -/
 theorem crashImg_clean {s : CSt} {f : OsFile} (hI : CrashImg s f) {b : Nat} {x : w8}
-    (hk : s.kc b = some [(x, 0)]) (hb : b < f.size) : f.contents[b]? = some x := by
-  obtain ⟨q, hq⟩ := hI.byte b _ (by unfold pageIn; simp; omega) hk
+    (hk : s.kc b = some [(x, 0)]) (hb : b < f.size) (hlo : b < s.vmeta.lo) :
+    f.contents[b]? = some x := by
+  obtain ⟨q, hq⟩ | ⟨h0, -⟩ := hI.byte b _ (by unfold pageIn; simp; omega) hk
+  rotate_left; · omega
   simp only [List.mem_singleton, Prod.mk.injEq] at hq
   rw [contents_getElem?, if_pos hb, hq.1]
 
@@ -315,7 +320,7 @@ theorem kc_below {s : CSt} {b : Nat} {x : ByteG} (hb : b < s.m.size) (hx : s.bs[
     (hout : match s.busy with
       | .idle => True
       | .write _ off data _ => ¬ inRange (min off s.m.size) (off + data.length) b = true
-      | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (max s.m.size sz) b = true) :
+      | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (rsHi true s.m.size sz) b = true) :
     s.kc b = some x.2 := by
   have hbase : s.baseC b = some x.2 := by
     unfold CSt.baseC; rw [if_pos hb, hx]; rfl
@@ -332,7 +337,7 @@ theorem kc_idle_dur {s : CSt} (hb0 : s.busy = .idle) {b : Nat} {x : w8} (hb : b 
 
 /-- The bytes of the image from `a` on are the ones `l` holds there. -/
 theorem image_take_drop {s : CSt} {f : OsFile} (hI : CrashImg s f) {a n : Nat} {l : List w8}
-    (hl : a + n ≤ l.length) (hn : a + n ≤ f.size)
+    (hl : a + n ≤ l.length) (hn : a + n ≤ f.size) (hlo : a + n ≤ s.vmeta.lo)
     (h : ∀ k < n, s.kc (a + k) = some [(l.getD (a + k) 0, 0)]) :
     (f.contents.drop a).take n = (l.drop a).take n := by
   apply List.ext_getElem?
@@ -340,7 +345,7 @@ theorem image_take_drop {s : CSt} {f : OsFile} (hI : CrashImg s f) {a n : Nat} {
   simp only [List.getElem?_take, List.getElem?_drop]
   split
   · rename_i hk
-    rw [crashImg_clean hI (h k hk) (by omega), List.getD_eq_getElem?_getD,
+    rw [crashImg_clean hI (h k hk) (by omega) (by omega), List.getD_eq_getElem?_getD,
       List.getElem?_eq_getElem (by omega)]
     rfl
   · rfl
@@ -554,7 +559,7 @@ def _root_.Perennial.CSt.Misses (s : CSt) (b : Nat) : Prop :=
   match s.busy with
   | .idle => True
   | .write _ off data _ => ¬ inRange (min off s.m.size) (off + data.length) b = true
-  | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (max s.m.size sz) b = true
+  | .trunc _ sz _ => ¬ inRange (min s.m.size sz) (rsHi true s.m.size sz) b = true
 
 /-- A durable byte of the state, which its change in flight misses, is known clean. -/
 theorem kc_dur {s : CSt} {b : Nat} {x : w8} (hb : b < s.m.size) (hx : s.bs[b]? = some (durB x))
@@ -608,7 +613,7 @@ theorem initMid_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (hlo : 4 * 4096 ≤ 
       rcases slotK_valid hI hK (by omega) (by omega) hv0 with e | e <;> rw [e] at hv0
       · exact hX hv0
       · exact hD hv0
-    · rw [fileMeta_contents (f := f) (j := 1) (by omega), slotK_same hI hK (by omega)]
+    · rw [fileMeta_contents (f := f) (j := 1) (by omega), slotK_same hI hK (by omega) (by omega)]
       exact hX
   have h3 : (f.contents.drop (4096 * 3)).take 4096 = emptyPageBytes (W64 3) (W16 2) := by
     have hl := emptyPageBytes_length (W64 3) (W16 2)
@@ -618,7 +623,7 @@ theorem initMid_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) (hlo : 4 * 4096 ≤ 
     simp only [List.getElem?_take, List.getElem?_drop]
     split
     · rename_i hk
-      rw [crashImg_clean hI (hp3 k hk) (by omega), List.getD_eq_getElem?_getD,
+      rw [crashImg_clean hI (hp3 k hk) (by omega) (by omega), List.getD_eq_getElem?_getD,
         List.getElem?_eq_getElem (by omega)]
       rfl
     · rename_i hk; rw [List.getElem?_eq_none (by omega)]
@@ -644,9 +649,9 @@ theorem commitClean_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) {M : OsMeta}
     fun hsm => absurd hsm (by omega)⟩
   have hkl : k < s.bs.length := (List.getElem?_eq_some_iff.1 hb).1
   have hl : s.bs.length = s.m.size := hwf.1
-  refine crashImg_clean hI (kc_dur (by omega) hb (hmiss k hk)) ?_
-  unfold curRoot curPgid at *
-  rcases hk with hk | ⟨-, hk⟩ <;> omega
+  refine crashImg_clean hI (kc_dur (by omega) hb (hmiss k hk)) ?_ ?_ <;>
+  · unfold curRoot curPgid at *
+    rcases hk with hk | ⟨-, hk⟩ <;> omega
 
 /-- **A commit's states while (and after) it writes the meta slot `1 - sl`**: slot `sl`, the old
 and the new current root pages clean and missed, and slot `1 - sl` as the state knows it the old
@@ -674,9 +679,9 @@ theorem commitMeta_okS (s : CSt) (hwf : s.Wf) (hbz : BusyOk s) {mp : List w8} {N
     fun hsm => absurd hsm (by omega)⟩
   · have hkl : k < s.bs.length := (List.getElem?_eq_some_iff.1 hb).1
     have hl : s.bs.length = s.m.size := hwf.1
-    refine crashImg_clean hI (kc_dur (by omega) hb (hmiss k hk)) ?_
-    unfold curRoot curPgid at *
-    rcases hk with hk | ⟨-, hk⟩ | ⟨-, hk⟩ <;> omega
+    refine crashImg_clean hI (kc_dur (by omega) hb (hmiss k hk)) ?_ ?_ <;>
+    · unfold curRoot curPgid at *
+      rcases hk with hk | ⟨-, hk⟩ | ⟨-, hk⟩ <;> omega
   · obtain ⟨X, D, hK, hX, hD⟩ := hK
     rw [fileMeta_contents (f := f) (j := 1 - sl) (by omega)] at hv ⊢
     rcases slotK_valid hI hK (by omega) (by omega) hv with e | e <;> rw [e] at hv ⊢

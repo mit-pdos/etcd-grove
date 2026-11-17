@@ -45,7 +45,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     (mxd : Option Nat) (Hmxd : ∀ b, mxd = some b → b ≤ 2 ^ 31) :
     receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
     ⊢ |={E}=> ∃ γ, ⌜γ.raft.dup = dup ∧ γ.raft.reSnapLoc = sl ∧ γ.raft.reBoot.length = 0 ∧
-        γ.raft.maxData = mxd⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
+        γ.raft.reTrace = none ∧ γ.raft.maxData = mxd⌝ ∗ ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗
         isClusterU γ N ∗ ownConfDecisionsU γ ∅ ∗
         confAtU γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMadeU γ [] ∗
         joinAuthU γ (GMap.listToSet vs) ∗
@@ -76,7 +76,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
     (N .@ "raft") N (some g) (some gd) dup mxd Hmxd (fun _ _ e he => by cases he)
     Hcne Hnz0 BootWf_nil (fun h => absurd rfl h)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Hmxd'⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, HbootL, -, Hns, Hnx, Hsok, Hsl, HNs, Hcert, Hrg, Hrd, Hdup, Htr0, Hmxd'⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx, -⟩
   obtain ⟨Hγr, Hγb, Hγm, Hγt⟩ := Hγr
@@ -151,7 +151,7 @@ theorem cluster_alloc_dec_impl (N : Namespace) (vs : List w64) (dup : Bool)
   iexists γ
   iframe Hops Hctx Hdc Hja
   isplitr
-  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl, Hmxd'⟩
+  · ipureintro; exact ⟨Hdup, Hsl, by rw [HbootL]; rfl, Htr0, Hmxd'⟩
   isplitl [Hdm]
   · unfold ownConfDecisionsU
     iexists c0, gd

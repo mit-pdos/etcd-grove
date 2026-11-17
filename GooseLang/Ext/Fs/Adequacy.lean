@@ -90,7 +90,8 @@ theorem fs_start [hG : HeapGS .hasLC GF] (σ : state) (h : FsInit (extLocal fsEx
       osStart (gooseOsGS (L := hG.goose_localGS)) (extLocal fsExt σ.world) :=
     sep_elim_left
   have hdisk : ∀ i f, (extLocal fsExt σ.world).fs.files !! i = some f →
-      ∃ img sz, f = OsFile.ofDisk img sz := fun i f hf => (h.2.2.2.2.2.2.1 i f hf).2
+      ∃ img sz, f = OsFile.ofDisk img sz := fun i f hf =>
+    let ⟨img, sz, _, e⟩ := (h.2.2.2.2.2.2.1 i f hf).2; ⟨img, sz, e⟩
   iintro Hs
   icases Hl $$ Hs with Hs
   unfold osStart osStartF treeStart bytesMap metaMap

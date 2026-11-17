@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- A string argument of `fmt.Errorf` (`%q`) is well formed. -/
-theorem argWf_string [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
+theorem storage.argWf_string [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     [go.string ↓u go.string] (x : GoString) :
     _root_.Perennial.fmt.ArgWf ⟨go.string, #x⟩ :=
   ⟨fun _ => ⟨x, rfl⟩, fun h => absurd h _root_.Perennial.fmt.not_isIntArgType_string,
@@ -61,7 +61,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -78,7 +78,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -95,7 +95,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -112,7 +112,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -129,7 +129,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -146,7 +146,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -163,7 +163,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -180,7 +180,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -197,7 +197,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -213,7 +213,7 @@ theorem storage.PrepareKey.wp_proof
     · iframe #
       fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
       isplitl
-      · ileft; ipureintro; exact argWf_string _
+      · ileft; ipureintro; exact storage.argWf_string _
       · itrivial
     iapply HΦ
     ipureintro
@@ -237,9 +237,9 @@ theorem storage.PrepareKey.wp_proof
         rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
         simp only [List.set]; fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
         isplitl
-        · ileft; ipureintro; exact argWf_string _
+        · ileft; ipureintro; exact storage.argWf_string _
         isplitl
-        · ileft; ipureintro; exact argWf_string _
+        · ileft; ipureintro; exact storage.argWf_string _
         · itrivial
       iapply HΦ
       ipureintro
@@ -264,9 +264,9 @@ theorem storage.PrepareKey.wp_proof
           rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
           simp only [List.set]; fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
           isplitl
-          · ileft; ipureintro; exact argWf_string _
+          · ileft; ipureintro; exact storage.argWf_string _
           isplitl
-          · ileft; ipureintro; exact argWf_string _
+          · ileft; ipureintro; exact storage.argWf_string _
           · itrivial
         iapply HΦ
         ipureintro
@@ -288,9 +288,9 @@ theorem storage.PrepareKey.wp_proof
           rw [show sint.nat (W64 (0 + 1)) = 1 from rfl]
           simp only [List.set]; fmt_args_intro; simp only [EtcdGrove.fmt.argOkAt]
           isplitl
-          · ileft; ipureintro; exact argWf_string _
+          · ileft; ipureintro; exact storage.argWf_string _
           isplitl
-          · ileft; ipureintro; exact argWf_string _
+          · ileft; ipureintro; exact storage.argWf_string _
           · itrivial
         iapply HΦ
         ipureintro

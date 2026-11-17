@@ -62,14 +62,14 @@ abbrev DB.init.spec : Prop :=
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osMeta p.ino (DFrac.own 1) m ∗
       osBytes p.ino 0 (DFrac.own 1) [] }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List ByteG),
           osMeta p.ino (DFrac.own 1) m' ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
           ⌜m'.maps = ∅ ∧ xs.length = m'.size ∧ xs.map Prod.fst = initImg⌝) ∨
@@ -506,7 +506,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     -- the first write: the freelist and root pages, the meta slots zero
     have hm0 : min (W64 0).toNat m.size = 0 := by rw [hsz]; simp
     wp_apply hWriteAt f fd p.path (DFrac.own 1) pg initPages (DFrac.own 1) (W64 0) (DFrac.own 1)
-      ⟨p.ino, true, true⟩ m [] rfl (by decide) (by simp) (by rw [initPages_length]; decide)
+      (dbFd p.ino) m [] rfl (by decide) (by simp) (by rw [initPages_length]; decide)
       (by rw [initPages_length]; decide) (by rw [initPages_length]; decide) (by rw [hsz]; simp)
       $$ [Hfo Hpg Hfd Hm Hxs] as %n %err ⟨Hfo, Hpg, Hfd, %j, %ys, %Hj, Hm, Hys, Hc, Herr⟩
     · iframe #
@@ -633,7 +633,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have hy1 : (ys.take 8192).length = 8192 := by simp [hysl]
       have hm20 : min (W64 0).toNat m2.size = 0 := by simp
       wp_apply hWriteAt f fd p.path (DFrac.own 1) _ (metaBuf (initMv 0) ++ metaBuf (initMv 1))
-        (DFrac.own 1) (W64 0) (DFrac.own 1) ⟨p.ino, true, true⟩ m2 (ys.take 8192) rfl (by decide)
+        (DFrac.own 1) (W64 0) (DFrac.own 1) (dbFd p.ino) m2 (ys.take 8192) rfl (by decide)
         (by simp) (by rw [metaBufs_length]; decide) (by rw [metaBufs_length]; decide)
         (by rw [metaBufs_length]; decide) (by rw [hy1, metaBufs_length, hm2s]; simp)
         $$ [Hfo HsB Hfd Hm Hy1] as %n2 %err2 ⟨Hfo, HsB, Hfd, %j2, %ys2, %Hj2, Hm, Hys2, Hc,

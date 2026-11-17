@@ -71,7 +71,9 @@ theorem memStorInv_alloc (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GNa
   -- PORT(durability stage II): restated (I-4: keyed by `K`, the generalized attach)
   sorry
 
-/-- **A registered `MemoryStorage` meets the storage contract of key `K`.** (out_size C2) A
+/-- **A registered `MemoryStorage` meets the storage contract of key `K`**, at an untraced cluster
+(2026-11-12, trace-check, Q39 (a): `storBnd` is gated on the trace; at a traced one `memStorJ`'s
+bound, the applied index, is not the contract's). (out_size C2) A
 cluster that bounds proposed data needs a sized storage (`γs.sz`, chosen at `NewMemoryStorage`). -/
 theorem memStorage_isStorage
     (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
@@ -80,21 +82,40 @@ theorem memStorage_isStorage
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (wp_Snapshot : MemoryStorage.Snapshot.spec (GF := GF) (hG := hG))
     (ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
-    (hsz : γ.maxData.isSome = true → γs.sz = true) :
+    (hsz : γ.maxData.isSome = true → γs.sz = true) (htr : Cluster.trace γ = none) :
     ⊢ memStorInv (GF := GF) ms γs γ K -∗ memStorReg ms γs -∗ isStorage γ K (memStorIface ms) := by
-  unfold memStorInv isStorage
-  by_cases h : γ.maxData.isSome = true
-  · have e : γ.maxData.isSome = γs.sz := by rw [h, hsz h]
-    rw [e]
-    exact memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
-      (memStorJ γ K)
-  · have e : γ.maxData.isSome = false := by simpa using h
-    rw [e]
-    iintro #Hinv #Hreg
-    ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
-      (memStorJ γ K) $$ Hinv Hreg
-    ihave #H2 := isStorageP_unsize _ _ _ _ _ $$ H
-    iExactEq H2; rfl
+  -- (2026-11-12, Q39 (a)) `storBnd` is gated on the trace, so no longer `memBnd (memStorJ γ K)`:
+  -- the bound is converted through `storBnd_intro_untraced`, at the untraced cluster `htr`
+  unfold memStorInv
+  iintro #Hinv #Hreg
+  ihave #H := memStorage_isStorageP wp_LastIndex wp_FirstIndex wp_Term wp_Entries wp_Snapshot ms γs
+    (memStorJ γ K) $$ Hinv Hreg
+  -- (out_size C2) at the cluster's flag: the storage's own when the cluster bounds proposed data
+  -- (`hsz`), unsized otherwise (`isStorageP_unsize`)
+  ihave #H' : isStorageP γ.maxData.isSome (snapshotValid γ) (memBnd (memStorJ γ K))
+    (nodeCommitLb γ K) (memStorIface ms) $$ []
+  · by_cases h : γ.maxData.isSome = true
+    · have e : γ.maxData.isSome = γs.sz := by rw [h, hsz h]
+      rw [e]
+      iExactEq H; rfl
+    · have e : γ.maxData.isSome = false := by simpa using h
+      rw [e]
+      ihave #H2 := isStorageP_unsize _ _ _ _ _ $$ H
+      iExactEq H2; rfl
+  unfold isStorage
+  unfold isStorageP
+  icases H' with ⟨%i, %Hst, #H1, #H2, #H3, #H4, #H5, #Hbound, #Hlen⟩
+  iexists i
+  iframe H1 H2 H3 H4 H5 Hlen
+  isplitr
+  · ipureintro; exact Hst
+  iintro !> %c #Hc
+  imod Hbound $$ %c Hc with HB
+  unfold memBnd memStorJ
+  icases HB with ⟨%k, %Hck, #Hk⟩
+  imodintro
+  iapply storBnd_intro_untraced γ K k c htr $$ Hk
+  ipureintro; exact Hck
 
 end api
 

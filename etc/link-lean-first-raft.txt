@@ -223,6 +223,14 @@ isMsgInArray:
 IsLocalMsg: isMsgInArray
 IsResponseMsg: isMsgInArray
 newReadOnly:
+# The trace hooks: this tree is raft's build without `with_tla` (`state_trace_nop.go`), whose hooks
+# are empty functions, so their proofs take no callee (the `with_tla` build's list, with the hooks'
+# helpers, is etc/link-lean-first-raft-tla.txt)
+StateType__String:
+# `MessageType.String` (Q9's trusted model, whose fallback is `strconv.Itoa`'s trust-boundary axiom,
+# already the server's)
+raftpb_MessageType__String: strconv_Itoa
+strconv_Itoa:
 traceInitState:
 traceConfChangeEvent:
 traceCommit:
@@ -308,7 +316,7 @@ stepLeader: raft__bcastHeartbeat raft__sendAppend raft__maybeSendAppend raft__bc
 # Stage R4 (phase 3b): newRaft, over D7's InitialState (the conf state frozen, the storage given
 # back at once), with strings.Join (the Raft37 copy of the old proof)
 strings_Join:
-newRaft: Config__validate newLogWithSize tracker_MakeProgressTracker newReadOnly traceInitState confchange_Restore traceConfChangeEvent tracker_ProgressTracker__ConfState assertConfStatesEquivalent IsEmptyHardState raftpb_HardState__GetCommit raftpb_HardState__GetTerm raftpb_HardState__GetVote raft__becomeFollower tracker_ProgressTracker__VoterNodes fmt_Sprintf strings_Join
+newRaft: Config__validate newLogWithSize raftLog__lastEntryID tracker_MakeProgressTracker newReadOnly traceInitState confchange_Restore traceConfChangeEvent tracker_ProgressTracker__ConfState assertConfStatesEquivalent IsEmptyHardState raftpb_HardState__GetCommit raftpb_HardState__GetTerm raftpb_HardState__GetVote raft__becomeFollower tracker_ProgressTracker__VoterNodes fmt_Sprintf strings_Join
 confChangeToMsg: raftpb_MarshalConfChange raftpb_MessageType__Enum raftpb_EntryType__Enum
 # Stage R5 (phase 3, G3): the node API
 newNode:

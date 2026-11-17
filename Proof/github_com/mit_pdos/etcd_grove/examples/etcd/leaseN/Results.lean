@@ -49,7 +49,8 @@ theorem leaseN_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 variable [go_gctx : GoGlobalContext]
 
 /-- **leaseN is safe, in the operational semantics, for every member count `1 ≤ k ≤ 1000`**
@@ -74,7 +75,9 @@ theorem etcd_leaseN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([leaseNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -83,7 +86,7 @@ theorem etcd_leaseN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_leaseN_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo Hlp HNs HAs HDs
-    HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

@@ -40,6 +40,8 @@ public import Proof.github_com.jonboulle.clockwork.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Base
 -- (the lease-renew plan, 2026-11-01) `LeaseRenew`'s forwarding: the server imports `leasehttp`
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.Base
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.PkgInit
 
 @[expose] public section
 
@@ -76,14 +78,6 @@ end net.http
 -- construction names (`newRaftNode`'s dead logger branch, the WAL `bootstrappedRaft.newRaftNode`
 -- wraps); `logutil`'s instance is in `cache/v3/Base.lean` (item 5: `clientv3` imports it).
 
-namespace go_etcd_io.etcd.server.v3.storage.wal
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.storage.wal
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v2stats
 
@@ -142,14 +136,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.path :=
 
 end path
 
-namespace go_etcd_io.etcd.pkg.v3.ioutil
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.ioutil :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.ioutil
 
 namespace go_etcd_io.etcd.pkg.v3.httputil
 

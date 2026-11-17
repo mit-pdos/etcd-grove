@@ -125,7 +125,7 @@ def vmeta (s : CSt) : OsMeta :=
   match s.busy with
   | .idle => s.m
   | .write _ off data _ => cfMeta s.m off data.length
-  | .trunc _ sz _ => s.m.announce (min s.m.size sz) (max s.m.size sz) sz
+  | .trunc _ sz _ => s.m.announce (min s.m.size sz) (rsHi true s.m.size sz) sz
 
 /-- The runs of bytes a crash sees: one per byte, empty for a byte a write in flight took. -/
 def runs (s : CSt) : List (Nat × DFrac × List ByteG) :=
@@ -146,7 +146,7 @@ def toks (p : Ino) (s : CSt) : List (Nat × TokInfo) :=
   | .idle => []
   | .write t off data n => [(t, ⟨p, .write off data, n, s.m,
       pwAnn data n (cfRange s.m s.bs off data.length)⟩)]
-  | .trunc t sz n => [(t, ⟨p, .truncate sz, n, s.m, rsAnn n []⟩)]
+  | .trunc t sz n => [(t, ⟨p, rsKind true sz, n, s.m, rsAnn n []⟩)]
 
 /-- What a crash sees of a state's `OsMeta` has its cut. -/
 theorem vmeta_cut (s : CSt) : s.vmeta.cut = s.m.cut := by
@@ -447,7 +447,7 @@ def metaRes (p : Ino) (s : CSt) : IProp GF :=
   match s.busy with
   | .idle => osMeta (L := L) p (DFrac.own (1 : Qp).half) s.m
   | .write t off data n => pwTok (L := L) t p off data s.m (cfRange s.m s.bs off data.length) n
-  | .trunc t sz n => rsTok (L := L) t p sz s.m [] n
+  | .trunc t sz n => rsTok (L := L) true t p sz s.m [] n
 
 /-- What the invariant holds of a state. -/
 def invResS : CState → IProp GF

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.verify
 public import Perennial.GeneratedProof.io
 public import Perennial.Golang.Theory
 public import Code.go_etcd_io.etcd.pkg.v3.ioutil

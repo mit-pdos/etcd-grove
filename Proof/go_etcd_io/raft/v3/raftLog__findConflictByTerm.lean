@@ -52,7 +52,7 @@ theorem raftLog.findConflictByTerm.wp_proof
       iapply HΦ
       iframe
       ipureintro
-      exact ⟨Hidx.1, fun _ _ => by word⟩
+      exact ⟨Hidx.1, by word, fun _ _ => by word⟩
     | nil =>
       wp_auto
       wp_if_destruct
@@ -60,7 +60,7 @@ theorem raftLog.findConflictByTerm.wp_proof
         iapply HΦ
         iframe
         ipureintro
-        exact ⟨Hidx.1, fun _ _ => by word⟩
+        exact ⟨Hidx.1, by word, fun _ _ => by word⟩
       · wp_for_post
         iframe
         iexists _
@@ -77,7 +77,7 @@ theorem raftLog.findConflictByTerm.wp_proof
   · iapply HΦ
     iframe
     ipureintro
-    exact ⟨by word, fun h1 hC => by have := Hidx.2 h1 hC; word⟩
+    exact ⟨by word, by word, fun h1 hC => by have := Hidx.2 h1 hC; word⟩
 
 end proof
 

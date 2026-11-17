@@ -1,0 +1,97 @@
+/-
+The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/encoder__flush.lean`.
+-/
+module
+
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__flush
+public import Spec.go_etcd_io.etcd.pkg.v3.ioutil.PageWriter__Flush
+public import Perennial.Spec.sync.Mutex__Lock
+public import Perennial.Spec.sync.Mutex__Unlock
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open WalEnc WalFs
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
+
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofPNE
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specPNE (GF := GF) (hG := hG) := by
+  intro e wi W B ok out pend c hpc hok
+  iintro #Hw
+  wp_start as ⟨#Henv, He, Hout⟩
+  iunfold encEnv at Henv
+  icases Henv with ⟨#Hproto, #Hbin, #Hsync, #Htime, #Hmet⟩
+  iunfold ownEncoder at He
+  icases He with ⟨%pw, %h, %b, %u, %bs, %us, #Hmu, Hbw, Hpw, Hcrc, Hdig, Hbuf, Hbs, %Hb, Hu64, Hus,
+    %Hus⟩
+  try wp_auto
+  wp_apply wp_with_defer as %defer Hdefer
+  try wp_auto
+  wp_apply wp_Lock $$ [] as ⟨Hown, -⟩
+  · iexact Hmu
+  try wp_auto
+  wp_apply (wp_Flush pw wi W B ok out pend hpc hok) $$ [Hw] [Hpw Hout] as %err ⟨Hpw, Hres⟩
+  · iexact Hw
+  · iframe
+  try wp_auto
+  wp_apply wp_Unlock $$ [Hown]
+  · iframe
+    isplitl []
+    · iexact Hmu
+    inext; itrivial
+  try wp_auto
+  iapply HΦ
+  iframe Hres
+  iunfold ownEncoder
+  iexists pw, h, b, u, bs, us
+  iframe
+  iframe Hmu
+  ipureintro
+  exact ⟨Hb, Hus⟩
+
+/-- `flush.specP`: `specPNE`'s instance (`io.writerStreamP_NE`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.specP (GF := GF) (hG := hG) := by
+  intro e wi W B ok out pend c hpc hok
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofPNE wp_Lock wp_Unlock wp_Flush
+    e wi W B ok out pend c hpc hok)
+  iapply io.writerStreamP_NE
+  iexact Hw
+
+/-- `flush` over a length-bounded stream: `specP`'s instance (`io.writerStream_P`). -/
+theorem go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proof
+    (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_Flush : go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.Flush.specNE (GF := GF) (hG := hG)) :
+    go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.spec (GF := GF) (hG := hG) := by
+  intro e wi W B lim out pend c hlim
+  iintro #Hw
+  iapply (go_etcd_io.etcd.server.v3.storage.wal.encoder.flush.wp_proofP wp_Lock wp_Unlock wp_Flush
+    e wi W B (fun ys => ys.length ≤ lim) out pend c
+    (fun xs ys h hy => Nat.le_trans (List.IsPrefix.length_le h) hy)
+    (by simp only [List.length_append]; exact hlim))
+  iapply (io.writerStream_P wi lim W B).1
+  iexact Hw
+
+end proof
+
+end EtcdGrove
+end Perennial

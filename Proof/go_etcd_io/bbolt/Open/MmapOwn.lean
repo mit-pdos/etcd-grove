@@ -56,13 +56,13 @@ abbrev DB.mmapUnlocked.spec_own : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
       mmapOwnFix (GF := GF) db lg mf mx dq ∗
       db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osMeta p.ino (DFrac.own 1) m ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osMeta p.ino (DFrac.own 1) m ∗
       osBytes p.ino 0 (DFrac.own 1) xs ∗
       mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"mmapUnlocked")) (Val #minsz))
   {{ (err : GoInterface), RET #err; mmapOwnFix db lg mf mx dq ∗
       db.[DB, go!"file"] ↦{dq} f ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
       ((⌜err = interface.nil⌝ ∗ ∃ (base : Loc) (L : Nat),
           ⌜mmapSizeOf (max m.size (sint.nat minsz)) = some L ∧ m.size ≤ L ∧ sint.nat minsz ≤ L ∧
             8192 ≤ m.size⌝ ∗
@@ -100,7 +100,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
   · iframe #
   try wp_auto
   wp_apply hFileSize db f fd p dq (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨p.ino, true, true⟩ m rfl hsz $$ [Hfile Hfo Hfd Hosm]
+    (dbFd p.ino) m rfl hsz $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   cases lg with

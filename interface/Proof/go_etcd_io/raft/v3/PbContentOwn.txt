@@ -324,18 +324,6 @@ theorem snapOptCC_discard_persistent (p : Loc) (o : Option SnapC) : Persistent (
 theorem msgPtsCC_discard_persistent (l : Loc) (c : MsgC) : Persistent (msgPtsCC l DFrac.discard
     DFrac.discard false c)
 
-def entPtsCC (l : Loc) (dq : DFrac) (c : EntryC) : IProp GF :=
-  iprop(∃ pt pi pty ds,
-      ⌜l ≠ null⌝ ∗
-        typedPointsto (structFieldRef raftpb.Entry go!"Term" l) pt dq ∗
-          optCell pt c.term ∗
-            typedPointsto (structFieldRef raftpb.Entry go!"Index" l) pi dq ∗
-              optCell pi c.index ∗
-                typedPointsto (structFieldRef raftpb.Entry go!"Type" l) pty dq ∗
-                  optCell pty c.type ∗
-                    typedPointsto (structFieldRef raftpb.Entry go!"Data" l) ds dq ∗
-                      bytesC ds c.data ∗ pbMsg raftpb.Entry l c.uf)
-
 theorem csPtsCC_persist (p : Loc) (dq : DFrac) (c : CSC) (al : Bool) : csPtsCC p dq c al ⊢ |==>
     csPtsCC p DFrac.discard c al
 

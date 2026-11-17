@@ -1,0 +1,6 @@
+# (project etcd's part `LinuxFs/`) the WAL's rolling CRC, with bodies (over `hash/crc32.Update`).
+translate = ["*"]
+imports = ["!*", "hash", "hash/crc32"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

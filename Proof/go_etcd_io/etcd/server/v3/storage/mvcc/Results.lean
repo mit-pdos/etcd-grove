@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.StoreBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Link
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
+public import Code.go_etcd_io.raft.v3
 
 @[expose] public section
 

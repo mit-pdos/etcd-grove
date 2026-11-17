@@ -24,27 +24,28 @@ theorem raft.appliedSnap.wp_proof [package_sem : Assumptions] (wp_raftLog_stable
                     (s.gh.ns = true → s.logst.snap = none) →
                       (s.logst.snap ≠ none → s.logst.lent = false → uint.Z sv.Metadata'.Index' ≤ uint.Z s.logst.sxt) →
                         (∀ (k : SnapTrip), s.gh.snp = some k → uint.Z k.sid.index' ≤ uint.Z sv.Metadata'.Index') →
-                          ⊢
-                            ∀ Φ,
-                              isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                                  "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv -∗
-                                (▷
-                                    ∀ prs pvs il,
-                                      ownSnapM sp (DFrac.own 1) sv ∗
-                                          ownRaftPhysCV (snapCfg sv cl) (snapCfg sv cl).voters r id
-                                            { term := s.term, vote := s.vote, lead := s.lead, role := s.role,
-                                              votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
-                                              ticking := s.ticking, progress := prs, log := s.log,
-                                              logst :=
-                                                logAppliedTo (logStableSnap s.logst sv.Metadata'.Index')
-                                                  sv.Metadata'.Index' (W64 0),
-                                              prvals := pvs, prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt,
-                                              pci := s.pci, isLearner := il, sdr := s.sdr, cq := s.cq } -∗
-                                        Φ (intoVal ())) -∗
-                                  WP
-                                    ((intoVal
-                                        (methods raft.ty.PointerType
-                                          go!"appliedSnap"
-                                          (intoVal r)))
-                                      (intoVal sp))
-                                    {{ Φ }}
+                          s.gh.tr = none →
+                            ⊢
+                              ∀ Φ,
+                                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                                    "Hphys" ∷ ownRaftPhysCVW c c.voters r id s ∗ "Hsnap" ∷ ownSnapM sp (DFrac.own 1) sv -∗
+                                  (▷
+                                      ∀ prs pvs il,
+                                        ownSnapM sp (DFrac.own 1) sv ∗
+                                            ownRaftPhysCV (snapCfg sv cl) (snapCfg sv cl).voters r id
+                                              { term := s.term, vote := s.vote, lead := s.lead, role := s.role,
+                                                votes := s.votes, outbox := s.outbox, stepfn := s.stepfn,
+                                                ticking := s.ticking, progress := prs, log := s.log,
+                                                logst :=
+                                                  logAppliedTo (logStableSnap s.logst sv.Metadata'.Index')
+                                                    sv.Metadata'.Index' (W64 0),
+                                                prvals := pvs, prevote := s.prevote, gh := s.gh, rd := s.rd, lt := s.lt,
+                                                pci := s.pci, isLearner := il, sdr := s.sdr, cq := s.cq } -∗
+                                          Φ (intoVal ())) -∗
+                                    WP
+                                      ((intoVal
+                                          (methods raft.ty.PointerType
+                                            go!"appliedSnap"
+                                            (intoVal r)))
+                                        (intoVal sp))
+                                      {{ Φ }}

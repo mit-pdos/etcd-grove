@@ -75,7 +75,8 @@ theorem start_key (f : OsFile) (hg : DataGood (some f)) :
   have hbl : b < ((f.contents.map durB).take 8).length := (List.getElem?_eq_some_iff.1 hx).1
   rw [List.getElem?_eq_getElem hbl, Option.some.injEq] at hx
   rw [crashed_dur hfc (List.mem_singleton_self _) (b := b) (x := f.cache b) (Nat.zero_le _)
-    (by simpa using hbl) (by simp only [Nat.sub_zero, hx]) (by omega), ← (hb b hb8),
+    (by simpa using hbl) (by simp only [Nat.sub_zero, hx]) (by omega)
+    (by simp only [initMeta]; omega), ← (hb b hb8),
     contents_getElem?_of_lt (by omega)]
 
 /-- The program's half: what `check` needs. -/
@@ -240,7 +241,7 @@ theorem crash_safety_bounded [lctx : GoLocalContext] [sem : go.Semantics] [packa
       have hk := hso.2 k rfl
       have hnm : Named (extLocal fsExt σ.world).fs.treeDur k := ⟨j, segB, by rw [hm0]; exact hk⟩
       obtain ⟨f, hf⟩ := Option.ne_none_iff_exists'.1 (Hinit.2.2.2.2.2.1 k hnm)
-      obtain ⟨vs, sz, hvs⟩ := (Hinit.2.2.2.2.2.2.1 k f hf).2
+      obtain ⟨vs, sz, -, hvs⟩ := (Hinit.2.2.2.2.2.2.1 k f hf).2
       have hgood : DataGood (some f) := by rw [← hf]; exact Hseg k hk
       icases (BigSepM.bigSepM_lookup
         (Φ := fun i f => osFileStart (L := hG.goose_localGS) i f) hf) $$ Hfs with Hf

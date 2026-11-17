@@ -110,6 +110,101 @@ theorem ccApplyM_leaveJoint {o : ConfChangeIM} (s : CCState) (ho : ccV2Of o = (W
     ccApplyM (ccV2Of o).1 (ccV2Of o).2 s = leaveJointM s := by
   rw [ho]; unfold ccApplyM; simp
 
+/-! ### Leaving a joint membership (2026-11-12, trace-check implementation step 1; Probe A's P1) -/
+
+/-- `LeaveJoint`'s state passes `checkInvariants` when the joint state does and no staged learner is an
+incoming voter (`Membership.Restorable`'s second half). -/
+theorem leaveJointState_inv {s : CCState} (hinv : CfgInv s)
+    (hr : ∀ k, k ∈ s.cfg.learnersNext → k ∉ s.cfg.incoming) : CfgInv (leaveJointState s) := by
+  obtain ⟨h1, h2, h3, -⟩ := hinv
+  have hlk : ∀ k, (GMap.fmap (fun _ => true)
+      (GMap.filter (fun k _ => decide (k ∈ s.cfg.learnersNext)) s.prs) ∪ s.prs) !! k =
+      if k ∈ s.cfg.learnersNext ∧ k ∈ s.prs then some true else s.prs !! k := by
+    intro k
+    by_cases hk : k ∈ s.cfg.learnersNext ∧ k ∈ s.prs
+    · rw [ite_eq_left hk]
+      obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 ((GMap.mem_iff _ _).1 hk.2)
+      apply GMap.lookup_union_Some_l
+      rw [GMap.lookup_fmap, GMap.lookup_filter, hb]
+      simp [hk.1]
+    · rw [ite_eq_right hk]
+      apply GMap.lookup_union_r
+      rw [GMap.lookup_fmap, GMap.lookup_filter]
+      cases hb : s.prs !! k with
+      | none => rfl
+      | some b =>
+        have : k ∉ s.cfg.learnersNext := fun h' => hk ⟨h', by rw [GMap.mem_iff, hb]; rfl⟩
+        simp [this]
+  refine ⟨fun k hk => ?_, fun k hk => ?_, fun k hk => ?_, fun _ => ⟨rfl, rfl⟩⟩
+  · simp only [leaveJointState, GMap.elem_of_union] at hk ⊢
+    have hP : k ∈ s.cfg.incoming ∨ (k ∈ s.cfg.learners ∨ k ∈ s.cfg.learnersNext) ∨
+        k ∉ s.cfg.outgoing := by
+      rcases hk with h | h | h | h
+      · exact .inl h
+      · exact absurd h (GMap.not_elem_of_empty _)
+      · exact .inr (.inl h)
+      · exact absurd h (GMap.not_elem_of_empty _)
+    have hp : k ∈ s.prs := by
+      rcases hk with h | h | h | h
+      · exact h1 k (.inl h)
+      · exact absurd h (GMap.not_elem_of_empty _)
+      · rcases h with h | h
+        · exact h1 k (.inr (.inr (.inl h)))
+        · exact h1 k (.inr (.inr (.inr h)))
+      · exact absurd h (GMap.not_elem_of_empty _)
+    rw [GMap.mem_iff, GMap.lookup_filter, hlk]
+    obtain ⟨b, hb⟩ := Option.isSome_iff_exists.1 ((GMap.mem_iff _ _).1 hp)
+    split
+    · simp only [Option.filter, decide_eq_true hP]; rfl
+    · rw [hb]; simp only [Option.filter, decide_eq_true hP]; rfl
+  · simp only [leaveJointState] at hk
+    exact absurd hk (GMap.not_elem_of_empty _)
+  · simp only [leaveJointState, GMap.elem_of_union] at hk ⊢
+    have hP : k ∈ s.cfg.incoming ∨ (k ∈ s.cfg.learners ∨ k ∈ s.cfg.learnersNext) ∨
+        k ∉ s.cfg.outgoing := .inr (.inl hk)
+    refine ⟨GMap.not_elem_of_empty _, ?_, ?_⟩
+    · rcases hk with h | h
+      · exact (h3 k h).2.1
+      · exact hr k h
+    · rw [GMap.lookup_filter, hlk]
+      split
+      · simp only [Option.filter, decide_eq_true hP]; rfl
+      · rename_i hn
+        rcases hk with h | h
+        · rw [(h3 k h).2.2]; simp only [Option.filter, decide_eq_true hP]; rfl
+        · exact absurd ⟨h, h1 k (.inr (.inr (.inr h)))⟩ hn
+
+/-- **The empty `ConfChangeV2` leaves a valid joint membership in which no staged learner is an incoming
+voter** (`memApply`, the sealed `Membership.applyChange`). -/
+theorem memApply_leaveJoint (m : Membership) (hv : memValid m)
+    (hr : ∀ k, k ∈ m.learnersNext → k ∉ m.voters) (hj : m.votersOutgoing ≠ ∅) :
+    ∃ m', memApply (.v2 ConfChangeV2M.empty) m = some m' := by
+  obtain ⟨⟨hinv, -, hsz⟩, -⟩ := hv
+  have hcl : CfgInv (clearAutoLeave (stOf m)) :=
+    ⟨hinv.1, hinv.2.1, hinv.2.2.1, fun h => ⟨(hinv.2.2.2 h).1, rfl⟩⟩
+  have hli : CfgInv (leaveJointState (stOf m)) := leaveJointState_inv hinv hr
+  have hlj : leaveJointM (stOf m) = some (leaveJointState (stOf m)) := by
+    unfold leaveJointM checkedM
+    rw [if_neg (fun h => h hcl), if_neg (show (stOf m).cfg.outgoing ≠ ∅ from hj), if_pos hli]
+  have hsub : (leaveJointState (stOf m)).cfg.ids ⊆ (stOf m).cfg.ids := by
+    rw [GMap.elem_of_subseteq]
+    intro k hk
+    rw [mem_ids] at hk ⊢
+    simp only [leaveJointState, GMap.elem_of_union] at hk
+    rcases hk with h | h | h | h
+    · exact .inl h
+    · exact absurd h (GMap.not_elem_of_empty _)
+    · exact .inr (.inr h)
+    · exact .inr (.inl (hinv.2.1 k h).1)
+  have hsz' : GMap.size (leaveJointState (stOf m)).cfg.ids < 2 ^ 62 :=
+    Nat.lt_of_le_of_lt (GMap.subseteq_size hsub) hsz
+  refine ⟨memOf (leaveJointState (stOf m)).cfg, ?_⟩
+  unfold memApply ccStepB
+  have hc : ccApplyM (ccV2Of (.v2 ConfChangeV2M.empty)).1 (ccV2Of (.v2 ConfChangeV2M.empty)).2
+      (stOf m) = leaveJointM (stOf m) := ccApplyM_leaveJoint (stOf m) rfl
+  rw [hc, hlj]
+  simp only [Option.bind_some, if_pos hsz', Option.map_some]
+
 /-! ### `Restore` of a `ConfState` reporting a membership -/
 
 theorem cc_mem_of_perm {l : List w64} {S : GSet w64} (h : l ≡ₚ GMap.elements S) (k : w64) :

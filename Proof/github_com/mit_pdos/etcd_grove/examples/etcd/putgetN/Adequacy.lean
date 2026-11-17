@@ -20,6 +20,14 @@ boot` (the `k` member ids, in the members' order, their 16 low bits distinct and
 `bootstrap`'s order, a permutation of them; the bootstrap log), the size facts, the program start's
 names, addresses and data directories unclaimed, `ETCD_VERIFY` off, the execution's length, and the
 trust-boundary contracts `etcd_putgetN.premises` at every ghost-state instance.
+
+**Over Linux files** (2026-11-16, the user's decision (A) on `wal-lean`, applied on the merge of `lean`):
+the program's extensions are `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own
+semantics, no premise on the environment), since `fileutil`'s package initializer, which the server's
+initialization runs, probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the
+theorem's one new premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on
+disk, the roots well formed), so it says that the program runs on a real file system. Until then the
+extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -28,7 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.MainLin
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 
 @[expose] public section
 
@@ -43,7 +51,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 /-! ## The ghost-state bundle -/
 
@@ -68,7 +77,7 @@ instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨putgetNGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨putgetNGF_allG⟩, ⟨putgetNGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetNGF_allG
 
@@ -111,7 +120,9 @@ theorem etcd_putgetN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_putgetN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putgetNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -126,7 +137,7 @@ theorem etcd_putgetN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_putgetN.putgetNAddrs_nodup k hk) (etcd_putgetN.putgetNDirs k)
     (etcd_putgetN.putgetNDirs_nodup k hk) (etcd_putgetN.startAddrs k) []
     (etcd_putgetN.putgetNAddrs_perm k) (etcd_putgetN.putgetNDirs_perm k)
-    σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
   haveI := Hctx hG

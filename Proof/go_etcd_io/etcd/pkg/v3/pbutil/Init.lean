@@ -7,7 +7,7 @@ variable).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
+public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 public import Perennial.Proof.fmt.Link
 public import Proof.go_etcd_io.raft.v3.Init
 public import Proof.runtime.PkgInitExt

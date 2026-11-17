@@ -3,8 +3,8 @@ A `pwrite` in chunks (`os.File.WriteAt`'s model, `TrustedCode/os.lean`, writes a
 `pwrite`), over the per-byte extension (`GooseLang/Ext/Fs/Write.lean`): an attempt of the first `k`
 bytes of the chunk `cd = (data.drop nn).take c` at `off + nn`, over the file a write of the first
 `j ≥ nn` bytes of `data` at `off` left, leaves the file a write of the first `max j (nn + k)` bytes
-leaves (`pwSize_chunk`; the values, `pwValsG_chunk`; the `OsMeta`, `pwPost_chunk`, whose announced
-range is the furthest chunk's). The attempt takes the middle of the range's bytes
+leaves (`pwSize_chunk`; the values, `pwValsG_chunk`; the `OsMeta`, `File__WriteAtExt.lean`'s
+`pwPostE_chunk`, whose announced range is the furthest chunk's). The attempt takes the middle of the range's bytes
 (`osBytes_split3_range`) and gives back bytes that end where the rest begins, or the rest is empty
 (`osBytes_app3`). The write may start past the end of the file (`pwValsG`: bytes from
 `min off size`, the zero gap).
@@ -210,48 +210,6 @@ theorem pwChunk_end {α : Type} (s off len nn c k lo : Nat) (ys : List α) (hk :
     by_cases h : off + nn + k ≤ s
     · left; omega
     · right; apply List.drop_eq_nil_of_le; omega
-
-/-- A write of `cs` bytes at `off + nn` (the chunk) over the `OsMeta` a write of `j` bytes at
-`off` left, whose first steps announced `[min off size, off + a)`, leaves the `OsMeta` of a write of
-`max j (nn + k)` bytes whose first steps announced `[min off size, off + nn + cs)`. -/
-theorem pwPost_chunk (m : OsMeta) (off a nn j cs k : Nat) (hml : m.lo ≤ m.size) (hnn : nn ≤ j)
-    (hja : j ≤ a) (ha : a ≤ nn + cs) (ha0 : 0 < a) (hk : k ≤ cs) (hcs0 : 0 < cs) :
-    pwPost (pwPost m off a j) (off + nn) cs k = pwPost m off (nn + cs) (max j (nn + k)) := by
-  have hS1 : m.size ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
-  have hS2 : 0 < j → off + j ≤ pwSize m.size off j := by unfold pwSize; split <;> omega
-  have hS3 : j = 0 → pwSize m.size off j = m.size := by intro h; simp [pwSize, h]
-  have hlo' : min off m.size ≤ min (off + nn) (pwSize m.size off j) := by omega
-  have hlo'' : min (off + nn) (pwSize m.size off j) ≤ off + a := by omega
-  have hsz : pwSize (pwSize m.size off j) (off + nn) k = pwSize m.size off (max j (nn + k)) :=
-    pwSize_chunk _ _ _ _ _ hnn
-  apply os.osMeta_eq
-  · exact hsz
-  · simp only [pwPost, announce_lo]; unfold pwSize; split <;> omega
-  · simp only [pwPost, announce_hi]; unfold pwSize; split <;> omega
-  · simp only [pwPost, announce_maps]
-  · simp only [pwPost, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi]
-    by_cases h3 : m.dhi ≤ m.dlo <;>
-      simp only [h3, if_true, if_false, show ¬ off + a ≤ min off m.size by omega,
-        show ¬ off + nn + cs ≤ min (off + nn) (pwSize m.size off j) by omega,
-        show ¬ off + (nn + cs) ≤ min off m.size by omega] <;> (repeat' split) <;> omega
-  · simp only [pwPost, announce_dlo, announce_dhi, os.touch_dlo, os.touch_dhi]
-    by_cases h3 : m.dhi ≤ m.dlo <;>
-      simp only [h3, if_true, if_false, show ¬ off + a ≤ min off m.size by omega,
-        show ¬ off + nn + cs ≤ min (off + nn) (pwSize m.size off j) by omega,
-        show ¬ off + (nn + cs) ≤ min off m.size by omega] <;> (repeat' split) <;> omega
-  · simp only [pwPost, announce_zf, Option.map_map]
-    cases m.zf with
-    | none => rfl
-    | some z =>
-      simp only [Option.map_some, Function.comp, Option.some.injEq,
-        show min off m.size < off + a by omega,
-        show min (off + nn) (pwSize m.size off j) < off + nn + cs by omega,
-        show min off m.size < off + (nn + cs) by omega, if_true]
-      omega
-  · apply GMap.ext; intro b
-    simp only [pwPost, announce_tc, announce_size, inRange, Bool.and_eq_true, decide_eq_true_eq]
-    (repeat' split) <;> first | rfl | omega
-  · simp [pwPost]
 
 section res
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]

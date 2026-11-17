@@ -24,6 +24,7 @@ public import Perennial.Code.errors
 public import Perennial.Code.fmt
 public import Perennial.Code.github_com.goose_lang.primitive
 public import Perennial.Code.internal.oserror
+public import Perennial.Code.internal.stringslite
 public import Perennial.Code.io
 public import Perennial.Code.iter
 public import Perennial.Code.log
@@ -58,6 +59,7 @@ inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop
   | fmt : ExternalInit pkg_id.fmt _root_.Perennial.fmt.initialize'
   | github_com_goose_lang_primitive : ExternalInit pkg_id.github_com.goose_lang.primitive _root_.Perennial.github_com.goose_lang.primitive.initialize'
   | internal_oserror : ExternalInit pkg_id.internal.oserror _root_.Perennial.internal.oserror.initialize'
+  | internal_stringslite : ExternalInit pkg_id.internal.stringslite _root_.Perennial.internal.stringslite.initialize'
   | io : ExternalInit pkg_id.io _root_.Perennial.io.initialize'
   | iter : ExternalInit pkg_id.iter _root_.Perennial.iter.initialize'
   | log : ExternalInit pkg_id.log _root_.Perennial.log.initialize'

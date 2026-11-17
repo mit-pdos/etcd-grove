@@ -8,7 +8,7 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.go_uber_org.zap.PkgInit
 public import Proof.go_uber_org.zap.zapcore.Init
 public import Proof.runtime.PkgInitExt
 

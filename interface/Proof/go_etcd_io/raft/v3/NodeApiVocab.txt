@@ -5,12 +5,6 @@
 def strip (L : List EntryM) : List LogEntry :=
   List.map LogEntry.ofEntryM L
 
-def StorContents.commit (σ : StorContents) : Nat :=
-  uint.nat σ.hs.Commit'
-
-def StorContents.last (σ : StorContents) : Nat :=
-  σ.b + σ.ents.length
-
 def LogEntry.isConfChange (e : LogEntry) : Prop :=
   e.type = W32 1 ∨ e.type = W32 2
 
@@ -37,12 +31,6 @@ def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Pro
                   e.type = W32 1 ∧
                     MarshalsConfChange
                       (some (ConfChangeIM.v1 { type := W32 0, nodeId := id, context := ctx, id := W64 0 })) e.data
-
-structure StorContents : Type where
-  hs : HardStateM
-  snap : Option SnapshotM
-  base : entryID
-  ents : List EntryM
 
 def instDecidableIsEmptyV2_1 (e : LogEntry) : Decidable e.isEmptyV2 :=
   id inferInstance
@@ -127,9 +115,6 @@ def LogEntry.isEmptyV2 (e : LogEntry) : Prop :=
 
 def Membership.simple (vs : GSet w64) : Membership :=
   { voters := vs, votersOutgoing := ∅, learners := ∅, learnersNext := ∅, autoLeave := false }
-
-def StorContents.b (σ : StorContents) : Nat :=
-  uint.nat σ.base.index'
 
 def NodeDriverState.init (stor : Storage) (K : GName) : NodeDriverState :=
   { storage := stor, delivered := [], hardState := hsZero, handling := none, key := K, durable := RaftState.init,

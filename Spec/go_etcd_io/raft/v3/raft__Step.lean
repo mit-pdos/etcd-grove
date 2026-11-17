@@ -54,6 +54,8 @@ public import Proof.go_etcd_io.raft.v3.StepLemmas
 public import Spec.go_etcd_io.raft.v3.raft__handleHeartbeat
 -- `bytes.wp_Equal`, for the `MsgVote` branch's `Context` comparison.
 public import Perennial.Proof.bytes
+-- (2026-11-10, Q8 stage 1 slice 11) the gates (`stepGates`, `StepG`, `stepOut`)
+public import Proof.go_etcd_io.raft.v3.LemmasStepGates
 
 @[expose] public section
 
@@ -271,16 +273,27 @@ def HupFact [GooseExts] (s s' : NState) : Prop :=
   uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
   uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64
 
+/-- (2026-11-12, trace-check implementation step 3; design §3.4 item 2, clause 1(c) of `rnTrace`) **A
+follower leaves the follower role only by `hup`'s campaign** (a `MsgHup`'s, or a `MsgTimeoutNow`'s
+after its step-down, which keeps the log): with `hup`'s check (`HupFact`: the log kept, no conf entry
+committed and not applied). In raft v3.7 a campaign makes a candidate whose own vote is a queued
+self-addressed response (`msgsAfterAppend`), so no single step makes a follower a leader. -/
+def RoleUp [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
+  s'.role ≠ .follower → s.role = .follower →
+    (m.Type' = MsgHup ∨ m.Type' = MsgTimeoutNow) ∧ HupFact s s'
+
 /-- (2026-10-25, T-M M2b) and a pre-candidate that stays one keeps its log, commit and pending
 snapshot (`PreKeep`: nothing of its term reached it, which would have made it a follower), and
 one that a `MsgHup` made one has `hup`'s check (`HupFact`): what keeps `StepR.campaign`'s guard
-from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). -/
+from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). (2026-11-12) And `RoleUp`. -/
 def PreCandStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   (s'.role = .preCandidate → s'.term = s.term ∧
     ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))) ∧
-  SnapRoleBack s s'
+  SnapRoleBack s s' ∧
+  -- (2026-11-12, trace-check implementation step 3) `RoleUp`
+  RoleUp m s s'
 
-macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_⟩; pc1_tac; srb_tac))
+macro "pc_tac" : tactic => `(tactic| (refine ⟨?_, ?_, ?_⟩; pc1_tac; srb_tac; ru_tac))
 
 def TermStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
@@ -303,7 +316,8 @@ theorem TermStep.of_term [GooseExts] {m : MessageM} {s s' : NState}
 
 theorem TermStep.refl [GooseExts] (m : MessageM) (s : NState) : TermStep m s s :=
   TermStep.of_term rfl (fun _ => Int.le_refl _)
-    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩,
+      fun h1 h2 => absurd h2 h1⟩
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
@@ -323,7 +337,8 @@ theorem TermStep.of_local [GooseExts] {m : MessageM} {s s' : NState}
   TermStep.of_term h.1 (fun _ => h.2.1) ⟨fun hp =>
     have hr : s.role = .preCandidate := h.2.2.2.2.2.2.2.2.2.1 ▸ hp
     ⟨h.1, .inl ⟨hr, hk hr⟩⟩,
-    fun h1 h2 => ⟨h.2.2.2.2.2.2.2.2.2.1 ▸ h1, h.2.2.2.1 ▸ h2⟩⟩
+    fun h1 h2 => ⟨h.2.2.2.2.2.2.2.2.2.1 ▸ h1, h.2.2.2.1 ▸ h2⟩,
+    fun h1 h2 => absurd (h.2.2.2.2.2.2.2.2.2.1.trans h2) h1⟩
 
 /-- (2026-10-25, T-M M2b) **A step keeps a pre-candidate's campaign guard** (`PreGuardF`: over a
 full prefix of the log's boundary's length): a pre-candidate that stays one kept its boundary, log,
@@ -416,7 +431,8 @@ theorem AppTrunc.of_ip [GooseExts] {m : MessageM} {ents : List EntryM} {s s' : N
 /-- A dropped snapshot's step. -/
 theorem SnapStep.refl [GooseExts] (m : MessageM) (s : NState) : SnapStep m s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
-    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩⟩⟩
+    ⟨fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩, fun h1 h2 => ⟨h1, h2⟩,
+      fun h1 h2 => absurd h2 h1⟩⟩
 
 /-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
 log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the
@@ -469,7 +485,24 @@ function below it is specified against `ownRaftPhys` alone, saying which state t
 struct ends up refining and how the outbox grew; `Step` assembles those pure facts into
 one `Step` witness and takes one `ownRaftGhost_step`. A caller that needs to know a
 pending outgoing message is protocol-legal gets that from `ownRaftGhost_outbox`, not
-from `ownRaftPhys`. -/
+from `ownRaftPhys`.
+
+(2026-11-10, Q8 stage 1 slice 11 of `notes/trace-validation-plan.md`) **One spec for both modes**, in
+place of stage 0's premise `s.gh.tr = none` (`notes/decisions.md`, "Q8 stage 1 (slice 11)"): the
+caller's resources `R` (`StepG`, `LemmasStepGates.lean`) go through the gates of the hooks the path
+runs (`stepGates`: the receive hook's, the term preamble's step-down or a stale message's answer, then
+`hup`'s, a vote request's answer, or the role's step function's, each as its callee's spec states it).
+**Raft's ghost state is the caller's across the handler**: the receive hook's gate takes it with the
+caller's first resource (`ghostIn`: `ownStepGhost γ md c id s ∗ R.G`), and the caller gives it back at the end
+(`"Hclose"`, from whichever resource the path ended in, `stepOut R`), with its own `Gout` at the end
+state (slice 12: `Gout s'`, the state the closing wand is given and `Step` returns); so a traced
+caller reads and updates raft's ghost inside its gates (a vote win registered inside the `BecomeLeader`
+gate, a new commit's certificate before the `Commit` line: rounds 5-6 of the plan), and confirms the
+step's new messages' numbers when traced (`OutTrStep`: the send lines' `TraceEv.Ok`). What a traced node
+does not do stays a premise on its type: no snapshot (P2), no snapshot acknowledgement (`appliedSnap`'s
+premise), no automatic leave at an application acknowledgement (`appliedTo`'s, slice 12: a traced
+node's configuration never leaves automatically), no proposed configuration change (P3, `stepLeader`'s). The untraced instance is `raft.Step.untraced`
+(`TracedUntracedRaftStep.lean`), the statement before slice 11, which the node API uses. -/
 abbrev raft.Step.spec : Prop :=
   ∀ (c : CfgM)
     -- (2026-10-14, stage B7) the mode of the ghost state: static (`ownRaftGhost`, at a
@@ -488,7 +521,10 @@ abbrev raft.Step.spec : Prop :=
     (ents : List EntryM)
     -- (2026-10-12) the list the message's `Context` holds, which the abstract message
     -- carries (a heartbeat's response echoes it; a forwarded proposal keeps it)
-    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc),
+    (ctx : List w8) (sn : Option SnapshotM) (rs : List Loc)
+    -- (2026-11-10, Q8 stage 1 slice 11) the caller's resources through the gates, and what it gets
+    -- back with raft's ghost state
+    (R : StepG GF) (Gout : NState → IProp GF),
   StepMsg m →
   -- (Until 2026-10-14, stage B8, a premise `m.Type' = MsgSnap → id ∈ γ.reCfg`: the node one of
   -- the ghost state's voters, which a snapshot's `restore` needs. It is now one of the
@@ -630,6 +666,23 @@ abbrev raft.Step.spec : Prop :=
   -- (2026-10-19, D21 M3) no snapshot in the no-snapshot mode (`NGhost.ns`; `RawNode.Step` takes
   -- none)
   (m.Type' = MsgSnap → s.gh.ns = false) →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`, until 2026-11-10, slice 11: the
+  -- premise `s.gh.tr = none`) what a traced node does not do (the gates below cover the rest): receive
+  -- a snapshot (the Draft's P2), acknowledge a snapshot or applied entries (`appliedSnap`'s,
+  -- `appliedTo`'s premise), propose a configuration change (P3, `stepLeader`'s)
+  (m.Type' = MsgSnap → s.gh.tr = none) →
+  (m.Type' = MsgStorageAppendResp → sn ≠ none → s.gh.tr = none) →
+  -- (slice 12) the application acknowledgement's: only `appliedTo`'s automatic leave, a configuration
+  -- change (P3), is untraced-only
+  (m.Type' = MsgStorageApplyResp → ents ≠ [] → c.autoLeave = true → s.gh.tr = none) →
+  (m.Type' = MsgProp → s.gh.tr ≠ none → ∀ e ∈ ents, ¬ IsConfEnt e) →
+  -- (2026-11-12, trace-check implementation step 3, the design's §3.6 physical half) a traced node
+  -- queues nothing the model does not describe (`raft.send.spec`'s traced premise, `XfOk`'s clause):
+  -- it steps no transfer request (a leader's `MsgTimeoutNow`, a follower's forward), and steps an
+  -- append response only with no transferee (a leader's `From == leadTransferee` branch sends a
+  -- `MsgTimeoutNow`; `From ≠ 0`)
+  (m.Type' = MsgTransferLeader → s.gh.tr = none) →
+  (m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hghost" ∷ ownStepGhost γ md c id s ∗
@@ -720,7 +773,15 @@ abbrev raft.Step.spec : Prop :=
            -- certificate, which the step registers in the storage (`certLink`) before the restore
            isMessageC γ (absSnap m sv scfg) ∗
            -- (D22 S-r, 2026-10-21) and its data certificate, registered with it
-           snapDataOk γ sv.Metadata'.Index' sv.Data') }}
+           snapDataOk γ sv.Metadata'.Index' sv.Data') ∗
+      -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource, through the gates of the path that
+      -- runs, raft's ghost state with it from the receive hook on ...
+      "HG" ∷ R.G ∗
+      "Hgates" ∷ stepGates c r id s m ents sn ctx rs (ghostIn γ md c id s R) ∗
+      -- ... and back, whichever resource the path ends in, with (traced) the step's new messages'
+      -- numbers (`OutTrStep`, which the node's outbox keeps: `NsLink`'s `OutTr`), each logged by a
+      -- send line of the caller's
+      "Hclose" ∷ stepClose γ md c id m ents ctx s R Gout }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
   {{ (err : GoInterface) (s' : NState) (c' : CfgM) (md' : GMode), RET #err;
       "Hphys" ∷ ownRaftPhysCV c' c'.voters r id s' ∗
@@ -771,7 +832,10 @@ abbrev raft.Step.spec : Prop :=
       -- only a proposal can be dropped, with `ErrProposalDropped`
       "Herr" ∷ (⌜err = interface.nil⌝ ∨
                 (⌜m.Type' = MsgProp⌝ ∗
-                 globalAddr ErrProposalDropped ↦□ err)) }}
+                 globalAddr ErrProposalDropped ↦□ err)) ∗
+      -- (Q8 stage 1 slice 11) the caller's resource, back from `"Hclose"`; (slice 12) at the end
+      -- state, the one `"Hclose"` was given
+      "HG" ∷ Gout s' }}
 
 end spec
 

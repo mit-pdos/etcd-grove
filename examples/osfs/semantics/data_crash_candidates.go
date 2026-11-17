@@ -13,8 +13,9 @@ import (
 // change since announced for it (stamped with the change's number). A change
 // announces all of its data when it starts; a successful fsync collapses each
 // byte to its page-cache value. A crash leaves each byte any one of its
-// candidates, independently of every other byte. Nothing groups bytes into
-// sectors or pages.
+// candidates, independently of every other byte, or zero at or past the
+// smallest size since the last sync (data_writeback_tail_zeros.go). Nothing
+// groups bytes into sectors or pages.
 //
 // Lean: Impl.lean: OsFile (cache, cand), OsFile.announce, OsChange.ofWrite/
 // ofResize, OsFile.land, OsFile.synced, CrashFile; Tests.lean: crash_mix,
@@ -24,7 +25,8 @@ import (
 // Allowed: after the crash below, each byte of [0,1024) holds A, B or C, each
 // independently (a byte A next to a byte C is allowed).
 // Excluded: Z anywhere (overwritten before the last successful sync), or any
-// value never written there since that sync.
+// value never written there since that sync (the bytes here are below the
+// synced size 1024, which no writeback zeroes).
 //
 // Why: measured. One pwrite can reach disk mixed with what was there, mid-sector
 // (data_torn_source_page.go, data_mixed_writeback.go); writeback may write a

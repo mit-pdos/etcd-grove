@@ -407,6 +407,132 @@ def ghostRestM (γ : RaftNames) : GMode → CfgM → w64 → NState → IProp GF
       -- (2026-11-01, durability R5) no candidate campaign record: it may be pending
       logRecs γ base0 g.fp)
 
+/-- (2026-11-10, trace-check Q8 stage 1 slice 10) **In a traced cluster, the node's outbox carries its
+messages' numbers** (`MsgTrOk`, `Protocol/GhostState.lean`): what a `Ready` hands out with them
+(`isMessageC`). A clause of `NsLink`. -/
+def OutTr (γ : RaftNames) (s : NState) : Prop :=
+  ∀ m ∈ s.outbox, MsgTrOk γ m
+
+/-- (Q8 stage 1 slice 10) **A step's outbox, traced**: every message of the new state's outbox was in
+the old one or carries its numbers (`Msg.TrOk`), when the node is traced (`NGhost.tr`). What a
+traced `raft.Step` proves from its send lines (each proves `Msg.NumsBelow` of its message for the
+line's `TraceEv.Ok`); vacuous untraced (`OutTrStep.of_none`). -/
+def OutTrStep (s s' : NState) : Prop :=
+  s.gh.tr.isSome → ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ m.TrOk
+
+theorem OutTrStep.of_none {s s' : NState} (h : s.gh.tr = none) : OutTrStep s s' := by
+  intro h'; rw [h] at h'; cases h'
+
+/-- A step that keeps the outbox's messages (or drops some). -/
+theorem OutTrStep.of_sub {s s' : NState}
+    (h : ∀ m ∈ s'.outbox, m ∈ s.outbox) : OutTrStep s s' :=
+  fun _ m hm => .inl (h m hm)
+
+/-- (Q8 stage 1 slice 10) `OutTrStep` at an untraced node's step, from the context's `s.gh.tr = none`
+(`raft.Step`'s untraced branches), or of a step that keeps or drops messages: the default of the
+helpers' `OutTrStep` argument, so that their untraced callers are unchanged. -/
+macro "outtr_tac" : tactic => `(tactic| first
+  | exact OutTrStep.of_none (by assumption)
+  | exact OutTrStep.of_none (by simp_all)
+  | (apply OutTrStep.of_sub; intro _ hm; first | exact hm | simp_all))
+
+/-- (2026-11-12, trace-check design §3.6, implementation step 2) **No read-index request pending**: the
+read-only queue and the pending `MsgReadIndex` messages empty. A leader answers a read only from these
+(`readRespondAll` of `readonlyAdvance`'s confirmed requests, `releasePendingReadIndexMessages`), so a
+node in this state queues no `MsgReadIndexResp`; only a stepped `MsgReadIndex` fills them (`reset`
+empties the queue, nothing else adds to either). -/
+def ReadIdle (s : NState) : Prop := s.rd.ro.pending = [] ∧ s.rd.pend = []
+
+/-- **A traced node's scope** (design §3.6): no leader transfer in progress (`lt = 0`: no
+`MsgTimeoutNow`) and no read pending (`ReadIdle`: no `MsgReadIndexResp`). -/
+def TrScope (s : NState) : Prop := s.lt = W64 0 ∧ ReadIdle s
+
+/-- **A message a traced node may hand out** (design §3.6): of a traced type, or a forwarded proposal
+of normal entries (type `0`, `EntryNormal`, `InvRaftlog.lean`, which this module does not import). -/
+def TrOutMsg (m : Msg) : Prop :=
+  m.ty.traced = true ∨ (m.ty = .propose ∧ ∀ e ∈ m.entries, e.Type' = W32 0)
+
+/-- **A traced step in scope stays in scope and queues only `TrOutMsg`s** (design §3.6, A2): what
+`stepBundle_traced.statement`'s end resource records of the step; vacuous untraced or out of scope. -/
+def OutTyStep (s s' : NState) : Prop :=
+  s.gh.tr.isSome → TrScope s → TrScope s' ∧ ∀ m ∈ s'.outbox, m ∈ s.outbox ∨ TrOutMsg m
+
+theorem OutTyStep.of_none {s s' : NState} (h : s.gh.tr = none) : OutTyStep s s' := by
+  intro h'; rw [h] at h'; cases h'
+
+/-- A message of a traced type is a `TrOutMsg`. -/
+theorem TrOutMsg.of_traced {m : Msg} (h : m.ty.traced = true) : TrOutMsg m := .inl h
+
+/-- `TrScope` reads `lt` and the read state only. -/
+theorem TrScope.congr {s s' : NState} (hl : s'.lt = s.lt) (hr : s'.rd.ro.pending = s.rd.ro.pending)
+    (hp : s'.rd.pend = s.rd.pend) (h : TrScope s) : TrScope s' := by
+  obtain ⟨h1, h2, h3⟩ := h
+  exact ⟨hl.trans h1, hr.trans h2, hp.trans h3⟩
+
+/-- A step that keeps the scope's fields and the outbox's prefix, its new messages `TrOutMsg`s. -/
+theorem OutTyStep.of_app {s s' : NState} (ms : List Msg) (ho : s'.outbox = s.outbox ++ ms)
+    (hl : s'.lt = s.lt) (hr : s'.rd.ro.pending = s.rd.ro.pending) (hp : s'.rd.pend = s.rd.pend)
+    (hm : TrScope s → ∀ m ∈ ms, TrOutMsg m) : OutTyStep s s' := by
+  intro _ hs
+  refine ⟨TrScope.congr hl hr hp hs, fun m h => ?_⟩
+  rw [ho, List.mem_append] at h
+  rcases h with h | h
+  · exact .inl h
+  · exact .inr (hm hs m h)
+
+/-- `OutTyStep.of_app` with the scope's preservation given whole. -/
+theorem OutTyStep.of_app' {s s' : NState} (ms : List Msg) (ho : s'.outbox = s.outbox ++ ms)
+    (hs : TrScope s → TrScope s') (hm : TrScope s → ∀ m ∈ ms, TrOutMsg m) : OutTyStep s s' := by
+  intro _ h
+  refine ⟨hs h, fun m hm' => ?_⟩
+  rw [ho, List.mem_append] at hm'
+  rcases hm' with hm' | hm'
+  · exact .inl hm'
+  · exact .inr (hm h m hm')
+
+/-- (Implementation step 2) `OutTyStep s s'` at an end state `s'` that is `s`'s record updated, its outbox
+`s`'s with messages of traced types appended (a receive path's answer), `reset` or not. -/
+macro "outty_tac" : tactic => `(tactic| (
+  first
+  | refine OutTyStep.of_app' _ rfl ?_ ?_
+  | refine OutTyStep.of_app' [] (List.append_nil _).symm ?_ ?_
+  · first
+    | exact TrScope.congr rfl rfl rfl
+    | exact fun h => ⟨rfl, rfl, h.2.2⟩
+    | exact fun h => ⟨h.1, rfl, h.2.2⟩
+  · intro _ x hx
+    simp only [List.mem_singleton, List.mem_cons, List.not_mem_nil, or_false, List.mem_append] at hx
+    all_goals first
+    | (subst hx; exact .inl rfl)
+    | (rcases hx with rfl | rfl <;> exact .inl rfl)))
+
+/-- A step-down (`becomeFollower`, its `Progress` values `pvs`) queues nothing and resets the scope. -/
+theorem OutTyStep.becomeFollower (s : NState) (t l : w64) (pvs : GMap w64 Progress) :
+    OutTyStep s { becomeFollower s t l with prvals := pvs } :=
+  OutTyStep.of_app' [] (List.append_nil _).symm (fun h => ⟨rfl, rfl, h.2.2⟩)
+    (fun _ _ h => absurd h List.not_mem_nil)
+
+theorem OutTyStep.refl (s : NState) : OutTyStep s s := fun _ h => ⟨h, fun _ hm => .inl hm⟩
+
+/-- An aborted leader transfer (`abortLeaderTransfer`, the ticks'). -/
+theorem OutTyStep.ltZero (s : NState) : OutTyStep s { s with lt := W64 0 } :=
+  fun _ h => ⟨⟨rfl, h.2⟩, fun _ hm => .inl hm⟩
+
+/-- A step that only queues messages. -/
+theorem OutTyStep.sendMsgs {s : NState} {ms : List Msg} (h : TrScope s → ∀ m ∈ ms, TrOutMsg m) :
+    OutTyStep s (sendMsgs s ms) := OutTyStep.of_app ms rfl rfl rfl rfl h
+
+/-- Composition: a step in scope, then another from its end state. -/
+theorem OutTyStep.trans {s s1 s' : NState} (hg : s1.gh.tr = s.gh.tr) (h1 : OutTyStep s s1)
+    (h2 : OutTyStep s1 s') : OutTyStep s s' := by
+  intro ht hs
+  obtain ⟨hs1, ho1⟩ := h1 ht hs
+  obtain ⟨hs', ho'⟩ := h2 (hg ▸ ht) hs1
+  refine ⟨hs', fun m hm => ?_⟩
+  rcases ho' m hm with h | h
+  · exact ho1 m h
+  · exact .inr h
+
 /-- (2026-10-19, D21 M3) The node's no-snapshot mode (`NGhost.ns`) is the cluster's
 (`RaftNames.reNoSnap`): of a cluster with a non-empty bootstrap log (`RaftNames.noSnap_boot`), what
 the leader's rejection handling reads of the messages (`isMessage`'s clause of a rejecting
@@ -417,13 +543,30 @@ the leader's rejection handling reads of the messages (`isMessage`'s clause of a
 the node is past term `0` for good (`NGhost.bt`) exactly in that mode too, its bootstrap log's.
 (raft-final phase 1, 2026-10-29, U9: the no-transfer mode's two flags deleted with the mode; what is
 left goes with `NGhost.ns` in phase 2's raft-level track, the no-snapshot mode being off at raft's
-level, `NsCap`.) -/
+level, `NsCap`.) (2026-11-10, trace-check Q8 stage 1 slice 10) And the node's trace mode (`NGhost.tr`)
+is the cluster's (`RaftNames.reTrace`), and in a traced cluster every message of its outbox carries
+its numbers (`OutTr`): what a `Ready` hands out with them (`isMessageC`'s `MsgTrOk`). Kept by every
+step of an untraced node; a traced `raft.Step` keeps it from its send lines. -/
 def NsLink (γ : RaftNames) (s : NState) : Prop :=
-  s.gh.ns = γ.reNoSnap
+  s.gh.ns = γ.reNoSnap ∧ s.gh.tr = γ.reTrace ∧ OutTr γ s
 
 theorem NsLink.boot {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.ns = true) :
     γ.reBoot ≠ [] :=
-  RaftNames.noSnap_boot (by rw [← H]; exact h)
+  RaftNames.noSnap_boot (by rw [← H.1]; exact h)
+
+/-- (Q8 stage 1 slice 10) An untraced node's cluster is untraced. -/
+theorem NsLink.trace_none {γ : RaftNames} {s : NState} (H : NsLink γ s) (h : s.gh.tr = none) :
+    γ.reTrace = none := H.2.1 ▸ h
+
+/-- (Q8 stage 1 slice 10) **`NsLink` at a new state of the same ghost flags**: its outbox's messages
+were the old outbox's, or (traced) carry their numbers. What every step gives (an untraced node's
+vacuously, `OutTrStep.of_none`). -/
+theorem NsLink.step {γ : RaftNames} {s s' : NState} (H : NsLink γ s) (hg : s'.gh = s.gh)
+    (ho : OutTrStep s s') : NsLink γ s' := by
+  refine ⟨by rw [hg]; exact H.1, by rw [hg]; exact H.2.1, fun m hm htr => ?_⟩
+  rcases ho (by rw [H.2.1]; exact htr) m hm with h | h
+  · exact H.2.2 m h htr
+  · exact h
 
 /-- (D22 S-b′3, 2026-10-20; U8 v2, 2026-10-29: over the storage names, in every mode) The node's
 snapshot certificates are tied to the cluster's (`storCertOk`): a `Ready` certifies the `MsgSnap`s
@@ -872,7 +1015,9 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
     (s : NState) (recv : List Msg) (s' : NState) (Hstep : StepCD c id B m s recv s')
     (Hdh : ∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (g : RGh), md = .dyn dec c0 h0 g →
       ∀ d' : CCDec, RInv d' c0 (rOf s g) → DynHyp (effDec dec g.decs) m s s' g)
-    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
+    -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
+    (Hot : OutTrStep s s' := by outtr_tac) :
 
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ ([∗list] x ∈ recv, isMessage (GF := GF) γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
@@ -893,7 +1038,7 @@ theorem ghost_stepCD (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) (m : Me
   iframe Hrest Hw'
   isplitr
   · ipureintro
-    unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
+    exact Hnl.step Hng.1 Hot
   rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
     show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
   iframe Hcl Hx
@@ -910,9 +1055,13 @@ theorem ownStepGhost_congr (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hxw : s'.gh.xw = s.gh.xw := by rfl)
     (hld : s'.lead = s.lead := by rfl)
-    (hst : s'.gh.sn = s.gh.sn := by rfl) :
+    (hst : s'.gh.sn = s.gh.sn := by rfl)
+    (htr : s'.gh.tr = s.gh.tr := by rfl) :
     ownStepGhost (GF := GF) γ md c id s ⊢ ownStepGhost γ md c id s' := by
-  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
+  have hn : NsLink γ s' = NsLink γ s := by
+    have ho : s'.outbox = s.outbox := by
+      have := congrArg PState.outbox hp; simpa only [toPState] using this
+    unfold NsLink OutTr; rw [hg, htr, ho]
   have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW; rw [hxw]
   cases md with
   | static =>
@@ -933,9 +1082,13 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
     (hs : s'.logst.snap = s.logst.snap) (hpci : pciR s' = pciR s)
     (hg : s'.gh.ns = s.gh.ns := by rfl) (hxw : s'.gh.xw = s.gh.xw := by rfl)
     (hld : s'.lead = s.lead := by rfl) (hro : s'.role = s.role := by rfl)
-    (hst : s'.gh.sn = s.gh.sn := by rfl) :
+    (hst : s'.gh.sn = s.gh.sn := by rfl)
+    -- (Q8 stage 1 slice 10) the trace mode kept, the outbox only drained (`NsLink`'s `OutTr`)
+    (htr : s'.gh.tr = s.gh.tr := by rfl)
+    (hout : ∀ m ∈ s'.outbox, m ∈ s.outbox := by intro _ hm; first | exact hm | simp at hm) :
     ghostRest (GF := GF) γ md c id s ⊢ ghostRest γ md c id s' := by
-  have hn : NsLink γ s' = NsLink γ s := by unfold NsLink; rw [hg]
+  have hn : NsLink γ s → NsLink γ s' := fun H =>
+    ⟨by rw [hg]; exact H.1, by rw [htr]; exact H.2.1, fun m hm => H.2.2 m (hout m hm)⟩
   have hx : xfW (GF := GF) γ s' = xfW γ s := by unfold xfW; rw [hxw]
   have hlw : leadW (GF := GF) γ id (toPState s') = leadW γ id (toPState s) := by
     have hl' : (toPState s').lead = (toPState s).lead := by
@@ -944,13 +1097,17 @@ theorem ghostRest_keep (γ : RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s'
       rw [hro, hld]
     unfold leadW; rw [hl', ht]
   cases md with
-  | static => simp only [ghostRest, ghostRestM]; rw [hn, hst, hx, hlw]
+  | static =>
+    simp only [ghostRest, ghostRestM]; rw [hst, hx, hlw]
+    iintro ⟨%Hnl, %H, #Hcl, #Hw, #Hx⟩
+    iframe Hcl Hw Hx
+    ipureintro; exact ⟨hn Hnl, H⟩
   | dyn dec c0 h0 g =>
     simp only [ghostRest, ghostRestM]
-    rw [hn, hst, hx, hlw]
+    rw [hst, hx, hlw]
     iintro ⟨%Hnl, ⟨%H, #HM, #Hfr⟩, #Hcl, #Hw, #Hx⟩
     isplitr
-    · ipureintro; exact Hnl
+    · ipureintro; exact hn Hnl
     iframe Hcl Hw Hx
     obtain ⟨HD, hc', HI⟩ := H
     iframe HM
@@ -1023,6 +1180,45 @@ theorem ownRaftGhost_cmt (γ : RaftNames) (id : w64) (ps : PState) {md : Bool} :
   icases Hg with ⟨%γv, %voted, %kl, Hg⟩
   iNamed Hg
   iapply ownLogGhost_cmt γ id ps kl $$ Hlg
+
+/-- (Q8 stage 1 slice 10) The log's shape (`LogOk`: the commit index within the log), read out of the
+ghost state. -/
+theorem ownRaftGhost_logOk (γ : RaftNames) (id : w64) (s : PState) {md : Bool} :
+    ownRaftGhost (GF := GF) γ id s md ⊢ ⌜LogOk s⌝ := by
+  iintro Hg
+  iunfold ownRaftGhost at Hg
+  icases Hg with ⟨%γv, %voted, %kl, H⟩
+  iNamed H
+  icases ownLogGhost_recs γ id s kl _ $$ Hlg with ⟨%Hl, -⟩
+  ipureintro; exact Hl
+
+/-- (2026-11-10, trace-check Q8 stage 1 slice 10) **The receipt-bound law**: in a cluster whose time
+receipts' bound past its bootstrap log is at most `traceNumBound` (the traced cluster's; `readyFits`
+states `receiptBound GF + Cluster.bootLen ≤ 2 ^ 61` at the node API, `InvNode.lean`), a node's last
+index and commit index are below `traceNumBound`: the last index is `0` or has a record
+(`ownRaftGhost_lastRec`), whose time receipt is below the receipts' bound (`lastRec_receipt`,
+`preceipt_lt`), and the commit index is within the log (`LogOk`). What a traced step's lines need of
+the node's numbers (`TraceEv.Ok`, `nodeEvOf_ok`, `sendEvOf_ok`). **Terms are not bounded by
+receipts**: a failed election raises a term without an entry; the `RawNode`'s term budget bounds
+them (`InvNodeChan.lean`, `termLB`), which a traced `raft.Step` takes as a premise. -/
+theorem ownRaftGhost_traceBound (γ : RaftNames) (id : w64) (s : PState) {md : Bool}
+    (Hfit : receiptBound GF + γ.reBoot.length ≤ traceNumBound) :
+    ⊢ ownRaftGhost (GF := GF) γ id s md ==∗
+      ⌜plogLastIndexZ s.base s.log < traceNumBound ∧ uint.Z s.commit < traceNumBound⌝ ∗
+      ownRaftGhost γ id s md := by
+  iintro Hg
+  ihave %Hok := ownRaftGhost_logOk γ id s $$ Hg
+  ihave ⟨#Hlr, %HB⟩ := ownRaftGhost_lastRec γ id s $$ Hg
+  imod lastRec_receipt γ _ $$ Hlr with #Hrc
+  ihave %Hlt := preceipt_lt _ $$ Hrc
+  imodintro
+  iframe Hg
+  ipureintro
+  have h0 : (0 : Int) ≤ plogLastIndexZ s.base s.log := by
+    unfold plogLastIndexZ; have := uint_Z_nonneg s.base.index'; omega
+  have hb : traceNumBound = 2 ^ 61 := rfl
+  have hc := Hok.2.2
+  constructor <;> omega
 
 /-- A `MsgSnap` branch's step updates the mode's ghost state (2026-10-14, stage B8): statically
 `ownRaftGhost_stepC`, the configuration afterwards still the ghost state's (`GMode.SnapOkIf`);
@@ -1138,7 +1334,9 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
     (B : Int) (HB : B < 2 ^ 64)
     (Hstep : StepCDS c c' (snapCfg sv scfg) (scfg.Has id) id B (snapId sv) s recv s')
     (Hc' : c' = c ∨ (c' = snapCfg sv scfg ∧ scfg.Has id))
-    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage) :
+    (Hng : s'.gh = s.gh ∧ s'.logst.storage = s.logst.storage)
+    -- (Q8 stage 1 slice 10) the new outbox's messages, traced (`NsLink`'s `OutTr`)
+    (Hot : OutTrStep s s' := by outtr_tac) :
     ⊢ ⧖ (B.toNat - γ.reBoot.length) -∗ isMessage (GF := GF) γ a -∗ ([∗list] x ∈ recv, isMessage γ x) -∗ rdCred γ (rdCount recv) -∗ msgsTks γ recv -∗ £ 1 -∗
       md.SnapOkIf γ id sv scfg -∗ ownRaftGhost γ id (toPState s) md.isDyn -∗ ghostRest γ md c id s ={⊤}=∗
       ∃ md', ⌜md.StepOut c id m s s' md'⌝ ∗
@@ -1158,7 +1356,7 @@ theorem ghost_stepCDS (γ : RaftNames) (md : GMode) (c c' : CfgM) (id : w64) (m 
   iframe Hrest Hw'
   isplitr
   · ipureintro
-    unfold NsLink at Hnl ⊢; rw [Hng.1]; exact Hnl
+    exact Hnl.step Hng.1 Hot
   rw [show certLink (GF := GF) γ s'.gh.sn = certLink γ s.gh.sn by rw [Hng.1],
     show xfW (GF := GF) γ s' = xfW γ s by unfold xfW; rw [Hng.1]]
   iframe Hcl Hx

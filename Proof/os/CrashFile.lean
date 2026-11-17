@@ -54,6 +54,7 @@ theorem fsStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : O
   split at hs <;> (try simp only at hs) <;>
   repeat' (first
     | exact hs.elim
+    | exact lockStep_val hs
     | (subst hs; rfl)
     | (refine Or.elim hs (fun hs => ?_) (fun hs => ?_))
     | (refine And.elim (fun hl hs => ?_) hs; first | (subst hl; rfl) | skip)
