@@ -1,6 +1,33 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A2: axioms added; backend side next)
+## START HERE (2026-11-17, A2 done; A3's Draft next)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A2-A7); decisions `questions.md` (untracked); A2 Draft
+  `notes/auth-schema-srv-a2-draft.md`.
+- Done: A1 (52d85a42f6 … 6fe91f236f); A2 axioms (72c59c8aff, attacked: survive); lean 3cd4b72599 merged (1dbe00041f);
+  **A2 backend side (this commit)**: `FeSide`/`feOwn` (InvBackend: the walked transaction, read or write),
+  `rtForEach` (Model2: bbolt's entries whose keys the buffer lacks, then the buffer's); specs+proofs
+  `unsafeForEach` (one spec, `sd : FeSide`), `batchTx.UnsafeForEach`, `baseReadTx.UnsafeForEach`; linked
+  (`etc/link-lean-first-backend.txt`); full build ok (`/shared/tmp/auth-schema-srv/a2-build2.log`); tcb baseline
+  +2 exactly (`bbolt.Bucket.ForEach_kvr.wp_proof`, `ForEach_kvw.wp_proof`); backend interfaces + layout baseline.
+- Not done (on demand, A5): `readTx`/`concurrentReadTx`/`batchTxBuffered` reach `UnsafeForEach` by Go method
+  promotion (no translated wrapper); a law `rtForEach` ~ `rvBkt` (each key once) when the realization needs it.
+- Next: A3 — write its Draft (Marshal axioms of `authpb.User`/`Role` mirroring the Unmarshal ones, `sizeCache` out
+  of `↦□`, precedent restart1/Requests.lean) and STOP at its new trusted texts with Go evidence for attack.
+- Pitfalls: (1) a hand-written `if m = n` picks `instDecidableEqString`, the laws' `if S n` (open Classical)
+  `Classical.propDecidable`: write `@ite _ (m = n) (Classical.propDecidable _) …`. (2) `unfold` does not
+  beta-reduce `(fun n => S n ∨ S' n) n`: `dsimp only`. (3) A theorem's default argument (`trkHalf_eq … I`) is
+  filled with the default when omitted: pass it. (4) Macros: frame patterns as ``$(frameH `H)``. (5) Stray
+  Perennial clone: keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6)
+  `etc/gen-interface.py --layout` builds every package module: build first. (7) simp normalizes
+  `decide (a ∉ l)` to `!decide (a ∈ l)` inside Iris hyps: state filters in the `!decide` form; an iris hyp
+  `iframe` will not match may still `iexact`. (8) Call an Iris-context spec with `wp_apply Hf $$ %a %b … [$H]`.
+
+## History
+
+### A2 axioms (2026-11-17, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere. Scope `notes/auth-schema-srv-scope.md` §3 (A2-A7);
@@ -30,7 +57,6 @@
   Perennial clone: keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6)
   `etc/gen-interface.py --layout` builds every package module (`AuthSplitDraft` too): build it first.
 
-## History
 
 ### A1.9 (2026-11-17, superseded)
 

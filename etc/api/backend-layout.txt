@@ -49,6 +49,8 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run Perennial.EtcdGrove
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run Perennial.EtcdGrove.backend.run.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.backend.unsafeBegin.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.unsafeBegin.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeForEach Perennial.EtcdGrove.backend.baseReadTx.UnsafeForEach.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeForEach Perennial.EtcdGrove.baseReadTx.UnsafeForEach.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.backend.baseReadTx.UnsafeRange.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.backend.bktEnts_empty  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.backend.cursorRange_nil  # exposed by a proof file (theorem)
@@ -97,6 +99,8 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDelete Perennial.
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDelete Perennial.EtcdGrove.batchTx.UnsafeDelete.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket Perennial.EtcdGrove.backend.batchTx.UnsafeDeleteBucket.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket Perennial.EtcdGrove.batchTx.UnsafeDeleteBucket.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeForEach Perennial.EtcdGrove.backend.batchTx.UnsafeForEach.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeForEach Perennial.EtcdGrove.batchTx.UnsafeForEach.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut Perennial.EtcdGrove.backend.batchTx.UnsafePut.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut Perennial.EtcdGrove.batchTx.UnsafePut.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeRange Perennial.EtcdGrove.backend.batchTx.UnsafeRange.wp_proof  # exposed by a proof file (theorem)
@@ -205,6 +209,8 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perenni
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perennial.EtcdGrove.backend.wbMerge_lookup_none  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perennial.EtcdGrove.backend.wbMerge_lookup_some  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perennial.EtcdGrove.txWriteBuffer.writeback.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach Perennial.EtcdGrove.backend.unsafeForEach.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach Perennial.EtcdGrove.unsafeForEach.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.cursorRange_eq  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.cursorRange_take  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.unsafeRange.wp_proof  # exposed by a proof file (theorem)
@@ -255,6 +261,8 @@ Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__run Perennial.EtcdGrove.
 Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__run Perennial.EtcdGrove.backend.run.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.backend.unsafeBegin.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.unsafeBegin.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeForEach Perennial.EtcdGrove.backend.baseReadTx.UnsafeForEach.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeForEach Perennial.EtcdGrove.baseReadTx.UnsafeForEach.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.backend.baseReadTx.UnsafeRange.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.baseReadTx.UnsafeRange.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit Perennial.EtcdGrove.backend.batchTxBuffered.Commit.spec  # exposed by a spec file (def)
@@ -299,6 +307,8 @@ Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDelete Perennial.E
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDelete Perennial.EtcdGrove.batchTx.UnsafeDelete.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket Perennial.EtcdGrove.backend.batchTx.UnsafeDeleteBucket.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket Perennial.EtcdGrove.batchTx.UnsafeDeleteBucket.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeForEach Perennial.EtcdGrove.backend.batchTx.UnsafeForEach.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeForEach Perennial.EtcdGrove.batchTx.UnsafeForEach.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut Perennial.EtcdGrove.backend.batchTx.UnsafePut.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut Perennial.EtcdGrove.batchTx.UnsafePut.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeRange Perennial.EtcdGrove.backend.batchTx.UnsafeRange.spec  # exposed by a spec file (def)
@@ -389,5 +399,7 @@ Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__reset Perennial.Et
 Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__reset Perennial.EtcdGrove.txWriteBuffer.reset.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perennial.EtcdGrove.backend.txWriteBuffer.writeback.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perennial.EtcdGrove.txWriteBuffer.writeback.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach Perennial.EtcdGrove.backend.unsafeForEach.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach Perennial.EtcdGrove.unsafeForEach.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.unsafeRange.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.unsafeRange.spec  # missing: a spec file declares its spec

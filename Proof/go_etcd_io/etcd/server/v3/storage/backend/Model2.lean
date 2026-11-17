@@ -689,6 +689,14 @@ def rtRange (rv : RView) (bi : BucketInfo) (key endKey : GoString) (limit : w64)
   if (bufR.length : Int) = sint.Z lim then bufR
   else cursorRange (bktEnts (bktOf rv.1 bi.name)) key endKey (lim - W64 bufR.length) ++ bufR
 
+/-- A read transaction's `UnsafeForEach(bucket, visitor)` over the readers' state `rv`: the
+entries the visitor is called on, in order: bbolt's (the committed data's, sorted) whose keys the
+read buffer does not hold, then the read buffer's. -/
+def rtForEach (rv : RView) (bi : BucketInfo) : List Ent :=
+  (bktEnts (bktOf rv.1 bi.name)).filter
+      (fun e => decide (e.1 ∉ (bkOf rv.2.bks bi.id).map Prod.fst)) ++
+    bkOf rv.2.bks bi.id
+
 end backend
 end EtcdGrove
 end Perennial

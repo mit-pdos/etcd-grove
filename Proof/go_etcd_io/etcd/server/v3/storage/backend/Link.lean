@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__begin
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__CommitAndStop
@@ -53,6 +54,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__Unlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeCreateBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafePut
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeSeqPut
@@ -63,6 +65,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__unsafePut
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_kvr
 public import Proof.go_etcd_io.bbolt.Bucket__Cursor_kvw
 public import Proof.go_etcd_io.bbolt.Bucket__Delete_kv
+public import Proof.go_etcd_io.bbolt.Bucket__ForEach_kvr
+public import Proof.go_etcd_io.bbolt.Bucket__ForEach_kvw
 public import Proof.go_etcd_io.bbolt.Bucket__Put_kv
 public import Proof.go_etcd_io.bbolt.Cursor__Next_kv
 public import Proof.go_etcd_io.bbolt.Cursor__Seek_kv
@@ -119,6 +123,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__put
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__putSeq
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Assert
 public import Proof.go_etcd_io.etcd.client.pkg.v3.verify.Verify
@@ -403,6 +408,38 @@ theorem backend.wp_UnlockForSafeRangeDelete :
     EtcdGrove.backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.UnlockForSafeRangeDelete.wp_proof
 
+theorem bucketBuffer.wp_ForEach :
+    EtcdGrove.backend.bucketBuffer.ForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.bucketBuffer.ForEach.wp_proof
+
+theorem txReadBuffer.wp_ForEach :
+    EtcdGrove.backend.txReadBuffer.ForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.txReadBuffer.ForEach.wp_proof bucketBuffer.wp_ForEach
+
+theorem bbolt.Tx.wp_Bucket_kvr :
+    EtcdGrove.bbolt.Tx.Bucket_kvr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.Bucket_kvr.wp_proof
+
+theorem bbolt.Tx.wp_Bucket_kvw :
+    EtcdGrove.bbolt.Tx.Bucket_kvw.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Tx.Bucket_kvw.wp_proof
+
+theorem bbolt.Bucket.wp_ForEach_kvr :
+    EtcdGrove.bbolt.Bucket.ForEach_kvr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.ForEach_kvr.wp_proof
+
+theorem bbolt.Bucket.wp_ForEach_kvw :
+    EtcdGrove.bbolt.Bucket.ForEach_kvw.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.bbolt.Bucket.ForEach_kvw.wp_proof
+
+theorem wp_unsafeForEach :
+    EtcdGrove.backend.unsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.unsafeForEach.wp_proof bbolt.Tx.wp_Bucket_kvr bbolt.Tx.wp_Bucket_kvw bbolt.Bucket.wp_ForEach_kvr bbolt.Bucket.wp_ForEach_kvw
+
+theorem baseReadTx.wp_UnsafeForEach :
+    EtcdGrove.backend.baseReadTx.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.baseReadTx.UnsafeForEach.wp_proof txReadBuffer.wp_ForEach wp_unsafeForEach
+
 theorem bucketBuffer.wp_Range :
     EtcdGrove.backend.bucketBuffer.Range.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.bucketBuffer.Range.wp_proof
@@ -410,10 +447,6 @@ theorem bucketBuffer.wp_Range :
 theorem txReadBuffer.wp_Range :
     EtcdGrove.backend.txReadBuffer.Range.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.txReadBuffer.Range.wp_proof bucketBuffer.wp_Range
-
-theorem bbolt.Tx.wp_Bucket_kvr :
-    EtcdGrove.bbolt.Tx.Bucket_kvr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Bucket_kvr.wp_proof
 
 theorem bbolt.Bucket.wp_Cursor_kvr :
     EtcdGrove.bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG) :=
@@ -474,10 +507,6 @@ theorem batchTx.wp_UnsafeCreateBucket :
 theorem batchTxBuffered.wp_UnsafeCreateBucket :
     EtcdGrove.backend.batchTxBuffered.UnsafeCreateBucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTxBuffered.UnsafeCreateBucket.wp_proof batchTx.wp_UnsafeCreateBucket
-
-theorem bbolt.Tx.wp_Bucket_kvw :
-    EtcdGrove.bbolt.Tx.Bucket_kvw.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Bucket_kvw.wp_proof
 
 theorem zap.wp_Stack :
     EtcdGrove.zap.Stack.spec (GF := GF) (hG := hG) :=
@@ -563,9 +592,9 @@ theorem batchTxBuffered.wp_UnsafeSeqPut :
     EtcdGrove.backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTxBuffered.UnsafeSeqPut.wp_proof batchTx.wp_UnsafeSeqPut txWriteBuffer.wp_putSeq
 
-theorem bucketBuffer.wp_ForEach :
-    EtcdGrove.backend.bucketBuffer.ForEach.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.bucketBuffer.ForEach.wp_proof
+theorem batchTx.wp_UnsafeForEach :
+    EtcdGrove.backend.batchTx.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTx.UnsafeForEach.wp_proof wp_unsafeForEach
 
 theorem concurrentReadTx.wp_Lock :
     EtcdGrove.backend.concurrentReadTx.Lock.spec (GF := GF) (hG := hG) :=
@@ -610,10 +639,6 @@ theorem snapshot.wp_Size :
 theorem snapshot.wp_WriteTo :
     EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.snapshot.WriteTo.wp_proof
-
-theorem txReadBuffer.wp_ForEach :
-    EtcdGrove.backend.txReadBuffer.ForEach.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.txReadBuffer.ForEach.wp_proof bucketBuffer.wp_ForEach
 
 end links
 

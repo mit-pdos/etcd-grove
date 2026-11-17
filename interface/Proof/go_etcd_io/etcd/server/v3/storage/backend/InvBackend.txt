@@ -41,6 +41,11 @@ def backend.rbOwnIn (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoSt
     IProp GF :=
   backend.rbPartF γ S r fun x => false
 
+inductive backend.FeSide : Type
+  | backend.FeSide.rd (q : Qp) (D : backend.Data) : backend.FeSide
+  | backend.FeSide.wr (γ : backend.DBNames) (D S : backend.Data) (G : GoString → Nat) :
+      backend.FeSide
+
 theorem backend.bViewC_bView (γ : backend.BNames) (q : Qp) (vd : backend.VData) (c : Bool) :
     backend.bViewC γ q vd c ⊢ backend.bView γ q vd
 
@@ -287,6 +292,11 @@ def backend.fkCl (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) 
       backend.fkdOwn γ (backend.fkVals D) ∗
         backend.dlsOwn γ ∅ ∗ backend.fkVR γ (backend.fkWInit P D, backend.fkInit D, backend.fkVals D))
 
+def backend.FeSide.data : backend.FeSide → backend.Data :=
+  match x✝ with
+  | backend.FeSide.rd q D => D
+  | backend.FeSide.wr γ D S G => S
+
 theorem backend.batchLocked_thin (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
     backend.BSess) (q : Qp) (vd : backend.VData) : backend.batchLocked γ P b st ∗ backend.bView γ q
     vd ⊢ backend.batchLocked γ P b st ∗ backend.bView γ q vd ∗ backend.thinV γ (backend.vData P
@@ -356,6 +366,11 @@ def backend.rtIntv (γ : backend.BNames) (P : backend.BParams) (q : Qp) (rd : ba
 
 def backend.VData : Type :=
   GMap (GoString × GoString) GoString
+
+def backend.FeSide.q : backend.FeSide → Qp :=
+  match x✝ with
+  | backend.FeSide.rd q D => q
+  | backend.FeSide.wr γ D S G => 1
 
 def backend.dlPut (γ : backend.BNames) (P : backend.BParams) (n : GoString) : IProp GF :=
   if P.SB n = true then iprop(∃ f, backend.fkOwn γ f) else iprop(True)
@@ -743,6 +758,11 @@ def backend.tokPart (γ : backend.BNames) (q : Rat) : IProp GF :=
 
 def backend.dlReg (γ : backend.BNames) (Φ : GoString × GoString → IProp GF) : IProp GF :=
   iprop(savedPredOwn γ.dlg DFrac.discard Φ ∗ dghostVar γ.dlb DFrac.discard true)
+
+def backend.feOwn (tx : Loc) : backend.FeSide → IProp GF :=
+  match x✝ with
+  | backend.FeSide.rd q D => iprop(backend.txLive tx q ∗ backend.rtxSnap tx D ∗ backend.rtxStats tx)
+  | backend.FeSide.wr γ D S G => backend.ownWTxG tx γ D S G
 
 def backend.plHook (γ : backend.BNames) (f : GoFunc) : IProp GF :=
   backend.plHookAt γ (DFrac.own (Qp.half 1)) f

@@ -1542,6 +1542,30 @@ instance rdB_persistent (rtx : Loc) (s : GoSlice) (b : GoString) :
     Persistent (rdB (GF := GF) rtx s b) := by
   unfold rdB; infer_instance
 
+/-- The transaction `unsafeForEach` walks: a read transaction (a share `q` of it open, reading
+the snapshot `D`, its statistics held) or the write transaction (over the committed data `D`, its
+session's view `S`, its buckets' generations `G`). -/
+inductive FeSide where
+  | rd (q : Qp) (D : Data)
+  | wr (γ : DBNames) (D S : Data) (G : GoString → Nat)
+
+/-- The data a walk over `sd` reads: the read transaction's snapshot, or the write session's
+view. -/
+def FeSide.data : FeSide → Data
+  | .rd _ D => D
+  | .wr _ _ S _ => S
+
+/-- The share of the transaction a walk over `sd` holds open (the write transaction: all of it). -/
+def FeSide.q : FeSide → Qp
+  | .rd q _ => q
+  | .wr _ _ _ _ => 1
+
+/-- What a walk over `sd` holds of the transaction `tx`: `txLive ∗ rtxSnap ∗ rtxStats` (read), or
+`ownWTxG` (write), as `Tx.Bucket_kvr`/`Tx.Bucket_kvw` take. -/
+def feOwn (tx : Loc) : FeSide → IProp GF
+  | .rd q D => iprop(txLive tx q ∗ rtxSnap tx D ∗ rtxStats tx)
+  | .wr γ D S G => ownWTxG tx γ D S G
+
 /-- The slices a read returns are `rdB`. -/
 def rdSlices (rtx : Loc) (ss : List GoSlice) (bs : List GoString) : IProp GF :=
   iprop(⌜ss.length = bs.length⌝ ∗ [∗list] x ∈ ss.zip bs, rdB rtx x.1 x.2)

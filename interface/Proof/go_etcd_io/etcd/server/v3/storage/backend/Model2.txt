@@ -155,6 +155,11 @@ def backend.FkG : Type :=
 theorem backend.hkData_lookup (P : backend.BParams) (S : backend.Data) (n k : GoString) :
     backend.hkData P S !! (n, k) = if P.hk n k = true then backend.dget S n k else none
 
+def backend.rtForEach (rv : backend.RView) (bi : backend.BucketInfo) : List backend.Ent :=
+  List.filter (fun e => decide ¬e.fst ∈ List.map Prod.fst (backend.bkOf rv.snd.bks bi.id))
+      (backend.bktEnts (backend.bktOf rv.fst bi.name)) ++
+    backend.bkOf rv.snd.bks bi.id
+
 def backend.fkWfRv (P : backend.BParams) (rv : backend.RView) : Prop :=
   backend.fkWfD P rv.fst ∧ backend.fkWfB P rv.snd.bks
 
