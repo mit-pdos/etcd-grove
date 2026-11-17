@@ -349,6 +349,24 @@ func TestMapsKeysSorted(t *testing.T) {
 	}
 }
 
+// maps.Keys(m) never panics and returns a non-nil func (the post's `f : GoFunc`): on a nil map,
+// an empty map and a non-empty one, the call returns normally and its result is not nil.
+func TestMapsKeysNoPanic(t *testing.T) {
+	var nilMap map[string]runtime.Object
+	for _, m := range []map[string]runtime.Object{nilMap, {}, {"a": &Obj{}, "b": nil}} {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("maps.Keys panicked: %v", r)
+				}
+			}()
+			if seq := maps.Keys(m); seq == nil {
+				t.Errorf("maps.Keys(%v) returned a nil func", m)
+			}
+		}()
+	}
+}
+
 // ---------------------------------------------------------------------------------------------
 // maps.Clone, maps.Equal (Spec/maps/Clone.lean, Spec/maps/Equal.lean)
 
@@ -564,4 +582,32 @@ func panics(f func()) (p bool) {
 	defer func() { p = recover() != nil }()
 	f()
 	return false
+}
+
+// ---------------------------------------------------------------------------------------------
+// meta.ListAccessor of the driver's *ObjList (Spec/k8s_io/apimachinery/pkg/api/meta/ListAccessor.lean,
+// the spec's second row): the same interface value (the same pointer, a nil *ObjList included) and
+// a nil error; GetContinue/SetContinue on the result act on the list.
+func TestListAccessorObjList(t *testing.T) {
+	n := int64(2)
+	for _, l := range []*ObjList{{}, {Items: []Obj{{}}, ResourceVersion: 7, Continue: "c", RemainingItemCount: &n}, nil} {
+		acc, err := meta.ListAccessor(l)
+		if err != nil {
+			t.Fatalf("ListAccessor(%v): error %v", l, err)
+		}
+		got, ok := acc.(*ObjList)
+		if !ok || got != l {
+			t.Fatalf("ListAccessor(%p) = %#v, want the same *ObjList", l, acc)
+		}
+		if l == nil {
+			continue
+		}
+		if acc.GetContinue() != l.Continue {
+			t.Errorf("GetContinue %q, want %q", acc.GetContinue(), l.Continue)
+		}
+		acc.SetContinue("next")
+		if l.Continue != "next" {
+			t.Errorf("SetContinue did not set the list's token")
+		}
+	}
 }

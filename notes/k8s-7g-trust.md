@@ -111,6 +111,22 @@ precondition; the reflector's two call sites (`Reflector__watch.lean:379`,
 V and T change two existing axioms' meaning and one hypothesis in place. Scope §4 estimated +6 to
 +10.
 
+### Step 3 changes to trust text (STOP 2, decided by etcd-grove-03, 2026-11-17)
+
+For the joint independent attack of all 7g trust texts before the step-6 Freeze:
+
+- (a) `maps.Keys.spec_objMap` (`Spec/maps/Keys.lean`, axiom `maps.Keys.wp_proof_objMap`) **in place**:
+  the post is `(f : GoFunc), RET #f` (was `(f : val), RET f`, which may be a panic value, so no
+  caller could step `let "$a0" := f`); the nested WP runs `Sorted` on `#f`. Stronger post; Go:
+  `maps.Keys` returns a func literal (`maps/iter.go`). New Go test `TestMapsKeysNoPanic` (nil, empty,
+  non-empty map: no panic, non-nil func).
+- (b) `apimeta.ListAccessor.spec` (`Spec/k8s_io/apimachinery/pkg/api/meta/ListAccessor.lean`, a named
+  hypothesis of client-go's cache `Link`, "boundary pending approval") **widened in place** to a
+  conjunction: the reflector's typed-list row unchanged, and a second row for the driver's `*ObjList`
+  (any pointer, nil included, precondition only `isPkgInit`: returns the same interface value and a
+  nil error, `meta.go:69-86` first case `List`). The two reflector callers use `.1`. The file imports
+  the driver's `Code` module (for `ObjList.ty`). New Go test `TestListAccessorObjList`.
+
 ## 5. For the attack
 
 - `deepRep` is a fixed definition (no predicate parameter); each claim reads only cells it holds.

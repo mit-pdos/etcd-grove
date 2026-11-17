@@ -418,7 +418,7 @@ theorem Reflector.list.wp_proof
         all_goals
           wp_apply (wp_setUnavailable r v u' false) $$ [$Hpkg $Hown] as Hown
           (try wp_auto)
-          wp_apply (wp_ListAccessor res q os (rvStr σ.rev)) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
+          wp_apply (wp_ListAccessor.1 res q os (rvStr σ.rev)) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
           subst hmerr
           iunfold apimeta.listAccOk at Hacc
           icases Hacc with ⟨%hm, #HrvM, #HcontM⟩

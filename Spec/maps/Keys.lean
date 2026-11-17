@@ -10,7 +10,9 @@ will be `maps.Keys.wp_proof_objMap` (k8s 7g, `notes/k8s-7g-trust.md`), until Per
 
 Faithful (go1.27.3, `maps/iter.go`, `slices/iter.go`, `slices/sort.go`): `Keys(m)` is
 `func(yield func(K) bool) { for k := range m { if !yield(k) { return } } }`: it reads nothing when
-called and allocates only the closure; every run of the closure ranges over `m` as it is then.
+called and allocates only the closure, so it never panics and returns a non-nil func value (the
+post's `f : GoFunc`, a typed value and so never a panic value; changed in place from `(f : val)`,
+which no caller could use, k8s 7g step 3 STOP 2a, decided by etcd-grove-03); every run of the closure ranges over `m` as it is then.
 `Sorted(seq)` is `s := Collect(seq); Sort(s); return s`; `Collect` is `AppendSeq([]E(nil), seq)`,
 whose yield always returns true, so a range over the unmodified map appends each key once (the
 order is unspecified and does not matter after the sort); `Sort` on `[]string` sorts by `cmp.Less`,
@@ -21,7 +23,8 @@ back). The heapsort fallback's index overflow needs `2^62` elements, which no ma
 Go evidence: `examples/k8s/etcd3/trustspecs_test.go` `TestMapsKeysSorted` (5000 random maps with
 non-ASCII and invalid UTF-8 keys: each key once, strictly increasing by Go's `<`; an empty map gives
 nil; a key added after `Keys` and before `Sorted` is listed; a second `Sorted` of the same iterator
-re-reads the map). Lean-first.
+re-reads the map), `TestMapsKeysNoPanic` (`Keys` of a nil, an empty and a non-empty map returns
+without panicking, and the func is non-nil). Lean-first.
 -/
 module
 
@@ -50,13 +53,13 @@ abbrev maps.Keys.spec_objMap : Prop :=
     (App (Val #(functions _root_.Perennial.maps.Keys
       [go.GoType.MapType go.string k8s_io.apimachinery.pkg.runtime.Object.ty, go.string,
         k8s_io.apimachinery.pkg.runtime.Object.ty])) (Val #m))
-  {{ (f : val), RET f;
+  {{ (f : GoFunc), RET #f;
       □ ∀ (M : GMap GoString GoInterface) (dq : DFrac) (Φ : val → IProp GF),
         isPkgInit pkg_id.slices -∗ m ↦${dq} M -∗
         ▷ (∀ (s : GoSlice) (ks : List GoString),
             m ↦${dq} M -∗ s ↦* ks -∗
             ⌜(∀ k, k ∈ ks ↔ (M !! k).isSome) ∧ ks.Pairwise go.GoStringLt⌝ -∗ Φ #s) -∗
-        WP (App (Val #(functions _root_.Perennial.slices.Sorted [go.string])) (Val f)) {{ Φ }} }}
+        WP (App (Val #(functions _root_.Perennial.slices.Sorted [go.string])) (Val #f)) {{ Φ }} }}
 
 end spec
 

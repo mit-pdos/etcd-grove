@@ -101,7 +101,7 @@ theorem ListPager.list.wp_proof
               iframe
     · subst he hobj
       (try wp_auto)
-      wp_apply (wp_ListAccessor res q os rv) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
+      wp_apply (wp_ListAccessor.1 res q os rv) $$ [$Hmeta $Hl] as %m %merr ⟨%hmerr, Hl, #Hacc⟩
       subst hmerr
       iunfold apimeta.listAccOk at Hacc
       icases Hacc with ⟨%hm, #HrvM, #HcontM⟩
