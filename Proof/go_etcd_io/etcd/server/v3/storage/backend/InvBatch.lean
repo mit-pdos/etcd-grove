@@ -352,14 +352,14 @@ theorem batchGhost_step_rb (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (k c : Bool) (hOc : ∀ m, m ≠ n → st'.cw m = st.cw m) (hcw : k = false → st'.cw n = st.cw n)
     (hcwT : k = true → st.tk n = .idle ∨ st.cw n = true → st'.tk n = .idle ∨ st'.cw n = true)
     (hkc : k = true → c = true) :
-    ⊢ batchGhost (GF := GF) γ P st c -∗ rbPut γ P n st.S k ==∗
+    ⊢ batchGhost (GF := GF) γ P st c -∗ rbPut γ P n st.S k ={⊤}=∗
       batchGhost γ P st' c ∗ rbPut γ P n st'.S k := by
   unfold batchGhost batchGhostAt trkSide trkHalf
   iintro ⟨Hv, Hrest⟩ Hc
   ihave Hv := batchViewQ_mono γ P hC hR hDl $$ Hv
   icases Hrest with ⟨%n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨⟨Hk, Hb⟩, Hrr⟩, Hfk, %Hok⟩
   imod rbWrite γ P st st' n k c hC hR (by rw [hc]) hBT hB
-    (fun m hm => ⟨hK m hm, hO m hm, hOc m hm⟩) hcw hcwT hkc $$ [$Hb $Hc $Hrr] with ⟨Hb, Hc, Hrr⟩
+    (fun m hm => ⟨hK m hm, hO m hm, hOc m hm⟩) hcw hcwT hkc ⊤ (by solve_ndisj) $$ [$Hb $Hc $Hrr] with ⟨Hb, Hc, Hrr⟩
   rw [hC, hR, hS]
   ihave Hfk := fkHalf_mono γ P hF hV hD $$ Hfk
   imodintro
@@ -412,7 +412,7 @@ theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     (k c : Bool) (hOc : ∀ m, m ≠ n → st'.cw m = st.cw m) (hcw : k = false → st'.cw n = st.cw n)
     (hcwT : k = true → st.tk n = .idle ∨ st.cw n = true → st'.tk n = .idle ∨ st'.cw n = true)
     (hkc : k = true → c = true) :
-    ⊢ batchGhost (GF := GF) γ P st c -∗ rbPut γ P n st.S k -∗ dlPut γ P n ==∗
+    ⊢ batchGhost (GF := GF) γ P st c -∗ rbPut γ P n st.S k -∗ dlPut γ P n ={⊤}=∗
       batchGhost γ P st' c ∗ rbPut γ P n st'.S k ∗ dlPut γ P n := by
   cases hsb : P.SB n
   · unfold dlPut
@@ -435,7 +435,7 @@ theorem batchGhost_step_dl (γ : BNames) (P : BParams) {st st' : BSess} (hC : st
     unfold trkSide trkHalf
     icases Hk with ⟨⟨Hk, Hb⟩, Hrr⟩
     imod rbWrite γ P st st' n k c hC hR (by rw [hc]) hBT hB
-      (fun m hm => ⟨hK m hm, hO m hm, hOc m hm⟩) hcw hcwT hkc $$ [$Hb $Hrp $Hrr] with ⟨Hb, Hrp, Hrr⟩
+      (fun m hm => ⟨hK m hm, hO m hm, hOc m hm⟩) hcw hcwT hkc ⊤ (by solve_ndisj) $$ [$Hb $Hrp $Hrr] with ⟨Hb, Hrp, Hrr⟩
     rw [hC, hR, hS]
     imodintro
     iframe Hrp
@@ -465,14 +465,14 @@ theorem batchGhost_step_put (γ : BNames) (P : BParams) {st st' : BSess} (hC : s
     (kc c : Bool) (hOc : ∀ m, m ≠ n → st'.cw m = st.cw m) (hcw : kc = false → st'.cw n = st.cw n)
     (hcwT : kc = true → st.tk n = .idle ∨ st.cw n = true → st'.tk n = .idle ∨ st'.cw n = true)
     (hkc : kc = true → c = true) :
-    ⊢ batchGhost (GF := GF) γ P st c -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S kc -∗ fkPut γ n k ==∗
+    ⊢ batchGhost (GF := GF) γ P st c -∗ hkPut γ P n k st.S -∗ rbPut γ P n st.S kc -∗ fkPut γ n k ={⊤}=∗
       batchGhost γ P st' c ∗ hkPut γ P n k st'.S ∗ rbPut γ P n st'.S kc ∗ fkPut γ n k := by
   unfold batchGhost batchGhostAt trkSide trkHalf
   iintro ⟨Hv, Hrest⟩ Hhp Hrp Hfp
   ihave Hv := batchViewQ_mono γ P hC hR hDl $$ Hv
   icases Hrest with ⟨%n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨⟨Hk, Hb⟩, Hrr⟩, Hfk, %Hok⟩
   imod rbWrite γ P st st' n kc c hC hR (by rw [hc]) hBT hB
-    (fun m hm => ⟨hK m hm, hO m hm, hOc m hm⟩) hcw hcwT hkc $$ [$Hb $Hrp $Hrr] with ⟨Hb, Hrp, Hrr⟩
+    (fun m hm => ⟨hK m hm, hO m hm, hOc m hm⟩) hcw hcwT hkc ⊤ (by solve_ndisj) $$ [$Hb $Hrp $Hrr] with ⟨Hb, Hrp, Hrr⟩
   rw [hC, hR]
   imod fkHalf_put γ P (st := st) (st' := st') n k hF hFk hV hD $$ Hfk Hfp with ⟨Hfk, Hfp⟩
   ihave Hk2 : iprop(|==> (ghostVar γ.hkd (1 : Qp).half (hkData P st'.S) ∗ hkPut γ P n k st'.S))

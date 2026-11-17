@@ -837,7 +837,7 @@ commits a pending delete there); used anywhere else it would assert an idleness 
 contents there (`hrv`, from `trkOk` and the buckets untouched). -/
 private theorem rbSide_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (S : GoString → Prop)
     (rS : GMap GoString BktData) (I I' : GoString → Prop) (hI : ∀ m, I m → I' m) (hS : ∀ m, S m → I' m)
-    (hrv : ∀ n, S n → rvBkt P (st.C, st.R) n = ((rbData P st.S).lookup n).getD ∅)
+    (hrv : ∀ n, S n → P.RB n = true → rvBkt P (st.C, st.R) n = ((rbData P st.S).lookup n).getD ∅)
     (E : CoPset) (hE : ↑rbClaimN ⊆ E) :
     iprop(rbSide (GF := GF) γ P (rbData P st.S) I ∗ rbrSide γ P st c ∗ rbPart γ S rS) ⊢
       |={E}=> iprop(rbSide γ P (rbData P st.S) I' ∗ rbrSide γ P st c ∗ rbOwnIn γ S rS) := by
@@ -862,7 +862,8 @@ private theorem rbSide_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool) 
     (fun n => if S n then rbElem (GF := GF) γ n (1 : Qp).half.half ((rbData P st.S).lookup n, FC n)
       else iprop(True))
     (fun n => rbClaimOne (GF := GF) γ n (Cl n)) (fun n => rbrOne (GF := GF) γ P st n)).1 $$ [$Hl $Hc $Hm $Hb]
-  imod map_upd_thread _ _ _ γ.rbD (fun n _ => idle_one γ P st S (rbData P st.S) FL FC Cl n (hrv n))
+  imod map_upd_thread _ _ _ γ.rbD (fun n hn => idle_one γ P st S (rbData P st.S) FL FC Cl n
+    (fun h => hrv n h (Hrd n hn)))
     $$ [$Ha $Hz] with ⟨Ha, Hz⟩
   icases (map_zip4 γ.rbD
     (fun n => rbElem (GF := GF) γ n (1 : Qp).half.half ((rbData P st.S).lookup n, if S n then false else FL n))
