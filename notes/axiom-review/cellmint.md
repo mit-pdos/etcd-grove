@@ -42,17 +42,27 @@ a *mutable* value cannot be a value-pinning fact that agrees across readings.
 the panic branch is dead, and adequacy certifies the program safe.
 
 ## Review results (blind, sandboxed; the reviewer saw only Go + `Defs` + `Trusted`)
-- A first version where `Snapshot` directly minted the exclusive `cellVal` from the persistent
-  `cellInv` was caught **immediately** (the textbook "mint an exclusive resource from a persistent
-  precondition").
-- This interaction version was also caught by a **thorough, refutation-focused** review (prompted to
-  "try hard"): the reviewer identified `seen_agree` as the false law by a clean semantic argument
-  (a persistent observation of mutable state cannot entail agreement) and gave both a `⊢ False`
-  derivation and a panicking Go program.
+Three independent blind reviews were run (strong general-purpose agents, no access to
+`Run`/`Adequacy` or any hint):
 
-**Takeaway.** A route-(b)-capable ("can you derive `False`?") review that follows the axiom-skill
-methodology thoroughly catches minimal, isolated unsound axioms of this kind. The practical danger is
-*dilution*: the same unsound law buried among dozens of axioms in a large, complex package, where
-per-axiom scrutiny is thinner. This example is a ready test case for the review pipeline — run the
-pipeline's reviewer against the sandbox target (Go + `Defs` + `Trusted`) and see whether it catches
-`seen_agree`.
+1. **v1** — `Snapshot` directly minted the exclusive `cellVal` from the persistent `cellInv`.
+   Caught **immediately** (the textbook "mint an exclusive resource from a persistent precondition").
+2. **v2, thorough/adversarial** (prompted to "try hard to refute, derive `False`"). Caught:
+   identified `seen_agree` as the false law, with a `⊢ False` derivation and a panicking program.
+3. **v2, routine** ("does this spec look good to merge? flag any concerns" — a normal code-review
+   framing, not told to attack). **Also caught**: flagged `seen_agree` as unsound (persistent
+   agreement over a mutable value → derives `False`) and gave the same refutation, plus noted the
+   `Snapshot`/`Set` data race.
+
+**Takeaway.** A competent Iris-literate reviewer — even on a routine, non-adversarial pass — catches
+minimal, isolated unsound axioms of the standard classes (mint-from-persistent; persistent agreement
+over mutable state). An *isolated* example inherently exposes the whole API, so the reviewer can see
+that `Set` mutates what `seen` observes. The real-world slip-through risk is **dilution and
+complexity**: the same unsound law buried among dozens of axioms over deep, opaque predicates in a
+large package, where (a) per-axiom scrutiny is thinner and (b) whether a given fact is about a
+*stable* or a *mutable* quantity is no longer evident from the surface API. Reproducing that faithfully
+needs a large, realistic package, not a 6-operation cell.
+
+This artifact is nonetheless a ready, self-contained test case for the review pipeline: point the
+pipeline's reviewer at the sandbox target (Go + `Defs` + `Trusted`) and confirm it catches
+`seen_agree`. If it does not, that is a concrete pipeline gap.
