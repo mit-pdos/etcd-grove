@@ -1,18 +1,19 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L2 started: ReleaseSnapDBs stop)
+## START HERE (2026-11-17, L2: T1 and the ReleaseSnapDBs axiom done)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
   Coordinator: etcd-grove-03. Scope §7-§8, `questions.md` for the decisions. L1 (L1a, L1b) accepted by etcd-grove-03.
-- **ReleaseSnapDBs:** the proposal was REFUTED (Go removes a file a caller took out of `snapDirInv` by `snapDir_take`;
-  same flaw in `storage.storage.Release.wp_proof`). Record: `notes/axiom-review/releasesnapdbs.md`, Go tests
-  `examples/axiomcx/releasesnapdbs/` (pass at the pin). Fix (A) decided; the corrected text is in the review note.
-  **HARD STOP (open):** (1) the corrected text's second attack; (2) the take's form, T1 (sealed take token
-  `snapHeld`, recommended: `applyAll` needs `D` before `OpenSnapshotBackend`) vs T2 (take inside
-  `OpenSnapshotBackend` as worded; restates `applySnapshot` over `∃ D`). No Lean changed yet for L2.
-- **Next, in order, once decided:** seal `snapDirInv` + the take per T1/T2 (proved text); the axiom file;
-  L2 proper: `storage.toml`, specs/proofs of `NewStorage`/`Save`/`SaveSnap`/`Sync`/`Close`/`Release` (Release from
-  `ReleaseLockTo` + `ReleaseSnapDBs`), `purgeFile` under `MaxWALFiles = 0`. Then L3 (with L4).
+- **ReleaseSnapDBs:** round 1 REFUTED, round 2 SURVIVES (`notes/axiom-review/releasesnapdbs.md`; Go tests
+  `examples/axiomcx/releasesnapdbs/`). **T1 done** (decided by etcd-grove-03): `storage/SnapHeld.lean` (`snapHeld`,
+  sealed, gated in `etc/import-all.txt`), `snapDirInv` sealed with `snapDir_take` (generic, sealed token) and
+  `snapDirInv_ss_congr` in `rafthttp/Net.lean`, `SnapRO.snapRmM_take`, `OpenSnapshotBackend.spec` over `snapHeld … R'`,
+  `applySnapshot` takes `snapHeld … (monoNatAuthOwn γt 1 nt)`, `ApplyAllSnap`'s two takes. The axiom file
+  `api/snap/Snapshotter__ReleaseSnapDBs.lean` added (no client until `storage.Release`'s proof).
+- **Next, in order:** L2 proper: `storage.toml` (Scope §2), specs/proofs of `NewStorage`/`Save`/`SaveSnap`/`Sync`/
+  `Close`/`Release` (Release from `ReleaseLockTo` + `ReleaseSnapDBs`; then `storage.storage.Release.wp_proof` axiom
+  gone), `purgeFile` under `MaxWALFiles = 0`. Then L3 (with L4). `etc/tcb-report.py --check --update` once the new
+  axiom is reached and the old one gone (hard stop: trust-base delta).
 - **L3 obligations from L1b:** the server's `hardStateAt` becomes `hsOptC` (the Save law's premise; decided at the
   L3 statement stop); `walEntInW` needs `ufWire` and `0 < entrySize c`; `metaEnc` of `etcdserverpb.Metadata` in L3.
 - **Pitfalls:** gen-link/gen-init compare only with Perennial linked at `.lake/packages/perennial` (gates.sh does it:

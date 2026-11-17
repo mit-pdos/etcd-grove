@@ -22,6 +22,15 @@ sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.WalApi
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftNodeApi
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 
+# (wal-link L2, T1, 2026-11-17; `notes/axiom-review/releasesnapdbs.md`) the snapshot directory's take:
+# `snapDirInv` (sealed in `rafthttp.Net`, above) and the take token `storage.snapHeld` (sealed here),
+# which only `OpenSnapshotBackend`'s proof opens, after its rename. The soundness of the
+# `snap.Snapshotter.ReleaseSnapDBs` and `storage.storage.Release` axioms depends on it (as the WAL's
+# axioms on `WalRecs`'): a module that opened the token would hold a `fileHolds` at a directory path
+# that Go's listing removes.
+sealed Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld
+allow Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
+
 # (2026-11-04, the lease-expiry plan's Part C) the lease subsystem's boot and server slots, sealed;
 # callers use their laws only.
 sealed Proof.go_etcd_io.etcd.server.v3.etcdserver.LeaseApi

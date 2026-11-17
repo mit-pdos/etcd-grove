@@ -181,7 +181,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- logger a zap logger (`OpenSnapshotBackend`'s `openPre`)
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗ backend.fileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
+       snap.isSnapshotter ss ∗
+       -- (wal-link L2, T1) the file taken from the directory with the removal counter sealed in
+       storage.snapHeld (snap.snapDBPath ss sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
        backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
@@ -211,7 +213,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- (2026-11-01, J8a-1, item 8) the directory's removal fact `srvSnapRm`, as the server's
        -- bundle (`srvSnapRO`) has it (until then `snapTakenLb γt`, its first disjunct); (restart
        -- S6a) the member's removal counter `γt` (`snapRmM`), its authority at most the index plus one
-       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗ monoNatAuthOwn γt 1 nt ∗
+       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗

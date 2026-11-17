@@ -50,7 +50,7 @@ as proposed plus (m2) post `err = nil ∨ ¬ snap.dirReadOk ss`, (m3) `isSnapsho
 (m4) a docstring saying what Go removes and why that is sound. The corrected text gets a second
 short attack before the axiom file is added.
 
-## The corrected text (for the second attack; not yet in the tree)
+## The corrected text (survived the second attack; in the tree as `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Snapshotter__ReleaseSnapDBs.lean`, the docstring updated for T1)
 
 `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/snap/Snapshotter__ReleaseSnapDBs.lean` (imports as
 `Snapshotter__SaveDBFrom.lean`, plus `Proof.go_etcd_io.raft.v3.InvPb` for `smOpt`):
@@ -128,3 +128,24 @@ Either way the `ReleaseSnapDBs` text above is unchanged (it names only `snapDirI
 argument's first bullet is T1's. With T1 or T2 the existing `storage.storage.Release.wp_proof` is no
 longer refuted by this attack (same argument); L2 replaces it by a proof from `ReleaseLockTo` and
 this axiom.
+
+**Decided (etcd-grove-03, 2026-11-17): T1.** Implemented: `storage.snapHeld` (`Proof/go_etcd_io/etcd/server/v3/
+storage/SnapHeld.lean`, `@[no_expose]`, intro law only), the generic `snapDir_take` and
+`snapDirInv_ss_congr` in `rafthttp/Net.lean` (`snapDirInv` `@[no_expose]`), `SnapRO.snapRmM_take` (the
+server's refutation and update at `snapRmM`), `OpenSnapshotBackend.spec` over `snapHeld … R'` (`R'` back
+on success, the token back on an error), `applySnapshot` taking `snapHeld … (monoNatAuthOwn γt 1 nt)`.
+
+## Round 2 (2026-11-17, an independent attack for etcd-grove-03)
+
+**Verdict: the corrected text survives, and T1 closes the round-1 counterexample**, on one condition
+(major), applied: the seal is gated, `etc/import-all.txt` lists `sealed …storage.SnapHeld` with
+`allow …SnapHeld …OpenSnapshotBackend` (and `rafthttp.Net` was sealed there already), with a comment
+that `ReleaseSnapDBs`' (and `storage.Release`'s) soundness depends on it, as the WAL axioms' on
+`WalRecs`. Minors, applied: the take's refutation premise is a plain wand `R -∗ Rm i -∗ False`
+(sound: it is used only in the branch where the file is absent, where it consumes `R` to refute the
+invariant's `Rm i`; the other branch drops it and uses the update on the same `R`), now said in its
+docstring; the docstring says the argument holds for a removal fact that only ghost updates make (a
+`Rm` a physical step or a pure fact could make true would escape "no other thread's resources
+change"; the server's `snapRmM` is a counter's lower bound). Optional `snapHeld_forget : snapHeld p D R'
+⊢ R'`: not added (no path abandons the token: `applySnapshot`'s error arm of `OpenSnapshotBackend` is
+refuted by the environment premises).

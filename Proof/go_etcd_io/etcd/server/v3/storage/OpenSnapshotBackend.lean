@@ -11,6 +11,8 @@ public import Spec.fmt.Errorf
 public import Spec.os.Rename
 public import Spec.go_etcd_io.etcd.server.v3.config.ServerConfig__BackendPath
 public import Spec.go_etcd_io.etcd.server.v3.storage.OpenBackend
+-- (wal-link L2, T1) the only opener of the sealed take token
+import all Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld
 
 @[expose] public section
 
@@ -49,8 +51,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro _ cfg ss sn mp hk dq dq' md P D W Pk K
-  wp_start as ⟨#Hss, Hmdp, Hsm, Hf, Hpo, Hpre⟩
+  intro _ cfg ss sn mp hk dq dq' md P D W Pk K R'
+  wp_start as ⟨#Hss, Hmdp, Hsm, Hhd, Hpo, Hpre⟩
+  iunfold snapHeld at Hhd
+  icases Hhd with ⟨Hf, HR'⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   ihave #Hfmt : isPkgInit (PROP := IProp GF) pkg_id.fmt $$ []
@@ -76,7 +80,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
       isplitr
       · ipureintro; rfl
       iexists b, γ
-      iframe Hnew Hhka Hpo Hbf
+      iframe Hnew Hhka Hpo Hbf HR'
       ipureintro; rfl
     · obtain ⟨ei, rfl⟩ : ∃ ei, err2 = GoInterface.ok ei := by
         cases err2 with
@@ -95,9 +99,11 @@ theorem storage.OpenSnapshotBackend.wp_proof
       iapply HΦ
       iframe Hmdp Hsm
       iright
-      iframe Hf Hpo
-      ipureintro
-      exact ⟨nofun, rfl, fun h => Hr.2 h.2⟩
+      iframe Hpo
+      isplitr
+      · ipureintro
+        exact ⟨nofun, rfl, fun h => Hr.2 h.2⟩
+      iunfold snapHeld; iframe Hf HR'
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
       cases err with
       | nil => exact absurd rfl Herr.1
@@ -115,9 +121,11 @@ theorem storage.OpenSnapshotBackend.wp_proof
     iapply HΦ
     iframe Hmdp Hsm
     iright
-    iframe Hf Hpo
-    ipureintro
-    exact ⟨nofun, rfl, fun h => Herr.2 h.1⟩
+    iframe Hpo
+    isplitr
+    · ipureintro
+      exact ⟨nofun, rfl, fun h => Herr.2 h.1⟩
+    iunfold snapHeld; iframe Hf HR'
 
 end proof
 

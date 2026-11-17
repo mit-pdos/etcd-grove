@@ -496,15 +496,18 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       letI := srvStor (GF := GF) γr.raft.raft
       iapply (nodeSnapLocal_elem γr.raft.raft.cl nid γd (by rw [Hsloc'.1]; exact hsl))
       iexact Hsloc
-    -- the snapshot's file out of the directory, the counter raised to its index (`snapDir_take`)
+    -- the snapshot's file out of the directory, the counter raised to its index and sealed with it (`snapDir_take`, `snapRmM_take`)
     have hnt' : nt ≤ uint.nat sv.Metadata'.Index' := by
       have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
       omega
     wp_auto_lc 1
     ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImage γr.raft.raft) (snapRmM γt)) $$ []
     · rw [← srvImageM_off, ← hao]; iexact Hdinv
-    imod snapDir_take ss γd γt (srvImage γr.raft.raft) sv.Metadata'.Index' nt hnt'
-      $$ Hlc1 Hdinv' Hsaved Hγt with ⟨Hγt, %D, Hfile, #Himg⟩
+    ihave Htake := snapRmM_take (GF := GF) γt sv.Metadata'.Index' nt hnt'
+    icases Htake with ⟨Hno, Hup⟩
+    imod snapDir_take ss γd (srvImage γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
+        (monoNatAuthOwn γt 1 nt) (monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1))
+        $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup with ⟨%D, Hfile, #Himg⟩
     -- the image's facts (`snapRecv_image`): its committed log `A'` extending `A`
     have hai0 : uint.Z ag = uint.Z γr.raft.ai0 + A.length := by
       rw [hraft]; have := hAL; word
@@ -573,7 +576,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
         iprop(True) $$ []
     · rw [← Hwl]; iexact Hnc2
     wp_apply hS
-      $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Hγt Htlive Hsm0 Hcs Hstopc
+      $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Htlive Hsm0 Hcs Hstopc
         Hbo HthT]
       as ⟨Hsapp, Hnr1, HthT⟩
     · iframe #; iframe
@@ -1019,7 +1022,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     letI := srvStor (GF := GF) γr.raft.raft
     iapply (nodeSnapLocal_elem γr.raft.raft.cl nid γd (by rw [Hsloc'.1]; exact hsl))
     iexact Hsloc
-  -- the snapshot's file out of the directory, the counter raised to its index (`snapDir_take`), its
+  -- the snapshot's file out of the directory, the counter raised to its index and sealed with it (`snapDir_take`, `snapRmM_take`), its
   -- image certified in the mode `on` (`srvImageOn`)
   have hnt' : nt ≤ uint.nat sv.Metadata'.Index' := by
     have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
@@ -1027,8 +1030,11 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   wp_auto_lc 1
   ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImageOn γr.raft.raft) (snapRmM γt)) $$ []
   · rw [← srvImageM_on, ← hao]; iexact Hdinv
-  imod snapDir_take ss γd γt (srvImageOn γr.raft.raft) sv.Metadata'.Index' nt hnt'
-    $$ Hlc1 Hdinv' Hsaved Hγt with ⟨Hγt, %D, Hfile, #Himg⟩
+  ihave Htake := snapRmM_take (GF := GF) γt sv.Metadata'.Index' nt hnt'
+  icases Htake with ⟨Hno, Hup⟩
+  imod snapDir_take ss γd (srvImageOn γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
+      (monoNatAuthOwn γt 1 nt) (monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1))
+      $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup with ⟨%D, Hfile, #Himg⟩
   -- the image's facts (`snapRecv_imageOn`): its committed log `A'` extending `A`
   have hai0 : uint.Z ag = uint.Z γr.raft.ai0 + A.length := by
     rw [hraft]; have := hAL; word
@@ -1109,7 +1115,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       iprop(True) $$ []
   · rw [← Hwl]; iexact Hnc2
   wp_apply hS
-    $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Hγt Htlive Hsm0 Hcs Hstopc
+    $$ [Hsnv Hnr0 Hai Hat Hsd0 Hlr Hbr Hfile Hpath Hst Hbe HKV HRS Htlive Hsm0 Hcs Hstopc
       Hbo HthT]
     as ⟨Hsapp, Hnr1, HthT⟩
   · iframe #; iframe

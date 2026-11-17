@@ -347,7 +347,7 @@ etcd-grove-81 (b′); `snapDirInv`'s `Rm`): a `.snap.db` file of index `j` may b
 member-level removal counter `γm` is past `j` (at least `j + 1`). The apply thread holds the
 counter's authority at most its ghost applied index plus one (`srvSnapOwn`; restart S6's CP2 route
 (C), 2026-11-13: the ghost index `g`, until then Go's applied index `ai ≤ g`): `applySnapshot(i)` raises it
-to `i + 1` when it takes the file out (`snapDir_take`; its own `Release` then removes the files below
+to `i + 1` when it takes the file out (`snapDir_take`, sealed with the counter: `snapRmM_take`; its own `Release` then removes the files below
 `i`), and `snapshot`'s `Release` at the applied index `ai` raises it to `ai`. The counter is the
 member's, not an incarnation's: the directory's invariant is allocated once, at the first start, and
 a restarted incarnation's apply thread reuses it (`srvDiskImage` carries it), while a stopped
@@ -358,66 +358,23 @@ def snapRmM (γm : GName) (j : w64) : IProp GF := monoNatLbOwn γm (uint.nat j +
 instance snapRmM_persistent (γm : GName) (j : w64) : Persistent (snapRmM (GF := GF) γm j) := by
   unfold snapRmM; infer_instance
 
-/-- (restart S6a) **The directory's invariant reads its snapshotter only through its paths**: two
-snapshotters with the same database-snapshot paths (`snapDBPath`; a restart's and the first start's,
-both `snapDBPathOf` of the data directory by the bootstrap contracts) have the same invariant. -/
-theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDBPath ss')
-    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) :
-    snapDirInv (GF := GF) ss γd img Rm = snapDirInv ss' γd img Rm := by
-  unfold snapDirInv; rw [h]
-
-/-- (2026-11-01, J8a-5) **The snapshot's file taken from the directory** (`applyAll`'s, before
-`applySnapshot(i)`, whose `OpenSnapshotBackend` renames it): a saved index `i` at or above the
-removal counter `c` (restart S6a: `c ≤ ai + 1 ≤ i` at the applied index `ai < i`) is present, its
-removal fact (`snapRmM γm i`, the counter past `i`) refuted by the counter's authority; the counter
-raised to `i + 1` gives that fact, so the file leaves the directory, with its certificate. A later
-credit strips the invariant's later (`fileHolds` is not timeless). -/
-theorem snapDir_take (ss : Loc) (γd γm : GName)
-    (img : w64 → backend.Data → IProp GF) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
-    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (snapRmM γm)) -∗ snapSaved γd i -∗
-      monoNatAuthOwn γm 1 c ={⊤}=∗
-      monoNatAuthOwn γm 1 (uint.nat i + 1) ∗
-      ∃ D : backend.Data, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D := by
-  iintro Hlc #Hinv #Hsv Hγm
-  iinv Hinv with Hi Hclose
-  imod (lc_fupd_elim_later (P := snapDirInv ss γd img (snapRmM γm))) $$ Hlc Hi with Hi
-  iunfold snapDirInv at Hi
-  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
-  iunfold snapSaved at Hsv
-  ihave %HEi := ghost_map_lookup $$ Ha Hsv
-  cases hMi : M.lookup i with
-  | none =>
-    have hp : Es.lookup i ≠ none ∧ M.lookup i = none := ⟨by simp [HEi], hMi⟩
-    ihave #Hr := HRm $$ %i %hp
+/-- (wal-link L2, T1) **The take's premises at the removal fact `snapRmM γm`**: the counter's
+authority at `c ≤ i` refutes `snapRmM γm i`, and raising it to `i + 1` makes it (`snapDir_take`,
+`rafthttp/Net.lean`, the sealed take; until then this file's `snapDir_take`, handing out `fileHolds`). -/
+theorem snapRmM_take (γm : GName) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
+    ⊢ (monoNatAuthOwn (GF := GF) γm 1 c -∗ snapRmM γm i -∗ False) ∗
+      (monoNatAuthOwn γm 1 c ==∗ monoNatAuthOwn γm 1 (uint.nat i + 1) ∗ □ snapRmM γm i) := by
+  isplitl
+  · iintro Hγm Hr
     iunfold snapRmM at Hr
     ihave %Hv := monoNatLbOwn_valid γm 1 c (uint.nat i + 1) $$ Hγm Hr
     exfalso; omega
-  | some D =>
+  · iintro Hγm
     imod (mono_nat_own_update (uint.nat i + 1) (by omega)) $$ Hγm with ⟨Hγm, #Htk⟩
-    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileHolds
-      (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
-    imod Hclose $$ [Ha HM] with -
-    · inext
-      iunfold snapDirInv
-      iframe Hdi
-      iexists GMap.delete i M, Es
-      iframe Ha HM HEs
-      isplitr
-      · ipureintro
-        intro j hj
-        by_cases hji : i = j
-        · subst hji; exact absurd (GMap.lookup_delete M i) hj
-        · rw [GMap.lookup_delete_ne M hji] at hj; exact HME j hj
-      iintro !> %j %hj
-      by_cases hji : i = j
-      · subst hji
-        iunfold snapRmM; iexact Htk
-      · rw [GMap.lookup_delete_ne M hji] at hj
-        iapply HRm $$ %j %hj
     imodintro
     iframe Hγm
-    iexists D
-    iframe Hf Himg
+    iunfold snapRmM
+    iexact Htk
 
 /-- (restart S6a) **The removal facts below `ai`, from the counter's authority** (`snapshot`'s
 `Release` at the applied index `ai`): the counter, at most `g + 1` for the ghost index `g ≥ ai`

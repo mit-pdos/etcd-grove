@@ -34,6 +34,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
+public import Proof.go_etcd_io.etcd.server.v3.storage.SnapHeld
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Defs
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab
@@ -178,8 +179,13 @@ instance snapSaved_persistent (γd : GName) (i : w64) :
 (`snapSaved`), which include `M`'s; a saved index not in `M` has the receiver's removal fact
 `Rm i`; (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81) `γd` is the ghost map
 the directory's right named (`snap.snapDirIs`, from `bootOk`'s `snap.snapDirOwn`, `snapDir_init`),
-so that every invariant the snapshot axioms take over these paths is this one. -/
-def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
+so that every invariant the snapshot axioms take over these paths is this one. (wal-link L2, T1,
+decided by etcd-grove-03, 2026-11-17: sealed. Its laws are `snapDir_init`, `snapDirInv_ss_congr` and
+the take `snapDir_take`, which hands out no `fileHolds`, only the sealed `storage.snapHeld`; the
+snapshot axioms (`SaveDBFrom`, `ReleaseSnapDBs`, `storage.Release`) take it whole. Until then a client
+could take a file out with its `fileHolds` and keep it across a `Release` that Go, listing the
+directory, removes it in: `notes/axiom-review/releasesnapdbs.md`.) -/
+@[no_expose] def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) : IProp GF :=
   iprop(snap.snapDirIs (snap.snapDBPath ss) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
     ghostMapAuth γd 1 E ∗ ⌜∀ i, M.lookup i ≠ none → E.lookup i ≠ none⌝ ∗
@@ -526,6 +532,77 @@ theorem snapDir_init (ss : Loc) (dd : GoString) (hss : snap.snapDBPath ss = snap
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h.1
   imodintro
   iexact Hi
+
+/-- (restart S6a) **The directory's invariant reads its snapshotter only through its paths**: two
+snapshotters with the same database-snapshot paths (`snapDBPath`; a restart's and the first start's,
+both `snapDBPathOf` of the data directory by the bootstrap contracts) have the same invariant. (Moved
+from `SnapRO.lean` with the sealing, wal-link L2.) -/
+theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDBPath ss')
+    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) :
+    snapDirInv (GF := GF) ss γd img Rm = snapDirInv ss' γd img Rm := by
+  unfold snapDirInv; rw [h]
+
+/-- **The snapshot's file taken from the directory, sealed** (wal-link L2, T1, decided by
+etcd-grove-03, 2026-11-17; until then `SnapRO.snapDir_take`, which handed out `fileHolds` and the
+raised counter: `notes/axiom-review/releasesnapdbs.md`). A saved index `i` whose removal fact the
+taker's `R` refutes is present in the directory; the taker's basic update makes `□ Rm i` (stored in
+the invariant, which lets the file leave `M`) and `R'`; the file and `R'` are sealed together
+(`storage.snapHeld`), which only `OpenSnapshotBackend` opens, at its rename; the image's certificate
+is the taker's. The data `D` is fixed here. Why it is safe for `ReleaseSnapDBs`, which removes by
+listing the directory: before the update no one holds `Rm i` (it contradicts `R`); the update is a
+basic update (no invariant opened), so no other thread's resources change; `R'`, the only thing the
+taker could make `Rm i` from, is sealed in the token (the seal gated by `etc/import-all.txt`). The
+argument is for a removal fact that only ghost updates make (as the server's `snapRmM`, a counter's
+lower bound): a `Rm` that a physical step or a pure fact could make true would escape "no other
+thread's resources change". The refutation `R -∗ Rm i -∗ False` is a plain wand: it is used only where
+the file is absent (it consumes `R` against the invariant's `Rm i`), and the other branch drops it and
+spends `R` on the update. A later credit strips the invariant's later (`fileHolds` is not
+timeless). -/
+theorem snapDir_take (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
+    (Rm : w64 → IProp GF) (i : w64) (R R' : IProp GF) :
+    ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img Rm) -∗ snapSaved γd i -∗ R -∗
+      (R -∗ Rm i -∗ False) -∗ (R ==∗ R' ∗ □ Rm i) ={⊤}=∗
+      ∃ D : backend.Data, storage.snapHeld (snap.snapDBPath ss i) D R' ∗ □ img i D := by
+  iintro Hlc #Hinv #Hsv HR Hno Hup
+  iinv Hinv with Hi Hclose
+  imod (lc_fupd_elim_later (P := snapDirInv ss γd img Rm)) $$ Hlc Hi with Hi
+  iunfold snapDirInv at Hi
+  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  iunfold snapSaved at Hsv
+  ihave %HEi := ghost_map_lookup $$ Ha Hsv
+  cases hMi : M.lookup i with
+  | none =>
+    have hp : Es.lookup i ≠ none ∧ M.lookup i = none := ⟨by simp [HEi], hMi⟩
+    ihave #Hr := HRm $$ %i %hp
+    iexfalso
+    iapply Hno $$ HR Hr
+  | some D =>
+    imod Hup $$ HR with ⟨HR', #Hrm⟩
+    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileHolds
+      (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
+    imod Hclose $$ [Ha HM] with -
+    · inext
+      iunfold snapDirInv
+      iframe Hdi
+      iexists GMap.delete i M, Es
+      iframe Ha HM HEs
+      isplitr
+      · ipureintro
+        intro j hj
+        by_cases hji : i = j
+        · subst hji; exact absurd (GMap.lookup_delete M i) hj
+        · rw [GMap.lookup_delete_ne M hji] at hj; exact HME j hj
+      iintro !> %j %hj
+      by_cases hji : i = j
+      · subst hji
+        iexact Hrm
+      · rw [GMap.lookup_delete_ne M hji] at hj
+        iapply HRm $$ %j %hj
+    imodintro
+    iexists D
+    iframe Himg
+    iapply storage.snapHeld_intro
+    iframe Hf HR'
 
 -- (2026-10-27) `snapLocal_of_saved` (`snapSaved` as raft's `snapLocal`, by `RaftNames.reSnapLoc`)
 -- deleted with the server's port onto raft's node API: the server's clusters send no snapshot.

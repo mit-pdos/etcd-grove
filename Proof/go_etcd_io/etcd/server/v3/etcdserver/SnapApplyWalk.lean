@@ -159,7 +159,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗ backend.fileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
+       snap.isSnapshotter ss ∗
+       -- (wal-link L2, T1) the file taken from the directory with the removal counter sealed in
+       storage.snapHeld (snap.snapDBPath ss sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
        backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
@@ -187,7 +189,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗ monoNatAuthOwn γt 1 nt ∗
+       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
@@ -224,7 +226,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
         quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -329,7 +331,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   haveI : ThreadBoundLe GF (2 ^ 29) := ⟨by unfold backend.rdPoolN at Htb0; omega⟩
   wp_apply hOSB cfg ss sn smp hk DFrac.discard DFrac.discard sv.Metadata' d.P D
       (fun _ => mvcc.api.mvccW gx') (fun γB => batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P))
-      (snapOpenK γ π0 d.P) $$ [Hfile Hpath Hcreate]
+      (snapOpenK γ π0 d.P) (monoNatAuthOwn γt 1 nt) $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
     iunfold storage.openPre
@@ -337,7 +339,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     isplitr
     · ipureintro; exact ⟨hdbo, hmmap, hP.1, hP.2.1⟩
     iexact Hcreate
-  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, #HnFile⟩ | ⟨%Herr, -, -⟩)
+  icases Hres with (⟨%Herr, %nb, %γB, %Hbe, Hnew, #HhkAt, Hdbp, Hγt, #HnFile⟩ | ⟨%Herr, -, -⟩)
   rotate_left
   · exfalso
     exact Herr.2.2 ⟨hsop.1 ss, hsop.2.1 _ _⟩
