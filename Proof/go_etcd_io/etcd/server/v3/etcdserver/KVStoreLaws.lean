@@ -223,6 +223,32 @@ theorem kvModelM_prefix (on : Bool) (γk : KVNames) (A A' : List EntryModel) (h 
   · exact kvRaftOf_prefix _ _ _ _ _ h
   · exact kvRaftOfOn_prefix _ _ _ _ _ h
 
+/-- **The Restore contract's precondition from a restore update** (auth-lease S4 item 7b F4, 2026-11-17: the proof of
+`restoreArgs_holds` generalized over the update `Q`, so that the server's snapshot path builds it from its tie's
+builder `au_restore_tie`): the store's handle from the store invariant, the commit request `True ⇒ True`. -/
+theorem restorePreA_of_au (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
+    (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF) (γs : KVSNames) (B B' : mvcc.KBReal) (Pk Pk' : IProp GF)
+    (σ' : MvccState) (u : Bool) (Ls : List w64) (dq : DFrac) (f : GoFunc) (Pre Q' Post : IProp GF)
+    (Q : MvccState → IProp GF) (hre : MvccReachable σ') (hpe : σ'.pending = none)
+    (hit : ∀ it lid, (mvcc.pendItems σ'.log []).lookup it = some lid →
+      lid ∈ Ls ∧ (it.Key'.length : Int) < 2 ^ 63 - 1) :
+    kvStoreInvG (GF := GF) kv γ Nx Cp γs ∗ mvccOpen γ ∗ mvccBackend γ 1 B Pk ∗
+      mvccStorageFor B' Pk' σ'.log σ'.crev u ∗ backend.plHookAt B'.γB dq f ∗ Pre ∗
+      mvcc.api.hookRun Pk' f Pre Q' ∗ (Q' ={⊤}=∗ Pk' ∗ Post) ∗ lease.leaseOwn (mvccLeases γ) Ls ∅ ∗
+      auRestore γ σ' Q ⊢
+    restorePreA kv γ B B' Pk Pk' σ' u Ls dq f Pre Q' Post iprop(True) iprop(True) Q := by
+  haveI := Hp.1 kv γ
+  iintro ⟨Hk, Ho, HB, HB', Hh, HPre, Hrun, HQ', Hl, HAU⟩
+  iunfold kvStoreInvG at Hk
+  icases Hk with ⟨#Hm, -⟩
+  iunfold restorePreA
+  iframe Hm Ho HB HB' Hh HPre Hrun HQ' Hl HAU
+  isplitr
+  · ipureintro; exact ⟨hre, hpe⟩
+  isplitr
+  · iapply (backend.commitReq_true (GF := GF) B'.γB B'.P Pk' B'.be)
+  ipureintro; exact hit
+
 /-- **The Restore builder, proved** (`restoreArgs.law`): `au_restore` at the raft witness
 `kvNx γr on` of the snapshot's log `A'` and the permit `crevOk γr` of its compaction revision, the
 restored state extending the apply thread's (`kvModelM_prefix`, `crevOf_mono`); the store's handle
@@ -243,17 +269,11 @@ theorem restoreArgs_holds (Hp : persistent.law (GF := GF)) : restoreArgs.law (GF
   · iunfold kvNx; iexists A'; iframe Hlb; ipureintro; exact ⟨rfl, hkey⟩
   ihave HAU := au_restore (kvNx γr on) (crevOk γr) Hp kv γ γs log (kvModelM on γr.kv A') c
     (crevOf γr.kv A') hl hcc $$ Hk Hw Hc Hnx Hcp
-  ihave #Hk' := Hk
-  iunfold kvStoreInvG at Hk'
-  icases Hk' with ⟨#Hm, -⟩
-  iunfold restorePreA
-  simp only [stAt_log, stAt_crev, stAt_pending]
-  iframe Hm Ho HB HB' Hh HPre Hrun HQ' Hl HAU
-  isplitr
-  · ipureintro; exact ⟨hre, trivial⟩
-  isplitr
-  · iapply (backend.commitReq_true (GF := GF) B'.γB B'.P Pk' B'.be)
-  ipureintro; exact hit
+  iapply (restorePreA_of_au Hp kv γ (kvNx γr on) (crevOk γr) γs B B' Pk Pk'
+    (stAt (kvModelM on γr.kv A') (crevOf γr.kv A')) u Ls dq f Pre Q' Post _ hre rfl
+    (by simp only [stAt_log]; exact hit))
+  simp only [stAt_log, stAt_crev]
+  iframe Hk Ho HB HB' Hh HPre Hrun HQ' Hl HAU
 
 end snap
 
