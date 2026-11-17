@@ -114,7 +114,7 @@ theorem apply.applierV3backend.Put.wp_proof
           iexact Hc
       isplitl [Hw Hnx]; rotate_left
       · itrivial
-      unfold txn.putAU
+      unfold txn.putAU txn.putAUW
       iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
       iapply HauB $$ %log %c %_ Hw
       iintro Hw
@@ -126,6 +126,7 @@ theorem apply.applierV3backend.Put.wp_proof
         · simp only [↓reduceIte]
           simp only [srvApi.stAt]
           iapply Hlok; ipureintro; first | exact hig | trivial | rfl
+      iintro -
       iapply apply.commitAU_of_auEnd
       ihave He := HauE $$ %log %c %_ Hw Hnx
       iapply apply.auEnd_wand $$ He

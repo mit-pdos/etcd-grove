@@ -1221,6 +1221,16 @@ and the live leases' item sets, which agree with it. -/
 def leaseOwnW (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) : IProp GF :=
   iprop(leaseFrag γl (1 : Qp).half L ∗ leaseClosers γl L I w)
 
+/-- **The owner can produce its window witness** (auth-lease S4 item 7b F2, 2026-11-17): at any window, the owner's
+resource gives `winWit` of its item map (`win_wit`, from the lessor's reader invariant). A layer holding only the
+owner's resource (txn's `isTxnLessor`, `DeleteRange`) takes it as a persistent premise. -/
+def winWitOk (γl : GName) : IProp GF :=
+  iprop(□ (∀ (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin),
+    leaseOwnW γl L I w ={⊤}=∗ leaseOwnW γl L I w ∗ winWit γl w I))
+
+instance winWitOk_persistent (γl : GName) : Persistent (winWitOk (GF := GF) γl) := by
+  unfold winWitOk; infer_instance
+
 /-- **The lease owner's half with no window open** (auth-lease S4 item 7b: `leaseOwnW … none`). -/
 abbrev leaseOwn (γl : GName) (L : List w64) (I : GMap LeaseItem w64) : IProp GF :=
   leaseOwnW γl L I none

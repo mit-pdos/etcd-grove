@@ -254,7 +254,7 @@ theorem txn.Txn_sole
     simp only [Bool.false_eq_true, ↓reduceIte]
     -- the caller's wand, told that the checks passed (`checkTxn`'s `PathsIgnOk`)
     ihave Hbeg := Hwand $$ %σr %(⟨Hign, Hlok⟩ : _ ∧ _) HQr
-    iunfold txn.txnBeginAU at Hbeg
+    iunfold txn.txnBeginAUW at Hbeg
     ihave Hbeg := txn.beginAU_reach hpers hreach _ γ _ $$ Hkv Hbeg
     wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Hrd $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]
       as %tw ⟨Htrc, Hbk, ⟨%σw, Htw, ⟨%Hreachw, %Hlogw, Hcommit⟩⟩, HQ⟩
@@ -281,6 +281,17 @@ theorem txn.Txn_sole
     · cases Hc
     subst Herr
     (try wp_auto)
+    -- the lessor's window witness for the items after the run (item 7b F2), given to the commit
+    icases Hown with (Hf | Hown)
+    · iexfalso; iexact Hf
+    ihave #Hle' := Hle
+    iunfold txn.isTxnLessor at Hle'
+    icases Hle' with ⟨-, %li, -, -, #Hwit⟩
+    iunfold EtcdGrove.lease.winWitOk at Hwit
+    imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+    ihave Hcommit := Hcommit $$ [Hw]
+    · rw [Hlogw, txn.pendItems_commitLog, stateAfter_commitLog]
+      iexact Hw
     wp_apply (txn.end_write hEndW γ trace σw _ q B P (Qw σw)) $$ [$Htw $Hbk $HP Hcommit]
       as ⟨Hrd, Hbk, HQw⟩
     · iexact Hcommit
@@ -301,8 +312,6 @@ theorem txn.Txn_sole
     · ipureintro
       exact traceutil.fieldsWf_cons_int _ _ _ (.int _) _
         (traceutil.fieldsWf_cons_int _ _ _ (.int64 _) _ traceutil.fieldsWf_nil)
-    icases Hown with (Hf | Hown)
-    · iexfalso; iexact Hf
     iapply HΦ
     ihave Hbk : txn.kvBackend γ q B P f $$ [Hbk]
     · iunfold txn.kvBackend; iframe Hbk Hhook

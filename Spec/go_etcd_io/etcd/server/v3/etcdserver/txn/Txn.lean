@@ -67,7 +67,7 @@ abbrev txn.Txn.specSole : Prop :=
        else iprop(∀ σ : MvccState,
          ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
            txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
-         Qr σ -∗ txn.txnBeginAU γ log t Qw)) }}
+         Qr σ -∗ txn.txnBeginAUW γ w log t Qw)) }}
     (App (App (App (App (App (App (App (Val (@! txn.Txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #rt)) (Val #shared)) (Val #kv)) (Val #le)) (Val #skip))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);

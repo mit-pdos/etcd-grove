@@ -49,8 +49,7 @@ def isTxnLessor (le : GoInterface) (γl : GName) : IProp GF :=
         (w : Option lease.LWin),
       {{ lease.lessorUserW γl L I w }} (App (Val #(methods li.ty go!"Lookup" li.v)) (Val #id))
       {{ (l : Loc), RET #l; lease.lessorUserOpenW γl L I id l w ∗ ⌜l = null ↔ id ∉ L⌝ }}) ∗
-    □ (∀ (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (w : Option lease.LWin),
-      lease.leaseOwnW γl L I w ={⊤}=∗ lease.leaseOwnW γl L I w ∗ lease.winWit γl w I))
+    lease.winWitOk γl)
 
 instance isTxnLessor_persistent (le : GoInterface) (γl : GName) :
     Persistent (isTxnLessor (GF := GF) le γl) := by

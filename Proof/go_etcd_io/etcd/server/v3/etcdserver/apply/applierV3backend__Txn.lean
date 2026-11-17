@@ -91,12 +91,13 @@ theorem apply.applierV3backend.Txn.wp_proof
     · simp only [Bool.false_eq_true, ↓reduceIte]
       iintro %σ %hig ⟨%Hσ, Hw⟩
       subst Hσ
-      unfold txn.txnBeginAU
+      unfold txn.txnBeginAU txn.txnBeginAUW
       iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
       iapply HauB $$ %log %c %_ Hw
       iintro Hw
       isplitr
       · ipureintro; rfl
+      iintro -
       iapply apply.commitAU_of_auEnd
       iunfold apply.certPreT at Hcp
       ihave Hnx := Hcp $$ %(apply.Outcome.applied (mvcc.commitLog log

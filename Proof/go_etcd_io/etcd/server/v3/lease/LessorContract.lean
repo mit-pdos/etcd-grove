@@ -92,7 +92,8 @@ theorem isTxnLessor_of_lessorInv
   iunfold lessorInv at Hinv'
   icases Hinv' with ⟨%Hlp, #Hpin, -, #Hrdi⟩
   isplitl []; rotate_left
-  · iintro !> %L %I %w Hown
+  · iunfold winWitOk
+    iintro !> %L %I %w Hown
     iapply (win_wit γl L I w ⊤ (by simp)) $$ [$Hrdi $Hown]
   iintro !> %id %L %I %w %Φ !> Hu HΦ
   iunfold lessorUserW at Hu

@@ -110,7 +110,7 @@ theorem txn.Put.wp_proof
   icases Hlok with %Hlok
   rw [decide_eq_true Hlok] at *
   simp only [↓reduceIte]
-  iunfold txn.putAU at Hau
+  iunfold txn.putAUW at Hau
   ihave Hau := txn.beginAU_reach hpers hreach kv γ _ $$ Hkv Hau
   icases txn.isMvcc_shape hsh kv γ $$ Hkv with ⟨%Hsh, -⟩
   obtain ⟨kty, kvv, rfl, -, hWriteC, -⟩ := Hsh
@@ -141,6 +141,19 @@ theorem txn.Put.wp_proof
     have hpp : txn.putPend o σ₀ = [] := by
       unfold txn.putPend; simp only [Hn.1, Hn.2.1, and_self, ↓reduceIte]
     rw [hpp] at *
+    -- the window witness at the begin state's items (nothing written)
+    ihave #Hle' := Hle
+    iunfold txn.isTxnLessor at Hle'
+    icases Hle' with ⟨-, %li, -, -, #Hwit⟩
+    iunfold EtcdGrove.lease.winWitOk at Hwit
+    iunfold EtcdGrove.lease.lessorUserW at Hu
+    icases Hu with ⟨Hown, Hrdo, Hrvk⟩
+    imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+    rw [← Hitems]
+    ihave Hcommit := Hcommit $$ Hw
+    rw [Hitems]
+    ihave Hu : EtcdGrove.lease.lessorUserW (mvcc.api.mvccLeases γ) L I wn $$ [Hown Hrdo Hrvk]
+    · iunfold EtcdGrove.lease.lessorUserW; iframe Hown Hrdo Hrvk
     wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀)) $$ [$Htx $Hbk $HP $Hcommit]
       as ⟨Hrd, Hbk, HR⟩
     (try wp_auto)
@@ -201,6 +214,13 @@ theorem txn.Put.wp_proof
       cases this
     simp only [hneg, ↓reduceIte]
   rw [hpp]
+  -- the lessor's window witness for the items after the put (item 7b F2), given to the commit
+  ihave #Hle' := Hle
+  iunfold txn.isTxnLessor at Hle'
+  icases Hle' with ⟨-, %li, -, -, #Hwit⟩
+  iunfold EtcdGrove.lease.winWitOk at Hwit
+  imod Hwit $$ Hown with ⟨Hown, #Hw⟩
+  ihave Hcommit := Hcommit $$ Hw
   wp_apply (txn.end_write hEndC γ trace σ₀ _ q B P (R σ₀)) $$ [$Htx $Hbk $HP $Hcommit] as ⟨Hrd, Hbk, HR⟩
   (try wp_auto)
   iapply HΦ

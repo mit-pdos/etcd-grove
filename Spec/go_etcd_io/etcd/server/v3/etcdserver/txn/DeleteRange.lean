@@ -35,7 +35,8 @@ updates (`delPend o σ₀ true`), the response; or, with `PrevKv`, the range rea
 The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
-drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) Auth-lease S4 item 7b, 2026-11-17: in the lessor window `w`, the window dropping the range's items.
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) Auth-lease S4 item 7b, 2026-11-17: in the lessor window `w`, the window dropping the range's items; item 7b F2: the owner's window witness
+(`lease.winWitOk`), given to the commit.
 -/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
@@ -45,9 +46,10 @@ abbrev txn.DeleteRange.spec : Prop :=
     (w : Option lease.LWin),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.deleteRangeRequestIs dr o ∗
-      lease.leaseOwnW (mvccLeases γ) L I w ∗ ⌜lease.winDrops w I (txn.delSelOf o)⌝ ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+      lease.leaseOwnW (mvccLeases γ) L I w ∗ lease.winWitOk (mvccLeases γ) ∗
+      ⌜lease.winDrops w I (txn.delSelOf o)⌝ ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
-      zapLoggerOrNil lg ∗ txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAU γ o I R }}
+      zapLoggerOrNil lg ∗ txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAUW γ w o I R }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #kv)) (Val #dr))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);

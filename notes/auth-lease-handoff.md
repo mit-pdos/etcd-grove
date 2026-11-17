@@ -13,8 +13,13 @@
   takes the witness after the delete loop; `txn.pendItems_commitLog` (`ApiLemmas`); `srvApi.auBegin_wand`/`auBegin_pre`
   (`MvccShapes`); callers at `none`: `LessorDerive.revokeClause_of_lessorInv`, mvccrand `writer__revoke`, mvccfull
   `runner__apply` (check pending at commit time: see below).
+- **Done (F2, lean-checked):** `ApiVocab`: `txn.putAUW/delAUW/txnBeginAUW γ w …` (commit under `lease.winWit … w
+  (pendItems σ₀.log pend) -∗`), old names abbrevs at `none`; `lease.winWitOk γl` (`InvLessor`, after `leaseOwnW`), now
+  `isTxnLessor`'s last conjunct; `txn.Put/Txn.spec` take the `W` forms at `w`; `txn.DeleteRange.spec` takes
+  `lease.winWitOk (mvccLeases γ)` (it has no lessor) and `delAUW`; proofs give the witness before `End`. Appliers
+  (`applierV3backend.{Put,DeleteRange,Txn}`) still at `none` (`iintro -` before `commitAU_of_auEnd`).
 - **Next, in order (one batch, then ONE leaves build from base `00b09c1360`):**
-  1. F2: `ApiVocab`: `txn.putAUW/delAUW/txnBeginAUW γ w …` whose commit is `lease.winWit (mvccLeases γ) w (pendItems σ₀.log
+  1. (done) F2: `ApiVocab`: `txn.putAUW/delAUW/txnBeginAUW γ w …` whose commit is `lease.winWit (mvccLeases γ) w (pendItems σ₀.log
      pend) -∗ txn.commitAU …`; keep `putAU/delAU/txnBeginAU := …W none` (abbrevs: closed `txn_runTxn` names `txnBeginAU`,
      text unchanged). `txn.Put/DeleteRange/Txn.spec` take the `W` forms at their `w`; proofs (`Put.lean:113`,
      `DeleteRange.lean:74`, `Txn.lean:257`) get the witness from `isTxnLessor`'s new clause just before `End`.

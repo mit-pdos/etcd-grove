@@ -50,7 +50,7 @@ abbrev txn.Put.spec : Prop :=
       txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ zapLoggerOrNil lg ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗
-      (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then txn.putAU γ o L I R
+      (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then txn.putAUW γ w o L I R
        else iprop(True)) }}
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
       (Val #kv)) (Val #p))

@@ -54,7 +54,11 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
   iunfold apply.backendOptsOk at Hok
-  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, -⟩
+  icases Hok with ⟨#Hlg, #Hkv, -, #Haus, #Hle, -⟩
+  iunfold apply.isApplyLessor at Hle
+  icases Hle with ⟨#Hle, -⟩
+  iunfold txn.isTxnLessor at Hle
+  icases Hle with ⟨-, %li, -, -, #Hwit⟩
   iunfold apply.envAus at Haus
   icases Haus with ⟨#HauB, -, #HauE, -, #Hfacts, #Hfloor⟩
   iunfold apply.isApplyKV at Hkv
@@ -71,13 +75,13 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   ihave Hau : txn.delAU E.γ o (mvcc.leaseItemsOf (mvcc.stateAfter log))
       (fun σ ok => iprop(⌜σ = srvApi.stAt log c⌝ ∗
         srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c)) $$ [Hw]
-  · unfold txn.delAU
+  · unfold txn.delAU txn.delAUW
     iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
     iapply HauB $$ %log %c %_ Hw
     iintro Hw
     isplitr
     · ipureintro; rfl
-    iintro %ok
+    iintro %ok -
     iapply apply.commitAU_of_auEnd
     cases ok
     · simp only [txn.delPend, Bool.false_eq_true, ↓reduceIte]
@@ -107,7 +111,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o 1 B (E.Pk B)
       Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ none)
-      $$ [$Hkv $Hmr $Hr $Hown $HlgN $Hkb $Hcs $Hau]
+      $$ [$Hkv $Hmr $Hr $Hown $Hwit $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, HPost, ⟨%te', Htrc⟩, -, %σ₀, -, Hout⟩
   · isplitl []
     · ipureintro; exact Perennial.EtcdGrove.lease.winDrops_none _ _
