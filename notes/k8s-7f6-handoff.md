@@ -1,6 +1,114 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, fifth 7f-6 agent): stage D done, at its land stop
+## START HERE (2026-11-17, seventh 7f-6 agent): stage F linked, lean merged, gates passed, AT THE LAND STOP
+
+- **Branch:** `k8s-7f6` (lean `9702d5707e` merged; Perennial pin `c6b39d4f8`). Go target
+  `k8s-7f6-target` `c6bfeb69e8`. Decisions: worktree `questions.md` (E-2 APPROVED by the user via
+  etcd-grove-03; bounds +1, layout, collection axioms accepted by etcd-grove-03).
+- **Done:** step 10 (8b0a6377fb: Link/MainLinked/Adequacy/Results with the approved E-2 text);
+  merge of lean (9b2db9d75e); tcb collection k8setcd3 +25 existing axioms, STATUS, handoff
+  (eb1bf9c171); bounds baseline spec-thread examples/k8s/etcd3 1 → 2 by hand (56605a49ac); etcdstart
+  API lists `WatchServed`/`WatchEnvL`, their interfaces (6506527c07).
+- **Verified:** full build (c6b) OK; `etc/gates.sh` all passed (flock full-build lock, c6b manifest).
+- **Next:** the coordinator's go for `LAKE_PACKAGES=/shared/tmp/manifest-c6b.json
+  PERENNIAL_CHECKOUT=/shared/perennial-c6b39d4f8 etc/land.sh` (GOWORK unset). No commits while it lands.
+- **Pitfalls:** scripts need `PERENNIAL_DIR=/shared/perennial-c6b39d4f8` (gen-init) when
+  `.lake/packages/perennial` is absent; gen-link `--walfs`/`--bbolt` differ until the build is fresh;
+  `gen-specs-pkginit --check` needs `.lake/packages/perennial` (gates link it).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build T...`;
+  `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
+
+## History
+
+### 2026-11-17, seventh 7f-6 agent: stage E, at checkpoint E-2
+
+- **Branch:** `k8s-7f6`. Go target `k8s-7f6-target` `c6bfeb69e8`. Plan `notes/k8s-7f6e-plan.md`;
+  decisions in worktree `questions.md` (E-1 APPROVED by etcd-grove-03).
+- **Done, built:** §8(ii) `startCluster` with `kvWatch_served`, `clusterUp` gains `ws γrc m0`, the
+  members' `watchRegAt` at the bridges + read views, `memberOf`, `V = watchEnvL m0 (wmemsOf svs ws)
+  γrc wpfx` (b27d8d93db). `startCluster.wp_proof` takes the two mvcc laws (`Hp Hr`): link them.
+- **Done, built (this commit):** step 1 (`PendSpec.isObs/obsOk` with defaults, `PStep.obs`,
+  `pSeq_obs`; `kSpec` in `KWatch.lean` with the watch observation; `ioOk`; `stepL_sound/complete`;
+  `Bounded` + `rv ≤ hist.length`; `Model.spec` premise on `g0`); step 2 (`GenInW`, `GenInA`, `kInOk`;
+  `isCache` with `wobjs`, read-only fields, `done` invariant; `getW/putW`, `newWCache`;
+  `genWatchFrom`/`genWatch`; `Gen.wp_proof`); step 3 (`KNames.ch/b0`, `revOwn` with the mono list +
+  `KHistI`); step 4 (`WatchQ.lean`); step 5 pieces (`kOk_obs`, `watchOkL_errs`, `kWEvRel` +
+  `zObj`, `watch_commit`, `WatchCommit.lean`); `Apply.spec` gains `γk`, `kInv γ c g0 γk`,
+  `storeWatchOk sp c driverW γk`, `watchListOn`; `kOk_ok/errR`, `read_err_commit` take `Kind ≠ 5`.
+- **Done, built (cf15db4386):** step 5 `Apply.wp_proof` (watch branch: `runWatch` at `watchQ`, the
+  commit `watch_commit` with `watchOkL_errs`/`watchOkL_stream_commit`, `putW`; `done.Add(1)` on the
+  unary paths, macro `done_add`); step 6 `Check` over `RunLin2` (spec: `γk`, `watchers wops`, their
+  bounds, `kInv γk`, `storeWatchOk`, `watchListOn`, Model's rv premise); `encodeWEvents`/`runWatch`
+  posts carry the encodings' lengths (WEvOk); `GenInW`: skipped ⇒ `MinRV = []`.
+- **Done, built:** `runtime.Decode.spec`/proof (`Spec|Proof/k8s_io/apimachinery/pkg/runtime/Decode.lean`,
+  generic over the decoder's method), `codec.Decode.spec`/proof (the driver's, `codec__Decode.lean`).
+- **Done, built (step 7(v)):** `storage.AnnotateInitialEventsEndBookmark` spec/proof (generic over the
+  object's `GetAnnotations`/`SetAnnotations` contract), `Obj.GetAnnotations`/`Obj.SetAnnotations`
+  specs/proofs, `newObj.spec` post `objAtD x dzero []` (Main*'s `%o %ho` uses break until step 8),
+  `WContract.lean`: `watchContractOk_driver` (`isPkgInit driver ⊢ watchContractOk driverSpec driverW
+  codecI`) and `newItemOk_driver` (`newItemOk driverSpec (functions newObj [])`).
+- **Done, built (step 7(iii)-(iv)):** `WatchEnvN.lean`: `clientWatchOk_of_regs` (clusterUp's
+  registrations + `isNewClient` + `kvReadAu γk OneChange` (`one_read_au`) ⇒ `k8s.clientWatchOk cl γk`;
+  for `k` bridges and Main's one address), via `memberWatch_of_reg`, `streams_of_regs`.
+- **Done, built (step 8):** `newStore.spec`/proof (seed, features, `etcd3.New`; post: seed cell at
+  `σs2`, `isStore sp (storeCfgD …)`, `□ ∀ γk, clientWatchOk cl γk -∗ storeWatchOk sp (storeCfgD …)
+  driverW γk`); `storeCfgD` in `WContract.lean`.
+- **Done, built (step 9):** `Main*.spec` (watchers, wops, bounds, `ContextReadErrs`/`ContextErrsClient`
+  binders) and their proofs over `newStore`, `clientWatchOk_of_regs`, `Check` (771b092979, then Main).
+- **AT CHECKPOINT E-2 (hard stop):** `notes/k8s-7f6e-statements.md` (closed statements old → new,
+  forms since E-1). After approval: step 10 (F): link-lean-first files, `Link`/`MainLinked`/
+  `Adequacy`/`Results`, interfaces, tcb collection, bounds check, STATUS; then the land stop.
+- **Pitfalls:** build slots are often both busy (a full c6b build retries): queue builds in the
+  background and write ahead; lean-check spins at "elaborating line 1" until the imports are built
+  by `lake` (then it works, ~1 min per file). `subst` on `g' = g` eliminates `g`: `subst g'`.
+  `simp` normalizes `W64 5` to `5#64`: use `decide_eq_true h`/`decide_eq_false h`. `wp_join`:
+  bind without `as`, solve cases with `jcases` (genWatchFrom.lean: solves the goals it can fully, the
+  continuation is a wand and is skipped), then `iintro`; a case at its join value is `True ∗ R`
+  (`jfin`); `wp_auto` drops dead locals (don't pass them to a later join); persist read-only locals.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`.
+
+
+### 2026-11-17, sixth 7f-6 agent: stage E, at checkpoint E-1
+
+- **Branch:** `k8s-7f6`. Go target `k8s-7f6-target` `c6bfeb69e8` (kept in step). Plan:
+  `notes/k8s-7f6e-plan.md` (GO by etcd-grove-03, decisions in `questions.md`); E-1 = its §8.
+- **Done:** Go with watchers + G1/G2, translation, Init/PkgTable (b99bfd3fc8; tests pass, watchruns
+  26/26). `etcdstart.kvWatch_served`/`watchRegAt` (`lib/etcdstart/WatchServed.lean`) and
+  `etcdstart.watchEnvL`/`watchEnvL_conn` (`lib/etcdstart/WatchEnvL.lean`): both build (b785daaae7).
+- **Broken on purpose until E is done:** the k8s etcd3 proofs of `Gen`, `newCache`, `Apply`,
+  `Check`, `Main*` (the Go moved); nothing else.
+- **Next, in order:** after E-1's review, plan §8 (ii): `startCluster`'s Serve step with
+  `kvWatch_served`, `clusterUp` gains the members' registrations (shape in §8); `Main` the same; then
+  plan §3 steps 1-6, 7(iii)/(v), 8-10. Checkpoint E-2 (closed statements) is a hard stop.
+- **Pitfalls:** lean-check sat at "elaborating line 1" for minutes on the new files: `lake build` the
+  module through the build slot instead (20-30 s each). `ihave #` on `srvWOk` needs `haveI :=
+  v3rpc.srvWOk_persistent Hp …` first. `List.Nodup.getElem_inj` (not `_iff`). The Go target and this
+  branch change together (copy `watch.go`/`k8setcd3.go` there and commit).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  Go tests: `cd examples/k8s/etcd3; GOWORK=off go test -run ...` under `systemd-run --scope -q -p
+  MemoryMax=32G`; `watchruns.sh` with `BIN`/`OUT` under `/shared/tmp/k8s7f6e`.
+
+### 2026-11-17, sixth 7f-6 agent: stage E planned (fbe30a9a73)
+
+- **Branch:** `k8s-7f6` at lean `1612a1143a` (stage D landed) + this plan commit. Go target
+  `k8s-7f6-target` `88a1646324` (worktree `/shared/tmp/k8s7f6d/target`). Decisions: worktree
+  `questions.md` (untracked).
+- **Done:** the stage E plan, `notes/k8s-7f6e-plan.md` (E with F: model observation, inputs, the
+  invariant's mono list and `KHistW`, the watch's `Q`, `Apply`'s commit, `Check`, the `k`-member watch
+  environment, `newStore`, `Main*`, link). No Lean or Go edited.
+- **Next, after the coordinator's go:** the plan's §2 Go (G1 clamp, G2 `wobjs`; port the target's
+  `k8setcd3.go`), then §3 steps 1-10 in order; checkpoints E-1 (watch registration shape) and E-2
+  (closed statements, hard stop before linking), then the land stop.
+- **Open (plan §6):** G1/G2; E+F one land; generic `PendSpec` observation; the watch environment in
+  7f-6 (revised estimate 3400-4600 lines); drop `done ≤ total`.
+- **Pitfalls:** see the fifth agent's below (lean-check spinning at line 1 = an import that does not
+  build; `wp_if_destruct`/`wp_apply` already run `wp_auto`; Go constants need `simp only`).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`.
+
+### 2026-11-16, fifth 7f-6 agent: stage D done (landed, lean 1612a1143a)
 
 - **Branch:** `k8s-7f6` (lean `3a0a47deb1` merged, `a7c843fab8`). Go target `k8s-7f6-target`
   `88a1646324`. Decisions: worktree `questions.md` (untracked; annAt and D forms ACCEPTED).
@@ -29,8 +137,6 @@
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
   lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
   `flock /shared/tmp/etcd-grove-full-build.lock`.
-
-## History
 
 ### 2026-11-16, fourth 7f-6 agent: D's Go, annAt, WRun, the leaves, consume.spec
 

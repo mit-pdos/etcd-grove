@@ -22,13 +22,20 @@ permutation of the ids, and the bootstrap log.
 slice and the bridges'; each member, at its bridge's address, with etcd's KV calls registered and
 the address refusal-free, its KV names agreeing with the cluster's; each member's place in the
 network (what the partitioner takes); each bridge owned and not blackholed; the kubernetes client
-`kubernetes.New`'s over the `k` bridges; the client's view of etcd's KV at the start store.
+`kubernetes.New`'s over the `k` bridges; the client's view of etcd's KV at the start store; and (stage
+E of 7f-6, checkpoint E-1) each member's watch registration at its bridge's address
+(`etcdstart.watchRegAt`, its server `w.1` and watch server `w.2`) with its read view, the members'
+names those of one history (`memberOf`, at the first member's read names `γrc`), and the client's
+watch environment the members' (`watchEnvL`, `wmemsOf`): what a watcher of the client needs, but the
+watch condition (`srvOnce`), which the instance's invariant gives later.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServed
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchEnvL
 
 @[expose] public section
 
@@ -97,6 +104,24 @@ instance premises_persistent (k N : Nat) (ids : List w64) (ps : List w64)
 
 end defs
 
+section wmems
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The members as a watcher's environment lists them** (`etcdstart.watchEnvL`'s): each member's
+address (its bridge's), watch server and the server's watch facts. -/
+def wmemsOf (svs : List (EtcdGrove.client.SrvAt GF)) (ws : List (Loc × v3rpc.WSrv GF)) :
+    List (etcdstart.WMem GF) :=
+  List.zipWith (fun sv w => (sv.addr, w.2, etcdstart.srvWOf sv.E sv.γr false)) svs ws
+
+/-- The prefix of the client's watch environment (any non-empty one: `wsReqOk` does not read it). -/
+abbrev wpfx : GoString := go!"k"
+
+end wmems
+
 section cluster
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -112,7 +137,8 @@ the etcd client `cl`, the members as the client reaches them (`svs`, each at its
 the cluster's KV names `γk` and its network `γn`. -/
 def clusterUp (k : Nat) (bootLog : List EntryM) (srvs brs : GoSlice) (kc : Loc) : IProp GF :=
   iprop(∃ (γk : KVNames) (γn : NetNames GF) (ss : List Loc) (bs : List GoInterface) (cl : Loc)
-      (V : EtcdGrove.client.WEnv GF) (svs : List (EtcdGrove.client.SrvAt GF)),
+      (V : EtcdGrove.client.WEnv GF) (svs : List (EtcdGrove.client.SrvAt GF))
+      (ws : List (Loc × v3rpc.WSrv GF)) (γrc : ReadNames) (m0 : etcdstart.WMem GF),
     srvs ↦*□ ss ∗ brs ↦*□ bs ∗
     kc ↦□ (go_etcd_io.etcd.client.v3.kubernetes.Client.mk cl
       (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty) #kc)) ∗
@@ -122,7 +148,12 @@ def clusterUp (k : Nat) (bootLog : List EntryM) (srvs brs : GoSlice) (kc : Loc) 
     ([∗list] sv ∈ svs, EtcdGrove.client.kvRegsAt sv) ∗
     ([∗list] s ∈ ss, ∃ id : w64, etcdstart.srvPeerCtl γn s id) ∗
     ([∗list] br ∈ bs, ∃ addr : GoString, bridge.ownBridge br addr false) ∗
-    etcdKV γk (kvModelSt γk (bootEntries bootLog)))
+    etcdKV γk (kvModelSt γk (bootEntries bootLog)) ∗
+    ([∗list] sv; w ∈ svs; ws, etcdstart.watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗
+      isServerRead w.1 sv.E sv.γr) ∗
+    ⌜kvSame γrc.kv γk ∧ γrc.kv.log0 = [[], []] ∧
+      (∀ sv ∈ svs, v3rpc.memberOf γrc.raft γrc.kv sv.γr) ∧
+      V = etcdstart.watchEnvL m0 (wmemsOf svs ws) γrc wpfx⌝)
 
 end cluster
 

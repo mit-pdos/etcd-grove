@@ -1,6 +1,6 @@
 /- Lean-first (no Rocq counterpart).
 
-`MainPartition(k, clients, ops, sched)` (`examples/k8s/etcd3/k8setcd3.go`; stage A of
+`MainPartition(k, clients, ops, watchers, wops, sched)` (`examples/k8s/etcd3/k8setcd3.go`; stage A of
 `notes/k8s-7f6-scope.md`, 2026-11-16: `k` members, the user's decision (b)): `MainCluster` with
 `cluster3.Partitioner` running the schedule (peer cuts and mends, a bridge blackholed or
 unblackholed, its connections dropped; steps name members by index, out-of-range ones do nothing)
@@ -8,13 +8,13 @@ while `Check`'s clients run, for every schedule. `MainCluster`'s: The cluster an
 `etcdstart.Members`/`StartMembers`, each behind a bridge, a kubernetes client of the `k` bridges
 configured as etcd's clients are in practice: `etcdstart`'s dial and keepalive timeouts, the default
 retries), the seed keys (`seed`), the Kubernetes etcd3 store over the client (`etcd3.New`, as
-`Main`'s) and `Check(s, st0, clients, ops, 0)`, with a panic if porcupine reports the history
+`Main`'s) and `Check(s, st0, h0, clients, ops, watchers, wops, 0)`, with a panic if porcupine reports the history
 `Illegal`. `k = 0` returns `Unknown`.
 
 **The triple:** from the package's `isPkgInit`, the members' start bundles (each member's WAL
 directory fresh, its peer and client addresses free, the peer's HTTP protocol unregistered), the
 bridges' addresses free, the schedule (`sched ↦*□ steps`), the main thread's token and the
-cluster's named premises (`k8s_etcd3N.premises`), `MainPartition(k, clients, ops, sched)` does not
+cluster's named premises (`k8s_etcd3N.premises`), `MainPartition(k, clients, ops, watchers, wops, sched)` does not
 panic and returns `Ok` (the check
 ran: the history is linearizable) or `Unknown` (a step before the check failed). The pure premises
 are `Main`'s (`Main.spec`), with `1 ≤ k ≤ 1000`, the ids in the members' order and the cluster's
@@ -52,8 +52,9 @@ abbrev MainPartition.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (k N : Nat) (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (clients ops : w64) (sched : GoSlice)
+    (clients ops watchers wops : w64) (sched : GoSlice)
     (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step)
     [ThreadBoundLe GF (2 ^ 28)] [ReceiptBoundLe GF (2 ^ 48)] [ReceiptBoundLe GF (N + 1)],
   -- (per-type stage B3) the levels of a thread token the members' gRPC runs use
@@ -65,15 +66,16 @@ abbrev MainPartition.spec : Prop :=
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   objTyOk →
-  0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
-  sint.Z clients * sint.Z ops < 2 ^ 60 →
+  0 ≤ sint.Z clients → 0 ≤ sint.Z watchers → sint.Z clients + sint.Z watchers < 2 ^ 31 →
+  0 ≤ sint.Z ops → 0 ≤ sint.Z wops →
+  sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       ([∗list] m ∈ k8s_etcd3N.startOf (k8s_etcd3N.members k),
         etcdstart.memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ∗
       ([∗list] b ∈ k8s_etcd3N.bridges k, netAddrFree (GF := GF) b) ∗
       sched ↦*□ steps ∗ threadTok ∗ k8s_etcd3N.premises k N ids ps ctxs boot }}
-    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
-      (Val #(W64 k))) (Val #clients)) (Val #ops)) (Val #sched))
+    (App (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MainPartition))
+      (Val #(W64 k))) (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops)) (Val #sched))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}
 
 end spec

@@ -139,10 +139,14 @@ preconditions:
 cachedObj:
 etcd3_call: errOut objOut storeKey splitKey preconditions validateFor cachedObj tryUpdateFor etcd3_store__Create etcd3_store__Delete etcd3_store__GuaranteedUpdate etcd3_store__Get listOptions listOut etcd3_store__GetList SelectionPredicate__Matches SelectionPredicate__Empty labelSel__Matches labelSel__Empty fieldSel__Matches fieldSel__Empty getAttrs meta_GetItemsPtr reflect_MakeSlice reflect_Copy reflect_Append decoder__DecodeListItem versioner__UpdateList
 newCache:
+# (7f-6 stage E) the cache with the watchers' map, the watchers' cache reads and writes
+newWCache:
 cache__get:
 cache__put:
+cache__getW:
+cache__putW:
 objOf:
-etcd3_Apply: etcd3_call cache__put objOf
+etcd3_Apply: etcd3_call cache__put objOf runWatch cache__putW
 workloadKeys:
 workloadVals:
 pick:
@@ -153,10 +157,13 @@ workloadNodes:
 workloadApps:
 genList: splitKey storeKey pick workloadNodes workloadApps minRV parseRV
 genFrom: workloadKeys workloadVals workloadNodes workloadApps pick uidOf withPre minRV genList
-etcd3_Gen: cache__get genFrom
-Run: @
+# (7f-6 stage E) the watch generator
+genWatchFrom: pick rvBytes rvString workloadKeys splitKey workloadNodes storeKey workloadApps parseRV
+genWatch: genWatchFrom
+etcd3_Gen: cache__get cache__getW genFrom genWatch
+RunLin2: @
 CounterClock: @
-etcd3_Check: Run CounterClock etcd3_Model newCache etcd3_Gen etcd3_Apply
+etcd3_Check: RunLin2 CounterClock etcd3_Model newWCache etcd3_Gen etcd3_Apply
 #
 # the seeding and `Main` (over the shared start's, the clients' and the store's, `@`)
 seedOne: splitKey storeKey encodeV0 setItem
@@ -169,9 +176,18 @@ NewDefaultLeaseManagerConfig: @
 zap_NewNop:
 noStreaming:
 watchList:
-etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New seed noStreaming watchList etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue Obj__GetUID Obj__GetResourceVersion etcd3_Check =mvcc.api.mvccApi_names_nonempty_law_holds
+# (7f-6 stage E) the watch contract's decoders and annotations, the store's construction (`newStore`)
+runtime_Decode:
+codec__Decode: decodeObj
+Obj__GetAnnotations:
+Obj__SetAnnotations:
+meta_Accessor:
+AnnotateInitialEventsEndBookmark: meta_Accessor
+newStore: seed noStreaming watchList etcd3_New NewDefaultLeaseManagerConfig newObj runtime_Encode codec__Encode versioner__UpdateObject versioner__PrepareObjectForStorage versioner__ObjectResourceVersion versioner__ParseResourceVersion identity__TransformFromStorage identity__TransformToStorage decoder__Decode SetZeroValue Obj__GetUID Obj__GetResourceVersion runtime_Decode codec__Decode AnnotateInitialEventsEndBookmark Obj__GetAnnotations Obj__SetAnnotations
+context_ErrAny: @
+etcd3_Main: zap_NewNop etcdstart_StartServer etcdstart_Serve kubernetes_New newStore context_ErrAny etcd3_Check =mvcc.api.mvccApi_names_nonempty_law_holds =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds
 # (7f-6 stage D) the watch run (`watch.go`): `runWatch`, `watchEvents` over the store's `Watch`,
-# `consume` (the select loop), and their pure helpers; called by nothing linked yet (stage E)
+# `consume` (the select loop), and their pure helpers; `Apply` calls `runWatch` (stage E)
 toWEvent:
 encodeWEvents: encodeObj rvBytes
 lastObj:

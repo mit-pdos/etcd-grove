@@ -74,7 +74,8 @@ def kToWEv (e : KWEv DObj) : WEv :=
 
 /-- **The driver's record `w` of the store event `e`**: the same type, and for any event but an
 Error event (whose object the check drops) `kToWEv`. -/
-def kWEvRel (e : KWEv DObj) (w : WEv) : Prop := w.t = e.t ∧ (e.t ≠ 4 → w = kToWEv e)
+def kWEvRel (e : KWEv DObj) (w : WEv) : Prop :=
+  w.t = e.t ∧ (e.t ≠ 4 → w = kToWEv e) ∧ (e.t = 4 → w.o = zObj)
 
 /-! ## Lists -/
 
@@ -978,7 +979,7 @@ theorem initial_eq (x : Input) (h : HSt) (σ : KVState) (k : GoString) (sel : DO
 theorem nonErr_rel : ∀ {evs : List (KWEv DObj)} {ws : List WEv}, List.Forall₂ kWEvRel evs ws →
     nonErr ws = (kNonErr evs).map kToWEv
   | [], [], .nil => rfl
-  | e :: evs, w :: ws, .cons ⟨ht, hw⟩ hr => by
+  | e :: evs, w :: ws, .cons ⟨ht, hw, _⟩ hr => by
     have ih := nonErr_rel hr
     unfold nonErr kNonErr at ih ⊢
     rw [List.filter_cons, List.filter_cons]

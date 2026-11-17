@@ -8,22 +8,28 @@ hand.
 -/
 module
 
+public import Proof.k8s_io.apiserver.pkg.storage.AnnotateInitialEventsEndBookmark
 public import Proof.bytes.Buffer__Bytes
 public import Proof.bytes.Buffer__Write
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetAnnotations
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetResourceVersion
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__GetUID
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj__SetAnnotations
 public import Proof.k8s_io.apimachinery.pkg.runtime.SetZeroValue
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.addConfig
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.advance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.appendHist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bookmarksOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__get
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__getW
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__put
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__putW
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cachedObj
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.changeAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.checkedEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.closure
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Decode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec__Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.configEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.consume
@@ -53,6 +59,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.firstBookmark
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genWatchFrom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getAttrs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.getField
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.histAt
@@ -77,6 +85,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.lookup
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.matchOpt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mcreate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mdelete
+public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Proof.k8s_io.apimachinery.pkg.api.meta.GetItemsPtr
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mget
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.minRV
@@ -85,6 +94,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mstep
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mupdate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newCache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newStore
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newWCache
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.noStreaming
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.nonBookmarks
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.notFound
@@ -109,6 +120,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableLo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.reliableOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.removeAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.runWatch
+public import Proof.k8s_io.apimachinery.pkg.runtime.Decode
 public import Proof.k8s_io.apimachinery.pkg.runtime.Encode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvBytes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.rvString
@@ -144,6 +156,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadNo
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.workloadVals
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.Link
@@ -180,6 +193,10 @@ theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.conversion.EnforcePtr.wp_proof
 
+theorem Obj.wp_GetAnnotations :
+    EtcdGrove.k8s_etcd3.Obj.GetAnnotations.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.GetAnnotations.wp_proof
+
 theorem wp_rvBytes :
     EtcdGrove.k8s_etcd3.rvBytes.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.rvBytes.wp_proof
@@ -195,6 +212,10 @@ theorem Obj.wp_GetResourceVersion :
 theorem Obj.wp_GetUID :
     EtcdGrove.k8s_etcd3.Obj.GetUID.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Obj.GetUID.wp_proof
+
+theorem Obj.wp_SetAnnotations :
+    EtcdGrove.k8s_etcd3.Obj.SetAnnotations.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Obj.SetAnnotations.wp_proof
 
 theorem reflect.Value.wp_Type :
     EtcdGrove.reflect.Value.Type.spec (GF := GF) (hG := hG) :=
@@ -216,6 +237,18 @@ theorem wp_parseRV :
     EtcdGrove.k8s_etcd3.parseRV.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.parseRV.wp_proof
 
+theorem wp_getField :
+    EtcdGrove.k8s_etcd3.getField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.getField.wp_proof
+
+theorem wp_decodeObj :
+    EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
+
+theorem codec.wp_Decode :
+    EtcdGrove.k8s_etcd3.codec.Decode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.codec.Decode.wp_proof wp_decodeObj
+
 theorem wp_putField :
     EtcdGrove.k8s_etcd3.putField.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.putField.wp_proof
@@ -231,14 +264,6 @@ theorem wp_encodeObj :
 theorem codec.wp_Encode :
     EtcdGrove.k8s_etcd3.codec.Encode.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.codec.Encode.wp_proof wp_encodeObj bytes.Buffer.wp_Write
-
-theorem wp_getField :
-    EtcdGrove.k8s_etcd3.getField.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.getField.wp_proof
-
-theorem wp_decodeObj :
-    EtcdGrove.k8s_etcd3.decodeObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.decodeObj.wp_proof wp_getField
 
 theorem decoder.wp_Decode :
     EtcdGrove.k8s_etcd3.decoder.Decode.spec (GF := GF) (hG := hG) :=
@@ -288,6 +313,10 @@ theorem identity.wp_TransformToStorage :
     EtcdGrove.k8s_etcd3.identity.TransformToStorage.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.identity.TransformToStorage.wp_proof
 
+theorem runtime.wp_Decode :
+    EtcdGrove.runtime.Decode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.runtime.Decode.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -301,6 +330,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 variable [NaInvG GF]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
+
+theorem apimeta.wp_Accessor :
+    EtcdGrove.apimeta.Accessor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimeta.Accessor.wp_proof
+
+theorem storage.wp_AnnotateInitialEventsEndBookmark :
+    EtcdGrove.storage.AnnotateInitialEventsEndBookmark.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.storage.AnnotateInitialEventsEndBookmark.wp_proof apimeta.wp_Accessor
 
 theorem wp_storeEqual :
     EtcdGrove.k8s_etcd3.storeEqual.spec (GF := GF) (hG := hG) :=
@@ -342,9 +379,17 @@ theorem cache.wp_get :
     EtcdGrove.k8s_etcd3.cache.get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.cache.get.wp_proof
 
+theorem cache.wp_getW :
+    EtcdGrove.k8s_etcd3.cache.getW.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cache.getW.wp_proof
+
 theorem cache.wp_put :
     EtcdGrove.k8s_etcd3.cache.put.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.cache.put.wp_proof
+
+theorem cache.wp_putW :
+    EtcdGrove.k8s_etcd3.cache.putW.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.cache.putW.wp_proof
 
 theorem wp_cachedObj :
     EtcdGrove.k8s_etcd3.cachedObj.spec (GF := GF) (hG := hG) :=
@@ -534,9 +579,25 @@ theorem wp_objOf :
     EtcdGrove.k8s_etcd3.objOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.objOf.wp_proof
 
+theorem wp_watchOptions :
+    EtcdGrove.k8s_etcd3.watchOptions.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchOptions.wp_proof wp_matchOpt wp_predicate
+
+theorem wp_watchEvents :
+    EtcdGrove.k8s_etcd3.watchEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.watchEvents.wp_proof k8s.store.wp_Watch wp_watchOptions wp_consume k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
+
+theorem wp_lastObj :
+    EtcdGrove.k8s_etcd3.lastObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.lastObj.wp_proof
+
+theorem wp_runWatch :
+    EtcdGrove.k8s_etcd3.runWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.runWatch.wp_proof wp_watchEvents wp_lastObj wp_encodeWEvents _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since _root_.Perennial.time.wp_Sleep
+
 theorem wp_Apply :
     EtcdGrove.k8s_etcd3.Apply.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Apply.wp_proof wp_call cache.wp_put wp_objOf
+  EtcdGrove.k8s_etcd3.Apply.wp_proof wp_call cache.wp_put wp_objOf wp_runWatch cache.wp_putW
 
 theorem wp_isWrite :
     EtcdGrove.k8s_etcd3.isWrite.spec (GF := GF) (hG := hG) :=
@@ -622,9 +683,9 @@ theorem wp_Model :
     EtcdGrove.k8s_etcd3.Model.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.Model.wp_proof wp_step wp_addConfig wp_closure wp_configEqual wp_histOf
 
-theorem wp_newCache :
-    EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.newCache.wp_proof
+theorem wp_newWCache :
+    EtcdGrove.k8s_etcd3.newWCache.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.newWCache.wp_proof
 
 theorem wp_workloadKeys :
     EtcdGrove.k8s_etcd3.workloadKeys.spec (GF := GF) (hG := hG) :=
@@ -666,13 +727,21 @@ theorem wp_genFrom :
     EtcdGrove.k8s_etcd3.genFrom.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.genFrom.wp_proof wp_workloadKeys wp_workloadVals wp_workloadNodes wp_workloadApps wp_pick wp_uidOf wp_withPre wp_minRV wp_genList
 
+theorem wp_genWatchFrom :
+    EtcdGrove.k8s_etcd3.genWatchFrom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.genWatchFrom.wp_proof wp_pick wp_rvBytes wp_rvString wp_workloadKeys wp_splitKey wp_workloadNodes wp_storeKey wp_workloadApps wp_parseRV
+
+theorem wp_genWatch :
+    EtcdGrove.k8s_etcd3.genWatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.genWatch.wp_proof wp_genWatchFrom
+
 theorem wp_Gen :
     EtcdGrove.k8s_etcd3.Gen.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Gen.wp_proof cache.wp_get wp_genFrom
+  EtcdGrove.k8s_etcd3.Gen.wp_proof cache.wp_get cache.wp_getW wp_genFrom wp_genWatch
 
 theorem wp_Check :
     EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_newCache wp_Gen wp_Apply
+  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_RunLin2 lintest.wp_CounterClock wp_Model wp_newWCache wp_Gen wp_Apply
 
 theorem wp_seedOne :
     EtcdGrove.k8s_etcd3.seedOne.spec (GF := GF) (hG := hG) :=
@@ -694,9 +763,13 @@ theorem wp_newObj :
     EtcdGrove.k8s_etcd3.newObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newObj.wp_proof
 
+theorem wp_newStore :
+    EtcdGrove.k8s_etcd3.newStore.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.newStore.wp_proof wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion runtime.wp_Decode codec.wp_Decode storage.wp_AnnotateInitialEventsEndBookmark Obj.wp_GetAnnotations Obj.wp_SetAnnotations
+
 theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion wp_Check mvcc.api.mvccApi_names_nonempty_law_holds
+  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_newStore context.wp_ErrAny wp_Check mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
 
 theorem fieldSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
@@ -706,21 +779,9 @@ theorem labelSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.labelSel.RequiresExactMatch.wp_proof
 
-theorem wp_lastObj :
-    EtcdGrove.k8s_etcd3.lastObj.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.lastObj.wp_proof
-
-theorem wp_watchOptions :
-    EtcdGrove.k8s_etcd3.watchOptions.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.watchOptions.wp_proof wp_matchOpt wp_predicate
-
-theorem wp_watchEvents :
-    EtcdGrove.k8s_etcd3.watchEvents.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.watchEvents.wp_proof k8s.store.wp_Watch wp_watchOptions wp_consume k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
-
-theorem wp_runWatch :
-    EtcdGrove.k8s_etcd3.runWatch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.runWatch.wp_proof wp_watchEvents wp_lastObj wp_encodeWEvents _root_.Perennial.time.wp_Now _root_.Perennial.time.wp_Since _root_.Perennial.time.wp_Sleep
+theorem wp_newCache :
+    EtcdGrove.k8s_etcd3.newCache.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.newCache.wp_proof
 
 end links_hasLC
 

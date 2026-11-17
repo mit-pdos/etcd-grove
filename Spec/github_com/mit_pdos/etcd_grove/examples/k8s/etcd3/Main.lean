@@ -1,15 +1,15 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main(clients, ops)` (`examples/k8s/etcd3/k8s_etcd3.go`; stage 6g of `notes/k8s-etcd3-plan.md`):
+`Main(clients, ops, watchers, wops)` (`examples/k8s/etcd3/k8s_etcd3.go`; stage 6g of `notes/k8s-etcd3-plan.md`):
 one etcd member started in process (as `examples/etcd/txnlin`'s `Main`, on `k8setcd3`'s ports), a
 kubernetes client configured for one attempt per call (`MaxUnaryRetries: 1`), the seed keys
 written in the older encoding (`seed`), the Kubernetes etcd3 store over the client (`etcd3.New`,
-the driver's codec, versioner, transformer and decoder), and `Check(s, st0, clients, ops, 0)`,
+the driver's codec, versioner, transformer and decoder), and `Check(s, st0, h0, clients, ops, watchers, wops, 0)`,
 with a panic if porcupine reports the history `Illegal`.
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the client address
 `127.0.0.1:23896`, the main thread's token and `Main`'s named premises (`k8s_etcd3.premises`,
-putget's at `k8setcd3`'s configuration, `Proof/.../k8setcd3/MainDefs.lean`), `Main(clients, ops)` does
+putget's at `k8setcd3`'s configuration, `Proof/.../k8setcd3/MainDefs.lean`), `Main(clients, ops, watchers, wops)` does
 not panic and returns `Ok` (the check ran: the history is linearizable) or `Unknown` (a step
 before the check failed). The pure premises are putget's (`etcd_putget.Main.spec`: the member id and
 bootstrap log, the thread and time-receipt bounds, the server's workload and effect premises,
@@ -49,8 +49,9 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
+    [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (clients ops : w64),
+    (clients ops watchers wops : w64),
   etcd_putget.BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 28 →
   -- (per-type stage B3) the levels of a thread token the server's gRPC runs use
@@ -61,15 +62,16 @@ abbrev Main.spec : Prop :=
   storage.diskOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
   objTyOk →
-  0 ≤ sint.Z clients → sint.Z clients < 2 ^ 31 → 0 ≤ sint.Z ops →
-  sint.Z clients * sint.Z ops < 2 ^ 60 →
+  0 ≤ sint.Z clients → 0 ≤ sint.Z watchers → sint.Z clients + sint.Z watchers < 2 ^ 31 →
+  0 ≤ sint.Z ops → 0 ≤ sint.Z wops →
+  sint.Z clients * sint.Z ops + sint.Z watchers * sint.Z wops < 2 ^ 60 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       -- (2026-11-05, hub step 7) the member's start bundle: its WAL directory fresh and the right
       -- to listen on its client address (`netAddrFree`, which program start gives once: D19d)
       etcdstart.memberStartRes (GF := GF) go!"k8setcd3" ⟨none, some go!"127.0.0.1:23896"⟩ ∗
       threadTok ∗ premises N id ctxs boot }}
-    (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main)) (Val #clients))
-      (Val #ops))
+    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main))
+      (Val #clients)) (Val #ops)) (Val #watchers)) (Val #wops))
   {{ (r : GoString), RET #r; ⌜r = go!"Ok" ∨ r = go!"Unknown"⌝ }}
 
 end spec

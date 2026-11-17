@@ -71,14 +71,14 @@ theorem runWatch.wp_proof
     imod wevsOwnM_persist sl wes $$ Hsl with #Hs
     wp_auto
     wp_apply wp_lastObj $$ [$Hs] as %o %ok %Hlo
-    wp_apply wp_encodeWEvents $$ [$Hs]
+    wp_apply wp_encodeWEvents $$ [$Hs] as %Hlen
     (try wp_auto)
     iapply HΦ
     iright
     iexists wes, kes
     iframe
     ipureintro
-    exact ⟨trivial, rfl, Hlo, Hrel⟩
+    exact ⟨trivial, rfl, Hlo, Hrel, Hlen⟩
   · rw [ite_eq_left rfl]
     icases Hr with %Hr
     wp_auto

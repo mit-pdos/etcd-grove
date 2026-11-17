@@ -15,13 +15,10 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Partitio
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.startCluster
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.DirN
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.seed
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.noStreaming
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj
-public import Spec.k8s_io.apiserver.pkg.storage.etcd3.New
-public import Spec.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newStore
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchQ
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchEnvN
+public import Spec.context.ErrAny
 
 @[expose] public section
 
@@ -51,32 +48,14 @@ theorem MainPartition.wp_proof
     (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG))
     (wp_startCluster : startCluster.spec (GF := GF) (hG := hG))
     (wp_Partitioner : cluster3.Partitioner.spec (GF := GF) (hG := hG))
-    (wp_seed : seed.spec (GF := GF) (hG := hG))
-    (wp_noStreaming : noStreaming.spec (GF := GF) (hG := hG))
-    (wp_watchList : watchList.spec (GF := GF) (hG := hG))
-    (wp_sNew : k8s.New.spec (GF := GF) (hG := hG))
-    (wp_lmc : k8s.NewDefaultLeaseManagerConfig.spec (GF := GF) (hG := hG))
-    (wp_newObj : newObj.spec (GF := GF) (hG := hG))
-    (wp_Encode : runtime.Encode.spec (GF := GF) (hG := hG))
-    (wp_cEncode : codec.Encode.spec (GF := GF) (hG := hG))
-    (wp_Upd : versioner.UpdateObject.spec (GF := GF) (hG := hG))
-    (wp_Prep : versioner.PrepareObjectForStorage.spec (GF := GF) (hG := hG))
-    (wp_ORV : versioner.ObjectResourceVersion.spec (GF := GF) (hG := hG))
-    (wp_Parse : versioner.ParseResourceVersion.spec (GF := GF) (hG := hG))
-    (wp_From : identity.TransformFromStorage.spec (GF := GF) (hG := hG))
-    (wp_To : identity.TransformToStorage.spec (GF := GF) (hG := hG))
-    (wp_Dec : decoder.Decode.spec (GF := GF) (hG := hG))
-    (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
-    (wp_UID : Obj.GetUID.spec (GF := GF) (hG := hG))
-    (wp_RV : Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
+    (wp_newStore : newStore.spec (GF := GF) (hG := hG))
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     MainPartition.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA k N ids ps ctxs boot clients ops sched steps ThB RcB RcN HLv hk1 hk Hlen Hbf HwbN
-    Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 H31 Hops Hmul
+  intro CS EK RT SC ST VA CR CE k N ids ps ctxs boot clients ops watchers wops sched steps ThB RcB RcN HLv hk1 hk
+    Hlen Hbf HwbN Haf Hbuq Hrf Hdbo Hms hAs hse Hty H0 Hw0 H31 Hops Hwops Hmul
   have Htb := ThreadBoundLe.le (GF := GF) (2 ^ 28)
   have Hrb48 := ReceiptBoundLe.le (GF := GF) (2 ^ 48)
-  have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
-    wp_Dec wp_SetZero wp_UID wp_RV (driverSpec_tyOk Hty)
   wp_start as ⟨Hstart, Hbrs, #Hsched, Htok, #Hprem⟩
   -- `k == 0` is false
   have hk0 : decide ((W64 (k : Int)) = W64 0) = false := by
@@ -109,9 +88,10 @@ theorem MainPartition.wp_proof
   subst Hok
   (try wp_auto)
   iunfold k8s_etcd3N.clusterUp at Hup
-  icases Hup with ⟨%γk, %γn, %ss, %bs, %cl, %V, %ms, #Hss, #Hbs, #Hkc, #Hnc, %Hal, #Hregs, Hctl,
-    Hobs, Hetcd⟩
+  icases Hup with ⟨%γk, %γn, %ss, %bs, %cl, %V, %ms, %ws, %γrc, %m0, #Hss, #Hbs, #Hkc, #Hnc, %Hal,
+    #Hregs, Hctl, Hobs, Hetcd, #Hwregs, %Hwf⟩
   obtain ⟨-, Hsva, hlog₁, Hsv⟩ := Hal
+  obtain ⟨hsrc, hlogc, hmem, hV⟩ := Hwf
   have hsame : ∀ x ∈ ms, kvSame x.γr.kv γk := fun x hx => (Hsv x hx).1
   have hnr : ∀ a ∈ k8s_etcd3N.bridges k, noRefusalAt a := by
     intro a ha
@@ -134,83 +114,44 @@ theorem MainPartition.wp_proof
   imod (seedInv_alloc γk σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
   · rw [← hboot0]; iexact Hetcd
   ihave #Hsis := seedInvs_of_same γs γk ms hsame $$ Hsi
-  ihave #Hkc' := Hkc
-  iStructNamed Hkc'
-  (try wp_auto)
-  wp_apply (wp_seed cl ms V γs hAs hmsne) $$ [Hs] as %st0 %h0 %ok Hsd
+  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
+  -- `newStore(kc)`: the seed, the features, `etcd3.New`
+  wp_apply (wp_newStore kc cl ms V γs γh hAs hmsne (by omega)) $$ [Hs] as %s %st0 %h0 %ok Hns
   · rw [Hsva]
     iframe #
     iframe Hs
-  icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0, %hs, #Hh0, #Hhs⟩)
+  icases Hns with (%Hok | ⟨%Hok, Hs, Hst0, ⟨%hs, #Hh0, Hhs⟩, #Hrs, #Hwl, %sp, %mt, %lt, %Hsp,
+    #Hstore, #Hsw⟩)
   · subst Hok
     wp_auto
     iapply HΦ; ipureintro; right; rfl
-  subst Hok
-  wp_auto
-  wp_apply wp_noStreaming as %b Hb
-  cases b with
-  | false =>
-    wp_auto
-    iapply HΦ; ipureintro; right; rfl
-  | true =>
-  ihave #Hrs : (k8s.rangeStreamOff : IProp GF) $$ [Hb]
-  · iExactEq Hb; rfl
-  wp_auto
-  -- (k8s 7f-5, T5-c) `watchList()`: `WatchList` on, unused until the store's watch (7f-6)
-  wp_apply wp_watchList as %b2 -
-  cases b2 with
-  | false =>
-    wp_auto
-    iapply HΦ; ipureintro; right; rfl
-  | true =>
+  subst Hok Hsp
   wp_auto
   iclear Hsis
   imod (seedInv_cancel γs γk σs2) $$ [Hs] with Hetcd
   · iframe #
     iframe Hs
-  imod (histAuth_seed (GF := GF)) with ⟨%γh, Hhist, #Hsr⟩
-  -- `etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix, ...)`, as
-  -- `Main`'s, over the three members
-  haveI : go.UnderlyingEq k8s_io.apimachinery.pkg.runtime.Codec.ty
-      k8s_io.apimachinery.pkg.runtime.Serializer.underlying :=
-    ⟨(go.UnderlyingDirectedEq.underlying_unfold (t := k8s_io.apimachinery.pkg.runtime.Codec.ty)).trans
-      go.UnderlyingDirectedEq.underlying_unfold⟩
-  ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
+  -- the driver's invariant at the seeded state, at every member
+  imod (kInv_seed γk (storeCfgD kc cl ms V mt lt γh) rfl rfl ⊤) $$ [Hetcd Hhist] with
+    ⟨%γ, #Hinv, Hks⟩
+  · simp only [storeCfgD]
+    iframe
+    iexact Hsr
+  ihave #Hinvs := kInvs_of_same γ (storeCfgD kc cl ms V mt lt γh) g0s γk ms hsame $$ Hinv
+  -- (stage E) the client's watcher over the cluster's KV, so the store's watch fields
+  ihave #Hone1 := one_read_au γ (storeCfgD kc cl ms V mt lt γh) g0s γk $$ Hinv
+  ihave #Pio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
   · iPkgInit
-  (try wp_auto)
-  wp_apply wp_lmc as %lmc -
-  (try wp_auto)
-  ihave #Hctx := client_ctx_field cl (k8s_etcd3N.bridges k) V $$ [Hnc]
-  · iexact Hnc
-  ihave #Hpr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime $$ []
+  ihave #Heo : client.eofOk (GF := GF) $$ []
+  · iapply (client.eofOk_of_init hAs) $$ Pio
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
-  ihave #Hpd : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 $$ []
-  · iPkgInit
-  ihave #Hcon := hcon $$ [Hpr Hpd]
-  · isplitl; iexact Hpr; iexact Hpd
-  have e1 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.codec) = codecI := rfl
-  have e2 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.identity) =
-      GoInterface.ok identityI := rfl
-  have e3 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.decoder) =
-      GoInterface.ok decoderI := rfl
-  have e4 : interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner.ty #(zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.versioner) =
-      GoInterface.ok versionerI := rfl
-  rw [e1, e2, e3, e4]
-  have hpc : path.PathCleanAbs go!"/registry" := by unfold path.PathCleanAbs; decide
-  wp_apply (wp_sNew DObj driverSpec kc cl ms V γh _ codecI _ func.nil func.nil go!"/registry"
-      go!"/objs" ⟨[], go!"objs"⟩ versionerI identityI decoderI lmc hpc (by decide) (by decide)
-      (by rfl) (by rfl) (by omega) (by rfl))
-    as %sp %err Hnew
+  ihave #Hcw := k8s_etcd3N.clientWatchOk_of_regs wp_ErrAny hAs cl V ms ws γrc m0 γk hV
+    (by rw [Hsva]; exact k8s_etcd3N.bridges_nodup k hk) hmsne hmem (fun x hx => (Hsv x hx).1)
+    hsrc hlogc (by omega) $$ [Pcli Ppb Pctx Heo Hnc Hwregs Hone1]
   · rw [Hsva]
     iframe #
-    imodintro
-    iintro %Φ' HΦ'
-    wp_apply wp_newObj as %o %ho
-    iapply HΦ'
-    ipureintro; exact ho
-  icases Hnew with ⟨%Herr, %mt, %lt, #Hstore, -⟩
-  subst Herr
-  wp_auto
+  ihave #Hswk := Hsw $$ Hcw
   -- `go cluster3.Partitioner(srvs, brs, sched)`: every member's place in the network, every bridge
   -- owned (as txnlinfaultsN's `Main`)
   wp_apply wp_fork $$ [Hobs Hctl]
@@ -219,26 +160,25 @@ theorem MainPartition.wp_proof
     all_goals (try iframe)
     ipureintro; exact isPanic_intoVal ()
   (try wp_auto)
-  -- the driver's invariant at the seeded state, at every member, and `Check`
-  let c : k8s.StoreCfg GF DObj :=
-    { S := driverSpec, codec := codecI, vi := versionerI, ti := identityI, di := decoderI,
-      pathPrefix := go!"/registry", resourcePrefix := go!"/objs", gr := ⟨[], go!"objs"⟩, kc := kc,
-      cl := cl, ms := ms, V := V, mt := mt, lt := lt, γh := γh }
-  imod (kInv_seed γk c rfl rfl ⊤) $$ [Hetcd Hhist] with ⟨%γ, #Hinv, Hks⟩
-  · iframe
-    iexact Hsr
-  ihave #Hinvs := kInvs_of_same γ c g0s γk ms hsame $$ Hinv
-  wp_apply (wp_Check γ sp c g0s st0 h0 hs clients ops (W64 0) rfl rfl rfl rfl rfl hAs hse
-      (by omega)
+  -- `Check(s, st0, h0, clients, ops, watchers, wops, 0)`
+  ihave Hst0 : storeOwn st0 g0s.st $$ [Hst0]
+  · iExactEq Hst0; rfl
+  ihave Hhs : [∗list] x;g ∈ hs;g0s.hist, storeOwn x g $$ [Hhs]
+  · iExactEq Hhs; rfl
+  ihave #Pst : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 $$ []
+  · iPkgInit
+  ihave #Hpd : isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 $$ []
+  · iPkgInit
+  wp_apply (wp_Check γ sp (storeCfgD kc cl ms V mt lt γh) g0s γk st0 h0 hs clients ops watchers wops
+      (W64 0) rfl rfl rfl rfl rfl hAs hse (by omega)
       (by intro y hy; apply hnr; rw [← Hsva]; exact List.mem_map_of_mem hy)
-      hmsne (by omega) H0 H31 Hops Hmul
-      (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp))
-    $$ [Hks] as %r %hr
-  · iframe #
-    iframe Hks
-    isplitr
-    · iExactEq Hst0; rfl
-    iExactEq Hhs; rfl
+      hmsne (by omega) H0 Hw0 H31 Hops Hwops Hmul
+      (by rw [g0s_len, σs2_rev]; show st3.items.length + 3 < _; rw [st3_items]; simp)
+      (by simp [g0s, st3]))
+    $$ [Hks Hst0 Hhs] as %r %hr
+  · rw [show (storeCfgD kc cl ms V mt lt γh).ms = ms from rfl]
+    iframe #
+    iframe Hks Hst0 Hhs
   have hok : r = go!"Ok" := hr.2 (by decide)
   subst hok
   wp_auto
