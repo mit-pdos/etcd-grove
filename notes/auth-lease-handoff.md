@@ -1,6 +1,20 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-16, item 7b: option 2 APPROVED; plan below, no Lean edit yet)
+## START HERE (S4, 2026-11-17, item 7b STOPPED at step 1: the window ghost reaches the `NewLessor` axiom)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. No Lean edit since `232df2b904`.
+- **Stop (open decision):** `questions.md`, "Item 7b step 1": the plan's step 1 adds the windows ghost and `itemsLive`
+  to `lessorRdBody` and the owner's window half to `leaseClosers`; both are inside the statement of the axiom
+  `lease.NewLessor.wp_proof` (post: `lessorInv`, `leaseOwn γl Lr ∅`; also `Demote/Promote/Renew`'s premises). Options:
+  (A) extend the axiom's ghost allocation as for E3 (c)/Q-S6 (recommended; the plan as written), (B) a separate
+  window invariant allocated by a lemma from the owner's half (no axiom change, +2-3 days).
+- **Also there:** the coverage point for steps 6-7 (free markers in the windows list; the apply loop keeps the last
+  window between entries and frees only in the snapshot branch, `¬ clusterNoSnap`; kvsN needs a share of the windows'
+  authority). Fold it into step 1's ghost once (A) or (B) is chosen.
+- `Scratch/` holds no 7b attempt (all probes predate 2026-11-16 18:09: S3*/S4Freeze/S56/S7).
+- Next after the decision: the 7b plan below from step 1.
+
+## Previous START HERE (S4, 2026-11-16, item 7b: option 2 APPROVED; plan below, no Lean edit yet)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` ("Item 7b", "Item 7b decision"),
   ledger `notes/specs-only/ledger.md` (2026-11-16, 7b entry: add each thawed statement old → new as it lands).
