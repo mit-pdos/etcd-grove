@@ -13,7 +13,6 @@ axiom EtcdServer.monitorDowngrade.wp_proof
 axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom EtcdServer.purgeFile.wp_proof
 axiom EtcdServer.waitAppliedIndex.wp_proof
 axiom EtcdServer.waitLeader.wp_proof
 axiom NewCluster.wp_proof

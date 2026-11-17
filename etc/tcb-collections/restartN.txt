@@ -19,7 +19,6 @@ axiom EtcdServer.monitorDowngrade.wp_proof
 axiom EtcdServer.monitorKVHash.wp_proof
 axiom EtcdServer.monitorStorageVersion.wp_proof
 axiom EtcdServer.publishV3.wp_proof
-axiom EtcdServer.purgeFile.wp_proof
 axiom Perennial.bufio.opaqueInitsOk
 axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.base64.RawURLEncoding_init
