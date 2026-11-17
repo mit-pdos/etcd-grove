@@ -24,6 +24,8 @@
   AEnv literals (20 in NewServer, 18 in NewServerR): append `Wt := srvApi.winTok γt, stq := (1 : Qp).half.half` (sed on
   `γlt := γlt }`); `Haus` (l.2478) by `srvApi.envAus_tie`; `srvKVInvs` (l.2204) gains `winTieRes`; the final
   `bootKVOf` row (l.2620-2670) is `srvApplyKVW` at the window (leasesLive with `Hlown` at `wn`, `E.Wt wn` = the token).
+  Current NewServer errors (lean-check `--fast -a`, 4, all expected): l.2100 `srvEnvOk`'s `(E.win = none ∧ E.stq = ¼)`;
+  l.2208/2216 `srvKVInvs`' new `winTieRes` conjunct; l.2622 the `bootKVOf` row (now `srvApplyKVW`).
   (3) Remaining callers (examples, client: `etc/importers.py --uses srvKVInvs --uses srvKVInvsOn --uses srvApplyKVW
   --files Proof/go_etcd_io/etcd/server/v3/etcdserver/InvApplier.lean`). (4) ONE leaves build from `00b09c1360`
   (`/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(etc/importers.py --leaves --git
