@@ -228,6 +228,94 @@ theorem tieOk_first (log : mvcc.Log) (s : Nat) (T : GMap LeaseItem w64) (Lt : mv
   · intro a ha; simp only [List.mem_singleton] at ha; subst ha; exact List.prefix_refl _
   · intro s' T' _; exact ⟨s, rfl⟩
 
+/-- The greatest index below `b` satisfying `P`, above one that does. -/
+theorem exists_greatest (P : Nat → Prop) : ∀ (b n0 : Nat), n0 < b → P n0 →
+    ∃ n, n0 ≤ n ∧ n < b ∧ P n ∧ ∀ k, n < k → k < b → ¬ P k
+  | 0, _, h, _ => absurd h (Nat.not_lt_zero _)
+  | b + 1, n0, h, hP => by
+    by_cases hb : P b
+    · exact ⟨b, by omega, by omega, hb, fun k h1 h2 => by omega⟩
+    · have hn0 : n0 < b := by
+        rcases Nat.lt_or_ge n0 b with h' | h'
+        · exact h'
+        · have : n0 = b := by omega
+          subst this; exact absurd hP hb
+      obtain ⟨n, h1, h2, h3, h4⟩ := exists_greatest P b n0 hn0 hP
+      refine ⟨n, h1, by omega, h3, fun k hk1 hk2 => ?_⟩
+      rcases Nat.lt_or_ge k b with h' | h'
+      · exact h4 k hk1 h'
+      · have : k = b := by omega
+        subst this; exact hb
+
+/-- **The window of an index `i` at or after the observation's anchor** (the law's core, pure): the tie's facts now
+(`tieOk ws log tw anc`, `winsOk hs ws`) and at the observation (the records `tw0`, the anchors `anc0`, whose last is
+`(tw0.length - 1, j0, L0)` in a window) give `i`'s window `n`: a free marker, or a window `(s, T)` with an anchor
+`(n, ja, La)` at or before `i` whose log extends `L0`, from which `i` is stable. -/
+theorem tie_pick {ws : List LWinRec} {log : mvcc.Log} {tw : List TWRec} {anc : List TARec}
+    (hok : tieOk ws log tw anc) {hs : List lease.LSnap} (hW : lease.winsOk hs ws)
+    {tw0 : List TWRec} {anc0 : List TARec} (htw : tw0 <+: tw) (hanc : anc0 <+: anc)
+    {j0 : Nat} {L0 : mvcc.Log} (hlast : anc0.getLast? = some (tw0.length - 1, j0, L0))
+    (hidx : ∀ a ∈ anc0, a.1 < tw0.length) {i : Nat} {σl : lease.LSnap} (hi : hs[i]? = some σl)
+    (hj0 : j0 ≤ i) :
+    ∃ (n s : Nat) (x : Option (GMap LeaseItem w64)) (Lt : mvcc.Log), tw[n]? = some (s, x, Lt) ∧
+      ∀ T, x = some T → ∃ (ja : Nat) (La : mvcc.Log), (n, ja, La) ∈ anc ∧ L0 <+: La ∧ ja ≤ i ∧
+        (La <+: Lt ∨ itemsOfLog La = T) ∧ lease.winStable hs ja T i := by
+  obtain ⟨hWm, hne, hA, hT, hP, hC, hL⟩ := hok
+  have hmem0 : (tw0.length - 1, j0, L0) ∈ anc0 := List.mem_of_getLast? hlast
+  have hmem : (tw0.length - 1, j0, L0) ∈ anc := hanc.subset hmem0
+  obtain ⟨s0, x0, Lt0, h01, h02, -⟩ := hA _ hmem
+  have hn0 : tw0.length - 1 < tw.length := (List.getElem?_eq_some_iff.1 h01).1
+  -- the greatest window starting at or before `i`
+  let P : Nat → Prop := fun n => ∃ r : TWRec, tw[n]? = some r ∧ r.1 ≤ i
+  obtain ⟨n, hn1, hn2, ⟨⟨s, x, Lt⟩, hr, hsi⟩, hgr⟩ :=
+    exists_greatest P tw.length (tw0.length - 1) hn0 ⟨_, h01, by simp only at h02 ⊢; omega⟩
+  have hwn : ws[n]? = some (s, x) := by rw [← hWm, List.getElem?_map, hr]; rfl
+  have hend : i ≤ lease.winEnd hs ws n := by
+    unfold lease.winEnd
+    cases hn' : ws[n + 1]? with
+    | none => have := (List.getElem?_eq_some_iff.1 hi).1; simp only; omega
+    | some r' =>
+      simp only
+      rcases Nat.lt_or_ge i r'.1 with h' | h'
+      · omega
+      · exfalso
+        have hlt : n + 1 < tw.length := by
+          have := (List.getElem?_eq_some_iff.1 hn').1
+          rw [← hWm, List.length_map] at this; exact this
+        rw [← hWm, List.getElem?_map] at hn'
+        cases hr' : tw[n + 1]? with
+        | none => rw [hr'] at hn'; cases hn'
+        | some r'' =>
+          rw [hr'] at hn'
+          simp only [Option.map_some, Option.some.injEq] at hn'
+          exact hgr (n + 1) (by omega) hlt ⟨r'', hr', by rw [← hn'] at h'; exact h'⟩
+  refine ⟨n, s, x, Lt, hr, ?_⟩
+  intro T hx
+  subst hx
+  rcases Nat.lt_or_ge (tw0.length - 1) n with hlt | hge
+  · -- a window pushed after the observation: its start anchor
+    obtain ⟨-, Ls, hLs, hLsLt⟩ := hT n s T Lt hr
+    obtain ⟨rest, rfl⟩ := hanc
+    have hrest : (n, s, Ls) ∈ rest := by
+      rcases List.mem_append.1 hLs with h | h
+      · exact absurd (hidx _ h) (by simp only; omega)
+      · exact h
+    have hpre : L0 <+: Ls := (List.pairwise_append.1 hP).2.2 _ hmem0 _ hrest
+    exact ⟨s, Ls, hLs, hpre, hsi, Or.inl hLsLt,
+      hW.2.2 n s T s i hwn (Nat.le_refl _) hsi hend⟩
+  · -- the observation's window: its last anchor then
+    have hn : n = tw0.length - 1 := by omega
+    subst hn
+    rw [h01] at hr
+    simp only [Option.some.injEq, Prod.mk.injEq] at hr
+    obtain ⟨rfl, rfl, rfl⟩ := hr
+    obtain ⟨s', x', Lt', h1, h2, h3⟩ := hA _ hmem
+    rw [h01] at h1
+    simp only [Option.some.injEq, Prod.mk.injEq] at h1
+    obtain ⟨rfl, rfl, rfl⟩ := h1
+    exact ⟨j0, L0, hmem, List.prefix_refl _, hj0, h3 T rfl,
+      hW.2.2 _ s0 T j0 i hwn h2 hj0 hend⟩
+
 end pure
 
 /-! ## The invariant -/

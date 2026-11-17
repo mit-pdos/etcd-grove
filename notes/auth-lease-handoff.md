@@ -1,6 +1,38 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: applierSpecW and K1's apply layer done; F4 next)
+## START HERE (S4, 2026-11-17, item 7b F4: the tie proved standalone; server wiring next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
+  (lean-check only). Decisions: `questions.md`, last entry (K1 forms ACCEPTED; namespace option (b): the tie in its own
+  namespace `winTieN`, outside `kvsN`/`mvccN`/`wsN`; `kvStoreInv`, `bootStore.law`, `kvPeek.law`, `srvApi.kvsN` untouched).
+- **Done:** `49aab6ebc5` + this commit: `etcdserver/WinTie.lean` (imported by nothing yet; lean-checked, kernel-checked
+  except `tie_pick`, `--fast`). Contents: names `WTNames` (`w` token, `t` window records, `a` anchors), `winTieInv Nx Fr
+  γl γs γt` (body: `lessorWinTie ws`, `ghostVar γt.w ½ (lastWin ws)`, `ghostVar γs.st ¼ (log,p)`, mono-lists `tw`
+  (start, target, model log `Lt`) and `anc` (window idx, lessor idx, store log), persistent facts, pure `tieOk`);
+  `winTok γt w` (the apply thread's half, = the server's `E.Wt`); laws: `au_end_tie` (end builder at `wStQ ¼`, records
+  the commit's anchor from `winWit`), `au_restore_tie` (restore at `¼`, token at `none`), `tie_push` (per-entry window,
+  needs `□Nx log`, `□Nx Lt`, `log <+: Lt`, `T = itemsOfLog Lt`, owner items `= itemsOfLog log`), `tie_free` (free marker,
+  needs `Fr`), `tie_alloc` (after `NewLessor`: first window); pure `tie_pick` (step 7's core: an index `i ≥ j0` of the
+  law's observation anchor lies in a free window or a window with an anchor `La ⊒ L0 ⊒ F` before `i`, stable to `i`).
+- **Next, in order:** (1) step-7 Iris lemmas in WinTie: `tie_obs` (open `kvsN`+`winTieN`: `F <+: log`; the last anchor
+  `(tw0.length-1, j0, L0)` with `L0 = log`, `m := j0`, `lessorLb` by `lessorAt_lb`; or `Fr` if the window is free) and
+  `tie_law` (open `winTieN`+`lessorRdN`: agree `lessorWinTie` ¼ with `lessorWinBody` ½, `lessorAt` lookups via
+  `lessorPinR_agree`+`mono_list_auth_idx_lookup`, then `tie_pick`). (2) Server wiring: `srvKVInvs`/`srvKVInvsOn` gain
+  `∃ γt, ⌜E.Wt = winTok γt⌝ ∗ winTieInv E.Nx (¬ clusterNoSnap γr.raft.raft.cl) (mvccLeases E.γ) E.γs γt` (last conjunct;
+  fix the patterns that enumerate all conjuncts); `srvEnvOk`'s third conjunct `E.stq = ¼` (and drop `E.Wt = True`);
+  NewServer/NewServerR: split `bootStore`'s `wSt` (½) into ¼+¼, `tie_alloc` after `NewLessor` (Lt = boot log),
+  `Wt := winTok γt`, `stq := ¼` in the `AEnv` literals (sed on `γlt := γlt }`), `envAus` from the generalized
+  `au_begin/au_wread/au_compact/writer_facts/writer_floor` at `{q}` + `au_end_tie`; snapshot path: `tie_free` (Fr from
+  the toApply payload's `¬ clusterNoSnap γ.node.cl`, `InvRaftNode.lean:1951`) then `au_restore_tie` (generalize
+  `restoreArgs_holds`' proof over the AU, no twin); `srvApplyKV(On)` at `∃ w`; `applyEntryNormal`: `tie_push` with `Lt` =
+  the model after the entry. (3) ONE leaves build from `00b09c1360`; step 7 (law: `tie_obs`/`tie_law` + S5 from
+  `kvNx`/`etcdKV`), step 8, the c6b merge (see the task brief).
+- **Pitfalls:** in WinTie, `lease.win_push`'s `x.map …` does not unify with `some (s,T)` in `iexact`/`iframe`: use the
+  wrappers `win_push_some`/`win_push_none`. Projections of literal tuples (`(n,j,L).2.2`) need `simp only` before
+  `iframe`/`omega` (also `at h`). `iinv` on `winTieInv` needs `iunfold winTieInv` and `iunfold winTieBody` first. A
+  lean-check that reopens WinTie rebuilds its imports (~3 min).
+
+## Previous START HERE (S4, 2026-11-17, item 7b: applierSpecW and K1's apply layer done; F4 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
   (lean-check `--fast -a` only). Decisions: `questions.md`, last three entries (K1 + applierSpecW APPROVED by
