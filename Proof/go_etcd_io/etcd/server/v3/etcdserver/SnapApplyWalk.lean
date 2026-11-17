@@ -472,7 +472,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HsrvW with ⟨-, -, ⟨%vW, HfW⟩, -⟩
   iunfold srvFieldsAtM at HfW
   icases HfW with ⟨-, -, -, -, -, %HenvW, -⟩
-  have hwin : E.win = none := HenvW.2.2.1
+  have hwin : E.win = none := HenvW.2.2.1.1
   iunfold apply.leasesLive at HlLive
   icases HlLive with ⟨%Ll, #HlK, HlUser, HlLt, HlWt⟩
   rw [hwin]

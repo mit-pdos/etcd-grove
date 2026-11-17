@@ -2097,7 +2097,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       cfg.QuotaBackendBytes', «$v2_ptr», bc.nodeID', cfg.ElectionTicks', cfg.TickMs'⟩
     unfold srvFieldsBuiltNA srvLeadInv
     iframe #
-    ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, rfl, d.γB, _, rfl, rfl,
+    ipureintro; exact ⟨⟨rfl, rfl, Hhknn⟩, rfl, rfl, ⟨rfl, rfl⟩, d.γB, _, rfl, rfl,
       ({ d with cm := true } : mvcc.KBReal), alst, astl, lp, rfl, rfl, rfl⟩
   isplitr
   · -- `#Hreqb`
@@ -2652,7 +2652,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     iintro !> %l %h
     obtain ⟨a, ha, -⟩ := h
     simp [mvcc.applyChanges] at ha
-  iunfold lease.lessorUser; iunfold lease.lessorUserW
+  iunfold lease.lessorUserW
   simp only
   rw [Hγl]
   iframe Hlrd2 Hlrvk
@@ -2665,7 +2665,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   simp only [apply.AEnv.lg_eq, KVNames.lg_fold]
   cases ρ.rd.kv.lg
   · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
-  · simp only [↓reduceIte]; iexact Hlt1
+  · simp only [↓reduceIte]; iframe Hlt1
 
 /-- **`NewServer` with auth on or off** (`NewServer.specM`), the compaction mode off. -/
 theorem NewServer.wp_proofM (on : Bool)

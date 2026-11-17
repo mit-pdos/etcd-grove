@@ -484,7 +484,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         iframe Hcpq
         ipureintro
         exact ⟨⟨hdec, hid, hrq, HaOn ▸ hdk, fun h => absurd h (by decide), by
-          unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩)⟩
+          unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩)⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -815,7 +815,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
         · iexact Hlgnn
         iframe Hst Happ Hbe HcF
         iframe Hcpq
-        ipureintro; exact ⟨hpre, ⟨hdec, hid, hrq, HaOn ▸ hdk, fun _ => Hca rq hdata hdec, by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩)⟩
+        ipureintro; exact ⟨hpre, ⟨hdec, hid, hrq, HaOn ▸ hdk, fun _ => Hca rq hdata hdec, by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩)⟩
       ihave HFS : srvFS s $$ [HFS]
       · rw [← HEo.1]; iexact HFS
       have Hstep := Hstep0.1
@@ -1419,7 +1419,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           iframe Hcpq
           ipureintro
           exact ⟨⟨hdec, hid, hrq', HaOn ▸ hdk, fun h => absurd h (by decide),
-            by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩)⟩
+            by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩)⟩
         have Hstep := Hstep0.1
         ihave Hrdat := Hrdb $$ Hrv
         ihave Hrt := bkRTOf_srv E dB Hd $$ Hrt
@@ -1761,7 +1761,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           ipureintro
           exact ⟨hpre, ⟨hdec, hid, hrq', HaOn ▸ hdk,
             fun _ => apply.cmpAdmit_nonCmp _ _ (by rw [hg.1]; decide),
-            by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩)⟩
+            by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩)⟩
         have hkeep := applyStep_grant rq hg true x x' out Hstep0.1
         have hc' := hkeep.1
         have hmod : (sa, x'.log, kvTable γr.kv.c0 x.chain (kvLeasesOn γr.kv srvAuthSt0 A) m) =
@@ -1904,7 +1904,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
           isplitr
           · ipureintro; exact ⟨hdec, hid, hrq', HaOn ▸ hdk⟩
           ipureintro
-          refine ⟨(⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩), by rw [Hch, hAuthOn]; rfl, by rw [hk]; rfl, ?_⟩
+          refine ⟨(⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩), by rw [Hch, hAuthOn]; rfl, by rw [hk]; rfl, ?_⟩
           exact kvShapedL_revoke _ hs x.log rq hk hne
         have HXo' : ∀ o b, out = .dispatched o b → apply.kvOutL (.on γa) hs
             (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq x.log o := by
@@ -2063,7 +2063,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             isplitr
             · ipureintro; exact ⟨hdec, hid, apply.rqOk_kv _ _ _ _ hkv hrq', HaOn ▸ hdk⟩
             ipureintro
-            refine ⟨(⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩), by rw [Hch, hAuthOn]; rfl, apply.authKVKind_of_isKVKind _ hkv, ?_⟩
+            refine ⟨(⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩), by rw [Hch, hAuthOn]; rfl, apply.authKVKind_of_isKVKind _ hkv, ?_⟩
             rw [hM]; exact kvShapedL_of_logL _ hs x.log rq hz hsa hne
           have hnr : apply.dispatchKind rq ≠ .leaseRevoke := fun h => by
             rw [h] at hkv; simp [apply.isKVKind] at hkv
@@ -2153,7 +2153,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
             · iexact Hlgnn
             iframe Hst Happ Hbe HcF
             iframe Hcpq
-            ipureintro; exact ⟨hpre, ⟨hdec, hid, hrq', HaOn ▸ hdk, fun _ => apply.cmpAdmit_nonCmp _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1⟩)⟩
+            ipureintro; exact ⟨hpre, ⟨hdec, hid, hrq', HaOn ▸ hdk, fun _ => apply.cmpAdmit_nonCmp _ _ (plainCover_nonCmp rq hp), by unfold apply.restReqOk; rw [apply.restLeasesWith_mem]; exact Hrr⟩, (⟨fun _ => by rw [HEo.2.2.1.1]; exact apply.winTgt_none _ _ _, fun _ => HEo.2.2.1.1⟩)⟩
           have hkeep := applyStep_keep rq true x x' out hp hw Hstep0.1
           have hc' := hkeep.2
           have hmod : (sa, x'.log, kvLeasesOn γr.kv srvAuthSt0 A) = kvEntryOn γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m := by

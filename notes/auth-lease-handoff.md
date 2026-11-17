@@ -1,6 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: the applier at a window done at the apply layer; server at defaults; F4 next)
+## START HERE (S4, 2026-11-17, item 7b: compiling again at the defaults; STOPPED before F4 on the free-range gap)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last three
+  entries: etcd-grove-03's review of forms 1-6 + the SnapApplyKV fix; the F4 STOP "the free range between entries").
+  Not built since `00b09c1360` (lean-check `--fast` only).
+- **Done (this commit):** `srvEnvOk`'s third conjunct is `(E.win = none ∧ E.Wt = fun _ => True)` (etcd-grove-03's fix,
+  one conjunct so destructurings keep their arity; F4 replaces the `Wt` half by the tie token); `snap_applyKV` takes it
+  as a premise (`SnapApplyPost` reads it off `isServerM`'s fields); NewServer/NewServerR's `leasesLive` builders fixed.
+  lean-check `--fast -a` clean: InvApplier, SnapApplyKV/Walk/Post/IsServer/OptsLemmas, EtcdServer__apply,
+  EtcdServer__applyEntryNormal, StopShutdown, SnapSendBranch, AppliedOn, InvStart, InvBuild, KVStoreLaws, RestOn, UberOn,
+  InvRead, NewServer, NewServerR (see the report), apply/Link, apply/Results, mvccrand writer__revoke, mvccfull
+  runner__apply. Not checked (imports rebuild past lean-check's timeout): examples/etcd/auth/WorkCalls, the server
+  `Link`/`Results`, restart*: left to the leaves build.
+- **Stop (questions.md, "Item 7b F4: the free range"):** at the base `E` (`win = none`) the loop's applier state must
+  free the window after each entry (`win_push none`), and `winsOk` says nothing of free ranges, so step 7 cannot place
+  an index pushed between entries. Recommended (A): the loop's applier state at `∃ w, applyKV {E with win := w}`; NewServer
+  opens the first window after `NewLessor`. The tie's design for the next agent is in the same entry.
+- **Next after the decision:** F4 (tie at `kvsN .@ "win"`, store at `kvsN .@ "st"`, `E.Wt := ghostVar γw ½`, per-entry
+  push in `applyEntryNormal`, `kvAusG`'s end builder records commits; the `Wt := …` field goes into NewServer's 20 `AEnv`
+  literals: sed `γlt := γlt }`), then the ONE leaves build from `00b09c1360`, step 7, step 8, the c6b merge.
+- **Pitfalls:** fresh lean-check of a server file rebuilds its imports through Lake (minutes; examples > 25 min). After
+  `rw [hwin]` a goal has `lessorUserW … none`, not `lessorUser`: drop `iunfold lease.lessorUser`. `leasesLive`'s last
+  conjunct `E.Wt E.win` reduces to `True` at the defaults: `iframe` the `ltHalf`, not `iexact`. Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: the applier at a window done at the apply layer; server at defaults; F4 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last three
   entries: etcd-grove-03's decision on the applier forms and F4's token; the agent's forms "applier at a window,

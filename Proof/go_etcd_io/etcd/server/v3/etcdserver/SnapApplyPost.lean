@@ -206,8 +206,15 @@ theorem srvSnapApplied_of_walk [bkSem : go_etcd_io.etcd.server.v3.storage.backen
   · iframe #; iframe Hauar
   have hxl : x.log.length ≤ (kvModelM E.authOn γr.kv A').length := by
     rw [hxA]; exact (srvApi.kvModelM_prefix E.authOn γr.kv A A' hAA').length_le
+  -- (auth-lease S4 item 7b) no lessor window, the default window token (`srvEnvOk`)
+  ihave #HsrvW := Hsrv
+  iunfold isServerM at HsrvW
+  icases HsrvW with ⟨-, -, ⟨%vW, HfW⟩, -⟩
+  iunfold srvFieldsAtM at HfW
+  icases HfW with ⟨-, -, -, -, -, %HenvW, -⟩
   ihave HKV' := snap_applyKV s γ ci E ρ γr π0 d.P d' g up' opts' w0 RD0 al ast lp cl x A'
-      (srvIds E (appliedTableM E.authOn γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl $$
+      (srvIds E (appliedTableM E.authOn γr A').ids) E.authOn (srvAuthAtLog γr.kv srvAuthSt0 A') hxl hnl
+      HenvW.2.2.1 $$
       [Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl' Hrt Hra Hauar
         Hwok HRD0]
   · iframe #; iframe Huo' Hua HwSt HcrO HmO HmB Hlo Hlrd Hlrv HLt1 Hrdat HRD2 Hbea Hgv Hpl'
