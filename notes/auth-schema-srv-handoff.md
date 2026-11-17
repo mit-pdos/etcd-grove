@@ -1,21 +1,28 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A1 closed (A1.10); A2 Draft at the stop, report to etcd-grove-03)
+## START HERE (2026-11-17, A2: axioms added; backend side next)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere. Scope `notes/auth-schema-srv-scope.md` §3 (A2-A7);
   decisions `questions.md` (untracked; **A1 decided by etcd-grove-03**); soundness `notes/auth-schema-srv-a1-soundness.md`.
-- Done: A1.1-A1.9 (52d85a42f6 … 23e2504247); **A1.10 (this commit)**: the coordinator's A1 decisions: one spec
+- Done: A1.1-A1.9 (52d85a42f6 … 23e2504247); A1.10 (6fe91f236f): the coordinator's A1 decisions: one spec
   (`Unlock.spec` the claimed statement, `Unlock.wp_proof`; old text the corollary `Unlock.spec_free`, `UnlockBare.lean`;
   `UnlockClaimed.lean` gone); `trkSide_mode` private (`trkSide_mode_up`, `trkSide_mode_win` public); `rbPartR_idle`
   takes `tkI`; soundness §4.2/§5 updated. Full build ok (log `/shared/tmp/auth-schema-srv/a110-build1.log`), tcb
   baseline unchanged, interfaces regenerated.
-- A2: the user chose (B) (questions.md "A2 decided"); texts `Spec/go_etcd_io/bbolt/Bucket__ForEach_kv{r,w}.lean`
-  (built), Go tests `examples/bbolt/foreachkv/` (pass); WAITING on etcd-grove-03's independent attack. After it:
-  the axiom files `Proof/go_etcd_io/bbolt/Bucket__ForEach_kv{r,w}.lean`, tcb `--check --update`, then the backend
-  side (Draft §4). Merge lean (3cd4b72599 or later) before the next full build. Then A3 (Draft: Marshal
-  axioms + `sizeCache` out of `↦□`, precedent: an invariant on the field, `restart1/Requests.lean`), A4 (budget in
-  `authBatchTxLkR`: part of hD22's text, weaker), A5, A6, A7 (HARD STOP, user).
+- A2: (B) chosen by the user; attacked (SURVIVES, `notes/axiom-review/bbolt-foreach.md`), MINORs applied;
+  axioms `bbolt.Bucket.ForEach_kvr.wp_proof`/`ForEach_kvw.wp_proof` added (72c59c8aff), reached by no root yet
+  (the tcb baseline moves, +2, when the backend Link reaches them: rerun `etc/tcb-report.py --check --update`).
+- Next, A2's backend side (Draft §4), specs as their `UnsafeRange` siblings:
+  `unsafeForEach` (tx, bucket, visitor; read or write transaction: one spec, the transaction's side as a
+  parameter, e.g. a disjunction of `txLive q ∗ rtxSnap D ∗ rtxStats` / `ownWTxG … S`, entries `bktEnts (bktOf D|S n)`,
+  the visitor's spec as the axioms'); `batchTx.UnsafeForEach` (over `btW γ t st`, entries `bktEnts (bktOf st.S
+  bi.name)`, as `batchTx.UnsafeRange`); `baseReadTx.UnsafeForEach` (over `baseRd`: buffer `ForEach` for the dups
+  (`txReadBuffer.ForEach.spec`, `visitorSpec`), a `map[string]struct{}`, `unsafeForEach` under `txMu`, then the
+  buffer's `ForEach`; the visitor sees bbolt's entries whose keys are not in the buffer, in order, then the
+  buffer's (`bkOf rv.2.bks bi.id`), its bytes `rdB rtx`); then `readTx`/`concurrentReadTx` wrappers if the auth
+  readers need them. Then A3 (its own Draft first, a stop). Merge lean (3cd4b72599 or later) before the next full
+  build.
 - Pitfalls: (1) a hand-written `if m = n` picks `instDecidableEqString`, the laws' `if S n` (open Classical)
   `Classical.propDecidable`: write `@ite _ (m = n) (Classical.propDecidable _) …`. (2) `unfold` does not
   beta-reduce `(fun n => S n ∨ S' n) n`: `dsimp only`. (3) A theorem's default argument (`trkHalf_eq … I`) is
