@@ -1038,6 +1038,18 @@ theorem srvApplyKVW_authOn (E : apply.AEnv GF) (ua : GoInterface) (x : apply.App
   iframe H
   ipureintro; exact Hc
 
+/-- **The applier state at no window** is the apply thread's (`srvApplyKVW` at `w = none`, for an environment with
+none, as the server's). -/
+theorem srvApplyKVW_of_none (E : apply.AEnv GF) (ua : GoInterface) (x : apply.ApplyKV) (hw : E.win = none) :
+    apply.applyKV E ua x ⊢ srvApplyKVW E ua x := by
+  iintro H
+  iunfold srvApplyKVW
+  iexists none
+  isplitr
+  · ipureintro; intro _; rfl
+  iExactEq H
+  rw [← hw]
+
 /-- **The apply thread's applier state opened at the base environment** (its window's pieces that do not read the
 window, at `E`: the chain's resource, the writer's state, the backend, the compaction right; the rest, at the window,
 kept in the closing wand). -/

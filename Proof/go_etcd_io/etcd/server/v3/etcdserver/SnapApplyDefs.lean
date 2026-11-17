@@ -292,7 +292,9 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     -- halves at the image's committed log (the mvcc merge: its model by the mode, `kvModelM`)
     mvcc.api.mvccOpen E.γ ∗
     mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) ∗
-    srvApi.wSt E.γs (kvModelM E.authOn γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+    srvApi.wStQ E.γs E.stq (kvModelM E.authOn γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+    -- (item 7b F4) the apply thread's window token at no window (the walk freed it)
+    E.Wt none ∗
     trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗

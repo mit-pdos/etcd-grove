@@ -49,11 +49,12 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (st : auth.AuthState) (hxl : x.log.length ≤ (kvModelM on γr.kv A').length)
     (hnl : ∀ (k : GoString) (id : w64),
       mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A')) !! ⟨k⟩ = some id → id ∈ L)
-    (hEw : E.win = none ∧ E.Wt = (fun _ => iprop(True)) ∧ E.stq = (1 : Qp).half) :
+    (hEw : E.win = none ∧ E.stq = (1 : Qp).half.half) :
     apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
       apply.uberOwn (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' (apply.alarmChain (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be).authOn false false) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
-      srvApi.wSt E.γs (kvModelM on γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+      srvApi.wStQ E.γs E.stq (kvModelM on γr.kv A') (crevOf γr.kv A') ∗ srvApi.crOwn E.γs (crevOf γr.kv A') ∗
+      E.Wt none ∗
       mvcc.api.mvccOpen E.γ ∗
       mvcc.api.mvccBackend E.γ 1 d' (batchLockInv (snapγ γ π0 d'.γB) (metaTM d'.γB P)) ∗
       backend.plHookRO d'.γB g ∗
@@ -73,7 +74,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       ⌜x'.log = kvModelM on γr.kv A' ∧ x'.chain = apply.alarmChain E.authOn false false ∧
         x'.crev = crevOf γr.kv A'⌝ ∗
       srvApplyKVM on s (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) ρ.wait x' st := by
-  iintro ⟨#Hub, Huo, Hua, HwSt, HcrO, HmO, HmB, #Hhk, Hlo, Hlr, Hrv, HLt, Hrdat, HRD, Hbe, Hγbe, #Hro,
+  iintro ⟨#Hub, Huo, Hua, HwSt, HcrO, HWtn, HmO, HmB, #Hhk, Hlo, Hlr, Hrv, HLt, Hrdat, HRD, Hbe, Hγbe, #Hro,
     Hpl, Hrt, Hra, Hauar, #Hw, #Hwok, HRD0⟩
   ihave #Hlk := leasesKnown_of_items (GF := GF) L _ hnl
   imodintro
@@ -88,18 +89,19 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     iexists up', opts'
     iframe Hub
     ipureintro; rfl
-  isplitl [Huo HwSt HcrO HmO HmB Hlo Hlr Hrv HRD HLt]
-  · iunfold apply.applyKV
+  isplitl [Huo HwSt HcrO HWtn HmO HmB Hlo Hlr Hrv HRD HLt]
+  · iapply srvApplyKVW_of_none _ _ _ (by simp only [snapE_win]; exact hEw.1)
+    iunfold apply.applyKV
     iexists up'
     isplitr
     · ipureintro; rfl
     simp only [snapE_authOn]
     iframe Huo
-    isplitl [HwSt HmB Hlo Hlr Hrv HRD HLt]
+    isplitl [HwSt HWtn HmB Hlo Hlr Hrv HRD HLt]
     · iunfold apply.kvOwn
       simp only [snapE_γs, snapE_γ, snapE_RD]
       isplitl [HwSt]
-      · iexists crevOf γr.kv A'; simp only [snapE_stq]; rw [hEw.2.2]; iexact HwSt
+      · iexists crevOf γr.kv A'; simp only [snapE_stq]; iexact HwSt
       isplitl [HmB]
       · iunfold apply.kvBk
         iexists d'
@@ -114,7 +116,8 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iexists L
       iframe Hlk
       simp only [snapE_win, snapE_Wt]
-      rw [hEw.1, hEw.2.1]
+      rw [hEw.1]
+      iframe HWtn
       iunfold lease.lessorUserW
       simp only [snapE_γ]
       iframe Hlo Hlr Hrv
