@@ -163,7 +163,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     exact absurd Hcb.2 (by decide)
   ihave %Hrnn : ⌜rtx ≠ Loc.null⌝ $$ [Hrb]
   · unfold rollbackRes
-    icases Hrb with ⟨%γwg, %γw, %γo, %γd, %D, -, -, -, -, Hl1, -⟩
+    icases Hrb with ⟨%γwg, %γw, %γo, %γd, %D, %db1, -, -, -, -, Hl1, -⟩
     iapply txLive_nonnull $$ Hl1
   try wp_auto
   rw [decide_eq_false Hrnn]
@@ -172,8 +172,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
   -- transaction (or the post, at the stop); the rollback goroutine exits with the old one's
   wp_apply wp_fork_tok_self $$ [Hrb] as Htok
   · wp_auto
-    wp_apply (wp_rollback_Wait γ rtx wg) $$ [$Hrb] as ⟨%D, Hl1, #Hsn⟩
-    wp_apply (hRollback rtx D) $$ [$Hl1 $Hsn] as ⟨-, Htok⟩
+    wp_apply (wp_rollback_Wait γ rtx wg) $$ [$Hrb] as ⟨%D, Hl1⟩
+    wp_apply (hRollback rtx γ.db D) $$ [$Hl1] as ⟨-, Htok⟩
     iframe Htok
     itrivial
   wp_apply (hReset rt st'.R cm rtx wg) $$ [$HRB $Hcm $Hrtx $Hwg] as %cm' %wg' ⟨HRB, Hcm, Hcmm, Hrtx, Hwg, Hwgz⟩
@@ -203,8 +203,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L') $$
         [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe Hrd; isplitr; · iexists db0; iexact Hdb0
         iframe #
-        iexact Hrd
       imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ HWe Hp0 Hs Hwf Hbg
         (Or.inr rfl) Hdlc) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
@@ -242,8 +242,8 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L') $$
         [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
+        iframe Hrd; isplitr; · iexists db0; iexact Hdb0
         iframe #
-        iexact Hrd
       imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ HWe Hp0 Hs Hwf Hbg
         (Or.inl rfl) Hdlc) $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)

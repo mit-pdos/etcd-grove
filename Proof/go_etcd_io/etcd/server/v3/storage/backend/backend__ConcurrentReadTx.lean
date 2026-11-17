@@ -122,7 +122,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
     iexfalso
     iapply bOpen_stopped γ qo $$ [$Hopen $Hst]
   simp only [↓reduceIte]
-  icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
+  icases Hiv with ⟨Hlive, #Hintv, #Hwgi, Hwo, Htk⟩
   wp_auto
   -- `b.readTx.txWg.Add(1)`
   unfold crTok
@@ -131,7 +131,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
   subst Heq
   icombine Htm Htm3 gives %Heq
   subst Heq
-  wp_apply wp_rdAdd γ rd.rtx rd.wg rd.γw rd.γo rd.γt sync.rfrac $$ [$Hwgi $Hwo $Hrdt]
+  wp_apply wp_rdAdd γ rd.rtx rv.1 rd.wg rd.γw rd.γo rd.γt sync.rfrac $$ [$Hwgi $Hwo $Hrdt]
     as ⟨%k, %qr, Hwo, Hsh⟩
   -- the cache
   wp_apply sync.Mutex.wp_Lock $$ [$Hcm] as ⟨Hml, HC⟩

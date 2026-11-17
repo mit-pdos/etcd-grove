@@ -1,9 +1,10 @@
 /-
-`Tx.Bucket_kvw` (bbolt). `tx.Bucket(name)` in the write transaction: its handle of the bucket, or nil.
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Bucket_kvw.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
+`Tx.Bucket_kvw` (bbolt). `tx.Bucket(name)` in the write transaction.
+A corollary of bbolt's proved `Tx.Bucket` (`Spec/go_etcd_io/bbolt/Tx__Bucket.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Tx__Bucket_kvw.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -27,13 +28,13 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `tx.Bucket(name)` in the write transaction: its handle of the bucket, or nil. -/
 abbrev bbolt.Tx.Bucket_kvw.spec : Prop :=
-  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
+  ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
     (dq : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ name ↦*{dq} n }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Bucket")) (Val #name))
   {{ (b : Loc), RET #b; ownWTxG tx γ D S G ∗ name ↦*{dq} n ∗
       ((⌜S.lookup n = none ∧ b = Loc.null⌝) ∨
-       (⌜S.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx b n (G n))) }}
+       (⌜S.lookup n ≠ none ∧ b ≠ Loc.null⌝ ∗ wBkt tx γ b n (G n))) }}
 
 end spec
 

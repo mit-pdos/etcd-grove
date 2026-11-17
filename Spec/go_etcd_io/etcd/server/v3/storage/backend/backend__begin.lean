@@ -27,7 +27,7 @@ abbrev backend.backend.begin.spec : Prop :=
   ∀ (γd : DBNames) (b db : Loc) (D : Data) (w : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beginCtx b ∗ sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ ownDB db γd D ∗ (if w then wrTok γd else threadTok) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"begin")) (Val #w))
-  {{ (tx : Loc), RET #tx; sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ ownDB db γd D ∗ txDB tx db ∗ (if w then ownWTx tx γd D D else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) }}
+  {{ (tx : Loc), RET #tx; sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗ ownDB db γd D ∗ txDB tx γd db ∗ (if w then ownWTx tx γd D D else txLive tx γd 1 (bbolt.TxView.ro D)) }}
 
 end spec
 

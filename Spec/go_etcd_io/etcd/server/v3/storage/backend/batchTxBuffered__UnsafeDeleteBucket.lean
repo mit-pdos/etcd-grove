@@ -31,7 +31,8 @@ key (`fkKey`: the `meta` bucket, the M2 storage plan's items 27/29, 2026-10-30);
 2026-11-01, of its bucket only), given back updated. -/
 abbrev backend.batchTxBuffered.UnsafeDeleteBucket.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo),
-  P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false → (∀ k, P.hk bi.name k = false) →
+  P.has bi → bi.name ≠ [] → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false →
+  (∀ k, P.hk bi.name k = false) →
   (∀ k, ¬ fkKey bi.name k) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ rbPut γ P bi.name st.S }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDeleteBucket")) (Val #bk))

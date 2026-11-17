@@ -7,6 +7,8 @@ public import Spec.go_etcd_io.bbolt.DB__Close_kv
 
 @[expose] public section
 
+set_option linter.unusedSimpArgs false
+
 noncomputable section
 
 namespace Perennial

@@ -1,13 +1,10 @@
 /-
-`Tx.Rollback_kv` (bbolt). `tx.Rollback()` of a read transaction (all of it): closed.
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Rollback_kv.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
-
-(2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q1/Q3) The post
-gives back the `threadTok` the read-mode `DB.Begin_kv` took (the transaction's `mmaplock` reader
-slot, released here): the shape of the proved `Tx.Rollback.spec` at a read transaction.
+`Tx.Rollback_kv` (bbolt). `tx.Rollback()` of a read transaction.
+A corollary of bbolt's proved `Tx.Rollback` (`Spec/go_etcd_io/bbolt/Tx__Rollback.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Tx__Rollback_kv.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -32,10 +29,10 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `tx.Rollback()` of a read transaction (all of it): closed, its reader slot's `threadTok` given
 back. -/
 abbrev bbolt.Tx.Rollback_kv.spec : Prop :=
-  ∀ (tx : Loc) (D : Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx 1 ∗ rtxSnap tx D }}
+  ∀ (tx : Loc) (γ : DBNames) (D : backend.Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txLive tx γ 1 (bbolt.TxView.ro D) }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Rollback")) (Val #()))
-  {{ RET #GoInterface.nil; txDone tx ∗ threadTok }}
+  {{ RET #GoInterface.nil; backend.txDone tx ∗ threadTok }}
 
 end spec
 

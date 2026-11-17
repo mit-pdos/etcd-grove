@@ -1,9 +1,10 @@
 /-
-`Bucket.Cursor_kvw` (bbolt). `b.Cursor()` in the write transaction: a cursor over the bucket's entries, `ownWTx` back with the cursor.
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Cursor_kvw.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
+`Bucket.Cursor_kvw` (bbolt). `b.Cursor()` in the write transaction.
+A corollary of bbolt's proved `Bucket.Cursor` (`Spec/go_etcd_io/bbolt/Bucket__Cursor.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Bucket__Cursor_kvw.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -25,19 +26,17 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `b.Cursor()` in the write transaction: a cursor over the bucket's entries now, with the
-transaction's live token; the transaction's ownership (`ownWTx`, which `Put`/`Delete` need) comes
-back only with the cursor. (Go's write-transaction cursor reads the materialized nodes, so it would
-see a later `Put`: until audit B4b, 2026-10-18, this spec gave `ownWTx` back at once and the
-cursor kept the entries of `m`, false after a `Put` on the bucket.) -/
+/-- `b.Cursor()` in the write transaction: a cursor over the bucket's entries now, made at the
+transaction's view (usable while the view does not change: a `Put` or `Delete` after it makes it
+stale, Go's "You must reposition your cursor after mutating data"; until S1 the cursor held the
+transaction's ownership instead). The handle must be at the bucket's current generation. -/
 abbrev bbolt.Bucket.Cursor_kvw.spec : Prop :=
-  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
-    (m : BktData),
+  ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
+    (m : backend.BktData),
   G n = g → S.lookup n = some m →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ wBkt tx b n g }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ wBkt tx γ b n g }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Cursor")) (Val #()))
-  {{ (c : Loc), RET #c; ownCur tx c (bktEnts m) none ∗ txLive tx 1 ∗
-      (∀ pos : Option Nat, ownCur tx c (bktEnts m) pos -∗ txLive tx 1 -∗ ownWTxG tx γ D S G) }}
+  {{ (c : Loc), RET #c; ownCur tx γ c (wView D S G) (backend.bktEnts m) none ∗ ownWTxG tx γ D S G }}
 
 end spec
 

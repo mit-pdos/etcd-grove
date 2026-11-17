@@ -1078,7 +1078,7 @@ theorem idClaim_agree_entry (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ
 def srvWTN : Namespace := nroot .@ "srvWT"
 
 -- (S7b) for a later over an existential backend in the budget's invariant
-deriving instance Inhabited for backend.DBNames
+-- (S1) `backend.DBNames` is bbolt's `BoltName`, which derives `Inhabited`
 deriving instance Inhabited for backend.BNames
 deriving instance Inhabited for backend.BParams
 deriving instance Inhabited for mvcc.KBReal

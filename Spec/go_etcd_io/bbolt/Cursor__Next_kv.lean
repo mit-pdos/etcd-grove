@@ -1,9 +1,10 @@
 /-
-`Cursor.Next_kv` (bbolt). `c.Next()` of a positioned cursor: the next entry (nil, nil past the end, where it stays).
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Cursor__Next_kv.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
+`Cursor.Next_kv` (bbolt). `c.Next()` of a positioned cursor.
+A corollary of bbolt's proved `Cursor.Next` (`Spec/go_etcd_io/bbolt/Cursor__Next.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Cursor__Next_kv.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -25,13 +26,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `c.Next()` of a positioned cursor: the next entry (nil, nil past the end, where it stays). -/
+/-- `c.Next()` of a positioned cursor (with the transaction at the cursor's view, any fraction): the
+next entry, or nil, nil past the last, where the cursor *stays at the last entry* (Go's `next`:
+"it stays there"; S1: bbolt's proved position, until then `min (i + 1) es.length`). -/
 abbrev bbolt.Cursor.Next_kv.spec : Prop :=
-  ∀ (tx c : Loc) (es : List Ent) (i : Nat) (q : Qp),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx c es (some i) ∗ txLive tx q }}
+  ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (i : Nat) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es (some i) ∗ txLive tx γ q T }}
     (App (Val (c @!! go.GoType.PointerType Cursor.ty @!! go!"Next")) (Val #()))
-  {{ (k v : GoSlice), RET (PairV #k #v); ownCur tx c es (some (min (i + 1) es.length)) ∗
-      txLive tx q ∗ curAt tx es (i + 1) k v }}
+  {{ (k v : GoSlice), RET (PairV #k #v);
+      ownCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
+      txLive tx γ q T ∗ backend.curAt tx γ es (i + 1) k v }}
 
 end spec
 

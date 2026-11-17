@@ -33,7 +33,7 @@ theorem backend.concurrentReadTx.UnsafeRange.wp_proof
   wp_start as ⟨Hs, #Hbk, Hk, He⟩
   unfold crtSnap
   icases Hs with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, Hrb, #Hrtx, #Hcm,
-    #Htm', #Hwg, Hown, #Hg, Hsh, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
+    #Htm', #Hwg, Hown, #Hg, Hsh, #Hintv, #Hwgi, %Hwf⟩
   unfold rdShare
   icases Hsh with ⟨Hlive, Hrc⟩
   wp_apply hbase γ P W Pk b (cbaseOf crt) DFrac.discard rtx rv q bk bi key endKey kb eb dk de limit
@@ -46,7 +46,7 @@ theorem backend.concurrentReadTx.UnsafeRange.wp_proof
       ipureintro; exact ⟨Hwf.1, Hwf.2.1, Hwf.2.2, Or.inl rfl⟩
     unfold isBucket; iexact Hbk
   unfold baseRd
-  icases Hbr with ⟨%m', %Pb', %cm', %tm', Hrb, #Hrtx', #Hcm', #Htm'', Hown, -, Hlive, -, #Hintv',
+  icases Hbr with ⟨%m', %Pb', %cm', %tm', Hrb, #Hrtx', #Hcm', #Htm'', Hown, -, Hlive, #Hintv',
     %Hwf'⟩
   icombine Htm' Htm'' gives %Heq
   subst Heq

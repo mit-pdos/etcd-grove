@@ -240,9 +240,7 @@ instance schedNames_countable : Pos.Countable schedule.SchedNames :=
   countableOfLeftInverse (fun x : schedule.SchedNames => (x.run, x.jobs, x.pay))
     (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
 
-instance dbNames_countable : Pos.Countable backend.DBNames :=
-  countableOfLeftInverse (fun x : backend.DBNames => (x.db, x.wr)) (fun p => ⟨p.1, p.2⟩)
-    (fun _ => rfl)
+instance dbNames_countable : Pos.Countable backend.DBNames := bbolt.boltName_countable
 
 instance bNames_countable : Pos.Countable backend.BNames :=
   countableOfLeftInverse

@@ -335,10 +335,10 @@ theorem tokPart_le (γ : BNames) (a : Rat) :
 theorem intv_borrow (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Data) (r : Qp)
     (E : CoPset) (hE : ↑(bN.@"intv") ⊆ E) :
     intvInv (GF := GF) γ P rtx cm D ∗ ghostVar γ.txa r () ⊢
-      |={E}=> ∃ M : GMap w64 Loc, cm ↦${DFrac.own r} M ∗ □ cmFacts P rtx D M := by
+      |={E}=> ∃ M : GMap w64 Loc, cm ↦${DFrac.own r} M ∗ □ cmFacts γ P rtx D M := by
   iintro ⟨Hinv, Ht⟩
   unfold intvInv
-  icases Hinv with ⟨#Hi, -⟩
+  icases Hinv with #Hi
   iinv Hi with ⟨%M, %qm, >#Hf, >%Hq, >Hm, >Htp⟩ Hclose
   ihave Htp := tokPart_join γ (1 - qm) r (by grind) $$ [Htp Ht]
   · iframe
@@ -358,11 +358,11 @@ theorem intv_borrow (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Da
 with its facts), for the same fraction of the token. -/
 theorem intv_return (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Data) (r : Qp)
     (M : GMap w64 Loc) (E : CoPset) (hE : ↑(bN.@"intv") ⊆ E) :
-    intvInv (GF := GF) γ P rtx cm D ∗ cm ↦${DFrac.own r} M ∗ □ cmFacts P rtx D M ⊢
+    intvInv (GF := GF) γ P rtx cm D ∗ cm ↦${DFrac.own r} M ∗ □ cmFacts γ P rtx D M ⊢
       |={E}=> ghostVar γ.txa r () := by
   iintro ⟨Hinv, Hr, #Hf⟩
   unfold intvInv
-  icases Hinv with ⟨#Hi, -⟩
+  icases Hinv with #Hi
   iinv Hi with ⟨%M', %qm, Hf', >%Hq, >Hm, >Htp⟩ Hclose
   ihave %Hrv := ownMap_valid cm r M $$ Hr
   -- the map's parts agree (when the invariant holds any) and fit in the whole map
@@ -404,22 +404,23 @@ theorem intv_return (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Da
 
 /-! ## A cursor's entry -/
 
-theorem curAt_some (tx : Loc) (es : List Ent) (n : Nat) (k v : GoSlice) (e : Ent)
+theorem curAt_some (tx : Loc) (γd : DBNames) (es : List Ent) (n : Nat) (k v : GoSlice) (e : Ent)
     (h : es[n]? = some e) :
-    curAt (GF := GF) tx es n k v ⊢ ⌜k ≠ slice.nil⌝ ∗ txBytes tx k e.1 ∗ txBytes tx v e.2 := by
+    curAt (GF := GF) tx γd es n k v ⊢ ⌜k ≠ slice.nil⌝ ∗ txBytes tx γd k e.1 ∗ txBytes tx γd v e.2 := by
   unfold curAt; rw [h]
 
-theorem curAt_none (tx : Loc) (es : List Ent) (n : Nat) (k v : GoSlice) (h : es[n]? = none) :
-    curAt (GF := GF) tx es n k v ⊢ ⌜k = slice.nil ∧ v = slice.nil⌝ := by
+theorem curAt_none (tx : Loc) (γd : DBNames) (es : List Ent) (n : Nat) (k v : GoSlice)
+    (h : es[n]? = none) :
+    curAt (GF := GF) tx γd es n k v ⊢ ⌜k = slice.nil ∧ v = slice.nil⌝ := by
   unfold curAt; rw [h]
 
 /-! ## The slices a read returns -/
 
-instance rdSlices_persistent (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
-    Persistent (rdSlices (GF := GF) rtx ss bs) := by
+instance rdSlices_persistent (γd : DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
+    Persistent (rdSlices (GF := GF) γd rtx ss bs) := by
   unfold rdSlices; infer_instance
 
-theorem rdSlices_nil (rtx : Loc) : ⊢ rdSlices (GF := GF) rtx [] [] := by
+theorem rdSlices_nil (γd : DBNames) (rtx : Loc) : ⊢ rdSlices (GF := GF) γd rtx [] [] := by
   unfold rdSlices
   simp only [List.zip_nil_left]
   iintro
@@ -427,13 +428,13 @@ theorem rdSlices_nil (rtx : Loc) : ⊢ rdSlices (GF := GF) rtx [] [] := by
   · ipureintro; rfl
   iapply BigSepL.bigSepL_nil.2; iempintro
 
-theorem rdSlices_length (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
-    rdSlices (GF := GF) rtx ss bs ⊢ ⌜ss.length = bs.length⌝ := by
+theorem rdSlices_length (γd : DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
+    rdSlices (GF := GF) γd rtx ss bs ⊢ ⌜ss.length = bs.length⌝ := by
   unfold rdSlices; iintro ⟨%H, _⟩; ipureintro; exact H
 
-theorem rdSlices_snoc (rtx : Loc) (ss : List GoSlice) (bs : List GoString) (s : GoSlice)
+theorem rdSlices_snoc (γd : DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List GoString) (s : GoSlice)
     (b : GoString) :
-    rdSlices (GF := GF) rtx ss bs ∗ rdB rtx s b ⊢ rdSlices rtx (ss ++ [s]) (bs ++ [b]) := by
+    rdSlices (GF := GF) γd rtx ss bs ∗ rdB γd rtx s b ⊢ rdSlices γd rtx (ss ++ [s]) (bs ++ [b]) := by
   unfold rdSlices
   iintro ⟨⟨%Hlen, H⟩, #Hs⟩
   isplitr
@@ -445,9 +446,9 @@ theorem rdSlices_snoc (rtx : Loc) (ss : List GoSlice) (bs : List GoString) (s : 
   iapply BigSepL.bigSepL_singleton.2
   iexact Hs
 
-theorem rdSlices_append (rtx : Loc) (ss ss' : List GoSlice) (bs bs' : List GoString) :
-    rdSlices (GF := GF) rtx ss bs ∗ rdSlices rtx ss' bs' ⊢
-      rdSlices rtx (ss ++ ss') (bs ++ bs') := by
+theorem rdSlices_append (γd : DBNames) (rtx : Loc) (ss ss' : List GoSlice) (bs bs' : List GoString) :
+    rdSlices (GF := GF) γd rtx ss bs ∗ rdSlices γd rtx ss' bs' ⊢
+      rdSlices γd rtx (ss ++ ss') (bs ++ bs') := by
   unfold rdSlices
   iintro ⟨⟨%Hlen, H⟩, ⟨%Hlen', H'⟩⟩
   isplitr
@@ -461,8 +462,8 @@ theorem slicesAre_len (ss : List GoSlice) (bs : List GoString) :
   unfold slicesAre; iintro ⟨%H, _⟩; ipureintro; exact H
 
 /-- The buffers' read-only slices are read slices. -/
-theorem rdSlices_of_slicesAre (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
-    slicesAre (GF := GF) ss bs ⊢ rdSlices rtx ss bs := by
+theorem rdSlices_of_slicesAre (γd : DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List GoString) :
+    slicesAre (GF := GF) ss bs ⊢ rdSlices γd rtx ss bs := by
   unfold slicesAre rdSlices
   iintro ⟨%Hlen, H⟩
   isplitr
@@ -473,8 +474,8 @@ theorem rdSlices_of_slicesAre (rtx : Loc) (ss : List GoSlice) (bs : List GoStrin
   unfold rdB
   ileft; iexact H
 
-theorem kvsOutRd_of_kvsOut (rtx : Loc) (keys vals : GoSlice) (res : List Ent) :
-    kvsOut (GF := GF) keys vals res ⊢ kvsOutRd rtx keys vals res := by
+theorem kvsOutRd_of_kvsOut (γd : DBNames) (rtx : Loc) (keys vals : GoSlice) (res : List Ent) :
+    kvsOut (GF := GF) keys vals res ⊢ kvsOutRd γd rtx keys vals res := by
   unfold kvsOut kvsOutRd
   iintro ⟨%ks, %vs, Hk, Hkc, Hv, Hvc, Hka, Hva⟩
   iexists ks, vs
@@ -639,17 +640,19 @@ theorem wgOpen_excl (γw : GName) (q : Qp) :
 
 /-- A reader's `txWg.Add(1)` (holding `readTx.mu` while the interval is open): its budget token
 deposited, a share of the bbolt transaction and its receipt. -/
-theorem wp_rdAdd (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (q : Qp) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ □ wgInv γ rtx wg γw γo γt ∗ wgOpen γw q ∗
+theorem wp_rdAdd (γ : BNames) (rtx : Loc) (D : Data) (wg : Loc) (γw γo γt : GName) (q : Qp) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗ □ wgInv γ rtx D wg γw γo γt ∗ wgOpen γw q ∗
         ownToks γ.rdt 1 }}
       (App (Val (wg @!! go.GoType.PointerType sync.WaitGroup.ty @!! go!"Add")) (Val #(W64 1)))
-    {{ RET #(); ∃ (k : Nat) (q' : Qp), wgOpen γw q ∗ rdShare rtx γo k q' }} := by
+    {{ RET #(); ∃ (k : Nat) (q' : Qp), wgOpen γw q ∗ rdShare γ rtx D γo k q' }} := by
   iintro %Φ ⟨#Hsync, #Hwgi, Hwo, Htok⟩ HΦ
   unfold wgInv
-  icases Hwgi with ⟨%γwg, #Hisw, #Hi, #Hauth⟩
+  icases Hwgi with ⟨%γwg, %db, #Hisw, #Hi, #Hauth, #Hdb⟩
   iapply sync.WaitGroup.wp_Add wg (W64 1) γwg (bN.@"wg") $$ [] [Hwo Htok HΦ]
   · iframe #
-  iinv Hi with >Hb Hclose
+  iinv Hi with Hb Hclose
+  ihave Hb := wgBody_later db γ rtx D γwg γw γo γt $$ Hdb Hb
+  imod Hb
   iapply fupd_mask_intro wg_wgi_mask
   iintro Hmask
   inext
@@ -681,9 +684,10 @@ theorem wp_rdAdd (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) (q : Qp) :
   iintro Hw0 Hwgo
   imod Hmask with -
   imod ghost_map_insert k pool.half hk $$ Hoa with ⟨Hoa, Hrc⟩
-  ihave Hpool2 : txLive rtx (pool.half + pool.half) $$ [Hpool]
+  ihave Hpool2 : txLive rtx γ.db (pool.half + pool.half) (bbolt.TxView.ro D) $$ [Hpool]
   · rw [Qp.half_add_half]; iexact Hpool
-  icases ((txLive_fractional rtx).fractional pool.half pool.half).1 $$ Hpool2 with ⟨Hp1, Hp2⟩
+  icases ((txLive_fractional rtx γ.db (bbolt.TxView.ro D)).fractional pool.half pool.half).1 $$ Hpool2
+    with ⟨Hp1, Hp2⟩
   imod Hclose $$ [Hwgo Hoa Hp1 Htoks Hw0] with -
   · inext
     unfold wgBody
@@ -809,17 +813,17 @@ theorem bOpen_stopped (γ : BNames) (q : Qp) : bOpen (GF := GF) γ q ∗ bStoppe
 /-! ## The buckets cache's facts and the transaction's statistics -/
 
 /-- What the cache holds for the bucket `bi` (of the table). -/
-def bktFact (rtx : Loc) (D : Data) (n : GoString) (bk : Loc) : IProp GF :=
+def bktFact (γ : BNames) (rtx : Loc) (D : Data) (n : GoString) (bk : Loc) : IProp GF :=
   iprop(⌜D.lookup n = none ∧ bk = Loc.null⌝ ∨
-    ∃ m : BktData, ⌜D.lookup n = some m ∧ bk ≠ Loc.null⌝ ∗ rBkt rtx bk (bktEnts m))
+    ∃ m : BktData, ⌜D.lookup n = some m ∧ bk ≠ Loc.null⌝ ∗ wBkt rtx γ.db bk n 0)
 
-instance bktFact_persistent (rtx : Loc) (D : Data) (n : GoString) (bk : Loc) :
-    Persistent (bktFact (GF := GF) rtx D n bk) := by
+instance bktFact_persistent (γ : BNames) (rtx : Loc) (D : Data) (n : GoString) (bk : Loc) :
+    Persistent (bktFact (GF := GF) γ rtx D n bk) := by
   unfold bktFact; infer_instance
 
-theorem cmFacts_lookup (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) (bi : BucketInfo)
+theorem cmFacts_lookup (γ : BNames) (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) (bi : BucketInfo)
     (bk : Loc) (hP : P.Wf) (hb : P.has bi) (hl : M.lookup bi.id = some bk) :
-    cmFacts (GF := GF) P rtx D M ⊢ bktFact rtx D bi.name bk := by
+    cmFacts (GF := GF) γ P rtx D M ⊢ bktFact γ rtx D bi.name bk := by
   unfold cmFacts
   iintro H
   ihave H := BigSepM.bigSepM_lookup (show Iris.Std.PartialMap.get? M bi.id = some bk from hl) $$ H
@@ -829,10 +833,10 @@ theorem cmFacts_lookup (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) (
   unfold bktFact
   iexact H
 
-theorem cmFacts_insert (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) (bi : BucketInfo)
+theorem cmFacts_insert (γ : BNames) (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) (bi : BucketInfo)
     (bk : Loc) (hb : P.has bi) :
-    cmFacts (GF := GF) P rtx D M ∗ bktFact rtx D bi.name bk ⊢
-      cmFacts P rtx D (GMap.insert bi.id bk M) := by
+    cmFacts (GF := GF) γ P rtx D M ∗ bktFact γ rtx D bi.name bk ⊢
+      cmFacts γ P rtx D (GMap.insert bi.id bk M) := by
   unfold cmFacts bktFact
   iintro ⟨H, Hf⟩
   iapply (BigSepM.bigSepM_insert_elim (M := GMap w64) (m := M) (i := bi.id) (x := bk)) $$ [Hf] H
@@ -840,41 +844,12 @@ theorem cmFacts_insert (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) (
   iframe
   ipureintro; exact hb
 
-theorem cmFacts_empty (P : BParams) (rtx : Loc) (D : Data) :
-    ⊢ cmFacts (GF := GF) P rtx D (∅ : GMap w64 Loc) := by
+theorem cmFacts_empty (γ : BNames) (P : BParams) (rtx : Loc) (D : Data) :
+    ⊢ cmFacts (GF := GF) γ P rtx D (∅ : GMap w64 Loc) := by
   unfold cmFacts
   iintro
   iapply BigSepM.bigSepM_empty.2
   iempintro
-
-/-- The statistics, out of the interval's invariant, for `txMu`'s second token. -/
-theorem stats_take (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Data) (E : CoPset)
-    (hE : ↑(bN.@"stats") ⊆ E) :
-    intvInv (GF := GF) γ P rtx cm D ∗ ghostVar γ.txb 1 () ⊢ |={E}=> rtxStats rtx := by
-  iintro ⟨Hinv, Ht⟩
-  unfold intvInv
-  icases Hinv with ⟨-, #Hs⟩
-  iinv Hs with >Hc Hclose
-  icases Hc with (Hst | Ht')
-  · imod Hclose $$ [Ht] with -
-    · inext; iright; iexact Ht
-    imodintro; iexact Hst
-  · ihave %Hv := ghostVar_valid_2 γ.txb () 1 () 1 $$ Ht Ht'
-    exfalso; have := Hv.1; simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at this; grind
-
-/-- The statistics back, for `txMu`'s second token. -/
-theorem stats_give (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Data) (E : CoPset)
-    (hE : ↑(bN.@"stats") ⊆ E) :
-    intvInv (GF := GF) γ P rtx cm D ∗ rtxStats rtx ⊢ |={E}=> ghostVar γ.txb 1 () := by
-  iintro ⟨Hinv, Hst⟩
-  unfold intvInv
-  icases Hinv with ⟨-, #Hs⟩
-  iinv Hs with >Hc Hclose
-  icases Hc with (Hst' | Ht)
-  · iexfalso; iapply rtxStats_excl rtx $$ [Hst Hst']; iframe
-  · imod Hclose $$ [Hst] with -
-    · inext; ileft; iexact Hst
-    imodintro; iexact Ht
 
 /-! ## The clients' lemmas on a held read transaction -/
 
@@ -946,15 +921,19 @@ theorem rtHeld_safe (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
     ipureintro; exact Hrtx
   ipureintro; exact Hf.2.2.2.2.2
 
-/-- A live interval's bbolt snapshot (premise fixes 5). -/
-theorem rtIntv_snap (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data)
+/-- A live interval's bbolt snapshot holds fewer than `2 ^ 61` entries in each bucket (premise
+fixes 5; S1: bbolt's `boltTx_size`, through `txLive_size`). -/
+theorem rtIntv_size (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data)
     (p : Qp) (hn : rd.rtx ≠ Loc.null) :
-    rtIntv (GF := GF) γ P q rd cm D p ⊢ rtIntv γ P q rd cm D p ∗ rtxSnap rd.rtx D := by
+    rtIntv (GF := GF) γ P q rd cm D p ⊢ rtIntv γ P q rd cm D p ∗
+      ⌜∀ (n : GoString) (m : BktData), D.lookup n = some m → m.size < 2 ^ 61⌝ := by
   unfold rtIntv
   split
-  · iintro ⟨Hl, #Hs, Hr⟩
-    iframe Hs
+  · iintro ⟨Hl, Hr⟩
+    icases persistent_entails_right (txLive_size rd.rtx γ.db p (bbolt.TxView.ro D)) $$ Hl
+      with ⟨%Hs, Hl⟩
     iframe
+    ipureintro; exact Hs
   · iintro ⟨%h, -⟩
     exact absurd h hn
 
@@ -980,7 +959,7 @@ theorem rbAt_bkOf_lt (txr : Loc) (dq : DFrac) (m : GoMap) (Pb : BksPhys) (R : RB
 
 /-- **A held shared read transaction's states are below bbolt's and the read buffer's bounds**
 (premise fixes 5): every bucket of its bbolt snapshot holds fewer than `2 ^ 61` entries (bbolt's
-`rtxSnap_size`), and so does every bucket of its read buffer (`bbOk`). -/
+`boltTx_size`), and so does every bucket of its read buffer (`bbOk`). -/
 theorem rtHeld_sizes (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (n : GoString)
     (id : w64) :
     rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗
@@ -989,8 +968,7 @@ theorem rtHeld_sizes (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (n :
   iintro ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
     Hcur, Hcln, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩
   have hn : rd.rtx ≠ Loc.null := by rw [Hrtx.1]; exact Hrtx.2
-  ihave ⟨Hiv, #Hs⟩ := rtIntv_snap γ P sync.rfrac rd cm rv.1 _ hn $$ Hiv
-  ihave %Hsz := rtxSnap_size rd.rtx rv.1 $$ Hs
+  ihave ⟨Hiv, %Hsz⟩ := rtIntv_size γ P sync.rfrac rd cm rv.1 _ hn $$ Hiv
   ihave ⟨Hrb, %Hbk⟩ := rbAt_bkOf_lt _ _ m Pb rv.2 Hok id $$ Hrb
   isplitl
   · iexists rt, rd, H, L
@@ -1102,7 +1080,7 @@ share** (its interval is live: `rtHeldF`'s `rtx ≠ Loc.null`; the backend-auth-
 R5b). -/
 theorem rtHeldF_lend' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
     rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ⊢
-      rtHeldF γ P b rtx rv p1 ∗ txLive rtx p2 := by
+      rtHeldF γ P b rtx rv p1 ∗ txLive rtx γ.db p2 (bbolt.TxView.ro rv.1) := by
   iintro Hh
   unfold rtHeldF rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
@@ -1113,8 +1091,9 @@ theorem rtHeldF_lend' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1
     icases Hiv with ⟨%Hnull, -⟩
     exact absurd (Hrtx ▸ Hnull) Hnn
   simp only [↓reduceIte]
-  icases Hiv with ⟨Hlive, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
-  icases ((txLive_fractional rd.rtx).fractional p1 p2).1 $$ Hlive with ⟨Hl1, Hl2⟩
+  icases Hiv with ⟨Hlive, #Hintv, #Hwgi, Hwo, Htk⟩
+  icases ((txLive_fractional rd.rtx γ.db (bbolt.TxView.ro rv.1)).fractional p1 p2).1 $$ Hlive
+    with ⟨Hl1, Hl2⟩
   subst Hrtx
   iframe Hl2
   iexists rt, rd, H, L
@@ -1134,14 +1113,15 @@ theorem rtHeldF_lend' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1
 open share framed). -/
 theorem rtHeldF_lend (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo p1 p2 : Qp) :
     rtHeldF (GF := GF) γ P b rtx rv (p1 + p2) ∗ bOpen γ qo ⊢
-      rtHeldF γ P b rtx rv p1 ∗ bOpen γ qo ∗ txLive rtx p2 := by
+      rtHeldF γ P b rtx rv p1 ∗ bOpen γ qo ∗ txLive rtx γ.db p2 (bbolt.TxView.ro rv.1) := by
   iintro ⟨Hh, Ho⟩
   icases rtHeldF_lend' γ P b rtx rv p1 p2 $$ Hh with ⟨Hh, Hl⟩
   iframe Hh Ho Hl
 
 /-- The lent share back. -/
 theorem rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p1 p2 : Qp) :
-    rtHeldF (GF := GF) γ P b rtx rv p1 ∗ txLive rtx p2 ⊢ rtHeldF γ P b rtx rv (p1 + p2) := by
+    rtHeldF (GF := GF) γ P b rtx rv p1 ∗ txLive rtx γ.db p2 (bbolt.TxView.ro rv.1) ⊢
+      rtHeldF γ P b rtx rv (p1 + p2) := by
   iintro ⟨Hh, Hl2⟩
   unfold rtHeldF rtResAt rtRest rtCore rtIntv
   icases Hh with ⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
@@ -1161,8 +1141,8 @@ theorem rtHeldF_return (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p
     · simp only [hl, Bool.false_eq_true, ↓reduceIte] at *
       iexact Hiv
     · simp only [hl, ↓reduceIte] at *
-      icases Hiv with ⟨Hl1, #Hsnap, #Hintv, #Hwgi, Hwo, Htk⟩
-      ihave Hl := ((txLive_fractional rd.rtx).fractional p1 p2).2 $$ [Hl1 Hl2]
+      icases Hiv with ⟨Hl1, #Hintv, #Hwgi, Hwo, Htk⟩
+      ihave Hl := ((txLive_fractional rd.rtx γ.db (bbolt.TxView.ro rv.1)).fractional p1 p2).2 $$ [Hl1 Hl2]
       · iframe
       iframe; iframe #
   ipureintro; exact ⟨rfl, Hnn⟩
@@ -1172,7 +1152,7 @@ transaction and no open share** (the interval live, `rtHeldF_lend'`; the restore
 backend-auth-split stage's decision 1). -/
 theorem rtHeldF_read' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp)
     (s : GoSlice) (v : GoString) :
-    rtHeldF (GF := GF) γ P b rtx rv p ∗ rdB rtx s v ⊢
+    rtHeldF (GF := GF) γ P b rtx rv p ∗ rdB γ.db rtx s v ⊢
       ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeldF γ P b rtx rv p) := by
   iintro ⟨Hh, #Hs⟩
   have hp : p = p.half + p.half := (Qp.half_add_half p).symm
@@ -1184,7 +1164,7 @@ theorem rtHeldF_read' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p 
     iframe #
     iintro _
     iapply rtHeldF_return γ P b rtx rv p.half p.half $$ [$Hh $Hl]
-  icases txBytes_acc rtx s v p.half $$ [$Hs $Hl] with ⟨%dq, Hsl, Hback⟩
+  icases txBytes_acc rtx γ.db s v p.half (bbolt.TxView.ro rv.1) $$ [$Hs $Hl] with ⟨%dq, Hsl, Hback⟩
   iexists dq
   iframe Hsl
   iintro Hsl
@@ -1195,7 +1175,7 @@ theorem rtHeldF_read' (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p 
 (`rtHeldF_read'`, the open share framed). -/
 theorem rtHeldF_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p qo : Qp)
     (s : GoSlice) (v : GoString) :
-    rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ∗ rdB rtx s v ⊢
+    rtHeldF (GF := GF) γ P b rtx rv p ∗ bOpen γ qo ∗ rdB γ.db rtx s v ⊢
       ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeldF γ P b rtx rv p ∗ bOpen γ qo) := by
   iintro ⟨Hh, Ho, Hs⟩
   icases rtHeldF_read' γ P b rtx rv p s v $$ [$Hh $Hs] with ⟨%dq, Hsl, Hback⟩
@@ -1208,7 +1188,7 @@ theorem rtHeldF_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p q
 /-- A slice a held shared read transaction returned, read (`rtHeldF_read`). -/
 theorem rtHeld_read (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (qo : Qp)
     (s : GoSlice) (v : GoString) :
-    rtHeld (GF := GF) γ P b rtx rv ∗ bOpen γ qo ∗ rdB rtx s v ⊢
+    rtHeld (GF := GF) γ P b rtx rv ∗ bOpen γ qo ∗ rdB γ.db rtx s v ⊢
       ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ rtHeld γ P b rtx rv ∗ bOpen γ qo) := by
   rw [rtHeld_eq]
   exact rtHeldF_read γ P b rtx rv sync.rfrac.half qo s v
@@ -1240,7 +1220,7 @@ theorem rtIntv_live (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap
     iexfalso; iapply bOpen_stopped γ qo $$ [$Ho $Hst]
   · simp only [↓reduceIte]
     icases Hiv with ⟨Hlive, Hrest⟩
-    ihave %Hn := txLive_nonnull rd.rtx p $$ Hlive
+    ihave %Hn := txLive_nonnull rd.rtx γ.db p (bbolt.TxView.ro D) $$ Hlive
     iframe Ho Hlive Hrest
     ipureintro; exact Hn
 
@@ -1265,7 +1245,7 @@ theorem rtResAt_live (γ : BNames) (P : BParams) (rt : Loc) (rd : RdSt) (rv : RV
 /-- A slice a concurrent read transaction returned, read. -/
 theorem crtSnap_read (γ : BNames) (P : BParams) (b crt rtx : Loc) (rv : RView) (s : GoSlice)
     (v : GoString) :
-    crtSnap (GF := GF) γ P b crt rtx rv ∗ rdB rtx s v ⊢
+    crtSnap (GF := GF) γ P b crt rtx rv ∗ rdB γ.db rtx s v ⊢
       ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ crtSnap γ P b crt rtx rv) := by
   iintro ⟨Hc, #Hs⟩
   unfold rdB
@@ -1276,8 +1256,8 @@ theorem crtSnap_read (γ : BNames) (P : BParams) (b crt rtx : Loc) (rv : RView) 
     iframe
   unfold crtSnap rdShare
   icases Hc with ⟨%m, %Pb, %cm, %tm, %wg, %γw, %γo, %γt, %k, %q, %rt, #Hrt, #Htm, Hrb, #Hrtx,
-    #Hcm, #Htm', #Hwg, Hown, #Hg, ⟨Hlive, Hrc⟩, #Hsnap, #Hintv, #Hwgi, %Hwf⟩
-  icases txBytes_acc rtx s v q $$ [$Hs $Hlive] with ⟨%dq, Hsl, Hback⟩
+    #Hcm, #Htm', #Hwg, Hown, #Hg, ⟨Hlive, Hrc⟩, #Hintv, #Hwgi, %Hwf⟩
+  icases txBytes_acc rtx γ.db s v q (bbolt.TxView.ro rv.1) $$ [$Hs $Hlive] with ⟨%dq, Hsl, Hback⟩
   iexists dq
   iframe Hsl
   iintro Hsl

@@ -1,7 +1,10 @@
 # etcd's backend (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --backend`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
-# The trust boundary: bbolt's key-value contract (Spec/go_etcd_io/bbolt/*_kv*.lean, axioms over
-# InvBbolt's axiomatized predicates); `sort.Stable` (Perennial translates it, proves only
+# bbolt's key-value contract (Spec/go_etcd_io/bbolt/*_kv*.lean over InvBbolt's vocabulary, defined
+# over the proved bbolt's API): corollaries of bbolt's proved specs (`@` callees, linked in
+# Proof/go_etcd_io/bbolt/Link.lean; stage S1 of notes/bbolt-integration-plan.md, 2026-11-17), but
+# `Open_kv`, `DB.Close_kv` (the file, stage S3) and `Bucket.Put_kv` (its entry bound), axioms. The
+# trust boundary: those three; `sort.Stable` (Perennial translates it, proves only
 # `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
@@ -14,26 +17,41 @@
 ValidateCalledInsideApply:
 ValidateCalledInsideUnittest:
 ValidateCalledOutSideApply:
-bbolt_Bucket__Cursor_kvr:
-bbolt_Bucket__Cursor_kvw:
-bbolt_Bucket__Delete_kv:
+bbolt_Bucket__Cursor: @
+bbolt_Bucket__Delete: @
+bbolt_Cursor__Next: @
+bbolt_Cursor__Seek: @
+bbolt_DB__Begin: @
+bbolt_DB__Info: @
+bbolt_DB__Stats: @
+bbolt_Tx__Bucket: @
+bbolt_Tx__Commit: @
+bbolt_Tx__CreateBucketIfNotExists: @
+bbolt_Tx__DB: @
+bbolt_Tx__DeleteBucket: @
+bbolt_Tx__Rollback: @
+bbolt_Tx__Size: @
+bbolt_Tx__Stats: @
+bbolt_Bucket__Cursor_kvr: bbolt_Bucket__Cursor
+bbolt_Bucket__Cursor_kvw: bbolt_Bucket__Cursor
+bbolt_Bucket__Delete_kv: bbolt_Bucket__Delete
 bbolt_Bucket__Put_kv:
-bbolt_Cursor__Next_kv:
-bbolt_Cursor__Seek_kv:
-bbolt_DB__Begin_kv:
+bbolt_Cursor__Next_kv: bbolt_Cursor__Next
+bbolt_Cursor__Seek_kv: bbolt_Cursor__Seek
+bbolt_DB__Begin_kv: bbolt_DB__Begin
 bbolt_DB__Close_kv:
-bbolt_DB__Info_kv:
-bbolt_DB__Stats_kv:
+bbolt_DB__Info_kv: bbolt_DB__Info
+bbolt_DB__Stats_kv: bbolt_DB__Stats
 bbolt_Open_kv:
-bbolt_Tx__Bucket_kvr:
-bbolt_Tx__Bucket_kvw:
-bbolt_Tx__Commit_kv:
-bbolt_Tx__CreateBucketIfNotExists_kv:
-bbolt_Tx__DB_kv:
-bbolt_Tx__DeleteBucket_kv:
-bbolt_Tx__Rollback_kv:
-bbolt_Tx__Size_kv:
-bbolt_Tx__Stats_kv:
+bbolt_Tx__Bucket_kvr: bbolt_Tx__Bucket
+bbolt_Tx__Bucket_kvw: bbolt_Tx__Bucket
+bbolt_Tx__Commit_kv: bbolt_Tx__Commit
+bbolt_Tx__CreateBucketIfNotExists_kv: bbolt_Tx__CreateBucketIfNotExists
+bbolt_Tx__DB_kv: bbolt_Tx__DB
+bbolt_Tx__DeleteBucket_kv: bbolt_Tx__DeleteBucket
+bbolt_Tx__Rollback_kv: bbolt_Tx__Rollback
+bbolt_Tx__Size_kv: bbolt_Tx__Size
+bbolt_Tx__Stats_kv: bbolt_Tx__Stats
 sort_Stable:
 time_Duration__Seconds:
 verify_Assert:

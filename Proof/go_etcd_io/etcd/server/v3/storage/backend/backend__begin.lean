@@ -51,24 +51,24 @@ theorem backend.backend.begin.wp_proof
   · iframe #
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hdbp] as Hmu
   · inext; iexact Hdbp
-  ihave Hl : (txLive tx 1 ∗ (txLive tx 1 -∗ (if w then ownWTx tx γd D D else
-      iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)))) $$ [Htx]
+  ihave Hl : (∃ T, txLive tx γd 1 T ∗ (txLive tx γd 1 T -∗ (if w then ownWTx tx γd D D else
+      txLive tx γd 1 (bbolt.TxView.ro D)))) $$ [Htx]
   · cases w
     · simp only [Bool.false_eq_true, ↓reduceIte]
-      icases Htx with ⟨Hl, Hs, Hst⟩
-      iframe Hl
+      iexists (bbolt.TxView.ro D)
+      iframe Htx
       iintro Hl
-      iframe
+      iexact Hl
     · simp only [↓reduceIte]
       iapply ownWTx_live $$ Htx
-  icases Hl with ⟨Hlive, Hback⟩
-  wp_apply (hSize tx 1) $$ [$Hlive] as %sz Hlive
-  wp_apply (hDB tx db 1) $$ [$Hlive $Htxdb] as Hlive
-  wp_apply (hStats db) $$ [$Hisdb] as %stats -
+  icases Hl with ⟨%T, Hlive, Hback⟩
+  wp_apply (hSize tx γd 1 T) $$ [$Hlive] as %sz Hlive
+  wp_apply (hDB tx db γd 1 T) $$ [$Hlive $Htxdb] as Hlive
+  wp_apply (hStats db tx γd T) $$ [$Hisdb $Hlive] as %stats Hlive
   wp_apply (wp_metricStore b go!"size" sz (by simp)) $$ [$Hmi]
-  wp_apply (hInfo db tx 1) $$ [$Hisdb $Htxdb $Hlive] as %i ⟨⟨%iv, #Hi⟩, Hlive⟩
+  wp_apply (hInfo db tx γd 1 T) $$ [$Hisdb $Htxdb $Hlive] as %i ⟨⟨%iv, Hi⟩, Hlive⟩
   iStructNamed Hi
-  wp_auto
+  try wp_auto
   wp_apply (wp_metricStore b go!"sizeInUse" _ (by simp)) $$ [$Hmi]
   wp_apply (wp_metricStore b go!"openReadTxN" _ (by simp)) $$ [$Hmi]
   iapply HΦ

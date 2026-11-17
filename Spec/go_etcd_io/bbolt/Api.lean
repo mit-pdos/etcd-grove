@@ -300,6 +300,13 @@ theorem boltTx_valid (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
 theorem boltTx_nonnull (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
     boltTx (GF := GF) tx γ q T ⊢ ⌜tx ≠ Loc.null⌝ := by
   unfold boltTx; exact boltTxDef_nonnull _ _ _ _ _
+-- S1a (branch `bbolt-api-adds`): the placeholder of its statement, until it lands.
+/-- **Each bucket of a live transaction's view holds fewer than `2 ^ 61` entries** (D-I3 of
+`notes/bbolt-integration-plan.md`; the backend's `rtxSnap_size` until then). -/
+theorem boltTx_size (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) :
+    boltTx (GF := GF) tx γ q T ⊢
+      ⌜∀ (n : GoString) (m : BktData), T.cur.lookup n = some m → m.size < 2 ^ 61⌝ := by
+  sorry -- S1a
 /-- **While a write transaction is live, the committed data is the one it began at** (it holds
 `rwlock`; only it can commit). How a client learns the data `Begin(true)` began at. -/
 theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Data) :
@@ -314,6 +321,17 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
 @[instance] theorem boltBkt_persistent (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
     (g : Nat) : Persistent (boltBkt (GF := GF) tx γ b n g) := by
   unfold boltBkt; infer_instance
+private instance ite_timeless_api (c : Prop) [Decidable c] (P Q : IProp GF) [Timeless P]
+    [Timeless Q] : Timeless (if c then P else Q) := by
+  split <;> infer_instance
+/-- A bucket handle is timeless (ghost state and persistent points-tos; stage S1, 2026-11-17: the
+backend keeps its read transaction's handles in an invariant, `backend.cmFacts`). -/
+@[instance] theorem boltBkt_timeless (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
+    (g : Nat) : Timeless (boltBkt (GF := GF) tx γ b n g) := by
+  unfold boltBkt boltBktDef reg handleFrag viewOf rBkt locOwn
+  refine @exists_timeless _ _ _ _ (fun r => ?_)
+  rcases r with ⟨db, n', rw, src⟩
+  cases rw <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 @[instance] theorem txBytes_persistent (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) :
     Persistent (txBytes (GF := GF) tx γ s b) := by
   unfold txBytes; infer_instance
@@ -400,6 +418,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
+-- S1a (branch `bbolt-api-adds`): the placeholder of its statement (a write transaction pays too),
+-- until it lands; `statSlot_tok`'s case of a transaction is `sorry` meanwhile.
 /-- What pays for `statlock`'s reader slot in `DB.Stats`: the caller's `threadTok` (`none`), or
 the whole of a read transaction (`some (tx, D)`), whose reader slot covers `statlock` too: for a
 caller whose token a read transaction holds, as the backend's `begin` right after
@@ -407,9 +427,9 @@ caller whose token a read transaction holds, as the backend's `begin` right afte
 *pair* per token, an `mmaplock` reader token and a `statlock` one, so a read transaction's slot
 covers its `Stats`; it needs all of the transaction, since two holders of fractions calling
 `Stats` at once would need two `statlock` tokens. -/
-def statSlot [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : Option (Loc × Data) → IProp GF
+def statSlot [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : Option (Loc × TxView) → IProp GF
   | none => threadTok
-  | some (tx, D) => boltTx tx γ 1 (TxView.ro D)
+  | some (tx, T) => boltTx tx γ 1 T
 
 end stat
 

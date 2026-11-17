@@ -33,11 +33,11 @@ committed data `D` (`ownDB`: no write transaction open), the file it is (`dbFile
 closed (`fileHolds`, what a reopen reads): every commit wrote its pages and meta page before it
 returned, `Close` writes nothing (graceful stops in one process: an unsynced write reads back). -/
 abbrev bbolt.DB.Close_kv.spec : Prop :=
-  ∀ (db : Loc) (γ : DBNames) (D : Data) (path : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db ∗ dbFile db path ∗ ownDB db γ D }}
+  ∀ (db : Loc) (γ : DBNames) (D : backend.Data) (path : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ dbFile db path ∗ ownDB db γ D }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ fileHolds path D) ∨ ⌜¬ dbCloseOk⌝ }}
+      (⌜err = GoInterface.nil⌝ ∗ backend.fileHolds path D) ∨ ⌜¬ backend.dbCloseOk⌝ }}
 
 end spec
 

@@ -28,7 +28,7 @@ abbrev backend.batchTx.UnsafeRange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb }}
     (App (App (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
   {{ (keys vals : GoSlice), RET (PairV #keys #vals); btW γ t st ∗ key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗
-      kvsOutRd st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) }}
+      kvsOutRd γ.db st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) }}
 
 end spec
 

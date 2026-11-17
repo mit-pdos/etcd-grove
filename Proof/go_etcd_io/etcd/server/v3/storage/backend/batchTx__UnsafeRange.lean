@@ -71,16 +71,17 @@ theorem backend.batchTx.UnsafeRange.wp_proof
   wp_if_destruct
   · exact absurd rfl Hnn
   wp_apply (hCursor st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m rfl Hm) $$ [$Hwtx $Hwb]
-    as %c ⟨Hcur, Hlive, Hback⟩
-  wp_apply (hRange st.tx c (bktEnts m) none 1 key endKey kb eb dk de limit)
-    $$ [$Hcur $Hlive $Hkey $HendKey] as %keys %vals ⟨⟨%pos', Hcur⟩, Hlive, Hkey, HendKey, Hout⟩
+    as %c ⟨Hcur, Hwtx⟩
+  iunfold ownWTxG at Hwtx
+  wp_apply (hRange st.tx c γ.db (wView st.C st.S G) (bktEnts m) none 1 key endKey kb eb dk de limit)
+    $$ [$Hcur $Hwtx $Hkey $HendKey] as %keys %vals ⟨⟨%pos', -⟩, Hwtx, Hkey, HendKey, Hout⟩
   iapply HΦ
   unfold bktOf
   rw [Hm]
-  ispecialize Hback $$ %pos' Hcur Hlive
   iframe
   iexists G
-  iexact Hback
+  iunfold ownWTxG
+  iexact Hwtx
 
 end proof
 

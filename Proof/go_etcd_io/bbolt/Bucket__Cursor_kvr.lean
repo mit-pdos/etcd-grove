@@ -1,18 +1,22 @@
 /-
-The trust boundary: `Spec/go_etcd_io/bbolt/Bucket__Cursor_kvr.lean` (bbolt is names-only here).
+`Bucket.Cursor_kvr`'s proof: bbolt's proved `Bucket.Cursor` at the program's file extension (`theFs`), over
+the backend's vocabulary (`InvBbolt.lean`; stage S1 of `notes/bbolt-integration-plan.md`).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__Cursor_kvr
+public import Spec.go_etcd_io.bbolt.Bucket__Cursor
 
 @[expose] public section
+
+set_option linter.unusedSimpArgs false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.bbolt backend
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -21,7 +25,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-axiom bbolt.Bucket.Cursor_kvr.wp_proof : bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG)
+theorem bbolt.Bucket.Cursor_kvr.wp_proof
+    (h : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec (GF := GF) (hG := hG)) :
+    bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG) := by
+  intro tx γ q D b n m hm
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨-, H⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, #Hb, Hl⟩ HΦ
+    have h' := h tx γ q (TxView.ro D) b n m
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    wp_apply h' $$ [$Hl $Hb] as %c ⟨Hl, Hc⟩
+    · ipureintro; exact hm
+    iapply HΦ; iframe
 
 end proof
 
