@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 
 @[expose] public section
 
@@ -185,17 +186,20 @@ theorem batchViewQW_win (γ : BNames) (P : BParams) (st : BSess) (win : Bool) :
     · ipureintro; intro _ hh; exact Hd.2.2 hh
 
 /-- The batch lock held at the hook's window, from its parts. -/
-theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) :
+theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BSess) (c : Bool := false) :
     (bF go!"batchTx" b ↦□ t : IProp GF) ∗ sync.ownMutex (muOf t) ∗ batchPhys γ b t db st ∗
       batchViewQ γ P (st.setHw true) ∗
       (∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
         ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-        trkSide γ P st ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
+        trkSide γ P st c ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
     batchLocked γ P b (st.setHw true) := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨#Ht, Hown, Hph, Hv, ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
-  ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) rfl false
+  -- (A1.5) in the hook's window the client-facing mode allows claimed writes
+  ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) rfl c
+    (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
+  ihave Hk := trkSide_mode γ P (st.setHw true) c false
     (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
   iexists t, db
   rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
@@ -211,12 +215,12 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
     exact sessWf_setHw Hwf
 
 /-- The commit opens the hook's window on the batch lock's state (`BSess.setHw`). -/
-theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
-    batchLockedW (GF := GF) γ P b st false ⊢ batchLocked γ P b (st.setHw true) := by
+theorem batchLockedW_setHw (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool := false) :
+    batchLockedW (GF := GF) γ P b st false c ⊢ batchLocked γ P b (st.setHw true) := by
   unfold batchLockedW batchGhostW
   iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, Hrest⟩, %Hwf⟩
   ihave Hv := batchViewQ_setHw γ P st false (fun h => by cases h) $$ Hv
-  iapply batchLocked_setHw_mk γ P b t db st
+  iapply batchLocked_setHw_mk γ P b t db st c
   iframe Ht Hown Hph Hv Hrest
   ipureintro; exact Hwf
 

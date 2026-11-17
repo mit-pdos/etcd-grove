@@ -716,20 +716,22 @@ theorem batchLocked_rdB2 (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess)
 /-! ## The batch lock held, with its window flag -/
 
 /-- The batch lock's ghost share, held, with the `Unlock` window flag `win`. -/
-def batchGhostW (γ : BNames) (P : BParams) (st : BSess) (win : Bool) : IProp GF :=
+def batchGhostW (γ : BNames) (P : BParams) (st : BSess) (win : Bool) (c : Bool := false) : IProp GF :=
   iprop((if win then batchViewQ0 γ P st else batchViewQ γ P st) ∗
     ∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), win) ∗
       ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
       dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-      trkSide γ P st ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝)
+      trkSide γ P st c ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝)
 
-/-- The batch lock held in state `st`, with the window flag `win`. -/
-def batchLockedW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (win : Bool) : IProp GF :=
+/-- The batch lock held in state `st`, with the window flag `win` (and the session's mode `c`, A1.5: a
+claimed session's `Unlock` commits in mode `true`, its claimed deletes recorded). -/
+def batchLockedW (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (win : Bool) (c : Bool := false) :
+    IProp GF :=
   iprop(∃ (t db : Loc), bF go!"batchTx" b ↦□ t ∗ sync.ownMutex (muOf t) ∗
-    batchPhys γ b t db st ∗ batchGhostW γ P st win ∗ ⌜sessWf P st⌝)
+    batchPhys γ b t db st ∗ batchGhostW γ P st win c ∗ ⌜sessWf P st⌝)
 
-theorem batchLocked_W (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
-    batchLocked (GF := GF) γ P b st ⊢ batchLockedW γ P b st false := by
+theorem batchLocked_W (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool := false) :
+    batchLocked (GF := GF) γ P b st c ⊢ batchLockedW γ P b st false c := by
   unfold batchLockedW batchLocked batchLockedAt batchGhost batchGhostAt batchGhostW
   simp only [Bool.false_eq_true, ↓reduceIte]
   iintro H

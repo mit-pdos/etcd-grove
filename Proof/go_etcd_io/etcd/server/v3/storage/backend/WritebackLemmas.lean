@@ -18,11 +18,13 @@ namespace EtcdGrove
 namespace backend
 
 /-- The state after the write-back of `st`'s write buffer into its read buffer, with the
-counters reset (`p0` the pending count, `e` the hook's leftovers moved into the read buffer). -/
+counters reset (`p0` the pending count, `e` the hook's leftovers moved into the read buffer).
+(A1.5 of `auth-schema-srv`, 2026-11-17) A claimed write stays recorded (`cw`) only on a bucket the
+write-back leaves non-idle (deleted from: its readers' contents move at the commit). -/
 def wbSt (P : BParams) (st : BSess) : BSess :=
   { st with R := writebackR st.W st.R, W := writebackW st.W st.R,
             cnt := ⟨0, 0, sint.nat st.pend, st.cnt.e + P.hookMax * st.cnt.c, false⟩,
-            tk := tkWb st.tk }
+            tk := tkWb st.tk, cw := fun n => st.cw n && decide (tkWb st.tk n ≠ .idle) }
 
 section wbSt_proj
 variable (P : BParams) (st : BSess)
@@ -33,6 +35,8 @@ theorem wbSt_W : (wbSt P st).W = writebackW st.W st.R := rfl
 theorem wbSt_pend : (wbSt P st).pend = st.pend := rfl
 theorem wbSt_ndel : (wbSt P st).ndel = st.ndel := rfl
 theorem wbSt_tx : (wbSt P st).tx = st.tx := rfl
+theorem wbSt_cw (n : GoString) :
+    (wbSt P st).cw n = (st.cw n && decide (tkWb st.tk n ≠ .idle)) := rfl
 end wbSt_proj
 
 theorem bkOf_writebackW (W : WBuf) (R : RBuf) (i : w64) : bkOf (writebackW W R).bks i = [] :=
