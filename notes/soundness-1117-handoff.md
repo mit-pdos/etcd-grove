@@ -2,6 +2,20 @@
 
 ## START HERE
 
+**Plan approved by the user, 2026-11-17, via etcd-grove-03** (restructured after the blockers below):
+(1) now, on `soundness-1117`, a notes-only landing: item (4)'s bug records
+(`notes/ctxreaderrs-descs-unsound.md`, `hasstatuscause-later-view.md`,
+`apierrors-typednil-hypotheses.md`, `incomingof-crossworld.md`), the Go tests
+(`examples/axiomcx/{hasstatuscause,apierrorstypednil}`, own modules, outside the examples module and
+`GO_MOD_PINS`), audit verdicts, the STATUS entry. Done; at the land stop.
+(2) after it lands: branch `apierrors-fix` off `lean`: HasStatusCause fix (a) with stronger posts for
+the axioms `NewConflict.wp_proof`/`NewInternalError.wp_proof` (Go tests; STOP with their old -> new
+texts for an independent attack first), the four typed-nil specs in place (`apiErrOk`, answer per
+view), `handleAnyWatch`'s post giving `apiErrOk` of its error, the call sites; build, tcb, interfaces,
+gates, land stop.
+(3) the Hctx / `ctxErrsErr` Scope (B1) goes to the incomingOf Scope agent, not this stage.
+
+
 Branch `soundness-1117` (off `lean` 3cd4b72599), worktree `/shared/etcd-grove-ctxdescs`. The approved
 stage (etcd-grove-03, the user's go 2026-11-17): (1) `ContextReadErrs.descs` per run, (2)
 `HasStatusCause` fix (a), (3) `IsTooManyRequests.spec` fix T, (4) bug records, (5) the axiom skill's
@@ -44,4 +58,4 @@ client-go cache's `Link`) are false the same way (typed nil `*StatusError` panic
 `/shared/tmp/soundness-1117/typednil/t_test.go`). Recommend: one stage for all four, with the
 `handleAnyWatch` post.
 
-Not done: (4)'s notes entries and the STATUS entry wait for the decisions (the fixes they describe).
+(4) done under the approved plan above (bug records, audit verdicts, STATUS entry).
