@@ -1,6 +1,32 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A2 done; A3's Draft next)
+## START HERE (2026-11-17, A3 Draft written; STOP for the attack)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A2-A7); decisions `questions.md` (untracked).
+- Done: A1 (52d85a42f6 … 6fe91f236f); A2 (72c59c8aff, f546a2dbb9; forms ACCEPTED by etcd-grove-03, promotion
+  wrappers and an `rtForEach`↔`rvBkt` law deferred to A5); **A3 Draft (this commit)**:
+  `notes/auth-schema-srv-a3-draft.md` (exact texts §2, meaning moves §3, Go evidence §4, family check §5,
+  findings §6, decisions §7); specs `Spec/google_golang_org/protobuf/proto/Marshal{User,Role}.lean` (NOT axioms:
+  no `Proof/` file); restated predicates elaborated in `Scratch/A3Preds.lean` (untracked); Go tests
+  `examples/authpbmarshal/marshal_test.go` (10, pass with `-race`, `GOTOOLCHAIN=go1.27.3`).
+- Waiting on: an independent attack of §2 (axiom skill) and etcd-grove-03's decisions §7.
+- Next after the go (A3 Freeze): §2.2 into `Buckets.lean` (+ `pbSizeCacheN`), constructors to `inv_alloc`
+  (`PerTypeAuth`, `RoleGrantPermission`'s `newPerm`, `ownPermX_persist`/`ownRoleX_persist` → fupd), readers to
+  per-field loads, axiom files, MarshalIRR docstring (§2.4), tcb +2 at A5, interfaces. Then A4, A5.
+- Pitfalls: (1) a hand-written `if m = n` picks `instDecidableEqString`, the laws' `if S n` (open Classical)
+  `Classical.propDecidable`: write `@ite _ (m = n) (Classical.propDecidable _) …`. (2) `unfold` does not
+  beta-reduce `(fun n => S n ∨ S' n) n`: `dsimp only`. (3) A theorem's default argument (`trkHalf_eq … I`) is
+  filled with the default when omitted: pass it. (4) Macros: frame patterns as ``$(frameH `H)``. (5) Stray
+  Perennial clone: keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6)
+  `etc/gen-interface.py --layout` builds every package module: build first. (7) simp normalizes
+  `decide (a ∉ l)` to `!decide (a ∈ l)` inside Iris hyps. (8) Go tests: reading unexported fields with
+  `reflect`+`unsafe` under `-race` needs `unsafe.Pointer(v.UnsafeAddr())` in one expression (checkptr).
+
+## History
+
+### A2 done (2026-11-17, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -24,8 +50,6 @@
   `etc/gen-interface.py --layout` builds every package module: build first. (7) simp normalizes
   `decide (a ∉ l)` to `!decide (a ∈ l)` inside Iris hyps: state filters in the `!decide` form; an iris hyp
   `iframe` will not match may still `iexact`. (8) Call an Iris-context spec with `wp_apply Hf $$ %a %b … [$H]`.
-
-## History
 
 ### A2 axioms (2026-11-17, superseded)
 
