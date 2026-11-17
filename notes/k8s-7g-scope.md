@@ -8,7 +8,7 @@ the way `TestCorrectness` uses it (`test/integration/apiserver/storage/correctne
 on 7f-6 E+F (branch `k8s-7f6`: `Check` over `lintest.RunLin2` with watchers, `kSpec`,
 `watchOkL`, `KWatch`), which is landing now.
 
-This Scope is a hard stop. No Lean is edited and no translation regenerated. The Go experiment
+This Scope was a hard stop; **approved by the user on 2026-11-17, via etcd-grove-03** (§7). No Lean is edited and no translation regenerated. The Go experiment
 (§8) runs in scratch (`/shared/tmp/k8s7g/`). Its driver diff and tests are committed as
 `notes/k8s-7g-experiment.patch`, against `k8s-7f6`, with the D30g patch as `notes/k8s-7g-d30g.patch`.
 
@@ -331,6 +331,10 @@ new.
   by the driver's `go.mod`, and the gate catches drift.
 
 ## 7. Open questions, each with a recommendation
+
+**Decided (2026-11-17): approved by the user, via etcd-grove-03.** Design A' (Q1) and the
+recommendations on Q2-Q8, as written below. Step 0 starts after 7f-6 E+F lands. Step 1's
+trust-spec texts and step 6's Freeze stay hard stops.
 
 - **Q1. Design.** Should the real checker be added after the driver's check (A': run only on
   failure-free histories, conclusions also mean "the maintainers' checker accepts"), or should it

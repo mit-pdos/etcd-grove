@@ -3,29 +3,23 @@
 ## START HERE
 
 - Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), off `lean` 9702d5707e. There is no
-  `.lake/build`: the Scope stage needed none.
-- **State: Scope committed, at its hard stop** (`notes/k8s-7g-scope.md`), for etcd-grove-03 and the user.
-  No Lean is edited and no translation regenerated.
+  `.lake/build`.
+- **Scope approved by the user, 2026-11-17, via etcd-grove-03**: design A' and the
+  recommendations on Q2-Q8 (`notes/k8s-7g-scope.md` §7; `questions.md`).
 - Done:
-  - Scope (§1 translation and trust specs, §2 bridge B1-B5, §3 statements, §4 TCB delta, §5 steps
-    8.1-14k lines, §6 risks, §7 Q1-Q8);
-  - Go experiment (§8);
-  - `notes/k8s-7g-experiment.patch` (the driver diff and the tests, against `k8s-7f6`) and
-    `notes/k8s-7g-d30g.patch` (the D30g patch to upstream's `model.go`);
+  - Scope and Go experiment, `ecf71b5f6a`;
+  - `notes/k8s-7g-experiment.patch` (the driver diff and the tests) and `notes/k8s-7g-d30g.patch`;
   - nonissue `k8s-correctness-watchvalidator-cut-before-bookmark`.
-- Next, in order, after the decisions and 7f-6 E+F has landed:
-  - step 0 (Go: the copy, the gate, the driver changes, the translation);
-  - step 1 (trust specs: hard stop);
-  - then steps 2-6 (Scope §5).
-- Open decisions: Scope §7 Q1-Q8 (recommended: A', a copy plus a gate, a `NeedsRewrite` field,
-  accept D7g-1/2/3, a decimal `SetResourceVersion` only, `Output.Raw`, local `maps` specs plus a
-  Perennial proposal).
+- **Next: step 0, only after 7f-6 E+F lands** (the coordinator relaunches). First merge `lean`.
+  Step 0 is the Go work: the copy, the gate and the driver changes of Scope §1.4, then the
+  translation. Then steps 1-6 (Scope §5).
+- **Hard stops:** step 1's trust-spec texts (`DeepEqual`, `cmp.Diff`, `maps`/`slices`, …) and
+  step 6's Freeze.
 - Pitfalls:
-  - The experiment test's partition runs must read the schedule from `K8S7G_SCHED`: `inChild`
-    overwrites `K8SETCD3_SCHED`. One batch ran without schedules because of this.
-  - A run needs its own working directory (`t.Chdir(t.TempDir())`): a leftover `k8s7g.etcd` makes
-    the seeding fail ("store").
-  - `cmp.Diff` and `reflect.DeepEqual` tell nil from empty slices: state the specs with non-nil.
+  - The experiment's partition test reads its schedule from `K8S7G_SCHED`: `inChild` overwrites
+    `K8SETCD3_SCHED`.
+  - Each run needs its own working directory: a leftover `k8s7g.etcd` makes the seeding fail.
+  - `cmp.Diff` and `reflect.DeepEqual` tell nil from empty slices.
 
 ## Re-running the experiment
 
