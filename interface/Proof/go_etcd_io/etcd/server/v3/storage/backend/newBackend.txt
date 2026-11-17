@@ -2,13 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem optsTypeReprU : TypeRepr go_etcd_io.bbolt.Options.underlying go_etcd_io.bbolt.Options
-
-theorem optsTypeRepr : go.TypeReprUnderlying go_etcd_io.bbolt.Options.underlying
-    go_etcd_io.bbolt.Options
-
-theorem optsTypeRepr' : TypeRepr go_etcd_io.bbolt.Options.ty go_etcd_io.bbolt.Options
-
 theorem backend.newBackend.wp_proof (hOpen : bbolt.Open_kv.spec) (hLog :
     backend.newBoltLoggerZap.spec) (hMmap : backend.BackendConfig.mmapSize.spec) (hNop :
     zap.NewNop.spec) (hStr : zap.String.spec) (hErr : zap.Error.spec) (hPanic :

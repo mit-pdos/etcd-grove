@@ -80,12 +80,11 @@ theorem Run.wp_proof
   wp_start as Hfile
   ihave #Hbi : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt $$ []
   · iPkgInit
+  -- `&bolt.Options{}`: `wp_auto` runs the literal and the allocation (the type is translated,
+  -- 2026-11-17), and `optsAt_zero` reads the zero value as `optsZero`
   wp_auto
-  wp_apply_core wp_optsLit
-  iintro %v0 %hv0
-  wp_apply_core (wp_optsAlloc v0 optsZero hv0)
-  iintro %bo Hbo
-  wp_auto
+  obtain ⟨bo, rfl⟩ : ∃ bo, bo = «$a2_ptr» := ⟨_, rfl⟩
+  ihave Hbo := optsAt_zero bo $$ «$a2»
   -- `bolt.Open(path, 0600, &bolt.Options{})`
   wp_apply (hOpen path (W32 384) bo (DFrac.own 1) optsZero ∅) $$ [$Hfile $Hbo]
     as %db %err ⟨Hbo, Hres⟩

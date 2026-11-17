@@ -190,3 +190,52 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     their unused `os` assumptions). The option reads were not touched (S2).
   - **Left** (why, and the design): `DB.Close.specOwn` (the file back as `fileHolds i D`) and
     `Open.specSNoErr`. See `notes/bbolt-spec-decisions.md`, "S3a".
+
+### S2 (D-I4, branch `bbolt-options`, 2026-11-17)
+
+* **Translation.** `bbolt.toml` translates `Options` and `DefaultOptions` (`translate = ["*",
+  "!splitThreshold"]`; `splitThreshold` stays trusted). `os.FileMode`, the old gap, is this
+  repository's `os` since 2026-11-03, so the struct translates as is. No other project's
+  translation changes. `etc/gen-init.py`: `DefaultOptions` is a translated initializer (an
+  allocation of a literal), so `go_etcd_io.bbolt.opaqueInitsOk` (`Proof/go_etcd_io/bbolt/Init.lean`)
+  is gone.
+* **bbolt's vocabulary** (`Spec/go_etcd_io/bbolt/Options.lean`): `optsVal v o` (the six tracked
+  fields of the struct) and `optsAt l dq o := ∃ v, l ↦{dq} v ∗ ⌜optsVal v o⌝` are definitions,
+  `optsAt_discard_persistent` an instance. `Proof/go_etcd_io/bbolt/Options.lean`: every law a lemma,
+  statements unchanged (`optsAt_nonnull`, the twelve `optsAt_*_rd`, `optsAt_bool`/`_int`/`_mlock`/
+  `_mmapFlags`/`_freelist`/`_timeout`/`_logger`, `wp_optsLit`/`Alloc`/`Load`/`Store`), plus
+  `optsPt_eq` (the points-to field by field), `optsAt_acc`, `optsVal_zero`, `optsAt_zero`.
+* **The backend's** (`BboltOptsDefs.lean`, `BboltOptions.lean`): `optsAt l dq o := ∃ m f,
+  bbolt.optsAt l dq (o.toBolt m f)` (the backend's `OptsM` has no `Mlock`/`MmapFlags`: `newBackend`
+  stores `cfg.Mlock`, which the backend's `OptsM.ok` does not restrict), `optsVal` likewise; its
+  laws (`optsAt_discard_persistent`, `wp_opts*`, `optsAt_bool`/`_int`/`_freelist`/`_timeout`/`_logger`)
+  are corollaries of bbolt's, statements unchanged; new `optsAt_zero`. `boltLogger` (and its
+  persistence) stays an axiom, with `backend.newBoltLoggerZap.wp_proof`: bbolt's `boltLogger`
+  (`Spec/go_etcd_io/bbolt/Logger.lean`) takes the file extension's instances, which the backend's
+  statements do not carry until S1's `theFs`; zap is names-only, so `newBoltLoggerZap` stays a
+  trust-boundary axiom either way. `boltOpenOptions_init` (the backend's `Init.lean`, names-only:
+  `syscall.MAP_POPULATE`) stays an axiom, now over the defined `optsAt`.
+* **`Options.String`** stays an axiom (`Proof/go_etcd_io/bbolt/Options__String.lean`): its
+  `fmt.Sprintf` has `%p` of a func and of an interface, which no `Sprintf` spec admits
+  (`notes/perennial-changes.md`, 2026-11-17).
+* **Fallout.** `wp_auto` now runs `&bolt.Options{}` (literal and allocation) itself: `newBackend`
+  and `bboltnan.Run` take the allocated zero value through `optsAt_zero` (the `wp_optsLit`/
+  `wp_optsAlloc` steps and `newBackend`'s local `TypeRepr` instances, a workaround for the `sorry`
+  instances, are gone). `Spec/go_etcd_io/bbolt/Open_kv.lean`: `bbolt.Open_kv.spec` is declared in
+  namespace `bbolt`, so once bbolt's `Options` module is imported its `OptsM`/`optsAt` resolved to
+  bbolt's; they are now written `backend.OptsM`, `backend.optsAt`, `backend.boltLogger` (the same
+  constants as before: no change to the statement).
+* **Trust base** (`etc/tcb-baseline.txt`, 24 axioms and 2 `sorry`s fewer; 41 collections updated,
+  bbolt's, backend's, putget3's and mvccfull's among them, removals only): the axioms
+  `bbolt.optsAt_*_rd` (11), `bbolt.optsAt_nonnull`, `backend.optsAt`, `backend.optsVal`,
+  `backend.optsAt_discard_persistent`, `backend.wp_optsLit`/`Alloc`/`Load`/`Store`,
+  `backend.optsAt_bool`/`_int`/`_freelist`/`_timeout`/`_logger`, `go_etcd_io.bbolt.opaqueInitsOk`;
+  the `sorry`s `Options_typed_pointsto`, `Options_into_val_typed`. Also gone from the source (no
+  result reached them): bbolt's copies `bbolt.optsVal`, `bbolt.wp_opts*`, `bbolt.optsAt_bool`/
+  `_int`/`_mlock`/`_mmapFlags`/`_freelist`/`_timeout`/`_logger`, `bbolt.optsAt_discard_persistent`,
+  and the translation's `Options`, `Options.zero_val`, `Options.underlying`, `DefaultOptions.init`.
+  Left: `bbolt.Options.String.wp_proof`, `backend.boltLogger` (+ persistence),
+  `backend.newBoltLoggerZap.wp_proof`, `boltOpenOptions_init` (above). No statement of a closed
+  theorem changed; no axiom or `sorry` added.
+* **Gates.** All pass but `k8s client error types` (`examples/k8s/etcd3`'s Go test: `startCluster
+  failed`, an environment failure of the shared machine; this change touches no Go code).

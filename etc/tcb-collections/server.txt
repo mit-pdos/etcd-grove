@@ -61,7 +61,6 @@ axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
-axiom backend.optsAt
 axiom backend.ownCur
 axiom backend.ownDB
 axiom backend.ownWTxG

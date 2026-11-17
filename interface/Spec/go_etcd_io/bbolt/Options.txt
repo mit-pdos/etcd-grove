@@ -2,6 +2,11 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def bbolt.optsVal (v : go_etcd_io.bbolt.Options) (o : bbolt.OptsM) : Prop :=
+  v.ReadOnly' = o.readOnly ∧
+    v.PageSize' = o.pageSize ∧
+      v.OpenFile' = o.openFile ∧ v.Logger' = o.logger ∧ v.Mlock' = o.mlock ∧ v.MmapFlags' = o.mmapFlags
+
 structure bbolt.OptsM : Type where
   readOnly : Bool
   pageSize : w64
@@ -17,12 +22,16 @@ def bbolt.OptsM.ok (o : bbolt.OptsM) : Prop :=
         o.mlock = false ∧
           (BitVec.toNat o.mmapFlags = 0 ∨ BitVec.toNat o.mmapFlags = bbolt.mapPopulate) ∧ bbolt.loggerPtrOk o.logger
 
-def (sealed) bbolt.optsAt (l : Loc) (dq : DFrac) (o : bbolt.OptsM) : IProp GF
+def bbolt.optsAt (l : Loc) (dq : DFrac) (o : bbolt.OptsM) : IProp GF :=
+  iprop(∃ v, typedPointsto l v dq ∗ ⌜bbolt.optsVal v o⌝)
 
 theorem bbolt.optsZero_ok : bbolt.optsZero.ok
 
 def bbolt.mapPopulate : Nat :=
   32768
+
+theorem bbolt.optsAt_discard_persistent (l : Loc) (o : bbolt.OptsM) : Persistent (bbolt.optsAt l
+    DFrac.discard o)
 
 def bbolt.loggerPtrOk : GoInterface → Prop :=
   match x✝ with
