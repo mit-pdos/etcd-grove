@@ -70,6 +70,12 @@
 //	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit (unchanged)
 //	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
 //
+// Mappings:
+//
+//	map_mmap_no_room.go           no room in (0, maxAddr]: mmap      MmapRoom, MmapStall, FsStep, FsStepV
+//	                              does not return, as an allocation  (Specs.lean: wp_osMmapG)
+//	                              (pending review, 2026-11-17)
+//
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
 // models_test.go holds their measurements, run on C by run-models-on-c.sh):
 //
@@ -96,6 +102,7 @@
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
 //	premise_no_map_lock_err.go    no flock/mmap/munmap error on      NoMapLockErr, MapLockCovers, MapLockOk
-//	                              chosen files, but mmap's ENOMEM    (NoMapLockErr.lean: noMapLockErr_keeps)
+//	                              chosen files (mmap: a mapping, or  (NoMapLockErr.lean: noMapLockErr_keeps)
+//	                              no return with no room left)
 //	                              (assumed; pending review)
 package semantics

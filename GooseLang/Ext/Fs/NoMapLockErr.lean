@@ -7,9 +7,10 @@ Untrusted.
 
 The kept step, when the given one's outcome is not `MapLockOk`: for `flock`, the `MapLockOk`
 outcome the premise names (every outcome of `flock` leaves the mappings as they were, so the heap
-re-renders, `heapRendered_restamp`); for `mmap`, the failure with `ENOMEM` (a failure leaves the
-state and the heap as the given failure does); for `munmap`, the success, the heap the given
-failure's but for the mapping's cells, which are gone (`heapRendered_unmap`).
+re-renders, `heapRendered_restamp`); for `mmap` (a failure), the success where the heap has room for
+the mapping, the heap the given failure's with the new cells (`heapRendered_map`), and the step to
+itself where it has none (`MmapStall`); for `munmap`, the success, the heap the given failure's but
+for the mapping's cells, which are gone (`heapRendered_unmap`).
 -/
 module
 
@@ -82,6 +83,83 @@ theorem heapRendered_unmap (st : OsState) (base : Loc) {h h' : GMap Loc (NonAtom
     simp only [hl, hn, ↓reduceIte]
     exact r4 l hM hM
 
+/-- **The heap after an `mmap`'s success, from the heap of its failure** (the given `h'`, rendered
+for `st` itself), when the cells of the new mapping `mm` at `base` are free: those cells new, each
+showing its byte of the file, every other cell as in `h'`. -/
+theorem heapRendered_map (st : OsState) (base : Loc) (mm : OsMap) {h h' : GMap Loc (NonAtomic val)}
+    (hr : HeapRendered st st h h') (hnone : st.proc.maps !! base = none)
+    (hfree : ∀ k < mm.len, h !! (base +ₗ (k : Int)) = none) :
+    ∃ h'', HeapRendered st (st.setProc { st.proc with maps := <[base := mm]> st.proc.maps })
+      h h'' := by
+  classical
+  let st1 := st.setProc { st.proc with maps := <[base := mm]> st.proc.maps }
+  obtain ⟨r1, r2, r3, r4⟩ := hr
+  have hnew : ∀ k, k < mm.len → ¬ Mapped st (base +ₗ (k : Int)) := by
+    rintro k hk ⟨i, b, hm⟩
+    obtain ⟨m0, v0, h0, -⟩ := r1 _ i b hm ⟨i, b, hm⟩
+    rw [hfree k hk] at h0; cases h0
+  have hmaps1 : ∀ l i b, MapsTo st1 l i b ↔
+      MapsTo st l i b ∨ (i = mm.ino ∧ b < mm.len ∧ l = base +ₗ (b : Int)) := by
+    intro l i b
+    constructor
+    · rintro ⟨b0, m, h1, h2, h3, h4⟩
+      simp only [st1, OsState.setProc, GMap.lookup_insert_eq_iff] at h1
+      split at h1
+      · rename_i heq; subst heq; cases h1; exact .inr ⟨h2.symm, h3, h4⟩
+      · exact .inl ⟨b0, m, h1, h2, h3, h4⟩
+    · rintro (⟨b0, m, h1, h2, h3, h4⟩ | ⟨rfl, h3, h4⟩)
+      · refine ⟨b0, m, ?_, h2, h3, h4⟩
+        simp only [st1, OsState.setProc, GMap.lookup_insert_eq_iff]
+        split
+        · rename_i heq; subst heq; rw [hnone] at h1; cases h1
+        · exact h1
+      · refine ⟨base, mm, ?_, rfl, h3, h4⟩
+        simp only [st1, OsState.setProc, GMap.lookup_insert_eq_iff, if_true]
+  let NewC : Loc → Prop := fun l => ∃ k, k < mm.len ∧ l = base +ₗ (k : Int)
+  let h'' : GMap Loc (NonAtomic val) :=
+    ⟨fun l => if hc : NewC l then some (Free (cellVal st1 mm.ino (Classical.choose hc)))
+      else h'.lookup l, by
+      obtain ⟨L, hL⟩ := h'.finite
+      refine ⟨L ++ (List.range mm.len).map (fun k : Nat => base +ₗ (k : Int)), fun l hl => ?_⟩
+      by_cases hc : NewC l
+      · obtain ⟨k, hk, rfl⟩ := hc
+        exact List.mem_append_right _ (List.mem_map.2 ⟨k, List.mem_range.2 hk, rfl⟩)
+      · simp only [hc, dite_false] at hl
+        exact List.mem_append_left _ (hL l hl)⟩
+  have hl : ∀ l, h'' !! l = if hc : NewC l then
+      some (Free (cellVal st1 mm.ino (Classical.choose hc))) else h' !! l := fun _ => rfl
+  have hnewM : ∀ l, NewC l → ¬ Mapped st l := by rintro l ⟨k, hk, rfl⟩; exact hnew k hk
+  refine ⟨h'', ?_, ?_, ?_, ?_⟩
+  · intro l i b hm hM
+    have hn : ¬ NewC l := fun hc => hnewM l hc hM
+    have hm0 : MapsTo st l i b := by
+      rcases (hmaps1 l i b).1 hm with hm0 | ⟨-, hb, rfl⟩
+      · exact hm0
+      · exact absurd ⟨b, hb, rfl⟩ hn
+    obtain ⟨m, v0, hh, hh'⟩ := r1 l i b hm0 hM
+    refine ⟨m, v0, hh, ?_⟩
+    rw [hl, dif_neg hn, hh']
+    rfl
+  · intro l i b hm hM
+    rcases (hmaps1 l i b).1 hm with hm0 | ⟨rfl, hb, rfl⟩
+    · exact absurd ⟨i, b, hm0⟩ hM
+    · have hc : NewC (base +ₗ (b : Int)) := ⟨b, hb, rfl⟩
+      rw [hl, dif_pos hc]
+      have hs := Classical.choose_spec hc
+      have hb' : Classical.choose hc = b := by
+        have := loc_add_inj base hs.2
+        omega
+      rw [hb']
+  · intro l hM1 hM
+    obtain ⟨i, b, hm⟩ := hM
+    exact absurd ⟨i, b, (hmaps1 l i b).2 (.inl hm)⟩ hM1
+  · intro l hM1 hM
+    have hn : ¬ NewC l := by
+      rintro ⟨k, hk, rfl⟩
+      exact hM1 ⟨mm.ino, k, (hmaps1 _ _ _).2 (.inr ⟨rfl, hk, rfl⟩)⟩
+    rw [hl, dif_neg hn]
+    exact r4 l hM hM
+
 end keeps
 
 /-- **`NoMapLockErr S` keeps a step** (see the file header). -/
@@ -93,6 +171,11 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
   rotate_left
   · exact ⟨e', h', st', hs, fun hc' hex => absurd ⟨hc', hex⟩ hc⟩
   obtain ⟨hcov, e'', st'', hs'', hz⟩ := hc
+  rcases hs with hs | ⟨ho, -, -, he, -, -⟩
+  rotate_left
+  · -- `mmap`'s step to itself is `MapLockOk`
+    subst ho
+    exact absurd (by simp only [MapLockOk]; exact Or.inr he) hok
   obtain ⟨hst, hfr, hr⟩ := hs
   unfold MapLockCovers at hcov
   split at hcov
@@ -100,16 +183,33 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
     have h1 := isFsStep_flock_maps hst
     have h2 := isFsStep_flock_maps hs''
     obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq h1 h2 hr
-    exact ⟨e'', h'', st'', ⟨hs'', mapsFresh_same h2, hr''⟩, fun _ _ => hz⟩
-  · -- Mmap: the given step is a failure (not `MapLockOk`); the same failure with `ENOMEM`
+    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr''⟩, fun _ _ => hz⟩
+  · -- Mmap: the given step is a failure (not `MapLockOk`); the success where the heap has room,
+    -- the step to itself where it has none
     simp only [IsFsStep] at hst
     obtain ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl, hres⟩ := hst
-    rcases hres with ⟨base, -, -, -, -, he⟩ | ⟨e, -, hst', he⟩
+    rcases hres with ⟨base, -, -, -, -, he⟩ | ⟨e, he0, hst', he⟩
     · exact absurd (Or.inl ⟨_, he⟩) hok
-    · refine ⟨osRes (#null) ENOMEM, h', st', ⟨?_, hfr, hr⟩, fun _ _ => Or.inr rfl⟩
-      simp only [IsFsStep]
-      exact ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl,
-        .inr ⟨ENOMEM, by decide, hst', rfl⟩⟩
+    · subst st'
+      have hargs : IsFsStep "Mmap" v st e' st := by
+        simp only [IsFsStep]
+        exact ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl,
+          .inr ⟨e, he0, by trivial, he⟩⟩
+      by_cases hroom : MmapRoom st h len.toNat
+      · obtain ⟨base, hpos, hal, hnone, hmax, hfree⟩ := hroom
+        obtain ⟨h'', hr''⟩ := heapRendered_map st base ⟨d.ino, len.toNat⟩ hr hnone hfree
+        refine ⟨osRes (#base) 0, h'', _, .inl ⟨?_, ?_, hr''⟩, fun _ _ => Or.inl ⟨_, rfl⟩⟩
+        · simp only [IsFsStep]
+          exact ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl,
+            .inl ⟨base, hpos, hal, hnone, rfl, rfl⟩⟩
+        · intro b m h1 h2
+          simp only [OsState.setProc, GMap.lookup_insert_eq_iff] at h1
+          split at h1
+          · rename_i heq; subst heq; cases h1; exact ⟨hmax, hfree⟩
+          · rw [h1] at h2; cases h2
+      · exact ⟨ExternalOp fsExt.name "Mmap" (Val v), h, st,
+          .inr ⟨rfl, ⟨_, _, hargs⟩, ⟨fd, off, len, prot, fl, hv, hroom⟩, rfl, rfl, rfl⟩,
+          fun _ _ => Or.inr rfl⟩
   · -- Munmap: the given step is a failure; the success
     simp only [IsFsStep] at hst
     obtain ⟨base, len, cap, m, hv, hm, hlen, hcap, hres⟩ := hst
@@ -118,7 +218,7 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
         ∃ e'' h'' st'', FsStep "Munmap" v h st () e'' h'' st'' () ∧
           NoMapLockErr S "Munmap" v st e'' st'' := by
       intro h2 hr2
-      refine ⟨Val (#(0 : w64)), h2, _, ⟨?_, ?_, hr2⟩, fun _ _ => (rfl : Val (#(0 : w64)) = _)⟩
+      refine ⟨Val (#(0 : w64)), h2, _, .inl ⟨?_, ?_, hr2⟩, fun _ _ => (rfl : Val (#(0 : w64)) = _)⟩
       · simp only [IsFsStep]
         refine ⟨base, len, cap, m, hv, hm, hlen, hcap, .inl ⟨?_, ?_⟩⟩ <;> trivial
       · intro b m1 h1 h0

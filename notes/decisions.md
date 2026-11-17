@@ -40619,3 +40619,46 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
 - **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
+
+## fsExt: `mmap` out of address space does not return; `NoMapLockErr` excludes every `mmap` error (2026-11-17 · **pending the user's review** · branch `bbolt-oom`)
+
+S3a's `NoMapLockErr` (`notes/bbolt-spec-decisions.md`, "S3a") had to keep `mmap`'s `ENOMEM`: the
+mappings share `(0, maxAddr]` with the Go heap, a premise on steps does not see the heap, and with
+every outcome of a full address space an error, excluding `ENOMEM` would leave no step there
+(`StepKeeps`). So bbolt's `Open` and every remap could fail under every premise, and etcd's backend
+panics on `Open`'s error.
+
+**Decision (trusted semantics, `GooseLang/Ext/Fs/Impl.lean`).** As Perennial's allocator
+(`AllocOOMS`, `AllocBytesOOMS`; Perennial's `docs/KNOWN_LIMITATIONS.md`, "Out of memory is outside
+the model"): when the heap leaves no free, page-aligned range of the mapping's length in
+`(0, maxAddr]` that no mapping starts at (`¬ MmapRoom st h len`), an `mmap` with arguments
+`IsFsStep` accepts steps to itself, nothing changing (`MmapStall`): the call does not return. The
+condition sees the heap, so it is a case of `FsStep` (`FsStep := FsStepV ∨ MmapStall`, `FsStepV` the
+old `IsFsStep ∧ MapsFresh ∧ HeapRendered`), not of `IsFsStep`. `IsFsStep`'s `mmap` is unchanged: a
+success, or any nonzero errno, `ENOMEM` included (Linux's `ENOMEM` for want of a gap, at
+`vm.max_map_count`, past `RLIMIT_AS`), room or not. Go example:
+`examples/osfs/semantics/map_mmap_no_room.go` (evidence: documented for `ENOMEM`, mmap(2) and
+`mm/mmap.c`; the non-returning outcome assumed, as Perennial's, and matching Go's runtime, which ends
+a program whose heap finds no room with a fatal error).
+
+**Decision (premise, `GooseLang/Ext/Fs/Premises.lean`).** `MapLockOk "Mmap"` is now errno 0 or the
+step to itself (`e' = ExternalOp fsExt.name "Mmap" (Val v)`), no longer `ENOMEM`: a covered `mmap`
+returns a mapping or does not return. `noMapLockErr_keeps` is still proved: from a failing `mmap`,
+the success where the heap has room (`heapRendered_map`, the given failure's heap with the new
+cells), the stall where it has none. Go example: `premise_no_map_lock_err.go` (updated).
+
+**What it cost.** An operation of the extension was atomic (every step a value); `mmap` no longer is.
+`fsOp_atomic` takes `[FsRetOp o]` (an instance per operation but `"Mmap"`); the lifting lemmas
+(`wp_os_step*`, `wp_fs_step*`, and the generic wrappers over them) hand their continuations
+`FsStepV` and take `(hM : o ≠ "Mmap" := by decide)`; `mmap`'s specs go through `wp_os_stepXF` (any
+`FsStep`, the step's masks) and `wp_osMmapG` (Löb induction over the stall, the file's `OsMeta` from
+an accessor opened at each step and closed again with its resource when the call does not return).
+`wp_osMmap`'s statement is unchanged; `wp_osMmap_cs` (the crash invariant's) keeps its statement and
+opens the invariant through the accessor instead of `wp_atomic`. No closed theorem's statement
+changed.
+
+**Rejected.** A premise that sees the heap (a change to `fsSemWithS`'s `StepPrem` type, every premise
+and proof over it); a named premise "no `ENOMEM`" on the closed theorems (false of a full address
+space, unlike Go's own allocator, which the model already treats as not returning); the stall as a
+special errno the trusted `unix.Mmap` model retries on (the trusted Go model, not the semantics,
+would carry the decision, with a fake errno).
