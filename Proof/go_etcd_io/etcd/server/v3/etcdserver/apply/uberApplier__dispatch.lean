@@ -420,6 +420,9 @@ theorem apply.uberApplier.dispatch.wp_proof
     simp only [apply.dispatchResult, hpre, Bool.false_eq_true, _root_.or_self, ↓reduceIte]
     ipureintro; trivial
   (try wp_auto)
+  -- (auth-lease S4 item 7b) the window's target, asked with `v3`
+  replace Hwin : (E.lg = true → apply.winTgt E.win rq log T) ∧ (E.lg = false → E.win = none) :=
+    ⟨fun h => Hwin.1 h rfl, Hwin.2⟩
   ihave #HSp : apply.ciSplit E Pre $$ [HSp]
   · simp only [↓reduceIte]; iexact HSp
   ihave #Hcp := apply.certPreV_true E c rq log $$ Hcp

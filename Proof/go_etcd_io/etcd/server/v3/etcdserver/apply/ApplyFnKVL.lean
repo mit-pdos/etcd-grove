@@ -75,7 +75,8 @@ def apply.uberKVC (ua : GoInterface) (E : apply.AEnv GF) (ci : apply.Chain)
         apply.certPreVW v3 E x.chain rq x.log
           (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log T) ∗
         ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq⌝ ∗
-        ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
+        ⌜(E.lg = true → apply.winTgtL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log E.win T) ∧
+          (E.lg = false → E.win = none)⌝ ∗
         ⌜skip = true → rq.txn.isSome = true⌝ ∗ srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
         E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
         apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗
@@ -120,7 +121,8 @@ abbrev apply.Apply.kvSpecL : Prop :=
       apply.certPreVW v3 E x.chain rq x.log
         (apply.kvOutLT E.authMode E.lg hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log T) ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
-        apply.dispatchOk E.authOn rq⌝ ∗ ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
+        apply.dispatchOk E.authOn rq⌝ ∗ ⌜(E.lg = true → apply.winTgtL E.authMode hs (auth.authInfoM (apply.principalOf rq)) ci rq x.log E.win T) ∧
+          (E.lg = false → E.win = none)⌝ ∗
       srvApi.kvLogLb E.γs F ∗ apply.applyTok E ∗
       E.FS ∗ (if v3 then apply.ciSplit E Pre else iprop(True)) ∗ E.RO rs ∗
       apply.ltHalf E T ∗ apply.revokeOwn E rq ∗ L hs ∗

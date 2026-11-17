@@ -40,7 +40,9 @@ after (`applyStep`'s clause; M2's apply side, 2026-10-31: items 4, 11). The rest
 outcome the lessor's verdict at `T` (`grantOutOkA`; amendment (C), 2026-11-03), the ids the lessor
 ever had `U` with an applied grant's id added (`everOwn`, `grantFresh`: the lease-expiry plan's E3
 (c), 2026-11-05). (The lease-expiry plan's S2–S4, Q-S6 (A-ii), 2026-11-05) The
-record's TTL `t` at least the grant's request (`grantTTLOk`). -/
+record's TTL `t` at least the grant's request (`grantTTLOk`). (Auth-lease S4 item 7b, 2026-11-17)
+In a cluster that grants leases, the lessor window's target for the request (`winTgt`), asked only with `v3`
+(without it nothing reaches the backend). -/
 abbrev apply.uberApplier.Apply.spec : Prop :=
   ∀ (E : AEnv GF) (p : Loc) (opts : ApplierOptions) (x : apply.ApplyKV) (r : Loc)
     (rq : IRRModel) (skip v3 : Bool) (F : mvcc.Log) (Pre Q Post : IProp GF) (rs : apply.RestM)
@@ -50,7 +52,7 @@ abbrev apply.uberApplier.Apply.spec : Prop :=
       apply.certPreV v3 E x.chain rq x.log ∗
       ⌜apply.rqOk E.lm x.log rq ∧ apply.dispatchOk E.authOn rq ∧
         (v3 = true → apply.cmpAdmit x.log rq)⌝ ∗
-      ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
+      ⌜(E.lg = true → v3 = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗

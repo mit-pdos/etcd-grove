@@ -79,7 +79,7 @@ abbrev apply.Apply.specRec : Prop :=
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.rqOk E.lm x.log rq ∧
         apply.dispatchOk E.authOn rq ∧ (v3 = true → apply.cmpAdmit x.log rq) ∧
         apply.restReqOk rq rs⌝ ∗
-      ⌜(E.lg = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
+      ⌜(E.lg = true → v3 = true → apply.winTgt E.win rq x.log T) ∧ (E.lg = false → E.win = none)⌝ ∗
       □ (⌜v3 = true⌝ → apply.cmpPermRq E rq) ∗ □ (⌜v3 = true⌝ → apply.grantPermRq E rq) ∗
       apply.ltHalf E T ∗ apply.everOwn E U ∗ □ (⌜v3 = true⌝ → apply.grantFresh E rq U) ∗
       apply.revokeOwn E rq ∗ apply.applyTok E ∗

@@ -39,7 +39,7 @@ def apply.revokePreW (E : apply.AEnv GF) (c : apply.Chain) (a : GoInterface)
       (mvcc.stateAfter log).length ≤ 2 ^ 62⌝ ∗
     apply.certPreW E c rq log X ∗
     apply.leaseRevokeIs r id ∗ apply.mPre E c a info log Pre Q Post ∗ apply.revokeRes E T rs ∗
-    ⌜apply.winTgt E.win rq log T⌝)
+    ⌜(∃ oc, X oc ∧ oc ≠ .rejected .auth) → apply.winTgt E.win rq log T⌝)
 
 end defs
 
@@ -190,7 +190,7 @@ theorem apply.authApplierV3.LeaseRevoke.wp_latest
     isplitl
     · iapply apply.mPre_of_rest
       iframe
-    ipureintro; exact Hwt
+    ipureintro; exact Hwt (apply.pass_exists c rq log _ (apply.backendStep_exists_revoke rq log id Hk.1 Hk.2.1) Hpass)
   iapply HΦ
   iframe Htt HL
   ihave #Hrc : apply.reqClass (GF := GF) E.authMode info rq $$ []

@@ -1064,6 +1064,8 @@ theorem apply.authApplierV3.Txn.wp_latest
     (apply.txnOutLL E.authMode hs (auth.authInfoM info) c rq log tw
           (mvcc.leaseItemsOf (mvcc.stateAfter log)))
     (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩) $$ Hcp
+  have Hwn' := And.intro (Hwn.1 (apply.pass_exists c rq log _ (apply.backendStep_exists_txn rq log t Hk.1 Hk.2.1)
+    (fun oc hoc => Or.inr ⟨hoc, Hvd.1 rfl⟩))) Hwn.2
   iunfold apply.chainResAny at Hres
   icases Hres with ⟨%info', Hres⟩
   wp_apply HI $$ %r %skip %rq %t %log %F %Pre %Q %Post %info' [Htt Hkv Hres] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
@@ -1073,7 +1075,7 @@ theorem apply.authApplierV3.Txn.wp_latest
     isplitr
     · ipureintro; exact Hk
     isplitr
-    · ipureintro; exact Hwn
+    · ipureintro; exact Hwn'
     iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ

@@ -580,7 +580,7 @@ theorem apply.authApplierV3.Put.wp_latest
     isplitr
     · ipureintro; exact Hk
     isplitr
-    · ipureintro; exact Hwt
+    · ipureintro; exact Hwt (apply.pass_exists c rq log _ (apply.backendStep_exists_put rq log o Hk.1 Hk.2.1) Hpass)
     iapply apply.mPreAt_of_rest
     iframe
   iapply HΦ
