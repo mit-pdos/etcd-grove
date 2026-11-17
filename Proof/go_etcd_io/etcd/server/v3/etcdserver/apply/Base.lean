@@ -47,6 +47,8 @@ public import Perennial.Proof.errors
 public import Perennial.Proof.log
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
 public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
+-- (wal-link L2, 2026-11-17) `server/v3/storage` imports the WAL since its storage has bodies
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
 
 @[expose] public section
 
@@ -840,7 +842,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 end go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
 -- `server/v3/storage` (names only: `Quota`, `BackendQuota`; with bodies: the hooks and, D22 S-f,
--- `OpenSnapshotBackend`)
+-- `OpenSnapshotBackend`, and, wal-link L2, the WAL storage of `storage.go`)
 namespace go_etcd_io.etcd.server.v3.storage
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage :=
