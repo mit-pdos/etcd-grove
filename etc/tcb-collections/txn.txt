@@ -10,7 +10,6 @@ axiom NewLoggableTxnRequest.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.dbFile
-axiom bbolt.Bucket.Put_kv.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom fmt.Errorf.wp_proof

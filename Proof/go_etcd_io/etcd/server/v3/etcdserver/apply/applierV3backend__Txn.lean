@@ -60,7 +60,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   icases Hkv with #Hkv
   iunfold apply.isApplyLessor at Hle
   icases Hle with ⟨#Hle, -⟩
-  obtain ⟨ht, hk, hpre, hput⟩ := Hrq
+  obtain ⟨ht, hk, hpre, hput, hfitT⟩ := Hrq
   -- the writer's facts: its floor, its reachability
   imod Hfloor $$ %log %c %F Hw HF with ⟨Hw, %HFl⟩
   imod Hfacts $$ %log %c Hw with ⟨Hw, -, -, -, %Hreach⟩
@@ -137,7 +137,7 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitr
     · iapply mvcc.neverDone_neverCd
     iframe Hknown
-    ipureintro; exact hpre
+    ipureintro; exact ⟨hpre, hfitT⟩
   iunfold txn.kvBackend at Hkb
   icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ

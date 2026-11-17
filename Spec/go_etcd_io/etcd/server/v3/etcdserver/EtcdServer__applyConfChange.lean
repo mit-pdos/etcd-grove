@@ -96,6 +96,9 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   (m.type = W32 1 → m.nodeId ≠ lid) →
   (m.type = W32 0 →
     GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62) →
+  -- (S1b, 2026-11-17) at most `2 ^ 20` voters (`srvMemOk`'s bound): the conf state it hands the
+  -- backend hooks fits their bound (`SetConfState`'s `csOkN`)
+  GMap.size γs.raft.cfg ≤ 2 ^ 20 →
   -- with `v3` only: the backend, raft's view (2026-10-30, the repair: raft's one mode, a conf
   -- entry's batch hands the view over; until then, without a view, a static cluster) and the
   -- members' buckets

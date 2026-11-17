@@ -20,14 +20,16 @@ theorem mvcc.writeView.Put.wp_proof (hTODO : traceutil.TODO.spec) (hWrite : mvcc
                         ownSlice key k DFrac.discard ∗
                           ownSlice value v DFrac.discard ∗
                             ⌜↑(List.length k) < 2 ^ 63 - 1⌝ ∗
-                              lease.leaseOwn γ.leases L I ∗
-                                (□ ∀ ilog, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
-                                  ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
-                                    ⌜γ.watchQ = false⌝ ∗
-                                      G ∗
-                                        □ (mvcc.slotF γ ∗ G -∗ False) ∗
-                                          ∀ ilog crev,
-                                            mvcc.endCb γ ilog [mvcc.Change.put k v leaseID] crev (mvcc.slotY γ ilog) R) -∗
+                              ⌜List.length k ≤ etcdKeyMax ∧ List.length v ≤ etcdKeyMax⌝ ∗
+                                lease.leaseOwn γ.leases L I ∗
+                                  (□ ∀ ilog, mvcc.idxCert γ.idx ilog -∗ ⌜mvcc.pendItems ilog [] = I⌝) ∗
+                                    ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+                                      ⌜γ.watchQ = false⌝ ∗
+                                        G ∗
+                                          □ (mvcc.slotF γ ∗ G -∗ False) ∗
+                                            ∀ ilog crev,
+                                              mvcc.endCb γ ilog [mvcc.Change.put k v leaseID] crev (mvcc.slotY γ ilog)
+                                                R) -∗
           (▷
               ∀ rev,
                 (mvcc.storeReader s γ ∗

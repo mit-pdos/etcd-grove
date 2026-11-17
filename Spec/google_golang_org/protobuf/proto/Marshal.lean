@@ -25,7 +25,13 @@ variable [sem : go.Semantics]
 
 /-- `proto.Marshal(kv)` of the `*mvccpb.KeyValue` at `p` holding the model's key-value `kv`
 (its key and value slices read at any fraction) returns a fresh slice of the encoding of
-`kv` and `nil`; the message keeps its fields (its size cache as it likes). -/
+`kv` and `nil`; the message keeps its fields (its size cache as it likes). **The encoding's
+length** (stage S1b of `notes/bbolt-integration-plan.md`, 2026-11-17; the ledger's entry of that
+date; a fact of protobuf's wire format, true): at most the key's and the value's bytes and `128`
+more. `KeyValue` has six fields (`key` 1, `create_revision` 2, `mod_revision` 3, `version` 4,
+`value` 5, `lease` 6), each encoded, when present, as a one-byte tag and a varint of at most 10
+bytes (the four `int64`s, the two lengths), then for the two byte fields their bytes: at most 66
+bytes of framing. -/
 abbrev proto.Marshal.spec : Prop :=
   ∀ (p : Loc) (x : mvccpb.KeyValue) (kv : EtcdKv) (dqk dqv : DFrac),
   {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗
@@ -37,7 +43,8 @@ abbrev proto.Marshal.spec : Prop :=
   {{ (d : GoSlice), RET (PairV #d #(GoInterface.nil));
       (∃ sc : w32, p ↦ ({ x with sizeCache' := sc } : mvccpb.KeyValue)) ∗
       x.Key' ↦*{dqk} kv.key ∗ x.Value' ↦*{dqv} kv.value ∗
-      d ↦* mvcc.kvEncode kv ∗ ownSliceCap w8 d (DFrac.own 1) }}
+      d ↦* mvcc.kvEncode kv ∗ ownSliceCap w8 d (DFrac.own 1) ∗
+      ⌜(mvcc.kvEncode kv).length ≤ kv.key.length + kv.value.length + 128⌝ }}
 
 end spec
 

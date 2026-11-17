@@ -75,7 +75,7 @@ theorem reach_crev : ∀ σ : MvccState, MvccReachable σ → -1 ≤ σ.crev := 
   intro σ h
   induction h with
   | start => simp [mvccStart]
-  | notify σ pend _ _ _ ih => simpa [MvccState.notify] using ih
+  | notify σ pend _ _ _ _ ih => simpa [MvccState.notify] using ih
   | commit σ _ ih => simpa [MvccState.commitPending] using ih
   | compact σ r _ _ _ hr _ ih => simp [MvccState.compactTo]; omega
 

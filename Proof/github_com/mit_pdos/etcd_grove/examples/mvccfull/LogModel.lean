@@ -194,7 +194,8 @@ def cblOf (cfg : Config) : w64 :=
 no earlier delete's range, and no earlier put's key is in a delete's range (etcd's
 `checkIntervals`). -/
 def subsOk (ks : List GoString) (L : List w64) (subs : List SubM) : Prop :=
-  (∀ x ∈ subs, x.kind = W64 0 → x.key ∈ ks ∧ (x.lease = W64 0 ∨ x.lease ∈ L)) ∧
+  (∀ x ∈ subs, x.kind = W64 0 → x.key ∈ ks ∧ (x.lease = W64 0 ∨ x.lease ∈ L) ∧
+    x.key.length ≤ etcdKeyMax ∧ x.val.length ≤ etcdKeyMax) ∧
   ∀ (i j : Nat) (a b : SubM), i < j → subs[i]? = some a → subs[j]? = some b →
     (a.kind = W64 0 → b.kind = W64 0 → a.key ≠ b.key) ∧
     (a.kind = W64 1 → b.kind = W64 0 → inRangeM a.endNil a.key a.e b.key = false) ∧
@@ -203,7 +204,8 @@ def subsOk (ks : List GoString) (L : List w64) (subs : List SubM) : Prop :=
 /-- **An operation valid at the model `s`** (see the file header). -/
 def opValid (ks : List GoString) (s : MSt) (o : OpM) : Prop :=
   sint.Z o.kind < 9 ∧ 0 ≤ sint.Z o.kind ∧
-  (o.kind = kPut → o.key ∈ ks ∧ (o.lease = W64 0 ∨ o.lease ∈ s.leases)) ∧
+  (o.kind = kPut → o.key ∈ ks ∧ (o.lease = W64 0 ∨ o.lease ∈ s.leases) ∧
+    o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax) ∧
   (o.kind = kTxn → o.write = true → subsOk ks s.leases o.subs) ∧
   (o.kind = kGrant → 0 < sint.Z o.id ∧ ∀ id ∈ s.granted, sint.Z id < sint.Z o.id) ∧
   (o.kind = kRevoke → o.id ∈ s.leases) ∧

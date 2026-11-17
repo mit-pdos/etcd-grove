@@ -4,8 +4,8 @@ importable `Spec` module (`etc/api/bbolt.txt`), as `Link.lean` states it. Genera
 `etc/gen-link.py --bbolt --results` -- do not edit by hand. Built with the rest; read its output
 to check it. The results of `links_pending` take its hypotheses (`Link.lean`'s header), which
 `#print axioms` does not show. The `_kv` specs of etcd's backend are not here: the backend's
-`Link.lean` derives them from these results (stage S1), but `Open_kv`, `DB.Close_kv` and
-`Bucket.Put_kv`, still the backend's axioms.
+`Link.lean` derives them from these results (stages S1, S1b), but `Open_kv` and `DB.Close_kv`,
+still the backend's axioms.
 -/
 module
 

@@ -24,7 +24,7 @@ open mvcc.api (MvccState MTxn MvccName)
 theorem txn.reach_len (σ : MvccState) (h : mvcc.api.MvccReachable σ) : 2 ≤ σ.log.length := by
   induction h with
   | start => decide
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     unfold mvcc.api.MvccState.commitPending mvcc.commitLog
     split
@@ -37,7 +37,7 @@ theorem txn.reach_crev (σ : MvccState) (h : mvcc.api.MvccReachable σ) :
     -1 ≤ σ.crev ∧ σ.crev ≤ (σ.rev : Int) := by
   induction h with
   | start => simp [mvcc.api.mvccStart, mvcc.api.MvccState.rev]
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     refine ⟨ih.1, ?_⟩
     have : σ.rev ≤ σ.commitPending.rev := by

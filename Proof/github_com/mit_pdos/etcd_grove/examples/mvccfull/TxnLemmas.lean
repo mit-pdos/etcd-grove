@@ -268,7 +268,8 @@ theorem txn_sub_facts (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (op
     (h : logOk ks ops) (n : Nat) (o : OpM) (ho : ops[n]? = some o) (hk : o.kind = kTxn)
     (hw : o.write = true) (j : Nat) (b : SubM) (hb : o.subs[j]? = some b) :
     let Pj := (o.subs.take j).foldl (subStep ks) (txnP0 (histAt ks ops n))
-    subFresh Pj.chs b ∧ (b.kind = W64 0 → b.key ∈ ks ∧ (b.lease = W64 0 ∨ b.lease ∈ leasesAfter ks ops n)) ∧
+    subFresh Pj.chs b ∧ (b.kind = W64 0 → b.key ∈ ks ∧ (b.lease = W64 0 ∨ b.lease ∈ leasesAfter ks ops n) ∧
+      b.key.length ≤ etcdKeyMax ∧ b.val.length ≤ etcdKeyMax) ∧
       Pj.chs.length ≤ ks.length := by
   intro Pj
   have hv := h n o ho

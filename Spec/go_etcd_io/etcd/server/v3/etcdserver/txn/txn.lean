@@ -54,7 +54,8 @@ abbrev txn.txn.spec : Prop :=
       ⌜txn.Reach σ ∧ (ro = false → σ.pending = none) ∧
         txn.OpsOk false (mvcc.stateAfter σ.log) (W64 (σ.log.length : Int)) (mvcc.stateAfter σ.log)
           (t.branch (txn.txnOk (mvcc.stateAfter σ.log) t)) ∧
-        (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true)⌝ ∗
+        (ro = true → txn.txnReadonly t = true) ∧ (nd = false → ro = true) ∧
+        (∀ op ∈ t.branch (txn.txnOk (mvcc.stateAfter σ.log) t), op.putsLe etcdKeyMax)⌝ ∗
       (if nd then iprop(True) else zapLoggerOk lg) }}
     (App (App (App (App (App (App (App (Val (@! txn.txn)) (Val #(GoInterface.ok ctx))) (Val #lg))
       (Val #tw)) (Val #rt)) (Val #(!ro))) (Val #pl)) (Val #skip))

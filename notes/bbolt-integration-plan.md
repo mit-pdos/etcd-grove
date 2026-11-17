@@ -410,32 +410,47 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `fmt.Errorf` added too. Remaining of the old boundary: `bbolt.{Open_kv, DB.Close_kv,
     Bucket.Put_kv}.wp_proof`, `backend.{fileHolds, dbFile, dbFile_persistent, dbFile_timeless}`, the
     options' axioms (S2).
-* 2026-11-17, **S1b** (branch `bbolt-putbound`, session of the S1b unit): **stopped, work in progress
-  (the build is red past the backend).** Done: `bbolt.Bucket.Put_kv.spec` takes `kb.length + vb.length ≤
-  bbolt.bboltEntryMax` and its post is the one outcome (`nil`, the entry set; the `ErrValueTooLarge`
-  disjunct is gone: `bboltEntryMax < MaxValueSize`); `Put_kv.wp_proof` is a theorem over bbolt's proved
-  `Bucket.Put` (linked: `etc/link-lean-first-backend.txt`, backend `Link.lean`); the backend's
-  `batchTx.{unsafePut, UnsafePut, UnsafeSeqPut}` and `batchTxBuffered.{UnsafePut, UnsafeSeqPut}` take the
-  same premise (`unsafePut` loses its `Fatal` branch). Not done: the callers. What the threading needs,
-  found on the way:
-  - **The `confState` save** (`BackendHooks.OnPreCommitUnsafe`, through the trust-boundary axiom
-    `schema.MustUnsafeSaveConfStateToBackend`, whose callback takes any bytes `vb`: JSON of the
-    `ConfState`, not modelled): its length grows with the cluster's members, which nothing bounds (the
-    server's model of the `ConfState` is not in `csInv`). Not derivable; needs either a premise (a bound
-    on the membership, up to the closed server theorems) or a stronger trust-boundary statement. The
-    coordinator's decision.
-  - **mvcc's deletes and `IgnoreValue` puts** write values the caller does not give: a tombstone
-    `kvEncode {key}` of a key of the state, the state's value under a new revision. So mvcc's state must
-    carry the bound: proposed, `MvccReachable.notify` requires the pending puts' `k.length + v.length ≤
-    etcdKeyMax` (the write handle `mvccTxnI .write` carrying it of `pend`), the `Put` contracts take it.
-  - **`kvEncode` is opaque**: its length bound must come from `proto.Marshal.spec` (a trust-boundary
-    axiom: a post `(kvEncode kv).length ≤ kv.key.length + kv.value.length + 128`; protobuf's framing of
-    six fields is at most 66 bytes).
-  - **Per-field bounds do not suffice**: the server carries `key ≤ etcdKeyMax ∧ value ≤ etcdKeyMax`
-    (`ChPutsLe`, `irrPutsLe`, `TxnOp.putsLe`), whose sum plus framing passes `2 ^ 28`. Proposed: those
-    three in sum form (`k + v ≤ n`; `MarshalIRR`'s axiom then states the sum, true of one request's
-    disjoint fields), per-field facts derived; the request reaches `txn.put` through `apply.rqOk` →
-    `putPre`/`txnPre` (`Chain.lean`) and `txn.TxnPreA`, so the applier specs need no new premise.
-  - Small constants, derivable: the consistent index and term (`CindexBackend`, 8-byte values),
-    mvcc's meta puts (`bt_metaPut`, `metaRevVal`), compaction keys. `schema.MustUnsafePutLease` is an
-    axiom (not over `UnsafePut`'s spec).
+* 2026-11-17, **S1b** (branch `bbolt-putbound`): **`bbolt.Bucket.Put_kv` a theorem**, the backend's last
+  in-memory bbolt axiom. The proved `Bucket.Put` takes `kb.length + vb.length ≤ bboltEntryMax` (`2 ^ 28`); the
+  bound is threaded from where it is known (the request check, the hooks' conf state, the tester's
+  generators), with no closed theorem gaining a premise. Changed statements:
+  - **bbolt/backend.** `bbolt.Bucket.Put_kv.spec`: premise `kb.length + vb.length ≤ bbolt.bboltEntryMax`, one
+    outcome (`nil`, the entry set; the `ErrValueTooLarge` case gone); proof over `bbolt.Bucket.Put`
+    (`etc/link-lean-first-backend.txt`). `backend.batchTx.{unsafePut, UnsafePut, UnsafeSeqPut}`,
+    `backend.batchTxBuffered.{UnsafePut, UnsafeSeqPut}`: the same premise.
+  - **The constant.** `etcdKeyMax` `2 ^ 27` → `2 ^ 27 - 2 ^ 19` (the request check's bound,
+    `etcdMaxRequestBytesOk`), so that a key and a value, encoded, fit an entry; in place of the proposed
+    sum bounds (no change to `ChPutsLe`, `irrPutsLe`, `TxnOp.putsLe` or `MarshalIRR`). Ledger entry.
+  - **Trust boundary, two length facts** (approved by the coordinator; ledger entries):
+    `proto.Marshal.spec` (KeyValue): post `(kvEncode kv).length ≤ key + value + 128`;
+    `schema.MustUnsafeSaveConfStateToBackend.spec`: premise `storage.csOkN n cs`, the callback's
+    `vb.length ≤ 25 * n + 128`.
+  - **mvcc.** `MvccReachable.notify` requires `ChPutsLe etcdKeyMax pend` (`reach_putsLe`: a reachable
+    state's log and notified log put short keys and values); the write handle (`mvccTxnI .write`) carries
+    `ChPutsLe etcdKeyMax pend` (law `mvccTxn_write_putsLe`, proved in `Api.lean`); `KV.Put.contract`,
+    `Txn.Put.contract`: premise `k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax`. Internal:
+    `storeTxnWrite.{put, Put}`, `metricsTxnWrite.Put`, `writeView.Put` (the same premise),
+    `storeTxnWrite.delete` (`k.length ≤ etcdKeyMax`), `storeTxnWrite.{deleteRange, DeleteRange}`,
+    `metricsTxnWrite.DeleteRange` (`LogPutsLe etcdKeyMax ilog ∧ ChPutsLe etcdKeyMax pend`),
+    `writeView.DeleteRange` (the log's bound from the index certificate); `keyPutOk` (the bridge's put
+    condition) has the entry bound; `meta_entry_fits` (compaction records).
+  - **The server's txn and apply.** `txn.put`: `o.key ≤ etcdKeyMax ∧ (¬ ignoreValue → o.val ≤ etcdKeyMax)`
+    (an `IgnoreValue` put's stored value bounded by the write handle's law); `txn.Put`: both;
+    `txn.executeTxn`, `txn.txn`: every operation of the branch `putsLe etcdKeyMax`; `txn.Txn.specSole`:
+    `TxnPreA log t ∧ t.putsLe etcdKeyMax`. `apply.putPre`/`putPreW`/`txnPre`/`txnPreW` and `apply.rqOk`,
+    `rqSmall` carry the request's bound; `rqSmall_of_small` takes `irrPutsLe etcdKeyMax rq`, from the KV
+    invariant's `logPutsOk` (`entryOk_of_shape`, `entryOkOn_of_shape` take `entryPutsOk m`).
+    `EtcdServer.apply.spec`, `EtcdServer.applyEntries.spec`: premise `logPutsOk` of the batch;
+    `EtcdServer.applyAll.specBatch`: the same in its pure part; `clusterWorkloadOk(M)`, `srvC(M)`: also
+    `logPutsOk L` (from `kvWork`'s).
+  - **The conf state.** `storage.csIdCount`, `csIdMax = 2 ^ 20`, `csOkN`; `csInv` keeps `csOkN csIdMax`;
+    `BackendHooks.SetConfState.spec` takes it; `epCsOk` carries `csIdCount c ≤ csIdMax`
+    (`epCsOk_of_csOptA` takes it); `EtcdServer.applyConfChange.spec`: premise
+    `GMap.size γs.raft.cfg ≤ 2 ^ 20` (`srvApRes_cfg_size`); `EtcdServer.applySnapshot.specSnapM`: premise
+    `csIdCount sv.Metadata'.ConfState' ≤ csIdMax` (`snap_csIdCount`, from the certificate);
+    `restart_snapOnceR`: premise `GMap.size γr.raft.cfg ≤ 2 ^ 20`.
+  - **Examples.** mvccrand: values `"v" ++ itoa n` (`newVal_short`). mvccfull: `runCfgOk` gains
+    `MaxVal ≤ 2 ^ 20 ∧ Depth ≤ 2 ^ 20` (`Main`'s `MainConfig`: `5000`, `4`); `writerCtx`'s last pure part,
+    `runner.newVal.spec` (premise `0 ≤ MaxVal ≤ 2 ^ 20`, post `v.length ≤ etcdKeyMax`),
+    `runner.genSubs.spec` (the keys' and `MaxVal`'s bounds), `runner.writeSub.spec`, `opValid`'s put
+    clause and `subsOk`'s (key and value `≤ etcdKeyMax`); the model's `PVals`/`opPend_vals`.
