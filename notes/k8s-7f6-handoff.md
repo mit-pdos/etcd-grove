@@ -20,8 +20,9 @@
   unary paths, macro `done_add`); step 6 `Check` over `RunLin2` (spec: `γk`, `watchers wops`, their
   bounds, `kInv γk`, `storeWatchOk`, `watchListOn`, Model's rv premise); `encodeWEvents`/`runWatch`
   posts carry the encodings' lengths (WEvOk); `GenInW`: skipped ⇒ `MinRV = []`.
-- **Next, in order:** step 7(v): specs+proofs of `runtime.Decode` (calls the driver codec's
-  `Decode`) and `storage.AnnotateInitialEventsEndBookmark` (`meta.Accessor` has a spec; the driver's
+- **Done, built:** `runtime.Decode.spec`/proof (`Spec|Proof/k8s_io/apimachinery/pkg/runtime/Decode.lean`,
+  generic over the decoder's method), `codec.Decode.spec`/proof (the driver's, `codec__Decode.lean`).
+- **Next, in order:** step 7(v): spec+proof of `storage.AnnotateInitialEventsEndBookmark` (`meta.Accessor` has a spec; the driver's
   `GetAnnotations`/`SetAnnotations`) for `watchContractOk driverSpec driverW codec`; `newItemOk
   driverSpec newObj`; 7(iii)-(iv): per member `cluster3.memberWatch` from `clusterUp` + `srvOnce`
   (`one_read_au` + `etcdstart.srvOnce_of_plan`), `memberWatch_facts`, `watchEnvL_conn`,
