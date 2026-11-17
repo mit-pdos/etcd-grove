@@ -15,7 +15,6 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockBare
 import all Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockClaimed
 import all Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 
 @[expose] public section
@@ -44,7 +43,7 @@ without a commit, with or without a view to update). -/
 local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
     imod trkSide_idle (hG := hG) γ P $S _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
       with ⟨Hhkd, Hin⟩
-    imod rbPartR_idle (hG := hG) γ P $S _ _ rc $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
+    imod rbPartR_idle (hG := hG) γ P $S _ _ rc (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
     wp_apply (hBU γ P W Pk b t)
       $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
@@ -76,7 +75,7 @@ tracked bucket idle), then the postcondition. -/
 local macro "bu_free0" hb:term:max hf:term:max : tactic => `(tactic| (
     imod trkSide_idle (hG := hG) γ P st _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
       with ⟨Hhkd, Hin⟩
-    imod rbPartR_idle (hG := hG) γ P st _ _ rc $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
+    imod rbPartR_idle (hG := hG) γ P st _ _ rc (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
     wp_apply (hBU γ P W Pk b t)
       $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
@@ -406,14 +405,14 @@ private theorem unlock_coreC
         ihave Hhkd := trkSide_mode γ P (wbSt P st) true false (fun _ _ _ => HcwWb0 hfo'.2.2.1) $$ Hhkd
         bu_free (wbSt P st) (hbg' true (fun _ => tkWb_idle_of_ndel0 Hbg.2.2.2.2.2.2.2.2.2.2.1 hfo'.2.2.1)) hfo'
 
-/-- **`Unlock` in a claimed session** (A1.5). -/
-theorem backend.batchTxBuffered.Unlock.wp_proofC
+/-- **`Unlock`** (claimed buckets: A1.5; the client-facing statement is its corollary `Unlock.spec_free`). -/
+theorem backend.batchTxBuffered.Unlock.wp_proof
     (hRLock : backend.readTx.Lock.spec (GF := GF) (hG := hG))
     (hWB : backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG))
     (hRUnlock : backend.readTx.Unlock.spec (GF := GF) (hG := hG))
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
-    backend.batchTxBuffered.Unlock.specC (GF := GF) (hG := hG) := by
+    backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st Q S r Sc rc Rr Hhw Hroom Hnd HcwS
   iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hrc, HRr, #Hacc, Hcase⟩ HΦ
   icases batchLocked_rbPartR_RB γ P b st true _ rc $$ [$Hl $Hrc] with ⟨Hl, Hrc, %HScRB⟩
@@ -424,30 +423,6 @@ theorem backend.batchTxBuffered.Unlock.wp_proofC
   iintro ⟨HQ, HRr, Hin, Hinc⟩
   iapply HΦ
   iframe HQ Hin Hinc HRr
-
-/-- `Unlock` in the client-facing mode: the claimed statement at no claimed bucket (the mode weakened, no
-claimed write recorded: `cwOk`). -/
-theorem backend.batchTxBuffered.Unlock.wp_proof
-    (hRLock : backend.readTx.Lock.spec (GF := GF) (hG := hG))
-    (hWB : backend.txWriteBuffer.writeback.spec (GF := GF) (hG := hG))
-    (hRUnlock : backend.readTx.Unlock.spec (GF := GF) (hG := hG))
-    (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
-    (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
-    backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st Q S r Hhw Hroom
-  iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hcase⟩ HΦ
-  icases batchLocked_cwOk γ P b st false $$ Hl with ⟨Hl, %Hcw⟩
-  ihave Hl := batchLocked_claimed γ P b st $$ Hl
-  ihave Hrc := rbPartR_nil (hG := hG) γ (∅ : GMap GoString BktData)
-  ihave #Hacc := rbAcc_nil (hG := hG) γ (unlockOk P st) iprop(True)
-  iapply (backend.batchTxBuffered.Unlock.wp_proofC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q S r [] ∅
-    iprop(True) Hhw Hroom List.nodup_nil (fun n h => by rw [Hcw rfl Hhw n] at h; cases h)) $$ %Φ
-    [Hl Htok Hrb Hrc Hcase]
-  · iframe Hl Htok Hrb Hrc Hcase; iframe #
-  inext
-  iintro ⟨HQ, Hin, -, -⟩
-  iapply HΦ
-  iframe HQ Hin
 
 end proof
 

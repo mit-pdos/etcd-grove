@@ -78,14 +78,19 @@ bucket or move its readers' contents. A claimed part passed through an axiom's f
    (`(c : Bool := false)`, A1.5) and the `commit`/`unsafeCommit` specs (trailing `c Sc Rr`); the commit
    switches to the client-facing mode only inside the hook's window (`hw = true`, where `cwOk false` holds
    trivially: `batchLocked_setHw_mk`), and the commit resets `cw`. No trusted text names the mode `true`,
-   `batchLockedW` or the commit specs (all proved, internal). Clients can enter mode `true` (`batchLocked_claimed`, the only
-   law between the modes besides `Unlock`, which ends a session; no law from `true` back to `false` exists or may
-   be added, review A1.5 MINOR 1): harmless, since the mode `true` grants nothing without a claimed part
+   `batchLockedW` or the commit specs (all proved, internal). Clients can enter mode `true` (`batchLocked_claimed`, over the public
+   `trkSide_mode_up`, `false → true`); the general mode step `trkSide_mode` is private (A1.9 review MINOR 1, made
+   private at A1.8's rename): only `Unlock`'s proof goes from `true` back to `false`, and it does so only where
+   `cw` is empty. The one other public mode law, `trkSide_mode_win`, changes the mode inside the hook's window
+   (`hw = true`), where `cwOk` holds in both modes; since `batchLocked`/`trkSide` are exposed, a client can still
+   rebuild a mode-`false` lock by hand from a mode-`true` one whose `cwOk false` holds, i.e. outside the window
+   only with `cw` empty, which is exactly the client-facing state (harmless: the review's MINOR 1). Mode `true` is
+   harmless, since the mode `true` grants nothing without a claimed part
    (`rbPartR`, made only by the claim, §5), and with no claimed part (`Sc = []`) `Unlock.specC`'s premise
-   forces `cw` empty, which holds as only writes through a claimed part set it; the mode `true` can never reach
+   forces `cw` empty (the corollary `Unlock.spec_free`), which holds as only writes through a claimed part set it; the mode `true` can never reach
    a trusted text, which all take mode `false`.
-3. **The accessor** (`rbAcc γ Sc ok Rr`, `ClaimedLemmas.lean`; the claimed `Unlock` statement
-   `Unlock.specC`, `UnlockClaimed.lean`). It is the client's resource, run by `Unlock`'s proof at the
+3. **The accessor** (`rbAcc γ Sc ok Rr`, `ClaimedLemmas.lean`; `Unlock.spec`, the one statement since
+   A1.8, with the client-facing statement its corollary `Unlock.spec_free`, `UnlockBare.lean`). It is the client's resource, run by `Unlock`'s proof at the
    write-back's and the commit's ghost updates (inside `readTx`'s write lock, before `cacheInv` opens), and
    it can only move a claimed bucket's readers' contents to **what the readers then see**: the update
    (`trkSide_updR` → `rbrSide_stepR`) sets each element of `γ.rbr` to `rvBkt P rv' n`, the readers' state after
@@ -97,7 +102,7 @@ bucket or move its readers' contents. A claimed part passed through an axiom's f
    from (`mix`), at the write-back the **intermediate** contents `rvBkt P (st.C, writebackR st.W st.R) n` (the
    puts over the old readers' state, the deletes not yet committed), not the writer's contents (review MAJOR 2:
    the `authReadTxOk` family of false one-state reads). Every claimed write of the session is among the
-   accessor's buckets (premise `∀ n, st.cw n → n ∈ Sc`; in the client-facing `Unlock.spec` `cw` is empty by
+   accessor's buckets (premise `∀ n, st.cw n → n ∈ Sc`; in the client-facing `Unlock.spec_free` `cw` is empty by
    `cwOk`, the corollary at `Sc = []`), so no claimed bucket's readers' contents move without the client's
    halves; a claimed bucket outside `Sc` is untouched (`rbrOne`'s claimed branch: `tk idle ∨ cw`).
 4. **`Unlock` with nothing pending** in a claimed session forgets the claimed writes (`BSess.clrCw`,
@@ -128,5 +133,13 @@ output is true of Go:
 - A claim inside the hook's window (mode `false`, `hw = true`) is allowed: the bucket's kind is idle, so the
   commit leaves its readers' contents (`rvBkt_commit_idle`), and `rbrOne`'s claimed branch (`tk idle`) holds
   for a claimed bucket outside the commit's accessor list.
+- The claimed parts' flags (A1.9 review MINORs 2 and 3). `rbPartR_idle` (private, run only at `Unlock`'s end)
+  clears the `γ.rbc` flags of the claimed part handed in; it takes `trkSide_idle`'s premise (the part's buckets
+  untouched, `tkI`), unused by its proof, so that a later law reading a readers' fact off `rbOwnInR` stays sound.
+  Today no law reads a claimed flag being clear: `rbOwnInR` grants nothing beyond `rbPartR`. A6 must not derive
+  a readers' fact from `rbOwnInR` without such a premise at every place it is made. The **`γ.rbk` flag** of a
+  claimed bucket is set by its claimed writes (`rbSide_put` in `rbrSide_writeR`) and **never cleared**: `tkI`
+  constrains only a clear flag, so this is sound, but nothing may rely on a claimed bucket's `γ.rbk` flag (it
+  says nothing about the bucket's kind).
 - A6's constraint (review A1.5 MINOR 3): `rbAcc` runs at mask `⊤` inside `readTx`'s write lock; the client's
   resource `Rr` and accessor must not need `cacheInv` or `readTx`.

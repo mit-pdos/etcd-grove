@@ -86,7 +86,6 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
 # `InvBatch` import publicly
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrkModel
 # (auth-schema-srv A1, 2026-11-17) the claimed buckets: the claim (`batchLocked_claim`), the claimed parts'
-# split laws, `Unlock`'s accessor (`rbAcc`, `unlockOk`); `Unlock`'s claimed statement (`Unlock.specC`)
+# split laws, `Unlock`'s accessor (`rbAcc`, `unlockOk`), which `Unlock.spec` names (A1.8: one spec)
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
-importable Proof.go_etcd_io.etcd.server.v3.storage.backend.UnlockClaimed
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas

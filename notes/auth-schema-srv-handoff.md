@@ -1,6 +1,30 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A1 done: A1.9 checkpoint, report to etcd-grove-03)
+## START HERE (2026-11-17, A1 closed (A1.10); A2 Draft at the stop, report to etcd-grove-03)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere. Scope `notes/auth-schema-srv-scope.md` §3 (A2-A7);
+  decisions `questions.md` (untracked; **A1 decided by etcd-grove-03**); soundness `notes/auth-schema-srv-a1-soundness.md`.
+- Done: A1.1-A1.9 (52d85a42f6 … 23e2504247); **A1.10 (this commit)**: the coordinator's A1 decisions: one spec
+  (`Unlock.spec` the claimed statement, `Unlock.wp_proof`; old text the corollary `Unlock.spec_free`, `UnlockBare.lean`;
+  `UnlockClaimed.lean` gone); `trkSide_mode` private (`trkSide_mode_up`, `trkSide_mode_win` public); `rbPartR_idle`
+  takes `tkI`; soundness §4.2/§5 updated. Full build ok (log `/shared/tmp/auth-schema-srv/a110-build1.log`), tcb
+  baseline unchanged, interfaces regenerated.
+- Next: A2 waits on the Draft `notes/auth-schema-srv-a2-draft.md` (Q7's `First_kv` cannot prove `Bucket.ForEach`:
+  it reads `b.tx.db`; options (A) field law / (B) `ForEach_kv{r,w}` axioms, recommended). Then A3 (Draft: Marshal
+  axioms + `sizeCache` out of `↦□`, precedent: an invariant on the field, `restart1/Requests.lean`), A4 (budget in
+  `authBatchTxLkR`: part of hD22's text, weaker), A5, A6, A7 (HARD STOP, user).
+- Pitfalls: (1) a hand-written `if m = n` picks `instDecidableEqString`, the laws' `if S n` (open Classical)
+  `Classical.propDecidable`: write `@ite _ (m = n) (Classical.propDecidable _) …`. (2) `unfold` does not
+  beta-reduce `(fun n => S n ∨ S' n) n`: `dsimp only`. (3) A theorem's default argument (`trkHalf_eq … I`) is
+  filled with the default when omitted: pass it. (4) Macros: frame patterns as ``$(frameH `H)``. (5) Stray
+  Perennial clone: keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris. (6)
+  `etc/gen-interface.py --layout` builds every package module (`AuthSplitDraft` too): build it first.
+
+## History
+
+### A1.9 (2026-11-17, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere. A1 Scope `notes/auth-schema-srv-a1-scope.md`; decisions and
@@ -19,8 +43,6 @@
   beta-reduce `(fun n => S n ∨ S' n) n`: `dsimp only`. (3) A theorem's default argument (`trkHalf_eq … I`) is
   filled with the default when omitted: pass it. (4) Macros: frame patterns as ``$(frameH `H)``. (5) Stray
   Perennial clone: keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq, batteries, iris.
-
-## History
 
 ### A1.6-A1.8 (2026-11-17, superseded)
 

@@ -199,8 +199,7 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
   -- (A1.5) in the hook's window the client-facing mode allows claimed writes
   ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) rfl c
     (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
-  ihave Hk := trkSide_mode γ P (st.setHw true) c false
-    (fun _ _ h => by simp [BSess.setHw] at h) $$ Hk
+  ihave Hk := trkSide_mode_win γ P (st.setHw true) c false rfl $$ Hk
   iexists t, db
   rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
   simp only [setHw_C, setHw_R, setHw_S]

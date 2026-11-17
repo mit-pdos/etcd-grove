@@ -66,7 +66,6 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply Perennial.EtcdGrove.backend.batchTxBuffered.LockOutsideApply.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockOutsideApply Perennial.EtcdGrove.batchTxBuffered.LockOutsideApply.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock Perennial.EtcdGrove.backend.batchTxBuffered.Unlock.wp_proof  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock Perennial.EtcdGrove.backend.batchTxBuffered.Unlock.wp_proofC  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock Perennial.EtcdGrove.batchTxBuffered.Unlock.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket Perennial.EtcdGrove.backend.batchTxBuffered.UnsafeCreateBucket.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket Perennial.EtcdGrove.batchTxBuffered.UnsafeCreateBucket.wp_proof  # missing: a proof file proves its spec

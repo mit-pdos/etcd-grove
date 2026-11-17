@@ -13,6 +13,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
 
 @[expose] public section
 
@@ -52,19 +53,34 @@ etcd-io/etcd#17119), so a read transaction begun after it sees the writer's cont
 a bucket created in the session and not yet committed (`batchTxBuffered` counts a creation as
 pending, not as a pending delete), which such a reader sees absent, as empty (`bktOf`); a later
 write to a bucket of `S` needs the holder's part.
+**Claimed buckets** (A1.5 of `auth-schema-srv`, D5 of `notes/auth-schema-srv-a1-scope.md`, 2026-11-17; one
+spec, A1.8): the session is in the claimed mode (`batchLocked … true`; a client-facing session gets there by
+`batchLocked_claimed`), and its writes through a claimed part (`st.cw`) are all to the buckets `Sc` of the claimed
+part `rbPartR γ Sc rc` handed in. Go writes the session's puts back into the read buffer under `readTx.Lock()` and,
+when a delete is pending, commits under it again (`batch_tx.go`, `Unlock` and `commit`): at each, readers'
+contents of the claimed buckets move, which needs the client's halves (`rbRd`): the client hands in its accessor
+(`rbAcc`, with its resource `Rr`), which `Unlock` runs at the write-back and at the commit; the client may count on
+each claimed bucket moving as `unlockOk P st` allows (the writer's contents; untouched or only deleted from: kept;
+put into and deleted from, at the write-back: the write-back's intermediate contents). The claimed part comes back
+idle (`rbOwnInR`), and `Rr`. With no claimed bucket (`Sc = []`, `Rr = True`) this is the client-facing statement,
+`Unlock.spec_free` (`UnlockBare.lean`).
 (Until question 2: the put branch got `sData P st.S` back, and the first branch was `viewSame`;
-a Draft `specC` had the deleting branch beside it.) -/
+a Draft `specC` had the deleting branch beside it. Until A1.8 the claimed statement was a second one,
+`Unlock.specC`, beside this one.) -/
 abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
-    (S : GoString → Prop) (r : GMap GoString BktData),
-  st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 →
+    (S : GoString → Prop) (r : GMap GoString BktData) (Sc : List GoString) (rc : GMap GoString BktData)
+    (Rr : IProp GF),
+  st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
+  (∀ n, st.cw n = true → n ∈ Sc) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ wbTok γ ∗ rbPart γ S r ∗
+      bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ rbPart γ S r ∗
+      rbPartR γ (fun n => n ∈ Sc) rc ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr ∗
       ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
          ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
-  {{ RET #(); Q ∗ rbOwnIn γ S r }}
+  {{ RET #(); Q ∗ rbOwnIn γ S r ∗ rbOwnInR γ (fun n => n ∈ Sc) rc ∗ Rr }}
 
 end spec
 

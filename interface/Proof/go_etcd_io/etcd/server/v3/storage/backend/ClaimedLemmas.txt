@@ -18,10 +18,6 @@ def backend.BSess.clrCw (st : backend.BSess) : backend.BSess :=
   { C := st.C, S := st.S, R := st.R, W := st.W, pend := st.pend, ndel := st.ndel, tx := st.tx, cnt := st.cnt, dl := st.dl,
     win := st.win, tk := st.tk }
 
-theorem backend.trkSide_mode (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c c' :
-    Bool) (h : backend.cwOk c st → backend.cwOk c' st) : backend.trkSide γ P st c ⊢ backend.trkSide
-    γ P st c'
-
 theorem backend.rbRdL_map (γ : backend.BNames) (f : GoString → backend.BktData) (q : Qp) (Sc : List
     GoString) (hnd : Sc.Nodup) : ([∗list] n ∈ Sc, backend.rbRd γ n q (f n)) ⊢ ⌜∀ (n : GoString), n ∈
     Sc → γ.rbD !! n ≠ none⌝ ∗ [∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#q} f n else
@@ -58,6 +54,9 @@ theorem backend.batchGhostAt_clr (γ : backend.BNames) (P : backend.BParams) (st
     c : Bool) (hT : ∀ (n : GoString), P.RB n = true → st.tk n = backend.RbK.idle) :
     backend.batchGhostAt γ P st fr c ⊢ backend.batchGhostAt γ P st.clrCw fr
 
+theorem backend.trkSide_mode_up (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) :
+    backend.trkSide γ P st ⊢ backend.trkSide γ P st true
+
 theorem backend.rbPartRF_split (γ : backend.BNames) (S S' : GoString → Prop) (r : GMap GoString
     backend.BktData) (F : GoString → Bool) (hd : ∀ (n : GoString), S n → S' n → False) :
     backend.rbPartRF γ (fun n => S n ∨ S' n) r F ⊣⊢ backend.rbPartRF γ S r F ∗ backend.rbPartRF γ S'
@@ -70,6 +69,9 @@ theorem backend.rbOwnInR_congr (γ : backend.BNames) (S : GoString → Prop) (r 
 theorem backend.rbOwnInR_split (γ : backend.BNames) (S S' : GoString → Prop) (r : GMap GoString
     backend.BktData) (hd : ∀ (n : GoString), S n → S' n → False) : backend.rbOwnInR γ (fun n => S n
     ∨ S' n) r ⊣⊢ backend.rbOwnInR γ S r ∗ backend.rbOwnInR γ S' r
+
+theorem backend.trkSide_mode_win (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c
+    c' : Bool) (hw : st.cnt.hw = true) : backend.trkSide γ P st c ⊢ backend.trkSide γ P st c'
 
 theorem backend.batchLocked_claim (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
     backend.BSess) (c : Bool) (Sc : List GoString) (r : GMap GoString backend.BktData) (hnd :

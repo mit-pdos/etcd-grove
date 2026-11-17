@@ -392,8 +392,11 @@ theorem trkSide_updR (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RVie
 
 /-! ### The mode of the batch lock's side -/
 
-/-- **The batch lock's side in another mode** (A1.5): the same state, the mode fact of the new mode. -/
-theorem trkSide_mode (γ : BNames) (P : BParams) (st : BSess) (c c' : Bool)
+/-- **The batch lock's side in another mode** (A1.5): the same state, the mode fact of the new mode. Private
+(A1 review MINOR 1): only `batchTxBuffered.Unlock`'s proof (`import all`) goes from mode `true` back to `false`;
+clients have the two directions that are always harmless, `trkSide_mode_up` (`false → true`) and `trkSide_mode_win`
+(either way inside the hook's window, where `cwOk` holds in both modes). -/
+private theorem trkSide_mode (γ : BNames) (P : BParams) (st : BSess) (c c' : Bool)
     (h : cwOk c st → cwOk c' st) :
     trkSide (GF := GF) γ P st c ⊢ trkSide γ P st c' := by
   unfold trkSide rbrSide
@@ -401,6 +404,16 @@ theorem trkSide_mode (γ : BNames) (P : BParams) (st : BSess) (c c' : Bool)
   iframe Hh Har Hac Hb
   ipureintro
   exact ⟨Hd, h Hcw⟩
+
+/-- **The batch lock's side, from the client-facing mode to the claimed one** (A1.5). -/
+theorem trkSide_mode_up (γ : BNames) (P : BParams) (st : BSess) :
+    trkSide (GF := GF) γ P st false ⊢ trkSide γ P st true :=
+  trkSide_mode γ P st false true (fun _ h => by cases h)
+
+/-- **The batch lock's side in the hook's window, in any mode** (`cwOk` holds in both there). -/
+theorem trkSide_mode_win (γ : BNames) (P : BParams) (st : BSess) (c c' : Bool) (hw : st.cnt.hw = true) :
+    trkSide (GF := GF) γ P st c ⊢ trkSide γ P st c' :=
+  trkSide_mode γ P st c c' (fun _ _ h => by rw [hw] at h; cases h)
 
 /-- **No claimed write recorded, once every tracked bucket is idle** (A1.5: `Unlock` with nothing pending):
 the batch lock's side at `st.clrCw`, in the client-facing mode. -/
@@ -507,9 +520,11 @@ private theorem rbrOne_idleR (γ : BNames) (P : BParams) (st : BSess) (S : GoStr
 
 /-- **`Unlock`'s ghost step on a claimed part** (A1.5): its flags cleared, at the session's end (as
 `rbSide_idle` for an unclaimed part). Private: only `batchTxBuffered.Unlock`'s proof takes it (`import all`);
-used anywhere else it would assert an idleness Go does not give. -/
+used anywhere else it would assert an idleness Go does not give. It takes `trkSide_idle`'s premise, the part's
+buckets untouched (`tkI`; A1 review MINOR 2), unused by its proof: `rbOwnInR` grants nothing beyond
+`rbPartR` today, and the premise keeps any later law that reads a readers' fact off a cleared claimed flag sound. -/
 private theorem rbPartR_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (S : GoString → Prop)
-    (r : GMap GoString BktData) :
+    (r : GMap GoString BktData) (_hT : ∀ n, S n → tkI P st n) :
     iprop(trkSide (GF := GF) γ P st c ∗ rbPartR γ S r) ⊢ |==> iprop(trkSide γ P st c ∗ rbOwnInR γ S r) := by
   unfold trkSide rbrSide rbPartR rbOwnInR rbPartRF
   iintro ⟨⟨Hh, Har, ⟨%Mc, Hac⟩, %Hd, %Hcw, Hb⟩, %F, %Hs, Hp⟩
@@ -548,7 +563,7 @@ theorem batchLocked_claimed (γ : BNames) (P : BParams) (b : Loc) (st : BSess) :
     batchLocked (GF := GF) γ P b st ⊢ batchLocked γ P b st true := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
-  ihave Hk := trkSide_mode γ P st false true (fun _ h => by cases h) $$ Hk
+  ihave Hk := trkSide_mode_up γ P st $$ Hk
   iexists t, db
   iframe
   iframe #
@@ -909,7 +924,7 @@ private theorem batchGhostAt_idle (γ : BNames) (P : BParams) (st : BSess) (c : 
   unfold batchGhostAt
   iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, Hp, Hpr⟩
   imod trkSide_idle γ P st c S r (fun n _ hRB => hT n hRB) $$ [$Hk $Hp] with ⟨Hk, Hp⟩
-  imod rbPartR_idle γ P st c Sr rc $$ [$Hk $Hpr] with ⟨Hk, Hpr⟩
+  imod rbPartR_idle γ P st c Sr rc (fun n _ hRB => hT n hRB) $$ [$Hk $Hpr] with ⟨Hk, Hpr⟩
   imodintro
   iframe Hv Hp Hpr
   iexists n, w, u
