@@ -1,25 +1,17 @@
 # incomingof handoff
 
-## START HERE (2026-11-17, Part A in progress)
+## START HERE (2026-11-17, Part A refuted; B0)
 
 - Branch `incomingof-scope`, worktree /shared/etcd-grove-incomingof; lean 5fb716b5eb merged (5ef8f6520f).
-  `.lake/build` was seeded from a stale main build: targeted builds rebuild a lot.
-- Approved by the user 2026-11-17 via etcd-grove-03: Part A (A-C/C-ii, Q2/Q3/Q6 as recommended), then B0
-  (read-only inventory of the consumers of `rangeErrΨ` & siblings), STOP; Part B only after 03's go.
-- Done (Lean, Part A): `Incoming.lean` (axiom `incomingOf_cancelCtx` gone; def `metadata.incomingKept`),
-  `InvGrpcStream.lean` `srvRawStreamIs` (+ `metadata.incomingKept ci`), `WrapperMd.lean` (axiom restated,
-  `incomingOf_wrapper`/`field_unique` gone), `newStreamInterceptor.lean` (patterns, direct application).
-  Go evidence copied: `examples/axiomcx/incomingof/` (own module; GOTOOLCHAIN=go1.27.3 GOWORK=off go test).
-  Exact texts + cross-world argument: `notes/axiom-review/incomingof.md`.
-- Next, in order: (1) STOP for 03's independent attack on the texts; (2) full build (build-slot, retry on
-  cap kill, LEAN_NUM_THREADS=4); (3) `etc/tcb-report.py --check --update` + the 22 collections
-  (`--collection etc/tcb-collections/X.txt --check --update`); (4) interfaces (none list these modules);
-  audit row (`notes/audit.md:525`), `notes/incomingof-crossworld.md` status, axiom-review README row,
-  STATUS; (5) gates under `flock /shared/tmp/etcd-grove-full-build.lock` with
-  `LAKE_PACKAGES=/shared/tmp/manifest-c6b.json PERENNIAL_CHECKOUT=/shared/perennial-c6b39d4f8`, GOWORK
-  unset; STOP at the land stop; (6) B0 read-only, STOP.
-- Pitfalls: as in History below; never run go in the main checkout; `srvRawStreamIs` is unfolded at three
-  places only (InvGrpcStream `srvRawStreamIsW_of_raw`, newStreamInterceptor :118 and :258).
+- Part A (897f63a6e5) REFUTED by 03's independent attack (persistent-auth fresh world builds
+  `incomingKept`): not linked; its Lean is reverted on the branch (the four files equal lean's). Record:
+  `notes/axiom-review/incomingof.md` ("The refutation"), Go `examples/axiomcx/incomingof-attack/`, audit row,
+  `notes/incomingof-crossworld.md`.
+- Now: B0, the read-only inventory of the consumers of the client's KV error outcomes
+  (`notes/incomingof-b0.md`), then STOP. Part B only after 03's go; its new texts must first be checked
+  against the persistent-auth fresh-world attack in a soundness note (they get an independent attack).
+- Pitfall (new): a persistent resource that is a wand from heap cells to a pure fact is buildable in a
+  fresh world with `Auth DFrac.discard σ`; "only an uninterpreted call delivers it" does not protect it.
 
 ## History
 

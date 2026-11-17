@@ -5,6 +5,12 @@ recommended (A-C, variant C-ii; Q1 A-C now, A-D later as its own Scope; Q2 `srvR
 `incomingOf_wrapper`, apply the axiom directly; Q5 A first; Q6 restate `v3rpc.incomingOf_cancellableContext`
 in place, delete `incomingOf_cancelCtx`); then B0 (read-only inventory), STOP; Part B only after
 etcd-grove-03's go. Final texts and the cross-world argument: `notes/axiom-review/incomingof.md`.
+
+**Part A REFUTED (2026-11-17, independent attack by etcd-grove-03): not linked, Lean reverted on this branch.**
+A fresh world owning a persistent authoritative heap builds `incomingKept` (`notes/axiom-review/incomingof.md`,
+"The refutation"). The user decided: B0 next, then STOP; Part B only after 03's go, its new texts checked
+against the persistent-auth fresh-world attack first; the per-heap redesign (`incomingIs`, `errDesc`
+analogue) gets its own Scope.
 Forms decided by the agent (reviewed at checkpoint): `metadata.incomingKept_apply` (A1) not added, and
 `incomingOf_cancelCtx_parent_unique`/`v3rpc.incomingOf_cancellableContext_field_unique` deleted: nothing
 would use them (the restated axiom takes `incomingKept` directly).

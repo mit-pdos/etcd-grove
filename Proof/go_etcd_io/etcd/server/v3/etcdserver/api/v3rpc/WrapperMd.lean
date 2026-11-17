@@ -7,21 +7,22 @@ When a client requires a leader, `newStreamInterceptor` (fork `673da07c8f`
 `Context()` is `newCancellableContext(ss.Context())`: a `*cancellableContext` `l` whose embedded
 `Context` field holds `c1 = WithCancel(ci)`, a `*cancelCtx` whose `Context` field holds grpc's run
 context `ci`. The handler's specification is grpc's, at `incomingOf ci`; the handler reads the
-wrapper's metadata (`AuthInfoFromCtx(stream.Context())`). What preserves it:
+wrapper's metadata (`AuthInfoFromCtx(stream.Context())`). The two links preserve it:
 
-* `v3rpc.incomingOf_cancellableContext` (here, trusted; restated by incomingof Part A, approved by
-  the user 2026-11-17 via etcd-grove-03): the wrapper over a `*cancelCtx` over `ci` has `ci`'s
-  metadata, given `metadata.incomingKept ci` (`Proof/google_golang_org/grpc/metadata/Incoming.lean`:
-  `ci`'s `*cancelCtx` children have its metadata, a conjunct of grpc's `srvRawStreamIs`, per run);
+* `metadata.incomingOf_cancelCtx` (`Proof/google_golang_org/grpc/metadata/Incoming.lean`,
+  trusted): a `*cancelCtx` has its parent's;
+* `v3rpc.incomingOf_cancellableContext` (here, trusted): a `*cancellableContext` has its `Context`
+  field's;
+* `v3rpc.incomingOf_wrapper` (proved): the composition;
 * `v3rpc.wp_WithCancel_cancelCtx` (proved, from Perennial's linked specs): Perennial's
   `wp_WithCancel_any` with the child's location and its `Context` field's persistent points-to,
   which `wp_WithCancel_any` hides.
 
-The axiom concludes a pure fact from persistent points-tos of fields of one Go type each (never from
-a `Value` WP, which a looping `Value` satisfies at every answer: the refuted T-b), guarded by
-`incomingKept ci`, which only grpc's uninterpreted delivery gives (so the bare points-tos, which a
-proof can build at any address in a fresh heap, conclude nothing: the old unguarded form fell to
-`crossWorld`, `notes/axiom-review/incomingof.md`).
+Both axioms conclude a pure fact from persistent points-tos of a field of one Go type, never from a
+`Value` WP; a context whose `Value` loops provides no such points-to and is related to nothing but
+the wrappers built over it (`Incoming.lean`, `incomingOf_cancelCtx`'s docstring;
+`v3rpc.incomingOf_cancellableContext_field_unique` here). The refuted form (T-b,
+`metadata.incomingOf_of_value`, from two `valueAt`s) is gone.
 -/
 module
 
@@ -60,32 +61,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- (TRUSTED; k8s 7f-4, B1's revision of T-b; restated by incomingof Part A, approved by the user
-2026-11-17 via etcd-grove-03) **etcd's stream wrapper over `WithCancel(ci)` has `ci`'s incoming
-metadata**: the `*cancellableContext` `l` whose `Context` field holds the `*cancelCtx` `c`
-(`v3rpc.ccField l ↦□ c`) whose `Context` field holds grpc's run context `ci` (`ctxField c ↦□ ci`),
-given that `ci`'s `*cancelCtx` children have its metadata (`metadata.incomingKept ci`), has `ci`'s.
-`type cancellableContext struct { context.Context; lock sync.RWMutex; cancel context.CancelFunc;
-cancelReason error }` (fork `673da07c8f` `server/etcdserver/api/v3rpc/interceptor.go:270-276`)
-overrides only `Err` (`:297`) and adds `Cancel` (`:288`); `Value` is promoted, `(*l).Context.Value(key)`,
-and the field is written only by `newCancellableContext`'s composite literal (`:280-283`).
-`metadata.FromIncomingContext(x)` (grpc v1.84.0 `metadata/metadata.go:268-282`) is a function of
-`x.Value(mdIncomingKey{})`, so it answers on `l` as on `c`, and on `c` as on `ci` (Go test
-`examples/axiomcx/incomingof` `TestWrapperInheritsIncoming`).
-
-Why guarded (`notes/axiom-review/incomingof.md`): the unguarded form (`ccField l ↦□ c ⊢
-incomingOf (ccCtx l) = incomingOf c`) had an antecedent a proof can build in a fresh heap at any
-address and content (`crossWorld`), so it made `incomingOf` constant on `*cancellableContext` values,
-which Go refutes (`TestIncomingNotConstant`'s shape). `incomingKept ci` is given only by grpc's
-uninterpreted `acceptRun` (`srvRawStreamIs`); no proof builds it. The links are structural (one
-cell each, two persistent points-tos of a cell agree), so a context whose `Value` loops is related to
-nothing, and two run contexts of one run are not related to each other. -/
-axiom v3rpc.incomingOf_cancellableContext (l c : Loc) (ci : GoInterfaceOk) :
-    (metadata.incomingKept ci ∗ _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok ci) ∗
-      v3rpc.ccField l ↦□ (GoInterface.ok (interface.mk
-        (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) : IProp GF) ⊢
-    (iprop(⌜metadata.incomingOf (GoInterface.ok (v3rpc.ccCtx l)) =
-      metadata.incomingOf (GoInterface.ok ci)⌝) : IProp GF)
+/-- (TRUSTED; k8s 7f-4, B1's revision of T-b) **etcd's `*cancellableContext` carries its embedded
+context's incoming metadata**: `l` whose `Context` field holds `c` (`v3rpc.ccField l ↦□ c`) has
+`c`'s incoming metadata. `type cancellableContext struct { context.Context; lock sync.RWMutex;
+cancel context.CancelFunc; cancelReason error }` (fork `673da07c8f`
+`server/etcdserver/api/v3rpc/interceptor.go:270-276`) overrides only `Err` (`:297`) and adds
+`Cancel` (`:288`); `Value` is promoted, `(*l).Context.Value(key)`, and the field is written only by
+`newCancellableContext`'s composite literal (`:280-283`). `metadata.FromIncomingContext(x)` (grpc
+v1.84.0 `metadata/metadata.go:268-282`) is a function of `x.Value(mdIncomingKey{})`, so it answers on
+`l` as on `c`. Like `metadata.incomingOf_cancelCtx`, it concludes from a points-to of one type's
+field, not from a `Value` WP: each `*cancellableContext` is related to its one embedded context
+(`v3rpc.incomingOf_cancellableContext_field_unique`), so a context whose `Value` loops equates
+nothing but the wrappers built over it. -/
+axiom v3rpc.incomingOf_cancellableContext (l : Loc) (c : GoInterfaceOk) :
+    (v3rpc.ccField l ↦□ (GoInterface.ok c) : IProp GF) ⊢ (iprop(⌜metadata.incomingOf
+      (GoInterface.ok (v3rpc.ccCtx l)) = metadata.incomingOf (GoInterface.ok c)⌝) : IProp GF)
 
 end defs
 
@@ -95,13 +85,36 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
+/-- **`v3rpc.incomingOf_cancellableContext` relates a wrapper to one embedded context only.** -/
+theorem v3rpc.incomingOf_cancellableContext_field_unique (l : Loc) (c1 c2 : GoInterfaceOk) :
+    (v3rpc.ccField l ↦□ (GoInterface.ok c1) ∗ v3rpc.ccField l ↦□ (GoInterface.ok c2) : IProp GF) ⊢
+      (iprop(⌜c1 = c2⌝) : IProp GF) := by
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  ipureintro
+  injection h
+
+/-- **etcd's stream wrapper over `WithCancel(ci)` has `ci`'s incoming metadata**: the
+`*cancellableContext` `l` whose field holds the `*cancelCtx` `c` whose field holds `ci`. -/
+theorem v3rpc.incomingOf_wrapper (l c : Loc) (ci : GoInterfaceOk) :
+    (v3rpc.ccField l ↦□
+        (GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) ∗
+      _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok ci) : IProp GF) ⊢
+      (iprop(⌜metadata.incomingOf (GoInterface.ok (v3rpc.ccCtx l)) =
+        metadata.incomingOf (GoInterface.ok ci)⌝) : IProp GF) := by
+  iintro ⟨#Hl, #Hc⟩
+  ihave %h1 := v3rpc.incomingOf_cancellableContext l _ $$ Hl
+  ihave %h2 := incomingOf_cancelCtx c ci $$ Hc
+  ipureintro
+  rw [h1, h2]
+
 variable [package_sem : _root_.Perennial.context.Assumptions]
 
 open _root_.Perennial.context in
 /-- **`WithCancel(parent)` for any context `parent`, with the child's location**: Perennial's
 `context.wp_WithCancel_any`, whose proof (`wp_WithCancel_any_of`) builds the child as the
 `*cancelCtx` `c` with `ctxField c ↦□ parent` and then hides both; restated here from the same
-linked specs with them in the post (for `v3rpc.incomingOf_cancellableContext`). -/
+linked specs with them in the post (for `v3rpc.incomingOf_wrapper`). -/
 theorem v3rpc.wp_WithCancel_cancelCtx (parent : GoInterfaceOk) (s : ContextDesc (IProp GF)) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.context ∗ isContext parent s }}
       (App (Val (@! _root_.Perennial.context.WithCancel)) (Val #(interface.ok parent)))

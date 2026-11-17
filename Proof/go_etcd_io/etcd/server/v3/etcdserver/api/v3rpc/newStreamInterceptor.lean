@@ -116,7 +116,7 @@ theorem v3rpc.wrapper_rawW
   iunfold v3rpc.ccHandle at Hcc'
   icases Hcc' with ⟨%c0, %γ0, %cancel, %e, %γp, %Hc1, -, #Hfield, -⟩
   iunfold srvRawStreamIs at Hss
-  icases Hss with ⟨%si', %Hsi, -, #HRecv, #HSend, -, -, #Hrc, #HlibC, #HspC, #HnetC, -⟩
+  icases Hss with ⟨%si', %Hsi, -, #HRecv, #HSend, -, -, #Hrc, #HlibC, #HspC, #HnetC⟩
   ihave #Hcause := v3rpc.ctxCauseOk_cancellable l c ci cd' $$ [Hcc Hcf]
   · iframe #
     iapply ctxCauseOk_of_runCtx; iexact Hrc
@@ -256,8 +256,7 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   wp_auto
   ihave #Hss' := Hss
   iunfold srvRawStreamIs at Hss'
-  icases Hss' with ⟨%si, %Hsi, %Hkey, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #HlibC, #HspC, #HnetC,
-    #HkeptMd⟩
+  icases Hss' with ⟨%si, %Hsi, %Hkey, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, #HlibC, #HspC, #HnetC⟩
   subst Hsi
   ihave #HssW := srvRawStreamIsW_of_raw _ γ _ _ Up Dn ci cd $$ Hss
   wp_auto
@@ -370,8 +369,10 @@ theorem v3rpc.newStreamInterceptor.wp_proof
         obtain rfl : c0 = c := by
           simp [interface.mk] at Hc1
           first | exact (intoVal_inj Hc1).symm | exact (go.intoVal_inj Hc1).symm
-        ihave %Heq := v3rpc.incomingOf_cancellableContext l _ ci $$ [HkeptMd Hcf Hfield]
-        · iframe #
+        ihave %Heq := v3rpc.incomingOf_wrapper l _ ci $$ [Hfield Hcf]
+        · isplitl []
+          · iexact Hfield
+          · iexact Hcf
         subst Hsi
         iunfold v3rpc.streamsMapIs at Hsm
         wp_apply sync.Mutex.wp_Lock $$ [$Hsm] as ⟨Hlocked, HR⟩

@@ -444,11 +444,7 @@ standard library, stored only by `httptrace.WithClientTrace`, by `net`'s tests, 
 `Dialer.DialContext` on a context it derives internally (go1.27.3 `net/dial.go:539`, never the
 caller's), which neither grpc's server, otelgrpc's stats handler nor etcd's interceptors call; the run context's
 chain holds only grpc's, otel's and the transport's links (`TestRunCtxChain`). (k8s 7f-4, Addendum
-T-k) `ci`'s causes are context errors (`v3rpc.ctxCauseOk ci`, a part of `grpcRunCtx ci`). (incomingof
-Part A, approved by the user 2026-11-17 via etcd-grove-03) A `*cancelCtx` whose `Context` field holds
-`ci` has `ci`'s incoming metadata (`metadata.incomingKept ci`): `FromIncomingContext` reads it through
-`Value(mdIncomingKey{})`, which a `*cancelCtx` answers as its parent does (`examples/axiomcx/incomingof`
-`TestWrapperInheritsIncoming`; `notes/axiom-review/incomingof.md`). -/
+T-k) `ci`'s causes are context errors (`v3rpc.ctxCauseOk ci`, a part of `grpcRunCtx ci`). -/
 def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) : IProp GF :=
@@ -473,7 +469,7 @@ def srvRawStreamIs (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF
     □ ({{ True }} (App (Val #(methods si.ty go!"Context" si.v)) (Val #()))
       {{ RET #(GoInterface.ok ci); True }}) ∗
     context.isContext ci cd ∗ grpcRunCtx ci ∗ context.libCtxOkC ci ∗ trace.spanCtxOkC ci ∗
-    http.netCtxOkC ci ∗ metadata.incomingKept ci)
+    http.netCtxOkC ci)
 
 instance srvRawStreamIs_persistent (st : GoInterface) (γ : StreamNames) (Req Rep : StreamMsg GF)
     (Up : Nat → Req.M → IProp GF) (Dn : Nat → Rep.M → IProp GF) (ci : GoInterfaceOk)
@@ -533,7 +529,7 @@ theorem srvRawStreamIsW_of_raw (st : GoInterface) (γ : StreamNames) (Req Rep : 
     srvRawStreamIs st γ Req Rep Up Dn ci cd ⊢ srvRawStreamIsW st γ Req Rep Up Dn ci cd := by
   iintro #H
   iunfold srvRawStreamIs at H
-  icases H with ⟨%si, %Hst, -, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, -, -, #Hnet, -⟩
+  icases H with ⟨%si, %Hst, -, #HRecv, #HSend, #HCtx, #Hctx, #Hrc, -, -, #Hnet⟩
   ihave #Hw := srvCtxWeak_of_isContext ci cd $$ Hctx
   ihave #Hl := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hs := spanCtxOk_of_runCtx ci $$ Hrc

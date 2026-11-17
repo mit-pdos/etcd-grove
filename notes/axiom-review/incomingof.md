@@ -1,5 +1,12 @@
 # incomingof Part A: the incoming-metadata links, restated per run (2026-11-17)
 
+**Verdict: REFUTED by the independent attack (etcd-grove-03, 2026-11-17). Not linked.** The user decided
+(2026-11-17): Part A is not linked; `incomingOf_cancelCtx` and the old `v3rpc.incomingOf_cancellableContext`
+stay on `lean`, marked refuted (`notes/audit.md`, `notes/incomingof-crossworld.md`); the per-heap redesign
+(`incomingIs` as an Iris relation, and its `errDesc` analogue) gets its own Scope. Part A's Lean (commit
+`897f63a6e5`) is reverted on branch `incomingof-scope` (the four files are `lean`'s again); the texts below
+are kept as the record of what was attacked. See "The refutation" at the end.
+
 Branch `incomingof-scope` (worktree `/shared/etcd-grove-incomingof`), the incomingof agent of
 etcd-grove-03. Approved by the user 2026-11-17 via etcd-grove-03 (`notes/incomingof-scope.md`, Part A,
 option A-C variant C-ii; Q2: the law in `srvRawStreamIs`; Q3: no `incomingOf_wrapper`; Q6: the v3rpc
@@ -195,6 +202,61 @@ restatement that no closed theorem's statement mentions.
 - Trusted text changed: `srvRawStreamIs` (one conjunct). No closed statement's text changes (no
   `Results`/`Adequacy` statement mentions `incomingOf` or `srvRawStreamIs`).
 
+## The refutation (independent attack, etcd-grove-03, 2026-11-17)
+
+**The gap: a fresh world may own a persistent authoritative heap.** Arguments 1 and 8 above assumed that
+building `incomingKept ci` needs a Lean proof of the pure equation for every `c`. It does not: allocate a
+fresh heap ghost name with a *persistent* authoritative element (`Auth (DFrac.discard) σ`) for a chosen
+finite heap `σ`. In that world every points-to is determined by `σ` (a fragment must agree with the
+discarded authority), so a wand `∀ c, ctxField c ↦□ v -∗ ⌜P c⌝` reduces to `P c` for the `c` whose cell
+`σ` sets to `v`, and holds vacuously for every other `c`. Choosing `σ` makes the wand's conclusion a fact
+that is decidable from `σ` itself. Then the `crossWorld` transfer applies as before
+(`bupd_soundness`/`pure_soundness`, the trust base being quantified over all `hG`):
+
+- World W0, `σ = {a ↦ *cancelCtx a}` (the cell at `ctxField a`, the first field, holds the interface
+  `*cancelCtx a`): `incomingKept (*cancelCtx a)` holds there (the only `c` with that cell content is `a`,
+  and the equation is reflexive), with the restated axiom at `l = a` it gives `incomingOf (ccCtx a) =
+  incomingOf (*cancelCtx a)` for every `a`.
+- World W1, `σ = {f a ↦ ccCtx a, g l ↦ *cancelCtx a}` (field refs `f`, `g` of the two structs): with the
+  axiom and W0's equation, `incomingOf` becomes constant on `*cancelCtx`/`*cancellableContext` values.
+
+This is conditional on the field references being injective in the needed way, which Perennial does not
+state for non-plain structs; argument 6's "offset 0" basis (`structFieldRef_offset`) is likewise proved only
+for plain layouts, so it does not save the texts either. Go refutes the consequence:
+`examples/axiomcx/incomingof-attack/` (`TestWrappersNotConstant`: two `*cancellableContext` wrappers in one
+run carry tokens `A` and `B`).
+
+**The lesson (for Part B and the redesign).** "Only an uninterpreted call delivers it" does not protect a
+persistent resource whose content is a wand from heap cells to a pure fact: a world with a persistent
+authoritative heap satisfies such a wand by fiat. A pure equation about an opaque function of a
+heap-dependent value must not be obtainable from any resource that a fresh world with a discarded
+authority can satisfy; the fix is a per-heap relation (`incomingIs x md` as an IProp), not a pure equation.
+
+Go tests of the attack, 2026-11-17, `GOTOOLCHAIN=go1.27.3 GOWORK=off go test -v ./...` in
+`examples/axiomcx/incomingof-attack/` (all pass):
+
+```
+    af2_test.go:24: field0 after WithCancel: context.stopCtx; child tok=E
+--- PASS: TestAfterFuncerRewrite (0.00s)
+    attack_test.go:58: l1=0x3b8922935780 tok=A ; l2=0x3b89229357c0 tok=B
+--- PASS: TestWrappersNotConstant (0.00s)
+    attack_test.go:81: wrapper *incomingofattack.cancellableContext tok=C ; wrapper-as-*context.cancelCtx tok=C ; userS-as-*context.cancelCtx tok=C (ci tok=C)
+--- PASS: TestPunning (0.00s)
+    attack_test.go:102: field0 incomingofattack.afCtx (parent incomingofattack.afCtx); child tok=D
+    attack_test.go:113: cause *context.cancelCtx D; timer *context.timerCtx D; without context.withoutCancelCtx D; value *context.valueCtx D
+--- PASS: TestAfterFuncer (0.00s)
+    attack_test.go:167: stream token T1: ci=*context.valueCtx(0x3b89228ce3f0) afterFuncer=false child=T1 wrapper=T1
+    attack_test.go:167: stream token T2: ci=*context.valueCtx(0x3b89228ce570) afterFuncer=false child=T2 wrapper=T2
+--- PASS: TestRealGrpcTwoStreams (0.00s)
+```
+
+`TestWrappersNotConstant` is the refutation; `TestPunning` (punned values answer as field 0, so W0's
+equation alone is physically true), `TestAfterFuncer`/`TestAfterFuncerRewrite` (the `stopCtx` rewrite keeps
+the metadata) and `TestRealGrpcTwoStreams` (a real grpc server's two concurrent run contexts are distinct
+`*valueCtx`s, not `afterFuncer`s, and their children keep their tokens) are the attack's side checks.
+
 ## Verdict
 
-Pending the independent attack (etcd-grove-03).
+**Refuted** (above). Not linked; Lean reverted on the branch. `incomingOf_cancelCtx` and
+`v3rpc.incomingOf_cancellableContext` stay on `lean` as before, marked refuted; the fix is the per-heap
+redesign's Scope.

@@ -9,8 +9,6 @@ the metadata is a function of the context value (`incomingOf`, opaque): `none` w
 none, else the values of each key. The auth store's `AuthInfoFromCtx` reads a request's token from
 it (`auth.ctxTokenOf`), and the client's side (`metadata.AppendToOutgoingContext`, grpc's delivery
 of a call's outgoing metadata as its handler's incoming metadata) is to be stated over it.
-`metadata.incomingKept ci` (grpc's run context's `*cancelCtx` children carry its metadata) is a
-per-run fact grpc's stream delivery gives (`srvRawStreamIs`).
 -/
 module
 
@@ -37,33 +35,43 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **`ci`'s `*cancelCtx` children carry its incoming metadata** (persistent; incomingof Part A,
-approved by the user 2026-11-17 via etcd-grove-03; replaces the axiom `incomingOf_cancelCtx`, refuted
-by `crossWorld`: `notes/axiom-review/incomingof.md`): every `*cancelCtx` `c` whose `Context` field
-holds `ci` (`ctxField c ↦□ ci`: `WithCancel(ci)`'s `propagateCancel` writes the field before
-returning, Go `src/context/context.go:477,514`; the `afterFuncer` branch that rewrites it to a
-`stopCtx{ci, ...}` leaves no persistent points-to at `ci`, and such a context answers `Value` as `ci`
-anyway) answers `metadata.FromIncomingContext` as `ci` does: `FromIncomingContext(x)` (grpc v1.84.0
-`metadata/metadata.go:268-282`) is a function of `x.Value(mdIncomingKey{})`, and
-`(*cancelCtx).Value(key)` for a key other than `&cancelCtxKey` is `value(c.Context, key)`, which
-answers as `ci.Value(key)` (Go test `examples/axiomcx/incomingof` `TestWrapperInheritsIncoming`).
+/-- (TRUSTED; k8s 7f-4, B1's revision of T-b) **A `*cancelCtx` carries its parent's incoming
+metadata**: a `*cancelCtx` `c` whose `Context` field holds `p` (`ctxField c ↦□ p`: written by
+`propagateCancel` before `WithCancel` returns the context, once for an `isContext` parent: its
+`#HParentCC` excludes the `afterFuncer` branch that rewrites the field to a `stopCtx{parent, ...}`,
+Go `src/context/context.go:477,514`, which would answer `Value` as `parent` anyway) has `p`'s
+incoming metadata.
+`metadata.FromIncomingContext(x)` (grpc v1.84.0 `metadata/metadata.go:268-282`) is a function of
+`x.Value(mdIncomingKey{})`, and `(*cancelCtx).Value(key)` for a key other than `&cancelCtxKey` is
+`value(c.Context, key)` (Go `src/context/context.go`), which answers as `p.Value(key)` does:
+`value` walks `*valueCtx`/`*cancelCtx`/`*timerCtx` links by their fields, as their own `Value`
+methods do, and calls `Value` on a context of any other type.
 
-Not an axiom and not provable: a definition, given only as a conjunct of grpc's trusted delivery of
-a stream's run context (`srvRawStreamIs`, in the post of the uninterpreted `acceptRun`), so it is a
-claim about the one run that reaches that post. Its conclusion is a pure fact about the opaque
-`incomingOf`, so no proof can build it (in a fresh heap or otherwise), and the old axiom's
-`crossWorld` refutation (which built its antecedent, a bare points-to, at any address and content)
-has no antecedent to build. Two run contexts `ci1`, `ci2` of one run are related by nothing: each
-`*cancelCtx` has one `Context` cell, and two persistent points-tos of it agree. -/
-def metadata.incomingKept (ci : GoInterfaceOk) : IProp GF :=
-  iprop(□ ∀ c : Loc, _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok ci) -∗
-    ⌜metadata.incomingOf (GoInterface.ok (interface.mk
-        (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) =
-      metadata.incomingOf (GoInterface.ok ci)⌝)
+Why it cannot equate unrelated contexts (the review's `loopCtx`, which refuted T-b): the premise is
+a persistent points-to of a `*cancelCtx`'s field, not a `Value` WP, and a points-to determines its
+value (`incomingOf_cancelCtx_parent_unique`). So the equations this axiom gives relate each
+`*cancelCtx` to its one parent only: two contexts are equated only when they lie on one chain of
+`*cancelCtx` parent links up to the same root context. A context `L` whose `Value` loops is a root
+(its type is not `*cancelCtx`), and is equated only with `*cancelCtx`s built over it, whose `Value`
+then loops too (so `FromIncomingContext` on them never returns, as on `L`); grpc's run context and
+`Background()` are distinct roots, and nothing equates them. The equations are claims about one
+execution's heap (a location's persistent field value is fixed within an execution), the same reading
+as `context.WithValue.spec`'s and `Tracer.Start.spec`'s `incomingOf` posts on freshly allocated
+contexts: no new class of assumption. -/
+axiom incomingOf_cancelCtx (c : Loc) (p : GoInterfaceOk) :
+    _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok p) ⊢ (iprop(⌜metadata.incomingOf
+      (GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) =
+      metadata.incomingOf (GoInterface.ok p)⌝) : IProp GF)
 
-instance metadata.incomingKept_persistent (ci : GoInterfaceOk) :
-    Persistent (metadata.incomingKept (GF := GF) ci) := by
-  unfold metadata.incomingKept; infer_instance
+/-- **`incomingOf_cancelCtx` relates a `*cancelCtx` to one parent only**: two persistent points-tos
+of its `Context` field agree. -/
+theorem incomingOf_cancelCtx_parent_unique (c : Loc) (p1 p2 : GoInterfaceOk) :
+    _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok p1) ∗
+      _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok p2) ⊢ (iprop(⌜p1 = p2⌝) : IProp GF) := by
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  ipureintro
+  injection h
 
 end link
 end EtcdGrove
