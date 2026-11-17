@@ -1,6 +1,6 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A1.2b and A1.3 done; A1.4 next, after the coordinator's answer on the `cw` gap)
+## START HERE (2026-11-17, A1.2b and A1.3 done; A1.4 next; the `cw` fix accepted by etcd-grove-03, questions.md)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 9702d5707e merged. Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere. A1 Scope `notes/auth-schema-srv-a1-scope.md`; decisions
