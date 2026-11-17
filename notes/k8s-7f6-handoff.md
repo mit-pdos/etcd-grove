@@ -27,9 +27,10 @@
   specs/proofs, `newObj.spec` post `objAtD x dzero []` (Main*'s `%o %ho` uses break until step 8),
   `WContract.lean`: `watchContractOk_driver` (`isPkgInit driver ⊢ watchContractOk driverSpec driverW
   codecI`) and `newItemOk_driver` (`newItemOk driverSpec (functions newObj [])`).
-- **Next, in order:** 7(iii)-(iv): per member `cluster3.memberWatch` from `clusterUp` + `srvOnce`
-  (`one_read_au` + `etcdstart.srvOnce_of_plan`), `memberWatch_facts`, `watchEnvL_conn`,
-  `isNewClient_watcher_of` ⇒ `clientWatchOk cl γk`, then New's wand ⇒ `storeWatchOk`; step 8
+- **Done, built (step 7(iii)-(iv)):** `WatchEnvN.lean`: `clientWatchOk_of_regs` (clusterUp's
+  registrations + `isNewClient` + `kvReadAu γk OneChange` (`one_read_au`) ⇒ `k8s.clientWatchOk cl γk`;
+  for `k` bridges and Main's one address), via `memberWatch_of_reg`, `streams_of_regs`.
+- **Next, in order:** New's wand ⇒ `storeWatchOk` (with `watchContractOk_driver`, `newItemOk_driver`); step 8
   `newStore`; step 9 `Main*` (single member: `kvWatch_served` at `clientAddr`). **E-2 hard stop**
   before linking (Link/MainLinked/Adequacy/Results): report old → new closed texts.
 - **Pitfalls:** build slots are often both busy (a full c6b build retries): queue builds in the
