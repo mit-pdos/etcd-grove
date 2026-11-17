@@ -3,12 +3,32 @@
 ## START HERE
 
 Branch `apierrors-fix` (off `lean` 5fb716b5eb), worktree `/shared/etcd-grove-ctxdescs`, head: see
-`git log`. Plan approved by the user, 2026-11-17, via etcd-grove-03 (`notes/soundness-1117-handoff.md`
-item (2); round 2 decided by etcd-grove-03, `notes/axiom-review/apierrors-fix.md`). Stopped here for
-context size; nothing past the two spec texts is implemented, nothing built (the branch does not build:
-the callers of the two axioms are not updated).
+`git log`. Steps 1-6 below implemented (2026-11-17, second agent); targeted build of the 726
+importers green; next: full build, `etc/tcb-report.py --check`, gates, then the LAND STOP (report to
+etcd-grove-03; never land).
 
-Done:
+Done in the second pass (forms decided by the agent, reviewed at the land stop):
+- `apiErrOk`'s `*StatusError` branch holds `∃ cs, statusDetailsAt st cs` (`View.lean`;
+  `statusDetailsAt_persistent`, `statusDetailsAt_nil`); HasStatusCause header (fix (a)).
+- `New{AlreadyExists,NotFound,BadRequest,ResourceExpired}` posts + `statusDetailsAt st []`;
+  `NewTimeoutError` post + `⌜dv.Causes' = slice.nil⌝` instead (its details stay owned: the
+  caller `NewTooLargeResourceVersionError` writes their causes); callers persist and use
+  `statusDetailsAt_nil`.
+- apimodel: `errIs` + `∃ cs, statusDetailsAt st cs`, `errIs_apiErrOk`; `apimodelInit`'s
+  `errStorage`/`errRead` clauses hold a non-nil error with `fmt.stringMethodSpec .. "Error"` and no
+  `Format` (the general form, not `*errorString`: weaker); `Server.{update,remove}` use
+  `wp_New_errorString_cell` (callee `errors.New` dropped, `etc/link-lean-first-apimodel.txt`),
+  `errorString_argOk` (Defs).
+- `transformErrorToEvent` gives `NewInternalError`'s pre from `kErrOk`.
+- The four typed-nil specs in place: pre `⌜err = nil⌝ ∨ apiErrOk err` (DEVIATION from the approved
+  `apiErrOk err`: `Reflector.list` asks `isExpiredError` of the pager's error, `nil` on success;
+  Go answers false on nil, `examples/axiomcx/apierrorstypednil` `TestNilAndViews`), per-view posts
+  as approved. `isExpiredError`/`isWatchErrorRetriable` gain the same pre; `pageRes`'s error branch
+  `∗ apiErrOk err` (`pageRes_errOk`); `watchRet_cases` keeps `errIs`; `handleAnyWatch`/
+  `handleWatch` posts `⌜err = nil⌝ ∨ apiErrOk err`.
+
+First pass:
+
 - 6116eaf7bf, 32a468ca14: `Spec/k8s_io/apimachinery/pkg/api/errors/NewConflict.lean` (pre `fmt.argOk
   err`; post + `statusDetailsAt st []`), `NewInternalError.lean` (pre `∃ ei, err = ok ei ∗
   fmt.stringMethodSpec ei "Error" ∗ ⌜no Format⌝`; post + `∃ c, statusDetailsAt st [c] ∧ c.Type' =
@@ -16,7 +36,7 @@ Done:
   `notes/axiom-review/apierrors-fix.md` (+ README row), bug record
   `notes/apierrors-new-precondition.md`, audit rows. No STATUS entry yet (add at the land stop).
 
-Next, in order (each a form or approved; stop for anything else):
+Plan of the first pass (now done through 6), in order:
 1. Five proved `New*` specs (`NewAlreadyExists`, `NewNotFound`, `NewTimeoutError`: Details set, no
    causes; `NewBadRequest`, `NewResourceExpired`: Details nil): posts + `statusDetailsAt st []`
    (stronger post of a proved spec). Proofs (`Proof/k8s_io/apimachinery/pkg/api/errors/New*.lean`,

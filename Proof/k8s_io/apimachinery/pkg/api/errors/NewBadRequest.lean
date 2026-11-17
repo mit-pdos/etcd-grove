@@ -31,6 +31,8 @@ theorem NewBadRequest.wp_proof : NewBadRequest.spec (GF := GF) (hG := hG) := by
   iapply HΦ
   iexists _
   iframe
+  isplitr
+  · unfold statusDetailsAt; ileft; ipureintro; exact ⟨rfl, rfl⟩
   ipureintro
   exact ⟨rfl, rfl, rfl⟩
 
