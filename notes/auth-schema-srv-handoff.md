@@ -1,6 +1,26 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A6: STOPPED at the pre-claim readers gap, for etcd-grove-03)
+## START HERE (2026-11-17, A6.2: claim-law Scope written, STOPPED for its independent review)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A6, A7); decisions `questions.md` (untracked; "A6.2 decided").
+- Done: A1-A5, A6.1a, the Held index, A6.1b, the lent family (History); (b) (8acf5658a9, ACCEPTED: `authSchemaSrv`'s
+  tickets `authRdN` → `authRdN - 1`, for the A7 report; `authSchemaSnap` unchanged).
+- **A6.2 Scope (this commit): `notes/auth-schema-srv-a6-claim-scope.md`**: a lock-free claim law `rbOwnIn_claim`
+  (`isBackend ∗ rbOwnIn ={⊤}=∗ rbOwnInR ∗ rbRd ½`) over a new sealed invariant `rbClaimInv` in `isBackend` holding
+  per tracked bucket shares of `rbk` (½), `rbr` (¼), `rbc` (whole, with its authority) and the link `f = false → v =
+  bktOf c`; `rbPartF` (so `rbPart`/`rbOwnIn`/`rbOwn` and the lock's `rbSide`) scaled ½ → ¼ uniformly (Snapshot's
+  observation hands the lock's share as an `rbOwn`); `rbRd q` = element `q/2`. 1000-2100 lines, backend only.
+- **STOP**: the Scope goes to an independent review before any Lean (decided by etcd-grove-03).
+- Next, after the review: C1-C5 of the Scope §5 (probe `wb_core`/`unsafeCommit` first), then A6 as planned
+  (realization invariant, write side, auth-level read contract), then A7 HARD STOP.
+- Pitfalls: as in History "A6.1b STOP" (0)-(10).
+
+## History
+
+### A6.2 STOP (2026-11-17, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -18,7 +38,6 @@
   the auth-level read contract; then A7 HARD STOP.
 - Pitfalls: as in History "A6.1b STOP" (0)-(10).
 
-## History
 
 ### A6.1b STOP (2026-11-17, superseded)
 
