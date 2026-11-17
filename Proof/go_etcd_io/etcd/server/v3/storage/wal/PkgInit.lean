@@ -1,0 +1,151 @@
+/-
+The package fact of `server/v3/storage/wal` (the part's translation, with bodies): what the WAL's
+specs read of its package variables, read-only for good.
+
+* `crcTable = crc32.MakeTable(crc32.Castagnoli)` (decoder.go, wal.go:69): the Castagnoli table
+  (`walCrcTable`, which the encoder's and decoder's specs take);
+* `walFsyncSec`, `walWriteSec`, `walWriteBytes` (metrics.go, untranslated `prometheus` constructors):
+  metrics whose `Observe`/`Add` return (`wal.metricsInit`, `Metrics.lean`);
+* `SegmentSizeBytes` (wal.go, `64 * 1000 * 1000`, a `var` only tests assign): `64000000`;
+* the error variables (`wal.errVar`: each holds an error whose `Error()` returns, `errOk`, and on which
+  `errors.Is` returns, `errIsTerm`): those of
+  `errors.New` calls (`errBadWALName`, `ErrMetadataConflict`, `ErrFileNotFound`, `ErrSnapshotMismatch`,
+  `ErrSnapshotNotFound`, `ErrSliceOutOfRange`, `ErrDecoderNotFound`) and `ErrCRCMismatch`
+  (`walpb.ErrCRCMismatch`'s value, `walpbInit`). (Distinctness of the errors is not stated: no spec
+  compares them yet.)
+* `openWALFilesFn = openWALFiles` (wal.go:57, a `var` only tests assign): the function
+  `openWALFiles` (`ValidSnapshotEntries` calls through it).
+
+Proofs read a part through its projection (`wal.walInit_<part>`), not by position. Its `wp_initialize'`: `Init.lean` (`etc/gen-init.py`, `LFS_PKGS` and `LFS_SPECIAL`).
+WAL package init, 2026-11-13.
+-/
+module
+
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DecDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Metrics
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.DepsPkgInit
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.PkgInit
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.PkgInit
+public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.PkgInit
+
+@[expose] public section
+
+set_option linter.iris.dupNamespace false
+
+noncomputable section
+
+namespace Perennial
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+
+section init
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+
+namespace EtcdGrove
+
+/-- The error variable `X` holds an error whose `Error()` returns and on which `errors.Is` returns for every
+pointer target (`errIsTerm`, since 2026-11-14, `wal-vsnap4`: `ValidSnapshotEntries`' retry test on
+`ErrFileNotFound` and `ErrCRCMismatch`), read-only. -/
+def wal.errVar (X : GoString) : IProp GF :=
+  iprop(∃ e : GoInterfaceOk, globalAddr X ↦□ GoInterface.ok e ∗ errOk e ∗ errIsTerm (GoInterface.ok e))
+
+instance wal.errVar_persistent (X : GoString) : Persistent (wal.errVar (GF := GF) X) := by
+  unfold wal.errVar; infer_instance
+
+/-- `wal`'s fact: the CRC table, the metrics, the segment size and the error variables, read-only. -/
+abbrev wal.walInit : IProp GF :=
+  iprop(WalFs.walCrcTable ∗ wal.metricsInit ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.errBadWALName ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrMetadataConflict ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrFileNotFound ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrCRCMismatch ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotMismatch ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotNotFound ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSliceOutOfRange ∗
+    wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound ∗
+    globalAddr go_etcd_io.etcd.server.v3.storage.wal.openWALFilesFn ↦□
+      functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [])
+
+/-! The fact's parts, by name (proofs use these, not `walInit`'s positions, so that a new
+conjunct breaks none of them). -/
+
+theorem wal.walInit_crcTable : wal.walInit (GF := GF) ⊢ WalFs.walCrcTable := by
+  unfold wal.walInit
+  iintro ⟨#H, -⟩
+  iexact H
+
+theorem wal.walInit_metrics : wal.walInit (GF := GF) ⊢ wal.metricsInit := by
+  unfold wal.walInit
+  iintro ⟨-, #H, -⟩
+  iexact H
+
+theorem wal.walInit_segSize : wal.walInit (GF := GF) ⊢ globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) := by
+  unfold wal.walInit
+  iintro ⟨-, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_errBadWALName : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.errBadWALName := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrMetadataConflict : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrMetadataConflict := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrFileNotFound : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrFileNotFound := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrCRCMismatch : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrCRCMismatch := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSnapshotMismatch : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotMismatch := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSnapshotNotFound : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSnapshotNotFound := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrSliceOutOfRange : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrSliceOutOfRange := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_ErrDecoderNotFound : wal.walInit (GF := GF) ⊢ wal.errVar go_etcd_io.etcd.server.v3.storage.wal.ErrDecoderNotFound := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, #H, -⟩
+  iexact H
+
+theorem wal.walInit_openWALFilesFn : wal.walInit (GF := GF) ⊢ globalAddr go_etcd_io.etcd.server.v3.storage.wal.openWALFilesFn ↦□
+      functions go_etcd_io.etcd.server.v3.storage.wal.openWALFiles [] := by
+  unfold wal.walInit
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, -, #H⟩
+  iexact H
+
+end EtcdGrove
+
+namespace go_etcd_io.etcd.server.v3.storage.wal
+
+instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
+  define_is_pkg_init EtcdGrove.wal.walInit
+instance get_isPkgInit_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal :=
+  build_get_is_pkg_init_wf
+
+end go_etcd_io.etcd.server.v3.storage.wal
+
+end init
+
+end Perennial

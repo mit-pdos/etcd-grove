@@ -39,7 +39,7 @@ on it). `m`'s raft message is only read (marshalled), `m`'s fields only read (`s
 reader read by this goroutine alone (`readerStreams`). The receiving side is the snapshot
 handler's (`newSnapshotHandler`'s axiom): the bytes saved are a complete stream of the sender's
 reader, `D` with the bundle's `□ γn.N.img i D`. The read lock is taken without one of the
-lock's reader tokens (`trTok`): at most `2^30 - 1` goroutines hold it at once, physically (each
+lock's reader tokens (`transportTok`): at most `2^30 - 1` goroutines hold it at once, physically (each
 has its own stack; as `netProcSlots`). -/
 abbrev rafthttp.Transport.SendSnapshot.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (m ml : Loc) (rc : GoInterface),

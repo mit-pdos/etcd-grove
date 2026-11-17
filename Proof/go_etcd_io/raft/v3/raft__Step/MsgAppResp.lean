@@ -44,7 +44,7 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM)
+    (ents : List EntryM) (R : StepG GF)
     (Hlrd : s.role = .leader → RdOk c.voters s.rd ∧ s.term ≠ W64 0)
     (Hack : s.role = .leader → m.Term' = s.term →
       (m.Reject' = false → uint.Z m.Index' ≤ uint.Z (logLast s.logst)) ∧
@@ -52,7 +52,10 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
       (m.Reject' = true → s.gh.ns = true →
         2 ≤ uint.Z m.Index' ∧ 1 ≤ uint.Z m.RejectHint' ∧ uint.Z m.RejectHint' ≤ uint.Z m.Index' ∧
         (∀ t0, plogTermAt s.logst.prev (s.logst.sents ++ s.logst.uents) (W64 1) = some t0 →
-          uint.Z t0 ≤ 1))) :
+          uint.Z t0 ≤ 1)))
+    -- (2026-11-12, trace-check implementation step 3) no transferee at a traced node
+    -- (`raft.Step.spec`'s premise, `stepLeader.spec`'s)
+    (Hltr : m.Type' = MsgAppResp → s.gh.tr ≠ none → s.lt = W64 0) :
     m.Type' = MsgAppResp →
     m.To' = id →
     m.Term' ≠ W64 0 →
@@ -61,38 +64,56 @@ theorem wp_Step_MsgAppResp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     NStateWf s →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
+        -- (Q8 stage 1 slice 13) the end state on the path (`StepEnd`, `LemmasStepGates.lean`)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
         "%Hwf'" ∷ ⌜NStateWf s'⌝ ∗
         "%Hrefines" ∷ ⌜∃ recv, (∀ m' ∈ recv, m' = absMsg .appResp m ents) ∧
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hresp" ∷ ⌜RespStep m s s'⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (2026-11-11, slice 30c, plan Q30 (a)) guarded: on an accepted response of a leader's term
+        -- that reaches `maybeCommit` the step ends past its gate
+        "HG" ∷ stepOutG c m s R s'.outbox }} := by
   intro Hty Hto Hterm Hfnz Hrej Hwf
-  wp_start_folded as ⟨Hphys, Hm⟩
+  wp_start_folded as ⟨Hphys, Hm, HG, Hgates⟩
   by_cases Hgt : uint.Z s.term < uint.Z m.Term'
-  · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
-      $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+  · wp_apply (wp_Step_Resp_gt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl ⟨Hty, rfl⟩) Hto Hterm Hgt Hwf)
+      $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+    try phys_out
+    ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+      (fun h => absurd h.2.2.1 (fun he => by rw [he] at Hgt; omega)) $$ HG
     iapply HΦ $$ %err %s'
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
-    exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
+    exact ⟨Hend, Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne) (Int.le_of_lt Hgt), Hfr,
       Htm⟩
   · by_cases Hlt : uint.Z m.Term' < uint.Z s.term
-    · iapply wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents .appResp (.inl Hty) Hterm Hlt Hwf
-        $$ [$Hpkg $Hphys $Hm] HΦ
-    · have Hteq : m.Term' = s.term := by word
-      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents Hlrd Hack Hty Hto Hterm Hteq Hfnz Hrej
-        Hwf)
-        $$ [$Hpkg $Hphys $Hm] as %err %s' ⟨Hphys, %Hwf', %Href, %Herr, %Hfr, %Htm⟩
+    · wp_apply (wp_Step_Resp_lt _P _Q c r id s ml m sn ctx rs ents R .appResp (.inl Hty) Hterm Hlt Hwf)
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hresp, %Hfr, %Htm, HG⟩
+      try phys_out
+      ihave HG := stepOutG_of_not c m s R (CandHooked.of_ne (by rw [Hty]; w32_ne))
+        (fun h => absurd h.2.2.1 (fun he => by rw [he] at Hlt; omega)) $$ HG
       iapply HΦ $$ %err %s'
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
-      exact ⟨Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne)
+      exact ⟨Hend, Hwf', Href, Herr, Hresp, Hfr, Htm⟩
+    · have Hteq : m.Term' = s.term := by word
+      wp_apply (wp_Step_MsgAppResp_eq _P _Q c r id s ml m sn ctx rs ents R Hlrd Hack Hltr Hty Hto Hterm Hteq Hfnz Hrej
+        Hwf)
+        $$ [$Hpkg $Hphys $Hm $HG $Hgates] as %err %s' ⟨Hphys, %Hend, %Hwf', %Href, %Herr, %Hfr, %Htm, HG⟩
+      try phys_out
+      iapply HΦ $$ %err %s'
+      iframe Hphys HG
+      ipureintro
+      exact ⟨Hend, Hwf', Href, Herr, RespStep.of_fresh (by rw [Hty]; w32_ne)
         (Int.le_of_eq (congrArg (fun x : w64 => uint.Z x) Hteq.symm)), Hfr, Htm⟩
 
 end StepProof

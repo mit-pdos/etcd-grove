@@ -80,7 +80,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
       -- (2026-10-31, `notes/axiom-review/savesnap.md`) the WAL read (`NewStorage`'s contract);
       -- (restart S3 item 5: until then also the configuration and the peers, `rnStartCfg`, now
       -- `rnBootPre`'s at `fresh`)
-      "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ storage.walReady wal⌝ ∗
+      -- (2026-11-09, Q8 stage 0) and the cluster untraced (`cluster_alloc`'s): `StartNode`'s premise
+      "%Hraft" ∷ ⌜0 < sint.Z bv.heartbeat' ∧ storage.walReady wal ∧ Cluster.trace γr.cl = none⌝ ∗
       -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode`'s, which it logs through)
       "#Hlgz" ∷ zapLoggerOk bv.lg' ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗

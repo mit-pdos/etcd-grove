@@ -70,7 +70,7 @@ term past `0` (`SendOk`'s `Hstz`, or the caller's `Hmterm`). (Case (c), the tran
 hand.) -/
 local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : tactic => `(tactic| (
   ipureintro
-  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_⟩
+  refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩, ?_, ?_, ?_⟩
   · simp only [Hty1, $args,*]; simp [sentShapeTypes, sentTypes, MsgReadIndex, MsgProp, MsgVote,
       MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgApp, MsgAppResp, MsgHeartbeat, MsgHeartbeatResp,
       MsgReadIndexResp, MsgSnap, MsgTransferLeader, MsgTimeoutNow]
@@ -103,7 +103,16 @@ local macro "sent_tac " "[" args:Lean.Parser.Tactic.simpLemma,* "]" ft:term : ta
     try first
       | rfl
       | exact Hsrc (by rw [← Hty1, h]; tyne) (by rw [← Hty1, h]; tyne)
-  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)))
+  · intro h; simp only [Hty1, $args,*] at h; exact absurd h (by tyd)
+  -- (2026-11-12, implementation step 3) at a traced node of a described type (the premise)
+  · intro htr
+    obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
+    first
+    | decide
+    | (intro h; cases h)
+    | (intro h; simp [mtypeOf] at h; done)
+    | (simp [Hty1, htyx]; done)
+    | (simp only [Hty1, $args,*] at htyx ⊢; simp [htyx]; done)))
 
 set_option hygiene false in
 /-- Rewrite a getter's result by the case's facts `args`, so that `wp_auto` decides the tests. -/
@@ -199,9 +208,11 @@ local elab "getters" "[" args:Lean.Parser.Tactic.simpLemma,* "]" : tactic => do
 
 set_option hygiene false in
 /-- The common tail once the routing decision has been made: take the queue out of
-`ownRaftPhys`, build the one-element slice literal, append it, store the queue back,
-trace, and return. What is left is the queue accessor's wand `Hback`, which wants the
-queued message (`Hm`) and its contribution to the abstract outbox (`msgAbs`). -/
+`ownRaftPhys`, build the one-element slice literal, append it, store the queue back. What is left
+is the queue accessor's wand `Hback`, which wants the queued message (`Hm`) and its contribution to
+the abstract outbox (`msgAbs`), and gives raft's state with the message recorded as just queued
+(`NGhost.lq`); then the hook (`send_hook`). (Until slice 5 the hook ran here, untraced, before the
+wand.) -/
 local macro "send_tail " acc:term : tactic => `(tactic| (
   icases ($acc) $$ Hphys with ⟨%sl, %ls, Hf, Hq, Hq_cap, Hback⟩
   try wp_auto
@@ -212,9 +223,144 @@ local macro "send_tail " acc:term : tactic => `(tactic| (
   try wp_auto
   wp_apply wp_slice_append $$ [Hq Hq_cap m_sl] as %q' ⟨Hq, Hq_cap, -⟩
   · iframe
+  try wp_auto))
+
+/-- (Q8 stage 1, slice 5) A traced message's event field at the stamped message is, as `MsgEvOf`
+reads it, the queued abstraction's (`absMsgFrom`, whose context `MsgEvOf` does not read). -/
+private theorem msgEvOf_absMsg_from (t : MsgType) (m' m : MessageM) (src T : w64)
+    (ents : List EntryM) (ctx : List w8) (tm : TraceMsg)
+    (h1 : m'.From' = src) (h2 : m'.Term' = T) (h3 : m'.To' = m.To') (h4 : m'.Reject' = m.Reject')
+    (h5 : m'.Index' = m.Index') (h6 : m'.LogTerm' = m.LogTerm') (h7 : m'.Commit' = m.Commit')
+    (h8 : m'.RejectHint' = m.RejectHint') :
+    MsgEvOf (absMsg t m' ents) tm → MsgEvOf (absMsgFrom t m src T ents ctx) tm := by
+  unfold MsgEvOf absMsg absMsgFrom
+  simp only [Msg.mkV]
+  rw [h1, h2, h3, h4, h5, h6, h7, h8]
+  exact id
+
+/-- (Q8 stage 1, slice 5) **`send`'s hook, the message queued and recorded** (`NGhost.lq`): the
+caller's gate run, raft's state lent to `traceSendMessage` with the message (`msgLend_lq`) under
+`trOwn` (traced only), the record forgotten (`ownRaftPhysC_lq_pop`). The events the hook logs at
+the queued message are within the gate's (`sendGate_le`). -/
+private theorem send_hookW (wp_traceSendMessage : traceSendMessage.spec (GF := GF) (hG := hG))
+    (c : CfgM) (r : Loc) (id : w64) (s : NState) (o : List Msg) (ml : Loc) (st : MsgSt)
+    (oE : Option (TraceEv → Prop)) (Q : IProp GF) (ty0 : w32) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+        "Hphys" ∷ ownRaftPhysCV c c.voters r id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } } ∗
+        "Hgate" ∷ HookGateOpt s.gh.tr r oE Q ∗
+        "%Hty0" ∷ ⌜st.msg.Type' = ty0⌝ ∗
+        "%Hsn" ∷ ⌜s.gh.tr ≠ none → mtypeOf ty0 ≠ some .snap⌝ ∗
+        "%HE" ∷ ⌜(oE = none ↔ sendGate id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } } c st = none) ∧ ∀ E E', oE = some E → sendGate id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } } c st = some E' → ∀ e, E' e → E e⌝ }}
+      (App (App (Val #(functions traceSendMessage [])) (Val #r)) (Val #ml))
+    {{ RET #(); ownRaftPhysCV c c.voters r id { s with outbox := o } ∗ Q }} := by
+  iintro %Φ ⟨#Hpkg, Hphys, Hgate, %Hty0, %Hsn, %HE⟩ HΦ
+  iunfold HookGateOpt at Hgate
+  imod Hgate with ⟨%tl, #Htl, %Hok, HF⟩
+  icases trOwn_split s.gh.tr _ $$ Hphys with ⟨Hown, Hownb⟩
+  have Hsn' : s.gh.tr ≠ none → mtypeOf st.msg.Type' ≠ some .snap := by rw [Hty0]; exact Hsn
+  ihave Hown := trOwn_pure s.gh.tr _ _ Hsn' $$ Hown
+  iapply wp_traceSendMessage r ml tl s.gh.tr
+      (sendGate id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } } c st) Q
+      (ownRaftPhysCV c c.voters r id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } })
+      $$ [Hpkg Hown HF]
+  · iframe Hpkg
+    isplitr
+    · iexact Htl
+    isplitr
+    · ipureintro; exact Hok
+    isplitl [Hown]
+    · iapply trOwn_wand
+      iframe Hown
+      iintro ⟨HP, %Hφ⟩
+      iexists c, id, { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } }
+      iexists ownRaftPhysCV c c.voters r id { s with outbox := o, gh := { s.gh with lq := (ml, st) :: s.gh.lq } }
+      -- (`lean` merge, stage 2) half of the queued message, which the queue holds at a content
+      iexists ⟨dqh, DFrac.discard, false, st⟩
+      iframe HP
+      isplitr
+      · iapply raftLend_self
+      isplitr
+      · iapply msgLend_lq c r id _ ml st (List.mem_cons_self ..)
+      isplitr
+      · ipureintro; exact ⟨Hφ, rfl⟩
+      iintro HP; iexact HP
+    iapply traceFireOpt_mono_E s.gh.tr tl oE _ Q HE.1 HE.2 $$ HF
+  inext
+  iintro ⟨Hown, HQ⟩
+  ihave Hphys := Hownb $$ Hown
+  ihave Hphys := ownRaftPhysC_lq_pop c r id _ $$ Hphys
+  iapply HΦ
+  iframe HQ
+  iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
+  rfl
+
+set_option hygiene false in
+/-- The queued message's type is `m`'s, whatever the getters' rewriting left of it. -/
+local macro "send_ty" : tactic => `(tactic| first
+  | rfl
+  | (subst Hm1; rfl)
+  | (simp only [Hty1]; done)
+  | exact Hvt
+  | exact Hvt.symm
+  | (rw [Hvt]; rfl)
+  | (dsimp only; rw [Hty1, Hvt]; rfl)
+  | (dsimp only; rw [Hty1, Hvt])
+  | (dsimp only; rw [Hvt]; rfl)
+  | exact HSnap
+  | exact HSnap.symm
+  | (rw [HSnap]; rfl)
+  | (dsimp only; rw [Hty1, HSnap]; rfl)
+  | (dsimp only; rw [Hty1, HSnap])
+  | (dsimp only; rw [HSnap]; rfl)
+  | exact HAR
+  | exact HAR.symm
+  | (rw [HAR]; rfl)
+  | (dsimp only; rw [Hty1, HAR]; rfl)
+  | (dsimp only; rw [Hty1, HAR])
+  | (dsimp only; rw [HAR]; rfl)
+  | exact HProp
+  | exact HProp.symm
+  | (rw [HProp]; rfl)
+  | (dsimp only; rw [Hty1, HProp]; rfl)
+  | (dsimp only; rw [Hty1, HProp])
+  | (dsimp only; rw [HProp]; rfl)
+  | exact HRI
+  | exact HRI.symm
+  | (rw [HRI]; rfl)
+  | (dsimp only; rw [Hty1, HRI]; rfl)
+  | (dsimp only; rw [Hty1, HRI])
+  | (dsimp only; rw [HRI]; rfl))
+
+set_option hygiene false in
+/-- A stamped message's fields, as `msgEvOf_absMsg_from` wants them. -/
+local macro "stamp_tac" : tactic => `(tactic| first
+  | rfl
+  | (subst Hm1; rfl)
+  | (subst Hm1; simp only; done))
+
+set_option hygiene false in
+/-- (Q8 stage 1, slice 5) The hook, once `Hback` has closed raft's state with the message recorded
+(`send_hookW`), then the return. `hout` proves that a traced message is, as the event reads it,
+`out`'s (`sendGate_le`). -/
+local macro "send_hook " hout:term:max : tactic => `(tactic| (
+  wp_apply send_hookW wp_traceSendMessage _ _ _ s _ _ _ _ Q m.Type' $$ [Hphys Hgate] as ⟨Hphys, HQ⟩
+  · isplitl [Hphys]
+    · iexact Hphys
+    isplitl [Hgate]
+    · iexact Hgate
+    isplitr
+    · ipureintro; send_ty
+    isplitr
+    · ipureintro
+      intro htr
+      obtain ⟨_, htyx, hns⟩ := Htsnap htr
+      rw [htyx]; exact fun e => hns (Option.some.inj e)
+    ipureintro
+    refine sendGate_le _ s _ _ _ _ _ _ ?_ $hout
+    send_ty
   try wp_auto
-  wp_apply wp_traceSendMessage
-  iapply HΦ))
+  iapply HΦ
+  iframe HQ))
 
 set_option linter.unusedSimpArgs false in
 set_option maxHeartbeats 1600000 in
@@ -225,7 +371,7 @@ theorem raft.send.wp_proof
     (wp_GetTerm : raftpb.Message.GetTerm.spec (GF := GF) (hG := hG))
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     raft.send.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs out Hfrom Hok Hsn Hsh Hrs
+  intro c r id s ml m ents sn ctx rs out Q Hfrom Hok Hsn Hsh Hrs Htsnap
   wp_start as H
   iNamed H
   -- (2026-10-19, D21 M2r) the node's id nonzero, and the modes' facts
@@ -289,8 +435,12 @@ theorem raft.send.wp_proof
       ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg ty m1 ents ctx)) Hf Hq Hq_cap Hm %Habs %Hot
         %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] [] []
       · sent_tac [Hvt, Hmterm] (fun h => Hself (.inl Hvt) h.symm)
-      · ipureintro; simpa [Hto1] using Hself (.inl Hvt)
+      · ipureintro
+        refine ⟨by simpa [Hto1] using Hself (.inl Hvt), ?_⟩
+        simp only [Hty1]
+        first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
+      send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
     · getters [Hvt, Hmterm]
@@ -304,6 +454,7 @@ theorem raft.send.wp_proof
         exact ⟨Hmterm, He, Hc, fun h => by simp [Hvt, MsgAppResp, MsgVoteResp] at h, Ht⟩
       · sent_tac [Hvt, Hmterm] (absurd rfl h2)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
+      send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
     · getters [Hvt, Hmterm, Hself (.inr Hvt)]
@@ -311,8 +462,12 @@ theorem raft.send.wp_proof
       ihave Hphys := Hback $$ %q' %ml %_ %(some (absMsg ty m1 ents ctx)) Hf Hq Hq_cap Hm %Habs %Hot
         %(fun _ => absMsg_noSnap Hns m1 ents ctx) [] [] []
       · sent_tac [Hvt, Hmterm] (fun h => Hself (.inr Hvt) h.symm)
-      · ipureintro; simpa [Hto1] using Hself (.inr Hvt)
+      · ipureintro
+        refine ⟨by simpa [Hto1] using Hself (.inr Hvt), ?_⟩
+        simp only [Hty1]
+        first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
+      send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
     · getters [Hvt, Hmterm]
@@ -326,6 +481,7 @@ theorem raft.send.wp_proof
         exact ⟨Hmterm, He, Hc, fun h => by simp [Hvt, MsgAppResp, MsgPreVoteResp] at h, Ht⟩
       · sent_tac [Hvt, Hmterm] (absurd rfl h3)
       · iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne
+      send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
       iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
       subst Hm1; rfl
   · -- (b) `Term` must be unset and is stamped with `r.Term` (= `s.term`); not a
@@ -353,8 +509,12 @@ theorem raft.send.wp_proof
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap Hns _ _ _
     · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> sent_tac [Hvt] (fun h => Hself h.symm)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · rcases Hlty with Hvt | Hvt | Hvt | Hvt <;> (iapply tsSrc_ne; simp only [Hty1, Hvt]; tyne)
+    send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = ty := Option.some.inj (ht.symm.trans (by first | exact Hty | (rw [← Hty]; simp only [Hvt, MsgVote, MsgVoteResp, MsgPreVote, MsgPreVoteResp, MsgSnap, MsgAppResp, MsgProp, MsgReadIndex]) | (rw [← Hty]; simp_all))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (c') `MsgSnap`: (b)'s path through the body; the abstract message is the
@@ -373,13 +533,17 @@ theorem raft.send.wp_proof
     -- (2026-10-20, D22 S-c) `SentMsgOk` past term `0` for good with transfer off, outside the
     -- no-snapshot mode too: a leader's snapshot, stamped, to another node
     · sent_tac [HSnap] (fun h => Hself h.symm)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iunfold tsSrc at Hsrc
       icases Hsrc with (%Hn | ⟨%sv', %Hsv', #Hc⟩)
       · exact (Hn rfl).elim
       · obtain rfl := Option.some.inj Hsv'; unfold tsSrc; iright; iexists sv; isplitr
         · ipureintro; rfl
         iexact Hc
+    send_hook (fun t evt ht hev => by obtain rfl : t = .snap := Option.some.inj (ht.symm.trans (by first | rfl | (rw [HSnap]; rfl))); simp [sendEvt] at hev)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (c) a type the model does not see: stamped, onto `r.msgs`, and it drops out of
@@ -403,7 +567,7 @@ theorem raft.send.wp_proof
         · assumption
       simp only
       refine ⟨⟨?_, by rw [Hfr1]; exact Hsrc0, fun h => ?_, fun h hz => ?_, ?_, fun h => ?_,
-        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_⟩
+        fun _ => ⟨Hents0, Hctx0⟩, Hrs⟩, fun h => ?_, fun h _ => ?_, fun htr => ?_⟩
       · rcases Htt with h | h <;> rw [h] <;> simp [sentShapeTypes]
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h'
@@ -417,8 +581,15 @@ theorem raft.send.wp_proof
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · rcases Htt with h' | h' <;> rw [h'] at h <;> exact absurd h (by tyd)
       · exact Hxw h
-    · ipureintro; simpa [Hto1] using Hself
+      · -- (2026-11-12, implementation step 3) untraced: the premise refutes a traced node
+        obtain ⟨_, htyx, -⟩ := Htsnap (Option.isSome_iff_ne_none.1 htr)
+        rw [htyx] at Hty; cases Hty
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iapply tsSrc_ne; simp only [Hty1]; exact HnS
+    send_hook (fun t evt ht _ => by rw [Hty] at ht; cases ht)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     rfl
   · -- (d) `MsgAppResp`: stamped, and a response, so onto `r.msgsAfterAppend`; it may
@@ -442,6 +613,7 @@ theorem raft.send.wp_proof
       sent_tac [HAR, Hmterm] (fun h => by
         have := (Hself2 h.symm).2.2; rw [Hrj1, this] at h4; exact absurd (h4 (by tyd)) (by simp))
     · iapply tsSrc_ne; simp only [Hty1, HAR]; tyne
+    send_hook (fun t evt ht _ => ⟨_, List.mem_singleton_self _, fun tm => by obtain rfl : t = .appResp := Option.some.inj (ht.symm.trans (by first | rfl | (rw [HAR]; rfl))); apply msgEvOf_absMsg_from <;> stamp_tac⟩)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; rfl
   · -- (e) a forwarded proposal: `Term` stays zero; not a response
@@ -456,8 +628,12 @@ theorem raft.send.wp_proof
       exact .inl (by first | exact Int.le_refl _ | (rw [Hte1, Hmterm]; word))
     · ipureintro; exact fun _ => absMsg_noSnap (by decide) _ _ _
     · sent_tac [HProp, Hmterm] (fun h => Hself h.symm)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iapply tsSrc_ne; simp only [Hty1, HProp]; tyne
+    send_hook (fun t evt ht hev => by obtain rfl : t = .propose := Option.some.inj (ht.symm.trans (by first | rfl | (rw [HProp]; rfl))); simp [sendEvt] at hev)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1; simp only [sendMsgs, absMsg, Hmterm]; rfl
   · -- (e') a forwarded `MsgReadIndex` (2026-10-12): as a proposal, from `src`
@@ -474,8 +650,12 @@ theorem raft.send.wp_proof
         · exact Hidnz
         · assumption
       sent_tac [HRI, Hmterm] (absurd rfl h1)
-    · ipureintro; simpa [Hto1] using Hself
+    · ipureintro
+      refine ⟨by simpa [Hto1] using Hself, ?_⟩
+      simp only [Hty1]
+      first | (simp [MsgAppResp]; done) | exact HnAR | (rw [Hvt]; tyne) | (rw [HSnap]; tyne) | (rw [HProp]; tyne) | (rw [HRI]; tyne) | (rcases Hlty with h | h | h | h <;> rw [h] <;> tyne) | (rcases Htt with h | h <;> rw [h] <;> tyne)
     · iapply tsSrc_ne; simp only [Hty1, HRI]; tyne
+    send_hook (fun t evt ht hev => by obtain rfl : t = .readIndex := Option.some.inj (ht.symm.trans (by first | rfl | (rw [HRI]; rfl))); simp [sendEvt] at hev)
     iapply ownRaftPhysC_eq _ _ _ _ ?_ $$ Hphys
     subst Hm1 Hsrc_eq; simp only [sendMsgs, absMsg, Hmterm]; rfl
 

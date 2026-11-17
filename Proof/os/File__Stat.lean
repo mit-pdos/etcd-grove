@@ -5,6 +5,7 @@ needs `fileStat.FieldAssumptions` (`TrustedCode/os.lean`).
 module
 
 public import Proof.os.ErrorOk
+public import Proof.os.PathParent
 public import Spec.os.File__Stat
 
 @[expose] public section
@@ -28,7 +29,7 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
   intro f fd name dqf dq dqm d m
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
-  unfold os.model.inner
+  unfold os.model.inner os.model.arbitraryMode
   rw [os.file_ty_eq, os.File_ty_eq, os.fileStat_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
@@ -48,8 +49,13 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       iapply wp_fupd
       wp_auto
       iStructNamed fs
-      wp_auto
+      try wp_auto
+      wp_apply os.model.wp_base as %nm _
+      try wp_auto
+      wp_apply wp_ArbitraryInt as %x _
+      ipersist name
       ipersist size
+      ipersist mode
       imodintro
       ihave #Hokn := (EtcdGrove.fmtErrorOkOrNil_nil (GF := GF))
       iapply HΦ
@@ -59,17 +65,24 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       · isplitl [] <;> iassumption
       isplitr
       rotate_left
-      · ipureintro; intro ii h; cases h
+      · ileft; ipureintro; rfl
       ileft
       iexists fs_ptr
       unfold os.ownFileStat
       isplitr
       · ipureintro; exact ⟨rfl, rfl⟩
+      isplitl []
+      · iassumption
+      isplitl []
+      · iexists _; iassumption
+      iexists _
       iassumption
     · have he0' : ¬ e = W64 0 := he0
       rw [decide_eq_false he0']
       wp_auto
-      wp_apply os.wp_wrapErrno_ok _ inner name e he0' $$ Hn as %pe #Hok
+      wp_apply os.wp_wrapErrno_errno _ inner name e $$ Hn as %perr #Hep
+      ihave #Hok := os.errnoPathErr_fmtErrorOk perr e he0' $$ Hep
+      ihave %Hne := os.errnoPathErr_ne perr e $$ Hep
       ihave #Hokn := EtcdGrove.fmtErrorOkOrNil_of _ $$ Hok
       iapply HΦ
       iframe Hokn
@@ -78,9 +91,9 @@ theorem os.File.Stat.wp_proof : os.File.Stat.spec (GF := GF) (hG := hG) := by
       · isplitl [] <;> iassumption
       isplitr
       rotate_left
-      · ipureintro; intro ii h; cases h; exact ⟨_, pe, rfl, rfl⟩
+      · iright; iexists e; iframe Hep; ipureintro; exact he0'
       iright
-      ipureintro; exact ⟨(fun h => by cases h), rfl⟩
+      ipureintro; exact ⟨Hne, rfl⟩
 
 end proof
 

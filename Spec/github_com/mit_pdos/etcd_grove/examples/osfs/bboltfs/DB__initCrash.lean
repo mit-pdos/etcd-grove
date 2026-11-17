@@ -25,7 +25,8 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 open Fs
 
 /-- The `OsMeta` after `init` (as `DB.init.spec`'s): synced, at the size `init` leaves. -/
-def initDoneMeta (m : OsMeta) : OsMeta := ({ m with size := max m.size 16384 } : OsMeta).synced
+def initDoneMeta (m : OsMeta) : OsMeta :=
+  ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced
 
 /-- The file as `Open` hands it to `init` (the state `⟨m, xs, 0, 0, .idle⟩`): its bytes `xs`, its
 size and crash bounds at most 1 GiB, and each meta slot known clean (its bytes' candidates, past
@@ -50,11 +51,11 @@ abbrev DB.init.specCrash : Prop :=
   m.maps = ∅ → m.size ≤ 2 ^ 30 → initIdle m xs → ↑osN ⊆ (⊤ : CoPset) \ ↑N →
   {{ osInv (GF := GF) ∗ csInv (GF := GF) N P R γ Good dbOk ∗
       db.[DB, go!"file"] ↦□ f ∗ db.[DB, go!"filesz"] ↦ W64 m.size ∗
-      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗
+      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true, none, some true⟩ ∗
       csOwnF (GF := GF) γ (some (i, ⟨m, xs, 0, 0, .idle⟩)) }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"init")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true⟩ ∗
+      os.ownFile (GF := GF) f fd p dqf ∗ osFd (GF := GF) fd dq ⟨i, true, true, none, some true⟩ ∗
       ((⌜err = interface.nil⌝ ∗
           db.[DB, go!"filesz"] ↦ W64 (max m.size 16384) ∗
           csOwnF (GF := GF) γ (some (i, ⟨initDoneMeta m, initFile xs, 0, 0, .idle⟩))) ∨

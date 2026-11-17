@@ -1,10 +1,18 @@
-# Types and names only (WAL W4a, 2026-11-11): function and method bodies are axiomatized. The
-# WAL's snapshot record (`Snapshot`), which the WAL's specs name (`SaveSnapshot`, `Open`,
-# `ValidSnapshotEntries`), is listed explicitly, as leasepb's `Lease`: translate_types never
-# translates a struct with a field of another package's alias type (`state
-# protoimpl.MessageState`, ...).
-translate = ["!*", "Snapshot"]
-imports = ["!*", "google.golang.org/protobuf/runtime/protoimpl", "go.etcd.io/raft/v3/raftpb"]
+# The WAL's records (project etcd's part `LinuxFs/`), protobuf-go v2 as raftpb
+# (Code/go_etcd_io/raft/v3/raftpb.toml): record.go and record.pb.go's getters with bodies; the
+# protobuf runtime plumbing names only (`ProtoReflect`, `Descriptor`, `Reset`, `String`, the file
+# descriptor and its initialization).
+translate = ["*",
+  "!*.ProtoReflect", "!*.Descriptor", "!*.Reset", "!*.String",
+  "!file_record_proto*", "!File_record_proto", "!init.*"]
+imports = ["!*", "errors", "fmt", "go.etcd.io/raft/v3/raftpb", "google.golang.org/protobuf/proto",
+  "google.golang.org/protobuf/runtime/protoimpl",
+  "google.golang.org/protobuf/reflect/protoreflect"]
+# (2026-11-14, the decoder's `rec.Reset()`; pending the user's review) `(*Record).Reset` trusted
+# (TrustedCode/go_etcd_io/etcd/server/v3/storage/wal/walpb.lean): the fields' reset; the
+# message-state store, protobuf runtime plumbing, left out (the model's docstring says why that is
+# faithful)
+trusted = ["Record.Reset"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

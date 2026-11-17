@@ -62,7 +62,7 @@ theorem Cluster.Read.wp_proof
   iNamed Hcc'
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, #Hinv⟩
+  icases Hcl' with ⟨-, -, -, -, #Hinv, -⟩
   wp_auto_lc 3
   wp_apply github_com.goose_lang.primitive.wp_NewProph as %pvs %p Hp
   -- the read's slot, with its caller's update and the prophesied answer

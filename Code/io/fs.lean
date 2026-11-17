@@ -104,7 +104,9 @@ noncomputable def WalkDirFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] WalkDirFunc.ty
 
-axiom ModeDir [GooseExts] [GoGlobalContext] : val
+/-- d: is a directory -/
+@[reducible] noncomputable def ModeDir [GooseExts] [GoGlobalContext] : val :=
+  #(W32 2147483648)
 
 axiom ModeAppend [GooseExts] [GoGlobalContext] : val
 
@@ -132,7 +134,9 @@ axiom ModeIrregular [GooseExts] [GoGlobalContext] : val
 
 axiom ModeType [GooseExts] [GoGlobalContext] : val
 
-axiom ModePerm [GooseExts] [GoGlobalContext] : val
+/-- Unix permission bits -/
+@[reducible] noncomputable def ModePerm [GooseExts] [GoGlobalContext] : val :=
+  #(W32 511)
 
 noncomputable def ErrInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"io/fs.ErrInvalid"
@@ -285,6 +289,41 @@ noncomputable def errClosed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
+
+/-- IsDir reports whether m describes a directory.
+    That is, it tests for the [ModeDir] bit being set in m.
+
+    go: fs.go:243:19 -/
+noncomputable def FileMode.IsDir.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals FileMode.ty))) (Pair (App (Val (GoInstruction (GoOp GoAnd FileMode.ty))) (Pair (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "m")) (Val ModeDir))) (Val #(W32 0)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- Perm returns the Unix permission bits in m (m & [ModePerm]).
+
+    go: fs.go:254:19 -/
+noncomputable def FileMode.Perm.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (App (Val (GoInstruction (GoZeroVal FileMode.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoAnd FileMode.ty))) (Pair (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "m")) (Val ModePerm)))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore FileMode.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$res0"))))))
 
 /-- go: fs.go:270:21 -/
 noncomputable def PathError.Error.impl [GooseExts] [GoGlobalContext] : val :=
@@ -455,10 +494,20 @@ class FileMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   underlying : go.UnderlyingDirectedEq FileMode.ty FileMode.underlying
   method_set : go.MethodSetIs FileMode.ty [(go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRegular", (some (go.signature.Signature [] false [go.bool]))), (go!"Perm", (some (go.signature.Signature [] false [FileMode.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [FileMode.ty])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileMode.ty) [(go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRegular", (some (go.signature.Signature [] false [go.bool]))), (go!"Perm", (some (go.signature.Signature [] false [FileMode.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [FileMode.ty])))]
+  IsDir_unfold : MethodUnfold FileMode.ty go!"IsDir" FileMode.IsDir.impl
+  Perm_unfold : MethodUnfold FileMode.ty go!"Perm" FileMode.Perm.impl
+  ptr_IsDir_unfold : MethodUnfold (go.GoType.PointerType FileMode.ty) go!"IsDir" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve FileMode.ty go!"IsDir"))) (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$r"))))
+  ptr_Perm_unfold : MethodUnfold (go.GoType.PointerType FileMode.ty) go!"Perm" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve FileMode.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$r"))))
 
 attribute [instance] FileMode.TypeAssumptions.underlying
   FileMode.TypeAssumptions.method_set
   FileMode.TypeAssumptions.ptr_method_set
+  FileMode.TypeAssumptions.IsDir_unfold
+  FileMode.TypeAssumptions.Perm_unfold
+  FileMode.TypeAssumptions.ptr_IsDir_unfold
+  FileMode.TypeAssumptions.ptr_Perm_unfold
 
 structure PathError [GooseExts] where
   mk ::

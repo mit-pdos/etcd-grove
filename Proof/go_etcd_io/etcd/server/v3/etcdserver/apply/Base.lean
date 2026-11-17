@@ -46,6 +46,7 @@ public import Perennial.Proof.context
 public import Perennial.Proof.errors
 public import Perennial.Proof.log
 public import Proof.github_com.prometheus.client_golang.prometheus.Labels
+public import Proof.go_etcd_io.etcd.pkg.v3.pbutil.PkgInit
 
 @[expose] public section
 
@@ -667,15 +668,6 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.client.pkg.v3.types
 
--- `pkg/v3/pbutil` (names only: `MustUnmarshalMessage`)
-namespace go_etcd_io.etcd.pkg.v3.pbutil
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.pkg.v3.pbutil
 
 -- `pkg/v3/wait` (the `Wait` interface; with bodies since the request path, 2026-10-12: its
 -- package has no variable the code reads)

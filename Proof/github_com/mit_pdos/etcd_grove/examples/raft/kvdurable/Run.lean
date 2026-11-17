@@ -85,7 +85,7 @@ theorem Run.wp_proof
   wp_apply wp_StartCluster γr cfg.Options' dir Hopts Hγ.2.1 $$ [$Hkc $Hstor $Hfits $Hvs $Hja $Hfresh $Hopn $Hnid
       $Hrseq $Hcur] as %c #Hcl
   · iframe #
-    ipureintro; exact ⟨Hγ.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.2⟩
+    ipureintro; exact ⟨Hγ.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.2.2⟩
   try wp_auto
   -- the `stop` broadcast
   wp_apply chan.wp_make1 (V := Unit) as %sc %γsc ⟨#Hsc, %_, Hsoc⟩

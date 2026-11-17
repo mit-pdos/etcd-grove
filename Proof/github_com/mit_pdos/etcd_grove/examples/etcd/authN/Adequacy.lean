@@ -22,6 +22,14 @@ the program's `2k` addresses and `k` data directories (`authN/Dir.lean`), from `
 the program start's names, addresses and data directories unclaimed, `ETCD_VERIFY` off, the execution's
 length, the trust-boundary contracts `etcd_authN.premises` at every ghost-state instance, and authkv's
 **`hD22`** (D22's `authSchemaSrv`, trusted text as a named hypothesis: `auth/Adequacy.lean`'s header).
+
+**Over Linux files** (2026-11-16, the user's decision (A) on `wal-lean`, applied on the merge of `lean`):
+the program's extensions are `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own
+semantics, no premise on the environment), since `fileutil`'s package initializer, which the server's
+initialization runs, probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the
+theorem's one new premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on
+disk, the roots well formed), so it says that the program runs on a real file system. Until then the
+extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -32,7 +40,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Adequacy
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 
 @[expose] public section
 
@@ -47,7 +55,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
@@ -86,7 +95,9 @@ theorem etcd_authN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_authN.premises (GF := putgetGF) (hG := heapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([authNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -103,7 +114,7 @@ theorem etcd_authN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_authN.authNAddrs_nodup k hk) (etcd_authN.authNDirs k)
     (etcd_authN.authNDirs_nodup k hk) (etcd_authN.startAddrs k) []
     (etcd_authN.authNAddrs_perm k) (etcd_authN.authNDirs_perm k)
-    σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG

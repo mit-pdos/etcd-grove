@@ -16,7 +16,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI Iris.ProofMode _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
 /-- The 48 low bits of distinct suffixes below `2 ^ 48` apart, under a prefix with no low bits,
 give distinct ids. -/

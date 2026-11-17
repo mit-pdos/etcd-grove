@@ -288,8 +288,8 @@ theorem wp_osCallBegin (R : Roots) (V : Hist) (q1 q2 : Qp) (hE : ↑osN ⊆ E) (
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "CallBegin" (Val (#()))) @ s; E {{ Φ }} := by
   iintro #Hinv Hh HΦ
-  iapply wp_fs_stepT "CallBegin" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "CallBegin" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_tree _ _ _) $$ Hinv Hh
+  iintro Hh %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold osWorld treeWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
@@ -367,8 +367,8 @@ theorem wp_osLstatDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s' : 
       (∀ e : w64, osTree (L := L) (DFrac.own (q1 + q)) R V -∗ Φ (PairV (#(0 : w64)) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#p)))) @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "LstatDir" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "LstatDir" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold osWorld treeWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩

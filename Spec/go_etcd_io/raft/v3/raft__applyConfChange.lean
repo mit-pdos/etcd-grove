@@ -159,6 +159,15 @@ theorem ApplyCCOkC.gh {c' : CfgM} {id : w64} {s s' : NState} (H : ApplyCCOkC c' 
       simp [becomeFollower, resetTo, resetTo0]
     · subst Hsw; rfl
 
+end spec
+
+section specLC
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
 /-- `r.applyConfChange(cc)`: builds a `confchange.Changer` on the node's tracker and last
 index, runs `LeaveJoint`, `EnterJoint` or `Simple` as `cc` says (panicking on an error),
 and installs the result (`switchToConfig`), returning the new `ConfState`.
@@ -184,26 +193,47 @@ concern; for an unchanged configuration it does not matter.
 raft v3.7 (2026-10-15, stage R4): `cc` is a `*pb.ConfChangeV2` (`ownConfChangeV2 cc dq ccm`, R1's, read
 through `LeaveJoint`/`EnterJoint` and its `Changes` slice; given back), its content `ccm` (until
 the retarget the Goose value's `Transition'` and the list behind its `Changes'`); the result is
-`switchToConfig`'s fresh `*pb.ConfState` (`csPts cs 1 ... true`). -/
+`switchToConfig`'s fresh `*pb.ConfState` (`csPts cs 1 ... true`). (2026-11-12, trace-check step 5) Both modes, the hook's gate the caller's (`HookGate s.gh.tr r (CCEvOf id s c c'.cfg) Q` in, `Q` out; until then `s.gh.tr = none`): the traced premise only a follower. Today's untraced statement is `raft.applyConfChange.untraced`'s, step 4's traced one `raft.applyConfChange.tracedSpec_of_spec`'s (`TracedApplyConfChange.lean`). -/
 abbrev raft.applyConfChange.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
-    (c' : CCState),
-  -- the model's answer: `confchange`'s errors (which `applyConfChange` turns into a panic)
-  -- and an undefined `Transition` with joint consensus (`ConfChangeV2.EnterJoint`'s panic,
-  -- `nonissues/raft-unknown-transition-panic.md`) are `none`
+    (c' : CCState) (Q : IProp GF),
   ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
-  -- not too many tracked ids (`ownTrackerC`'s bound)
   (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
-  -- (2026-10-29, stage U7) a leader's term past `0` (`switchToConfig`'s, for `send`'s stamp)
   (s.role = .leader → s.term ≠ W64 0) →
-  -- (2026-10-25, T-M M2c; until then a premise: a removed or demoted leader steps down, `s.sdr`)
-  -- a removed or demoted leader steps down with `StepDownOnRemoval`, and stays leader without it
-  -- a candidate stays a voter (`switchToConfig`)
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
-  -- (2026-10-19, D21 M3) a leader in the no-snapshot mode has a log past index `1` (its own
-  -- entry after the bootstrap log), so a peer it starts tracking probes at `Next ≥ 2` (`PrLo`)
   (s.gh.ns = true → s.role = .leader →
     2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  -- (step 5) in place of `s.gh.tr = none`: at a traced node, a follower
+  (s.gh.tr ≠ none → s.role = .follower) →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
+      "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+      "Hcc" ∷ ownConfChangeV2 cc dq ccm ∗
+      -- (step 5) the `ApplyConfChange` line's gate, the caller's
+      "Hgate" ∷ HookGate s.gh.tr r (CCEvOf id s c c'.cfg) Q }}
+    (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
+  {{ (cs : Loc) (xs os ls lns : List w64) (s' : NState), RET #cs;
+      ownRaftPhysCV c'.cfg c'.cfg.voters r id s' ∗
+      ownConfChangeV2 cc dq ccm ∗
+      csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns c'.cfg.autoLeave) true ∗
+      ⌜xs ≡ₚ elements c'.cfg.incoming ∧ os ≡ₚ elements c'.cfg.outgoing ∧
+        ls ≡ₚ elements c'.cfg.learners ∧ lns ≡ₚ elements c'.cfg.learnersNext⌝ ∗
+      ⌜ApplyCCOkC c'.cfg id s s'⌝ ∗
+      Q }}
+
+/-- **Today's untraced statement until step 5** (2026-11-12): `raft.applyConfChange.spec` at an untraced
+node, the gate made from the struct's nil logger and `Q := emp` (`raft.applyConfChange.untraced`); what
+the untraced callers (`wp_applyConf_dyn`, `wp_rn_raft_applyConfChange`, `RawNode.ApplyConfChange`'s
+proof) apply. -/
+abbrev raft.applyConfChange.specU : Prop :=
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
+    (c' : CCState),
+  ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
+  (GMap.size c'.cfg.ids : Int) ≤ 2 ^ 62 →
+  (s.role = .leader → s.term ≠ W64 0) →
+  (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c'.cfg.voters) →
+  (s.gh.ns = true → s.role = .leader →
+    2 ≤ plogLastIndexZ s.logst.prev (s.logst.sents ++ s.logst.uents)) →
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
@@ -232,6 +262,10 @@ abbrev raft.applyConfChange.specS : Prop :=
   -- (2026-10-25, T-M M2c) the node a voter (until then read off `ownRaftPhys` for a leader, which
   -- now need not be one)
   id ∈ cfg →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced node: its trace
+  -- hooks see a nil logger (`TraceLoggerOkS`); stage 1 replaces this premise by the traced
+  -- capability (`trCapB s.gh.tr …`, `TracedHooksDraft.lean`)
+  s.gh.tr = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhys cfg r id s ∗
       "Hcc" ∷ ownConfChangeV2 cc dq ccm }}
@@ -248,9 +282,9 @@ abbrev raft.applyConfChange.specS : Prop :=
 
 open Iris.ProofMode in
 theorem raft.applyConfChange.spec_simple
-    (H : raft.applyConfChange.spec (GF := GF) (hG := hG)) :
+    (H : raft.applyConfChange.specU (GF := GF) (hG := hG)) :
     raft.applyConfChange.specS (GF := GF) (hG := hG) := by
-  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hltz Hli2 Hin
+  intro cfg r id s cc ccm dq lrn' Hd' Hsz' Happ Hltz Hli2 Hin Htr
   iintro %Φ ⟨#Hpkg, Hphys, Hccs⟩ HΦ
   ihave Hphys := ownRaftPhys_toC' $$ Hphys
   have Hv' : (cfgState cfg lrn').cfg.voters = cfg := CfgM.voters_simple cfg lrn'
@@ -259,7 +293,7 @@ theorem raft.applyConfChange.spec_simple
     unfold CfgM.ids; rw [CfgM.voters_simple]; rfl
   iapply H (CfgM.simple cfg (domSet s.progress \ cfg)) r id s cc ccm dq (cfgState cfg lrn')
       (by rw [cfgStateC_simple]; exact Happ) (by rw [Hids]; exact Hsz') Hltz
-      (fun _ => by rw [Hv']; exact Hin) Hli2
+      (fun _ => by rw [Hv']; exact Hin) Hli2 Htr
     $$ [$Hpkg $Hphys $Hccs]
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hccs, Hcs', %Hcs, %Hok⟩
@@ -277,7 +311,7 @@ theorem raft.applyConfChange.spec_simple
   ipureintro
   exact ⟨⟨H1, H3⟩, Hok, Hlrn⟩
 
-end spec
+end specLC
 
 end EtcdGrove
 end Perennial

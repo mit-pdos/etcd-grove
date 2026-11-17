@@ -19,6 +19,14 @@ loopback literals) and the `k` data directories (`leaseNDirs`), over putgetN's g
 **Its hypotheses** are putgetN's at this program, and `etcd_lease_safe`'s `leasePeersOk` (the peers
 answer the lease handler's path as etcd's handler does, or not with `200`; the examples' peers answer
 `404`).
+
+**Over Linux files** (2026-11-16, the user's decision (A) on `wal-lean`, applied on the merge of `lean`):
+the program's extensions are `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own
+semantics, no premise on the environment), since `fileutil`'s package initializer, which the server's
+initialization runs, probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the
+theorem's one new premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on
+disk, the roots well formed), so it says that the program runs on a real file system. Until then the
+extensions were `TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -28,7 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.MainLink
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 
 @[expose] public section
 
@@ -43,7 +51,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 /-! ## The closed theorem -/
 
@@ -81,7 +90,9 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetNGF,
       ⊢ etcd_leaseN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([leaseNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -96,7 +107,7 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (etcd_leaseN.leaseNAddrs_nodup k hk) (etcd_leaseN.leaseNDirs k)
     (etcd_leaseN.leaseNDirs_nodup k hk) (etcd_leaseN.startAddrs k) []
     (etcd_leaseN.leaseNAddrs_perm k) (etcd_leaseN.leaseNDirs_perm k)
-    σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetNGF := heapAtN hG lctx
   haveI := Hctx hG

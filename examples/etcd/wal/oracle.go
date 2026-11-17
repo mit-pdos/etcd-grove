@@ -180,6 +180,11 @@ func loadOracle(path string) oracle {
 	return o
 }
 
+// fits says whether o's encoding, with room more bytes, stays within maxOracle.
+func fits(o oracle, room uint64) bool {
+	return uint64(len(encodeOracle(o)))+room <= maxOracle
+}
+
 func storeOracle(path string, o oracle) {
 	durable.Write(path, encodeOracle(o))
 }

@@ -63,15 +63,19 @@ def roleListOut (sta : AuthState) (resp : Loc) (err : GoInterface) : IProp GF :=
 
 /-- **`CheckPassword`'s answer** for `username` in the mode `M`: an error, one of the package's
 (`authErrOf`; C1's A4, 2026-10-29: the server returns it as its own); or no error, auth
-enabled at some recorded state (`enabledVerdict`), and the revision `rev` of a recorded state that
-has the user (`authSnap`: the locked read transaction's). Nothing about the password: bcrypt's
-answer is the trust boundary (`bcrypt.CompareHashAndPassword`, D-AU6). -/
+enabled at some recorded state (`enabledVerdict`), the user in a recorded state and `rev` the
+revision of a recorded state not earlier than it (the locked read transaction's view, `authViewSnap`:
+its users' bucket and its `auth` bucket; 2026-11-16, the second refutation's fix: until then one
+recorded state with the user and the revision `rev`, which Go breaks: a `UserDelete` whose revision
+is written back before its delete is committed, `nonissues/etcd-auth-readtx-delete-window-mixed-state.md`).
+Nothing about the password: bcrypt's answer is the trust boundary (`bcrypt.CompareHashAndPassword`,
+D-AU6). -/
 def passwordChecked (M : AuthMode) (username : GoString) (rev : w64) (err : GoInterface) :
     IProp GF :=
   iprop((⌜err ≠ GoInterface.nil⌝ ∗ ∃ e : AuthErr, authErrOf e err) ∨
     (⌜err = GoInterface.nil⌝ ∗ enabledVerdict M true ∗
-    ∃ sta : AuthState, authSnap M sta ∗
-      ⌜uint.nat rev = sta.revision ∧ (sta.users.lookup username).isSome⌝))
+    ∃ v : BkView, authViewSnap M v ∗
+      ⌜uint.nat rev = v.atAuth.revision ∧ (v.atUsers.users.lookup username).isSome⌝))
 
 /-- A user message's `Name` (read-only) holds `n`: what `UserList` reads of `GetAllUsers`'s
 messages. -/

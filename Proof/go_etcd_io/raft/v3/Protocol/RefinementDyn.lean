@@ -659,7 +659,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
     ihave #Hm := recv_one γ _ $$ Hrecv
     iunfold isMessage at Hm
     rw [h1]
-    icases Hm with ⟨-, #Hed⟩
+    icases Hm with ⟨%Hmp, #Hed⟩
     have hrep : PropRepl m.entries (propBatch r m.entries cs).1 :=
       propConf_repl (joint := CfgM.joint r.cfg.cfg) r.applied (plastIndex r.p) r.pci m.entries cs h3
     ihave #Hed' := propData_propRepl γ _ _ hrep $$ Hed
@@ -690,7 +690,7 @@ theorem ownRaftGhostR_stepR_in (γ : RaftNames) (decB : CCDec) (M : DecMap) (c0 
       exact ⟨cfgAt_of_fold HD Hj.2, Hj.1⟩
     imod ownRaftGhost_step_propose γ id r.p (propBatch r m.entries cs).1
       (B.toNat - γ.reBoot.length) h2 (by rw [hrep.length]; omega) (by rw [hrep.length]; omega)
-      $$ Hrc Hed' Htk' Hev Hg with Hg
+      (hrep.trNoConf Hmp.2.2.2) $$ Hrc Hed' Htk' Hev Hg with Hg
     imodintro
     iunfold ownRaftGhostR
     iframe Hg Hfr

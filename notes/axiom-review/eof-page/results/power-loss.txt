@@ -1,0 +1,27 @@
+# eof.sh on configuration C (Linux 7.0.0-38-generic), DELAY=20000, 2026-11-13; one run per scenario
+pl-append: start: size 5000; mapping @SZ: 53 53 53 53
+pl-append: live: size 5010; read @SZ-2:  41 41 42 42 42 42 42 42 42 42 42 42
+pl-append: crash image 1 (4 s): size 5010; block 1 (65537) raw: @SZ-2  41 41 53 53 53 53 | @SZ+998  53 53 53 53 | @end-2  53 53
+pl-append: crash image 1 after recovery: size 5010; read @SZ-2:  41 41 53 53 53 53 53 53 53 53 53 53
+pl-append: crash image 2 (26 s): size 5010; block 1 (65537) raw: @SZ-2  41 41 53 53 53 53 | @SZ+998  53 53 53 53 | @end-2  53 53
+pl-append: crash image 2 after recovery: size 5010; read @SZ-2:  41 41 53 53 53 53 53 53 53 53 53 53
+pl-trunc-append: start: size 5000; mapping @SZ: 53 53 53 53
+pl-trunc-append: live: size 5010; read @SZ-2:  41 41 42 42 42 42 42 42 42 42 42 42
+pl-trunc-append: crash image 1 (4 s): size 5000; block 1 (65537) raw: @SZ-2  41 41 53 53 53 53 | @SZ+998  53 53 53 53 | @end-2  53 53
+pl-trunc-append: crash image 1 after recovery: size 5000; read @SZ-2:  41 41
+pl-trunc-append: crash image 2 (26 s): size 5010; block 1 (65537) raw: @SZ-2  41 41 42 42 42 42 | @SZ+998  00 00 00 00 | @end-2  00 00
+pl-trunc-append: crash image 2 after recovery: size 5010; read @SZ-2:  41 41 42 42 42 42 42 42 42 42 42 42
+pl-wb-zero: start: size 5000; mapping @SZ: 53 53 53 53
+pl-wb-zero: live: size 5020; read @SZ-2:  41 41 42 42 42 42 42 42 42 42 42 42 43 43 43 43
+ 43 43 43 43 43 43
+umount: /home/ubuntu/.claude-E/jobs/af0ee947/tmp/agenttmp-eof/w/mnt: target is busy.
+device-mapper: remove ioctl on cdelay  failed: Device or resource busy
+Command failed.
+pl-wb-zero: crash image 1 (4 s): size 5020; block 1 (65537) raw: @SZ-2  41 41 42 42 42 42 | @SZ+998  00 00 00 00 | @end-2  00 00
+pl-wb-zero: crash image 1 after recovery: size 5020; read @SZ-2:  41 41 42 42 42 42 42 42 42 42 42 42 00 00 00 00
+ 00 00 00 00 00 00
+pl-wb-zero: crash image 2 (26 s): size 5020; block 1 (65537) raw: @SZ-2  41 41 42 42 42 42 | @SZ+998  00 00 00 00 | @end-2  00 00
+pl-wb-zero: crash image 2 after recovery: size 5020; read @SZ-2:  41 41 42 42 42 42 42 42 42 42 42 42 00 00 00 00
+ 00 00 00 00 00 00
+
+[exited with code 0]

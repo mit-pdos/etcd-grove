@@ -21,7 +21,10 @@ filesystems, options and kernels are outside the model until tested on their own
 **Environment** (hypotheses of the adequacy statement, not of this file). The roots (`FsState.roots`)
 name distinct directories of the filesystem, none in another's tree; every entry in their trees is
 a regular file or a directory (no symlink, mount point, device, FIFO or socket) and no file is a
-hard link of another; no other process changes their trees or moves a directory above a root; the
+hard link of another; no other process changes their trees or moves a directory above a root; **the
+roots and their ancestors are existing directories throughout** (an ancestor may be a symlink to
+one, a root is none: so a root's `lstat` answers as its `stat`, and `mkdir` of either fails with no
+effect; `PathKind`; the program never removes, renames or replaces one either, as no step can); the
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
 tree at boot is their trees' entries. The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
@@ -43,14 +46,18 @@ failed"; F1, `notes/axiom-review/fs-v2.md`): so a failed `fsync` lost nothing, a
 successful one makes everything durable. **Durable at first start**: when the program first
 starts, the roots' trees and every file in them are durable: nothing has changed them since their
 last successful `sync`, `syncfs` or `fsync` (F2). Only paths in the roots' trees are given a
-meaning: a step on any other path is stuck.
+meaning: a step on any other path is stuck, but for the queries `PathKind` (at or above a root) and
+`Open`'s outside case (a read-only `open` of a strict ancestor of a root, whose fd only `fsync`s,
+with no claim on what that makes durable, and closes).
 
 **Soundness discipline.** The model is never more defined than Linux:
 * *Misuse is stuck*: a closed, forged or wrong-mode fd, an unsupported flag, `PROT_WRITE`, a
   nonzero `mmap` offset, a `munmap` of anything but a whole mapping, a negative offset, a path that
   is not canonical in a root's tree.
 * *Environmental failure is a nondeterministic errno*: every step that makes a system call may fail
-  with any nonzero errno; on failure, the changes listed in each case may or may not have happened;
+  with any nonzero errno (but `ENOENT` from `open` of a path that resolves, or from `getdents` of a
+  directory still in the tree: `ENOENT`, 2026-11-14, pending review); on failure, the changes listed
+  in each case may or may not have happened;
   a failed `pread` read a prefix; a failed `pwrite` wrote a prefix. **Page cuts**: whatever its
   errno, a `pwrite` (`PWriteFinish`) landed nothing, all of its data, or a prefix ending on a
   4096-byte page boundary of the file. On C, a write's loop (`generic_perform_write`) stops only
@@ -61,7 +68,8 @@ meaning: a step on any other path is stuck.
   assumption: a memory-cgroup OOM that fails a kernel-mode fault gives `EFAULT` after progress,
   mid-page; every client's source is a heap buffer, and a mapping's page needs a read that cannot
   fail); and an allocation failure in the write path after a short copy (**no allocation failure
-  in the write path**, an environment assumption beside "no failed writeback": a short copy
+  in the write path**, nor in a truncate's zeroing (below, "File bytes and crashes"), an
+  environment assumption beside "no failed writeback": a short copy
   during a page migration followed by `ENOMEM` in the next `write_begin` stops mid-page with
   errno 0; from the kernel source, not measured). Measured on C
   (`notes/axiom-review/bbolt-port-plan-review/`): 20 of 20 `pwrite(2)` errno returns landed
@@ -70,15 +78,21 @@ meaning: a step on any other path is stuck.
   `s_maxbytes`); both contrasts outside C (a limited `RLIMIT_FSIZE`, an unreadable source page)
   cut mid-page. It is a rule of the step's
   result only: a write in flight at a crash leaves, byte by byte, any candidates (the crash rule),
-  as a process killed in mid-copy leaves a mid-page prefix in the page cache.
+  as a process killed in mid-copy leaves a mid-page prefix in the page cache. **The largest file**
+  (`maxBytes`, ext4's `s_maxbytes` on C, `2^44 - 4096`; **pending the user's review**, 2026-11-14):
+  a `pwrite` lands nothing at or past it (`EFBIG` at it, a page-aligned cut when crossing it), an
+  `ftruncate` or `fallocate` past it fails with no change (`EFBIG`), and no crash or first start has a
+  larger file; so every file's sizes stay at most it (`OsWf.sizes`). Measured on C
+  (`examples/osfs/semantics/data_maxbytes.go`).
 * *Races*: a change to a file's bytes or size (`pwrite`, `ftruncate`, `fallocate`, and `O_TRUNC`
   in one step) is two steps (`…Start`/`…Finish`, the change in flight between them,
   `ProcState.inflight`). **At most one change is in flight on a file**: a change's first step is
   stuck while another is in flight on the same file (a restriction on programs, sound by
   construction: every client writes each file from one thread; Linux serializes a buffered write
   and a truncate on `i_rwsem` anyway); an `open` with `O_TRUNC` is such a first step. An empty
-  `pwrite` is stuck too (Go's `WriteAt` never issues one; the `os` model's empty `Write`, which
-  Go does issue, is not modelled). A mapped load that could see a change in flight is stuck (a
+  `pwrite` is stuck too (Go's `WriteAt` never issues one; Go's `Write` does, and the `os` model's
+  empty `Write` makes no extension step, as a zero-byte `write(2)` of an ext4 file changes nothing:
+  `File.Write.impl`). A mapped load that could see a change in flight is stuck (a
   hole), and a racing `pread` or `fstat` returns any mix. Path calls
   (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
   call is in flight: Linux walks a path a component at a time, and the model resolves it at one
@@ -92,6 +106,14 @@ meaning: a step on any other path is stuck.
   model). A cell past EOF or under an in-flight change holds a hole (`osHole`), never a byte, so a
   Go load of it is stuck.
 
+**Locks** (2026-11-15, the user's approval of lock state; **pending the user's review**,
+`notes/wal-units/locks.md`). Whole-file OFD (`fcntl(F_OFD_SETLK[W])`) and `flock` locks, held per
+open file description (`OsFd.ofd`, `OsFd.flk`), so two opens in one process conflict; the two kinds
+are independent; a lock goes with its description at its `close` and at a crash. A request succeeds
+only with no conflicting lock on another description (a blocking one waits for that), and may fail
+with any errno and no change, `EAGAIN` from a non-blocking one only on a conflict (`LockStep`).
+Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted models panic).
+
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
 cells of every mapping show the file; a removed mapping's cells are gone; every other cell is
 unchanged.
@@ -101,7 +123,9 @@ each byte, its *crash candidates* (`OsFile.cand`): the value it had at the last 
 then the value each change since announced for it, stamped with the change's number. A change
 announces its bytes when it starts, with all of its data, whatever it later lands (`…Start`,
 `OsFile.announce`); its finish lands a prefix of exactly those announced values in the page cache
-(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A successful
+(`OsFile.land`), so the page-cache value of a byte is always one of its candidates. A file also
+records the stamps of its resizes (`OsFile.rzs`), which no step reads: bookkeeping for a client
+premise that must tell a resize's zeros from a write's (**pending the user's review**). A successful
 sync (`OsFile.synced`) collapses every byte not under a change in flight to its page-cache value;
 a failed one changes nothing (no failed writeback). **The crash rule** (`OsCrash`, a machine
 crash; a restart of the process is one, by the environment's assumption on restarts): the durable
@@ -109,8 +133,9 @@ tree is kept with a set of the metadata operations since replayed (the committed
 under the journal's order, `Follows`); every file that tree names gets a size between the smallest
 and the largest it had since its last successful sync (ext4's delayed allocation leaves on-disk
 sizes the program never set in between), or towards the target of a change in flight, and **each
-byte any one of its candidates, independently**
-(`CrashFile`); every other file, and the process's state, is gone. Bytes are independent because
+byte any one of its candidates, independently**, or zero at or past the smallest size since the
+last sync (writeback's zeroing, below) (`CrashFile`); every other file, and the process's state,
+is gone. Bytes are independent because
 Linux's are: one `pwrite` of a page can reach disk torn mid-sector, a prefix of it new (its source
 crossed a page that was migrated during the copy) or any mix of two writes (a page rewritten while
 its previous writeback was reading it, on a device without stable pages); both measured on C
@@ -121,7 +146,25 @@ their candidates): such a page has no block, or an unwritten one (`dioread_noloc
 and `FALLOC_FL_KEEP_SIZE` allocate unwritten extents), which reads as zeros (`diskByte`). The page
 holding the end keeps whatever its bytes past the size hold, stale ones included; an extension
 (truncate-up, a write past the end, `fallocate`) reads zeros past the old size. All measured on C
-(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`).
+(`notes/axiom-review/fs-config/crash.sh`, `fs-v2-f3/f3.sh`). **An `ftruncate` zeroes the rest of
+the page holding the old end**, to the same, a smaller or a larger size (`OsChange.ofResize`; ext4's
+`ext4_block_truncate_page`, in the page cache and, ordered before the truncate's commit, on disk;
+a growth's new last page past it is a hole; measured on C: `trunc-*`, `zerotoend`,
+`pl-trunc-append` of `notes/axiom-review/eof-page.md`); a
+`fallocate` zeroes only up to its target (`falloc-in`). It rests on **no allocation failure in the
+write path** (above) widened to that zeroing: `__ext4_block_zero_page_range` gets the folio with
+`FGP_CREAT` under `~__GFP_FS`, and `ext4_truncate` ignores its failure, so a memory-cgroup at its
+limit could skip the zeroing of an uncached folio, leaving the stale tail on disk under a successful
+`ftruncate`. **Pending the user's review** (P2 of `eof-page.md`, 2026-11-13). **Writeback zeroes the page holding
+the end past the size** (`ext4_bio_write_folio`, "The folio straddles i_size. It must be zeroed out
+on each and every writepage invocation", in the page cache and in the block it writes): a byte that
+was past the size at some writeback since the last sync, so at or past the smallest size since then
+(`sizeLo`), may come back zero whatever its candidates (`CrashFile`; a byte below `sizeLo` was
+below the size throughout and is never zeroed so; after a sync `sizeLo` is the size, so the stale
+candidate a sync keeps past the size is covered too). Measured on C
+(`notes/axiom-review/eof-page.md`, `pl-wb-zero`: size 5020 reading `00` at bytes 5010..5019, whose
+candidates were the stale `53` and the written `43`). **Pending the user's review** (P1 of
+`eof-page.md`, 2026-11-13).
 
 **Client premises** (`Premises.lean`, never part of these semantics): a theorem may assume of its
 crashes more than this rule gives, as a stated premise on its executions. `SectorWhole` is one:
@@ -152,18 +195,30 @@ the file's last successful sync (or boot, or crash), stamped 0. -/
 abbrev Cands := List (w8 × Nat)
 
 /-- A regular file: its page cache (`cache b` is byte `b` as reads see it below the size; past the
-size, what its page holds there), each byte's crash candidates, its size, and the smallest and
-largest sizes since its last successful sync. -/
+size, what its page holds there), each byte's crash candidates, its size, the smallest and
+largest sizes since its last successful sync, and the stamps of its resizes. -/
 structure OsFile where
   cache : Nat → w8
   cand : Nat → Cands
   size : Nat
   sizeLo : Nat
   sizeHi : Nat
+  /-- **Bookkeeping only** (2026-11-14, `notes/wal-fsext-plan.md` §2.5; pending the user's review):
+  the stamps of the resizes (`ftruncate`, `fallocate`'s growth, `open`'s `O_TRUNC`) announced on
+  the file since it was last read from disk (`ofDisk`: a boot or a crash; a new file starts with
+  none), appended at the announcement (`OsFile.announce`). No step reads it: no behaviour or
+  outcome depends on it. It lets a client premise on crashes tell a candidate a resize announced
+  (zeros) from one a `pwrite` announced (W1, `LinuxFs/.../wal/W1.lean`). A sync keeps it: a resize
+  in flight keeps its candidates across a sync, and stamps are never reused, so an old stamp in the
+  list says nothing wrong. `examples/osfs/semantics/model_resize_stamps.go`. -/
+  rzs : List Nat := []
 
 /-- The page of byte `b` holds a byte below the size `sz` (4096-byte pages, which are the blocks
 of the configuration: the header). -/
 def pageIn (sz b : Nat) : Bool := decide (4096 * (b / 4096) < sz)
+
+/-- The end of the page holding byte `x - 1`: `x` rounded up to a 4096-byte page. -/
+def pageEnd (x : Nat) : Nat := 4096 * ((x + 4095) / 4096)
 
 /-- What the disk holds at byte `b` of a file of durable size `sz` whose bytes are `img`: `img b`
 in a page that holds a byte below `sz`; zero past it, a page with no block or an unwritten one
@@ -189,18 +244,45 @@ landed all it announced (changes on a file never overlap in time: at most one is
 short landing's state (a prefix of the change new, the rest as before) is no stamp's. -/
 def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (·.1)).getD 0
 
-/-- An open file description: its file and access mode. (The file offset of `Seek`/`Write`/`Read`
-is the Go model's, `TrustedCode/os.lean`: every step here is positional.) -/
+/-- An open file description: its file, access mode, and the whole-file locks it holds. (The file
+offset of `Seek`/`Write`/`Read` is the Go model's, `TrustedCode/os.lean`: every step here is
+positional.) No step duplicates an fd (no `dup`, `fork` or fd passing), so each fd is its own
+description, and the description's locks live in it: its `close` releases them (`Close` removes the
+entry) and a crash does (the process's state is gone). **Locks** (2026-11-15, the user's approval of
+lock state, I5; the semantics **pending the user's review**, `notes/wal-units/locks.md`): `ofd`, its
+OFD lock (`fcntl(F_OFD_SETLK[W])`), and `flk`, its `flock` lock, each `none`, `some false` (shared)
+or `some true` (exclusive); the two kinds are independent (Linux keeps them on separate lists:
+`examples/osfs/semantics/locks_flock_vs_ofd.go`). Every `open` gives a description with none. -/
 structure OsFd where
   ino : Ino
   readable : Bool
   writable : Bool
+  ofd : Option Bool := none
+  flk : Option Bool := none
 
-/-- What an in-flight change does: a `pwrite` of `data` at `off`, or a resize to `sz` (`ftruncate`,
-and `fallocate`'s growth). -/
+/-- The two kinds of lock: OFD (`fcntl`) and `flock`. -/
+inductive LockKind where
+  | ofd
+  | flock
+  deriving DecidableEq
+
+/-- The lock of kind `k` the description holds. -/
+def OsFd.lk (d : OsFd) : LockKind → Option Bool
+  | .ofd => d.ofd
+  | .flock => d.flk
+
+/-- The description with its lock of kind `k` set to `x`. -/
+def OsFd.setLk (d : OsFd) (k : LockKind) (x : Option Bool) : OsFd :=
+  match k with
+  | .ofd => { d with ofd := x }
+  | .flock => { d with flk := x }
+
+/-- What an in-flight change does: a `pwrite` of `data` at `off`, a resize to `sz` by `ftruncate`
+(`truncate`), or one by `fallocate`'s growth (`falloc`). -/
 inductive OsChangeKind where
   | write (off : Nat) (data : List w8)
   | truncate (sz : Nat)
+  | falloc (sz : Nat)
 
 /-- A change between its two steps, of the file `ino`: what it does, and what its first step
 announced (`OsFile.announce`): the bytes `[lo, hi)` it may change, the value `val b` each gets, and
@@ -249,20 +331,24 @@ structure FsState where
   nextIno : Nat
   stamp : Nat
 
-/-- The process's state: its fds (of files and of directories, with distinct numbers), its changes
-in flight (by the token their first step returned, `osTokV`), its mappings (by base address), and
-its calls on paths in flight (by the token `CallBegin` returned: the length of the log when the call
-began). The two kinds of token are distinct. -/
+/-- The process's state: its fds (of files, of directories of the roots' trees, and of directories
+outside them, at or above a root's parent, `ofds`; all with distinct numbers), its changes in flight
+(by the token their first step returned, `osTokV`), its mappings (by base address), and its calls on
+paths in flight (by the token `CallBegin` returned: the length of the log when the call began). The
+two kinds of token are distinct. -/
 structure ProcState where
   fds : GMap w64 OsFd
   dfds : GMap w64 OsDirFd
   inflight : GMap Nat OsChange
   maps : GMap Loc OsMap
   calls : GMap Nat Nat
+  /-- The fds of directories outside the roots' trees (a strict ancestor of a root, `Open`'s
+  outside case, 2026-11-13): the model knows nothing of them but that they are open. -/
+  ofds : GMap w64 Unit := ∅
 
 /-- A process with nothing open or in flight. -/
 def ProcState.empty : ProcState :=
-  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, calls := ∅ }
+  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, calls := ∅, ofds := ∅ }
 
 /-- A node's state: the machine's and the process's. -/
 structure OsState where
@@ -292,10 +378,24 @@ def O_TRUNC : Nat := 0x200
 def O_CLOEXEC : Nat := 0x80000
 
 def EINTR : w64 := 4
+/-- `EAGAIN` (= `EWOULDBLOCK`): what a non-blocking lock request returns on a conflict (`LockStep`). -/
+def EAGAIN : w64 := 11
+def F_OFD_SETLK : Nat := 37
+def F_OFD_SETLKW : Nat := 38
+/-- `ENOENT`: what a failing `open(2)` returns only for a path that does not resolve, and a failing
+`getdents64` only for a removed directory (`IsFsStep`'s `"Open"` and `"DirReadNext"`). -/
+def ENOENT : w64 := 2
 def PROT_READ : Nat := 0x1
 def MAP_SHARED : Nat := 0x1
 def MAP_POPULATE : Nat := 0x8000
 def osPageSize : Nat := 4096
+/-- **Configuration C's largest file size**, ext4's `s_maxbytes` with 4 KiB blocks and extent-mapped
+files: `(2^32 - 1) << 12 = 2^44 - 4096` (`ext4_max_size`, `fs/ext4/super.c`). No step lands a byte at
+or past it, no resize reaches past it and no crash leaves a file larger (`PWriteFinish`,
+`FtruncateFinish`, `FallocFinish`, `CrashFile`; at the first start, `FsInit`), so every file's sizes
+stay at most it (`OsWf.sizes`). Measured on C: `examples/osfs/semantics/data_maxbytes.go`
+(**pending the user's review**, 2026-11-14). It is page-aligned, so a write cut there is a page cut. -/
+def maxBytes : Nat := 0xffffffff000
 
 /-! ## Bytes -/
 
@@ -323,17 +423,33 @@ def OsChange.ofWrite (i : Ino) (f : OsFile) (off : Nat) (data : List w8) : OsCha
   { ino := i, kind := .write off data, lo := min off f.size, hi := off + data.length,
     val := fun b => (f.written off data).getD b 0, target := max f.size (off + data.length) }
 
-/-- A resize of the file `f` of inode `i` to `sz`, as its first step announces it: every byte from
-where the old and new sizes part, zero (an extension reads zeros; a cut zeroes the page cache past
-the new end). -/
-def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) : OsChange :=
-  { ino := i, kind := .truncate sz, lo := min f.size sz, hi := max f.size sz, val := fun _ => 0,
+/-- A resize of the file `f` of inode `i` to `sz`, by `ftruncate` (`trunc`) or by `fallocate`'s
+growth, as its first step announces it: zeros from where the old and new sizes part (an extension
+reads zeros; a cut zeroes the page cache past the new end); `ftruncate` also zeroes the rest of the
+page holding the old end (ext4 zeroes the block holding EOF to its end: `ext4_block_truncate_page`
+from `ext4_truncate`, shrinking or at the same size, and from `ext4_setattr`'s growth; the pages
+past it are freed or holes), and so to the end of the page holding the larger of the two ends (a
+growth's new last page, when past the old end's, is a hole: zeros), `fallocate` only up to its
+target (`ext4_zero_partial_blocks`). Measured on C (`notes/axiom-review/eof-page.md`: `trunc-*`,
+`trunc-up-past` reading zeros past its new end, `zerotoend`, `pl-trunc-append`; `falloc-in` keeps
+the stale tail past its target). **Pending the user's review** (P2 of `eof-page.md`,
+2026-11-13). -/
+def OsChange.ofResize (i : Ino) (f : OsFile) (sz : Nat) (trunc : Bool) : OsChange :=
+  { ino := i, kind := if trunc then .truncate sz else .falloc sz, lo := min f.size sz,
+    hi := if trunc then pageEnd (max f.size sz) else max f.size sz, val := fun _ => 0,
     target := sz }
 
+/-- The change is a resize (`ftruncate` or `fallocate`'s growth), not a `pwrite`. -/
+def OsChangeKind.isResize : OsChangeKind → Bool
+  | .write _ _ => false
+  | .truncate _ => true
+  | .falloc _ => true
+
 /-- `f` with the change `c` announced as change number `n`: each byte of `[c.lo, c.hi)` gets the
-candidate `c.val b`, stamped `n`. -/
+candidate `c.val b`, stamped `n`; a resize's stamp is recorded (`OsFile.rzs`, bookkeeping only). -/
 def OsFile.announce (f : OsFile) (c : OsChange) (n : Nat) : OsFile :=
-  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b }
+  { f with cand := fun b => if inRange c.lo c.hi b then f.cand b ++ [(c.val b, n)] else f.cand b,
+           rzs := if c.kind.isResize then n :: f.rzs else f.rzs }
 
 /-- `f` with the change `c` landed up to `e` (`c.lo ≤ e ≤ c.hi`): the bytes `[c.lo, e)` take their
 announced values in the page cache, and the size becomes `sz`; the size range widens to it. -/
@@ -464,6 +580,18 @@ def OsState.TreeName (st : OsState) (p : GoString) : Prop := ∃ rj ∈ st.fs.ro
 def OsState.TreePath (st : OsState) (p : GoString) : Prop :=
   (∃ rj ∈ st.fs.roots, rj.1 = p) ∨ st.TreeName p
 
+/-- `p` is a root or an ancestor of one: not empty, and a root is `p` or below it, textually
+(`IsUnder`; the roots being canonical and absolute, `RootForm`, such a `p` is `/c₁/…/cₖ`, a prefix of
+a root's components). The environment (the header) keeps each an existing directory. -/
+def OsState.AtOrAboveRoot (st : OsState) (p : GoString) : Prop :=
+  p ≠ [] ∧ ∃ rj ∈ st.fs.roots, IsUnder p rj.1
+
+/-- `p` is a strict ancestor of a root: `/`, or `/c₁/…/cₖ` with `/c₁/…/cₖ/` a prefix of a root
+(the roots being canonical and absolute, `RootForm`, these are the ancestors' canonical paths). The
+environment (the header) keeps each an existing directory, which no step of the program changes. -/
+def OsState.AboveRoot (st : OsState) (p : GoString) : Prop :=
+  p = [slashB] ∨ (p ≠ [] ∧ ∃ rj ∈ st.fs.roots, (p ++ [slashB]).IsPrefix rj.1)
+
 /-- The directory `p` is in (its inode) and `p`'s last component, if that directory exists. -/
 def OsState.parent (st : OsState) (p : GoString) : Option (Ino × GoString) :=
   match parentOf p with
@@ -518,7 +646,7 @@ def OpenEffect (st : OsState) (p : GoString) (acc : Nat) (creat trunc : Bool) (s
   | some (.dir j) => acc = O_RDONLY ∧ creat = false ∧ trunc = false ∧ st1 = st ∧ tgt = .dir j
   | some (.file i) => (∃ f, st.file i = some f ∧
       st1 = (if trunc then
-        st.stampFile i (fun n => let c := OsChange.ofResize i f 0; (f.announce c n).land c c.hi 0)
+        st.stampFile i (fun n => let c := OsChange.ofResize i f 0 true; (f.announce c n).land c c.hi 0)
         else st)) ∧
       tgt = .file i
   | none => creat = true ∧ ∃ j b, st.parent p = some (j, b) ∧
@@ -574,7 +702,15 @@ def FdOpen (st : OsState) (fd : w64) (d : OsFd) : Prop := st.proc.fds !! fd = so
 
 /-- `fd` is free: no fd of a file or of a directory has it. -/
 def FdFree (st : OsState) (fd : w64) : Prop :=
-  0 ≤ fd.toInt ∧ st.proc.fds !! fd = none ∧ st.proc.dfds !! fd = none
+  0 ≤ fd.toInt ∧ st.proc.fds !! fd = none ∧ st.proc.dfds !! fd = none ∧ st.proc.ofds !! fd = none
+
+/-- `st` with the fd `fd` of a directory outside the roots' trees open. -/
+def OsState.addOfd (st : OsState) (fd : w64) : OsState :=
+  { st with proc := { st.proc with ofds := <[fd := ()]> st.proc.ofds } }
+
+/-- `st` with the fd `fd` of a directory outside the roots' trees closed. -/
+def OsState.delOfd (st : OsState) (fd : w64) : OsState :=
+  { st with proc := { st.proc with ofds := GMap.delete fd st.proc.ofds } }
 
 /-- The flags `Open` supports: an access mode and `O_CREAT`, `O_TRUNC`, `O_CLOEXEC`. -/
 def OpenFlagsOk (fl : Nat) : Prop :=
@@ -589,6 +725,74 @@ def OsState.doneInflight (st : OsState) (t : Nat) : OsState :=
 def OsState.addInflight (st : OsState) (t : Nat) (c : OsChange) : OsState :=
   { st with proc := { st.proc with inflight := <[t := c]> st.proc.inflight } }
 
+/-- `Open`'s outside case (`IsFsStep`, `"Open"`): `(tok, #p, #flags) ↦ (#fd, #errno)` for a strict
+ancestor `p` of a root, read-only (`O_RDONLY`, with or without `O_CLOEXEC`), a call begun by
+`CallBegin`: the call ends, and a fresh fd of a directory outside the trees is open (`addOfd`), or
+any nonzero errno. -/
+abbrev OpenOutside (v : val) (st : OsState) (e' : Expr) (st' : OsState) : Prop :=
+  ∃ (p : GoString) (fl : w64) (t start : Nat),
+    v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ ¬ st.TreePath p ∧ st.AboveRoot p ∧
+    (fl.toNat = O_RDONLY ∨ fl.toNat = O_CLOEXEC) ∧ st.proc.calls !! t = some start ∧
+    ((∃ fd : w64, FdFree st fd ∧ st' = (st.metaEnd t).addOfd fd ∧ e' = osRes (#fd) 0) ∨
+     (∃ e : w64, e ≠ 0 ∧ st' = st.metaEnd t ∧ e' = osRes (#(-1 : w64)) e))
+
+/-! ### Locks (`notes/wal-units/locks.md`; pending the user's review) -/
+
+/-- `st` with the fd `fd`'s description replaced by `d`. -/
+def OsState.setFd (st : OsState) (fd : w64) (d : OsFd) : OsState :=
+  st.setProc { st.proc with fds := <[fd := d]> st.proc.fds }
+
+/-- A lock request of kind `k` through the fd `fd`, on the file `i`, exclusive iff `ex`, conflicts:
+another fd (another description) of the file holds a lock of the same kind that is exclusive, or
+any lock of that kind if the request is exclusive. The kinds are independent
+(`examples/osfs/semantics/locks_flock_vs_ofd.go`). -/
+def LockConflict (st : OsState) (k : LockKind) (fd : w64) (i : Ino) (ex : Bool) : Prop :=
+  ∃ fd' d', st.proc.fds !! fd' = some d' ∧ fd' ≠ fd ∧ d'.ino = i ∧
+    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true)
+
+/-- **The lock rule**, of a request of kind `k` through the fd `fd` (description `d`): `req` is
+`some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking.
+* A lock, only on a description with no lock of the kind (re-locking, a conversion included, is
+  stuck: Linux accepts it; etcd never does it): success (errno 0) only when there is no conflict
+  (`LockConflict`), and the description holds the lock; or any nonzero errno and **no change**,
+  `EAGAIN` from a non-blocking request only on a conflict. A blocking request so takes no successful
+  step while another description holds a conflicting lock: it waits, or fails (any errno, at any
+  time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
+* An unlock: success, the description's lock of the kind gone (none before: no change); or any
+  nonzero errno, the lock gone or kept.
+Measured on C (`examples/osfs/semantics/locks_ofd.go`, `locks_flock.go`, `locks_blocking.go`,
+`locks_test.go`); `fs/locks.c` (`posix_lock_inode`, `flock_lock_inode`: `-EAGAIN` only on a conflict
+when the request may not sleep, the lock inserted only on success). -/
+def LockStep (st : OsState) (k : LockKind) (fd : w64) (d : OsFd) (req : Option Bool) (nb : Bool)
+    (e' : Expr) (st' : OsState) : Prop :=
+  match req with
+  | some ex => d.lk k = none ∧
+      ((¬ LockConflict st k fd d.ino ex ∧ st' = st.setFd fd (d.setLk k (some ex)) ∧
+          e' = Val (#(0 : w64))) ∨
+       (∃ e : w64, e ≠ 0 ∧ (nb = true → e = EAGAIN → LockConflict st k fd d.ino ex) ∧ st' = st ∧
+          e' = Val (#e)))
+  | none => (st' = st.setFd fd (d.setLk k none) ∧ e' = Val (#(0 : w64))) ∨
+      (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st.setFd fd (d.setLk k none)))
+
+/-- `flock`'s `how`: `LOCK_SH` (1), `LOCK_EX` (2) or `LOCK_UN` (8), with or without `LOCK_NB` (4), as
+a request (`LockStep`: `some ex` a lock, exclusive iff `ex`; `none` an unlock) and whether it is
+non-blocking; `none` for any other `how`. -/
+def flockReq (how : Nat) : Option (Option Bool × Bool) :=
+  let nb := decide (how / 4 % 2 = 1)
+  match how - (if nb then 4 else 0) with
+  | 1 => some (some false, nb)
+  | 2 => some (some true, nb)
+  | 8 => some (none, nb)
+  | _ => none
+
+/-- An OFD lock's type: `F_RDLCK` (0), `F_WRLCK` (1), `F_UNLCK` (2), as a request (`LockStep`). -/
+def ofdReq (typ : Nat) : Option (Option Bool) :=
+  match typ with
+  | 0 => some (some false)
+  | 1 => some (some true)
+  | 2 => some none
+  | _ => none
+
 open Classical in
 /-- The steps of the operations; the heap is `HeapRendered` (`FsStep`). Each case is a disjunction:
 the success branch and its premises, then the failure branch (any nonzero errno). -/
@@ -597,8 +801,21 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `open(p, flags)` of a path of the roots' trees, a call begun by `CallBegin` (`tok`):
   `(tok, #p, #flags) ↦ (#fd, #errno)`, as `OpenEffect` says, with a fresh fd (of a file, on its
   inode, or of a directory, on its inode). On failure, the effect may or may not have happened,
-  without the fd. -/
-  | "Open" => ∃ (p : GoString) (fl : w64) (t start : Nat),
+  without the fd.
+  **Outside case** (the second disjunct; 2026-11-13, **pending the user's review**,
+  `notes/wal-fsext-models-review.md`, "Above-root Stat/Open"): `open(p, O_RDONLY)` of a strict
+  ancestor of a root (`AboveRoot`: `/`, or a directory above a root; the environment keeps each an
+  existing directory that no step changes, so the walk to it meets no moved directory): the call
+  ends, and a fresh fd of a directory outside the trees (`ofds`) is open, of which the model knows
+  nothing else (`OutSync`, `OutClose`; every other step on it is stuck), or any errno, nothing else
+  changing. Any other flags there are stuck. Go example:
+  `examples/osfs/semantics/model_os_open_above.go`.
+  **`ENOENT`** (2026-11-14, decided provisionally, **pending the user's review**; plan
+  `notes/wal-fsext-plan.md` §10): a failure of the first disjunct returns `ENOENT` only when `p` does not
+  resolve at the step (`st0.lookup p = none`): Linux's `ENOENT` is a component's lookup finding no
+  entry, or a dead directory, and with no directory renamed during the call the path did not resolve at
+  that instant, where the step may be placed. Go example: `examples/osfs/semantics/meta_enoent.go`. -/
+  | "Open" => (∃ (p : GoString) (fl : w64) (t start : Nat),
       v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ st.TreePath p ∧ OpenFlagsOk fl.toNat ∧
       st.proc.calls !! t = some start ∧
       let acc := fl.toNat % 4
@@ -610,12 +827,13 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
           OpenEffect st0 p acc creat trunc start st1 tgt ∧ FdFree st fd ∧
           st' = (match tgt with
             | .file i => st1.setProc { st1.proc with
-                fds := <[fd := ⟨i, acc ≠ O_WRONLY, acc ≠ O_RDONLY⟩]> st1.proc.fds }
+                fds := <[fd := OsFd.mk i (acc ≠ O_WRONLY) (acc ≠ O_RDONLY) none none]> st1.proc.fds }
             | .dir j => st1.setProc { st1.proc with
                 dfds := <[fd := ⟨j, .idle⟩]> st1.proc.dfds }) ∧
           e' = osRes (#fd) 0) ∨
-       (∃ e : w64, e ≠ 0 ∧ e' = osRes (#(-1 : w64)) e ∧
-          (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc start st' tgt)))
+       (∃ e : w64, e ≠ 0 ∧ (e = ENOENT → st0.lookup p = none) ∧ e' = osRes (#(-1 : w64)) e ∧
+          (st' = st0 ∨ ∃ tgt, OpenEffect st0 p acc creat trunc start st' tgt)))) ∨
+    OpenOutside v st e' st'
   /- `pread(fd, n, off)`: `(#fd, #off, #n) ↦ (#data, #errno)`, as `ReadSees` allows. On success,
   a non-empty prefix (Linux returns a short count when page allocation fails part way, F4), or
   nothing at EOF; on failure, any prefix. -/
@@ -640,12 +858,14 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   any prefix. Whatever the errno, the prefix is empty, the whole write, or ends on a 4096-byte
   page boundary of the file (**page cuts**, the header). It lands the announced bytes up to the
   end of what was written (the zero gap included), none if nothing was; the size grows to that
-  end. -/
+  end. **Nothing lands at or past `maxBytes`** (`k = 0 ∨ off + k ≤ maxBytes`): a write starting
+  there fails with nothing landed (`EFBIG`), one crossing it is cut there (a short count, page-aligned;
+  `data_maxbytes.go`, pending the user's review). -/
   | "PWriteFinish" => ∃ (t : Nat) (c : OsChange) (off : Nat) (data : List w8) (f : OsFile)
       (k : Nat) (e : w64), v = osTokV t ∧ st.proc.inflight !! t = some c ∧
       c.kind = .write off data ∧ st.file c.ino = some f ∧ k ≤ data.length ∧
       ((k = data.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
-      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) ∧
+      (k = 0 ∨ k = data.length ∨ (off + k) % osPageSize = 0) ∧ (k = 0 ∨ off + k ≤ maxBytes) ∧
       (let w := if k = 0 then c.lo else off + k
        st' = (st.doneInflight t).setFile c.ino (f.land c w (max f.size w))) ∧
       e' = osRes (#(W64 k)) e
@@ -658,17 +878,19 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "FtruncateStart" => ∃ (fd sz : w64) (t : Nat) (d : OsFd) (f : OsFile), v = PairV (#fd) (#sz) ∧
       FdOpen st fd d ∧ d.writable ∧ 0 ≤ sz.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧
       st.proc.inflight !! t = none ∧ st.proc.calls !! t = none ∧
-      (let c := OsChange.ofResize d.ino f sz.toNat
+      (let c := OsChange.ofResize d.ino f sz.toNat true
        st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. It lands all of the announced bytes and the new size; on
-  failure the file may or may not be resized. -/
+  failure the file may or may not be resized. A size past `maxBytes` fails with no change (`EFBIG`,
+  `data_maxbytes.go`, pending the user's review); the bytes the first step announced stay among the
+  candidates, as on any failure. -/
   | "FtruncateFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
       st.proc.inflight !! t = some c ∧ c.kind = .truncate sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
        let st1 := st0.setFile c.ino (f.land c c.hi c.target)
-       st' = st1 ∧ e' = Val (#(0 : w64)) ∨
-       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ st' = st1))
+       c.target ≤ maxBytes ∧ st' = st1 ∧ e' = Val (#(0 : w64)) ∨
+       ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st0 ∨ c.target ≤ maxBytes ∧ st' = st1))
   /- `fsync(fd)` and `fdatasync(fd)` of a file alike: `#fd ↦ #errno`. Success makes every byte
   not under an in-flight change durable (`OsFile.synced`); a failure changes nothing (no failed
   writeback, the header: whatever it wrote, a crash may keep anyway). A failure is never `EINTR`:
@@ -679,10 +901,13 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       st.file d.ino = some f ∧
       (st' = st.setFile d.ino (f.synced (InflightAt st d.ino ·)) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e ≠ EINTR ∧ e' = Val (#e) ∧ st' = st)
-  /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`. Trivial: the lock state is not modelled, so the
-  errno is anything; only the fd must be open. -/
-  | "Flock" => ∃ (fd how e : w64) (d : OsFd), v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧
-      st' = st ∧ e' = Val (#e)
+  /- `flock(fd, how)`: `(#fd, #how) ↦ #errno`, for `how` `LOCK_SH`, `LOCK_EX` or `LOCK_UN`, with or
+  without `LOCK_NB` (`flockReq`): the lock rule `LockStep` on the description's `flock` lock. Any other
+  `how` is stuck (Linux: `EINVAL`, or `LOCK_MAND`'s success with no lock). No access mode needed.
+  `examples/osfs/semantics/locks_flock.go` (pending the user's review). -/
+  | "Flock" => ∃ (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool),
+      v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ flockReq how.toNat = some (req, nb) ∧
+      LockStep st .flock fd d req nb e' st'
   /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno. -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = st.setProc { st.proc with fds := GMap.delete fd st.proc.fds } ∧ e' = Val (#e)
@@ -704,11 +929,25 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       let st1 := st.setProc { st.proc with maps := GMap.delete base st.proc.maps }
       (st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st1))
-  /- What `fd` is: `#fd ↦ #0` for a file's fd, `#1` for a directory's; stuck on any other. A query
-  of the model, not a system call (`File.Sync`'s and `File.Close`'s models ask it). -/
+  /- What `fd` is: `#fd ↦ #0` for a file's fd, `#1` for a directory's, `#2` for a directory's
+  outside the roots' trees (2026-11-13); stuck on any other. A query of the model, not a system
+  call (`File.Sync`'s and `File.Close`'s models ask it). -/
   | "FdKind" => ∃ fd : w64, v = #fd ∧ st' = st ∧
       ((∃ d, st.proc.fds !! fd = some d) ∧ e' = Val (#(0 : w64)) ∨
-       st.proc.fds !! fd = none ∧ (∃ df, st.proc.dfds !! fd = some df) ∧ e' = Val (#(1 : w64)))
+       st.proc.fds !! fd = none ∧ (∃ df, st.proc.dfds !! fd = some df) ∧ e' = Val (#(1 : w64)) ∨
+       st.proc.fds !! fd = none ∧ st.proc.dfds !! fd = none ∧ st.proc.ofds !! fd = some () ∧
+         e' = Val (#(2 : w64)))
+  /- `fsync(fd)` of a directory outside the roots' trees (`ofds`, `Open`'s outside case):
+  `#fd ↦ #errno`, any errno (`0` included), nothing changing: the model makes no claim about what
+  it makes durable (on C it commits the journal of the directory's filesystem, which is no less
+  than nothing). **Pending the user's review** (2026-11-13). Go example:
+  `examples/osfs/semantics/model_os_open_above.go`. -/
+  | "OutSync" => ∃ (fd e : w64), v = #fd ∧ st.proc.ofds !! fd = some () ∧ st' = st ∧
+      e' = Val (#e)
+  /- `close(fd)` of a directory outside the roots' trees: `#fd ↦ #errno`; the fd is freed whatever
+  the errno. **Pending the user's review** (2026-11-13). -/
+  | "OutClose" => ∃ (fd e : w64), v = #fd ∧ st.proc.ofds !! fd = some () ∧ st' = st.delOfd fd ∧
+      e' = Val (#e)
   /- The start of a system call on a path (`open`, `rename`, `unlink`, `rmdir`, `mkdir`, `lstat`):
   `#() ↦ tok`, a token recording the length of the log now (the operations that have taken effect
   before the call began: the journal has them before it, and the call's walk of its path sees them).
@@ -717,6 +956,19 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   (inside Go's `EINTR` retry loop), before the attempt enters the kernel, and passes its token to
   that attempt's step only. A model that returns without the step leaves the call in flight for
   good, which makes every later directory rename stuck. -/
+  /- Where the path `p` is: `#p ↦ #1` for a `TreeName` (strictly below a root), `#0` for a root,
+  `#2` for a strict ancestor of a root (`AboveRoot`: `/` included); stuck on any other path. A query
+  of the model, not a system call (no state changes): `os.MkdirAll`'s model asks it, so that at a
+  root or above it runs Go's body with no step on the paths the extension gives no meaning (the
+  roots and their ancestors are existing directories, the environment: Go's `stat` there succeeds,
+  its `mkdir` fails, neither changes anything); `os.Stat`'s and `os.Lstat`'s ask it, and answer at a
+  strict ancestor with no step. **Pending the user's review** (2026-11-13,
+  `notes/wal-fsext-models-review.md`, finding 1 and "Above-root Stat/Open"). Go examples:
+  `examples/osfs/semantics/model_os_mkdirall_above.go`, `model_os_stat_above.go`. -/
+  | "PathKind" => ∃ p : GoString, v = #p ∧ st' = st ∧
+      (st.TreeName p ∧ e' = Val (#(1 : w64)) ∨
+       ¬ st.TreeName p ∧ (∃ rj ∈ st.fs.roots, rj.1 = p) ∧ e' = Val (#(0 : w64)) ∨
+       ¬ st.TreePath p ∧ st.AboveRoot p ∧ e' = Val (#(2 : w64)))
   | "CallBegin" => ∃ t : Nat, v = #() ∧ st.proc.calls !! t = none ∧
       st.proc.inflight !! t = none ∧
       st' = st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls } ∧
@@ -734,8 +986,11 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   the directory had at some point since the read began, not returned since it was last touched; or
   the end, once it has returned every name the directory had when the read began, still has, and
   that no operation touched since (POSIX's `readdir`: an entry added or removed meanwhile may or may
-  not be returned); or an errno, the read unchanged. After the end, a second read is stuck. A
-  removed directory has no names. -/
+  not be returned); or an errno, the read unchanged, `ENOENT` only for a removed directory (not
+  reachable from a root: Linux's `iterate_dir` answers `ENOENT` for a dead directory, and only then;
+  2026-11-14, decided provisionally, **pending the user's review**, Go example
+  `examples/osfs/semantics/meta_enoent.go`). After the end, a second read is stuck. A removed
+  directory has no names. -/
   | "DirReadNext" => ∃ (fd : w64) (df : OsDirFd) (u s r : GoString → Bool), v = #fd ∧
       st.proc.dfds !! fd = some df ∧ df.rd.cur st df.ino = some (u, s, r) ∧
       ((∃ b, s b = true ∧ r b = false ∧
@@ -745,7 +1000,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
        ((∀ b, u b = true → present st df.ino b = true → r b = true) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with rd := .done }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(1 : w64)) (#(0 : w64))))) ∨
-       (∃ e : w64, e ≠ 0 ∧
+       (∃ e : w64, e ≠ 0 ∧ (e = ENOENT → ¬ Reach st.fs.roots st.tree df.ino) ∧
           st' = st.setProc { st.proc with dfds := <[fd := { df with
             rd := .reading u s r }]> st.proc.dfds } ∧
           e' = Val (PairV (#([] : GoString)) (PairV (#(0 : w64)) (#e)))))
@@ -806,25 +1061,28 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
             (st' = st0 ∨ st' = st0.takeIno.metaDo (o j b) start))) ∨
        (∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ st' = st0))
   /- The first step of `fallocate(fd, 0, off, len)`: `(#fd, #off, #len) ↦ token`, a resize to
-  `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size: zeros past the
-  end, announced; the blocks it allocates are not modelled). Stuck while another change is in
+  `max size (off + len)` in flight (its visible effect is `ftruncate`'s to that size, zeros past the
+  end announced, but only up to its target, `OsChange.ofResize`; the blocks it allocates are not
+  modelled). Stuck while another change is in
   flight on the file, on a negative offset, or on a length not above 0. -/
   | "FallocStart" => ∃ (fd off len : w64) (t : Nat) (d : OsFd) (f : OsFile),
       v = PairV (#fd) (PairV (#off) (#len)) ∧ FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧
       0 < len.toInt ∧ ¬ BusyAt st d.ino ∧ st.file d.ino = some f ∧ st.proc.inflight !! t = none ∧
       st.proc.calls !! t = none ∧
-      (let c := OsChange.ofResize d.ino f (max f.size (off.toNat + len.toNat))
+      (let c := OsChange.ofResize d.ino f (max f.size (off.toNat + len.toNat)) false
        st' = (st.stampFile d.ino (f.announce c)).addInflight t c) ∧
       e' = Val (osTokV t)
   /- The second step: `token ↦ #errno`. It lands all of the announced bytes (zeros from the old
   end) and the new size; on failure, a prefix of them, the size grown to the prefix's end (ext4
-  grows the file as each chunk is allocated). -/
+  grows the file as each chunk is allocated). A target past `maxBytes` fails with no change
+  (`EFBIG`, `data_maxbytes.go`, pending the user's review). -/
   | "FallocFinish" => ∃ (t : Nat) (c : OsChange) (sz : Nat) (f : OsFile), v = osTokV t ∧
-      st.proc.inflight !! t = some c ∧ c.kind = .truncate sz ∧ st.file c.ino = some f ∧
+      st.proc.inflight !! t = some c ∧ c.kind = .falloc sz ∧ st.file c.ino = some f ∧
       (let st0 := st.doneInflight t
-       st' = st0.setFile c.ino (f.land c c.hi c.target) ∧ e' = Val (#(0 : w64)) ∨
+       c.target ≤ maxBytes ∧ st' = st0.setFile c.ino (f.land c c.hi c.target) ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧
-         (st' = st0 ∨ ∃ w, c.lo ≤ w ∧ w ≤ c.hi ∧ st' = st0.setFile c.ino (f.land c w w)))
+         (st' = st0 ∨ c.target ≤ maxBytes ∧ ∃ w, c.lo ≤ w ∧ w ≤ c.hi ∧
+           st' = st0.setFile c.ino (f.land c w w)))
   /- `fallocate(fd, FALLOC_FL_KEEP_SIZE, off, len)`: `(#fd, #off, #len) ↦ #errno`. No change: the
   blocks it allocates past the end are unwritten extents, which read as zeros until written, as a
   page with no block does (durable zeros, the header); any errno. Stuck on a negative offset or a
@@ -832,10 +1090,17 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "FallocKeep" => ∃ (fd off len e : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (#len)) ∧
       FdOpen st fd d ∧ d.writable ∧ 0 ≤ off.toInt ∧ 0 < len.toInt ∧ st' = st ∧ e' = Val (#e)
-  /- `fcntl(fd, F_OFD_SETLK[W], ...)`: `(#fd, #cmd) ↦ #errno`. Trivial, as `Flock`: the lock state
-  is not modelled, so the errno is anything. -/
-  | "OfdLock" => ∃ (fd cmd e : w64) (d : OsFd), v = PairV (#fd) (#cmd) ∧ FdOpen st fd d ∧
-      st' = st ∧ e' = Val (#e)
+  /- `fcntl(fd, cmd, {typ, whole file})` for `cmd` `F_OFD_SETLK` (37, non-blocking) or `F_OFD_SETLKW`
+  (38, blocking), `typ` `F_RDLCK` (0), `F_WRLCK` (1) or `F_UNLCK` (2): `(#fd, (#cmd, #typ)) ↦ #errno`
+  (the trusted models pass only whole-file requests with `l_pid` 0): the lock rule `LockStep` on the
+  description's OFD lock. `F_WRLCK` needs a writable fd and `F_RDLCK` a readable one (the other case
+  is stuck; Linux: `EBADF`). `examples/osfs/semantics/locks_ofd.go`, `locks_blocking.go` (pending the
+  user's review). -/
+  | "OfdLock" => ∃ (fd cmd typ : w64) (d : OsFd) (req : Option Bool),
+      v = PairV (#fd) (PairV (#cmd) (#typ)) ∧ FdOpen st fd d ∧
+      (cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) ∧ ofdReq typ.toNat = some req ∧
+      (req = some true → d.writable) ∧ (req = some false → d.readable) ∧
+      LockStep st .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK)) e' st'
   | _ => False
 
 /-- The cells a new mapping takes are free, in `(0, maxAddr]`. -/
@@ -854,14 +1119,18 @@ end step
 
 /-- `f'` is what a machine crash may leave of the file `f` of inode `i`: a size between the
 smallest and the largest it had since its last successful sync, or between such a size and the
-target of the change in flight; each byte
-any one of its crash candidates, each independently (its bytes past the size included); all of it
-on disk (`ofDisk`: the pages past the size durable zeros). -/
+target of the change in flight, and never past `maxBytes` (a size the file had: no step makes one
+larger, `data_maxbytes.go`, pending the user's review); each byte
+any one of its crash candidates, each independently (its bytes past the size included), or zero
+at or past the smallest size since the last sync (writeback zeroes the page holding the end past
+the size of the moment, the header; **pending the user's review**); all of it on disk (`ofDisk`:
+the pages past the size durable zeros). -/
 def CrashFile (st : OsState) (i : Ino) (f f' : OsFile) : Prop :=
   ∃ (sz : Nat) (img : Nat → w8),
     ((f.sizeLo ≤ sz ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ c.target ≤ sz) ∧
      (sz ≤ f.sizeHi ∨ ∃ t c, st.proc.inflight !! t = some c ∧ c.ino = i ∧ sz ≤ c.target)) ∧
-    (∀ b, ∃ s, (img b, s) ∈ f.cand b) ∧ f' = OsFile.ofDisk img sz
+    sz ≤ maxBytes ∧
+    (∀ b, (∃ s, (img b, s) ∈ f.cand b) ∨ (f.sizeLo ≤ b ∧ img b = 0)) ∧ f' = OsFile.ofDisk img sz
 
 /-- The file `i` is named in the tree `m`. -/
 def Named (m : Tree) (i : Ino) : Prop := ∃ j b, m.entry j b = some (.file i)
@@ -884,13 +1153,14 @@ def OsCrash (st st' : OsState) : Prop := MachineCrash st st'
 
 /-- A state a program may start in: the process has nothing open; nothing logged or committed; the
 roots and the tree well formed; every inode the tree names is a file, every file named (no orphan
-at boot) and all of it on disk (the environment's "durable at first start"); every inode in use
-below `nextIno`. -/
+at boot) and all of it on disk (the environment's "durable at first start"), none larger than
+`maxBytes` (no file of C is, `data_maxbytes.go`); every inode in use below `nextIno`. -/
 def FsInit (st : OsState) : Prop :=
   st.proc = ProcState.empty ∧ st.fs.metaLog = [] ∧ (∀ y, ¬ st.fs.committed y) ∧
   RootsOk st.fs.roots ∧ TreeWf st.fs.roots st.fs.treeDur ∧
   (∀ i, Named st.fs.treeDur i → st.fs.files !! i ≠ none) ∧
-  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧ ∃ img sz, f = OsFile.ofDisk img sz) ∧
+  (∀ i f, st.fs.files !! i = some f → Named st.fs.treeDur i ∧
+    ∃ img sz, sz ≤ maxBytes ∧ f = OsFile.ofDisk img sz) ∧
   (∀ i, i ∈ st.fs.files → i < st.fs.nextIno) ∧ (∀ j, j ∈ st.fs.treeDur → j < st.fs.nextIno)
 
 instance fs_semantics : ExtSemantics fsExt where

@@ -1,51 +1,62 @@
 /-
-`wal.Exist` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user; revision 1 after the Freeze review: no index `2^64-1` in `Save`/`SaveSnapshot`, decided by etcd-grove-81) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (S/ = `server/storage/wal/`, line numbers of `c90b03b56`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`wal.Exist` over `fsExt` (W12 of `notes/wal-fsext-plan.md`): the main tree's axiom
+`Spec/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean` restated with plan §3's binder changes (over
+`fsExt`, the WAL layer `walAreaOk`, the area's spine and `walAreaRes`, the call permission, the update at
+`walAuMask`, plan §11), the lock token framed and Q4 (b)'s `false` arm (`notes/specs-only/ledger.md`,
+2026-11-14). S/ = `server/storage/wal/` at the pin with the local fork patches. Proved in
+`Proof/go_etcd_io/etcd/server/v3/storage/wal/Exist.lean`, over the hypotheses of
+`ExistCallees.lean`. Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
-public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
-public import Spec.go_uber_org.zap.Defs
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI
+open Fs WalEnc WalFs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt absDiskExt]
-variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-/-- **`Exist(dir)`** (S/util.go:30-42, with the fork's fix `c90b03b56`): whether `dir` holds `.wal`
-entries. Under the area discipline (`walAreaOk`, `walAreaDir`) and the "Paths" assumption's
-one-spelling clause (no other spelling of a path at or below the data directory names a file in
-`dir`), only a WAL's own segment files are such entries: `Create` renames a directory holding its first segment into place, and a WAL
-disappears only by a crash before its name is durable (`walCrash`) or, after an I/O failure in
-`Create` (`¬ storage.walCreateOk`), by `cleanupWAL`'s rename to `dir.broken.*`. `Exist` returns false only when
-`ReadDir` succeeds with no `.wal` entry or the directory does not exist; any other `ReadDir` failure
-gives true (the fix: nonissue `etcd-wal-exist-readdir-error-removes-wal`). So false means no WAL;
-true claims nothing (the reads after it fail when there is none). Logically atomic (WAL W4a.2, the W4c gate of W4a.1 revision 1, M-R1): W4c's restart runs under the
-crash model, so the tester keeps the WAL in an invariant and finds it there at a crash during the
-call; the post's `Q` is of the accessed state. The body
-linearizes at its `ReadDir` (no step: the state is unchanged, committed as accessed). -/
-abbrev wal.Exist.spec : Prop :=
-  ∀ (r dir : GoString) (Q : Option WalDur → IProp GF), walAreaDir r dir →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ walAreaOk r ∗
-      AU <{ ∃∃ o : Option WalDur, walDirIs dir o }> @ ⊤, ∅ <{ walDirIs dir o, COMM Q o }> }}
+/-- **What `Exist` may answer `false` on**: no WAL, or a fresh, unnamed one (`Create` failed after its
+rename and `cleanupWAL` may have moved its directory aside; plan §11, Q4 (b)). -/
+def wal.ExistFalseOk (o : Option WalDur) : Prop :=
+  o = none ∨ ∃ d, o = some d ∧ d.H = [] ∧ d.named = false
+
+/-- **`Exist(dir)`** (S/util.go:36-42, with the fork's fix `c90b03b56`): `fileutil.ReadDir(dir,
+WithExt(".wal"))`; on an error, `!errors.Is(err, os.ErrNotExist)`, else whether a `.wal` name was read.
+Under the area discipline (`walAreaRes`: half the area's claim on every WAL name) the area holds at `nm`
+the WAL's directory, or nothing when there is no WAL (`WalsAt`, `AbsentNone`), and a WAL's directory
+holds its segments at `.wal` names. So `false` means no WAL (or Q4 (b)'s fresh one); `true` claims
+nothing (the reads after it fail when there is none). Logically atomic: the state is unchanged,
+committed as accessed (the body linearizes before its `ReadDir`, at a ghost step; no client update
+needs it inside an `os` call). With the lock token (framed: reading a present WAL's directory takes its
+claim out of the parked state, `walParked_lock`, and puts it back; `notes/specs-only/ledger.md`,
+2026-11-14). The `false` arm rests on a hypothesis about `ENOENT` that the current model does not give
+(`ExistCallees.lean`). -/
+abbrev wal.Exist.spec (C : WalCodec) (Mr : WalMarshal) : Prop :=
+  ∀ (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
+  InArea r dir nm → NameOk nm →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
+      WalFs.walAreaOk C Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+      WalFs.walUnlockedTok ∗
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
+        <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Exist)) (Val #dir))
-  {{ (b : Bool), RET #b; ∃ o : Option WalDur, Q o ∗ ⌜b = false → o = none⌝ }}
+  {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+      WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗ ⌜b = false → wal.ExistFalseOk o⌝ }}
 
 end spec
 

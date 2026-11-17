@@ -69,7 +69,7 @@ theorem Cluster.dropped.wp_proof
   wp_if_destruct
   · wp_apply wp_GetTo.1 ml dq dqe cap st $$ [$Hpbinit $Hm] as Hm
     try wp_auto
-    wp_apply wp_ReportSnapshot n γr.cluster kvrRaftN sid st.msg.To' _ $$ [$Hraftinit $HisNode]
+    wp_apply wp_ReportSnapshot n γr.cluster kvrRaftN sid st.msg.To' _ Htr0 $$ [$Hraftinit $HisNode]
     try wp_auto
     iapply HΦ $$ Hm
   · try wp_auto

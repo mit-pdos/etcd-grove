@@ -6,13 +6,14 @@ theorem RawNode.ForgetLeader.wp_proof [package_sem : Assumptions] (wp_raft_Step 
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : RawNode.ForgetLeader.spec
   -- `Perennial.EtcdGrove.RawNode.ForgetLeader.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
-          (▷ ∀ err, "Hrn" ∷ ownRawNode γ rn id rs ∗ "%Herr" ∷ ⌜err = GoInterface.nil⌝ -∗ Φ (intoVal err)) -∗
-            WP
-              ((intoVal
-                  (methods RawNode.ty.PointerType
-                    go!"ForgetLeader" (intoVal rn)))
-                (intoVal ()))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
+            (▷ ∀ err, "Hrn" ∷ ownRawNode γ rn id rs ∗ "%Herr" ∷ ⌜err = GoInterface.nil⌝ -∗ Φ (intoVal err)) -∗
+              WP
+                ((intoVal
+                    (methods RawNode.ty.PointerType
+                      go!"ForgetLeader" (intoVal rn)))
+                  (intoVal ()))
+                {{ Φ }}

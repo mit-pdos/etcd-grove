@@ -40,6 +40,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.lease.leasepb
 public import Code.container.heap
 public import GeneratedProof.container.heap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Base
+public import Proof.github_com.Masterminds.semver.v3.PkgInit
 
 @[expose] public section
 
@@ -58,15 +59,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
--- `github.com/Masterminds/semver/v3` (names only: `MustParse`, `Version.LessThan`/`String`)
-namespace github_com.Masterminds.semver.v3
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.github_com.Masterminds.semver.v3 :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.github_com.Masterminds.semver.v3 :=
-  build_get_is_pkg_init_wf
-
-end github_com.Masterminds.semver.v3
 
 namespace go_etcd_io.etcd.api.v3.version
 

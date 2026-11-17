@@ -74,11 +74,11 @@ def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) 
       db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ db.[DB, go!"path"] ↦ p.path ∗
+      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ dbPathLk db p fd ∗
       db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
       mapFields db (DFrac.own 1) (some (b, L)) ∗
       osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) ⟨p.ino, true, true⟩ ∗ Ps sp 1 ∗
+      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ Ps sp 1 ∗
       osBytes p.ino 0 (DFrac.own 1) xs ∗
       bytesPointsto b (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
       ∃ vf, cellsR b xs.length (L - xs.length) vf)

@@ -2,16 +2,23 @@
 Package initialization of `go_etcd_io.etcd.server.v3.storage.wal.walpb`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact (`walpbInit`, `PkgInit.lean`): `ErrCRCMismatch` holds for good an error whose `Error()`
+returns (`errOk`) and on which `errors.Is` returns for every pointer target (`errIsTerm`: an `*errorString`
+leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated `errors.New` call, record.go;
+Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
+initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
+`opaqueInitsOk` and `initFuncsOk` say run without panicking.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.Base
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.walpb.PkgInit
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.fmt.Link
 public import Proof.go_etcd_io.raft.v3.Init
+public import Proof.google_golang_org.protobuf.reflect.protoreflect.Init
 public import Proof.google_golang_org.protobuf.runtime.protoimpl.Init
+public import Perennial.Proof.errors.NewVar
+public import Proof.errors.ErrIsTerm
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -42,8 +49,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([ErrCRCMismatch.init,
-        file_record_proto_msgTypes.init,
+    ∀ v ∈ ([file_record_proto_msgTypes.init,
         file_record_proto_goTypes.init,
         file_record_proto_depIdxs.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
@@ -81,16 +87,43 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoInterface) ErrCRCMismatch _ as HErrCRCMismatch
+  wp_apply (_root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  wp_apply (opaqueInitsOk ErrCRCMismatch.init (by mem_tac))
+      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
+      EtcdGrove.ExternalInit.google_golang_org_protobuf_proto _root_.Perennial.google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+  -- translated initializer of ErrCRCMismatch))
+  try wp_auto
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC
+  try wp_auto
   wp_apply (opaqueInitsOk file_record_proto_msgTypes.init (by mem_tac))
   wp_apply (opaqueInitsOk file_record_proto_goTypes.init (by mem_tac))
   wp_apply (opaqueInitsOk file_record_proto_depIdxs.init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  ipersist HErrCRCMismatch
+  ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ Hd1
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold EtcdGrove.walpb.walpbInit
+  iexists _
+  iframe HErrCRCMismatch TC
+  unfold EtcdGrove.errOk
+  iintro !> %Φ' HΦ'
+  iapply EC
+  inext
+  iapply HΦ'
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

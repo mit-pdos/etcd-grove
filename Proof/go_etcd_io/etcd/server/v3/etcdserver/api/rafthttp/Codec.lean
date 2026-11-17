@@ -25,7 +25,8 @@ the plan: `notes/rafthttp-plan.md`, stage 3.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
+public import Proof.go_etcd_io.raft.v3.PbMessage
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Net
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PerTypeMessage
 public import Proof.encoding.binary.Defs
 public import Proof.net.http.Boundary

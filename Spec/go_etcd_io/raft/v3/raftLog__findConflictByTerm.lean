@@ -28,7 +28,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 agreeing with a log whose entry at `index` has term `term`.
 
 Only `i' <= index` is specified (and, 2026-10-19, D21 M3, that the walk stops at or above `1`
-when the log's term at `1` is at most `term`), and the log is unchanged. The result is a *hint* --
+when the log's term at `1` is at most `term`; and, 2026-11-10, trace-check slice 20b, `t' <= term`),
+and the log is unchanged. The result is a *hint* --
 the `RejectHint`/`LogTerm` of a rejecting `MsgAppResp`, and the leader's next probe --
 and the protocol model takes any hint (`Step.appReject` quantifies over it), so
 pinning it buys nothing for safety.
@@ -51,6 +52,10 @@ abbrev raftLog.findConflictByTerm.spec : Prop :=
       (Val #index)) (Val #term))
   {{ (i' t' : w64), RET (PairV #i' #t');
       ownRaftLog l ls ∗ ⌜uint.Z i' ≤ uint.Z index ∧
+        -- (2026-11-10, trace-check slice 20b) the hint's term at most `term` (the loop returns a
+        -- term it compared with `term`, or `0`): a traced rejection's `LogTerm` is then within the
+        -- trace's number bound, as the received request's is
+        uint.Z t' ≤ uint.Z term ∧
         -- (2026-10-19, D21 M3) the walk stops at or above `1` when the log's term at `1`, if it
         -- has one, is at most `term` (a leader's rejection handling in the no-snapshot mode)
         (1 ≤ uint.Z index →

@@ -302,6 +302,7 @@ public import Proof.os.File__Stat
 public import Proof.os.File__Sync
 public import Proof.os.File__Truncate
 public import Proof.os.File__WriteAt
+public import Proof.os.File__WriteAtExt
 public import Proof.os.Getenv
 public import Proof.os.OpenFile
 public import Proof.os.fileStat__Size

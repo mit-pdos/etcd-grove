@@ -118,6 +118,15 @@ abbrev DB.pageInBuffer.spec_own : Prop :=
   {{ RET #(b.ptr +ₗ ((id.toNat * 4096 : Nat) : Int)); db.[DB, go!"pageSize"] ↦{dq} W64 4096 }}
 
 omit hos in
+/-- `File.Stat`'s error, a `*PathError` of an errno if non-nil (`os.errnoPathErr`), is a pointer error. -/
+theorem stat_err_ptr (err : GoInterface) :
+    (iprop(⌜err = GoInterface.nil⌝ ∨ ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr (GF := GF) err e) : IProp GF) ⊢
+      ⌜∀ ii, err = GoInterface.ok ii → _root_.Perennial.errors.IsPointerError ii⌝ := by
+  unfold os.errnoPathErr
+  iintro (%h | ⟨%e, -, %pe, %op, %path, %h, -⟩)
+  · ipureintro; intro ii hii; subst h; cases hii
+  · ipureintro; intro ii hii; subst h; cases hii; exact ⟨_, pe, rfl, rfl⟩
+
 theorem DB.pageInBuffer.wp_proof_own : DB.pageInBuffer.spec_own (GF := GF) (hG := hG) := by
   intro db b id dq Hlt Hlen Hpos
   wp_start as Hps
@@ -289,8 +298,9 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
   isimp only [_root_.Perennial.errors.newVar] at Hn
   icases Hn with ⟨%eofl, #Heof, -⟩
   wp_auto
-  wp_apply hStat f fd pp dqf dq dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, %Hptr⟩
+  wp_apply hStat f fd pp dqf dq dqm d m $$ [Hfo Hfd Hm] as %fi %err ⟨Hfo, Hfd, Hm, Hr, #Hek, HptrE⟩
   · rw [← fileOwn_eq]; iframe; iframe #
+  icases stat_err_ptr err $$ HptrE with %Hptr
   try wp_auto
   icases Hr with (⟨%fs, %Hfs, Hst⟩ | %Hfs)
   · obtain ⟨rfl, rfl⟩ := Hfs

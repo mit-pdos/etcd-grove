@@ -23,6 +23,7 @@ module
 
 public import Proof.os.Base
 public import Spec.fmt.ErrorOk
+public import Spec.os.WriteLong
 
 @[expose] public section
 
@@ -74,7 +75,9 @@ client's halves of the cells of every mapping over `[min off size, off + n)`.
 After it, the file is as a write of the first `j` bytes of `b` left it: its `OsMeta` as
 `pwPost m off a j` (the size `pwSize m.size off j`: `max size (off + j)` once anything landed, the
 size otherwise; the range up to `off + a` announced, `a` the end of the last chunk attempted, at
-least `j` and the first chunk's end), and the bytes from `min off size` with the values `pwValsG`
+least `j` and the first chunk's end), except that the page cache known zero past the size is as the
+last attempt that landed its whole chunk, ending at `E`, left it (`os.pwPostE`, as `specLong`'s post,
+`Spec/os/WriteLong.lean`: `E ≤ j`, `E = a` when `j = a`; ledger 2026-11-15), and the bytes from `min off size` with the values `pwValsG`
 gives (the gap zero once anything landed, `b`'s first `j` bytes at `off`, the old bytes elsewhere,
 up to the new size); their candidates are not stated. On success `j = n`, `a = n` and the result
 is `(n, nil)`; on failure `(0, err)`, `err ≠ nil`. `j` is a page cut of the write or a whole number
@@ -92,13 +95,13 @@ abbrev os.File.WriteAt.specExt : Prop :=
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
       os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
-      ∃ (j a : Nat) (ys : List ByteG),
-        ⌜j ≤ a ∧ a ≤ data.length ∧ min data.length 0x40000000 ≤ a ∧
+      ∃ (j a E : Nat) (ys : List ByteG),
+        ⌜j ≤ a ∧ a ≤ data.length ∧ min data.length 0x40000000 ≤ a ∧ E ≤ j ∧ (j = a → E = a) ∧
           ys.map Prod.fst = pwValsG m.size off.toNat data j xs ∧
           os.WaCut off.toNat data.length j ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
            (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
-        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat a j) ∗
+        osMeta d.ino (DFrac.own 1) (os.pwPostE m off.toNat a j E) ∗
         osBytes d.ino (min off.toNat m.size) (DFrac.own 1) ys ∗
         mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) ∗
       fmtErrorOkOrNil err }}

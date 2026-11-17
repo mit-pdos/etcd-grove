@@ -24,7 +24,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC_DIRS = ("Code", "TrustedCode", "GeneratedProof", "ManualProof", "Spec", "Proof", "RaftWitness",
-            "EtcdDeps", "GooseLang")
+            "RaftTla", "EtcdDeps", "GooseLang")
 IMP = re.compile(r"^\s*(?:public\s+)?(?:meta\s+)?import\s+all\s+([A-Za-z0-9_.']+)", re.M)
 
 

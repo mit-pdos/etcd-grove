@@ -5,6 +5,7 @@ the file's size is unchanged and the range's bytes are the data or the old ones.
 module
 
 public import Proof.os.Base
+public import Spec.os.WriteLong
 
 @[expose] public section
 
@@ -24,6 +25,12 @@ theorem pwSize_inside (sz off j : Nat) (n : Nat) (hj : j ≤ n) (h : off + n ≤
 theorem pwPost_inside (m : OsMeta) (off n a k : Nat) (hk : k ≤ n) (h : off + n ≤ m.size) :
     (pwPost m off a k).size = m.size ∧ (pwPost m off a k).maps = m.maps :=
   ⟨pwSize_inside m.size off k n hk h, by simp only [pwPost, announce_maps]⟩
+
+/-- `pwPost_inside` for `os.pwPostE` (`WriteAt.specExt`'s post), which differs from `pwPost` only in
+the page cache known zero. -/
+theorem pwPostE_inside (m : OsMeta) (off n a k E : Nat) (hk : k ≤ n) (h : off + n ≤ m.size) :
+    (os.pwPostE m off a k E).size = m.size ∧ (os.pwPostE m off a k E).maps = m.maps :=
+  pwPost_inside m off n a k hk h
 
 /-- **The values after an all-or-nothing write inside the file** (`WriteAt.specExt`'s `pwValsG`):
 the old bytes (`j = 0`) or the data (`j = data.length`). -/

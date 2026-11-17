@@ -89,7 +89,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     · unfold nodeCtx; iright; iexact Hctx
     -- (raft-entsize §3) the conf change at its content
     icases own_ccPtsCC cc (DFrac.own 1) o $$ Hcc with ⟨%cco, Hcc, %Hcco⟩
-    wp_apply wp_ProposeConfChange n γ.r.cluster kdRaftN id cc o cco (DFrac.own 1) ctx' cd
+    wp_apply wp_ProposeConfChange n γ.r.cluster kdRaftN id cc o cco (DFrac.own 1) ctx' cd Htr0
       $$ [$Hraftinit $HisNode $Hnc $Hcc $Hpau] as %err -
     · -- (raft-entsize §3) no bound on proposed data (`Hmd`)
       ipureintro; exact ⟨Hcco, fun b h => by simp [Hmd] at h⟩

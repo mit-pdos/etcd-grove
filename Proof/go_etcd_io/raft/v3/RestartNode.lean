@@ -123,6 +123,14 @@ private theorem storBnd_raftBnd (γ : Cluster) (K : GName) (sn : StorNames) (c :
       raftBnd sn c := by
   iintro #Hsn #H0 Hb
   unfold EtcdGrove.storBnd EtcdGrove.nodeAppliedLb nodeAppliedLbU raftBnd
+  -- (2026-11-12, Q39 (a)) the gate: traced, `c = 0`
+  cases htr : Cluster.trace γ <;> dsimp only
+  case some =>
+    icases Hb with %Hc0
+    ileft
+    iexists 0
+    isplitr; · ipureintro; omega
+    ileft; iexact H0
   icases Hb with ⟨%k, %Hk, (%Hk0 | ⟨%sn', #Hsn', (#Hl | #Hl | %Hl)⟩)⟩
   · ileft
     iexists 0
@@ -399,7 +407,8 @@ private theorem wp_RestartNode_impl
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     EtcdGrove.RestartNode.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.RestartNode.spec
-  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs
+  intro γ N c cv lok si σ csm a m Q F H1 H2 H3 H4 H5 H6 H7 H8 H9 Hmx Happ Ha1 Ha2 Hboot Hcs Htlk HtrC
+  have HtrG : γ.raft.reTrace = none := HtrC
   wp_start as ⟨Hc, #Hlg, #Hcl, Hvac, #Hfits, HAU, #Hconf, Hrs⟩
   iunfold EtcdGrove.isCluster at Hcl
   ihave #Hcl' := Hcl
@@ -605,16 +614,20 @@ private theorem wp_RestartNode_impl
       have := uint_nat_eq σ.base.index'; have := uint_nat_eq σ.hs.Commit'
       have := uint_nat_eq cv.Applied'; omega
   wp_apply wp_NewRawNode c cv lok si sn σv σ.hs csm iprop(Rb ∗ storAuths sn.unrec σv)
-    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) H1 H2 H3 H4 H5 H6 H7 H8
+    iprop(∃ K, storKeyNames K sn ∗ F K) (stOf m) γ.raft [] H1 H2 H3 H4 H5 H6 H7 H8
     (fun h => by
       change γ.raft.maxData.isSome = true at h
       have h2 := Hmx (by intro hn; change γ.raft.maxData = none at hn; rw [hn] at h; cases h)
       word) H9
     (by show LogIndicesOk σ.base σ.ents; rw [Hse]; exact Hwf) rfl Hf.1 (by rw [Hca]; exact Hf.2) (Int.le_refl _) (Nat.le_refl _)
-    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk
+    rfl Hlast HAR (.inr ⟨HbcZ, HcL⟩) Happ' Hrestore Hcsl HcsOk (fun h => absurd HtrG h)
     $$ [Hc HRb HA]
-    as %rn %err ⟨⟨%K, #HKn, HFK⟩, %s, Hrn, %Herr, %Hsn2⟩
-  · iframe Hc Hlg
+    as %rn %err ⟨⟨%K, #HKn, HFK⟩, -, %s, %r, Hrn, %Herr, %Hsn2, -⟩
+  · -- (2026-11-12, trace-check step 5) untraced: the capability's start is the nil logger
+    ihave Htc : trCapStart (GF := GF) γ.raft.reTrace γ.raft cv.ID' cv.TraceLogger' (bootCfg [])
+        (bootPhase [] cv.ID') bootNone $$ []
+    · rw [HtrG]; unfold trCapStart; ipureintro; exact Htlk
+    iframe Hc Hlg Htc
     isplitl [HRb HA]
     · iframe HRb HA
     isplitr
@@ -637,6 +650,9 @@ private theorem wp_RestartNode_impl
     iintro %hp %cs %al ⟨Hhs, Hcs, Hk⟩
     iapply HΦ'
     iframe Hhs Hcs
+    -- (2026-11-12, trace-check step 5) untraced: no compaction to refute
+    ihave #Hnc := trNoCut_none (GF := GF) (interface.ok si)
+    rw [HtrG]; iframe Hnc
     -- the attach: a fresh key recording raft's storage names
     imod dghostVar_alloc (GF := GF)
       ((sn.ga, sn.gg, sn.gsv, sn.gd, sn.gk, sn.a0, sn.c0, sn.ct, sn.sz) :
@@ -724,7 +740,7 @@ private theorem wp_RestartNode_impl
     iexists K
     iframe HKn HFK
   subst Herr
-  obtain ⟨Hlsn, Hgsn⟩ := Hsn2
+  obtain ⟨Hlsn, Hgsn, Hgtr0, -⟩ := Hsn2
   -- the committed log handed out at the start: up to `max b A`
   have Ha0c : max σ.b (uint.nat cv.Applied') ≤ σ.commit := by omega
   have HDlen : ((fp ++ σ.ents).take (max σ.b (uint.nat cv.Applied'))).length =
@@ -753,6 +769,9 @@ private theorem wp_RestartNode_impl
   iunfold rawNodeAt at Hrn
   icases Hrn with ⟨%rnv, %sv, %hprev, Hrn⟩
   iNamed Hrn
+  -- (2026-11-12, trace-check step 5) the trace mode, untraced
+  have Hgh : s.gh = { sn := s.gh.sn } := by
+    have h := Hgh; rw [Hgtr0, HtrG] at h; exact h
   obtain ⟨Ht, Hv, Hr, Ho, Hst0, Hpd⟩ := Hterm
   obtain ⟨Hlp, Hse0, Hue, Hsd, Hcm, Hap, Hapg, Hun, Hsn0, Hsg, Hdtk⟩ := Hlog
   -- the term ceiling raised to the term, which the budget covers (`termLB`)
@@ -814,10 +833,8 @@ private theorem wp_RestartNode_impl
     iapply (ownStepGhost_dyn γ.raft noDec (stOf c0m) h0 g (stOf m).cfg cv.ID' s1).2
     isplitr
     · ipureintro
-      refine ⟨HD, rfl, ?_⟩
-      unfold NsLink
-      show s.gh.ns = _
-      rw [Hgh, Hns]
+      refine ⟨HD, rfl, ⟨by show s.gh.ns = _; rw [Hgh, Hns], by show s.gh.tr = _; rw [Hgh, HtrG],
+        fun m _ => MsgTrOk.of_none HtrG m⟩⟩
     isplitr; · iexact HMA
     isplitl [Hg]
     · unfold ownRaftGhostR
@@ -883,6 +900,7 @@ private theorem wp_RestartNode_impl
     · change s.logst.snap = some p at hp; rw [Hsn0] at hp; cases hp
   ihave Hrn : ownRawNode γ.raft rn cv.ID' rs0 $$ [Hrn Hphys Hghost Hsteps Hsteps_cap]
   · iapply ownRawNode_intro γ.raft rn cv.ID' rs0 s1 (stOf m).cfg fp (ds := MA) rnv sv hprev []
+      (Hglq := by show s.gh.lq = []; rw [Hgh])
       Hrel.2 (fun h => by simp only [rs0] at h; rw [Hmd] at h; cases h) Hasync
       (by show ((fp ++ σ.ents).take _).length = _; rw [HDlen, toNat_uZ]; exact Happn.symm)
       Hun.symm (fun _ => Hsn0) trivial Ht.symm ⟨Hsg.symm, Hlsn.symm⟩
@@ -902,6 +920,7 @@ private theorem wp_RestartNode_impl
           obtain ⟨t, ht, -⟩ := restartCt_complete HcF (by omega) hi2
           exact ⟨hi2, t, ht⟩⟩
       Hsvr.1.symm HphsR
+      (show s.gh.tr = γ.raft.reTrace by rw [Hgh, HtrG])
       $$ Hrn Hphys Hghost [] Hsoft Hph Hsteps Hsteps_cap [] HcD [] [] [] Hdurt
     · iunfold sdrOk; iexists _; iexact Hsd0
     · iapply pendList_nil
@@ -1022,7 +1041,8 @@ private theorem wp_RestartNode_impl
   imod start_handshake nv.confc' (confcP γn) iprop(True) γc $$ Hcc Hoc with #Hhc
   imod start_handshake nv.confstatec' (confstateP γn) iprop(True) γcs $$ Hccs Hocs with #Hhcs
   imod start_handshake nv.readyc' (readyP γn) iprop(True) γrd $$ Hcrd Hord with #Hhrd
-  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa with #Hha
+  imod adv_start γn nv.rn' cv.ID' nv.advancec' $$ Hca Hoa [] with #Hha
+  · iapply gateTr_none _ _ HtrG
   imod alloc_broadcast_chan (nodeStoppedRaw γn) γd nv.done' $$ Hcd Hod with Hpend
   icases ownBroadcastChan_pending_unknown nv.done' γd (nodeStoppedRaw γn) $$ Hpend with ⟨Hpend, #Hhd⟩
   imod start_handshake nv.stop' (fun (_ : Unit) => dghostVar γn.live (DFrac.own (1 : Qp).half) false)
@@ -1044,9 +1064,10 @@ private theorem wp_RestartNode_impl
     ipureintro; rfl
   -- `go n.run()`
   wp_apply wp_fork $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1 Hdur1 Hbw Hfree]
-  · wp_apply wp_node_run γn cv.ID' n_ptr $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1 Hcam Hpend Hlive1
-      Hdur1 Hbw Hfree]
-    · iframe Hnode
+  · ihave Hrtk0 := gateTr_none (GF := GF) γn.raft.reTrace (rtkRun γn.esc none) HtrG
+    wp_apply wp_node_run γn cv.ID' n_ptr (fun h => absurd HtrG h) $$ [Hrn Hdlv1 Hrof1 Hrof2 Hdlm Hcap1
+      Hcam Hpend Hlive1 Hdur1 Hbw Hfree Hrtk0]
+    · iframe Hnode Hrtk0
       unfold runPre
       iexists nv, _, (([], [], [], hsZero, none) : List EntryM × List EntryM × List EntryM ×
         HardStateM × Option SnapLoan)
@@ -1114,6 +1135,8 @@ private theorem wp_RestartNode_impl
     iframe Hdur2
     unfold nodeDriverChan dlvLb
     iframe Hnode Hdlv2 Hdlb HdK
+    isplitr
+    · iapply gateTr_none _ _ HtrG
     iexists _
     iframe Hreq1 Hreq2
   isplitl [Hcap2 Hccq1 Hccq2]

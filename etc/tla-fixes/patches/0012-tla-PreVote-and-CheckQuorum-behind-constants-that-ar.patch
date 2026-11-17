@@ -1,0 +1,365 @@
+From 6856e6d8cc590ed6ec7c4c7bd38209a0aa2973e8 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 21:23:58 +0000
+Subject: [PATCH 12/12] tla: PreVote and CheckQuorum, behind constants that are
+ FALSE by default
+
+PreVote: a pre-candidate state, pre-vote requests and answers (no term or vote
+change), and with it a node campaigns only after winning a pre-vote.
+CheckQuorum: the lease (IgnoreInLease, taken in trace validation only where raft
+logs IgnoreRequestVoteRequest) and, with either, the bare MsgAppResp answering an
+older leader. With both FALSE the specification takes the steps it took before.
+Traceetcdraft reads them from PREVOTE and CHECKQUORUM.
+etc/tla-fixes/README.md, "PreVote and CheckQuorum".
+---
+ tla/MCetcdraft.cfg    |   6 ++
+ tla/Traceetcdraft.cfg |   6 ++
+ tla/Traceetcdraft.tla |  35 +++++++++--
+ tla/etcdraft.tla      | 137 ++++++++++++++++++++++++++++++++++++++----
+ 4 files changed, 167 insertions(+), 17 deletions(-)
+
+diff --git a/tla/MCetcdraft.cfg b/tla/MCetcdraft.cfg
+index 687181b..17890f9 100644
+--- a/tla/MCetcdraft.cfg
++++ b/tla/MCetcdraft.cfg
+@@ -52,6 +52,12 @@ CONSTANTS
+     AppendEntriesRequest    =   "AppendEntriesRequest"
+     AppendEntriesResponse   =   "AppendEntriesResponse"
+ 
++    PreVote         = FALSE
++    CheckQuorum     = FALSE
++    PreCandidate    = "PreCandidate"
++    PreVoteRequest  = "PreVoteRequest"
++    PreVoteResponse = "PreVoteResponse"
++
+ SYMMETRY Symmetry
+ VIEW View
+ 
+diff --git a/tla/Traceetcdraft.cfg b/tla/Traceetcdraft.cfg
+index 6e7c9fa..7167961 100644
+--- a/tla/Traceetcdraft.cfg
++++ b/tla/Traceetcdraft.cfg
+@@ -57,6 +57,12 @@ CONSTANTS
+     AppendEntriesRequest    =   "AppendEntriesRequest"
+     AppendEntriesResponse   =   "AppendEntriesResponse"
+ 
++    PreCandidate    = "StatePreCandidate"
++    PreVoteRequest  = "PreVoteRequest"
++    PreVoteResponse = "PreVoteResponse"
++    PreVote     <- TracePreVote
++    CheckQuorum <- TraceCheckQuorum
++
+     InitServerVars  <- TraceInitServerVars
+     InitLogVars     <- TraceInitLogVars
+     InitConfigVars  <- TraceInitConfigVars
+diff --git a/tla/Traceetcdraft.tla b/tla/Traceetcdraft.tla
+index bae6a25..4fcaa6d 100644
+--- a/tla/Traceetcdraft.tla
++++ b/tla/Traceetcdraft.tla
+@@ -21,7 +21,8 @@ RaftMsgType ==
+     "MsgApp" :> AppendEntriesRequest @@ "MsgAppResp" :> AppendEntriesResponse @@
+     "MsgVote" :> RequestVoteRequest @@ "MsgVoteResp" :> RequestVoteResponse @@
+     "MsgHeartbeat" :> AppendEntriesRequest @@ "MsgHeartbeatResp" :> AppendEntriesResponse @@
+-    "MsgSnap" :> AppendEntriesRequest
++    "MsgSnap" :> AppendEntriesRequest @@
++    "MsgPreVote" :> PreVoteRequest @@ "MsgPreVoteResp" :> PreVoteResponse
+ 
+ RaftMsgSubtype ==
+     "MsgHeartbeat" :> "heartbeat" @@ "MsgHeartbeatResp" :> "heartbeat" @@
+@@ -34,6 +35,12 @@ RaftMsgSubtype ==
+  \* mode, i.e., breadth-first search.
+ ASSUME TLCGet("config").mode = "bfs"
+ 
++\* raft's Config.PreVote and Config.CheckQuorum, which the trace does not record: the environment
++\* variables PREVOTE and CHECKQUORUM ("1" or "true"), off by default.
++EnvFlag(name) == name \in DOMAIN IOEnv /\ IOEnv[name] \in {"1", "true"}
++TracePreVote == EnvFlag("PREVOTE")
++TraceCheckQuorum == EnvFlag("CHECKQUORUM")
++
+ JsonFile ==
+     IF "JSON" \in DOMAIN IOEnv THEN IOEnv.JSON ELSE "./example.ndjson"
+ 
+@@ -183,7 +190,7 @@ LoglineIsAppendEntriesResponse(m) ==
+     /\ (\lnot logline.event.msg.reject /\ m.msubtype /= "heartbeat") => m.mmatchIndex = logline.event.msg.index
+ 
+ LoglineIsRequestVoteRequest(m) ==  
+-    /\ m.mtype = RequestVoteRequest
++    /\ m.mtype \in {RequestVoteRequest, PreVoteRequest}
+     /\ m.mtype = RaftMsgType[logline.event.msg.type]
+     /\ m.mdest = logline.event.msg.to
+     /\ m.msource = logline.event.msg.from
+@@ -192,7 +199,7 @@ LoglineIsRequestVoteRequest(m) ==
+     /\ m.mlastLogTerm = logline.event.msg.logTerm
+ 
+ LoglineIsRequestVoteResponse(m) ==  
+-    /\ m.mtype = RequestVoteResponse
++    /\ m.mtype \in {RequestVoteResponse, PreVoteResponse}
+     /\ m.mtype = RaftMsgType[logline.event.msg.type]
+     /\ m.mdest = logline.event.msg.to
+     /\ m.msource = logline.event.msg.from
+@@ -230,9 +237,23 @@ RequestVoteIfLogged(i, j) ==
+        \* etcd candidate sends MsgVoteResp to itself upon compain starting
+        \/ /\ LoglineIsMessageEvent("SendRequestVoteResponse", i, j)
+           /\ i = j 
+-    /\ RequestVote(i, j)
++    /\ \/ RequestVote(i, j)
++       \/ RequestPreVote(i, j)
+     /\ ValidateAfterRequestVote(i, j)   
+ 
++\* perform PreTimeout transition if logline indicates so
++PreTimeoutIfLogged(i) ==
++    /\ LoglineIsNodeEvent("BecomePreCandidate", i)
++    /\ PreTimeout(i)
++    /\ ValidatePostStates(i)
++
++\* a vote or pre-vote request raft ignored within its leader lease (IgnoreRequestVoteRequest)
++IgnoreInLeaseIfLogged(m) ==
++    /\ LoglineIsEvent("IgnoreRequestVoteRequest")
++    /\ LoglineIsRequestVoteRequest(m)
++    /\ ValidatePreStates(m.mdest)
++    /\ IgnoreInLease(m)
++
+ \* perform BecomeLeader transition if logline indicates so
+ ValidateAfterBecomeLeader(i) == 
+     /\ ValidatePostStates(i)
+@@ -387,7 +408,7 @@ LoglineIsBecomeFollowerInUpdateTermOrReturnToFollower ==
+                \/ /\ TraceLog[k].event.name = "ReceiveAppendEntriesRequest"
+                   /\ TraceLog[k].event.state.term = TraceLog[k].event.msg.term
+                   /\ TraceLog[k].event.msg.term = logline.event.state.term
+-                  /\ TraceLog[k].event.role = Candidate
++                  /\ TraceLog[k].event.role \in {Candidate, PreCandidate}
+ 
+ StepDownToFollowerIfLogged(i) ==
+     /\ LoglineIsNodeEvent("BecomeFollower", i)
+@@ -424,6 +445,10 @@ TraceNextNonReceiveActions ==
+           /\ \E i,j \in Server : \E index \in 1..commitIndex[i] : SendSnapshotIfLogged(i, j, index)
+        \/ /\ LoglineIsEvent("BecomeCandidate")
+           /\ \E i \in Server : TimeoutIfLogged(i)
++       \/ /\ LoglineIsEvent("BecomePreCandidate")
++          /\ \E i \in Server : PreTimeoutIfLogged(i)
++       \/ /\ LoglineIsEvent("IgnoreRequestVoteRequest")
++          /\ \E m \in DOMAIN messages : IgnoreInLeaseIfLogged(m)
+        \/ /\ LoglineIsEvent("ChangeConf") 
+           /\ \E i,j \in Server: AddNewServerIfLogged(i, j)
+        \/ /\ LoglineIsEvent("ChangeConf")
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index bbbcc29..e9e5585 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -55,6 +55,24 @@ CONSTANTS
+     \* @type: Str;
+     AppendEntriesResponse
+ 
++\* raft's Config.PreVote and Config.CheckQuorum. Every action and condition below that depends
++\* on them is guarded by them: with both FALSE the specification is the one without them.
++CONSTANTS
++    \* @type: Bool;
++    PreVote,
++    \* @type: Bool;
++    CheckQuorum
++ASSUME PreVote \in BOOLEAN /\ CheckQuorum \in BOOLEAN
++
++\* The pre-candidate state and the pre-vote messages (reached only with PreVote).
++CONSTANTS
++    \* @type: Str;
++    PreCandidate,
++    \* @type: Str;
++    PreVoteRequest,
++    \* @type: Str;
++    PreVoteResponse
++
+ 
+ ----
+ \* Global variables
+@@ -300,8 +318,11 @@ Restart(i) ==
+ 
+ \* Server i times out and starts a new election.
+ \* @type: Int => Bool;
+-Timeout(i) == /\ state[i] \in {Follower, Candidate}
++Timeout(i) == /\ state[i] \in {Follower, Candidate, PreCandidate}
+               /\ i \in GetConfig(i)
++              \* with PreVote, a node campaigns only once its pre-vote won (raft's campaign)
++              /\ PreVote => /\ state[i] = PreCandidate
++                            /\ votesGranted[i] \in Quorum(GetConfig(i))
+               /\ state' = [state EXCEPT ![i] = Candidate]
+               /\ currentTerm' = [currentTerm EXCEPT ![i] = currentTerm[i] + 1]
+               /\ votedFor' = [votedFor EXCEPT ![i] = i]
+@@ -312,6 +333,35 @@ Timeout(i) == /\ state[i] \in {Follower, Candidate}
+ 
+ \* Candidate i sends j a RequestVote request.
+ \* @type: (Int, Int) => Bool;
++\* Server i starts a pre-vote (raft's becomePreCandidate): its term and vote unchanged.
++PreTimeout(i) == /\ PreVote
++                 /\ state[i] \in {Follower, Candidate, PreCandidate}
++                 /\ i \in GetConfig(i)
++                 /\ state' = [state EXCEPT ![i] = PreCandidate]
++                 /\ lead' = [lead EXCEPT ![i] = Nil]
++                 /\ votesResponded' = [votesResponded EXCEPT ![i] = {}]
++                 /\ votesGranted'   = [votesGranted EXCEPT ![i] = {}]
++                 /\ UNCHANGED <<messageVars, currentTerm, votedFor, leaderVars, logVars, configVars, durableState>>
++
++\* Pre-candidate i asks j for a pre-vote for its next term (to itself: its own grant).
++RequestPreVote(i, j) ==
++    /\ PreVote
++    /\ state[i] = PreCandidate
++    /\ j \in ((GetConfig(i) \union GetLearners(i)) \ votesResponded[i])
++    /\ IF i # j
++        THEN Send([mtype            |-> PreVoteRequest,
++                   mterm            |-> currentTerm[i] + 1,
++                   mlastLogTerm     |-> LastTerm(log[i]),
++                   mlastLogIndex    |-> Len(log[i]),
++                   msource          |-> i,
++                   mdest            |-> j])
++        ELSE Send([mtype            |-> PreVoteResponse,
++                   mterm            |-> currentTerm[i] + 1,
++                   mvoteGranted     |-> TRUE,
++                   msource          |-> i,
++                   mdest            |-> i])
++    /\ UNCHANGED <<messages, serverVars, candidateVars, leaderVars, logVars, configVars, durableState>>
++
+ RequestVote(i, j) ==
+     /\ state[i] = Candidate
+     /\ j \in ((GetConfig(i) \union GetLearners(i)) \ votesResponded[i])
+@@ -514,7 +564,7 @@ BecomeFollowerOfTerm(i, t) ==
+             UNCHANGED <<votedFor>>
+ 
+ StepDownToFollower(i) ==
+-    /\ state[i] \in {Leader, Candidate}
++    /\ state[i] \in {Leader, Candidate, PreCandidate}
+     /\ BecomeFollowerOfTerm(i, currentTerm[i])
+     /\ UNCHANGED <<messageVars, candidateVars, leaderVars, logVars, configVars, durableState>>
+ 
+@@ -550,28 +600,79 @@ HandleRequestVoteRequest(i, j, m) ==
+ \* @type: (Int, Int, RVRESPT) => Bool;
+ HandleRequestVoteResponse(i, j, m) ==
+     \* This tallies votes even when the current state is not Candidate, but
+-    \* they won't be looked at, so it doesn't matter.
++    \* they won't be looked at, so it doesn't matter. (A pre-candidate, which tallies pre-votes,
++    \* ignores it.)
+     /\ m.mterm = currentTerm[i]
+-    /\ votesResponded' = [votesResponded EXCEPT ![i] =
+-                              votesResponded[i] \cup {j}]
+-    /\ \/ /\ m.mvoteGranted
+-          /\ votesGranted' = [votesGranted EXCEPT ![i] =
+-                                  votesGranted[i] \cup {j}]
+-       \/ /\ ~m.mvoteGranted
+-          /\ UNCHANGED <<votesGranted>>
++    /\ IF state[i] = PreCandidate THEN UNCHANGED candidateVars
++       ELSE /\ votesResponded' = [votesResponded EXCEPT ![i] =
++                                     votesResponded[i] \cup {j}]
++            /\ \/ /\ m.mvoteGranted
++                  /\ votesGranted' = [votesGranted EXCEPT ![i] =
++                                          votesGranted[i] \cup {j}]
++               \/ /\ ~m.mvoteGranted
++                  /\ UNCHANGED <<votesGranted>>
+     /\ Discard(m)
+     /\ UNCHANGED <<pendingMessages, serverVars, votedFor, leaderVars, logVars, configVars, durableState>>
+ 
+ \* @type: (Int, Int, AEREQT, Bool) => Bool;
++\* Server i receives a pre-vote request from j (raft's Step for MsgPreVote): it grants it for a
++\* future term, or as it would a vote in its own term, if j's log is up to date; it changes no
++\* state of its own. The answer carries the request's term if granted, else i's.
++HandlePreVoteRequest(i, j, m) ==
++    LET logOk == \/ m.mlastLogTerm > LastTerm(log[i])
++                 \/ /\ m.mlastLogTerm = LastTerm(log[i])
++                    /\ m.mlastLogIndex >= Len(log[i])
++        grant == /\ logOk
++                 /\ \/ m.mterm > currentTerm[i]
++                    \/ /\ m.mterm = currentTerm[i]
++                       /\ \/ votedFor[i] = j
++                          \/ votedFor[i] = Nil /\ lead[i] = Nil
++    IN /\ Reply([mtype        |-> PreVoteResponse,
++                 mterm        |-> IF grant THEN m.mterm ELSE currentTerm[i],
++                 mvoteGranted |-> grant,
++                 msource      |-> i,
++                 mdest        |-> j],
++                 m)
++       /\ UNCHANGED <<serverVars, candidateVars, leaderVars, logVars, configVars, durableState>>
++
++\* Server i receives a pre-vote answer of a term at least its own (a refusal of a later term
++\* first makes it a follower of that term, UpdateTerm): a pre-candidate tallies it.
++HandlePreVoteResponse(i, j, m) ==
++    /\ m.mterm >= currentTerm[i]
++    /\ ~m.mvoteGranted => m.mterm = currentTerm[i]
++    /\ IF state[i] = PreCandidate
++       THEN /\ votesResponded' = [votesResponded EXCEPT ![i] = votesResponded[i] \cup {j}]
++            /\ votesGranted' = IF m.mvoteGranted
++                               THEN [votesGranted EXCEPT ![i] = votesGranted[i] \cup {j}]
++                               ELSE votesGranted
++       ELSE UNCHANGED candidateVars
++    /\ Discard(m)
++    /\ UNCHANGED <<pendingMessages, serverVars, leaderVars, logVars, configVars, durableState>>
++
++\* Server i ignores a vote or pre-vote request of a later term while it has heard from its
++\* leader within the election timeout (raft's lease, CheckQuorum). The specification has no
++\* time: it may ignore one whenever i knows a leader; trace validation takes this step only
++\* where raft logs IgnoreRequestVoteRequest.
++IgnoreInLease(m) ==
++    LET i == m.mdest IN
++    /\ CheckQuorum
++    /\ m.mtype \in {RequestVoteRequest, PreVoteRequest}
++    /\ m.mterm > currentTerm[i]
++    /\ lead[i] /= Nil
++    /\ Discard(m)
++    /\ UNCHANGED <<pendingMessages, serverVars, candidateVars, leaderVars, logVars, configVars, durableState>>
++
+ RejectAppendEntriesRequest(i, j, m, logOk) ==
+     /\ \/ m.mterm < currentTerm[i]
+        \/ /\ m.mterm = currentTerm[i]
+           /\ state[i] = Follower
+           /\ \lnot logOk
++    \* With PreVote or CheckQuorum, raft answers an append request of an older term with a bare
++    \* MsgAppResp of its own term (not a rejection), which makes a stale leader step down.
+     /\ Reply([mtype           |-> AppendEntriesResponse,
+               msubtype        |-> "app",
+               mterm           |-> currentTerm[i],
+-              msuccess        |-> FALSE,
++              msuccess        |-> (PreVote \/ CheckQuorum) /\ m.mterm < currentTerm[i],
+               mmatchIndex     |-> 0,
+               msource         |-> i,
+               mdest           |-> j],
+@@ -581,7 +682,7 @@ RejectAppendEntriesRequest(i, j, m, logOk) ==
+ \* @type: (Int, MSG) => Bool;
+ ReturnToFollowerState(i, m) ==
+     /\ m.mterm = currentTerm[i]
+-    /\ state[i] = Candidate
++    /\ state[i] \in {Candidate, PreCandidate}
+     /\ state' = [state EXCEPT ![i] = Follower]
+     /\ UNCHANGED <<messageVars, currentTerm, votedFor, logVars, configVars, durableState>> 
+ 
+@@ -709,6 +810,10 @@ HandleAppendEntriesResponse(i, j, m) ==
+ \* @type: (Int, Int, MSG) => Bool;
+ UpdateTerm(i, j, m) ==
+     /\ m.mterm > currentTerm[i]
++    \* raft never changes its term for a pre-vote request, nor for a granted pre-vote (of the
++    \* pre-candidate's next term)
++    /\ m.mtype /= PreVoteRequest
++    /\ ~(m.mtype = PreVoteResponse /\ m.mvoteGranted)
+     /\ BecomeFollowerOfTerm(i, m.mterm)
+        \* messages is unchanged so m can be processed further.
+     /\ UNCHANGED <<messageVars, candidateVars, leaderVars, logVars, configVars, durableState>>
+@@ -737,6 +842,11 @@ ReceiveDirect(m) ==
+     \/  /\ m.mtype = AppendEntriesResponse
+         /\ \/ DropStaleResponse(i, j, m)
+            \/ HandleAppendEntriesResponse(i, j, m)
++    \/  /\ m.mtype = PreVoteRequest
++        /\ HandlePreVoteRequest(i, j, m)
++    \/  /\ m.mtype = PreVoteResponse
++        /\ \/ DropStaleResponse(i, j, m)
++           \/ HandlePreVoteResponse(i, j, m)
+ 
+ Receive(m) == ReceiveDirect(m)
+ 
+@@ -778,6 +888,9 @@ NextAsync ==
+     \/ \E i,j \in Server : \E index \in 1..commitIndex[i] : SendSnapshot(i, j, index)
+     \/ \E m \in DOMAIN messages : Receive(m)
+     \/ \E i \in Server : Timeout(i)
++    \/ \E i \in Server : PreTimeout(i)
++    \/ \E i,j \in Server : RequestPreVote(i, j)
++    \/ \E m \in DOMAIN messages : IgnoreInLease(m)
+     \/ \E i \in Server : Ready(i)
+     \/ \E i \in Server : StepDownToFollower(i)
+         
+-- 
+2.43.0
+

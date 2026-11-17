@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.raft.v3.readOnly__recvAck
 public import Spec.go_etcd_io.raft.v3.readOnly__heartbeatCtx
 public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__IsSingleton
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -76,8 +77,8 @@ theorem sendMsgReadIndexResponse.wp_proof
     (wp_raft_bcastHeartbeat : raft.bcastHeartbeat.spec (GF := GF) (hG := hG))
     (wp_Message_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     sendMsgReadIndexResponse.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hlead Htz Hne Hmty
-  wp_start as ⟨Hphys, #Hm⟩
+  intro c r id s ml m ents sn ctx rs G Hlead Htz Hne Hmty
+  wp_start as ⟨Hphys, #Hm, HG, Hgresp, #Hgate⟩
   wp_auto
   -- `_, isVoter := r.trk.Voters[0][r.id]`
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
@@ -128,12 +129,14 @@ theorem sendMsgReadIndexResponse.wp_proof
         wp_apply wp_Message_GetTo.1 resp (DFrac.own 1) DFrac.discard false _ $$ [$Hresp] as Hresp
         iapply HΦ
         iframe Hphys
-        ipureintro
-        left
-        refine ⟨Hsg, ?_⟩
-        have Hl : (arriveReq s m (e :: es)).src = W64 0 ∨ (arriveReq s m (e :: es)).src = id := Hloc
-        rw [readRespond, ite_eq_left_of_eq_true _ _ (eq_true Hl)]
-        rfl
+        isplitr
+        · ipureintro
+          left
+          refine ⟨Hsg, ?_⟩
+          have Hl : (arriveReq s m (e :: es)).src = W64 0 ∨ (arriveReq s m (e :: es)).src = id := Hloc
+          rw [readRespond, ite_eq_left_of_eq_true _ _ (eq_true Hl)]
+          rfl
+        iidx HG
       · -- a forwarded one: the response
         rw [ite_eq_right_of_eq_false _ _ (eq_false Hloc)]
         icases Hpost with ⟨Hphys, Hresp⟩
@@ -146,17 +149,28 @@ theorem sendMsgReadIndexResponse.wp_proof
             [] []
             [absMsgFrom .readIndexResp (readIndexRespMsg m s.logst.committed) id s.term
               (e :: es) []]
+            (G (sendMsgs s [absMsgFrom .readIndexResp (readIndexRespMsg m s.logst.committed) id s.term
+              (e :: es) []]).outbox)
             (Or.inl rfl)
             (Or.inr (Or.inl ⟨.readIndexResp, Or.inr (Or.inr (Or.inl rfl)), rfl, rfl,
               fun h => Hloc (Or.inr h), Htz, rfl⟩))
             (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
             (fun h => by simp [readIndexRespMsg, MsgApp] at h)
-          rfl $$ [$Hphys $Hresp]
-        · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
-        iintro Hphys
+          rfl (fun _ => mtypeOf_send_eq (u := W32 16) rfl) $$ [$Hphys $Hresp Hgresp HG]
+        · isplitr
+          · iapply tsSrc_ne; exact (fun h => by simp [readIndexRespMsg, MsgSnap] at h)
+          -- (Q8 stage 1, slice 6) the response's gate, at no event
+          iapply hookGateOpt_congrQ s.gh.tr _ r none _
+            (G (s.outbox ++ [absMsgFrom .readIndexResp (readIndexRespMsg m s.logst.committed) id s.term
+              (e :: es) []])) _ ?hr1 ?hr2 ?hr3
+          case hr1 => rfl
+          case hr2 => rfl
+          case hr3 => rfl
+          iapply Hgresp $$ %Hsg %_ %s.outbox %rfl HG
+        iintro ⟨Hphys, HG⟩
         wp_auto
         iapply HΦ
-        iframe Hphys
+        iframe Hphys HG
         ipureintro
         left
         refine ⟨Hsg, ?_⟩
@@ -202,10 +216,26 @@ theorem sendMsgReadIndexResponse.wp_proof
       ihave Hphys := ownRaftPhysC_eq c r id _ (arriveState id s m ents)
         (by simp only [arriveState, readonlyArrive, arriveReq, hbCtx_add]) $$ Hphys
       -- `bcastHeartbeat()`
-      wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) Hlead (by first | exact Htz | simpa using Htz | simp_all) $$ [$Hphys]
-        as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+      ihave HG : G (arriveState id s m ents).outbox $$ [HG]
+      · iidx HG
+      wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) G Hlead (by first | exact Htz | simpa using Htz | simp_all) $$ [$Hphys HG]
+        as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+      · -- (Q8 stage 1, slice 6) each heartbeat's gate, at the state with the request registered
+        iframe HG
+        imodintro
+        iintro %to %cm %o %Hto %Hcm HG
+        iapply hookGateOpt_congrQ s.gh.tr _ r
+          (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
+            [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+              (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) _
+          (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+              (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])) _ ?hh1 ?hh2 ?hh3
+        case hh1 => rfl
+        case hh2 => simp only [arriveState, readonlyArrive, hbCtx_recvAck]
+        case hh3 => simp only [arriveState, readonlyArrive, hbCtx_recvAck]
+        iapply Hgate $$ %Hns %to %cm %o %Hto %Hcm HG
       iapply HΦ
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       right
       refine ⟨Hns, ms, pvs, rfl, fun m' Hm' => ⟨(Hms m' Hm').1, ?_⟩, Hmm⟩
@@ -250,10 +280,26 @@ theorem sendMsgReadIndexResponse.wp_proof
     ihave Hphys := ownRaftPhysC_eq c r id _ (arriveState id s m ents)
       (by simp only [arriveState, readonlyArrive, arriveReq, hbCtx_add]) $$ Hphys
     -- `bcastHeartbeat()`
-    wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) Hlead (by first | exact Htz | simpa using Htz | simp_all) $$ [$Hphys]
-      as %ms %pvs ⟨Hphys, %Hms, %Hmm⟩
+    ihave HG : G (arriveState id s m ents).outbox $$ [HG]
+    · iidx HG
+    wp_apply wp_raft_bcastHeartbeat _ _ _ (arriveState id s m ents) G Hlead (by first | exact Htz | simpa using Htz | simp_all) $$ [$Hphys HG]
+      as %ms %pvs ⟨Hphys, %Hms, %Hmm, HG⟩
+    · -- (Q8 stage 1, slice 6) each heartbeat's gate, at the state with the request registered
+      iframe HG
+      imodintro
+      iintro %to %cm %o %Hto %Hcm HG
+      iapply hookGateOpt_congrQ s.gh.tr _ r
+        (sendOutGate id (arriveState id s m ents) c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))]) _
+        (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyAdd s.rd.ro (arriveReq s m ents)))])) _ ?hh1 ?hh2 ?hh3
+      case hh1 => rfl
+      case hh2 => simp only [arriveState, readonlyArrive, hbCtx_recvAck]
+      case hh3 => simp only [arriveState, readonlyArrive, hbCtx_recvAck]
+      iapply Hgate $$ %Hns %to %cm %o %Hto %Hcm HG
     iapply HΦ
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     right
     refine ⟨Hns, ms, pvs, rfl, fun m' Hm' => ⟨(Hms m' Hm').1, ?_⟩, Hmm⟩

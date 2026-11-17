@@ -49,7 +49,7 @@ theorem Cluster.config.wp_proof : Cluster.config.spec (GF := GF) (hG := hG) := b
   obtain ⟨⟨_, _, Hm1, Hm2, Hsz⟩, -⟩ := Ho
   unfold CfgOk ConfigValid
   refine ⟨rfl, rfl, rfl, ⟨Hid0, ?_, ?_, ⟨by simp only; decide, by simp only; decide⟩, ?_, Hm1, Or.inl rfl, ?_, Or.inl rfl⟩,
-    by word, rfl, rfl, rfl, Hsz, rfl, rfl⟩
+    by word, rfl, rfl, rfl, Hsz, rfl, rfl, rfl⟩
   · intro h; simp only at h; rw [h] at Hidb; word
   · intro h; simp only at h; rw [h] at Hidb; word
   · simp [interface.mkOk]

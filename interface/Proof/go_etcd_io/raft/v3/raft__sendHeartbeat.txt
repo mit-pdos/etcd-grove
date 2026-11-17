@@ -6,15 +6,24 @@ theorem raft.sendHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_send : 
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec) (wp_MessageType_Enum :
     raftpb.MessageType.Enum.spec) : raft.sendHeartbeat.spec
   -- `Perennial.EtcdGrove.raft.sendHeartbeat.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice) (cl : List w8),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice) (cl : List w8) (Q : w64 → IProp GF),
     to ≠ id →
       to ∈ s.progress.domSet →
         s.term ≠ W64 0 →
           cl.length ≤ entBytesMax →
             ⊢
               ∀ Φ,
-                isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "#Hctx" ∷ ownSlice ctx cl DFrac.discard -∗
+                (isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
+                      "#Hctx" ∷ ownSlice ctx cl DFrac.discard ∗
+                        "Hgate" ∷
+                          ∀ cm,
+                            ⌜uint.Z cm =
+                                  min (uint.Z s.logst.committed) (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗
+                              HookGateOpt s.gh.tr r
+                                (sendOutGate id s c MsgHeartbeat
+                                  [Msg.mkV MsgType.heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl])
+                                (Q cm)) -∗
                   (▷
                       ∀ cm pvs,
                         ownRaftPhysCV c c.voters r id
@@ -29,7 +38,7 @@ theorem raft.sendHeartbeat.wp_proof [package_sem : Assumptions] (wp_raft_send : 
                                 sdr := __src.sdr, cq := __src.cq }) ∗
                             ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
                               ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
-                                ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ -∗
+                                ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ Q cm -∗
                           Φ (intoVal ())) -∗
                     WP
                       (((intoVal
