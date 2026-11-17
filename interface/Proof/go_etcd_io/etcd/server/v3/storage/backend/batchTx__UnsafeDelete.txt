@@ -15,10 +15,11 @@ theorem backend.batchTx.UnsafeDelete.wp_proof [go_etcd_io.bbolt.Assumptions]
             backend.isBackend γ P W Pk b ∗
               typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
                 backend.btW γ t st ∗
-                  backend.isBucket bk bi ∗ if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) -∗
+                  backend.isBucket bk bi ∗
+                    if own = true then ownSlice key kb dk else backend.txBytes st.tx γ.db key kb) -∗
           ▷
               ((backend.btW γ t (st.del bi kb) ∗
-                  if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) -∗
+                  if own = true then ownSlice key kb dk else backend.txBytes st.tx γ.db key kb) -∗
                 Φ (intoVal ())) -∗
             WP
               (((intoVal

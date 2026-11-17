@@ -2,15 +2,27 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Bucket.Cursor_kvr.wp_proof : bbolt.Bucket.Cursor_kvr.spec
+theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
+    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹
+
+theorem bbolt.Bucket.Cursor_kvr.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec) :
+    bbolt.Bucket.Cursor_kvr.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.Cursor_kvr.spec`, unfolded:
-  ∀ (tx b : Loc) (q : Qp) (es : List backend.Ent),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.rBkt tx b es ∗ backend.rtxStats tx ∗ backend.txLive tx q -∗
-          (▷ ∀ c, backend.ownCur tx c es none ∗ backend.rtxStats tx ∗ backend.txLive tx q -∗ Φ (intoVal c)) -∗
-            WP
-              ((intoVal
-                  (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"Cursor" (intoVal b)))
-                (intoVal ()))
-              {{ Φ }}
+  ∀ (tx : Loc) (γ : backend.DBNames) (q : Qp) (D : backend.Data) (b : Loc) (n : GoString) (m : backend.BktData),
+    D !! n = some m →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.wBkt tx γ b n 0 ∗ backend.txLive tx γ q (bbolt.TxView.ro D) -∗
+            (▷
+                ∀ c,
+                  backend.ownCur tx γ c (bbolt.TxView.ro D) (backend.bktEnts m) none ∗
+                      backend.txLive tx γ q (bbolt.TxView.ro D) -∗
+                    Φ (intoVal c)) -∗
+              WP
+                ((intoVal
+                    (methods go_etcd_io.bbolt.Bucket.ty.PointerType go!"Cursor"
+                      (intoVal b)))
+                  (intoVal ()))
+                {{ Φ }}

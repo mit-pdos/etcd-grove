@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Tx.Stats_kv.wp_proof : bbolt.Tx.Stats_kv.spec
+theorem bbolt.Tx.Stats_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Stats.spec) :
+    bbolt.Tx.Stats_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Stats_kv.spec`, unfolded:
   ∀ (tx : Loc),
     ⊢

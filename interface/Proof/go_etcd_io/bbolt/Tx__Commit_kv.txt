@@ -2,12 +2,22 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Tx.Commit_kv.wp_proof : bbolt.Tx.Commit_kv.spec
+theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
+    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹
+
+theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
+    bbolt.boltState γ q D = bbolt.boltState γ✝ q✝ D✝
+
+theorem bbolt.Tx.Commit_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec) :
+    bbolt.Tx.Commit_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Commit_kv.spec`, unfolded:
   ∀ (db tx : Loc) (γ : backend.DBNames) (D S : backend.Data),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownDB db γ D ∗ backend.txDB tx db ∗ backend.ownWTx tx γ D S -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownDB db γ D ∗ backend.txDB tx γ db ∗ backend.ownWTx tx γ D S -∗
           (▷
               ∀ err,
                 backend.txDone tx ∗

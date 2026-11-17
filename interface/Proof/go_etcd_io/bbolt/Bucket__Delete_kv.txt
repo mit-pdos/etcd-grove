@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Bucket.Delete_kv.wp_proof : bbolt.Bucket.Delete_kv.spec
+theorem bbolt.Bucket.Delete_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Bucket.Delete.spec) :
+    bbolt.Bucket.Delete_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Bucket.Delete_kv.spec`, unfolded:
   ∀ (tx : Loc) (γ : backend.DBNames) (D S : backend.Data) (G : GoString → Nat) (b : Loc) (n : GoString) (g : Nat)
     (m : backend.BktData) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
@@ -12,10 +14,10 @@ axiom bbolt.Bucket.Delete_kv.wp_proof : bbolt.Bucket.Delete_kv.spec
           ∀ Φ,
             (isPkgInit pkg_id.go_etcd_io.bbolt ∗
                 backend.ownWTxG tx γ D S G ∗
-                  backend.wBkt tx b n g ∗ if own = true then ownSlice key kb dk else backend.txBytes tx key kb) -∗
+                  backend.wBkt tx γ b n g ∗ if own = true then ownSlice key kb dk else backend.txBytes tx γ key kb) -∗
               ▷
                   ((backend.ownWTxG tx γ D (<[n := GMap.delete kb m]>S) G ∗
-                      if own = true then ownSlice key kb dk else backend.txBytes tx key kb) -∗
+                      if own = true then ownSlice key kb dk else backend.txBytes tx γ key kb) -∗
                     Φ (intoVal GoInterface.nil)) -∗
                 WP
                   ((intoVal
@@ -23,3 +25,7 @@ axiom bbolt.Bucket.Delete_kv.wp_proof : bbolt.Bucket.Delete_kv.spec
                         (intoVal b)))
                     (intoVal key))
                   {{ Φ }}
+
+theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
+    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹

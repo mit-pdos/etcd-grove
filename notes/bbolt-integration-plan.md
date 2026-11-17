@@ -145,3 +145,17 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
   - `examples/axiomcx/bboltnan`'s proof (`Run.lean`) deleted: `boltTx_fill` refuses the NaN.
   - `RaftWitness/…/ProjSimps.lean` re-exports the main tree's (it now reaches it through
     `Proof.runtime.Start` → `InvBbolt` → bbolt's `Data`).
+  - **Trust base.** `etc/tcb-baseline.txt` and the collections updated. `putget3.txt`: removed 46 —
+    `backend.{isDB, isDB_persistent, ownCur, ownDB, ownWTxG, ownWTxG_fill, ownWTxG_live, rBkt,
+    rBkt_persistent, rBkt_timeless, rtxSnap, rtxSnap_persistent, rtxSnap_size, rtxStats,
+    rtxStats_excl, rtxStats_timeless, txBytes, txBytes_acc, txBytes_persistent, txDB,
+    txDB_persistent, txDone, txDone_persistent, txLive, txLive_fractional, txLive_nonnull,
+    txLive_timeless, wBkt, wBkt_persistent, wrTok}` and `bbolt.{Bucket.Cursor_kvr, Bucket.Cursor_kvw,
+    Bucket.Delete_kv, Cursor.Next_kv, Cursor.Seek_kv, DB.Begin_kv, DB.Info_kv, DB.Stats_kv,
+    Tx.Bucket_kvr, Tx.Bucket_kvw, Tx.Commit_kv, Tx.CreateBucketIfNotExists_kv, Tx.DB_kv,
+    Tx.Rollback_kv, Tx.Size_kv, Tx.Stats_kv}.wp_proof`; added bbolt's own trust boundary,
+    `os.Getenv`, `reflect.DeepEqual.wp_proof_pgidSet`, `sort.SliceIsSorted`, `sort.Sort.wp_anyLess`,
+    `strings.ToLower`. `backend.txt`: the same 46 less `rtxSnap_size` plus `Tx.DeleteBucket_kv`, and
+    `fmt.Errorf` added too. Remaining of the old boundary: `bbolt.{Open_kv, DB.Close_kv,
+    Bucket.Put_kv}.wp_proof`, `backend.{fileHolds, dbFile, dbFile_persistent, dbFile_timeless}`, the
+    options' axioms (S2).

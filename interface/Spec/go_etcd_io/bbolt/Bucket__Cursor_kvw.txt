@@ -9,14 +9,10 @@ def bbolt.Bucket.Cursor_kvw.spec : Prop :=
       S !! n = some m →
         ⊢
           ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownWTxG tx γ D S G ∗ backend.wBkt tx b n g -∗
+            isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownWTxG tx γ D S G ∗ backend.wBkt tx γ b n g -∗
               (▷
                   ∀ c,
-                    (backend.ownCur tx c (backend.bktEnts m) none ∗
-                        backend.txLive tx 1 ∗
-                          ∀ pos,
-                            backend.ownCur tx c (backend.bktEnts m) pos -∗
-                              backend.txLive tx 1 -∗ backend.ownWTxG tx γ D S G) -∗
+                    backend.ownCur tx γ c (backend.wView D S G) (backend.bktEnts m) none ∗ backend.ownWTxG tx γ D S G -∗
                       Φ (intoVal c)) -∗
                 WP
                   ((intoVal

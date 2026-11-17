@@ -26,7 +26,8 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof (hRange : backend.txReadBuffer.R
                     ∀ keys vals,
                       backend.baseRd γ P base dq rtx rv q ∗
                           ownSlice key kb dk ∗
-                            ownSlice endKey eb de ∗ backend.kvsOutRd rtx keys vals (backend.rtRange rv bi kb eb limit) -∗
+                            ownSlice endKey eb de ∗
+                              backend.kvsOutRd γ.db rtx keys vals (backend.rtRange rv bi kb eb limit) -∗
                         Φ (intoVal keys, intoVal vals)) -∗
                   WP
                     (((((intoVal

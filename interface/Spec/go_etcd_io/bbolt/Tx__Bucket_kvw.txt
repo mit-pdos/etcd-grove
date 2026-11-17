@@ -12,7 +12,7 @@ def bbolt.Tx.Bucket_kvw.spec : Prop :=
               ∀ b,
                 backend.ownWTxG tx γ D S G ∗
                     ownSlice name n dq ∗
-                      (⌜S !! n = none ∧ b = null⌝ ∨ ⌜S !! n ≠ none ∧ b ≠ null⌝ ∗ backend.wBkt tx b n (G n)) -∗
+                      (⌜S !! n = none ∧ b = null⌝ ∨ ⌜S !! n ≠ none ∧ b ≠ null⌝ ∗ backend.wBkt tx γ b n (G n)) -∗
                   Φ (intoVal b)) -∗
             WP
               ((intoVal

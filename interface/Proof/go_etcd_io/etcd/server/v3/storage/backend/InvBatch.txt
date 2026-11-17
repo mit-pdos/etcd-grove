@@ -23,17 +23,17 @@ theorem backend.isBackend_bt (γ : backend.BNames) (P : backend.BParams) (W Pk :
     ⊢ ∃ db lg h, typedPointsto (backend.beOf t) b DFrac.discard ∗ typedPointsto (backend.bF go!"lg"
     b) lg DFrac.discard ∗ zapLoggerOk lg ∗ typedPointsto (backend.bF go!"batchLimit" b) P.limit
     DFrac.discard ∗ typedPointsto (backend.bF go!"hooks" b) h DFrac.discard ∗ backend.hooksSpec γ P
-    Pk b t h ∗ sync.isMutex (backend.muOf t) (backend.batchFree γ P W Pk b t) ∗ backend.isDB db ∗
-    ⌜P.Wf⌝
+    Pk b t h ∗ sync.isMutex (backend.muOf t) (backend.batchFree γ P W Pk b t) ∗ backend.isDB db γ.db
+    ∗ ⌜P.Wf⌝
 
 def backend.btW (γ : backend.BNames) (t : Loc) (st : backend.BSess) : IProp GF :=
   iprop(typedPointsto (backend.txFOf t) st.tx (DFrac.own 1) ∗
       typedPointsto (backend.pendOf t) st.pend (DFrac.own 1) ∗ backend.ownWTx st.tx γ.db st.C st.S)
 
 theorem backend.batchLocked_rdB (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st st' :
-    backend.BSess) (s : GoSlice) (v : GoString) : backend.rdB st.tx s v ∗ backend.batchLocked γ P b
-    st' ∗ ⌜st'.tx = st.tx⌝ ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.batchLocked γ P b
-    st')
+    backend.BSess) (s : GoSlice) (v : GoString) : backend.rdB γ.db st.tx s v ∗ backend.batchLocked γ
+    P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.batchLocked γ P
+    b st')
 
 theorem backend.batchLocked_rbOwnIn (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
     backend.BSess) (S : GoString → Prop) (r : GMap GoString backend.BktData) : backend.batchLocked γ
@@ -51,8 +51,8 @@ theorem backend.batchLocked_rb (γ : backend.BNames) (P : backend.BParams) (b : 
 
 theorem backend.isBackend_dbFile (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b :
     Loc) : backend.isBackend γ P W Pk b ⊢ ∃ db path, (sync.isRWMutexGuard (backend.bF go!"mu" b) fun
-    q => typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗ backend.isDB db ∗ backend.bDBAt γ
-    db path ∗ backend.dbFile db path
+    q => typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗ backend.isDB db γ.db ∗
+    backend.bDBAt γ db path ∗ backend.dbFile db path
 
 theorem backend.batchGhostAt_bound (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess)
     (free : Bool) (hP : P.Wf) (hst : backend.sessWf P st) : backend.batchGhostAt γ P st free ⊢ ⌜∀ (i
@@ -127,8 +127,9 @@ theorem backend.batchGhost_step_rb (γ : backend.BNames) (P : backend.BParams) {
     : ⊢ backend.batchGhost γ P st -∗ backend.rbPut γ P n st.S ==∗ backend.batchGhost γ P st' ∗
     backend.rbPut γ P n st'.S
 
-theorem backend.rdB_acc (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) : backend.rdB tx s v ∗
-    backend.txLive tx q ⊢ ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.txLive tx q)
+theorem backend.rdB_acc (γd : backend.DBNames) (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) (T :
+    bbolt.TxView) : backend.rdB γd tx s v ∗ backend.txLive tx γd q T ⊢ ∃ dq, ownSlice s v dq ∗
+    (ownSlice s v dq -∗ backend.txLive tx γd q T)
 
 theorem backend.BSess.put_S_other (st : backend.BSess) (bi : backend.BucketInfo) (k v : GoString)
     (seq : Bool) (m : GoString) : m ≠ bi.name → (st.put bi k v seq).S !! m = st.S !! m
@@ -188,7 +189,7 @@ theorem backend.isBackend_b (γ : backend.BNames) (P : backend.BParams) (W Pk : 
     (backend.beOf t) b DFrac.discard ∗ sync.isMutex (backend.muOf t) (backend.batchFree γ P W Pk b
     t) ∗ sync.isRWMutexGuard (backend.rmuOf (backend.baseOf rt)) (backend.rtRes γ P rt) ∗
     (sync.isRWMutexGuard (backend.bF go!"mu" b) fun q => typedPointsto (backend.bF go!"db" b) db
-    (DFrac.own q)) ∗ backend.isDB db ∗ backend.cacheInv γ ∗ ⌜P.Wf⌝
+    (DFrac.own q)) ∗ backend.isDB db γ.db ∗ backend.cacheInv γ ∗ ⌜P.Wf⌝
 
 theorem backend.wp_metricStore (b : Loc) (f : GoString) (v : w64) (hf : f = go!"size" ∨ f =
     go!"sizeInUse" ∨ f = go!"commits" ∨ f = go!"openReadTxN") : ⊢ ∀ Φ, isPkgInit pkg_id.sync.atomic
@@ -201,9 +202,10 @@ theorem backend.batchLocked_rbPart (γ : backend.BNames) (P : backend.BParams) (
     GoString), S n → backend.rbData P st.S !! n = r !! n⌝
 
 theorem backend.batchLocked_rdB2 (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st st' :
-    backend.BSess) (s1 s2 : GoSlice) (v1 v2 : GoString) : backend.rdB st.tx s1 v1 ∗ backend.rdB
-    st.tx s2 v2 ∗ backend.batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢ ∃ dq1 dq2, ownSlice s1 v1 dq1 ∗
-    ownSlice s2 v2 dq2 ∗ (ownSlice s1 v1 dq1 -∗ ownSlice s2 v2 dq2 -∗ backend.batchLocked γ P b st')
+    backend.BSess) (s1 s2 : GoSlice) (v1 v2 : GoString) : backend.rdB γ.db st.tx s1 v1 ∗ backend.rdB
+    γ.db st.tx s2 v2 ∗ backend.batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢ ∃ dq1 dq2, ownSlice s1 v1
+    dq1 ∗ ownSlice s2 v2 dq2 ∗ (ownSlice s1 v1 dq1 -∗ ownSlice s2 v2 dq2 -∗ backend.batchLocked γ P
+    b st')
 
 theorem backend.BSess.create_S_other (st : backend.BSess) (bi : backend.BucketInfo) (m : GoString) :
     m ≠ bi.name → (st.create bi).S !! m = st.S !! m

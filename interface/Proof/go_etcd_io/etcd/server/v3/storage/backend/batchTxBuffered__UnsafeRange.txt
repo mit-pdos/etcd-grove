@@ -20,11 +20,11 @@ theorem backend.batchTxBuffered.UnsafeRange.wp_proof [go_etcd_io.bbolt.Assumptio
                   (backend.batchLocked γ P b st ∗
                       ownSlice key kb dk ∗
                         ownSlice endKey eb de ∗
-                          backend.kvsOutRd st.tx keys vals
+                          backend.kvsOutRd γ.db st.tx keys vals
                               (backend.cursorRange (backend.bktEnts (backend.bktOf st.S bi.name)) kb eb limit) ∗
                             □
                               ∀ s v st',
-                                backend.rdB st.tx s v -∗
+                                backend.rdB γ.db st.tx s v -∗
                                   backend.batchLocked γ P b st' -∗
                                     ⌜st'.tx = st.tx⌝ -∗
                                       ∃ dq, ownSlice s v dq ∗ (ownSlice s v dq -∗ backend.batchLocked γ P b st')) -∗

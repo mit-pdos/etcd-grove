@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.Tx.Size_kv.spec : Prop :=
-  ∀ (tx : Loc) (q : Qp),
+  ∀ (tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx q -∗
-          (▷ ∀ n, backend.txLive tx q -∗ Φ (intoVal n)) -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx γ q T -∗
+          (▷ ∀ n, backend.txLive tx γ q T -∗ Φ (intoVal n)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Size" (intoVal tx)))
                 (intoVal ()))

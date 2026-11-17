@@ -3,10 +3,10 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.Tx.Rollback_kv.spec : Prop :=
-  ∀ (tx : Loc) (D : backend.Data),
+  ∀ (tx : Loc) (γ : backend.DBNames) (D : backend.Data),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx 1 ∗ backend.rtxSnap tx D -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx γ 1 (bbolt.TxView.ro D) -∗
           ▷ (backend.txDone tx ∗ threadTok -∗ Φ (intoVal GoInterface.nil)) -∗
             WP
               ((intoVal
