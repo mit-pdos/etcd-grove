@@ -195,9 +195,12 @@ private theorem unlock_core
         with ⟨Hfkh, #Hfkr⟩
       ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl rfl $$ Hfkh
       have hsame := vData_writeback_same P st.C st.W st.R Hnw
-      imod (rtRes_wb_close_same γ P rt st.W st.C st.R Hwf.2.2.1 hver hsame hsafe
-        (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr]
-        with ⟨Hrr, Hrvs⟩
+      ihave Hupd := trkSide_upd γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) rfl rfl rfl
+        (fun n hn hi => ⟨by simp [wbSt, tkWb, hi],
+          (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) $$ Hhkd
+      imod (rtRes_wb_close_same γ P rt st.W st.C st.R (trkSide γ P (wbSt P st)) Hwf.2.2.1 hver hsame
+        hsafe (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr $Hupd]
+        with ⟨Hrr, Hrvs, Hhkd⟩
       ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
       · unfold batchViewQ; rw [wbSt_C, wbSt_R, hsame]
         icases Hv with ⟨%L, Hq, %Hd⟩
@@ -266,9 +269,15 @@ private theorem unlock_core
       by_cases hcond : (sint.Z P.limit ≤ sint.Z st.pend ∨ 0 < sint.Z st.ndel)
       · -- committed: the window opens at the exact new physical view, the commit's close moves it
         -- to `relog` (R11-2)
-        imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) true Hwf.2.2.1 hver hsafe)
-          $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr] with ⟨Hrr, Hrvs, Hv, -⟩
+        ihave Hupd := trkSide_upd γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) rfl rfl
+          rfl (fun n hn hi => ⟨by simp [wbSt, tkWb, hi],
+            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) $$ Hhkd
+        imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) true
+          (trkSide γ P (wbSt P st)) Hwf.2.2.1 hver hsafe)
+          $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr $Hupd] with ⟨Hrr, Hrvs, Hhkd, Hv, -⟩
         · simp only [↓reduceIte]; itrivial
+        ihave Hhkd := trkSide_congr γ P (wbSt P st) ({ wbSt P st with win := true }) rfl rfl rfl
+          (fun _ _ => rfl) $$ Hhkd
         ihave Hv : batchViewQ0 γ P ({ wbSt P st with win := true }) $$ [Hv]
         · unfold batchViewQ0; simp only [wbSt_C, wbSt_R]; iexists _; iframe Hv; ipureintro
           exact HdlS
@@ -296,8 +305,12 @@ private theorem unlock_core
           Hbg.2.2.2.2.2.2.2.2.2.2.1
         have hvf : vData P (st.C, writebackR st.W st.R) = sData P st.S := by
           rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2.1, wbSt_C, wbSt_R]
-        imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) false Hwf.2.2.1 hver hsafe)
-          $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr] with ⟨Hrr, Hrvs, Hv, Hbvw⟩
+        ihave Hupd := trkSide_upd γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) rfl rfl
+          rfl (fun n hn hi => ⟨by simp [wbSt, tkWb, hi],
+            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) $$ Hhkd
+        imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) false
+          (trkSide γ P (wbSt P st)) Hwf.2.2.1 hver hsafe)
+          $$ [$Hci $Hwb $HRB $Hrvs $Hv $Hbv $Hfkr $Hupd] with ⟨Hrr, Hrvs, Hhkd, Hv, Hbvw⟩
         · simp only [Bool.false_eq_true, ↓reduceIte]; rw [hvf]; iexact Hrel
         simp only [Bool.false_eq_true, ↓reduceIte]
         ihave Hv : batchViewQ γ P (wbSt P st) $$ [Hv]
@@ -316,9 +329,9 @@ Private to this proof: anywhere else it would assert an idleness Go does not giv
 private theorem unlock_idle (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (S : GoString → Prop)
     (r : GMap GoString BktData) :
     ⊢ batchLocked (GF := GF) γ P b st -∗ rbPart γ S r ==∗ batchLocked γ P b st ∗ rbOwnIn γ S r := by
-  unfold batchLocked batchLockedAt batchGhost batchGhostAt trkHalf
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hb⟩, Hfk, %Hok⟩, %Hwf⟩
-    Hc
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt trkSide trkHalf
+  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨⟨Hk, Hb⟩, Hrr⟩, Hfk, %Hok⟩,
+    %Hwf⟩ Hc
   imod rbSide_idle (hG := hG) γ P (rbData P st.S) S r $$ [$Hb $Hc] with ⟨Hb, Hc⟩
   imodintro
   iframe Hc

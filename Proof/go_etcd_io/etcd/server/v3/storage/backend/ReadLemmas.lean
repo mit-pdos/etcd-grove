@@ -907,15 +907,15 @@ theorem rtHeld_clean (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (q :
       rtHeld γ P b rtx rv ∗ bViewC γ q vd true ∗ ⌜rbClean P rv.2⌝ ∗ thinV γ (vData P rv) vd := by
   unfold rtHeld rtResAt rtRest rtCore clnPart bViewC viewQ
   iintro ⟨⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, ⟨Hview, #Hth⟩, Hrd, Hrvs,
-    Hcur, ⟨Hcln, %Hcl⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩,
-    Hv, Hcw, Hc⟩
+    Hcur, ⟨Hcln, %Hcl, Hrbr⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx,
+    Hcr⟩, Hv, Hcw, Hc⟩
   icombine Hcln Hc gives %Hag
   have hc : rd.cln = true := Hag.2
   icombine Hview Hv gives %Hvw
   have hL : L = vd := Hvw.2
   subst hL
   iframe Hv Hcw
-  isplitl [Hrt Hrl Hrb Hcm Hview Hrd Hrvs Hcur Hcln Hhist Hrtxf Hwgf Hpo Hiv Hcr]
+  isplitl [Hrt Hrl Hrb Hcm Hview Hrd Hrvs Hcur Hcln Hrbr Hhist Hrtxf Hwgf Hpo Hiv Hcr]
   · iexists rt, rd, H, L
     iframe Hrt Hrl Hcr
     isplitl

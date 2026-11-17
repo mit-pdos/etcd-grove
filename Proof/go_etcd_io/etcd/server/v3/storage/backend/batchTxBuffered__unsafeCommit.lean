@@ -200,12 +200,18 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases fkHalf_rd γ P st' (st'.C, st'.R.reset)
         (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.C) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inr rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
-      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L') $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      ihave Hupd := trkSide_upd γ P st' (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
+        (st'.C, st'.R.reset) rfl rfl rfl (fun n hn hi => ⟨rfl, rvBkt_commit_idle Hs Htk
+          Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inr ⟨HA.1, rfl⟩) hn hi⟩) $$ Hhkd
+      imod (rtRes_cm_close γ P rt st'.C st'.C st'.R win false txr cm' wg' Lb L'
+        (trkSide γ P (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩))) $$
+        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd Hrd]
+        with ⟨Hrr, Hrvs, Hhkd, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
         iframe #
         iexact Hrd
-      imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ HWe Hp0 Hs Hwf Hbg
+      imod (commit_ghost γ P (st.setHw true) st' st'.C st'.tx m u n w u0 _ ⟨0, 0, 0, 0, false⟩ HWe Hp0 Hs
+        Hwf Hbg
         (Or.inr ⟨HA.1, rfl⟩) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := st'.tx) (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inr ⟨HA.1, rfl⟩)
       imodintro
@@ -239,12 +245,18 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
         (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
-      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L') $$
-        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre Hrd] with ⟨Hrr, Hrvs, Hv, Hbv⟩
+      ihave Hupd := trkSide_upd γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
+        (st'.S, st'.R.reset) rfl rfl rfl (fun n hn hi => ⟨rfl, rvBkt_commit_idle Hs Htk
+          Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩) $$ Hhkd
+      imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win false txr cm' wg' Lb L'
+        (trkSide γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩))) $$
+        [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd Hrd]
+        with ⟨Hrr, Hrvs, Hhkd, Hv, Hbv⟩
       · simp only [Bool.false_eq_true, ↓reduceIte]
         iframe #
         iexact Hrd
-      imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ HWe Hp0 Hs Hwf Hbg
+      imod (commit_ghost γ P (st.setHw true) st' st'.S tx' m u n w u0 _ ⟨0, 0, 0, 0, false⟩ HWe Hp0 Hs
+        Hwf Hbg
         (Or.inl rfl) Hdlc Htk Hwf') $$ [$Hpay $Ha $Hmo $Hus $Hopn $Hv $Hrvs $Hhkd $Hfkh] with ⟨%cnt', %Hcw, Hg, Hpo⟩
       obtain ⟨hsw, hfo, hv⟩ := commit_final (tx' := tx') (cnt' := cnt') HP Hwf Hcw HWe Hs Hwf' (Or.inl rfl)
       imodintro
@@ -278,8 +290,12 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     icases fkHalf_rd γ P st' (st'.S, st'.R.reset)
       (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
       $$ Hfkh with ⟨Hfkh, #Hfkr⟩
-    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L') $$
-      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre] with ⟨Hrr, -, Hvq, -⟩
+    ihave Hupd := trkSide_upd γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
+      (st'.S, st'.R.reset) rfl rfl rfl (fun n hn hi => ⟨rfl, rvBkt_commit_idle Hs Htk
+        Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩) $$ Hhkd
+    imod (rtRes_cm_close γ P rt st'.C st'.S st'.R win true Loc.null cm' wg' Lb L'
+      (trkSide γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩))) $$
+      [$Hci $HrtCm $Hrvs $Hv $Hrtx $Hcm $Hcmm $Hwg $Hwgz $HRB $Hpre $Hupd] with ⟨Hrr, -, Hhkd, Hvq, -⟩
     · simp only [↓reduceIte]
       iframe Hbs Hfkr
     imodintro
@@ -294,6 +310,10 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     iframe Hbdb Hdb
     unfold bStopG fkHalf
     icases Hfkh with ⟨-, Hfkd, Hdls⟩
+    iunfold trkSide at Hhkd
+    icases Hhkd with ⟨Hhkd, -⟩
+    ihave Hhkd := (show trkHalf (GF := GF) γ P (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩).S ⊢
+      trkHalf γ P st'.S from .rfl) $$ Hhkd
     iframe Hhkd Hfkd
     isplitl [Hvq Hdls]
     · iexists _, _

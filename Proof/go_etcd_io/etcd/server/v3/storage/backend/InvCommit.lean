@@ -30,7 +30,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 /-- The batch lock's share of the free state after a commit from `st` (the hook ran into
 `st'`), paid by `payIn`: the new committed data `C'`, write transaction `tx'`. -/
 theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (tx' : Loc)
-    (m u n w u0 : Nat) (L : VData)
+    (m u n w u0 : Nat) (L : VData) (cnt0 : BCnt)
     (hW : ∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = [])
     (hp0 : st.cnt.p0 = sint.nat st.pend) (hs : hookStep P st st') (hst : sessWf P st)
     (hb' : bgOk P st' false n w u0) (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C))
@@ -40,7 +40,7 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
       ghostVar γ.used (1 : Qp).half u0 ∗ dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
       viewQ γ (1 : Qp).half.half (vData P (C', st'.R.reset)) L ∗
       ghostVar γ.rvs (1 : Qp).half (((C', st'.R.reset) : RView), false) ∗
-      trkHalf γ P st'.S ∗ fkHalf γ P st' ⊢
+      trkSide γ P (commitSt st' C' tx' cnt0) ∗ fkHalf γ P st' ⊢
     |==> ∃ cnt' : BCnt, ⌜cnt'.hw = false⌝ ∗ batchGhostAt γ P (commitSt st' C' tx' cnt') true ∗
       payOut γ false m := by
   iintro ⟨Hpay, Ha, Hm, Hu, Ho, Hv, Hr, Hk, Hfk⟩
@@ -66,6 +66,8 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
+    ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k + 1, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
+      (fun _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
       ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
@@ -93,6 +95,8 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
+    ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
+      (fun _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
       ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
@@ -117,6 +121,8 @@ theorem commit_ghost (γ : BNames) (P : BParams) (st st' : BSess) (C' : Data) (t
     iexists ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩
     isplitr
     · ipureintro; rfl
+    ihave Hk := trkSide_congr γ P (commitSt st' C' tx' cnt0) (commitSt st' C' tx' ⟨st.cnt.k, st.cnt.c + 1, 0, 0, false⟩) rfl rfl rfl
+      (fun _ _ => rfl) $$ Hk
     isplitl [Hv Hr Ha Hm Hu Ho Hk Hfk]
     · unfold batchGhostAt batchViewQ
       ihave Hfk := fkHalf_mono γ P (st' := commitSt st' C' tx' _) (fkOkG_commit hC0) rfl rfl $$ Hfk
@@ -185,10 +191,11 @@ theorem batchLocked_setHw_mk (γ : BNames) (P : BParams) (b t db : Loc) (st : BS
       (∃ (n w u : Nat), ghostVar γ.rvs (1 : Qp).half (((st.C, st.R) : RView), false) ∗
         ownTokAuth γ.wb n ∗ monoNatAuthOwn γ.wbc 1 w ∗ ghostVar γ.used (1 : Qp).half u ∗
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-        trkHalf γ P st.S ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
+        trkSide γ P st ∗ fkHalf γ P st ∗ ⌜bgOk P st false n w u⌝) ∗ ⌜sessWf P st⌝ ⊢
     batchLocked γ P b (st.setHw true) := by
   unfold batchLocked batchLockedAt batchGhost batchGhostAt
   iintro ⟨#Ht, Hown, Hph, Hv, ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩
+  ihave Hk := trkSide_congr γ P st (st.setHw true) rfl rfl rfl (fun _ _ => rfl) $$ Hk
   iexists t, db
   rw [show batchPhys γ b t db (st.setHw true) = batchPhys γ b t db st from rfl]
   simp only [setHw_C, setHw_R, setHw_S]

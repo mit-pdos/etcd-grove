@@ -414,6 +414,16 @@ theorem trkKept_put_other {P : BParams} {st0 st : BSess} (hP : P.Wf) {bi : Bucke
     show tkSet st.tk bi.name .put n = _
     rw [tkSet_ne _ _ hne]; exact h.2 n hn
 
+/-- **The commit, an untouched tracked bucket**: the readers' contents stay (the commit's are the
+writer's, which an untouched bucket's already were). -/
+theorem rvBkt_commit_idle {P : BParams} {st st' : BSess} {C' : Data} (hs : hookStep P st st')
+    (htk : ∀ n, P.RB n = true → st.tk n = .idle ∨ st.tk n = .del) (h' : trkOk P st' st'.tk)
+    (hst' : sessWf P st') (hC' : C' = st'.S ∨ (st'.pend = W64 0 ∧ C' = st'.C)) {n : GoString}
+    (hn : P.RB n = true) (hi : st'.tk n = .idle) :
+    rvBkt P (st'.C, st'.R) n = rvBkt P (C', st'.R.reset) n :=
+  (rvBkt_idle h' hn hi).trans
+    ((trkOk_commitG (tx' := Loc.null) (cnt' := ⟨0, 0, 0, 0, false⟩) hs htk h' hst' hC').2 n hn).symm
+
 end steps
 
 end backend

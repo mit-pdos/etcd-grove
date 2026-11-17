@@ -238,12 +238,16 @@ theorem clnPart_frac (γ : BNames) (P : BParams) (rd : RdSt) (rv : RView) (q1 q2
   unfold clnPart
   rw [Qp_half_add]
   constructor
-  · iintro ⟨Hc, %Hp⟩
+  · iintro ⟨Hc, %Hp, Hr⟩
     icases ghostVar_split γ.cln _ q1.half q2.half $$ Hc with ⟨Hc1, Hc2⟩
-    iframe
-    isplitr <;> ipureintro <;> exact Hp
-  · iintro ⟨⟨Hc1, %Hp⟩, ⟨Hc2, -⟩⟩
+    icases (rbrHalves_frac γ P rv q1 q2).1 $$ Hr with ⟨Hr1, Hr2⟩
+    isplitl [Hc1 Hr1]
+    · iframe; ipureintro; exact Hp
+    · iframe; ipureintro; exact Hp
+  · iintro ⟨⟨Hc1, %Hp, Hr1⟩, ⟨Hc2, -, Hr2⟩⟩
     icombine Hc1 Hc2 as Hc
+    ihave Hr := (rbrHalves_frac γ P rv q1 q2).2 $$ [Hr1 Hr2]
+    · iframe
     iframe
     ipureintro; exact Hp
 

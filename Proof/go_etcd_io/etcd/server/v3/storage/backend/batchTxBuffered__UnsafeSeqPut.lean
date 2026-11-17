@@ -61,7 +61,8 @@ theorem backend.batchTxBuffered.UnsafeSeqPut.wp_proof
     (hkData_put_other st bi kb vb true Hhk)
     (rbData_put_other st bi kb vb true Hrb) (fkOkG_put true HP Hhas Hfk) (fkVals_put true Hfk) rfl
     (trkOk_putS HP Hwf Hhas kb vb true) (fun L _ hd => dlsW_step (dlsS_put true (fun h1 _ => (Hsb h1).2))
-      (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd) $$ Hg
+      (dlsOk_put true (fun h1 _ => (Hsb h1).2)) rfl rfl hd)
+    (fun m hm => tkSet_ne _ _ (by rintro rfl; rw [Hrb] at hm; cases hm)) $$ Hg
   iframe Hg
   isplitl
   · iexists hk

@@ -82,4 +82,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.RangeLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrackedLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Model
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
+# (auth-schema-srv A1, 2026-11-17) the tracked buckets' read model (kinds, `rvBkt`), which `InvBackend` and
+# `InvBatch` import publicly
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrkModel
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas

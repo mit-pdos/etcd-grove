@@ -159,6 +159,21 @@ theorem rbDomOf_absent (P : BParams) (D : Data) :
   | none => rfl
   | some x => rw [hr] at h'; cases h'
 
+/-- `rbDomOf`'s names are tracked buckets. -/
+theorem rbDomOf_rb (P : BParams) (D : Data) :
+    ∀ n, (rbDomOf P D).lookup n ≠ none → P.RB n = true := by
+  intro n h
+  have h' : (((rbData P D).lookup n).map (fun _ => ())).or
+      (((P.BT.filter (fun n _ => P.RB n)).lookup n).map (fun _ => ())) ≠ none := h
+  cases hrb : P.RB n
+  · exfalso; apply h'
+    have h1 : (rbData P D).lookup n = none := by simp [rbData_lookup, hrb]
+    have h2 : (P.BT.filter (fun n _ => P.RB n)).lookup n = none := by
+      show (P.BT.lookup n).filter (fun _ => P.RB n) = none
+      cases P.BT.lookup n <;> simp [hrb]
+    rw [h1, h2]; rfl
+  · rfl
+
 /-- The table's tracked buckets are among `rbDomOf`'s names. -/
 theorem rbDomOf_bt (P : BParams) (D : Data) :
     ∀ n i, P.BT.lookup n = some i → P.RB n = true → (rbDomOf P D).lookup n ≠ none := by
@@ -305,10 +320,10 @@ theorem rtRes_init (γ : BNames) (P : BParams) (rt rtx wg : Loc) (m cm : GoMap) 
     rtxOf (baseOf rt) ↦ rtx ∗ rwgOf (baseOf rt) ↦ wg ∗
     ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗ txLive rtx (1 : Qp).half ∗ rtxSnap rtx D ∗
     intvInv γ P rtx cm D ∗ wgInv γ rtx wg γw γo γt ∗ ghostVar γw 1 () ∗ ghostVar γt 1 () ∗
-    fkRd γ P (rv0 D) ⊢
+    fkRd γ P (rv0 D) ∗ rbrHalves γ P 1 (rv0 D) ⊢
     rtRes (GF := GF) γ P rt 1 := by
   iintro ⟨Hrb1, Hrb2, Hm, Hcm, Hv, Hrd, Hrvs, Hcln, Hcur, Hh, #Hh0, Hrtx, Hwg, #Hrdt, Hl, #Hs, #Hi,
-    #Hw, Hgw, Hgt, #Hfk⟩
+    #Hw, Hgw, Hgt, #Hfk, Hrbr⟩
   -- a new backend's view is exact
   ihave Hv := viewQ_exact γ _ _ $$ Hv
   unfold rtRes rtResAt rtRest rtCore rtIntv rbAt bksAt wgOpen clnPart
@@ -347,7 +362,8 @@ theorem batchFree_init (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t db wtx
     ghostVar γ.rvs (1 : Qp).half (rv0 D, false) ∗ ownTokAuth γ.wb wbInit ∗
     monoNatAuthOwn γ.wbc 1 0 ∗ ghostVar γ.used (1 : Qp).half 0 ∗
     dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
-    trkHalf γ P D ∗ fkHalf γ P (st0 D wtx) ∗ W ∗ Pk ∗ bDB γ db ⊢ batchFree (GF := GF) γ P W Pk b t := by
+    trkSide γ P (st0 D wtx) ∗ fkHalf γ P (st0 D wtx) ∗ W ∗ Pk ∗ bDB γ db ⊢
+    batchFree (GF := GF) γ P W Pk b t := by
   iintro ⟨Htxf, Hpend, Hdel, Hwb, Hphk, Hhook, Hown, Hwtx, #Hwdb, Hmus, Hv, Hrvs, Hwba, Hwbc, Hused,
     Hopn, Hhkd, Hfkh, HW, HPk, #Hbdb⟩
   unfold batchFree
@@ -534,6 +550,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod rbEls_alloc (GF := GF) (rbDomOf P D) (fun n => ((rbData P D).lookup n, false)) with
     ⟨%grbk, Hrbka, Hrbk⟩
   imod ghostVar_alloc true with ⟨%gcln, Hcln⟩
+  -- (A1 of `auth-schema-srv`, 2026-11-17) the tracked buckets' readers' contents, every bucket unclaimed
+  imod rbr_alloc (GF := GF) P (rbDomOf P D) (rv0 D) with ⟨%grbr, %grbc, Hrbra, Hrbca, Hrbrr, Hrbrb⟩
   -- (the backend-compaction stage, O1) the deletable keys' registration, nothing yet
   imod saved_pred_alloc (A := GoString × GoString) (fun _ => iprop(False)) (DFrac.own 1)
     DFrac.valid_own_one with ⟨%gdlg, Hdlg⟩
@@ -556,7 +574,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod saved_prop_alloc (GF := GF) iprop(True) (DFrac.own 1) DFrac.valid_own_one with ⟨%grq, Hrq⟩
   let γ : BNames := ⟨γd, gview, grd, ghist, gcached, gcur, ghook, gopn, gwb, grdt, gtxa, gtxb,
     grvs, gcvw, gwbc, gused, gcls, gsdn, gstk, ghkd, grbk, gcln, gdlg, gdlb, gfk, gfkv,
-    gdbf, grq, rbDomOf P D, gfkd, gdls⟩
+    gdbf, grq, rbDomOf P D, gfkd, gdls, grbr, grbc⟩
   icases gv_halves gfkd _ $$ Hfkd with ⟨Hfkdb, Hfkdc⟩
   icases gv_halves gdls _ $$ Hdls with ⟨Hdlsb, Hdlsc⟩
   ihave #Hdbat : bDBAt γ db path $$ []
@@ -642,8 +660,8 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   · iframe
     iframe #
   ihave Hrt1 := rtRes_init γ P rt rtx wg m cm D gw go gt $$
-    [Hrb1 Hrb2 Hm Hcm Hviewr Hrd Hrvsr Hclnr Hcurr Hhist Hrtx Hrwg Hlive1 Hgw Hgt]
-  · unfold histAt
+    [Hrb1 Hrb2 Hm Hcm Hviewr Hrd Hrvsr Hclnr Hcurr Hhist Hrtx Hrwg Hlive1 Hgw Hgt Hrbrr]
+  · unfold histAt rbrHalves
     iframe
     iframe #
   imod init_RWMutex_guard (rtRes γ P rt) (E := ⊤) (rmuOf (baseOf rt)) γrw $$
@@ -668,12 +686,15 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
   imod Hmk with ⟨HW, HPk, HK⟩
   imod sync.init_Mutex (batchFree γ P (W γ) (Pk γ) b t) ⊤ (muOf t) $$ [Hmx]
     [Htxf Hpend Hdel Hwb Hphk Hhookb Hown Hwtx Hmus Hviewb Hrvsb Hwba Hwbc Husedb Hopnb Hhkdb Hrbkb
-      Hfkb HW HPk]
+      Hrbra Hrbca Hrbrb Hfkb HW HPk]
     with #Hbl
   · iexact Hmx
   · inext
+    ihave Hrbs : rbrSide γ P (st0 D wtx) $$ [Hrbra Hrbca Hrbrb]
+    · iapply rbrSide_init γ P (st0 D wtx) (rbDomOf_rb P D)
+      iframe
     iapply batchFree_init γ P (W γ) (Pk γ) b t db wtx D hP
-    unfold trkHalf
+    unfold trkSide trkHalf
     iframe
     iframe #
   -- the guards of `readTx.mu` and `txMu`

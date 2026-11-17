@@ -49,7 +49,7 @@ theorem backend.batchTxBuffered.UnsafeDelete.wp_proof
       have := Hsb h1 hs
       cases hq : (vData P (st.C, st.R)).lookup (bi.name, kb) with
       | none => exact absurd hq this
-      | some v => rw [hsub _ v hq]; simp)) rfl rfl hd) $$ Hg Hrbp Hdlp with ⟨Hg, Hrbp, Hdlp⟩
+      | some v => rw [hsub _ v hq]; simp)) rfl rfl hd) (fun m hm => tkSet_ne _ _ hm) $$ Hg Hrbp Hdlp with ⟨Hg, Hrbp, Hdlp⟩
   wp_apply (hBT γ P W Pk b t st bk bi key kb dk own) $$ [Htxf Hpend Hwtx $Hkey] as ⟨Hw, Hkey⟩
   · iframe #
     unfold btW

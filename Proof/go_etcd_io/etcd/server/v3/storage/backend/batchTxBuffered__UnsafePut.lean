@@ -57,7 +57,7 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof
     (fun hk => fkOkG_put false HP Hhas hk) (fun hk => fkOkG_putFk false HP Hhas (Hfv hk)) (fun hk => fkVals_put false hk)
     (fun _ => ⟨bi.id, Hhas⟩) (BSess.put_S_other st bi kb vb false) rfl
     (trkOk_putS HP Hwf Hhas kb vb false) (fun L _ hd => dlsW_step (dlsS_put false (fun h1 _ => (Hsb h1).2))
-      (dlsOk_put false (fun h1 _ => (Hsb h1).2)) rfl rfl hd)
+      (dlsOk_put false (fun h1 _ => (Hsb h1).2)) rfl rfl hd) (fun m hm => tkSet_ne _ _ hm)
     $$ Hg Hhkp Hrbp Hfkp
     with ⟨Hg, Hhkp, Hrbp, Hfkp⟩
   wp_apply (hBuf (wbOf t) st.W bk bi key value kb vb Hlen) $$ [$HW] as HW
