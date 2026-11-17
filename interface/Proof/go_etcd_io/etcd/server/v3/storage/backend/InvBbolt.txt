@@ -63,6 +63,10 @@ theorem bbolt.boltTx.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.
     Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (T T✝ :
     bbolt.TxView) (e_T : T = T✝) : bbolt.boltTx tx γ q T = bbolt.boltTx tx✝ γ✝ q✝ T✝
 
+theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
+    bbolt.boltState γ q D = bbolt.boltState γ✝ q✝ D✝
+
 def backend.ownDB (db : Loc) (γ : backend.DBNames) (D : backend.Data) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] =>
     iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D)
@@ -89,6 +93,10 @@ def backend.txBytes (tx : Loc) (γ : backend.DBNames) (s : GoSlice) (b : GoStrin
 theorem bbolt.txBytes.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
     Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (s s✝ : GoSlice) (e_s : s = s✝) (b
     b✝ : GoString) (e_b : b = b✝) : bbolt.txBytes tx γ s b = bbolt.txBytes tx✝ γ✝ s✝ b✝
+
+theorem backend.boltState_au_back [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
+    backend.DBNames) (D : backend.Data) : AU <{ ∃∃ q D', bbolt.boltState γ q D' }> @ ⊤ \ ↑γ.ns, ∅ <{
+    bbolt.boltState γ q D', COMM bbolt.boltState γ 1 D ∗ ⌜D' = D⌝ }> ⊢ |={⊤}=> bbolt.boltState γ 1 D
 
 theorem backend.ownWTxG_fill (tx b : Loc) (γ : backend.DBNames) (D S : backend.Data) (G : GoString →
     Nat) (n : GoString) (g : Nat) : backend.ownWTxG tx γ D S G ∗ backend.wBkt tx γ b n g ⊢ ∃ f,
