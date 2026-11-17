@@ -11,6 +11,8 @@
   (`winsOk_snoc`, `winsOk_open`, `lastWin_snoc`); `LessorLemmas` (`winBody_push`, `itemsLive_of`, `win_full`, `win_push` =
   win_open (`x = some T`) / win_free (`x = none`); push lemmas take `w`, `winStep`, `itemsLive`, `winOwn`); specs at `∀ w`:
   `Attach`, `Detach` (+ `winStep`), `GetLease`, `Grant`, `Lookup` (pass-through). `Revoke` still at `none`.
+  Checked: every library leaf importing a file changed since `232df2b904` builds (log `7b-leaves3.log`);
+  `tcb-report --check` matches the baseline (877 axioms, 4 sorries). Interfaces not yet regenerated.
 - **Stop:** step 3 needs mvcc's `isLessor` (premise of closed `server_kv_backend` ×3 and, via `isTxnLessor`,
   `txn_runTxn`) at `∀ w`: a stronger premise of closed results. Options in `questions.md` ("Item 7b step 3").
 - **Next after the decision:** step 3 (mvcc: `isLessor` clauses `∀ w`, `storeTxnWrite.*`, `Txn.*.contract`,
