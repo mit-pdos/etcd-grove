@@ -322,3 +322,19 @@ collapses are part of the link; none if they are deferred to a layer-1 cleanup.
 **WalTester's duplicate `durable`.** Not retired by the link: it exists for kvdurable (`durableExt`), which the
 WAL link does not touch (the server's WAL is layer 1 over `fsExt`; the main `durable` is used only by kvdurable,
 kvfile and the `[durableExt]` adequacy). It retires when kvdurable moves onto the bodied `durable` (CLAUDE.md).
+
+**Classification (PRINCIPLES: a variant is allowed only as a corollary `<fn>.spec_R : <fn>.spec → <fn>.specR`).**
+Read off the proof files (`PW/WAL__*.lean`):
+
+| Function | Variant | Proved how | Class |
+|---|---|---|---|
+| `Save` | `spec` / `specNoErr` | two proofs (`wp_proof`, 449 lines; `wp_proofNoErr`, 418) | **twin** |
+| `SaveSnapshot` | `spec` / `specNoErr` / `specPre` | three proofs (284, 256, 327 with `sync.specPre(L)`) | **twins** |
+| `Sync` | `spec` / `specNoErr` | two proofs (76 each) | **twin** |
+| `Close` | `spec` / `specNoErr` / `specFailed` / `specOpening` / `specU` | five proofs (336, 304, 714, 312, 352) | **twins** |
+| `ReleaseLockTo` | `spec` / `specNoErr` | `spec` derived from `specNoErr` (`wp_proof` applies `wp_proofNoErr`) | corollary (fine; direction to rename: `specNoErr` is the one spec) |
+
+So every family L1a touches but `ReleaseLockTo` is a twin family today (layer 1's, before this branch). Under the
+rule L1a can neither restate both twins in place (that keeps the twins) nor pick one without moving its clients:
+the honest in-place form is the collapse (one proof per function, the others corollaries), i.e. the +2.5-5k of
+the cost paragraph above becomes part of L1a, not optional.
