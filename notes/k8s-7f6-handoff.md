@@ -1,6 +1,28 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-17, sixth 7f-6 agent): stage E planned, at the plan's stop
+## START HERE (2026-11-17, sixth 7f-6 agent): stage E, at checkpoint E-1
+
+- **Branch:** `k8s-7f6`. Go target `k8s-7f6-target` `c6bfeb69e8` (kept in step). Plan:
+  `notes/k8s-7f6e-plan.md` (GO by etcd-grove-03, decisions in `questions.md`); E-1 = its §8.
+- **Done:** Go with watchers + G1/G2, translation, Init/PkgTable (b99bfd3fc8; tests pass, watchruns
+  26/26). `etcdstart.kvWatch_served`/`watchRegAt` (`lib/etcdstart/WatchServed.lean`) and
+  `etcdstart.watchEnvL`/`watchEnvL_conn` (`lib/etcdstart/WatchEnvL.lean`): both build (b785daaae7).
+- **Broken on purpose until E is done:** the k8s etcd3 proofs of `Gen`, `newCache`, `Apply`,
+  `Check`, `Main*` (the Go moved); nothing else.
+- **Next, in order:** after E-1's review, plan §8 (ii): `startCluster`'s Serve step with
+  `kvWatch_served`, `clusterUp` gains the members' registrations (shape in §8); `Main` the same; then
+  plan §3 steps 1-6, 7(iii)/(v), 8-10. Checkpoint E-2 (closed statements) is a hard stop.
+- **Pitfalls:** lean-check sat at "elaborating line 1" for minutes on the new files: `lake build` the
+  module through the build slot instead (20-30 s each). `ihave #` on `srvWOk` needs `haveI :=
+  v3rpc.srvWOk_persistent Hp …` first. `List.Nodup.getElem_inj` (not `_iff`). The Go target and this
+  branch change together (copy `watch.go`/`k8setcd3.go` there and commit).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  Go tests: `cd examples/k8s/etcd3; GOWORK=off go test -run ...` under `systemd-run --scope -q -p
+  MemoryMax=32G`; `watchruns.sh` with `BIN`/`OUT` under `/shared/tmp/k8s7f6e`.
+
+## History
+
+### 2026-11-17, sixth 7f-6 agent: stage E planned (fbe30a9a73)
 
 - **Branch:** `k8s-7f6` at lean `1612a1143a` (stage D landed) + this plan commit. Go target
   `k8s-7f6-target` `88a1646324` (worktree `/shared/tmp/k8s7f6d/target`). Decisions: worktree
@@ -18,8 +40,6 @@
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
   lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
   `flock /shared/tmp/etcd-grove-full-build.lock`.
-
-## History
 
 ### 2026-11-16, fifth 7f-6 agent: stage D done (landed, lean 1612a1143a)
 
