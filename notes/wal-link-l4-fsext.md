@@ -1,7 +1,8 @@
 # WAL link L4: the scoped directory rename (trusted text proposal)
 
-**Date:** 2026-11-17. **Branch:** `wal-link`. **Status:** PROPOSAL, revision 2, not applied (hard stop (a): new trusted
-text). Revision 1 was attacked independently (etcd-grove-03, 2026-11-17): BLOCKER, a cross-root rename walks its
+**Date:** 2026-11-17. **Branch:** `wal-link`. **Status:** revision 2 APPROVED BY THE USER, 2026-11-17, via etcd-grove-03 (second attack: SURVIVES, its two wording
+MINORs folded); applied on `wal-link`. **Condition:** the WAL link does not land until the configuration-C run ("Open
+obligation" below) is done on a machine with loop devices (etcd-grove-03 arranges it). History: Revision 1 was attacked independently (etcd-grove-03, 2026-11-17): BLOCKER, a cross-root rename walks its
 target's root ("Revision 2" below); revision 2 takes fix (b), decided by etcd-grove-03, and folds the three MINORs.
 Next: a short second attack, then the user. Scope: `notes/wal-link-scope.md` §4.3 (F-b), §5 (L4).
 
@@ -34,8 +35,8 @@ happen between them.
 - **What the walk sees of another rename** (corrected after the attack): `d_lookup`/`d_alloc_parallel` retry their
   hash lookups on `rename_lock`; a walk validates only each parent's `d_seq` as it steps, so a rename *on its path*
   can be seen mid-walk (the walk then holds a component found before the move and the next found after it: a path
-  no single tree has), and a rename *off its path* cannot. `s_vfs_rename_mutex` (`lock_rename`) serializes
-  cross-directory renames among themselves only.
+  no single tree has). A rename *off its path* changes only timing (`rename_lock` retries in
+  `d_lookup`/`d_alloc_parallel`, waits on `s_vfs_rename_mutex`), never the result.
 - **Measured** (`examples/osfs/semantics/meta_rename_scoped_test.go`, `TestDirRenameScopedToRoot`): root A's thread
   renames directories as `wal.Create` does (mkdir a temporary directory, create a file in it, rename it over the
   target, fsync the parent) and moves a directory across subdirectories of A, while four workers in root B run
@@ -94,7 +95,7 @@ and `Create` rename within one WAL directory and its parent, which P2 puts in on
    `((∃ j, st.lookup s = some (.dir j)) → ∀ k' start', st.proc.calls !! k' = some start' → k' = k)` →
    `((∃ j, st.lookup s = some (.dir j)) → ∀ k' start' p', st.proc.calls !! k' = some (start', p') →
       k' = k ∨ ¬ st.SameRoot s p')`
-   (`t` is in `s`'s root by the new conjunct). Its comment: "A rename across roots is stuck (its walks of the
+   (`t` is in `s`'s root by the new conjunct; roots are not nested, `RootsOk`). Its comment: "A rename across roots is stuck (its walks of the
    target's path would race the target root's renames unseen: `meta_rename_cross_root.go`). A rename of a directory
    is stuck while another call on a path in its root's tree is in flight: Linux walks a path a component at a time,
    validating only each parent as it steps, so a call walking through a directory being moved may find a path that
@@ -139,7 +140,9 @@ No `/dev/loop*` and no `/proc/fs/ext4` here, so neither `c_mkfs` nor `check.sh` 
    about 100k entries (ext4 `dir_index`, htree), so that the workers' lookups are hashed directory searches that take
    long enough to overlap A's renames; plus `L4_CROSS_DEPTH`/`L4_CROSS_ITERS` raised (1900 / 20000) for the excluded
    case.
-Record the outputs in `notes/axiom-review/fs-config/` style beside the note before the text is applied.
+For this run, `TestCrossRootRenameExcluded` asserts a positive count when `L4_CROSS_EXPECT=1` (set it with the
+1900 / 20000 parameters). Record the outputs in `notes/axiom-review/fs-config/` style beside the note. **The WAL link
+does not land before this run** (the user's condition, 2026-11-17).
 
 ## What it does not change
 

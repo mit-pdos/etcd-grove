@@ -1,6 +1,40 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L3/L4 start; STOP at L4's trusted text)
+## START HERE (2026-11-17, L4 text applied; fs library NOT yet rebuilt)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
+  (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands). Coordinator: etcd-grove-03.
+- **Done:** L0-L2 (History); b8b64e6e59 L2 trust-base delta; L4 revision 2 APPROVED BY THE USER (2026-11-17) and
+  applied in the commit after d117e99f31/f69bce09b3: `Impl.lean` (`calls : GMap Nat (Nat × GoString)`, `CallBegin`
+  `v = #p`, steps match `some (start, p)`, `OsState.SameRoot`, `Rename` needs `SameRoot s t` and its directory clause
+  `k' = k ∨ ¬ st.SameRoot s p'`, environment clause, docstrings), `os.lean` (11 sites pass their path; Stat/RemoveAll
+  docstrings), Go `meta_dir_rename_stuck.go`, `meta_rename_cross_root.go`, `doc.go`, `meta_rename_scoped_test.go`
+  (`L4_CROSS_EXPECT=1` asserts a positive count).
+- **OPEN OBLIGATION (the user's condition):** no land before the configuration-C run (`notes/wal-link-l4-fsext.md`,
+  "Open obligation"); etcd-grove-03 arranges it.
+- **State:** the fs library does NOT build at this head: first errors `GooseLang/Ext/Fs/Ghost.lean:505,1167,1172`
+  (`TreeCoh.calls`, `TreeCohS.calls/gcalls/cover` over the old `calls : GMap Nat Nat`) and `Tests.lean:720,735,952`
+  (the trusted tests of Rename/CallBegin). ~180 `proc.calls` uses in ~25 Fs files, then `Proof/os` (~40 files),
+  walfs, layer 1, WalTester.
+- **Next (one pass, do not first patch the global permission):** the per-root call permission.
+  (1) `callKey roots p` := the root `r` with `IsUnder r p` (unique by `RootsOk`), else `[]`; `SameRoot s p' ↔ callKey s =
+  callKey p'` for `s` a `TreeName`. (2) `Γc`/`Γg : GMap Nat (Nat × Qp)` gain the key (`Nat × GoString × Qp`);
+  `TreeCoh(S).calls`: `Γc !! t = some x → st.proc.calls !! t = some (x.start, p) ∧ callKey p = x.key` (legacy:
+  `(Γc !! t).map start = (calls !! t).map (·.1)`). (3) `γperm` keyed by root (`gElem γperm r (own q) ()`): `osCallPerm r
+  q`, `callResS` per key; `sole_of`/`callResS_excl`/`callsRes_facts` per key, giving the new clause. (4) `CallBegin`'s
+  specs take the path and a share of `osCallPerm (callKey p)`; `fs_start` gives one whole per root and one for `[]`.
+  (5) Rename specs gain `SameRoot s t` (every client renames within one directory and its parent). Then `Proof/os`,
+  `Spec/os`, fileutil, layer 1 (`Create`/`cut` over their area's root), WalTester, walfs; then one `WalGS` per area;
+  then L3 (plan in the previous START HERE, History).
+- **Build the fs library:** `mods=$(ls GooseLang/Ext/Fs/*.lean | sed 's|/|.|g; s|\.lean$||'); LEAN_NUM_THREADS=4
+  /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build $mods` (~10 min when Ghost is reached).
+- **Pitfalls:** as in the previous START HERE (gen-link/gen-init Perennial link; goose flags; tcb `--reuse`); semantics
+  tests here: `SEMANTICS_C_DIR=/shared/tmp/wallink/l4-c` (no loop devices for `run-models-on-c.sh`).
+
+## History
+
+### START HERE (2026-11-17, L3/L4 start; STOP at L4's trusted text)
+
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
   Coordinator: etcd-grove-03. Scope §3-§5, §7-§8; `questions.md` (git-ignored, local).
@@ -26,7 +60,7 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
   **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
 
-## History
+
 
 ### START HERE (2026-11-17, L2 done; STOP at the L2 trust-base stop)
 

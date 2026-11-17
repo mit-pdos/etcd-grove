@@ -19,7 +19,8 @@ interval; not `journal_async_commit`, `nobarrier`, `data=journal`/`writeback`, `
 filesystems, options and kernels are outside the model until tested on their own.
 
 **Environment** (hypotheses of the adequacy statement, not of this file). The roots (`FsState.roots`)
-name distinct directories of the filesystem, none in another's tree; every entry in their trees is
+name distinct directories of the filesystem, none in another's tree, and no root's ancestor resolves
+(through a symlink or a mount) into another root's tree; every entry in their trees is
 a regular file or a directory (no symlink, mount point, device, FIFO or socket) and no file is a
 hard link of another; no other process changes their trees or moves a directory above a root; **the
 roots and their ancestors are existing directories throughout** (an ancestor may be a symlink to
@@ -94,9 +95,10 @@ with no claim on what that makes durable, and closes).
   empty `Write` makes no extension step, as a zero-byte `write(2)` of an ext4 file changes nothing:
   `File.Write.impl`). A mapped load that could see a change in flight is stuck (a
   hole), and a racing `pread` or `fstat` returns any mix. Path calls
-  (`CallBegin` … step) overlap, except that a rename of a directory is stuck while any other path
-  call is in flight: Linux walks a path a component at a time, and the model resolves it at one
-  instant, which agrees with Linux only when no directory is moved during the walk. This stuck
+  (`CallBegin` … step) overlap, except that a rename of a directory is stuck while another path
+  call in its root's tree is in flight, and a rename across roots is stuck: Linux walks a path a
+  component at a time, and the model resolves it at one instant, which agrees with Linux only when
+  no directory on the walk's path is moved during it. This stuck
   case depends on other threads, so the model contains Linux's behaviours for the runs of programs
   proved not stuck (every WP is), which never have that overlap. A crash keeps a set of logged
   operations that respects the journal's order (`Tree.lean`, `Follows`).
@@ -334,14 +336,14 @@ structure FsState where
 /-- The process's state: its fds (of files, of directories of the roots' trees, and of directories
 outside them, at or above a root's parent, `ofds`; all with distinct numbers), its changes in flight
 (by the token their first step returned, `osTokV`), its mappings (by base address), and its calls on
-paths in flight (by the token `CallBegin` returned: the length of the log when the call began). The
-two kinds of token are distinct. -/
+paths in flight (by the token `CallBegin` returned: the length of the log when the call began, and
+the path the call's step names). The two kinds of token are distinct. -/
 structure ProcState where
   fds : GMap w64 OsFd
   dfds : GMap w64 OsDirFd
   inflight : GMap Nat OsChange
   maps : GMap Loc OsMap
-  calls : GMap Nat Nat
+  calls : GMap Nat (Nat × GoString)
   /-- The fds of directories outside the roots' trees (a strict ancestor of a root, `Open`'s
   outside case, 2026-11-13): the model knows nothing of them but that they are open. -/
   ofds : GMap w64 Unit := ∅
@@ -580,6 +582,13 @@ def OsState.TreeName (st : OsState) (p : GoString) : Prop := ∃ rj ∈ st.fs.ro
 def OsState.TreePath (st : OsState) (p : GoString) : Prop :=
   (∃ rj ∈ st.fs.roots, rj.1 = p) ∨ st.TreeName p
 
+/-- `a` and `b` are in one root's tree (`IsUnder`: the root itself or below it). A directory's
+rename waits only for the calls on paths in its root's tree, and a rename's source and target must
+be in one root's tree (`Rename`; `examples/osfs/semantics/meta_dir_rename_stuck.go`,
+`meta_rename_cross_root.go`). -/
+def OsState.SameRoot (st : OsState) (a b : GoString) : Prop :=
+  ∃ rj ∈ st.fs.roots, IsUnder rj.1 a ∧ IsUnder rj.1 b
+
 /-- `p` is a root or an ancestor of one: not empty, and a root is `p` or below it, textually
 (`IsUnder`; the roots being canonical and absolute, `RootForm`, such a `p` is `/c₁/…/cₖ`, a prefix of
 a root's components). The environment (the header) keeps each an existing directory. -/
@@ -732,7 +741,7 @@ any nonzero errno. -/
 abbrev OpenOutside (v : val) (st : OsState) (e' : Expr) (st' : OsState) : Prop :=
   ∃ (p : GoString) (fl : w64) (t start : Nat),
     v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ ¬ st.TreePath p ∧ st.AboveRoot p ∧
-    (fl.toNat = O_RDONLY ∨ fl.toNat = O_CLOEXEC) ∧ st.proc.calls !! t = some start ∧
+    (fl.toNat = O_RDONLY ∨ fl.toNat = O_CLOEXEC) ∧ st.proc.calls !! t = some (start, p) ∧
     ((∃ fd : w64, FdFree st fd ∧ st' = (st.metaEnd t).addOfd fd ∧ e' = osRes (#fd) 0) ∨
      (∃ e : w64, e ≠ 0 ∧ st' = st.metaEnd t ∧ e' = osRes (#(-1 : w64)) e))
 
@@ -817,7 +826,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   that instant, where the step may be placed. Go example: `examples/osfs/semantics/meta_enoent.go`. -/
   | "Open" => (∃ (p : GoString) (fl : w64) (t start : Nat),
       v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ st.TreePath p ∧ OpenFlagsOk fl.toNat ∧
-      st.proc.calls !! t = some start ∧
+      st.proc.calls !! t = some (start, p) ∧
       let acc := fl.toNat % 4
       let creat := decide (fl.toNat / O_CREAT % 2 = 1)
       let trunc := decide (fl.toNat / O_TRUNC % 2 = 1)
@@ -949,13 +958,13 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "OutClose" => ∃ (fd e : w64), v = #fd ∧ st.proc.ofds !! fd = some () ∧ st' = st.delOfd fd ∧
       e' = Val (#e)
   /- The start of a system call on a path (`open`, `rename`, `unlink`, `rmdir`, `mkdir`, `lstat`):
-  `#() ↦ tok`, a token recording the length of the log now (the operations that have taken effect
+  `#p ↦ tok`, `p` the path the call's step names, a token recording the length of the log now (the operations that have taken effect
   before the call began: the journal has them before it, and the call's walk of its path sees them).
-  The call's step ends it. Not a system call; calls overlap freely, but a directory's rename waits
-  for every other one (see `Rename`). A trusted model makes one `CallBegin` per system-call attempt
+  The call's step ends it, and names `p` (else it is stuck). Not a system call; calls overlap
+  freely, but a directory's rename waits for every other one in its root's tree (see `Rename`). A trusted model makes one `CallBegin` per system-call attempt
   (inside Go's `EINTR` retry loop), before the attempt enters the kernel, and passes its token to
   that attempt's step only. A model that returns without the step leaves the call in flight for
-  good, which makes every later directory rename stuck. -/
+  good, which makes every later directory rename in that root's tree stuck. -/
   /- Where the path `p` is: `#p ↦ #1` for a `TreeName` (strictly below a root), `#0` for a root,
   `#2` for a strict ancestor of a root (`AboveRoot`: `/` included); stuck on any other path. A query
   of the model, not a system call (no state changes): `os.MkdirAll`'s model asks it, so that at a
@@ -969,9 +978,9 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       (st.TreeName p ∧ e' = Val (#(1 : w64)) ∨
        ¬ st.TreeName p ∧ (∃ rj ∈ st.fs.roots, rj.1 = p) ∧ e' = Val (#(0 : w64)) ∨
        ¬ st.TreePath p ∧ st.AboveRoot p ∧ e' = Val (#(2 : w64)))
-  | "CallBegin" => ∃ t : Nat, v = #() ∧ st.proc.calls !! t = none ∧
+  | "CallBegin" => ∃ (t : Nat) (p : GoString), v = #p ∧ st.proc.calls !! t = none ∧
       st.proc.inflight !! t = none ∧
-      st' = st.setProc { st.proc with calls := <[t := st.fs.metaLog.length]> st.proc.calls } ∧
+      st' = st.setProc { st.proc with calls := <[t := (st.fs.metaLog.length, p)]> st.proc.calls } ∧
       e' = Val (osTokV t)
   /- `fsync(fd)` of a directory: `#fd ↦ #errno`. Success makes every logged operation durable
   (ext4 commits the whole journal for a file that is not regular); a failure guarantees nothing
@@ -1009,20 +1018,25 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   returns then; `#0` otherwise, and for a directory too (the `lstat` failed: `Rename`'s model then
   goes on to `rename(2)`, as Go does). -/
   | "LstatDir" => ∃ (p : GoString) (isDir e : w64) (t start : Nat),
-      v = PairV (osTokV t) (#p) ∧ st.TreePath p ∧ st.proc.calls !! t = some start ∧
+      v = PairV (osTokV t) (#p) ∧ st.TreePath p ∧ st.proc.calls !! t = some (start, p) ∧
       st' = st.metaEnd t ∧
       ((∃ j, st.lookup p = some (.dir j)) ∧ isDir = 1 ∧ e ≠ 0 ∨ isDir = 0) ∧
       e' = Val (PairV (#isDir) (#e))
   /- `rename(2)` of a call (`tok`, from `CallBegin`): `(tok, #s, #t) ↦ #errno`. As `RenameOk` says,
   or a no-op on an entry renamed to itself; any case may fail, a failure with or without the effect.
-  Open fds of a moved file or directory keep it (they hold its inode). A rename of a directory is
-  stuck while any other call on a path is in flight: Linux walks a path a component at a time,
-  without locking the directories it has passed, so a call walking through a directory being moved
-  may find a path that no single tree of the log has; the model resolves a path at its step, so it
-  excludes that overlap. -/
+  Open fds of a moved file or directory keep it (they hold its inode). A rename across roots is
+  stuck (its walk of the target's path would race the target root's renames unseen:
+  `examples/osfs/semantics/meta_rename_cross_root.go`). A rename of a directory is stuck while
+  another call on a path in its root's tree is in flight: Linux walks a path a component at a time,
+  validating only each parent as it steps, so a call walking through a directory being moved may
+  find a path that no single tree of the log has; the model resolves a path at its step, so it
+  excludes that overlap. A call in another root's tree, or above the roots, never walks through it
+  (no root is in another's tree, and no root's ancestor resolves into another root's tree; `t` is
+  in `s`'s root by `SameRoot s t`, roots not being nested, `RootsOk`). The call began on `s`. -/
   | "Rename" => ∃ (s t : GoString) (k start : Nat), v = PairV (osTokV k) (PairV (#s) (#t)) ∧
-      st.TreeName s ∧ st.TreeName t ∧ st.proc.calls !! k = some start ∧
-      ((∃ j, st.lookup s = some (.dir j)) → ∀ k' start', st.proc.calls !! k' = some start' → k' = k) ∧
+      st.TreeName s ∧ st.TreeName t ∧ st.SameRoot s t ∧ st.proc.calls !! k = some (start, s) ∧
+      ((∃ j, st.lookup s = some (.dir j)) → ∀ k' start' p', st.proc.calls !! k' = some (start', p') →
+        k' = k ∨ ¬ st.SameRoot s p') ∧
       let st0 := st.metaEnd k
       ((RenameOk st s t ∧ ∃ o, RenameOp st s t o ∧
           (st' = st0.metaDo o start ∧ e' = Val (#(0 : w64)) ∨
@@ -1032,7 +1046,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `unlink(2)` of a metadata call: `(tok, #p) ↦ #errno`. A file's name is removed (its fds keep
   the file, which stays in `files`); any case may fail, a failure with or without the effect. -/
   | "Unlink" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
-      st.proc.calls !! k = some start ∧
+      st.proc.calls !! k = some (start, p) ∧
       let st0 := st.metaEnd k
       ((∃ i j b, st.lookup p = some (.file i) ∧ st.parent p = some (j, b) ∧
           (st' = st0.metaDo (.remove j b (.file i)) start ∧ e' = Val (#(0 : w64)) ∨
@@ -1042,7 +1056,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `rmdir(2)` of a metadata call: `(tok, #p) ↦ #errno`. An empty directory is removed (an fd on it
   keeps it, empty); any case may fail, a failure with or without the effect. -/
   | "Rmdir" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
-      st.proc.calls !! k = some start ∧
+      st.proc.calls !! k = some (start, p) ∧
       let st0 := st.metaEnd k
       ((∃ j' j b, EmptyDir st p j' ∧ st.parent p = some (j, b) ∧
           (st' = st0.metaDo (.remove j b (.dir j')) start ∧ e' = Val (#(0 : w64)) ∨
@@ -1052,7 +1066,7 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `mkdir(2)` of a metadata call: `(tok, #p) ↦ #errno`. A new directory of a fresh inode where
   nothing is, in an existing directory; any case may fail, a failure with or without the effect. -/
   | "Mkdir" => ∃ (p : GoString) (k start : Nat), v = PairV (osTokV k) (#p) ∧ st.TreeName p ∧
-      st.proc.calls !! k = some start ∧
+      st.proc.calls !! k = some (start, p) ∧
       let st0 := st.metaEnd k
       let o (j : Ino) (b : GoString) := MetaOp.mkdir j b st.fs.nextIno
       ((∃ j b, st.lookup p = none ∧ st.parent p = some (j, b) ∧

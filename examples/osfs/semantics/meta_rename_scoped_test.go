@@ -3,7 +3,7 @@
 package semantics
 
 // Measurement behind the proposed scoping of the Rename step's stuck clause
-// (WAL link L4, notes/wal-link-l4-fsext.md; proposed, not yet in Impl.lean): a rename of a directory in one
+// (WAL link L4, notes/wal-link-l4-fsext.md; approved 2026-11-17): a rename of a directory in one
 // root's tree, racing path calls whose paths are in another root's tree, never
 // changes what those calls see. Each worker of root B runs a fixed sequence of
 // path calls on its own subdirectory (deep paths, file and directory renames,
@@ -192,7 +192,8 @@ func TestDirRenameScopedToRoot(t *testing.T) {
 // therefore makes Rename stuck unless its source and target are in one root's
 // tree (SameRoot s t). The test reports the count; it fails only if the setup
 // fails. The attack measured 296 of 20000 at depth 1900 on ext4.
-// L4_CROSS_ITERS (default 2000) and L4_CROSS_DEPTH (default 1900) tune it.
+// L4_CROSS_ITERS (default 2000) and L4_CROSS_DEPTH (default 1900) tune it;
+// L4_CROSS_EXPECT=1 (the configuration-C run) asserts a positive count.
 func TestCrossRootRenameExcluded(t *testing.T) {
 	base := extDir(t)
 	a, c := base+"/A", base+"/C"
@@ -245,4 +246,7 @@ func TestCrossRootRenameExcluded(t *testing.T) {
 	}
 	t.Logf("cross-root rename racing root A's directory renames: %d of %d succeeded at a path no tree had (depth %d)",
 		hits, iters, n)
+	if os.Getenv("L4_CROSS_EXPECT") == "1" && hits == 0 {
+		t.Errorf("L4_CROSS_EXPECT=1: no impossible success in %d iterations at depth %d", iters, n)
+	}
 }

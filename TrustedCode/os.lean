@@ -252,7 +252,7 @@ extension is stuck on it). -/
 noncomputable def OpenFile.impl : val :=
   λ: "name" "flag" "perm",
     (rec: "open" <> :=
-      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "name" in
       let: "r" := ExternalOp Fs.fsExt.name "Open" ("c", ("name", "flag" |⟨go.int⟩ #(W64 0x80000))) in
       if: Snd "r" =⟨go.uintptr⟩ #(W64 0) then
         let: "inner" := GoAlloc model.file (GoZeroVal model.file #()) in
@@ -684,13 +684,13 @@ Then `rename(2)` is the extension's `Rename`, each attempt after its own `CallBe
 retried. -/
 noncomputable def Rename.impl : val :=
   λ: "oldname" "newname",
-    let: "lc" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "lc" := ExternalOp Fs.fsExt.name "CallBegin" "newname" in
     let: "l" := ExternalOp Fs.fsExt.name "LstatDir" ("lc", "newname") in
     if: Fst "l" =⟨go.uintptr⟩ #(W64 1) then
       model.linkError #"rename" "oldname" "newname" (syscall.model.errno (Snd "l"))
     else
       (rec: "rename" <> :=
-        let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+        let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "oldname" in
         let: "e" := ExternalOp Fs.fsExt.name "Rename" ("c", ("oldname", "newname")) in
         if: "e" =⟨go.uintptr⟩ #(W64 4) then "rename" #() -- EINTR
         else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
@@ -723,13 +723,13 @@ noncomputable def Rename.impl : val :=
 noncomputable def Remove.impl : val :=
   λ: "name",
     let: "e" := (rec: "unlink" <> :=
-      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "name" in
       let: "e" := ExternalOp Fs.fsExt.name "Unlink" ("c", "name") in
       if: "e" =⟨go.uintptr⟩ #(W64 4) then "unlink" #() else "e") #() in
     if: "e" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
     else
       let: "e1" := (rec: "rmdir" <> :=
-        let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+        let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "name" in
         let: "e1" := ExternalOp Fs.fsExt.name "Rmdir" ("c", "name") in
         if: "e1" =⟨go.uintptr⟩ #(W64 4) then "rmdir" #() else "e1") #() in
       if: "e1" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
@@ -745,7 +745,7 @@ the mode, which the extension does not model. -/
 noncomputable def Mkdir.impl : val :=
   λ: "name" "perm",
     (rec: "mkdir" <> :=
-      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "name" in
       let: "e" := ExternalOp Fs.fsExt.name "Mkdir" ("c", "name") in
       if: "e" =⟨go.uintptr⟩ #(W64 4) then "mkdir" #() -- EINTR
       else if: "e" ≠⟨go.uintptr⟩ #(W64 0) then
@@ -843,7 +843,8 @@ directory's size is arbitrary (Linux reports its blocks' bytes, which the extens
 model). As every step on a path, the model is stuck on a path outside the roots' trees and on a
 path that is not canonical (`a/`, `a//b`, relative; Linux answers there). At a root it answers
 (`Open` takes a root), and `Lstat` as `Stat` is right there too (the environment: no root is a
-symlink). The `CallBegin` makes a directory rename by another thread stuck until the `open`
+symlink). The `CallBegin` of `name` makes a directory rename in `name`'s root's tree by another
+thread stuck until the `open`
 (as for every path call), so `stat`'s walk never meets a moved directory. At a strict ancestor of
 a root (the extension's query `PathKind`, which changes nothing, is `2`), where the extension's
 `open` would give an fd outside the trees: `model.statAbove`, with no step (2026-11-13, pending
@@ -855,7 +856,7 @@ noncomputable def model.stat : val :=
       model.statAbove "op" "name"
     else
     (rec: "stat" <> :=
-      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "name" in
       let: "r" := ExternalOp Fs.fsExt.name "Open" ("c", ("name", #(W64 0x80000))) in
       if: Snd "r" =⟨go.uintptr⟩ #(W64 4) then "stat" #() -- EINTR
       else if: Snd "r" ≠⟨go.uintptr⟩ #(W64 0) then
@@ -1020,14 +1021,14 @@ noncomputable def model.prefixPath : val :=
 /-- `unlink(2)` of `p`, each attempt after its own `CallBegin`, `EINTR` retried: the errno. -/
 noncomputable def model.unlinkLoop : val :=
   λ: "p", (rec: "unlink" <> :=
-    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "p" in
     let: "e" := ExternalOp Fs.fsExt.name "Unlink" ("c", "p") in
     if: "e" =⟨go.uintptr⟩ #(W64 4) then "unlink" #() else "e") #()
 
 /-- `rmdir(2)` of `p`, each attempt after its own `CallBegin`, `EINTR` retried: the errno. -/
 noncomputable def model.rmdirLoop : val :=
   λ: "p", (rec: "rmdir" <> :=
-    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "p" in
     let: "e" := ExternalOp Fs.fsExt.name "Rmdir" ("c", "p") in
     if: "e" =⟨go.uintptr⟩ #(W64 4) then "rmdir" #() else "e") #()
 
@@ -1035,7 +1036,7 @@ noncomputable def model.rmdirLoop : val :=
 `(fd, errno)`. -/
 noncomputable def model.openLoop : val :=
   λ: "p", (rec: "open" <> :=
-    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+    let: "c" := ExternalOp Fs.fsExt.name "CallBegin" "p" in
     let: "r" := ExternalOp Fs.fsExt.name "Open" ("c", ("p", #(W64 0x80000))) in
     if: Snd "r" =⟨go.uintptr⟩ #(W64 4) then "open" #() else "r") #()
 
@@ -1240,9 +1241,11 @@ Go's body is not translated: below `Remove` it is over the `*at` system calls (`
 The model is that body over paths: `Remove` as `Remove.impl` (inlined, for its errno), the parent
 opened as `OpenFile` does (and closed), and `removeAllFrom` with each entry named by its path
 (`model.removeAllFrom`). A path and a name under an open directory's fd name the same entry as long
-as no directory above it is moved: the model takes a `CallBegin` at its start and ends it at its
-return (with a `LstatDir` of `path`, a step without effect), so that every rename of a directory by
-another thread is stuck while it runs (the extension's `Rename`), and the proved programs, which are
+as no directory above it is moved: the model takes a `CallBegin` of `path` at its start and ends it
+at its return (with a `LstatDir` of `path`, a step without effect), so that every rename of a
+directory in `path`'s root's tree by another thread is stuck while it runs (the extension's
+`Rename`; `path`'s entries are in that tree, and a directory above it is in it or at or above the
+root, which no step moves), and the proved programs, which are
 never stuck, have no such rename. What is left is a directory above it removed and another made
 in its place by another thread (Go's `*at` calls then act on the removed one, which no path names,
 and fail or change nothing a path can see; the model's calls on the new one may fail with any errno
@@ -1261,7 +1264,7 @@ noncomputable def RemoveAll.impl : val :=
     else if: (FuncResolve go!"os.endsWithDot" []) #() "path" then
       model.pathError #"RemoveAll" "path" (syscall.model.errno #(W64 22))
     else
-      let: "g" := ExternalOp Fs.fsExt.name "CallBegin" #() in
+      let: "g" := ExternalOp Fs.fsExt.name "CallBegin" "path" in
       let: "r" :=
         (let: "e" := model.unlinkLoop "path" in
          if: "e" =⟨go.uintptr⟩ #(W64 0) then #GoInterface.nil
