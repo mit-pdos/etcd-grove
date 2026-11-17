@@ -239,3 +239,38 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
   theorem changed; no axiom or `sorry` added.
 * **Gates.** All pass but `k8s client error types` (`examples/k8s/etcd3`'s Go test: `startCluster
   failed`, an environment failure of the shared machine; this change touches no Go code).
+* 2026-11-17: **S3b, `mmap` out of address space** (session `bbolt-oom`, branch `bbolt-oom` off
+  `bbolt-integrate`): `mmap`'s `ENOMEM` no longer survives the premises; the error-free specs of
+  the calls `Open` makes on its file, but `ReadAt`/`WriteAt`/`OpenFile`'s. No new `axiom` or
+  `sorry`, no closed theorem's statement changed. `notes/decisions.md`, "fsExt: `mmap` out of
+  address space does not return".
+  - **The semantics** (`Impl.lean`, trusted, **pending the user's review**;
+    `examples/osfs/semantics/map_mmap_no_room.go`): `FsStep := FsStepV ∨ MmapStall`, where
+    `MmapStall "Mmap" v h st e' h' st'` is `IsFsStep` accepting the arguments, `¬ MmapRoom st h len`
+    (no page-aligned base in `(0, maxAddr]`, no mapping's, with `len` free cells of `h` ending by
+    `maxAddr`), and the step to itself (`e' = ExternalOp fsExt.name "Mmap" (Val v)`, `h' = h`,
+    `st' = st`), as Perennial's `AllocOOMS`. `IsFsStep`'s `mmap` unchanged (any nonzero errno,
+    `ENOMEM` included).
+  - **The premise** (`Premises.lean`, pending review): `MapLockOk "Mmap" v e' := (∃ r, e' = osRes r 0)
+    ∨ e' = ExternalOp fsExt.name "Mmap" (Val v)`: under `NoMapLockErr`, a covered `mmap` returns a
+    mapping or does not return. `noMapLockErr_keeps` re-proved (`heapRendered_map`).
+  - **The proofs' side**: `mmap` is not atomic any more (`fsOp_atomic` needs `[FsRetOp o]`); the
+    lifting lemmas take `hM : o ≠ "Mmap"` (by `decide`) and hand `FsStepV` on (`fsStepV_of_ne`);
+    `wp_os_stepXF` lifts any step with the step's masks; `wp_osMmapG` (`Specs.lean`) is `mmap`
+    through an accessor of the `OsMeta`, the stall by Löb induction; `wp_osMmap` and
+    `wp_osMmap_cs` keep their statements (the latter over `wp_osMmapG`, no longer `wp_atomic`).
+  - **Error-free specs** (each beside the spec it refines; under `[FsStepSat (NoIoErr Sio)]` or
+    `[FsStepSat (NoMapLockErr Sio)]`, `∀ st i, Sio.ino st i`): extension level `wp_osMmapNE`,
+    `mmap_noFail` (`NoMapLockErrSpecs.lean`), `wp_osFstatNE`, `wp_osPReadNE`, `wp_osFsyncBNE`
+    (`NoErrSpecsOpen.lean`); Go level `golang_org.x.sys.unix.Mmap.specNoErr`,
+    `syscall.Fdatasync.specBNoErr`, `os.File.Stat.specNoErr`, `os.File.Sync.specBNoErr` (spec and
+    proof files `…NoErr.lean`); with S3a's `syscall.Flock.specNoErr` (non-blocking and `LOCK_UN`,
+    `EAGAIN` kept on a conflict), `unix.Munmap.specNoErr`, `os.File.Close.specNoErr`.
+  - **Left.** `os.File.ReadAt.specRacyLt`, `os.File.WriteAt.specExt` and `os.OpenFile.specCreateS`
+    without errors: the extension-level steps are there (`wp_osPReadNE`, NoIoErrSpecs'
+    `wp_osPWriteFinishKNE`; `open`'s success needs the path resolved and a free fd, `NoIoErr`'s
+    `ErrnoZero` premise), but the Go models' loops (250, 200 and 250 lines of proof) need re-proving
+    over them, or their proofs made generic in the steps' errors as `DB.Close`'s was. A blocking
+    `flock` cannot be error-free: the semantics has no success while another description holds a
+    conflicting lock (`LockStep`: it waits, or fails), so `NoMapLockErr` keeps its failures; bbolt's
+    `flock` is non-blocking (`LOCK_NB`), so `Open` does not need it.

@@ -45,11 +45,12 @@ open Fs
 section atomic
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
 
-/-- Every step of an operation of the extension ends in a value. -/
+/-- Every step of an operation of the extension but `mmap` ends in a value (`mmap` may step to
+itself, `MmapStall`). -/
 theorem fsStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : OsState}
-    {e' : Expr} {h' : GMap Loc (NonAtomic val)} {st' : OsState}
+    {e' : Expr} {h' : GMap Loc (NonAtomic val)} {st' : OsState} (hM : o ≠ "Mmap")
     (hs : FsStep o v h st () e' h' st' ()) : (toVal e').isSome := by
-  obtain ⟨hs, -, -⟩ := hs
+  obtain ⟨hs, -, -⟩ := fsStepV_of_ne hM hs
   unfold IsFsStep at hs
   split at hs <;> (try simp only at hs) <;>
   repeat' (first
@@ -60,14 +61,49 @@ theorem fsStep_val {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st : O
     | (refine And.elim (fun hl hs => ?_) hs; first | (subst hl; rfl) | skip)
     | (refine Exists.elim hs (fun _ hs => ?_)))
 
-/-- An operation of the extension is atomic: it takes one step, to a value. -/
-instance fsOp_atomic (a : Language.Atomicity) (o : String) (v : val) :
+/-- The operations of the extension that always return: all but `mmap`, which may step to itself
+(`MmapStall`). An instance for each, so that `fsOp_atomic` is found for the literal operation. -/
+class FsRetOp (o : String) : Prop where
+  ne_mmap : o ≠ "Mmap"
+
+instance : FsRetOp "Open" := ⟨by decide⟩
+instance : FsRetOp "PRead" := ⟨by decide⟩
+instance : FsRetOp "PWriteStart" := ⟨by decide⟩
+instance : FsRetOp "PWriteFinish" := ⟨by decide⟩
+instance : FsRetOp "Fstat" := ⟨by decide⟩
+instance : FsRetOp "FtruncateStart" := ⟨by decide⟩
+instance : FsRetOp "FtruncateFinish" := ⟨by decide⟩
+instance : FsRetOp "Fsync" := ⟨by decide⟩
+instance : FsRetOp "Flock" := ⟨by decide⟩
+instance : FsRetOp "Close" := ⟨by decide⟩
+instance : FsRetOp "Munmap" := ⟨by decide⟩
+instance : FsRetOp "FdKind" := ⟨by decide⟩
+instance : FsRetOp "OutSync" := ⟨by decide⟩
+instance : FsRetOp "OutClose" := ⟨by decide⟩
+instance : FsRetOp "PathKind" := ⟨by decide⟩
+instance : FsRetOp "CallBegin" := ⟨by decide⟩
+instance : FsRetOp "DirSync" := ⟨by decide⟩
+instance : FsRetOp "DirClose" := ⟨by decide⟩
+instance : FsRetOp "DirReadNext" := ⟨by decide⟩
+instance : FsRetOp "LstatDir" := ⟨by decide⟩
+instance : FsRetOp "Rename" := ⟨by decide⟩
+instance : FsRetOp "Unlink" := ⟨by decide⟩
+instance : FsRetOp "Rmdir" := ⟨by decide⟩
+instance : FsRetOp "Mkdir" := ⟨by decide⟩
+instance : FsRetOp "FallocStart" := ⟨by decide⟩
+instance : FsRetOp "FallocFinish" := ⟨by decide⟩
+instance : FsRetOp "FallocKeep" := ⟨by decide⟩
+instance : FsRetOp "OfdLock" := ⟨by decide⟩
+
+/-- An operation of the extension other than `mmap` is atomic: it takes one step, to a value. -/
+instance fsOp_atomic (a : Language.Atomicity) (o : String) [ho : FsRetOp o] (v : val) :
     Language.Atomic a (ExternalOp fsExt.name o (Val v)) :=
   goose_atomic a (fun _ _ e' _ _ hb => by
       cases hb with
       | ExternalOpS _ _ _ _ _ _ hst =>
         obtain ⟨_, _, _, hst', rfl⟩ := (extStep_named _ _ _ _ _).1 hst
-        exact fsStep_val (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ ((HasExt.step_iff ..).1 hst')))
+        exact fsStep_val ho.ne_mmap
+          (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ ((HasExt.step_iff ..).1 hst')))
     (by intro Ki e' h; cases Ki <;> simp only [fillItem] at h <;> cases h <;> rfl)
 
 end atomic

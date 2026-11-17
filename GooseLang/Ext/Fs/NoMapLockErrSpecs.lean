@@ -2,8 +2,9 @@
 What the program logic may use of the premises **no error of `flock`, `mmap`, `munmap`**
 (`NoMapLockErr S`, pending the user's review) and **no I/O error** (`NoIoErr S`) on the calls bbolt's
 `Open` and `Close` make on the database file: `munmap` returns 0, a non-blocking `flock` 0 or
-`EAGAIN` and `LOCK_UN` 0, `mmap` 0 or `ENOMEM`, a file's `close` 0 (`NoIoErr`), and the error-free specs
-of `munmap`, `flock` and `close` derived from their specs by `wp_ext_post`. Every inode covered
+`EAGAIN` and `LOCK_UN` 0, `mmap` no errno (a mapping, or no return with no room for it, `MmapStall`), a
+file's `close` 0 (`NoIoErr`), and the error-free specs of `munmap`, `flock` and `close` derived from their
+specs by `wp_ext_post`, and of `mmap` from `wp_osMmapG`. Every inode covered
 (`hS`), as `NoIoErrSpecs.lean`'s. Untrusted.
 -/
 module
@@ -39,7 +40,7 @@ theorem munmap_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i
     ∀ h st g e' h' st' g', S.step "Munmap" v h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
   obtain ⟨hst, -, -⟩ := hf
   simp only [IsFsStep] at hst
   obtain ⟨base, len, cap, m, hv, hm, hlen, hcap, -⟩ := hst
@@ -58,7 +59,7 @@ theorem flock_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
     ∀ h st g e' h' st' g', S.step "Flock" (PairV (#fd) (#how)) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ (r = #(0 : w64) ∨ (req ≠ none ∧ r = #EAGAIN)) := by
   intro h st g e' h' st' g' hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
   obtain ⟨hst, -, -⟩ := hf
   simp only [IsFsStep] at hst
   obtain ⟨fd', how', d, req', nb', hv, hfd, hhow', hl⟩ := hst
@@ -100,25 +101,46 @@ theorem flock_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i,
     intro hn; subst hn
     simp at hreq
 
-/-- Every step of `mmap` returns 0 or `ENOMEM` when every inode is covered. -/
-theorem mmap_noErr {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
-    (v : val) :
-    ∀ h st g e' h' st' g', S.step "Mmap" v h st g e' h' st' g' →
-      ∃ r, e' = Val r ∧ ((∃ b, r = PairV b (#(0 : w64))) ∨ r = PairV (#null) (#ENOMEM)) := by
-  intro h st g e' h' st' g' hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
-  obtain ⟨hst, -, -⟩ := hf
-  simp only [IsFsStep] at hst
-  obtain ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl, -⟩ := hst
+/-- A page-aligned base for a new mapping, positive and no mapping's (what `IsFsStep`'s success of
+`mmap` needs of it, but for the heap). -/
+theorem exists_map_base (M : GMap Loc OsMap) :
+    ∃ base : Loc, 0 < base.addr ∧ (osPageSize : Int) ∣ base.addr ∧ M !! base = none := by
+  obtain ⟨L, hL⟩ := M.finite
+  have hp := freshLoc_pos L
+  refine ⟨⟨(osPageSize : Int) * (freshLoc L).addr⟩, ?_, ⟨_, rfl⟩, ?_⟩
+  · simp only [osPageSize]; omega
+  · cases hb : M.lookup ⟨(osPageSize : Int) * (freshLoc L).addr⟩ with
+    | none => rfl
+    | some x =>
+      have hm := hL _ (by rw [hb]; rfl)
+      have := freshLoc_gt L _ hm
+      simp only [osPageSize] at this; omega
+
+/-- **No step of a covered `mmap` fails** (`NoMapLockErr`, every inode covered): a step of `mmap`
+with the arguments it accepts, from a state where `fd` is open as `d`, never ends in an errno
+(the semantics' success exists, `exists_map_base`; the step either returns a mapping or does not
+return, `MmapStall`). -/
+theorem mmap_noFail {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
+    (fd off len prot fl : w64) (d : OsFd) (hrd : d.readable = true) (hoff : off = 0)
+    (hlen : 0 < len.toInt) (hprot : prot.toNat = PROT_READ)
+    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) :
+    ∀ h st e h' st', st.proc.fds !! fd = some d →
+      S.step "Mmap" (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))) h st ()
+        (osRes (#null) e) h' st' () → e ≠ 0 → False := by
+  intro h st e h' st' hfd hs he
+  obtain ⟨base, hpos, hal, hnone⟩ := exists_map_base st.proc.maps
   have hz := noMapLockErr_step (Sio := Sio) hs
-    (by simp only [MapLockCovers]; exact ⟨fd, _, d, hv, hfd, hS _ _⟩)
-    ⟨osRes (#null) ENOMEM, st, by
+    (by simp only [MapLockCovers]; exact ⟨fd, _, d, rfl, hfd, hS _ _⟩)
+    ⟨osRes (#base) 0, _, by
       simp only [IsFsStep]
-      exact ⟨fd, off, len, prot, fl, d, hv, hfd, hrd, hoff, hlen, hprot, hfl,
-        .inr ⟨ENOMEM, by decide, by trivial, rfl⟩⟩, Or.inr rfl⟩
-  rcases (hz : (∃ r : val, e' = osRes r 0) ∨ e' = osRes (#null) ENOMEM) with ⟨r, hr⟩ | hr
-  · exact ⟨_, hr, Or.inl ⟨r, rfl⟩⟩
-  · exact ⟨_, hr, Or.inr rfl⟩
+      exact ⟨fd, off, len, prot, fl, d, rfl, hfd, hrd, hoff, hlen, hprot, hfl,
+        .inl ⟨base, hpos, hal, hnone, rfl, rfl⟩⟩, Or.inl ⟨_, rfl⟩⟩
+  rcases (hz : (∃ r : val, osRes (#null) e = osRes r 0) ∨
+      osRes (#null) e = ExternalOp fsExt.name "Mmap" (Val _)) with ⟨r, hr⟩ | hr
+  · injection hr with hr
+    injection hr with h1 h2
+    exact he (go.intoVal_inj h2)
+  · cases hr
 
 /-- Every step of a file's `close(fd)` returns 0 when every inode is covered (`NoIoErr`). -/
 theorem close_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
@@ -126,7 +148,7 @@ theorem close_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.
     ∀ h st g e' h' st' g', S.step "Close" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
   obtain ⟨hst, -, -⟩ := hf
   simp only [IsFsStep] at hst
   obtain ⟨fd', e, d, hv, hfd, -, -⟩ := hst
@@ -202,6 +224,47 @@ theorem wp_osCloseNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio
   rw [he]
   iapply HΦ
   itrivial
+
+/-- **`mmap` with no error** (`wp_osMmapG` under `NoMapLockErr`, every inode covered): fresh cells
+at `base`, whose client halves hold the file's bytes, then holes past its end, inside the address
+space, and the mapping in the `OsMeta`. With no room for the mapping, the call does not return
+(`MmapStall`); it never fails. -/
+theorem wp_osMmapNE {Sio : IoSet} [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
+    (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (hE : ↑osN ⊆ E)
+    (hrd : d.readable = true) (hoff : off = 0) (hlen : 0 < len.toInt)
+    (hprot : prot.toNat = PROT_READ)
+    (hfl : fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osFd (L := L) fd dq d -∗ osMeta (L := L) d.ino (DFrac.own 1) (m) -∗
+      (∀ base : Loc,
+        ⌜0 < base.addr ∧ base.addr + len.toNat ≤ maxAddr⌝ -∗
+          osMeta (L := L) d.ino (DFrac.own 1) ({ m with maps := <[base := len.toNat]> m.maps }) -∗
+          (∃ bs : List w8, ⌜bs.length = m.size⌝ ∗
+            cellsR base 0 len.toNat (fun i => toCellVal bs[i]?)) -∗
+        osFd (L := L) fd dq d -∗ Φ (PairV (#base) (#(0 : w64)))) -∗
+      WP (ExternalOp fsExt.name "Mmap"
+        (Val (PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl))))))) @ s; E {{ Φ }} := by
+  iintro #Hinv Hfd Hm HΦ
+  iapply wp_osMmapG fd off len prot fl dq d m (E \ ↑osN) hE hrd hoff hlen hprot hfl (fun _ => False)
+    (mmap_noFail hS fd off len prot fl d hrd hoff hlen hprot hfl)
+    (osMeta (L := L) d.ino (DFrac.own 1) m)
+    (fun base e => mmapRes (L := L) (fun _ => False) d len m (some (base, e))) Φ $$ Hinv [] [HΦ]
+    Hfd Hm
+  · imodintro
+    iintro Hm
+    imodintro
+    iframe Hm
+    iintro %r Hr
+    imodintro
+    rcases r with _ | ⟨base, e⟩
+    · unfold mmapRes mmapPost; iexact Hr
+    · unfold mmapPost; iexact Hr
+  · iintro %base %e Hr Hfd
+    unfold mmapRes
+    icases Hr with (⟨%he, Hm, Hc⟩ | ⟨%he, -⟩)
+    · obtain ⟨rfl, hpos, hmax⟩ := he
+      iapply HΦ $$ %base [] Hm Hc Hfd
+      ipureintro; exact ⟨hpos, hmax⟩
+    · exact he.2.2.elim
 
 end specs
 

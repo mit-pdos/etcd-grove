@@ -306,7 +306,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [go.BasicInt
 /-- A metadata step by the call `k`, whose spec's postcondition is `P`, the invariant opened
 around it, `P` keeping the invariant's facts. -/
 theorem wp_dsStep (R : Roots) (j : Ino) (γ : GName) (V : Hist) (ko : Option Ino) (k s : Nat)
-    (op : String) (v : val) (P : w64 → Hist → Prop)
+    (op : String) [FsRetOp op] (v : val) (P : w64 → Hist → Prop)
     (hspec : ∀ Φ' : val → IProp GF, ⊢ osInv (GF := GF) -∗
       osTree (GF := GF) (DFrac.own ((1 : Qp).half.half + (1 : Qp).half)) R V -∗
       osCall (GF := GF) k s (1 : Qp).half.half -∗

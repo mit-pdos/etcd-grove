@@ -116,7 +116,9 @@ Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted mod
 
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
 cells of every mapping show the file; a removed mapping's cells are gone; every other cell is
-unchanged.
+unchanged. A new mapping takes free cells of `(0, maxAddr]`, as an allocation does; when the heap
+leaves no room for it, `mmap` does not return (`MmapStall`, as Perennial's `AllocOOMS`: out of
+address space is outside the model; **pending the user's review**, 2026-11-17).
 
 **File bytes and crashes.** A file is its page cache (`OsFile.cache`, what reads see) and, for
 each byte, its *crash candidates* (`OsFile.cand`): the value it had at the last successful sync,
@@ -912,7 +914,10 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = st.setProc { st.proc with fds := GMap.delete fd st.proc.fds } ∧ e' = Val (#e)
   /- `mmap(nil, len, prot, flags, fd, off)`: `(#fd, #off, #len, #prot, #flags) ↦ (#base, #errno)`.
-  The cells are fresh and page-aligned; `HeapRendered` creates them. -/
+  The cells are fresh and page-aligned; `HeapRendered` creates them. The failure is any nonzero
+  errno, `ENOMEM` included (Linux: no room in the address space, `vm.max_map_count`, `RLIMIT_AS`).
+  When no free range of the mapping's length is left in `(0, maxAddr]`, the call may also not return
+  (`MmapStall`, a step of `FsStep` that sees the heap; **pending the user's review**). -/
   | "Mmap" => ∃ (fd off len prot fl : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl)))) ∧
       FdOpen st fd d ∧ d.readable ∧ off = 0 ∧ 0 < len.toInt ∧ prot.toNat = PROT_READ ∧
@@ -1108,10 +1113,39 @@ def MapsFresh (st st' : OsState) (h : GMap Loc (NonAtomic val)) : Prop :=
   ∀ base m, st'.proc.maps !! base = some m → st.proc.maps !! base = none →
     base.addr + m.len ≤ maxAddr ∧ ∀ k < m.len, h !! (base +ₗ (k : Int)) = none
 
-/-- The step relation: an operation's step, the heap rendered from the new state. -/
-def FsStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (st : OsState) (_g : Unit)
+/-- A step of an operation that returns: its `IsFsStep`, the heap rendered from the new state. -/
+def FsStepV (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (st : OsState) (_g : Unit)
     (e' : Expr) (h' : GMap Loc (NonAtomic val)) (st' : OsState) (_g' : Unit) : Prop :=
   IsFsStep op v st e' st' ∧ MapsFresh st st' h ∧ HeapRendered st st' h h'
+
+/-- The heap `h` and the mappings of `st` leave room for a new mapping of `len` cells: a
+page-aligned base in `(0, maxAddr]`, no mapping's, whose `len` cells are free in `h` and end by
+`maxAddr` (what `IsFsStep`'s success and `MapsFresh` need of the base). -/
+def MmapRoom (st : OsState) (h : GMap Loc (NonAtomic val)) (len : Nat) : Prop :=
+  ∃ base : Loc, 0 < base.addr ∧ (osPageSize : Int) ∣ base.addr ∧ st.proc.maps !! base = none ∧
+    base.addr + len ≤ maxAddr ∧ ∀ k < len, h !! (base +ₗ (k : Int)) = none
+
+/-- **`mmap` out of address space** (**pending the user's review**, 2026-11-17;
+`examples/osfs/semantics/map_mmap_no_room.go`): a call of `mmap` with arguments it accepts
+(`IsFsStep` has a step), from a heap that leaves no room for the mapping (`¬ MmapRoom`), steps to
+itself, nothing changing: the call does not return, as Perennial's allocator with no free range
+(`AllocOOMS`, `AllocBytesOOMS`). The mappings share `(0, maxAddr]` with the Go heap; Linux returns
+`ENOMEM` there (which `IsFsStep`'s failure keeps), and the model also treats the exhaustion as the
+Go runtime's out of memory, outside the model: a proof covers the executions that do not run out of
+address space. It is what lets a premise on steps exclude `mmap`'s errors (`NoMapLockErr`) without
+seeing the heap: from every state, a success or this step is left. -/
+def MmapStall (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (st : OsState) (e' : Expr)
+    (h' : GMap Loc (NonAtomic val)) (st' : OsState) : Prop :=
+  op = "Mmap" ∧ (∃ e0 st0, IsFsStep "Mmap" v st e0 st0) ∧
+  (∃ fd off len prot fl : w64, v = PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl)))) ∧
+    ¬ MmapRoom st h len.toNat) ∧
+  e' = ExternalOp fsExt.name "Mmap" (Val v) ∧ h' = h ∧ st' = st
+
+/-- The step relation: an operation's step, the heap rendered from the new state (`FsStepV`); or
+`mmap`'s step to itself with no room for the mapping (`MmapStall`). -/
+def FsStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (st : OsState) (_g : Unit)
+    (e' : Expr) (h' : GMap Loc (NonAtomic val)) (st' : OsState) (_g' : Unit) : Prop :=
+  FsStepV op v h st () e' h' st' () ∨ MmapStall op v h st e' h' st'
 
 end step
 
