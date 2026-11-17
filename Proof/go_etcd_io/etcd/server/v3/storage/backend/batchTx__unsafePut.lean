@@ -37,9 +37,9 @@ theorem backend.batchTx.unsafePut.wp_proof
     (hStack : zap.Stack.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
     (hPut : bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG))
-    (hError : zap.Error.spec (GF := GF) (hG := hG)) :
+    (_hError : zap.Error.spec (GF := GF) (hG := hG)) :
     backend.batchTx.unsafePut.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi key value kb vb dk seq Hk0 Hk1
+  intro γ P W Pk b t st bk bi key value kb vb dk seq Hk0 Hk1 Hkv
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk, Hkey, #Hval⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db, %lg, %h, #Hbe, #Hlg, #Hlgn, #-, #-, #-, #-, #-, %HP⟩
@@ -75,34 +75,15 @@ theorem backend.batchTx.unsafePut.wp_proof
     wp_auto
     ispecialize Hback $$ %_ %(by decide : ¬ bbolt.float64IsNaN (W64 4606281698874543309)) Hf
     wp_join_done
-  wp_apply (hPut st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key value kb vb dk rfl Hm Hk0 Hk1)
-    $$ [$Hwtx $Hwb $Hkey $Hval] as %err ⟨Hkey, Hres⟩
-  icases Hres with (⟨%Hok, Hwtx⟩ | ⟨%Hbig, Hwtx⟩)
-  · obtain ⟨-, Herr⟩ := Hok
-    subst Herr
-    (try wp_auto)
-    iapply HΦ
-    unfold BSess.put bktOf
-    rw [Hm]
-    iframe
-    iexists G
-    iframe
-  · -- a value above `MaxValueSize`: bbolt's error, and `lg.Fatal` (never returns)
-    obtain ⟨-, Herr⟩ := Hbig
-    cases err with
-    | nil => exact absurd rfl Herr
-    | ok ei =>
-    (try wp_auto)
-    wp_apply hStringer as %f1 -
-    wp_apply hError as %f3 -
-    wp_apply wp_slice_literal
-    try (isplitr; (ipureintro; rfl))
-    try iintro %_ ⟨_, -⟩
-    try wp_auto
-    wp_apply hFatal lg $$ [] as %v Hf
-    · iexact Hlgn
-    iexfalso
-    iexact Hf
+  wp_apply (hPut st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key value kb vb dk rfl Hm Hk0 Hk1 Hkv)
+    $$ [$Hwtx $Hwb $Hkey $Hval] as ⟨Hkey, Hwtx⟩
+  (try wp_auto)
+  iapply HΦ
+  unfold BSess.put bktOf
+  rw [Hm]
+  iframe
+  iexists G
+  iframe
 
 end proof
 

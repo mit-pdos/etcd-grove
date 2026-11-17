@@ -144,7 +144,6 @@ trunc Perennial.EtcdGrove.proto.MarshalAppendCachedRecord.wp_proof
 # definitions are bbolt's proved ones (`Proof/go_etcd_io/bbolt/Inv/`), not trusted text.
 trunc Perennial.EtcdGrove.auth.NewAuthStore.wp_proof
 trunc Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof
-trunc Perennial.EtcdGrove.bbolt.Bucket.Put_kv.wp_proof
 trunc Perennial.EtcdGrove.bbolt.DB.Close_kv.wp_proof
 trunc Perennial.EtcdGrove.bbolt.Open_kv.wp_proof
 trunc Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof

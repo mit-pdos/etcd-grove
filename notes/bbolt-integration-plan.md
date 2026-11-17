@@ -410,3 +410,32 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `fmt.Errorf` added too. Remaining of the old boundary: `bbolt.{Open_kv, DB.Close_kv,
     Bucket.Put_kv}.wp_proof`, `backend.{fileHolds, dbFile, dbFile_persistent, dbFile_timeless}`, the
     options' axioms (S2).
+* 2026-11-17, **S1b** (branch `bbolt-putbound`, session of the S1b unit): **stopped, work in progress
+  (the build is red past the backend).** Done: `bbolt.Bucket.Put_kv.spec` takes `kb.length + vb.length ≤
+  bbolt.bboltEntryMax` and its post is the one outcome (`nil`, the entry set; the `ErrValueTooLarge`
+  disjunct is gone: `bboltEntryMax < MaxValueSize`); `Put_kv.wp_proof` is a theorem over bbolt's proved
+  `Bucket.Put` (linked: `etc/link-lean-first-backend.txt`, backend `Link.lean`); the backend's
+  `batchTx.{unsafePut, UnsafePut, UnsafeSeqPut}` and `batchTxBuffered.{UnsafePut, UnsafeSeqPut}` take the
+  same premise (`unsafePut` loses its `Fatal` branch). Not done: the callers. What the threading needs,
+  found on the way:
+  - **The `confState` save** (`BackendHooks.OnPreCommitUnsafe`, through the trust-boundary axiom
+    `schema.MustUnsafeSaveConfStateToBackend`, whose callback takes any bytes `vb`: JSON of the
+    `ConfState`, not modelled): its length grows with the cluster's members, which nothing bounds (the
+    server's model of the `ConfState` is not in `csInv`). Not derivable; needs either a premise (a bound
+    on the membership, up to the closed server theorems) or a stronger trust-boundary statement. The
+    coordinator's decision.
+  - **mvcc's deletes and `IgnoreValue` puts** write values the caller does not give: a tombstone
+    `kvEncode {key}` of a key of the state, the state's value under a new revision. So mvcc's state must
+    carry the bound: proposed, `MvccReachable.notify` requires the pending puts' `k.length + v.length ≤
+    etcdKeyMax` (the write handle `mvccTxnI .write` carrying it of `pend`), the `Put` contracts take it.
+  - **`kvEncode` is opaque**: its length bound must come from `proto.Marshal.spec` (a trust-boundary
+    axiom: a post `(kvEncode kv).length ≤ kv.key.length + kv.value.length + 128`; protobuf's framing of
+    six fields is at most 66 bytes).
+  - **Per-field bounds do not suffice**: the server carries `key ≤ etcdKeyMax ∧ value ≤ etcdKeyMax`
+    (`ChPutsLe`, `irrPutsLe`, `TxnOp.putsLe`), whose sum plus framing passes `2 ^ 28`. Proposed: those
+    three in sum form (`k + v ≤ n`; `MarshalIRR`'s axiom then states the sum, true of one request's
+    disjoint fields), per-field facts derived; the request reaches `txn.put` through `apply.rqOk` →
+    `putPre`/`txnPre` (`Chain.lean`) and `txn.TxnPreA`, so the applier specs need no new premise.
+  - Small constants, derivable: the consistent index and term (`CindexBackend`, 8-byte values),
+    mvcc's meta puts (`bt_metaPut`, `metaRevVal`), compaction keys. `schema.MustUnsafePutLease` is an
+    axiom (not over `UnsafePut`'s spec).
