@@ -68,6 +68,11 @@ if python3 etc/gen-raft-tla.py --check > "$tmp/tla.log" 2>&1; then
 else
   echo "gen-raft-tla: FAILED"; tail -10 "$tmp/tla.log"; fail=1
 fi
+if python3 etc/copy-part.py --check > "$tmp/cp.log" 2>&1; then
+  echo "$(tail -1 "$tmp/cp.log")"
+else
+  echo "copy-part: FAILED"; tail -10 "$tmp/cp.log"; fail=1
+fi
 return $fail
 }
 

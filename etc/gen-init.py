@@ -24,8 +24,8 @@ come from their `wp_initialize'` by `EtcdGrove.initLb_of_spec` (Perennial's
 `initLb_of_initSpec`), over the initializers listed in the generated
 `Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
 
-The parallel tree `RaftWitness/` gets copies of the files it imports that reach raft
-(`PART_INITS`, and `PkgInitExt`), at `RaftWitness/<path>`.
+The parallel trees `RaftWitness/` and `RaftNoAx/` get copies of the files they import that reach
+raft (`PARTS`: `PART_INITS`, and `PkgInitExt`), at `<part>/<path>`.
 The part `PorcupineDag/` (porcupine PR #46) gets its own package's `Init.lean`, from its own
 translation, and `Closures.lean`, the func literals its package fact names (`DAG_*`).
 
@@ -3019,22 +3019,43 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
               'os', 'syscall', 'io.fs',
               # (2026-11-07) `os`'s translated initializers' imports
               'internal.poll', 'internal.syscall.unix']
-PART_PATHS = {f'Proof/{dirof(p)}/Init.lean' for p in PART_INITS} | {'Proof/runtime/PkgInitExt.lean'}
-PART_MODULES = {p[:-len('.lean')].replace('/', '.') for p in PART_PATHS}
 
 
-def part_copy(path, txt):
-    """The part's copy of the generated file `path`."""
+def part_paths(inits):
+    return {f'Proof/{dirof(p)}/Init.lean' for p in inits} | {'Proof/runtime/PkgInitExt.lean'}
+
+
+# Every such part: its packages, and the module prefixes (besides its copies of these files) whose
+# imports are the part's. The part `RaftNoAx/` (raft without hand-written axioms,
+# notes/raft-noax-part.md) imports kvdurable's initializer too, so durable's and trusted_proph's;
+# its other copies (etc/copy-part.py) are raft's proofs, kvdurable's and kvreconf's, and the
+# translations of kvdurable, kvreconf and walpb (etc/goose.py).
+PARTS = {
+    PART_ROOT: (PART_INITS, ['Code.go_etcd_io.raft']),
+    'RaftNoAx': (PART_INITS + ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
+                               'github_com.mit_pdos.gokv.trusted_proph'],
+                 ['Code.go_etcd_io.raft', 'GeneratedProof.go_etcd_io.raft', 'Spec.go_etcd_io.raft',
+                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']
+                 + [f'{d}.github_com.mit_pdos.etcd_grove.examples.raft.{p}'
+                    for d in ('Code', 'GeneratedProof', 'Spec', 'Proof') for p in ('kvdurable', 'kvreconf')]),
+}
+PART_PATHS = part_paths(PART_INITS)
+
+
+def part_copy(path, txt, root=PART_ROOT):
+    """The part `root`'s copy of the generated file `path`."""
+    inits, prefixes = PARTS[root]
+    mods = {p[:-len('.lean')].replace('/', '.') for p in part_paths(inits)}
     def imp(m):
         x = m.group(2)
-        if x in PART_MODULES or x == 'Code.go_etcd_io.raft' or x.startswith('Code.go_etcd_io.raft.'):
-            x = PART_ROOT + '.' + x
+        if x in mods or any(x == q or x.startswith(q + '.') for q in prefixes):
+            x = root + '.' + x
         return m.group(1) + x
     txt = re.sub(r'(?m)^(public import )(\S+)', imp, txt)
     i = txt.index('\nmodule\n') + 1
-    note = (f'-- The copy for the parallel tree `{PART_ROOT}/` of `{path}` (`PART_INITS` in\n'
+    note = (f'-- The copy for the parallel tree `{root}/` of `{path}` (`PART_INITS` in\n'
             f'-- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part\'s.\n')
-    return f'{PART_ROOT}/{path}', txt[:i] + note + txt[i:]
+    return f'{root}/{path}', txt[:i] + note + txt[i:]
 
 # The part `PorcupineDag/` (porcupine's pull request #46, the DAG search; notes/porcupine-dag-plan.md):
 # the same Go path as v1.3.1's porcupine, translated into a module root of its own. Its package's
@@ -3382,7 +3403,8 @@ def main(argv):
     if not [a for a in argv if not a.startswith('--')]:
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
-    outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
+    outs += [part_copy(path, txt, root) for root, (inits, _) in PARTS.items()
+             for path, txt in outs if path in part_paths(inits)]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init(),
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]

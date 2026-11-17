@@ -143,6 +143,14 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `RaftTla/` alone has the hooks' helpers and the trace check's specs and proofs (its `Init` and
   `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
   `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
+- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), for a closed
+  kvdurable theorem whose trust base has no axiom of this repository: raft of project `raft-noax` and
+  kvdurable of project `kvdurable-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`, `KVDURABLE_NOAX_*`; with
+  kvreconf and walpb translated into it as parts of their projects), and copies of every main-tree
+  module of kvdurable's `Results` closure that reaches them, written by `etc/copy-part.py` (a first
+  line naming it; `--check` in CI; a file without that line is the part's own); its initializers
+  from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
+  Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
