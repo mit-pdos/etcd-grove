@@ -1048,19 +1048,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.wp_newFileEncoder :
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockTo
     (P : WalPbIn GF) (Mr : WalMarshal) :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) P Mr :=
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) (Sio := Sio) P Mr :=
   _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof P
     Mr _root_.Perennial.EtcdGrove.walfs.filepath.wp_Base
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.wp_parseWALName
     _root_.Perennial.EtcdGrove.walfs.os.File.wp_Close
 
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockToNoErr
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockToR
     (P : WalPbIn GF) (Mr : WalMarshal) :
-    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specNoErr (W := W) P Mr :=
-  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proofNoErr
-    P Mr _root_.Perennial.EtcdGrove.walfs.filepath.wp_Base
-    _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.wp_parseWALName
-    _root_.Perennial.EtcdGrove.walfs.os.File.wp_Close
+    _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specR (W := W) (Sio := Sio) P Mr :=
+  _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec_R P Mr
+    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockTo P
+    Mr)
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_sync
     (P : WalPbIn GF) (Mr : WalMarshal) :

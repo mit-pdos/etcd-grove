@@ -8,6 +8,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.co
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.nameBound
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__ReleaseLockTo
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OwnSnapAu
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.OwnSnapPurge
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.purgeRound
@@ -84,7 +85,8 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     (wp_nameBound : nameBound.spec (GF := GF) (hG := hG))
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_Release : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (W := W) (walRaftP (GF := GF)) walRaftMr)
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.specR (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr)
     (wp_purge : purgeRound.spec (GF := GF) (hG := hG)) :
     member.opOwnSnap.spec (GF := GF) (hG := hG) := by
   intro W e γ m lg qc o hf hroom
@@ -351,13 +353,26 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     · iframe
       iframe H3 H15
       rw [tRaiseNames_mark]; iexact H16
-    wp_apply (wp_Release W e.R e.jr e.area w (tWalDir e.area) a ta (tCandHist o c).length
+    -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and
+    -- taken back after it
+    iapply fupd_wp
+    imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [H14]
+      with ⟨%γs, H14⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ H14
+    imodintro
+    wp_apply (lc := 1) (wp_Release W e.R e.jr e.area w (tWalDir e.area) γs 1 a ta (tCandHist o c).length
         (tCandMark (tSnapO o a ta) c) ⟨[W64 1], [], [], [], false⟩
         (fun d' => iprop(⌜d' = d1⌝ ∗ tWalOwn γ (some (tReleaseD d1 a)) ∗
           tOrOwn γ (tRaiseNames (tSnapO o a ta) a) none))) $$ [H14 Hau]
       as %err ⟨H14, %dq, %hdq, H12, H11⟩
     · iframe; iframe #
     subst dq
+    iapply fupd_wp
+    imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [H14 Hlc1]
+      with H14
+    · iframe H14 Hlc1
+    imodintro
+    ihave H14 := walHdl_wf (W := W) ioNone _ _ _ _ $$ H14
     cases err with
     | ok ie =>
       wp_auto

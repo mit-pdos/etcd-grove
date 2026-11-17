@@ -886,7 +886,7 @@ theorem etcd_wal.member.wp_opOwnSnap
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_copyOps
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_nameBound
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_storeOracle (fun W : WalGS GF =>
-    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockTo
+    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_ReleaseLockToR
     (walRaftP (GF := GF)) walRaftMr)) (_root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_purgeRound
     h_errors_IsErrno h_errors_IsPathErrnoTerm)
 

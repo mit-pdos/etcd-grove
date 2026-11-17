@@ -18,14 +18,20 @@
   specs, gone with the queued cleanup); `etc/link_walfs.py`: a binder's `(Sio := ioNone)` reaches the result's
   hypotheses, and a no-error spec hypothesis at `ioNone` is discharged by `noErr_ioNone` (else WalTester's
   `member.wp_save` would take the unproved `cut.specNoErr`); WalTester's `member__save` shares the handle.
-- **Next, in order:** SaveSnapshot (`specPre` as a precondition disjunct), ReleaseLockTo (rename: `specNoErr`
-  becomes `spec` over `walOpenWS`; the weak form stays a corollary), Close (one spec over the handle states, the
+  **`ReleaseLockTo`** renamed (`specNoErr` is `spec`, over `walOpenWS`; the weak form is the corollary
+  `specR`/`spec_R`, which WalTester's `member__opOwnSnap` takes).
+- **Next, in order:** Close (one spec over the handle states, the
   five proofs lemmas of its one proof); WalTester's members move like `member__sync`/`member__save` (alloc share,
-  call with `γ 1`, reclaim with the `£ 1` of `wp_apply (lc := 1)`). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+  call with `γ 1`, reclaim with the `£ 1` of `wp_apply (lc := 1)`); SaveSnapshot (`specPre` as a precondition
+  disjunct) after the room decision (see Open). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
 - **Pitfall (lock + later credit):** a method that needs the handle *before* its first resolution after `Lock`
   (Save's step bound) takes `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand with
   `wp_go_step_receipt'` (its `£ 1` strips the invariant's later), then `wp_raise_receipt` at the next resolution
   (`WAL__Save.lean`). Macros in proofs: `$H` in spec patterns is an antiquotation; expand by hand.
+- **Open (SaveSnapshot's room, reported to etcd-grove-03):** `walHdl`'s fixed room (`walFreshRoom`, the tail's
+  stream ≤ 2^43 when covered) is kept by `Save` (it cuts at 64 MB) and `Sync`, not by `SaveSnapshot` (one
+  record of up to 2^40+64 bytes, no cut; S/wal.go:1137-1162): repeated `SaveSnapshot`s without a `Save` grow
+  the tail. Options in the report.
 - **Open (for L3/L5):** nothing produces `walOpenWFR` yet (Create's/ReadAll's posts give `walOpenWF`; room is an
   open layer-1 decision, `notes/wal-units/noioerr.md`): the server's shared handle needs the fresh room from
   bootstrap's slot (L3, trusted) and, in L5, from `Create` (headers < 2^43) and the restart's `ReadAll` (a tail bound).
