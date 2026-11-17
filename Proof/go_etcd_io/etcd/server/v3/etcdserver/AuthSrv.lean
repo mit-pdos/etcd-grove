@@ -69,8 +69,10 @@ state and **half the published index's authority** (decision 2), schema's auth b
 currency; the write contract (with the hook `P f`) and at every schema auth backend on `d` at its
 frozen hook, `CreateAuthBuckets`, at the write token `T := authWTok γc`; the publication quarter
 and the lifecycle (its realization keeping the open share and a quarter of the published index's
-authority); `authRdN` copies of `R` (tickets, backed by the store's share of the backend's reader
-slots, `authRdSlots`, taken; N4); the constructor's critical section, whose `Post`
+authority); `authRdN - 1` copies of `R` (tickets, backed by the store's share of the backend's reader
+slots, `authRdSlots`, taken; N4; A6.1b's option (b), decided by etcd-grove-03 2026-11-17: one slot fewer
+than the share, which the realization keeps for the write token's reads, `authBackendReads`, which take
+no ticket); the constructor's critical section, whose `Post`
 gives back the open share and the hook; and the snapshot clause at `R`. It takes the client's idle
 half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
 client keeps the others') and the succession right (one live backend).
@@ -119,7 +121,7 @@ def authSchemaSrv : IProp GF :=
       auth.authWTok γc ∗ auth.authPubTok γa ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       srvApi.csContractA P f Pre Q Post ∗
-      ([∗list] _x ∈ List.replicate backend.authRdN (), R) ∗
+      ([∗list] _x ∈ List.replicate (backend.authRdN - 1) (), R) ∗
       (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
       authSchemaSnap γa R)
 
@@ -611,8 +613,7 @@ theorem authStoreKit_on
     iframe Hbe Habbe Hablg
     iapply zapLoggerOk_ne_null; iexact Hlg
   isplitl [Hslots HRs]
-  · icases replicate_takeN _ (backend.authRdN - 1) _ (by omega) $$ HRs with ⟨HRs, -⟩
-    ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
+  · ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
     · iframe Hslots HRs
     unfold authRdSupply
     iapply (replicate_mono _ (auth.authRd stp R (.on γa)) _

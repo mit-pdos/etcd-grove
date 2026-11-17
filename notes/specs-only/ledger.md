@@ -2793,3 +2793,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   read-only; new, its wire fields read-only and its size cache in an invariant. Incomparable; both follow from a
   freshly allocated or decoded message, which is what gRPC's decoder and a client's literal give.
 - **Decision.** Accepted by etcd-grove-03 (2026-11-17, A3 decisions 1-3, after the independent attack).
+
+## 2026-11-17: the auth realization's premise hands out one reader ticket fewer (auth-schema-srv A6.1b)
+
+- **Spec.** `authSchemaSrv` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`; trusted text, the closed
+  auth theorems' named hypothesis `hD22`, discharged at A7).
+- **Defect.** Not realizable as stated over the backend's specs: its write contract's reads (`authBackendReads`:
+  `GetUser`, `GetRole`, `GetAllUsers`, `{{ T ∗ authOwn M hs }}`) take no reader ticket, while schema's code runs
+  `ReadTx().RLock()`, which takes a reader slot (`backend.readTx.RLock.spec`'s `rdTok`); the realization's slots are
+  the store's share `authRdSlots` (`backend.authRdN` of them) and the premise handed out `authRdN` tickets, each of
+  which may be in use concurrently with the apply thread's read: `authRdN + 1` readers on `authRdN` slots.
+- **Evidence.** questions.md "A6.1b" (the count); `RdPool.lean` (`rdAuth`: exactly `authRdN` `rdTok`s); the server
+  never used the `authRdN`-th ticket (`AuthSrv.lean`, `srv_auth_tp_on`'s proof dropped it: `authRdSupply` is
+  `authRdN - 1` copies, the auth applier reading with the write token).
+- **Change.** Old: `([∗list] _x ∈ List.replicate backend.authRdN (), R)`. New: `([∗list] _x ∈ List.replicate
+  (backend.authRdN - 1) (), R)`; the realization keeps one slot for the write token's reads (exchanged against `T`,
+  exclusive). The premise promises less, so the closed theorems taking it are stronger; their text is unchanged.
+  `authSchemaSnap`'s text has no ticket count (the boot's tickets work on every later backend): unchanged.
+- **Decision.** Option (b), decided by etcd-grove-03 (2026-11-17), after the supply check: `authRdSupply`
+  (`authRdN - 1` plain copies), `newAuthStore_on` (`N = authRdN - 1`), the server's 66: no consumer short.

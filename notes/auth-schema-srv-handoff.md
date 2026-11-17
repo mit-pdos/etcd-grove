@@ -1,6 +1,27 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A6: STOPPED at a realizability finding, for etcd-grove-03)
+## START HERE (2026-11-17, A6: STOPPED at the pre-claim readers gap, for etcd-grove-03)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A6, A7); decisions `questions.md` (untracked; "A6.1b decided", "A6.2 STOP").
+- Done: A1-A5, A6.1a, the Held index, A6.1b and the lent family (History; ACCEPTED). **(b)** (this commit):
+  `authSchemaSrv` hands out `authRdN - 1` tickets (AuthSrv.lean; ledger "the auth realization's premise hands out one
+  reader ticket fewer"); supply checked, no consumer short. Server `Link.lean` regenerated: unchanged (it already
+  names A5/A6.1 proofs); built (`/shared/tmp/auth-schema-srv/a6-link1.log`).
+- **STOP (blocker, questions.md "A6.2 STOP"):** readers before the realization's first claim. The realization's
+  update returns `authBackendOk` (readers usable at once: `authCur γc 1`, `T`, the tickets all handed out), but a
+  reader can only learn what it reads in a claimed bucket (`rtHeldF_rbRd`); the claim (`batchLocked_claim`) needs
+  the batch lock, which a ghost update does not have; the idle unclaimed part (`rbOwnIn`) has no readers' law (A1
+  decision 1 (a)). Same on every snapshot backend (`Recover`'s `T`-read comes before any batch `Lock`).
+- Next, after the decision: the per-backend realization invariant (sketch in History, "A6.1b STOP"), the write side,
+  the auth-level read contract; then A7 HARD STOP.
+- Pitfalls: as in History "A6.1b STOP" (0)-(10).
+
+## History
+
+### A6.1b STOP (2026-11-17, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -32,7 +53,6 @@
   (10) `wp_apply` of an Iris-hypothesis triple can fail silently into `sorry` under `--fast`: use
   `iapply H $$ %args %Ψ [pre] [post]`, then `inext`.
 
-## History
 
 ### A6.1a STOP (2026-11-17, superseded)
 
