@@ -1,6 +1,33 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L2 done; STOP at the L2 trust-base stop)
+## START HERE (2026-11-17, L3/L4 start; STOP at L4's trusted text)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
+  Coordinator: etcd-grove-03. Scope §3-§5, §7-§8; `questions.md` (git-ignored, local).
+- **Done:** L0-L2 (History). b8b64e6e59 the L2 trust-base delta (approved): `EtcdServer.purgeFile.wp_proof` out of
+  `etc/tcb-baseline.txt` and 24 collections; `notes/release-snapdb-held-file.md` status (route closed by T1).
+- **L4 trusted text (STOPPED, hard stop (a)):** `notes/wal-link-l4-fsext.md`: `CallBegin` takes its path, `calls`
+  records it, each call step names it, `Rename`'s directory stuck clause scoped to the source's and target's roots
+  (`OsState.SameRoot`), 11 `os.lean` sites; Go evidence `examples/osfs/semantics/meta_rename_scoped_test.go`
+  (passes on this machine's ext4; no loop devices here, so not on a `c_mkfs` image). Not applied to Impl/os.lean.
+- **Next, in order (after the verdict):** apply L4's text (+ `meta_dir_rename_stuck.go`, `doc.go`); the fs library's
+  per-root `osCallPerm r q`; layer 1 per-area `WalGS`. L3: planned form, the server's WAL vocabulary over an explicit
+  handle record (`w`, `dir`, `WalGS`, `WalShN`, the fs instances as fields), so no server module or `NewServer.spec`
+  gains fs instance arguments (they have none today); `walRecs`/`walFiles`/`walOpened`/`isWalStorage` redefined in
+  place; `storage.Release.spec` := ReleaseNext's statement, axiom gone; the Save law's `hardStateAt` → `hsOptC`
+  (statement stop (b)); F2's conf state (raft's snapshot conf state canonical, else a model wrap).
+- **Pitfalls:** gen-link/gen-init compare only with Perennial linked at `.lake/packages/perennial` (`ln -s
+  /shared/perennial-c6b39d4f8`, then `rm`); gen-init needs `PERENNIAL_DIR=/shared/perennial-c6b39d4f8`. goose:
+  `PATH=/usr/local/go/bin:$PATH etc/goose.py --project etcd --src etcd=/shared/tmp/wallink/etcd --perennial
+  /shared/perennial-c6b39d4f8`. tcb: `etc/tcb-report.py --reuse --collection F --check --update` after one full run.
+  `run-models-on-c.sh` fails here (no `/dev/loop*`); run semantics tests with `SEMANTICS_C_DIR=/shared/tmp/...`.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
+  **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
+
+## History
+
+### START HERE (2026-11-17, L2 done; STOP at the L2 trust-base stop)
+
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
   Coordinator: etcd-grove-03. Scope §2-§3.5, §7-§8; `questions.md` (F1, F2, bounds, R6, purgeFile decided by etcd-grove-03).
@@ -30,7 +57,7 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
   **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
 
-## History
+
 
 ### START HERE (2026-11-17, L2 proper: goose config done; STOP on two findings)
 
