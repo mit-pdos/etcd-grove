@@ -15,9 +15,19 @@
   `KHistI`); step 4 (`WatchQ.lean`); step 5 pieces (`kOk_obs`, `watchOkL_errs`, `kWEvRel` +
   `zObj`, `watch_commit`, `WatchCommit.lean`); `Apply.spec` gains `γk`, `kInv γ c g0 γk`,
   `storeWatchOk sp c driverW γk`, `watchListOn`; `kOk_ok/errR`, `read_err_commit` take `Kind ≠ 5`.
-- **Next, in order:** `Apply.wp_proof` (watch branch: `runWatch` with `watchQ`, then
-  `watch_commit` with `watchOkL_stream_commit`/`watchOkL_errs`; unary branches + `done.Add(1)`);
-  `Check` over `RunLin2`; step 7(iii)-(v); 8 `newStore`; 9 `Main*`. **E-2 is a hard stop.**
+- **Done, built (cf15db4386):** step 5 `Apply.wp_proof` (watch branch: `runWatch` at `watchQ`, the
+  commit `watch_commit` with `watchOkL_errs`/`watchOkL_stream_commit`, `putW`; `done.Add(1)` on the
+  unary paths, macro `done_add`); step 6 `Check` over `RunLin2` (spec: `γk`, `watchers wops`, their
+  bounds, `kInv γk`, `storeWatchOk`, `watchListOn`, Model's rv premise); `encodeWEvents`/`runWatch`
+  posts carry the encodings' lengths (WEvOk); `GenInW`: skipped ⇒ `MinRV = []`.
+- **Next, in order:** step 7(v): specs+proofs of `runtime.Decode` (calls the driver codec's
+  `Decode`) and `storage.AnnotateInitialEventsEndBookmark` (`meta.Accessor` has a spec; the driver's
+  `GetAnnotations`/`SetAnnotations`) for `watchContractOk driverSpec driverW codec`; `newItemOk
+  driverSpec newObj`; 7(iii)-(iv): per member `cluster3.memberWatch` from `clusterUp` + `srvOnce`
+  (`one_read_au` + `etcdstart.srvOnce_of_plan`), `memberWatch_facts`, `watchEnvL_conn`,
+  `isNewClient_watcher_of` ⇒ `clientWatchOk cl γk`, then New's wand ⇒ `storeWatchOk`; step 8
+  `newStore`; step 9 `Main*` (single member: `kvWatch_served` at `clientAddr`). **E-2 hard stop**
+  before linking (Link/MainLinked/Adequacy/Results): report old → new closed texts.
 - **Pitfalls:** build slots are often both busy (a full c6b build retries): queue builds in the
   background and write ahead; lean-check spins at "elaborating line 1" until the imports are built
   by `lake` (then it works, ~1 min per file). `subst` on `g' = g` eliminates `g`: `subst g'`.
