@@ -81,10 +81,11 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The `Options` at `l`, at fraction `dq`, has the fields `o`: bbolt's `optsAt`, whatever its
-`Mlock` and `MmapFlags` (2026-11-17: until then an axiom). -/
+/-- The `Options` at `l`, at fraction `dq`, has the fields `o`: bbolt's `optsAt`, its `Mlock`
+false and its `MmapFlags` zero or `MAP_POPULATE` (S3e, 2026-11-17: what bbolt's proved `Open`
+accepts, `bbolt.OptsM.ok`; until then any `Mlock` and `MmapFlags`; before S2 an axiom). -/
 def optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
-  iprop(∃ (m : Bool) (f : w64), bbolt.optsAt l dq (o.toBolt m f))
+  iprop(∃ f : w64, ⌜f.toNat = 0 ∨ f.toNat = bbolt.mapPopulate⌝ ∗ bbolt.optsAt l dq (o.toBolt false f))
 
 instance optsAt_discard_persistent (l : Loc) (o : OptsM) :
     Persistent (optsAt (GF := GF) l DFrac.discard o) := by

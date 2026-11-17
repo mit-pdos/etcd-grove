@@ -30,7 +30,7 @@ theorem bbolt.Tx.Bucket_kvw.wp_proof
       [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec (GF := GF) (hG := hG)) :
     bbolt.Tx.Bucket_kvw.spec (GF := GF) (hG := hG) := by
   intro tx γ D S G name n dq
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

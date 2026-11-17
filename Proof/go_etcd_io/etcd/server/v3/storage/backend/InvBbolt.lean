@@ -45,6 +45,9 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 public import Spec.go_etcd_io.bbolt.Api
+public import Spec.go_etcd_io.bbolt.ApiS
+public import GooseLang.Ext.Fs.TreeSharedRes
+public import GooseLang.Ext.Fs.FilteredSem
 
 @[expose] public section
 
@@ -105,11 +108,21 @@ abbrev DBNames := bbolt.BoltName
 
 /-! ## The file extension's instances (D-I1) -/
 
+
 section fsctx
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} (GF : BundledGFunctors) [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+open Fs in
+/-- **The file system does not fail** (S3e, 2026-11-17): the steps of the semantics satisfy
+`NoIoErr` and `NoMapLockErr` for an `IoSet` covering every file and every path (the premises of
+bbolt's error-free `Open` and `Close`, `Open_sharedNoErr.spec`, `DB.Close_ownNoErr.spec`). A class
+(a proposition), so that `FsCtx` stays a subsingleton. -/
+class FsNoErrAll [ExtSemantics fsExt] : Prop where
+  ok : ∃ Sio : IoSet, (∀ st i, Sio.ino st i) ∧ (∀ p, Sio.path p) ∧
+    FsStepSat (NoIoErr Sio) ∧ FsStepSat (NoMapLockErr Sio)
 
 open Fs in
 /-- **The Linux file extension's instances**, packed: its semantics, the model's facts about it,
@@ -123,13 +136,14 @@ structure FsCtx where
   has : @HasExt _ _ _ fsExt S fs_interp
   fa : os.file.FieldAssumptions
   fsa : os.fileStat.FieldAssumptions
+  ne : @FsNoErrAll S
 
 /-- **There is at most one `FsCtx`**: `HasExt.sem_eq` pins the semantics to the program's (the
 position of `fsExt` in the list of extensions is a proof of a proposition), and the other
 fields are proofs. -/
 theorem FsCtx.eq (a b : FsCtx GF) : a = b := by
-  obtain ⟨S1, ok1, h1, _, _⟩ := a
-  obtain ⟨S2, ok2, h2, _, _⟩ := b
+  obtain ⟨S1, ok1, h1, _, _, _⟩ := a
+  obtain ⟨S2, ok2, h2, _, _, _⟩ := b
   have hS : S1 = S2 := h1.sem_eq.symm.trans h2.sem_eq
   subst hS
   rfl
@@ -145,10 +159,10 @@ def theFs : Option (FsCtx GF) :=
 open Fs in
 /-- With the instances in scope, `theFs` is them. -/
 theorem theFs_eq [S : ExtSemantics fsExt] [ok : FsSemOk] [has : HasExt fsExt]
-    [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] :
-    theFs GF = some ⟨S, ok, has, fa, fsa⟩ := by
+    [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] [ne : FsNoErrAll] :
+    theFs GF = some ⟨S, ok, has, fa, fsa, ne⟩ := by
   unfold theFs
-  rw [dif_pos ⟨⟨S, ok, has, fa, fsa⟩⟩]
+  rw [dif_pos ⟨⟨S, ok, has, fa, fsa, ne⟩⟩]
   exact congrArg some (FsCtx.eq GF _ _)
 
 end fsctx
@@ -170,7 +184,7 @@ def onFs (f : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], IProp GF) : IPr
 
 /-- `onFs` with the instances in scope. -/
 theorem onFs_eq [S : ExtSemantics fsExt] [ok : FsSemOk] [has : HasExt fsExt]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [FsNoErrAll]
     (f : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], IProp GF) :
     onFs f = @f S ok has := by
   unfold onFs; rw [theFs_eq]
@@ -185,9 +199,45 @@ theorem onFs_none (h : theFs GF = none)
     onFs (GF := GF) f = iprop(False) := by
   unfold onFs; rw [h]
 
-/-- `db` is the open database `γ` with committed data `D`, all of it. -/
+/-! ### The database files (S3e) -/
+
+/-- **The namespace of the database opened at `p`** (S3e): `Open` is called with it, so that a
+database's names (`γ.ns`) record its path (`dbFile`). -/
+def dbNs (p : GoString) : Namespace := ndot (ndot nroot "etcdBackendDb") (p.map (fun c : w8 => c.toNat))
+
+theorem dbNs_inj {p p' : GoString} (h : dbNs p = dbNs p') : p = p' := by
+  unfold dbNs ndot at h
+  have h1 := (List.cons.inj h).1
+  have h2 := Pos.encode_inj h1
+  exact (List.map_inj_right (fun a b hab => BitVec.eq_of_toNat_eq hab)).mp h2
+
+theorem dbNs_osN (p : GoString) : (↑(dbNs p) : CoPset) ## ↑osN := by
+  unfold dbNs osN
+  apply ndot_preserve_disjoint_l
+  exact ndot_ne_disjoint nroot (show ("etcdBackendDb" : String) ≠ "osfs" by decide)
+
+/-- **The file at `path` holds a database with the data `D`**, at the instances: `path` is
+`d/b`, the name `b` of the directory `d` (`osPathS`, a share of the call permission, the whole
+claim on `b`, in the shared mode of the tree), and `b` names a file holding `D` or nothing with
+`D = ∅` (bbolt's `nameHolds`): what bbolt's `Open_sharedNoErr.spec` takes. -/
+def fileHoldsF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (D : Data) :
+    IProp GF :=
+  iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
+    ⌜path = child d b ∧ NameOk b⌝ ∗ osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+    osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
+
+/-- **What an open database keeps of its file** (S3e), at the instances: the claim on its name,
+which names the file `Open` opened (`boltIno γ i`), with the path's spine and the call permission's
+share, given back by `Close` as `fileHolds`. Its path is the one `γ.ns` records (`dbNs`). -/
+def dbRestF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) : IProp GF :=
+  iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (i : Ino),
+    ⌜γ.ns = dbNs (child d b) ∧ NameOk b ∧ h.cur !! b = some (.file i)⌝ ∗ osInv ∗ osSharedInv R ∗
+    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i)
+
+/-- `db` is the open database `γ` with committed data `D`, all of it, and its file's claim
+(`dbRestF`, S3e). -/
 def ownDB (db : Loc) (γ : DBNames) (D : Data) : IProp GF :=
-  onFs iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D)
+  onFs iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D ∗ dbRestF γ)
 /-- The right to begin the write transaction: nothing (bbolt's `Begin(true)` waits for its lock;
 until S1 an exclusive token). -/
 def wrTok (_γ : DBNames) : IProp GF := iprop(emp)
@@ -222,19 +272,27 @@ def ownCur (tx : Loc) (γ : DBNames) (c : Loc) (T : bbolt.TxView) (es : List Ent
 def txDone (tx : Loc) : IProp GF := onFs (bbolt.txDone tx)
 /-- `tx` is a transaction of the database `db` named `γ` (persistent). -/
 def txDB (tx : Loc) (γ : DBNames) (db : Loc) : IProp GF := onFs (bbolt.txDB tx γ db)
-axiom fileHolds (path : GoString) (D : Data) : IProp GF
-/-- (2026-11-04, R2b-3c, the user's approval) The open database `db` is the file at `path`
-(persistent): `Open_kv` gives it, `DB.Close_kv` gives the file back (`fileHolds path D`). An
-axiom until stage S3 (`notes/bbolt-integration-plan.md`). -/
-axiom dbFile (db : Loc) (path : GoString) : IProp GF
-@[instance] axiom dbFile_persistent (db : Loc) (path : GoString) : Persistent (dbFile (GF := GF) db path)
-@[instance] axiom dbFile_timeless (db : Loc) (path : GoString) : Timeless (dbFile (GF := GF) db path)
+/-- **The database file at `path` holds `D`** (S3e: until then an axiom): `fileHoldsF` at the
+program's instances. What `bolt.Open` reads, and what `DB.Close` gives back. -/
+def fileHolds (path : GoString) (D : Data) : IProp GF := onFs (fileHoldsF path D)
+
+/-- (2026-11-04, R2b-3c, the user's approval) **The open database `db`, named `γ`, is the file at
+`path`** (persistent): `Open_kv` gives it, `DB.Close_kv` gives the file back (`fileHolds path D`).
+(S3e: until then an axiom, without `γ`.) The database's names record its path (`dbNs`); the claim
+itself is in `ownDB` (`dbRestF`). -/
+def dbFile (_db : Loc) (γ : DBNames) (path : GoString) : IProp GF := iprop(⌜γ.ns = dbNs path⌝)
+@[instance] theorem dbFile_persistent (db : Loc) (γ : DBNames) (path : GoString) :
+    Persistent (dbFile (GF := GF) db γ path) := by
+  unfold dbFile; infer_instance
+@[instance] theorem dbFile_timeless (db : Loc) (γ : DBNames) (path : GoString) :
+    Timeless (dbFile (GF := GF) db γ path) := by
+  unfold dbFile; infer_instance
 
 /-! ## Laws (bbolt's API's) -/
 
 /-- The cases of `theFs` in a law: none (every predicate `False`), or the instances. -/
 local macro "fs_law" : tactic =>
-  `(tactic| (rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa⟩ <;>
+  `(tactic| (rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩ <;>
     first
     | simp only [ownDB, isDB, txLive, txBytes, ownWTxG, wBkt, ownCur, txDone, txDB,
         onFs_none hfs]
@@ -263,7 +321,7 @@ local macro "fs_law" : tactic =>
   fs_law <;> infer_instance
 @[instance] theorem txLive_fractional (tx : Loc) (γ : DBNames) (T : bbolt.TxView) :
     Fractional (fun q => txLive (GF := GF) tx γ q T) := by
-  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa⟩
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
   · simp only [txLive, onFs_none hfs]
     constructor
     intro _ _
@@ -360,7 +418,7 @@ instance curAt_persistent (tx : Loc) (γ : DBNames) (es : List Ent) (i : Nat) (k
 
 /-- The backend's `curAt` is bbolt's, at the instances. -/
 theorem curAt_eq [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.file.FieldAssumptions]
-    [os.fileStat.FieldAssumptions] (tx : Loc) (γ : DBNames)
+    [os.fileStat.FieldAssumptions] [FsNoErrAll] (tx : Loc) (γ : DBNames)
     (es : List Ent) (i : Nat) (k v : GoSlice) :
     curAt (GF := GF) tx γ es i k v = bbolt.curAt tx γ es i k v := by
   unfold curAt bbolt.curAt txBytes

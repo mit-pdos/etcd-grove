@@ -30,7 +30,7 @@ theorem bbolt.Cursor.Seek_kv.wp_proof
       [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG)) :
     bbolt.Cursor.Seek_kv.spec (GF := GF) (hG := hG) := by
   intro tx c γ T es pos q key kb dk
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
       backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
     iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ

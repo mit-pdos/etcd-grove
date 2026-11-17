@@ -30,7 +30,7 @@ theorem bbolt.DB.Begin_kv.wp_proof
       [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
     bbolt.DB.Begin_kv.spec (GF := GF) (hG := hG) := by
   intro db γ D w
-  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax⟩
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.ownDB, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H

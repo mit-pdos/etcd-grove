@@ -33,6 +33,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 public import Proof.go_etcd_io.bbolt.Options
+public import Spec.go_etcd_io.bbolt.Logger
 
 @[expose] public section
 
@@ -54,14 +55,31 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [bbolt_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The `Options` value `v` has the fields `o` (bbolt's `optsVal`, whatever its `Mlock` and
-`MmapFlags`). -/
+/-- The `Options` value `v` has the fields `o` (bbolt's `optsVal`, its `Mlock` false and its
+`MmapFlags` zero or `MAP_POPULATE`, as `optsAt`). -/
 def optsVal (v : go_etcd_io.bbolt.Options) (o : OptsM) : Prop :=
-  ∃ (m : Bool) (f : w64), bbolt.optsVal v (o.toBolt m f)
-/-- `l` is a `bolt.Logger` whose methods behave as bbolt's calls need. -/
-axiom boltLogger (l : GoInterface) : IProp GF
+  ∃ f : w64, (f.toNat = 0 ∨ f.toNat = bbolt.mapPopulate) ∧ bbolt.optsVal v (o.toBolt false f)
 
-@[instance] axiom boltLogger_persistent (l : GoInterface) : Persistent (boltLogger (GF := GF) l)
+/-- **`l` is a `bolt.Logger` whose methods behave as bbolt's calls need**: bbolt's own contract
+(`bbolt.boltLogger`, `Spec/go_etcd_io/bbolt/Logger.lean`) at the program's file-extension instances
+(`theFs`), and `True` where there are none (S3e, 2026-11-17: until then an axiom, abstract; its
+meaning is what `newBoltLoggerZap`'s axiom claims of etcd's zap logger, as bbolt's `Logger.lean`
+already said). -/
+def boltLogger (l : GoInterface) : IProp GF :=
+  match theFs GF with
+  | some c => letI := c.S; letI := c.ok; letI := c.has; bbolt.boltLogger l
+  | none => iprop(True)
+
+@[instance] theorem boltLogger_persistent (l : GoInterface) :
+    Persistent (boltLogger (GF := GF) l) := by
+  unfold boltLogger; split <;> infer_instance
+
+/-- The backend's logger contract is bbolt's, at the instances. -/
+theorem boltLogger_eq [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [FsNoErrAll] (l : GoInterface) :
+    boltLogger (GF := GF) l = bbolt.boltLogger l := by
+  unfold boltLogger; rw [theFs_eq]
+
 /-- `bolt.Options{}` is the zero value. -/
 theorem wp_optsLit :
   {{ (True : IProp GF) }}
@@ -73,7 +91,7 @@ theorem wp_optsLit :
   iintro %v %hv
   iapply HΦ
   ipureintro
-  exact ⟨false, W64 0, hv⟩
+  exact ⟨W64 0, Or.inl rfl, hv⟩
 
 /-- A zero `Options` (what `wp_auto` makes of `&bolt.Options{}`, now that the type is
 translated). -/
@@ -83,8 +101,9 @@ theorem optsAt_zero (l : Loc) :
   iintro H
   ihave H := bbolt.optsAt_zero l $$ H
   rw [show bbolt.optsZero = optsZero.toBolt false (W64 0) from rfl]
-  iexists false, W64 0
-  iexact H
+  iexists W64 0
+  iframe H
+  ipureintro; exact Or.inl rfl
 
 /-- Allocating an `Options` value. -/
 theorem wp_optsAlloc (v : go_etcd_io.bbolt.Options) (o : OptsM) (h : optsVal v o) :
@@ -92,13 +111,14 @@ theorem wp_optsAlloc (v : go_etcd_io.bbolt.Options) (o : OptsM) (h : optsVal v o
     (App (Val (GoInstruction (GoAlloc go_etcd_io.bbolt.Options.ty))) (Val #v))
   {{ (l : Loc), RET #l; optsAt l (DFrac.own 1) o }} := by
   unfold optsAt
-  obtain ⟨m, f, h⟩ := h
+  obtain ⟨f, hf, h⟩ := h
   wp_start
   wp_apply_core (bbolt.wp_optsAlloc v _ h)
   iintro %l Hl
   iapply HΦ
-  iexists m, f
-  iexact Hl
+  iexists f
+  iframe Hl
+  ipureintro; exact hf
 
 /-- Loading an `Options` value. -/
 theorem wp_optsLoad (l : Loc) (dq : DFrac) (o : OptsM) :
@@ -107,13 +127,13 @@ theorem wp_optsLoad (l : Loc) (dq : DFrac) (o : OptsM) :
   {{ (v : go_etcd_io.bbolt.Options), RET #v; optsAt l dq o ∗ ⌜optsVal v o⌝ }} := by
   unfold optsAt
   wp_start as H
-  icases H with ⟨%m, %f, H⟩
+  icases H with ⟨%f, %hf, H⟩
   wp_apply_core (bbolt.wp_optsLoad l dq _) $$ [$H]
   iintro %v ⟨H, %hv⟩
   iapply HΦ
   isplitl
-  · iexists m, f; iexact H
-  · ipureintro; exact ⟨m, f, hv⟩
+  · iexists f; iframe H; ipureintro; exact hf
+  · ipureintro; exact ⟨f, hf, hv⟩
 
 /-- Storing an `Options` value. -/
 theorem wp_optsStore (l : Loc) (o o' : OptsM) (v : go_etcd_io.bbolt.Options) (h : optsVal v o') :
@@ -121,78 +141,70 @@ theorem wp_optsStore (l : Loc) (o o' : OptsM) (v : go_etcd_io.bbolt.Options) (h 
     (App (Val (GoInstruction (GoStore go_etcd_io.bbolt.Options.ty))) (Val (PairV #l #v)))
   {{ RET #(); optsAt l (DFrac.own 1) o' }} := by
   unfold optsAt
-  obtain ⟨m', f', h⟩ := h
+  obtain ⟨f', hf', h⟩ := h
   wp_start as H
-  icases H with ⟨%m, %f, H⟩
+  icases H with ⟨%f, %hf, H⟩
   wp_apply_core (bbolt.wp_optsStore l _ _ v h) $$ [$H]
   iintro H
   iapply HΦ
-  iexists m', f'
-  iexact H
+  iexists f'
+  iframe H
+  ipureintro; exact hf'
 
-/-- A `bool` field other than `ReadOnly` (`db.go`: `NoGrowSync`, `NoFreelistSync`,
-`PreLoadFreelist`, `NoSync`, `Mlock`, `NoStatistics`): storing it keeps `o`. -/
+/-- A `bool` field other than `ReadOnly` and `Mlock` (`db.go`: `NoGrowSync`, `NoFreelistSync`,
+`PreLoadFreelist`, `NoSync`, `NoStatistics`): storing it keeps `o`. (S3e: `Mlock` has its own law,
+`optsAt_mlock`, storing only `false`.) -/
 theorem optsAt_bool (l : Loc) (o : OptsM) (f : GoString)
     (hf : f = go!"NoGrowSync" ∨ f = go!"NoFreelistSync" ∨ f = go!"PreLoadFreelist" ∨
-      f = go!"NoSync" ∨ f = go!"Mlock" ∨ f = go!"NoStatistics") :
+      f = go!"NoSync" ∨ f = go!"NoStatistics") :
   optsAt (GF := GF) l (DFrac.own 1) o ⊢
     ∃ x : Bool, structFieldRef go_etcd_io.bbolt.Options f l ↦ x ∗
       (∀ y : Bool, structFieldRef go_etcd_io.bbolt.Options f l ↦ y -∗ optsAt l (DFrac.own 1) o) := by
   unfold optsAt
-  iintro ⟨%m, %fl, H⟩
-  by_cases hm : f = go!"Mlock"
-  · subst hm
-    icases bbolt.optsAt_mlock l _ $$ H with ⟨Hf, Hback⟩
-    iexists _
-    iframe Hf
-    iintro %y Hf
-    ihave H := Hback $$ Hf
-    rw [show ({ o.toBolt m fl with mlock := y } : bbolt.OptsM) = o.toBolt y fl from rfl]
-    iexists y, fl
-    iexact H
-  · have hf' : f = go!"NoGrowSync" ∨ f = go!"NoFreelistSync" ∨ f = go!"PreLoadFreelist" ∨
-        f = go!"NoSync" ∨ f = go!"NoStatistics" := by
-      rcases hf with h | h | h | h | h | h
-      · exact Or.inl h
-      · exact Or.inr (Or.inl h)
-      · exact Or.inr (Or.inr (Or.inl h))
-      · exact Or.inr (Or.inr (Or.inr (Or.inl h)))
-      · exact absurd h hm
-      · exact Or.inr (Or.inr (Or.inr (Or.inr h)))
-    icases bbolt.optsAt_bool l _ f hf' $$ H with ⟨%x, Hf, Hback⟩
-    iexists x
-    iframe Hf
-    iintro %y Hf
-    ihave H := Hback $$ Hf
-    iexists m, fl
-    iexact H
+  iintro ⟨%fl, %hfl, H⟩
+  icases bbolt.optsAt_bool l _ f hf $$ H with ⟨%x, Hf, Hback⟩
+  iexists x
+  iframe Hf
+  iintro %y Hf
+  ihave H := Hback $$ Hf
+  iexists fl
+  iframe H
+  ipureintro; exact hfl
 
-/-- An `int` field other than `PageSize` (`MmapFlags`, `InitialMmapSize`, `MaxSize`): storing it
+/-- The `Mlock` field: storing `false` keeps `o` (bbolt's proved `Open` takes only `Mlock` false). -/
+theorem optsAt_mlock (l : Loc) (o : OptsM) :
+  optsAt (GF := GF) l (DFrac.own 1) o ⊢
+    ∃ x : Bool, structFieldRef go_etcd_io.bbolt.Options go!"Mlock" l ↦ x ∗
+      (structFieldRef go_etcd_io.bbolt.Options go!"Mlock" l ↦ false -∗ optsAt l (DFrac.own 1) o) := by
+  unfold optsAt
+  iintro ⟨%fl, %hfl, H⟩
+  icases bbolt.optsAt_mlock l _ $$ H with ⟨Hf, Hback⟩
+  iexists _
+  iframe Hf
+  iintro Hf
+  ihave H := Hback $$ Hf
+  rw [show ({ o.toBolt false fl with mlock := false } : bbolt.OptsM) = o.toBolt false fl from rfl]
+  iexists fl
+  iframe H
+  ipureintro; exact hfl
+
+/-- An `int` field other than `PageSize` and `MmapFlags` (`InitialMmapSize`, `MaxSize`): storing it
 keeps `o`. -/
 theorem optsAt_int (l : Loc) (o : OptsM) (f : GoString)
-    (hf : f = go!"MmapFlags" ∨ f = go!"InitialMmapSize" ∨ f = go!"MaxSize") :
+    (hf : f = go!"InitialMmapSize" ∨ f = go!"MaxSize") :
   optsAt (GF := GF) l (DFrac.own 1) o ⊢
     ∃ x : w64, structFieldRef go_etcd_io.bbolt.Options f l ↦ x ∗
       (∀ y : w64, structFieldRef go_etcd_io.bbolt.Options f l ↦ y -∗ optsAt l (DFrac.own 1) o) := by
   unfold optsAt
-  iintro ⟨%m, %fl, H⟩
-  rcases hf with hm | hf'
-  · subst hm
-    icases bbolt.optsAt_mmapFlags l _ $$ H with ⟨Hf, Hback⟩
-    iexists _
-    iframe Hf
-    iintro %y Hf
-    ihave H := Hback $$ Hf
-    rw [show ({ o.toBolt m fl with mmapFlags := y } : bbolt.OptsM) = o.toBolt m y from rfl]
-    iexists m, y
-    iexact H
-  · icases bbolt.optsAt_int l _ f hf' $$ H with ⟨%x, Hf, Hback⟩
-    iexists x
-    iframe Hf
-    iintro %y Hf
-    ihave H := Hback $$ Hf
-    iexists m, fl
-    iexact H
+  iintro ⟨%fl, %hfl, H⟩
+  icases bbolt.optsAt_int l _ f hf $$ H with ⟨%x, Hf, Hback⟩
+  iexists x
+  iframe Hf
+  iintro %y Hf
+  ihave H := Hback $$ Hf
+  iexists fl
+  iframe H
+  ipureintro; exact hfl
 
 /-- The `FreelistType` field: storing it keeps `o`. -/
 theorem optsAt_freelist (l : Loc) (o : OptsM) :
@@ -203,14 +215,15 @@ theorem optsAt_freelist (l : Loc) (o : OptsM) :
         structFieldRef go_etcd_io.bbolt.Options go!"FreelistType" l ↦ y -∗
           optsAt l (DFrac.own 1) o) := by
   unfold optsAt
-  iintro ⟨%m, %fl, H⟩
+  iintro ⟨%fl, %hfl, H⟩
   icases bbolt.optsAt_freelist l _ $$ H with ⟨%x, Hf, Hback⟩
   iexists x
   iframe Hf
   iintro %y Hf
   ihave H := Hback $$ Hf
-  iexists m, fl
-  iexact H
+  iexists fl
+  iframe H
+  ipureintro; exact hfl
 
 /-- The `Timeout` field: storing it keeps `o`. -/
 theorem optsAt_timeout (l : Loc) (o : OptsM) :
@@ -219,14 +232,15 @@ theorem optsAt_timeout (l : Loc) (o : OptsM) :
       (∀ y : time.Duration, structFieldRef go_etcd_io.bbolt.Options go!"Timeout" l ↦ y -∗
         optsAt l (DFrac.own 1) o) := by
   unfold optsAt
-  iintro ⟨%m, %fl, H⟩
+  iintro ⟨%fl, %hfl, H⟩
   icases bbolt.optsAt_timeout l _ $$ H with ⟨%x, Hf, Hback⟩
   iexists x
   iframe Hf
   iintro %y Hf
   ihave H := Hback $$ Hf
-  iexists m, fl
-  iexact H
+  iexists fl
+  iframe H
+  ipureintro; exact hfl
 
 /-- The `Logger` field: it holds `o.logger`; storing it sets it. -/
 theorem optsAt_logger (l : Loc) (o : OptsM) :
@@ -235,16 +249,35 @@ theorem optsAt_logger (l : Loc) (o : OptsM) :
       (∀ y : go_etcd_io.bbolt.Logger, structFieldRef go_etcd_io.bbolt.Options go!"Logger" l ↦ y -∗
         optsAt l (DFrac.own 1) { o with logger := y }) := by
   unfold optsAt
-  iintro ⟨%m, %fl, H⟩
+  iintro ⟨%fl, %hfl, H⟩
   icases bbolt.optsAt_logger l _ $$ H with ⟨Hf, Hback⟩
-  rw [show (o.toBolt m fl).logger = o.logger from rfl]
+  rw [show (o.toBolt false fl).logger = o.logger from rfl]
   iframe Hf
   iintro %y Hf
   ihave H := Hback $$ Hf
-  rw [show ({ o.toBolt m fl with logger := y } : bbolt.OptsM) =
-    ({ o with logger := y } : OptsM).toBolt m fl from rfl]
-  iexists m, fl
-  iexact H
+  rw [show ({ o.toBolt false fl with logger := y } : bbolt.OptsM) =
+    ({ o with logger := y } : OptsM).toBolt false fl from rfl]
+  iexists fl
+  iframe H
+  ipureintro; exact hfl
+
+/-- **The options `Open` accepts, as bbolt's** (S3e): the backend's `optsAt` at options it accepts
+(`OptsM.ok`) is bbolt's at options bbolt's `Open` accepts, with its `Mlock` false. -/
+theorem optsAt_bolt (l : Loc) (dq : DFrac) (o : OptsM) (hok : o.ok) :
+    optsAt (GF := GF) l dq o ⊢ ∃ f : w64, ⌜(o.toBolt false f).ok⌝ ∗
+      bbolt.optsAt l dq (o.toBolt false f) ∗ (bbolt.optsAt l dq (o.toBolt false f) -∗ optsAt l dq o) := by
+  unfold optsAt
+  iintro ⟨%f, %hf, H⟩
+  iexists f
+  iframe H
+  isplitr
+  · ipureintro
+    obtain ⟨h1, h2, h3, h4⟩ := hok
+    exact ⟨h1, h2, h3, rfl, hf, h4⟩
+  iintro H
+  iexists f
+  iframe H
+  ipureintro; exact hf
 
 end preds
 
