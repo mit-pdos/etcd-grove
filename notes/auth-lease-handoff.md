@@ -1,23 +1,37 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: step 7 DONE (the law proved); step 8 next)
+## START HERE (S4, 2026-11-17, item 7b: steps 7 and 8 DONE; the lean merge is NEXT and is a real integration)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Pin still e9e
-  (`--packages=/shared/tmp/manifest-e9e.json`); lean not merged yet.
-- **Done:** step 7: `etcdserver/LessorFollows.lean`, `lessor_keys_of_read : lessor_keys_of_read_stmt` (frozen text
-  verbatim; targeted `lake build` of the module green, `#print axioms`: no `sorryAx`). Forms: questions.md, last entry
-  (`lessorLawMask` + `winTieN`/`lessorRdN`; the theorem's `[mvcc.Assumptions]` instance; the lm-none lemma held via
-  `kvRaftOf(On)_restorable`, no trusted text; auth off by the same two branches).
-- **Next, in order:** (1) step 8 = Draft §7 row 8: goose project `authlease` (`etc/goose.py`, as `authN`'s entry;
-  `examples/etcd/authlease` exists), translate (`etc/goose.py --project authlease`, GOWORK unset, in this worktree),
-  `etc/gen-init.py` (list entry as authN's; the `PkgTable` map entry only once the PkgTable file exists, at linking).
-  (2) the c6b merge (merge lean; if the pin bump to 6d365ee1a landed, `/shared/tmp/manifest-6d3.json`; set
-  `.lake/package-overrides.json` to the manifest; regenerate generated files); full build via
-  `/shared/tmp/build-slot.sh` (retry on cap kills; `LEAN_NUM_THREADS=4`); `etc/tcb-report.py --check`;
-  `etc/gen-interface.py` (incl. Spec `uberApplier__Apply`/`uberApplier__dispatch`). Then report 7b's completion.
-- **Pitfalls:** in a proof-mode goal, `cases h : E.lg` rewrites the Iris context (use `by_cases`). Lemmas of a section
-  with a package's `[Assumptions]` carry that instance even when unused (the law needs mvcc's). The earlier pitfalls
-  below still apply.
+  (`--packages=/shared/tmp/manifest-e9e.json`); lean (5fb716b5eb, pin c6b) NOT merged.
+- **Done:** step 7 `5f8c413b13`: `etcdserver/LessorFollows.lean`, `lessor_keys_of_read : lessor_keys_of_read_stmt`
+  (frozen text verbatim; module builds; no `sorryAx`). Forms: questions.md, last entry. Step 8 (Draft §7 row 8), this
+  commit: goose project `authlease` (`etc/goose.py`, translated with the e9e translator), `authlease/Base.lean`
+  (package fact `True`, as authN's), `authlease/Init.lean` (`etc/gen-init.py`; `--check` clean). PkgTable map entry in
+  gen-init: at linking (step 10), as authN's.
+- **Next: merge lean (a trial merge was aborted; material in `/shared/tmp/auth-lease-s4/merge/`).** 37 files conflict,
+  ~46 hunks, all from lean's trace-check stage (raft's `Cluster.trace`/`reTrace` gates) meeting S4's no-snapshot
+  mode (D-k, L-r2/L-r5) in raft: list `conflicts.txt`, diff3 copies under `diff3/` (the 3 Spec files there are
+  already resolved: `resolved/`), helper `hunks.py show|set|take FILE IDX`. Rule: keep both sides' premises and
+  conjuncts, minus base's `γ.reNoSnap = false →` (S4 removed it; lean's side only carries it as context). Key
+  integrations: (1) `InvNodeRule.storBnd`: lean sealed it and gated it on the trace (`match Cluster.trace γ`); S4 added
+  `⌜clusterNoSnap γ → k ≤ 1⌝`: put S4's conjunct in the `none` arm; `storBnd_intro_untraced` then needs `clusterNoSnap
+  γ → k ≤ 1` (or restate S4's `storBnd_off`/`storBnd_le_one` over it, no twins); `storBnd_cap` by `split`.
+  (2) `cluster_alloc_ns`/`cluster_alloc`/`cluster_alloc_traced`: both posts (`(clusterNoSnap γ ↔ ns = true)` and
+  `⌜Cluster.trace γ = none⌝`), callers' patterns `%Hns, %HtrC` (NewServerAlloc(On), kv/kvdurable/kvreconf Alloc,
+  StartCluster). (3) setupNode/Bootstrap/RestartNode/StartNode proofs and `InvApiBoot`, `InvApiDecAlloc`,
+  `InvNodeRun`, `InvRawnode`, `RawNode__Step`, `raft__maybeSend{Append,Snapshot}`, `node__run`: lean's proofs may use
+  the removed `reNoSnap = false` (check `grep reNoSnap`). Then `etc/gen-raft-tla.py` (RaftTla copies of raft proofs),
+  regenerate `Link`s/interfaces as lean's CLAUDE.md says, `etc/goose.py --perennial /shared/perennial-c6b39d4f8`
+  (c6b is a goose change: regenerates translations incl. authlease), `.lake/package-overrides.json` = c6b manifest,
+  everything at `--packages=/shared/tmp/manifest-c6b.json` (or 6d3 if that bump landed first). Then the full build
+  (`/shared/tmp/build-slot.sh`, `LEAN_NUM_THREADS=4`, retry on cap kills), `etc/tcb-report.py --check`,
+  `etc/gen-interface.py` (incl. Spec `uberApplier__Apply`/`uberApplier__dispatch`; the new `LessorFollows` is not in an
+  API list), and report 7b's completion.
+- **Pitfalls:** in a proof-mode goal `cases h : E.lg` rewrites the Iris context (use `by_cases`). A lemma of a section
+  with a package's `[Assumptions]` carries that instance even unused (the law needs mvcc's). `etc/gen-init.py` needs
+  the package's `IsPkgInit` instance file first (`Base.lean`). `questions.md` is git-ignored (local). Earlier pitfalls
+  below.
 
 ## Previous START HERE (S4, 2026-11-17, item 7b F4: wiring COMPLETE, leaves build green; step 7 next)
 
