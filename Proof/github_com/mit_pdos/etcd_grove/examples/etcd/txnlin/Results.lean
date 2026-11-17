@@ -52,7 +52,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 variable [go_gctx : GoGlobalContext]
 
 /-- **The linearizability instance is safe, in the operational semantics** (`etcd_txnlin_adequate`,

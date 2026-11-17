@@ -6,7 +6,7 @@ S-f, 2026-10-19 (translated with its body; `notes/decisions.md`, "D22 S-f carrie
 Lean-first (no Rocq counterpart); `applySnapshot`'s callee (D22 S-j).
 
 The pre: the snapshotter (`isSnapshotter`), the snapshot's `Metadata` field and its metadata
-`md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`fileHolds`, D22 S-i's
+`md` (read, given back), the file at `snapDBPath ss md.Index` holding `D` (`srvFileHolds`, D22 S-i's
 snapshot directory gives it, with `D`'s certificate `dbImage`), the backend's path the program's
 (`pathOwn`, from the server's start) and `openPre` (`InvOpen.lean`, with `openMmapOk cfg` since 2026-10-29) for the hooks `hooks` as a
 `backend.Hooks`. The post: on success the backend over `D` (`newPostK`, whose `backend.fkCl γ P D`
@@ -51,7 +51,7 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
     (md : SnapshotMetadataM) (P : BParams) (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ snap.isSnapshotter ss ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-      fileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir') ∗
+      srvFileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir') ∗
       openPre cfg (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.BackendHooks.ty) #hk)
         P D W Pk K }}
     (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend)) (Val #cfg))
@@ -68,7 +68,7 @@ abbrev storage.OpenSnapshotBackend.spec : Prop :=
        (⌜err ≠ GoInterface.nil ∧ be = GoInterface.nil ∧
           ¬ (snap.dirReadOk ss ∧
             renameOk (snap.snapDBPath ss md.Index') (config.backendPathOf cfg.DataDir'))⌝ ∗
-          fileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir'))) }}
+          srvFileHolds (snap.snapDBPath ss md.Index') D ∗ pathOwn (config.backendPathOf cfg.DataDir'))) }}
 
 end spec
 

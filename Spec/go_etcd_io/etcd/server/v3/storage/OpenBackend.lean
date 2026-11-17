@@ -6,7 +6,7 @@ takes over 10 s). The trust boundary (D22 S-f, 2026-10-19; an axiom in
 `Proof/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`: the goroutine can panic, see
 `InvOpen.lean`'s `dbOpensOk`). Lean-first (no Rocq counterpart).
 
-The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`; since 2026-10-29 with
+The pre: the file holding `D` (`srvFileHolds`) and `openPre` (`InvOpen.lean`; since 2026-10-29 with
 `openMmapOk cfg`, a quota whose mmap size bbolt can map: `newBackend` panics otherwise,
 `notes/axiom-review/openbackend.md`). The post: what
 `backend.New` gives (`newPostK`: D22 receiver epochs, S8a, 2026-10-24, the creator's batch-lock
@@ -53,7 +53,7 @@ abbrev storage.OpenBackend.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (h : GoInterface) (P : BParams)
     (D : Data) (W Pk K : BNames → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-      fileHolds (config.backendPathOf cfg.DataDir') D ∗ openPre cfg h P D W Pk K }}
+      srvFileHolds (config.backendPathOf cfg.DataDir') D ∗ openPre cfg h P D W Pk K }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.OpenBackend)) (Val #cfg)) (Val #h))
   {{ (b : Loc) (γ : BNames),
       RET #(interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b);

@@ -2,7 +2,7 @@
 `os.Rename(oldpath, newpath)` (names only in Perennial; D22 S-f, 2026-10-19): the database file
 at `oldpath` moved to `newpath`, replacing what was there. The trust boundary, a file-system
 fact (an axiom in `Proof/os/Rename.lean`), stated over the backend's file predicates
-(`backend.fileHolds`, `backend.pathOwn`: `Proof/go_etcd_io/etcd/server/v3/storage/backend/
+(`backend.srvFileHolds`, `backend.pathOwn`: `Proof/go_etcd_io/etcd/server/v3/storage/backend/
 InvSnapshot.lean`), the only files the verified code renames (`storage.OpenSnapshotBackend`'s
 received snapshot onto the backend's path).
 -/
@@ -38,11 +38,11 @@ nothing moved, the environment failing it (`¬ renameOk src dst`: D22 receiver e
 2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). -/
 abbrev os.Rename.spec : Prop :=
   ∀ (src dst : GoString) (D : Data),
-  {{ fileHolds (GF := GF) src D ∗ pathOwn dst }}
+  {{ srvFileHolds (GF := GF) src D ∗ pathOwn dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ fileHolds dst D ∗ pathOwn dst) ∨
-      (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmt.argOk err ∗ fileHolds src D ∗
+      (⌜err = GoInterface.nil⌝ ∗ srvFileHolds dst D ∗ pathOwn dst) ∨
+      (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmt.argOk err ∗ srvFileHolds src D ∗
         pathOwn dst) }}
 
 end spec

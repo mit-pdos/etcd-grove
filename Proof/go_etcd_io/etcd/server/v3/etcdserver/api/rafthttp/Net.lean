@@ -22,7 +22,7 @@ transport saves the stream before it calls `Process` (`SaveDBFrom`: a temporary 
 renamed to `snapDBPath ss i` unless a file of that index is there, which it keeps). A member's
 **snapshot directory** is an invariant the receiver allocates and gives `Transport.Start`
 (`snapDirInv ss γd img Rm`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
-`fileHolds` and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
+`srvFileHolds` and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
 `snapSaved γd i`), each saved index absent from `M` with the receiver's removal fact `Rm i`. The
 transport only adds to it (a file it created, at an index absent from `M`); the receiver removes
 from it (a file taken to be opened, `OpenSnapshotBackend`, or `ReleaseSnapDBs`'s files below a
@@ -183,7 +183,7 @@ def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF
     (Rm : w64 → IProp GF) : IProp GF :=
   iprop(snap.snapDirIs (snap.snapDBPath ss) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
     ghostMapAuth γd 1 E ∗ ⌜∀ i, M.lookup i ≠ none → E.lookup i ≠ none⌝ ∗
-    ([∗map] i ↦ D ∈ M, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D) ∗
+    ([∗map] i ↦ D ∈ M, backend.srvFileHolds (snap.snapDBPath ss i) D ∗ □ img i D) ∗
     □ (∀ i, ⌜E.lookup i ≠ none⌝ → snapSaved γd i) ∗
     □ (∀ i, ⌜E.lookup i ≠ none ∧ M.lookup i = none⌝ → Rm i))
 

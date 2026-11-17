@@ -92,6 +92,16 @@ theorem snapOpenQ_half (sp : Loc) (D : Data) (γ : GName) (q : Qp) :
 /-- **The directory entry `p` is the program's** (opaque, exclusive; see the file header). -/
 opaque pathOwn (p : GoString) : IProp GF
 
+/-- **The database file at `p` holds `D`, as the server's snapshot path sees it** (opaque; S3e,
+2026-11-17, `notes/bbolt-integration-plan.md`): what `backend.fileHolds` was (an axiom) before the
+backend's `fileHolds` became the concrete claim on the file's name in the tree's shared mode (bbolt's
+proved `Open` and `Close`). The server's file world (the transport's saved snapshots, `SaveDBFrom`,
+`DBFilePath`, `os.Rename`'s axiom, `storage.OpenBackend`'s) is not yet over the file extension: its
+trust-boundary axioms make and pass this predicate, which is no file-extension resource, so they
+cannot contradict the tree's ownership (a concrete claim they made from nothing could). The
+server's restart path (`Cleanup`, `srvFiles`) carries the backend's concrete `fileHolds`. -/
+opaque srvFileHolds (p : GoString) (D : Data) : IProp GF
+
 /-- **The file system lets `src` be renamed onto `dst`** (opaque, a named premise about the
 program's environment, D19a's first kind; D22 receiver epochs, S8d, 2026-10-24): `os.Rename(src,
 dst)` of a file the program holds onto an entry it owns fails for no reason of the environment
