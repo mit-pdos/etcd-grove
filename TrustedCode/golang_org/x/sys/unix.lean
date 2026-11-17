@@ -93,14 +93,24 @@ noncomputable def Munmap.impl : val :=
         (Convert (go.PointerType go.byte) «unsafe».Pointer
           (IndexRef (go.GoType.SliceType go.byte) ("b", #(W64 0))), ("len", "cap")))
 
-/-- `Madvise(b []byte, advice int) error` (`zsyscall_linux.go`: one `madvise(2)`): `nil` or an
-arbitrary nonzero `Errno`, with no effect, for the advice values that are only paging hints and
-change no byte a load or a read sees: `MADV_NORMAL` (0), `MADV_RANDOM` (1), `MADV_SEQUENTIAL` (2)
-and `MADV_WILLNEED` (3). Any other advice is stuck: some change memory (`MADV_DONTNEED` on a
-private mapping, `MADV_REMOVE` frees a file's blocks). -/
+/-- `Madvise(b []byte, advice int) error` (`zsyscall_linux.go`: one `madvise(2)` of `&b[0]`,
+`len(b)`): for the advice values that are only paging hints and change no byte a load or a read
+sees, `MADV_NORMAL` (0), `MADV_RANDOM` (1), `MADV_SEQUENTIAL` (2) and `MADV_WILLNEED` (3), the
+extension's `Madvise` (`(&b[0], len(b), advice) ↦ errno`: no effect, any errno; a step of the
+extension since 2026-11-17, session S3d, pending the user's review, so that a premise on steps can
+constrain its errno, `NoMapLockErr`; `examples/osfs/semantics/map_madvise.go`), and for an empty `b`
+(where Go passes a pointer to a zero byte of its own) an arbitrary errno with no step. Any other
+advice is stuck: some change memory (`MADV_DONTNEED` on a private mapping, `MADV_REMOVE` frees a
+file's blocks). -/
 noncomputable def Madvise.impl : val :=
   λ: "b" "advice",
-    if: "advice" ≤⟨go.uint64⟩ #(W64 3) then syscall.model.errno ArbitraryInt
+    if: "advice" ≤⟨go.uint64⟩ #(W64 3) then
+      let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
+      if: "len" =⟨go.int⟩ #(W64 0) then syscall.model.errno ArbitraryInt
+      else
+        syscall.model.errno (ExternalOp Fs.fsExt.name "Madvise"
+          (Convert (go.PointerType go.byte) «unsafe».Pointer
+            (IndexRef (go.GoType.SliceType go.byte) ("b", #(W64 0))), ("len", "advice")))
     else Panic "golang.org/x/sys/unix.Madvise: advice not modelled"
 
 /-- `Fallocate(fd int, mode uint32, off int64, len int64) error` (`zsyscall_linux_amd64.go`: one

@@ -97,7 +97,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   · obtain ⟨rfl, rfl⟩ := Hbe
     simp only [errnoErr, ↓reduceIte]
     wp_auto
-    wp_apply hMadvise _ (W64 1) (by decide) as %e2 -
+    wp_apply hMadvise _ (W64 1) (by decide) (Int.le_of_lt hsz) $$ Hos as %e2 -
     try wp_auto
     have hszn : 0 < sz.toNat := by have := hsz; simp [BitVec.toInt] at this; omega
     icases cellsR_pos _ _ _ hszn $$ Hc with ⟨Hc, %Hpos⟩

@@ -338,20 +338,20 @@ theorem treeFrame_doneInflight (st : OsState) (t : Nat) : TreeFrame st (st.doneI
 def DataOp (o : String) : Prop :=
   o ∈ ["PRead", "PWriteStart", "PWriteFinish", "Fstat", "FtruncateStart", "FtruncateFinish",
     "Fsync", "Flock", "Close", "Mmap", "Munmap", "FdKind", "FallocStart", "FallocFinish",
-    "FallocKeep", "OfdLock"]
+    "FallocKeep", "OfdLock", "Madvise"]
 
 open Classical in
 theorem dataOp_ne_outClose {o : String} (ho : DataOp o) : o ≠ "OutClose" := by
   simp only [DataOp, List.mem_cons, List.mem_nil_iff, or_false] at ho
   rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl | rfl <;> decide
+    rfl | rfl | rfl <;> decide
 
 /-- Every step of a data operation leaves the tree alone. -/
 theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o) {v : val}
     {st st' : OsState} {e' : Expr} (h : IsFsStep o v st e' st') : TreeFrame st st' := by
   simp only [DataOp, List.mem_cons, List.mem_nil_iff, or_false] at ho
   rcases ho with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl |
-    rfl | rfl
+    rfl | rfl | rfl
   · -- PRead
     obtain ⟨_, _, _, _, _, -, -, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- PWriteStart
@@ -409,6 +409,8 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
     obtain ⟨_, _, _, _, d, -, -, -, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- OfdLock
     obtain ⟨_, _, _, _, _, -, hd, -, -, -, -, hl⟩ := h; exact treeFrame_lockStep hd hl
+  · -- Madvise
+    obtain ⟨_, _, _, _, -, -, rfl, -⟩ := h; exact TreeFrame.refl _
 
 /-- `treeFrame_data` for any step (`mmap`'s step to itself changes nothing). -/
 theorem treeFrame_dataF [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o) {v : val}
@@ -781,18 +783,17 @@ theorem wp_fs_stepT (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
         iprop(True) := rfl
     rw [this]; itrivial
 
-/-- **The lifting of any operation, in either mode**: from the files' world and the tree's whole
-interpretation before the step (the shared mode's invariant may be opened across it: the mask goes
-to `∅` and back), the step exists, and every step leads to a world and an interpretation after it,
-and the rest of the program. -/
-theorem wp_fs_stepM (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+/-- `wp_fs_stepM`, whose continuation also gets the semantics' own step (which may say more than
+`FsStepV`: `fsSemWithS`'s premise on steps, `FsStepSat`; session S3d). -/
+theorem wp_fs_stepMX (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) (hO : o ≠ "OutClose" := by decide) (hl : ¬ LockOp o := by simp [LockOp])
     (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗
       (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ treeCtx (gooseOsGS (L := L)) st
         ={E \ ↑osN, ∅}=∗
         ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
-        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
+        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' () ∧
+            ExtSemantics.step (E := fsExt) o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
           ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗
             treeCtx (gooseOsGS (L := L)) st' ∗ WP e' @ s; E {{ Φ }}) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
@@ -819,8 +820,9 @@ theorem wp_fs_stepM (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
       (fun _ _ _ _ _ h1 h2 => mapsTo_unique Hwc.1 h1 h2) (Or.inl Hst)
   inext
   iintro %e' %h' %σ' %g' %Hst -
-  have Hst := fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)
-  imod Hcont $$ %e' %h' %σ' %Hst with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hn, Hwp⟩
+  have Hst2 := And.intro (fsStepV_of_ne hM (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ Hst)) Hst
+  have Hst := Hst2.1
+  imod Hcont $$ %e' %h' %σ' %Hst2 with ⟨%Γb', %Γm', %Γf', %Γt', Hw, Hn, Hwp⟩
   unfold osWorld
   icases Hw with ⟨%Hwc', HAb, HAm, HAf, HAt, Htok, Hcells, Hheap⟩
   imod gVar_update _ _ _ (cellView σ', GMap.size σ'.proc.inflight) $$ Hv Hv' with ⟨Hv, Hv'⟩
@@ -840,6 +842,32 @@ theorem wp_fs_stepM (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPan
   · have : (ExtInterp.globalCtx (E := fsExt) (extGlobalGS fsExt) g' : IProp GF) =
         iprop(True) := rfl
     rw [this]; itrivial
+
+/-- **The lifting of any operation, in either mode**: from the files' world and the tree's whole
+interpretation before the step (the shared mode's invariant may be opened across it: the mask goes
+to `∅` and back), the step exists, and every step leads to a world and an interpretation after it,
+and the rest of the program. -/
+theorem wp_fs_stepM (o : String) (v : val) (Φ : val → IProp GF) (hv : v.isPanic = false)
+    (hE : ↑osN ⊆ E) (hO : o ≠ "OutClose" := by decide) (hl : ¬ LockOp o := by simp [LockOp])
+    (hM : o ≠ "Mmap" := by decide) :
+    ⊢ osInv (L := L) -∗
+      (∀ st Γb Γm Γf Γt h, osWorld st Γb Γm Γf Γt h -∗ treeCtx (gooseOsGS (L := L)) st
+        ={E \ ↑osN, ∅}=∗
+        ⌜∃ e' h' st', FsStepV o v h st () e' h' st' ()⌝ ∗
+        ▷ ∀ e' h' st', ⌜FsStepV o v h st () e' h' st' ()⌝ ={∅, E \ ↑osN}=∗
+          ∃ Γb' Γm' Γf' Γt', osWorld st' Γb' Γm' Γf' Γt' h' ∗
+            treeCtx (gooseOsGS (L := L)) st' ∗ WP e' @ s; E {{ Φ }}) -∗
+      WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
+  iintro #Hinv HF
+  iapply wp_fs_stepMX o v Φ hv hE hO hl hM $$ Hinv
+  iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
+  imod HF $$ %st %Γb %Γm %Γf %Γt %h Hw Ht with ⟨%Hex, Hc⟩
+  imodintro
+  isplitr
+  · ipureintro; exact Hex
+  inext
+  iintro %e' %h' %st' %Hst
+  iapply Hc $$ %e' %h' %st' %Hst.1
 
 end step
 

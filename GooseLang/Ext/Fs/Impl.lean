@@ -1106,6 +1106,15 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
       (cmd.toNat = F_OFD_SETLK ∨ cmd.toNat = F_OFD_SETLKW) ∧ ofdReq typ.toNat = some req ∧
       (req = some true → d.writable) ∧ (req = some false → d.readable) ∧
       LockStep st .ofd fd d req (decide (cmd.toNat = F_OFD_SETLK)) e' st'
+  /- `madvise(addr, len, advice)` with a paging hint, `advice` `MADV_NORMAL` (0), `MADV_RANDOM` (1),
+  `MADV_SEQUENTIAL` (2) or `MADV_WILLNEED` (3): `(#addr, (#len, #advice)) ↦ #errno`, as Go's
+  `unix.Madvise(b, advice)` takes it (`&b[0]`, `len(b)`). No visible change: a hint changes no byte a
+  load or a read sees; any errno, 0 included. Stuck on any other advice (the trusted model panics
+  first). A step of the extension (2026-11-17, session S3d, **pending the user's review**; until then
+  the model returned an arbitrary errno with no step), so that a premise on steps can constrain its
+  errno (`NoMapLockErr`). `examples/osfs/semantics/map_madvise.go`. -/
+  | "Madvise" => ∃ (addr : Loc) (len adv e : w64), v = PairV (#addr) (PairV (#len) (#adv)) ∧
+      adv.toNat ≤ 3 ∧ st' = st ∧ e' = Val (#e)
   | _ => False
 
 /-- The cells a new mapping takes are free, in `(0, maxAddr]`. -/

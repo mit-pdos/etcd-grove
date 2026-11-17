@@ -94,6 +94,7 @@ instance : FsRetOp "FallocStart" := ⟨by decide⟩
 instance : FsRetOp "FallocFinish" := ⟨by decide⟩
 instance : FsRetOp "FallocKeep" := ⟨by decide⟩
 instance : FsRetOp "OfdLock" := ⟨by decide⟩
+instance : FsRetOp "Madvise" := ⟨by decide⟩
 
 /-- An operation of the extension other than `mmap` is atomic: it takes one step, to a value. -/
 instance fsOp_atomic (a : Language.Atomicity) (o : String) [ho : FsRetOp o] (v : val) :

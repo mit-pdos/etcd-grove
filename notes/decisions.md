@@ -40662,3 +40662,55 @@ and proof over it); a named premise "no `ENOMEM`" on the closed theorems (false 
 space, unlike Go's own allocator, which the model already treats as not returning); the stall as a
 special errno the trusted `unix.Mmap` model retries on (the trusted Go model, not the semantics,
 would carry the decision, with a fake errno).
+
+## fsExt: `open` with no free fd does not return (a premise, not a stall rule); `madvise` a step of the extension (2026-11-17 · **pending the user's review** · session S3d, branch `bbolt-open-noerr`)
+
+S3c (`notes/bbolt-integration-plan.md`, Log, "S3c") found that no spec can say a covered `open`
+succeeds: the model's `open` succeeds only with a free fd (`FdFree`), its fd maps may hold all `2 ^ 63`
+nonnegative fds, and from such a state it has no success, so `NoIoErr` keeps every errno there
+(`EMFILE`). bbolt-inv found `madvise` the reason `DB.Close_ownNoErr` keeps its escape: its trusted
+model returned an arbitrary errno with no step of the extension, so no premise on steps constrains it.
+
+**Decision 1 (premise, `GooseLang/Ext/Fs/Premises.lean`; no change to the semantics).**
+`NoMapLockErr` (pending review already) gets a clause for `open`: `MapLockCovers "Open"` is an `open` of
+a covered path (`S.path`) from a state with no free fd; `MapLockOk "Open"` is `EINTR` with fd `-1` (or
+errno 0, which the semantics does not have there). Every model of `open` in `TrustedCode/os.lean`
+(`OpenFile.impl`, `model.stat`, `model.openLoop`) already retries `EINTR`, so under the premise the Go
+call does not return when the model is out of fds: fd exhaustion treated as memory exhaustion (`mmap`'s
+`MmapStall`, Perennial's `AllocOOMS`). `noMapLockErr_keeps` (the `EINTR` failure is always an outcome
+of an accepted `open`: `isFsStep_open_eintr`) and `noIoErr_noMapLockErr_keeps` (no longer through
+disjointness alone: with no free fd both premises name `open`; the kept step is the outcome with errno 0
+if the semantics has one, else `EINTR`, where `NoIoErr` says nothing) are proved. Go example:
+`examples/osfs/semantics/premise_no_map_lock_err.go` (updated; evidence: `EMFILE` at
+`RLIMIT_NOFILE` documented, open(2); the non-returning outcome assumed).
+
+*Why a premise and not a stall rule in `FsStep`* (the task's first suggestion, as S3b's `MmapStall`):
+a stall makes `open` non-atomic. S3b paid that for `mmap` (one spec, `wp_osMmapG`); `open` is lifted by
+every tree lifting lemma (`wp_fs_stepM`, `wp_fs_stepT`, `wp_fs_stepO`, `wp_logStepSW`, `wp_callEndS`,
+`wp_aunc_step`) and opened atomically inside crash invariants in about ten crash-aware proofs
+(`Proof/os/CrashOps.lean`, `CrashStOps.lean`, the walfs `Boot`, `SegLogOps`, `DirSwap`, the WAL's) through
+`wp_atomic`, all of which would need re-proving. The premise changes nothing proved, and its meaning is
+the same: in the model's state with no free fd the call does not return. It is not S3b's rejected "fake
+errno the model retries" either: `EINTR` is an errno Linux's `open` returns and the models already retry;
+the premise only says which outcome of the semantics happens there. *Why a premise and not a bound on
+open fds*: no resource of the logic counts fds, so a bound would need fd tokens threaded through every
+`open` and `close` spec (a `threadTok`-like discipline); and `NoIoErr` already assumes Linux's own
+`EMFILE` (at `RLIMIT_NOFILE`, far below the model's `2 ^ 63`) does not happen on a covered path where the
+model has a free fd. What the clause adds is only the model's own exhaustion, which takes `2 ^ 63` opens
+without a close, more steps than an execution a theorem covers (`receiptBound`).
+
+**Decision 2 (trusted semantics, `Impl.lean`; trusted model, `TrustedCode/golang_org/x/sys/unix.lean`).**
+`madvise(addr, len, advice)` with a paging hint (`MADV_NORMAL`..`MADV_WILLNEED`) is the extension's
+operation `"Madvise"` (`(#addr, (#len, #advice)) ↦ #errno`): no change, any errno, 0 included (a data
+operation, `DataOp`; atomic, `FsRetOp`). `unix.Madvise`'s model calls it for a non-empty slice (an empty
+one keeps the arbitrary errno with no step). The outcomes are the old model's; what changes is that a
+premise on steps can constrain them: `MapLockCovers "Madvise"` is a `madvise` at the base of a mapping of
+a covered file, `MapLockOk` errno 0 (the default). Go example: `examples/osfs/semantics/map_madvise.go`
+(evidence: documented, madvise(2), `mm/madvise.c`). `unix.Madvise.spec` gains `osInv` in its
+precondition and the premise `0 ≤ sl.len.toInt` (a step needs the extension's invariant; the model's
+`&b[0]` is a bounds-checked index); its three callers (bbolt's `mmapF`, minibolt's `DB.mmap` and
+`DB.mmapCrash`) pass them.
+
+**Rejected.** A stall rule `OpenStall` in `FsStep` (above); a named closed-theorem premise "the process
+never has `2 ^ 63` fds"; modelling the fd limit as `RLIMIT_NOFILE` (a smaller model limit makes `EMFILE`
+reachable in the model, which then every no-error spec must exclude by a bound).

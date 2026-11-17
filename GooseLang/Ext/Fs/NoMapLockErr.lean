@@ -36,6 +36,28 @@ theorem isFsStep_flock_maps {v : val} {st : OsState} {e' : Expr} {st' : OsState}
   · rcases hl with ⟨rfl, -⟩ | ⟨e, -, -, rfl | rfl⟩ <;> rfl
   · obtain ⟨-, ⟨-, rfl, -⟩ | ⟨e, -, -, rfl, -⟩⟩ := hl <;> rfl
 
+/-- The `IoSet` covering every inode and every path. -/
+def IoSet.all : IoSet := ⟨fun _ _ => True, fun _ => True⟩
+
+/-- An `open` of a path is a call `IoCovers` names (for the `IoSet` covering everything). -/
+theorem openCovers_io {S : IoSet} {v : val} {st : OsState}
+    (h : ∃ (t : Nat) (p : GoString) (fl : w64), v = PairV (osTokV t) (PairV (#p) (#fl)) ∧ S.path p) :
+    IoCovers IoSet.all "Open" v st := by
+  obtain ⟨t, p, fl, hv, -⟩ := h
+  exact ⟨t, p, fl, hv, trivial⟩
+
+/-- **`open` with no success ends with `EINTR`**: from a state where its arguments are accepted (a
+step `hs`), `open` has the failure `EINTR`, the call ended and nothing else changed. -/
+theorem isFsStep_open_eintr {v : val} {st : OsState} {e' : Expr} {st' : OsState}
+    (hs : IsFsStep "Open" v st e' st') :
+    ∃ st'', IsFsStep "Open" v st (osRes (#(-1 : w64)) EINTR) st'' ∧ st''.proc.maps = st.proc.maps := by
+  simp only [IsFsStep] at hs ⊢
+  rcases hs with ⟨p, fl, t, start, hv, htp, hfl, hc, htr, -⟩ | ⟨p, fl, t, start, hv, hn, ha, hro, hc, -⟩
+  · exact ⟨st.metaEnd t, .inl ⟨p, fl, t, start, hv, htp, hfl, hc, htr,
+      .inr ⟨EINTR, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩, rfl⟩
+  · exact ⟨st.metaEnd t, .inr ⟨p, fl, t, start, hv, hn, ha, hro, hc,
+      .inr ⟨EINTR, by decide, rfl, rfl⟩⟩, rfl⟩
+
 /-- `cellVal` does not read the mappings. -/
 theorem cellVal_setMaps (st : OsState) (M : GMap Loc OsMap) (i : Ino) (b : Nat) :
     cellVal (st.setProc { st.proc with maps := M }) i b = cellVal st i b := rfl
@@ -233,6 +255,17 @@ theorem noMapLockErr_keeps (S : IoSet) : StepKeeps (NoMapLockErr S) := by
       exact hsucc h2 hr2
     · rw [hst'] at hr
       exact hsucc h' hr
+  · -- Open (no free fd): the outcome the premise names, the heap re-rendered
+    have hc' := openCovers_io (st := st) hcov.1
+    have h1 := isFsStep_maps hc' hst
+    have h2 := isFsStep_maps hc' hs''
+    obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq h1 h2 hr
+    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr''⟩, fun _ _ => hz⟩
+  · -- Madvise: the outcome the premise names (no outcome changes anything)
+    have hm : ∀ {e1 st1}, IsFsStep "Madvise" v st e1 st1 → st1.proc.maps = st.proc.maps := by
+      intro e1 st1 h1; simp only [IsFsStep] at h1; obtain ⟨_, _, _, _, -, -, rfl, -⟩ := h1; rfl
+    obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (hm hst) (hm hs'') hr
+    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same (hm hs''), hr''⟩, fun _ _ => hz⟩
   · exact hcov.elim
 
 /-- Two premises on steps, together. -/
@@ -252,24 +285,51 @@ theorem stepKeeps_and (P Q : StepPrem) (hP : StepKeeps P) (hQ : StepKeeps Q)
   · obtain ⟨e'', h'', st'', hs'', hp⟩ := hP o v h st e' h' st' huniq hs
     exact ⟨e'', h'', st'', hs'', hp, hq _ _⟩
 
-/-- `NoIoErr` and `NoMapLockErr` name disjoint operations, so they keep steps together. -/
+/-- **`NoIoErr` and `NoMapLockErr` keep steps together.** They name disjoint operations but `open`
+(`stepKeeps_and`): `flock`, `mmap`, `munmap` only `NoMapLockErr`; `open` from a state with a free fd
+and the rest only `NoIoErr`. An `open` with no free fd (both name it): its outcome with errno 0 if
+the semantics has one (both hold of it), and otherwise its `EINTR` (`NoIoErr` then says nothing). -/
 theorem noIoErr_noMapLockErr_keeps (S T : IoSet) :
     StepKeeps (StepPrem.and (NoIoErr S) (NoMapLockErr T)) := by
-  refine stepKeeps_and _ _ (noIoErr_keeps S) (noMapLockErr_keeps T) ?_
-  intro _ _ o v st
-  by_cases ho : o = "Flock" ∨ o = "Mmap" ∨ o = "Munmap"
-  · left
-    intro e' st' hc
-    unfold IoCovers at hc
-    rcases ho with rfl | rfl | rfl <;> exact hc.elim
-  · right
-    intro e' st' hc
-    unfold MapLockCovers at hc
-    split at hc
-    · exact absurd (Or.inl rfl) ho
-    · exact absurd (Or.inr (Or.inl rfl)) ho
-    · exact absurd (Or.inr (Or.inr rfl)) ho
-    · exact hc.elim
+  intro _ _ o v h st e' h' st' huniq hs
+  by_cases hO : o = "Open" ∧ ∀ fd, ¬ FdFree st fd
+  · obtain ⟨rfl, -⟩ := hO
+    have hsV := fsStepV_of_ne (by decide) hs
+    obtain ⟨hst, -, hr⟩ := hsV
+    have hcv : IoCovers IoSet.all "Open" v st := by
+      simp only [IsFsStep] at hst
+      rcases hst with ⟨p, fl, t, start, hv, -⟩ | ⟨p, fl, t, start, hv, -⟩ <;>
+        exact ⟨t, p, fl, hv, trivial⟩
+    by_cases hz : ∃ e'' st'', IsFsStep "Open" v st e'' st'' ∧ ErrnoZero "Open" e''
+    · obtain ⟨e'', st'', hs'', hz''⟩ := hz
+      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_maps hcv hst) (isFsStep_maps hcv hs'') hr
+      exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same (isFsStep_maps hcv hs''), hr''⟩,
+        fun _ _ => hz'', fun _ _ => Or.inl hz''⟩
+    · obtain ⟨st'', hs'', hm''⟩ := isFsStep_open_eintr hst
+      obtain ⟨h'', hr''⟩ := heapRendered_restamp huniq (isFsStep_maps hcv hst) hm'' hr
+      exact ⟨_, h'', st'', .inl ⟨hs'', mapsFresh_same hm'', hr''⟩,
+        fun _ hex => absurd hex hz, fun _ _ => Or.inr rfl⟩
+  have hdisj : (∀ e' st', NoIoErr S o v st e' st') ∨ (∀ e' st', NoMapLockErr T o v st e' st') := by
+    by_cases ho : o = "Flock" ∨ o = "Mmap" ∨ o = "Munmap" ∨ o = "Madvise"
+    · left
+      intro e' st' hc
+      unfold IoCovers at hc
+      rcases ho with rfl | rfl | rfl | rfl <;> exact hc.elim
+    · right
+      intro e' st' hc
+      unfold MapLockCovers at hc
+      split at hc
+      · exact absurd (Or.inl rfl) ho
+      · exact absurd (Or.inr (Or.inl rfl)) ho
+      · exact absurd (Or.inr (Or.inr (Or.inl rfl))) ho
+      · exact absurd ⟨rfl, hc.2⟩ hO
+      · exact absurd (Or.inr (Or.inr (Or.inr rfl))) ho
+      · exact hc.elim
+  rcases hdisj with hp | hq
+  · obtain ⟨e'', h'', st'', hs'', hq⟩ := noMapLockErr_keeps T o v h st e' h' st' huniq hs
+    exact ⟨e'', h'', st'', hs'', hp _ _, hq⟩
+  · obtain ⟨e'', h'', st'', hs'', hp⟩ := noIoErr_keeps S o v h st e' h' st' huniq hs
+    exact ⟨e'', h'', st'', hs'', hp, hq _ _⟩
 
 /-- A semantics whose steps satisfy two premises together satisfies each. -/
 theorem fsStepSat_and_left (P Q : StepPrem) [S : ExtSemantics fsExt] [h : FsStepSat (StepPrem.and P Q)] :
