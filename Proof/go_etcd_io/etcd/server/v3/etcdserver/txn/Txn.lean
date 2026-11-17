@@ -85,7 +85,7 @@ theorem txn.Txn_sole
     txn.Txn.specSole (GF := GF) (hG := hG) := by
   intro ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hlg, #Hknown, Hu, %Hpre, %Hwinp, Hcs, Hau, Hwand⟩
+  wp_start as ⟨#Hkv, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hlg, #Hknown, Hu, %Hpre, Hcs, Hau, Hwand⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -259,6 +259,7 @@ theorem txn.Txn_sole
     wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Hrd $Htrc $Hbk $Hhook $HPre $Htrun $Hbeg]
       as %tw ⟨Htrc, Hbk, ⟨%σw, Htw, ⟨%Hreachw, %Hlogw, Hcommit⟩⟩, HQ⟩
     · ipureintro; exact Htr
+    obtain ⟨Hlogw, Hwinp⟩ := Hlogw
     icases txn.mvccTxn_shape hsh tw γ trace (.write σw []) $$ Htw with ⟨%Hshw, Htw⟩
     obtain ⟨wty, wv, rfl, -, -, -, -, -, -, hEndW⟩ := Hshw
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`

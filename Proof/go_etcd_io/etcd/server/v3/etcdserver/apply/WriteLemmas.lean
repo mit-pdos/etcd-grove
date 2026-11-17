@@ -9,6 +9,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Chain
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WinLemmas
 
 @[expose] public section
 
@@ -62,19 +63,82 @@ theorem kvOwn_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : In
   · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
   iframe Hll Hrd
 
+/-- A put's pending changes at the writer's state: none (the key missing for an ignore flag), else
+its one change. -/
+theorem putPend_cases (o : OpFull) (log : mvcc.Log) (c : Int) :
+    (txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none ∧
+        txn.putPend o (srvApi.stAt log c) = []) ∨
+      ((txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome) ∧
+        txn.putPend o (srvApi.stAt log c) =
+          [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]) := by
+  unfold txn.putPend
+  simp only [srvApi.stAt]
+  by_cases h : txn.needsPrev o = true ∧ mvcc.findKey o.key (mvcc.stateAfter log) = none
+  · left; exact ⟨h.1, h.2, by simp [h]⟩
+  · right
+    refine ⟨fun hn => ?_, by simp [h]⟩
+    cases hf : mvcc.findKey o.key (mvcc.stateAfter log) with
+    | none => exact absurd ⟨hn, hf⟩ h
+    | some _ => rfl
+
+/-- **A put's lessor-window target** (auth-lease S4 item 7b, the applier at a window): with the request's lease live
+(or none) at the live set `T`, the window's target is the item map after the put's outcome at the writer's state. -/
+theorem putWinTgt (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (c : Int) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.put = some o) (hk : dispatchKind rq = .put)
+    (hl : o.leaseID = W64 0 ∨ o.leaseID ∈ T) :
+    ∀ (s : Nat) (T' : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64), w = some (s, T') →
+      T' = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log (txn.putPend o (srvApi.stAt log c)))) := by
+  intro s T' hw
+  rcases putPend_cases o log c with ⟨hn, hf, hp⟩ | ⟨hn, hp⟩
+  · rw [hp]
+    have := h s T' hw (.rejected .backend)
+      (by unfold backendStep; rw [hk]; exact ⟨o, hrq, Or.inr (Or.inl ⟨hn, hf, rfl⟩)⟩)
+      (by simp only [leaseExactL, hk]; intro op hop; rw [hrq] at hop; cases hop
+          exact ⟨fun _ => rfl, fun _ => Or.inr ⟨hn, hf⟩⟩)
+    simpa [Outcome.logAfter, mvcc.commitLog] using this
+  · rw [hp]
+    have := h s T' hw (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
+      (by unfold backendStep; rw [hk]; exact ⟨o, hrq, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)
+      (by simp only [leaseExactL, hk]; intro op hop; rw [hrq] at hop; cases hop
+          exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩)
+    simpa [Outcome.logAfter, mvcc.commitLog] using this
+
+/-- **A put that writes moves the items toward the window's target** (item 7b): `putAUW`'s begin premise. -/
+theorem putWinMove (w : Option lease.LWin) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (T : List w64)
+    (h : winTgt w rq log T) (hrq : rq.put = some o) (hk : dispatchKind rq = .put)
+    (hl : o.leaseID = W64 0 ∨ o.leaseID ∈ T)
+    (hn : txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter log)).isSome) :
+    Perennial.EtcdGrove.lease.winMove w (mvcc.leaseItemsOf (mvcc.stateAfter log))
+      (txn.putItemsOf (mvcc.leaseItemsOf (mvcc.stateAfter log)) o) := by
+  cases w with
+  | none => exact Perennial.EtcdGrove.lease.winMove_none _ _
+  | some v =>
+    obtain ⟨s, T'⟩ := v
+    have ht := h s T' rfl (.applied (log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]]) false)
+      (by unfold backendStep; rw [hk]; exact ⟨o, hrq, Or.inr (Or.inr ⟨hn, rfl⟩)⟩)
+      (by simp only [leaseExactL, hk]; intro op hop; rw [hrq] at hop; cases hop
+          exact ⟨fun h => (hl.elim h.1 h.2).elim, fun h => by cases h⟩)
+    simp only [Outcome.logAfter] at ht
+    have e1 : mvcc.commitLog log [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))] =
+        log ++ [[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))]] := by
+      unfold mvcc.commitLog; simp
+    have e0 : mvcc.commitLog log [] = log := by unfold mvcc.commitLog; simp
+    rw [ht, ← e1, ← txn.pendItems_commitLog, txn.pendItems_putChangeOf, txn.pendItems_commitLog, e0]
+    exact txn.winMove_to_target s _ _
+
 /-- The thread's KV resources at the live set `L`, from the split's pieces (auth-lease S3a). -/
 theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) (L : List w64) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
+    (srvApi.wSt E.γs log cr ∗ E.Wt E.win) ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
-      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗ ltHalf E L ∗
+      lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗ ltHalf E L ∗
       E.RD ⊢ kvOwnAt E log L := by
-  iintro ⟨Hw, Htie, Hbk, Hhk, Hk, Hu, Hlt, Hrd⟩
+  iintro ⟨⟨Hw, HWt⟩, Htie, Hbk, Hhk, Hk, Hu, Hlt, Hrd⟩
   iunfold kvOwnAt
   isplitl [Hw]
   · iexists cr; iexact Hw
   isplitl [Hbk Hhk Htie]
   · iunfold kvBk; iexists B; iframe Hbk Hhk Htie
-  iframe Hk Hu Hlt Hrd
+  iframe Hk Hu Hlt HWt Hrd
 
 /-- **Two writer halves at different logs are impossible** (each holds a half of `γs.st`). -/
 theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
@@ -205,8 +269,8 @@ theorem mPreRest_of_at (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post
 (`mPreRest_lend` at the live set: the lender gives back the same `T`). -/
 theorem mPreRestAt_lend (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) :
     mPreRestAt E log T Pre Q Post ⊢ E.RD ∗
-      lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+      lease.lessorUserW (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗
+      (E.RD -∗ lease.lessorUserW (mvccLeases E.γ) T (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win -∗
         mPreRestAt E log T Pre Q Post) := by
   iintro H
   iunfold mPreRestAt at H
@@ -236,41 +300,58 @@ theorem mPreAt_ltHalf (E : AEnv GF) (c : Chain) (a : GoInterface)
     iframe H
     try itrivial
   · simp only [↓reduceIte]
-    iintro ⟨⟨Hw, ⟨Hk, Hu, Hlt⟩, Hrd, Hres, Hb⟩, HT⟩
+    iintro ⟨⟨Hw, ⟨Hk, Hu, Hlt, HWt⟩, Hrd, Hres, Hb⟩, HT⟩
     icombine Hlt HT gives %H
-    iframe Hw Hk Hu Hlt Hrd Hres Hb HT
+    iframe Hw Hk Hu Hlt HWt Hrd Hres Hb HT
     ipureintro; intro _; exact H.2
 
 /-- **`putPre` from the class track's certificate** (auth-lease S3a2, Draft §1's `putPre_of_old`): `certPre`
 at every outcome, the request, and `mPre` split at its live set. -/
 theorem putPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (o : OpFull)
-    (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (log : mvcc.Log) (Pre Q Post : IProp GF) (T0 : List w64)
+    (hw : E.lg = true → winTgt E.win rq log T0) (hn : E.lg = false → E.win = none)
     (h : rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log) :
-    certPre E c rq log ∗ txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post ⊢
-      putPre E c a info r rq o log Pre Q Post := by
-  iintro ⟨#Hcp, #Hr, Hm⟩
+    certPre E c rq log ∗ txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post ∗ ltHalf E T0 ⊢
+      putPre E c a info r rq o log Pre Q Post ∗ ltHalf E T0 := by
+  iintro ⟨#Hcp, #Hr, Hm, HT⟩
   ihave ⟨%T, Hm⟩ := (mPre_iff_at E c a info log Pre Q Post).1 $$ Hm
+  ihave ⟨%HL, Hm, HT⟩ := mPreAt_ltHalf E c a info log T T0 Pre Q Post $$ [$Hm $HT]
+  iframe HT
   iunfold putPre
   isplitr; · ipureintro; exact h
   iframe Hr
   iexists T
+  isplitr
+  · ipureintro
+    cases hlg : E.lg
+    · rw [hn hlg]; exact winTgt_none _ _ _
+    · rw [HL hlg]; exact hw hlg
   iframe Hm
   iapply certPreT_of_certPre; iexact Hcp
 
 /-- **`txnPre` from the class track's certificate** (as `putPre_of_mPre`). -/
 theorem txnPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (t : TxnModel)
-    (log : mvcc.Log) (Pre Q Post : IProp GF)
+    (log : mvcc.Log) (Pre Q Post : IProp GF) (T0 : List w64)
+    (hw : E.lg = true → winTgt E.win rq log T0) (hn : E.lg = false → E.win = none) (hnd : txn.txnKeysNodup t)
     (h : rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log) :
-    certPre E c rq log ∗ txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post ⊢
-      txnPre E c a info r rq t log Pre Q Post := by
-  iintro ⟨#Hcp, #Hr, Hm⟩
+    certPre E c rq log ∗ txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post ∗ ltHalf E T0 ⊢
+      txnPre E c a info r rq t log Pre Q Post ∗ ltHalf E T0 := by
+  iintro ⟨#Hcp, #Hr, Hm, HT⟩
   ihave ⟨%T, Hm⟩ := (mPre_iff_at E c a info log Pre Q Post).1 $$ Hm
+  ihave ⟨%HL, Hm, HT⟩ := mPreAt_ltHalf E c a info log T T0 Pre Q Post $$ [$Hm $HT]
+  iframe HT
   iunfold txnPre
   isplitr; · ipureintro; exact h
   iframe Hr
   iexists T
+  isplitr
+  · ipureintro
+    refine ⟨?_, hnd⟩
+    cases hlg : E.lg
+    · rw [hn hlg]; exact winTgt_none _ _ _
+    · rw [HL hlg]; exact hw hlg
   iframe Hm
   iapply certPreT_of_certPre; iexact Hcp
 
@@ -349,8 +430,8 @@ theorem mPreRest_reject_cs (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF
 `kvOwn_lend`). -/
 theorem mPreRest_lend (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) :
     mPreRest E log Pre Q Post ⊢ E.RD ∗ ∃ L : List w64,
-      lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-      (E.RD -∗ lease.lessorUser (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) -∗
+      lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗
+      (E.RD -∗ lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win -∗
         mPreRest E log Pre Q Post) := by
   iintro H
   iunfold mPreRest at H

@@ -714,3 +714,12 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `apply.rqOk`'s transaction arm `txn.TxnPreA log t ∧ putOk log` → `… ∧ txn.txnKeysNodup t` (internal: no `Results`
   statement mentions `rqOk`; producers `rqShape_txnL`/`rqShape_of_txn` discharge it from the permits).
   `txn.txnKeysNodup` moved to `txn/TxnRun.lean`.
+- **F1-F3, F2 (2026-11-17).** Accepted by etcd-grove-03: `txn.isTxnLessor` gains the window-witness clause (now named
+  `lease.winWitOk`): premise of the closed `txn_runTxn` and of `server_kv_backend`'s chain strengthened, text unchanged,
+  discharged by `isTxnLessor_of_lessorInv` (`lease.win_wit`). `lessor.Revoke.spec`'s begin payload `winWit … -∗ auEnd`.
+  F2: `txn.putAU/delAU/txnBeginAU` = `…W none`, the commit under `lease.winWit … w (pendItems σ₀.log pend) -∗`;
+  `txn.Put/DeleteRange/Txn.spec` take the `W` forms; `txn.DeleteRange.spec` gains `lease.winWitOk (mvccLeases γ)`; the
+  `winMove`/`WinOps` premises of `txn.Put.spec`/`Txn.specSole` move into the begin payloads (forms in `questions.md`).
+- **The applier at a window (2026-11-17, in progress).** `AEnv.win`/`AEnv.Wt` (defaulted fields), `winTgt` in
+  `putPre`/`deletePre`/`txnPre`/`revokePre`, `envAus`' end builder at `∀ w` with the token, `revokeClause` and
+  `isApplyLessor`'s `Grant` at `∀ w` (forms in `questions.md`, "Item 7b F2 and the applier at a window: forms").

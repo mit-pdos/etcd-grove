@@ -43,7 +43,7 @@ theorem txn.Put.wp_proof
     txn.Put.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, %Hwin, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -119,6 +119,7 @@ theorem txn.Put.wp_proof
   wp_apply (hWriteC γ trace false q B P Pre Q f _) $$ [$Hkv $Hrd $Htrc $Hbk $Hhook $Hpre $Htr $Hau]
     as %t ⟨Htrc, Hbk, ⟨%σ₀, Htx, ⟨%Hreach0, %Hitems, Hilok, Hcommit⟩⟩, HQ⟩
   · ipureintro; exact Ht
+  obtain ⟨Hitems, Hwin⟩ := Hitems
   icases txn.mvccTxn_shape hsh t γ trace (.write σ₀ []) $$ Htx with ⟨%Hsht, Htx⟩
   obtain ⟨tty, tv, rfl, -, -, -, -, -, -, hEndC⟩ := Hsht
   -- the caller's update (the writes are the model's): the lock's invariant back for `End`
@@ -197,7 +198,7 @@ theorem txn.Put.wp_proof
   · rw [Hitems]; iexact Hown
   have hwp : EtcdGrove.lease.winMove wn (mvcc.pendItems σ₀.log [])
       (mvcc.pendItems σ₀.log [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))]) := by
-    rw [txn.pendItems_putChangeOf, Hitems]; exact Hwin
+    rw [txn.pendItems_putChangeOf, Hitems]; exact Hwin Hn
   wp_apply hp $$ [$Hctx' $Hct' $Htx $Htrc $Hp $Hprev $Hlok2 $Hown]
     as %resp ⟨Htx, Htrc, #Hresp, Hhdr, Hown⟩
   · isplitl []

@@ -251,7 +251,6 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
   iapply (wp_Txn.1 ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw none)
     $$ [H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16]
   · iframe Hpkg H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16
-    ipureintro; exact winOps_none _ _ _ _
   inext
   iintro %resp %trace %err ⟨Hrd, Hkb, %σr, %Hσr, Hout⟩
   iapply HΦ

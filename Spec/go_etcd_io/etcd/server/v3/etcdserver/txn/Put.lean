@@ -38,7 +38,7 @@ premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. Auth-lease S4 item 7b, 2026-11-17: in the
-lessor window `w`, the put moving the items toward its target, `putItemsOf`.) -/
+lessor window `w`, the put moving the items toward its target, `putItemsOf`, the caller's at the begin: `putAUW`.) -/
 abbrev txn.Put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg : Loc) (le kv : GoInterface)
     (γ : MvccName) (p : Loc) (o : OpFull) (q : Qp) (B : MvccStorage) (P Pre Q Post : IProp GF)
@@ -46,7 +46,7 @@ abbrev txn.Put.spec : Prop :=
     (ot : Option Loc) (te : Bool) (R : MvccState → IProp GF) (w : Option lease.LWin),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.isTxnLessor le (mvccLeases γ) ∗
-      lease.lessorUserW (mvccLeases γ) L I w ∗ ⌜lease.winMove w I (txn.putItemsOf I o)⌝ ∗
+      lease.lessorUserW (mvccLeases γ) L I w ∗
       txn.putRequestIs p o ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ zapLoggerOrNil lg ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗

@@ -1,6 +1,42 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: F1-F4 APPROVED; F1, F3 and the txn witness clause done; the batch continues)
+## START HERE (S4, 2026-11-17, item 7b: F1-F3 done; the applier at a window IN PROGRESS (WIP commit, downstream broken))
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last: "F1-F3 forms: reviewed",
+  then the agent's forms of this session, "Item 7b applier: forms", for review). Not built since `00b09c1360` (lean-check
+  only); the batch's ONE leaves build comes after the server part.
+- **Done, lean-checked:** F1, F3 (`3bfb255105`); F2 (`3c0b2b7fe0`: `txn.putAUW/delAUW/txnBeginAUW`, `lease.winWitOk`,
+  now `isTxnLessor`'s last conjunct and a premise of `txn.DeleteRange.spec`). This WIP commit: the window premises moved
+  into the begin payloads (`putAUW`: `(needsPrev → found) → winMove w I (putItemsOf I o)`; `txnBeginAUW`: `WinOps`), so
+  `txn.Put.spec`/`Txn.specSole` lost their upfront `⌜winMove⌝`/`⌜WinOps⌝` (a rejected put/txn has `T = I`, which the
+  upfront premise could not meet). **Applier at a window, as AEnv fields** (form, see questions.md): `AEnv.win : Option
+  LWin := none` and `AEnv.Wt : Option LWin → IProp := True` (the server's window token, F4); `leasesLive(At)`/`kvOwnAt`
+  hold `lessorUserW … E.win ∗ … ∗ E.Wt E.win`; `winTgt w rq log L` (`Chain.lean`: every backend outcome lease-exact at
+  `L` leaves the window's target items); `putPre`/`deletePre`/`revokePre` carry `⌜winTgt E.win rq log T⌝`, `txnPre`
+  `⌜winTgt … ∧ txnKeysNodup t⌝`; `envAus`' end builder `∀ w`, takes `E.Wt w`, `⌜T = items after⌝`, `winWit`, gives back
+  `wSt ∗ E.Wt w`; `revokeClause` and `isApplyLessor`'s Grant clause at `∀ w` (`LessorDerive` passes it);
+  `WriteLemmas`: `putPend_cases` (moved), `putWinTgt`, `putWinMove`, `kvOwnAt_of_split` over `(wSt ∗ E.Wt E.win)`,
+  `putPre_of_mPre`/`txnPre_of_mPre` take `T0`, `hw : E.lg → winTgt E.win rq log T0`, `hn : ¬E.lg → E.win = none`
+  (txn: `hnd`) and `ltHalf E T0` (given back). Checked: `Chain`, `Contracts` (via LessorDerive), `LessorDerive`,
+  `WriteLemmas`, `applierV3backend__Put`, txn `Put`/`Txn`/`DeleteRange`, `LessorContract`.
+- **Next, in order:** (1) fix the rest of `apply/` (convention: track `wSt ∗ E.Wt E.win` together, as `Put`):
+  `applierV3backend__{DeleteRange,Txn,LeaseRevoke,LeaseGrant}` (Txn: `WinOps` in the begin payload from
+  `txn.winOps_txn_of_nodup` + `winTgt`; DeleteRange: `winDrops` from `winTgt`; Revoke: `revokeClause` at `E.win`),
+  `uberApplier__dispatch` (pass `T`, `hw`, `hn`, nodup from `rqOk`), `Apply.spec`/`dispatch.spec`: new pure premise
+  `(E.lg → winTgt E.win rq x.log T) ∧ (¬E.lg → E.win = none)` (Apply's `T`), then `DispatchKVL`, `AuthApplyLatest*`,
+  `checkLeasePuts*`, `AuthLemmas` etc. (`python3 etc/importers.py --uses lessorUser …`; patterns binding leasesLive's
+  last conjunct). (2) F4 (server): instantiate `E.Wt` with a ghost-var half of a new tie invariant (the store's
+  invariant cannot be changed without touching `bootStore.law`/`newServerStoreFreshA` (NewServer.spec premise, the
+  etcdstart allocations): proposal: a separate invariant at `kvsN .@ "win"` with the store invariant moved to
+  `kvsN .@ "st"` (both inside the law's `kvsN` mask), allocated in NewServer after `NewLessor` with `lessorWinTie`, the
+  window var's other half and the event list; the end builder needs the current window because a persistent
+  `winWit` could be replayed at a later commit (why `E.Wt`)). Server per-entry push at `{E with win := some (s,T)}`
+  (persistent `applierSpec`/`uberIs` facts must then be held `∀ w`). (3) leaves build; steps 7, 8; c6b merge.
+- **Pitfalls:** an `IProp` argument inside a term needs `iprop(…)`. In `apply`, `lease.winWit (mvccLeases …)` does not
+  resolve: write `Perennial.EtcdGrove.lease.winWit (mvcc.api.mvccLeases E.γ)`. Patterns `⟨Hk, Hu, Hlt⟩` on
+  `leasesLive(At)` now bind `ltHalf ∗ E.Wt` to `Hlt` (fine for re-framing, not for `icombine`).
+
+## Previous START HERE (S4, 2026-11-17, item 7b: F1, F3 done; batch continues)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: the step-7 gap,
   "F1-F4 decision" by etcd-grove-03, with its conditions). Not yet built (lean-check only); the batch's one leaves build

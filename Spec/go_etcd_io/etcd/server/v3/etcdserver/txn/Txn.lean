@@ -46,7 +46,8 @@ state. The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. The wand's `PathsIgnOk`: decided by
 the coordinator, 2026-11-06, `clients-txn.md` §8; its `PathsLeaseOk`: auth-lease S3a2, approved by etcd-grove-81,
 2026-11-15, ledger 2026-11-15 "txn.Txn's write wand is not told the lease check". Auth-lease S4 item 7b,
-2026-11-17: in the lessor window `w`, each operation of the run within it, `WinOps`.) -/
+2026-11-17: in the lessor window `w`, each operation of the run within it, `WinOps`, the caller's at the begin:
+`txnBeginAUW`.) -/
 abbrev txn.Txn.specSole : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (lg rt : Loc) (shared : Bool)
     (kv le : GoInterface) (skip : Bool) (γ : MvccName) (log : mvcc.Log) (t : TxnModel) (q : Qp)
@@ -59,8 +60,6 @@ abbrev txn.Txn.specSole : Prop :=
       txn.leasesKnown L (mvcc.stateAfter log) ∗
       lease.lessorUserW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) w ∗
       ⌜txn.TxnPreA log t⌝ ∗
-      ⌜txn.WinOps w (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
-        (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
       txn.csA P f Pre Q Post ∗
       txn.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
       (if txn.txnReadonly t then iprop(True)

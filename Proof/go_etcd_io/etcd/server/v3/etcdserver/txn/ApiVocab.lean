@@ -183,12 +183,15 @@ def txn.kvBackend (γ : MvccName) (q : Qp) (B : MvccStorage) (P : IProp GF) (f :
   iprop(mvcc.api.mvccBackend γ q B P ∗ mvcc.api.hookIs B f)
 
 /-- **A put's updates at a window `w`** (item 7b F2): the begin (the caller gives the lessor's item map `I` at the
-state, and, for `IgnoreLease`, that the key's lease is live), then, given the lessor's witness at `w` for the items after
+state, that a put that writes moves the items toward the window's target (`lease.winMove`: at the begin state, where
+the caller knows whether the put writes), and, for `IgnoreLease`, that the key's lease is live), then, given the lessor's witness at `w` for the items after
 the put (`lease.winWit`, `True` at no window), the commit of `putPend o σ₀`, then `R σ₀`. -/
 def txn.putAUW (γ : MvccName) (w : Option lease.LWin) (o : OpFull) (L : List w64)
     (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → IProp GF) : IProp GF :=
   txn.beginAU γ (fun σ₀ =>
-    iprop(⌜mvcc.pendItems σ₀.log [] = I⌝ ∗
+    iprop(⌜mvcc.pendItems σ₀.log [] = I ∧
+        ((txn.needsPrev o = true → (mvcc.findKey o.key (mvcc.stateAfter σ₀.log)).isSome) →
+          lease.winMove w I (txn.putItemsOf I o))⌝ ∗
       (if o.ignoreLease then txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log)))
        else iprop(True)) ∗
       (lease.winWit (mvccLeases γ) w (mvcc.pendItems σ₀.log (txn.putPend o σ₀)) -∗
@@ -217,14 +220,16 @@ abbrev txn.delAU (γ : MvccName) (o : OpFull)
   txn.delAUW γ none o I R
 
 /-- **`Txn`'s write updates at the sole writer of `log`, at a window `w`** (a request that writes; item 7b F2): the
-begin, where the caller gives the pin (the state's log is `log`: no commit since the read), then, given the lessor's
+begin, where the caller gives the pin (the state's log is `log`: no commit since the read) and that the run's
+operations are within the window (`WinOps`: given only once the checks passed), then, given the lessor's
 witness at `w` for the items after the run, the commit of the run's changes at `log`, then `Qw σ`. The caller builds
 them from its read update's `Qr`, only once the checks passed (`Txn.specSole`'s wand), so that a failed check leaves
 its resources in `Qr`. -/
 def txn.txnBeginAUW (γ : MvccName) (w : Option lease.LWin) (log : mvcc.Log) (t : TxnModel)
     (Qw : MvccState → IProp GF) : IProp GF :=
   txn.beginAU γ (fun σ =>
-    iprop(⌜σ.log = log⌝ ∗
+    iprop(⌜σ.log = log ∧ txn.WinOps w (mvcc.stateAfter log) (W64 (log.length : Int)) (mvcc.stateAfter log)
+        (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ ∗
       (lease.winWit (mvccLeases γ) w (mvcc.pendItems σ.log (txn.txnChs log t)) -∗
         txn.commitAU γ σ (txn.txnChs log t) (Qw σ))))
 
