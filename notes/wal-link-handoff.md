@@ -22,7 +22,12 @@
   proof by cases (`wp_shared`, `wp_pre`); `WAL__SaveSnapshotNoErr` gone, `specPre` gone (its proof is `wp_pre`);
   `CalleeCov.walCov_encodeTail`; Create at `.pre` (`Sio := ioNone`, `walPbNone`); WalTester's `member__saveSnap`
   shares the handle. Links regenerated; both Links and the importers' leaves build.
-- **Next, in order:** L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+- **Decided (etcd-grove-03, 2026-11-17):** the server SaveSnap law old → new APPROVED (with Save's matching
+  `walUsed` update); the collapse's forms ACCEPTED; wire vs model: (i) if provable, else (iii); (ii) out.
+- **Next, in order:** L1b by **(iii)** (the check below rules out (i) for entries), stop if a closed statement
+  would change; merge lean (≥ 3cd4b72599, then `.lake/package-overrides.json` stays the c6b manifest); end-of-L1
+  full build via the build slot (retry on 143); `etc/tcb-report.py --check` and `--collection` for
+  `wal-fsext.txt` and `wal-tester.txt`; report the L1 boundary; then L2 (HARD STOP before `ReleaseSnapDBs`).
 - **Pitfall (lock + later credit):** a method needing the handle before its first resolution after `Lock` takes
   `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand (`wp_go_step_receipt'`, its `£ 1`), then
   `wp_raise_receipt` at the next resolution (`WAL__Save.lean`, `WAL__SaveSnapshot.lean`). A spec whose pre/post is a
@@ -56,6 +61,18 @@
   received entries); (ii) layer 1 over contents (`WalOpG` over `EntryC`/`WalHsC`, `Mr` over contents, `ReadAll`
   returns contents): several k lines; (iii) `Mr` over contents with the per-record bytes in a ghost map read by the
   crash invariant. Recommendation in the report.
+- **(i) vs (iii), checked 2026-11-17 (read-only):** entries cannot be shown canonical: `appendEntry`
+  (raft.go:812-819) clones the proposer's entry and sets only Term/Index; proposals build `&pb.Entry{Data: data}`
+  (node.go:472, rawnode.go:94; no `Type`, while `walEntCanon` needs `Type = some`); received MsgApp entries keep any
+  `uf` within `ufWire` (`MsgAppV2.lean:87,108`, `msgAppV2Decoder__decode.lean:190`) and reach `Save` uncloned.
+  Hard state: Go's `r.hardState()` sets all three cells with `uf = []` (raft.go:504-510; proof
+  `raft__hardState.lean:31-35`), but `raft.hardState.spec` returns only `hsRO` (uf, nil cells free); making it
+  canonical would restate raft library results (`Proof/go_etcd_io/raft/v3/Results.lean`: `RawNode.wp_Ready`,
+  `node.wp_Ready`, `isReadyChan_recvAu`). So **(iii)** for both: `Mr` over contents (entry bytes `entryEncC c`, any
+  `uf` with `ufWire`; the decoder's round trip from `entryEncC`'s injectivity on `ufWire` contents, as
+  `MsgAppV2.lean:567-570` uses), each record's bytes in a ghost map the crash invariant reads, the history over
+  models. Expected internal to the WAL model (`RaftModel/EntCodec.lean`, `Pb.lean`, `Marshal.lean`) and
+  `WalApi.lean`; WalTester's canonical instance stays a special case.
 - Server `SaveSnap` law, old → new: in the report (and `/shared/tmp/wallink/l1b-r5.md`).
 
 ## History
