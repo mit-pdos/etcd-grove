@@ -285,9 +285,10 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
   ihave Hv := batchViewQ_mono γ P hC hR hO $$ Hv
   iframe Hv
   icases Hrest with ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hrr⟩, Hfk, %Hok⟩
-  ihave Hrr := rbrSide_congr γ P st st' hC hR (fun m hm => ⟨hK m hm, by rw [hB]⟩) hcw c
+  ihave Hrr := rbrSide_congr γ P st st' hC hR c
     (fun h h1 h2 => by rw [hcw]; exact h h1 (by rw [← hc]; exact h2)) $$ Hrr
-  rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB (tkI P st), ← tkI_congr hK]
+  rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB (tkI P st),
+    ← tkI_congr (fun m hm => ⟨hK m hm, by rw [hcw]⟩)]
   iexists n, w, u
   iframe
   isplitl

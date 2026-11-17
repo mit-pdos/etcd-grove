@@ -285,7 +285,7 @@ theorem rbPartF_congr (γ : BNames) (S : GoString → Prop) (r r' : GMap GoStrin
     (hF : ∀ n, S n → γ.rbD.lookup n ≠ none → F n = F' n) :
     rbPartF (GF := GF) γ S r F ⊣⊢ rbPartF γ S r' F' := by
   unfold rbPartF
-  have hv := rbEls_congr (GF := GF) γ S (1 : Qp).half (fun n => (r.lookup n, F n))
+  have hv := rbEls_congr (GF := GF) γ S (1 : Qp).half.half (fun n => (r.lookup n, F n))
     (fun n => (r'.lookup n, F' n)) (fun n hS hn => by rw [hr n hS, hF n hS hn])
   constructor
   · iintro ⟨%Hp, H⟩
@@ -367,7 +367,7 @@ theorem rbPartF_split (γ : BNames) (S S' : GoString → Prop) (r : GMap GoStrin
     rbPartF (GF := GF) γ (fun n => S n ∨ S' n) r F ⊣⊢
       iprop(rbPartF γ S r F ∗ rbPartF γ S' r F) := by
   unfold rbPartF
-  have he := rbEls_split (GF := GF) γ S S' (1 : Qp).half (fun n => (r.lookup n, F n)) hd
+  have he := rbEls_split (GF := GF) γ S S' (1 : Qp).half.half (fun n => (r.lookup n, F n)) hd
   constructor
   · iintro ⟨%Hp, Hs⟩
     icases he.1 $$ Hs with ⟨H1, H2⟩
@@ -486,34 +486,184 @@ theorem rbOwn_split (γ : BNames) (S : GoString → Prop) (r : GMap GoString Bkt
   · intro n; exact ⟨fun _ => Classical.em _, fun _ => trivial⟩
   exact rbPart_split γ S (fun n => ¬ S n) r (fun _ h1 h2 => h2 h1)
 
-/-! ### The ghost steps of the proved operations -/
+/-! ### The claim invariant's pieces (A6.2 of `auth-schema-srv`, 2026-11-17)
 
-/-- Two halves of a part, at the authority, updated to new contents and flags (whole elements
-in between). -/
-private theorem rbPartF_update (γ : BNames) (S : GoString → Prop) (r r' : GMap GoString BktData)
-    (F F' G : GoString → Bool)
-    (hp : ∀ n, S n → γ.rbD.lookup n = none → r.lookup n = none → r'.lookup n = none) :
-    iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth (GF := GF) γ.rbk 1 M) ∗
-      rbPartF γ S r F ∗ rbPartF γ S r F') ⊢
-      |==> iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗
-        rbPartF γ S r' G ∗ rbPartF γ S r' G) := by
-  iintro ⟨Ha, H1, H2⟩
-  icases rbPartF_agree γ S S r r F F' $$ [$H1 $H2] with ⟨H1, H2, %Hag⟩
-  ihave H2 := (rbPartF_congr γ S r r F' F (fun _ _ => rfl)
-    (fun n hS hn => (Hag.2 n hS hS hn).symm)).1 $$ H2
-  unfold rbPartF
-  icases H1 with ⟨%Hp, H1⟩
-  icases H2 with ⟨-, H2⟩
-  ihave Hs := (rbEls_halves γ S _).1 $$ [$H1 $H2]
-  imod rbEls_update γ S _ (fun n => (r'.lookup n, G n)) $$ [$Ha $Hs] with ⟨Ha, Hs⟩
-  icases (rbEls_halves γ S _).2 $$ Hs with ⟨H1, H2⟩
-  imodintro
-  isplitl [Ha]; iexact Ha
-  have hp' : ∀ n, S n → γ.rbD.lookup n = none → r'.lookup n = none :=
-    fun n hS h0 => hp n hS h0 (Hp n hS h0)
-  isplitl [H1]
-  · isplitr; ipureintro; exact hp'; iexact H1
-  · isplitr; ipureintro; exact hp'; iexact H2
+Fractions, ghost map elements, one entry of a family, and the claim invariant's two branches. -/
+
+theorem q4_add : (1 : Qp).half.half + (1 : Qp).half.half = (1 : Qp).half := Qp.half_add_half _
+
+theorem q2_add : (1 : Qp).half + (1 : Qp).half = 1 := Qp.half_add_half _
+
+theorem q34_add : ((1 : Qp).half + (1 : Qp).half.half) + (1 : Qp).half.half = 1 :=
+  Subtype.ext (by simp; grind)
+
+theorem q_whole : ((1 : Qp).half.half + (1 : Qp).half.half) + (1 : Qp).half = 1 := by
+  rw [q4_add, q2_add]
+
+theorem q_over : 1 < ((1 : Qp).half.half + (1 : Qp).half.half).val +
+    ((1 : Qp).half + (1 : Qp).half.half).val := by
+  simp; grind
+
+theorem dfrac_own_op (a b : Qp) : DFrac.own a • DFrac.own b = DFrac.own (a + b) := rfl
+
+/-- Two shares of one element: one share, the values equal. -/
+theorem gme_join {V : Type} [Pos.Countable V] (g : GName) (n : GoString) (q1 q2 : Qp) (v1 v2 : V) :
+    iprop(ghostMapElem (GF := GF) g n (DFrac.own q1) v1 ∗ ghostMapElem g n (DFrac.own q2) v2) ⊢
+      iprop(ghostMapElem g n (DFrac.own (q1 + q2)) v1 ∗ ⌜v1 = v2⌝) := by
+  have h := ghostMapElem_combine (GF := GF) n g (DFrac.own q1) (DFrac.own q2) v1 v2
+  rw [dfrac_own_op] at h
+  iintro ⟨H1, H2⟩
+  iapply h $$ H1 H2
+
+/-- One share as two. -/
+theorem gme_split {V : Type} [Pos.Countable V] (g : GName) (n : GoString) (q1 q2 : Qp) (v : V) :
+    ghostMapElem (GF := GF) g n (DFrac.own (q1 + q2)) v ⊢
+      iprop(ghostMapElem g n (DFrac.own q1) v ∗ ghostMapElem g n (DFrac.own q2) v) :=
+  ((ghostMapElem_fractional n g v).fractional q1 q2).1
+
+/-- A share at an equal fraction. -/
+theorem gme_frac {V : Type} [Pos.Countable V] (g : GName) (n : GoString) (q q' : Qp) (v : V)
+    (h : q = q') : ghostMapElem (GF := GF) g n (DFrac.own q) v ⊢ ghostMapElem g n (DFrac.own q') v := by
+  rw [h]
+
+/-- Two shares of one element above the whole: false. -/
+theorem gme_excl {V : Type} [Pos.Countable V] (g : GName) (n : GoString) (q1 q2 : Qp) (v1 v2 : V)
+    (h : 1 < q1.val + q2.val) :
+    iprop(ghostMapElem (GF := GF) g n (DFrac.own q1) v1 ∗ ghostMapElem g n (DFrac.own q2) v2) ⊢ False := by
+  iintro ⟨H1, H2⟩
+  ihave %Hv := ghostMapElem_valid_2 n g _ _ _ _ $$ H1 H2
+  exfalso
+  have h1 := Hv.1
+  rw [dfrac_own_op] at h1
+  have h2 : (q1 + q2).val ≤ 1 := h1
+  simp only [Qp.val_add] at h2
+  exact absurd h (Std.not_lt.2 h2)
+
+/-- One entry of a family over `D`, the family rebuilt with another family equal elsewhere. -/
+theorem mapAcc (D : GMap GoString Unit) (Φ Ψ : GoString → IProp GF) (n : GoString)
+    (hn : D.lookup n ≠ none) (h : ∀ k, k ≠ n → Φ k ⊢ Ψ k) :
+    ([∗map] k ↦ _u ∈ D, Φ k) ⊢ iprop(Φ n ∗ (Ψ n -∗ [∗map] k ↦ _u ∈ D, Ψ k)) := by
+  obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp hn
+  iintro H
+  icases (BigSepM.bigSepM_lookup_acc_impl (Φ := fun k (_ : Unit) => Φ k) (m := D) (i := n) (x := u) hu)
+    $$ H with ⟨Hn, Hw⟩
+  iframe Hn
+  iintro Hn'
+  ispecialize Hw $$ %(fun k (_ : Unit) => Ψ k)
+  iapply Hw
+  · iintro !> %k %x %_ %hk H
+    iapply (h k hk) $$ H
+  · iexact Hn'
+
+/-- One entry, as the family over `D` with that entry alone. -/
+theorem mapIf_one (D : GMap GoString Unit) (S : GoString → Prop) (n : GoString) (hS : ∀ k, S k ↔ k = n)
+    (hn : D.lookup n ≠ none) (X : GoString → IProp GF) :
+    X n ⊣⊢ [∗map] k ↦ _u ∈ D, (if S k then X k else iprop(True)) := by
+  constructor
+  · iintro Hx
+    ihave H0 : [∗map] k ↦ _u ∈ D, (iprop(True) : IProp GF) $$ []
+    · exact BigSepM.bigSepM_intro (P := iprop(emp)) fun {_} {_} _ => by iintro -; itrivial
+    icases mapAcc D (fun _ => iprop(True)) (fun k => if S k then X k else iprop(True)) n hn (fun k hk => by
+      rw [if_neg (fun h => hk ((hS k).1 h))]) $$ H0 with ⟨-, Hw⟩
+    iapply Hw
+    rw [if_pos ((hS n).2 rfl)]
+    iexact Hx
+  · iintro H
+    icases mapAcc D (fun k => if S k then X k else iprop(True)) (fun _ => iprop(True)) n hn
+      (fun _ _ => by iintro -; itrivial) $$ H with ⟨Hn, -⟩
+    rw [if_pos ((hS n).2 rfl)]
+    iexact Hn
+
+/-- **A part of one tracked bucket is a quarter of its element.** -/
+theorem rbPartF_one (γ : BNames) (n : GoString) (r : GMap GoString BktData) (F : GoString → Bool)
+    (hd : γ.rbD.lookup n ≠ none) :
+    rbPartF (GF := GF) γ (fun m => m = n) r F ⊣⊢ rbElem γ n (1 : Qp).half.half (r.lookup n, F n) := by
+  unfold rbPartF rbEls
+  have h := mapIf_one (GF := GF) γ.rbD (fun m => m = n) n (fun _ => Iff.rfl) hd
+    (fun k => rbElem γ k (1 : Qp).half.half (r.lookup k, F k))
+  constructor
+  · iintro ⟨-, H⟩
+    iapply h.2 $$ H
+  · iintro H
+    isplitr
+    · ipureintro; intro m hm h0; subst hm; exact absurd h0 hd
+    · iapply h.1 $$ H
+
+/-- The elements of every bucket, as the raw family. -/
+theorem rbEls_top (γ : BNames) (q : Qp) (v : GoString → Option BktData × Bool) :
+    rbEls (GF := GF) γ (fun _ => True) q v ⊣⊢
+      [∗map] n ↦ _u ∈ γ.rbD, ghostMapElem γ.rbk n (DFrac.own q) (v n) := by
+  unfold rbEls
+  constructor
+  · refine BigSepM.bigSepM_mono fun {k} {_} _ => ?_
+    simp only [if_pos trivial]; exact .rfl
+  · exact rbEls_top_of γ q v
+
+theorem rbClaimOne_U (γ : BNames) (n : GoString) (cl : Bool) (h : cl = false) :
+    rbClaimOne (GF := GF) γ n cl ⊣⊢ rbClaimU γ n := by
+  subst h; unfold rbClaimOne; simp only [Bool.false_eq_true, ↓reduceIte]; exact ⟨.rfl, .rfl⟩
+
+theorem rbClaimOne_C (γ : BNames) (n : GoString) (cl : Bool) (h : cl = true) :
+    rbClaimOne (GF := GF) γ n cl ⊣⊢ rbClaimC γ n := by
+  subst h; unfold rbClaimOne; simp only [↓reduceIte]; exact ⟨.rfl, .rfl⟩
+
+/-- **Update each entry** of a family over `D`, threading a resource `A` (an authority). -/
+theorem map_upd_thread (A : IProp GF) (Φ Ψ : GoString → IProp GF) (D : GMap GoString Unit) :
+    (∀ n, D.lookup n ≠ none → iprop(A ∗ Φ n) ⊢ |==> iprop(A ∗ Ψ n)) →
+    iprop(A ∗ [∗map] n ↦ _u ∈ D, Φ n) ⊢ |==> iprop(A ∗ [∗map] n ↦ _u ∈ D, Ψ n) := by
+  induction D using Std.LawfulFiniteMap.induction_on with
+  | hemp =>
+    intro _
+    iintro ⟨Ha, -⟩
+    imodintro
+    iframe Ha
+    rw [BigSepM.bigSepM_empty.to_eq]; iempintro
+  | hins i x D hi IH =>
+    intro h
+    rw [(BigSepM.bigSepM_insert (Φ := fun n (_ : Unit) => Φ n) hi).to_eq,
+      (BigSepM.bigSepM_insert (Φ := fun n (_ : Unit) => Ψ n) hi).to_eq]
+    iintro ⟨Ha, Hi, Hs⟩
+    imod h i (by show (if i = i then some x else D.lookup i) ≠ none; simp) $$ [Ha Hi] with ⟨Ha, Hi⟩
+    · iframe
+    imod IH (fun n hn => h n (by
+        show (if i = n then some x else D.lookup n) ≠ none
+        by_cases e : i = n
+        · simp [e]
+        · rw [if_neg e]; exact hn)) $$ [Ha Hs] with ⟨Ha, Hs⟩
+    · iframe
+    imodintro
+    iframe
+
+/-- Three families over one map, as one. -/
+theorem map_zip3 (D : GMap GoString Unit) (A B C : GoString → IProp GF) :
+    iprop(([∗map] n ↦ _u ∈ D, A n) ∗ ([∗map] n ↦ _u ∈ D, B n) ∗ ([∗map] n ↦ _u ∈ D, C n)) ⊣⊢
+      [∗map] n ↦ _u ∈ D, iprop(A n ∗ B n ∗ C n) := by
+  rw [BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => A n),
+    BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => B n)]
+  exact ⟨.rfl, .rfl⟩
+
+/-- Four families over one map, as one. -/
+theorem map_zip4 (D : GMap GoString Unit) (A B C E : GoString → IProp GF) :
+    iprop(([∗map] n ↦ _u ∈ D, A n) ∗ ([∗map] n ↦ _u ∈ D, B n) ∗ ([∗map] n ↦ _u ∈ D, C n) ∗
+      ([∗map] n ↦ _u ∈ D, E n)) ⊣⊢
+      [∗map] n ↦ _u ∈ D, iprop(A n ∗ B n ∗ C n ∗ E n) := by
+  rw [BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => A n),
+    BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => B n),
+    BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => C n)]
+  exact ⟨.rfl, .rfl⟩
+
+/-- Five families over one map, as one. -/
+theorem map_zip5 (D : GMap GoString Unit) (A B C E G : GoString → IProp GF) :
+    iprop(([∗map] n ↦ _u ∈ D, A n) ∗ ([∗map] n ↦ _u ∈ D, B n) ∗ ([∗map] n ↦ _u ∈ D, C n) ∗
+      ([∗map] n ↦ _u ∈ D, E n) ∗ ([∗map] n ↦ _u ∈ D, G n)) ⊣⊢
+      [∗map] n ↦ _u ∈ D, iprop(A n ∗ B n ∗ C n ∗ E n ∗ G n) := by
+  rw [BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => A n),
+    BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => B n),
+    BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => C n),
+    BigSepM.bigSepM_sep_eq (Φ := fun n (_ : Unit) => E n)]
+  exact ⟨.rfl, .rfl⟩
+
+/-! ### The ghost steps of the proved operations -/
 
 /-- The whole part at flags `F` is its parts on `S` and on the rest, at the same flags. -/
 private theorem rbPartF_split_compl (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData)
@@ -523,6 +673,15 @@ private theorem rbPartF_split_compl (γ : BNames) (S : GoString → Prop) (r : G
     funext fun n => propext ⟨fun _ => Classical.em _, fun _ => trivial⟩
   rw [hset]
   exact (rbPartF_split γ S (fun n => ¬ S n) r F (fun _ h1 h2 => h2 h1)).1
+
+/-- The parts on `S` and on the rest, at the same flags, are the whole part. -/
+private theorem rbPartF_join_same (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData)
+    (F : GoString → Bool) :
+    iprop(rbPartF (GF := GF) γ S r F ∗ rbPartF γ (fun n => ¬ S n) r F) ⊢ rbPartF γ (fun _ => True) r F := by
+  have hset : (fun _ : GoString => True) = (fun n => S n ∨ ¬ S n) :=
+    funext fun n => propext ⟨fun _ => Classical.em _, fun _ => trivial⟩
+  rw [hset]
+  exact (rbPartF_split γ S (fun n => ¬ S n) r F (fun _ h1 h2 => h2 h1)).2
 
 /-- The parts on `S` and on the rest, at flags `F1` and `F2`, are the whole part at their union's flags. -/
 private theorem rbPartF_join_compl (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData)
@@ -542,82 +701,219 @@ private theorem rbPartF_join_compl (γ : BNames) (S : GoString → Prop) (r : GM
 /-- **A session's write to the tracked bucket `n`** (`UnsafePut`, `UnsafeDelete`,
 `UnsafeCreateBucket`, `UnsafeDeleteBucket`): the batch lock's side and the client's part of `n`
 updated to the new contents, the bucket's write pending (`I'` of the other buckets with no write
-pending, from `I`). -/
+pending, from `I`). (A6.2) The bucket is unclaimed (the client's quarter, the batch lock's and a claimed
+bucket's three quarters are too many), and its element is whole only with the claim invariant's half,
+which the write updates (the flag set: the invariant's link holds vacuously). -/
 theorem rbSide_put (γ : BNames) (P : BParams) (r r' : GMap GoString BktData) (n : GoString)
     (hBT : ∃ i, P.BT.lookup n = some i) (hRB : P.RB n = true)
     (hO : ∀ m, m ≠ n → r'.lookup m = r.lookup m) (I I' : GoString → Prop)
-    (hI : ∀ m, m ≠ n → I m → I' m) :
+    (hI : ∀ m, m ≠ n → I m → I' m) (E : CoPset) (hE : ↑rbClaimN ⊆ E) :
     iprop(rbSide (GF := GF) γ P r I ∗ rbPart γ (fun m => m = n) r) ⊢
-      |==> iprop(rbSide γ P r' I' ∗ rbPart γ (fun m => m = n) r') := by
+      |={E}=> iprop(rbSide γ P r' I' ∗ rbPart γ (fun m => m = n) r') := by
   unfold rbSide
-  iintro ⟨⟨Ha, ⟨%FL, Hl, %HI⟩, %Hd⟩, Hc⟩
+  iintro ⟨⟨⟨%M, Ha⟩, ⟨%FL, Hl, %HI⟩, %Hd, #Hinv⟩, Hc⟩
   have hd : γ.rbD.lookup n ≠ none := by
     obtain ⟨i, hi⟩ := hBT; exact Hd n i hi hRB
   icases rbPartF_split_compl γ (fun m => m = n) r FL $$ Hl with ⟨Hln, Hlo⟩
   iunfold rbPart at Hc
   icases Hc with ⟨%FC, Hc⟩
-  imod rbPartF_update γ (fun m => m = n) r r' FL FC (fun _ => true)
-    (by intro m hm h0; subst hm; exact absurd h0 hd) $$ [$Ha $Hln $Hc] with ⟨Ha, Hln, Hc⟩
-  imodintro
-  isplitl [Ha Hln Hlo]
-  · isplitl [Ha]; iexact Ha
-    isplitl [Hln Hlo]
-    · iexists (fun m => @ite _ (m = n) (Classical.propDecidable _) true (FL m))
+  ihave Hln := (rbPartF_one γ n r FL hd).1 $$ Hln
+  ihave Hc := (rbPartF_one γ n r FC hd).1 $$ Hc
+  icases gme_join γ.rbk n _ _ _ _ $$ [$Hln $Hc] with ⟨Hlc, -⟩
+  iinv Hinv with >Hb Hclose
+  iunfold rbClaimInv at Hb
+  icases Hb with ⟨%Mc, %Cl, Hac, %Hbt, Hm⟩
+  icases mapAcc γ.rbD (fun k => rbClaimOne (GF := GF) γ k (Cl k)) (fun k => rbClaimOne (GF := GF) γ k (Cl k))
+    n hd (fun _ _ => .rfl) $$ Hm with ⟨Hn, Hm⟩
+  cases hcl : Cl n
+  · ihave Hn := (rbClaimOne_U γ n _ rfl).1 $$ Hn
+    iunfold rbClaimU at Hn
+    icases Hn with ⟨%c, %f, %v, Hk, Hr, Hcn, -⟩
+    icases gme_join γ.rbk n _ _ _ _ $$ [$Hlc $Hk] with ⟨Hw, -⟩
+    ihave Hw := gme_frac γ.rbk n _ 1 _ q_whole $$ Hw
+    imod ghost_map_update ((r'.lookup n, true) : Option BktData × Bool) $$ Ha Hw with ⟨Ha, Hw⟩
+    ihave Hw := gme_frac γ.rbk n 1 _ _ q_whole.symm $$ Hw
+    icases gme_split γ.rbk n _ _ _ $$ Hw with ⟨Hlc, Hk⟩
+    icases gme_split γ.rbk n _ _ _ $$ Hlc with ⟨Hln, Hc⟩
+    imod Hclose $$ [Hac Hm Hk Hr Hcn] with -
+    · inext
+      iunfold rbClaimInv
+      iexists _, Cl
+      iframe Hac
+      isplitr
+      · ipureintro; exact Hbt
+      iapply Hm
+      iapply (rbClaimOne_U γ n _ rfl).2
+      iunfold rbClaimU
+      iexists r'.lookup n, true, v
+      iframe
+      ipureintro; intro h; cases h
+    imodintro
+    isplitl [Ha Hln Hlo]
+    · isplitl [Ha]
+      · iexists _; iexact Ha
       isplitl [Hln Hlo]
-      · iapply rbPartF_join_compl γ (fun m => m = n) r' (fun _ => true) FL
-        iframe Hln
-        iapply (rbPartF_congr γ (fun m => ¬ m = n) r r' FL FL (fun m hm => (hO m hm).symm)
-          (fun _ _ _ => rfl)).1 $$ Hlo
-      · ipureintro
-        intro m hm hf
-        by_cases e : m = n
-        · simp [e] at hf
-        · simp only [if_neg e] at hf; exact hI m e (HI m hm hf)
-    · ipureintro; exact Hd
-  · iapply rbPartF_part $$ Hc
+      · iexists (fun m => @ite _ (m = n) (Classical.propDecidable _) true (FL m))
+        isplitl [Hln Hlo]
+        · iapply rbPartF_join_compl γ (fun m => m = n) r' (fun _ => true) FL
+          isplitl [Hln]
+          · iapply (rbPartF_one γ n r' (fun _ => true) hd).2 $$ Hln
+          iapply (rbPartF_congr γ (fun m => ¬ m = n) r r' FL FL (fun m hm => (hO m hm).symm)
+            (fun _ _ _ => rfl)).1 $$ Hlo
+        · ipureintro
+          intro m hm hf
+          by_cases e : m = n
+          · simp [e] at hf
+          · simp only [if_neg e] at hf; exact hI m e (HI m hm hf)
+      isplitr
+      · ipureintro; exact Hd
+      · iexact Hinv
+    · iapply rbPartF_part γ _ r' (fun _ => true)
+      iapply (rbPartF_one γ n r' (fun _ => true) hd).2 $$ Hc
+  · ihave Hn := (rbClaimOne_C γ n _ rfl).1 $$ Hn
+    iunfold rbClaimC at Hn
+    icases Hn with ⟨%c, %w, Hk, -, -⟩
+    iexfalso
+    iapply gme_excl γ.rbk n _ _ _ _ q_over $$ [$Hlc $Hk]
+
+/-- (A6.2) One tracked bucket's flag cleared at `Unlock`'s end (`rbSide_idle`): with the batch lock's
+quarter and the client's, the claim invariant's half of the (unclaimed) element whole; the invariant's link
+re-established from the batch lock's readers' quarter (the readers see the writer's contents there). -/
+private theorem idle_one (γ : BNames) (P : BParams) (st : BSess) (S : GoString → Prop)
+    (r : GMap GoString BktData) (FL FC : GoString → Bool) (Cl : GoString → Bool) (n : GoString)
+    (hrv : S n → rvBkt P (st.C, st.R) n = (r.lookup n).getD ∅) :
+    iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth (GF := GF) γ.rbk 1 M) ∗
+      (rbElem γ n (1 : Qp).half.half (r.lookup n, FL n) ∗
+        (if S n then rbElem γ n (1 : Qp).half.half (r.lookup n, FC n) else iprop(True)) ∗
+        rbClaimOne γ n (Cl n) ∗ rbrOne γ P st n)) ⊢
+    |==> iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗
+      (rbElem γ n (1 : Qp).half.half (r.lookup n, if S n then false else FL n) ∗
+        (if S n then rbElem γ n (1 : Qp).half.half (r.lookup n, false) else iprop(True)) ∗
+        rbClaimOne γ n (Cl n) ∗ rbrOne γ P st n)) := by
+  by_cases hS : S n
+  · simp only [if_pos hS]
+    iintro ⟨⟨%M, Ha⟩, Hl, Hc, Hn, Hrb⟩
+    icases gme_join γ.rbk n _ _ _ _ $$ [$Hl $Hc] with ⟨Hlc, -⟩
+    cases hcl : Cl n
+    · ihave Hn := (rbClaimOne_U γ n _ rfl).1 $$ Hn
+      iunfold rbClaimU at Hn
+      icases Hn with ⟨%c, %f, %v, Hk, Hr, Hcn, -⟩
+      iunfold rbrOne at Hrb
+      icases gme_join γ.rbr n _ _ _ _ $$ [$Hr $Hrb] with ⟨Hr, %Hv⟩
+      subst Hv
+      icases gme_split γ.rbr n _ _ _ $$ Hr with ⟨Hr, Hrb⟩
+      icases gme_join γ.rbk n _ _ _ _ $$ [$Hlc $Hk] with ⟨Hw, -⟩
+      ihave Hw := gme_frac γ.rbk n _ 1 _ q_whole $$ Hw
+      imod ghost_map_update ((r.lookup n, false) : Option BktData × Bool) $$ Ha Hw with ⟨Ha, Hw⟩
+      ihave Hw := gme_frac γ.rbk n 1 _ _ q_whole.symm $$ Hw
+      icases gme_split γ.rbk n _ _ _ $$ Hw with ⟨Hlc, Hk⟩
+      icases gme_split γ.rbk n _ _ _ $$ Hlc with ⟨Hl, Hc⟩
+      imodintro
+      isplitl [Ha]
+      · iexists _; iexact Ha
+      iframe Hl Hc
+      isplitl [Hk Hr Hcn]
+      · iapply (rbClaimOne_U γ n _ rfl).2
+        iunfold rbClaimU
+        iexists r.lookup n, false, _
+        iframe
+        ipureintro; intro _; exact hrv hS
+      · iunfold rbrOne; iexact Hrb
+    · ihave Hn := (rbClaimOne_C γ n _ rfl).1 $$ Hn
+      iunfold rbClaimC at Hn
+      icases Hn with ⟨%c, %w, Hk, -, -⟩
+      iexfalso
+      iapply gme_excl γ.rbk n _ _ _ _ q_over $$ [$Hlc $Hk]
+  · simp only [if_neg hS]
+    iintro H
+    imodintro
+    iexact H
 
 /-- **`Unlock`'s ghost step**: the part handed in made idle (its flags cleared), the batch lock's
 side with it (`I'` of the buckets with no write pending: `S`'s and those with none before). Only
 `batchTxBuffered.Unlock`'s proof takes it, at the end of the session (Go writes the session back and
-commits a pending delete there); used anywhere else it would assert an idleness Go does not give. -/
-private theorem rbSide_idle (γ : BNames) (P : BParams) (r : GMap GoString BktData) (S : GoString → Prop)
-    (rS : GMap GoString BktData) (I I' : GoString → Prop) (hI : ∀ m, I m → I' m) (hS : ∀ m, S m → I' m) :
-    iprop(rbSide (GF := GF) γ P r I ∗ rbPart γ S rS) ⊢ |==> iprop(rbSide γ P r I' ∗ rbOwnIn γ S rS) := by
-  unfold rbSide rbOwnIn
-  iintro ⟨⟨Ha, ⟨%FL, Hl, %HI⟩, %Hd⟩, Hc⟩
-  icases rbPartF_split_compl γ S r FL $$ Hl with ⟨HlS, Hlo⟩
+commits a pending delete there); used anywhere else it would assert an idleness Go does not give.
+(A6.2) The claim invariant's link of each of `S`'s buckets re-established: the readers see the writer's
+contents there (`hrv`, from `trkOk` and the buckets untouched). -/
+private theorem rbSide_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (S : GoString → Prop)
+    (rS : GMap GoString BktData) (I I' : GoString → Prop) (hI : ∀ m, I m → I' m) (hS : ∀ m, S m → I' m)
+    (hrv : ∀ n, S n → rvBkt P (st.C, st.R) n = ((rbData P st.S).lookup n).getD ∅)
+    (E : CoPset) (hE : ↑rbClaimN ⊆ E) :
+    iprop(rbSide (GF := GF) γ P (rbData P st.S) I ∗ rbrSide γ P st c ∗ rbPart γ S rS) ⊢
+      |={E}=> iprop(rbSide γ P (rbData P st.S) I' ∗ rbrSide γ P st c ∗ rbOwnIn γ S rS) := by
+  unfold rbSide rbrSide rbOwnIn
+  iintro ⟨⟨Ha, ⟨%FL, Hl, %HI⟩, %Hd, #Hinv⟩, ⟨Har, %Hrd, %Hcw, Hb⟩, Hc⟩
   iunfold rbPart at Hc
   icases Hc with ⟨%FC, Hc⟩
-  icases rbPartF_agree γ S S r rS FL FC $$ [$HlS $Hc] with ⟨HlS, Hc, %Hag⟩
-  ihave HlS := (rbPartF_congr γ S r rS FL FL (fun n h => Hag.1 n h h) (fun _ _ _ => rfl)).1 $$ HlS
-  imod rbPartF_update γ S rS rS FL FC (fun _ => false) (fun _ _ _ h => h) $$ [$Ha $HlS $Hc]
-    with ⟨Ha, HlS, Hc⟩
+  icases rbPartF_agree γ (fun _ => True) S (rbData P st.S) rS FL FC $$ [$Hl $Hc] with ⟨Hl, Hc, %Hag⟩
+  ihave Hc := (rbPartF_congr γ S rS (rbData P st.S) FC FC (fun n h => (Hag.1 n trivial h).symm)
+    (fun _ _ _ => rfl)).1 $$ Hc
+  iunfold rbPartF at Hl
+  iunfold rbPartF at Hc
+  icases Hl with ⟨%Hpl, Hl⟩
+  icases Hc with ⟨%Hpc, Hc⟩
+  ihave Hl := (rbEls_top γ _ _).1 $$ Hl
+  iunfold rbEls at Hc
+  iinv Hinv with >Hbody Hclose
+  iunfold rbClaimInv at Hbody
+  icases Hbody with ⟨%Mc, %Cl, Hac, %Hbt, Hm⟩
+  ihave Hz := (map_zip4 γ.rbD
+    (fun n => rbElem (GF := GF) γ n (1 : Qp).half.half ((rbData P st.S).lookup n, FL n))
+    (fun n => if S n then rbElem (GF := GF) γ n (1 : Qp).half.half ((rbData P st.S).lookup n, FC n)
+      else iprop(True))
+    (fun n => rbClaimOne (GF := GF) γ n (Cl n)) (fun n => rbrOne (GF := GF) γ P st n)).1 $$ [$Hl $Hc $Hm $Hb]
+  imod map_upd_thread _ _ _ γ.rbD (fun n _ => idle_one γ P st S (rbData P st.S) FL FC Cl n (hrv n))
+    $$ [$Ha $Hz] with ⟨Ha, Hz⟩
+  icases (map_zip4 γ.rbD
+    (fun n => rbElem (GF := GF) γ n (1 : Qp).half.half ((rbData P st.S).lookup n, if S n then false else FL n))
+    (fun n => if S n then rbElem (GF := GF) γ n (1 : Qp).half.half ((rbData P st.S).lookup n, false)
+      else iprop(True))
+    (fun n => rbClaimOne (GF := GF) γ n (Cl n)) (fun n => rbrOne (GF := GF) γ P st n)).2 $$ Hz
+    with ⟨Hl, Hc, Hm, Hb⟩
+  imod Hclose $$ [Hac Hm] with -
+  · inext
+    iunfold rbClaimInv
+    iexists Mc, Cl
+    iframe Hac Hm
+    ipureintro; exact Hbt
   imodintro
-  isplitl [Ha HlS Hlo]
-  · isplitl [Ha]; iexact Ha
-    isplitl [HlS Hlo]
+  isplitl [Ha Hl]
+  · iframe Ha
+    isplitl [Hl]
     · iexists (fun m => if S m then false else FL m)
-      isplitl [HlS Hlo]
-      · iapply rbPartF_join_compl γ S r (fun _ => false) FL
-        iframe Hlo
-        iapply (rbPartF_congr γ S rS r _ _ (fun n h => (Hag.1 n h h).symm) (fun _ _ _ => rfl)).1 $$ HlS
+      isplitl [Hl]
+      · iunfold rbPartF
+        isplitr
+        · ipureintro; exact Hpl
+        iapply (rbEls_top γ _ (fun n => ((rbData P st.S).lookup n, if S n then false else FL n))).2 $$ Hl
       · ipureintro
         intro m hm hf
         by_cases e : S m
         · exact hS m e
         · simp only [if_neg e] at hf; exact hI m (HI m hm hf)
+    isplitr
     · ipureintro; exact Hd
-  · iexact Hc
+    · iexact Hinv
+  isplitl [Har Hb]
+  · iframe Har Hb
+    ipureintro; exact ⟨Hrd, Hcw⟩
+  · iapply (rbPartF_congr γ S (rbData P st.S) rS _ _ (fun n h => Hag.1 n trivial h) (fun _ _ _ => rfl)).1
+    iunfold rbPartF
+    isplitr
+    · ipureintro; exact Hpc
+    · iunfold rbEls; iexact Hc
 
 /-- (A1.7) **The batch lock's side, with a weaker fact of the buckets with no write pending.** -/
 theorem rbSide_mono (γ : BNames) (P : BParams) (r : GMap GoString BktData) (I I' : GoString → Prop)
     (h : ∀ n, I n → I' n) : rbSide (GF := GF) γ P r I ⊢ rbSide γ P r I' := by
   unfold rbSide
-  iintro ⟨Ha, ⟨%F, Hl, %HI⟩, %Hd⟩
+  iintro ⟨Ha, ⟨%F, Hl, %HI⟩, %Hd, #Hinv⟩
   iframe Ha
   isplitl [Hl]
   · iexists F; iframe Hl; ipureintro; exact fun n hn hf => h n (HI n hn hf)
+  isplitr
   · ipureintro; exact Hd
+  · iexact Hinv
 
 /-- (A1.7) The batch lock's halves, with a weaker fact of the buckets with no write pending. -/
 theorem trkHalf_mono (γ : BNames) (P : BParams) (S : Data) (I I' : GoString → Prop)
@@ -643,13 +939,15 @@ theorem rbSide_agree (γ : BNames) (P : BParams) (r : GMap GoString BktData) (S 
     iprop(rbSide (GF := GF) γ P r I ∗ rbPart γ S r') ⊢
       iprop(rbSide γ P r I ∗ rbPart γ S r' ∗ ⌜∀ n, S n → r.lookup n = r'.lookup n⌝) := by
   unfold rbSide rbPart
-  iintro ⟨⟨Ha, ⟨%F, Hl, %HI⟩, %Hd⟩, ⟨%F', Hc⟩⟩
+  iintro ⟨⟨Ha, ⟨%F, Hl, %HI⟩, %Hd, #Hinv⟩, ⟨%F', Hc⟩⟩
   icases rbPartF_agree γ (fun _ => True) S r r' F F' $$ [$Hl $Hc] with ⟨Hl, Hc, %Hag⟩
   isplitl [Ha Hl]
   · iframe Ha
     isplitl [Hl]
     · iexists F; iframe Hl; ipureintro; exact HI
+    isplitr
     · ipureintro; exact Hd
+    · iexact Hinv
   isplitl [Hc]
   · iexists F'; iexact Hc
   ipureintro
@@ -663,13 +961,15 @@ theorem rbSide_agree_inI (γ : BNames) (P : BParams) (r : GMap GoString BktData)
       iprop(rbSide γ P r I ∗ rbOwnIn γ S r' ∗ ⌜∀ n, S n → r.lookup n = r'.lookup n⌝ ∗
         ⌜∀ n, S n → γ.rbD.lookup n ≠ none → I n⌝) := by
   unfold rbSide rbOwnIn
-  iintro ⟨⟨Ha, ⟨%F, Hl, %HI⟩, %Hd⟩, Hc⟩
+  iintro ⟨⟨Ha, ⟨%F, Hl, %HI⟩, %Hd, #Hinv⟩, Hc⟩
   icases rbPartF_agree γ (fun _ => True) S r r' F _ $$ [$Hl $Hc] with ⟨Hl, Hc, %Hag⟩
   isplitl [Ha Hl]
   · iframe Ha
     isplitl [Hl]
     · iexists F; iframe Hl; ipureintro; exact HI
+    isplitr
     · ipureintro; exact Hd
+    · iexact Hinv
   iframe Hc
   isplitr
   · ipureintro; exact fun n h => Hag.1 n trivial h
@@ -760,59 +1060,111 @@ private theorem gEls_alloc_from {V : Type} [Pos.Countable V] (D : GMap GoString 
     isplitl [Ha]; iexact Ha
     isplitl [Hi]; iexact Hi; iexact Hs
 
-/-- **Allocation of the readers' contents and the claims** over the names `D`: every bucket's readers'
-element at `rv`'s contents, in two halves, and its claim element whole at `none` (unclaimed). -/
+/-- **Allocation of the readers' contents** over the names `D` (A6.2): every bucket's readers' element at
+`rv`'s contents, in a half (`readTx.mu`'s) and two quarters (the batch lock's, the claim invariant's). -/
 theorem rbr_alloc (P : BParams) (D : GMap GoString Unit) (rv : RView) :
-    ⊢ |==> ∃ gr gc : GName,
+    ⊢ |==> ∃ gr : GName,
       (∃ M : GMap GoString BktData, ghostMapAuth (GF := GF) gr 1 M) ∗
-      (∃ M : GMap GoString (Option (Option BktData × Bool)), ghostMapAuth (GF := GF) gc 1 M) ∗
       ([∗map] n ↦ _u ∈ D, ghostMapElem (GF := GF) gr n (DFrac.own (1 : Qp).half) (rvBkt P rv n)) ∗
-      ([∗map] n ↦ _u ∈ D, ghostMapElem (GF := GF) gr n (DFrac.own (1 : Qp).half) (rvBkt P rv n) ∗
-        ghostMapElem gc n (DFrac.own 1) (none : Option (Option BktData × Bool))) := by
+      ([∗map] n ↦ _u ∈ D, ghostMapElem (GF := GF) gr n (DFrac.own (1 : Qp).half.half) (rvBkt P rv n)) ∗
+      ([∗map] n ↦ _u ∈ D, ghostMapElem (GF := GF) gr n (DFrac.own (1 : Qp).half.half) (rvBkt P rv n)) := by
   imod ghost_map_alloc_empty (GF := GF) (K := GoString) (V := BktData) with ⟨%gr, Har⟩
   imod gEls_alloc_from D (rvBkt P rv) gr ∅ (fun _ _ => rfl) $$ Har with ⟨%Mr, Har, Hr⟩
+  imodintro
+  iexists gr
+  isplitl [Har]
+  · iexists Mr; iexact Har
+  ihave Hr := BigSepM.bigSepM_mono (Φ := fun n (_ : Unit) =>
+      ghostMapElem (GF := GF) gr n (DFrac.own 1) (rvBkt P rv n))
+    (Ψ := fun n (_ : Unit) => iprop(ghostMapElem (GF := GF) gr n (DFrac.own (1 : Qp).half) (rvBkt P rv n) ∗
+      ghostMapElem gr n (DFrac.own (1 : Qp).half.half) (rvBkt P rv n) ∗
+      ghostMapElem gr n (DFrac.own (1 : Qp).half.half) (rvBkt P rv n)))
+    (fun {k} {_} _ => by
+      iintro H
+      icases (ghostMapElem_halves gr k (rvBkt P rv k)).1 $$ H with ⟨H1, H2⟩
+      ihave H2 := gme_frac gr k _ _ _ q4_add.symm $$ H2
+      icases gme_split gr k _ _ _ $$ H2 with ⟨H2, H3⟩
+      iframe) $$ Hr
+  iapply (map_zip3 D _ _ _).2 $$ Hr
+
+/-- **Allocation of the claim elements** over the names `D` (A6.2): every bucket unclaimed, its element at
+`none` in two halves (the claim invariant's, the claim token's). -/
+theorem rbc_alloc (D : GMap GoString Unit) :
+    ⊢ |==> ∃ gc : GName,
+      (∃ M : GMap GoString (Option (Option BktData × Bool)), ghostMapAuth (GF := GF) gc 1 M) ∗
+      ([∗map] n ↦ _u ∈ D, ghostMapElem (GF := GF) gc n (DFrac.own (1 : Qp).half)
+        (none : Option (Option BktData × Bool))) ∗
+      ([∗map] n ↦ _u ∈ D, ghostMapElem (GF := GF) gc n (DFrac.own (1 : Qp).half)
+        (none : Option (Option BktData × Bool))) := by
   imod ghost_map_alloc_empty (GF := GF) (K := GoString) (V := Option (Option BktData × Bool))
     with ⟨%gc, Hac⟩
   imod gEls_alloc_from D (fun _ => (none : Option (Option BktData × Bool))) gc ∅ (fun _ _ => rfl)
     $$ Hac with ⟨%Mc, Hac, Hc⟩
   imodintro
-  iexists gr, gc
-  isplitl [Har]
-  · iexists Mr; iexact Har
+  iexists gc
   isplitl [Hac]
   · iexists Mc; iexact Hac
-  ihave Hr := BigSepM.bigSepM_mono (Φ := fun n (_ : Unit) =>
-      ghostMapElem (GF := GF) gr n (DFrac.own 1) (rvBkt P rv n))
-    (Ψ := fun n (_ : Unit) => iprop(ghostMapElem (GF := GF) gr n (DFrac.own (1 : Qp).half) (rvBkt P rv n) ∗
-      ghostMapElem gr n (DFrac.own (1 : Qp).half) (rvBkt P rv n)))
-    (fun {k} {_} _ => (ghostMapElem_halves gr k (rvBkt P rv k)).1) $$ Hr
-  icases (BiEntails.of_eq BigSepM.bigSepM_sep_eq).1 $$ Hr with ⟨Hr1, Hr2⟩
-  iframe Hr1
-  iapply (BiEntails.of_eq BigSepM.bigSepM_sep_eq).2
-  iframe
+  iapply (BiEntails.of_eq BigSepM.bigSepM_sep_eq).1
+  iapply BigSepM.bigSepM_mono (fun {k} {_} _ => (ghostMapElem_halves gc k _).1) $$ Hc
 
-/-- **The batch lock's side at the start**: every bucket unclaimed, the readers' halves at the state's
+/-- **The batch lock's side at the start** (A6.2): its quarters of the readers' elements at the state's
 readers' contents. -/
 theorem rbrSide_init (γ : BNames) (P : BParams) (st : BSess)
     (hD : ∀ n, γ.rbD.lookup n ≠ none → P.RB n = true) (hcw : ∀ n, st.cw n = false) :
     iprop((∃ M : GMap GoString BktData, ghostMapAuth (GF := GF) γ.rbr 1 M) ∗
-      (∃ M : GMap GoString (Option (Option BktData × Bool)), ghostMapAuth (GF := GF) γ.rbc 1 M) ∗
-      ([∗map] n ↦ _u ∈ γ.rbD, ghostMapElem (GF := GF) γ.rbr n (DFrac.own (1 : Qp).half)
-          (rvBkt P (st.C, st.R) n) ∗
-        ghostMapElem γ.rbc n (DFrac.own 1) (none : Option (Option BktData × Bool)))) ⊢
+      ([∗map] n ↦ _u ∈ γ.rbD, ghostMapElem (GF := GF) γ.rbr n (DFrac.own (1 : Qp).half.half)
+          (rvBkt P (st.C, st.R) n))) ⊢
       rbrSide γ P st := by
   unfold rbrSide
-  iintro ⟨Har, Hac, Hs⟩
-  iframe Har Hac
+  iintro ⟨Har, Hs⟩
+  iframe Har
   isplitr
   · ipureintro; exact hD
   isplitr
   · ipureintro; exact fun _ _ => hcw
-  iapply BigSepM.bigSepM_mono (fun {k} {_} _ => ?_) $$ Hs
   unfold rbrOne
-  iintro ⟨Hr, Hc⟩
-  ileft
+  iexact Hs
+
+/-- **The claim invariant at the start** (A6.2): every tracked bucket unclaimed, with half of its `γ.rbk`
+element at `v`, a quarter of its readers' element at `w`, half of its claim element at `none`, the readers
+seeing the writer's contents where no write is pending. -/
+theorem rbClaimInv_init (γ : BNames) (P : BParams) (v : GoString → Option BktData × Bool)
+    (w : GoString → BktData)
+    (hbt : ∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none)
+    (hL : ∀ n, γ.rbD.lookup n ≠ none → (v n).2 = false → w n = (v n).1.getD ∅) :
+    iprop((∃ M : GMap GoString (Option (Option BktData × Bool)), ghostMapAuth (GF := GF) γ.rbc 1 M) ∗
+      ([∗map] n ↦ _u ∈ γ.rbD, rbElem (GF := GF) γ n (1 : Qp).half (v n)) ∗
+      ([∗map] n ↦ _u ∈ γ.rbD, ghostMapElem (GF := GF) γ.rbr n (DFrac.own (1 : Qp).half.half) (w n)) ∗
+      ([∗map] n ↦ _u ∈ γ.rbD, ghostMapElem (GF := GF) γ.rbc n (DFrac.own (1 : Qp).half)
+        (none : Option (Option BktData × Bool)))) ⊢
+      rbClaimInv γ P := by
+  unfold rbClaimInv
+  iintro ⟨⟨%M, Hac⟩, Hk, Hr, Hc⟩
+  iexists M, (fun _ => false)
+  iframe Hac
+  isplitr
+  · ipureintro; exact hbt
+  ihave Hz := (map_zip3 γ.rbD _ _ _).1 $$ [$Hk $Hr $Hc]
+  iapply BigSepM.bigSepM_mono (fun {k} {x} hk => ?_) $$ Hz
+  have hk' : γ.rbD.lookup k ≠ none := by
+    have h1 : γ.rbD.lookup k = some x := hk
+    rw [h1]; simp
+  iintro ⟨Hk, Hr, Hc⟩
+  iapply (rbClaimOne_U γ k _ rfl).2
+  iunfold rbClaimU
+  iexists (v k).1, (v k).2, w k
   iframe
+  ipureintro; exact hL k hk'
+
+/-- **The claim tokens from the claim invariant's other halves** (A6.2). -/
+theorem rbClaimToks_init (γ : BNames) (P : BParams) :
+    iprop(inv rbClaimN (rbClaimInv (GF := GF) γ P) ∗
+      ([∗map] n ↦ _u ∈ γ.rbD, ghostMapElem (GF := GF) γ.rbc n (DFrac.own (1 : Qp).half)
+        (none : Option (Option BktData × Bool)))) ⊢ rbClaimToks γ P (fun _ => True) := by
+  unfold rbClaimToks
+  iintro ⟨#Hi, Hc⟩
+  iframe Hi
+  iapply BigSepM.bigSepM_mono (fun {k} {_} _ => by simp only [if_pos trivial]; exact .rfl) $$ Hc
 
 /-- `readTx.mu`'s share of the readers' contents splits among the readers. -/
 theorem rbrHalves_frac (γ : BNames) (P : BParams) (rv : RView) (q1 q2 : Qp) :
@@ -844,108 +1196,39 @@ private theorem rbEls_elem (γ : BNames) (S : GoString → Prop) (q : Qp)
     rbElem γ n q (v n) by simp only [if_pos hS]; exact .rfl) $$ H
   iexact H
 
-/-- **A claimed bucket has no unclaimed part**: the batch lock's two halves of its `γ.rbk` element
-(`rbSide`'s and the claimed `rbrOne`'s) and a part's half are three halves. -/
-private theorem rbr_claimed_excl (γ : BNames) (P : BParams) (r : GMap GoString BktData) (m : GoString)
-    (S S' : Data) (hd : γ.rbD.lookup m ≠ none) {I : GoString → Prop} :
-    rbSide (GF := GF) γ P r I ∗ rbPart γ (fun k => k = m) (rbData P S) ∗
-      rbPart γ (fun k => k = m) (rbData P S') ⊢ False := by
-  unfold rbSide rbPart rbPartF
-  iintro ⟨⟨-, ⟨%F1, ⟨-, H1⟩, -⟩, -⟩, ⟨%F2, -, H2⟩, ⟨%F3, -, H3⟩⟩
-  ihave H1 := rbEls_elem γ (fun _ => True) _ _ m trivial hd $$ H1
-  ihave H2 := rbEls_elem γ (fun k => k = m) _ _ m rfl hd $$ H2
-  ihave H3 := rbEls_elem γ (fun k => k = m) _ _ m rfl hd $$ H3
-  icases ghostMapElem_combine m γ.rbk _ _ _ _ $$ H1 H2 with ⟨H1, -⟩
-  ihave %Hv := ghostMapElem_valid_2 m γ.rbk _ _ _ _ $$ H1 H3
-  exfalso
-  have h := DFrac.valid_own_op Hv.1
-  rw [Qp.half_add_half] at h
-  exact absurd h (by decide)
-
-/-- One bucket's side, congruence (its readers' state, kind, claimed write and contents kept). -/
+/-- One bucket's side, congruence (its readers' state kept). -/
 private theorem rbrOne_congr (γ : BNames) (P : BParams) (st st' : BSess) (n : GoString)
-    (hC : st'.C = st.C) (hR : st'.R = st.R) (h1 : st'.tk n = st.tk n)
-    (h2 : (rbData P st'.S).lookup n = (rbData P st.S).lookup n) (h3 : st'.cw n = st.cw n) :
+    (hC : st'.C = st.C) (hR : st'.R = st.R) :
     rbrOne (GF := GF) γ P st n ⊢ rbrOne γ P st' n := by
   unfold rbrOne
-  rw [hC, hR, h1, h2, h3]
-  iintro (H | ⟨%v, Hc, Hp, %Hf⟩)
-  · ileft; iexact H
-  · iright
-    iexists v
-    iframe Hc
-    isplitl [Hp]
-    · iapply (rbPart_congr γ (fun k => k = n) (rbData P st.S) (rbData P st'.S)
-        (fun k hk => by subst hk; exact h2.symm)).1 $$ Hp
-    · ipureintro; exact Hf
+  rw [hC, hR]
 
-/-- **A step that changes no tracked bucket's kind or contents keeps the batch lock's side** (the
-readers' state kept). -/
+/-- **A step that keeps the readers' state keeps the batch lock's side** (A6.2: whatever the buckets'
+kinds and contents). -/
 theorem rbrSide_congr (γ : BNames) (P : BParams) (st st' : BSess) (hC : st'.C = st.C)
-    (hR : st'.R = st.R)
-    (hO : ∀ n, P.RB n = true →
-      st'.tk n = st.tk n ∧ (rbData P st'.S).lookup n = (rbData P st.S).lookup n)
-    (hcw : st'.cw = st.cw) (c : Bool) (hok : cwOk c st → cwOk c st') :
+    (hR : st'.R = st.R) (c : Bool) (hok : cwOk c st → cwOk c st') :
     rbrSide (GF := GF) γ P st c ⊢ rbrSide γ P st' c := by
   unfold rbrSide
-  iintro ⟨Har, Hac, %Hd, %Hcw, Hb⟩
-  iframe Har Hac
+  iintro ⟨Har, %Hd, %Hcw, Hb⟩
+  iframe Har
   isplitr
   · ipureintro; exact Hd
   isplitr
   · ipureintro; exact hok Hcw
-  iapply BigSepM.bigSepM_mono (fun {k} {x} hk => ?_) $$ Hb
-  have hk' : γ.rbD.lookup k ≠ none := by
-    have h1 : γ.rbD.lookup k = some x := hk
-    rw [h1]; simp
-  obtain ⟨h1, h2⟩ := hO k (Hd k hk')
-  exact rbrOne_congr γ P st st' k hC hR h1 h2 (by rw [hcw])
+  iapply BigSepM.bigSepM_mono (fun {k} {_} _ => rbrOne_congr γ P st st' k hC hR) $$ Hb
 
 /-- **A session's write to bucket `m` through its (unclaimed) part keeps the batch lock's side** (the
-readers' state and every other bucket's kind and contents kept): `m` is unclaimed. -/
+readers' state kept). -/
 theorem rbrSide_write (γ : BNames) (P : BParams) (r : GMap GoString BktData) (m : GoString) (S : Data)
     (st st' : BSess) (hC : st'.C = st.C) (hR : st'.R = st.R)
-    (hO : ∀ n, n ≠ m → st'.tk n = st.tk n ∧ (rbData P st'.S).lookup n = (rbData P st.S).lookup n)
+    (_hO : ∀ n, n ≠ m → st'.tk n = st.tk n ∧ (rbData P st'.S).lookup n = (rbData P st.S).lookup n)
     (hcw : st'.cw = st.cw) (hhw : st'.cnt.hw = st.cnt.hw) (c : Bool := false) {I : GoString → Prop} :
     iprop(rbSide (GF := GF) γ P r I ∗ rbPart γ (fun k => k = m) (rbData P S) ∗ rbrSide γ P st c) ⊢
       iprop(rbSide γ P r I ∗ rbPart γ (fun k => k = m) (rbData P S) ∗ rbrSide γ P st' c) := by
-  have hother : ∀ n, n ≠ m → rbrOne (GF := GF) γ P st n ⊢ rbrOne γ P st' n := by
-    intro n hn
-    obtain ⟨h1, h2⟩ := hO n hn
-    exact rbrOne_congr γ P st st' n hC hR h1 h2 (by rw [hcw])
   have hok : cwOk c st → cwOk c st' := fun h h1 h2 => by rw [hcw]; exact h h1 (hhw ▸ h2)
-  unfold rbrSide
-  iintro ⟨Hs, Hp, Har, Hac, %Hd, %Hcw, Hb⟩
-  cases hmd : γ.rbD.lookup m with
-  | none =>
-    iframe Hs Hp Har Hac
-    isplitr
-    · ipureintro; exact Hd
-    isplitr
-    · ipureintro; exact hok Hcw
-    iapply BigSepM.bigSepM_mono (fun {k} {x} hk => hother k (fun e => by
-      subst e; have h1 : γ.rbD.lookup k = some x := hk; rw [hmd] at h1; cases h1)) $$ Hb
-  | some u =>
-    icases (BigSepM.bigSepM_lookup_acc_impl (Φ := fun k (_ : Unit) => rbrOne (GF := GF) γ P st k)
-      (m := γ.rbD) (i := m) (x := u) hmd) $$ Hb with ⟨Hm, Hb⟩
-    iunfold rbrOne at Hm
-    icases Hm with (⟨Hc, Hr⟩ | ⟨%v, Hc, Hk, %Hf⟩)
-    · iframe Hs Hp Har Hac
-      isplitr
-      · ipureintro; exact Hd
-      isplitr
-      · ipureintro; exact hok Hcw
-      ispecialize Hb $$ %(fun k (_ : Unit) => rbrOne (GF := GF) γ P st' k)
-      iapply Hb
-      · iintro !> %k %x %_ %hk H
-        iapply (hother k hk) $$ H
-      · unfold rbrOne
-        ileft
-        rw [hC, hR]
-        iframe
-    · iexfalso
-      iapply rbr_claimed_excl γ P r m S st.S (by rw [hmd]; simp)
-      iframe
+  iintro ⟨Hs, Hp, Hr⟩
+  iframe Hs Hp
+  iapply rbrSide_congr γ P st st' hC hR c hok $$ Hr
 
 /-- **Update each element** of a family over `D`, threading the authority. -/
 private theorem els_upd_each {V : Type} [Pos.Countable V] (g : GName) (Φ Ψ : GoString → IProp GF)
@@ -982,76 +1265,6 @@ private theorem els_upd_each {V : Type} [Pos.Countable V] (g : GName) (Φ Ψ : G
     iexists M2
     iframe
 
-/-- One bucket's step of the readers' state. -/
-private theorem rbrOne_step (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RView)
-    (n : GoString) (hrv : rv = (st.C, st.R)) (hrv' : rv' = (st'.C, st'.R))
-    (hS : rbData P st'.S = rbData P st.S)
-    (hk : st.tk n = .idle → st'.tk n = .idle ∧ rvBkt P rv n = rvBkt P rv' n)
-    (hcw : st.cw n = false) (hcw' : st'.cw n = false)
-    (M : GMap GoString BktData) :
-    iprop(ghostMapAuth (GF := GF) γ.rbr 1 M ∗
-      (ghostMapElem γ.rbr n (DFrac.own (1 : Qp).half) (rvBkt P rv n) ∗ rbrOne γ P st n)) ⊢
-    |==> ∃ M' : GMap GoString BktData, ghostMapAuth γ.rbr 1 M' ∗
-      (ghostMapElem γ.rbr n (DFrac.own (1 : Qp).half) (rvBkt P rv' n) ∗ rbrOne γ P st' n) := by
-  subst hrv hrv'
-  unfold rbrOne
-  iintro ⟨Ha, Hh, ⟨Hc, Hr⟩ | ⟨%v, Hc, Hk, %Hf⟩⟩
-  · ihave Hr := (ghostMapElem_halves γ.rbr n (rvBkt P (st.C, st.R) n)).2 $$ [Hh Hr]
-    · iframe
-    imod ghost_map_update (rvBkt P (st'.C, st'.R) n) $$ Ha Hr with ⟨Ha, Hr⟩
-    icases (ghostMapElem_halves γ.rbr n _).1 $$ Hr with ⟨Hr1, Hr2⟩
-    imodintro
-    iexists _
-    iframe Ha Hr1
-    ileft
-    iframe
-  · obtain ⟨h1, h2⟩ := hk (Hf.1.resolve_right (by rw [hcw]; simp))
-    imodintro
-    iexists M
-    iframe Ha
-    rw [← h2, hS]
-    iframe Hh
-    iright
-    iexists v
-    iframe
-    ipureintro
-    exact ⟨Or.inl h1, Hf.2⟩
-
-/-- **A step of the readers' state keeps the batch lock's side** (the write-back, a commit): from
-`rv`, the batch lock's state `st`'s, to `rv'`, `st'`'s, with the tracked contents kept and every
-untouched tracked bucket untouched after and read alike; an unclaimed bucket's element moves to the
-new readers' contents (both halves at hand), a claimed one (untouched) keeps it. -/
-theorem rbrSide_step (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RView)
-    (hrv : rv = (st.C, st.R)) (hrv' : rv' = (st'.C, st'.R))
-    (hS : rbData P st'.S = rbData P st.S)
-    (hk : ∀ n, P.RB n = true → st.tk n = .idle → st'.tk n = .idle ∧ rvBkt P rv n = rvBkt P rv' n)
-    (hcw : ∀ n, st.cw n = false) (hcw' : ∀ n, st'.cw n = false) :
-    iprop(rbrSide (GF := GF) γ P st ∗ rbrHalves γ P 1 rv) ⊢
-      |==> iprop(rbrSide γ P st' ∗ rbrHalves γ P 1 rv') := by
-  unfold rbrSide rbrHalves
-  iintro ⟨⟨⟨%M, Ha⟩, Hac, %Hd, -, Hs⟩, Hh⟩
-  ihave Hj := (BiEntails.of_eq (BigSepM.bigSepM_sep_eq
-    (Φ := fun n (_ : Unit) => ghostMapElem (GF := GF) γ.rbr n (DFrac.own (1 : Qp).half) (rvBkt P rv n))
-    (Ψ := fun n (_ : Unit) => rbrOne (GF := GF) γ P st n) (m := γ.rbD))).2 $$ [Hh Hs]
-  · iframe
-  imod els_upd_each γ.rbr
-    (fun n => iprop(ghostMapElem (GF := GF) γ.rbr n (DFrac.own (1 : Qp).half) (rvBkt P rv n) ∗
-      rbrOne γ P st n))
-    (fun n => iprop(ghostMapElem (GF := GF) γ.rbr n (DFrac.own (1 : Qp).half) (rvBkt P rv' n) ∗
-      rbrOne γ P st' n)) γ.rbD
-    (fun n M hn => rbrOne_step γ P st st' rv rv' n hrv hrv' hS (hk n (Hd n hn)) (hcw n)
-      (hcw' n) M) M
-    $$ [Ha Hj] with ⟨%M', Ha, Hj⟩
-  · iframe
-  icases (BiEntails.of_eq BigSepM.bigSepM_sep_eq).1 $$ Hj with ⟨Hh, Hs⟩
-  imodintro
-  iframe Hh Hac Hs
-  isplitl [Ha]
-  · iexists M'; iexact Ha
-  isplitr
-  · ipureintro; exact Hd
-  · ipureintro; exact fun _ _ => hcw'
-
 /-- **The batch lock's halves of what it tracks, congruence** (the writer's contents, the readers'
 state and every tracked bucket's kind kept). -/
 theorem trkSide_congr (γ : BNames) (P : BParams) (st st' : BSess) (hS : st'.S = st.S)
@@ -1059,36 +1272,18 @@ theorem trkSide_congr (γ : BNames) (P : BParams) (st st' : BSess) (hS : st'.S =
     (hcw : st'.cw = st.cw) (c : Bool) (hok : cwOk c st → cwOk c st') :
     trkSide (GF := GF) γ P st c ⊢ trkSide γ P st' c := by
   unfold trkSide
-  rw [hS, tkI_congr hT]
+  rw [hS, tkI_congr (fun n hn => ⟨hT n hn, by rw [hcw]⟩)]
   iintro ⟨Hh, Hr⟩
   iframe Hh
-  iapply rbrSide_congr γ P st st' hC hR (fun n hn => ⟨hT n hn, by rw [hS]⟩) hcw c hok $$ Hr
-
-/-- **The update of the readers' contents a step of the readers' state needs** (`rbrSide_step`), as
-the wand `rtRes_wb_close`/`rtRes_cm_close` take: from the batch lock's halves at `st`, `readTx.mu`'s
-halves at `rv` move to `rv'` and the batch lock's halves to `st'`. -/
-theorem trkSide_upd (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RView)
-    (hrv : rv = (st.C, st.R)) (hrv' : rv' = (st'.C, st'.R)) (hS : st'.S = st.S)
-    (hk : ∀ n, P.RB n = true → st.tk n = .idle → st'.tk n = .idle ∧ rvBkt P rv n = rvBkt P rv' n)
-    (hcw : ∀ n, st.cw n = false) (hcw' : ∀ n, st'.cw n = false) :
-    trkSide (GF := GF) γ P st ⊢
-      (rbrHalves γ P 1 rv -∗ |={⊤}=> rbrHalves γ P 1 rv' ∗ trkSide γ P st') := by
-  unfold trkSide
-  iintro ⟨Hh, Hr⟩ Hhv
-  imod rbrSide_step γ P st st' rv rv' hrv hrv' (by rw [hS]) hk hcw hcw' $$ [Hr Hhv] with ⟨Hr, Hhv⟩
-  · iframe
-  ihave Hh := trkHalf_mono γ P st.S (tkI P st) (tkI P st') (fun n h hRB => (hk n hRB (h hRB)).1) $$ Hh
-  imodintro
-  rw [hS]
-  iframe
+  iapply rbrSide_congr γ P st st' hC hR c hok $$ Hr
 
 /-- The batch lock's side's mode fact (A1.4): no claimed writes in the client-facing mode outside the
 hook's window. -/
 theorem trkSide_cw (γ : BNames) (P : BParams) (st : BSess) (c : Bool) :
     trkSide (GF := GF) γ P st c ⊢ iprop(trkSide γ P st c ∗ ⌜cwOk c st⌝) := by
   unfold trkSide rbrSide
-  iintro ⟨Hh, Har, Hac, %Hd, %Hcw, Hb⟩
-  iframe Hh Har Hac Hb
+  iintro ⟨Hh, Har, %Hd, %Hcw, Hb⟩
+  iframe Hh Har Hb
   ipureintro
   exact ⟨⟨Hd, Hcw⟩, Hcw⟩
 
@@ -1129,46 +1324,89 @@ private theorem rbcEls_acc (γ : BNames) (S : GoString → Prop) (v : GoString �
         (if S n then ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half) (v' n) else iprop(True)) by
       simp only [if_pos hS]; exact .rfl) $$ Hn'
 
-/-- **A claimed session's write to the claimed bucket `m`** (A1.4): the claim element (the part's half and
-the batch lock's) and the bucket's `γ.rbk` element (both the batch lock's) move to the new contents, the
-write pending, and the bucket is recorded as a claimed write (`st'.cw m`); the readers' contents are
-untouched (they move at `Unlock`, through the client's halves, A1.5). -/
+/-- **A claimed session's write to the claimed bucket `m`** (A1.4; A6.2): the claim element (the part's half
+and the claim invariant's) and the bucket's `γ.rbk` element (the invariant's three quarters and the batch
+lock's quarter) move to the new contents, the claim element's flag set and the `γ.rbk` flag left clear (the
+batch lock records the claimed write in `st.cw`: `hIm`); the readers' contents are untouched (they move at
+`Unlock`, through the client's quarters, A1.5). -/
 theorem rbrSide_writeR (γ : BNames) (P : BParams) (m : GoString) (st st' : BSess)
-    (hC : st'.C = st.C) (hR : st'.R = st.R) (hBT : P.RB m = true → ∃ i, P.BT.lookup m = some i)
+    (hC : st'.C = st.C) (hR : st'.R = st.R)
     (hO : ∀ n, n ≠ m → st'.tk n = st.tk n ∧ st'.S.lookup n = st.S.lookup n ∧ st'.cw n = st.cw n)
-    (hcl : st.tk m = .idle ∨ st.cw m = true → st'.tk m = .idle ∨ st'.cw m = true)
-    (I I' : GoString → Prop) (hI : ∀ n, n ≠ m → I n → I' n) :
+    (I I' : GoString → Prop) (hI : ∀ n, n ≠ m → I n → I' n) (hIm : I m → I' m)
+    (E : CoPset) (hE : ↑rbClaimN ⊆ E) :
     iprop(rbSide (GF := GF) γ P (rbData P st.S) I ∗ rbPutR γ P m st.S ∗ rbrSide γ P st true) ⊢
-      |==> iprop(rbSide γ P (rbData P st'.S) I' ∗ rbPutR γ P m st'.S ∗ rbrSide γ P st' true) := by
+      |={E}=> iprop(rbSide γ P (rbData P st'.S) I' ∗ rbPutR γ P m st'.S ∗ rbrSide γ P st' true) := by
   have hO' : ∀ n, n ≠ m → (rbData P st'.S).lookup n = (rbData P st.S).lookup n := by
     intro n hn; rw [rbData_lookup, rbData_lookup, (hO n hn).2.1]
-  have hother : ∀ n, n ≠ m → rbrOne (GF := GF) γ P st n ⊢ rbrOne γ P st' n := fun n hn =>
-    rbrOne_congr γ P st st' n hC hR (hO n hn).1 (hO' n hn) (hO n hn).2.2
-  unfold rbPutR rbPartR rbPartRF rbrSide
-  iintro ⟨Hs, ⟨%hRB, %F, %Hpd, Hp⟩, Har, ⟨%Mc, Hac⟩, %Hd, -, Hb⟩
+  unfold rbPutR rbPartR rbPartRF rbSide
+  iintro ⟨⟨⟨%M, Ha⟩, ⟨%FL, Hl, %HI⟩, %Hd, #Hinv⟩, ⟨%hRB, %F, %Hpd, Hp⟩, Hr⟩
   have hmd : γ.rbD.lookup m ≠ none := Hpd m rfl
-  obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp hmd
   icases rbcEls_acc γ (fun k => k = m) (fun k => some ((rbData P st.S).lookup k, F k)) m rfl hmd $$ Hp
     with ⟨Hpm, Hp⟩
-  icases (BigSepM.bigSepM_lookup_acc_impl (Φ := fun k (_ : Unit) => rbrOne (GF := GF) γ P st k)
-    (m := γ.rbD) (i := m) (x := u) hu) $$ Hb with ⟨Hm, Hb⟩
-  iunfold rbrOne at Hm
-  icases Hm with (⟨Hc, -⟩ | ⟨%v, Hc, Hk, %Hf⟩)
-  · iexfalso
-    ihave %Hv := ghostMapElem_valid_2 m γ.rbc _ _ _ _ $$ Hc Hpm
-    exfalso
-    have h := DFrac.valid_own_op Hv.1
-    exact absurd h (by decide)
-  · icombine Hc Hpm gives %Hv
-    obtain rfl : v = ((rbData P st.S).lookup m, F m) := Option.some.inj Hv.2
-    ihave Hc := (ghostMapElem_halves γ.rbc m _).2 $$ [Hc Hpm]
-    · iframe
-    imod ghost_map_update (some ((rbData P st'.S).lookup m, true)) $$ Hac Hc with ⟨Hac, Hc⟩
-    icases (ghostMapElem_halves γ.rbc m _).1 $$ Hc with ⟨Hc1, Hc2⟩
-    imod rbSide_put γ P (rbData P st.S) (rbData P st'.S) m (hBT hRB) hRB hO' I I' hI $$ [$Hs $Hk]
-      with ⟨Hs, Hk⟩
+  icases rbPartF_split_compl γ (fun k => k = m) (rbData P st.S) FL $$ Hl with ⟨Hln, Hlo⟩
+  ihave Hln := (rbPartF_one γ m _ FL hmd).1 $$ Hln
+  iinv Hinv with >Hb Hclose
+  iunfold rbClaimInv at Hb
+  icases Hb with ⟨%Mc, %Cl, Hac, %Hbt, Hm⟩
+  icases mapAcc γ.rbD (fun k => rbClaimOne (GF := GF) γ k (Cl k)) (fun k => rbClaimOne (GF := GF) γ k (Cl k))
+    m hmd (fun _ _ => .rfl) $$ Hm with ⟨Hn, Hm⟩
+  cases hcl : Cl m
+  · ihave Hn := (rbClaimOne_U γ m _ rfl).1 $$ Hn
+    iunfold rbClaimU at Hn
+    icases Hn with ⟨%c, %f, %v, -, -, Hcn, -⟩
+    ihave %Hv := ghostMapElem_agree m γ.rbc _ _ _ _ $$ Hcn Hpm
+    cases Hv
+  · ihave Hn := (rbClaimOne_C γ m _ rfl).1 $$ Hn
+    iunfold rbClaimC at Hn
+    icases Hn with ⟨%c, %w, Hk, Hcn, -⟩
+    icases gme_join γ.rbc m _ _ _ _ $$ [$Hcn $Hpm] with ⟨Hc, -⟩
+    ihave Hc := gme_frac γ.rbc m _ 1 _ q2_add $$ Hc
+    imod ghost_map_update (some ((rbData P st'.S).lookup m, true) : Option (Option BktData × Bool))
+      $$ Hac Hc with ⟨Hac, Hc⟩
+    ihave Hc := gme_frac γ.rbc m 1 _ _ q2_add.symm $$ Hc
+    icases gme_split γ.rbc m _ _ _ $$ Hc with ⟨Hc1, Hc2⟩
+    icases gme_join γ.rbk m _ _ _ _ $$ [$Hk $Hln] with ⟨Hw, %Hke⟩
+    have hFL : FL m = false := (congrArg Prod.snd Hke).symm
+    ihave Hw := gme_frac γ.rbk m _ 1 _ q34_add $$ Hw
+    imod ghost_map_update (((rbData P st'.S).lookup m, false) : Option BktData × Bool) $$ Ha Hw
+      with ⟨Ha, Hw⟩
+    ihave Hw := gme_frac γ.rbk m 1 _ _ q34_add.symm $$ Hw
+    icases gme_split γ.rbk m _ _ _ $$ Hw with ⟨Hk, Hln⟩
+    imod Hclose $$ [Hac Hm Hk Hc1] with -
+    · inext
+      iunfold rbClaimInv
+      iexists _, Cl
+      iframe Hac
+      isplitr
+      · ipureintro; exact Hbt
+      iapply Hm
+      iapply (rbClaimOne_C γ m _ rfl).2
+      iunfold rbClaimC
+      iexists (rbData P st'.S).lookup m, ((rbData P st'.S).lookup m, true)
+      iframe Hk Hc1
+      ipureintro; rfl
     imodintro
-    iframe Hs
+    isplitl [Ha Hln Hlo]
+    · isplitl [Ha]
+      · iexists _; iexact Ha
+      isplitl [Hln Hlo]
+      · iexists FL
+        isplitl [Hln Hlo]
+        · iapply rbPartF_join_same γ (fun k => k = m) (rbData P st'.S) FL
+          isplitl [Hln]
+          · iapply (rbPartF_one γ m (rbData P st'.S) FL hmd).2
+            rw [hFL]
+            iexact Hln
+          iapply (rbPartF_congr γ (fun k => ¬ k = m) (rbData P st.S) (rbData P st'.S) FL FL
+            (fun n hn => (hO' n hn).symm) (fun _ _ _ => rfl)).1 $$ Hlo
+        · ipureintro
+          intro n hn hf
+          by_cases e : n = m
+          · subst e; exact hIm (HI n hn hf)
+          · exact hI n e (HI n hn hf)
+      isplitr
+      · ipureintro; exact Hd
+      · iexact Hinv
     isplitl [Hp Hc2]
     · isplitr
       · ipureintro; exact hRB
@@ -1177,23 +1415,7 @@ theorem rbrSide_writeR (γ : BNames) (P : BParams) (m : GoString) (st st' : BSes
       · ipureintro; exact Hpd
       iapply Hp $$ %(fun k => some ((rbData P st'.S).lookup k, true)) %(fun k hk hk' => absurd hk hk')
       iexact Hc2
-    isplitl [Har]
-    · iexact Har
-    isplitl [Hac]
-    · iexists _; iexact Hac
-    isplitr
-    · ipureintro; exact Hd
-    isplitr
-    · ipureintro; intro h; cases h
-    iapply Hb
-    · iintro !> %k %x %_ %hk H
-      iapply (hother k hk) $$ H
-    · unfold rbrOne
-      iright
-      iexists ((rbData P st'.S).lookup m, true)
-      iframe Hc1 Hk
-      ipureintro
-      exact ⟨hcl Hf.1, rfl⟩
+    · iapply rbrSide_congr γ P st st' hC hR true (fun _ h => by cases h) $$ Hr
 
 /-- **A session's write to bucket `m` through a part of either kind** (`k`: claimed; A1.4), in the mode
 `c` (a claimed part only in a claimed session): the batch lock's sides and the part move to the new
@@ -1205,13 +1427,13 @@ theorem rbWrite (γ : BNames) (P : BParams) (st st' : BSess) (m : GoString) (k c
     (hO : ∀ n, n ≠ m → st'.tk n = st.tk n ∧ st'.S.lookup n = st.S.lookup n ∧ st'.cw n = st.cw n)
     (hcw : k = false → st'.cw m = st.cw m)
     (hcwT : k = true → st.tk m = .idle ∨ st.cw m = true → st'.tk m = .idle ∨ st'.cw m = true)
-    (hkc : k = true → c = true) :
+    (hkc : k = true → c = true) (E : CoPset) (hE : ↑rbClaimN ⊆ E) :
     iprop(rbSide (GF := GF) γ P (rbData P st.S) (tkI P st) ∗ rbPut γ P m st.S k ∗ rbrSide γ P st c) ⊢
-      |==> iprop(rbSide γ P (rbData P st'.S) (tkI P st') ∗ rbPut γ P m st'.S k ∗ rbrSide γ P st' c) := by
+      |={E}=> iprop(rbSide γ P (rbData P st'.S) (tkI P st') ∗ rbPut γ P m st'.S k ∗ rbrSide γ P st' c) := by
   have hO' : ∀ n, n ≠ m → (rbData P st'.S).lookup n = (rbData P st.S).lookup n := by
     intro n hn; rw [rbData_lookup, rbData_lookup, (hO n hn).2.1]
   have hI : ∀ n, n ≠ m → tkI P st n → tkI P st' n := fun n hn h hRB => by
-    rw [(hO n hn).1]; exact h hRB
+    rw [(hO n hn).1, (hO n hn).2.2]; exact h hRB
   cases k
   · have hcwe : st'.cw = st.cw := funext fun n => by
       by_cases h : n = m
@@ -1230,21 +1452,20 @@ theorem rbWrite (γ : BNames) (P : BParams) (st st' : BSess) (m : GoString) (k c
       isplitr
       · imodintro; itrivial
       imodintro
-      iapply rbrSide_congr γ P st st' hC hR (fun n hn => ⟨(hO n (by
-        intro e; subst e; rw [hb] at hn; cases hn)).1, by rw [hB hb]⟩) hcwe c
+      iapply rbrSide_congr γ P st st' hC hR c
         (fun h h1 h2 => by rw [hcwe]; exact h h1 (by rw [← hhw]; exact h2)) $$ Hr
     · simp only [Bool.false_eq_true, ↓reduceIte]
       iintro ⟨Hs, Hp, Hr⟩
       icases rbrSide_write γ P (rbData P st.S) m st.S st st' hC hR
         (fun n hn => ⟨(hO n hn).1, hO' n hn⟩) hcwe hhw c $$ [$Hs $Hp $Hr] with ⟨Hs, Hp, Hr⟩
-      imod rbSide_put γ P (rbData P st.S) (rbData P st'.S) m (hBT hb) hb hO' _ _ hI $$ [$Hs $Hp]
+      imod rbSide_put γ P (rbData P st.S) (rbData P st'.S) m (hBT hb) hb hO' _ _ hI E hE $$ [$Hs $Hp]
         with ⟨Hs, Hp⟩
       imodintro
       iframe
   · obtain rfl := hkc rfl
     unfold rbPut
     simp only [↓reduceIte]
-    iapply rbrSide_writeR γ P m st st' hC hR hBT hO (hcwT rfl) _ _ hI
+    iapply rbrSide_writeR γ P m st st' hC hR hO _ _ hI (fun h hRB => hcwT rfl (h hRB)) E hE
 
 end tracked
 
