@@ -5,6 +5,7 @@ Lean-first (no Rocq counterpart); see `Model.lean`, `Defs.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -22,13 +23,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `ki.restoreTombstone(lg, main, sub)` (a non-nil logger): on a key index with no generation,
+/-- `ki.restoreTombstone(lg, main, sub)` (a zap logger, `zapLoggerOk lg`): on a key index with no generation,
 `ki.restore(lg, Revision{}, Revision{main, sub}, 1)` and then a new empty generation
 (`kiRestoreTombstone`); on one with generations `restore`'s panic, the key index unchanged. -/
 abbrev mvcc.keyIndex.restoreTombstone.spec : Prop :=
   ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lg : Loc) (main sub : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ⌜lg ≠ null⌝ ∗ mvcc.ownKi p gs ki (DFrac.own 1) }}
+      zapLoggerOk lg ∗ mvcc.ownKi p gs ki (DFrac.own 1) }}
     (App (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"restoreTombstone"))
       (Val #lg)) (Val #main)) (Val #sub))
   {{ (r : val), RET r;
@@ -36,7 +37,7 @@ abbrev mvcc.keyIndex.restoreTombstone.spec : Prop :=
         ⌜r = #()⌝ ∗ ∃ gs' : GoSlice,
           mvcc.ownKi p gs' (mvcc.kiRestoreTombstone ⟨main, sub⟩) (DFrac.own 1)
       else
-        ⌜r = PanicV #(go!"'restore' got an unexpected non-empty generations")⌝ ∗
+        ⌜r = PanicV #(interface.mkOk go.string #(go!"'restore' got an unexpected non-empty generations"))⌝ ∗
           mvcc.ownKi p gs ki (DFrac.own 1) }}
 
 end spec

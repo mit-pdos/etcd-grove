@@ -11,7 +11,7 @@ theorem mvcc.keyIndex.get.wp_proof (hIE : mvcc.keyIndex.isEmpty.spec) (hZS : zap
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            ⌜lg ≠ null⌝ ∗
+            zapLoggerOk lg ∗
               mvcc.kiKey p k ∗
                 mvcc.ownKi p gs ki dq ∗
                   typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.mvcc.ErrRevisionNotFound) (GoInterface.ok e)
@@ -21,7 +21,9 @@ theorem mvcc.keyIndex.get.wp_proof (hIE : mvcc.keyIndex.isEmpty.spec) (hZS : zap
                 (if mvcc.kiIsEmpty ki = true then
                     ⌜r =
                           (intoVal
-                              go!"'get' got an unexpected empty keyIndex").PanicV⌝ ∗
+                              (interface.mkOk go.string
+                                (intoVal
+                                  go!"'get' got an unexpected empty keyIndex"))).PanicV⌝ ∗
                       mvcc.ownKi p gs ki dq
                   else ⌜∃ cs, r = mvcc.kiGetVal ki atRev (GoInterface.ok e) cs⌝ ∗ mvcc.ownKi p gs ki dq) -∗
                   Φ r) -∗
