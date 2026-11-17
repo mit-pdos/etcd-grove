@@ -973,7 +973,7 @@ theorem wp_osOpenCreate_cs (d b : GoString) (N : Namespace) (R : Roots) (γ : GN
     (hn : lookupH R V (child d b) = none) (hok : ∀ i, Ok (csNew i)) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ csInv (L := L) N (child d b) R γ Good Ok -∗
       ghostVar γ (1 : Qp).half (none : CState) -∗
-      osTree (L := L) (DFrac.own (1 : Qp).half.half) R V -∗ osCall (L := L) k s0 (1 : Qp).half.half -∗
+      osTree (L := L) (DFrac.own (1 : Qp).half.half) R V -∗ osCall (L := L) k s0 (child d b) (1 : Qp).half.half -∗
       (∀ fd : w64, ∀ e : w64,
         ((∃ i, ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗
             csOwn (L := L) (child d b) R γ (csNew i) (V.push ⟨.create j b i, V.2.length⟩) ∗

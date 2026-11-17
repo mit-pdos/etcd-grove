@@ -54,7 +54,7 @@ theorem region_create (R : Roots) (d b : GoString) (j : Ino) (q : Qp) (h : Names
     (c : Qp) (hb : NameOk b) (hn : h.cur !! b = none) (hs : h.next ≤ s0) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d (DFrac.own q) j -∗
-      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 c -∗
+      osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) c -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
         @ s; E {{ createPost (L := L) j b h s0 c }} := by
   iintro #Hinv #Hsi Hp Hn Hk
@@ -90,7 +90,7 @@ theorem twoRegion_par (R : Roots) (d b1 b2 : GoString) (j : Ino) (q1 q2 : Qp) (h
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d (DFrac.own (q1 + q2)) j -∗
       osNames (L := L) j (.only [b1]) (DFrac.own 1) h1 -∗
       osNames (L := L) j (.only [b2]) (DFrac.own 1) h2 -∗
-      osCallS (L := L) k1 s1 c1 -∗ osCallS (L := L) k2 s2 c2 -∗
+      osCallS (L := L) k1 s1 (child d b1) c1 -∗ osCallS (L := L) k2 s2 (child d b2) c2 -∗
       (WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k1) (PairV (#(child d b1)) (#flCreat)))))
         @ s; E {{ createPost (L := L) j b1 h1 s1 c1 }}) ∗
       (WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k2) (PairV (#(child d b2)) (#flCreat)))))

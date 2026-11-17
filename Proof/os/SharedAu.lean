@@ -280,18 +280,18 @@ theorem wp_osLstatDirS_mem (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     (h : NamesH) (k s0 : Nat) (q : Qp) (hb : NameOk b) (hbN : N.Mem b) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → (∃ J, h.cur !! b = some (.dir J)) ∧ e ≠ 0⌝ -∗
         osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E
         {{ Φ }} := by
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       ∃ e', IsFsStep "LstatDir" (PairV (osTokV k) (#(child d b))) st e' (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, child d b, 0, 0, k, s0, rfl, Or.inr (treeName_child hp.1 hb), hcall,
       rfl, .inr rfl, rfl⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       IsFsStep "LstatDir" (PairV (osTokV k) (#(child d b))) st e' st' →
       st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ ∃ isDir e : w64, w = PairV (#isDir) (#e) ∧
@@ -306,7 +306,7 @@ theorem wp_osLstatDirS_mem (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
       exact ⟨⟨J, hJ⟩, he0⟩
     · rw [h0] at h1; exact absurd h1 (by decide)
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_callEndS "LstatDir" _ (by simp [val.isPanic]) R k s0 q
+  iapply wp_callEndS "LstatDir" _ (by simp [val.isPanic]) R k s0 (child d b) q
     iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h)
     (fun st => PathNames st d j N h)
     (fun w => ∃ isDir e : w64, w = PairV (#isDir) (#e) ∧

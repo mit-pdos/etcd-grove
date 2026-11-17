@@ -57,7 +57,7 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
   try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp HΦ
-  wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   rw [show W64 0x80000 = flRO from rfl]
@@ -132,7 +132,7 @@ theorem os.model.wp_stat_absentS (op d b : GoString) (R : Roots) (j : Ino) (N : 
   try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp Hn HΦ
-  wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osOpenAbsentS R d b j N dq dqn h t s0 qc (W64 0x80000)
@@ -179,7 +179,7 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
   try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp Hn Hm HΦ
-  wp_apply wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osOpenFileS R d b j i N dq dqn h t s0 qc (W64 0x80000)

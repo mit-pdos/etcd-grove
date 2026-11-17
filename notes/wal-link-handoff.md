@@ -1,6 +1,44 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L4 text applied; fs library NOT yet rebuilt)
+## START HERE (2026-11-17, L4 phase A: calls carry their paths; STOP at the per-root cost delta)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
+  (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands). Coordinator: etcd-grove-03.
+- **Done:** L0-L2, L4 trusted text (History). **The configuration-C run is DONE and meets the landing condition** (the user,
+  2026-11-17; `notes/wal-link-l4-fsext.md`). **L4 phase A** (this commit): the fs library and its direct clients over the
+  new `CallBegin`/`calls`/`Rename` with the **global** permission unchanged: ghost call maps hold `CallV := (Nat ×
+  GoString) × Qp` (start, path, fraction); `osCall`/`osCallS`/`osGuardS` carry the path; CallBegin specs take `p`;
+  generic steps take the call's path `pc`; `SameRootR` (TreeLemmas) + `sameRoot_of_R`, `sameRoot_child_child`,
+  `osPathS_sameRoot` (TreeShared); cross-directory rename specs take `hsr : SameRootR R (child d bs) (child d' bt)`
+  (fs legacy + shared, `os.Rename.specFileS(nc)`); the dir-rename clause from the global sole (`Or.inl`). Checked:
+  every `GooseLang/Ext/Fs` file, 34 `Proof/os`+`Spec/os` files, walfs `DSTree`/`Boot`/`DirSwap`/`SegLogOps`, `WAL__cut`,
+  WalTester `tryWrite` by `lean-check --fast`; the full build was queued at the commit (`/shared/tmp/wallink/full1.log`).
+- **STOP (cost delta, for etcd-grove-03):** the per-root permission breaks `TreeCohS.dox` (`DirOpExcl`, TreeCut.lean),
+  which `closed_cut` (TreeCutProof.lean, 661 lines; the crash theorem `machineCrash_initS`) needs **globally**; today
+  it is kept by the whole global permission (`wholeG_facts`: no other logging call in flight at a directory op). With
+  a root's whole permission only, a directory op in root A overlaps calls in root B, and `closed_cut`'s 4th conclusion
+  (the kept tree's directories are one prefix tree's) is false: A's `mkdir` at index 0 (begun 0), B's `mkdir` at 1
+  (begun 0), `S = {1}` is closed, the kept directories match no prefix. Needed: a ghost root tag per log entry
+  (maintained in `TreeCohS`), `DirOpExcl` per root, `closed_cut` restated per root (4th conclusion weakened to "each
+  kept directory is in some prefix tree": all `machineCrash_initS` uses) and reproved (per-root projection of the log +
+  a merge of disjoint replays, or the cut argument per root). Estimate +800-2000 lines of pure Lean, beyond the
+  Scope's 1500-3000 for all of L4's Lean. Not started.
+- **Next (after the decision):** the per-root split as planned (`callKey`, `osCallPerm r q`, `callResS` keyed by
+  `callKey R x.1.2`, the auth `γperm` (legacy `gAuth γperm ∅`, shared an existential auth beside `γc`'s), per-key
+  `sole_of`/`callResS_excl`/`callsRes_facts`, `fs_start` one whole per key) together with the per-root cut; then
+  `osCallPerm` clients (~145 files), one `WalGS` per area, L3.
+- **Optional (not a landing condition):** env switches in `meta_rename_scoped_test.go` (cold dcache by a remount, a
+  ~100k-entry B directory) and `examples/osfs/semantics/run-l4-configc.sh`.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 -q -a
+  --fast FILE`. **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build` (slots were
+  busy for >1 h on 2026-11-17: lean-check first). Scripts used for the mechanical edits: `/shared/tmp/wallink/scripts/`.
+- **Pitfalls:** a step's call path must be the step's exact path (`child d b`): pass `_` to `wp_osCallBegin*` and let
+  unification find it; `calls_start` now compares pairs (`have hse := calls_start …; simp only [Prod.mk.injEq] at hse`);
+  `Rename`'s inversion has one more conjunct (`SameRoot`); `Roots` is not in scope in TreeLemmas (use `List (GoString × Ino)`).
+
+## History
+
+### START HERE (2026-11-17, L4 text applied; fs library NOT yet rebuilt)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
   (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands). Coordinator: etcd-grove-03.
@@ -31,7 +69,6 @@
 - **Pitfalls:** as in the previous START HERE (gen-link/gen-init Perennial link; goose flags; tcb `--reuse`); semantics
   tests here: `SEMANTICS_C_DIR=/shared/tmp/wallink/l4-c` (no loop devices for `run-models-on-c.sh`).
 
-## History
 
 ### START HERE (2026-11-17, L3/L4 start; STOP at L4's trusted text)
 

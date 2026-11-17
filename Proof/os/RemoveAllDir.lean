@@ -100,7 +100,7 @@ theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
-  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_auto
@@ -129,13 +129,13 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
     (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm q ∗ osGuardS t sg g ∗ osLogLb sg }}
+        osCallPerm q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
       (App (Val os.model.rmdirLoop) (Val #(child d b)))
     {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm q ∗
-        osGuardS t sg g }} := by
+        osGuardS t sg (child d b) g }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
   iloeb as IH generalizing Hperm Hp Hst Hg
-  wp_apply +noauto wp_osCallBeginS R q sg CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply +noauto wp_osCallBeginS R _ q sg CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlsg as %t1 %s0 %hs Hk Hls
   iclear Hls
   wp_auto
@@ -175,7 +175,7 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
         cases hcc : hJ'.cur !! c with
         | none => rfl
         | some _ => exact absurd ⟨c, by simp [hcc]⟩ hne
-      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg q g hqg hs hb hJ hemp
+      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg (child d b) q g hqg hs hb hJ hemp
         CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hb HJ Hk Hg
         as %e Hperm Hg Hp HJ Hres
       unfold osNamesAfter
@@ -231,7 +231,7 @@ theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DF
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp
-  wp_apply +noauto wp_osCallBeginS R qc 0 CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_auto

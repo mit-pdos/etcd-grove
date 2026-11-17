@@ -39,7 +39,7 @@ variable {s : Stuckness} {E : CoPset}
 an errno, or it logged the rename (with any errno), the target then nothing or an empty directory. -/
 theorem renameDirStep_cases {st : OsState} {d bs bt : GoString} {j J : Ino}
     {k s0 : Nat} {e' : Expr} {st' : OsState} (hw : FsTreeWf st)
-    (hcall : st.proc.calls !! k = some s0)
+    (hcall : st.proc.calls !! k = some (s0, child d bs))
     (hd : st.lookup d = some (.dir j)) (hbs : NameOk bs) (hbt : NameOk bt)
     (hsrc : st.tree.entry j bs = some (.dir J)) (hne : child d bs ≠ child d bt)
     (Hst : IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d bt)))) st e' st') :
@@ -48,9 +48,9 @@ theorem renameDirStep_cases {st : OsState} {d bs bt : GoString} {j J : Ino}
         (st.tree.entry j bt = none ∨
           ∃ J2, st.tree.entry j bt = some (.dir J2) ∧ ∀ c, st.tree.entry J2 c = none))) := by
   simp only [IsFsStep] at Hst
-  obtain ⟨s1, t1, k', start, hv, -, -, hk', -, hres⟩ := Hst
+  obtain ⟨s1, t1, k', start, hv, -, -, -, hk', -, hres⟩ := Hst
   obtain ⟨rfl, rfl, rfl⟩ := tokPair_inj hv
-  rw [calls_start hcall hk'] at hres
+  have hse := calls_start hcall hk'; simp only [Prod.mk.injEq] at hse; rw [hse.1] at hres
   rcases hres with ⟨hok, o, ho, hr⟩ | ⟨hst, -, -, -⟩ | ⟨e, he, rfl, rfl⟩
   · have hss : st.lookup (child d bs) = some (.dir J) := by
       rw [lookup_child hw.roots hd hbs]; exact hsrc
@@ -87,7 +87,7 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
     (hne : bs ≠ bt) (hsrc : h.cur !! bs = some (.dir J))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 1 -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d bs) 1 -∗
       (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j N (DFrac.own 1) h) ∨
          (⌜RenTgtOk (h.cur !! bt)⌝ ∗ ∃ x, osLogged (L := L) x ⟨.rename j bs j bt (.dir J) (h.cur !! bt), s0⟩ ∗
@@ -110,7 +110,7 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
   let W : val → Bool → Prop := fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0) ∧
     (lg = true → RenTgtOk old)
   -- the step's outcome, from the state the claims and the spine fix
-  have hcases : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some s0 →
+  have hcases : ∀ st e' st', FsTreeWf st → st.proc.calls !! k = some (s0, child d bs) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Rename" (PairV (osTokV k) (PairV (#(child d bs)) (#(child d bt)))) st e' st' →
       ∃ e : w64, e' = Val (#e) ∧ ((st' = st.metaEnd k ∧ e ≠ 0) ∨
@@ -152,7 +152,7 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
     · exact .inl h0
     · exact .inr ⟨J2, hJ2⟩
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_logStepSW "Rename" _ (by simp [val.isPanic]) R k s0 1 (fun _ => o) cl (fun _ c => c.2.2.2)
+  iapply wp_logStepSW "Rename" _ (by simp [val.isPanic]) R k s0 (child d bs) 1 (fun _ => o) cl (fun _ c => c.2.2.2)
     (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j)) W (fun _ _ _ => emp)
     (fun c hc => by rw [List.mem_singleton] at hc; subst hc; exact hNe)
     (fun _ c hc => by
@@ -171,7 +171,7 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
       · simp at hb)
     (fun st Γn hR hcoh => pathS_of R d dq j st Γn hR hcoh)
     (fun st hw _ hcall hsole hp hat =>
-      ⟨_, _, renameStep_err hp hp hbs hbt hcall (fun _ => hsole rfl), filesSame_metaEnd st k⟩)
+      ⟨_, _, renameStep_err hp hp hbs hbt (sameRoot_child_child hp) hcall (fun _ => hsole rfl), filesSame_metaEnd st k⟩)
     (fun st e' st' hw _ hcall _ hp hat Hst => by
       obtain ⟨e, rfl, hr⟩ := hcases st e' st' hw hcall hp hat Hst
       rcases hr with ⟨rfl, he⟩ | ⟨rfl, ht⟩

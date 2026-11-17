@@ -34,7 +34,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     · rw [Nat.max_eq_right hle]; iexact Hlb0
     · rw [Nat.max_eq_left hle]; iexact Hlb1
   iclear Hlb0 Hlb1
-  wp_apply wp_osCallBeginS R 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) (DFrac.own q) h t s0 1 hbt hN'
@@ -58,7 +58,7 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
-  wp_apply +noauto wp_osCallBeginS R 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply +noauto wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   icases HSt with (⟨Hau, Hn⟩ | ⟨%xs, HQ, Hout⟩)
@@ -154,8 +154,9 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     ihave Hpp := (osPathS_frac R d qd.half qd.half j).1 $$ [Hp]
     · rw [Qp.half_add_half]; iexact Hp
     icases Hpp with ⟨Hp1, Hp2⟩
+    icases osPathS_sameRoot R d bs bt _ j $$ Hp1 with ⟨Hp1, %hsr⟩
     wp_apply +noauto wp_osRenameAbsentS R d bs d bt j j N (DFrac.own qd.half) (DFrac.own qd.half)
-      (DFrac.own q) _ t s0 1 hbs hbt hN habs CoPset.subseteq_top CoPset.subseteq_top
+      (DFrac.own q) _ t s0 1 hbs hbt hN habs hsr CoPset.subseteq_top CoPset.subseteq_top
       $$ Hos Hsi Hp1 Hp2 Hn Hk as %e %he Hperm Hp1 Hp2 Hn
     ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
     · iframe

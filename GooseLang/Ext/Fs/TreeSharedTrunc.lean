@@ -348,7 +348,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     (hN : N.Mem b) (hi : h.cur !! b = some (.file i)) (hlen : xs.length = m.size)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       osMeta (L := L) i (DFrac.own 1) m -∗ osBytes (L := L) i 0 (DFrac.own 1) xs -∗
       mcellsAny (GF := GF) m.maps 0 (pageEnd m.size) -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
@@ -366,7 +366,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   unfold treeCtx
   icases Ht with ⟨Htr, Hcm⟩
   icases Htr with (Htr | Htr)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Htr
+  · iexfalso; iapply legacy_callS_excl st k s0 (child d b) q $$ Hk Htr
   unfold treeShared
   icases Htr with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -386,7 +386,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   have hl0 : (st.metaEnd k).lookup (child d b) = some (.file i) := hl'
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by
+  have hcall : st.proc.calls !! k = some (s0, child d b) := by
     exact hc.calls k _ hk
   icases osMeta_whole_facts $$ Hw Hm with ⟨Hw, Hm, %hmf⟩
   obtain ⟨⟨f, hf, hfsz⟩, hnb⟩ := hmf
@@ -413,7 +413,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   simp only [htr'] at hres
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+    (Φ := fun (_t : Nat) (x : CallV) =>
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs

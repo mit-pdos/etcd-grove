@@ -32,7 +32,7 @@ theorem wp_osUnlinkSN (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq
     (k s0 : Nat) (q : Qp) (hb : NameOk b) (hbN : N.Mem b) (hi : h.cur !! b = some (.file i)) (hs : h.next ≤ s0)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 q -∗
+      osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNamesAfter (L := L) j N h ⟨.remove j b (.file i), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
@@ -41,13 +41,13 @@ theorem wp_osUnlinkSN (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq
   let cl : List ClaimW := [(j, N, h, restrictN N (GMap.delete b h.cur))]
   have hent : ∀ st, ClaimsAt st cl → st.tree.entry j b = some (.file i) := by
     intro st hat; rw [hat.ent _ (List.mem_singleton_self _) b hbN]; exact hi
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' st' ∧ FilesSame st st' :=
     fun st _ _ hcall _ hp _ => ⟨_, st.metaEnd k, ⟨child d b, k, s0, rfl, treeName_child hp hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩, filesSame_metaEnd st k⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' st' → ∃ w, e' = Val w ∧
@@ -58,7 +58,7 @@ theorem wp_osUnlinkSN (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq
     simp only [IsFsStep] at Hst
     obtain ⟨p', k', s', hv, -, hk', hres⟩ := Hst
     obtain ⟨rfl, rfl⟩ := tokPath_inj hv
-    rw [calls_start hcall hk'] at hres
+    have hse := calls_start hcall hk'; simp only [Prod.mk.injEq] at hse; rw [hse.1] at hres
     obtain ⟨htw, -, hlt⟩ := wf_tree hw
     have hlt' : ∀ x, x ∈ o.apply st.tree → x < ((st.metaEnd k).metaDo o s0).fs.nextIno := by
       intro x hx
@@ -101,7 +101,7 @@ theorem wp_osUnlinkSN (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq
       · rw [if_neg (fun h' => e h'.2), GMap.lookup_delete_ne _ e]
         exact hat.ent _ (List.mem_singleton_self _) b' hb'
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_logStepS "Unlink" _ (by simp [val.isPanic]) R k s0 q o cl
+  iapply wp_logStepS "Unlink" _ (by simp [val.isPanic]) R k s0 (child d b) q o cl
     (osPathS (L := L) R d dq j) (fun st => st.lookup d = some (.dir j))
     (fun w lg => ∃ e : w64, w = #e ∧ (lg = false → e ≠ 0))
     (by simp [cl]; rintro rfl; simp [NameSet.Mem] at hbN) (fun c hc => by
@@ -134,16 +134,16 @@ theorem wp_osUnlinkSN_none (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     (k s0 : Nat) (q : Qp) (hb : NameOk b) (hbN : N.Mem b) (hi : ∀ i, h.cur !! b ≠ some (.file i))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       ∃ e', IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       IsFsStep "Unlink" (PairV (osTokV k) (#(child d b))) st e' st' →
       st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ ∃ e : w64, e ≠ 0 ∧ w = #e := by
@@ -155,7 +155,7 @@ theorem wp_osUnlinkSN_none (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     · rw [pathNames_child hw hp hb hbN] at hl; exact absurd hl (hi i)
     · exact ⟨rfl, _, rfl, e, he0, rfl⟩
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_callEndS "Unlink" _ (by simp [val.isPanic]) R k s0 q
+  iapply wp_callEndS "Unlink" _ (by simp [val.isPanic]) R k s0 (child d b) q
     iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h)
     (fun st => PathNames st d j N h) (fun w => ∃ e : w64, e ≠ 0 ∧ w = #e)
     (fun st Γn hR hcoh => pathNames_of R d dq j _ dqn h st Γn hR hcoh) hprog hpost hE hE' Φ
@@ -171,16 +171,16 @@ theorem wp_osRmdirSN_none (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     (k s0 : Nat) (q : Qp) (hb : NameOk b) (hbN : N.Mem b) (hi : ∀ J, h.cur !! b ≠ some (.dir J))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
-      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 q -∗
+      osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
-  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       ∃ e', IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' (st.metaEnd k) :=
     fun st _ _ hcall hp => ⟨_, child d b, k, s0, rfl, treeName_child hp.1 hb, hcall,
       Or.inr ⟨1, by decide, rfl, rfl⟩⟩
-  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+  have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
       PathNames st d j N h →
       IsFsStep "Rmdir" (PairV (osTokV k) (#(child d b))) st e' st' →
       st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ ∃ e : w64, e ≠ 0 ∧ w = #e := by
@@ -192,7 +192,7 @@ theorem wp_osRmdirSN_none (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     · rw [pathNames_child hw hp hb hbN] at hl; exact absurd hl (hi J)
     · exact ⟨rfl, _, rfl, e, he0, rfl⟩
   iintro #Hinv #Hsi Hp Hn Hk HΦ
-  iapply wp_callEndS "Rmdir" _ (by simp [val.isPanic]) R k s0 q
+  iapply wp_callEndS "Rmdir" _ (by simp [val.isPanic]) R k s0 (child d b) q
     iprop(osPathS (L := L) R d dq j ∗ osNames (L := L) j N dqn h)
     (fun st => PathNames st d j N h) (fun w => ∃ e : w64, e ≠ 0 ∧ w = #e)
     (fun st Γn hR hcoh => pathNames_of R d dq j _ dqn h st Γn hR hcoh) hprog hpost hE hE' Φ

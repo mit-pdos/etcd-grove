@@ -658,13 +658,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   have hgi : g.ino = i2 := by rw [← hg]
   have hbX : (NameSet.except X).Mem (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) :=
     fun hb => by rw [hXw _ hb] at hbtw; cases hbtw
+  icases osPathS_sameRoot Rd dir (pipeTmp np)
+    (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) _ j $$ Hpd1 with ⟨Hpd1, %hsr⟩
   wp_apply (_wp_Rename dir (pipeTmp np) dir
       (walFileName (sq + 1) (max (uint.nat h.enti) (uint.nat h.snapi) + 1)) j j g.ino
       (.only [pipeTmp np]) (.except X) Rd (DFrac.own qd.half) (DFrac.own qd.half) ht hj
       (1 : Qp).half (1 : Qp).half qQuarter ((1 : Qp).half + qQuarter) (1 : Qp).half.half _
       (pipeTmp_nameOk np) (walFileName_nameOk _ _) (by simp [NameSet.Mem]) hbX (by simp)
       (by rw [hgi]; exact hcur2) (fun J hJ => by rw [hcurbt] at hJ; cases hJ)
-      (Qp.half_add_half 1) hq3)
+      (Qp.half_add_half 1) hq3 hsr)
     $$ [Hpd1 Hpd2 Hperm Hn2b Hcl2 Hau] as %rerr ⟨Hpd1, Hpd2, Hperm, %ro, %hro, HQ, Hro⟩
   · iframe; iframe #
   iclear Hlt1 Hmu0 Htab0 Ht1 Hmdsb «$res0»

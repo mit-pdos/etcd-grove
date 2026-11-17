@@ -1,8 +1,8 @@
 # WAL link L4: the scoped directory rename (trusted text proposal)
 
 **Date:** 2026-11-17. **Branch:** `wal-link`. **Status:** revision 2 APPROVED BY THE USER, 2026-11-17, via etcd-grove-03 (second attack: SURVIVES, its two wording
-MINORs folded); applied on `wal-link`. **Condition:** the WAL link does not land until the configuration-C run ("Open
-obligation" below) is done on a machine with loop devices (etcd-grove-03 arranges it). History: Revision 1 was attacked independently (etcd-grove-03, 2026-11-17): BLOCKER, a cross-root rename walks its
+MINORs folded); applied on `wal-link`. **Condition met:** the configuration-C run ("Open obligation" below) was done by the
+user on the host, 2026-11-17, and the user decided it meets the landing condition (via etcd-grove-03). History: Revision 1 was attacked independently (etcd-grove-03, 2026-11-17): BLOCKER, a cross-root rename walks its
 target's root ("Revision 2" below); revision 2 takes fix (b), decided by etcd-grove-03, and folds the three MINORs.
 Next: a short second attack, then the user. Scope: `notes/wal-link-scope.md` §4.3 (F-b), §5 (L4).
 
@@ -127,7 +127,21 @@ and `Create` rename within one WAL directory and its parent, which P2 puts in on
    Allowed: a directory rename in root A while a call in root B is in flight; Excluded: the overlap within one
    root's tree; Why: the evidence above, the test cited); `doc.go`'s row updated.
 
-## Open obligation: the configuration-C run (the attack's plan; this container cannot run it)
+## The configuration-C run: DONE (2026-11-17, by the user on the host; meets the landing condition)
+
+The warm-dcache run of item 1 below, on the host (`check.sh` confirmed configuration C: kernel 7.0.0-1014-aws, ext4,
+4096-byte blocks, default options: `data=ordered`, `dioread_nolock`, `delalloc`, `barrier`, `commit=5`, ...):
+`L4_CROSS_EXPECT=1 ./run-models-on-c.sh -run 'TestDirRenameScopedToRoot|TestCrossRootRenameExcluded' -v`:
+
+- `TestDirRenameScopedToRoot` PASS: root A 5426 directory renames; root B 4 workers x 3000 sequences of 15 path calls; no
+  deviation from the sequential outcomes.
+- `TestCrossRootRenameExcluded` PASS: 9 of 2000 cross-root renames succeeded at a path no tree had (depth 1900): the
+  excluded race is real on C.
+
+The user decided (2026-11-17, via etcd-grove-03) that this run meets the WAL link's landing condition. Items 2 and 3 below
+(cold dcache, a large hashed B directory) are optional extras, not a landing condition.
+
+### The plan as it was (the attack's; this container cannot run it)
 
 No `/dev/loop*` and no `/proc/fs/ext4` here, so neither `c_mkfs` nor `check.sh` runs. On a machine with loop devices:
 
@@ -141,8 +155,8 @@ No `/dev/loop*` and no `/proc/fs/ext4` here, so neither `c_mkfs` nor `check.sh` 
    long enough to overlap A's renames; plus `L4_CROSS_DEPTH`/`L4_CROSS_ITERS` raised (1900 / 20000) for the excluded
    case.
 For this run, `TestCrossRootRenameExcluded` asserts a positive count when `L4_CROSS_EXPECT=1` (set it with the
-1900 / 20000 parameters). Record the outputs in `notes/axiom-review/fs-config/` style beside the note. **The WAL link
-does not land before this run** (the user's condition, 2026-11-17).
+1900 / 20000 parameters). Record the outputs in `notes/axiom-review/fs-config/` style beside the note. (Item 1 done, above; it met
+the user's landing condition.)
 
 ## What it does not change
 

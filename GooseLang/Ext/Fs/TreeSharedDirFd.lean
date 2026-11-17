@@ -21,7 +21,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a directory fd gone. -/
 theorem treeCohS_delDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (fd : w64) :
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (fd : w64) :
     TreeCohS (delDfd st fd) s0 (GMap.delete fd Γdf) Γc Γg := by
   refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, fun fd' => ?_, fun fd' x df hx hdf => ?_,
     hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
@@ -54,7 +54,7 @@ theorem legacy_dirFdS_excl (st : OsState) (fd : w64) (j : Ino) (ph : DirPhS) :
 
 /-- A shared directory fd is one of the state's, on its directory. -/
 theorem dfdS_lookup {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {j : Ino} {ph : DirPhS}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {j : Ino} {ph : DirPhS}
     (h : Γdf !! fd = some (j, ph)) : ∃ df, st.proc.dfds !! fd = some df ∧ df.ino = j := by
   have := hc.fds fd; rw [h] at this
   cases h0 : st.proc.dfds !! fd with

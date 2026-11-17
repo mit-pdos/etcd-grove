@@ -21,7 +21,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 
 /-- The shared coherence with a logging call ended. -/
 theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (k : Nat) {xk : Nat × Qp}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (k : Nat) {xk : CallV}
     (hk : Γc !! k = some xk) :
     TreeCohS (st.metaEnd k) s0 Γdf (GMap.delete k Γc) Γg := by
   refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds,
@@ -58,7 +58,7 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
 
 /-- The shared coherence with a guard call ended. -/
 theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s0 Γdf Γc Γg) (t : Nat) {xt : Nat × Qp}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (t : Nat) {xt : CallV}
     (ht : Γg !! t = some xt) :
     TreeCohS (st.metaEnd t) s0 Γdf Γc (GMap.delete t Γg) := by
   have htc := hc.gdisj t xt ht
@@ -150,8 +150,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 variable {s : Stuckness} {E : CoPset}
 
 /-- A shared call excludes the legacy mode. -/
-theorem legacy_callS_excl (st : OsState) (k s0 : Nat) (q : Qp) :
-    ⊢ osCallS (L := L) k s0 q -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
+theorem legacy_callS_excl (st : OsState) (k s0 : Nat) (pc : GoString) (q : Qp) :
+    ⊢ osCallS (L := L) k s0 pc q -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
   unfold treeLegacy legacyHolds osCallS
   iintro Hk ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, -, -, Hacs, -⟩
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hl
@@ -159,17 +159,17 @@ theorem legacy_callS_excl (st : OsState) (k s0 : Nat) (q : Qp) :
 
 /-- **A step that only ends the call `k`**, from what it finds of the state (`P`, given by the
 caller's resources `F` through the claims' authority) and what it returns (`W`). -/
-theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
     (q : Qp) (F : IProp GF) (P : OsState → Prop) (W : val → Prop)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) → P st →
       ∃ e', IsFsStep op v st e' (st.metaEnd k))
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) → P st →
       IsFsStep op v st e' st' → st' = st.metaEnd k ∧ ∃ w, e' = Val w ∧ W w)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) (hO : op ≠ "OutClose" := by decide)
     (hl : ¬ LockOp op := by simp [LockOp]) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗ osCallS (L := L) k s0 q -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗ osCallS (L := L) k s0 pc q -∗
       (∀ w, ⌜W w⌝ -∗ osCallPerm (L := L) q -∗ F -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hk HΦ
@@ -178,7 +178,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  · iexfalso; iapply legacy_callS_excl st k s0 pc q $$ Hk Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -194,7 +194,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   · inext; iexists _, Γn; iframe; ipureintro; exact hcoh
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := hc.calls k _ hk
+  have hcall : st.proc.calls !! k = some (s0, pc) := hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -216,7 +216,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   · unfold osWorld; iframe; ipureintro; exact Hwc
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+    (Φ := fun (_t : Nat) (x : CallV) =>
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs

@@ -295,7 +295,7 @@ outside case): the call ends (its fraction of the call permission back); an outs
 errno. -/
 theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 : Nat) (q : Qp)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallS (L := L) k s0 q -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
         osCallPerm (L := L) q -∗ (⌜e = 0⌝ -∗ osOutFd (L := L) fd) -∗ Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
@@ -306,7 +306,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  · iexfalso; iapply legacy_callS_excl st k s0 p q $$ Hk Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -323,7 +323,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   have hntp : ¬ st.TreePath p := rootsAbove_not_treePath hw.roots hp
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := hc.calls k _ hk
+  have hcall : st.proc.calls !! k = some (s0, p) := hc.calls k _ hk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -348,7 +348,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   -- the call's fraction back
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+    (Φ := fun (_t : Nat) (x : CallV) =>
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs

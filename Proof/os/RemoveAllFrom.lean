@@ -80,10 +80,10 @@ theorem os.model.wp_removeAllFrom_dir (d b : GoString) (j J : Ino) (R : Roots) (
     (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hfo : FilesOnly hJ0.cur) (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm q ∗ osGuardS t sg g ∗ osLogLb sg }}
+        osCallPerm q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
       (App (App (Val os.model.removeAllFrom) (Val #d)) (Val #b))
     {{ (pe : Loc), RET #pe; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm q ∗
-        osGuardS t sg g ∗ os.peOk pe }} := by
+        osGuardS t sg (child d b) g ∗ os.peOk pe }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
   rw [show d ++ [47#8] ++ b = child d b by simp [child, slashB]]
   wp_apply os.model.wp_unlinkLoop_dirSt d b j J R (DFrac.own qd) h hJ0 q hb hJ $$ [Hp Hst Hperm]

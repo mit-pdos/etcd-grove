@@ -85,18 +85,18 @@ theorem osNames_except (j : Ino) (bs : List GoString) (dq : DFrac) (h : NamesH) 
 def osCallPerm (q : Qp) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own q) ()
 
-/-- The shared call `t` is in flight, begun when the log had `s` entries, holding `q` of the call
-permission (in the state interpretation), which its step gives back. -/
-def osCallS (t s : Nat) (q : Qp) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γcS t (DFrac.own 1) (s, q)
+/-- The shared call `t` is in flight, begun on the path `p` when the log had `s` entries, holding `q`
+of the call permission (in the state interpretation), which its step gives back. -/
+def osCallS (t s : Nat) (p : GoString) (q : Qp) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γcS t (DFrac.own 1) ((s, p), q)
 
-/-- The shared **guard call** `t` is in flight, begun when the log had `s` entries, holding `g` of
+/-- The shared **guard call** `t` is in flight, begun on `p` when the log had `s` entries, holding `g` of
 the call permission (in the state interpretation). A guard never logs: it is ended by
 `wp_osLstatDirGuardS`, which gives `g` back. While it is in flight no call can hold the whole
 permission (so no directory is renamed), and a logging call holding the rest (`q + g = 1`, begun
 no earlier than the guard) may do a directory operation (`wp_osRmdirSG`, `wp_osMkdirSG`). -/
-def osGuardS (t s : Nat) (g : Qp) : IProp GF :=
-  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γg t (DFrac.own 1) (s, g)
+def osGuardS (t s : Nat) (p : GoString) (g : Qp) : IProp GF :=
+  gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γg t (DFrac.own 1) ((s, p), g)
 
 /-- The log has at least `n` entries (persistent). -/
 def osLogLb (n : Nat) : IProp GF :=
@@ -142,7 +142,7 @@ instance osNames_timeless (j : Ino) (N : NameSet) (dq : DFrac) (h : NamesH) :
     Timeless (osNames (L := L) j N dq h) := by unfold osNames; split <;> infer_instance
 instance osCallPerm_timeless (q : Qp) : Timeless (osCallPerm (L := L) q) := by
   unfold osCallPerm; infer_instance
-instance osCallS_timeless (t s : Nat) (q : Qp) : Timeless (osCallS (L := L) t s q) := by
+instance osCallS_timeless (t s : Nat) (p : GoString) (q : Qp) : Timeless (osCallS (L := L) t s p q) := by
   unfold osCallS; infer_instance
 instance osDirFdS_timeless (fd : w64) (j : Ino) (ph : DirPhS) :
     Timeless (osDirFdS (L := L) fd j ph) := by unfold osDirFdS; infer_instance

@@ -29,7 +29,7 @@ theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := 
   intro d bs bt j N R qd dqn h qc hbs hbt hN hN' hsrc
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn⟩
   imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
-  wp_apply wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d bt j N (DFrac.own qd) dqn h t s0 qc hbt hN'
@@ -45,14 +45,15 @@ theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := 
   rw [decide_eq_false h1]
   wp_auto
   iloeb as IH generalizing Hperm Hp Hn HΦ
-  wp_apply +noauto wp_osCallBeginS R qc h.next CoPset.subseteq_top CoPset.subseteq_top
+  wp_apply +noauto wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t' %s1 %hs' Hk Hls
   iclear Hls
   ihave Hpp := (osPathS_frac R d qd.half qd.half j).1 $$ [Hp]
   · rw [Qp.half_add_half]; iexact Hp
   icases Hpp with ⟨Hp1, Hp2⟩
+  icases osPathS_sameRoot R d bs bt _ j $$ Hp1 with ⟨Hp1, %hsr⟩
   wp_apply +noauto wp_osRenameAbsentS R d bs d bt j j N (DFrac.own qd.half) (DFrac.own qd.half) dqn h
-    t' s1 qc hbs hbt hN hsrc CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp1 Hp2 Hn Hk
+    t' s1 qc hbs hbt hN hsrc hsr CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp1 Hp2 Hn Hk
     as %e' %he' Hperm Hp1 Hp2 Hn
   ihave Hp := (osPathS_frac R d qd.half qd.half j).2 $$ [Hp1 Hp2]
   · iframe

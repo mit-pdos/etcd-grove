@@ -267,8 +267,8 @@ theorem phOkS_note {st st' : OsState} {j : Ino} {x : DirPhS} {df : OsDirFd} {o :
 /-- **The shared coherence after a step that logged `o`** for the call `k` (begun at `s0`, holding
 `q` of the permission). -/
 theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {q : Qp}
-    (hk : Γc !! k = some (s0, q)) (o : MetaOp)
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {pc : GoString} {q : Qp}
+    (hk : Γc !! k = some ((s0, pc), q)) (o : MetaOp)
     (hdur : st'.fs.treeDur = st.fs.treeDur)
     (hlog : st'.fs.metaLog = st.fs.metaLog ++ [⟨o, s0⟩])
     (hdf : st'.proc.dfds = GMap.fmap (·.note o) st.proc.dfds)
@@ -397,37 +397,37 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
 
 /-- The call `k` (begun at `s0`, holding `q`) holds the whole permission (`gd = none`), or the
 rest of it beside the guard `gd` (begun no later). -/
-def WholeG (q : Qp) (s0 : Nat) : Option (Nat × Nat × Qp) → Prop
+def WholeG (q : Qp) (s0 : Nat) : Option (Nat × CallV) → Prop
   | none => q = 1
-  | some (_, sg, g) => q.val + g.val = 1 ∧ sg ≤ s0
+  | some (_, (sg, _), g) => q.val + g.val = 1 ∧ sg ≤ s0
 
 /-- A call holding the whole permission, or the rest of it beside a guard begun no later, began
 now, and no other logging call is in flight. -/
 theorem wholeG_facts {st : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {q : Qp}
-    (hk : Γc !! k = some (s0, q)) {gd : Option (Nat × Nat × Qp)}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {pc : GoString} {q : Qp}
+    (hk : Γc !! k = some ((s0, pc), q)) {gd : Option (Nat × CallV)}
     (hexcl : ∀ t x, t ≠ k → Γc !! t = some x → x.2.val < 1 ∧ q.val < 1)
     (hval : ∀ c x t g, c ≠ k → Γc !! c = some x → Γg !! t = some g →
       x.2.val + q.val + g.2.val ≤ 1)
-    (hgd : ∀ t sg g, gd = some (t, sg, g) → Γg !! t = some (sg, g))
+    (hgd : ∀ t x, gd = some (t, x) → Γg !! t = some x)
     (hw : WholeG q s0 gd) :
     s0 = st.fs.metaLog.length ∧ ∀ t x, t ≠ k → Γc !! t = some x → False := by
-  rcases gd with _ | ⟨t, sg, g⟩
+  rcases gd with _ | ⟨t, ⟨sg, pg⟩, g⟩
   · simp only [WholeG] at hw
     refine ⟨hc.whole k _ hk hw, fun t x hne hx => ?_⟩
     have := (hexcl t x hne hx).2
     rw [hw] at this; exact absurd this (by simp)
   · simp only [WholeG] at hw
-    have hg := hgd t sg g rfl
-    refine ⟨hc.pair k (s0, q) t (sg, g) hk hg hw.1 hw.2, fun c x hne hx => ?_⟩
-    have h1 := hval c x t (sg, g) hne hx hg
+    have hg := hgd t _ rfl
+    refine ⟨hc.pair k ((s0, pc), q) t ((sg, pg), g) hk hg hw.1 hw.2, fun c x hne hx => ?_⟩
+    have h1 := hval c x t ((sg, pg), g) hne hx hg
     have h2 := x.2.2
     simp only at h1
     grind
 
 /-- A call holding the whole permission is the only call in flight (guards included). -/
 theorem sole_of {st : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
-    {Γc Γg : GMap Nat (Nat × Qp)} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {q : Qp}
+    {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {q : Qp}
     (hexcl : ∀ t x, t ≠ k → Γc !! t = some x → x.2.val < 1 ∧ q.val < 1)
     (hval : ∀ t g, Γg !! t = some g → q.val + g.2.val ≤ 1) :
     q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k := by
@@ -684,7 +684,7 @@ theorem claims_upd (V' : Hist) (f : ClaimW → NamesH) :
 
 /-- The calls in flight other than `k`, each with its fraction of the permission, and `k`'s:
 neither is the whole permission. -/
-theorem callResS_excl (Γc : GMap Nat (Nat × Qp)) (k : Nat) (x0 : Nat × Qp) (hk : Γc !! k = some x0) :
+theorem callResS_excl (Γc : GMap Nat CallV) (k : Nat) (x0 : CallV) (hk : Γc !! k = some x0) :
     ⊢ callResS (gooseOsGS (L := L)) Γc -∗
       ⌜∀ t x, t ≠ k → Γc !! t = some x → x.2.val < 1 ∧ x0.2.val < 1⌝ ∗
         callResS (gooseOsGS (L := L)) Γc := by
@@ -699,13 +699,13 @@ theorem callResS_excl (Γc : GMap Nat (Nat × Qp)) (k : Nat) (x0 : Nat × Qp) (h
     obtain ⟨t, x, hne, ht, hv⟩ := this
     unfold callResS
     icases (BigSepM.bigSepM_delete (M := GMap Nat)
-      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      (Φ := fun (_t : Nat) (x : CallV) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ H
       with ⟨Hq, H⟩
     have ht' : (GMap.delete k Γc) !! t = some x := by
       rw [GMap.lookup_delete_ne _ (Ne.symm hne)]; exact ht
     icases (BigSepM.bigSepM_lookup (M := GMap Nat)
-      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      (Φ := fun (_t : Nat) (x : CallV) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) ht') $$ H
       with Ht
     icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hq Ht with %Hv
@@ -714,8 +714,8 @@ theorem callResS_excl (Γc : GMap Nat (Nat × Qp)) (k : Nat) (x0 : Nat × Qp) (h
 /-- The fractions of the permission the logging calls `Γc` and the guard calls `Γg` hold: for the
 call `k` (holding `q`), another logging call's, `q` and a guard's make at most the whole; so do `q`
 and a guard's. -/
-theorem callsRes_facts (Γc Γg : GMap Nat (Nat × Qp)) (k s0 : Nat) (q : Qp)
-    (hk : Γc !! k = some (s0, q)) :
+theorem callsRes_facts (Γc Γg : GMap Nat CallV) (k s0 : Nat) (pc : GoString) (q : Qp)
+    (hk : Γc !! k = some ((s0, pc), q)) :
     ⊢ callResS (gooseOsGS (L := L)) Γc -∗ callResS (gooseOsGS (L := L)) Γg -∗
       ⌜(∀ c x t g, c ≠ k → Γc !! c = some x → Γg !! t = some g →
           x.2.val + q.val + g.2.val ≤ 1) ∧
@@ -731,7 +731,7 @@ theorem callsRes_facts (Γc Γg : GMap Nat (Nat × Qp)) (k s0 : Nat) (q : Qp)
   iexfalso
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+    (Φ := fun (_t : Nat) (x : CallV) =>
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hc
     with ⟨Hq, Hc⟩
   by_cases h1 : ∀ c x t g, c ≠ k → Γc !! c = some x → Γg !! t = some g →
@@ -741,7 +741,7 @@ theorem callsRes_facts (Γc Γg : GMap Nat (Nat × Qp)) (k s0 : Nat) (q : Qp)
         Classical.byContradiction fun hv => hn ⟨t, g, ht, hv⟩⟩
     obtain ⟨t, g, ht, hv⟩ := this
     icases (BigSepM.bigSepM_lookup (M := GMap Nat)
-      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      (Φ := fun (_t : Nat) (x : CallV) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) ht) $$ Hg
       with Ht
     icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hq Ht with %Hv
@@ -754,11 +754,11 @@ theorem callsRes_facts (Γc Γg : GMap Nat (Nat × Qp)) (k s0 : Nat) (q : Qp)
     have hc' : (GMap.delete k Γc) !! c = some x := by
       rw [GMap.lookup_delete_ne _ (Ne.symm hne)]; exact hc
     icases (BigSepM.bigSepM_lookup (M := GMap Nat)
-      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      (Φ := fun (_t : Nat) (x : CallV) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hc') $$ Hc
       with Hx
     icases (BigSepM.bigSepM_lookup (M := GMap Nat)
-      (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+      (Φ := fun (_t : Nat) (x : CallV) =>
         gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) ht) $$ Hg
       with Ht
     ihave Hxq : iprop(gElem (K := Unit) (V := Unit) (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm ()
@@ -795,23 +795,23 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : G
 variable {s : Stuckness} {E : CoPset}
 
 /-- A guard, or nothing: what a directory operation's call may hold beside its fraction. -/
-def osGuardOpt : Option (Nat × Nat × Qp) → IProp GF
+def osGuardOpt : Option (Nat × CallV) → IProp GF
   | none => iprop(emp)
-  | some (t, sg, g) => osGuardS (L := L) t sg g
+  | some (t, (sg, pg), g) => osGuardS (L := L) t sg pg g
 
 /-- The call `k` in flight (`osCallS`), with the guard `gd` if any. -/
-def osCallSG (k s0 : Nat) (q : Qp) : Option (Nat × Nat × Qp) → IProp GF
-  | none => osCallS (L := L) k s0 q
-  | some (t, sg, g) => iprop(osCallS (L := L) k s0 q ∗ osGuardS (L := L) t sg g)
+def osCallSG (k s0 : Nat) (pc : GoString) (q : Qp) : Option (Nat × CallV) → IProp GF
+  | none => osCallS (L := L) k s0 pc q
+  | some (t, (sg, pg), g) => iprop(osCallS (L := L) k s0 pc q ∗ osGuardS (L := L) t sg pg g)
 
 /-- The call's fraction back (`osCallPerm`), with the guard `gd` if any. -/
-def osCallPermG (q : Qp) : Option (Nat × Nat × Qp) → IProp GF
+def osCallPermG (q : Qp) : Option (Nat × CallV) → IProp GF
   | none => osCallPerm (L := L) q
-  | some (t, sg, g) => iprop(osCallPerm (L := L) q ∗ osGuardS (L := L) t sg g)
+  | some (t, (sg, pg), g) => iprop(osCallPerm (L := L) q ∗ osGuardS (L := L) t sg pg g)
 
-theorem osCallSG_split (k s0 : Nat) (q : Qp) (gd : Option (Nat × Nat × Qp)) :
-    ⊢ osCallSG (L := L) k s0 q gd -∗ osCallS (L := L) k s0 q ∗ osGuardOpt (L := L) gd := by
-  rcases gd with _ | ⟨t, sg, g⟩
+theorem osCallSG_split (k s0 : Nat) (pc : GoString) (q : Qp) (gd : Option (Nat × CallV)) :
+    ⊢ osCallSG (L := L) k s0 pc q gd -∗ osCallS (L := L) k s0 pc q ∗ osGuardOpt (L := L) gd := by
+  rcases gd with _ | ⟨t, ⟨sg, pg⟩, g⟩
   · simp only [osCallSG, osGuardOpt]
     iintro H; isplitl [H]
     · iexact H
@@ -821,9 +821,9 @@ theorem osCallSG_split (k s0 : Nat) (q : Qp) (gd : Option (Nat × Nat × Qp)) :
     · iexact H1
     · iexact H2
 
-theorem osCallPermG_join (q : Qp) (gd : Option (Nat × Nat × Qp)) :
+theorem osCallPermG_join (q : Qp) (gd : Option (Nat × CallV)) :
     ⊢ osCallPerm (L := L) q -∗ osGuardOpt (L := L) gd -∗ osCallPermG (L := L) q gd := by
-  rcases gd with _ | ⟨t, sg, g⟩
+  rcases gd with _ | ⟨t, ⟨sg, pg⟩, g⟩
   · simp only [osCallPermG, osGuardOpt]
     iintro H -; iexact H
   · simp only [osCallPermG, osGuardOpt]
@@ -831,8 +831,8 @@ theorem osCallPermG_join (q : Qp) (gd : Option (Nat × Nat × Qp)) :
     · iexact H1
     · iexact H2
 
-theorem osCallSG_none (k s0 : Nat) (q : Qp) :
-    ⊢ osCallS (L := L) k s0 q -∗ osCallSG (L := L) k s0 q none := by
+theorem osCallSG_none (k s0 : Nat) (pc : GoString) (q : Qp) :
+    ⊢ osCallS (L := L) k s0 pc q -∗ osCallSG (L := L) k s0 pc q none := by
   simp only [osCallSG]; iintro H; iexact H
 
 theorem osCallPermG_none (q : Qp) :
@@ -840,16 +840,16 @@ theorem osCallPermG_none (q : Qp) :
   simp only [osCallPermG]; iintro H; iexact H
 
 /-- A guard is one of the authority's. -/
-theorem osGuardOpt_lookup (Γg : GMap Nat (Nat × Qp)) (gd : Option (Nat × Nat × Qp)) :
+theorem osGuardOpt_lookup (Γg : GMap Nat CallV) (gd : Option (Nat × CallV)) :
     ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γg Γg -∗ osGuardOpt (L := L) gd -∗
-      ⌜∀ t sg g, gd = some (t, sg, g) → Γg !! t = some (sg, g)⌝ := by
-  rcases gd with _ | ⟨t, sg, g⟩
+      ⌜∀ t x, gd = some (t, x) → Γg !! t = some x⌝ := by
+  rcases gd with _ | ⟨t, ⟨sg, pg⟩, g⟩
   · iintro _ _
-    ipureintro; intro t sg g h; cases h
+    ipureintro; intro t x h; cases h
   · iintro HA H
     unfold osGuardOpt osGuardS
     icases gAuth_lookup _ _ _ _ _ _ $$ HA H with %hl
-    ipureintro; intro t' sg' g' h; cases h; exact hl
+    ipureintro; intro t' x h; cases h; exact hl
 
 /-- `st'` is `st` after a step of the call `k` that only ended it, as the tree sees it (the files
 may have changed: an fd opened). -/
@@ -893,8 +893,8 @@ The operation `oF n` and the claims' new entries `curF n` are functions of the s
 `n` (the state's `nextIno`, which the logic does not track: `mkdir`, `open(O_CREAT)`). The step
 may change the files' world (`hworld`, giving `G n w logged`: `open(O_CREAT)`'s new file and fd);
 it ends the call (`EndedT`) or logs (`LoggedT`), its new state well formed (`hpost`). -/
-theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
-    (q : Qp) (gd : Option (Nat × Nat × Qp)) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
+theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
+    (q : Qp) (gd : Option (Nat × CallV)) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
     (P : OsState → Prop) (W : val → Bool → Prop) (G : Nat → val → Bool → IProp GF)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
     (hwr : ∀ n, ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ (oF n).Writes c.1 b)
@@ -904,22 +904,22 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨
          (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)))
     (hworld : ∀ st e' st' h h' Γb Γm Γf Γt w lg, FsTreeWf st → st.fs.roots = R →
-      st.proc.calls !! k = some s0 → (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      st.proc.calls !! k = some (s0, pc) → (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       P st → ClaimsAt st cl → IsFsStep op v st e' st' → e' = Val w → W w lg →
       (lg = false → EndedT st st' k) → (lg = true → LoggedT st st' k s0 (oF st.fs.nextIno)) →
       HeapRendered st st' h h' → MapsFresh st st' h →
       ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗ ∃ Γb' Γm' Γf' Γt',
         osWorld (L := L) st' Γb' Γm' Γf' Γt' h' ∗ G st.fs.nextIno w lg)
-    (htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+    (htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → LoggedT st st' k s0 (oF st.fs.nextIno) →
       let o := oF st.fs.nextIno
       (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
@@ -932,7 +932,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallSG (L := L) k s0 q gd -∗
+      osCallSG (L := L) k s0 pc q gd -∗
       (∀ w, osCallPermG (L := L) q gd -∗ F -∗
         ((⌜W w false⌝ ∗ (∃ n, G n w false) ∗
             [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
@@ -943,7 +943,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ1
-  icases osCallSG_split k s0 q gd $$ Hk with ⟨Hk, Hgd⟩
+  icases osCallSG_split k s0 pc q gd $$ Hk with ⟨Hk, Hgd⟩
   iapply wp_fs_stepM op _ Φ hv hE hO hl $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Ht
   ihave HΦ : (∀ w, osCallPerm (L := L) q -∗ osGuardOpt (L := L) gd -∗ F -∗
@@ -983,7 +983,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_callS_excl st k s0 q $$ Hk Hm
+  · iexfalso; iapply legacy_callS_excl st k s0 pc q $$ Hk Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s1, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -1006,10 +1006,10 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       exact hcoh.2.disj c.1 c.2.1 c'.2.1 _ _ b (hlk c hc).1 h2 hN hb hb'
   unfold osCallS
   icases gAuth_lookup _ _ _ _ _ _ $$ Hacs Hk with %hk
-  have hcall : st.proc.calls !! k = some s0 := by
+  have hcall : st.proc.calls !! k = some (s0, pc) := by
     exact hc.calls k _ hk
-  icases callResS_excl Γc k (s0, q) hk $$ Hcr with ⟨%hexcl, Hcr⟩
-  icases callsRes_facts Γc Γg k s0 q hk $$ Hcr Hgr with ⟨%hval, Hcr, Hgr⟩
+  icases callResS_excl Γc k ((s0, pc), q) hk $$ Hcr with ⟨%hexcl, Hcr⟩
+  icases callsRes_facts Γc Γg k s0 pc q hk $$ Hcr Hgr with ⟨%hval, Hcr, Hgr⟩
   icases osGuardOpt_lookup Γg gd $$ HAg Hgd with %hgd
   have hsole : q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k :=
     sole_of (s0 := s0) hc hexcl hval.2
@@ -1031,7 +1031,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
   obtain ⟨w, rfl, hwf', hres⟩ := hpost0 e' st' hw hR hcall hsole hP hat Hst
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
-    (Φ := fun (_t : Nat) (x : Nat × Qp) =>
+    (Φ := fun (_t : Nat) (x : CallV) =>
       gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
@@ -1261,7 +1261,7 @@ The operation `oF n` and the claims' new entries `curF n` are functions of the s
 `n` (the state's `nextIno`, which the logic does not track: `mkdir`, `open(O_CREAT)`). The step
 may change the files' world (`hworld`, giving `G n w logged`: `open(O_CREAT)`'s new file and fd);
 it ends the call (`EndedT`) or logs (`LoggedT`), its new state well formed (`hpost`). -/
-theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
     (q : Qp) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
     (P : OsState → Prop) (W : val → Bool → Prop) (G : Nat → val → Bool → IProp GF)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
@@ -1272,22 +1272,22 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧ FsTreeWf st' ∧
         ((EndedT st st' k ∧ W w false) ∨
          (LoggedT st st' k s0 (oF st.fs.nextIno) ∧ W w true)))
     (hworld : ∀ st e' st' h h' Γb Γm Γf Γt w lg, FsTreeWf st → st.fs.roots = R →
-      st.proc.calls !! k = some s0 → (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      st.proc.calls !! k = some (s0, pc) → (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
       P st → ClaimsAt st cl → IsFsStep op v st e' st' → e' = Val w → W w lg →
       (lg = false → EndedT st st' k) → (lg = true → LoggedT st st' k s0 (oF st.fs.nextIno)) →
       HeapRendered st st' h h' → MapsFresh st st' h →
       ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗ ∃ Γb' Γm' Γf' Γt',
         osWorld (L := L) st' Γb' Γm' Γf' Γt' h' ∗ G st.fs.nextIno w lg)
-    (htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 → P st →
+    (htree : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → LoggedT st st' k s0 (oF st.fs.nextIno) →
       let o := oF st.fs.nextIno
       (∀ x, x ∈ o.apply st.tree → x ∈ st.tree ∨ x ∈ o.newDirs) ∧
@@ -1299,7 +1299,7 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallS (L := L) k s0 q -∗
+      osCallS (L := L) k s0 pc q -∗
       (∀ w, osCallPerm (L := L) q -∗ F -∗
         ((⌜W w false⌝ ∗ (∃ n, G n w false) ∗
             [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
@@ -1310,7 +1310,7 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
-  iapply wp_logStepSWG op v hv R k s0 q none oF cl curF F P W G hne hwr hslots hnext hdir hadd hF
+  iapply wp_logStepSWG op v hv R k s0 pc q none oF cl curF F P W G hne hwr hslots hnext hdir hadd hF
     hprog hpost hworld htree hE hE' Φ hO hl $$ Hinv Hsi HF Hcl [Hk]
   · iapply osCallSG_none $$ Hk
   iintro %w Hq
@@ -1327,7 +1327,7 @@ the tree after `o` is well formed, names no new file, has the old directories an
 The operation `oF n` and the claims' new entries `curF n` are functions of the step's fresh inode
 `n` (the state's `nextIno`, which the logic does not track: `mkdir`); the files' world unchanged
 (`wp_logStepSW` with no gift). -/
-theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
     (q : Qp) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
     (P : OsState → Prop) (W : val → Bool → Prop)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
@@ -1338,10 +1338,10 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
@@ -1359,7 +1359,7 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallS (L := L) k s0 q -∗
+      osCallS (L := L) k s0 pc q -∗
       (∀ w, osCallPerm (L := L) q -∗ F -∗
         ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
          (⌜W w true⌝ ∗ ∃ n x, osLogged (L := L) x ⟨oF n, s0⟩ ∗
@@ -1369,7 +1369,7 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
-  iapply wp_logStepSW op v hv R k s0 q oF cl curF F P W (fun _ _ _ => emp) hne hwr hslots hnext
+  iapply wp_logStepSW op v hv R k s0 pc q oF cl curF F P W (fun _ _ _ => emp) hne hwr hslots hnext
     hdir hadd hF hprog
     (fun st e' st' hw hR hcall hsole hP hat Hst => by
       obtain ⟨w, rfl, hres⟩ := hpost st e' st' hw hR hcall hsole hP hat Hst
@@ -1405,7 +1405,7 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
 
 /-- **A step that logs `o` for the call `k`** (`wp_logStepSN` with the operation and the claims'
 new entries independent of the fresh inode). -/
-theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
+theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
     (q : Qp) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
     (W : val → Bool → Prop)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
@@ -1416,10 +1416,10 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
@@ -1435,7 +1435,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallS (L := L) k s0 q -∗
+      osCallS (L := L) k s0 pc q -∗
       (∀ w, osCallPerm (L := L) q -∗ F -∗
         ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
          (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨o, s0⟩ ∗
@@ -1445,7 +1445,7 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
-  iapply wp_logStepSN op v hv R k s0 q (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
+  iapply wp_logStepSN op v hv R k s0 pc q (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
     (fun _ => hwr) (fun _ => hslots) hnext (fun _ => hdir) (fun _ => hadd) hF hprog hpost htree
     hE hE' Φ hO hl $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
@@ -1467,8 +1467,8 @@ the tree after `o` is well formed, names no new file, has the old directories an
 The operation `oF n` and the claims' new entries `curF n` are functions of the step's fresh inode
 `n` (the state's `nextIno`, which the logic does not track: `mkdir`); the files' world unchanged
 (`wp_logStepSW` with no gift). -/
-theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
-    (q : Qp) (gd : Option (Nat × Nat × Qp)) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
+theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
+    (q : Qp) (gd : Option (Nat × CallV)) (oF : Nat → MetaOp) (cl : List ClaimW) (curF : Nat → ClaimW → Ents) (F : IProp GF)
     (P : OsState → Prop) (W : val → Bool → Prop)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
     (hwr : ∀ n, ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ (oF n).Writes c.1 b)
@@ -1478,10 +1478,10 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
@@ -1499,7 +1499,7 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallSG (L := L) k s0 q gd -∗
+      osCallSG (L := L) k s0 pc q gd -∗
       (∀ w, osCallPermG (L := L) q gd -∗ F -∗
         ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
          (⌜W w true⌝ ∗ ∃ n x, osLogged (L := L) x ⟨oF n, s0⟩ ∗
@@ -1509,7 +1509,7 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
-  iapply wp_logStepSWG op v hv R k s0 q gd oF cl curF F P W (fun _ _ _ => emp) hne hwr hslots hnext
+  iapply wp_logStepSWG op v hv R k s0 pc q gd oF cl curF F P W (fun _ _ _ => emp) hne hwr hslots hnext
     hdir hadd hF hprog
     (fun st e' st' hw hR hcall hsole hP hat Hst => by
       obtain ⟨w, rfl, hres⟩ := hpost st e' st' hw hR hcall hsole hP hat Hst
@@ -1545,8 +1545,8 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
 
 /-- **A step that logs `o` for the call `k`**, with a guard if any (`wp_logStepSNG` with the operation and the claims'
 new entries independent of the fresh inode). -/
-theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat)
-    (q : Qp) (gd : Option (Nat × Nat × Qp)) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
+theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots) (k s0 : Nat) (pc : GoString)
+    (q : Qp) (gd : Option (Nat × CallV)) (o : MetaOp) (cl : List ClaimW) (F : IProp GF) (P : OsState → Prop)
     (W : val → Bool → Prop)
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
     (hwr : ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ o.Writes c.1 b)
@@ -1556,10 +1556,10 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
-    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → ∃ e' st', IsFsStep op v st e' st' ∧ FilesSame st st')
-    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some s0 →
+    (hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, pc) →
       (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) → P st →
       ClaimsAt st cl → IsFsStep op v st e' st' → ∃ w, e' = Val w ∧
         ((st' = st.metaEnd k ∧ W w false) ∨
@@ -1575,7 +1575,7 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
       ([∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) -∗
-      osCallSG (L := L) k s0 q gd -∗
+      osCallSG (L := L) k s0 pc q gd -∗
       (∀ w, osCallPermG (L := L) q gd -∗ F -∗
         ((⌜W w false⌝ ∗ [∗list] c ∈ cl, osNames (L := L) c.1 c.2.1 (DFrac.own 1) c.2.2.1) ∨
          (⌜W w true⌝ ∗ ∃ x, osLogged (L := L) x ⟨o, s0⟩ ∗
@@ -1585,7 +1585,7 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
              ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝)) -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hcl Hk HΦ
-  iapply wp_logStepSNG op v hv R k s0 q gd (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
+  iapply wp_logStepSNG op v hv R k s0 pc q gd (fun _ => o) cl (fun _ c => c.2.2.2) F P W hne
     (fun _ => hwr) (fun _ => hslots) hnext (fun _ => hdir) (fun _ => hadd) hF hprog hpost htree
     hE hE' Φ hO hl $$ Hinv Hsi HF Hcl Hk
   iintro %w Hq HF Hp
