@@ -244,6 +244,17 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 @[no_expose] def fileHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
   fileHoldsDef i D
 
+/-- **The bytes `bs` are a bbolt database file holding `D`** (S4a of
+`notes/bbolt-integration-plan.md`, D-I6; pure): what `fileHolds` asks of a file's page-cache bytes,
+with the file's size the length of `bs`: below `2 ^ 62` bytes, and either empty (`D = ∅`) or a
+well-formed bbolt file whose committed tree holds `D` (every clause of `fileHolds`' docstring:
+metas, page extents, the synced freelist page, the high-water mark inside the bytes, the txid's
+bounds). What `Tx.WriteTo` writes (its two meta pages and its data pages; many byte strings encode
+one `D`, by their page layout and free pages), and what a file must hold for `Open` to read `D`
+(`fileHolds_of_image`). Sealed: a client relates it only through that law. -/
+@[no_expose] def boltImage (bs : List w8) (D : Data) : Prop :=
+  bs.length < 2 ^ 62 ∧ fileOK bs bs.length D
+
 /-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
 file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
 tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). In the
@@ -399,6 +410,21 @@ opaque dbCloseOk : Prop
 theorem fileHolds_new (i : Ino) :
     osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHolds i ∅ := by
   unfold fileHolds; exact fileHoldsDef_new _
+
+/-- **A file holding a database image holds its data** (S4a, D-I6: the receiver's half of the
+snapshot's round trip): the whole `OsMeta` of a file with no mapping, of size `xs.length`, and all
+of its page-cache bytes `xs` (any crash candidates), whose values are an image of `D`. -/
+theorem fileHolds_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
+    (hmaps : m.maps = ∅) (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D) :
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes i 0 (DFrac.own 1) xs ⊢ fileHolds i D := by
+  unfold fileHolds fileHoldsDef
+  unfold boltImage at himg
+  rw [List.length_map] at himg
+  iintro ⟨Hm, Hb⟩
+  iexists m, xs
+  iframe Hm Hb
+  ipureintro
+  exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
 
 end vocab
 

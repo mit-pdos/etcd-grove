@@ -96,3 +96,54 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `DB.Stats.spec` re-proved, statement otherwise unchanged.
   No new axiom or `sorry`; `Link`/`Results` unchanged; interfaces regenerated. No client outside
   bbolt used `statSlot` (the backend still goes through `DB.Stats_kv`).
+* 2026-11-17, **S4a** (branch `bbolt-writeto`, D-I6 bbolt side): **partly done; the proof of
+  `Tx.WriteTo` is blocked by the invariant**, findings for the coordinator below.
+  - Done: `boltImage (bs : List w8) (D : Data) : Prop` in bbolt's API (`Spec/go_etcd_io/bbolt/Api.lean`,
+    sealed `@[no_expose]`, pure): `bs.length < 2 ^ 62 ∧ fileOK bs bs.length D` (`fileHoldsDef`'s pure part
+    with the size the bytes' length). Its law `fileHolds_of_image (i m xs D) (hmaps : m.maps = ∅)
+    (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D) : osMeta i (own 1) m ∗
+    osBytes i 0 (own 1) xs ⊢ fileHolds i D` (the receiver's side: a file of exactly those bytes, no
+    mapping). The backend's opaque `backend.boltImage` can become this definition in S4b. No new axiom
+    or `sorry`.
+  - Not done: `Tx.WriteTo.spec`/proof. The intended statement (not committed, since it cannot be
+    proved without the changes below): for `boltTx tx γ q (TxView.ro D)`, the writer's contract
+    `writerOk w Wr` (copied from the backend) and `Wr c bs₀`, `tx.WriteTo(w)` returns `(n, err)` with
+    `boltTx tx γ q (ro D)` back, `Wr c' (bs₀ ++ bs)`, and `err = nil → boltImage bs D ∧ n = len bs`.
+  - **Why the proof is blocked** (what a read transaction holds today, `Inv/Tx.lean`'s `rtxFrac`, and
+    where the file's resources are):
+    1. **The file handle.** `tx.db.file`, the `*os.File`'s `fileOwn` and the descriptor's `osFd` are
+       all held whole in `rwlock`'s resource (`wdbCoreG`), i.e. by a live writer; a reader holds no
+       share, so it can neither load `db.file` nor call `ReadAt`. Fix: a share of the three in
+       `mmaplock`'s resource `Pm` (readers then hold `rfrac` of it; `close` holds all three locks and
+       gets them whole), the writer keeping the rest; touches `Pm`'s users (Open, remap, close, begin,
+       rollback) and `rtxFrac`.
+    2. **The synced freelist page.** `fileOK` requires a valid freelist page when the meta names one
+       (`flFileOK`; `init` always writes one, and `Open` reads it whatever `NoFreelistSync`). The current
+       synced freelist page is a `W` slot (`wdbOK`: `W` is the complement of tree and pending slots),
+       its page-cache bytes the writer's (`wBytes`); the reader's view and meta copy say nothing of it.
+       So the image's freelist page is unprovable. Fix: the current synced freelist extent a store
+       slot (in `slotsOf`), which reworks Commit's freelist part (`fbCond`/`fbInv`, `flCurOK` over `wb`),
+       or restrict the spec to metas without a synced freelist (no client can state that today).
+    3. **The page-cache bytes of the view's slots** are in `pagesInv` (`osSlot … (own 1)`), an
+       invariant: readable only through an accessor opened around each `pread`. Needs a variant of
+       `os.File.ReadAt.specRacy` taking an invariant accessor in place of held `osBytes` (provable over
+       the trusted `os` model, `Proof/os/File__ReadAt.lean`), and a lemma that a registered reader's
+       slots are store slots whose `σ.bytes` are its view's pages (via `viewCells` agreeing with
+       `storeCells`). (Reading through the mapped cells instead needs a mapping witness, `osMeta`,
+       which the writer holds whole.)
+    4. **The reader's meta copy.** `rtxFrac` records only `mv.txid' = v.txid` and the `pgid` bound;
+       the image's metas need `mv = metaOf (C.slot C.txid)` for a `C` with `C.metaOk`, `treeOK C`,
+       `1 ≤ C.txid < 2 ^ 62`, `View.ofC v.base C = v` (`rdTxK_intro` has all of it; `viewWF` keeps
+       only `∃ C, treeOK C`).
+    5. **`WriteFlag`.** `rtxFrac` holds `tx.WriteFlag ↦{q} t.WriteFlag'` with no fact; `Begin` leaves it
+       0 (`rdTxK_intro`'s `∃ wf`). Fix: the points-to at `W64 0` in `rtxFrac`, proved at begin.
+    6. **Stdlib.** `io.NewSectionReader`, `io.CopyN` (and `Copy`, `LimitReader`, `SectionReader.Read`)
+       are names-only in Perennial: trust-boundary specs needed, generic over a `ReadAt` contract.
+       `CopyN` goes through `io.Copy`, which calls `dst.ReadFrom` when `w`'s type has one (an
+       `*os.File` does; etcd's `*io.PipeWriter` does not), so the spec needs a premise that `w`'s
+       dynamic type has no `ReadFrom` method, or a contract for it; `writerOk` says nothing of
+       `ReadFrom`. bbolt's own callees (`Meta.DecTxid`, `SetChecksum`, `Sum64`, `Page.SetFlags`/`SetId`/
+       `Meta`, `fmt.Errorf`) have specs.
+  - So D-I6 needs a decision: the invariant work of items 1-4 (a large change to `Store`/`Locks` and
+    Commit's freelist proof), or the snapshot path kept as trust-boundary specs over the now-concrete
+    `boltImage`.
