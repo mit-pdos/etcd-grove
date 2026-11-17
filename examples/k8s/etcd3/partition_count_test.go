@@ -9,11 +9,7 @@ import (
 	"time"
 
 	"github.com/anishathalye/porcupine"
-	"go.etcd.io/etcd/client/v3/kubernetes"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/apiserver/pkg/storage/etcd3"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
@@ -69,7 +65,7 @@ func mainPartitionCounted(clients int, ops int, sched []cluster3.Step, fc *failC
 	if !ok {
 		return porcupine.Unknown
 	}
-	s, st0, h0, ok := testStore(kc)
+	s, st0, h0, ok := newStore(kc)
 	if !ok {
 		return porcupine.Unknown
 	}
@@ -180,20 +176,4 @@ func TestPartitionScale(t *testing.T) {
 			t.Fatalf("scale: %v, want Ok", r)
 		}
 	})
-}
-
-// testStore is MainCluster's steps after the start (seed, the features, etcd3.New) over the client
-// kc, for the diagnostics.
-func testStore(kc *kubernetes.Client) (storage.Interface, mstore, []mstore, bool) {
-	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() || !watchList() {
-		return nil, mstore{}, nil, false
-	}
-	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
-		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
-		decoder{}, versioner{})
-	if err != nil {
-		return nil, mstore{}, nil, false
-	}
-	return s, st0, h0, true
 }

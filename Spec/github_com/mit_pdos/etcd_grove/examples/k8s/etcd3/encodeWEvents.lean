@@ -31,7 +31,7 @@ abbrev encodeWEvents.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       wevsOwn s evs }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWEvents)) (Val #s))
-  {{ RET #(encWEventsL evs); True }}
+  {{ RET #(encWEventsL evs); ⌜∀ e ∈ evs, (encodeWith tagV1 e.o).length < 2 ^ 63⌝ }}
 
 end spec
 

@@ -41,7 +41,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 include sem package_sem in
 /-- `Step`'s verdict and next state, from `closure`'s result `out` on `stepAllL gs x y`. -/
 theorem step_result (g0 : HSt) (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Input)
-    (y : Output) (hk : x.Kind' ≠ W64 5) (hS : GOk g0 gs S) (hc : ClosureOk g0 (stepAllL gs x y) out)
+    (y : Output) (hk : x.Kind' = W64 5 → y.Err' ≠ W64 4) (hS : GOk g0 gs S) (hc : ClosureOk g0 (stepAllL gs x y) out)
     (hcl : GClosed g0 out) :
     ((linkv.pM (kSpec g0) decOp).step S (boxIn x, boxOut y)).isSome = decide (out ≠ []) ∧
     ∀ S', (linkv.pM (kSpec g0) decOp).step S (boxIn x, boxOut y) = some S' → GOk g0 out S' := by
@@ -71,6 +71,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     Model.spec (GF := GF) (hG := hG) := by
   intro s0 hsl hs g0
   wp_start as ⟨#Hs0, #Hh0, #Hhs, %Hlen0⟩
+  obtain ⟨Hlen0, Hrv0⟩ := Hlen0
   wp_auto
   ipersist st0
   ipersist h0
@@ -101,7 +102,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro
       exact ⟨rfl, gok_init g0, fun g hg => by
-        simp only [List.mem_singleton] at hg; subst hg; simpa using bounded_gInit g0⟩
+        simp only [List.mem_singleton] at hg; subst hg; simpa using bounded_gInit g0 Hrv0⟩
     isplitr
     · iexact Hsl
     iapply (BigSepL2.bigSepL2_singleton (PROP := IProp GF)).2
@@ -172,7 +173,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       wp_apply wp_step c g x y $$ [$Hc] as %r %rcs ⟨Hr, #Hrcs⟩
       · ipureintro
         unfold Bounded at Hgb
-        refine ⟨by omega, by omega, by omega, fun h => absurd h Hxk⟩
+        refine ⟨by omega, by omega, by omega, fun h => ⟨by word, (Hxk h).2⟩⟩
       ihave %Hrl := ownSlice_len $$ Hr
       ihave %Hrlen := BigSepL2.bigSepL2_length $$ Hrcs
       have Htake : (gs.take (sint.nat (j + W64 1))).foldl (stepOneL x y) [] =
@@ -244,7 +245,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       · ipureintro; exact ⟨by omega, hb1⟩
       ipersist Hout
       obtain ⟨hc, hcl, hob⟩ := Hco
-      obtain ⟨hres1, hres2⟩ := step_result (sem := sem) (package_sem := package_sem) g0 gs ogs S x y Hxk hok hc hcl
+      obtain ⟨hres1, hres2⟩ := step_result (sem := sem) (package_sem := package_sem) g0 gs ogs S x y (fun h => (Hxk h).1) hok hc hcl
       ihave %Hol := ownSlice_len $$ Hout
       ihave %Holen := BigSepL2.bigSepL2_length $$ Hocs
       wp_auto

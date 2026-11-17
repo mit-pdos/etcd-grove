@@ -28,7 +28,15 @@ theorem newObj.wp_proof : newObj.spec (GF := GF) (hG := hG) := by
   wp_alloc p as Hp
   wp_auto
   iapply HΦ
-  ipureintro; nofun
+  icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hn⟩
+  unfold objAtD
+  iexists p, (W64 0)
+  isplitr
+  · ipureintro; exact ⟨rfl, Hn, rfl⟩
+  have hz : (zero_val github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) =
+      dzero.toObj (W64 0) := rfl
+  rw [← hz]
+  iexact Hp
 
 end proof
 
