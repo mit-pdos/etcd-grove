@@ -9,7 +9,10 @@
 - **Done:** Scope + Go evidence (72997e9e36); **L0** `St/WalLinkPure.lean` (proved, no trust change): the read bridge
   `walRead_of_fold`, the eager steps `walFoldChkFrom_save_cons`/`_snoc_save`/`_snoc_snap` (`WalSaveOkC` = `WalSaveOk`
   unfolded, so the sealed `WalRecs` can import it), `walCommitLe_of_fold`, `walCommitLeFrom_snoc/_nil`, `walIdxLe_*`.
-- **Next, in order:** L1a (`PW/Handle.lean`: shared handle `walOpenWS`, the five `NoErr` specs' shared variants,
+- **STOPPED (2026-11-17) on the no-twin rule's cost:** Scope §8 (design over `inv (walOpenWF ∨ ownMutex ∨ tok 1)`,
+  the spec families classified: Save/SaveSnapshot/Sync/Close are twin families, ReleaseLockTo a corollary; delta
+  +2.5-5k lines if the collapses are in L1a). Waiting for etcd-grove-03's decision; no L1a Lean written yet.
+- **Next, in order (after the decision):** L1a (`PW/Handle.lean`: shared handle `walOpenWS`, the five `NoErr` specs' shared variants,
   history-prefix fragment + `walSnapRec` from `SaveSnapshot`) ∥ L1b (server `WalPbIn`/`WalMarshal`; R5 checked:
   `hardStateAt` = `hsOpt` is frozen (`hsRO`), `entRoC` frozen, but `smPtsV mp dq md` is fractional: the `SaveSnap`
   law's conf state must become discarded or layer 1 take a fraction); then L2 (HARD STOP: `ReleaseSnapDBs` axiom),
