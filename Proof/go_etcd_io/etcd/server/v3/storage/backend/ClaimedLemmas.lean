@@ -797,6 +797,19 @@ theorem rbClaimToks_set (γ : BNames) (P : BParams) (S S' : GoString → Prop) (
   have : S = S' := funext fun n => propext (h n)
   subst this; exact ⟨.rfl, .rfl⟩
 
+/-- **Fewer claim tokens.** -/
+theorem rbClaimToks_sub (γ : BNames) (P : BParams) (S S' : GoString → Prop) (h : ∀ n, S' n → S n) :
+    rbClaimToks (GF := GF) γ P S ⊢ rbClaimToks γ P S' := by
+  iintro H
+  ihave H := (rbClaimToks_set γ P S (fun n => S' n ∨ (S n ∧ ¬ S' n)) (fun n =>
+    ⟨fun hs => by
+      by_cases e : S' n
+      · exact Or.inl e
+      · exact Or.inr ⟨hs, e⟩,
+     fun hh => hh.elim (h n) And.left⟩)).1 $$ H
+  icases (rbClaimToks_split γ P S' (fun n => S n ∧ ¬ S' n) (fun n h1 h2 => h2.2 h1)).1 $$ H with ⟨H, -⟩
+  iexact H
+
 /-- **The claim of one tracked bucket** (A6.2): the client's idle part of `n` and its claim token become its
 claimed part and a quarter of the bucket's readers' element, at the part's contents: the claim invariant's
 unclaimed branch (the token's half of the claim element with the branch's makes it whole; a claimed branch

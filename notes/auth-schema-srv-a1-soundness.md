@@ -143,3 +143,44 @@ output is true of Go:
   says nothing about the bucket's kind).
 - A6's constraint (review A1.5 MINOR 3): `rbAcc` runs at mask `⊤` inside `readTx`'s write lock; the client's
   resource `Rr` and accessor must not need `cacheInv` or `readTx`.
+
+## 6. A6.2: the claim without the batch lock (2026-11-17; supersedes §5's claim)
+
+Scope `notes/auth-schema-srv-a6-claim-scope.md` §R (two independent reviews, GO by etcd-grove-03). Lean:
+`InvBackend.lean` (`rbClaimU`/`rbClaimC`/`rbClaimOne`, `rbClaimInv` in `inv rbClaimN`, `rbClaimToks`), the laws in
+`TrackedLemmas.lean` (writes, flag clears) and `ClaimedLemmas.lean` (`rbOwnIn_claim`, the steps of the readers' state,
+the claimed flags, the token laws). `batchLocked_claim`, `trkSide_claim1`, `trkSide_claim` are gone (no twin).
+
+- **The law.** `rbOwnIn γ (· ∈ Sc) r ∗ rbClaimToks γ P (· ∈ Sc) ={E}=∗ rbOwnInR γ (· ∈ Sc) r ∗ [∗list] n ∈ Sc,
+  rbRd γ n ½ (bktOf r n)` (`↑rbClaimN ⊆ E`). The token carries the invariant, so the law needs no `isBackend`
+  (a form decision: `isBackend`'s text and meaning are unchanged, unlike §R's first plan).
+- **Why the readers see `r n`.** The claim invariant's unclaimed branch keeps the link `f = false → v = c.getD ∅`
+  between its `γ.rbk` half `(c, f)` and its `γ.rbr` quarter `v`; the client's idle quarter agrees `(c, f) = (r n,
+  false)`. The link holds at every step that changes `c`, `f` or `v` of an unclaimed bucket: a write sets `f`
+  (needs the invariant's half: client ¼ + lock ¼ + ½); `rbSide_idle` clears `f` only at `Unlock`'s end, where the
+  bucket is idle and `trkOk` gives the readers' contents (`rvBkt_idle`), which the lock's `γ.rbr` quarter agrees
+  with; the steps of the readers' state (`rbrSide_stepR`) move `v` only for a touched bucket outside the claimed
+  list, whose flag is set (`tkI`, below), so the link holds vacuously.
+- **Once.** The token is half of the `γ.rbc` element at `none`; the claimed branch holds `some`, so a second
+  claim refutes itself, and `New` allocates one token per bucket (`newPostK` hands them out, `newPostK_pool` passes
+  them beside `newPostKP`, which holds none). The batch lock never holds a token: `Close` hands none out.
+- **The lock's view (M1, form decided by the agent, differs from §R.2).** A claimed write leaves the `γ.rbk` flag
+  **clear** (the claimed branch states `f = false`) and records itself in `st.cw`; `tkI` became `tk n = idle ∨ cw n`.
+  So a touched bucket with no claimed write has its flag set, hence is unclaimed (the claimed branch's ¾ at
+  `false` disagrees), which is what the steps of the readers' state need, with no relation between the claim
+  marker's flag and `st.cw` (§R.2's `w.2 = f` coupling is not needed; MINOR 3 of the A1.9 review disappears: the
+  claimed `γ.rbk` flag is never set). `rbPartR_idle` still takes the idle premise (A1 review MINOR 2), unused.
+- **A claimed `UnsafeCreateBucket`** sets the claim marker's flag but not `cw` (a completeness gap, the second
+  review's MINOR 3): such a bucket need not be in `Unlock.specC`'s `Sc`, and its `rbOwnInR` may come back only
+  from a later `Unlock`. A6 creates no claimed bucket (`CreateAuthBuckets` runs before the claim).
+- **Forbidden future laws** (second review MINOR 1, decided by etcd-grove-03; also in `bStopView`'s and
+  `rbOwnInR`'s docstrings): (i) any exclusivity law between a claimed resource and a `γ.rbk` share (e.g.
+  `rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`); (ii) any reader law or axiom taking `rbOwnIn` without `bOpen` or a
+  held read lock; (iii) anything re-opening a closed backend under the same ghost names while `bStopView`'s share
+  is held. After `Close` a client may hold the stopped lock's client-shaped quarter of a claimed bucket; it is
+  harmless only because none of these exists.
+- **Trusted texts.** `rbPartF`'s fraction (½ → ¼, uniformly, so the lock still holds one `rbOwn`-shaped share,
+  `backend.Snapshot`'s observation); `OpenBackend`'s `newPostK` gains the tokens (standing argument: `New`'s proof
+  allocates them, `NewAlloc.lean`); `authRdSlots` gains the auth buckets' tokens (`authSchemaSrv`/`authSchemaSnap`'s
+  premise asks more). `newPostKP` is unchanged, so no exported result whose precondition holds `newPostKP`
+  changes (the second review's MINOR 2 does not arise).

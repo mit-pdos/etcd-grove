@@ -138,7 +138,16 @@ and the compaction keys' values (`fkdOwn`) (the `lean` merge, 2026-11-06: over t
 place of `viewAt` and some `dlsOwn`, the agreement the stop's commit has, `dlVd_of_dlsOk`): what
 `backend.Snapshot.spec`'s observation takes (with, as its post, a reader's bound of the compaction
 keys' flag, `fkRd`), so that a client's own halves (by agreement) and its observation of `W ∗ Pk`
-tell what `D` holds (mvcc's `mvccImage_stop.law`). -/
+tell what `D` holds (mvcc's `mvccImage_stop.law`).
+
+(A6.2 of `auth-schema-srv`, 2026-11-17) The stopped lock's `rbOwn` is a client-shaped quarter of every tracked
+bucket's `γ.rbk` element, claimed buckets included, and carries no claim token (the lock never holds one).
+**Forbidden future laws** (decided by etcd-grove-03, the second review of the claim Scope): (i) an exclusivity
+law between a claimed resource (`rbOwnInR`, `rbPartR`, `rbRd`, `rbClaimToks`) and a `γ.rbk` share (e.g.
+`rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`, or "claimed ⇒ no `rbPart`/`rbOwn` of `n`"); (ii) a reader law or
+axiom taking `rbOwnIn` (or a `γ.rbk` share at flag `false`) without `bOpen` or a held read lock; (iii) anything
+that re-opens a closed backend under the same ghost names while this share may be held. Each would make this
+share, harmless today, unsound (`notes/auth-schema-srv-a1-soundness.md`, "A6.2"). -/
 def bStopView (γ : BNames) (P : BParams) (W Pk : IProp GF) (D : Data) : IProp GF :=
   iprop(W ∗ Pk ∗
     (∃ X : GMap (GoString × GoString) GoString, viewAtD γ P (sData P D) X ∗ dlsOwn γ X) ∗

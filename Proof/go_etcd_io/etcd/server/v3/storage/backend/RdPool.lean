@@ -255,7 +255,7 @@ def newPostKP (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Lo
   iprop(isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ K γ ∗
     bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
     rbOwn γ (rbData P D) ∗ rdPool γ P b ∗ rdAuth γ P b ∗ rdStock γ P b ∗
-    dlInit γ ∗ fkCl γ P D ∗ srSlot b ∗ rbClaimToks γ P (fun _ => True))
+    dlInit γ ∗ fkCl γ P D ∗ srSlot b)
 
 /-- **`newPostKP`, by name** (2026-11-02, the backend-auth-split stage; as `newPostK_named`):
 `HnPool` the pool, `HnRT` the counted stock's slots, the others `newPostK_named`'s. -/
@@ -266,8 +266,7 @@ theorem newPostKP_named (γ : BNames) (P : BParams) (W Pk K : BNames → IProp G
         "HnV" ∷ bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ "HnH" ∷ plHook γ func.nil ∗
         "HnRB" ∷ rbOwn γ (rbData P D) ∗ "#HnPool" ∷ rdPool γ P b ∗ "HnRA" ∷ rdAuth γ P b ∗
         "HnRT" ∷ ([∗list] _x ∈ List.replicate rdStockN (), rdTok γ P b) ∗
-        "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ "HnSr" ∷ srSlot b ∗
-        "HnTok" ∷ rbClaimToks γ P (fun _ => True)) := by
+        "HnDl" ∷ dlInit γ ∗ "HnFk" ∷ fkCl γ P D ∗ "HnSr" ∷ srSlot b) := by
   unfold newPostKP rdStock; exact .rfl
 
 /-- A pooled reader's resource from the pool and its slots' open shares. -/
@@ -308,10 +307,12 @@ theorem newPost_pool (hT : threadBound GF ≤ rdPoolN) (E : CoPset)
   iframe
 
 /-- **`newPostK`, its reader slots split into the backend's pool and a counted stock** (as
-`newPost_pool`; the pool's open shares come with the open token, `newPostKP`). -/
+`newPost_pool`; the pool's open shares come with the open token, `newPostKP`); (A6.2 of `auth-schema-srv`,
+2026-11-17) with the claim tokens beside it (`newPostKP` holds none: the store's opener does not take them; the
+auth store's realization does, with the auth buckets' reader slots). -/
 theorem newPostK_pool (hT : threadBound GF ≤ rdPoolN) (E : CoPset)
     (γ : BNames) (P : BParams) (W Pk K : BNames → IProp GF) (b : Loc) (D : Data) :
-    newPostK γ P W Pk K b D ⊢ |={E}=> newPostKP γ P W Pk K b D := by
+    newPostK γ P W Pk K b D ⊢ |={E}=> newPostKP γ P W Pk K b D ∗ rbClaimToks γ P (fun _ => True) := by
   unfold newPostK newPostKP
   iintro ⟨Hb, Hs, Hk, Hv, Hh, Hr, Hrd, Hdl, Hfk, Hsr, Htok⟩
   imod rdToks_pool hT E γ P b $$ Hrd with ⟨Hp, Ha, Hst⟩

@@ -1054,7 +1054,7 @@ theorem rtHeldF_rbRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p :
   iintro ⟨⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
     Hcur, ⟨Hcln, %Hcl, Hrbr⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩,
     %Hn, Hc⟩
-  icases rbrHalves_agree γ P sync.rfrac rv n q v Hn $$ [$Hrbr $Hc] with ⟨Hrbr, Hc, %Heq⟩
+  icases rbrHalves_agree γ P sync.rfrac rv n q.half v Hn $$ [$Hrbr $Hc] with ⟨Hrbr, Hc, %Heq⟩
   isplitl [Hrt Hrl Hrb Hcm Hview Hrd Hrvs Hcur Hcln Hrbr Hhist Hrtxf Hwgf Hpo Hiv Hcr]
   · iexists rt, rd, H, L
     iframe Hrt Hrl Hcr
@@ -1072,9 +1072,10 @@ theorem rtHeldF_rbRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p :
 theorem rbRd_frac (γ : BNames) (n : GoString) (q1 q2 : Qp) (v : BktData) :
     rbRd (GF := GF) γ n (q1 + q2) v ⊣⊢ iprop(rbRd γ n q1 v ∗ rbRd γ n q2 v) := by
   unfold rbRd
+  rw [Qp_half_add]
   constructor
   · iintro ⟨%Hn, H⟩
-    icases ((ghostMapElem_fractional n γ.rbr v).fractional q1 q2).1 $$ H with ⟨H1, H2⟩
+    icases ((ghostMapElem_fractional n γ.rbr v).fractional q1.half q2.half).1 $$ H with ⟨H1, H2⟩
     isplitl [H1]
     · iframe H1; ipureintro; exact Hn
     · iframe H2; ipureintro; exact Hn
@@ -1082,7 +1083,7 @@ theorem rbRd_frac (γ : BNames) (n : GoString) (q1 q2 : Qp) (v : BktData) :
     iframe
     isplitr
     · ipureintro; exact Hn
-    iapply ((ghostMapElem_fractional n γ.rbr v).fractional q1 q2).2
+    iapply ((ghostMapElem_fractional n γ.rbr v).fractional q1.half q2.half).2
     iframe
 
 /-- Two shares of a claimed bucket's readers' contents agree. -/

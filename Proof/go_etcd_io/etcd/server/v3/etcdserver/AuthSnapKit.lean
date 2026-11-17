@@ -36,14 +36,16 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 -- (P6.2) `authOpenQ`, `authBkts`, `ablOn`, `authWAtHook` are `AuthBkHook.lean`'s.
 
 /-- **The auth store's reader slots of the backend `d`** (N4): its auth share (`backend.rdAuth`,
-`backend.authRdN` slots, a part of the constructor's partition, P1), which
+`backend.authRdN` slots, a part of the constructor's partition, P1) and (A6.2 of `auth-schema-srv`, §R.1,
+2026-11-17) the auth buckets' claim tokens (`backend.rbClaimToks`: the realization claims the auth buckets
+without the batch lock, `backend.rbOwnIn_claim`, once per backend), which
 the boot premise and the snapshot clause hand the realization for good (review R4's F1: a permission
 check's read transaction may outlive `beMu`, `store.go:941-947`, so the release cannot give them
 back; `backend.Close` takes only the open token, which the slots carry no share of). A ticket `R` is
 redeemed against a slot of the backend current at `lockedReadTx` (with a share of its currency
 `Cu`, which the release takes whole), so the same `R` works on every backend. -/
 def authRdSlots (d : mvcc.KBReal) : IProp GF :=
-  backend.rdAuth d.γB d.P d.be
+  iprop(backend.rdAuth d.γB d.P d.be ∗ backend.rbClaimToks d.γB d.P authBkts)
 
 /-- **The auth store's reader supply** (N4; review R4's F2 and N2): what `authStoreKit`'s post gives
 the server in place of today's `actualMaxReaders` copies of `RD`, in every mode: `authRdN - 1` plain

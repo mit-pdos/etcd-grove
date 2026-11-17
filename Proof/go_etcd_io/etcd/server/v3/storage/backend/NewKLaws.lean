@@ -46,7 +46,7 @@ theorem newPostKP_intro (γ : BNames) (P : BParams) (W Pk K : BNames → IProp G
     isBackend γ P (W γ) (Pk γ) b ∗ isStopChans γ P (W γ) (Pk γ) b ∗ K γ ∗
       bViewC γ 1 (vData P (D, ⟨∅, W64 0⟩)) true ∗ plHook γ func.nil ∗
       rbOwn γ (rbData P D) ∗ rdPool γ P b ∗ rdAuth γ P b ∗ rdStock γ P b ∗
-      dlInit γ ∗ fkCl γ P D ∗ srSlot b ∗ rbClaimToks γ P (fun _ => True) ⊢
+      dlInit γ ∗ fkCl γ P D ∗ srSlot b ⊢
     newPostKP γ P W Pk K b D := by
   unfold newPostKP; exact .rfl
 

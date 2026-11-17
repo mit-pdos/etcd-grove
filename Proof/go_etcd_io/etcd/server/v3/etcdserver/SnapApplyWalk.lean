@@ -348,7 +348,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   · iunfold isServerM at Hsrv
     icases Hsrv with ⟨-, -, -, -, -, -, %h⟩
     ipureintro; exact h
-  imod backend.newPostK_pool Hrdb ⊤ _ _ _ _ _ _ _ $$ Hnew with Hnew
+  imod backend.newPostK_pool Hrdb ⊤ _ _ _ _ _ _ _ $$ Hnew with ⟨Hnew, HnTok⟩
   -- (strict M1) the new backend's instance, compacting (the API's storage), at the old one's
   -- parameters
   obtain ⟨d', hγ', hbe', hgx', hP', hcm'⟩ : ∃ d' : mvcc.KBReal, d'.γB = γB ∧ d'.be = nb ∧
@@ -788,10 +788,12 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P)) g
       (((backend.rbData d.P D).insert go!"lease" lb).insert go!"alarm" ∅) hkb hany
       (snapAuthImgR_of _ γr d.P D A A' hauthI) hAA' (by rw [hP']; exact halbi.2) Hlgnn Hgnn hRecOn)
-    $$ [HauR HoAu Hauar HnOh HnPl HthT HnRB HnRA HoOh]
+    $$ [HauR HoAu Hauar HnOh HnPl HthT HnRB HnRA HnTok HoOh]
     as ⟨HnAu, HnOh, HnPl, HthT, HnRB, HoOh, Hauar⟩
   · rw [hP']; iframe #; iframe HauR HoAu Hauar HnOh HnPl HthT HnRB HoOh
-    iunfold authRdSlots; rw [hP']; iexact HnRA
+    iunfold authRdSlots; rw [hP']
+    iframe HnRA
+    iapply backend.rbClaimToks_sub d'.γB d.P (fun _ => True) authBkts (fun _ _ => trivial) $$ HnTok
   ihave HnPl : backend.bkRPool (GF := GF) d'.γB d.P d'.be $$ [HnPl]
   · rw [← hP']; iexact HnPl
   (try wp_auto)
