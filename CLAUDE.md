@@ -138,9 +138,11 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `etc/specs-build-all.sh`), imports only the shared translations (`GeneratedProof`, `GooseLang`) and
   Perennial, and nothing outside it imports it (its namespaces are the main tree's). No `Link`/`Results`:
   the trust-base and verified-code scripts see nothing of it.
-- `Robustness/` (lean_lib `Robustness`): the generic statement of robustness theorems (runs of a
-  deployment's real programs with crashes, the network's faults and arbitrary clients; assumptions on
-  the environment's events only; guarantees on the observed trace, e.g. `LinearizableTrace`), and
+- `Robustness/` (lean_lib `Robustness`): the generic statement of robustness theorems, one
+  definition (`Robust crashing stable g bound`: in every execution of Perennial's `DistCrashNsteps`
+  of programs on machines that crash and restart and programs on machines that never crash, with
+  any extensions, no thread is stuck or has a top-level panic; a property such as linearizability
+  is checked by a program of the deployment that panics, never stated over traces in Lean), and
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. A program's statement lives
   with its proofs (`Proof/.../examples/raft/kvnet/Robust.lean`).
