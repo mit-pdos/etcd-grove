@@ -1,6 +1,45 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4: the tie proved standalone; server wiring next)
+## START HERE (S4, 2026-11-17, item 7b F4: step-7 Iris lemmas + apply-thread tie lemmas done; server wiring next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
+  (lean-check `--fast` only). Decisions: `questions.md`, last two entries (the tie ACCEPTED by etcd-grove-03; the agent's
+  forms "F4 step-7 lemmas and WinTieApply", for review).
+- **Done:** `49aab6ebc5`/`add5127999` the tie (`WinTie.lean`); `0d7362641a` `tie_obs` (open `kvsN`+`winTieN`: lbs of the
+  records/anchors, `lessorLb j0`, last anchor at the store's log `L0 ⊒ F`; `¬Fr` excludes a free window) and `tie_law`
+  (open `winTieN`+`lessorRdN`: for `i ≥ j0`, committed `La ⊒ L0`, `Lt`, `σl` holds every item both put on `id`, `id`
+  live); `a5a5ca5595` `WinTieApply.lean` (`winTieRes E Fr` = `∃ γt, ⌜E.Wt = winTok γt⌝ ∗ winTieInv … ∗ lessorRdInv`;
+  `envAus_tie` (envAus from the store invariant + tie at `E.stq = ¼`); `kvOwn_push`/`applyKV_push` (entry window, target
+  `itemsOfLog Lt`); `kvOwn_free`/`applyKV_free`; `uberOwn_win`/`cmpOwn_win` by `.rfl`) and `KVStoreLaws.restorePreA_of_au`
+  (`restoreArgs_holds` now a call of it: use it with `au_restore_tie` on the snapshot path).
+- **Next, in order (one change; nothing compiles in between, so lean-check file by file and commit at the end):**
+  (1) `InvApplier`: import `WinTieApply`; `srvKVInvs` and `KVApplyOn.srvKVInvsOn` gain a LAST conjunct
+  `srvApi.winTieRes E (¬ clusterNoSnap γr.raft.raft.cl)`; `srvEnvOk`'s third conjunct `(E.win = none ∧ E.stq = ¼)`.
+  Patterns that break (end in `%X` at the old last position): StopImage:156, InvApplier:729/742, SnapSendBranch:847,
+  KVApply:282, applyEntryNormal:375/548, MergedImageOn:80, SnapRecvOn:598, ApplyAllSnap:245 (check which predicate),
+  and the `srvKVInvsOn` ones (`grep -A3 "iunfold srvKVInvsOn at"`); `srvEnvOk` users: SnapApplyWalk:641
+  (`.2.2.1.2.2` → `.2.2.1.2`), SnapApplyKV:52/102/116 (`hEw`; `snapE_Wt`), `HEo.2.2.1.1` (win) stays.
+  (2) `srvApplyKV`/`srvApplyKVOn`: `apply.applyKV E ua x` → `∃ w, apply.applyKV {E with win := w} ua x`.
+  (3) NewServer (~l.760 `#Hlrdinv`, ~l.2476 `Haus`) / NewServerR (~l.2165): split `bootStore.law`'s `wSt` into `wStQ ¼`
+  ×2; `tie_alloc` after `NewLessor` (`Lt = log` = boot log, `T = itemsOfLog log`); `Wt := winTok γt`, `stq := ¼` in
+  the `AEnv` literals (sed on `γlt := γlt }`); `Haus` by `envAus_tie`; build `winTieRes` for srvKVInvs.
+  (4) `applyEntryNormal` (6 arms, `grep -n winTgt_none`): `applyKV_push` before `Apply` with `Lt` = the model log after
+  the entry (`backendLog lt rq log`; `KVOutcomeOn.backendLog_of_step`, `revokeLog_eq_backendLog` give `winTgt` for
+  KV/revoke arms; other kinds leave the log), `□ E.Nx Lt` from the raft witness of `A ++ [m]`.
+  (5) Snapshot path (SnapApplyWalk ~l.654): `applyKV_free` (Fr from the toApply payload's `¬ clusterNoSnap`,
+  `InvRaftNode.lean:1951`), then `restorePreA_of_au` with `au_restore_tie` in place of `restoreArgs_holds`.
+  (6) ONE leaves build from `00b09c1360` (kernel-checks `tie_pick`, `tie_obs`, `tie_law`, the `--fast` files).
+  (7) The law (`LessorFollows.lean`, frozen text in `notes/auth-lease-s4-frozen.lean.txt` §5; `lessorLawMask` gains
+  `lessorRdN` and `winTieN`): `m := j0` from `tie_obs`; per `i`, `tie_law`; S5 (not yet found as a lemma): from `kvInv`
+  (holds `etcdKV`'s other half) and `□ E.Nx L` (`srvRLogLb A`, `L = kvModelM … A`): `L.length - 1 ≤ σ.rev` and the
+  items of `σ.at (L.length - 1)` are `itemsOfLog L`; then `leaseKeptIn` at `La`'s and `Lt`'s revisions.
+  (8) Step 8, the c6b merge, full build, tcb-report, gen-interface (see the task brief).
+- **Pitfalls:** `{E with win := w}`'s pieces do not `iframe` into `{E with win := w'}` goals: `iExactEq H; rfl` (see
+  `WinTieApply`). Don't `rw` an Iris hypothesis (`rw … at H` sees only Lean hyps). `cases h : f x` in a proof-mode goal
+  rewrites the Iris context: use `rcases Option.eq_none_or_eq_some (f x)`. In `iinv` patterns, `mvccState γ σ` is not
+  timeless without `Hp`: bind it without `>`. Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: the tie proved standalone; server wiring next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
   (lean-check only). Decisions: `questions.md`, last entry (K1 forms ACCEPTED; namespace option (b): the tie in its own
