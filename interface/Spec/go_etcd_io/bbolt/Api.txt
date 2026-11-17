@@ -10,10 +10,10 @@ theorem bbolt.boltBkt_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : Has
     n g)
 
 def bbolt.statSlot [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ : bbolt.BoltName) :
-    Option (Loc × bbolt.Data) → IProp GF :=
+    Option (Loc × bbolt.TxView) → IProp GF :=
   match x✝ with
   | none => threadTok
-  | some (tx, D) => bbolt.boltTx tx γ 1 (bbolt.TxView.ro D)
+  | some (tx, T) => bbolt.boltTx tx γ 1 T
 
 def bbolt.instInhabitedBoltName.default : bbolt.BoltName :=
   { gs := default, ns := default }
@@ -160,3 +160,7 @@ theorem bbolt.boltTx_later [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs
 
 def (sealed) bbolt.boltTx [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx : Loc) (γ :
     bbolt.BoltName) (q : Qp) (T : bbolt.TxView) : IProp GF
+
+theorem bbolt.boltTx_size [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx : Loc) (γ
+    : bbolt.BoltName) (q : Qp) (D : bbolt.Data) : bbolt.boltTx tx γ q (bbolt.TxView.ro D) ⊢ ⌜∀ (n :
+    GoString) (m : bbolt.BktData), D !! n = some m → GMap.size m < 2 ^ 61⌝
