@@ -44,6 +44,13 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 abbrev objIface (p : Loc) : GoInterface :=
   interface.mkOk (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #p
 
+/-- A model carries the driver's package initialization. -/
+theorem modelAt_pkg (mp : Loc) (m : RM) :
+    modelAt (GF := GF) mp m ⊢ isPkgInit pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 := by
+  unfold modelAt modelRep
+  iintro ⟨#H, -⟩
+  iexact H
+
 theorem itemsRO_dom (M : GMap GoString GoInterface) (items : GMap GoString Obj) (k : GoString) :
     itemsRO (GF := GF) M items ⊢ ⌜(M !! k).isSome ↔ (items !! k).isSome⌝ := by
   iintro H

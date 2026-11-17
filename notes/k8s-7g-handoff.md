@@ -17,12 +17,24 @@
   - **Decided (A), user 2026-11-17**: Perennial's `Sprintf` model gets `%v` of a string as `%s`
     (a Perennial branch); after the pin moves, prove `update`/`delete` (precondition branch) and
     `execute`. Until then do NOT prove update/delete/execute (questions.md "Step 3 STOP").
-  - Next, not blocked: `listItems`, `list`,
-    `listResponseRV`, `validCacherContinue`, `equalListResponse`.
+  - `Model.validCacherContinue` proved (over `listItems.spec`; `predOk_driver`'s `Empty` triple, `opts`
+    made persistent and split). `listItems.spec` and `list.spec` stated (questions.md, Step 3 forms).
+  - **STOP 2 (questions.md)**: (a) `maps.Keys.spec_objMap` returns `(f : val)` (maybe a panic: the
+    `let` cannot step) → fix `(f : GoFunc), RET #f`; blocks the `listItems` proof (skeleton, `sorry`
+    after `wp_Keys`) and `list`. (b) `meta.ListAccessor` has no `*ObjList` spec; blocks
+    `listResponseRV`, `equalListResponse`.
+  - After (a): prove `listItems` (`itemsOfKeys`/`itemsOfKeys_snoc` in its file; loop as `mlist.lean`,
+    `mlistMatches.wp_proof` for `Matches`), then `list`: needs a `newObjList` spec (driver, new) and
+    `versioner.UpdateList.spec`'s pre weakened in place to the metadata fields (`metaAtD`; `SetList`'s
+    post gives no `ownSliceCap`, so `itemsAtD` cannot be shown); `mlistPCT.wp_proof` for the token.
   - **Blocked until the soundness-1117 fix lands** (V): `validateGet`, `validateList`, `Step`.
 - **Standing constraint**: do not touch View.lean / HasStatusCause / IsTooManyRequests /
   SuggestsClientDelay until etcd-grove-03 says the soundness fix (a) + T landed.
 - Pitfalls:
+  - `RefineList` (and so `PredOk`) builds again (`Raw` added); other driver files past `KWatch` may not.
+  - Iris hypothesis with explicit args: `wp_apply HE $$ %_ %DFrac.discard [Pred]`; a struct field of a
+    read-only local: `ipersist opts; ihave #o' := opts; iStructNamed o'`; `iunfold` fails on `modelAt`
+    (use `modelAt_pkg`).
   - A file whose imports are not built (new Spec imports) hangs lean-check at "elaborating line 1"
     for 30+ min: build the imports first with the build slot, then open it.
   - A fresh file in `etc/lean-check.py` can take 10-15 min (import load + lake building its Spec

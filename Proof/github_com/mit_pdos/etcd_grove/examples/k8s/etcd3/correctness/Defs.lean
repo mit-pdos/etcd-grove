@@ -190,6 +190,14 @@ instance changeRep_persistent (cp : Loc) (c : Option RChange) :
     Persistent (changeRep (GF := GF) cp c) := by
   cases c <;> unfold changeRep <;> infer_instance
 
+/-! ## Object slices -/
+
+/-- **The `[]runtime.Object` slice `sl` holds fresh copies of `os`** (owned, with its capacity):
+each element a `*Obj` holding its object (`listItems`' result, `DeepCopyObject`s). -/
+def objsOwn (sl : GoSlice) (os : List Obj) : IProp GF :=
+  iprop(∃ xs : List GoInterface, sl ↦* xs ∗ ownSliceCap GoInterface sl (DFrac.own 1) ∗
+    [∗list] x;o ∈ xs;os, deepRep (DFrac.own 1) x (.obj o))
+
 /-! ## Read consistency -/
 
 /-- A `ReadConsistency`'s string. -/

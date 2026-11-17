@@ -244,8 +244,8 @@ def listOutDriver (x : Input) (R : w64) (a : ListModel.LState w8 (DObj × Nat)) 
   let its := encItemsL (a.items.reverse.map fun p => p.1.toObj (W64 (p.2 : Int)))
   if a.more then
     ⟨W64 0, [], 0, [], [], [], [], [], [], 0, its, R, encL (a.last.getD [] ++ [W8 0]) kp R,
-      predEmptyL x, if predEmptyL x then W64 (a.total : Int) - x.Limit' else 0, [], false⟩
-  else ⟨W64 0, [], 0, [], [], [], [], [], [], 0, its, R, [], false, 0, [], false⟩
+      predEmptyL x, if predEmptyL x then W64 (a.total : Int) - x.Limit' else 0, [], false, zeroValDef⟩
+  else ⟨W64 0, [], 0, [], [], [], [], [], [], 0, its, R, [], false, 0, [], false, zeroValDef⟩
 
 /-! ## The scope -/
 
