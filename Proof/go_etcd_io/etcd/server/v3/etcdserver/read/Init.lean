@@ -69,21 +69,17 @@ class EtcdGrove.ContextReadErrs : Prop where
   errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
     EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗
       go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW
-  /-- The two errors' gRPC descriptions (k8s etcd3 7c-2 part 2, S1, HS-2): neither is a status
-  error, so `errDesc` is its `Error()`, `"context canceled"` and `"context deadline exceeded"`
-  (`context.go`). How to read it (premise-fixes-4, the round-2 premise attack's H1): as a hypothesis
-  for every `hG`, at the unit resource, the entailment is of every resource satisfying `isPkgInit
-  context`, and `isPkgInit` is persistent fragments only, valid at any location; so it holds only if
-  `errDesc` of `*errorString` at every location whose `s` is `"context canceled"` is that string
-  (and likewise of `deadlineExceededError`), not only at the location this run's initializer
-  allocates. That is the per-execution claim Go makes of the values themselves (`errDesc` is opaque:
-  `status.FromError` of a non-status error is its `Error()`); this repository neither proves nor
-  refutes it (`notes/STATUS.md`, the unproved bag items). -/
-  descs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
-    (∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
-        ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗
-      (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗
-        ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝)
+  /-- `DeadlineExceeded`'s gRPC description (k8s etcd3 7c-2 part 2, S1; restated by incomingof Part B,
+  approved by the user 2026-11-17 via etcd-grove-03): its value is `deadlineExceededError{}`
+  (`context.isInit`'s `HDeadlineExceededTy`), not a status error, so `status.FromError` gives its
+  `Error()`, `"context deadline exceeded"` (`context.go`; `examples/axiomcx/incomingof` `TestCtxErrDescs`).
+  A fact of one value with no location, the same in every run. The former `Canceled` half (an
+  entailment from `isPkgInit context` to `errDesc` of a `*errorString` pointer) is gone: a pure fact
+  about a pointer's description, from persistent cells, holds of every location (`crossWorld`,
+  `notes/axiom-review/ctx-descs.md`); its users now take `Error()`'s message per run (`ctxErrsErr`). -/
+  descDeadline : go_etcd_io.etcd.cache.v3.errDesc
+      (interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
+        #(zero_val _root_.Perennial.context.deadlineExceededError)) = go!"context deadline exceeded"
 
 /-- `ContextReadErrs.errs` with the two errors' `Format` facts (premise-fixes-4: `errVarLeaf`,
 `ctxDeadlineLeaf`): neither has a `Format` method, from Perennial's `context.isInit` (`Canceled`'s

@@ -199,7 +199,8 @@ abbrev kv.Do.specG : Prop :=
         (Val #(GoInterface.ok ci))) (Val #opv))
     {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
         (⌜o.t = W64 1 ∧ err ≠ GoInterface.nil ∧ sortValid o = true⌝ -∗
-          ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err) ∗
+          (ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err ∨
+            ⌜∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝)) ∗
         doOut o Qp Qr Qd r err }}
 
 /-- **`kv.Put(ctx, key, val, opts...)` for any spec registered for `Put` at the connection** (the
@@ -224,8 +225,8 @@ abbrev kv.Put.specG : Prop :=
 
 /-- **`kv.Get(ctx, key, opts...)` for any spec registered for `Range` at the connection** (the
 auth plan's E3zc; `kv.Get.specM`'s, in the transport's terms): `R` back, `rangeCallOut Qr`, an error
-of a valid sort option with the caller's error outcome `Ψr` (`ifcErrOut`; k8s 7e-1). The
-request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
+of a valid sort option with the caller's error outcome `Ψr` (`ifcErrOut`; k8s 7e-1), or the context's
+error (incomingof Part B). The request fits a gRPC message (`opSizeOk`; 2026-10-30, `grpcInvokerOk`). -/
 abbrev kv.Get.specG : Prop :=
   ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key : GoString) (sl : GoSlice)
@@ -243,7 +244,8 @@ abbrev kv.Get.specG : Prop :=
         go!"Get")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       (⌜err ≠ GoInterface.nil ∧ sortValid (opGetModel key gs) = true⌝ -∗
-        ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err) ∗
+        (ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err ∨
+          ⌜∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝)) ∗
       R ∗ rangeCallOut Qr resp err }}
 
 /-- **`kv.Delete(ctx, key, opts...)` for any spec registered for `DeleteRange` at the connection**

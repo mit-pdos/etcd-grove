@@ -142,8 +142,8 @@ theorem store.getList.wp_proof
           · iunfold rangeErrSound at Hrs1
             iunfold rangeErrSound
             imodintro
-            iintro %Hd
-            ihave Hx := Hrs1 $$ %Hd
+            iintro %Hd %Hty
+            ihave Hx := Hrs1 $$ %Hd %Hty
             icases Hx with ⟨%R, %σ, #HQ', %Hlt⟩
             icases HQ' with ⟨%m, #HQm⟩
             iexists R, σ

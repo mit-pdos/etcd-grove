@@ -7,7 +7,8 @@ conjuncts; (3) the context-error case in the client's Range error outcome (`clie
 which k8s `Get`/`List` rule out; (4) `errors.IsStatusErr.spec` strengthened for an `EtcdError` target. This file
 gives every new or changed trusted text exactly, and checks each against (a) `crossWorld`, (b) the
 persistent-authoritative-heap fresh world (the attack that refuted Part A, `incomingof.md`), (c) adequacy plus
-nondeterministic allocation (Scope §0.2). **Status: awaiting the independent attack. No Lean changed yet.**
+nondeterministic allocation (Scope §0.2). **Status: the independent attack (etcd-grove-03, 2026-11-17) found no
+BLOCKER or MAJOR: all texts survive; its MINORs M1-M5 are folded in below (section "After the attack").**
 
 ## The attack model, stated once
 
@@ -74,7 +75,9 @@ def ctxErrShape (e : GoInterfaceOk) : Prop :=
 ```
 Docstring sentence: `Err()`'s non-nil error stably returns from `Error()` some message `m` that is no handler's
 description (`errorMsgIs e m`, `m ∉ handlerDescs`), and is not an `EtcdError` and has no `Is` method; grpc's
-invoker on a done context returns `status.FromContextError(ctx.Err())`, which keeps `m` as the status message.
+invoker on a done context returns `status.FromContextError(ctx.Err())`, which keeps `m` as the status message,
+or prefixes it for an error other than the two context errors (`transport.ContextErr`: `"Unexpected error from
+context packet: " + m`), a description that is no handler's either.
 - (a)/(b): `ctxErrsErr` is a definition (a WP form), not an entailment. In `W` it holds for every context
   (WP forms do), which is harmless: no trusted text has `ctxErrsErr`/`ctxErrClient`/`ctxOk` as the antecedent of
   an entailment (checked: no axiom or premise field with these, `statusErrOk`, `errorMsgIs` or `errMsgOk`
@@ -85,7 +88,7 @@ invoker on a done context returns `status.FromContextError(ctx.Err())`, which ke
   the types (`go.method_set_is` for `*errors.errorString` and `context.deadlineExceededError`, as
   `errorStringNoGRPCStatus_inst` does). Its consumers: (i) grpc's invoker model `grpcInvokerOk` (trusted,
   unchanged), whose post grants `Ψe (errDesc err)` only at `handlerDescs` descriptions: Go meets it because
-  `FromContextError` keeps `m ∉ handlerDescs` (Go below); (ii) `ContextError`'s proof (T5); (iii)
+  `FromContextError` keeps `m ∉ handlerDescs` (Go below); (ii) `ContextError`'s proof (T4); (iii)
   `waitRetryBackoff.spec` (an axiom over a names-only function, text unchanged: its post's `errDesc err ∉
   handlerDescs` is the `status.Error` of `ctx.Err().Error()`, which is now exactly what the message form says
   in Go terms; a post of uninterpreted code, so not exposed to (a)-(c)).
@@ -229,6 +232,31 @@ method sets. Neither uses `descs`.
 ```
 `etcdError` mirrors `rpctypes.EtcdError`'s shape (a comparable struct, value-receiver `Error`, no `Is`); `errors.Is`
 depends only on that. `TestErrorStringDescByCell` is why no pure `errDesc` fact of `Canceled` is stated.
+
+## After the attack (etcd-grove-03, 2026-11-17): all texts survive; MINORs folded
+
+Go evidence of the attack, with the real `rpctypes` and `ContextError` at the etcd pin:
+`examples/axiomcx/incomingof-real/real_test.go` (own module, the fork at the pin as `examples/go.mod` replaces
+it; `GOTOOLCHAIN=go1.27.3 GOWORK=off go test -v ./...`, all pass): `TestRealTypes` (`ErrFutureRev` is an
+`EtcdError` with methods `{Code, Error}`; `Canceled`, `DeadlineExceeded` have no `Is` and are no `EtcdError`;
+`errors.Is` against `ErrFutureRev` is true of an equal `EtcdError`, of non-leaf wrappers, false of a
+`*status.Error` of the same description) and `TestContextErrorRaw` (`ContextError` returns the raw
+`ctx.Err()` for a gRPC `Canceled`/`DeadlineExceeded` on a done context, a `*status.Error` on a live one).
+
+- **M1. More trusted texts that now claim the message form.** `withVersion.wp_proof` and `tracing.Start.wp_proof`
+  (axioms) produce `ctxOk`/`ctxErrClient` of the derived contexts they return, so through `ctxErrClient`'s
+  new body they now claim `Err()`'s message form and `ctxErrShape`: true, since a value context's `Err()` is
+  its parent's (`context.go`, `valueCtx` embeds its parent; otel's `ContextWithSpan` is a `WithValue`), and the
+  parent's satisfies it. `grpc.ClientConn.NewStream.wp_proof` takes `ctxErrClient` in its precondition only,
+  so it is weakened (its callers give a stronger fact than before, as the text is a WP form). Texts unchanged.
+- **M2.** The `ctxErrsErr` docstring says grpc keeps `m` or prefixes it (done above, T2).
+- **M3.** `descDeadline`: deleted if unused after the build (reported at the land stop).
+- **M4. `toGRPCErrorMap_init`'s precondition** (`{{ True }}`) could be hardened to
+  `[∗ list] g ∈ grpcErrKeyGlobals, ∃ k, globalAddr g ↦□ k`, so that its wand from cells to `(M !! k).isSome`
+  speaks only of the cells that exist at the call. Not done: its one caller (v3rpc's `initialize'`) would
+  have to collect the 53 keys' persistent points-tos from eight packages' initializers, not cheap. Recorded
+  as a pre-existing hardening item for the per-heap Scope; the trusted text is unchanged (old = new).
+- **M5.** The T2 → T4 cross-reference is fixed.
 
 ## Trust-base delta (expected)
 

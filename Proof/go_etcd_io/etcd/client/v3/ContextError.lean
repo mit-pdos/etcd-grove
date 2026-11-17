@@ -88,14 +88,16 @@ theorem ContextError.wp_proof
           | ok e2 =>
             simp only [reduceCtorEq, ↓reduceIte]
             wp_auto
-            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 %Hd3
+            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 Hd3
             · iexact He2
+            icases Hd3 with (%Hn3 | ⟨%e3', %m3, %Hm3, -⟩)
+            · exact absurd Hn3 Hne3
             ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
                 go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
             · iintro !> -; iexact Hcl3
             iapply HΦ
             iframe #; ipureintro
-            exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr (Hd3.resolve_left Hne3)⟩
+            exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr ⟨e3', Hm3.1, Hm3.2.2⟩⟩
         · wp_if_destruct
           · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - - -
             cases e2 with
@@ -106,14 +108,16 @@ theorem ContextError.wp_proof
             | ok e2 =>
               simp only [reduceCtorEq, ↓reduceIte]
               wp_auto
-              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 %Hd3
+              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 Hd3
               · iexact He2
+              icases Hd3 with (%Hn3 | ⟨%e3', %m3, %Hm3, -⟩)
+              · exact absurd Hn3 Hne3
               ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
                   go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
               · iintro !> -; iexact Hcl3
               iapply HΦ
               iframe #; ipureintro
-              exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr (Hd3.resolve_left Hne3)⟩
+              exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr ⟨e3', Hm3.1, Hm3.2.2⟩⟩
           · iapply HΦ
             iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
     · wp_auto

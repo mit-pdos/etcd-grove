@@ -1410,9 +1410,14 @@ K4 of `notes/k8s-compactor-plan.md`, the user's approval): `Err()` returns `nil`
 context is done (`ContextClosed cd.Done_gn`), a non-nil error; a non-nil error means it is done, and
 is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`: true of
 `context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return), whose
-description is not a handler's (`handlerDescs`; k8s etcd3 7c, HS-5 (a), approved by the user
-2026-11-06 via etcd-grove-82: grpc returns `status.FromContextError(ctx.Err())`, which keeps the
-message, so an attempt's error would carry it with no handler run). The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`); `ctxErrs` adds `Done()`'s (`ctxDone`, premise fixes 5). It is what a context
+`Error()` stably returns a message that is not a handler's description (`errorMsgIs e m`, `m ∉
+handlerDescs`; k8s etcd3 7c, HS-5 (a), approved by the user 2026-11-06 via etcd-grove-82; restated in
+message form by incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03: the former
+`errDesc err ∉ handlerDescs`, a pure fact about a pointer's description, had no per-run source; grpc
+returns `status.FromContextError(ctx.Err())`, which keeps `m`, or prefixes it for an error other than
+the two context errors (`transport.ContextErr`: `"Unexpected error from context packet: " + m`), so an
+attempt's error would carry a non-handler description with no handler run), and whose shape is a
+context error's (`ctxErrShape`: not an `EtcdError`, no `Is` method; `examples/axiomcx/incomingof-real`). The client's `ctxErrClient` has this body (`ctxErrClient_eq_errs`); `ctxErrs` adds `Done()`'s (`ctxDone`, premise fixes 5). It is what a context
 outside Perennial's model meets: k8s's `wait.ContextForChannel(stopCh)` (a `channelContext`, whose
 `Done()` is `stopCh` and whose `Err()` is `Canceled` once `stopCh` is closed; not an `isContext`,
 whose `parentCancelCtx` finds a `*cancelCtx`). -/
@@ -1428,7 +1433,9 @@ def ctxErrsErr (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IPro
                 else context.ContextClosed cd.Done_gn) -∗
         ⌜clientErr err⌝ -∗ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
         go_etcd_io.etcd.cache.v3.errCellOk err -∗
-        ⌜err = interface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗ Φ #err) -∗
+        (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
+          ⌜err = GoInterface.ok e ∧ m ∉ handlerDescs ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+          go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrsErr_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :

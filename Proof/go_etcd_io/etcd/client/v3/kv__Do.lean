@@ -123,9 +123,12 @@ theorem kv.Do.wp_generic
         iapply HΦ
         isplitl [Heo]
         · iintro -
-          iapply (ifcErrOut_desc _ _ _ _ _ (Hd' (by simp)))
-          iapply Heo
-          ipureintro; simp
+          rcases Hd' (by simp) with hd | hctx
+          · ileft
+            iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
+            iapply Heo
+            ipureintro; simp
+          · iright; ipureintro; exact hctx
         unfold doOut
         simp only [Ht, ↓reduceIte]
         unfold rangeCallOut

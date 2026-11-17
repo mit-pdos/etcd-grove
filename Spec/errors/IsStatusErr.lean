@@ -12,6 +12,12 @@ does not panic for a comparable target).
 for a leaf error (`statusErrOk`: no `Unwrap`), `Is` is `err == target` or `err.Is(target)`; equal
 errors have equal descriptions; `*status.Error`'s `Is` compares the two statuses (`proto.Equal`),
 messages included; `EtcdError` has no `Is` (`==` compares `code` and `desc`).
+(incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03) For an `EtcdError` target, `true`
+of an error without an `Is(error) bool` method only if it is an `EtcdError`: Go's `is` (go1.27.3
+`src/errors/wrap.go`) on a leaf error answers `err == target` (interface equality compares the dynamic
+types first) or `err.Is(target)`; an error with an `Is` method may answer `true` at another type
+(`examples/axiomcx/incomingof` `TestIsEtcdTarget`, `incomingof-real` `TestRealTypes`). A fact of types,
+the same in every run. What rules a context error out (`ctxErrShape`).
 -/
 module
 
@@ -48,7 +54,12 @@ abbrev errors.IsStatusErr.spec : Prop :=
     ∃ tii, target = GoInterface.ok tii ∧ SafeMapKey (GF := GF) go.error target) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.errors ∗ statusErrOk err }}
     (App (App (Val (@! _root_.Perennial.errors.Is)) (Val #err)) (Val #target))
-  {{ (b : Bool), RET #b; ⌜b = true → errDesc err = errDesc target⌝ }}
+  {{ (b : Bool), RET #b; ⌜b = true → errDesc err = errDesc target ∧
+      ((∃ x : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError,
+          target = interface.mkOk go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty #x) →
+        ∀ e : GoInterfaceOk, err = GoInterface.ok e →
+          methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) →
+          e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)⌝ }}
 
 end spec
 

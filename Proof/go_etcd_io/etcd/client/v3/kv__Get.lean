@@ -77,9 +77,12 @@ theorem kv.Get.wp_generic
     iapply HΦ
     isplitl [Heo]
     · iintro %h
-      iapply (ifcErrOut_desc _ _ _ _ _ (Hd' Hne))
-      iapply Heo
-      ipureintro; exact ⟨Ht, Hne, h.2⟩
+      rcases Hd' Hne with hd | hctx
+      · ileft
+        iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
+        iapply Heo
+        ipureintro; exact ⟨Ht, Hne, h.2⟩
+      · iright; ipureintro; exact hctx
     iframe HR
     unfold rangeCallOut
     iright
@@ -122,9 +125,12 @@ theorem kv.Get.wp_members
   iintro %hs
   unfold rangeErrOut
   iintro %h
-  iapply (rangeErrΨ_of_ifc ms c F _ Q err h.2)
-  iapply Heo
-  ipureintro; exact ⟨h.1, hs⟩
+  ihave Heo' := Heo $$ %⟨h.1, hs⟩
+  icases Heo' with (Heo' | %hctx)
+  · ileft
+    iapply (rangeErrΨ_of_ifc ms c F _ Q err h.2)
+    iexact Heo'
+  · iright; ipureintro; exact hctx
 
 theorem kv.Get.wp_proof
     (wp_NewOp : NewOp.spec (GF := GF) (hG := hG))
