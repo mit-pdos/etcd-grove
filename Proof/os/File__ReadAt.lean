@@ -303,8 +303,56 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
           refine ⟨?_, .inr (by intro h; cases h)⟩
           rw [List.length_append, hpl, hc2l, hcl]; omega
 
-theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
+/-- **The racing read, generic in its `pread`s' errnos** (`specRacyLt` with a `*PathError` only
+of an errno `e ≠ 0` with `Pe e`): over a semantics whose `pread` steps return an errno with `Pe`
+(`hpost`, a strengthening of their weakest preconditions as `wp_ext_post` gives). `specRacyLt`
+(any errno) and `specRacyLtNoErr` (errno 0: no error) are its instances. -/
+theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
+    (hpost : ∀ (fd o n : w64) (Φ : val → IProp GF),
+      WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#o) (#n)))))
+          {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → Pe e⌝ -∗ Φ r }} ⊢
+        WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#o) (#n))))) {{ Φ }})
+    (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
+    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List ByteG))
+    (eof : GoInterface)
+    (hrd : d.readable = true) (hoff : 0 ≤ off.toInt) (hn2 : vs.length ≤ 0x40000000)
+    (hend : off.toNat + vs.length < 2 ^ 63) :
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
+      osFd (GF := GF) fd dq d ∗
+      ([∗list] r ∈ rs, osBytes (GF := GF) d.ino r.1 r.2.1 r.2.2) ∗
+      globalAddr io.EOF ↦□ eof }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ([∗list] r ∈ rs, osBytes d.ino r.1 r.2.1 r.2.2) ∗
+      ∃ vs' : List w8, sl ↦* vs' ∗
+        ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
+          (∀ i b, os.heldByte rs i b → off.toNat ≤ i → i < off.toNat + n.toNat →
+            vs'[i - off.toNat]? = some b)⌝ ∗
+        (⌜(err = interface.nil ∧ n.toNat = vs.length) ∨
+           (err = eof ∧ n.toNat < vs.length ∧ ∀ i b, os.heldByte rs i b → off.toNat ≤ i →
+              i < off.toNat + vs.length → i < off.toNat + n.toNat)⌝ ∨
+         (∃ pe : Loc, ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe ∧
+           ∃ e : w64, Pe e ∧ e ≠ W64 0⌝ ∗ fmtErrorOk err)) }} := by
+  have hread : ∀ (o n : w64) (Φ : val → IProp GF), 0 ≤ o.toInt →
+      ⊢ osInv (GF := GF) -∗ osFd (GF := GF) fd dq d -∗
+        ([∗list] x ∈ rs, osBytes (GF := GF) d.ino x.1 x.2.1 x.2.2) -∗
+        (∀ r : List w8, ∀ e : w64,
+          ⌜∀ x ∈ rs, ∀ k (hk : k < x.2.2.length), o.toNat ≤ x.1 + k →
+            x.1 + k < o.toNat + n.toNat →
+            ∀ (h : x.1 + k - o.toNat < r.length), r[x.1 + k - o.toNat] = x.2.2[k].1⌝ -∗
+          ⌜e = W64 0 → r = [] → ∀ x ∈ rs, ∀ k (_ : k < x.2.2.length), o.toNat ≤ x.1 + k →
+            x.1 + k < o.toNat + n.toNat → False⌝ -∗ ⌜Pe e⌝ -∗
+          osFd (GF := GF) fd dq d -∗ ([∗list] x ∈ rs, osBytes (GF := GF) d.ino x.1 x.2.1 x.2.2) -∗
+          Φ (PairV (#r) (#e))) -∗
+        WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#o) (#n))))) {{ Φ }} := by
+    intro o n Φ hoI
+    iintro #Hinv Hfd Hbs HΦ
+    iapply hpost
+    iapply wp_osPRead_racy_list fd o n dq d rs CoPset.subseteq_top hrd hoI _ $$ Hinv Hfd Hbs
+    iintro %r %e %h1 %h2 Hfd Hbs %hP
+    iapply HΦ $$ %r %e %h1 %h2 %(hP _ _ rfl) Hfd Hbs
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hbs, #Heof⟩
   unfold os.model.inner
@@ -403,8 +451,7 @@ theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG
       rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
     rw [decide_eq_false hmx]
     wp_auto
-    wp_apply wp_osPRead_racy_list fd o b.len dq d rs CoPset.subseteq_top hrd hoI
-      $$ Hinv Hosfd Hbs as %r %e %hre %hemp Hosfd Hbs
+    wp_apply hread o b.len _ hoI $$ Hinv Hosfd Hbs as %r %e %hre %hemp %hPe Hosfd Hbs
     wp_apply wp_string_to_bytes r as %tmp ⟨Htmp, -⟩
     by_cases hr0 : r = []
     · icases ownSlice_len tmp _ _ $$ Htmp with %Htl
@@ -454,7 +501,7 @@ theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin cur rfl
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩
-          iright; iexists pe; iframe Hok; ipureintro; rfl
+          iright; iexists pe; iframe Hok; ipureintro; exact ⟨rfl, e, hPe, he0'⟩
     · wp_apply wp_slice_copy b cur tmp r (DFrac.own 1) $$ [Hcur Htmp] as %mm ⟨%hmm, Hcur, -⟩
       · iframe
       have hrl : 0 < r.length := List.length_pos_iff.2 hr0
@@ -547,7 +594,23 @@ theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG
           obtain ⟨⟨-, hl⟩, hx⟩ := hfin _ hc2l
           isplitr
           · ipureintro; exact ⟨hl, by omega, hx⟩
-          iright; iexists pe; iframe Hok; ipureintro; rfl
+          iright; iexists pe; iframe Hok; ipureintro; exact ⟨rfl, e, hPe, he0'⟩
+
+theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
+  iintro %Φ Hpre HΦ
+  iapply os.File.ReadAt.wp_proofRacyLtQ (fun _ => True)
+    (fun _ _ _ _ => wp_mono (fun _ => by iintro H; iapply H; ipureintro; intros; trivial))
+    f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend $$ Hpre
+  inext
+  iintro %n %err ⟨Hfo, Hfd, Hbs, %vs', Hsl, %h, Hr⟩
+  iapply HΦ
+  iframe
+  isplitr
+  · ipureintro; exact h
+  icases Hr with (%h4 | ⟨%pe, %hpe, Hok⟩)
+  · ileft; ipureintro; exact h4
+  · iright; iexists pe; iframe Hok; ipureintro; exact hpe.1
 
 /-- **The racing read** (`specRacy`): `specRacyLt`'s post, weakened. -/
 theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := hG) := by

@@ -130,6 +130,51 @@ theorem wp_osFsyncBNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Si
   · iapply HΦ $$ %c Hm Hfd
   · exact absurd rfl h0.1
 
+/-- A write's token anywhere (`pwTokG`) says what is in flight under it (`pwTok_inflight`). -/
+theorem pwTokG_inflight (t : Nat) (p : Ino) (off : Nat) (data : List w8) (m : OsMeta)
+    (xs : List ByteG) (n : Nat) (st : OsState) :
+    iprop(pwTokG (L := L) t p off data m xs n ∗ ExtInterp.localCtx (E := fsExt) (extLocalGS fsExt) st)
+      ⊢ ⌜∃ c, st.proc.inflight !! t = some c ∧ c.kind = .write off data⌝ := by
+  iintro ⟨Ht, Hc⟩
+  icases (os_local_ctx_eq st).mp $$ Hc with Hc
+  unfold pwTokG osTok osCtx osCtxF
+  icases Ht with ⟨Ht, -⟩
+  icases Hc with ⟨⟨%Γb, %Γm, %Γf, %Γt, %Hwc, -, -, -, HAt, -⟩, -⟩
+  icases gAuth_lookup _ _ _ _ _ _ $$ HAt Ht with %Hti
+  ipureintro
+  obtain ⟨c, hct⟩ : ∃ c, st.proc.inflight !! t = some c := by
+    have := Hwc.2.toks t; rw [Hti] at this; exact Option.isSome_iff_exists.1 this.symm
+  obtain ⟨-, hckind, -⟩ := Hwc.2.tok_is t _ c Hti hct
+  exact ⟨c, hct, hckind⟩
+
+/-- **`pwrite`'s end below `maxBytes` returns errno 0** (`NoIoErr`, every inode covered), as a
+strengthening of its weakest precondition: from a resource `T` that names the write in flight under
+the token (`pwTok`, `pwTokG`), every step ends in a pair with errno 0 (`pwFinish_noErr`,
+`wp_ext_postS`). The form `os.File.WriteAt.wp_proofQ`/`wp_proofExtQ` take. -/
+theorem wp_pwFinish_postNE {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.ino st i)
+    (t : Nat) (off : Nat) (data : List w8) (hoff : off < maxBytes) (T : IProp GF)
+    (hT : ∀ st : OsState, iprop(T ∗ ExtInterp.localCtx (E := fsExt) (extLocalGS fsExt) st) ⊢
+      ⌜∃ c, st.proc.inflight !! t = some c ∧ c.kind = .write off data⌝)
+    (Φ : val → IProp GF) :
+    ⊢ T -∗ (T -∗ WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E
+        {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → e = 0⌝ -∗ Φ r }}) -∗
+      WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) @ s; E {{ Φ }} := by
+  iintro HT H
+  iapply wp_ext_postS "PWriteFinish" (osTokV t) (by simp [val.isPanic]) T
+    (fun (st : OsState) => ∃ c, st.proc.inflight !! t = some c ∧ c.kind = .write off data)
+    hT (fun r => ∃ r0, r = PairV r0 (#(0 : w64)))
+    (fun h st g e' h' st' g' ⟨c, hc, hk⟩ hs => pwFinish_noErr hS t c off data hoff h st g e' h' st'
+      g' ⟨hc, hk⟩ hs) Φ $$ HT
+  iintro HT
+  iapply wp_wand $$ [HT H]
+  · iapply H $$ HT
+  iintro %r H %hr
+  iapply H
+  ipureintro
+  intro r0 e he
+  obtain ⟨r1, rfl⟩ := hr
+  exact (go.intoVal_inj (val.PairV.inj he).2).symm
+
 end specs
 
 end Fs

@@ -274,3 +274,41 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `flock` cannot be error-free: the semantics has no success while another description holds a
     conflicting lock (`LockStep`: it waits, or fails), so `NoMapLockErr` keeps its failures; bbolt's
     `flock` is non-blocking (`LOCK_NB`), so `Open` does not need it.
+* 2026-11-17: **S3c, the error-free `ReadAt`/`WriteAt`** (session `bbolt-noerr-os`, branch `bbolt-noerr-os` off
+  `bbolt-integrate`): items 1 and 2 done; 3 and 4 (`OpenFile`) **blocked by `EMFILE`**, below. No new
+  `axiom` or `sorry`, no existing statement changed, bbolt's proofs untouched.
+  - **Generic proofs** (each public, in the spec's proof file): the Go models' loops made generic in
+    their steps' errnos, the existing proof an instance (`Pe := True`), the error-free one another
+    (`Pe e := e = 0`). `os.File.ReadAt.wp_proofRacyLtQ Pe hpost` (`File__ReadAt.lean`): `hpost`
+    strengthens `pread`'s weakest precondition with `Pe` of its errno (the form `wp_ext_post` gives);
+    the post's `*PathError` arm carries `∃ e, Pe e ∧ e ≠ 0`. `os.File.WriteAt.wp_proofQ B Pe hpost`
+    (`File__WriteAt.lean`) and `wp_proofExtQ` (`File__WriteAtExt.lean`): `hpost` strengthens `pwrite`'s
+    end, from its token (`pwTok`/`pwTokG`) at an offset below `B`, for a write ending by `B` (the
+    form `wp_ext_postS` gives); the failure arm carries `∃ e, Pe e ∧ e ≠ 0`.
+  - **Extension level** (`NoErrSpecsOpen.lean`): `pwTokG_inflight` (`pwTok_inflight` for a write
+    anywhere) and `wp_pwFinish_postNE` (`pwrite`'s end below `maxBytes` returns errno 0 under `NoIoErr`,
+    every inode covered, from any resource naming the write in flight: `pwFinish_noErr`, `wp_ext_postS`).
+  - **The specs** (under `[FsStepSat (NoIoErr Sio)]`, `∀ st i, Sio.ino st i`; `NoMapLockErr` is not
+    needed):
+    `os.File.ReadAt.specRacyLtNoErr` (`Spec/os/File__ReadAtNoErr.lean`): `specRacyLt` without the
+    `*PathError` arm: `nil` with all of `b`, or `io.EOF` with `n < len(b)` and every held byte of
+    `[off, off + len(b))` read (the model's `io.EOF`: a `pread` that read nothing).
+    `os.File.WriteAt.specNoErr` and `specExtNoErr` (`Spec/os/File__WriteAtNoErr.lean`): `spec`/`specExt`
+    for a write ending by `maxBytes` (premise `off + len(b) ≤ maxBytes` in place of `< 2 ^ 63`: at
+    `maxBytes` `pwrite` fails with `EFBIG` whatever the premise), returning `(len(b), nil)`: the
+    `OsMeta` `pwPost m off n n` (resp. `os.pwPostE m off n n n`, which is `pwPost m off n n` by `rfl`),
+    the bytes `os.PwOut … n` (resp. values `pwValsG … n`). A short `pwrite` (errno 0) is still followed
+    by another attempt. Proofs `Proof/os/File__ReadAtNoErr.lean`, `File__WriteAtNoErr.lean`.
+  - **`OpenFile` (items 3, 4): not done, needs a decision.** The model's `open` succeeds only with a
+    free fd (`FdFree st fd`: nonnegative, unused by `fds`, `dfds`, `ofds`), and the fd maps are finite
+    maps that may hold all `2 ^ 63` nonnegative fds: from such a state `open` has no success, so
+    `NoIoErr` keeps every errno there (its doc: "`EMFILE` with no free fd"), and no spec can state
+    "no error" without knowing the state has a free fd, which no resource of the logic says (fds are
+    not counted). Either a premise (a bound on open fds, the closed theorems' or a `StepPrem`), or a
+    semantics change as S3b's for `mmap`: `open` with no free fd does not return (a stall, like
+    `MmapStall`, Go's out of file descriptors outside the model). Both trusted, so not made here. With
+    either, the rest is mechanical, and was drafted (not committed): `wp_fs_stepM` handing the
+    semantics' step on (`wp_fs_stepMX`), `wp_logStepSWG`/`wp_logStepSW` with a fact `SQ` of that step
+    in `hpost` (`wp_logStepSWGQ`/`wp_logStepSWQ`), `wp_osOpenCreateS'` with the errno's `Pe` (from
+    `hpe`, the success built from `OpenEffect` and a free fd), then a Go-level `specCreateSNoErr` with
+    no loop (the first attempt succeeds); `ENOENT`/`EEXIST` are not possible outcomes there already.

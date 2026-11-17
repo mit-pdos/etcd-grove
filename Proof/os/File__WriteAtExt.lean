@@ -192,8 +192,62 @@ theorem waCut_short (off len nn c k : Nat)
   · left; rw [← Nat.add_assoc]; exact h0
 
 set_option maxHeartbeats 4000000 in
-theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d m xs hwr hoff hbig hn hxl
+/-- **`WriteAt.specExt`, generic in its `pwrite`s' errnos** (as `wp_proofQ`): a failure only with
+an errno `e ≠ 0` with `Pe e`, over a semantics whose `pwrite` ends at an offset below `B` return an
+errno with `Pe` (`hpost`), for a write ending by `B`. `specExt` (any errno, `B = 2 ^ 63`) and
+`specExtNoErr` (errno 0 below `maxBytes`: no failure) are its instances. -/
+theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : w64 → Prop)
+    (hpost : ∀ (t : Nat) (p : Ino) (o : Nat) (dt : List w8) (m : OsMeta) (xs : List ByteG) (n : Nat)
+      (Φ : val → IProp GF), o < B →
+      ⊢ pwTokG (GF := GF) t p o dt m xs n -∗
+        (pwTokG (GF := GF) t p o dt m xs n -∗
+          WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t)))
+            {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → Pe e⌝ -∗ Φ r }}) -∗
+        WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) {{ Φ }})
+    (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
+    (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hbig : off.toNat + data.length < 2 ^ 63)
+    (hn : 0 < data.length)
+    (hxl : xs.length = min (off.toNat + data.length) m.size - min off.toNat m.size)
+    (hB : off.toNat + data.length ≤ B) :
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+      osBytes (GF := GF) d.ino (min off.toNat m.size) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (min off.toNat m.size) (off.toNat + data.length) }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
+      ∃ (j a E : Nat) (ys : List ByteG),
+        ⌜j ≤ a ∧ a ≤ data.length ∧ min data.length 0x40000000 ≤ a ∧ E ≤ j ∧ (j = a → E = a) ∧
+          ys.map Prod.fst = pwValsG m.size off.toNat data j xs ∧
+          os.WaCut off.toNat data.length j ∧
+          ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
+           (n = W64 0 ∧ err ≠ interface.nil ∧ ∃ e : w64, Pe e ∧ e ≠ W64 0))⌝ ∗
+        osMeta d.ino (DFrac.own 1) (os.pwPostE m off.toNat a j E) ∗
+        osBytes d.ino (min off.toNat m.size) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) ∗
+      fmtErrorOkOrNil err }} := by
+  have hfin : ∀ (t : Nat) (p : Ino) (o : Nat) (dt : List w8) (m : OsMeta) (xs : List ByteG) (n : Nat)
+      (Φ : val → IProp GF), o < B →
+      ⊢ osInv (GF := GF) -∗ pwTokG (GF := GF) t p o dt m xs n -∗
+        (∀ k : Nat, ∀ e : w64, ∀ zs : List Cands,
+          ⌜k ≤ dt.length ∧ ((k = dt.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+            zs.length = pwSize m.size o k - m.size ∧
+            ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
+          ⌜PwCut o dt.length k⌝ -∗ ⌜Pe e⌝ -∗
+          osMeta (GF := GF) p (DFrac.own 1) (pwPost m o dt.length k) -∗
+          osBytes (GF := GF) p (min o m.size) (DFrac.own 1) (pwBytesG m.size o dt k n xs zs) -∗
+          mcells (GF := GF) m.maps (min o m.size) (o + dt.length) (pwCellG m.size o dt k xs) -∗
+          Φ (PairV (#(W64 k)) (#e))) -∗
+        WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) {{ Φ }} := by
+    intro t p o dt m xs n Φ hoB
+    iintro #Hinv Ht HΦ
+    iapply hpost t p o dt m xs n Φ hoB $$ Ht
+    iintro Ht
+    iapply wp_osPWriteFinishG t p o dt m xs n CoPset.subseteq_top _ $$ Hinv Ht
+    iintro %k %e %zs %h1 %h2 Hm Hbs Hc %hP
+    iapply HΦ $$ %k %e %zs %h1 %h2 %(hP _ _ rfl) Hm Hbs Hc
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
   unfold os.model.inner
@@ -334,10 +388,10 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
       omega)
     $$ Hinv Hosfd Hm Hbs2 Hc2 as %t %nst %hst Hosfd Ht
   have hmlo : mj.lo ≤ mj.size := hst.2.2.2
-  wp_apply wp_osPWriteFinishG t d.ino oc.toNat cd mj
+  wp_apply hfin t d.ino oc.toNat cd mj
     ((ys.drop (min oc.toNat (pwSize m.size off.toNat j) - min off.toNat m.size)).take
       (min (oc.toNat + c) (pwSize m.size off.toNat j) - min oc.toNat (pwSize m.size off.toNat j)))
-    nst CoPset.subseteq_top $$ Hinv Ht as %k %e %zs %hke %hpc Hm Hbs2 Hc2
+    nst _ (by omega) $$ Hinv Ht as %k %e %zs %hke %hpc %hPe Hm Hbs2 Hc2
   obtain ⟨hk, hke, -, -⟩ := hke
   rw [hcdl] at hk
   rw [hcdl, hocN] at hpc
@@ -477,7 +531,8 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj',
+            .inr ⟨rfl, (by intro h; cases h), e, hPe, he0'⟩⟩
       · rw [decide_eq_false hkl]
         wp_auto
         simp only [decide_eq_false he0', Bool.not_false]
@@ -490,7 +545,28 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj',
+            .inr ⟨rfl, (by intro h; cases h), e, hPe, he0'⟩⟩
+
+theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl data dqs off dq d m xs hwr hoff hbig hn hxl
+  iintro %Φ Hpre HΦ
+  iapply os.File.WriteAt.wp_proofExtQ (2 ^ 63) (fun _ => True)
+    (fun _ _ _ _ _ _ _ _ _ => by
+      iintro Ht H
+      iapply wp_wand $$ [Ht H]
+      · iapply H $$ Ht
+      iintro %r H; iapply H; ipureintro; intros; trivial)
+    f fd name dqf sl data dqs off dq d m xs hwr hoff hbig hn hxl (by omega) $$ Hpre
+  inext
+  iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %a, %E, %ys, %h, Hm, Hbs, Hc, Hok⟩
+  iapply HΦ
+  iframe Hfo Hsl Hfd Hok
+  iexists j, a, E, ys
+  iframe Hm Hbs Hc
+  ipureintro
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8.imp id (fun h => ⟨h.1, h.2.1⟩)⟩
 
 end proof
 
