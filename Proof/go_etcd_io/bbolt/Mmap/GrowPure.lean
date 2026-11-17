@@ -82,7 +82,7 @@ theorem wdbOK'_grown (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Na
     (h16 : ∀ f, w.C.flpg = some f → 16 ≤ (w.wb f).length)
     (hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → wb' s = w.wb s)
     (hlen : ∀ s, 4096 * (s + 1) ≤ m'.size → w.m.size < 4096 * (s + 1) → (wb' s).length = 4096)
-    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 63)
+    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 62)
     (h14 : m'.size ≤ L ∨ m'.size % 4096 = 0)
     (hpart' : ∀ s, 4096 * s < m'.size → m'.size < 4096 * (s + 1) →
       m'.size - 4096 * s ≤ (wb' s).length) :

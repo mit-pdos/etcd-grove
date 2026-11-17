@@ -162,17 +162,20 @@ def spareTok (B : BNs) : IProp GF := iprop(ghostVar B.spr (1 : Qp).half (none : 
 /-- **`metalock`'s resource**: half of the committed state and a quarter of the data, the
 closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots' page-cache
 bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
-reader part, and, while open, the committed state's well-formedness; the txids are at least 1
+reader part, the persistent time receipt of the committed txid (session bbolt-inv: at least that
+many counted steps were taken, so the txid is below `receiptBound GF ≤ 2 ^ 62`, what `fileHolds`
+and `boltImage` ask of a file's txid when `Close` and `Tx.WriteTo` give one out; `Commit`'s meta
+write raises it), and, while open, the committed state's well-formedness; the txids are at least 1
 (U3 finding 6: `ReleasePendingPages` computes `t - 1` of each, which wraps at 0). -/
 def metaR (B : BNs) (db : Loc) (p : BFile) : IProp GF :=
   iprop(∃ (C : CommitSt) (F : GMap Nat w64) (cl : Bool) (fli : GoInterface) (wa : GoFunc),
     ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
-    ghostVar B.cls (1 : Qp).half cl ∗
+    ghostVar B.cls (1 : Qp).half.half cl ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} (!cl) ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
     (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
-    ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗
+    ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗ ⧖ C.txid ∗
     ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
 
 /-! ## `mmaplock` and `statlock` -/
@@ -275,8 +278,9 @@ def wdbOK (w : WDb) : Prop :=
   -- allocated pages are then below `tx.meta.Pgid()`, its panic check)
   (∀ x ∈ w.fl.free, x.toNat < w.C.hwm) ∧
   -- batch 37 (U4d): the file's size is an `int64` (`DB.fileSize`'s `Stat`; `Open` reads it,
-  -- `DB.grow` truncates to an `int64`)
-  w.m.size < 2 ^ 63 ∧
+  -- `DB.grow` truncates to an `int64`); session bbolt-inv: below `2 ^ 62`, as `fileHolds` asks
+  -- (`Open`'s file is, `DB.grow` truncates below it, a write ends inside the mapping)
+  w.m.size < 2 ^ 62 ∧
   -- batch 37 (U4d): a file past the mapping ends on a page (its partial last page would have no
   -- owner; bbolt never makes such a file: `Open` maps at least the file, `DB.grow` above
   -- `AllocSize` truncates to whole pages)
@@ -313,8 +317,8 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
     wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
     (match w.junk with
-     | some (jb, jl) => iprop(∃ vf, cellsR jb 0 jl vf)
-     | none => iprop(emp)))
+     | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true)
+     | none => iprop(dghostVar B.nf (DFrac.own 1) false)))
 
 /-- The idle writer side's core: no `rwtx`, no live writer. -/
 def wdbCore (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
@@ -341,9 +345,12 @@ def wdbOpen (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
     ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
 /-- **A closed database's writer side**: the other halves of the ghost state and of the fields
-`Close` wrote. -/
+`Close` wrote; and (session bbolt-inv) how the file went: given up (`DB.Close`, or a mapping
+leaked: `nf` discarded at `true`, `boltNoFile`), or given back (`DB.Close_own`, which took the
+client's validity token `bq`, so that no later `Close_own` of a `boltState` holder is closed). -/
 def closedR (B : BNs) (db : Loc) : IProp GF :=
-  iprop(ghostVar B.cls (1 : Qp).half true ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
+  iprop(ghostVar B.cls (1 : Qp).half true ∗
+    (dghostVar B.nf DFrac.discard true ∨ ghostVar B.bq 1 ()) ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
     ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
     ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
     mapFields db (DFrac.own (1 : Qp).half) ms ∗

@@ -217,13 +217,14 @@ theorem store_release_len (C : CommitSt) (fl : FLPg) (ms : MapSt) (F : GMap Nat 
     (hro1 : ∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid) :
     inv (pagesN N) (pagesInv (GF := GF) B p) ∗ ghostVar B.cur (1 : Qp).half.half C ∗
       ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
-      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ⊢
+      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostMapAuth B.fltx 1 F ∗
+      ghostVar B.cls (1 : Qp).half false ⊢
     |={E}=> ∃ (S : List Nat) (bs : Nat → List w8),
       ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.fl (1 : Qp).half (fl.releasePending ro) ∗
       ghostVar B.map (1 : Qp).half ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
       ghostMapAuth B.fltx 1 F ∗ slotsOwn ms p S bs ∗
       ⌜∀ s, s ∈ S ↔ s ∈ slotsOf C fl ∧ s ∉ slotsOf C (fl.releasePending ro)⌝ ∗
-      ⌜∀ s ∈ S, (bs s).length = 4096⌝ :=
+      ⌜∀ s ∈ S, (bs s).length = 4096⌝ ∗ ghostVar B.cls (1 : Qp).half false :=
   store_release B N p E hE C fl ms F ro hro hro1
 
 end store

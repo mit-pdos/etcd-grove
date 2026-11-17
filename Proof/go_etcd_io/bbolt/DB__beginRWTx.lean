@@ -173,22 +173,22 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   try wp_auto
   iunfold metaR at HR
-  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa, Hro,
+  icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa, Hro, #Hrcm,
     %Hok, %HF⟩
   iunfold rwR at HW
   icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo)
   rotate_left
   · -- closed: `ErrDatabaseNotOpen`
     iunfold closedR at Hclo
-    icases Hclo with ⟨Hcls, %C2, %fl2, %ms2, Hcur2, Hst2, Hfl2, Hmap2, Hmf2, Hout2, Hwv2, Hop2,
+    icases Hclo with ⟨Hcls, Hnfb, %C2, %fl2, %ms2, Hcur2, Hst2, Hfl2, Hmap2, Hmf2, Hout2, Hwv2, Hop2,
       Hfli2, Hwa2⟩
     wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (rwR K.B K.db K.p K.sp K.t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur2 Hst2
-      Hfl2 Hmap2 Hmf2 Hout2 Hwv2 Hop2 Hfli2 Hwa2]
+    wp_apply sync.Mutex.wp_Unlock _ (rwR K.B K.db K.p K.sp K.t0) $$ [$Hsync $Hrw $Hrwl Hcls Hnfb Hcur2
+      Hst2 Hfl2 Hmap2 Hmf2 Hout2 Hwv2 Hop2 Hfli2 Hwa2]
     · iunfold rwR; iright; iunfold closedR; iframe
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
       Hfl' Hwa' Hob Hmlk Hfa Hro]
-    · iunfold metaR; iexists C, F, cl, fli, wa; iframe; ipureintro; exact ⟨Hok, HF⟩
+    · iunfold metaR; iexists C, F, cl, fli, wa; iframe Hrcm; iframe; ipureintro; exact ⟨Hok, HF⟩
     iapply HΦ
     iright
     isplitr
@@ -228,7 +228,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       try (ipureintro; exact Hwok)
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
       Hfl' Hwa' Hob Hmlk Hfa Hro]
-    · iunfold metaR; iexists w.C, F, false, w.fli, wa; iframe; ipureintro
+    · iunfold metaR; iexists w.C, F, false, w.fli, wa; iframe Hrcm; iframe; ipureintro
       exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
     iapply HΦ
     iright
@@ -271,7 +271,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   iunfold fltxAuth at Hfa
   icases Hfa with ⟨Hfa, Hspr⟩
   imod store_release_len K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl (some (b, l)) F ro Hperm HF
-    $$ [Hpi Hcur Hgfl Hgmap Hgwv Hfa] with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hfa, Hso, %HS, %Hbs⟩
+    $$ [Hpi Hcur Hgfl Hgmap Hgwv Hfa Hcls] with
+    ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hfa, Hso, %HS, %Hbs, Hcls⟩
   · iframe; iframe #
   have hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64 := by
     intro t ht
@@ -302,8 +303,8 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     have := h2ok.2.2.1; rw [h2C, h2fl, h2w] at this; exact this
   have hhwm : w.C.hwm ≤ 2 ^ 62 := by
     have := h2ok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2; rw [h2C] at this; exact this
-  imod store_wbegin K.B K.N K.p ⊤ CoPset.subseteq_top w.C b l $$ [Hpi Hcur Hgmap Hgwv]
-    with ⟨Hcur, Hgmap, Hgwv, Hvc⟩
+  imod store_wbegin K.B K.N K.p ⊤ CoPset.subseteq_top w.C b l $$ [Hpi Hcur Hgmap Hgwv Hcls]
+    with ⟨Hcur, Hgmap, Hgwv, Hvc, Hcls⟩
   · iframe; iframe #
   -- the writer's records
   have h64 : w.C.txid + 1 < 2 ^ 64 := by have := htree.2.2.2.2.2; omega
@@ -372,7 +373,7 @@ theorem DB.beginRWTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
     Hfl' Hwa' Hob Hmlk Hfa Hspr Hro]
-  · iunfold metaR; iexists w.C, F, false, w.fli, wa; iunfold fltxAuth; iframe; ipureintro
+  · iunfold metaR; iexists w.C, F, false, w.fli, wa; iunfold fltxAuth; iframe Hrcm; iframe; ipureintro
     exact ⟨fun _ => ⟨hok, htree, htx1⟩, HF⟩
   iapply HΦ
   ileft

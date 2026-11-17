@@ -239,3 +239,38 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
   theorem changed; no axiom or `sorry` added.
 * **Gates.** All pass but `k8s client error types` (`examples/k8s/etcd3`'s Go test: `startCluster
   failed`, an environment failure of the shared machine; this change touches no Go code).
+* 2026-11-17, **bbolt-inv** (branch `bbolt-inv`, off `bbolt-integrate` with S2 merged): the invariant
+  redesign for (A) `DB.Close` giving the file back, done; (B) `Tx.WriteTo`, not done (what is left
+  below). Decisions: `notes/bbolt-spec-decisions.md`, "bbolt-inv" (D-V1..D-V7).
+  - **Found: the txid bound cannot survive a close.** `fileHolds`' `txid < 2 ^ 62` with `Open`'s
+    receipts (`t0 < 2 ^ 62`, a session's commits below `receiptBound GF ≤ 2 ^ 62`) makes any
+    hand-back unprovable (open at `2 ^ 62 - 1`, commit, close). Fixed by persistent time receipts
+    (D-V1): `metaR` holds `⧖ C.txid`, raised by the meta write; `fileHolds` holds `fileRcpt` of its
+    bytes; **API change**: `fileHolds_of_image` takes `boltImageRcpt (xs.map Prod.fst)` (new,
+    sealed, persistent), which `Tx.WriteTo` will give.
+  - **A file given back is whole pages** (D-V2): `fileHolds`/`boltImage` ask `size % 4096 = 0`;
+    `wdbOK`'s size clause `size < 2 ^ 62`; `DB.grow`'s premise `sz + AllocSize < 2 ^ 62`; a file left
+    with a partial last page (a failed chunked write) is given up at `Close` (`boltNoFile`).
+  - **API additions**: `boltIno γ i` (persistent; both `Open` posts now `isBolt db γ ∗ boltIno γ i ∗
+    boltState γ 1 D`), `boltNoFile γ` (persistent: the file given up by `DB.Close` or a leaked
+    mapping), `boltImageRcpt`, and `FsNoErr` (`GooseLang/Ext/Fs/FsNoErr.lean`, a definition:
+    `NoIoErr` and `NoMapLockErr` hold for an `IoSet` covering every file).
+  - **`DB.Close_own.spec`** (`Spec/go_etcd_io/bbolt/DB__Close_own.lean`): `{isBolt db γ ∗ boltIno γ i
+    ∗ boltState γ 1 D} db.Close() {err. (⌜err = nil⌝ ∗ fileHolds i D) ∨ (boltState γ 1 D ∗ (⌜¬ FsNoErr⌝
+    ∨ (⌜err = nil⌝ ∗ boltNoFile γ)))}`. **`DB.Close_ownNoErr.spec`** (`DB.Close_noErr.spec`'s
+    premises): `{same} … {err. ⌜err = nil⌝ ∗ (fileHolds i D ∨ (boltState γ 1 D ∗ boltNoFile γ))}`. The
+    no-error variant keeps `boltNoFile` for: the database closed earlier by `DB.Close` (which keeps
+    the file), a file left with a partial last page (impossible under the premises, not used there),
+    and **a mapping leaked by a failed `madvise`**, which bbolt's `mmap`
+    does not unmap and which no premise on `fsExt`'s steps excludes (`unix.Madvise`'s model returns
+    any errno; for the user: modelling `madvise` as an `fsExt` operation would close it).
+  - Invariant: `pagesInv`'s slot bytes in `slotsOs` (closed alternative, `cls` ¼ there, ¼ `metaR`);
+    `store_close`; `wdbCoreG`'s junk clause holds the new name `nf`; `closedR` records `nf` or the
+    validity token `bq`; `t0At` records the inode. Proof: `Proof/go_etcd_io/bbolt/DB__Close_own.lean`
+    over `Open/CloseFile.lean` (the bytes gathered, `DB.close.spec_ownedNoErrM`) and
+    `Inv/CloseImage.lean` (pure: `closeBytes_fileOK`).
+  - Every existing public spec keeps its statement but the `Open` posts (`boltIno`, allowed) and
+    `fileHolds_of_image` (premise, no client). No new `axiom` or `sorry`.
+  - **(B) left**: S4a's blockers 1-3, 5, 6 (the file handle's share for readers, the synced freelist
+    page a store slot, `pread` of store slots inside `pagesInv`, `WriteFlag`, `io.CopyN` specs);
+    blocker 4's txid bound is D-V1 (`Begin` can copy `metaR`'s `⧖` into the reader's part).

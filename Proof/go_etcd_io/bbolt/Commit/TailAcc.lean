@@ -56,7 +56,7 @@ kept, its size grown at most to the mapping's end (a write past the end, `Tx.wri
 slots inside the file whole pages, the synced freelist page's bytes kept. -/
 theorem wdbOK_reslot (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) (hok : wdbOK w)
     (hW : ∀ s, s ∈ W ↔ s ∈ w.W) (hsz1 : w.m.size ≤ m.size)
-    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 63)
+    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 62)
     (hmaps : m.maps = w.m.maps)
     (hwb : ∀ s ∈ w.W, 4096 * (s + 1) ≤ m.size → (wb s).length = 4096)
     (hfl : ∀ f, w.C.flpg = some f → extentBytes wb f = extentBytes w.wb f)

@@ -64,7 +64,7 @@ abbrev Open.spec : Prop :=
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
       (∃ V', osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
-            ⌜γ.ns = N ∧ lookupH R V' path = some (.file i)⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
+            ⌜γ.ns = N ∧ lookupH R V' path = some (.file i)⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D) ∨
          ⌜err ≠ GoInterface.nil⌝)) }}
 
 end spec

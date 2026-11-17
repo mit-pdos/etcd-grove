@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.bbolt.Open.LogFmt
 public import Proof.go_etcd_io.bbolt.Open.SyncAcc
 public import Proof.go_etcd_io.bbolt.Inv.LoggerOk
 public import Proof.go_etcd_io.bbolt.Open.PoolNew
+public import Proof.ReceiptTactics
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -262,9 +263,12 @@ macro "open_ret" : tactic => `(tactic| (
   isplitr
   · ipureintro; exact ⟨rfl, hl⟩
   iframe Hst'
-  unfold isBolt
+  unfold isBolt boltIno
   rw [bnsOf_mkGs]
-  iexact Hbolt))
+  isplitr
+  · iexact Hbolt
+  iexists _
+  iapply isBoltCoreP_t0At $$ Hcore))
 
 set_option hygiene false in
 /-- `Open`'s success exit from the core phase's state `Hstate`. -/
@@ -423,7 +427,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
         (∃ x : X, Back x ∗
           ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
-              ⌜γ.ns = N ∧ Good x i⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
+              ⌜γ.ns = N ∧ Good x i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D) ∨
            ⌜err ≠ GoInterface.nil⌝)) }} := by
   wp_start as ⟨#Hos, %HN, Hph, Hopts, %Hok, Hlgr⟩
   ihave %Hoptnn := optsAt_nonnull _ _ _ $$ Hopts
@@ -630,12 +634,15 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   -- the database's file: its path and inode
   obtain ⟨p, rfl, rfl⟩ : ∃ p : BFile, p.path = path ∧ p.ino = i := ⟨⟨path, i⟩, rfl, rfl⟩
   unfold openedF
-  icases Hop with ⟨%m, %xs, Hfm, Hxs, %Hm⟩
+  icases Hop with ⟨%m, %xs, Hfm, Hxs, %Hm, #Hrcf⟩
   try wp_auto
-  wp_apply hName f fd p.path (DFrac.own 1) $$ [Hf] as Hf
+  wp_apply +noauto hName f fd p.path (DFrac.own 1) $$ [Hf] as Hf
   · iexact Hf
   icases (optsAt_timeout_rd opts dq o) $$ Hopts with ⟨%dqx, %tmo, Hx, Hback⟩
-  try wp_auto
+  -- a persistent receipt of one step (session bbolt-inv: an initialized file's txid, 1, is
+  -- `metaR`'s `⧖`), from `flock`'s resolution
+  imod preceipt_zero (GF := GF) with #Hrc1
+  wp_raise_receipt Hrc1
   ihave Hopts := Hback $$ Hx
   rw [← fileOwn_eq] at *
   wp_apply hFlock dbl f fd p ⟨p.ino, true, true, none, none⟩ (DFrac.own 1) true tmo rfl $$ [file Hf Hfdo] as %ferr
@@ -735,7 +742,8 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗
       ∃ (m' : OsMeta) (xs' : List ByteG) (C : CommitSt),
         osMeta p.ino (DFrac.own 1) m' ∗ osBytes p.ino 0 (DFrac.own 1) xs' ∗
-        ⌜m'.maps = ∅ ∧ xs'.length = m'.size ∧ m'.size < 2 ^ 62 ∧ openOK C D m' xs'⌝ ∗
+        ⌜m'.maps = ∅ ∧ xs'.length = m'.size ∧ (m'.size < 2 ^ 62 ∧ m'.size % 4096 = 0) ∧
+          openOK C D m' xs'⌝ ∗ ⧖ C.txid ∗
         dbl.[DB, go!"file"] ↦ f ∗ (∃ dqp, dbl.[DB, go!"pageSize"] ↦{dqp} W64 4096) ∗
         (dbl.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
@@ -774,9 +782,12 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         iexists m', xs', initC
         obtain ⟨hm1, hm2, hm3⟩ := Hx'
         have hl : xs'.length = 16384 := by rw [← List.length_map Prod.fst, hm3, initImg_length]
+        ihave #Hrci : ⧖ initC.txid $$ []
+        · iapply (preceipt_mono (GF := GF) (show initC.txid ≤ 0 + 1 by simp [initC])) $$ Hrc1
+        iframe Hrci
         iframe; iframe #
         ipureintro
-        exact ⟨hm1, hm2, by omega, openOK_init m' xs' hm3 hm2⟩
+        exact ⟨hm1, hm2, ⟨by omega, by omega⟩, openOK_init m' xs' hm3 hm2⟩
       · cases ierr with
         | nil => exact absurd rfl Hie
         | ok ei =>
@@ -808,7 +819,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
       try wp_auto
       have h8 := openOK_size C D m xs hC
       wp_apply hGPS dbl f fd p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-        (DFrac.own 1) (dbFd p.ino) m xs C rfl rfl hxl (by omega) hsz hC.2.1 hC.1.1 hC.1.2.1
+        (DFrac.own 1) (dbFd p.ino) m xs C rfl rfl hxl (by omega) hsz.1 hC.2.1 hC.1.1 hC.1.2.1
         $$ [file pageSize Hf Hfdo Hfm Hxs] as %gsz %gerr ⟨file, pageSize, Hf, Hfdo, Hfm, Hxs, Hg⟩
       · iframe; iframe #
       icases Hg with (%Hg | ⟨%Hge, #Hek⟩)
@@ -818,6 +829,8 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
         isplitr
         · ipureintro; rfl
         iexists m, xs, C
+        ihave #HrcC := fileRcpt_get _ C hC.1 hC.2.1 $$ Hrcf
+        iframe HrcC
         iframe
         ipureintro
         exact ⟨hmaps, hxl, hsz, hC⟩
@@ -834,7 +847,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
           · unfold closeMapRes; iempintro
           iright; iexists fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
         open_exit_j fmtVerbs_psErr [interface.mkOk go.string #(p.path), GoInterface.ok ei]
-  iintro (⟨%Hv, %m', %xs', %C, Hfm, Hxs, %HC, file, ⟨%dqp, pageSize⟩, writeAt, Hf, Hfdo, readOnly,
+  iintro (⟨%Hv, %m', %xs', %C, Hfm, Hxs, %HC, #HrcC, file, ⟨%dqp, pageSize⟩, writeAt, Hf, Hfdo, readOnly,
     opened, freelist, path, Hmf, datasz, err, db, Hdefer⟩ | ⟨%e, %He, err, #Hek, db, Hdefer⟩)
   rotate_left
   · obtain ⟨rfl, hne⟩ := He
@@ -974,7 +987,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
     (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
-      Hxs Hbp Hcells freelistLoad Hbq] as Hlf
+      Hxs Hbp Hcells freelistLoad Hbq HrcC] as Hlf
   · unfold lfPre
     rw [← hxl']
     iframe; iframe #

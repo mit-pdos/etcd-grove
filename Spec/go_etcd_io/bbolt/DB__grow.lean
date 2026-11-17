@@ -36,7 +36,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 grows after the old freelist page's free; `wdbW_wdbW'`/`wdbW'_wdbW` convert at `fr = false`). -/
 abbrev DB.grow.spec : Prop :=
   ∀ (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (sz : w64),
-  0 ≤ sint.Z sz → sint.Z sz + 0x1000000 < 2 ^ 63 → sint.Z sz % 4096 = 0 →
+  0 ≤ sint.Z sz → sint.Z sz + 0x1000000 < 2 ^ 62 → sint.Z sz % 4096 = 0 →
   {{ K.core (GF := GF) ∗ wdbW' fr K tx v w }}
     (App (Val (K.db @!! go.GoType.PointerType DB.ty @!! go!"grow")) (Val #sz))
   {{ (err : GoInterface), RET #err; ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ ∗

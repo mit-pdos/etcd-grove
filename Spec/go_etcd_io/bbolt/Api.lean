@@ -26,6 +26,7 @@ public import GooseLang.Ext.Fs.TreeSpecs
 public import GooseLang.Ext.Fs.TreeSpecsOpen
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Data
+public import Perennial.Ghost.DGhostVar
 import Proof.go_etcd_io.bbolt.Inv.FileHolds
 import Proof.go_etcd_io.bbolt.Inv.TxSize
 
@@ -95,6 +96,21 @@ points-to). `StrictMode = true` alone would change `Commit` (it runs `tx.Check()
 read transactions, a panic on any report). etcd writes none of them. -/
 @[no_expose] def isBolt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) : IProp GF :=
   isBoltDef (bnsOf γ.gs) γ.ns db
+
+/-- **The database `γ`'s file is the inode `i`** (persistent; session bbolt-inv): the file `Open`
+opened (`Open.spec`, `Open_shared.spec` give it), which a closer owning the data gets back
+(`DB.Close_own.spec`). -/
+@[no_expose] def boltIno [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (i : Ino) : IProp GF :=
+  iprop(∃ t0 : Nat, t0At (GF := GF) (bnsOf γ.gs) t0 i)
+
+/-- **The database `γ`'s file was given up** (persistent; session bbolt-inv): `DB.Close` closed it
+(`DB.Close` does not give the file back), or a mapping of it leaked (a remap's `munmap` failed, or
+its `mmap`'s `madvise`, after which bbolt does not unmap: `mmap` in `bolt_unix.go`), or the file
+was not whole pages when it was closed (a commit's write failed part way past the file's end: the
+writes are chunked, `Tx.write`, so a failed one can leave a partial last page; `fileHolds` asks
+whole pages). What `DB.Close_own.spec` gives in place of the file. -/
+@[no_expose] def boltNoFile [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
+  dghostVar (bnsOf γ.gs).nf DFrac.discard true
 
 /-- **The committed data of `γ` is `D`**, at fraction `q`: the client's view, which the
 atomic updates of `Begin(false)` and `Commit` act on (fractional: a read needs some fraction, a
@@ -246,14 +262,23 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 
 /-- **The bytes `bs` are a bbolt database file holding `D`** (S4a of
 `notes/bbolt-integration-plan.md`, D-I6; pure): what `fileHolds` asks of a file's page-cache bytes,
-with the file's size the length of `bs`: below `2 ^ 62` bytes, and either empty (`D = ∅`) or a
+with the file's size the length of `bs`: whole pages below `2 ^ 62` bytes (session bbolt-inv: whole
+pages, as every file bbolt writes), and either empty (`D = ∅`) or a
 well-formed bbolt file whose committed tree holds `D` (every clause of `fileHolds`' docstring:
 metas, page extents, the synced freelist page, the high-water mark inside the bytes, the txid's
 bounds). What `Tx.WriteTo` writes (its two meta pages and its data pages; many byte strings encode
 one `D`, by their page layout and free pages), and what a file must hold for `Open` to read `D`
 (`fileHolds_of_image`). Sealed: a client relates it only through that law. -/
 @[no_expose] def boltImage (bs : List w8) (D : Data) : Prop :=
-  bs.length < 2 ^ 62 ∧ fileOK bs bs.length D
+  (bs.length < 2 ^ 62 ∧ bs.length % 4096 = 0) ∧ fileOK bs bs.length D
+
+/-- **The bytes `bs`' txid has been reached** (persistent; session bbolt-inv): the time receipt
+of the txid of the committed state `bs` is an image of (if any). A file's txid counts its commits,
+each a counted step of the program, so it is below the bound on the program's steps: what an
+`Open` of the file needs, besides `boltImage`, to bound its later txids (`fileHolds_of_image`).
+`Tx.WriteTo` gives it for the bytes it writes; a client carries it with them. -/
+@[no_expose] def boltImageRcpt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (bs : List w8) : IProp GF :=
+  fileRcpt bs
 
 /-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
 file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
@@ -276,6 +301,15 @@ def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : His
 -- is a fixed proposition, so a ghost name inside it does not agree between two copies; D-E).
 -- The clients carry `γ` instead: the backend already has it (`BNames`' `γ.db`, beside every
 -- `isDB db`), so its layer is `isDB db := isBolt db γ.db` (`notes/bbolt-spec-decisions.md`, D19).
+@[instance] theorem boltIno_persistent (γ : BoltName) (i : Ino) :
+    Persistent (boltIno (GF := GF) γ i) := by
+  unfold boltIno t0At; infer_instance
+@[instance] theorem boltNoFile_persistent (γ : BoltName) :
+    Persistent (boltNoFile (GF := GF) γ) := by
+  unfold boltNoFile; infer_instance
+@[instance] theorem boltImageRcpt_persistent (bs : List w8) :
+    Persistent (boltImageRcpt (GF := GF) bs) := by
+  unfold boltImageRcpt; infer_instance
 @[instance] theorem boltState_timeless (γ : BoltName) (q : Qp) (D : Data) :
     Timeless (boltState (GF := GF) γ q D) := by
   unfold boltState; infer_instance
@@ -413,16 +447,18 @@ theorem fileHolds_new (i : Ino) :
 
 /-- **A file holding a database image holds its data** (S4a, D-I6: the receiver's half of the
 snapshot's round trip): the whole `OsMeta` of a file with no mapping, of size `xs.length`, and all
-of its page-cache bytes `xs` (any crash candidates), whose values are an image of `D`. -/
+of its page-cache bytes `xs` (any crash candidates), whose values are an image of `D`, with the
+time receipt of their txid (`boltImageRcpt`, session bbolt-inv). -/
 theorem fileHolds_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
     (hmaps : m.maps = ∅) (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D) :
-    osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes i 0 (DFrac.own 1) xs ⊢ fileHolds i D := by
-  unfold fileHolds fileHoldsDef
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes i 0 (DFrac.own 1) xs ∗
+      boltImageRcpt (xs.map Prod.fst) ⊢ fileHolds i D := by
+  unfold fileHolds fileHoldsDef boltImageRcpt
   unfold boltImage at himg
   rw [List.length_map] at himg
-  iintro ⟨Hm, Hb⟩
+  iintro ⟨Hm, Hb, #Hr⟩
   iexists m, xs
-  iframe Hm Hb
+  iframe Hm Hb Hr
   ipureintro
   exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
 

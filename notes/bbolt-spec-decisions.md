@@ -1962,3 +1962,69 @@ the user's review** where marked.
      `size < 2 ^ 63` must become `< 2 ^ 62` (`fileHolds`' bound; `grow` keeps it).
   No client needs the file back now (D9: etcd renames a new file in and opens it); `applySnapshot`
   needs `Close`'s `nil`, which `DB.Close_noErr.spec` gives.
+
+## bbolt-inv: `Close` gives the file back; what `Tx.WriteTo` still needs (2026-11-17)
+
+Session `bbolt-inv` (`notes/bbolt-integration-plan.md`, Log, "bbolt-inv"). Decided by the session, for
+the coordinator's review.
+
+- **D-V1. The file's txid is bounded by a persistent time receipt, not a constant.** `fileHolds`
+  asks `C.txid < 2 ^ 62` and `Open`'s receipts bound a session's commits by `receiptBound GF ≤
+  2 ^ 62` from the opened txid `t0 < 2 ^ 62`: a file opened at `t0` close to `2 ^ 62`, one commit,
+  then a hand-back would give a `fileHolds` of txid `≥ 2 ^ 62`, so **no `Close` spec handing back
+  `fileHolds` is provable with the old definitions** (and `Tx.WriteTo`'s `boltImage`, which asks
+  the same bound, neither). The fix links the txid to the program's step count: `metaR` holds
+  `⧖ C.txid` (Perennial's persistent receipt: at least `C.txid` counted steps were taken; `⧖ n ⊢
+  n < receiptBound GF`), raised by `Commit`'s meta write (`commitStep` gives `⧖ m` and takes
+  `⧖ (m + 1)`, `wp_take_receipt as … raising …`); `fileHoldsDef` holds `fileRcpt` (`⧖` of a bound
+  on the txid of every well-formed image of its bytes, or none is one: an empty file), which `Open`
+  puts in `metaR` (`init`'s file: `⧖ 1` from the `init` call's step). Api: `boltImageRcpt bs`
+  (sealed, persistent), a new premise of `fileHolds_of_image` (S4a's law; no client yet): a
+  receiver of an image needs its txid's receipt, which `Tx.WriteTo` can give (`metaR`'s `⧖`).
+- **D-V2. A file given back is whole pages.** `fileHolds` and `boltImage` ask `size % 4096 = 0`
+  (every file bbolt writes is: `init`'s 4 pages, `DB.grow`'s truncates to whole pages, `Tx.WriteTo`'s
+  `hwm` pages), and `wdbOK`'s size clause is `size < 2 ^ 62` (was `< 2 ^ 63`; `DB.grow`'s premise
+  `sz + AllocSize < 2 ^ 62`, `Commit` proves it from the mapping's bound). Whole pages is no
+  invariant: a commit's write that fails part way past the file's end can leave a partial last page
+  (`Tx.write` writes in chunks of `maxAllocSize - 1` bytes, so a chunk boundary can be unaligned),
+  so `Close` gives the file back only when it is whole pages, and otherwise gives it up
+  (`boltNoFile`, D-V5). Whole pages also make every byte of the file someone's at `Close`: the
+  partial last page of a file is no one's after a failed `mmap` (`WDb.lost`, `W` the slots below
+  `size / 4096`) or at a mapping of `maxMapSize` (`2 ^ 48 - 1` bytes, not whole pages).
+- **D-V3. `pagesInv` releases the store slots' bytes on `Close`** (S3a's D-S4 item 1): `cls` is
+  ½ `rwR`, ¼ `metaR`, ¼ `pagesInv`; the slots' `osSlot`s are `slotsOs`: `cls` ¼ at `false` with
+  them, or `cls` ¼ at `true` with no live writer. A transition that moves slots opens it with the
+  live writer's txid (`free`, `publish`, `rollback`, `cells_agree`) or with `rwR`'s `cls` half
+  (`release`, `wbegin`, which take and give it back); `store_close` sets `cls` in its three places
+  and hands the slots out.
+- **D-V4. The inode** (D-S4 item 2): `t0At B t0 i` (the receipts' base's discarded fragment) now
+  records the file's inode too; `boltIno γ i := ∃ t0, t0At … t0 i` (Api, persistent), in both
+  `Open` posts (`isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D`).
+- **D-V5. When the file cannot be given back.** (1) `close` may fail (`munmap`, `flock`, the file's
+  `close`): the spec's escape is the pure `¬ FsNoErr` (`GooseLang/Ext/Fs/FsNoErr.lean`, untrusted:
+  the steps satisfy `NoIoErr` and `NoMapLockErr` for an `IoSet` covering every file); the proof
+  cases on it, using the error-free specs when it holds (`DB.close.spec_ownedNoErrM`, the `OsMeta`
+  back), so no failure witness is threaded. (2) The database was closed by `DB.Close`, which does
+  not give the file back, or a mapping leaked (a remap's `munmap` failed, or `madvise` after its
+  `mmap`, which bbolt does not unmap): `boltNoFile γ` (Api, persistent): a new name `B.nf`
+  (`dghostVar Bool`), `false` at 1 in `wdbCoreG`'s junk clause while no mapping leaked, discarded
+  at `true` at a leak (`junkRes_leak`) or by `DB.Close` (`junkRes_shut`, kept in `closedR`).
+  **`madvise` is the reason the no-error variant keeps this escape**: the model of `unix.Madvise`
+  (`TrustedCode/golang_org/x/sys/unix.lean`) returns any errno, not through a step of `fsExt`, so no
+  premise on the file system's steps excludes it; Linux's `madvise(MADV_RANDOM)` on a fresh mapping
+  does not fail, so a model of it as an `fsExt` operation (or a premise on it) would close the gap.
+  (3) The file is not whole pages at `Close` (D-V2): given up the same way (`junkRes_shut`).
+  (4) `Close_own` twice: the first keeps the caller's validity token `bq` in `closedR`, which a
+  later caller's `boltState γ 1` excludes.
+- **D-V6. The statements.** `DB.Close_own.spec`: `{isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D}
+  db.Close() {err. (⌜err = nil⌝ ∗ fileHolds i D) ∨ (boltState γ 1 D ∗ (⌜¬ FsNoErr⌝ ∨ (⌜err = nil⌝ ∗
+  boltNoFile γ)))}`; `DB.Close_ownNoErr.spec` (`DB.Close_noErr.spec`'s premises): `{same} …
+  {err. ⌜err = nil⌝ ∗ (fileHolds i D ∨ (boltState γ 1 D ∗ boltNoFile γ))}` (the task's
+  "the no-error variant must hand it back", but for D-V5 (2) and (3): (3) cannot happen under the
+  premises, since the writes do not fail, but the proof does not use the premises there).
+- **D-V7. `Tx.WriteTo` (S4a's blockers 1-6) is not done here.** What this session changes for it:
+  blocker 4's txid bound is D-V1 (`metaR`'s `⧖`, which `Begin` can copy into a reader's part), and
+  `boltImageRcpt` is the receipt its post can give. Blockers 1 (the file handle's share for
+  readers), 2 (the synced freelist page a store slot), 3 (`pread` of store slots inside
+  `pagesInv`: a `ReadAt` spec whose held bytes are opened from an invariant around each `pread`),
+  5 (`WriteFlag`), 6 (`io.CopyN`/`SectionReader` specs) stand as S4a recorded them.

@@ -164,7 +164,7 @@ file `xs` (`m`'s bytes), registered in `m`. -/
 theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (f : Loc)
     (fd : w64) (fl : FLPg) (fli : GoInterface)
     (htree : treeOK C) (hhwm : C.hwm * 4096 ≤ xs.length) (hxs : xs.length = m.size)
-    (hL : m.size ≤ L) (hsz : m.size < 2 ^ 63) (htx : C.txid < 2 ^ 62)
+    (hL : m.size ≤ L) (hsz : m.size < 2 ^ 62) (htx : C.txid < 2 ^ 62)
     (hmaps : m.maps = GMap.singleton b L)
     (hpend : fl.pending = ∅)
     (hfree : ∀ x ∈ fl.free, x.toNat < C.hwm ∧ x.toNat ∉ treeSlots C)
@@ -183,7 +183,7 @@ theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta
   unfold wdbOK
   simp only [openW, mapLen]
   refine ⟨?_, ?_, by omega, ?_, fun x hx => (hfree x hx).2, hcur, by omega, by omega, ?_, ?_, ?_,
-    fun x hx => (hfree x hx).1, by omega, ?_, ?_, ?_, ?_⟩
+    fun x hx => (hfree x hx).1, hsz, ?_, ?_, ?_, ?_⟩
   · intro b' l h; cases h; exact hmaps
   · intro h; cases h
   · intro s
