@@ -1,6 +1,29 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, after L1b)
+## START HERE (2026-11-17, L2 started: ReleaseSnapDBs stop)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`.
+  Coordinator: etcd-grove-03. Scope §7-§8, `questions.md` for the decisions. L1 (L1a, L1b) accepted by etcd-grove-03.
+- **ReleaseSnapDBs:** the proposal was REFUTED (Go removes a file a caller took out of `snapDirInv` by `snapDir_take`;
+  same flaw in `storage.storage.Release.wp_proof`). Record: `notes/axiom-review/releasesnapdbs.md`, Go tests
+  `examples/axiomcx/releasesnapdbs/` (pass at the pin). Fix (A) decided; the corrected text is in the review note.
+  **HARD STOP (open):** (1) the corrected text's second attack; (2) the take's form, T1 (sealed take token
+  `snapHeld`, recommended: `applyAll` needs `D` before `OpenSnapshotBackend`) vs T2 (take inside
+  `OpenSnapshotBackend` as worded; restates `applySnapshot` over `∃ D`). No Lean changed yet for L2.
+- **Next, in order, once decided:** seal `snapDirInv` + the take per T1/T2 (proved text); the axiom file;
+  L2 proper: `storage.toml`, specs/proofs of `NewStorage`/`Save`/`SaveSnap`/`Sync`/`Close`/`Release` (Release from
+  `ReleaseLockTo` + `ReleaseSnapDBs`), `purgeFile` under `MaxWALFiles = 0`. Then L3 (with L4).
+- **L3 obligations from L1b:** the server's `hardStateAt` becomes `hsOptC` (the Save law's premise; decided at the
+  L3 statement stop); `walEntInW` needs `ufWire` and `0 < entrySize c`; `metaEnc` of `etcdserverpb.Metadata` in L3.
+- **Pitfalls:** gen-link/gen-init compare only with Perennial linked at `.lake/packages/perennial` (gates.sh does it:
+  `ln -s /shared/perennial-c6b39d4f8`, then remove). Lock + later credit and SaveSnapshot pitfalls: History.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
+  **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
+  **Go:** `cd examples && GOWORK=off TMPDIR=/shared/tmp go test -count=1 -v ./axiomcx/releasesnapdbs/`.
+
+## History
+
+### START HERE (2026-11-17, after L1b)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, lean `3cd4b72599` merged (5ab12b6538); `.lake/package-overrides.json`
   = `/shared/tmp/manifest-c6b.json`. Coordinator: etcd-grove-03. Scope §7-§8, `questions.md` for the decisions.
@@ -25,8 +48,6 @@
   `ln -s /shared/perennial-c6b39d4f8`, then remove). Lock + later credit and SaveSnapshot pitfalls: History.
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
   **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
-
-## History
 
 ### START HERE (2026-11-17, after L1a)
 
