@@ -12,7 +12,7 @@
   `Obj.SetResourceVersion`, `ObjList` accessors); tests (`realcheck_test.go`, `realfacts_test.go`,
   `correctness/cmpdiff_test.go`); translation (project k8s-apiserver: `./correctness`, go-cmp's
   `cmp` names only but `Option`/`applicableOption`, std `maps` names only).
-- **Step 0 report pending with the coordinator** (Lean breakage list, gen-init, forms decided).
+- **Step 0 report pending with the coordinator.** Go: the package and ./correctness green (`/shared/tmp/k8s7g/step0-fulltest.out`); real checker Ok on 5/5 one-member runs and on every failure-free partitioned run (`step0-runs.out`). Lean: the first module that breaks is `KModel` (Output gains `Raw`), `step0-build.log`. Forms decided: `questions.md` (gitignored, local).
 - Next, after the coordinator's answer: step 1, the trust-spec texts (HARD STOP: present each with
   its Go evidence before use): `reflect.DeepEqual` (deepRep), `cmp.Diff`, `maps.Keys/Clone/Equal`,
   `slices.Sorted`, maybe `meta.SetList`, `apierrors.SuggestsClientDelay`. Then steps 2-6 (Scope §5).
