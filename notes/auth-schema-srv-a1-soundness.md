@@ -1,8 +1,10 @@
-# A1: the filled-value soundness argument (DRAFT, for the A1.5 stop; decision 5 of the A1 Scope)
+# A1: the filled-value soundness argument (decision 5 of the A1 Scope)
 
 Status: drafted at A1.4, completed at the A1.5 stop (2026-11-17), with the independent review of A1.4
 (`/shared/tmp/auth-schema-srv/a1-soundness-review.md`: sound at A1.4; two MAJOR forward obligations, both
-addressed below) folded in. Branch `auth-schema-srv`.
+addressed below) folded in; re-reviewed at A1.5 (`/shared/tmp/auth-schema-srv/a15-soundness-review.md`: sound,
+no BLOCKER/MAJOR; its MINORs honoured below); §4.1's obligation discharged and §5 (the claim) added at A1.7,
+§4.5 settled at A1.9 (2026-11-17). Branch `auth-schema-srv`.
 
 ## 1. What `OpenBackend`'s post hands out, and the new ghost
 
@@ -49,10 +51,16 @@ bucket or move its readers' contents. A claimed part passed through an axiom's f
    - every tracked write sets the flag (`rbSide_put`, `fun _ => true`), through either part (`rbWrite`);
    - the flag is cleared only by `rbSide_idle` (unclaimed part) and `rbPartR_idle` (claimed part, A1.5), both
      **private**, used only in `batchTxBuffered.Unlock`'s proof (`unlock_idle`/`unlock_idleR`, private there
-     too). **Open for A1.7**: today that proof takes both steps when `Unlock` starts (before the write-back,
-     as since decision 3), which is harmless while no invariant links the flag to `tk`; once A1.7 adds "flag
-     `false` ⇒ `tk n = idle`", the two steps must move to `Unlock`'s end (after the write-back, or the commit
-     when one is due: the points where `tk` becomes idle), or the invariant be stated outside an `Unlock`;
+     too). **Discharged at A1.7**: the invariant is `rbSide`'s new fact "a tracked bucket whose flag (the batch
+     lock's half of its `γ.rbk` element) is clear satisfies `I`", with `I = tkI P st` ("`P.RB n → st.tk n =
+     idle`") in `trkSide` (`trkHalf … (tkI P st)`). Every step keeps it: a write sets the bucket's flag
+     (`rbSide_put`, `I'` from `I` elsewhere: the write changes no other kind); the write-back maps an idle kind
+     to idle (`tkWb`, premise `hkI` of `trkSide_updR`); the commit makes every kind idle; the hook keeps the
+     kinds (`trkKept`). The two idle steps moved to `Unlock`'s end (`trkSide_idle`/`rbPartR_idle`, private, in
+     the macros `bu_free`, `bu_free0` and `bu_release` of `batchTxBuffered__Unlock.lean`, just before
+     `batchTx.Unlock` releases the lock), where the free state's `freeOk` makes every tracked kind idle;
+     `rbSide_idle` now needs `I'` of the buckets it clears, so it cannot run earlier. `unlock_idle`/`unlock_idleR`
+     are gone.
    - `kOk .idle` then gives that the readers see the writer's contents, `r` by `rbSide_agree`.
    The axioms whose posts carry `rbOwnIn` (`lease.NewLessor`, `auth.NewAuthStore`, `membership.RaftCluster.
    SetBackend`, `v3alarm.NewAlarmStore`/`AlarmStore.restore`, `schema.membershipBackend.MustSave/Delete…`)
@@ -70,7 +78,12 @@ bucket or move its readers' contents. A claimed part passed through an axiom's f
    (`(c : Bool := false)`, A1.5) and the `commit`/`unsafeCommit` specs (trailing `c Sc Rr`); the commit
    switches to the client-facing mode only inside the hook's window (`hw = true`, where `cwOk false` holds
    trivially: `batchLocked_setHw_mk`), and the commit resets `cw`. No trusted text names the mode `true`,
-   `batchLockedW` or the commit specs (all proved, internal).
+   `batchLockedW` or the commit specs (all proved, internal). Clients can enter mode `true` (`batchLocked_claimed`, the only
+   law between the modes besides `Unlock`, which ends a session; no law from `true` back to `false` exists or may
+   be added, review A1.5 MINOR 1): harmless, since the mode `true` grants nothing without a claimed part
+   (`rbPartR`, made only by the claim, §5), and with no claimed part (`Sc = []`) `Unlock.specC`'s premise
+   forces `cw` empty, which holds as only writes through a claimed part set it; the mode `true` can never reach
+   a trusted text, which all take mode `false`.
 3. **The accessor** (`rbAcc γ Sc ok Rr`, `ClaimedLemmas.lean`; the claimed `Unlock` statement
    `Unlock.specC`, `UnlockClaimed.lean`). It is the client's resource, run by `Unlock`'s proof at the
    write-back's and the commit's ghost updates (inside `readTx`'s write lock, before `cacheInv` opens), and
@@ -89,7 +102,31 @@ bucket or move its readers' contents. A claimed part passed through an axiom's f
    halves; a claimed bucket outside `Sc` is untouched (`rbrOne`'s claimed branch: `tk idle ∨ cw`).
 4. **`Unlock` with nothing pending** in a claimed session forgets the claimed writes (`BSess.clrCw`,
    `batchGhostAt_clr`): sound because every tracked bucket is then idle (`free_of_pend0`), and `cw` is ghost.
-5. **Sealing** (review MINOR 1): `rbRd` and `rbrHalves` are not sealed; a client that unfolds `rtHeldF` can fold
-   part of it into `rbRd` of an unclaimed bucket, but it then cannot `RUnlock` (it needs all of `rtRes rfrac`),
-   and the facts it derives are true (the readers' contents). Harmless; sealing `rbrHalves` (`@[no_expose]`) is a
-   form left for A1.9 (it would need `InvBackend` changed, ~2250 importers).
+5. **Sealing** (review MINOR 1; settled at A1.9): `rbRd` and `rbrHalves` are sealed (`@[no_expose]`), so a
+   client outside the backend (no `import all`, `etc/api-check.py`) cannot fold a part of `rtHeldF` into an
+   `rbRd`; `rbRd` is made only by the claim (§5) and used through its laws (`ReadLemmas.lean`, which now
+   `import all`s `InvBackend`). Before sealing the forgery was already harmless (§4.5 at A1.5: a client that
+   did it could not `RUnlock`, and the facts it got were true).
+
+## 5. The claim (A1.7)
+
+`batchLocked_claim` (`ClaimedLemmas.lean`): `batchLocked γ P b st c ∗ rbOwnIn γ (· ∈ Sc) r ⊢ |==> batchLocked γ P b st c
+∗ rbOwnInR γ (· ∈ Sc) r ∗ [∗list] n ∈ Sc, rbRd γ n ½ (bktOf r n)`, for `Sc.Nodup` buckets of the table that are
+tracked (`P.BT`, `P.RB`); proved per bucket (`trkSide_claim1`) and by induction (`trkSide_claim`). Why each
+output is true of Go:
+- `rbRd γ n ½ (bktOf r n)`: the client's idle part's flag is clear, so the lock's is (`rbSide_agree_inI`), so
+  `st.tk n = idle` (§4.1's invariant), so by `trkOk`'s idle clause (in `bgOk`, always) every reader of the
+  current readers' state sees the writer's contents, which the idle part's `r` agrees with (`rvBkt_idle`). The
+  readers' element moves from the batch lock's side (`rbrOne`'s unclaimed branch) to the client unchanged.
+- `rbOwnInR`: half of the bucket's `γ.rbc` element, newly `some (r n, false)`; the batch lock takes the other
+  half and the client's `γ.rbk` half (`rbrOne`'s claimed branch). A bucket already claimed has no idle part
+  (`rbr_claimed_excl`: three `γ.rbk` halves), so a claim cannot be repeated or forged from a claimed bucket.
+- The trusted texts: none takes or returns `rbOwnInR`/`rbRd`; the axioms that return `rbOwnIn` (§4.1) are
+  rebuildable from the proved `Lock`/`Unsafe*`/`Unlock` at `c = k = false`, and `Unlock` still returns
+  `rbOwnIn` (now from its end), so a claim of a bucket such an axiom handed out is as sound as one of a bucket
+  the client wrote itself.
+- A claim inside the hook's window (mode `false`, `hw = true`) is allowed: the bucket's kind is idle, so the
+  commit leaves its readers' contents (`rvBkt_commit_idle`), and `rbrOne`'s claimed branch (`tk idle`) holds
+  for a claimed bucket outside the commit's accessor list.
+- A6's constraint (review A1.5 MINOR 3): `rbAcc` runs at mask `⊤` inside `readTx`'s write lock; the client's
+  resource `Rr` and accessor must not need `cacheInv` or `readTx`.

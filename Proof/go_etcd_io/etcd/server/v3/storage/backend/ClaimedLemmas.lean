@@ -9,6 +9,8 @@ untouched or only deleted from kept; a bucket both put into and deleted from at 
 intermediate contents). The laws: the batch lock's side and `readTx.mu`'s halves step together with the
 client's (`trkSide_updR`, the update wand `rtRes_wb_close*`/`rtRes_cm_close` take), the mode of the batch
 lock's side (`trkSide_mode`), and the claimed part made idle at `Unlock`'s end (`rbPartR_idle`).
+(A1.7) The claim itself (`batchLocked_claim`: an idle part becomes a claimed part and the client gets the
+readers' halves) and the claimed parts' split laws.
 -/
 module
 
@@ -367,6 +369,7 @@ theorem trkSide_updR (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RVie
     (hk : ∀ n, P.RB n = true → st.tk n = .idle → st.cw n = false →
       st'.tk n = .idle ∧ rvBkt P rv n = rvBkt P rv' n)
     (hcl : ∀ n, st.cw n = true → st'.tk n = .idle ∨ st'.cw n = true)
+    (hkI : ∀ n, P.RB n = true → st.tk n = .idle → st'.tk n = .idle)
     (hcwS : ∀ n, st.cw n = true → n ∈ Sc) (hmode : cwOk c' st')
     (hok : ∀ n, n ∈ Sc → P.RB n = true → ok n (rvBkt P rv n) (rvBkt P rv' n)) :
     iprop(trkSide (GF := GF) γ P st c ∗ Rr ∗ rbAcc γ Sc ok Rr) ⊢
@@ -382,6 +385,7 @@ theorem trkSide_updR (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RVie
   ihave Hc := rbRdL_of_map γ (fun n => rvBkt P rv' n) (1 : Qp).half Sc hnd Hscd $$ Hc
   imod Hk $$ %(fun n => rvBkt P rv' n) %(fun n hn => by
       rw [Hold n (Hscd n hn) hn]; exact hok n hn (HRB n (Hscd n hn))) Hc with HR
+  ihave Hh := trkHalf_mono γ P st.S (tkI P st) (tkI P st') (fun n h hRB => hkI n hRB (h hRB)) $$ Hh
   imodintro
   rw [hS]
   iframe
@@ -406,7 +410,7 @@ theorem trkSide_clr (γ : BNames) (P : BParams) (st : BSess) (c : Bool)
   unfold trkSide rbrSide
   iintro ⟨Hh, Har, Hac, %Hd, -, Hb⟩
   isplitl [Hh]
-  · iapply (show trkHalf (GF := GF) γ P st.S ⊢ trkHalf γ P st.clrCw.S from .rfl) $$ Hh
+  · iapply (show trkHalf (GF := GF) γ P st.S (tkI P st) ⊢ trkHalf γ P st.clrCw.S (tkI P st.clrCw) from .rfl) $$ Hh
   iframe Har Hac
   isplitr
   · ipureintro; exact Hd
@@ -598,6 +602,316 @@ theorem batchGhostAt_clr (γ : BNames) (P : BParams) (st : BSess) (fr c : Bool)
         dghostVar γ.opn (DFrac.own (1 : Qp).half.half) false ∗
         trkSide γ P st.clrCw ∗ fkHalf γ P st.clrCw ∗ ⌜bgOk P st.clrCw fr n w u⌝) from .rfl)
   iframe Hv
+  iexists n, w, u
+  iframe
+  ipureintro; exact Hok
+
+/-! ### Claimed parts: split laws (A1.7) -/
+
+/-- Congruence: a claimed part says nothing of the buckets outside its set. -/
+theorem rbPartRF_congr (γ : BNames) (S : GoString → Prop) (r r' : GMap GoString BktData)
+    (F F' : GoString → Bool) (hr : ∀ n, S n → r.lookup n = r'.lookup n) (hF : ∀ n, S n → F n = F' n) :
+    rbPartRF (GF := GF) γ S r F ⊢ rbPartRF γ S r' F' := by
+  unfold rbPartRF
+  iintro ⟨%Hs, Hp⟩
+  isplitr
+  · ipureintro; exact Hs
+  iapply BigSepM.bigSepM_mono (fun {k} {_} _ => ?_) $$ Hp
+  by_cases h : S k
+  · simp only [if_pos h, hr k h, hF k h]; exact .rfl
+  · simp only [if_neg h]; exact .rfl
+
+/-- **The claimed parts of disjoint bucket sets, at the same flags, are the claimed part of their union.** -/
+theorem rbPartRF_split (γ : BNames) (S S' : GoString → Prop) (r : GMap GoString BktData)
+    (F : GoString → Bool) (hd : ∀ n, S n → S' n → False) :
+    rbPartRF (GF := GF) γ (fun n => S n ∨ S' n) r F ⊣⊢ iprop(rbPartRF γ S r F ∗ rbPartRF γ S' r F) := by
+  unfold rbPartRF
+  dsimp only
+  have he : ([∗map] n ↦ _u ∈ γ.rbD, (@ite _ (S n ∨ S' n) (Classical.propDecidable _) (ghostMapElem (GF := GF) γ.rbc n
+      (DFrac.own (1 : Qp).half) (some (r.lookup n, F n) : Option (Option BktData × Bool))) iprop(True))) ⊣⊢
+      iprop(([∗map] n ↦ _u ∈ γ.rbD, (if S n then ghostMapElem (GF := GF) γ.rbc n
+        (DFrac.own (1 : Qp).half) (some (r.lookup n, F n) : Option (Option BktData × Bool)) else iprop(True))) ∗
+       ([∗map] n ↦ _u ∈ γ.rbD, (if S' n then ghostMapElem (GF := GF) γ.rbc n
+        (DFrac.own (1 : Qp).half) (some (r.lookup n, F n) : Option (Option BktData × Bool)) else iprop(True)))) := by
+    constructor
+    · refine (BigSepM.bigSepM_mono fun {k} {_} _ =>
+        (ite_or_split (A := S k) (B := S' k) Iff.rfl _ (hd k)).1).trans
+        (BiEntails.of_eq BigSepM.bigSepM_sep_eq).1
+    · refine (BiEntails.of_eq BigSepM.bigSepM_sep_eq).2.trans
+        (BigSepM.bigSepM_mono fun {k} {_} _ => (ite_or_split (A := S k) (B := S' k) Iff.rfl _ (hd k)).2)
+  constructor
+  · iintro ⟨%Hs, Hp⟩
+    icases he.1 $$ Hp with ⟨H1, H2⟩
+    isplitl [H1]
+    · isplitr
+      · ipureintro; exact fun n h => Hs n (Or.inl h)
+      · iexact H1
+    · isplitr
+      · ipureintro; exact fun n h => Hs n (Or.inr h)
+      · iexact H2
+  · iintro ⟨⟨%Hs1, H1⟩, ⟨%Hs2, H2⟩⟩
+    isplitr
+    · ipureintro
+      rintro n (h | h)
+      · exact Hs1 n h
+      · exact Hs2 n h
+    · iapply he.2
+      iframe
+
+/-- **The claimed parts of disjoint bucket sets are the claimed part of their union.** -/
+theorem rbPartR_split (γ : BNames) (S S' : GoString → Prop) (r : GMap GoString BktData)
+    (hd : ∀ n, S n → S' n → False) :
+    rbPartR (GF := GF) γ (fun n => S n ∨ S' n) r ⊣⊢ iprop(rbPartR γ S r ∗ rbPartR γ S' r) := by
+  unfold rbPartR
+  constructor
+  · iintro ⟨%F, H⟩
+    icases (rbPartRF_split γ S S' r F hd).1 $$ H with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexists F; iexact H1
+    · iexists F; iexact H2
+  · iintro ⟨⟨%F1, H1⟩, ⟨%F2, H2⟩⟩
+    iexists (fun n => if S n then F1 n else F2 n)
+    iapply (rbPartRF_split γ S S' r _ hd).2
+    isplitl [H1]
+    · iapply rbPartRF_congr γ S r r F1 _ (fun _ _ => rfl) (fun n hS => by simp only [if_pos hS]) $$ H1
+    · iapply rbPartRF_congr γ S' r r F2 _ (fun _ _ => rfl)
+        (fun n hS' => by simp only [if_neg (fun hS => hd n hS hS')]) $$ H2
+
+/-- **The idle claimed parts of disjoint bucket sets are the idle claimed part of their union.** -/
+theorem rbOwnInR_split (γ : BNames) (S S' : GoString → Prop) (r : GMap GoString BktData)
+    (hd : ∀ n, S n → S' n → False) :
+    rbOwnInR (GF := GF) γ (fun n => S n ∨ S' n) r ⊣⊢ iprop(rbOwnInR γ S r ∗ rbOwnInR γ S' r) := by
+  unfold rbOwnInR
+  exact rbPartRF_split γ S S' r _ hd
+
+/-- **An idle claimed part is a claimed part** (forgetting that nothing is pending). -/
+theorem rbOwnInR_part (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) :
+    rbOwnInR (GF := GF) γ S r ⊢ rbPartR γ S r := by
+  unfold rbOwnInR rbPartR
+  iintro H
+  iexists _
+  iexact H
+
+/-- **Restriction**, of a claimed part. -/
+theorem rbPartR_congr (γ : BNames) (S : GoString → Prop) (r r' : GMap GoString BktData)
+    (h : ∀ n, S n → r.lookup n = r'.lookup n) :
+    rbPartR (GF := GF) γ S r ⊢ rbPartR γ S r' := by
+  unfold rbPartR
+  iintro ⟨%F, H⟩
+  iexists F
+  iapply rbPartRF_congr γ S r r' F F h (fun _ _ => rfl) $$ H
+
+/-- **Restriction**, of an idle claimed part. -/
+theorem rbOwnInR_congr (γ : BNames) (S : GoString → Prop) (r r' : GMap GoString BktData)
+    (h : ∀ n, S n → r.lookup n = r'.lookup n) :
+    rbOwnInR (GF := GF) γ S r ⊢ rbOwnInR γ S r' := by
+  unfold rbOwnInR
+  exact rbPartRF_congr γ S r r' _ _ h (fun _ _ => rfl)
+
+/-- **The same set**, extensionally, of a claimed part. -/
+theorem rbPartR_set (γ : BNames) (S S' : GoString → Prop) (r : GMap GoString BktData)
+    (h : ∀ n, S n ↔ S' n) : rbPartR (GF := GF) γ S r ⊣⊢ rbPartR γ S' r := by
+  have : S = S' := funext fun n => propext (h n)
+  subst this; exact .rfl
+
+/-- **The same set**, extensionally, of an idle claimed part. -/
+theorem rbOwnInR_set (γ : BNames) (S S' : GoString → Prop) (r : GMap GoString BktData)
+    (h : ∀ n, S n ↔ S' n) : rbOwnInR (GF := GF) γ S r ⊣⊢ rbOwnInR γ S' r := by
+  have : S = S' := funext fun n => propext (h n)
+  subst this; exact .rfl
+
+/-! ### The claim (A1.7, D3) -/
+
+/-- The idle claimed part of no bucket is nothing. -/
+theorem rbOwnInR_nil (γ : BNames) (r : GMap GoString BktData) :
+    ⊢ rbOwnInR (GF := GF) γ (fun n => n ∈ ([] : List GoString)) r := by
+  unfold rbOwnInR rbPartRF
+  isplitr
+  · ipureintro; intro n h; cases h
+  · refine BigSepM.bigSepM_intro (P := iprop(emp)) fun {k} {_} _ => ?_
+    rw [if_neg (by simp)]
+    iintro -
+    itrivial
+
+/-- One entry, as the family over `D` with that entry alone. -/
+private theorem mapIf_single (D : GMap GoString Unit) (S : GoString → Prop) (n : GoString)
+    (hS : ∀ k, S k ↔ k = n) (hn : D.lookup n ≠ none) (X : GoString → IProp GF) :
+    X n ⊢ [∗map] k ↦ _u ∈ D, (if S k then X k else iprop(True)) := by
+  iintro Hx
+  ihave H0 := mapIf_nil (GF := GF) D X
+  icases mapIf_acc D (fun k => if k ∈ ([] : List GoString) then X k else iprop(True))
+    (fun k => if S k then X k else iprop(True)) n hn (fun k hk => by
+      rw [if_neg (by simp), if_neg (fun h => hk ((hS k).1 h))]) $$ H0 with ⟨-, Hw⟩
+  iapply Hw
+  rw [if_pos ((hS n).2 rfl)]
+  iexact Hx
+
+/-- The batch lock's side lists every tracked bucket of the table among its names. -/
+private theorem rbSide_bt (γ : BNames) (P : BParams) (r : GMap GoString BktData) (I : GoString → Prop) :
+    rbSide (GF := GF) γ P r I ⊢
+      iprop(rbSide γ P r I ∗ ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝) := by
+  unfold rbSide
+  iintro ⟨Ha, Hl, %Hd⟩
+  iframe Ha Hl
+  isplitr
+  · ipureintro; exact Hd
+  · ipureintro; exact Hd
+
+/-- **The claim of one tracked bucket** (A1.7, D3): the client's idle part of `n` becomes its claimed part,
+and the client gets half of the bucket's readers' element, at the part's contents (the readers see them:
+the flag clear, the session left the bucket untouched, `tkI`, so the readers' state agrees with the
+writer's, `rvBkt_idle`). The bucket was unclaimed: an idle part of a claimed bucket cannot exist
+(`rbr_claimed_excl`). -/
+theorem trkSide_claim1 (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (n : GoString)
+    (r : GMap GoString BktData) (hok : trkOk P st st.tk) (hBT : ∃ i, P.BT.lookup n = some i)
+    (hRB : P.RB n = true) :
+    iprop(trkSide (GF := GF) γ P st c ∗ rbOwnIn γ (fun k => k = n) r) ⊢
+      |==> iprop(trkSide γ P st c ∗ rbOwnInR γ (fun k => k = n) r ∗ rbRd γ n (1 : Qp).half (bktOf r n)) := by
+  unfold trkSide trkHalf
+  iintro ⟨⟨⟨Hh, Hs⟩, Hr⟩, Hc⟩
+  icases rbSide_bt γ P _ _ $$ Hs with ⟨Hs, %Hbt⟩
+  icases rbSide_agree_inI γ P (rbData P st.S) _ r $$ [$Hs $Hc] with ⟨Hs, Hc, %Heq, %HI⟩
+  have hd : γ.rbD.lookup n ≠ none := by obtain ⟨i, hi⟩ := hBT; exact Hbt n i hi hRB
+  have htk : st.tk n = .idle := HI n rfl hd hRB
+  have hrn : (rbData P st.S).lookup n = r.lookup n := Heq n rfl
+  have hrv : rvBkt P (st.C, st.R) n = bktOf r n := by
+    rw [rvBkt_idle hok hRB htk]
+    unfold bktOf
+    rw [← hrn, rbData_lookup, hRB]
+    rfl
+  obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp hd
+  unfold rbrSide
+  icases Hr with ⟨Har, ⟨%Mc, Hac⟩, %Hd, %Hcw, Hb⟩
+  icases (BigSepM.bigSepM_lookup_acc_impl (Φ := fun k (_ : Unit) => rbrOne (GF := GF) γ P st k)
+    (m := γ.rbD) (i := n) (x := u) hu) $$ Hb with ⟨Hm, Hb⟩
+  ihave Hk := rbOwnIn_part γ (fun k => k = n) r $$ Hc
+  ihave Hk := (rbPart_congr γ (fun k => k = n) r (rbData P st.S) (fun k hk => by subst hk; exact hrn.symm)).1
+    $$ Hk
+  iunfold rbrOne at Hm
+  icases Hm with (⟨Hcn, Hrn⟩ | ⟨%v, -, Hk2, -⟩)
+  · imod ghost_map_update (some (r.lookup n, false) : Option (Option BktData × Bool)) $$ Hac Hcn
+      with ⟨Hac, Hcn⟩
+    icases (ghostMapElem_halves γ.rbc n _).1 $$ Hcn with ⟨Hc1, Hc2⟩
+    imodintro
+    isplitl [Hh Hs Har Hac Hb Hc1 Hk]
+    · iframe Hh Hs Har
+      isplitl [Hac]
+      · iexists _; iexact Hac
+      isplitr
+      · ipureintro; exact Hd
+      isplitr
+      · ipureintro; exact Hcw
+      iapply Hb
+      · iintro !> %k %x %_ %hk H
+        iexact H
+      · unfold rbrOne
+        iright
+        iexists (r.lookup n, false)
+        iframe Hc1 Hk
+        ipureintro
+        exact ⟨Or.inl htk, hrn.symm⟩
+    isplitl [Hc2]
+    · unfold rbOwnInR rbPartRF
+      isplitr
+      · ipureintro; intro k hk; subst hk; exact hd
+      iapply mapIf_single γ.rbD (fun k => k = n) n (fun _ => Iff.rfl) hd
+        (fun k => ghostMapElem (GF := GF) γ.rbc k (DFrac.own (1 : Qp).half)
+          (some (r.lookup k, false) : Option (Option BktData × Bool))) $$ Hc2
+    · unfold rbRd
+      isplitr
+      · ipureintro; exact hd
+      rw [← hrv]
+      iexact Hrn
+  · iexfalso
+    iapply rbr_claimed_excl γ P (rbData P st.S) n st.S st.S hd
+    iframe
+
+/-- **The claim of the tracked buckets `Sc`** (A1.7, D3), one at a time (`trkSide_claim1`). -/
+theorem trkSide_claim (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (r : GMap GoString BktData)
+    (hok : trkOk P st st.tk) :
+    ∀ (Sc : List GoString), Sc.Nodup → (∀ n, n ∈ Sc → (∃ i, P.BT.lookup n = some i) ∧ P.RB n = true) →
+    iprop(trkSide (GF := GF) γ P st c ∗ rbOwnIn γ (fun k => k ∈ Sc) r) ⊢
+      |==> iprop(trkSide γ P st c ∗ rbOwnInR γ (fun k => k ∈ Sc) r ∗
+        [∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (bktOf r n)) := by
+  intro Sc
+  induction Sc with
+  | nil =>
+    intro _ _
+    iintro ⟨Hk, -⟩
+    imodintro
+    iframe Hk
+    isplitl []
+    · iapply rbOwnInR_nil
+    · iapply BigSepL.bigSepL_nil.2
+      iempintro
+  | cons m Sc ih =>
+    intro hnd hS
+    have hm : m ∉ Sc := (List.nodup_cons.1 hnd).1
+    iintro ⟨Hk, Hc⟩
+    ihave Hc := (rbOwnIn_set γ (fun k => k ∈ m :: Sc) (fun k => k = m ∨ k ∈ Sc) r (fun k => by simp)).1 $$ Hc
+    icases (rbOwnIn_split γ (fun k => k = m) (fun k => k ∈ Sc) r
+      (fun k h1 h2 => hm (h1 ▸ h2))).1 $$ Hc with ⟨Hcm, Hcs⟩
+    have ⟨hBT, hRB⟩ := hS m (by simp)
+    imod trkSide_claim1 γ P st c m r hok hBT hRB $$ [$Hk $Hcm] with ⟨Hk, Hcm, Hrm⟩
+    imod ih (List.nodup_cons.1 hnd).2 (fun n hn => hS n (List.mem_cons_of_mem _ hn)) $$ [$Hk $Hcs]
+      with ⟨Hk, Hcs, Hrs⟩
+    imodintro
+    iframe Hk
+    isplitl [Hcm Hcs]
+    · iapply (rbOwnInR_set γ (fun k => k = m ∨ k ∈ Sc) (fun k => k ∈ m :: Sc) r (fun k => by simp)).1
+      iapply (rbOwnInR_split γ (fun k => k = m) (fun k => k ∈ Sc) r (fun k h1 h2 => hm (h1 ▸ h2))).2
+      iframe
+    · iapply (BigSepL.bigSepL_cons).2
+      iframe
+
+/-- **The claim** (A1.7, D3 of `notes/auth-schema-srv-a1-scope.md`): holding the batch lock (either mode)
+and an idle part of the tracked buckets `Sc` (each a bucket of the table), the client claims them: its
+part becomes the claimed part (`rbOwnInR`, which no trusted writer takes and which has no law back to
+`rbPart`), and it gets half of each bucket's readers' element at the part's contents (`rbRd`; the other
+half is `readTx.mu`'s, so every reader then sees them, `rtHeldF_rbRd`). A bucket is claimed for good. -/
+theorem batchLocked_claim (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool) (Sc : List GoString)
+    (r : GMap GoString BktData) (hnd : Sc.Nodup)
+    (hS : ∀ n, n ∈ Sc → (∃ i, P.BT.lookup n = some i) ∧ P.RB n = true) :
+    batchLocked (GF := GF) γ P b st c ∗ rbOwnIn γ (fun k => k ∈ Sc) r ⊢
+      |==> iprop(batchLocked γ P b st c ∗ rbOwnInR γ (fun k => k ∈ Sc) r ∗
+        [∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (bktOf r n)) := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩, Hc⟩
+  imod trkSide_claim γ P st c r Hok.2.2.2.2.2.2.2.2.2.2.1 Sc hnd hS $$ [$Hk $Hc] with ⟨Hk, Hc, Hrd⟩
+  imodintro
+  iframe Hc Hrd
+  iexists t, db
+  iframe
+  iframe #
+  ipureintro; exact ⟨Hok, Hwf⟩
+
+/-! ### `Unlock`'s ghost steps at its end (A1.7: after the write-back or the commit) -/
+
+/-- **`Unlock`'s ghost step on an unclaimed part** (`rbSide_idle`), at the session's end, where the part's
+buckets are untouched (`tkI`). Private: only `batchTxBuffered.Unlock`'s proof takes it (`import all`). -/
+private theorem trkSide_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (S : GoString → Prop)
+    (r : GMap GoString BktData) (hT : ∀ n, S n → tkI P st n) :
+    iprop(trkSide (GF := GF) γ P st c ∗ rbPart γ S r) ⊢ |==> iprop(trkSide γ P st c ∗ rbOwnIn γ S r) := by
+  unfold trkSide trkHalf
+  iintro ⟨⟨⟨Hh, Hs⟩, Hr⟩, Hc⟩
+  imod rbSide_idle γ P (rbData P st.S) S r (tkI P st) (tkI P st) (fun _ h => h) hT $$ [$Hs $Hc]
+    with ⟨Hs, Hc⟩
+  imodintro
+  iframe
+
+/-- **`Unlock`'s ghost steps on the free lock's ghost** (A1.7): the unclaimed part and the claimed part
+handed in made idle, every tracked bucket untouched there (the free lock's `bgOk`). Private, as
+`trkSide_idle`. -/
+private theorem batchGhostAt_idle (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (S Sr : GoString → Prop)
+    (r rc : GMap GoString BktData) (hT : ∀ n, P.RB n = true → st.tk n = .idle) :
+    iprop(batchGhostAt (GF := GF) γ P st true c ∗ rbPart γ S r ∗ rbPartR γ Sr rc) ⊢
+      |==> iprop(batchGhostAt γ P st true c ∗ rbOwnIn γ S r ∗ rbOwnInR γ Sr rc) := by
+  unfold batchGhostAt
+  iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, Hp, Hpr⟩
+  imod trkSide_idle γ P st c S r (fun n _ hRB => hT n hRB) $$ [$Hk $Hp] with ⟨Hk, Hp⟩
+  imod rbPartR_idle γ P st c Sr rc $$ [$Hk $Hpr] with ⟨Hk, Hpr⟩
+  imodintro
+  iframe Hv Hp Hpr
   iexists n, w, u
   iframe
   ipureintro; exact Hok

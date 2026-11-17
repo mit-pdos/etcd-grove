@@ -287,7 +287,7 @@ theorem batchGhost_step (γ : BNames) (P : BParams) {st st' : BSess} (hC : st'.C
   icases Hrest with ⟨%n, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨Hk, Hrr⟩, Hfk, %Hok⟩
   ihave Hrr := rbrSide_congr γ P st st' hC hR (fun m hm => ⟨hK m hm, by rw [hB]⟩) hcw c
     (fun h h1 h2 => by rw [hcw]; exact h h1 (by rw [← hc]; exact h2)) $$ Hrr
-  rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB]
+  rw [hC, hR, trkHalf_eq γ P (S := st.S) (S' := st'.S) hS hB (tkI P st), ← tkI_congr hK]
   iexists n, w, u
   iframe
   isplitl

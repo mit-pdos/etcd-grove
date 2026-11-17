@@ -85,4 +85,8 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ModelLemmas
 # (auth-schema-srv A1, 2026-11-17) the tracked buckets' read model (kinds, `rvBkt`), which `InvBackend` and
 # `InvBatch` import publicly
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.TrkModel
+# (auth-schema-srv A1, 2026-11-17) the claimed buckets: the claim (`batchLocked_claim`), the claimed parts'
+# split laws, `Unlock`'s accessor (`rbAcc`, `unlockOk`); `Unlock`'s claimed statement (`Unlock.specC`)
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.ClaimedLemmas
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.UnlockClaimed
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.WritebackLemmas

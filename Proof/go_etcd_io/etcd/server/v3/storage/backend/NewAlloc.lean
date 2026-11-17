@@ -629,12 +629,13 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     isplitl [Hrbka]
     · iexact Hrbka
     isplitl [Hrbkb]
-    · unfold rbOwn
-      iapply rbPartF_part γ (fun _ => True) (rbData P D) (fun _ => false)
-      unfold rbPartF
-      isplitr
-      · ipureintro; exact rbDomOf_absent P D
-      · iexact Hrbkb
+    · iexists (fun _ => false)
+      isplitl [Hrbkb]
+      · unfold rbPartF
+        isplitr
+        · ipureintro; exact rbDomOf_absent P D
+        · iexact Hrbkb
+      · ipureintro; intro _ _ _; trivial
     · ipureintro; exact rbDomOf_bt P D
   icases gv_halves gcln _ $$ Hcln with ⟨Hclnc, Hclnr⟩
   -- the tokens
@@ -694,6 +695,7 @@ theorem backend_init (P : BParams) (W Pk K : BNames → IProp GF) (h : GoInterfa
     · iapply rbrSide_init γ P (st0 D wtx) (rbDomOf_rb P D) (fun _ => rfl)
       iframe
     iapply batchFree_init γ P (W γ) (Pk γ) b t db wtx D hP
+    ihave Hrbkb := rbSide_mono γ P _ _ (tkI P (st0 D wtx)) (fun _ _ _ => rfl) $$ Hrbkb
     unfold trkSide trkHalf
     iframe
     iframe #

@@ -13,6 +13,7 @@ public import Perennial.Golang.Theory.Map
 public import Perennial.Ghost.GhostVar
 public import Perennial.Ghost.GhostMap
 public import Perennial.IrisLib.BI
+import all Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 
 @[expose] public section
 

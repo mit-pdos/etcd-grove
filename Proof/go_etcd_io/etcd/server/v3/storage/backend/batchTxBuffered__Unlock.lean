@@ -42,6 +42,9 @@ set_option hygiene false in
 freedom), then the postcondition (the four free outcomes: nothing pending, or written back
 without a commit, with or without a view to update). -/
 local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
+    imod trkSide_idle (hG := hG) γ P $S _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
+      with ⟨Hhkd, Hin⟩
+    imod rbPartR_idle (hG := hG) γ P $S _ _ rc $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
     wp_apply (hBU γ P W Pk b t)
       $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
@@ -64,13 +67,16 @@ local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
         exact $hf
       iframe HWv HPk
     iapply HΦ
-    iframe HQ HRr
+    iframe HQ HRr Hin Hinc
   ))
 
 set_option hygiene false in
 /-- `batchTx.Unlock` with nothing pending (A1.5: the claimed writes forgotten, `BSess.clrCw`, every
 tracked bucket idle), then the postcondition. -/
 local macro "bu_free0" hb:term:max hf:term:max : tactic => `(tactic| (
+    imod trkSide_idle (hG := hG) γ P st _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
+      with ⟨Hhkd, Hin⟩
+    imod rbPartR_idle (hG := hG) γ P st _ _ rc $$ [$(frameH `Hhkd) $(frameH `Hrc)] with ⟨Hhkd, Hinc⟩
     wp_apply (hBU γ P W Pk b t)
       $$ [$(frameH `Hown) Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HWv HPk]
     · iframe #
@@ -96,7 +102,7 @@ local macro "bu_free0" hb:term:max hf:term:max : tactic => `(tactic| (
         exact $hf
       iframe HWv HPk
     iapply HΦ
-    iframe HQ HRr
+    iframe HQ HRr Hin Hinc
   ))
 
 set_option hygiene false in
@@ -154,6 +160,8 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
 set_option hygiene false in
 /-- `batchTx.Unlock` after a commit, then the postcondition. -/
 local macro "bu_release" : tactic => `(tactic| (
+    imod batchGhostAt_idle (hG := hG) γ P st2 _ Sp _ rp rc Hfin.1.2.2.2.2.2 $$ [$(frameH `Hg2) $(frameH `Hrb) $(frameH `Hrc)]
+      with ⟨Hg2, Hin, Hinc⟩
     wp_apply (hBU γ P W Pk b t) $$ [$(frameH `Hown) Hph2 Hg2 HWv HPk]
     · iframe #
       ileft
@@ -162,7 +170,7 @@ local macro "bu_release" : tactic => `(tactic| (
       ipureintro
       exact Hfin.1
     iapply HΦ
-    iframe HQ HRr
+    iframe HQ HRr Hin Hinc
   ))
 
 /-- `Unlock` handed no part of the tracked buckets, in a claimed session (the session's code; A1.5: the
@@ -174,18 +182,19 @@ private theorem unlock_coreC
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
-      (Sc : List GoString) (Rr : IProp GF),
+      (Sc : List GoString) (Rr : IProp GF) (Sp : GoString → Prop) (rp rc : GMap GoString BktData),
     st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
     (∀ n, st.cw n = true → n ∈ Sc) → (∀ n, n ∈ Sc → P.RB n = true) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
         bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr ∗
+        rbPart γ Sp rp ∗ rbPartR γ (fun n => n ∈ Sc) rc ∗
         ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
            ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
          (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
       (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
-    {{ RET #(); Q ∗ Rr }} := by
-  intro γ P W Pk b t st Q Sc Rr Hhw Hroom Hnd HcwS HScRB
-  wp_start as ⟨#Hb, #Ht, Hl, Htok, HRr, #Hacc, Hcase⟩
+    {{ RET #(); Q ∗ Rr ∗ rbOwnIn γ Sp rp ∗ rbOwnInR γ (fun n => n ∈ Sc) rc }} := by
+  intro γ P W Pk b t st Q Sc Rr Sp rp rc Hhw Hroom Hnd HcwS HScRB
+  wp_start as ⟨#Hb, #Ht, Hl, Htok, HRr, #Hacc, Hrb, Hrc, Hcase⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
@@ -263,7 +272,7 @@ private theorem unlock_coreC
       ihave Hupd := trkSide_updR γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) true true Sc
         (unlockOk P st) Rr Hnd rfl rfl rfl
         (fun n hn hi _ => ⟨by simp [wbSt, tkWb, hi],
-          (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb HcwS (fun h => by cases h)
+          (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb (fun n _ hi => by simp [wbSt, tkWb, hi]) HcwS (fun h => by cases h)
         (unlockOk_wb Hbg.2.2.2.2.2.2.2.2.2.2.1) $$ [$Hhkd $HRr $Hacc]
       imod (rtRes_wb_close_same γ P rt st.W st.C st.R (iprop(trkSide γ P (wbSt P st) true ∗ Rr)) Hwf.2.2.1 hver hsame
         hsafe (rbClean_writeback Hnw)) $$ [$Hci $Hwb $HRB $Hrvs $Hfkr $Hupd]
@@ -340,7 +349,7 @@ private theorem unlock_coreC
         ihave Hupd := trkSide_updR γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) true true Sc
           (unlockOk P st) Rr Hnd rfl rfl rfl
           (fun n hn hi _ => ⟨by simp [wbSt, tkWb, hi],
-            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb HcwS (fun h => by cases h)
+            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb (fun n _ hi => by simp [wbSt, tkWb, hi]) HcwS (fun h => by cases h)
           (unlockOk_wb Hbg.2.2.2.2.2.2.2.2.2.2.1) $$ [$Hhkd $HRr $Hacc]
         imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) true
           (iprop(trkSide γ P (wbSt P st) true ∗ Rr)) Hwf.2.2.1 hver hsafe)
@@ -378,7 +387,7 @@ private theorem unlock_coreC
         ihave Hupd := trkSide_updR γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) true true Sc
           (unlockOk P st) Rr Hnd rfl rfl rfl
           (fun n hn hi _ => ⟨by simp [wbSt, tkWb, hi],
-            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb HcwS (fun h => by cases h)
+            (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb (fun n _ hi => by simp [wbSt, tkWb, hi]) HcwS (fun h => by cases h)
           (unlockOk_wb Hbg.2.2.2.2.2.2.2.2.2.2.1) $$ [$Hhkd $HRr $Hacc]
         imod (rtRes_wb_close γ P rt st.W st.C st.R vd L0 (relog P vd st) false
           (iprop(trkSide γ P (wbSt P st) true ∗ Rr)) Hwf.2.2.1 hver hsafe)
@@ -397,37 +406,6 @@ private theorem unlock_coreC
         ihave Hhkd := trkSide_mode γ P (wbSt P st) true false (fun _ _ _ => HcwWb0 hfo'.2.2.1) $$ Hhkd
         bu_free (wbSt P st) (hbg' true (fun _ => tkWb_idle_of_ndel0 Hbg.2.2.2.2.2.2.2.2.2.2.1 hfo'.2.2.1)) hfo'
 
-/-- **`Unlock`'s ghost step** (`rbSide_idle`): the part handed in made idle, at the session's end.
-Private to this proof: anywhere else it would assert an idleness Go does not give. -/
-private theorem unlock_idle (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool) (S : GoString → Prop)
-    (r : GMap GoString BktData) :
-    ⊢ batchLocked (GF := GF) γ P b st c -∗ rbPart γ S r ==∗ batchLocked γ P b st c ∗ rbOwnIn γ S r := by
-  unfold batchLocked batchLockedAt batchGhost batchGhostAt trkSide trkHalf
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, ⟨⟨Hk, Hb⟩, Hrr⟩, Hfk, %Hok⟩,
-    %Hwf⟩ Hc
-  imod rbSide_idle (hG := hG) γ P (rbData P st.S) S r $$ [$Hb $Hc] with ⟨Hb, Hc⟩
-  imodintro
-  iframe Hc
-  iexists t, db
-  iframe
-  iframe #
-  ipureintro; exact ⟨Hok, Hwf⟩
-
-/-- **`Unlock`'s ghost step on a claimed part** (`rbPartR_idle`, A1.5): its flags cleared, at the session's
-end. Private to this proof, as `unlock_idle`. -/
-private theorem unlock_idleR (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool)
-    (S : GoString → Prop) (r : GMap GoString BktData) :
-    ⊢ batchLocked (GF := GF) γ P b st c -∗ rbPartR γ S r ==∗ batchLocked γ P b st c ∗ rbOwnInR γ S r := by
-  unfold batchLocked batchLockedAt batchGhost batchGhostAt
-  iintro ⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩ Hc
-  imod rbPartR_idle (hG := hG) γ P st c S r $$ [$Hk $Hc] with ⟨Hk, Hc⟩
-  imodintro
-  iframe Hc
-  iexists t, db
-  iframe
-  iframe #
-  ipureintro; exact ⟨Hok, Hwf⟩
-
 /-- **`Unlock` in a claimed session** (A1.5). -/
 theorem backend.batchTxBuffered.Unlock.wp_proofC
     (hRLock : backend.readTx.Lock.spec (GF := GF) (hG := hG))
@@ -439,13 +417,11 @@ theorem backend.batchTxBuffered.Unlock.wp_proofC
   intro γ P W Pk b t st Q S r Sc rc Rr Hhw Hroom Hnd HcwS
   iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hrc, HRr, #Hacc, Hcase⟩ HΦ
   icases batchLocked_rbPartR_RB γ P b st true _ rc $$ [$Hl $Hrc] with ⟨Hl, Hrc, %HScRB⟩
-  imod unlock_idle (hG := hG) γ P b st true S r $$ Hl Hrb with ⟨Hl, Hin⟩
-  imod unlock_idleR (hG := hG) γ P b st true _ rc $$ Hl Hrc with ⟨Hl, Hinc⟩
-  iapply (unlock_coreC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Sc Rr Hhw Hroom Hnd HcwS HScRB) $$ %Φ
-    [Hl Htok HRr Hcase]
-  · iframe Hl Htok HRr Hcase; iframe #
+  iapply (unlock_coreC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Sc Rr S r rc Hhw Hroom Hnd HcwS HScRB) $$ %Φ
+    [Hl Htok HRr Hrb Hrc Hcase]
+  · iframe Hl Htok HRr Hrb Hrc Hcase; iframe #
   inext
-  iintro ⟨HQ, HRr⟩
+  iintro ⟨HQ, HRr, Hin, Hinc⟩
   iapply HΦ
   iframe HQ Hin Hinc HRr
 

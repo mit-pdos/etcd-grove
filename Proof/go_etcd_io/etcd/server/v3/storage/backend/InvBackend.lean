@@ -774,22 +774,37 @@ observation is handed one), and every tracked bucket of the table among its name
 write goes to one). Sealed (`@[no_expose]`): its authority is what clears the pending flags, which
 only `Unlock`'s proof may do (`rbSide_idle`, private to `TrackedLemmas.lean`, which
 `batchTxBuffered__Unlock.lean` imports with `import all`); `TrackedLemmas.lean` and `NewAlloc.lean`
-`import all` this module. By convention only: no gate checks the `import all`s yet. -/
-@[no_expose] def rbSide (γ : BNames) (P : BParams) (r : GMap GoString BktData) : IProp GF :=
-  iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗ rbOwn γ r ∗
+`import all` this module. By convention only: no gate checks the `import all`s yet.
+(A1.7 of `auth-schema-srv`, 2026-11-17) `I` holds of every tracked bucket whose flag is clear (in the
+batch lock's state: `tkI`, the bucket untouched by the session), so that a client's idle part says the
+session left its buckets alone (the claim, `batchLocked_claim`). -/
+@[no_expose] def rbSide (γ : BNames) (P : BParams) (r : GMap GoString BktData)
+    (I : GoString → Prop := fun _ => True) : IProp GF :=
+  iprop((∃ M : GMap GoString (Option BktData × Bool), ghostMapAuth γ.rbk 1 M) ∗
+    (∃ F : GoString → Bool, rbPartF γ (fun _ => True) r F ∗
+      ⌜∀ n, γ.rbD.lookup n ≠ none → F n = false → I n⌝) ∗
     ⌜∀ n i, P.BT.lookup n = some i → P.RB n = true → γ.rbD.lookup n ≠ none⌝)
 
 /-- The batch lock's halves of what it tracks of the writer's contents `S`: the hook's own keys
-(`γ.hkd`) and the tracked buckets (`rbSide`). -/
-def trkHalf (γ : BNames) (P : BParams) (S : Data) : IProp GF :=
-  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S))
+(`γ.hkd`) and the tracked buckets (`rbSide`, `I` of the buckets with no write pending). -/
+def trkHalf (γ : BNames) (P : BParams) (S : Data) (I : GoString → Prop := fun _ => True) : IProp GF :=
+  iprop(ghostVar γ.hkd (1 : Qp).half (hkData P S) ∗ rbSide γ P (rbData P S) I)
+
+/-- (A1.7) What the batch lock's state says of a tracked bucket with no write pending: the session left
+it untouched. -/
+def tkI (P : BParams) (st : BSess) : GoString → Prop := fun n => P.RB n = true → st.tk n = .idle
+
+/-- Two states with the same tracked buckets' kinds say the same of them. -/
+theorem tkI_congr {P : BParams} {st st' : BSess} (h : ∀ n, P.RB n = true → st'.tk n = st.tk n) :
+    tkI P st' = tkI P st :=
+  funext fun n => propext ⟨fun h1 hRB => (h n hRB) ▸ h1 hRB, fun h1 hRB => (h n hRB).symm ▸ h1 hRB⟩
 
 /-- **`readTx.mu`'s share `q` of the tracked buckets' readers' contents** at the readers' state `rv`
 (A1 of `auth-schema-srv`, D3, 2026-11-17): of each tracked bucket's element of `γ.rbr`, at `q/2`, its
 readers' contents `rvBkt P rv n`. Changing them needs the other half (the batch lock's, `rbrSide`, or a
 claiming client's), so they change only where the batch lock's holder changes the readers' state under
-`readTx`'s write lock. -/
-def rbrHalves (γ : BNames) (P : BParams) (q : Qp) (rv : RView) : IProp GF :=
+`readTx`'s write lock. Sealed (`@[no_expose]`, A1.9): a client cannot turn a part of it into an `rbRd`. -/
+@[no_expose] def rbrHalves (γ : BNames) (P : BParams) (q : Qp) (rv : RView) : IProp GF :=
   [∗map] n ↦ _u ∈ γ.rbD, ghostMapElem γ.rbr n (DFrac.own q.half) (rvBkt P rv n)
 
 instance rbrHalves_timeless (γ : BNames) (P : BParams) (q : Qp) (rv : RView) :
@@ -801,8 +816,9 @@ instance rbrHalves_timeless (γ : BNames) (P : BParams) (q : Qp) (rv : RView) :
 D3/D4, 2026-11-17): every reader holding `readTx`'s read lock sees `v` in bucket `n` (`rtHeldF_rbRd`). A
 client gets the half of an element by claiming the bucket (A1.7) and keeps it where its readers can open it;
 its other half is `readTx.mu`'s (`rbrHalves`), so it changes only with the client's, through `Unlock`'s
-accessor (A1.5). -/
-def rbRd (γ : BNames) (n : GoString) (q : Qp) (v : BktData) : IProp GF :=
+accessor (A1.5). Sealed (`@[no_expose]`, A1.9): made only by the claim (`batchLocked_claim`), used through
+its laws (`ReadLemmas.lean`: `rtHeldF_rbRd`, `rbRd_frac`, `rbRd_agree`). -/
+@[no_expose] def rbRd (γ : BNames) (n : GoString) (q : Qp) (v : BktData) : IProp GF :=
   iprop(⌜γ.rbD.lookup n ≠ none⌝ ∗ ghostMapElem γ.rbr n (DFrac.own q) v)
 
 instance rbRd_timeless (γ : BNames) (n : GoString) (q : Qp) (v : BktData) :
@@ -838,11 +854,12 @@ readers' contents and the claims, which only the backend's proofs may do (the la
 /-- The batch lock's halves of what it tracks in the state `st`: of the writer's contents
 (`trkHalf`) and of the tracked buckets' readers' contents (`rbrSide`, A1). -/
 def trkSide (γ : BNames) (P : BParams) (st : BSess) (c : Bool := false) : IProp GF :=
-  iprop(trkHalf γ P st.S ∗ rbrSide γ P st c)
+  iprop(trkHalf γ P st.S (tkI P st) ∗ rbrSide γ P st c)
 
 /-- Two contents with the same tracked data have the same halves. -/
 theorem trkHalf_eq (γ : BNames) (P : BParams) {S S' : Data} (h1 : hkData P S' = hkData P S)
-    (h2 : rbData P S' = rbData P S) : trkHalf (GF := GF) γ P S = trkHalf γ P S' := by
+    (h2 : rbData P S' = rbData P S) (I : GoString → Prop := fun _ => True) :
+    trkHalf (GF := GF) γ P S I = trkHalf γ P S' I := by
   unfold trkHalf; rw [h1, h2]
 
 /-! ## The history of the read side, and the cache's marks -/
