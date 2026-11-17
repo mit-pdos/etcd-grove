@@ -19,14 +19,14 @@
     `execute`. Until then do NOT prove update/delete/execute (questions.md "Step 3 STOP").
   - `Model.validCacherContinue` proved (over `listItems.spec`; `predOk_driver`'s `Empty` triple, `opts`
     made persistent and split). `listItems.spec` and `list.spec` stated (questions.md, Step 3 forms).
-  - **STOP 2 (questions.md)**: (a) `maps.Keys.spec_objMap` returns `(f : val)` (maybe a panic: the
-    `let` cannot step) → fix `(f : GoFunc), RET #f`; blocks the `listItems` proof (skeleton, `sorry`
-    after `wp_Keys`) and `list`. (b) `meta.ListAccessor` has no `*ObjList` spec; blocks
-    `listResponseRV`, `equalListResponse`.
-  - After (a): prove `listItems` (`itemsOfKeys`/`itemsOfKeys_snoc` in its file; loop as `mlist.lean`,
-    `mlistMatches.wp_proof` for `Matches`), then `list`: needs a `newObjList` spec (driver, new) and
-    `versioner.UpdateList.spec`'s pre weakened in place to the metadata fields (`metaAtD`; `SetList`'s
-    post gives no `ownSliceCap`, so `itemsAtD` cannot be shown); `mlistPCT.wp_proof` for the token.
+  - STOP 2 decided (etcd-grove-03, questions.md): (a) `maps.Keys.spec_objMap` returns `(f : GoFunc)`,
+    (b) `ListAccessor.spec` has an `*ObjList` row (callers of the reflector row use `.1`); applied
+    `50be6070ef` (trust delta in `notes/k8s-7g-trust.md` §4, for the joint attack before step 6).
+  - `Model.listItems` proved (loop over `ks`, invariant over `itemsOfKeys … (ks.take j)`).
+  - Next: `list` (needs a `newObjList` spec/proof, driver, new; `versioner.UpdateList.spec`'s pre
+    weakened in place to `metaAtD` — a proved spec; `ListContract.lean` splits `listAtItems`);
+    `mlistPCT.wp_proof` for the token. Then `listResponseRV`, `equalListResponse` (ListAccessor `.2`),
+    then step-4 bridges not depending on blocked functions.
   - **Blocked until the soundness-1117 fix lands** (V): `validateGet`, `validateList`, `Step`.
 - **Standing constraint**: do not touch View.lean / HasStatusCause / IsTooManyRequests /
   SuggestsClientDelay until etcd-grove-03 says the soundness fix (a) + T landed.
