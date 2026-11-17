@@ -1,6 +1,39 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4: STOPPED at a refutation in applyEntryNormal; waiting for etcd-grove-03)
+## START HERE (S4, 2026-11-17, item 7b F4 (A): apply layer + applyEntryNormal DONE; NewServer(R) next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `NewServer`, `NewServerR` and
+  importers of the changed server rows still do not compile). Base of the coming leaves build: `00b09c1360`.
+- **Decided (questions.md, last three entries):** option (A) (etcd-grove-03); the agent's forms "Item 7b F4 (A), forms".
+- **Done:** `89951bb50c` apply layer: plain path `E.lg = true → v3 = true → winTgt …` (Spec `uberApplier__Apply`,
+  `uberApplier__dispatch`: interfaces to regenerate; `Apply.specRec`); latest path `winTgtL` (DispatchKVL) /
+  `(∃ oc, X oc ∧ oc ≠ .rejected .auth) → winTgt` in the methods' `*PreW`; existence lemmas `pass_exists`,
+  `backendStep_exists_*` (AuthApplyLatest; the txn read-only fact from `txn.srvOps_gets_nil`, so client
+  `srvRunTxn_ro_nil` was NOT moved: no copy exists). All apply files lean-checked `--fast -a`.
+  `52fa94a5b5` `EtcdServer__applyEntryNormal` compiles (`--fast -a`, 0 errors): defeq corollaries `Apply_specRec_win`,
+  `Apply_kvSpecL_win`, `adminEntryOn_win`, `srvUberOn_kv_win`, `srvUberOn_adm_win` (call at `{E with win := wn}`,
+  other resources at `E`); `srvApplyKVW_push` (window of the entry, `Lt` the model log after it), `winTgt_of_log`,
+  `backendStep_keep`, `kvOutL_of_pass`; `applyKV_writer`/`applyKV_kvOwnPre` at the window.
+- **Next, in order:** (1) MOVE `kvEntryOn_extends'` (TEMP copy at the top of applyEntryNormal) and
+  `v3rpc/ClientModel.kvEntryOn_extends` to ONE lemma in `KVAuthModel.lean` (next to `kvEntryOn`), both callers use it
+  (no twin). (2) NewServer/NewServerR allocation: NewLessor's output pattern drops `lessorWinTie γl []` (the `-` after
+  `Hlown`, NewServer l.737): keep it; after `bootStore_holds` (`Hw0 : wSt γs log c`, l.919) split `wStQ`'s st part
+  (`ghostVar_split_half E₀.γs.st (1:Qp).half`) into `wStQ ¼` (kvOwn, `stq := ¼`) and a bare quarter for
+  `srvApi.tie_alloc` (with `Hlrdinv`, `HlWt`, `Hlown` after `hNew` l.891, `□ kvNx ρ.rd on log` from `Hrlb0`, `Lt = log`,
+  `Fr := clusterNoSnap ρ.rd.raft.raft.cl → E.lg = false`); at `ρ.rd.kv.lg = false` `tie_free` right after (Fr holds).
+  AEnv literals (20 in NewServer, 18 in NewServerR): append `Wt := srvApi.winTok γt, stq := (1 : Qp).half.half` (sed on
+  `γlt := γlt }`); `Haus` (l.2478) by `srvApi.envAus_tie`; `srvKVInvs` (l.2204) gains `winTieRes`; the final
+  `bootKVOf` row (l.2620-2670) is `srvApplyKVW` at the window (leasesLive with `Hlown` at `wn`, `E.Wt wn` = the token).
+  (3) Remaining callers (examples, client: `etc/importers.py --uses srvKVInvs --uses srvKVInvsOn --uses srvApplyKVW
+  --files Proof/go_etcd_io/etcd/server/v3/etcdserver/InvApplier.lean`). (4) ONE leaves build from `00b09c1360`
+  (`/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(etc/importers.py --leaves --git
+  00b09c1360)`); step 7 (law, incl. the lm = none lemma), step 8; the c6b merge; full build; tcb-report --check;
+  gen-interface (the two Spec files above change).
+- **Pitfalls:** `{E with win := wn}`-resources: use the `*_win` corollaries (defeq ascription) instead of converting
+  hypotheses. `simp only [↓reduceIte]` turns a premise `v3 = true →` into `True →`: write `fun h _ => …`. In python
+  edits, an 8-space anchor also matches 10-space lines: anchor at line start (`(?m)^`). Earlier pitfalls below.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: STOPPED at a refutation in applyEntryNormal; waiting for etcd-grove-03)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `EtcdServer__applyEntryNormal`,
   `NewServer`, `NewServerR` and importers still do not compile). Base of the coming leaves build: `00b09c1360`.
