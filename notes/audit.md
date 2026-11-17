@@ -584,3 +584,10 @@ premises: `rnStopOkStarted`, `bootstrapContract`).
 | axiom | verdict | reason |
 |---|---|---|
 | `storage.storage.Release.wp_proof` | **false** (2026-11-17) | Its frame keeps a held snapshot file (`backend.fileHolds`, taken out of `snapDirInv` by `SnapRO.snapDir_take`, whose `snapRmM` gives the `Release` premise), but Go's `ReleaseSnapDBs` lists the directory and deletes it (`examples/axiomcx/releasesnap`). No current proof known to reach it. Bug record `notes/release-snapdb-held-file.md`; fix in the WAL link's L2 |
+
+### apierrors-fix (2026-11-17; Go: `k8s.io/apimachinery` `pkg/api/errors/errors.go:232-244,387-397`, go1.27 `fmt/print.go`; review `notes/axiom-review/apierrors-fix.md`)
+
+| axiom | verdict | reason |
+|---|---|---|
+| `apierrors.NewConflict.wp_proof` (no precondition) | **false** (2026-11-17); fixed on `apierrors-fix` | `%v` of an error whose `Error()`/`Format` panics with a value whose `Error()` panics re-panics in `fmt` (`print.go:591-594`). Fix: precondition `fmt.argOk err`; post gains `statusDetailsAt st []` (survived the attack). Bug record `notes/apierrors-new-precondition.md` |
+| `apierrors.NewInternalError.wp_proof` (no precondition; round-1 text with `stringMethodSpec` only) | **false** (2026-11-17); fixed on `apierrors-fix` | `err.Error()` on `nil` panics; with `Error()`'s spec, a `Format` method panicking nestedly still panics (`print.go:630-634`). Fix: non-nil, `Error()` returns, no `Format`; post gains `statusDetailsAt st [c]`, `c.Type' = ""` (survived). Bug record `notes/apierrors-new-precondition.md` |

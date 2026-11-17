@@ -6,8 +6,11 @@ post also gives the details, read-only, with one cause of type `""` (`statusDeta
 sets `Details` to a fresh `&StatusDetails{Causes: []StatusCause{{Message: err.Error()}}}`. And a
 precondition, which the former statement lacked (it was false): Go calls `err.Error()` directly, so a
 `nil` error, or one whose `Error()` panics, panics; the error is non-nil and its `Error()` returns
-some string (`fmt.stringMethodSpec`, which `errors.New`'s and `fmt.Errorf`'s errors have). Go:
-`examples/premisefix/apierrorsdetails` `TestNewInternalError`.
+some string (`fmt.stringMethodSpec`, which `errors.New`'s and `fmt.Errorf`'s errors have). It has
+no `Format` method (the attack of 2026-11-17, `notes/axiom-review/apierrors-fix.md`: the message's
+`%v` calls `Format` in place of `Error()`, and `fmt` re-panics when the panic value's own `Error()`
+panics, `print.go:591-594`, `630-634`). Go: `examples/premisefix/apierrorsdetails`
+`TestNewInternalError`, `TestNestedPanics`.
 -/
 module
 
@@ -34,13 +37,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-/-- `apierrors.NewInternalError(err)`, of a non-nil error whose `Error()` returns: a 500: the
+/-- `apierrors.NewInternalError(err)`, of a non-nil error without `Format` whose `Error()` returns: a 500: the
 status `Failure`, reason `InternalError`, code 500, with details holding one cause of type `""`
 (see the file header). -/
 abbrev NewInternalError.spec : Prop :=
   ∀ (err : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors ∗
-      ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗ fmt.stringMethodSpec ei go!"Error" }}
+      ∃ ei : GoInterfaceOk, ⌜err = GoInterface.ok ei⌝ ∗ fmt.stringMethodSpec ei go!"Error" ∗
+        ⌜methodSet ei.ty !! go!"Format" = none⌝ }}
     (App (Val (@! k8s_io.apimachinery.pkg.api.errors.NewInternalError)) (Val #err))
   {{ (p : Loc), RET #p; ∃ (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
       (c : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause),

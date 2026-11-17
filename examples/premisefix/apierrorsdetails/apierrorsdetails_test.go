@@ -7,6 +7,7 @@ package apierrorsdetails
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,8 +36,8 @@ func checkStatus(t *testing.T, name string, st metav1.Status, reason metav1.Stat
 	}
 }
 
-// NewConflict: Failure/Conflict/409, Details non-nil with no causes (nil Causes); no precondition:
-// it never calls err.Error() itself, and fmt's %v recovers a panicking Error and prints nil.
+// NewConflict: Failure/Conflict/409, Details non-nil with no causes (nil Causes). These errors meet
+// fmt.argOk (nil, or no Format and an Error() that returns), or show a single panic is recovered.
 func TestNewConflict(t *testing.T) {
 	for _, err := range []error{nil, errors.New("e"), panicErr{}} {
 		var se *apierrors.StatusError
@@ -70,5 +71,43 @@ func TestNewInternalError(t *testing.T) {
 	}
 	if !apierrors.HasStatusCause(se, "") || apierrors.HasStatusCause(se, "X") {
 		t.Errorf("NewInternalError: HasStatusCause")
+	}
+}
+
+// The attack of 2026-11-17 (notes/axiom-review/apierrors-fix.md; /shared/tmp/apierrors-attack/cx):
+// fmt's catchPanic re-panics when the recovered value's own Error() panics (print.go:591-594), and
+// handleMethods calls Format in place of Error() (print.go:630-634). So NewConflict needs fmt.argOk
+// of err (the precondition-free text was false) and NewInternalError needs no Format method (the
+// first restatement, with only Error()'s spec, was false); a plain panicking Format is recovered.
+type badPanic struct{}
+
+func (badPanic) Error() string { panic("again") }
+
+type nestErr struct{}
+
+func (nestErr) Error() string { panic(badPanic{}) }
+
+type fmtErr struct{}
+
+func (fmtErr) Error() string                 { return "ok" }
+func (fmtErr) Format(f fmt.State, verb rune) { panic(badPanic{}) }
+
+type simpleFmt struct{}
+
+func (simpleFmt) Error() string                 { return "ok" }
+func (simpleFmt) Format(f fmt.State, verb rune) { panic("x") }
+
+func TestNestedPanics(t *testing.T) {
+	if !panics(func() { apierrors.NewConflict(gr, "n", nestErr{}) }) {
+		t.Errorf("NewConflict(nestErr): no panic")
+	}
+	if !panics(func() { apierrors.NewConflict(gr, "n", fmtErr{}) }) {
+		t.Errorf("NewConflict(fmtErr): no panic")
+	}
+	if !panics(func() { apierrors.NewInternalError(fmtErr{}) }) {
+		t.Errorf("NewInternalError(fmtErr): no panic")
+	}
+	if panics(func() { apierrors.NewInternalError(simpleFmt{}) }) {
+		t.Errorf("NewInternalError(simpleFmt): panics")
 	}
 }
