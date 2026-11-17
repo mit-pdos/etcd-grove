@@ -61,7 +61,7 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   unfold baseRd
-  icases Hrd with ⟨%m, %Pb, %cm, %tm, Hrb, Hrtx, Hcm, #Htm, Hown, #Hg, Hlive, #Hsnap, #Hintv,
+  icases Hrd with ⟨%m, %Pb, %cm, %tm, Hrb, Hrtx, Hcm, #Htm, Hown, #Hg, Hlive, #Hintv,
     %Hwf⟩
   ihave %Hel := ownSlice_len _ _ _ $$ He
   unfold isBucket
@@ -116,22 +116,21 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
   rw [rtRange_rest rv bi kb eb limit hne]
   wp_apply Hid
   -- the buckets cache, under `txMu.RLock()`
-  wp_apply sync.RWMutex.wp_RLock $$ [$Hown] as ⟨Hrl, HP⟩
+  wp_apply sync.RWMutex.wp_RLock $$ [$Hown] as ⟨Hrl, Hta⟩
   unfold tmTok
-  icases HP with ⟨Hta, Htb⟩
   imod intv_borrow γ P rtx cm rv.1 sync.rfrac ⊤ (by solve_ndisj) $$ [$Hintv $Hta]
     with ⟨%M, HM, #Hf⟩
   wp_apply wp_map_lookup2 $$ HM as HM
   imod intv_return γ P rtx cm rv.1 sync.rfrac M ⊤ (by solve_ndisj) $$ [$Hintv $HM $Hf] with Hta
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hta Htb] as Hown
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hta] as Hown
   · iframe
   -- not cached: `txMu.Lock()`, the bucket from the transaction, cached
   wp_join iprop(∃ (bkv : Loc) (lh : Bool), bucket_ptr ↦ bkv ∗ lockHeld_ptr ↦ lh ∗
-      bktFact rtx rv.1 bi.name bkv ∗ rtxOf base ↦{dq} rtx ∗ txLive rtx q ∗
+      bktFact γ rtx rv.1 bi.name bkv ∗ rtxOf base ↦{dq} rtx ∗ txLive rtx γ.db q (bbolt.TxView.ro rv.1) ∗
       baseReadTx_ptr ↦ base ∗ bucketType_ptr ↦ GoInterface.ok bo ∗ bn_ptr ↦ bi.id ∗
       rbktOf base ↦{dq} cm ∗
-      (if lh then sync.ownRWMutexWLocked tm (fun q => tmTok γ q) ∗ ghostVar γ.txa 1 () ∗
-        rtxStats rtx else iprop(True)))
+      (if lh then sync.ownRWMutexWLocked tm (fun q => tmTok γ q) ∗ ghostVar γ.txa 1 ()
+        else iprop(True)))
     with [bucket lockHeld Hrtx Hlive baseReadTx bucketType bn Hcm]
     as ⟨%bkv, %lh, bucket, lockHeld, #Hbf, Hrtx, Hlive, baseReadTx, bucketType, bn, Hcm, Hlh⟩
   · -- in the cache
@@ -140,22 +139,20 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
       | none => rw [show M !! bi.id = M.lookup bi.id from rfl, h] at Hif; simp at Hif
       | some bk0 => exact ⟨bk0, rfl⟩
     obtain ⟨bk0, hbk0⟩ := hsome
-    ihave #Hbf := cmFacts_lookup P rtx rv.1 M bi bk0 Hwf.2.2.1 Hhas hbk0 $$ Hf
+    ihave #Hbf := cmFacts_lookup γ P rtx rv.1 M bi bk0 Hwf.2.2.1 Hhas hbk0 $$ Hf
     rw [show M !! bi.id = M.lookup bi.id from rfl, hbk0]
     iexists bk0, false
     simp only [Bool.false_eq_true, ↓reduceIte]
     iframe; iframe #
   · -- not in the cache
-    wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, HP⟩
+    wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, Hta⟩
     unfold tmTok
-    icases HP with ⟨Hta, Htb⟩
-    imod stats_take γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Htb] with Hst
     wp_apply Hname as %sn #Hsn
-    wp_apply hBucket $$ [$Hlive $Hsnap $Hst $Hsn] as %bkv ⟨Hlive, Hst, -, #Hbf⟩
+    wp_apply (hBucket rtx γ.db q rv.1) $$ [$Hlive $Hsn] as %bkv ⟨Hlive, -, #Hbf⟩
     imod intv_borrow γ P rtx cm rv.1 1 ⊤ (by solve_ndisj) $$ [$Hintv $Hta]
       with ⟨%M', HM, #Hf'⟩
     wp_apply +noauto wp_mapInsert $$ HM as HM
-    ihave #Hf'' := cmFacts_insert P rtx rv.1 M' bi bkv Hhas $$ [Hf' Hbf]
+    ihave #Hf'' := cmFacts_insert γ P rtx rv.1 M' bi bkv Hhas $$ [Hf' Hbf]
     · iframe #; unfold bktFact; iexact Hbf
     imod intv_return γ P rtx cm rv.1 1 _ ⊤ (by solve_ndisj) $$ [$Hintv $HM $Hf''] with Hta
     wp_auto
@@ -185,10 +182,9 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
       iexists ks, vs
       iframe; iframe #
     · simp only [↓reduceIte]
-      icases Hlh with ⟨Hwl, Hta, Hst⟩
-      imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
+      icases Hlh with ⟨Hwl, Hta⟩
       wp_auto
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta Htb]
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta]
       · unfold tmTok; iframe
       iapply HΦ
       isplitl [Hrb Hrtx Hcm Hown Hlive]
@@ -203,24 +199,20 @@ theorem backend.baseReadTx.UnsafeRange.wp_proof
   icases Hbf with (%Hnone | ⟨%mb, %Hsome, #Hrb'⟩)
   · exfalso; exact Hif Hnone.2
   wp_join iprop(baseReadTx_ptr ↦ base ∗
-      sync.ownRWMutexWLocked tm (fun q => tmTok γ q) ∗ ghostVar γ.txa 1 () ∗ ghostVar γ.txb 1 ())
-      at next with [baseReadTx Hlh] as ⟨baseReadTx, Hwl, Hta, Htb⟩
+      sync.ownRWMutexWLocked tm (fun q => tmTok γ q) ∗ ghostVar γ.txa 1 ())
+      at next with [baseReadTx Hlh] as ⟨baseReadTx, Hwl, Hta⟩
   · cases lh
     · simp only [Bool.false_eq_true, ↓reduceIte]
       wp_auto
-      wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, HP⟩
+      wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as ⟨Hwl, Hta⟩
       unfold tmTok
-      icases HP with ⟨Hta, Htb⟩
       wp_join_done
     · simp only [↓reduceIte]
-      icases Hlh with ⟨Hwl, Hta, Hst⟩
-      imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
+      icases Hlh with ⟨Hwl, Hta⟩
       wp_auto
       wp_join_done
-  imod stats_take γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Htb] with Hst
-  wp_apply hCursor $$ [$Hrb' $Hst $Hlive] as %c ⟨Hc, Hst, Hlive⟩
-  imod stats_give γ P rtx cm rv.1 ⊤ (by solve_ndisj) $$ [$Hintv $Hst] with Htb
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta Htb]
+  wp_apply (hCursor rtx γ.db q rv.1 bkv bi.name mb Hsome.1) $$ [$Hrb' $Hlive] as %c ⟨Hc, Hlive⟩
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hta]
   · unfold tmTok; iframe
   have hkl : keys.len = W64 ((bbRange (bkOf rv.2.bks bi.id) kb eb (rangeLimit eb limit)).length : Int) := by
     rw [← Hkal, Hksl.1]; word

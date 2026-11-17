@@ -14,8 +14,11 @@ def bbolt.Tx.DeleteBucket_kv.spec : Prop :=
                     (⌜S !! n = none⌝ ∗
                         backend.ownWTxG tx γ D S G ∗
                           typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound) err DFrac.discard ∨
-                      ⌜S !! n ≠ none ∧ err = GoInterface.nil⌝ ∗
-                        backend.ownWTxG tx γ D (GMap.delete n S) fun x => if x = n then G n + 1 else G x) -∗
+                      ⌜n = [] ∧ S !! n = none⌝ ∗
+                          backend.ownWTxG tx γ D S G ∗
+                            typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue) err DFrac.discard ∨
+                        ⌜S !! n ≠ none ∧ err = GoInterface.nil⌝ ∗
+                          backend.ownWTxG tx γ D (GMap.delete n S) fun x => if x = n then G n + 1 else G x) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal

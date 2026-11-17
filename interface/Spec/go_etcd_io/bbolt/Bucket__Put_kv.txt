@@ -13,7 +13,7 @@ def bbolt.Bucket.Put_kv.spec : Prop :=
               ∀ Φ,
                 isPkgInit pkg_id.go_etcd_io.bbolt ∗
                     backend.ownWTxG tx γ D S G ∗
-                      backend.wBkt tx b n g ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
+                      backend.wBkt tx γ b n g ∗ ownSlice key kb dk ∗ ownSlice value vb DFrac.discard -∗
                   (▷
                       ∀ err,
                         ownSlice key kb dk ∗

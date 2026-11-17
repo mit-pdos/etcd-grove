@@ -2,13 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Tx.Size_kv.wp_proof : bbolt.Tx.Size_kv.spec
+theorem bbolt.Tx.Size_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Size.spec) :
+    bbolt.Tx.Size_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Size_kv.spec`, unfolded:
-  ∀ (tx : Loc) (q : Qp),
+  ∀ (tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx q -∗
-          (▷ ∀ n, backend.txLive tx q -∗ Φ (intoVal n)) -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.txLive tx γ q T -∗
+          (▷ ∀ n, backend.txLive tx γ q T -∗ Φ (intoVal n)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Size" (intoVal tx)))
                 (intoVal ()))

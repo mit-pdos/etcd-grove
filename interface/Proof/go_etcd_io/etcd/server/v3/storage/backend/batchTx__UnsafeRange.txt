@@ -21,7 +21,7 @@ theorem backend.batchTx.UnsafeRange.wp_proof [go_etcd_io.bbolt.Assumptions]
                 backend.btW γ t st ∗
                     ownSlice key kb dk ∗
                       ownSlice endKey eb de ∗
-                        backend.kvsOutRd st.tx keys vals
+                        backend.kvsOutRd γ.db st.tx keys vals
                           (backend.cursorRange (backend.bktEnts (backend.bktOf st.S bi.name)) kb eb limit) -∗
                   Φ (intoVal keys, intoVal vals)) -∗
             WP

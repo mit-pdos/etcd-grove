@@ -119,7 +119,6 @@ theorem backend.newBatchTxBuffered.wp_proof
   wp_apply (wp_Mutex_Unlock_own (muOf «$r0_ptr»)) $$ [Mutex] as Mutex
   · iexact Mutex
   try wp_auto
-  icases Hrd with ⟨Hrl, #Hrs, Hrst⟩
   iapply HΦ
   iexists wtx, rtx
   iframe

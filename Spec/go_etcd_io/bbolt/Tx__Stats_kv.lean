@@ -1,9 +1,10 @@
 /-
-`Tx.Stats_kv` (bbolt). `tx.Stats()` of a finished transaction: some statistics.
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Stats_kv.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
+`Tx.Stats_kv` (bbolt). `tx.Stats()` of a finished transaction.
+A corollary of bbolt's proved `Tx.Stats` (`Spec/go_etcd_io/bbolt/Tx__Stats.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Tx__Stats_kv.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -28,7 +29,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `tx.Stats()` of a finished transaction: some statistics. -/
 abbrev bbolt.Tx.Stats_kv.spec : Prop :=
   ∀ (tx : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ txDone tx }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.txDone tx }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Stats")) (Val #()))
   {{ (s : TxStats), RET #s; True }}
 

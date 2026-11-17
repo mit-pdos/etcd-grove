@@ -73,7 +73,7 @@ theorem backend.batchTx.unsafePut.wp_proof
   wp_join with [Hwtx bucket]
   · icases ownWTxG_fill st.tx bkt γ.db st.C st.S G bi.name (G bi.name) $$ [$Hwtx $Hwb] with ⟨%f, Hf, Hback⟩
     wp_auto
-    ispecialize Hback $$ %_ Hf
+    ispecialize Hback $$ %_ %(by decide : ¬ bbolt.float64IsNaN (W64 4606281698874543309)) Hf
     wp_join_done
   wp_apply (hPut st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key value kb vb dk rfl Hm Hk0 Hk1)
     $$ [$Hwtx $Hwb $Hkey $Hval] as %err ⟨Hkey, Hres⟩

@@ -11,6 +11,4 @@ entry AxiomTokSelftest.st_refuse_entrypers 2:*:produced1/consumed0  the mint is 
 entry AxiomTokSelftest.st_refuse_entrycb 2:*:produced1/consumed0  the token is handed to a callback
 entry AxiomTokSelftest.st_gone 3:R:produced1/consumed0  no such axiom: reported stale
 entry AxiomTokSelftest.st_pass_entrymint 2:*:produced1/consumed0  the finding's key
-real-pass Perennial.EtcdGrove.bbolt.DB.Begin_kv.wp_proof
-real-pass Perennial.EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
 real-pass Perennial.EtcdGrove.EtcdServer.leaseTimeToLive.wp_proof

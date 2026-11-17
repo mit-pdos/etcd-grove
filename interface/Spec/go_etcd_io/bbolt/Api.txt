@@ -107,6 +107,10 @@ theorem bbolt.txBytes_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : Has
 theorem bbolt.isBolt_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (db :
     Loc) (γ : bbolt.BoltName) : Persistent (bbolt.isBolt db γ)
 
+theorem bbolt.boltBkt_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx :
+    Loc) (γ : bbolt.BoltName) (b : Loc) (n : GoString) (g : Nat) : Timeless (bbolt.boltBkt tx γ b n
+    g)
+
 def bbolt.instDecidableEqBoltName : DecidableEq bbolt.BoltName :=
   bbolt.instDecidableEqBoltName.decEq
 

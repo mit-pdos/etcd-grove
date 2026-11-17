@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.DB.Begin_kv.wp_proof : bbolt.DB.Begin_kv.spec
+theorem bbolt.DB.Begin_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec) :
+    bbolt.DB.Begin_kv.spec
   -- `Perennial.EtcdGrove.bbolt.DB.Begin_kv.spec`, unfolded:
   ∀ (db : Loc) (γ : backend.DBNames) (D : backend.Data) (w : Bool),
     ⊢
@@ -11,12 +13,11 @@ axiom bbolt.DB.Begin_kv.wp_proof : bbolt.DB.Begin_kv.spec
           (▷
               ∀ tx err,
                 backend.ownDB db γ D ∗
-                    backend.isDB db ∗
+                    backend.isDB db γ ∗
                       ((⌜err ≠ GoInterface.nil⌝ ∗ if w = true then backend.wrTok γ else threadTok) ∨
                         ⌜err = GoInterface.nil⌝ ∗
-                          backend.txDB tx db ∗
-                            if w = true then backend.ownWTx tx γ D D
-                            else backend.txLive tx 1 ∗ backend.rtxSnap tx D ∗ backend.rtxStats tx) -∗
+                          backend.txDB tx γ db ∗
+                            if w = true then backend.ownWTx tx γ D D else backend.txLive tx γ 1 (bbolt.TxView.ro D)) -∗
                   Φ (intoVal tx, intoVal err)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Begin" (intoVal db)))

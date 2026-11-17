@@ -32,9 +32,9 @@ bbolt as a key-value contract, the locks and the views".
 - *`readTx.mu`* (guarded `RWMutex`, `rtRes q`): the shared read transaction's fields at `q`, the
   view's and `γ.rd`'s shares, the history's authority at `q`, and, while a bbolt read
   transaction is open, its `txLive` share, the interval's invariants and `wgOpen` at `q`.
-- *`txMu`* (one for the backend's life; `tmTok q`): two fractional tokens; each interval's
-  `intvInv` exchanges its buckets map (at a fraction) for the same fraction of the first, and its
-  `rtxStats` for the whole second. The commit that begins an interval allocates it, without
+- *`txMu`* (one for the backend's life; `tmTok q`): a fractional token; each interval's
+  `intvInv` exchanges its buckets map (at a fraction) for the same fraction of the token (until
+  stage S1 also the transaction's `rtxStats` for a second token). The commit that begins an interval allocates it, without
   `txMu`.
 - *The interval's `WaitGroup`* (`wgInv`): a `ConcurrentReadTx` adds one and takes half of the
   pool of `txLive` (its `rdShare`, with a receipt); `Done` gives it back. The commit that ends the
@@ -82,6 +82,8 @@ structure BNames where
   wb : GName
   rdt : GName
   txa : GName
+  /-- unused since stage S1 (2026-11-17: the read transaction's statistics token, `rtxStats`, went with
+  bbolt's proof); kept so that the clients' names keep their layout -/
   txb : GName
   rvs : GName
   cvw : GName
@@ -769,14 +771,14 @@ instance cacheInv_persistent (γ : BNames) : Persistent (cacheInv (GF := GF) γ)
 /-! ## `txMu` and the intervals -/
 
 /-- `txMu`'s resource: the two exchange tokens at `q`. -/
-def tmTok (γ : BNames) (q : Qp) : IProp GF := iprop(ghostVar γ.txa q () ∗ ghostVar γ.txb q ())
+def tmTok (γ : BNames) (q : Qp) : IProp GF := iprop(ghostVar γ.txa q ())
 
 /-- What the buckets cache of an interval over `D` holds, by the table's ids: handles of `D`'s
 buckets, or nil for a bucket `D` does not have. -/
-def cmFacts (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) : IProp GF :=
+def cmFacts (γ : BNames) (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) : IProp GF :=
   iprop([∗map] i ↦ bk ∈ M, ∃ n : GoString, ⌜P.BT.lookup n = some i⌝ ∗
     (⌜D.lookup n = none ∧ bk = Loc.null⌝ ∨
-     ∃ m : BktData, ⌜D.lookup n = some m ∧ bk ≠ Loc.null⌝ ∗ rBkt rtx bk (bktEnts m)))
+     ∃ m : BktData, ⌜D.lookup n = some m ∧ bk ≠ Loc.null⌝ ∗ wBkt rtx γ.db bk n 0))
 
 /-- A fraction `q` (a rational, `0` for none) of the buckets map `cm` holding `M`. -/
 def mapPart (cm : GoMap) (q : Rat) (M : GMap w64 Loc) : IProp GF :=
@@ -786,12 +788,12 @@ def mapPart (cm : GoMap) (q : Rat) (M : GMap w64 Loc) : IProp GF :=
 def tokPart (γ : BNames) (q : Rat) : IProp GF :=
   if h : 0 < q then ghostVar γ.txa ⟨q, h⟩ () else iprop(True)
 
-instance cmFacts_timeless (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) :
-    Timeless (cmFacts (GF := GF) P rtx D M) := by
+instance cmFacts_timeless (γ : BNames) (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) :
+    Timeless (cmFacts (GF := GF) γ P rtx D M) := by
   unfold cmFacts; infer_instance
 
-instance cmFacts_persistent (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) :
-    Persistent (cmFacts (GF := GF) P rtx D M) := by
+instance cmFacts_persistent (γ : BNames) (P : BParams) (rtx : Loc) (D : Data) (M : GMap w64 Loc) :
+    Persistent (cmFacts (GF := GF) γ P rtx D M) := by
   unfold cmFacts; infer_instance
 
 instance mapPart_timeless (cm : GoMap) (q : Rat) (M : GMap w64 Loc) :
@@ -803,11 +805,12 @@ instance tokPart_timeless (γ : BNames) (q : Rat) : Timeless (tokPart (GF := GF)
 
 /-- An interval's buckets cache, exchanged against `txMu`'s first token (a fraction of the map
 for the same fraction of the token: the invariant holds the map at `qm` and the token at
-`1 - qm`), and its transaction's statistics against the whole second token. -/
+`1 - qm`). (Until stage S1, 2026-11-17, also its transaction's statistics, `rtxStats`, against a
+second token: the proved bbolt's `Tx.Bucket` and `Bucket.Cursor` take any fraction of a read
+transaction.) -/
 def intvInv (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Data) : IProp GF :=
-  iprop(inv (bN.@"intv") iprop(∃ (M : GMap w64 Loc) (qm : Rat), □ cmFacts P rtx D M ∗
-      ⌜0 ≤ qm ∧ qm ≤ 1⌝ ∗ mapPart cm qm M ∗ tokPart γ (1 - qm)) ∗
-    inv (bN.@"stats") iprop(rtxStats rtx ∨ ghostVar γ.txb 1 ()))
+  iprop(inv (bN.@"intv") iprop(∃ (M : GMap w64 Loc) (qm : Rat), □ cmFacts γ P rtx D M ∗
+      ⌜0 ≤ qm ∧ qm ≤ 1⌝ ∗ mapPart cm qm M ∗ tokPart γ (1 - qm)))
 
 instance intvInv_persistent (γ : BNames) (P : BParams) (rtx : Loc) (cm : GoMap) (D : Data) :
     Persistent (intvInv (GF := GF) γ P rtx cm D) := by
@@ -820,9 +823,9 @@ the commit that ends the interval deposits it whole). -/
 def wgOpen (γw : GName) (q : Qp) : IProp GF := ghostVar γw q ()
 
 /-- A reader's share of the interval: its fraction of the transaction's `txLive`, and its
-receipt. -/
-def rdShare (rtx : Loc) (γo : GName) (k : Nat) (q : Qp) : IProp GF :=
-  iprop(txLive rtx q ∗ ghostMapElem γo k (DFrac.own 1) q)
+receipt. The transaction reads the snapshot `D` of the database `γ.db`. -/
+def rdShare (γ : BNames) (rtx : Loc) (D : Data) (γo : GName) (k : Nat) (q : Qp) : IProp GF :=
+  iprop(txLive rtx γ.db q (bbolt.TxView.ro D) ∗ ghostMapElem γo k (DFrac.own 1) q)
 
 /-- The interval's `WaitGroup` protocol (the invariant's body). Active: the counter is the
 number of outstanding receipts (each reader also brought a budget token); the pool and the
@@ -830,26 +833,46 @@ receipts sum to half the transaction (the other half is `readTx.mu`'s while the 
 current); open to readers, or closed (`wgOpen 1` inside: no reader adds any more; the commit
 then holds the waiters' authority). Finished: the rollback goroutine's `Wait` found the counter
 0 and took the pool, leaving its token `γt`. -/
-def wgBody (γ : BNames) (rtx : Loc) (γwg : sync.WaitGroupNames) (γw γo γt : GName) : IProp GF :=
+def wgBody (γ : BNames) (rtx : Loc) (D : Data) (γwg : sync.WaitGroupNames) (γw γo γt : GName) :
+    IProp GF :=
   iprop((∃ (n : w32) (outs : GMap Nat Qp) (pool : Qp),
-      sync.ownWaitGroup γwg n ∗ ghostMapAuth γo 1 outs ∗ txLive rtx pool ∗
+      sync.ownWaitGroup γwg n ∗ ghostMapAuth γo 1 outs ∗ txLive rtx γ.db pool (bbolt.TxView.ro D) ∗
       ownToks γ.rdt (sint.nat n) ∗
       ⌜sint.Z n = (GMap.size outs : Int) ∧ (pool : Rat) + qsum outs = 1 / 2⌝ ∗
       (sync.ownWaitGroupWaiters γwg 0 ∨ wgOpen γw 1)) ∨
     (ghostMapAuth γo 1 (∅ : GMap Nat Qp) ∗ wgOpen γw 1 ∗ ghostVar γt 1 ()))
 
-instance wgBody_timeless (γ : BNames) (rtx : Loc) (γwg : sync.WaitGroupNames)
-    (γw γo γt : GName) : Timeless (wgBody (GF := GF) γ rtx γwg γw γo γt) := by
-  unfold wgBody wgOpen; infer_instance
+/-- The interval's `WaitGroup` and its protocol, with the readers' budget's authority, and (stage
+S1: the protocol's pool, a bbolt transaction, is not timeless; `wgBody_later`) the database. -/
+def wgInv (γ : BNames) (rtx : Loc) (D : Data) (wg : Loc) (γw γo γt : GName) : IProp GF :=
+  iprop(∃ (γwg : sync.WaitGroupNames) (db : Loc), sync.isWaitGroup wg γwg (bN.@"wg") ∗
+    inv (bN.@"wgi") (wgBody γ rtx D γwg γw γo γt) ∗ ownTokAuthDfrac γ.rdt DFrac.discard rdMax ∗
+    isDB db γ.db)
 
-/-- The interval's `WaitGroup` and its protocol, with the readers' budget's authority. -/
-def wgInv (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) : IProp GF :=
-  iprop(∃ γwg : sync.WaitGroupNames, sync.isWaitGroup wg γwg (bN.@"wg") ∗
-    inv (bN.@"wgi") (wgBody γ rtx γwg γw γo γt) ∗ ownTokAuthDfrac γ.rdt DFrac.discard rdMax)
-
-instance wgInv_persistent (γ : BNames) (rtx wg : Loc) (γw γo γt : GName) :
-    Persistent (wgInv (GF := GF) γ rtx wg γw γo γt) := by
+instance wgInv_persistent (γ : BNames) (rtx : Loc) (D : Data) (wg : Loc) (γw γo γt : GName) :
+    Persistent (wgInv (GF := GF) γ rtx D wg γw γo γt) := by
   unfold wgInv; infer_instance
+
+/-- **The protocol's body after a later**, given the database: its pool's transaction is not
+timeless (`txLive_later`), the rest is. -/
+theorem wgBody_later (db : Loc) (γ : BNames) (rtx : Loc) (D : Data) (γwg : sync.WaitGroupNames)
+    (γw γo γt : GName) :
+    isDB (GF := GF) db γ.db ⊢ ▷ wgBody γ rtx D γwg γw γo γt -∗ ◇ wgBody γ rtx D γwg γw γo γt := by
+  iintro #Hdb Hb
+  unfold wgBody wgOpen
+  icases Hb with (Hb | >Hf)
+  · imod later_exists_except0 $$ Hb with ⟨%n, Hb⟩
+    imod later_exists_except0 $$ Hb with ⟨%outs, Hb⟩
+    imod later_exists_except0 $$ Hb with ⟨%pool, Hb⟩
+    icases Hb with ⟨>Hwg, >Ha, Hl, >Ht, >%Hp, >Hw⟩
+    ihave Hl := txLive_later db rtx γ.db pool (bbolt.TxView.ro D) $$ Hdb Hl
+    imod Hl
+    imodintro
+    ileft
+    iexists n, outs, pool
+    iframe
+    ipureintro; exact Hp
+  · imodintro; iright; iexact Hf
 
 /-! ## `readTx.mu` -/
 
@@ -948,8 +971,8 @@ def bksOk (Pb : BksPhys) (B : GMap w64 (List Ent)) : Prop :=
 def rtIntv (γ : BNames) (P : BParams) (q : Qp) (rd : RdSt) (cm : GoMap) (D : Data)
     (p : Qp := q.half) : IProp GF :=
   if rd.live then
-    iprop(txLive rd.rtx p ∗ rtxSnap rd.rtx D ∗ □ intvInv γ P rd.rtx cm D ∗
-      □ wgInv γ rd.rtx rd.wg rd.γw rd.γo rd.γt ∗ wgOpen rd.γw q ∗ ghostVar rd.γt q ())
+    iprop(txLive rd.rtx γ.db p (bbolt.TxView.ro D) ∗ □ intvInv γ P rd.rtx cm D ∗
+      □ wgInv γ rd.rtx D rd.wg rd.γw rd.γo rd.γt ∗ wgOpen rd.γw q ∗ ghostVar rd.γt q ())
   else iprop(⌜rd.rtx = Loc.null⌝ ∗ bStopped γ)
 
 /-- `readTx.mu`'s share `q` of the read buffer's clean flag (`γ.cln`, at the layout's `rd.cln`),
@@ -1075,7 +1098,7 @@ def batchPhys (γ : BNames) (b t db : Loc) (st : BSess) : IProp GF :=
   iprop(∃ hk : GoFunc,
     txFOf t ↦ st.tx ∗ pendOf t ↦ st.pend ∗ delOf t ↦ st.ndel ∗ ownWB (wbOf t) st.W ∗
     bF go!"txPostLockInsideApplyHook" b ↦ hk ∗ dghostVar γ.hook (DFrac.own (1 : Qp).half) hk ∗
-    ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx db ∗
+    ownDB db γ.db st.C ∗ ownWTx st.tx γ.db st.C st.S ∗ txDB st.tx γ.db db ∗
     sync.ownRWMutex (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
     -- (2026-11-04, R2b-3c) the database the backend's (its stop gives it to `Close`)
     bDB γ db)
@@ -1365,7 +1388,7 @@ def isBackend (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) : IProp GF
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
     sync.isMutex (cmuOf b) (cacheRes γ P b) ∗ cacheInv γ ∗ metricsInv b ∗
     sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-    isDB db ∗ ⌜P.Wf⌝ ∗
+    isDB db γ.db ∗ ⌜P.Wf⌝ ∗
     -- (2026-11-04, R2b-3c) the database and its file
     (∃ path : GoString, bDBAt γ db path ∗ dbFile db path) ∗
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off
@@ -1389,22 +1412,22 @@ theorem isBackend_envVerifyOff (γ : BNames) (P : BParams) (W Pk : IProp GF) (b 
 
 /-- The bytes a read returns: from the read buffer (read-only for good), or from bbolt's read
 transaction `rtx` (valid while it is open). -/
-def rdB (rtx : Loc) (s : GoSlice) (b : GoString) : IProp GF :=
-  iprop(s ↦*□ b ∨ txBytes rtx s b)
+def rdB (γd : DBNames) (rtx : Loc) (s : GoSlice) (b : GoString) : IProp GF :=
+  iprop(s ↦*□ b ∨ txBytes rtx γd s b)
 
-instance rdB_persistent (rtx : Loc) (s : GoSlice) (b : GoString) :
-    Persistent (rdB (GF := GF) rtx s b) := by
+instance rdB_persistent (γd : DBNames) (rtx : Loc) (s : GoSlice) (b : GoString) :
+    Persistent (rdB (GF := GF) γd rtx s b) := by
   unfold rdB; infer_instance
 
 /-- The slices a read returns are `rdB`. -/
-def rdSlices (rtx : Loc) (ss : List GoSlice) (bs : List GoString) : IProp GF :=
-  iprop(⌜ss.length = bs.length⌝ ∗ [∗list] x ∈ ss.zip bs, rdB rtx x.1 x.2)
+def rdSlices (γd : DBNames) (rtx : Loc) (ss : List GoSlice) (bs : List GoString) : IProp GF :=
+  iprop(⌜ss.length = bs.length⌝ ∗ [∗list] x ∈ ss.zip bs, rdB γd rtx x.1 x.2)
 
 /-- The two slices a read returns, owned, of the entries' keys and values. -/
-def kvsOutRd (rtx : Loc) (keys vals : GoSlice) (res : List Ent) : IProp GF :=
+def kvsOutRd (γd : DBNames) (rtx : Loc) (keys vals : GoSlice) (res : List Ent) : IProp GF :=
   iprop(∃ (ks vs : List GoSlice), keys ↦* ks ∗ ownSliceCap GoSlice keys (DFrac.own 1) ∗
     vals ↦* vs ∗ ownSliceCap GoSlice vals (DFrac.own 1) ∗
-    rdSlices rtx ks (res.map Prod.fst) ∗ rdSlices rtx vs (res.map Prod.snd))
+    rdSlices γd rtx ks (res.map Prod.fst) ∗ rdSlices γd rtx vs (res.map Prod.snd))
 
 /-- A reader's tokens, beside `readTx.mu`'s slot: a slot of `txMu` and a reader's budget
 token (a `ConcurrentReadTx` keeps them until its `RUnlock`). -/
@@ -1428,7 +1451,7 @@ def baseRd (γ : BNames) (P : BParams) (base : Loc) (dq : DFrac) (rtx : Loc) (rv
     rbAt (rbufOf base) dq m Pb rv.2 ∗ rtxOf base ↦{dq} rtx ∗ rbktOf base ↦{dq} cm ∗
     rtmuOf base ↦□ tm ∗ sync.ownRWMutex tm (fun q => tmTok γ q) ∗
     sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
-    txLive rtx q ∗ rtxSnap rtx rv.1 ∗ □ intvInv γ P rtx cm rv.1 ∗
+    txLive rtx γ.db q (bbolt.TxView.ro rv.1) ∗ □ intvInv γ P rtx cm rv.1 ∗
     ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf ∧ (dq = DFrac.discard ∨ bksOk Pb rv.2.bks)⌝)
 
 /-- A `ConcurrentReadTx` at `crt` (until its `RUnlock`): its fields (its copy of the read
@@ -1441,8 +1464,8 @@ def crtSnap (γ : BNames) (P : BParams) (b crt : Loc) (rtx : Loc) (rv : RView) :
     rbAt (rbufOf (cbaseOf crt)) DFrac.discard m Pb rv.2 ∗ rtxOf (cbaseOf crt) ↦□ rtx ∗
     rbktOf (cbaseOf crt) ↦□ cm ∗ rtmuOf (cbaseOf crt) ↦□ tm ∗ rwgOf (cbaseOf crt) ↦□ wg ∗
     sync.ownRWMutex tm (fun q => tmTok γ q) ∗ sync.isRWMutexGuard tm (fun q => tmTok γ q) ∗
-    rdShare rtx γo k q ∗ rtxSnap rtx rv.1 ∗ □ intvInv γ P rtx cm rv.1 ∗
-    □ wgInv γ rtx wg γw γo γt ∗ ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf⌝)
+    rdShare γ rtx rv.1 γo k q ∗ □ intvInv γ P rtx cm rv.1 ∗
+    □ wgInv γ rtx rv.1 wg γw γo γt ∗ ⌜rv.2.Wf ∧ idsOk P rv.2.bks ∧ P.Wf⌝)
 
 /-- The shared read transaction held (`ReadTx().RLock()`), over the readers' state `rv` and
 bbolt's transaction `rtx`, **its interval live** (the transaction not nil: the backend-auth-split

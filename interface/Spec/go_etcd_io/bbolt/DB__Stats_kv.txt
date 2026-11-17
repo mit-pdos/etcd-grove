@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def bbolt.DB.Stats_kv.spec : Prop :=
-  ∀ (db : Loc),
+  ∀ (db tx : Loc) (γ : backend.DBNames) (T : bbolt.TxView),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.isDB db -∗
-          (▷ ∀ s, True -∗ Φ (intoVal s)) -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.isDB db γ ∗ backend.txLive tx γ 1 T -∗
+          (▷ ∀ s, backend.txLive tx γ 1 T -∗ Φ (intoVal s)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Stats" (intoVal db)))
                 (intoVal ()))

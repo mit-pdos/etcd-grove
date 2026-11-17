@@ -17,10 +17,9 @@ theorem backend.backend.unsafeBegin.wp_proof [go_etcd_io.bbolt.Assumptions]
               ∀ tx,
                 (typedPointsto (backend.bF go!"db" b) db (DFrac.own q) ∗
                     backend.ownDB db γd D ∗
-                      backend.isDB db ∗
-                        backend.txDB tx db ∗
-                          if w = true then backend.ownWTx tx γd D D
-                          else backend.txLive tx 1 ∗ backend.rtxSnap tx D ∗ backend.rtxStats tx) -∗
+                      backend.isDB db γd ∗
+                        backend.txDB tx γd db ∗
+                          if w = true then backend.ownWTx tx γd D D else backend.txLive tx γd 1 (bbolt.TxView.ro D)) -∗
                   Φ (intoVal tx)) -∗
             WP
               ((intoVal

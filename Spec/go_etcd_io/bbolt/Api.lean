@@ -339,6 +339,17 @@ theorem boltTx_size (tx : Loc) (γ : BoltName) (q : Qp) (D : Data) :
 @[instance] theorem boltBkt_persistent (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
     (g : Nat) : Persistent (boltBkt (GF := GF) tx γ b n g) := by
   unfold boltBkt; infer_instance
+private instance ite_timeless_api (c : Prop) [Decidable c] (P Q : IProp GF) [Timeless P]
+    [Timeless Q] : Timeless (if c then P else Q) := by
+  split <;> infer_instance
+/-- A bucket handle is timeless (ghost state and persistent points-tos; stage S1, 2026-11-17: the
+backend keeps its read transaction's handles in an invariant, `backend.cmFacts`). -/
+@[instance] theorem boltBkt_timeless (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
+    (g : Nat) : Timeless (boltBkt (GF := GF) tx γ b n g) := by
+  unfold boltBkt boltBktDef reg handleFrag viewOf rBkt locOwn
+  refine @exists_timeless _ _ _ _ (fun r => ?_)
+  rcases r with ⟨db, n', rw, src⟩
+  cases rw <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 @[instance] theorem txBytes_persistent (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) :
     Persistent (txBytes (GF := GF) tx γ s b) := by
   unfold txBytes; infer_instance

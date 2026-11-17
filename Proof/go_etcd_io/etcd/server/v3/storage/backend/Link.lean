@@ -129,6 +129,7 @@ public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_uber_org.zap.Stack
 public import Proof.go_uber_org.zap.String
 public import Proof.go_uber_org.zap.Stringer
+public import Proof.go_etcd_io.bbolt.Link
 
 @[expose] public section
 
@@ -197,7 +198,7 @@ theorem zap.Logger.wp_Panic :
 
 theorem bbolt.DB.wp_Begin_kv :
     EtcdGrove.bbolt.DB.Begin_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.Begin_kv.wp_proof
+  EtcdGrove.bbolt.DB.Begin_kv.wp_proof bbolt.DB.wp_Begin
 
 theorem zap.Logger.wp_Fatal :
     EtcdGrove.zap.Logger.Fatal.spec (GF := GF) (hG := hG) :=
@@ -209,19 +210,19 @@ theorem backend.wp_unsafeBegin :
 
 theorem bbolt.Tx.wp_Size_kv :
     EtcdGrove.bbolt.Tx.Size_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Size_kv.wp_proof
+  EtcdGrove.bbolt.Tx.Size_kv.wp_proof bbolt.Tx.wp_Size
 
 theorem bbolt.Tx.wp_DB_kv :
     EtcdGrove.bbolt.Tx.DB_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.DB_kv.wp_proof
+  EtcdGrove.bbolt.Tx.DB_kv.wp_proof bbolt.Tx.wp_DB
 
 theorem bbolt.DB.wp_Stats_kv :
     EtcdGrove.bbolt.DB.Stats_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.Stats_kv.wp_proof
+  EtcdGrove.bbolt.DB.Stats_kv.wp_proof bbolt.DB.wp_Stats
 
 theorem bbolt.DB.wp_Info_kv :
     EtcdGrove.bbolt.DB.Info_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.DB.Info_kv.wp_proof
+  EtcdGrove.bbolt.DB.Info_kv.wp_proof bbolt.DB.wp_Info
 
 theorem backend.wp_begin :
     EtcdGrove.backend.backend.begin.spec (GF := GF) (hG := hG) :=
@@ -245,7 +246,7 @@ theorem readTx.wp_Lock :
 
 theorem bbolt.Tx.wp_Rollback_kv :
     EtcdGrove.bbolt.Tx.Rollback_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof
+  EtcdGrove.bbolt.Tx.Rollback_kv.wp_proof bbolt.Tx.wp_Rollback
 
 theorem txBuffer.wp_reset :
     EtcdGrove.backend.txBuffer.reset.spec (GF := GF) (hG := hG) :=
@@ -261,11 +262,11 @@ theorem readTx.wp_reset :
 
 theorem bbolt.Tx.wp_Commit_kv :
     EtcdGrove.bbolt.Tx.Commit_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Commit_kv.wp_proof
+  EtcdGrove.bbolt.Tx.Commit_kv.wp_proof bbolt.Tx.wp_Commit
 
 theorem bbolt.Tx.wp_Stats_kv :
     EtcdGrove.bbolt.Tx.Stats_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Stats_kv.wp_proof
+  EtcdGrove.bbolt.Tx.Stats_kv.wp_proof bbolt.Tx.wp_Stats
 
 theorem time.Duration.wp_Seconds :
     EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
@@ -413,19 +414,19 @@ theorem txReadBuffer.wp_Range :
 
 theorem bbolt.Tx.wp_Bucket_kvr :
     EtcdGrove.bbolt.Tx.Bucket_kvr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Bucket_kvr.wp_proof
+  EtcdGrove.bbolt.Tx.Bucket_kvr.wp_proof bbolt.Tx.wp_Bucket
 
 theorem bbolt.Bucket.wp_Cursor_kvr :
     EtcdGrove.bbolt.Bucket.Cursor_kvr.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Bucket.Cursor_kvr.wp_proof
+  EtcdGrove.bbolt.Bucket.Cursor_kvr.wp_proof bbolt.Bucket.wp_Cursor
 
 theorem bbolt.Cursor.wp_Seek_kv :
     EtcdGrove.bbolt.Cursor.Seek_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Cursor.Seek_kv.wp_proof
+  EtcdGrove.bbolt.Cursor.Seek_kv.wp_proof bbolt.Cursor.wp_Seek
 
 theorem bbolt.Cursor.wp_Next_kv :
     EtcdGrove.bbolt.Cursor.Next_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Cursor.Next_kv.wp_proof
+  EtcdGrove.bbolt.Cursor.Next_kv.wp_proof bbolt.Cursor.wp_Next
 
 theorem wp_unsafeRange :
     EtcdGrove.backend.unsafeRange.spec (GF := GF) (hG := hG) :=
@@ -461,7 +462,7 @@ theorem batchTxBuffered.wp_LockOutsideApply :
 
 theorem bbolt.Tx.wp_CreateBucketIfNotExists_kv :
     EtcdGrove.bbolt.Tx.CreateBucketIfNotExists_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.CreateBucketIfNotExists_kv.wp_proof
+  EtcdGrove.bbolt.Tx.CreateBucketIfNotExists_kv.wp_proof bbolt.Tx.wp_CreateBucketIfNotExists
 
 theorem zap.wp_Stringer :
     EtcdGrove.zap.Stringer.spec (GF := GF) (hG := hG) :=
@@ -477,7 +478,7 @@ theorem batchTxBuffered.wp_UnsafeCreateBucket :
 
 theorem bbolt.Tx.wp_Bucket_kvw :
     EtcdGrove.bbolt.Tx.Bucket_kvw.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.Bucket_kvw.wp_proof
+  EtcdGrove.bbolt.Tx.Bucket_kvw.wp_proof bbolt.Tx.wp_Bucket
 
 theorem zap.wp_Stack :
     EtcdGrove.zap.Stack.spec (GF := GF) (hG := hG) :=
@@ -485,7 +486,7 @@ theorem zap.wp_Stack :
 
 theorem bbolt.Bucket.wp_Delete_kv :
     EtcdGrove.bbolt.Bucket.Delete_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Bucket.Delete_kv.wp_proof
+  EtcdGrove.bbolt.Bucket.Delete_kv.wp_proof bbolt.Bucket.wp_Delete
 
 theorem batchTx.wp_UnsafeDelete :
     EtcdGrove.backend.batchTx.UnsafeDelete.spec (GF := GF) (hG := hG) :=
@@ -497,7 +498,7 @@ theorem batchTxBuffered.wp_UnsafeDelete :
 
 theorem bbolt.Tx.wp_DeleteBucket_kv :
     EtcdGrove.bbolt.Tx.DeleteBucket_kv.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Tx.DeleteBucket_kv.wp_proof
+  EtcdGrove.bbolt.Tx.DeleteBucket_kv.wp_proof bbolt.Tx.wp_DeleteBucket
 
 theorem batchTx.wp_UnsafeDeleteBucket :
     EtcdGrove.backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) :=
@@ -537,7 +538,7 @@ theorem batchTxBuffered.wp_UnsafePut :
 
 theorem bbolt.Bucket.wp_Cursor_kvw :
     EtcdGrove.bbolt.Bucket.Cursor_kvw.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.bbolt.Bucket.Cursor_kvw.wp_proof
+  EtcdGrove.bbolt.Bucket.Cursor_kvw.wp_proof bbolt.Bucket.wp_Cursor
 
 theorem batchTx.wp_UnsafeRange :
     EtcdGrove.backend.batchTx.UnsafeRange.spec (GF := GF) (hG := hG) :=

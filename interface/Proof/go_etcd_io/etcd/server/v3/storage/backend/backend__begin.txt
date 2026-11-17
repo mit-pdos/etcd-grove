@@ -20,9 +20,8 @@ theorem backend.backend.begin.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_o
                 ((sync.ownRWMutex (backend.bF go!"mu" b) fun q =>
                       typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                     backend.ownDB db γd D ∗
-                      backend.txDB tx db ∗
-                        if w = true then backend.ownWTx tx γd D D
-                        else backend.txLive tx 1 ∗ backend.rtxSnap tx D ∗ backend.rtxStats tx) -∗
+                      backend.txDB tx γd db ∗
+                        if w = true then backend.ownWTx tx γd D D else backend.txLive tx γd 1 (bbolt.TxView.ro D)) -∗
                   Φ (intoVal tx)) -∗
             WP
               ((intoVal

@@ -2,16 +2,25 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Cursor.Seek_kv.wp_proof : bbolt.Cursor.Seek_kv.spec
+theorem bbolt.curAt.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx tx✝
+    : Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (es es✝ : List bbolt.BoltEnt)
+    (e_es : es = es✝) (i i✝ : Nat) (e_i : i = i✝) (k k✝ : GoSlice) (e_k : k = k✝) (v v✝ : GoSlice)
+    (e_v : v = v✝) : bbolt.curAt tx γ es i k v = bbolt.curAt tx✝ γ✝ es✝ i✝ k✝ v✝
+
+theorem bbolt.Cursor.Seek_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec) :
+    bbolt.Cursor.Seek_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Cursor.Seek_kv.spec`, unfolded:
-  ∀ (tx c : Loc) (es : List backend.Ent) (pos : Option Nat) (q : Qp) (key : GoSlice) (kb : GoString) (dk : DFrac),
+  ∀ (tx c : Loc) (γ : backend.DBNames) (T : bbolt.TxView) (es : List backend.Ent) (pos : Option Nat) (q : Qp)
+    (key : GoSlice) (kb : GoString) (dk : DFrac),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownCur tx c es pos ∗ backend.txLive tx q ∗ ownSlice key kb dk -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗
+            backend.ownCur tx γ c T es pos ∗ backend.txLive tx γ q T ∗ ownSlice key kb dk -∗
           (▷
               ∀ k v,
-                backend.ownCur tx c es (some (backend.seekIdx es kb)) ∗
-                    backend.txLive tx q ∗ ownSlice key kb dk ∗ backend.curAt tx es (backend.seekIdx es kb) k v -∗
+                backend.ownCur tx γ c T es (some (backend.seekIdx es kb)) ∗
+                    backend.txLive tx γ q T ∗ ownSlice key kb dk ∗ backend.curAt tx γ es (backend.seekIdx es kb) k v -∗
                   Φ (intoVal k, intoVal v)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.Cursor.ty.PointerType go!"Seek" (intoVal c)))

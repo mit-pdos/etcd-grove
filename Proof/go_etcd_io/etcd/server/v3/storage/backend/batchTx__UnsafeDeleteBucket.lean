@@ -35,7 +35,7 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi
+  intro γ P W Pk b t st bk bi Hne
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk⟩
   ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []
   · iPkgInit
@@ -55,7 +55,10 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
   wp_apply HName as %ns #Hns
   wp_apply (hDelBkt st.tx γ.db st.C st.S G ns bi.name DFrac.discard) $$ [$Hwtx $Hns]
     as %err ⟨-, Hr⟩
-  icases Hr with (⟨%Hn, Hwtx, #Herr⟩ | ⟨%Hn, Hwtx⟩)
+  icases Hr with (⟨%Hn, Hwtx, #Herr⟩ | ⟨%Hn, -, -⟩ | ⟨%Hn, Hwtx⟩)
+  rotate_left
+  · exact absurd Hn.1 Hne
+  rotate_right
   · icombine He Herr gives %Heq
     subst Heq
     wp_auto

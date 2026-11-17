@@ -15,18 +15,18 @@ theorem backend.cursorRange_take (es : List backend.Ent) (kb eb : GoString) (lim
 theorem backend.unsafeRange.wp_proof (hSeek : bbolt.Cursor.Seek_kv.spec) (hNext :
     bbolt.Cursor.Next_kv.spec) : backend.unsafeRange.spec
   -- `Perennial.EtcdGrove.backend.unsafeRange.spec`, unfolded:
-  ∀ (tx c : Loc) (es : List backend.Ent) (pos : Option Nat) (q : Qp) (key endKey : GoSlice) (kb eb : GoString)
-    (dk de : DFrac) (limit : w64),
+  ∀ (tx c : Loc) (γd : backend.DBNames) (T : bbolt.TxView) (es : List backend.Ent) (pos : Option Nat) (q : Qp)
+    (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-            backend.ownCur tx c es pos ∗ backend.txLive tx q ∗ ownSlice key kb dk ∗ ownSlice endKey eb de -∗
+            backend.ownCur tx γd c T es pos ∗ backend.txLive tx γd q T ∗ ownSlice key kb dk ∗ ownSlice endKey eb de -∗
           (▷
               ∀ keys vals,
-                (∃ pos', backend.ownCur tx c es pos') ∗
-                    backend.txLive tx q ∗
+                (∃ pos', backend.ownCur tx γd c T es pos') ∗
+                    backend.txLive tx γd q T ∗
                       ownSlice key kb dk ∗
-                        ownSlice endKey eb de ∗ backend.kvsOutRd tx keys vals (backend.cursorRange es kb eb limit) -∗
+                        ownSlice endKey eb de ∗ backend.kvsOutRd γd tx keys vals (backend.cursorRange es kb eb limit) -∗
                   Φ (intoVal keys, intoVal vals)) -∗
             WP
               (((((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.unsafeRange [])) (intoVal c))

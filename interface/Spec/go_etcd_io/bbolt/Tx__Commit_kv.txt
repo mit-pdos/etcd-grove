@@ -6,7 +6,7 @@ def bbolt.Tx.Commit_kv.spec : Prop :=
   ∀ (db tx : Loc) (γ : backend.DBNames) (D S : backend.Data),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownDB db γ D ∗ backend.txDB tx db ∗ backend.ownWTx tx γ D S -∗
+        isPkgInit pkg_id.go_etcd_io.bbolt ∗ backend.ownDB db γ D ∗ backend.txDB tx γ db ∗ backend.ownWTx tx γ D S -∗
           (▷
               ∀ err,
                 backend.txDone tx ∗

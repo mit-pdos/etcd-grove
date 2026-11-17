@@ -1,10 +1,10 @@
 /-
-`Tx.Commit_kv` (bbolt). `tx.Commit()` of the write transaction: its contents committed (the write token back), or
-an error.
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Tx__Commit_kv.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
+`Tx.Commit_kv` (bbolt). `tx.Commit()` of the write transaction.
+A corollary of bbolt's proved `Tx.Commit` (`Spec/go_etcd_io/bbolt/Tx__Commit.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Tx__Commit_kv.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -26,13 +26,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `tx.Commit()` of the write transaction: its contents committed (the write token back), or
-an error. -/
+/-- `tx.Commit()` of the write transaction: its contents committed, or an error. -/
 abbrev bbolt.Tx.Commit_kv.spec : Prop :=
-  ∀ (db tx : Loc) (γ : DBNames) (D S : Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ txDB tx db ∗ ownWTx tx γ D S }}
+  ∀ (db tx : Loc) (γ : DBNames) (D S : backend.Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ backend.txDB tx γ db ∗ ownWTx tx γ D S }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Commit")) (Val #()))
-  {{ (err : GoInterface), RET #err; txDone tx ∗
+  {{ (err : GoInterface), RET #err; backend.txDone tx ∗
       ((⌜err = GoInterface.nil⌝ ∗ ownDB db γ S ∗ wrTok γ) ∨ ⌜err ≠ GoInterface.nil⌝) }}
 
 end spec

@@ -14,7 +14,7 @@ def bbolt.Tx.CreateBucketIfNotExists_kv.spec : Prop :=
                   ∀ b err,
                     ⌜err = GoInterface.nil⌝ ∗
                         backend.ownWTxG tx γ D (if S !! n = none then <[n := ∅]>S else S) G ∗
-                          backend.wBkt tx b n (G n) ∗ ownSlice name n dq -∗
+                          backend.wBkt tx γ b n (G n) ∗ ownSlice name n dq -∗
                       Φ (intoVal b, intoVal err)) -∗
                 WP
                   ((intoVal

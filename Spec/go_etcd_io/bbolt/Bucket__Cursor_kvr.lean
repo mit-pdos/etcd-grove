@@ -1,9 +1,10 @@
 /-
-`Bucket.Cursor_kvr` (bbolt). `b.Cursor()` in a read transaction: a cursor over the bucket's entries, not positioned.
-The trust boundary: bbolt's key-value contract as the backend uses it (`InvBbolt.lean`), from the
-Go documentation; an axiom in `Proof/go_etcd_io/bbolt/Bucket__Cursor_kvr.lean`. Lean-first (no Rocq
-counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a key-value contract,
-the locks and the views".
+`Bucket.Cursor_kvr` (bbolt). `b.Cursor()` in a read transaction.
+A corollary of bbolt's proved `Bucket.Cursor` (`Spec/go_etcd_io/bbolt/Bucket__Cursor.lean`) over the backend's
+vocabulary (`InvBbolt.lean`), proved in `Proof/go_etcd_io/bbolt/Bucket__Cursor_kvr.lean` (stage S1 of
+`notes/bbolt-integration-plan.md`, 2026-11-17; until then an axiom, the backend's trust boundary).
+Lean-first (no Rocq counterpart); see `notes/decisions.md`, "The backend: the buffers, bbolt as a
+key-value contract, the locks and the views".
 -/
 module
 
@@ -25,12 +26,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `b.Cursor()` in a read transaction: a cursor over the bucket's entries, not positioned. -/
+/-- `b.Cursor()` in a read transaction (any fraction): a cursor over the bucket's entries in the
+snapshot, not positioned. -/
 abbrev bbolt.Bucket.Cursor_kvr.spec : Prop :=
-  ∀ (tx b : Loc) (q : Qp) (es : List Ent),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ rBkt tx b es ∗ rtxStats tx ∗ txLive tx q }}
+  ∀ (tx : Loc) (γ : DBNames) (q : Qp) (D : backend.Data) (b : Loc) (n : GoString) (m : backend.BktData),
+  D.lookup n = some m →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ wBkt tx γ b n 0 ∗ txLive tx γ q (bbolt.TxView.ro D) }}
     (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Cursor")) (Val #()))
-  {{ (c : Loc), RET #c; ownCur tx c es none ∗ rtxStats tx ∗ txLive tx q }}
+  {{ (c : Loc), RET #c; ownCur tx γ c (bbolt.TxView.ro D) (backend.bktEnts m) none ∗ txLive tx γ q (bbolt.TxView.ro D) }}
 
 end spec
 

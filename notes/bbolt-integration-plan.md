@@ -312,3 +312,66 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     in `hpost` (`wp_logStepSWGQ`/`wp_logStepSWQ`), `wp_osOpenCreateS'` with the errno's `Pe` (from
     `hpe`, the success built from `OpenEffect` and a free fd), then a Go-level `specCreateSNoErr` with
     no loop (the first attempt succeeds); `ENOENT`/`EEXIST` are not possible outcomes there already.
+* 2026-11-17, **S1** (branch `bbolt-s1`, D-I1, D-I2): the backend over the proved bbolt.
+  - **D-I1.** `backend.FsCtx GF` (`InvBbolt.lean`) packs `ExtSemantics fsExt`, `FsSemOk`,
+    `HasExt fsExt` and, beyond the plan, `os.file.FieldAssumptions`/`os.fileStat.FieldAssumptions`
+    (every result of bbolt's `Link.lean` takes them as section variables; Props, so the structure
+    is still a subsingleton, `FsCtx.eq`); `theFs GF : Option (FsCtx GF)` (classical; `GF` explicit:
+    the field facts are stated in the heap's local context), `onFs f` (`False` at `none`),
+    `theFs_eq`/`onFs_eq`/`onFs_some`/`onFs_none`.
+  - **D-I2.** `DBNames := bbolt.BoltName`; `ownDB db γ D := onFs (isBolt db γ ∗ boltState γ 1 D)`;
+    `wrTok γ := emp`; `isDB db γ`; `txLive tx γ q T := onFs (boltTx tx γ q T)` (in place of
+    `txLive tx q ∗ rtxSnap tx D`: a reader is `txLive tx γ q (TxView.ro D)`); `txBytes tx γ s b`;
+    `wView D S G`, `ownWTxG tx γ D S G := txLive tx γ 1 (wView D S G)`; `wBkt tx γ b n g := onFs
+    boltBkt` (also the reader's handles, at generation 0: `rBkt` is gone); `ownCur tx γ c T es pos`;
+    `txDone tx`, `txDB tx γ db`; `curAt tx γ`. Laws from bbolt's (`txLive_fractional`,
+    `txLive_later` — `boltTx` is not timeless: the read side's `wgInv` now carries `isDB db γ.db`,
+    `wgBody_later` —, `txLive_agree`, `txLive_size` (S1a's `boltTx_size`, readers), `txBytes_acc`,
+    `txLive_nonnull`, `ownWTxG_fill` (now with `¬ float64IsNaN`; `unsafePut` writes `0.9`)).
+    `rtxStats` and its machinery are gone (`intvInv`'s stats invariant, `stats_take`/`stats_give`,
+    `tmTok`'s second token; `BNames.txb` stays, unused, for the clients' layout). `fileHolds`,
+    `dbFile` stay axioms.
+  - **API addition** (bbolt): `boltBkt_timeless` (`Api.lean`, proved; the backend's buckets cache
+    keeps reader handles in an invariant).
+  - **The `_kv` specs.** 17 are theorems (`Proof/go_etcd_io/bbolt/*_kv*.lean`, each `wp_proof (h :
+    ∀ [fs instances], bbolt.X.spec)`), linked by `etc/gen-link.py --backend` to bbolt's `Link.lean`
+    (`@` callees in `etc/link-lean-first-backend.txt`). Restated: `Bucket.Cursor_kvr` (a handle
+    `wBkt tx γ b n 0` and `D.lookup n = some m`), `Bucket.Cursor_kvw` (the cursor at `wView D S G`,
+    `ownWTxG` back at once), `Cursor.Next_kv` (bbolt's position: stays at the last entry; `unsafeRange`'s
+    loop keeps the position only while in range), `Cursor.Seek_kv`, `DB.Info_kv` (a fresh `i ↦ v`,
+    not `↦□`), `DB.Stats_kv` (paid by a live transaction held whole, `statSlot (some (tx, T))`),
+    `Tx.Bucket_kvr`, `Tx.DeleteBucket_kv` (the empty name's `ErrIncompatibleValue` case),
+    `Tx.Rollback_kv`, `Tx.Size_kv`/`Tx.DB_kv` (any view); the rest only gain `γ`. `Open_kv` and
+    `DB.Close_kv` stay axioms over the new predicates (S3). **`Bucket.Put_kv` stays an axiom**
+    (its pre-S1 statement over the new vocabulary): the proved `Put` takes `kb.length + vb.length ≤
+    bboltEntryMax = 2 ^ 28`, and no caller of the backend's `unsafePut` has that bound (mvcc's puts
+    bound only the key, `< 2 ^ 63 - 1`; the server's value-length law bounds key and value by
+    `etcdKeyMax = 2 ^ 27` each, and a marshalled `KeyValue` of both passes `2 ^ 28` by its framing):
+    the bound must be threaded from the request size (`--max-request-bytes`) through apply, txn and
+    mvcc's puts (and auth's records), or `bboltEntryMax` raised. Open, for the coordinator.
+  - **bbolt's Link**: `PidSetDeleteUnfold` is now the WP of `delete` at `pidSet`, proved
+    (`pidSetDelete_holds`, Perennial's `wp_mapDelete_underlying`); `etc/link_bbolt.py` gives each
+    pending result only the hypotheses it reaches, so `DB.Begin`, `Tx.Commit`, `Tx.Rollback` are no
+    longer pending (only `wp_Open` takes `h_fs_FileMode_String`).
+  - Changed backend specs: `backend.begin`, `unsafeBegin`, `newBatchTxBuffered`, `batchTx.commit`
+    (the vocabulary), `unsafeRange` (`γd`, the view `T`), the `UnsafeRange`s and `UnsafeDelete`s
+    (`kvsOutRd γ.db`, `rdB γ.db`, `txBytes … γ.db`), `batchTx.UnsafeDeleteBucket` and
+    `batchTxBuffered.UnsafeDeleteBucket` (new premise `bi.name ≠ []`). Outside the backend: mvcc's
+    `BackendBridge` (proofs), `InvStore`'s `dbNames_countable`, `InvApplier` (proofs only); no spec.
+  - `examples/axiomcx/bboltnan`'s proof (`Run.lean`) deleted: `boltTx_fill` refuses the NaN.
+  - `RaftWitness/…/ProjSimps.lean` re-exports the main tree's (it now reaches it through
+    `Proof.runtime.Start` → `InvBbolt` → bbolt's `Data`).
+  - **Trust base.** `etc/tcb-baseline.txt` and the collections updated. `putget3.txt`: removed 46 —
+    `backend.{isDB, isDB_persistent, ownCur, ownDB, ownWTxG, ownWTxG_fill, ownWTxG_live, rBkt,
+    rBkt_persistent, rBkt_timeless, rtxSnap, rtxSnap_persistent, rtxSnap_size, rtxStats,
+    rtxStats_excl, rtxStats_timeless, txBytes, txBytes_acc, txBytes_persistent, txDB,
+    txDB_persistent, txDone, txDone_persistent, txLive, txLive_fractional, txLive_nonnull,
+    txLive_timeless, wBkt, wBkt_persistent, wrTok}` and `bbolt.{Bucket.Cursor_kvr, Bucket.Cursor_kvw,
+    Bucket.Delete_kv, Cursor.Next_kv, Cursor.Seek_kv, DB.Begin_kv, DB.Info_kv, DB.Stats_kv,
+    Tx.Bucket_kvr, Tx.Bucket_kvw, Tx.Commit_kv, Tx.CreateBucketIfNotExists_kv, Tx.DB_kv,
+    Tx.Rollback_kv, Tx.Size_kv, Tx.Stats_kv}.wp_proof`; added bbolt's own trust boundary,
+    `os.Getenv`, `reflect.DeepEqual.wp_proof_pgidSet`, `sort.SliceIsSorted`, `sort.Sort.wp_anyLess`,
+    `strings.ToLower`. `backend.txt`: the same 46 less `rtxSnap_size` plus `Tx.DeleteBucket_kv`, and
+    `fmt.Errorf` added too. Remaining of the old boundary: `bbolt.{Open_kv, DB.Close_kv,
+    Bucket.Put_kv}.wp_proof`, `backend.{fileHolds, dbFile, dbFile_persistent, dbFile_timeless}`, the
+    options' axioms (S2).

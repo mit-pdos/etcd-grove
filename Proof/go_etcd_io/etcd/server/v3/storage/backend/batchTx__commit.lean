@@ -53,8 +53,8 @@ theorem backend.batchTx.commit.wp_proof
   unfold histSpec
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
-  icases ownWTx_live st.tx γ.db st.C st.S $$ Hwtx with ⟨Hlive, Hback⟩
-  ihave %Hnn := txLive_nonnull st.tx 1 $$ Hlive
+  icases ownWTx_live st.tx γ.db st.C st.S $$ Hwtx with ⟨%Tw, Hlive, Hback⟩
+  icases persistent_entails_right (txLive_nonnull st.tx γ.db 1 Tw) $$ Hlive with ⟨%Hnn, Hlive⟩
   ihave Hwtx := Hback $$ Hlive
   wp_auto
   rw [decide_eq_false Hnn]

@@ -2,7 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom bbolt.Tx.DeleteBucket_kv.wp_proof : bbolt.Tx.DeleteBucket_kv.spec
+theorem bbolt.Tx.DeleteBucket_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.DeleteBucket.spec)
+    : bbolt.Tx.DeleteBucket_kv.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.DeleteBucket_kv.spec`, unfolded:
   ∀ (tx : Loc) (γ : backend.DBNames) (D S : backend.Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
     (dq : DFrac),
@@ -15,8 +17,11 @@ axiom bbolt.Tx.DeleteBucket_kv.wp_proof : bbolt.Tx.DeleteBucket_kv.spec
                     (⌜S !! n = none⌝ ∗
                         backend.ownWTxG tx γ D S G ∗
                           typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound) err DFrac.discard ∨
-                      ⌜S !! n ≠ none ∧ err = GoInterface.nil⌝ ∗
-                        backend.ownWTxG tx γ D (GMap.delete n S) fun x => if x = n then G n + 1 else G x) -∗
+                      ⌜n = [] ∧ S !! n = none⌝ ∗
+                          backend.ownWTxG tx γ D S G ∗
+                            typedPointsto (globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue) err DFrac.discard ∨
+                        ⌜S !! n ≠ none ∧ err = GoInterface.nil⌝ ∗
+                          backend.ownWTxG tx γ D (GMap.delete n S) fun x => if x = n then G n + 1 else G x) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal
