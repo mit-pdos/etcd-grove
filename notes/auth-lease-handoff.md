@@ -1,6 +1,25 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4: wiring COMPLETE, leaves build green; step 7 next)
+## START HERE (S4, 2026-11-17, item 7b: step 7 DONE (the law proved); step 8 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Pin still e9e
+  (`--packages=/shared/tmp/manifest-e9e.json`); lean not merged yet.
+- **Done:** step 7: `etcdserver/LessorFollows.lean`, `lessor_keys_of_read : lessor_keys_of_read_stmt` (frozen text
+  verbatim; targeted `lake build` of the module green, `#print axioms`: no `sorryAx`). Forms: questions.md, last entry
+  (`lessorLawMask` + `winTieN`/`lessorRdN`; the theorem's `[mvcc.Assumptions]` instance; the lm-none lemma held via
+  `kvRaftOf(On)_restorable`, no trusted text; auth off by the same two branches).
+- **Next, in order:** (1) step 8 = Draft §7 row 8: goose project `authlease` (`etc/goose.py`, as `authN`'s entry;
+  `examples/etcd/authlease` exists), translate (`etc/goose.py --project authlease`, GOWORK unset, in this worktree),
+  `etc/gen-init.py` (list entry as authN's; the `PkgTable` map entry only once the PkgTable file exists, at linking).
+  (2) the c6b merge (merge lean; if the pin bump to 6d365ee1a landed, `/shared/tmp/manifest-6d3.json`; set
+  `.lake/package-overrides.json` to the manifest; regenerate generated files); full build via
+  `/shared/tmp/build-slot.sh` (retry on cap kills; `LEAN_NUM_THREADS=4`); `etc/tcb-report.py --check`;
+  `etc/gen-interface.py` (incl. Spec `uberApplier__Apply`/`uberApplier__dispatch`). Then report 7b's completion.
+- **Pitfalls:** in a proof-mode goal, `cases h : E.lg` rewrites the Iris context (use `by_cases`). Lemmas of a section
+  with a package's `[Assumptions]` carry that instance even when unused (the law needs mvcc's). The earlier pitfalls
+  below still apply.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: wiring COMPLETE, leaves build green; step 7 next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Everything compiles: the ONE leaves
   build from `00b09c1360` (165 targets, `/shared/tmp/auth-lease-s4/7b-f4-leaves2.txt`, log `7b-f4-leaves.log`) exit 0,
