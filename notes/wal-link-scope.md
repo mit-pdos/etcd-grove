@@ -284,3 +284,41 @@ allocation before L3 changes the slots: Q1).
 - **Decided by etcd-grove-03, 2026-11-17:** Q4 a received snapshot's index and encoded size bounded by the
   cluster's room invariant and member bound; Q5 `walFiles` exclusive, and the snapshot-record witness `walSnapRec`
   that `Release` takes; Q6 the `sized = false` `Save` law (and `walRecs_unsize`) dropped.
+
+## 8. L1a under "no twin theorems" (the user, 2026-11-17, via etcd-grove-03)
+
+The rule: the shared form becomes THE spec of each function it covers (no shared variants beside the existing
+specs), no new spec family, layer 2's vocabulary redefined in place (L3 already planned that: §1 #3-#6), closed
+theorems restated under their names.
+
+**Design (no new spec, no cancelable invariant).** `walOpenWS P Mr w dir q` := a fraction `q` of a token `γ` ∗
+the persistent facts of the handle (its `isMutex w.mu True`, `isPkgInit`, ...) ∗ `inv N (walOpenWF … ∨ ownMutex
+w.mu ∨ tok γ 1)`. After `w.mu.Lock()` (whose `isMutex` stays `True`: Create's and `SaveSnapshot.specPre`'s
+allocation is untouched) the proof swaps `ownMutex` (exclusive, timeless) into the invariant and takes the handle
+(a later credit strips the later); before each `Unlock` it swaps back; `Close` (whole share) leaves `tok γ 1`, so a
+later partial holder finds no handle by token arithmetic. `walOpenWF` stays as the sealed representation inside
+the invariant (no spec takes it but those below); a law `walOpenWF_share : walOpenWF ={E}=∗ ∃ γ, walOpenWS … 1`
+converts `Create`'s and `ReadAll`'s posts once (their specs unchanged). WalTester's member holds `walOpenWS 1`.
+
+**The real spec families L1a touches (in place) and how each collapses.**
+
+| Function | Specs today (who uses them) | L1a | Collapse to one |
+|---|---|---|---|
+| `Save` | `spec` (WalTester `member__save`), `specNoErr` (the server, L2) | both re-stated in place over `walOpenWS` (7+5 lock sites) | one spec over a parameter `Sio` (`[FsStepSat (NoIoErr Sio)]`, error arm only when `¬ ∀ st i, Sio.ino st i`; room premise only in the no-error case): a re-proof merging two ~430-line proofs |
+| `SaveSnapshot` | `spec` (WalTester), `specNoErr` (server), `specPre` (`Create`'s own call, on the pre-handle) | `spec`, `specNoErr` in place; `specPre` untouched (no shared handle exists inside `Create`) | `spec`/`specNoErr` as `Save`; `specPre` folds in as a disjunct of the precondition (pre-handle ∨ shared) |
+| `Sync` | `spec` (WalTester), `specNoErr` (server) | both in place (2+2 sites) | as `Save` (76-line proofs: cheap) |
+| `ReleaseLockTo` | `spec` (WalTester `member__opOwnSnap`), `specNoErr` (server) | both in place (one file) | as `Save` |
+| `Close` | `spec` (WalTester), `specNoErr` (server), `specFailed` (WalTester `restartRead`, `CloseFailedRepair`, ...), `specOpening` (`Open`, read mode), `specU` (`Create`'s cleanup, unnamed handle) | `spec`, `specNoErr` in place; the other three untouched (handles not yet or no longer shared) | one spec whose precondition is the disjunction of the handle states (shared-whole ∨ failed ∨ opening ∨ unnamed), proved by cases from the five bodies (they become lemmas) |
+
+Not touched by L1a (no lock; internal helpers): `sync` (specIn/C/Idle/IdleF/Lent/LentE/NoErr/CNoErr/Pre(L)/Cut),
+`cut` (spec/NoErr/Pre), `saveState`, `saveEntry` (spec/NoErr): their families stay as they are; L1a adds none.
+
+**Cost.** L1a in place without collapsing: ~1.0-1.8k lines (Scope: 0.8-1.5k; both families of each function now
+move, not only `NoErr`), plus WalTester's five member proofs moved (~150 lines) and a rebuild of WalTester. The
+collapses: `spec`/`specNoErr` merged for five functions ~+2-4k lines (two separately proved semantics, the room
+premise); `Close`'s five into one ~+0.3-0.6k; `SaveSnapshot.specPre` ~+0.2-0.4k. **Delta: +2.5-5k lines** if the
+collapses are part of the link; none if they are deferred to a layer-1 cleanup.
+
+**WalTester's duplicate `durable`.** Not retired by the link: it exists for kvdurable (`durableExt`), which the
+WAL link does not touch (the server's WAL is layer 1 over `fsExt`; the main `durable` is used only by kvdurable,
+kvfile and the `[durableExt]` adequacy). It retires when kvdurable moves onto the bodied `durable` (CLAUDE.md).
