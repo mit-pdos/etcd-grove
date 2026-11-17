@@ -158,21 +158,6 @@ theorem kvOutL_of_pass (M : auth.AuthMode) (hs : List auth.AuthState) (ai : auth
     · exact absurd rfl hne
     · exact Or.inr ⟨hb, hp⟩
 
-/-- A mode-`on` entry's step extends the model's log. (TEMPORARY copy of `v3rpc.ClientModel`'s, to be moved to
-`KVAuthModel` before the leaves build.) -/
-theorem kvEntryOn_extends' (c₀ : w64) (ch : apply.Chain) (st : OnState)
-    (m : EntryModel) : st.2.1 <+: (kvEntryOn c₀ ch st m).2.1 := by
-  unfold kvEntryOn
-  split
-  · split
-    · split
-      · exact List.prefix_refl _
-      · split
-        · exact List.prefix_refl _
-        · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
-    · exact List.prefix_refl _
-  · exact kvEntry_prefix c₀ ch st.2.2 st.2.1 m
-
 end lemmas
 
 section proof
@@ -1911,7 +1896,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
       subst Hweq
       -- (auth-lease S4 item 7b) the entry's window, its target the items of the model log after the entry
       imod (srvApplyKVW_push hPers hReach E _ HEo.2.2.1.2 HwOk ua x _
-          (kvEntryOn_extends' γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m)) $$ [HKV]
+          (kvEntryOn_extends γr.kv.c0 x.chain (sa, x.log, kvLeasesOn γr.kv srvAuthSt0 A) m)) $$ [HKV]
         with ⟨%wn, %Hwn, HKV⟩
       · iframe HsI HwTie HKV
         iintro %_ !>
