@@ -14,9 +14,12 @@ schema_UnsafeUpdateConsistentIndexForce: schema_unsafeUpdateConsistentIndex
 # schema's auth backend, the read side (server/storage/schema/auth.go, auth_users.go, auth_roles.go;
 # the auth plan's S1, 2026-10-23), see etcdserver/InvAuthBackend.lean. The trust boundary:
 # proto.Unmarshal on authpb.User and authpb.Role (the encodings opaque, auth/Buckets.lean).
-# bytes.Equal is Perennial's. Not linked: unsafeGetAllUsers (backend.UnsafeForEach has no spec),
-# unsafeGetAllRoles (a range of a non-safe bucket: only a batch transaction may do it,
-# nonissues/etcd-auth-readtx-getallroles-panics.md), the batch-transaction methods (the admin side, S4).
+# bytes.Equal is Perennial's. Not linked: authReadTx.UnsafeGetAllRoles (a range of a non-safe bucket:
+# only a batch transaction may do it, nonissues/etcd-auth-readtx-getallroles-panics.md). The walk and
+# the write side (auth-schema-srv A5, 2026-11-17): unsafeGetAllUsers, unsafeGetAllRoles, the
+# batch-transaction methods and the backend's BatchTx/ForceCommit/CreateAuthBuckets/GetAllUsers/
+# GetAllRoles, over the contracts' callee triples; the trust boundary adds proto.Marshal on
+# authpb.User and authpb.Role.
 proto_UnmarshalUser:
 proto_UnmarshalRole:
 schema_unsafeReadAuthEnabled:
@@ -32,6 +35,30 @@ schema_authReadTx__RUnlock:
 schema_authBackend__ReadTx:
 schema_authBackend__GetUser: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetUser schema_authReadTx__RUnlock
 schema_authBackend__GetRole: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetRole schema_authReadTx__RUnlock
+proto_MarshalUser:
+proto_MarshalRole:
+schema_unsafeGetAllUsers: proto_UnmarshalUser
+schema_unsafeGetAllRoles: proto_UnmarshalRole
+schema_authReadTx__UnsafeGetAllUsers: schema_unsafeGetAllUsers
+schema_authBatchTx__UnsafeGetUser: schema_unsafeGetUser
+schema_authBatchTx__UnsafeGetRole: schema_unsafeGetRole
+schema_authBatchTx__UnsafeReadAuthEnabled: schema_unsafeReadAuthEnabled
+schema_authBatchTx__UnsafeReadAuthRevision: schema_unsafeReadAuthRevision
+schema_authBatchTx__UnsafeGetAllUsers: schema_unsafeGetAllUsers
+schema_authBatchTx__UnsafeGetAllRoles: schema_unsafeGetAllRoles
+schema_authBatchTx__UnsafePutUser: proto_MarshalUser
+schema_authBatchTx__UnsafePutRole: proto_MarshalRole
+schema_authBatchTx__UnsafeDeleteUser:
+schema_authBatchTx__UnsafeDeleteRole:
+schema_authBatchTx__UnsafeSaveAuthEnabled:
+schema_authBatchTx__UnsafeSaveAuthRevision: binary_bigEndian__PutUint64
+schema_authBatchTx__Lock:
+schema_authBatchTx__Unlock:
+schema_authBackend__BatchTx:
+schema_authBackend__ForceCommit:
+schema_authBackend__CreateAuthBuckets:
+schema_authBackend__GetAllUsers: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetAllUsers schema_authReadTx__RUnlock
+schema_authBackend__GetAllRoles: schema_authBackend__BatchTx schema_authBatchTx__Lock schema_authBatchTx__UnsafeGetAllRoles schema_authBatchTx__Unlock
 # The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
 NewConsistentIndex:
 consistentIndex__SetConsistentIndex:

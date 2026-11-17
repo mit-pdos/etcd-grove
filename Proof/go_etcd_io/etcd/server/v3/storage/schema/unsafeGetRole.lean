@@ -33,7 +33,7 @@ theorem schema.unsafeGetRole.wp_proof
   · iapply isPkgInit_access $$ Hpkg
   icases Hsi with ⟨-, -, -, -, -, -, -, -, -, ⟨%rb, #HRoles, -⟩, -⟩
   iunfold schema.authReader at Hrd
-  icases Hrd with ⟨-, -, #HU⟩
+  icases Hrd with ⟨-, -, #HU, -⟩
   iunfold schema.authPointSpec at HU
   wp_auto
   wp_apply wp_string_to_bytes name as %key ⟨Hkey, -⟩

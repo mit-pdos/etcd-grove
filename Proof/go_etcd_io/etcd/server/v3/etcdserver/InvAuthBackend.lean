@@ -32,6 +32,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCindex
 public import Proof.go_etcd_io.etcd.server.v3.auth.Buckets
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Model2
 
 @[expose] public section
 
@@ -216,12 +217,42 @@ def authPointSpec (r : GoInterfaceOk) (bv : GoString) (H : IProp GF) (m : backen
         (Val #(slice.nil))) (Val #(W64 0)))
     {{ (ks vs : GoSlice), RET (PairV #ks #vs); H ∗ key ↦*{dq} kb ∗ pointValsA H vs (m.lookup kb) }})
 
+/-- **The bytes `b` of the slice `s`, readable while the token `H` is held** (persistent; the token
+lent out meanwhile): a reader's slices (as `pointValsA`'s: the real backend's are bbolt's, valid
+until the reader's `RUnlock`, or the batch transaction's, valid until its next commit). -/
+def rdCap (H : IProp GF) (s : GoSlice) (b : GoString) : IProp GF :=
+  iprop(□ (H -∗ ∃ dq : DFrac, s ↦*{dq} b ∗ (s ↦*{dq} b -∗ H)))
+
+instance rdCap_persistent (H : IProp GF) (s : GoSlice) (b : GoString) :
+    Persistent (rdCap H s b) := by
+  unfold rdCap; infer_instance
+
+/-- `r.UnsafeForEach(b, fn)` on the bucket the global `bv` holds, under the token `H`, walks the
+entries of the bucket data `m` in some order (`es`, a permutation of `bktEnts m`: a read
+transaction's walk is bbolt's entries the read buffer lacks, then the buffer's, `rtForEach`; a batch
+transaction's is in key order) and returns `nil`, given a visitor `fn` that returns `nil` on every
+entry (auth-schema-srv A5, 2026-11-17: schema's `unsafeGetAllUsers`' visitor appends the value). The
+visitor goes from `I vis` (the entries walked so far) to `I (vis ++ [e])` for the entry `e` it is
+called on, and gets the value's slice readable under `H` (`rdCap`; `H` itself is lent to the walk). -/
+def authForEachSpec (r : GoInterfaceOk) (bv : GoString) (H : IProp GF) (m : backend.BktData) :
+    IProp GF :=
+  iprop(∀ (b : GoInterface) (fn : GoFunc) (I : List backend.Ent → IProp GF),
+    {{ globalAddr bv ↦□ b ∗ H ∗ I [] ∗
+        □ (∀ (vis : List backend.Ent) (e : backend.Ent) (k v : GoSlice),
+          {{ I vis ∗ rdCap H v e.2 }} (App (App (Val #fn) (Val #k)) (Val #v))
+          {{ RET #GoInterface.nil; I (vis ++ [e]) }}) }}
+      (App (App (Val #(methods r.ty go!"UnsafeForEach" r.v)) (Val #b)) (Val #fn))
+    {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ H ∗
+        ∃ es : List backend.Ent, ⌜es.Perm (backend.bktEnts m)⌝ ∗ I es }})
+
 /-- **An `UnsafeReader` over the auth buckets** `D` under the token `H` (persistent): its point
-reads of `Auth`, `AuthUsers` and `AuthRoles` are `authPointSpec`'s. -/
+reads of `Auth`, `AuthUsers` and `AuthRoles` are `authPointSpec`'s, and its walk of `AuthUsers`
+`authForEachSpec`'s (auth-schema-srv A5, 2026-11-17: `unsafeGetAllUsers`). -/
 def authReader (r : GoInterfaceOk) (H : IProp GF) (D : AuthData) : IProp GF :=
   iprop(□ authPointSpec r go_etcd_io.etcd.server.v3.storage.schema.Auth H D.auth ∗
     □ authPointSpec r go_etcd_io.etcd.server.v3.storage.schema.AuthUsers H D.users ∗
-    □ authPointSpec r go_etcd_io.etcd.server.v3.storage.schema.AuthRoles H D.roles)
+    □ authPointSpec r go_etcd_io.etcd.server.v3.storage.schema.AuthRoles H D.roles ∗
+    □ authForEachSpec r go_etcd_io.etcd.server.v3.storage.schema.AuthUsers H D.users)
 
 instance authReader_persistent (r : GoInterfaceOk) (H : IProp GF) (D : AuthData) :
     Persistent (authReader r H D) := by
@@ -251,6 +282,42 @@ instance authBE_persistent (bi : GoInterfaceOk) (R : IProp GF) (Held : AuthData 
     Persistent (authBE bi R Held) := by
   unfold authBE; infer_instance
 
+/-- The entries `unsafeGetAllRoles`' range returns of the roles bucket `m`: `[0x00, 0xff)`, no limit
+(`UnsafeRange(AuthRoles, []byte{0}, []byte{0xff}, -1)`, `auth_roles.go`). -/
+def rolesRangeEnts (m : backend.BktData) : List backend.Ent :=
+  backend.cursorRange (backend.bktEnts m) [W8 0] [W8 255] (W64 (-1))
+
+/-- **The batch transaction's range of the roles bucket** `m` under the token `H` (persistent;
+auth-schema-srv A5, 2026-11-17): `r.UnsafeRange(AuthRoles, []byte{0}, []byte{0xff}, -1)` returns
+the values of `rolesRangeEnts m`, each readable under `H` (`rdCap`). Only a batch transaction meets
+it (a read transaction's range of a non-safe-range bucket panics,
+`nonissues/etcd-auth-readtx-getallroles-panics.md`), hence not part of `authReader`. -/
+def authRolesRange (r : GoInterfaceOk) (H : IProp GF) (m : backend.BktData) : IProp GF :=
+  iprop(∀ (b : GoInterface) (key endKey : GoSlice) (dk de : DFrac),
+    {{ globalAddr go_etcd_io.etcd.server.v3.storage.schema.AuthRoles ↦□ b ∗ H ∗
+        key ↦*{dk} [W8 0] ∗ endKey ↦*{de} [W8 255] }}
+      (App (App (App (App (Val #(methods r.ty go!"UnsafeRange" r.v)) (Val #b)) (Val #key))
+        (Val #endKey)) (Val #(W64 (-1))))
+    {{ (ks vs : GoSlice), RET (PairV #ks #vs); H ∗ key ↦*{dk} [W8 0] ∗ endKey ↦*{de} [W8 255] ∗
+        ∃ ss : List GoSlice, vs ↦* ss ∗ ⌜ss.length = (rolesRangeEnts m).length⌝ ∗
+          [∗list] x ∈ ss.zip (rolesRangeEnts m), rdCap H x.1 x.2.2 }})
+
+/-- **What `unsafeGetAllUsers` returns of the users bucket `m`** (auth-schema-srv A5): a slice of
+messages, one per entry of `m` in some order (`es`, a permutation of `bktEnts m`), each holding the
+record its value encodes (`ownUser`, persisted from what `proto.Unmarshal` returns); nil when `m` is
+empty. -/
+def usersOutD (s : GoSlice) (m : backend.BktData) : IProp GF :=
+  iprop(∃ (us : List Loc) (es : List backend.Ent), s ↦* us ∗
+    ⌜es.Perm (backend.bktEnts m) ∧ us.length = es.length⌝ ∗
+    [∗list] x ∈ us.zip es, ∃ ur : auth.UserRec, ⌜x.2.2 = auth.userEncode ur⌝ ∗ auth.ownUser x.1 ur)
+
+/-- **What `unsafeGetAllRoles` returns of the entries `es`** (auth-schema-srv A5; `rolesRangeEnts`
+of the roles bucket): a slice of messages, one per entry, in order, each holding the record its
+value encodes (`ownRole`); nil when there is none. -/
+def rolesOutD (s : GoSlice) (es : List backend.Ent) : IProp GF :=
+  iprop(∃ rs : List Loc, s ↦* rs ∗ ⌜rs.length = es.length⌝ ∗
+    [∗list] x ∈ rs.zip es, ∃ rr : auth.RoleRec, ⌜x.2.2 = auth.roleEncode rr⌝ ∗ auth.ownRole x.1 rr)
+
 end defs
 
 section fields
@@ -259,6 +326,10 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 /-- `&atx.<f>` (a `*authReadTx`). -/
 abbrev atxF (f : GoString) (atx : Loc) : Loc :=
   structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authReadTx f atx
+
+/-- `&abt.<f>` (a `*authBatchTx`). -/
+abbrev abtF (f : GoString) (abt : Loc) : Loc :=
+  structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBatchTx f abt
 
 /-- `&abe.<f>` (a `*authBackend`). -/
 abbrev abeF (f : GoString) (abe : Loc) : Loc :=
