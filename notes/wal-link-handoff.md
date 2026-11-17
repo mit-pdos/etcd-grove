@@ -39,6 +39,25 @@
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`
   (`--stop` before builds and at the end). **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build TARGET`.
 
+## L1b at the R5 stop (2026-11-17; HARD STOP (b), reported to etcd-grove-03; no Lean changed for L1b)
+
+- **R5 (fraction vs frozen): no client change.** `storage.SaveSnap` (S/storage/storage.go:59-70) shares raft's
+  `Index`/`Term` cells and `ConfState` object in its `walpb.Snapshot`; layer 1's `walSnapAt` needs them frozen.
+  The law's `smPtsV mp dq' md` has the cells `cellRO` already; only the conf state is at `dq'`. Both callers pass
+  a discarded metadata (`EtcdServer__snapshot.lean:366`, `raftNode__start.lean:616` via `srv_ownSnapS_meta`'s
+  persistent facts): the law fixes `dq' := DFrac.discard`. Bridge (L1b lemma): `csPts … DFrac.discard` gives
+  `csRoC` with `uf = []` (`PbContent.lean:704`) → `walCsRoC` at `walCsCanon`.
+- **New finding (content vs model):** layer 1's `WalMarshal` encodes models; `walRaftP` (PW/RaftModel) needs the
+  canonical wire content (`walEntIn`: `entRoC l (walEntCanon e)`; `walHsIn`: `walHsCanon h` unless empty). The
+  server's entries are any content of the model (`walSaveEnts true`: `∃ c, entRoC l c`, `c.uf` and field presence
+  free; MsgApp entries are unmarshalled) and `hardStateAt = hsRO` leaves `pbMsg … uf` free; protobuf-go writes
+  presence and unknown fields, so the records' bytes are not a function of the model. Options: (i) a fact that the
+  server's entries/hard states are canonical (needs `uf = []` and raft's presence pattern; likely false for
+  received entries); (ii) layer 1 over contents (`WalOpG` over `EntryC`/`WalHsC`, `Mr` over contents, `ReadAll`
+  returns contents): several k lines; (iii) `Mr` over contents with the per-record bytes in a ghost map read by the
+  crash invariant. Recommendation in the report.
+- Server `SaveSnap` law, old → new: in the report (and `/shared/tmp/wallink/l1b-r5.md`).
+
 ## History
 
 ### START HERE (2026-11-17, Scope)
