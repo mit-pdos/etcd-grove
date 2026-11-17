@@ -1,9 +1,10 @@
 /-
 bbolt's `Options` as its specs see them (D13, `notes/bbolt-spec-decisions.md`): the part of an
 `Options` value `Open` depends on (`OptsM`), the options under which the specs hold (`OptsM.ok`),
-and the abstract points-to `optsAt`. `Options` is axiomatized (a translator gap, the backend's
-`BboltOptions.lean` header), so `optsAt`'s laws are trust-boundary axioms, in
-`Proof/go_etcd_io/bbolt/Options.lean`. Part of the API (`etc/api/bbolt.txt`).
+and the points-to `optsAt`. (2026-11-17, S2 of `notes/bbolt-integration-plan.md`, D-I4) `Options`
+is translated: `optsAt` is the struct's typed points-to with fields `optsVal`, and its laws are
+lemmas, in `Proof/go_etcd_io/bbolt/Options.lean` (until then an abstract points-to and
+trust-boundary axioms). Part of the API (`etc/api/bbolt.txt`).
 -/
 module
 
@@ -35,7 +36,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- The part of a bbolt `Options` value `Open`'s behaviour depends on here (moved from the
-backend's `BboltOptsDefs.lean`; `Options` is axiomatized, a translator gap there). -/
+backend's `BboltOptsDefs.lean`). -/
 structure OptsM where
   readOnly : Bool
   pageSize : w64
@@ -95,8 +96,20 @@ omit [GooseSemantics] [GooseInterp] in
 theorem optsZero_ok : optsZero.ok := by
   simp [OptsM.ok, optsZero, loggerPtrOk]
 
-/-- The `Options` at `l`, at fraction `dq`, has the fields `o`. -/
-opaque optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF
+/-- The `Options` value `v` has the fields `o` (2026-11-17: a definition over the translated
+struct; until then an axiom). -/
+def optsVal (v : go_etcd_io.bbolt.Options) (o : OptsM) : Prop :=
+  v.ReadOnly' = o.readOnly ∧ v.PageSize' = o.pageSize ∧ v.OpenFile' = o.openFile ∧
+    v.Logger' = o.logger ∧ v.Mlock' = o.mlock ∧ v.MmapFlags' = o.mmapFlags
+
+/-- The `Options` at `l`, at fraction `dq`, has the fields `o` (and some others): its typed
+points-to (2026-11-17: until then abstract). -/
+def optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
+  iprop(∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o⌝)
+
+instance optsAt_discard_persistent (l : Loc) (o : OptsM) :
+    Persistent (optsAt (GF := GF) l DFrac.discard o) := by
+  unfold optsAt; infer_instance
 
 end spec
 

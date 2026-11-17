@@ -52,11 +52,11 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 read and given back. Under fewer than `2 ^ 29` live threads (the read transactions' tokens). -/
 abbrev bbolt.Open_kv.spec : Prop :=
   ∀ [ThreadBoundLe GF (2 ^ 29)]
-    (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (D : Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ fileHolds path D ∗ optsAt opts dq o ∗
-      ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
+    (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ fileHolds path D ∗ backend.optsAt opts dq o ∗
+      ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ backend.boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
-  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
+  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); backend.optsAt opts dq o ∗
       -- (2026-11-08) an error only where the environment does not cooperate (`dbOpenOk`)
       (⌜err ≠ GoInterface.nil ∧ ¬ dbOpenOk⌝ ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db ∗

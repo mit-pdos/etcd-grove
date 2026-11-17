@@ -43,7 +43,6 @@ axiom Perennial.github_com.prometheus.client_golang.prometheus.initFuncsOk
 axiom Perennial.github_com.prometheus.client_golang.prometheus.opaqueInitsOk
 axiom Perennial.github_com.spf13.pflag.opaqueInitsOk
 axiom Perennial.github_com.xiang90.probing.opaqueInitsOk
-axiom Perennial.go_etcd_io.bbolt.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.authpb.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder_name_init
@@ -315,8 +314,6 @@ axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
-axiom backend.optsAt
-axiom backend.optsAt_discard_persistent
 axiom backend.ownCur
 axiom backend.ownDB
 axiom backend.ownWTxG

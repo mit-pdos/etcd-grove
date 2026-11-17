@@ -19,14 +19,6 @@ axiom backend.fileHolds
 axiom backend.isDB
 axiom backend.isDB_persistent
 axiom backend.newBoltLoggerZap.wp_proof
-axiom backend.optsAt
-axiom backend.optsAt_bool
-axiom backend.optsAt_discard_persistent
-axiom backend.optsAt_freelist
-axiom backend.optsAt_int
-axiom backend.optsAt_logger
-axiom backend.optsAt_timeout
-axiom backend.optsVal
 axiom backend.ownCur
 axiom backend.ownDB
 axiom backend.ownWTxG
@@ -57,10 +49,6 @@ axiom backend.txLive_timeless
 axiom backend.wBkt
 axiom backend.wBkt_persistent
 axiom backend.wp_mutexLit
-axiom backend.wp_optsAlloc
-axiom backend.wp_optsLit
-axiom backend.wp_optsLoad
-axiom backend.wp_optsStore
 axiom backend.wrTok
 axiom bbolt.Bucket.Cursor_kvr.wp_proof
 axiom bbolt.Bucket.Cursor_kvw.wp_proof

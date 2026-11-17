@@ -2,8 +2,8 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom backend.optsAt_discard_persistent (l : Loc) (o : backend.OptsM) : Persistent (backend.optsAt l
-    DFrac.discard o)
+theorem backend.optsAt_discard_persistent (l : Loc) (o : backend.OptsM) : Persistent (backend.optsAt
+    l DFrac.discard o)
 
 theorem backend.OptsM.ok_withLogger [GoGlobalContext] (o : backend.OptsM) (l : GoInterface) (h :
     o.ok) (hl : backend.loggerPtrOk l) : { readOnly := o.readOnly, pageSize := o.pageSize, openFile
@@ -20,7 +20,8 @@ def backend.boltOpenOptionsOk : IProp GF :=
 def backend.OptsM.ok [GoGlobalContext] (o : backend.OptsM) : Prop :=
   o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ backend.loggerPtrOk o.logger
 
-axiom backend.optsAt (l : Loc) (dq : DFrac) (o : backend.OptsM) : IProp GF
+def backend.optsAt (l : Loc) (dq : DFrac) (o : backend.OptsM) : IProp GF :=
+  iprop(∃ m f, bbolt.optsAt l dq (o.toBolt m f))
 
 theorem backend.optsZero_ok [GoGlobalContext] : backend.optsZero.ok
 
@@ -36,3 +37,7 @@ def backend.loggerPtrOk [GoGlobalContext] : GoInterface → Prop :=
   match x✝ with
   | GoInterface.nil => True
   | GoInterface.ok li => ∃ t l, li.ty = t.PointerType ∧ li.v = intoVal l
+
+def backend.OptsM.toBolt (o : backend.OptsM) (m : Bool) (f : w64) : bbolt.OptsM :=
+  { readOnly := o.readOnly, pageSize := o.pageSize, openFile := o.openFile, logger := o.logger, mlock := m,
+    mmapFlags := f }

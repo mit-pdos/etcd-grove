@@ -8,7 +8,6 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link\.lean$
 axiom backend.dbFile
 axiom backend.isDB
-axiom backend.optsAt
 axiom backend.ownDB
 axiom backend.ownWTxG
 axiom backend.rBkt
