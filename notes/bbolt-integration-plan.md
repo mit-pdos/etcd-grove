@@ -410,3 +410,130 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `fmt.Errorf` added too. Remaining of the old boundary: `bbolt.{Open_kv, DB.Close_kv,
     Bucket.Put_kv}.wp_proof`, `backend.{fileHolds, dbFile, dbFile_persistent, dbFile_timeless}`, the
     options' axioms (S2).
+
+### S3e (branch `bbolt-files-backend`, off `bbolt-integrate` `4511e2dcd1`, 2026-11-17): the backend's database files over the file model
+
+D-I5's backend side. `bbolt.Open_kv` and `bbolt.DB.Close_kv` are theorems; `backend.fileHolds` and
+`backend.dbFile` are definitions over the tree's shared mode. **S3d had not landed** when this was
+done: the two error-free specs it is adding (`Open_sharedNoErr.spec`; `DB.Close_ownNoErr.spec`
+strengthened to `⌜err = nil⌝ ∗ fileHolds i D`) are stated in `Spec/go_etcd_io/bbolt/Open_sharedNoErrH.lean`
+as S3d's task states them, and stand as two **interim axioms** `bbolt.Open_sharedNoErrH.pendingS3d`,
+`bbolt.DB.Close_ownNoErrH.pendingS3d` (never to land on `lean`: on merging S3d, `Open_kv.wp_proof`
+and `DB.Close_kv.wp_proof` take S3d's specs as hypotheses, `etc/link-lean-first-backend.txt` gets
+`bbolt_Open_kv: bbolt_Open_sharedNoErr` and `bbolt_DB__Close_kv: bbolt_DB__Close_ownNoErr` (`@`
+callees), and the file goes). bbolt's linked `Open` takes the hypothesis `fs.FileMode.String.spec`
+(`Proof/go_etcd_io/bbolt/Open/FileModeString.lean`: the method is not translated): it will reach the
+backend's results with S3d's link, as a pending hypothesis or a translation of `FileMode.String`.
+
+**Definitions** (`InvBbolt.lean`).
+- `FsCtx` gains `ne : FsNoErrAll` (a class: `∃ Sio`, covering every inode and every path, with
+  `FsStepSat (NoIoErr Sio)` and `FsStepSat (NoMapLockErr Sio)`): the packed form, so the backend and
+  its clients take no new binder. Where the semantics does not restrict its steps, `theFs = none` and
+  every backend predicate is `False`: so every closed theorem reaching the backend moves to the
+  restricted semantics (below).
+- `dbNs p` (the namespace `nroot.@"etcdBackendDb".@p`, injective, disjoint from `osN`): `Open_kv`
+  opens the database at `p` in it, so its names record its path.
+- `fileHolds path D := onFs (fileHoldsF path D)`, `fileHoldsF path D := ∃ R d b dq j qc h,
+  ⌜path = child d b ∧ NameOk b⌝ ∗ osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+  osNames j (.only [b]) 1 h ∗ bbolt.nameHolds h b D` (what `Open_sharedNoErr` takes).
+- `dbFile db γ path := ⌜γ.ns = dbNs path⌝` (takes `γ` now; persistent, timeless).
+- `ownDB db γ D := onFs (isBolt db γ ∗ boltState γ 1 D ∗ dbRestF γ)`, `dbRestF γ` the claim on the
+  name naming the inode `Open` opened (`h.cur !! b = some (.file i)`, `boltIno γ i`), with the path's
+  spine, the permission's share and `⌜γ.ns = dbNs (child d b)⌝`: what `Close` turns back into
+  `fileHolds`. (Design choice: the claim stays with the open database. It is right for the backend and
+  mvcc, where nothing renames onto an open database's file; it is not for the server's snapshot
+  install, below.)
+- **The call permission**: each `fileHolds` holds a share `osCallPerm qc` (any `qc`); `Open` and
+  `Close` give it back. At program start the whole permission is halved per file (`files_of_claim`),
+  so any number of members open concurrently (bbolt's `Open` needs only a share, not the whole
+  permission as the WAL's `Create` does for its directory rename).
+- `backend.boltLogger l`: bbolt's contract at `theFs` (`True` at `none`); until then an axiom.
+- `backend.optsAt l dq o := ∃ f, ⌜f.toNat = 0 ∨ f.toNat = mapPopulate⌝ ∗ bbolt.optsAt l dq (o.toBolt
+  false f)` (`Mlock` false, `MmapFlags` zero or `MAP_POPULATE`: what bbolt's proved `Open` accepts;
+  until then any). `optsAt_bool` no longer covers `Mlock`, which has `optsAt_mlock` (stores `false`
+  only); `optsAt_int` no longer covers `MmapFlags` (no user); new `optsAt_bolt`, `boltLogger_eq`.
+
+**Proofs.** `Proof/go_etcd_io/bbolt/Open_kv.lean` (`crOut_file`: the claim after the create names
+the opened file), `DB__Close_kv.lean`; `DB.Begin_kv`, `Tx.Commit_kv` frame `dbRestF`; `newBackend`
+over `Open_kv`'s error-free post (its panic branch gone), `Mlock` stored false. `GooseLang/Ext/Fs/TreeSharedSwitchE.lean`:
+`wp_osShareE`, the mode switch at the step of any expression that is not a value (`wp_ext_acc`), so a
+closed theorem switches before the program's first step. `Proof/runtime/StartFiles.lean`:
+`files_of_claim` (a directory's claim split along fresh names into one `fileHoldsF` each, with a
+permission share and the root's path) and `start_fileHolds` (from `osStart` of an `FsInit` state, at
+the program's first step, `fileHolds (child r b) ∅` for fresh names `b` of a root `r`).
+
+**Producers of `fileHolds`, audited** (`etc/importers.py --uses fileHolds`):
+1. `goose_adequacy_start_files` (axiom): **removed**. Handing out concrete `fileHolds` beside
+   `extsLocalStart` (whose tree gives, after a switch, claims on every name) would let a proof hold two
+   whole claims on one name: inconsistent. `goose_adequacy_start` is the axiom again (its statement
+   unchanged, the case `Fs = []` of the old one), with `dbFileAbsent`/`dbFilesAbsent` deleted; the fresh
+   files are derived (`start_fileHolds`), from the premise that the names are absent in the initial
+   `FsInit` tree.
+2. `bbolt.DB.Close_kv` (axiom → theorem), `backend.Close` (theorem): give back the claim the database
+   kept: no production.
+3. `os.Rename`'s axiom, `snap.Snapshotter.SaveDBFrom`, `DBFilePath`, the transport's saved snapshots
+   (`rafthttp/Net.lean`'s `snapDirInv`), `SnapRO`, `storage.OpenSnapshotBackend`, `storage.OpenBackend`'s
+   pre: **moved to a separate opaque predicate `backend.srvFileHolds`** (`InvSnapshot.lean`), the
+   server's snapshot-path vocabulary, no file-extension resource. With the concrete `fileHolds`, these
+   axioms would make whole claims from nothing (`SaveDBFrom`), or a second claim on a name an open
+   database holds (`os.Rename` onto the backend's path while the old backend is open, with the claim
+   in its `ownDB`): not sound. Over `srvFileHolds` they are as before (abstract). `os.Rename` is
+   translated with a proved shared-mode spec (`Spec/os/RenameS.lean`), but using it needs the server's
+   file world on the tree (the snapshot directory's claims, `pathOwn` a claim), which it is not.
+4. `bootstrapContract`/`bootstrapRestartContract`' `srvFiles` (`InvRestart.lean`): concrete `fileHolds`,
+   a premise of the closed theorems (kept); fed by `Cleanup` (`backend.Close`, a theorem).
+5. **`storage.OpenBackend.wp_proof` (kept, not sound in the strict sense: left for the coordinator)**:
+   from the abstract `srvFileHolds` it gives a backend whose `ownDB` holds concrete file-extension
+   state (`isBolt`'s invariants, since S1; now also `dbRestF`'s claim and `osSharedInv`), which no
+   exclusive token it consumes backs. S1 had the same gap (`isBolt` from an abstract `fileHolds`).
+   The fix is the server's file world on the shared mode: the backend should then give up the name's
+   claim at `Open` (keeping the inode) and `Close` give back the inode only, the server keeping
+   `pathOwn` as the claim, so that `os.Rename` onto an open database's path is `RenameS`.
+
+**The semantics of the closed theorems.** `etcdstart/FsExts.lean`: `etcdFsExtsSemantics` is
+`(idIssue_semantics, etcdFsSem, ⟨⟩)`, `etcdFsSem := fsSemWithS etcdSQ (fun _ _ => True)`, `etcdSQ :=
+StepPrem.and (NoIoErr allIo) (NoMapLockErr allIo)` (`allIo` every inode and path); `etcdFsSemOk`
+(`fsSemWithS_ok`, `noIoErr_noMapLockErr_keeps`), `etcdFsNoErr` (`fsSemWithS_sat`,
+`fsStepSat_and_left/right`) are local instances of every closed theorem over `etcdFsExts` (the 25
+etcd/k8s examples' `Adequacy.lean` and `Results.lean`).
+
+**Changed statements.** Specs: `bbolt.Open_kv.spec` (`[ReceiptBoundLe GF (2 ^ 62)]`; post `⌜err =
+nil⌝ ∗ ∃ γ, ownDB ∗ wrTok ∗ isDB ∗ dbFile db γ path`, no `¬ dbOpenOk` case), `bbolt.DB.Close_kv.spec`
+(`dbFile db γ path`; post `⌜err = nil⌝ ∗ fileHolds path D`, no `¬ dbCloseOk` case),
+`backend.New.spec`, `backend.newBackend.spec` (`[ReceiptBoundLe GF (2 ^ 62)]`, pre's pure part `P.Wf ∧
+P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false`; the `¬ dbOpenOk` panic case kept, never taken),
+`backend.backend.Close.spec` (unchanged; its `¬ dbCloseOk` case never taken), `os.Rename.spec`,
+`storage.OpenBackend.spec`, `OpenSnapshotBackend.spec`, `Snapshotter.DBFilePath.spec`,
+`EtcdServer.applySnapshot.spec` (`srvFileHolds` for `fileHolds`), mvccrand's `wp_DefaultBackendConfig`
+and mvccfull's copy (`c.Mlock' = false`).
+
+**Changed closed theorems** (old → new):
+- every closed theorem over `etcdFsExts` (`etcd_putget_safe`, `etcd_putget3_safe`, `etcd_putgetN_safe`,
+  the auth, auth3, authN, cache, compacted, compactwatch, lease, leaseN, leasecatchup, leaseexpiry,
+  leaseexpiryN, leasegrant, partition (and its watch), restart, restart1, restartN, restart3, txnlin,
+  txnlinfaultsN, watch, k8s compactor and k8s etcd3 ones): semantics `fs_semantics` (no premise on
+  steps) → `etcdFsSem` (no I/O error, no `flock`/`mmap`/`munmap` error, on any file); premises
+  otherwise unchanged.
+- `mvccrand_adequate`: program `initialize' ;; Main()` over the trivial extension, premises `Hsort`,
+  `dbOpenOk`, `dbCloseOk`, `dbFilesAbsent prog ["mvccrand.db"]`, `verifyEnvOff` → program `initialize' ;;
+  Run(mvccrandCfg r)` (`Main`'s configuration with the file `r/mvccrand.db`) over `etcdFsExts` with
+  `etcdFsSem`, premises `Hsort`, `verifyEnvOff`, the `os` field facts,
+  `FsInit`, `(r, j0)` a root, no entry `mvccrand.db` in `j0` (`dbFilesAbsent` gone). `Main`'s path is
+  relative, which the file model leaves stuck: a closed theorem over `Main` itself needs `Main` to use
+  an absolute path (a Go change, not made).
+- `mvccfull_adequate` and `mvccfull_safe` (`Results.lean`): likewise, `Main()` →
+  `Run(MainConfig(r/mvccfull))`, `dbOpenOk`, `dbCloseOk` dropped, `dbFilesAbsent` of `Main`'s files →
+  the `os` field facts, `FsInit`, a root `r`, none of `mvccfullNames` in it.
+Before S3e both mvcc theorems ran over the trivial extension, where `theFs = none` (S1): `Open_kv`'s
+axiom then gave `ownDB = False` on success, so everything after `backend.New` was vacuous, and the
+program itself (bbolt's `Open` runs `fsExt` operations) is stuck in that semantics: the theorems rested
+on an axiom false of their semantics.
+
+**`dbOpenOk`, `dbCloseOk`** are `True` (definitions; until then opaque): nothing gives their
+negation now. The mvcc closed theorems drop them; the specs that state them (the mvcc runner's,
+`backend.New`/`newBackend`'s panic case, `backend.Close`'s and `Cleanup`'s error case,
+`storage.snapOpensOk`'s conjunct inside `storage.diskOk`) are unchanged, their premise trivial, their
+error case `False`: deleting them is a mechanical cleanup (72 places in the mvcc examples).
+
+**Left.** S3d's merge (the two interim axioms, `FileMode.String`); `storage.OpenBackend` (item 5,
+the server's file world on the shared mode); the cleanup of the trivial `dbOpenOk`/`dbCloseOk`.
