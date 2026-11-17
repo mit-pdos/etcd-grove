@@ -55,8 +55,8 @@ private theorem nameHolds_opened (j : Ino) (h : NamesH) (b : GoString) (D : Data
   unfold nameHolds
   cases o with
   | none =>
-    simp only [crIno] at hcr
-    simp only [crMeta]
+    dsimp only [crIno] at hcr
+    dsimp only [crMeta]
     iintro ⟨(⟨%i0, %hi0, Hf⟩ | %hn), Ho, -⟩
     · rw [hcr] at hi0; cases hi0
       iframe Ho
@@ -65,9 +65,9 @@ private theorem nameHolds_opened (j : Ino) (h : NamesH) (b : GoString) (D : Data
     · rw [hcr] at hn; exact absurd hn.1 (by simp)
   | some xsi =>
     obtain ⟨x, s, i1⟩ := xsi
-    simp only [crIno] at hcr
+    dsimp only [crIno] at hcr
     subst hcr
-    simp only [crMeta, crOut]
+    dsimp only [crMeta, crOut]
     iintro ⟨(⟨%i0, %hi0, -⟩ | %hn), ⟨%hh, Hl, Hn⟩, Hm⟩
     · rw [hh.1] at hi0; cases hi0
     · obtain ⟨-, rfl⟩ := hn
@@ -108,7 +108,7 @@ private theorem openFileDb_shared (hCS : os.OpenFile.specCreateS (GF := GF) (hG 
   ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
   iapply HΦ
   iexists oc
-  simp only []
+  dsimp only
   icases Hr with (⟨%fd, %i, %hres, Hf, -, Hfd⟩ | ⟨%herr, #Hok⟩)
   · obtain ⟨rfl, hfd, hi⟩ := hres
     icases nameHolds_opened j h b D oc i hi $$ [$Hnh $Ho $Hm] with ⟨Ho, Hop⟩

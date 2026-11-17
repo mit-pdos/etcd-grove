@@ -181,7 +181,6 @@ Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.boltTx.congr_simp  # expos
 Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.isBolt.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.open_lock  # exposed by a proof file (theorem)
 Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.open_unlock  # exposed by a proof file (theorem)
-Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.pathHolds.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.tacticOpen_args  # exposed by a proof file (def)
 Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.tacticOpen_exit__  # exposed by a proof file (def)
 Proof.go_etcd_io.bbolt.Open Perennial.EtcdGrove.bbolt.tacticOpen_exit_j__  # exposed by a proof file (def)

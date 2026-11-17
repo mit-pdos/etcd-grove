@@ -74,9 +74,6 @@ theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt 
     bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
     bbolt.boltState γ q D = bbolt.boltState γ✝ q✝ D✝
 
-theorem bbolt.openedF.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (i i✝ : Fs.Ino)
-    (e_i : i = i✝) (D D✝ : bbolt.Data) (e_D : D = D✝) : bbolt.openedF i D = bbolt.openedF i✝ D✝
-
 syntax bbolt.tacticOpt_rdt_
 
 theorem bbolt.wp_logger_ne_discard_open (lg : GoInterface) (hty : bbolt.logPtrTyped lg) : ⊢ ∀ Φ,

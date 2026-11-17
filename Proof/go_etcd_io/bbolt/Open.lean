@@ -1151,7 +1151,7 @@ private theorem openFileDb_tree [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   iapply HΦ
   iexists V'
   isplitl [Ht]
-  · simp only []; iframe Ht; ipureintro; exact hV'
+  · dsimp only; iframe Ht; ipureintro; exact hV'
   iframe Hr Herrok
 
 set_option maxHeartbeats 4000000 in

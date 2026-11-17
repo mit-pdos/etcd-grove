@@ -36,6 +36,12 @@ def openedF (i : Ino) (D : Data) : IProp GF :=
     ⌜m.maps = ∅ ∧ xs.length = m.size ∧ m.size < 2 ^ 62 ∧
       ((m.size = 0 ∧ D = ∅) ∨ ∃ C, openOK C D m xs)⌝)
 
+/-- `openedF` of equal arguments (made here so that `simp`'s congruence lemma for `openedF`, which
+`Open`'s proof needs, is this module's, not a spec's proof file's: `etc/api/bbolt-layout.txt`). -/
+theorem openedF_congr {i i' : Ino} {D D' : Data} (hi : i = i') (hD : D = D') :
+    openedF (GF := GF) i D = openedF i' D' := by
+  simp only [hi, hD]
+
 /-- **An existing file holding `D`, opened** (`fileHolds`, its size bound included). -/
 theorem fileHolds_opened (i : Ino) (D : Data) :
     fileHoldsDef (GF := GF) i D ⊢ openedF i D := by

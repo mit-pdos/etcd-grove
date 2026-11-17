@@ -2,10 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.fileHolds.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (i i✝ :
-    Fs.Ino) (e_i : i = i✝) (D D✝ : bbolt.Data) (e_D : D = D✝) : bbolt.fileHolds i D =
-    bbolt.fileHolds i✝ D✝
-
 theorem bbolt.Open_shared.wp_proof [go.BasicIntoValInj] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
     Fs.fsExt] [sync.Assumptions] (hCS : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 :
     HasExt Fs.fsExt], os.OpenFile.specCreateS) (hName : os.File.Name.spec) (hFlock : ∀ [inst :
@@ -58,10 +54,3 @@ theorem bbolt.Open_shared.wp_proof [go.BasicIntoValInj] [ExtSemantics Fs.fsExt] 
                 ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal (Fs.child d b))) (intoVal mode))
                   (intoVal opts))
                 {{ Φ }}
-
-theorem bbolt.nameHolds.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (h h✝ :
-    Fs.NamesH) (e_h : h = h✝) (b b✝ : GoString) (e_b : b = b✝) (D D✝ : bbolt.Data) (e_D : D = D✝) :
-    bbolt.nameHolds h b D = bbolt.nameHolds h✝ b✝ D✝
-
-theorem crMeta.congr_simp [ExtSemantics Fs.fsExt] [HasExt Fs.fsExt] (a✝ a✝¹ : Option (Nat × Nat ×
-    Fs.Ino)) : a✝ = a✝¹ → crMeta a✝ = crMeta a✝¹
