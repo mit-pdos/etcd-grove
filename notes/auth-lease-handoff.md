@@ -1,6 +1,22 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: step 6's rqShape/rqOk part done; the window's delivery to the applier next)
+## START HERE (S4, 2026-11-17, item 7b: STOPPED before step 6's applier work: a gap in step 7's design)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last
+  two entries: the window design APPROVED by etcd-grove-03; "the approved design leaves step 7 unprovable after a
+  commit", the stop, with the proposed fix F1-F4).
+- **Done:** steps 1-5, 6a, 6b (commits in the previous START HERE below). No Lean change since `00b09c1360`.
+- **Stop:** between the entry's `End` (the store's committed log, hence `kvLogLb` floors, advance) and the next window
+  push, `F` may include the entry, so the window's start revision is below `F.length - 1`; nothing records that the
+  lessor reached `T` before the commit. Fix proposed (questions.md): pairwise window stability + `win_wit` (lessor),
+  the commit update takes a lessor witness (txn `putAU`/`delAU`/`txnBeginAU`, `revokeClause`/`Revoke.spec`), kvsN's
+  tie a monotone event list (push / commit) recorded by `envAus`'s end builder.
+- **Next after the decision:** one batch: F1 (InvLessor/LessorHist/LessorLemmas), F2-F3 (txn, lease Revoke), the
+  applier at `w` (step 6 as designed below) + F4 (envAus, KVStoreCore tie, Chain W-forms), the server's push per entry;
+  check with lean-check, then ONE leaves build (InvLessor ⇒ ~5100 modules). Then step 7, 8, the c6b merge.
+- **Pitfalls / build:** as in the previous START HERE.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: step 6's rqShape/rqOk part done; the window's delivery to the applier next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: "Item 7b step 6
   decision", "rqShape's conjunct: forms"); ledger 2026-11-16 7b entry ("Step 3" .. "Step 6, the permits").
