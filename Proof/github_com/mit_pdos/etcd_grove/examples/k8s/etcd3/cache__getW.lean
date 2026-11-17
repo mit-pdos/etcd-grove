@@ -1,0 +1,58 @@
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache__getW
+
+@[expose] public section
+
+set_option linter.iris.style.nameCheck false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace k8s_etcd3
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item mstore mcfg state)
+
+section proof
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
+theorem cache.getW.wp_proof :
+    cache.getW.spec (GF := GF) (hG := hG) := by
+  intro c tbl id
+  wp_start as #Hc
+  ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  iunfold isCache at Hc
+  icases Hc with ⟨#Hc, -, -⟩
+  (try wp_auto)
+  wp_apply (sync.Mutex.wp_Lock _ (cacheInv c tbl)) $$ [] as ⟨Hlocked, HR⟩
+  · iframe #
+  iunfold cacheInv at HR
+  icases HR with ⟨%mp, %m, %mpw, %mw, Hobjs, Hm, #Hall, Hw, Hwm⟩
+  (try wp_auto)
+  wp_apply wp_map_lookup2 $$ Hwm as Hwm
+  (try wp_auto)
+  wp_apply (sync.Mutex.wp_Unlock _ (cacheInv c tbl)) $$ [Hlocked Hobjs Hm Hw Hwm]
+  · iframe #
+    iframe Hlocked
+    inext
+    iunfold cacheInv
+    iexists mp, m, mpw, mw
+    iframe
+    iframe #
+  (try wp_auto)
+  iapply HΦ
+  itrivial
+
+end proof
+
+end k8s_etcd3
+end EtcdGrove
+end Perennial

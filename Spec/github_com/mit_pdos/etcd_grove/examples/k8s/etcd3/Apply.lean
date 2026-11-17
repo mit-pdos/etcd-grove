@@ -18,11 +18,16 @@ Premises: the store `s` (`isStore sp c`) holds the driver's objects (`c.S = driv
 the driver's prefixes (`"/registry"`, `"/objs"`), decoder and versioner, the packages' facts, and
 `errors.As`'s target (the client's context lemma). Stage 7e-4: the thread bound and the goroutine's `threadTok` (lent by
 `lintest`) `GetList` needs, and the feature gate's `EtcdRangeStream` off (`rangeStreamOff`).
+Stage E of 7f-6: a watcher's input (kind 5) runs `runWatch`, whose events the model checks
+(`kSpec`'s observation) against the configuration at the commit; it needs the instance's invariant
+at the cluster's KV names `γk` (whose read updates the watch fires), the store's watcher at them
+(`storeWatchOk`, the driver's watch spec `driverW`) and the `WatchList` gate on (`watchListOn`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Calls
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Contract
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WRun
 
 @[expose] public section
 
@@ -49,7 +54,7 @@ abbrev Apply.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
-    (γ : KNames) (sp tbl : Loc) (c : StoreCfg GF DObj) (g0 : HSt),
+    (γ : KNames) (sp tbl : Loc) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNames),
   c.S = driverSpec → c.pathPrefix = go!"/registry" → c.resourcePrefix = go!"/objs" →
   c.di = decoderI → c.vi = versionerI →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty → storageErrTyOk →
@@ -58,6 +63,7 @@ abbrev Apply.spec : Prop :=
     isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 -∗
     k8s.isStore sp c -∗ ([∗list] sv ∈ c.ms, kInv γ c g0 sv.γr.kv) -∗ ⌜c.ms ≠ []⌝ -∗
     isCache c tbl -∗ rangeStreamOff -∗
+    kInv γ c g0 γk -∗ storeWatchOk sp c driverW γk -∗ watchListOn -∗
     iprop(∀ i : GoInterface,
       {{ kInOk c i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>>
         (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply))

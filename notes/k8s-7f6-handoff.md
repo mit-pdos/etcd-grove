@@ -1,6 +1,36 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-17, sixth 7f-6 agent): stage E, at checkpoint E-1
+## START HERE (2026-11-17, seventh 7f-6 agent): stage E, past checkpoint E-1 (approved)
+
+- **Branch:** `k8s-7f6`. Go target `k8s-7f6-target` `c6bfeb69e8`. Plan `notes/k8s-7f6e-plan.md`;
+  decisions in worktree `questions.md` (E-1 APPROVED by etcd-grove-03).
+- **Done, built:** §8(ii) `startCluster` with `kvWatch_served`, `clusterUp` gains `ws γrc m0`, the
+  members' `watchRegAt` at the bridges + read views, `memberOf`, `V = watchEnvL m0 (wmemsOf svs ws)
+  γrc wpfx` (b27d8d93db). `startCluster.wp_proof` takes the two mvcc laws (`Hp Hr`): link them.
+- **Done, built (this commit):** step 1 (`PendSpec.isObs/obsOk` with defaults, `PStep.obs`,
+  `pSeq_obs`; `kSpec` in `KWatch.lean` with the watch observation; `ioOk`; `stepL_sound/complete`;
+  `Bounded` + `rv ≤ hist.length`; `Model.spec` premise on `g0`); step 2 (`GenInW`, `GenInA`, `kInOk`;
+  `isCache` with `wobjs`, read-only fields, `done` invariant; `getW/putW`, `newWCache`;
+  `genWatchFrom`/`genWatch`; `Gen.wp_proof`); step 3 (`KNames.ch/b0`, `revOwn` with the mono list +
+  `KHistI`); step 4 (`WatchQ.lean`); step 5 pieces (`kOk_obs`, `watchOkL_errs`, `kWEvRel` +
+  `zObj`, `watch_commit`, `WatchCommit.lean`); `Apply.spec` gains `γk`, `kInv γ c g0 γk`,
+  `storeWatchOk sp c driverW γk`, `watchListOn`; `kOk_ok/errR`, `read_err_commit` take `Kind ≠ 5`.
+- **Next, in order:** `Apply.wp_proof` (watch branch: `runWatch` with `watchQ`, then
+  `watch_commit` with `watchOkL_stream_commit`/`watchOkL_errs`; unary branches + `done.Add(1)`);
+  `Check` over `RunLin2`; step 7(iii)-(v); 8 `newStore`; 9 `Main*`. **E-2 is a hard stop.**
+- **Pitfalls:** build slots are often both busy (a full c6b build retries): queue builds in the
+  background and write ahead; lean-check spins at "elaborating line 1" until the imports are built
+  by `lake` (then it works, ~1 min per file). `subst` on `g' = g` eliminates `g`: `subst g'`.
+  `simp` normalizes `W64 5` to `5#64`: use `decide_eq_true h`/`decide_eq_false h`. `wp_join`:
+  bind without `as`, solve cases with `jcases` (genWatchFrom.lean: solves the goals it can fully, the
+  continuation is a wand and is skipped), then `iintro`; a case at its join value is `True ∗ R`
+  (`jfin`); `wp_auto` drops dead locals (don't pass them to a later join); persist read-only locals.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`.
+
+## History
+
+### 2026-11-17, sixth 7f-6 agent: stage E, at checkpoint E-1
 
 - **Branch:** `k8s-7f6`. Go target `k8s-7f6-target` `c6bfeb69e8` (kept in step). Plan:
   `notes/k8s-7f6e-plan.md` (GO by etcd-grove-03, decisions in `questions.md`); E-1 = its §8.
@@ -19,8 +49,6 @@
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
   Go tests: `cd examples/k8s/etcd3; GOWORK=off go test -run ...` under `systemd-run --scope -q -p
   MemoryMax=32G`; `watchruns.sh` with `BIN`/`OUT` under `/shared/tmp/k8s7f6e`.
-
-## History
 
 ### 2026-11-17, sixth 7f-6 agent: stage E planned (fbe30a9a73)
 

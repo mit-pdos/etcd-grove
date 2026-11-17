@@ -40,7 +40,7 @@ theorem toWEvent.wp_proof : toWEvent.spec (GF := GF) (hG := hG) := by
     wp_if_destruct
     · iapply HΦ
       ipureintro
-      refine ⟨?_, fun h => absurd h4 h⟩
+      refine ⟨?_, fun h => absurd h4 h, fun _ => rfl⟩
       simp [wevOf, h4]
     · exact absurd Hst Hif
   · simp only [h4, ↓reduceIte]
@@ -71,7 +71,7 @@ theorem toWEvent.wp_proof : toWEvent.spec (GF := GF) (hG := hG) := by
       wp_auto
       iapply HΦ
       ipureintro
-      refine ⟨by simp [wevOf, ht], fun _ => ?_⟩
+      refine ⟨by simp [wevOf, ht], fun _ => ?_, fun h => by omega⟩
       simp [wevOf, kToWEv, ht]
 
 end proof
