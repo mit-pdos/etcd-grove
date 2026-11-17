@@ -3,7 +3,7 @@
 package semantics
 
 // Measurement behind the proposed scoping of the Rename step's stuck clause
-// (WAL link L4, notes/wal-link-l4-fsext.md): a rename of a directory in one
+// (WAL link L4, notes/wal-link-l4-fsext.md; proposed, not yet in Impl.lean): a rename of a directory in one
 // root's tree, racing path calls whose paths are in another root's tree, never
 // changes what those calls see. Each worker of root B runs a fixed sequence of
 // path calls on its own subdirectory (deep paths, file and directory renames,
@@ -17,7 +17,10 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
@@ -177,4 +180,69 @@ func TestDirRenameScopedToRoot(t *testing.T) {
 	if renames.Load() < 100 {
 		t.Fatalf("too few renames in root A (%d) to have raced root B", renames.Load())
 	}
+}
+
+// TestCrossRootRenameExcluded (the excluded case: meta_rename_cross_root.go;
+// found by the independent attack on the L4 text, 2026-11-17): a rename whose
+// source is in root C and whose target is in root A walks the target's path
+// in A, so it races A's directory renames as a call of A would. Root A moves
+// p away and moves q into it (A/p/<chain>/q never exists in any tree of the
+// log); C's rename(C/f, A/p/<chain>/q/g) still succeeds sometimes, with g
+// found at A/z/<chain>/q/g: an outcome no single tree gives. The proposed rule
+// therefore makes Rename stuck unless its source and target are in one root's
+// tree (SameRoot s t). The test reports the count; it fails only if the setup
+// fails. The attack measured 296 of 20000 at depth 1900 on ext4.
+// L4_CROSS_ITERS (default 2000) and L4_CROSS_DEPTH (default 1900) tune it.
+func TestCrossRootRenameExcluded(t *testing.T) {
+	base := extDir(t)
+	a, c := base+"/A", base+"/C"
+	n, iters := 1900, 2000
+	if v, err := strconv.Atoi(os.Getenv("L4_CROSS_DEPTH")); err == nil {
+		n = v
+	}
+	if v, err := strconv.Atoi(os.Getenv("L4_CROSS_ITERS")); err == nil {
+		iters = v
+	}
+	chain := strings.Repeat("/s", n)
+	must := func(err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	must(os.MkdirAll(a+"/p"+chain, 0o755))
+	must(os.MkdirAll(a+"/w/q", 0o755))
+	must(os.MkdirAll(c, 0o755))
+	f, err := os.Create(c + "/f")
+	must(err)
+	f.Close()
+	hits := 0
+	for i := 0; i < iters; i++ {
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		var r2 error
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			r2 = syscall.Rename(c+"/f", a+"/p"+chain+"/q/g")
+		}()
+		close(start)
+		for j, d := 0, rand.Intn(4000); j < d; j++ {
+		}
+		must(syscall.Rename(a+"/p", a+"/z"))
+		must(syscall.Rename(a+"/w/q", a+"/z"+chain+"/q"))
+		wg.Wait()
+		if r2 == nil {
+			hits++
+			if _, err := os.Stat(a + "/z" + chain + "/q/g"); err != nil {
+				t.Fatalf("success but g not at A/z/.../q/g: %v", err)
+			}
+			must(syscall.Rename(a+"/z"+chain+"/q/g", c+"/f"))
+		}
+		must(syscall.Rename(a+"/z"+chain+"/q", a+"/w/q"))
+		must(syscall.Rename(a+"/z", a+"/p"))
+	}
+	t.Logf("cross-root rename racing root A's directory renames: %d of %d succeeded at a path no tree had (depth %d)",
+		hits, iters, n)
 }

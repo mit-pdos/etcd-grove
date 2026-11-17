@@ -54,6 +54,8 @@
 //	meta_dir_fds.go               directory fds by inode             OsDirFd, DirSync, TreeWf
 //	meta_overlapping_calls.go     overlapping metadata calls         CallBegin, LogEntry.start, Follows
 //	meta_dir_rename_stuck.go      directory rename vs path walks     Rename (stuck clause), CallBegin
+//	meta_rename_cross_root.go     a rename across roots (proposed,   SameRoot, Rename (proposed, L4)
+//	                              pending review)
 //	meta_file_fsync.go            a file fsync commits no name       Fsync, DirSync
 //	meta_wal_create.go            wal.Create's directory swap        DirSync, Follows
 //	meta_readdir.go               readdir racing changes             OsDirRead, DirReadNext

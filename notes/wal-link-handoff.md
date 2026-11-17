@@ -10,6 +10,8 @@
   records it, each call step names it, `Rename`'s directory stuck clause scoped to the source's and target's roots
   (`OsState.SameRoot`), 11 `os.lean` sites; Go evidence `examples/osfs/semantics/meta_rename_scoped_test.go`
   (passes on this machine's ext4; no loop devices here, so not on a `c_mkfs` image). Not applied to Impl/os.lean.
+- **Revision 2 (after the attack's BLOCKER, fix (b) `SameRoot s t`):** the note's "Revision 2"; excluded case
+  `TestCrossRootRenameExcluded` (13/2000 here), `meta_rename_cross_root.go` + `doc.go`; configuration-C run open.
 - **Next, in order (after the verdict):** apply L4's text (+ `meta_dir_rename_stuck.go`, `doc.go`); the fs library's
   per-root `osCallPerm r q`; layer 1 per-area `WalGS`. L3: planned form, the server's WAL vocabulary over an explicit
   handle record (`w`, `dir`, `WalGS`, `WalShN`, the fs instances as fields), so no server module or `NewServer.spec`
