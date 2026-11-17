@@ -1,6 +1,6 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: steps 1-4 done, step 5's pure lemma drafted; step 6 (applier) next)
+## START HERE (S4, 2026-11-17, item 7b: steps 1-5 done; step 6 (applier) next, open point below)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: step 3 forms
   reviewed by etcd-grove-03; step 4 forms); ledger 2026-11-16 7b entry ("Step 3", "Step 4").
@@ -8,7 +8,7 @@
   `txn.WinOp`/`WinOps` (as `OpsOk`), `delSelOf`, `putItemsOf` (`ApiVocab`); `put`/`deleteRange`/`executeTxn`/`txn`/
   `Txn.specSole`/`Put`/`DeleteRange` and `checkLease`/`checkPut`/`checkTxn` at `∀ w` (old → new in the ledger);
   `txn_runTxn` and the applier's `applierV3backend.{Put,DeleteRange,Txn}` call them at `none`.
-- **Step 5 (`txn/WinLemmas.lean`, new; see its commit):** `winOps_of_nodup`,
+- **Step 5 done (`txn/WinLemmas.lean`, built):** `winOps_of_nodup`,
   `winOps_txn_of_nodup`: a run whose changes have distinct keys is within the window whose target is the items after
   it. **Open for step 6:** the applier must know the entry's keys are distinct (`NoDupKeysPerRev` of the revision).
   The request invariant (`InvRequest.lean:1158`, `ReqOn.lean:1347`) carries `txnPlain(L) ∧ txnNoZeroEnd ∧ txnShape`,
