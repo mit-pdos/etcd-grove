@@ -743,6 +743,18 @@ instance rbrHalves_timeless (γ : BNames) (P : BParams) (q : Qp) (rv : RView) :
   unfold rbrHalves
   exact BigSepM.bigSepM_timeless fun {_} {_} _ => inferInstance
 
+/-- **A client's share `q` of a claimed tracked bucket's readers' contents** (A1 of `auth-schema-srv`,
+D3/D4, 2026-11-17): every reader holding `readTx`'s read lock sees `v` in bucket `n` (`rtHeldF_rbRd`). A
+client gets the half of an element by claiming the bucket (A1.7) and keeps it where its readers can open it;
+its other half is `readTx.mu`'s (`rbrHalves`), so it changes only with the client's, through `Unlock`'s
+accessor (A1.5). -/
+def rbRd (γ : BNames) (n : GoString) (q : Qp) (v : BktData) : IProp GF :=
+  iprop(⌜γ.rbD.lookup n ≠ none⌝ ∗ ghostMapElem γ.rbr n (DFrac.own q) v)
+
+instance rbRd_timeless (γ : BNames) (n : GoString) (q : Qp) (v : BktData) :
+    Timeless (rbRd (GF := GF) γ n q v) := by
+  unfold rbRd; infer_instance
+
 /-- The batch lock's side of one tracked bucket's readers' element, in the state `st` (A1, D3):
 unclaimed, the claim element whole at `none` and the other half of the readers' element at the
 batch lock's readers' state `(C, R)`; claimed, half the claim element (the claimed part has the

@@ -1025,6 +1025,73 @@ theorem rtHeldF_fkRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p :
     ipureintro; exact Hf
   ipureintro; exact Hrtx
 
+/-- `readTx.mu`'s share of a tracked bucket's readers' contents agrees with any other share of it. -/
+theorem rbrHalves_agree (γ : BNames) (P : BParams) (q : Qp) (rv : RView) (n : GoString) (q' : Qp)
+    (v : BktData) (hn : γ.rbD.lookup n ≠ none) :
+    rbrHalves (GF := GF) γ P q rv ∗ ghostMapElem γ.rbr n (DFrac.own q') v ⊢
+      rbrHalves γ P q rv ∗ ghostMapElem γ.rbr n (DFrac.own q') v ∗ ⌜rvBkt P rv n = v⌝ := by
+  obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp hn
+  unfold rbrHalves
+  iintro ⟨Hs, Hc⟩
+  icases (BigSepM.bigSepM_lookup_acc
+    (Φ := fun k (_ : Unit) => ghostMapElem (GF := GF) γ.rbr k (DFrac.own q.half) (rvBkt P rv k))
+    (m := γ.rbD) (i := n) (x := u) hu).1 $$ Hs with ⟨He, Hs⟩
+  icombine He Hc gives %Hag
+  ihave Hs := Hs $$ He
+  iframe Hs Hc
+  ipureintro; exact Hag.2
+
+/-- **The readers' law** (A1 of `auth-schema-srv`, D4, 2026-11-17): a reader holding `readTx`'s read
+lock at the readers' state `rv` and a share of a claimed bucket's readers' contents `v`: the reader sees
+`v` there (`rvBkt`: every key's value, absent keys absent). (Not for `ConcurrentReadTx`'s copy, which a
+commit can leave stale: `nonissues/etcd-backend-read-buffer-cache-stale-after-commit.md`.) -/
+theorem rtHeldF_rbRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) (p : Qp) (n : GoString)
+    (q : Qp) (v : BktData) :
+    rtHeldF (GF := GF) γ P b rtx rv p ∗ rbRd γ n q v ⊢
+      rtHeldF γ P b rtx rv p ∗ rbRd γ n q v ∗ ⌜rvBkt P rv n = v⌝ := by
+  unfold rtHeldF rtResAt rtRest rtCore clnPart rbRd
+  iintro ⟨⟨%rt, %rd, %H, %L, #Hrt, Hrl, ⟨%m, %Pb, %cm, Hrb, %Hok, Hcm, Hview, Hrd, Hrvs,
+    Hcur, ⟨Hcln, %Hcl, Hrbr⟩, Hhist, Hrtxf, Hwgf, %Hf, #Hha, #Hcv, Hpo, #Hauth, Hiv, #Hfk⟩, %Hrtx, Hcr⟩,
+    %Hn, Hc⟩
+  icases rbrHalves_agree γ P sync.rfrac rv n q v Hn $$ [$Hrbr $Hc] with ⟨Hrbr, Hc, %Heq⟩
+  isplitl [Hrt Hrl Hrb Hcm Hview Hrd Hrvs Hcur Hcln Hrbr Hhist Hrtxf Hwgf Hpo Hiv Hcr]
+  · iexists rt, rd, H, L
+    iframe Hrt Hrl Hcr
+    isplitl
+    · iexists m, Pb, cm
+      iframe; iframe #
+      ipureintro; exact ⟨Hok, Hcl, Hf⟩
+    ipureintro; exact Hrtx
+  iframe Hc
+  isplitr
+  · ipureintro; exact Hn
+  ipureintro; exact Heq
+
+/-- **A share of a claimed bucket's readers' contents splits.** -/
+theorem rbRd_frac (γ : BNames) (n : GoString) (q1 q2 : Qp) (v : BktData) :
+    rbRd (GF := GF) γ n (q1 + q2) v ⊣⊢ iprop(rbRd γ n q1 v ∗ rbRd γ n q2 v) := by
+  unfold rbRd
+  constructor
+  · iintro ⟨%Hn, H⟩
+    icases ((ghostMapElem_fractional n γ.rbr v).fractional q1 q2).1 $$ H with ⟨H1, H2⟩
+    isplitl [H1]
+    · iframe H1; ipureintro; exact Hn
+    · iframe H2; ipureintro; exact Hn
+  · iintro ⟨⟨%Hn, H1⟩, ⟨-, H2⟩⟩
+    iframe
+    isplitr
+    · ipureintro; exact Hn
+    iapply ((ghostMapElem_fractional n γ.rbr v).fractional q1 q2).2
+    iframe
+
+/-- Two shares of a claimed bucket's readers' contents agree. -/
+theorem rbRd_agree (γ : BNames) (n : GoString) (q1 q2 : Qp) (v1 v2 : BktData) :
+    rbRd (GF := GF) γ n q1 v1 ∗ rbRd γ n q2 v2 ⊢ ⌜v1 = v2⌝ := by
+  unfold rbRd
+  iintro ⟨⟨-, H1⟩, ⟨-, H2⟩⟩
+  icombine H1 H2 gives %Hag
+  ipureintro; exact Hag.2
+
 /-- The same of `rtHeld`. -/
 theorem rtHeld_fkRd (γ : BNames) (P : BParams) (b rtx : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b rtx rv ⊢ rtHeld γ P b rtx rv ∗ fkRd γ P rv :=

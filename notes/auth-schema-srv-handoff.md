@@ -1,6 +1,6 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A1.2b done; A1.3 next)
+## START HERE (2026-11-17, A1.2b and A1.3 done; A1.4 next, after the coordinator's answer on the `cw` gap)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 9702d5707e merged. Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere. A1 Scope `notes/auth-schema-srv-a1-scope.md`; decisions
@@ -12,8 +12,9 @@
   the update wand; `batchGhost_step*` take the kinds of the other buckets (`hK`). Built: backend `Link`,
   `BackendBridge`, `OnPreCommitUnsafe`, `CindexBackend`, `lessor.initAndRecover`, `MustUnsafeGetAllLeases`. No full
   build yet; interfaces (`etc/gen-interface.py etc/api/backend.txt`) not regenerated (do at A1.9).
-- Next, in order: A1.3 `rbRd γ n q v := ghostMapElem γ.rbr n (own q) v` + the readers' law (`rtHeldF … ∗ rbRd ⊢
-  ⌜rvBkt P rv n = v⌝`, from `clnPart`'s halves; `rtHeldF` in `ReadLemmas`); A1.4 claimed parts `rbPartR`/`rbOwnInR`
+- A1.3 (next commit): `rbRd γ n q v` (`InvBackend`: `⌜n ∈ rbD⌝ ∗` half-element of `γ.rbr`), in `ReadLemmas`:
+  `rbrHalves_agree`, **`rtHeldF_rbRd`** (the readers' law, D4), `rbRd_frac`, `rbRd_agree`. Built `ReadLemmas`.
+- Next, in order: A1.4 claimed parts `rbPartR`/`rbOwnInR`
   (sealed: half of `γ.rbc`'s element `some (r n, F)`), `BSess.cw` (A1.2b gap), writes through either part; A1.5
   `Unlock` accessor (wand into `rtRes_wb_close*`/`rtRes_cm_close` built from `trkSide` + client halves), STOP with
   the soundness argument (decision 5).
