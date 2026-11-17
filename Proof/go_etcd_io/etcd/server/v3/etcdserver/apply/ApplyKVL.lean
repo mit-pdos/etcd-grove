@@ -122,7 +122,8 @@ theorem apply.uberApplier.Apply.wp_kvL
   wp_start as ⟨#Hu, #Hw, Hown, Hkv, #Hcp, %Hok, %Hwin, %Hskip, #HF, Htt, HFS, HSp, HRO, HLt, Hrv, #Hbase, HL, %Hx⟩
   obtain ⟨Hch, Hkk, Hsh⟩ := Hx
   iunfold apply.uberOwn at Hown
-  icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
+  icases Hown with ⟨%a, Ha, #HsW, %HcE, #Hsh⟩
+  ihave #Hs := apply.applierSpecW_at _ _ _ $$ HsW
   ihave #Hsh' : apply.uberShape E p (apply.baseChain E.authOn) a $$ []
   · rw [← Hch]; iexact Hsh
   ihave #HKV : apply.applierKVL E x.chain ci a L $$ []
@@ -184,7 +185,7 @@ theorem apply.uberApplier.Apply.wp_kvL
       apply.revokeRestA, apply.revokeAnsRA]
     iframe Hkv HPP Hres Htr HRO Hcls Hadm HL HLt Hra
     isplitl [Ha']
-    · iunfold apply.uberOwn; iexists _; iframe Ha' Hs'' Hsh
+    · iunfold apply.uberOwn; iexists _; iframe Ha' HsW Hsh
       ipureintro; exact HcE
     isplitr
     · ipureintro
@@ -213,7 +214,7 @@ theorem apply.uberApplier.Apply.wp_kvL
     iexists x, .rejected
     iframe Hkv HRO HL
     isplitl [Ha]
-    · iunfold apply.uberOwn; iexists _; iframe Ha Hs Hsh; ipureintro; exact HcE
+    · iunfold apply.uberOwn; iexists _; iframe Ha HsW Hsh; ipureintro; exact HcE
     isplitl [HPre]
     · iapply apply.cPost_of_pre
       iexact HPre

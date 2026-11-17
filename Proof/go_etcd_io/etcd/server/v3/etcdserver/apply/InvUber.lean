@@ -205,6 +205,39 @@ instance applyAuthRes_persistent (M : auth.AuthMode) (c : Chain) (rq : IRRModel)
 
 /-! ## The uber-applier in the heap -/
 
+/-- **The applier `a` of the chain `c` at every window** (item 7b, 2026-11-17; persistent):
+`applierSpec` at `E` with any lease window `w` in place of `E.win`. The uber-applier's facts
+(`baseAuth`, `uberIs`, `uberOwn`) hold this, so that the server's apply thread can move its
+applier state between windows (F4: one window per entry) without re-deriving them: they read
+`E.win` nowhere else. `applierSpecW_at` gives `applierSpec E c a` back. -/
+def applierSpecW (E : AEnv GF) (c : Chain) (a : GoInterface) : IProp GF :=
+  iprop(□ ∀ w : Option lease.LWin, applierSpec { E with win := w } c a)
+
+instance applierSpecW_persistent (E : AEnv GF) (c : Chain) (a : GoInterface) :
+    Persistent (applierSpecW E c a) := by
+  unfold applierSpecW; infer_instance
+
+theorem applierSpecW_at (E : AEnv GF) (c : Chain) (a : GoInterface) :
+    applierSpecW E c a ⊢ applierSpec E c a := by
+  iintro #H
+  iunfold applierSpecW at H
+  ihave H' := H $$ %E.win
+  iexact H'
+
+/-- `applierSpecW` does not read `E.win`. -/
+theorem applierSpecW_win (E : AEnv GF) (w : Option lease.LWin) (c : Chain) (a : GoInterface) :
+    applierSpecW { E with win := w } c a ⊣⊢ applierSpecW E c a := .rfl
+
+/-- `applierSpec` at equal chains (to move between `E.authOn` and `{ E with win := w }.authOn`, which the proof
+mode does not unify). -/
+theorem applierSpec_congr {E : AEnv GF} {c c' : Chain} (a : GoInterface) (h : c = c') :
+    applierSpec E c a ⊢ applierSpec E c' a := by
+  subst h; exact .rfl
+
+/-- `backendOptsOk` does not read `E.win`. -/
+theorem backendOptsOk_win (E : AEnv GF) (w : Option lease.LWin) (opts : ApplierOptions) :
+    backendOptsOk E opts ⊢ backendOptsOk { E with win := w } opts := .rfl
+
 /-- **The base applier `a`'s auth layer** (the auth plan's E3k, 2026-10-27; persistent): an
 `*authApplierV3` `pa` (`authIs`) over an applier of the quota-over-backend chain, its `as` and
 `lessor` fields the options' auth store and lessor: what its KV triples at the latest state
@@ -212,7 +245,7 @@ instance applyAuthRes_persistent (M : auth.AuthMode) (c : Chain) (rq : IRRModel)
 def baseAuth (E : AEnv GF) (opts : ApplierOptions) (a : GoInterface) : IProp GF :=
   iprop(∃ (pa : Loc) (inner : GoInterface),
     ⌜a = interface.mkOk (go.GoType.PointerType authApplierV3.ty) #pa⌝ ∗ authIs E pa inner ∗
-    applierSpec E (.quota .backend) inner ∗
+    applierSpecW E (.quota .backend) inner ∗
     structFieldRef authApplierV3 go!"as" pa ↦□ opts.AuthStore' ∗
     structFieldRef authApplierV3 go!"lessor" pa ↦□ opts.Lessor')
 
@@ -228,7 +261,7 @@ def uberIs (E : AEnv GF) (p : Loc) (opts : ApplierOptions) : IProp GF :=
     structFieldRef uberApplier go!"alarmStore" p ↦□ opts.AlarmStore' ∗
     structFieldRef uberApplier go!"warningApplyDuration" p ↦□ opts.WarningApplyDuration' ∗
     ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
-      applierSpec E (baseChain E.authOn) base ∗
+      applierSpecW E (baseChain E.authOn) base ∗
       -- (the auth plan's E2m) its shape, for its admin triples (`applierAdmin_baseX`)
       baseShape opts base ∗
       -- (the auth plan's E3k) its auth layer, for its KV triples at the latest state
@@ -254,7 +287,7 @@ instance uberShape_persistent (E : AEnv GF) (p : Loc) (c : Chain) (a : GoInterfa
 /-- **The uber-applier `p`'s current applier**, the apply thread's: its `applyV3` field, an
 applier of the chain `c`, with its shape (`uberShape`). -/
 def uberOwn (E : AEnv GF) (p : Loc) (c : Chain) : IProp GF :=
-  iprop(∃ a : GoInterface, structFieldRef uberApplier go!"applyV3" p ↦ a ∗ applierSpec E c a ∗
+  iprop(∃ a : GoInterface, structFieldRef uberApplier go!"applyV3" p ↦ a ∗ applierSpecW E c a ∗
     ⌜c.authOn = E.authOn⌝ ∗ uberShape E p c a)
 
 /-- **The `UberApplier` `ua`** (`apply.Apply`'s, the server's `uberApply`): an `*uberApplier`
