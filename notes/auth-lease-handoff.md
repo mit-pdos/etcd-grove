@@ -1,6 +1,22 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4: server wiring IN PROGRESS, WIP commits; applyEntryNormal and NewServer(R) left)
+## START HERE (S4, 2026-11-17, item 7b F4: STOPPED at a refutation in applyEntryNormal; waiting for etcd-grove-03)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `EtcdServer__applyEntryNormal`,
+  `NewServer`, `NewServerR` and importers still do not compile). Base of the coming leaves build: `00b09c1360`.
+- **Decided (questions.md):** the F4 wiring forms ACCEPTED; `Fr := (clusterNoSnap … → E.lg = false)` kept, NewServer
+  frees the window after `tie_alloc` at `E.lg = false`, step 7 proves the lm-none model lemma (STOP if false/trusted).
+- **Done this session:** `ApplyCmpArm.backendStep_kvEntryM` (lean-checked `--fast`): in the auth-off arm every backend
+  outcome's log is `kvEntry …` (the off `v3 = true` arm's `winTgt` with `Lt := kvEntry …`, `□ Nx` by `kvAppliedL_nx'`).
+- **OPEN (questions.md, last entry):** the window premise `winTgt` is unprovable in the auth-on KV/revocation arms when
+  the auth layer refuses, and in the replay (`v3 = false`) arms. Recommended fix (A): gate the premise by `v3` (plain
+  path) and by the verdict (latest path). Do nothing on applyEntryNormal's arms until decided.
+- **Next once decided:** per (A): apply specs + existence lemma; then the arms (off `v3`: `applyKV_push` with
+  `Lt := kvEntry c0 x.chain (kvLeases A) x.log m` before `hA`, winTgt from `backendStep_kvEntryM` with `HkA.2.symm`,
+  `Hnl`, `kvTableOf_ne0`; repack `srvApplyKVW`); then the previous START HERE's (2), (3), (6)-(8).
+- **Pitfalls:** as in the previous START HERE.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4: server wiring IN PROGRESS, WIP commits; applyEntryNormal and NewServer(R) left)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `EtcdServer__applyEntryNormal`,
   `NewServer`, `NewServerR` and what imports them do not compile). Base of the coming leaves build: `00b09c1360`.
