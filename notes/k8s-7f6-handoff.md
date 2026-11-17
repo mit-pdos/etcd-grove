@@ -1,6 +1,27 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-16, fifth 7f-6 agent): stage D done, at its land stop
+## START HERE (2026-11-17, sixth 7f-6 agent): stage E planned, at the plan's stop
+
+- **Branch:** `k8s-7f6` at lean `1612a1143a` (stage D landed) + this plan commit. Go target
+  `k8s-7f6-target` `88a1646324` (worktree `/shared/tmp/k8s7f6d/target`). Decisions: worktree
+  `questions.md` (untracked).
+- **Done:** the stage E plan, `notes/k8s-7f6e-plan.md` (E with F: model observation, inputs, the
+  invariant's mono list and `KHistW`, the watch's `Q`, `Apply`'s commit, `Check`, the `k`-member watch
+  environment, `newStore`, `Main*`, link). No Lean or Go edited.
+- **Next, after the coordinator's go:** the plan's §2 Go (G1 clamp, G2 `wobjs`; port the target's
+  `k8setcd3.go`), then §3 steps 1-10 in order; checkpoints E-1 (watch registration shape) and E-2
+  (closed statements, hard stop before linking), then the land stop.
+- **Open (plan §6):** G1/G2; E+F one land; generic `PendSpec` observation; the watch environment in
+  7f-6 (revised estimate 3400-4600 lines); drop `done ≤ total`.
+- **Pitfalls:** see the fifth agent's below (lean-check spinning at line 1 = an import that does not
+  build; `wp_if_destruct`/`wp_apply` already run `wp_auto`; Go constants need `simp only`).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
+  lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`.
+
+## History
+
+### 2026-11-16, fifth 7f-6 agent: stage D done (landed, lean 1612a1143a)
 
 - **Branch:** `k8s-7f6` (lean `3a0a47deb1` merged, `a7c843fab8`). Go target `k8s-7f6-target`
   `88a1646324`. Decisions: worktree `questions.md` (untracked; annAt and D forms ACCEPTED).
@@ -29,8 +50,6 @@
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build T...`;
   lean-check `LAKE_OPTS=--packages=/shared/tmp/manifest-e9e.json`, `--max-open 2`; gates under
   `flock /shared/tmp/etcd-grove-full-build.lock`.
-
-## History
 
 ### 2026-11-16, fourth 7f-6 agent: D's Go, annAt, WRun, the leaves, consume.spec
 
