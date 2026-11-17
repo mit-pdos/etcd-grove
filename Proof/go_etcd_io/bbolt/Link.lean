@@ -70,6 +70,7 @@ public import Proof.go_etcd_io.bbolt.Cursor__seek_w
 public import Proof.go_etcd_io.bbolt.DB__Begin
 public import Proof.go_etcd_io.bbolt.DB__Begin_err
 public import Proof.go_etcd_io.bbolt.DB__Close
+public import Proof.go_etcd_io.bbolt.DB__Close_noErr
 public import Proof.go_etcd_io.bbolt.DB__Info
 public import Proof.go_etcd_io.bbolt.DB__Stats
 public import Proof.go_etcd_io.bbolt.DB__beginRWTx
@@ -92,15 +93,18 @@ public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Mmap.Map
 public import Proof.go_etcd_io.bbolt.Mmap.MmapSize
 public import Proof.go_etcd_io.bbolt.Mmap.Munmap
+public import Proof.go_etcd_io.bbolt.Mmap.MunmapNoErr
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBody
 public import Proof.go_etcd_io.bbolt.Mmap.Unmap
 public import Proof.go_etcd_io.bbolt.Open
 public import Proof.go_etcd_io.bbolt.Open.Close
+public import Proof.go_etcd_io.bbolt.Open.CloseNoErr
 public import Proof.go_etcd_io.bbolt.Open.FileModeString
 public import Proof.go_etcd_io.bbolt.Open.Flock
 public import Proof.go_etcd_io.bbolt.Open.MetasZero
 public import Proof.go_etcd_io.bbolt.Open.MmapOwn
 public import Proof.go_etcd_io.bbolt.Open.PageSize
+public import Proof.go_etcd_io.bbolt.Open_shared
 public import Proof.go_etcd_io.bbolt.Options__String
 public import Proof.go_etcd_io.bbolt.Read.SearchEv
 public import Proof.go_etcd_io.bbolt.Spill.BktChild
@@ -291,10 +295,12 @@ public import Proof.fmt.Link
 public import Proof.golang_org.x.sys.unix.Madvise
 public import Proof.golang_org.x.sys.unix.Mmap
 public import Proof.golang_org.x.sys.unix.Munmap
+public import Proof.golang_org.x.sys.unix.MunmapNoErr
 public import Proof.hash.fnv.New64a
 public import Proof.hash.fnv.sum64a__Sum64
 public import Proof.hash.fnv.sum64a__Write
 public import Proof.os.File__Close
+public import Proof.os.File__CloseNoErr
 public import Proof.os.File__Fd
 public import Proof.os.File__Name
 public import Proof.os.File__ReadAt
@@ -305,6 +311,7 @@ public import Proof.os.File__WriteAt
 public import Proof.os.File__WriteAtExt
 public import Proof.os.Getenv
 public import Proof.os.OpenFile
+public import Proof.os.OpenFileS
 public import Proof.os.fileStat__Size
 public import Proof.reflect.DeepEqual
 public import Proof.sort.SliceIsSorted
@@ -313,6 +320,7 @@ public import Proof.sort.SortAnyLess
 public import Proof.strings.ToLower
 public import Proof.syscall.Fdatasync
 public import Proof.syscall.Flock
+public import Proof.syscall.FlockNoErr
 
 @[expose] public section
 
@@ -1037,6 +1045,34 @@ theorem DB.wp_Close :
     _root_.Perennial.EtcdGrove.bbolt.DB.Close.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.Close.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned
 
+theorem golang_org.x.sys.unix.wp_MunmapNoErr :
+    _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.specNoErr (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.golang_org.x.sys.unix.Munmap.wp_proofNoErr
+
+theorem wp_munmapMNoErr :
+    _root_.Perennial.EtcdGrove.bbolt.munmapM.specNoErr (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.munmapM.wp_proofNoErr _root_.Perennial.EtcdGrove.bbolt.golang_org.x.sys.unix.wp_MunmapNoErr
+
+theorem DB.wp_munmapNoErr :
+    _root_.Perennial.EtcdGrove.bbolt.DB.munmap.specNoErr (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.munmap.wp_proofNoErr _root_.Perennial.EtcdGrove.bbolt.wp_munmapMNoErr
+
+theorem syscall.wp_FlockNoErr :
+    _root_.Perennial.EtcdGrove.syscall.Flock.specNoErr (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.syscall.Flock.wp_proofNoErr
+
+theorem os.File.wp_CloseNoErr :
+    _root_.Perennial.EtcdGrove.os.File.Close.specNoErr (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.File.Close.wp_proofNoErr
+
+theorem DB.wp_close_ownedNoErr :
+    _root_.Perennial.EtcdGrove.bbolt.DB.close.spec_ownedNoErr (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.close.wp_proof_ownedNoErr _root_.Perennial.EtcdGrove.bbolt.DB.wp_munmapNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Fd _root_.Perennial.EtcdGrove.bbolt.syscall.wp_FlockNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_CloseNoErr
+
+theorem DB.wp_Close_noErr :
+    _root_.Perennial.EtcdGrove.bbolt.DB.Close_noErr.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.DB.Close_noErr.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_ownedNoErr
+
 theorem DB.wp_Info :
     _root_.Perennial.EtcdGrove.bbolt.DB.Info.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.DB.Info.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.wp_Assert
@@ -1292,6 +1328,10 @@ theorem TxStats.wp_IncWriteTime :
 theorem Options.wp_String :
     _root_.Perennial.EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Options.String.wp_proof
+
+theorem os.wp_OpenFileCreateS :
+    _root_.Perennial.EtcdGrove.os.OpenFile.specCreateS (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.os.OpenFile.wp_proofCreateS
 
 theorem Tx.wp_Bucket :
     _root_.Perennial.EtcdGrove.bbolt.Tx.Bucket.spec (GF := GF) (hG := hG) :=
@@ -1568,6 +1608,10 @@ theorem Tx.wp_Commit_err :
 theorem wp_Open :
     _root_.Perennial.EtcdGrove.bbolt.Open.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Open.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFile _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreate _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Name _root_.Perennial.EtcdGrove.bbolt.wp_flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Stat _root_.Perennial.EtcdGrove.bbolt.os.fileStat.wp_Size _root_.Perennial.EtcdGrove.bbolt.DB.wp_metasZero_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_init _root_.Perennial.EtcdGrove.bbolt.DB.wp_getPageSize_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapUnlocked_own (_root_.Perennial.EtcdGrove.bbolt.DB.wp_loadFreelist_open h_fs_FileMode_String h_PidSetDeleteUnfold) _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.wp_fdatasync (_root_.Perennial.EtcdGrove.bbolt.DB.wp_Begin_err h_fs_FileMode_String h_PidSetDeleteUnfold) (_root_.Perennial.EtcdGrove.bbolt.Tx.wp_Commit_err h_fs_FileMode_String h_PidSetDeleteUnfold) _root_.Perennial.EtcdGrove.bbolt.DB.wp_Close _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.Options.wp_String h_fs_FileMode_String
+
+theorem wp_Open_shared :
+    _root_.Perennial.EtcdGrove.bbolt.Open_shared.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Open_shared.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateS _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Name _root_.Perennial.EtcdGrove.bbolt.wp_flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Stat _root_.Perennial.EtcdGrove.bbolt.os.fileStat.wp_Size _root_.Perennial.EtcdGrove.bbolt.DB.wp_metasZero_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_init _root_.Perennial.EtcdGrove.bbolt.DB.wp_getPageSize_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapUnlocked_own (_root_.Perennial.EtcdGrove.bbolt.DB.wp_loadFreelist_open h_fs_FileMode_String h_PidSetDeleteUnfold) _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.wp_fdatasync (_root_.Perennial.EtcdGrove.bbolt.DB.wp_Begin_err h_fs_FileMode_String h_PidSetDeleteUnfold) (_root_.Perennial.EtcdGrove.bbolt.Tx.wp_Commit_err h_fs_FileMode_String h_PidSetDeleteUnfold) _root_.Perennial.EtcdGrove.bbolt.DB.wp_Close _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.Options.wp_String h_fs_FileMode_String
 
 theorem Spill.Bucket.wp_spillC :
     _root_.Perennial.EtcdGrove.bbolt.Spill.Bucket.spill.specC (GF := GF) (hG := hG) :=

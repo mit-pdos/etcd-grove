@@ -16,18 +16,22 @@ vocab Spec.go_etcd_io.bbolt.Data
 vocab Spec.go_etcd_io.bbolt.Api
 vocab Spec.go_etcd_io.bbolt.Logger
 vocab Spec.go_etcd_io.bbolt.Options
+vocab Spec.go_etcd_io.bbolt.ApiS
 
 ## The API: the vocabulary (pure data, the sealed predicates and their laws), the logger contract,
 ## the options and their trust-boundary axioms
 importable Spec.go_etcd_io.bbolt.Data
 importable Spec.go_etcd_io.bbolt.Api
+importable Spec.go_etcd_io.bbolt.ApiS
 importable Spec.go_etcd_io.bbolt.Logger
 importable Spec.go_etcd_io.bbolt.Options
 importable Proof.go_etcd_io.bbolt.Options
 
 ## The specs (one per function)
 importable Spec.go_etcd_io.bbolt.Open
+importable Spec.go_etcd_io.bbolt.Open_shared
 importable Spec.go_etcd_io.bbolt.DB__Close
+importable Spec.go_etcd_io.bbolt.DB__Close_noErr
 importable Spec.go_etcd_io.bbolt.DB__Begin
 importable Spec.go_etcd_io.bbolt.DB__Info
 importable Spec.go_etcd_io.bbolt.DB__Stats

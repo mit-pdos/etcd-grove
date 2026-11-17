@@ -95,4 +95,7 @@
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
+//	premise_no_map_lock_err.go    no flock/mmap/munmap error on      NoMapLockErr, MapLockCovers, MapLockOk
+//	                              chosen files, but mmap's ENOMEM    (NoMapLockErr.lean: noMapLockErr_keeps)
+//	                              (assumed; pending review)
 package semantics

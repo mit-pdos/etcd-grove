@@ -1893,3 +1893,48 @@ is unchanged, so the text above describes the frozen candidate, and these overri
   post (`ErrBucketNotFound` for every absent name) was false there. The real behaviour is stated, no
   premise added; no bucket has the empty name (`CreateBucket` refuses it), so `T.cur.lookup [] =
   none` always, and a caller that never deletes the empty name sees the old two cases.
+
+## S3a: the file extension's premise, `Close` with no error, `Open` in the shared mode (2026-11-17)
+
+Session `bbolt-files` (`notes/bbolt-integration-plan.md`, Log, "S3a"). Decided by the session, **for
+the user's review** where marked.
+
+- **D-S1. `flock`, `mmap`, `munmap` errors: a premise of their own, `NoMapLockErr`** (for the user's
+  review), not `NoIoErr` extended: `NoIoErr` is trusted and approved, and its `ErrnoZero` is errno 0
+  only, where these calls need other outcomes kept (`EAGAIN` of a non-blocking lock on a conflict,
+  which is no error; `mmap`'s `ENOMEM`). The two name disjoint operations, so their conjunction keeps
+  steps (`noIoErr_noMapLockErr_keeps`). Coverage as the WAL's: every inode (`∀ st i, Sio.ino st i`),
+  one `IoSet` for both.
+- **D-S2. `mmap`'s `ENOMEM` stays** (for the user): a premise on steps sees the extension's state
+  and not the heap, and the heap and the mappings share the address space; excluding `ENOMEM` breaks
+  `StepKeeps` at a full heap. Consequence: `Open` and a remap can fail under the premises; the
+  backend's panics on those errors need another premise (one that sees the heap, or a named one).
+  So `Open_shared.spec`'s error-free variant (`Open.specSNoErr`) is not stated: it would be
+  `err = nil ∨ (an ENOMEM)`, and it needs error-free specs of every call of `Open` (`fstat`,
+  `pread`, `init`'s `pwrite`/`fdatasync`, `flock`'s loop, `mmap`, `loadFreelist`, `Begin`/`Commit`
+  for a file with no synced freelist): its own unit.
+- **D-S3. Names.** The package's layout rule (`etc/api/bbolt-layout.txt`: a spec file declares
+  `<F>.spec`, its proof file proves only `<F>.wp_proof`; no new violations) names the second specs
+  as `DB.Begin_err`'s: `DB.Close_noErr.spec`, `Open_shared.spec` (the task's `DB.Close.specNoErr`,
+  `Open.specS`). The generic proofs (`Open.wp_proofG`, `DB.Close.wp_proofQ`) are private, read by
+  the second proofs with `import all`.
+- **D-S4. `Close.specOwn` (D9's alternative) is not done**; what it needs, found here:
+  1. *The store slots' page-cache bytes* are in `pagesInv`, an invariant (`osSlot` per store
+     slot): `Close` can only take them if `pagesInv` has a closed alternative, e.g. `B.cls`'s
+     halves split as `rwR` ½, `metaR` ¼, `pagesInv` ¼, with `pagesInv`'s slot part
+     `(ghostVar B.cls ¼ false ∗ [∗list] osSlot …) ∨ ghostVar B.cls ¼ true`; the store lemmas that
+     move slots (`store_free_core`, `store_publish`, `store_rollback`, `store_carve`,
+     `store_setFl`, `store_reload`) then take the writer's `ghostVar B.cls ½ false`.
+  2. *The inode*: `boltIno γ i`, a discarded ghost fragment (a new `BNs` name, allocated in
+     `Open/Core`), in `isBoltCoreP` and `Open`'s post.
+  3. *A failed remap*: after a failed `munmap` the mapping is leaked (`WDb.junk`), so the file's
+     `OsMeta` has a mapping and `fileHolds` cannot be given back; the post then needs a pure
+     witness of the failed step (`∃` a `Munmap` step with an errno, which `NoMapLockErr` refutes),
+     carried in `wdbCoreG`'s junk clause from `unix.Munmap`'s failure (a spec variant with it). After
+     a failed `mmap` (no mapping, `WDb.lost`) the partial last page of an unaligned file is owned by
+     no one (`W` is the slots below `size / 4096`): `lost` must keep its bytes (in the junk clause).
+  4. *The image*: `fileOK` of the gathered bytes from the store's `pagesFromBytes`, `storeOK` and
+     `wdbOK` (`fileImage` by `treeHas_agree`; `flFileOK` from `flClause`); `wdbOK`'s
+     `size < 2 ^ 63` must become `< 2 ^ 62` (`fileHolds`' bound; `grow` keeps it).
+  No client needs the file back now (D9: etcd renames a new file in and opens it); `applySnapshot`
+  needs `Close`'s `nil`, which `DB.Close_noErr.spec` gives.
