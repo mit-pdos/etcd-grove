@@ -123,7 +123,7 @@ theorem kInc_commit (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (ch p : Loc) (r : KRaw) (raws : List KRaw)
     (lb lb0 st : Nat) (σ σ0 : KVState) (hst : kStartOk m σ0 st)
     (hsub : kRawStreamSub inS m σ st (raws ++ [r])) :
-    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(True)) -∗ eventAt σ p r -∗
+    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(False)) -∗ eventAt σ p r -∗
       □ Q lb σ -∗ □ Q lb0 σ0 -∗
       (⌜kRawStreamOk inS m σ st (raws ++ [r])⌝ ∨ kCancelled γ cd ∨ kProcExited γ) -∗
       kIncTok γ -∗ monoListAuthOwn γ.raws (1 : Qp).half raws -∗
@@ -136,7 +136,7 @@ theorem kInc_commit (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
   · iframe
   unfold isSpsc
   icases Hspsc with ⟨#Hchan, #Hinv⟩
-  ihave #Hinv' : inv nroot iprop(spscInv γ.inc (kInElem γ cd inS m Q) (fun _ => iprop(True)) ∗
+  ihave #Hinv' : inv nroot iprop(spscInv γ.inc (kInElem γ cd inS m Q) (fun _ => iprop(False)) ∗
       True) $$ []
   · iapply inv_alter $$ Hinv
     inext; imodintro
@@ -145,7 +145,7 @@ theorem kInc_commit (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
     · isplitl [H]; · iexact H
       itrivial
     · iintro ⟨H, -⟩; iexact H
-  iapply spsc_send_commit_inv γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(True)) iprop(True)
+  iapply spsc_send_commit_inv γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(False)) iprop(True)
     (kIncTok γ) (monoListAuthOwn γ.raws (1 : Qp).half (raws ++ [r])) p $$ Hchan Hinv' [] HT
     [Hev Hok Hh]
   · iintro !> HT -
@@ -200,9 +200,10 @@ def kProdSt (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (I : List K
     ⌜List.Sublist raws I⌝ ∗ (⌜raws = I⌝ ∨ kCancelled γ cd ∨ kProcExited γ))
 
 /-- The context descriptor of `wc.ctx` the producer reads (`WithCancel`'s, keeping the parent's
-`PDone`: §10 of `notes/k8s-7f5a-draft.md`). -/
+`PDone`: §10 of `notes/k8s-7f5a-draft.md`), with its own Done name (`wp_WithCancel_ctx`'s `γ'`;
+`notes/k8s-7f5b-draft.md` §5). -/
 def kCdw (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) : context.ContextDesc (IProp GF) :=
-  { cd with PDone := iprop(cd.PDone ∨ kCancelPD γ cd) }
+  { cd with PDone := iprop(cd.PDone ∨ kCancelPD γ cd), Done_gn := γ.wcDone }
 
 /-- **A drop, seen by the running producer** (`prodEx`'s fraction at `false`): `wc.ctx` is done, so
 the watch is no longer live or the processing goroutine has exited. -/
@@ -235,7 +236,7 @@ theorem kProd_queue (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (in
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (ch p : Loc) (r : KRaw) (I : List KRaw)
     (lb lb0 st : Nat) (σ σ0 : KVState) (hst : kStartOk m σ0 st)
     (hok : kRawStreamOk inS m σ st (I ++ [r])) :
-    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(True)) -∗ eventAt σ p r -∗
+    ⊢ isSpsc γ.inc ch (kInElem γ cd inS m Q) (fun _ => iprop(False)) -∗ eventAt σ p r -∗
       □ Q lb σ -∗ □ Q lb0 σ0 -∗ kProdSt γ cd I -∗
       ∃ S Qs : IProp GF, (S ∧ (£ 1 ∗ £ 1 ∗ £ 1 -∗ ∀ Φ : IProp GF, ▷ (Qs -∗ Φ) -∗
           sendAu γ.inc.chanName p Φ)) ∗
@@ -301,7 +302,7 @@ def kInitRaws (inS : GoString → Bool) (σ : KVState) (st : Nat) : List KRaw :=
 proposition, grpc's outgoing metadata and client errors), `wc.cancel` (whose proposition is
 `kCancelPD`), the size estimator function (the store's), the incoming channel (`kInElem`'s
 SPSC) with its block logger, and `resultChan` (`kResChan`). -/
-def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatchNames)
+def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj) (γ : KWatchNames)
     (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool) (inS : GoString → Bool)
     (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName) (ctx : GoInterfaceOk)
     (kp : GoString) (recur : Bool) : IProp GF :=
@@ -324,7 +325,7 @@ def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatch
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"incomingEventChan" wc ↦□ chI ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"incomingEventLogger" wc ↦□ lg ∗
     blockLoggerOk lg ∗
-    isSpsc γ.inc chI (kInElem γ cd inS m Q) (fun _ => iprop(True)) ∗
+    isSpsc γ.inc chI (kInElem γ cd inS m Q) (fun _ => iprop(False)) ∗
     structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"resultChan" wc ↦□ chR ∗
     kResChan c W γ cd sel emp inS m Q procd alive chR ∗
     context.isContext ctx (kCdw γ cd) ∗ metadata.outgoingCtxOkC ctx ∗ ctxErrClient ctx (kCdw γ cd) ∗
@@ -332,7 +333,7 @@ def kWcProd (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj) (γ : KWatch
 
 set_option synthInstance.maxSize 4096 in
 set_option synthInstance.maxHeartbeats 400000 in
-instance kWcProd_persistent (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec Obj)
+instance kWcProd_persistent (wc sp : Loc) (c : StoreCfg GF Obj) (W : WatchSpec GF Obj)
     (γ : KWatchNames) (cd : context.ContextDesc (IProp GF)) (sel : Obj → Bool) (emp : Bool)
     (inS : GoString → Bool) (m : KWatchMode) (Q : Nat → KVState → IProp GF) (procd alive : GName)
     (ctx : GoInterfaceOk) (kp : GoString) (recur : Bool) :
@@ -348,6 +349,21 @@ def kStartPre (m : KWatchMode) (Q : Nat → KVState → IProp GF) (r0 : w64) : I
   if m.forceInit then iprop(⌜uint.nat r0 = m.req ∧ uint.Z r0 < 2 ^ 63⌝)
   else if 0 < m.req then iprop(⌜uint.nat r0 = m.req ∧ uint.Z r0 + 1 < 2 ^ 63⌝)
   else iprop(∃ (lb0 : Nat) (σ0 : KVState), □ Q lb0 σ0 ∗ ⌜r0 = W64 (σ0.rev : Int) ∧ kvRevFits σ0.rev⌝)
+
+/-- The read updates at the members, as `GetCurrentResourceVersion` takes them. -/
+theorem readAus_crv (c : StoreCfg GF Obj) (γk : KVNames) (Q : KVState → IProp GF) :
+    readAus c γk Q ⊢ ∀ (R m' : w64), |==> □ [∧list] x ∈ c.ms,
+      ⌜(fun (_ _ : w64) => Q) R m' = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv ((fun (_ _ : w64) => Q) R m') := by
+  unfold readAus
+  iintro ⟨-, #H⟩ %R %m'
+  imodintro
+  imodintro
+  iapply (BigAndL.bigAndL_intro (P := iprop(□ [∗list] x ∈ c.ms, kvReadAu x.γr.kv Q))
+    (fun k x hk => ?_)) $$ H
+  iintro #H'
+  ihave #Hx := BigSepL.bigSepL_lookup hk $$ H'
+  iright
+  iexact Hx
 
 end prod
 

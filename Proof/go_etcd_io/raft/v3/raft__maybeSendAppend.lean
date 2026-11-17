@@ -28,6 +28,7 @@ public import Spec.go_etcd_io.raft.v3.raft__maybeSendSnapshot
 public import Spec.go_etcd_io.raft.v3.payloadsSize
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -142,9 +143,12 @@ local macro "msa_fetch" : tactic => `(tactic| (
     · try wp_auto
       ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
       iapply HΦ $$ %false %([] : List Msg) %s.prvals
-      isplitl
+      isplitl [Hphys]
       · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
+      ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+      · iidx HG
+      iframe HG
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
     · try wp_auto
@@ -162,10 +166,16 @@ local macro "msa_fetch" : tactic => `(tactic| (
       · iright
         iapply storPast_mono _ (uint.Z p.next) 1 (by have := (word.unsigned_range s.logst.prev.index').1; omega)
         iexact Hcut_e
-      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz $$ [Hphys]
+      -- (Q8 stage 1, slice 6) not at a traced node: its log is not compacted (`TrNoSnap`)
+      by_cases Htr : s.gh.tr = none
+      case neg =>
+        imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
+      wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [Hphys]
         as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
       · iframe
         try iexact Hcompact
+      ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
+      · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
       iapply HΦ
       iframe
       ipureintro
@@ -255,14 +265,37 @@ local macro "msa_send" : tactic => `(tactic| (
       ⟨⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩, es_e, none, [], []⟩
     $$ [Hm]
   · rw [← HcsE.1]; iexact Hm
+  -- (Q8 stage 1, slice 6) what is known of the message, for the caller's gate
+  have Happ : AppOk id (toPState s)
+      (Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) := by
+    have Hn1 : p.next - W64 1 + W64 1 = p.next := by word
+    refine ⟨rfl, rfl, rfl, Hto, Hterm_at, ?_, Hpkgin, by rw [Hn1]; exact Hpkgpre, ?_⟩
+    · show uint.Z lvc.committed' ≤ uint.Z s.logst.committed
+      rw [Hlvc.1]; exact Int.le_refl _
+    · refine app_payload_from_log s.logst.prev (s.logst.sents ++ s.logst.uents) pterm
+        (p.next - W64 1) es_e Hlwf (by simp only [List.length_append]; push_cast; omega)
+        ⟨Herr1.1, by unfold plogLastIndexZ; simp only [List.length_append]; push_cast; omega⟩
+        (by rw [Hn1]; exact Hpkgpre)
+  -- (slice 17) and the peer's `Match` is at most the index it is sent from (`PrOk`'s `Match < Next`
+  -- outside `StateSnapshot`)
+  have Hmatch : uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) ≤ uint.Z (p.next - W64 1) := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some, Option.getD_some]
+    exact Hpok0.1.match_le_prev Hnosnap
+  ihave Hg := Hgate $$
+    %(Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) %s.outbox
+    %(⟨Happ, Hlvc.1, rfl, Hmatch, rfl⟩ : AppOk id (toPState s)
+        (Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e) ∧ _ ∧ _ ∧ _ ∧ _) HG
   wp_apply wp_raft_send c r id s «$a0_ptr»
       ⟨W32 3, to, 0, 0, pterm, p.next - W64 1, lvc.committed', 0, false, 0⟩ es_e none [] []
       [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]
+      (G (s.outbox ++ [Msg.mk .app id to s.term false (p.next - W64 1) pterm lvc.committed' (W64 0) es_e]))
       (Or.inl rfl) (Or.inr (Or.inl ⟨.app, Or.inl rfl, rfl, rfl, Hto, Htz, rfl⟩))
       (fun h => absurd h (by simp [MsgSnap])) (fun _ => ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩)
-      rfl $$ [Hphys Hm] as Hphys
-  · iframe
-    iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+      rfl (fun _ => mtypeOf_send_eq (u := W32 3) rfl) $$ [Hphys Hm Hg] as ⟨Hphys, HG⟩
+  · iframe Hphys Hm
+    isplitr
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    iexact Hg
   wp_apply wp_payloadsSize sl_e es_e DFrac.discard $$ [] as %psz ⟨-, -⟩
   · iframe # ∗
   -- `pr.SentEntries(...)`: `send` changed only the outbox, so `pr` is still at `p`
@@ -291,29 +324,23 @@ local macro "msa_send" : tactic => `(tactic| (
         es_e] : List Msg)
     %(<[to := progressSentCommit (progressSentEntries p sl_e.len psz) lvc2.committed']>
         (<[to := progressSentEntries p sl_e.len psz]> s.prvals))
-  isplitl
+  isplitl [Hphys]
   · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
     rfl
-  ipureintro
-  constructor
-  · intro m Hm
+  isplitr
+  · ipureintro
+    intro m Hm
     simp only [List.mem_singleton] at Hm
     subst Hm
-    refine ⟨?_, fun _ => Hlvc.1, (fun h => nomatch h), (fun h => nomatch h)⟩
-    left
-    have Hn1 : p.next - W64 1 + W64 1 = p.next := by word
-    refine ⟨rfl, rfl, rfl, Hto, Hterm_at, ?_, Hpkgin, by rw [Hn1]; exact Hpkgpre, ?_⟩
-    · show uint.Z lvc.committed' ≤ uint.Z s.logst.committed
-      rw [Hlvc.1]; exact Int.le_refl _
-    · refine app_payload_from_log s.logst.prev (s.logst.sents ++ s.logst.uents) pterm
-        (p.next - W64 1) es_e Hlwf (by simp only [List.length_append]; push_cast; omega)
-        ⟨Herr1.1, by unfold plogLastIndexZ; simp only [List.length_append]; push_cast; omega⟩
-        (by rw [Hn1]; exact Hpkgpre)
-  · show prvalsMatch _ = _
+    exact ⟨Or.inl Happ, fun _ => Hlvc.1, (fun h => nomatch h), (fun h => nomatch h)⟩
+  isplitr
+  · ipureintro
+    show prvalsMatch _ = _
     rw [GMap.insert_insert]
     refine prvalsMatch_insert_same _ _ p _ Hpvs ?_
     simp only [progressSentCommit, progressSentEntries]
-    split <;> (try split) <;> rfl))
+    split <;> (try split) <;> rfl
+  iidx HG))
 
 set_option hygiene false in
 /-- Everything after the `||`'s three arms (Rocq's one `;`-chained script), from the
@@ -327,9 +354,12 @@ local macro "msa_tail" : tactic => `(tactic| (
       wp_auto
       ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
       iapply HΦ $$ %false %([] : List Msg) %s.prvals
-      isplitl
+      isplitl [Hphys]
       · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
         cases s; rfl
+      ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+      · iidx HG
+      iframe HG
       ipureintro
       exact ⟨fun _ h => (nomatch h), rfl⟩
     · wp_auto
@@ -372,7 +402,9 @@ theorem raft.maybeSendAppend.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.maybeSendAppend.spec (GF := GF) (hG := hG) := by
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  intro c r id s to sendIfEmpty Hto Hcfg Hlead Htz
+  intro c r id s to sendIfEmpty G Hto Hcfg Hlead Htz Hidx
+  -- (Q8 stage 1, slice 6) the gate's type as the message literal's
+  rw [show (MsgApp : w32) = W32 3 from rfl]
   wp_start as Hpre
   iNamed Hpre
   -- `r.trk.Progress` is read through the tracker field
@@ -403,11 +435,13 @@ theorem raft.maybeSendAppend.wp_proof
     ihave Hphys := Hpback $$ Hpa
     ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
     iapply HΦ $$ %false %([] : List Msg) %s.prvals
-    isplitl
+    isplitl [Hphys]
     · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
       cases s; rfl
+    ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+    · iidx HG
+    iframe HG
     ipureintro
-
     exact ⟨fun _ h => (nomatch h), rfl⟩
   -- not paused, so not in `StateSnapshot` -- `SentEntries`' first premise
   have Hnosnap : p.state ≠ .snapshot := by
@@ -462,7 +496,7 @@ theorem raft.maybeSendAppend.wp_proof
         ipureintro
         rcases Hc with Hc | Hnot
         · cases Hc
-        obtain ⟨h1, h2, -, -⟩ := Hpok.1
+        obtain ⟨h1, h2, -, -, -⟩ := Hpok.1
         have Hll := (show LogNoWrap s.logst from Hnw).logLast_Z
         intro Hz
         apply Hnot
@@ -470,9 +504,15 @@ theorem raft.maybeSendAppend.wp_proof
       · iright
         iapply storPast_one
         iexact Hc
+    -- (Q8 stage 1, slice 6) not at a traced node: its log is not compacted (`TrNoSnap`)
+    by_cases Htr : s.gh.tr = none
+    case neg =>
+      imod trNoSnap_traced _ _ Htr $$ Hnosnap Hcompact with %Hf; exact Hf.elim
     wp_auto
-    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz $$ [$Hphys $Hcompact]
+    wp_apply wp_raft_maybeSendSnapshot c r id s to pr Hto Hlk Hns Htz (by tr_none) $$ [$Hphys $Hcompact]
       as %b %ms' %pvs' ⟨Hphys, %Hms', %Hmm'⟩
+    ihave HG : G ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox $$ [HG]
+    · rw [Hidx Htr ({ sendMsgs s ms' with prvals := pvs' } : NState).outbox s.outbox]; iexact HG
     iapply HΦ
     iframe
     ipureintro
@@ -514,9 +554,12 @@ theorem raft.maybeSendAppend.wp_proof
         wp_auto
         ihave Hphys := ownRaftPhysC_send_nil c r id s $$ Hphys
         iapply HΦ $$ %false %([] : List Msg) %s.prvals
-        isplitl
+        isplitl [Hphys]
         · iapply ownRaftPhysC_eq c r id _ _ ?_ $$ Hphys
           cases s; rfl
+        ihave HG : G (({ sendMsgs s [] with prvals := s.prvals } : NState).outbox) $$ [HG]
+        · iidx HG
+        iframe HG
         ipureintro
         exact ⟨fun _ h => (nomatch h), rfl⟩
       · wp_auto

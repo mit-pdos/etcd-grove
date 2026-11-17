@@ -219,7 +219,9 @@ theorem cluster_alloc_ns (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
       ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md ∧
-          (clusterNoSnap γ ↔ ns = true)⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+          (clusterNoSnap γ ↔ ns = true)⌝ ∗
+        -- (2026-11-09, Q8 stage 0, `notes/trace-validation-q6.md` item 9) an untraced cluster
+        ⌜Cluster.trace γ = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
@@ -227,8 +229,8 @@ theorem cluster_alloc_ns (N : Namespace) (vs : List w64) (ctxs : List (List w8))
         else isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
   intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
   unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
-    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.maxData isCommittedLogLb
-    raftState nodeVacant clusterNoSnap
+    joinAuth nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace Cluster.maxData
+    isCommittedLogLb raftState nodeVacant clusterNoSnap
   by_cases hb : boot = []
   · subst hb
     rw [if_pos rfl]
@@ -239,12 +241,14 @@ theorem cluster_alloc_ns (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     iexists γ
     rw [if_pos rfl]
     iframe Hops Hctx Hcl Hdec Hca Hsm Hja Hfs
-    ipureintro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := Hd
-    refine ⟨h1, h2, h3, h4, ?_⟩
-    rw [h5]; cases ns
-    · exact Iff.rfl
-    · exact absurd rfl (Hns rfl)
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hd
+    isplitr
+    · ipureintro
+      refine ⟨h1, h2, h3, h5, ?_⟩
+      rw [h6]; cases ns
+      · exact Iff.rfl
+      · exact absurd rfl (Hns rfl)
+    ipureintro; exact h4
   · simp only [hb, ↓reduceIte]
     iintro Hm
     imod ApiImpl.cluster_alloc_boot_impl (GF := GF) N vs ctxs boot dup sl E md Hmd HmdB ns Hns Hrb Hne
@@ -256,9 +260,10 @@ theorem cluster_alloc_ns (N : Namespace) (vs : List w64) (ctxs : List (List w8))
     imodintro
     iexists γ
     iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
-    ipureintro
-    obtain ⟨h1, h2, h3, h4, h5⟩ := Hd
-    exact ⟨h1, h2, h3, h4, by rw [h5]⟩
+    obtain ⟨h1, h2, h3, h4, h5, h6⟩ := Hd
+    isplitr
+    · ipureintro; exact ⟨h1, h2, h3, h5, by rw [h6]⟩
+    ipureintro; exact h4
 
 /-- **A new cluster of the voters `vs`, outside the no-snapshot mode** (`cluster_alloc_ns` at
 `false`; the statement before auth-lease S4). -/
@@ -272,7 +277,9 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
     ⊢ (if boot = [] then emp else bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0)) ={E}=∗
       ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗
         -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode
-        ⌜¬ clusterNoSnap γ⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ⌜¬ clusterNoSnap γ⌝ ∗
+        -- (2026-11-09, Q8 stage 0, `notes/trace-validation-q6.md` item 9) an untraced cluster
+        ⌜Cluster.trace γ = none⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
         ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
         confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
         ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
@@ -281,13 +288,54 @@ theorem cluster_alloc (N : Namespace) (vs : List w64) (ctxs : List (List w8)) (b
   intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
   iintro Hm
   imod cluster_alloc_ns N vs ctxs boot dup sl md E false (fun h => by cases h) Hrb Hne Hnd Hnz Hlen
-    HB Hmd HmdB $$ Hm with ⟨%γ, %Hd, H⟩
+    HB Hmd HmdB $$ Hm with ⟨%γ, %Hd, %Htr, H⟩
   imodintro
   iexists γ
   iframe H
   isplitr
   · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2.1⟩
-  ipureintro; intro h; exact absurd (Hd.2.2.2.2.1 h) (by decide)
+  isplitr
+  · ipureintro; intro h; exact absurd (Hd.2.2.2.2.1 h) (by decide)
+  ipureintro; exact Htr
+
+/-- **A new traced cluster** (2026-11-11, trace-check S7 part 2: Q6 item 8, revision 2 of
+`notes/trace-validation-q6.md`; `notes/decisions.md`, "S7 (part 2)"): `cluster_alloc` with a
+bootstrap log `boot` (a traced cluster needs one: `StartNode` is its only constructor, `RestartNode`
+taking an untraced cluster), whose trace mode is the caller's directory `γd` (`Cluster.trace γ = some
+γd`, the gate of every traced-only premise of the node API; the directory names the simulation's
+ghost state, `traceDir`, which the caller allocates before). Everything else as `cluster_alloc`'s
+post at `boot ≠ []`. (`lean` merge, stage 2) With `cluster_alloc`'s bound on proposed data `md`
+(raft-entsize §2). -/
+theorem cluster_alloc_traced (N : Namespace) (vs : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (dup : Bool) (sl : w64 → Option GName) (γd : GName)
+    (md : Option Nat) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) < 2 ^ 62 →
+    BootLog vs ctxs boot →
+    (∀ b, md = some b → b ≤ 2 ^ 31) →
+    (∀ b, md = some b → ∀ e ∈ boot, e.data.length ≤ b) →
+    ⊢ bootMarshal (GF := GF) vs ctxs (LogEntry.toEntries boot 0) ={E}=∗
+      ∃ γ, ⌜γ.dup = dup ∧ γ.snapLoc = sl ∧ γ.bootLen = boot.length ∧ γ.maxData = md⌝ ∗
+        ⌜Cluster.trace γ = some γd⌝ ∗ ownCommittedOps (GF := GF) γ boot ∗
+        ownReadCtxs γ ∅ ∗ isCluster γ N ∗ ownConfDecisions γ ∅ ∗
+        confAt γ 0 (Membership.simple (GMap.listToSet vs)) ∗ ownSnapsMade γ [] ∗
+        ([∗list] id ∈ vs, raftState γ id RaftState.init ∗ nodeVacant γ id) ∗
+        isCommittedLogLb γ boot ∗ [∗list] id ∈ vs, nodeBoot γ N vs ctxs id := by
+  intro Hrb Hne Hnd Hnz Hlen HB Hmd HmdB
+  unfold ownCommittedOps ownReadCtxs isCluster ownConfDecisions confAt ownSnapsMade
+    nodeBoot Cluster.dup Cluster.snapLoc Cluster.bootLen Cluster.trace Cluster.maxData
+    isCommittedLogLb raftState nodeVacant
+  iintro Hm
+  imod ApiImpl.cluster_alloc_boot_impl_tr (GF := GF) N vs ctxs boot dup sl (some γd) E md Hmd HmdB
+    false (fun h => by cases h) Hrb Hne Hnd Hnz Hlen HB $$ Hm with ⟨%γ, %Hd, Hops, Hctx, #Hcl, Hdec, #Hca, Hsm, #Hlb, Hbs⟩
+  icases (BigSepL.bigSepL_sep_eqv (Φ := fun _ id => ApiImpl.nodeBootU (GF := GF) γ N vs ctxs id)
+    (Ψ := fun _ id => iprop(ApiImpl.raftStateU (GF := GF) γ id RaftState.init ∗
+      ApiImpl.nodeVacantU γ id))).1 $$ Hbs with ⟨#Hbs, Hrs⟩
+  imodintro
+  iexists γ
+  iframe Hops Hctx Hcl Hdec Hca Hsm Hlb Hbs Hrs
+  isplitr
+  · ipureintro; exact ⟨Hd.1, Hd.2.1, Hd.2.2.1, Hd.2.2.2.2.1⟩
+  ipureintro; exact Hd.2.2.2.1
 
 /-! ## Joining -/
 
@@ -665,41 +713,54 @@ theorem ownSnapsMade_snapshotValid_data (γ : Cluster) (S : List SnapRec) (sv : 
 
 /-- The compaction's justification (`isStorageP`'s `Bnd`): compacting at or past `c` is safe
 (`nodeAppliedLb`, which since 2026-11-01 holds the snapshot hand-out). (2026-11-01, durability stage
-I-4: keyed by the storage's key `K`.) -/
-def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
-  iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k ∗
-    -- (auth-lease S4, 2026-11-16, L-r2) in the cluster's no-snapshot mode, never past index `1`
-    -- (the client's promise; raft's leaders then never fall back to a snapshot)
-    ⌜clusterNoSnap γ → k ≤ 1⌝)
+I-4: keyed by the storage's key `K`.) (2026-11-12, trace-check's small items: Q39 (a), the design's
+B2, `notes/trace-validation-q6.md` §7) **Gated on the trace**: at a traced cluster no compaction is
+justified (`c = 0`), so that the specification never has to follow a snapshot (what `rnTrace`'s
+`TrNoSnap` is built from at `setupNode`, A4); untraced, as before, and (auth-lease S4, 2026-11-16,
+L-r2) in the cluster's no-snapshot mode never past index `1` (the client's promise; raft's leaders
+then never fall back to a snapshot). Sealed: clients use `storBnd_zero`, `storBnd_intro_untraced`
+and `storBnd_cap`. -/
+@[no_expose] def storBnd (γ : Cluster) (K : GName) (c : Nat) : IProp GF :=
+  match Cluster.trace γ with
+  | none => iprop(∃ k : Nat, ⌜c ≤ k⌝ ∗ nodeAppliedLb γ K k ∗ ⌜clusterNoSnap γ → k ≤ 1⌝)
+  | some _ => iprop(⌜c = 0⌝)
 
-/-- (auth-lease S4, L-r2) Outside the no-snapshot mode the justification is the applied bound. -/
-theorem storBnd_off (γ : Cluster) (K : GName) (c k : Nat) (h : ¬ clusterNoSnap γ) (hk : c ≤ k) :
-    nodeAppliedLb (GF := GF) γ K k ⊢ storBnd γ K c := by
+/-- (2026-11-12, trace-check implementation step 1: the design's B2) **No compaction is always
+justified** (any cluster; what a storage that never compacts, the trace-check harness's, uses). -/
+theorem storBnd_zero (γ : Cluster) (K : GName) : ⊢ storBnd (GF := GF) γ K 0 := by
   unfold storBnd
-  iintro #H
-  iexists k
-  iframe H
-  isplitr
-  · ipureintro; exact hk
-  ipureintro; intro h'; exact absurd h' h
+  split
+  · iexists 0
+    isplitr; · ipureintro; exact Nat.le_refl 0
+    isplitr
+    · iapply nodeAppliedLb_zero γ K
+    ipureintro; intro _; exact Nat.zero_le 1
+  · ipureintro; rfl
 
-/-- (auth-lease S4, L-r2) The justification at a point at most `1`, in either mode. -/
-theorem storBnd_le_one (γ : Cluster) (K : GName) (c k : Nat) (hk : c ≤ k) (h1 : k ≤ 1) :
-    nodeAppliedLb (GF := GF) γ K k ⊢ storBnd γ K c := by
+/-- (2026-11-12, trace-check implementation step 1: the design's B2) **At an untraced cluster,
+compacting at or below the applied index is justified** (what the key-value stores' and etcd's
+server's storages use in place of unfolding `storBnd`), (auth-lease S4, L-r2) in the no-snapshot
+mode at an applied index at most `1` (`hns`). -/
+theorem storBnd_intro_untraced (γ : Cluster) (K : GName) (k c : Nat) (h : Cluster.trace γ = none)
+    (hns : clusterNoSnap γ → k ≤ 1) :
+    ⊢ nodeAppliedLb (GF := GF) γ K k -∗ ⌜c ≤ k⌝ -∗ storBnd γ K c := by
+  iintro #Hl %Hc
   unfold storBnd
-  iintro #H
-  iexists k
-  iframe H
+  rw [h]
+  iexists k; iframe Hl
   isplitr
-  · ipureintro; exact hk
-  ipureintro; intro _; exact h1
+  · ipureintro; exact Hc
+  ipureintro; exact hns
 
 /-- (auth-lease S4, L-r2) **In the no-snapshot mode, the storage is compacted at most to `1`.** -/
 theorem storBnd_cap (γ : Cluster) (K : GName) (c : Nat) :
     storBnd (GF := GF) γ K c ⊢ ⌜clusterNoSnap γ → c ≤ 1⌝ := by
   unfold storBnd
-  iintro ⟨%k, %hk, -, %h⟩
-  ipureintro; intro hm; have := h hm; omega
+  split
+  · iintro ⟨%k, %hk, -, %h⟩
+    ipureintro; intro hm; have := h hm; omega
+  · iintro %h
+    ipureintro; intro _; omega
 
 -- (2026-11-01, durability stage I-4) `storDL γ id i` (an open definition: "the committed log
 -- delivered to some node `id`") is now the sealed `nodeCommitLb γ K i` (`InvNode.lean`): it is

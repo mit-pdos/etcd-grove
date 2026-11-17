@@ -96,6 +96,8 @@ private abbrev node.ApplyConfChange.specRaw : Prop :=
   -- the decision switch) over decisions recorded (`M`, `decLb`)
   (∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 →
     DynCCPreOp (effDec dec M) ds ca cfg (ccV2Of o) k e cs') →
+  -- (2026-11-12, trace-check step 4) at a traced node the change keeps the configuration
+  (γ.raft.reTrace ≠ none → cs'.cfg = cfg.cfg) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗
       ownConfChangeI c DFrac.discard (some o) ∗
       (⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds ∗ decLb γ.raft M) }}
@@ -220,9 +222,11 @@ local macro "apply_cc_send" : tactic => `(tactic| (
           iunfold dlvLb at Hdlb
           icases Hdlb with ⟨#Hdlb, -⟩
           iframe Hdlb Hcap Hq1 HdM
-          ipureintro
-          refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
-          exact Hdyn dec' c0' h0' h1' hm'
+          isplitr
+          · ipureintro
+            refine ⟨by rw [hm]; rfl, fun dec' c0' h0' h1' hm' => ?_⟩
+            exact Hdyn dec' c0' h0' h1' hm'
+          ipureintro; exact Hkeep
         iright
         iframe Hq2
         ipureintro; rw [hm]; rfl
@@ -269,7 +273,7 @@ private theorem node.ApplyConfChange.wp_raw
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG)) :
     node.ApplyConfChange.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n c o ds ca cfg k e cs' M Hshr Hdyn
+  intro γ id n c o ds ca cfg k e cs' M Hshr Hdyn Hkeep
   wp_start as ⟨#Hnode, Hc, HR⟩
   ihave #Hnode' := Hnode
   open_node Hnode'
@@ -341,7 +345,7 @@ private theorem node.wp_ApplyConfChange_impl
   unfold EtcdGrove.node.ApplyConfChange.spec EtcdGrove.Cluster EtcdGrove.Membership.applyChange
     EtcdGrove.deliveredLogLb EtcdGrove.isCluster EtcdGrove.confDecided EtcdGrove.isNode
     EtcdGrove.nodeConfig EtcdGrove.nodeStopped
-  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap
+  intro n γ N id c o o' l k e v m' Hk He Hcc Hap' Hap Htrk
   haveI := skippedIn_persistent (GF := GF) γ l v.applied k
   haveI := ApiImpl.confAtU_persistent (GF := GF) γ v.applied v.membership
   iintro %Φ ⟨#Hinit, -, #Hcl, #Hdec, Hcc0, ⟨Hcfg, #Hca⟩, #Hdl, #Hsk⟩ HΦ
@@ -421,7 +425,8 @@ private theorem node.wp_ApplyConfChange_impl
       rw [hlen, HUk]; rfl
   iapply (hA γn id1 n c o ds v.applied (stOf v.membership) k eM (stOf m') U
     (fun h => by rw [Hmd] at h; cases h)
-    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)) $$ [Hcc0 Hcf]
+    (fun dec c0' h0' h1' h => by rw [Hmd] at h; cases h; exact Hpre)
+    (fun ht => by rw [Htrk (by unfold Cluster.trace; rw [← Hnok.1]; exact ht)])) $$ [Hcc0 Hcf]
   · iframe Hinit Hn1 Hcc0
     iright; iframe Hcf Hlb'
     rw [Hnok.1]; iexact HU

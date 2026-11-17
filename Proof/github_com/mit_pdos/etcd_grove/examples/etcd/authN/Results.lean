@@ -51,7 +51,8 @@ theorem authN_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 variable [go_gctx : GoGlobalContext]
 
 /-- **The authentication example is safe, in the operational semantics, for every member count
@@ -100,7 +101,9 @@ theorem etcd_authN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_authN.premises (GF := putgetGF) (hG := heapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([authNProgram k], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -109,7 +112,7 @@ theorem etcd_authN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_authN_adequate Hctx Hcec hD22 k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
-    HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

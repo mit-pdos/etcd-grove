@@ -17,6 +17,198 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### The thread-token `WaitGroup` joins have no `Add` by a member, during a `Wait` (2026-11-16, k8s 7f-5b)
+
+- **Missing.** `sync.tokJoin` and `sync.tokJoinL` (`Perennial/Proof/sync/WaitGroupTokJoin{,L}.lean`)
+  let only the holder of the exclusive `ownAdder` call `Add`, and `Wait` consumes `ownAdder`: the
+  `added` count is split half in the invariant, half in `ownAdder` (`ownTokAuthDfrac γ.ndGn ½`), and
+  `ownAdder` holds `ownWaitGroupWaiters γ 0`. So no goroutine can `Add` while another `Wait`s, even at
+  a positive count. The raw specs allow it: `sync.WaitGroup.Add.spec`'s first disjunct (`oldc ≠ 0`)
+  needs no waiter state, as Go's `Add` panics ("Add called concurrently with Wait") only when the
+  count was `0`.
+- **Who needs it.** k8s's watcher (`k8s.io/apiserver/pkg/storage/etcd3/watcher.go`, 7f-5b, the
+  `ConcurrentWatchObjectDecode` branch): `run` waits on `resultChanWG` while
+  `concurrentOrderedEventProcessing.scheduleEventProcessing` (itself a goroutine of the group,
+  holding a count until its deferred `Done`) runs `wg.Add(1); go func(){ defer wg.Done(); ... }()`
+  once per event, unboundedly; so the counter needs thread tokens (tokJoinL with pending level `1`
+  fits the accounting: the scheduler holds `threadTokFrom 1`).
+- **Workaround here (proposed, not written).** A local idiom over the raw `Add`/`Done`/`Wait` specs
+  (no trusted text): tokJoinL's invariant without the `added` half in the adder, a member's `Add(1)`
+  (`ownDone P ∗ levelTok p ⊢ … ownDone P ∗ ownPending True`), the counter at least the member's own
+  unit, `Wait` giving the top-level `Done` propositions.
+- **Proposed change.** `tokJoinL.WaitGroup.wp_Add_member`: a holder of `ownDone N p wg P` and a
+  level-`p` token may `Add(1)` at any time, the new slot's `Done` proposition folded into `P`'s (or
+  `True`), with the invariant's `added` count owned by the invariant (the adder keeping a fragment).
+- **Status.** Open; hard stop of 7f-5b (2026-11-16), options to etcd-grove-02.
+
+### `internal/stringslite.HasPrefix`/`HasSuffix` and `strings.HasSuffix` without bodies (2026-11-14, branch `wal-leaf6`)
+
+- **Missing.** Perennial's `internal/stringslite.toml` translates nothing but `Clone` (trusted), and
+  `strings.toml` has `HasPrefix` as a trusted model but not `HasSuffix` (names only). Two calls of
+  the WAL cannot be stepped: `filepathlite.IsAbs(p)` is `stringslite.HasPrefix(p, "/")`
+  (`path_unix.go`; the part translates `internal/filepathlite` with bodies, `LinuxFs/Code/
+  internal/filepathlite.toml`), reached by `filepath.Abs`, `fileutil.IsDirWriteable`,
+  `TouchDirAll`, `CreateDirAll`, `Create`; and `strings.HasSuffix(name, ".wal")` (`checkWALNames`,
+  `parseWALName`).
+- **Workaround here.** `strings.HasSuffix.spec` is a main-tree trust-boundary axiom
+  (`Proof/strings/HasSuffix.lean`), linked in the WAL's `Link.lean` through the part's generated copy
+  (`etc/gen-part-copies.py`; the same axiom, no new one); `filepathlite.IsAbs.spec` has no axiom and
+  stays a hypothesis `h_filepathlite_IsAbs` of the six results that reach it. The part cannot
+  translate `internal/stringslite` itself: its translation would declare Perennial's names
+  (`Perennial.internal.stringslite.*`), which Perennial's `strconv`, `strings`, ... already import.
+- **Proposed.** Translate `stringslite.HasPrefix` and `HasSuffix` with bodies (`len(s) >= len(prefix)
+  && s[:len(prefix)] == prefix`; goose now translates string slicing, `Slice go.string`, as the
+  part's `filepathlite.Dir` shows) and `strings.HasSuffix` (a call of `stringslite.HasSuffix`), with
+  specs `RET #(decide (pre <+: s))` / `#(decide (suf <:+ s))` in `Perennial/Proof/{internal/
+  stringslite,strings}/`. Then `filepathlite.IsAbs.spec` is proved in the part (`RET #(decide
+  (p.head? = some (W8 47)))` from `go!"/" <+: p`) and the HasSuffix axiom becomes a theorem. Not yet
+  proposed.
+
+### `append` does not model `growslice`'s `maxAlloc` limit (2026-11-14, branch `wal-small14`)
+
+Go's `append` panics ("growslice: len out of range") once the new capacity times the element size
+passes `maxAlloc` (`2^48` on linux/amd64); Perennial's `go.append` assumes only that the new length
+does not overflow an `int` (`sumAssumeNoOverflowSigned`). A slice built by appends is therefore
+bounded only by `2^63` in the model, and `sort.Strings.spec` needs at most `2^62` elements (Go's
+`heapSort` overflows past that). Local workaround: the trusted `File.Readdirnames.impl` of the
+`LinuxFs` part assumes fewer than `2^44` names before each append (`notes/wal-fsext-plan.md`, W7-W12
+log, third session; pending the user's review). General fix: `append` (and `make`) assume
+`newLen * elemSize ≤ maxAlloc`, as they assume the overflow, and `wp_slice_append` returns the bound.
+
+### An indexed handshake idiom (2026-11-13, branch `wal-cut2`)
+
+- **The gap.** `Chan/Idioms/Handshake` hands the sender one proposition `Q` for every exchange, so a
+  protocol whose returned resource depends on the round (the WAL's file pipeline: file `n` for the
+  claim on the name of file `n + 1`) cannot be stated over it.
+- **Local workaround.** `LinuxFs/Proof/.../storage/wal/HandshakeN.lean`: `isHsn γ ch P Q`, `P` and `Q`
+  indexed by the exchange, each side's count a ghost-variable half (`hsnSnd`, `hsnRcv`).
+- **Proposed change.** Move it to `Chan/Idioms/` (the plain handshake is the case of constant
+  `P`, `Q` with the counts dropped).
+
+### `notCrashed` before a step: `wp_notCrashed_acc`, `wp_atomic_nc` (2026-11-13, branch `wal-ncau`)
+
+- **The gap.** The generation's `notCrashed` is in the bounded language's state interpretation
+  (`gooseBstateInterp`, `Lifting.lean:752`), and no lifting lemma lets the update before a step use
+  it (as `wp_ext_acc` does for an extension's state). An invariant whose crash branch is
+  `crashed ∗ tok` (the WAL's `walInv`) can then be opened only inside a physical step's own proof,
+  not by a client's atomic update opened (`wp_atomic`) around an `os` call's step.
+- **Who needs it.** Every WAL unit over `fsExt` that opens `walInv` in a client update nested in an
+  `os` spec's atomic update (`notes/wal-fsext-plan.md`, W1 log, fourth and fifth sessions); also the
+  older entry "No WP step lemma refutes the generation's `crashed`" below (its `wp_crashed_elim`
+  follows from `wp_notCrashed_acc` and `notCrashed_crashed`).
+- **Local workaround (proved, no axiom).** `GooseLang/Ext/Fs/NotCrashedAcc.lean`: for a non-value `e`,
+  `wp_notCrashed_acc : (notCrashed -∗ |={E}=> notCrashed ∗ WP e @ s; E {{Φ}}) ⊢ WP e @ s; E {{Φ}}`,
+  and `wp_atomic_nc [Atomic ↑s e] : (notCrashed -∗ |={E1,E2}=> notCrashed ∗ WP e @ s; E2 {{v, |={E2,E1}=>
+  Φ v}}) ⊢ WP e @ s; E1 {{Φ}}` (iris's `wp_atomic`'s proof, with the token taken out of the first
+  step's state interpretation and put back). Over them, `osAUnc`/`wp_aunc_step`
+  (`LinuxFs/Proof/os/SharedAu.lean`).
+- **Proposed.** Both lemmas in Perennial's `GooseLang/Lifting.lean`, beside `wp_ext_acc` (they use
+  only `goose_bstateInterp_eq` and iris's `wp_unfold`); generic, nothing about `fsExt`.
+- **Status.** Recorded; the local copies go when the pin has them.
+
+### No translation of `hash/crc32`, `bufio`, `path/filepath`; no models of `io.ReadFull`/`io.Copy`, `fmt.Sscanf`, `strings.HasSuffix` (2026-11-13, branch `wal-fsext-translate`)
+
+etcd's real WAL over `fsExt` (the part `LinuxFs/`) calls `crc32.MakeTable(crc32.Castagnoli)` and
+`crc32.Update` (`pkg/v3/crc`), `bufio.NewReader` and `*bufio.Reader`'s methods (`fileutil.FileBufReader`,
+the decoder), `filepath.Join/Base/Dir/Clean/Ext/Abs/Walk`, `io.ReadFull` (decoder.go:117), `io.Copy`
+(repair.go:81), `fmt.Sscanf` (util.go:112, `parseWALName`) and `strings.HasSuffix`. Perennial
+translates none of the first three (the default root `Perennial` names modules that do not exist),
+and has the others names only. Workaround here: names-only translations in the part
+(`LinuxFs/Code/{hash/crc32,bufio,path/filepath}.toml`, project etcd's part). Proposed: Perennial
+translations with bodies (crc32's generic table path, bufio's `Reader`, filepath over `path`'s
+lexical functions and `os` for `Abs`/`Walk`) and specs; `io.ReadFull`/`io.Copy` with bodies over the
+`Reader` interface. Not yet proposed; the trust decision is open (no model was written).
+
+**`hash/crc32` (2026-11-13, branch `wal-leaf-enc`): a trusted model, pending the user's review.**
+`LinuxFs/TrustedCode/hash/crc32.lean` models `MakeTable` and `Update` (`trusted` in
+`LinuxFs/Code/hash/crc32.toml`) as Go's portable code: `MakeTable(Castagnoli)` allocates the table of
+`simplePopulateTable(Castagnoli)` (a Lean constant computed bitwise, `castagnoliTableArr`), any other
+polynomial panics; `Update` is `simpleUpdate` reading the table it is given. The pure vocabulary is
+`LinuxFs/Spec/hash/crc32/Model.lean` (`crc32c`, with the check vector proved by kernel evaluation,
+table-driven and bitwise). Evidence: `examples/stdlib/crc32/crc32_test.go` (go1.27.3 linux/amd64:
+the whole table, the check vector, 20,000 random inputs and splits against Go's SSE4.2 path).
+Deviations, documented in the model: other polynomials panic; `MakeTable(Castagnoli)` allocates a
+fresh table where Go returns one shared pointer. **Proposed upstream**: the same model in Perennial's
+`TrustedCode/hash/crc32.lean` (with `crc32.toml`'s `trusted`), generalized to every polynomial by a
+GooseLang `simplePopulateTable` (or by translating `crc32_generic.go` with bodies and trusting only
+`Update`'s dispatch to it), with `IEEE` alongside; then this part's names-only `hash/crc32` and the
+local model go.
+
+### `io.ReadFull`/`ReadAtLeast` and `binary.Read`'s fast path without bodies (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only for `ReadFull`/`ReadAtLeast`, and
+  `encoding/binary.toml` only the byte orders (`Read` goes through `reflect`), so neither call can be
+  stepped. The WAL's decoder calls both (decoder.go:117 `io.ReadFull(fileBufReader, data)`,
+  decoder.go:227-231 `binary.Read(r, binary.LittleEndian, &n)` of an `*int64`).
+- **Workaround here.** Two trust-boundary axioms, pending the user's review:
+  `io.ReadFull.wp_proof` (`Spec/io/ReadFull.lean`, over a stream reader `io.readerStream`,
+  `Proof/io/ReaderStream.lean`) and `binary.ReadInt64LE.wp_proof` (`Spec/encoding/binary/
+  ReadInt64LE.lean`, over the triple of its `io.ReadFull` call). **Why not a part-local translation
+  (as `bufio`'s):** a part may replace a package only if no module it imports reaches Perennial's
+  copy (the part's `os`/`io/fs` replace Perennial's because the part also has its own importers of
+  them). `io` is imported by Perennial's `fmt`, `strings`, `bytes`, `bufio`'s part copy, ..., which
+  the WAL's translation imports: a `LinuxFs/Code/io.lean` declaring `Perennial.io.ReadFull` would
+  clash with Perennial's `Perennial.Code.io` in every such module, and a function's `FuncUnfold` can
+  come only from its package's own `Assumptions`. So the bodies have to come from Perennial.
+- **Proposed.** (1) `io.toml`: translate `ReadAtLeast` and `ReadFull` with bodies (`ErrShortBuffer`,
+  `EOF`, `ErrUnexpectedEOF` already are), and prove in `Perennial/Proof/io/` the spec of
+  `Spec/io/ReadFull.lean` (the stream-reader vocabulary `io.readerStream`/`io.readFullOk` moves there
+  with it): a loop over `r.Read(buf[n:])` with the invariant "`ys` delivered, `buf` is `ys ++ rest`,
+  `S (r0 ++ ys)`", the exit's error comparison `err == EOF` an interface comparison of
+  `*errorString`s (no panic). (2) `encoding/binary.toml`: translate `Read`, `intDataSize` and
+  `decodeFast` with bodies and `reflect` names-only (the reflect fallback is unreachable for the
+  fast-path types, as `Read`'s spec premise `intDataSize data ≠ 0` would say), and prove
+  `ReadInt64LE`'s spec (and `ReadUint64`'s) over them; or a trusted model of `Read` restricted to the
+  fast path, if goose cannot translate the type switches. Then the two axioms here become
+  `theorem`s with the same statements (the specs are already over Perennial's names). Not yet
+  proposed.
+- **Status.** (2026-11-14, `wal-leaf6`) The WAL's `Link.lean` (`LinuxFs/`) rests on both axioms
+  through the part's generated copies of `Proof/io/ReadFull.lean` and `Proof/encoding/binary/
+  ReadInt64LE.lean` (`etc/gen-part-copies.py`: the same statements, not new axioms).
+
+### Operations on untyped rune constants have no step (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Goose emits `Separator == '/'` (`GoOp GoEquals go.untypedRune`) and `string(Separator)`
+  (`Convert go.untypedRune go.string`) of `internal/filepathlite`'s untyped constant as run-time
+  operations, and Perennial's semantics has no rule for either (`UntypedIntSemantics` converts untyped
+  integers to the integer types only). Go evaluates both at compile time.
+- **Workaround here.** A hypothesis class `UntypedRuneSemantics`
+  (`LinuxFs/Proof/internal/filepathlite/UntypedRune.lean`, like `UntypedIntToFloat64Semantics`):
+  equality of untyped integers, and `string(c)` an uninterpreted string that is the one byte `c` for
+  ASCII `c`; `filepathlite.FromSlash`/`Base` (and what calls them) take it as an instance. To be
+  added to `etc/gen-link.py`'s `SEM_PREMISES` when the package is linked. **Pending the user's
+  review** (a semantic assumption).
+- **Proposed.** Goose folds constant expressions of untyped constants (the language's "Constant
+  expressions"), or Perennial's `UntypedIntSemantics` gains the two steps. Not yet proposed.
+
+### `Sprintf`'s `%0Nx`, `Sscanf`'s `%0Nx` of a `uint64`, `Time.Format` (2026-11-13, WAL leaf specs, branch `wal-leaf-std2`)
+
+- **Missing.** Perennial's model of `Sprintf` (`Perennial/TrustedCode/fmt.lean`) formats `%d`, `%v`,
+  `%0Nd` and `%x` exactly, but from a `%0Nx` on its output is arbitrary (`intVerb` accepts a width
+  only before `d`); `Sscanf` has no model (names-only); `time.Time.Format` has no body. The WAL's
+  `walName` is `Sprintf("%016x-%016x.wal", seq, index)` (util.go:117), `parseWALName` scans it back
+  with `Sscanf(str, "%016x-%016x.wal", &seq, &index)` (util.go:112), and `cleanupWAL` names the
+  broken directory with `time.Now().Format("20060102.150405.999999")` (wal.go:299).
+- **Workaround here.** Trust-boundary axioms, pending the user's review: `fmt.SprintfWalName`,
+  `fmt.SscanfWalName` (`Spec/fmt/`, the pure model `Proof/fmt/WalName.lean`: `walNameStr`,
+  `scanWalName`, with the round trip proved) and `time.Time.Format` (some string). Go evidence:
+  `examples/stdlib/fmtwalname/` (the Lean models transcribed and compared with `fmt` on edge values,
+  100,000 random pairs and 200,000 random strings) and `examples/stdlib/timeformat/` (no panic on
+  200,000 random layouts and times, any location).
+- **Proposed.** (1) The `Sprintf` model's `intVerb` returns the verb too and accepts `%0Nx` as it
+  accepts `%0Nd`; `formatHex` takes the width and pads with zeros after the sign, as `%0Nd` does
+  (Go's `fmtInteger` with the `zero` flag: `Sprintf("%05x", -255)` is `"-00ff"`); the spec relation
+  `fmt.SprintfOut` gains the case. Then `SprintfWalName` is a corollary of `wp_Sprintf` (the
+  argument list is two `uint64`s, `fmt.ArgsWf`). (2) A model of `Sscanf` for a format of literal
+  bytes and `%x`/`%0Nx`/`%d` of unsigned integers, transcribing `fmt/scan.go`'s `doScanf` on those
+  verbs (`SkipSpace` over-approximated as here: an input byte that may begin a space makes the rest
+  arbitrary), with `scanWalName` as its instance. (3) A trusted model of `Time.Format` returning an
+  arbitrary string (Perennial's `arbitraryString`), so its spec is proved. Not yet proposed.
+- **Status.** (2026-11-14, `wal-leaf6`) Still missing at the pin (`intVerb` accepts a width only
+  before `d`; `Sscanf` names-only). The WAL's `Link.lean` rests on `fmt.SprintfWalName.wp_proof` and
+  `fmt.SscanfWalName.wp_proof` through the part's generated copies (`etc/gen-part-copies.py`: the
+  same statements, not new axioms).
+
 ### `errors.Is` with a struct-valued target: `net.ErrClosed` (2026-11-14, branch `net-tcp`)
 
 `errors.Is.spec` (`Perennial/Spec/errors/Is.lean`) admits only a `nil` or pointer target
@@ -819,6 +1011,17 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   structurally; the spec needs only that `Errorf` returns a non-nil error).
 - **Status.** Not started.
 
+### Specs: `fmt`'s `ArgWf` for `[]string` and `fs.FileMode` arguments (2026-11-14, `wal-leaf5`)
+
+- **Missing.** Perennial's `fmt.Errorf` spec admits only basic arguments and arguments whose
+  `Error()`/`String()` has a spec: etcd's `fileutil.CreateDirAll` formats a `[]string` (`%q`) and
+  `CheckDirPermission` two `fs.FileMode`s (`%q`, `String()`, untranslated).
+- **Workaround here.** `LinuxFs/Spec/fmt/ErrorfStrs.lean` (`fmt.ErrorfStrs.spec`), proved over the model
+  (`LinuxFs/Proof/fmt/ErrorfStrs.lean`), the faithfulness argued in its header (as `fmt.ErrorfErrs`).
+- **Proposed.** `ArgWf` cases for a slice of basic values (printed structurally, its contents read: a
+  fraction held) and for a type whose `String()` is translated and specified (`FileMode.String`).
+- **Status.** Not started.
+
 ### Tactics: `wp_load` misses a field of a whole-struct points-to with a generic-struct field (2026-10-27, client-go listers)
 
 - **Missing.** With `s ↦{dq} (⟨ri⟩ : daemonSetLister)` in context (a struct whose one field is the
@@ -1217,6 +1420,30 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   fractional one is split by `iStructNamed` and recombined with `typedPointsto_combine` around the
   loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
+
+### `strconv.Itoa` has no spec (2026-11-11, trace-check S7 part 2)
+
+- **Missing.** A spec of `strconv.Itoa` (Perennial translates `strconv`, but specifies only
+  `ParseUint` and the errors).
+- **Who needs it.** The trace-check harness's proposer (`examples/raft/tracecheck/concurrent.go`,
+  `[]byte("v"+strconv.Itoa(k))`): any string serves (the plan's Q33).
+- **Workaround here.** None yet: `RunConcurrent`'s proof is not written.
+- **Proposed (general).** `strconv.Itoa.spec` (and `FormatInt`'s): the decimal string of the value,
+  proved from the translation (or, weaker, some string).
+- **Status.** Recorded only.
+
+### A thread-token join with several adders (2026-11-11, trace-check S7 part 2)
+
+- **Missing.** `sync.tokJoin`/`sync.tokJoinL` bound a wait group's counter by thread tokens, with one
+  exclusive adder (`ownAdder`, with the waiters' token); a group added to by several goroutines
+  concurrently, without bound, then waited on once, has no idiom.
+- **Who needs it.** The trace-check harness's network (`c.net`: every `app` goroutine's `send` adds one
+  goroutine per message; `RunConcurrent` waits after the `app`s end) (the plan's Q34).
+- **Workaround here.** None yet (the proof is not written); a local protocol over `WaitGroup`'s raw specs
+  is possible.
+- **Proposed (general).** `ownAdder` fractional (`Add` with any fraction, `Wait` with the whole), the
+  counter backed by the adders' deposited thread tokens as `tokJoin`'s.
+- **Status.** Recorded only.
 
 ## Landed
 
@@ -1786,6 +2013,10 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `601b7fb5d` (`errors.Is.spec` at any
+  `ComparableTarget`: a target whose type's `==` is the equality of plain values, `ComparableErr`; an empty
+  struct or a value struct of comparable fields should qualify, not checked). The `As` false-for-a-leaf case is
+  not drafted.
 
 ### `go.NotInterface go.uint64`
 
@@ -1794,7 +2025,8 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `MethodResolve` on a named type over `uint64` (`types.ID`'s `String`) does not step.
 - **Workaround here.** Local instances (`InvStart.lean`, `apply/BackendLemmas2.lean`,
   `EtcdServer__sendMergedSnap.lean`, `SnapTakeProof.lean` (D22 J4b)), each `⟨by unfold go.uint64;
-  trivial⟩`.
+  trivial⟩`; and `go.NotInterface go.string` in the trace checker's `TraceRead.lean` (layer C,
+  2026-11-09: `Role.String()` on the constant `Leader`).
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
 
@@ -2176,6 +2408,27 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   admitted proof.
 - **Status.** Recorded only; not reduced to a minimal example.
 
+
+## Iris-Lean lacks `atomic_update_wand` (2026-11-09, trace-check S5, review round 2's A10)
+
+- **Missing.** Rocq Iris's `atomic_update_wand` (`(∀.. x y, Φ1 x y -∗ Φ2 x y) -∗ AU Φ1 -∗ AU Φ2`,
+  weakening an atomic update's postcondition) is not in `Iris/BI/Lib/Atomic.lean` (it has
+  `atomic_acc_wand`, `aupd_aacc`, `aupd_intro`). Needed by `traceFire_mono`, which hook callers
+  chaining `TraceFire` (`TraceFireN`) use.
+- **Local workaround.** `aupd_wand_post` (`Proof/go_etcd_io/raft/v3/TracedHooksDraft.lean`), proved
+  from `aupd_intro`, `aupd_aacc` and `atomic_acc_wand`, the update before the wand so that
+  `iapply` fixes the postcondition first.
+- **Proposed (general).** Port `atomic_update_wand` to Iris-Lean (upstream of Perennial's pin), with
+  `rocq_alias`; then drop the local copy.
+- **Status.** Recorded only.
+
+## `cleanup_bool_decide`'s `decide_true` became ambiguous, and the macro's `try` hides it (2026-11-10, trace-check Q8 slice 14)
+
+In `Proof/go_etcd_io/raft/v3/stepLeader/Rest.lean`, Perennial's `cleanup_bool_decide` macro stopped
+rewriting anything: the name `decide_true` it uses now resolves ambiguously (Lean's `decide_true` and
+Iris-Lean's `BI.decide_true`, both in scope there), and the macro wraps the rewrite in `try`, so the
+failure is silent. Worked around locally in that file. General fix to propose: qualify the lemma
+name in the macro (`_root_.decide_true`), and consider failing loudly instead of `try`.
 ## `strings.Cut` has no model (2026-11-08, k8s 7e-3b)
 
 - **What happened.** Perennial's `strings` translates `Cut` names-only (no body, no spec). The k8s
@@ -2333,7 +2586,8 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
   `wp_crashed_elim : ¬ IsValue e → crashed ⊢ WP e @ s; E {{ Φ }}` (the first step's state
   interpretation gives `notCrashed`, hence `False`), and its atomic-step form for a step proof that
   opens an invariant holding a `token ∨ crashed` disjunction.
-- **Status.** Recorded only.
+- **Status.** Recorded only. 2026-11-13: the atomic-step form is proved locally (`wp_atomic_nc`,
+  `wp_notCrashed_acc`; the entry "`notCrashed` before a step" under "Open").
 
 ## No specs of `fmt.Fprintf` / `strings.Builder` (2026-11-09, branch `specs-only`)
 
@@ -2344,6 +2598,155 @@ zero `Once`; local: U11d's `Proof/go_etcd_io/bbolt/Open/OnceOwn.lean` (`Once.wp_
 - **Proposed (general; record only).** Specs of `strings.Builder` (`WriteString`, `WriteByte`, `String`)
   and of `fmt.Fprintf` to an `io.Writer` with basic-typed arguments.
 - **Status.** Recorded only.
+
+## 2026-11-13: `fmt.Errorf` with `%w` does not wrap (the WAL decoder)
+
+- **Missing.** Perennial's `fmt.Errorf` model returns a fresh error for `%w` that does not wrap its
+  argument, so `errors.Is(fmt.Errorf("...: %w", io.ErrUnexpectedEOF), io.ErrUnexpectedEOF)` is false in
+  the model and true in Go; and the spec refuses error arguments (`ArgsWf`). etcd's WAL decoder
+  (`decoder.go`: the "too large" and CRC-mismatch errors) and `walpb.Record.Validate` pass errors to `%w`,
+  and `ReadAll`'s read-mode branch tests `errors.Is(err, io.ErrUnexpectedEOF)` on them.
+- **Workaround here.** The WAL proofs take `fmt.ErrorfErrs.spec` as a hypothesis (branch `wal-dec`,
+  `LinuxFs/Proof/go_etcd_io/etcd/server/v3/storage/wal/`), to be discharged when linking.
+- **Proposed.** `Errorf`'s model wraps the `%w` arguments (Go's `wrapError`/`wrapErrors`) and its spec
+  accepts error arguments, with `errors.Is`/`Unwrap` following the chain.
+
+## 2026-11-14: `errors.Is` on `fmt.Errorf`'s result, and on `proto.Unmarshal`'s error (the WAL decoder)
+
+- **Missing.** A reader looping to `io.EOF` (etcd's `wal.ReadAll`) tests `errors.Is(err, io.EOF)` on the WAL
+  decoder's errors, which include `fmt.Errorf("%w: ...", io.ErrUnexpectedEOF)`, `fmt.Errorf("%w: ...",
+  Validate's error)` and `proto.Unmarshal`'s error. Perennial's `Errorf` spec gives nothing of its result
+  (and refuses error arguments, the 2026-11-13 entry above); this repository's trust-boundary axiom
+  `proto.UnmarshalPb.spec` (`LinuxFs/Proof/google_golang_org/protobuf/proto/UnmarshalPb.lean`) says only
+  that the error is not `nil`.
+- **Workaround here.** Two hypotheses of the decoder's proof (branch `wal-readall15`):
+  `fmt.ErrorfErrsNot.spec` (`LinuxFs/Spec/fmt/ErrorfErrsNot.lean`: the result is not `t` and `errors.Is(_, t)`
+  answers `false` on it, `t` a package variable's value, when so of every error argument) and
+  `proto.UnmarshalWalRecordE.spec` (`LinuxFs/Spec/google_golang_org/protobuf/proto/UnmarshalWalRecordE.lean`:
+  the error is not `io.EOF`, the same answer). Both hold in Go (the files' headers say why).
+- **Proposed.** With the 2026-11-13 entry's `Errorf` (wrapping `%w`, `*wrapError` results), the first follows
+  from `errors.Is`'s walk; Perennial's `errors.newVar` could keep the `*errorString`'s points-to, so that
+  freshness proves "not `t`" under today's model too. For `proto`: an extension of `UnmarshalPb.spec`'s error
+  (not `io.EOF`, `errors.Is(_, io.EOF)` false) — a trust-base change, for the user.
+- **Status.** Recorded; hypotheses in place.
+
+## 2026-11-13: `go.NotInterface` does not unfold `go.int64` (method calls on `time.Duration`)
+
+- **Missing.** `MethodResolve` on a named type over `int64` (`time.Duration`) needs a `go.NotInterface go.int64`
+  instance that Perennial's instances do not derive (they do not unfold `go.int64`).
+- **Workaround here.** A local instance in the WAL encoder's proofs (branch `wal-enc4`, `LinuxFs/.../wal/EncDefs.lean`).
+  The same for `go.uint32` (`io/fs.FileMode.IsDir`, `os.MkdirAll`'s proof, branch `wal-osau4-mkdirall`:
+  a `haveI` in the macro `fileStat_isDir` of `LinuxFs/Proof/os/MkdirAll{,Parts}.lean`). Every predeclared
+  integer type is a plain `def` (`go.uint32 := go.Named go!"uint32" []`), so no instance of the class sees it.
+- **Proposed.** The instance (or the unfolding) in Perennial, for every predeclared type.
+
+## 2026-11-13: `errors.Is` only for pointer targets (`fileutil.TryLockFile`'s `EWOULDBLOCK`)
+
+- **Missing.** Perennial's `errors.Is.spec`/`errors.is.spec` admit only `nil` and pointer targets
+  (`IsPointerError`). `fileutil`'s `ofdTryLockFile`/`flockTryLockFile` call `errors.Is(err,
+  syscall.EWOULDBLOCK)` with an errno target (a `uintptr`, comparable, so Go's walk returns), and
+  `syscall.Errno.Is` has no spec.
+- **Workaround here.** `TryLockFile`'s proof takes `errors.IsErrno.spec` (`LinuxFs/Spec/errors/IsErrno.lean`:
+  an errno `err` and an errno target give some boolean) as a hypothesis (branch `wal-read4`).
+- **Proposed.** `errors.is.spec` for any target whose type's errors in the tree hold comparable values
+  (the comparison `err == target` is then defined), and a spec of `syscall.Errno.Is` (a `switch` comparing
+  the target with `oserror`'s pointer errors).
+- **Also (2026-11-14, `wal.Exist`):** `errors.Is(err, os.ErrNotExist)` of an `os` error (a `*PathError` of
+  an `Errno`) has a pointer target, so `errors.Is.spec` applies, but needs the error tree (`*PathError`'s
+  `Unwrap`, `Errno.Is`) and `os.ErrNotExist = oserror.ErrNotExist` distinct from `oserror`'s other errors
+  in the package facts. Workaround: the hypothesis `errors.IsPathErrnoNotExist.spec`
+  (`LinuxFs/Spec/go_etcd_io/etcd/server/v3/storage/wal/ExistCallees.lean`).
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `601b7fb5d`. `errors.Is.spec`/`errors.is.spec`
+  take `ComparableTarget S target`/`ComparableErr S tii` (the type's `CheckComparable` steps, its `==` is Lean's
+  `=` on some `V` with an injective `#`, the target's and the tree's same-typed values are of `V`);
+  `comparableErr_uintptr` gives it for an `Errno` (`[tii.ty ↓u go.uintptr]`, `V := w64`); the old statement is
+  `errors.wp_Is_ptr` (a client's `wp_Is S I U err target htarget htyped` becomes `wp_Is_ptr` with the same arguments).
+
+## 2026-11-14: `errors.newVar` forgets the allocation (the WAL decoder's environment, `wal-readall17`)
+
+- **Limitation.** `errors.newVar X msg` (`Perennial/Proof/errors/NewVar.lean`, what `io`'s fact keeps of
+  `io.EOF`, `io.ErrUnexpectedEOF`, ...) holds `globalAddr X ↦□ *errorString(x)` and `Error()`'s spec, but
+  not `x`'s field (`wp_New_errorString` persists it and drops it). So two `errors.New` variables cannot be
+  shown different (`io.EOF ≠ io.ErrUnexpectedEOF`, `errors.Is(walpb.ErrCRCMismatch, io.EOF) = false`),
+  which Go guarantees (distinct allocations). The part's WAL hypothesis `WalDecEnvSupply`
+  (`openAtIndex.lean`) is blocked only by this.
+- **Proposed (general).** `newVar` keeps `structFieldRef errorString "s" x ↦□ msg` (so variables with
+  different messages are different pointers), or a ghost "fresh allocation" token; `wp_New_errorString`
+  returns it.
+- **Also:** `errors.Is(err, io.EOF)` on the part's `*PathError`s (`errors.IsPathErrnoEof.spec`,
+  `LinuxFs/Spec/errors/IsPathErrnoEof.lean`), the same gap as `IsPathErrnoNotExist.spec` above.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed), `58e04c5c0`. `newVar X msg := ∃ x, globalAddr X ↦□
+  *x ∗ x.[errorString, "s"] ↦□ msg ∗ □ Error()` (moved to `Perennial/Proof/errors/Base.lean`);
+  `wp_New_errorString` returns the field; `errors.errorString_ne` and `errors.newVar_ne (h : m1 ≠ m2) : newVar X m1 ⊢
+  newVar Y m2 -∗ globalAddr X ↦□ v1 -∗ globalAddr Y ↦□ v2 -∗ ⌜v1 ≠ v2⌝`. Perennial's initializer proofs (`io`,
+  `io/fs`, `oserror`, `poll`, `strconv`, `context`) build unchanged; a client destructing `newVar` into three parts
+  (`errOk_newVar`, `walDecEnv_eof_not`, ...) gets one more conjunct.
+
+## 2026-11-14: The WAL's leaf specs (`wal-leaf1`): `errors.As` first match, `Errno.Is`
+
+- **Missing.** (1) Perennial's `errors.As.spec` (an axiom: `As` is reflection) says nothing of the result
+  (`∃ b v'`), even when `err`'s own dynamic type is the target's element type, where Go's `as` stores `err` and
+  returns `true` before any `Unwrap`; and it asks for the whole error tree. `renameWAL`'s
+  `errors.As(err, &linkErr)` on `os.Rename`'s `*LinkError` needs the first-match case
+  (`errors.AsLinkError.spec`, `LinuxFs/Spec/errors/AsLinkError.lean`). (2) `syscall.Errno.Is` and
+  `(*fs.PathError).Unwrap` are names-only in the part (`LinuxFs/Code/syscall.toml`, `io/fs.toml`: this repository's
+  goose configuration, not Perennial's), so `errors.is` cannot step past an errno (`errors.IsErrno.spec`,
+  `errors.IsPathErrnoEof.spec`); with them translated, `IsErrno` still needs the 2026-11-13 entry's `errors.is.spec`
+  at a comparable non-pointer target, and both need `oserror`'s errors (and `errors.ErrUnsupported`) distinct from
+  the target (the `errors.newVar` entry above).
+- **Workaround here.** The three stay hypotheses of their callers' proofs (plan §8, "Leaf specs log").
+- **Proposed.** (1) `errors.As.spec` with a first-match case: if `err`'s dynamic type is the target's element type,
+  `As` returns `true` and stores `err`, with no tree premise. (2) Translate `Errno.Is` and `PathError.Unwrap` in the
+  part (a configuration change here), and Perennial's `errors.is.spec` for comparable targets.
+- **Status.** Recorded.
+- **Also (`wal-leaf2`, 2026-11-14): Perennial's `errors` fact.** With `Errno.Is` translated (tried: it translates
+  cleanly), its `switch` still does not step: its fourth case loads `errors.ErrUnsupported`, and the `errors`
+  package's fact is `True` (`Perennial/Proof/errors/Base.lean`), so no proof has that global's points-to; an
+  errno target reaches that case (the first three compare an `Errno` with `*errorString`s). No local route: `errors`
+  is Perennial's package and only its own initializer proof sees the allocation. **Proposed (general):** the
+  `errors` fact records `errors.newVar ErrUnsupported go!"unsupported operation"` (as `io`'s records its
+  variables), with the `newVar` change above so that it is distinct from `oserror`'s and `io`'s errors. Blocks
+  `errors.IsErrno.spec` and `errors.IsPathErrnoEof.spec` (with `newVar`'s allocation for the second). And (1),
+  `errors.As`: no first-match lemma is derivable from the axiom `errors.As.wp_proof` (its post is `∃ b v'`, and
+  `As` has neither translation nor model), so `errors.AsLinkError.spec` waits for the Perennial spec.
+- **Status (2026-11-14).** Drafted, pending user review: Perennial branch `errors-facts` (off `lean` at the pin `ddc0f0acc`, pushed, not landed). (a) `errors` fact, `58e04c5c0`: `errors`' `isPkgInit`
+  is `isInit := newVar ErrUnsupported "unsupported operation"` (`errors.isInit_access`, `errors.errUnsupported_of_init`),
+  `errors.initialize'` proved from `wp_New_errorString`. (b) `errors.As`, `7533cf64a`, **a strengthened axiom** (for
+  review; the Go check of its soundness is in `errors.As.wp_proof`'s docstring): `As.spec` takes `(v x : T')` and
+  `⌜AsFirst T err #x⌝ ∨ (isErrorTree S T' T ∗ ⌜S err⌝)`, post `l ↦ v' ∗ ⌜AsFirst T err #x → b = true ∧ v' = x⌝`
+  (`AsFirst`: `err`'s dynamic type is `T`, its value stored; or in an interface `T`'s type set, `err` stored);
+  `errors.wp_As_first (hT : AsTarget T) (h : AsFirst T err #x) : {{ isPkgInit errors ∗ l ↦ v }} As err &l
+  {{ RET #true; l ↦ x }}` is `errors.AsLinkError.spec`'s case. The three `wp_As` callers here gain `x` and an
+  `iright`. (c) `Errno.Is`'s comparisons: `601b7fb5d` (the 2026-11-13 entry's status).
+
+## 2026-11-14: `io.Copy`/`copyBuffer` without bodies (the WAL's `Repair`, branch `wal-copy1`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only but for its types and errors, so `io.Copy` cannot be
+  stepped. The WAL's `Repair` calls `io.Copy(bf, f)` of two files (`repair.go`), whose path on Linux is ordinary Go
+  down to `copy_file_range(2)` (`notes/wal-fsext-plan.md`, "io.Copy log"): the part's `os` side is now translated and
+  the system call modelled; only `io`'s two functions are missing.
+- **Workaround here.** `Repair.wp_proof` takes the `io.Copy`-of-files triple as a hypothesis (`io.CopyFiles.spec`,
+  the plan's "io.Copy log"); no axiom. A part copy of `io` is impossible for the reason of the `io.ReadFull` entry.
+- **Proposed.** `io.toml`: translate `Copy`, `CopyBuffer`, `copyBuffer`, `CopyN`, `LimitReader`, `LimitedReader.Read`
+  with bodies (`errInvalidWrite`, `ErrShortWrite`, `EOF` already are). General: every `io.Copy` user (`os`, `bufio`,
+  `net/http`) needs it. Untested whether goose translates `copyBuffer`'s two interface assertions and its loop
+  unchanged (it translates the part's `os` type switches and an assertion to an anonymous interface).
+- **Status.** Drafted on branch `io-copy` of Perennial (commit `7e4d729e6`, off the pin `ddc0f0acc`, pushed, not
+  landed), pending user review: goose translates all six unchanged (both assertions, the loop); full Perennial
+  `lake build` passes. Regenerated with go1.26.10, keeping only `io`'s output (the other packages' regeneration differs
+  from the committed output under every local toolchain).
+
+## 2026-11-14: `Sprintf`'s `%v` of a string (the WAL's `cleanupWAL`, branch `wal-create24`)
+
+- **Missing.** Perennial's `Sprintf` model (`SprintfOut`, `Perennial/Proof/fmt/Base.lean`) formats `%s` of a string
+  and `%v` of an integer; `%v` of a string falls to `other` (the rest of the output arbitrary). Go prints `%v` of a
+  string as `%s` (`fmt/print.go`, `printArg`'s `case string`, `fmtString`'s `case 'v'` without `#`). The WAL's
+  `cleanupWAL` names its target `Sprintf("%s.broken.%v", w.dir, time.Now().Format(...))`.
+- **Workaround here.** `fmt.SprintfBroken.spec` (`LinuxFs/Spec/fmt/SprintfBroken.lean`), a hypothesis of
+  `cleanupWAL`'s proof, pending the user; no axiom.
+- **Proposed.** `SimpleDirective`/`SprintfOut`: a constructor for `%v` of an interface holding a string, giving the
+  string, as `str` does for `%s` (and the trusted `Sprintf` model's verb table to match). General: every `%v` of a
+  string (error messages, names).
 
 ## The SPSC idiom has no send for a producer token kept in another invariant (2026-11-15, branch `k8s-7f5`)
 

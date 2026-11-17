@@ -87,11 +87,12 @@ local macro "deliver_tail " snc:term : tactic =>
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
     ihave #Hloc := snapLocalMsg_noDir (GF := GF) γ q.st.msg.To' Hsl q.st
-    -- (raft-entsize §2) the copy's content form; no bound on proposed data (`Hmd`)
+    ihave Htok := sentTok_untraced (GF := GF) γ q.st Htrc
+        -- (raft-entsize §2) the copy's content form; no bound on proposed data (`Hmd`)
     icases msgPtsC_msgPtsCC _ _ _ _ _ $$ Hmc with ⟨%cm, Hmc, %Hcm⟩
     imod stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st cm rfl Hcm.1 Hcm.2
-      (fun b h => by simp [Hmd] at h) $$ [Hmok Hmc Hc1] with Hstep
-    · iframe Hmok Hmc Hc1 Hloc
+      (fun b h => by simp [Hmd] at h) $$ [Hmok Hmc Hc1 Htok] with Hstep
+    · iframe Hmok Hmc Hc1 Hloc Htok
     wp_apply +noauto wp_node_Step n γ kvRaftN q.st.msg.To' «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
@@ -185,7 +186,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
       ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γ id nd)
         HPt $$ HP
       unfold kvPeerOk
-      icases Hpeer with ⟨%n, %Hsl, %Hmd, %Hnd, #HisNode⟩
+      icases Hpeer with ⟨%n, %Hsl, %Htrc, %Hmd, %Hnd, #HisNode⟩
       subst Hnd
       try simp only [Option.isSome_some, Option.getD_some, _root_.decide_true, Bool.not_true]
       wp_auto

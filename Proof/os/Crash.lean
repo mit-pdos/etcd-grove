@@ -126,7 +126,7 @@ theorem os.OpenFile.wp_proof_crash [os.file.FieldAssumptions] :
     · subst he0
       rw [decide_eq_true rfl]
       ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩
         by rw [openFd_rw]; split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd

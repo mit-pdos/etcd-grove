@@ -89,6 +89,13 @@ abbrev RestartNode.spec : Prop :=
   -- (auth-lease S4, 2026-11-16) outside the cluster's no-snapshot mode (`clusterNoSnap`; until then
   -- every cluster's names, `UniNames`): a restarted node may hold a snapshot
   ¬ clusterNoSnap γ →
+  -- (2026-11-08, Draft S3 of `notes/trace-validation-plan.md`, Q1: taken by the agent pending the
+  -- user's veto) the trace logger: none (`TraceLoggerOk_nil`); S4 widens it to a logger
+  TraceLoggerOk cv.TraceLogger' →
+  -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced cluster (every existing
+  -- client's, `notes/trace-validation-q6.md` item 9): raft's hook paths are proved untraced only;
+  -- stage 1 replaces this premise by the gate (`startTrace`, `TracedApiDraft.lean`)
+  Cluster.trace γ = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
       isCluster γ N ∗ nodeVacant γ cv.ID' ∗
       -- (2026-11-02, stage II (p)) the receipts' bound past the bootstrap log within `2^61`

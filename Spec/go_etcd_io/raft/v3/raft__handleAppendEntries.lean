@@ -37,11 +37,19 @@ raft v3.7 (2026-10-15, stage R4): `m` is a `*pb.Message` (`ml`), taken as `stepF
 `stepCandidate` pass it, a received message (`msgIn ml □`: its entries read-only, the `Entries`
 slice's capacity owned, which `maybeAppend` may adopt) and not given back; read through its
 getters (`logSliceFromMsgApp`); every reply shares `m`'s `From` cell (`To: m.From`, read-only).
+
+One spec for both trace modes (2026-11-10, trace-check Q8 stage 1 slice 7): the caller's resource `G`
+goes through the reply's hook gate (`send`'s `HookGateOpt`, its `SendAppendEntriesResponse` event at
+the state the reply is sent from) and comes back as `G'`. Which exit is taken, hence the state and
+the reply, is the function's: the gate is for every state `s1` and reply `mm` whose send ends in a
+`HandleAppResult` (`∀ s1 mm`, as `maybeSendAppend`'s `MsgApp` gate). Until slice 7 the premise
+`s.gh.tr = none` (stage 0), now `raft.handleAppendEntries.untraced`'s (`TracedUntracedStep.lean`).
 -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Proof.go_etcd_io.raft.v3.Plog
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -74,7 +82,8 @@ the second and third on whether `(m.LogTerm, m.Index)` matches the log
   `maybeAppend`'s spec says no more about the `sents`/`uents` split;
 - reject: state unchanged but for the reply; the hint is *some* `(hint, hintterm)`
   (`findConflictByTerm`'s spec pins only `hint ≤ min(m.Index, lastIndex())`, and the
-  model allows any). -/
+  model allows any); (2026-11-10, trace-check slice 20b) `hintterm ≤ m.LogTerm` (the trace's
+  number bound on the rejection's `LogTerm`, from the request's). -/
 def HandleAppResult (id : w64) (s : NState) (m : MessageM)
     (ents : List EntryM) (s' : NState) : Prop :=
   let ls := s.logst
@@ -106,7 +115,7 @@ def HandleAppResult (id : w64) (s : NState) (m : MessageM)
    ¬ PlogMatches ls.prev es prev ∧
    ∃ (hint hintterm : w64),
      -- (2026-10-19, D21 M3) `findConflictByTerm`'s hint (`RejHintOk`)
-     RejHintOk ls.prev es m.Index' m.LogTerm' hint ∧
+     RejHintOk ls.prev es m.Index' m.LogTerm' hint ∧ uint.Z hintterm ≤ uint.Z m.LogTerm' ∧
      s' = sendMsgs s [appResp id s dst true m.Index' hintterm hint])
 
 end results
@@ -142,7 +151,7 @@ Not needed, and so not premises: `m.From ≠
 abbrev raft.handleAppendEntries.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState)
     (ml : Loc) (m : MessageM) (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8)
-    (rs : List Loc),
+    (rs : List Loc) (G : IProp GF) (G' : List Msg → IProp GF),
   PlogWf (entryID.mk m.LogTerm' m.Index') ents →
   uint.Z m.Index' + (ents.length : Int) + 1 < 2^64 →
   (let ls := s.logst
@@ -165,10 +174,16 @@ abbrev raft.handleAppendEntries.spec : Prop :=
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
       -- (out_size C3) at its content, of bounded size under the node's flag (`msgInC`): the entries
       -- appended keep their sizes
-      "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+      "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+      -- (2026-11-10, Q8 stage 1 slice 7; until then, stage 0, the premise `s.gh.tr = none`) the
+      -- caller's resource, through the reply's hook gate, for the exit taken
+      "HG" ∷ G ∗
+      -- (2026-11-10, slice 14) `G'` indexed by the outbox, at the reply queued
+      "Hgate" ∷ (∀ (s1 : NState) (mm : Msg), ⌜HandleAppResult id s m ents (sendMsgs s1 [mm])⌝ -∗
+        G -∗ HookGateOpt s.gh.tr r (sendOutGate id s1 c MsgAppResp [mm]) (G' (sendMsgs s1 [mm]).outbox)) }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"handleAppendEntries")) (Val #ml))
   {{ (s' : NState), RET #();
-      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ }}
+      ownRaftPhysCV c c.voters r id s' ∗ ⌜HandleAppResult id s m ents s'⌝ ∗ G' s'.outbox }}
 
 end spec
 

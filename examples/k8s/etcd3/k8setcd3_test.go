@@ -22,7 +22,7 @@ import (
 // Model (Main panics otherwise), and the run reaches the check.
 func TestMainLinearizable(t *testing.T) {
 	inChild(t, "TestMainLinearizable", "", func(t *testing.T) {
-		r := Main(4, 60)
+		r := Main(4, 60, 0, 0)
 		if r != porcupine.Ok {
 			t.Fatalf("Main: %v, want Ok", r)
 		}
@@ -71,7 +71,7 @@ func testK(t *testing.T) uint64 {
 func TestMainCluster(t *testing.T) {
 	k := testK(t)
 	inChild(t, "TestMainCluster", "", func(t *testing.T) {
-		r := MainCluster(k, 4, 60)
+		r := MainCluster(k, 4, 60, 0, 0)
 		if r != porcupine.Ok {
 			t.Fatalf("MainCluster(%d): %v, want Ok", k, r)
 		}
@@ -279,7 +279,7 @@ func TestMainPartition(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			inChild(t, "TestMainPartition", name, func(t *testing.T) {
 				start := time.Now()
-				r := MainPartition(k, 4, 60, sched)
+				r := MainPartition(k, 4, 60, 0, 0, sched)
 				t.Logf("%s: %v in %v", name, r, time.Since(start))
 				if r != porcupine.Ok {
 					t.Fatalf("MainPartition(%s): %v, want Ok", name, r)

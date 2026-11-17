@@ -6,14 +6,15 @@ theorem RawNode.TransferLeader.wp_proof [package_sem : Assumptions] (wp_raft_Ste
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec) : RawNode.TransferLeader.spec
   -- `Perennial.EtcdGrove.RawNode.TransferLeader.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (transferee : w64),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
-          ▷ ("Hrn" ∷ ownRawNode γ rn id rs -∗ Φ (intoVal ())) -∗
-            WP
-              ((intoVal
-                  (methods RawNode.ty.PointerType
-                    go!"TransferLeader"
-                    (intoVal rn)))
-                (intoVal transferee))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
+            ▷ ("Hrn" ∷ ownRawNode γ rn id rs -∗ Φ (intoVal ())) -∗
+              WP
+                ((intoVal
+                    (methods RawNode.ty.PointerType
+                      go!"TransferLeader"
+                      (intoVal rn)))
+                  (intoVal transferee))
+                {{ Φ }}

@@ -1,9 +1,13 @@
 /-
 `apierrors.NewAlreadyExists` (`k8s.io/apimachinery/pkg/api/errors/errors.go`): a 409: the status `Failure`, reason `AlreadyExists`, code 409, with new details. Lean-first (no Rocq counterpart).
+
+(apierrors-fix, 2026-11-17; HasStatusCause fix (a), `notes/hasstatuscause-later-view.md`) The
+post also gives the details, read-only, with no causes (`statusDetailsAt st []`): Go sets `Details` to a fresh `&StatusDetails{Group, Kind, Name}`, whose `Causes` is `nil`.
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 
 @[expose] public section
 
@@ -30,6 +34,7 @@ abbrev NewAlreadyExists.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors }}
     (App (App (Val (@! k8s_io.apimachinery.pkg.api.errors.NewAlreadyExists)) (Val #gr)) (Val #name))
   {{ (p : Loc), RET #p; ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status, p ↦ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
+      statusDetailsAt st [] ∗
       ⌜st.Status' = go!"Failure" ∧ st.Reason' = go!"AlreadyExists" ∧ st.Code' = W32 409⌝ }}
 
 end spec

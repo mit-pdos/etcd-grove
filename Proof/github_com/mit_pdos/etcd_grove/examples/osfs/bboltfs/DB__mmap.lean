@@ -222,7 +222,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   · iexact Hf
   (try wp_auto)
   have Hsz0 : 0 < (sz).toInt := by simp only [sint.Z] at Hsz2; omega
-  wp_apply wp_Mmap fd (W64 0) sz _ _ _ ⟨γ.ino, true, true⟩ m1 rfl rfl Hsz0 (by decide) (by left; decide)
+  wp_apply wp_Mmap fd (W64 0) sz _ _ _ ⟨γ.ino, true, true, none, some true⟩ m1 rfl rfl Hsz0 (by decide) (by left; decide)
     $$ [Hfd Hm] as %sl %e ⟨Hfd, Hres⟩
   · iframe; iframe #
   icases Hres with (⟨%base, %Hok, Hm, %bs, %Hbs, Hcells⟩ | ⟨%Herr, Hm⟩)

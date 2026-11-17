@@ -79,7 +79,7 @@ theorem New.wp_proof
   · iPkgInit
   ihave #Hsg : (k8s_io.apiserver.pkg.storage.etcd3.storageInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Psg
-  icases Hsg with ⟨%rw, %tl, #Hrw, -⟩
+  icases Hsg with ⟨%rw, %tl, %_, #Hrw, -, -, -⟩
   ihave #Pcl : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
   wp_auto
@@ -171,6 +171,8 @@ theorem New.wp_proof
       ipersist newListFunc
       ipersist compactor
       ipersist metricsTracker
+      ipersist s
+      ipersist «$r0»
       -- (sweep repairs 1, B5) `CheckClient(c.Ctx(), c, …)`: the constructed client and its context
       wp_apply Chk $$ []
       · icases EtcdGrove.isNewClient_ctxOk _ _ _ $$ Hnc with ⟨⟨%cx', #Hcx', %Hcxn⟩, #HF⟩
@@ -188,29 +190,48 @@ theorem New.wp_proof
       isplitr
       · ipureintro; rfl
       iexists mt, lt
-      iunfold isStore
-      simp only
-      iframe #
-      isplitr
-      · ipureintro; exact Hsn
-      isplitr
-      · ipureintro; exact Hlt
-      iunfold storeListOk
-      iexists _, γp
-      isplitr
-      · iexact listErrAggrFactory
-      isplitr
-      · first
-        | iexact Hfa
-        | (iunfold aggrFactoryOk
-           iintro !> %Ψ HΨ
-           wp_apply wp_dla as %ag Hag
-           iapply HΨ $$ Hag)
-      isplitr
-      · iexact Hpool
-      isplitr
-      · ipureintro; exact ⟨hu1, hu2⟩
-      ipureintro; exact hpk
+      isplitl []
+      · iunfold isStore
+        simp only
+        iframe #
+        isplitr
+        · ipureintro; exact Hsn
+        isplitr
+        · ipureintro; exact Hlt
+        iunfold storeListOk
+        iexists _, γp
+        isplitr
+        · iexact listErrAggrFactory
+        isplitr
+        · first
+          | iexact Hfa
+          | (iunfold aggrFactoryOk
+             iintro !> %Ψ HΨ
+             wp_apply wp_dla as %ag Hag
+             iapply HΨ $$ Hag)
+        isplitr
+        · iexact Hpool
+        isplitr
+        · ipureintro; exact ⟨hu1, hu2⟩
+        ipureintro; exact hpk
+      · iintro !> %W %γk #Hcw #Hwco #Hni
+        ihave Hw := «$r0»
+        iStructNamed Hw
+        iunfold storeWatchOk
+        iexists _, nf, _, _
+        iframe #
+        isplitr
+        · iintro !> %ctx %Φ Hwp
+          wp_auto
+          wp_bind (App (Val _) (Val _))
+          iapply (wp_wand) $$ [Hwp]
+          · iexact Hwp
+          iintro %v ⟨%n, %err, %Hv, HR⟩
+          subst Hv
+          wp_auto
+          iexact HR
+        iintro !> %Φ Hwp
+        iexact Hwp
 
 end proof
 

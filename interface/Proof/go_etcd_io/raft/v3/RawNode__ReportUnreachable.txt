@@ -7,14 +7,15 @@ theorem RawNode.ReportUnreachable.wp_proof [package_sem : Assumptions] (wp_raft_
     RawNode.ReportUnreachable.spec
   -- `Perennial.EtcdGrove.RawNode.ReportUnreachable.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (to : w64),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
-          ▷ ("Hrn" ∷ ownRawNode γ rn id rs -∗ Φ (intoVal ())) -∗
-            WP
-              ((intoVal
-                  (methods RawNode.ty.PointerType
-                    go!"ReportUnreachable"
-                    (intoVal rn)))
-                (intoVal to))
-              {{ Φ }}
+    γ.reTrace = none →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs -∗
+            ▷ ("Hrn" ∷ ownRawNode γ rn id rs -∗ Φ (intoVal ())) -∗
+              WP
+                ((intoVal
+                    (methods RawNode.ty.PointerType
+                      go!"ReportUnreachable"
+                      (intoVal rn)))
+                  (intoVal to))
+                {{ Φ }}

@@ -1,0 +1,50 @@
+/-
+`fileutil.Fsync(f)` (sync_linux.go: `f.Sync()`) of a directory's `*os.File`, in the tree's shared mode:
+`os.File.Sync.specDirS`'s triple (a shared directory fd; a success commits every entry the log had when
+the caller knew its length, `osCommitLb n`). Proved in
+`Proof/go_etcd_io/etcd/client/pkg/v3/fileutil/FsyncS.lean`. Lean-first (W4: `syncDir`).
+-/
+module
+
+public import GeneratedProof.go_etcd_io.etcd.client.pkg.v3.fileutil
+public import Spec.os.File__SyncS
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+
+open Iris Iris.BI
+open Fs
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
+
+/-- See the file header. -/
+abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specDirS : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (R : Roots) (j : Ino) (ph : DirPhS)
+    (n : Nat),
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ os.ownFile (GF := GF) f fd name dqf ∗ osDirFdS fd j ph ∗
+      osLogLb n }}
+    (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync)) (Val #f))
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osDirFdS fd j ph ∗
+      (⌜err ≠ interface.nil⌝ ∨ ⌜err = interface.nil⌝ ∗ osCommitLb n) }}
+
+/-- `Fsync(f)` of an fd of a directory outside the roots' trees (`osOutFd`, `OpenDir` of a strict
+ancestor of a root): any error, nothing claimed (2026-11-13). -/
+abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync.specOutS : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac),
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osOutFd fd }}
+    (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fsync)) (Val #f))
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osOutFd fd }}
+
+end spec
+
+end EtcdGrove
+end Perennial

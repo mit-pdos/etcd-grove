@@ -72,6 +72,9 @@ def instDecidableEqMsgType : DecidableEq MsgType :=
 
 theorem psendMsgs.proj_votes (s : PState) (ms : List Msg) : (psendMsgs s ms).votes = s.votes
 
+theorem Msg.trOk_of_nums_hbresp {m : Msg} (hty : m.ty = MsgType.heartbeatResp) (hrj : m.reject =
+    false) (hn : m.ty.traced = true → Msg.NumsBelow traceNumBound m) : m.TrOk
+
 theorem padoptLeader.proj_outbox (s : PState) (src : w64) : (padoptLeader s src).outbox = s.outbox
 
 def pwinState (id : w64) (s : PState) (mt : GMap w64 w64) : PState :=
@@ -116,6 +119,11 @@ inductive MsgType : Type
   | MsgType.readIndex : MsgType
   | MsgType.readIndexResp : MsgType
 
+def Msg.TrOk (m : Msg) : Prop :=
+  m.ty.traced = true →
+    Msg.NumsBelow traceNumBound m ∧
+      (m.ty = MsgType.heartbeat → m.entries = []) ∧ (m.ty = MsgType.heartbeatResp → m.reject = false)
+
 theorem PlogWf_wfR (b : entryID) (es : List EntryM) : PlogWf b es → PlogWfR b es
 
 theorem pappend.proj_outbox (s : PState) (es : List EntryM) : (pappend s es).outbox = s.outbox
@@ -127,6 +135,9 @@ def instInhabitedCSLists.default : CSLists :=
 
 def w64Max (x y : w64) : w64 :=
   if uint.Z y < uint.Z x then x else y
+
+def traceNumBound : Nat :=
+  2 ^ 61
 
 theorem conflict_end (b : entryID) (es : List EntryM) (prev : entryID) (ents : List EntryM) (d :
     Nat) (e : EntryM) (Hwf : PlogWf prev ents) (Hm : PlogMatches b es prev) (Hd : ents[d]? = some e)
@@ -376,6 +387,11 @@ theorem padoptLeader.proj_commit (s : PState) (src : w64) : (padoptLeader s src)
 
 theorem padoptLeader.proj_term (s : PState) (src : w64) : (padoptLeader s src).term = s.term
 
+def Msg.NumsBelow (K : Nat) (m : Msg) : Prop :=
+  uint.nat m.term < K ∧
+    m.entries.length < K ∧
+      uint.nat m.logterm < K ∧ uint.nat m.index < K ∧ uint.nat m.commit < K ∧ uint.nat m.rejecthint < K
+
 theorem PlogWfR_wf (b : entryID) (es : List EntryM) : PlogWfR b es → plogLastIndexZ b es < 2 ^ 64 →
     PlogWf b es
 
@@ -428,6 +444,9 @@ theorem plogMaybeAppend_batch (b : entryID) (es : List EntryM) (prev : entryID) 
     < 2 ^ 64 → plogMaybeAppend b es prev ents = some (lastnewi, es') → ∀ (j : w64), uint.Z
     prev.index' ≤ uint.Z j → uint.Z j ≤ uint.Z prev.index' + ↑ents.length → plogTermAt b es' j =
     plogTermAt prev ents j
+
+theorem Msg.TrOk.nums {m : Msg} (h : m.TrOk) (ht : m.ty.traced = true) : Msg.NumsBelow traceNumBound
+    m
 
 def HbCtxOk (r : ReadOnly) (ctx : List w8) : Prop :=
   ctx = [] ∨ ∃ q, ctx = u64Le q ∧ uint.nat q ≤ uint.nat r.confirmed + r.pending.length
@@ -485,6 +504,16 @@ theorem readonlyAdvance_acks (r : ReadOnly) (a : GMap w64 w64) (N : w64) : reado
     (uint.nat (N - r.confirmed)) r.pending, acks := a, confirmed := N }, List.take (uint.nat (N -
     r.confirmed)) r.pending)
 
+def MsgType.traced : MsgType → Bool :=
+  match x✝ with
+  | MsgType.app => true
+  | MsgType.appResp => true
+  | MsgType.vote => true
+  | MsgType.voteResp => true
+  | MsgType.heartbeat => true
+  | MsgType.heartbeatResp => true
+  | x => false
+
 inductive Role : Type
   | Role.follower : Role
   | Role.candidate : Role
@@ -510,6 +539,8 @@ def occStep (L : List (List w8)) : Option (List w8) → List (List w8) :=
 
 def instInhabitedRole : Inhabited Role :=
   { default := instInhabitedRole.default }
+
+theorem Msg.trOk_of_untraced {m : Msg} (h : m.ty.traced = false) : m.TrOk
 
 def readonlyPosition (r : ReadOnly) : w64 :=
   r.confirmed + W64 ↑r.pending.length
@@ -613,6 +644,9 @@ theorem HbCtxOk_release (r : ReadOnly) (id c : w64) (l : List (MessageM × List 
 
 def pvoteReq (id dst term : w64) (last : entryID) (cl : List w8 := []) : Msg :=
   Msg.mkV MsgType.vote id dst term false last.index' last.term' (W64 0) (W64 0) [] [] cl
+
+theorem Msg.trOk_of_nums {m : Msg} (hh : m.ty ≠ MsgType.heartbeat) (hr : m.ty ≠
+    MsgType.heartbeatResp) (hn : m.ty.traced = true → Msg.NumsBelow traceNumBound m) : m.TrOk
 
 theorem firstOcc_append_prefix (a b : List (Option (List w8))) : firstOcc a <+: firstOcc (a ++ b)
 

@@ -1,0 +1,155 @@
+From dc0e239db66dda4355963440e9d61849300943b8 Mon Sep 17 00:00:00 2001
+From: Joseph Tassarotti <jt4767@nyu.edu>
+Date: Sun, 8 Nov 2026 21:13:38 +0000
+Subject: [PATCH 11/12] raft: trace pre-votes and lease-ignored vote requests
+
+becomePreCandidate logs BecomePreCandidate; MsgPreVote and MsgPreVoteResp are
+logged with the vote events; a vote or pre-vote request Step ignores within the
+leader lease (CheckQuorum) is logged as IgnoreRequestVoteRequest in place of its
+receipt. Only trace calls change.
+etc/tla-fixes/README.md, "PreVote and CheckQuorum".
+---
+ raft.go            | 22 ++++++++++++++++++----
+ state_trace.go     | 26 ++++++++++++++++++++++----
+ state_trace_nop.go |  4 ++++
+ 3 files changed, 44 insertions(+), 8 deletions(-)
+
+diff --git a/raft.go b/raft.go
+index 5a25af2..60e6e00 100644
+--- a/raft.go
++++ b/raft.go
+@@ -930,6 +930,7 @@ func (r *raft) becomePreCandidate() {
+ 	r.lead = None
+ 	r.state = StatePreCandidate
+ 	r.logger.Infof("%x became pre-candidate at term %d", r.id, r.Term)
++	traceBecomePreCandidate(r)
+ }
+ 
+ func (r *raft) becomeLeader() {
+@@ -1093,7 +1094,11 @@ func (r *raft) Step(m *pb.Message) error {
+ 	if m == nil {
+ 		return errors.New("nil message")
+ 	}
+-	traceReceiveMessage(r, m)
++	if r.ignoresInLease(m) {
++		traceIgnoreMessage(r, m)
++	} else {
++		traceReceiveMessage(r, m)
++	}
+ 
+ 	// Handle the message term, which may result in our stepping down to a follower.
+ 	switch {
+@@ -1101,9 +1106,7 @@ func (r *raft) Step(m *pb.Message) error {
+ 		// local message
+ 	case m.GetTerm() > r.Term:
+ 		if m.GetType() == pb.MsgVote || m.GetType() == pb.MsgPreVote {
+-			force := bytes.Equal(m.GetContext(), []byte(campaignTransfer))
+-			inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout
+-			if !force && inLease {
++			if r.ignoresInLease(m) {
+ 				// If a server receives a RequestVote request within the minimum election timeout
+ 				// of hearing from a current leader, it does not update its term or grant its vote
+ 				last := r.raftLog.lastEntryID()
+@@ -1272,6 +1275,17 @@ func (r *raft) Step(m *pb.Message) error {
+ 	return nil
+ }
+ 
++// ignoresInLease reports whether Step ignores m, a vote or pre-vote request of a higher term,
++// because the node heard from its leader within the election timeout (CheckQuorum).
++func (r *raft) ignoresInLease(m *pb.Message) bool {
++	if m.GetTerm() <= r.Term || (m.GetType() != pb.MsgVote && m.GetType() != pb.MsgPreVote) {
++		return false
++	}
++	force := bytes.Equal(m.GetContext(), []byte(campaignTransfer))
++	inLease := r.checkQuorum && r.lead != None && r.electionElapsed < r.electionTimeout
++	return !force && inLease
++}
++
+ type stepFunc func(r *raft, m *pb.Message) error
+ 
+ func stepLeader(r *raft, m *pb.Message) error {
+diff --git a/state_trace.go b/state_trace.go
+index caccd70..db6d89d 100644
+--- a/state_trace.go
++++ b/state_trace.go
+@@ -48,6 +48,8 @@ const (
+ 	rsmReceiveRequestVoteResponse
+ 	rsmSendSnapshot
+ 	rsmReceiveSnapshot
++	rsmBecomePreCandidate
++	rsmIgnoreRequestVoteRequest
+ )
+ 
+ func (e stateMachineEventType) String() string {
+@@ -71,6 +73,8 @@ func (e stateMachineEventType) String() string {
+ 		"ReceiveRequestVoteResponse",
+ 		"SendSnapshot",
+ 		"ReceiveSnapshot",
++		"BecomePreCandidate",
++		"IgnoreRequestVoteRequest",
+ 	}[e]
+ }
+ 
+@@ -230,6 +234,20 @@ func traceBecomeCandidate(r *raft) {
+ 	traceNodeEvent(rsmBecomeCandidate, r)
+ }
+ 
++func traceBecomePreCandidate(r *raft) {
++	traceNodeEvent(rsmBecomePreCandidate, r)
++}
++
++// traceIgnoreMessage logs a vote or pre-vote request that Step ignores because the node's
++// leader lease has not expired (CheckQuorum), in place of its receipt: the receipt and the
++// decision to ignore it are one step.
++func traceIgnoreMessage(r *raft, m *raftpb.Message) {
++	if r.traceLogger == nil {
++		return
++	}
++	traceEvent(rsmIgnoreRequestVoteRequest, r, m, nil)
++}
++
+ func traceBecomeLeader(r *raft) {
+ 	traceNodeEvent(rsmBecomeLeader, r)
+ }
+@@ -304,9 +322,9 @@ func traceSendMessage(r *raft, m *raftpb.Message) {
+ 		evt = rsmSendAppendEntriesRequest
+ 	case raftpb.MsgAppResp, raftpb.MsgHeartbeatResp:
+ 		evt = rsmSendAppendEntriesResponse
+-	case raftpb.MsgVote:
++	case raftpb.MsgVote, raftpb.MsgPreVote:
+ 		evt = rsmSendRequestVoteRequest
+-	case raftpb.MsgVoteResp:
++	case raftpb.MsgVoteResp, raftpb.MsgPreVoteResp:
+ 		evt = rsmSendRequestVoteResponse
+ 	default:
+ 		return
+@@ -326,9 +344,9 @@ func traceReceiveMessage(r *raft, m *raftpb.Message) {
+ 		evt = rsmReceiveAppendEntriesRequest
+ 	case raftpb.MsgAppResp, raftpb.MsgHeartbeatResp:
+ 		evt = rsmReceiveAppendEntriesResponse
+-	case raftpb.MsgVote:
++	case raftpb.MsgVote, raftpb.MsgPreVote:
+ 		evt = rsmReceiveRequestVoteRequest
+-	case raftpb.MsgVoteResp:
++	case raftpb.MsgVoteResp, raftpb.MsgPreVoteResp:
+ 		evt = rsmReceiveRequestVoteResponse
+ 	default:
+ 		return
+diff --git a/state_trace_nop.go b/state_trace_nop.go
+index 8d19ae1..96e3520 100644
+--- a/state_trace_nop.go
++++ b/state_trace_nop.go
+@@ -41,6 +41,10 @@ func traceBecomeCandidate(*raft) {}
+ 
+ func traceBecomeLeader(*raft) {}
+ 
++func traceBecomePreCandidate(*raft) {}
++
++func traceIgnoreMessage(*raft, *raftpb.Message) {}
++
+ func traceChangeConfEvent(raftpb.ConfChangeI, *raft) {}
+ 
+ func traceConfChangeEvent(tracker.Config, *raft) {}
+-- 
+2.43.0
+

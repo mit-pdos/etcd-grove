@@ -373,10 +373,21 @@ def kvCluster (γr : RKVNames) : IProp GF :=
     confAt γr.cluster 0 (kvMembership γr) ∗ kvSnapInv γr ∗
     -- (auth-lease S4, 2026-11-16) outside raft's no-snapshot mode (`cluster_alloc`'s): the run's
     -- compactions past index `1` (`kvJ`'s cap)
-    ⌜¬ clusterNoSnap γr.cluster⌝)
+    ⌜¬ clusterNoSnap γr.cluster⌝ ∗
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster (`cluster_alloc`'s): the
+    -- node API's `ReadIndex` and `TransferLeadership` are refused at a traced one
+    ⌜Cluster.trace γr.cluster = none⌝)
 
 instance kvCluster_persistent (γr : RKVNames) : Persistent (kvCluster (GF := GF) γr) := by
   unfold kvCluster; infer_instance
+
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The store's cluster is untraced. -/
+theorem kvCluster_untraced (γr : RKVNames) :
+    kvCluster (GF := GF) γr ⊢ ⌜Cluster.trace γr.cluster = none⌝ := by
+  unfold kvCluster
+  iintro ⟨-, -, -, -, %H⟩
+  ipureintro; exact H
 
 end clusterI
 

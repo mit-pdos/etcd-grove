@@ -107,7 +107,8 @@ theorem prevoteRespResult_frame (id : w64) (s : NState) (src : w64) (reject won 
       · exact ⟨rfl, Int.le_refl _, rfl, rfl⟩
   obtain ⟨Hl, Ht, Hpv, Hg⟩ := H
   refine ⟨NetFrame.of_logst Hl Hpv Hg, Ht, fun h => ?_, fun _ h => absurd Hty h,
-    fun _ => by rw [Hl]; exact Int.le_refl _, fun h => ?_, fun h => ?_, fun _ h2 => ?_⟩
+    fun _ => by rw [Hl]; exact Int.le_refl _, fun h => ?_, fun h => ?_, fun _ h2 => ?_,
+    fun _ h2 => absurd (Hp.symm.trans h2) (by decide)⟩
   · rw [Hty] at h; exact absurd h (by w32_ne)
   · rw [Hty] at h; exact absurd h (by w32_ne)
   · -- (2026-10-17) a pre-candidate afterwards stayed one, at its term

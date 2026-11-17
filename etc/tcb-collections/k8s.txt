@@ -31,6 +31,7 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
+axiom clock.RealClock.Now.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom conversion.EnforcePtr.wp_proof
@@ -74,6 +75,7 @@ axiom grpcSrvCfgRaw
 axiom grpcWrotePeer
 axiom insecure.NewCredentials.wp_proof
 axiom k8sfeature.featureOff_persistent
+axiom k8sfeature.featureOn_persistent
 axiom klog.Errorf.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.InfoS.wp_proof

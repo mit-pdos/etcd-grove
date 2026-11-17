@@ -1,7 +1,7 @@
 /-
 `handleWatch(ctx, start, w, store, expectedType, expectedGVK, name, expectedTypeName,
 setLastSyncResourceVersion, clock, errCh)` (`reflector.go:944`): `handleAnyWatch` with
-`exitOnWatchListBookmarkReceived` false, its error returned. Lean-first; phase 4 of
+`exitOnWatchListBookmarkReceived` false, its error returned (`nil` or `apierrors.apiErrOk`). Lean-first; phase 4 of
 `notes/k8s-daemonset-plan.md`, fifth round.
 -/
 module
@@ -45,7 +45,8 @@ abbrev handleWatch.spec : Prop :=
       (Val #et)) (Val #(null : Loc))) (Val #name)) (Val #tname)) (Val #cb))
       (Val #(interface.mkOk k8s_io.utils.clock.RealClock.ty #clk : k8s_io.utils.clock.Clock)))
       (Val #errCh))
-  {{ (err : GoInterface), RET #err; ∃ (n' : Nat) (p' : Pos'), watchCons γw n' p' ∗ L n' p' }}
+  {{ (err : GoInterface), RET #err; (⌜err = interface.nil⌝ ∨ apierrors.apiErrOk err) ∗
+      ∃ (n' : Nat) (p' : Pos'), watchCons γw n' p' ∗ L n' p' }}
 
 end spec
 

@@ -9,6 +9,10 @@ client, at the members `ms`), whose objects the codec, versioner, transformer an
 `S` describes (`contractOk`): `isStore sp c` of the configuration of these, with the path prefix
 `prefix` (`pfx0`) and some metrics tracker. `newFunc` returns a non-`nil` object (the watcher's object
 type is its `reflect` type's name).
+And (k8s 7f-5b) the store's watch fields (`storeWatchOk`), given the client's watcher over a KV
+(`clientWatchOk`), the watch path's object contract (`watchContractOk`) and `newFunc`'s zero object
+(`newItemOk`): the watcher's fields are the store's, its `getCurrentStorageRV` calls the store's
+`GetCurrentResourceVersion`, its `getResourceSizeEstimator` the store's, and its `objectType` is set.
 
 Premises: `prefix` is a clean absolute path (`path.Join("/", prefix)` is `prefix`, with no
 trailing `/`: `PathCleanAbs`), `resourcePrefix` starts with `/` and is not `/`; (stage 7e-2, #15,
@@ -20,6 +24,7 @@ bound fits `collectorMux`'s reader tokens (the store's reader pool, `notes/bound
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Store
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.WatchDefs
 public import Spec.path.Defs
 
 @[expose] public section
@@ -67,7 +72,10 @@ abbrev New.spec : Prop :=
       (Val #(GoInterface.ok ti))) (Val #lmc)) (Val #(GoInterface.ok di))) (Val #(GoInterface.ok vi)))
   {{ (sp : Loc) (err : GoInterface), RET (PairV #sp #err); ⌜err = GoInterface.nil⌝ ∗
       ∃ mt lt : Loc, isStore sp
-        ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ }}
+        ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ ∗
+      □ (∀ (W : WatchSpec GF Obj) (γk : KVNames), clientWatchOk cl γk -∗ watchContractOk S W codec -∗
+          newItemOk S nf -∗
+          storeWatchOk sp ⟨S, codec, vi, ti, di, pfx0, rp, gr, kc, cl, ms, V, mt, lt, γh⟩ W γk) }}
 
 end spec
 

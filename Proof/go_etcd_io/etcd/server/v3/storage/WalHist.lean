@@ -13,7 +13,7 @@ over raw entries (`WalEnt`), which `WalEnt.toM`/`EntryM.toRaw` translate (a bije
 module
 
 public import GooseLang.Ext.AbsDisk.Impl
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecsCore
 
 @[expose] public section
 

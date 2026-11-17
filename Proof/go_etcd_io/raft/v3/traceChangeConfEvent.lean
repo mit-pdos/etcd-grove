@@ -1,4 +1,6 @@
-/- `traceChangeConfEvent`, Lean-first (2026-10-13). -/
+/- Lean-first (no Rocq counterpart). `traceChangeConfEvent` in raft's build without `with_tla`
+(`state_trace_nop.go`): an empty function, against the spec both builds share (the conf change is
+only read). The `with_tla` build's proof is `RaftTla/`'s module of this name. -/
 module
 
 public import Spec.go_etcd_io.raft.v3.traceChangeConfEvent
@@ -19,12 +21,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem traceChangeConfEvent.wp_proof :
-    traceChangeConfEvent.spec (GF := GF) (hG := hG) := by
-  intro c r
-  wp_start
+theorem traceChangeConfEvent.wp_proof : traceChangeConfEvent.spec (GF := GF) (hG := hG) := by
+  intro c dq o r tl
+  wp_start as ⟨Hc, #Htl, %Hok⟩
   iapply HΦ
-  itrivial
+  iexact Hc
 
 end proof
 

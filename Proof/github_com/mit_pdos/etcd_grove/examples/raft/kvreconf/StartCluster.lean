@@ -82,7 +82,7 @@ theorem StartCluster.wp_proof
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h) (fun _ h => by cases h)
     (fun _ h => by cases h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, -, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, -, %Htr, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []
@@ -98,6 +98,7 @@ theorem StartCluster.wp_proof
   imod kvrSnapInv_alloc γr ⊤ $$ Hsm with #Hsinv
   ihave #Hcl : kvrCluster γr (bootVoters (uint.nat o.Voters')) $$ []
   · unfold kvrCluster; iframe #
+    ipureintro; exact Htr
   try wp_auto
   icases typedPointsto_split _ _ _ $$ opts with Hopt
   simp only [TypedPointsto.typedPointstoDef]
@@ -194,7 +195,7 @@ theorem StartCluster.wp_proof
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, Hsl, Hmd, Hbl, ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, Hmd, Hbl, Htr, ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
   -- the founders' tokens with their read-sequence elements, and the fresh ids' elements
@@ -244,11 +245,12 @@ theorem StartCluster.wp_proof
     imod kvrStor_alloc «$r0_ptr» ms «$v3_ptr» γs' (bootCS (bootVoters (uint.nat o.Voters'))) ⊤
       (fun _ _ => CoPset.mem_full) Hsz $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
     wp_apply wp_config γr _ cl k «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
-    obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+    obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
+    ihave %Htr := kvrCluster_untraced γr _ $$ Hcl
     ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster
       (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-        memStorInvP ms γs' (kvrJ γr.cluster K))) Hmd
+        memStorInvP ms γs' (kvrJ γr.cluster K))) Htr Hmd
       $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
     · iintro %K Hm Hi; iframe Hm Hi
     ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ [HrS]
@@ -266,7 +268,7 @@ theorem StartCluster.wp_proof
         HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
         (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
         (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd)
-        (fun h => by have := clusterNoSnap_boot _ h; simp_all))
+        (fun h => by have := clusterNoSnap_boot _ h; simp_all) HcTL Htr)
       $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta,
         #HmsInv⟩

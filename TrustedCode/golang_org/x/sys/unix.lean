@@ -119,19 +119,37 @@ noncomputable def Fallocate.impl : val :=
       syscall.model.errno (ExternalOp Fs.fsExt.name "FallocKeep" ("fd", ("off", "len")))
     else Panic "golang.org/x/sys/unix.Fallocate: mode not modelled"
 
+/-- `unix.Flock_t` as goose names it. -/
+@[reducible] def model.Flock_t : go.GoType := go.GoType.Named go!"golang.org/x/sys/unix.Flock_t" []
+
 /-- `FcntlFlock(fd uintptr, cmd int, lk *Flock_t) error` (`fcntl.go`: one `fcntl(2)` with the
-lock description `lk`) for the commands that set a lock, `F_SETLK` (6), `F_SETLKW` (7),
-`F_OFD_SETLK` (37) and `F_OFD_SETLKW` (38): the extension's `OfdLock`, trivial (any errno; the lock
-state is not modelled, `notes/osfs-ext-plan.md` D7, `notes/walfs-ext-plan.md`), stuck on an fd that
-is not a file's. `lk` is not read: no outcome depends on it. Any other command (a lock query, which
-writes `lk`, or one that is not about locks at all) is not modelled: a panic, never reached by a
-proved program. -/
+lock description `lk`), for `F_OFD_SETLK` (37) and `F_OFD_SETLKW` (38): as `syscall.FcntlFlock`'s
+model (`TrustedCode/syscall.lean`, which states the decisions; 2026-11-15, **pending the user's
+review**, `notes/wal-units/locks.md`): it loads `Type`, `Whence`, `Start`, `Len`, `Pid`, and a
+whole-file request with `Pid` 0 and `Type` `F_RDLCK`, `F_WRLCK` or `F_UNLCK` is the extension's
+`OfdLock (fd, (cmd, Type))`, the lock rule on the description's OFD lock; anything else panics (not
+modelled). `F_SETLK` (6) and `F_SETLKW` (7), per-process POSIX locks, and any other command (a lock
+query, or one that is not about locks at all) are not modelled: a panic, never reached by a proved
+program (`examples/osfs/semantics/locks_posix_not_modelled.go`). -/
 noncomputable def FcntlFlock.impl : val :=
   λ: "fd" "cmd" "lk",
-    if: ("cmd" =⟨go.int⟩ #(W64 6)) || ("cmd" =⟨go.int⟩ #(W64 7)) ||
-        ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
-      syscall.model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", "cmd"))
-    else Panic "golang.org/x/sys/unix.FcntlFlock: a command that sets no lock is not modelled"
+    if: ("cmd" =⟨go.int⟩ #(W64 37)) || ("cmd" =⟨go.int⟩ #(W64 38)) then
+      let: "ty" := ![go.int16] (StructFieldRef model.Flock_t go!"Type" "lk") in
+      let: "wh" := ![go.int16] (StructFieldRef model.Flock_t go!"Whence" "lk") in
+      let: "st" := ![go.int64] (StructFieldRef model.Flock_t go!"Start" "lk") in
+      let: "ln" := ![go.int64] (StructFieldRef model.Flock_t go!"Len" "lk") in
+      let: "pid" := ![go.int32] (StructFieldRef model.Flock_t go!"Pid" "lk") in
+      if: ("wh" =⟨go.int16⟩ #(W16 0)) && ("st" =⟨go.int64⟩ #(W64 0)) &&
+          ("ln" =⟨go.int64⟩ #(W64 0)) && ("pid" =⟨go.int32⟩ #(W32 0)) then
+        if: "ty" =⟨go.int16⟩ #(W16 1) then
+          syscall.model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", ("cmd", #(W64 1))))
+        else if: "ty" =⟨go.int16⟩ #(W16 0) then
+          syscall.model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", ("cmd", #(W64 0))))
+        else if: "ty" =⟨go.int16⟩ #(W16 2) then
+          syscall.model.errno (ExternalOp Fs.fsExt.name "OfdLock" ("fd", ("cmd", #(W64 2))))
+        else Panic "golang.org/x/sys/unix.FcntlFlock: a lock type other than F_RDLCK, F_WRLCK, F_UNLCK"
+      else Panic "golang.org/x/sys/unix.FcntlFlock: not a whole-file lock with l_pid 0: not modelled"
+    else Panic "golang.org/x/sys/unix.FcntlFlock: a command other than F_OFD_SETLK[W] is not modelled"
 
 end code
 end golang_org.x.sys.unix

@@ -42,5 +42,5 @@ WithPrefix: getPrefix
 WithRev:
 WithProgressNotify:
 WithCreatedNotify:
-watcher__Watch: @
-partition_MainWatch: etcdstart_GenAll zap_NewNop partition_startCluster cluster3_Partitioner partition_writer etcdstart_MaxRev etcdstart_Collect etcdstart_Check context_ErrAny watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify
+v3_watcher__Watch: @
+partition_MainWatch: etcdstart_GenAll zap_NewNop partition_startCluster cluster3_Partitioner partition_writer etcdstart_MaxRev etcdstart_Collect etcdstart_Check context_ErrAny v3_watcher__Watch WithPrefix WithRev WithProgressNotify WithCreatedNotify

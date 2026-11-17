@@ -145,7 +145,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   imod (cluster_alloc (GF := GF) srvClusterN ps ctxs boot false sl (some (2 ^ 30)) ⊤ Hrb Hne Hnd Hnz
       (by omega) (fun _ => HB) (fun _ h => by cases h; omega)
       (fun _ h e he => by cases h; have := Hbc.data e he; unfold bootCtxMax at this; omega)) $$ [Hmarsh]
-    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, %Hns, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
+    with ⟨%cl, ⟨%Hdup, %Hcsl, %Hbl, %Hmd⟩, %Hns, %HtrC, Hops, Hctxs, #Hst, Hdec, #Hca0, Hsm, Hslots, Hboots⟩
   · rw [if_neg hbne]; iexact Hmarsh
   isimp only [hbne, ↓reduceIte] at Hboots
   icases Hboots with ⟨#Hbl0c, Hboots⟩
@@ -169,7 +169,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     iframe Hst Hpol Hca0 Hfits Hsinv
     ipureintro
     exact ⟨Hdup, srvRule_keeps _ _ _ hval, by rw [Hcsl, hsl], by rw [Hbl, hbt]; simp [LogEntry.toEntries],
-      by rw [hbt]; exact Hurl, Hmd⟩
+      by rw [hbt]; exact Hurl, HtrC, Hmd⟩
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0

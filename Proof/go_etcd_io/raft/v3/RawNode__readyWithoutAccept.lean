@@ -148,6 +148,11 @@ theorem RawNode.readyWithoutAccept.wp_proof
   ihave #Hcw := ownRaftGhost_commitWit _ _ _ $$ Hghost
   -- (durability stage II (i)) what the `Ready` cuts from
   icases ownRaftPhysC_persistCut cf rnv.raft' id s $$ Hphys with ⟨%Hpst, Hphys⟩
+  -- (2026-11-11, slice 28n) in either mode (`TraceLoggerOkS`)
+  icases ownRaftPhysC_traceLoggerS γ cf rnv.raft' id s $$ Hphys Hrntr with ⟨%tl, #Htl, %Htlok, Hphys, Hrntr⟩
+  ihave #Hf_traceLogger : iprop(∃ tl, rnv.raft'.[raft, go!"traceLogger"] ↦□ tl ∗ ⌜TraceLoggerOkS s.gh.tr tl⌝)
+    $$ []
+  · iexists tl; iframe Htl; ipureintro; exact Htlok
   icases ownRaftPhysC_view cf rnv.raft' id s $$ Hphys with ⟨%rss, %sl1, %sl2, %ms1, %ms2, Hv⟩
   iNamed Hv
   -- (D22 S-b′3) the queued messages' certificates, through the storage's link
@@ -531,14 +536,10 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · unfold ownRaftPhysReady
     iexists rss, sl1, sl2, ms1, ms2
     simp only [named, rdyLog, Bool.false_eq_true, ↓reduceIte]
-    iframe Hf_id Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
+    iframe Hf_id Hf_traceLogger Hf_Term Hf_Vote Hf_readStates HreadStates HreadStates_cap Hf_raftLog Hf_state
       Hf_lead Hf_msgs Hf_msgsAA HmsgsAA HmsgsAA_cap Hself Hother Hundo Hlog Hclose Hscert
     ipureintro
-    refine ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, ?_⟩
-    simp only [List.length_append]
-    have := List.length_filter_le (fun q => !isSelfQ id q) ms2
-    simp only [nonself]
-    omega
+    exact ⟨Houtbox, HmsgsAA_ok, Hout_term, Hgh_out, Hgh_unst, Hxf, MsSub.ready id ms1 ms2⟩
   -- the messages' terms: within the ceiling (`OutTermOk`, the node's term below it)
   have Hsub : ∀ q ∈ ms1 ++ nonself id ms2, q ∈ ms1 ++ ms2 := by
     intro q Hq
@@ -606,7 +607,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
     rcases List.mem_append.1 hq with h | h
     · -- (2026-11-01, durability stage II (m)) `r.msgs` holds no message to the node itself
       -- (`raft.send` panics on one: `ownRaftPhys`'s `QOk`)
-      exact HmsgsAA_ok.2 q h
+      exact (HmsgsAA_ok.2 q h).1
     · have h2 := (List.mem_filter.1 h).2
       simp only [isSelfQ, Bool.not_eq_true', decide_eq_false_iff_not] at h2
       exact h2
@@ -615,6 +616,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
   · iintro !> #Ho
     rw [show s.outbox = (toPState s).outbox from rfl]
     iapply outboxRelP_isRaftMsgs_ns γ id s (toPState s).outbox ms1 ms2 Houtbox _ Hsub Hto Hnsout Hxf
+      Hnl.2.2
       $$ Ho Hqc Hxw
   -- (restart S7.3, 2026-11-14) and have their `MsgSnap` facts once the outbox's snapshots have
   -- their destination facts
@@ -702,7 +704,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       ihave #Hkr' := Hkr
       icases Hkr' with (%Hns | #Hkr')
       · exfalso
-        have := (Hlns (by rw [Hnl]; exact Hns)).1
+        have := (Hlns (by rw [Hnl.1]; exact Hns)).1
         rw [Hss] at this; cases this
       ihave ⟨#Hcr, -⟩ := BigSepL.bigSepL_mem_acc Hk $$ Hkr'
       obtain ⟨xh, Hxh⟩ := _root_.id Hhas
@@ -747,13 +749,13 @@ theorem RawNode.readyWithoutAccept.wp_proof
   iapply HΦ $$ %(readyVal sp HP RS sents SN sce msl MS) %ce %(nextUnstable s.logst)
     %(ms1 ++ nonself id ms2) %s.rd.states %hrd %L
   simp only [named]
-  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz]
+  isplitl [Hrn Hphys Hghost Hrest Hsteps Hsteps_cap Hce_cap Hrdz Hrntr]
   · unfold ownRawNodeReady
     iexists s, cf, fp, ds, rnv, sv, hprev
     simp only [named, Bool.false_eq_true, ↓reduceIte]
     rw [show s.outbox = (toPState s).outbox from rfl]
     iframe Hrn Hphys Hsdrf Hout Hsoft Hhard Hsteps Hsteps_cap Hdeliv' Hstrecs Hrdsoft Hrdrs' Hce
-      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead
+      Hce_cap Hents Hrdhard Hrdz Hsloc Hdur Hmsgl Hmsnap Hrdlead Hrntr
     isplitl [Hghost Hrest]
     · iunfold ownStepGhost; iframe Hghost Hrest
     ipureintro
@@ -761,7 +763,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
       Hrs_unst, Hrs_clb,
       ⟨Hrnfl.1, Int.not_lt.1 fun h => by
         obtain ⟨_, _, Hm, -⟩ := Hrnfl.2 h; rw [Hsteps0] at Hm; simp at Hm⟩,
-      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hsdt, Hrole, Hpst, Hphs⟩
+      HceOk, fun _ => Hcepre, Hrdc, Hprc, Hnsout, Hnl.2.2, Hsdt, Hrole, Hpst, Hphs, Hgtr, Hglq⟩
   isplitr
   · iexact Hce
   isplitr

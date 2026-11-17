@@ -46,7 +46,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI Iris.ProofMode _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
 section addrs
 variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]

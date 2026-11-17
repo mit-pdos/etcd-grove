@@ -4,9 +4,14 @@
 
 theorem traceChangeConfEvent.wp_proof [package_sem : Assumptions] : traceChangeConfEvent.spec
   -- `Perennial.EtcdGrove.traceChangeConfEvent.spec`, unfolded:
-  ∀ (c : GoInterface) (r : Loc),
+  ∀ (c : GoInterface) (dq : DFrac) (o : ConfChangeIM) (r : Loc) (tl : GoInterface),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 -∗
-          ▷ (True -∗ Φ (intoVal ())) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            ownConfChangeI c dq (some o) ∗
+              typedPointsto
+                  (structFieldRef raft go!"traceLogger" r) tl
+                  DFrac.discard ∗
+                ⌜TraceLoggerOk tl⌝ -∗
+          ▷ (ownConfChangeI c dq (some o) -∗ Φ (intoVal ())) -∗
             WP (((intoVal (functions traceChangeConfEvent [])) (intoVal c)) (intoVal r)) {{ Φ }}

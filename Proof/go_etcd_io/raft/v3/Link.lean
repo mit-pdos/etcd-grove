@@ -53,6 +53,7 @@ public import Proof.go_etcd_io.raft.v3.RestartNode
 public import Proof.go_etcd_io.raft.v3.SetLogger
 public import Proof.go_etcd_io.raft.v3.SoftState__equal
 public import Proof.go_etcd_io.raft.v3.StartNode
+public import Proof.go_etcd_io.raft.v3.StateType__String
 public import Proof.go_etcd_io.raft.v3.assertConfStatesEquivalent
 public import Proof.math.big.Int__Int64
 public import Proof.math.big.NewInt
@@ -248,6 +249,7 @@ public import Proof.go_etcd_io.raft.v3.raftpb.HardState__GetTerm
 public import Proof.go_etcd_io.raft.v3.raftpb.HardState__GetVote
 public import Proof.go_etcd_io.raft.v3.raftpb.MarshalConfChange
 public import Proof.go_etcd_io.raft.v3.raftpb.MessageType__Enum
+public import Proof.go_etcd_io.raft.v3.raftpb.MessageType__String
 public import Proof.go_etcd_io.raft.v3.raftpb.Message__GetCommit
 public import Proof.go_etcd_io.raft.v3.raftpb.Message__GetContext
 public import Proof.go_etcd_io.raft.v3.raftpb.Message__GetEntries
@@ -283,6 +285,7 @@ public import Proof.slices.Sort
 public import Proof.go_etcd_io.raft.v3.stepCandidate
 public import Proof.go_etcd_io.raft.v3.stepFollower
 public import Proof.go_etcd_io.raft.v3.stepLeader
+public import Proof.strconv.Itoa
 public import Proof.strings.Join
 public import Proof.go_etcd_io.raft.v3.traceBecomeCandidate
 public import Proof.go_etcd_io.raft.v3.traceBecomeFollower
@@ -340,6 +343,7 @@ public import Proof.go_etcd_io.raft.v3.unstable__stableSnapTo
 public import Proof.go_etcd_io.raft.v3.unstable__stableTo
 public import Proof.go_etcd_io.raft.v3.unstable__truncateAndAppend
 public import Proof.go_etcd_io.raft.v3.voteRespMsgType
+public import Perennial.Proof.time.Link
 public import Proof.context.Link
 public import Proof.fmt.Link
 
@@ -515,6 +519,34 @@ theorem wp_newLogWithSize [StorageModel GF] :
     newLogWithSize.spec (GF := GF) (hG := hG) :=
   newLogWithSize.wp_proof
 
+theorem unstable.wp_maybeLastIndex [StorageModel GF] :
+    unstable.maybeLastIndex.spec (GF := GF) (hG := hG) :=
+  unstable.maybeLastIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_lastIndex [StorageModel GF] :
+    raftLog.lastIndex.spec (GF := GF) (hG := hG) :=
+  raftLog.lastIndex.wp_proof unstable.wp_maybeLastIndex
+
+theorem unstable.wp_maybeTerm [StorageModel GF] :
+    unstable.maybeTerm.spec (GF := GF) (hG := hG) :=
+  unstable.maybeTerm.wp_proof unstable.wp_maybeLastIndex raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.Entry.wp_GetTerm
+
+theorem unstable.wp_maybeFirstIndex [StorageModel GF] :
+    unstable.maybeFirstIndex.spec (GF := GF) (hG := hG) :=
+  unstable.maybeFirstIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
+
+theorem raftLog.wp_firstIndex [StorageModel GF] :
+    raftLog.firstIndex.spec (GF := GF) (hG := hG) :=
+  raftLog.firstIndex.wp_proof unstable.wp_maybeFirstIndex
+
+theorem raftLog.wp_term [StorageModel GF] :
+    raftLog.term.spec (GF := GF) (hG := hG) :=
+  raftLog.term.wp_proof unstable.wp_maybeTerm raftLog.wp_firstIndex raftLog.wp_lastIndex
+
+theorem raftLog.wp_lastEntryID [StorageModel GF] :
+    raftLog.lastEntryID.spec (GF := GF) (hG := hG) :=
+  raftLog.lastEntryID.wp_proof raftLog.wp_lastIndex raftLog.wp_term
+
 theorem tracker.wp_MakeProgressTracker :
     tracker.MakeProgressTracker.spec (GF := GF) (hG := hG) :=
   tracker.MakeProgressTracker.wp_proof
@@ -683,14 +715,6 @@ theorem tracker.ProgressTracker.wp_Visit :
     tracker.ProgressTracker.Visit.spec (GF := GF) (hG := hG) :=
   tracker.ProgressTracker.Visit.wp_proof slices.wp_Sort
 
-theorem unstable.wp_maybeLastIndex [StorageModel GF] :
-    unstable.maybeLastIndex.spec (GF := GF) (hG := hG) :=
-  unstable.maybeLastIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem raftLog.wp_lastIndex [StorageModel GF] :
-    raftLog.lastIndex.spec (GF := GF) (hG := hG) :=
-  raftLog.lastIndex.wp_proof unstable.wp_maybeLastIndex
-
 theorem big.wp_NewInt :
     big.NewInt.spec (GF := GF) (hG := hG) :=
   big.NewInt.wp_proof
@@ -738,10 +762,6 @@ theorem fmt.wp_Sprintf [StorageModel GF] :
 theorem strings.wp_Join [StorageModel GF] :
     strings.Join.spec (GF := GF) (hG := hG) :=
   strings.Join.wp_proof
-
-theorem wp_newRaft [StorageModel GF] :
-    newRaft.spec (GF := GF) (hG := hG) :=
-  newRaft.wp_proof Config.wp_validate wp_newLogWithSize tracker.wp_MakeProgressTracker wp_newReadOnly wp_traceInitState confchange.wp_Restore wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState wp_assertConfStatesEquivalent wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raft.wp_becomeFollower tracker.ProgressTracker.wp_VoterNodes fmt.wp_Sprintf strings.wp_Join
 
 theorem raft.wp_softState [StorageModel GF] :
     raft.softState.spec (GF := GF) (hG := hG) :=
@@ -818,26 +838,6 @@ theorem raftLog.wp_hasNextOrInProgressSnapshot [StorageModel GF] :
 theorem raft.wp_promotable [StorageModel GF] :
     raft.promotable.spec (GF := GF) (hG := hG) :=
   raft.promotable.wp_proof raftLog.wp_hasNextOrInProgressSnapshot
-
-theorem unstable.wp_maybeTerm [StorageModel GF] :
-    unstable.maybeTerm.spec (GF := GF) (hG := hG) :=
-  unstable.maybeTerm.wp_proof unstable.wp_maybeLastIndex raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm raftpb.Entry.wp_GetTerm
-
-theorem unstable.wp_maybeFirstIndex [StorageModel GF] :
-    unstable.maybeFirstIndex.spec (GF := GF) (hG := hG) :=
-  unstable.maybeFirstIndex.wp_proof raftpb.Snapshot.wp_GetMetadata raftpb.SnapshotMetadata.wp_GetIndex
-
-theorem raftLog.wp_firstIndex [StorageModel GF] :
-    raftLog.firstIndex.spec (GF := GF) (hG := hG) :=
-  raftLog.firstIndex.wp_proof unstable.wp_maybeFirstIndex
-
-theorem raftLog.wp_term [StorageModel GF] :
-    raftLog.term.spec (GF := GF) (hG := hG) :=
-  raftLog.term.wp_proof unstable.wp_maybeTerm raftLog.wp_firstIndex raftLog.wp_lastIndex
-
-theorem raftLog.wp_lastEntryID [StorageModel GF] :
-    raftLog.lastEntryID.spec (GF := GF) (hG := hG) :=
-  raftLog.lastEntryID.wp_proof raftLog.wp_lastIndex raftLog.wp_term
 
 theorem raftpb.MessageType.wp_Enum :
     raftpb.MessageType.Enum.spec (GF := GF) (hG := hG) :=
@@ -1359,6 +1359,10 @@ theorem wp_SetLogger :
     SetLogger.spec (GF := GF) (hG := hG) :=
   SetLogger.wp_proof
 
+theorem StateType.wp_String :
+    StateType.String.spec (GF := GF) (hG := hG) :=
+  StateType.String.wp_proof
+
 theorem quorum.mapAckIndexer.wp_AckedIndex :
     quorum.mapAckIndexer.AckedIndex.spec (GF := GF) (hG := hG) :=
   quorum.mapAckIndexer.AckedIndex.wp_proof
@@ -1399,6 +1403,14 @@ theorem raftpb.ConfState.wp_GetVotersOutgoing :
     raftpb.ConfState.GetVotersOutgoing.spec (GF := GF) (hG := hG) :=
   raftpb.ConfState.GetVotersOutgoing.wp_proof
 
+theorem strconv.wp_Itoa :
+    strconv.Itoa.spec (GF := GF) (hG := hG) :=
+  strconv.Itoa.wp_proof
+
+theorem raftpb.MessageType.wp_String :
+    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
+  raftpb.MessageType.String.wp_proof strconv.wp_Itoa
+
 theorem raftpb.Message.wp_GetResponses :
     raftpb.Message.GetResponses.spec (GF := GF) (hG := hG) :=
   raftpb.Message.GetResponses.wp_proof
@@ -1437,6 +1449,10 @@ theorem wp_limitSize [StorageModel GF] :
 theorem MemoryStorage.wp_Entries [StorageModel GF] :
     MemoryStorage.Entries.spec (GF := GF) (hG := hG) :=
   MemoryStorage.Entries.wp_proof raftpb.Entry.wp_GetIndex MemoryStorage.wp_lastIndex wp_limitSize
+
+theorem wp_newRaft [StorageModel GF] :
+    newRaft.spec (GF := GF) (hG := hG) :=
+  newRaft.wp_proof Config.wp_validate wp_newLogWithSize raftLog.wp_lastEntryID tracker.wp_MakeProgressTracker wp_newReadOnly wp_traceInitState confchange.wp_Restore wp_traceConfChangeEvent tracker.ProgressTracker.wp_ConfState wp_assertConfStatesEquivalent wp_IsEmptyHardState raftpb.HardState.wp_GetCommit raftpb.HardState.wp_GetTerm raftpb.HardState.wp_GetVote raft.wp_becomeFollower tracker.ProgressTracker.wp_VoterNodes fmt.wp_Sprintf strings.wp_Join
 
 theorem wp_NewRawNode [AllG GF] [StorageModel GF] :
     NewRawNode.spec (GF := GF) (hG := hG) :=

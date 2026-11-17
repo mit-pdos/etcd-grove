@@ -31,6 +31,8 @@ theorem NewResourceExpired.wp_proof : NewResourceExpired.spec (GF := GF) (hG := 
   iapply HΦ
   iexists _
   iframe
+  isplitr
+  · unfold statusDetailsAt; ileft; ipureintro; exact ⟨rfl, rfl⟩
   ipureintro
   exact ⟨rfl, rfl, rfl, rfl⟩
 

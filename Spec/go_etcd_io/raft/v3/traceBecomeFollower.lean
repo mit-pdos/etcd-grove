@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_traceBecomeFollower.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedCap
 
 @[expose] public section
 
@@ -19,23 +19,19 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceBecomeFollower(r)`: a tracing hook, and a **no-op** -- Goose translates it to
-`λ: <> <>, exception_do (do: #())`. See `spec_traceReceiveMessage.v`; `becomeFollower`
-is the caller.
+/-- `traceBecomeFollower(r)`: the node event `BecomeFollower` of `r`'s state, through `traceNodeEvent`.
 
-**It owns nothing** (changed 2026-09-23). Goose translates the hook to
-`exception_do (do: #())`: it reads nothing and writes nothing, so the honest triple
-takes no resource and gives none back. Until then it carried a piece of the raft
-struct in and out (`own_raft_misc`), which was a spec on a raw piece of the struct --
-exactly what the one-predicate rule (notes/decisions.md, "Three layers") rules out --
-and was left that way only to spare the callers a re-seal. Owning nothing spares them
-the re-seal *and* obeys the rule. This is a fact about the no-op build that is
-translated; the tracing build reads `r` and would need a real spec on `ownRaftPhys`. -/
+One spec for both modes (Q8 stage 1, slice 2, 2026-11-09; `traceNodeEvent.spec`'s form): untraced
+(`s.gh.tr = none`) the gate `trOwn` is `emp` and `TraceFire` a nil logger and `Q`; traced, raft's state
+is lent through the gate and the caller's update fires with a `NodeEvOf` event. Its traced instance is
+the Draft's `traceBecomeFollower.tracedSpec` (`TracedHooks.lean`). Until slice 2: `⌜TraceLoggerOk tl⌝`, giving
+`True` (increment 1, `notes/trace-validation-hooks.md`). -/
 abbrev traceBecomeFollower.spec : Prop :=
-  ∀ (r : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tl : GoInterface) (Q : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ TraceFire s.gh.tr tl (NodeEvOf (W64 2) id s c) Q }}
     (App (Val #(functions traceBecomeFollower [])) (Val #r))
-  {{ RET #(); True }}
+  {{ RET #(); trOwn s.gh.tr (ownRaftPhysCV c c.voters r id s) ∗ Q }}
 
 end spec
 

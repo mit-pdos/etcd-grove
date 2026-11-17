@@ -803,6 +803,9 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
     ⌜γ.raft.cl.bootLen = γ.raft.boot.length⌝ ∗
     -- (2026-11-04, the restart plan's R2b-3d gap 3) the boot members' peer URLs (`bootURLsOk`)
     ⌜bootURLsOk γ.raft.boot⌝ ∗
+    -- (2026-11-09, Q8 stage 0 of `notes/trace-validation-plan.md`) an untraced cluster
+    -- (`cluster_alloc`'s): `StartNode`'s/`RestartNode`'s premise
+    ⌜Cluster.trace γ.raft.cl = none⌝ ∗
     -- (raft-entsize §2, 2026-11-10) the cluster's bound on proposed data, `2^30` (`cluster_alloc`'s
     -- `md`): what the node API's size premises (`Propose`'s data, `ReadIndex`'s context,
     -- `stepIn_intro`'s received message) are checked against; until then (2026-11-09, interim)
@@ -811,6 +814,15 @@ def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; infer_instance
+
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The server's cluster is untraced: what the node
+API's `stepIn_intro` (the message's token) and refused calls (`ReadIndex`, `ReportSnapshot`) take. -/
+theorem srvClusterOk_untraced (γ : ServerRaftNames) :
+    srvClusterOk (GF := GF) γ ⊢ ⌜Cluster.trace γ.raft.cl = none⌝ := by
+  unfold srvClusterOk
+  iintro ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
+  ipureintro; exact H.1
 
 /-- **Raft's committed log, at the server** (persistent; the contract's ghost interface): the
 server's log invariant, the cluster, the start log committed and the start index its length; and
@@ -834,7 +846,7 @@ theorem srvRaftLogInv_maxData (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cl.maxData = some (2 ^ 30)⌝ := by
   unfold srvRaftLogInv srvClusterOk
   iintro ⟨-, ⟨-, -, -, -, -, -, -, -, -, -, %H⟩, -⟩
-  ipureintro; exact H
+  ipureintro; exact H.2
 
 theorem srvRaftLogInv_facts (γ : ServerRaftNames) :
     srvRaftLogInv (GF := GF) γ ⊢ ⌜uint.Z γ.ai0 = γ.pre.length⌝ := by

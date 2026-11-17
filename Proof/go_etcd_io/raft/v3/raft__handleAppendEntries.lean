@@ -23,6 +23,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetLogTerm
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetFrom
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendRB
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -43,22 +44,36 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `r.send(&pb.Message{To: dst, Type: pb.MsgAppResp.Enum(), Index: ..., ...})`, the reply
-built: `SendOk`'s `MsgAppResp` clause (d) with no entries. -/
+built: `SendOk`'s `MsgAppResp` clause (d) with no entries; (Q8 stage 1, slice 7) the caller's gate
+(`∀ s1 mm`, for the replies whose send ends in `P`) instantiated at the reply. -/
 private theorem wp_send_appResp (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (dst idx hintterm hint : w64)
-    (rej : Bool) (Hdst : dst ≠ id) (Htz : s.term ≠ W64 0) :
+    (rej : Bool) (Hdst : dst ≠ id) (Htz : s.term ≠ W64 0) (tr : Option GName) (Htr : s.gh.tr = tr)
+    (P : NState → Prop) (G : IProp GF) (G' : List Msg → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
-        msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ }}
+        msgOwnZ s.gh.sn.sz ml (DFrac.own 1) ⟨⟨W32 4, dst, 0, 0, hintterm, idx, 0, 0, rej, hint⟩, [], none, [], []⟩ ∗
+        ⌜P (sendMsgs s [appResp id s dst rej idx hintterm hint])⌝ ∗ G ∗
+        (∀ (s1 : NState) (mm : Msg), ⌜P (sendMsgs s1 [mm])⌝ -∗
+          G -∗ HookGateOpt tr r (sendOutGate id s1 c MsgAppResp [mm]) (G' (sendMsgs s1 [mm]).outbox)) }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"send")) (Val #ml))
-    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) }} := by
-  iintro %Φ ⟨#Hpkg, Hphys, Hm⟩ HΦ
+    {{ RET #(); ownRaftPhysCV c c.voters r id (sendMsgs s [appResp id s dst rej idx hintterm hint]) ∗
+        G' (sendMsgs s [appResp id s dst rej idx hintterm hint]).outbox }} := by
+  iintro %Φ ⟨#Hpkg, Hphys, Hm, %HP, HG, Hgate⟩ HΦ
+  ihave Hg := Hgate $$ %s %(appResp id s dst rej idx hintterm hint) %HP HG
+  have Hns : s.gh.tr ≠ none → ∃ ty, mtypeOf (W32 4) = some ty ∧ ty ≠ MsgType.snap := fun _ => mtypeOf_send_eq rfl
   wp_apply wp_raft_send c r id s ml _ [] none [] [] [appResp id s dst rej idx hintterm hint]
+      (G' (sendMsgs s [appResp id s dst rej idx hintterm hint]).outbox)
       (Or.inl rfl) (Or.inr (Or.inr (Or.inr (Or.inl ⟨rfl, rfl, Htz, fun h => absurd h Hdst, rfl⟩))))
       (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+      (fun h => absurd h (by simp [MsgApp])) rfl Hns $$ [$Hphys $Hm Hg] as ⟨Hphys, HG'⟩
+  · isplitr
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    iapply hookGateOpt_congr tr _ r (sendOutGate id s c MsgAppResp [appResp id s dst rej idx hintterm hint])
+      _ _ Htr.symm (by rfl)
+    iexact Hg
   iapply HΦ
-  iexact Hphys
+  iframe Hphys
+  iidx HG'
 
 set_option hygiene false in
 /-- The reply's prefix: `To: m.From` (the request's cell, shared), `Type: MsgAppResp.Enum()`. -/
@@ -99,7 +114,7 @@ theorem raft.handleAppendEntries.wp_proof
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.handleAppendEntries.spec (GF := GF) (hG := hG) := by
-  intro c r id s ml m ents sn ctx rs Hwf Hnw Hconf Hfid Htyapp Hnl Htz
+  intro c r id s ml m ents sn ctx rs G G' Hwf Hnw Hconf Hfid Htyapp Hnl Htz
   wp_start as Hpre
   iNamed Hpre
   unfold msgInC
@@ -157,11 +172,16 @@ theorem raft.handleAppendEntries.wp_proof
       msg_nulls
     obtain ⟨Hcm2, -⟩ := Hlv2
     rw [Hcm2]
-    wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) $$ [$Hphys $Hr] as Hphys
+    wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) (tr := s.gh.tr) (Htr := by rfl)
+      (P := HandleAppResult id s m ents) $$ [$Hphys $Hr $HG $Hgate] as ⟨Hphys, HG'⟩
+    · ipureintro
+      exact .inl ⟨Hif, rfl⟩
     iapply HΦ
-    iframe
-    ipureintro
-    exact .inl ⟨Hif, rfl⟩
+    iframe Hphys
+    isplitr
+    · ipureintro
+      exact .inl ⟨Hif, rfl⟩
+    iidx HG'
   · -- `maybeAppend`
     wp_apply wp_GetCommit.1 $$ [$Hm] as Hm
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
@@ -205,12 +225,18 @@ theorem raft.handleAppendEntries.wp_proof
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
         msg_nulls
-      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) $$ [$Hphys $Hr] as Hphys
+      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) (tr := s.gh.tr) (Htr := by rfl)
+        (P := HandleAppResult id s m ents) $$ [$Hphys $Hr $HG $Hgate] as ⟨Hphys, HG'⟩
+      · ipureintro
+        exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
+          ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, Hmagh.2.2.2, rfl⟩)
       iapply HΦ
-      iframe
-      ipureintro
-      exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
-        ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, Hmagh.2.2.2, rfl⟩)
+      iframe Hphys
+      isplitr
+      · ipureintro
+        exact .inr (.inl ⟨by omega, _, es', ls', Hpm, Hprev, Hes', Happ, Hcm',
+          ⟨Ha', Hsn', Hu', Hprev, Hst', Hsg', Hfl'⟩, Hmagh.2.2.2, rfl⟩)
+      iidx HG'
     | none =>
       -- rejected: `a.prev` does not match
       rw [Hpm] at Hma
@@ -263,19 +289,24 @@ theorem raft.handleAppendEntries.wp_proof
         isplitr
         · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
         msg_nulls
-      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) $$ [$Hphys $Hr] as Hphys
-      iapply HΦ
-      iframe
-      ipureintro
       -- (2026-10-19, D21 M3) the hint: `findConflictByTerm(min(m.Index, lastIndex()), m.LogTerm)`
       have Hrh : RejHintOk s.logst.prev (s.logst.sents ++ s.logst.uents) m.Index' m.LogTerm' hint := by
         have Hmin := w64Min_spec m.Index' li
-        refine ⟨by have := Hfc.1; omega, fun h1 h2 hC => Hfc.2 ?_ hC⟩
+        refine ⟨by have := Hfc.1; omega, fun h1 h2 hC => Hfc.2.2 ?_ hC⟩
         unfold plogLastIndexZ at h2
         simp only [List.length_append] at h2
         push_cast at h2
         omega
-      exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, rfl⟩)
+      wp_apply wp_send_appResp wp_raft_send (Hdst := Hfid) (Htz := (by first | exact Htz | simpa using Htz | simp_all)) (tr := s.gh.tr) (Htr := by rfl)
+        (P := HandleAppResult id s m ents) $$ [$Hphys $Hr $HG $Hgate] as ⟨Hphys, HG'⟩
+      · ipureintro
+        exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, Hfc.2.1, rfl⟩)
+      iapply HΦ
+      iframe Hphys
+      isplitr
+      · ipureintro
+        exact .inr (.inr ⟨by omega, Hnm, hint, hintterm, Hrh, Hfc.2.1, rfl⟩)
+      iidx HG'
 
 end proof
 

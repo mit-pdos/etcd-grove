@@ -10,24 +10,25 @@ def node.ApplyConfChange.spec : Prop :=
         e.isConfChange →
           Membership.applyChange o' v.membership = some m' →
             Membership.applyChange o v.membership = some m' →
-              ⊢
-                ∀ Φ,
-                  isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                      isNode n γ N id ∗
-                        isCluster γ N ∗
-                          confDecided γ k (ConfDecision.apply o') ∗
-                            ownConfChangeI c DFrac.discard (some o) ∗
-                              nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
-                    (▷
-                        ∀ csp cs,
-                          csPts csp (DFrac.own 1) cs true ∗
-                                nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
-                              ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
-                            Φ (intoVal csp)) -∗
-                      WP
-                        ((intoVal
-                            (methods node.ty.PointerType
-                              go!"ApplyConfChange"
-                              (intoVal n)))
-                          (intoVal c))
-                        {{ Φ }}
+              (γ.trace ≠ none → m' = v.membership) →
+                ⊢
+                  ∀ Φ,
+                    isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+                        isNode n γ N id ∗
+                          isCluster γ N ∗
+                            confDecided γ k (ConfDecision.apply o') ∗
+                              ownConfChangeI c DFrac.discard (some o) ∗
+                                nodeConfig n γ N v ∗ deliveredLogLb n γ N l ∗ skippedIn γ l v.applied k -∗
+                      (▷
+                          ∀ csp cs,
+                            csPts csp (DFrac.own 1) cs true ∗
+                                  nodeConfig n γ N { applied := k + 1, membership := m' } ∗ ⌜confStateIs cs m'⌝ ∨
+                                ⌜csp = null⌝ ∗ nodeStopped n γ N -∗
+                              Φ (intoVal csp)) -∗
+                        WP
+                          ((intoVal
+                              (methods node.ty.PointerType
+                                go!"ApplyConfChange"
+                                (intoVal n)))
+                            (intoVal c))
+                          {{ Φ }}

@@ -466,6 +466,23 @@ theorem initialEventsL_mem (hwf : HistWf x hs) {r0 : Nat} (hr0 : r0 ≤ hs.lengt
   obtain ⟨h1, h2, h3⟩ := hwf.2.1 r0 it hr0 (List.mem_filter.1 hit).1
   exact ⟨rfl, h1, h2, h3⟩
 
+/-- (stage E of 7f-6) **The driver's watch check accepts a watch that delivered only Error
+events** (dropped by the check), whatever the configuration, once its resource version parses. -/
+theorem watchOkL_errs (x' : Input) (y : Output) (h : HSt) (evs : List WEv) (reqw : w64)
+    (hreq : parseRVD x'.MinRV' = some reqw) (henc : y.WEvents' = encWEventsL evs)
+    (hok : ∀ e ∈ evs, WEvOk e) (hall : ∀ e ∈ evs, e.t = 4) : watchOkL x' y h = true := by
+  unfold watchOkL
+  by_cases hf : (y.WFailed' || x'.Skip') = true
+  · rw [ite_eq_left hf]
+  rw [ite_eq_right hf, henc, decWEventsL_enc evs hok]
+  have h5 : (evs.any fun e => decide (5 ≤ e.t)) = false := by
+    rw [List.any_eq_false]; intro e he; have := hall e he; simp only [decide_eq_true_eq]; omega
+  have hes : evs.filter (fun e => decide (e.t ≠ 4)) = [] := by
+    rw [List.filter_eq_nil_iff]; intro e he; simp [hall e he]
+  simp only [h5, Bool.false_eq_true, ↓reduceIte, hreq, hes]
+  by_cases hsi : x'.SendInit' = W64 2 <;>
+    simp [hsi, bookmarksOkL, initialPrefixOkL, reliableOkL, evRangeL]
+
 /-- **The driver's watch check accepts what a watch delivered** (`StreamOkL`), against the
 configuration whose history is the store's (see the file header). -/
 theorem watchOkL_of_stream (y : Output) (h : HSt) (evs : List WEv) (reqw : w64)

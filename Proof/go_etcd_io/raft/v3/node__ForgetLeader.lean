@@ -50,6 +50,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 private abbrev node.ForgetLeader.specRaw : Prop :=
   ∀ (γ : NodeNames) (id : w64) (n : Loc)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  -- (2026-11-12, trace-check implementation step 1) refused at a traced node
+  γ.raft.reTrace = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNodeChan γ id n ∗ nodeCtx ctx cd }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ForgetLeader"))
       (Val #(interface.ok ctx)))
@@ -72,7 +74,7 @@ private theorem node.ForgetLeader.wp_raw
     (wp_node_step : node.step.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.ForgetLeader.specRaw (GF := GF) (hG := hG) := by
-  intro γ id n ctx cd
+  intro γ id n ctx cd Htr
   wp_start as ⟨#Hnode, #Hctx⟩
   wp_auto
   imod termLB_zero (GF := GF) γ.bud with #Hlb
@@ -92,7 +94,7 @@ private theorem node.ForgetLeader.wp_raw
   · iframe Hnode Hctx
     unfold stepP
     ileft
-    iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl rfl
+    iapply netP_local γ id _ _ (.inr (.inl rfl)) rfl rfl rfl rfl (.inl Htr)
         $$ Hmsg Hlb Hcr Htc
   iintro %err #Herr
   wp_auto
@@ -117,11 +119,11 @@ private theorem node.wp_ForgetLeader_impl
     (hS : EtcdGrove.node.ForgetLeader.specRaw (GF := GF) (hG := hG)) :
     EtcdGrove.node.ForgetLeader.spec (GF := GF) (hG := hG) := by
   unfold EtcdGrove.node.ForgetLeader.spec EtcdGrove.Cluster EtcdGrove.isNode
-  intro n γ N id ctx cd
+  intro n γ N id ctx cd Htr
   iintro %Φ ⟨#Hinit, #Hnode, #Hctx⟩ HΦ
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hf, #Hrn, #Htab, -⟩
-  iapply (hS γn id n ctx cd) $$ []
+  iapply (hS γn id n ctx cd (by rw [Hf.1]; exact Htr)) $$ []
   · iframe Hinit Hrn Hctx
   iintro !> %err #Herr
   iapply HΦ

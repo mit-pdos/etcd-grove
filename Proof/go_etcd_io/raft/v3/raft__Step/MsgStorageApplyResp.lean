@@ -104,11 +104,12 @@ theorem StepCD.trans_leave {c : CfgM} {id : w64} {B : Int} {m : MessageM} {s s1 
 /-- **The automatic leave's proposal is legitimately sent** (2026-10-29, stage U5): its one entry is
 a filler (an empty `ConfChangeV2`, `Filler`), whose data decodes (`ccDecodeV2_nil`), so raft's own
 leave needs no client's deposit. -/
-theorem isMessage_leave (γ : RaftNames) : ⊢ isMessage (GF := GF) γ leaveAbs := by
+theorem isMessage_leave (γ : RaftNames) (htr : γ.reTrace = none) :
+    ⊢ isMessage (GF := GF) γ leaveAbs := by
   unfold leaveAbs isMessage absMsg absMsgFrom
   isplitr
   · ipureintro
-    exact ⟨rfl, List.cons_ne_nil _ _, by simp⟩
+    exact ⟨rfl, List.cons_ne_nil _ _, by simp, fun e _ => TrNoConf.of_none htr e⟩
   iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ e)).2
   unfold propData
   iexists none
@@ -147,7 +148,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (k0 : Nat) :
+    (ents : List EntryM) (k0 : Nat) (R : StepG GF) :
     m.Type' = MsgStorageApplyResp →
     m.Term' = W64 0 →
     (∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s.logst.committed ∧
@@ -157,10 +158,15 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     -- premises for its leave's proposal
     (s.role = .leader → s.term ≠ W64 0) →
     plogLastIndexZ (toPState s).base (toPState s).log < 2 ^ 64 →
+    -- (2026-11-10, Q8 stage 1 slice 11; until then of any message) `appliedTo`'s premise (slice 12:
+    -- its leave's, untraced)
+    (ents ≠ [] → c.autoLeave = true → s.gh.tr = none) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
-        "#Hrc" ∷ ⧖ k0 }}
+        "#Hrc" ∷ ⧖ k0 ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState) (B : Int) (recv : List Msg), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -171,7 +177,8 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
         -- (2026-10-25, T-M M2b) a pre-candidate keeps its log and commit index (`PreKeep`)
         "%Hpk" ∷ ⌜s.role = .preCandidate → PreKeep s s'⌝ ∗
         -- (2026-10-29, stage U5) the leave's proposal received, if appended, at the bound `B`
-        "%Hrecv" ∷ ⌜(∀ m' ∈ recv, m' = leaveAbs) ∧ recv.length ≤ 1⌝ ∗
+        -- (2026-11-12, trace-check's G3 (a)) only at an untraced node (`appliedTo`'s premise)
+        "%Hrecv" ∷ ⌜(∀ m' ∈ recv, m' = leaveAbs) ∧ recv.length ≤ 1 ∧ (recv ≠ [] → s.gh.tr = none)⌝ ∗
         "%HBb" ∷ ⌜plogLastIndexZ (toPState s).base (toPState s).log ≤ B ∧
           B ≤ plogLastIndexZ (toPState s).base (toPState s).log + 1 ∧ B < 2 ^ 64⌝ ∗
         "Hrcb" ∷ (⌜plogLastIndexZ (toPState s).base (toPState s).log < B⌝ -∗ ⧖ (k0 + 1)) ∗
@@ -181,15 +188,19 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
           ∃ e, ents.getLast? = some e ∧ s'.logst.applied = w64Max e.Index' s.logst.applied⌝ ∗
         -- (D19i part 1) and at least to it
         "%Happ2" ∷ ⌜∀ e, ents.getLast? = some e → uint.Z e.Index' ≤ uint.Z s'.logst.applied⌝ ∗
-        "%Herr" ∷ ⌜err = interface.nil⌝ }} := by
-  intro Hty Hterm Hlast Hwf Hlnz HL
+        "%Herr" ∷ ⌜err = interface.nil⌝ ∗
+        -- (2026-11-11, slice 30c) traced, the protocol reading unchanged (`AckEnd`: no automatic
+        -- leave at a traced node)
+        "%Hack" ∷ ⌜s.gh.tr.isSome → toPState s' = toPState s ∧ s'.lt = s.lt ∧ s'.rd = s.rd⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
+  intro Hty Hterm Hlast Hwf Hlnz HL Htr
   wp_start as H
   iNamed H
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   rw [decide_eq_false Hnn]
   wp_auto
-  wp_apply _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_get _Q
   -- `m.Term = 0` (a local message), so the term preamble is skipped
@@ -208,9 +219,11 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     subst He
     rw [decide_eq_false (by simp only [List.length_nil] at Hlen; word)]
     wp_auto
+    ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s %(plogLastIndexZ (toPState s).base (toPState s).log)
       %([] : List Msg)
-    iframe Hphys
+    iframe Hphys HG
     isplitr
     · ipureintro; exact Hwf
     isplitr
@@ -219,18 +232,20 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
     isplitr
     · ipureintro; exact fun _ => ⟨rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
     isplitr
-    · ipureintro; exact ⟨by simp, by simp⟩
+    · ipureintro; exact ⟨by simp, by simp, fun h => absurd rfl h⟩
     isplitr
     · ipureintro; exact ⟨Int.le_refl _, by omega, HL⟩
     isplitr
     · iintro %Hlt; exact absurd Hlt (Int.lt_irrefl _)
     ipureintro
-    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl⟩
+    exact ⟨StepCD.frame (.refl _) (RFrame.refl _), .inl rfl, fun _ h => by simp at h, rfl, fun _ => ⟨rfl, rfl, rfl⟩⟩
   | some e =>
     obtain ⟨es, rfl⟩ := List.getLast?_eq_some_iff.1 He
     simp only [List.length_append, List.length_singleton] at Hlen
     rw [decide_eq_true (by word)]
     wp_auto
+    have hnbf : ¬ PreBF m s := PreBF.of_zero Hterm
+    imod preGate_nobf c r id s m _ _ (.inl Hterm) hnbf $$ Hgpre HG with HG
     -- `m.GetEntries()[len(m.GetEntries())-1].GetIndex()`
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es2 ⟨#Hes2, Hm⟩
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es3 ⟨#Hes3, Hm⟩
@@ -264,7 +279,7 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       (fun h => absurd (Hq0.2.symm.trans h) (by decide))
       (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
       (fun _ _ h => absurd (Hlast e He).2 (Int.not_le.2 h))
-      (fun h => absurd (Hq0.2.symm.trans h) (by decide)) $$ [$Hphys $Hrc]
+      (fun h => absurd (Hq0.2.symm.trans h) (by decide)) (Htr (by simp)) $$ [$Hphys $Hrc]
       as %s2 %B %recv ⟨Hphys, %Hls, Hrcb⟩
     try wp_auto
     wp_apply wp_GetEntries_ro _Q $$ [$Hm] as %es5 ⟨#Hes5, Hm⟩
@@ -298,14 +313,22 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       rw [← Hs1]; exact stepCD_appliedTo c id m s e.Index' sz Hty (Hlast e He).1 Hcm.1.2.1
     have Happ1 : s1.logst.applied = w64Max e.Index' s.logst.applied := by rw [← Hs1]; rfl
     have Hps1 : toPState s1 = toPState s := by rw [← Hs1]; rfl
+    have Hlr1 : s1.lt = s.lt ∧ s1.rd = s.rd := by rw [← Hs1]; exact ⟨rfl, rfl⟩
     have Hrole1 : s1.role = s.role := by rw [← Hs1]
     have Happ2' : uint.Z e.Index' ≤ uint.Z (w64Max e.Index' s.logst.applied) := by
       unfold w64Max
       split <;> word
+    -- (2026-11-10, Q8 stage 1 slice 14) the caller's resource past the (skipped) preamble, at the
+    -- end state's outbox: unchanged, or (the leave proposed: untraced) a family ignoring it
+    ihave HG : R.G1 s2.outbox $$ [HG]
+    · rcases Hls with ⟨rfl, -, -⟩ | ⟨Hal, -⟩
+      · rw [← Hs1]; iidx HG
+      · rw [Hgok.2.1 (Htr (by simp) Hal) s2.outbox s.outbox]; iexact HG
+    ihave HG := stepOut_G1 R $$ HG
     iapply HΦ $$ %interface.nil %s2 %B %recv
-    iframe Hphys
+    iframe Hphys HG
     rcases Hls with ⟨rfl, rfl, rfl⟩ |
-      ⟨-, Hrl, Hrecv, Hrl1, Hst2, Hfr2, Hapg2, Happl2, Hwf2, HB1, HB2, HB3, Hbound⟩
+      ⟨Hal, Hrl, Hrecv, Hrl1, Hst2, Hfr2, Hapg2, Happl2, Hwf2, HB1, HB2, HB3, Hbound⟩
     · -- nothing more
       isplitr
       · ipureintro; exact Hwf1
@@ -314,13 +337,13 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       isplitr
       · ipureintro; exact Hpk1
       isplitr
-      · ipureintro; exact ⟨by simp, by simp⟩
+      · ipureintro; exact ⟨by simp, by simp, fun h => absurd rfl h⟩
       isplitr
       · ipureintro; rw [Hps1]; exact ⟨Int.le_refl _, by omega, HL⟩
       isplitl [Hrcb]
       · iintro %Hlt; iapply Hrcb; ipureintro; exact Hlt
       ipureintro
-      refine ⟨Hst1, .inr ⟨e, by simp, Happ1⟩, fun e0 He0 => ?_, rfl⟩
+      refine ⟨Hst1, .inr ⟨e, by simp, Happ1⟩, fun e0 He0 => ?_, rfl, fun _ => ⟨Hps1, Hlr1⟩⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happ1]; exact Happ2'
@@ -333,14 +356,15 @@ theorem wp_Step_MsgStorageApplyResp (_P : raft.Step.Postulates (GF := GF) (hG :=
       · ipureintro
         exact fun h => absurd (Hrl.symm.trans (Hrole1.trans h)) (by decide)
       isplitr
-      · ipureintro; exact ⟨Hrecv, Hrl1⟩
+      · ipureintro; exact ⟨Hrecv, Hrl1, fun _ => Htr (by simp) Hal⟩
       isplitr
       · ipureintro; rw [← Hps1]; exact ⟨HB1, HB2, HB3⟩
       isplitl [Hrcb]
       · iintro %Hlt; iapply Hrcb; ipureintro; exact Hlt
       ipureintro
       refine ⟨StepCD.trans_leave Hst1 Hst2 Hrl (by rw [Hps1]) Happl2 Hbound,
-        .inr ⟨e, by simp, Happl2.trans Happ1⟩, fun e0 He0 => ?_, rfl⟩
+        .inr ⟨e, by simp, Happl2.trans Happ1⟩, fun e0 He0 => ?_, rfl,
+        fun h => by rw [Htr (by simp) Hal] at h; cases h⟩
       have He0' : e = e0 := by simpa using He0
       subst He0'
       rw [Happl2, Happ1]; exact Happ2'

@@ -6,6 +6,7 @@ public import SpecPlan.Spec.PkgInit.Base
 public import Perennial.Proof.context.Base
 public import Perennial.Proof.errors.Base
 public import Perennial.Proof.io.Base
+public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.strings.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.time.Base
@@ -14,6 +15,7 @@ public import Perennial.Proof.github_com.goose_lang.primitive.Base
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.v3.kubernetes
+public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.apis.«meta».v1
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.fields
 public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.labels
@@ -27,6 +29,8 @@ public import SpecPlan.Spec.PkgInit.k8s_io.apiserver.pkg.util.feature
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.cluster3
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart
 public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.examples.lib.lintest
+public import SpecPlan.Spec.PkgInit.github_com.mit_pdos.etcd_grove.third_party.bridge
+public import SpecPlan.Spec.PkgInit.k8s_io.apimachinery.pkg.watch
 
 @[expose] public section
 noncomputable section

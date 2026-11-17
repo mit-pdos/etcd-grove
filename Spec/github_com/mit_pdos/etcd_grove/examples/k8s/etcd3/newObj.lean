@@ -1,10 +1,12 @@
 /- Lean-first (no Rocq counterpart).
 
-`newObj()` (k8s_etcd3.go): a new `*Obj`, as a `runtime.Object` (non-`nil`): the store's `newFunc`.
+`newObj()` (k8s_etcd3.go): a new `*Obj`, as a `runtime.Object`: the zero object (`objAtD x dzero []`, so non-`nil`), the
+store's `newFunc`.
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.MDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
 
 @[expose] public section
 
@@ -28,7 +30,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 abbrev newObj.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newObj)) (Val #()))
-  {{ (x : GoInterface), RET #x; ⌜x ≠ GoInterface.nil⌝ }}
+  {{ (x : GoInterface), RET #x; objAtD x dzero [] }}
 
 end spec
 

@@ -23,6 +23,14 @@ It follows, as watchkv's (`Proof/.../watchkv/Adequacy.lean`), from
 **Its hypotheses** are watchkv's (`watch_adequate`) at cachekv's configuration
 (`etcd_cache.premises`: putget's, until 2026-10-20 also the watch stream's transport premise
 `noRetryableStreamErr`, gone with D25; the address `127.0.0.1:23873`): the cache adds none.
+
+**Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
+`[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
+the environment), since `fileutil`'s package initializer, which the server's initialization runs,
+probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
+premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
+well formed), so it says that the program runs on a real file system. Until then the extensions were
+`TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -32,7 +40,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Adequacy
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 
 @[expose] public section
 
@@ -47,7 +55,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
@@ -89,7 +98,9 @@ theorem etcd_cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_cache.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -104,7 +115,7 @@ theorem etcd_cache_adequate [lctx : GoLocalContext] [sem : go.Semantics]
         (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
           (fun h => intoVal_ne_PanicV _ p h.symm)))) [go!"127.0.0.1:23873"] (by decide) [go!"cachekv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
-    [(go!"cachekv", ⟨none, some go!"127.0.0.1:23873"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    [(go!"cachekv", ⟨none, some go!"127.0.0.1:23873"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG

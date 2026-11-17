@@ -2,14 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-def Perennial.github_com.prometheus.client_golang.prometheus.get_isPkgInit_wf_inst : GetIsPkgInitWf
-    (IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.github_com.prometheus.client_golang.prometheus =
-          isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∧
-        True }
-
 theorem Perennial.go_etcd_io.etcd.server.v3.storage.backend.histSpec_persistent (h : GoInterfaceOk)
     : Persistent (go_etcd_io.etcd.server.v3.storage.backend.histSpec h)
 
@@ -34,10 +26,6 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.get_isPkgInit_wf_inst : 
                                 GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus get_is_pkg_init ∧
                                   GetIsPkgInitProp pkg_id.encoding.hex get_is_pkg_init ∧
                                     GetIsPkgInitProp pkg_id.sort get_is_pkg_init ∧ True }
-
-def Perennial.go_etcd_io.etcd.client.pkg.v3.verify.isPkgInit_inst : IsPkgInit (IProp GF)
-    pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
-  { isPkgInitDeps := iprop(isPkgInit pkg_id.fmt ∗ True), isPkgInitDef := iprop(True) }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
@@ -82,18 +70,6 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF :
                     DFrac.discard ∗
                   typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.InitialMmapSize) (W64 10737418240)
                     DFrac.discard)
-
-def Perennial.go_etcd_io.etcd.client.pkg.v3.verify.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
-    pkg_id.go_etcd_io.etcd.client.pkg.v3.verify :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.go_etcd_io.etcd.client.pkg.v3.verify =
-          isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∧
-        GetIsPkgInitProp pkg_id.fmt get_is_pkg_init ∧ True }
-
-def Perennial.github_com.prometheus.client_golang.prometheus.isPkgInit_inst : IsPkgInit (IProp GF)
-    pkg_id.github_com.prometheus.client_golang.prometheus :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.histSpec (h : GoInterfaceOk) : IProp GF :=
   iprop(□

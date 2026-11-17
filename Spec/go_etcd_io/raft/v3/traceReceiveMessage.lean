@@ -3,7 +3,7 @@ Port of `election_proof/spec_traceReceiveMessage.v` (feb5c73d4).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -21,27 +21,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageMode
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- `traceReceiveMessage(r, m)`: a tracing hook, and a **no-op**.
+/-- `traceReceiveMessage(r, m)`: reads `r.traceLogger` and returns when it is nil; otherwise, for a
+message type it traces (`MsgApp`, `MsgHeartbeat`, `MsgSnap`, `MsgAppResp`, `MsgHeartbeatResp`,
+`MsgVote`, `MsgVoteResp`), sleeps 1ms (`time.Sleep`) and logs the receipt (`traceEvent`, with the
+message); for any other type nothing.
 
-Goose translates it to `λ: <> <>, exception_do (do: #())`, so this is a two-line proof
-and not an assumption; it was an axiom until 2026-09-16 purely because nobody had
-looked at the generated body. The spec carries `own_raft_misc` in and out so that the
-call composes where `Step` makes it, without claiming anything about the rest of the
-struct.
-
-**It owns nothing** (changed 2026-09-23). Goose translates the hook to
-`exception_do (do: #())`: it reads nothing and writes nothing, so the honest triple
-takes no resource and gives none back. Until then it carried a piece of the raft
-struct in and out (`own_raft_misc`), which was a spec on a raw piece of the struct --
-exactly what the one-predicate rule (notes/decisions.md, "Three layers") rules out --
-and was left that way only to spare the callers a re-seal. Owning nothing spares them
-the re-seal *and* obeys the rule. This is a fact about the no-op build that is
-translated; the tracing build reads `r` and would need a real spec on `ownRaftPhys`. -/
+One spec for both modes (Q8 stage 1, slice 4, 2026-11-09), as `traceSendMessage.spec`, with the
+receive hook's gate (`recvGate`, the Draft's). The Draft's `traceReceiveMessage.tracedSpec` follows
+(`TracedHooks.lean`). Until slice 4 the spec was the untraced case alone (`⌜TraceLoggerOk tl⌝`,
+giving `True`), which is `traceReceiveMessage.untraced` (`TracedUntraced.lean`). -/
 abbrev traceReceiveMessage.spec : Prop :=
-  ∀ (r : Loc) (mp : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 }}
-    (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #mp))
-  {{ RET #(); True }}
+  ∀ (r ml : Loc) (tl : GoInterface) (tr : Option GName) (oE : Option (TraceEv → Prop)) (Q R : IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ r.[raft, go!"traceLogger"] ↦□ tl ∗
+      ⌜tr = none → TraceLoggerOk tl⌝ ∗
+      trOwn tr iprop(∃ (c : CfgM) (id : w64) (s : NState) (P : IProp GF) (a : MsgArg),
+        P ∗ RaftLend P c r id s ∗ MsgLend P ml (some a) ∗
+        ⌜mtypeOf a.ms.msg.Type' ≠ some .snap ∧ oE = recvGate id s c a.ms⌝ ∗ (P -∗ R)) ∗
+      TraceFireOpt tr tl oE Q }}
+    (App (App (Val #(functions traceReceiveMessage [])) (Val #r)) (Val #ml))
+  {{ RET #(); trOwn tr R ∗ Q }}
 
 end spec
 

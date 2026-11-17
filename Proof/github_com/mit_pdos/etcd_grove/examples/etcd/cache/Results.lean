@@ -53,7 +53,8 @@ theorem cachekv_Main [go_etcd_io.etcd.cache.v3.Assumptions]
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 variable [go_gctx : GoGlobalContext]
 
 /-- **The cache watch example is safe, in the operational semantics** (`etcd_cache_adequate`, see the file
@@ -83,7 +84,9 @@ theorem etcd_cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_cache.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([cachekvProgram nw nops], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -92,7 +95,7 @@ theorem etcd_cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
   etcd_cache_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul
-    HNs HAs HDs HEnv n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy
 

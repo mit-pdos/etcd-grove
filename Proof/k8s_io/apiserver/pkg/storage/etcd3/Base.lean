@@ -18,7 +18,9 @@ which `etcd3.New` calls, returns; names-only, it starts goroutines that poll eac
 `Status`, reads; stated as the call's own WP, the variable's load included, since the interface
 type is axiomatized: its methods name `storage.Feature`, an alias, Goose's gap G1 of
 `notes/k8s-etcd3-goose.md`) and `storage`'s (`storageInit`: `RequestWatchProgress` and
-`tooLargeResourceVersionCauseMsg`, `NewTooLargeResourceVersionError`'s, hold strings). As in the cache's `Base.lean`, these
+`tooLargeResourceVersionCauseMsg`, `NewTooLargeResourceVersionError`'s, hold strings, and `Everything`,
+which `createWatchChan` reads, a predicate with no shard selector and the selectors of
+`labels.Everything()` and `fields.Everything()`, whose `Empty()` is `true`: `everythingOk`). As in the cache's `Base.lean`, these
 are assumptions about package initialization only once an `Init.lean` proves a package's
 `wp_initialize'` from them (none does yet: the packages are not in `etc/gen-init.py`'s `ROOTS`).
 -/
@@ -108,11 +110,26 @@ abbrev checkerInit : IProp GF :=
           (Val #(globalAddr k8s_io.apiserver.pkg.storage.feature.DefaultFeatureSupportChecker))))
         (Val ctx)) (Val cl)) (Val f)) {{ Φ }})
 
-/-- `storage`'s fact: `RequestWatchProgress` and `tooLargeResourceVersionCauseMsg` hold strings
-(see the file header). -/
+/-- **`storage.Everything`'s value** (persistent): no shard selector, and a label and a field selector
+whose `Empty()` is `true` (`labels.Everything()`, `fields.Everything()`; k8s 7f-5b H2). -/
+def everythingOk (p : k8s_io.apiserver.pkg.storage.SelectionPredicate) : IProp GF :=
+  iprop(⌜p.ShardSelector' = GoInterface.nil⌝ ∗
+    (∃ i : GoInterfaceOk, ⌜p.Label' = interface.ok i⌝ ∗
+      {{ True }} (App (Val #(methods i.ty go!"Empty" i.v)) (Val #())) {{ RET #true; True }}) ∗
+    (∃ i : GoInterfaceOk, ⌜p.Field' = interface.ok i⌝ ∗
+      {{ True }} (App (Val #(methods i.ty go!"Empty" i.v)) (Val #())) {{ RET #true; True }}))
+
+instance everythingOk_persistent (p : k8s_io.apiserver.pkg.storage.SelectionPredicate) :
+    Persistent (everythingOk (GF := GF) p) := by
+  unfold everythingOk; infer_instance
+
+/-- `storage`'s fact: `RequestWatchProgress` and `tooLargeResourceVersionCauseMsg` hold strings, and
+`Everything` holds a predicate `everythingOk` (see the file header). -/
 abbrev storageInit : IProp GF :=
-  iprop(∃ rw tl : GoString, globalAddr k8s_io.apiserver.pkg.storage.RequestWatchProgress ↦□ rw ∗
-    globalAddr k8s_io.apiserver.pkg.storage.tooLargeResourceVersionCauseMsg ↦□ tl)
+  iprop(∃ (rw tl : GoString) (p : k8s_io.apiserver.pkg.storage.SelectionPredicate),
+    globalAddr k8s_io.apiserver.pkg.storage.RequestWatchProgress ↦□ rw ∗
+    globalAddr k8s_io.apiserver.pkg.storage.tooLargeResourceVersionCauseMsg ↦□ tl ∗
+    globalAddr k8s_io.apiserver.pkg.storage.Everything ↦□ p ∗ everythingOk p)
 
 instance k8s_io_apimachinery_pkg_runtime_schema_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.runtime.schema :=

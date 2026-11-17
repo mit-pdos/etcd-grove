@@ -76,7 +76,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions] [os.file.FieldAssumptions]
 
-theorem openFd_rw (i : Ino) : openFd i (W64 0x80042) = ⟨i, true, true⟩ := by
+theorem openFd_rw (i : Ino) : openFd i (W64 0x80042) = ⟨i, true, true, none, none⟩ := by
   simp [openFd, O_WRONLY, O_RDONLY]
 
 theorem osTree_halves (q : Qp) (R : Roots) (V : Hist) :
@@ -101,7 +101,7 @@ theorem os.OpenFile.wp_proof : os.OpenFile.spec (GF := GF) (hG := hG) := by
   · subst he0
     rw [decide_eq_true rfl]
     ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-        (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+        (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩
       by rw [openFd_rw]; split
          · iintro H; iexact H
          · exact absurd rfl ‹_›) $$ Hfd
@@ -252,7 +252,7 @@ theorem os.OpenFile.wp_proofCreate : os.OpenFile.specCreate (GF := GF) (hG := hG
     · subst he0
       rw [decide_eq_true rfl]
       ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩
         by rw [openFd_rw]; split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd

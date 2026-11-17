@@ -29,7 +29,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev decodeObj.spec : Prop :=
-  ∀ (Obj : Type) (S : ObjSpec GF Obj) (W : WatchSpec Obj) (codec : GoInterface) (vi : GoInterfaceOk)
+  ∀ (Obj : Type) (S : ObjSpec GF Obj) (W : WatchSpec GF Obj) (codec : GoInterface) (vi : GoInterfaceOk)
     (dsl : GoSlice) (d : GoString) (o : Obj) (rev : w64),
   S.decode d = some o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗

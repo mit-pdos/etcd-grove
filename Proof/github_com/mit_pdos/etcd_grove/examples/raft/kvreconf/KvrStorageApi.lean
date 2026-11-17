@@ -282,9 +282,13 @@ variable [KvrStor GF] [AllG GF]
 attribute [local instance] kvrStorageModel
 
 /-- `kvrJ`'s compaction justification is the API's (`storBnd`). -/
-theorem kvrJ_bnd (γ : Cluster) (K : GName) (c : Nat) :
+theorem kvrJ_bnd (γ : Cluster) (K : GName) (c : Nat) (htr : Cluster.trace γ = none) :
     memBnd (kvrJ (GF := GF) γ K) c ⊢ storBnd γ K c := by
-  unfold memBnd storBnd kvrJ; exact .rfl
+  -- (2026-11-12, Q39 (a)) through raft's law: `storBnd` is sealed and gated on the trace
+  unfold memBnd kvrJ
+  iintro ⟨%k, %Hk, #Hl, %Hns⟩
+  iapply storBnd_intro_untraced γ K k c htr Hns $$ Hl
+  ipureintro; exact Hk
 
 theorem kvrJ_B0 (γ : Cluster) (K : GName) : ⊢ (kvrJ (GF := GF) γ K).B 0 := by
   show ⊢ iprop(nodeAppliedLb γ K 0 ∗ ⌜clusterNoSnap γ → 0 ≤ 1⌝)
@@ -300,7 +304,8 @@ theorem kvrStorage_isStorage
     (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
-    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName) (hmd : γ.maxData = none) :
+    (s ms : Loc) (γs : MemStorNames) (γ : Cluster) (K : GName)
+    (htr : Cluster.trace γ = none) (hmd : γ.maxData = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf -∗
       kvrStorRec s ms γs -∗ memStorInvP ms γs (kvrJ γ K) -∗
       isStorage γ K (kvrStorIface s) := by
@@ -392,7 +397,7 @@ theorem kvrStorage_isStorage
     ihave #Hc := kvrStorCompacted_to s ms γs c $$ Hrec Hc
     imod memCompacted_bound ms γs (kvrJ γ K) c $$ Hinv Hc with Hb
     imodintro
-    iapply kvrJ_bnd γ K c $$ Hb
+    iapply kvrJ_bnd γ K c htr $$ Hb
   iintro !> %k %dq %es H
   ihave H := kvrStorLog_to s ms γs k dq es $$ Hrec H
   iunfold memLog at H
@@ -421,7 +426,7 @@ theorem kvr_bootStorage
     (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
     (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms bp : Loc) (γs : MemStorNames) (hs : HardStateM) (csm : ConfStateM)
-    (γ : Cluster) (F : GName → IProp GF) (hmd : γ.maxData = none) :
+    (γ : Cluster) (F : GName → IProp GF) (htr : Cluster.trace γ = none) (hmd : γ.maxData = none) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf -∗
       kvrStorRec s ms γs -∗ kvrStorBoot s bp csm -∗
       memStorLock ms γs -∗ memStorFresh ms γs 0 memSnapEmpty -∗ memStorMeta ms γs hs -∗
@@ -482,7 +487,7 @@ theorem kvr_bootStorage
   imodintro
   isplitr
   · iapply kvrStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries
-      s ms γs γ K hmd $$ Hpkg Hrec Hinv
+      s ms γs γ K htr hmd $$ Hpkg Hrec Hinv
   iframe HFK
   iunfold storHolds
   have hb : (⟨hs, none, entryID.mk (W64 0) (W64 0), []⟩ : StorContents).b = 0 := by

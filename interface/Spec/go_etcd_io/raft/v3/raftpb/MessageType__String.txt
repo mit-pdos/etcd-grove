@@ -4,4 +4,11 @@
 
 def raftpb.MessageType.String.spec : Prop :=
   ∀ (t : w32),
-    ⊢ fmt.stringMethodSpec (interface.mk raftpb.MessageType.ty (intoVal t)) go!"String"
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb -∗
+          ▷ (True -∗ Φ (intoVal (raftpb.msgTypeString t))) -∗
+            WP
+              ((intoVal (methods raftpb.MessageType.ty go!"String" (intoVal t)))
+                (intoVal ()))
+              {{ Φ }}

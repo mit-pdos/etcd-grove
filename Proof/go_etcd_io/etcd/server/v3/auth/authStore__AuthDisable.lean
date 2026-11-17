@@ -102,7 +102,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   (try wp_auto)
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -111,7 +111,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok true st0 Hl0)
   (try wp_auto)
@@ -126,7 +126,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   ihave #Hcap1 := Hcap $$ %true
   ihave #Hcn := capNextM_step M hs (authDisableF true) st0 (bump { st0 with enabled := false }) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
-  wp_apply (h_commitRevision st R M P f T Wb ti Lk { st0 with enabled := false } Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw { st0 with enabled := false } Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     exact ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2), Hoff⟩
@@ -134,7 +134,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump { st0 with enabled := false }]) [HL $Hown $Hw1 $Hw2]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump { st0 with enabled := false }]) [HL $Hsw $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL

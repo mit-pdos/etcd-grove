@@ -43,7 +43,7 @@ theorem Replica.answer.wp_proof (wp_decodeReadCtx : decodeReadCtx.spec (GF := GF
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
-  icases Hcl' with ⟨-, -, -, -, #Hinv⟩
+  icases Hcl' with ⟨-, -, -, -, #Hinv, -⟩
   iunfold repOwn at Hown
   iNamed Hown
   try wp_auto

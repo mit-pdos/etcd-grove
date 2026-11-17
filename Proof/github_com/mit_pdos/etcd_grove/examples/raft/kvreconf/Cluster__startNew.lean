@@ -112,17 +112,18 @@ theorem Cluster.startNew.wp_proof
     $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
   have Hnid0 : nid ≠ W64 0 := by intro h; rw [h] at Hvn; simp at Hvn
   wp_apply wp_config γr vs c nid «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
-  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
   have Hvnd : vs.Nodup := by rw [Ho.2]; exact bootVoters_nodup _ (by have := HM.1; have := HM.2; word)
   ihave #Hcl' := Hcl
   iunfold kvrCluster at Hcl'
   icases Hcl' with ⟨#Hic, -, #Hca0, -, -⟩
   have HnU : nid ∉ U := by rw [HdomU]; omega
   imod joinAuth_join γr.cluster kvrRaftN U nid HnU Hnid0 $$ [$Hic $Hjoin] with ⟨Hjoin, HrS, Hvac⟩
+  ihave %Htr := kvrCluster_untraced γr _ $$ Hcl
   ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries «$r0_ptr» ms bp γs _ (bootCS vs) γr.cluster
     (fun K => iprop(memStorMeta ms γs (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-      memStorInvP ms γs (kvrJ γr.cluster K))) Hmd
+      memStorInvP ms γs (kvrJ γr.cluster K))) Htr Hmd
     $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
   · iintro %K Hm Hi; iframe Hm Hi
   ihave Hau := kvr_restartAu γr.cluster kvrRaftN nid kvrBootContents kvrBoot_holds $$ [HrS]
@@ -139,7 +140,7 @@ theorem Cluster.startNew.wp_proof
       HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
       (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
       (by rw [Hbl0]; simp [StorContents.commit]) (bootCS_is vs Hvnd)
-      (fun h => by have := clusterNoSnap_boot _ h; omega))
+      (fun h => by have := clusterNoSnap_boot _ h; omega) HcTL Htr0)
     $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
     as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta, #HmsInv⟩
   · have hA : uint.nat cv.Applied' = 0 := by rw [HcAp]; rfl
