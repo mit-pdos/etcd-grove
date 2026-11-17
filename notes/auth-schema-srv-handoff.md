@@ -1,26 +1,31 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A1.1 done; STOP at checkpoint A1.1)
+## START HERE (2026-11-17, A1.2a done; A1.2b next; handed off for context)
 
-- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`. A1 Scope `notes/auth-schema-srv-a1-scope.md`,
-  decided by etcd-grove-03 (`questions.md`, "A1 Scope decided"): claim per bucket, kinds, the accessor, `hookStep`
-  strengthened (ledger entry old → new when edited; stop if a post weakens or a premise grows), `OpenBackend` via
-  `isBackend` with a filled-value soundness argument written at A1.5 and reviewed before proving past it.
-- Done: Scope (e256330834); A1.1, the pure model `Proof/.../storage/backend/TrkModel.lean` (`RbK`, `TkMap`, `rvBkt`,
-  `kOk`, `trkOk`, `hookStepT`; preservation by put/del/create/delBucket/write-back/hook/commit; the readers' contents
-  at the write-back by kind and at the commit; built, imported by nothing). Forms: `questions.md` "A1.1".
-- Next: wait for etcd-grove-03's word that the origin/lean merge (pin c6b39d4f8) landed; merge lean; then A1.2 (the
-  kinds' home, `γ.rbr` and the claim marker in `BNames`, `rtCore`/`rbSide` halves, `trkOk` into `sessWf`/`freeOk`,
-  `hookStepT` into `hooksSpec` + ledger, `New`/`NewAlloc`), A1.3-A1.5, checkpoint A1.5 (with the soundness
-  argument).
-- Go test: `notes/auth-schema-srv-a1/zz_a1_trackedwindow_test.go` into `server/storage/backend` of
-  `/shared/tmp/auth-schema-srv/etcd`; `cd server; PATH=/usr/local/go/bin:$PATH TMPDIR=/shared/tmp systemd-run --scope -q
-  -p MemoryMax=32G env GOWORK=off GOTOOLCHAIN=go1.27.3 go test ./storage/backend/ -run TestA1 -count=1 -v` (~35 s).
-- Pitfalls: `lean-check` on a fresh file rebuilds imports first (minutes), then says "stopped when the edited
-  declaration was done": rerun with `-a`. In `TrkModel`, rewrite `bkOf ... = []` after `lastVal_append_single`, not
-  before (simp turns `[] ++ [e]` into `[e]`). Builds: `/shared/tmp/build-slot.sh lake
-  --packages=/shared/tmp/manifest-e9e.json build ...`; `LAKE_OPTS=--packages=...` for `etc/lean-check.py`, `--stop` it
-  before ending a turn. Bucket view in auth is `BkView` (`Model.lean` has an `AuthView`).
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 9702d5707e merged (2f92623f49; Perennial
+  pin c6b39d4f8: use `--packages=/shared/tmp/manifest-c6b.json` everywhere). A1 Scope
+  `notes/auth-schema-srv-a1-scope.md`; decisions `questions.md` ("A1 Scope decided", forms "A1.1", "A1.2a").
+- Done: A1.1 (52d85a42f6, `TrkModel.lean`); A1.2a (c0ae7d8a3e): `RbK`/`TkMap`/`tkSet`/`tkWb`/`wEmpty`/`kOk`/
+  `trkOk`/`trkKept` in `Model2.lean`, `BSess.tk`, `trkOk` in `bgOk`, kinds idle in `freeOk`, `hookStep` keeps
+  `trkKept` (ledger 2026-11-17), commit specs take "kinds idle or del"; backend `Link`, `InvHooks`,
+  `OnPreCommitUnsafe`, `CindexBackend`, `BackendBridge`, `lessor.initAndRecover`, `BootBackend`, `InvApply`,
+  `InvBoot`, `MustUnsafeGetAllLeases` build. No full build yet.
+- Next, A1.2b (design fixed, not started): BNames `rbr` (ghost map name ↦ `BktData`, the readers' contents
+  `rvBkt P rv n` of each name of `rbD`) and `rbc` (ghost map name ↦ `Bool`, claimed). The `rbr` authority (`∃ M`,
+  full) and the `rbc` authority on the **batch lock side** (every `rv` change, write-back and commit, holds the batch
+  lock). Element halves: `readTx.mu`'s ½ split by `q` (add `[∗map] n ∈ rbD, elem γ.rbr n (q/2) (rvBkt P rv n)` to
+  `clnPart`, which takes `rv`; 19 uses), the other ½ on the lock side for an unclaimed bucket (`elem γ.rbc n 1
+  false ∗ elem γ.rbr n ½ (rvBkt P (st.C, st.R) n)`) or the client's (`rbRd γ n q v := elem γ.rbr n q v ∗ elem γ.rbc
+  n □ true`). Where the lock side goes: a new conjunct of `batchGhostAt` (many `%Hok⟩` patterns) or inside
+  `trkHalf` given `(C, R)` (fewer sites): decide by counting. Allocation in `NewAlloc.lean` beside `rbEls_alloc`
+  (line ~535). Then A1.3 (readers' law from `clnPart`'s halves), A1.4 (claimed parts `rbPartR`/`rbOwnInR`,
+  sealed), A1.5 (`Unlock` accessor; update the halves in `ReadSide`'s `rtRes_wb_close*`/`rtRes_cm_close`), STOP
+  at A1.5 with the soundness argument (decision 5).
+- Pitfalls: a stray Perennial clone appears in `.lake/packages` (twice now; moved to
+  `/shared/tmp/auth-schema-srv/perennial-stray*`): check `ls .lake/packages` before building (only Qq, batteries,
+  iris links). `hookStep` has 13 conjuncts (the last `trkKept`), `bgOk` 10 (the last `w ≤ ver ∧ trkOk ∧ free→idle`:
+  `Hbg.2.2.2.2.2.2.2.2.2.2.1` is `trkOk`), `freeOk` 6 (`.2.2.2.2.1` is `hw`). Builds via `/shared/tmp/build-slot.sh
+  lake --packages=/shared/tmp/manifest-c6b.json build ...`; edit scripts in `/shared/tmp/auth-schema-srv/scripts/`.
 
 ## History
 
