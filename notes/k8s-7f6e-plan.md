@@ -171,3 +171,33 @@ environment (§3.7, 800-1200), the model's observation and `Bounded` (§1), and 
 One land after step 10: merge lean, full build, gates under `flock /shared/tmp/etcd-grove-full-build.lock`,
 `LAKE_PACKAGES=/shared/tmp/manifest-e9e.json PERENNIAL_CHECKOUT=/shared/perennial-e9e6351d9 etc/land.sh`
 (GOWORK unset), only on the coordinator's go.
+
+## 8. Checkpoint E-1: the watch registration's shape (2026-11-17)
+
+Reordered (form): §3.7's (i) and (iv) first, since they were the risk; steps 1-6 not started.
+
+- **(i) done, without touching `wk_served_nd`**: `etcdstart.kvWatch_served`
+  (`Proof/.../examples/lib/etcdstart/WatchServed.lean`, built). It is `kv_served` plus the watch side:
+  same premises (`grpcUp`, the serving stocks, `isServerReq`/`isServerRead`) and `srvServeFacts s E
+  cfg`, v3rpc's method sets, the thread bound and the two mvcc laws `srvWOk_of_up` reads (proof
+  hypotheses, which the link discharges as the compactor's do). Post: the serve token,
+  `etcdKVAt addr …` and
+  `watchRegAt addr s E γr R := isGrpcStreamMd addr Watch (watchUp R) (watchSpec R (srvWOf E γr false)) ∗
+  (∃ pw, isWatchServer pw R) ∗ srvWLaws (srvWOf E γr false) ∗ ⌜R.s = s ∧ R.E = E⌝`.
+  No `srvOnce` here: it comes later from `kInv`'s `OneChange` (step 3), when `clientWatchOk` is built.
+- **(iv) done**: `etcdstart.watchEnvL m0 ms γr pfx` (`WatchEnvL.lean`, built): cluster3's `watchEnv`
+  over a list `ms : List (addr × WSrv × SrvW)`, and `watchEnvL_conn`: `□ [∗list]` of the members'
+  `Watch` streams at their addresses, each member's `watchMemberFacts`, distinct addresses, give
+  `□ ∀ conn ics, grpcConn conn (ms.map (·.1)) ics [] -∗ watchConnFacts {…}` (by
+  `watchConnFacts_of_members`). One lemma for the `k` bridges and for `Main`'s one address.
+- **(ii) next, the shape proposed for `clusterUp`** (startCluster's post; internal): 
+  `∃ (ws : List (Loc × WSrv GF)) (γrc : ReadNames), ([∗list] sv; w ∈ svs; ws,
+  watchRegAt sv.addr w.1 sv.E sv.γr w.2 ∗ isServerRead w.1 sv.E sv.γr) ∗
+  ⌜kvSame γrc.kv γk ∧ γrc.kv.log0 = [[], []] ∧ ∀ sv ∈ svs, v3rpc.memberOf γrc.raft γrc.kv sv.γr⌝`,
+  with `sv.addr` the bridge's (each registration moved there by `isGrpcStream_forwards` and the
+  bridge's `forwards`), `γrc` the first member's read names (the members' raft names are the cluster's
+  `{γ with reg := r}`: `memberGOk`). `startCluster`'s Serve ghost step calls `kvWatch_served` in place of
+  `kv_served`; its loop invariant carries `ws`. `Main`'s one member: the same at `clientAddr`, no bridge.
+- **(iii)** then, per member, `cluster3.memberWatch γrc s E ρ R` from that, `srvOnce` (from a
+  `kvReadAu γk OneChange` that `kInv` gives, `srvOnce_of_one`) and `memberOf`; `cluster3.memberWatch_facts`
+  gives each `watchMemberFacts`; `watchEnvL_conn` and `isNewClient_watcher_of` give `clientWatchOk`.
