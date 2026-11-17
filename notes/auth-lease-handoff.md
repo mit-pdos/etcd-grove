@@ -1,6 +1,40 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b F4 (A): apply layer + applyEntryNormal DONE; NewServer(R) next)
+## START HERE (S4, 2026-11-17, item 7b F4: wiring COMPLETE, leaves build green; step 7 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Everything compiles: the ONE leaves
+  build from `00b09c1360` (165 targets, `/shared/tmp/auth-lease-s4/7b-f4-leaves2.txt`, log `7b-f4-leaves.log`) exit 0,
+  no `sorry`. Pin still e9e (`--packages=/shared/tmp/manifest-e9e.json`); lean not merged yet.
+- **Decided:** option (A) forms ACCEPTED by etcd-grove-03; NewServer allocation forms (questions.md, last entry: form
+  decided by the agent, for the checkpoint review).
+- **Done:** `af275c78fa` `kvEntryOn_extends` is ONE lemma in `KVAuthModel` (server TEMP copy and `v3rpc.ClientModel`'s
+  removed). `b769c66663` NewServer and NewServerR: after `writer_facts` (`□ Nx log`), `wSt` split into `wStQ ¼` +
+  the tie's quarter, `tie_alloc` (`Lt = log`, `Fr := clusterNoSnap … → decide (lm ≠ none) = false`, NewLessor's
+  `lessorWinTie γl []` = `HlWt`), `tie_free` at `lg = false` (`∃ wb, ⌜lg = false → wb = none⌝ ∗ leaseOwnW … wb ∗
+  winTok γwt wb`); literals `Wt := srvApi.winTok γwt, stq := ¼`; `hγs` moved below; `Haus` by `envAus_tie`;
+  `winTieRes` in `srvKVInvs(On)`; the start row `srvApplyKVW` at `wb`. NewServerR gets `#Hlrdinv` from `lessorInv`
+  as NewServer. Client/example callers needed no change (their patterns end in `-`).
+- **Next, in order:** (1) step 7, the law (`lessor_keys_of_read_stmt`, frozen text
+  `notes/auth-lease-s4-frozen.lean.txt` §5, not yet in the tree; new file, e.g. `etcdserver/LessorFollows.lean`):
+  case `E.lg = true` (`¬ Fr`): `tie_obs` (`m := j0`, `F <+: L0`), per `i ≥ j0` `tie_law` (`La`, `Lt` with `□ Nx`),
+  then S5 (from `kvInv`/`kvInvOn`'s `ghostVar γk.st ½ (kvStateOf (model L) …)` agreeing with `etcdKV`, and `srvRLogLb A`
+  ⊑ the invariant's `L`: `La.length - 1 ≤ σ.rev`, items of `σ.at (La.length - 1)` = `itemsOfLog La`; lemmas to reuse:
+  `KVModelDefs.kvStateOf_at(_kvs)`, `v3rpc.ClientModel.etcdState_of_nx`/`srvLog_of_nx`); case `E.lg = false` (lm =
+  none): the lm-none model lemma (no committed model log attaches a lease to a key at `lm = none`), then
+  `leaseKeptIn` is false (STOP if false or needs trusted text). The off mode (`kvInv`, `kvStQ`) needs the same
+  argument or a contradiction (frozen text, "Mode-generic"). `lessorLawMask` gains `lessorRdN` and `winTieN` (a form
+  the frozen text allows). (2) step 8; (3) the c6b merge (merge lean, regenerate generated files,
+  `.lake/package-overrides.json` → `/shared/tmp/manifest-c6b.json`, `--packages=/shared/tmp/manifest-c6b.json`); full
+  build (retry on cap kills); `tcb-report --check`; gen-interface (incl. Spec `uberApplier__Apply`,
+  `uberApplier__dispatch`).
+- **Pitfalls (this session):** NewServer's proof hung 40 min in lean-check on `iExactEq H; rfl` where `iexact H`
+  works (the goal matched up to abbrevs): prefer `iexact`; to find a hang, insert a temporary `done -- TEMPSTOP` and
+  bisect. `uberOwn` at `{E with win := wb}` vs `E`: `iExactEq Huo; simp only […]; rfl`. `γt` is already a name in
+  NewServer(R) (`mono_nat` at l.1231): the tie's names are `γwt`/`HwTie`. `Htie` is `authHistTie`'s. `pkill -f` on a
+  lean-check command line kills your own shell. `etc/importers.py --leaves` lists `Scratch.*`/`notes.*` modules:
+  filter them before `lake build`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b F4 (A): apply layer + applyEntryNormal DONE; NewServer(R) next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (WIP: `NewServer`, `NewServerR` and
   importers of the changed server rows still do not compile). Base of the coming leaves build: `00b09c1360`.
