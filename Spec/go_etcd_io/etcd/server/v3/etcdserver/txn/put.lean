@@ -31,11 +31,12 @@ local notation "pkgInit" => isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.
 /-- `put(ctx, txnWrite, p, prevKV)` at a write transaction begun at `σ` with `pend` pending.
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
-drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`. Auth-lease S4 item 7b, 2026-11-17: in the
+lessor window `w`, the put moving the items toward its target.) -/
 abbrev txn.put.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (tw : GoInterface) (γ : MvccName)
     (trace : Loc) (te : Bool) (σ : MvccState) (pend : List mvcc.Change) (p : Loc) (o : OpFull)
-    (prev : Loc) (L : List w64),
+    (prev : Loc) (L : List w64) (w : Option lease.LWin),
   {{ pkgInit ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx (some trace) ∗
       mvcc.api.mvccTxn tw γ trace (.write σ pend) ∗ traceutil.ownTrace trace te ∗
       txn.putRequestIs p o ∗
@@ -43,7 +44,9 @@ abbrev txn.put.spec : Prop :=
         else ⌜prev = null⌝) ∗
       ⌜txn.needsPrev o = true → (mvcc.findKey o.key (txn.pendState σ.log pend)).isSome⌝ ∗
       txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState σ.log pend))) ∗
-      lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems σ.log pend) }}
+      lease.leaseOwnW (mvccLeases γ) L (mvcc.pendItems σ.log pend) w ∗
+      ⌜lease.winMove w (mvcc.pendItems σ.log pend) (mvcc.pendItems σ.log
+        (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))]))⌝ }}
     (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #tw)) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;
@@ -53,8 +56,8 @@ abbrev txn.put.spec : Prop :=
       txn.putResponseIs resp (W64 (σ.log.length : Int))
         (if o.base.prevKV then mvcc.findKey o.key (txn.pendState σ.log pend) else none) ∗
       txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse go!"Header" resp) ∗
-      lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems σ.log
-        (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))])) }}
+      lease.leaseOwnW (mvccLeases γ) L (mvcc.pendItems σ.log
+        (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))])) w }}
 
 end spec
 

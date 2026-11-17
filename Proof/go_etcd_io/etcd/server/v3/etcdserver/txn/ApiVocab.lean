@@ -72,6 +72,73 @@ def txn.TxnPreA (log : mvcc.Log) (t : TxnModel) : Prop :=
 abbrev txn.txnChs (log : mvcc.Log) (t : TxnModel) : List mvcc.Change :=
   (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.1
 
+/-! ### The lessor window of a write (auth-lease S4 item 7b, 2026-11-17) -/
+
+section winVocab
+variable [GooseExts]
+
+/-- **The items a delete's range selects**: mvcc's `delSel` of the arguments `deleteRange` gives
+`DeleteRange` (the key alone when the end is `nil`, else the keys of `[key, end)`). -/
+def txn.delSelOf (o : OpFull) (it : go_etcd_io.etcd.server.v3.lease.LeaseItem) : Prop :=
+  mvcc.delSel (txn.srvEnd o.base.rangeEnd).1 o.key (txn.srvEnd o.base.rangeEnd).2 it.Key'
+
+/-- **The item map after a put request** of the item map `I`: the key's item is the request's lease
+(none for `0`), unless the put keeps the previous lease (`IgnoreLease`). -/
+def txn.putItemsOf (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull) :
+    GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64 :=
+  if o.ignoreLease then I
+  else if o.leaseID = W64 0 then GMap.delete (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk o.key) I
+  else GMap.insert (go_etcd_io.etcd.server.v3.lease.LeaseItem.mk o.key) o.leaseID I
+
+mutual
+/-- **One operation of a run within the lessor window `w`**, at the state `s` (as `OpOk`): a put
+moves the items toward the window's target (`lease.winMove`), a delete's range drops the items the
+window drops (`lease.winDrops`, stated over the range: the keys found are known only after the
+call), a nested transaction's chosen branch is within the window. `True` at `w = none`. -/
+def txn.WinOp (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) : List EtcdKv → TxnOp → Prop
+  | _, .get _ => True
+  | s, .put k v l => lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (txn.srvOp s0 r s (.put k v l)).1))
+  | s, .putKeep k v => lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (txn.srvOp s0 r s (.putKeep k v)).1))
+  | s, .putIgnVal k l => lease.winMove w (mvcc.leaseItemsOf s)
+      (mvcc.leaseItemsOf (mvcc.applyChanges r s (txn.srvOp s0 r s (.putIgnVal k l)).1))
+  | s, .delete o => lease.winDrops w (mvcc.leaseItemsOf s) (txn.delSelOf o)
+  | s, .txn cs ts es =>
+    match cs.all (cmpHolds s0) with
+    | true => txn.WinOps w s0 r s ts
+    | false => txn.WinOps w s0 r s es
+
+/-- **Every operation of a run within the lessor window `w`**, each at the state the ones before
+it left (as `OpsOk`). -/
+def txn.WinOps (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) : List EtcdKv → List TxnOp → Prop
+  | _, [] => True
+  | s, op :: ops => txn.WinOp w s0 r s op ∧
+      txn.WinOps w s0 r (mvcc.applyChanges r s (txn.srvOp s0 r s op).1) ops
+end
+
+mutual
+theorem txn.winOp_none (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (op : TxnOp), txn.WinOp none s0 r s op
+  | _, .get _ => trivial
+  | _, .put _ _ _ => fun _ h => by cases h
+  | _, .putKeep _ _ => fun _ h => by cases h
+  | _, .putIgnVal _ _ => fun _ h => by cases h
+  | _, .delete _ => fun _ h => by cases h
+  | s, .txn cs ts es => by
+    simp only [txn.WinOp]
+    cases cs.all (cmpHolds s0)
+    · exact txn.winOps_none s0 r s es
+    · exact txn.winOps_none s0 r s ts
+
+theorem txn.winOps_none (s0 : List EtcdKv) (r : w64) :
+    ∀ (s : List EtcdKv) (ops : List TxnOp), txn.WinOps none s0 r s ops
+  | _, [] => trivial
+  | s, op :: ops => ⟨txn.winOp_none s0 r s op, txn.winOps_none s0 r _ ops⟩
+end
+
+end winVocab
+
 section vocab
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

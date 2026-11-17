@@ -1,27 +1,33 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: steps 1-3 done; step 4 (server txn) next)
+## START HERE (S4, 2026-11-17, item 7b: steps 1-4 done, step 5's pure lemma drafted; step 6 (applier) next)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` ("Item 7b step 3 decision":
-  `isLessor`/`isTxnLessor` at any window, by etcd-grove-03); ledger 2026-11-16 7b entry ("Step 3 (mvcc)").
-- **Done:** steps 1-2 (lease, `e1a57743a0`); step 3 (this commit): `isLessor`/`isTxnLessor` clauses `∀ w`;
-  `winStep` made monotone (item at target stays), new `winMove` (changed items go to target; callers above the lessor),
-  `winDrops` (window drops selected items), lemmas `winStep_pre/post/of_move`, `winMove_between_*`, `winMove_of_drops`
-  (`InvLessor`), `mvcc.winMove_dels_take`, `winMove_dels_of_drops` (`InvStore`), `pendItems_{put,del,dels}_lookup`
-  (`LeaseItems`), `delSel`/`delKeys_sel` (`BucketLemmas`); mvcc `storeTxnWrite.{put,delete,deleteRange,Put,DeleteRange}`,
-  `metricsTxnWrite.{Put,DeleteRange}`, `Txn.Put.contract` (`winMove`), `Txn.DeleteRange.contract` (`winDrops` over the
-  range: the keys found are known only after the call), `lessor.Revoke.spec` (`winDrops` of the lease's items) at `w`.
-  Callers (txn `put`/`deleteRange`, apply `LessorDerive`, mvccfull/mvccrand) at `none`.
-- **Next:** step 4, server txn at `w`. Planned premise form (a form decision, record it): `txn.WinOps w log s0 r pend s
-  ops`, recursive as `OpsOk` (each put/delete op's `winMove`, a nested txn's branch's `WinOps`), so step 5's pure lemma
-  (each key changed at most once, toward `T` = items after the entry) discharges it at the applier. Then steps 5-8.
-- **Pitfalls:** an explicit `none` makes posts `leaseOwnW … none`, which `iframe` does not match against `leaseOwn`
-  when other subterms differ only up to defeq (`logOfHist` vs `σOf.log`): convert with `lease.leaseOwnW_eq (I := …)
-  (J := …) rfl` (mvccfull `runner__apply`). In `hygiene false` macros, `lease.` resolves to a local: write
-  `Perennial.EtcdGrove.lease.…`. Don't `git stash` while a lean-check runs (it reopens every importer).
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: step 3 forms
+  reviewed by etcd-grove-03; step 4 forms); ledger 2026-11-16 7b entry ("Step 3", "Step 4").
+- **Done:** steps 1-2 (lease, `e1a57743a0`); step 3 (mvcc, `0fea6c849f`); step 4 (server txn, this commit):
+  `txn.WinOp`/`WinOps` (as `OpsOk`), `delSelOf`, `putItemsOf` (`ApiVocab`); `put`/`deleteRange`/`executeTxn`/`txn`/
+  `Txn.specSole`/`Put`/`DeleteRange` and `checkLease`/`checkPut`/`checkTxn` at `∀ w` (old → new in the ledger);
+  `txn_runTxn` and the applier's `applierV3backend.{Put,DeleteRange,Txn}` call them at `none`.
+- **Step 5 (`txn/WinLemmas.lean`, new; see its commit):** `winOps_of_nodup`,
+  `winOps_txn_of_nodup`: a run whose changes have distinct keys is within the window whose target is the items after
+  it. **Open for step 6:** the applier must know the entry's keys are distinct (`NoDupKeysPerRev` of the revision).
+  The request invariant (`InvRequest.lean:1158`, `ReqOn.lean:1347`) carries `txnPlain(L) ∧ txnNoZeroEnd ∧ txnShape`,
+  not distinctness; v3rpc has it (`v3rpc/Results.lean:80`, `check_gives_nodup`: `checkIntervals` + the client premise
+  `siblingSafeL`/`noFromKeyDelL`, `ServerKV(On).lean`'s handler spec). Without distinct keys the law is false in
+  etcd (a nested put then a sibling's delete of the key shows a transient item to a lessor reader). Next: carry the
+  check's fact into the proposal (a pure `txnKeysNodup t` conjunct beside `txnShape` in the request's predicate)
+  or STOP if that reaches a closed statement.
+- **Pitfalls:** in proofs with a local `lease` (put's `icases … %lease`), write `Perennial.EtcdGrove.lease.winMove`.
+  Locals named `w` exist in `executeTxn`/`checkTxn` proofs: the window is `wn` there. An explicit `none` makes posts
+  `leaseOwnW … none` (convert with `lease.leaseOwnW_eq`). Don't `git stash` while a lean-check runs.
 - **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build $(python3 etc/importers.py
   --git <base> --leaves | grep '^\(Proof\|Spec\|RaftWitness\|PorcupineDag\|Robustness\)\.')`; logs
   `/shared/tmp/auth-lease-s4/7b-*.log`.
+
+## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-3 done; step 4 (server txn) next)
+
+- Step 3 (mvcc, `0fea6c849f`): `isLessor`/`isTxnLessor` clauses `∀ w`; `winStep` monotone, `winMove`, `winDrops`;
+  mvcc writes and `Txn.*.contract`, `lessor.Revoke.spec` at `w` (details: ledger "Step 3").
 
 ## Previous START HERE (S4, 2026-11-17, item 7b: steps 1-2 (lease) done; STOPPED before step 3 (mvcc `isLessor`))
 

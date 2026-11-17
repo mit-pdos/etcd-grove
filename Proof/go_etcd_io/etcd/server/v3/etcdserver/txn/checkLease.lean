@@ -24,7 +24,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := by
-  intro le γl p o L I
+  intro le γl p o L I w
   wp_start as ⟨#Hle, Hu, #Hp⟩
   ihave Hti : (txn.txnInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -47,9 +47,9 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
     iunfold txn.leaseOk
     ipureintro; left; rfl
   · -- a lease: the lessor's `Lookup`
-    ihave #HL := HLookup $$ %lease %L
+    ihave #HL := HLookup $$ %lease %L %I %w
     wp_apply HL $$ [$Hu] as %l ⟨Hu, %Hlk⟩
-    ihave Hu := EtcdGrove.lease.lessorUserOpen_close γl L I lease l $$ Hu
+    ihave Hu := EtcdGrove.lease.lessorUserOpenW_close γl L I lease l w $$ Hu
     (try wp_auto)
     wp_if_destruct
     · -- not found

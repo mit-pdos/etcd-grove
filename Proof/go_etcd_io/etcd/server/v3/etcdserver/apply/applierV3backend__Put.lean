@@ -147,10 +147,12 @@ theorem apply.applierV3backend.Put.wp_proof
   wp_apply hTODO
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hPut todoCtxVal mvcc.neverCd opts.Logger' opts.Lessor' opts.KV' E.γ r o 1 B (E.Pk B)
-      Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _)
+      Pre Q Post E.f L (mvcc.leaseItemsOf (mvcc.stateAfter log)) none false _ none)
       $$ [$Hkv $Hmr $Hle $Hu $Hr $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, ⟨%te', Htrc⟩, -, Hout⟩
-  · isplitr
+  · isplitl []
+    · ipureintro; exact Perennial.EtcdGrove.lease.winMove_none _ _
+    isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo

@@ -106,10 +106,12 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   wp_apply hTODO
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hDel todoCtxVal mvcc.neverCd true opts.Logger' opts.KV' E.γ r o 1 B (E.Pk B)
-      Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _)
+      Pre Q Post E.f none false L (mvcc.leaseItemsOf (mvcc.stateAfter log)) _ none)
       $$ [$Hkv $Hmr $Hr $Hown $HlgN $Hkb $Hcs $Hau]
     as %resp %trace %err ⟨Hmr, Hkb, %Htrn, HPost, ⟨%te', Htrc⟩, -, %σ₀, -, Hout⟩
-  · isplitr
+  · isplitl []
+    · ipureintro; exact Perennial.EtcdGrove.lease.winDrops_none _ _
+    isplitr
     · iapply mvcc.txnCtx_todo
     isplitr
     · iapply traceutil.ctxTraceIs_todo

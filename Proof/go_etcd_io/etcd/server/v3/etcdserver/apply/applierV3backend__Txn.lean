@@ -125,7 +125,7 @@ theorem apply.applierV3backend.Txn.wp_proof
   wp_apply hTODO
   ihave #HlgN := zapLoggerOk_orNil _ $$ Hlg
   wp_apply (hTxn.1 todoCtxVal mvcc.neverCd opts.Logger' r opts.TxnModeWriteWithSharedBuffer'
-      opts.KV' opts.Lessor' skip E.γ log t 1 B (E.Pk B) Pre Q Post E.f L none false _ _)
+      opts.KV' opts.Lessor' skip E.γ log t 1 B (E.Pk B) Pre Q Post E.f L none false _ _ none)
       $$ [$Hkv $Hmr $Hkb $Hle $Hr $Hu $HlgN $Hcs $Hau $Hwand]
     as %resp %trace %err ⟨Hmr, Hkb, %σr, -, Hout⟩
   · isplitr
@@ -137,7 +137,9 @@ theorem apply.applierV3backend.Txn.wp_proof
     isplitr
     · iapply mvcc.neverDone_neverCd
     iframe Hknown
-    ipureintro; exact hpre
+    isplitl []
+    · ipureintro; exact hpre
+    ipureintro; exact txn.winOps_none _ _ _ _
   iunfold txn.kvBackend at Hkb
   icases Hkb with ⟨Hbk, Hhk⟩
   iapply HΦ

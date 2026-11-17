@@ -41,9 +41,9 @@ theorem txn.Put.wp_proof
     (hCheck : txn.checkAndGetPrevKV.spec (GF := GF) (hG := hG))
     (hput : txn.put.spec (GF := GF) (hG := hG)) :
     txn.Put.spec (GF := GF) (hG := hG) := by
-  intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R
+  intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, %Hwin, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -80,7 +80,7 @@ theorem txn.Put.wp_proof
       (traceutil.fieldsWf_cons_int _ _ _ (.int _) _ traceutil.fieldsWf_nil)
   (try wp_auto)
   -- `checkLease(lessor, p)`
-  wp_apply (hLease le (mvcc.api.mvccLeases γ) p o L I) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
+  wp_apply (hLease le (mvcc.api.mvccLeases γ) p o L I wn) $$ [$Hle $Hp $Hu] as %err ⟨Hu, Herr⟩
   (try wp_auto)
   icases Herr with (⟨%Herr, #Hlok⟩ | ⟨%Hne, #He⟩)
   rotate_left
@@ -175,16 +175,21 @@ theorem txn.Put.wp_proof
           txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))) := by
         simp only [↓reduceIte]; (try (iintro H; iexact H))
       iapply h $$ Hilok
-  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L
+  have hp := hput ctx' { cd with Values := vs } (interface.mkOk tty tv) γ trace false σ₀ [] p o prev L wn
   simp only [txn.pendState_nil, List.nil_append] at hp
-  iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
+  iunfold EtcdGrove.lease.lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   -- the owner's item map: the begin state's
-  ihave Hown : EtcdGrove.lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) $$ [Hown]
+  ihave Hown : EtcdGrove.lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) wn $$ [Hown]
   · rw [Hitems]; iexact Hown
+  have hwp : EtcdGrove.lease.winMove wn (mvcc.pendItems σ₀.log [])
+      (mvcc.pendItems σ₀.log [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))]) := by
+    rw [txn.pendItems_putChangeOf, Hitems]; exact Hwin
   wp_apply hp $$ [$Hctx' $Hct' $Htx $Htrc $Hp $Hprev $Hlok2 $Hown]
     as %resp ⟨Htx, Htrc, #Hresp, Hhdr, Hown⟩
-  · ipureintro; exact Hn
+  · isplitl []
+    · ipureintro; exact Hn
+    ipureintro; exact hwp
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   have hpp : txn.putPend o σ₀ = [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))] := by
@@ -217,7 +222,7 @@ theorem txn.Put.wp_proof
   iframe Hresp Hhdr Hlok2
   isplitl []
   · ipureintro; exact ⟨rfl, Hn⟩
-  iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW; iframe Hrdo Hrvk
+  iunfold EtcdGrove.lease.lessorUserW; iframe Hrdo Hrvk
   rw [hpp]
   iexact Hown
 

@@ -35,15 +35,17 @@ updates (`delPend o σ₀ true`), the response; or, with `PrevKv`, the range rea
 The logger nil or a zap logger (`EnsureTrace`'s; premise fixes 6).
 
 (Strict M1, 2026-11-05: restated over mvcc's API as `notes/mvcc-api-clients/TxnSpecs.lean`
-drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
+drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) Auth-lease S4 item 7b, 2026-11-17: in the lessor window `w`, the window dropping the range's items.
+-/
 abbrev txn.DeleteRange.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (kv : GoInterface) (γ : MvccName) (dr : Loc) (o : OpFull) (q : Qp) (B : MvccStorage)
     (P Pre Q Post : IProp GF) (f : GoFunc) (ot : Option Loc) (te : Bool) (L : List w64)
-    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF),
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (R : MvccState → Bool → IProp GF)
+    (w : Option lease.LWin),
   {{ pkgInit ∗ mvcc.api.isMvcc kv γ ∗ mvcc.api.mvccReaders γ 1 ∗
       txn.deleteRangeRequestIs dr o ∗
-      lease.leaseOwn (mvccLeases γ) L I ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+      lease.leaseOwnW (mvccLeases γ) L I w ∗ ⌜lease.winDrops w I (txn.delSelOf o)⌝ ∗ mvcc.txnCtx ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
       traceutil.ownTraceOpt ot te ∗ (if nd then mvcc.neverDone cd else iprop(True)) ∗
       zapLoggerOrNil lg ∗ txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗ txn.delAU γ o I R }}
     (App (App (App (App (Val (@! txn.DeleteRange)) (Val #(GoInterface.ok ctx))) (Val #lg))
@@ -58,10 +60,10 @@ abbrev txn.DeleteRange.spec : Prop :=
               (rangeIn (mvcc.stateAfter σ₀.log) o).length
               (if o.base.prevKV then rangeIn (mvcc.stateAfter σ₀.log) o else []) ∗
             txn.respHdrOwn (structFieldRef go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse go!"Header" resp) ∗
-            lease.leaseOwn (mvccLeases γ) L
-              (mvcc.pendItems σ₀.log (txn.delChanges (mvcc.stateAfter σ₀.log) o))) ∨
+            lease.leaseOwnW (mvccLeases γ) L
+              (mvcc.pendItems σ₀.log (txn.delChanges (mvcc.stateAfter σ₀.log) o)) w) ∨
          (⌜err ≠ GoInterface.nil ∧ o.base.prevKV = true ∧ resp = null ∧ nd = false⌝ ∗ R σ₀ false ∗
-            lease.leaseOwn (mvccLeases γ) L I)) }}
+            lease.leaseOwnW (mvccLeases γ) L I w)) }}
 
 end spec
 

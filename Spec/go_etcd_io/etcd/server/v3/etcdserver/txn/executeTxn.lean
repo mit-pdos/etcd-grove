@@ -39,7 +39,8 @@ drafts it, frozen; `notes/mvcc-api-clients/clients-txn.md`.) -/
 abbrev txn.executeTxn.spec : Prop :=
   ∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (nd : Bool) (lg : Loc)
     (γ : MvccName) (trace : Loc) (te : Bool) (tw : GoInterface) (k : MTxn) (rt : Loc)
-    (t : TxnModel) (pl : GoSlice) (rest : List Bool) (tresp : Loc) (skip : Bool) (L : List w64),
+    (t : TxnModel) (pl : GoSlice) (rest : List Bool) (tresp : Loc) (skip : Bool) (L : List w64)
+    (w : Option lease.LWin),
   let s0 := mvcc.stateAfter k.state.log
   let ops := t.branch (txn.txnOk s0 t)
   let run := txn.srvOps s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops
@@ -48,9 +49,10 @@ abbrev txn.executeTxn.spec : Prop :=
       txn.txnRequestIs rt t ∗ pl ↦*□ (txn.txnPath s0 t ++ rest) ∗ txn.respsSkel s0 tresp ops ∗
       txn.leasesOk L (txn.opsLeases s0 ops) ∗
       (if txn.MTxn.isRead k then iprop(True) else txn.leasesKnown L (txn.mstate k)) ∗
-      (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L (mvcc.pendItems k.state.log k.pend)) ∗
+      (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwnW (mvccLeases γ) L (mvcc.pendItems k.state.log k.pend) w) ∗
       ⌜txn.Reach k.state ∧
         txn.OpsOk false s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops ∧
+        (txn.MTxn.isRead k = true ∨ txn.WinOps w s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops) ∧
         (txn.MTxn.isRead k = true → ∀ op ∈ ops, txn.opIsGet op = true) ∧
         (nd = false → txn.MTxn.isRead k = true)⌝ }}
     (App (App (App (App (App (App (App (Val (@! txn.executeTxn)) (Val #(GoInterface.ok ctx)))
@@ -62,8 +64,8 @@ abbrev txn.executeTxn.spec : Prop :=
         txn.respsIs skip tresp ops run.2 ∗
         (if txn.MTxn.isRead k then iprop(True)
          else txn.leasesKnown L (txn.mstate (txn.MTxn.append k run.1))) ∗
-        (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwn (mvccLeases γ) L
-          (mvcc.pendItems k.state.log (k.pend ++ run.1)))) ∨
+        (⌜txn.MTxn.isRead k = true⌝ ∨ lease.leaseOwnW (mvccLeases γ) L
+          (mvcc.pendItems k.state.log (k.pend ++ run.1)) w)) ∨
       (⌜nd = false⌝ ∗ mvcc.ctxErrorf err ∗ mvcc.api.mvccTxn tw γ trace k ∗ txn.roRespsRd tresp)) }}
 
 end spec

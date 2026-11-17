@@ -83,9 +83,9 @@ theorem txn.Txn_sole
     (hNewRo : mvcc.api.NewReadOnlyTxnWrite.spec (GF := GF) (hG := hG))
     (htxn : txn.txn.spec (GF := GF) (hG := hG)) :
     txn.Txn.specSole (GF := GF) (hG := hG) := by
-  intro ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw
+  intro ctx cd lg rt shared kv le skip γ log t q B P Pre Q Post f L ot te Qr Qw wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hlg, #Hknown, Hu, %Hpre, Hcs, Hau, Hwand⟩
+  wp_start as ⟨#Hkv, Hrd, Hbk, #Hle, #Hrt, #Hctx, #Hct, Hto, #Hnd, #Hlg, #Hknown, Hu, %Hpre, %Hwinp, Hcs, Hau, Hwand⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -143,10 +143,10 @@ theorem txn.Txn_sole
       exact traceutil.fieldsWf_cons_bool _ _ _ traceutil.fieldsWf_nil
     try wp_join_done
   ipersist Hsl
-  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUser (mvcc.api.mvccLeases γ) L
-      (mvcc.leaseItemsOf (mvcc.stateAfter σr.log))) $$ [Hu]
+  ihave Hu : (⌜true = false⌝ ∨ EtcdGrove.lease.lessorUserW (mvcc.api.mvccLeases γ) L
+      (mvcc.leaseItemsOf (mvcc.stateAfter σr.log)) wn) $$ [Hu]
   · iright; iexact Hu
-  wp_apply (hCheck _ γ trace false σr rt t le (mvcc.api.mvccLeases γ) sl [] L _ true (fun h => by cases h))
+  wp_apply (hCheck _ γ trace false σr rt t le (mvcc.api.mvccLeases γ) sl [] L _ true wn (fun h => by cases h))
     $$ [$Htx $Htrc $Hrt $Hle $Hu] as %n %err ⟨Htx, Htrc, Hu, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
@@ -194,14 +194,14 @@ theorem txn.Txn_sole
     icases txn.mvccTxn_shape hsh trw γ trace (.read σr) $$ Hro with ⟨%Hshw, Hro⟩
     obtain ⟨wty, wv, rfl, -, -, -, -, -, -, hEndW⟩ := Hshw
     have htxn' := htxn ctx' { cd with Values := vs } true lg γ trace false (interface.mkOk wty wv) true σr
-      rt t sl skip L
+      rt t sl skip L wn
     simp only [Bool.not_true, ↓reduceIte, txn.MTxn.append] at htxn'
     wp_apply htxn'
       $$ [$Hro $Htrc $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases] as %resp %err ⟨Htrc, Hres⟩
     · isplitl []; · itrivial
       isplitl []; · ileft; itrivial
       ipureintro
-      exact ⟨⟨Hreachr, (by simp), hoks, fun _ => hro, fun h => absurd h (by simp)⟩, trivial⟩
+      exact ⟨⟨Hreachr, (by simp), hoks, Or.inl trivial, fun _ => hro, fun h => absurd h (by simp)⟩, trivial⟩
     icases Hres with (⟨⟨%Herr, %Hch⟩, Hro, #Hresp, Hhdr, -, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -264,10 +264,10 @@ theorem txn.Txn_sole
     -- the caller's update (the writes are the model's): the lock's invariant back for `End`
     imod Hupd $$ HQ with ⟨HP, HPost⟩
     have htxn' := htxn ctx' { cd with Values := vs } true lg γ trace false (interface.mkOk wty wv) false σw
-      rt t sl skip L
+      rt t sl skip L wn
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true, txn.MTxn.append, List.nil_append] at htxn'
     rw [Hlogw] at htxn'
-    iunfold EtcdGrove.lease.lessorUser at Hu; iunfold EtcdGrove.lease.lessorUserW at Hu
+    iunfold EtcdGrove.lease.lessorUserW at Hu
     icases Hu with ⟨Hown, Hrdo, Hrvk⟩
     (try wp_auto)
     wp_apply htxn'
@@ -275,7 +275,7 @@ theorem txn.Txn_sole
     · isplitl [Hown]
       · iright; iexact Hown
       ipureintro
-      exact ⟨⟨Hreachw.1, fun _ => Hreachw.2, hoks, fun h => h.elim, fun h => absurd h (by simp)⟩, trivial⟩
+      exact ⟨⟨Hreachw.1, fun _ => Hreachw.2, hoks, Or.inr Hwinp, fun h => h.elim, fun h => absurd h (by simp)⟩, trivial⟩
     icases Hres with (⟨⟨%Herr, -⟩, Htw, #Hresp, Hhdr, #Hk2, Hown⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -321,7 +321,7 @@ theorem txn.Txn_sole
     simp only [srvRunTxn]
     iframe Hresp Hk2 Hhdr
     isplitl [Hown Hrdo Hrvk]
-    · iunfold EtcdGrove.lease.lessorUser; iunfold EtcdGrove.lease.lessorUserW; iframe Hown Hrdo Hrvk
+    · iunfold EtcdGrove.lease.lessorUserW; iframe Hown Hrdo Hrvk
     try simp only [hro, Bool.false_eq_true, ↓reduceIte]
     iframe HPost
     iexists σw
@@ -390,7 +390,7 @@ theorem txn.Txn_read
       iframe
     iexact Htrc
   ipersist Hsl
-  wp_apply (hCheck _ γ trace false σr rt t le (mvcc.api.mvccLeases γ) sl [] [] ∅ false (fun _ => hro))
+  wp_apply (hCheck _ γ trace false σr rt t le (mvcc.api.mvccLeases γ) sl [] [] ∅ false none (fun _ => hro))
     $$ [$Htx $Htrc $Hrt $Hle] as %n %err ⟨Htx, Htrc, -, Hres⟩
   · isplitl []
     · ipureintro; exact Htr
@@ -432,7 +432,7 @@ theorem txn.Txn_read
   icases txn.mvccTxn_shape hsh trw γ trace (.read σr) $$ Hro with ⟨%Hshw, Hro⟩
   obtain ⟨wty, wv, rfl, -, -, -, -, -, -, hEndW⟩ := Hshw
   have htxn' := htxn ctx' { cd with Values := vs } false lg γ trace false (interface.mkOk wty wv) true σr
-    rt t sl skip []
+    rt t sl skip [] none
   simp only [Bool.not_true, ↓reduceIte, Bool.false_eq_true, txn.MTxn.append] at htxn'
   wp_apply htxn'
     $$ [$Hro $Htrc $Hctx' $Hct' $Hrt $Hsl $Hleases] as %resp %err ⟨Htrc, Hres⟩
@@ -440,7 +440,7 @@ theorem txn.Txn_read
     isplitl []; · ileft; itrivial
     isplitr
     · ipureintro
-      exact ⟨Hreachr, (by simp), hoks, fun _ => hro, fun _ => trivial⟩
+      exact ⟨Hreachr, (by simp), hoks, Or.inl trivial, fun _ => hro, fun _ => trivial⟩
     iexact Hlg0
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨Hro, #Hshell, Hout⟩ : (mvcc.api.mvccTxn (interface.mkOk wty wv) γ trace (.read σr) ∗

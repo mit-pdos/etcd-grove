@@ -35,9 +35,9 @@ theorem txn.DeleteRange.wp_proof
     (hEnsure : traceutil.EnsureTrace.spec (GF := GF) (hG := hG))
     (hdel : txn.deleteRange.spec (GF := GF) (hG := hG)) :
     txn.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro ctx cd nd lg kv γ dr o q B P Pre Q Post f ot te L I R
+  intro ctx cd nd lg kv γ dr o q B P Pre Q Post f ot te L I R wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hdr, Hown, #Hctx, #Hct, Hto, #Hnd, #Hlg, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hdr, Hown, %Hwin, #Hctx, #Hct, Hto, #Hnd, #Hlg, Hbk, Hcs, Hau⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -85,15 +85,17 @@ theorem txn.DeleteRange.wp_proof
   imod Hupd $$ HQ with ⟨HP, HPost⟩
   (try wp_auto)
   -- `deleteRange(ctx, txnWrite, dr)`
-  ihave Hown : EtcdGrove.lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) $$ [Hown]
+  ihave Hown : EtcdGrove.lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ₀.log []) wn $$ [Hown]
   · rw [Hitems]; iexact Hown
-  wp_apply (hdel ctx' { cd with Values := vs } nd _ γ trace false σ₀ [] dr o L)
+  wp_apply (hdel ctx' { cd with Values := vs } nd _ γ trace false σ₀ [] dr o L wn)
     $$ [$Hctx' $Htx $Htrc $Hdr $Hown] as %resp %err ⟨Htrc, Hout⟩
   · isplitl [Hnd]
     · cases nd
       · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
       · simp only [↓reduceIte, mvcc.neverDone] at *; iexact Hnd
-    ipureintro; exact Hreach0.1
+    isplitl []
+    · ipureintro; exact Hreach0.1
+    ipureintro; rw [Hitems]; exact Hwin
   rw [txn.pendState_nil]
   simp only [List.nil_append]
   icases Hout with (⟨%Herr, Htx, #Hresp, Hhdr, Hown⟩ | ⟨%Hne, Htx, Hown⟩)

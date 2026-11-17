@@ -679,3 +679,24 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
     binder), plus `⌜winDrops w I₀ (fun it => I₀.lookup it = some id)⌝` (the window drops the lease's items).
   - Not thawed (left at `leaseOwn`): `KV.Put/DeleteRange.contract`, `writeView.{Put,DeleteRange}.spec` (no apply-loop
     caller), `mvccDeleter` (the window is in the owner's resource, not in the deleter's transaction).
+- **Step 4 (server txn, 2026-11-17).** Form accepted by etcd-grove-03 (`questions.md`, "Item 7b step 3 forms: reviewed").
+  New vocabulary (`txn/ApiVocab.lean`): `txn.delSelOf o` (the items a delete's range selects), `txn.putItemsOf I o` (the
+  item map after a put request), `txn.WinOp`/`txn.WinOps w s0 r s ops` (built as `OpsOk`: a put's `winMove` to the
+  state its change leaves, a delete's `winDrops` over its range, a nested transaction's chosen branch); lemmas
+  `winOps_none`, `winOps_append`/`_drop`/`_drop'`, `winOp_txn`, `winOps_gets`, `winOp_put_et`, `pendItems_putChangeOf`
+  (`ApiLemmas.lean`). Thawed, old → new (each `∀ w`, last binder; at `none` the old spec):
+  - `txn.put.spec`: `leaseOwn γl L (pendItems σ.log pend)` → `leaseOwnW … w` in pre and post, plus
+    `⌜winMove w (pendItems σ.log pend) (pendItems σ.log (pend ++ [putChangeOf o …]))⌝`.
+  - `txn.deleteRange.spec`: the same with `⌜winDrops w (pendItems σ.log pend) (txn.delSelOf o)⌝`.
+  - `txn.executeTxn.spec`: `(⌜isRead k⌝ ∨ leaseOwn …)` → `(⌜isRead k⌝ ∨ leaseOwnW … w)` in pre and post, plus the pure
+    conjunct `isRead k = true ∨ WinOps w s0 r (mstate k) ops`.
+  - `txn.txn.spec`: `(⌜ro⌝ ∨ leaseOwn …)` → `(⌜ro⌝ ∨ leaseOwnW … w)`, plus `ro = true ∨ WinOps w s0 r s0 branch`.
+  - `txn.Txn.specSole`: `lessorUser γl L I` → `lessorUserW γl L I w` in pre and both posts, plus
+    `⌜WinOps w (stateAfter log) (W64 log.length) (stateAfter log) (t.branch …)⌝`. `specRead` unchanged.
+  - `txn.Put.spec`: `lessorUser` → `lessorUserW … w` (pre, three posts), plus `⌜winMove w I (txn.putItemsOf I o)⌝`.
+  - `txn.DeleteRange.spec`: `leaseOwn γl L I` → `leaseOwnW … w` (pre, both posts), plus
+    `⌜winDrops w I (txn.delSelOf o)⌝`.
+  - `txn.checkLease.spec`, `checkPut.spec`, `checkTxn.spec`: `lessorUser γl L I` → `lessorUserW γl L I w` (passed
+    through; `isTxnLessor`'s `Lookup` is at any window since step 3).
+  - Callers: `txn/Results.lean` `txn_runTxn` (statement unchanged, at `none`: `winOps_none`); the applier's
+    `applierV3backend.{Put,DeleteRange,Txn}` at `none` until step 6.
