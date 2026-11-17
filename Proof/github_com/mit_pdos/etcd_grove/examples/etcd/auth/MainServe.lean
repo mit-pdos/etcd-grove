@@ -169,7 +169,7 @@ theorem ak_served_watch [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assum
     icases Hrd with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hkvi, -⟩
     ihave #Hon := srvKVInvsM_true s E γr $$ Hkvi
     iunfold srvKVInvsOn at Hon
-    icases Hon with ⟨-, -, -, -, -, -, -, %Hm⟩
+    icases Hon with ⟨-, -, -, -, -, -, -, %Hm, -⟩
     ipureintro; exact Hm.1
   ihave #Honce := client.srvOnce_noCmp V.W γr hC Hcm
   imodintro

@@ -590,10 +590,7 @@ theorem mergedCreate_window
   -- the apply thread's KV resources
   iunfold srvApplyKVCore at HKV
   icases HKV with ⟨Hua, #Hap, Hakv, Hbo, Hra, Hw⟩
-  iunfold apply.applyKV at Hakv
-  icases Hakv with ⟨%p, %Hp, Hub, Hko, Hcmo⟩
-  iunfold apply.kvOwn at Hko
-  icases Hko with ⟨⟨%c, Hws⟩, Hkb, Hll, Hrd⟩
+  icases srvApplyKVW_open E ua x $$ Hakv with ⟨%p, %c, %Hp, Hub, Hws, Hkb, Hcmo, Hakv⟩
   iunfold apply.kvBk at Hkb
   icases Hkb with ⟨%B2, HmB, #Hhi, HtB⟩
   ihave %HB2 : ⌜B2 = B'⌝ $$ [HtB]
@@ -745,25 +742,15 @@ theorem mergedCreate_window
     iframe Hst Hab Hca Hmi
     isplitl [Hmr]
     · iunfold apply.applyTok; iframe Hmr
-    isplitl [Hua Hub Hop Hcr Hws Hll Hrd HmB Hrdt Hopn Hra Hw Hbe Hg HbPl]
+    isplitl [Hua Hub Hop Hcr Hws Hakv HmB Hrdt Hopn Hra Hw Hbe Hg HbPl]
     · iunfold srvApplyKVCore
       isplitl [Hua]
       · iexact Hua
       isplitr
       · iexact Hap
-      isplitl [Hub Hop Hcr Hws Hll Hrd HmB]
-      · iunfold apply.applyKV
-        iexists p
-        iframe Hub
-        isplitr
-        · ipureintro; exact Hp
-        isplitl [Hws Hll Hrd HmB]
-        · iunfold apply.kvOwn
-          iframe Hll Hrd
-          isplitl [Hws]
-          · iexists x.crev
-            iexact Hws
-          iunfold apply.kvBk
+      isplitl [Hub Hop Hcr Hws HmB Hakv]
+      · iapply Hakv $$ %x.crev Hub Hws [HmB] [Hop Hcr]
+        · iunfold apply.kvBk
           iexists d
           iframe HmB Hhi
           rw [hBT]
@@ -844,7 +831,7 @@ theorem merged_image (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hki⟩
   iunfold srvKVInvs at Hki
-  icases Hki with ⟨#Hki, -, #Hrl, -, -, -, %Hlmk⟩
+  icases Hki with ⟨#Hki, -, #Hrl, -, -, -, %Hlmk, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   imod (kvInv_ch0_off γr.raft γr.kv) $$ Hki with %hch
   imod (kvInv_authOn γr.raft γr.kv) $$ Hki with %hao

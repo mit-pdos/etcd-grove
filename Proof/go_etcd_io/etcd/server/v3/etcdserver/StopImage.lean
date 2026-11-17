@@ -153,7 +153,7 @@ theorem stop_imageAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
   iunfold srvAtomics at Hat
   icases Hat with ⟨-, -, Hki⟩
   iunfold srvKVInvs at Hki
-  icases Hki with ⟨#Hki, -, #Hrl, -, -, -, %Hlmk⟩
+  icases Hki with ⟨#Hki, -, #Hrl, -, -, -, %Hlmk, -⟩
   ihave %hraft := srvRaftLogInv_fresh γr.raft $$ Hrl
   iunfold kvApplied at Hka
   icases Hka with ⟨Hka, %hx⟩

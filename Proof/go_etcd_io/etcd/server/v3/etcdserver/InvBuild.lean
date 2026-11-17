@@ -386,7 +386,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     -- (revoke-open, 2026-11-06) what `NewServer` built for the revocation
     "#Hrvkb" ∷ srvRevokeBuilt s E ∗
     "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀) ∗
+      srvApplyKVW E ua x₀) ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)

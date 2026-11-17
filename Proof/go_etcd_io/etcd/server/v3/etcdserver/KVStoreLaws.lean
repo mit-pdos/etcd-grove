@@ -113,22 +113,26 @@ theorem srvKVInvsA_of (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (wsl : L
 
 /-- **The apply thread's `srvKVInvs` from the store invariant**, the KV and raft invariants and the
 KV certificates' (`kvCertInv`, the server's own), at the server's witness and permit (the mode
-off: `srvKVInvs` ties `E.Nx` to `kvNxOff`, 2026-11-06). -/
+off: `srvKVInvs` ties `E.Nx` to `kvNxOff`, 2026-11-06), and the lessor-window tie (F4). -/
 theorem srvKVInvs_of (Hp : persistent.law (GF := GF)) (E : apply.AEnv GF)
     (γr : ReadNames) (hNx : E.Nx = kvNx γr false) (hCp : E.Cp = crevOk γr)
     (hm : γr.kv.cmp = E.cmp ∧ γr.kv.cret = E.cret) (hlm : γr.kv.lm = E.lm) :
     kvInv (GF := GF) γr.raft γr.kv ∗ kvCertInv γr.raft γr.kv ∗ srvRaftLogInv γr.raft ∗
-      kvStoreInv E.kv E.γ γr false E.γs ⊢ srvKVInvs E γr := by
+      kvStoreInv E.kv E.γ γr false E.γs ∗ winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false) ⊢ srvKVInvs E γr := by
   haveI : Persistent (kvStoreInv (GF := GF) E.kv E.γ γr false E.γs) := by
     rw [kvStoreInv_eq]; exact kvStoreInvG_persistent Hp E.kv E.γ (kvNx γr false) (crevOk γr) E.γs
-  iintro ⟨#Hk, #Hc, #Hr, #Hs⟩
+  iintro ⟨#Hk, #Hc, #Hr, #Hs, #Ht⟩
   iunfold srvKVInvs
   iframe Hk Hc Hr
   isplitl
   · rw [hNx, hCp, ← kvStoreInv_eq]; iexact Hs
   isplitl
   · ipureintro; exact ⟨hm.1, hm.2, envWitOk_srv E γr false hNx hCp, hCp⟩
-  · ipureintro; exact ⟨hNx, hlm⟩
+  isplitl
+  · ipureintro; exact hNx
+  isplitl
+  · ipureintro; exact hlm
+  iexact Ht
 
 end laws
 

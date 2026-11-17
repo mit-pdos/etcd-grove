@@ -66,7 +66,7 @@ def kvRunM (on : Bool) (γr : ReadNames) (ai₀ c₀ : w64) (A : List EntryModel
 off, `srvApplyKVOn` on: `srvApplyKVM`'s, with the auth part the component's). -/
 def srvApplyKVC (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
     (st : auth.AuthState) : IProp GF :=
-  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x ∗
+  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ srvApplyKVW E ua x ∗
     srvBeOwn s E ∗ revAuth E x.log ∗ acRes C s E ua st ∗
     (∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD) ∗
@@ -86,7 +86,9 @@ def srvKVInvsC (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IPr
     ⌜envWitOk E ∧ E.Cp = kvCpOk γr.kv⌝ ∗ ⌜E.Nx = kvNxM C.isOn γr⌝ ∗
     ⌜kvNameTiesM C.isOn E γr⌝ ∗ ⌜acModesOk C γr.kv.cmp γr.kv.lg⌝ ∗
     -- (auth-lease S3a) on, `srvKVInvsOn`'s lease-mode and empty-prefix rows
-    ⌜C.isOn = true → γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝ ∗ acInv C s E γr)
+    ⌜C.isOn = true → γr.kv.lm = E.lm ∧ γr.raft.pre = []⌝ ∗ acInv C s E γr ∗
+    -- (auth-lease S4 item 7b F4) the lessor-window tie (`srvKVInvs`'s, `srvKVInvsOn`'s)
+    srvApi.winTieRes E (clusterNoSnap γr.raft.raft.cl → E.lg = false))
 
 instance srvKVInvsC_persistent (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvKVInvsC (GF := GF) C s E γr) := by
@@ -122,7 +124,7 @@ def applyBuiltC (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ acRes C s E ua srvAuthSt0 ∗
-      apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
+      apply.applierFor ua E ∗ srvApplyKVW E ua x₀) ∗
     revAuth E x₀.log ∗
     -- (the lease-expiry merge) the lessor's range deleter (`applyBuilt`'s, `applyBuiltOn`'s)
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
@@ -165,7 +167,7 @@ def applyBuiltR (C : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterf
     applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
     mvcc.api.mvccReaders E.γ 1 ∗ srvBeOwn s E ∗
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ acRes C s E ua sa₀ ∗
-      apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
+      apply.applierFor ua E ∗ srvApplyKVW E ua x₀) ∗
     revAuth E x₀.log ∗
     (∃ rd : GoFunc, lease.rdOwn (mvcc.api.mvccLeases E.γ) rd ∗ mvcc.api.mvccDeleter rd E.γ) ∗
     srvAppliedOwn γr g₀ ∗ appliedLogAt γr g₀ x₀.log ∗ kvRunM C.isOn γr ai₀ c₀ A₀ x₀ sa₀ ∗
@@ -457,7 +459,7 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     dsimp only [AuthC.isOn, srvKVInvsM, srvKVInvsC, srvKVInvs, kvInvM, kvCertInvM, kvNameTiesM,
       acModesOk, kvNxM]
     constructor
-    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, %Hlm⟩
+    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, %Hlm, #Hw⟩
       iframe H1 H2 H3 Hs
       isplitr
       · ipureintro; exact ⟨Hc.2.2.1, Hc.2.2.2⟩
@@ -469,19 +471,23 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       · ipureintro; trivial
       isplitr
       · ipureintro; intro h; cases h
-      iapply acInv_off
-    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, %Ht, -, -, -⟩
+      isplitl []
+      · iapply acInv_off
+      iexact Hw
+    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, %Ht, -, -, -, #Hw⟩
       iframe H1 H2 H3 Hs
       isplitr
       · ipureintro; exact ⟨Ht.1, Ht.2.1, Hc.1, Hc.2⟩
       isplitr
       · ipureintro; exact HNx
-      ipureintro; exact Ht.2.2
+      isplitl []
+      · ipureintro; exact Ht.2.2
+      iexact Hw
   | on γa =>
     dsimp only [AuthC.isOn, srvKVInvsM, srvKVInvsC, srvKVInvsOn, kvInvM, kvCertInvM, kvNameTiesM,
       acModesOk, kvNxM]
     constructor
-    · iintro ⟨⟨#H1, #H2, #H3, #Htie, #Hs, %Hc, %HNx, %Hm⟩, #Hu⟩
+    · iintro ⟨⟨#H1, #H2, #H3, #Htie, #Hs, %Hc, %HNx, %Hm, #Hw⟩, #Hu⟩
       iframe H1 H2 H3 Hs
       isplitr
       · ipureintro; exact Hc
@@ -493,16 +499,20 @@ theorem srvKVInvsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
       · ipureintro; exact Hm.1
       isplitr
       · ipureintro; intro _; exact Hm.2
-      iapply (acInv_on (.on γa) γa rfl s E γr).2
-      iframe Htie Hu
-    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, -, %Hm, %Hlp, #Hi⟩
+      isplitl []
+      · iapply (acInv_on (.on γa) γa rfl s E γr).2
+        iframe Htie Hu
+      iexact Hw
+    · iintro ⟨#H1, #H2, #H3, #Hs, %Hc, %HNx, -, %Hm, %Hlp, #Hi, #Hw⟩
       ihave ⟨#Htie, #Hu⟩ := (acInv_on (.on γa) γa rfl s E γr).1 $$ Hi
       iframe H1 H2 H3 Hs Htie Hu
       isplitr
       · ipureintro; exact Hc
       isplitr
       · ipureintro; exact HNx
-      ipureintro; exact ⟨Hm, Hlp rfl⟩
+      isplitl []
+      · ipureintro; exact ⟨Hm, Hlp rfl⟩
+      iexact Hw
 
 theorem srvAtomicsM_C (C : AuthC) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvAtomicsM (GF := GF) C.isOn s E γr ⊣⊢ srvAtomicsC C s E γr := by
@@ -1018,7 +1028,7 @@ theorem isServerC_lm (K : AuthC) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Me
     icases Hat with ⟨-, -, #HkM⟩
     ihave #Hkvi := srvKVInvsM_true s E γr $$ HkM
     iunfold srvKVInvsOn at Hkvi
-    icases Hkvi with ⟨-, -, -, -, -, -, -, %Hrows⟩
+    icases Hkvi with ⟨-, -, -, -, -, -, -, %Hrows, -⟩
     ipureintro; exact ⟨h, Hrows.2.1⟩
 
 /-- **A first start's `applyStartC` is the restart form at `A₀ = []`** (Go's index `ai₀`). -/

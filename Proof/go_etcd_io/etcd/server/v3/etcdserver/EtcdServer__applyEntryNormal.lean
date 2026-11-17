@@ -372,7 +372,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
     icases Hat' with ⟨-, -, #Hkvi⟩
     ihave #Hkvi' := Hkvi
     iunfold srvKVInvs at Hkvi'
-    icases Hkvi' with ⟨#HkI, -, #HrI, #HsI, %Hktie, %HNx, %Hlmt⟩
+    icases Hkvi' with ⟨#HkI, -, #HrI, #HsI, %Hktie, %HNx, %Hlmt, -⟩
     have HwOk := Hktie.2.2.1
     have ⟨hNxP, hNxT, hCpP, hCpT⟩ := HwOk
     -- the committed entry's shape (the KV invariant's, `kv_log_plain`)
@@ -545,7 +545,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOff
   -- the KV model (unit T1): the entry plain, the log after it the model's, certified
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvs at Hkvi'
-  icases Hkvi' with ⟨-, -, -, #HsI, %Hktie, %HNx, %Hlmt⟩
+  icases Hkvi' with ⟨-, -, -, #HsI, %Hktie, %HNx, %Hlmt, -⟩
   have HwOk := Hktie.2.2.1
   have ⟨hNxP, hNxT, hCpP, hCpT⟩ := HwOk
   imod srvApplyKV_writer hPers hReach s E γr ρ.wait x $$ Hkvi HKV with ⟨HKV, #Hcx, -, -, %Hwf⟩
@@ -1301,7 +1301,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
     · iapply srvKVInvsM_true; iexact Hkvi
     ihave #Hkvi' := Hkvi
     iunfold srvKVInvsOn at Hkvi'
-    icases Hkvi' with ⟨#HkI, -, #HrI, #Htie0, #HsI, %Hktie, %HNx, %Hrows⟩
+    icases Hkvi' with ⟨#HkI, -, #HrI, #Htie0, #HsI, %Hktie, %HNx, %Hrows, -⟩
     have HwOk := Hktie.1
     have ⟨hNxP, hNxT, hCpP, hCpT⟩ := HwOk
     -- the committed entry's shape (the KV invariant's, `kv_log_plain_on`)
@@ -1524,7 +1524,7 @@ theorem EtcdServer.applyEntryNormal.wp_proofOn
   obtain ⟨Hpe, Hdet, Hxch, Hch⟩ := Hpe
   ihave #Hkvi' := Hkvi
   iunfold srvKVInvsOn at Hkvi'
-  icases Hkvi' with ⟨#HkI', -, #HrI', -, -, -, -, %Hrows'⟩
+  icases Hkvi' with ⟨#HkI', -, #HrI', -, -, -, -, %Hrows', -⟩
   -- (auth-lease S3a rev 7) the entry at the environment's lease mode (`srvKVInvsOn`'s `lm = E.lm`)
   have hlmE : γr.kv.lm = E.lm := Hrows'.2.1
   have hpreE : γr.raft.pre = [] := Hrows'.2.2

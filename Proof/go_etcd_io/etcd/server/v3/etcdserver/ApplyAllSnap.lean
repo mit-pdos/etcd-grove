@@ -242,7 +242,8 @@ theorem snapRecv_imageOnR (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (
   iintro #Hinvs #Himg Hka Hrest #Hrc
   ihave ⟨%f0, %Hf0, Hrest, HrL, HrG, HrQ, HrE⟩ := srvRestRpM_open true E γr A r0 $$ Hrest
   iunfold srvKVInvsOn at Hinvs
-  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows⟩
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, -, -, %Hw, %Hrows0, %Hrows1, -⟩
+  have Hrows := And.intro Hrows0 Hrows1
   -- the certificate's KV names agree with the member's on the start values
   iunfold srvImageOn at Himg
   icases Himg with ⟨%γk', %hk', #Hdb⟩
@@ -985,7 +986,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   ihave #Hkvi := srvKVInvsM_true s E γr $$ HkiM
   ihave #Hkvi2 := Hkvi
   iunfold srvKVInvsOn at Hkvi2
-  icases Hkvi2 with ⟨#HkI0, -, #Hrli, -, -, %Hkvp, -, %Hcmlg⟩
+  icases Hkvi2 with ⟨#HkI0, -, #Hrli, -, -, %Hkvp, -, %Hcmlg, -⟩
   obtain ⟨⟨hw1, hw2, hw3, hw4⟩, -⟩ := Hkvp
   have Hcmf := Hcmlg.1
   -- the cluster runs auth on, the member's KV invariant says

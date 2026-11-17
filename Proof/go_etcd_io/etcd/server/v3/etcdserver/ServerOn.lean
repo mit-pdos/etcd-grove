@@ -152,9 +152,9 @@ def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
 def srvUberRowM (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) : IProp GF :=
   match on with
   | false => iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀)
+      srvApplyKVW E ua x₀)
   | true => iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗
-      apply.applierFor ua E ∗ apply.applyKV E ua x₀)
+      apply.applierFor ua E ∗ srvApplyKVW E ua x₀)
 
 /-- **The built part in the auth mode `on`** (`srvBuilt` with `srvReqBuiltM`, `srvKVInvsM` and
 `srvCM`; the other rows `srvBuilt`'s). -/
@@ -257,7 +257,7 @@ variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyResAt_of_B`, `srvAuthApplyRes_of_At`). -/
 theorem srvUberRowM_of_On (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) :
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀) ⊢ srvUberRowM (GF := GF) on s E x₀ := by
+      srvApplyKVW E ua x₀) ⊢ srvUberRowM (GF := GF) on s E x₀ := by
   cases on
   · unfold srvUberRowM
     iintro ⟨%ua, Hua, -, #Hfor, Hakv⟩
