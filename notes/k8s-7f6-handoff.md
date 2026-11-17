@@ -1,26 +1,17 @@
 # k8s 7f-6 handoff (branch `k8s-7f6`, worktree `/shared/etcd-grove-k8s7f6`)
 
-## START HERE (2026-11-17, seventh 7f-6 agent): stage F linked, lean merged, at the land stop (pending a bounds decision)
+## START HERE (2026-11-17, seventh 7f-6 agent): stage F linked, lean merged, gates passed, AT THE LAND STOP
 
 - **Branch:** `k8s-7f6` (lean `9702d5707e` merged; Perennial pin `c6b39d4f8`). Go target
   `k8s-7f6-target` `c6bfeb69e8`. Decisions: worktree `questions.md` (E-2 APPROVED by the user via
-  etcd-grove-03).
-- **Done:** stage E (see History) and step 10: `etc/link-lean-first-k8setcd3.txt` (watch generator,
-  `newWCache`, `getW/putW`, `runWatch` in `Apply`, `RunLin2`, the watch contract's `runtime.Decode`,
-  `codec.Decode`, `Obj.Get/SetAnnotations`, `meta.Accessor` + `storage.AnnotateInitialEventsEndBookmark`
-  linked here (their spec namespaces are not `k8s.`, so not as `@` of the k8s etcd3 Link), `newStore`,
-  `Main` over `newStore`/`context.ErrAny` and the two mvcc laws); `MainLinked`, `Adequacy`, `Results`
-  with the approved E-2 text (8b0a6377fb); merge of lean, Results' theorems pass lean's new `Hfs`
-  (9b2db9d75e). `newWCache`/`genWatch` proofs moved to files of their own (gen-link imports by name).
-- **Verified:** full build (c6b) OK (attempt 2; attempt 1 hit the 45G cap); goose `--check --project
-  k8s-apiserver` OK; gen-init `--check` OK; the k8s etcd3 Results' `#print axioms` have no `sorryAx`.
-- **Open:** `etc/bounds-check.py --check` FAILS by one: `spec-thread` in examples/k8s/etcd3 2 vs 1
-  (`newStore.spec`'s `threadBound GF ≤ 2^30-1`, which `etcd3.New` needs; it was Main's only). Decision
-  for etcd-grove-03 (report). Gates not run yet (they would fail on bounds).
-- **Next:** after the decision: tcb collection `etc/tcb-collections/k8setcd3.txt --check [--update]`,
-  interfaces `--check`, `etc/gates.sh` under `flock /shared/tmp/etcd-grove-full-build.lock` with
-  `LAKE_PACKAGES=/shared/tmp/manifest-c6b.json PERENNIAL_CHECKOUT=/shared/perennial-c6b39d4f8` (GOWORK
-  unset), then the land stop.
+  etcd-grove-03; bounds +1, layout, collection axioms accepted by etcd-grove-03).
+- **Done:** step 10 (8b0a6377fb: Link/MainLinked/Adequacy/Results with the approved E-2 text);
+  merge of lean (9b2db9d75e); tcb collection k8setcd3 +25 existing axioms, STATUS, handoff
+  (eb1bf9c171); bounds baseline spec-thread examples/k8s/etcd3 1 → 2 by hand (56605a49ac); etcdstart
+  API lists `WatchServed`/`WatchEnvL`, their interfaces (6506527c07).
+- **Verified:** full build (c6b) OK; `etc/gates.sh` all passed (flock full-build lock, c6b manifest).
+- **Next:** the coordinator's go for `LAKE_PACKAGES=/shared/tmp/manifest-c6b.json
+  PERENNIAL_CHECKOUT=/shared/perennial-c6b39d4f8 etc/land.sh` (GOWORK unset). No commits while it lands.
 - **Pitfalls:** scripts need `PERENNIAL_DIR=/shared/perennial-c6b39d4f8` (gen-init) when
   `.lake/packages/perennial` is absent; gen-link `--walfs`/`--bbolt` differ until the build is fresh;
   `gen-specs-pkginit --check` needs `.lake/packages/perennial` (gates link it).
