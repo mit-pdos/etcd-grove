@@ -71,10 +71,10 @@ theorem auth.authStore.CheckPassword.wp_proof
   iunfold authReadTxLocked at Htx
   icases Htx with ⟨%ti, %Hti, Htx⟩
   subst Hti
-  icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
-  iunfold authTxReads at Hreads
+  icases Htx with ⟨%v, %Hs, Htok, #Hsnap, #Hreads⟩
+  iunfold authTxReadsV at Hreads
   icases Hreads with ⟨#Hrds, #HRU⟩
-  iunfold authReaderOk at Hrds
+  iunfold authReaderOkV at Hrds
   icases Hrds with ⟨#HUG, -, -, #HRev, -⟩
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #username))
@@ -101,7 +101,7 @@ theorem auth.authStore.CheckPassword.wp_proof
     iexists eAF
     simp only [AuthErr.var]
     iframe HeAF
-  ihave Hu' := userOut_some u sta username Hif $$ Hu
+  ihave Hu' := userOut_some u v.atUsers username Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
   iunfold ownUser at Hu
   icases Hu with ⟨%s1, %n, %pw, %rl, %o, %sc, Hp, #Hn, #Hpw, #Hrl, #Ho⟩
@@ -116,7 +116,7 @@ theorem auth.authStore.CheckPassword.wp_proof
     subst Ho
     (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
-    iapply HRev $$ %sta Htok
+    iapply HRev $$ %v Htok
     inext
     iintro %rev ⟨Htok, %Hrev⟩
     (try wp_auto)
@@ -163,7 +163,7 @@ theorem auth.authStore.CheckPassword.wp_proof
       isplitr
       · ipureintro; rfl
       iframe Hev
-      iexists sta
+      iexists v
       iframe Hsnap
       ipureintro
       exact ⟨Hrev, by simp [Hur.1]⟩
@@ -198,7 +198,7 @@ theorem auth.authStore.CheckPassword.wp_proof
       iframe HeNP
     (try wp_auto)
     wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
-    iapply HRev $$ %sta Htok
+    iapply HRev $$ %v Htok
     inext
     iintro %rev ⟨Htok, %Hrev⟩
     (try wp_auto)
@@ -245,7 +245,7 @@ theorem auth.authStore.CheckPassword.wp_proof
       isplitr
       · ipureintro; rfl
       iframe Hev
-      iexists sta
+      iexists v
       iframe Hsnap
       ipureintro
       exact ⟨Hrev, by simp [Hur.1]⟩

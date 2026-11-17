@@ -33,11 +33,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **A locked read transaction no older than the index `i`** (the auth plan's E3g): as
-`authReadTxLocked`, its state recorded at an index at least `i` (`authSnapFrom`). -/
+`authReadTxLocked`, each bucket of its view recorded at an index at least `i` (`authViewSnapFrom`). -/
 def authReadTxLockedFrom (tx : GoInterface) (R : IProp GF) (M : AuthMode) (i : Nat) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
-    ∃ (sta : AuthState) (Hs : AuthState → IProp GF), Hs sta ∗ authSnapFrom M i sta ∗
-      authTxReads ti R Hs)
+    ∃ (v : BkView) (Hs : BkView → IProp GF), Hs v ∗ authViewSnapFrom M i v ∗
+      authTxReadsV ti R Hs)
 
 end defs
 

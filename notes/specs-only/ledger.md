@@ -2691,6 +2691,28 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
 
+## 2026-11-16: the auth read contract per bucket, the write contract's sessions (auth-schema-srv A0)
+
+- **Spec.** `auth.authReadTxOk` (trusted: given by `authSchemaSrv`, `authSchemaSnap`, `authSchemaBoot` through
+  `authBackendOk`), `authReadTxLocked`, `authReadTxLockedFrom`, `auth.passwordChecked` (`CheckPassword.spec`'s post);
+  `authBatchTxLk`/`authBatchTxLkR` (trusted likewise, through `authWBackendOkR`), `commitRevision.spec`.
+- **Defect.** The read contract promised every `RLock` one recorded auth state; Go's `batchTxBuffered.Unlock` writes a
+  step's puts back and releases the read lock before it commits the step's deletes, so a reader sees a step half
+  applied (`notes/auth-schema-srv-refuted.md`, "Second refutation"). `passwordChecked` ("the revision of a recorded
+  state that has the user") is false of Go for the same reason.
+- **Evidence.** `nonissues/etcd-auth-readtx-delete-window-mixed-state/zz_authschema_window_test.go` (fails);
+  `zz_authschema_perbucket_test.go`: `TestAuthSchemaReadPerBucket` (the store's admin steps; 0 per-bucket violations in
+  three runs of ~10-13k steps and ~1.1-1.5M reads, ~13-17k reads of no single state, the old text's control) and
+  `TestAuthSchemaReadMixedBucketSession` (a batch that puts and deletes in one bucket: readers see the bucket in
+  neither state, ~33k times in 20 s: the per-bucket reading needs the write side's discipline).
+- **Proposed change.** Q1 (a): `RLock` gives a view `BkView` (a state per bucket: `auth`, `authUsers`, `authRoles`),
+  `authViewSnap(From)`: each recorded (at an index ≥ the lower bound), the users' index ≤ the `auth` bucket's; each
+  read at its bucket's state (`authReaderOkV`); the latest clause (with the write token) one state, `BkView.uni st`.
+  `passwordChecked`: the user in a recorded state and `rev` the revision of a recorded state not earlier. The write
+  contract gains a session token `Sw : AuthSess → IProp` (puts and deletes never in one bucket in one session).
+- **Decision.** Q1 (a) approved by the user 2026-11-16 via etcd-grove-02; the session discipline is what makes Q1 (a)
+  true (reported at the A0 stop).
+
 ## 2026-11-16: the watch's annotated object is not expressible for the driver (k8s 7f-6 D)
 
 - **Spec.** `store.Watch.spec`'s vocabulary (`Proof/k8s_io/apiserver/pkg/storage/etcd3/WatchDefs.lean`):

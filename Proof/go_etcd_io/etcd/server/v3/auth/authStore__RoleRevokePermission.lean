@@ -149,7 +149,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   (try wp_auto)
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -158,7 +158,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨-, #HGR, -, -, -⟩
@@ -171,7 +171,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   wp_if_destruct
   · -- no such role
     ihave %Hnone := roleOut_null st0 role $$ Hrole
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -370,7 +370,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     have hnone : ∀ p ∈ ps, ¬ permAt key rangeEnd p := by
       intro p hp
       exact auth.none_on_of_all_kept rr.perms key rangeEnd hallk p (Hrrps.symm.subset hp)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -403,8 +403,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
-  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) [HL Huu]
-  · iframe HL
+  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hsw Huu]
+  · iframe HL Hsw
     isplitl [Huu]
     · iunfold ownRole
       iexists zeroValDef, rnm, sl, kept.map Prod.fst, (0 : w32)
@@ -416,11 +416,11 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
         rw [← List.unzip_fst, ← List.unzip_snd, List.zip_unzip]
       rw [hz]; iexact Hkept
     ipureintro
-    exact ⟨show 0 < rr.name.length by
+    exact ⟨by decide, show 0 < rr.name.length by
         rw [Hrrn]; exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 role (by rw [Hlook]; rfl)),
       show rr.name.length ≤ _ by rw [Hrrn]; exact Hrolelen, hps'⟩
   inext
-  iintro ⟨HL, Huu⟩
+  iintro ⟨HL, Hsw, Huu⟩
   (try wp_auto)
   obtain ⟨ps', hps'eq⟩ : ∃ l, l = ps.filter (fun p => ¬ permAt key rangeEnd p) := ⟨_, rfl⟩
   ihave HL : Lk (putRole st0 role ps') Post $$ [HL]
@@ -432,7 +432,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   obtain ⟨Hrevfit, Hfit, -⟩ := Hok st0 Hl0
   have Hfit' := (Hfit _ _ hstep rfl).1
   ihave #Hcn := capNextM_use M hs _ st0 (bump (putRole st0 role ps')) Hl0 hstep $$ Hcap
-  wp_apply (h_commitRevision st R M P f T Wb ti Lk (putRole st0 role ps') Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putRole st0 role ps') Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putRole _ _ _ (Hpk st0 Hl0 h1 h2)
@@ -487,7 +487,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 role ps')]) [HL $Hown $Hw1 $Hw2]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putRole st0 role ps')]) [HL $Hsw $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL
