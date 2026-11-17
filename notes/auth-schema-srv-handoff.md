@@ -1,6 +1,6 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A6.2: claim-law Scope written, STOPPED for its independent review)
+## START HERE (2026-11-17, A6.2: claim-law Scope revised after review, STOPPED for a second review)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -12,7 +12,10 @@
   per tracked bucket shares of `rbk` (½), `rbr` (¼), `rbc` (whole, with its authority) and the link `f = false → v =
   bktOf c`; `rbPartF` (so `rbPart`/`rbOwnIn`/`rbOwn` and the lock's `rbSide`) scaled ½ → ¼ uniformly (Snapshot's
   observation hands the lock's share as an `rbOwn`); `rbRd q` = element `q/2`. 1000-2100 lines, backend only.
-- **STOP**: the Scope goes to an independent review before any Lean (decided by etcd-grove-03).
+- Review (`/shared/tmp/auth-schema-srv/a6-claim-review.md`): B1 (second claim not refutable; `Close` hands the lock's
+  share out) → §R.1 the per-bucket claim token (in `newPostK`, carried with `authRdSlots`); M1 → §R.2 the claimed
+  flag cleared at `Unlock`'s end with the claim marker's; MINOR 1 already restated (§R.3).
+- **STOP**: a short second review before any Lean (decided by etcd-grove-03).
 - Next, after the review: C1-C5 of the Scope §5 (probe `wb_core`/`unsafeCommit` first), then A6 as planned
   (realization invariant, write side, auth-level read contract), then A7 HARD STOP.
 - Pitfalls: as in History "A6.1b STOP" (0)-(10).

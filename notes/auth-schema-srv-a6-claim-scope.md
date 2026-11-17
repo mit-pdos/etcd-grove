@@ -6,7 +6,10 @@ Lean. The gap (questions.md "A6.2 STOP"): the auth realization hands out its rea
 update, before it can claim the auth buckets; the claim (`batchLocked_claim`) needs `batchLocked`; an idle unclaimed part
 (`rbOwnIn`) has no readers' law; readers do come first (`Recover`, `store.go:399-410`).
 
-**Target law** (backend, `ClaimedLemmas.lean`, replacing `batchLocked_claim` in place: no twin):
+**Revised 2026-11-17 after the independent review** (`/shared/tmp/auth-schema-srv/a6-claim-review.md`: B1, M1, MINORs);
+the revision is §R at the end and **supersedes the target law below, §3.2 and §3.3** where they differ.
+
+**Target law (first version; superseded by §R.1)** (backend, `ClaimedLemmas.lean`, replacing `batchLocked_claim` in place: no twin):
 
 ```
 theorem rbOwnIn_claim (γ P W Pk b) (Sc : List GoString) (r) (hnd : Sc.Nodup)
@@ -222,3 +225,104 @@ planned.
 
 **Not done in this Scope**: no Lean probe; the proof bodies of `wb_core`, `rtRes_cm_close`, `rbrSide_writeR` were read
 only at their statements and call sites.
+
+## R. Revision 1 (after the review; decided by etcd-grove-03: the claim token, a fix for M1, MINOR 1)
+
+### R.1 The per-bucket claim token (fixes B1)
+
+**B1, restated.** Inside the law, the claimed branch is not refutable: the invariant's ¾ plus a claimant's ¼ is valid
+(the lock's ¼ is out of reach), and after `Close` the lock's ¼ is with a client anyway (`bStopView`'s `rbOwn`,
+`InvStop.lean:155`), so exclusivity of client parts cannot carry a lock-free claim.
+
+**The token.** `rbClaimTok γ n := ⌜γ.rbD.lookup n ≠ none⌝ ∗ ghostMapElem γ.rbc n (own ½) none` (sealed), and
+`rbClaimToks γ S := [∗map] n ↦ _ ∈ γ.rbD, if S n then rbClaimTok γ n else True`. `rbClaimOne`'s unclaimed branch holds
+the other `rbc` ½ at `none` (in place of the whole element); its claimed branch `rbc` ½ at `some w` (unchanged; the
+client's `rbOwnInR` the other ½). `New`/`NewAlloc` allocates the element whole at `none` and splits it: ½ in the
+invariant, ½ out as the token. **The law:**
+
+```
+rbOwnIn_claim : isBackend γ P W Pk b ∗ rbOwnIn γ (· ∈ Sc) r ∗ rbClaimToks γ (· ∈ Sc) ={⊤}=∗
+                  rbOwnInR γ (· ∈ Sc) r ∗ [∗list] n ∈ Sc, rbRd γ n ½ (bktOf r n)
+```
+
+**Proof sketch.** Open `rbClaimInv`; for `n ∈ Sc`: the token (½ at `none`) with the claimed branch's ½ at `some w`
+disagree in value: `False`; so the branch is unclaimed; the invariant's `rbk` ½ agrees with the client's ¼ (`(r n,
+false)`), `L` gives `v = bktOf (r n)`; the token's ½ and the branch's ½ make `rbc n` whole: update to `some (r n,
+false)` (the authority is the invariant's), split ½ (branch) / ½ (client's `rbOwnInR`); deposit the client's `rbk` ¼
+(branch: ¾); hand the branch's `rbr` ¼ out as `rbRd γ n ½ (bktOf r n)`. **A second claim is impossible**: it needs a
+second token, and only one exists (the element's halves: the branch's and the token, or the branch's and the client's
+`rbOwnInR` at `some`). Exclusivity rests on the token, not on client parts.
+
+**After `Close`.** `bStopView` hands out the lock's `rbk` ¼ as an `rbOwn` (unchanged). With a claimed bucket that gives a
+client a client-shaped share of a claimed bucket: harmless (no batch lock after `Close`, no write; the share is not a
+token), and **no law derives "no `rbPart` of a claimed bucket"**: the exclusivity laws of parts (§2 (b)) are stated, as
+today, between parts; nothing in the claimed-bucket reasoning uses the absence of a part (writes need the whole `rbk`
+element, which needs the invariant: §3.3, first bullet, is restated as "a write via `rbPut` needs the invariant's ½ of
+an unclaimed branch", and the claimed branch has no ½ to give). `bStopView`'s and `Close`'s docstrings say that the
+stopped lock's share is client-shaped and carries no token. `Close` never hands a token out (the lock never holds one).
+
+**Where the token travels** (proved statements, internal unless marked):
+- `newPostK`/`newPostKP` (InvNew.lean, RdPool.lean) gain `rbClaimToks γ (fun _ => True)`; `newPostKP_named` names it;
+  `NewKLaws`/`ClientLaws` split it (`rbClaimToks_split`, as `rbOwn`'s parts).
+- **Trusted: `storage.OpenBackend.wp_proof`**, whose post is `newPostK`: its text unchanged, its meaning grows by a ghost
+  token (no Go claim); standing argument: `New`'s proof (`NewAlloc`) allocates it with fresh names, as for every
+  `newPostK` conjunct since D22. The other trusted texts that pass `newPostK`'s resources or `rbOwnIn`/`rbPart`/`rbOwn`
+  (`NewLessor`, `MustUnsafeGetAllLeases`, `NewAuthStore`, `RaftCluster.Recover`/`SetBackend`, membership's, v3alarm's,
+  `backend.Snapshot`) take or give parts only, never tokens: their meaning does not involve the token. (Checked by grep:
+  the axioms whose files mention `newPostK`/`rbOwn`/`rbOwnIn`/`rbPart` are `OpenBackend`, `Snapshot`, `LessorBackend`,
+  `InvRest`, `apply/RestModel`, `Results`.)
+- The auth buckets' tokens go with the auth reader slots: **`authRdSlots d` (etcdserver, `AuthSnapKit.lean`) becomes
+  `backend.rdAuth d.γB d.P d.be ∗ backend.rbClaimToks d.γB authBkts`**. `authRdSlots` is in the premises of
+  `authSchemaSrv` and `authSchemaSnap` (**trusted text: the premise asks the caller for more, so the hypothesis promises
+  less and the closed theorems taking it get stronger, provided the callers supply it**; text of the two hypotheses
+  unchanged, the definition of `authRdSlots` changes; for the A7 report). Suppliers: the boot (`BootBackend`,
+  `BootStore`, `NewServer`, `NewServerR`, `AuthSrv`: where `rdAuth` is taken from `newPostKP` and turned into
+  `authKitIn`'s `authRdSlots`) and the snapshot install (`SnapApplyWalk`, `SnapApplyAuthM`, `SnapAuthRecover`: the
+  snapshot backend's `newPostKP`). In the other modes the auth buckets' tokens are dropped (never claimed). Files: the 11
+  that mention `rdAuth`/`authRdSlots` (grep), mechanical.
+
+### R.2 The lock-side fact (M1): the claimed flag cleared at `Unlock`'s end, tied to the claim marker
+
+**Choice: the review's first fix.** In the claimed branch the `rbk` flag `f` and the claim marker's flag `w.2` move
+together: `rbClaimOne`'s claimed branch states `⌜w.1 = c ∧ w.2 = f⌝`. Claimed writes (`rbrSide_writeR`, through
+`rbPutR`) set both (they open the invariant for the `rbk` and `rbc` updates and hold the claimed part, whose `rbc` ½ is
+the other half); `rbPartR_idle` clears both at `Unlock`'s end, **with the premise `∀ n ∈ Sr, P.RB n → tk n = idle`**
+(MINOR 2, now required; it runs only in `bu_free0`/`bu_free`/`bu_release`, where every kind is idle). Then:
+- `tkI` (lock-internal, unchanged: `F n = false → tk n = idle`) and the agreement of the lock's `F n` with the branch's
+  `f` give, for a claimed bucket: `tk n ≠ idle → f = true → w.2 = true`;
+- `w.2` agrees with the claimed part's flag, which every step that needs the fact holds (`Unlock` is handed the claimed
+  part `rbPartR`; claimed writes take it);
+- the old claimed branch's `tk n = idle ∨ cw n` is then derived as `tk n = idle ∨ w.2 = true`, and `cw n` itself
+  (where `cwOk` needs it) from the lock-internal invariant **`cw n = true ↔ a write through a claimed part in this
+  session`**, which a claimed write sets with `w.2` in the same step and the session's end resets with `w.2`
+  (`rbPartR_idle`): so at any step holding both, `cw n = w.2` for claimed `n` (stated in `trkSide` as `∀ n, cw n = true
+  → tk n ≠ idle`, and in the claimed branch as `w.2 = f`; the converse comes from `tkI`).
+- Unclaimed buckets: `tk n ≠ idle → F n = true`, and with the unclaimed branch nothing more is needed (the writer held
+  the whole element, the branch's ½ included).
+
+**Why not the second fix** ("the lock records unclaimed when last written"): it adds a per-bucket bit to the lock's
+state (`BSess`) and still needs a link from the invariant at claim time (a claim needs `f = false`, which the lock
+learns only by agreement), so it is a second relation where the first fix reuses `tkI`. MINOR 3 (the claimed flag never
+cleared) disappears with this choice.
+
+**Residual risk for the second review**: the exact uses of the old claimed branch (`trkSide_updR`, `rbrSide_writeR`,
+the accessor steps, `batchGhostAt_idle`) were read at their statements; C3 confirms each takes the claimed part where it
+needs `w.2`.
+
+### R.3 MINOR 1 (§4.2 of the A1 soundness note)
+
+Already restated at A1.9 (`notes/auth-schema-srv-a1-soundness.md` l.81-88: `trkSide_mode` private; a client rebuilding
+a mode-`false` lock by hand from a mode-`true` one needs `cwOk false`, i.e. outside the hook's window `cw` empty, the
+client-facing state; harmless). This revision adds no mode law.
+
+### R.4 Masks (MINOR 1 of the new review)
+
+`rbClaimN := bN .@ "rbclaim"`, disjoint from the backend's other namespaces (`metrics`, `cache`, the read-lock guard);
+C2's first step probes that `wb_core`, `rtRes_cm_close` and `unsafeCommit`'s ghost steps run at a mask containing it.
+
+### R.5 Estimate (revised)
+
+C1-C5 as §5 (1000-2100) plus the token: allocation and `newPostK(P)` (+50-100), its threading through the 11 files
+(+100-250), `rbPartR_idle`'s premise and the claimed flag clear (+50-150): **1200-2600 lines**. Trusted-text deltas for
+the A7 report: `authRdSlots`'s definition (the token added to `authSchemaSrv`'s and `authSchemaSnap`'s premise);
+`OpenBackend`'s and the other backend axioms' texts unchanged (meanings as argued in §2 and R.1).
