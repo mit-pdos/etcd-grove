@@ -13,6 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -181,9 +182,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
       iexists eNPU; iframe HeNPU; ipureintro; rfl
     | nil =>
       (try wp_auto)
-      wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+      wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
       ipersist Hnsl
-      (try wp_auto)
+      wp_take_receipt as Hrc
       let urN : UserRec := ⟨name, pwb, ur.roles, ur.noPassword, ur.optsUF, ur.optsOk⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
@@ -197,7 +198,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
         · iexact Hurl
         · iexact Huo
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
-      iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hsw $Hnu]
+      iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
       · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
           List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩
@@ -301,9 +302,9 @@ theorem auth.authStore.UserChangePassword.wp_tie
       iframe Hown
   · -- a no-password user: no password
     (try wp_auto)
-    wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+    wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
     ipersist Hnsl
-    (try wp_auto)
+    wp_take_receipt as Hrc
     let urN : UserRec := ⟨name, [], ur.roles, ur.noPassword, ur.optsUF, ur.optsOk⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
@@ -317,7 +318,7 @@ theorem auth.authStore.UserChangePassword.wp_tie
       · iexact Hurl
       · iexact Huo
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
-    iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hsw $Hnu]
+    iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
     · ipureintro; exact ⟨by decide, by rw [Hur.2.1]; exact Hur.2.2,
           List.length_pos_iff.2 (Hstep.2.2.2.1 name (by rw [Hur.1]; rfl)), Hlen,
           fun x hx => Hstep.2.2.1 name roles Hur.1 x (by simpa [urN, Hur.2.1] using hx)⟩

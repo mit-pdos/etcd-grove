@@ -21,6 +21,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.AdminLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.PermSorter
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.bytes.Link
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -484,7 +485,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       ihave #Hsrt := auth.permSlice_isSorter s2 $$ Hpkg
       have hfst : (kl ++ [(«$r0_ptr», w)]).map Prod.fst = kl.map Prod.fst ++ [«$r0_ptr»] := by
         simp
-      wp_apply (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) keyLt
+      wp_apply +noauto (_root_.Perennial.sort.wp_Sort (interface.mk permSlice.ty #s2) (auth.permsOwn s2) keyLt
           StrictWeakOrder_keyLt (kl ++ [(«$r0_ptr», w)])) $$ [Hs2]
         as %xs' ⟨Hxs, %Hperm, %Hsorted⟩
       · iframe Hsrt
@@ -499,7 +500,7 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
         ipureintro
         rw [List.length_append]
         have := Hlocs.2; simp only [List.length_singleton]; omega
-      (try wp_auto)
+      wp_take_receipt as Hrc
       iunfold auth.permsOwn at Hxs
       icases Hxs with ⟨Hxs, #Hxw⟩
       imod (ownSlice_persist _ _ _) $$ Hxs with #Hxs
@@ -536,8 +537,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       have hrn : ({ rr with perms := xs'.map Prod.snd } : RoleRec).name = name := Hrrn
       generalize ({ rr with perms := xs'.map Prod.snd } : RoleRec) = rr' at hgp hrn ⊢
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #rl))
-      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hsw Hrm]
-      · iframe HL Hsw Hrm; ipureintro; rw [hrn]
+      iapply HPutR $$ %st0 %Post %rl %rr' %(grantPerms ps w) %AuthSess.init [HL Hrc Hsw Hrm]
+      · iframe HL Hrc Hsw Hrm; ipureintro; rw [hrn]
         exact ⟨by decide, List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.2 name (by rw [Hlook]; rfl)),
           Hnamelen, hgp⟩
       inext

@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -199,6 +200,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨-, #HGR, -, -, #HGA⟩
+  wp_take_receipt as Hrc
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #role))
   iapply HGR $$ %st0 %role HL
@@ -238,7 +240,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   ihave Hrole' := roleOut_some _ st0 role Hif $$ Hrole
   icases Hrole' with ⟨%ps, %rr, %Hrr, -⟩
   wp_bind (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #role))
-  iapply HDelR $$ %st0 %Post %role %AuthSess.init [$HL $Hsw]
+  iapply HDelR $$ %st0 %Post %role %AuthSess.init [$HL $Hrc $Hsw]
   · ipureintro; decide
   inext
   iintro ⟨HL, Hsw⟩
@@ -425,7 +427,7 @@ theorem auth.authStore.RoleDelete.wp_tie
       exact auth.usersAfter_succ_same _ _ _ _ _ _ roles hnm hlook (Hurr ▸ hnot) Hk.2.2.2.2.2
     -- the user had the role: put back without it
     simp only [Hif, decide_false]
-    (try wp_auto)
+    wp_take_receipt as Hrc
     imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
     have hsorted' : roles'.Pairwise go.GoStringLt := by
       rw [hroles']; exact (Hurr ▸ Hsorted).filter _
@@ -434,8 +436,8 @@ theorem auth.authStore.RoleDelete.wp_tie
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #uu))
     iapply HPutU $$ %sk %Post %uu
       %({ ur with roles := roles' } : UserRec) %ws
-      [HL Hsw Huu]
-    · iframe HL Hsw
+      [HL Hrc Hsw Huu]
+    · iframe HL Hrc Hsw
       isplitl [Huu]
       · iunfold ownUser
         iexists zeroValDef, unm, upw, sl, uo, (0 : w32)

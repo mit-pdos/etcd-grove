@@ -1433,6 +1433,11 @@ D14f) and the mode `M`:
   roles (`ownRole`: no unknown fields in the role's message nor in its permissions', `ownPermS`,
   the review's MAJ-1); `UnsafeSaveAuthEnabled(b)` and `UnsafeSaveAuthRevision(rev)` set the flag and the
   revision;
+- every write (the six above) costs a time receipt `⧗ 1` (A4, the put budget, decided by etcd-grove-03,
+  2026-11-17): the backend bounds a batch session's writes (`pend + 1 < 2 ^ 58`, `Unlock`'s room for the
+  hook), and `RoleDelete` puts one user per holder of the role, a count no bound on the state gives below
+  that; the store takes the receipt at the write's method resolution (`wp_take_receipt`), and a realization
+  bounds the session's writes by the receipts it is handed (`receipt_add_one_lt`);
 - the session's writes are tracked by a token `Sw w` (`AuthSess`, 2026-11-16, the second refutation's
   fix): `Lock()` gives `Sw AuthSess.init`, a put into the users' (the roles') bucket needs that the
   session deleted nothing there and a delete that it put nothing there, `Unlock()` takes it back;
@@ -1457,32 +1462,32 @@ def authBatchTxLk (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFunc
           ⌜histLast M hs st⌝ }}) ∗
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownUser u ur ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownUser u ur ∗
           ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
             ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
           ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X ∗ Sw { w with users := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownRole r rr ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
             rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
       {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X ∗
           Sw { w with roles := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (b : Bool),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
       {{ RET #(); Lk { st with enabled := b } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (rev : w64),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (hs : List AuthState) (w : AuthSess),
       {{ Lk st X ∗ Sw w ∗ authOwnF M hs ∗ ⌜histLast M hs st⌝ ∗ Wb ∗ Wb }}
@@ -1519,32 +1524,32 @@ def authBatchTxLkR (ti : GoInterfaceOk) (M : AuthMode) (P : IProp GF) (f : GoFun
       {{ RET #(); ∃ st : AuthState, Lk st Post ∗ Sw AuthSess.init ∗ authLockI M st }}) ∗
     □ (∀ X : IProp GF, authReaderOk ti (fun st => Lk st X)) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (u : Loc) (ur : UserRec) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownUser u ur ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownUser u ur ∗
           ⌜w.users ≠ .dels ∧ ur.roles.Pairwise go.GoStringLt ∧ 0 < ur.name.length ∧
             ur.name.length ≤ backend.maxKeySize ∧ ∀ x ∈ ur.roles, utf8Valid x⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
       {{ RET #(); Lk (putUser st ur.name ur.roles) X ∗ Sw { w with users := .puts } ∗
           ownUser u ur }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.users ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
       {{ RET #(); Lk (delUser st name) X ∗ Sw { w with users := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (r : Loc) (rr : RoleRec) (ps : Role) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ownRole r rr ∗
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ownRole r rr ∗
           ⌜w.roles ≠ .dels ∧ 0 < rr.name.length ∧ rr.name.length ≤ backend.maxKeySize ∧
             rr.toRole.Perm ps⌝ }}
         (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #r))
       {{ RET #(); Lk (putRole st rr.name ps) X ∗ Sw { w with roles := .puts } ∗ ownRole r rr }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (name : GoString) (w : AuthSess),
-      {{ Lk st X ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
+      {{ Lk st X ∗ ⧗ 1 ∗ Sw w ∗ ⌜w.roles ≠ .puts⌝ }}
         (App (Val #(methods ti.ty go!"UnsafeDeleteRole" ti.v)) (Val #name))
       {{ RET #(); Lk { st with roles := GMap.delete name st.roles } X ∗
           Sw { w with roles := .dels } }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (b : Bool),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #b))
       {{ RET #(); Lk { st with enabled := b } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (rev : w64),
-      {{ Lk st X }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
+      {{ Lk st X ∗ ⧗ 1 }} (App (Val #(methods ti.ty go!"UnsafeSaveAuthRevision" ti.v)) (Val #rev))
       {{ RET #(); Lk { st with revision := uint.nat rev } X }}) ∗
     □ (∀ (st : AuthState) (X : IProp GF) (w : AuthSess),
       {{ Lk st X ∗ Sw w ∗ authLockI M st ∗ Wb ∗ Wb }}

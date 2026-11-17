@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__selectPassword
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -225,9 +226,9 @@ theorem auth.authStore.UserAdd.wp_sure
       (try wp_auto)
       ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := (Hok st0 Hl0)
-      wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+      wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
       ipersist Hnsl
-      (try wp_auto)
+      wp_take_receipt as Hrc
       let urN : UserRec := ⟨name, pwb, [], false, ou, Ho'nn.2⟩
       ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
       · iunfold ownUser
@@ -241,7 +242,7 @@ theorem auth.authStore.UserAdd.wp_sure
         · iapply ownSlice_nil
         · iexact Hopts'
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
-      iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hsw $Hnu]
+      iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
       · ipureintro; exact ⟨by decide, List.Pairwise.nil, (List.length_pos_iff.2 hname), Hlen, by simp [urN]⟩
       inext
       iintro ⟨HL, Hsw, -⟩
@@ -320,9 +321,9 @@ theorem auth.authStore.UserAdd.wp_sure
     (try wp_auto)
     ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
     have Hstep := (Hok st0 Hl0)
-    wp_apply wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
+    wp_apply +noauto wp_string_to_bytes as %nsl ⟨Hnsl, -⟩
     ipersist Hnsl
-    (try wp_auto)
+    wp_take_receipt as Hrc
     let urN : UserRec := ⟨name, [], [], true, ou, Ho'nn.2⟩
     ihave Hnu : ownUser «$r0_ptr» urN $$ [«$r0»]
     · iunfold ownUser
@@ -336,7 +337,7 @@ theorem auth.authStore.UserAdd.wp_sure
       · iapply ownSlice_nil
       · iexact Hopts'
     wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #«$r0_ptr»))
-    iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hsw $Hnu]
+    iapply HPutU $$ %st0 %Post %«$r0_ptr» %urN %AuthSess.init [$HL $Hrc $Hsw $Hnu]
     · ipureintro; exact ⟨by decide, List.Pairwise.nil, (List.length_pos_iff.2 hname), Hlen, by simp [urN]⟩
     inext
     iintro ⟨HL, Hsw, -⟩

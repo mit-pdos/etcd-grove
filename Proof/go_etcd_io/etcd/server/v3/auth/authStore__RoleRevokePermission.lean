@@ -15,6 +15,7 @@ public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Logger__Info
 public import Perennial.Proof.bytes
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
+public import Proof.ReceiptTactics
 
 @[expose] public section
 
@@ -162,6 +163,7 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨-, #HGR, -, -, -⟩
+  wp_take_receipt as Hrc
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeGetRole" ti.v)) (Val #role))
   iapply HGR $$ %st0 %role HL
@@ -400,8 +402,8 @@ theorem auth.authStore.RoleRevokePermission.wp_tie
     rw [hsnd, auth.filterMap_filter_keepW]; exact Hrrps.filter _
   imod (ownSlice_persist _ _ _) $$ Hsl with #Hsl'
   wp_bind (App (Val #(methods ti.ty go!"UnsafePutRole" ti.v)) (Val #uu))
-  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hsw Huu]
-  · iframe HL Hsw
+  iapply HPutR $$ %st0 %Post %uu %rr' %(ps.filter (fun p => ¬ permAt key rangeEnd p)) %AuthSess.init [HL Hrc Hsw Huu]
+  · iframe HL Hrc Hsw
     isplitl [Huu]
     · iunfold ownRole
       iexists zeroValDef, rnm, sl, kept.map Prod.fst, (0 : w32)
