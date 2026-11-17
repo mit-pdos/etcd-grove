@@ -731,10 +731,10 @@ theorem etcd_wal.wp_restartRead
     (walRaftP (GF := GF)) walRaftMr U HsO h_U_Ok h_U_SnapCoh h_WalHsOwn_2 h_WalPbIn_CloneHsLaw
     h_WalPbIn_GetIndexLaw h_WalPbIn_GetTermLaw h_WalPbIn_UnmarshalEntLaw h_fmt_ErrorfErrsNot
     h_proto_UnmarshalWalRecordE)) (fun W : WalGS GF =>
-    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_CloseFailed
-    walRaftMr)) (fun W : WalGS GF => (_root_.Perennial.EtcdGrove.walfs.wal.wp_Repair walRaftMr
-    h_WalDecEnvSupply h_errors_IsPathErrnoEof h_errors_IsPathErrnoTerm h_fmt_ErrorfErrsNot
-    h_fmt_ErrorfErrsTerm h_io_CopyFiles h_proto_UnmarshalWalRecordE))
+    (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Close (walRaftP
+    (GF := GF)) walRaftMr)) (fun W : WalGS GF => (_root_.Perennial.EtcdGrove.walfs.wal.wp_Repair
+    walRaftMr h_WalDecEnvSupply h_errors_IsPathErrnoEof h_errors_IsPathErrnoTerm
+    h_fmt_ErrorfErrsNot h_fmt_ErrorfErrsTerm h_io_CopyFiles h_proto_UnmarshalWalRecordE))
     _root_.Perennial.EtcdGrove.walTester.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.wp_GetIndex
     _root_.Perennial.EtcdGrove.walTester.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.wp_GetTerm
     _root_.Perennial.EtcdGrove.walTester.etcd_wal.wp_newU64

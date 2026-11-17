@@ -505,7 +505,7 @@ def main(root, perennial, argv0, check=False, cfg=None):
 
     def vacuous(ty):
         app = parse_app(norm(ty))
-        if not app or "(Sio := ioNone)" not in app[2]:
+        if not app or not ({"(Sio := ioNone)", "(Sio := WalFs.ioNone)"} & set(app[2])):
             return False
         name = app[0][len("_root_."):] if app[0].startswith("_root_.") else app[0]
         return covers_premise(name)

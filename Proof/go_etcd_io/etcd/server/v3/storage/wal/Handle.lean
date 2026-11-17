@@ -604,9 +604,9 @@ buffer. -/
 registered** (`walDirH`'s `nf := some dir`: `Create`'s pending registration, `walNamesRes`'s `o`; design P
 of `notes/wal-units/create.md`): the program's half of the name's claim is `Create`'s, but for the two
 paths to `dir` it made with its spine law, the handle's (`walDirH`'s, roots `Rp`, fraction `qp`) and the
-pipeline's (the same), **pinned** here so that `Close.specU` gives them back and `Create`'s cleanup has
+pipeline's (the same), **pinned** here so that `Close.spec` (state `unnamed`) gives them back and `Create`'s cleanup has
 the whole half again for its rename; and the tail's `*os.File` pinned to `tf` (`Create`'s segment file,
-whose deferred `f.Close()` runs after the cleanup: `Close.specU` returns it, closed or open). The parent directory's fsync, its close, then the naming
+whose deferred `f.Close()` runs after the cleanup: `Close.spec` (state `unnamed`) returns it, closed or open). The parent directory's fsync, its close, then the naming
 (`walInv_named`) and the registration (`walInv_register`) are left (`walOpenWFU_seal`). Sealed; its laws
 in `HandleUnnamed.lean`. -/
 @[no_expose] def walOpenWFU (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)

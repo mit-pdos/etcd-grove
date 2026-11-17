@@ -19,15 +19,21 @@
   hypotheses, and a no-error spec hypothesis at `ioNone` is discharged by `noErr_ioNone` (else WalTester's
   `member.wp_save` would take the unproved `cut.specNoErr`); WalTester's `member__save` shares the handle.
   **`ReleaseLockTo`** renamed (`specNoErr` is `spec`, over `walOpenWS`; the weak form is the corollary
-  `specR`/`spec_R`, which WalTester's `member__opOwnSnap` takes).
-- **Next, in order:** Close (one spec over the handle states, the
-  five proofs lemmas of its one proof); WalTester's members move like `member__sync`/`member__save` (alloc share,
-  call with `γ 1`, reclaim with the `£ 1` of `wp_apply (lc := 1)`); SaveSnapshot (`specPre` as a precondition
+  `specR`/`spec_R`, which WalTester's `member__opOwnSnap` takes). **`Close`** merged: one spec over the
+  handle's state (`WalCloseSt`: `shared γ` | `failed` | `opening s` | `unnamed Rp qp tf`, `HandleShared.lean`;
+  pre and post a `match` on it); one proof by cases, the states' proofs its lemmas (`WAL.Close.wp_shared`,
+  merged from the former `wp_proof`/`wp_proofNoErr`; `wp_failed`, `wp_opening`, `wp_unnamed`); the four
+  other spec files and `WAL__CloseNoErr` deleted; users moved (`cleanupWAL`, `Open` at the P-free model
+  `walPbNone`, WalTester's `member__close` (shares the handle) and `restartRead`).
+- **Next, in order:** SaveSnapshot (`specPre` as a precondition
   disjunct) after the room decision (see Open). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
 - **Pitfall (lock + later credit):** a method that needs the handle *before* its first resolution after `Lock`
   (Save's step bound) takes `Lock` with `+noauto`, steps the deferred `Unlock`'s resolution by hand with
   `wp_go_step_receipt'` (its `£ 1` strips the invariant's later), then `wp_raise_receipt` at the next resolution
-  (`WAL__Save.lean`). Macros in proofs: `$H` in spec patterns is an antiquotation; expand by hand.
+  (`WAL__Save.lean`). Macros in proofs: `$H` in spec patterns is an antiquotation; expand by hand. A spec whose
+  pre/post is a `match` on a state: `dsimp only` first in the call's side goal; a nested `isPkgInit` needs
+  `iPkgInit`. Names in a binder the Link copies must resolve without `open WalFs` (`WalFs.ioNone`). A
+  `lean-check` "0 errors" once hid an unknown identifier: build the Links before committing.
 - **Open (SaveSnapshot's room, reported to etcd-grove-03):** `walHdl`'s fixed room (`walFreshRoom`, the tail's
   stream ≤ 2^43 when covered) is kept by `Save` (it cuts at 64 MB) and `Sync`, not by `SaveSnapshot` (one
   record of up to 2^40+64 bytes, no cut; S/wal.go:1137-1162): repeated `SaveSnapshot`s without a `Save` grow

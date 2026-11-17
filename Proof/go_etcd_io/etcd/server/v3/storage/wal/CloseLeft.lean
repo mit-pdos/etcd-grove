@@ -1,5 +1,5 @@
 /-
-**What a failed `Close` of a failed read leaves** (unit `locks`, session 3; ledger 2026-11-15, "`WAL.Close.specFailed`'s
+**What a failed `Close` of a failed read leaves** (unit `locks`, session 3; ledger 2026-11-15, "`WAL.Close.spec` (state `failed`)'s
 error arm for the boot path's `Repair`", P7 continued). `(*wal.WAL).Close()` returns `w.sync()`'s error before it
 closes any lock (S/wal.go:1060-1066): the locks stay held, the handle's ghost (the lock token) cannot be put back,
 and what the handle held of the WAL directory stays the caller's. `walCloseLeft dir` is that: the shared

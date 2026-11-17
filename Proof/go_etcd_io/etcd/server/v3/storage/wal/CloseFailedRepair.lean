@@ -4,12 +4,12 @@
 `wal.Repair(lg, dir)`. When `Close` fails before unlocking (`w.sync()`'s error, S/wal.go:1060-1066), the
 last segment's lock is still held through the handle's tail description, and `Repair`'s `openLast`
 takes a blocking `LockFile` on it (`nonissues/etcd-bootstrap-repair-close-error-hang.md`). Over
-`WAL.Close.specFailed`'s error arm (`walCloseLeft`) and `wal.Repair.specHeld`: `Repair` returns `false`
+`WAL.Close.spec` (state `failed`)'s error arm (`walCloseLeft`) and `wal.Repair.specHeld`: `Repair` returns `false`
 (or never returns, which partial correctness allows), nothing changed, what `Close` left kept. Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseFailed
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Repair
 
 @[expose] public section
@@ -29,7 +29,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-/-- **`Repair` after `Close.specFailed`'s error** (see the file header): with what the failed `Close`
+/-- **`Repair` after `Close.spec` (state `failed`)'s error** (see the file header): with what the failed `Close`
 left (`walCloseLeft dir`) and the client's half of the call permission, `Repair(lg, dir)` returns
 `false`, and both are kept (`dir` shorter than `2^59`, `Open`'s premise, which the caller knows). -/
 theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) (hG := hG))

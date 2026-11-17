@@ -43,6 +43,16 @@ structure WalShN where
   γ : GName
   γl : GName
 
+/-- **The states of a handle `Close` takes** (`WAL.Close.spec`, one spec over them; wal-link L1a): the whole
+share of an open WAL (`shared`), a failed `ReadAll`'s handle (`failed`), `Open`'s handle before `ReadAll`
+(`opening`, at its decoder's start `s`), `Create`'s handle before naming (`unnamed`, with the roots `Rp`,
+fraction `qp` and tail file `tf` `Create` lent). -/
+inductive WalCloseSt where
+  | shared (γ : WalShN)
+  | failed
+  | opening (s : w64 × w64)
+  | unnamed (Rp : Roots) (qp : Qp) (tf : Loc)
+
 /-- **`Sio` covers every inode** (coverage (a), `notes/decisions.md`, "fsExt: no I/O errors on chosen
 files"): the case in which the specs return no error. -/
 def walCov (Sio : IoSet) : Prop := ∀ st i, Sio.ino st i
@@ -90,6 +100,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+
+/-- **The client model of a client that hands the WAL no message** (`Open`'s read-mode `Close` of its own
+handle, which `WAL.Close.spec` takes at a model it ignores in that state). -/
+def walPbNone : WalPbIn GF := ⟨fun _ _ => iprop(True), fun _ _ => iprop(True), fun _ _ => inferInstance, fun _ _ => inferInstance⟩
 
 /-- **The handle a holder of `w.mu` finds** (see the file header). -/
 def walHdl (Sio : IoSet) (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) : IProp GF :=

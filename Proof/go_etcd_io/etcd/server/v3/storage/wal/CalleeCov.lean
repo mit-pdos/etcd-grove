@@ -2,8 +2,8 @@
 
 # The callees' two specs, chosen by coverage (wal-link L1a, 2026-11-17; `notes/wal-link-scope.md` §8)
 
-`Save`'s and `SaveSnapshot`'s one spec each (over the shared handle, parameterised by `Sio`) call callees
-whose families the link leaves for the queued cleanup: `saveEntry`, `saveState`, `sync`, `cut` each have a
+`Save`'s, `SaveSnapshot`'s and `Close`'s one spec each (over the shared handle, parameterised by `Sio`) call callees
+whose families the link leaves for the queued cleanup: `saveEntry`, `saveState`, `sync` (and its `specC`), `cut` each have a
 `spec` (any I/O error) and a `specNoErr` (when `Sio` covers every inode, with a room premise). The lemmas
 below are not specs: each derives, from a callee's two specs, the triple its caller uses at a call, the
 room premise and bound only when `walCov Sio`, the error only when not (`WAL__Sync.lean` chooses inline).
@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveStateNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutNoErr
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncC
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 
 @[expose] public section
@@ -197,6 +198,41 @@ theorem walCov_cut (P : WalPbIn GF) (Mr : WalMarshal)
     · iapply HΦ
       ileft
       iframe Hres
+      ipureintro; exact herr
+    · iapply HΦ
+      iright
+      ipureintro; exact ⟨herr, hc⟩
+
+/-- `sync` after `Close` closed the pipeline, at a call (see the file header). -/
+theorem walCov_syncC (P : WalPbIn GF) (Mr : WalMarshal)
+    (wp : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (W := W) P Mr)
+    (wpNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specCNoErr (Sio := Sio) (W := W) P Mr)
+    (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (j : Ino) (h : WalHS)
+    (nmd : Loc → Roots → Qp → IProp GF) (nf : Option GoString) (h1 : h.rest = 0)
+    (hroom : walCov Sio → h.o0 + h.out.length + h.pend.length ≤ maxBytes) :
+  {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walHandleC P Mr w dir j h TailMetaW nmd nf }}
+    (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"sync")) (Val #()))
+  {{ (err : GoInterface), RET #err;
+      (⌜err = GoInterface.nil⌝ ∗ walHandleC P Mr w dir j
+          { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
+          TailMetaS nmd nf ∗
+          WalFs.walSyncedLb dir h.H.length) ∨
+      ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
+  iintro %Φ Hpre HΦ
+  by_cases hc : walCov Sio
+  · iapply (wpNE hc R jr r w dir j h nmd nf h1 (hroom hc)) $$ Hpre
+    inext
+    iintro %err ⟨%herr, Hh, #Hs⟩
+    iapply HΦ
+    ileft
+    iframe Hh Hs
+    ipureintro; exact herr
+  · iapply (wp R jr r w dir j h nmd nf h1) $$ Hpre
+    inext
+    iintro %err (⟨%herr, Hh, #Hs⟩ | ⟨%herr, -⟩)
+    · iapply HΦ
+      ileft
+      iframe Hh Hs
       ipureintro; exact herr
     · iapply HΦ
       iright

@@ -6,7 +6,7 @@ update), the sync's error arm keeping the lock token. Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseU
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncC
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.filePipeline__Close
@@ -52,7 +52,7 @@ theorem pipeTmp_memU (n : Nat) : pipeTmp n ∈ walTmps := by
   unfold pipeTmp walTmps; split <;> simp
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions]
     (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_syncC : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specC (W := W) P Mr)
@@ -61,7 +61,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (W := W) P Mr := by
+      ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (Rp : Roots) (qp : Qp) (tf : Loc),
+      {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w dir Rp qp tf ∗ WalFs.walPurgeW w dir }}
+        (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
+          (Val #()))
+      {{ (err : GoInterface), RET #err;
+          (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTokX ∗
+            WalFs.walNamesFrag (some dir) ∗ osCallPerm (1 : Qp).half ∗
+            (∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∗
+            ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
+            ∃ (fd : w64) (nmf : GoString) (d : OsFd),
+              os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) }} := by
   intro R jr r w dir Rp qp tf
   wp_start as ⟨#Harea, Hw, Hpw⟩
   unfold walOpenWFU

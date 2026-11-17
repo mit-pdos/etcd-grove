@@ -14,7 +14,7 @@ Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseFailed
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncIdleF
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLent
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLentE
@@ -50,7 +50,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofFailed [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (Mr : WalMarshal)
     (wp_syncIdleF : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdleF (W := W) Mr)
     (wp_syncLent : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specLent (W := W) Mr)
@@ -60,7 +60,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofFailed [os.file.
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specFailed (W := W) Mr := by
+      ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
+          WalFs.walAreaOk walCodec Mr R jr r ∗ walReadFailedF Mr w dir }}
+        (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
+          (Val #()))
+      {{ (err : GoInterface), RET #err;
+          (WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
+            (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir) }} := by
   intro R jr r w dir
   wp_start as ⟨#Harea, Hrf⟩
   icases walReadFailedF_elim Mr w dir $$ Hrf with ⟨Hfail, %lg, %locks, %ls, %lt, %fp, %j, %X, %hj, %gs0, %gL,

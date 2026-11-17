@@ -3,15 +3,15 @@ The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/Open.lean` (W3/W5 of
 `notes/wal-fsext-plan.md`, thirteenth session): `openAtIndex` in write mode (its spec), then
 `fileutil.OpenDir(w.dir)` (`OpenDir.wp_proofOk`) over a path to the WAL directory (`walInv_dirPath`,
 from the WAL's key and the lock's `walNamesFrag none` the handle holds, `walReadH_namesOut`; until
-2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.specOpening`,
-proved: `WAL.Close.wp_proofOpening`, `WAL__CloseOpening.lean`) and the error wrapped. Callee specs:
-`openAtIndex.spec`, `WAL.Close.specOpening`, `fmt.ErrorfErrs.spec`.
+2026-11-14 the hypothesis `WalDirPathLaw`); on its error, `w.Close()` (`WAL.Close.spec` at the state `opening`,
+proved: `WAL.Close.wp_opening`, `WAL__CloseOpening.lean`) and the error wrapped. Callee specs:
+`openAtIndex.spec`, `WAL.Close.spec` at the state `opening`, `fmt.ErrorfErrs.spec`.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Open
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.openAtIndex
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseOpening
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.fmt.ErrorfErrs
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDirOk
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenAtPin
@@ -84,7 +84,7 @@ theorem walOpenDir_errOk (e : GoInterfaceOk) :
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_open : go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr)
-    (wp_Close : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specOpening (W := W) Mr)
+    (wp_Close : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := WalFs.ioNone) WalFs.walPbNone Mr)
     (wp_Errorf : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.Open.spec (W := W) Mr := by
   intro lg R jr r dir nm sp s qp Q hin hnmO hr hdl
@@ -171,8 +171,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
         | ok e2 => exact ⟨e2, rfl⟩
       try wp_auto
       try wp_auto
-      wp_apply wp_Close R jr r w dir s $$ [Hop Hrest Hlg Hdir Hstart Hperm Hdf] as %ec ⟨Hu, Hperm⟩
-      · iframe Hop Hperm
+      wp_apply wp_Close R jr r w dir (.opening s) (fun _ => iprop(True)) $$ [Hop Hrest Hlg Hdir Hstart Hperm Hdf]
+        as %ec ⟨Hu, Hperm⟩
+      · dsimp only
+        iframe Hop Hperm
         iframe #
         isplitr [Hdf]
         · unfold walReadH walOpenIn

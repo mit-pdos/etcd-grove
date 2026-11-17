@@ -5,7 +5,7 @@ the restart takes is `tRelW` (created, `cd`'s mark synced and the WAL named; or 
 `Boot`'s restart after a crash between `Create` and the store of `created`, B1): `ValidSnapshotEntries`, the
 newest valid pair `(idx, term)`, then at most two attempts (`Repair` once between them), each storing the
 oracle with `idx` appended to its opens (`storeOracle`; the open raises `d.unl` within the new opens bound,
-`tCandOk_open`) before `Open`, then `ReadAll`; a failed `ReadAll` is followed by `Close` (`Close.specFailed`)
+`tCandOk_open`) before `Open`, then `ReadAll`; a failed `ReadAll` is followed by `Close` (`Close.spec` (state `failed`))
 and `Repair`. Every update leaves `d`'s history and read position as they are.
 
 The post, whatever the result: the oracle `tWithOpens o l` (at most two opens appended) stored and the

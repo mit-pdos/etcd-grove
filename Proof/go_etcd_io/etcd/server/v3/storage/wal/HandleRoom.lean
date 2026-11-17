@@ -4,7 +4,7 @@
 
 `walOpenWFR P Mr w dir k` (sealed): `walOpenWF` whose tail's stream, written and pending
 (`o0 + |out| + |pend|`), ends at least `k` bytes before `maxBytes` (ext4's `s_maxbytes`, `fsExt`'s file size
-bound). The no-error specs (`Close.specNoErr`, `SaveSnapshot.specNoErr`) take it: a write that reaches
+bound). The no-error specs (`Close.spec`, `SaveSnapshot.specNoErr`, through `walHdl`) take it: a write that reaches
 `maxBytes` fails with `EFBIG` whether or not `NoIoErr` holds (no write can succeed there), so an error-free
 flush needs the stream to end before it. How a client comes by it (a law from `Create`'s post, the fresh
 tail's headers being far below `maxBytes`; from `Save`'s cut; or a public measure of the tail) is open:

@@ -8,7 +8,7 @@ yet zeroed, idle: it unregisters it on the spot (`walInv_untailPend`, `walInvBod
 pending token). An exit after the fdatasync that follows `ZeroToEnd` (the directory's `Fsync`, `syncDir`,
 `!match`) holds its key and the tail synced (`TailMetaS`): it unregisters it the same way
 (`walInv_untailKey`, `walInvBody_untail`). Both leave the failed handle's idle form (`walFailIdle`), so
-`Close` syncs an idle tail and puts it back as `Close.specOpening` does. The two exits in between
+`Close` syncs an idle tail and puts it back as `Close.spec` (state `opening`) does. The two exits in between
 (`ZeroToEnd`'s error, the fdatasync's) leave the tail lent (`walFailLent`), for `Close`'s `w.sync()`.
 
 `walReadFailedF_idle`/`walReadFailedF_lent` build the sealed handle from the pieces each exit holds.

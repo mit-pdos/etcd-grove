@@ -1,6 +1,6 @@
 /-
 `(*wal.WAL).sync` (S/wal.go:976-1001) of a failed `ReadAll`'s handle whose tail is put back (`walFailIdle`,
-`ReadDefs.lean`; `WAL.Close.specFailed`): `WAL.sync.specIdle` with the encoder field nil or an encoder over the
+`ReadDefs.lean`; `WAL.Close.spec` (state `failed`)): `WAL.sync.specIdle` with the encoder field nil or an encoder over the
 tail's file with nothing pending (`ReadAll`'s `!match` exit made it), whose `flush` writes nothing. Unit
 `closefailed`. Lean-first.
 -/

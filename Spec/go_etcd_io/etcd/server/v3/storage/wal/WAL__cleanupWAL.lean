@@ -2,7 +2,7 @@
 `(*wal.WAL).cleanupWAL(lg)` (S/wal.go:300-317, with the fork's fix: it returns its error instead of
 panicking; W4 of `notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `Create`'s deferred cleanup
 after its commit, over the handle before naming (`walOpenWFU`, design P). `w.Close()`
-(`WAL.Close.specU`), then, if it returned `nil`, `os.Rename(w.dir, w.dir + ".broken." + <time>)`
+(`WAL.Close.spec` (state `unnamed`)), then, if it returned `nil`, `os.Rename(w.dir, w.dir + ".broken." + <time>)`
 (`os.Rename.specDirAnySnc`). Internal and `Create`-specific: the rename's claims and atomic update
 are the caller's, given by a law at the timestamp (the claim on `nm` and the broken name, which the
 caller assembles from what `Close` returned and its own resources, and the update that commits the
@@ -64,7 +64,7 @@ def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (
 
 /-- **`w.cleanupWAL(lg)`** of the handle before naming of the WAL directory `r/nm` (see the file
 header), the caller holding the other half of the call permission (the rename needs it whole) and the
-frame `Fr`. Three outcomes: `Close` failed in its sync (`WAL.Close.specU`'s error arm: the lock token
+frame `Fr`. Three outcomes: `Close` failed in its sync (`WAL.Close.spec` (state `unnamed`)'s error arm: the lock token
 still held, the tail lock's file open); `Close` returned everything but an error (no rename); or the
 rename was called, the law's `Fin err`. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF) (Mr : WalMarshal) :

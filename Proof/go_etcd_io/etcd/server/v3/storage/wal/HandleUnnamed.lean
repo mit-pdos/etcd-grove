@@ -9,7 +9,7 @@ registered (the names fragment `some dir`, `Create`'s pending registration) and 
 and its success exit. `renameWAL`'s two success arms converge on it (arm 1 through `Create`'s assembly,
 arm 2 as the retry returns it). At the success exit the parent's fsync gives `walNamed dir`
 (`walInv_named`), the registration turns the names fragment to `none` (`walInv_register`), and
-`walOpenWFU_seal` makes the client handle `walOpenWF`; on a cleanup `Close.specU` gives the pinned paths and
+`walOpenWFU_seal` makes the client handle `walOpenWF`; on a cleanup `Close.spec` (state `unnamed`) gives the pinned paths and
 the fragment back. `walDirH_split`/`walHandleIn_split` take the names fragment out and put another back,
 the naming fact changed; `walPipeH_mono` weakens the pipeline's pin. `walOpenWFU_dirAcc` lends the `dir`
 field (`Create` reads `w.dir` after `renameWAL`), `walOpenWFU_permAcc` the handle's quarter of the call

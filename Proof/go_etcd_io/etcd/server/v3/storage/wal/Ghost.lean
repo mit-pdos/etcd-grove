@@ -388,7 +388,7 @@ def walUnlockedTok : IProp GF :=
     walOutFrag (W := W) WalOut.empty ∗ walTailsFrag (W := W) ∅ ∗ walNamesFrag (W := W) none)
 
 /-- **The free lock token but its names fragment** (`walUnlockedTok` less `walNamesFrag none`): what
-`Close.specU` returns of the handle before naming, whose names fragment is `Create`'s pending
+`Close.spec` (state `unnamed`) returns of the handle before naming, whose names fragment is `Create`'s pending
 registration (`some dir`; design P, `notes/wal-units/create.md`). With `walNamesFrag none` it is the
 free token (`walUnlockedTokX_join`). -/
 def walUnlockedTokX : IProp GF :=

@@ -778,7 +778,7 @@ theorem DirsRoots.upd {R : Roots} {s : AbsDiskState} {dir : GoString} {f : WalDu
 
 /-- **The last segment synced** (`TailIdle`'s third part; the W7-W12 log, sixth session): every byte of
 the last segment durable, and zeros known (`OsMeta.zf`) only from its end on. Then an fdatasync of an
-idle tail (`Close` of a handle that never registered it: `WAL.Close.specOpening`) changes nothing the
+idle tail (`Close` of a handle that never registered it: `WAL.Close.spec` (state `opening`)) changes nothing the
 invariant says but the segment's `OsMeta` (`OsMeta.synced`, `walInvBody_syncIdle`). Established by a
 crash (the segments are their files' images, `initMeta`: zeros known from the last page's end), by
 `Create`'s commit (its segment fsynced before the rename) and by `Close`'s unregistration (after its

@@ -5,7 +5,7 @@ the oracle with the snapshot's index appended to its opens stored (`tCandOk_addO
 committed, `tInv_openAu` over `tCandOk_open`), `ReadAll` (unchanged, `tInv_readAu`, its newest-pair premise
 from the history and read position, which no update of the restart moves); on success the read built
 (`hsGet`'s getters, `fromRaft` of each entry) and related to an image by `tRead_of_readAll`; on failure
-`Close.specFailed`, then `Repair` (unchanged) once. Lean-first (no Rocq counterpart).
+`Close.spec` (state `failed`), then `Repair` (unchanged) once. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -16,7 +16,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.fr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ValidSnapshotEntries
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Open
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__ReadAll
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseFailed
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.Repair
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.ReadAllCallees
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot__GetIndex
@@ -50,7 +50,8 @@ theorem restartRead.wp_proof
     (wp_readAll : ∀ W : WalGS GF,
       go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (W := W) (walRaftP (GF := GF)) walRaftMr)
     (wp_closeF : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specFailed (W := W) walRaftMr)
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr)
     (wp_repair : ∀ W : WalGS GF, wal.Repair.spec (W := W) walRaftMr)
     (wp_getIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF))
     (wp_getTerm : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetTerm.spec (GF := GF))
@@ -299,8 +300,11 @@ theorem restartRead.wp_proof
     | nil => exact absurd rfl herr3
     | ok ie3 =>
     wp_auto
-    wp_apply (wp_closeF W e.R e.jr e.area w (tWalDir e.area)) $$ [Hfail] as %errc Hc
-    · iframe; iframe #
+    wp_apply (wp_closeF W e.R e.jr e.area w (tWalDir e.area) .failed (fun _ => iprop(True))) $$ [Hfail]
+      as %errc Hc
+    · dsimp only
+      iframe; iframe #
+      iPkgInit
     cases errc with
     | ok iec =>
       wp_auto

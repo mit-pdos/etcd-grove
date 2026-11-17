@@ -17,7 +17,7 @@ do not depend on their bodies.
   (`DecFile.bs`, the page cache's values of `g.bs`) cannot change during the read.
 * `walReadTie dir write s j fs lfs`: the decoder's files are the WAL's segments from the opened one on
   (at least one: `selectWALFiles` fails with `ErrFileNotFound` on none; in write mode the last one at the
-  claim's last `.wal` name, so the handle's last file is the WAL's tail: `Close.specOpening`'s `wp_idleFsync`),
+  claim's last `.wal` name, so the handle's last file is the WAL's tail: `Close.spec` (state `opening`)'s `wp_idleFsync`),
   each read through `walFileS`; the program's half of the WAL directory's claim (`WalDirClaim`), so
   that the directory's names cannot change either (no atomic readdir needed), the segments' names the
   claim's `.wal` names from some position on (`(walNames hj.cur).drop kk = gs.map name`: with the

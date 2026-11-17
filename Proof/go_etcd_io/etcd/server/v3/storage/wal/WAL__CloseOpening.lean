@@ -12,7 +12,7 @@ Lean-first.
 -/
 module
 
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseOpening
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncIdle
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.filePipeline__Close
@@ -75,7 +75,7 @@ theorem syncOut_seg (g : SegG) (hlen : g.bs.length = g.om.size) (P : Prop) :
     exact ⟨rfl, hlen.symm⟩
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file.FieldAssumptions]
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.FieldAssumptions]
     [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (Mr : WalMarshal)
     (wp_syncIdle : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specIdle (W := W) Mr)
     (wp_fpClose : go_etcd_io.etcd.server.v3.storage.wal.filePipeline.Close.spec (GF := GF) (hG := hG))
@@ -84,7 +84,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofOpening [os.file
     (wp_CloseNil : os.File.Close.specNil (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_LError : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
-    go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specOpening (W := W) Mr := by
+      ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (s : w64 × w64),
+      {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
+          WalFs.walAreaOk walCodec Mr R jr r ∗
+          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half.half ∗
+          structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
+        (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
+          (Val #()))
+      {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half }} := by
   intro R jr r w dir s
   wp_start as ⟨#Harea, Hop, Hrh, Hperm, Hdf⟩
   unfold walReadH walOpenIn walReadTie

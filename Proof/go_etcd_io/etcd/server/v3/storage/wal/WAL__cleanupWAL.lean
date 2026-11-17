@@ -1,13 +1,13 @@
 /-
 The proof of `Spec/go_etcd_io/etcd/server/v3/storage/wal/WAL__cleanupWAL.lean` (W4 of
-`notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `w.Close()` (`WAL.Close.specU`), then the
+`notes/wal-fsext-plan.md`, `notes/wal-units/create.md`): `w.Close()` (`WAL.Close.spec` at the state `unnamed`), then the
 broken name (`time.Now`, `time.Time.Format.specBroken`, `fmt.SprintfBroken.spec`) and the rename
 (`os.Rename.specDirAnySnc`) over the caller's law. Lean-first.
 -/
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cleanupWAL
-public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseU
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
 public import Spec.time.Time__FormatBroken
 public import Spec.fmt.SprintfBroken
 public import Spec.go_uber_org.zap.String
@@ -36,7 +36,7 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
-    (wp_CloseU : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (W := W) P Mr)
+    (wp_CloseU : go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (W := W) (Sio := WalFs.ioNone) P Mr)
     (wp_Now : time.Now.spec (GF := GF) (hG := hG))
     (wp_Format : time.Time.Format.specBroken (GF := GF) (hG := hG))
     (wp_Sprintf : fmt.SprintfBroken.spec (GF := GF) (hG := hG))
@@ -54,8 +54,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   isimp only [isPkgInitDeps] at Hdeps
   icases Hdeps with ⟨-, -, #Hfmt, -, -, -, -, -, -, -, -, -, #Hos, #Htime, -, -, #Hzp, -, -, -, -, -, -, -⟩
   try wp_auto
-  wp_apply wp_CloseU R jr r w (child r nm) Rp qp tf $$ [Hw Hpw] as %cerr Hc
-  · iframe; iframe #
+  wp_apply wp_CloseU R jr r w (child r nm) (.unnamed Rp qp tf) (fun _ => iprop(True)) $$ [Hw Hpw] as %cerr Hc
+  · dsimp only
+    iframe; iframe #
   icases Hc with (⟨Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, Hlk, Hnf, Htf⟩)
   rotate_left
   · -- the sync failed: `Close`'s error returned
