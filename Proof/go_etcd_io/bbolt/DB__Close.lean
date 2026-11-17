@@ -177,11 +177,48 @@ instance Pm_timeless' (B : BNs) (db : Loc) (q : Qp) : Timeless (Pm (GF := GF) B 
     intro ms; rcases ms with _ | ⟨b, l⟩ <;> simp only [mapFields] <;> infer_instance
   unfold Pm; infer_instance
 
-omit [ExtSemantics fsExt] [FsSemOk] hos in
-theorem DB.Close.wp_proof
-    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG)) :
-    DB.Close.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ db γ
+/-- **`db.close()` over owned fields, its error satisfying `Q`** (`DB.close.spec_owned` at
+`Q := fun _ => True`, `DB.close.spec_ownedNoErr` at `Q := (· = nil)` under the premises): what
+`DB.Close`'s proof (`DB.Close.wp_proofQ`) is generic in. -/
+private abbrev DB.close.spec_ownedQ (Q : GoInterface → Prop) : Prop :=
+  ∀ (db : Loc) (lg : GoInterface) (dqr : DFrac) (fli : GoInterface) (wa : GoFunc) (s : GoString)
+    (ms : MapSt) (p : BFile) (f : Loc),
+  db ≠ null →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
+      db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗ db.[DB, go!"readOnly"] ↦{dqr} false ∗
+      db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ fli ∗
+      (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦ wa ∗ db.[DB, go!"path"] ↦ s ∗
+      mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
+      closeMapRes p ms ∗
+      db.[DB, go!"file"] ↦ f ∗
+      (⌜f = null⌝ ∨ ∃ (fd : w64) (name : GoString) (d : OsFd), fileOwn f fd name (DFrac.own 1) ∗
+        osFd fd (DFrac.own 1) d ∗ lockToks fd d) }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"close")) (Val #()))
+  {{ (err : GoInterface), RET #err; ⌜Q err⌝ ∗ db.[DB, go!"readOnly"] ↦{dqr} false ∗
+      db.[DB, go!"opened"] ↦ false ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
+      (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦ func.nil ∗ db.[DB, go!"path"] ↦ (go!"" : GoString) ∗
+      mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
+      db.[DB, go!"file"] ↦ null }}
+
+private theorem DB.close.spec_ownedQ_of (h : DB.close.spec_owned (GF := GF) (hG := hG)) :
+    DB.close.spec_ownedQ (GF := GF) (hG := hG) (fun _ => True) := by
+  intro db lg dqr fli wa s ms p f hdb
+  iintro %Φ Hpre HΦ
+  iapply h db lg dqr fli wa s ms p f hdb $$ Hpre
+  inext
+  iintro %err Hpost
+  iapply HΦ
+  isplitr
+  · ipureintro; trivial
+  iexact Hpost
+
+/-- **`DB.Close`, generic in its `close`'s error** (`Q`, which `nil` satisfies: `close` of a closed
+database returns `nil`). -/
+private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.nil)
+    (hOwned : DB.close.spec_ownedQ (GF := GF) (hG := hG) Q) (db : Loc) (γ : BoltName) :
+    {{ isBolt (GF := GF) db γ }}
+      (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
+    {{ (err : GoInterface), RET #err; ⌜Q err⌝ }} := by
   wp_start as #Hdb
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
@@ -232,7 +269,7 @@ theorem DB.Close.wp_proof
     · iunfold rwR; iright; iunfold closedR; iframe
     try wp_auto
     iapply HΦ
-    itrivial
+    ipureintro; exact hQ
   -- open: the writer side idle
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
@@ -275,7 +312,7 @@ theorem DB.Close.wp_proof
   icases Hpath with ⟨Hpath, Htok⟩
   wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
     Hres Hfile Hfo Hfd Htok]
-    as %err ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
+    as %err ⟨%hq, -, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
   · iframe; iframe #
     iright; iexists w.fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
   try wp_auto
@@ -303,6 +340,18 @@ theorem DB.Close.wp_proof
     iexists w.C, w.fl, none
     iframe
   try wp_auto
+  iapply HΦ
+  ipureintro; exact hq
+
+omit [ExtSemantics fsExt] [FsSemOk] hos in
+theorem DB.Close.wp_proof
+    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG)) :
+    DB.Close.spec (GF := GF) (hG := hG) := by
+  intro _ _ _ db γ
+  iintro %Φ Hpre HΦ
+  iapply DB.Close.wp_proofQ (fun _ => True) trivial (DB.close.spec_ownedQ_of hOwned) db γ $$ Hpre
+  inext
+  iintro %err -
   iapply HΦ
   itrivial
 

@@ -27,6 +27,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions] [os.file.FieldAssumptions]
 
+omit [os.Assumptions] [os.file.FieldAssumptions] in
 /-- **The trivial update** of a caller holding all of `α`: it commits with whatever the step gives. -/
 theorem os.osAU_triv {A : Type} (α : IProp GF) (β : A → IProp GF) : α ⊢ osAU α β β := by
   unfold osAU
@@ -54,6 +55,7 @@ theorem os.crTr_false (P : Prop) (o : Option (Nat × Nat × Ino)) :
   · dsimp only [crTr]; iintro H; iexact H
   · dsimp only [crTr]; exact trFile_mono i P False False.elim
 
+omit [os.Assumptions] [os.file.FieldAssumptions] in
 /-- Two halves of a create's outcome on a claim make the whole. -/
 theorem os.crOut_join (j : Ino) (b : GoString) (h : NamesH) (o : Option (Nat × Nat × Ino)) :
     crOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ∗ crOut (GF := GF) j b h (DFrac.own (1 : Qp).half) o ⊢

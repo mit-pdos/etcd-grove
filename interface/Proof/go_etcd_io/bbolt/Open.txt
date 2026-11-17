@@ -76,11 +76,6 @@ theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt 
 
 syntax bbolt.tacticOpt_rdt_
 
-theorem bbolt.pathHolds.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (R R✝ :
-    Fs.Roots) (e_R : R = R✝) (V V✝ : Fs.Hist) (e_V : V = V✝) (path path✝ : GoString) (e_path : path
-    = path✝) (D D✝ : bbolt.Data) (e_D : D = D✝) : bbolt.pathHolds R V path D = bbolt.pathHolds R✝ V✝
-    path✝ D✝
-
 theorem bbolt.wp_logger_ne_discard_open (lg : GoInterface) (hty : bbolt.logPtrTyped lg) : ⊢ ∀ Φ,
     isPkgInit pkg_id.go_etcd_io.bbolt ∗ bbolt.boltLogger lg -∗ (▷ ∀ b, True -∗ Φ (intoVal b)) -∗ WP
     ((Convert go.untypedBool go.bool) ((GoUnOp GoNot go.bool) (intoVal lg

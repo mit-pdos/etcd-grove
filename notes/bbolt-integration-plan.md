@@ -147,3 +147,46 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
   - So D-I6 needs a decision: the invariant work of items 1-4 (a large change to `Store`/`Locks` and
     Commit's freelist proof), or the snapshot path kept as trust-boundary specs over the now-concrete
     `boltImage`.
+* 2026-11-17: **S3a** (D-I5, bbolt's side; session `bbolt-files`, branch `bbolt-files` off
+  `bbolt-integrate`). Done: items 1, 2 (`Close.specNoErr`; not `Close.specOwn`), 3 (`Open.specS`;
+  not `Open.specSNoErr`), 4. No new `axiom` or `sorry`, no closed theorem's statement changed.
+  - **The premise** (`GooseLang/Ext/Fs/Premises.lean`, trusted, **pending the user's review**;
+    `examples/osfs/semantics/premise_no_map_lock_err.go`, indexed in `doc.go`): a separate
+    definition beside the approved `NoIoErr` (which stays as approved):
+    `NoMapLockErr (S : IoSet) : StepPrem := fun o v st e' _ => MapLockCovers S o v st →
+    (∃ e'' st'', IsFsStep o v st e'' st'' ∧ MapLockOk o v e'') → MapLockOk o v e'`, where
+    `MapLockCovers` names `flock` and `mmap` on an fd of a covered inode and `munmap` of a mapping of
+    one, and `MapLockOk` is errno 0, or `EAGAIN` for a non-blocking lock request
+    (`flockReq how = some (some ex, true)`, the conflict bbolt's `flock` retries on), or `ENOMEM` for
+    `mmap`. `noMapLockErr_keeps : StepKeeps (NoMapLockErr S)` (`NoMapLockErr.lean`, untrusted);
+    `StepPrem.and`, `noIoErr_noMapLockErr_keeps` (the two together keep steps: they name disjoint
+    operations), `fsStepSat_and_left/right`: a closed theorem runs over
+    `fsSemWithS (StepPrem.and (NoIoErr S) (NoMapLockErr S)) Q`. Error-free specs of the steps
+    (`NoMapLockErrSpecs.lean`: `wp_osMunmapNE`, `wp_osFlockNE`, `wp_osCloseNE`, `mmap_noErr`).
+    **`mmap`'s `ENOMEM` is not excluded**: the mappings share `(0, maxAddr]` with the Go heap, and a
+    premise on steps does not see the heap, so excluding it would leave no step from a state whose
+    heap leaves no room (`StepKeeps` fails). For the user: `Open` (its `mmap`) and every remap
+    (`Commit`'s `allocate`) may still fail with `ENOMEM` under the premise; excluding it needs a
+    premise that sees the heap (a `StepPrem` with the heap: a change to the trusted `fsSemWithS`) or
+    a named premise on the closed theorems.
+  - **`DB.Close_noErr.spec`** (`Spec/go_etcd_io/bbolt/DB__Close_noErr.lean`; the task's
+    `DB.Close.specNoErr`, named by the package's layout rule, as `DB.Begin_err`):
+    `∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (Sio : IoSet) [FsStepSat (NoIoErr Sio)]
+    [FsStepSat (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) → ∀ db γ,
+    {{ isBolt db γ }} db.Close() {{ err, RET #err; ⌜err = nil⌝ }}`. Proof: `DB.Close`'s proof made
+    generic in its `close`'s error (`DB.Close.wp_proofQ`, private in `DB__Close.lean`), over
+    `DB.close.spec_ownedNoErr` (`Open/CloseNoErr.lean`: `DB.munmap.specNoErr`,
+    `syscall.Flock.specNoErr`, `os.File.Close.specNoErr`, `unix.Munmap.specNoErr`, each proved).
+  - **`Open_shared.spec`** (`Spec/go_etcd_io/bbolt/Open_shared.lean`; the task's `Open.specS`):
+    `Open.spec` with `osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+    osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D` (`ApiS.lean`: `(∃ i, ⌜h.cur !! b =
+    some (.file i)⌝ ∗ fileHolds i D) ∨ ⌜h.cur !! b = none ∧ D = ∅⌝`) in place of
+    `osTree ∗ pathHolds`, `NameOk b`, the path `child d b`; post: `optsAt ∗ osPathS ∗ osCallPerm ∗
+    ∃ oc, crOut j b h (DFrac.own 1) oc ∗ ((⌜err = nil⌝ ∗ ∃ γ i, ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗
+    isBolt db γ ∗ boltState γ 1 D) ∨ ⌜err ≠ nil⌝)`. Proof: `Open`'s proof made generic in the open
+    of the file (`Open.wp_proofG` over `openFileDb.spec`, private in `Open.lean`; the tree's
+    instance gives `Open.spec` unchanged), with `os.OpenFile.specCreateS` (the claim's halves, the
+    trivial update `os.osAU_triv`; `Proof/os/WriteFile.lean`'s `osAU_triv` and `crOut_join` lose
+    their unused `os` assumptions). The option reads were not touched (S2).
+  - **Left** (why, and the design): `DB.Close.specOwn` (the file back as `fileHolds i D`) and
+    `Open.specSNoErr`. See `notes/bbolt-spec-decisions.md`, "S3a".

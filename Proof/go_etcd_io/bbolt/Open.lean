@@ -162,8 +162,6 @@ macro "open_exit" hv:term:max xs:term:max : tactic => `(tactic| (
   iframe Hopts
   iexists V'
   iframe Ht
-  isplitr
-  · ipureintro; exact hV'
   iright; ipureintro; intro h; cases h))
 
 set_option hygiene false in
@@ -257,8 +255,6 @@ macro "open_ret" : tactic => `(tactic| (
   iframe Hopts
   iexists V'
   iframe Ht
-  isplitr
-  · ipureintro; exact hV'
   ileft
   isplitr
   · ipureintro; rfl
@@ -309,8 +305,6 @@ macro "open_tx_exit" : tactic => `(tactic| (
   iframe Hopts
   iexists V'
   iframe Ht
-  isplitr
-  · ipureintro; exact hV'
   iright; ipureintro; intro h; cases h))
 
 /-- **`os.OpenFile(path, O_RDWR|O_CREATE, mode)` of the database file** (`pathHolds`): opening
@@ -383,32 +377,55 @@ private theorem wp_OpenFile_db [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
       · ipureintro; exact .inr ⟨_, rfl⟩
       iright; ipureintro; exact h
 
+/-- **`Open`, generic in how the file is opened** (S3a: the tree's `os.OpenFile` for `Open.spec`,
+the shared mode's `os.OpenFile.specCreateS` for `Open.specS`): the opening's resources `Pre`, given
+back as `Back x` for some `x` (the tree, or the claim on the name, after the open) on every exit,
+and on success the file's inode `i` with `Good x i` (it is the file at the path in `x`) and its
+contents `openedF i D`. Everything after the open is this proof's. -/
+private abbrev openFileDb.spec [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] {X : Type} (Pre : IProp GF)
+    (Back : X → IProp GF) (Good : X → Ino → Prop) (path : GoString) (perm : w32) (D : Data) : Prop :=
+  {{ osInv (GF := GF) ∗ Pre }}
+    (App (App (App (Val (@! os.OpenFile)) (Val #path)) (Val #(W64 0x42))) (Val #perm))
+  {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ∃ x : X, Back x ∗
+      ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ Good x i⌝ ∗
+          os.ownFile f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
+          openedF i D) ∨
+       ⌜err ≠ interface.nil ∧ f = null⌝) ∗
+      fmtErrorOkOrNil err }}
+
 set_option maxHeartbeats 4000000 in
-theorem Open.wp_proof [sync.Assumptions]
-    (hOpenFile : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.OpenFile.spec (GF := GF) (hG := hG))
-    (hCreate : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
-      os.OpenFile.specCreate (GF := GF) (hG := hG))
+private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+    [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
-    (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
-    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.spec (GF := GF) (hG := hG))
+    (hFlock : flock.spec (GF := GF) (hG := hG))
+    (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
-    (hMZ : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.metasZero.spec_own (GF := GF) (hG := hG))
-    (hInit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.init.spec (GF := GF) (hG := hG))
-    (hGPS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.getPageSize.spec_own (GF := GF) (hG := hG))
-    (hMmap : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
-    (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
-    (hSync : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.spec (GF := GF) (hG := hG))
-    (hBegin : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
-    (hCommit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
+    (hMZ : DB.metasZero.spec_own (GF := GF) (hG := hG))
+    (hInit : DB.init.spec (GF := GF) (hG := hG))
+    (hGPS : DB.getPageSize.spec_own (GF := GF) (hG := hG))
+    (hMmap : DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
+    (hLoad : DB.loadFreelist.spec_open (GF := GF) (hG := hG))
+    (hSync : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
+    (hFds : fdatasync.spec (GF := GF) (hG := hG))
+    (hBegin : DB.Begin_err.spec (GF := GF) (hG := hG))
+    (hCommit : Tx.Commit_err.spec (GF := GF) (hG := hG))
     (hClose : DB.Close.spec (GF := GF) (hG := hG))
-    (hclose : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG))
+    (hclose : DB.close.spec_owned (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOptStr : Options.String.spec (GF := GF) (hG := hG))
-    (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG)) :
-    Open.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ _ N path mode opts dq o D R V
-  wp_start as ⟨#Hos, %HN, Ht, Hph, Hopts, %Hok, Hlgr⟩
+    (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG))
+    {X : Type} (Pre : IProp GF) (Back : X → IProp GF) (Good : X → Ino → Prop)
+    (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : OptsM) (D : Data)
+    (hOF : openFileDb.spec (GF := GF) (hG := hG) Pre Back Good path mode D) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗ Pre ∗
+        optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ boltLogger o.logger) }}
+      (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
+    {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
+        (∃ x : X, Back x ∗
+          ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
+              ⌜γ.ns = N ∧ Good x i⌝ ∗ isBolt db γ ∗ boltState γ 1 D) ∨
+           ⌜err ≠ GoInterface.nil⌝)) }} := by
+  wp_start as ⟨#Hos, %HN, Hph, Hopts, %Hok, Hlgr⟩
   ihave %Hoptnn := optsAt_nonnull _ _ _ $$ Hopts
   wp_auto
   wp_bind (App (Val wrapDefer) _)
@@ -590,8 +607,8 @@ theorem Open.wp_proof [sync.Assumptions]
   iStructNamed ops
   ihave Hmf : mapFields (GF := GF) dbl (DFrac.own 1) none $$ [dataref data meta0 meta1]
   · simp only [mapFields]; iframe
-  wp_apply wp_OpenFile_db hOpenFile hCreate path mode R V D $$ [Ht Hph] as %f %err
-    ⟨%V', Ht, %hV', (⟨%fd, %i, %Hfd, Hf, Hfdo, Hop⟩ | %Herr), #Herrok⟩
+  wp_apply hOF $$ [Hph] as %f %err
+    ⟨%V', Ht, (⟨%fd, %i, %Hfd, Hf, Hfdo, Hop⟩ | %Herr), #Herrok⟩
   · iframe; iframe #
   rotate_left
   · -- the file did not open
@@ -832,8 +849,6 @@ theorem Open.wp_proof [sync.Assumptions]
     iframe Hopts
     iexists V'
     iframe Ht
-    isplitr
-    · ipureintro; exact hV'
     iright; ipureintro; exact hne
   subst Hv
   ipersist pageSize
@@ -1037,8 +1052,6 @@ theorem Open.wp_proof [sync.Assumptions]
       iframe Hopts
       iexists V'
       iframe Ht
-      isplitr
-      · ipureintro; exact hV'
       iright; ipureintro; intro h; cases h
     subst Hse
     have Hwok := Hwok2
@@ -1121,6 +1134,64 @@ theorem Open.wp_proof [sync.Assumptions]
       open_tx_exit
     subst Hce
     open_ret
+
+/-- The tree's open of the database file (`wp_OpenFile_db`) as `openFileDb.spec`. -/
+private theorem openFileDb_tree [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+    (hOpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
+    (hCreate : os.OpenFile.specCreate (GF := GF) (hG := hG))
+    (path : GoString) (perm : w32) (R : Roots) (V : Hist) (D : Data) :
+    openFileDb.spec (GF := GF) (hG := hG)
+      iprop(osTree (DFrac.own 1) R V ∗ pathHolds R V path D)
+      (fun V' : Hist => iprop(osTree (GF := GF) (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝))
+      (fun V' i => lookupH R V' path = some (.file i)) path perm D := by
+  iintro %Φ ⟨#Hos, Ht, Hph⟩ HΦ
+  wp_apply wp_OpenFile_db hOpenFile hCreate path perm R V D $$ [Ht Hph]
+    as %f %err ⟨%V', Ht, %hV', Hr, #Herrok⟩
+  · iframe; iframe #
+  iapply HΦ
+  iexists V'
+  isplitl [Ht]
+  · dsimp only; iframe Ht; ipureintro; exact hV'
+  iframe Hr Herrok
+
+set_option maxHeartbeats 4000000 in
+theorem Open.wp_proof [sync.Assumptions]
+    (hOpenFile : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.OpenFile.spec (GF := GF) (hG := hG))
+    (hCreate : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      os.OpenFile.specCreate (GF := GF) (hG := hG))
+    (hName : os.File.Name.spec (GF := GF) (hG := hG))
+    (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
+    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.spec (GF := GF) (hG := hG))
+    (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
+    (hMZ : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.metasZero.spec_own (GF := GF) (hG := hG))
+    (hInit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.init.spec (GF := GF) (hG := hG))
+    (hGPS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.getPageSize.spec_own (GF := GF) (hG := hG))
+    (hMmap : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
+    (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
+    (hSync : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
+    (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.spec (GF := GF) (hG := hG))
+    (hBegin : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
+    (hCommit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
+    (hClose : DB.Close.spec (GF := GF) (hG := hG))
+    (hclose : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG))
+    (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
+    (hOptStr : Options.String.spec (GF := GF) (hG := hG))
+    (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG)) :
+    Open.spec (GF := GF) (hG := hG) := by
+  intro _ _ _ _ _ N path mode opts dq o D R V
+  iintro %Φ ⟨#Hpkg, #Hos, %HN, Ht, Hph, Hopts, %Hok, Hlgr⟩ HΦ
+  iapply Open.wp_proofG hName hFlock hStat hSize hMZ hInit hGPS hMmap hLoad hSync hFds hBegin
+    hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N path mode opts dq o D
+    (openFileDb_tree hOpenFile hCreate path mode R V D) $$ [Ht Hph Hopts Hlgr]
+  · iframe; iframe #
+    ipureintro; exact ⟨HN, Hok⟩
+  inext
+  iintro %db %err ⟨Hopts, %V', ⟨Ht, %hV'⟩, Hr⟩
+  iapply HΦ
+  iframe Hopts
+  iexists V'
+  iframe Ht Hr
+  ipureintro; exact hV'
 
 end proof
 
