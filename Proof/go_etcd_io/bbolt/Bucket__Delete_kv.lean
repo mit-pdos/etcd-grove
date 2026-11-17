@@ -41,7 +41,7 @@ theorem bbolt.Bucket.Delete_kv.wp_proof
     iintro %Φ ⟨-, Hl, #Hb, Hk⟩ HΦ
     subst hg
     have h' := h tx γ (wView D S G) b n m key kb dk own
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
     wp_apply h' $$ [$Hl $Hb $Hk] as ⟨Hl, Hk⟩
     · ipureintro; exact ⟨trivial, hm⟩
     iapply HΦ; iframe

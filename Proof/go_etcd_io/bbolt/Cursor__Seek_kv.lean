@@ -40,7 +40,6 @@ theorem bbolt.Cursor.Seek_kv.wp_proof
       onFs_some hfs]
     iintro %Φ ⟨-, Hc, Hl, Hk⟩ HΦ
     have h' := h tx c γ q T es pos key kb dk
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
     wp_apply h' $$ [$Hl $Hc $Hk] as %k %v ⟨Hl, Hk, Hc, #Ha⟩
     iapply HΦ; iframe Hl Hk Hc; iexact Ha
 

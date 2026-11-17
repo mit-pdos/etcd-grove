@@ -41,7 +41,7 @@ theorem bbolt.Bucket.Cursor_kvw.wp_proof
     iintro %Φ ⟨-, Hl, #Hb⟩ HΦ
     subst hg
     have h' := h tx γ 1 (wView D S G) b n m
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
     wp_apply h' $$ [$Hl $Hb] as %c ⟨Hl, Hc⟩
     · ipureintro; exact hm
     iapply HΦ; iframe

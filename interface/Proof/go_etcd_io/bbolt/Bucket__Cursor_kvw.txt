@@ -2,10 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
-    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹
-
 theorem bbolt.Bucket.Cursor_kvw.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
     Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec) :
     bbolt.Bucket.Cursor_kvw.spec

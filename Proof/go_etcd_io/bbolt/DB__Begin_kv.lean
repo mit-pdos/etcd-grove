@@ -25,26 +25,6 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- An unfired read update over the whole committed data, fired by the caller itself: the data
-back (what `Begin(false)`'s error case gives back of `boltState_read_au`). -/
-theorem bbolt.boltState_au_back [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames)
-    (D : backend.Data) :
-    (AU <{ ∃∃ (q : Qp) (D' : bbolt.Data), bbolt.boltState (GF := GF) γ q D' }> @ ⊤ \ ↑γ.ns, ∅
-        <{ bbolt.boltState γ q D', COMM bbolt.boltState γ 1 D ∗ ⌜D' = D⌝ }>) ⊢
-    |={⊤}=> bbolt.boltState γ 1 D := by
-  iintro Hau
-  ihave Hau := atomic_update_mask_weaken (Eo2 := ⊤) (fun _ _ => CoPset.mem_full) $$ Hau
-  ihave Hacc := aupd_aacc $$ Hau
-  unfold atomic_acc
-  imod Hacc with Hacc
-  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
-  icases Hacc with ⟨%q, %D', Hx, Hucl⟩
-  icases Hucl with ⟨-, Hcommit⟩
-  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
-  imod Hcommit $$ Hx with ⟨Hs, -⟩
-  imodintro
-  iexact Hs
-
 theorem bbolt.DB.Begin_kv.wp_proof
     (h : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.file.FieldAssumptions]
       [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec (GF := GF) (hG := hG)) :
@@ -69,7 +49,7 @@ theorem bbolt.DB.Begin_kv.wp_proof
         iapply HΦ; iframe Hs Hdb
         iright; isplitr; · ipureintro; exact He
         iframe Htd Htx
-      · imod (bbolt.boltState_au_back γ D) $$ Hau with Hs
+      · imod (backend.boltState_au_back γ D) $$ Hau with Hs
         imodintro
         iapply HΦ; iframe Hs Hdb
         ileft; iframe Htok; ipureintro; exact He

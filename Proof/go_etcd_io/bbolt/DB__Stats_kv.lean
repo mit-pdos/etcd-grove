@@ -40,7 +40,7 @@ theorem bbolt.DB.Stats_kv.wp_proof
       onFs_some hfs]
     iintro %Φ ⟨-, #Hb, Hl⟩ HΦ
     have h' := h db γ (some (tx, T))
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    simp only [bbolt.statSlot.eq_2] at h'
     wp_apply h' $$ [$Hb $Hl] as %s Hl
     iapply HΦ; iexact Hl
 

@@ -40,7 +40,7 @@ theorem bbolt.Tx.Stats_kv.wp_proof
       onFs_some hfs]
     iintro %Φ ⟨-, #Hd⟩ HΦ
     have h' := h tx
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
     wp_apply h' $$ [$Hd] as %s -
     iapply HΦ; itrivial
 

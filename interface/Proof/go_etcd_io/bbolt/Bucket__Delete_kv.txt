@@ -25,7 +25,3 @@ theorem bbolt.Bucket.Delete_kv.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] 
                         (intoVal b)))
                     (intoVal key))
                   {{ Φ }}
-
-theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
-    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹

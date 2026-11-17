@@ -40,7 +40,7 @@ theorem bbolt.Tx.Bucket_kvr.wp_proof
       onFs_some hfs]
     iintro %Φ ⟨-, Hl, Hn⟩ HΦ
     have h' := h tx γ q (TxView.ro D) name n dq
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
     wp_apply h' $$ [$Hl $Hn] as %b ⟨Hl, Hn, Hr⟩
     · ipureintro; intro h'; cases h'
     iapply HΦ; iframe Hl Hn

@@ -22,7 +22,3 @@ theorem bbolt.Tx.Bucket_kvw.wp_proof (h : ∀ [inst : ExtSemantics Fs.fsExt] [Fs
                   (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Bucket" (intoVal tx)))
                 (intoVal name))
               {{ Φ }}
-
-theorem bbolt.statSlot.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (a✝ a✝¹ : Option (Loc × bbolt.TxView)) : a✝ = a✝¹ →
-    bbolt.statSlot γ a✝ = bbolt.statSlot γ✝ a✝¹

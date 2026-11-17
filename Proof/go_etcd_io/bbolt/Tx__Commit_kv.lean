@@ -41,7 +41,7 @@ theorem bbolt.Tx.Commit_kv.wp_proof
     iintro %Φ ⟨-, ⟨#Hdb, Hs⟩, #Hd, ⟨%G, Hl⟩⟩ HΦ
     ihave Hau := bbolt.boltState_commit_au γ D S $$ Hs
     have h' := h tx γ (wView D S G) (bbolt.boltState γ 1 S)
-    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt, bbolt.statSlot] at h'
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
     wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
     all_goals try (ipureintro; first | trivial | rfl)
     iapply HΦ; iframe Hdn
