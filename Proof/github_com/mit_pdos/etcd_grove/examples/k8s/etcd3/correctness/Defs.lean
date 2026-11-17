@@ -163,6 +163,33 @@ instance respRep_persistent (r : github_com.mit_pdos.etcd_grove.examples.k8s.etc
     (rr : RResp) : Persistent (respRep (GF := GF) r rr) := by
   unfold respRep; infer_instance
 
+/-! ## Create's object -/
+
+/-- **The object `realRequest(x)` asks to create** (resource version 0, no annotation): the one
+`rcreateL` stores at the next resource version. -/
+def createObjL (x : Input) : Obj :=
+  ⟨(k8s_etcd3.splitKeyL x.Key').1, (k8s_etcd3.splitKeyL x.Key').2, x.UID', x.Val', x.Node', x.App',
+    W64 0, false⟩
+
+/-! ## Changes -/
+
+/-- An optional object's deep value (`nil` for none). -/
+def optObjD : Option Obj → DeepV
+  | none => .nil
+  | some o => .obj o
+
+/-- **The `*Change` `cp` has the view `c`** (persistent): `nil` for none, else a frozen `Change`
+with the key, the resource version and the objects' deep values read-only. -/
+def changeRep (cp : Loc) : Option RChange → IProp GF
+  | none => iprop(⌜cp = null⌝)
+  | some c => iprop(∃ (ox opx : GoInterface),
+      cp ↦□ github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Change.mk c.key c.rv ox opx ∗
+      deepRO ox (optObjD c.obj) ∗ deepRO opx (optObjD c.prev))
+
+instance changeRep_persistent (cp : Loc) (c : Option RChange) :
+    Persistent (changeRep (GF := GF) cp c) := by
+  cases c <;> unfold changeRep <;> infer_instance
+
 /-! ## Read consistency -/
 
 /-- A `ReadConsistency`'s string. -/

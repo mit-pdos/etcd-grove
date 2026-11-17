@@ -11,14 +11,13 @@
   - Proved (no sorry): `keyInScope`, `checkKey`, `GetReadConsistency`, `ListReadConsistency`,
     driver `Obj.DeepCopyObject`/`Obj.SetResourceVersion`; `NewEmptyModel`, `Model.Clone`
     (`730a35dc0e`), `Model.Equal` (`4419c6a1d1`).
-  - `Model.get` proved (spec `Spec/.../correctness/Model__get.lean`: Lean premises on `opts`).
-  - **STOP (questions.md, "Step 3 STOP")**: `Preconditions.Check`'s message is `arbitraryString()`
-    in Perennial's `Sprintf` model (`%v` of a string); `update`/`delete` (and `execute`) wait for
-    the decision (recommended: Perennial models `%v` of a string as `%s`). Go evidence:
-    `/shared/tmp/k8s7g/sprintfv/` (PASS).
-  - Next, not blocked: `create` (spec: `modelOwn` pre/post, `op ↦□` the RV-0 object
-    of `x`; needs a `changeRep cp (Option RChange)` in Defs for `*Change`; `meta.Accessor` needs
-    `objTyOk_holds`; `FormatUint` = `decStr`, `setRVL_decStr`); then `listItems`, `list`,
+  - `Model.get` proved (`54887034bf`; Lean premises on `opts`, ACCEPTED); `Model.create` proved
+    (`Defs`: `createObjL`, `optObjD`, `changeRep`; `iapply wp_fupd` before the last call lets the
+    final `*Change` points-to be persisted).
+  - **Decided (A), user 2026-11-17**: Perennial's `Sprintf` model gets `%v` of a string as `%s`
+    (a Perennial branch); after the pin moves, prove `update`/`delete` (precondition branch) and
+    `execute`. Until then do NOT prove update/delete/execute (questions.md "Step 3 STOP").
+  - Next, not blocked: `listItems`, `list`,
     `listResponseRV`, `validCacherContinue`, `equalListResponse`.
   - **Blocked until the soundness-1117 fix lands** (V): `validateGet`, `validateList`, `Step`.
 - **Standing constraint**: do not touch View.lean / HasStatusCause / IsTooManyRequests /
