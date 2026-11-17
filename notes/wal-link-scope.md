@@ -338,3 +338,9 @@ So every family L1a touches but `ReleaseLockTo` is a twin family today (layer 1'
 rule L1a can neither restate both twins in place (that keeps the twins) nor pick one without moving its clients:
 the honest in-place form is the collapse (one proof per function, the others corollaries), i.e. the +2.5-5k of
 the cost paragraph above becomes part of L1a, not optional.
+
+**Decided by etcd-grove-03 under the user's instruction, 2026-11-17:** L1a includes the collapses (order: `Sync`
+first, a review checkpoint on its merged text; then `Save`, `SaveSnapshot` with `specPre` as a precondition
+disjunct, `ReleaseLockTo` rename only, `Close` over the disjunction of handle states); the +2.5-5k lines accepted.
+The untouched families (`WAL.sync`, `cut`, `saveState`, `saveEntry`, `Create`, `Repair`, `Exist`, `encoder.encode`,
+`renameWAL`) stay for the queued cleanup after the link.

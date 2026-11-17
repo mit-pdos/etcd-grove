@@ -9,14 +9,20 @@
 - **Done:** Scope + Go evidence (72997e9e36); **L0** `St/WalLinkPure.lean` (proved, no trust change): the read bridge
   `walRead_of_fold`, the eager steps `walFoldChkFrom_save_cons`/`_snoc_save`/`_snoc_snap` (`WalSaveOkC` = `WalSaveOk`
   unfolded, so the sealed `WalRecs` can import it), `walCommitLe_of_fold`, `walCommitLeFrom_snoc/_nil`, `walIdxLe_*`.
-- **STOPPED (2026-11-17) on the no-twin rule's cost:** Scope §8 (design over `inv (walOpenWF ∨ ownMutex ∨ tok 1)`,
-  the spec families classified: Save/SaveSnapshot/Sync/Close are twin families, ReleaseLockTo a corollary; delta
-  +2.5-5k lines if the collapses are in L1a). Waiting for etcd-grove-03's decision; no L1a Lean written yet.
-- **Next, in order (after the decision):** L1a (`PW/Handle.lean`: shared handle `walOpenWS`, the five `NoErr` specs' shared variants,
-  history-prefix fragment + `walSnapRec` from `SaveSnapshot`) ∥ L1b (server `WalPbIn`/`WalMarshal`; R5 checked:
-  `hardStateAt` = `hsOpt` is frozen (`hsRO`), `entRoC` frozen, but `smPtsV mp dq md` is fractional: the `SaveSnap`
-  law's conf state must become discarded or layer 1 take a fraction); then L2 (HARD STOP: `ReleaseSnapDBs` axiom),
-  L3+L4 (HARD STOPs (a)-(c) of the brief before any trusted text / server statement / closed theorem change).
+- **L1a in progress (no-twin collapses decided by etcd-grove-03, Scope §8).** Done: `PW/HandleShared.lean` (the shared
+  handle `walOpenWS Sio P Mr w dir γ q`, invariant `walShInv` = handle+`γl ↦ none` ∨ `ownMutex`+½`γl ↦ some q`+the
+  holder's share ∨ whole token; laws `walOpenWS_alloc/_split/_pers/_acquire/_release/_finish/_reclaim`, `walHdl`
+  (handle when `¬ walCov Sio`, else fresh room), `ioNone` + its `FsStepSat` instance); **`Sync` merged** (one spec,
+  one proof; `WAL__SyncNoErr.lean` spec+proof deleted); WalTester's `member__sync` shares the handle for the call and
+  reclaims it; `etc/link_walfs.py` accepts `(Sio := ioNone)` at a binder; both Links regenerated, targeted build OK.
+  **Checkpoint: Sync's text reported, waiting for review** before Save, SaveSnapshot, ReleaseLockTo, Close.
+- **Next, in order:** Save (two proofs → one; the callees `saveEntry`/`saveState`/`cut` keep their twin families, so
+  the merged proof chooses the callee spec by `walCov Sio`, like Sync's `sync`/`sync.specNoErr`), SaveSnapshot
+  (`specPre` as a precondition disjunct), ReleaseLockTo (rename), Close (disjunction of handle states); WalTester's
+  members move like `member__sync` (share for the call, reclaim). Then L1b, L2 (HARD STOP before `ReleaseSnapDBs`).
+- **Open (for L3/L5):** nothing produces `walOpenWFR` yet (Create's/ReadAll's posts give `walOpenWF`; room is an
+  open layer-1 decision, `notes/wal-units/noioerr.md`): the server's shared handle needs the fresh room from
+  bootstrap's slot (L3, trusted) and, in L5, from `Create` (headers < 2^43) and the restart's `ReadAll` (a tail bound).
 - **Pitfalls:** WAL Go sources at the pin: `/shared/tmp/wallink/etcd` (shallow fetch of `8c28a4296`); `.lake/go-src/etcd`
   is older. `E/WalApi.lean`'s header "NOT YET IN USE" is stale (fix in L3). `WalViews.lean` is over the old `absDiskExt`.
 - **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`

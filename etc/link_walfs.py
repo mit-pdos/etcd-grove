@@ -443,7 +443,11 @@ def main(root, perennial, argv0, check=False, cfg=None):
             if any(p[1] == ca for p in x["params"]):
                 sub[ca] = ba
             elif ca != ba:
-                sys.exit(f"gen-link.py {flag}: {x['name']} proves {callee} at {ca}, a binder needs {ba}")
+                # an implicit section variable named in the conclusion (`(Sio := Sio)` of `{Sio : IoSet}`,
+                # wal-link L1a): the binder's instance (`(Sio := ioNone)`) is Lean's to unify
+                m = re.fullmatch(r"\(([\w']+) := \1\)", ca)
+                if not (m and re.fullmatch(r"\(" + re.escape(m.group(1)) + r" := .+\)", ba)):
+                    sys.exit(f"gen-link.py {flag}: {x['name']} proves {callee} at {ca}, a binder needs {ba}")
         for p in x["params"]:
             sub.setdefault(p[1], p[1])
         return sub

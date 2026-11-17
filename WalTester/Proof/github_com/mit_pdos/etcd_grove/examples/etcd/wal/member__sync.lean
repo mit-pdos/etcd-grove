@@ -8,6 +8,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__sync
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Sync
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleShared
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOps
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SnapPure
 
@@ -76,17 +77,35 @@ theorem oracleRep_synced (v : oracle) (o : TOracle) :
 theorem member.sync.wp_proof
     (wp_store : storeOracle.spec (GF := GF) (hG := hG))
     (wp_Sync : ∀ W : WalGS GF,
-      go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.spec (W := W) (walRaftP (GF := GF)) walRaftMr) :
+      go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.spec (W := W) (Sio := ioNone) (walRaftP (GF := GF))
+        walRaftMr) :
     member.sync.spec (GF := GF) (hG := hG) := by
   intro W e γ m w v o os c d qc hf hok hsm hcwf
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, Hpath, Hw, Hov, Hrep, Ho, Hwo, #Harea, Hwf,
     #Hlen, #Hnm⟩
   wp_auto
-  wp_apply (wp_Sync W e.R e.jr (e.area) w (tWalDir e.area) d.H.length) $$ [Hwf]
+  -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and taken
+  -- back after it
+  iapply fupd_wp
+  imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
+    with ⟨%γs, Hws⟩
+  · iunfold walHdl; ileft; iframe Hwf; ipureintro; exact walCov_ioNone
+  imodintro
+  wp_apply (lc := 1) (wp_Sync W e.R e.jr (e.area) w (tWalDir e.area) γs 1 d.H.length) $$ [Hws]
     as %err Hr
-  · iframe; iframe #
-  icases Hr with (⟨%Herr, Hwf, #Hsl⟩ | %Herr)
+  · iframe; iframe #; ipureintro; exact Or.inr rfl
+  icases Hr with (⟨%Herr, Hws, #Hsl⟩ | %Herr)
   · subst Herr
+    iapply fupd_wp
+    imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]
+      with Hwf
+    · iframe Hws Hlc1
+    imodintro
+    ihave Hwf : walOpenWF (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) $$ [Hwf]
+    · iunfold walHdl at Hwf
+      icases Hwf with (⟨-, Hwf⟩ | Hwf)
+      · iexact Hwf
+      · iapply walOpenWFR_wf (W := W) (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) walFreshRoom $$ Hwf
     wp_auto
     ihave ⟨%hl, Hrep⟩ := oracleRep_synced v o $$ Hrep
     ihave #Hrel := tRelI_synced W e.area o c d hok hl hcwf $$ [Hsl Hnm]
@@ -100,7 +119,8 @@ theorem member.sync.wp_proof
     simp only [↓reduceIte]
     iframe
     iframe #
-  · cases err with
+  · obtain ⟨Herr, -⟩ := Herr
+    cases err with
     | nil => exact absurd rfl Herr
     | ok ie =>
     wp_auto
