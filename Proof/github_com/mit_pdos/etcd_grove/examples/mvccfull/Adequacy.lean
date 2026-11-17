@@ -187,8 +187,7 @@ theorem decDigits_mem : ∀ (n : Nat) (c : w8), c ∈ decDigits n → 48 ≤ c.t
       · simp only [List.mem_singleton] at h
         subst h
         have h10 := Nat.mod_lt n (by decide : 10 > 0)
-        simp only [BitVec.toNat_ofNat]
-        omega
+        refine ⟨?_, ?_⟩ <;> word
 
 theorem itoaM_mem (n : Nat) (c : w8) (hc : c ∈ itoaM n) : 48 ≤ c.toNat ∧ c.toNat ≤ 57 := by
   unfold itoaM at hc
@@ -198,7 +197,7 @@ theorem itoaM_mem (n : Nat) (c : w8) (hc : c ∈ itoaM n) : 48 ≤ c.toNat ∧ c
 
 /-- A name of at least three bytes, none a slash or a NUL, is a name (`NameOk`). -/
 theorem nameOk_of (b : GoString) (hl : 3 ≤ b.length) (hc : ∀ c ∈ b, c.toNat ≠ 47 ∧ c.toNat ≠ 0) :
-    Fs.NameOk b := by
+    NameOk b := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
   · intro h; subst h; simp at hl
   · intro h; subst h; simp at hl
@@ -208,7 +207,7 @@ theorem nameOk_of (b : GoString) (hl : 3 ≤ b.length) (hc : ∀ c ∈ b, c.toNa
 
 /-- **`Main`'s files, by name** (`FilePaths(MainConfig("mvccfull"))`): the members' `mvccfull-0.db`,
 `mvccfull-1.db` and the builders' `mvccfull-b<n>.db`. -/
-def mvccfullNames [GooseExts] : List GoString :=
+def mvccfullNames [GooseExts] [GoGlobalContext] : List GoString :=
   filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix))
 
 theorem memberPathM_child (r p : GoString) (k : Nat) :
@@ -220,7 +219,7 @@ theorem buildPathM_child (r p : GoString) (k : Nat) :
   simp [buildPathM, Fs.child, List.append_assoc]
 
 /-- The files of the run at the prefix `r/mvccfull` are the names in the directory `r`. -/
-theorem filePaths_at [GooseExts] (r : GoString) (mx : Mix) :
+theorem filePaths_at [GooseExts] [GoGlobalContext] (r : GoString) (mx : Mix) :
     filePathsM (mainConfigM (Fs.child r go!"mvccfull") mx) = mvccfullNames.map (Fs.child r) := by
   unfold mvccfullNames filePathsM mainConfigM
   simp only [memberPathM_child, List.map_append, List.map_cons, List.map_nil, List.map_map]
@@ -229,17 +228,23 @@ theorem filePaths_at [GooseExts] (r : GoString) (mx : Mix) :
   intro k _
   simp [buildPathM_child]
 
-theorem mvccfullNames_nodup [GooseExts] : mvccfullNames.Nodup := filePaths_main_nodup _
+theorem mvccfullNames_nodup [GooseExts] [GoGlobalContext] : mvccfullNames.Nodup := filePaths_main_nodup _
 
 /-- Each of `Main`'s files is a name. -/
-theorem mvccfullNames_ok [GooseExts] : ∀ b ∈ mvccfullNames, Fs.NameOk b := by
+theorem mvccfullNames_ok [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullNames, NameOk b := by
   intro b hb
   unfold mvccfullNames filePathsM at hb
   rcases List.mem_append.1 hb with h | h
   · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
-    rcases h with rfl | rfl <;>
-      simp only [mainConfigM, memberPathM, itoaM, decDigits_pos 1 (by decide), decDigits_zero] <;>
-      decide
+    rcases h with rfl | rfl <;> apply nameOk_of <;>
+      first
+      | (simp [memberPathM, mainConfigM]; done)
+      | (intro c hc
+         simp only [memberPathM, mainConfigM, List.mem_append] at hc
+         rcases hc with (hc | hc) | hc
+         · revert c; decide
+         · have := itoaM_mem _ c hc; omega
+         · revert c; decide)
   · obtain ⟨k, -, rfl⟩ := List.mem_map.1 h
     apply nameOk_of
     · simp [buildPathM, mainConfigM]
@@ -309,11 +314,11 @@ section adequacy
 variable [go_gctx : GoGlobalContext]
 
 /-- The program: `mvccfull`'s initialization, then `Run(MainConfig(r/mvccfull))`: `Main`'s run with
-its files in the directory `r` (S3e; until then `Main()`, whose prefix `mvccfull` is relative). -/
+its files in the directory `r`, its report dropped, as `Main` does (S3e; until then `Main()`, whose prefix `mvccfull` is relative). -/
 def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)
-    ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig) #(Fs.child r go!"mvccfull"))
+  ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)
+    ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig) #(Fs.child r go!"mvccfull")) ;; #())
 
 /-- **mvcc's full tester passes** (see the file header): every real execution of
 `mvccfullProgram r` from a fresh state with one thread, whose file system's root `r` has none of
@@ -383,8 +388,9 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       iexists DFrac.own 1, _, _, _, _, _, _
       iframe
     rw [mvccfull.filePaths_at r mx]
-    iapply (BigSepL.bigSepL_map (Fs.child r)).2
+    rw [BigSepL.bigSepL_map]
     iexact Hfiles
+  (try wp_auto)
   ipureintro
   rfl
 

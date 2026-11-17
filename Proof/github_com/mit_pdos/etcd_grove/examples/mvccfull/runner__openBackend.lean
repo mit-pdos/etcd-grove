@@ -54,7 +54,7 @@ private theorem wp_DefaultBackendConfig' (lg : Loc) :
 theorem runner.openBackend.wp_proof
     (wp_bNew : backend.New.spec (GF := GF) (hG := hG)) :
     runner.openBackend.spec (GF := GF) (hG := hG) := by
-  intro _ x ks cfg wr h γh path D W Pk K hdbo hlim
+  intro _ _ x ks cfg wr h γh path D W Pk K hdbo hlim
   wp_start as ⟨#Hctx, Hfile, #Hvoff, Htok, Hup⟩
   iunfold writerCtx at Hctx
   icases Hctx with ⟨#Hrn, -, -, -, #Hbpkg, -, -, -, -, ⟨%lg, #Hlg, #Hlgz⟩, -⟩

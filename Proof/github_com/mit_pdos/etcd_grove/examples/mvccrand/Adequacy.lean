@@ -115,10 +115,11 @@ def mvccrandCfg (r : GoString) : github_com.mit_pdos.etcd_grove.examples.mvccran
   ⟨Fs.child r go!"mvccrand.db", W64 1, W64 1000, W64 4, W64 200, W64 8, W64 0⟩
 
 /-- The program: `mvccrand`'s initialization, then `Run` of `Main`'s configuration with the file
-`r/mvccrand.db` (S3e; until then `Main()`, whose `mvccrand.db` is relative). -/
+`r/mvccrand.db`, its report dropped, as `Main` does (S3e; until then `Main()`, whose `mvccrand.db`
+is relative). -/
 def mvccrandProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
   github_com.mit_pdos.etcd_grove.examples.mvccrand.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Run) #(mvccrandCfg r)
+  ((@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Run) #(mvccrandCfg r) ;; #())
 
 /-- **mvcc's randomized tester passes** (see the file header): every real execution of
 `mvccrandProgram r` from a fresh state with one thread, whose file system's root `r` has no entry
@@ -182,9 +183,11 @@ theorem mvccrand_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   unfold mvccrandProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccrand.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccrand.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
-  wp_apply (mvccrand.wp_Run Hsort' (mvccrandCfg r) (by decide) (by decide) (by decide) (by decide)
-    (by decide) (by decide) trivial trivial) $$ [Hfile Htok]
-  · iframe Hfile Htok Hvoff
+  wp_apply (mvccrand.wp_Run Hsort' (mvccrandCfg r) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word)
+    (by unfold mvccrandCfg; word) (by unfold mvccrandCfg; word) trivial trivial) $$ [Hfile Htok]
+    as %rep -
+  · simp only [mvccrandCfg]; iframe Hfile Htok Hvoff
+  (try wp_auto)
   ipureintro
   rfl
 
