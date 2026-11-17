@@ -51,23 +51,23 @@ theorem stopImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.la
     (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF)
     [∀ l, Persistent (Nx l)] [∀ l, Timeless (Nx l)] [∀ c, Persistent (Cp c)]
     [∀ c, Timeless (Cp c)] (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (bk : mvcc.KBReal) (Pk : IProp GF)
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (bk : mvcc.KBReal) (Pk : IProp GF)
     (D : backend.Data) :
-    kvStoreInvG kv γ Nx Cp γs ∗ wSt γs log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+    kvStoreInvG kv γ Nx Cp γs ∗ wStQ γs q log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
       backend.bStopView bk.γB bk.P (mvccW bk.gx) Pk D ⊢
-    |={⊤}=> wSt γs log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+    |={⊤}=> wStQ γs q log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
       backend.bStopView bk.γB bk.P (mvccW bk.gx) Pk D ∗ ⌜imageStOk log c⌝ ∗
       ∃ u : Bool, mvccImage D log c u := by
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro ⟨#Hk, Hw, HB, Hsv⟩
   imod writer_facts Nx Cp Hp Hr kv γ γs log c $$ Hk Hw with ⟨Hw, -, -, -, %Hre⟩
-  ihave HAU := au_snap Nx Cp Hp kv γ γs log c (wSt γs log c) $$ Hk Hw []
+  ihave HAU := au_snap Nx Cp Hp kv γ γs log c (wStQ γs q log c) $$ Hk Hw []
   · iintro H; iexact H
   ihave #Hk' := Hk
   iunfold kvStoreInvG at Hk'
   icases Hk' with ⟨#Hm, -⟩
   iunfold auSnap at HAU
-  imod (hStop kv γ bk Pk D (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wSt γs log c))) $$ [HB Hsv HAU]
+  imod (hStop kv γ bk Pk D (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wStQ γs q log c))) $$ [HB Hsv HAU]
     with ⟨HB, Hsv, %σ, %u, ⟨%Hσ, Hw⟩, #Him⟩
   · iframe Hm HB Hsv HAU
   subst Hσ

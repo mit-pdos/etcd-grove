@@ -602,14 +602,14 @@ theorem mergedCreate_window
   iunfold apply.cmpOwn at Hcmo
   icases Hcmo with ⟨Hop, Hcr⟩
   -- the writer's half at the apply thread's compaction revision
-  iunfold srvApi.wSt at Hws
+  iunfold srvApi.wStQ at Hws
   icases Hws with ⟨Hws1, Hws2⟩
   iunfold srvApi.crOwn at Hcr
   icombine Hws2 Hcr gives %Hcc
   have hc : c = x.crev := Hcc.2
   subst hc
-  ihave Hws : srvApi.wSt (GF := GF) E.γs x.log x.crev $$ [Hws1 Hws2]
-  · iunfold srvApi.wSt; iframe Hws1 Hws2
+  ihave Hws : srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev $$ [Hws1 Hws2]
+  · iunfold srvApi.wStQ; iframe Hws1 Hws2
   iunfold srvBeOwn at Hbo
   icases Hbo with ⟨%d, %hd, Hbe, Hg, #HbRO, HbPl, Hrt⟩
   have hdB : d = B' := srvBkTie_inj d B' (hd.symm.trans hBT)
@@ -656,7 +656,7 @@ theorem mergedCreate_window
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))).bk ∗
         RL)) ∗
-      srvApi.wSt E.γs x.log x.crev))
+      srvApi.wStQ E.γs E.stq x.log x.crev))
   iexists iprop(mvcc.api.mvccReaders E.γ 1 ∗ (backend.bOpen d.γB backend.rdOpen ∗
       (freezeY γ st ∗ iprop(backend.rbOwnIn d.γB membership.clusterBkts
           (apply.restLeasesWith f (srvIds E (appliedTableM E.authOn γr A).ids)
@@ -667,7 +667,7 @@ theorem mergedCreate_window
         RL)) ∗
       mvcc.api.mvccBackend E.γ 1 (mvcc.api.etcdStorage d) (E.Pk d)))
   iexists (fun D : backend.Data =>
-    iprop(srvApi.wSt (GF := GF) E.γs x.log x.crev ∗
+    iprop(srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev ∗
       mergedImgM E.authMode E.lg γr ai A x.log x.crev D ∗
       ⌜∃ ra, QA ra ∧ ∀ n, SA n → D.lookup n = ra.lookup n⌝))
   isplitr

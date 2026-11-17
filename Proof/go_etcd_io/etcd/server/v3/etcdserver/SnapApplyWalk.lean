@@ -456,14 +456,14 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   icases HB0 with %HB0
   subst B0
   ihave HwSt' := HwSt
-  iunfold srvApi.wSt at HwSt'
+  iunfold srvApi.wStQ at HwSt'
   icases HwSt' with ⟨HwSt1, HwSt2⟩
   iunfold srvApi.crOwn at HcrO
   icombine HwSt2 HcrO gives %Hc0
   obtain ⟨-, Hc0⟩ := Hc0
   subst Hc0
-  ihave HwSt : srvApi.wSt (GF := GF) E.γs x.log x.crev $$ [HwSt1 HwSt2]
-  · iunfold srvApi.wSt; iframe HwSt1 HwSt2
+  ihave HwSt : srvApi.wStQ (GF := GF) E.γs E.stq x.log x.crev $$ [HwSt1 HwSt2]
+  · iunfold srvApi.wStQ; iframe HwSt1 HwSt2
   ihave HcrO : srvApi.crOwn (GF := GF) E.γs x.crev $$ [HcrO]
   · iunfold srvApi.crOwn; iexact HcrO
   -- (auth-lease S4 item 7b) no lessor window at the server's environment (`srvEnvOk`)
@@ -637,6 +637,10 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   ihave Hpost : iprop(batchLockInv (GF := GF) (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ={⊤}=∗
       batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P) ∗ True) $$ []
   · iintro H; imodintro; iframe H
+  -- (item 7b K1) the apply thread's share is the default half (`srvEnvOk`)
+  have hstq : E.stq = (1 : Qp).half := HenvW.2.2.1.2.2
+  ihave HwSt : srvApi.wSt (GF := GF) E.γs x.log x.crev $$ [HwSt]
+  · rw [hstq]; iexact HwSt
   ihave Hrp : srvApi.restorePreA (GF := GF) E.kv E.γ d d' (E.Pk d)
       (batchLockInv (γ.withPh (futPhys π0 d'.γB)) (metaTM d'.γB d.P))
       (srvApi.stAt (kvModelM E.authOn γr.kv A') (crevOf γr.kv A')) u Lr (DFrac.own (1 : Qp).half)

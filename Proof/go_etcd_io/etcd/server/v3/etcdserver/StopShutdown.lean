@@ -538,14 +538,14 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold apply.cmpOwn at Hcmo
   icases Hcmo with ⟨Hop, Hcr⟩
   -- the writer's compaction revision, the apply thread's
-  iunfold srvApi.wSt at Hws
+  iunfold srvApi.wStQ at Hws
   icases Hws with ⟨Hws1, Hws2⟩
   iunfold srvApi.crOwn at Hcr
   icombine Hws2 Hcr gives %Hcc
   have hcx : c = x.crev := Hcc.2
   subst hcx
-  ihave Hws : srvApi.wSt B.E.γs x.log x.crev $$ [Hws1 Hws2]
-  · iunfold srvApi.wSt; iframe Hws1 Hws2
+  ihave Hws : srvApi.wStQ B.E.γs B.E.stq x.log x.crev $$ [Hws1 Hws2]
+  · iunfold srvApi.wStQ; iframe Hws1 Hws2
   iunfold srvBeOwn at Hbo
   icases Hbo with ⟨%d3, %hd3, Hbe, Hg, -, HbPl, Hrt⟩
   have hd3' : d3 = d := srvBkTie_inj d3 d (hd3.symm.trans hBT)

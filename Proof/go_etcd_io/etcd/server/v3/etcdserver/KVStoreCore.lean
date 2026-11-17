@@ -61,11 +61,16 @@ instance kvLogLb_timeless (γs : KVSNames) (L : mvcc.Log) :
     Timeless (kvLogLb (GF := GF) γs L) := by
   unfold kvLogLb; infer_instance
 
-/-- The apply thread's half of the state (`kvOwn`'s): the log `log`, nothing pending, and a
-quarter of the compaction revision `c`. -/
-def wSt (γs : KVSNames) (log : mvcc.Log) (c : Int) : IProp GF :=
-  iprop(ghostVar γs.st (1 : Qp).half (log, (none : Option (List mvcc.Change))) ∗
+/-- The apply thread's share `q` of the state (auth-lease S4 item 7b K1, 2026-11-17): the log `log`, nothing
+pending, at the share `q` of `γs.st`, and a quarter of the compaction revision `c`. The read-only builders work at
+any share (`ghostVar` agreement); the server splits its half between the apply thread and its lessor tie. -/
+@[reducible] def wStQ (γs : KVSNames) (q : Qp) (log : mvcc.Log) (c : Int) : IProp GF :=
+  iprop(ghostVar γs.st q (log, (none : Option (List mvcc.Change))) ∗
     ghostVar γs.cr (1 : Qp).half.half c)
+
+/-- The apply thread's half of the state (`kvOwn`'s at the default share): `wStQ` at `½`. -/
+abbrev wSt (γs : KVSNames) (log : mvcc.Log) (c : Int) : IProp GF :=
+  wStQ γs (1 : Qp).half log c
 
 /-- The compaction right's quarter of the compaction revision (`cmpOwn`'s). -/
 def crOwn (γs : KVSNames) (c : Int) : IProp GF := ghostVar γs.cr (1 : Qp).half.half c
@@ -338,9 +343,9 @@ theorem histLb_bootG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
 
 /-- **A write's begin** (`auBegin`, continuation form), from the writer's half. -/
 theorem au_begin (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (X : IProp GF) :
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (X : IProp GF) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
-      wSt γs log c -∗ (wSt γs log c -∗ X) -∗ auBegin γ (stAt log c) X := by
+      wStQ γs q log c -∗ (wStQ γs q log c -∗ X) -∗ auBegin γ (stAt log c) X := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw HX
@@ -368,7 +373,7 @@ theorem au_begin (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccN
     iframe Hw HX
   · iintro ⟨%Hpn, Hs⟩
     imod Hclose2 with -
-    iunfold wSt at Hw
+    iunfold wStQ at Hw
     icases Hw with ⟨Hw1, Hw2⟩
     icombine Hst Hw1 gives %H1
     icombine Hcr Hw2 gives %H2
@@ -380,14 +385,14 @@ theorem au_begin (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccN
     isplitr
     · ipureintro; exact stAt_of σ log c H1.2 H2.2
     iapply HX
-    iunfold wSt
+    iunfold wStQ
     iframe Hw1 Hw2
 
 /-- **The writer's own read** (`auRead` at the writer's view, continuation form). -/
 theorem au_wread (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (X : IProp GF) :
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (X : IProp GF) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
-      wSt γs log c -∗ (wSt γs log c -∗ X) -∗
+      wStQ γs q log c -∗ (wStQ γs q log c -∗ X) -∗
         auRead γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X)) := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
@@ -416,7 +421,7 @@ theorem au_wread (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccN
     iframe Hw HX
   · iintro Hs
     imod Hclose2 with -
-    iunfold wSt at Hw
+    iunfold wStQ at Hw
     icases Hw with ⟨Hw1, Hw2⟩
     icombine Hst Hw1 gives %H1
     icombine Hcr Hw2 gives %H2
@@ -428,22 +433,22 @@ theorem au_wread (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccN
     isplitr
     · ipureintro; exact stAt_of σ log c H1.2 H2.2
     iapply HX
-    iunfold wSt
+    iunfold wStQ
     iframe Hw1 Hw2
 
 /-- **The snapshot's update** (`auSnap` at the writer's view): `pending = none` from the halves at
 every access. -/
 theorem au_snap (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (X : IProp GF) :
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (X : IProp GF) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
-      wSt γs log c -∗ (wSt γs log c -∗ X) -∗
+      wStQ γs q log c -∗ (wStQ γs q log c -∗ X) -∗
         auSnap γ (fun σ => iprop(⌜σ = stAt log c⌝ ∗ X)) := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw HX
   iunfold kvStoreInvG at Hk
   icases Hk with ⟨#Hm, #Hinv⟩
-  iunfold wSt at Hw
+  iunfold wStQ at Hw
   icases Hw with ⟨Hw1, Hw2⟩
   iunfold auSnap
   iauintro
@@ -479,7 +484,7 @@ theorem au_snap (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccNa
     isplitr
     · ipureintro; exact Hσ
     iapply HX
-    iunfold wSt
+    iunfold wStQ
     iframe Hw1 Hw2
 
 /-- **Anyone's read** (`auRead` at `kvReadAt`, from a floor). -/
@@ -535,10 +540,10 @@ theorem au_read (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (
 
 /-- **The writer's facts** at its state, outside any update. -/
 theorem writer_facts (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.law (GF := GF))
-    (kv : GoInterface) (γ : MvccName) (γs : KVSNames)
+    (kv : GoInterface) (γ : MvccName) (γs : KVSNames) {q : Qp}
     (log : mvcc.Log) (c : Int) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
-      wSt γs log c ={⊤}=∗ wSt γs log c ∗ kvLogLb γs log ∗ Nx log ∗
+      wStQ γs q log c ={⊤}=∗ wStQ γs q log c ∗ kvLogLb γs log ∗ Nx log ∗
         ⧖ (mvcc.logCh log) ∗ ⌜MvccReachable (stAt log c) ∧ log.length + 3 ≤ 2 ^ 63⌝ := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
@@ -546,7 +551,7 @@ theorem writer_facts (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
   iintro #Hk Hw
   iunfold kvStoreInvG at Hk
   icases Hk with ⟨#Hm, #Hinv⟩
-  iunfold wSt at Hw
+  iunfold wStQ at Hw
   icases Hw with ⟨Hw1, Hw2⟩
   iinv Hinv with ⟨%σ, >Hs, >Hst, >Hcr, >Hsl, >Hnl, >#Hnx1, >#Hnx2, >#Hrc, >#Hco⟩ Hclose
   icombine Hst Hw1 gives %H1
@@ -563,7 +568,7 @@ theorem writer_facts (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
     iexists ⟨log, c, none⟩
     iframe Hs Hst Hcr Hsl Hnl Hnx1 Hnx2 Hrc Hco
   imodintro
-  iunfold wSt
+  iunfold wStQ
   iunfold kvLogLb
   iframe Hw1 Hw2 Hslb Hnx1
   rw [show ({ log := log, crev := c, pending := none } : MvccState).notifiedLog = log from rfl]
@@ -574,15 +579,15 @@ theorem writer_facts (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.
 `floorOkO`, `envAus`'s last conjunct): the writer's half is the invariant's state, whose committed
 log is the authority of every floor `kvLogLb γs F`. -/
 theorem writer_floor (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (F : mvcc.Log) :
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (F : mvcc.Log) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
-      wSt γs log c -∗ kvLogLb γs F ={⊤}=∗ wSt γs log c ∗ ⌜F <+: log⌝ := by
+      wStQ γs q log c -∗ kvLogLb γs F ={⊤}=∗ wStQ γs q log c ∗ ⌜F <+: log⌝ := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw #HF
   iunfold kvStoreInvG at Hk
   icases Hk with ⟨#Hm, #Hinv⟩
-  iunfold wSt at Hw
+  iunfold wStQ at Hw
   icases Hw with ⟨Hw1, Hw2⟩
   iinv Hinv with ⟨%σ, >Hs, >Hst, >Hcr, >Hsl, >Hnl, >#Hnx1, >#Hnx2, >#Hrc, >#Hco⟩ Hclose
   icombine Hst Hw1 gives %H1
@@ -593,7 +598,7 @@ theorem writer_floor (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : M
     iexists σ
     iframe Hs Hst Hcr Hsl Hnl Hnx1 Hnx2 Hrc Hco
   imodintro
-  iunfold wSt
+  iunfold wStQ
   iframe Hw1 Hw2
   ipureintro
   have hl : σ.log = log := (Prod.mk.inj H1.2).1
@@ -684,22 +689,23 @@ theorem au_end (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccNam
         iframe Hs Hst Hcr Hsl Hnl Hnx Hrc2 Hco'
       imodintro
       iunfold wSt
+      iunfold wStQ
       iframe Hw1 Hw2
 
 /-- **A compaction at `rev`**, one of the log's, permitted: the compaction revision's three parts
 move to `crevAfter c rev`. -/
 theorem au_compact (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (rev : w64) (hrev : sint.Z rev < log.length) :
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (rev : w64) (hrev : sint.Z rev < log.length) :
     kvStoreInvG (GF := GF) kv γ Nx Cp γs ⊢
-      wSt γs log c -∗ crOwn γs c -∗ Cp (sint.Z rev) -∗
+      wStQ γs q log c -∗ crOwn γs c -∗ Cp (sint.Z rev) -∗
         auCompact γ rev (fun σ => iprop(⌜σ = stAt log c⌝ ∗
-          wSt γs log (crevAfter c rev) ∗ crOwn γs (crevAfter c rev))) := by
+          wStQ γs q log (crevAfter c rev) ∗ crOwn γs (crevAfter c rev))) := by
   haveI := fun σ => Hp.2.2.2.2.2.1 γ σ
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro #Hk Hw Hc #Hcp
   iunfold kvStoreInvG at Hk
   icases Hk with ⟨#Hm, #Hinv⟩
-  iunfold wSt at Hw
+  iunfold wStQ at Hw
   icases Hw with ⟨Hw1, Hw2⟩
   iunfold crOwn at Hc
   iunfold auCompact
@@ -747,7 +753,7 @@ theorem au_compact (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : Mvc
     imodintro
     isplitr
     · ipureintro; rfl
-    iunfold wSt
+    iunfold wStQ
     iunfold crOwn
     iframe Hw1 Hw2 Hc
 
@@ -813,6 +819,7 @@ theorem au_restore (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : Mvc
     isplitr
     · ipureintro; rfl
     iunfold wSt
+    iunfold wStQ
     iunfold crOwn
     iframe Hw1 Hw2 Hc
 
@@ -847,6 +854,7 @@ theorem bootStoreG (Hp : persistent.law (GF := GF)) (kv : GoInterface) (γ : Mvc
   imodintro
   iunfold kvStoreInvG
   iunfold wSt
+  iunfold wStQ
   iunfold crOwn
   iframe Hm Hinv Hw1 Hw2 Hc
 

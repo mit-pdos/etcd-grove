@@ -70,10 +70,10 @@ theorem apply.applierV3backend.Put.wp_proof
   ihave Hif : iprop((if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then
         txn.putAUW E.γ E.win o L (mvcc.leaseItemsOf (mvcc.stateAfter log))
           (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-            srvApi.wSt E.γs (mvcc.commitLog log (txn.putPend o σ)) c ∗ E.Wt E.win))
+            srvApi.wStQ E.γs E.stq (mvcc.commitLog log (txn.putPend o σ)) c ∗ E.Wt E.win))
       else iprop(True)) ∗
       (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then iprop(True)
-       else iprop(srvApi.wSt E.γs log c ∗ E.Wt E.win))) $$ [Hw HWt]
+       else iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win))) $$ [Hw HWt]
   · by_cases hl : o.leaseID = W64 0 ∨ o.leaseID ∈ L
     · simp only [hl, decide_true, ↓reduceIte]
       -- the witness of the log the put commits: only now, the lease live (S3a2)

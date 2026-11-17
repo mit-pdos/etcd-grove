@@ -124,8 +124,8 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
           (mvcc.commitLog (srvApi.stAt log c).log (mvcc.leaseDels (mvcc.stateAfter (srvApi.stAt log c).log) id)))) -∗
         srvApi.auEnd E.γ (srvApi.stAt log c)
         (mvcc.leaseDels (mvcc.stateAfter (srvApi.stAt log c).log) id)
-        iprop(srvApi.wSt E.γs (apply.revokeLog log id) c ∗ E.Wt E.win)) else iprop(True)) ∗
-      (if decide (id ∈ L) then iprop(True) else iprop(srvApi.wSt E.γs log c ∗ E.Wt E.win)) $$ [Hw Hnx HWt]
+        iprop(srvApi.wStQ E.γs E.stq (apply.revokeLog log id) c ∗ E.Wt E.win)) else iprop(True)) ∗
+      (if decide (id ∈ L) then iprop(True) else iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win)) $$ [Hw Hnx HWt]
   · by_cases hid : id ∈ L
     · simp only [hid, decide_true, ↓reduceIte]
       isplitl
@@ -166,7 +166,7 @@ theorem apply.applierV3backend.LeaseRevoke.wp_proof
      ⟨%Hok, Hw, HPost, Hown, Hrvk, #Hknown', HRO⟩)
   · -- not live: the error, nothing changed (the live set's filter the identity)
     -- the writer's half, kept: no update was taken for a lease not live
-    ihave Hw2 : iprop(srvApi.wSt E.γs log c ∗ E.Wt E.win) $$ [Hwr]
+    ihave Hw2 : iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win) $$ [Hwr]
     · simp only [Hnf, decide_false, Bool.false_eq_true, ↓reduceIte]
       iexact Hwr
     icases Hw2 with ⟨Hw, HWt⟩

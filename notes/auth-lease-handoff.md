@@ -1,6 +1,34 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: F4 (A) decided; STOPPED before coding on the tie/store coupling)
+## START HERE (S4, 2026-11-17, item 7b: applierSpecW and K1's apply layer done; F4 next)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Not built since `00b09c1360`
+  (lean-check `--fast -a` only). Decisions: `questions.md`, last three entries (K1 + applierSpecW APPROVED by
+  etcd-grove-03; the agent's forms "applierSpecW and K1", for review).
+- **Done:** `96aaf93c0c` applierSpecW (`uberIs`/`baseAuth`/`uberOwn` hold `□ ∀ w, applierSpec {E with win := w}`).
+  This commit, K1's apply layer: `srvApi.wStQ γs q` (`wSt` = `wStQ ½`, abbrev), share-generic read-only builders
+  (implicit `{q}`), `AEnv.stq : Qp := ½`, `envAus`/`kvOwn(At)`/`mPre*` at `wStQ E.γs E.stq`; server transitional:
+  `srvEnvOk`'s third conjunct `(E.win = none ∧ E.Wt = True ∧ E.stq = ½)`. lean-check clean on every file that
+  mentions the changed names (list `/shared/tmp/rs56-l3.txt`, plus their imports through Lake).
+- **Next, in order:** F4 proper (design: questions.md "Item 7b F4 decision" + "the tie cannot see the store's log"):
+  (1) namespace split: store invariant at `kvsN .@ "st"` (`kvStoreInvG`, `kvsN_mvccN` uses: KVStoreCore 22,
+  KVStoreApi 6, etcdstart WatchSrv/Served 4, NewServerRFacts 1), tie at `kvsN .@ "win"`; (2) the tie
+  (new file, e.g. `etcdserver/WinTie.lean`): names `γw` (ghost var of the current window), `γe` (mono-list of events
+  push/commit/obs), invariant `lessorWinTie γl ws ∗ ghostVar γw ½ (lastWin ws) ∗ ghostVar γs.st ¼ (log, p) ∗
+  monoListAuthOwn γe 1 evs ∗ facts`; `E.Wt w := ghostVar γw ½ w`; (3) server end builder at `wStQ E.γs ¼` (both
+  steps of `au_end` open the tie: the notify step moves the tie's ¼ with the pending, the commit step records the
+  commit event) and restore builder (records a free marker), replacing the `kvAusG` ones in NewServer(R)/
+  SnapApplyOpts; (4) `srvEnvOk`: `E.stq = ¼`, `E.Wt = ghostVar γw ½` (replace the transitional conjunct), split
+  `bootStore.law`'s `wSt` (½) into `wStQ ¼` ×2 in NewServer/NewServerR; (5) `srvApplyKV(On)` at `∃ w`, per-entry
+  `win_push` in `applyEntryNormal`, first window in NewServer after `NewLessor`, snapshot `win_push none`;
+  (6) ONE leaves build from `00b09c1360`; step 7 (law), step 8, c6b merge (see the task brief).
+- **Pitfalls:** `wStQ` is reducible: `icases` destructs it directly; `iframe` into a `wStQ` goal needs `iunfold wStQ`
+  first. To turn `wStQ E.γs E.stq` into `wSt` use `rw [hstq]` inside a subgoal that closes (a goal-level `rw [← hstq]`
+  would rewrite every `½`). `{E with win := w}.authOn` does not unify with `E.authOn` in the proof mode:
+  `apply.applierSpec_congr` with explicit `c`/`c'`. The loop script `/shared/tmp/rs56-loop.sh LIST stop` stops at the
+  first file with an error (fixed: it matched "0 errors").
+
+## Previous START HERE (S4, 2026-11-17, item 7b: F4 (A) decided; STOPPED before coding on the tie/store coupling)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit (no Lean change since `ac1084fa33`,
   which compiles at the defaults; not built since `00b09c1360`, lean-check `--fast` only).

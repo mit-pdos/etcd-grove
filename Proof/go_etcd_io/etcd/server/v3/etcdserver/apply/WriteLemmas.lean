@@ -39,7 +39,7 @@ def kvRest (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) : IProp GF :=
 /-- `mPreW`, split (see the file header). -/
 theorem mPreW_split (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPreW E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wSt E.γs log cr ∗
+    mPreW E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wStQ E.γs E.stq log cr ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ E.BkTie B ∗
       chainRes c a info ∗ kvRest E log B := by
   iintro H
@@ -52,7 +52,7 @@ theorem mPreW_split (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- The thread's KV resources from the split. -/
 theorem kvOwn_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ⊢ kvOwn E log := by
+    srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ⊢ kvOwn E log := by
   iintro ⟨Hw, Htie, Hr⟩
   iunfold kvRest at Hr
   icases Hr with ⟨Hbk, Hhk, Hll, Hrd⟩
@@ -205,7 +205,7 @@ theorem txnWinOps (w : Option lease.LWin) (rq : IRRModel) (t : TxnModel) (log : 
 
 /-- The thread's KV resources at the live set `L`, from the split's pieces (auth-lease S3a). -/
 theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : Int) (L : List w64) :
-    (srvApi.wSt E.γs log cr ∗ E.Wt E.win) ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
+    (srvApi.wStQ E.γs E.stq log cr ∗ E.Wt E.win) ∗ E.BkTie B ∗ mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
       lease.lessorUserW (mvccLeases E.γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) E.win ∗ ltHalf E L ∗
       E.RD ⊢ kvOwnAt E log L := by
@@ -218,9 +218,9 @@ theorem kvOwnAt_of_split (E : AEnv GF) (log : mvcc.Log) (B : mvcc.KBReal) (cr : 
   iframe Hk Hu Hlt HWt Hrd
 
 /-- **Two writer halves at different logs are impossible** (each holds a half of `γs.st`). -/
-theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
-    srvApi.wSt (GF := GF) γs l c ∗ srvApi.wSt γs l' c' ⊢ False := by
-  unfold srvApi.wSt
+theorem wSt_ne_false (γs : srvApi.KVSNames) {q q' : Qp} (l l' : mvcc.Log) (c c' : Int) (h : l ≠ l') :
+    srvApi.wStQ (GF := GF) γs q l c ∗ srvApi.wStQ γs q' l' c' ⊢ False := by
+  unfold srvApi.wStQ
   iintro ⟨⟨Hs, -⟩, ⟨Hs', -⟩⟩
   icombine Hs Hs' gives %H
   exfalso
@@ -232,7 +232,7 @@ theorem wSt_ne_false (γs : srvApi.KVSNames) (l l' : mvcc.Log) (c c' : Int) (h :
 token back. -/
 theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Post : IProp GF)
     (B : mvcc.KBReal) (cr : Int) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ∗ (Post ∨ Pre) ∗ bkRT B ⊢
+    srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ∗ (Post ∨ Pre) ∗ bkRT B ⊢
       mPostW E .backend a log Pre Post := by
   iintro ⟨Hw, Htie, Hr, HPP, Hrt⟩
   icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
@@ -247,7 +247,7 @@ theorem mPostW_backend (E : AEnv GF) (a : GoInterface) (log : mvcc.Log) (Pre Pos
 /-- `mPreV` (the cluster methods', with `v3`), split as `mPreW`. -/
 theorem mPreV_split (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Q Post : IProp GF) :
-    mPreV v3 E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wSt E.γs log cr ∗
+    mPreV v3 E c a info log Pre Q Post ⊢ ∃ (cr : Int) (B : mvcc.KBReal), srvApi.wStQ E.γs E.stq log cr ∗
       cPre v3 (E.Pk B) E.f Pre Q Post ∗ bkWT B ∗ bkRT B ∗ E.BkTie B ∗
       chainRes c a info ∗ kvRest E log B := by
   iintro H
@@ -262,7 +262,7 @@ theorem mPreV_split (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (log : mvcc.Log) (Pre Post : IProp GF)
     (B : mvcc.KBReal) (cr : Int) :
-    srvApi.wSt E.γs log cr ∗ E.BkTie B ∗ kvRest E log B ∗ chainRes c a info ∗
+    srvApi.wStQ E.γs E.stq log cr ∗ E.BkTie B ∗ kvRest E log B ∗ chainRes c a info ∗
       cPost v3 Pre Post ∗ bkRT B ⊢ mPostV v3 E c a info log Pre Post := by
   iintro ⟨Hw, Htie, Hr, Hres, HPP, Hrt⟩
   icases bkRTOf_intro E B $$ [$Htie $Hrt] with ⟨Htie, Hrt⟩
@@ -276,7 +276,7 @@ theorem mPostV_of (v3 : Bool) (E : AEnv GF) (c : Chain) (a : GoInterface)
 /-- **`mPre` without the chain's resources** (strict M1, 2026-11-05): what a wrapper passes on
 unchanged, or gives back with `Pre` when it rejects (`mPreRest_reject`). -/
 def mPreRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -302,7 +302,7 @@ theorem mPre_of_rest (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- **`mPreRest` at the live set `T`** (auth-lease S3a2): `mPreAt` without the chain's resources. -/
 def mPreRestAt (E : AEnv GF) (log : mvcc.Log) (T : List w64) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLiveAt E (mvcc.stateAfter log) T ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -466,7 +466,7 @@ theorem mPreW_reject (E : AEnv GF) (c : Chain) (a : GoInterface)
 
 /-- **`mPreW` without the chain's resources** (as `mPreRest`). -/
 def mPreWRest (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       srvApi.csContractA (E.Pk B) E.f Pre Q Post)
 
@@ -567,7 +567,7 @@ theorem mPreWRest_reject (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) 
 
 /-- **`mPreV` without the chain's resources** (as `mPreRest`). -/
 def mPreVRest (v3 : Bool) (E : AEnv GF) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop((∃ cr : Int, srvApi.wSt E.γs log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
+  iprop((∃ cr : Int, srvApi.wStQ E.γs E.stq log cr) ∗ leasesLive E (mvcc.stateAfter log) ∗ E.RD ∗
     ∃ B : mvcc.KBReal, mvccBackend E.γ 1 B (E.Pk B) ∗ hookIs B E.f ∗ E.BkTie B ∗ bkWT B ∗ bkRT B ∗
       cPre v3 (E.Pk B) E.f Pre Q Post)
 

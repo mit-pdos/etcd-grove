@@ -74,7 +74,7 @@ theorem apply.applierV3backend.DeleteRange.wp_proof
   -- the delete's updates (either outcome of its range read)
   ihave Hau : txn.delAUW E.γ E.win o (mvcc.leaseItemsOf (mvcc.stateAfter log))
       (fun σ ok => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-        srvApi.wSt E.γs (mvcc.commitLog log (txn.delPend o σ ok)) c ∗ E.Wt E.win)) $$ [Hw HWt]
+        srvApi.wStQ E.γs E.stq (mvcc.commitLog log (txn.delPend o σ ok)) c ∗ E.Wt E.win)) $$ [Hw HWt]
   · unfold txn.delAUW
     iapply (apply.beginAU_of_auBegin E.γ (srvApi.stAt log c))
     iapply HauB $$ %log %c %_ Hw

@@ -617,9 +617,10 @@ interim restriction: `applySnapshot.specSnapM`'s `d.cm = false`, until restore i
 a `mvcc.KBReal`, the epoch's `B`, which the chain's tie `E.BkTie` names (`srvBkTie B`, in place of the
 store's names' `E.γ.kb = some d`); the two mode clauses gone, the API's backend always compacting
 and the store having no mode.) (Auth-lease S4 item 7b) No lessor window open (`E.win = none`): the server opens one per
-entry, on a copy of `E`; and (until F4's tie token) the window token is the default `True`. -/
+entry, on a copy of `E`; and (until F4's tie token) the window token is the default `True`, (K1) the apply thread's share
+of the store's state the default `½` (F4: `¼`, the tie holding the other quarter). -/
 def srvEnvOk (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (cl : Loc) : Prop :=
-  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧ (E.win = none ∧ E.Wt = fun _ => iprop(True)) ∧
+  E.FS = srvFS s ∧ E.ciC = srvCiC γ ci ∧ (E.win = none ∧ E.Wt = (fun _ => iprop(True)) ∧ E.stq = (1 : Qp).half) ∧
     ∃ (γB : backend.BNames) (H : IProp GF), E.RO = srvRestOwnH E.authMode γB cl H ∧ E.RW = srvRestRWH γB H ∧
       ∃ (B : mvcc.KBReal) (al st lp : Loc), E.BkTie = srvBkTie B ∧ B.γB = γB ∧
         H = srvObjsOn al st lp cl B.be

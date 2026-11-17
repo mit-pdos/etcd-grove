@@ -49,7 +49,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     (st : auth.AuthState) (hxl : x.log.length ≤ (kvModelM on γr.kv A').length)
     (hnl : ∀ (k : GoString) (id : w64),
       mvcc.leaseItemsOf (mvcc.stateAfter (kvModelM on γr.kv A')) !! ⟨k⟩ = some id → id ∈ L)
-    (hEw : E.win = none ∧ E.Wt = fun _ => iprop(True)) :
+    (hEw : E.win = none ∧ E.Wt = (fun _ => iprop(True)) ∧ E.stq = (1 : Qp).half) :
     apply.uberIs (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' opts' ∗
       apply.uberOwn (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be) up' (apply.alarmChain (snapE E (snapγ γ π0 d'.γB) (metaTM d'.γB P) ci d' g d'.γB al ast lp cl d'.be).authOn false false) ∗
       srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
@@ -99,7 +99,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     · iunfold apply.kvOwn
       simp only [snapE_γs, snapE_γ, snapE_RD]
       isplitl [HwSt]
-      · iexists crevOf γr.kv A'; iexact HwSt
+      · iexists crevOf γr.kv A'; simp only [snapE_stq]; rw [hEw.2.2]; iexact HwSt
       isplitl [HmB]
       · iunfold apply.kvBk
         iexists d'
@@ -114,7 +114,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       iexists L
       iframe Hlk
       simp only [snapE_win, snapE_Wt]
-      rw [hEw.1, hEw.2]
+      rw [hEw.1, hEw.2.1]
       iunfold lease.lessorUserW
       simp only [snapE_γ]
       iframe Hlo Hlr Hrv

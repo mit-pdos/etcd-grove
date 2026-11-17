@@ -154,11 +154,11 @@ theorem snapImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.la
     (Nx : mvcc.Log → IProp GF) (Cp : Int → IProp GF)
     [∀ l, Persistent (Nx l)] [∀ l, Timeless (Nx l)] [∀ c, Persistent (Cp c)]
     [∀ c, Timeless (Cp c)] [ThreadBoundLe GF (2 ^ 29)] (kv : GoInterface) (γ : MvccName)
-    (γs : KVSNames) (log : mvcc.Log) (c : Int) (bk : mvcc.KBReal) (Pk : IProp GF) (qo : Qp)
+    (γs : KVSNames) {q : Qp} (log : mvcc.Log) (c : Int) (bk : mvcc.KBReal) (Pk : IProp GF) (qo : Qp)
     (R : IProp GF)
     (Q : GMap (GoString × GoString) GoString → GMap GoString backend.BktData → Prop) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-      kvStoreInvG kv γ Nx Cp γs ∗ wSt γs log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
+      kvStoreInvG kv γ Nx Cp γs ∗ wStQ γs q log c ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
       backend.bOpen bk.γB qo ∗ backend.wbTok bk.γB ∗ threadTok ∗ R ∗
       □ (∀ (d : GMap (GoString × GoString) GoString) (r : GMap GoString backend.BktData),
         R -∗ Pk -∗ backend.hkOwn bk.γB d -∗ backend.rbOwn bk.γB r -∗ ⌜Q d r⌝) }}
@@ -168,19 +168,19 @@ theorem snapImageG (Hp : persistent.law (GF := GF)) (Hr : mvccState_reachable.la
       RET #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.snapshot.ty) #sp);
       backend.snapOpen sp D ∗ backend.bOpen bk.γB qo ∗ R ∗ mvccBackend γ 1 (etcdStorage bk) Pk ∗
-      wSt γs log c ∗ ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
+      wStQ γs q log c ∗ ⌜Q (backend.hkData bk.P D) (backend.rbData bk.P D)⌝ ∗
       ⌜imageStOk log c⌝ ∗ ∃ u : Bool, mvccImage D log c u }} := by
   haveI := kvStoreInvG_persistent Hp kv γ Nx Cp γs
   iintro %Ψ ⟨#Hpkg, #Hk, Hw, HB, Ho, Hwb, Htok, HR, #HQ⟩ HΨ
   -- the writer's state reachable (the image certificate carries it to the receiver's `Restore`)
   imod writer_facts Nx Cp Hp Hr kv γ γs log c $$ Hk Hw with ⟨Hw, -, -, -, %Hre⟩
-  ihave HAU := au_snap Nx Cp Hp kv γ γs log c (wSt γs log c) $$ Hk Hw []
+  ihave HAU := au_snap Nx Cp Hp kv γ γs log c (wStQ γs q log c) $$ Hk Hw []
   · iintro H; iexact H
   ihave #Hk' := Hk
   iunfold kvStoreInvG at Hk'
   icases Hk' with ⟨#Hm, -⟩
   iunfold auSnap at HAU
-  iapply (hImg hSnap kv γ bk Pk qo R Q (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wSt γs log c)))
+  iapply (hImg hSnap kv γ bk Pk qo R Q (fun σ => iprop(⌜σ = stAt log c⌝ ∗ wStQ γs q log c)))
     $$ [HB Ho Hwb Htok HR HAU]
   · iframe #; iframe
   iintro !> %sp %D ⟨Hsn, Ho, HR, HB, %HQD, %σ, %u, ⟨%Hσ, Hw⟩, #Him⟩

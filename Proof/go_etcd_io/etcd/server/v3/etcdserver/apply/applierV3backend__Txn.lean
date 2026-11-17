@@ -68,10 +68,10 @@ theorem apply.applierV3backend.Txn.wp_proof
   have h2 : 2 ≤ log.length := txn.reach_len (srvApi.stAt log c) Hreach.1
   have hlen : log.length + 4 ≤ 2 ^ 63 := hput
   -- the read update, at the writer's state
-  ihave Hau0 := HauR $$ %log %c %iprop(srvApi.wSt E.γs log c ∗ E.Wt E.win) Hw [HWt]
+  ihave Hau0 := HauR $$ %log %c %iprop(srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win) Hw [HWt]
   · iintro Hw; iframe Hw HWt
   ihave Hau : srvApi.auRead E.γ (fun σ => iprop(⌜σ.log = log⌝ ∗
-      (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c ∗ E.Wt E.win)) σ)) $$ [Hau0]
+      (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win)) σ)) $$ [Hau0]
   · iapply apply.auRead_wand $$ Hau0
     iintro %σ ⟨%Hσ, Hw⟩
     subst Hσ
@@ -85,9 +85,9 @@ theorem apply.applierV3backend.Txn.wp_proof
       iprop(∀ σ : MvccState,
         ⌜txn.PathsIgnOk (mvcc.stateAfter log) (t.branch (txn.txnOk (mvcc.stateAfter log) t)) ∧
           txn.PathsLeaseOk (mvcc.stateAfter log) L (t.branch (txn.txnOk (mvcc.stateAfter log) t))⌝ -∗
-        (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wSt E.γs log c ∗ E.Wt E.win)) σ -∗
+        (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗ srvApi.wStQ E.γs E.stq log c ∗ E.Wt E.win)) σ -∗
         txn.txnBeginAUW E.γ E.win log t (fun σ => iprop(⌜σ = srvApi.stAt log c⌝ ∗
-          srvApi.wSt E.γs (mvcc.commitLog log (txn.txnChs log t)) c ∗ E.Wt E.win)))) $$ []
+          srvApi.wStQ E.γs E.stq (mvcc.commitLog log (txn.txnChs log t)) c ∗ E.Wt E.win)))) $$ []
   · cases hro : txn.txnReadonly t
     · simp only [Bool.false_eq_true, ↓reduceIte]
       iintro %σ %hig ⟨%Hσ, Hw, HWt⟩
