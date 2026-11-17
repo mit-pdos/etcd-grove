@@ -7,26 +7,25 @@
   Scope (approved): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local; step 2 forms ACCEPTED).
 - Done: step 0 `e9bf69f83a`/`47eae5838c`; step 1 `11962185aa`/`50faaad1a3`; step 2 `2e775cc56e`.
 - **Step 3 in progress** (Go proofs of `correctness`, one spec per function over `RM`):
-  - `Proof/.../k8s/etcd3/correctness/Defs.lean`: `deepRO` (read-only `deepRep`), `modelRep dq mp m`
-    (`modelAt` persistent / `modelOwn` owned; carries `isPkgInit` of the driver; `itemsRO` is `mapRep`
-    at `fmap DeepV.obj items`, so `DeepEqual` applies directly), `errRep`/`respRep`, `rconsStr`.
-  - Proved (no sorry): `keyInScope`, `checkKey`, `GetReadConsistency`, `ListReadConsistency`
-    (premise: `MinRV` parses; precondition: driver `isPkgInit`), driver `Obj.DeepCopyObject`,
-    `Obj.SetResourceVersion` (`ObjRV.lean`: `setRVL`, `parseUint_decStr`, `setRVL_decStr`).
-  - Specs written, proofs skeleton (`sorry`): `NewEmptyModel`, `Model.Clone` (map `for range`:
-    `wp_map_for_range` with invariant "clone holds `itemsRO` of the visited keys"), `Model.Equal`
-    (`RM_eq_iff`, `fmap_obj_inj` there; clause 3 of `DeepEqual.spec_k8s` + `maps.Equal`).
-  - Next in order: finish those three; `create`/`get`/`delete`/`update` (need: `Preconditions.Check`
-    post with the message (R1: strengthen `invalidErrIs` with the inner `errors.New(msg)`; the
-    driver's `errVarOk` gives `errStrCell l msg` for the callback errors), closure predicates for
-    `tryUpdateFor`/`validateFor` over `Obj` (realised in step 5 by strengthening those specs' posts),
-    `NewTooLargeResourceVersionError` → `errRep (.tooLarge false)`); `listItems`, `list`,
-    `execute`; `listResponseRV`, `validCacherContinue`, `equalListResponse`. **Blocked until the
-    soundness-1117 fix lands** (V): `validateGet`, `validateList`, `Step` (they call
-    `IsTooLargeResourceVersion`/`SuggestsClientDelay` on `*StorageError`s).
+  - `correctness/Defs.lean` (vocabulary), `ItemsRO.lean` (itemsRO lookup/insert/delete/empty/dom).
+  - Proved (no sorry): `keyInScope`, `checkKey`, `GetReadConsistency`, `ListReadConsistency`,
+    driver `Obj.DeepCopyObject`/`Obj.SetResourceVersion`; `NewEmptyModel`, `Model.Clone`
+    (`730a35dc0e`), `Model.Equal` (`4419c6a1d1`).
+  - `Model.get` proved (spec `Spec/.../correctness/Model__get.lean`: Lean premises on `opts`).
+  - **STOP (questions.md, "Step 3 STOP")**: `Preconditions.Check`'s message is `arbitraryString()`
+    in Perennial's `Sprintf` model (`%v` of a string); `update`/`delete` (and `execute`) wait for
+    the decision (recommended: Perennial models `%v` of a string as `%s`). Go evidence:
+    `/shared/tmp/k8s7g/sprintfv/` (PASS).
+  - Next, not blocked: `create` (spec: `modelOwn` pre/post, `op ↦□` the RV-0 object
+    of `x`; needs a `changeRep cp (Option RChange)` in Defs for `*Change`; `meta.Accessor` needs
+    `objTyOk_holds`; `FormatUint` = `decStr`, `setRVL_decStr`); then `listItems`, `list`,
+    `listResponseRV`, `validCacherContinue`, `equalListResponse`.
+  - **Blocked until the soundness-1117 fix lands** (V): `validateGet`, `validateList`, `Step`.
 - **Standing constraint**: do not touch View.lean / HasStatusCause / IsTooManyRequests /
   SuggestsClientDelay until etcd-grove-03 says the soundness fix (a) + T landed.
 - Pitfalls:
+  - A file whose imports are not built (new Spec imports) hangs lean-check at "elaborating line 1"
+    for 30+ min: build the imports first with the build slot, then open it.
   - A fresh file in `etc/lean-check.py` can take 10-15 min (import load + lake building its Spec
     import); then edits re-check in seconds. Keep the file open and iterate; `/shared/tmp/k8s7g-gl.sh
     FILE LINE:COL` prints a filtered goal.
