@@ -1,6 +1,35 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A4 done; STOP: report A4's end)
+## START HERE (2026-11-17, A5 done; STOP: report A5's end)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A2-A7); decisions `questions.md` (untracked; "A5 done").
+- Done: A1 (52d85a42f6 … 6fe91f236f); A2 (72c59c8aff, f546a2dbb9); A3 (7a843bfc54); A4 (846a7fedd9, ACCEPTED).
+- **A5 (5cc3a07e4b, this commit; lean merged 22235f7e13)**: full build green (`/shared/tmp/auth-schema-srv/a5-build1.log`); tcb +2 (MarshalUser/Role; baseline 900, server collection; auth collections unchanged); bounds 391 = baseline; axiom-tok ok. schema's write side and walks, 22 functions specified and proved
+  (`Spec|Proof/go_etcd_io/etcd/server/v3/storage/schema/{authBatchTx__*,authBackend__{BatchTx,ForceCommit,
+  CreateAuthBuckets,GetAllUsers,GetAllRoles},authReadTx__UnsafeGetAllUsers,unsafeGetAll{Users,Roles}}.lean`), over
+  callee triples of the backend transaction (A6 instantiates them); `InvAuthBackend`: `rdCap`, `authForEachSpec`
+  (in `authReader`), `authRolesRange`/`rolesRangeEnts`, `usersOutD`/`rolesOutD`, `abtF`; linked in the server's
+  `Link` (MarshalUser/MarshalRole now reached).
+- Next: A6, the realization (`⊢ authSchemaSrv`, `authSchemaSnap` from one per-backend lemma): derive `authBE`/
+  `authRTx`/`authReader` for the real backend (readTx per bucket, `rbOwnInR`/claimed parts), instantiate A5's callee
+  triples from `batchTxBuffered.*` with the claimed parts (`rbPutR`), `Unlock.spec`'s accessor, the receipts
+  (`receipt_add_one_lt`: writes < receiptBound ≤ 2^48), strengthen `GetUser`/`GetRole` with the `Φ` premise as
+  `GetAllUsers` (questions.md "A5 done"); then A7 HARD STOP.
+- Pitfalls: (0) a hypothesis holding a triple on an abstract interface (`methods t.ty m t.v`) breaks `wp_start`'s
+  `rw [method_unfold]` (it unifies with that occurrence: "MethodUnfold t.ty"): `wp_start_folded as …`, then
+  `rw [MethodUnfold.method_unfold (t := go.GoType.PointerType <T>.ty) (m := go!"M")]`, `wp_call`; in a visitor
+  subgoal `iclear` such a hypothesis first. (1) `wp_if_destruct`/`wp_apply` run `wp_auto`, which drops a resolution's
+  receipt: `wp_apply +noauto`. (2) `imod` of a `|==>` only while the goal is a WP (not after the last step of a loop
+  body: before `wp_store`). (3) `generalize … at *` once gave a kernel error with `word`: use `obtain ⟨es, hes⟩ : ∃
+  es, … = es := ⟨_, rfl⟩; rw [hes]`. (4) a hand-written `if m = n` picks `instDecidableEqString`: write
+  `@ite _ (m = n) (Classical.propDecidable _) …`. (5) keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq,
+  batteries, iris. (6) lean-check of a server file rebuilds its imports outside a slot: prefer the slot build.
+
+## History
+
+### A4 done (2026-11-17, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -23,7 +52,6 @@
   --layout` builds every package module: build first. (7) lean-check of a server file rebuilds its imports outside a
   slot (EtcdServer__UserAdd: 450 s): prefer the slot build for many importers.
 
-## History
 
 ### A4 STOP (2026-11-17, superseded)
 
