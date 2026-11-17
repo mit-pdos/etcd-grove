@@ -341,7 +341,7 @@ theorem apply.checkLeasePuts.wp_latest
   ihave ⟨Hu, %HI⟩ := lease.lessorUser_items γl L I $$ Hu
   ihave #Htl' := Htl
   iunfold txn.isTxnLessor at Htl'
-  icases Htl' with ⟨-, %li, %Hli, #HLookup⟩
+  icases Htl' with ⟨-, %li, %Hli, #HLookup, -⟩
   subst Hli
   wp_auto
   wp_apply HLookup $$ %id %L %I [$Hu] as %l ⟨Hu, %Hlid⟩

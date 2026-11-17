@@ -930,6 +930,9 @@ theorem runner.apply.wp_proof
         · iframe; iframe #
         (try wp_auto)
         rw [hid]
+        ihave Hau := srvApi.auBegin_pre (lease.winWit (mvccLeases v.ι.kv) none
+          (leaseItemsOf (stateAfter (commitLog (σOf ks ops v.ops).log
+            (leaseDels (stateAfter (σOf ks ops v.ops).log) o.id))))) _ _ _ $$ Hau
         wp_apply (hR none) $$ [Hr1 Hrdo Hback Hpre Hlo Hrvk Hrb Hlbe Hau]
           as %err ⟨Hr1, Hrdo, Hback, Hlbe, Hres⟩
         · iframe Hlinv Hrevoc Hr1 Hrdo Hback Hhk Hrvk Hrb Hlbe

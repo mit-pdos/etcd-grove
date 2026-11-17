@@ -37,7 +37,7 @@ theorem apply.checkLeasePuts.wp_proof
   iunfold apply.isApplyLessor at Hle'
   icases Hle' with ⟨Htl, -⟩
   iunfold txn.isTxnLessor at Htl
-  icases Htl with ⟨-, %li, %Hli, #HLookup⟩
+  icases Htl with ⟨-, %li, %Hli, #HLookup, -⟩
   subst Hli
   wp_auto
   wp_apply HLookup $$ %id %L %I [$Hu] as %l ⟨Hu, %Hlid⟩

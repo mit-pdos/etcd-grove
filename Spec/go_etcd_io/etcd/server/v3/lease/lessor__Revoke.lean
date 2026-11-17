@@ -66,7 +66,10 @@ abbrev lease.lessor.Revoke.spec : Prop :=
       mvccBackend γ q B P ∗ hookIs B f ∗ csContractA P f Pre Q Post ∗
       ⌜σ₀.pending = none ∧ (mvcc.stateAfter σ₀.log).length ≤ 2 ^ 62 ∧
         MvccReachable σ₀ ∧ σ₀.log.length + 3 ≤ 2 ^ 63⌝ ∗
-      (if decide (id ∈ L) then auBegin γ σ₀ (auEnd γ σ₀ dels Y) else iprop(True)) ∗
+      (if decide (id ∈ L) then
+        auBegin γ σ₀ iprop(lease.winWit γl w (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog σ₀.log dels))) -∗
+          auEnd γ σ₀ dels Y)
+       else iprop(True)) ∗
       lease.leaseOwnW γl L (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log)) w ∗ lease.leaseRevokers γl L ∗
       backend.rbPart B.γB (· = mvcc.leaseName) r ∗ ⌜mvcc.leaseParams B.P⌝ ∗ lease.lessorBeOn lp B.be ∗
       ⌜lease.winDrops w (mvcc.leaseItemsOf (mvcc.stateAfter σ₀.log))

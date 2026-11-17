@@ -1,6 +1,36 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-17, item 7b: STOPPED before step 6's applier work: a gap in step 7's design)
+## START HERE (S4, 2026-11-17, item 7b: F1-F4 APPROVED; F1, F3 and the txn witness clause done; the batch continues)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Decisions: `questions.md` (last entries: the step-7 gap,
+  "F1-F4 decision" by etcd-grove-03, with its conditions). Not yet built (lean-check only); the batch's one leaves build
+  comes after the applier/server part.
+- **Done (this commit, lean-checked):** F1: `winsOk` pairwise (`InvLessor`; `LessorHist.winsOk_snoc/_open`), `lease.winWit`
+  (`InvLessor`, `True` at `none`), `lease.win_wit` (`LessorLemmas`). Form: `txn.isTxnLessor` gains the clause
+  `□ ∀ L I w, leaseOwnW … w ={⊤}=∗ leaseOwnW … w ∗ winWit γl w I` (the txn layer has no `lessorRdInv`; premise of
+  closed `txn_runTxn`/`server_kv_backend` strengthened, discharged by `isTxnLessor_of_lessorInv` via `win_wit`; consumers'
+  patterns get a trailing `-`). F3: `lessor.Revoke.spec`'s begin payload `winWit γl w (items after) -∗ auEnd …`; the proof
+  takes the witness after the delete loop; `txn.pendItems_commitLog` (`ApiLemmas`); `srvApi.auBegin_wand`/`auBegin_pre`
+  (`MvccShapes`); callers at `none`: `LessorDerive.revokeClause_of_lessorInv`, mvccrand `writer__revoke`, mvccfull
+  `runner__apply` (check pending at commit time: see below).
+- **Next, in order (one batch, then ONE leaves build from base `00b09c1360`):**
+  1. F2: `ApiVocab`: `txn.putAUW/delAUW/txnBeginAUW γ w …` whose commit is `lease.winWit (mvccLeases γ) w (pendItems σ₀.log
+     pend) -∗ txn.commitAU …`; keep `putAU/delAU/txnBeginAU := …W none` (abbrevs: closed `txn_runTxn` names `txnBeginAU`,
+     text unchanged). `txn.Put/DeleteRange/Txn.spec` take the `W` forms at their `w`; proofs (`Put.lean:113`,
+     `DeleteRange.lean:74`, `Txn.lean:257`) get the witness from `isTxnLessor`'s new clause just before `End`.
+  2. Applier at a window (design: "Next" of the previous START HERE): `kvOwnW`/`leasesLiveW`/`mPreAtW` (plain = `none`),
+     `revokeClause`/`isApplyLessor` at `w`, `applierV3backend.{Put,DeleteRange,Txn,LeaseRevoke}` with the pure premise; the
+     AU builders feed the witness to F4's end builder.
+  3. F4: `kvStoreInvG`'s body: `lessorWinTie` + a monotone event list (push `(s,T,log_s,entry)` / commit `(j,log)` with
+     `lessorAt` facts); `envAus`'s end builder takes `winWit` + "T = items after" and records the commit; `au_restore`
+     records a free marker. Server: `applyEntryNormal` pushes per entry (`win_push (some T)`), snapshot `win_push none`.
+  4. lean-check the changed files, then the leaves build; step 7 (the law; `lessorLawMask` gains `lessorRdN`), step 8,
+     the c6b merge (`.lake/package-overrides.json` ← `/shared/tmp/manifest-c6b.json`), full build, tcb, interfaces.
+- **Pitfalls:** an `IProp` argument written inside a term needs `iprop(…)` (`auBegin γ σ₀ iprop(W -∗ X)`). `wp_apply hR`
+  whose window was inferred from a now-wrapped resource needs `(hR none)`. lean-check `-a` on mvccfull's `runner__apply`
+  takes minutes (run it in the background).
+
+## Previous START HERE (S4, 2026-11-17, item 7b: STOPPED before step 6's applier work: a gap in step 7's design)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Decisions: `questions.md` (last
   two entries: the window design APPROVED by etcd-grove-03; "the approved design leaves step 7 unprovable after a

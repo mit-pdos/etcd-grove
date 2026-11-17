@@ -12,6 +12,7 @@ public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Detach
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Spec.go_etcd_io.etcd.server.v3.lease.lessor__Lookup
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Defs
+public import Proof.go_etcd_io.etcd.server.v3.lease.LessorLemmas
 
 @[expose] public section
 
@@ -89,7 +90,10 @@ theorem isTxnLessor_of_lessorInv
   · ipureintro; rfl
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, -, -⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, -, #Hrdi⟩
+  isplitl []; rotate_left
+  · iintro !> %L %I %w Hown
+    iapply (win_wit γl L I w ⊤ (by simp)) $$ [$Hrdi $Hown]
   iintro !> %id %L %I %w %Φ !> Hu HΦ
   iunfold lessorUserW at Hu
   icases Hu with ⟨Hown, Hrdo, Hrvk⟩

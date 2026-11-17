@@ -406,6 +406,68 @@ theorem win_push (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Opti
     ipureintro; exact lastWin_snoc ws0 _ x
   iexists γr; iframe Hpr Hwt
 
+/-- **The owner's witness** (auth-lease S4 item 7b F1, 2026-11-17): the history's last index, whose snapshot has the
+owner's item map, is in the owner's open window (its start is an index of the history, `winsOk`). -/
+theorem win_wit (γl : GName) (L : List w64) (I : GMap LeaseItem w64) (w : Option LWin) (E : CoPset)
+    (hE : ↑lessorRdN ⊆ E) :
+    lessorRdInv (GF := GF) γl ∗ leaseOwnW γl L I w ⊢ |={E}=> leaseOwnW γl L I w ∗ winWit γl w I := by
+  cases w with
+  | none => iintro ⟨-, H⟩; iframe H; unfold winWit; imodintro; itrivial
+  | some v =>
+  obtain ⟨s, T0⟩ := v
+  unfold lessorRdInv leaseOwnW leaseClosers winOwn
+  iintro ⟨⟨%γr1, #Hp1, #Hinv⟩, ⟨Hf, %lp, %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, %HIS, Hcs,
+    %γr, %hs, %Sm, #Hpr, Ha, %Hlast, HSm, %ws0, Hwo, %Hw⟩⟩
+  ihave %H1 := lessorPinR_agree γl γr γr1 $$ [$Hpr $Hp1]
+  subst H1
+  obtain ⟨T, hT⟩ := Hlast
+  obtain ⟨hσ, hlen⟩ := getLast?_getElem? hT
+  ihave #Hlb := monoListLbOwn_get γr.1 _ hs $$ Ha
+  ihave #Hidx := monoListIdxOwn_get (hs.length - 1) (C, I, T) hσ $$ Hlb
+  iinv Hinv with Hb Hclose
+  iunfold lessorRdBody at Hb
+  icases Hb with ⟨%hs0, %Sm0, >Hh, >HS, >%Hok, >%Hmono, >HU, #>Htie, #>Hids, >HW, >HQ⟩
+  ihave %Hh := monoListAuthOwn_agree γr.1 _ _ hs hs0 $$ Ha Hh
+  obtain ⟨-, rfl⟩ := Hh
+  iunfold lessorWinBody at HW
+  icases HW with ⟨%ws1, Hwi, %HWok⟩
+  ihave %Hag := monoListAuthOwn_agree γr.2.2.2.2.2 _ _ ws0 ws1 $$ Hwo Hwi
+  obtain ⟨-, rfl⟩ := Hag
+  have hs_lt : s < hs.length := by
+    unfold lastWin at Hw
+    split at Hw
+    · rename_i s' T' hl
+      simp only [Option.some.injEq, Prod.mk.injEq] at Hw
+      obtain ⟨rfl, -⟩ := Hw
+      exact HWok.1.1 _ _ (List.getLast?_eq_getElem? ▸ hl)
+    · cases Hw
+  imod Hclose $$ [Hh HS HU HQ Hwi] with -
+  · inext; iunfold lessorRdBody; iexists hs, Sm0; iframe Hh HS HU Htie Hids HQ
+    isplitr
+    · ipureintro; exact Hok
+    isplitr
+    · ipureintro; exact Hmono
+    iunfold lessorWinBody
+    iexists ws0; iframe Hwi
+    ipureintro; exact HWok
+  imodintro
+  isplitl [Hf Him HI Hcs Ha HSm Hwo]
+  · iframe Hf
+    iexists lp, γga, γcl, C, im
+    iframe Hp Him HI Hcs
+    isplitr; · ipureintro; exact HC
+    isplitr; · ipureintro; exact HIL
+    isplitr; · ipureintro; exact HIS
+    iexists γr, hs, Sm; iframe Hpr Ha HSm
+    isplitr; · ipureintro; exact ⟨T, hT⟩
+    iexists ws0; iframe Hwo
+    ipureintro; exact Hw
+  unfold winWit
+  iexists hs.length - 1, (C, I, T)
+  isplitr
+  · iunfold lessorAt; iexists γr; iframe Hpr Hidx
+  ipureintro; exact ⟨by omega, rfl⟩
+
 /-- **The owner appends a snapshot** (`Revoke`, the item sets unchanged). -/
 theorem hist_append (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     (Sm : GMap Loc (GMap LeaseItem Unit)) (τ σ' : LSnap) (E : CoPset) (hE : ↑lessorRdN ⊆ E)

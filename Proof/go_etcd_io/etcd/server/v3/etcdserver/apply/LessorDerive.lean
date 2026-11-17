@@ -193,6 +193,17 @@ theorem revokeClause_of_lessorInv (hRv : lease.lessor.Revoke.spec (GF := GF) (hG
     ⟨Hmr, ⟨%rd, Hro, #Hdel⟩, #Hrev, Hbk, #Hhook, HBT, Hcs, %Hpure, Hau, Hown, Hrvk, #HK, HRO⟩ HΦ
   iunfold revokeLens at Hlens
   icases Hlens $$ %B %rs HBT HRO with ⟨HBT, Hrb, %hlp, Hbe, Hcl⟩
+  -- (item 7b F3) no window: the witness is `True`
+  ihave Hau : iprop(if decide (id ∈ L) then
+      srvApi.auBegin γ σ₀ iprop(lease.winWit (mvccLeases γ) none (mvcc.leaseItemsOf (mvcc.stateAfter
+        (mvcc.commitLog σ₀.log (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id)))) -∗
+        srvApi.auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y)
+    else iprop(True)) $$ [Hau]
+  · by_cases hid : id ∈ L
+    · simp only [hid, decide_true, ↓reduceIte] at *
+      iapply (srvApi.auBegin_wand γ σ₀) $$ Hau
+      iintro HE -; iexact HE
+    · simp only [hid, decide_false, Bool.false_eq_true, ↓reduceIte]; itrivial
   iapply (hRv lp γ id rd q B (Pk B) f σ₀ L rs.bk Pre Q Post Y none) $$
     [Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe]
   · iframe Hmr Hro Hbk Hcs Hau Hown Hrvk Hrb Hbe Hpkg Hmpkg Hinv Hrev Hdel Hhook

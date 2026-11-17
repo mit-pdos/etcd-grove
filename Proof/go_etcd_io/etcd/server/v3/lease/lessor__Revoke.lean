@@ -159,12 +159,16 @@ theorem lease.lessor.Revoke.wp_proof
     icases Hcs with ⟨HPre, Htr, Hupd⟩
     -- the caller's begin update: a live lease's
     ihave Hau : srvApi.auBegin γ σ₀
-        (srvApi.auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y) $$ [Hau]
+        iprop(winWit (mvccLeases γ) w (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog σ₀.log
+          (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id)))) -∗
+          srvApi.auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y) $$ [Hau]
     · simp only [hidL, decide_true, ↓reduceIte]; iexact Hau
     iunfold srvApi.auBegin at Hau
     wp_apply Hrdt $$ %q %B %P %Pre %Q %f
         %(fun σ => iprop(⌜σ = σ₀⌝ ∗
-          srvApi.auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y))
+          (winWit (mvccLeases γ) w (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog σ₀.log
+            (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id)))) -∗
+          srvApi.auEnd γ σ₀ (mvcc.leaseDels (mvcc.stateAfter σ₀.log) id) Y)))
         [$Hrdr $Hbk $Hhook $HPre $Htr $Hau] as %tw ⟨Hbk, ⟨%trace, %σ, Htx, %Hσ, Hend⟩, HQ⟩
     subst σ
     (try wp_auto)
@@ -321,6 +325,8 @@ theorem lease.lessor.Revoke.wp_proof
       have hjeq : j = ks'.length := by rw [hj, hkslZ] at hge; omega
       subst hjeq
       rw [List.take_length]
+      -- (item 7b F3) the owner's window witness at the items it commits
+      imod (win_wit (mvccLeases γ) L _ w ⊤ (by simp)) $$ [$Hrdi $Hown] with ⟨Hown, #Hwit⟩
       -- the second critical section: the lessor's map still has `l` at `id` (the revokers' half)
       wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
       iunfold lessorMu at HR
@@ -420,6 +426,8 @@ theorem lease.lessor.Revoke.wp_proof
       imod Hupd $$ HQ with ⟨HP, HPost⟩
       ihave #Hmpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
       · iPkgInit
+      ihave Hend := Hend $$ [Hwit]
+      · rw [hD, ← txn.pendItems_commitLog]; iexact Hwit
       rw [hD]
       iunfold srvApi.auEnd at Hend
       wp_apply HEnd $$ %Y [$Hmpkg $Hbk $HP $Hend] as ⟨Hrdr, Hbk, HY⟩

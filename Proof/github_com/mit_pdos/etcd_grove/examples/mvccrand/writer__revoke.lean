@@ -489,7 +489,7 @@ theorem writer.revoke.wp_proof
     simp only
     (try wp_auto)
     ihave Hau := revoke_au hpers wv.h' γ σ Hs _ _ hok Hpn Hlen Hmatch $$ [$Hinv $Hgσ $Hlb]
-    wp_apply hR $$ [Hrdr Hrdo Hbk Hpre Hlo Hrvk Hrb Hbe Hau]
+    wp_apply (hR none) $$ [Hrdr Hrdo Hbk Hpre Hlo Hrvk Hrb Hbe Hau]
       as %err ⟨Hrdr, Hrdo, Hbk, Hbe, Hres⟩
     · iframe Hlinv Hrevoc Hrdr Hrdo Hbk Hhook Hrvk Hrb Hbe
       isplitr
@@ -506,7 +506,7 @@ theorem writer.revoke.wp_proof
       · ipureintro; exact ⟨Hpn, by omega, Hreach, Hbound⟩
       isplitl [Hau]
       · simp only [hidL, decide_true, ↓reduceIte]
-        iexact Hau
+        iapply srvApi.auBegin_pre $$ Hau
       isplitl [Hlo]
       · rw [← pendItems_nil]; iexact Hlo
       ipureintro; exact ⟨HlP, lease.winDrops_none _ _⟩

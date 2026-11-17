@@ -30,7 +30,7 @@ theorem txn.checkLease.wp_proof : txn.checkLease.spec (GF := GF) (hG := hG) := b
   · iapply isPkgInit_access $$ Hpkg
   icases Hti with ⟨⟨%eL, #HeL⟩, -⟩
   iunfold txn.isTxnLessor at Hle
-  icases Hle with ⟨-, %li, %Hli, #HLookup⟩
+  icases Hle with ⟨-, %li, %Hli, #HLookup, -⟩
   subst Hli
   iunfold txn.putRequestIs at Hp
   icases Hp with ⟨%Hpnn, %ksl, %vsl, %k, %v, %lease, %pk, %iv, %il, #Hk, #Hks, #Hv, #Hvs, #Hl,

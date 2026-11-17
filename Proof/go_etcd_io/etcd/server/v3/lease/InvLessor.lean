@@ -406,20 +406,21 @@ def winEnd (hs : List LSnap) (ws : List LWinRec) (n : Nat) : Nat :=
   | some r => r.1
   | none => hs.length - 1
 
-/-- **The windows' list agrees with the history**: every start an index of it, the starts in order, and every index
-of a window's range stable in it. -/
+/-- **The windows' list agrees with the history**: every start an index of it, the starts in order, and (F1,
+2026-11-17: pairwise) every index `j'` of a window's range stable from every earlier index `j` of it (an item at its
+target at `j` is at it at `j'`). -/
 def winsOk (hs : List LSnap) (ws : List LWinRec) : Prop :=
   (∀ (n : Nat) (r : LWinRec), ws[n]? = some r → r.1 < hs.length) ∧
   (∀ (n : Nat) (r r' : LWinRec), ws[n]? = some r → ws[n + 1]? = some r' → r.1 ≤ r'.1) ∧
-  ∀ (n s : Nat) (T : GMap LeaseItem w64) (j : Nat), ws[n]? = some (s, some T) → s ≤ j →
-    j ≤ winEnd hs ws n → winStable hs s T j
+  ∀ (n s : Nat) (T : GMap LeaseItem w64) (j j' : Nat), ws[n]? = some (s, some T) → s ≤ j → j ≤ j' →
+    j' ≤ winEnd hs ws n → winStable hs j T j'
 
 /-- **Every item of the snapshot `σ` is on a live lease** (its lease map has the item's id). -/
 def itemsLive (σ : LSnap) : Prop :=
   ∀ (it : LeaseItem) (id : w64), σ.2.1.lookup it = some id → (σ.1.lookup id).isSome
 
 theorem winsOk_nil (hs : List LSnap) : winsOk hs [] :=
-  ⟨fun _ _ h => by simp at h, fun _ _ _ h => by simp at h, fun _ _ _ _ h => by simp at h⟩
+  ⟨fun _ _ h => by simp at h, fun _ _ _ h => by simp at h, fun _ _ _ _ _ h => by simp at h⟩
 
 theorem winStep_same (w : Option LWin) (I : GMap LeaseItem w64) : winStep w I I :=
   fun _ _ _ h => h
@@ -582,6 +583,20 @@ def lessorAt (γl : GName) (i : Nat) (σ : LSnap) : IProp GF :=
 instance lessorAt_persistent (γl : GName) (i : Nat) (σ : LSnap) :
     Persistent (lessorAt (GF := GF) γl i σ) := by
   unfold lessorAt; infer_instance
+
+/-- **The owner's witness at the window `w`** (auth-lease S4 item 7b F1, 2026-11-17): in a window `(s, T)`, an index
+`j ≥ s` of the history whose snapshot has the item map `I` (`True` with no window). The owner gives it (`win_wit`) at
+a store transaction's commit, with `I` its items after: the store's caller records that the lessor had reached them. -/
+def winWit (γl : GName) (w : Option LWin) (I : GMap LeaseItem w64) : IProp GF :=
+  match w with
+  | none => iprop(True)
+  | some (s, _) => iprop(∃ (j : Nat) (σ : LSnap), lessorAt γl j σ ∗ ⌜s ≤ j ∧ σ.2.1 = I⌝)
+
+instance winWit_persistent (γl : GName) (w : Option LWin) (I : GMap LeaseItem w64) :
+    Persistent (winWit (GF := GF) γl w I) := by
+  unfold winWit; split <;> infer_instance
+
+theorem winWit_none (γl : GName) (I : GMap LeaseItem w64) : winWit (GF := GF) γl none I = iprop(True) := rfl
 
 /-- **The ids the lessor `γl` ever had are among `U`** (the lease-expiry plan's E3 (c),
 2026-11-05; exclusive): the owner's half of the ghost variable whose other half `lessorRdBody`

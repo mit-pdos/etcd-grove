@@ -244,6 +244,15 @@ theorem winOp_put_et (w : Option lease.LWin) (s0 : List EtcdKv) (r : w64) (s : L
     unfold putTxnOp; split <;> (try split) <;> simp only [WinOp]
   rw [h2, srvOp_putTxnOp] at h; exact h
 
+/-- **The pending item map is the committed one's after the commit** (item 7b F2: the owner's items at `End` are the
+items of the log it commits). -/
+theorem pendItems_commitLog (ilog : mvcc.Log) (pend : List mvcc.Change) :
+    mvcc.pendItems ilog pend = mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog ilog pend)) := by
+  unfold mvcc.commitLog
+  split
+  · subst_vars; rfl
+  · rw [mvcc.stateAfter_append]
+
 /-- **A put request's item map**: the pending one after its change, from the begin state's. -/
 theorem pendItems_putChangeOf (ilog : mvcc.Log) (o : OpFull) :
     mvcc.pendItems ilog [putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter ilog))] =

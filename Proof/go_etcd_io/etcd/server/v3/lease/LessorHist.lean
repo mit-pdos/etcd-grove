@@ -76,7 +76,7 @@ theorem winsOk_snoc {hs : List LSnap} {ws : List LWinRec} {τ σ' : LSnap} (h : 
   obtain ⟨h1, h2, h3⟩ := h
   obtain ⟨hτ, hlen⟩ := getLast?_getElem? hlast
   refine ⟨fun n r hr => by have := h1 n r hr; simp; omega, h2, ?_⟩
-  intro n s T j hn hsj hj
+  intro n s T j j' hn hsj hjj hj
   have hs_lt : s < hs.length := h1 n _ hn
   cases hnext : ws[n + 1]? with
   | none =>
@@ -86,25 +86,32 @@ theorem winsOk_snoc {hs : List LSnap} {ws : List LWinRec} {τ σ' : LSnap} (h : 
     have hlastw : lastWin ws = some (s, T) := by
       unfold lastWin; rw [getLast?_of_next_none hn hnext]
     intro σs σj hσs hσj k hk
-    rw [getElem?_snoc_lt hs σ' hs_lt] at hσs
-    rcases Nat.lt_or_ge j hs.length with hjl | hjl
-    · rw [getElem?_snoc_lt hs σ' hjl] at hσj
-      exact h3 n s T j hn hsj (by rw [hend0]; omega) σs σj hσs hσj k hk
-    · have hjeq : j = hs.length := by omega
+    rcases Nat.lt_or_ge j' hs.length with hjl | hjl
+    · rw [getElem?_snoc_lt hs σ' (by omega)] at hσs
+      rw [getElem?_snoc_lt hs σ' hjl] at hσj
+      exact h3 n s T j j' hn hsj hjj (by rw [hend0]; omega) σs σj hσs hσj k hk
+    · have hjeq : j' = hs.length := by omega
       subst hjeq
       rw [getElem?_snoc_len] at hσj
       cases hσj
-      have hτk := h3 n s T (hs.length - 1) hn (by omega) (by rw [hend0]; exact Nat.le_refl _) σs τ hσs hτ k hk
-      exact hstep (s, T) hlastw k hτk
+      rcases Nat.lt_or_ge j hs.length with hjl' | hjl'
+      · rw [getElem?_snoc_lt hs σ' hjl'] at hσs
+        have hτk := h3 n s T j (hs.length - 1) hn hsj (by omega) (by rw [hend0]; exact Nat.le_refl _)
+          σs τ hσs hτ k hk
+        exact hstep (s, T) hlastw k hτk
+      · have hjeq : j = hs.length := by omega
+        subst hjeq
+        rw [getElem?_snoc_len] at hσs
+        cases hσs; exact hk
   | some r =>
     have hend : winEnd (hs ++ [σ']) ws n = r.1 := by simp [winEnd, hnext]
     have hend' : winEnd hs ws n = r.1 := by simp [winEnd, hnext]
     rw [hend] at hj
-    have hjl : j < hs.length := by have := h1 (n + 1) r hnext; omega
+    have hjl : j' < hs.length := by have := h1 (n + 1) r hnext; omega
     intro σs σj hσs hσj
-    rw [getElem?_snoc_lt hs σ' hs_lt] at hσs
+    rw [getElem?_snoc_lt hs σ' (by omega)] at hσs
     rw [getElem?_snoc_lt hs σ' hjl] at hσj
-    exact h3 n s T j hn hsj (by rw [hend']; exact hj) σs σj hσs hσj
+    exact h3 n s T j j' hn hsj hjj (by rw [hend']; exact hj) σs σj hσs hσj
 
 /-- **A new entry of the windows' list at the history's last index** (`win_open`, `win_free`). -/
 theorem winsOk_open {hs : List LSnap} {ws : List LWinRec} (h : winsOk hs ws) (hne : 0 < hs.length)
@@ -121,7 +128,7 @@ theorem winsOk_open {hs : List LSnap} {ws : List LWinRec} (h : winsOk hs ws) (hn
       exact h2 n r r' hr hr'
     · rw [getElem?_snoc_lt ws _ (by omega)] at hr
       simp only; have := h1 n r hr; omega
-  · intro n s T j hn hsj hj
+  · intro n s T j j' hn hsj hjj hj
     rcases getElem?_snoc_cases ws _ _ n hn with ⟨hl, hn'⟩ | ⟨hl, he⟩
     · -- an old entry: its range ends where it did (the old last one's at the history's last index)
       have hend : winEnd hs (ws ++ [(hs.length - 1, x)]) n = winEnd hs ws n := by
@@ -131,7 +138,7 @@ theorem winsOk_open {hs : List LSnap} {ws : List LWinRec} (h : winsOk hs ws) (hn
         · have : n + 1 = ws.length := by omega
           rw [this, getElem?_snoc_len, List.getElem?_eq_none (Nat.le_refl _)]
       rw [hend] at hj
-      exact h3 n s T j hn' hsj hj
+      exact h3 n s T j j' hn' hsj hjj hj
     · -- the new window: its range is its start alone
       simp only [Prod.mk.injEq] at he
       obtain ⟨rfl, rfl⟩ := he
@@ -139,8 +146,9 @@ theorem winsOk_open {hs : List LSnap} {ws : List LWinRec} (h : winsOk hs ws) (hn
         unfold winEnd
         rw [List.getElem?_eq_none (by simp; omega)]
       rw [hend] at hj
-      have hjeq : j = hs.length - 1 := by omega
-      subst hjeq
+      have hjeq : j' = hs.length - 1 := by omega
+      have hjeq' : j = hs.length - 1 := by omega
+      subst hjeq hjeq'
       intro σs σj hσs hσj k hk
       rw [hσs] at hσj; cases hσj; exact hk
 
