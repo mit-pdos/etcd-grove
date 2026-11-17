@@ -1,6 +1,39 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A5 done; STOP: report A5's end)
+## START HERE (2026-11-17, A6 in progress: A6.1a done; stopped at a large-context checkpoint)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
+  `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
+  `notes/auth-schema-srv-scope.md` §3 (A6, A7); decisions `questions.md` (untracked; "A5 done", "A6.1a").
+- Done: A1-A4 (History); A5 (5cc3a07e4b, ACCEPTED by etcd-grove-03: callee triples, `authForEachSpec`, `GetAllUsers`'
+  `Φ`); **A6.1a (this commit)**: `backend.readTx.UnsafeForEach` (the promotion wrapper, spec + proof, linked in the
+  backend's `Link`); `etcdserver/AuthRealRead.lean`: `rtForEach_perm` (a read transaction's walk is a permutation of
+  `bktEnts (rvBkt P rv bi.name)`: table bucket, `rv.2.Wf`), `rtForEach_mem`, `sorted_mem_iff`, `rvAuth P rv` (the
+  auth buckets a reader at `rv` reads). Targeted build: `/shared/tmp/auth-schema-srv/a6-build1.log`.
+- **Finding (internal contract, form to apply next, questions.md "A6.1a")**: `schema.authRTx rt R Held` with `Held :
+  AuthData → IProp` is NOT realizable by the real `readTx`: `authReader rt (Held D) D` promises persistently that a
+  returned slice is readable under any `Held D` (`rdCap`/`pointValsA`), but a slice is bbolt's transaction's bytes
+  (`rdB rtx`), valid only in its own read session, and `Held D` does not determine the session (two sessions can read
+  the same `D`). Fix: index the token by the session's bbolt transaction, `Held : Loc → AuthData → IProp` (`RLock`'s
+  post `∃ x D`, `RUnlock` `∀ x D`, `GetAllUsers`' `Φ` premise `∀ x D`); 12 files (`InvAuthBackend` and the six
+  `authBackend.{ReadTx,GetUser,GetRole,GetAllUsers}`/`authReadTx.{RLock,RUnlock}` specs and proofs), mechanical.
+- Next, in order: (1) the `Held` index above; (2) A6.1b in `AuthRealRead.lean`: `rdCap` from `rdB` under `Held x D :=
+  ∃ rv, ⌜rvAuth P rv = D ∧ rv.2.Wf⌝ ∗ rtHeld γ P b x rv ∗ Y rv` (`rtHeldF_lend'` at `rfrac.half = ½·½ + ½·½`,
+  `rdB_acc`, `rtHeldF_return`); `authPointSpec` ×3 (`readTx.UnsafeRange` at `rtHeld_eq`, `rtRange_single`,
+  `kvsOutRd_single`/`_nil`; auth `isBucket` lemmas from `schemaInit` as `mvcc.meta_isBucket`, conjuncts 10-12);
+  `authForEachSpec` (backend `I i := Ic (take i es)`, `E := False`, `List.take_succ`, `rtForEach_perm`); `authBE_real`
+  generic in the caller's ghost steps (`R ={⊤}=∗ rdTok ∗ bOpen qo ∗ C`; after `readTx.RLock` an observation
+  `rtHeld ∗ bOpen qo ∗ C ={⊤}=∗ rtHeld ∗ Y rv ∗ ⌜authWf (rvAuth P rv)⌝`; `RUnlock`: `rdTok ∗ Y rv ={⊤}=∗ R`);
+  (3) the realization invariant per backend `γc` (claimed `rbRd` halves of the three buckets with their recorded
+  states, `authLockI`, the `bOpen authOpenQ` vault with deposits of `authCur`, the tickets ↔ `rdTok` exchange, the
+  lifecycle), the write side from A5's callee triples, `GetUser`/`GetRole` stronger posts in place; then A7 HARD STOP.
+- Pitfalls: (0)-(6) of A5 (History) still apply. (7) `backend.bktEnts_sorted` and other backend lemmas sit in sections
+  with `hG`/`package_sem` instance variables: a client file needs the same `variable` block to use them.
+
+## History
+
+### A5 done (2026-11-17, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -26,8 +59,6 @@
   es, … = es := ⟨_, rfl⟩; rw [hes]`. (4) a hand-written `if m = n` picks `instDecidableEqString`: write
   `@ite _ (m = n) (Classical.propDecidable _) …`. (5) keep `.lake/package-overrides.json`; `ls .lake/packages` = Qq,
   batteries, iris. (6) lean-check of a server file rebuilds its imports outside a slot: prefer the slot build.
-
-## History
 
 ### A4 done (2026-11-17, superseded)
 

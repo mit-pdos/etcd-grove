@@ -106,6 +106,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Lock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
@@ -623,6 +624,10 @@ theorem readTx.wp_RLock :
 theorem readTx.wp_RUnlock :
     EtcdGrove.backend.readTx.RUnlock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.RUnlock.wp_proof
+
+theorem readTx.wp_UnsafeForEach :
+    EtcdGrove.backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.readTx.UnsafeForEach.wp_proof baseReadTx.wp_UnsafeForEach
 
 theorem readTx.wp_UnsafeRange :
     EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) :=

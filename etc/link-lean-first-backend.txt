@@ -116,6 +116,7 @@ readTx__Lock:
 readTx__RLock: 
 readTx__RUnlock: 
 readTx__Unlock: 
+readTx__UnsafeForEach: baseReadTx__UnsafeForEach
 readTx__UnsafeRange: baseReadTx__UnsafeRange
 readTx__reset: txReadBuffer__reset
 txBuffer__reset: 
