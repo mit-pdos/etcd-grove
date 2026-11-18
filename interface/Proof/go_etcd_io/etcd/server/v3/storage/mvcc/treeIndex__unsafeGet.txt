@@ -14,7 +14,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof (hKeyIndex : mvcc.treeIndex.keyIndex.s
                 DFrac.discard ∗
               typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.treeIndex go!"lg" ti) lg
                   DFrac.discard ∗
-                ⌜lg ≠ null⌝ ∗
+                zapLoggerOk lg ∗
                   mvcc.ownTree t L q ∗
                     ⌜∀ (z : mvcc.IdxEntry), z ∈ L → mvcc.kiIsEmpty z.snd.snd = false⌝ ∗
                       ownSlice key k DFrac.discard ∗

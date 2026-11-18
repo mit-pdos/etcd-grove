@@ -52,15 +52,23 @@ def lean_env():
     return env
 
 
-def run_lean(argv, out):
-    r = subprocess.run(proof_roots.lake("env", "lean", "--run", "etc/AxiomTokCheck.lean", *argv),
-                       cwd=ROOT, env=lean_env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                       text=True, check=False)
+def lean_proc(argv):
+    return subprocess.run(proof_roots.lake("env", *proof_roots.lean_script("etc/AxiomTokCheck.lean"),
+                                           *argv),
+                          cwd=ROOT, env=lean_env(), stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                          text=True, check=False)
+
+
+def lean_result(argv, r, out):
     out.write(r.stdout)
     if r.returncode != 0:
         sys.stderr.write(r.stderr[-4000:])
         sys.exit(f"{PROG}: etc/AxiomTokCheck.lean exited {r.returncode} ({' '.join(argv[:3])} ...)")
     return [json.loads(l) for l in r.stdout.splitlines() if l.startswith("{")]
+
+
+def run_lean(argv, out):
+    return lean_result(argv, lean_proc(argv), out)
 
 
 def olean_present(m, memo={}):
@@ -382,6 +390,21 @@ def failures(axs, objs, allow, known, names):
     return bad, gone, unwalked, absent
 
 
+def axiom_names(path, locs=None):
+    """The axioms of a `.lake/tcb.json`, in its order (the list the Lean runs walk)."""
+    names = []
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if '"t":"axiom"' not in line[:20]:
+                continue
+            o = json.loads(line)
+            if o.get("t") == "axiom":
+                names.append(o["name"])
+                if locs is not None:
+                    locs[o["name"]] = (o.get("module", "?"), o.get("line", "?"))
+    return names
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--json", default=os.path.join(ROOT, ".lake", "tcb.json"))
@@ -390,6 +413,13 @@ def main():
     ap.add_argument("--allow", default=DEFAULT_ALLOW)
     ap.add_argument("--depth", type=int)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--names", help="run Lean on the axioms named in this file (one per line, in "
+                    "order) instead of `--json`'s; with --lean-only")
+    ap.add_argument("--dump-names", action="store_true",
+                    help="print the axioms of --json, one per line, in order (for --names)")
+    ap.add_argument("--lean-only", action="store_true",
+                    help="only the Lean runs, into --raw (no judging): a later `--reuse-raw` judges "
+                         "them, valid when --names lists exactly the axioms of `--json`, in order")
     ap.add_argument("--check", action="store_true",
                     help="exit 1 on a finding with no entry, an unknown walk or a stale entry")
     ap.add_argument("--all", action="store_true")
@@ -402,15 +432,18 @@ def main():
 
     if a.selftest:
         return selftest(a, extra)
+    if a.dump_names:
+        sys.stdout.write("".join(n + "\n" for n in axiom_names(a.json)))
+        return 0
 
     locs = {}
     names = []
-    with open(a.json, encoding="utf-8") as f:
-        for line in f:
-            o = json.loads(line)
-            if o.get("t") == "axiom":
-                names.append(o["name"])
-                locs[o["name"]] = (o.get("module", "?"), o.get("line", "?"))
+    if a.lean_only:
+        if not (a.names and a.raw) or a.reuse_raw:
+            sys.exit(f"{PROG}: --lean-only needs --names and --raw")
+        names = [l.strip() for l in open(a.names, encoding="utf-8") if l.strip()]
+    else:
+        names = axiom_names(a.json, locs)
     if a.reuse_raw:
         objs = [json.loads(l) for l in open(a.reuse_raw) if l.startswith("{")]
     else:
@@ -423,6 +456,7 @@ def main():
             nf.write("\n".join(names) + "\n")
             nfile = nf.name
         try:
+            argvs = []
             for mods in proof_roots.lean_runs():
                 if a.partial:
                     roots = [m for m in mods if closure_missing(m)]
@@ -433,10 +467,17 @@ def main():
                     print(f"{PROG}: --partial: {len(dropped)} modules dropped, importing "
                           f"{len(mods)}", file=sys.stderr)
                 print(f"{PROG}: running on {len(mods)} root modules ({mods[0]}, ...)", file=sys.stderr)
-                objs += run_lean([f"--axioms={nfile}", *extra, *proof_roots.lean_args(), *mods], raw)
+                argvs.append([f"--axioms={nfile}", *extra, *proof_roots.lean_args(), *mods])
+            # the groups' runs are independent: in parallel lanes (proof_roots.run_groups), their
+            # outputs taken in the groups' order, as one after another
+            procs = proof_roots.run_groups(lean_proc, argvs)
+            for argv, r in zip(argvs, procs):
+                objs += lean_result(argv, r, raw)
         finally:
             os.unlink(nfile)
             raw.close()
+    if a.lean_only:
+        return 0
     allow = read_allow(a.allow)
     axs = judge(objs, allow, locs)
     report(axs, objs, a.v, a.all)

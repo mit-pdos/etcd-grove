@@ -50,7 +50,6 @@ theorem mvcc.treeIndex.Put.wp_proof
   obtain ⟨Hrev, Hilog, Hpend, Hwf'⟩ := Hpre
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
-  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, #Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf
@@ -150,7 +149,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       rw [hrevm, hrevs]; exact mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega)
     wp_apply (hPut «$r0_ptr» slice.nil mvcc.KeyIndex.fresh lg rev.Main' rev.Sub') $$ [$Hki]
       as %r Hr
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     simp only [Hlt, ↓reduceIte]
     icases Hr with ⟨%Hr, %gs', Hki⟩
     subst Hr
@@ -236,7 +235,7 @@ theorem mvcc.treeIndex.Put.wp_proof
       exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
         (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
     wp_apply (hPut z.1 gs z.2.2 lg rev.Main' rev.Sub') $$ [$Hki] as %r Hr
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     simp only [Hlt, ↓reduceIte]
     icases Hr with ⟨%Hr, %gs', Hki⟩
     subst Hr

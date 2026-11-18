@@ -33,7 +33,7 @@ def Logger.Panic.spec : Prop :=
   ∀ (l : Loc) (msg : GoString) (fields : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ isLogger l }}
     (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Panic")) (Val #msg)) (Val #fields))
-  {{ (r : val), RET r; ⌜r = PanicV #msg⌝ }}
+  {{ (r : val), RET r; ⌜r = PanicV #(interface.mkOk go.string #msg)⌝ }}
 
 end spec
 

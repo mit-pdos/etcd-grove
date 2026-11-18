@@ -27,6 +27,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/http/httptrace"
+	"strconv"
+	"syscall"
 	"testing"
 	"time"
 
@@ -157,12 +159,7 @@ func TestRoundTripBgCancel(t *testing.T) {
 	defer hs.Close()
 	defer close(release)
 	// a closed port: an error net/http made (a dial error)
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatal(err)
-	}
-	dead := "http://" + l.Addr().String()
-	l.Close()
+	dead := "http://" + refusingAddr(t)
 	for name, mk := range map[string]func() (http.RoundTripper, error){
 		"NewRoundTripper": func() (http.RoundTripper, error) {
 			return rafthttp.NewRoundTripper(transport.TLSInfo{}, time.Second)
@@ -251,4 +248,26 @@ func TestRoundTripBgCancelTLS(t *testing.T) {
 	if err != context.Canceled {
 		t.Fatalf("before: %T %v", err, err)
 	}
+}
+
+// refusingAddr is a local address whose port refuses connections for the rest of the test: a TCP
+// socket bound to a port the kernel picks and never listening (a connection to it is refused,
+// ECONNREFUSED), held open so no other process can take the port. (Until 2026-11-17 a listener
+// closed before the dial: under the gates' load another process took the freed port in between
+// and the dial succeeded, "dial: <nil> <nil>".)
+func refusingAddr(t *testing.T) string {
+	t.Helper()
+	fd, err := syscall.Socket(syscall.AF_INET, syscall.SOCK_STREAM|syscall.SOCK_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { syscall.Close(fd) })
+	if err := syscall.Bind(fd, &syscall.SockaddrInet4{Addr: [4]byte{127, 0, 0, 1}}); err != nil {
+		t.Fatal(err)
+	}
+	sa, err := syscall.Getsockname(fd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return net.JoinHostPort("127.0.0.1", strconv.Itoa(sa.(*syscall.SockaddrInet4).Port))
 }
