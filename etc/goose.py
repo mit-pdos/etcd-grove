@@ -10,7 +10,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
   --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, authlease, auth3, etcd-wal,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-tla, tracecheck, k8s-apiserver,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -68,6 +68,14 @@ GO_TOOLCHAIN = "go1.27.3"
 
 # Project raft's pin (projects raft and raft-tla translate two builds of it).
 RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
+
+# The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
+# pin (the fork's branch raft37-goose-lean-noax, notes/raft-noax.md), and project kvdurable-noax's
+# source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
+# renames the copied kvdurable proofs' package accordingly).
+RAFT_NOAX_REV = "91e2ea70f48377487eccbf01bf80dd9787fac450"
+KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
+KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
 
 
 @dataclass
@@ -572,6 +580,15 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3",
             "go.etcd.io/etcd/server/v3",
         ],
+        # the WAL's records alone into the part RaftNoAx too, over its raftpb
+        # (notes/raft-noax-part.md): `proto`'s schemas (`PbSchema.lean`), which raft's message
+        # invariant reads, name walpb's two registered types
+        parts=[Part(
+            root="RaftNoAx",
+            lean_roots=["go.etcd.io/etcd/server/v3/storage/wal/walpb=RaftNoAx", "go.etcd.io/etcd=",
+                        "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org="],
+            packages=["go.etcd.io/etcd/server/v3/storage/wal/walpb"],
+            owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal", "walpb")])],
     ),
     Project(
         name="kv",
@@ -611,6 +628,15 @@ PROJECTS = [
         packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf"),
                os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
+        # the store alone into the part RaftNoAx too, over its raft (notes/raft-noax-part.md): the
+        # kvdurable proofs the part copies use kvreconf's shared proofs, which name its translation
+        parts=[Part(
+            root="RaftNoAx",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=RaftNoAx",
+                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
+                        "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")])],
     ),
     Project(
         name="durable",
@@ -1622,6 +1648,47 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvwitness")],
     ),
     Project(
+        name="raft-noax",
+        # Raft without hand-written axioms (notes/raft-noax-part.md): raft whose `proto` calls are
+        # replaced by hand-written raftpb functions, `fmt.Errorf` by `errors.New`, and stepLeader's
+        # `DescribeConfChange` dropped, for a closed theorem of kvdurable whose trust base has no
+        # axiom of this repository. Translated into the parallel tree RaftNoAx (modules
+        # RaftNoAx.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports; the same packages
+        # as project raft, configured by RaftNoAx/Code/**.toml. At the fork's branch
+        # raft37-goose-lean-noax (`RAFT_NOAX_REV`, notes/raft-noax.md).
+        repo="https://github.com/upamanyus/etcd",
+        rev=RAFT_NOAX_REV,
+        root="RaftNoAx",
+        # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
+        lean_roots=["go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=", "os=", "io/fs="],
+        packages=[
+            ".",
+            "go.etcd.io/raft/v3/confchange",
+            "go.etcd.io/raft/v3/quorum",
+            "go.etcd.io/raft/v3/raftpb",
+            "go.etcd.io/raft/v3/tracker",
+        ],
+        owned=[os.path.join("go_etcd_io", "raft")],
+        counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="kvdurable-noax",
+        # The durable key-value store (project kvdurable) on raft-noax's raft, for its closed theorem
+        # without hand-written axioms (notes/raft-noax-part.md): `KVDURABLE_NOAX_DIR`, the Go package
+        # `KVDURABLE_NOAX_PKG`, translated into RaftNoAx, its raft the raft-noax project's, lintest,
+        # porcupine, durable and trusted_proph the main tree's (examples/raft/kvdurablenoax, a Go
+        # module of its own whose go.mod replaces raft by `RAFT_NOAX_REV`, GO_MOD_PINS).
+        repo=None,
+        rev=None,
+        local=KVDURABLE_NOAX_DIR,
+        root="RaftNoAx",
+        lean_roots=[f"{KVDURABLE_NOAX_PKG}=RaftNoAx",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
+                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+        packages=["."],
+        owned=[os.path.join(*KVDURABLE_NOAX_PKG.replace(".", "_").replace("-", "_").split("/"))],
+    ),
+    Project(
         name="raft-tla",
         # Raft in its `with_tla` build (`state_trace.go`: the trace hooks with their bodies, the
         # `TraceLogger` interface with its `TraceEvent` method, the `Tracing*` types), for raft's
@@ -1727,6 +1794,7 @@ GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
+    os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
     os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)

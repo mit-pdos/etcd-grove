@@ -131,7 +131,6 @@ theorem backend.newBackend.wp_proof
   icases optsAt_bool bo o go!"Mlock" (by simp) $$ Hbo with ⟨%x5, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlz
   wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
   · iexact Hlz
   icases optsAt_logger bo o $$ Hbo with ⟨Hf, Hback⟩
@@ -158,7 +157,7 @@ theorem backend.newBackend.wp_proof
       try iintro %_ ⟨_, -⟩
       try wp_auto
       wp_apply hPanic lg $$ [] as %v %Hv
-      · ipureintro; exact Hlg
+      · iexact Hlz
       subst Hv
       wp_auto
       iapply HΦ
