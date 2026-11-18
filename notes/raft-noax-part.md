@@ -122,7 +122,7 @@ after a full build).
 
 ## Stage 2 (2026-11-18): the part on the modified code
 
-Commits `190bbe2d7f`..(this one). The part is now the noax fork (`RAFT_NOAX_REV = 91e2ea7`) and
+Commits `190bbe2d7f`..`5fcff196bc` (and the one recording this). The part is now the noax fork (`RAFT_NOAX_REV = 91e2ea7`) and
 `examples/raft/kvdurablenoax` (`KVDURABLE_NOAX_DIR/PKG`; `GO_MOD_PINS` checks its go.mod's replace).
 `lake build RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results`
 builds (3828 jobs). `etc/goose.py --check` (both part projects), `etc/copy-part.py --check`,
