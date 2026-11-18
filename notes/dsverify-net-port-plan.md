@@ -1,7 +1,7 @@
-# Porting dsverify-lab onto etcd-grove's network semantics (plan, for review)
+# Porting dsverify-lab onto etcd-grove's network semantics (plan)
 
-Plan, 2026-11-17, **nothing here is built**. The user's request: port dsverify-lab's network kits to
-etcd-grove's network semantics (`GooseLang/Ext/Tcp`, v3.2), copying what we need from dsverify-lab
+Plan, 2026-11-17, revised 2026-11-18 with the user's decisions (Section 2); being implemented. The user's request: port dsverify-lab's network kits to
+etcd-grove's network semantics (the net extension, v3.2; today `GooseLang/Ext/Tcp`, renamed in phase 1), copying what we need from dsverify-lab
 into etcd-grove, so that there is **one general-purpose model of `net/http` and gRPC** (and
 `net/rpc`, the codecs) used both by etcd and by the dsverify examples.
 
@@ -16,7 +16,7 @@ compared, 2026-11-14/15), `notes/specs-only/tcp-extension-design.md` (option B, 
 
 | | dsverify-lab (`348a866`) | etcd-grove (`lean`) |
 |---|---|---|
-| TCP semantics | `GooseLang/Ext/NetConn/Impl.lean` (393 lines): global listeners with pending lists, two streams per connection, a break cuts both, `Write` one step, only Read/Accept wait, no crashes (`crash := id`) | `GooseLang/Ext/Tcp/Impl.lean` v3.2 (609): plan address → host, per-direction cuts, `Write` Go's loop of steps (D15), every op may stutter (D22), node-local crashes, `CloseWrite` |
+| network semantics | `GooseLang/Ext/NetConn/Impl.lean` (393 lines): global listeners with pending lists, two streams per connection, a break cuts both, `Write` one step, only Read/Accept wait, no crashes (`crash := id`) | `GooseLang/Ext/Tcp/Impl.lean` v3.2 (609): plan address → host, per-direction cuts, `Write` Go's loop of steps (D15), every op may stutter (D22), node-local crashes, `CloseWrite` |
 | `net` | `TrustedCode/net.lean` (631), `Code/net.toml`; errors a model-only `connError` in a real `*OpError` (refutable by a type assertion: survey S1); `"tcp4"`, socket options (`SetKeepAlive*`, `Set{Read,Write}Buffer`) | part `NetTcp/` (`NetTcp/TrustedCode/net.lean`): Go's real error values (`poll.ErrNetClosing`, `*os.SyscallError`, ...); `"tcp4"` and socket options **not modeled** (panic / names only) |
 | specs over it | `Specs.lean` (1891), `Spec/net` + `Proof/net` (2500): Hoare triples over `addrProto a P Q`, `sendTok`/`recvTok`, `connEnd`, `newConnResult`, `connErr code err` | `Ghost.lean`, `Specs.lean` (1159): logically atomic over `tcpEnd`/`tcpDir`/`tcpPend`/`tcpLis`; proved stream protocol `wire/Stream.lean` (`dirInv`, `sentLb`) |
 | evidence | `harness/netsem` (Go per decision), `harness/conform` (uncertified Python checker; found F1-F3) | `examples/net/semantics/` (`doc.go`, ~45 rows), `Tests.lean` (68), conformance checker with verdicts certified in Lean (`nettcp-replay`) |
@@ -39,196 +39,190 @@ The point of the plan: the two halves fit. etcd-grove has the stronger semantics
 `Write` loop, crashes, certified conformance) and a design for the models but no models; dsverify-lab
 has proved, axiom-free, differentially tested models but over a weaker semantics, with a known
 unsound point (S1) and no crashes. And etcd's gRPC/http trust base (~130 axioms over ghost state that
-is not built) is exactly what proved models over TCP would replace.
+is not built) is exactly what proved models over the net extension would replace.
 
-## 2. Decisions to take first (the user's)
+## 2. Decisions
 
-**Q1. The mechanism for models: patches of the real packages, or substitute packages?**
-Option B (accepted 2026-11-12, U2) writes each model as a patch of the real grpc-go / Go `net/http`
-source, keeping every type and option (etcd's translated code and its dependencies, `otelgrpc`,
-grpc-gateway, the prometheus interceptors, typecheck against the real API). dsverify-lab substitutes
-whole hand-written packages (a GOROOT symlink farm, `go.mod` replaces), with only the API its kits
-reach. **Recommendation: patches** (`etc/model-patches/<project>/*.patch`, applied by `etc/goose.py`,
-with an overlay for the standard library), for all of grpc, net/http, net/rpc, encoding/json and gob;
-dsverify's model code becomes the content of the patches' added files (framing, transport, dispatch),
-and its differential tests stay. A substitute package cannot serve etcd: its dependency closure
-names far more of grpc's API than any kit.
+The user's (2026-11-18):
+- **Names.** The extension is *the net extension*, not a "TCP extension": its names say `net`, not
+  `tcp` (phase 1 renames what exists).
+- **Home.** The net extension stays in etcd-grove until further notice (not Perennial, not a
+  separate repository).
+- **Kits.** We do not launch dsverify-lab runs (no continuation runs, no `experiment.sh`): the kits'
+  proofs are ported here by editing them; what a port cannot do by editing is recorded for the user.
+- "Implement the plan": the recommendations below are taken as decided, each recorded in
+  `notes/decisions.md` when its phase starts, open to revision.
 
-**Q2. gRPC's wire: one stream per connection (option B's U3) or dsverify's sequence-numbered
-multiplexing on one connection?** One stream per connection removes stream ids, multiplexing and the
-connection pool from the trusted model, lets cmux's `HTTP2()` matcher see the real 24-byte preface,
-and makes "at most one dispatch per attempt" a per-connection fact. dsverify's proofs (5.6k lines,
-unary) assume its multiplexing and would be adapted. **Recommendation: one stream per connection**;
-the unary proofs carry over at the level of `ClientConn.Invoke.spec`/`handlerOk`, and the streaming
-half is new work etcd needs anyway (watch, lease keep-alive). net/rpc keeps dsverify's framing (one
-connection, sequence numbers: that is net/rpc's own protocol shape, and only kits use it).
+**Q1. Models are patches of the real packages.** Option B (accepted 2026-11-12, U2) writes each model
+as a patch of the real grpc-go / Go `net/http` source, keeping every type and option (etcd's
+translated code and its dependencies, `otelgrpc`, grpc-gateway, the prometheus interceptors,
+typecheck against the real API). dsverify-lab substitutes whole hand-written packages (a GOROOT
+symlink farm, `go.mod` replaces) with only the API its kits reach, which cannot serve etcd. So:
+`etc/model-patches/<project>/*.patch`, applied by `etc/goose.py` (an overlay for the standard
+library), for grpc, net/http, net/rpc, encoding/json and gob; dsverify's model code becomes the
+content of the patches' added files (framing, transport, dispatch), and its differential tests stay.
 
-**Q3. Where the shared code lives, given dsverify's isolation.** dsverify runs must not see
-etcd-grove (`D/README.md`, "How it is isolated"). The shared layer (TCP extension, `net`, the models,
-their specs and proofs, the codecs' generators, `SafeDist`) must therefore be a **self-contained unit
-importing only Perennial**, which dsverify-lab can take as a Lake dependency or a copied tree without
-any etcd content. Options: (a) a part of this repository, say `GoNet/` (modules `GoNet.*`), with an
-export script and a leak check (no `etcd`/`raft` module, path or name in the exported tree); (b) a
-separate repository; (c) Perennial (its `Ext/Net` is a toy; a real TCP extension and `net` model are
-general-purpose, but grpc and net/http models of third-party code are less clearly Perennial's, and
-Perennial changes go by its own review). **Recommendation: (a) now, developed here where etcd's
-proofs exercise it, with (c) proposed for the TCP extension and `net` once stable** (an entry in
-`notes/perennial-changes.md`).
+**Q2. gRPC: one stream per connection** (option B's U3), not dsverify's sequence-numbered
+multiplexing: no stream ids, multiplexing or pool in the trusted model; cmux's `HTTP2()` matcher sees
+the real 24-byte preface; "at most one dispatch per attempt" is a per-connection fact. dsverify's
+unary proofs (5.6k lines) are adapted at the level of `ClientConn.Invoke.spec`/`handlerOk`. net/rpc
+keeps dsverify's framing (one connection, sequence numbers: net/rpc's own protocol shape).
 
-**Q4. Crashes in the kits' statement.** Most kits keep no durable state, so they are not safe under
-crash *and restart*; `goose_dist_crash_adequacy` restarts nodes. **Recommendation:** `SafeDist` over
-`tcpExt` with `goose_dist_adequacy` (no restart) for the existing kits, as today; a process's death
-without restart is already a cut for its peers (D10/D11), so crash-stop of a server is covered by
-modelling the server's `main` as possibly exiting (a later strengthening). Crash-restart statements
-(over `goose_dist_crash_adequacy`, and later `Robust`) only for kits with durable state.
+**Q3. The shared code is a part of this repository, `Net/`** (modules `Net.*`), importing only
+Perennial and the net extension. dsverify runs must not see etcd-grove (`D/README.md`, "How it is
+isolated"), so the lab consumes an **export** of the part (`etc/export-net.sh`: the part, the
+extension and their scripts as a standalone Lake package, with a leak check failing on any etcd/raft
+module, path or name, run in `etc/gates.sh`). The home stays here.
 
-**Q5. How the kits' proofs are ported.** **Recommendation:** keep the kit-facing spec statements
-(Section 3, phase 3) so that each kit's proof ports by changing imports, and re-run a kit as a
-continuation run (dsverify's `continue/seed.sh` pattern) only where a statement had to change. The
-runs' proofs must first be collected from the experiment machines (phase 0).
+**Q4. No restart in the kits' statement.** Most kits keep no durable state, so they are not safe
+under crash *and restart*: `SafeDist` over the net extension with `goose_dist_adequacy`, as today;
+a process's death without restart is already a cut for its peers (D10/D11). Crash-restart
+statements (`goose_dist_crash_adequacy`, later `Robust`) only for kits with durable state.
+
+**Q5. Kit proofs port by editing.** The kit-facing spec statements are kept (phase 4) so that each
+kit's proof ports by changing imports and names; where a statement must change, the port edits the
+proof here. A kit whose port needs more than editing (a new invariant, a real proof gap) is listed
+for the user, who decides whether the lab reruns it.
 
 ## 3. The plan
 
-Each phase lands on `lean` by `etc/land.sh` and records its decisions in `notes/decisions.md`; a
-change to the trusted semantics adds its Go example in `examples/net/semantics/` in the same commit
-(CLAUDE.md, extensions).
+Each phase is a branch landed on `lean` by `etc/land.sh`, with its decisions in `notes/decisions.md`;
+a change to the trusted semantics adds its Go example in `examples/net/semantics/` in the same commit
+(CLAUDE.md, extensions), and waits for the user's review before landing.
 
-### Phase 0: inventory and copies (small)
+### Phase 0: inventory and reference copies
 
-- Fetch dsverify-lab, pin the commit we copy from (`348a866` or later) in this note.
-- Copy, **as reference material, not built**, into `old/dsverify/` (as `old/bbolt/`, with a README
-  naming the commit): `harness/lean/Harness/{GooseLang/Ext/NetConn,TrustedCode/net.lean,Spec/net,
-  Proof/net,Proof/grpc,Proof/encoding,Proof/jsoncodec,NetLib.lean,SafeDist.lean,Driver.lean,
-  DistLemma.lean}`, `harness/rpcmodel/{grpc,protobuf,src,difftest,grpcdifftest}`,
-  `harness/{pbcodec,jsoncodec,kitgen,netsem,rig}`, `notes/{grpc-model,conform,harness-m2-netconn,
-  harness-m2a}.md`. Their licence: same authors; say so in the README.
-- Collect the verified net runs' work trees (`runs/<run>/home` on `fk-lean1`/`fk-lean2`, the tagged
-  `final` commits) into `/shared/dsverify-lab/runs/` here (not into this repository: they are the
-  lab's).
-- List the `net` API every kit and every model calls (a grep of the kits' patched sources, plus
-  etcd-grove's conformance tracer run on the rig), and diff it against `NetTcp`'s modeled set.
-  Already known: `"tcp4"` (3 uses), `SetKeepAlive`/`SetKeepAlivePeriod` (7 each), `SetReadBuffer`
-  (10), `SetWriteBuffer` (7).
+- dsverify-lab pinned at GitHub `master` `348a866` (fetched 2026-11-17).
+- Copy, **as reference, not built**, into `old/dsverify/` (with a README naming the commit, as
+  `old/bbolt/`): `harness/lean/Harness/{GooseLang/Ext/NetConn,TrustedCode/net.lean,Code/net.toml,
+  Spec/net,Proof/net,Proof/grpc,Proof/encoding,Proof/jsoncodec,Proof/bufio,NetLib.lean,SafeDist.lean,
+  Driver.lean,DistLemma.lean}`, `harness/rpcmodel/{grpc,protobuf,src,difftest,grpcdifftest}`,
+  `harness/{pbcodec,jsoncodec,kitgen,netsem,netprobe}`, and the notes `grpc-model.md`, `conform.md`,
+  `harness-m2-netconn.md`, `harness-m2a.md`.
+- The kits' proofs: the lab repository keeps only `theorems/<run>/{Goal.lean,axioms.txt}`; the
+  proofs are in the runs' homes on the experiment machines (`fk-lean1`, `fk-lean2`). Locate them
+  (read only) and record where; copying them is phase 6's.
+- The `net` API the kits and the models call, against the net extension's modeled set. Known:
+  `"tcp4"` (3 uses), `SetKeepAlive`/`SetKeepAlivePeriod` (7 each), `SetReadBuffer` (10),
+  `SetWriteBuffer` (7).
 
-### Phase 1: close tcpExt's gaps for the kits (semantics change, reviewed)
+### Phase 1: the rename (no change of meaning)
 
-From the comparison (`net-tcp-dsverify-final.md`, "What one admits and the other excludes") and phase
-0's list:
-1. **`"tcp4"`**: accept it as `"tcp"` with Go's `Net` field `"tcp4"` in errors (dsverify's unsound
-   point 2 avoided); evidence row in `doc.go`.
-2. **Socket options** (`SetKeepAlive`, `SetKeepAlivePeriod`, `SetReadBuffer`, `SetWriteBuffer`,
-   `SetNoDelay`, `SetLinger` if reached): `nil` on an open end, `ErrClosed`-kind error on a closed one,
+`tcp` names become `net` names; Go's own identifiers (`TCPConn`, `TCPListener`, `tcpsock`,
+`mptcpStatus*`, `tcpConnWithout*`) and the measured Go tests' names stay.
+- `GooseLang/Ext/Tcp/` → `GooseLang/Ext/Net/`; namespace `Perennial.Tcp` → `Perennial.Net`;
+  `tcpExt`/`tcpExts`/`tcpGF`/`tcpExts_hasTcp`/`tcp_semantics`/... → `netExt`/`netExts`/`netGF`/
+  `netExts_hasNet`/`net_semantics`/...; `TcpGlobal`, `TcpLocal`, `TcpConn`, `TcpEnd`, `TcpDir`,
+  `TcpErr`, `TcpStatus`, `TcpStep`, `IsTcpStep`, `TcpGS` → `Net...`; ghost `tcpEnd`, `tcpDir`,
+  `tcpConnAt`, `tcpPend`, `tcpPlan`, `tcpLis`, `tcpLisAt`, `tcpFresh`, `tcpNames` → `net...`;
+  `wp_tcp_*` → `wp_net_*`. Perennial's toy `Perennial.netExt` (`Ext/Net`) has a different full name;
+  check no module opens both.
+- The part `NetTcp/` → `Net/` (lean_lib `Net`, modules `Net.*`); goose project `nettcp` → `net`;
+  `lake exe nettcp-replay` → `net-replay`; `etc/tcb-collections/nettcp.txt` → `net.txt`;
+  `NETTCP_*` environment variables → `NET_*`; `etc/gen-init.py`'s `NT_*` tables; CLAUDE.md, the
+  scripts, `examples/net/**` (docs, `conform/check/mapping.py`), `Robustness/Stream.lean`'s comments.
+- Notes keep their file names (`net-tcp*.md` are history); `notes/net-tcp.md` gains a line on the
+  rename. Check: `etc/goose.py --check`, `lake build Net Robustness`, `etc/gates.sh`, the replay of the
+  certified conformance samples, `etc/tcb-report.py --check` with the collection renamed (same axioms).
+
+### Phase 2: close the net extension's gaps for the kits (trusted, reviewed)
+
+From `net-tcp-dsverify-final.md` ("What one admits and the other excludes") and phase 0's list:
+1. **`"tcp4"`**: as `"tcp"`, with Go's `Net` field `"tcp4"` in errors; evidence row in `doc.go`.
+2. **Socket options** (`SetKeepAlive`, `SetKeepAlivePeriod`, `SetReadBuffer`, `SetWriteBuffer`, and
+   `SetNoDelay`/`SetLinger` if reached): `nil` on an open end, a `closed`-kind error on a closed one,
    no state; keepalive's effect is already covered by cuts. Measured rows.
-3. **Go's write lock**: concurrent `Write`s on one end do not interleave (`fd_unix.go:366`). Either
-   model it (a lock bit in `TcpEnd`, a `Write` loop holding it) or show the kits never write
-   concurrently; needed if a kit's protocol relies on whole frames from concurrent writers.
-4. **Wildcard `Listen` with one IP per node** (the rig gives every node its own IP, and kits listen
-   on the same port on every node): D21 (`ListenAt`, `Impl.lean:446`) requires the port to be the
-   plan's only address with that port, because on one machine a wildcard listener takes every local
-   address (`TestAddressAliases`). A kit listening on `":p"` on every node would panic. Make the
-   deployment's kind part of the plan (one machine, or one network namespace per host): per host,
-   the wildcard resolves to (this node's host, `p`), with the port unique per host only; measured on
-   the rig's namespaces (dsverify's `node_identity_netns_test.go` is the evidence to port).
-5. **The deployment premise**: map `NetConfig.WellFormed` onto `PlanWellFormed` (dsverify forbids
-   127/8, we forbid ephemeral ports); move the kits' configured ports out of 32768-60999 if any are
-   there.
-Each with its `Tests.lean` example, a conformance run, and the soundness skill (`axiom`) over the
-changed rows.
+3. **Go's write lock**: concurrent `Write`s on one end do not interleave (`fd_unix.go:366`). Model it
+   (a lock in the end's state held across a `Write`'s loop of steps) unless phase 0 shows no kit writes
+   concurrently.
+4. **Wildcard `Listen` with one IP per node.** D21 (`ListenAt`, `Impl.lean:446`) requires the
+   wildcard's port to be the plan's only address with that port, because on one machine a wildcard
+   listener takes every local address (`TestAddressAliases`); kits listening on `":p"` on every node
+   would panic. Make the deployment's kind part of the plan (one machine, or one network namespace per
+   host): per host, the wildcard resolves to (this node's host, `p`), unique per host; measured in
+   namespaces (dsverify's `node_identity_netns_test.go` is the evidence to port).
+5. **The deployment premise**: `NetConfig.WellFormed` onto `PlanWellFormed` (dsverify forbids 127/8;
+   we forbid ephemeral ports): the kits' configured ports out of 32768-60999 if any are there.
+Each with its `Tests.lean` example, a conformance run, and a soundness review (the `axiom` skill)
+of the changed rows.
 
-### Phase 2: the shared unit, `GoNet/` (layout and build)
+### Phase 3: the export
 
-- Create the part (Q3), importing only Perennial: move `GooseLang/Ext/Tcp`, `NetTcp/{Code,
-  TrustedCode,GeneratedProof,ManualProof,Spec,Proof}/net`, `wire/` (the proved stream library) and the
-  conformance checker into it; the NetTcp examples stay where they are and import it. `etc/goose.py`
-  gets the part's projects; `etc/tcb-collections/gonet.txt`; `etc/api/gonet.txt` (the importable
-  list, interfaces generated).
-- An export script (`etc/export-gonet.sh`) that writes the part as a standalone Lake package (its own
-  `lakefile.toml`, Perennial pinned as here) and a leak check that fails on any etcd/raft name; the
-  check runs in `etc/gates.sh`.
-- dsverify-lab's build (plain `lean`, Perennial `4c8617a`) moves to Lake with the exported package as a
-  dependency and our Perennial pin; its `Harness/` keeps only what is lab-specific (`clients`,
-  `recorder`, `check`, `models`, porcupine, `driver`, `kitgen`).
+`etc/export-net.sh` and its leak check (Q3); the part's API list `etc/api/net.txt` and generated
+interfaces. dsverify-lab's own build moving onto the export (Lake, our Perennial pin) is the lab's
+change, proposed to the user, not made here.
 
-### Phase 3: the kit-facing net specs over tcpExt (proved, no trust)
+### Phase 4: the kit-facing net specs over the net extension (proved, no trust)
 
 dsverify's kit proofs reach the network only through exported specs (`D/notes/conform.md` L315-337:
-the F1-F3 change re-checked every run with no proof change). So prove **those statements** over
-tcpExt, in `GoNet/Proof/net/Compat*.lean`, from the logically atomic specs and `wire/Stream.lean`:
-`addrProto`, `addrTok`/`addrUnset`, `addr_set_proto`/`addrs_set_proto`, `sendTok`/`recvTok`/`sentLb`,
-`connEnd`/`connFresh`, `newConnResult`, `connErr`, and the Hoare triples of `Spec/net/*`. Where a
-statement does not hold of the stronger semantics, change it and record which kits it touches:
-- `connErr code err`: dsverify's codes (none, EOF, timeout, closed, broken, fail) become tcpExt's
-  kinds (`closed | timeout | sys`, EOF separate); the code is existential in the kits' uses, check.
-- Facts dsverify's model gives and tcpExt does not: a `Dial` succeeds only with an open listener; a
-  read error only after the bytes are drained; no interleaved concurrent writes (phase 1.3). Find which
-  kit proofs use them (none expected).
-- The plain-Hoare specs are weaker than ours; where a kit shares a connection between threads they may
-  not be enough, and the atomic specs are the fallback.
-First client: dsverify's `netprobe` (`netprobe_safeDist`), then the `bufio` connection lemmas
-(`Proof/bufio/Net.lean`), which the raw-TCP kits use.
+the F1-F3 model change re-checked every run with no proof change). Prove **those statements** over
+the net extension in `Net/Proof/net/Kit*.lean`, from the logically atomic specs and
+`wire/Stream.lean`: `addrProto`, `addrTok`/`addrUnset`, `addr_set_proto`/`addrs_set_proto`,
+`sendTok`/`recvTok`/`sentLb`, `connEnd`/`connFresh`, `newConnResult`, `connErr`, and `Spec/net/*`'s
+Hoare triples. Where a statement does not hold of the stronger semantics, change it and record which
+kits it touches:
+- `connErr code err`: dsverify's codes (none, EOF, timeout, closed, broken, fail) become the net
+  extension's kinds (`closed | timeout | sys`, EOF separate).
+- Facts `NetConn` gives and the net extension does not: a `Dial` succeeds only with an open listener;
+  a read error only after the bytes are drained; no interleaved concurrent writes (phase 2.3).
+First clients: dsverify's `netprobe` (`netprobe_safeDist`), then the `bufio` connection lemmas
+(`Proof/bufio/Net.lean`) the raw-TCP kits use.
 
-### Phase 4: one set of models, over tcpExt (trusted Go code, proved specs)
+### Phase 5: one set of models, over the net extension (trusted Go code, proved specs)
 
-Order by who needs what; each model is a patch (Q1) with dsverify's tests kept as differential tests
-against the real library, and a "not modelled" panic outside its scope.
+Each model a patch (Q1), dsverify's tests kept as differential tests against the real library, a
+"not modelled" panic outside its scope.
 1. **Codecs, one generator for both projects.** dsverify's `pbgen.py` (per-type plain protobuf
-   marshal code, byte-exact against protobuf-go v1.36.12, its `PbCodec` class proved per type) is the
-   E2 (b) model etcd decided on: adopt it as `etc/pbgen.py` for etcd's and raft's `.proto` files,
-   replacing `pbEncC` and the per-type registration axioms when etcd switches (phase 6). Same for JSON
-   (`jsongen.py`, `jsoncodec`) as E3's model. gob: dsverify's names-only + generated codec, net/rpc's
-   only user.
+   marshal code, byte-exact against protobuf-go v1.36.12, `PbCodec` proved per type) is the E2 (b)
+   model etcd decided on: `etc/pbgen.py` for etcd's and raft's `.proto` files too (used by etcd in
+   phase 7). The same for JSON (`jsongen.py`, `jsoncodec`, E3). gob: names-only plus the generated
+   codec, net/rpc's only user.
 2. **net/rpc** (kits only): dsverify's model as a patch of Go's `net/rpc` (overlay), its proofs
-   (5.3k) ported over phase 3's specs; `rpcgen.py` moves with it.
-3. **net/http**: start from dsverify's server and `ReadResponse` (enough for net/rpc's CONNECT and
-   craq), then grow to option B §4.4 (client `Transport.RoundTrip` with the program's dialer, resends,
-   `ServeMux`, `Flusher`, `Shutdown`) for rafthttp and etcd's peer handlers. Spec vocabulary: the
-   per-address protocol of dsverify's `RpcWorld` and of our `HttpNet`/`Proto` (`Boundary.lean`), merged
-   into one, so that `Boundary.lean`'s statements become theorems.
+   (5.3k lines) ported over phase 4's specs; `rpcgen.py` with it.
+3. **net/http**: from dsverify's server and `ReadResponse` (net/rpc's CONNECT, craq), then option B
+   §4.4 (client `Transport.RoundTrip` with the program's dialer, resends, `ServeMux`, `Flusher`,
+   `Shutdown`) for rafthttp and etcd's peer handlers; one per-address protocol vocabulary merging
+   dsverify's `RpcWorld` and our `HttpNet`/`Proto` (`Proof/net/http/Boundary.lean`).
 4. **gRPC**: option B §4.3 with Q2's wire. Unary first from dsverify's model and proofs
-   (`ClientConn.Invoke.spec`, `handlerOk`, `GrpcWorld`, status codes, contexts via Perennial's
-   `context`), checked against quepaxa-net's use; then what etcd needs beyond it: streams
-   (`NewStream`, `GenericClientStream`/`ServerStream`, the two-queue protocol of `InvGrpcStream.lean`
-   as a proved fact), interceptors, metadata, resolvers and idleness, `GracefulStop`/`Stop`,
-   `WaitForReady`, transparent retry only when not dispatched. The kit-facing statements stay those of
-   dsverify (Q5); etcd's `InvGrpc*` vocabulary is re-derived on top (phase 6).
-5. Whatever else the kits use that is a model of a library (dsverify's `log`, `log/slog`, `sync.Map`,
-   `math/rand`, zerolog, go-redis, gogoproto, `cmap`, `gods`, `uuid`): stays lab-side (not network,
-   not etcd's), except where etcd-grove has a translation of the same package already; then one copy,
-   here.
+   (`ClientConn.Invoke.spec`, `handlerOk`, `GrpcWorld`, status codes, contexts over Perennial's
+   `context`), checked against quepaxa-net's use; then what etcd needs: streams (`NewStream`, the
+   generic stream wrappers, `InvGrpcStream.lean`'s two queues as a proved fact), interceptors,
+   metadata, resolvers and idleness, `GracefulStop`/`Stop`, `WaitForReady`, transparent retry only
+   when not dispatched.
+5. dsverify's other library models (`log`, `log/slog`, `sync.Map`, `math/rand`, zerolog, go-redis,
+   gogoproto, `cmap`, `gods`, `uuid`) stay lab-side, except where this repository already translates
+   the package (then one copy, here).
 
-### Phase 5: the statement and the kits
+### Phase 6: the statement and the kits
 
-- `GoNet/Statement/SafeDist.lean`: dsverify's `SafeDist` over `tcpExts` with `PlanWellFormed` (Q4),
-  `driver_dist_safe` restated; the goal template, `goal-check.sh` and `goal-axioms.sh` updated (the
-  permitted axioms: Lean's, Perennial's, the exported package's trusted definitions; no new axiom).
-- Port the kits in order of transport difficulty, each checked by the lab's `verify.sh` and the
-  comparator: paxos-net-3 (raw TCP), vsr-net-1 (JSON), rabia-net-1, epaxos-net-1/2, gryff-net-2
-  (bufio, net/rpc master), craq-net-2 (net/rpc over http), quepaxa-net-2 (gRPC). A kit whose proof
-  ports with import changes is done; otherwise a continuation run with the new harness.
-- Run the rig (`harness/rig`) on the ported kits with etcd-grove's tracer and certified checker
-  (`examples/net/conform`), as `D/harness/conform` did with its uncertified one.
+- `Net/Statement/SafeDist.lean`: dsverify's `SafeDist` over `netExts` with `PlanWellFormed` (Q4) and
+  `driver_dist_safe`; the lab's goal template and checks follow (the lab's change).
+- The kits' Go (the forks at their pins) and proofs copied into a part `Dsverify/` (modules
+  `Dsverify.*`, nothing outside it imports it), ported by editing (Q5), in order of transport:
+  paxos-net-3 (raw TCP), vsr-net-1 (JSON), rabia-net-1, epaxos-net-1/2, gryff-net-2 (bufio, net/rpc
+  master), craq-net-2 (net/rpc over http), quepaxa-net-2 (gRPC); each `goal` restated over phase 6's
+  `SafeDist`, `#print axioms` checked, a TCB collection per kit.
+- The lab's rig traces of the kits checked with this repository's certified conformance checker
+  (`examples/net/conform`).
 
-### Phase 6: etcd onto the same models (option B, its own stage)
+### Phase 7: etcd onto the same models (option B, its own stage)
 
-Out of scope for the port, but the reason for doing it this way: the main tree's names-only `net`
-becomes `GoNet`'s, the gRPC and net/http axioms (~130, `Proof/google_golang_org/grpc/`,
-`Proof/net/http/Axioms.lean`) become theorems over the models, rafthttp's dialer and etcd's
-`client/pkg/transport` wrappers run as translated code (option B §3), the single-process closed
-theorems become distributed (`goose_dist_crash_adequacy`, one node per member). It needs streams,
-cmux and the HTTP client from phase 4 and is planned on its own, from `tcp-extension-design.md` §5-7.
+The main tree's names-only `net` becomes the part's; the gRPC and net/http axioms (~130,
+`Proof/google_golang_org/grpc/`, `Proof/net/http/Axioms.lean`) become theorems over the models;
+rafthttp's dialer and etcd's `client/pkg/transport` wrappers run as translated code (option B §3);
+the closed theorems become distributed (one node per member). Planned on its own from
+`tcp-extension-design.md` §5-7 once phase 5 has streams, cmux and the HTTP client.
 
 ## 4. Sizes and risks
 
-- Phase 1: small (days); phase 2: mostly moves and scripts (days); phase 3: 2-4k Lean lines; phase 4
-  for the kits' subset (codecs, net/rpc, http server, unary gRPC): porting ~12k Lean lines of dsverify
-  proofs to the new specs and patches, weeks; phase 4's etcd part (streams, client http, the rest of
-  grpc) is option B's estimate (60-110k Lean lines in all, `option-a-cost.md`); phase 5: per kit,
-  from hours (import changes) to a continuation run.
-- Risk: a kit proof uses a fact of `NetConn` that tcpExt does not give (phase 3's list). Mitigation:
-  find them before porting the models, by checking phase 3's statements against every kit's proof.
-- Risk: patches of the real packages are harder to write than substitute packages, and dsverify's
-  agents read the model code. Mitigation: the patches' added files are dsverify's code; the kit-facing
-  specs do not change.
-- Risk: the isolation leak (Q3). Mitigation: the export's leak check in the gates.
-- Risk: two moving targets (dsverify's runs keep landing on `NetConn`). Mitigation: freeze the lab's
-  harness for new kits at phase 5's start; running runs finish on the old harness.
+- Phases 0, 1, 3: days. Phase 2: about a week with its review. Phase 4: 2-4k Lean lines. Phase 5 for
+  the kits' subset (codecs, net/rpc, http server, unary gRPC): ~12k Lean lines of dsverify proofs to
+  port, weeks; its etcd part (streams, the HTTP client, the rest of grpc) is option B's estimate
+  (60-110k Lean lines in all, `option-a-cost.md`). Phase 6: per kit, from hours to days.
+- A kit proof uses a fact of `NetConn` the net extension does not give: found in phase 4 by checking
+  its statements against every kit's proof, before the models move.
+- The kits' proofs may not be reachable from here (phase 0); then phase 6 waits for the user.
+- Patches of real packages are harder to write than substitute packages; the patches' added files are
+  dsverify's code and the kit-facing specs do not change.
+- dsverify's runs keep landing on `NetConn` meanwhile: new kits switch to the export when the user
+  decides; running runs finish on the old harness.
