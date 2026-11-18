@@ -58,3 +58,11 @@ are unchanged. Patterns used:
 
 No spec changed. The tcb collection `etc/tcb-collections/raft-noax.txt` lost `ccDecodeV2_nil` and the
 four `sorry`s.
+
+**Checked** (2026-11-18, on the merge with `raft-noax` at `8ffdbf2073`): `lake build
+RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results` builds; the axiom
+closure of `Perennial.EtcdGrove.raft_kvdurable_porcupine_safe` (`AxPath2.lean`) has 331 axioms beside
+Lean's three, all Goose's type axioms of untranslated declarations (`.underlying`, `.zero_val`, the types
+of `fmt`, `os`, `strings`, `sync`, `log`, protobuf's `proto`/`impl`/`protoimpl`), none in this
+repository's namespace `Perennial.EtcdGrove`, and no `sorryAx`. `etc/copy-part.py --check`: 0 differ;
+`etc/gen-link.py --kvdurable-noax` unchanged.
