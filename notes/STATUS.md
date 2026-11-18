@@ -21,9 +21,13 @@ empty bucket (batch and read transaction: no spec existed; provable over real bb
 the auth-schema-srv plan's A1). Spec changes pending the user (`notes/specs-only/ledger.md`, 2026-11-18):
 `NewAuthStore.spec` (four write-back tokens, a non-nil logger, `schema`'s facts), `apply.adminAdmitted`
 (`False` in every mode), `AuthInfoFromTLS.spec` (`authInv ∨ offInv`). `authSchemaSrv` (D22) not attempted:
-its discharge is A1-A7 (`notes/auth-schema-srv-scope.md`). Not run (disk: a full build would leave the shared
-disk under 25 GB): the full build, `etc/tcb-report.py --check` (the baseline and the 22 collections that
-listed the axiom edited by hand), the gates, the interfaces. `notes/decisions.md`, "authstore-noax".
+its discharge is A1-A7 (`notes/auth-schema-srv-scope.md`). Checked: the server's `Link` (NewServer and
+NewServerR included: one hypothesis framed at the kit's call), the closed theorems `etcd_putget_safe` and
+`etcd_auth3_safe` built, and their `#print axioms` equal to their collections (edited by hand: the baseline
+and the 22 collections that listed the axiom, the axiom out, the three backend axioms and `AuthInfoFromTLS`
+in); `api-check`, the backend's interfaces and layout list, `bounds-check`, `import-all-check`. Not run (the
+full-build lock was held by two other sessions): the full build, `etc/tcb-report.py --check`, `etc/gates.sh`,
+`axiom-tok-check` (the axiom's three stale entries removed). `notes/decisions.md`, "authstore-noax".
 
 ## Raft's two builds: the main tree without `with_tla`, `RaftTla/` with it (2026-11-16, branch `trace-check-merge-lean2`)
 
