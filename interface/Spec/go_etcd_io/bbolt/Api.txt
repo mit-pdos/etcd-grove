@@ -46,9 +46,6 @@ def (sealed) bbolt.boltIno [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt
 theorem bbolt.txDone_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx :
     Loc) : Persistent (bbolt.txDone tx)
 
-theorem bbolt.boltNoFile_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ
-    : bbolt.BoltName) : Persistent (bbolt.boltNoFile γ)
-
 theorem bbolt.boltCur_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx :
     Loc) (γ : bbolt.BoltName) (c : Loc) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option
     Nat) : Timeless (bbolt.boltCur tx γ c T es pos)
@@ -194,9 +191,6 @@ theorem bbolt.boltTx_nonnull [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt 
 
 theorem bbolt.fileHoldsM_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
     Fs.Ino) (D : bbolt.Data) : Timeless (bbolt.fileHoldsM i D)
-
-def (sealed) bbolt.boltNoFile [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
-    bbolt.BoltName) : IProp GF
 
 def bbolt.instDecidableEqBoltName.decEq (x✝ x✝¹ : bbolt.BoltName) : Decidable (x✝ = x✝¹) :=
   match x✝¹, x✝ with
