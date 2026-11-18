@@ -66,7 +66,12 @@ theorem transformErrorToEvent.wp_proof
       exact ⟨rfl, rfl, Hf⟩
     simp only [Bool.false_eq_true]
     wp_auto
-    wp_apply wp_NewInternalError $$ [] as %p ⟨%st, Hp, %Hf⟩
+    wp_apply wp_NewInternalError $$ [] as %p ⟨%st, %c, Hp, -, %Hf⟩
+    · iexists e
+      isplitr
+      · ipureintro; rfl
+      iframe Hstr
+      ipureintro; exact Hfmt
     iclear Heq Hstr Hcode Hgrpc Has Hst
     (try wp_auto)
     simp only [hps, ↓reduceIte]

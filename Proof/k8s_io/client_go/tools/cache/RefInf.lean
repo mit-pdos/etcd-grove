@@ -276,14 +276,14 @@ theorem errIs_ne_nil (err : GoInterface) (e : ApiErr) :
   simp [interface.mkOk]
 
 open Iris.ProofMode in
-/-- **What a watch without selectors returns**: an error (and no watch), or the watch. -/
+/-- **What a watch without selectors returns**: an API error (and no watch), or the watch. -/
 theorem watchRet_cases (γa : ApiNames)
     (cfg : github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Config) (res : Res)
     (lo : kd.meta.ListOptions) (σ : apimodel.St) (w err : GoInterface)
     (hls : lo.LabelSelector' = go!"") (hfs : lo.FieldSelector' = go!"")
     (hsie : lo.SendInitialEvents' = none) :
     watchRet (GF := GF) γa cfg false res go!"" lo σ w err ⊢
-      ⌜w = interface.nil ∧ err ≠ interface.nil⌝ ∨
+      (⌜w = interface.nil ∧ err ≠ interface.nil⌝ ∗ ∃ e, apimodel.errIs err e) ∨
       (⌜err = interface.nil⌝ ∗ ∃ (γw : WatchNames) (inits : List Obj) (n0 : w64),
         watchAt w γa γw res go!"" (lo.AllowWatchBookmarks' && cfg.Bookmarks' && !false) inits ∗
         watchCons γw 0 (logStart (σ.tbl res).log n0, n0) ∗ pastSt γa σ ∗
@@ -292,9 +292,13 @@ theorem watchRet_cases (γa : ApiNames)
   rw [ite_eq_right (by simp [hls, hfs, hsie])]
   iintro (⟨⟨-, %hw⟩, Herr⟩ | ⟨⟨%hw, -⟩, Herr⟩ | ⟨%he, H⟩)
   · ihave %hne := errIs_ne_nil err _ $$ Herr
-    ileft; ipureintro; exact ⟨hw, hne⟩
+    ileft; isplitr
+    · ipureintro; exact ⟨hw, hne⟩
+    iexists _; iexact Herr
   · ihave %hne := errIs_ne_nil err _ $$ Herr
-    ileft; ipureintro; exact ⟨hw, hne⟩
+    ileft; isplitr
+    · ipureintro; exact ⟨hw, hne⟩
+    iexists _; iexact Herr
   · iright; iframe; ipureintro; exact he
 
 /-- **The backoff returns a duration** (persistent). -/
@@ -653,12 +657,14 @@ theorem typedListRet_pageRes (γa : ApiNames)
   unfold typedListRet pager.pageRes
   iintro ⟨H, Hae⟩
   split
-  · icases H with ⟨%hq, Herr⟩
+  · icases H with ⟨%hq, #Herr⟩
     ihave %hne := errIs_ne_nil err _ $$ Herr
-    ileft; iframe; ipureintro; exact ⟨hne, Or.inr (by rw [hq])⟩
-  · icases H with (⟨⟨-, %hq⟩, Herr⟩ | ⟨%he, %os, Hl, %hl, #Hσ⟩)
+    ihave #Hok := apimodel.errIs_apiErrOk err _ $$ Herr
+    ileft; iframe; iframe Hok; ipureintro; exact ⟨hne, Or.inr (by rw [hq])⟩
+  · icases H with (⟨⟨-, %hq⟩, #Herr⟩ | ⟨%he, %os, Hl, %hl, #Hσ⟩)
     · ihave %hne := errIs_ne_nil err _ $$ Herr
-      ileft; iframe; ipureintro; exact ⟨hne, Or.inr (by rw [hq])⟩
+      ihave #Hok := apimodel.errIs_apiErrOk err _ $$ Herr
+      ileft; iframe; iframe Hok; ipureintro; exact ⟨hne, Or.inr (by rw [hq])⟩
     · iright
       isplitr
       · ipureintro; exact he

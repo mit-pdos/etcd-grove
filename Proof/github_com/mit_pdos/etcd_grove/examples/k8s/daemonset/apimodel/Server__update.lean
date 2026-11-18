@@ -15,7 +15,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimode
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.Server__record
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewNotFound
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewConflict
-public import Perennial.Spec.errors.New
+public import Proof.errors.NewVarCell
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.WriteLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.MapLemmas
@@ -146,7 +146,6 @@ theorem Server.update.wp_proof
     (wp_NewNotFound : apierrors.NewNotFound.spec (GF := GF) (hG := hG))
     (wp_NewConflict : apierrors.NewConflict.spec (GF := GF) (hG := hG))
     (wp_NewTimeoutError : apierrors.NewTimeoutError.spec (GF := GF) (hG := hG))
-    (wp_New : errors.New.spec (GF := GF) (hG := hG))
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
     Server.update.spec (GF := GF) (hG := hG) := by
@@ -161,7 +160,7 @@ theorem Server.update.wp_proof
   ihave #Hinit : (github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.apimodelInit :
     IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨⟨%eS, #HeS⟩, ⟨%eR, #HeR⟩, ⟨%sA, #HeA⟩⟩
+  icases Hinit with ⟨⟨%eS, #HeS, #HeSok⟩, ⟨%eR, #HeR, #HeRok⟩, ⟨%sA, #HeA⟩⟩
   ihave #Hsrv := Hs
   iunfold isServer at Hs
   icases Hs with ⟨%L, #Hs⟩
@@ -226,7 +225,7 @@ theorem Server.update.wp_proof
         (try wp_auto)
         wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
         (try wp_auto)
-        wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, %Hst⟩
+        wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, #Hd, %Hst⟩
         ipersist Hp
         (try wp_auto)
         iapply HΦ
@@ -375,8 +374,10 @@ theorem Server.update.wp_proof
               iframe
               ipureintro; rfl
             · (try wp_auto)
-              wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, -, %Hst⟩
+              wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, Hdv, %Hc, %Hst⟩
               ipersist Hp
+              ipersist Hdv
+              ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
               (try wp_auto)
               iapply HΦ
               iframe
@@ -417,9 +418,10 @@ theorem Server.update.wp_proof
             (try wp_auto)
             wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
             (try wp_auto)
-            wp_apply wp_New as %e -
+            wp_apply EtcdGrove.wp_New_errorString_cell as %ex ⟨#Hem, -⟩
             (try wp_auto)
-            wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, %Hst⟩
+            wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, #Hd, %Hst⟩
+            · iapply errorString_argOk $$ Hem
             ipersist Hp
             (try wp_auto)
             iapply HΦ
@@ -561,8 +563,10 @@ theorem Server.update.wp_proof
                 iframe
                 ipureintro; rfl
               · (try wp_auto)
-                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, -, %Hst⟩
+                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, Hdv, %Hc, %Hst⟩
                 ipersist Hp
+                ipersist Hdv
+                ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                 (try wp_auto)
                 iapply HΦ
                 iframe
@@ -623,7 +627,7 @@ theorem Server.update.wp_proof
           (try wp_auto)
           wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
           (try wp_auto)
-          wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, %Hst⟩
+          wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, #Hd, %Hst⟩
           ipersist Hp
           (try wp_auto)
           iapply HΦ
@@ -772,8 +776,10 @@ theorem Server.update.wp_proof
                 iframe
                 ipureintro; rfl
               · (try wp_auto)
-                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, -, %Hst⟩
+                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, Hdv, %Hc, %Hst⟩
                 ipersist Hp
+                ipersist Hdv
+                ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                 (try wp_auto)
                 iapply HΦ
                 iframe
@@ -814,9 +820,10 @@ theorem Server.update.wp_proof
               (try wp_auto)
               wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
               (try wp_auto)
-              wp_apply wp_New as %e -
+              wp_apply EtcdGrove.wp_New_errorString_cell as %ex ⟨#Hem, -⟩
               (try wp_auto)
-              wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, %Hst⟩
+              wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, #Hd, %Hst⟩
+              · iapply errorString_argOk $$ Hem
               ipersist Hp
               (try wp_auto)
               iapply HΦ
@@ -958,8 +965,10 @@ theorem Server.update.wp_proof
                   iframe
                   ipureintro; rfl
                 · (try wp_auto)
-                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, -, %Hst⟩
+                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, Hdv, %Hc, %Hst⟩
                   ipersist Hp
+                  ipersist Hdv
+                  ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                   (try wp_auto)
                   iapply HΦ
                   iframe
@@ -983,7 +992,7 @@ theorem Server.update.wp_proof
               (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
               (fun σ => Or.inr (Or.inl ⟨.badRequest, updateErr_ns ⟨hnsr, hnsE, Hns2⟩, rfl, rfl⟩))) $$ HΦ with ⟨%σ, HΦ⟩
           (try wp_auto)
-          wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+          wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
           ipersist Hp
           (try wp_auto)
           iapply HΦ
@@ -1043,7 +1052,7 @@ theorem Server.update.wp_proof
             (try wp_auto)
             wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
             (try wp_auto)
-            wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, %Hst⟩
+            wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, #Hd, %Hst⟩
             ipersist Hp
             (try wp_auto)
             iapply HΦ
@@ -1192,8 +1201,10 @@ theorem Server.update.wp_proof
                   iframe
                   ipureintro; rfl
                 · (try wp_auto)
-                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, -, %Hst⟩
+                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, Hdv, %Hc, %Hst⟩
                   ipersist Hp
+                  ipersist Hdv
+                  ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                   (try wp_auto)
                   iapply HΦ
                   iframe
@@ -1234,9 +1245,10 @@ theorem Server.update.wp_proof
                 (try wp_auto)
                 wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
                 (try wp_auto)
-                wp_apply wp_New as %e -
+                wp_apply EtcdGrove.wp_New_errorString_cell as %ex ⟨#Hem, -⟩
                 (try wp_auto)
-                wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, %Hst⟩
+                wp_apply +noauto wp_NewConflict as %p ⟨%st, Hp, #Hd, %Hst⟩
+                · iapply errorString_argOk $$ Hem
                 ipersist Hp
                 (try wp_auto)
                 iapply HΦ
@@ -1378,8 +1390,10 @@ theorem Server.update.wp_proof
                     iframe
                     ipureintro; rfl
                   · (try wp_auto)
-                    wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, -, %Hst⟩
+                    wp_apply +noauto wp_NewTimeoutError as %p ⟨%st', %dv, Hp, Hdv, %Hc, %Hst⟩
                     ipersist Hp
+                    ipersist Hdv
+                    ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                     (try wp_auto)
                     iapply HΦ
                     iframe
@@ -1397,7 +1411,8 @@ theorem Server.update.wp_proof
         (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
         (fun σ => Or.inl ⟨Hb rfl, rfl, rfl⟩)) $$ HΦ with ⟨%σ, HΦ⟩
     (try wp_auto)
-    wp_apply +noauto wp_NewInternalError as %p ⟨%st, Hp, %Hst⟩
+    wp_apply +noauto wp_NewInternalError as %p ⟨%st, %c, Hp, #Hd, %Hst⟩
+    · first | iexact HeRok | iexact HeSok
     ipersist Hp
     (try wp_auto)
     iapply HΦ
@@ -1409,7 +1424,7 @@ theorem Server.update.wp_proof
     iexists p, st
     iframe #
     ipureintro
-    exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+    exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
 
 end proof
 

@@ -184,7 +184,7 @@ theorem Server.create.wp_proof
   ihave #Hinit : (github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.apimodelInit :
     IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨⟨%eS, #HeS⟩, ⟨%eR, #HeR⟩, ⟨%sA, #HeA⟩⟩
+  icases Hinit with ⟨⟨%eS, #HeS, #HeSok⟩, ⟨%eR, #HeR, #HeRok⟩, ⟨%sA, #HeA⟩⟩
   ihave #Hsrv := Hs
   iunfold isServer at Hs
   icases Hs with ⟨%L, #Hs⟩
@@ -248,7 +248,7 @@ theorem Server.create.wp_proof
               iframe
               ipureintro; exact ⟨Huidlt, Hok⟩
             (try wp_auto)
-            wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+            wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
             ipersist Hp
             (try wp_auto)
             iapply HΦ
@@ -299,7 +299,7 @@ theorem Server.create.wp_proof
               (try wp_auto)
               wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
               (try wp_auto)
-              wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, %Hst⟩
+              wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, #Hd, %Hst⟩
               ipersist Hp
               (try wp_auto)
               iapply HΦ
@@ -413,8 +413,10 @@ theorem Server.create.wp_proof
                 iframe
                 ipureintro; rfl
               · (try wp_auto)
-                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, -, %Hst⟩
+                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
                 ipersist Hp
+                ipersist Hdv
+                ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                 (try wp_auto)
                 iapply HΦ
                 iframe
@@ -462,7 +464,7 @@ theorem Server.create.wp_proof
             (try wp_auto)
             wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
             (try wp_auto)
-            wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, %Hst⟩
+            wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, #Hd, %Hst⟩
             ipersist Hp
             (try wp_auto)
             iapply HΦ
@@ -576,8 +578,10 @@ theorem Server.create.wp_proof
               iframe
               ipureintro; rfl
             · (try wp_auto)
-              wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, -, %Hst⟩
+              wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
               ipersist Hp
+              ipersist Hdv
+              ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
               (try wp_auto)
               iapply HΦ
               iframe
@@ -595,7 +599,7 @@ theorem Server.create.wp_proof
             (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
             (fun σ => Or.inr (Or.inl ⟨.badRequest, by exact createErr_rv hc1 (ho1 ▸ Hif), rfl, rfl⟩))) $$ HΦ with ⟨%σ, HΦ⟩
         (try wp_auto)
-        wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+        wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
         ipersist Hp
         wp_auto
         iapply HΦ
@@ -656,7 +660,7 @@ theorem Server.create.wp_proof
                 iframe
                 ipureintro; exact ⟨Huidlt, Hok⟩
               (try wp_auto)
-              wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+              wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
               ipersist Hp
               (try wp_auto)
               iapply HΦ
@@ -707,7 +711,7 @@ theorem Server.create.wp_proof
                 (try wp_auto)
                 wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
                 (try wp_auto)
-                wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, %Hst⟩
+                wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, #Hd, %Hst⟩
                 ipersist Hp
                 (try wp_auto)
                 iapply HΦ
@@ -821,8 +825,10 @@ theorem Server.create.wp_proof
                   iframe
                   ipureintro; rfl
                 · (try wp_auto)
-                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, -, %Hst⟩
+                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
                   ipersist Hp
+                  ipersist Hdv
+                  ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                   (try wp_auto)
                   iapply HΦ
                   iframe
@@ -870,7 +876,7 @@ theorem Server.create.wp_proof
               (try wp_auto)
               wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
               (try wp_auto)
-              wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, %Hst⟩
+              wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, #Hd, %Hst⟩
               ipersist Hp
               (try wp_auto)
               iapply HΦ
@@ -984,8 +990,10 @@ theorem Server.create.wp_proof
                 iframe
                 ipureintro; rfl
               · (try wp_auto)
-                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, -, %Hst⟩
+                wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
                 ipersist Hp
+                ipersist Hdv
+                ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                 (try wp_auto)
                 iapply HΦ
                 iframe
@@ -1003,7 +1011,7 @@ theorem Server.create.wp_proof
               (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
               (fun σ => Or.inr (Or.inl ⟨.badRequest, by exact createErr_rv hc1 (ho1 ▸ Hif), rfl, rfl⟩))) $$ HΦ with ⟨%σ, HΦ⟩
           (try wp_auto)
-          wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+          wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
           ipersist Hp
           wp_auto
           iapply HΦ
@@ -1026,7 +1034,7 @@ theorem Server.create.wp_proof
               (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
               (fun σ => Or.inr (Or.inl ⟨.badRequest, by exact createErr_ns ⟨hnsr, Hif, Hns2⟩, rfl, rfl⟩))) $$ HΦ with ⟨%σ, HΦ⟩
           (try wp_auto)
-          wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+          wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
           ipersist Hp
           wp_auto
           iapply HΦ
@@ -1084,7 +1092,7 @@ theorem Server.create.wp_proof
                   iframe
                   ipureintro; exact ⟨Huidlt, Hok⟩
                 (try wp_auto)
-                wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+                wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
                 ipersist Hp
                 (try wp_auto)
                 iapply HΦ
@@ -1135,7 +1143,7 @@ theorem Server.create.wp_proof
                   (try wp_auto)
                   wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
                   (try wp_auto)
-                  wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, %Hst⟩
+                  wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, #Hd, %Hst⟩
                   ipersist Hp
                   (try wp_auto)
                   iapply HΦ
@@ -1249,8 +1257,10 @@ theorem Server.create.wp_proof
                     iframe
                     ipureintro; rfl
                   · (try wp_auto)
-                    wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, -, %Hst⟩
+                    wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
                     ipersist Hp
+                    ipersist Hdv
+                    ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                     (try wp_auto)
                     iapply HΦ
                     iframe
@@ -1298,7 +1308,7 @@ theorem Server.create.wp_proof
                 (try wp_auto)
                 wp_apply (objAt_GetName wp_GetName y _) $$ Hy as Hy
                 (try wp_auto)
-                wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, %Hst⟩
+                wp_apply +noauto wp_NewAlreadyExists as %p ⟨%st, Hp, #Hd, %Hst⟩
                 ipersist Hp
                 (try wp_auto)
                 iapply HΦ
@@ -1412,8 +1422,10 @@ theorem Server.create.wp_proof
                   iframe
                   ipureintro; rfl
                 · (try wp_auto)
-                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, -, %Hst⟩
+                  wp_apply +noauto wp_NewTimeoutError as %p ⟨%st, %dv, Hp, Hdv, %Hc, %Hst⟩
                   ipersist Hp
+                  ipersist Hdv
+                  ihave #Hd := apierrors.statusDetailsAt_nil _ _ Hc $$ Hdv
                   (try wp_auto)
                   iapply HΦ
                   iframe
@@ -1431,7 +1443,7 @@ theorem Server.create.wp_proof
                 (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
                 (fun σ => Or.inr (Or.inl ⟨.badRequest, by exact createErr_rv hc1 (ho1 ▸ Hif), rfl, rfl⟩))) $$ HΦ with ⟨%σ, HΦ⟩
             (try wp_auto)
-            wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+            wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
             ipersist Hp
             wp_auto
             iapply HΦ
@@ -1449,7 +1461,8 @@ theorem Server.create.wp_proof
         (fun _ _ oc => iprop(∀ x err, objAt inp dq o ∗ writeRetI cfg.AmbiguousWrites' admin oc x err -∗ Φ (PairV #x #err)))
         (fun σ => Or.inl ⟨Hb rfl, rfl, rfl⟩)) $$ HΦ with ⟨%σ, HΦ⟩
     (try wp_auto)
-    wp_apply +noauto wp_NewInternalError as %p ⟨%st, Hp, %Hst⟩
+    wp_apply +noauto wp_NewInternalError as %p ⟨%st, %c, Hp, #Hd, %Hst⟩
+    · first | iexact HeRok | iexact HeSok
     ipersist Hp
     wp_auto
     iapply HΦ
@@ -1461,7 +1474,7 @@ theorem Server.create.wp_proof
     iexists p, st
     iframe #
     ipureintro
-    exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+    exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
 
 end proof
 
