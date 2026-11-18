@@ -2,6 +2,35 @@
 
 ## START HERE
 
+**2026-11-18 (night 6; for etcd-grove-03). Step 4's bridges B1-B5 proved, no `sorry`: B1-list, B2, B4 this
+session. Report at step 4's end sent (discharge list below). Decisions of 03 recorded (questions.md, trust §6).**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`). Commits this session: `1855dd0b93`
+  (B1-list `rstepL_list` in `RealBridge`; B2 `RealLin.realS_isLinearization` over the generic
+  `porcupine/Filter.isLinearization_filter`), `2419423e11` (`RealValidate.rvalidateL_point`), `7b1381e273`
+  (`RealB4.realReplay_ok`: any `lin2`, `NewReplay` ok, `Validate` accepts all).
+- Forms decided (report): `RawRel`'s list items `itemOk`; `CfgOk`, `HistCfgOk`, `RunOk`, `OpOk`, `FloorOk`; `ROp`,
+  `kM h0` (`pM (kSpec h0)` with `ansOf`), `realS`, `unaryOf`; B2/B4 take "kstepL keeps CfgOk/RunOk" as premises.
+- Verified: all new files by lean-check (full `-a` re-checks); targeted build of the optC list + `RealB4`:
+  `/shared/tmp/k8s7g/build-optC.sh` (log `build-optC.log`).
+- Next (step 5, after 03's go): the discharge list (report of night 6 / below); one cheap B4 extension first:
+  `drive`/`realReplay_ok` should also return, per watch, a configuration `hv` with `ReplayAt s0 R hv`, `RunOk hv`,
+  `watchOkL` (from `kM_step.1`) so B5 composes with the same `R`.
+- Step-5 discharge list: per op (`OpOk`): no `EOther` output (`failureFree`), `RawRel x y r` (call's `Raw` post,
+  list items `itemOk`), lists: `Match ∈ {0,1,2}`, `listConsL` some, `prepareKeyM [] ListKey` some; others:
+  `keyOkL (storeKeyL Key)`; `FloorOk st0.rv` (D7g-1). Configurations: `RunOk h0` (seeded store) and `kstepL` keeps
+  `RunOk` on unary ops (pure; needs `inFits`, no wrap); `st0.rv + |H| < 2^64`. Conversion: `H` from `lops`
+  (`decOp`/`Raw` → `ROp`), porcupine's run on `fmapH unaryOf H`, `realOkL`'s ops = `vals _ lin2`, `reqRep`.
+  B5's (`hreq`, `WatchFromL`, `HistSorted`, length = revision, `rmWf (absR st0)`); `outEqual.spec` restated as
+  plain-field equality (decided); `call.lean` broken (pre-existing).
+- Pitfalls (new): `W64 0` vs `0` (`0#64`) in goals: rewrite with `w64_z : W64 0 = 0 := rfl` or prove `¬rq = 0` by
+  `exact`; `rw [if_neg h]` fails when `(absR st).rv` was simp'd to `st.rv` in the condition only (instance
+  mismatch): `rw [if_neg (show ¬ … (absR st).rv … from h)]`; `split`/`cases` on `PStep`/`PSilent` name only the
+  non-index fields (`| ok ho`, `| obs o hob hok`, `| perm p hpp`); `erw` for `replayL`'s initial map
+  (`(absR st).rv` vs `st.rv`).
+
+### Superseded (night 5)
+
 **2026-11-18 (night 5; for etcd-grove-03). Option (C) done (Go + Lean); B1 for writes and gets proved
 (`RealBridge.lean`, no `sorry`); B1-list, B2, B4 left. Paused at a context stop.**
 
