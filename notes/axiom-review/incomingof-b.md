@@ -287,8 +287,10 @@ Decided: (1) narrow T2's conjunct from `m ∉ handlerDescs` to Go's two context 
 more; true of Go's `context` package at go1.27.3); (2) strengthen the **proved** `rpctypes.Error.spec`: an
 error with no `GRPCStatus` method whose `Error()` stably returns a message that is no key of
 `errStringToError` comes back unchanged; (3) `ContextError.spec` (proved): a context error comes back as a
-context error. M4 stays a pre-existing hardening item (accepted). **Status: (1) written below; STOP for a
-short independent attack before the proofs rely on it.**
+context error. M4 stays a pre-existing hardening item (accepted). **Status: the attack on T2' (etcd-grove-03,
+2026-11-18) SURVIVES, incl. the planned (2)/(3) (the real `errStringToError` at the pin has 57 keys, neither
+context message among them; no other path changes a context error); its MINORs M1-M3 are folded in below
+("After the attack on T2'"). Implemented after that.**
 
 ### T2' (replaces T2's new conjunct; `grpc/InvGrpc.lean` `ctxErrsErr`, `client/v3/InvKVConn.lean` `ctxErrClient`)
 
@@ -386,6 +388,33 @@ of Go's execution by the paths above.
 What is not covered: a user-defined `Context` whose `Err()` returns another error. No producer makes
 `ctxErrsErr` for one (Perennial's `isContext` is the context package's; `ctxErrs` is proved only for k8s's
 `channelContext`), and a `cancelCtx` child of one is excluded the same way (its parent must be `ctxOk`).
+
+### After the attack on T2' (etcd-grove-03, 2026-11-18): MINORs folded
+
+- **M1. Not every context's `Err()` is one of the two.** etcd's own `v3rpc.cancellableContext`
+  (`server/etcdserver/api/v3rpc/interceptor.go:297`) returns, after `Cancel(rpctypes.ErrGRPCNoLeader)`, the
+  `*status.Error` `"etcdserver: no leader"`. The docstring therefore does not claim Go's contract for every
+  context: it says the narrowed fact is **proved per producer** (the list below), names `cancellableContext`
+  as excluded (it is modelled separately, `InvCancellable`/`SrvCtxWeak`, and `ctxErrShape` rejects it anyway:
+  a `*status.Error` has an `Is(error) bool` method, grpc v1.84.0 `internal/status/status.go:222`; and its
+  message fails `ctxErrMsg`), and says any future
+  producer of `ctxErrsErr` for it must fail, by `ctxErrMsg`. The "What it claims, in Go" paragraph above is
+  to be read with this: the claim is Go's contract for the contexts the producers cover, not for all.
+- **M2. The other producers, each covered:**
+  - `ctxErrClient_todo`, `ctxErrClient_background` (`client/v3/InvServerKV.lean`), `ctxErrClient_quiet`
+    (`InvClientAuth.lean`): `Err()` returns `nil` on every call (an `emptyCtx`, or `ctxQuiet`'s nil `Err()`);
+    only the `nil` disjunct is produced, the message form is never reached.
+  - `clientWatchOk_ctxErr` (k8s `etcd3/WatchCons.lean`), `storeWatchOk_ctxErr` (examples k8s
+    `etcd3/watchEvents.lean`), `ctxErrClientAll_of_kvWatcher` (`client/v3/KMClient.lean`): project the stored
+    `ctxErrClientAllW` out of the client watcher's `watchSrvFacts`, which is made by `ctxErrClientAllW_of`
+    (from `context.ErrAny`); no new claim.
+  - `isNewClient_ctxOk` (`client/v3/InvClientNewResult.lean`): projects the client context's facts out of
+    `isNewClient`, made by `New`'s proof from a `WithCancel` of the caller's context (an `isContext`, so from
+    `ErrAny` again) or a quiet context.
+- **M3.** `examples/axiomcx/incomingof-real/go.mod` pins grpc v1.84.0 (as `examples/axiomcx/incomingof`);
+  rerun 2026-11-18, `GOTOOLCHAIN=go1.27.3 GOWORK=off go test -v ./...`: all five tests pass
+  (`TestCtxErrOnlyTwo`, `TestRpctypesErrorUnchanged`, `TestContextErrorTwice`, `TestRealTypes`,
+  `TestContextErrorRaw`).
 
 ### (2), (3): planned proved-spec changes (no trusted text)
 
