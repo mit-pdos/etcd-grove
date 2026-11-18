@@ -15,7 +15,7 @@
   `WholeG R pc q s0 gd` (a guard must be of the call's key); `wholeG_facts` gives "no entry of the key from `s0`";
   `wp_osMkdirSG'`/`wp_osRmdirSG'` (and TreeShared's wrappers) take `hkg : callKey R pg = callKey R (child d b)`
   (RemoveAllDir: `rfl`). The permission itself is still GLOBAL (one `γperm` element). Fs library + Proof/os
-  RemoveAllDir/UnlinkN build (1866 jobs); no full build at this commit yet.
+  RemoveAllDir/UnlinkN build (1866 jobs); full default build green at b93dd9be92 (20488 jobs, manifest-6d3).
 - **Next, in order:** stage 2 step B: split the permission per key (design (2) and (4) below; (3) is done as
   `CallsK`): `osCallPerm r q`, `callResS` keyed, `sole_of`/`callResS_excl`/`callsRes_facts`/`wholeG_facts` per key,
   `hsole` (hprog's "q = 1 → only call") per key, then the ~144 `osCallPerm` client files,
