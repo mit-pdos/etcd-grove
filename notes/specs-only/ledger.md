@@ -25,6 +25,43 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: `SpecPlan/Spec/google_golang_org/grpc/Api.lean` `ctxInMD_agree.spec` -- false for a realization over Perennial's `ctxValue`, and needed by no proof
+
+- **Spec.** `ctxInMD_agree.spec` (`Api.lean:922-925`: `ctxInMD ctx o ∗ ctxInMD ctx o' ⊢ ⌜o = o'⌝`, and the
+  same for `ctxPeerCN`); the real counterpart is the perheap redesign's `metadata.ctxInMD`
+  (`notes/perheap-scope.md` §2.1, not yet in the tree; today `metadata.incomingOf`, a pure opaque function).
+- **Defect.** An entailment with a pure conclusion over a per-heap relation. With `ctxInMD` defined over
+  Perennial's `context.ctxValue` (what makes the refuted `incomingOf_cancelCtx`/`incomingOf_cancellableContext`
+  provable, `/shared/tmp/perheap/Probe.lean`), it is false: `ctxValue`'s cases for a non-`context` type and a
+  `valueCtx`'s other keys are `Value` WP forms, and a partial-correctness WP of a `Value` that loops satisfies
+  every result. As an opaque with trusted transfer entailments it is consistent only with leaves indexed by
+  the heap's names, producers restricted to immutable chains, and an intended model (the review-1 m1 attack
+  otherwise crosses worlds).
+- **Evidence.** `notes/perheap-scope.md` §2.3a; the incomingof refutations (`notes/axiom-review/incomingof.md`,
+  `notes/incomingof-crossworld.md`); review 1 of the perheap Scope (`/shared/tmp/perheap/review-1.md`, M1, M2,
+  m1). Its two would-be consumers are restated with one metadata value from one producer (§3.1: `ctxBound`
+  indexed by the token, `AuthInfoFromCtx` taking `md`; `grpcAccepted` the single source).
+- **Proposed change.** Delete `ctxInMD_agree.spec` (both halves); keep `ctxInMD_persistent`, `rpcCtx_inMD`,
+  `ctxInMD_background`; specs that used agreement take the metadata as a parameter (`∀ md, ctxInMD ctx md -∗ …`).
+- **Decision.** Pending: the user's (a SpecPlan law), with the perheap Scope's Q2.
+
+## 2026-11-18: `SpecPlan/Spec/google_golang_org/grpc/Api.lean` `errView` -- no case for an error wrapping a status error; no message-only view
+
+- **Spec.** `errView` (`Api.lean:266`), `plainErr` (`:256`); real counterparts: `status.FromError.spec`
+  (`Spec/google_golang_org/grpc/status/FromError.lean`) and the perheap redesign's `descIs`
+  (`notes/perheap-scope.md` §2.2).
+- **Defect.** Incomplete, not unsound: grpc v1.84.0's `FromError` (`status/status.go:112-125`) gives an error
+  wrapping a status error the wrapped code with message `err.Error()`; `errView` covers status errors, plain
+  errors (`Unknown`) and `nil` only. The server's and client's description reasoning (`togRPCError`'s
+  fallback, `rpctypes.ErrorDesc`, the handler outcome) needs the message without the code, for wrap errors too
+  (mvcc's `fmt.Errorf("…%w", ctx.Err())`).
+- **Evidence.** Review 1 of the perheap Scope, m4; `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/InvStore.lean:5632`
+  (`rangeKeysErr`), `…/v3rpc/ServerKVOn.lean:961`.
+- **Proposed change.** Add `descIs err m` (the message `FromError(err).Message()` returns: `nil` and `""`; an
+  error without `GRPCStatus`, wrapping or not, and its stable `Error()`; a status error's message), with the
+  value pin (`∀ y : EtcdError, err = mkOk #y → m = y.desc`), and `descIs_of_errView`; `errView` unchanged.
+- **Decision.** Pending: with the perheap Scope's Q4 (the user).
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`
