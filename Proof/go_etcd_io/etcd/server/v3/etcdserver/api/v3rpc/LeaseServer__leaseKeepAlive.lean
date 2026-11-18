@@ -158,8 +158,8 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE⟩
+  intro p s A cid mid E γl S' st γs Up Dn ci tok cd
+  wp_start as ⟨#Hls, #HRn, #Hst, #Htk, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
@@ -242,7 +242,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     ihave #HUq := HUp' $$ HUpq
     iunfold v3rpc.kaUp at HUq
     icases HUq with ⟨#Hnb, #Hmb⟩
-    ihave #HRn' := HRn $$ %ci %cd %v.ID' %q.nb %q.mb
+    ihave #HRn' := HRn $$ %ci %tok %cd %v.ID' %q.nb %q.mb
     wp_apply HRn' $$ [HS HE] as %ttl %rerr ⟨HS, HE, Hans⟩
     · iframe; iframe #
     (try wp_auto)

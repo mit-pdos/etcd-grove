@@ -139,7 +139,7 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       iframe Hgl Hgreq
     cases hon : E.authOn
     · iapply leaseGrantResT_false
-    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ ci m.1 resp Q $$ Hres
+    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ tok m.1 resp Q $$ Hres
       icombine Hid' Hid2 gives %Hii
       subst Hii
       iexact HT

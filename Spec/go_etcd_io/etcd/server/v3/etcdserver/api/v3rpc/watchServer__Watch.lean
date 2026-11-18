@@ -37,8 +37,8 @@ slice's unit W-C) and the run's resources (the auth store's reader resource and 
 it returns an error grpc's `status` takes (`srvErrOk`, premise fixes 7: `processStreamingRPC` and
 the prometheus interceptor call `status.FromError` on it): the receive loop's (a status error,
 `Recv`'s), `ErrGRPCWatchCanceled` (a `*status.Error`) or the context's (`isCtxErr`), with the
-stream specification. The specification is at the token of the run's context
-`ci` (`auth.ctxTokenOf`; G2, 2026-10-30): each create's check passed for it (`watchAuthed`). The
+stream specification. The specification is at the token `tok` the run's context
+`ci` carries (`auth.ctxToken`, with auth on; G2, 2026-10-30, by the context until perheap 1b, 2026-11-18): each create's check passed for it (`watchAuthed`). The
 mvcc API migration (2026-11-05, the draft `notes/mvcc-api-clients/WatchSpecs.lean` §6): the
 server's side of the watch path (`srvWOk`, with v3rpc's namespace); no watch token per create and no
 reader slots (`watchRunSlot` was `recvRes ∗ sendRes`, the store's reader slots: now `R.E.RD ∗
@@ -59,12 +59,13 @@ the run lends the handler (given back) and each goroutine takes from its own thr
 abbrev v3rpc.watchServer.Watch.spec : Prop :=
   ∀ (p : Loc) (R : v3rpc.WSrv GF) (W : v3rpc.SrvW GF) (st : GoInterface) (γs : v3rpc.StreamNames)
     (Up : Nat → v3rpc.WatchReqM → IProp GF) (Dn : Nat → v3rpc.WatchRespM → IProp GF)
-    (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (N₂ N₃ : Namespace) (γ₂ γ₃ : GName)
+    (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (N₂ N₃ : Namespace) (γ₂ γ₃ : GName)
     (F₂ F₃ : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.isWatchServer p R ∗ v3rpc.srvWOk W R.wsl v3rpc.wsN ∗
       v3rpc.srvStreamIs st γs v3rpc.pbWatchRequest v3rpc.pbWatchResponse Up Dn ci cd ∗
-      v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
+      □ (⌜R.E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗
+      v3rpc.watchStreamSpec γs R W tok Dn ∗
       v3rpc.upOk R.E.authMode Up ∗
       v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) γs [] ∗
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) γs [] ∗
@@ -75,7 +76,7 @@ abbrev v3rpc.watchServer.Watch.spec : Prop :=
       mvcc.api.mvccReaders W.γm 1 ∗ levelTok v3rpc.ctxErrLvl }}
     (App (Val (p @!! go.GoType.PointerType v3rpc.watchServer.ty @!! go!"Watch")) (Val #st))
   {{ (err : GoInterface), RET #err; go_etcd_io.etcd.cache.v3.srvErrOk err ∗
-      v3rpc.watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn ∗
+      v3rpc.watchStreamSpec γs R W tok Dn ∗
       mvcc.api.mvccReaders W.γm 1 ∗ levelTok v3rpc.ctxErrLvl }}
 
 
