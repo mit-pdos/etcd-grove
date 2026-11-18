@@ -1,6 +1,8 @@
 /-
-The trust boundary: `config.ServerConfig.PeerDialTimeout` (`config.go`: a duration computed from two fields): names-only. Lean-first (no Rocq counterpart); the
-server-construction unit, stage N0 (2026-10-16), for `NewServer`.
+`config.ServerConfig.PeerDialTimeout` (`config.go`: `time.Second + Duration(ElectionTicks *
+int(TickMs)) * time.Millisecond`, the fields read-only), verified: translated with its body
+(`Code/go_etcd_io/etcd/server/v3/config.toml`), as `ElectionTimeout`. Until 2026-11-18 a
+trust-boundary axiom (the server-construction unit, stage N0, 2026-10-16).
 -/
 module
 
@@ -13,15 +15,22 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-axiom config.ServerConfig.PeerDialTimeout.wp_proof : config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG)
+theorem config.ServerConfig.PeerDialTimeout.wp_proof :
+    config.ServerConfig.PeerDialTimeout.spec (GF := GF) (hG := hG) := by
+  intro c et tm
+  wp_start as ⟨#Het, #Htm⟩
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

@@ -516,6 +516,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.OpenBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.OpenSnapshotBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.storage__Release
 public import Proof.strconv.FormatBool
+public import Proof.strconv.FormatUint
 public import Proof.strings.TrimSuffix
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
@@ -852,9 +853,13 @@ theorem LeaseRevokeRequest.wp_GetID :
     LeaseRevokeRequest.GetID.spec (GF := GF) (hG := hG) :=
   LeaseRevokeRequest.GetID.wp_proof
 
+theorem strconv.wp_FormatUint :
+    strconv.FormatUint.spec (GF := GF) (hG := hG) :=
+  strconv.FormatUint.wp_proof
+
 theorem types.ID.wp_String :
     types.ID.String.spec (GF := GF) (hG := hG) :=
-  types.ID.String.wp_proof
+  types.ID.String.wp_proof strconv.wp_FormatUint
 
 theorem proto.wp_SizeMessage :
     proto.SizeMessage.spec (GF := GF) (hG := hG) :=
@@ -890,7 +895,7 @@ theorem semver.Version.wp_String :
 
 theorem types.ID.wp_String_ptr :
     types.ID.String_ptr.spec (GF := GF) (hG := hG) :=
-  types.ID.String_ptr.wp_proof
+  types.ID.String_ptr.wp_proof types.ID.wp_String
 
 theorem proto.wp_UnmarshalPb :
     proto.UnmarshalPb.spec (GF := GF) (hG := hG) :=
@@ -1166,7 +1171,7 @@ theorem lease.lessor.wp_scheduleCheckpointIfNeeded :
 
 theorem version.wp_LessThan :
     version.LessThan.spec (GF := GF) (hG := hG) :=
-  version.LessThan.wp_proof
+  version.LessThan.wp_proof semver.Version.wp_LessThan
 
 theorem lease.wp_greaterOrEqual :
     lease.greaterOrEqual.spec (GF := GF) (hG := hG) :=

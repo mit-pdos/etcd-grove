@@ -1,5 +1,7 @@
 /-
-`waitSchedule()` (`pipeline.go`: `runtime.Gosched()`; names-only, rafthttp stage 4d). Lean-first.
+`waitSchedule()` (`pipeline.go`: `runtime.Gosched()`; rafthttp stage 4d). Lean-first. (axiom-triage,
+2026-11-18: translated and proved; the precondition gained the package's `isPkgInit`, which
+`runtime.Gosched`'s spec needs: `notes/specs-only/ledger.md`.)
 -/
 module
 
@@ -22,7 +24,7 @@ variable [sem : go.Semantics]
 
 /-- `waitSchedule()` returns (it yields the processor). -/
 abbrev rafthttp.waitSchedule.spec : Prop :=
-  {{ (True : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }}
     (App (Val (@! rafthttp.waitSchedule)) (Val #()))
   {{ RET #(); True }}
 

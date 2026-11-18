@@ -4,10 +4,11 @@
 # stage 7c) the snapshot stream (the sender, its handler, `SendSnapshot`, `peer.sendSnap`). Names
 # only: the probes, the package variables' and metrics' initializers (`snapResponseReadTimeout`'s
 # too: any duration does) and `init`, and the round trippers' and listener's constructors (the HTTP
-# boundary's).
+# boundary's). (axiom-triage, 2026-11-18) `waitSchedule` (`runtime.Gosched()`) with its body, over
+# Perennial's `runtime`: it was a trust-boundary axiom.
 translate = ["*", "!init.*", "!snapResponseReadTimeout",
   "!addPeerToProber", "!monitorProbingStatus",
-  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper", "!waitSchedule",
+  "!NewListener", "!NewRoundTripper", "!newStreamRoundTripper",
   "!activePeers", "!disconnectedPeers", "!sentBytes", "!receivedBytes", "!sentFailures",
   "!recvFailures", "!snapshotSend", "!snapshotSendInflights", "!snapshotSendFailures",
   "!snapshotSendSeconds", "!snapshotReceive", "!snapshotReceiveInflights",
@@ -22,7 +23,7 @@ translate = ["*", "!init.*", "!snapResponseReadTimeout",
 # (2026-10-24, rafthttp stage 6d) `ProbingPrefix`, `RaftStreamPrefix` and `RaftSnapshotPrefix`
 # translated: `path.Join(RaftPrefix, ...)`, their values facts of `rafthttpInit`
 imports = ["!*", "bytes", "context", "encoding/binary", "errors", "fmt", "io", "net", "net/http",
-  "net/url", "path", "strings", "sync", "time",
+  "net/url", "path", "runtime", "strings", "sync", "time",
   "github.com/Masterminds/semver/v3", "github.com/dustin/go-humanize",
   "github.com/prometheus/client_golang/prometheus", "github.com/xiang90/probing",
   "go.etcd.io/etcd/api/v3/version", "go.etcd.io/etcd/client/pkg/v3/transport",

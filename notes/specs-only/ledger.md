@@ -25,6 +25,20 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: rafthttp's `waitSchedule.spec` -- unprovable as stated (a `True` precondition)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/waitSchedule.lean`,
+  `rafthttp.waitSchedule.spec` (no `SpecPlan/` counterpart).
+- **Defect.** Too weak a precondition to prove. Its axiom was a trust boundary; the body is
+  `runtime.Gosched()`, whose Perennial spec (`Perennial/Spec/runtime/Gosched.lean`) needs
+  `isPkgInit runtime`, and only the package's `isPkgInit` gives that.
+- **Evidence.** `notes/axiom-provability.md` (class A\*). `pipeline.go:179`.
+- **Proposed change.** The precondition `True` becomes `isPkgInit rafthttp`. Its one caller
+  (`pipeline.post`, `pipeline__post.lean`) holds the package's `isPkgInit`, so no proof
+  changes. Translate `waitSchedule` (`rafthttp.toml`: drop `!waitSchedule`, import `runtime`).
+- **Decision.** Applied on branch `axiom-triage` (2026-11-18, not landed): an internal spec of
+  rafthttp, not at the client boundary; pending review with the branch.
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`

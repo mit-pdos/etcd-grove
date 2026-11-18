@@ -340,6 +340,18 @@ noncomputable def RaftCluster.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))
   (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
+/-- go: cluster.go:252:23 -/
+noncomputable def RaftCluster.SetVersionChangedNotifier.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "n"
+  (Seq (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)))) (Var "n"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)))) (Var "n"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"versionChanged"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Var "$r0"))))))))
+  (Val #()))))
+
 /-- ValidateConfigurationChange takes a proposed ConfChange and
     ensures that it is still valid.
 
@@ -1197,6 +1209,7 @@ class RaftCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
   ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
+  ptr_SetVersionChangedNotifier_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"SetVersionChangedNotifier" RaftCluster.SetVersionChangedNotifier.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_ValidateConfigurationChange_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ValidateConfigurationChange" RaftCluster.ValidateConfigurationChange.impl
@@ -1235,6 +1248,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_Lock_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
   RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold
+  RaftCluster.TypeAssumptions.ptr_SetVersionChangedNotifier_unfold
   RaftCluster.TypeAssumptions.ptr_Unlock_unfold
   RaftCluster.TypeAssumptions.ptr_ValidateConfigurationChange_unfold
 

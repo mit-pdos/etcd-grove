@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (the server's `start` logs
 # `version.Version` and `version.Cluster(...)`; the request path's unit 4c).
-translate = ["!*"]
-imports = ["!*"]
+# (axiom-triage, 2026-11-18) `LessThan` with its body, over semver's `Version.LessThan`: it was
+# a trust-boundary axiom.
+translate = ["!*", "LessThan"]
+imports = ["!*", "github.com/Masterminds/semver/v3"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

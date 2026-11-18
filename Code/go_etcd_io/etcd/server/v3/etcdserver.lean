@@ -746,6 +746,28 @@ noncomputable def bootstrappedWAL.MemoryStorage.impl [GooseExts] [GoGlobalContex
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Pair (Var "s") (Var "$r0")))))))))
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty)))) (Var "$res0"))))))
 
+/-- go: corrupt.go:63:6 -/
+noncomputable def newCorruptionChecker.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "s"
+  (Lam "storage"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType corruptionChecker.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType corruptionChecker.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "storage" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty))) (Var "storage"))
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc corruptionChecker.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty))) (Var "storage"))
+  (App (Val (GoInstruction (CompositeLiteral hasherAdapter.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType EtcdServer.ty) (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty (Var "$v1")))]))))
+  (App (Val (GoInstruction (CompositeLiteral corruptionChecker.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"hasher")) (ElementExpression hasherAdapter.ty (Var "$v1")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType corruptionChecker.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType corruptionChecker.ty)))) (Var "$res0")))))))
+
 /-- go: interface.go:22:22 -/
 noncomputable def EtcdServer.ApplyWait.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
@@ -12307,6 +12329,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Lessor_instance : Lessor.TypeAssumptions
   Authenticator_instance : Authenticator.TypeAssumptions
   zapRaftLogger_instance : zapRaftLogger.TypeAssumptions
+  newCorruptionChecker_unfold : FuncUnfold newCorruptionChecker [] newCorruptionChecker.impl
   newRaftNode_unfold : FuncUnfold newRaftNode [] newRaftNode.impl
   updateCommittedIndex_unfold : FuncUnfold updateCommittedIndex [] updateCommittedIndex.impl
   NewServer_unfold : FuncUnfold NewServer [] NewServer.impl
@@ -12415,6 +12438,7 @@ attribute [instance] Assumptions.serverVersionAdapter_instance
   Assumptions.Lessor_instance
   Assumptions.Authenticator_instance
   Assumptions.zapRaftLogger_instance
+  Assumptions.newCorruptionChecker_unfold
   Assumptions.newRaftNode_unfold
   Assumptions.updateCommittedIndex_unfold
   Assumptions.NewServer_unfold

@@ -35,6 +35,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
 
 @[expose] public section
 
@@ -50,14 +51,15 @@ structure RestM where
   bk : GMap GoString backend.BktData
   mem : GMap w64 MemberM
 
-/-- **`schema.BackendMemberKey(id)`**: a member's key in `members` (its id in hex; opaque). -/
-opaque memberKey : w64 → GoString
+/-- **`schema.BackendMemberKey(id)`**: a member's key in `members`, `[]byte(id.String())`
+(`server/storage/schema/bucket.go:106-108`): its id in lowercase hexadecimal, `types.idStr id`
+(`types.ID.String`'s result, `strconv.FormatUint(uint64(i), 16)`). Until 2026-11-18 opaque. -/
+def memberKey (id : w64) : GoString := types.idStr id
 
-/-- **Distinct ids, distinct keys** (2026-11-04, the restart plan's R2b-3d gap 3, the user's approval;
-a trust-boundary axiom on the opaque `memberKey`). `schema.BackendMemberKey(id)` is
-`[]byte(id.String())` (`server/storage/schema/bucket.go:106-108`), and `types.ID.String()` is
-`strconv.FormatUint(uint64(i), 16)` (`client/pkg/types/id.go:27-29`), which is injective. -/
-axiom memberKey_inj (a b : w64) (h : memberKey a = memberKey b) : a = b
+/-- **Distinct ids, distinct keys** (the restart plan's R2b-3d gap 3). Until 2026-11-18 a
+trust-boundary axiom on the then opaque `memberKey`; now `types.idStr_inj`. -/
+theorem memberKey_inj (a b : w64) (h : memberKey a = memberKey b) : a = b :=
+  types.idStr_inj h
 
 /-- **`json.Marshal(m)` of a member** (`MustSaveMemberToBackend`'s value; opaque). -/
 opaque memberEnc : MemberM → GoString

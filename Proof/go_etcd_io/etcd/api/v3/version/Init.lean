@@ -12,6 +12,7 @@ initializer runs its variables' untranslated initializers (`version.go`): string
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
+public import Proof.github_com.Masterminds.semver.v3.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -106,6 +107,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iintro Hown
   wp_auto
   iapply wp_fupd
+  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply MinClusterVersion_init as HMinClusterVersion
   wp_apply Version_init as HVersion
   wp_apply (opaqueInitsOk APIVersion.init (by mem_tac))

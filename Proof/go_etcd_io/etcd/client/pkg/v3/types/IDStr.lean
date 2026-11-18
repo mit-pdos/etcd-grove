@@ -8,6 +8,7 @@ module
 
 public import Proof.path.Segs
 public import Proof.unicode.utf8.Valid
+public import Proof.strconv.FormatUintDefs
 
 @[expose] public section
 
@@ -96,6 +97,37 @@ theorem types.idStr_ascii (id : w64) : asciiStr (types.idStr id) := by
   obtain ⟨d, hd, rfl⟩ := types.hexNatF_digits _ _ c hc
   have := types.hexDigit_range d hd
   omega
+
+/-- `hexNatF`, with enough fuel, is `baseDigits 16` printed with `digitChar`. -/
+theorem types.hexNatF_eq (f n : Nat) (hf : n < f) :
+    types.hexNatF f n = (baseDigits 16 (by omega) n).map digitChar := by
+  induction f generalizing n with
+  | zero => omega
+  | succ f ih =>
+    simp only [types.hexNatF]
+    rw [baseDigits]
+    split
+    · rfl
+    · have h1 : n / 16 < f := by omega
+      rw [ih (n / 16) h1, List.map_append]
+      rfl
+
+/-- **`id.String()` is `strconv.FormatUint(id, 16)`'s result.** -/
+theorem types.idStr_fmtUint (id : w64) : types.idStr id = fmtUint id (W64 16) := by
+  unfold types.idStr fmtUint
+  rw [dite_cond_eq_true (eq_true (by decide))]
+  exact types.hexNatF_eq _ _ (by omega)
+
+/-- **Distinct ids, distinct strings** (`FormatUint` in base 16 is injective). -/
+theorem types.idStr_inj {a b : w64} (h : types.idStr a = types.idStr b) : a = b := by
+  rw [types.idStr_fmtUint, types.idStr_fmtUint] at h
+  unfold fmtUint at h
+  rw [dite_cond_eq_true (eq_true (by decide)), dite_cond_eq_true (eq_true (by decide))] at h
+  have h' := map_digitChar_inj 16 (by omega) _ _ (baseDigits_lt 16 _ a.toNat)
+    (baseDigits_lt 16 _ b.toNat) h
+  have := congrArg (digitsVal 16) h'
+  rw [digitsVal_baseDigits, digitsVal_baseDigits] at this
+  exact BitVec.eq_of_toNat_eq this
 
 end EtcdGrove
 end Perennial
