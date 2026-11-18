@@ -17,13 +17,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
+### `wp_auto`'s free-variable checks were exponential on struct values: landed, awaiting a pin bump (2026-11-18, perf2)
 
-`k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
-literal and takes 147s, in many sub-second steps (no unification of a second or more). The struct
-automation's cost seems superlinear in the number of fields; every proof building a large Go struct
-pays it (`NewServer`/`NewServerR` build the server's). To investigate in Perennial with a reproduction
-(a struct of n fields, n = 4, 8, 16, 32), not worked around here.
+`k8s.etcd3.genFrom` (326s on CI): after `wp_apply wp_uidOf`, one `wp_auto` took 147s (202s profiled
+under load), in no step of a second or more. Cause (gdb stack samples: 22 of 26 in
+`Expr.containsFVar`): `unusedPointsto`, which `wp_auto` runs at its end for every local points-to and
+every hypothesis, used `Expr.containsFVar`/`hasAnyFVar`, which walk an expression as a tree. A struct
+value updated field by field (`in.Kind = ...; in.Val = ...; ...`) is `mk (p₁ v) … x … (pₙ v)` around
+`v` once per update: a DAG of linear size but a tree of `n ^ k` nodes; for 34 fields and 5 updates one
+`containsFVar` takes 580ms (reproduction: `n` = 4, 8, 16, 34 fields, `k` = 1..5 updates; 16 fields and
+5 updates 18ms, 34 and 4 18ms, 34 and 5 580ms; `Expr.findExt?`, which visits each shared subterm once,
+0ms for all). `wp_if_subst_closed` and the `PureWp` cache's scope check had the same pattern. Not
+superlinear in the struct automation itself: the cost is in the number of field updates.
+
+Perennial `cbc377b20` (landed on `lean` as `721050938`): `exprHasAnyFVar`/`exprContainsFVar`
+(`Golang/Theory/ProofMode.lean`) through `Expr.findExt?`, used in those three places. Measured here
+against the pin `6d365ee1a` with the two changed modules' `.olean`s overlaid (`lake env lean`, run beside
+the base): `genFrom` 211s to 124s CPU (227s to 134s wall); `NewServer` (389s) and `NewServerR` (458s)
+unchanged: their slow `wp_auto` steps are not this. Take it with the next pin bump.
 
 ### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
 
