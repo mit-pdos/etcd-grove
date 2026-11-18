@@ -17,6 +17,21 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `≤u` to an interface does not chain through a named interface alias (2026-11-18, k8s 7g)
+
+- **Missing.** `method_interface_ok` needs `[t ≤u go.InterfaceType elems]`. For `meta.List`
+  (goose: `List'.ty`, underlying the reducible `List'.underlying := metav1.ListInterface.ty`, itself
+  a named interface) instance search does not find `List'.ty ≤u InterfaceType _`, though both
+  `List'.ty <u metav1.ListInterface.ty` and `metav1.ListInterface.ty ≤u InterfaceType _` are found
+  (the outParam of the first is the reducible `List'.underlying`, not syntactically the type the
+  second instance is keyed on). `wp_auto` then makes no progress on `accessor.GetResourceVersion()`.
+- **Who needs it.** The maintainers' checker's `listResponseRV`/`equalListResponse` (k8s 7g step 3).
+- **Workaround.** In the proof: `haveI : List'.ty ≤u InterfaceType _ :=
+  ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩` from the two found instances
+  (`Model__listResponseRV.lean`, `Model__equalListResponse.lean`).
+- **Proposed.** Goose emits the alias's `underlying` instance at the aliased type itself (or the
+  transitive instance unfolds reducible outParams). Status: recorded, not proposed yet.
+
 ### Generic maps and slices iterators: `maps.Keys`/`Clone`/`Equal`, `slices.Sorted`/`Collect`/`AppendSeq` (2026-11-17, k8s 7g)
 
 - **Missing.** Perennial translates the standard library's `maps` names only (no bodies), and

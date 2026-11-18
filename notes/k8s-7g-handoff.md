@@ -2,53 +2,57 @@
 
 ## START HERE
 
-**2026-11-18 (resumed after the attack; for etcd-grove-03). Step 3 in progress; checkpoint report sent.**
+**2026-11-18 (evening; for etcd-grove-03). Step 3 in progress: listResponseRV and equalListResponse
+proved; checkpoint report sent (large context).**
 
-- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 49bd7924e6 merged (`4063a12bf8`, pin
+- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean fb68edfec8 merged (`4efa3c4d43`, pin
   6d365ee1a). `--packages=/shared/tmp/manifest-6d3.json`; `.lake/package-overrides.json` = that manifest.
   Scope: `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local, untracked).
-- Done: steps 0-2; attack on V + `SuggestsClientDelay` passed, R2/R4 applied, axiom file added
-  (`1674097f92`); step 3 proved so far: `keyInScope`, `checkKey`, `Get/ListReadConsistency`, driver
-  `Obj.DeepCopyObject`/`SetResourceVersion`, `newObjList` (new), `NewEmptyModel`,
-  `Model.Clone/Equal/get/create/listItems/validCacherContinue`, **`Model.list`** (`897279346e`);
-  `errRep .other` now says `≠ nil` (`cf3b9ec2ae`, form).
-- Next, in order: `listResponseRV` (needs new driver specs `ObjList.GetResourceVersion` (via `rvString`),
-  and a premise: output object nil or a list, since `ListAccessor.spec` has no `*Obj` row);
-  `equalListResponse` (`ObjList.GetContinue/SetContinue/DeepCopyObject` specs; `reflect.DeepEqual.spec_k8s`
-  clause 2); then `update`/`delete`/`execute`; `validateGet`/`validateList`/`Step` (needs `errRep .tooLarge
-  delay` tied to `SuggestsClientDelay`'s answer: add `∃ st d, …, delayV st d = (_, delay)` to errRep's
-  tooLarge case, provable from `NewTooLargeResourceVersionError`'s details); then step 4.
-- Known breakage, pre-existing since step 0 (step 5 re-proofs; not from the merge): `call`, `consume`,
-  `Check`, `Gen`, `genList`, `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`,
-  `runWatch`, `watchEvents` (driver signature/`Output.Raw` changes), and the driver's `Link`/`Results`.
-  Everything else in `/shared/tmp/k8s7g/leaves2.txt` builds (`/shared/tmp/k8s7g/build-merge2.out`).
+- Done: steps 0-2; step 3 so far: `keyInScope`, `checkKey`, `Get/ListReadConsistency`, `NewEmptyModel`,
+  `Model.Clone/Equal/get/create/listItems/validCacherContinue/list` (to `897279346e`), and
+  **`Model.listResponseRV`, `Model.equalListResponse`** with driver `ObjList.GetResourceVersion/
+  GetContinue/SetContinue/DeepCopyObject` (`284724cd7a`). All build in a slot or check clean (`-a`).
+- Next, in order: `update`/`delete`/`execute`, then `validateGet`/`validateList`/`Step`, then step 4.
+  - `update`/`delete` need (forms, proved specs): `storage.NewInvalidObjError.spec`'s post to name the
+    inner error (`errors.New(msg)`: `Proof/errors/NewVarCell.lean` has the cell), and
+    `storage.Preconditions.Check.spec`'s invalid case to give the message (`SprintfOut.v_str`), since
+    `invalidE` is a deep view with the message; a premise that the model's items fit `DObj`
+    (`tryUpdateD` takes `objAtD`) and `inFits x`.
+  - OPEN (asked in the report): `reflect.DeepEqual.spec_k8s` clause 2 needs deep views of both
+    errors, but `Step`'s write branch, `validateGet` (MinRV "") and `validateList`'s consistent branch
+    (`equalListResponse`) compare an output that may hold a too-large error. Either a premise on
+    `Step`'s output, or a clause "a too-large `*StatusError` vs a deep error: false" (trusted).
+- Known breakage, pre-existing since step 0 (step 5 re-proofs): `call`, `consume`, `Check`, `Gen`,
+  `genList`, `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`, `runWatch`,
+  `watchEvents`, and the driver's `Link`/`Results`.
 - `etc/tcb-baseline.txt` and the collections do not list the 7g axioms yet (step 6).
-- Pitfalls:
-  - `wp_for` takes the whole spatial context: drop every `"_" ∷ True` leftover
-    (`repeat (irename : ("_" ∷ True : IProp GF) => H; iclear H)`).
-  - A case split whose branches converge before any allocation: `refine ?k` / `rotate_left` /
-    `exact ?k` (after `clear` of the case hypothesis); once `wp_auto` allocates, use
-    `wp_join at next with [hyps the branch reads]` (Model.list's Exact check). Never `all_goals` over
-    the rest of a function (copies it).
-  - A spec whose post is pure: `wp_apply … as … H` then `icases H with %H` (a `%H` in `as` may vanish
-    when the precondition left a side goal: `· iframe #`).
-  - Splitting a struct for field loads and recombining for a method call:
-    `icases typedPointsto_not_null_dup _ _ _ $$ H with ⟨H, %Hn⟩` before `iStructNamed H`, then
-    `iapply typedPointsto_combine _ _ _ Hn; simp only [TypedPointsto.typedPointstoDef, …]; iframe`.
-  - `functions f [] ≠ func.nil`: `FuncUnfold.func_unfold` + `go.intoVal_unfold GoFunc` (`getAttrs_ne_nil`).
-  - lean-check without `-a` may report 0 errors before reaching them: use `-a` before trusting a check.
-  - `wp_apply` already runs `wp_auto`: write `(try wp_auto)` after it; `+noauto` when you must
-    `ipersist` before the function returns.
-  - Driver specs need `[reg : EtcdGrove.k8s.CompactorRegistry]`; proofs `[driver_sem : ...etcd3.Assumptions]`.
-  - Never `wp_func_call` into `fmt.Errorf` (R1 audit): use its spec.
+- Pitfalls (new):
+  - Interface method calls through `meta.List` (`accessor.GetResourceVersion()`): add
+    `[meta_sem : …api.«meta».Assumptions] [metav1_sem : …apis.«meta».v1.Assumptions]` and the
+    `haveI : List'.ty ≤u InterfaceType _ := ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩` of
+    `Model__listResponseRV.lean` (notes/perennial-changes.md, 2026-11-18).
+  - `x == nil` on an interface becomes a `match x, nil`: `rcases iface_cases x` then `rw` (or
+    `deepRep_nil_iff`/`errRep_nil_iff`, Defs.lean). Unfold deep views in the context with
+    `iunfold deepRep at H` (plain `unfold` leaves proof mode).
+  - `wp_start` runs `wp_func_call`; for a lemma about `append` itself use `wp_start_folded`.
+  - `ihave … : P $$ [H]` gives P as a goal with H, not a wand: state such facts as lemmas.
+- Older pitfalls: see History (2026-11-18 morning START HERE).
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
-  (both slots are often busy for an hour); check:
-  `LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`.
-- Go runs: `cd examples/k8s/etcd3; GOWORK=off systemd-run --scope -q -p MemoryMax=32G go test
-  -count=1 -run 'TestPlainWrapperTypedNil|TestStatusChecksPlain|TestSuggestsClientDelay' .`
+  (both slots are often busy for an hour); check: `/shared/tmp/k8s7g/lc.sh -a FILE` (lean-check with a
+  filtered view; full output in `/shared/tmp/k8s7g/lc.out`).
 
 ## History
 
+- 2026-11-18 morning START HERE (superseded): pitfalls kept here:
+  - `wp_for` takes the whole spatial context: drop every `"_" ∷ True` leftover.
+  - A case split whose branches converge before any allocation: `refine ?k` / `rotate_left` /
+    `exact ?k`; once `wp_auto` allocates, use `wp_join at next with [...]`. Never `all_goals` over
+    the rest of a function.
+  - A spec whose post is pure: `wp_apply … as … H` then `icases H with %H`.
+  - Struct split/recombine: `typedPointsto_not_null_dup`, `iStructNamed`, `typedPointsto_combine`.
+  - `wp_apply` already runs `wp_auto`; `+noauto` when you must `ipersist` first.
+  - Driver specs need `[reg : EtcdGrove.k8s.CompactorRegistry]`; proofs `[driver_sem : …etcd3.Assumptions]`.
+  - Never `wp_func_call` into `fmt.Errorf` (R1 audit): use its spec.
 - Paused 2026-11-18 at the STOP for the attack on V + `SuggestsClientDelay` (`067bd749fa`).
 - Paused 2026-11-17 for the Hctx repair, at `0196b813e6` (step 3 through `listItems`).
 
