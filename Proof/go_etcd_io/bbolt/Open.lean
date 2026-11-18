@@ -19,14 +19,15 @@ module
 
 public import Spec.go_etcd_io.bbolt.Open
 public import Spec.go_etcd_io.bbolt.Options__String
-public import Spec.go_etcd_io.bbolt.DB__Begin_err
+public import Spec.go_etcd_io.bbolt.DB__Begin
 public import Spec.go_etcd_io.bbolt.Tx__Commit_err
-public import Spec.go_etcd_io.bbolt.DB__Close
+public import Proof.go_etcd_io.bbolt.Open.CloseTok
 public import Spec.go_etcd_io.bbolt.fdatasync
 public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
 public import Spec.os.File__StatW
-public import Spec.os.OpenFile
-public import Proof.os.OpenFile
+public import Spec.os.OpenFileS
+public import Spec.os.OpenFileSNoErr
+public import Proof.os.WriteFile
 public import Spec.os.File__Name
 public import Proof.go_etcd_io.bbolt.Options
 public import Proof.go_etcd_io.bbolt.DB__loadFreelist
@@ -315,76 +316,6 @@ macro "open_tx_exit" : tactic => `(tactic| (
   iframe Ht
   iright; ipureintro; exact ⟨(fun h => by cases h), by assumption⟩))
 
-/-- **`os.OpenFile(path, O_RDWR|O_CREATE, mode)` of the database file** (`pathHolds`): opening
-the file there (`os.OpenFile.spec`), or creating it in its directory (`specCreate`, with the whole
-tree). The tree comes back, unchanged or with the create logged; on success the file opened, at
-`path` in the tree now. -/
-private theorem wp_OpenFile_db [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-    (hOpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
-    (hCreate : os.OpenFile.specCreate (GF := GF) (hG := hG))
-    (path : GoString) (perm : w32) (R : Roots) (V : Hist) (D : Data) :
-    {{ osInv (GF := GF) ∗ osTree (GF := GF) (DFrac.own 1) R V ∗ pathHolds (GF := GF) R V path D }}
-      (App (App (App (Val (@! os.OpenFile)) (Val #path)) (Val #(W64 0x42))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); ∃ V' : Hist,
-        osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
-        ((∃ (fd : w64) (i : Ino), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧
-            lookupH R V' path = some (.file i)⌝ ∗
-          os.ownFile f fd path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
-          openedF i D (fun _ => True)) ∨
-         ⌜err ≠ interface.nil ∧ f = null⌝) ∗
-        fmtErrorOkOrNil err }} := by
-  iintro %Φ ⟨#Hos, Ht, Hph⟩ HΦ
-  unfold pathHolds
-  icases Hph with (⟨%i, %hl, Hfh⟩ | %Ha)
-  · wp_apply hOpenFile path perm 1 R V i hl $$ [Ht]
-      as %f %err ⟨Ht, (⟨%fd, %h, Hf, Hfd⟩ | %h), #Hek⟩
-    · iframe; iframe #
-    · iapply HΦ
-      iexists V
-      iframe Ht Hek
-      isplitr
-      · ipureintro; exact .inl rfl
-      ileft
-      iexists fd, i
-      iframe Hf Hfd
-      isplitr
-      · ipureintro; exact ⟨h.1, h.2, hl⟩
-      unfold fileHolds
-      iapply fileHolds_opened $$ Hfh
-    · iapply HΦ
-      iexists V
-      iframe Ht Hek
-      isplitr
-      · ipureintro; exact .inl rfl
-      iright; ipureintro; exact h
-  · obtain ⟨hr, d, b, j, rfl, hb, hd, hn, rfl⟩ := Ha
-    wp_apply hCreate d b perm R V j hb hd hn $$ [Ht]
-      as %f %err ⟨(⟨%fd, %i, %h, Ht, Hm, Hf, Hfd⟩ | ⟨%h, (Ht | ⟨%i, Ht, -⟩)⟩), #Hek⟩
-    · iframe; iframe #
-    · iapply HΦ
-      iexists _
-      iframe Ht Hek
-      isplitr
-      · ipureintro; exact .inr ⟨_, rfl⟩
-      ileft
-      iexists fd, i
-      iframe Hf Hfd
-      isplitr
-      · ipureintro; exact ⟨h.1, h.2, lookupH_create _ hr hd hb hn⟩
-      iapply new_opened _ _ trivial $$ Hm
-    · iapply HΦ
-      iexists V
-      iframe Ht Hek
-      isplitr
-      · ipureintro; exact .inl rfl
-      iright; ipureintro; exact h
-    · iapply HΦ
-      iexists _
-      iframe Ht Hek
-      isplitr
-      · ipureintro; exact .inr ⟨_, rfl⟩
-      iright; ipureintro; exact h
-
 /-- **`Open`, generic in how the file is opened** (S3a: the tree's `os.OpenFile` for `Open.spec`,
 the shared mode's `os.OpenFile.specCreateS` for `Open.specS`): the opening's resources `Pre`, given
 back as `Back x` for some `x` (the tree, or the claim on the name, after the open) on every exit,
@@ -416,9 +347,9 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     (hLoad : DB.loadFreelist.spec_open (GF := GF) (hG := hG))
     (hSync : DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
     (hFds : fdatasync.specW (GF := GF) (hG := hG))
-    (hBegin : DB.Begin_err.spec (GF := GF) (hG := hG))
+    (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
     (hCommit : Tx.Commit_err.spec (GF := GF) (hG := hG))
-    (hClose : DB.Close.spec (GF := GF) (hG := hG))
+    (hClose : DB.Close.specTok (GF := GF) (hG := hG))
     (hclose : DB.close.spec_owned (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOptStr : Options.String.spec (GF := GF) (hG := hG))
@@ -1196,33 +1127,212 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     subst Hce
     open_ret
 
-/-- The tree's open of the database file (`wp_OpenFile_db`) as `openFileDb.spec`. -/
-private theorem openFileDb_tree [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-    (hOpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
-    (hCreate : os.OpenFile.specCreate (GF := GF) (hG := hG))
-    (path : GoString) (perm : w32) (R : Roots) (V : Hist) (D : Data) :
-    openFileDb.spec (GF := GF) (hG := hG) True (fun _ => True)
-      iprop(osTree (DFrac.own 1) R V ∗ pathHolds R V path D)
-      (fun V' : Hist => iprop(osTree (GF := GF) (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝))
-      (fun V' i => lookupH R V' path = some (.file i)) path perm D := by
-  iintro %Φ ⟨#Hos, Ht, Hph⟩ HΦ
-  wp_apply wp_OpenFile_db hOpenFile hCreate path perm R V D $$ [Ht Hph]
-    as %f %err ⟨%V', Ht, %hV', Hr, #Herrok⟩
-  · iframe; iframe #
-  iapply HΦ
-  iexists V'
-  isplitl [Ht]
-  · dsimp only; iframe Ht; ipureintro; exact hV'
-  iframe Herrok
-  icases Hr with (H | %h)
-  · ileft; iexact H
-  · iright; ipureintro; exact ⟨h.1, h.2, trivial⟩
+/-! ## The shared mode's open, and `Open.spec` (session S3f: the one spec of `Open`) -/
 
+section canon
+variable [go.BasicIntoValInj] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
+
+/-- The name holds no directory. -/
+private theorem nameHolds_notDir (h : NamesH) (b : GoString) (D : Data) :
+    nameHolds (GF := GF) h b D ⊢ nameHolds h b D ∗ ⌜∀ J, h.cur !! b ≠ some (.dir J)⌝ := by
+  unfold nameHolds
+  iintro (⟨%i, %hi, H⟩ | %hn)
+  · isplitl
+    · ileft; iexists i; iframe H; ipureintro; exact hi
+    · ipureintro; intro J hJ; rw [hi] at hJ; cases hJ
+  · isplitl
+    · iright; ipureintro; exact hn
+    · ipureintro; intro J hJ; rw [hn.1] at hJ; cases hJ
+
+/-- **The mappable file the open left at the name, opened** (the existing file holding `D`, or the
+created one, empty). -/
+private theorem nameHolds_opened (j : Ino) (h : NamesH) (b : GoString) (D : Data)
+    (o : Option (Nat × Nat × Ino)) (i : Ino) (hcr : crIno b h o i) :
+    nameHolds (GF := GF) h b D ∗ crOut j b h (DFrac.own 1) o ∗ crMeta o ⊢
+      crOut j b h (DFrac.own 1) o ∗ openedF i D (· ≤ 0xFFFFFFFFFFFF) := by
+  unfold nameHolds
+  cases o with
+  | none =>
+    dsimp only [crIno] at hcr
+    dsimp only [crMeta]
+    iintro ⟨(⟨%i0, %hi0, Hf⟩ | %hn), Ho, -⟩
+    · rw [hcr] at hi0; cases hi0
+      iframe Ho
+      unfold fileHoldsM
+      iapply fileHoldsM_opened $$ Hf
+    · rw [hcr] at hn; exact absurd hn.1 (by simp)
+  | some xsi =>
+    obtain ⟨x, s, i1⟩ := xsi
+    dsimp only [crIno] at hcr
+    subst hcr
+    dsimp only [crMeta, crOut]
+    iintro ⟨(⟨%i0, %hi0, -⟩ | %hn), ⟨%hh, Hl, Hn⟩, Hm⟩
+    · rw [hh.1] at hi0; cases hi0
+    · obtain ⟨-, rfl⟩ := hn
+      iframe Hl Hn
+      isplitr
+      · ipureintro; exact hh
+      iapply new_opened _ (· ≤ 0xFFFFFFFFFFFF) (Nat.zero_le _) $$ Hm
+
+/-- `O_RDWR|O_CREATE` with `O_CLOEXEC` is a valid create, without `O_TRUNC`. -/
+private theorem boltOpenFlag_create :
+    OpenFlagsOk (W64 0x42 ||| W64 0x80000).toNat ∧ (W64 0x42 ||| W64 0x80000).toNat / O_CREAT % 2 = 1 ∧
+      (W64 0x42 ||| W64 0x80000).toNat / O_TRUNC % 2 = 0 := by
+  unfold OpenFlagsOk O_CREAT O_TRUNC O_CLOEXEC
+  decide
+
+private theorem boltOpenFd (i : Ino) :
+    openFd i (W64 0x42 ||| W64 0x80000) = ⟨i, true, true, none, none⟩ := by
+  have h1 : (W64 0x42 ||| W64 0x80000).toNat % 4 = 2 := by decide
+  simp only [openFd, h1, O_WRONLY, O_RDONLY]; rfl
+
+/-- **The shared mode's open of the database file** as `openFileDb.spec` at `Ek := ¬ FsNoErr`: by
+cases on `FsNoErr`, `os.OpenFile.specCreateSNoErr` (no error) or `os.OpenFile.specCreateS` (an error
+carries the case's `¬ FsNoErr`); the claim's halves, the trivial update, the outcome's claim back
+whole; the file the open left at the name, mappable. -/
+private theorem openFileDb_shared
+    (hCS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (hCSN : os.OpenFile.specCreateSNoErr (GF := GF) (hG := hG))
+    (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
+    (D : Data) (hb : NameOk b) :
+    openFileDb.spec (GF := GF) (hG := hG) (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF)
+      iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+        osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D)
+      (fun oc : Option (Nat × Nat × Ino) =>
+        iprop(osPathS (GF := GF) R d dq j ∗ osCallPerm qc ∗ crOut j b h (DFrac.own 1) oc))
+      (fun oc i => crIno b h oc i) (child d b) perm D := by
+  iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hnh⟩ HΦ
+  obtain ⟨hfl, hcr, htr⟩ := boltOpenFlag_create
+  icases nameHolds_notDir h b D $$ Hnh with ⟨Hnh, %hnd⟩
+  icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
+  ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
+    (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
+    (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
+  by_cases hne : FsNoErr
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
+    haveI := hs1
+    haveI := hs2
+    wp_apply hCSN Sio d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
+      (crOut j b h (DFrac.own (1 : Qp).half)) (hsp _) hfl hcr htr hb hnd (Qp.half_add_half 1)
+      $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+      as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, %fd, %i, %hres, Hf, -, Hfd⟩
+    ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
+    iapply HΦ
+    iexists oc
+    dsimp only
+    obtain ⟨rfl, hfd, hi⟩ := hres
+    icases nameHolds_opened j h b D oc i hi $$ [$Hnh $Ho $Hm] with ⟨Ho, Hop⟩
+    iframe Hp Hperm Ho
+    isplitl [Hf Hfd Hop]
+    · ileft
+      iexists fd, i
+      iframe Hf Hop
+      isplitr
+      · ipureintro; exact ⟨rfl, hfd, hi⟩
+      rw [boltOpenFd] at *
+      iexact Hfd
+    · iapply fmtErrorOkOrNil_nil
+  · wp_apply hCS d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
+      (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd (Qp.half_add_half 1)
+      $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+      as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, Hr⟩
+    ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
+    iapply HΦ
+    iexists oc
+    dsimp only
+    icases Hr with (⟨%fd, %i, %hres, Hf, -, Hfd⟩ | ⟨%herr, #Hok⟩)
+    · obtain ⟨rfl, hfd, hi⟩ := hres
+      icases nameHolds_opened j h b D oc i hi $$ [$Hnh $Ho $Hm] with ⟨Ho, Hop⟩
+      iframe Hp Hperm Ho
+      isplitl [Hf Hfd Hop]
+      · ileft
+        iexists fd, i
+        iframe Hf Hop
+        isplitr
+        · ipureintro; exact ⟨rfl, hfd, hi⟩
+        rw [boltOpenFd] at *
+        iexact Hfd
+      · iapply fmtErrorOkOrNil_nil
+    · iframe Hp Hperm Ho Hok
+      iright; ipureintro; exact ⟨herr.1, herr.2, hne⟩
+
+/-- Half of a discardable fraction (`dfHalf dq • dfHalf dq = dq`). -/
+private def dfHalf : DFrac → DFrac
+  | .own q => .own q.half
+  | .discard => .discard
+  | .ownDiscard q => .ownDiscard q.half
+
+private theorem dfHalf_op (dq : DFrac) : dfHalf dq • dfHalf dq = dq := by
+  cases dq with
+  | own q => show DFrac.own (q.half + q.half) = _; rw [Qp.half_add_half]
+  | discard => rfl
+  | ownDiscard q => show DFrac.ownDiscard (q.half + q.half) = _; rw [Qp.half_add_half]
+
+private theorem pt_join_half (l : Loc) (v : go_etcd_io.bbolt.Options) (dq : DFrac) :
+    (l ↦{dfHalf dq} v : IProp GF) ∗ l ↦{dfHalf dq} v ⊢ l ↦{dq} v := by
+  have h := (typedPointsto_dfractional (GF := GF) l v).dfractional (dfHalf dq) (dfHalf dq)
+  rw [dfHalf_op] at h
+  exact h.2
+
+private theorem pt_split_half (l : Loc) (v : go_etcd_io.bbolt.Options) (dq : DFrac) :
+    (l ↦{dq} v : IProp GF) ⊢ l ↦{dfHalf dq} v ∗ l ↦{dfHalf dq} v := by
+  have h := (typedPointsto_dfractional (GF := GF) l v).dfractional (dfHalf dq) (dfHalf dq)
+  rw [dfHalf_op] at h
+  exact h.1
+
+private theorem optsAt_intro' (l : Loc) (dq : DFrac) (o : OptsM) (v : go_etcd_io.bbolt.Options)
+    (h : optsVal v o) : (l ↦{dq} v : IProp GF) ⊢ optsAt l dq o := by
+  unfold optsAt; iintro H; iexists v; iframe H; ipureintro; exact h
+
+private theorem optsAt_elim' (l : Loc) (dq : DFrac) (o : OptsM) :
+    optsAt (GF := GF) l dq o ⊢ ∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v := by
+  unfold optsAt; iintro ⟨%v, H, -⟩; iexists v; iexact H
+
+private theorem optsAtNoErr_intro' (l : Loc) (dq : DFrac) (o : OptsM) (v : go_etcd_io.bbolt.Options)
+    (h : optsVal v o ∧ optsNoErr v) : (l ↦{dq} v : IProp GF) ⊢ optsAtNoErr l dq o := by
+  unfold optsAtNoErr; iintro H; iexists v; iframe H; ipureintro; exact h
+
+private theorem optsAtNoErr_elim' (l : Loc) (dq : DFrac) (o : OptsM) :
+    optsAtNoErr (GF := GF) l dq o ⊢
+      ∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o ∧ optsNoErr v⌝ := by
+  unfold optsAtNoErr; exact .rfl
+
+/-- The witness half of the options agrees with a field `Open` reads: `Timeout`. -/
+private theorem optsW_timeout (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
+    (hv : optsNoErr v) (dqx : DFrac) (x : time.Duration) :
+    (opts ↦{dq} v : IProp GF) ∗ opts.[Options, go!"Timeout"] ↦{dqx} x ⊢ ⌜Ek ∨ x = W64 0⌝ := by
+  iintro ⟨Hv, Hx⟩
+  icases (optsPt_eq opts v dq).1 $$ Hv with ⟨⟨H1, -⟩, -⟩
+  ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ H1 Hx
+  ipureintro; right; rw [← h]; exact hv.1
+
+private theorem optsW_nfs (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
+    (hv : optsNoErr v) (dqx : DFrac) (x : Bool) :
+    (opts ↦{dq} v : IProp GF) ∗ opts.[Options, go!"NoFreelistSync"] ↦{dqx} x ⊢
+      ⌜Ek ∨ x = true⌝ := by
+  iintro ⟨Hv, Hx⟩
+  icases (optsPt_eq opts v dq).1 $$ Hv with ⟨⟨-, -, H3, -⟩, -⟩
+  ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ H3 Hx
+  ipureintro; right; rw [← h]; exact hv.2.1
+
+private theorem optsW_mmap (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
+    (hv : optsNoErr v) (dqx : DFrac) (x : w64) :
+    (opts ↦{dq} v : IProp GF) ∗ opts.[Options, go!"InitialMmapSize"] ↦{dqx} x ⊢
+      ⌜Ek ∨ sint.Z x ≤ 0xFFFFFFFFFFFF⌝ := by
+  iintro ⟨Hv, Hx⟩
+  icases (optsPt_eq opts v dq).1 $$ Hv with ⟨⟨-, -, -, -, -, -, -, H8, -⟩, -⟩
+  ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ H8 Hx
+  ipureintro; right; rw [← h]; exact hv.2.2
+
+omit [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] in
 set_option maxHeartbeats 4000000 in
+/-- **`Open.spec`**: `Open.wp_proofG` at `Ek := ¬ FsNoErr` (every callee's error arm witnesses it),
+the file mappable (`nameHolds`), the options' witness half of `optsAtNoErr`'s points-to. -/
 theorem Open.wp_proof [sync.Assumptions]
-    (hOpenFile : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.OpenFile.spec (GF := GF) (hG := hG))
-    (hCreate : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
-      os.OpenFile.specCreate (GF := GF) (hG := hG))
+    (hCS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      os.OpenFile.specCreateS (GF := GF) (hG := hG))
+    (hCSN : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      os.OpenFile.specCreateSNoErr (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
     (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
     (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.specW (GF := GF) (hG := hG))
@@ -1234,36 +1344,45 @@ theorem Open.wp_proof [sync.Assumptions]
     (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
     (hSync : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
     (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.specW (GF := GF) (hG := hG))
-    (hBegin : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
+    (hBegin : DB.Begin.spec (GF := GF) (hG := hG))
     (hCommit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
-    (hClose : DB.Close.spec (GF := GF) (hG := hG))
+    (hClose : DB.Close.specTok (GF := GF) (hG := hG))
     (hclose : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG))
     (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hOptStr : Options.String.spec (GF := GF) (hG := hG))
     (hModeStr : fs.FileMode.String.spec (GF := GF) (hG := hG)) :
     Open.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ _ _ N path mode opts dq o D R V
-  iintro %Φ ⟨#Hpkg, #Hos, %HN, Ht, Hph, Hopts, %Hok, Hlgr⟩ HΦ
+  intro _ _ _ _ _ N R d b dq j qc h mode opts dqo o D hb
+  iintro %Φ ⟨#Hpkg, #Hos, %HN, #Hsi, Hp, Hperm, Hn, Hnh, Hopts, %Hok, Hlgr⟩ HΦ
+  icases optsAtNoErr_elim' opts dqo o $$ Hopts with ⟨%v, Hv, %hv⟩
+  icases pt_split_half opts v dqo $$ Hv with ⟨Hv1, Hv2⟩
   iapply Open.wp_proofG hName hFlock hStat hSize hMZ hInit hGPS hMmap hLoad hSync hFds hBegin
-    hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N path mode opts dq o D True
-    (fun _ => True) emp (fun _ => trivial) (fun _ _ => Or.inl trivial)
-    (fun _ _ => by iintro -; ipureintro; exact Or.inl trivial)
-    (fun _ _ => by iintro -; ipureintro; exact Or.inl trivial)
-    (fun _ _ => by iintro -; ipureintro; exact Or.inl trivial)
-    (openFileDb_tree hOpenFile hCreate path mode R V D) $$ [Ht Hph Hopts Hlgr]
+    hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N (child d b) mode opts (dfHalf dqo) o D
+    (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF) (opts ↦{dfHalf dqo} v) id (fun _ hn => Or.inr hn)
+    (optsW_timeout _ opts (dfHalf dqo) v hv.2) (optsW_nfs _ opts (dfHalf dqo) v hv.2)
+    (optsW_mmap _ opts (dfHalf dqo) v hv.2)
+    (openFileDb_shared hCS hCSN R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hv1 Hv2 Hlgr]
   · iframe; iframe #
-    ipureintro; first | exact ⟨HN, Hok⟩ | exact Hok
+    isplitr
+    · ipureintro; exact HN
+    isplitl [Hv1]
+    · iapply optsAt_intro' opts (dfHalf dqo) o v hv.1 $$ Hv1
+    ipureintro; exact Hok
   inext
-  iintro %db %err ⟨Hopts, -, %V', ⟨Ht, %hV'⟩, Hr⟩
+  iintro %db %err ⟨Hopts, Hv2, %oc, ⟨Hp, Hperm, Ho⟩, Hr⟩
+  icases optsAt_elim' opts (dfHalf dqo) o $$ Hopts with ⟨%v', Hv1⟩
+  ihave %hvv := typedPointsto_agree_wand _ _ _ _ _ $$ Hv1 Hv2
+  subst hvv
   iapply HΦ
-  iframe Hopts
-  iexists V'
-  iframe Ht
-  isplitr
-  · ipureintro; exact hV'
-  icases Hr with (H | %h)
-  · ileft; iexact H
-  · iright; ipureintro; exact h.1
+  iframe Hp Hperm
+  isplitl [Hv1 Hv2]
+  · iapply optsAtNoErr_intro' opts dqo o v' hv
+    iapply pt_join_half opts v' dqo $$ [Hv1 Hv2]
+    iframe
+  iexists oc
+  iframe Ho Hr
+
+end canon
 
 end proof
 

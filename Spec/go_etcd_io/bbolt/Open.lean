@@ -4,7 +4,7 @@
 the database file's name, so that several databases are opened and closed concurrently). Its error
 case carries the witness `¬ FsNoErr` (the file model returned an error that `NoIoErr`/`NoMapLockErr`
 exclude; `Fs.fsNoErr_of` refutes it under those premises with full coverage). Proof:
-`Proof/go_etcd_io/bbolt/Open_shared.lean` (`Open`'s proof generic in the environment's errors,
+`Proof/go_etcd_io/bbolt/Open.lean` (`Open`'s proof generic in the environment's errors,
 `Open.wp_proofG`, `Open.lean`).
 -/
 module

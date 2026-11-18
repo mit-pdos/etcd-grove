@@ -98,8 +98,8 @@ read transactions, a panic on any report). etcd writes none of them. -/
   isBoltDef (bnsOf γ.gs) γ.ns db
 
 /-- **The database `γ`'s file is the inode `i`** (persistent; session bbolt-inv): the file `Open`
-opened (`Open.spec`, `Open_shared.spec` give it), which a closer owning the data gets back
-(`DB.Close_own.spec`). -/
+opened (`Open.spec` gives it), which a closer owning the data gets back
+(`DB.Close.spec`). -/
 @[no_expose] def boltIno [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (i : Ino) : IProp GF :=
   iprop(∃ t0 : Nat, t0At (GF := GF) (bnsOf γ.gs) t0 i)
 
@@ -108,14 +108,14 @@ opened (`Open.spec`, `Open_shared.spec` give it), which a closer owning the data
 `bolt_unix.go`; session S3f: such a leak also records `¬ FsNoErr`), or the file was not whole pages
 when it was closed (a commit's write failed part way past the file's end: the writes are chunked,
 `Tx.write`, so a failed one can leave a partial last page; `fileHolds` asks whole pages). What
-`DB.Close_own.spec` gives in place of the file. (Since session S3f, `DB.Close` takes the closer
+`DB.Close.spec` gives in place of the file. (Since session S3f, `DB.Close` takes the closer
 token, so an earlier `Close` is no longer a source.) -/
 @[no_expose] def boltNoFile [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
   dghostVar (bnsOf γ.gs).nf DFrac.discard true
 
 /-- **The database `γ` is closed only by the holder of this token** (exclusive, timeless; session
 S3f): `Open` gives it, `DB.Close` (and its variants) consumes it. So a holder knows the database open
-(no other thread can close it), which `DB.Close_own.spec` needs to give the file back. -/
+(no other thread can close it), which `DB.Close.spec` needs to give the file back. -/
 @[no_expose] def boltCloser [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
   ghostVar (bnsOf γ.gs).clo 1 ()
 
@@ -273,9 +273,9 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 
 /-- **The file of inode `i` holds a database with the data `D`, and is mappable** (session S3f): what
 `fileHolds` says, with the file's size at most `boltMaxMapSize`, so that `Open`'s `mmap` of it does
-not fail with "mmap too large" (`Open_sharedNoErr.spec` takes it). Not every file bbolt writes is:
+not fail with "mmap too large" (`Open.spec` takes it, through `nameHolds`). Not every file bbolt writes is:
 `DB.grow` can truncate past `maxMapSize` (`growSize + AllocSize` at a mapping of `maxMapSize`,
-`nonissues/bbolt-grow-past-max-map-size.md`), and so `DB.Close_own.spec` gives back `fileHolds`
+`nonissues/bbolt-grow-past-max-map-size.md`), and so `DB.Close.spec` gives back `fileHolds`
 only. A fresh file is (`fileHoldsM_new`), and so is an image no longer than `boltMaxMapSize`
 (`fileHoldsM_of_image`; `Tx.WriteTo` writes the pages below the high-water mark, inside the
 mapping). -/
@@ -301,17 +301,6 @@ each a counted step of the program, so it is below the bound on the program's st
 `Tx.WriteTo` gives it for the bytes it writes; a client carries it with them. -/
 @[no_expose] def boltImageRcpt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (bs : List w8) : IProp GF :=
   fileRcpt bs
-
-/-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
-file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
-tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). In the
-second case the roots are well formed (`RootsOk R`, which the tree does not export): after the
-create, `path` names the new file (`lookupH_create`, `Proof/os/OpenFile.lean`). -/
-def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : Hist) (path : GoString)
-    (D : Data) : IProp GF :=
-  iprop((∃ i, ⌜lookupH R V path = some (.file i)⌝ ∗ fileHolds i D) ∨
-    ⌜RootsOk R ∧ ∃ d b j, path = child d b ∧ NameOk b ∧ lookupH R V d = some (.dir j) ∧
-      lookupH R V path = none ∧ D = ∅⌝)
 
 /-! ## Laws -/
 

@@ -2103,3 +2103,27 @@ decisions after S3d (D-N4, D-N5), implemented; deviations marked.
   past `maxBytes` fails with `EFBIG` under `NoIoErr`, and whole pages would need `wdbOK` to carry
   `size % 4096 = 0 ∨ ¬ FsNoErr` with a bound on writes below `maxBytes` (a file below 16 TiB),
   threaded through `Commit`'s write and rollback proofs. Not done here.
+- **D-F6. One canonical spec per bbolt function** (the user, via the coordinator, during S3f;
+  supersedes the variants of D-S3, D-V6, D-F1's list and D-F4's `Open_sharedNoErr`). Error-free
+  outcomes are not separate specs: the error arm carries `⌜¬ FsNoErr⌝` (persistent, pure; `FsNoErr`
+  now also covers every path, and `Fs.fsNoErr_of` builds it from `FsStepSat (NoIoErr Sio)`,
+  `FsStepSat (NoMapLockErr Sio)` and full coverage), which a client under the premises refutes.
+  - `Open.spec` is the shared mode's `Open` (whole claim on the name, `osPathS`, `osSharedInv`,
+    `osCallPerm`), `nameHolds` over `fileHoldsM` (mappable file: the one non-environment error,
+    "mmap too large", constrained away), `optsAtNoErr` (no `Timeout`, `NoFreelistSync`,
+    `InitialMmapSize ≤ maxMapSize`: `ErrTimeout` and `Commit`'s errors constrained away); success
+    `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ`; error `⌜err ≠ nil ∧ ¬ FsNoErr⌝`.
+    Deleted: `Open_shared.spec`, `Open_sharedNoErr.spec`, the whole-tree `Open.spec` (and `pathHolds`).
+  - `DB.Close.spec`: pre `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ`; post
+    `(⌜err = nil⌝ ∗ fileHolds i D) ∨ ⌜¬ FsNoErr⌝ ∨ (⌜err = nil⌝ ∗ boltNoFile γ)`. Deviation from the
+    requested `(err = nil ∗ fileHolds) ∨ (err ≠ nil ∗ witness)`: a failure of an earlier remap's
+    `munmap`/`madvise` (a leaked mapping) is recorded but `Close` still returns `nil`, so the witness
+    arm cannot claim `err ≠ nil`; and the partial-last-page case (D-F5) is no environment error under
+    the premises (`EFBIG` past `maxBytes`). Deleted: `DB.Close_noErr.spec`, `DB.Close_own.spec`,
+    `DB.Close_ownNoErr.spec`. The old "close with the token, nothing about the file" is an internal
+    spec, `DB.Close.specTok` (`Proof/go_etcd_io/bbolt/Open/CloseTok.lean`), which `Open`'s error exits
+    use (they keep the client's `boltState` for the page pool's protocol).
+  - `DB.Begin.spec` takes `DB.Begin_err.spec`'s error arm (`tx = null`, `fmtErrorOk err`);
+    `DB.Begin_err.spec` is now an internal helper (in its proof file), `DB.Begin.wp_proof` its instance.
+  - The leaf W specs (`os.File.Stat.specW`, ...) are second specs of stdlib/`os` functions, not of
+    bbolt's; they stay (outside the rule's scope as stated; report).

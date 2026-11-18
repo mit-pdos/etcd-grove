@@ -108,7 +108,7 @@ def optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
   iprop(∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o⌝)
 
 /-- **Options under which `Open` cannot fail but for the environment** (session S3f,
-`Open_sharedNoErr.spec`): no `Timeout` (a `flock` conflict is retried forever, not reported as
+`Open.spec`): no `Timeout` (a `flock` conflict is retried forever, not reported as
 `ErrTimeout`), `NoFreelistSync` (no write transaction at `Open` for a file without a synced
 freelist), and an `InitialMmapSize` that `mmapSize` accepts (at most `maxMapSize`). etcd's backend
 sets `NoFreelistSync` (`boltOpenOptions`, `config_linux.go`), `Timeout` from its config (`0` unless

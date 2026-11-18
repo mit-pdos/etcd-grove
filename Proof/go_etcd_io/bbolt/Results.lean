@@ -27,9 +27,6 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.bbolt.Cursor.wp_Seek
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Begin
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Close
-#print axioms Perennial.EtcdGrove.bbolt.DB.wp_Close_noErr
-#print axioms Perennial.EtcdGrove.bbolt.DB.wp_Close_own
-#print axioms Perennial.EtcdGrove.bbolt.DB.wp_Close_ownNoErr
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Info
 #print axioms Perennial.EtcdGrove.bbolt.DB.wp_Stats
 #print axioms Perennial.EtcdGrove.bbolt.Options.wp_String
@@ -43,5 +40,3 @@ set_option pp.fullNames true
 #print axioms Perennial.EtcdGrove.bbolt.Tx.wp_Size
 #print axioms Perennial.EtcdGrove.bbolt.Tx.wp_Stats
 #print axioms Perennial.EtcdGrove.bbolt.wp_Open
-#print axioms Perennial.EtcdGrove.bbolt.wp_Open_shared
-#print axioms Perennial.EtcdGrove.bbolt.wp_Open_sharedNoErr
