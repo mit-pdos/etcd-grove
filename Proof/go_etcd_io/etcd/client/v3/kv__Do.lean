@@ -70,12 +70,13 @@ theorem kv.Do.wp_generic
       iunfold sortNamesOk at Hsn'
       icases Hsn' with ⟨⟨%e, #He, %Hev, #Hse, #Hcl⟩, -, -⟩
       wp_auto
-      wp_apply wp_ContextError ci cd e $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      wp_apply wp_ContextError ci cd e mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hev.2
       ihave #Hcl' := Hclw $$ Hcl
       iapply HΦ
       isplitr
-      · iintro %h; exact absurd h.2.2 (by simp [hsv])
+      · iright; iintro %h; exact absurd h.2.2 (by simp [hsv])
       unfold doOut
       simp only [Ht, ↓reduceIte]
       unfold rangeCallOut
@@ -105,7 +106,7 @@ theorem kv.Do.wp_generic
       wp_auto
       iapply HΦ
       isplitr
-      · iintro %h; exact absurd rfl h.2.1
+      · iright; iintro %h; exact absurd rfl h.2.1
       unfold doOut
       simp only [Ht, ↓reduceIte]
       unfold rangeCallOut
@@ -117,15 +118,21 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, %Hd'⟩
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, #Hd', -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
         iapply HΦ
         isplitl [Heo]
-        · iintro -
-          iapply (ifcErrOut_desc _ _ _ _ _ (Hd' (by simp)))
-          iapply Heo
-          ipureintro; simp
+        · icases Hd' with (%hd | #hctx)
+          · rcases hd with hd | hd
+            · exact absurd hd (by simp)
+            iright
+            iintro -
+            iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
+            iapply Heo
+            ipureintro; simp
+          · ileft; iexact hctx
         unfold doOut
         simp only [Ht, ↓reduceIte]
         unfold rangeCallOut
@@ -164,7 +171,7 @@ theorem kv.Do.wp_generic
       wp_auto
       iapply HΦ
       isplitr
-      · iintro %h; exfalso
+      · iright; iintro %h; exfalso
         first | exact absurd (h.1.symm.trans Hp) (by decide) | exact absurd (h.1.symm.trans Hp.1) (by decide) | exact absurd h.1 (by decide)
       unfold doOut
       rw [Hp]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
@@ -177,12 +184,13 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
         iapply HΦ
         isplitr
-        · iintro %h; exfalso
+        · iright; iintro %h; exfalso
           first | exact absurd (h.1.symm.trans Hp) (by decide) | exact absurd (h.1.symm.trans Hp.1) (by decide) | exact absurd h.1 (by decide)
         unfold doOut
         rw [Hp]; simp only [show (W64 2 = W64 1) = False by decide, ↓reduceIte]
@@ -221,7 +229,7 @@ theorem kv.Do.wp_generic
       wp_auto
       iapply HΦ
       isplitr
-      · iintro %h; exfalso
+      · iright; iintro %h; exfalso
         first | exact absurd (h.1.symm.trans Hd) (by decide) | exact absurd (h.1.symm.trans Hd.1) (by decide) | exact absurd h.1 (by decide)
       unfold doOut
       rw [Hd]; simp only [show (W64 3 = W64 1) = False by decide,
@@ -235,12 +243,13 @@ theorem kv.Do.wp_generic
       | nil => exact absurd rfl Hne
       | ok ei =>
         wp_auto
-        wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
         · iframe #; ipureintro; exact fun _ => Hce'
         ihave #Hcl' := Hclw $$ Hcl
         iapply HΦ
         isplitr
-        · iintro %h; exfalso
+        · iright; iintro %h; exfalso
           first | exact absurd (h.1.symm.trans Hd) (by decide) | exact absurd (h.1.symm.trans Hd.1) (by decide) | exact absurd h.1 (by decide)
         unfold doOut
         rw [Hd]; simp only [show (W64 3 = W64 1) = False by decide,

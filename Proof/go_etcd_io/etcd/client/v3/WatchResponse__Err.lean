@@ -76,7 +76,8 @@ theorem WatchResponse.Err.wp_proof
   | ok i =>
     wp_auto
     rw [hce]
-    wp_apply wp_rpctypes_Error (GoInterface.ok i) $$ [$Hcse] as %err' ⟨%Hne, #Hw, %Hce, %-, #Hcell, %Hptr⟩
+    ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hcse
+    wp_apply wp_rpctypes_Error (GoInterface.ok i) mR $$ [$Hcse $HmR] as %err' ⟨%Hne, #Hw, %Hce, %-, #Hcell, %Hptr, -⟩
     · ipureintro; simp
     iapply HΦ
     iframe
@@ -163,7 +164,8 @@ theorem WatchResponse.Err.wp_proof
         · ipureintro
           simp only [google_golang_org.grpc.codes.OK]
           exact fun h => absurd (go.intoVal_inj h) (by decide)
-        wp_apply wp_rpctypes_Error e1 $$ [] as %e2 ⟨%He2, #Hw, %Hce, %-, #Hcell, %Hptr⟩
+        ihave ⟨%mR, #HmR⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ He1s
+        wp_apply wp_rpctypes_Error e1 mR $$ [] as %e2 ⟨%He2, #Hw, %Hce, %-, #Hcell, %Hptr, -⟩
         · iframe #; ipureintro; exact He1
         obtain ⟨e1o, rfl⟩ : ∃ e1o, e1 = GoInterface.ok e1o := by
           cases e1 with
