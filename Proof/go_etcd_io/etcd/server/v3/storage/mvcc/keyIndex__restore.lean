@@ -30,7 +30,7 @@ theorem mvcc.keyIndex.restore.wp_proof
     (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.restore.spec (GF := GF) (hG := hG) := by
   intro p gs ki lg created modified ver
-  wp_start as ⟨%Hlg, Hki⟩
+  wp_start as ⟨#Hlg, Hki⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec, -⟩, -⟩
@@ -92,7 +92,7 @@ theorem mvcc.keyIndex.restore.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hPanic lg _ _ $$ [] as %r %Hr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     subst Hr
     (try wp_auto)
     iapply HΦ

@@ -29,7 +29,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     (hGet : mvcc.keyIndex.get.spec (GF := GF) (hG := hG)) :
     mvcc.treeIndex.unsafeGet.spec (GF := GF) (hG := hG) := by
   intro ti t lg L q key k atRev e
-  wp_start as ⟨#Htree, #Hlg, %Hlgnn, Htr, %Hne, #Hkey, #Herr⟩
+  wp_start as ⟨#Htree, #Hlg, #Hlgnn, Htr, %Hne, #Hkey, #Herr⟩
   wp_auto
   iStructNamedPrefix «$r0» "K"
   ipersist Kkey
@@ -78,7 +78,7 @@ theorem mvcc.treeIndex.unsafeGet.wp_proof
     wp_if_destruct
     · exact absurd Hif Hn
     wp_apply (hGet z.1 gs z.2.2 z.2.1 (DFrac.own q) lg atRev e) $$ [$HzKey $Hki $Herr] as %r Hr
-    · ipureintro; exact Hlgnn
+    · iexact Hlgnn
     simp only [Hne z (List.mem_of_getElem? hi), Bool.false_eq_true, ↓reduceIte]
     icases Hr with ⟨%Hr, Hki⟩
     obtain ⟨cs, rfl⟩ := Hr
