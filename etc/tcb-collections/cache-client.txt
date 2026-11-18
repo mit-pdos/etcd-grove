@@ -17,7 +17,6 @@ axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
-axiom backend.dbFile
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok

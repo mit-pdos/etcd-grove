@@ -20,7 +20,6 @@ axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
-axiom backend.dbFile
 axiom context.WithValue.wp_proof
 axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
