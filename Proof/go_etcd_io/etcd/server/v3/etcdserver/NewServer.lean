@@ -984,7 +984,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     as %ast ⟨Hopen, Hhook, HkOut, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
       #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauC, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
-    iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn Hzlg
+    iframe Hapkg Hscpkg HK Hopen Hhook Hwa HrbA HkIn Hzlg
     ipureintro
     refine ⟨Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact Or.inl (hDl go!"auth" (by decide))
