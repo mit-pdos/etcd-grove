@@ -9,7 +9,7 @@ know every byte (`midS_okS`). -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__initCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__init
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__initLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.CrashKc
 public import Proof.os.CrashStSpec
 

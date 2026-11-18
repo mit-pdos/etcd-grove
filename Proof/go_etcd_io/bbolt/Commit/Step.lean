@@ -10,7 +10,7 @@ write; given back with `j` bytes written,
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Tx__writeMeta
+public import Proof.go_etcd_io.bbolt.Tx__writeMetaDefs
 public import Proof.go_etcd_io.bbolt.Commit.MetaBytes
 public import Proof.go_etcd_io.bbolt.Commit.Fire
 

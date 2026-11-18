@@ -10,9 +10,9 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.Remap
 public import Proof.go_etcd_io.bbolt.Mmap.MmapSize
 public import Proof.go_etcd_io.bbolt.Mmap.GrowSize
-public import Proof.go_etcd_io.bbolt.Mmap.Logger
+public import Proof.go_etcd_io.bbolt.Mmap.LoggerDefs
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
-public import Proof.go_etcd_io.bbolt.Mmap.FileSize
+public import Proof.go_etcd_io.bbolt.Mmap.FileSizeDefs
 public import Proof.go_etcd_io.bbolt.Mmap.AllocPage
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Allocate
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetId

@@ -68,7 +68,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutRen
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutAu
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CutFin
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TruncWalTail
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openWALFiles
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openWALFilesLemmas
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.FsyncS
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile
 public import Spec.os.File__Close

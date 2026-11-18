@@ -57,3 +57,15 @@ Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main  # Main.wp_proo
 Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Main  # Main.wp_proof: over kvWatch_served
 Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.startCluster  # startCluster.wp_proof: over kvWatch_served
 Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMember  # StartMember.wp_proof: a member started and served, over kv_lease_served_watch, grpcCfgOk_of_started, etcd_kv_started
+Proof.go_etcd_io.bbolt.Commit.FreepagesLink  # DB.freepages.wp_proof over the check's proofs (Tx.recursivelyCheckBucket_root.wp_proof, ...); nothing imports it
+Proof.go_etcd_io.bbolt.internal.freelist.Impl.Impls  # impl_contract: the freelist implementations' contracts, link_bbolt's premises (only Link imports it)
+Proof.go_etcd_io.bbolt.internal.freelist.Impl.HashContract  # the hashmap implementation's contract, over hashMap.*.wp_proof
+Proof.go_etcd_io.bbolt.internal.freelist.Impl.ArrayContract  # the array implementation's contract, over array.Basic's
+Proof.go_etcd_io.bbolt.internal.freelist.Impl.array.Basic  # arrayImpl_init: shared.reindex.wp_proof at the array implementation
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults  # fs_crash_adequacy of dirswap's boot, over os.File.*.wp_proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults  # seglog's crash adequacy, over os.File.*.wp_proof and syscall.Fdatasync.wp_proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLog  # seglog's proofs over os.File.Truncate.wp_proof (only SegLogResults imports it)
+Proof.go_etcd_io.etcd.server.v3.storage.wal.ImportCheck  # a build check combining the part's WAL proofs; nothing imports it
+Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Laws  # walPb_laws over proto.MarshalPb.wp_proof/UnmarshalPb.wp_proof; nothing imports it
+RaftTla.Proof.go_etcd_io.raft.v3.TracedConfChangeHook  # tracedSpec_of_spec applied to traceConfChangeEvent.wp_proof; nothing imports it
+Proof.os.WriteLong  # os.File.WriteAt.wp_proof_long: os.File.WriteAt.wp_proof applied whole (only the WAL's Link imports it)

@@ -12,7 +12,7 @@ predicates (minting, the history's laws, `ansOf`) are used from kvreconf.
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.readSeqs__next
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.readSeqs__nextLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.ReadSlot
 
 @[expose] public section

@@ -10,8 +10,8 @@ module
 
 public import Spec.go_etcd_io.bbolt.DB__grow
 public import Proof.go_etcd_io.bbolt.Mmap.GrowEnd
-public import Proof.go_etcd_io.bbolt.Mmap.Logger
-public import Proof.go_etcd_io.bbolt.Mmap.FileSize
+public import Proof.go_etcd_io.bbolt.Mmap.LoggerDefs
+public import Proof.go_etcd_io.bbolt.Mmap.FileSizeDefs
 public import Proof.go_etcd_io.bbolt.Mmap.GrowSize
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Spec.os.File__Truncate

@@ -14,7 +14,9 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RunInv
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.RunImage
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__crash
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__crash
+public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Replica__stop
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.DefsLaws
 
 @[expose] public section
 

@@ -9,7 +9,7 @@ reached (`WReach`), with the bytes written so far (`fin_vals`); a truncate's a s
 module
 
 public import Spec.os.CrashSt
-public import Proof.golang_org.x.sys.unix.Munmap
+public import Proof.golang_org.x.sys.unix.MunmapLemmas
 public import Perennial.Golang.Theory.Plain
 
 @[expose] public section

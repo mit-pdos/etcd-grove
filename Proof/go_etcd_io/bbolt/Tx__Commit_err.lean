@@ -15,7 +15,7 @@ public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Commit.Getters
 public import Proof.go_etcd_io.bbolt.Commit.RollbackSpec
 public import Proof.go_etcd_io.bbolt.Commit.Step
-public import Proof.go_etcd_io.bbolt.Tx__write
+public import Proof.go_etcd_io.bbolt.Tx__writeSpec
 public import Proof.go_etcd_io.bbolt.Tx__commitFreelist
 public import Spec.go_etcd_io.bbolt.Bucket__rebalance
 public import Spec.go_etcd_io.bbolt.Bucket__spill

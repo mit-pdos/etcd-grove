@@ -4,7 +4,7 @@ bytes it no longer holds). -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__GetCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__Get
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__GetLemmas
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__meta
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.pageAt
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.MapLoan

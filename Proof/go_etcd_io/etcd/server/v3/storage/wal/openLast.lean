@@ -14,8 +14,8 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNames
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.readWALNamesAbsent
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.LockFile
 public import Spec.path.filepath.Join
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openWALFiles
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndex
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openWALFilesLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.openAtIndexLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RepairPin
 
 @[expose] public section

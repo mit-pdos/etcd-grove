@@ -6,7 +6,7 @@ takes the lock around it.
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Alloc
-public import Proof.go_etcd_io.bbolt.Mmap.Munmap
+public import Proof.go_etcd_io.bbolt.Mmap.MunmapSpec
 public import Proof.go_etcd_io.bbolt.Mmap.Map
 public import Proof.go_etcd_io.bbolt.Mmap.Rebase
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase

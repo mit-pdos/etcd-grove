@@ -11,7 +11,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Restore
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApiLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RestoreCbAu
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.SnapImage
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendRecsSnap

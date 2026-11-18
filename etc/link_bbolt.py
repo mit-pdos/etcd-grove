@@ -66,7 +66,7 @@ PREMISES = [
      "_root_.Perennial.EtcdGrove.bbolt.errInvalid_errorString", None,
      "Proof.go_etcd_io.bbolt.Mmap.Infra"),
     (r"TxExclWGap \(GF := GF\)", "_root_.Perennial.EtcdGrove.bbolt.txExclWGap_holds", None,
-     "Proof.go_etcd_io.bbolt.Tx__Rollback"),
+     "Proof.go_etcd_io.bbolt.Tx__RollbackDefs"),
     # `sort.Sort` for any `Less`: the trust-boundary axiom the server's `lessor.Leases` takes too
     (r"sort\.«Sort»\.anyLessSpec \(GF := GF\) \(hG := hG\)",
      "_root_.Perennial.EtcdGrove.sort.«Sort».wp_anyLess", None, "Proof.sort.SortAnyLess"),

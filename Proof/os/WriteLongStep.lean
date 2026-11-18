@@ -8,7 +8,7 @@ in three around the chunk), `pwCutE_step` `pwCut_step`. Lean-first.
 -/
 module
 
-public import Proof.os.File__WriteAt
+public import Proof.os.File__WriteAtLemmas
 public import Spec.os.WriteLong
 
 @[expose] public section

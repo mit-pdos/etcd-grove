@@ -16,7 +16,7 @@ public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.os.NsS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLawU
 import all Proof.go_etcd_io.etcd.server.v3.storage.wal.Handle
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleaseAu
