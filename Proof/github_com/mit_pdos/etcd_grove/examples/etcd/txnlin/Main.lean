@@ -26,6 +26,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLinked
 
 @[expose] public section
 

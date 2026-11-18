@@ -471,6 +471,26 @@ theorem revokeAnsRA_not_revoke (E : AEnv GF) (rq : IRRModel) (out : ApplyOut) (a
 
 end defs
 
+/-- **Without `v3`, nothing changes** (a replayed entry): the KV's log, the chain and the
+compaction revision as they were. -/
+theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
+    (h : applyStep rq false x x' out) : x' = x := by
+  cases out with
+  | skipped => exact h.2
+  | rejected => exact h.2
+  | dispatched o sk =>
+    obtain ⟨-, hd, hl, hch, hcr⟩ := h
+    have ho : o = .applied x.log false := by
+      unfold dispatchStep at hd; simpa using hd
+    have hc : x'.chain = x.chain := by
+      rcases hch with h | ⟨h, -⟩
+      · exact h
+      · cases h
+    rw [dispatchCrev_noV3] at hcr
+    cases x; cases x'
+    simp_all [Outcome.logAfter]
+
+
 end apply
 end EtcdGrove
 end Perennial

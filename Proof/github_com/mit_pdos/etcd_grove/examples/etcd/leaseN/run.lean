@@ -18,6 +18,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLease
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseLinked
 
 @[expose] public section
 

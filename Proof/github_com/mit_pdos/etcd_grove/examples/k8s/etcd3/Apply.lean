@@ -31,6 +31,7 @@ public import Perennial.Spec.sync.atomic.Int64__Add
 public import Perennial.Proof.sync.atomic.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

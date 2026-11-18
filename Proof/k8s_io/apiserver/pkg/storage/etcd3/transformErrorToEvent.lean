@@ -6,6 +6,7 @@ module
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.transformErrorToEvent
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.interpretWatchError
 public import Spec.k8s_io.apimachinery.pkg.api.errors.NewInternalError
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

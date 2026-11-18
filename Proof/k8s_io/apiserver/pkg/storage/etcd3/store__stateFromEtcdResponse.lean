@@ -14,6 +14,7 @@ public import Spec.reflect.New
 public import Spec.reflect.Value__Addr
 public import Spec.reflect.Value__Type
 public import Spec.reflect.Value__Interface
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
