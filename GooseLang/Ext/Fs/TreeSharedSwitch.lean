@@ -128,11 +128,11 @@ theorem cohS_switch {st : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
       fun x ex hx => ⟨fun _ => ⟨hseq x ex hx, fun z ez hz hez => by rw [hseq z ez hez]; exact hz⟩,
         fun _ => ⟨fun y ey h1 h2 => absurd h2 (by rw [hseq x ex hx] at h1; omega),
           fun z ez hz hez _ => by rw [hseq z ez hez]; exact hz⟩⟩,
-      fun x e hx he => absurd (hlt x e he) (by omega)⟩⟩,
+      fun x e hx he => absurd (hlt x e he) (by omega)⟩,
+      ⟨fun t x hx => by simp at hx, fun t x hx => by simp at hx, fun c x t g hx => by simp at hx⟩⟩,
     fun x e hx hn => absurd (Or.inr (hlt x e hx)) hn, Nat.le_refl _, fun fd => ?_,
     fun fd x df hx => by simp at hx, fun t x hx => by simp at hx, fun t x hx => by simp at hx,
-    fun t x hx => by simp at hx, fun t x hx => by simp at hx, fun t x hx => by simp at hx,
-    fun t x hx => by simp at hx, fun t s hs => ?_, fun c x t g hx => by simp at hx⟩
+    fun t x hx => by simp at hx, fun t x hx => by simp at hx, fun t s hs => ?_⟩
   · have hpt : prefTree st.fs.treeDur st.fs.metaLog st.fs.metaLog.length = st.tree := by
       simp [prefTree, OsState.tree]
     rw [show t = st.fs.metaLog.length by omega, hpt]; exact hents
@@ -161,9 +161,26 @@ theorem treeCohS_begin {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS
     (ht : st.proc.calls !! t = none) :
     TreeCohS (st.callBegin t p) s0 Γdf (<[t := (((st.fs.metaLog.length, p), q) : CallV)]> Γc) Γg := by
   obtain ⟨hct, hgt⟩ := hc.fresh ht
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
-    fun t0 x hx => ?_, fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_, fun t0 x hx => ?_,
-    fun t0 x hx => ?_, fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
+  have hnone : ∀ y, st.fs.metaLog.length ≤ y → st.fs.metaLog[y]? = none := fun y hy =>
+    List.getElem?_eq_none_iff.2 hy
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, ?_⟩), hc.valid, hc.s0le,
+    hc.fds, hc.ph, fun t0 x hx => ?_, fun t0 x hx => ?_, fun t0 x hx => ?_,
+    fun t0 x hx => ?_, fun t0 s hs => ?_⟩
+  · obtain ⟨hw, ha, hp⟩ := h.2
+    refine ⟨fun t0 x hx hq y ey hy he => ?_, fun t0 x hx y ey he hd => ?_,
+      fun c x t0 g hx hg hk hq hle y ey hy he => ?_⟩
+    · by_cases h0 : t = t0
+      · subst h0; rw [GMap.lookup_insert] at hx; cases hx
+        change st.fs.metaLog[y]? = some ey at he; rw [hnone y hy] at he; cases he
+      · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hw t0 x hx hq y ey hy he
+    · by_cases h0 : t = t0
+      · subst h0; rw [GMap.lookup_insert] at hx; cases hx
+        exact (List.getElem?_eq_some_iff.1 he).1
+      · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact ha t0 x hx y ey he hd
+    · by_cases h0 : t = c
+      · subst h0; rw [GMap.lookup_insert] at hx; cases hx
+        change st.fs.metaLog[y]? = some ey at he; rw [hnone y hy] at he; cases he
+      · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hp c x t0 g hx hg hk hq hle y ey hy he
   · show (<[t := (st.fs.metaLog.length, p)]> st.proc.calls) !! t0 = _
     by_cases h0 : t = t0
     · subst h0; rw [GMap.lookup_insert] at hx; cases hx; simp
@@ -171,13 +188,6 @@ theorem treeCohS_begin {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS
   · by_cases h0 : t = t0
     · subst h0; rw [GMap.lookup_insert] at hx; cases hx; exact Nat.le_refl _
     · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.callsLe t0 x hx
-  · by_cases h0 : t = t0
-    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; rfl
-    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.whole t0 x hx hq
-  · by_cases h0 : t = t0
-    · subst h0; rw [GMap.lookup_insert] at hx; cases hx
-      exact (List.getElem?_eq_some_iff.1 hy).1
-    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.after t0 x hx y ey hy hd
   · show (<[t := (st.fs.metaLog.length, p)]> st.proc.calls) !! t0 = _
     by_cases h0 : t = t0
     · subst h0; rw [hgt] at hx; cases hx
@@ -189,9 +199,6 @@ theorem treeCohS_begin {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS
     by_cases h0 : t = t0
     · subst h0; left; rw [GMap.lookup_insert]; simp
     · rw [GMap.lookup_insert_ne _ _ h0] at hs; rw [GMap.lookup_insert_ne _ _ h0]; exact hc.cover t0 s hs
-  · by_cases h0 : t = c
-    · subst h0; rw [GMap.lookup_insert] at hx; cases hx; rfl
-    · rw [GMap.lookup_insert_ne _ _ h0] at hx; exact hc.pair c x t0 g hx hg hq hle
 
 /-- The shared coherence with a guard call begun, holding `g`. -/
 theorem treeCohS_beginGuard {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
@@ -199,9 +206,22 @@ theorem treeCohS_beginGuard {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × D
     (ht : st.proc.calls !! t = none) :
     TreeCohS (st.callBegin t p) s0 Γdf Γc (<[t := (((st.fs.metaLog.length, p), g) : CallV)]> Γg) := by
   obtain ⟨hct, hgt⟩ := hc.fresh ht
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
-    hc.callsLe, hc.whole, hc.after, fun t0 x hx => ?_,
-    fun t0 x hx => ?_, fun t0 s hs => ?_, fun c x t0 g' hx hg hq hle => ?_⟩
+  have hnone : ∀ y, st.fs.metaLog.length ≤ y → st.fs.metaLog[y]? = none := fun y hy =>
+    List.getElem?_eq_none_iff.2 hy
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, ?_⟩), hc.valid, hc.s0le,
+    hc.fds, hc.ph, fun t0 x hx => ?_, hc.callsLe, fun t0 x hx => ?_,
+    fun t0 x hx => ?_, fun t0 s hs => ?_⟩
+  · obtain ⟨hw, ha, hp⟩ := h.2
+    refine ⟨hw, ha, fun c x t0 g' hx hg hk hq hle y ey hy he => ?_⟩
+    by_cases h0 : t = t0
+    · subst h0; rw [GMap.lookup_insert] at hg; cases hg
+      have := Nat.le_antisymm (hc.callsLe c x hx) hle
+      change st.fs.metaLog[y]? = some ey at he
+      have hy' : st.fs.metaLog.length ≤ y := by
+        have : x.1.1 = st.fs.metaLog.length := this
+        omega
+      rw [hnone y hy'] at he; cases he
+    · rw [GMap.lookup_insert_ne _ _ h0] at hg; exact hp c x t0 g' hx hg hk hq hle y ey hy he
   · show (<[t := (st.fs.metaLog.length, p)]> st.proc.calls) !! t0 = _
     by_cases h0 : t = t0
     · subst h0; rw [hct] at hx; cases hx
@@ -217,10 +237,6 @@ theorem treeCohS_beginGuard {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × D
     by_cases h0 : t = t0
     · subst h0; right; rw [GMap.lookup_insert]; simp
     · rw [GMap.lookup_insert_ne _ _ h0] at hs; rw [GMap.lookup_insert_ne _ _ h0]; exact hc.cover t0 s hs
-  · by_cases h0 : t = t0
-    · subst h0; rw [GMap.lookup_insert] at hg; cases hg
-      exact Nat.le_antisymm (hc.callsLe c x hx) hle
-    · rw [GMap.lookup_insert_ne _ _ h0] at hg; exact hc.pair c x t0 g' hx hg hq hle
 
 theorem osShN_sub {E : CoPset} (h : ↑osShN ⊆ E) : (↑osShN : CoPset) ⊆ E \ ↑osN := by
   have hd : (↑osShN : CoPset) ## ↑osN := ndot_ne_disjoint nroot (by decide)

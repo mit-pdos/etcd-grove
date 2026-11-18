@@ -24,10 +24,10 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
     {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (k : Nat) {xk : CallV}
     (hk : Γc !! k = some xk) :
     TreeCohS (st.metaEnd k) s0 Γdf (GMap.delete k Γc) Γg := by
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl,
+      (h.2.mono (fun _ _ hx => lookup_delete_some hx) (fun _ _ hx => hx)).congr rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
     fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, fun t0 x hx => ?_,
-    fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_, fun t0 x hx => ?_, fun t0 x hx => ?_,
-    fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
+    fun t0 x hx => ?_, fun t0 x hx => ?_, fun t0 s hs => ?_⟩
   · show (GMap.delete k st.proc.calls) !! t0 = _
     by_cases h0 : k = t0
     · subst h0; simp at hx
@@ -35,12 +35,6 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
   · by_cases h0 : k = t0
     · subst h0; simp at hx
     · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.callsLe t0 x hx
-  · by_cases h0 : k = t0
-    · subst h0; simp at hx
-    · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.whole t0 x hx hq
-  · by_cases h0 : k = t0
-    · subst h0; simp at hx
-    · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.after t0 x hx y ey hy hd
   · show (GMap.delete k st.proc.calls) !! t0 = _
     by_cases h0 : k = t0
     · subst h0; have := hc.gdisj k x hx; rw [hk] at this; cases this
@@ -52,9 +46,6 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
     by_cases h0 : k = t0
     · subst h0; simp at hs
     · rw [GMap.lookup_delete_ne _ h0] at hs; rw [GMap.lookup_delete_ne _ h0]; exact hc.cover t0 s hs
-  · by_cases h0 : k = c
-    · subst h0; simp at hx
-    · rw [GMap.lookup_delete_ne _ h0] at hx; exact hc.pair c x t0 g hx hg hq hle
 
 /-- The shared coherence with a guard call ended. -/
 theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
@@ -62,10 +53,10 @@ theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × Dir
     (ht : Γg !! t = some xt) :
     TreeCohS (st.metaEnd t) s0 Γdf Γc (GMap.delete t Γg) := by
   have htc := hc.gdisj t xt ht
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl,
+      (h.2.mono (fun _ _ hx => hx) (fun _ _ hx => lookup_delete_some hx)).congr rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
     fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, hc.callsLe,
-    hc.whole, hc.after, fun t0 x hx => ?_, fun t0 x hx => ?_,
-    fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
+    fun t0 x hx => ?_, fun t0 x hx => ?_, fun t0 s hs => ?_⟩
   · show (GMap.delete t st.proc.calls) !! t0 = _
     by_cases h0 : t = t0
     · subst h0; rw [htc] at hx; cases hx
@@ -81,9 +72,6 @@ theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × Dir
     by_cases h0 : t = t0
     · subst h0; simp at hs
     · rw [GMap.lookup_delete_ne _ h0] at hs; rw [GMap.lookup_delete_ne _ h0]; exact hc.cover t0 s hs
-  · by_cases h0 : t = t0
-    · subst h0; simp at hg
-    · rw [GMap.lookup_delete_ne _ h0] at hg; exact hc.pair c x t0 g hx hg hq hle
 
 section facts
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]

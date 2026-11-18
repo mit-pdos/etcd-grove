@@ -1,18 +1,24 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 b, wal-link root clause done; next: stage 2, the per-key permission)
+## START HERE (2026-11-18 c, stage 2 step A done: per-key call coherence under the global permission)
 
-- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
-  (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands; not landed on 2026-11-18).
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; **lean merged** (9bc323ff9d, lean b0bb9df7c3, Perennial pin
+  6d365ee1a): use `/shared/tmp/manifest-6d3.json` everywhere; `.lake/package-overrides.json` = a copy of it. Full
+  default build green after the merge (20488 jobs).
 - **Decided (etcd-grove-03, questions.md 2026-11-18):** the per-root crash theorem and its forms ACCEPTED.
-- **Done:** 9d55b227ae the per-root cut (History). This commit: `wp_logStepSWG`'s `htree` premise gains the **root
-  clause** `∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1`, through `wp_logStepSW/SN/S/SNG/SG`;
-  `treeCohS_log`'s ρ' built in place (`ρ' j = if j ∈ o.newDirs then ρ o.dir else ρ j`). New lemmas (TreeSharedLog):
-  `reachFrom_walk`, `reachFrom_of_lookup`, `isUnder_prefix`, `root_of_isUnder` (a path is under at most one root),
-  `dir_mem_slots`, `rootClause_one`/`rootClause_two` (the clause from the claims' lookups; `two` for
-  cross-directory renames, from `hsr : SameRootR`). The 9 client sites (Meta 5, Create, CreateN, RenameAny,
-  `Proof/os/UnlinkN`) pass `rootClause_*`. Fs library + clients build (see the commit message for the check).
-- **Next, in order:** stage 2, the per-key call permission (design below), then the ~144 `osCallPerm` client files,
+- **Done:** 0da9fec13d the root clause in `wp_logStepSWG`'s `htree` (5 wrappers, 9 client sites; `rootClause_one/two`,
+  `root_of_isUnder`, `reachFrom_of_lookup`); full default build green at it. **This commit (step A):** `callKey R p`
+  (Ghost; `callKey_eq` in TreeSharedLog); `CallsK st s0 ρ Γc Γg` (Ghost: `whole`/`after`/`pair` per key, tags by
+  `tagOf ρ`), `TreeCohS.rc : ∃ ρ, RootCoh st s0 ρ ∧ CallsK st s0 ρ Γc Γg`, the global `whole`/`after`/`pair` fields
+  removed from `TreeCohS`; `treeCohS_log`'s premises per key (`hdirK` replaces `hdirS`; `hexcl`/`hval` take the
+  same-key hypotheses; `hρ` gives `ρ' o.dir = callKey R pc`), DirOpExcl's new-entry clause from `hdirK`;
+  `WholeG R pc q s0 gd` (a guard must be of the call's key); `wholeG_facts` gives "no entry of the key from `s0`";
+  `wp_osMkdirSG'`/`wp_osRmdirSG'` (and TreeShared's wrappers) take `hkg : callKey R pg = callKey R (child d b)`
+  (RemoveAllDir: `rfl`). The permission itself is still GLOBAL (one `γperm` element). Fs library + Proof/os
+  RemoveAllDir/UnlinkN build (1866 jobs); no full build at this commit yet.
+- **Next, in order:** stage 2 step B: split the permission per key (design (2) and (4) below; (3) is done as
+  `CallsK`): `osCallPerm r q`, `callResS` keyed, `sole_of`/`callResS_excl`/`callsRes_facts`/`wholeG_facts` per key,
+  `hsole` (hprog's "q = 1 → only call") per key, then the ~144 `osCallPerm` client files,
   one `WalGS` per area, then L3 (task list: `questions.md` 2026-11-18, the coordinator's brief).
 - **Stage 2 design** (form decisions to record at the checkpoint):
   (1) `callKey (R : Roots) (p : GoString) : GoString` := the root `r` with `IsUnder r p` (`Classical.choose`), else
@@ -30,8 +36,8 @@
   `gElem γperm K`); `hexcl`/`hval` premises of `treeCohS_log` become per key.
   Files touching `callResS`/`legacyHolds`: Ghost, CrashTok, TreeSharedLog/Step/Switch/Guard/Create/DirFd/OpenDir/
   OpenFileN/Out/Trunc; `whole/after/pair` uses: TreeSharedStep, Switch, OpenDir, DirFd, Log.
-- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 -q -a
-  --fast FILE`. **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build`.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -q -a
+  --fast FILE`. **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build`.
 - **Pitfalls:** `cases o` inside a big proof fails (o in many hypotheses): state a standalone lemma (`dir_mem_slots`);
   `by_contra` is not available in these files (`Classical.byContradiction`); a state built by
   `callBegin`/`delDfd`/`setDfd`/`metaEnd` is not syntactically `st` in `RootCoh`: pass `hc.rc.elim (fun ρ h => ⟨ρ,

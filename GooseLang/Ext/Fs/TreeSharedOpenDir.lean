@@ -23,9 +23,9 @@ theorem treeCohS_setDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPh
     {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) {fd : w64} {df' : OsDirFd}
     {x : Ino × DirPhS} (hino : x.1 = df'.ino) (hph : PhOkS (setDfd st fd df') x.1 x.2 df'.rd) :
     TreeCohS (setDfd st fd df') s0 (<[fd := x]> Γdf) Γc Γg := by
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
-    hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
-    hc.cover, hc.pair⟩
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, h.2.congr rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x' df hx hdf => ?_,
+    hc.calls, hc.callsLe, hc.gcalls, hc.gdisj,
+    hc.cover⟩
   · show ((<[fd := x]> Γdf) !! fd').map (·.1) = ((<[fd := df']> st.proc.dfds) !! fd').map (·.ino)
     rw [GMap.lookup_insert_eq_iff, GMap.lookup_insert_eq_iff]; split
     · simp [hino]

@@ -23,9 +23,9 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std ProofMode
 theorem treeCohS_delDfd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
     {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (fd : w64) :
     TreeCohS (delDfd st fd) s0 (GMap.delete fd Γdf) Γc Γg := by
-  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x df hx hdf => ?_,
-    hc.calls, hc.callsLe, hc.whole, hc.after, hc.gcalls, hc.gdisj,
-    hc.cover, hc.pair⟩
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.1.congr rfl rfl rfl, h.2.congr rfl rfl⟩), hc.valid, hc.s0le, fun fd' => ?_, fun fd' x df hx hdf => ?_,
+    hc.calls, hc.callsLe, hc.gcalls, hc.gdisj,
+    hc.cover⟩
   · show (GMap.delete fd Γdf !! fd').map (·.1) = (GMap.delete fd st.proc.dfds !! fd').map (·.ino)
     rw [GMap.lookup_delete_iff, GMap.lookup_delete_iff]
     split

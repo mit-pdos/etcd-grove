@@ -175,7 +175,7 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
         cases hcc : hJ'.cur !! c with
         | none => rfl
         | some _ => exact absurd ⟨c, by simp [hcc]⟩ hne
-      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg (child d b) q g hqg hs hb hJ hemp
+      wp_apply +noauto wp_osRmdirSG R d b j J (DFrac.own qd) h' hJ' t1 s0 t sg (child d b) q g hqg hs rfl hb hJ hemp
         CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp Hb HJ Hk Hg
         as %e Hperm Hg Hp HJ Hres
       unfold osNamesAfter

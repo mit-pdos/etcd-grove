@@ -565,7 +565,7 @@ theorem wp_osRenameDirS' (R : Roots) (d bs bt : GoString) (j J : Ino) (N : NameS
 /-- **`rmdir(2)`** of the directory `d/b`, by a call holding the whole permission, or the rest of
 it beside a guard begun no later (`WholeG`). -/
 theorem wp_osRmdirSGen (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
-    (k s0 : Nat) (q : Qp) (gd : Option (Nat × CallV)) (hwh : WholeG q s0 gd) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
+    (k s0 : Nat) (q : Qp) (gd : Option (Nat × CallV)) (hwh : WholeG R (child d b) q s0 gd) (hb : NameOk b) (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
@@ -700,7 +700,7 @@ theorem wp_osRmdirS' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
 
 /-- **`rmdir(2)`** under a guard: `wp_osRmdirSGen` with the guard `t`. -/
 theorem wp_osRmdirSG' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
-    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b)
     (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
@@ -714,7 +714,7 @@ theorem wp_osRmdirSG' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h h
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hp Hn HJ Hk Hg HΦ
   iapply wp_osRmdirSGen R d b j J dq h hJ k s0 q (some (t, (sg, pg), g))
-    ⟨congrArg Subtype.val hqg, hsg⟩ hb hd he hE hE' Φ $$ Hinv Hsi Hp Hn HJ [Hk Hg]
+    ⟨congrArg Subtype.val hqg, hsg, hkg⟩ hb hd he hE hE' Φ $$ Hinv Hsi Hp Hn HJ [Hk Hg]
   · simp only [osCallSG]; iframe
   iintro %e Hq
   simp only [osCallPermG]
@@ -724,7 +724,7 @@ theorem wp_osRmdirSG' (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h h
 /-- **`mkdir(2)`** of the free name `d/b` (shared mode), by a call holding the whole permission, or
 the rest of it beside a guard begun no later (`WholeG`). -/
 theorem wp_osMkdirSGen (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH) (k s0 : Nat)
-    (q : Qp) (gd : Option (Nat × CallV)) (hwh : WholeG q s0 gd) (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
+    (q : Qp) (gd : Option (Nat × CallV)) (hwh : WholeG R (child d b) q s0 gd) (hb : NameOk b) (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallSG (L := L) k s0 (child d b) q gd -∗
@@ -869,7 +869,7 @@ theorem wp_osMkdirS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Na
 
 /-- **`mkdir(2)`** under a guard: `wp_osMkdirSGen` with the guard `t`. -/
 theorem wp_osMkdirSG' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
-    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b)
     (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
@@ -883,7 +883,7 @@ theorem wp_osMkdirSG' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : N
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hp Hn Hk Hg HΦ
-  iapply wp_osMkdirSGen R d b j dq h k s0 q (some (t, (sg, pg), g)) ⟨congrArg Subtype.val hqg, hsg⟩
+  iapply wp_osMkdirSGen R d b j dq h k s0 q (some (t, (sg, pg), g)) ⟨congrArg Subtype.val hqg, hsg, hkg⟩
     hb hn hE hE' Φ $$ Hinv Hsi Hp Hn [Hk Hg]
   · simp only [osCallSG]; iframe
   iintro %e Hq

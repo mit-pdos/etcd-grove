@@ -1169,33 +1169,71 @@ theorem RootCoh.congr {st st' : OsState} {s0 : Nat} {ρ : Ino → GoString} (h :
   exact ⟨⟨hr ▸ h1, by rw [hd, hl]; exact h2, by rw [hl]; exact h3⟩, hl ▸ h4,
     by rw [hl, ht]; exact h5⟩
 
+open Classical in
+/-- **The key of a call on the path `p`**: the root `p` is in the tree of (unique for well-formed
+roots: `root_of_isUnder`), or `[]` for a path under no root. A call's share of the call permission
+is a share of its key's (`osCallPerm`). -/
+noncomputable def callKey (R : Roots) (p : GoString) : GoString :=
+  if h : ∃ rj ∈ R, IsUnder rj.1 p then h.choose.1 else []
+
+/-- The calls' part of the shared coherence, per key, under the map `ρ` of `RootCoh` (an entry's
+tag is its directory's root, `tagOf ρ`): a logging call holding its key's whole permission began
+after every entry of its key; every logging call began after each directory operation of its key
+and each entry of the legacy prefix; a logging call whose fraction and a guard's of the same key
+make the whole, the guard begun no later, began after every entry of its key. -/
+structure CallsK (st : OsState) (s0 : Nat) (ρ : Ino → GoString) (Γc Γg : GMap Nat CallV) :
+    Prop where
+  whole : ∀ t x, Γc !! t = some x → x.2 = 1 → ∀ y (ey : LogEntry), x.1.1 ≤ y →
+    st.fs.metaLog[y]? = some ey → tagOf ρ ey ≠ callKey st.fs.roots x.1.2
+  after : ∀ t x, Γc !! t = some x → ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
+    ((ey.op.IsDirOp ∧ tagOf ρ ey = callKey st.fs.roots x.1.2) ∨ y < s0) → y < x.1.1
+  pair : ∀ c x t g, Γc !! c = some x → Γg !! t = some g →
+    callKey st.fs.roots g.1.2 = callKey st.fs.roots x.1.2 → x.2.val + g.2.val = 1 →
+    g.1.1 ≤ x.1.1 → ∀ y (ey : LogEntry), x.1.1 ≤ y → st.fs.metaLog[y]? = some ey →
+    tagOf ρ ey ≠ callKey st.fs.roots x.1.2
+
+theorem CallsK.congr {st st' : OsState} {s0 : Nat} {ρ : Ino → GoString} {Γc Γg : GMap Nat CallV}
+    (h : CallsK st s0 ρ Γc Γg) (hr : st'.fs.roots = st.fs.roots)
+    (hl : st'.fs.metaLog = st.fs.metaLog) : CallsK st' s0 ρ Γc Γg := by
+  obtain ⟨h1, h2, h3⟩ := h
+  refine ⟨?_, ?_, ?_⟩ <;> simp only [hr, hl] <;> assumption
+
+/-- `CallsK` for fewer calls. -/
+theorem CallsK.mono {st : OsState} {s0 : Nat} {ρ : Ino → GoString} {Γc Γg Γc' Γg' : GMap Nat CallV}
+    (h : CallsK st s0 ρ Γc Γg) (hc : ∀ t x, Γc' !! t = some x → Γc !! t = some x)
+    (hg : ∀ t x, Γg' !! t = some x → Γg !! t = some x) : CallsK st s0 ρ Γc' Γg' :=
+  ⟨fun t x hx => h.whole t x (hc t x hx), fun t x hx => h.after t x (hc t x hx),
+    fun c x t g hx hg' => h.pair c x t g (hc c x hx) (hg t g hg')⟩
+
+theorem lookup_delete_some {α : Type} {m : GMap Nat α} {k t : Nat} {x : α}
+    (h : (GMap.delete k m) !! t = some x) : m !! t = some x := by
+  by_cases h0 : k = t
+  · subst h0; simp at h
+  · rwa [GMap.lookup_delete_ne _ h0] at h
+
 /-- The tree's ghost state, in the shared mode, mirrors its state (the design's `TreeCohS`): the
 log's disciplines (`TreeCut.lean`; the legacy prefix below `s0` exempt; the per-root ones under some
 map `ρ` of directories to roots, `RootCoh`), a ghost entry for every
 directory fd, and for every call on a path in flight one in the logging calls `Γc` or in the guard
-calls `Γg` (never both); a call began no later than now, a call holding the whole permission began
-now, and every logging call began after every directory operation and every entry of the legacy
-prefix (guards are exempt: they never log); a logging call whose fraction and a guard's make the
-whole permission, the guard begun no later, began now (no other call could log meanwhile). -/
+calls `Γg` (never both); a call began no later than now; per key (`CallsK`, under the same `ρ`), a
+call holding its key's whole permission began after every entry of its key, every logging call
+began after every directory operation of its key and every entry of the legacy prefix (guards are
+exempt: they never log), and a logging call whose fraction and a guard's of its key make the whole,
+the guard begun no later, began after every entry of its key. -/
 structure TreeCohS (st : OsState) (s0 : Nat) (Γdf : GMap w64 (Ino × DirPhS))
     (Γc Γg : GMap Nat CallV) : Prop where
   starts : Starts st.fs.metaLog
   pss : PerSlotSeq st.fs.metaLog
-  rc : ∃ ρ, RootCoh st s0 ρ
+  rc : ∃ ρ, RootCoh st s0 ρ ∧ CallsK st s0 ρ Γc Γg
   valid : LogValid st.fs.treeDur st.fs.metaLog s0
   s0le : s0 ≤ st.fs.metaLog.length
   fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.proc.dfds !! fd).map (·.ino)
   ph : ∀ fd x df, Γdf !! fd = some x → st.proc.dfds !! fd = some df → PhOkS st x.1 x.2 df.rd
   calls : ∀ t x, Γc !! t = some x → st.proc.calls !! t = some x.1
   callsLe : ∀ t x, Γc !! t = some x → x.1.1 ≤ st.fs.metaLog.length
-  whole : ∀ t x, Γc !! t = some x → x.2 = 1 → x.1.1 = st.fs.metaLog.length
-  after : ∀ t x, Γc !! t = some x → ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
-    (ey.op.IsDirOp ∨ y < s0) → y < x.1.1
   gcalls : ∀ t x, Γg !! t = some x → st.proc.calls !! t = some x.1
   gdisj : ∀ t x, Γg !! t = some x → Γc !! t = none
   cover : ∀ t s, st.proc.calls !! t = some s → Γc !! t ≠ none ∨ Γg !! t ≠ none
-  pair : ∀ c x t g, Γc !! c = some x → Γg !! t = some g → x.2.val + g.2.val = 1 → g.1.1 ≤ x.1.1 →
-    x.1.1 = st.fs.metaLog.length
 
 /-- The interpretation of the tree of `st` in the legacy mode: the whole-history logic's, and the
 shared mode's authorities, empty (`legacyHolds`). -/
@@ -1240,18 +1278,15 @@ theorem TreeCohS.congr {st st' : OsState} {s0 Γdf Γc Γg} (h : TreeCohS st s0 
     (hf : st'.proc.dfds = st.proc.dfds) (hc : st'.proc.calls = st.proc.calls)
     (hr : st'.fs.roots = st.fs.roots) :
     TreeCohS st' s0 Γdf Γc Γg := by
-  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ := h
-  refine ⟨hl ▸ h1, hl ▸ h2, h3.elim fun ρ h => ⟨ρ, h.congr hr hd hl⟩, by rw [hd, hl]; exact h4, hl ▸ h5, ?_, ?_, ?_, ?_, ?_, ?_,
-    ?_, h13, ?_, ?_⟩
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h12, h13, h14⟩ := h
+  refine ⟨hl ▸ h1, hl ▸ h2, h3.elim fun ρ h => ⟨ρ, h.1.congr hr hd hl, h.2.congr hr hl⟩,
+    by rw [hd, hl]; exact h4, hl ▸ h5, ?_, ?_, ?_, ?_, ?_, h13, ?_⟩
   · intro fd; rw [hf]; exact h6 fd
   · intro fd x df hx hdf; rw [hf] at hdf; exact (h7 fd x df hx hdf).congr hd hl
   · intro t x hx; rw [hc]; exact h8 t x hx
   · intro t x hx; rw [hl]; exact h9 t x hx
-  · intro t x hx hq; rw [hl]; exact h10 t x hx hq
-  · intro t x hx y ey hy; rw [hl] at hy; exact h11 t x hx y ey hy
   · intro t x hx; rw [hc]; exact h12 t x hx
   · intro t s hs; rw [hc] at hs; exact h14 t s hs
-  · intro c x t g hx hg hq hle; rw [hl]; exact h15 c x t g hx hg hq hle
 
 /-- A step that leaves the tree alone keeps its interpretation, in either mode. -/
 theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :

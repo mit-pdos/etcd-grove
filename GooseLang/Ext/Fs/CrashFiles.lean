@@ -115,7 +115,7 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
       (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
   obtain ⟨hp, hr, hlog, hcom, hino, -, ⟨S, hSlt, hSc, hcl, htr⟩, hfiles⟩ := hc
-  obtain ⟨ρ, hrc⟩ := htc.rc
+  obtain ⟨ρ, hrc, -⟩ := htc.rc
   obtain ⟨hwf, hslot, hnamed, hkeys⟩ := closed_cut htc.starts htc.pss
     hrc.dox hrc.tags htc.valid (fun t ht => (htw.hist t ht).1) hSlt hcl
   refine ⟨⟨hp, hlog, hcom, by rw [hr]; exact htw.roots, by rw [hr, htr]; exact hwf, ?_, ?_, ?_, ?_⟩,

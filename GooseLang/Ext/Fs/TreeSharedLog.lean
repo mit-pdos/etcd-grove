@@ -318,6 +318,14 @@ theorem root_of_isUnder {R : List (GoString × Ino)} (hR : RootsOk R) {r r' : Go
   · exact key hr hr' hne p1 p2 hl
   · exact key hr' hr (Ne.symm hne) p2 p1 hl
 
+/-- The key of a path under the root `rj`. -/
+theorem callKey_eq {R : Roots} (hR : RootsOk R) {rj : GoString × Ino} (hrj : rj ∈ R) {p : GoString}
+    (h : IsUnder rj.1 p) : callKey R p = rj.1 := by
+  have hex : ∃ rj ∈ R, IsUnder rj.1 p := ⟨rj, hrj, h⟩
+  unfold callKey; rw [dif_pos hex]
+  have := hex.choose_spec
+  rw [root_of_isUnder hR this.1 hrj this.2 h]
+
 /-- An operation's directory is one of its slots'. -/
 theorem dir_mem_slots (o : MetaOp) : ∃ b, (o.dir, b) ∈ o.slots := by
   cases o with
@@ -393,19 +401,23 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
     (htree : st'.tree = o.apply st.tree)
     (hpss : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
       (∃ sl ∈ o.slots, sl ∈ ey.op.slots) → y < s0)
-    (hdirS : o.IsDirOp → s0 = st.fs.metaLog.length)
-    (hexcl : ∀ t x, t ≠ k → Γc !! t = some x → x.2.val < 1 ∧ ¬ o.IsDirOp)
+    (hdirK : o.IsDirOp → ∀ ρ, RootCoh st s1 ρ → CallsK st s1 ρ Γc Γg → ∀ y (ey : LogEntry), s0 ≤ y →
+      st.fs.metaLog[y]? = some ey → tagOf ρ ey ≠ callKey st.fs.roots pc)
+    (hexcl : ∀ t x, t ≠ k → Γc !! t = some x → callKey st.fs.roots x.1.2 = callKey st.fs.roots pc →
+      x.2.val < 1 ∧ ¬ o.IsDirOp)
     (hval : ∀ c x t g, c ≠ k → Γc !! c = some x → Γg !! t = some g →
+      callKey st.fs.roots x.1.2 = callKey st.fs.roots pc → callKey st.fs.roots g.1.2 = callKey st.fs.roots pc →
       x.2.val + q.val + g.2.val ≤ 1)
     (hok : ¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
       t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i)
     (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
     (hw : FsTreeWf st) (hroots : st'.fs.roots = st.fs.roots)
     (hρ : ∀ ρ, RootCoh st s1 ρ → ∃ ρ' : Ino → GoString, (∀ j, j ∈ st.tree → ρ' j = ρ j) ∧
-      (∀ j b, o.Writes j b → ρ' j = ρ' o.dir) ∧ ∀ j b, o.Writes j b → j ∈ o.apply st.tree) :
+      (∀ j b, o.Writes j b → ρ' j = ρ' o.dir) ∧ (∀ j b, o.Writes j b → j ∈ o.apply st.tree) ∧
+      ρ' o.dir = callKey st.fs.roots pc) :
     TreeCohS st' s1 Γdf (GMap.delete k Γc) Γg := by
   have hle : s0 ≤ st.fs.metaLog.length := hc.callsLe k _ hk
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro x e hx
     rw [hlog] at hx
     rcases getElem?_snoc_cases hx with ⟨-, hx⟩ | ⟨rfl, rfl⟩
@@ -420,8 +432,8 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
     · rcases getElem?_snoc_cases hy with ⟨-, hy⟩ | ⟨rfl, -⟩
       · exact hpss y ey hy hsl
       · omega
-  · obtain ⟨ρ, hrc⟩ := hc.rc
-    obtain ⟨ρ', hag, htag, hwk⟩ := hρ ρ hrc
+  · obtain ⟨ρ, hrc, hck⟩ := hc.rc
+    obtain ⟨ρ', hag, htag, hwk, hkey⟩ := hρ ρ hrc
     have hpt : prefTree st.fs.treeDur st.fs.metaLog st.fs.metaLog.length = st.tree := (tree_prefTree st).symm
     have htrees : ∀ t, t ≤ st.fs.metaLog.length → ∀ x, x ∈ prefTree st.fs.treeDur st.fs.metaLog t →
         x ∈ st.tree := fun t ht x hx => hpt ▸ prefTree_mono_mem _ _ _ ht (Nat.le_refl _) x hx
@@ -431,10 +443,16 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
         exact hag _ (hrc.wkeys x e hx he _ b hb)
     have hs1 := hc.s0le
     -- the legacy entries and the old directory operations took effect before the new entry's call
-    have haft : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey → (ey.op.IsDirOp ∨ y < s1) → y < s0 :=
-      fun y ey hy hd => hc.after k _ hk y ey hy hd
+    have haft : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
+        ((ey.op.IsDirOp ∧ tagOf ρ ey = callKey st.fs.roots pc) ∨ y < s1) → y < s0 :=
+      fun y ey hy hd => hck.after k _ hk y ey hy hd
+    -- an entry at or after a call's start is not of the legacy prefix
+    have hge : ∀ t x y (ey : LogEntry), Γc !! t = some x → x.1.1 ≤ y → st.fs.metaLog[y]? = some ey →
+        s1 ≤ y := fun t x y ey hx hy he =>
+      Classical.byContradiction fun hn => absurd hy (Nat.not_le.2 (hck.after t x hx y ey he (.inr (by omega))))
+    have hnew : tagOf ρ' (⟨o, s0⟩ : LogEntry) = callKey st.fs.roots pc := hkey
     refine ⟨ρ', ⟨⟨fun r j hr => ?_, fun t ht1 ht2 j b J he => ?_, fun x e hx he j b hwr => ?_⟩,
-      fun x ex hx => ?_, fun x e hx he j b hwr => ?_⟩⟩
+      fun x ex hx => ?_, fun x e hx he j b hwr => ?_⟩, ?_⟩
     · rw [hroots] at hr
       have hj0 : j ∈ prefTree st.fs.treeDur st.fs.metaLog st.fs.metaLog.length :=
         (hw.hist st.fs.metaLog.length (Nat.le_refl _)).1.1 j (.root r j hr)
@@ -493,9 +511,16 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
               · have hzs : s1 ≤ z := by omega
                 rw [htg z ez hzs hz, htg x ex hxs hx] at hzt
                 exact hB z ez hxz hz hzt
-              · exact haft x ex hx (.inl hd)
-      · refine ⟨fun hxs => absurd hxs (by omega), fun hd => ⟨fun y ey h1 h2 _ => by
-          have hs := hdirS hd; simp only at h1; omega, fun z ez hxz hz _ => ?_⟩⟩
+              · rw [hnew, htg x ex hxs hx] at hzt
+                exact haft x ex hx (.inl ⟨hd, hzt.symm⟩)
+      · refine ⟨fun hxs => absurd hxs (by omega), fun hd => ⟨fun y ey h1 h2 hy => ?_, fun z ez hxz hz _ => ?_⟩⟩
+        · simp only at h1
+          rw [hlog] at hy
+          rcases getElem?_snoc_cases hy with ⟨-, hy⟩ | ⟨rfl, -⟩
+          · have hys : s1 ≤ y := hge k _ y ey hk h1 hy
+            rw [htg y ey hys hy, hnew]
+            exact hdirK hd ρ hrc hck y ey h1 hy
+          · omega
         rw [hlog] at hz
         have := (List.getElem?_eq_some_iff.1 hz).1
         simp at this; omega
@@ -504,6 +529,43 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
       rcases getElem?_snoc_cases he with ⟨-, he⟩ | ⟨rfl, rfl⟩
       · exact mem_apply_of_mem _ _ _ (hrc.wkeys x e hx he j b hwr)
       · exact hwk j b hwr
+    · -- the calls' part, per key
+      have hlk : ∀ t x, (GMap.delete k Γc) !! t = some x → t ≠ k ∧ Γc !! t = some x := by
+        intro t x hx
+        by_cases h0 : k = t
+        · subst h0; simp at hx
+        · rw [GMap.lookup_delete_ne _ h0] at hx; exact ⟨Ne.symm h0, hx⟩
+      refine ⟨fun t x hx hq y ey hy he => ?_, fun t x hx y ey he hd => ?_,
+        fun c x t g hx hg hkg hq hle y ey hy he => ?_⟩
+      · obtain ⟨hne, hx⟩ := hlk t x hx
+        rw [hroots]
+        rw [hlog] at he
+        rcases getElem?_snoc_cases he with ⟨-, he⟩ | ⟨rfl, rfl⟩
+        · rw [htg y ey (hge t x y ey hx hy he) he]; exact hck.whole t x hx hq y ey hy he
+        · rw [hnew]; intro heq
+          have := (hexcl t x hne hx heq.symm).1
+          rw [hq] at this; exact absurd this (by simp)
+      · obtain ⟨hne, hx⟩ := hlk t x hx
+        rw [hroots] at hd
+        rw [hlog] at he
+        rcases getElem?_snoc_cases he with ⟨-, he⟩ | ⟨rfl, rfl⟩
+        · rcases hd with ⟨hd1, hd2⟩ | hd
+          · rcases Nat.lt_or_ge y s1 with hys | hys
+            · exact hck.after t x hx y ey he (.inr hys)
+            · rw [htg y ey hys he] at hd2; exact hck.after t x hx y ey he (.inl ⟨hd1, hd2⟩)
+          · exact hck.after t x hx y ey he (.inr hd)
+        · rcases hd with ⟨hd1, hd2⟩ | hd
+          · rw [hnew] at hd2; exact absurd hd1 (hexcl t x hne hx hd2.symm).2
+          · omega
+      · obtain ⟨hne, hx⟩ := hlk c x hx
+        rw [hroots] at hkg ⊢
+        rw [hlog] at he
+        rcases getElem?_snoc_cases he with ⟨-, he⟩ | ⟨rfl, rfl⟩
+        · rw [htg y ey (hge c x y ey hx hy he) he]; exact hck.pair c x t g hx hg hkg hq hle y ey hy he
+        · rw [hnew]; intro heq
+          have h1 := hval c x t g hne hx hg heq.symm (hkg.trans heq.symm)
+          have h2 := q.2
+          exfalso; grind
   · intro x e hx hnd
     rw [hdur]
     rw [hlog] at hx
@@ -543,22 +605,6 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
     · subst h0; simp at hx
     · rw [GMap.lookup_delete_ne _ h0] at hx
       rw [hlog]; simp; have := hc.callsLe t x hx; omega
-  · intro t x hx hq
-    by_cases h0 : k = t
-    · subst h0; simp at hx
-    · rw [GMap.lookup_delete_ne _ h0] at hx
-      have := (hexcl t x (Ne.symm h0) hx).1
-      rw [hq] at this; exact absurd this (by simp)
-  · intro t x hx y ey hy hd
-    by_cases h0 : k = t
-    · subst h0; simp at hx
-    · rw [GMap.lookup_delete_ne _ h0] at hx
-      rw [hlog] at hy
-      rcases getElem?_snoc_cases hy with ⟨-, hy⟩ | ⟨rfl, rfl⟩
-      · exact hc.after t x hx y ey hy hd
-      · rcases hd with hd | hd
-        · exact absurd hd (hexcl t x (Ne.symm h0) hx).2
-        · have := hc.s0le; omega
   · intro t x hx
     rw [hca]
     by_cases h0 : k = t
@@ -573,22 +619,15 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
     by_cases h0 : k = t
     · subst h0; simp at hs
     · rw [GMap.lookup_delete_ne _ h0] at hs; rw [GMap.lookup_delete_ne _ h0]; exact hc.cover t s hs
-  · intro c x t g hx hg hq _
-    by_cases h0 : k = c
-    · subst h0; simp at hx
-    · rw [GMap.lookup_delete_ne _ h0] at hx
-      have h1 := hval c x t g (Ne.symm h0) hx hg
-      have h2 := q.2
-      exfalso; grind
 
-/-- The call `k` (begun at `s0`, holding `q`) holds the whole permission (`gd = none`), or the
-rest of it beside the guard `gd` (begun no later). -/
-def WholeG (q : Qp) (s0 : Nat) : Option (Nat × CallV) → Prop
+/-- The call `k` on `pc` (begun at `s0`, holding `q`) holds the whole permission (`gd = none`), or
+the rest of it beside the guard `gd` of the same key (begun no later). -/
+def WholeG (R : Roots) (pc : GoString) (q : Qp) (s0 : Nat) : Option (Nat × CallV) → Prop
   | none => q = 1
-  | some (_, (sg, _), g) => q.val + g.val = 1 ∧ sg ≤ s0
+  | some (_, (sg, pg), g) => q.val + g.val = 1 ∧ sg ≤ s0 ∧ callKey R pg = callKey R pc
 
-/-- A call holding the whole permission, or the rest of it beside a guard begun no later, began
-now, and no other logging call is in flight. -/
+/-- A call holding the whole permission, or the rest of it beside a guard of its key begun no
+later, began after every entry of its key, and no other logging call is in flight. -/
 theorem wholeG_facts {st : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
     {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s1 Γdf Γc Γg) {k s0 : Nat} {pc : GoString} {q : Qp}
     (hk : Γc !! k = some ((s0, pc), q)) {gd : Option (Nat × CallV)}
@@ -596,16 +635,19 @@ theorem wholeG_facts {st : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
     (hval : ∀ c x t g, c ≠ k → Γc !! c = some x → Γg !! t = some g →
       x.2.val + q.val + g.2.val ≤ 1)
     (hgd : ∀ t x, gd = some (t, x) → Γg !! t = some x)
-    (hw : WholeG q s0 gd) :
-    s0 = st.fs.metaLog.length ∧ ∀ t x, t ≠ k → Γc !! t = some x → False := by
+    (hw : WholeG st.fs.roots pc q s0 gd) :
+    (∀ ρ, RootCoh st s1 ρ → CallsK st s1 ρ Γc Γg → ∀ y (ey : LogEntry), s0 ≤ y →
+      st.fs.metaLog[y]? = some ey → tagOf ρ ey ≠ callKey st.fs.roots pc) ∧
+    ∀ t x, t ≠ k → Γc !! t = some x → False := by
   rcases gd with _ | ⟨t, ⟨sg, pg⟩, g⟩
   · simp only [WholeG] at hw
-    refine ⟨hc.whole k _ hk hw, fun t x hne hx => ?_⟩
+    refine ⟨fun ρ _ hck => hck.whole k _ hk hw, fun t x hne hx => ?_⟩
     have := (hexcl t x hne hx).2
     rw [hw] at this; exact absurd this (by simp)
   · simp only [WholeG] at hw
     have hg := hgd t _ rfl
-    refine ⟨hc.pair k ((s0, pc), q) t ((sg, pg), g) hk hg hw.1 hw.2, fun c x hne hx => ?_⟩
+    refine ⟨fun ρ _ hck => hck.pair k ((s0, pc), q) t ((sg, pg), g) hk hg hw.2.2 hw.1 hw.2.1,
+      fun c x hne hx => ?_⟩
     have h1 := hval c x t ((sg, pg), g) hne hx hg
     have h2 := x.2.2
     simp only at h1
@@ -1111,8 +1153,8 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
     (hwr : ∀ n, ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ (oF n).Writes c.1 b)
     (hslots : ∀ n, ∀ sl ∈ (oF n).slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
-    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ WholeG q s0 gd)
-    (hdir : ∀ n, (oF n).IsDirOp → WholeG q s0 gd)
+    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ WholeG R pc q s0 gd)
+    (hdir : ∀ n, (oF n).IsDirOp → WholeG R pc q s0 gd)
     (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
@@ -1226,7 +1268,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
   icases osGuardOpt_lookup Γg gd $$ HAg Hgd with %hgd
   have hsole : q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k :=
     sole_of (s0 := s0) hc hexcl hval.2
-  have hwhole := fun hw => wholeG_facts hc hk hexcl hval.1 hgd hw
+  have hwhole := fun (hwg : WholeG R pc q s0 gd) => wholeG_facts hc hk hexcl hval.1 hgd (by rw [hR]; exact hwg)
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -1283,27 +1325,32 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     · iexact HG
     · iexact Hcl
   · -- logged
-    obtain ⟨hdirs, hnew, hok, hcur, rj, hrjR, -, hreach⟩ := htree0 _ st' hw hR hcall hP hat Hst hlf
+    obtain ⟨hdirs, hnew, hok, hcur, rj, hrjR, hpcU, hreach⟩ := htree0 _ st' hw hR hcall hP hat Hst hlf
     have htr := hlf.tree
+    have hrj : (rj.1, rj.2) ∈ st.fs.roots := by rw [hR]; exact hrjR
+    have hkeyR : callKey st.fs.roots pc = rj.1 := callKey_eq hw.roots hrj hpcU
+    -- the claims' directories are of the root of the call's path
+    have hclρ : ∀ ρ, RootCoh st s1 ρ → ∀ c ∈ cl, ρ c.1 = rj.1 := by
+      intro ρ hrc c hcm
+      have hre := hreach c hcm
+      rw [tree_prefTree] at hre
+      exact rho_of_reachFrom hrc.tags.roots (hrc.tags.ents _ hc.s0le (Nat.le_refl _)) hrj hre
     have hρ : ∀ ρ, RootCoh st s1 ρ → ∃ ρ' : Ino → GoString, (∀ j, j ∈ st.tree → ρ' j = ρ j) ∧
-        (∀ j b, o.Writes j b → ρ' j = ρ' o.dir) ∧ ∀ j b, o.Writes j b → j ∈ o.apply st.tree := by
+        (∀ j b, o.Writes j b → ρ' j = ρ' o.dir) ∧ (∀ j b, o.Writes j b → j ∈ o.apply st.tree) ∧
+        ρ' o.dir = callKey st.fs.roots pc := by
       intro ρ hrc
-      have hrj : (rj.1, rj.2) ∈ st.fs.roots := by rw [hR]; exact hrjR
       have hsl : ∀ j b, (j, b) ∈ o.slots → j ∈ st.tree ∧ ρ j = rj.1 := by
         intro j b hjb
         obtain ⟨c, hcm, hc1, -⟩ := hslots (j, b) hjb
         simp only at hc1; subst hc1
-        refine ⟨hcoh.2.dirs _ _ _ (hlk c hcm).1, ?_⟩
-        have hre := hreach c hcm
-        rw [tree_prefTree] at hre
-        exact rho_of_reachFrom hrc.tags.roots
-          (hrc.tags.ents _ hc.s0le (Nat.le_refl _)) hrj hre
+        exact ⟨hcoh.2.dirs _ _ _ (hlk c hcm).1, hclρ ρ hrc c hcm⟩
       obtain ⟨bd, hbd⟩ := dir_mem_slots o
       have hnin : ∀ j, j ∈ st.tree → j ∉ o.newDirs := fun j hj hn => hnew j hn hj
       classical
-      refine ⟨fun j => if j ∈ o.newDirs then ρ o.dir else ρ j, fun j hj => if_neg (hnin j hj), ?_, ?_⟩
+      have hd : (if o.dir ∈ o.newDirs then ρ o.dir else ρ o.dir) = ρ o.dir := by split <;> rfl
+      refine ⟨fun j => if j ∈ o.newDirs then ρ o.dir else ρ j, fun j hj => if_neg (hnin j hj), ?_, ?_,
+        by simp only [hd]; rw [(hsl _ _ hbd).2, hkeyR]⟩
       · intro j b hwj
-        have hd : (if o.dir ∈ o.newDirs then ρ o.dir else ρ o.dir) = ρ o.dir := by split <;> rfl
         simp only [hd]
         rcases writes_cases o j b hwj with h | h
         · rw [if_neg (hnin j (hsl j b h).1), (hsl j b h).2, (hsl _ _ hbd).2]
@@ -1322,14 +1369,20 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
         rw [hc1]; exact hsl'
       rcases hnext c hcm with hn | hq1
       · omega
-      · have := (hwhole hq1).1
-        have := (List.getElem?_eq_some_iff.1 hy).1
-        simp only at *; omega
+      · obtain ⟨ρ, hrc, hck⟩ := hc.rc
+        have hs10 : s1 ≤ s0 := Classical.byContradiction fun hn => by
+          obtain ⟨e, he⟩ : ∃ e, st.fs.metaLog[s0]? = some e :=
+            ⟨_, List.getElem?_eq_getElem (by have := hc.s0le; omega)⟩
+          have := hck.after k _ hk s0 e he (.inr (by omega))
+          simp only at this; omega
+        refine Nat.lt_of_not_le fun hys => (hwhole hq1).1 ρ hrc hck y ey hys hy ?_
+        have hwr : ey.op.Writes c.1 sl.2 := .inl (by rw [hc1]; exact hsl')
+        rw [← hrc.tags.ops y ey (by omega) hy c.1 sl.2 hwr, hclρ ρ hrc c hcm, hkeyR]
     have hcoh' : TreeCohS st' s1 Γdf (GMap.delete k Γc) Γg :=
       treeCohS_log hc hk o hlf.dur hlf.log hlf.dfds hlf.calls htr hpss
-        (fun hd => (hwhole (hdir hd)).1)
-        (fun t x hne hx => ⟨(hexcl t x hne hx).1, fun hd => (hwhole (hdir hd)).2 t x hne hx⟩)
-        hval.1 hok hadd hw hlf.roots hρ
+        (fun hd ρ hrc hck => (hwhole (hdir hd)).1 ρ hrc hck)
+        (fun t x hne hx _ => ⟨(hexcl t x hne hx).1, fun hd => (hwhole (hdir hd)).2 t x hne hx⟩)
+        (fun c x t g hne hx hg _ _ => hval.1 c x t g hne hx hg) hok hadd hw hlf.roots hρ
     have hnc := namesCoh_log hcoh.2 ⟨o, s0⟩ (cl.map (fun c => (c.1, c.2.1)))
       (fun kk hkk => by
         obtain ⟨c, hcm, rfl⟩ := List.mem_map.1 hkk
@@ -1716,8 +1769,8 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
     (hwr : ∀ n, ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ (oF n).Writes c.1 b)
     (hslots : ∀ n, ∀ sl ∈ (oF n).slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
-    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ WholeG q s0 gd)
-    (hdir : ∀ n, (oF n).IsDirOp → WholeG q s0 gd)
+    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ WholeG R pc q s0 gd)
+    (hdir : ∀ n, (oF n).IsDirOp → WholeG R pc q s0 gd)
     (hadd : ∀ n j b, b ∈ (oF n).adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)
@@ -1795,8 +1848,8 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
     (hne : ∀ c ∈ cl, c.2.1 ≠ .only [])
     (hwr : ∀ c ∈ cl, ∃ b, c.2.1.Mem b ∧ o.Writes c.1 b)
     (hslots : ∀ sl ∈ o.slots, ∃ c ∈ cl, c.1 = sl.1 ∧ c.2.1.Mem sl.2)
-    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ WholeG q s0 gd)
-    (hdir : o.IsDirOp → WholeG q s0 gd)
+    (hnext : ∀ c ∈ cl, c.2.2.1.next ≤ s0 ∨ WholeG R pc q s0 gd)
+    (hdir : o.IsDirOp → WholeG R pc q s0 gd)
     (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
     (hF : ∀ st Γn, st.fs.roots = R → NamesCoh (st.fs.treeDur, st.fs.metaLog) Γn →
       ⊢ gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γn Γn -∗ F -∗ ⌜P st⌝)

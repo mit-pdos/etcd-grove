@@ -324,7 +324,7 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
 /-- **`mkdir(2)` under a guard**: `wp_osMkdirS` with a call holding `q` of the permission and the
 guard `t` (begun no later) the rest. -/
 theorem wp_osMkdirSG (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : NamesH)
-    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b)
     (hn : h.cur !! b = none) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
@@ -337,7 +337,7 @@ theorem wp_osMkdirSG (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Na
            ∃ hJ, osNames (L := L) J (.except []) (DFrac.own 1) hJ ∗ ⌜hJ.cur = ∅ ∧ hJ.next = x + 1⌝) -∗
         Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
-  wp_osMkdirSG' R d b j dq h k s0 t sg pg q g hqg hsg hb hn hE hE' Φ
+  wp_osMkdirSG' R d b j dq h k s0 t sg pg q g hqg hsg hkg hb hn hE hE' Φ
 
 /-- **`rmdir(2)`** of the directory `d/b` (inode `J`), empty (its whole claim, with no name), by a
 call holding the whole call permission. -/
@@ -357,7 +357,7 @@ theorem wp_osRmdirS (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ 
 /-- **`rmdir(2)` under a guard**: `wp_osRmdirS` with a call holding `q` of the permission and the
 guard `t` (begun no later) the rest. -/
 theorem wp_osRmdirSG (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ : NamesH)
-    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hb : NameOk b)
+    (k s0 t sg : Nat) (pg : GoString) (q g : Qp) (hqg : q + g = 1) (hsg : sg ≤ s0) (hkg : callKey R pg = callKey R (child d b)) (hb : NameOk b)
     (hd : h.cur !! b = some (.dir J)) (he : hJ.cur = ∅)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
@@ -369,7 +369,7 @@ theorem wp_osRmdirSG (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
-  wp_osRmdirSG' R d b j J dq h hJ k s0 t sg pg q g hqg hsg hb hd he hE hE' Φ
+  wp_osRmdirSG' R d b j J dq h hJ k s0 t sg pg q g hqg hsg hkg hb hd he hE hE' Φ
 
 /-- **`rmdir(2)`** of a name holding nothing or a file: an errno, no effect. -/
 theorem wp_osRmdirS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
