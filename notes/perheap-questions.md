@@ -25,3 +25,13 @@
   `/shared/tmp/perheap/c1a/attack-fic.md`); the store's `AuthInfoFromCtx` proof using `IsAuthEnabled.wp_lb`
   directly ACCEPTED; `auth_ctx_lb` (`etcdserver/Results.lean`, its type `.specLb` → `.spec`) added to the Q9
   list for the user. The C1a/1b seam: targeted builds for C1a, the full build at C1.
+- **Forms decided by the agent, reviewed at the C1a checkpoint (2026-11-18):** `hdrBoundM`/`infoBoundM` kept as the
+  mode-gated wrappers, re-indexed by the token (not renamed to `hdrBoundT`/`infoBoundT`), their `*_ctx` transfer lemmas
+  deleted; `wpM`/`wpMLb` gate the token premise on their `on`; `RemoveMember`/`MemberList`/`checkLease*`/
+  `checkMembershipOperationPermission` and the v3rpc guards (`AuthAdmin.*`, `authMaintenanceServer.*`,
+  `kvServer.Compact`) gate on `E.authMode.isOn` (frames straight into their callees), the request specs on
+  `E.authOn` (the Scope's text; `AEnv.authOn` unfolds to it); v3rpc's `leaseCheckT`/`principalBoundT` merged into
+  `leaseCheckFrom`/`principalBound`; `Tracer.Start.spec`'s restatement (Scope §4.1's text) moved from 1b into C1a,
+  with `StartLaws`/`EnsureTrace` (independent attack SOUND: `/shared/tmp/perheap/attack-tracer.md`);
+  `authnRaft_on`/`revokeExpiredLeases` take some token from `libCtxOk` (`ctxToken_of_libCtxOk`: Authenticate reads
+  none, the revoke's internal context carries whatever it carries).

@@ -31,7 +31,7 @@
 - **Next, in order:** rebuild build 2's targets; the watch chain (`swsIs` by `tok`, `isWatchPermitted`, recvLoop,
   sendLoop, `watchServer.Watch`) + AuthService handlers + the lease grant/revoke/keepalive handlers; 1b (§4.1); client
   Results; examples auth (§4.3); full build at C1; tcb `--check --update`; interfaces; attack of new trusted text
-  (Tracer.Start's restatement: agent report `/shared/tmp/perheap/attack-tracer.md`).
+  (Tracer.Start: attacked SOUND, `/shared/tmp/perheap/attack-tracer.md`).
 - Forms decided this session (report at C1a's end): `hdrBoundM`/`infoBoundM` kept as the mode-gated wrappers,
   re-indexed by token (not renamed to `hdrBoundT`: less churn; their `*_ctx` transfer lemmas deleted); `wpM`/`wpMLb`
   gate the token premise on their `on`; `RemoveMember`/`MemberList`/`checkLease*`/`checkMembership` gate on
