@@ -74,10 +74,6 @@ theorem bbolt.open_lock [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (
 
 syntax bbolt.tacticOpen_tx_exit
 
-theorem bbolt.boltTx.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
-    Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (q q✝ : Qp) (e_q : q = q✝) (T T✝ :
-    bbolt.TxView) (e_T : T = T✝) : bbolt.boltTx tx γ q T = bbolt.boltTx tx✝ γ✝ q✝ T✝
-
 syntax bbolt.tacticOpt_rdt_
 
 theorem bbolt.wp_logger_ne_discard_open (lg : GoInterface) (hty : bbolt.logPtrTyped lg) : ⊢ ∀ Φ,
@@ -87,10 +83,6 @@ theorem bbolt.wp_logger_ne_discard_open (lg : GoInterface) (hty : bbolt.logPtrTy
     go_etcd_io.bbolt.discardLogger))))) {{ Φ }}
 
 syntax bbolt.tacticOpen_ret
-
-theorem bbolt.txDB.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ : Loc)
-    (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (db db✝ : Loc) (e_db : db = db✝) :
-    bbolt.txDB tx γ db = bbolt.txDB tx✝ γ✝ db✝
 
 syntax bbolt.tacticOpt_rd_
 

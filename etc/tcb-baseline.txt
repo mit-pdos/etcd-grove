@@ -502,7 +502,9 @@ axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
 axiom incomingOf_cancelCtx
 axiom insecure.NewCredentials.wp_proof
+axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
+axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom io.ReadFull.wp_proof

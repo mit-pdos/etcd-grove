@@ -9,7 +9,7 @@ are an image of the reader's data (`writeTo_fileOK`, `wt_bridge`), with the rece
 module
 
 public import Spec.go_etcd_io.bbolt.Tx__WriteTo
-public import Proof.go_etcd_io.bbolt.Tx__Size
+public import Proof.go_etcd_io.bbolt.Read.SizeFields
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetFlags
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetId
 public import Spec.go_etcd_io.bbolt.internal.common.Page__Meta

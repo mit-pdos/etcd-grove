@@ -23,27 +23,13 @@ def (sealed) backend.readerStreams (r : GoInterface) (Φ : List w8 → Prop) : I
 def backend.snapOpen (sp : Loc) (D : backend.Data) : IProp GF :=
   iprop(∃ γ, backend.snapOpenQ sp D γ 1)
 
-theorem backend.writerOk_persistent (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) :
-    Persistent (backend.writerOk w Wr)
-
-def (sealed) backend.boltImage (bs : List w8) (D : backend.Data) : Prop
+def backend.boltImage (bs : List w8) (D : backend.Data) : Prop :=
+  bbolt.boltImage bs D
 
 def (sealed) backend.snapRO (sp : Loc) (D : backend.Data) (γ : GName) : IProp GF
 
 def backend.writerOk (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) : IProp GF :=
-  iprop(□
-      ∀ p dq chunk bs c,
-        □
-          ∀ Φ,
-            ownSlice p chunk dq ∗ Wr c bs -∗
-              (▷
-                  ∀ n err,
-                    (∃ k,
-                        ownSlice p chunk dq ∗
-                          Wr true (bs ++ List.take k chunk) ∗
-                            ⌜sint.Z n = ↑k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝) -∗
-                      Φ (intoVal n, intoVal err)) -∗
-                WP ((intoVal (methods w.ty go!"Write" w.v)) (intoVal p)) {{ Φ }})
+  io.writerOk w Wr
 
 theorem backend.snapOpenQ_half (sp : Loc) (D : backend.Data) (γ : GName) (q : Qp) :
     backend.snapOpenQ sp D γ q ⊣⊢ backend.snapOpenQ sp D γ q.half ∗ backend.snapOpenQ sp D γ q.half

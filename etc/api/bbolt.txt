@@ -42,6 +42,7 @@ importable Spec.go_etcd_io.bbolt.Tx__CreateBucket
 importable Spec.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists
 importable Spec.go_etcd_io.bbolt.Tx__DeleteBucket
 importable Spec.go_etcd_io.bbolt.Tx__Size
+importable Spec.go_etcd_io.bbolt.Tx__WriteTo
 importable Spec.go_etcd_io.bbolt.Tx__DB
 importable Spec.go_etcd_io.bbolt.Tx__Stats
 importable Spec.go_etcd_io.bbolt.Bucket__Get

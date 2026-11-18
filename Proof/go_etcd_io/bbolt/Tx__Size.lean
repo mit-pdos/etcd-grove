@@ -113,23 +113,6 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
     iframe Hvo
     ipureintro; exact Hf
 
-/-- **`tx.Size()` over the fields it reads** (session S4, for `Tx.WriteTo`, which needs the size's
-value: the meta's high-water mark's pages). Internal (not a spec of `Spec/`). -/
-theorem Tx.Size.wp_fields (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG))
-    (tx m db : Loc) (mv : internal.common.Meta) (dq dq' : DFrac) :
-    {{ tx.[Tx, go!"meta"] ↦{dq} m ∗ m ↦{dq} mv ∗ tx.[Tx, go!"db"] ↦{dq'} db ∗
-        db.[DB, go!"pageSize"] ↦□ W64 4096 ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt }}
-      (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"Size")) (Val #()))
-    {{ RET #(mv.pgid' * W64 4096); tx.[Tx, go!"meta"] ↦{dq} m ∗ m ↦{dq} mv ∗
-        tx.[Tx, go!"db"] ↦{dq'} db }} := by
-  wp_start as ⟨Hm, Hmv, Hdb, #Hps, #Hpk⟩
-  ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.internal.common $$ []
-  · iPkgInit
-  wp_auto
-  wp_apply wp_Pgid $$ [$Hpkg $Hmv] as Hmv
-  iapply HΦ
-  iframe
-
 theorem Tx.Size.wp_proof (wp_Pgid : internal.common.Meta.Pgid.spec (GF := GF) (hG := hG)) :
     Tx.Size.spec (GF := GF) (hG := hG) := by
   intro _ _ _ tx γ q T
