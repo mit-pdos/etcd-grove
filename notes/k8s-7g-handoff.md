@@ -2,6 +2,39 @@
 
 ## START HERE
 
+**2026-11-18 (night 7; for etcd-grove-03). Step 5 started after 03's go (questions.md "Step 4 DONE, step 5 go").**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`). Commits this session: `2dee37288a`
+  (B4 returns each watch's configuration: `ReplayAt`, `RunOk`, floor, `watchOkL`, for B5), `9f679c501c` (`plainOut`:
+  `outEqual.spec` returns `decide (plainOut a = plainOut b)`; `decOp` gives `ansOf (plainOut y)`; `step.spec`'s post is
+  `stepL g x (plainOut y)`; `mlistL_plain`/`mstepL_plain`/`watchOkL_plainOut`; `Model`, `step`, `outEqual` re-checked),
+  then `RealRun.lean` + B4's `hpres`/`hn` restated (see Forms).
+- Forms decided (report): `plainOut` (KModel, `@[reducible]`); B4's `hpres` as accepted was FALSE (RunOk bounds
+  `rv < 2^63`, a write at `2^63 - 1` breaks it): now takes `rv + 1 < 2^63` and returns `rv' ≤ rv + 1`; `drive` carries
+  `rv + |l| < 2^63`; `realReplay_ok`'s `hn` is `st0.rv + |H| < 2^63` (was `2^64`). `RealRun.kstepL_runOk` discharges
+  `hpres` from `OpFits x` (`crFits x ∧ |Val| < 2^62`).
+- FINDING for 03: step 3 left `correctness/replay.go` (8 functions: `NewReplay`, `Replay.Validate`, ...) and
+  `watch.go` (15: `WatchValidator.ValidateWatch`, ...) without Go specs/proofs (only model.go + consistency.go are
+  done); `realCheck`'s proof needs them. Not on the step-5 list.
+- UNCHECKED (written while both build slots were held by other sessions' full builds, no lean-check allowed during a
+  build): `RealRun.lean` (new) and the `hpres`/`hn` restatement in `RealB4.lean`. First thing: `lc.sh -a` both
+  (RealB4 checked clean before the restatement, at `2dee37288a`).
+- Next, in order: read the targeted build (`/shared/tmp/k8s7g/build-s5a.sh`, log `build-s5a.log`) for the broken driver
+  files (minRV/genList/genWatchFrom/Gen gained `floor` in step 0: `minRVL` needs `flooredL`; call/Apply/runWatch need
+  `plainOut` in their posts plus Raw facts); InvSteps' `step_box` now has `ansOf (plainOut y)`; then call's Raw facts
+  (`rawOk x y`: `respRep` of `y.Raw'` with `RawRel x (plainOut y) rr`, persistent, into `ioOk`), Apply, runWatch;
+  realcheck.go specs; Check.
+- `plainOut` ripple still to do (not yet built): InvSteps' `step_box` (from `decOp_box`) now reads `ansOf (plainOut y)`;
+  its linearization-point lemmas (`contAt g0 x otherL Φ`, `kStep_ans`, `lOut_ans` uses at l.602/694/879/910/1032/1345)
+  state the model's output as the Go answer. Generalize them to any `y` with `plainOut y = <model output>` (a
+  `step_box_plain (hy : plainOut y = o)` lemma), since `call`'s answer carries the store's `Raw`. `Check.spec` needs new
+  premises on `g0` for `RunOk g0` (Main discharges them from `seed`'s concrete history).
+- Pitfalls: model outputs' `Raw' = zeroValDef` proofs: `unfold …; repeat' split; all_goals (try simp only [apply_ite
+  (f := Output.Raw'), ite_self]); all_goals (repeat' split); all_goals rfl` (plain `split` cannot see an `if` under a
+  `have`).
+
+### Superseded (night 6)
+
 **2026-11-18 (night 6; for etcd-grove-03). Step 4's bridges B1-B5 proved, no `sorry`: B1-list, B2, B4 this
 session. Report at step 4's end sent (discharge list below). Decisions of 03 recorded (questions.md, trust §6).**
 

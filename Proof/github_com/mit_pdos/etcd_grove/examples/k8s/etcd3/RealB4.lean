@@ -66,11 +66,12 @@ theorem replay_of_run (init : RM) : ∀ (l : List (Input × RResp)) (m m' : RM) 
 the replay of the unary operations succeeds and tracks the final configuration `hF`, and each unary
 operation answered at a configuration whose history is a prefix of `hF`'s. -/
 theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
-    (hpres : ∀ o ∈ H, ∀ h, RunOk h → o.val.1.Kind' ≠ W64 5 → RunOk (kstepL o.val.1 h).1) :
+    (hpres : ∀ o ∈ H, ∀ h, RunOk h → uint.nat h.st.rv + 1 < 2 ^ 63 → o.val.1.Kind' ≠ W64 5 →
+      RunOk (kstepL o.val.1 h).1 ∧ uint.nat (kstepL o.val.1 h).1.st.rv ≤ uint.nat h.st.rv + 1) :
     ∀ (l : List ROp), (∀ v ∈ l, ∃ o ∈ H, o.val = v) →
     ∀ (S : linkv.PSet HSt Input) (h : HSt) (acc : RM × GMap w64 RM × List RChange)
       (T : linkv.PSet HSt Input),
-      (∀ c, S c ↔ c = ⟨h, []⟩) → RunOk h → SimR h0.st.rv acc h →
+      (∀ c, S c ↔ c = ⟨h, []⟩) → RunOk h → uint.nat h.st.rv + l.length < 2 ^ 63 → SimR h0.st.rv acc h →
       run (kM h0) S l = some T →
       ∃ hF accF, (l.filterMap unaryOf).foldl replayStepL (some acc) = some accF ∧
         SimR h0.st.rv accF hF ∧ RunOk hF ∧ h.hist <+: hF.hist ∧
@@ -78,9 +79,10 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
           uint.nat h0.st.rv ≤ uint.nat hv.st.rv ∧ v.2.1 = (kstepL v.1 hv).2) ∧
         (∀ v ∈ l, v.1.Kind' = W64 5 → ∃ hv, RunOk hv ∧ hv.hist <+: hF.hist ∧
           uint.nat h0.st.rv ≤ uint.nat hv.st.rv ∧ watchOkL v.1 v.2.1 hv = true)
-  | [], _, _, h, acc, _, _, hrun, hsim, _ =>
+  | [], _, _, h, acc, _, _, hrun, _, hsim, _ =>
     ⟨h, acc, rfl, hsim, hrun, List.prefix_refl _, by simp, by simp⟩
-  | v :: l, hl, S, h, acc, T, hS, hrun, hsim, hr => by
+  | v :: l, hl, S, h, acc, T, hS, hrun, hroom, hsim, hr => by
+    simp only [List.length_cons] at hroom
     obtain ⟨o, ho, hov⟩ := hl v List.mem_cons_self
     have hl' : ∀ w ∈ l, ∃ o ∈ H, o.val = w := fun w hw => hl w (List.mem_cons_of_mem _ hw)
     simp only [run] at hr
@@ -95,7 +97,7 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
       by_cases hk5 : v.1.Kind' = W64 5
       · obtain ⟨hwok, hS1⟩ := hstep.1 hk5
         obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts, hwts⟩ :=
-          drive h0 H hops hpres l hl' S1 h acc T hS1 hrun hsim hr
+          drive h0 H hops hpres l hl' S1 h acc T hS1 hrun (by omega) hsim hr
         refine ⟨hF, accF, ?_, hsimF, hrunF, hpre, ?_, ?_⟩
         · rw [List.filterMap_cons]; simp only [unaryOf, hk5, ↓reduceIte]; exact hfold
         · intro w hw hw5
@@ -107,8 +109,8 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
           · exact ⟨h, hrun, hpre, hsim.2.1, hwok⟩
           · exact hwts w hw hw5
       · obtain ⟨hy, hS1⟩ := hstep.2 hk5
-        have hrun' := hpres o ho h hrun (by rw [hov]; exact hk5)
-        rw [hov] at hrun'
+        obtain ⟨hrun', hrv1⟩ := hpres o ho h hrun (by omega) (by rw [hov]; exact hk5)
+        rw [hov] at hrun' hrv1
         obtain ⟨hcfg, hhc, hsort, hrvb⟩ := hrun
         obtain ⟨hok, hmv⟩ := rstepL_kstepL v.1 v.2.1 v.2.2 h hk5 hop hcfg hy
         obtain ⟨m, ss, cs⟩ := acc
@@ -122,7 +124,7 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
         have hsim' := simR_step h0.st.rv _ h v.1 v.2.2 _ hsim hhc.1 hhc.2.1 hrun'.2.2.1 hrun'.2.1.1
           hrun'.2.2.2 hrs hmv
         obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts, hwts⟩ :=
-          drive h0 H hops hpres l hl' S1 _ _ T hS1 hrun' hsim' hr
+          drive h0 H hops hpres l hl' S1 _ _ T hS1 hrun' (by omega) hsim' hr
         have hpre0 : h.hist <+: (kstepL v.1 h).1.hist := by
           rw [kstepL_hist]
           split
@@ -149,8 +151,9 @@ accepts every operation; and each watch was allowed (`watchOkL`) at a configurat
 step), the floor (`FloorOk`), and a history short enough that the revisions do not wrap. -/
 theorem realReplay_ok (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
     (hπ : IsLinearization (kM h0) H π) (hops : ∀ o ∈ H, OpOk o.val) (hrun0 : RunOk h0)
-    (hpres : ∀ o ∈ H, ∀ h, RunOk h → o.val.1.Kind' ≠ W64 5 → RunOk (kstepL o.val.1 h).1)
-    (hfl : ∀ o ∈ H, FloorOk h0.st.rv o.val.1) (hn : uint.nat h0.st.rv + H.length < 2 ^ 64)
+    (hpres : ∀ o ∈ H, ∀ h, RunOk h → uint.nat h.st.rv + 1 < 2 ^ 63 → o.val.1.Kind' ≠ W64 5 →
+      RunOk (kstepL o.val.1 h).1 ∧ uint.nat (kstepL o.val.1 h).1.st.rv ≤ uint.nat h.st.rv + 1)
+    (hfl : ∀ o ∈ H, FloorOk h0.st.rv o.val.1) (hn : uint.nat h0.st.rv + H.length < 2 ^ 63)
     (lin2 : List Nat) (h2 : IsLinearization (realS (absR h0.st)) (fmapH unaryOf H) lin2) :
     ∃ R, replayL (absR h0.st) (vals (fmapH unaryOf H) lin2) = some R ∧
       (∀ op ∈ vals (fmapH unaryOf H) lin2, rvalidateL R op.1 op.2 = true) ∧
@@ -164,7 +167,8 @@ theorem realReplay_ok (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
   obtain ⟨T, hT⟩ := Option.isSome_iff_exists.1 hπ.2.2.1
   have hsim0 := simR_init h0 hrun0.2.1.1 hrun0.2.1.2.1 hrun0.1.2.2.1
   obtain ⟨hF, accF, hfold, hsimF, hrunF, -, hpts, hwts⟩ := drive h0 H hops hpres (vals H π) hmemH
-    (kM h0).init h0 _ T (fun c => Iff.rfl) hrun0 hsim0 hT
+    (kM h0).init h0 _ T (fun c => Iff.rfl) hrun0
+    (by rw [(isLinearization_perm hπ).length_eq, List.length_map]; omega) hsim0 hT
   have hR1 : replayL (absR h0.st) ((vals H π).filterMap unaryOf) = some ⟨accF.2.1, accF.2.2⟩ := by
     unfold replayL; erw [hfold]; rfl
   obtain ⟨m2, hm2⟩ := Option.isSome_iff_exists.1 h2.2.2.1
