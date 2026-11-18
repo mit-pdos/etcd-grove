@@ -194,3 +194,53 @@ statement can stay: it can persist the bytes under its update), raft's `Init.lea
 the kvdurablenoax directory, `ccDecodeV2_nil` and the eight sorries); `etc/tcb-baseline.txt` (the
 repository's axioms and sorries) has not been regenerated: it needs a full `lake build` and
 `etc/tcb-report.py --check --update` (the part's eight new `sorry`s, and its stage-1 axiom copies gone).
+
+## Stage 3a (2026-11-18): the clones and `EntrySize` proved
+
+`raftpb.CloneConfState`, `CloneSnapshot` (all five conjuncts), `CloneEntry` and `EntrySize` are proved
+(no `sorry`); their specs are unchanged (the stage-2 restatements of the old trust-boundary specs), and
+their proofs still take no callee specs, so the link lists and Links are unchanged.
+
+**`pbMsg` is frozen hidden fields, not an invariant** (`InvPbCore.lean`, now the part's own):
+`pbMsg T l uf := (∃ st sc us, l.state ↦□ st ∗ l.sizeCache ↦□ sc ∗ l.unknownFields ↦□ us ∗ us ↦*□ uf)
+∗ ⌜ufWire …⌝`. Stage 2's finding asked only for `us ↦*□ uf` inside the invariant; with every hidden
+field read-only there is nothing left for an invariant to own (in the part nothing writes `state` or
+`sizeCache` either: the `proto.*` axioms, protobuf's runtime, were the only writers), so the proofs
+load `unknownFields` directly from `↦□` without opening anything. `pbMsg_persistent`, `pbMsg_ufWire`
+and `pbMsg_alloc` keep their statements (`pbMsg_alloc` now persists the four points-tos under its
+update); new: `pbMsg_uf` (the field and its bytes, read-only). `pbN` stays, unused. Knock-on edits, each
+now the part's own: `Base.lean`'s `#emptyState` states `EtcdGrove.pbMsg raftpb.HardState es []` (Base
+imports `InvPbCore`, which is below it) instead of the invariant spelled out; `Init.lean` makes it by
+`pbMsg_alloc`; `LemmasMiscR.emptyState_hsRO` frames it. No other file of the part unfolds `pbMsg`; the
+full part rebuilt unchanged (3828 jobs).
+
+**The proofs** (`RaftNoAx/Proof/go_etcd_io/raft/v3/raftpb/`, outside the spec/proof discipline for the
+unexported helpers):
+- `CloneLeaf.lean`: the leaf helpers' triples: `cloneUint64`/`cloneBool` on `optCell` (a fresh frozen
+  cell, `nil` for `nil`; `cellRO_optCell`/`optCell_cellRO`/`optCell_null` convert), `cloneUint64s`
+  and `cloneUnknown` (`append(nil, s...)` by `wp_slice_append`), `cloneBytes` (`nil` stays `nil`, any
+  other slice a fresh **non-`nil`** one: `wp_append_nonnil`, `append` onto the `[]byte{}` literal's
+  non-null pointer, by `wp_slice_append_fits` when nothing is appended, which Perennial's
+  `wp_slice_append` does not say), and `wp_cloneBytes_C` on `bytesC`.
+- `CloneCS.lean`: `wp_CloneConfState_al`, at any `al` (a set `AutoLeave` stays set: `ownSnapS`'s
+  `csSet` needs it, which `CloneConfState.spec`, `ownCSM` only, does not give), and the `nil` case;
+  `CloneConfState.wp_proof` is it at `al = false`.
+- `CloneSM.lean`: `cloneSnapshotMetadata`'s core on a non-`nil` metadata's fields with the conf state's
+  clone a triple parameter (`R`/`Q`), its instances for the conf state's forms (`csOptA`: a frozen set
+  one clones to an owned one, `csPts_weaken`; `csSet`), and the four metadata forms (`smOpt`, `smPtsW`,
+  `smPtsS`, `smPtsV`).
+- `CloneSnapshot.lean`: the same core for the snapshot (metadata clone a parameter) and the five
+  conjuncts. `CloneEntry.lean`: direct.
+- `SizeVarint.lean`: `varintSize` facts (`< 128`, `≥ 128`, `≤ 10` below `2^64`) and `wp_sizeVarint`
+  (the loop, invariant `n + varintSize v = 1 + varintSize v₀`). `EntrySize.lean`: four `wp_join`s, the
+  running sum kept as the word of the model's partial sum, so the result is `W64 (entrySize c)` and
+  `sint.Z` of it is `entrySize c` below `2^63`; the enum's conversion is `W64 (sint.Z t)` as in
+  `entrySize`.
+
+Left in the part (`etc/tcb-collections/raft-noax.txt`): the conf-change codec (`MarshalConfChangeV1/V2`,
+`UnmarshalConfChangeV1/V2`'s sorries, `ccDecodeV2_nil`), another track.
+
+Checked (2026-11-18): `lake build RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results`
+(3832 jobs), `etc/copy-part.py --check` (0 differ); `#print axioms` of the four `wp_proof`s: Lean's
+three and Goose's type axioms only, no `sorryAx`; `AxPath2` on `raft_kvdurable_porcupine_safe` reaches
+`sorryAx` only through the codec (`MarshalConfChangeV1.wp_proof`, ...).
