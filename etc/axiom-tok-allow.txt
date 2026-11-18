@@ -144,6 +144,8 @@ trunc Perennial.EtcdGrove.proto.MarshalAppendCachedRecord.wp_proof
 # definitions are bbolt's proved ones (`Proof/go_etcd_io/bbolt/Inv/`), not trusted text.
 trunc Perennial.EtcdGrove.auth.NewAuthStore.wp_proof
 trunc Perennial.EtcdGrove.backend.backend.Snapshot.wp_proof
+# (S3e, interim until S3f is merged) the error-free `Open` statement's `isBolt` opens bbolt's `sync.isPool`
+trunc Perennial.EtcdGrove.bbolt.Open_sharedNoErrH.pendingS3d
 trunc Perennial.EtcdGrove.membership.RaftCluster.Recover.wp_proof
 trunc Perennial.EtcdGrove.membership.RaftCluster.SetBackend.wp_proof
 trunc Perennial.EtcdGrove.schema.MustUnsafeGetAllLeases.wp_proof

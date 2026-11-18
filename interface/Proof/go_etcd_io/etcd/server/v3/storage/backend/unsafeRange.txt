@@ -12,8 +12,11 @@ theorem backend.cursorRange_take (es : List backend.Ent) (kb eb : GoString) (lim
     then W64 (2 ^ 63 - 1) else limit)).toNat) : backend.cursorRange es kb eb limit = List.take i
     (List.drop (backend.seekIdx es kb) es)
 
-theorem backend.unsafeRange.wp_proof (hSeek : bbolt.Cursor.Seek_kv.spec) (hNext :
-    bbolt.Cursor.Next_kv.spec) : backend.unsafeRange.spec
+theorem backend.unsafeRange.wp_proof (hSeek : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec)
+    (hNext : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec) :
+    backend.unsafeRange.spec
   -- `Perennial.EtcdGrove.backend.unsafeRange.spec`, unfolded:
   ∀ (tx c : Loc) (γd : backend.DBNames) (T : bbolt.TxView) (es : List backend.Ent) (pos : Option Nat) (q : Qp)
     (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
@@ -34,6 +37,11 @@ theorem backend.unsafeRange.wp_proof (hSeek : bbolt.Cursor.Seek_kv.spec) (hNext 
                   (intoVal endKey))
                 (intoVal limit))
               {{ Φ }}
+
+theorem bbolt.curAt.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx tx✝
+    : Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (es es✝ : List bbolt.BoltEnt)
+    (e_es : es = es✝) (i i✝ : Nat) (e_i : i = i✝) (k k✝ : GoSlice) (e_k : k = k✝) (v v✝ : GoSlice)
+    (e_v : v = v✝) : bbolt.curAt tx γ es i k v = bbolt.curAt tx✝ γ✝ es✝ i✝ k✝ v✝
 
 theorem backend.cursorRange_eq (es : List backend.Ent) (kb eb : GoString) (limit : w64) :
     backend.cursorRange es kb eb limit = List.take (sint.Z (if eb = [] then W64 1 else if sint.Z

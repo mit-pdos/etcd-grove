@@ -21,7 +21,7 @@ def backend.OptsM.ok [GoGlobalContext] (o : backend.OptsM) : Prop :=
   o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ backend.loggerPtrOk o.logger
 
 def backend.optsAt (l : Loc) (dq : DFrac) (o : backend.OptsM) : IProp GF :=
-  iprop(∃ m f, bbolt.optsAt l dq (o.toBolt m f))
+  iprop(∃ f, ⌜BitVec.toNat f = 0 ∨ BitVec.toNat f = bbolt.mapPopulate⌝ ∗ bbolt.optsAt l dq (o.toBolt false f))
 
 theorem backend.optsZero_ok [GoGlobalContext] : backend.optsZero.ok
 

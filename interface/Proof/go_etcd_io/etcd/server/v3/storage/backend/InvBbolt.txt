@@ -27,11 +27,13 @@ structure backend.FsCtx
   has : HasExt Fs.fsExt
   fa : os.file.FieldAssumptions
   fsa : os.fileStat.FieldAssumptions
+  ne : backend.FsNoErrAll
 
 theorem backend.txDB_persistent (tx : Loc) (γ : backend.DBNames) (db : Loc) : Persistent
     (backend.txDB tx γ db)
 
-def (sealed) backend.dbCloseOk : Prop
+def backend.dbCloseOk : Prop :=
+  True
 
 def backend.wView (D S : backend.Data) (G : GoString → Nat) : bbolt.TxView :=
   { rw := true, base := D, cur := S, gen := G }
@@ -69,7 +71,7 @@ theorem bbolt.boltState.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt 
 
 def backend.ownDB (db : Loc) (γ : backend.DBNames) (D : backend.Data) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] =>
-    iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D)
+    iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D ∗ backend.dbRestF γ)
 
 def backend.curAt (tx : Loc) (γ : backend.DBNames) (es : List backend.Ent) (i : Nat) (k v : GoSlice)
     : IProp GF :=
@@ -78,9 +80,9 @@ def backend.curAt (tx : Loc) (γ : backend.DBNames) (es : List backend.Ent) (i :
   | none => iprop(⌜k = slice.nil ∧ v = slice.nil⌝)
 
 theorem backend.onFs_eq [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (f : [inst : ExtSemantics Fs.fsExt] →
-    [Fs.FsSemOk] → [HasExt Fs.fsExt] → IProp GF) : (backend.onFs fun [ExtSemantics Fs.fsExt]
-    [Fs.FsSemOk] [HasExt Fs.fsExt] => f) = f
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [backend.FsNoErrAll] (f : [inst :
+    ExtSemantics Fs.fsExt] → [Fs.FsSemOk] → [HasExt Fs.fsExt] → IProp GF) : (backend.onFs fun
+    [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => f) = f
 
 theorem backend.FsCtx.eq (GF : BundledGFunctors) (a b : backend.FsCtx GF) : a = b
 
@@ -107,7 +109,8 @@ theorem backend.ownWTxG_fill (tx b : Loc) (γ : backend.DBNames) (D S : backend.
 theorem backend.wBkt_timeless (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat) :
     Timeless (backend.wBkt tx γ b n g)
 
-def (sealed) backend.dbOpenOk : Prop
+def backend.dbOpenOk : Prop :=
+  True
 
 theorem backend.onFs_none (h : backend.theFs GF = none) (f : [inst : ExtSemantics Fs.fsExt] →
     [Fs.FsSemOk] → [HasExt Fs.fsExt] → IProp GF) : (backend.onFs fun [ExtSemantics Fs.fsExt]
@@ -115,7 +118,10 @@ theorem backend.onFs_none (h : backend.theFs GF = none) (f : [inst : ExtSemantic
 
 theorem backend.txDone_persistent (tx : Loc) : Persistent (backend.txDone tx)
 
-axiom backend.dbFile (db : Loc) (path : GoString) : IProp GF
+theorem backend.dbNs_inj {p p' : GoString} (h : backend.dbNs p = backend.dbNs p') : p = p'
+
+def backend.dbFile (_db : Loc) (γ : backend.DBNames) (path : GoString) : IProp GF :=
+  iprop(⌜γ.ns = backend.dbNs path⌝)
 
 theorem backend.wView.proj_base (D S : backend.Data) (G : GoString → Nat) : (backend.wView D S
     G).base = D
@@ -126,9 +132,11 @@ theorem backend.wView.proj_cur (D S : backend.Data) (G : GoString → Nat) : (ba
 theorem bbolt.txDone.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
     Loc) (e_tx : tx = tx✝) : bbolt.txDone tx = bbolt.txDone tx✝
 
-axiom backend.fileHolds (path : GoString) (D : backend.Data) : IProp GF
+def backend.fileHolds (path : GoString) (D : backend.Data) : IProp GF :=
+  backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => backend.fileHoldsF path D
 
-axiom backend.dbFile_persistent (db : Loc) (path : GoString) : Persistent (backend.dbFile db path)
+theorem backend.dbFile_persistent (db : Loc) (γ : backend.DBNames) (path : GoString) : Persistent
+    (backend.dbFile db γ path)
 
 theorem backend.txLive_size (tx : Loc) (γ : backend.DBNames) (q : Qp) (D : backend.Data) :
     backend.txLive tx γ q (bbolt.TxView.ro D) ⊢ ⌜∀ (n : GoString) (m : backend.BktData), D !! n =
@@ -145,9 +153,9 @@ def backend.ownCur (tx : Loc) (γ : backend.DBNames) (c : Loc) (T : bbolt.TxView
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltCur tx γ c T es pos
 
 theorem backend.curAt_eq [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (tx : Loc) (γ : backend.DBNames) (es :
-    List backend.Ent) (i : Nat) (k v : GoSlice) : backend.curAt tx γ es i k v = bbolt.curAt tx γ es
-    i k v
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] [backend.FsNoErrAll] (tx : Loc) (γ :
+    backend.DBNames) (es : List backend.Ent) (i : Nat) (k v : GoSlice) : backend.curAt tx γ es i k v
+    = bbolt.curAt tx γ es i k v
 
 def backend.BktData : Type :=
   GMap GoString GoString
@@ -159,6 +167,16 @@ theorem bbolt.txDB.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fs
 theorem backend.ownCur_timeless (tx : Loc) (γ : backend.DBNames) (c : Loc) (T : bbolt.TxView) (es :
     List backend.Ent) (pos : Option Nat) : Timeless (backend.ownCur tx γ c T es pos)
 
+def backend.dbRestF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ : backend.DBNames) :
+    IProp GF :=
+  iprop(∃ R d b dq j qc h i,
+      ⌜γ.ns = backend.dbNs (Fs.child d b) ∧ NameOk b ∧ h.cur !! b = some (Fs.Node.file i)⌝ ∗
+        Fs.osInv ∗
+          Fs.osSharedInv R ∗
+            Fs.osPathS R d dq j ∗
+              Fs.osCallPerm qc ∗
+                Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i ∗ bbolt.boltCloserH γ)
+
 def backend.wBkt (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltBkt tx γ b n g
 
@@ -167,6 +185,9 @@ def backend.onFs (f : [inst : ExtSemantics Fs.fsExt] → [Fs.FsSemOk] → [HasEx
   match backend.theFs GF with
   | some c => f
   | none => iprop(False)
+
+def backend.dbNs (p : GoString) : Namespace :=
+  (nroot.@"etcdBackendDb").@List.map (fun c => BitVec.toNat c) p
 
 def backend.txDone (tx : Loc) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.txDone tx
@@ -179,8 +200,9 @@ theorem backend.txBytes_acc (tx : Loc) (γ : backend.DBNames) (s : GoSlice) (b :
     ∗ (ownSlice s b dq -∗ backend.txLive tx γ q T)
 
 theorem backend.theFs_eq (GF : BundledGFunctors) [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has
-    : HasExt Fs.fsExt] [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] :
-    backend.theFs GF = some { S := S, ok := ok, has := has, fa := fa, fsa := fsa }
+    : HasExt Fs.fsExt] [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] [ne :
+    backend.FsNoErrAll] : backend.theFs GF = some { S := S, ok := ok, has := has, fa := fa, fsa :=
+    fsa, ne := ne }
 
 theorem bbolt.boltCur.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
     Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (c c✝ : Loc) (e_c : c = c✝) (T T✝
@@ -195,6 +217,15 @@ theorem backend.wView_dropBkt (D S : backend.Data) (G : GoString → Nat) (n : G
 def backend.txLive (tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltTx tx γ q T
 
+def backend.fileHoldsF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) (D :
+    backend.Data) : IProp GF :=
+  iprop(∃ R d b dq j qc h,
+      ⌜path = Fs.child d b ∧ NameOk b⌝ ∗
+        Fs.osInv ∗
+          Fs.osSharedInv R ∗
+            Fs.osPathS R d dq j ∗
+              Fs.osCallPerm qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
+
 theorem backend.isDB_persistent (db : Loc) (γ : backend.DBNames) : Persistent (backend.isDB db γ)
 
 def backend.DBNames : Type :=
@@ -206,6 +237,8 @@ theorem backend.ownWTx_live (tx : Loc) (γ : backend.DBNames) (D S : backend.Dat
 theorem backend.wView_setBkt (D S : backend.Data) (G : GoString → Nat) (n : GoString) (m :
     backend.BktData) : (backend.wView D S G).setBkt n m = backend.wView D (<[n := m]>S) G
 
+theorem backend.dbNs_osN (p : GoString) : ↑(backend.dbNs p) ## ↑Fs.osN
+
 theorem backend.onFs_some {c : backend.FsCtx GF} (h : backend.theFs GF = some c) (f : [inst :
     ExtSemantics Fs.fsExt] → [Fs.FsSemOk] → [HasExt Fs.fsExt] → IProp GF) : (backend.onFs fun
     [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => f) = f
@@ -216,10 +249,18 @@ def backend.seekIdx (es : List backend.Ent) (k : GoString) : Nat :=
 theorem backend.txLive_later (db tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView) :
     backend.isDB db γ ⊢ ▷ backend.txLive tx γ q T -∗ ◇ backend.txLive tx γ q T
 
+structure backend.FsNoErrAll [ExtSemantics Fs.fsExt] : Prop where
+  ok : ∃ Sio,
+  (∀ (st : Fs.OsState) (i : Fs.Ino), Sio.ino st i) ∧
+    (∀ (p : GoString), Sio.path p) ∧
+      (Fs.FsStepSat fun [GooseExts] [GoGlobalContext] => Fs.NoIoErr Sio) ∧
+        Fs.FsStepSat fun [GooseExts] [GoGlobalContext] => Fs.NoMapLockErr Sio
+
 def backend.theFs (GF : BundledGFunctors) : Option (backend.FsCtx GF) :=
   if h : Nonempty (backend.FsCtx GF) then some (Classical.choice h) else none
 
-axiom backend.dbFile_timeless (db : Loc) (path : GoString) : Timeless (backend.dbFile db path)
+theorem backend.dbFile_timeless (db : Loc) (γ : backend.DBNames) (path : GoString) : Timeless
+    (backend.dbFile db γ path)
 
 def backend.txDB (tx : Loc) (γ : backend.DBNames) (db : Loc) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.txDB tx γ db

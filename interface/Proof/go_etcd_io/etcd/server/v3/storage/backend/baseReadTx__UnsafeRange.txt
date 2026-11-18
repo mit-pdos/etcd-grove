@@ -8,8 +8,11 @@ theorem backend.cursorRange_nil (kb eb : GoString) (limit : w64) : backend.curso
     limit = []
 
 theorem backend.baseReadTx.UnsafeRange.wp_proof (hRange : backend.txReadBuffer.Range.spec) (hBucket
-    : bbolt.Tx.Bucket_kvr.spec) (hCursor : bbolt.Bucket.Cursor_kvr.spec) (hur :
-    backend.unsafeRange.spec) : backend.baseReadTx.UnsafeRange.spec
+    : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec) (hCursor : ∀ [inst : ExtSemantics
+    Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec) (hur : backend.unsafeRange.spec) :
+    backend.baseReadTx.UnsafeRange.spec
   -- `Perennial.EtcdGrove.backend.baseReadTx.UnsafeRange.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b base : Loc) (dq : DFrac) (rtx : Loc)
     (rv : backend.RView) (q : Qp) (bk : GoInterface) (bi : backend.BucketInfo) (key endKey : GoSlice) (kb eb : GoString)

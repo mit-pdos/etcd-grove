@@ -3,22 +3,35 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem backend.optsAt_int [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (o : backend.OptsM)
-    (f : GoString) (hf : f = go!"MmapFlags" ∨ f = go!"InitialMmapSize" ∨ f = go!"MaxSize") :
-    backend.optsAt l (DFrac.own 1) o ⊢ ∃ x, typedPointsto (structFieldRef go_etcd_io.bbolt.Options f
-    l) x (DFrac.own 1) ∗ ∀ y, typedPointsto (structFieldRef go_etcd_io.bbolt.Options f l) y
-    (DFrac.own 1) -∗ backend.optsAt l (DFrac.own 1) o
-
-theorem backend.optsAt_bool [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (o : backend.OptsM)
-    (f : GoString) (hf : f = go!"NoGrowSync" ∨ f = go!"NoFreelistSync" ∨ f = go!"PreLoadFreelist" ∨
-    f = go!"NoSync" ∨ f = go!"Mlock" ∨ f = go!"NoStatistics") : backend.optsAt l (DFrac.own 1) o ⊢ ∃
-    x, typedPointsto (structFieldRef go_etcd_io.bbolt.Options f l) x (DFrac.own 1) ∗ ∀ y,
+    (f : GoString) (hf : f = go!"InitialMmapSize" ∨ f = go!"MaxSize") : backend.optsAt l (DFrac.own
+    1) o ⊢ ∃ x, typedPointsto (structFieldRef go_etcd_io.bbolt.Options f l) x (DFrac.own 1) ∗ ∀ y,
     typedPointsto (structFieldRef go_etcd_io.bbolt.Options f l) y (DFrac.own 1) -∗ backend.optsAt l
     (DFrac.own 1) o
 
-def backend.optsVal (v : go_etcd_io.bbolt.Options) (o : backend.OptsM) : Prop :=
-  ∃ m f, bbolt.optsVal v (o.toBolt m f)
+theorem backend.optsAt_bool [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (o : backend.OptsM)
+    (f : GoString) (hf : f = go!"NoGrowSync" ∨ f = go!"NoFreelistSync" ∨ f = go!"PreLoadFreelist" ∨
+    f = go!"NoSync" ∨ f = go!"NoStatistics") : backend.optsAt l (DFrac.own 1) o ⊢ ∃ x, typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Options f l) x (DFrac.own 1) ∗ ∀ y, typedPointsto
+    (structFieldRef go_etcd_io.bbolt.Options f l) y (DFrac.own 1) -∗ backend.optsAt l (DFrac.own 1)
+    o
 
-axiom backend.boltLogger (l : GoInterface) : IProp GF
+def backend.optsVal (v : go_etcd_io.bbolt.Options) (o : backend.OptsM) : Prop :=
+  ∃ f, (BitVec.toNat f = 0 ∨ BitVec.toNat f = bbolt.mapPopulate) ∧ bbolt.optsVal v (o.toBolt false f)
+
+def backend.boltLogger (l : GoInterface) : IProp GF :=
+  match backend.theFs GF with
+  | some c => bbolt.boltLogger l
+  | none => iprop(True)
+
+theorem backend.boltLogger_eq [bbolt_sem : go_etcd_io.bbolt.Assumptions] [S : ExtSemantics Fs.fsExt]
+    [ok : Fs.FsSemOk] [has : HasExt Fs.fsExt] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions] [backend.FsNoErrAll] (l : GoInterface) : backend.boltLogger l =
+    bbolt.boltLogger l
+
+theorem backend.optsAt_mlock [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (o :
+    backend.OptsM) : backend.optsAt l (DFrac.own 1) o ⊢ ∃ x, typedPointsto (structFieldRef
+    go_etcd_io.bbolt.Options go!"Mlock" l) x (DFrac.own 1) ∗ (typedPointsto (structFieldRef
+    go_etcd_io.bbolt.Options go!"Mlock" l) false (DFrac.own 1) -∗ backend.optsAt l (DFrac.own 1) o)
 
 theorem backend.wp_optsStore [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (o o' :
     backend.OptsM) (v : go_etcd_io.bbolt.Options) (h : backend.optsVal v o') : ⊢ ∀ Φ, backend.optsAt
@@ -33,11 +46,17 @@ theorem backend.wp_optsLoad [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc)
     backend.OptsM) : ⊢ ∀ Φ, backend.optsAt l dq o -∗ (▷ ∀ v, backend.optsAt l dq o ∗
     ⌜backend.optsVal v o⌝ -∗ Φ (intoVal v)) -∗ WP ![go_etcd_io.bbolt.Options.ty] (intoVal l) {{ Φ }}
 
+theorem backend.optsAt_bolt [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (dq : DFrac) (o :
+    backend.OptsM) (hok : o.ok) : backend.optsAt l dq o ⊢ ∃ f, ⌜(o.toBolt false f).ok⌝ ∗
+    bbolt.optsAt l dq (o.toBolt false f) ∗ (bbolt.optsAt l dq (o.toBolt false f) -∗ backend.optsAt l
+    dq o)
+
 theorem backend.wp_optsLit [bbolt_sem : go_etcd_io.bbolt.Assumptions] : ⊢ ∀ Φ, True -∗ (▷ ∀ v,
     ⌜backend.optsVal v backend.optsZero⌝ -∗ Φ (intoVal v)) -∗ WP ((CompositeLiteral
     go_etcd_io.bbolt.Options.ty) (LiteralValueV [])) {{ Φ }}
 
-axiom backend.boltLogger_persistent (l : GoInterface) : Persistent (backend.boltLogger l)
+theorem backend.boltLogger_persistent [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : GoInterface) :
+    Persistent (backend.boltLogger l)
 
 theorem backend.optsAt_logger [bbolt_sem : go_etcd_io.bbolt.Assumptions] (l : Loc) (o :
     backend.OptsM) : backend.optsAt l (DFrac.own 1) o ⊢ typedPointsto (structFieldRef

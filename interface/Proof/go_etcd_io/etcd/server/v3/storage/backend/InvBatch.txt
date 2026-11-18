@@ -52,7 +52,7 @@ theorem backend.batchLocked_rb (γ : backend.BNames) (P : backend.BParams) (b : 
 theorem backend.isBackend_dbFile (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b :
     Loc) : backend.isBackend γ P W Pk b ⊢ ∃ db path, (sync.isRWMutexGuard (backend.bF go!"mu" b) fun
     q => typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗ backend.isDB db γ.db ∗
-    backend.bDBAt γ db path ∗ backend.dbFile db path
+    backend.bDBAt γ db path ∗ backend.dbFile db γ.db path
 
 theorem backend.batchGhostAt_bound (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess)
     (free : Bool) (hP : P.Wf) (hst : backend.sessWf P st) : backend.batchGhostAt γ P st free ⊢ ⌜∀ (i

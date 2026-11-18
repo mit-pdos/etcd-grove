@@ -701,7 +701,8 @@ def backend.isBackend (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp 
                                           typedPointsto (backend.bF go!"db" b) db (DFrac.own q)) ∗
                                         backend.isDB db γ.db ∗
                                           ⌜P.Wf⌝ ∗
-                                            (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db path) ∗ envVerifyOff)
+                                            (∃ path, backend.bDBAt γ db path ∗ backend.dbFile db γ.db path) ∗
+                                              envVerifyOff)
 
 def backend.tokPart (γ : backend.BNames) (q : Rat) : IProp GF :=
   if h : 0 < q then ghostVar γ.txa ⟨q, h⟩ () else iprop(True)

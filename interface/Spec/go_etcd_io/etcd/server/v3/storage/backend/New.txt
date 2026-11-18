@@ -3,14 +3,15 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def backend.New.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (P : backend.BParams)
-    (D : backend.Data) (W Pk K : backend.BNames → IProp GF),
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
+    (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (P : backend.BParams) (D : backend.Data)
+    (W Pk K : backend.BNames → IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
             zapLoggerOrNil cfg.Logger' ∗
               backend.fileHolds cfg.Path' D ∗
-                ⌜P.Wf ∧ P.limit = cfg.BatchLimit'⌝ ∗
+                ⌜P.Wf ∧ P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false⌝ ∗
                   backend.hooksOk P W Pk cfg.Hooks' ∗
                     envVerifyOff ∗
                       (∀ γ, backend.hkOwn γ (backend.hkData P D) ∗ backend.bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗

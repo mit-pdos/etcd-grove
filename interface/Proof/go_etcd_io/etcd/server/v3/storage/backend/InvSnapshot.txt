@@ -30,6 +30,8 @@ theorem backend.writerOk_persistent (w : GoInterfaceOk) (Wr : Bool → List w8 �
 
 def (sealed) backend.boltImage (bs : List w8) (D : backend.Data) : Prop
 
+def (sealed) backend.srvFileHolds (p : GoString) (D : backend.Data) : IProp GF
+
 def (sealed) backend.snapRO (sp : Loc) (D : backend.Data) (γ : GName) : IProp GF
 
 def backend.writerOk (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) : IProp GF :=
