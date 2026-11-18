@@ -434,13 +434,475 @@ theorem fI_eq_of_absR (p q : GSt) (hp : SortedI p.items) (hq : SortedI q.items) 
 
 /-! ## B3a: any two linearizations that replay give the same replay -/
 
+/-! ### A write's answer -/
+
+theorem rcreateL_obj (x : Input) (m : RM) (o : Obj) (h : (rcreateL x m).1.obj = .obj o) :
+    o.ResourceVersion' = m.rv + W64 1 ∧ (rcreateL x m).2.1.items !! storeKeyL x.Key' = some o ∧
+      (rcreateL x m).2.1.rv = m.rv + W64 1 := by
+  unfold rcreateL failR at h ⊢
+  dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i h1
+  split at h
+  · simp at h
+  rename_i h2
+  rw [if_neg h1, if_neg h2]
+  simp only [DeepV.obj.injEq] at h
+  subst h
+  simp
+
+theorem rdeleteL_obj (x : Input) (m : RM) (o : Obj) (h : (rdeleteL x m).1.obj = .obj o) :
+    o.ResourceVersion' = m.rv + W64 1 ∧ (rdeleteL x m).2.1.items !! storeKeyL x.Key' = none ∧
+      (rdeleteL x m).2.1.rv = m.rv + W64 1 := by
+  unfold rdeleteL failR at h ⊢
+  try dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i h1
+  rw [if_neg h1]
+  split at h
+  · simp at h
+  rename_i s hs
+  try rw [hs]
+  try dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i hp
+  try rw [hp]
+  try dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i hr
+  rw [if_neg hr]
+  simp only [DeepV.obj.injEq] at h
+  subst h
+  simp
+
+theorem rupdateL_obj (x : Input) (m : RM) (o : Obj) (h : (rupdateL x m).1.obj = .obj o) :
+    (o.ResourceVersion' = m.rv + W64 1 ∧ (rupdateL x m).2.1.items !! storeKeyL x.Key' = some o ∧
+      (rupdateL x m).2.1.rv = m.rv + W64 1) ∨
+    ((rupdateL x m).2 = (m, none) ∧ m.items !! storeKeyL x.Key' = some o) := by
+  unfold rupdateL failR updWriteL at h ⊢
+  try dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i h1
+  rw [if_neg h1]
+  try dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i h2
+  rw [if_neg h2]
+  split at h
+  · simp at h
+  rename_i hp
+  try rw [hp]
+  try dsimp only at h ⊢
+  split at h
+  · simp at h
+  rename_i hr
+  rw [if_neg hr]
+  split at h
+  · rename_i s hs
+    try rw [hs]
+    try dsimp only at h ⊢
+    split at h
+    · rename_i hn
+      simp only [hs] at hn; rw [if_pos hn]
+      simp only [DeepV.obj.injEq] at h
+      subst h
+      exact .inr ⟨rfl, by simp [hs]⟩
+    · rename_i hn
+      simp only [hs] at hn; rw [if_neg hn]
+      simp only [DeepV.obj.injEq] at h
+      subst h
+      left; simp [hs]
+  · rename_i hs
+    try rw [hs]
+    try dsimp only at h ⊢
+    simp only [DeepV.obj.injEq] at h
+    subst h
+    left; simp [hs]
+
+theorem rcreateL_obj_or (x : Input) (m : RM) :
+    (∃ o, (rcreateL x m).1.obj = .obj o) ∨ (rcreateL x m).2 = (m, none) := by
+  unfold rcreateL failR
+  dsimp only
+  (repeat' split) <;> simp
+
+theorem rdeleteL_obj_or (x : Input) (m : RM) :
+    (∃ o, (rdeleteL x m).1.obj = .obj o) ∨ (rdeleteL x m).2 = (m, none) := by
+  unfold rdeleteL failR
+  dsimp only
+  (repeat' split) <;> simp
+
+theorem rupdateL_obj_or (x : Input) (m : RM) :
+    (∃ o, (rupdateL x m).1.obj = .obj o) ∨ (rupdateL x m).2 = (m, none) := by
+  unfold rupdateL failR updWriteL
+  dsimp only
+  (repeat' split) <;> simp
+
+
+/-- A write (create, delete, update) answered with an object: that object. -/
+def wrObj (op : Input × RResp) : Option Obj :=
+  if op.1.Kind' = W64 0 ∨ op.1.Kind' = W64 1 ∨ op.1.Kind' = W64 2 then
+    match op.2.obj with
+    | .obj o => some o
+    | _ => none
+  else none
+
+/-- What a write answered with `o` does when it moves the resource version: its key, and the
+object it leaves there (none for a delete). -/
+def gOf (op : Input × RResp) (o : Obj) : GoString × Option Obj :=
+  (storeKeyL op.1.Key', if op.1.Kind' = W64 1 then none else some o)
+
+theorem respEqL_obj {a b : RResp} (h : respEqL a b = true) : a.obj = b.obj := by
+  unfold respEqL at h
+  split at h
+  · exact (of_decide_eq_true h).1
+  · cases h
+
+/-- An accepted write answered with `o` either moves the resource version, to `o`'s, leaving
+`gOf`'s object at its key, or is a no-op update answering the object stored at its key. -/
+theorem rexecL_wr (x : Input) (m : RM) (resp : RResp) (o : Obj)
+    (hw : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2)
+    (heq : respEqL (rexecL x m).1 resp = true) (ho : resp.obj = .obj o) :
+    (o.ResourceVersion' = m.rv + W64 1 ∧ (rexecL x m).2.1.rv = m.rv + W64 1 ∧
+      (rexecL x m).2.1.items !! storeKeyL x.Key' = (gOf (x, resp) o).2) ∨
+    (x.Kind' = W64 2 ∧ (rexecL x m).2 = (m, none) ∧ m.items !! storeKeyL x.Key' = some o) := by
+  have h := (respEqL_obj heq).trans ho
+  have hk4 : x.Kind' ≠ W64 4 := by rcases hw with e | e | e <;> rw [e] <;> decide
+  unfold rexecL at h ⊢
+  rw [if_neg hk4] at h ⊢
+  unfold gOf
+  simp only []
+  rcases hw with k | k | k
+  · rw [if_pos k] at h ⊢
+    have hk1 : x.Kind' ≠ W64 1 := by rw [k]; decide
+    rw [if_neg hk1]
+    obtain ⟨a, b, c⟩ := rcreateL_obj x m o h
+    exact .inl ⟨a, c, b⟩
+  · have k0 : x.Kind' ≠ W64 0 := by rw [k]; decide
+    rw [if_neg k0, if_pos k] at h ⊢
+    rw [if_pos k]
+    obtain ⟨h1, h2, h3⟩ := rdeleteL_obj x m o h
+    exact .inl ⟨h1, h3, h2⟩
+  · have k0 : x.Kind' ≠ W64 0 := by rw [k]; decide
+    have k1 : x.Kind' ≠ W64 1 := by rw [k]; decide
+    rw [if_neg k0, if_neg k1, if_pos k] at h ⊢
+    rw [if_neg k1]
+    rcases rupdateL_obj x m o h with ⟨h1, h2, h3⟩ | ⟨h1, h2⟩
+    · exact .inl ⟨h1, h3, h2⟩
+    · exact .inr ⟨k, h1, h2⟩
+
+/-- A write that moves the resource version answers with an object. -/
+theorem rexecL_bump_obj (x : Input) (m : RM) (hne : (rexecL x m).2.1.rv ≠ m.rv) :
+    (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) ∧ ∃ o, (rexecL x m).1.obj = .obj o := by
+  have hk4 : x.Kind' ≠ W64 4 := by
+    intro e; apply hne; unfold rexecL; rw [if_pos e]
+  have hkw : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 := by
+    apply Classical.byContradiction; intro hk; apply hne; rw [rexecL_read x m hk]
+  refine ⟨hkw, ?_⟩
+  unfold rexecL at hne ⊢
+  rw [if_neg hk4] at hne ⊢
+  rcases hkw with k | k | k
+  · rw [if_pos k] at hne ⊢
+    rcases rcreateL_obj_or x m with h | h
+    · exact h
+    · rw [h] at hne; exact absurd rfl hne
+  · have k0 : x.Kind' ≠ W64 0 := by rw [k]; decide
+    rw [if_neg k0, if_pos k] at hne ⊢
+    rcases rdeleteL_obj_or x m with h | h
+    · exact h
+    · rw [h] at hne; exact absurd rfl hne
+  · have k0 : x.Kind' ≠ W64 0 := by rw [k]; decide
+    have k1 : x.Kind' ≠ W64 1 := by rw [k]; decide
+    rw [if_neg k0, if_neg k1, if_pos k] at hne ⊢
+    rcases rupdateL_obj_or x m with h | h
+    · exact h
+    · rw [h] at hne; exact absurd rfl hne
+
+/-! ### A replay as the sequence of its writes -/
+
+/-- The state after a write of `v` at the key `k` (none: deleted) at the next resource version. -/
+def bumpL (m : RM) (k : GoString) (v : Option Obj) : RM :=
+  ⟨match v with
+    | some o => <[k := o]> m.items
+    | none => GMap.delete k m.items,
+   m.rv + W64 1, m.pfx, GMap.delete k m.rewrites⟩
+
+/-- One write of `runOf`. -/
+def runStep (acc : RM × GMap w64 RM × List RChange) (p : GoString × Option Obj) :
+    RM × GMap w64 RM × List RChange :=
+  (bumpL acc.1 p.1 p.2, <[(bumpL acc.1 p.1 p.2).rv := bumpL acc.1 p.1 p.2]> acc.2.1,
+    acc.2.2 ++ [⟨p.1, (bumpL acc.1 p.1 p.2).rv, p.2, acc.1.items !! p.1⟩])
+
+/-- **`NewReplay`'s accumulator after the writes `kv`** (each a key and what it leaves there), in
+order from `init`. -/
+def runOf (init : RM) (kv : List (GoString × Option Obj)) : RM × GMap w64 RM × List RChange :=
+  kv.foldl runStep (init, {[init.rv := init]}, [])
+
+theorem runOf_snoc (init : RM) (kv : List (GoString × Option Obj)) (p : GoString × Option Obj) :
+    runOf init (kv ++ [p]) = runStep (runOf init kv) p := by
+  unfold runOf; rw [List.foldl_append]; rfl
+
+theorem runOf_self (init : RM) (kv : List (GoString × Option Obj)) :
+    (runOf init kv).2.1 !! (runOf init kv).1.rv = some (runOf init kv).1 := by
+  rcases List.eq_nil_or_concat kv with rfl | ⟨kv, p, rfl⟩
+  · show ({[init.rv := init]} : GMap w64 RM) !! init.rv = some init; simp
+  · rw [List.concat_eq_append, runOf_snoc]; unfold runStep; simp only []; exact GMap.lookup_insert _ _ _
+
+theorem insert_self {V : Type} (M : GMap w64 V) (k : w64) (v : V) (h : M !! k = some v) :
+    <[k := v]> M = M := by
+  refine GMap.ext (fun k' => ?_); rw [GMap.lookup_insert_eq_iff]
+  split
+  · rename_i e; subst e; exact h.symm
+  · rfl
+
+/-- A write that moves the resource version, as `bumpL` of its key and what it leaves there. -/
+theorem rexecL_bumpL (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 < 2 ^ 64)
+    (hne : (rexecL x m).2.1.rv ≠ m.rv) :
+    (rexecL x m).2.1 = bumpL m (storeKeyL x.Key') ((rexecL x m).2.1.items !! storeKeyL x.Key') ∧
+    (rexecL x m).2.2 = some ⟨storeKeyL x.Key', m.rv + W64 1,
+      (rexecL x m).2.1.items !! storeKeyL x.Key', m.items !! storeKeyL x.Key'⟩ := by
+  obtain ⟨h1, h2, -, h4, -, h6, h7⟩ := rexecL_bump x m hwf hb hne
+  refine ⟨?_, by rw [h2, h1]⟩
+  generalize hm' : (rexecL x m).2.1 = m' at h1 h4 h6 h7 ⊢
+  obtain ⟨its, rv, pfx, rws⟩ := m'
+  simp only at h1 h4 h6 h7 ⊢
+  unfold bumpL
+  simp only [h1, h4, RM.mk.injEq, true_and, and_true]
+  constructor
+  · refine GMap.ext (fun k => ?_)
+    by_cases hk : k = storeKeyL x.Key'
+    · subst hk
+      cases e : its !! storeKeyL x.Key' with
+      | none => simp only []; rw [GMap.lookup_delete]
+      | some o => simp only []; rw [GMap.lookup_insert]
+    · have := (h7 k hk).1
+      cases e : its !! storeKeyL x.Key' with
+      | none => simp only []; rw [GMap.lookup_delete_ne _ (Ne.symm hk)]; exact this
+      | some o => simp only []; rw [GMap.lookup_insert_ne _ _ (Ne.symm hk)]; exact this
+  · refine GMap.ext (fun k => ?_)
+    by_cases hk : k = storeKeyL x.Key'
+    · subst hk; rw [h6, GMap.lookup_delete]
+    · rw [(h7 k hk).2, GMap.lookup_delete_ne _ (Ne.symm hk)]
+
+
+/-! ### The invariant of a replay -/
+
+/-- **What `NewReplay` has done after the operations `P`**: its accumulator is `runOf init kv`
+for the writes `kv` that moved the resource version (one per revision after `init`'s); the state is
+well formed; each object stored past `init`'s revision was left by the write at its revision; each
+of those writes is the answer of an operation of `P` at its revision; and every operation of `P`
+that answered an object past `init`'s revision answered the write at that revision. -/
+def RInv (init : RM) (P : List (Input × RResp)) (kv : List (GoString × Option Obj))
+    (acc : RM × GMap w64 RM × List RChange) : Prop :=
+  acc = runOf init kv ∧ rmWf acc.1 ∧ uint.nat acc.1.rv = uint.nat init.rv + kv.length ∧
+  kv.length ≤ P.length ∧
+  (∀ k o, acc.1.items !! k = some o → uint.nat init.rv < uint.nat o.ResourceVersion' →
+    ∃ i, ∃ hi : i < kv.length, kv[i] = (k, some o) ∧
+      uint.nat o.ResourceVersion' = uint.nat init.rv + i + 1) ∧
+  (∀ i, ∀ hi : i < kv.length, ∃ A ∈ P, ∃ o, wrObj A = some o ∧
+    uint.nat o.ResourceVersion' = uint.nat init.rv + i + 1 ∧ kv[i] = gOf A o) ∧
+  (∀ A ∈ P, ∀ o, wrObj A = some o → uint.nat init.rv < uint.nat o.ResourceVersion' →
+    ∃ i, ∃ hi : i < kv.length, uint.nat o.ResourceVersion' = uint.nat init.rv + i + 1 ∧
+      kv[i] = gOf A o)
+
+theorem wrObj_some {A : Input × RResp} {o : Obj} (h : wrObj A = some o) :
+    (A.1.Kind' = W64 0 ∨ A.1.Kind' = W64 1 ∨ A.1.Kind' = W64 2) ∧ A.2.obj = .obj o := by
+  unfold wrObj at h
+  split at h
+  · rename_i hk
+    refine ⟨hk, ?_⟩
+    split at h
+    · rename_i o' ho; simp only [Option.some.injEq] at h; subst h; exact ho
+    · cases h
+  · cases h
+
+theorem rinv_step (init : RM) (P : List (Input × RResp)) (kv : List (GoString × Option Obj))
+    (acc acc' : RM × GMap w64 RM × List RChange) (A : Input × RResp)
+    (hinv : RInv init P kv acc) (hb : uint.nat init.rv + P.length + 1 < 2 ^ 64)
+    (hstep : replayStepL (some acc) A = some acc') :
+    ∃ kv', RInv init (P ++ [A]) kv' acc' := by
+  obtain ⟨hacc, hwf, hrv, hlenP, hst, hP1, hP2⟩ := hinv
+  obtain ⟨m, ss, cs⟩ := acc
+  simp only at hwf hrv hst
+  simp only [replayStepL] at hstep
+  have hT : (rstepL A.1 m A.2).1 = true := by
+    apply Classical.byContradiction; intro hT; rw [if_neg hT] at hstep; simp at hstep
+  rw [if_pos hT, Option.some.injEq] at hstep
+  subst hstep
+  have h2 := rstepL_true A.1 m A.2 hT
+  simp only [h2]
+  -- an accepted write answered with an object: `respEqL` of `execute`'s answer
+  have hresp : ∀ o, wrObj A = some o → respEqL (rexecL A.1 m).1 A.2 = true := by
+    intro o ho
+    obtain ⟨hk, -⟩ := wrObj_some ho
+    have hk4 : A.1.Kind' ≠ W64 4 := by rcases hk with e | e | e <;> rw [e] <;> decide
+    unfold rstepL at hT
+    rw [if_neg hk4, if_pos hk] at hT
+    apply Classical.byContradiction; intro hn; rw [if_neg hn] at hT; cases hT
+  have hmem : ∀ A' ∈ P, A' ∈ P ++ [A] := fun A' h => List.mem_append_left _ h
+  by_cases hr : (rexecL A.1 m).2.1.rv = m.rv
+  · -- no write: the accumulator is unchanged
+    have e := rexecL_rv_same A.1 m hr
+    rw [e]
+    simp only [Option.toList_none, List.append_nil]
+    have hself := runOf_self init kv
+    rw [← hacc] at hself
+    simp only at hself
+    rw [insert_self ss m.rv m hself]
+    refine ⟨kv, hacc, hwf, hrv, by simp; omega, hst, ?_, ?_⟩
+    · intro i hi
+      obtain ⟨A', hA', o, h1, h2, h3⟩ := hP1 i hi
+      exact ⟨A', hmem A' hA', o, h1, h2, h3⟩
+    · intro A' hA' o ho hgt
+      rcases List.mem_append.1 hA' with hA' | hA'
+      · exact hP2 A' hA' o ho hgt
+      · simp only [List.mem_singleton] at hA'; subst hA'
+        obtain ⟨hk, hob⟩ := wrObj_some ho
+        rcases rexecL_wr A'.1 m A'.2 o hk (hresp o ho) hob with ⟨h1, h3, -⟩ | ⟨hk2, -, hs⟩
+        · exact ((w64_add_one_ne m.rv).1 (h3.symm.trans hr)).elim
+        · obtain ⟨i, hi, hkv, hrvi⟩ := hst _ o hs hgt
+          refine ⟨i, hi, hrvi, ?_⟩
+          rw [hkv]; unfold gOf
+          have : A'.1.Kind' ≠ W64 1 := by rw [hk2]; decide
+          rw [if_neg this]
+  · -- a write at the next revision
+    have hbm : uint.nat m.rv + 1 < 2 ^ 64 := by omega
+    obtain ⟨hB1, hB2⟩ := rexecL_bumpL A.1 m hwf hbm hr
+    obtain ⟨-, -, -, -, hB5, hB6, hB7⟩ := rexecL_bump A.1 m hwf hbm hr
+    obtain ⟨hk, o, ho⟩ := rexecL_bump_obj A.1 m hr
+    have hAo : A.2.obj = .obj o := by
+      rw [← ho]
+      have hk4 : A.1.Kind' ≠ W64 4 := by rcases hk with e | e | e <;> rw [e] <;> decide
+      have : respEqL (rexecL A.1 m).1 A.2 = true := by
+        unfold rstepL at hT
+        rw [if_neg hk4, if_pos hk] at hT
+        apply Classical.byContradiction; intro hn; rw [if_neg hn] at hT; cases hT
+      exact (respEqL_obj this).symm
+    have hwr : wrObj A = some o := by unfold wrObj; rw [if_pos hk, hAo]
+    obtain ⟨hO1, hO2, hO3⟩ : o.ResourceVersion' = m.rv + W64 1 ∧ (rexecL A.1 m).2.1.rv = m.rv + W64 1 ∧
+        (rexecL A.1 m).2.1.items !! storeKeyL A.1.Key' = (gOf (A.1, A.2) o).2 := by
+      rcases rexecL_wr A.1 m A.2 o hk (hresp o hwr) hAo with h | ⟨-, hO2, -⟩
+      · exact h
+      · rw [hO2] at hr; exact absurd rfl hr
+    have hrv1 : uint.nat (m.rv + W64 1) = uint.nat m.rv + 1 := by
+      simp only [uint.nat, BitVec.toNat_add, W64]; simp; omega
+    refine ⟨kv ++ [gOf A o], ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+    · rw [runOf_snoc, ← hacc]
+      unfold runStep
+      simp only []
+      have hk' : (gOf A o).1 = storeKeyL A.1.Key' := rfl
+      rw [hk', ← hO3, ← hB1, hB2, hO2]
+      rfl
+    · -- well formed
+      simp only []
+      refine ⟨fun k o' hk' => ?_, fun k hk' => ?_⟩
+      · by_cases e : k = storeKeyL A.1.Key'
+        · subst e; rw [hB5 o' hk']; exact Nat.le_refl _
+        · rw [(hB7 k e).1] at hk'
+          have := hwf.1 k o' hk'
+          rw [hO2, hrv1]; omega
+      · by_cases e : k = storeKeyL A.1.Key'
+        · subst e; rw [hB6] at hk'; cases hk'
+        · rw [(hB7 k e).2] at hk'; rw [(hB7 k e).1]; exact hwf.2 k hk'
+    · simp only [List.length_append, List.length_singleton]; rw [hO2, hrv1, hrv]; omega
+    · simp; omega
+    · -- stored objects
+      intro k o' hk' hgt
+      simp only [] at hk'
+      by_cases e : k = storeKeyL A.1.Key'
+      · subst e
+        have hr' := hB5 o' hk'
+        refine ⟨kv.length, by simp, ?_, ?_⟩
+        · rw [List.getElem_append_right (by omega)]
+          simp only [Nat.sub_self, List.getElem_singleton]
+          unfold gOf
+          rw [← hk', hO3]; rfl
+        · rw [hr', hO2, hrv1, hrv]
+      · rw [(hB7 k e).1] at hk'
+        obtain ⟨i, hi, hkv, hrvi⟩ := hst k o' hk' hgt
+        exact ⟨i, by simp; omega, by rw [List.getElem_append_left hi]; exact hkv, hrvi⟩
+    · -- each write is an answer
+      intro i hi
+      simp only [List.length_append, List.length_singleton] at hi
+      by_cases e : i < kv.length
+      · obtain ⟨A', hA', o', h1, h2, h3⟩ := hP1 i e
+        exact ⟨A', hmem A' hA', o', h1, h2, by rw [List.getElem_append_left e]; exact h3⟩
+      · have ei : i = kv.length := by omega
+        subst ei
+        refine ⟨A, by simp, o, hwr, ?_, ?_⟩
+        · rw [hO1, hrv1, hrv]
+        · rw [List.getElem_append_right (by omega)]; simp
+    · -- each answer is a write
+      intro A' hA' o' ho' hgt
+      rcases List.mem_append.1 hA' with hA' | hA'
+      · obtain ⟨i, hi, h1, h2⟩ := hP2 A' hA' o' ho' hgt
+        exact ⟨i, by simp; omega, h1, by rw [List.getElem_append_left hi]; exact h2⟩
+      · simp only [List.mem_singleton] at hA'; subst hA'
+        rw [hwr, Option.some.injEq] at ho'; subst ho'
+        refine ⟨kv.length, by simp, by rw [hO1, hrv1, hrv], ?_⟩
+        rw [List.getElem_append_right (by omega)]; simp
+
+theorem rinv_foldl (init : RM) : ∀ (l P : List (Input × RResp)) (kv : List (GoString × Option Obj))
+    (acc fin : RM × GMap w64 RM × List RChange),
+    RInv init P kv acc → uint.nat init.rv + P.length + l.length < 2 ^ 64 →
+    l.foldl replayStepL (some acc) = some fin → ∃ kv', RInv init (P ++ l) kv' fin
+  | [], P, kv, acc, fin, hinv, _, h => by
+    simp only [List.foldl_nil, Option.some.injEq] at h; subst h
+    exact ⟨kv, by simpa using hinv⟩
+  | A :: l, P, kv, acc, fin, hinv, hb, h => by
+    rw [List.foldl_cons] at h
+    cases hs : replayStepL (some acc) A with
+    | none => rw [hs, replayStepL_none] at h; cases h
+    | some acc' =>
+      rw [hs] at h
+      obtain ⟨kv', hinv'⟩ := rinv_step init P kv acc acc' A hinv
+        (by simp only [List.length_cons] at hb; omega) hs
+      obtain ⟨kv'', hinv''⟩ := rinv_foldl init l (P ++ [A]) kv' acc' fin hinv'
+        (by simp only [List.length_cons, List.length_append, List.length_singleton, List.length_nil] at hb ⊢
+            omega) h
+      exact ⟨kv'', by simpa using hinv''⟩
+
 /-- **B3a.** Two orders `l1`, `l2` of the same operations from a well-formed state, both accepted
 by `NewReplay` (every `Step` true), give the same states and changes. The bound keeps the
 resource versions from wrapping. -/
 theorem replayL_perm (init : RM) (l1 l2 : List (Input × RResp)) (R1 R2 : RReplay)
     (hwf : rmWf init) (hn : uint.nat init.rv + l1.length < 2 ^ 64) (hp : l1.Perm l2)
     (h1 : replayL init l1 = some R1) (h2 : replayL init l2 = some R2) : R1 = R2 := by
-  sorry
+  unfold replayL at h1 h2
+  obtain ⟨fin1, hf1, rfl⟩ := Option.map_eq_some_iff.1 h1
+  obtain ⟨fin2, hf2, rfl⟩ := Option.map_eq_some_iff.1 h2
+  have hinit : RInv init [] [] (init, {[init.rv := init]}, []) := by
+    refine ⟨rfl, hwf, by simp, by simp, ?_, ?_, ?_⟩
+    · intro k o hk hgt; have := hwf.1 k o hk; omega
+    · intro i hi; simp at hi
+    · intro A hA; simp at hA
+  obtain ⟨kv1, hI1⟩ := rinv_foldl init l1 [] [] _ fin1 hinit (by simpa using hn) hf1
+  obtain ⟨kv2, hI2⟩ := rinv_foldl init l2 [] [] _ fin2 hinit
+    (by rw [← hp.length_eq]; simpa using hn) hf2
+  simp only [List.nil_append] at hI1 hI2
+  have key : ∀ (la lb : List (Input × RResp)) (kva kvb : List (GoString × Option Obj))
+      (fa fb : RM × GMap w64 RM × List RChange), RInv init la kva fa → RInv init lb kvb fb →
+      la.Perm lb → ∀ i (hi : i < kva.length), ∃ hi' : i < kvb.length, kvb[i] = kva[i] := by
+    intro la lb kva kvb fa fb ha hb hab i hi
+    obtain ⟨A, hA, o, ho, hrv, hkv⟩ := ha.2.2.2.2.2.1 i hi
+    obtain ⟨j, hj, hrv', hkv'⟩ := hb.2.2.2.2.2.2 A (hab.mem_iff.1 hA) o ho (by omega)
+    have : j = i := by omega
+    subst this
+    exact ⟨hj, hkv'.trans hkv.symm⟩
+  have hlen : kv1.length = kv2.length := by
+    apply Nat.le_antisymm
+    · apply Nat.le_of_not_lt; intro h
+      exact absurd (key l1 l2 kv1 kv2 fin1 fin2 hI1 hI2 hp kv2.length h).1 (Nat.lt_irrefl _)
+    · apply Nat.le_of_not_lt; intro h
+      exact absurd (key l2 l1 kv2 kv1 fin2 fin1 hI2 hI1 hp.symm kv1.length h).1 (Nat.lt_irrefl _)
+  have hkv : kv1 = kv2 :=
+    List.ext_getElem hlen (fun i h1 _ => (key l1 l2 kv1 kv2 fin1 fin2 hI1 hI2 hp i h1).2.symm)
+  rw [hI1.1, hI2.1, hkv]
 
 /-! ## B3b: along the driver's run, the replay is the driver's history -/
 
