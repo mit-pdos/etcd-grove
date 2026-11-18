@@ -581,6 +581,80 @@ theorem cell_permit (γk : KVNames) (γc : CellNames) (E : CoPset) (hE : ↑cell
   imodintro
   iframe Hm Hl
 
+/-! ### The grants of refused updates -/
+
+/-- **A request of `who`'s granted at `setupSt`, its lease part included** (at the lease items of the
+state `σ` the update fires at). -/
+def akGrantedL (who : GoString) (σ : KVState) (rq : apply.IRRModel) : Prop :=
+  ∃ r hm, kvGrantedL (etcd_auth.setupSt r) (mvcc.leaseItemsOf σ.kvs) (apply.withHeader rq hm) ∧
+    etcd_auth.akUser who hm.username
+
+/-- **A write's grant at an attempt of `who`'s is granted at `setupSt`, its lease part included**
+(`etcd_auth.akGranted_of_writeGrantG`'s, through `writeGrantG_granted`). -/
+theorem akGrantedL_of_writeGrantG (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames)
+    (ρ : ReqNames) (Lset : List EntryModel) (n : Nat) (who : GoString) (tok : Option GoString)
+    (rq : apply.IRRModel) (σ : KVState) (Em : CoPset) (hγa : E.authMode = .on γa)
+    (hE : ↑authHistN ⊆ Em) :
+    etcd_auth.akAuthFixed (GF := GF) γa ρ Lset n ∗ etcd_auth.akTokSeen γa who tok ∗
+        □ (srvTLSId s -∗ False) ⊢
+      writeGrantG ρ.kv srvAuthSt0 (v3rpc.hdrBoundT s E.authMode tok) rq Lset σ ={Em}=∗
+        ⌜akGrantedL who σ rq⌝ := by
+  rw [hγa]
+  iintro ⟨#Hf, #Hseen, #Htls⟩ Hw
+  ihave Hw := writeGrantG_granted ρ.kv srvAuthSt0 _ rq Lset σ $$ Hw
+  icases Hw with ⟨%hm, %L, #Hb, #Hlb, %Hp⟩
+  obtain ⟨hL, hgr⟩ := Hp
+  imod (etcd_auth.akAuthFixed_write γa ρ Lset n L Em hE hL) $$ Hf Hlb with %Hr
+  obtain ⟨r, hr⟩ := Hr
+  ihave %Hu := etcd_auth.akUser_hdr s γa who tok hm $$ [Hb Hseen Htls]
+  · iframe Hb Hseen Htls
+  imodintro
+  ipureintro
+  exact ⟨r, hm, by rw [← hr]; exact hgr, Hu⟩
+
+/-- **A lease-part refusal**: a granted put, transaction put or revocation names a lease `L` holding
+the key `k`, at the lease check of a principal who may not write `k`. -/
+theorem not_akGrantedL_lease (who : GoString) (σ : KVState) (rq : apply.IRRModel) (k : GoString) (L : w64)
+    (hk : leaseOf k σ.kvs = some L) (hL : L ≠ W64 0)
+    (hwho : who = go!"anon" ∨ who = go!"bad" ∨ who = go!"v" ∨ (who = go!"u" ∧ ¬ etcd_auth.inRangeK k))
+    (hrq : ∀ r (hm : apply.HeaderModel), leaseGrantedM (etcd_auth.setupSt r) (mvcc.leaseItemsOf σ.kvs)
+      (apply.withHeader rq hm) → leaseOk (etcd_auth.setupSt r) ⟨hm.username, hm.authRevision⟩
+        (mvcc.leaseItemsOf σ.kvs) L) :
+    ¬ akGrantedL who σ rq := by
+  rintro ⟨r, hm, ⟨-, hl⟩, hu⟩
+  refine not_leaseOk_setupSt r ⟨hm.username, hm.authRevision⟩ _ k L (leaseItemsOf_of_leaseOf hk hL) ?_
+    (hrq r hm hl)
+  show hm.username = _ ∨ (hm.username = go!"u" ∧ ¬ etcd_auth.inRangeK k) ∨ hm.username = go!"v"
+  unfold etcd_auth.akUser at hu
+  rcases hu with h0 | ⟨hw, hw'⟩
+  · exact Or.inl h0
+  · subst hw
+    rcases hwho with rfl | rfl | rfl | ⟨rfl, hk'⟩
+    · rcases hw' with h | h <;> cases h
+    · rcases hw' with h | h <;> cases h
+    · exact Or.inr (Or.inr rfl)
+    · exact Or.inr (Or.inl ⟨rfl, hk'⟩)
+
+/-- A put's lease check is of its lease. -/
+theorem leaseGranted_put (r : Nat) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (o : OpFull)
+    (hm : apply.HeaderModel) (h : leaseGrantedM (etcd_auth.setupSt r) I (apply.withHeader (irrPut o) hm)) :
+    leaseOk (etcd_auth.setupSt r) ⟨hm.username, hm.authRevision⟩ I o.leaseID := by
+  unfold leaseGrantedM at h
+  rw [dispatchKind_withHeader] at h
+  have hk : apply.dispatchKind (irrPut o) = .put := by
+    simp [apply.dispatchKind, irrPut, apply.irrEmpty]
+  rw [hk] at h
+  exact h o rfl
+
+/-- A revocation's lease check is of its lease. -/
+theorem leaseGranted_revoke (r : Nat) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (id : w64)
+    (hm : apply.HeaderModel)
+    (h : leaseGrantedM (etcd_auth.setupSt r) I (apply.withHeader (irrLeaseRevoke id) hm)) :
+    leaseOk (etcd_auth.setupSt r) ⟨hm.username, hm.authRevision⟩ I id := by
+  unfold leaseGrantedM at h
+  rw [dispatchKind_withHeader, irrLeaseRevoke_kind] at h
+  exact h id rfl
+
 end defs
 
 end etcd_authlease
