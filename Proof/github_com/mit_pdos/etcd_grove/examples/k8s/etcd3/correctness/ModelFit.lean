@@ -98,6 +98,62 @@ theorem metaAt_obj (wp_UID : k8s_etcd3.Obj.GetUID.spec (GF := GF) (hG := hG))
     iapply HΦ
     iexact Hp
 
+/-- **A driver object is a `metav1.Object`** (as `driver_metaOk`, `Contract.lean`): `Check`'s
+`metaAt` of an `objAtD`. -/
+theorem metaAt_objAtD (wp_UID : k8s_etcd3.Obj.GetUID.spec (GF := GF) (hG := hG))
+    (wp_RV : k8s_etcd3.Obj.GetResourceVersion.spec (GF := GF) (hG := hG))
+    (hty : objTyOk) (x : GoInterface) (o : DObj) (rv : GoString) :
+    isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ⊢
+    k8s.metaAt x (objAtD x o rv) o.uid rv := by
+  iintro #Hpkg
+  unfold k8s.metaAt
+  isplitr
+  · imodintro
+    iintro Hx
+    iunfold objAtD at Hx
+    icases Hx with ⟨%p, %n, %h, -⟩
+    obtain ⟨rfl, -, -⟩ := h
+    ipureintro
+    exact ⟨_, rfl, hty.2.2⟩
+  isplitr
+  · imodintro
+    iintro %ii %Φ %hx Hx HΦ
+    iunfold objAtD at Hx
+    icases Hx with ⟨%p, %n, %h, Hp⟩
+    obtain ⟨rfl, hpn, hrv⟩ := h
+    cases hx
+    wp_apply wp_UID $$ [$Hp] as Hp
+    iapply HΦ
+    iunfold objAtD
+    iexists p, n
+    iframe Hp
+    ipureintro; exact ⟨rfl, hpn, hrv⟩
+  · imodintro
+    iintro %ii %Φ %hx Hx HΦ
+    iunfold objAtD at Hx
+    icases Hx with ⟨%p, %n, %h, Hp⟩
+    obtain ⟨rfl, hpn, rfl⟩ := h
+    cases hx
+    wp_apply wp_RV $$ [$Hp] as Hp
+    iapply HΦ
+    iunfold objAtD
+    iexists p, n
+    iframe Hp
+    ipureintro; exact ⟨rfl, hpn, rfl⟩
+
+/-- An item that fits, as an `objAtD` at its resource version (`p ↦ o` is its object's). -/
+theorem objAtD_of_fit (p : Loc) (o : Obj) (hf : fitsD o) (ha : o.Annotated' = false) :
+    (p ↦ o : IProp GF) ⊢ objAtD (interface.mkOk (go.GoType.PointerType objTyD) #p)
+      (DObj.ofObj o hf) (rvStr o.ResourceVersion') := by
+  iintro Hp
+  icases (typedPointsto_not_null_dup _ _ _) $$ Hp with ⟨Hp, %Hn⟩
+  iunfold objAtD
+  iexists p, o.ResourceVersion'
+  isplitr
+  · ipureintro; exact ⟨rfl, Hn, rfl⟩
+  rw [DObj.ofObj_toObj_rv o hf ha]
+  iexact Hp
+
 /-- **A driver error variable's value has its message's deep value.** -/
 theorem errVar_deep (X msg : GoString) (err : GoInterface) :
     (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk X msg ∗ globalAddr X ↦□ err :

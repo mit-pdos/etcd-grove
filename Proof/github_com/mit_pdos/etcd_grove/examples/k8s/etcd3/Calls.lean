@@ -255,11 +255,6 @@ theorem sentV_plain [_root_.Perennial.errors.Assumptions]
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]
 
-theorem rvStr_inj {a b : w64} (h : rvStr a = rvStr b) : a = b := by
-  have ha := parseRVD_rvStr a
-  rw [h, parseRVD_rvStr b] at ha
-  exact (Option.some.inj ha).symm
-
 /-- **Answers `call` places**: not the error of a resource version set on a create (the driver
 sets none). A `Get`'s too-large minimum resource version (stage 7b) is placed as `EOther`. -/
 def NoOddErr {E : Type} : KResp DObj E → Prop
