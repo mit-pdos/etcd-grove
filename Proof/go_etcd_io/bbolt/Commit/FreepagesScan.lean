@@ -114,7 +114,7 @@ theorem rdTxK_mapFields_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : Tx
   unfold rdTxK rtxFrac
   iintro ⟨⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
     ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells,
-      ⟨%l, Hg, Hmf, %Hl⟩, Hvo, %Hf⟩, Hpool⟩, Hgm⟩
+      ⟨%l, Hg, Hmf, %Hl⟩, Hvo, Hrdx, %Hf⟩, Hpool⟩, Hgm⟩
   icombine Hg Hgm gives % ⟨_, hms⟩
   have hdb : r.db = K.db := Hc.2.1
   iexists _, l

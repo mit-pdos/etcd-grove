@@ -88,7 +88,7 @@ def dbFixed (γ : GName) (N : Namespace) (db sp : Loc) : IProp GF :=
     db.[DB, go!"readOnly"] ↦□ false ∗ db.[DB, go!"StrictMode"] ↦□ false ∗
     db.[DB, go!"Mlock"] ↦□ false ∗
     (∃ x : Bool, db.[DB, go!"NoSync"] ↦□ x) ∗ (∃ x : Bool, db.[DB, go!"NoGrowSync"] ↦□ x) ∗
-    (∃ x : Bool, db.[DB, go!"NoFreelistSync"] ↦□ x) ∗
+    db.[DB, go!"NoFreelistSync"] ↦□ true ∗
     (∃ x : Bool, db.[DB, go!"PreLoadFreelist"] ↦□ x) ∗
     (∃ x : FreelistType, db.[DB, go!"FreelistType"] ↦□ x) ∗
     (∃ x : w64, db.[DB, go!"MmapFlags"] ↦□ x ∗ ⌜x = W64 0 ∨ x = W64 0x8000⌝) ∗ (∃ x : w64, db.[DB, go!"MaxBatchSize"] ↦□ x) ∗

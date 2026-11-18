@@ -79,7 +79,7 @@ theorem boltTxDef_size_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (B : BN
   · iintro ⟨%db', Hr, #Hb'⟩
     unfold rdTx rtxFrac
     icases Hr with ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, %Hc, #Hreg, #Hcore, Hv, Hex,
-      ⟨%t, Hw, Hmg, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, #Hvo, %Hf⟩, Hpool⟩
+      ⟨%t, Hw, Hmg, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, #Hvo, Hrdx, %Hf⟩, Hpool⟩
     ihave #Hps : db.[DB, go!"pageSize"] ↦□ W64 4096 $$ []
     · unfold isBoltCoreP dbFixed
       icases Hcore with ⟨-, -, -, -, -, ⟨$, -⟩, -⟩

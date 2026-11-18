@@ -286,14 +286,76 @@ def rBktP (v : View) (tx b : Loc) (dq : DFrac) (bv : List w8) (ibp pp : Loc) : I
 as far as the readers' code cares) encoded. -/
 def rootVal (v : View) : List w8 := encode (⟨W64 (v.root : Int), W64 0⟩ : InBucket)
 
+/-- **A reader's committed state** (session S4, for `Tx.WriteTo`, S4a's blocker 4): the committed
+state `C` the reader began on: its meta copy is `C`'s current meta, its view `C`'s, `C` is well
+formed (what `fileHolds` asks of a file's state: `metaOk`, `treeOK`, txid at least 1, the
+high-water mark's pages inside `maxMapSize`), its synced freelist page, if any, is the recorded
+`fx` (`fxOK`: the page and its valid bytes, which the store keeps while the reader is registered,
+S4a's blocker 2), and its txid's persistent time receipt (so below `receiptBound GF ≤ 2 ^ 62`:
+`metaR`'s, copied at `Begin`). Persistent. -/
+def rdxC (v : View) (mv : Meta) (fx : Option (Nat × List w8)) : IProp GF :=
+  iprop(∃ C : CommitSt, ⧖ C.txid ∗
+    ⌜C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid ∧ C.hwm * 4096 ≤ 0xFFFFFFFFFFFF ∧
+      mv = metaOf (C.slot C.txid) ∧ v = View.ofC v.base C ∧ fxOK C fx⌝)
+
+instance rdxC_persistent (v : View) (mv : Meta) (fx : Option (Nat × List w8)) :
+    Persistent (rdxC (GF := GF) v mv fx) := by
+  unfold rdxC; infer_instance
+
+/-- **A share `dq` of the open database's file handle** (session S4, for `Tx.WriteTo`, S4a's
+blocker 1): `pmFile` at a mapped state (so `db.file` is not nil), as a reader keeps it from
+`mmaplock`'s resource (`PmNoTok`). -/
+def rdxFile (B : BNs) (db : Loc) (dq : DFrac) : IProp GF :=
+  iprop(∃ f : Loc, db.[DB, go!"file"] ↦{dq} f ∗ ⌜f ≠ null⌝ ∗
+    ∃ ti : Nat × Ino, ghostMapElem B.t0 () DFrac.discard ti ∗
+    ∃ fn : w64 × GoString, fileOwn f fn.1 fn.2 dq ∗ osFd fn.1 dq (dbFd ti.2))
+
+/-- `mmaplock`'s share of the file handle at a mapped state is a reader's. -/
+theorem pmFile_rdxFile (B : BNs) (db : Loc) (dq : DFrac) (b : Loc) (l : Nat) :
+    pmFile (GF := GF) B db dq (some (b, l)) ⊢ rdxFile B db dq := by
+  unfold pmFile rdxFile
+  iintro ⟨%f, Hf, %hn, %ti, #Ht, H⟩
+  have hf : f ≠ null := hn (by simp)
+  simp only [hf, ↓reduceIte]
+  iexists f
+  iframe Hf
+  isplitr
+  · ipureintro; exact hf
+  iexists ti
+  iframe Ht H
+
+/-- A reader's share of the file handle is `mmaplock`'s, at any state. -/
+theorem rdxFile_pmFile (B : BNs) (db : Loc) (dq : DFrac) (ms : MapSt) :
+    rdxFile (GF := GF) B db dq ⊢ pmFile B db dq ms := by
+  unfold pmFile rdxFile
+  iintro ⟨%f, Hf, %hf, %ti, #Ht, H⟩
+  iexists f
+  iframe Hf
+  isplitr
+  · ipureintro; exact fun _ => hf
+  iexists ti
+  iframe Ht
+  simp only [hf, ↓reduceIte]
+  iexact H
+
+/-- **A reader's part for `Tx.WriteTo`** (session S4): its committed state, its share of its
+registration in the store (`k ↪[B.rds]`, half of it at `q`; the other half `txExcl`'s), whose
+recorded freelist page is its state's, and its share of the file handle (`mmaplock`'s, at the
+reader's `q · rfrac / 2`, as its mapping fields). -/
+def rdx (B : BNs) (r : TxReg) (q : Qp) (v : View) (mv : Meta) (k : Nat) : IProp GF :=
+  iprop((∃ fx : Option (Nat × List w8), rdxC v mv fx ∗
+      k ↪[B.rds]{DFrac.own q.half} (⟨v, fx⟩ : RdInfo)) ∗
+    rdxFile B r.db (DFrac.own (QpMul q sync.rfrac).half))
+
 /-- **A reader's part at fraction `q`** (design §3.10): its fields (`db` at `q · ¾`), its meta
 copy, its view's cells at `q · rq`, `mmaplock`'s fields at `q · rfrac` (its `mtok` deposited:
 `PmNoTok`'s parts, at the view's mapping `(v.base, l)`, every page of the view inside it), and
-its view's facts: `T` is the snapshot of the view. Its root bucket (`Tx.init`'s `tx.root`, what
+its view's facts: `T` is the snapshot of the view; (session S4) `WriteFlag` zero (`Begin` leaves it so,
+`Tx.WriteTo` reuses `db.file` then), and `rdx`. Its root bucket (`Tx.init`'s `tx.root`, what
 every read starts from) is `rBkt` of the view's root (U6 fix: the header may be the view's
 bytes, as for any reader bucket, so that `rdTxK_root`'s wand takes back any `rBkt`), with its
 `FillPercent`; its page cache is nil. -/
-def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (mv : Meta) :
+def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (mv : Meta) (k : Nat) :
     IProp GF :=
   iprop(∃ t : Tx,
     tx.[Tx, go!"writable"] ↦{DFrac.own q} false ∗ tx.[Tx, go!"managed"] ↦{DFrac.own q} t.managed' ∗
@@ -302,13 +364,13 @@ def rtxFrac (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView) (v : View) (m
     (∃ f : w64, (txRoot (GF := GF) tx).[Bucket, go!"FillPercent"] ↦{DFrac.own q} f) ∗
     tx.[Tx, go!"pages"] ↦{DFrac.own q} t.pages' ∗
     tx.[Tx, go!"commitHandlers"] ↦{DFrac.own q} t.commitHandlers' ∗
-    tx.[Tx, go!"WriteFlag"] ↦{DFrac.own q} t.WriteFlag' ∗
+    tx.[Tx, go!"WriteFlag"] ↦{DFrac.own q} (W64 0) ∗
     tx.[Tx, go!"db"] ↦{DFrac.own (txDbQ q)} r.db ∗ t.meta' ↦{DFrac.own q} mv ∗
     viewCells (QpMul q rq) v ∗
     (∃ l : Nat, ghostVar B.map (QpMul q sync.rfrac).half.half (some (v.base, l) : MapSt) ∗
       mapFields r.db (DFrac.own (QpMul q sync.rfrac).half) (some (v.base, l) : MapSt) ∗
       ⌜∀ id pg, v.pages !! id = some pg → (id + 1) * 4096 ≤ l⌝) ∗
-    viewOf r v ∗
+    viewOf r v ∗ rdx B r q v mv k ∗
     ⌜T = TxView.ro v.data ∧ viewWF v ∧ mv.txid'.toNat = v.txid ∧ t.pages' = null ∧ tx ≠ null ∧
       t.managed' = false ∧ txRoot (GF := GF) tx ≠ null ∧
       (∀ id pg, v.pages !! id = some pg → id + (1 + pageOverflow pg) ≤ mv.pgid'.toNat)⌝)
@@ -379,7 +441,7 @@ def rdTx (B : BNs) (N : Namespace) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxVi
       (mv : Meta) (k : Nat),
     ⌜T = TxView.ofC c ∧ r.db = db ∧ r.rw = false ∧ r.src = src⌝ ∗ reg tx B r ∗
     isBoltCoreP B N db p sp t0 ∗ ghostVar r.n.v q.half (c, TxX.rd v mv k) ∗
-    ghostVar r.n.ex q () ∗ rtxFrac B tx r q T v mv ∗
+    ghostVar r.n.ex q () ∗ rtxFrac B tx r q T v mv k ∗
     (if src = .loan then threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp)
      else ghostVar B.spr q.half (some k)))
 
@@ -498,8 +560,12 @@ private instance rBkt_timeless_l (v : View) (tx b : Loc) (dq : DFrac) (bv : List
     Timeless (rBkt (GF := GF) v tx b dq bv) := by
   unfold rBkt locOwn; infer_instance
 
+instance rdx_timeless (B : BNs) (r : TxReg) (q : Qp) (v : View) (mv : Meta) (k : Nat) :
+    Timeless (rdx (GF := GF) B r q v mv k) := by
+  unfold rdx rdxC rdxFile fileOwn; infer_instance
+
 private instance rtxFrac_timeless_l (B : BNs) (tx : Loc) (r : TxReg) (q : Qp) (T : TxView)
-    (v : View) (mv : Meta) : Timeless (rtxFrac (GF := GF) B tx r q T v mv) := by
+    (v : View) (mv : Meta) (k : Nat) : Timeless (rtxFrac (GF := GF) B tx r q T v mv k) := by
   unfold rtxFrac viewOf; infer_instance
 
 private instance reg_timeless_l (tx : Loc) (B : BNs) (r : TxReg) :
@@ -772,8 +838,59 @@ private theorem rBkt_fractional (v : View) (tx b : Loc) (bv : List w8) :
     · iexists pp1; iframe
 
 /-- **A reader's part is fractional** (same registration, view and meta copy). -/
-private theorem rtxFrac_fractional (B : BNs) (tx : Loc) (r : TxReg) (T : TxView) (v : View) (mv : Meta) :
-    Fractional (fun q => rtxFrac (GF := GF) B tx r q T v mv) := by
+theorem rdxFile_fractional (B : BNs) (db : Loc) :
+    Fractional (fun q => rdxFile (GF := GF) B db (DFrac.own q)) := by
+  unfold rdxFile
+  refine fracEx _ (fun f => ?_) (fun x y q1 q2 => ?_)
+  · have h1 : Fractional (fun q : Qp => (db.[DB, go!"file"] ↦{DFrac.own q} f : IProp GF)) :=
+      fractional_of_dfractional (fun dq => (db.[DB, go!"file"] ↦{dq} f : IProp GF))
+    have h2 : Fractional (fun q : Qp => iprop(∃ ti : Nat × Ino,
+        ghostMapElem (GF := GF) B.t0 () DFrac.discard ti ∗
+        ∃ fn : w64 × GoString, fileOwn f fn.1 fn.2 (DFrac.own q) ∗
+          osFd fn.1 (DFrac.own q) (dbFd ti.2))) := by
+      refine fracEx _ (fun ti => ?_) (fun a b q1 q2 => ?_)
+      · have : Fractional (fun q : Qp => iprop(∃ fn : w64 × GoString,
+            fileOwn (GF := GF) f fn.1 fn.2 (DFrac.own q) ∗ osFd fn.1 (DFrac.own q) (dbFd ti.2))) := by
+          refine fracEx _ (fun fn => ?_) (fun a b q1 q2 => ?_)
+          · have := fileOwn_fractional (GF := GF) f fn.1 fn.2
+            have := osFd_fractional (GF := GF) fn.1 (dbFd ti.2)
+            infer_instance
+          · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+            ihave %h := fileOwn_agree f a.1 b.1 a.2 b.2 _ _ $$ [H1 H2]
+            · iframe
+            ipureintro; exact Prod.ext h.1 h.2
+        infer_instance
+      · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+        icombine H1 H2 gives %h
+        ipureintro; exact h.2
+    infer_instance
+  · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 gives %h
+    ipureintro; exact (by first | exact h.2 | exact h)
+
+theorem rdx_fractional (B : BNs) (r : TxReg) (v : View) (mv : Meta) (k : Nat) :
+    Fractional (fun q => rdx (GF := GF) B r q v mv k) := by
+  unfold rdx
+  have hA : Fractional (fun q : Qp => iprop(∃ fx : Option (Nat × List w8), rdxC (GF := GF) v mv fx ∗
+      k ↪[B.rds]{DFrac.own q.half} (⟨v, fx⟩ : RdInfo))) := by
+    refine fracEx _ (fun fx => ?_) (fun a b q1 q2 => ?_)
+    · have : Fractional (fun q : Qp => (k ↪[B.rds]{DFrac.own q.half} (⟨v, fx⟩ : RdInfo) : IProp GF)) :=
+        ⟨fun p q => by rw [Qp_half_add]; exact (ghostMapElem_fractional _ _ _).fractional _ _⟩
+      infer_instance
+    · iintro ⟨⟨-, H1⟩, ⟨-, H2⟩⟩
+      icombine H1 H2 gives %h
+      obtain ⟨-, h⟩ := h
+      ipureintro; cases h; rfl
+  have hB : Fractional (fun q : Qp =>
+      rdxFile (GF := GF) B r.db (DFrac.own (QpMul q sync.rfrac).half)) :=
+    ⟨fun p q => by
+      rw [show (QpMul (p + q) sync.rfrac).half = (QpMul p sync.rfrac).half + (QpMul q sync.rfrac).half
+        from by rw [QpMul_add_l, Qp_half_add]]
+      exact (rdxFile_fractional B r.db).fractional _ _⟩
+  infer_instance
+
+private theorem rtxFrac_fractional (B : BNs) (tx : Loc) (r : TxReg) (T : TxView) (v : View) (mv : Meta) (k : Nat) :
+    Fractional (fun q => rtxFrac (GF := GF) B tx r q T v mv k) := by
   have h1 := rBkt_fractional (GF := GF) v tx (txRoot (GF := GF) tx) (rootVal v)
   have h2 : Fractional (fun q : Qp => iprop(∃ f : w64,
       ((txRoot (GF := GF) tx).[Bucket, go!"FillPercent"] ↦{DFrac.own q} f : IProp GF))) := by
@@ -809,23 +926,22 @@ private theorem rtxFrac_fractional (B : BNs) (tx : Loc) (r : TxReg) (T : TxView)
       isplitl [G1 M1]
       · iframe; ipureintro; exact h1
       · iframe; ipureintro; exact h1
+  have h9 := rdx_fractional (GF := GF) B r v mv k
   unfold rtxFrac viewOf
   refine fractional_exists' _ (fun t => ?_) (fun t1 t2 p q => ?_)
   · infer_instance
-  · iintro ⟨⟨A1, B1, C1, D1, E1, F1, G1, H1, I1, J1, K1, L1, M1, %P1⟩,
-      ⟨A2, B2, C2, D2, E2, F2, G2, H2, I2, J2, K2, L2, M2, %P2⟩⟩
+  · iintro ⟨⟨A1, B1, C1, D1, E1, F1, G1, H1, I1, J1, K1, L1, M1, X1, %P1⟩,
+      ⟨A2, B2, C2, D2, E2, F2, G2, H2, I2, J2, K2, L2, M2, X2, %P2⟩⟩
     icombine B1 B2 gives %e1
     icombine C1 C2 gives %e2
     icombine F1 F2 gives %e3
     icombine G1 G2 gives %e4
-    icombine H1 H2 gives %e5
     replace e1 := by first | exact e1.2 | exact e1
     replace e2 := by first | exact e2.2 | exact e2
     replace e3 := by first | exact e3.2 | exact e3
     replace e4 := by first | exact e4.2 | exact e4
-    replace e5 := by first | exact e5.2 | exact e5
-    rw [e1, e2, e3, e4, e5]
-    isplitl [A1 B1 C1 D1 E1 F1 G1 H1 I1 J1 K1 L1 M1]
+    rw [e1, e2, e3, e4]
+    isplitl [A1 B1 C1 D1 E1 F1 G1 H1 I1 J1 K1 L1 M1 X1]
     · iframe; ipureintro; rw [← e1, ← e3]; exact P1
     · iframe; ipureintro; exact P2
 

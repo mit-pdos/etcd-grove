@@ -62,13 +62,13 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   iunfold metaR at HR
   icases HR with ⟨%C', %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
   iunfold Pm at HP
-  icases HP with ⟨%ms, Hmap', Hmf, Hmt⟩
+  icases HP with ⟨%ms, Hmap', Hmf, Hmt, Hpf⟩
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   subst hC
   icombine Hop Hop' gives %hcl
   have hcl' : cl = false := by simpa using hcl.symm
   subst hcl'
-  obtain ⟨-, -, htx1⟩ := Hok rfl
+  obtain ⟨-, -, htx1, hhwm⟩ := Hok rfl
   icombine Hmap Hmap' gives % ⟨_, hms⟩
   subst hms
   iunfold mapFields at Hmf
@@ -107,7 +107,8 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     with ⟨Hcur', Hmap', %Hpgb⟩
   · iframe; iframe #
   imod store_register_spare K.B K.N K.p ⊤ CoPset.subseteq_top C b l k o
-    $$ [Hpi Hcur' Hmap' Hmt Hfk Hsp Ho] with ⟨Hcur', Hmap', Hrds, Hvc, Hsr, Ho, %ho⟩
+    $$ [Hpi Hcur' Hmap' Hmt Hfk Hsp Ho] with ⟨Hcur', Hmap', ⟨%fx, Hrds, %Hfx⟩, Hvc, Hsr, Ho, %ho⟩
+  ihave ⟨Hrds, Hrds2⟩ := (ghostMapElem_halves K.B.rds k _).1 $$ Hrds
   · iframe; iframe #
   -- batch 41: the spare clause with the spare reader's key (`F` was empty: `o = none`)
   ihave Hspr : (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
@@ -139,6 +140,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [reduceCtorEq, ↓reduceIte]
       iframe
+      iexists fx; iexact Hrds
     · iunfold readerHandles
       simp only [Bool.false_eq_true, ↓reduceIte]
       iexists ∅; iexact Hrbk
@@ -173,9 +175,10 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   all_goals
     icases Hmaps with %Hnull
     obtain ⟨rfl, rfl, rfl⟩ := Hnull
-    imod rdTxK_intro K «$r0_ptr» .spare n C b l k m ibp hok htree Htxn Hpgb
+    ihave Hpf := pmFile_rdxFile K.B K.db _ b l $$ Hpf
+    imod rdTxK_intro K «$r0_ptr» .spare n C b l k m ibp hok htree Htxn Hpgb htx1 hhwm fx Hfx
       $$ [Hreg Hpkg Hcore Hv2 Hex Hw managed Hme Hrt Hpg commitHandlers WriteFlag Hdb Hmv Hib
-        Hvc Hmap' Hmf Hvw Hsr] with Hrd
+        Hvc Hmap' Hmf Hvw Hrcm Hpf Hrds2 Hsr] with Hrd
     · iframe; iframe #
       simp only [reduceCtorEq, ↓reduceIte]; iexact Hsr
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
@@ -187,7 +190,7 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe
       try (isplitl [Hspr]; iexact Hspr)
       ipureintro
-      refine ⟨fun _ => ⟨hok, htree, htx1⟩, ?_⟩
+      refine ⟨fun _ => ⟨hok, htree, htx1, hhwm⟩, ?_⟩
       intro k' t h'
       by_cases hkk : k = k'
       · subst hkk

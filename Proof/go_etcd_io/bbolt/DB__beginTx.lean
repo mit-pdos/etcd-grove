@@ -117,12 +117,12 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   iunfold metaR at HR
   icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls, Hop', Hfl', Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm, %Hok, %HF⟩
   iunfold Pm at HP
-  icases HP with ⟨%ms, Hmap', Hmf, Hmt⟩
+  icases HP with ⟨%ms, Hmap', Hmf, Hmt, Hpf⟩
   cases cl
   rotate_left
   · -- closed: `ErrDatabaseNotOpen`
     wp_auto
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hsync $Hrl Hmap' Hmf Hmt] as Hmtok
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hsync $Hrl Hmap' Hmf Hmt Hpf] as Hmtok
     · iunfold Pm; iexists ms; iframe
     iapply fupd_wp
     imod threadPool.giveBack (poolN K.N) K.B.pool (rdPair K.B K.db K.sp) ⊤ (fun _ _ => CoPset.mem_full)
@@ -144,13 +144,13 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     isplitr
     · ipureintro; exact HNOn
     ileft; iexact HNO
-  obtain ⟨hok, htree, htx1⟩ := Hok rfl
+  obtain ⟨hok, htree, htx1, hhwm⟩ := Hok rfl
   rcases ms with _ | ⟨b, l⟩
   · -- unmapped (a failed remap): `ErrInvalidMapping`
     iunfold mapFields at Hmf
     icases Hmf with ⟨Hdr, Hd, Hm0, Hm1⟩
     wp_auto
-    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hsync $Hrl Hmap' Hdr Hd Hm0 Hm1 Hmt] as Hmtok
+    wp_apply sync.RWMutex.wp_RUnlock $$ [$Hsync $Hrl Hmap' Hdr Hd Hm0 Hm1 Hmt Hpf] as Hmtok
     · iunfold Pm; iexists none; iframe; simp only [mapFields]; iframe
     iapply fupd_wp
     imod threadPool.giveBack (poolN K.N) K.B.pool (rdPair K.B K.db K.sp) ⊤ (fun _ _ => CoPset.mem_full)
@@ -211,7 +211,8 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
     with ⟨Hcur', Hmap', %Hpgb⟩
   · iframe; iframe #
   imod store_register K.B K.N K.p ⊤ CoPset.subseteq_top C b l k $$ [Hpi Hcur' Hmap' Hmt Hfk Hshot]
-    with ⟨Hcur', Hmap', Hrds, Hvc⟩
+    with ⟨Hcur', Hmap', ⟨%fx, Hrds, %Hfx⟩, Hvc⟩
+  ihave ⟨Hrds, Hrds2⟩ := (ghostMapElem_halves K.B.rds k _).1 $$ Hrds
   · iframe; iframe #
   ihave Hspr : (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
       (opnShot K.B ∨ ⌜sprCl o' (<[k := W64 (C.txid : Int)]> F)⌝)) $$ [Ho]
@@ -233,6 +234,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [↓reduceIte]
       iframe
+      iexists fx; iexact Hrds
     · iunfold readerHandles
       simp only [Bool.false_eq_true, ↓reduceIte]
       iexists ∅; iexact Hrbk
@@ -267,9 +269,10 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   all_goals
     icases Hmaps with %Hnull
     obtain ⟨rfl, rfl, rfl⟩ := Hnull
-    imod rdTxK_intro K «$r0_ptr» .loan n C b l k m ibp hok htree Htxn Hpgb
+    ihave Hpf := pmFile_rdxFile K.B K.db _ b l $$ Hpf
+    imod rdTxK_intro K «$r0_ptr» .loan n C b l k m ibp hok htree Htxn Hpgb htx1 hhwm fx Hfx
       $$ [Hreg Hpkg Hcore Hv2 Hex Hw managed Hme Hrt Hpg commitHandlers WriteFlag Hdb Hmv Hib
-        Hvc Hmap' Hmf Hvw] with Hrd
+        Hvc Hmap' Hmf Hvw Hrcm Hpf Hrds2] with Hrd
     · iframe; iframe #
       simp only [↓reduceIte]; iexact Hpool
     wp_apply sync.Mutex.wp_Unlock _ (metaR K.B K.db K.p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls Hop' Hfl' Hwa Hob Hmlk Hfa Hspr Hro]
@@ -281,7 +284,7 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe
       try (isplitl [Hspr]; iexact Hspr)
       ipureintro
-      refine ⟨fun _ => ⟨hok, htree, htx1⟩, ?_⟩
+      refine ⟨fun _ => ⟨hok, htree, htx1, hhwm⟩, ?_⟩
       intro k' t h'
       by_cases hkk : k = k'
       · subst hkk

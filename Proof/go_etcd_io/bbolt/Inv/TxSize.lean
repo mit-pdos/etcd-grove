@@ -241,7 +241,7 @@ theorem boltTxDef_size_ro (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (D : Dat
   rw [ite_eq_right_iff.mpr (by simp [TxView.ro])]
   unfold rdTx rtxFrac
   iintro ⟨%db', ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, -, -, -, -, -,
-    ⟨%t, -, -, -, -, -, -, -, -, -, -, -, ⟨%l, -, Hmf, %Hl⟩, -, %Hf⟩, -⟩, -⟩
+    ⟨%t, -, -, -, -, -, -, -, -, -, -, -, ⟨%l, -, Hmf, %Hl⟩, -, -, %Hf⟩, -⟩, -⟩
   unfold mapFields
   icases Hmf with ⟨-, -, -, -, %Hlen⟩
   ipureintro

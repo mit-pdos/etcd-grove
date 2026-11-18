@@ -51,7 +51,9 @@ omit package_sem in
 copy and the root bucket, the registration, the view's cells and `mmaplock`'s share. -/
 theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : CommitSt) (b : Loc)
     (l k : Nat) (m ibp : Loc) (hok : C.metaOk) (htree : treeOK C) (htx : tx ≠ null)
-    (hpgb : ∀ id pg, C.pages !! id = some pg → (id + 1) * 4096 ≤ l) :
+    (hpgb : ∀ id pg, C.pages !! id = some pg → (id + 1) * 4096 ≤ l)
+    (htx1 : 1 ≤ C.txid) (hhwm : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF) (fx : Option (Nat × List w8))
+    (hfx : fxOK C fx) :
     reg tx K.B ⟨K.db, n, false, src⟩ ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗
       K.core ∗
       ghostVar n.v (1 : Qp).half (((false, (View.ofC b C).data, (View.ofC b C).data, ∅) : TxViewC),
@@ -59,18 +61,19 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
       ghostVar n.ex 1 () ∗
       tx.[Tx, go!"writable"] ↦ false ∗ tx.[Tx, go!"managed"] ↦ false ∗ tx.[Tx, go!"meta"] ↦ m ∗
       tx.[Tx, go!"root"] ↦ initRoot tx null null ibp ∗ tx.[Tx, go!"pages"] ↦ null ∗
-      (∃ ch : GoSlice, tx.[Tx, go!"commitHandlers"] ↦ ch) ∗ (∃ wf : w64, tx.[Tx, go!"WriteFlag"] ↦ wf) ∗
+      (∃ ch : GoSlice, tx.[Tx, go!"commitHandlers"] ↦ ch) ∗ tx.[Tx, go!"WriteFlag"] ↦ (W64 0) ∗
       tx.[Tx, go!"db"] ↦{DFrac.own ((1 : Qp).half + (1 : Qp).half.half)} K.db ∗
       m ↦ metaOf (C.slot C.txid) ∗ ibp ↦ (metaOf (C.slot C.txid)).root' ∗
       viewCells rq (View.ofC b C) ∗
       ghostVar K.B.map sync.rfrac.half.half (some (b, l) : MapSt) ∗
       mapFields K.db (DFrac.own sync.rfrac.half) (some (b, l) : MapSt) ∗
-      (null ↪[n.vw]□ View.ofC b C) ∗
+      (null ↪[n.vw]□ View.ofC b C) ∗ ⧖ C.txid ∗ rdxFile K.B K.db (DFrac.own sync.rfrac.half) ∗
+      k ↪[K.B.rds]{DFrac.own (1 : Qp).half} (⟨View.ofC b C, fx⟩ : RdInfo) ∗
       (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp)
        else ghostVar K.B.spr (1 : Qp).half (some k)) ⊢
     |==> rdTxK K tx src 1 (TxView.ro (View.ofC b C).data) (View.ofC b C) := by
-  iintro ⟨#Hreg, #Hpkg, #Hcore, Hv, Hex, Hw, Hmg, Hme, Hrt, Hpg, ⟨%ch, Hch⟩, ⟨%wf, Hwf⟩, Hdb,
-    Hmv, Hib, Hvc, Hmap, Hmf, #Hvw, Hpool⟩
+  iintro ⟨#Hreg, #Hpkg, #Hcore, Hv, Hex, Hw, Hmg, Hme, Hrt, Hpg, ⟨%ch, Hch⟩, Hwf, Hdb,
+    Hmv, Hib, Hvc, Hmap, Hmf, #Hvw, #Hrcpt, Hfile, Hrds, Hpool⟩
   have hroot2 : 2 ≤ C.root := by
     obtain ⟨⟨hwf, -⟩, -⟩ := htree
     cases hwf with
@@ -94,7 +97,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   iframe Hreg Hpkg Hcore Hv Hex Hpool
   unfold rtxFrac
   simp only [QpMul_one_r]
-  iexists ⟨false, false, null, m, initRoot tx null null ibp, null, zeroValDef, ch, wf⟩
+  iexists ⟨false, false, null, m, initRoot tx null null ibp, null, zeroValDef, ch, W64 0⟩
   iframe Hw Hmg Hme Hpg Hch Hwf Hmv Hvc
   isplitl [InBucket tx buckets page rootNode nodes]
   · unfold rBkt
@@ -120,6 +123,15 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   · iexists l; iframe; ipureintro; exact hpgb
   isplitl []
   · unfold viewOf; iexact Hvw
+  isplitl [Hfile Hrds]
+  · unfold rdx rdxC
+    iframe Hfile
+    iexists fx
+    iframe Hrds
+    iexists C
+    iframe Hrcpt
+    ipureintro
+    exact ⟨hok, htree, htx1, hhwm, rfl, rfl, hfx⟩
   ipureintro
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩ <;>
     first | trivial | rfl | exact ⟨C, htree, rfl⟩ | exact hok.2.2.2.2.2.2.1.1 | exact htx |

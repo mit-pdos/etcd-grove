@@ -44,12 +44,13 @@ of `tx.db` comes out. -/
 theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := hG))
     (wp_RemoveRO : internal.freelist.Interface.RemoveReadonlyTXID.spec (GF := GF) (hG := hG))
     (K : BC) (tx : Loc) (r : TxReg) (v : View) (mv : Meta) (k : Nat) (m : Loc) (l : Nat)
-    (hdb : r.db = K.db) (htxid : mv.txid'.toNat = v.txid) :
+    (fx : Option (Nat × List w8)) (hdb : r.db = K.db) (htxid : mv.txid'.toNat = v.txid) :
     {{ K.core (GF := GF) ∗ reg tx K.B r ∗
         sync.ownRWMutexRLocked K.db.[DB, go!"mmaplock"] (Pm K.B K.db) ∗
         ghostVar K.B.map sync.rfrac.half.half (some (v.base, l) : MapSt) ∗
         mapFields K.db (DFrac.own sync.rfrac.half) (some (v.base, l) : MapSt) ∗
-        k ↪[K.B.rds] (⟨v⟩ : RdInfo) ∗ viewCells rq v ∗
+        rdxFile K.B K.db (DFrac.own sync.rfrac.half) ∗
+        k ↪[K.B.rds] (⟨v, fx⟩ : RdInfo) ∗ viewCells rq v ∗
         sync.ownRWMutex K.db.[DB, go!"statlock"] (Ps K.sp) ∗
         ghostVar r.n.done (1 : Qp).half false ∗ tx.[Tx, go!"meta"] ↦ m ∗ m ↦ mv ∗
         (if r.src = .loan then emp else ghostVar K.B.spr (1 : Qp).half (some k)) }}
@@ -59,7 +60,7 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
         tx.[Tx, go!"db"] ↦{DFrac.own (1 : Qp).half.half} r.db ∗
         ghostVar r.n.done (1 : Qp).half true ∗ txDoneDef tx ∗
         (if r.src = .loan then emp else spareTok K.B) }} := by
-  wp_start as ⟨#Hcore, #Hreg, Hrl, Hmap, Hmf, Hrds, Hvc, Hstok, Hd, Hme, Hmv, Hsp⟩
+  wp_start as ⟨#Hcore, #Hreg, Hrl, Hmap, Hmf, Hfile, Hrds, Hvc, Hstok, Hd, Hme, Hmv, Hsp⟩
   ihave #Hcore' : isBoltCoreP K.B K.N K.db K.p K.sp K.t0 $$ []
   · unfold BC.core; iexact Hcore
   unfold isBoltCoreP
@@ -75,11 +76,12 @@ theorem wp_removeTx (wp_Txid : internal.common.Meta.Txid.spec (GF := GF) (hG := 
     with ⟨Hdb4, ⟨%s, #Hst⟩, Hd⟩
   · iframe; iframe #
   -- the store's registry entry, then the read lock
-  imod store_deregister K.B K.N K.p ⊤ CoPset.subseteq_top k ⟨v⟩ $$ [Hpi Hrds Hvc]
+  imod store_deregister K.B K.N K.p ⊤ CoPset.subseteq_top k ⟨v, fx⟩ $$ [Hpi Hrds Hvc]
     with ⟨Hmt, Hfk⟩
   · iframe; iframe #
   wp_auto
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hsync $Hrl Hmap Hmf Hmt] as Hmtok
+  ihave Hpf := rdxFile_pmFile K.B K.db (DFrac.own sync.rfrac.half) (some (v.base, l)) $$ Hfile
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hsync $Hrl Hmap Hmf Hmt Hpf] as Hmtok
   · iunfold Pm; iexists _; iframe
   wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hml] as ⟨Hlk, HR⟩
   iunfold metaR at HR

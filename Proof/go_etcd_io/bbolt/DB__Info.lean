@@ -77,7 +77,7 @@ private theorem boltTxDef_data_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   · iintro ⟨%db', Hr, #Hb'⟩
     unfold rdTx rtxFrac
     icases Hr with ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, %Hc, #Hreg, #Hcore, Hv, Hex,
-      ⟨%t, Hw, Hmg, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, ⟨%l, Hmap, Hmf, %Hl⟩, #Hvo, %Hf⟩,
+      ⟨%t, Hw, Hmg, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, ⟨%l, Hmap, Hmf, %Hl⟩, #Hvo, Hrdx, %Hf⟩,
       Hpool⟩
     iunfold mapFields at Hmf
     icases Hmf with ⟨Hdr, Hd, Hm0, Hm1, %Hb⟩
