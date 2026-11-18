@@ -113,11 +113,21 @@ raftpb_Snapshot__GetMetadata:
 raftpb_CloneConfState:
 raftpb_CloneEntry:
 raftpb_CloneSnapshot:
-raftpb_MarshalConfChangeV1:
-raftpb_MarshalConfChangeV2:
+raftpb_MarshalConfChangeV1: raftpb_appendVarint raftpb_appendEnum raftpb_appendBytes
+raftpb_MarshalConfChangeV2: raftpb_appendEnum raftpb_marshalConfChangeSingle raftpb_appendBytes
 raftpb_EntrySize:
-raftpb_UnmarshalConfChangeV1:
-raftpb_UnmarshalConfChangeV2:
+raftpb_UnmarshalConfChangeV1: raftpb_consumeVarint raftpb_consumeEnum raftpb_consumeBytes
+raftpb_UnmarshalConfChangeV2: raftpb_consumeEnum raftpb_consumeField raftpb_unmarshalConfChangeSingle raftpb_consumeBytes
+# (raft-noax codec, notes/raft-noax-codec.md) the conf change codecs' helpers (raftpb/noax.go)
+raftpb_appendVarint:
+raftpb_appendEnum: raftpb_appendVarint
+raftpb_appendBytes: raftpb_appendVarint
+raftpb_marshalConfChangeSingle: raftpb_appendEnum raftpb_appendVarint
+raftpb_consumeVarint:
+raftpb_consumeEnum: raftpb_consumeVarint
+raftpb_consumeField: raftpb_consumeVarint
+raftpb_consumeBytes: raftpb_consumeField
+raftpb_unmarshalConfChangeSingle: raftpb_consumeEnum raftpb_consumeVarint
 
 # Stage R2: confchange (the old proof's 22 functions, `ccs ...*pb.ConfChangeSingle` read through
 # the getters, `toConfChangeSingle`/`Restore` on a `*pb.ConfState`), with etcd-grove's

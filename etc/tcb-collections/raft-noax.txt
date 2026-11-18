@@ -4,9 +4,5 @@
 # Baseline (2026-11-18, stage 2) written by hand from `#print axioms` of raft_kvdurable_porcupine_safe and
 # the sorry users its closure reaches (the eight raftpb noax functions' proofs); rerun `--check --update`
 # after a full build. Stage 3a (2026-11-18): the clones' and EntrySize's sorries gone (by hand, as above).
+# Stage 3b (2026-11-18, notes/raft-noax-codec.md): the conf change codecs proved, ccDecodeV2_nil a theorem.
 roots ^RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/(Link|Results)\.lean$
-axiom ccDecodeV2_nil
-sorry Perennial.EtcdGrove.raftpb.MarshalConfChangeV1.wp_proof
-sorry Perennial.EtcdGrove.raftpb.MarshalConfChangeV2.wp_proof
-sorry Perennial.EtcdGrove.raftpb.UnmarshalConfChangeV1.wp_proof
-sorry Perennial.EtcdGrove.raftpb.UnmarshalConfChangeV2.wp_proof
