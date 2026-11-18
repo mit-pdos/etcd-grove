@@ -3,7 +3,7 @@ title: apierrors.IsTooManyRequests/IsGone/IsInternalError/IsResourceExpired spec
 found: 2026-11-17
 by: k8s 7g step 1 (IsTooManyRequests, notes/k8s-7g-trust.md on branch k8s-7g); soundness-1117 (the other three); Go test examples/axiomcx/apierrorstypednil
 blocks-proof: no (named hypotheses, `?` in etc/link-lean-first-k8scache.txt; no closed theorem discharges them)
-status: open; fix in the apierrors-fix stage (approved 2026-11-17)
+status: fixed on branch apierrors-fix (pre `nil` or `apiErrOk`, per-view posts), pending land
 ---
 # Four `apierrors` hypotheses are false
 

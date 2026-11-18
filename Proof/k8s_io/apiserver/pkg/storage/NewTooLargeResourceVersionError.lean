@@ -53,7 +53,7 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
       (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)))
     $$ [$Hasl] as %s -
   (try wp_auto)
-  wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %hst⟩
+  wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %_, %hst⟩
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr
