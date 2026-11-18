@@ -1,29 +1,25 @@
 # fmt soundness: handoff
 
-## START HERE (2026-11-18, STOP: refutation by the second attack, fixed locally; awaiting etcd-grove-03)
-- The second attack refuted the drafts' premise with `%#w` (`notes/fmt-sharpw.md`); fixed in
-  `fmt.errArgsWf` (`W8 35 ∉ format`), lean-checked at Validate, decodeRecord, LockFile. The same hole is in
-  the trusted axiom `fmt.Errorf.spec` (pre-existing): decision needed (parser fix proposed in the note).
-- The full build was NOT run yet (stopped in the slot queue at the refutation).
-- Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness`; lean merged (d87c45b206, conflict only in
-  etc/gates.sh: lean's batched collections kept, the errorf-wrap gate after them).
-- Done: H0, the term gate, ErrorfWrap premise (commits ed402890f6..35c7b9f54d).
-- Done (5a154a66c4): (a) `errOk` = `fmtErrorOk`'s text (type facts: `Error() string`, no `Format`);
-  `fmt.ErrorfErrs`/`ErrorfErrsNot`/`ErrorfErrsTerm` premise `fmt.errArgsWf errs format args` (errors
-  only under `%v`/`%s`/`%w` without `#`); 22 call sites by the macro `errargs_wf`; producers of `errOk`
-  via `errorString_errOk` (gen-init.py templates changed, Init files regenerated).
-- Done (next commit): (b) `ErrorfAny` DELETED; Create's `fmt.Errorf("%w (after: %v)", cerr, perr)` uses
-  `ErrorfErrs`; the writer contract `io.writerStream*`'s error arm gains `errOkOrNil err`, passed through
-  `PageWriter.flush/Flush`, `encoder.flush`, to `WAL.sync.specC`, `Close.specU`, `cleanupWAL` (arms 1-2:
-  `fmtErrorOk err`); producers: `os.File.Write.wp_empty`/`wp_long` posts gain `fmtErrorOkOrNil err`
-  (`os.wp_wrapErrno_ok`), the tail writers' `wp_tailWriteAt(W)`. No narrower option existed: the cleanup's
-  error is formatted, so its producer (the sync's flush through the generic writer) must say it.
-- Next: full build (/shared/tmp/fmtfix/full*.log), regenerate Links (`etc/gen-link.py` needs the build:
-  run all modes, see etc/gates.sh l.54), rebuild; term gate (errorf-wrap-check: ErrorfErrs now REVIEWED);
-  tcb --check --update (ErrorfAny.wp_proof gone; wp_New dropped from ErrorfErrs/ErrorfStrs/closeAll);
-  collections; interfaces; gates; STATUS; land stop with old -> new texts.
-- Pitfalls: `etc/gen-link.py` on a stale build emits garbage (it diffed bbolt too): build first. In a
-  macro, `or_false`/`true_or` are ambiguous with `Iris.BI`; `trivial` on an `ArgWf` disjunction times out.
+## START HERE (2026-11-18, STOP: the third attack refuted the parser, `notes/fmt-third-attack.md`)
+- R1 (trailing `.` is Go's verb, the parser reads a precision) refutes `fmt.Errorf.spec` AND the drafts
+  `ErrorfErrs/Not/Term` (WalTester hypotheses); R2 (`%w` of a Stringer) and R3 (no signature facts in
+  `fmt.argOk`) refute `fmt.Errorf.spec` (pre-existing). Fixes proposed in the note; awaiting etcd-grove-03.
+- The full build (/shared/tmp/fmtfix/full2.log) was started before the refutation; links/gates not run.
+
+### Previous START HERE (after etcd-grove-03's decisions on the %#w stop)
+- Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness`; lean merged (fb68edfec8 is an ancestor).
+- Done: H0, the term gate, ErrorfWrap premise, task 3 (a)+(b) (commits ed402890f6..a449280a5b; see History).
+- Done (0a5f7fbe4c): decision 6 below, `fmt.fmtDirectivesAux` marks `%#w` `sharpV` (`sharp && (b = v || b = w)`);
+  users of `Directive.sharpV` rechecked: `fmt.argOkAt` (Errorf/Printf/klog: only stricter, no caller format
+  has `%#w`), `klog.argOkAt_of_argOk`, `fmt.errArgAt`; `ErrorfPlain` reads only verbs. Test example added.
+- Next, in order: third independent attack (axiom skill) on the new `fmt.Errorf.spec` text, errArgsWf,
+  ErrorfErrs/Not/Term, writer contract arm; full build (/shared/tmp/fmtfix/full2.log); `etc/gen-link.py`
+  every mode (etc/gates.sh l.54), rebuild; term gate (`etc/errorf-wrap-check.py`, all groups); tcb
+  `--check --update` (intended: ErrorfWrap axiom -> theorem, ErrorfAny gone, `wp_New` hypotheses dropped);
+  collections; interfaces; gates (flock full-build lock, LAKE_PACKAGES=/shared/tmp/manifest-6d3.json
+  PERENNIAL_CHECKOUT=PERENNIAL_DIR=/shared/perennial-6d365ee1a, GOWORK unset); STATUS; audit rows; land stop.
+- Pitfalls: `etc/gen-link.py` on a stale build emits garbage: build first. In a macro, `or_false`/`true_or`
+  are ambiguous with `Iris.BI`; `trivial` on an `ArgWf` disjunction times out.
 
 ## Decisions (etcd-grove-03, 2026-11-18, after the refutation stop)
 1. ErrorfWrap premise → `fmtErrorOk (.ok inner)` (no Format, `Error() string` signature, the WP), the same
@@ -40,6 +36,14 @@
 5. (etcd-grove-03, 2026-11-18) ErrorfAny: continue down the sync/writer path unless a narrower sound
    alternative exists (none found: see START HERE); keep spec changes textual, list every touched spec.
 4. Key the gate's review list by constant if cheap.
+
+6. (etcd-grove-03, 2026-11-18, after the %#w stop) (1) fix `fmt.Errorf.spec`'s `%#w` hole in place as in
+   `notes/fmt-sharpw.md` (the parser marks `sharpV` for `%#v` and `%#w`), recheck every user of
+   `Directive.sharpV`: within the user's approved fmt-soundness repair, shown at the land stop. (2) "no `#` in
+   the format" in `fmt.errArgsWf`: ACCEPTED. (3) `fmt.ErrorfWrap.spec`'s last conjunct (a pure fact about the
+   opaque `errDesc` of a pointer, now conditional on `Unwrap`): NOT now; recorded for the per-heap redesign's
+   errors part (`notes/perheap-scope.md` Part II, branch `perheap-scope`) and in `notes/audit.md`'s row.
+   `ErrorfAny` deleted and the writer contract's `errOkOrNil`: ACCEPTED.
 
 ## Specs touched (for the wal-link merge)
 - `Spec/fmt/ErrorfWrap.lean`: premise `fmtErrorOk (ok inner)`; `fmt.wrapErrIs` + `Format = none ∧ Error = noArgStringSig`.
@@ -69,6 +73,32 @@
   deleted; `Create.wp_proof` takes `fmt.ErrorfErrs.spec` in place of `fmt.ErrorfAny.spec`.
 
 ## History
+
+### Earlier START HERE (2026-11-18, STOP: refutation by the second attack)
+- The second attack refuted the drafts' premise with `%#w` (`notes/fmt-sharpw.md`); fixed in
+  `fmt.errArgsWf` (`W8 35 ∉ format`), lean-checked at Validate, decodeRecord, LockFile. The same hole is in
+  the trusted axiom `fmt.Errorf.spec` (pre-existing): decision needed (parser fix proposed in the note).
+- The full build was NOT run yet (stopped in the slot queue at the refutation).
+- Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness`; lean merged (d87c45b206, conflict only in
+  etc/gates.sh: lean's batched collections kept, the errorf-wrap gate after them).
+- Done: H0, the term gate, ErrorfWrap premise (commits ed402890f6..35c7b9f54d).
+- Done (5a154a66c4): (a) `errOk` = `fmtErrorOk`'s text (type facts: `Error() string`, no `Format`);
+  `fmt.ErrorfErrs`/`ErrorfErrsNot`/`ErrorfErrsTerm` premise `fmt.errArgsWf errs format args` (errors
+  only under `%v`/`%s`/`%w` without `#`); 22 call sites by the macro `errargs_wf`; producers of `errOk`
+  via `errorString_errOk` (gen-init.py templates changed, Init files regenerated).
+- Done (next commit): (b) `ErrorfAny` DELETED; Create's `fmt.Errorf("%w (after: %v)", cerr, perr)` uses
+  `ErrorfErrs`; the writer contract `io.writerStream*`'s error arm gains `errOkOrNil err`, passed through
+  `PageWriter.flush/Flush`, `encoder.flush`, to `WAL.sync.specC`, `Close.specU`, `cleanupWAL` (arms 1-2:
+  `fmtErrorOk err`); producers: `os.File.Write.wp_empty`/`wp_long` posts gain `fmtErrorOkOrNil err`
+  (`os.wp_wrapErrno_ok`), the tail writers' `wp_tailWriteAt(W)`. No narrower option existed: the cleanup's
+  error is formatted, so its producer (the sync's flush through the generic writer) must say it.
+- Next: full build (/shared/tmp/fmtfix/full*.log), regenerate Links (`etc/gen-link.py` needs the build:
+  run all modes, see etc/gates.sh l.54), rebuild; term gate (errorf-wrap-check: ErrorfErrs now REVIEWED);
+  tcb --check --update (ErrorfAny.wp_proof gone; wp_New dropped from ErrorfErrs/ErrorfStrs/closeAll);
+  collections; interfaces; gates; STATUS; land stop with old -> new texts.
+- Pitfalls: `etc/gen-link.py` on a stale build emits garbage (it diffed bbolt too): build first. In a
+  macro, `or_false`/`true_or` are ambiguous with `Iris.BI`; `trivial` on an `ArgWf` disjunction times out.
+
 
 ### Earlier START HERE (2026-11-18, checkpoint STOP: refutation)
 - Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness` off lean 49bd7924e6; head = the checkpoint commit.
