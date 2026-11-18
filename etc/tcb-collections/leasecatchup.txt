@@ -273,12 +273,13 @@ axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
-axiom auth.NewAuthStore.wp_proof
+axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
+axiom backend.batchTxBuffered.UnsafeForEach.wp_proof
 axiom backend.dbFile
 axiom backend.fileHolds
 axiom backend.isDB
@@ -293,6 +294,8 @@ axiom backend.ownWTxG_live
 axiom backend.rBkt
 axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless
+axiom backend.readTx.RLock_idle.wp_proof
+axiom backend.readTx.UnsafeForEach.wp_proof
 axiom backend.rtxSnap
 axiom backend.rtxSnap_persistent
 axiom backend.rtxSnap_size

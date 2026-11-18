@@ -40619,3 +40619,57 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
 - **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
+
+## authstore-noax: `NewAuthStore` proved with auth off; three backend facts trusted in its place (2026-11-18 · the user's direction "prove the axioms we wrote for expediency"; for the user's review before landing · branch `authstore-noax`)
+
+**What was asked.** Remove `auth.NewAuthStore.wp_proof` (the server's auth store with auth off, a
+whole component's trust boundary since N4) and, if the same work allows it, discharge `authSchemaSrv`
+(D22's named premise of the auth closed theorems).
+
+**`authSchemaSrv`: not attempted.** Its discharge is the auth-schema-srv plan's A1-A7
+(`notes/auth-schema-srv-scope.md`, 7.5-14k lines): the backend's read model over the tracked hook
+buckets (A1, inside the backend's invariant, which branch `bbolt-integrate` is rewriting), `ForEach`
+over bbolt (A2), `proto.Marshal` of the auth records (A3), the put budget (A4), the write side (A5)
+and the realization with the history (A6). The schema pieces this stage proves (below) are A5's
+batch-side half and A2's empty case.
+
+**Why not one mode-generic constructor.** `newAuthStore_on` is over the abstract contracts of
+`authInv`, whose mode `off` still holds the backend's read contract (`authBackendOk be R .off γc`)
+and the token provider's (`tokenProviderOk tp .off`). With auth off the server gives neither: no
+reader slot of the backend reaches the store (`NewAuthStore.spec`'s pre has none), and the token
+provider is whatever `NewTokenProvider` made (the JWT provider does not meet the contract). A disabled
+store never uses them (every method the server calls returns at `!IsAuthEnabled()` before reading the
+backend or the provider), so the off proof has its own invariant, `auth.offInv`
+(`auth/OffInv.lean`: the three locks with what they guard, `enabled` fixed `false`, the revision's
+atomic, the logger), and its own triples of the methods (`isOpPermitted_off`, ...). Making `authInv`'s
+off branch that weak instead would have needed a `⌜M.isOn = true⌝` premise at every generic proof
+that reaches the backend or the provider (about 25 sites: `lockedReadTx`'s three specs and their
+callers, `authInfoFromToken`, `Authenticate`, `GenTokenPrefix`, `RoleDelete`, `UserDelete`,
+`UserChangePassword`, `Recover`) for no gain to the mode `on`.
+
+**What is proved.**
+- Schema's auth batch side over the real backend (`Spec/.../storage/schema/`): `authBackend.{BatchTx,
+  ForceCommit, CreateAuthBuckets}` (one session: three creates, the deferred `Unlock`, the part idle
+  after), `authBatchTx.{Lock, Unlock, UnsafeReadAuthEnabled, UnsafeReadAuthRevision,
+  UnsafeSaveAuthRevision, UnsafeGetAllUsers}`, `authReadTx.UnsafeGetAllUsers`, `unsafeGetAllUsers` (on
+  an empty users' bucket). The batch transaction's `authReader` (`etcdserver/AuthBackendReal.lean`:
+  `batch_authReader`, of `batchTxBuffered.UnsafeRange`), a held read transaction's
+  (`read_authReader`, of `readTx.UnsafeRange` and a given readers' view).
+- The disabled store (`auth/OffInv.lean`) and its server contracts (`etcdserver/AuthOff.lean`):
+  `isReqAuth_off`, `authApplyOk_off`, `authCloseOk_off`, `authRecoverOk_off` (its read of the new
+  backend over the idle part, the auth bucket at `authBoot`: `false`, revision `1`, no user).
+- `auth.NewAuthStore.wp_proof` (`Proof/.../auth/NewAuthStore.lean`): the constructor's code over
+  those.
+
+**Trusted in its place** (ledger, 2026-11-18): `backend.batchTxBuffered.UnsafeForEach.spec` and
+`backend.readTx.UnsafeForEach.spec` (the empty-bucket cases; no spec existed: bbolt's `ForEach` needs a
+`Cursor.First` the backend's key-value contract lacks) and `backend.readTx.RLock_idle.spec` (a read
+begun with the idle part of tracked buckets reads the part's contents: the read model's G1). The first
+two should be proved over real bbolt (`bbolt-integrate`); the third by A1.
+
+**Spec changes** (ledger, each pending the user): `NewAuthStore.spec` takes four write-back tokens
+(the backend's specs charge four), a non-nil logger (the post's `authBeOn` names it) and `schema`'s
+package facts; `apply.adminAdmitted` is `False` in every mode (the off admin clauses were stated only
+by the axiom, used by no closed theorem, and unprovable without schema's write side);
+`AuthInfoFromTLS.spec`'s pre takes `authInv ∨ offInv`. `authStoreKit` takes `schema`'s package
+facts, and `authKitIn` gives the boot's two extra tokens in every mode.
