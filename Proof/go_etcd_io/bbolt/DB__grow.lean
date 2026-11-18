@@ -289,7 +289,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · iframe
       fmt_args_intro
       isplitl
-      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ HeS
       · itrivial
     try wp_auto
     iapply HΦ
@@ -335,7 +338,10 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · iframe
       fmt_args_intro
       isplitl
-      · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+      · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+        isplitr
+        · ipureintro; decide
+        · iapply fmtErrorOkOrNil_of $$ HeS
       · itrivial
     try wp_auto
     iapply HΦ

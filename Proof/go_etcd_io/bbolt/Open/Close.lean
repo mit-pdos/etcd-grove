@@ -239,7 +239,10 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
       · iframe
         fmt_args_intro
         isplitl
-        · fmt_arg_method; iapply fmtErrorOk_argOk $$ HeS
+        · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+          isplitr
+          · ipureintro; decide
+          · iapply fmtErrorOkOrNil_of $$ HeS
         · itrivial
       try wp_auto
       wp_apply wp_slice_literal
@@ -267,8 +270,10 @@ theorem DB.close.wp_proof_owned [os.Assumptions] [syscall.Assumptions]
         · iframe
           fmt_args_intro
           isplitl
-          · fmt_arg_method; iapply fmtErrorOk_argOk
-            iapply fmtErrorOkOrNil_ne (GoInterface.ok _) (fun h => nomatch h) $$ HeC
+          · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+            isplitr
+            · ipureintro; decide
+            · iexact HeC
           · itrivial
         try wp_auto
         wp_apply wp_slice_literal

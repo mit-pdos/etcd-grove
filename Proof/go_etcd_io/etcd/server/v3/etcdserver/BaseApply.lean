@@ -306,8 +306,10 @@ abbrev ctxDeadlineLeaf : IProp GF :=
       SafeMapKey (GF := GF) go.error (GoInterface.ok e) ∧
       -- (k8s etcd3 7c, HS-7, DRAFT) no `GRPCStatus` method (grpc's `status.FromError` accepts it)
       methodSet e.ty !! go!"GRPCStatus" = none ∧
-      -- (premise-fixes-4) no `Format` method (`fmt` prints it with its `Error`)
-      methodSet e.ty !! go!"Format" = none⌝ ∗
+      -- (premise-fixes-4) no `Format` method (`fmt` prints it with its `Error`); (fmt soundness 2)
+      -- its `Error` is `Error() string`
+      (methodSet e.ty !! go!"Format" = none ∧
+        methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))⌝ ∗
     EtcdGrove.errMsgOk e)
 
 /-- `ctxDeadlineLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
