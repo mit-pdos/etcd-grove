@@ -171,6 +171,8 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock Perennial.EtcdGr
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock Perennial.EtcdGrove.readTx.RUnlock.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock Perennial.EtcdGrove.backend.readTx.Unlock.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock Perennial.EtcdGrove.readTx.Unlock.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach Perennial.EtcdGrove.backend.readTx.UnsafeForEach.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach Perennial.EtcdGrove.readTx.UnsafeForEach.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.EtcdGrove.backend.readTx.UnsafeRange.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.EtcdGrove.readTx.UnsafeRange.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset Perennial.EtcdGrove.backend.readTx.reset.wp_proof  # exposed by a proof file (theorem)
@@ -369,6 +371,8 @@ Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock Perennial.EtcdGro
 Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock Perennial.EtcdGrove.readTx.RUnlock.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock Perennial.EtcdGrove.backend.readTx.Unlock.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock Perennial.EtcdGrove.readTx.Unlock.spec  # missing: a spec file declares its spec
+Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach Perennial.EtcdGrove.backend.readTx.UnsafeForEach.spec  # exposed by a spec file (def)
+Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach Perennial.EtcdGrove.readTx.UnsafeForEach.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.EtcdGrove.backend.readTx.UnsafeRange.spec  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.EtcdGrove.readTx.UnsafeRange.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset Perennial.EtcdGrove.backend.readTx.reset.spec  # exposed by a spec file (def)
