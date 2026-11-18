@@ -37,7 +37,7 @@ theorem RawNode.Step.wp_proof [package_sem : Assumptions] (wp_IsResponseMsg : Is
                                       ∃ sv scfg,
                                         ⌜st.snap = some sv ∧
                                               scfg = sv.Metadata'.ConfState'.lists ∧
-                                                uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
+                                                uint.Z sv.Metadata'.Index' < 2 ^ 61 ∧ γ.reNoSnap = false⌝ ∗
                                           isMessageC γ (absSnap st.msg sv scfg) ∗
                                             snapDataOk γ sv.Metadata'.Index' sv.Data' ∗
                                               snapLocal γ id sv.Metadata'.Index') ∗
