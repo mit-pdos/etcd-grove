@@ -15,13 +15,14 @@ attempt carries its caller's outgoing metadata only; `metadata.AppendToOutgoingC
 metadata.
 
 **The contract over the contexts' metadata** (the auth plan's E2f, 2026-10-25): the four parts
-as statements over a request context's incoming metadata (`metadata.incomingOf`, what the
-server's `AuthInfoFromCtx` reads, `auth.ctxTokenOf`) and a call's outgoing metadata
-(`metadata.outgoingOf`):
-- C1 (`userAttemptOk`): the handler context of an attempt of a client built with the user name
-  `u` carries no token or one issued to `u` (`auth.tokIssued`);
-- C2 and C4 (`deliversOutgoing`): the handler context of an attempt of a client with no user name
-  carries its caller's outgoing metadata, as it is;
+as statements over a request context's incoming metadata (`metadata.ctxInMD`, what the
+server's `AuthInfoFromCtx` reads, its token `auth.mdTokenOf`; perheap 1b, 2026-11-18: until then the
+pure `metadata.incomingOf` and `auth.ctxTokenOf`) and a call's outgoing metadata
+(`metadata.outgoingOf`, a pure function of the context until Part II of the per-heap redesign):
+- C1 (`userAttemptOk`): the token `tok` of an attempt of a client built with the user name `u` is
+  none or one issued to `u` (`auth.tokIssued`);
+- C2 and C4 (`deliversOutgoing`): the handler context `h` of an attempt of a client with no user
+  name carries, as its incoming metadata `md`, its caller's outgoing metadata, as it is;
 - C3 is the spec `metadata.AppendToOutgoingContext.spec` (a trust-boundary axiom: grpc's
   `metadata` is names-only), which `reqCtx`'s proof uses: the bad principal's context has the
   outgoing token values of its timeout context with `badtoken` appended.
@@ -87,34 +88,35 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- **C1**: the handler context `h` of an attempt of a client built with the user name `u`
-carries no token, or one issued to `u` at the auth names `γa` of the member it reached. -/
-def userAttemptOk (γa : auth.AuthNames) (u : GoString) (h : GoInterface) : IProp GF :=
-  iprop(⌜auth.ctxTokenOf h = none⌝ ∨
-    ∃ t : GoString, ⌜auth.ctxTokenOf h = some t⌝ ∗ auth.tokIssued γa t u)
+/-- **C1**: the token `tok` an attempt of a client built with the user name `u` carries (its
+handler context's, `auth.ctxToken`) is none, or one issued to `u` at the auth names `γa` of the
+member it reached. -/
+def userAttemptOk (γa : auth.AuthNames) (u : GoString) (tok : Option GoString) : IProp GF :=
+  iprop(⌜tok = none⌝ ∨ ∃ t : GoString, ⌜tok = some t⌝ ∗ auth.tokIssued γa t u)
 
 /-- **C2 and C4**: the handler context `h` of an attempt of a client with no user name, called
-with the context `c`, carries `c`'s outgoing metadata as its incoming metadata. -/
-def deliversOutgoing (c h : GoInterface) : Prop :=
-  metadata.incomingOf h = metadata.outgoingOf c
+with the context `c`, carries `c`'s outgoing metadata `md` as its incoming metadata
+(`metadata.ctxInMD`). -/
+def deliversOutgoing (c h : GoInterface) (md : Option (GoString → Option (List GoString))) :
+    IProp GF :=
+  iprop(⌜∃ hc : GoInterfaceOk, h = GoInterface.ok hc⌝ ∗
+    (∃ hc : GoInterfaceOk, ⌜h = GoInterface.ok hc⌝ ∗ metadata.ctxInMD hc md) ∗
+    ⌜metadata.outgoingOf c = md⌝)
 
 end contract
 
 theorem trimPrefix_badToken : strings.trimPrefix badToken go!"Bearer " = badToken := by
   unfold strings.trimPrefix; decide
 
-/-- The token of a handler context delivering outgoing metadata whose token values are
-`[badtoken]`. -/
-theorem ctxTokenOf_bad [GooseExts] (c h : GoInterface) (hd : deliversOutgoing c h)
-    (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [badToken]) :
-    auth.ctxTokenOf h = some badToken := by
-  unfold auth.ctxTokenOf
-  rw [hd]
+/-- The token of metadata whose token values are `[badtoken]`. -/
+theorem mdTokenOf_bad (md : Option (GoString → Option (List GoString)))
+    (ht : metadata.mdVals md go!"token" = [badToken]) :
+    auth.mdTokenOf md = some badToken := by
+  unfold auth.mdTokenOf
   unfold metadata.mdVals at ht
-  cases ho : metadata.outgoingOf c with
-  | none => rw [ho] at ht; simp at ht
+  cases md with
+  | none => simp at ht
   | some md =>
-    rw [ho] at ht
     simp only [Option.bind_some] at ht
     cases hm : md go!"token" with
     | none => rw [hm] at ht; simp at ht
@@ -122,7 +124,7 @@ theorem ctxTokenOf_bad [GooseExts] (c h : GoInterface) (hd : deliversOutgoing c 
       rw [hm] at ht
       simp only [Option.getD_some] at ht
       subst ht
-      simp only [hm, trimPrefix_badToken]
+      simp only [trimPrefix_badToken]
 
 section bound
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -131,17 +133,21 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- **The bad principal's request has no principal** (C2, C4 and E2c's facts): the auth info the
-server's `AuthInfoFromCtx` gives for a handler context delivering outgoing metadata whose token
-values are `[badtoken]` is `nil`, in the mode `on γa`. -/
+server's `AuthInfoFromCtx` gives, bound to the token of a handler context `h` delivering the
+outgoing metadata `md` of `c` (`deliversOutgoing`), whose token values are `[badtoken]`, is `nil`, in
+the mode `on γa`. (perheap 1b: the token is the delivered metadata's, `auth.mdTokenOf md`; the
+`deliversOutgoing` premise records the client-to-server link for the reader, the proof needs only
+the token.) -/
 theorem badCtx_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
-    (hd : deliversOutgoing c h)
-    (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [badToken]) :
-    auth.ctxBound (GF := GF) (.on γa) h a ⊢ ⌜a = null⌝ := by
-  iintro H
+    (md : Option (GoString → Option (List GoString)))
+    (ht : metadata.mdVals md go!"token" = [badToken]) :
+    deliversOutgoing (GF := GF) c h md ∗ auth.ctxBound (GF := GF) (.on γa) (auth.mdTokenOf md) a ⊢
+      ⌜a = null⌝ := by
+  iintro ⟨-, H⟩
   unfold auth.ctxBound
   icases H with (%Ha | ⟨%t, %Ht, Hb⟩)
   · ipureintro; exact Ha
-  · rw [ctxTokenOf_bad c h hd ht] at Ht
+  · rw [mdTokenOf_bad md ht] at Ht
     cases Ht
     unfold auth.infoBound
     icases Hb with ⟨-, %u, -, Hu⟩

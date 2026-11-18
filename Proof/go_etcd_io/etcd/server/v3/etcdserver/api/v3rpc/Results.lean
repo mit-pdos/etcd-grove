@@ -390,33 +390,34 @@ theorem txn_end_to_end
 caller's token): `put_end_to_end`'s, and with auth on the grant (`writeGrantOn`). Off it gives
 `put_end_to_end`. -/
 theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
-    (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) :
+    (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : v3rpc.KVDep GF) (na : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
-        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txn.putRequestIs r o ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d ∗
-        ⌜kvDepPreM E.authOn d (.put o)⌝ }}
+        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
+        srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txn.putRequestIs r o ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗
+        ⌜kvDepPreM E.authOn d (.put o)⌝ ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Put")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (match putCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr tok d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.PutResponse go!"Header" resp ↦□ h ∗ hdrFilled h cid mid ∗
               hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗ srvRdCall s E γr c ∗
               putAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
-              (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrPut o))) ∨
+              (⌜E.authOn = true⌝ → writeGrantOn s E ρ tok (irrPut o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ putErrOk s E ρ F o e)) ∗
         go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
-  ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
+  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre, #HtokC⟩ HΦ
+  ihave #HKV := raftKV_serverM s E ρ γr c F d na tok $$ []
   · iframe #; ipureintro; exact Hany
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Put p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
-  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
+  iapply (kvServer.wp_Put p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna HtokC; ipureintro
     first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
@@ -440,33 +441,34 @@ theorem put_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : R
 /-- **`deleteRange_end_to_end` in the server's auth mode** (`put_end_to_endM`'s, for
 `DeleteRange`). -/
 theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
         srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txn.deleteRangeRequestIs r o ∗
-        kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d ∗ ⌜kvDepPreM E.authOn d (.deleteRange o)⌝ }}
+        kvDepOwnM E.authOn s E ρ γr tok d ∗ ⌜kvDepPreM E.authOn d (.deleteRange o)⌝ ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"DeleteRange")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (match deleteCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr tok d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.DeleteRangeResponse go!"Header" resp ↦□ h ∗
               hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ deleteAppliedOk s E ρ.rd F o (opDepQ d) resp rv ∗
-              (⌜E.authOn = true⌝ → writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrDeleteRange o))) ∨
+              (⌜E.authOn = true⌝ → writeGrantOn s E ρ tok (irrDeleteRange o))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ deleteErrOk s E ρ F o e)) ∗
         go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
-  ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
+  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre, #HtokC⟩ HΦ
+  ihave #HKV := raftKV_serverM s E ρ γr c F d na tok $$ []
   · iframe #; ipureintro; exact Hany
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_DeleteRange p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
-  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
+  iapply (kvServer.wp_DeleteRange p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna HtokC; ipureintro
     first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
@@ -490,35 +492,36 @@ theorem deleteRange_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) 
 /-- **`range_end_to_end` in the server's auth mode** (the auth component's stage 4): the read at the
 mode's model (`rangeAnsOkM`), with auth on the read's check (`rangeAuthed`). -/
 theorem range_end_to_endM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (o : OpFull) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
         srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txn.rangeRequestIs r o ∗
-        kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d ∗ ⌜kvDepPreM E.authOn d (.range o)⌝ }}
+        kvDepOwnM E.authOn s E ρ γr tok d ∗ ⌜kvDepPreM E.authOn d (.range o)⌝ ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Range")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (match rangeCheck o with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr tok d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.RangeResponse go!"Header" resp ↦□ h ∗
               hdrFilled h cid mid ∗ hdrRevOut (mvcc.api.mvccReaders E.γ 1) h rv rv' ∗
               srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
               rangeAnsOkM E.authOn E γr c F o resp rv (rangeDepQM E.authOn γr.kv d) ∗
-              (⌜E.authOn = true⌝ → rangeAuthed s E γr c na (auth.ctxTokenOf ctx) o)) ∨
+              (⌜E.authOn = true⌝ → rangeAuthed s E γr c na tok o)) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗
             srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗ srvLeadTimeReader s ∗
             rangeErrDesc E.authOn E γr c F o (rangeDepQM E.authOn γr.kv d) err)) ∗
         go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre⟩ HΦ
-  ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
+  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, Hdep, %Hpre, #HtokC⟩ HΦ
+  ihave #HKV := raftKV_serverM s E ρ γr c F d na tok $$ []
   · iframe #; ipureintro; exact Hany
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Range p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
-  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
+  iapply (kvServer.wp_Range p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ctx r o) $$ [Hc Hc0 Hdep]
+  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna HtokC; ipureintro
     first | exact ⟨trivial, Hpre⟩ | exact ⟨fun _ => rfl, trivial, Hpre⟩ | exact ⟨trivial, trivial, Hpre⟩ | exact ⟨fun _ => trivial, trivial, Hpre⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
@@ -551,19 +554,20 @@ model (`txnReadAnsM`), with auth on a read-only transaction's checks (`txnAuthed
 one's grant. -/
 theorem txn_end_to_endM
     (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (c : w64) (cid mid n : w64) (ctx : GoInterface) (r : Loc) (cs : List CmpModel)
+    (c : w64) (cid mid n : w64) (ctx : GoInterface) (tok : Option GoString) (r : Loc) (cs : List CmpModel)
     (ts es : List ReqOp) (F : mvcc.Log) (d : KVDep GF) (na : Nat) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         ⌜E.authMode ≠ .any⌝ ∗ isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
-        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n ∗
+        kvServerAt p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n ∗
         srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ srvApi.kvLogLb E.γs F ∗ auth.authPubLbM E.authMode na ∗ txnReqIs r cs ts es ∗ txnReqWire r ts es ∗
-        ⌜txnInModel cs ts es⌝ ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d ∗ ⌜kvDepPreM E.authOn d (.txn cs ts es)⌝ }}
+        ⌜txnInModel cs ts es⌝ ∗ kvDepOwnM E.authOn s E ρ γr tok d ∗ ⌜kvDepPreM E.authOn d (.txn cs ts es)⌝ ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.kvServer.ty @!! go!"Txn")) (Val #ctx))
         (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         (match txnAllCheck (sint.Z n) cs ts es with
-        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf ctx) d
+        | some e => checkOut e resp err ∗ srvCall s ρ ctx ∗ srvRdCall s E γr c ∗ kvDepOwnM E.authOn s E ρ γr tok d
         | none =>
           (⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (rv rv' : w64),
               structFieldRef etcdserverpb.TxnResponse go!"Header" resp ↦□ h ∗
@@ -572,22 +576,22 @@ theorem txn_end_to_endM
               ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
                 if txn.txnReadonly t then iprop(idCred ρ.ids 1 ∗
                   txnReadAnsM E.authOn E γr c F t (rangeDepQM E.authOn γr.kv d) resp rv ∗
-                  (⌜E.authOn = true⌝ → txnAuthed s E γr c na (auth.ctxTokenOf ctx) t))
+                  (⌜E.authOn = true⌝ → txnAuthed s E γr c na tok t))
                 else iprop(txnAppliedAns E ρ.rd F t (opDepQ d) resp rv ∗
                   (⌜E.authOn = true⌝ → ∃ tw : txn.TxnModelW, ⌜tw.toModel = t⌝ ∗
-                    writeGrantOn s E ρ (auth.ctxTokenOf ctx) (irrTxn tw)))) ∨
+                    writeGrantOn s E ρ tok (irrTxn tw)))) ∨
           (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ ∃ e : GoInterface,
             srvRdCall s E γr c ∗ srvLeadTimeReader s ∗
             ∃ t, ⌜txnModelOf cs ts es = some t⌝ ∗
               if txn.txnReadonly t then idCred ρ.ids 1 else txnErrOk E ρ F t e)) ∗
         go_etcd_io.etcd.cache.v3.srvErrOk err }} := by
-  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre⟩ HΦ
-  ihave #HKV := raftKV_serverM s E ρ γr c F d na (auth.ctxTokenOf ctx) $$ []
+  iintro %Φ ⟨#Pv, #Ps, %Hany, #Hsrv, #Hsrd, #Hlb, #Hat, Hc, Hc0, #HF, #Hna, #Hr, #Hw, %Hin, Hdep, %Hpre, #HtokC⟩ HΦ
+  ihave #HKV := raftKV_serverM s E ρ γr c F d na tok $$ []
   · iframe #; ipureintro; exact Hany
   ihave #Hks := kvServerIs_of_at p s _ cid mid n $$ [$Hat $HKV]
-  iapply (kvServer.wp_Txn p s (srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf ctx)) cid mid n
+  iapply (kvServer.wp_Txn p s (srvKVAnsM E.authOn s E ρ γr c F d na tok) cid mid n
     ctx r cs ts es) $$ [Hc Hc0 Hdep]
-  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna; ipureintro
+  · iframe #; simp only [srvKVAnsM]; iframe Hc Hc0 Hdep HF Hna HtokC; ipureintro
     first | exact ⟨Hin, Hpre⟩ | exact ⟨fun _ => rfl, Hin, Hpre⟩ | exact ⟨trivial, Hin, Hpre⟩ | exact ⟨fun _ => trivial, Hin, Hpre⟩
   inext
   iintro %resp %err ⟨Hpost, #HSe⟩
@@ -660,27 +664,27 @@ the request applied at the committed prefix before its entry, its admin step suc
 (`adminOutOn`'s `appliedOkM true`, `adminDoneM`); its error, `togRPCError`'s of the apply thread's
 or the proposal's (`authWrapOut`). -/
 theorem authEnable_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF))
     (Qa : List auth.AuthState → IProp GF) (r : Loc) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.authServerIs p s ∗ ⌜r ≠ null⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx irrAuthEnable Qa) }}
+        v3rpc.authServerIs p s ∗ ⌜r ≠ null⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok irrAuthEnable Qa) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"AuthEnable"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        v3rpc.authWrapOut (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa)
+        v3rpc.authWrapOut (adminOutOn s E ρ tok irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa)
           etcdserverpb.AuthEnableResponse.ty) resp err }} := by
   iintro %Φ ⟨#Pv, #Ps, #Has, %Hr, HP⟩ HΦ
   ihave #Hin : v3rpc.authInnerOk s go!"AuthEnable" (GoInterface.ok ctx) r
-      iprop(⌜r ≠ null⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx irrAuthEnable Qa))
-      (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty) $$ []
+      iprop(⌜r ≠ null⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok irrAuthEnable Qa))
+      (adminOutOn s E ρ tok irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty) $$ []
   · iunfold v3rpc.authInnerOk
     iintro !> %Ψ ⟨%Hr', HP'⟩ HΨ
-    iapply (server_auth_enable_on s E ρ ctx cd Qa r F) $$ [HP'] HΨ
+    iapply (server_auth_enable_on s E ρ ctx tok cd Qa r F) $$ [HP'] HΨ
     iframe # HP'
     try (ipureintro; assumption)
-  iapply (AuthServer.wp_AuthEnable p s ctx r iprop(⌜r ≠ null⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx irrAuthEnable Qa))
-      (adminOutOn s E ρ ctx irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty)) $$ [HP] HΦ
+  iapply (AuthServer.wp_AuthEnable p s ctx r iprop(⌜r ≠ null⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok irrAuthEnable Qa))
+      (adminOutOn s E ρ tok irrAuthEnable F (adminQh ρ.kv irrAuthEnable Qa) etcdserverpb.AuthEnableResponse.ty)) $$ [HP] HΦ
   iframe # HP
   try (ipureintro; assumption)
 
@@ -690,27 +694,27 @@ the request applied at the committed prefix before its entry, its admin step suc
 (`adminOutOn`'s `appliedOkM true`, `adminDoneM`); its error, `togRPCError`'s of the apply thread's
 or the proposal's (`authWrapOut`). -/
 theorem roleAdd_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF))
     (Qa : List auth.AuthState → IProp GF) (r : Loc) (name : GoString) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.authServerIs p s ∗ apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrRoleAdd name) Qa) }}
+        v3rpc.authServerIs p s ∗ apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrRoleAdd name) Qa) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleAdd"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        v3rpc.authWrapOut (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa)
+        v3rpc.authWrapOut (adminOutOn s E ρ tok (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa)
           etcdserverpb.AuthRoleAddResponse.ty) resp err }} := by
   iintro %Φ ⟨#Pv, #Ps, #Has, #Hreq, %Hn, HP⟩ HΦ
   ihave #Hin : v3rpc.authInnerOk s go!"RoleAdd" (GoInterface.ok ctx) r
-      iprop(apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrRoleAdd name) Qa))
-      (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty) $$ []
+      iprop(apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrRoleAdd name) Qa))
+      (adminOutOn s E ρ tok (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty) $$ []
   · iunfold v3rpc.authInnerOk
     iintro !> %Ψ ⟨#Hreq', %Hn', HP'⟩ HΨ
-    iapply (server_role_add_on s E ρ ctx cd Qa r name F) $$ [HP'] HΨ
+    iapply (server_role_add_on s E ρ ctx tok cd Qa r name F) $$ [HP'] HΨ
     iframe # HP'
     try (ipureintro; assumption)
-  iapply (AuthServer.wp_RoleAdd p s ctx r iprop(apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrRoleAdd name) Qa))
-      (adminOutOn s E ρ ctx (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty)) $$ [HP] HΦ
+  iapply (AuthServer.wp_RoleAdd p s ctx r iprop(apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrRoleAdd name) Qa))
+      (adminOutOn s E ρ tok (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name) Qa) etcdserverpb.AuthRoleAddResponse.ty)) $$ [HP] HΦ
   iframe # HP
   try (ipureintro; assumption)
 
@@ -720,27 +724,27 @@ the request applied at the committed prefix before its entry, its admin step suc
 (`adminOutOn`'s `appliedOkM true`, `adminDoneM`); its error, `togRPCError`'s of the apply thread's
 or the proposal's (`authWrapOut`). -/
 theorem userGrantRole_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF))
     (Qa : List auth.AuthState → IProp GF) (r : Loc) (user role : GoString) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.authServerIs p s ∗ apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrUserGrantRole user role) Qa) }}
+        v3rpc.authServerIs p s ∗ apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrUserGrantRole user role) Qa) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserGrantRole"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        v3rpc.authWrapOut (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa)
+        v3rpc.authWrapOut (adminOutOn s E ρ tok (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa)
           etcdserverpb.AuthUserGrantRoleResponse.ty) resp err }} := by
   iintro %Φ ⟨#Pv, #Ps, #Has, #Hreq, %Hn, HP⟩ HΦ
   ihave #Hin : v3rpc.authInnerOk s go!"UserGrantRole" (GoInterface.ok ctx) r
-      iprop(apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrUserGrantRole user role) Qa))
-      (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
+      iprop(apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrUserGrantRole user role) Qa))
+      (adminOutOn s E ρ tok (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty) $$ []
   · iunfold v3rpc.authInnerOk
     iintro !> %Ψ ⟨#Hreq', %Hn', HP'⟩ HΨ
-    iapply (server_user_grant_role_on s E ρ ctx cd Qa r user role F) $$ [HP'] HΨ
+    iapply (server_user_grant_role_on s E ρ ctx tok cd Qa r user role F) $$ [HP'] HΨ
     iframe # HP'
     try (ipureintro; assumption)
-  iapply (AuthServer.wp_UserGrantRole p s ctx r iprop(apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrUserGrantRole user role) Qa))
-      (adminOutOn s E ρ ctx (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty)) $$ [HP] HΦ
+  iapply (AuthServer.wp_UserGrantRole p s ctx r iprop(apply.authUserGrantRoleIs r (user, role) ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrUserGrantRole user role) Qa))
+      (adminOutOn s E ρ tok (irrUserGrantRole user role) F (adminQh ρ.kv (irrUserGrantRole user role) Qa) etcdserverpb.AuthUserGrantRoleResponse.ty)) $$ [HP] HΦ
   iframe # HP
   try (ipureintro; assumption)
 
@@ -750,27 +754,27 @@ the request applied at the committed prefix before its entry, its admin step suc
 (`adminOutOn`'s `appliedOkM true`, `adminDoneM`); its error, `togRPCError`'s of the apply thread's
 or the proposal's (`authWrapOut`). -/
 theorem roleGrantPermission_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF))
     (Qa : List auth.AuthState → IProp GF) (r : Loc) (name : GoString) (w : Option auth.PermW) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
         isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        v3rpc.authServerIs p s ∗ apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrRoleGrantPermission name w) Qa) }}
+        v3rpc.authServerIs p s ∗ apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrRoleGrantPermission name w) Qa) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleGrantPermission"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        v3rpc.authWrapOut (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa)
+        v3rpc.authWrapOut (adminOutOn s E ρ tok (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa)
           etcdserverpb.AuthRoleGrantPermissionResponse.ty) resp err }} := by
   iintro %Φ ⟨#Pv, #Ps, #Has, #Hreq, %Hn, HP⟩ HΦ
   ihave #Hin : v3rpc.authInnerOk s go!"RoleGrantPermission" (GoInterface.ok ctx) r
-      iprop(apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrRoleGrantPermission name w) Qa))
-      (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
+      iprop(apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrRoleGrantPermission name w) Qa))
+      (adminOutOn s E ρ tok (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
   · iunfold v3rpc.authInnerOk
     iintro !> %Ψ ⟨#Hreq', %Hn', HP'⟩ HΨ
-    iapply (server_role_grant_permission_on s E ρ ctx cd Qa r name w F) $$ [HP'] HΨ
+    iapply (server_role_grant_permission_on s E ρ ctx tok cd Qa r name w F) $$ [HP'] HΨ
     iframe # HP'
     try (ipureintro; assumption)
-  iapply (AuthServer.wp_RoleGrantPermission p s ctx r iprop(apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx (irrRoleGrantPermission name w) Qa))
-      (adminOutOn s E ρ ctx (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty)) $$ [HP] HΦ
+  iapply (AuthServer.wp_RoleGrantPermission p s ctx r iprop(apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok (irrRoleGrantPermission name w) Qa))
+      (adminOutOn s E ρ tok (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w) Qa) etcdserverpb.AuthRoleGrantPermissionResponse.ty)) $$ [HP] HΦ
   iframe # HP
   try (ipureintro; assumption)
 
@@ -778,11 +782,11 @@ theorem roleGrantPermission_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : 
 `togRPCError`): the hashing's error, nothing proposed (`adminPreOn` back), or the server's answer to
 the proposed request (`userAddOutOn`). -/
 def userAddAnsOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString) (b : Bool)
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString) (b : Bool)
     (Qa : List auth.AuthState → IProp GF) (l : Loc) (err : GoInterface) : IProp GF :=
   iprop((⌜l = null ∧ err ≠ GoInterface.nil⌝ ∗
-      adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa)) ∨
-    userAddOutOn s E ρ ctx F name b Qa l err)
+      adminPreOn s E ρ ctx tok cd F (userAddHistAu s E ρ tok name b Qa)) ∨
+    userAddOutOn s E ρ tok F name b Qa l err)
 
 /-- **`AuthServer.UserAdd` with auth on, end to end** (the auth plan's E3y, 2026-10-27): the
 handler's contract discharged by the server's `UserAdd` with auth on (`server_user_add_on`), the
@@ -792,7 +796,7 @@ prefix before its entry, its admin step succeeding there (`userAddOutOn`'s `appl
 `adminDoneM`); an error is `togRPCError`'s of the hashing's (nothing proposed), the apply thread's
 or the proposal's (`authWrapOut`, `userAddAnsOn`). -/
 theorem userAdd_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF))
     (Qa : List auth.AuthState → IProp GF) (ast : GoInterfaceOk) (r : Loc) (name pw hpw : GoString)
     (o : Loc) (b : Bool) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -803,20 +807,20 @@ theorem userAdd_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
         structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ pw ∗
         structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ hpw ∗
         structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ auth.userOptsAt o b ∗
-        ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa) }}
+        ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx tok cd F (userAddHistAu s E ρ tok name b Qa) }}
       (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"UserAdd"))
         (Val #(GoInterface.ok ctx))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-        v3rpc.authWrapOut (userAddAnsOn s E ρ ctx cd F name b Qa) resp err }} := by
+        v3rpc.authWrapOut (userAddAnsOn s E ρ ctx tok cd F name b Qa) resp err }} := by
   iintro %Φ ⟨#Pv, #Ps, #Has, #Hast, #Hcost, %Hr, #HN, Hpw, Hhpw, #Ho, #Hopts, %Hn, HP⟩ HΦ
   ihave #Hin : v3rpc.authInnerOk s go!"UserAdd" (GoInterface.ok ctx) r
       iprop(structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ pw ∗
         structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ hpw ∗
-        adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
-      (userAddAnsOn s E ρ ctx cd F name b Qa) $$ []
+        adminPreOn s E ρ ctx tok cd F (userAddHistAu s E ρ tok name b Qa))
+      (userAddAnsOn s E ρ ctx tok cd F name b Qa) $$ []
   · iunfold v3rpc.authInnerOk
     iintro !> %Ψ ⟨Hpw', Hhpw', HP'⟩ HΨ
-    iapply (server_user_add_on s E ρ ctx cd Qa ast r name pw hpw o b F) $$ [Hpw' Hhpw' HP']
+    iapply (server_user_add_on s E ρ ctx tok cd Qa ast r name pw hpw o b F) $$ [Hpw' Hhpw' HP']
     · iframe # Hpw' Hhpw' HP'
       try (ipureintro; first | assumption | exact ⟨Hr, Hn⟩)
     inext
@@ -847,19 +851,19 @@ theorem userAdd_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (c
         iright; iexact HQ
   iapply (AuthServer.wp_UserAdd p s ctx r iprop(structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ pw ∗
         structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ hpw ∗
-        adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
-      (userAddAnsOn s E ρ ctx cd F name b Qa)) $$ [Hpw Hhpw HP] HΦ
+        adminPreOn s E ρ ctx tok cd F (userAddHistAu s E ρ tok name b Qa))
+      (userAddAnsOn s E ρ ctx tok cd F name b Qa)) $$ [Hpw Hhpw HP] HΦ
   iframe # Hpw Hhpw HP
 
 /-- `UserAdd`'s answer (`authWrapOut` of `userAddAnsOn`, the password choice `false`): the run's
 slot back and, on `nil`, the reply (`userAddReplied`). -/
 theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString)
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString)
     (Qa : List auth.AuthState → IProp GF) (resp : Loc)
     (err : GoInterface) :
-    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx cd F name false Qa) resp err ⊢
+    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx tok cd F name false Qa) resp err ⊢
       authSlot s E ∗
-        (⌜err = GoInterface.nil⌝ -∗ userAddReplied s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) name Qa) := by
+        (⌜err = GoInterface.nil⌝ -∗ userAddReplied s E ρ tok name Qa) := by
   iintro H
   iunfold v3rpc.authWrapOut at H
   icases H with (⟨%He, H⟩ | ⟨%Hr, -, %e0, %He0, H⟩)
@@ -869,7 +873,7 @@ theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
     · exact absurd rfl Hc.2
     iunfold userAddOutOn at H
     icases H with ⟨%um, %Hum, H⟩
-    ihave ⟨Hs, Hrep⟩ := adminOutOn_reply s E ρ ctx (irrUserAdd um) Qa F _ resp GoInterface.nil $$ H
+    ihave ⟨Hs, Hrep⟩ := adminOutOn_reply s E ρ tok (irrUserAdd um) Qa F _ resp GoInterface.nil $$ H
     iframe Hs
     iintro -
     unfold userAddReplied
@@ -888,16 +892,16 @@ theorem authWrapOut_userAdd (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
       exact absurd He Hr.2
     · iunfold userAddOutOn at H
       icases H with ⟨%um, -, H⟩
-      ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ ctx (irrUserAdd um) Qa F _ null e0 $$ H
+      ihave ⟨Hs, -⟩ := adminOutOn_reply s E ρ tok (irrUserAdd um) Qa F _ null e0 $$ H
       iframe Hs
       iintro %He
       exact absurd He Hr.2
 
 /-- **`AuthServer.UserAdd`'s answer is not `nil` without an error** (`adminOutOn_nn`). -/
 theorem authWrapOut_userAdd_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString)
+    (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (F : mvcc.Log) (name : GoString)
     (Qa : List auth.AuthState → IProp GF) (resp : Loc) (err : GoInterface) :
-    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx cd F name false Qa) resp err ⊢
+    v3rpc.authWrapOut (userAddAnsOn s E ρ ctx tok cd F name false Qa) resp err ⊢
       ⌜err = GoInterface.nil → resp ≠ null⌝ := by
   iintro H
   iunfold v3rpc.authWrapOut at H
@@ -908,7 +912,7 @@ theorem authWrapOut_userAdd_nn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ct
     · exact absurd rfl Hc.2
     iunfold userAddOutOn at H
     icases H with ⟨%um, -, H⟩
-    ihave %Hn := v3rpc.adminOutOn_nn s E ρ ctx (irrUserAdd um) F _ _ resp rfl $$ H
+    ihave %Hn := v3rpc.adminOutOn_nn s E ρ tok (irrUserAdd um) F _ _ resp rfl $$ H
     ipureintro; intro _; exact Hn
   · ipureintro; intro He; exact absurd He Hr.2
 
@@ -940,11 +944,14 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   icases Ho with ⟨Hpw, Hhpw⟩
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdUserAddSpec at Hspec
-  rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
-    auth.ctxTokenOf (GoInterface.ok ci) from rfl]
   icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hu, Hk⟩
-  ihave #Hu' : iprop(□ userAddHistAu s E ρ ci m.name false Qa) $$ []
+  ihave #Hu' : iprop(□ userAddHistAu s E ρ (auth.mdTokenOf md) m.name false Qa) $$ []
   · unfold userAddHistAu
     iintro !> %um %Hum
     iapply adminHistAu_of_tok
@@ -956,7 +963,7 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
-  iapply (userAdd_end_to_end_on p s E ρ ci cd Qa ast r m.name m.pw [] o false []) $$
+  iapply (userAdd_end_to_end_on p s E ρ ci (auth.mdTokenOf md) cd Qa ast r m.name m.pw [] o false []) $$
     [Hpw Hhpw Hlt Hrd Hid]
   · unfold adminPreOn
     iframe; iframe #
@@ -964,8 +971,8 @@ theorem etcd_userAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (a
   inext
   iintro %resp %err Hout
   ihave ⟨#HSe, Hout⟩ := v3rpc.authWrapOut_srvErrOk _ resp err $$ Hout
-  ihave %Hrn := authWrapOut_userAdd_nn s E ρ ci cd [] m.name Qa resp err $$ Hout
-  ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci cd [] m.name Qa resp err $$ Hout
+  ihave %Hrn := authWrapOut_userAdd_nn s E ρ ci (auth.mdTokenOf md) cd [] m.name Qa resp err $$ Hout
+  ihave ⟨Hs, Hrep⟩ := authWrapOut_userAdd s E ρ ci (auth.mdTokenOf md) cd [] m.name Qa resp err $$ Hout
   ihave Hed := handlerErr_all (GF := GF) Ψe err $$ HΨe
   iapply HΨ
   iframe Hed
@@ -992,18 +999,21 @@ theorem etcd_roleAddHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdRoleAddSpec at Hspec
-  rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
-    auth.ctxTokenOf (GoInterface.ok ci) from rfl]
   icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
-  ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
+  ihave #Hha' := adminHistAu_of_tok s E ρ (auth.mdTokenOf md) _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
-  iapply (roleAdd_end_to_end_on p s E ρ ci cd Qa r m []) $$ [Hlt Hrd Hid]
+  iapply (roleAdd_end_to_end_on p s E ρ ci (auth.mdTokenOf md) cd Qa r m []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     simp only [apply.authRoleAddIs, auth.roleAddReqIs, pbAuthRoleAddRequest]
     iframe; iframe #
@@ -1039,18 +1049,21 @@ theorem etcd_userGrantRoleHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdUserGrantRoleSpec at Hspec
-  rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
-    auth.ctxTokenOf (GoInterface.ok ci) from rfl]
   icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
-  ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
+  ihave #Hha' := adminHistAu_of_tok s E ρ (auth.mdTokenOf md) _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
-  iapply (userGrantRole_end_to_end_on p s E ρ ci cd Qa r m.1 m.2 []) $$ [Hlt Hrd Hid]
+  iapply (userGrantRole_end_to_end_on p s E ρ ci (auth.mdTokenOf md) cd Qa r m.1 m.2 []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     simp only [apply.authUserGrantRoleIs, pbAuthUserGrantRoleRequest]
     iframe; iframe #
@@ -1086,18 +1099,21 @@ theorem etcd_roleGrantPermissionHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : 
   iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, -, Hspec⟩ HΨ
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdRoleGrantPermissionSpec at Hspec
-  rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
-    auth.ctxTokenOf (GoInterface.ok ci) from rfl]
   icases Hspec with ⟨#HΨe, %Qa, %Hn, #Hha, Hk⟩
-  ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
+  ihave #Hha' := adminHistAu_of_tok s E ρ (auth.mdTokenOf md) _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
-  iapply (roleGrantPermission_end_to_end_on p s E ρ ci cd Qa r m.1 (some m.2) []) $$ [Hlt Hrd Hid]
+  iapply (roleGrantPermission_end_to_end_on p s E ρ ci (auth.mdTokenOf md) cd Qa r m.1 (some m.2) []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     simp only [apply.authRoleGrantPermissionIs, pbAuthRoleGrantPermissionRequest]
     iframe; iframe #
@@ -1134,18 +1150,21 @@ theorem etcd_authEnableHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
   simp only [pbAuthEnableRequest] at *
   iunfold authSlot at Hslot
   icases Hslot with ⟨Hlt, Hrd⟩
+  iunfold grpcSpecAt at Hk
+  icases Hk with ⟨%md, #Hmd, Hk⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdAuthEnableSpec at Hk
-  rw [show auth.mdTokenOf (metadata.incomingOf (GoInterface.ok ci)) =
-    auth.ctxTokenOf (GoInterface.ok ci) from rfl]
   icases Hk with ⟨#HΨe, %Qa, #Hha, Hk⟩
-  ihave #Hha' := adminHistAu_of_tok s E ρ ci _ Qa $$ Hha
+  ihave #Hha' := adminHistAu_of_tok s E ρ (auth.mdTokenOf md) _ Qa $$ Hha
   ihave Hu := HNR
   imod Hu with Hid
   imod (v3rpc.kvLogLb_nil (GF := GF) E.γs) with #HF
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
-  iapply (authEnable_end_to_end_on p s E ρ ci cd Qa r []) $$ [Hlt Hrd Hid]
+  iapply (authEnable_end_to_end_on p s E ρ ci (auth.mdTokenOf md) cd Qa r []) $$ [Hlt Hrd Hid]
   · unfold adminPreOn
     iframe; iframe #
   inext
@@ -1757,11 +1776,15 @@ theorem watch_streamHandlerOk (p : Loc) (R : WSrv GF) (W : SrvW GF) (N₂ N₃ :
   iintro ⟨#Hinit, #Hws, #HW, #Hp2, #Hp3⟩
   unfold grpcStreamHandlerOk
   iintro !> %γs %Dn %ci %cd %st %Φ HSpec ⟨Hrd, Hl4⟩ #Hst HRt HSt HAux HΦ
-  ihave HSpec : watchStreamSpec γs R W (auth.ctxTokenOf (GoInterface.ok ci)) Dn $$ [HSpec]
-  · rw [auth.ctxTokenOf_md]
-    iexact HSpec
+  iunfold grpcStreamSpecAt at HSpec
+  icases HSpec with ⟨%md, #Hmd, HSpec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜R.E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
+  ihave HSpec : watchStreamSpec γs R W (auth.mdTokenOf md) Dn $$ [HSpec]
+  · iexact HSpec
   ihave #Hup := upOk_watchUp (GF := GF) R
-  iapply (watch_server p R W st γs (watchUp R) Dn ci cd N₂ N₃ γ₂ γ₃ F₂ F₃)
+  iapply (watch_server p R W st γs (watchUp R) Dn ci (auth.mdTokenOf md) cd N₂ N₃ γ₂ γ₃ F₂ F₃)
     $$ [HSpec HRt HSt HAux Hrd Hl4]
   · iframe
     iframe #

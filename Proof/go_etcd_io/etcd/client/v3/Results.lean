@@ -1206,21 +1206,25 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbPutRequest (GF := GF)).recv r o = txn.putRequestIs r o from rfl]
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdPutSpecM at Hspec
-  rw [← auth.ctxTokenOf_md]
   icases Hspec with ⟨#HΨe, %F, #HF, Hspec⟩
   ihave ⟨%d, Hdep, %Hdp, Hk⟩ : iprop(∃ d : v3rpc.KVDep GF,
-      v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
+      v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.mdTokenOf md) d ∗
       ⌜v3rpc.kvDepPreM E.authOn d (.put o)⌝ ∗
       ∀ m : PutRespM, putReplied E ρ.rd F o (v3rpc.opDepQ d) cid mid m -∗
         (⌜E.authOn = false⌝ → kvRevLb ρ.rd.kv m.hdr.revision) -∗
-        (⌜E.authOn = true⌝ → v3rpc.writeGrantOn s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) (irrPut o)) -∗
+        (⌜E.authOn = true⌝ → v3rpc.writeGrantOn s E ρ (auth.mdTokenOf md) (irrPut o)) -∗
         Φ m)
       $$ [Hspec]
   · icases Hspec with ⟨%Q, %Hpl, Hau, Hk⟩
     iexists (.op1 (.put o) Q)
-    rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci))
-      (.op1 (.put o) Q) = v3rpc.kvOpAuM E.authOn s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) (.put o) Q
+    rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.mdTokenOf md)
+      (.op1 (.put o) Q) = v3rpc.kvOpAuM E.authOn s E ρ (auth.mdTokenOf md) (.put o) Q
       from rfl]
     isplitl [Hau]
     · iexact Hau
@@ -1230,7 +1234,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iapply Hk
     simp only [v3rpc.opDepQ]; iexact Hm
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
-    (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F d 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
+    (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F d 0 (auth.mdTokenOf md)) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
@@ -1245,7 +1249,7 @@ theorem etcd_putHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     iexact H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
   iapply wp_fupd
-  iapply (v3rpc.put_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F d 0) $$
+  iapply (v3rpc.put_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r o F d 0) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
@@ -1387,8 +1391,12 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbRangeRequest (GF := GF)).recv r o = txn.rangeRequestIs r o from rfl]
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdRangeSpecM at Hspec
-  rw [← auth.ctxTokenOf_md]
   icases Hspec with ⟨%c, %F, %Q, %na, #Hc0, #HF, #Hna, Hdq, HΨc, HΨr, Hk⟩
   ihave ⟨%d, Hdep, %Hdp, %Hdd⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwn ρ γr d ∗
       ⌜v3rpc.kvDepPre d (.range o)⌝ ∗
@@ -1406,7 +1414,7 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
       ipureintro
       exact ⟨(fun Q' h => by cases h; exact Hser), Or.inr rfl⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
-    (v3rpc.srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
+    (v3rpc.srvKVAnsM E.authOn s E ρ γr c F d na (auth.mdTokenOf md)) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
@@ -1414,9 +1422,9 @@ theorem etcd_rangeHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr 
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrc
   ihave Hu := HNR
   imod Hu with Hid
-  imod (v3rpc.kvDepOwnM_of_dep E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d) $$ Hdep with Hdep
+  imod (v3rpc.kvDepOwnM_of_dep E.authOn s E ρ γr (auth.mdTokenOf md) d) $$ Hdep with Hdep
   iapply wp_fupd
-  iapply (v3rpc.range_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) r o F d na) $$
+  iapply (v3rpc.range_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r o F d na) $$
     [Hlt Hsr Hlg Hrd Hard Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
@@ -1557,11 +1565,15 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   iintro %o %Φ %Ψe %ci %cd %r !> %Ψ ⟨Hslot, #Hctx, #Hrc, #Hr, Hspec⟩ HΨ
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbDeleteRangeRequest (GF := GF)).recv r o = txn.deleteRangeRequestIs r o from rfl]
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdDeleteSpecM at Hspec
-  rw [← auth.ctxTokenOf_md]
   icases Hspec with ⟨#HΨe, %Hsh, %F, #HF, %Q, %Hz, Hau, Hk⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
-    (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F (.op1 (.deleteRange o) Q) 0 (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
+    (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) F (.op1 (.deleteRange o) Q) 0 (auth.mdTokenOf md)) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd, Hard⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
@@ -1575,11 +1587,11 @@ theorem etcd_deleteHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
     rw [show uint.nat (W64 0) = 0 from rfl]
     iexact H0
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna
-  rw [show v3rpc.kvOpAuM (GF := GF) E.authOn s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) (.deleteRange o) Q =
-      v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) (.op1 (.deleteRange o) Q)
+  rw [show v3rpc.kvOpAuM (GF := GF) E.authOn s E ρ (auth.mdTokenOf md) (.deleteRange o) Q =
+      v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.mdTokenOf md) (.op1 (.deleteRange o) Q)
       from rfl]
   iapply wp_fupd
-  iapply (v3rpc.deleteRange_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) r o F
+  iapply (v3rpc.deleteRange_end_to_endM p s E ρ γr (W64 0) cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r o F
       (.op1 (.deleteRange o) Q) 0) $$ [Hlt Hsr Hlg Hrd Hard Hid Hau]
   · iframe # Hau
     unfold v3rpc.srvCall srvRdCall
@@ -1893,19 +1905,23 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   ihave #Htr := ctxTraceIs_none_of_runCtx ci $$ Hrc
   rw [show (pbTxnRequest (GF := GF)).recv r t = iprop(txn.txnRequestIs r t ∗ txnWireOk r t)
     from rfl]
+  iunfold grpcSpecAt at Hspec
+  icases Hspec with ⟨%md, #Hmd, Hspec⟩
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iunfold etcdTxnSpecM at Hspec
-  rw [← auth.ctxTokenOf_md]
   icases Hspec with ⟨#HΨe, %Hpl, %Q, Hnp, %c, %F, %na, #Hc0, #HF, #Hna, Hspec⟩
   obtain ⟨hin, hsh⟩ := Hpl
   icases Hr with ⟨#Hreq, #Hw⟩
   ihave ⟨%ts, %es, #Htq, #Htw, %Hmod⟩ := txnReq_of_requestIs r t $$ [$Hreq $Hw]
-  ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) d ∗
+  ihave ⟨%d, Hdep, %Hdp, %HdQ⟩ : iprop(∃ d : v3rpc.KVDep GF, v3rpc.kvDepOwnM E.authOn s E ρ γr (auth.mdTokenOf md) d ∗
       ⌜v3rpc.kvDepPre d (.txn t.cmps ts es)⌝ ∗
       ⌜(txn.txnReadonly t = true ∧ ((d = .none ∧ Q = fun _ => iprop(True)) ∨ d = .read Q)) ∨
         (txn.txnReadonly t = false ∧ d = .op1 (.txn t) Q)⌝) $$ [Hnp]
   · icases Hnp with (%Hro | ⟨%Hrs, #Hau⟩ | ⟨%Hw, Hau⟩)
     · iexists .none
-      rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) .none = iprop(True) from rfl]
+      rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.mdTokenOf md) .none = iprop(True) from rfl]
       isplitr
       · itrivial
       ipureintro
@@ -1915,7 +1931,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       cases ht'
       left; exact ⟨Hro.1, fun Q' h => by cases h⟩
     · iexists (.read Q)
-      rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) (.read Q) = kvReadAu γr.kv Q from rfl]
+      rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.mdTokenOf md) (.read Q) = kvReadAu γr.kv Q from rfl]
       iframe Hau
       ipureintro
       refine ⟨?_, Or.inl ⟨Hrs.1, Or.inr rfl⟩⟩
@@ -1924,8 +1940,8 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       cases ht'
       left; exact ⟨Hrs.1, fun Q' _ => Hrs.2⟩
     · iexists (.op1 (.txn t) Q)
-      rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.ctxTokenOf (GoInterface.ok ci)) (.op1 (.txn t) Q) =
-        v3rpc.kvOpAuM E.authOn s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) (.txn t) Q from rfl]
+      rw [show v3rpc.kvDepOwnM (GF := GF) E.authOn s E ρ γr (auth.mdTokenOf md) (.op1 (.txn t) Q) =
+        v3rpc.kvOpAuM E.authOn s E ρ (auth.mdTokenOf md) (.txn t) Q from rfl]
       iframe Hau
       ipureintro
       refine ⟨?_, Or.inr ⟨Hw.1, rfl⟩⟩
@@ -1939,7 +1955,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
         siblingSafeL_of_model ts t.thenOps hfl.1 hs1,
         siblingSafeL_of_model es t.elseOps hfl.2 hs2, hn1, hn2⟩
   rw [v3rpc.kvServerAt_revR p s (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)
-    (v3rpc.srvKVAnsM E.authOn s E ρ γr c F d na (auth.ctxTokenOf (GoInterface.ok ci))) cid mid n rfl]
+    (v3rpc.srvKVAnsM E.authOn s E ρ γr c F d na (auth.mdTokenOf md)) cid mid n rfl]
   iunfold etcdRunSlot at Hslot
   icases Hslot with ⟨Hlt, Hsr, Hlg, Hrd⟩
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrc
@@ -1948,7 +1964,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   ihave Hu := HNR
   imod Hu with Hid
   iapply wp_fupd
-  iapply (v3rpc.txn_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
+  iapply (v3rpc.txn_end_to_endM p s E ρ γr c cid mid n (GoInterface.ok ci) (auth.mdTokenOf md) r t.cmps ts es F d na) $$ [Hlt Hsr Hlg Hrd Hid Hdep]
   · iframe #
     unfold v3rpc.srvCall srvRdCall
     isplitl []
@@ -2009,7 +2025,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
           · exact h
           · rw [hro] at h; cases h
         ihave #HQl' := readQ_of_ansM E.authOn γr d Q (txn.txnSerializable t) log hdq $$ HQl
-        ihave Ha : iprop(⌜E.authOn = true⌝ → txnAuthOn s E ρ γr c na (auth.ctxTokenOf (GoInterface.ok ci)) t)
+        ihave Ha : iprop(⌜E.authOn = true⌝ → txnAuthOn s E ρ γr c na (auth.mdTokenOf md) t)
             $$ [Hau]
         · iintro %hon
           unfold txnAuthOn; simp only [hro, ↓reduceIte]
@@ -2044,7 +2060,7 @@ theorem etcd_txnHandlerM (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
       | false =>
         simp only [hro, Bool.false_eq_true, ↓reduceIte]
         icases Hans with ⟨Hans, Hg⟩
-        ihave Ha : iprop(⌜E.authOn = true⌝ → txnAuthOn s E ρ γr c na (auth.ctxTokenOf (GoInterface.ok ci)) t)
+        ihave Ha : iprop(⌜E.authOn = true⌝ → txnAuthOn s E ρ γr c na (auth.mdTokenOf md) t)
             $$ [Hg]
         · iintro %hon
           unfold txnAuthOn; simp only [hro, Bool.false_eq_true, ↓reduceIte]
@@ -2391,6 +2407,8 @@ theorem etcd_compactMethodM (p q s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
       · iexact Hd)) $$ Hmc'
   · unfold grpcMethodOkMd
     iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨-, -, -, -, -, HSpec⟩ -
+    iunfold grpcSpecAt at HSpec
+    icases HSpec with ⟨%md, -, HSpec⟩
     simp only [GrpcSpec.md, etcdCompactSpecM]
     icases HSpec with ⟨⟨%h, -⟩, -⟩
     cases h
