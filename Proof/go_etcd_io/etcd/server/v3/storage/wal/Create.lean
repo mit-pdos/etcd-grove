@@ -960,7 +960,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           (createStream Mr md).length ([] ++ ys1 ++ ys2) pend2
           (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md))
         «$a0_ptr» snapC0.model false true (fun _ => iprop(True)))
-      $$ [Hpre Henc HW2] as %serr3 ⟨%snapi', %enti', Hpre, %hse3, Hr3⟩
+      $$ [Hpre Henc HW2 fp] as %serr3 ⟨%snapi', %enti', Hpre, fp, %hse3, Hr3⟩
     · dsimp only
       isplitr
       · ipureintro; exact Or.inl (by simp [snapC0, WalSnapC.model])
@@ -970,6 +970,10 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
       · ipureintro; omega
       isplitr
       · ipureintro; exact hsyncOk
+      isplitr
+      · ipureintro
+        exact os.fileWI_preSeekOk f fd _ _ _ _ m2 _ _ (by
+          have := createStream_room Mr md hMr hmd; omega)
       iframe; iframe #
     icases Hr3 with (⟨%he3, Henc, HS⟩ | ⟨%he3, %c3, %pend3, Henc, HBW⟩)
     rotate_left

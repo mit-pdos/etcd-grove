@@ -361,8 +361,8 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
     -- taken back after it
     iapply fupd_wp
     imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [H14]
-      with ⟨%γs, H14, -⟩
-    · iapply walHdlF_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ H14
+      with ⟨%γs, H14⟩
+    · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ H14
     imodintro
     wp_apply (lc := 1) (wp_Release W e.R e.jr e.area w (tWalDir e.area) γs 1 a ta (tCandHist o c).length
         (tCandMark (tSnapO o a ta) c) ⟨[W64 1], [], [], [], false⟩
@@ -376,7 +376,7 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       with H14
     · iframe H14 Hlc1
     imodintro
-    ihave H14 := walHdl_wf (W := W) ioNone _ _ _ _ _ $$ H14
+    ihave H14 := walHdl_wf (W := W) ioNone _ _ _ _ $$ H14
     cases err with
     | ok ie =>
       wp_auto

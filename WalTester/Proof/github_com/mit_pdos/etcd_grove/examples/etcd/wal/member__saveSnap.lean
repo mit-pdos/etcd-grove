@@ -107,16 +107,11 @@ theorem member.saveSnap.wp_proof
     «$v1» with #Hsnap
   ihave Hau := tInv_snapAu W e γ o c d idx term hok hi ht hsim $$ [Hwo Ho]
   · iframe; iframe #
-  -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`, where the
-  -- budget fact is vacuous) and taken back after it
+  -- the member's handle, shared for the call (the tester assumes nothing of I/O errors: `ioNone`) and taken back after it
   iapply fupd_wp
   imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-    with ⟨%γs, Hws, Hu⟩
-  · iapply walHdlF_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
-  ihave Hau := walAu_snapC (W := W) (tWalDir e.area) γs _ true
-    (fun u => walCov ioNone → u + snapRoom walRaftMr (absSnapMd idx term) ≤ walSnapBudget)
-    (fun u => u + snapRoom walRaftMr (absSnapMd idx term)) _ 0 (fun hc => absurd hc walCov_ioNone) $$ [Hu Hau]
-  · iframe Hu Hau
+    with ⟨%γs, Hws⟩
+  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
   imodintro
   wp_apply (lc := 1) (wp_SaveSnapshot W e.R e.jr e.area w (tWalDir e.area) (.shared γs 1) «$a0_ptr»
       (absSnapMd idx term) true true _) $$ [Hws Hau]
@@ -134,7 +129,7 @@ theorem member.saveSnap.wp_proof
       with Hwf
     · iframe Hws Hlc1
     imodintro
-    ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ _ $$ Hwf
+    ihave Hwf := walHdl_wf (W := W) ioNone _ _ _ _ $$ Hwf
     subst d0
     try wp_auto
     have hd' := tMemOk_snap1 hok hi ht hsim

@@ -99,8 +99,8 @@ theorem member.close.wp_proof
   -- whole share
   iapply fupd_wp
   imod walOpenWS_alloc (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) ⊤ $$ [Hwf]
-    with ⟨%γs, Hws, -⟩
-  · iapply walHdlF_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
+    with ⟨%γs, Hws⟩
+  · iapply walHdl_of_wf (W := W) ioNone _ _ _ _ walCov_ioNone $$ Hwf
   imodintro
   wp_apply (wp_Close W e.R e.jr (e.area) w (tWalDir e.area) (.shared γs)
       (fun d' => iprop(⌜d' = d⌝ ∗ tWalOwn γ (some d)))) $$ [Hws Hpw Hwo]

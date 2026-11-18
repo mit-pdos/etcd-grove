@@ -33,13 +33,6 @@ variable [GooseExts]
 def saveRoom (Mr : WalMarshal) (hs : HardStateM) (es : List EntryM) : Nat :=
   (es.map (fun e => (Mr.encEntry e).length + 64)).sum + ((Mr.encState hs).length + 64)
 
-open Classical in
-/-- **The room used after a `Save` of `hs` and `es`** (`walUsed`, `HandleShared.lean`): kept by the shortcut
-(an empty state and no entries: nothing written), none after a write (the tail ends below `2 ^ 43`: below
-`SegmentSizeBytes`, or a cut's fresh segment). -/
-def walUsedAfterSave (u : Nat) (hs : HardStateM) (es : List EntryM) : Nat :=
-  if hsEmptyP hs ∧ es = [] then u else 0
-
 end pure
 
 section spec
@@ -72,9 +65,8 @@ abbrev WalPbIn.ZeroLaw (P : WalPbIn GF) : Prop :=
 would wrap, as the main tree's spec says), and each entry's encoding below `2^40` bytes (each record
 must fit a frame, whose length field has 56 bits, and the encoder's `2^47`; ledger 2026-11-14, "no
 bound on the records' size"). When `Sio` covers every inode, the batch's frames fit the handle's room
-(`saveRoom … ≤ walSaveRoom`, the fresh room less the snapshots' budget: a write past ext4's `s_maxbytes`,
-`fsExt`'s `maxBytes`, fails with `EFBIG` whatever the premise). The update carries the client's view of the
-room the snapshot records used (`walUsed γ u`), which a writing `Save` frees (`walUsedAfterSave`). The update commits right after `w.mu.Lock()`, before any record is encoded (a
+(`saveRoom … ≤ walFreshRoom`, the room a fresh tail leaves: a write past ext4's `s_maxbytes`, `fsExt`'s
+`maxBytes`, fails with `EFBIG` whatever the premise). The update commits right after `w.mu.Lock()`, before any record is encoded (a
 crash mid-call leaves an image of `H ++ [op]` past the mark, `walImg`); then the entries' records, `st`'s
 unless empty (`saveState`), then a `sync` if `MustSync`, or a `cut` if the tail reached
 `SegmentSizeBytes` (which syncs). `Save` of an empty state and no entries writes nothing (S/wal.go:1079)
@@ -91,10 +83,9 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (P : WalPbIn GF) (Mr 
     (Q : WalDur → IProp GF),
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗ ⌜walCov Sio ∨ q = 1⌝ ∗
       P.hsIn hp hs ∗ sl ↦*□ esL ∗ walEntsIn P esL es ∗ ⌜∀ e ∈ es, uint.nat e.Index' < 2 ^ 64 - 1⌝ ∗
-      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗ ⌜walCov Sio → saveRoom Mr hs es ≤ walSaveRoom⌝ ∗
-      AU <{ ∃∃ (d : WalDur) (u : Nat), WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] } ∗
-            walUsed γ (walUsedAfterSave u hs es), COMM Q d }> }}
+      ⌜∀ e ∈ es, (Mr.encEntry e).length < 2 ^ 40⌝ ∗ ⌜walCov Sio → saveRoom Mr hs es ≤ walFreshRoom⌝ ∗
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAt dir { d with H := d.H ++ [(WalOpG.save hs es).toRaw] }, COMM Q d }> }}
     (App (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Save")) (Val #hp)) (Val #sl))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗

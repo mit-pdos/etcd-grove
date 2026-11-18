@@ -558,8 +558,11 @@ theorem WalAbsD.cuts_le {C : WalCodec} {Mr : WalMarshal} {d : WalDur} {lay : Wal
     (h : WalAbsD C Mr d lay ents) : lay.cuts.length ≤ d.H.length := by
   have := length_le_of_pairwise_lt (m := 0) (N := d.H.length) (Nat.zero_le _) h.cuts.2.1 (fun b hb => by
     refine ⟨h.cutPos b hb, ?_⟩
-    rcases h.cuts.1 b hb with h0 | ⟨hh, es, hb', -⟩
+    rcases h.cuts.1 b hb with h0 | ⟨hh, es, hb', -⟩ | ⟨m, hb'⟩
     · omega
+    · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
+      · simp only [histM, List.length_map] at h1; omega
+      · rw [List.getElem?_eq_none h1] at hb'; cases hb'
     · rcases Nat.lt_or_ge (b - 1) (histM d).length with h1 | h1
       · simp only [histM, List.length_map] at h1; omega
       · rw [List.getElem?_eq_none h1] at hb'; cases hb')

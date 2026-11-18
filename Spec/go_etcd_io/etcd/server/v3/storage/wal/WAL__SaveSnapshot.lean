@@ -33,24 +33,25 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
-/-- **`w.SaveSnapshot(e)`** (S/wal.go:1137-1162): one snapshot record of `e`'s index and term (its conf state
-non-nil unless the index is 0, `ValidateSnapshotForWrite`), then `sync`; `snapi` and `enti` each raised to the
-index if below it.
+/-- **`w.SaveSnapshot(e)`** (S/wal.go:1148-1184, with the fork's fixes 0007-0008): one snapshot record of
+`e`'s index and term (its conf state non-nil unless the index is 0, `ValidateSnapshotForWrite`); `snapi` and
+`enti` each raised to the index if below it; then, as `Save`, a `sync` if the tail is below
+`SegmentSizeBytes` (or the WAL has no file pipeline yet, `w.fp == nil`: `Create`'s call), else a `cut` (which
+syncs).
 
 *`shared γ q`* (an open WAL): the index below `2^64-1`, the encoding below `2^40` bytes (ledger 2026-11-14); the
-update commits after `w.mu.Lock()`, before the record is encoded, and carries the client's view of the room
-the snapshot records used since the tail was last fresh (`walUsed γ u`, raised by the record's room
-`snapRoom`), which, when `Sio` covers every inode, must stay within `walSnapBudget` (a write past ext4's
-`s_maxbytes` fails with `EFBIG` whatever the premise). *Success*: the share, `Q d`, the history written and
-synced to its new length. *Error* (only when `Sio` misses an inode, and then the caller holds the whole share:
-the encode's write, the flush, the fdatasync): committed (`Q d`), the handle lost, as `Save`'s.
+update commits after `w.mu.Lock()`, before the record is encoded. *Success*: the share, `Q d`, the history
+written and synced to its new length. *Error* (only when `Sio` misses an inode, and then the caller holds the
+whole share: the encode's write, the flush, a `Seek`, the fdatasync, the cut): committed (`Q d`), the handle
+lost, as `Save`'s.
 
 *`pre …`* (`Create`'s `w` before the rename, `walPreIn`; its encoder writes the first segment in `nm.tmp`, a
 file the program owns wholly, whose writer is generic: `W` accepted, `B` broken, `io.writerStream`, and `S`
 what an fdatasync of the file makes of `W out`, `walPreSyncOk`): the record encoded after what the encoder
 holds, within the encoder's `2^47` bound (`lim < 2^47`, `Create`'s segment size). Success: the encoder empty,
 its CRC after the record, everything accepted and synced (`S`). Error: the encoder holds anything, the writer
-in some broken or accepted state (`Create` only closes the file then). -/
+in some broken or accepted state (`Create` only closes the file then). The tail's offset (`w.tail().Seek`)
+is the writer's accepted length (`walPreSeekOk`); `w.fp` is nil (no pipeline yet), so it never cuts. -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn GF) (Mr : WalMarshal) : Prop :=
   ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (st : WalSnapSt GF) (sp : Loc)
     (md : SnapshotMetadataM) (cs : Bool) (sized : Bool) (Q : WalDur → IProp GF),
@@ -59,13 +60,14 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
           ⌜walCov Sio ∨ q = 1⌝ ∗ walSnapAt Mr sp md cs ∗
           ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
           ⌜(Mr.encSnap md).length < 2 ^ 40⌝ ∗
-          AU <{ ∃∃ (d : WalDur) (u : Nat), WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u ∗
-              ⌜walCov Sio → u + snapRoom Mr md ≤ walSnapBudget⌝ }> @ walAuMask, ∅
-            <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] } ∗ walUsed γ (u + snapRoom Mr md),
-              COMM Q d }>)
+          AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+            <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] }, COMM Q d }>)
       | .pre lg mds mdb e lt f snapi enti Wr Br Sr lim out pend c => iprop(
           ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜(out ++ pend ++ snapFrame Mr c md).length ≤ lim⌝ ∗
-          ⌜lim < 2 ^ 47⌝ ∗ ⌜walPreSyncOk f Wr Sr⌝ ∗ io.writerStream (wal.fileWi f) lim Wr Br ∗
+          ⌜lim < 2 ^ 47⌝ ∗ ⌜walPreSyncOk f Wr Sr⌝ ∗ ⌜walPreSeekOk f Wr lim⌝ ∗
+          io.writerStream (wal.fileWi f) lim Wr Br ∗
+          globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
+          structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
           encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
           isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗
           walPreIn w lg dir mds mdb e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
@@ -79,6 +81,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (P : WalPbIn 
           (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d))
       | .pre lg mds mdb e lt f snapi enti Wr Br Sr _ out pend c => iprop(
           ∃ (snapi' enti' : w64), walPreIn w lg dir mds mdb e lt f snapi' enti' ∗
+          structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
           ⌜(snapi' = snapi ∨ snapi' = md.Index') ∧ (enti' = enti ∨ enti' = md.Index')⌝ ∗
           ((⌜err = GoInterface.nil⌝ ∗
               ownEncoder e (wal.fileWi f) (hash.crc32.crc32c c (Mr.encSnap md)) [] ∗

@@ -411,8 +411,8 @@ theorem tCutPos_abs (h : List TOp) (b : Nat) : tCutPos h b = true ↔ walCutPos 
     | some o =>
       simp only [Option.map_some, Option.some.injEq]
       cases ho : o.snap
-      · simp only [absOp, ho, Bool.false_eq_true, ite_false, WalOpG.save.injEq, Bool.not_false,
-          Bool.true_and, Bool.not_eq_true', Bool.and_eq_false_iff]
+      · simp only [absOp, ho, Bool.false_eq_true, ite_false, WalOpG.save.injEq, Bool.false_or,
+          Bool.not_eq_true', Bool.and_eq_false_iff, reduceCtorEq, exists_false, or_false]
         constructor
         · intro hne
           refine ⟨_, _, ⟨rfl, rfl⟩, ?_⟩

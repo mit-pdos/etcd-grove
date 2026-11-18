@@ -284,6 +284,43 @@ theorem walCov_encodeTail (Mr : WalMarshal)
     · ileft; iexact Hok
     · iright; ipureintro; exact ⟨herr, hc⟩
 
+/-! ### The tail's offset test, shared by `Save` and `SaveSnapshot` (both cut once the tail passes
+`SegmentSizeBytes`) -/
+
+/-- A small stream leaves the fresh room. -/
+theorem save_room_small (a b c : Nat) (h : a + b + c ≤ 2 ^ 43) : a + b + c + walFreshRoom ≤ maxBytes := by
+  unfold walFreshRoom
+  have : (2 : Nat) ^ 43 ≤ maxBytes := by decide
+  omega
+
+/-- An offset below ext4's maximum, as a signed word (`cut`'s `cut_off_toInt`). -/
+theorem save_off_toInt (a b : Nat) (h : a + b ≤ 0xffffffff000) :
+    0 ≤ (W64 ((a : Int) + (b : Int))).toInt ∧ (W64 ((a : Int) + (b : Int))).toInt ≤ 0xffffffff000 ∧
+      (W64 ((a : Int) + (b : Int))).toInt = a + b := by
+  have : (W64 ((a : Int) + (b : Int))).toInt = a + b := by
+    word
+  omega
+
+/-- `Save`'s offset test, below the segment size. -/
+theorem save_hif (a b : Nat) (hx : (W64 ((a : Int) + (b : Int))).toInt = a + b)
+    (h : sint.Z (W64 ((a : Int) + (b : Int))) < sint.Z (W64 64000000)) : a + b < 64000000 := by
+  have e1 : sint.Z (W64 ((a : Int) + (b : Int))) = ((a + b : Nat) : Int) := by
+    rw [show sint.Z (W64 ((a : Int) + (b : Int))) = (W64 ((a : Int) + (b : Int))).toInt from rfl, hx]; simp
+  have e2 : sint.Z (W64 64000000) = 64000000 := by decide
+  rw [e1, e2] at h; omega
+
+/-- `walPc_bound`, keeping the receipt. -/
+theorem save_pc_bound (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (n : Nat) :
+    ⊢@{IProp GF} WalFs.walAreaOk walCodec Mr R jr r -∗ ⧗ (n + 1) -∗ ⧗ (n + 1) ∗ ⌜n + 2 < 2 ^ 63⌝ := by
+  iintro #Harea Hr
+  have H := persistent_entails_left (PROP := IProp GF)
+    (P := iprop(WalFs.walAreaOk walCodec Mr R jr r ∗ ⧗ (n + 1))) (Q := iprop(⌜n + 2 < 2 ^ 63⌝))
+    (by iintro ⟨#Ha, Hr⟩; iapply (walPc_bound walCodec Mr R jr r n) $$ Ha Hr)
+  ihave Hx := H $$ [Hr]
+  · iframe Harea Hr
+  icases Hx with ⟨⟨-, Hr⟩, %hb⟩
+  iframe Hr; ipureintro; exact hb
+
 end calls
 
 end EtcdGrove

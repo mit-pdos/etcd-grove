@@ -55,7 +55,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
   imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hlocked Hlc1] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hlocked Hlc1
   imodintro
-  icases walHdl_open Sio P Mr w dir γ $$ Hh with ⟨%u0, %h, Hu0, %hu0, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
   by_cases hc : walCov Sio
   · -- every inode covered: no error, the room kept
     iapply (wp_notCrashed_acc _ _ rfl)
@@ -69,13 +69,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     · iframe Harea Hh
     icases Hpost with ⟨%Herr, Hh, #Hs⟩
     iapply fupd_wp
-    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu0 Hh Hr] with ⟨Hw, Hlocked⟩
+    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hh Hr] with ⟨Hw, Hlocked⟩
     · iframe Hpers Hheld
-      iapply walHdl_close Sio P Mr w dir γ u0
+      iapply walHdl_close Sio P Mr w dir
         { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
-        hu0 hD hmd (fun _ => by simp only [List.length_append, List.length_nil]; have := hroom hc; omega)
+        hD hmd (fun _ => by simp only [List.length_append, List.length_nil]; have := hroom hc; omega)
       ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-      iframe Hu0 Hh Hr
+      iframe Hh Hr
     imodintro
     (try wp_auto)
     wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
@@ -98,13 +98,13 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Sync.wp_proof (P : WalPbIn GF)
     · iframe Harea Hh
     icases Hpost with (⟨%Herr, Hh, #Hs⟩ | %Herr)
     · iapply fupd_wp
-      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu0 Hh Hr] with ⟨Hw, Hlocked⟩
+      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hh Hr] with ⟨Hw, Hlocked⟩
       · iframe Hpers Hheld
-        iapply walHdl_close Sio P Mr w dir γ u0
+        iapply walHdl_close Sio P Mr w dir
           { h with out := h.out ++ h.pend, pend := [], sz := max h.sz (h.o0 + h.out.length + h.pend.length) }
-          hu0 hD hmd (fun h => absurd h hc)
+          hD hmd (fun h => absurd h hc)
         ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-        iframe Hu0 Hh Hr
+        iframe Hh Hr
       imodintro
       (try wp_auto)
       wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]

@@ -111,21 +111,29 @@ theorem segRecs_snoc_op (C : WalCodec) (Mr : WalMarshal) (d : WalDur) (cuts : Li
 /-! ## The static relation -/
 
 theorem walCutPos_le {H : WalHist} {b : Nat} (h : walCutPos H b) : b ≤ H.length := by
-  rcases h with rfl | ⟨hh, es, hb, -⟩
+  rcases h with rfl | ⟨hh, es, hb, -⟩ | ⟨m, hb⟩
   · exact Nat.zero_le _
+  · rcases Nat.lt_or_ge (b - 1) H.length with h | h
+    · omega
+    · rw [List.getElem?_eq_none h] at hb; cases hb
   · rcases Nat.lt_or_ge (b - 1) H.length with h | h
     · omega
     · rw [List.getElem?_eq_none h] at hb; cases hb
 
 theorem walCutPos_snoc {H : WalHist} {b : Nat} (x : WalOp) (h : walCutPos H b) :
     walCutPos (H ++ [x]) b := by
-  rcases h with rfl | ⟨hh, es, hb, hne⟩
+  rcases h with rfl | ⟨hh, es, hb, hne⟩ | ⟨m, hb⟩
   · exact Or.inl rfl
   · have hl : b - 1 < H.length := by
       rcases Nat.lt_or_ge (b - 1) H.length with h | h
       · exact h
       · rw [List.getElem?_eq_none h] at hb; cases hb
-    exact Or.inr ⟨hh, es, by rw [List.getElem?_append_left hl]; exact hb, hne⟩
+    exact Or.inr (Or.inl ⟨hh, es, by rw [List.getElem?_append_left hl]; exact hb, hne⟩)
+  · have hl : b - 1 < H.length := by
+      rcases Nat.lt_or_ge (b - 1) H.length with h | h
+      · exact h
+      · rw [List.getElem?_eq_none h] at hb; cases hb
+    exact Or.inr (Or.inr ⟨m, by rw [List.getElem?_append_left hl]; exact hb⟩)
 
 theorem recFrames_eq_nil {C : WalCodec} {X : List WalRec} (h : recFrames C X = []) : X = [] := by
   cases X with

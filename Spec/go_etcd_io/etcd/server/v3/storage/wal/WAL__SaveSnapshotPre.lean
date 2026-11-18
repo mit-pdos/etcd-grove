@@ -66,6 +66,15 @@ abbrev walPreSyncOk (f : Loc) (W S : List w8 → IProp GF) : Prop :=
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync)) (Val #f))
   {{ (en : w64), RET #(errnoErr en); (⌜en = 0⌝ ∗ S out) ∨ (⌜en ≠ 0⌝ ∗ W out) }}
 
+/-- What `w.tail().Seek(0, io.SeekCurrent)` gives from the writer's state `W out` (the tail is the file `f`):
+the accepted length, the state kept (`SaveSnapshot`'s offset test before the rename, the fork's fix 0007; a
+hypothesis triple as `walPreSyncOk`, which `Create` proves of its file's stream, whose bound is `lim`). -/
+abbrev walPreSeekOk (f : Loc) (W : List w8 → IProp GF) (lim : Nat) : Prop :=
+  ∀ out : List w8, out.length ≤ lim →
+  {{ W out }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Seek")) (Val #(W64 0))) (Val #(W64 1)))
+  {{ RET (PairV #(W64 (out.length : Int)) #GoInterface.nil); W out }}
+
 /-- **`w.sync()` before the rename** (S/wal.go:967-992): flushes the encoder and fdatasyncs the file
 (`unsafeNoSync` false). Success: everything accepted, synced (`S`). Error: the flush's broken state, or
 the fdatasync's. -/

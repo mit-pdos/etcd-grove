@@ -14,6 +14,7 @@ written through `os.File.writerStream` from offset 0 (`os.fileW … 0 xs0`). `sy
 module
 
 public import Proof.os.WriterStream
+public import Proof.os.Off
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
 
@@ -133,6 +134,32 @@ theorem os.fileWI_preSyncOk
     iexists m, ys
     iframe
     ipureintro; exact Hok
+
+/-- **The stream's file offset** (`walPreSeekOk`): `Seek(0, SeekCurrent)` from the state after `out` gives
+its length (the stream starts at 0), the state kept. -/
+theorem os.fileWI_preSeekOk (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m0 : OsMeta)
+    (xs0 : List ByteG) (lim : Nat) (hlim : lim ≤ 0xffffffff000) :
+    walPreSeekOk (hG := hG) f (os.fileWI f fd name dqf dq d m0 xs0) lim := by
+  intro out hout
+  iintro %Φ HW HΦ
+  iunfold os.fileWI at HW
+  icases HW with ⟨HW, #Hinv⟩
+  iunfold os.fileW at HW
+  icases HW with ⟨%m, %ys, %Hok, Hf, Hfd, Ho, Hm, Hbs⟩
+  ihave %hfd := osFd_nonneg fd dq d $$ Hfd
+  have e : (W64 (((0 + out.length : Nat) : Int))) = W64 (out.length : Int) := by simp
+  rw [e]
+  have h1 : 0 ≤ (W64 (out.length : Int)).toInt := by word
+  have h2 : (W64 (out.length : Int)).toInt ≤ 0xffffffff000 := by word
+  wp_apply (os.File.Seek.wp_cur f fd name dqf (W64 (out.length : Int)) hfd h1 h2) $$ [$Hf $Ho] as ⟨Hf, Ho⟩
+  iapply HΦ
+  iunfold os.fileWI
+  iframe Hinv
+  iunfold os.fileW
+  iexists m, ys
+  rw [e]
+  iframe
+  ipureintro; exact Hok
 
 end sync
 

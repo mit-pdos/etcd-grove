@@ -78,9 +78,11 @@ def walHasMaxIdx (H : WalHist) : Prop :=
 
 /-- **A WAL file can start at position `b` of `H`** (WAL W4a.2): 0 (`Create`'s), or right after a
 `Save` that writes a record (a cut ends such a `Save`, S/wal.go:1111; an empty `Save` returns first,
-S/wal.go:1079). -/
+S/wal.go:1079), or right after a snapshot record (`SaveSnapshot` cuts as `Save` does since the fork's
+fix 0007, `notes/wal-fsext-fork/README.md`). -/
 def walCutPos (H : WalHist) (b : Nat) : Prop :=
-  b = 0 ∨ ∃ h es, H[b-1]? = some (WalOpG.save h es) ∧ ¬ (hsEmptyP h ∧ es = [])
+  b = 0 ∨ (∃ h es, H[b-1]? = some (WalOpG.save h es) ∧ ¬ (hsEmptyP h ∧ es = [])) ∨
+    ∃ m, H[b-1]? = some (WalOpG.snap m)
 
 /-- **Every file a cut names after `H`'s last snapshot record of index `a` (position `p`) is named
 above `a`** (a sufficient condition, by the Go code; M1 of the Freeze review; clause 4 in WAL W4a.2):

@@ -120,10 +120,15 @@ theorem walCutPos_save (H : List (WalOpG WalEnt)) (hs : HardStateM) (es : List E
     (hne : ¬ (hsEmptyP hs ∧ es = [])) :
     walCutPos ((H ++ [(WalOpG.save hs es).toRaw]).map WalOpG.toM)
       (H ++ [(WalOpG.save hs es).toRaw]).length := by
-  right
-  refine ⟨hs, es, ?_, hne⟩
+  refine Or.inr (Or.inl ⟨hs, es, ?_, hne⟩)
   rw [histMap_save]
   simp
+
+/-- A snapshot record's end is a cut position (`SaveSnapshot` cuts as `Save` does, the fork's fix 0007). -/
+theorem walCutPos_snap (H : List (WalOpG WalEnt)) (md : SnapshotMetadataM) :
+    walCutPos ((H ++ [WalOpG.snap md]).map WalOpG.toM) (H ++ [WalOpG.snap md]).length := by
+  refine Or.inr (Or.inr ⟨md, ?_⟩)
+  simp [WalOpG.toM]
 
 /-- **The handle during `Save`, after its commit and `i` records encoded** (see the file header). -/
 structure SaveSt (Mr : WalMarshal) (h : WalHS) (hs : HardStateM) (es : List EntryM) (i : Nat)

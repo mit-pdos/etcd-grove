@@ -315,12 +315,14 @@ PROJECTS = [
         # 8c28a4296. Then (wal-link, 2026-11-18, approved by the user via etcd-grove-03) fix 0007
         # on it, branch `goose-lean-walfs3`: `SaveSnapshot` cuts once the tail passes
         # `SegmentSizeBytes`, as `Save` does (nonissues/etcd-wal-savesnapshot-tail-efbig.md):
-        # f01ae14c9.
+        # f01ae14c9; then 0008 (34dea163a, branch `goose-lean-walfs3-fp`): `SaveSnapshot` does not cut
+        # while `w.fp` is nil (`Create`'s call, before the pipeline exists; 0007 alone made a `Create`
+        # whose first segment passes `SegmentSizeBytes` panic in `cut`).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="f01ae14c9b95338efae4e2ac2d62703bc873d178",
+        rev="34dea163a76cc68a02e9a6ae1e86df0cec069be7",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

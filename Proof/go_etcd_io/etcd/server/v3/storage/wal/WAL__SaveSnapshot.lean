@@ -7,16 +7,18 @@
   size), their two specs each chosen at a call by whether `Sio` covers every inode (`CalleeCov.lean`),
   `ValidateSnapshotForWrite`, `Snapshot.GetIndex`, `MustMarshalMessage` of a `walpb.Snapshot`
   (`specWalSnap`), Perennial's `Mutex`. After the lock, the deferred `Unlock`'s resolution gives the later
-  credit with which the share gives the handle (`walOpenWS_acquire`, `walHdl_open`: with the fresh room less
-  the room used `u0` when covered); the update, carrying the client's view of the room used (`walAu_snap`),
-  commits at the next resolution on the unsealed handle (`walTail_append`: `w.snapi` is raised after the
-  encode, so the committed handle's `walMaxSnapIdx ≤ snapi` fails in between), and its commit gives the
-  budget fact (`u0 + snapRoom ≤ walSnapBudget` when covered), so the record's frame fits; the handle is
-  rebuilt after the encode and the raises (`SnapPure.lean`), synced, and given back with the room used
-  raised by `snapRoom` (`walOpenWS_release`), or, after an error (only when not covered, and then with the
-  whole share), the whole share is spent (`walOpenWS_finish`).
+  credit with which the share gives the handle (`walOpenWS_acquire`, `walHdl_open`: with the fresh room when
+  covered); the update commits at the next resolution on the unsealed handle (`walTail_append`: `w.snapi` is
+  raised after the encode, so the committed handle's `walMaxSnapIdx ≤ snapi` fails in between); the record's
+  frame fits the fresh room (its encoding below `2^40` bytes); the handle is rebuilt after the encode and the
+  raises (`SnapPure.lean`); then, as `Save`'s tail (the fork's fixes 0007-0008): the tail's offset (`Seek`),
+  `sync` below `SegmentSizeBytes`, else (the pipeline non-nil, `walHandleIn_fp`) `cut` at the snapshot
+  record's end (`walCutPos_snap`); the room after is fresh again; the handle goes back
+  (`walOpenWS_release`), or, after an error (only when not covered, and then with the whole share), the whole
+  share is spent (`walOpenWS_finish`).
 * `wp_pre` (`Create`'s `w` before the rename), over `sync.specPre`, `encoder.encode.spec`, the same
-  `walpb`/`pbutil` callees and `Mutex`.
+  `walpb`/`pbutil` callees, `Mutex`, and the client's `Seek` law (`walPreSeekOk`); `w.fp` is nil, so it only
+  syncs.
 
 Lean-first.
 -/
@@ -26,6 +28,10 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CalleeCov
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotPre
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot__GetIndex
+public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__tail
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SavePure
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
+public import Proof.os.Off
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite
 public import Spec.go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessageWalSnap
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleAppend
@@ -65,7 +71,8 @@ theorem walLastHS_snap (H : WalHist) (md : SnapshotMetadataM) :
   simp [walLastHS, List.foldl_append]
 
 /-- **`SaveSnapshot` on a share of an open WAL** (the state `shared`; see the file header). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : WalPbIn GF) (Mr : WalMarshal)
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared [os.file.FieldAssumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_encodeTail : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specTail (W := W) Mr)
@@ -75,16 +82,17 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : Wa
     (wp_GetIndex : go_etcd_io.etcd.server.v3.storage.wal.walpb.Snapshot.GetIndex.spec (GF := GF)
       (hG := hG))
     (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
+    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr)
+    (wp_cutNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (γ : WalShN) (q : Qp) (sp : Loc)
     (md : SnapshotMetadataM) (cs : Bool) (sized : Bool) (Q : WalDur → IProp GF) :
   {{ WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWS Sio P Mr w dir γ q ∗
       ⌜walCov Sio ∨ q = 1⌝ ∗ walSnapAt Mr sp md cs ∗
       ⌜md.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜uint.nat md.Index' < 2 ^ 64 - 1⌝ ∗
       ⌜(Mr.encSnap md).length < 2 ^ 40⌝ ∗
-      AU <{ ∃∃ (d : WalDur) (u : Nat), WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ ∗ walUsed γ u ∗
-          ⌜walCov Sio → u + snapRoom Mr md ≤ walSnapBudget⌝ }> @ walAuMask, ∅
-        <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] } ∗ walUsed γ (u + snapRoom Mr md),
-          COMM Q d }> }}
+      AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗ ⌜d.sized = sized⌝ }> @ walAuMask, ∅
+        <{ WalFs.walDiskAt dir { d with H := d.H ++ [WalOpG.snap md] }, COMM Q d }> }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"SaveSnapshot")) (Val #sp))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ walOpenWS Sio P Mr w dir γ q ∗ ∃ d : WalDur, Q d ∗
@@ -92,7 +100,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : Wa
       (⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ ∗ ∃ d : WalDur, Q d) }} := by
   wp_start as ⟨#Harea, Hw, %hq, #Hs, %hcs, %hidx, %hsz, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ q $$ Hw with ⟨Hw, #Hpers⟩
-  icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, -⟩
+  icases walShPers_facts Sio P Mr w dir γ $$ Hpers with ⟨#Hmu, #Hsync, #Hseg⟩
+  ihave %hS := walAreaOk_encState walCodec Mr R jr r $$ Harea
   ihave #Hwpk0 := walShPers_pkgInit Sio P Mr w dir γ $$ Hpers
   ihave #Harea0 := Harea
   iunfold WalFs.walAreaOk at Harea0
@@ -128,7 +137,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : Wa
   imod walOpenWS_acquire Sio P Mr w dir γ q $$ [Hw Hown Hlc] with ⟨-, Hheld, Hh⟩
   · iframe Hw Hown Hlc
   imodintro
-  icases walHdl_open Sio P Mr w dir γ $$ Hh with ⟨%u0, %h, Hu0, %hu0, Hh, %hD, %hmd, Hr, %hroom⟩
+  icases walHdl_open Sio P Mr w dir $$ Hh with ⟨%h, Hh, %hD, %hmd, Hr, %hroom⟩
   iunfold walHandleIn at Hh
   icases Hh with ⟨%lg, %df, %stp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j,
     %rc, Hlg, #Hzap, Hdir, Hdf, Hdff, Hmd, #Hmds, Hsp, #Hst, Hdec, Hrc, Hns, #Hmu', Henti, Hsnapi,
@@ -173,25 +182,20 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : Wa
   iframe Hnc
   simp only [go_etcd_io.etcd.server.v3.storage.wal.SnapshotType]
   wp_raise_receipt Hstp
-  -- the commit (the update carries the client's view of the room used, `walAu_snap`)
-  ihave Hau := walAu_snap dir γ (WalOpG.snap md) sized (fun u => walCov Sio → u + snapRoom Mr md ≤ walSnapBudget)
-    (fun u => u + snapRoom Mr md) Q u0 $$ [Hu0 Hau]
-  · iframe Hu0 Hau
+  -- the commit
   iapply (wp_notCrashed_acc _ _ rfl)
   iintro Hnc
   imod walTail_append walCodec Mr R jr r w dir h.γ
     ((h.H, h.md, h.cuts, h.o0 + h.out.length, h.ino, none) : TailG) (WalOpG.snap md) sized
-    (fun d => iprop(Q d ∗ walUsed γ (u0 + snapRoom Mr md) ∗ ⌜walCov Sio → u0 + snapRoom Mr md ≤ walSnapBudget⌝))
-    hfit' (snapOp_noMax md hidx) $$ Hinv Hnc Htk Hv Hopen Hau Hstp with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
+    Q hfit' (snapOp_noMax md hidx) $$ Hinv Hnc Htk Hv Hopen Hau Hstp with ⟨Hnc, Htk, Hv, Hopen, #Hlb, HQ, %hcp⟩
   unfold tailVar
   imodintro
   iframe Hnc
-  icases HQ with ⟨%dq, ⟨HQ, Hu, %hF⟩, %hdq⟩
+  icases HQ with ⟨%dq, HQ, %hdq⟩
   ihave HQ : (∃ d : WalDur, Q d ∗ ⌜d.H = h.H⌝) $$ [HQ]
   · iexists dq; iframe HQ; ipureintro; exact hdq
   have hc : ∀ b ∈ h.cuts, b ≤ h.H.length := fun b hb => by
     simpa using walCutPos_le (hcp.1 b hb)
-  have hbud := walSnapBudget_lt
   try wp_auto
   have hT : (W64 5) = snapshotType := rfl
   ipersist «$v0»
@@ -204,11 +208,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : Wa
   have hfrm := frame_walRecEnc_tight snapshotType (hash.crc32.crc32c (h.crc Mr) (Mr.encSnap md))
     (Mr.encSnap md) (by decide) (by omega)
   have hroom' : walCov Sio → h.o0 + (h.out ++ h.pend ++ frame (walRecEnc ⟨snapshotType, hash.crc32.crc32c (h.crc Mr)
-      (Mr.encSnap md), Mr.encSnap md⟩)).length + (walFreshRoom - (u0 + snapRoom Mr md)) ≤ maxBytes := by
+      (Mr.encSnap md), Mr.encSnap md⟩)).length ≤ maxBytes := by
     intro hcv
     have := hroom hcv
-    have := hF hcv
-    unfold snapRoom at *
+    have : (2 : Nat) ^ 41 ≤ walFreshRoom := by unfold walFreshRoom maxBytes; omega
     simp only [List.length_append] at *
     omega
   wp_apply (walCov_encodeTail Mr wp_encodeTail wp_encodeTailNE R jr r e f fd name dir h.γ h.ino
@@ -309,73 +312,159 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared (P : Wa
       Hlocks Hls Hcap Hlks Hltf Hfp Hpipe Henv Hcrc Hwpk Hopen
     ipureintro
     exact ⟨Hen, Hlt, hsplit2, hfd, hs1, hs2, ⟨fun _ => hi1, hi2⟩, hi3⟩
-  have hroom2 : walCov Sio → h.o0 + out'.length + pend'.length + (walFreshRoom - (u0 + snapRoom Mr md)) ≤ maxBytes := by
+  have hroom2 : walCov Sio → h.o0 + out'.length + pend'.length ≤ maxBytes := by
     intro hcv
     have h1 := congrArg List.length heq
     have h2 := hroom' hcv
     simp only [List.length_append] at h1 h2 ⊢
     omega
-  wp_apply (walCov_sync P Mr wp_sync wp_syncNE R jr r w dir
-      { h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev } hD.1
-      (fun hcv => by have := hroom2 hcv; simp only; omega)) $$ [Hh2] as %err Hres
-  · iframe Harea Hh2
-  icases Hres with (⟨%herr, Hh, #Hsyn⟩ | %herr)
-  · -- synced: the handle back, the room used raised by the record's
-    iapply fupd_wp
-    have hst2 : h.st = walLastHS ((h.H ++ [WalOpG.snap md]).map WalOpG.toM) := by
-      rw [hmap, walLastHS_snap]; exact hD.2
-    imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hu Hh Hr] with ⟨Hw, Hown⟩
-    · iframe Hpers Hheld
-      ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
-      have hcl := walHdl_close (W := W) Sio P Mr w dir γ (u0 + snapRoom Mr md)
-        ({ h with H := h.H ++ [WalOpG.snap md], out := out' ++ pend', pend := [], snapi := sv, enti := ev,
-                  sz := max sz' (h.o0 + out'.length + pend'.length) } : WalHS) hF ⟨hD.1, hst2⟩ hmd
-        (fun hcv => by
-          have := hroom2 hcv
-          simp only [List.length_append, List.length_nil]
-          omega)
-      iapply hcl
-      isplitl [Hu]
-      · iexact Hu
-      isplitl [Hh]
-      · iexact Hh
-      iexact Hr
-    imodintro
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
-    try wp_auto
-    iapply HΦ
-    ileft
-    isplitr
-    · ipureintro; exact herr
-    iframe Hw
-    icases HQ with ⟨%d, HQ, %hd⟩
-    iexists d
-    iframe HQ
-    rw [hd]
-    iframe Hlb
-    have hl : (h.H ++ [WalOpG.snap md]).length = h.H.length + 1 := by simp
-    rw [← hl]
-    iexact Hsyn
-  · -- the sync failed (only when not covered, and then with the whole share)
-    rcases err with ei | _
-    rotate_left
-    · exact absurd rfl herr.1
-    have hq1 : q = 1 := hq.resolve_left herr.2
-    subst hq1
-    iapply fupd_wp
-    imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hown
-    · iframe Hpers Hheld
-    imodintro
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
-    try wp_auto
-    iapply HΦ
-    iright
-    isplitr
-    · ipureintro; exact herr
-    icases HQ with ⟨%d, HQ, -⟩
-    iexists d; iexact HQ
+  have hst2 : h.st = walLastHS ((h.H ++ [WalOpG.snap md]).map WalOpG.toM) := by
+    rw [hmap, walLastHS_snap]; exact hD.2
+  generalize hh2 : ({ h with H := h.H ++ [WalOpG.snap md], out := out', pend := pend', sz := sz', snapi := sv, enti := ev } : WalHS) = h2
+  have e2 : h2.H = h.H ++ [WalOpG.snap md] ∧ h2.md = h.md ∧ h2.cuts = h.cuts ∧ h2.rest = h.rest ∧
+      h2.st = h.st ∧ h2.pc = h.pc ∧ h2.o0 = h.o0 ∧ h2.out = out' ∧ h2.pend = pend' := by
+    subst hh2; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩
+  obtain ⟨eH, emd, ecuts, erest, est, epc, eo0, eout, epend⟩ := e2
+  have hroom3 : walCov Sio → h2.o0 + h2.out.length + h2.pend.length ≤ maxBytes := by
+    rw [eo0, eout, epend]; exact hroom2
+  have hrest3 : h2.rest = 0 := by rw [erest]; exact hD.1
+  have hst3 : h2.st = walLastHS (h2.H.map WalOpG.toM) := by rw [est, eH]; exact hst2
+  have hlenH : h2.H.length = h.H.length + 1 := by rw [eH]; simp
+  -- the tail's offset
+  icases walHandleIn_pure P Mr w dir h2 TailMetaW $$ Hh2 with ⟨Hh2, %hpu2⟩
+  icases walHandleIn_seek P Mr w dir h2 TailMetaW $$ Hh2 with
+    ⟨%locks2, %ls2, %lt2, %f2, %fd2, %name2, Hlocks, Hls, #Hltf2, Hf, Hoff, %hsk, Hback⟩
+  wp_apply (wp_tail w locks2 ls2 lt2 (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+  · iframe
+  ihave #Hlt0 := Hltf2
+  iunfold fileutil.lockedFile at Hlt0
+  iStructNamed Hlt0
+  rw [MethodUnfold.method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) (m := go!"Seek")]
+  wp_call
+  (try wp_auto)
+  obtain ⟨ho1, ho2, ho3⟩ := save_off_toInt h2.o0 h2.out.length hsk.2
+  wp_apply (os.File.Seek.wp_cur f2 fd2 name2 (DFrac.own 1) _ hsk.1 ho1 ho2) $$ [$Hf $Hoff] as ⟨Hf, Hoff⟩
+  ihave Hh2 := Hback $$ Hlocks Hls Hf Hoff
+  (try wp_auto)
+  by_cases Hif : sint.Z (W64 ((h2.o0 : Int) + (h2.out.length : Int))) < sint.Z (W64 64000000)
+  · -- below the segment size: `sync`
+    rw [decide_eq_true Hif]
+    (try wp_auto)
+    wp_apply (walCov_sync P Mr wp_sync wp_syncNE R jr r w dir h2 hrest3 hroom3) $$ [Hh2] as %err Hres
+    · iframe Harea Hh2
+    icases Hres with (⟨%herr, Hh, #Hsyn⟩ | %herr)
+    · -- synced: the handle back
+      iapply fupd_wp
+      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hh Hr] with ⟨Hw, Hown⟩
+      · iframe Hpers Hheld
+        ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
+        rw [← epc]
+        iapply walHdl_close Sio P Mr w dir ({ h2 with out := h2.out ++ h2.pend, pend := [], sz := max h2.sz (h2.o0 + h2.out.length + h2.pend.length) } : WalHS) ⟨hrest3, hst3⟩ (by rw [emd]; exact hmd)
+          (fun hcv => save_room_small _ _ _ (by
+            have := save_hif h2.o0 h2.out.length ho3 Hif
+            have := hpu2.2.1
+            simp only [List.length_append, List.length_nil]; omega))
+        iframe Hh Hr
+      imodintro
+      try wp_auto
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
+      try wp_auto
+      iapply HΦ
+      ileft
+      isplitr
+      · ipureintro; exact herr
+      iframe Hw
+      icases HQ with ⟨%d, HQ, %hd⟩
+      iexists d
+      iframe HQ
+      rw [hd]
+      iframe Hlb
+      rw [← hlenH]
+      iexact Hsyn
+    · -- the sync failed (only when not covered, and then with the whole share)
+      rcases err with ei | _
+      rotate_left
+      · exact absurd rfl herr.1
+      have hq1 : q = 1 := hq.resolve_left herr.2
+      subst hq1
+      iapply fupd_wp
+      imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hown
+      · iframe Hpers Hheld
+      imodintro
+      try wp_auto
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
+      try wp_auto
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact herr
+      icases HQ with ⟨%d, HQ, -⟩
+      iexists d; iexact HQ
+  · -- at the segment size, the pipeline non-nil: `cut`
+    rw [decide_eq_false Hif]
+    icases walHandleIn_fp P Mr w dir h2 TailMetaW $$ Hh2 with ⟨%fp2, Hfp2, %hfp2, Hback2⟩
+    (try wp_auto)
+    rw [decide_eq_false hfp2]
+    wp_take_receipt as Hr1
+    ihave Hh2 := Hback2 $$ Hfp2
+    ihave Hr2 := (receipt_add h.pc 1).2 $$ [Hr Hr1]
+    · iframe
+    icases save_pc_bound Mr R jr r h.pc $$ Harea Hr2 with ⟨Hr2, %hpc⟩
+    have hcuts : ∀ b ∈ h2.cuts, b < h2.H.length := fun b hb => by
+      rw [ecuts] at hb; rw [hlenH]; have := hc b hb; omega
+    have hpw : h2.cuts.Pairwise (· < ·) := by rw [ecuts]; exact hcp.2
+    have hcpos : walCutPos (h2.H.map WalOpG.toM) h2.H.length := by rw [eH]; exact walCutPos_snap h.H md
+    have hsz2 : h2.md.length + (Mr.encState h2.st).length < 2 ^ 42 := by
+      have := hS h2.st; rw [emd]; omega
+    wp_apply (walCov_cut P Mr wp_cut wp_cutNE R jr r w dir h2 hrest3 hst3 (by rw [epc]; omega) hcuts hpw
+      hcpos (by rw [hlenH]; omega) hsz2 hroom3) $$ [Hh2] as %err Hres
+    · iframe Harea Hh2
+    icases Hres with (⟨%herr, %h', Hh, %hh', #Hsyn⟩ | %herr)
+    · obtain ⟨hH', hmd', hcuts', hrest', hst', -, -, hpc', hroom'⟩ := hh'
+      subst herr
+      rw [epc] at hpc'
+      iapply fupd_wp
+      imod walOpenWS_release Sio P Mr w dir γ q $$ [Hheld Hh Hr2] with ⟨Hw, Hown⟩
+      · iframe Hpers Hheld
+        ihave Hh := walHandleIn_win P Mr w dir _ $$ Hh
+        rw [← hpc']
+        iapply walHdl_close Sio P Mr w dir h' ⟨hrest', by rw [hst', hH']; exact hst3⟩
+          (by rw [hmd', emd]; exact hmd) (fun _ => save_room_small _ _ _ hroom')
+        iframe Hh Hr2
+      imodintro
+      try wp_auto
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
+      try wp_auto
+      iapply HΦ
+      ileft
+      isplitr
+      · ipureintro; rfl
+      iframe Hw
+      icases HQ with ⟨%d, HQ, %hd⟩
+      iexists d
+      iframe HQ
+      rw [hd]
+      iframe Hlb
+      rw [← hlenH]
+      iexact Hsyn
+    · rcases err with ei | _
+      rotate_left
+      · exact absurd rfl herr.1
+      have hq1 : q = 1 := hq.resolve_left herr.2
+      subst hq1
+      iapply fupd_wp
+      imod walOpenWS_finish Sio P Mr w dir γ $$ [Hheld] with Hown
+      · iframe Hpers Hheld
+      imodintro
+      try wp_auto
+      wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hown]
+      try wp_auto
+      iapply HΦ
+      iright
+      isplitr
+      · ipureintro; exact herr
+      icases HQ with ⟨%d, HQ, -⟩
+      iexists d; iexact HQ
 
 end proof
 
@@ -387,7 +476,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- **`SaveSnapshot` on `Create`'s `w` before the rename** (the state `pre`; see the file header). -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalMarshal)
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF))
     (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.spec (GF := GF) (hG := hG))
     (wp_Validate : go_etcd_io.etcd.server.v3.storage.wal.walpb.ValidateSnapshotForWrite.spec
@@ -397,11 +487,15 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
     (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
     (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG))
     (w lg : Loc) (dir : GoString) (mds : GoSlice) (md : List w8) (e lt f : Loc) (snapi enti : w64)
     (W : List w8 → IProp GF) (B : List w8 → List w8 → IProp GF) (S : List w8 → IProp GF)
     (lim : Nat) (out pend : List w8) (c : w32) (sp : Loc) (sm : SnapshotMetadataM) (cs : Bool) :
   {{ ⌜sm.Index' = W64 0 ∨ cs = true⌝ ∗ ⌜(out ++ pend ++ snapFrame Mr c sm).length ≤ lim⌝ ∗
-      ⌜lim < 2 ^ 47⌝ ∗ ⌜walPreSyncOk f W S⌝ ∗ io.writerStream (wal.fileWi f) lim W B ∗
+      ⌜lim < 2 ^ 47⌝ ∗ ⌜walPreSyncOk f W S⌝ ∗ ⌜walPreSeekOk f W lim⌝ ∗
+      io.writerStream (wal.fileWi f) lim W B ∗
+      globalAddr go_etcd_io.etcd.server.v3.storage.wal.SegmentSizeBytes ↦□ (W64 64000000) ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
       encEnv ∗ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.pbutil ∗
       walPreIn w lg dir mds md e lt f snapi enti ∗ ownEncoder e (wal.fileWi f) c pend ∗
@@ -410,6 +504,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
       go!"SaveSnapshot")) (Val #sp))
   {{ (err : GoInterface), RET #err;
       ∃ (snapi' enti' : w64), walPreIn w lg dir mds md e lt f snapi' enti' ∗
+      structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"fp" w ↦ (null : Loc) ∗
       ⌜(snapi' = snapi ∨ snapi' = sm.Index') ∧ (enti' = enti ∨ enti' = sm.Index')⌝ ∗
       ((⌜err = GoInterface.nil⌝ ∗
           ownEncoder e (wal.fileWi f) (hash.crc32.crc32c c (Mr.encSnap sm)) [] ∗
@@ -417,7 +512,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
        (⌜err ≠ GoInterface.nil⌝ ∗ ∃ (c' : w32) (pend' : List w8),
           ownEncoder e (wal.fileWi f) c' pend' ∗
           ((∃ a b : List w8, B a b) ∨ (∃ o : List w8, W o)))) }} := by
-  wp_start as ⟨%hcs, %hlim, %hlim47, %hsync, #Hw, #Henv, #Hzap, #Hpb, Hpre, He, Hout, #Hs⟩
+  wp_start as ⟨%hcs, %hlim, %hlim47, %hsync, %hseek, #Hw, #Hseg, Hfp, #Henv, #Hzap, #Hpb, Hpre, He, Hout, #Hs⟩
   ihave #Hs0 := Hs
   iunfold walSnapAt at Hs
   icases Hs with ⟨%sc, Hsr, -⟩
@@ -507,6 +602,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
     isplitl [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap]
     · iexists locks
       iframe; iframe #; ipureintro; exact Hen
+    iframe Hfp
     isplitr
     · ipureintro; exact ⟨Or.inl rfl, Or.inl rfl⟩
     iright
@@ -533,6 +629,22 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
   all_goals (try (wp_apply (wp_GetIndex sp (sm.Index', sm.Term')) $$ []; iexact HsIT))
   all_goals (try wp_auto)
   all_goals (
+    wp_apply (wp_tail w locks [] lt (DFrac.own 1) (DFrac.own 1)) $$ [Hlocks Hls] as ⟨Hlocks, Hls⟩
+    · iframe
+    ihave #Hlt0 := Hlt
+    iunfold fileutil.lockedFile at Hlt0
+    iStructNamed Hlt0
+    rw [MethodUnfold.method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty) (m := go!"Seek")]
+    wp_call
+    (try wp_auto)
+    wp_apply (hseek (out ++ ys) (by omega)) $$ [Hout] as Hout
+    · iexact Hout
+    (try wp_auto)
+    -- `curOff < SegmentSizeBytes || w.fp == nil`: `w.fp` is nil, so a `sync` either way
+    by_cases Hif : sint.Z (W64 ((out ++ ys).length : Int)) < sint.Z (W64 64000000)
+    all_goals (first | rw [decide_eq_true Hif] | rw [decide_eq_false Hif])
+    all_goals (try wp_auto)
+    all_goals (
     wp_apply (wp_sync w lg dir mds md e lt f _ _ W B S lim (out ++ ys) pend'
       (hash.crc32.crc32c c (Mr.encSnap sm)) hlen2 hsync) $$ [Hw]
       [Hlg Hdir Hmd Hns Henti Hsnapi Hfe Hlocks Hls Hcap He Hout] as %err2 ⟨Hpre, He, Hres2⟩
@@ -548,7 +660,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
     try wp_auto
     iapply HΦ
     iexists _, _
-    iframe Hpre
+    iframe Hpre Hfp
     isplitr
     · ipureintro
       first
@@ -567,7 +679,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre (Mr : WalM
       iframe He
       icases Hbad with (Hb | Hw')
       · ileft; iexists _, _; iexact Hb
-      · iright; iexists _; iexact Hw')
+      · iright; iexists _; iexact Hw'))
 
 end pre
 
@@ -581,7 +693,8 @@ variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.A
 variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
 /-- See the file header. -/
-theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
+theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof [os.file.FieldAssumptions]
+    [go_etcd_io.etcd.client.pkg.v3.fileutil.Assumptions] (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_sync : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.spec (W := W) P Mr)
     (wp_syncNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specNoErr (Sio := Sio) (W := W) P Mr)
     (wp_syncPre : go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.specPre (GF := GF))
@@ -594,16 +707,19 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_proof (P : Wal
       (hG := hG))
     (wp_Marshal : go_etcd_io.etcd.pkg.v3.pbutil.MustMarshalMessage.specWalSnap (GF := GF) Mr)
     (wp_Lock : sync.Mutex.Lock.spec (GF := GF) (hG := hG))
-    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG)) :
+    (wp_Unlock : sync.Mutex.Unlock.spec (GF := GF) (hG := hG))
+    (wp_cut : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.spec (W := W) P Mr)
+    (wp_cutNE : go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (Sio := Sio) (W := W) P Mr)
+    (wp_tail : go_etcd_io.etcd.server.v3.storage.wal.WAL.tail.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (Sio := Sio) (W := W) P Mr := by
   intro R jr r w dir st sp md cs sized Q
   cases st with
   | shared γ q =>
     exact go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_shared P Mr wp_sync wp_syncNE wp_encodeTail
-      wp_encodeTailNE wp_Validate wp_GetIndex wp_Marshal R jr r w dir γ q sp md cs sized Q
+      wp_encodeTailNE wp_Validate wp_GetIndex wp_Marshal wp_cut wp_cutNE wp_tail R jr r w dir γ q sp md cs sized Q
   | pre lg mds mdb e lt f snapi enti Wr Br Sr lim out pend c =>
     exact go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.wp_pre Mr wp_syncPre wp_encode wp_Validate
-      wp_GetIndex wp_Marshal wp_Lock wp_Unlock w lg dir mds mdb e lt f snapi enti Wr Br Sr lim out pend c sp md cs
+      wp_GetIndex wp_Marshal wp_Lock wp_Unlock wp_tail w lg dir mds mdb e lt f snapi enti Wr Br Sr lim out pend c sp md cs
 
 end proof2
 

@@ -210,7 +210,7 @@ def tLastIdx (h : List TOp) : w64 :=
 /-- `cutPos`. -/
 def tCutPos (h : List TOp) (b : Nat) : Bool :=
   Bool.or (decide (b = 0)) (match h[b - 1]? with
-    | some o => !o.snap && !(tHsEmpty o.hs && o.ents.isEmpty)
+    | some o => o.snap || !(tHsEmpty o.hs && o.ents.isEmpty)
     | none => false)
 
 /-- `nameBound`. -/

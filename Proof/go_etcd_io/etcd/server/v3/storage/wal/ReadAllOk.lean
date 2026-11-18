@@ -129,8 +129,9 @@ theorem walReadAt_of_from {I : WalHist} {k : Nat} {s : w64 × w64} {σ : StorCon
     exact ⟨σ', hf, e1, e2⟩
 
 theorem cut_le_length {I : WalHist} {b : Nat} (h : walCutPos I b) : b ≤ I.length := by
-  rcases h with rfl | ⟨h, es, he, -⟩
+  rcases h with rfl | ⟨h, es, he, -⟩ | ⟨m, he⟩
   · exact Nat.zero_le _
+  · have := (List.getElem?_eq_some_iff.1 he).1; omega
   · have := (List.getElem?_eq_some_iff.1 he).1; omega
 
 /-- **`ReadAll`'s fold, a success, gives the restated post** (see the file header). `I` the
