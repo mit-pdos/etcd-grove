@@ -103,16 +103,6 @@ opened (`Open.spec` gives it), which a closer owning the data gets back
 @[no_expose] def boltIno [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (i : Ino) : IProp GF :=
   iprop(∃ t0 : Nat, t0At (GF := GF) (bnsOf γ.gs) t0 i)
 
-/-- **The database `γ`'s file was given up** (persistent; session bbolt-inv): a mapping of it leaked
-(a remap's `munmap` failed, or its `mmap`'s `madvise`, after which bbolt does not unmap: `mmap` in
-`bolt_unix.go`; session S3f: such a leak also records `¬ FsNoErr`), or the file was not whole pages
-when it was closed (a commit's write failed part way past the file's end: the writes are chunked,
-`Tx.write`, so a failed one can leave a partial last page; `fileHolds` asks whole pages). What
-`DB.Close.spec` gives in place of the file. (Since session S3f, `DB.Close` takes the closer
-token, so an earlier `Close` is no longer a source.) -/
-@[no_expose] def boltNoFile [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
-  dghostVar (bnsOf γ.gs).nf DFrac.discard true
-
 /-- **The database `γ` is closed only by the holder of this token** (exclusive, timeless; session
 S3f): `Open` gives it, `DB.Close` (and its variants) consumes it. So a holder knows the database open
 (no other thread can close it), which `DB.Close.spec` needs to give the file back. -/
@@ -273,10 +263,11 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 
 /-- **The file of inode `i` holds a database with the data `D`, and is mappable** (session S3f): what
 `fileHolds` says, with the file's size at most `boltMaxMapSize`, so that `Open`'s `mmap` of it does
-not fail with "mmap too large" (`Open.spec` takes it, through `nameHolds`). Not every file bbolt writes is:
-`DB.grow` can truncate past `maxMapSize` (`growSize + AllocSize` at a mapping of `maxMapSize`,
-`nonissues/bbolt-grow-past-max-map-size.md`), and so `DB.Close.spec` gives back `fileHolds`
-only. A fresh file is (`fileHoldsM_new`), and so is an image no longer than `boltMaxMapSize`
+not fail with "mmap too large" (`Open.spec` takes it, through `nameHolds`). `DB.Close.spec` gives it
+back (session S3g): in the model every mapping fits the address space (`maxAddr = 2 ^ 47`), so
+`DB.grow` never truncates past `2 ^ 47 + 2 ^ 12 + AllocSize`, below `maxMapSize` (on real hardware it
+can, `nonissues/bbolt-grow-past-max-map-size.md`, which needs about 256 TiB of pages). A fresh file
+is (`fileHoldsM_new`), and so is an image no longer than `boltMaxMapSize`
 (`fileHoldsM_of_image`; `Tx.WriteTo` writes the pages below the high-water mark, inside the
 mapping). -/
 @[no_expose] def fileHoldsM [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
@@ -315,9 +306,6 @@ each a counted step of the program, so it is below the bound on the program's st
 @[instance] theorem boltIno_persistent (γ : BoltName) (i : Ino) :
     Persistent (boltIno (GF := GF) γ i) := by
   unfold boltIno t0At; infer_instance
-@[instance] theorem boltNoFile_persistent (γ : BoltName) :
-    Persistent (boltNoFile (GF := GF) γ) := by
-  unfold boltNoFile; infer_instance
 @[instance] theorem boltCloser_timeless (γ : BoltName) :
     Timeless (boltCloser (GF := GF) γ) := by
   unfold boltCloser; infer_instance

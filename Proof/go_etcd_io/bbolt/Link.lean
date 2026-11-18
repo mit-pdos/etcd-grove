@@ -6,8 +6,8 @@ The callees are read off each proof's binders (`etc/link_bbolt.py`'s docstring).
 `etc/gen-link.py --bbolt` -- do not edit by hand.
 
 `#print axioms` on a result is its trust base (`Results.lean` prints the public specs').
-The results reaching a spec with no proof, or a premise with no proof, are in `links_pending`,
-which takes them as hypotheses: `h_fs_FileMode_String`.
+Every result is linked to proofs: none reaches a spec or a premise with no proof (no
+`links_pending`).
 -/
 module
 
@@ -102,7 +102,6 @@ public import Proof.go_etcd_io.bbolt.Open.CloseFile
 public import Proof.go_etcd_io.bbolt.Open.CloseNoErr
 public import Proof.go_etcd_io.bbolt.Open.CloseTok
 public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
-public import Proof.go_etcd_io.bbolt.Open.FileModeString
 public import Proof.go_etcd_io.bbolt.Open.Flock
 public import Proof.go_etcd_io.bbolt.Open.MetasZero
 public import Proof.go_etcd_io.bbolt.Open.MmapOwn
@@ -305,6 +304,7 @@ public import Proof.golang_org.x.sys.unix.MunmapNoErr
 public import Proof.hash.fnv.New64a
 public import Proof.hash.fnv.sum64a__Sum64
 public import Proof.hash.fnv.sum64a__Write
+public import Proof.io.fs.FileMode__String
 public import Proof.os.File__Close
 public import Proof.os.File__CloseNoErr
 public import Proof.os.File__Fd
@@ -1501,6 +1501,14 @@ theorem Options.wp_String :
     _root_.Perennial.EtcdGrove.bbolt.Options.String.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Options.String.wp_proof
 
+theorem fs.FileMode.wp_String :
+    _root_.Perennial.EtcdGrove.fs.FileMode.String.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.fs.FileMode.String.wp_proof
+
+theorem wp_Open :
+    _root_.Perennial.EtcdGrove.bbolt.Open.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Open.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateS _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateSNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Name _root_.Perennial.EtcdGrove.bbolt.wp_flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_StatW _root_.Perennial.EtcdGrove.bbolt.os.fileStat.wp_Size _root_.Perennial.EtcdGrove.bbolt.DB.wp_metasZero_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_init _root_.Perennial.EtcdGrove.bbolt.DB.wp_getPageSize_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapUnlocked_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_loadFreelist_open _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncW _root_.Perennial.EtcdGrove.bbolt.DB.wp_Begin _root_.Perennial.EtcdGrove.bbolt.Tx.wp_Commit_err _root_.Perennial.EtcdGrove.bbolt.DB.wp_CloseTok _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.Options.wp_String _root_.Perennial.EtcdGrove.bbolt.fs.FileMode.wp_String
+
 theorem Spill.Bucket.wp_spillC :
     _root_.Perennial.EtcdGrove.bbolt.Spill.Bucket.spill.specC (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Spill.Bucket.spill.wp_child _root_.Perennial.EtcdGrove.bbolt.Spill.node.wp_spill' _root_.Perennial.EtcdGrove.bbolt.node.wp_root _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Pgid _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.wp_SetRootPage
@@ -1694,22 +1702,6 @@ theorem wp_splitThreshold :
   _root_.Perennial.EtcdGrove.bbolt.splitThreshold.wp_proof
 
 end links
-
-/-! The results that reach a spec or premise with no proof: each takes those it reaches as
-hypotheses (`h_<name>`). -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.bbolt.Assumptions]
-variable [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-
-theorem wp_Open (h_fs_FileMode_String : _root_.Perennial.EtcdGrove.bbolt.fs.FileMode.String.spec (GF := GF) (hG := hG)) :
-    _root_.Perennial.EtcdGrove.bbolt.Open.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.Open.wp_proof _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateS _root_.Perennial.EtcdGrove.bbolt.os.wp_OpenFileCreateSNoErr _root_.Perennial.EtcdGrove.bbolt.os.File.wp_Name _root_.Perennial.EtcdGrove.bbolt.wp_flock _root_.Perennial.EtcdGrove.bbolt.os.File.wp_StatW _root_.Perennial.EtcdGrove.bbolt.os.fileStat.wp_Size _root_.Perennial.EtcdGrove.bbolt.DB.wp_metasZero_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_init _root_.Perennial.EtcdGrove.bbolt.DB.wp_getPageSize_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_mmapUnlocked_own _root_.Perennial.EtcdGrove.bbolt.DB.wp_loadFreelist_open _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.wp_fdatasyncW _root_.Perennial.EtcdGrove.bbolt.DB.wp_Begin _root_.Perennial.EtcdGrove.bbolt.Tx.wp_Commit_err _root_.Perennial.EtcdGrove.bbolt.DB.wp_CloseTok _root_.Perennial.EtcdGrove.bbolt.DB.wp_close_owned _root_.Perennial.EtcdGrove.bbolt.DB.wp_Logger _root_.Perennial.EtcdGrove.bbolt.Options.wp_String h_fs_FileMode_String
-
-end links_pending
 
 end bbolt
 end EtcdGrove

@@ -31,6 +31,34 @@ open Fs
 
 open Iris Iris.BI go_etcd_io.bbolt
 
+section size
+variable [GooseExts] [ExtSemantics fsExt]
+
+/-- **The file's size bounds** (session S3g; `wdbOK`'s clause): at most `maxMapSize`, the mapping
+inside the model's address space (`maxAddr = 2 ^ 47`), and, unless the file model failed in a way
+the premises exclude, whole pages. -/
+def wdbSz (m : OsMeta) (ms : MapSt) : Prop :=
+  m.size ≤ 0xFFFFFFFFFFFF ∧ mapLen ms ≤ 0x800000000000 ∧ (FsNoErr → m.size % 4096 = 0)
+
+theorem wdbSz.lt {m : OsMeta} {ms : MapSt} (h : wdbSz m ms) : m.size < 2 ^ 62 := by
+  have := h.1; omega
+
+theorem wdbSz.written {m m' : OsMeta} {ms : MapSt} (h : wdbSz m ms)
+    (h2 : m'.size ≤ max m.size (mapLen ms)) (hal : FsNoErr → m'.size = m.size ∨ m'.size % 4096 = 0) :
+    wdbSz m' ms := by
+  obtain ⟨h1, hl, h3⟩ := h
+  refine ⟨by omega, hl, fun hf => ?_⟩
+  rcases hal hf with e | e
+  · rw [e]; exact h3 hf
+  · exact e
+
+theorem wdbSz.congr {m m' : OsMeta} {ms ms' : MapSt} (h : wdbSz m ms) (hs : m'.size = m.size)
+    (hl : mapLen ms' = mapLen ms) : wdbSz m' ms' := by
+  obtain ⟨h1, h2, h3⟩ := h
+  exact ⟨by omega, by omega, fun hf => by rw [hs]; exact h3 hf⟩
+
+end size
+
 section locks
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -279,9 +307,14 @@ def wdbOK (w : WDb) : Prop :=
   -- allocated pages are then below `tx.meta.Pgid()`, its panic check)
   (∀ x ∈ w.fl.free, x.toNat < w.C.hwm) ∧
   -- batch 37 (U4d): the file's size is an `int64` (`DB.fileSize`'s `Stat`; `Open` reads it,
-  -- `DB.grow` truncates to an `int64`); session bbolt-inv: below `2 ^ 62`, as `fileHolds` asks
-  -- (`Open`'s file is, `DB.grow` truncates below it, a write ends inside the mapping)
-  w.m.size < 2 ^ 62 ∧
+  -- `DB.grow` truncates to an `int64`); session S3g: at most `maxMapSize`, as `fileHoldsM` asks, so
+  -- that `Close` gives back a file `Open` can reopen: `Open`'s file is; a mapping fits the model's
+  -- address space (`maxAddr = 2 ^ 47`: every mapped cell is a heap cell below it), `DB.grow` truncates
+  -- to at most the mapping plus a page plus `AllocSize` (`2 ^ 47 + 2 ^ 12 + 2 ^ 24`), a write ends
+  -- inside the mapping or the file; and, unless the file model failed in a way the premises exclude,
+  -- whole pages (`fileHolds` asks it: `Open`'s file is, `DB.grow` truncates to whole pages, a
+  -- commit's write lands whole pages, or fails at `maxBytes`, page-aligned)
+  wdbSz w.m w.ms ∧
   -- batch 37 (U4d): a file past the mapping ends on a page (its partial last page would have no
   -- owner; bbolt never makes such a file: `Open` maps at least the file, `DB.grow` above
   -- `AllocSize` truncates to whole pages)

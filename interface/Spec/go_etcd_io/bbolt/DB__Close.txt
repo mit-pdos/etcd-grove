@@ -8,11 +8,7 @@ def bbolt.DB.Close.spec : Prop :=
     ⊢
       ∀ Φ,
         bbolt.isBolt db γ ∗ bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D ∗ bbolt.boltCloser γ -∗
-          (▷
-              ∀ err,
-                ⌜err = GoInterface.nil⌝ ∗ bbolt.fileHolds i D ∨
-                    ⌜¬Fs.FsNoErr⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bbolt.boltNoFile γ -∗
-                  Φ (intoVal err)) -∗
+          (▷ ∀ err, ⌜err = GoInterface.nil⌝ ∗ bbolt.fileHoldsM i D ∨ ⌜¬Fs.FsNoErr⌝ -∗ Φ (intoVal err)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Close" (intoVal db)))
                 (intoVal ()))

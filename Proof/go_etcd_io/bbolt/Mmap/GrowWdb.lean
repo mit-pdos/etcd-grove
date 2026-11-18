@@ -20,6 +20,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The synced freelist page's extent ends below the high-water mark (`flClause`, its header in
 `wb f`: `wdbOK'_flHdr`). -/

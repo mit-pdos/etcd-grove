@@ -23,6 +23,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 variable [go_gctx : GoGlobalContext]
 
 /-- **The tail's facts** of the records `X` and the writer side `w` (flagged `fr`: after the free

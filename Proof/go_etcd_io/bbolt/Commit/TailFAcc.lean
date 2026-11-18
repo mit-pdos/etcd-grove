@@ -79,12 +79,14 @@ theorem cm_wdbW'_cfacts (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
     ipureintro; exact Hok
   · ipureintro; exact Hcf
 
-/-- `cm_wdbW_mapLen` for `wdbW' fr`. -/
+/-- `cm_wdbW_mapLen` for `wdbW' fr`, with `wdbSz`'s bound (session S3g: the mapping lies in the
+model's address space, below `maxAddr = 2 ^ 47`). -/
 theorem cm_wdbW'_mapLen (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :
-    wdbW' (GF := GF) fr K tx v w ⊢ ⌜mapLen w.ms ≤ 0xFFFFFFFFFFFF⌝ := by
-  unfold wdbW' wdbLive wdbCoreG
-  iintro ⟨⟨⟨-, -, -, -, -, -, -, -, -, -, -, -, Hmf, -⟩, -⟩, -⟩
-  iapply cm_mapFields_len K.db _ _ $$ Hmf
+    wdbW' (GF := GF) fr K tx v w ⊢ ⌜mapLen w.ms ≤ 0x800000000000⌝ := by
+  unfold wdbW'
+  iintro ⟨-, %h, -⟩
+  ipureintro
+  exact h.1.2.2.2.2.2.2.2.2.2.2.2.2.1.2.1
 
 /-- `cm_wdbW_bounds` for `wdbW' fr`. -/
 theorem cm_wdbW'_bounds (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) :

@@ -47,6 +47,8 @@ end hwm
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 omit [GooseExts] in
 /-- An allocation keeps the pending ids. -/

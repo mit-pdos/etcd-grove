@@ -71,7 +71,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe #
   try wp_auto
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    (dbFd K.p.ino) w.m rfl (by have := hok.2.2.2.2.2.2.2.2.2.2.2.2.1; omega) $$ [Hfile Hfo Hfd Hosm]
+    (dbFd K.p.ino) w.m rfl (by have := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt; omega) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   have hrefl : wdbGrown w { w with m := w.m, W := w.W, wb := w.wb } :=
@@ -108,7 +108,8 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     iframe HeS
     ipureintro; exact hne.1
   obtain ⟨rfl, rfl, hfs8⟩ := Hfs
-  have hszlt := hok.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hszlt := (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).lt
+  have hszw := hok.2.2.2.2.2.2.2.2.2.2.2.2.1
   have hfz : sint.Z (W64 (w.m.size : Int)) = w.m.size := by word
   wp_auto
   rw [hfz]
@@ -154,7 +155,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       w.m.size ≤ (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ∧
       (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat % 4096 = 0 ∧
       (mapLen w.ms ≤ 0x1000000 → (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ≤ mapLen w.ms) ∧
-      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat < 2 ^ 62 := by
+      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ≤ 0xFFFFFFFFFFFF := by
     have hLz : sint.Z (W64 (mapLen w.ms : Int)) = (mapLen w.ms : Int) := by word
     unfold growSizeOf
     rw [hLz]

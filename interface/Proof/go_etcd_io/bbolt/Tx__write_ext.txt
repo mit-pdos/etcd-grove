@@ -82,11 +82,13 @@ theorem bbolt.Tx.write_ext.wp_proof [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : 
                                                                           (wb' s).length = 4096) ∧
                                                                     (∀ (s : Nat),
                                                                         s ∈ T → 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧
-                                                                      ∀ (s : Nat),
-                                                                        s ∈ bbolt.bufSlots bufs ++ T →
-                                                                          4096 * s < om'.size →
-                                                                            om'.size < 4096 * (s + 1) →
-                                                                              om'.size - 4096 * s ≤ (wb' s).length⌝ ∗
+                                                                      (∀ (s : Nat),
+                                                                          s ∈ bbolt.bufSlots bufs ++ T →
+                                                                            4096 * s < om'.size →
+                                                                              om'.size < 4096 * (s + 1) →
+                                                                                om'.size - 4096 * s ≤ (wb' s).length) ∧
+                                                                        (Fs.FsNoErr →
+                                                                          om'.size = om.size ∨ om'.size % 4096 = 0)⌝ ∗
                                                           (⌜err = GoInterface.nil⌝ ∗
                                                               ⌜(∀ (s : Nat),
                                                                       s ∈ bbolt.bufSlots bufs →

@@ -21,6 +21,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The mapping of a writer side with a file of at least two pages is at least two pages. -/
 theorem grow_L8 (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L : Nat)
@@ -97,7 +99,8 @@ at most `AllocSize`): the cells back, the new zeros joined to the `W` slots (`gr
 theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
     (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size)
     (m' : OsMeta) (hsz : w.m.size ≤ m'.size) (hmaps : m'.maps = w.m.maps) (hS : m'.size % 4096 = 0)
-    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size < 2 ^ 62) (S : Nat) (hSz : m'.size = S) :
+    (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size ≤ 0xFFFFFFFFFFFF) (S : Nat)
+    (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
     K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
     osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
@@ -134,7 +137,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
   have hok' := wdbOK'_grown fr w hok b L hms m' (growWb w.wb w.m.size) hsz hmaps
     (wdbOK'_flHdr fr w hok) hag
     (fun s h1 h2 => growWb_length w.wb w.m.size s h2 fun h3 => (hpart s h3 h2).2)
-    h10 h13 (.inr hS) (fun s h1 h2 => by omega)
+    h10 h13 (fun _ => hS) (.inr hS) (fun s h1 h2 => by omega)
   iexists ({ w with m := m', W := wSlots k w.C w.fl, wb := growWb w.wb w.m.size } : WDb)
   isplitl
   · iapply Hclose $$ %m' %(wSlots k w.C w.fl) %(growWb w.wb w.m.size) [] [Hfile Hfo Hfd Hosm Hdsz
@@ -175,7 +178,8 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
   have hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → w.wb s = w.wb s := fun _ _ => rfl
   have hok' := wdbOK'_grown fr w hok b L hms m' w.wb (by omega) hmaps
     (wdbOK'_flHdr fr w hok) hag (fun s h1 h2 => by omega)
-    (fun h => by rw [hsz]; exact hk10 h) (by rw [hsz]; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.1)
+    (fun h => by rw [hsz]; exact hk10 h) (by rw [hsz]; exact (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).1)
+    (fun hf => by rw [hsz]; exact (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).2.2 hf)
     (by rw [hsz]; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b L hms)
     (fun s h1 h2 => by rw [hsz] at h1 h2 ⊢; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s h1 h2)
   iexists ({ w with m := m', W := wSlots k w.C w.fl, wb := w.wb } : WDb)

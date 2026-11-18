@@ -29,7 +29,7 @@ the leaked mapping `j`), the `W` slots those inside the file. -/
 def WDb.lost [GooseExts] (w : WDb) (m' : OsMeta) (j : Option (Loc × Nat)) : WDb :=
   { w with ms := none, m := m', W := wSlots (w.m.size / 4096) w.C w.fl, junk := j }
 
-theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
+theorem wdbOK'_lost [GooseExts] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
     (j : Option (Loc × Nat)) (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     wdbOK' fr (w.lost m' j) := by
@@ -44,7 +44,8 @@ theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : 
     exact mem_W_of_wSlots _ _ _ s
   · intro b l h; simp [WDb.lost] at h
   · intro b l h; simp [WDb.lost] at h
-  · simp only [WDb.lost]; rw [hsz]; exact hk13
+  · obtain ⟨a1, -, a3⟩ := hk13
+    refine ⟨?_, ?_, ?_⟩ <;> simp only [WDb.lost, mapLen, hsz] <;> first | exact a1 | exact a3 | omega
   · intro b l h; simp [WDb.lost] at h
   · intro s hs hle
     simp only [WDb.lost, hsz] at hs hle ⊢

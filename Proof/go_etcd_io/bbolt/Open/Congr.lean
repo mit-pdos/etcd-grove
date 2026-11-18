@@ -32,11 +32,6 @@ theorem boltIno_congr {γ γ' : BoltName} {i i' : Ino} (hγ : γ = γ') (hi : i 
     boltIno (GF := GF) γ i = boltIno γ' i' := by
   simp only [hγ, hi]
 
-/-- `boltNoFile` of equal arguments. -/
-theorem boltNoFile_congr {γ γ' : BoltName} (hγ : γ = γ') :
-    boltNoFile (GF := GF) γ = boltNoFile γ' := by
-  simp only [hγ]
-
 /-- `fileHolds` of equal arguments. -/
 theorem fileHolds_congr {i i' : Ino} {D D' : Data} (hi : i = i') (hD : D = D') :
     fileHolds (GF := GF) i D = fileHolds i' D' := by

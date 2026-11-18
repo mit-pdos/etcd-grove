@@ -27,6 +27,8 @@ open Fs
 open Iris Iris.BI Iris.ProofMode Iris.ProgramLogic go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 set_option linter.unusedSectionVars false
 variable [GooseExts]
 

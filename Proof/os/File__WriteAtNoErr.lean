@@ -50,13 +50,13 @@ theorem os.File.WriteAt.wp_proofExtNoErr : os.File.WriteAt.specExtNoErr (GF := G
   intro Sio _ hS f fd name dqf sl data dqs off dq d m xs hwr hoff hB hn hxl
   have := maxBytes_lt
   iintro %Φ Hpre HΦ
-  iapply os.File.WriteAt.wp_proofExtQ maxBytes (· = 0)
+  iapply os.File.WriteAt.wp_proofExtQ maxBytes (fun _ e => e = 0)
     (fun t p o dt m xs n Φ ho => wp_pwFinish_postNE hS t o dt ho _ (pwTokG_inflight t p o dt m xs n) Φ)
     f fd name dqf sl data dqs off dq d m xs hwr hoff (by omega) hn hxl hB $$ Hpre
   inext
   iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %a, %E, %ys, %h, Hm, Hbs, Hc, -⟩
   obtain ⟨hja, hal, -, -, hE, h6, -, h8⟩ := h
-  rcases h8 with ⟨rfl, rfl, rfl⟩ | ⟨-, -, e, he, hne⟩
+  rcases h8 with ⟨rfl, rfl, rfl⟩ | ⟨-, -, -, e, -, he, hne⟩
   · obtain rfl : a = data.length := by omega
     obtain rfl := hE rfl
     iapply HΦ

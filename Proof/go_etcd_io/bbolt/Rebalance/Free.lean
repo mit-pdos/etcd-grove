@@ -23,6 +23,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section free
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **Freeing a page of the committed tree keeps `wdbOK`.** -/
 theorem wdbOK_free (w : WDb) (id : w64) (pg : List w8) (hok : wdbOK w)

@@ -45,8 +45,9 @@ theorem wdbCore_meta_acc (B : BNs) (db : Loc) (p : BFile) (w : WDb) :
 /-- `wdbOK` after the file's metadata changed but its size and mappings. -/
 theorem wdbOK_withMeta (w : WDb) (m' : OsMeta) (hs : m'.size = w.m.size)
     (hm : m'.maps = w.m.maps) (h : wdbOK w) : wdbOK { w with m := m' } := by
-  unfold wdbOK at h ⊢
-  simpa only [hs, hm] using h
+  obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15, h16, h17⟩ := h
+  refine ⟨?_, ?_, ?_, ?_, h5, h6, h7, h8, h9, ?_, h11, h12, h13.congr hs rfl, ?_, ?_, ?_, h17⟩ <;>
+    simp only [hs, hm] <;> assumption
 
 /-- The file's resources (`fdatasync`'s), out of the idle writer side and back, with the file's
 metadata `m'` of the same size. -/

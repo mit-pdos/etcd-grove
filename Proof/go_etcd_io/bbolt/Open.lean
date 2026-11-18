@@ -13,7 +13,7 @@ Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once 
 began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
 The page pool's `New` reads the named result `db`, which the returns write: it borrows the cell
 from the protocol `Open/PoolNew.dpProt` against its caller's lease (U11j).
-A local assumption until the method is translated: `fs.FileMode.String.spec`.
+`fs.FileMode.String.spec` (`Spec/io/fs/FileMode__String.lean`) is a hypothesis, linked to its proof.
 -/
 module
 
@@ -959,7 +959,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     ipureintro; exact Hlgty
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
   wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
-    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) hfd0 $$
+    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
       Hxs Hbp Hcells freelistLoad Hbq HrcC] as Hlf
   · unfold lfPre

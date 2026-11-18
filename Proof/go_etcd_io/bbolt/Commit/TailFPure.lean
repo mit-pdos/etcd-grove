@@ -30,6 +30,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **The freed synced freelist page's slots are pending** (vacuous with no synced page). -/
 def flExtPend (w : WDb) : Prop :=

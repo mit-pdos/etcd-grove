@@ -23,6 +23,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 theorem cm_bufs_off_flrun (w w' : WDb) (S : List Nat) (f : Nat) (hok : wdbOK w)
     (hf : w.C.flpg = some f) (hwb : w'.wb f = w.wb f)

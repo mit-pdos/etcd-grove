@@ -555,6 +555,11 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
   unfold mapCells
   icases Hmc with ⟨%bs', -, Hc⟩
   rw [hLn]
+  -- session S3g: the new mapping lies in the model's address space (`maxAddr = 2 ^ 47`)
+  icases cellsR_maxAddr base L' _ (by have := hL'p.2.1; omega) $$ Hc with ⟨Hc, %hLmax⟩
+  have hL47 : L' ≤ 0x800000000000 := by
+    have e : maxAddr = 0x800000000000 := rfl
+    rw [e] at hLmax; omega
   icases mapCells_scatter base L' _ _ _ hP' $$ Hc with ⟨Hc01, HS, Hws, Hpart⟩
   wp_bind (App (Val (GoInstruction (GoLoad go.bool))) (Val #(K.db.[DB, go!"Mlock"])))
   iapply wp_load_bool_split
@@ -712,7 +717,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     try rw [hnszE]
     imod remap_post' fr K tx r m X Xd w hok F HfR b0 base l L'
       { { w.m with maps := GMap.delete b0 w.m.maps } with
-        maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
+        maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1 hL47
       rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb
       $$ Hwc0 Hvc Hmf Hpmap Hptok Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
         Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt Htok with ⟨Hpm, Hw, Hdb⟩
@@ -763,7 +768,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     try rw [hnszE]
     imod remap_post' fr K tx r m X Xd w hok F HfR b0 base l L'
       { { w.m with maps := GMap.delete b0 w.m.maps } with
-        maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1
+        maps := <[base := L']> (GMap.delete b0 w.m.maps) } hrel.1 hXd hv Htx.2 hmsL hll hal hL'p.2.2.1 hL47
       rfl (by rw [hmaps1]; exact GMap.insert_empty _ _) hfile hpb
       $$ Hwc0 Hvc Hmf Hpmap Hptok Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
         Hfo Hfd [H0b H1b] Hmob Hwcn Hwb [Hjunk] Hflo Hrd Hrcpt Htok with ⟨Hpm, Hw, Hdb⟩

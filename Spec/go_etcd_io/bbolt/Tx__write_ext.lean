@@ -42,8 +42,9 @@ slots the write touched hold some whole page's bytes); on success every page slo
 `store_publish` takes it) and the tail is `wrSlotsSz` at the new size; on an error all the slots
 are, with whatever bytes the write left. On success the success branch also restates the
 straddling-slot fact (kept there for its consumers) and says that the file either kept its size or
-ends on a page boundary (it grew by whole pages); not on an error, where `WriteAt` may have written
-part of a chunk. -/
+ends on a page boundary (it grew by whole pages); on an error too unless the file model failed in a way
+the premises exclude (session S3g: under them a write fails only at `maxBytes`, page-aligned,
+`os.File.WriteAt.specExt`), though `WriteAt` may then have written part of a chunk. -/
 abbrev Tx.write_ext.spec : Prop :=
   ∀ (K : BC) (tx : Loc) (r : TxReg) (sm : Bool) (q : Qp) (dq : DFrac) (pml : Loc)
     (pm : GMap w64 Loc) (bufs : GMap w64 (List w8)) (T : List Nat) (wb : Nat → List w8)
@@ -75,7 +76,8 @@ abbrev Tx.write_ext.spec : Prop :=
           (∀ s ∈ bufSlots bufs ++ T, 4096 * (s + 1) ≤ om'.size → (wb' s).length = 4096) ∧
           (∀ s ∈ T, 4096 * (s + 1) ≤ om.size → wb' s = wb s) ∧
           (∀ s ∈ bufSlots bufs ++ T, 4096 * s < om'.size → om'.size < 4096 * (s + 1) →
-            om'.size - 4096 * s ≤ (wb' s).length)⌝ ∗
+            om'.size - 4096 * s ≤ (wb' s).length) ∧
+          (FsNoErr → om'.size = om.size ∨ om'.size % 4096 = 0)⌝ ∗
         ((⌜err = interface.nil⌝ ∗ ⌜(∀ s ∈ bufSlots bufs, 4096 * (s + 1) ≤ om'.size) ∧
             (∀ id pg, bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
               wb' (id.toNat + j) = pageChunk pg j) ∧

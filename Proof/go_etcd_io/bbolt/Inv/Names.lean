@@ -57,7 +57,7 @@ open Iris
   `loadFreelist`, then `true`, discarded (persistent, in `isBoltCoreP`);
 - `spr`: `ghostVar Bool`, the spare reader pair in use (batch 41: ½ beside the spare pair or with
   its reader, ½ in `metaR`);
-- `nf`: `dghostVar Bool`, the file given up (session bbolt-inv, `boltNoFile`): `false` at 1 in the
+- `nf`: `dghostVar Bool`, the file given up (session bbolt-inv; the API's `boltNoFile` until session S3g): `false` at 1 in the
   writer side's junk clause while no mapping leaked; `true`, discarded, once a mapping leaked or
   `DB.Close` closed the database without giving the file back (`closedR`);
 - `clo`: `ghostVar Unit`, the closer token (session S3f, `boltCloser`): whole with the client from
