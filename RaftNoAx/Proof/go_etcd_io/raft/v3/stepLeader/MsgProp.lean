@@ -264,11 +264,13 @@ local macro "cc_join" ccm:term:max : tactic => `(tactic| (
       as ⟨%str, failedCheck, r, alreadyJoint, wantsLeaveJoint, Hphys, %Hfc⟩))
 
 set_option hygiene false in
-/-- After `cc_join`: `failedCheck != ""` (and `!r.disableConfChangeValidation`) decides between
+/-- After `cc_join`: `failedCheck != nil` (and `!r.disableConfChangeValidation`) decides between
 `cc_refuse_tail` and `cc_accept_tail`. -/
 local macro "cc_after" : tactic => `(tactic| (
     rcases Hfc with ⟨Hstr, Hstep0⟩ | ⟨rfl, Hstep1⟩
-    · simp only [decide_eq_false Hstr, Bool.not_false]
+    · -- (raft-noax) `failedCheck != nil`: an interface, set
+      obtain ⟨ifc, rfl⟩ : ∃ ifc, str = GoInterface.ok ifc := by
+        cases str <;> first | exact ⟨_, rfl⟩ | exact absurd rfl Hstr
       wp_auto
       cc_refuse_tail
     · try wp_auto

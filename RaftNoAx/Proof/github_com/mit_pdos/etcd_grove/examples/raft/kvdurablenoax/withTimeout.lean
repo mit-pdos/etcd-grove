@@ -28,7 +28,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurableno
 timer's function `cancel` itself (which never panics). -/
 theorem withTimeout.wp_proof : withTimeout.spec (GF := GF) (hG := hG) := by
   intro d
-  wp_start as ⟨#Hpkg, Hcci⟩
+  wp_start as Hcci
   ihave #Hctxinit : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
   wp_auto
@@ -36,14 +36,14 @@ theorem withTimeout.wp_proof : withTimeout.spec (GF := GF) (hG := hG) := by
   try wp_auto
   wp_apply (_root_.Perennial.context.wp_WithCancel_Background iprop(True)) $$ [$Hctxinit $Hcci]
     as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx, -, #Hfrom⟩
-  wp_auto
+  try wp_auto
   wp_apply time.wp_AfterFunc $$ [] as %t -
   · iapply Hcancel
     · imodintro; itrivial
     inext
     iintro -
-    ipureintro; rfl
-  wp_auto
+    ipureintro; exact isPanic_intoVal _
+  try wp_auto
   iapply HΦ
   iframe Hctx Hfrom
   imodintro

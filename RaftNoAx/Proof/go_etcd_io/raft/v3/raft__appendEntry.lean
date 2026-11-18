@@ -231,8 +231,8 @@ theorem raft.appendEntry.wp_proof
     imod entPtsCC_freeze _ _ _ $$ Hl' with #Hl'
     -- the stamped clone's size is the source's (`entBytes`: `Data` and the unknown fields)
     ihave #Hl' := entRoC_entRZ_eq s.gh.sn.sz l'
-      { c' with term := some s.term, index := some (li + W64 1 + n) }
-      ⟨s.term, li + W64 1 + n, c'.model.Type', c'.model.Data'⟩ rfl Hc0z $$ Hl'
+      { c0 with term := some s.term, index := some (li + W64 1 + n) }
+      ⟨s.term, li + W64 1 + n, c0.model.Type', c0.model.Data'⟩ rfl Hc0z $$ Hl'
     wp_auto
     wp_for_post
     iframe
@@ -243,7 +243,7 @@ theorem raft.appendEntry.wp_proof
     iframe
     have Htk : (ents.mapIdx (stamp s.term li)).take (sint.nat n + 1)
         = (ents.mapIdx (stamp s.term li)).take (sint.nat n) ++
-          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := c'.model.Type', Data' := c'.model.Data' }] := by
+          [{ Term' := s.term, Index' := li + W64 1 + n, Type' := c0.model.Type', Data' := c0.model.Data' }] := by
       rw [List.take_add_one, List.getElem?_mapIdx, He]
       simp only [Option.map_some, Option.toList_some, stamp]
       rw [show (W64 (sint.nat n : Int) : w64) = n by word]
