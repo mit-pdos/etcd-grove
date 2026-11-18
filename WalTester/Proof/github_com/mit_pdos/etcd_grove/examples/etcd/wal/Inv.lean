@@ -316,7 +316,7 @@ theorem tPerm_of_osCallPerms (e : TEnv) {jr jo : Ino} (hR : RootsOk e.R) (hr : (
   have hao : e.orDir ≠ e.area := by
     intro h
     apply hne
-    have := List.inj_on_of_nodup_map hR.1 ho hr (by simpa using h)
+    have := eq_of_nodup_map hR.1 ho hr (by simpa using h)
     simpa using congrArg Prod.snd this
   have hon : ([] : GoString) ≠ e.orDir := by
     obtain ⟨cs, hcs, -, hrc⟩ := (hR.2.2 _ ho).1

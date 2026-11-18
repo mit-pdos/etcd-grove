@@ -58,6 +58,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
   iunfold WalFs.walAreaOk at Hok'
   icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
   have hrb := And.intro hrb0 hrb1
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  have hkd : callKey R dir = callKey R r := by rw [show dir = child r nm by rw [hin.2]; simp [child]; rfl]; exact hkc nm
+  rw [← hkd]
   icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
   ihave %hrc := osPathS_cleanAbs' R r _ jr $$ Hp
   have hnm := hin.1
@@ -75,7 +78,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_proof [os.file.FieldAs
     subst hdc
     wp_apply wp_namesAbs lg r nm R jr (DFrac.own qp) 1 N (DFrac.own (1 : Qp).half) h hnmO hNnm hcn
       $$ [Hp Hperm HN] as %rr %err ⟨Hp, Hperm, HN, %e, %herr, #He, -⟩
-    · iframe; iframe #
+    · rw [hkd]; iframe; iframe #
+    rw [← hkd]
     subst herr
     try wp_auto
     iapply HΦ

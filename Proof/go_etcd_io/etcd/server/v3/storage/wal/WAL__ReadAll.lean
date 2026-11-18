@@ -525,7 +525,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hsz0 : ∀ g ∈ gs0, g.om.size = g.bs.length := fun g hg => hgsz g (List.mem_append_left _ hg)
             have hls0 : ls.length = gs0.length := by rw [hlsl, hfI]
             have hfll0 : gs0.length ≤ fls.length := by rw [hfll]; simp
-            ihave Hph := walPerm_ofW hWR dir _ $$ Hph
             iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
             iintro %dq HQ Htf Hfail
             ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ fsI γt
@@ -579,7 +578,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
             have hsz0 : ∀ g ∈ gs0, g.om.size = g.bs.length := fun g hg => hgsz g (List.mem_append_left _ hg)
             have hls0 : ls.length = gs0.length := by rw [hlsl, hfI]
             have hfll0 : gs0.length ≤ fls.length := by rw [hfll]; simp
-            ihave Hph := walPerm_ofW hWR dir _ $$ Hph
             iapply readAll_failWpQL walCodec Mr R jr rt w dir s Q dc _ _ rfl _ _ $$ Hinv Hgh HQ Htf
             iintro %dq HQ Htf Hfail
             ihave Hrf := walReadFailedF_lentIntro Mr w dir lg locks ls lt fp _ _ hj gs0 gl fls df dfd _ fsI γt

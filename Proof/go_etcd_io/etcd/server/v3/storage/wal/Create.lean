@@ -218,7 +218,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
     · -- the rename was called: `createFin`; `retErr` the cleanup's error wrapped, or `perr`
       unfold createFin
       icases Hfin with ⟨Hp, Hcp, ⟨%nmf, Hf'⟩, HaL⟩
-      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
+      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) (callKey R r) (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
       · rw [Qp.half_add_half]; iexact Hcp
       icases Hcp with ⟨Hcp, -⟩
       rcases cerr with cei | _
@@ -270,6 +270,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     iunfold createUH at HUH
     icases HUH with ⟨HQ, ⟨%s', #Hpast, %hs'⟩, ⟨%c, %hn, Hnm, %hnm⟩, #HlbX, ⟨%ht, Htmp, %hht⟩, Hsf'⟩
     obtain ⟨_hcq, hnm⟩ := hnm
+    icases walInv_roots _ _ _ _ _ $$ Hinv with %hWRc
+    icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkcR⟩
     try wp_auto
     -- `pdir, perr := fileutil.OpenDir(filepath.Dir(w.dir))`
     icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
@@ -279,12 +281,16 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     subst pd
     ihave Hw := Hw $$ Hdir
     icases walOpenWFU_permAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hperm, Hw⟩
+    ihave Hperm := walPerm_ofW hWRc (child r nm) _ $$ Hperm
+    ihave Hperm := osCallPerm_congr _ (hkcR nm) $$ Hperm
     wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half.half $$ [Hp Hperm]
       as %pf %perr ⟨Hp, Hperm, Hod⟩
     · iframe; iframe #
     icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, -⟩)
     rotate_left
     · -- `OpenDir` failed: logged, then the deferred `cleanupWAL`
+      ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+      ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
       ihave Hw := Hw $$ Hperm
       try wp_auto
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
@@ -323,6 +329,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       try wp_auto
       wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr0 -
       · iframe; iframe #
+      ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+      ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
       ihave Hw := Hw $$ Hperm
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
       try wp_auto
@@ -368,6 +376,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       rcases cerr with pei | _
       rotate_left
       · exact absurd rfl hce
+      ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+      ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
       ihave Hw := Hw $$ Hperm
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
       try wp_auto
@@ -392,6 +402,8 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     wp_apply +noauto wp_RmAbs r (tmpName nm) jr R (e + a') (DFrac.own 1) ht (1 : Qp).half.half
       (tmpName_nameOk hnmO) hht $$ [Hp Htmp Hperm] as %err' ⟨Hp, Htmp, Hperm, -⟩
     · iframe; iframe #
+    ihave Hperm := osCallPerm_congr _ (hkcR nm).symm $$ Hperm
+    ihave Hperm := walPerm_toW hWRc (child r nm) _ $$ Hperm
     ihave Hw := Hw $$ Hperm
     -- the success exit (after the parent's close: the twenty-seventh session): the parent's fsync names
     -- the WAL (`walInv_named`), and the name is registered now (`walInv_register`; design P,
@@ -662,12 +674,14 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases (osNames_join jr (.only [tmpName nm]) e b' hT2 hqq).2 $$ HT with ⟨HTe, HTb⟩
     ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT2 (tmpName_nameOk hnmO) hJs.1
       $$ Hpe HTe
+    icases osCallPerm_child R r (tmpName nm) _ jr 1 $$ Hpa Hperm with ⟨Hpa, Hperm⟩
     wp_apply wp_createSeg wp_cNWF wp_OpenC R (child r (tmpName nm)) (DFrac.own e) J (walFileName 0 0) _ 1
       hb0 hcur0 $$ [Hpc Hperm HJ0] as %lf %err ⟨Hpc, Hperm, %o, Ho, Hm, Hcs⟩
     · iframe; iframe #
     icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
       with ⟨%hT3, Hp, HTe, %-⟩
     · iframe
+    icases osCallPerm_unchild R r (tmpName nm) _ jr 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT2 $$ HTe HTb with %he
     subst he
     ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
@@ -992,6 +1006,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).2 $$ HT with ⟨HTe, HTb⟩
     ihave Hpc := osPathS_child R r (tmpName nm) (DFrac.own e) jr J hT3 (tmpName_nameOk hnmO) hJs.1
       $$ Hpe HTe
+    icases osCallPerm_child R r (tmpName nm) _ jr 1 $$ Hpa Hperm with ⟨Hpa, Hperm⟩
     wp_apply wp_syncDir (child r (tmpName nm)) R J (DFrac.own e) 1
       (max (hJ.restrict J ((NameSet.except []).diff [walFileName 0 0])).next (x0 + 1)) $$ [Hpc Hperm]
       as %serr4 ⟨Hpc, Hperm, Hsd⟩
@@ -999,6 +1014,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     icases os.osPathS_unchild R r (tmpName nm) jr J e a' (tmpName_nameOk hnmO) $$ [Hpc Hpa]
       with ⟨%hT5, Hp, HTe, %-⟩
     · iframe
+    icases osCallPerm_unchild R r (tmpName nm) _ jr 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osNames_agree jr (.only [tmpName nm]) _ _ hT3 hT5 $$ HTb HTe with %he5
     subst he5
     ihave HT := (osNames_join jr (.only [tmpName nm]) e b' hT3 hqq).1 $$ [HTe HTb]
@@ -1194,6 +1210,8 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           · cases hb
         · rw [restrictN_lookup_not _ _ _ hm] at hb; cases hb
       icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
+      icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc1⟩
+      ihave Hperm := osCallPerm_congr _ (hkc1 nm).symm $$ Hperm
       ihave HhIn := create_handleIn P Mr hMr wl lg r nm mp md enc lf f fd
         (child (child r (tmpName nm)) (walFileName 0 0)) (child r (tmpName nm))
         (⟨i, false, true, lo, lk⟩ : OsFd) _ (createSeg i mS ysS) jr J
