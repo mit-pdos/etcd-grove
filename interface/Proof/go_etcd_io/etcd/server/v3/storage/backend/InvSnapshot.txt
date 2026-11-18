@@ -20,8 +20,6 @@ def backend.snapOpenQ (sp : Loc) (D : backend.Data) (γ : GName) (q : Qp) : IPro
 
 def (sealed) backend.readerStreams (r : GoInterface) (Φ : List w8 → Prop) : IProp GF
 
-def (sealed) backend.pathOwn (p : GoString) : IProp GF
-
 def backend.snapOpen (sp : Loc) (D : backend.Data) : IProp GF :=
   iprop(∃ γ, backend.snapOpenQ sp D γ 1)
 
@@ -29,8 +27,6 @@ theorem backend.writerOk_persistent (w : GoInterfaceOk) (Wr : Bool → List w8 �
     Persistent (backend.writerOk w Wr)
 
 def (sealed) backend.boltImage (bs : List w8) (D : backend.Data) : Prop
-
-def (sealed) backend.srvFileHolds (p : GoString) (D : backend.Data) : IProp GF
 
 def (sealed) backend.snapRO (sp : Loc) (D : backend.Data) (γ : GName) : IProp GF
 

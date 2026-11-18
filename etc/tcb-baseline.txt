@@ -562,7 +562,6 @@ axiom netListenerAt
 axiom newCorruptionChecker.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom os.Rename.wp_proof
 axiom otelgrpc.NewServerHandler.wp_proof
 axiom pbAuthEnableRequestT_reg
 axiom pbAuthEnableResponseT_reg

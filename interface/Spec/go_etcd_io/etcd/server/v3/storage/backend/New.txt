@@ -26,7 +26,8 @@ def backend.New.spec : Prop :=
                               (interface.mkOk go_etcd_io.etcd.server.v3.storage.backend.backend.ty.PointerType
                                 (intoVal b))⌝ ∗
                         backend.newPostK γ P W Pk K b D ∗
-                          backend.hooksAt b cfg.Hooks' ∗ backend.bFile γ cfg.Path' ∗ threadTok) ∨
+                          backend.hooksAt b cfg.Hooks' ∗
+                            backend.bFile γ cfg.Path' ∗ backend.bPath γ.db cfg.Path' ∗ threadTok) ∨
                     ⌜¬backend.dbOpenOk ∧ ∃ p, r = p.PanicV⌝ -∗
                   Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.New [])) (intoVal cfg)) {{ Φ }}

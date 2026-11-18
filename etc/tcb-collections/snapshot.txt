@@ -73,7 +73,6 @@ axiom mvcc.kvHasher.Hash.wp_proof
 axiom mvcc.kvHasher.WriteKeyValue.wp_proof
 axiom mvcc.newKVHasher.wp_proof
 axiom os.Getenv.wp_proof
-axiom os.Rename.wp_proof
 axiom pbEntryC_reg
 axiom pbMessageC_reg
 axiom prometheus.CounterVec.WithLabelValues.wp_proof
