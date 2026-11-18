@@ -25,6 +25,51 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: `auth.NewAuthStore.spec` (trust boundary) -- two write-back tokens, where the backend's proved specs charge four
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`, `auth.NewAuthStore.spec` (the axiom
+  `auth.NewAuthStore.wp_proof`); its user `authStoreKit` (`etcdserver/AuthSrv.lean`, the kit's pre
+  `ownToks d.γB.wb 2`, `authKitIn .off = True`).
+- **Defect.** Unprovable over the backend's own specs (true of Go: the docstring says why, "a coarser
+  accounting than the code's"). The pre gives two write-back tokens; over the proved backend specs the
+  constructor spends four: `CreateAuthBuckets`'s deferred `Unlock` one (`batchTxBuffered.Unlock.spec`),
+  `authBatchTx.Unlock` two (the batch `Unlock`, then `Commit`: `batchTxBuffered.Commit.spec` takes a
+  `wbTok`), `ForceCommit` one (`backend.ForceCommit.spec`). The mode `on`'s proof already takes four
+  (`newAuthStore_on`, `Wb ∗ Wb ∗ Wb ∗ Wb`; the kit's two and `authKitIn (.on γa)`'s two, auth-schema-fix F1).
+- **Evidence.** The proof attempt (branch `authstore-noax`): `lease.lessor.initAndRecover.wp_proof`, the
+  template of a constructor over the real backend, spends one per `Unlock` and one per `ForceCommit`
+  (`Proof/go_etcd_io/etcd/server/v3/lease/lessor__initAndRecover.lean`); `NewAuthStore` has two `Unlock`s, one
+  `Commit` and one `ForceCommit`.
+- **Proposed change.** The pre takes `ownToks d.γB.wb 4`; `authKitIn` gives the boot's two beyond the kit's
+  in every mode (NewServer already makes them, `wbSupply_of_stock`, and drops them with auth off:
+  `authKitIn_take`). No closed statement changes.
+- **Decision.** Pending (the user's: a trust-boundary spec); applied on branch `authstore-noax` only if the
+  axiom is proved there.
+
+## 2026-11-18: `apply.isAuthStore`'s admin clauses in the mode `off` (via `authApplyOk`, `auth.NewAuthStore.spec`'s post) -- unprovable today and used by no closed theorem
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/etcdserver/apply/Contracts.lean`, `adminAdmitted` (`M.isOn =
+  false`), hence `isAuthStore`'s `HasRole`, `AuthDisable`, `Authenticate`, the eleven user and role requests and
+  the four reads in the mode `off`; the trust boundary that states them of the real store is
+  `auth.NewAuthStore.spec`'s `authApplyOk` (`etcdserver/SnapRO.lean`); the sixteen
+  `apply.applierV3backend.*`/`authApplierV3.{UserGet,RoleGet}` specs take `⌜adminAdmitted E.authMode⌝`.
+- **Defect.** Not provable of the real store with auth off without schema's whole auth write side over the
+  backend's tracked buckets (the auth-schema-srv Scope's G2-G5: `proto.Marshal` of `authpb.User`/`Role` has no
+  spec, `batchTx.UnsafeForEach` none, the put budget, the hook-bucket writer's session), the work
+  `authSchemaSrv` also waits on; and `HasRole`'s clause gives the method no resource although Go's `HasRole`
+  takes the batch lock (`LockInsideApply`, the post-lock hook) and `authBatchTx.Unlock` writes back and commits
+  (`store.go:1215-1236`): true of Go, not provable over the backend's contracts as stated. In the mode `on`
+  the clauses are already vacuous (`adminAdmitted_on`, E2i). No closed theorem applies an admin request with
+  auth off: the server's workload admits none (`rqOk`), and the apply specs that use the clauses also take
+  `E.RW`.
+- **Evidence.** `grep adminAdmitted`: no proof establishes `adminAdmitted .off` (it is only ever a premise);
+  `NewAuthStore.wp_proof` is the only source of the mode-`off` clauses.
+- **Proposed change.** `adminAdmitted M := False` until the admission (E2i's "(1) proper") exists, the
+  clauses vacuous in every mode; their docstrings say so. The trust boundary loses sixteen claims; the
+  closed theorems are unchanged (none reaches a clause). Undo when schema's write side is proved.
+- **Decision.** Pending (the user's: it changes what `NewAuthStore`'s axiom promises, weaker); applied on
+  branch `authstore-noax` only if the axiom is proved there.
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`
