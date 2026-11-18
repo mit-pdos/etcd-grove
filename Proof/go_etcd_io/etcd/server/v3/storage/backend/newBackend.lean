@@ -66,7 +66,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical `Open.spec` in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `Open_kv`): no error (`Open`'s error case is `¬ FsNoErr`, which `theFs`'s `FsNoErrAll`
 refutes, `Fs.fsNoErr_of`); the database opened in the namespace `dbNs path`, what it keeps of its
-file (`dbRestF`, with the closer token) in `ownDB`. The options come back with their
+file (`dbRestF`: the inode, with the closer token) in `ownDB`, and the claim on the name, which names
+the inode, to the caller (`bPath`, S5). The options come back with their
 `InitialMmapSize` unknown (`Open` gives back `optsAtNoErr`, which bounds it only). -/
 private theorem bbolt.kvGlue_Open
     (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
@@ -80,7 +81,7 @@ private theorem bbolt.kvGlue_Open
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
       (∃ x : w64, backend.optsAt opts dq { o with initialMmapSize := x }) ∗
       ⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db γ ∗
-          dbFile db γ path }} := by
+          dbFile db γ path ∗ bPath γ path }} := by
   intro hT hR path mode opts dq o D
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.fileHolds, onFs_none hfs]
@@ -88,8 +89,8 @@ private theorem bbolt.kvGlue_Open
     iexfalso; iexact H
   · haveI := fax; haveI := fsax
     have h' := @h fax fsax
-    simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, hfs,
-      onFs_some hfs]
+    simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, backend.bPath,
+      hfs, onFs_some hfs]
     obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := nex.ok
     have hne : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath
     iintro %Φ ⟨#Hpkg, Hf, Hbo, %Hok, #Hlog⟩ HΦ
@@ -122,15 +123,21 @@ private theorem bbolt.kvGlue_Open
     · ipureintro; exact He
     iexists γ
     iframe Hdb Hst
-    isplitl [Hpath Hcp Hnm Hcl]
+    isplitl [Hcl]
     · unfold dbRestF
-      iexists R, d, b, dqp, j, qc, h'', i
-      iframe Hinv Hsh Hpath Hcp Hnm Hino Hcl
-      ipureintro; exact ⟨hns, hb, hh'⟩
+      iexists i
+      iframe Hino Hcl
     unfold wrTok dbFile
     isplitr
     · itrivial
-    ipureintro; exact hns
+    isplitr
+    · ipureintro; exact hns
+    iexists i
+    iframe Hino
+    unfold nameAtF
+    iexists R, d, b, dqp, j, qc, h''
+    iframe Hinv Hsh Hpath Hcp Hnm
+    ipureintro; exact ⟨rfl, hb, hh'⟩
 
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000 in
@@ -228,7 +235,7 @@ theorem backend.newBackend.wp_proof
     refine ⟨OptsM.ok_withLogger o _ Hok.1 ⟨_, lc, rfl, rfl⟩, ?_, Hok.2.1, ?_⟩
     · simp only []; exact HP.2.2.2.1
     · simp only []; exact HP.2.2.2.2
-  icases Hres with ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile⟩
+  icases Hres with ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile, Hbp⟩
   subst Herr
   wp_auto
   -- the backend's structure
@@ -320,8 +327,10 @@ theorem backend.newBackend.wp_proof
     iframe Hb
     iexact Hpost
   iframe Hbfile Htok
-  unfold hooksAt
-  iexact hooks
+  isplitr [Hbp]
+  · unfold hooksAt
+    iexact hooks
+  · rw [Hγd]; iexact Hbp
 
 end proof
 

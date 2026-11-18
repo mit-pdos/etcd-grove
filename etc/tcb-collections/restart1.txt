@@ -349,7 +349,6 @@ axiom netAddrFree
 axiom newCorruptionChecker.wp_proof
 axiom os.Getenv.wp_proof
 axiom os.Getpagesize.wp_proof
-axiom os.Rename.wp_proof
 axiom pbEntryC_reg
 axiom pbMessageC_reg
 axiom pbutil.MustUnmarshalMessage.wp_proof

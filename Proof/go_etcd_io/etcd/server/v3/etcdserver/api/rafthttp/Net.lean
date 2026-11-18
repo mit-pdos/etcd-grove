@@ -22,7 +22,7 @@ transport saves the stream before it calls `Process` (`SaveDBFrom`: a temporary 
 renamed to `snapDBPath ss i` unless a file of that index is there, which it keeps). A member's
 **snapshot directory** is an invariant the receiver allocates and gives `Transport.Start`
 (`snapDirInv ss γd img Rm`, `snapDir_init`): the `.snap.db` files present (`M`, each with its
-`srvFileHolds` and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
+`fileAt`, the claim on its name in the tree's shared mode with the file, S5; until then the abstract `srvFileHolds`, and `□ img i D`) and the indices ever saved (`E`, a ghost map with persistent elements
 `snapSaved γd i`), each saved index absent from `M` with the receiver's removal fact `Rm i`. The
 transport only adds to it (a file it created, at an index absent from `M`); the receiver removes
 from it (a file taken to be opened, `OpenSnapshotBackend`, or `ReleaseSnapDBs`'s files below a
@@ -173,6 +173,18 @@ instance snapSaved_persistent (γd : GName) (i : w64) :
     Persistent (snapSaved (GF := GF) γd i) := by
   unfold snapSaved; infer_instance
 
+/-- **The names of the snapshot files of the indices not in `E`, free** (S5, 2026-11-18): the
+claim on the name of each index's database snapshot (`p i`) that `E` does not record, naming no file
+(`backend.fileFree`), for some finite map `F` of indices that has every such index (`w64` is finite:
+at the start, `F` has them all, `snapFreeAll`). -/
+def snapFree (p : w64 → GoString) (E : GMap w64 Unit) : IProp GF :=
+  iprop(∃ F : GMap w64 Unit, ⌜∀ i, E.lookup i = none → F.lookup i ≠ none⌝ ∗
+    [∗map] i ↦ _x ∈ F, backend.fileFree (p i))
+
+/-- **The names of the snapshot files of every index, free** (S5, 2026-11-18): `snapFree p ∅`,
+what a fresh data directory's snapshot directory has (`bootOk`'s, a premise). -/
+def snapFreeAll (p : w64 → GoString) : IProp GF := snapFree p ∅
+
 /-- **The snapshot directory of the snapshotter `ss`** (see the file header): the files present
 `M`, each holding its data with its certificate (`img`), and the indices ever saved `E`
 (`snapSaved`), which include `M`'s; a saved index not in `M` has the receiver's removal fact
@@ -183,7 +195,10 @@ def snapDirInv (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF
     (Rm : w64 → IProp GF) : IProp GF :=
   iprop(snap.snapDirIs (snap.snapDBPath ss) γd ∗ ∃ (M : GMap w64 backend.Data) (E : GMap w64 Unit),
     ghostMapAuth γd 1 E ∗ ⌜∀ i, M.lookup i ≠ none → E.lookup i ≠ none⌝ ∗
-    ([∗map] i ↦ D ∈ M, backend.srvFileHolds (snap.snapDBPath ss i) D ∗ □ img i D) ∗
+    ([∗map] i ↦ D ∈ M, backend.fileAt (snap.snapDBPath ss i) D ∗ □ img i D) ∗
+    -- (S5, 2026-11-18) the names of the indices never saved, free (`snapFree`): what `SaveDBFrom`
+    -- saves a file under
+    snapFree (snap.snapDBPath ss) E ∗
     □ (∀ i, ⌜E.lookup i ≠ none⌝ → snapSaved γd i) ∗
     □ (∀ i, ⌜E.lookup i ≠ none ∧ M.lookup i = none⌝ → Rm i))
 
@@ -478,6 +493,7 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
 
 /-- **A network's names, allocated** for the members `S` (the closed theorem's, once per
 cluster): its payload and directory chosen, a slot per member, the streams' registry (empty;
@@ -502,16 +518,18 @@ theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GM
 
 /-- **A member's snapshot directory, at names allocated before** (2026-10-26, D22 J2, R-loc: the
 names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory's right
-(`snap.snapDirOwn` at the data directory `dd`'s paths, which `ss`'s are: `bootOk`; restart S6a, M1)
-and the directory map's authority, empty, the directory's invariant (a fresh data directory: no
-`.snap.db` file), its map named by the right. -/
+(`snap.snapDirOwn` at the data directory `dd`'s paths, which `ss`'s are: `bootOk`; restart S6a, M1),
+(S5) the claims on every index's snapshot name, free (`snapFreeAll`, `bootOk`'s), and the directory
+map's authority, empty, the directory's invariant (a fresh data directory: no `.snap.db` file), its
+map named by the right. -/
 theorem snapDir_init (ss : Loc) (dd : GoString) (hss : snap.snapDBPath ss = snap.snapDBPathOf dd)
     (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (E : CoPset) :
-    ⊢ snap.snapDirOwn (snap.snapDBPathOf dd) -∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗
+    ⊢ snap.snapDirOwn (snap.snapDBPathOf dd) -∗ snapFreeAll (snap.snapDBPathOf dd) -∗
+      ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗
       inv snapDirN (snapDirInv ss γd img Rm) := by
-  iintro Ho Ha
+  iintro Ho Hfree Ha
   imod (snap.snapDirOwn_claim (snap.snapDBPathOf dd) γd) $$ Ho with #Hdi
-  imod (inv_alloc snapDirN E (snapDirInv ss γd img Rm)) $$ [Ha] with #Hi
+  imod (inv_alloc snapDirN E (snapDirInv ss γd img Rm)) $$ [Ha Hfree] with #Hi
   · iunfold snapDirInv
     rw [hss]
     iframe Hdi
@@ -521,6 +539,8 @@ theorem snapDir_init (ss : Loc) (dd : GoString) (hss : snap.snapDBPath ss = snap
     · ipureintro; intro i h; exact absurd (GMap.lookup_empty i) h
     isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitl [Hfree]
+    · iunfold snapFreeAll at Hfree; iexact Hfree
     isplitr
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h.1

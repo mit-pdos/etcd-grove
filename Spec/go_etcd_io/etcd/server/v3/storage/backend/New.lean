@@ -55,7 +55,10 @@ abbrev backend.New.spec : Prop :=
         ⌜r = #(interface.mkOk (go.GoType.PointerType backend.ty) #b)⌝ ∗ newPostK γ P W Pk K b D ∗
           hooksAt b cfg.Hooks' ∗
           -- (2026-11-04, R2b-3c part 2) the backend's file is the configuration's path
-          bFile γ cfg.Path' ∗ threadTok) ∨
+          bFile γ cfg.Path' ∗
+          -- (S5, 2026-11-18) and the claim on its name is the caller's (`bPath`: what `Close`'s
+          -- `bClosed` joins back into the file, or what a rename onto the path takes)
+          bPath γ.db cfg.Path' ∗ threadTok) ∨
       -- (2026-11-08) a panic only where bbolt's `Open` failed (`dbOpenOk`, `Open_kv`'s)
       ⌜¬ dbOpenOk ∧ ∃ p : val, r = PanicV p⌝ }}
 

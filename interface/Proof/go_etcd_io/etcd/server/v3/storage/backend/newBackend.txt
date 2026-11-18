@@ -36,18 +36,11 @@ theorem backend.newBackend.wp_proof (hLog : backend.newBoltLoggerZap.spec) (hMma
                 (∃ b γ,
                       ⌜r = intoVal b⌝ ∗
                         backend.newPostK γ P W Pk K b D ∗
-                          backend.hooksAt b cfg.Hooks' ∗ backend.bFile γ cfg.Path' ∗ threadTok) ∨
+                          backend.hooksAt b cfg.Hooks' ∗
+                            backend.bFile γ cfg.Path' ∗ backend.bPath γ.db cfg.Path' ∗ threadTok) ∨
                     ⌜¬backend.dbOpenOk ∧ ∃ p, r = p.PanicV⌝ -∗
                   Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBackend [])) (intoVal cfg)) {{ Φ }}
-
-theorem bbolt.boltIno.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
-    bbolt.BoltName) (e_γ : γ = γ✝) (i i✝ : Fs.Ino) (e_i : i = i✝) : bbolt.boltIno γ i =
-    bbolt.boltIno γ✝ i✝
-
-theorem backend.fileHoldsF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
-    path✝ : GoString) (e_path : path = path✝) (D D✝ : backend.Data) (e_D : D = D✝) :
-    backend.fileHoldsF path D = backend.fileHoldsF path✝ D✝
 
 theorem crOut.congr_simp [ExtSemantics Fs.fsExt] [HasExt Fs.fsExt] (j j✝ : Fs.Ino) (e_j : j = j✝) (b
     b✝ : GoString) (e_b : b = b✝) (h h✝ : Fs.NamesH) (e_h : h = h✝) (dq dq✝ : DFrac) (e_dq : dq =

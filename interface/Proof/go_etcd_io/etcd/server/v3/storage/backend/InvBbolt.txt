@@ -16,6 +16,9 @@ theorem bbolt.isBolt.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.
     Loc) (e_db : db = db✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) : bbolt.isBolt db γ = bbolt.isBolt
     db✝ γ✝
 
+theorem backend.fileAt_fileHolds (path : GoString) (D : backend.Data) : backend.fileAt path D ⊢
+    backend.fileHolds path D
+
 theorem backend.bktEnts_eq (m : backend.BktData) : backend.bktEnts m = bbolt.bktEnts m
 
 theorem backend.FsCtx.subsingleton (GF : BundledGFunctors) : Subsingleton (backend.FsCtx GF)
@@ -35,6 +38,10 @@ theorem backend.txDB_persistent (tx : Loc) (γ : backend.DBNames) (db : Loc) : P
 def backend.dbCloseOk : Prop :=
   True
 
+theorem bbolt.fileHoldsM.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (i i✝ :
+    Fs.Ino) (e_i : i = i✝) (D D✝ : bbolt.Data) (e_D : D = D✝) : bbolt.fileHoldsM i D =
+    bbolt.fileHoldsM i✝ D✝
+
 def backend.wView (D S : backend.Data) (G : GoString → Nat) : bbolt.TxView :=
   { rw := true, base := D, cur := S, gen := G }
 
@@ -47,8 +54,15 @@ def backend.ownWTx (tx : Loc) (γ : backend.DBNames) (D S : backend.Data) : IPro
 theorem backend.wView.proj_rw (D S : backend.Data) (G : GoString → Nat) : (backend.wView D S G).rw =
     true
 
+theorem backend.bPath_join (γ : backend.DBNames) (path : GoString) (D : backend.Data) :
+    backend.bPath γ path ∗ backend.bClosed γ D ⊢ backend.fileHolds path D
+
 def backend.isDB (db : Loc) (γ : backend.DBNames) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.isBolt db γ
+
+def backend.fileAtF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) (D :
+    backend.Data) : IProp GF :=
+  iprop(∃ i, backend.nameAtF path i ∗ bbolt.fileHoldsM i D)
 
 theorem backend.seekIdx_eq (es : List backend.Ent) (k : GoString) : backend.seekIdx es k =
     bbolt.seekIdx es k
@@ -92,6 +106,10 @@ def backend.bktEnts (m : backend.BktData) : List backend.Ent :=
 def backend.txBytes (tx : Loc) (γ : backend.DBNames) (s : GoSlice) (b : GoString) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.txBytes tx γ s b
 
+theorem backend.fileAtF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
+    path✝ : GoString) (e_path : path = path✝) (D D✝ : backend.Data) (e_D : D = D✝) : backend.fileAtF
+    path D = backend.fileAtF path✝ D✝
+
 theorem bbolt.txBytes.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx tx✝ :
     Loc) (e_tx : tx = tx✝) (γ γ✝ : bbolt.BoltName) (e_γ : γ = γ✝) (s s✝ : GoSlice) (e_s : s = s✝) (b
     b✝ : GoString) (e_b : b = b✝) : bbolt.txBytes tx γ s b = bbolt.txBytes tx✝ γ✝ s✝ b✝
@@ -106,8 +124,19 @@ theorem backend.ownWTxG_fill (tx b : Loc) (γ : backend.DBNames) (D S : backend.
     f', ⌜¬bbolt.float64IsNaN f'⌝ -∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Bucket
     go!"FillPercent" b) f' (DFrac.own 1) -∗ backend.ownWTxG tx γ D S G
 
+theorem backend.nameAtF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
+    path✝ : GoString) (e_path : path = path✝) (i i✝ : Fs.Ino) (e_i : i = i✝) : backend.nameAtF path
+    i = backend.nameAtF path✝ i✝
+
 theorem backend.wBkt_timeless (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat) :
     Timeless (backend.wBkt tx γ b n g)
+
+def backend.nameAtF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) (i :
+    Fs.Ino) : IProp GF :=
+  iprop(∃ R d b dq j qc h,
+      ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = some (Fs.Node.file i)⌝ ∗
+        Fs.osInv ∗
+          Fs.osSharedInv R ∗ Fs.osPathS R d dq j ∗ Fs.osCallPerm qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
 
 def backend.dbOpenOk : Prop :=
   True
@@ -115,6 +144,10 @@ def backend.dbOpenOk : Prop :=
 theorem backend.onFs_none (h : backend.theFs GF = none) (f : [inst : ExtSemantics Fs.fsExt] →
     [Fs.FsSemOk] → [HasExt Fs.fsExt] → IProp GF) : (backend.onFs fun [ExtSemantics Fs.fsExt]
     [Fs.FsSemOk] [HasExt Fs.fsExt] => f) = iprop(False)
+
+def backend.bPath (γ : backend.DBNames) (path : GoString) : IProp GF :=
+  backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] =>
+    iprop(∃ i, bbolt.boltIno γ i ∗ backend.nameAtF path i)
 
 theorem backend.txDone_persistent (tx : Loc) : Persistent (backend.txDone tx)
 
@@ -169,13 +202,7 @@ theorem backend.ownCur_timeless (tx : Loc) (γ : backend.DBNames) (c : Loc) (T :
 
 def backend.dbRestF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ : backend.DBNames) :
     IProp GF :=
-  iprop(∃ R d b dq j qc h i,
-      ⌜γ.ns = backend.dbNs (Fs.child d b) ∧ NameOk b ∧ h.cur !! b = some (Fs.Node.file i)⌝ ∗
-        Fs.osInv ∗
-          Fs.osSharedInv R ∗
-            Fs.osPathS R d dq j ∗
-              Fs.osCallPerm qc ∗
-                Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i ∗ bbolt.boltCloser γ)
+  iprop(∃ i, bbolt.boltIno γ i ∗ bbolt.boltCloser γ)
 
 def backend.wBkt (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltBkt tx γ b n g
@@ -199,6 +226,13 @@ theorem backend.txBytes_acc (tx : Loc) (γ : backend.DBNames) (s : GoSlice) (b :
     (T : bbolt.TxView) : backend.txBytes tx γ s b ∗ backend.txLive tx γ q T ⊢ ∃ dq, ownSlice s b dq
     ∗ (ownSlice s b dq -∗ backend.txLive tx γ q T)
 
+def backend.fileFreeF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path : GoString) :
+    IProp GF :=
+  iprop(∃ R d b dq j qc h,
+      ⌜path = Fs.child d b ∧ NameOk b ∧ h.cur !! b = none⌝ ∗
+        Fs.osInv ∗
+          Fs.osSharedInv R ∗ Fs.osPathS R d dq j ∗ Fs.osCallPerm qc ∗ Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h)
+
 theorem backend.theFs_eq (GF : BundledGFunctors) [S : ExtSemantics Fs.fsExt] [ok : Fs.FsSemOk] [has
     : HasExt Fs.fsExt] [fa : os.file.FieldAssumptions] [fsa : os.fileStat.FieldAssumptions] [ne :
     backend.FsNoErrAll] : backend.theFs GF = some { S := S, ok := ok, has := has, fa := fa, fsa :=
@@ -213,6 +247,14 @@ theorem bbolt.boltCur.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs
 theorem backend.wView_dropBkt (D S : backend.Data) (G : GoString → Nat) (n : GoString) :
     (backend.wView D S G).dropBkt n = backend.wView D (GMap.delete n S) fun x => if x = n then G n +
     1 else G x
+
+theorem bbolt.boltIno.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (i i✝ : Fs.Ino) (e_i : i = i✝) : bbolt.boltIno γ i =
+    bbolt.boltIno γ✝ i✝
+
+theorem backend.fileHoldsF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
+    path✝ : GoString) (e_path : path = path✝) (D D✝ : backend.Data) (e_D : D = D✝) :
+    backend.fileHoldsF path D = backend.fileHoldsF path✝ D✝
 
 def backend.txLive (tx : Loc) (γ : backend.DBNames) (q : Qp) (T : bbolt.TxView) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltTx tx γ q T
@@ -265,6 +307,13 @@ theorem backend.dbFile_timeless (db : Loc) (γ : backend.DBNames) (path : GoStri
 def backend.txDB (tx : Loc) (γ : backend.DBNames) (db : Loc) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.txDB tx γ db
 
+def backend.fileAt (path : GoString) (D : backend.Data) : IProp GF :=
+  backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => backend.fileAtF path D
+
+def backend.bClosed (γ : backend.DBNames) (D : backend.Data) : IProp GF :=
+  backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] =>
+    iprop(∃ i, bbolt.boltIno γ i ∗ bbolt.fileHoldsM i D)
+
 theorem backend.wView_wr (D : backend.Data) : bbolt.TxView.wr D = backend.wView D D fun x => 0
 
 theorem backend.wBkt_persistent (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat)
@@ -272,6 +321,9 @@ theorem backend.wBkt_persistent (tx : Loc) (γ : backend.DBNames) (b : Loc) (n :
 
 def backend.Data : Type :=
   GMap GoString backend.BktData
+
+def backend.fileFree (path : GoString) : IProp GF :=
+  backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => backend.fileFreeF path
 
 theorem backend.wView.proj_gen (D S : backend.Data) (G : GoString → Nat) : (backend.wView D S G).gen
     = G

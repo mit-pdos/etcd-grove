@@ -22,7 +22,8 @@ a bucket's cursor order is its sorted entry list (`bktEnts`, bbolt's by `bktEnts
 
 **Predicates** (over bbolt's, whose names `γ : DBNames := bbolt.BoltName` are):
 - `ownDB db γ D`: the open database `db` (`isBolt`) with committed data `D`, all of it
-  (`boltState γ 1 D`), and (S3e) what it keeps of its file (`dbRestF γ`); `wrTok γ`: `emp` (bbolt's writer needs no token: `Begin(true)` waits for
+  (`boltState γ 1 D`), and (S3e) what it keeps of its file (`dbRestF γ`: since S5 the inode and the
+  closer token only); `wrTok γ`: `emp` (bbolt's writer needs no token: `Begin(true)` waits for
   its lock); `isDB db γ`: `db` is the database `γ` (persistent).
 - `txLive tx γ q T`: the transaction `tx` of `γ`, live, with the view `T` (`boltTx`; fractional;
   not timeless, `txLive_later`). A read transaction over the snapshot `D` is `txLive tx γ q
@@ -45,15 +46,19 @@ a bucket's cursor order is its sorted entry list (`bktEnts`, bbolt's by `bktEnts
   `d`, a share of the call permission and the whole claim on the name `b` in the tree's shared mode,
   and `b` naming a file that holds `D` (bbolt's `fileHolds`) or nothing and `D = ∅` (`nameHolds`).
 - `dbFile db γ path` (S3e; an axiom until then, without `γ`; persistent): the open database `db`
-  named `γ` is the file at `path`: `γ.ns = dbNs path` (`Open_kv` opens it in that namespace). What
-  the open database keeps of its file (the claim, naming the inode it opened) is in `ownDB`
-  (`dbRestF`), which `DB.Close_kv` turns back into `fileHolds`.
+  named `γ` is the file at `path`: `γ.ns = dbNs path` (`Open_kv` opens it in that namespace).
+- (S5, 2026-11-18) `bPath γ path` (exclusive): the claim on the name `path`, naming the open
+  database `γ`'s inode, which `New` gives its caller (until S5 kept in `ownDB`), so that the caller
+  may rename another file onto the name while the database is open; `bClosed γ D`: the closed
+  database's inode holding `D`, what `Close` gives back; `bPath_join` makes the two the file at the
+  name again (`fileHolds`), by the inodes' agreement (`bbolt.boltIno_agree`).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 public import Spec.go_etcd_io.bbolt.Api
 public import Spec.go_etcd_io.bbolt.ApiS
+public import Spec.go_etcd_io.bbolt.ApiIno
 public import GooseLang.Ext.Fs.TreeSharedRes
 public import GooseLang.Ext.Fs.FilteredSem
 
@@ -239,20 +244,62 @@ def fileHoldsF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (
     ⌜path = child d b ∧ NameOk b⌝ ∗ osInv ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
     osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.nameHolds h b D)
 
-/-- **What an open database keeps of its file** (S3e), at the instances: the claim on its name,
-which names the file `Open` opened (`boltIno γ i`), with the path's spine and the call permission's
-share, given back by `Close` as `fileHolds`, and the right to close it (`boltCloser`,
-S3f). Its path is the one `γ.ns` records (`dbNs`). -/
+/-- **What an open database keeps of its file** (S3e; S5, 2026-11-18: the inode only), at the
+instances: the inode `Open` opened (`boltIno γ i`, which `Close` needs to give the file back), and
+the right to close it (`boltCloser`, S3f). The claim on the file's name is no longer here: `New`
+gives it to its caller (`bPath`), so that a client may rename another file onto the name while the
+database is open (the server's snapshot install). -/
 def dbRestF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) : IProp GF :=
-  iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (i : Ino),
-    ⌜γ.ns = dbNs (child d b) ∧ NameOk b ∧ h.cur !! b = some (.file i)⌝ ∗ osInv ∗ osSharedInv R ∗
-    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i ∗
-    bbolt.boltCloser γ)
+  iprop(∃ i : Ino, bbolt.boltIno γ i ∗ bbolt.boltCloser γ)
 
-/-- `db` is the open database `γ` with committed data `D`, all of it, and its file's claim
-(`dbRestF`, S3e). -/
+/-- `db` is the open database `γ` with committed data `D`, all of it, and what it keeps of its
+file (`dbRestF`, S3e). -/
 def ownDB (db : Loc) (γ : DBNames) (D : Data) : IProp GF :=
   onFs iprop(bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D ∗ dbRestF γ)
+
+/-- **The claim on the name `path`, which names the inode `i`** (S5), at the instances: `path` is
+`d/b`, with the path of `d`, a share of the call permission, and the whole claim on `b`, whose
+current entry is the file `i` (`fileHoldsF` without the file's contents). -/
+def nameAtF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (i : Ino) :
+    IProp GF :=
+  iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
+    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = some (.file i)⌝ ∗ osInv ∗ osSharedInv R ∗
+    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
+
+/-- **The file at `path` holds `D`, a file** (S5), at the instances: `fileHoldsF`'s case of a file
+(the claim on the name naming the inode `i`, whose file holds a database with the data `D`). -/
+def fileAtF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (D : Data) :
+    IProp GF :=
+  iprop(∃ i : Ino, nameAtF path i ∗ bbolt.fileHoldsM i D)
+
+/-- **The name `path` is free** (S5), at the instances: the whole claim on it (with the path's spine
+and a share of the call permission), naming nothing. -/
+def fileFreeF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) : IProp GF :=
+  iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
+    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = none⌝ ∗ osInv ∗ osSharedInv R ∗
+    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
+
+/-- **The file at `path` holds `D`, and is a file** (S5; exclusive): what a received snapshot's file
+is (`snapDirInv`'s files), what `os.Rename` moves. -/
+def fileAt (path : GoString) (D : Data) : IProp GF := onFs (fileAtF path D)
+
+/-- **The name `path` is free** (S5; exclusive): the claim on a name no file has, what `SaveDBFrom`
+saves a snapshot's file under. -/
+def fileFree (path : GoString) : IProp GF := onFs (fileFreeF path)
+
+/-- **The open database `γ`'s file is at `path`, the name the caller's** (S5, 2026-11-18;
+exclusive): the claim on `path`, which names `γ`'s inode. `New` gives it; the caller keeps it while
+the database is open, and either joins it with what `Close` gives back (`bPath_join`: the file at
+`path` again) or renames another file onto `path` (`os.Rename`), the open database keeping its
+inode. Until S5 the claim was in `ownDB`. -/
+def bPath (γ : DBNames) (path : GoString) : IProp GF :=
+  onFs iprop(∃ i : Ino, bbolt.boltIno γ i ∗ nameAtF path i)
+
+/-- **The closed database `γ`'s file holds `D`** (S5): its inode (`boltIno γ i`) holds a database
+with the data `D` (`fileHoldsM`), named or not: what `Close` gives back. -/
+def bClosed (γ : DBNames) (D : Data) : IProp GF :=
+  onFs iprop(∃ i : Ino, bbolt.boltIno γ i ∗ bbolt.fileHoldsM i D)
+
 /-- The right to begin the write transaction: nothing (bbolt's `Begin(true)` waits for its lock;
 until S1 an exclusive token). -/
 def wrTok (_γ : DBNames) : IProp GF := iprop(emp)
@@ -294,7 +341,7 @@ def fileHolds (path : GoString) (D : Data) : IProp GF := onFs (fileHoldsF path D
 /-- (2026-11-04, R2b-3c, the user's approval) **The open database `db`, named `γ`, is the file at
 `path`** (persistent): `Open_kv` gives it, `DB.Close_kv` gives the file back (`fileHolds path D`).
 (S3e: until then an axiom, without `γ`.) The database's names record its path (`dbNs`); the claim
-itself is in `ownDB` (`dbRestF`). -/
+on the name is the caller's (`bPath`, S5; until then in `ownDB`'s `dbRestF`). -/
 def dbFile (_db : Loc) (γ : DBNames) (path : GoString) : IProp GF := iprop(⌜γ.ns = dbNs path⌝)
 @[instance] theorem dbFile_persistent (db : Loc) (γ : DBNames) (path : GoString) :
     Persistent (dbFile (GF := GF) db γ path) := by
@@ -302,6 +349,51 @@ def dbFile (_db : Loc) (γ : DBNames) (path : GoString) : IProp GF := iprop(⌜�
 @[instance] theorem dbFile_timeless (db : Loc) (γ : DBNames) (path : GoString) :
     Timeless (dbFile (GF := GF) db γ path) := by
   unfold dbFile; infer_instance
+
+/-- **A closed database's file, at the name the caller kept, is the file at that name** (S5):
+the inodes agree (`bbolt.boltIno_agree`). -/
+theorem bPath_join (γ : DBNames) (path : GoString) (D : Data) :
+    bPath (GF := GF) γ path ∗ bClosed γ D ⊢ fileHolds path D := by
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  · simp only [bPath, onFs_none hfs]
+    iintro ⟨H, -⟩; iexfalso; iexact H
+  · simp only [bPath, bClosed, fileHolds, onFs_some hfs]
+    iintro ⟨⟨%i, #Hi, Hn⟩, ⟨%i', #Hi', Hf⟩⟩
+    ihave %he := bbolt.boltIno_agree γ i i' $$ [Hi Hi']
+    · iframe #
+    subst he
+    unfold nameAtF fileHoldsF
+    icases Hn with ⟨%R, %d, %b, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hnm⟩
+    obtain ⟨hp, hb, hi⟩ := hp
+    iexists R, d, b, dq, j, qc, h
+    iframe Hinv Hsh Hp Hcp Hnm
+    isplitr
+    · ipureintro; exact ⟨hp, hb⟩
+    unfold bbolt.nameHolds
+    ileft
+    iexists i
+    iframe Hf
+    ipureintro; exact hi
+
+/-- A file at `path` holding `D` is the file `path` holds (`fileHolds`). -/
+theorem fileAt_fileHolds (path : GoString) (D : Data) :
+    fileAt (GF := GF) path D ⊢ fileHolds path D := by
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  · simp only [fileAt, onFs_none hfs]
+    iintro H; iexfalso; iexact H
+  · simp only [fileAt, fileHolds, onFs_some hfs]
+    unfold fileAtF nameAtF fileHoldsF
+    iintro ⟨%i, ⟨%R, %d, %b, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hnm⟩, Hf⟩
+    obtain ⟨hp, hb, hi⟩ := hp
+    iexists R, d, b, dq, j, qc, h
+    iframe Hinv Hsh Hp Hcp Hnm
+    isplitr
+    · ipureintro; exact ⟨hp, hb⟩
+    unfold bbolt.nameHolds
+    ileft
+    iexists i
+    iframe Hf
+    ipureintro; exact hi
 
 /-! ## Laws (bbolt's API's) -/
 

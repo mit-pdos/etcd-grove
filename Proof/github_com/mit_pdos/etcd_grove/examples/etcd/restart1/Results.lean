@@ -117,8 +117,8 @@ and nothing else is in the range.
 - The restart reads the stopped files through the disk image's tokens: the WAL files
   (`wal.stopImage`, over the axiomatized `walFiles` token: the graceful file model, "the files a
   graceful stop in one process leaves"), the WAL directory's purge right (`walPurgeRight`), the
-  snapshot directory (`srvFiles`) and the backend file (`backend.pathOwn` of `backendPathOf`, with
-  its contents `backend.Data`).
+  snapshot directory (`srvFiles`) and the backend file (`backend.fileHolds` of `backendPathOf`, the
+  claim on its name with its contents `backend.Data`; until S5 also the opaque `backend.pathOwn`).
 - The rest of the existing trust base (`etc/tcb-collections/restart1.txt` will list it). -/
 theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]

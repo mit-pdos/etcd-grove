@@ -63,7 +63,9 @@ abbrev backend.newBackend.spec : Prop :=
       threadTok }}
     (App (Val (@! newBackend)) (Val #cfg))
   {{ (r : val), RET r; (∃ (b : Loc) (γ : BNames), ⌜r = #b⌝ ∗ newPostK γ P W Pk K b D ∗
-        hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path' ∗ threadTok) ∨
+        hooksAt b cfg.Hooks' ∗ bFile γ cfg.Path' ∗
+        -- (S5, 2026-11-18) the claim on the file's name, the caller's (`bPath`)
+        bPath γ.db cfg.Path' ∗ threadTok) ∨
       -- (2026-11-08) a panic only where bbolt's `Open` failed (`dbOpenOk`, `Open_kv`'s)
       ⌜¬ dbOpenOk ∧ ∃ p : val, r = PanicV p⌝ }}
 

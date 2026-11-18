@@ -19,13 +19,13 @@ axioms of etcd's backend (`backend.Snapshot`, `snapshot.WriteTo`) and of the fil
   (what `Tx.WriteTo` writes: its two meta pages and its data pages; many byte strings encode one
   `D`, by their page layout and free list). A file holding such bytes holds `D` (`fileHolds`):
   that is the receiver's half of the round trip, the transport's (D22 S-i).
-* `pathOwn p` (opaque, exclusive): the program's right to the directory entry `p`: no other part
-  of the program, and no other process, creates, removes or renames a file at `p` (the
-  closed-world assumption of the data directory, as `netAddrFree` is of the addresses).
-  `os.Rename` onto `p` needs it (else a `fileHolds p` could go stale under its holder); opening a
-  database (`bolt.Open`) does not, and keeps the file open whatever then happens to its entry.
-  `fileHolds p D` (`InvBbolt.lean`) is read as: the file at `p` holds `D`, and its holder may
-  open it or rename it (exclusively, as a points-to).
+* (S5, 2026-11-18) The program's right to the backend file's directory entry, until then the opaque
+  exclusive `pathOwn p`, is the claim on the name in the tree's shared mode, `bPath γ p`
+  (`InvBbolt.lean`): `backend.New` gives it, naming the opened file; `os.Rename` onto `p` takes it.
+  `fileHolds p D` (`InvBbolt.lean`) is the claim with the file holding `D`, `fileAt p D` the same
+  with a file there (the server's received snapshots), `fileFree p` the claim with nothing there.
+  Until S5 the server's snapshot path had its own abstract `srvFileHolds`, backed by no
+  file-extension resource.
 * `writerOk w Wr`: the `io.Writer` `w`'s contract, by its client's predicate `Wr c bs` of the bytes
   written so far, `c` whether a `Write` call has returned (D22 S-h, 2026-10-20: a pipe's writer
   learns at its first `Write`'s return that its reader has started, `Spec/io/Pipe.lean`):
@@ -91,24 +91,13 @@ theorem snapOpenQ_half (sp : Loc) (D : Data) (γ : GName) (q : Qp) :
     iapply (ghostVar_split_half (GF := GF) γ q ()).2
     iframe Hg1 Hg2
 
-/-- **The directory entry `p` is the program's** (opaque, exclusive; see the file header). -/
-opaque pathOwn (p : GoString) : IProp GF
-
-/-- **The database file at `p` holds `D`, as the server's snapshot path sees it** (opaque; S3e,
-2026-11-17, `notes/bbolt-integration-plan.md`): what `backend.fileHolds` was (an axiom) before the
-backend's `fileHolds` became the concrete claim on the file's name in the tree's shared mode (bbolt's
-proved `Open` and `Close`). The server's file world (the transport's saved snapshots, `SaveDBFrom`,
-`DBFilePath`, `os.Rename`'s axiom, `storage.OpenBackend`'s) is not yet over the file extension: its
-trust-boundary axioms make and pass this predicate, which is no file-extension resource, so they
-cannot contradict the tree's ownership (a concrete claim they made from nothing could). The
-server's restart path (`Cleanup`, `srvFiles`) carries the backend's concrete `fileHolds`. -/
-opaque srvFileHolds (p : GoString) (D : Data) : IProp GF
-
 /-- **The file system lets `src` be renamed onto `dst`** (opaque, a named premise about the
 program's environment, D19a's first kind; D22 receiver epochs, S8d, 2026-10-24): `os.Rename(src,
 dst)` of a file the program holds onto an entry it owns fails for no reason of the environment
-(I/O, permissions, a full disk). `os.Rename`'s axiom gives `¬ renameOk src dst` on an error; the
-premise excluding it is `storage.snapOpensOk`. -/
+(I/O, permissions, a full disk). (S5, 2026-11-18) No spec gives its negation since `os.Rename` is
+proved from the file model, which has no such error under `theFs`'s `FsNoErrAll`: the premise
+`storage.snapOpensOk`'s conjunct is unused (until then `os.Rename`'s axiom gave `¬ renameOk src dst`
+on an error). -/
 opaque renameOk (src dst : GoString) : Prop
 
 /-- **The `io.Writer` `w`'s contract** (persistent): `io.writerOk` (`Proof/io/SectionReader.lean`;

@@ -42,7 +42,9 @@ abbrev runner.openBackend.spec : Prop :=
   {{ (r : GoInterface), RET #r; threadTok ∗
       ∃ (b : Loc) (γB : backend.BNames),
         ⌜r = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
-        backend.newPostK γB (mvccrand.rcP (limOf cfg)) W Pk K b D ∗ backend.bFile γB path }}
+        backend.newPostK γB (mvccrand.rcP (limOf cfg)) W Pk K b D ∗ backend.bFile γB path ∗
+        -- (S5, 2026-11-18) the claim on the file's name (`New`'s)
+        backend.bPath γB.db path }}
 
 end spec
 
