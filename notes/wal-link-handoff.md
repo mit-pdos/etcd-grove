@@ -1,6 +1,35 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 h, fork fix 0007 made and translated; STOPPED before re-proving: walCutPos must widen)
+## START HERE (2026-11-18 i, step 3 done (SaveSnapshot re-proved, budget removed); STOPPED: fork fix 0008)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere (also `LAKE_OPTS` for `etc/gen-link.py`: it finds Perennial's sources
+  through it), `.lake/package-overrides.json` = a copy of it.
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** `walCutPos` widened; Create's Seek law/fp premises accepted.
+- **Done:** 6cc3f71187 + eb86d5ca41: `walCutPos` third case (snapshot record), ref.go `cutPos`, etcd-wal retranslated,
+  lemmas; budget removed (`walUsed`, `walSnapBudget`, `walSaveRoom`, `snapRoom`, `walUsedAfterSave`, AU transformers,
+  `WalShN.γu`; `walHdl` = the fresh-room handle, no γ); `SaveSnapshot` re-proved: shared arm = Save's tail (Seek,
+  sync/cut; `walHandleIn_fp`, `walCutPos_snap`; the four offset lemmas moved to CalleeCov), pre arm with
+  `walPreSeekOk` (Spec WAL__SaveSnapshotPre), `SegmentSizeBytes ↦□`, `fp ↦ null` (Create: `os.fileWI_preSeekOk`);
+  Create takes `SaveSnapshot.spec` at its `P` (was `walPbNone`: cut's laws at `walPbNone` would be false
+  hypotheses); storage Save/SaveSnap specs without the budget; WalTester members; Links regenerated.
+  Targeted build of the WAL/WalTester/storage proofs green (b7a); full build: `/shared/tmp/wallink/full5.log`.
+- **STOP (for etcd-grove-03): fork fix 0008** (`34dea163a`, branch `goose-lean-walfs3-fp` on `f01ae14c9`, local):
+  0007 alone made `Create` panic (nil `w.fp` in `cut`) when its first segment passes `SegmentSizeBytes`
+  (metadata ≥ ~64 MB; reproduced); 0008: `curOff < SegmentSizeBytes || w.fp == nil` → sync. Pinned and
+  translated; README 0008; `notes/wal-fsext-fork/bump-go-mod.sh` for after the push (push `goose-lean-walfs3-fp`,
+  which contains 0007). Alternative: keep 0007 alone and give `Create` a metadata bound (< 2^25) premise.
+- **Next after the decision:** L3 (scope §3.5): `WalH` in `St/WalRecs.lean`, vocabulary in place, the
+  server-statement stop (old → new, incl. the exported-spec meaning changes listed in the report).
+- **Check/Build:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`;
+  `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]`.
+- **Pitfalls:** `generalize … at H` only takes Lean hypotheses (an IPM one is in the goal: omit `at`); goose turns
+  `a || b` into nested ifs (`rw [decide_eq_false h]` per test); `wp_take_receipt` before `wp_auto` consumes the
+  method resolve; `walHandleIn_win` keeps the record (close `cut`'s `h'` directly).
+
+## History
+
+### START HERE (2026-11-18 h, fork fix 0007 made and translated; STOPPED before re-proving: walCutPos must widen)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
@@ -30,8 +59,6 @@
   walHdlF's form), Save's room premise over `walFreshRoom`, the AU transformers, storage Save/SaveSnap specs,
   WalTester member__save/saveSnap; then L3 (scope §3.5).
 - **Check/Build:** as in History g.
-
-## History
 
 ### START HERE (2026-11-18 g, per-area WalGS done; L3 STOPPED at a blocker: the snapshot room budget)
 
