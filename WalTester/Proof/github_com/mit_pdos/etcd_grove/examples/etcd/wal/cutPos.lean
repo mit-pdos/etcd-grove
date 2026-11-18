@@ -90,7 +90,7 @@ theorem cutPos.wp_proof (wp_hsEmpty : hsEmpty.spec (GF := GF) (hG := hG)) :
     · wp_auto
       iapply HΦ
       isplitl []
-      · ipureintro; rw [htc, hos]; rfl
+      · ipureintro; rw [htc, hos]
       · itrivial
 
 end proof

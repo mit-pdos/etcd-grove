@@ -175,7 +175,7 @@ macro "save_main" : tactic => `(tactic| (
       · iapply (show walHsIn (GF := GF) hp (absHs h) ⊢ (walRaftP (GF := GF)).hsIn hp (absHs h) from .rfl)
         iexact Hhp
       ipureintro; exact ⟨hidx, henc, fun hc => absurd hc walCov_ioNone⟩
-    icases Hr with (⟨%Herr, Hws, %d0, ⟨⟨%hd0, Hwo, Ho⟩, -⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨⟨%hd0, Hwo, Ho⟩, -⟩⟩)
+    icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, Hsync⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
     · subst Herr
       iapply fupd_wp
       imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]

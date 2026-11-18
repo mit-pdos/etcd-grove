@@ -122,7 +122,7 @@ theorem member.saveSnap.wp_proof
     refine ⟨Or.inr rfl, Or.inr rfl, ?_, absSnapMd_enc_lt idx term⟩
     show uint.nat idx < 2 ^ 64 - 1
     omega
-  icases Hr with (⟨%Herr, Hws, %d0, ⟨⟨%hd0, Hwo, Ho⟩, -⟩, #Hlen1, #Hsy⟩ | ⟨%Herr, %d0, ⟨⟨%hd0, Hwo, Ho⟩, -⟩⟩)
+  icases Hr with (⟨%Herr, Hws, %d0, ⟨%hd0, Hwo, Ho⟩, #Hlen1, #Hsy⟩ | ⟨%Herr, %d0, ⟨%hd0, Hwo, Ho⟩⟩)
   · subst Herr
     iapply fupd_wp
     imod walOpenWS_reclaim (W := W) ioNone (walRaftP (GF := GF)) walRaftMr w (tWalDir e.area) γs $$ [Hws Hlc1]

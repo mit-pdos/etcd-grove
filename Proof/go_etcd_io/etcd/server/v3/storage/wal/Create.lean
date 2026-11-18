@@ -472,7 +472,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_saveCrc : go_etcd_io.etcd.server.v3.storage.wal.WAL.saveCrc.spec (GF := GF) (hG := hG))
     (wp_encode : go_etcd_io.etcd.server.v3.storage.wal.encoder.encode.specG (GF := GF) (hG := hG))
     (wp_SaveSnap : go_etcd_io.etcd.server.v3.storage.wal.WAL.SaveSnapshot.spec (W := W) (Sio := WalFs.ioNone)
-      WalFs.walPbNone Mr)
+      P Mr)
     (wp_WriteAt : os.File.WriteAt.specLong (GF := GF) (hG := hG))
     (wp_Fdatasync : go_etcd_io.etcd.client.pkg.v3.fileutil.Fdatasync.spec (GF := GF) (hG := hG))
     (wp_syncDir : go_etcd_io.etcd.server.v3.storage.wal.syncDir.spec (GF := GF) (hG := hG))
