@@ -85,6 +85,7 @@ local macro "rm_fin" qc:term:max fin:tacticSeq : tactic => `(tactic| (
   try wp_auto
   wp_apply wp_osLstatDirGuardS R (child d b) t sg ($qc).half hp CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg as %isDir %e5 %- Hg
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
   iapply HΦ
   iframe
   isplitl [Hperm Hg]

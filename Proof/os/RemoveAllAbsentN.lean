@@ -315,10 +315,11 @@ local macro "rm_finN" qc:term:max fin:tacticSeq : tactic => `(tactic| (
   try wp_auto
   wp_apply wp_osLstatDirGuardS R (child d b) t sg ($qc).half hp CoPset.subseteq_top
     CoPset.subseteq_top $$ Hos Hsi Hg as %isDir %e5 %- Hg
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
   iapply HΦ
   iframe
   isplitl [Hperm Hg]
-  · iapply (os.osCallPerm_halves $qc).1; iframe
+  · iapply (os.osCallPerm_halves _ $qc).1; iframe
   ($fin)))
 
 theorem os.RemoveAll.wp_proofAbsentN : os.RemoveAll.specAbsentN (GF := GF) (hG := hG) := by
@@ -330,7 +331,7 @@ theorem os.RemoveAll.wp_proofAbsentN : os.RemoveAll.specAbsentN (GF := GF) (hG :
   wp_auto
   wp_apply os.wp_endsWithDot_child d b hb
   imod osLogLb_0 with #Hlb
-  icases (os.osCallPerm_halves qc).2 $$ Hperm with ⟨Hg, Hperm⟩
+  icases (os.osCallPerm_halves _ qc).2 $$ Hperm with ⟨Hg, Hperm⟩
   icases osCallPerm_child R d b _ _ _ $$ Hp Hg with ⟨Hp, Hg⟩
   wp_apply +noauto wp_osCallBeginGuardS R _ qc.half 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hg Hlb as %t %sg %- Hg #Hlsg
