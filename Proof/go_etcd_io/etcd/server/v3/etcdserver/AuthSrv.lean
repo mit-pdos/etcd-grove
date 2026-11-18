@@ -355,7 +355,11 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
     Hhas.2.2) $$ [Ho Hh Hwb Hrb]
   · iframe Hpkg Hspkg Hlg Habbe Hablg HB Ho Hh Hrb
     isplitr
-    · ipureintro; exact ⟨Htp, Hfit, Hab⟩
+    · ipureintro; exact Htp
+    isplitr
+    · ipureintro; exact Hfit
+    isplitr
+    · ipureintro; exact Hab
     isplitl [Hwb]
     · iExactEq Hwb; rfl
     ipureintro; exact ⟨Hr.1.imp_right And.right, Hr.2⟩
