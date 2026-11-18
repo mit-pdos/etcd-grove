@@ -36,6 +36,7 @@ The step bound is the proofs' (time receipts, as the closed adequacy theorems' `
 module
 
 public import Perennial.GooseLang.DistLang
+public import Perennial.GooseLang.CrashLang
 
 @[expose] public section
 
@@ -151,6 +152,98 @@ theorem Robust.of_single [lctx : GoLocalContext] {e : Expr} {σ : state} {g : Gl
   intro hfresh n κs c hsteps hn i tp' σ' hi e' he'
   obtain ⟨tp₁, σ₁, g₁, rfl, hreal⟩ := distCrashNsteps_single (tp := [e]) hsteps
   obtain ⟨hns, hnp⟩ := h (hfresh (e, σ) (by simp)) n κs tp₁ (σ₁, g₁) hn hreal
+  obtain rfl : i = 0 := by
+    have := (List.getElem?_eq_some_iff.mp hi).1
+    simp only [List.length_singleton] at this
+    omega
+  simp only [List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at hi
+  obtain ⟨rfl, rfl⟩ := hi
+  exact ⟨hns e' he', hnp e' he'⟩
+
+/-- Every machine may crash: the hypothesis is the distributed crash adequacy theorem's
+conclusion as it stands (`goose_dist_crash_adequacy`), for the machines `es`. -/
+theorem Robust.of_all [lctx : GoLocalContext] {es : List (Expr × state)} {g : GlobalState}
+    {bound : Nat}
+    (h : (∀ m, m ∈ es → Fresh lctx m.2) →
+      ∀ (n : Nat) (κs : List Observation) (c : DistCfg),
+        DistCrashNsteps (es.map Prod.fst) n (distInit es g) κs c → n < bound →
+        ∀ (i : Nat) (tp : List Expr) (σ : state), c.nodes[i]? = some (tp, σ) →
+          (∀ e, e ∈ tp → RealNotStuck e (σ, c.global)) ∧ (∀ e, e ∈ tp → ¬ UnrecoveredPanic e)) :
+    Robust es [] g bound := by
+  intro hf n κs c hs hn i tp σ hi e he
+  simp only [List.append_nil] at hf hs
+  obtain ⟨h₁, h₂⟩ := h hf n κs c hs hn i tp σ hi
+  exact ⟨h₁ e he, h₂ e he⟩
+
+/-- A real step before an execution with crashes of one process. -/
+theorem realCrashNsteps_step {boot : Expr} {m : Nat} {ρ₁ ρ₂ ρ' : List Expr × CfgState}
+    {κ κs : List Observation} {b : Bool}
+    (hs : @Language.Step _ _ _ _ gooseRealLang ρ₁ κ ρ₂) (h : RealCrashNsteps boot m ρ₂ κs ρ' b) :
+    RealCrashNsteps boot (m + 1) ρ₁ (κ ++ κs) ρ' b := by
+  cases h with
+  | done h =>
+    exact .done (@Language.NSteps.cons _ _ _ _ gooseRealLang _ _ _ _ _ _ hs h)
+  | @crash n₁ m₂ _ κs₁ t σ g σ' κs₂ _ b' h₁ hc h₂ =>
+    have h₃ := RealCrashNsteps.crash (boot := boot)
+      (@Language.NSteps.cons _ _ _ _ gooseRealLang _ _ _ _ _ _ hs h₁) hc h₂
+    rw [List.append_assoc] at h₃
+    rw [show n₁ + m₂ + 1 = n₁ + 1 + m₂ by omega]
+    exact h₃
+
+/-- One machine with a boot program runs as a single process with crashes: its executions are
+`RealCrashNsteps`'s (which does not count a crash as a step, so of at most as many steps). -/
+theorem distCrashNsteps_single_crashing {boot : Expr} {n : Nat} {tp : List Expr} {σ : state}
+    {g : GlobalState} {κs : List Observation} {c : DistCfg}
+    (h : DistCrashNsteps [boot] n ⟨[(tp, σ)], g⟩ κs c) :
+    ∃ tp' σ' g' m b, m ≤ n ∧ c = ⟨[(tp', σ')], g'⟩ ∧
+      RealCrashNsteps boot m (tp, (σ, g)) κs (tp', (σ', g')) b := by
+  generalize hc₀ : (⟨[(tp, σ)], g⟩ : DistCfg) = c₀ at h
+  induction h generalizing tp σ g with
+  | refl c =>
+    subst hc₀
+    exact ⟨tp, σ, g, 0, false, Nat.le_refl _, rfl,
+      .done (@Language.NSteps.refl _ _ _ _ gooseRealLang _)⟩
+  | @cons n c₁ c₂ c₃ κ κs hstep _ ih =>
+    subst hc₀
+    cases hstep with
+    | @crash nodes g i tp₀ σ₀ e σ₁ hi hb hcr =>
+      obtain rfl : i = 0 := by
+        have := (List.getElem?_eq_some_iff.mp hi).1
+        simp only [List.length_singleton] at this
+        omega
+      simp only [List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at hi hb
+      obtain ⟨rfl, rfl⟩ := hi
+      subst hb
+      obtain ⟨tp', σ', g', m, b, hm, rfl, hrest⟩ := ih (tp := [boot]) (σ := σ₁) (g := g) rfl
+      refine ⟨tp', σ', g', 0 + m, true, by omega, rfl, ?_⟩
+      exact .crash (@Language.NSteps.refl _ _ _ _ gooseRealLang _) hcr hrest
+    | step hstep =>
+      cases hstep with
+      | @node nodes g i tp₀ σ₀ κ tp₁ σ₁ g₁ hi hs =>
+        obtain rfl : i = 0 := by
+          have := (List.getElem?_eq_some_iff.mp hi).1
+          simp only [List.length_singleton] at this
+          omega
+        simp only [List.getElem?_cons_zero, Option.some.injEq, Prod.mk.injEq] at hi
+        obtain ⟨rfl, rfl⟩ := hi
+        obtain ⟨tp', σ', g', m, b, hm, rfl, hrest⟩ := ih (tp := tp₁) (σ := σ₁) (g := g₁) rfl
+        exact ⟨tp', σ', g', m + 1, b, by omega, rfl, realCrashNsteps_step hs hrest⟩
+
+/-- **A single process that crashes and restarts**: the conclusion of the single-node crash
+adequacy theorem (no thread stuck, none with an unrecovered panic, in every real execution with
+crashes of the program of fewer than `bound` steps) is the robustness statement of the program
+alone on a machine that may crash, a fresh Go process (`Fresh`). -/
+theorem Robust.of_single_crashing [lctx : GoLocalContext] {e : Expr} {σ : state}
+    {g : GlobalState} {bound : Nat}
+    (h : Fresh lctx σ →
+      ∀ (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState) (b : Bool),
+      n < bound → RealCrashNsteps e n ([e], ((σ, g) : CfgState)) κs (t2, σ2) b →
+      (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧ (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)) :
+    Robust [(e, σ)] [] g bound := by
+  intro hfresh n κs c hsteps hn i tp' σ' hi e' he'
+  obtain ⟨tp₁, σ₁, g₁, m, b, hm, rfl, hreal⟩ :=
+    distCrashNsteps_single_crashing (boot := e) (tp := [e]) hsteps
+  obtain ⟨hns, hnp⟩ := h (hfresh (e, σ) (by simp)) m κs tp₁ (σ₁, g₁) b (by omega) hreal
   obtain rfl : i = 0 := by
     have := (List.getElem?_eq_some_iff.mp hi).1
     simp only [List.length_singleton] at this

@@ -56,22 +56,40 @@ A property of a system is a `Robust` statement about a deployment with a program
 and panics. Linearizability of a store: a client on a machine of `stable` records its history and
 panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness does in one process.
 
-**First instance proved** (2026-11-17): `raft_kvdurable_robust`
-(`Proof/.../examples/raft/kvdurable/AdequacyLinked.lean`; restated as
-`raft_kvdurable_porcupine_robust` in its `Results.lean`): `Robust [] [(kvdurableProgram dir, σ)] g
-(2^61)`, under `raft_kvdurable_adequate`'s hypotheses on the start state (only `Hfiles` is the theorem's;
-`Robust` has the rest) and on the same 328 axioms,
-no `sorry`. One machine that never crashes and none that does: kvdurable's replicas are goroutines
-of one process and its crashes are the program's own (`Cluster.Crash`, restarts from the files).
-- `Robust.of_single` (`Statement.lean`): the single-node adequacy conclusion gives `Robust [] [(e,
-  σ)] g bound`, since a single machine with no boot program runs as `RealNsteps`
-  (`distCrashNsteps_single`). Every closed single-process theorem of the examples can be restated
-  the same way.
-- The conclusion is stronger than `raft_kvdurable_adequate`'s "no thread has ended in a panic":
-  `¬ UnrecoveredPanic` also excludes a thread still unwinding a panic nothing will recover. Perennial's
-  `goose_adequacy` proves it; the examples' wrappers weakened it (`adequate_of_unrecovered`). They
-  now have unweakened variants (`init_adequate_start_unrecovered`, `durable_init_adequate_unrecovered`,
-  `kvdurable_unrecovered_of`), the old ones corollaries with unchanged statements.
+## Every closed example is an instance (2026-11-18)
+
+Each closed theorem of the examples has a restatement `…_robust` next to it (same file, same
+hypotheses but the generic ones `Robust` states itself), proved from it:
+
+| shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
+|---|---|---|---|
+| one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
+| one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
+| several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`NetTcp/…/net/*`) |
+
+- **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^28 - 1` (the
+  etcd-server examples: their proofs cap the thread bound, which is `n + 2`), `2^30 - 1`
+  (`logkvrw`, `bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
+  `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
+  (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound.
+- **A hypothesis that mentioned the execution's length** (`Hprem`: the etcd examples' boot
+  premises at `n`) is assumed at every `n` within the bound.
+- **`RealCrashNsteps` does not count a crash as a step**, `DistCrashNsteps` does: a run of `n`
+  steps of `Robust` is one of at most `n` steps there.
+- **The examples' theorems now conclude `¬ UnrecoveredPanic`** (no thread has a panic that nothing
+  recovers, finished or still unwinding) where they said "no thread has ended in a panic"
+  (`v.isPanic = false`): `Robust` needs the former, Perennial's adequacy theorems prove it, and the
+  examples' wrappers (`init_adequate`, `etcd_adequate…`, `init_adequate_start`,
+  `durable_init_adequate`) weakened it (`adequate_of_unrecovered`, no longer used). Strengthened in
+  place, statements and wrappers; no proof changed otherwise.
+- **What `Robust` does not say**: the main thread's result. For most examples it is `#()` and the
+  check is a panic, so nothing is lost. For those whose program *returns* its verdict instead of
+  panicking, the old theorem stays the stronger one: `etcd/txnlin`, `etcd/txnlinfaultsN`,
+  `etcd/partition` and `k8s/etcd3` (the result is `"Ok"` or `"Unknown"`, never `"Illegal"`),
+  `etcd/auth`, `auth3`, `authN`, `cache`, `watch` (the result is `0`), `goose/prophkv`
+  (`resultOk`). To make `Robust` carry it, the program must panic on a bad verdict (a Go change).
+- Generated once by a script (not kept: the theorems are ordinary text now); `RaftNoAx/`'s copies
+  by `etc/copy-part.py`.
 
 **History.** Version 1 (2026-11-15) had a semantics of its own (`Run.lean`: `World`, `Who`, `Timed`,
 `RunStep`/`Run`), a `Deployment`, an abstract network class `StreamNet`, arbitrary environment nodes

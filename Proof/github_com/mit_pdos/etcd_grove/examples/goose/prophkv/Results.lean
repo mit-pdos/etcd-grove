@@ -26,6 +26,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Perennial.GooseLang.CrashLang
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -180,6 +181,19 @@ theorem goose_prophkv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     iintro !>
     iapply BigSepM.bigSepM_empty.2
     iempintro
+
+/-- **`goose_prophkv_safe` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `goose_prophkv_safe`'s other hypotheses: in every
+execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
+theorem goose_prophkv_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions] (σ : state)
+    (g : GlobalState) (bound : Nat) :
+    Robustness.Robust [] [(prog, σ)] g bound :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 _ Hsteps =>
+    (goose_prophkv_safe
+      σ g hf.1 hf.2.1 hf.2.2 n κs t2 σ2 Hsteps).2
 
 end program
 

@@ -47,7 +47,7 @@ theorem raft_kv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kv_adequate_of kv_wp_Main_kvGF σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 /-- `MainN`'s linked result at `kvGF` (2026-11-15, kvraftN). -/
@@ -70,7 +70,7 @@ theorem raft_kvN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvProgramN k], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kvN_adequate_of kv_wp_MainN_kvGF k hk1 hk σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end adequacy
