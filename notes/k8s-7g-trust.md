@@ -20,6 +20,16 @@ header restated over the fixed `apiErrOk`). T landed with apierrors-fix (`IsTooM
 (`Calls.lean` `clientErr_notTooLarge`/`sentV_plain`, `call.lean`, `watchChan__syncPaginated`,
 `store__GetList`, `handleCompactedErrorForPaging`, `interpretListError`) are repaired after the attack.
 
+**2026-11-18, attack passed** (`/shared/tmp/k8s7g-attack/report.md`; decided by etcd-grove-03): V and
+`SuggestsClientDelay.spec` SURVIVE (18 Go attacks) and are accepted. Applied: R2 (View.lean's header:
+a persistent WP does not mean `Unwrap` reads only read-only state; every allowed result is nil or a
+leaf, which answer the same), R4 (the details disjunct of `SuggestsClientDelay.spec` states
+`st.Details' ≠ null`). R3 (no view for wrappers of depth ≥ 2 or `Unwrap() []error`) is coverage only.
+R1 (`fmt.Errorf`'s model reachable through `wp_func_call`, bypassing `etc/errorf-wrap-check.py`) goes
+to a separate audit; no 7g proof steps into `fmt.Errorf`'s model. The axiom
+`apierrors.SuggestsClientDelay.wp_proof` is added
+(`Proof/k8s_io/apimachinery/pkg/api/errors/SuggestsClientDelay.lean`).
+
 ## 1. New trust-boundary specs (files written)
 
 | Spec | File | Axiom to come | Go tests |

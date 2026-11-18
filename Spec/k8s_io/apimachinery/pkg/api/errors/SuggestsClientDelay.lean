@@ -16,7 +16,9 @@ apierrors-fix stage): the text as proposed was refuted with `HasStatusCause`'s
 still owning the details could change `RetryAfterSeconds` after the call and build a view whose
 details contradict the answer). `apiErrOk` now holds the details read-only (`statusDetailsAt`), so
 the `d` of the post, which any view gives (`st.Details' ↦□ d`), is the pointee the call read; the
-statement is unchanged.
+statement is unchanged but for R4 of the independent attack (2026-11-18): the details case also
+states that the pointer is not `nil` (true in Go, where nil details give the left disjunct; it lets
+a client whose view has nil details rule that case out).
 
 Faithful: `t, ok := err.(APIStatus)`; if not, `errors.As(err, &t)`; then, if `t.Status().Details
 != nil`, the reason test and the `RetryAfterSeconds > 0` test, each returning
@@ -77,7 +79,7 @@ abbrev SuggestsClientDelay.spec : Prop :=
       match w with
       | .plain => ⌜n = W64 0 ∧ b = false⌝
       | .status st _ => ⌜st.Details' = null ∧ n = W64 0 ∧ b = false⌝ ∨
-          ∃ d, st.Details' ↦□ d ∗ ⌜(n, b) = delayV st d⌝ }}
+          ∃ d, ⌜st.Details' ≠ null⌝ ∗ st.Details' ↦□ d ∗ ⌜(n, b) = delayV st d⌝ }}
 
 end spec
 

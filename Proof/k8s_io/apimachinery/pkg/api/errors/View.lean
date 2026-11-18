@@ -25,8 +25,9 @@ neither assignable nor unwrapped. **The `□ WP` premise on `Unwrap` is where ty
 excluded** (M2 of the step 1 review): a typed nil pointer whose `Unwrap` dereferences it, or a struct
 whose embedded pointer providing a promoted `Unwrap` is nil, panics in `Unwrap`, and no WP of that
 call holds; so `errors.As`, hence every check over a `.plain` view, never reaches such a call. The
-premise is persistent, so `Unwrap` reads only what is held read-only (a mutable field could change
-the result between the view and the check). Go: `examples/k8s/etcd3/trustspecs_test.go`
+premise is persistent, so it holds at every call; it does not mean that `Unwrap` reads only
+read-only state (a persistent WP can read mutable state through an invariant), but every result
+it allows is `nil` or a leaf, and these all give the same answer. Go: `examples/k8s/etcd3/trustspecs_test.go`
 `TestStatusChecksPlain` (nil, `*StorageError`s with inner `nil` or an `errors.New`, an `errors.New`,
 a sentinel: every check false), `TestStorageErrorNotAPIStatus`, `TestPlainWrapperTypedNil` (a typed
 nil `*StorageError`, bare or embedded nil, panics in `IsTimeout`, `HasStatusCause`,

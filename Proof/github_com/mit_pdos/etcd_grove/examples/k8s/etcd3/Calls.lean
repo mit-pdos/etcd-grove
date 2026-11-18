@@ -156,8 +156,10 @@ theorem clientErr_notTooLarge (err : GoInterface)
   iunfold notTooLarge
   iexists .plain
   unfold apierrors.apiErrAt
-  ipureintro
-  exact ⟨⟨ii, rfl, clientErrPlain_holds ii hc, hl.2.1, hl.2.2, hl.1⟩, rfl⟩
+  isplitl
+  · ileft; ipureintro
+    exact Or.inr ⟨ii, rfl, clientErrPlain_holds ii hc, hl.2.1, hl.2.2, hl.1⟩
+  · ipureintro; rfl
 
 /-- **An error of the store whose outcome is unknown is `EOther`** (see the file header): the
 client's (`clientErrPlain_holds`), not an `InternalError` (the driver's transformer never
@@ -245,8 +247,8 @@ theorem sentV_plain [_root_.Perennial.errors.Assumptions]
     (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"As"
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hU hA
   unfold apierrors.apiErrAt
-  ipureintro
-  refine ⟨_, rfl, ?_, ?_, ?_, ?_⟩
+  ileft; ipureintro
+  refine Or.inr ⟨_, rfl, ?_, ?_, ?_, ?_⟩
   · simp only
     go_type_set
   all_goals simp only [hU, hA, ne_eq, reduceCtorEq, not_false_eq_true]
