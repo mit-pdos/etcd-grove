@@ -52,7 +52,8 @@ theorem isHaltErr.wp_proof
       iapply HΦ; ipureintro; intro _; left; rfl
     | ok ei =>
       wp_auto
-      wp_apply wp_FromError (GoInterface.ok ei) $$ [$Hst $Hse] as %ev %ok ⟨-, #HCode, -⟩
+      ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      wp_apply wp_FromError (GoInterface.ok ei) mF $$ [$Hst $Hse $HmF] as %ev %ok ⟨-, #HCode, -⟩
       wp_apply HCode
       wp_if_destruct
       · iapply HΦ; ipureintro; intro _; right; left; exact Hif

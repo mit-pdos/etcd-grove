@@ -3,7 +3,7 @@ title: ContextReadErrs.descs (the premise Hctx of 50 closed results) makes them 
 found: 2026-11-17
 by: the ctx-descs review (etcd-grove-03's agent), notes/axiom-review/ctx-descs.md, branch axiom/ctx-descs
 blocks-proof: no (every closed etcd theorem takes it; their statements say nothing past v3rpc's initialization until the fix)
-status: open; fix in the Hctx Scope (the incomingOf Scope agent's, with grpc's ctxErrsErr), approved direction 2026-11-17
+status: fixed in incomingof Part B (branch incomingof-scope, 2026-11-18): the `Canceled` half deleted (and later `descDeadline`), users take `Error()`'s message per run (`ctxErrsErr`'s `ctxErrMsg`); notes/axiom-review/incomingof-b.md
 ---
 # `ContextReadErrs.descs` is unsound as a premise
 

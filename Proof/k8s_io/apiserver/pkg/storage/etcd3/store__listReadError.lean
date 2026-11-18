@@ -64,8 +64,8 @@ theorem store.listReadError.wp_proof
     iapply listErrF_listErr $$ He
   · -- a future revision: the state below `withRev`, and the too-large error
     have hd : go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc :=
-      (hb rfl).trans HdFR
-    ihave #HQ := Hfut $$ %hd
+      (hb rfl).1.trans HdFR
+    ihave #HQ := Hfut $$ %hd %((hb rfl).2 ⟨x, hx⟩)
     wp_auto
     wp_apply (wp_GetCRV Obj sp c ci cd k (fun _ _ _ => iprop(True)) hk hkl) $$ [] as %n %e2 -
     · iframe #
