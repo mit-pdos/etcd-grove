@@ -106,7 +106,8 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
+          ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+          wp_apply wp_ContextError sc scd (GoInterface.ok rei) mC $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
@@ -417,7 +418,8 @@ theorem lessor.recvKeepAliveLoop.wp_proof
         · iframe #
         cases b
         · (try wp_auto)
-          wp_apply wp_ContextError sc scd (GoInterface.ok rei) $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
+          ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+          wp_apply wp_ContextError sc scd (GoInterface.ok rei) mC $$ [] as %err' ⟨%Herr', #Hse', -, -⟩
           · iframe #; ipureintro; exact fun _ => Hce.2
           (try wp_auto)
           ihave #Hrp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []

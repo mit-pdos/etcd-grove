@@ -78,7 +78,7 @@ theorem isSafeRetry.wp_proof
     wp_apply wp_Endpoints c $$ [$Hc] as %sl -
     wp_if_destruct
     · iapply HΦ; ipureintro; intro _; left
-      rw [Hb2 rfl, HdL]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+      rw [(Hb2 rfl).1, HdL]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
     (try wp_auto)
     wp_if_destruct
     · wp_apply wp_Imm err $$ [] as %b -

@@ -871,16 +871,13 @@ theorem rangeErrOther_facts (e kf kc : GoInterface) (hne : e ≠ GoInterface.nil
     -, -, -, -, #CC, #CF, -⟩
   iunfold go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ctxErrDescs at Hcd
   icases Hcd with ⟨⟨%ecn, #Hcn, %Hdcn⟩, ⟨%ede, #Hde, %Hdde⟩⟩
-  have hctx : rangeErrMsgOk go!"context canceled" ∧ rangeErrMsgOk go!"context deadline exceeded" := by
-    unfold rangeErrMsgOk go_etcd_io.etcd.cache.v3.futureRevDesc go_etcd_io.etcd.cache.v3.compactedDesc
-    decide
   -- a context value passed through has a context error's description
   ihave #Hcx : iprop(□ ∀ x : GoInterface, ((globalAddr _root_.Perennial.context.Canceled ↦□ x : IProp GF) ∨
       (globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ x : IProp GF)) -∗
       ⌜rangeErrMsgOk (go_etcd_io.etcd.cache.v3.errDesc x)⌝) $$ []
   · iintro !> %x (#Hx | #Hx)
-    · icombine Hx Hcn gives %h; subst h; ipureintro; rw [Hdcn]; exact hctx.1
-    · icombine Hx Hde gives %h; subst h; ipureintro; rw [Hdde]; exact hctx.2
+    · icombine Hx Hcn gives %h; subst h; ipureintro; exact Hdcn
+    · icombine Hx Hde gives %h; subst h; ipureintro; exact Hdde
   icases H with (#Hau | #Hrd | #Hk)
   · -- an auth package variable
     iunfold authErrVarIs at Hau

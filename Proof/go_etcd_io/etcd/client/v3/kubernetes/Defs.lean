@@ -307,9 +307,15 @@ variable [sem : go.Semantics]
 only): an error whose description is `ErrFutureRev`'s (`errDesc`, D29) means the state the read's
 update fired at is below the revision `o` asked, whatever revision `R` the update was made for
 (7e-1's R1: the client makes its update for the prophesied response revision, never resolved on an
-error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. -/
+error, so `R` is unrelated to `σ.rev`). What `Client.List`/`Client.Get` give. (incomingof Part B,
+2026-11-17) Of an error that is an `EtcdError` unless it has an `Is` method (what `errors.Is` against
+`ErrFutureRev` gives, `errors.IsStatusErr.spec`): not the context's error, which the client returns as
+it is (`client.rangeErrOut`). -/
 def rangeErrSound (o : w64) (Q : w64 → KVState → IProp GF) (err : GoInterface) : IProp GF :=
   iprop(□ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
+        methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) →
+        e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ -∗
       ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat o⌝))
 
 instance rangeErrSound_persistent o Q err : Persistent (rangeErrSound (GF := GF) o Q err) := by
