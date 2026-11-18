@@ -176,11 +176,12 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.Et
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.EtcdGrove.readTx.UnsafeRange.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset Perennial.EtcdGrove.backend.readTx.reset.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset Perennial.EtcdGrove.readTx.reset.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close Perennial.EtcdGrove.backend.snapshot.Close.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close Perennial.EtcdGrove.backend.snapshot.Close.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close Perennial.EtcdGrove.snapshot.Close.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size Perennial.EtcdGrove.backend.snapshot.Size.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size Perennial.EtcdGrove.backend.snapshot.Size.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size Perennial.EtcdGrove.snapshot.Size.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.backend.snapshot.WriteTo.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.backend.snapshot.WriteTo.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.bbolt.boltImageRcpt.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.snapshot.WriteTo.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset Perennial.EtcdGrove.backend.bksReset_lookup  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset Perennial.EtcdGrove.backend.resetInv  # exposed by a proof file (def)

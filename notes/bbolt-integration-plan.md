@@ -706,6 +706,57 @@ D-I6's bbolt side done; the backend side not (below). Decisions D-W1..D-W7 (`not
   side (`SaveDBFrom`) now takes bbolt's `boltImage`; a file it saves needs `boltImageRcpt` too for
   `fileHolds_of_image`.
 
+### S4b (branch `backend-snapshot`, off `bbolt-integrate` `99bec16c31`, 2026-11-18): the backend's snapshot
+
+D-I6's backend half, **partly done**: three of the four axioms are theorems; `backend.backend.Snapshot.wp_proof`
+stays an axiom (blockers below).
+
+- **Translation** (`Code/go_etcd_io/etcd/server/v3/storage/backend.toml`): `backend.Snapshot` (with its warning
+  goroutine) and the promoted `snapshot.WriteTo`/`snapshot.Size` (goose's `MethodUnfold` wrappers:
+  `s.Tx.WriteTo(w)`, `s.Tx.Size()`) with bodies; `github.com/dustin/go-humanize` imported (the goroutine's
+  warning), so the backend's package init initializes it: its `IsPkgInit` instance moved from mvcc's `Base.lean`
+  to the backend's (`humanize/Init.lean`, `Spec/github_com/dustin/go_humanize/Bytes.lean` import it there;
+  `etc/gen-init.py` regenerated the Init files and PkgTables, no script change).
+- **`snapOpen` concrete** (`InvSnapshot.lean`, at `HasLC.hasLC` now, as its clients): the opaque `snapRO` is gone;
+  `snapOpenQ sp D γ q := ∃ tx γd, snapAt sp γ tx γd ∗ ghostVar γ q (tx, γd) ∗ txLive tx γd q (ro D)`, `snapAt`
+  (persistent) the fields `Tx`/`stopc`/`donec` (`↦□`), the two channels as broadcast channels (`True`), and the
+  invariant `snapN`: `stopc`'s close right (`Pending`) or the whole of `γ`. `snapOpenQ_half` re-proved
+  (statement unchanged).
+- **Proofs**: `snapshot.Size` over bbolt's `Tx.Size` (the read-only bound), `snapshot.WriteTo` over `Tx.WriteTo`
+  (bbolt's `boltImage` is the backend's), `snapshot.Close`: the invariant's close right swapped for `γ`'s whole
+  (`snap_take`, with a later credit), `close(stopc)`, `<-donec` (broadcast receive), `Tx.Rollback` (nil, the
+  `threadTok`). Each over bbolt's canonical spec through a private glue at `theFs`. Link regenerated
+  (`snapshot__WriteTo: bbolt_Tx__WriteTo`, `snapshot__Size: bbolt_Tx__Size`, `snapshot__Close: bbolt_Tx__Rollback`).
+- **Statement changes** (all four specs and `snapOpenQ`/`snapOpen` now at `HeapGS HasLC.hasLC GF`, where every
+  client already was): `snapshot.WriteTo.spec` takes `io.writerPlain w` (bbolt's `Tx.WriteTo` premise); its one
+  caller, `newSnapshotReaderCloser`, passes `io.writerPlain_pipeWriter` (its writer is the pipe's). No closed
+  theorem's statement changed.
+- **Axioms**: removed `backend.snapshot.WriteTo.wp_proof`, `backend.snapshot.Size.wp_proof`,
+  `backend.snapshot.Close.wp_proof`; none added (`snapshotTransferSec_init` was not needed, as `Snapshot` is not
+  proved). bbolt's `Tx.WriteTo` now reaches the server's results, so S4's two stdlib trust-boundary axioms
+  `io.CopyN.wp_proof` and `io.NewSectionReader.wp_proof` enter the 26 collections that reach the sender
+  (`etc/tcb-collections/*.txt`, updated; the baseline: three axioms gone).
+- **Gates**: `etc/reader-slot-check.py` accepts a proved closer (`theorem <F>.wp_proof` stating `<F>.spec`) for a
+  slot-holding axiom (`backend.Snapshot`'s pair `snapshot.Close`, now proved; its post's `threadTok` still checked),
+  floor `MIN_SCANNED` 186 → 185; `etc/api/backend-layout.txt` updated (the three proof files' `wp_proof` now
+  theorems; new: `bbolt.boltImageRcpt.congr_simp`, generated in `snapshot__WriteTo.lean`'s glue);
+  `SpecPlan/Spec/PkgInit/.../backend.lean` regenerated (humanize).
+- **Left: `backend.Snapshot`** (translated, not proved; its axiom's docstring says what the now concrete post
+  claims). Two blockers, each beyond the task's scope:
+  1. `b.mu.RLock()` outside the batch lock needs a reader slot of `b.mu` (`sync.ownRWMutex`): the only one kept
+     is the batch lock's (`batchPhys`); the constructor drops the others. Fix: a pool of `b.mu`'s slots (as
+     `RdPool`'s `bkRPool` for `readTx.mu`) in the constructor's post / `isBackend`, paid by `threadTok`.
+  2. `DB.Begin(false)` outside the batch lock, with the observation `Q` at its linearization point: bbolt's
+     `Begin` reads `boltState γ q D` in an AU, but `ownDB`'s `boltState γ 1` is the batch lock's; and `Q` needs
+     the caller's `R` with the batch lock's `W ∗ Pk` and ghost shares at once, which no thread owns at the
+     `Begin`. A proof needs `boltState` shared (an invariant with the committed `D`) and the commits to help
+     (every commit, at its linearization point inside `Tx.Commit`'s AU, applying each registered snapshotter's
+     observation, with the batch lock's ghost shares updated there rather than after the commit, `unsafeCommit`,
+     and the `Unlock` commit window's `dlsW` exemption handled). A narrower trust boundary (a triple on the
+     `Begin` call alone, giving the read transaction with `Q`) would be a new axiom and still needs (1); a
+     ghost-only one (an AU over `boltState` from `isBackend`) is unsound beside the batch lock's whole
+     `boltState`. So the whole function stays assumed.
+
 ### S3e (branch `bbolt-files-backend`, off `bbolt-integrate` `4511e2dcd1`, 2026-11-17): the backend's database files over the file model
 
 D-I5's backend side. `bbolt.Open_kv` and `bbolt.DB.Close_kv` are theorems; `backend.fileHolds` and

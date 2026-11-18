@@ -336,10 +336,6 @@ theorem backend.wp_SizeInUse :
     EtcdGrove.backend.backend.SizeInUse.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.SizeInUse.wp_proof
 
-theorem backend.wp_Snapshot :
-    EtcdGrove.backend.backend.Snapshot.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.backend.Snapshot.wp_proof
-
 theorem backend.wp_UnlockForSafeRangeDelete :
     EtcdGrove.backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.UnlockForSafeRangeDelete.wp_proof
@@ -500,18 +496,6 @@ theorem readTx.wp_UnsafeRange :
     EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.UnsafeRange.wp_proof baseReadTx.wp_UnsafeRange
 
-theorem snapshot.wp_Close :
-    EtcdGrove.backend.snapshot.Close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.snapshot.Close.wp_proof
-
-theorem snapshot.wp_Size :
-    EtcdGrove.backend.snapshot.Size.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.snapshot.Size.wp_proof
-
-theorem snapshot.wp_WriteTo :
-    EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.snapshot.WriteTo.wp_proof
-
 theorem txReadBuffer.wp_ForEach :
     EtcdGrove.backend.txReadBuffer.ForEach.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.txReadBuffer.ForEach.wp_proof bucketBuffer.wp_ForEach
@@ -542,6 +526,22 @@ theorem wp_New :
 theorem backend.wp_Close :
     EtcdGrove.backend.backend.Close.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.backend.Close.wp_proof bbolt.DB.wp_Close
+
+theorem backend.wp_Snapshot :
+    EtcdGrove.backend.backend.Snapshot.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.backend.Snapshot.wp_proof
+
+theorem snapshot.wp_Close :
+    EtcdGrove.backend.snapshot.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.Close.wp_proof bbolt.Tx.wp_Rollback
+
+theorem snapshot.wp_Size :
+    EtcdGrove.backend.snapshot.Size.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.Size.wp_proof bbolt.Tx.wp_Size
+
+theorem snapshot.wp_WriteTo :
+    EtcdGrove.backend.snapshot.WriteTo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.snapshot.WriteTo.wp_proof bbolt.Tx.wp_WriteTo
 
 end links_hasLC
 

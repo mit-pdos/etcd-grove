@@ -274,9 +274,6 @@ axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof
 axiom backend.backend.Snapshot.wp_proof
-axiom backend.snapshot.Close.wp_proof
-axiom backend.snapshot.Size.wp_proof
-axiom backend.snapshot.WriteTo.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -399,7 +396,9 @@ axiom httpProtoFree
 axiom httputil.GracefulClose.wp_proof
 axiom incomingOf_cancelCtx
 axiom insecure.NewCredentials.wp_proof
+axiom io.CopyN.wp_proof
 axiom io.MultiReader.wp_proof
+axiom io.NewSectionReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom lease.NewLessor.wp_proof
