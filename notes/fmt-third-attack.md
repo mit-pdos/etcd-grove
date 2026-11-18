@@ -37,3 +37,17 @@ neither a method verb).
   **mismatch 43,121, every one a format ending in a trailing `.`** after `%`, flags or a width (R1).
 - After the fix (a `.` starts a precision only if a byte follows it): `none` 275,098, agree 1,852,064,
   **mismatch 0**.
+
+## Round 4 (independent, axiom skill, 2026-11-18): no refutation
+
+On the texts as they land (R2/R3 excluded as known). Parser read against go1.27.3 `doPrintf`/`parsenum`/
+`argNumber` (`print.go:1007-1185`): no divergence. Method choice (`handleMethods`, `print.go:614-750`) run over
+every ASCII verb byte, `é`, `\xff`, ten flag sets, under `Errorf` and `Fprintf`, three probe types
+(`/shared/tmp/fmtfix-attack4/verbs/`): the only `GoString` calls are under `%#v`/`%#w`, where `argOkAt` admits
+only method-less `ArgWf`. `ErrorfErrs/Not/Term`, `ErrorfWrap`, the writer contract (`*os.File.Write`'s errors),
+`Printf`, klog's args: true of Go. The harness re-checked by an independent Python transcription of the parser
+(`/shared/tmp/fmtfix-attack4/harness/py_parser.py`: identical to `lean.after.out` on all formats, 0 mismatches
+against Go). Its blind spots, each argued harmless: probes all have `Format` (method choice tested by the verb
+run instead); `Errorf` only (same `doPrintf`); Lean `none` skipped (sound); `w` folded into `v` (harmless);
+always 8 arguments (`missingArg` does not change parsing); `%p` and the 7/8-digit boundary rarely generated
+(checked in the source).
