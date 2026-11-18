@@ -157,7 +157,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   wp_apply wp_OpenDir (child r nm) R J dq (1 : Qp).half $$ [Hs2 Hperm2] as %df %err ⟨Hs2, Hperm2, Hod⟩
   · iframe; iframe #
   try wp_auto
-  icases Hod with (⟨%dfd, %herr, Hdf1, Hdfd⟩ | ⟨%herr, %hdf⟩)
+  icases Hod with (⟨%dfd, %herr, Hdf1, Hdfd⟩ | ⟨%herr, -⟩)
   · subst herr
     iapply HΦ
     unfold renameWALPost
@@ -177,7 +177,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
     iframe Hp
     iright; iright; iright
     isplitr
-    · ipureintro; exact herr
+    · ipureintro; exact herr.1
     iexists x
     iunfold walLockIn at Hlk
     icases Hlk with ⟨-, Hf, Hfd, Hlks, -⟩

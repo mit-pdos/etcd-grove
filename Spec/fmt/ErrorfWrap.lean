@@ -14,6 +14,7 @@ axiom): `notes/axiom-review/errorf-wrap.md`. Lean-first.
 module
 
 public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorOk
 public import Proof.google_golang_org.grpc.status.ErrDesc
 public import Proof.errors.NewVarCell
 
@@ -48,15 +49,18 @@ instance fmt.modelErrIs_persistent (ii : GoInterfaceOk) (pre : GoString) :
   unfold fmt.modelErrIs; infer_instance
 
 /-- **Go's `%w` error of `inner`**, with message prefix `pre` (a `*fmt.wrapError`, its type left
-opaque): a pointer error; its method set has `Unwrap() error` and no `Is`, `As` or `GRPCStatus`
-(`*wrapError` has `Error` and `Unwrap` only); `Error()` always returns one string, `pre ++ s`
+opaque): a pointer error; its method set has `Unwrap() error`, `Error() string` and no `Is`, `As`,
+`GRPCStatus` or `Format` (`*wrapError` has `Error` and `Unwrap` only); `Error()` always returns one
+string, `pre ++ s`
 (`return e.msg`, formatted once); `Unwrap()` returns `inner` (`return e.err`). -/
 def fmt.wrapErrIs (ii : GoInterfaceOk) (inner : GoInterface) (pre : GoString) : IProp GF :=
   iprop(⌜_root_.Perennial.errors.IsPointerError ii ∧
       methodSet ii.ty !! go!"Unwrap" = some (go.Signature [] false [go.error]) ∧
       methodSet ii.ty !! go!"As" ≠ some (go.Signature [go.any] false [go.bool]) ∧
       methodSet ii.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
-      methodSet ii.ty !! go!"GRPCStatus" = none⌝ ∗
+      methodSet ii.ty !! go!"GRPCStatus" = none ∧
+      methodSet ii.ty !! go!"Format" = none ∧
+      methodSet ii.ty !! go!"Error" = some noArgStringSig⌝ ∗
     (∃ s : GoString, □ ∀ Φ : val → IProp GF, ▷ Φ #(pre ++ s) -∗
       WP (App (Val #(methods ii.ty go!"Error" ii.v)) (Val #())) {{ Φ }}) ∗
     □ ∀ Φ : val → IProp GF, ▷ Φ #inner -∗
@@ -104,8 +108,11 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.fmt.Assumptions]
 
-/-- **`fmt.Errorf(pre ++ "%w", inner)`**, where `pre` has no `%` and `inner` is a non-nil error whose
-`Error()` returns: the model's error or Go's `*fmt.wrapError` (`fmt.errorfWrapIs`); if the error has
+/-- **`fmt.Errorf(pre ++ "%w", inner)`**, where `pre` has no `%` and `inner` is a non-nil error `fmt`
+formats by its `Error()` (`fmtErrorOk`: an `Error() string` method, which returns needing nothing,
+and no `Format` method, which Go would call in its place; fmt soundness, 2026-11-18: until then only
+`Error()`'s WP, which admitted a panicking or memory-writing `Format` and a non-`error` `inner`): the
+model's error or Go's `*fmt.wrapError` (`fmt.errorfWrapIs`); if the error has
 an `Unwrap() error` method (Go's `*fmt.wrapError` has, the model's `*errors.errorString` has not),
 its gRPC description (`errDesc`) begins with `pre` (N1b, 2026-11-06: in Go the error has no
 `GRPCStatus`, so `status.FromError` and the server's `FromContextError` take its `Error()`,
@@ -120,7 +127,7 @@ abbrev fmt.ErrorfWrap.spec : Prop :=
   ∀ (pre : GoString) (args_sl : GoSlice) (inner : GoInterfaceOk) (dq : DFrac),
   (W8 37 : w8) ∉ pre →
   {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦*{dq} [GoInterface.ok inner] ∗
-      fmt.stringMethodSpec inner go!"Error" }}
+      fmtErrorOk (GoInterface.ok inner) }}
     (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #(pre ++ go!"%w"))) (Val #args_sl))
   {{ (err : GoInterfaceOk), RET #(GoInterface.ok err);
       args_sl ↦*{dq} [GoInterface.ok inner] ∗ fmt.errorfWrapIs err (GoInterface.ok inner) pre ∗

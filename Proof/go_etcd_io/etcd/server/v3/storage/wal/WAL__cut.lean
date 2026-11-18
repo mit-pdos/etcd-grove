@@ -699,7 +699,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.wp_proof [os.file.FieldAss
   (try wp_auto)
   wp_apply (wp_FsyncDir df dfd dnm (DFrac.own 1) Rd j ph (x + 1)) $$ [Hdff Hdfd] as %ferr ⟨Hdff, Hdfd, Hfr⟩
   · iframe; iframe #
-  icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
+  icases Hfr with (⟨%hfe, -⟩ | ⟨%hfe, #Hcm⟩)
   · rcases ferr with ei | _
     rotate_left
     · exact absurd rfl hfe

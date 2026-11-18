@@ -963,6 +963,42 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
       inext
       iapply HΦ
 
+/-- **A `ctxWrapErr` is one `fmt` formats by its `Error()`** (`fmtErrorOk`: `Error() string`, no
+`Format`), as `fmt.ErrorfWrap` needs of its `%w` argument (fmt soundness, 2026-11-18): the chain's
+head is the model's `*errors.errorString` (its method set) or Go's `*fmt.wrapError`
+(`fmt.wrapErrIs`'s facts). -/
+theorem ctxWrapErr_fmtErrorOk [_root_.Perennial.fmt.Assumptions] (ii : GoInterfaceOk) :
+    ctxWrapErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmtErrorOk (GoInterface.ok ii) := by
+  iintro #He
+  ihave #Hs := ctxWrapErr_stringMethodSpec ii $$ He
+  simp only [EtcdGrove.fmtErrorOk]
+  isplit
+  rotate_left
+  · iexact Hs
+  unfold ctxWrapErr
+  icases He with ⟨%pres, %c, %Hp, #Hch, -⟩
+  cases pres with
+  | nil => exact absurd rfl Hp
+  | cons pre ps =>
+    rw [EtcdGrove.fmt.wrapChain_cons]
+    icases Hch with ⟨%ii', %Hii, Hch⟩
+    cases Hii
+    icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
+    · iunfold EtcdGrove.fmt.modelErrIs at Hm
+      icases Hm with ⟨%x, %hx, -⟩
+      subst hx
+      ipureintro
+      have h1 := (go.MethodSetIs.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format")
+      have h2 := (go.MethodSetIs.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error")
+      simp only [go.methodSetLookup] at h1 h2
+      exact ⟨by simpa using h1, by simpa [EtcdGrove.noArgStringSig] using h2⟩
+    · iunfold EtcdGrove.fmt.wrapErrIs at Hw
+      icases Hw with ⟨%Hm, -, -⟩
+      ipureintro
+      exact ⟨Hm.2.2.2.2.2.1, Hm.2.2.2.2.2.2⟩
+
 /-- A stable `Error()` returns (`errorStringSpec`). -/
 theorem errorMsgIs_errorStringSpec (e : GoInterfaceOk) (m : GoString) :
     errorMsgIs (GF := GF) e m ⊢ errorStringSpec e := by
@@ -1101,6 +1137,37 @@ theorem isCtxErr_stringMethodSpec [context.Assumptions] [_root_.Perennial.fmt.As
   iintro !> %Φ HΦ
   wp_apply (context.wp_isCtxErr_Error (GoInterface.ok ii) ii rfl) $$ He as %s -
   iapply HΦ
+
+/-- **A context error is one `fmt` formats by its `Error()`** (`fmtErrorOk`): `Canceled`'s
+`*errors.errorString` or `DeadlineExceeded`'s `deadlineExceededError`, by their method sets (fmt
+soundness, 2026-11-18: what `fmt.ErrorfWrap` needs of its `%w` argument). -/
+theorem isCtxErr_fmtErrorOk [context.Assumptions] [_root_.Perennial.fmt.Assumptions]
+    (ii : GoInterfaceOk) :
+    context.isCtxErr (GF := GF) (GoInterface.ok ii) ⊢ EtcdGrove.fmtErrorOk (GoInterface.ok ii) := by
+  iintro #He
+  ihave #Hs := isCtxErr_stringMethodSpec ii $$ He
+  simp only [EtcdGrove.fmtErrorOk]
+  isplit
+  rotate_left
+  · iexact Hs
+  iunfold context.isCtxErr at He
+  icases He with (⟨-, %x, %hx, -⟩ | ⟨-, %hv⟩)
+  · rw [interface.mkOk] at hx; cases hx
+    ipureintro
+    have h1 := (go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format")
+    have h2 := (go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error")
+    simp only [go.methodSetLookup] at h1 h2
+    exact ⟨by simpa using h1, by simpa [EtcdGrove.noArgStringSig] using h2⟩
+  · rw [interface.mkOk] at hv; cases hv
+    ipureintro
+    have h1 := (go.MethodSetIs.method_set_is
+      (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Format")
+    have h2 := (go.MethodSetIs.method_set_is
+      (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Error")
+    simp only [go.methodSetLookup] at h1 h2
+    exact ⟨by simpa using h1, by simpa [EtcdGrove.noArgStringSig] using h2⟩
 
 end ctxErrStr
 

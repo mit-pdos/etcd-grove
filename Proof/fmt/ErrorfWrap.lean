@@ -33,7 +33,8 @@ model's `*errors.errorString` does not have (its method set is `[Error]`, goose'
 Why stepping into the model is sound for this statement, although the model does not model `%w`
 (the review behind `etc/errorf-wrap-check.py`'s entry): the statement is true of Go's `Errorf` too.
 Go's `Errorf` (`fmt/errors.go:34-81`) formats `pre ++ "%w"` (`pre` copied verbatim, having no `%`;
-`%w` as `%v` of `inner`, calling its `Error()`, which returns by the premise) and, with exactly one
+`%w` as `%v` of `inner`: `inner` has no `Format` and an `Error() string` method, so Go calls its
+`Error()`, which returns needing nothing by the premise `fmtErrorOk`) and, with exactly one
 `%w` of a non-nil error operand, returns `&wrapError{msg: s, err: inner}`, whose methods are
 `Error()` (`return e.msg`) and `Unwrap()` (`return e.err`): the right disjunct
 (`fmt.wrapErrIs`); a `*wrapError` has `Unwrap() error` and no `GRPCStatus`, so its description is

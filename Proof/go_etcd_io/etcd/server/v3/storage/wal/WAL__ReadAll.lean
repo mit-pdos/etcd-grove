@@ -602,7 +602,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           -- `fileutil.Fsync(w.dirFile)`
           wp_apply (wp_FsyncDir df dfd dir _ R jd .idle hnw.next) $$ [Hdf Hdfs] as %ed ⟨Hdf, Hdfs, Hed⟩
           · iframe; iframe #
-          icases Hed with (%hed | ⟨%hed, -⟩)
+          icases Hed with (⟨%hed, -⟩ | ⟨%hed, -⟩)
           · -- its error
             rcases ed with ei | _
             rotate_left

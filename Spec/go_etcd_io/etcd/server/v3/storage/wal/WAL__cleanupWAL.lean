@@ -66,7 +66,8 @@ def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (
 header), the caller holding the other half of the call permission (the rename needs it whole) and the
 frame `Fr`. Three outcomes: `Close` failed in its sync (`WAL.Close.specU`'s error arm: the lock token
 still held, the tail lock's file open); `Close` returned everything but an error (no rename); or the
-rename was called, the law's `Fin err`. -/
+rename was called, the law's `Fin err`, with the rename's error one `fmt` formats by its `Error()`
+(`fmtErrorOkOrNil`: fmt soundness, 2026-11-18, for `Create`'s `fmt.Errorf` of it). -/
 abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF) (Mr : WalMarshal) :
     Prop :=
   ∀ (R : Roots) (jr : Ino) (r nm : GoString) (w lg : Loc) (Rp : Roots) (qp : Qp) (tf : Loc)
@@ -87,7 +88,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF
         osCallPerm (1 : Qp).half ∗ Fr ∗
         (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) ∗
         ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
-      Fin err }}
+      (Fin err ∗ fmtErrorOkOrNil err) }}
 
 end spec
 

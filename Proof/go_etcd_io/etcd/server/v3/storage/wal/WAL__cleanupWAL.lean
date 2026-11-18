@@ -127,7 +127,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     have := congrArg List.length he
     simp [brokenName] at this
   wp_apply wp_Rename r nm (brokenName nm ts) jr J N R qd h q rr lb Qr hnmO
-    (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, Hout⟩
+    (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, #Hrf, Hout⟩
   · iframe; iframe #
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -151,11 +151,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     try wp_auto
     iapply HΦ
     iright; iright
-    iexact Hfin
+    iframe Hfin Hrf
   · try wp_auto
     iapply HΦ
     iright; iright
-    iexact Hfin
+    iframe Hfin Hrf
 
 end proof
 

@@ -138,7 +138,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hNnm hnmO _hcq hnm.1
         $$ Hok
     icases Hcr with (⟨%hce, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd', Hlks'⟩ |
-      ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | Hfin)
+      ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | ⟨Hfin, #Hcef⟩)
     · -- `Close` failed in its sync: no rename
       rcases cerr with cei | _
       rotate_left
@@ -282,7 +282,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     wp_apply wp_OpenDir r R jr (DFrac.own (e + a')) (1 : Qp).half.half $$ [Hp Hperm]
       as %pf %perr ⟨Hp, Hperm, Hod⟩
     · iframe; iframe #
-    icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, -⟩)
+    icases Hod with (⟨%pfd, %hperr, Hpf, Hpfd⟩ | ⟨%hperr, #Hpe⟩)
     rotate_left
     · -- `OpenDir` failed: logged, then the deferred `cleanupWAL`
       ihave Hw := Hw $$ Hperm
@@ -290,7 +290,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
       icases walOpenWFU_dirAcc P Mr $w (child r nm) _ _ _ $$ Hw with ⟨Hdir, Hw⟩
       rcases perr with pei | _
       rotate_left
-      · exact absurd rfl hperr
+      · exact absurd rfl hperr.1
       try wp_auto
       wp_apply wp_Dir (child r nm) as %pd -
       wp_apply wp_String as %f1 -
@@ -314,7 +314,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     wp_apply wp_FsyncDir pf pfd r (DFrac.own 1) R jr .idle (x.1 + 1) $$ [Hpf Hpfd] as %ferr
       ⟨Hpf, Hpfd, Hfr⟩
     · iframe; iframe #
-    icases Hfr with (%hfe | ⟨%hfe, #Hcm⟩)
+    icases Hfr with (⟨%hfe, #Hfe⟩ | ⟨%hfe, #Hcm⟩)
     · -- `Fsync` failed: the parent closed (not by `dirCloser`, which would overwrite `perr`: the fork's
       -- fix, `nonissues/etcd-wal-create-parent-fsync-nil-nil.md`), logged, the deferred `cleanupWAL`
       rcases ferr with pei | _

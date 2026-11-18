@@ -29,3 +29,17 @@
 4. Key the gate's review list by constant if cheap.
 
 ## Specs touched (for the wal-link merge)
+- `Spec/fmt/ErrorfWrap.lean`: premise `fmtErrorOk (ok inner)`; `fmt.wrapErrIs` + `Format = none ∧ Error = noArgStringSig`.
+- `Proof/os/NsS.lean` `os.File.Close.wp_dirS`: post `emp` → `fmtErrorOkOrNil err`.
+- `Spec/os/File__SyncS.lean` `os.File.Sync.specDirS`, `Spec/.../fileutil/FsyncS.lean` `Fsync.specDirS`:
+  error arm `⌜err ≠ nil⌝` → `(⌜err ≠ nil⌝ ∗ fmtErrorOk err)`.
+- `Spec/.../fileutil/OpenDir.lean` `OpenDir.spec`: failure arm gains `∗ fmtErrorOkOrNil err` (proof via
+  `os.Open.wp_dirSOk`).
+- `Spec/os/RenameAny.lean` `os.Rename.specDirAnySnc`: post gains `fmtErrorOkOrNil err ∗` after `osCallPerm 1`.
+- `Spec/.../wal/WAL__cleanupWAL.lean` `cleanupWAL.spec`: third arm `Fin err` → `(Fin err ∗ fmtErrorOkOrNil err)`.
+- Consumer patterns only: fileutil/wal `syncDir`, `WAL__renameWAL`, `WAL__ReadAll`, `WAL__cut`, `Create`,
+  `WAL__cleanupWAL`, WalTester `durable/tryWrite`; `cache/v3/Base` (`ctxWrapErr_fmtErrorOk`,
+  `isCtxErr_fmtErrorOk`), `rangeKeys`, `executeTxn`.
+- NOT yet: `WAL.Close.specU`'s arms and `cleanupWAL`'s first two (the sync path's errors: `WAL.sync.specC` ←
+  `sync.wp_core` ← `encoder.flush.specP`, whose error comes from the generic writer contract); ErrorfErrs/ErrorfAny
+  restatement (texts: /shared/tmp/fmtfix/task3-proposal.md) — ErrorfErrs BLOCKED on decision 3 (see report).
