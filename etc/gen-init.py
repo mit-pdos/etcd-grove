@@ -606,14 +606,14 @@ leaf, `errIsTerm_errorString`). Its initializer stores that error (a translated 
 Perennial's `errors.wp_New_errorString`), initializes its imports and runs the untranslated
 initializers of its protobuf descriptors and its `init` function, which the trust-boundary axioms
 `opaqueInitsOk` and `initFuncsOk` say run without panicking.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.errors.ErrIsTerm', 'Proof.errors.ErrorStringOk'],
     alloc_types={'ErrCRCMismatch': 'GoInterface'},
     before={'ErrCRCMismatch': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xC #EC',
                                'try wp_auto']},
     finish=['ipersist HErrCRCMismatch', 'ihave #TC := EtcdGrove.errIsTerm_errorString xC $$ {Hd:errors}'] +
            FIN_PRE[:6] + [
         'imodintro', 'unfold EtcdGrove.walpb.walpbInit', 'iexists _',
-        'iframe HErrCRCMismatch TC', 'unfold EtcdGrove.errOk', "iintro !> %Φ' HΦ'", 'iapply EC', 'inext', "iapply HΦ'"],
+        'iframe HErrCRCMismatch TC', 'iapply EtcdGrove.errorString_errOk', 'iexact EC'],
 )
 # (WAL package init, 2026-11-13) the part's `fileutil`: the lock functions, chosen by its `init`'s
 # `F_OFD_GETLK` probe (`syscall.FcntlFlock.wp_getlk`: any errno, so either), `wrlck`, `ErrLocked`
@@ -625,7 +625,7 @@ LFS_SPECIAL['go_etcd_io.etcd.client.pkg.v3.fileutil'] = dict(
 `init` function (lock_linux.go), which probes OFD locks with `F_OFD_GETLK` on fd 0 and switches both
 functions to OFD's on success: the probe's errno is any (`syscall.FcntlFlock.wp_getlk`), so either
 outcome.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.syscall.FileOps'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.syscall.FileOps', 'Proof.errors.ErrorStringOk'],
     vars=['[ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]'],
     alloc_types={'linuxLockFile': 'GoFunc', 'linuxTryLockFile': 'GoFunc', 'wrlck': 'syscall.Flock_t',
                  'ErrLocked': 'GoInterface'},
@@ -638,8 +638,8 @@ outcome.''',
         '    (∃ w : syscall.Flock_t, globalAddr wrlck ↦□ w ∗',
         "      ⌜w.Type' = W16 1 ∧ w.Whence' = W16 0 ∧ w.Start' = W64 0 ∧ w.Len' = W64 0 ∧",
         "        w.Pid' = W32 0⌝) $$ []",
-        '· isplitl []', '  · unfold EtcdGrove.errOk', '    iexists _', '    iframe HErrLocked',
-        "    iintro !> %Φ' HΦ'", '    iapply EL', '    inext', "    iapply HΦ'",
+        '· isplitl []', '  · iexists _', '    iframe HErrLocked',
+        '    iapply EtcdGrove.errorString_errOk', '    iexact EL',
         '  · iexists _', '    iframe Hwrlck', '    ipureintro', '    exact ⟨rfl, rfl, rfl, rfl, rfl⟩',
         'by_cases he : e = 0'] +
         [l for ofd, eq, simps in
@@ -668,7 +668,7 @@ def _walErrVar(x, tag):
     """The fact's clause of the error variable `x`, from `errors.New`'s `E<tag>`."""
     return [f'ihave #V{x} : (EtcdGrove.wal.errVar {x} : IProp GF) $$ []',
             '· unfold EtcdGrove.wal.errVar', '  iexists _', f'  iframe H{x}', '  isplitl []',
-            '  · unfold EtcdGrove.errOk', "    iintro !> %Φ' HΦ'", f'    iapply E{tag}', '    inext', "    iapply HΦ'",
+            '  · iapply EtcdGrove.errorString_errOk', f'    iexact E{tag}',
             f'  · iapply EtcdGrove.errIsTerm_errorString x{tag}; iexact {{Hd:errors}}']
 
 
@@ -690,7 +690,7 @@ translated `errors.New` calls, `ErrCRCMismatch = walpb.ErrCRCMismatch` (`walpbIn
 crc32.MakeTable(crc32.Castagnoli)` (`hash.crc32.MakeTable.wp_proof`), and its untranslated `init`
 function (`prometheus.MustRegister` of the metrics), which the trust-boundary axiom `initFuncsOk`
 says returns.''',
-    imports=['Perennial.Proof.errors.NewVar', 'Proof.hash.crc32.MakeTable', 'Proof.errors.ErrIsTerm'],
+    imports=['Perennial.Proof.errors.NewVar', 'Proof.hash.crc32.MakeTable', 'Proof.errors.ErrIsTerm', 'Proof.errors.ErrorStringOk'],
     custom={'walFsyncSec': _walMetric('walFsyncSec', 'histSpec'),
             'walWriteSec': _walMetric('walWriteSec', 'histSpec'),
             'walWriteBytes': _walMetric('walWriteBytes', 'gaugeAddSpec')},

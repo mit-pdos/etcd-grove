@@ -18,6 +18,13 @@ True of Go (the result is a fresh pointer, compared with `u`; its `Unwrap` gives
 walks return) and of the model (a leaf). No answer is claimed: Go's (`true` on a `%w` of `u`) is not the
 model's (`false`).
 W3a of `notes/wal-fsext-plan.md` (ledger 2026-11-14, "the error's identity"); Lean-first.
+
+Restated 2026-11-18 (fmt soundness; approved by the user, 2026-11-18, via etcd-grove-03): the premise is
+`fmt.ErrorfErrs.spec`'s, `fmt.errArgsWf` (an error argument only under `%v`/`%s`/`%w` without `#`) with
+`errOk` = `fmtErrorOk` (`Error() string`, no `Format`), so that Go calls only the error arguments'
+`Error()`; the post's `errOk err` says `fmtErrorOk` of the result (true of Go's three result types and of
+the model's). Until then any verb and any type with an `Error()` WP were admitted, which Go does not satisfy
+(`Format` methods, `Error() int`: `Spec/fmt/ErrorfErrs.lean`'s header).
 -/
 module
 
@@ -62,7 +69,7 @@ instance errIsTerm_persistent (e : GoInterface) : Persistent (errIsTerm (GF := G
 abbrev fmt.ErrorfErrsNot.spec : Prop :=
   ∀ (format : GoString) (args_sl : GoSlice) (args : List GoAny) (errs : List GoInterfaceOk)
     (X : GoString) (t : GoInterface),
-  (∀ ii, interface.ok ii ∈ args → fmt.ArgWf ii ∨ ii ∈ errs) →
+  fmt.errArgsWf errs format args →
     {{ isPkgInit (PROP := IProp GF) pkg_id.fmt ∗ args_sl ↦* args ∗ globalAddr X ↦□ t ∗
         [∗list] e ∈ errs, errOk e ∗ errIsNot (GoInterface.ok e) t ∗ errIsTerm (GoInterface.ok e) }}
       (App (App (Val (@! _root_.Perennial.fmt.Errorf)) (Val #format)) (Val #args_sl))
