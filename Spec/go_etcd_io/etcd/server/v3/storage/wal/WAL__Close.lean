@@ -92,11 +92,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
           (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir))
       | .opening _ => iprop(WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half)
       | .unnamed Rp qp tf => iprop(
-          (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
+          (fmtErrorOkOrNil err ∗ structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
             WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some dir) ∗ osCallPerm (callKey R dir) (1 : Qp).half ∗
             (∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∗
             ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
-          (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
+          (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
             ∃ (fd : w64) (nmf : GoString) (d : OsFd),
               os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d)) }}
 

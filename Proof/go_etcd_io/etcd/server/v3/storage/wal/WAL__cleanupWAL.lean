@@ -57,7 +57,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   wp_apply wp_CloseU R jr r w (child r nm) (.unnamed Rp qp tf) (fun _ => iprop(True)) $$ [Hw Hpw] as %cerr Hc
   · dsimp only
     iframe; iframe #
-  icases Hc with (⟨Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, Hlk, Hnf, Htf⟩)
+  icases Hc with (⟨#Hek, Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, #Hek, Hlk, Hnf, Htf⟩)
   rotate_left
   · -- the sync failed: `Close`'s error returned
     rcases cerr with ei | _
@@ -76,7 +76,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply HΦ
     ileft
     iframe
-    ipureintro; exact hcerr
+    isplitr
+    · ipureintro; exact hcerr
+    iexact Hek
   by_cases hce : cerr = interface.nil
   rotate_left
   · -- `Close` returned everything but an error: returned
@@ -96,7 +98,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply HΦ
     iright; ileft
     iframe
-    ipureintro; exact hce
+    isplitr
+    · ipureintro; exact hce
+    iapply fmtErrorOkOrNil_ne _ hce; iexact Hek
   subst hce
   try wp_auto
   wp_apply wp_Now as %t -
@@ -130,7 +134,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     have := congrArg List.length he
     simp [brokenName] at this
   wp_apply wp_Rename r nm (brokenName nm ts) jr J N R qd h q rr lb Qr hnmO
-    (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, Hout⟩
+    (brokenName_nameOk hnmO hts) hN1 hN2 hne hJ hq $$ [Hp Hperm Hlb HN Hau] as %rerr ⟨Hp, Hperm, #Hrf, Hout⟩
   · iframe; iframe #
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -154,11 +158,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     try wp_auto
     iapply HΦ
     iright; iright
-    iexact Hfin
+    iframe Hfin Hrf
   · try wp_auto
     iapply HΦ
     iright; iright
-    iexact Hfin
+    iframe Hfin Hrf
 
 end proof
 

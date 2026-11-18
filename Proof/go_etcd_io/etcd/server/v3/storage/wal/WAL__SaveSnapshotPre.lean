@@ -61,7 +61,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofPreL
     as %err ⟨He, Hres⟩
   · iexact Hw
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Hout⟩ | ⟨%Herr, Hbad⟩)
+  icases Hres with (⟨%Herr, Hout⟩ | ⟨%Herr, -, Hbad⟩)
   rotate_left
   · -- the flush failed
     rcases err with ei | _

@@ -45,7 +45,7 @@ theorem os.WriteFile.wp_proofTruncS (wp_Close : os.File.Close.spec (GF := GF) (h
   · subst herr
     wp_auto
     wp_apply os.File.Write.wp_empty f fd (child d b) (DFrac.own 1) sl dqs (W64 0) hfd
-      $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl⟩
+      $$ [Hf Ho Hsl] as %n %e ⟨-, Hf, Ho, Hsl, -⟩
     · iframe
     wp_apply wp_Close f fd (child d b) _ $$ [Hf Hfd] as %e1 ⟨-, -⟩
     · iframe; isplitr; iassumption; iapply lockToks_unlocked <;> rfl

@@ -52,16 +52,6 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-theorem argWf_uint64 (v : w64) :
-    fmt.ArgWf (interface.mk go.uint64 #v) :=
-  ⟨fun h => by simp [go.uint64, go.string] at h, fun _ => ⟨_, .uint64 v⟩,
-    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
-
-theorem argWf_int (v : w64) :
-    fmt.ArgWf (interface.mk go.int #v) :=
-  ⟨fun h => by simp [go.int, go.string] at h, fun _ => ⟨_, .int v⟩,
-    Or.inl (Or.inr (Or.inr (Or.inl (by simp [fmt.IsIntType]))))⟩
-
 theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proof
     (HNames : go_etcd_io.etcd.server.v3.storage.wal.readWALNames.spec (GF := GF) (hG := hG))
     (HSearch : go_etcd_io.etcd.server.v3.storage.wal.searchIndex.spec (GF := GF) (hG := hG))
@@ -100,12 +90,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proof
       isplitr
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
-      wp_apply HErrorf _ _ [interface.mkOk go.uint64 #s.1] [] (by
-            intro ii hii
-            left
-            simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-            cases hii
-            exact argWf_uint64 _) $$ [Hasl] as %err2 #Herr2
+      wp_apply HErrorf _ _ [interface.mkOk go.uint64 #s.1] [] ?wf $$ [Hasl] as %err2 #Herr2
+      case wf => errargs_wf
       · iframe
         try simp only [BigSepL.bigSepL_nil]
         iempintro
@@ -150,12 +136,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply HErrorf _ _ [interface.mkOk go.int #(W64 (k : Int))] [] (by
-              intro ii hii
-              left
-              simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-              cases hii
-              exact argWf_int _) $$ [Hasl] as %err2 #Herr2
+        wp_apply HErrorf _ _ [interface.mkOk go.int #(W64 (k : Int))] [] ?wf $$ [Hasl] as %err2 #Herr2
+        case wf => errargs_wf
         · iframe
           try simp only [BigSepL.bigSepL_nil]
           iempintro
@@ -184,10 +166,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.selectWALFiles.wp_proof
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply HErrorf _ _ [GoInterface.ok e] [e] (by
-          intro ii hii
-          right
-          simpa using hii) $$ [Hasl] as %err2 #Herr2
+    wp_apply HErrorf _ _ [GoInterface.ok e] [e] ?wf $$ [Hasl] as %err2 #Herr2
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
       iexact He

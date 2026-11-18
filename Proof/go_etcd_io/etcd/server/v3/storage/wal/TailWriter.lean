@@ -464,7 +464,7 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
             tailVar (W := W) γ ((H, md, cuts, off.toNat + data.length, d.ino, none) : TailG) ∗
             ∃ (m' : OsMeta) (bs' : List ByteG), osMeta d.ino (DFrac.own (1 : Qp).half) m' ∗
               osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs' ∗ ⌜TailMeta m' bs' ∧ m'.size = m.size⌝) ∨
-         ⌜err ≠ interface.nil⌝) }} := by
+         (⌜err ≠ interface.nil⌝ ∗ errOkOrNil err)) }} := by
   unfold os.ownFile
   wp_start as ⟨#Harea, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hk, Hv, Hm, Hb⟩
   unfold os.model.inner
@@ -653,13 +653,15 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
           wp_auto
           simp only [decide_eq_false he0, Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hpe
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
           · iexists inner; iframe; isplitl [] <;> iassumption
           iright
-          ipureintro; intro h; cases h
+          isplitr
+          · ipureintro; intro h; cases h
+          iapply errOkOrNil_of_fmtErrorOk; iexact Hpe
       · rw [decide_eq_false (show ¬ nnv + W64 (k : Int) = sl.len by
           rw [hsln]; exact mt (tw_full_iff nnv k data.length (by omega) hL63).1 hfull)]
         wp_auto
@@ -684,13 +686,15 @@ theorem wp_tailWriteAt (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) (
         · rw [decide_eq_false he0]
           simp only [Bool.not_false]
           wp_auto
-          wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+          wp_apply os.wp_wrapErrno_ok _ inner name e he0 $$ Hn as %pe #Hpe
           iapply HΦ
           iframe Hsl
           isplitl [Hfd]
           · iexists inner; iframe; isplitl [] <;> iassumption
           iright
-          ipureintro; intro h; cases h
+          isplitr
+          · ipureintro; intro h; cases h
+          iapply errOkOrNil_of_fmtErrorOk; iexact Hpe
 
 /-- **`(*os.File).Write` on the tail** (`Off.lean`'s `os.File.Write.wp_long` with
 `wp_tailWriteAt` for its `WriteAt`): a non-empty `b` at the offset `o`, the record's write position
@@ -716,7 +720,7 @@ theorem wp_tailWrite [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (j
             tailVar (W := W) γ ((H, md, cuts, wr + data.length, d.ino, none) : TailG) ∗
             ∃ (m' : OsMeta) (bs' : List ByteG), osMeta d.ino (DFrac.own (1 : Qp).half) m' ∗
               osBytes d.ino 0 (DFrac.own (1 : Qp).half) bs' ∗ ⌜TailMeta m' bs' ∧ m'.size = m.size⌝) ∨
-         ⌜err ≠ interface.nil⌝) }} := by
+         (⌜err ≠ interface.nil⌝ ∗ errOkOrNil err)) }} := by
   subst hwrn
   unfold os.ownOff
   wp_start as ⟨#Harea, Hf, ⟨%inner, #Hfi, Ho⟩, Hsl, Hosfd, Hk, Hv, Hm, Hbs⟩
@@ -758,7 +762,7 @@ theorem wp_tailWrite [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (j
   · iframe; iexact Harea
   cases err with
   | nil =>
-    icases Hres with (⟨%hres, Hosfd, Hk, Hv, %m', %bs', Hm, Hbs, %hmb⟩ | %herr)
+    icases Hres with (⟨%hres, Hosfd, Hk, Hv, %m', %bs', Hm, Hbs, %hmb⟩ | ⟨%herr, -⟩)
     rotate_left
     · exact absurd rfl herr
     obtain ⟨-, rfl⟩ := hres
@@ -775,12 +779,16 @@ theorem wp_tailWrite [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) (j
     iframe Hm Hbs
     ipureintro; exact hmb
   | ok ie =>
+    icases Hres with (⟨⟨%hres, -⟩, -⟩ | ⟨-, #Hek⟩)
+    · cases hres
     wp_auto
     wp_apply wp_ArbitraryInt as %x _
     iapply HΦ
     iframe Hf Hsl
     iright
-    ipureintro; intro h; cases h
+    isplitr
+    · ipureintro; intro h; cases h
+    iexact Hek
 
 /-- **The tail's writer** (see the file header): the tail file `f` of inode `i`, written from the
 encoder's start `o0`, is a guarded stream of its intended bytes (`tailOk`); a failed write leaves
@@ -802,7 +810,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
   simp only [List.length_append] at hle
   by_cases hx : xs = []
   · subst hx
-    wp_apply os.File.Write.wp_empty f fd name _ p dqp _ hfd0 $$ [Hf Ho Hp] as %n %err ⟨%hn, Hf, Ho, Hp⟩
+    wp_apply os.File.Write.wp_empty f fd name _ p dqp _ hfd0 $$ [Hf Ho Hp] as %n %err ⟨%hn, Hf, Ho, Hp, #Hek⟩
     · iframe
     iapply HΦ
     iframe Hp
@@ -810,6 +818,8 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
     · iright
       isplitr
       · ipureintro; intro h; cases h
+      isplitr
+      · iapply errOkOrNil_of_fmtErrorOkOrNil; iexact Hek
       ipureintro; trivial
     · ileft
       isplitr
@@ -840,7 +850,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
   · unfold tailVar; iframe; iexact Harea
   iapply HΦ
   iframe Hp
-  icases Hres with (⟨%hres, Ho, Hfd, Hk, Hv, %m', %bs', Hm, Hb, %hmb⟩ | %herr)
+  icases Hres with (⟨%hres, Ho, Hfd, Hk, Hv, %m', %bs', Hm, Hb, %hmb⟩ | ⟨%herr, #Hek⟩)
   · ileft
     isplitr
     · ipureintro
@@ -867,7 +877,7 @@ theorem wal.tailWriter [os.file.FieldAssumptions] (Mr : WalMarshal) (R : Roots) 
   · iright
     isplitr
     · ipureintro; exact herr
-    ipureintro; trivial
+    iframe Hek
 
 end tail
 

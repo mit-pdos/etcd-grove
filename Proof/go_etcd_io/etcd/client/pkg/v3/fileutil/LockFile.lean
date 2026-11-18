@@ -66,19 +66,12 @@ theorem fileutil.wp_ofdLockFile
     isplitr
     · ipureintro; rfl
     iintro %sl2 ⟨Hsl2, -⟩
-    wp_apply wp_Errorf _ _ [interface.mkOk go.string #path, GoInterface.ok ie] [ie] (by
-          intro ii hii
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          rcases hii with h | h
-          · rw [interface.mkOk] at h; cases h; exact Or.inl (argWf_string _)
-          · cases h; exact Or.inr (by simp)) $$ [Hsl2] as %err2 #Herr2
+    wp_apply wp_Errorf _ _ [interface.mkOk go.string #path, GoInterface.ok ie] [ie] ?wf $$ [Hsl2] as %err2 #Herr2
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
-      unfold fmtErrorOkOrNil fmtErrorOk
-      icases Herr with ⟨-, H⟩
-      unfold errOk
-      rw [fmt.stringMethodSpec_unfold]
-      iexact H
+      iapply errOk_of_fmtErrorOkOrNil
+      iexact Herr
     iapply HΦ
     unfold fileutil.lockPost
     iexists x

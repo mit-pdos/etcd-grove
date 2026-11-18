@@ -253,7 +253,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"locks" w ↦ locks ∗
           locks ↦* lfs ∗ WalFs.walOpenW (W := W) w dir ∗ WalFs.walSyncedLb dir h.H.length ∗
           ⌜max h.sz (h.o0 + h.out.length + h.pend.length) ≤ 0xffffffff000⌝) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walOpenW (W := W) w dir ∗
+        (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walOpenW (W := W) w dir ∗
           ∃ (rd : Bool) (lo lk : Option Bool), os.ownFile f fd name (DFrac.own 1) ∗
             osFd fd (DFrac.own 1) ⟨h.ino, rd, true, lo, lk⟩ ∗ fdLocks fd ⟨h.ino, rd, true, lo, lk⟩) }} := by
   wp_start as ⟨#Harea, Hlg, #Hzap, Hns, He, Henc, Htw, Hlocks, Hls, #Hltf, #Henv, #Hwpk, Hopen⟩
@@ -279,7 +279,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
       [Henc Htw] as %err ⟨Henc, Hres⟩
   · iexact Hws
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, HB⟩)
+  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, #Hek, HB⟩)
   rotate_left
   · -- the flush failed: the tail's file and fd back (`tailWB`)
     rcases err with ei | _
@@ -288,7 +288,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     wp_auto
     iapply HΦ
     unfold tailWB
-    iright; iframe Hopen HB; ipureintro; exact Herr
+    iright; iframe Hopen HB
+    isplitr
+    · ipureintro; exact Herr
+    iapply fmtErrorOk_of_errOkOrNil _ Herr; iexact Hek
   subst Herr
   iunfold walTailWS at Htw
   icases Htw with ⟨Htw, %hbx⟩
@@ -353,6 +356,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · iright
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
+      isplitr
+      · iapply (_root_.Perennial.errnoErr_fmtErrorOk en (by intro h; exact H0 h))
       unfold walTailW
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
@@ -377,6 +382,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_core [os.file.FieldAss
     · iright
       isplitr
       · ipureintro; unfold errnoErr; simp; exact H0
+      isplitr
+      · iapply (_root_.Perennial.errnoErr_fmtErrorOk en (by intro h; exact H0 h))
       unfold walTailW
       icases Htw with ⟨Hf, ⟨%rd, %lo, %lk, Hfd, Hlkt⟩, -⟩
       isplitl [Hoc Hpk Hcf]
@@ -409,7 +416,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proof [os.file.FieldAs
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen, Htf⟩)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, #Hek, Hopen, Htf⟩)
   · ileft
     iframe HS
     isplitr
@@ -452,7 +459,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
       hsplit hoff hsz Hen Hlt) $$ [Hlg Hns He Henc Htw Hlocks Hls Hopen] as %err Hr
   · iframe; iframe #
   iapply HΦ
-  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, Hopen, Htf⟩)
+  icases Hr with (⟨%H0, Hlg, Hns, He, Henc, Htw, Hlocks, Hls, Hopen, #HS, %hbx⟩ | ⟨%H0, #Hek, Hopen, Htf⟩)
   · ileft
     iframe HS
     isplitr
@@ -469,6 +476,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
   · iright
     isplitr
     · ipureintro; exact H0
+    iframe Hek
     unfold walDirH
     icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
     iframe Hnf

@@ -41,6 +41,7 @@ public import Proof.path.filepath.Init
 public import Perennial.Proof.errors.NewVar
 public import Proof.hash.crc32.MakeTable
 public import Proof.errors.ErrIsTerm
+public import Proof.errors.ErrorStringOk
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -227,77 +228,56 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     iexists _
     iframe HerrBadWALName
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EBW
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EBW
     · iapply EtcdGrove.errIsTerm_errorString xBW; iexact Hd2
   ihave #VErrMetadataConflict : (EtcdGrove.wal.errVar ErrMetadataConflict : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrMetadataConflict
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EMC
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EMC
     · iapply EtcdGrove.errIsTerm_errorString xMC; iexact Hd2
   ihave #VErrFileNotFound : (EtcdGrove.wal.errVar ErrFileNotFound : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrFileNotFound
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EFN
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EFN
     · iapply EtcdGrove.errIsTerm_errorString xFN; iexact Hd2
   ihave #VErrSnapshotMismatch : (EtcdGrove.wal.errVar ErrSnapshotMismatch : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSnapshotMismatch
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESM
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact ESM
     · iapply EtcdGrove.errIsTerm_errorString xSM; iexact Hd2
   ihave #VErrSnapshotNotFound : (EtcdGrove.wal.errVar ErrSnapshotNotFound : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSnapshotNotFound
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESN
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact ESN
     · iapply EtcdGrove.errIsTerm_errorString xSN; iexact Hd2
   ihave #VErrSliceOutOfRange : (EtcdGrove.wal.errVar ErrSliceOutOfRange : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrSliceOutOfRange
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply ESO
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact ESO
     · iapply EtcdGrove.errIsTerm_errorString xSO; iexact Hd2
   ihave #VErrDecoderNotFound : (EtcdGrove.wal.errVar ErrDecoderNotFound : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar
     iexists _
     iframe HErrDecoderNotFound
     isplitl []
-    · unfold EtcdGrove.errOk
-      iintro !> %Φ' HΦ'
-      iapply EDN
-      inext
-      iapply HΦ'
+    · iapply EtcdGrove.errorString_errOk
+      iexact EDN
     · iapply EtcdGrove.errIsTerm_errorString xDN; iexact Hd2
   ihave #VErrCRCMismatch : (EtcdGrove.wal.errVar ErrCRCMismatch : IProp GF) $$ []
   · unfold EtcdGrove.wal.errVar

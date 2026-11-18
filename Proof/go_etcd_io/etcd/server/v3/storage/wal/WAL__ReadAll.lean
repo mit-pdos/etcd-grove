@@ -603,7 +603,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           -- `fileutil.Fsync(w.dirFile)`
           wp_apply (wp_FsyncDir df dfd dir _ R jd .idle hnw.next) $$ [Hdf Hdfs] as %ed ⟨Hdf, Hdfs, Hed⟩
           · iframe; iframe #
-          icases Hed with (%hed | ⟨%hed, -⟩)
+          icases Hed with (⟨%hed, -⟩ | ⟨%hed, -⟩)
           · -- its error
             rcases ed with ei | _
             rotate_left
@@ -1151,13 +1151,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
                 iintro %asl ⟨Hasl, -⟩
                 wp_apply wp_Errorf _ _ [GoInterface.ok eX, interface.mkOk go.uint64 #s.1,
                     interface.mkOk go.uint64 #s.2, interface.mkOk go.uint64 #e.Index',
-                    interface.mkOk go.uint64 #e.Term', interface.mkOk go.int #entsv.len] [eX] (by
-                    intro ii hii
-                    simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-                    rcases hii with h | h | h | h | h | h
-                    · right; cases h; simp
-                    all_goals (left; cases h; first | exact raArgWf_uint64 _ | exact raArgWf_int _))
+                    interface.mkOk go.uint64 #e.Term', interface.mkOk go.int #entsv.len] [eX] ?wf
                   $$ [Hasl] as %e1 #He1
+                case wf => errargs_wf
                 · iframe
                   iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
                   iexact HeXok
@@ -1565,12 +1561,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.wp_proof [os.file.Fiel
           isplitr
           · ipureintro; rfl
           iintro %asl ⟨Hasl, -⟩
-          wp_apply wp_Errorf _ _ [interface.mkOk go.int64 #r.typ] [] (by
-              intro ii hii
-              left
-              simp only [List.mem_cons, List.not_mem_nil, or_false, interface.mkOk] at hii
-              injection hii with hii; subst hii
-              exact argWf_int64 _) $$ [Hasl] as %e1 #He1
+          wp_apply wp_Errorf _ _ [interface.mkOk go.int64 #r.typ] [] ?wf $$ [Hasl] as %e1 #He1
+          case wf => errargs_wf
           · iframe
             try simp only [BigSepL.bigSepL_nil]
             iempintro

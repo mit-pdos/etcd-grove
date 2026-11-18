@@ -310,7 +310,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
   wp_apply wp_SyncDir dfl dfd f.d (DFrac.own 1) R f.J .idle _ $$ [Hinv Hsi Hdf Hdfd Hlb]
     as %e6 ⟨Hdf, Hdfd, Hres⟩
   · iframe; iframe #
-  icases Hres with (%he6 | ⟨%he6, #Hclb⟩)
+  icases Hres with (⟨%he6, -⟩ | ⟨%he6, #Hclb⟩)
   · cases e6 with
     | nil => exact absurd rfl he6
     | ok ie =>

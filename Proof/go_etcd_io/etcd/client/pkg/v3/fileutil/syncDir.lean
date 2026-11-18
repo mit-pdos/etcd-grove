@@ -36,13 +36,13 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.wp_proof
   wp_auto
   wp_apply wp_OpenDir p R j dq qc $$ [Hp Hperm] as %f %err ⟨Hp, Hperm, Hr⟩
   · iframe; isplitl [] <;> iassumption
-  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | %herr)
+  icases Hr with (⟨%fd, %herr, Hf, Hfd⟩ | ⟨%herr, -⟩)
   · subst herr
     wp_auto
     wp_apply wp_Fsync f fd p (DFrac.own 1) R j .idle n $$ [Hf Hfd] as %e ⟨Hf, Hfd, He⟩
     · iframe; isplitl [] <;> try iassumption
       isplitl [] <;> iassumption
-    icases He with (%he | ⟨%he, #Hc⟩)
+    icases He with (⟨%he, -⟩ | ⟨%he, #Hc⟩)
     · cases e with
       | nil => exact absurd rfl he
       | ok i =>
