@@ -1,6 +1,6 @@
 # fmt soundness: handoff
 
-## START HERE (2026-11-18, the land stop: gates next / done, see the last commit)
+## START HERE (2026-11-18, the land stop: gates PASSED at the head before this commit (/shared/tmp/fmtfix/gates.log); awaiting etcd-grove-03)
 - Branch `fmt-soundness`; lean fb68edfec8 merged. R1 fixed, differential test 0 mismatches; attack round 4: no
   refutation (`notes/fmt-third-attack.md`). R2/R3 open, to `fmt-soundness-2` (`notes/fmt-soundness-2.md`).
 - Pipeline done: full build green (21779 jobs), every gen-link mode (incl. `--wal-tester`, which the gates' link
