@@ -1,6 +1,34 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6 STOP: the boot write contract outlives the unset hook)
+## START HERE (2026-11-18, fix (A) applied; A6 design findings F-acc, F-enc to decide)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean b0bb9df7c3 merged (75f8363b83; lean had
+  not moved on 2026-11-18): pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere
+  (`.lake/package-overrides.json` = that manifest). Merge lean before the next full build.
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5 (ACCEPTED); **fix (A)** (936035ac75, decided by etcd-grove-03, questions.md
+  "A6 STOP decided"): `authSchemaSrv`'s boot write contract and `CreateAuthBuckets` at `T_b := authWTok γc ∗ plHook
+  d.γB func.nil` (handed out as the token), C9 `Post -∗ bOpen qo`; the server splits the returned token
+  (AuthSrv.lean); `authApplyResPre` (StoreLatest.lean) names the schema auth backend (`ablOn`) in place of the boot
+  contract, `authApplyResB_of_pre` takes the contract at the frozen hook. Ledger, refuted note (third refutation),
+  soundness §6 restated (A6 creates claimed buckets; `Unlock.spec`'s `Sc` is any superset of `cw`: parts come back).
+  Targeted build (server Results + auth/auth3/authN Results): `/shared/tmp/auth-schema-srv/a6-fixA-build.log`.
+- **Open (questions.md "A6 design findings")**: F-acc (`rbAcc` must be mask-changing, `|={⊤,E}=>` … `|={E,⊤}=>`,
+  so the realization's invariant has no lent state; backend `ClaimedLemmas`/`Unlock`/`UnlockBare`) and F-enc
+  (schema's user/role reads must return the caller's named record: `userEncode` is opaque and not injective, so
+  `userOutD_are`'s `hinj` cannot be discharged). Both internal, recommended as forms. No A6-proper Lean yet.
+- Next, after the decision: F-enc (A5's read specs, ~10 files), then the read side: (1) the per-backend
+  realization invariant (questions.md "A6 STOP", "Unaffected"; no lent state given F-acc), (2) `authBackendOk` from
+  `authBE_real` + `authTxReadsV` from schema's `authReadTx.*` specs (a per-bucket `authBucketsAre`), then F-acc and
+  the write side (3), `authBkLend`/`authBkLife`/`authWAtHook`/`CreateAuthBuckets` (4), `⊢ authSchemaSrv` and
+  `authSchemaSnap` (5). Report at A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s fraction, `newPostK`'s tokens,
+  `authRdSlots`' tokens, `authSchemaSrv`'s ticket count, fix (A)).
+- Pitfalls: (0)-(16) as before (History); (17) resolved (soundness §6); (18) a term argument of type `IProp` with
+  `∗` inside a definition needs `iprop(…)` (the elaborator error "`term_∗_` has not been implemented").
+
+## History
+
+### A6 STOP (2026-11-18, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean b0bb9df7c3 merged (75f8363b83): Perennial pin
   6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
@@ -26,7 +54,6 @@
   untracked (gitignored): decisions live there, not in commits; (17) soundness §6's "A6 creates no claimed bucket" is
   stale (the claim precedes `CreateAuthBuckets`): restate when A6 lands.
 
-## History
 
 ### A6.2 C1-C5 green, C5 gates (2026-11-18, superseded)
 
