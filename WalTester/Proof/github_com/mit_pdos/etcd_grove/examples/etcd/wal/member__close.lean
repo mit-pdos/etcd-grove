@@ -124,9 +124,13 @@ theorem member.close.wp_proof
     · isplitl []
       · iexact Hsl
       · iexact Hnm
-    wp_apply (wp_store W e γ _ os (tSynced o) (some d1) qc hf hsm) $$ [Hh Hperm Hrep Ho Hwo]
+    iunfold tPerm at Hperm
+    icases Hperm with ⟨Hpw_, Hperm⟩
+    wp_apply (wp_store W e γ _ os (tSynced o) (some d1) 1 hf hsm) $$ [Hh Hperm Hrep Ho Hwo]
       as ⟨Hh, Hperm, Hrep, Ho, Hwo⟩
     · iframe; iframe #
+    ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+    · iunfold tPerm; iframe
     iapply HΦ
     simp only [↓reduceIte]
     iframe

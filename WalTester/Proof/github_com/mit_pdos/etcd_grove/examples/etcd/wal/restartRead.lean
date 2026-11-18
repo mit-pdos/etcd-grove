@@ -63,6 +63,11 @@ theorem restartRead.wp_proof
   obtain ⟨hia, hnm, hca, hdl⟩ := hpath
   wp_start as ⟨#Hos, #Hsi, #Hinv, #Hdi, Hh, Hperm, #Hzap, #Harea, Hpath, Hres, Htok, Hop, Hov, Hrep, Ho,
     Hwo, #HrW⟩
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hperm, Hor⟩
+  icases osPathS_callKey e.R e.area _ e.jr $$ Hpath with ⟨Hpath, %hkc⟩
+  have hkw : callKey e.R (tWalDir e.area) = callKey e.R e.area := by rw [tWalDir_child]; exact hkc _
+  ihave Hperm := osCallPerm_congr 1 hkw $$ Hperm
   ihave #Hdeps := isPkgInit_unfold_deps pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal $$ Hpkg
   isimp only [isPkgInitDeps] at Hdeps
   wp_auto
@@ -195,9 +200,10 @@ theorem restartRead.wp_proof
       "repaired" ∷ repaired_ptr ↦ rep ∗ "Hov" ∷ m.[member, go!"o"] ↦ vc ∗
       "Hrep" ∷ oracleRep vc (tWithOpens o l) ∗ "Ho" ∷ tOrOwn γ (tWithOpens o l) none ∗
       "Hwo" ∷ tWalOwn γ (some dc) ∗ "Htok" ∷ WalFs.walUnlockedTok (W := W) ∗
-      "Hperm" ∷ osCallPerm (GF := GF) 1 ∗
+      "Hperm" ∷ osCallPerm (GF := GF) (callKey e.R e.area) 1 ∗
+      "Hor" ∷ osCallPerm (GF := GF) (callKey e.R e.orDir) 1 ∗
       "%Hl" ∷ ⌜l.length = (if rep then 1 else 0) ∧ dc.H = d.H ∧ dc.cut = d.cut ∧
-        tCandOk (tWithOpens o l) cd dc⌝ : IProp GF) $$ [repaired Hov Hrep Ho Hwo Htok Hperm]
+        tCandOk (tWithOpens o l) cd dc⌝ : IProp GF) $$ [repaired Hov Hrep Ho Hwo Htok Hperm Hor]
   · iexists false, [], d, v
     rw [tWithOpens_nil]
     simp only [named]
@@ -237,7 +243,7 @@ theorem restartRead.wp_proof
   ihave #HrW1 := tRelW_withOpens W e.area o cd (l ++ [pr.1]) $$ HrW
   ihave #Hrel1 := tRelI_of_relW e.area (tWithOpens o (l ++ [pr.1])) cd dc hcd hok1 $$ HrW1
   wp_apply (wp_store W e γ _ (tWithOpens o l) (tWithOpens o (l ++ [pr.1])) (some dc) 1 hf hsm1)
-    $$ [Hh Hperm Hrep1 Ho Hwo] as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
+    $$ [Hh Hor Hrep1 Ho Hwo] as ⟨Hh, Hor, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
   try wp_auto
   -- `Open(lg, walDir, &walpb.Snapshot{Index: newU64(idx), Term: newU64(term)})`
@@ -336,6 +342,7 @@ theorem restartRead.wp_proof
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     wp_auto
+    ihave Hph2 := osCallPerm_congr _ hkw $$ Hph2
     ihave Hperm := osCallPerm_halfJoin _ 1 $$ Hph Hph2
     wp_apply (wp_repair W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
         (fun od => iprop(⌜od = some (walOpenRaise pr dc)⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc))))
@@ -446,6 +453,8 @@ theorem restartRead.wp_proof
   simp only [readOK]
   try wp_auto
   wp_for_post
+  ihave Hph : tPerm (GF := GF) e (1 : Qp).half $$ [Hph Hor]
+  · iunfold tPerm; rw [hkw]; iframe
   iapply HΦ
   have hH1 : (walOpenRaise pr dc).H = d.H := hdH
   have hra' : WalEnc.walReadAllOk (d.H.map WalOpG.toM) (walOpenRaise pr dc).cut pr σ := by

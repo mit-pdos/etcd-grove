@@ -326,9 +326,13 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
       isplitl
       · rw [tRaiseNames_mark]; iexact H16
       · iexact H15
-    wp_apply (wp_store W e γ v1 os1 (tRaiseNames (tSnapO o a ta) a) (some d1) qc hf hsm')
+    iunfold tPerm at H6
+    icases H6 with ⟨Hpw_, H6⟩
+    wp_apply (wp_store W e γ v1 os1 (tRaiseNames (tSnapO o a ta) a) (some d1) 1 hf hsm')
       $$ [H5 H6 Hrep H11 H12] as ⟨H5, H6, Hrep, H11, H12⟩
     · iframe; iframe #
+    ihave H6 : tPerm (GF := GF) e qc $$ [Hpw_ H6]
+    · iunfold tPerm; iframe
     try wp_auto
     have hlh : tCandHist (tSnapO o a ta) c = tCandHist o c ++ [tSnapOp a ta] := tSnapO_hist o c a ta
     have hmark1 : tCandMark (tSnapO o a ta) c = (tCandHist o c).length + 1 := by
@@ -516,9 +520,13 @@ theorem member.opOwnSnap.wp_proof (wp_choose : rnd.choose.spec (GF := GF) (hG :=
             isplitl
             · rw [tPurNames_mark, hmk2]; iexact H16
             · iexact H15
-          wp_apply (wp_store W e γ v1 o2 (tPurNames o2) (some d2) qc hf hsm4)
+          iunfold tPerm at H6
+          icases H6 with ⟨Hpw_, H6⟩
+          wp_apply (wp_store W e γ v1 o2 (tPurNames o2) (some d2) 1 hf hsm4)
             $$ [H5 H6 Hrep H11 H12] as ⟨H5, H6, Hrep, H11, H12⟩
           · iframe; iframe #
+          ihave H6 : tPerm (GF := GF) e qc $$ [Hpw_ H6]
+          · iunfold tPerm; iframe
           try wp_auto
           wp_apply wp_choose $$ [$Hrv] as %k3 ⟨⟨%rv3, Hrv⟩, %hk3⟩
           rw [if_neg (by word)] at hk3

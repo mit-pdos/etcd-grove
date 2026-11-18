@@ -252,7 +252,7 @@ theorem member.step.wp_proof (wp_fits : fits.spec (GF := GF) (hG := hG))
     simp only [↓reduceIte]
     icases Hpost with ⟨Hrep, H11, H12, Htok, H6b, #Hsl⟩
     try wp_auto
-    ihave Hperm := osCallPerm_join2 _ $$ [$H6 $H6b]
+    ihave Hperm := tPerm_join e $$ [$H6 $H6b]
     ihave #HrW : tRelW (W := W) e.area (tSynced o) c $$ []
     · iunfold tRelW
       simp only [show (tSynced o).created = true from hok.1, ↓reduceIte]

@@ -133,7 +133,7 @@ theorem memSaveRes_pers (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (v : or
 `tSaveO o h es`; `saveSnap`'s at `tSnapO o idx term`). -/
 def memOpPost (W : WalGS GF) (e : TEnv) (γ : TGS) (m w : Loc) (o' : TOracle) (c : TCand) (qc : Qp)
     (b : Bool) : IProp GF :=
-  iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ osCallPerm (GF := GF) qc ∗
+  iprop(DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗ tPerm (GF := GF) e qc ∗
       m.[member, go!"orPath"] ↦ tOrPath e.orDir ∗ m.[member, go!"w"] ↦ w ∗ ∃ v' : oracle,
       m.[member, go!"o"] ↦ v' ∗ (∃ os' : TOracle, tOrOwn γ os' none) ∗
       if b then ∃ d' : WalDur, oracleRep v' o' ∗ tWalOwn γ (some d') ∗

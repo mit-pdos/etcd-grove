@@ -138,10 +138,10 @@ theorem DurFs.durTmpOpen (wp_OpenCT : os.OpenFile.specCreateTruncSnc (GF := GF) 
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ durInv γ f ∗ durPhys γ p ∗
         osNames f.J (.only [f.tb]) (DFrac.own (1 : Qp).half) p.ht ∗ tmpRes f p.ht ∗
-        osPathS R f.d (DFrac.own qd) f.J ∗ osCallPerm qc }}
+        osPathS R f.d (DFrac.own qd) f.J ∗ osCallPerm (callKey R f.d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #f.tmp)) (Val #flag)) (Val #perm))
     {{ (fl : Loc) (err : GoInterface), RET (PairV #fl #err); osPathS R f.d (DFrac.own qd) f.J ∗
-        osCallPerm qc ∗
+        osCallPerm (callKey R f.d) qc ∗
         ∃ ht' : NamesH, durPhys γ { p with ht := ht' } ∗
           osNames f.J (.only [f.tb]) (DFrac.own (1 : Qp).half) ht' ∗
           ((⌜err ≠ interface.nil⌝ ∗ tmpRes f ht') ∨

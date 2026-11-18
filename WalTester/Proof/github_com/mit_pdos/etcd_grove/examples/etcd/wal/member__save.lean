@@ -88,9 +88,13 @@ macro "save_main" : tactic => `(tactic| (
   · isplitl []
     · iexact Hsl
     · iexact Hnm
-  wp_apply (wp_store W e γ _ os (tSaveO1 o h es) (some d) qc hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hpw_, Hperm⟩
+  wp_apply (wp_store W e γ _ os (tSaveO1 o h es) (some d) 1 hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
     as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
+  ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+  · iunfold tPerm; iframe
   try wp_auto
   wp_apply (wp_slice_make3 (V := Loc) (W64 0) esl.len (by word)) as %rs0 ⟨Hrs, Hrcap, -⟩
   ihave HI : (∃ (j : w64) (rs : GoSlice) (ls : List Loc),
@@ -232,10 +236,14 @@ macro "save_main" : tactic => `(tactic| (
         · isplitl []
           · rw [show (tSaveD d h es).H.length = d.H.length + 1 by simp [tSaveD]]; iexact Hsy
           · iexact Hnm
+        iunfold tPerm at Hperm
+        icases Hperm with ⟨Hpw_, Hperm⟩
         wp_apply (wp_store W e γ _ (tSaveO1 o h es) (tSynced (tSaveO1 o h es)) (some (tSaveD d h es))
-            qc hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
+            1 hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
           as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
         · iframe; iframe #
+        ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+        · iunfold tPerm; iframe
         try wp_auto
         wp_apply wp_phsNext
         try wp_auto

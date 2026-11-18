@@ -72,12 +72,14 @@ theorem wp_existTmp (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spe
     icases (osPathS_frac R d e a' j).1 $$ Hp with ⟨Hpe, Hpa⟩
     icases (osNames_join j (.only [b]) e b' h hqq).2 $$ Hn with ⟨Hne, Hnb⟩
     ihave Hpc := osPathS_child R d b (DFrac.own e) j J h hb hd $$ Hpe Hne
+    icases osCallPerm_child R d b _ j qc $$ Hpa Hperm with ⟨Hpa, Hperm⟩
     wp_apply wp_Exist (child d b) _ _
       (wp_statDir_err (child d b) R J (DFrac.own e) qc) $$ [Hpc Hperm]
       as %x ⟨%err, %-, Hpc, Hperm⟩
     · iframe; isplitl [] <;> iassumption
     icases os.osPathS_unchild R d b j J e a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
     · iframe
+    icases osCallPerm_unchild R d b _ j qc $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osNames_agree j (.only [b]) _ _ h'' h $$ Hne Hnb with %he
     subst he
     ihave Hn := (osNames_join j (.only [b]) e b' h'' hqq).1 $$ [Hne Hnb]

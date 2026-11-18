@@ -92,7 +92,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
     (hslots : ∀ b, AreaSlot b → V.now.entry jr b = none)
     (hrb : ReceiptBoundLe GF (2 ^ 62)) (henc : ∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32)
     (E : CoPset) (hE : ↑osShN ⊆ E) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗
       ([∗list] j ∈ (GMap.toList V.now).map (·.1),
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       ∃ W : WalGS GF, walAreaOk (L := L) (W := W) C Mr R jr r ∗ walAreaRes (L := L) (W := W) jr ∗
@@ -102,7 +102,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
           (namesOf V jr ((NameSet.except []).inter (areaOthers V.now jr))) ∗
         [∗list] j ∈ ((GMap.toList V.now).map (·.1)).erase jr,
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except [])) := by
-  iintro #Hos #Hsh Hall
+  iintro #Hos #Hsh #Hab Hall
   -- the area's claim, out of the others
   have hmem : jr ∈ (GMap.toList V.now).map (·.1) := by
     cases he : V.now !! jr with
@@ -171,7 +171,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   iframe Hu Hc Hp Hown Hoth Hrest
   isplitr
   · unfold walAreaOk
-    iframe Hinv Hos Hsh
+    iframe Hinv Hos Hsh Hab
     ipureintro; exact ⟨hrb, henc⟩
   unfold walAreaRes
   iexists N, namesOf V jr N, [], []

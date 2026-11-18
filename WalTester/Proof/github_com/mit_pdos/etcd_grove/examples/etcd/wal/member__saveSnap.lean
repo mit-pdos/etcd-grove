@@ -85,9 +85,13 @@ theorem member.saveSnap.wp_proof
   · isplitl []
     · iexact Hsl
     · iexact Hnm
-  wp_apply (wp_store W e γ _ os (tSnapO1 o idx term) (some d) qc hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
+  iunfold tPerm at Hperm
+  icases Hperm with ⟨Hpw_, Hperm⟩
+  wp_apply (wp_store W e γ _ os (tSnapO1 o idx term) (some d) 1 hf hsm1) $$ [Hh Hperm Hrep1 Ho Hwo]
     as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
   · iframe; iframe #
+  ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+  · iunfold tPerm; iframe
   try wp_auto
   -- the literal
   wp_apply wp_slice_literal
@@ -142,10 +146,14 @@ theorem member.saveSnap.wp_proof
       · iexact Hnm
     have hsm2 : tOrSmall (tSnapO o idx term) := by
       unfold tOrSmall at *; rw [tEncodeOracle_snapO]; rw [tEncodeOracle_snapO1] at hsm1; exact hsm1
+    iunfold tPerm at Hperm
+    icases Hperm with ⟨Hpw_, Hperm⟩
     wp_apply (wp_store W e γ _ (tSnapO1 o idx term) (tSnapO o idx term) (some (tSnapD d idx term))
-        qc hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
+        1 hf hsm2) $$ [Hh Hperm Hrep1 Ho Hwo]
       as ⟨Hh, Hperm, Hrep1, Ho, Hwo⟩
     · iframe; iframe #; unfold tSnapO; iexact Hrel2
+    ihave Hperm : tPerm (GF := GF) e qc $$ [Hpw_ Hperm]
+    · iunfold tPerm; iframe
     try wp_auto
     iapply HΦ
     iunfold memOpPost

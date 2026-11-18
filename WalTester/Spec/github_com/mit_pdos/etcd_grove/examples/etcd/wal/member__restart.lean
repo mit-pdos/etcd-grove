@@ -51,7 +51,7 @@ abbrev member.restart.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.etcd.wal ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) e.R ∗ TInv (W := W) e γ ∗
       DurFs.durInv (GF := GF) γ.γd e.orFile ∗ DurFs.durHandle (GF := GF) γ.γd e.orFile e.R ∗
-      osCallPerm (GF := GF) 1 ∗ zapLoggerOk lg ∗
+      tPerm (GF := GF) e 1 ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk (W := W) walCodec walRaftMr e.R e.jr (e.area) ∗
       osPathS (GF := GF) e.R (e.area) (DFrac.own qp) e.jr ∗ WalFs.walAreaRes (W := W) e.jr ∗
       WalFs.walUnlockedTok (W := W) ∗

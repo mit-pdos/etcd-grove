@@ -78,14 +78,15 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
     (ho : (e.orDir, e.jo) ∈ e.R) (hjo : e.jo ∈ V.now) (hne : e.jo ≠ e.jr)
     (hob : V.now.entry e.jo e.orFile.b = none) (hot : V.now.entry e.jo e.orFile.tb = none)
     (hf : e.orFile.Ok) (hrb : ReceiptBoundLe GF (2 ^ 62)) (E : CoPset) (hE : ↑osShN ⊆ E) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) e.R -∗ osCallPerm (L := L) 1 -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) e.R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) e.R -∗
       ([∗list] j ∈ (GMap.toList V.now).map (·.1),
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       TBoot (L := L) e := by
-  iintro #Hos #Hsh Hcp Hall
+  iintro #Hos #Hsh #Hab Hcps Hall
+  ihave Hcp := tPerm_of_osCallPerms e hR hr ho hne $$ Hcps
   -- the WAL's area
   imod walBoot0 hPre walCodec walCodec_ok walRaftMr L e.R e.jr (e.area) V hV hR hr hjr hslots
-    hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hall
+    hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hab Hall
     with ⟨%W, #Hok, Hres, Hu, Hc, #Hp, Hown, -, Hrest⟩
   ihave #Hdd := dirDurable_boot0 (W := W) (e.area) $$ Hp
   -- the oracle directory's claim, and durable's boot

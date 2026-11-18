@@ -512,7 +512,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
   -- the claim on `nm.tmp`, off the area claim (`walInvBody_drop`), with what it holds
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb, -, #Hab⟩
   -- `Exist`'s `false`: `nm` free in the area (in the claim, absent, not registered)
   icases Hres with (⟨%hb, -⟩ | ⟨-, Hres⟩)
   · cases hb
