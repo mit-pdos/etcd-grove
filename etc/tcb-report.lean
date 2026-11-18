@@ -25,6 +25,10 @@ declarations along the way contain a `sorry` themselves (`#print axioms` only sa
                       name, module, line, synthetic (an elaboration error)
   {"t":"def", ...}    every definition in some root's `defs`: name, module, line,
                       endLine, kind
+  {"t":"errorf", ...} every constant some root depends on that steps into Perennial's
+                      model of `fmt.Errorf` itself (see `isErrorfStep`): name, user (the
+                      declaration it belongs to), module, line; a root's `errorf` lists
+                      those it depends on (read by `etc/errorf-wrap-check.py`)
 -/
 import Lean
 open Lean
@@ -59,17 +63,24 @@ def ciExprs (ci : ConstantInfo) : List Expr :=
 def hasSyntheticSorry (e : Expr) : Bool :=
   (e.find? fun e => e.isAppOfArity ``sorryAx 2 && e.appArg! == mkConst ``Bool.true).isSome
 
-/-- What a constant's trust base is made of: the axioms it depends on and the
-constants containing a `sorry` it depends on (as `.inl` / `.inr`). -/
-abbrev Item := Name ⊕ Name
+/-- What a constant's trust base is made of: the axioms it depends on, the constants
+containing a `sorry` it depends on, and the constants stepping into Perennial's `fmt.Errorf`
+model it depends on (`isErrorfStep`; not trust base, but a model step to review). -/
+inductive Item where
+  | ax (n : Name)
+  | sorry (n : Name)
+  | errorf (n : Name)
+  deriving Inhabited, BEq, Hashable
 
-instance : Inhabited Item := ⟨.inl .anonymous⟩
+def Item.tag : Item → Nat
+  | .ax _ => 0 | .sorry _ => 1 | .errorf _ => 2
+
+def Item.name : Item → Name
+  | .ax n | .sorry n | .errorf n => n
 
 /-- An `Item`'s order, for the sorted arrays that represent sets of them. -/
-def Item.lt : Item → Item → Bool
-  | .inl a, .inl b | .inr a, .inr b => Name.quickLt a b
-  | .inl _, .inr _ => true
-  | .inr _, .inl _ => false
+def Item.lt (a b : Item) : Bool :=
+  a.tag < b.tag || (a.tag == b.tag && Name.quickLt a.name b.name)
 
 /-- The union of two sorted, duplicate-free arrays of `Item`s. -/
 def mergeItems (a b : Array Item) : Array Item := Id.run do
@@ -83,9 +94,6 @@ def mergeItems (a b : Array Item) : Array Item := Id.run do
     else if Item.lt b[j]! a[i]! then out := out.push b[j]!; j := j + 1
     else out := out.push a[i]!; i := i + 1; j := j + 1
   return out
-
-instance : Hashable Item where
-  hash | .inl a => mixHash 11 (hash a) | .inr a => mixHash 13 (hash a)
 
 /-- The sets of `Item`s met so far, interned: almost every constant reaches the same few
 thousand axioms (Goose's untranslated types among them), so the distinct sets are few
@@ -109,6 +117,53 @@ def Interned.union (t : Interned) (a b : Nat) : Interned × Nat :=
     let (t, u) := t.intern (mergeItems t.sets[a]! t.sets[b]!)
     ({ t with unions := t.unions.insert k u }, u)
 
+/-! **Steps into Perennial's model of `fmt.Errorf`** (the term-level errorf gate, 2026-11-18,
+replacing a text search). Perennial's model of `fmt.Errorf` is `errors.New(format)` (`%w` and the
+arguments' formatting methods not modelled). A proof that steps into it (`wp_start`/`wp_apply` on a
+call of `@! fmt.Errorf`, or a hand-written `func_unfold`) needs `#(functions "fmt.Errorf" []) =
+fmt.Errorf.impl`, which only the `FuncUnfold` instance `fmt.Assumptions.Errorf_unfold` (a field of
+the class `fmt.Assumptions`) gives: `functions` is uninterpreted otherwise. So its proof term
+mentions one of `errorfAtoms` (the field's projection; the model's body `fmt.Errorf.impl`, which
+the instance's type names; the class's recursors), or a raw `Expr.proj` of the class at the
+field's index. Such a constant is an errorf step unless it is the class's own (declared in
+Perennial's generated `fmt` module) or sanctioned
+(Perennial's `fmt.Errorf.wp_proof`: its post is some `Error()` string, its premise `ArgsWf`, no
+argument an error or with methods, so its statement is true of Go); a sanctioned constant's steps
+are not propagated. `etc/errorf-wrap-check.py` fails on a step outside its reviewed modules. -/
+
+def errorfCls : Name := `Perennial.fmt.Assumptions
+def errorfField : Name := `Perennial.fmt.Assumptions.Errorf_unfold
+
+def errorfAtoms : NameSet := ({} : NameSet)
+  |>.insert errorfField
+  |>.insert `Perennial.fmt.Errorf.impl
+  |>.insert (errorfCls ++ `rec) |>.insert (errorfCls ++ `casesOn) |>.insert (errorfCls ++ `recOn)
+
+def errorfSanctioned : NameSet := ({} : NameSet)
+  |>.insert `Perennial.fmt.Errorf.wp_proof
+
+/-- The field's index among the class's fields (for a raw `Expr.proj`). -/
+def errorfFieldIdx (env : Environment) : Option Nat :=
+  (getStructureFields env errorfCls).idxOf? `Errorf_unfold
+
+def errorfRawProj (idx : Option Nat) (ci : ConstantInfo) : Bool :=
+  match idx with
+  | none => false
+  | some i => (ciExprs ci).any fun e =>
+      (e.find? fun e => match e with
+        | .proj s j _ => s == errorfCls && j == i
+        | _ => false).isSome
+
+/-- The class's own constants (its projections, constructor, recursors), declared with it in
+Perennial's generated `fmt` module: only those are exempt, not anything named under it elsewhere. -/
+def isErrorfClsOwn (env : Environment) (n : Name) : Bool :=
+  errorfCls.isPrefixOf n && modOf env n == modOf env errorfCls
+
+def isErrorfStep (env : Environment) (idx : Option Nat) (n : Name) (ci : ConstantInfo)
+    (deps : NameSet) : Bool :=
+  !errorfAtoms.contains n && !errorfSanctioned.contains n && !isErrorfClsOwn env n &&
+    (deps.any (errorfAtoms.contains ·) || errorfRawProj idx ci)
+
 /-- Memoized transitive closure of `Item`s (iterative DFS; a constant on a cycle sees
 the partial result, as in `collectAxioms`). Each constant's set is an interned id. -/
 partial def closure (env : Environment) (roots : Array Name) :
@@ -116,6 +171,7 @@ partial def closure (env : Environment) (roots : Array Name) :
   let mut memo : Std.HashMap Name Nat := {}
   let mut onStack : NameSet := {}
   let mut t : Interned := {}
+  let idx := errorfFieldIdx env
   for r in roots do
     if memo.contains r then continue
     -- a constant's dependencies are computed once, when it is first expanded (walking a
@@ -137,15 +193,21 @@ partial def closure (env : Environment) (roots : Array Name) :
             if !memo.contains d && !onStack.contains d then
               stack := stack.push (d, none)
       | some deps =>
-        let isAx := match env.find? n with | some (.axiomInfo _) => true | _ => false
+        let ci := (env.find? n).get!
+        let isAx := match ci with | .axiomInfo _ => true | _ => false
         let mut own : Array Item := #[]
-        if isAx then own := own.push (.inl n)
-        if deps.contains ``sorryAx then own := own.push (.inr n)
+        if isAx then own := own.push (.ax n)
+        if deps.contains ``sorryAx then own := own.push (.sorry n)
+        if isErrorfStep env idx n ci deps then own := own.push (.errorf n)
         let (t', i0) := t.intern own
         t := t'
         let mut acc := i0
         for d in deps do
           let (t', u) := t.union acc (memo.getD d 0)
+          t := t'
+          acc := u
+        if errorfSanctioned.contains n then
+          let (t', u) := t.intern (t.sets[acc]!.filter (·.tag != 2))
           t := t'
           acc := u
         memo := memo.insert n acc
@@ -243,16 +305,19 @@ def main (args : List String) : IO UInt32 := do
   let mut axioms : NameSet := {}
   let mut sorries : Std.HashMap Name (Name × Nat × Bool) := {}
   let mut defs : NameSet := {}
+  let mut errorfs : NameSet := {}
   let mut defCache : DefCache := {}
   let rootSet : NameSet := roots.foldl (·.insert ·) {}
   for r in roots do
     let items := memo.getD r #[]
     let mut axs : Array String := #[]
     let mut srs : Array String := #[]
+    let mut efs : Array String := #[]
     for it in items do
       match it with
-      | .inl a => axioms := axioms.insert a; axs := axs.push a.toString
-      | .inr s =>
+      | .ax a => axioms := axioms.insert a; axs := axs.push a.toString
+      | .errorf c => errorfs := errorfs.insert c; efs := efs.push c.toString
+      | .sorry s =>
         let (u, line) := rootOf env s
         let synth := match env.find? s with
           | some ci => (ciExprs ci).any hasSyntheticSorry | none => false
@@ -267,7 +332,7 @@ def main (args : List String) : IO UInt32 := do
     defCache := dc
     defs := sd.toList.foldl (init := defs) (·.insert ·)
     let jl (a : Array Name) := ",".intercalate (a.toList.map (jstr ·.toString))
-    out.putStrLn s!"\{\"t\":\"root\",\"name\":{jstr r.toString},\"module\":{jstr (modOf env r).toString},\"line\":{line},\"axioms\":[{",".intercalate (axs.toList.map jstr)}],\"sorries\":[{",".intercalate (srs.toList.map jstr)}],\"uses\":[{jl uses}],\"defs\":[{jl sd.toList.toArray}]}"
+    out.putStrLn s!"\{\"t\":\"root\",\"name\":{jstr r.toString},\"module\":{jstr (modOf env r).toString},\"line\":{line},\"axioms\":[{",".intercalate (axs.toList.map jstr)}],\"sorries\":[{",".intercalate (srs.toList.map jstr)}],\"uses\":[{jl uses}],\"defs\":[{jl sd.toList.toArray}],\"errorf\":[{",".intercalate (efs.toList.map jstr)}]}"
   for a in axioms.toList do
     let line := match declRangeExt.find? env a (level := .private) with
       | some d => d.range.pos.line | none => 0
@@ -275,6 +340,9 @@ def main (args : List String) : IO UInt32 := do
     out.putStrLn s!"\{\"t\":\"axiom\",\"name\":{jstr a.toString},\"module\":{jstr (modOf env a).toString},\"line\":{line},\"doc\":{jstr doc}}"
   for (s, (m, line, synth)) in sorries.toList do
     out.putStrLn s!"\{\"t\":\"sorry\",\"name\":{jstr s.toString},\"module\":{jstr m.toString},\"line\":{line},\"synthetic\":{synth}}"
+  for c in errorfs.toList do
+    let (u, line) := rootOf env c
+    out.putStrLn s!"\{\"t\":\"errorf\",\"name\":{jstr c.toString},\"user\":{jstr u.toString},\"module\":{jstr (modOf env c).toString},\"line\":{line}}"
   for d in defs.toList do
     let some ci := env.find? d | continue
     let (l0, l1) := match declRangeExt.find? env d (level := .private) with

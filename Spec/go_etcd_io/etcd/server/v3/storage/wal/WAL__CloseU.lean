@@ -47,11 +47,12 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.specU (P : WalPbIn GF) (M
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
       (Val #()))
   {{ (err : GoInterface), RET #err;
-      (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTokX ∗
+      (fmtErrorOkOrNil err ∗
+        structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTokX ∗
         WalFs.walNamesFrag (some dir) ∗ osCallPerm (1 : Qp).half ∗
         (∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∗
         ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
+      (⌜err ≠ GoInterface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
         ∃ (fd : w64) (nmf : GoString) (d : OsFd),
           os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) }}
 

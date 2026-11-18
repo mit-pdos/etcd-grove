@@ -2821,3 +2821,21 @@ local copy of `spsc_send_au` whose token and element resource come from `X` at t
 `X ⊢ ∃ sent, spscProducer γ sent ∗ (spscProducer γ sent -∗ X)` to refute the closed states). General
 fix to propose on its own: that lemma in `Spsc.lean` (`spsc_send_au_inv`), or `isSpsc` with a namespace
 parameter.
+
+## 2026-11-18: `fmt.Errorf`'s unfolding is a field of `fmt.Assumptions` (fmt soundness, branch `fmt-soundness`)
+
+- **The gap.** `fmt.Assumptions` carries `Errorf_unfold : FuncUnfold Errorf [] Errorf.impl`, an
+  instance every proof with `[fmt.Assumptions]` in scope can use: `wp_start`/`wp_apply` on a call of
+  `@! fmt.Errorf` steps into `Errorf.impl = errors.New(format)`, which neither models `%w` (Go
+  returns a `*fmt.wrapError`) nor calls the arguments' `Error`/`String`/`Format`/`GoString` methods
+  (Go does, and they may change caller-owned memory or panic past `fmt`'s recovery). A proof that
+  steps into it is sound only if its statement says nothing the model and Go disagree on; nothing in
+  Perennial enforces that. Here the gate `etc/errorf-wrap-check.py` (over `etc/tcb-report.lean`'s
+  term walk) keeps a reviewed list of the modules whose proofs do (2026-11-18, replacing a text
+  search that missed three: `Proof/fmt/Errorf{Errs,Strs,Any}.lean`).
+- **Proposed (general; record only, nothing changed in Perennial).** (1) Make `Errorf_unfold` not a
+  field of `fmt.Assumptions` (a separate, explicitly imported instance, or none: `fmt.Errorf`
+  trusted with its spec only), so that only Perennial's own `fmt.Errorf.wp_proof` unfolds the model;
+  (2) later, model `%w` (a `*fmt.wrapError` with `Unwrap`, its message the formatted string) and the
+  arguments' formatting-method calls, with a spec taking the methods' specs (`fmt.argOk`-like).
+- **Status.** Recorded only.

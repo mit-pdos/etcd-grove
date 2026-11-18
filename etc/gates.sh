@@ -129,6 +129,10 @@ ncoll=$(ls etc/tcb-collections/*.txt | wc -l)
 ( python3 etc/tcb-report.py --reuse --collection etc/tcb-collections/*.txt --check > "$tmp/c.log" 2>&1
   echo $? > "$tmp/c.status" ) &
 coll_pid=$!
+# 3a. no proof steps into Perennial's `fmt.Errorf` model outside the reviewed declarations (the proof
+# terms, as etc/tcb-report.lean marks them; reads the .lake/tcb.json the trust-base check above
+# wrote, so after it, in this section)
+python3 etc/errorf-wrap-check.py --reuse || fail=1
 # 3b. the axiom-tok gate (per-type stage B, Scope r5 §5.1): no trusted statement lets its user
 # obtain tokens or resources it chose beyond what it gives, but for the entries of
 # etc/axiom-tok-allow.txt; reads the .lake/tcb.json the trust-base check above wrote (so after it,
@@ -217,8 +221,6 @@ if python3 etc/issues-status.py --check > "$tmp/issues.log" 2>&1; then
 else
   echo "issues: FAILED"; tail -10 "$tmp/issues.log"; fail=1
 fi
-# no proof learns a `fmt.Errorf` `%w` error's facts from Perennial's model (reads the sources only)
-python3 etc/errorf-wrap-check.py || fail=1
 # every trusted statement about an error's description is reviewed for stability (fromerror-stable)
 python3 etc/errdesc-check.py || fail=1
 # the pinned Perennial has no WithCancelCause spec, which context.bgCancelChild's soundness needs
