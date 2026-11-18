@@ -26,7 +26,18 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.appendBytes.wp_proof
     (wp_appendVarint : raftpb.appendVarint.spec (GF := GF) (hG := hG)) :
     raftpb.appendBytes.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro b B v dq vs
+  wp_start as ⟨Hb, Hcap, Hv⟩
+  ihave %Hlen := ownSlice_len $$ Hv
+  wp_auto
+  wp_apply wp_appendVarint $$ [$Hb $Hcap] as %s ⟨Hs, Hcap⟩
+  wp_apply wp_slice_append $$ [$Hs $Hcap $Hv] as %s2 ⟨Hs2, Hcap, Hv⟩
+  iapply HΦ
+  iframe
+  have hl : W64 (vs.length : Int) = v.len := by word
+  unfold ccBytesEnc
+  rw [hl, List.append_assoc]
+  iframe
 
 end proof
 

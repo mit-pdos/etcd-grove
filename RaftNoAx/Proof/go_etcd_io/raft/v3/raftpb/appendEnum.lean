@@ -26,7 +26,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem raftpb.appendEnum.wp_proof
     (wp_appendVarint : raftpb.appendVarint.spec (GF := GF) (hG := hG)) :
     raftpb.appendEnum.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro b B v
+  wp_start as ⟨Hb, Hcap⟩
+  wp_auto
+  wp_apply wp_appendVarint $$ [$Hb $Hcap] as %s ⟨Hs, Hcap⟩
+  iapply HΦ
+  iframe
 
 end proof
 
