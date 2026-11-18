@@ -1,15 +1,14 @@
 # fmt soundness: handoff
 
-## START HERE (2026-11-18, STOP: R2/R3 cost delta; R1 fixed, differential test 0 mismatches)
-- Branch `fmt-soundness` head 9df60b7bbc. R1 fixed in place (`fmt.fmtDirectivesAux`: a `.` starts a
-  precision only if a byte follows); differential test `/shared/tmp/fmtfix-diff/` (`notes/fmt-third-attack.md`):
-  43,121 mismatches before (all trailing `.`), 0 after over 2,127,162 formats.
-- R2/R3 NOT applied: `fmt.argOk`'s `Error` disjunct needs `Error = some noArgStringSig`, which its producers
-  `cache/v3/Base.lean`'s `statusErrOk`/`errStrOk` and `net/http/Boundary.lean`'s `errStrOk` do not carry: they
-  would gain it (a typing fact, true of every Go `error`), changing the meaning of the ~30 axiom files whose
-  posts give them, plus ~60 unfold sites in ~40 files and the 21 files of the `fmt_args_ok`/`fmt_arg_method`
-  macros. Reported to etcd-grove-03 (in-place cost well over the estimate).
-- The full build was stopped (the parser change rebuilds the fmt importers); nothing past it run.
+## START HERE (2026-11-18, the land stop: gates next / done, see the last commit)
+- Branch `fmt-soundness`; lean fb68edfec8 merged. R1 fixed, differential test 0 mismatches; attack round 4: no
+  refutation (`notes/fmt-third-attack.md`). R2/R3 open, to `fmt-soundness-2` (`notes/fmt-soundness-2.md`).
+- Pipeline done: full build green (21779 jobs), every gen-link mode (incl. `--wal-tester`, which the gates' link
+  check does not list) regenerated, term gate ok (7 reviewed steps), tcb `--check --update` (only
+  `fmt.ErrorfWrap.wp_proof` gone), 36 collections (same), interfaces (mvcc `InvStore`: H0's restatement), STATUS.
+- Consumers fixed late: `Proof/os/WriteFile.lean`, `WriteFileTrunc.lean`, `wal/WAL__SaveSnapshotPre.lean` (the
+  writer contract's `errOkOrNil`).
+- Pitfall: gen-link `--wal-tester` must run after the WAL Link is rebuilt (it reads its built results).
 
 ### Previous START HERE (after etcd-grove-03's decisions on the %#w stop)
 - Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness`; lean merged (fb68edfec8 is an ancestor).
