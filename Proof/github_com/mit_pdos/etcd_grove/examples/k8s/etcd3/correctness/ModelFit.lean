@@ -12,6 +12,7 @@ Lean-first (no Rocq counterpart).
 - `metaAt_obj`: a `*Obj` held at any fraction is a `metav1.Object` whose `GetUID` and
   `GetResourceVersion` answer its UID and `rvStr` of its resource version (what `Check` takes; the
   model checks a stored, read-only object).
+- `reqRep r x`: the `Request` `r` is `realRequest(x)` (`realcheck.go`), as `execute` reads it.
 - `errVar_deep`: a driver error variable's value (`errVarOk`) has the deep value of its message
   (`updRejE`, `delRejE`).
 -/
@@ -153,6 +154,38 @@ theorem objAtD_of_fit (p : Loc) (o : Obj) (hf : fitsD o) (ha : o.Annotated' = fa
   · ipureintro; exact ⟨rfl, Hn, rfl⟩
   rw [DObj.ofObj_toObj_rv o hf ha]
   iexact Hp
+
+/-- **The request `r` is `realRequest(x)`** (persistent; `realcheck.go`): a list of `x.ListKey`
+with `listOptions(x)`; a create at `x`'s store key of a read-only `*Obj` holding `createObjL x`; a
+delete or an update at it with `preconditions(x)` and the closures `validateFor`/`tryUpdateFor`
+make (not the nil func; the update's `IgnoreNotFound`); else a get with `MinRV` and
+`IgnoreNotFound`. -/
+def reqRep (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request)
+    (x : Input) : IProp GF :=
+  if x.Kind' = W64 4 then
+    iprop(⌜r.Op' = go!"List" ∧ r.Key' = x.ListKey' ∧ r.List'.Options' = listOptsV x⌝)
+  else if x.Kind' = W64 0 then
+    iprop(⌜r.Op' = go!"Create" ∧ r.Key' = storeKeyL x.Key'⌝ ∗ ∃ op : Loc,
+      ⌜r.Create'.Object' = interface.mkOk
+        (go.GoType.PointerType github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.ty) #op⌝ ∗
+      op ↦□ createObjL x)
+  else if x.Kind' = W64 1 then
+    iprop(⌜r.Op' = go!"Delete" ∧ r.Key' = storeKeyL x.Key' ∧
+        r.Delete'.ValidateDeletion' ≠ func.nil⌝ ∗
+      k8s.preAt r.Delete'.Preconditions' (kpreOf x) ∗
+      validateD x.HasReject' x.Reject' r.Delete'.ValidateDeletion')
+  else if x.Kind' = W64 2 then
+    iprop(⌜r.Op' = go!"Update" ∧ r.Key' = storeKeyL x.Key' ∧
+        r.Update'.IgnoreNotFound' = x.IgnoreNotFound' ∧ r.Update'.UpdateFunc' ≠ func.nil⌝ ∗
+      k8s.preAt r.Update'.Preconditions' (kpreOf x) ∗ tryUpdateD x r.Update'.UpdateFunc')
+  else
+    iprop(⌜r.Op' = go!"Get" ∧ r.Key' = storeKeyL x.Key' ∧
+      r.Get'.Options'.ResourceVersion' = x.MinRV' ∧
+      r.Get'.Options'.IgnoreNotFound' = x.IgnoreNotFound'⌝)
+
+instance reqRep_persistent (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request)
+    (x : Input) : Persistent (reqRep (GF := GF) r x) := by
+  unfold reqRep; repeat (first | infer_instance | split)
 
 /-- **A driver error variable's value has its message's deep value.** -/
 theorem errVar_deep (X msg : GoString) (err : GoInterface) :
