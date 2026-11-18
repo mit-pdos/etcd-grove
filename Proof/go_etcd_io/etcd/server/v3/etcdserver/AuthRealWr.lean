@@ -14,6 +14,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthRealLife
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
 
 @[expose] public section
 
@@ -655,6 +657,23 @@ theorem lkOk_putAuth {d : mvcc.KBReal} {bs : BSess} {st st' : auth.AuthState} {x
     · show schema.usersAt st' _ dU; unfold schema.usersAt; rw [hu]; exact hu0
     · show schema.rolesAt st' _ dR; unfold schema.rolesAt; rw [hr]; exact hr0
 
+theorem hk_auth (d : mvcc.KBReal) (n k : GoString) (h : n ∈ authBktL) : d.P.HK n k = false := by
+  simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at h
+  rcases h with rfl | rfl | rfl <;> simp [mvcc.KBReal.P, go_etcd_io.etcd.server.v3.storage.schema.metaName]
+
+theorem sb_auth (d : mvcc.KBReal) (n : GoString) (h : n ∈ authBktL) : d.P.SB n = false := by
+  simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at h
+  rcases h with rfl | rfl | rfl <;> simp [mvcc.KBReal.P, go_etcd_io.etcd.server.v3.storage.schema.keyName]
+
+theorem fk_auth (n k : GoString) (h : n ∈ authBktL) : ¬ fkKey n k := by
+  simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at h
+  rintro ⟨hm, -⟩
+  rcases h with rfl | rfl | rfl <;> simp at hm
+
+theorem hkb_auth (d : mvcc.KBReal) (n k : GoString) (h : n ∈ authBktL) : d.P.hk n k = false := by
+  unfold BParams.hk; rw [hk_auth d n k h]; simp
+
+
 section wr
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -1060,6 +1079,182 @@ theorem real_return (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (s
     · exact hr.symm
   imodintro
   iexact HT
+
+theorem rbData_ins_ne (P : BParams) (S : Data) (n m : GoString) (b : BktData) (h : n ≠ m) :
+    (rbData P (S.insert n b)).lookup m = (rbData P S).lookup m := by
+  rw [rbData_lookup, rbData_lookup, GMap.lookup_insert_ne _ _ h]
+
+theorem encW_sess {w w' : auth.AuthSess} (h : (encW w.users, encW w.roles) = (encW w'.users, encW w'.roles)) :
+    w = w' := by
+  obtain ⟨h1, h2⟩ := Prod.mk.inj h
+  cases w; cases w'
+  simp only at h1 h2
+  obtain rfl := encW_inj h1
+  obtain rfl := encW_inj h2
+  rfl
+
+theorem rbPut_true (γB : BNames) (P : BParams) (n : GoString) (S : Data) :
+    rbPut (GF := GF) γB P n S true ⊣⊢ iprop(⌜P.RB n = true⌝ ∗ rbPartR γB (fun m => m = n) (rbData P S)) := by
+  unfold rbPut rbPutR; simp only [↓reduceIte]; exact .rfl
+
+/-- A claimed part of the auth buckets, as one bucket's and the others'. -/
+theorem rbPartR_pick (γB : BNames) (n : GoString) (hn : n ∈ authBktL) (r : GMap GoString BktData) :
+    rbPartR (GF := GF) γB (fun m => m ∈ authBktL) r ⊣⊢
+      iprop(rbPartR γB (fun m => m = n) r ∗ rbPartR γB (fun m => m ∈ authBktL ∧ m ≠ n) r) := by
+  refine (rbPartR_set γB (fun m => m ∈ authBktL) (fun m => m = n ∨ (m ∈ authBktL ∧ m ≠ n)) r ?_).trans
+    (rbPartR_split γB _ _ r (fun m h1 h2 => h2.2 h1))
+  intro m
+  constructor
+  · intro h; by_cases e : m = n
+    · exact Or.inl e
+    · exact Or.inr ⟨h, e⟩
+  · rintro (rfl | ⟨h, -⟩)
+    · exact hn
+    · exact h
+
+/-- **The lock token's resources** besides the batch lock, in the session `bs` at the state `st`, with `X` given
+back at `Unlock`: the claimed part of the auth buckets at the writer's contents, half the batch token, half the
+session token, the rest of the open share, the backend lock's resources `W` and the hooks' `Pk`, the hook's share
+`Hk` (the boot contract's), `X`, the receipts and the facts. -/
+def lkR (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (bs : BSess) (st : auth.AuthState)
+    (X : IProp GF) : IProp GF :=
+  iprop(∃ (x : BktData × BktData × BktData) (w : auth.AuthSess) (k : Nat),
+    rbPartR d.γB (fun n => n ∈ authBktL) (rbData d.P bs.S) ∗ bkTok γ (1 : Qp).half x ∗
+    bkSw γ (1 : Qp).half w ∗ bOpen d.γB q0 ∗ W ∗ Pk ∗ Hk ∗ X ∗ ⧗ k ∗ ⌜LkOk d bs st x w k⌝)
+
+/-- **The lock token** `Lk st X` of the write contract. -/
+def lkT (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (st : auth.AuthState) (X : IProp GF) :
+    IProp GF :=
+  iprop(∃ bs : BSess, batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)
+
+/-- The receipts after one more write bound the session's pending writes below the backend's room. -/
+theorem lk_receipt (hRB : receiptBound GF ≤ 2 ^ 48) (d : mvcc.KBReal) (hPw : d.P.Wf) (bs : BSess)
+    (st : auth.AuthState) (x : BktData × BktData × BktData) (w : auth.AuthSess) (k : Nat)
+    (hok : LkOk d bs st x w k) :
+    (⧗ k : IProp GF) ∗ ⧗ 1 ⊢ |={⊤}=> ⧗ (k + 1) ∗ ⌜sint.Z bs.pend + 1 < 2 ^ 58⌝ := by
+  iintro ⟨Hk, H1⟩
+  ihave Hk := (receipt_add k 1).2 $$ [$Hk $H1]
+  imod receipt_snapshot (k + 1) $$ Hk with ⟨Hk, #Hp⟩
+  ihave %Hlt := preceipt_lt (k + 1) $$ Hp
+  imodintro
+  iframe Hk
+  ipureintro
+  have h1 := hok.pend
+  have h2 := hPw.2.2.1
+  omega
+
+/-- **A claimed put into an auth bucket** under the lock token: `UnsafePut` with the bucket's claimed part, the
+facts moved by `hstep`, a receipt spent. -/
+theorem lk_put (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hRB : receiptBound GF ≤ 2 ^ 48)
+    (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (t : Loc) (hPw : d.P.Wf)
+    (bi : BucketInfo) (hbi : bi.name ∈ authBktL) (hhas : d.P.has bi) (kb vb : GoString)
+    (hk0 : 0 < kb.length) (hk1 : kb.length ≤ maxKeySize)
+    (st st' : auth.AuthState) (X : IProp GF) (w w' : auth.AuthSess)
+    (hstep : ∀ bs x k, LkOk d bs st x w k → sint.Z bs.pend + 1 < 2 ^ 58 →
+      LkOk d (bs.put bi kb vb false true) st' x w' (k + 1)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ⊢
+      ∀ (bk : GoInterface) (key val : GoSlice),
+        {{ isBucket bk bi ∗ key ↦*□ kb ∗ val ↦*□ vb ∗ lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗
+            bkSw γ (1 : Qp).half w }}
+          (App (App (App (Val #(methods (btIface t).ty go!"UnsafePut" (btIface t).v)) (Val #bk)) (Val #key))
+            (Val #val))
+        {{ RET #(); lkT γ d q0 W Pk Hk st' X ∗ bkSw γ (1 : Qp).half w' }} := by
+  iintro ⟨#Hpkg, #Hb, #Ht⟩ %bk %key %val !> %Φ ⟨#Hbk, #Hkey, #Hval, Hlk, Hr1, Hsw⟩ HΦ
+  iunfold lkT at Hlk
+  icases Hlk with ⟨%bs, Hl, HR⟩
+  iunfold lkR at HR
+  icases HR with ⟨%x, %w0, %k, Hrp, Hx, Hsw0, Hq, HW, HPk, HHk, HX, Hrk, %Hok⟩
+  iunfold bkSw at Hsw Hsw0
+  icombine Hsw Hsw0 gives %Hwe
+  have hww : w = w0 := encW_sess Hwe.2
+  subst hww
+  imod ghostVar_update_halves (encW w'.users, encW w'.roles) γ.γw _ _ $$ Hsw Hsw0 with ⟨Hsw, Hsw0⟩
+  imod lk_receipt hRB d hPw bs st x w k Hok $$ [$Hrk $Hr1] with ⟨Hrk, %hpend⟩
+  icases (rbPartR_pick d.γB bi.name hbi _).1 $$ Hrp with ⟨Hn, Hrest⟩
+  ihave Hrbp := (rbPut_true d.γB d.P bi.name bs.S).2 $$ [Hn]
+  · iframe Hn; ipureintro; exact rb_auth d _ hbi
+  ihave Hhk := hkPut_of_not_HK (hG := hG) d.γB d.P bi.name kb bs.S (hk_auth d _ kb hbi)
+  ihave Hfk := fkPut_other (hG := hG) d.γB bi.name kb (fk_auth _ kb hbi)
+  wp_apply (@hUP d.γB d.P W Pk d.be t bs bk bi key val kb vb hhas hk0 hk1 hpend
+      (fun h => absurd h (by rw [sb_auth d _ hbi]; decide)) (fun h => absurd h (fk_auth _ kb hbi))
+      true true (by decide))
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval $Hhk $Hrbp $Hfk] as ⟨Hl, -, Hrbp, -⟩
+  have hS : (bs.put bi kb vb false true).S = bs.S.insert bi.name ((bktOf bs.S bi.name).insert kb vb) := rfl
+  icases (rbPut_true d.γB d.P bi.name _).1 $$ Hrbp with ⟨-, Hn⟩
+  ihave Hrest := rbPartR_congr d.γB _ (rbData d.P bs.S)
+    (rbData d.P (bs.S.insert bi.name ((bktOf bs.S bi.name).insert kb vb)))
+    (fun m hm => (rbData_ins_ne d.P bs.S bi.name m _ (fun e => hm.2 e.symm)).symm) $$ Hrest
+  ihave Hrp := (rbPartR_pick d.γB bi.name hbi _).2 $$ [$Hn $Hrest]
+  iapply HΦ
+  iunfold bkSw
+  iframe Hsw
+  iunfold lkT
+  iexists bs.put bi kb vb false true
+  iframe Hl
+  iunfold lkR
+  iexists x, w', k + 1
+  rw [hS]
+  iframe Hrp Hx Hq HW HPk HHk HX Hrk
+  iunfold bkSw
+  iframe Hsw0
+  ipureintro; exact hstep bs x k Hok hpend
+
+/-- **A claimed delete from an auth bucket** under the lock token (as `lk_put`). -/
+theorem lk_del (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hRB : receiptBound GF ≤ 2 ^ 48)
+    (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (t : Loc) (hPw : d.P.Wf)
+    (bi : BucketInfo) (hbi : bi.name ∈ authBktL) (hhas : d.P.has bi) (kb : GoString)
+    (st st' : auth.AuthState) (X : IProp GF) (w w' : auth.AuthSess)
+    (hstep : ∀ bs x k, LkOk d bs st x w k → sint.Z bs.pend + 1 < 2 ^ 58 →
+      LkOk d (bs.del bi kb true) st' x w' (k + 1)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ⊢
+      ∀ (bk : GoInterface) (key : GoSlice),
+        {{ isBucket bk bi ∗ key ↦* kb ∗ lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗ bkSw γ (1 : Qp).half w }}
+          (App (App (Val #(methods (btIface t).ty go!"UnsafeDelete" (btIface t).v)) (Val #bk)) (Val #key))
+        {{ RET #(); lkT γ d q0 W Pk Hk st' X ∗ bkSw γ (1 : Qp).half w' }} := by
+  iintro ⟨#Hpkg, #Hb, #Ht⟩ %bk %key !> %Φ ⟨#Hbk, Hkey, Hlk, Hr1, Hsw⟩ HΦ
+  iunfold lkT at Hlk
+  icases Hlk with ⟨%bs, Hl, HR⟩
+  iunfold lkR at HR
+  icases HR with ⟨%x, %w0, %k, Hrp, Hx, Hsw0, Hq, HW, HPk, HHk, HX, Hrk, %Hok⟩
+  iunfold bkSw at Hsw Hsw0
+  icombine Hsw Hsw0 gives %Hwe
+  have hww : w = w0 := encW_sess Hwe.2
+  subst hww
+  imod ghostVar_update_halves (encW w'.users, encW w'.roles) γ.γw _ _ $$ Hsw Hsw0 with ⟨Hsw, Hsw0⟩
+  imod lk_receipt hRB d hPw bs st x w k Hok $$ [$Hrk $Hr1] with ⟨Hrk, %hpend⟩
+  icases (rbPartR_pick d.γB bi.name hbi _).1 $$ Hrp with ⟨Hn, Hrest⟩
+  ihave Hrbp := (rbPut_true d.γB d.P bi.name bs.S).2 $$ [Hn]
+  · iframe Hn; ipureintro; exact rb_auth d _ hbi
+  ihave Hdl := dlPut_other (hG := hG) d.γB d.P bi.name (sb_auth d _ hbi)
+  ihave Hkey : (if true then key ↦*{DFrac.own 1} kb else txBytes bs.tx key kb : IProp GF) $$ [Hkey]
+  · simp only [↓reduceIte]; iexact Hkey
+  wp_apply (@hDel d.γB d.P W Pk d.be t bs bk bi key kb (DFrac.own 1) true hhas hpend
+      (hkb_auth d _ kb hbi) (fk_auth _ kb hbi) (fun h => absurd h (by rw [sb_auth d _ hbi]; decide))
+      true true (by decide))
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hrbp $Hdl] as ⟨Hl, -, Hrbp, -⟩
+  have hS : (bs.del bi kb true).S = bs.S.insert bi.name ((bktOf bs.S bi.name).delete kb) := rfl
+  icases (rbPut_true d.γB d.P bi.name _).1 $$ Hrbp with ⟨-, Hn⟩
+  ihave Hrest := rbPartR_congr d.γB _ (rbData d.P bs.S)
+    (rbData d.P (bs.S.insert bi.name ((bktOf bs.S bi.name).delete kb)))
+    (fun m hm => (rbData_ins_ne d.P bs.S bi.name m _ (fun e => hm.2 e.symm)).symm) $$ Hrest
+  ihave Hrp := (rbPartR_pick d.γB bi.name hbi _).2 $$ [$Hn $Hrest]
+  iapply HΦ
+  iunfold bkSw
+  iframe Hsw
+  iunfold lkT
+  iexists bs.del bi kb true
+  iframe Hl
+  iunfold lkR
+  iexists x, w', k + 1
+  rw [hS]
+  iframe Hrp Hx Hq HW HPk HHk HX Hrk
+  iunfold bkSw
+  iframe Hsw0
+  ipureintro; exact hstep bs x k Hok hpend
 
 end wr
 
