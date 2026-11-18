@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffinePoint
+public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
 @[expose] public section
 
 set_option linter.unusedSectionVars false

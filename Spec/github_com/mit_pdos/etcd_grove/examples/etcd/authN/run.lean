@@ -26,6 +26,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Hist
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Base
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
+public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

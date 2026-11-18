@@ -17,6 +17,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
 
 @[expose] public section
 
