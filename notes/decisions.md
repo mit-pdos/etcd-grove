@@ -40619,3 +40619,31 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
 - **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
+
+## The net extension's names (2026-11-18 · the user's decision · branch `worktree-agent-a32f38f0bf217c29e`)
+
+- **Decision.** The GooseLang extension of Go's `net` connections is *the net extension*, not a "TCP
+  extension": its names say `net`, not `tcp` (`notes/dsverify-net-port-plan.md`, Section 2, and its
+  phase 1). It stays in this repository.
+- **What was renamed** (no statement changed beyond names, no axiom or `sorry` added or removed):
+  `GooseLang/Ext/Tcp/` → `GooseLang/Ext/Net/`, namespace `Perennial.Tcp` → `Perennial.Net`; every
+  identifier of ours with `tcp`/`Tcp` (`tcpExt`, `tcpExts_hasTcp`, `tcp_semantics`, `TcpGlobal`,
+  `TcpStep`, `IsTcpStep`, `TcpGS`, `tcpEnd`, `tcpDir`, `tcpConnAt`, `wp_tcp_*`, ...) → the same with
+  `net`/`Net`; the part `NetTcp/` → `Net/` (lean_lib `Net`, modules `Net.*`), goose project `nettcp`
+  → `net`, `lake exe nettcp-replay` → `net-replay`, `etc/tcb-collections/nettcp.txt` → `net.txt`,
+  `NETTCP_*` environment variables → `NET_*`, `etc/gen-init.py`'s `NT_*` → `NET_*`, the conformance
+  checker's Python mirrors (`tcp_step`, `tcp_addr_ok`, `model.TcpDir`, ...) and its witness/calls
+  format tags (`nettcp-witness` → `net-witness`).
+- **Kept.** Go's own names (`TCPConn`, `TCPListener`, `TCPAddr`, `tcpsock`, `mptcpStatus*`,
+  `tcpConnWithout*`, `multipathtcp`, the `"tcp"`/`"tcp4"` network strings), Linux's in comments
+  (`tcp_reset`, `tcp_sendmsg_locked`, ...), the Go test names and the directories
+  `examples/axiomcx/tcp-*` (Go package paths, and the Lean module paths derived from them), and the
+  notes' file names (`notes/net-tcp*.md`, `notes/axiom-review/tcp-semantics.md`: history).
+- **One choice.** The conformance overlay's Go identifiers, which it injects into Go's `net` package
+  (`nettcpFD`, `nettcpT`, `zz_nettcp_trace.go.src`, ...), became `netextFD`, `netextT`,
+  `zz_netext_trace.go.src`: `netFD` is Go's own (`net/fd_posix.go`), so the `net` prefix would clash.
+- **Perennial's toy net extension** (`Perennial/GooseLang/Ext/Net`, `Perennial.netExt`,
+  `Perennial.NetStep`, `Perennial.netCtx`, ...) declares names that ours now share up to the
+  namespace (`Perennial.Net.netExt`, `Perennial.Net.NetStep`, `Perennial.Net.netCtx`). No module here
+  imports Perennial's (it is reached only from Perennial's root module and `NetPrelude`); a module
+  that imported both and opened `Perennial.Net` would have to qualify them.
