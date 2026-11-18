@@ -78,6 +78,28 @@ def compactedDesc : GoString := go!"etcdserver: mvcc: required revision has been
 def noRefusal [GooseExts] (err : GoInterface) : Prop :=
   err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
 
+/-- **A context error's shape** (incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03):
+not an `rpctypes.EtcdError` and without an `Is(error) bool` method, as Go's `context.Canceled` (a
+`*errors.errorString`) and `context.DeadlineExceeded` (a `deadlineExceededError`) are
+(`examples/axiomcx/incomingof-real` `TestRealTypes`). A fact of the type only, the same in every run:
+what rules a context error out of `errors.Is(err, <an EtcdError>)` (`errors.IsStatusErr.spec`). -/
+def ctxErrShape [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (e : GoInterfaceOk) : Prop :=
+  e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ∧
+    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
+
+/-- **The type `t` has no grpc `GRPCStatus() *Status` method** (incomingof T8): `status.FromError`
+of a leaf error of such a type is no status error (`ok = false`). -/
+def noGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (t : go.GoType) : Prop :=
+  methodSet t !! go!"GRPCStatus" ≠
+    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+
+/-- **Go's two context-error messages** (incomingof Part B, option (a), decided by etcd-grove-03,
+2026-11-18): `context.go`'s `Canceled = errors.New("context canceled")` and
+`deadlineExceededError.Error()`'s `"context deadline exceeded"` (`examples/axiomcx/incomingof-real`
+`TestCtxErrOnlyTwo`). -/
+def ctxErrMsg (m : GoString) : Prop :=
+  m = go!"context canceled" ∨ m = go!"context deadline exceeded"
+
 end desc
 
 section init
@@ -312,7 +334,12 @@ instance errorStringSpec_persistent (e : GoInterfaceOk) :
 fromerror-stable, 2026-11-06): what `status.FromError` needs to take the string as the error's
 description (`errDesc`): it calls `Error()` on each call, so an `Error()` that reads mutable state
 (`examples/axiomcx/flipdesc`, `notes/axiom-review/invoker-filled.md`) has no one description.
-Stronger than `errorStringSpec` (`errorMsgIs_errorStringSpec`), which the printing paths keep. -/
+Stronger than `errorStringSpec` (`errorMsgIs_errorStringSpec`), which the printing paths keep.
+A partial-correctness WP: it says each call returns `m` *or does not return*, so it does not pin `m`
+against later divergence (an `Error()` that starts looping holds `errorMsgIs e m` for every `m` from
+then on). A pure fact about `m` may only come from a call made while it held, with `m` fixed before the
+call (a precondition), never from a wand applied to an `errorMsgIs` proved later (fromerror-wand,
+2026-11-18: `notes/fromerror-wand.md`, `examples/axiomcx/fromerrorflip`). -/
 def errorMsgIs (e : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
     WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})
@@ -320,6 +347,16 @@ def errorMsgIs (e : GoInterfaceOk) (m : GoString) : IProp GF :=
 instance errorMsgIs_persistent (e : GoInterfaceOk) (m : GoString) :
     Persistent (errorMsgIs (GF := GF) e m) := by
   unfold errorMsgIs; infer_instance
+
+/-- **`err` is a context error** (persistent; incomingof Part B, 2026-11-18): of a context error's shape
+(`ctxErrShape`), and its `Error()` stably returns one of Go's two context messages (`ctxErrMsg`), as
+`ctxErrsErr` gives of `ctx.Err()`. What `ContextError` keeps (`ContextError.spec`). -/
+def ctxErrIs (err : GoInterface) : IProp GF :=
+  iprop(∃ (e : GoInterfaceOk) (m : GoString),
+    ⌜err = GoInterface.ok e ∧ ctxErrMsg m ∧ ctxErrShape e⌝ ∗ errorMsgIs e m)
+
+instance ctxErrIs_persistent (err : GoInterface) : Persistent (ctxErrIs (GF := GF) err) := by
+  unfold ctxErrIs; infer_instance
 
 /-- **The methods grpc's `status` and Go's `errors.Is` call on the error `e` return**
 (persistent; unit P3a), if `e`'s type has them (both are called through a type assertion):
@@ -798,6 +835,31 @@ theorem statusErrOk_nil : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   unfold statusErrOk
   iintro !> %e %h
   cases h
+
+/-- The message clause of a call's precondition, for a `nil` error: vacuous, at any `m`. -/
+theorem errMsgAt_nil (m : GoString) :
+    ⊢ ∀ e : GoInterfaceOk, ⌜GoInterface.nil = GoInterface.ok e⌝ → errorMsgIs (GF := GF) e m := by
+  iintro %e %h
+  cases h
+
+/-- **The message an error grpc's `status` accepts stably returns, fixed at a call** (fromerror-wand,
+2026-11-18): what `status.FromError.spec`'s (and its callers') message parameter `m` is taken from. -/
+theorem statusErrOk_msg (err : GoInterface) :
+    statusErrOk (GF := GF) err ⊢
+      ∃ m : GoString, ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m := by
+  iintro #H
+  cases err with
+  | nil =>
+    iexists go!""
+    iintro %e %h
+    cases h
+  | ok e0 =>
+    unfold statusErrOk
+    icases H $$ %e0 %rfl with ⟨⟨%m, #Hm⟩, -⟩
+    iexists m
+    iintro %e %h
+    cases h
+    iexact Hm
 
 /-- **A context error wrapped by `%w`** (one or more levels; errorf-wrap, 2026-11-06; persistent):
 `rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`) and

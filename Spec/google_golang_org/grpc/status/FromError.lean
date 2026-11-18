@@ -53,10 +53,24 @@ The description and the code are fixed Lean functions of the error value, which 
 is its location: within an execution this agrees with Go (locations are not reused, and the premise
 makes `Error()` and `GRPCStatus()` stable); across executions one location may hold another error,
 and the axiom is justified per execution, not as one triple for all of them (`notes/decisions.md`,
-"`status.FromError`: an error's description from a stable `Error()`"). -/
+"`status.FromError`: an error's description from a stable `Error()`").
+(fromerror-wand, 2026-11-18, the user's fix via etcd-grove-03) That post's `m` was chosen by a persistent
+wand `errorMsgIs e m -∗ ⌜errDesc err = m⌝`, usable after the call: false, since `errorMsgIs` is a
+partial-correctness WP and an `Error()` that diverges after the call satisfies it for every `m`
+(`notes/fromerror-wand.md`, `examples/axiomcx/fromerrorflip`). Now `m` is a parameter fixed before the call,
+`errorMsgIs e m` is in the precondition, and the post says `⌜ok = false → errDesc err = m⌝`: Go's
+`FromError` calls `err.Error()` during this call, and by the soundness (adequacy) of the precondition's WP
+at the call that call returns `m` if it returns at all (if not, `FromError` does not return and the post
+is vacuous); `errorMsgIs` is never read as total correctness. (incomingof T8) A leaf error without grpc's
+`GRPCStatus() *Status` gives `ok = false` (grpc v1.84.0 `status.go:96-127`: both `true` returns are guarded
+by that method, and `errors.As` on a leaf checks only the error itself;
+`examples/axiomcx/incomingof-real` `TestFromErrorNoGRPCStatus`). The `Message()` conjunct rests on `s`
+being unwritable: a fresh `*Status` no ownership of which is given out when `ok = false`, the error's own
+read-only status (`grpcStatusRO`) when `ok = true`. -/
 abbrev status.FromError.spec : Prop :=
-  ∀ (err : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err }}
+  ∀ (err : GoInterface) (m : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
+      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
     (App (Val (@! google_golang_org.grpc.status.FromError)) (Val #err))
   {{ (s : Loc) (ok : Bool), RET (PairV #s #ok);
       ⌜err = GoInterface.nil → ok = true⌝ ∗
@@ -69,8 +83,16 @@ abbrev status.FromError.spec : Prop :=
       □ (∀ e : GoInterfaceOk, ⌜ok = false ∧ err = GoInterface.ok e⌝ → ∀ Φ : val → IProp GF,
         ▷ Φ #(errDesc err) -∗
         WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }}) ∗
-      □ (∀ (e : GoInterfaceOk) (m : GoString), ⌜ok = false ∧ err = GoInterface.ok e⌝ →
-        errorMsgIs e m -∗ ⌜errDesc err = m⌝) }}
+      -- (fromerror-wand fix, 2026-11-18) not a status error: its description is the message `Error()`
+      -- stably returned at the call (the precondition's `m`)
+      ⌜ok = false → errDesc err = m⌝ ∗
+      -- (incomingof T8, 2026-11-18) a leaf error without grpc's `GRPCStatus() *Status` is no status
+      -- error
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
+        methodSet e.ty !! go!"GRPCStatus" ≠
+          some (go.Signature [] false
+            [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) →
+        ok = false⌝ }}
 
 end spec
 

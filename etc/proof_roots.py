@@ -26,12 +26,17 @@ modules it was computed from and the commit; `load` refuses one that is not of t
 current modules (the result of an interrupted or failed run, or of an older layout).
 """
 
+import concurrent.futures
+import hashlib
 import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
+import time
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -220,6 +225,59 @@ def git_head():
     return r.stdout.strip() if r.returncode == 0 else "?"
 
 
+def lean_script(script, env=None):
+    """The command that runs the Lean script `script` (`etc/<name>.lean`, a `main` importing
+    only Lean's own modules) under `lake env`: a native build of it, else `lean --run script`.
+    The same program either way (the compiler's IR, compiled to C instead of interpreted; the
+    script's own interpreted loops were half of etc/tcb-report.lean's largest run: 392s
+    interpreted, 208s native, the same JSON, 2026-11-17). The build is kept in
+    `.lake/lean-scripts/`, named by a SHA-256 of the script's text and the toolchain
+    (`lean --version`, `lean --print-prefix`), and made once (`lean -c`, then `leanc` against
+    the toolchain's shared library: a few seconds); a failed build falls back to `lean --run`.
+    `$LEAN_SCRIPTS_NATIVE=0` always runs `lean --run`."""
+    if os.environ.get("LEAN_SCRIPTS_NATIVE", "1") == "0":
+        return ["lean", "--run", script]
+    env = env or dict(os.environ, PATH=os.path.expanduser("~/.elan/bin") + os.pathsep
+                      + os.environ.get("PATH", ""))
+    src = os.path.join(ROOT, script)
+
+    def out(*cmd):
+        r = subprocess.run(lake("env", *cmd), cwd=ROOT, env=env, capture_output=True, text=True,
+                           check=False)
+        return r.returncode, r.stdout.strip(), r.stderr.strip()
+    try:
+        rc1, ver, _ = out("lean", "--version")
+        rc2, prefix, _ = out("lean", "--print-prefix")
+        if rc1 or rc2:
+            raise OSError("lean --version / --print-prefix failed")
+        with open(src, "rb") as f:
+            key = hashlib.sha256(f.read() + b"\0" + ver.encode() + b"\0" + prefix.encode()).hexdigest()
+        d = os.path.join(ROOT, ".lake", "lean-scripts")
+        exe = os.path.join(d, f"{os.path.splitext(os.path.basename(script))[0]}-{key[:16]}")
+        if not os.path.exists(exe):
+            os.makedirs(d, exist_ok=True)
+            tmp = tempfile.mkdtemp(dir=d, prefix=".build-")
+            try:
+                c = os.path.join(tmp, "main.c")
+                rc, _, err = out("lean", "-c", c, src)
+                if rc:
+                    raise OSError(f"lean -c: {err[-500:]}")
+                lib = os.path.join(prefix, "lib", "lean")
+                r = subprocess.run([os.path.join(prefix, "bin", "leanc"), "-O3", "-o",
+                                    os.path.join(tmp, "exe"), c, f"-L{lib}", "-lleanshared",
+                                    f"-Wl,-rpath,{lib}"], cwd=ROOT, env=env, capture_output=True,
+                                   text=True, check=False)
+                if r.returncode:
+                    raise OSError(f"leanc: {r.stderr.strip()[-500:]}")
+                os.replace(os.path.join(tmp, "exe"), exe)
+            finally:
+                shutil.rmtree(tmp, ignore_errors=True)
+        return [exe]
+    except OSError as e:
+        print(f"{script}: no native build ({e}); running `lean --run`", file=sys.stderr)
+        return ["lean", "--run", script]
+
+
 def lake(*args):
     """The `lake` command line, with `$LAKE_OPTS`."""
     return ["lake", *os.environ.get("LAKE_OPTS", "").split(), *args]
@@ -245,29 +303,136 @@ def check_built(prog, env):
              f"(exit {r.returncode}):\n" + "\n".join(out.splitlines()[-20:]))
 
 
+def run_groups(fn, groups, size=len):
+    """`[fn(g) for g in groups]`, computed in parallel lanes: the groups' Lean runs are
+    independent (each imports its own modules and reads only the `.olean`s), so the result is
+    the same as one after another. `$TCB_JOBS` lanes (default 2), the largest group first: the
+    examples' group (107 roots, 18.5 GiB, 8 of a run's 11 minutes, 2026-11-17) in one lane, the
+    others one after another in the other (none above 7 GiB), so the peak memory is about the
+    largest two groups' and the wall time the largest group's."""
+    jobs = max(1, int(os.environ.get("TCB_JOBS") or 2))
+    order = sorted(range(len(groups)), key=lambda i: -size(groups[i]))
+    out = [None] * len(groups)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
+        futs = {ex.submit(fn, groups[i]): i for i in order}
+        for f in concurrent.futures.as_completed(futs):
+            out[futs[f]] = f.result()
+    return out
+
+
+TCB_CACHE_VERSION = "tcb-report-cache 2"
+TCB_CACHE_SCRIPTS = ("tcb-report.lean", "proof_roots.py", "goose.py", "lean_cache.py")
+TCB_CACHE_MAX_BYTES = 40 << 30  # the largest group's entry is 560 MB
+
+
 def run(json_path, prog):
     """Run `etc/tcb-report.lean` on every root module into `json_path` (replaced only
-    when every run succeeds), if their build is up to date."""
+    when every run succeeds), if their build is up to date.  The groups' runs are
+    independent: they run in parallel (`run_groups`), each into its own file, concatenated
+    in the groups' order, so the JSON is the same as run one after another."""
     env = dict(os.environ)
     env["PATH"] = os.path.expanduser("~/.elan/bin") + os.pathsep + env.get("PATH", "")
     check_built(prog, env)
     runs = lean_runs()
     tmp = json_path + ".tmp"
-    with open(tmp, "w") as f:
-        meta = {"t": "meta", "modules": sorted(m for r in runs for m in r), "head": git_head()}
-        f.write(json.dumps(meta) + "\n")
-        for mods in runs:
-            f.flush()
-            r = subprocess.run(
-                lake("env", "lean", "--run", "etc/tcb-report.lean", *lean_args(), *mods),
+    outs = [f"{tmp}.{i}" for i in range(len(runs))]
+    script = lean_script("etc/tcb-report.lean", env)
+
+    # a group's output from the cache (etc/lean_cache.py: keyed by everything the run can read,
+    # its whole import closure's `.olean`s with their proofs, `.olean.private`, among it), when
+    # the cache is on (`$TCB_CACHE` a directory; `etc/gates.sh` sets it, nothing else does)
+    cache_dir = os.environ.get("TCB_CACHE") or None
+    ctx, keys, hits = None, [None] * len(runs), 0
+    if cache_dir:
+        import lean_cache
+        try:
+            ctx = lean_cache.KeyContext(env, TCB_CACHE_VERSION, TCB_CACHE_SCRIPTS, ("TCB_",),
+                                        os.path.join(ROOT, ".lake", "tcb-report-hashes.json"))
+            for i, mods in enumerate(runs):
+                keys[i] = ctx.key([*lean_args(), *mods], mods)[0]
+        except lean_cache.NoCache as e:
+            print(f"{prog}: not using the cache: {e}", file=sys.stderr)
+            ctx = None
+
+    def one(i):
+        if ctx is not None:
+            body = lean_cache.cache_get(cache_dir, keys[i], "tcb-report")
+            if body is not None:
+                with open(outs[i], "wb") as f:
+                    f.write(body)
+                return "hit"
+        t0 = time.monotonic()
+        with open(outs[i], "w") as f:
+            rc = subprocess.run(
+                lake("env", *script, *lean_args(), *runs[i]),
                 cwd=ROOT, stdout=f, env=env, check=False,
-            )
-            if r.returncode != 0:
-                f.close()
-                os.remove(tmp)
-                sys.exit(f"{prog}: etc/tcb-report.lean {' '.join(mods)} failed "
-                         f"(exit {r.returncode})")
-    os.replace(tmp, json_path)
+            ).returncode
+        print(f"{prog}: Lean run of {len(runs[i])} root modules ({runs[i][0]}, ...): "
+              f"{time.monotonic() - t0:.0f}s", file=sys.stderr)
+        if rc == 0 and ctx is not None:
+            try:
+                same = ctx.key([*lean_args(), *runs[i]], runs[i])[0] == keys[i]
+            except lean_cache.NoCache:
+                same = False
+            if same:  # nothing rebuilt during the run
+                with open(outs[i], "rb") as f:
+                    lean_cache.cache_put(cache_dir, keys[i], f.read(), {
+                        "modules": len(runs[i]), "head": git_head(), "root": ROOT}, "tcb-report")
+        return rc
+
+    try:
+        codes = run_groups(one, list(range(len(runs))), size=lambda i: len(runs[i]))
+        hits = codes.count("hit")
+        codes = [0 if c == "hit" else c for c in codes]
+        if ctx is not None:
+            ctx.hasher.save()
+            lean_cache.prune(cache_dir, TCB_CACHE_MAX_BYTES)
+            print(f"{prog}: {hits} of {len(runs)} Lean runs from the cache", file=sys.stderr)
+        for mods, rc in zip(runs, codes):
+            if rc != 0:
+                sys.exit(f"{prog}: etc/tcb-report.lean {' '.join(mods)} failed (exit {rc})")
+        with open(tmp, "w") as f:
+            meta = {"t": "meta", "modules": sorted(m for r in runs for m in r), "head": git_head()}
+            f.write(json.dumps(meta) + "\n")
+            for o in outs:
+                with open(o) as g:
+                    while True:
+                        b = g.read(1 << 24)
+                        if not b:
+                            break
+                        f.write(b)
+        os.replace(tmp, json_path)
+    finally:
+        for o in outs + [tmp]:
+            if os.path.exists(o):
+                os.remove(o)
+
+
+def _names(objs):
+    """`objs` with each root's `axioms` and `defs` by name: `etc/tcb-report.lean` writes them as
+    the indices (`i`) of its run's axiom and def lines (each run starting with a `group` line)."""
+    out, group = [], []
+
+    def flush():
+        ax = {o["i"]: o["name"] for o in group if o["t"] == "axiom"}
+        df = {o["i"]: o["name"] for o in group if o["t"] == "def"}
+        for o in group:
+            if o["t"] == "root":
+                o["axioms"] = [ax[i] if isinstance(i, int) else i for i in o["axioms"]]
+                o["defs"] = [df[i] if isinstance(i, int) else i for i in o["defs"]]
+            if o["t"] in ("axiom", "def"):
+                o.pop("i", None)
+            out.append(o)
+        group.clear()
+    for o in objs:
+        if o["t"] == "group":
+            flush()
+        elif o["t"] == "meta":
+            out.append(o)
+        else:
+            group.append(o)
+    flush()
+    return out
 
 
 def load(json_path, prog, reuse):
@@ -278,6 +443,7 @@ def load(json_path, prog, reuse):
     with open(json_path, encoding="utf-8") as f:
         objs = [json.loads(line) for line in f if line.strip()]
     meta = objs[0] if objs and objs[0]["t"] == "meta" else None
+    objs = _names(objs)
     want = root_modules()
     if meta is None:
         sys.exit(f"{prog}: {shown(json_path)} is empty or of an older etc/tcb-report.py "

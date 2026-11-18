@@ -25,12 +25,39 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
+/-- `ContextError`'s (3) when it returns `rpctypes.Error`'s result `err1` (incomingof Part B): a context
+error with message `m` comes back unchanged (a context error) or with description `m`. -/
+private theorem ctxBack_of_rpc (ei : GoInterfaceOk) (err1 : GoInterface) (m : GoString)
+    (Hrm : ∀ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e →
+      go_etcd_io.etcd.cache.v3.noGRPCStatus e.ty →
+      err1 = GoInterface.ok ei ∨ go_etcd_io.etcd.cache.v3.errDesc err1 = m)
+    (hc : clientErr (GoInterface.ok ei)) :
+    go_etcd_io.etcd.cache.v3.errorMsgIs (GF := GF) ei m ⊢
+      (⌜¬ ∃ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e ∧
+          go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∨
+        go_etcd_io.etcd.cache.v3.ctxErrIs err1 ∨
+        ⌜go_etcd_io.etcd.cache.v3.ctxErrMsg (go_etcd_io.etcd.cache.v3.errDesc err1)⌝) := by
+  iintro #Hm
+  by_cases hx : ∃ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e ∧
+      go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e
+  · obtain ⟨e, he, hm, hs⟩ := hx
+    cases he
+    rcases Hrm ei rfl (ctxShape_noGRPCStatus ei hc hs) with h | h
+    · iright; ileft
+      unfold go_etcd_io.etcd.cache.v3.ctxErrIs
+      iexists ei, m
+      isplitl []
+      · ipureintro; exact ⟨h, hm, hs⟩
+      · iexact Hm
+    · iright; iright; ipureintro; rw [h]; exact hm
+  · ileft; ipureintro; exact hx
+
 theorem ContextError.wp_proof
     (wp_rpctypes_Error : rpctypes.Error.spec (GF := GF) (hG := hG))
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
     ContextError.spec (GF := GF) (hG := hG) := by
-  intro ci cd err
-  wp_start as ⟨#Hce, %Herr, #Hse⟩
+  intro ci cd err m
+  wp_start as ⟨#Hce, %Herr, #Hse, #Hm⟩
   iunfold ctxErrClient at Hce
   cases err with
   | nil =>
@@ -43,16 +70,22 @@ theorem ContextError.wp_proof
     · iapply statusErrOk_nil
     isplitl
     · iintro !> -; iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
-    · ipureintro; intro h; exact absurd rfl h
+    isplitl
+    · ileft; ipureintro; exact Or.inl rfl
+    · ileft; ipureintro; rintro ⟨e, h, -⟩; cases h
   | ok ei =>
     wp_auto
-    wp_apply wp_rpctypes_Error (GoInterface.ok ei) $$ [$Hse] as %err1 ⟨%Hne1, #Hse1, %Hce1, %Hd1, #Hcl1, -⟩
+    ihave #Hmi := Hm $$ %ei %rfl
+    wp_apply wp_rpctypes_Error (GoInterface.ok ei) m $$ [$Hse $Hm]
+      as %err1 ⟨%Hne1, #Hse1, %Hce1, %Hd1, #Hcl1, -, %Hrm⟩
     · ipureintro; simp
-    have Hc1 := Hce1 (Herr (by simp))
+    have Hci := Herr (by simp)
+    have Hc1 := Hce1 Hci
     obtain ⟨e1, rfl⟩ : ∃ e1, err1 = GoInterface.ok e1 := by
       cases err1 with
       | nil => exact absurd rfl Hne1
       | ok e => exact ⟨e, rfl⟩
+    ihave #Hback := ctxBack_of_rpc ei (GoInterface.ok e1) m Hrm Hci $$ Hmi
     ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
     · iPkgInit
     obtain ⟨Htarget, Hce'⟩ := Hc1
@@ -67,15 +100,39 @@ theorem ContextError.wp_proof
         ((GoInterface.ok ei = GoInterface.nil → e = GoInterface.nil) ∧
           (GoInterface.ok ei ≠ GoInterface.nil → e ≠ GoInterface.nil ∧ clientErr e)) :=
       fun e hne hc => ⟨fun h => absurd h (by simp), fun _ => ⟨hne, hc⟩⟩
+    -- returning `rpctypes.Error`'s result
+    ihave #Hret : iprop(⌜(GoInterface.ok ei = GoInterface.nil → GoInterface.ok e1 = GoInterface.nil) ∧
+            (GoInterface.ok ei ≠ GoInterface.nil →
+              GoInterface.ok e1 ≠ GoInterface.nil ∧ clientErr (GoInterface.ok e1))⌝ ∗
+          statusErrOk (GoInterface.ok e1) ∗
+          □ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
+            go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok e1)) ∗
+          (⌜GoInterface.ok ei = GoInterface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e1) =
+              go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok ei)⌝ ∨
+            go_etcd_io.etcd.cache.v3.ctxErrIs (GoInterface.ok e1)) ∗
+          (⌜¬ ∃ e : GoInterfaceOk, GoInterface.ok ei = GoInterface.ok e ∧
+              go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∨
+            go_etcd_io.etcd.cache.v3.ctxErrIs (GoInterface.ok e1) ∨
+            ⌜go_etcd_io.etcd.cache.v3.ctxErrMsg
+              (go_etcd_io.etcd.cache.v3.errDesc (GoInterface.ok e1))⌝)) $$ []
+    · isplitr
+      · ipureintro; exact Hfin _ Hne1 Hc1
+      isplitr
+      · iexact Hse1
+      isplitr
+      · iexact Hcl1
+      isplitr
+      · ileft; ipureintro; exact Or.inr Hd1
+      · iexact Hback
     cases b
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
-      wp_apply wp_FromError (GoInterface.ok e1) $$ [$Hst $Hse1] as %sv %okv ⟨-, #HCode, -⟩
+      ihave ⟨%m1, #Hm1⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse1
+      wp_apply wp_FromError (GoInterface.ok e1) m1 $$ [$Hst $Hse1 $Hm1] as %sv %okv ⟨-, #HCode, -⟩
       cases okv
       · wp_auto
-        iapply HΦ
-        iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
+        iapply HΦ; iexact Hret
       · wp_auto
         wp_apply HCode
         wp_if_destruct
@@ -83,42 +140,62 @@ theorem ContextError.wp_proof
           cases e2 with
           | nil =>
             wp_auto
-            iapply HΦ
-            iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
+            iapply HΦ; iexact Hret
           | ok e2 =>
             simp only [reduceCtorEq, ↓reduceIte]
             wp_auto
-            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 %Hd3
+            wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 Hd3
             · iexact He2
-            ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
-                go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
-            · iintro !> -; iexact Hcl3
+            icases Hd3 with (%Hn3 | ⟨%e3', %m3, %Hm3, #Hmsg3⟩)
+            · exact absurd Hn3 Hne3
+            ihave #Hci3 : go_etcd_io.etcd.cache.v3.ctxErrIs (GF := GF) e3 $$ []
+            · unfold go_etcd_io.etcd.cache.v3.ctxErrIs
+              iexists e3', m3
+              isplitl []
+              · ipureintro; exact Hm3
+              · iexact Hmsg3
             iapply HΦ
-            iframe #; ipureintro
-            exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr (Hd3.resolve_left Hne3)⟩
+            isplitr
+            · ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
+            isplitr
+            · iexact Hs3
+            isplitr
+            · iintro !> -; iexact Hcl3
+            isplitr
+            · iright; iexact Hci3
+            · iright; ileft; iexact Hci3
         · wp_if_destruct
           · wp_apply Hce $$ %Broadcast.Pending as %e2 He2 %Hc2 - - -
             cases e2 with
             | nil =>
               wp_auto
-              iapply HΦ
-              iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
+              iapply HΦ; iexact Hret
             | ok e2 =>
               simp only [reduceCtorEq, ↓reduceIte]
               wp_auto
-              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 %Hd3
+              wp_apply Hce $$ %Broadcast.Done [He2] as %e3 %Hne3 %Hc3 #Hs3 #Hcl3 Hd3
               · iexact He2
-              ihave #Hcl3' : iprop(□ (go_etcd_io.etcd.cache.v3.errCellOk (GoInterface.ok ei) -∗
-                  go_etcd_io.etcd.cache.v3.errCellOk e3)) $$ []
-              · iintro !> -; iexact Hcl3
+              icases Hd3 with (%Hn3 | ⟨%e3', %m3, %Hm3, #Hmsg3⟩)
+              · exact absurd Hn3 Hne3
+              ihave #Hci3 : go_etcd_io.etcd.cache.v3.ctxErrIs (GF := GF) e3 $$ []
+              · unfold go_etcd_io.etcd.cache.v3.ctxErrIs
+                iexists e3', m3
+                isplitl []
+                · ipureintro; exact Hm3
+                · iexact Hmsg3
               iapply HΦ
-              iframe #; ipureintro
-              exact ⟨⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩, fun _ => Or.inr (Hd3.resolve_left Hne3)⟩
-          · iapply HΦ
-            iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
+              isplitr
+              · ipureintro; exact ⟨False.elim, fun _ => ⟨Hne3, Hc3⟩⟩
+              isplitr
+              · iexact Hs3
+              isplitr
+              · iintro !> -; iexact Hcl3
+              isplitr
+              · iright; iexact Hci3
+              · iright; ileft; iexact Hci3
+          · iapply HΦ; iexact Hret
     · wp_auto
-      iapply HΦ
-      iframe #; ipureintro; exact ⟨Hfin _ Hne1 Hc1, fun _ => Or.inl Hd1⟩
+      iapply HΦ; iexact Hret
 
 end proof
 

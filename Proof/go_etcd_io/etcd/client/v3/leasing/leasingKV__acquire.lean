@@ -272,7 +272,8 @@ theorem leasingKV.acquire.wp_proof
     · wp_auto
       ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
       · iPkgInit
-      wp_apply hFE (GoInterface.ok e) $$ [$Hst $Hse] as %sv %okv ⟨-, #HCode, -⟩
+      ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      wp_apply hFE (GoInterface.ok e) mF $$ [$Hst $Hse $HmF] as %sv %okv ⟨-, #HCode, -⟩
       (try wp_auto)
       cases okv
       · wp_auto
