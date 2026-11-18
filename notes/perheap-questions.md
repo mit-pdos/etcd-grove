@@ -35,3 +35,10 @@
   with `StartLaws`/`EnsureTrace` (independent attack SOUND: `/shared/tmp/perheap/attack-tracer.md`);
   `authnRaft_on`/`revokeExpiredLeases` take some token from `libCtxOk` (`ctxToken_of_libCtxOk`: Authenticate reads
   none, the revoke's internal context carries whatever it carries).
+- **Decided by etcd-grove-03, 2026-11-18 (at the C1a checkpoint):** `Tracer.Start.spec`'s restatement moved from 1b
+  into C1a CONFIRMED (Scope §4.1's own text; attack SOUND, `/shared/tmp/perheap/attack-tracer.md`). The checkpoint's
+  forms ACCEPTED: `hdrBoundM`/`infoBoundM` kept as gated wrappers by token, `*_ctx` lemmas deleted; `wpM`/`wpMLb`
+  gating on their `on`; guard-style specs gating on `E.authMode.isOn`; `leaseCheckT`/`principalBoundT` merged into
+  `leaseCheckFrom`/`principalBound`; `ctxToken_of_libCtxOk` for `authnRaft_on` and `revokeExpiredLeases`. Q9 list
+  additions (to the user at the land stop, with `auth_ctx_lb` and the rest): `put_applied`, `deleteRange_applied`,
+  `request_handoff`, `server_raft_request` (meaning change, text unchanged).
