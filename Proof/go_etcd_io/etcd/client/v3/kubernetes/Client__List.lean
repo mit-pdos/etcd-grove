@@ -223,11 +223,16 @@ theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       iintro %Hg
       iunfold k8s.rangeErrSound
       imodintro
-      iintro %Hd
+      iintro %Hd %Hty
       ihave Ho := Heo $$ %rfl
       iunfold client.rangeErrOut at Ho
       have hg2 := And.intro Herr Hg.2
       ihave Ho2 := Ho $$ %hg2
+      -- (incomingof Part B) not the context's error: that one is no `EtcdError` and has no `Is`
+      icases Ho2 with (Ho2 | %hctx)
+      rotate_left
+      · obtain ⟨e, he, hsh⟩ := hctx
+        exact absurd (Hty e he hsh.2) hsh.1
       iunfold client.rangeErrΨ at Ho2
       have hsne : start ≠ [] := by
         intro h; rw [h] at hpst; exact Hg.1 (List.prefix_nil.1 hpst)

@@ -369,6 +369,9 @@ def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp G
     (err : GoInterface) : IProp GF :=
   iprop(kClientErr err ∗
     □ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
+        methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) →
+        e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ -∗
       ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat rev⌝))
 
 instance readErrIs_persistent (c : StoreCfg GF Obj) rev Q err :

@@ -1017,11 +1017,14 @@ instance rangeErrΨ_persistent (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (
 
 /-- **What a failed range tells its caller** (persistent; k8s 7e-1, the Draft's §2.3): an error on
 a client of refusal-free members (`noRefusalAt`) has the error outcome at its description
-(`rangeErrΨ`). -/
+(`rangeErrΨ`), or (incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03) is the
+context's error, which `ContextError` returns as it is (of a context error's shape, `ctxErrShape`: no
+`EtcdError` and no `Is` method, so `errors.Is` against an `EtcdError` is false of it). -/
 def rangeErrOut (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil ∧ ∀ x ∈ ms, noRefusalAt x.addr⌝ →
-    rangeErrΨ ms c F o Q (go_etcd_io.etcd.cache.v3.errDesc err))
+    (rangeErrΨ ms c F o Q (go_etcd_io.etcd.cache.v3.errDesc err) ∨
+      ⌜∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝))
 
 instance rangeErrOut_persistent (ms : List (SrvAt GF)) (c : w64) (F : mvcc.Log) (o : OpFull)
     (Q : KVState → IProp GF) (err : GoInterface) : Persistent (rangeErrOut ms c F o Q err) := by

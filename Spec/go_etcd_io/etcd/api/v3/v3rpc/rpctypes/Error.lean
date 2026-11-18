@@ -33,16 +33,20 @@ variable [package_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 (an `EtcdError` is a leaf error without `GRPCStatus`, whose `Error` returns its description);
 and (2026-10-14, unit C1: `ContextError` passes the result to `errors.As`) a client error gives a
 client error (`clientErr`: the result is `err` itself, or an `EtcdError` value, a leaf error).
-Nothing about which error, nor about a nil `err` (for which it returns `nil`).
+Nothing about which error, nor about a nil `err` (for which it returns `nil`), except (incomingof
+Part B, 2026-11-18) for an error without `GRPCStatus` whose `Error()` stably returns `m` at the call (a
+parameter, as `status.FromError.spec`'s): it comes back unchanged (`m` no key of `errStringToError`), or as
+an `EtcdError` of description `m`.
 
 (2026-10-14, unit P3a) It was an axiom with the premise `err ≠ nil` only and the postcondition
 `□ (errStrOk err -∗ errStrOk err')`, which is false: `ErrorDesc` calls `err.Error()` (when
 `status.FromError` fails) and `FromError` calls `err.Error()` and `err.GRPCStatus()`, either of
 which may panic. -/
 abbrev rpctypes.Error.spec : Prop :=
-  ∀ (err : GoError),
+  ∀ (err : GoError) (m : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗
-      ⌜err ≠ interface.nil⌝ ∗ statusErrOk err }}
+      ⌜err ≠ interface.nil⌝ ∗ statusErrOk err ∗
+      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
     (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Error)) (Val #err))
   {{ (err' : GoError), RET #err'; ⌜err' ≠ interface.nil⌝ ∗ statusErrOk err' ∗
       ⌜clientErr err → clientErr err'⌝ ∗
@@ -53,7 +57,11 @@ abbrev rpctypes.Error.spec : Prop :=
       □ (errCellOk err -∗ errCellOk err') ∗
       -- (k8s 7f-5, 2026-11-16) a pointer if an `*errors.errorString`, if `err` is (`err` itself or
       -- an `EtcdError` value)
-      ⌜errPtrOk err → errPtrOk err'⌝ }}
+      ⌜errPtrOk err → errPtrOk err'⌝ ∗
+      -- (incomingof Part B, (2), 2026-11-18) of an error without `GRPCStatus` whose `Error()` stably
+      -- returns `m` at the call: `err` itself, or an `EtcdError` of description `m`
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e → noGRPCStatus e.ty →
+        err' = err ∨ errDesc err' = m⌝ }}
 
 end spec
 

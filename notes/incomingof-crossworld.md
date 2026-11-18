@@ -3,7 +3,7 @@ title: incomingOf_cancelCtx and incomingOf_cancellableContext make metadata.inco
 found: 2026-11-17
 by: the ctx-descs review (etcd-grove-03's agent), notes/axiom-review/ctx-descs.md, branch axiom/ctx-descs
 blocks-proof: no (22 collections list incomingOf_cancelCtx; refuted in meaning)
-status: open; the incomingOf Scope is in progress (incomingOf Scope agent)
+status: open; the incomingof Scope's Part A (per-run guard) was refuted and not linked (2026-11-17, notes/axiom-review/incomingof.md); fix: the per-heap redesign, its own Scope (user, 2026-11-17)
 ---
 # `incomingOf_cancelCtx` is false in meaning
 
@@ -22,4 +22,9 @@ formalized).
 them).
 
 **Fix.** State it per execution (a law inside the post of the spec that makes the context, or
-`incomingOf` behind a ghost name): the incomingOf Scope.
+`incomingOf` behind a ghost name): the incomingOf Scope. Its Part A (the law as a persistent wand
+`incomingKept` delivered by grpc's `srvRawStreamIs`, the v3rpc axiom guarded by it) was refuted on
+2026-11-17: a fresh world owning a persistent authoritative heap (`Auth DFrac.discard σ`) satisfies the
+wand by its choice of `σ` (`notes/axiom-review/incomingof.md`, Go: `examples/axiomcx/incomingof-attack`
+`TestWrappersNotConstant`). The user decided: not linked; the fix is a per-heap relation (`incomingIs` as
+an IProp, and the `errDesc` analogue), in its own Scope.
