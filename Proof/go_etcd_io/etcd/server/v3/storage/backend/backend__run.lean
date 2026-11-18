@@ -122,7 +122,7 @@ theorem backend.backend.run.wp_proof
       wp_call
       unfold batchPhys
       icases Hph2 with ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩
-      rw [Hfin.2.2]
+      rw [Hfin.2.2.1]
       wp_auto
       wp_apply (hBU γ P W Pk b t) $$ [$Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hg2 HWv HWR]
       · iframe #
@@ -132,7 +132,7 @@ theorem backend.backend.run.wp_proof
         isplitl
         · unfold batchPhys
           iexists hk
-          rw [Hfin.2.2]
+          rw [Hfin.2.2.1]
           iframe
           iframe #
         · ipureintro

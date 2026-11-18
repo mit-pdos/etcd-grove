@@ -981,6 +981,111 @@ private theorem batchGhostAt_idle (γ : BNames) (P : BParams) (st : BSess) (c : 
   iframe
   ipureintro; exact Hok
 
+/-! ### `Unlock`'s confirmation of the claimed buckets (auth-schema-srv A6 (c), 2026-11-18) -/
+
+/-- **A claiming client's confirmation window** for the buckets `Sc` at the contents `f` (auth-schema-srv A6
+(c), form decided by the agent): from `Rr`, its readers' halves at their current contents `old` with the mask
+`⊤` narrowed to `E`, and back to `Rr'` and `⊤` given that `old` is `f` on `Sc` (the halves unchanged). `Unlock`
+runs it once, at its end, with `f` the writer's contents: so the client learns that the readers see the
+writer's contents on every claimed bucket after `Unlock` (the accessor `rbAcc` alone allows a bucket only
+deleted from to keep its old contents at each of its windows, and its client cannot tell the last window). -/
+def rbConf (γ : BNames) (Sc : List GoString) (f : GoString → BktData) (Rr Rr' : IProp GF) (E : CoPset) :
+    IProp GF :=
+  iprop(Rr -∗ |={⊤, E}=> ∃ old : GoString → BktData,
+    ([∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (old n)) ∗
+    (⌜∀ n, n ∈ Sc → old n = f n⌝ -∗ ([∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (old n)) -∗
+      |={E, ⊤}=> Rr'))
+
+/-- The confirmation of no bucket, around any mask. -/
+theorem rbConf_nil (γ : BNames) (f : GoString → BktData) (Rr : IProp GF) (E : CoPset) :
+    ⊢ rbConf γ [] f Rr Rr E := by
+  unfold rbConf
+  iintro HR
+  imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := E) CoPset.subseteq_top) with Hcl
+  imodintro
+  iexists (fun _ => (∅ : BktData))
+  isplitr
+  · exact BigSepL.bigSepL_nil_intro
+  · iintro %_ -
+    imod Hcl
+    imodintro
+    iexact HR
+
+/-- The batch lock's side agrees with a client's share of a tracked bucket's readers' contents. -/
+private theorem rbrSide_rbRd (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (n : GoString) (q : Qp)
+    (v : BktData) :
+    iprop(rbrSide (GF := GF) γ P st c ∗ rbRd γ n q v) ⊢
+      iprop(rbrSide γ P st c ∗ rbRd γ n q v ∗ ⌜v = rvBkt P (st.C, st.R) n⌝) := by
+  unfold rbrSide rbRd
+  iintro ⟨⟨Ha, %Hd, %Hcw, Hb⟩, ⟨%Hn, H⟩⟩
+  obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp Hn
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun k (_ : Unit) => rbrOne (GF := GF) γ P st k)
+    (m := γ.rbD) (i := n) (x := u) hu).1 $$ Hb with ⟨Ho, Hb⟩
+  unfold rbrOne
+  icombine H Ho gives %Hag
+  ihave Hb := Hb $$ Ho
+  iframe Ha Hb H
+  ipureintro
+  exact ⟨⟨Hd, Hcw⟩, Hn, Hag.2⟩
+
+/-- The same of a list of claimed buckets. -/
+private theorem rbrSide_rbRdL (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (q : Qp)
+    (old : GoString → BktData) : ∀ Sc : List GoString,
+    iprop(rbrSide (GF := GF) γ P st c ∗ [∗list] n ∈ Sc, rbRd γ n q (old n)) ⊢
+      iprop(rbrSide γ P st c ∗ ([∗list] n ∈ Sc, rbRd γ n q (old n)) ∗
+        ⌜∀ n, n ∈ Sc → old n = rvBkt P (st.C, st.R) n⌝)
+  | [] => by
+    iintro ⟨Hs, Hl⟩
+    iframe Hs Hl
+    ipureintro; intro n h; cases h
+  | m :: Sc => by
+    iintro ⟨Hs, Hl⟩
+    icases (BigSepL.bigSepL_cons).1 $$ Hl with ⟨Hm, Hl⟩
+    icases rbrSide_rbRd γ P st c m q (old m) $$ [$Hs $Hm] with ⟨Hs, Hm, %h1⟩
+    icases rbrSide_rbRdL γ P st c q old Sc $$ [$Hs $Hl] with ⟨Hs, Hl, %h2⟩
+    iframe Hs
+    isplitl [Hm Hl]
+    · iapply (BigSepL.bigSepL_cons).2; iframe Hm Hl
+    ipureintro
+    intro n hn
+    rcases List.mem_cons.1 hn with rfl | hn
+    · exact h1
+    · exact h2 n hn
+
+/-- **`Unlock`'s confirmation on the batch lock's side**: the client's halves agree with the batch lock's
+quarters, which are at the readers' contents of the state `st`. Private, as `trkSide_idle`. -/
+private theorem trkSide_conf (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (Sc : List GoString)
+    (f : GoString → BktData) (Rr Rr' : IProp GF) (E : CoPset)
+    (hf : ∀ n, n ∈ Sc → rvBkt P (st.C, st.R) n = f n) :
+    iprop(trkSide (GF := GF) γ P st c ∗ Rr ∗ rbConf γ Sc f Rr Rr' E) ⊢
+      |={⊤}=> iprop(trkSide γ P st c ∗ Rr') := by
+  unfold trkSide
+  iintro ⟨⟨Hh, Hs⟩, HR, Hc⟩
+  unfold rbConf
+  imod Hc $$ HR with ⟨%old, Hl, Hk⟩
+  icases rbrSide_rbRdL γ P st c _ old Sc $$ [$Hs $Hl] with ⟨Hs, Hl, %Ho⟩
+  imod Hk $$ %(fun n hn => (Ho n hn).trans (hf n hn)) Hl with HR
+  imodintro
+  iframe
+
+/-- **`Unlock`'s confirmation on the free lock's ghost**, every claimed bucket untouched there (so the readers
+see the writer's contents, `trkOk`). Private, as `trkSide_idle`. -/
+private theorem batchGhostAt_conf (γ : BNames) (P : BParams) (st : BSess) (fr c : Bool) (Sc : List GoString)
+    (f : GoString → BktData) (Rr Rr' : IProp GF) (E : CoPset)
+    (hf : ∀ n, n ∈ Sc → P.RB n = true ∧ st.tk n = .idle ∧ bktOf st.S n = f n) :
+    iprop(batchGhostAt (GF := GF) γ P st fr c ∗ Rr ∗ rbConf γ Sc f Rr Rr' E) ⊢
+      |={⊤}=> iprop(batchGhostAt γ P st fr c ∗ Rr') := by
+  unfold batchGhostAt
+  iintro ⟨⟨Hv, %n, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, HR, Hc⟩
+  imod trkSide_conf γ P st c Sc f Rr Rr' E (fun m hm => by
+      obtain ⟨h1, h2, h3⟩ := hf m hm
+      rw [rvBkt_idle Hok.2.2.2.2.2.2.2.2.2.2.1 h1 h2, h3]) $$ [$Hk $HR $Hc] with ⟨Hk, HR⟩
+  imodintro
+  iframe Hv HR
+  iexists n, w, u
+  iframe
+  ipureintro; exact Hok
+
 end claimed
 
 end backend

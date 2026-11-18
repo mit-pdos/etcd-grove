@@ -57,6 +57,8 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockO
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
+# (auth-schema-srv A6 (c), 2026-11-18) the auth realization's batch reader walks the users' bucket
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut

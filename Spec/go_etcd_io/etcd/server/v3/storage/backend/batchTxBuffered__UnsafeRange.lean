@@ -31,19 +31,20 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 contents (it sees the session's writes), as slices valid while bbolt's write transaction is `st.tx` (until the next commit); a
 capability to read them under the lock in a state with that transaction (2026-10-12: it was
 `st'.C = st.C`, false: a commit that leaves the data unchanged still replaces the
-transaction). -/
+transaction). In either mode `c` of the lock (auth-schema-srv A6 (c), 2026-11-18: a claimed session reads too;
+until then the client-facing mode only). -/
 abbrev backend.batchTxBuffered.UnsafeRange.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
-  (endKey = slice.nil ↔ eb = []) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗
+  (endKey = slice.nil ↔ eb = []) → ∀ (c : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st c ∗ isBucket bk bi ∗ key ↦*{dk} kb ∗
       endKey ↦*{de} eb }}
     (App (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
-  {{ (keys vals : GoSlice), RET (PairV #keys #vals); batchLocked γ P b st ∗
+  {{ (keys vals : GoSlice), RET (PairV #keys #vals); batchLocked γ P b st c ∗
       key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗
       kvsOutRd st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) ∗
-      □ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗ batchLocked γ P b st' -∗
+      □ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗ batchLocked γ P b st' c -∗
           ⌜st'.tx = st.tx⌝ -∗
-          ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st')) }}
+          ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st' c)) }}
 
 end spec
 

@@ -62,27 +62,31 @@ contents of the claimed buckets move, which needs the client's halves (`rbRd`): 
 (`rbAcc`, with its resource `Rr`, atomic around any mask `E ⊇ ↑rbClaimN`: auth-schema-srv A6's F-acc, so the client
 may keep its own invariant open across the window), which `Unlock` runs at the write-back and at the commit; the client may count on
 each claimed bucket moving as `unlockOk P st` allows (the writer's contents; untouched or only deleted from: kept;
-put into and deleted from, at the write-back: the write-back's intermediate contents). The claimed part comes back
-idle (`rbOwnInR`), and `Rr`. With no claimed bucket (`Sc = []`, `Rr = True`) this is the client-facing statement,
-`Unlock.spec_free` (`UnlockBare.lean`).
+put into and deleted from, at the write-back: the write-back's intermediate contents). **At its end it confirms**
+(auth-schema-srv A6 (c), 2026-11-18, form decided by the agent): the client's confirmation window (`rbConf`) runs once,
+with every claimed bucket's readers' contents the writer's (`bktOf st.S`), turning `Rr` into `Rr'` (until then the
+client could not learn that a bucket only deleted from reached the writer's contents: `unlockOk` allows it to stay at
+each window, and the client cannot tell the last). The claimed part comes back idle (`rbOwnInR`), and `Rr'`. With no
+claimed bucket (`Sc = []`, `Rr = Rr' = True`) this is the client-facing statement, `Unlock.spec_free` (`UnlockBare.lean`).
 (Until question 2: the put branch got `sData P st.S` back, and the first branch was `viewSame`;
 a Draft `specC` had the deleting branch beside it. Until A1.8 the claimed statement was a second one,
 `Unlock.specC`, beside this one.) -/
 abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
     (S : GoString → Prop) (r : GMap GoString BktData) (Sc : List GoString) (rc : GMap GoString BktData)
-    (Rr : IProp GF) (E : CoPset),
+    (Rr Rr' : IProp GF) (E : CoPset),
   ↑rbClaimN ⊆ E →
   st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
   (∀ n, st.cw n = true → n ∈ Sc) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ rbPart γ S r ∗
       rbPartR γ (fun n => n ∈ Sc) rc ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr E ∗
+      rbConf γ Sc (fun n => bktOf st.S n) Rr Rr' E ∗
       ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
          ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
     (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
-  {{ RET #(); Q ∗ rbOwnIn γ S r ∗ rbOwnInR γ (fun n => n ∈ Sc) rc ∗ Rr }}
+  {{ RET #(); Q ∗ rbOwnIn γ S r ∗ rbOwnInR γ (fun n => n ∈ Sc) rc ∗ Rr' }}
 
 end spec
 

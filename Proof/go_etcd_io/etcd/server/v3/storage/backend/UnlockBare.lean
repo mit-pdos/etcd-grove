@@ -29,7 +29,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-/-- **`t.Unlock()` in the client-facing mode** (A1.8: `Unlock.spec` at no claimed bucket, `Sc = []`, `Rr = True`;
+/-- **`t.Unlock()` in the client-facing mode** (A1.8: `Unlock.spec` at no claimed bucket, `Sc = []`, `Rr = Rr' = True`;
 the mode weakened by `batchLocked_claimed`, no claimed write recorded by `cwOk`): what `Unlock.spec` said
 before A1.5, for the callers that claim nothing. -/
 theorem backend.batchTxBuffered.Unlock.spec_free
@@ -50,9 +50,10 @@ theorem backend.batchTxBuffered.Unlock.spec_free
   ihave Hl := batchLocked_claimed γ P b st $$ Hl
   ihave Hrc := rbPartR_nil (hG := hG) γ (∅ : GMap GoString BktData)
   ihave #Hacc := rbAcc_nil (hG := hG) γ (unlockOk P st) iprop(True) ⊤
-  iapply (h γ P W Pk b t st Q S r [] ∅ iprop(True) ⊤ CoPset.subseteq_top Hhw Hroom List.nodup_nil
-    (fun n h => by rw [Hcw rfl Hhw n] at h; cases h)) $$ %Φ [Hl Htok Hrb Hrc Hcase]
-  · iframe Hl Htok Hrb Hrc Hcase; iframe #
+  ihave Hcf := rbConf_nil (hG := hG) γ (fun n => bktOf st.S n) iprop(True) ⊤
+  iapply (h γ P W Pk b t st Q S r [] ∅ iprop(True) iprop(True) ⊤ CoPset.subseteq_top Hhw Hroom List.nodup_nil
+    (fun n h => by rw [Hcw rfl Hhw n] at h; cases h)) $$ %Φ [Hl Htok Hrb Hrc Hcf Hcase]
+  · iframe Hl Htok Hrb Hrc Hcf Hcase; iframe #
   inext
   iintro ⟨HQ, Hin, -, -⟩
   iapply HΦ

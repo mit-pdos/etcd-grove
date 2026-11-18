@@ -46,7 +46,8 @@ abbrev backend.batchTxBuffered.commit.spec : Prop :=
          threadTok)
        else iprop(∃ (st' : BSess) (db : Loc), sync.ownMutex (muOf t) ∗ batchPhys γ b t db st' ∗
          batchGhostAt γ P st' true ∗
-         ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0⌝ ∗
+         ⌜freeOk P st' ∧ vData P (st'.C, st'.R) = sData P st.S ∧ st'.pend = W64 0 ∧
+           rbData P st'.S = rbData P st.S⌝ ∗
          (if win then bView γ 1 L' else iprop(True)))) }}
 
 end spec

@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__U
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDeleteBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
@@ -537,6 +538,14 @@ theorem batchTxBuffered.wp_UnsafeDeleteBucket :
     EtcdGrove.backend.batchTxBuffered.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof batchTx.wp_UnsafeDeleteBucket
 
+theorem batchTx.wp_UnsafeForEach :
+    EtcdGrove.backend.batchTx.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTx.UnsafeForEach.wp_proof wp_unsafeForEach
+
+theorem batchTxBuffered.wp_UnsafeForEach :
+    EtcdGrove.backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTxBuffered.UnsafeForEach.wp_proof batchTx.wp_UnsafeForEach
+
 theorem bbolt.Bucket.wp_Put_kv :
     EtcdGrove.bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Put_kv.wp_proof
@@ -592,10 +601,6 @@ theorem txWriteBuffer.wp_putSeq :
 theorem batchTxBuffered.wp_UnsafeSeqPut :
     EtcdGrove.backend.batchTxBuffered.UnsafeSeqPut.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTxBuffered.UnsafeSeqPut.wp_proof batchTx.wp_UnsafeSeqPut txWriteBuffer.wp_putSeq
-
-theorem batchTx.wp_UnsafeForEach :
-    EtcdGrove.backend.batchTx.UnsafeForEach.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.batchTx.UnsafeForEach.wp_proof wp_unsafeForEach
 
 theorem concurrentReadTx.wp_Lock :
     EtcdGrove.backend.concurrentReadTx.Lock.spec (GF := GF) (hG := hG) :=

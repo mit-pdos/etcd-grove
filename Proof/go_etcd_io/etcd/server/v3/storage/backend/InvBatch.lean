@@ -638,9 +638,9 @@ theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
 /-- A slice a range of the writer returned, read under the batch lock in a state with the same
 write transaction (`UnsafeRange`'s capability). -/
 theorem batchLocked_rdB (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess) (s : GoSlice)
-    (v : GoString) :
-    rdB st.tx s v ∗ batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢
-      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked (GF := GF) γ P b st') := by
+    (v : GoString) (c : Bool := false) :
+    rdB st.tx s v ∗ batchLocked γ P b st' c ∗ ⌜st'.tx = st.tx⌝ ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked (GF := GF) γ P b st' c) := by
   iintro ⟨Hr, Hl, %Htx⟩
   unfold rdB
   icases Hr with (#Hs | #Hs)

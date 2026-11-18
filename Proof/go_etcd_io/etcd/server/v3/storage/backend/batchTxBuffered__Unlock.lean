@@ -41,6 +41,9 @@ set_option hygiene false in
 freedom), then the postcondition (the four free outcomes: nothing pending, or written back
 without a commit, with or without a view to update). -/
 local macro "bu_free" S:term:max hb:term:max hf:term:max : tactic => `(tactic| (
+    imod trkSide_conf (hG := hG) γ P $S _ Sc (fun n => bktOf st.S n) Rr Rr' E
+      (fun n hn => (rvBkt_idle (($hb).2.2.2.2.2.2.2.2.2.2.1) (HScRB n hn) (($hf).2.2.2.2.2 n (HScRB n hn))).trans
+        (by rw [wbSt_S])) $$ [$(frameH `Hhkd) $(frameH `HRr) $(frameH `Hcf)] with ⟨Hhkd, HRr⟩
     imod trkSide_idle (hG := hG) γ P $S _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB)
       ($hb).2.2.2.2.2.2.2.2.2.2.1 ⊤ (by solve_ndisj) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
       with ⟨Hhkd, Hin⟩
@@ -74,6 +77,9 @@ set_option hygiene false in
 /-- `batchTx.Unlock` with nothing pending (A1.5: the claimed writes forgotten, `BSess.clrCw`, every
 tracked bucket idle), then the postcondition. -/
 local macro "bu_free0" hb:term:max hf:term:max : tactic => `(tactic| (
+    imod trkSide_conf (hG := hG) γ P st _ Sc (fun n => bktOf st.S n) Rr Rr' E
+      (fun n hn => rvBkt_idle (($hb).2.2.2.2.2.2.2.2.2.2.1) (HScRB n hn) (($hf).2.2.2.2.2 n (HScRB n hn)))
+      $$ [$(frameH `Hhkd) $(frameH `HRr) $(frameH `Hcf)] with ⟨Hhkd, HRr⟩
     imod trkSide_idle (hG := hG) γ P st _ Sp rp (fun n _ hRB => ($hf).2.2.2.2.2 n hRB)
       ($hb).2.2.2.2.2.2.2.2.2.2.1 ⊤ (by solve_ndisj) $$ [$(frameH `Hhkd) $(frameH `Hrb)]
       with ⟨Hhkd, Hin⟩
@@ -161,6 +167,10 @@ local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| 
 set_option hygiene false in
 /-- `batchTx.Unlock` after a commit, then the postcondition. -/
 local macro "bu_release" : tactic => `(tactic| (
+    imod batchGhostAt_conf (hG := hG) γ P st2 true false Sc (fun n => bktOf st.S n) Rr Rr' E
+      (fun n hn => ⟨HScRB n hn, Hfin.1.2.2.2.2.2 n (HScRB n hn),
+        (bktOf_rb Hfin.2.2.2 (HScRB n hn)).trans (by simp [wbSt_S])⟩)
+      $$ [$(frameH `Hg2) $(frameH `HRr) $(frameH `Hcf)] with ⟨Hg2, HRr⟩
     imod batchGhostAt_idle (hG := hG) γ P st2 _ Sp _ rp rc Hfin.1.2.2.2.2.2 ⊤ (by solve_ndisj) $$ [$(frameH `Hg2) $(frameH `Hrb) $(frameH `Hrc)]
       with ⟨Hg2, Hin, Hinc⟩
     wp_apply (hBU γ P W Pk b t) $$ [$(frameH `Hown) Hph2 Hg2 HWv HPk]
@@ -183,19 +193,19 @@ private theorem unlock_coreC
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
-      (Sc : List GoString) (Rr : IProp GF) (E : CoPset) (Sp : GoString → Prop) (rp rc : GMap GoString BktData),
+      (Sc : List GoString) (Rr Rr' : IProp GF) (E : CoPset) (Sp : GoString → Prop) (rp rc : GMap GoString BktData),
     ↑rbClaimN ⊆ E → st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
     (∀ n, st.cw n = true → n ∈ Sc) → (∀ n, n ∈ Sc → P.RB n = true) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
         bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr E ∗
-        rbPart γ Sp rp ∗ rbPartR γ (fun n => n ∈ Sc) rc ∗
+        rbConf γ Sc (fun n => bktOf st.S n) Rr Rr' E ∗ rbPart γ Sp rp ∗ rbPartR γ (fun n => n ∈ Sc) rc ∗
         ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
            ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
          (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
       (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
-    {{ RET #(); Q ∗ Rr ∗ rbOwnIn γ Sp rp ∗ rbOwnInR γ (fun n => n ∈ Sc) rc }} := by
-  intro γ P W Pk b t st Q Sc Rr E Sp rp rc hE Hhw Hroom Hnd HcwS HScRB
-  wp_start as ⟨#Hb, #Ht, Hl, Htok, HRr, #Hacc, Hrb, Hrc, Hcase⟩
+    {{ RET #(); Q ∗ Rr' ∗ rbOwnIn γ Sp rp ∗ rbOwnInR γ (fun n => n ∈ Sc) rc }} := by
+  intro γ P W Pk b t st Q Sc Rr Rr' E Sp rp rc hE Hhw Hroom Hnd HcwS HScRB
+  wp_start as ⟨#Hb, #Ht, Hl, Htok, HRr, #Hacc, Hcf, Hrb, Hrc, Hcase⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
   · iframe #
@@ -415,12 +425,12 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st Q S r Sc rc Rr E hE Hhw Hroom Hnd HcwS
-  iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hrc, HRr, #Hacc, Hcase⟩ HΦ
+  intro γ P W Pk b t st Q S r Sc rc Rr Rr' E hE Hhw Hroom Hnd HcwS
+  iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hrc, HRr, #Hacc, Hcf, Hcase⟩ HΦ
   icases batchLocked_rbPartR_RB γ P b st true _ rc $$ [$Hl $Hrc] with ⟨Hl, Hrc, %HScRB⟩
-  iapply (unlock_coreC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Sc Rr E S r rc hE Hhw Hroom Hnd HcwS HScRB) $$ %Φ
-    [Hl Htok HRr Hrb Hrc Hcase]
-  · iframe Hl Htok HRr Hrb Hrc Hcase; iframe #
+  iapply (unlock_coreC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Sc Rr Rr' E S r rc hE Hhw Hroom Hnd HcwS HScRB) $$ %Φ
+    [Hl Htok HRr Hcf Hrb Hrc Hcase]
+  · iframe Hl Htok HRr Hcf Hrb Hrc Hcase; iframe #
   inext
   iintro ⟨HQ, HRr, Hin, Hinc⟩
   iapply HΦ

@@ -244,7 +244,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
       isplitr
       · ipureintro
-        exact ⟨hfo, hv, by simp [commitSt]⟩
+        exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
     · simp only [Bool.false_eq_true, ↓reduceIte]
       icases Hrest with ⟨Hwtx, #Htxdb'⟩
@@ -291,7 +291,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         iframe #
       isplitr
       · ipureintro
-        exact ⟨hfo, hv, by simp [commitSt]⟩
+        exact ⟨hfo, hv, by simp [commitSt], Hs.2.2.2.1⟩
       iexact Hbv
   · icases Hres with (⟨%HA, -⟩ | ⟨%HB, Hdb, Hpend, %tx', Htxf, -⟩)
     · exact absurd HA.2 (by decide)
