@@ -53,7 +53,7 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
       (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)))
     $$ [$Hasl] as %s -
   (try wp_auto)
-  wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %_, %hst⟩
+  wp_apply (wp_NewTimeoutError s retry) as %p ⟨%st, %dv, Hp, Hd, %_, %hst, %hr⟩
   (try wp_auto)
   wp_apply wp_slice_literal
   isplitr
@@ -80,9 +80,9 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
       iexact Hcsl
     · ipureintro
       exact ⟨hst.2.1, by simp⟩
-  · iexists p, st
-    iframe Hp
-    ipureintro; exact ⟨rfl, hst.1⟩
+  · iexists p, st, _
+    iframe Hp Hd
+    ipureintro; exact ⟨rfl, hst.1, hst.2.1, hr⟩
 
 end proof
 

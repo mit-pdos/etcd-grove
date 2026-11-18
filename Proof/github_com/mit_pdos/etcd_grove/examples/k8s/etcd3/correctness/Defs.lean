@@ -25,6 +25,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.RReplay
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Base
 public import Proof.k8s_io.apimachinery.pkg.api.errors.View
+public import Spec.k8s_io.apimachinery.pkg.api.errors.SuggestsClientDelay
 
 @[expose] public section
 
@@ -144,16 +145,44 @@ theorem modelOwn_freeze (mp : Loc) (m : RM) : modelOwn (GF := GF) mp m ⊢ |==> 
 /-! ## Responses -/
 
 /-- **A `Response.Err` with the view `e`** (persistent): a deep value read-only; storage's
-too-large error (`apierrors.tooLargeErrIs`; its `delay` bit is read by `SuggestsClientDelay`,
-whose spec is pending the soundness fix, `notes/k8s-7g-trust.md` §2); for `other`, only that it
-is not `nil` (`errNonNil`). -/
+too-large error (`apierrors.tooLargeErrIs`) whose details, held read-only, give `delay` as
+`SuggestsClientDelay`'s answer (`apierrors.delayV`); for `other`, only that it is not `nil`
+(`errNonNil`). -/
 def errRep (x : GoInterface) : RErr → IProp GF
   | .deep d => deepRO x d
-  | .tooLarge _ => apierrors.tooLargeErrIs x
+  | .tooLarge delay => iprop(apierrors.tooLargeErrIs x ∗
+      ∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
+        (dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails),
+      ⌜x = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ∧
+        (apierrors.delayV st dv).2 = delay⌝ ∗
+      l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ st.Details' ↦□ dv)
   | .other => iprop(⌜x ≠ GoInterface.nil⌝)
 
 instance errRep_persistent (x : GoInterface) (e : RErr) : Persistent (errRep (GF := GF) x e) := by
   cases e <;> unfold errRep <;> infer_instance
+
+/-- **`NewTooLargeResourceVersionError(_, _, 0)`'s error is `RErr.tooLarge false`** (its reason
+`Timeout` and no retry: `SuggestsClientDelay` answers `false`). -/
+theorem errRep_tooLarge_of (x : GoInterface) (l : Loc)
+    (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
+    (dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails)
+    (h : x = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ∧
+      st.Status' = go!"Failure" ∧ st.Reason' = go!"Timeout" ∧
+      dv.RetryAfterSeconds' = W32 (sint.Z (W64 0))) :
+    (apierrors.tooLargeErrIs x ∗ l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
+      st.Details' ↦□ dv : IProp GF) ⊢ errRep x (.tooLarge false) := by
+  iintro ⟨#Ht, #Hl, #Hd⟩
+  simp only [errRep]
+  isplitr
+  · iexact Ht
+  iexists l, st, dv
+  iframe Hl Hd
+  ipureintro
+  refine ⟨h.1, ?_⟩
+  obtain ⟨-, -, hr, hd⟩ := h
+  unfold apierrors.delayV
+  rw [hr, hd]
+  simp
 
 /-- **The `Response` `r` has the view `rr`** (persistent). -/
 def respRep (r : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response)
@@ -236,7 +265,7 @@ theorem errRep_nil_iff (x : GoInterface) (e : RErr) :
     unfold errRep
     iintro H
     unfold apierrors.tooLargeErrIs apierrors.apiErrAt
-    icases H with ⟨%st, %cs, ⟨%l, %h, -⟩, -⟩
+    icases H with ⟨⟨%st, %cs, ⟨%l, %h, -⟩, -⟩, -⟩
     ipureintro
     subst h
     simp [errNonNil, interface.mkOk]

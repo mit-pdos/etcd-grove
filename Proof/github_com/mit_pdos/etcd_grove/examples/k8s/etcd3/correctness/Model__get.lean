@@ -87,14 +87,17 @@ theorem Model.get.wp_proof
     case pos =>
       rw [decide_eq_true hlt]
       wp_auto
-      wp_apply (wp_TooLarge n m.rv (W64 0)) as %e ⟨#Htl, -⟩
+      wp_apply (wp_TooLarge n m.rv (W64 0)) as %e ⟨#Htl, %l, %st, %dv, %Hst, #Hl, #Hd⟩
       iapply HΦ
       have : rgetL x m = ⟨.nil, tooLargeE⟩ := by
         unfold rgetL; simp [hk, hp]; intro h; exfalso; word
       rw [this]
-      unfold respRep errRep deepRO deepRep tooLargeE
+      unfold respRep deepRO deepRep tooLargeE
       simp only
-      iframe Htl
+      isplitr
+      · ipureintro; trivial
+      iapply errRep_tooLarge_of e l st dv Hst
+      iframe Htl Hl Hd
     rw [decide_eq_false hlt]
     wp_auto
     wp_apply (wp_map_lookup2 go.string k8s_io.apimachinery.pkg.runtime.Object.ty il M
@@ -152,7 +155,7 @@ theorem Model.get.wp_proof
     | some v =>
       icases itemsRO_lookup M m.items _ v hs $$ Hit with ⟨%p, %o, ⟨%ho, %hv⟩, #Hpo⟩
       subst hv
-      simp only [Option.isSome_some, decide_true]
+      simp only [Option.isSome_some, _root_.decide_true]
       wp_auto
       wp_apply +noauto (wp_DeepCopy p DFrac.discard o) $$ [Hpo] as %c ⟨-, Hc⟩
       · iexact Hpo

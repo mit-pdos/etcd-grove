@@ -194,14 +194,17 @@ theorem Model.list.wp_proof
       by_cases hlt : uint.Z m.rv < uint.Z rv
       · rw [decide_eq_true hlt]
         wp_auto
-        wp_apply (wp_TooLarge rv m.rv (W64 0)) as %e ⟨#Htl, -⟩
+        wp_apply (wp_TooLarge rv m.rv (W64 0)) as %e ⟨#Htl, %l, %st, %dv, %Hst, #Hl, #Hd⟩
         iapply HΦ
         have : rlistL x m = ⟨.nil, tooLargeE⟩ := by
           unfold rlistL; simp [hk, hc]; intro h; exfalso; word
         rw [this]
-        unfold respRep errRep deepRO deepRep tooLargeE
+        unfold respRep deepRO deepRep tooLargeE
         simp only
-        iframe Htl
+        isplitr
+        · ipureintro; trivial
+        iapply errRep_tooLarge_of e l st dv Hst
+        iframe Htl Hl Hd
       rw [decide_eq_false hlt]
       wp_auto
       wp_join at next with [rv s]

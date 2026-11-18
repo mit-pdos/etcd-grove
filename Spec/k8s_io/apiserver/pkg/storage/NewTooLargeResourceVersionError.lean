@@ -5,7 +5,8 @@
 `IsTooLargeResourceVersion` recognizes (`tooLargeErrIs`: its status, details and causes persisted;
 strengthened in stage 7e-2, `notes/k8s-7e-2-draft.md` §4.5; the former post, a `*StatusError`,
 follows: `apierrors.tooLargeErrIs_ptr`); its status is `Failure` (`NewTimeoutError`'s; k8s 7f-5a-P
-step 5, E6: the watcher's `sendError` needs it). Lean-first (no Rocq counterpart).
+step 5, E6: the watcher's `sendError` needs it), its reason `Timeout` and its details'
+`RetryAfterSeconds` `int32(retrySeconds)` (k8s 7g: what `SuggestsClientDelay` reads). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -35,9 +36,12 @@ abbrev storage.NewTooLargeResourceVersionError.spec : Prop :=
     (App (App (App (Val (@! k8s_io.apiserver.pkg.storage.NewTooLargeResourceVersionError))
       (Val #minRV)) (Val #curRV)) (Val #retry))
   {{ (err : GoInterface), RET #err; apierrors.tooLargeErrIs err ∗
-      ∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status),
+      ∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
+        (dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails),
         ⌜err = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ∧
-          st.Status' = go!"Failure"⌝ ∗ l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st }}
+          st.Status' = go!"Failure" ∧ st.Reason' = go!"Timeout" ∧
+          dv.RetryAfterSeconds' = W32 (sint.Z retry)⌝ ∗
+        l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ st.Details' ↦□ dv }}
 
 end spec
 
