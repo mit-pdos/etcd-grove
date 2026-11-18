@@ -207,6 +207,17 @@ theorem wBytes_restrict (p : BFile) (W W' : List Nat) (wb : Nat → List w8) (si
   rw [List.mem_filter, decide_eq_true_eq] at hs
   exact hsub s hs.1 hs.2
 
+
+/-- `wBytes_restrict` for the writer's bytes with the synced freelist page's half (session S4). -/
+theorem wBytesX_restrict (p : BFile) (W W' X : List Nat) (wb : Nat → List w8) (size : Nat)
+    (hn : W'.Nodup) (hsub : ∀ s ∈ W', 4096 * s < size → s ∈ W) :
+    wBytesX (GF := GF) p W X wb size ⊢ wBytesX (GF := GF) p W' X wb size := by
+  unfold wBytesX
+  refine sep_mono (wBytes_restrict p _ _ wb size (hn.filter _) ?_) .rfl
+  intro s hs hlt
+  rw [List.mem_filter] at hs ⊢
+  exact ⟨hsub s hs.1 hlt, hs.2⟩
+
 end cells
 
 end bbolt

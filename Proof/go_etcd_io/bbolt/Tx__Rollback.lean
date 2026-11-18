@@ -11,6 +11,7 @@ public import Proof.go_etcd_io.bbolt.Tx__Rollback_r
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 public import Proof.go_etcd_io.bbolt.Tx__close_w
 public import Proof.go_etcd_io.bbolt.Txn.WRoll
+public import Proof.go_etcd_io.bbolt.Commit.RollbackFlag
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Txid
 public import Spec.go_etcd_io.bbolt.internal.common.Assert
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Rollback
@@ -157,10 +158,13 @@ theorem Tx.Rollback.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (hga
   ihave Htok := fbTok_of_wdbOK (GF := GF) K.B w hwok (wLive X.v w.C) ∅
   imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms (wLive X.v w.C)
     (w.C.txid + 1) ∅ rfl rfl $$ [Hpi Hcur Hgfl Hgmap Hgwv Htok]
-    with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, -⟩
+    with ⟨%S, %XS, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, HsoH, %HS, %HXc, %Hbs, %Hrec⟩
   · iframe; iframe #
-  icases wdb_rollback K.p w _ S bs hwok rfl HS hpend (by rw [hwms]; simp) Hbs
-    $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
+  have h2s : ∀ s ∈ pendSlots w.fl, 2 ≤ s := fun s hs => (hpend X.v.base (mapLen w.ms)
+    (by rw [hwms]; rfl) s hs).1
+  icases wdb_rollback_f K.p false w _ S XS bs ∅ hwok (fbRel_of_wdbOK w hwok ∅) rfl
+      (flBelow_wtx_alloctx w.fl w.C _ hbl) HS HXc h2s Hbs Hrec
+    $$ [Hwc Hwb Hso HsoH] with ⟨%w', %Hw', Hwc, Hwb⟩
   · iframe
   obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
   have hvd : X.v.data = treeData w.C := by

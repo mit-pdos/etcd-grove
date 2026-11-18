@@ -85,7 +85,7 @@ abbrev Tx.writeMeta.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (dbFd K.p.ino) ∗
+      fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
       osMeta K.p.ino (DFrac.own 1) om ∗
       commitStep K (mv.txid'.toNat % 2) b (metaBuf mv) Ψ }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"writeMeta")) (Val #()))
@@ -94,7 +94,7 @@ abbrev Tx.writeMeta.spec : Prop :=
       K.db.[DB, go!"file"] ↦{dqf} f ∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{dqw}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      fileOwn f fd K.p.path (DFrac.own 1) ∗ osFd fd (DFrac.own 1) (dbFd K.p.ino) ∗
+      fileOwn f fd K.p.path dqf ∗ osFd fd dqf (dbFd K.p.ino) ∗
       (∃ om' : OsMeta, osMeta K.p.ino (DFrac.own 1) om' ∗
         ⌜om'.size = om.size ∧ om'.maps = om.maps⌝) ∗
       ∃ j : Nat, Ψ j ∗ ⌜(j = 0 ∨ j = 4096) ∧ (err = interface.nil → j = 4096)⌝ ∗
@@ -227,8 +227,8 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   -- the write
   have h0 : 0 ≤ ((mv.txid' % W64 2) * W64 4096).toInt := by
     rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
-  wp_apply hWriteAt f fd K.p.path (DFrac.own 1) sl (metaBuf mv) (DFrac.own 1)
-    ((mv.txid' % W64 2) * W64 4096) (DFrac.own 1) (dbFd K.p.ino) om xs rfl h0
+  wp_apply hWriteAt f fd K.p.path dqf sl (metaBuf mv) (DFrac.own 1)
+    ((mv.txid' % W64 2) * W64 4096) dqf (dbFd K.p.ino) om xs rfl h0
     (by rw [hoff]; omega) (by rw [metaBuf_length, hoff]; omega)
     (by rw [metaBuf_length]; decide) (by rw [metaBuf_length]; decide)
     (by rw [metaBuf_length, hoff]; omega)
@@ -341,7 +341,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       rcases hres with ⟨h1, -, -⟩ | ⟨-, h2⟩
       · rw [metaBuf_length] at h1; exact h1
       · exact absurd rfl h2.1
-    ihave Hfo : fileOwn f fd K.p.path (DFrac.own 1) $$ [Hfo]
+    ihave Hfo : fileOwn f fd K.p.path dqf $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     -- the sync (unless `NoSync`), then the statistics
     cases ns with
@@ -362,7 +362,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       ileft; ipureintro; rfl
     | false =>
       wp_auto
-      wp_apply hSync K.db f fd K.p K.p.ino _ dqf (DFrac.own 1) $$ [Hf Hfo Hfd Hm]
+      wp_apply hSync K.db f fd K.p K.p.ino _ dqf dqf $$ [Hf Hfo Hfd Hm]
         as %e2 ⟨Hf, Hfo, Hfd, ⟨%m', Hm, %Hm'⟩, Hr⟩
       · iframe #; iframe
       icases Hr with (%He | ⟨%He, #Hfe⟩)

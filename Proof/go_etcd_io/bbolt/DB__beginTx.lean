@@ -212,8 +212,8 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   imod store_register K.B K.N K.p ⊤ CoPset.subseteq_top C b l k $$ [Hpi Hcur' Hmap' Hmt Hfk Hshot]
     with ⟨Hcur', Hmap', ⟨%fx, Hrds, %Hfx⟩, Hvc⟩
-  ihave ⟨Hrds, Hrds2⟩ := (ghostMapElem_halves K.B.rds k _).1 $$ Hrds
   · iframe; iframe #
+  icases (ghostMapElem_halves (GF := GF) K.B.rds k _).1 $$ Hrds with ⟨Hrds, Hrds2⟩
   ihave Hspr : (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
       (opnShot K.B ∨ ⌜sprCl o' (<[k := W64 (C.txid : Int)]> F)⌝)) $$ [Ho]
   · iexists o; iframe Ho; ileft; iexact Hshot
@@ -234,7 +234,6 @@ theorem DB.beginTx.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [↓reduceIte]
       iframe
-      iexists fx; iexact Hrds
     · iunfold readerHandles
       simp only [Bool.false_eq_true, ↓reduceIte]
       iexists ∅; iexact Hrbk

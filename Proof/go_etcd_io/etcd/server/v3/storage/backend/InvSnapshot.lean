@@ -15,7 +15,7 @@ axioms of etcd's backend (`backend.Snapshot`, `snapshot.WriteTo`) and of the fil
   token `γ`; `WriteTo` and `Size` read at any share (the sender's goroutine streams while the
   sender reads the size), `Close` takes the whole (no read after it: bbolt's closed transaction
   has a nil `meta`, which `Size` dereferences). `snapOpen sp D` is the whole for some `γ`.
-* `boltImage bs D` (opaque `Prop`): the bytes `bs` are a bbolt database file whose data is `D`
+* `boltImage bs D` (bbolt's `boltImage`, session S4; until then an opaque `Prop`): the bytes `bs` are a bbolt database file whose data is `D`
   (what `Tx.WriteTo` writes: its two meta pages and its data pages; many byte strings encode one
   `D`, by their page layout and free list). A file holding such bytes holds `D` (`fileHolds`):
   that is the receiver's half of the round trip, the transport's (D22 S-i).
@@ -42,6 +42,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
+public import Proof.io.SectionReader
 
 @[expose] public section
 
@@ -55,8 +56,9 @@ namespace backend
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
-/-- **The bytes `bs` are a bbolt database file holding `D`** (opaque; see the file header). -/
-opaque boltImage (bs : List w8) (D : Data) : Prop
+/-- **The bytes `bs` are a bbolt database file holding `D`** (see the file header; session S4: bbolt's
+`boltImage`, what bbolt's proved `Tx.WriteTo` writes, until then opaque). -/
+def boltImage (bs : List w8) (D : Data) : Prop := bbolt.boltImage bs D
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -109,21 +111,10 @@ dst)` of a file the program holds onto an entry it owns fails for no reason of t
 premise excluding it is `storage.snapOpensOk`. -/
 opaque renameOk (src dst : GoString) : Prop
 
-/-- **The `io.Writer` `w`'s contract** (persistent), by `Wr c bs`, the bytes `bs` written so far
-(`c`: whether a `Write` has returned): `Write(p)` of a slice holding `chunk` (read at `dq`, given
-back) appends the first `k` bytes of `chunk` and returns `k`, all of them unless the error is
-non-nil. -/
-def writerOk (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) : IProp GF :=
-  iprop(□ ∀ (p : GoSlice) (dq : DFrac) (chunk bs : List w8) (c : Bool),
-    {{ p ↦*{dq} chunk ∗ Wr c bs }}
-      (App (Val #(methods w.ty go!"Write" w.v)) (Val #p))
-    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-        ∃ k : Nat, p ↦*{dq} chunk ∗ Wr true (bs ++ chunk.take k) ∗
-          ⌜sint.Z n = k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝ }})
-
-instance writerOk_persistent (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) :
-    Persistent (writerOk w Wr) := by
-  unfold writerOk; infer_instance
+/-- **The `io.Writer` `w`'s contract** (persistent): `io.writerOk` (`Proof/io/SectionReader.lean`;
+session S4 moved its body there, for bbolt's `Tx.WriteTo` and `io.CopyN`). -/
+abbrev writerOk (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) : IProp GF :=
+  io.writerOk w Wr
 
 /-- **The right to read the stream of the `io.ReadCloser` `r`, whose complete streams satisfy
 `Φ`** (opaque, exclusive; D22 S-i, 2026-10-19): `r` is read by one reader, and any byte string it

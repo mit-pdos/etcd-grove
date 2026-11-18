@@ -31,16 +31,16 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 def mergeWb (S : List Nat) (bs wb : Nat → List w8) : Nat → List w8 :=
   fun s => if s ∈ S then bs s else wb s
 
-/-- **Slots `S` join the `W` slots**: `S` disjoint from `W`, each slot of `S` whole inside the
-file and the mapping, its bytes a page. -/
-theorem wjoin (p : BFile) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8) (size : Nat)
-    (hdisj : ∀ s ∈ S, s ∉ W)
+/-- **Slots `S` join the `W` slots**, the cells' and the bytes' lists apart (session S4: the
+writer's bytes are over `W` but the synced freelist page's slots, `wBytesX`). -/
+theorem wjoin2 (p : BFile) (ms : MapSt) (Wc Wb S : List Nat) (wb bs : Nat → List w8) (size : Nat)
+    (hdisj : ∀ s ∈ S, s ∉ Wb)
     (hS : ∀ s ∈ S, 4096 * (s + 1) ≤ size ∧ (∀ b l, ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧
       (bs s).length = 4096) :
-    wCells (GF := GF) ms W ∗ wBytes p W wb size ∗ slotsOwn ms p S bs ⊢
-      wCells ms (W ++ S) ∗ wBytes p (W ++ S) (mergeWb S bs wb) size := by
+    wCells (GF := GF) ms Wc ∗ wBytes p Wb wb size ∗ slotsOwn ms p S bs ⊢
+      wCells ms (Wc ++ S) ∗ wBytes p (Wb ++ S) (mergeWb S bs wb) size := by
   -- the `W` slots' bytes are unchanged
-  have hW : wBytes (GF := GF) p W wb size ⊢ wBytes p W (mergeWb S bs wb) size := by
+  have hW : wBytes (GF := GF) p Wb wb size ⊢ wBytes p Wb (mergeWb S bs wb) size := by
     unfold wBytes
     refine BigSepL.bigSepL_mono fun {k x} hk => ?_
     have hx : x ∉ S := fun h => hdisj x h (List.mem_of_getElem? hk)
@@ -101,6 +101,54 @@ theorem wjoin (p : BFile) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8
     rw [hlen]
     iexists _; iexact H
 
+
+
+/-- **Slots `S` join the `W` slots**: `S` disjoint from `W`, each slot of `S` whole inside the
+file and the mapping, its bytes a page. -/
+theorem wjoin (p : BFile) (ms : MapSt) (W S : List Nat) (wb bs : Nat → List w8) (size : Nat)
+    (hdisj : ∀ s ∈ S, s ∉ W)
+    (hS : ∀ s ∈ S, 4096 * (s + 1) ≤ size ∧ (∀ b l, ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧
+      (bs s).length = 4096) :
+    wCells (GF := GF) ms W ∗ wBytes p W wb size ∗ slotsOwn ms p S bs ⊢
+      wCells ms (W ++ S) ∗ wBytes p (W ++ S) (mergeWb S bs wb) size :=
+  wjoin2 p ms W W S wb bs size hdisj hS
+
+/-- **The synced freelist page's slots `X` join the `W` slots' cells** (session S4): their cells
+join `wCells`, their half bytes stay apart (`wBytesX`'s second part). -/
+theorem wjoinH (p : BFile) (ms : MapSt) (Wc X : List Nat) (bs : Nat → List w8)
+    (hX : ∀ s ∈ X, (∀ b l, ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧ (bs s).length = 4096) :
+    wCells (GF := GF) ms Wc ∗ slotsOwnH ms p X bs ⊢
+      wCells ms (Wc ++ X) ∗ [∗list] s ∈ X, osSlotH p s (bs s) := by
+  rcases ms with _ | ⟨base, len⟩
+  · unfold wCells slotsOwnH
+    simp only
+    iintro ⟨-, Hs⟩
+    isplitr
+    · iempintro
+    iapply BigSepL.bigSepL_mono (Φ := fun _ s => iprop(emp ∗ osSlotH (GF := GF) p s (bs s))) $$ Hs
+    intro k x _
+    iintro ⟨-, H⟩; iexact H
+  · unfold wCells slotsOwnH
+    simp only
+    iintro ⟨⟨Hc, Hpart⟩, Hs⟩
+    ihave ⟨Hsc, Hsb⟩ := (BigSepL.bigSepL_sep_eqv (Φ := fun _ s =>
+      bytesPointsto (GF := GF) (base +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s))
+      (Ψ := fun _ s => osSlotH (GF := GF) p s (bs s)) (l := X)).1 $$ Hs
+    iframe Hsb Hpart
+    iapply BigSepL.bigSepL_append.2
+    iframe Hc
+    iapply BigSepL.bigSepL_mono (Φ := fun _ s =>
+      bytesPointsto (GF := GF) (base +ₗ ((4096 * s : Nat) : Int)) (DFrac.own (1 : Qp).half) (bs s))
+      $$ Hsc
+    intro k x hk
+    have hx := List.mem_of_getElem? hk
+    obtain ⟨hl, hlen⟩ := hX x hx
+    simp only [hl base len rfl, ↓reduceIte]
+    iintro H
+    ihave H := bytes_cellsR base (bs x) (4096 * x) $$ H
+    rw [hlen]
+    iexists _; iexact H
+
 omit [GooseSemantics] [GooseInterp] go_gctx hos in
 /-- The bytes of the extent from `f` read from `wb'`, which agrees with `wb` wherever an id of
 `fl` is not, are `wb`'s, when `flCurOK` holds of them and `f`'s bytes hold a page header. -/
@@ -149,6 +197,89 @@ theorem wb_header (w : WDb) (hok : wdbOK w) :
       rw [this]
       exact List.mem_append_right _ ((pendingIds_mem_iff _ _).2 ⟨t, pd, hpd, hx⟩)
   rw [hlen f hW (by omega)]; omega
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+/-- **The synced freelist page's half is no pending slot under `wdbOK`** (session S4): `flCurOK`
+keeps the page's slots out of the freelist. -/
+theorem flxS_not_pend (w : WDb) (hok : wdbOK w) :
+    ∀ s ∈ flxS w.C w.fl w.wb, s ∉ pendSlots w.fl := by
+  intro s hs hp
+  unfold flxS at hs
+  rcases hf : w.C.flpg with _ | f
+  · rw [hf] at hs; cases hs
+  · rw [hf] at hs
+    by_cases hfp : f ∈ pendSlots w.fl
+    · simp only [hfp, ↓reduceIte] at hs; cases hs
+    · simp only [hfp, ↓reduceIte] at hs
+      have h16 := wb_header w hok f hf
+      obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hok.2.2.2.2.2.1 f hf f hf
+      rw [mem_flExt] at hs
+      rw [pageOverflow_extentBytes _ _ h16] at hsl
+      exact (hsl s hs.1 hs.2).2 (mem_allIds_of_pend _ _ hp).1
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+/-- The synced freelist page is not pending under `wdbOK` (`flCurOK`). -/
+theorem flpg_not_pend (w : WDb) (hok : wdbOK w) :
+    ∀ f, w.C.flpg = some f → f ∉ pendSlots w.fl := by
+  intro f hf hp
+  obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hok.2.2.2.2.2.1 f hf f hf
+  exact (hsl f (Nat.le_refl _) (by omega)).2 (mem_allIds_of_pend _ _ hp).1
+
+omit [GooseSemantics] [GooseInterp] go_gctx hos in
+/-- `flxS` reads the page's pendingness and its header's bytes only. -/
+theorem flxS_congr_f (C : CommitSt) (fl fl' : FLPg) (b b' : Nat → List w8)
+    (h : ∀ f, C.flpg = some f → (f ∈ pendSlots fl' ↔ f ∈ pendSlots fl) ∧ b' f = b f) :
+    flxS C fl' b' = flxS C fl b := by
+  unfold flxS
+  rcases hf : C.flpg with _ | f
+  · rfl
+  · obtain ⟨h1, h2⟩ := h f hf
+    simp only [h1]
+    unfold flExt
+    rw [h2]
+
+/-- `wBytes` reads its slots' bytes only. -/
+theorem wBytes_congr (p : BFile) (W : List Nat) (wb wb' : Nat → List w8) (size : Nat)
+    (h : ∀ s ∈ W, wb' s = wb s) :
+    wBytes (GF := GF) p W wb size ⊢ wBytes p W wb' size := by
+  unfold wBytes
+  refine BigSepL.bigSepL_mono fun {k x} hk => ?_
+  rw [h x (List.mem_of_getElem? hk)]
+
+/-- `osSlotH`s read their slots' bytes only. -/
+theorem osSlotsH_congr (p : BFile) (X : List Nat) (wb wb' : Nat → List w8)
+    (h : ∀ s ∈ X, wb' s = wb s) :
+    ([∗list] s ∈ X, osSlotH (GF := GF) p s (wb s)) ⊢ [∗list] s ∈ X, osSlotH p s (wb' s) := by
+  refine BigSepL.bigSepL_mono fun {k x} hk => ?_
+  rw [h x (List.mem_of_getElem? hk)]
+
+/-- **Slots `S` join the `W` slots, the writer holding the synced freelist page's half `X`**
+(session S4: `wjoin` over `wBytesX`; `S` meets neither `W` nor `X`). -/
+theorem wjoinX (p : BFile) (ms : MapSt) (W X S : List Nat) (wb bs : Nat → List w8) (size : Nat)
+    (hdisj : ∀ s ∈ S, s ∉ W) (hX : ∀ s ∈ S, s ∉ X)
+    (hS : ∀ s ∈ S, 4096 * (s + 1) ≤ size ∧ (∀ b l, ms = some (b, l) → 4096 * (s + 1) ≤ l) ∧
+      (bs s).length = 4096) :
+    wCells (GF := GF) ms W ∗ wBytesX p W X wb size ∗ slotsOwn ms p S bs ⊢
+      wCells ms (W ++ S) ∗ wBytesX p (W ++ S) X (mergeWb S bs wb) size := by
+  have hj := wjoin2 (GF := GF) p ms W (W.filter (fun s => decide (s ∉ X))) S wb bs size
+    (fun s hs hw => hdisj s hs (List.mem_filter.1 hw).1) hS
+  have hfilt : (W ++ S).filter (fun s => decide (s ∉ X)) = W.filter (fun s => decide (s ∉ X)) ++ S := by
+    rw [List.filter_append]
+    congr 1
+    rw [List.filter_eq_self]; intro s hs; simp [hX s hs]
+  iintro ⟨Hc, Hbx, HS⟩
+  iunfold wBytesX at Hbx
+  icases Hbx with ⟨Hb, H0⟩
+  ihave ⟨Hc, Hb⟩ := hj $$ [Hc Hb HS]
+  · iframe
+  iframe Hc
+  unfold wBytesX
+  rw [hfilt]
+  iframe Hb
+  iapply osSlotsH_congr p X wb (mergeWb S bs wb) ?_ $$ H0
+  intro s hs
+  have : s ∉ S := fun h => hX s h hs
+  simp [mergeWb, this]
 
 end wjoin
 

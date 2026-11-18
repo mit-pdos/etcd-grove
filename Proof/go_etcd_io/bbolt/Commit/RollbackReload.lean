@@ -50,7 +50,7 @@ theorem toNat_mem_pendSlots (fl : FLPg) (x : w64) (h : x ∈ fl.pendingIds) :
     x.toNat ∈ pendSlots fl :=
   List.mem_map_of_mem h
 
-theorem mem_pendSlots_iff (fl : FLPg) (x : w64) : x.toNat ∈ pendSlots fl ↔ x ∈ fl.pendingIds := by
+theorem mem_pendSlots_iff_ids (fl : FLPg) (x : w64) : x.toNat ∈ pendSlots fl ↔ x ∈ fl.pendingIds := by
   constructor
   · intro h
     obtain ⟨y, hy, e⟩ := List.mem_map.1 h
@@ -145,7 +145,7 @@ theorem reload_store_ids (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = so
     rw [mem_slotsOf]
     rintro (h | h)
     · exact c2 ((mem_pagesSlots_iff _ _).1 h)
-    · exact c1 ((mem_pendSlots_iff _ _).1 h)
+    · exact c1 ((mem_pendSlots_iff_ids _ _).1 h)
 
 /-- **The writer side after `Reload` of the synced freelist page.** -/
 theorem wdbOK_reload_synced (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f) :
@@ -317,15 +317,15 @@ theorem ext_cells_back (b : Loc) (wb : Nat → List w8) :
 around any step `e`): the cells give the extent's bytes at a half. -/
 theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none) (p : BFile)
     (dqm : DFrac) (m : OsMeta) (b : Loc) (len : Nat) (hb : m.maps !! b = some len)
-    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (wb : Nat → List w8) :
+    (hE : ↑osN ⊆ E) (Φ : val → IProp GF) (wb : Nat → List w8) (dqb : DFrac) :
     ∀ (k f : Nat), (∀ s, f ≤ s → s < f + k → 4096 * (s + 1) ≤ len ∧ (wb s).length = 4096) →
     ⊢ osInv (GF := GF) -∗ osMeta (GF := GF) p.ino dqm m -∗
       ([∗list] s ∈ List.range' f k, ∃ xs : List ByteG,
-        osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
+        osBytes (GF := GF) p.ino (4096 * s) dqb xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
       ([∗list] s ∈ List.range' f k, ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
       (osMeta (GF := GF) p.ino dqm m -∗
         ([∗list] s ∈ List.range' f k, ∃ xs : List ByteG,
-          osBytes (GF := GF) p.ino (4096 * s) (DFrac.own 1) xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
+          osBytes (GF := GF) p.ino (4096 * s) dqb xs ∗ ⌜xs.map Prod.fst = wb s⌝) -∗
         bytesPointsto (GF := GF) (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
           ((List.range' f k).flatMap wb) -∗
         WP e @ st; E {{ Φ }}) -∗
@@ -345,13 +345,13 @@ theorem ext_agree {st : Stuckness} {E : CoPset} (e : Expr) (htv : toVal e = none
       have := congrArg List.length Hx; simp only [List.length_map] at this; omega
     ihave Hc0 : cellsR (GF := GF) b (4096 * f) xs.length vf $$ [Hc0]
     · rw [hxl]; iexact Hc0
-    iapply cellsR_agree_bytes e htv p dqm m b len hb (DFrac.own 1) hE Φ xs (4096 * f) vf
+    iapply cellsR_agree_bytes e htv p dqm m b len hb dqb hE Φ xs (4096 * f) vf
       (by omega) $$ Hinv Hm Hxs Hc0
     iintro Hm Hxs Hc0
     ihave H0 : bytesPointsto (GF := GF) (b +ₗ ((4096 * f : Nat) : Int)) (DFrac.own (1 : Qp).half)
         (wb f) $$ [Hc0]
     · rw [← Hx]; iapply cellsR_bytes; simp only [List.length_map]; iexact Hc0
-    iapply ext_agree e htv p dqm m b len hb hE Φ wb k (f + 1)
+    iapply ext_agree e htv p dqm m b len hb hE Φ wb dqb k (f + 1)
       (fun s h1 h2 => h s (by omega) (by omega)) $$ Hinv Hm Hob Hc
     iintro Hm Hob Hr
     iapply HΦ $$ Hm [Hxs Hob] [H0 Hr]

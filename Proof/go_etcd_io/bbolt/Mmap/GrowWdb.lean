@@ -68,9 +68,11 @@ variable [sem : go.Semantics]
 /-- The writer side's file resources: `db.file`, the file, its fd and `OsMeta`, `db.datasz`, the
 `W` slots' cells and page-cache bytes. -/
 def growRes (K : BC) (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) : IProp GF :=
-  iprop(K.db.[DB, go!"file"] ↦ w.f ∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) ∗
-    osFd w.fd (DFrac.own 1) (dbFd K.p.ino) ∗ osMeta K.p.ino (DFrac.own 1) m ∗
-    K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗ wCells w.ms W ∗ wBytes K.p W wb m.size)
+  iprop(K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f ∗
+    fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) ∗
+    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) ∗ osMeta K.p.ino (DFrac.own 1) m ∗
+    K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗ wCells w.ms W ∗
+    wBytesX K.p W (flxS w.C w.fl wb) wb m.size)
 
 omit [GooseSemantics] hos in
 /-- A mapping's length facts, the fields kept. -/

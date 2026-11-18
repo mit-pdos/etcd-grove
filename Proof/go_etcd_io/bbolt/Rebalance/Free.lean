@@ -81,6 +81,27 @@ theorem wdbOK_free (w : WDb) (id : w64) (pg : List w8) (hok : wdbOK w)
         rw [runIds_mem_toNat _ _ hn, toNat_W64_of_lt _ hs64] at hm
         exact (c9 s hs1 hs2).1 ⟨id.toNat, pg, hpg, hm.1, hm.2⟩
 
+/-- **Freeing a tree page leaves the synced freelist page's half where it was** (session S4): the
+page's slots cover no tree page (`flCurOK`), so it is no slot of the freed run. -/
+theorem flxS_free_tree (w : WDb) (T id : w64) (n : Nat) (pg : List w8) (hok : wdbOK w)
+    (hpg : w.C.pages !! id.toNat = some pg) (hn : n = 1 + pageOverflow pg)
+    (hlt : id.toNat + n < 2 ^ 64) (b : Nat → List w8) :
+    flxS w.C (w.fl.freePages T id n) b = flxS w.C w.fl b := by
+  have h : ∀ f, w.C.flpg = some f → (f ∈ pendSlots (w.fl.freePages T id n) ↔ f ∈ pendSlots w.fl) := by
+    intro f hf
+    rw [pendSlots_freePages _ _ _ _ hlt]
+    constructor
+    · rintro (h | ⟨h1, h2⟩)
+      · exact h
+      · exfalso
+        obtain ⟨-, -, -, -, -, -, -, -, hsl, -⟩ := hok.2.2.2.2.2.1 f hf f hf
+        exact (hsl f (Nat.le_refl _) (by omega)).1 ⟨id.toNat, pg, hpg, h1, by omega⟩
+    · exact Or.inl
+  unfold flxS
+  rcases hC : w.C.flpg with _ | f
+  · rfl
+  · simp only [h f hC]
+
 end free
 
 end bbolt

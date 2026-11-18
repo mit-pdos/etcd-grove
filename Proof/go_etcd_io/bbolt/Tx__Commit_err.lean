@@ -635,210 +635,77 @@ theorem Tx.Commit_err.wp_proof'
     icases cm_db_acc K tx r false _ $$ Hw with ⟨%Hrdb, Hdbp, Hwb⟩
     ihave #Hfix2 := Hfix
     iunfold dbFixed at Hfix2
-    icases Hfix2 with ⟨-, -, -, -, -, -, -, -, ⟨%nfs, #Hnfs⟩, -⟩
+    icases Hfix2 with ⟨-, -, -, -, -, -, -, -, #Hnfs, -⟩
     try wp_auto
     -- the freelist's branches join before `grow` (`cmTailOK`), or return an error rolled back
-    wp_bind (If _ _ _)
+    wp_bind (App (Val doExecute) _)
     iapply (wp_wand (Φ := fun v => iprop(P ∗ (
         (⌜v = executeVal⌝ ∗ err_ptr ↦ GoInterface.nil ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
           ∃ (Xt : WX) (wt : WDb), wtxW K tx r false Xt ∗ wdbW' fr K tx Xt.v wt ∗
-            cmExcl K r Xt (treeData wt.C) ∗ ⌜cmTailOK fr T.cur T.base Xt wt X1.t.mv.pgid'⌝) ∨
+            cmExcl K r Xt (treeData wt.C) ∗
+            ⌜cmTailOK fr T.cur T.base Xt wt X1.t.mv.pgid' ∧ Xt.t.mv.freelist' = W64 18446744073709551615⌝) ∨
         (⌜v = returnVal #()⌝ ∗ lg_ptr ↦ GoInterface.ok li ∗ tx_ptr ↦ tx ∗
           ∃ e : GoInterface, err_ptr ↦ e ∗ ⌜e ≠ GoInterface.nil⌝ ∗ fmtErrorOk e ∗ txDoneDef tx)))))
       $$ [Hwb Hdbp Hwdb Hex err Hlgp tx Hau]
-    · cases nfs
-      · -- `commitFreelist`
-        ihave Hw := Hwb $$ Hdbp
-        try wp_auto
-        try simp only [WX.withMv_withMv, WX.withMv_mv]
-        generalize hX3 : X2.withMv ({ X2.t.mv with
-          root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket) } : Meta) = X3
-        have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
-        have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
-        have hrl3 : (X3.t.bs !! X3.rl).isSome := by rw [← hX3]; exact hrl2
-        have hwr3 : X3.t.t.writable' = true := by rw [htt3, htt2, htt1]; exact hwr
-        have htx3 : X3.t.mv.txid' = w3.wtxid := by
-          have h1 : X3.t.mv.txid' = X.t.mv.txid' := by rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
-          have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
-          have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
-          rw [h1]
-          unfold WDb.wtxid
-          rw [hC2]
-          apply BitVec.eq_of_toNat_eq
-          rw [← h2, h3]
-          have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
-          word
-        have hmap3 : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w3.ms := by
-          rw [← hX3]; exact hmap2
-        have hderefKeep : ∀ Xd b, derefRel X3 Xd → (Xd.rebase b).t.t.writable' = true ∧
-            ((Xd.rebase b).t.bs !! (Xd.rebase b).rl).isSome := fun Xd b hd =>
-          cm_derefKeep X3 Xd b hd hwr3 hrl3
-        have hrb1 : iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w3.C)) ∗
-            wtxW K tx r false X3 ∗ wdbW' fr K tx X3.v w3 ⊢
-            |==> wtxEnd' fr K tx r X3 (wLive X3.v w3.C) w3 := by
-          iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
-          imodintro
-          iapply cm_wtxEnd_live' fr K tx r X3 w3 hwr3 hrl3
-          iframe; iframe #
-        have hrb2 : ∀ (X' : WX) (w' : WDb), (∃ Xd b, derefRel X3 Xd ∧ X' = Xd.rebase b) →
-            w'.C = w3.C → w'.fl = w3.fl →
-            iprop(K.full (GF := GF) ∗ cmExcl K r X3 (treeData w3.C)) ∗
-              wtxLost K tx r false X' ∗ wdbLost' fr K tx X'.v w' ⊢
-            |==> wtxEnd' fr K tx r X' (some X'.v, some (w'.C.txid + 1), false, false) w' := by
-          rintro X' w' ⟨Xd, b, hd, rfl⟩ hC _
-          obtain ⟨hw', hr'⟩ := hderefKeep Xd b hd
-          iintro ⟨⟨#Hfu, Hx⟩, Hw, Hd⟩
-          imod cm_excl_update K r X3 (Xd.rebase b) _ $$ Hx with Hx
-          imodintro
-          iapply cm_wtxEnd_lost' fr K tx r (Xd.rebase b) w' hw' hr'
-          rw [hC]; iframe; iframe #
-        rw [show X2.v = X3.v from hv3.symm]
-        imod cm_excl_update K r X1 X3 _ $$ Hex with Hex
-        ihave Hex : cmExcl K r X3 (treeData w3.C) $$ [Hex]
-        · rw [hC2]; iexact Hex
-        icases (cm_keep_pure (cm_wdbW'_bounds fr K tx X3.v w3)) $$ Hwdb with ⟨Hwdb, %Hbd2⟩
-        icases (cm_keep_pure (cm_wdbW'_ok fr K tx X3.v w3)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
-        ihave HR := poolR_of_au K.B K.N _ Q P hPK $$ Hau
-        wp_apply wp_commitFreelist fr K tx r X3 w3 iprop(K.full ∗ cmExcl K r X3 (treeData w3.C)) P
-          htx3 hmap3 (by rw [← hX3]; exact hderef2) (by rw [← hX3]; exact hfresh2)
-          (liveReach_congr X2 X3 (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
-            (by rw [← hX3]; rfl) hreach2) (cm_allIds_lt w3.noFl (wdbOK'_noFl fr w3 Hw2ok.1) Hbd2.1 Hbd2.2) hrb1 hrb2
-          $$ [Hex Hw Hwdb HR] as %err2 ⟨HR, Hcf⟩
-        · iframe; iframe #
-        iunfold poolR at HR
-        icases HR with ⟨Hau, -⟩
-        icases Hcf with (⟨%He2, %X4, %w4, %id4, %p4, ⟨-, Hex⟩, Hw, Hwdb, %Hal⟩ |
-          ⟨%He2, #Hfe2, Hdone⟩)
-        · -- joins the tail
-          icases (cm_keep_pure (cm_wdbW'_ok fr K tx _ w4)) $$ Hwdb with ⟨Hwdb, %Hw4ok⟩
-          imod cm_wdbW'_cfacts (GF := GF) fr K tx X4.v w4 $$ [Hwdb] with ⟨Hwdb, %Hcf4⟩
-          · iframe; iframe #
-          icases (cm_keep_pure (cm_wdbW'_mapLen fr K tx X4.v w4)) $$ Hwdb with ⟨Hwdb, %Hml4⟩
-          replace Hml4 : mapLen w4.ms ≤ 0xFFFFFFFFFFFF := Nat.le_trans Hml4 (by decide)
-          icases (cm_keep_pure (cm_wdbW'_bounds fr K tx X4.v w4)) $$ Hwdb with ⟨Hwdb, %Hbd4⟩
-          obtain ⟨htt4, hrl4, htx4⟩ := allocRes_keep _ _ _ _ _ _ _ _ Hal.1
-          have htt5 : X4.t.t = X.t.t := by rw [htt4, htt3, htt2, htt1]
-          imod cm_excl_update K r X3 (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w3.fl))) _
-            $$ Hex with Hex
-          ihave Hex : cmExcl K r (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w3.fl)))
-              (treeData w4.C) $$ [Hex]
-          · rw [Hal.2.1]; iexact Hex
-          subst He2
-          try wp_auto
-          iframe Hau
-          ileft
-          isplitr
-          · ipureintro; rfl
-          iframe err Hlgp tx
-          iexists X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w3.fl)), w4
-          rw [show (X4.setFlPage id4 (flPageBytes w4.fl id4 (flCount w3.fl))).v = X4.v from rfl]
-          iframe
-          ipureintro
-          refine ⟨?_, ?_, ?_, Hal.2.2.1, ?_, ?_, ?_, ?_, Hw4ok.1, ?_, ?_⟩
-          · show X4.t.t.writable' = true; rw [htt5]; exact hwr
-          · show (X4.t.bs !! X4.rl).isSome = true; rw [hrl4]; exact hrl3
-          · show X4.t.mv.txid' = w4.wtxid
-            rw [htx4, htx3]; unfold WDb.wtxid; rw [Hal.2.1]
-          · rw [Hal.2.1, hC2]; exact hopg.symm
-          · show X4.t.t.commitHandlers' = slice.nil; rw [htt5]; exact Hf.2.2.2.2.1.2.1
-          · show X4.t.t.meta' ≠ null ∧ 0 < X4.t.t.meta'.addr; rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
-          · intro h; rw [Hal.2.1]; exact hfr h
-          · rw [Hal.2.1, hC2]; exact hbase
-          · -- the publish's facts (`cmPubPre_commitFl`), from spill's, rebalance's and
-            -- commitFreelist's posts
-            have hCh : w3.C.hwm ≤ X2.t.mv.pgid'.toNat := by
-              rw [hC2]; show w.C.hwm ≤ _; rw [← hopg]; exact BitVec.le_def.1 hspOK.2.2.2.1
-            have htxl2 : w3.C.txid + 1 < 2 ^ 63 := by rw [hC2]; exact Htxl
-            have htxC : X3.t.mv.txid'.toNat = w3.C.txid + 1 := by
-              rw [htx3]; unfold WDb.wtxid
-              simp only [W64, BitVec.toNat_ofInt]; omega
-            have hml4 : X4.t.mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF :=
-              Nat.le_trans Hal.2.2.1 Hml4
-            have hh48 : w3.C.hwm * 4096 ≤ 0xFFFFFFFFFFFF := by
-              have := Hw4ok.1.2.2.2.2.2.2.2.2.1 _ _ Hw4ok.2.1
-              rw [Hal.2.1] at this
-              exact Nat.le_trans this Hml4
-            refine cmPubPre_commitFl' fr T.cur X1 X2 X3 X4 w3 w4 fl1 _ p4 id4
-              (by rw [hC2]; exact hspOK) (Hf.2.1.trans hrbOK.2.1.symm) (by rw [hC2]; exact hbufs2)
-              (by rw [← hX3]; rfl) (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
-              (by rw [← hX3]; unfold WX.rootPage; rw [hB2]; rfl) (by rw [← hX3]; rfl)
-              (by rw [← hX3]; show X2.t.mv.magic'.toNat = _; rw [hmv2]
-                  show X1.t.mv.magic'.toNat = _; rw [hmv1]; exact Hmeta.1)
-              (by rw [← hX3]; show X2.t.mv.version'.toNat = _; rw [hmv2]
-                  show X1.t.mv.version'.toNat = _; rw [hmv1]; exact Hmeta.2.1)
-              (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]
-                  show X1.t.mv.pageSize'.toNat = _; rw [hmv1]; exact Hmeta.2.2.1)
-              Hal.1 Hal.2.1 htxC hCh hml4 hh48 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hbd2.1
-              Hw4ok.1 Hbd4.1 Hcf4.2.2.2.2.1 (by omega) ?_ ?_ Hcf4.2.2.2.2.2.2
-            · rw [hC2]; exact hnp2
-            · rw [hC2]; exact hmc2
-        · -- `commitFreelist` failed (rolled back): log, return the error
-          obtain ⟨ii, rfl⟩ : ∃ ii, err2 = GoInterface.ok ii := by
-            cases err2 with
-            | nil => exact absurd rfl He2
-            | ok ii => exact ⟨ii, rfl⟩
-          irename Hfe2 => Hfe1
-          try wp_auto
-          wp_apply wp_slice_literal
-          isplitr
-          · ipureintro; rfl
-          iintro %sl ⟨Hsl, -⟩
-          try wp_auto
-          wp_apply wp_boltLog li _ _ [W8 118] _ [GoInterface.ok ii] _ iprop(True) _
-            (by decide) (by decide) rfl $$ Hlgok' [Hsl] [] [] as Hsl -
-          · iframe
-          · try simp only [List.zip_cons_cons, List.zip_nil_left]
-            isplitl
-            · iapply logArgOk_of_fmtErrorOk _ _ (by simp [methodVerbs]) (GoInterface.ok ii) $$ Hfe1
-            · iempintro
-          try wp_auto
-          iframe Hau
-          iright
-          isplitr
-          · ipureintro; rfl
-          iframe; iframe #
-          ipureintro; exact He2
-      · -- `NoFreelistSync`: `tx.meta.SetFreelist(PgidNoFreelist)`
-        ihave Hw := Hwb $$ Hdbp
-        imod cm_wdbW'_cfacts (GF := GF) fr K tx X2.v w3 $$ [Hwdb] with ⟨Hwdb, %Hcf2⟩
-        · iframe; iframe #
-        icases (cm_keep_pure (cm_wdbW'_mapLen fr K tx X2.v w3)) $$ Hwdb with ⟨Hwdb, %Hml2⟩
-        replace Hml2 : mapLen w3.ms ≤ 0xFFFFFFFFFFFF := Nat.le_trans Hml2 (by decide)
-        try wp_auto
-        try simp only [WX.withMv_withMv]
-        imod cm_excl_update K r X1 (X2.withMv ({ X2.t.mv with
-          root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket),
-          freelist' := W64 18446744073709551615 } : Meta)) _ $$ Hex with Hex
-        icases cm_meta_acc K tx r false _ $$ Hw with ⟨Hme, Hmv, Hwb⟩
-        isimp only [WX.withMv_tt, WX.withMv_mv] at Hme Hmv Hwb
-        try wp_auto
-        wp_apply wp_SetFreelist $$ [Hmv] as Hmv
-        · iframe #; iframe
-        ihave Hw := Hwb $$ %_ Hme Hmv
-        try simp only [WX.withMv_withMv]
-        generalize hX3 : X2.withMv ({ X2.t.mv with
-          root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket),
-          freelist' := W64 18446744073709551615 } : Meta) = X3
-        have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
-        have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
-        ihave Hex : cmExcl K r X3 (treeData w3.C) $$ [Hex]
-        · rw [hC2]; iexact Hex
-        icases (cm_keep_pure (cm_wdbW'_ok fr K tx _ w3)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
-        try wp_auto
-        iframe Hau
-        ileft
-        isplitr
-        · ipureintro; first | rfl | trivial
-        iframe err Hlgp tx
-        iexists X3, w3
-        rw [hv3]
-        iframe
-        ipureintro
-        have htt5 : X3.t.t = X.t.t := by rw [htt3, htt2, htt1]
-        refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hfr, Hw2ok.1, ?_, ?_⟩
-        · rw [htt5]; exact hwr
-        · rw [← hX3]; exact hrl2
-        · have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
+    · -- `NoFreelistSync` (`isBolt` records it: etcd opens bbolt so, `Open.spec`): `tx.meta.SetFreelist(PgidNoFreelist)`, no `commitFreelist`
+      ihave Hw := Hwb $$ Hdbp
+      imod cm_wdbW'_cfacts (GF := GF) fr K tx X2.v w3 $$ [Hwdb] with ⟨Hwdb, %Hcf2⟩
+      · iframe; iframe #
+      icases (cm_keep_pure (cm_wdbW'_mapLen fr K tx X2.v w3)) $$ Hwdb with ⟨Hwdb, %Hml2⟩
+      replace Hml2 : mapLen w3.ms ≤ 0xFFFFFFFFFFFF := Nat.le_trans Hml2 (by decide)
+      try wp_auto
+      try simp only [WX.withMv_withMv]
+      imod cm_excl_update K r X1 (X2.withMv ({ X2.t.mv with
+        root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket),
+        freelist' := W64 18446744073709551615 } : Meta)) _ $$ Hex with Hex
+      icases cm_meta_acc K tx r false _ $$ Hw with ⟨Hme, Hmv, Hwb⟩
+      isimp only [WX.withMv_tt, WX.withMv_mv] at Hme Hmv Hwb
+      try wp_auto
+      wp_apply wp_SetFreelist $$ [Hmv] as Hmv
+      · iframe #; iframe
+      ihave Hw := Hwb $$ %_ Hme Hmv
+      try simp only [WX.withMv_withMv]
+      generalize hX3 : X2.withMv ({ X2.t.mv with
+        root' := ({ X2.t.mv.root' with root' := B2.ib.root' } : InBucket),
+        freelist' := W64 18446744073709551615 } : Meta) = X3
+      have hv3 : X3.v = X2.v := by rw [← hX3]; rfl
+      have htt3 : X3.t.t = X2.t.t := by rw [← hX3]; rfl
+      ihave Hex : cmExcl K r X3 (treeData w3.C) $$ [Hex]
+      · rw [hC2]; iexact Hex
+      icases (cm_keep_pure (cm_wdbW'_ok fr K tx _ w3)) $$ Hwdb with ⟨Hwdb, %Hw2ok⟩
+      try wp_auto
+      iframe Hau
+      ileft
+      isplitr
+      · ipureintro; first | rfl | trivial
+      iframe err Hlgp tx
+      iexists X3, w3
+      rw [hv3]
+      iframe
+      ipureintro
+      have htt5 : X3.t.t = X.t.t := by rw [htt3, htt2, htt1]
+      refine ⟨⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, hfr, Hw2ok.1, ?_, ?_⟩, by rw [← hX3]; rfl⟩
+      · rw [htt5]; exact hwr
+      · rw [← hX3]; exact hrl2
+      · have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
+          rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
+        have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
+        have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
+        rw [h1]
+        unfold WDb.wtxid
+        rw [hC2]
+        apply BitVec.eq_of_toNat_eq
+        rw [← h2, h3]
+        have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
+        word
+      · rw [← hX3]; exact hmap2
+      · rw [hC2]; exact hopg.symm
+      · rw [htt5]; exact Hf.2.2.2.2.1.2.1
+      · rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
+      · rw [hC2]; exact hbase
+      · -- the publish's facts (`cmPubPre_noSync`), from spill's and rebalance's posts
+        have htx3' : X3.t.mv.txid' = w3.wtxid := by
+          have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
             rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
           have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
           have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
@@ -849,53 +716,36 @@ theorem Tx.Commit_err.wp_proof'
           rw [← h2, h3]
           have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
           word
-        · rw [← hX3]; exact hmap2
-        · rw [hC2]; exact hopg.symm
-        · rw [htt5]; exact Hf.2.2.2.2.1.2.1
-        · rw [htt5]; exact ⟨Hmvn, hrootn.2⟩
-        · rw [hC2]; exact hbase
-        · -- the publish's facts (`cmPubPre_noSync`), from spill's and rebalance's posts
-          have htx3' : X3.t.mv.txid' = w3.wtxid := by
-            have h1 : X3.t.mv.txid' = X.t.mv.txid' := by
-              rw [← hX3]; simp only [WX.withMv_mv]; rw [hmv2, hmv1]
-            have h2 : X.v.txid + 1 = X.t.mv.txid'.toNat := Hf.1.1.2.2.2.1
-            have h3 : X.v.txid = w.C.txid := by rw [Hwok.2.2]; rfl
-            rw [h1]
-            unfold WDb.wtxid
-            rw [hC2]
-            apply BitVec.eq_of_toNat_eq
-            rw [← h2, h3]
-            have h64 : w.C.txid + 1 < 2 ^ 64 := Hwok.1.2.2.2.2.2.2.1
-            word
-          have htxl2 : w3.C.txid + 1 < 2 ^ 63 := by rw [hC2]; exact Htxl
-          have htxC : X3.t.mv.txid'.toNat = w3.C.txid + 1 := by
-            rw [htx3']; unfold WDb.wtxid
-            simp only [W64, BitVec.toNat_ofInt]; omega
-          have hCh : w3.C.hwm ≤ X2.t.mv.pgid'.toNat := by
-            rw [hC2]; show w.C.hwm ≤ _; rw [← hopg]; exact BitVec.le_def.1 hspOK.2.2.2.1
-          have hml3 : X3.t.mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF := by
-            have : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w3.ms := by rw [← hX3]; exact hmap2
-            exact Nat.le_trans this Hml2
-          refine cmPubPre_noSync' fr T.cur X1 X2 X3 w3 fl1 _ (by rw [hC2]; exact hspOK)
-            (Hf.2.1.trans hrbOK.2.1.symm) (by rw [hC2]; exact hbufs2) (by rw [← hX3]; rfl)
-            (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
-            (by rw [← hX3]; unfold WX.rootPage; rw [hB2]; rfl)
-            (by rw [← hX3]; rfl) htxC (by rw [← hX3]; rfl)
-            (by rw [← hX3]; show X2.t.mv.magic'.toNat = _; rw [hmv2]; show X1.t.mv.magic'.toNat = _
-                rw [hmv1]; exact Hmeta.1)
-            (by rw [← hX3]; show X2.t.mv.version'.toNat = _; rw [hmv2]; show X1.t.mv.version'.toNat = _
-                rw [hmv1]; exact Hmeta.2.1)
-            (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]; show X1.t.mv.pageSize'.toNat = _
-                rw [hmv1]; exact Hmeta.2.2.1)
-            hCh hml3 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hcf2.2.2.2.2.1 (by omega) ?_ ?_
-          · rw [hC2]; exact hnp2
-          · rw [hC2]; exact hmc2
+        have htxl2 : w3.C.txid + 1 < 2 ^ 63 := by rw [hC2]; exact Htxl
+        have htxC : X3.t.mv.txid'.toNat = w3.C.txid + 1 := by
+          rw [htx3']; unfold WDb.wtxid
+          simp only [W64, BitVec.toNat_ofInt]; omega
+        have hCh : w3.C.hwm ≤ X2.t.mv.pgid'.toNat := by
+          rw [hC2]; show w.C.hwm ≤ _; rw [← hopg]; exact BitVec.le_def.1 hspOK.2.2.2.1
+        have hml3 : X3.t.mv.pgid'.toNat * 4096 ≤ 0xFFFFFFFFFFFF := by
+          have : X3.t.mv.pgid'.toNat * 4096 ≤ mapLen w3.ms := by rw [← hX3]; exact hmap2
+          exact Nat.le_trans this Hml2
+        refine cmPubPre_noSync' fr T.cur X1 X2 X3 w3 fl1 _ (by rw [hC2]; exact hspOK)
+          (Hf.2.1.trans hrbOK.2.1.symm) (by rw [hC2]; exact hbufs2) (by rw [← hX3]; rfl)
+          (by rw [← hX3]; rfl) (by rw [← hX3]; rfl)
+          (by rw [← hX3]; unfold WX.rootPage; rw [hB2]; rfl)
+          (by rw [← hX3]; rfl) htxC (by rw [← hX3]; rfl)
+          (by rw [← hX3]; show X2.t.mv.magic'.toNat = _; rw [hmv2]; show X1.t.mv.magic'.toNat = _
+              rw [hmv1]; exact Hmeta.1)
+          (by rw [← hX3]; show X2.t.mv.version'.toNat = _; rw [hmv2]; show X1.t.mv.version'.toNat = _
+              rw [hmv1]; exact Hmeta.2.1)
+          (by rw [← hX3]; show X2.t.mv.pageSize'.toNat = _; rw [hmv2]; show X1.t.mv.pageSize'.toNat = _
+              rw [hmv1]; exact Hmeta.2.2.1)
+          hCh hml3 (by rw [hC2]; exact Hflv.2.2) Hw2ok.1 Hcf2.2.2.2.2.1 (by omega) ?_ ?_
+        · rw [hC2]; exact hnp2
+        · rw [hC2]; exact hmc2
     iintro %v ⟨Hau, Hv⟩
-    icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %Htl⟩ |
+    icases Hv with (⟨%hv, err, Hlgp, tx, %Xt, %wt, Hw, Hwdb, Hex, %HtlF⟩ |
       ⟨%hv, Hlgp, tx, %e1, err, %He1, #Hfe1, Hdone⟩)
     · subst hv
       try wp_auto
       -- `grow`, if the high-water mark moved up
+      obtain ⟨Htl, Hfl0⟩ := HtlF
       obtain ⟨hwrt, hrlt, htxt, hmapt, hhwmt, hcht, hmpt, hflt, hwokt, hbt, hpre⟩ := Htl
       icases cm_meta_acc K tx r false Xt $$ Hw with ⟨Hme, Hmv, Hwb⟩
       try wp_auto
@@ -1043,7 +893,7 @@ theorem Tx.Commit_err.wp_proof'
         have hsz63 : wg.m.size < 2 ^ 62 := hszw.lt
         wp_apply cm_write_step wp_write K tx r Xt (wLive Xt.v wg.C) wg Xt.v.base (mapLen wg.ms) hms
           (Hwgok.1.1 _ _ hms) (by omega) (by omega) hpre'.1 hbok hpre'.2.2.1 hsub hW hlen hinW
-          Hwgok.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1
+          Hwgok.1.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 (fun wb => flExtPend_flxS wg hepg wb)
           $$ [Hw Hwl] as %err4 ⟨%pml, %m', %wb', %Hm', Hw, Hres⟩
         · iframe
         obtain ⟨hm1, hm2, hm3, hm4, hmT, hmP, hmA⟩ := Hm'
@@ -1080,7 +930,7 @@ theorem Tx.Commit_err.wp_proof'
               rcases List.mem_append.1 hs with h | h
               · exact ((mem_cmTail _ _ _ s).1 h).2.2.2 hSB
               · exact ((mem_wMinus _ _ s).1 h).2 (List.mem_append_left _ hSB))
-            hinSB (fun s hs => Hm'.2.2.2 s (List.mem_append_left _ hs) (Hch.1 s hs))
+            hinSB (fun s hs => Hm'.2.2.2 s (List.mem_append_left _ hs) (Hch.1 s hs)) (fun wb => flExtPend_flxS wg hepg wb)
             $$ [Hwl HSB] with ⟨Hwl, HS⟩
           · iframe
           -- `StrictMode` is off
@@ -1114,10 +964,19 @@ theorem Tx.Commit_err.wp_proof'
             rw [WX.clearPages_meta]; exact hmpt.2
           have h3 := Hwgok.1.2.2.1
           have h9 := Hwgok.1.2.2.2.2.2.2.2.2.1 _ _ hms
+          have hC'flX : (pubC ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb))).C (Xt.clearPages pml).t.mv Pg).flpg = none := by
+            show metaFlpg (metaSummed (Xt.clearPages pml).t.mv) = none
+            unfold metaFlpg metaSummed; simp only [WX.clearPages_mv, Hfl0]; rfl
+          have hfreedX : ∀ f, wg.C.flpg = some f → f ∈ pendSlots wg.fl :=
+            fun f hf => hepg f hf f (Nat.le_refl _) (by omega)
+          have hhwmbX : (pubC ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb))).C (Xt.clearPages pml).t.mv Pg).hwm * 4096 ≤ 0xFFFFFFFFFFFF := by
+            show (metaSummed (Xt.clearPages pml).t.mv).pgid'.toNat * 4096 ≤ _
+            unfold metaSummed; simp only [WX.clearPages_mv]
+            exact Nat.le_trans hmapl (Nat.le_trans hszw.2.1 (by decide))
           wp_apply cm_meta_step wp_writeMeta K tx r (Xt.clearPages pml) Xt.v ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)) Xt.v.base
             (mapLen wg.ms) γ.ns ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' Pg T.cur Q P hA Fb hms
             (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m, Hm'.2.2.1]; exact Hwgok.1.1 _ _ hms)
-            hroot hflp haddr (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m]; omega) (by omega) hcp
+            hroot hflp haddr (by rw [WDb.reslot.proj_m, WDb.reslot.proj_m]; omega) (by omega) hcp hC'flX hfreedX hhwmbX
             $$ [Hw Hwl Hstq HS Hau Hfb] as %err5 ⟨%m'', %Hm'', Hw, Herr, Hpost⟩
           · iframe
           icases Herr with (%He5 | ⟨%He5, #Hfe5⟩)
@@ -1272,7 +1131,7 @@ theorem Tx.Commit_err.wp_proof'
                   have := hinSB s (List.mem_filter.1 hs).1
                   exact ⟨this.1, by rw [WDb.reslot.proj_m, Hm''.1]; exact this.2⟩)
                 (fun s hs => Hm'.2.2.2 s (List.mem_append_left _ (List.mem_filter.1 hs).1)
-                  (Hch.1 s (List.mem_filter.1 hs).1))
+                  (Hch.1 s (List.mem_filter.1 hs).1)) (fun wb => flExtPend_flxS wg hepg wb)
                 $$ [Hwl HS] with Hwl
               · iframe
               have hok3 : wdbOK' fr ((((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).reslot m'' ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).W ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).wb).reslot (((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).reslot m'' ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).W ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).wb).m (((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) ++ (((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).reslot m'' ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).W ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).wb).W) (wbUpd ((bufSlots Xt.t.bufs).filter (pubP wg Xt Pg)) wb' (((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).reslot m'' ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).W ((wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).reslot (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).m (((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) ++ (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).W) (wbUpd ((bufSlots Xt.t.bufs).filter (fun s => !pubP wg Xt Pg s)) wb' (wg.reslot m' ((cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) ++ (wMinus wg.W ((bufSlots Xt.t.bufs) ++ (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms))))) (wbUpd (cmTail wg (bufSlots Xt.t.bufs) (mapLen wg.ms)) wb' wg.wb)).wb)).wb).wb)) :=

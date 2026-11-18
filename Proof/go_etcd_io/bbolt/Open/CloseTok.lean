@@ -11,6 +11,7 @@ holds the cleared fields.
 -/
 module
 
+public import Proof.go_etcd_io.bbolt.Inv.PmFile
 public import Spec.go_etcd_io.bbolt.Api
 public import Proof.go_etcd_io.bbolt.Open.Close
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGather
@@ -226,7 +227,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
   unfold isBoltCoreP
-  icases Hcore with ⟨-, -, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
+  icases Hcore with ⟨-, #Ht0a, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hfix' := Hfix
@@ -260,7 +261,7 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   -- open: the writer side idle
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
-  obtain ⟨hmo, htree, htx1⟩ := Hok rfl
+  obtain ⟨hmo, htree, htx1, -⟩ := Hok rfl
   iunfold wdbOwn at Hwo
   icases Hwo with ⟨Hcg, Hst, -, -, -⟩
   iunfold wdbCore at Hcg
@@ -276,11 +277,14 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   subst hC
   iunfold Pm at HP
-  icases HP with ⟨%ms, Hpmap, Hpmf, Hptok⟩
+  icases HP with ⟨%ms, Hpmap, Hpmf, Hptok, Hpf⟩
   icombine Hgmap Hpmap gives % ⟨_, hmsE⟩
   subst hmsE
   ihave Hmf := (mapFields_join2 db w.ms).1 $$ [Hmf Hpmf]
   · iframe
+  icases pmFile_join (bnsOf γ.gs) db w.f w.fd p.path p.ino t0 w.ms $$ [Hfile Hfo Hfd Hpf] with
+    ⟨Hfile, Hfo, Hfd⟩
+  · iframe; iunfold t0At at Ht0a; iexact Ht0a
   simp only [Bool.not_false]
   ihave Hop := pt_join _ _ $$ [Hop Hop']
   · iframe
@@ -307,11 +311,15 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   try wp_auto
   -- the deferred unlocks
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok]
+  icases pt_split _ _ $$ Hfile with ⟨Hfile, -⟩
+  ihave Hpf := pmFile_null (bnsOf γ.gs) db (DFrac.own (1 : Qp).half) (t0, p.ino) none rfl
+    $$ [Hfile]
+  · iframe; iunfold t0At at Ht0a; iexact Ht0a
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok Hpf]
   · iunfold Pm; iexists none; iframe
   try wp_auto
-  imod store_close _ γ.ns p ⊤ CoPset.subseteq_top w.C w.fl $$ [Hpi Hcur Hgfl Hgwv Hcls Hcls']
-    with ⟨%bs, Hcur, Hgfl, Hgwv, Hcls, Hcls', -, -⟩
+  imod store_close _ γ.ns p ⊤ CoPset.subseteq_top w.C w.fl $$ [Hpi Hcur Hgfl Hgwv Hcls Hcls' Hgmap]
+    with ⟨%bs, Hcur, Hgfl, Hgwv, Hcls, Hcls', Hgmap, -, -, -⟩
   · iframe; iframe #
   icases pt_split _ _ $$ Hop with ⟨Hop, Hop'⟩
   icases pt_split _ _ $$ Hfli with ⟨Hfli, Hfl'⟩

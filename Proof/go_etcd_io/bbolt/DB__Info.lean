@@ -99,7 +99,7 @@ private theorem boltTxDef_data_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
       $$ [Hdr Hd Hm0 Hm1]
     · simp only [mapFields]; iframe; ipureintro; exact Hb
     iexists t
-    iframe Hw Hmg Hme Hrb Hfp Hpg Hch Hwf Hdb Hmv Hvc Hvo
+    iframe Hw Hmg Hme Hrb Hfp Hpg Hch Hwf Hdb Hmv Hvc Hvo Hrdx
     isplitl [Hmap Hmf]
     · iexists l; iframe; ipureintro; exact Hl
     ipureintro; exact Hf

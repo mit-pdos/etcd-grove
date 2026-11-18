@@ -161,12 +161,14 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ dbPathLk K.db K.p w.fd -∗
+      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
+      dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 0 -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (none : MapSt) -∗
-      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-      osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗
-      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗ wBytes K.p w.W w.wb w.m.size -∗
+      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
+      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
+      wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
       junkRes K.B j -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       fbTok K.B w.C w.fl (wLive v0 w.C) F -∗
       wdbLost' fr K tx v (w.lost m' j) := by
@@ -181,7 +183,7 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
     obtain ⟨h1, h2, h3⟩ := (mem_wSlots _ _ _ s).1 hs
     exact (wdbOK'_mem_W fr w hok s).2 ⟨h1, Nat.lt_of_lt_of_le h2
       (Nat.div_le_div_right (Nat.le_max_right _ _)), h3⟩
-  ihave Hwb := wBytes_restrict K.p w.W (w.lost m' j).W w.wb w.m.size (wSlots_nodup _ _ _)
+  ihave Hwb := wBytesX_restrict K.p w.W (w.lost m' j).W _ w.wb w.m.size (wSlots_nodup _ _ _)
     (by simpa [WDb.lost, hsz] using hW) $$ Hwb
   isplitl [Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmob Hwb Hj
     Hflo Hrd Hrc]

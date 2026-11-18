@@ -79,6 +79,46 @@ theorem grow_announce_maps (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg)
   · rfl
   · split <;> rfl
 
+/-- **The synced freelist page lies inside the file** (`flClause`'s high-water mark, `wdbOK`'s
+`hwm * 4096 ≤ size`). -/
+theorem flpg_in_size (fr : Bool) (w : WDb) (hok : wdbOK' fr w) :
+    ∀ f, w.C.flpg = some f → 4096 * (f + 1) ≤ w.m.size := by
+  intro f hf
+  have h3 := hok.2.2.1
+  have hcl := wdbOK'_flClause fr w hok
+  cases fr
+  · have := (hcl f hf f hf).2.1
+    have : 4096 * (f + 1) ≤ 4096 * w.C.hwm := Nat.mul_le_mul_left _ (by omega)
+    omega
+  · have := ((hcl f hf).2 f hf).2.1
+    have : 4096 * (f + 1) ≤ 4096 * w.C.hwm := Nat.mul_le_mul_left _ (by omega)
+    omega
+
+theorem flxS_in_size (fr : Bool) (w : WDb) (hok : wdbOK' fr w) :
+    ∀ s ∈ flxS w.C w.fl w.wb, 4096 * (s + 1) ≤ w.m.size := by
+  intro s hs
+  have h3 := hok.2.2.1
+  have hcl := wdbOK'_flClause fr w hok
+  unfold flxS at hs
+  rcases hf : w.C.flpg with _ | f
+  · rw [hf] at hs; cases hs
+  · rw [hf] at hs
+    by_cases hp : f ∈ pendSlots w.fl
+    · simp only [hp, ↓reduceIte] at hs; cases hs
+    · simp only [hp, ↓reduceIte] at hs
+      rw [mem_flExt] at hs
+      cases fr
+      · have h16 := wb_header w hok f hf
+        have := (hcl f hf f hf).2.1
+        rw [pageOverflow_extentBytes _ _ h16] at this
+        have : 4096 * (s + 1) ≤ 4096 * w.C.hwm := Nat.mul_le_mul_left _ (by omega)
+        omega
+      · have h16 := (hcl f hf).1
+        have := ((hcl f hf).2 f hf).2.1
+        rw [pageOverflow_extentBytes _ _ h16] at this
+        have : 4096 * (s + 1) ≤ 4096 * w.C.hwm := Nat.mul_le_mul_left _ (by omega)
+        omega
+
 end pure
 
 section res
@@ -102,15 +142,16 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
     (h10 : L ≤ 0x1000000 → m'.size ≤ L) (h13 : m'.size ≤ 0xFFFFFFFFFFFF) (S : Nat)
     (hSz : m'.size = S) :
     growCloser (GF := GF) fr K tx v w -∗
-    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-    osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+    K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
+    fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
     (∃ vf, cellsR (GF := GF) b (4096 * (min w.m.size L / 4096))
       (min w.m.size L - 4096 * (min w.m.size L / 4096)) vf) -∗
     (∃ vf, cellsR (GF := GF) b (min w.m.size L) (L - min w.m.size L) vf) -∗
-    wBytes K.p w.W w.wb w.m.size -∗
+    wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
     zBytes K.p w.m.size (S - w.m.size) -∗
     ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
   subst hSz
@@ -127,13 +168,25 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
   · iframe
   ihave Hwc : wCells (GF := GF) w.ms (wSlots k w.C w.fl) $$ [Hwc]
   · rw [hms]; iexact Hwc
-  ihave Hwb := wBytes_restrict K.p w.W (wSlots k w.C w.fl) w.wb w.m.size (wSlots_nodup _ _ _)
-    (grown_W_sub fr w hok b L hms hal h8 k) $$ Hwb
-  ihave Hwb := wBytes_grow K.p (wSlots k w.C w.fl) w.wb w.m.size m'.size (wSlots_nodup _ _ _) hS
-    hsz (fun s hs h1 h2 => (hpart s h1 h2).2) $$ [Hwb Hz]
-  · iframe
   have hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → growWb w.wb w.m.size s = w.wb s := by
     intro s h; simp only [growWb, h, ↓reduceIte]
+  have hXin := flxS_in_size fr w hok
+  have hXg : flxS w.C w.fl (growWb w.wb w.m.size) = flxS w.C w.fl w.wb :=
+    flxS_congr_f _ _ _ _ _ (fun f hf => ⟨Iff.rfl, hag f (flpg_in_size fr w hok f hf)⟩)
+  iunfold wBytesX at Hwb
+  icases Hwb with ⟨Hwb, HX⟩
+  ihave Hwb := wBytes_restrict K.p _ ((wSlots k w.C w.fl).filter (fun s => decide (s ∉ flxS w.C w.fl w.wb)))
+    w.wb w.m.size ((wSlots_nodup _ _ _).filter _)
+    (fun s hs hlt => List.mem_filter.2 ⟨grown_W_sub fr w hok b L hms hal h8 k s (List.mem_filter.1 hs).1 hlt,
+      (List.mem_filter.1 hs).2⟩) $$ Hwb
+  ihave Hwb := wBytes_grow K.p _ w.wb w.m.size m'.size ((wSlots_nodup _ _ _).filter _) hS
+    hsz (fun s hs h1 h2 => (hpart s h1 h2).2) $$ [Hwb Hz]
+  · iframe
+  ihave HX := osSlotsH_congr K.p _ w.wb (growWb w.wb w.m.size)
+    (fun s hs => hag s (hXin s hs)) $$ HX
+  ihave Hwb : wBytesX K.p (wSlots k w.C w.fl) (flxS w.C w.fl w.wb) (growWb w.wb w.m.size) m'.size
+    $$ [Hwb HX]
+  · unfold wBytesX; iframe
   have hok' := wdbOK'_grown fr w hok b L hms m' (growWb w.wb w.m.size) hsz hmaps
     (wdbOK'_flHdr fr w hok) hag
     (fun s h1 h2 => growWb_length w.wb w.m.size s h2 fun h3 => (hpart s h3 h2).2)
@@ -143,7 +196,7 @@ theorem grow_finish (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : 
   · iapply Hclose $$ %m' %(wSlots k w.C w.fl) %(growWb w.wb w.m.size) [] [Hfile Hfo Hfd Hosm Hdsz
       Hwc Hwb]
     · ipureintro; exact ⟨hok', fun s hs => hag s (by omega)⟩
-    · unfold growRes; iframe
+    · unfold growRes; rw [hXg]; iframe
   · ipureintro; exact wdbGrown_grown fr w hok m' _ hsz hmaps hag
 
 /-- **The writer side after `File.Truncate` failed leaving the size** (the `OsMeta` `m'`, the same
@@ -152,15 +205,16 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
     (b : Loc) (L : Nat) (hms : w.ms = some (b, L)) (hal : L % 4096 = 0) (h8 : 8192 ≤ w.m.size)
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = w.m.maps) :
     growCloser (GF := GF) fr K tx v w -∗
-    K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-    osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+    K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
+    fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
     K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
     ([∗list] s ∈ wSlots (min w.m.size L / 4096) w.C w.fl,
       ∃ vf, cellsR (GF := GF) b (4096 * s) 4096 vf) -∗
     (∃ vf, cellsR (GF := GF) b (4096 * (min w.m.size L / 4096))
       (min w.m.size L - 4096 * (min w.m.size L / 4096)) vf) -∗
     (∃ vf, cellsR (GF := GF) b (min w.m.size L) (L - min w.m.size L) vf) -∗
-    wBytes K.p w.W w.wb w.m.size -∗
+    wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
     ∃ w' : WDb, wdbW' fr K tx v w' ∗ ⌜wdbGrown w w'⌝ := by
   unfold growCloser
   iintro Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb
@@ -173,8 +227,14 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
   · iframe
   ihave Hwc : wCells (GF := GF) w.ms (wSlots k w.C w.fl) $$ [Hwc]
   · rw [hms]; iexact Hwc
-  ihave Hwb := wBytes_restrict K.p w.W (wSlots k w.C w.fl) w.wb w.m.size (wSlots_nodup _ _ _)
-    (grown_W_sub fr w hok b L hms hal h8 k) $$ Hwb
+  iunfold wBytesX at Hwb
+  icases Hwb with ⟨Hwb, HX⟩
+  ihave Hwb := wBytes_restrict K.p _ ((wSlots k w.C w.fl).filter (fun s => decide (s ∉ flxS w.C w.fl w.wb)))
+    w.wb w.m.size ((wSlots_nodup _ _ _).filter _)
+    (fun s hs hlt => List.mem_filter.2 ⟨grown_W_sub fr w hok b L hms hal h8 k s (List.mem_filter.1 hs).1 hlt,
+      (List.mem_filter.1 hs).2⟩) $$ Hwb
+  ihave Hwb : wBytesX K.p (wSlots k w.C w.fl) (flxS w.C w.fl w.wb) w.wb w.m.size $$ [Hwb HX]
+  · unfold wBytesX; iframe
   have hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → w.wb s = w.wb s := fun _ _ => rfl
   have hok' := wdbOK'_grown fr w hok b L hms m' w.wb (by omega) hmaps
     (wdbOK'_flHdr fr w hok) hag (fun s h1 h2 => by omega)

@@ -139,6 +139,7 @@ public import Proof.go_etcd_io.bbolt.Tx__Rollback_r
 public import Proof.go_etcd_io.bbolt.Tx__Size
 public import Proof.go_etcd_io.bbolt.Tx__Stats
 public import Proof.go_etcd_io.bbolt.Tx__Writable
+public import Proof.go_etcd_io.bbolt.Tx__WriteTo
 public import Proof.go_etcd_io.bbolt.Tx__allocate
 public import Proof.go_etcd_io.bbolt.Tx__allocate_f
 public import Proof.go_etcd_io.bbolt.Tx__close_r
@@ -298,6 +299,8 @@ public import Proof.golang_org.x.sys.unix.Munmap
 public import Proof.hash.fnv.New64a
 public import Proof.hash.fnv.sum64a__Sum64
 public import Proof.hash.fnv.sum64a__Write
+public import Proof.io.CopyN
+public import Proof.io.NewSectionReader
 public import Proof.io.fs.FileMode__String
 public import Proof.os.File__Close
 public import Proof.os.File__Fd
@@ -1463,6 +1466,22 @@ theorem Tx.wp_Writable :
     _root_.Perennial.EtcdGrove.bbolt.Tx.Writable.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.Writable.wp_proof
 
+theorem internal.common.Meta.wp_DecTxid :
+    _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.DecTxid.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.DecTxid.wp_proof
+
+theorem io.wp_NewSectionReader :
+    _root_.Perennial.EtcdGrove.io.NewSectionReader.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.io.NewSectionReader.wp_proof
+
+theorem io.wp_CopyN :
+    _root_.Perennial.EtcdGrove.io.CopyN.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.io.CopyN.wp_proof
+
+theorem Tx.wp_WriteTo :
+    _root_.Perennial.EtcdGrove.bbolt.Tx.WriteTo.spec (GF := GF) (hG := hG) :=
+  _root_.Perennial.EtcdGrove.bbolt.Tx.WriteTo.wp_proof _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Pgid _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetFlags _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_Meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Page.wp_SetId _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Txid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_DecTxid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Sum64 _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_SetChecksum _root_.Perennial.EtcdGrove.fmt.wp_Errorf _root_.Perennial.EtcdGrove.bbolt.io.wp_NewSectionReader _root_.Perennial.EtcdGrove.bbolt.io.wp_CopyN _root_.Perennial.EtcdGrove.bbolt.os.File.wp_ReadAtRacyLt
+
 theorem Tx.wp_rollback :
     _root_.Perennial.EtcdGrove.bbolt.Tx.rollback.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.Tx.rollback.wp_proof _root_.Perennial.EtcdGrove.bbolt.DB.wp_meta _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Txid _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.wp_Freelist _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_Rollback _root_.Perennial.EtcdGrove.bbolt.DB.wp_hasSyncedFreelist _root_.Perennial.EtcdGrove.bbolt.DB.wp_freepages _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_NoSyncReload _root_.Perennial.EtcdGrove.bbolt.internal.freelist.Interface.wp_Reload _root_.Perennial.EtcdGrove.bbolt.DB.wp_page _root_.Perennial.EtcdGrove.bbolt.Tx.wp_close_w
@@ -1486,10 +1505,6 @@ theorem internal.common.InBucket.wp_InlinePage :
 theorem internal.common.InBucket.wp_SetInSequence :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.SetInSequence.spec (GF := GF) (hG := hG) :=
   _root_.Perennial.EtcdGrove.bbolt.internal.common.InBucket.SetInSequence.wp_proof
-
-theorem internal.common.Meta.wp_DecTxid :
-    _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.DecTxid.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.bbolt.internal.common.Meta.DecTxid.wp_proof
 
 theorem internal.common.branchPageElement.wp_Ksize :
     _root_.Perennial.EtcdGrove.bbolt.internal.common.branchPageElement.Ksize.spec (GF := GF) (hG := hG) :=

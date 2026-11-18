@@ -108,8 +108,8 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   imod store_register_spare K.B K.N K.p ⊤ CoPset.subseteq_top C b l k o
     $$ [Hpi Hcur' Hmap' Hmt Hfk Hsp Ho] with ⟨Hcur', Hmap', ⟨%fx, Hrds, %Hfx⟩, Hvc, Hsr, Ho, %ho⟩
-  ihave ⟨Hrds, Hrds2⟩ := (ghostMapElem_halves K.B.rds k _).1 $$ Hrds
   · iframe; iframe #
+  icases (ghostMapElem_halves (GF := GF) K.B.rds k _).1 $$ Hrds with ⟨Hrds, Hrds2⟩
   -- batch 41: the spare clause with the spare reader's key (`F` was empty: `o = none`)
   ihave Hspr : (∃ o' : Option Nat, ghostVar K.B.spr (1 : Qp).half.half o' ∗
       (opnShot K.B ∨ ⌜sprCl o' (<[k := W64 (C.txid : Int)]> F)⌝)) $$ [Ho Hcl]
@@ -140,7 +140,6 @@ theorem DB.beginTx_s.wp_proof (wp_meta : DB.meta.spec (GF := GF) (hG := hG))
       iframe Hv1 Hd1
       simp only [reduceCtorEq, ↓reduceIte]
       iframe
-      iexists fx; iexact Hrds
     · iunfold readerHandles
       simp only [Bool.false_eq_true, ↓reduceIte]
       iexists ∅; iexact Hrbk

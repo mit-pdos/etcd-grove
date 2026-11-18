@@ -323,6 +323,7 @@ theorem Bucket.free.wp_proof (hpn : Bucket.pageNode_w.spec (GF := GF) (hG := hG)
       rw [hv, ht, hmv']
       simp only [WDb.withFl]
       rw [htxid, ← hwt0]
+      rw [flxS_free_tree w0 _ pid _ pg Hwok.1 (by rw [hCpg]; exact hpg) rfl hcan0.2.1]
       iframe; iframe #
       isplitr
       · ipureintro; exact ⟨⟨trivial, Hr.2.1, Hr.2.2.1, Hr.2.2.2.1, Hr.2.2.2.2⟩, Hok'⟩

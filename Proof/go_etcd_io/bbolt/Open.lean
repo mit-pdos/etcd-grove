@@ -360,7 +360,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     (hWto : ∀ dqx (x : time.Duration),
       W ∗ opts.[Options, go!"Timeout"] ↦{dqx} x ⊢ ⌜Ek ∨ x = W64 0⌝)
     (hWnf : ∀ dqx (x : Bool),
-      W ∗ opts.[Options, go!"NoFreelistSync"] ↦{dqx} x ⊢ ⌜Ek ∨ x = true⌝)
+      W ∗ opts.[Options, go!"NoFreelistSync"] ↦{dqx} x ⊢ ⌜x = true⌝)
     (hWms : ∀ dqx (x : w64),
       W ∗ opts.[Options, go!"InitialMmapSize"] ↦{dqx} x ⊢ ⌜Ek ∨ sint.Z x ≤ 0xFFFFFFFFFFFF⌝)
     (hOF : openFileDb.spec (GF := GF) (hG := hG) Ek B Pre Back Good path mode D) :
@@ -950,12 +950,15 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   · iexists _
     iframe Hp
     ipureintro; intro h; injection h with _ _ h3; cases h3
+  ihave #HNFS : dbl.[DB, go!"NoFreelistSync"] ↦□ true $$ []
+  · rw [← hnfs]; iexact NoFreelistSync
   ihave #Hfix : dbFixed (GF := GF) γbq N dbl sp $$ []
   · unfold dbFixed dbLogger
     iframe #
     isplitr
     · ipureintro; exact hmf'
     ipureintro; exact Hlgty
+  iclear HNFS
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
   wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
     (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 $$
@@ -986,7 +989,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   case' false =>
     try wp_auto
     icases wdbCore_file_acc (GF := GF) B dbl p W $$ Hw with ⟨Hf, Hfo, Hfd, Hosm, Hwb⟩
-    wp_apply hFds dbl W.f W.fd p p.ino W.m (DFrac.own 1) (DFrac.own 1) $$ [Hf Hfo Hfd Hosm]
+    wp_apply hFds dbl W.f W.fd p p.ino W.m (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half) $$ [Hf Hfo Hfd Hosm]
       as %serr ⟨Hf, Hfo, Hfd, ⟨%m2, Hosm, %hm2⟩, Hsr⟩
     · iframe; iframe #
     ihave Hw := Hwb $$ %m2 %hm2.1 Hf Hfo Hfd Hosm
@@ -1051,80 +1054,13 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
   all_goals
     try wp_auto
     cases nfs
-    rotate_left
-    · -- `NoFreelistSync`: done
+    · exact absurd hnfs (by decide)
+    · -- `NoFreelistSync` (`Open.spec`'s options): done, no `hasSyncedFreelist()` call
       have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok
       rw [hWC, hWfl, hWfli] at hOW
       imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
       · iframe; iframe #
       open_ok
-    -- `hasSyncedFreelist()` (only without `NoFreelistSync`: so every error below is `Ek`'s)
-    have hk : Ek := by
-      rcases hnfs with h | h
-      · exact h
-      · cases h
-    have hacc := wdbCore_meta_acc (GF := GF) B dbl p W
-    rw [hWms, hWC] at hacc
-    icases hacc $$ Hw with ⟨Hmf, Hmq, Hwb⟩
-    try wp_auto
-    wp_apply hSync dbl base L C (DFrac.own (1 : Qp).half) (1 : Qp).half.half hC.2.1 $$ [Hmf Hmq]
-      as ⟨Hmf, Hmq⟩
-    · iframe
-    ihave Hw := Hwb $$ Hmf Hmq
-    have hOW := open_writer (GF := GF) ⊤ B N dbl p sp _ Hwok
-    rw [hWC, hWfl, hWfli] at hOW
-    imod hOW $$ [Hcore Hpl rwlock Hw Hst Hflo Hsp Hcls Hopn] with #Hbolt
-    · iframe; iframe #
-    by_cases hfl : C.flpg = none
-    rotate_left
-    · rw [decide_eq_false hfl]
-      open_ok
-    rw [decide_eq_true hfl]
-    try wp_auto
-    -- no synced freelist: a write transaction, committed unchanged
-    ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D $$ [Hstate]
-    · unfold boltState; rw [bnsOf_mkGs, ← hCD]; iexact Hstate
-    wp_apply hBegin dbl ⟨mkGs B, N⟩ true (fun _ => iprop(emp)) $$ [] as %tx %txErr Hb
-    · simp only [↓reduceIte]; unfold isBolt; rw [bnsOf_mkGs]
-      isplitl
-      · iexact Hbolt
-      iempintro
-    try simp only [↓reduceIte]
-    icases Hb with (⟨%Hte, #Htxdb, %D', Htx⟩ | ⟨%Hte, #Hek, -⟩)
-    rotate_left
-    · obtain ⟨Hne, rfl⟩ := Hte
-      cases txErr with
-      | nil => exact absurd rfl Hne
-      | ok ei =>
-      open_tx_exit
-    subst Hte
-    icases persistent_entails_left (boltTx_base tx ⟨mkGs B, N⟩ 1 1 (TxView.wr D') D) $$
-      [Htx Hst'] with ⟨⟨Htx, Hst'⟩, %Hbase⟩
-    · iframe
-    have hD' : D' = D := Hbase rfl
-    subst hD'
-    icases persistent_entails_left (boltTx_nonnull tx ⟨mkGs B, N⟩ 1 (TxView.wr D')) $$ Htx
-      with ⟨Htx, %Htxnn⟩
-    try wp_auto
-    rw [decide_eq_false Htxnn]
-    try wp_auto
-    -- the update's carrier is the whole state itself, back on every exit (U11i)
-    wp_apply hCommit tx ⟨mkGs B, N⟩ (TxView.wr D') (boltState ⟨mkGs B, N⟩ 1 D')
-        (boltState ⟨mkGs B, N⟩ 1 D')
-        (by simp only [TxView.wr]; exact boltState_commit_au _ _ _) $$ [Htx Hst']
-      as %cerr ⟨-, Hc⟩
-    · iframe
-      ipureintro; rfl
-    icases Hc with (⟨%Hce, Hst'⟩ | ⟨%Hce, #Hek, Hor⟩)
-    rotate_left
-    · cases cerr with
-      | nil => exact absurd rfl Hce
-      | ok ei =>
-      ihave Hst' : boltState (GF := GF) ⟨mkGs B, N⟩ 1 D' $$ [Hor]
-      · icases Hor with (H | H) <;> iexact H
-      open_tx_exit
-    subst Hce
-    open_ret
 
 /-! ## The shared mode's open, and `Open.spec` (session S3f: the one spec of `Open`) -/
 
@@ -1282,11 +1218,11 @@ private theorem optsW_timeout (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd
 private theorem optsW_nfs (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
     (hv : optsNoErr v) (dqx : DFrac) (x : Bool) :
     (opts ↦{dq} v : IProp GF) ∗ opts.[Options, go!"NoFreelistSync"] ↦{dqx} x ⊢
-      ⌜Ek ∨ x = true⌝ := by
+      ⌜x = true⌝ := by
   iintro ⟨Hv, Hx⟩
   icases (optsPt_eq opts v dq).1 $$ Hv with ⟨⟨-, -, H3, -⟩, -⟩
   ihave %h := typedPointsto_agree_wand _ _ _ _ _ $$ H3 Hx
-  ipureintro; right; rw [← h]; exact hv.2.1
+  ipureintro; rw [← h]; exact hv.2.1
 
 private theorem optsW_mmap (Ek : Prop) (opts : Loc) (dq : DFrac) (v : go_etcd_io.bbolt.Options)
     (hv : optsNoErr v) (dqx : DFrac) (x : w64) :
@@ -1330,7 +1266,7 @@ theorem Open.wp_proof [sync.Assumptions]
   iapply Open.wp_proofG hName hFlock hStat hSize hMZ hInit hGPS hMmap hLoad hSync hFds hBegin
     hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N (child d b) mode opts (dfHalf dqo) o D
     (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF) (opts ↦{dfHalf dqo} v) id (fun _ hn => Or.inr hn)
-    (optsW_timeout _ opts (dfHalf dqo) v hv.2) (optsW_nfs _ opts (dfHalf dqo) v hv.2)
+    (optsW_timeout _ opts (dfHalf dqo) v hv.2) (optsW_nfs (¬ FsNoErr) opts (dfHalf dqo) v hv.2)
     (optsW_mmap _ opts (dfHalf dqo) v hv.2)
     (openFileDb_shared hCS R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hv1 Hv2 Hlgr]
   · iframe; iframe #

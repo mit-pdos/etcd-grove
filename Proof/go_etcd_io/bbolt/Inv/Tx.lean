@@ -955,7 +955,7 @@ private theorem rdTx_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView
     rw [Qp_half_add]
     icases ((ghostVar_fractional r.n.v (c, TxX.rd v mv k)).fractional _ _).1 $$ Hv with ⟨Hv1, Hv2⟩
     icases ((ghostVar_fractional r.n.ex ()).fractional p q).1 $$ Hex with ⟨He1, He2⟩
-    icases ((rtxFrac_fractional B tx r T v mv).fractional p q).1 $$ Hw with ⟨Hw1, Hw2⟩
+    icases ((rtxFrac_fractional B tx r T v mv k).fractional p q).1 $$ Hw with ⟨Hw1, Hw2⟩
     isplitl [Hv1 He1 Hw1]
     · iexists db, pa, sp, t0, r, c, v, mv, k; iframe; iframe #; ipureintro; exact Hc
     · iexists db, pa, sp, t0, r, c, v, mv, k; iframe; iframe #; ipureintro; exact Hc
@@ -979,7 +979,7 @@ private theorem rdTx_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView
     · iapply ((ghostVar_fractional r.n.v (c, TxX.rd v mv k)).fractional _ _).2; iframe
     isplitl [Hex Hex2]
     · iapply ((ghostVar_fractional r.n.ex ()).fractional p q).2; iframe
-    iapply ((rtxFrac_fractional B tx r T v mv).fractional p q).2; iframe
+    iapply ((rtxFrac_fractional B tx r T v mv k).fractional p q).2; iframe
 
 theorem boltTxDef_fractional (B : BNs) (N : Namespace) (tx : Loc) (T : TxView) :
     Fractional (fun q => boltTxDef (GF := GF) B N tx q T) := by
@@ -1062,7 +1062,7 @@ theorem boltTxDef_nonnull (B : BNs) (N : Namespace) (tx : Loc) (q : Qp) (T : TxV
     ipureintro; exact Hf.2.2.2.2.2.1
   · unfold rdTx rtxFrac
     iintro ⟨%db', ⟨%db, %p, %sp, %t0, %r, %c, %v, %mv, %k, -, -, -, -, -,
-      ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hf⟩, -⟩, -⟩
+      ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hf⟩, -⟩, -⟩
     ipureintro; exact Hf.2.2.2.2.1
 
 open Iris.ProofMode in

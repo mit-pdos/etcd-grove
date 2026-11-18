@@ -119,9 +119,9 @@ writer side's `W` slots of an idle writer side `w` (`wdbOK`), one run from offse
 theorem close_file_bytes (p : BFile) (w : WDb) (hok : wdbOK w) (bs : Nat → List w8)
     (hm0 : w.C.m0.length = 4096) (hm1 : w.C.m1.length = 4096)
     (hbs : ∀ s ∈ slotsOf w.C w.fl, 2 ≤ s ∧ (bs s).length = 4096) (h2 : 2 ≤ w.m.size / 4096)
-    (hal : w.m.size % 4096 = 0) :
+    (hal : w.m.size % 4096 = 0) (W' : List Nat) (hW' : ∀ s ∈ w.W, s ∈ W') :
     osSlot (GF := GF) p 0 w.C.m0 ∗ osSlot p 1 w.C.m1 ∗
-      ([∗list] s ∈ slotsOf w.C w.fl, osSlot p s (bs s)) ∗ wBytes p w.W w.wb w.m.size ⊢
+      ([∗list] s ∈ slotsOf w.C w.fl, osSlot p s (bs s)) ∗ wBytes p W' w.wb w.m.size ⊢
       ∃ xs : List ByteG, osBytes p.ino 0 (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = closeBytes w.C w.fl bs w.wb (w.m.size / 4096) ∧
           xs.length = w.m.size⌝ := by
@@ -170,8 +170,8 @@ theorem close_file_bytes (p : BFile) (w : WDb) (hok : wdbOK w) (bs : Nat → Lis
       exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s (hW s ((mem_wSlots _ _ _ s).2 ⟨by omega, hs, h2⟩))
         (by omega)
   iintro ⟨H0, H1, HS, HW⟩
-  ihave HW := wBytes_restrict p w.W (wSlots n w.C w.fl) w.wb w.m.size (wSlots_nodup _ _ _)
-    (fun s hs _ => hW s hs) $$ HW
+  ihave HW := wBytes_restrict p W' (wSlots n w.C w.fl) w.wb w.m.size (wSlots_nodup _ _ _)
+    (fun s hs _ => hW' s (hW s hs)) $$ HW
   ihave HW : [∗list] s ∈ wSlots n w.C w.fl, osSlot (GF := GF) p s
       (closeSlot w.C w.fl bs w.wb s) $$ [HW]
   · unfold wBytes

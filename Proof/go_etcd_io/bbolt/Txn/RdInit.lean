@@ -125,6 +125,7 @@ theorem rdTxK_intro (K : BC) (tx : Loc) (src : PairSrc) (n : TxNames) (C : Commi
   · unfold viewOf; iexact Hvw
   isplitl [Hfile Hrds]
   · unfold rdx rdxC
+    simp only [QpMul_one_r]
     iframe Hfile
     iexists fx
     iframe Hrds
@@ -156,7 +157,7 @@ theorem rdTxK_flags_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpkg, #Hcore, Hv, Hex,
     ⟨%t, Hw, Hmg, Hrest⟩, Hpool⟩
   icases Hrest with ⟨Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hrest⟩
-  icases Hrest with ⟨Hmv, Hvc, Hmap, Hvo, %Hf⟩
+  icases Hrest with ⟨Hmv, Hvc, Hmap, Hvo, Hrdx, %Hf⟩
   have hdb : r.db = K.db := Hc.2.1
   have hm : t.managed' = false := Hf.2.2.2.2.2.1
   ihave %hdbn : ⌜K.db ≠ null⌝ $$ []

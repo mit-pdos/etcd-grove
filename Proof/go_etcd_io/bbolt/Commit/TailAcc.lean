@@ -165,26 +165,32 @@ theorem cm_write_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
 the file, its fd and its `OsMeta`, the `W` slots' cells and bytes; back with any `OsMeta`, `W`
 list and bytes (`WDb.reslot`). -/
 theorem cm_file_acc (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
-    (w : WDb) :
+    (w : WDb) (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = []) :
     wdbLive (GF := GF) B db p sp t0 tx ws w ⊢
-      db.[DB, go!"file"] ↦ w.f ∗
+      db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-      fileOwn w.f w.fd p.path (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) (dbFd p.ino) ∗
+      fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
+      osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) ∗
       osMeta p.ino (DFrac.own 1) w.m ∗ wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
       (∀ (m : OsMeta) (W : List Nat) (wb : Nat → List w8),
-        db.[DB, go!"file"] ↦ w.f -∗
+        db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
         (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-        fileOwn w.f w.fd p.path (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) (dbFd p.ino) -∗
+        fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) -∗
+        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) -∗
         osMeta p.ino (DFrac.own 1) m -∗ wCells w.ms W -∗ wBytes p W wb m.size -∗
         wdbLive B db p sp t0 tx ws (w.reslot m W wb)) := by
   unfold wdbLive wdbCoreG
   iintro ⟨⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hopn, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf, Hom, Hfo, Hfd,
     Hmc, Hmb, Hwc, Hwb, Hjk⟩, Hflo, Hsp, Hrc⟩
+  rw [hX w.wb] at *
+  ihave Hwb := (wBytesX_nil p w.W w.wb w.m.size).1 $$ Hwb
   iframe Hfile Hwa Hfo Hfd Hom Hwc Hwb
   iintro %m %W %wb Hfile Hwa Hfo Hfd Hom Hwc Hwb
+  ihave Hwb := (wBytesX_nil p W wb m.size).2 $$ Hwb
   simp only [WDb.reslot]
+  rw [hX wb]
   iframe
 
 /-- The writer side's mapping is at most `maxMapSize` long. -/

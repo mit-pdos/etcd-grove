@@ -37,6 +37,15 @@ set_option linter.unusedSectionVars false
 def flExtPend (w : WDb) : Prop :=
   ∀ f, w.C.flpg = some f → ∀ s, f ≤ s → s < f + (1 + pageOverflow (w.wb f)) → s ∈ pendSlots w.fl
 
+/-- With the synced freelist page pending, the writer side holds no half of it (session S4). -/
+theorem flExtPend_flxS (w : WDb) (h : flExtPend w) : ∀ wb : Nat → List w8, flxS w.C w.fl wb = [] := by
+  intro wb
+  unfold flxS
+  rcases hf : w.C.flpg with _ | f
+  · rfl
+  · have : f ∈ pendSlots w.fl := h f hf f (Nat.le_refl _) (by omega)
+    simp only [this, ↓reduceIte]
+
 theorem flExtPend_none (w : WDb) (h : w.C.flpg = none) : flExtPend w := by
   intro f hf; rw [h] at hf; cases hf
 

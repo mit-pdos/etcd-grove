@@ -69,7 +69,8 @@ theorem Tx.close_r.wp_proof (wp_Txid : internal.common.Meta.Txid.spec (GF := GF)
   icases Hrdx with ⟨⟨%fx, -, Hrds1⟩, Hfile⟩
   icombine Hrds1 Hrds gives %hfx
   obtain ⟨-, hfx⟩ := hfx
-  cases hfx
+  simp only [RdInfo.mk.injEq, true_and] at hfx
+  subst hfx
   ihave Hrds := (ghostMapElem_halves K.B.rds k _).2 $$ [Hrds1 Hrds]
   · iframe
   simp only [QpMul_one_c]

@@ -2,7 +2,7 @@
 `io.CopyN(w, sr, n)` of a fresh `*SectionReader` (names only in Perennial, with its callees `Copy`,
 `copyBuffer`, `LimitReader`, `(*LimitedReader).Read` and `(*SectionReader).Read`; S4, 2026-11-18):
 the trust boundary (an axiom in `Proof/io/CopyN.lean`), stated over the section reader
-(`io.secReader`), the contract of its `io.ReaderAt` (`io.readerAtOk`), the writer's (`backend.writerOk`,
+(`io.secReader`), the contract of its `io.ReaderAt` (`io.readerAtOk`), the writer's (`io.writerOk`,
 `Proof/go_etcd_io/etcd/server/v3/storage/backend/InvSnapshot.lean`, as `io.Pipe`'s writer has it) and
 `io.writerPlain` (`Proof/io/SectionReader.lean`). bbolt's `Tx.WriteTo` (tx.go) copies its data pages
 this way. Lean-first.
@@ -21,7 +21,6 @@ written are those of the section from `off` on, in order.
 module
 
 public import Proof.io.SectionReader
-public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
 
 @[expose] public section
 
@@ -49,7 +48,7 @@ abbrev io.CopyN.spec : Prop :=
   ∀ (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) (c : Bool) (bs₀ : List w8)
     (sr : Loc) (r : GoInterfaceOk) (off n : w64) (P : IProp GF) (Hd : Nat → w8 → Prop),
   io.writerPlain w → 0 ≤ sint.Z n →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ backend.writerOk w Wr ∗ Wr c bs₀ ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.io ∗ io.writerOk w Wr ∗ Wr c bs₀ ∗
       io.secReader sr r off n ∗ io.readerAtOk r P Hd ∗ P }}
     (App (App (App (Val (@! _root_.Perennial.io.CopyN)) (Val #(GoInterface.ok w)))
       (Val #(interface.mkOk (go.GoType.PointerType _root_.Perennial.io.SectionReader.ty) #sr)))

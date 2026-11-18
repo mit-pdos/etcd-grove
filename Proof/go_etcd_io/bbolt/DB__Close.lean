@@ -15,6 +15,8 @@ public import Spec.go_etcd_io.bbolt.DB__Close
 public import Proof.go_etcd_io.bbolt.Open.CloseTok
 public import Proof.go_etcd_io.bbolt.Open.CloseFile
 public import Proof.go_etcd_io.bbolt.Open.Congr
+public import Proof.go_etcd_io.bbolt.Open.CloseFlx
+public import Proof.go_etcd_io.bbolt.Inv.PmFile
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -136,7 +138,7 @@ theorem DB.Close.wp_proof
   ihave %Hrb := isBoltCoreP_receipts _ _ _ _ _ _ $$ Hcore
   ihave #Hcore2 := Hcore
   unfold isBoltCoreP
-  icases Hcore with ⟨-, -, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
+  icases Hcore with ⟨-, #Ht0a, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hfix' := Hfix
@@ -170,7 +172,7 @@ theorem DB.Close.wp_proof
   -- open: the writer side idle
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
-  obtain ⟨hmo, htree, htx1⟩ := Hok rfl
+  obtain ⟨hmo, htree, htx1, -⟩ := Hok rfl
   iunfold wdbOwn at Hwo
   icases Hwo with ⟨Hcg, Hstw, -, -, -⟩
   iunfold wdbCore at Hcg
@@ -189,11 +191,14 @@ theorem DB.Close.wp_proof
   icombine Hs1 Hst' gives % ⟨_, hD⟩
   subst hD
   iunfold Pm at HP
-  icases HP with ⟨%ms, Hpmap, Hpmf, Hptok⟩
+  icases HP with ⟨%ms, Hpmap, Hpmf, Hptok, Hpf⟩
   icombine Hgmap Hpmap gives % ⟨_, hmsE⟩
   subst hmsE
   ihave Hmf := (mapFields_join2 db w.ms).1 $$ [Hmf Hpmf]
   · iframe
+  icases pmFile_join (bnsOf γ.gs) db w.f w.fd p.path p.ino t0 w.ms $$ [Hfile Hfo Hfd Hpf] with
+    ⟨Hfile, Hfo, Hfd⟩
+  · iframe; iunfold t0At at Ht0a; iexact Ht0a
   simp only [Bool.not_false]
   ihave Hop := pt_join _ _ $$ [Hop Hop']
   · iframe
@@ -210,8 +215,8 @@ theorem DB.Close.wp_proof
   imod close_resM _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
     with ⟨Hres, Hosm0, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
   -- the store slots' bytes, `cls` set
-  imod store_close _ γ.ns p ⊤ CoPset.subseteq_top w.C w.fl $$ [Hpi Hcur Hgfl Hgwv Hcls Hcls']
-    with ⟨%bs, Hcur, Hgfl, Hgwv, Hcls, Hcls', HS, %hS⟩
+  imod store_close _ γ.ns p ⊤ CoPset.subseteq_top w.C w.fl $$ [Hpi Hcur Hgfl Hgwv Hcls Hcls' Hgmap]
+    with ⟨%bs, Hcur, Hgfl, Hgwv, Hcls, Hcls', Hgmap, HS, HX, %hS⟩
   · iframe; iframe #
   iunfold dbPathLk at Hpath
   icases Hpath with ⟨Hpath, Htok⟩
@@ -224,6 +229,7 @@ theorem DB.Close.wp_proof
   rotate_left
   · -- the file system can fail: `close` as in `DB.Close`; the file given up
     iclear HS
+    iclear HX
     iclear Hwb
     iclear Hob
     iclear Hmob
@@ -240,7 +246,11 @@ theorem DB.Close.wp_proof
       iright; iexists w.fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
     try wp_auto
     icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok]
+    icases pt_split _ _ $$ Hfile with ⟨Hfile, -⟩
+    ihave Hpf := pmFile_null (bnsOf γ.gs) db (DFrac.own (1 : Qp).half) (t0, p.ino) none rfl
+      $$ [Hfile]
+    · iframe; iunfold t0At at Ht0a; iexact Ht0a
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok Hpf]
     · iunfold Pm; iexists none; iframe
     try wp_auto
     icases pt_split _ _ $$ Hop with ⟨Hop, Hop'⟩
@@ -272,7 +282,11 @@ theorem DB.Close.wp_proof
     iapply dbFd_lockToks $$ Htok
   try wp_auto
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok]
+  icases pt_split _ _ $$ Hfile with ⟨Hfile, -⟩
+  ihave Hpf := pmFile_null (bnsOf γ.gs) db (DFrac.own (1 : Qp).half) (t0, p.ino) none rfl
+    $$ [Hfile]
+  · iframe; iunfold t0At at Ht0a; iexact Ht0a
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok Hpf]
   · iunfold Pm; iexists none; iframe
   try wp_auto
   icases pt_split _ _ $$ Hop with ⟨Hop, Hop'⟩
@@ -322,7 +336,42 @@ theorem DB.Close.wp_proof
     have h3 := Hwok.2.2.1
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  icases close_file_bytes p w Hwok bs hmo.1 hmo.2.1 hS.2.1 h2 hal $$ [H0 H1 HS Hwb] with
+  -- the synced freelist page's halves joined (session S4)
+  have hwx := wdbOK_flxS w Hwok
+  iunfold wBytesX at Hwb
+  icases Hwb with ⟨Hwb0, Hwbx⟩
+  icases flxS_agree_same p w.C w.fl bs w.wb (fun f hf _ => (hS.2.2.2 f hf).2)
+    (fun f hf hp s hs => by
+      have : s ∈ flxS w.C w.fl w.wb := by unfold flxS; rw [hf]; simp only [hp, ↓reduceIte]; exact hs
+      exact (hwx s this).2.2) $$ [HX Hwbx] with ⟨HX, Hwbx, %hag⟩
+  · iframe
+  have hXe : flxS w.C w.fl bs = flxS w.C w.fl w.wb := by
+    unfold flxS
+    rcases hf : w.C.flpg with _ | f
+    · rfl
+    · by_cases hp : f ∈ pendSlots w.fl
+      · simp only [hp, ↓reduceIte]
+      · simp only [hp, ↓reduceIte]; exact ((hag f hf hp).1).symm
+  rw [hXe] at *
+  ihave Hwb := (show wBytes (GF := GF) p (w.W.filter (fun s => decide (s ∉ flxS w.C w.fl w.wb)))
+      w.wb w.m.size ∗ ([∗list] s ∈ flxS w.C w.fl w.wb, osSlotH p s (w.wb s)) ⊢
+      wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size from by unfold wBytesX; exact .rfl) $$ [Hwb0 Hwbx]
+  · iframe
+  icases wBytes_joinX p w.W (flxS w.C w.fl w.wb) w.wb bs w.m.size
+    (fun s hs => (hwx s hs).2.1)
+    (fun s hs => by
+      rw [(hwx s hs).2.2]
+      rcases hf : w.C.flpg with _ | f
+      · unfold flxS at hs; rw [hf] at hs; cases hs
+      · exact ((hS.2.2.2 f hf).2 s (by
+          unfold flxS at hs; rw [hf] at hs
+          by_cases hp : f ∈ pendSlots w.fl
+          · simp only [hp, ↓reduceIte] at hs; cases hs
+          · simp only [hp, ↓reduceIte] at hs; rw [← (hag f hf hp).1]; exact hs)).symm)
+    $$ [Hwb HX] with ⟨Hwb, -⟩
+  · iframe
+  icases close_file_bytes p w Hwok bs hmo.1 hmo.2.1 hS.2.1 h2 hal _
+    (fun s hs => mem_filter_append _ _ s hs) $$ [H0 H1 HS Hwb] with
     ⟨%xs, Hxs, %hxs⟩
   · iframe
   ihave %htxb := preceipt_lt _ $$ Hrcm
@@ -336,7 +385,7 @@ theorem DB.Close.wp_proof
     have : w.m.size / 4096 ≤ max (mapLen w.ms) w.m.size / 4096 := Nat.div_le_div_right this
     omega
   obtain ⟨hfok, hlen, himg⟩ := closeBytes_fileOK w.C w.fl bs w.wb (w.m.size / 4096) hmo htree htx1
-    (by omega) hn hS.1 hS.2.1 hwbl hS.2.2
+    (by omega) hn hS.1 hS.2.1 hwbl hS.2.2.1
     (fun s hs => Hwok.2.2.2.2.2.2.2.2.2.2.1 s (Or.inr hs)) Hwok.2.2.2.2.2.1
   have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
   rw [hsz4] at hfok

@@ -88,7 +88,8 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
     (hlen : ∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096)
     (hinW : ∀ s ∈ w.W, l / 4096 ≤ s → 4096 * (s + 1) ≤ w.m.size)
     (hpart : ∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) →
-      w.m.size - 4096 * s ≤ (w.wb s).length) :
+      w.m.size - 4096 * s ≤ (w.wb s).length)
+    (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = []) :
     {{ wtxW (GF := GF) K tx r false X ∗ wdbLive K.B K.db K.p K.sp K.t0 tx ws w }}
       (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"write")) (Val #()))
     {{ (err : GoInterface), RET #err; ∃ (pml : Loc) (m' : OsMeta) (wb' : Nat → List w8),
@@ -151,14 +152,14 @@ theorem cm_write_step (wp_write : Tx.write_ext.spec (GF := GF) (hG := hG))
       · exact List.mem_append_right _ ((mem_cmTail _ _ _ s).2 ⟨hlt, hsW, hgt, hSB⟩)
     · exact hinW s hsW (by omega)
   icases cm_write_acc K tx r false X $$ Hw with ⟨#Hcore, #Hreg, Hst, Hdb, Hpg, Hpm, Hbufs, Hwb⟩
-  icases cm_file_acc K.B K.db K.p K.sp K.t0 tx ws w $$ Hd
+  icases cm_file_acc K.B K.db K.p K.sp K.t0 tx ws w hX $$ Hd
     with ⟨Hfile, Hwa, Hfo, Hfd, Hom, Hwc, Hwbs, Hdb'⟩
   rw [hms]
   icases wSlots_carveSz b l K.p w.W _ w.wb w.m.size (cmTail_nodup w _ l hnd) hsub' hin
     $$ [Hwc Hwbs] with ⟨Hs, Hwc, Hwbs⟩
   · iframe
   wp_apply wp_write K tx r false 1 (DFrac.own (txDbQ 1)) X.t.t.pages' X.t.pm X.t.bufs
-    (cmTail w (bufSlots X.t.bufs) l) w.wb w.f w.fd w.m b l (DFrac.own 1) (DFrac.own (1 : Qp).half)
+    (cmTail w (bufSlots X.t.bufs) l) w.wb w.f w.fd w.m b l (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
     hpm hbok hsz hl hmaps (cmTail_nodup w _ l hnd)
     (fun s hs => ((mem_cmTail _ _ _ s).1 hs).1)
     (fun s hs hgt => by

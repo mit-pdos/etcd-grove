@@ -24,6 +24,7 @@ module
 
 public import Perennial.Proof.io
 public import Perennial.Code.io
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -74,6 +75,26 @@ def io.readerAtOk (r : GoInterfaceOk) (P : IProp GF) (Hd : Nat → w8 → Prop) 
 instance io.readerAtOk_persistent (r : GoInterfaceOk) (P : IProp GF) (Hd : Nat → w8 → Prop) :
     Persistent (io.readerAtOk r P Hd) := by
   unfold io.readerAtOk; infer_instance
+
+/-- **The `io.Writer` `w`'s contract** (persistent; moved here from the backend's `InvSnapshot`,
+whose `backend.writerOk` is this, session S4, so that bbolt's `Tx.WriteTo` and `io.CopyN` state it
+without the backend), by `Wr c bs`, the bytes `bs` written so far (`c`: whether a `Write` has
+returned): `Write(p)` of a slice holding `chunk` (read at `dq`, given back) appends the first `k`
+bytes of `chunk` and returns `k`, all of them unless the error is non-nil; (session S4) its error is
+one `fmt` formats (`fmtErrorOkOrNil`: bbolt's `Tx.WriteTo` wraps it with `fmt.Errorf`; a pipe's
+writer returns `io.ErrClosedPipe`, its reader end being only closed, `io.rcCloseOk`). -/
+def io.writerOk (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) : IProp GF :=
+  iprop(□ ∀ (p : GoSlice) (dq : DFrac) (chunk bs : List w8) (c : Bool),
+    {{ p ↦*{dq} chunk ∗ Wr c bs }}
+      (App (Val #(methods w.ty go!"Write" w.v)) (Val #p))
+    {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+        ∃ k : Nat, p ↦*{dq} chunk ∗ Wr true (bs ++ chunk.take k) ∗
+          ⌜sint.Z n = k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝ ∗
+          fmtErrorOkOrNil err }})
+
+instance io.writerOk_persistent (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) :
+    Persistent (io.writerOk w Wr) := by
+  unfold io.writerOk; infer_instance
 
 end defs
 

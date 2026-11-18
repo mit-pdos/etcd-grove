@@ -74,7 +74,7 @@ private theorem boltTxDef_db_acc [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (
     isplitr
     · ipureintro; exact Hc
     iexists t
-    iframe Hw Hmg Hme Hrb Hfp Hpg Hch Hwf Hdb Hmv Hvc Hm Hvo
+    iframe Hw Hmg Hme Hrb Hfp Hpg Hch Hwf Hdb Hmv Hvc Hm Hvo Hrdx
     ipureintro; exact Hf
 
 theorem Tx.DB.wp_proof : Tx.DB.spec (GF := GF) (hG := hG) := by
