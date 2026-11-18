@@ -10,6 +10,7 @@ from the example's closed theorems (`Results.lean`).
 module
 
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.TopLevelRobustness
+public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results
 
 @[expose] public section
 

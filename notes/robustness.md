@@ -68,6 +68,13 @@ directory (2026-11-18, the user's: easy to find, and a statement to audit apart 
   from the example's closed theorem (in its `Results.lean`, or `Adequacy.lean` for lintest's and
   `mvccrand`).
 
+- `Proof/<example>/TopLevelDefs.lean` holds the definitions the statement is written in that
+  used to sit in `Adequacy.lean`/`Results.lean` (the program; for the etcd-server examples also the
+  ghost-state bundle, its heap helper and the lists of names and addresses), moved unchanged, so
+  that the Spec file imports no proof: "specs never import proofs" (CLAUDE.md, "Import tiers",
+  which landed the same day). `etc/tier-check.py` counts the `Proof/` side's
+  `TopLevelRobustness` as a linking module.
+
 (The parts have theirs under `NetTcp/`, `RaftWitness/`, `RaftTla/` and, as copies, `RaftNoAx/`.
 `etc/proof_roots.py` counts the proof files as results files, so the trust-base report covers
 them. `find . -name TopLevelRobustness.lean` lists them all.)

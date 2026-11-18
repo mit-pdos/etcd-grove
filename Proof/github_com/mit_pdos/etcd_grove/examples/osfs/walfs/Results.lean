@@ -33,6 +33,7 @@ public import Proof.os.File__Close
 public import Proof.syscall.Fdatasync
 public import GooseLang.Ext.Fs.Adequacy
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.TopLevelDefs
 
 @[expose] public section
 
@@ -49,11 +50,6 @@ open Fs
   github_com.mit_pdos.etcd_grove.examples.osfs.walfs
 
 attribute [local instance] fsExts fsExtsSemantics fsExtsInterp fsExts_hasFs fsExtsCrashInterp
-
-/-- The boot program: initialize the package, then call `Boot(dir)`. -/
-def boot [GoGlobalContext] (dir : GoString) : Expr :=
-  Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve Boot []))) (Val #())) (Val #dir))
 
 /-! ## The file of the key as a generation starts with it -/
 

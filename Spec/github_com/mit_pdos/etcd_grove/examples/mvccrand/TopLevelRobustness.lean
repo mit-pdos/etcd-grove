@@ -11,8 +11,10 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Adequacy
-public import Robustness.Statement
+public import Code.go_etcd_io.etcd.server.v3.etcdserver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
+public import Spec.sort.Slice
 
 @[expose] public section
 

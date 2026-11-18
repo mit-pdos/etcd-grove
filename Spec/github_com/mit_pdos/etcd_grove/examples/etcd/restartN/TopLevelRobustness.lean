@@ -11,7 +11,7 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.restartN.TopLevelDefs
 public import Robustness.Statement
 
 @[expose] public section

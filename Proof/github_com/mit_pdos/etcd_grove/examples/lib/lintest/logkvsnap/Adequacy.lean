@@ -46,6 +46,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsna
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.TopLevelDefs
 
 @[expose] public section
 
@@ -102,11 +103,6 @@ instance logkvsnapGF_naInvG : NaInvG logkvsnapGF := ⟨⟨11, rfl⟩⟩
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The register's program: the package's initialization, then `Main()`. -/
-def logkvsnapProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Main) #()
 
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvsnapProgram` (the logkvsnap package's initialization, then `Main()`) from a fresh state --

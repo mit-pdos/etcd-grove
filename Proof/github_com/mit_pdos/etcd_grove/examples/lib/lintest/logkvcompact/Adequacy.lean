@@ -46,6 +46,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcom
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.TopLevelDefs
 
 @[expose] public section
 
@@ -102,11 +103,6 @@ instance logkvcompactGF_naInvG : NaInvG logkvcompactGF := ⟨⟨11, rfl⟩⟩
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The register's program: the package's initialization, then `Main()`. -/
-def logkvcompactProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.Main) #()
 
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvcompactProgram` (the logkvcompact package's initialization, then `Main()`) from a fresh state --

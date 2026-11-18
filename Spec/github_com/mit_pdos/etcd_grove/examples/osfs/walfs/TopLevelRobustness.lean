@@ -12,9 +12,8 @@ states them (to audit); the proofs are in
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.Results
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.TopLevelDefs
 
 @[expose] public section
 

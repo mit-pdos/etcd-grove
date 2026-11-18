@@ -9,6 +9,7 @@ from the example's closed theorem (`Results.lean`).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.lease.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.lease.Results
 
 @[expose] public section
 

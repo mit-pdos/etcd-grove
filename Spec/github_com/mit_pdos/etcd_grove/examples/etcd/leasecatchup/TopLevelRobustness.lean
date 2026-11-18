@@ -11,7 +11,8 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.TopLevelDefs
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Robustness.Statement
 
 @[expose] public section

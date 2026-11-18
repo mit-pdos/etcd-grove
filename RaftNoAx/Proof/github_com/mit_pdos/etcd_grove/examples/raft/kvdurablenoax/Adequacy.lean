@@ -54,6 +54,7 @@ public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdura
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Main
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.MainN
 public import Proof.runtime.Threads
+public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.TopLevelDefs
 
 @[expose] public section
 
@@ -78,12 +79,6 @@ abbrev kdMainSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC durableGF] [go.Semantics]
     [github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions],
     raft_kvdurable.Main.spec (GF := durableGF) (hG := hG)
-
-/-- The store's program, its replicas' files in `dir`: the package's initialization, then
-`Main(dir)`. -/
-def kvdurableProgram [GoSemanticsFunctions] (dir : GoString) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Main) #dir
 
 /-- **Porcupine never rejects the durable store's trace**, from `Main`'s spec (`wp_Main`, at every
 `HeapGS` of `durableGF` and every semantics): every real execution of `kvdurableProgram dir` (the
@@ -137,12 +132,6 @@ abbrev kdMainNSpec : Prop :=
   ∀ [hG : HeapGS HasLC.hasLC durableGF] [go.Semantics]
     [github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions],
     raft_kvdurable.MainN.spec (GF := durableGF) (hG := hG)
-
-/-- The store's program on `k` voters, its replicas' files in `dir`: the package's initialization,
-then `MainN(dir, k)`. -/
-def kvdurableProgramN [GoSemanticsFunctions] (dir : GoString) (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.MainN) #dir #(W64 (k : Int))
 
 /-- **Porcupine never rejects the durable store's trace on `k` voters** (2026-11-16, kvraftN), from
 `MainN`'s spec: `kvdurable_adequate_of` for `kvdurableProgramN dir k`, `1 ≤ k ≤ 1000`, none of the files

@@ -46,6 +46,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvapp
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.TopLevelDefs
 
 @[expose] public section
 
@@ -102,11 +103,6 @@ instance logkvappendGF_naInvG : NaInvG logkvappendGF := ⟨⟨11, rfl⟩⟩
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The register's program: the package's initialization, then `Main()`. -/
-def logkvappendProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvappend.Main) #()
 
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvappendProgram` (the logkvappend package's initialization, then `Main()`) from a fresh state --

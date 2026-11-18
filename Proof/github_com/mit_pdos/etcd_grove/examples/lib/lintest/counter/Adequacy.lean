@@ -45,6 +45,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.TopLevelDefs
 
 @[expose] public section
 
@@ -101,11 +102,6 @@ instance counterGF_naInvG : NaInvG counterGF := ⟨⟨11, rfl⟩⟩
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The counter's program: the package's initialization, then `Main()`. -/
-def counterProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Main) #()
 
 /-- **Porcupine accepts every trace of the linearizable counter.** Every real execution of
 `counterProgram` (the counter package's initialization, then `Main()`) from a fresh state --

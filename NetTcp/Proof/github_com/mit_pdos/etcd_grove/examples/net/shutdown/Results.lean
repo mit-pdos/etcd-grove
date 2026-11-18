@@ -54,6 +54,7 @@ public import NetTcp.Proof.net.Listener__Close
 public import GooseLang.Ext.Tcp.Adequacy
 public import GooseLang.Ext.Tcp.Deploy
 public import Robustness.Statement
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.TopLevelDefs
 
 @[expose] public section
 
@@ -74,16 +75,6 @@ attribute [local instance] tcpExts tcpExtsSemantics tcpExtsInterp tcpExts_hasTcp
 /- The global setup of `goose_dist_crash_adequacy` is under the global ghost state alone, whose
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- The program of the node's command `cmd/node`: initialize the command's package (and so its
-imports), then call its `main` (as goose calls a function: resolve it, then apply it). -/
-def boot_node [GoGlobalContext] : Expr :=
-  Seq (App (Val cmd.node.initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve cmd.node.main []))) (Val #())) (Val #()))
-
-/-- The system: the one node, running its command's program, from the local state `σ`. -/
-def system [GoGlobalContext] (σ : state) : List (Expr × state) :=
-  [(boot_node, σ)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/

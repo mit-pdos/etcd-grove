@@ -49,6 +49,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.TopLevelDefs
 
 @[expose] public section
 
@@ -105,11 +106,6 @@ instance logkvrwGF_naInvG : NaInvG logkvrwGF := ⟨⟨11, rfl⟩⟩
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The register's program: the package's initialization, then `Main()`. -/
-def logkvrwProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Main) #()
 
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvrwProgram` (the logkvrw package's initialization, then `Main()`) from a fresh state --

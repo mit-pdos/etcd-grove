@@ -11,7 +11,7 @@ states them (to audit); the proofs are in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.TopLevelDefs
 public import Robustness.Statement
 
 @[expose] public section

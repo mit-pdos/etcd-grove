@@ -46,6 +46,7 @@ public import Perennial.Proof.sync.Link
 public import GooseLang.Ext.Tcp.Adequacy
 public import GooseLang.Ext.Tcp.Deploy
 public import Robustness.Statement
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.acceptloop.TopLevelDefs
 
 @[expose] public section
 
@@ -65,22 +66,6 @@ attribute [local instance] tcpExts tcpExtsSemantics tcpExtsInterp tcpExts_hasTcp
 /- The global setup of `goose_dist_crash_adequacy` is under the global ghost state alone, whose
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- The server node's program: initialize the `server` command's package, then call its `main`
-(as goose calls a function: resolve it, then apply it). -/
-def boot_server [GoGlobalContext] : Expr :=
-  Seq (App (Val cmd.server.initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve cmd.server.main []))) (Val #())) (Val #()))
-
-/-- The client node's program: the same for the `client` command. -/
-def boot_client [GoGlobalContext] : Expr :=
-  Seq (App (Val cmd.client.initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve cmd.client.main []))) (Val #())) (Val #()))
-
-/-- The system: the server and the client commands, each a process, from the local states `σs`
-and `σc`. -/
-def system [GoGlobalContext] (σs σc : state) : List (Expr × state) :=
-  [(boot_server, σs), (boot_client, σc)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/

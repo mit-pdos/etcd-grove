@@ -41,6 +41,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.Adequacy
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.TopLevelDefs
 
 @[expose] public section
 
@@ -60,14 +61,6 @@ attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdF
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `cachekv`'s initialization, then `Main(nw, nops)`. -/
-def cachekvProgram [GoSemanticsFunctions] (nw nops : w64) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.cache.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main) #nw #nops
-
-/-- The read package's two metric names, which `cachekv`'s initialization registers. -/
-def cachekvNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The cache watch example is safe** (see the file header): every real execution of
 `cachekvProgram nw nops` from a fresh state with one thread, of `n` steps: if the main thread has

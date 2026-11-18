@@ -11,7 +11,8 @@ states them (to audit); the proofs are in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.TopLevelDefs
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Robustness.Statement
 
 @[expose] public section

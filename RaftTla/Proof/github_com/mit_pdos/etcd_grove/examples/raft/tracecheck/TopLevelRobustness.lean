@@ -9,6 +9,7 @@ from the example's closed theorem (`Results.lean`).
 module
 
 public import RaftTla.Spec.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.TopLevelRobustness
+public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Results
 
 @[expose] public section
 

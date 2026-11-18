@@ -11,7 +11,10 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Dir
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.TopLevelDefs
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Robustness.Statement
 
 @[expose] public section

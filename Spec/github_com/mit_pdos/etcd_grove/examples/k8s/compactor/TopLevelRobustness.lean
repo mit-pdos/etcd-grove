@@ -11,8 +11,11 @@ states them (to audit); the proofs are in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
 public import Robustness.Statement
+public import Spec.k8s_io.utils.clock.RealClock__After
 
 @[expose] public section
 

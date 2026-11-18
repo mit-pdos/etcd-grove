@@ -44,6 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Link
 public import Proof.os.CrashStSpec
 public import GooseLang.Ext.Fs.AdequacyS
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.TopLevelDefs
 
 @[expose] public section
 
@@ -100,12 +101,6 @@ theorem DB.wp_commitC : DB.commit.specCrash (GF := GF) (hG := hG) :=
 
 theorem DB.wp_CommitC : DB.Commit.specCrash (GF := GF) (hG := hG) :=
   DB.Commit.wp_proof_crash DB.wp_meta DB.wp_commitC
-
-/-- The package initializer's spec (an assumption of `bootCrashSafety`: see the file header). -/
-abbrev initialize'.spec : Prop :=
-  {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-    (App (Val initialize') (Val #()))
-  {{ RET #(); pkgFacts (GF := GF) }}
 
 end links
 
@@ -170,30 +165,12 @@ end start
 
 attribute [local instance] fsExts fsExtsInterp
 
-/-- `AnyStep` keeps every step. -/
-theorem anyStep_keeps : StepKeeps AnyStep := by
-  intro _ _ _ _ _ _ _ _ _ _ hs
-  exact ⟨_, _, _, hs, trivial⟩
-
 local instance : GooseSemantics := fsExtsSemanticsWithS AnyStep P1
 local instance : ExtSemantics fsExt := fsSemWithS AnyStep P1
 local instance : HasExt fsExt := fsExtsWithS_hasFs AnyStep P1
 
-/-- The semantics' instances the specs need, over the semantics with P1. -/
-abbrev P1Ctx (P : ∀ [GooseSemantics] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Prop) : Prop :=
-  letI := fsExtsSemanticsWithS AnyStep P1
-  letI := fsSemWithS AnyStep P1
-  letI := fsExtsWithS_hasFs AnyStep P1
-  haveI : FsSemOk := fsSemWithS_ok AnyStep P1 anyStep_keeps
-  P
-
 section adequacy
 variable [GoGlobalContext] {GF : BundledGFunctors}
-
-/-- A ghost-state instance at the local context `lctx` (the hypotheses are stated over every
-instance whose Go local context is the semantics' own). -/
-abbrev heapAt (hG : HeapGS .hasLC GF) (lctx : GoLocalContext) : HeapGS .hasLC GF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-- The precondition of the boot program in the generation `L`, `R` the roots. -/
 def bootPre [G : GooseGlobalGS .hasLC GF] (R : Roots) (dir : GoString) (L : GooseLocalGS GF) :

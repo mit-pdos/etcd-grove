@@ -12,7 +12,7 @@ states them (to audit); the proofs are in
 -/
 module
 
-public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results
+public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.TopLevelDefs
 public import Robustness.Statement
 
 @[expose] public section

@@ -30,6 +30,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Perennial.GooseLang.CrashLang
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.TopLevelDefs
 
 @[expose] public section
 
@@ -79,12 +80,6 @@ instance prophkvGF_gooseGpreS : GooseGpreS prophkvGF where
 
 section program
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: initialize the package, then call `Main` (as goose calls a function), which runs
-`Test` and panics unless its answer is `"a"` or `"b"`. -/
-def prog : Expr :=
-  Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve Main []))) (Val #())) (Val #()))
 
 /-- The `get_is_pkg_init` of the program: the package and `primitive`. -/
 def getIsPkgInit {GF : BundledGFunctors} [HeapGS .hasLC GF] (p : GoString) : IProp GF :=

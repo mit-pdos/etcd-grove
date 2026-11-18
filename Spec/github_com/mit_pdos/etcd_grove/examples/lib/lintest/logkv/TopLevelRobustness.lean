@@ -11,8 +11,7 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Adequacy
-public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.TopLevelDefs
 
 @[expose] public section
 

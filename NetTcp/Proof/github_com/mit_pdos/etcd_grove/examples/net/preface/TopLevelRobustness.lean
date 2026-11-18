@@ -9,6 +9,7 @@ from the example's closed theorem (`Results.lean`).
 module
 
 public import NetTcp.Spec.github_com.mit_pdos.etcd_grove.examples.net.preface.TopLevelRobustness
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.Results
 
 @[expose] public section
 

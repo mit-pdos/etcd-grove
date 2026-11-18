@@ -9,6 +9,7 @@ from the example's closed theorem (`Adequacy.lean`).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkv.Adequacy
 
 @[expose] public section
 

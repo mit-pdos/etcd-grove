@@ -11,8 +11,7 @@ states it (to audit); the proof is in
 -/
 module
 
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Results
-public import Robustness.Statement
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.TopLevelDefs
 
 @[expose] public section
 

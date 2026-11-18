@@ -11,7 +11,11 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.Dir
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.TopLevelDefs
+public import Proof.go_etcd_io.etcd.client.v3.DialWithBalancerBody
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Robustness.Statement
 
 @[expose] public section

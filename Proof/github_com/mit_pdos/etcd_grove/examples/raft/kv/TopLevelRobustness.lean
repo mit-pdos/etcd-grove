@@ -9,6 +9,7 @@ from the example's closed theorems (`Results.lean`).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.raft.kv.TopLevelRobustness
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Results
 
 @[expose] public section
 

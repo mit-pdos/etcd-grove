@@ -50,6 +50,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequa
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
 
 @[expose] public section
 
@@ -195,11 +196,6 @@ instance mvccfullGF_gooseGpreS : GooseGpreS mvccfullGF where
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `mvccfull`'s initialization, then `Main()`. -/
-def mvccfullProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Main) #()
 
 /-- **mvcc's full tester passes** (see the file header): every real execution of
 `mvccfullProgram` from a fresh state with one thread, of `n` steps: if the main thread has

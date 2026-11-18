@@ -50,6 +50,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Trivia
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
 
 @[expose] public section
 
@@ -68,21 +69,6 @@ attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp tr
 
 /-! ## The ghost-state bundle -/
 
-/-- The functors (as `putgetGF`): the universal camera (`AllG`) at slot 0, then invariants, later
-credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def mvccrandGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
-
 /-- The universal camera at slot 0. -/
 def mvccrandGF_allG : AllG mvccrandGF := ⟨⟨0, rfl⟩⟩
 
@@ -98,11 +84,6 @@ instance mvccrandGF_gooseGpreS : GooseGpreS mvccrandGF where
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `mvccrand`'s initialization, then `Main()`. -/
-def mvccrandProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.mvccrand.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.mvccrand.Main) #()
 
 /-- **mvcc's randomized tester passes** (see the file header): every real execution of
 `mvccrandProgram` from a fresh state with one thread, of `n` steps: if the main thread has

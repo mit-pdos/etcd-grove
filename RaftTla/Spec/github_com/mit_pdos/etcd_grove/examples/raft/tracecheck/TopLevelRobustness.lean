@@ -11,7 +11,8 @@ states it (to audit); the proof is in
 -/
 module
 
-public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Results
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
+public import RaftTla.Proof.github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.TopLevelDefs
 public import Robustness.Statement
 
 @[expose] public section

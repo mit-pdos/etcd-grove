@@ -35,6 +35,7 @@ public import Proof.os.File__Fd
 public import Proof.os.File__Close
 public import GooseLang.Ext.Fs.Adequacy
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.TopLevelDefs
 
 @[expose] public section
 
@@ -50,11 +51,6 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.
 open Fs
 
 attribute [local instance] fsExts fsExtsSemantics fsExtsInterp fsExts_hasFs fsExtsCrashInterp
-
-/-- The boot program: initialize the package, then call `Boot(dir)`. -/
-def boot [GoGlobalContext] (dir : GoString) : Expr :=
-  Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve Boot []))) (Val #())) (Val #dir))
 
 /-- The root `d` names its directory, whatever the history. -/
 theorem lookupH_root {R : Roots} (hr : RootsOk R) {d : GoString} {j : Ino} (hd : (d, j) ∈ R)

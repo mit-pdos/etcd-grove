@@ -11,8 +11,11 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Results
+public import Code.go_etcd_io.etcd.server.v3.etcdserver
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
 public import Robustness.Statement
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
 
 @[expose] public section
 

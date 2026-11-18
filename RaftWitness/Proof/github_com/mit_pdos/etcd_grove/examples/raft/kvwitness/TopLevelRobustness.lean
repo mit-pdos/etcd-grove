@@ -9,6 +9,7 @@ from the example's closed theorems (`Results.lean`).
 module
 
 public import RaftWitness.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.TopLevelRobustness
+public import RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Results
 
 @[expose] public section
 
