@@ -14,6 +14,9 @@ storage's too-large error. `RErr.other` has no view (`Step`'s premise excludes i
 - `errRep_apiErrAt`: a view `w` with `tooLargeV w = isTooLargeE e` (`.plain` for a flat deep error,
   a `*StorageError` being a one-level wrapper whose `Unwrap` returns a leaf; the too-large error's
   status).
+- `wp_DeepEqual_resp`: `reflect.DeepEqual(expected, output)` is `respEqL` when the expected error
+  is a deep one (clause 2 of `reflect.DeepEqual.spec_k8s`, or clause 4 for the output's too-large
+  error).
 - `errRep_apiErrOk`, `errRep_delay`: `SuggestsClientDelay`'s precondition, and its answer is
   `delayE e`.
 -/
@@ -22,6 +25,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Defs
 public import Proof.k8s_io.apiserver.pkg.storage.ErrCode
 public import Spec.k8s_io.apiserver.pkg.storage.StorageError__Unwrap
+public import Spec.reflect.DeepEqualK8s
 
 @[expose] public section
 
@@ -56,6 +60,13 @@ def flatE : RErr → Prop
 def codeE : RErr → Option w64
   | .deep (.storageErr c _ _ _) => some c
   | _ => none
+
+/-- **A `Get`'s output object**: nil or an object (the versioner's `ObjectResourceVersion` takes
+the driver's `*Obj`). -/
+def objOrNilD : DeepV → Prop
+  | .nil => True
+  | .obj _ => True
+  | _ => False
 
 theorem isNotFoundE_codeE (e : RErr) : isNotFoundE e = decide (codeE e = some (W64 1)) := by
   unfold isNotFoundE codeE
@@ -266,6 +277,46 @@ theorem errRep_delay (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (h
       rw [delayE, ← hd]
       exact (congrArg Prod.snd Hr)
   · exact hf.elim
+
+/-- **`reflect.DeepEqual` of two `Response`s is `respEqL`**, for an expected error with a deep view
+and a flat output error: clause 2 of `reflect.DeepEqual.spec_k8s` (two deep errors), clause 4 (the
+output's too-large error, `false`). -/
+theorem wp_DeepEqual_resp (wp_DE : reflect.DeepEqual.spec_k8s (GF := GF) (hG := hG))
+    (o1 e1 o2 e2 : GoInterface) (eo oo : DeepV) (ee oe : RErr)
+    (hee : deepErrE ee) (hoe : flatE oe) :
+    {{ deepRO (GF := GF) o1 eo ∗ errRep e1 ee ∗ deepRO o2 oo ∗ errRep e2 oe }}
+      (App (App (Val #(functions _root_.Perennial.reflect.DeepEqual []))
+        (Val #(interface.mkOk
+          github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.ty
+          #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.mk o1 e1))))
+        (Val #(interface.mkOk
+          github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.ty
+          #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.mk o2 e2))))
+    {{ RET #(respEqL ⟨eo, ee⟩ ⟨oo, oe⟩); True }} := by
+  rcases ee with d1 | _ | _
+  · rcases oe with d2 | dl | _
+    · iintro %Φ ⟨#Ho1, #He1, #Ho2, #He2⟩ HΦ
+      simp only [errRep]
+      wp_apply (wp_DE.2.1 o1 e1 o2 e2 eo d1 oo d2 DFrac.discard DFrac.discard) $$ [] as %b ⟨%hb, -⟩
+      · iframe Ho1 He1 Ho2 He2
+      have : b = respEqL ⟨eo, .deep d1⟩ ⟨oo, .deep d2⟩ := by
+        unfold respEqL
+        cases b <;> simp_all
+      rw [this]
+      iapply HΦ; itrivial
+    · iintro %Φ ⟨#Ho1, #He1, #Ho2, #He2⟩ HΦ
+      simp only [errRep]
+      icases He2 with ⟨#Ht, -⟩
+      ihave %Hp := apierrors.tooLargeErrIs_ptr e2 $$ Ht
+      obtain ⟨l, rfl⟩ := Hp
+      wp_apply (wp_DE.2.2.2 o1 e1 o2 l eo d1 oo DFrac.discard DFrac.discard) $$ [] as %b ⟨%hb, -⟩
+      · iframe Ho1 He1 Ho2
+      subst hb
+      rw [show respEqL ⟨eo, .deep d1⟩ ⟨oo, .tooLarge dl⟩ = false from rfl]
+      iapply HΦ; itrivial
+    · exact hoe.elim
+  · exact hee.elim
+  · exact hee.elim
 
 end views
 
