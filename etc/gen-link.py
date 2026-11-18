@@ -30,6 +30,8 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --raft-tla > RaftTla/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Link.lean
+       etc/gen-link.py --raft-noax > RaftNoAx/Proof/go_etcd_io/raft/v3/Link.lean
+       etc/gen-link.py --kvdurable-noax > RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
@@ -198,11 +200,30 @@ and `Result.TLCOK`'s results from it.
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
 `RaftWitness/`, the part's spec of a function taking the place of the main tree's.
+`--raft-noax` and `--kvdurable-noax` link the same in the part `RaftNoAx/` (raft without hand-written
+axioms, `notes/raft-noax-part.md`), as `--raft` and `--kvdurable` (`PART_ALIASES`), from
+etc/link-lean-first-raft-noax.txt and etc/link-lean-first-kvdurable-noax.txt.
 """
 import os
 import re
 import sys
 import textwrap
+
+# The modes of a part that is a renamed copy of the main tree (`RaftNoAx/`, etc/copy-part.py,
+# `notes/raft-noax-part.md`): each links as its main-tree mode (that mode's tables: namespace,
+# section variables, extra imports, ...), from its own callee list, with its specs searched in the
+# main tree and in the part (the part's taking the place of the main tree's), its extra imports
+# the part's where the part has the module, and the package paths renamed as etc/copy-part.py does.
+PART_ALIASES = {
+    "--raft-noax": ("--raft", "link-lean-first-raft-noax.txt", "RaftNoAx",
+                    "The Raft proof without hand-written axioms (`RaftNoAx/`)"),
+    "--kvdurable-noax": ("--kvdurable", "link-lean-first-kvdurable-noax.txt", "RaftNoAx",
+                         "The durable key-value store example's proofs without hand-written axioms "
+                         "(`RaftNoAx/`)"),
+}
+ALIAS = None
+if len(sys.argv) > 1 and sys.argv[1] in PART_ALIASES:
+    ALIAS, sys.argv[1] = sys.argv[1], PART_ALIASES[sys.argv[1]][0]
 
 # The v3rpc package's assumptions (the server's model, `v3rpc.etcdModelOfServer`), which the
 # client's watch specs take besides the client's (the watch slice's unit W-C).
@@ -690,7 +711,21 @@ LEAN_FIRST["--mvccfull"] = ("link-lean-first-mvccfull.txt",
                             "mvcc's full tester's proofs (`examples/mvccfull`)", [""])
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
-    sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
+    sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)} {' '.join(PART_ALIASES)})")
+if ALIAS:
+    _base, _list, _part, _what = PART_ALIASES[ALIAS]
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import importlib.util  # noqa: E402
+    _spec = importlib.util.spec_from_file_location(
+        "copy_part", os.path.join(os.path.dirname(os.path.abspath(__file__)), "copy-part.py"))
+    _cp = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_cp)
+    mode = (_list, _cp.rename(mode[1]), _cp.rename(mode[2]), _what, ["", _part])
+    _top = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    EXTRA_IMPORTS[sys.argv[1]] = [
+        f"{_part}.{_cp.rename(m)}" if os.path.exists(os.path.join(_top, _part, *_cp.rename(m).split(".")) + ".lean")
+        else m for m in EXTRA_IMPORTS.get(sys.argv[1], [])]
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
@@ -976,7 +1011,7 @@ if cache:
         seen_links.add(mod)
         src = open(link_file(mod)).read()
         links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
-        todo.extend(re.findall(r"^public import ((?:(?:RaftWitness|RaftTla)\.)?Proof\.\S+\.Link)$", src, re.M))
+        todo.extend(re.findall(r"^public import ((?:(?:RaftWitness|RaftTla|RaftNoAx)\.)?Proof\.\S+\.Link)$", src, re.M))
     here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
     # an `@` callee's result named, in its Link, by the name `result` gives but in another
     # namespace than this one's (the client's `v3.clientv3.wp_New`, in `EtcdGrove.client`, called
@@ -1066,7 +1101,7 @@ if cache:
     out = [f"""/-
 {what}, every proof instantiated with its
 callees' results. All of them are Lean-first, listed with their callees in
-`etc/{listfile}`. Generated by `etc/gen-link.py {sys.argv[1]}` -- do not edit by
+`etc/{listfile}`. Generated by `etc/gen-link.py {ALIAS or sys.argv[1]}` -- do not edit by
 hand.
 
 `#print axioms` on a result is its trust base.""" + ("\n\n" + textwrap.fill(

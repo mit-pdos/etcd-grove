@@ -38,7 +38,7 @@ theorem mvcc.keyIndex.get.wp_proof
     (hW : mvcc.generation.walk.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.get.spec (GF := GF) (hG := hG) := by
   intro p gs ki k dq lg atRev e
-  wp_start as ⟨%Hlg, #Hkey, Hki, #Herr⟩
+  wp_start as ⟨#Hlg, #Hkey, Hki, #Herr⟩
   wp_auto
   wp_apply (hIE p gs ki dq) $$ [Hki] as Hki
   · iframe Hki
@@ -58,7 +58,7 @@ theorem mvcc.keyIndex.get.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hPanic lg _ _ $$ [] as %r %Hr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     subst Hr
     wp_auto
     iapply HΦ
