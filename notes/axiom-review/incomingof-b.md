@@ -281,6 +281,123 @@ Options:
   error and `kv.Get` returning `ContextError` of it — changes `client_range_any` to speak of an intermediate
   error, not the returned one; rejected (the caller sees only the returned error).
 
+## Option (a), decided by etcd-grove-03 (2026-11-18): the narrowed T2 and the two proved specs
+
+Decided: (1) narrow T2's conjunct from `m ∉ handlerDescs` to Go's two context messages (trusted text claiming
+more; true of Go's `context` package at go1.27.3); (2) strengthen the **proved** `rpctypes.Error.spec`: an
+error with no `GRPCStatus` method whose `Error()` stably returns a message that is no key of
+`errStringToError` comes back unchanged; (3) `ContextError.spec` (proved): a context error comes back as a
+context error. M4 stays a pre-existing hardening item (accepted). **Status: (1) written below; STOP for a
+short independent attack before the proofs rely on it.**
+
+### T2' (replaces T2's new conjunct; `grpc/InvGrpc.lean` `ctxErrsErr`, `client/v3/InvKVConn.lean` `ctxErrClient`)
+
+T2's conjunct (as in the WIP head):
+```lean
+        (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
+          ⌜err = GoInterface.ok e ∧ m ∉ handlerDescs ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+          go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
+```
+New:
+```lean
+        (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
+          ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
+            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+          go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
+```
+with, new in `cache/v3/Base.lean` beside `ctxErrShape` (pure, a closed list of two literals):
+```lean
+/-- Go's two context-error messages (`context.go`: `Canceled = errors.New("context canceled")`,
+`deadlineExceededError.Error()` returns `"context deadline exceeded"`). -/
+def ctxErrMsg (m : GoString) : Prop :=
+  m = go!"context canceled" ∨ m = go!"context deadline exceeded"
+```
+and a proved lemma `ctxErrMsg_not_handler : ctxErrMsg m → m ∉ handlerDescs` (by `decide` on the literals), so
+every consumer of the old conjunct keeps working. Docstring: "whose `Error()` stably returns one of Go's two
+context messages (`ctxErrMsg`: `Err()` returns only `Canceled` or `DeadlineExceeded`, Go's documented contract)".
+
+**What it claims, in Go.** A context `ctx` satisfying `ctxErrsErr`: once `ctx.Err()` is non-nil, its dynamic
+value's `Error()` returns `"context canceled"` or `"context deadline exceeded"` on every call. Go's documented
+contract of `Context.Err` ("If Done is closed, Err returns a non-nil error explaining why: DeadlineExceeded if
+the context's deadline passed, or Canceled if the context was canceled for some other reason") says exactly
+which two errors; their messages are fixed (`Canceled`'s `s` field is never written; `deadlineExceededError`'s
+`Error` returns a literal).
+
+**Who makes it (every producer; none can produce a third message).**
+- Proved, over Perennial's context model: `ctxErrClientAllW_of` (`client/v3/ErrorsNewOk.lean`, every
+  `isContext`; the other files of T7's list pass it or `ctxErrClientAllW` on, or use InvGrpc's lemmas over it), from `context.ErrAny.spec` (`Spec/context/ErrAny.lean`,
+  the existing trust boundary, unchanged), whose post already says the error **is** the value of `Canceled`
+  (an `*errorString` whose `s` cell is `↦□ "context canceled"`) or of `DeadlineExceeded` (whose `isInit` value is
+  `deadlineExceededError{}`, `Error` translated). So T2' adds no claim beyond `ErrAny`'s for these.
+- Proved, over the translated k8s `channelContext` (`client/v3/ChanCtx.lean`, `chanCtx_ok`): `Err()` returns
+  the value of `context.Canceled` (k8s `wait.go`).
+- Trusted, by transfer only: `withVersion.wp_proof` and `tracing.Start.wp_proof` (axioms) take `ctxOk`
+  (`tracing.Start` also `ctxErrClient`) of the parent and give the same of the derived context: a `valueCtx`
+  (`metadata.NewOutgoingContext`, otel's `ContextWithSpan` = `context.WithValue`) whose `Err()` **is** its
+  parent's (`context.go`, `valueCtx` embeds `Context`). Their texts do not change; through T2' they now claim
+  the parent's message form for the child, which is the parent's own `Err()` call.
+- Consumers (preconditions only, so a stronger `ctxErrsErr` only weakens them): `grpcInvokerOk`,
+  `ClientConn.NewStream.wp_proof`, `waitRetryBackoff.wp_proof`.
+- The standard library's own paths, checked in go1.27.3's `src/context/context.go`: `cancelCtx.err` is
+  stored only by `cancel(removeFromParent, err, cause)`, whose callers pass `Canceled` (l.243, 271, 337, 648,
+  657), `DeadlineExceeded` (l.647, 654), or the parent's `Err()` (l.487, 497, 512, 526: `propagateCancel`, so
+  a child of a context with the two-message form has it too); `afterFuncCtx.cancel`/`timerCtx.cancel` pass
+  their `err` through (l.354, 681). The `*Cause` variants (`WithCancelCause`, `WithDeadlineCause`,
+  `WithTimeoutCause`) put the custom cause only in `cause` (read by `context.Cause`), never in `Err()`;
+  `withoutCancelCtx.Err()` is `nil`; `emptyCtx.Err()` is `nil`.
+
+**(a) crossWorld / (b) the persistent-authoritative fresh world.** `ctxErrsErr`/`ctxErrClient` are definitions
+(WP forms), not entailments; in `W` they hold of every context, as before. The new pure facts (`ctxErrMsg m`,
+`ctxErrShape e`) are given to the continuation `Φ` of `Err()`'s WP, i.e. per call, never as a Lean fact from a
+resource. Re-checked 2026-11-18: no trusted entailment (axiom or premise-class field with `⊢`) has
+`ctxErrsErr`, `ctxErrClient`, `ctxErrs`, `ctxOk` or `errorMsgIs` on its left (grep over `Proof`, `Spec`,
+`TrustedCode`, `GooseLang`: none). So a world that builds `ctxErrsErr` with `m = "context canceled"` for any
+context learns nothing it can export: the WP is vacuous there and `Φ` is never run by a real execution.
+`errorMsgIs e m` stays a WP form; nothing turns it into an `errDesc` fact (no entailment
+`errorMsgIs e m ⊢ ⌜errDesc e = m⌝`; the only `errDesc` source is `status.FromError`'s post, per call).
+
+**(c) adequacy + nondeterministic allocation.** T2' is not a post; it appears inside the posts of
+`withVersion`/`tracing.Start` (`ctxOk` of the derived context), where its pure facts reach a continuation
+only through a real `Err()` call and then `Error()` call, and are about a string literal and dynamic types:
+no address enters them (`Canceled`'s pointer varies with allocation, its message does not). Per run they hold
+of Go's execution by the paths above.
+
+**Go evidence** (`examples/axiomcx/incomingof-real/ctx_test.go`, `GOTOOLCHAIN=go1.27.3 GOWORK=off go test -v
+./...`, 2026-11-18, all pass):
+- `TestCtxErrOnlyTwo`: on every done context below, `Err()` is non-nil, `== Canceled` or `== DeadlineExceeded`,
+  with message `"context canceled"`/`"context deadline exceeded"`, stable over calls; the custom cause shows
+  only in `context.Cause`: `WithCancel`, `WithCancelCause(custom)`, `WithDeadline(past)`,
+  `WithDeadlineCause(past, custom)`, `WithTimeoutCause(expired, custom)`, `WithTimeout` canceled early, a
+  `WithCancel` child of a cause-canceled parent, a `WithCancelCause` child of a deadline-cause parent,
+  `WithValue` over a cause-canceled parent, k8s's `channelContext` (closed), `WithCancel` over it (closed
+  before and after: `propagateCancel`'s two paths), `WithCancelCause` with an `AfterFunc` registered;
+  `WithoutCancel(...).Err()` is nil. Output excerpt:
+  ```
+  WithCancelCause(custom): Err() = *errors.errorString "context canceled"; Cause = my custom cause: ...
+  WithDeadlineCause(past, custom): Err() = context.deadlineExceededError "context deadline exceeded"; Cause = my custom cause: ...
+  WithCancel(channelContext closed later): Err() = *errors.errorString "context canceled"; Cause = context canceled
+  ```
+- `TestRpctypesErrorUnchanged` (for (2)): `rpctypes.Error` returns `Canceled`, `DeadlineExceeded` and an
+  `errors.New("some other message")` unchanged; an `*errorString` whose message is `ErrFutureRev`'s (a key of
+  `errStringToError`) is mapped to an `EtcdError` (so the "no key" guard is needed).
+- `TestContextErrorTwice` (for (3), the blocker's shape): `ContextError(ctx, ContextError(ctx, ctx.Err()))`
+  is `ctx.Err()` itself on every done context above, and on a live context for both errors.
+
+What is not covered: a user-defined `Context` whose `Err()` returns another error. No producer makes
+`ctxErrsErr` for one (Perennial's `isContext` is the context package's; `ctxErrs` is proved only for k8s's
+`channelContext`), and a `cancelCtx` child of one is excluded the same way (its parent must be `ctxOk`).
+
+### (2), (3): planned proved-spec changes (no trusted text)
+
+- `rpctypes.Error.spec` gains a post conjunct: for `err = ok e` with no `GRPCStatus` method and
+  `errorMsgIs e m` with `m` no key of `errStringToError` (from `rpctypesInit`'s literal table), `err' = err`.
+  Form (premise carried as a wand in the post, so existing callers are unaffected):
+  `□ (∀ e m, ⌜err = GoInterface.ok e ∧ noGRPCStatus e.ty ∧ m ∉ errStringKeys⌝ -∗ errorMsgIs e m -∗ ⌜err' = err⌝)`
+  (exact names fixed when implemented).
+- `ContextError.spec`: the ctx disjunct carries `ctxErrMsg m ∗ errorMsgIs e m`, and a new conjunct
+  `□ (ctxErrIs err -∗ ctxErrIs err')` with `ctxErrIs err := ∃ e m, ⌜err = ok e ∧ ctxErrMsg m ∧ ctxErrShape e
+  ∧ noGRPCStatus e.ty⌝ ∗ errorMsgIs e m`, so `kv.Get`'s second call keeps `kv.Do`'s context error.
+
 ## Trust-base delta (expected)
 
 - Axioms: none added or removed (`incomingOf_cancelCtx` stays: Part A is not linked).
