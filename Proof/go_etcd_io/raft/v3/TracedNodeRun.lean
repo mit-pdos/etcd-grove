@@ -1152,7 +1152,9 @@ theorem wp_rn_raft_Step_net_g (wp_raft_Step : raft.Step.spec (GF := GF) (hG := h
         □ (⌜st.msg.Type' = MsgSnap⌝ -∗
            ∃ (sv : SnapshotM) (scfg : CSLists),
              ⌜st.snap = some sv ∧ scfg = sv.Metadata'.ConfState'.lists ∧
-               uint.Z sv.Metadata'.Index' < 2^61⌝ ∗
+               uint.Z sv.Metadata'.Index' < 2^61 ∧
+               -- (auth-lease S4, 2026-11-16) outside the no-snapshot mode (`netP`'s clause)
+               γ.reNoSnap = false⌝ ∗
              isMessageC γ (absSnap st.msg sv scfg) ∗ snapDataOk γ sv.Metadata'.Index' sv.Data' ∗
              snapLocal γ id sv.Metadata'.Index') ∗
         rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ £ 1 ∗ netGate γ st }}

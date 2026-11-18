@@ -142,7 +142,7 @@ theorem RawNode.Step.wp_proof
         · ipureintro; exact fun h => absurd h hty
       icases ownStepGhost_nsLink γ _ cf id s $$ Hghost with ⟨%Hnl, Hghost⟩
       have Hnsm : m.Type' = MsgSnap → s.gh.ns = false := fun h => by
-        unfold NsLink at Hnl; rw [Hnl]; exact Hsnp h
+        rw [Hnl.1]; exact Hsnp h
       have HnP : m.Type' ≠ MsgProp := by not_net
       icases ownRaftPhysC_preFacts cf rnv.raft' id s (Hpvoff.guard rs.capplied rs.cfg (ds := ds)) $$ Hphys with ⟨%Hpf, Hphys⟩
       -- (D22 S-d3b) the log and what the storage will hold, before the step (`ackInv`'s carry)

@@ -723,7 +723,7 @@ theorem RawNode.readyWithoutAccept.wp_proof
         cases Hc : γ.reNoSnap
         · rfl
         · exfalso
-          have := (Hlns (by rw [Hnl]; exact Hc)).1
+          have := (Hlns (by rw [Hnl.1]; exact Hc)).1
           rw [Hss] at this; cases this
       refine ⟨⟨HMf, by trivial, Hss, Hsp, Hk, Hi0, rfl, Hce0, Hdpre, Hlen, Hapl, Hnx, Hhas⟩,
         ⟨Hrns, rfl, Hce0, Hdpre, ?_, Hlen, Hi0, Hlt61, ?_, ?_⟩, fun h => ?_, fun l' hl' => ?_⟩
