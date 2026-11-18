@@ -8,8 +8,9 @@
   no key had lease `g` at any revision ≤ σ.rev); server proof `GrantFresh.lean` (+ `kv_prop_au_on`), client law
   `writeGrantG_grant_fresh` (`LeaseReqOn.lean`). Recorded: `notes/auth-lease-s4-freeze.md` "Thaw 1" (old/new text,
   independent attack: no refutation, X1-X3 named in the docstring), ledger 2026-11-18. No compaction premise needed.
-- **Build of the thaw's 51 leaves** (`/shared/tmp/auth-lease-s4/thaw-leaves.txt`, log `thaw-build.log`): queued for a
-  slot for hours at 22:45; NOT yet run. Run it (build-slot) before anything else; `tcb-report --check` after (no axiom change expected).
+- **Build of the thaw's leaves**: the first try (51 targets) failed at once: `Scratch.*` targets are unknown to lake
+  (do not pass them). Rerun with the 41 non-Scratch leaves (`/shared/tmp/auth-lease-s4/thaw-leaves2.txt`, log
+  `thaw-build2.log`, ends with an `rc=` line), queued for a slot. Check it first; `tcb-report --check` after.
 - **Cell**: `authlease/CellModel.lean` (pure, CHECKED 0 errors: `CellOk` and its preservation by grant/putZ/putA/txnT/
   revokeU, `cellOk_fix`, `cellOk_fresh`, `not_leaseOk_setupSt`). `authlease/Cell.lean` (Iris, WRITTEN, NOT COMPILED: needs
   the build): `cellInv` (ids ½ main, ps, gs, d with `⌜d=0⌝ ∨ lb a 1`, v = rev lb, a ½ main = revocation permit),
