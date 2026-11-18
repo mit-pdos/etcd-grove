@@ -10,9 +10,9 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.Remap
 public import Proof.go_etcd_io.bbolt.Mmap.MmapSize
 public import Proof.go_etcd_io.bbolt.Mmap.GrowSize
-public import Proof.go_etcd_io.bbolt.Mmap.LoggerDefs
+public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
-public import Proof.go_etcd_io.bbolt.Mmap.FileSizeDefs
+public import Proof.go_etcd_io.bbolt.Mmap.FileSize
 public import Proof.go_etcd_io.bbolt.Mmap.AllocPage
 public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Allocate
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetId
@@ -703,6 +703,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iframe Hw
   simp only [WDb.withFl]
   unfold WDb.wtxid
+  rw [show flxS w.C (w.fl.alloc (W64 ((w.C.txid + 1 : Nat) : Int)) rid (sint.nat count)) w.wb =
+    flxS w.C w.fl w.wb from rfl]
   isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
   · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
     · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]

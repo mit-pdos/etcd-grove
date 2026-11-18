@@ -16,11 +16,15 @@ vocab Spec.go_etcd_io.bbolt.Data
 vocab Spec.go_etcd_io.bbolt.Api
 vocab Spec.go_etcd_io.bbolt.Logger
 vocab Spec.go_etcd_io.bbolt.Options
+vocab Spec.go_etcd_io.bbolt.ApiS
+vocab Spec.go_etcd_io.bbolt.ApiIno
 
 ## The API: the vocabulary (pure data, the sealed predicates and their laws), the logger contract,
 ## the options and their trust-boundary axioms
 importable Spec.go_etcd_io.bbolt.Data
 importable Spec.go_etcd_io.bbolt.Api
+importable Spec.go_etcd_io.bbolt.ApiS
+importable Spec.go_etcd_io.bbolt.ApiIno
 importable Spec.go_etcd_io.bbolt.Logger
 importable Spec.go_etcd_io.bbolt.Options
 importable Proof.go_etcd_io.bbolt.Options
@@ -38,6 +42,7 @@ importable Spec.go_etcd_io.bbolt.Tx__CreateBucket
 importable Spec.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists
 importable Spec.go_etcd_io.bbolt.Tx__DeleteBucket
 importable Spec.go_etcd_io.bbolt.Tx__Size
+importable Spec.go_etcd_io.bbolt.Tx__WriteTo
 importable Spec.go_etcd_io.bbolt.Tx__DB
 importable Spec.go_etcd_io.bbolt.Tx__Stats
 importable Spec.go_etcd_io.bbolt.Bucket__Get
@@ -54,45 +59,4 @@ importable Spec.go_etcd_io.bbolt.Options__String
 ## The packages' initialization facts (`PkgInit`: `isPkgInit`'s instances, `bboltErrorsInit`) and
 ## the generated `Init.lean`s are exempt above.
 
-## Debt: the old trust boundary the backend rests on, until the backend switch (the `_kv` axioms
-## become corollaries of the specs above, then are deleted with this group)
-importable Spec.go_etcd_io.bbolt.Bucket__Cursor_kvr
-importable Spec.go_etcd_io.bbolt.Bucket__Cursor_kvw
-importable Spec.go_etcd_io.bbolt.Bucket__Delete_kv
-importable Spec.go_etcd_io.bbolt.Bucket__Put_kv
-importable Spec.go_etcd_io.bbolt.Cursor__Next_kv
-importable Spec.go_etcd_io.bbolt.Cursor__Seek_kv
-importable Spec.go_etcd_io.bbolt.DB__Begin_kv
-importable Spec.go_etcd_io.bbolt.DB__Close_kv
-importable Spec.go_etcd_io.bbolt.DB__Info_kv
-importable Spec.go_etcd_io.bbolt.DB__Stats_kv
-importable Spec.go_etcd_io.bbolt.Open_kv
-importable Spec.go_etcd_io.bbolt.Tx__Bucket_kvr
-importable Spec.go_etcd_io.bbolt.Tx__Bucket_kvw
-importable Spec.go_etcd_io.bbolt.Tx__Commit_kv
-importable Spec.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists_kv
-importable Spec.go_etcd_io.bbolt.Tx__DB_kv
-importable Spec.go_etcd_io.bbolt.Tx__DeleteBucket_kv
-importable Spec.go_etcd_io.bbolt.Tx__Rollback_kv
-importable Spec.go_etcd_io.bbolt.Tx__Size_kv
-importable Spec.go_etcd_io.bbolt.Tx__Stats_kv
-importable Proof.go_etcd_io.bbolt.Bucket__Cursor_kvr
-importable Proof.go_etcd_io.bbolt.Bucket__Cursor_kvw
-importable Proof.go_etcd_io.bbolt.Bucket__Delete_kv
-importable Proof.go_etcd_io.bbolt.Bucket__Put_kv
-importable Proof.go_etcd_io.bbolt.Cursor__Next_kv
-importable Proof.go_etcd_io.bbolt.Cursor__Seek_kv
-importable Proof.go_etcd_io.bbolt.DB__Begin_kv
-importable Proof.go_etcd_io.bbolt.DB__Close_kv
-importable Proof.go_etcd_io.bbolt.DB__Info_kv
-importable Proof.go_etcd_io.bbolt.DB__Stats_kv
-importable Proof.go_etcd_io.bbolt.Open_kv
-importable Proof.go_etcd_io.bbolt.Tx__Bucket_kvr
-importable Proof.go_etcd_io.bbolt.Tx__Bucket_kvw
-importable Proof.go_etcd_io.bbolt.Tx__Commit_kv
-importable Proof.go_etcd_io.bbolt.Tx__CreateBucketIfNotExists_kv
-importable Proof.go_etcd_io.bbolt.Tx__DB_kv
-importable Proof.go_etcd_io.bbolt.Tx__DeleteBucket_kv
-importable Proof.go_etcd_io.bbolt.Tx__Rollback_kv
-importable Proof.go_etcd_io.bbolt.Tx__Size_kv
-importable Proof.go_etcd_io.bbolt.Tx__Stats_kv
+

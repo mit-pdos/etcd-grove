@@ -448,6 +448,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
       #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
       #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
+    icases srvApRes_cfg_size s γr _ $$ HAR with ⟨HAR, %hsz20⟩
     ihave #Hsrv' := Hsrv
     iunfold isServer at Hsrv'
     icases Hsrv' with ⟨%Hρrd, -, ⟨%fv, #Hfl⟩, #Hatm, -, #HrnS, -⟩
@@ -553,8 +554,10 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     -- (F9, 2026-11-03) `specSnapM` in the mode `off`: the auth store's `Recover` facts `authRecoverOk`
     ihave #HauS : snapAuthResM E.authMode s ast E.RD γr A' $$ []
     · rw [hoff]; simp only [snapAuthResM]; iapply HauR; ipureintro; first | trivial | rfl | exact hoff
+    have hposS : 0 < uint.Z sv.Metadata'.Index' := by have := hai; word
+    imod snap_csIdCount γr.raft sv hposS hi61 hsz20 $$ Hrli Hcert with %hcsz
     have hS := (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
-        { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
+        { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai hcsz d D lgh hkb
         hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm tI hmeta st b (by omega)
         al ast lp cl x A r0 hRO A' u (by rw [Hoff]; exact HxA) (by rw [Hoff]; exact Hif.hst)
         (by rw [Hoff]; exact Hif.nolease) hbr hlp γp
@@ -969,6 +972,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   wp_start as ⟨#Hsrv, #Hsa, #Hnid, #Hes, #Hesl, #Hsnf, Hsnv, ⟨#Hcert, #Hsloc⟩, #Hncf, #Hnc2, Hnr0,
     #Hracf, #Hracc, #Hrtf, #Hrt, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hrdk, Hbr, HKV, Hao, #Hlog,
     #HW, HWA, Hka, HRS, HAR, #Hkv, HwalT, Hso, #HmetaSnap⟩
+  icases srvApRes_cfg_size s γr _ $$ HAR with ⟨HAR, %hsz20⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨%Hρrd, -, ⟨%fv, #Hfl⟩, #Hatm, -, #HrnS, -⟩
@@ -1088,8 +1092,10 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   -- `s.applySnapshot(ep, apply)`, in the mode `on`
   iunfold srvGoRes at Hgr
   icases Hgr with ⟨HgrW, HthT⟩
+  have hposS : 0 < uint.Z sv.Metadata'.Index' := by have := hai; word
+  imod snap_csIdCount γr.raft sv hposS hi61 hsz20 $$ Hrli Hcert with %hcsz
   have hS := hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
-      { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai d D lgh hkb
+      { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai hcsz d D lgh hkb
       hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm tI hmeta st b (by omega)
       al ast lp cl x A r0 hRO A' u (by rw [hon]; exact HxA) (by rw [hon]; exact Hif.hst)
       (by rw [hon]; exact Hif.nolease) hbr hlp γp hrb stp γd γt

@@ -29,7 +29,8 @@ abbrev mvcc.storeTxnWrite.deleteRange.spec : Prop :=
     (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
-      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗
+      ⌜mvcc.LogPutsLe etcdKeyMax ilog ∧ mvcc.ChPutsLe etcdKeyMax pend⌝ }}
     (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"deleteRange"))
       (Val #key)) (Val #endk))
   {{ RET #(W64 ((mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length : Int) : w64);

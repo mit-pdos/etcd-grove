@@ -133,7 +133,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryWrite.wp_proof
       refine ⟨rfl, htr0.pw hsz data hd0 j hj hpw, fun he => ?_⟩
       rcases hres with ⟨rfl, -, -⟩ | ⟨-, hne⟩
       · exact pw_whole hsz data hd0 hpw
-      · exact absurd he hne
+      · exact absurd he hne.1
     · -- `data` empty: nothing written
       have hd0 : data = [] := List.eq_nil_of_length_eq_zero (by word)
       subst hd0

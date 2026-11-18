@@ -118,7 +118,7 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   icases Hres with (⟨%base, %Hok, Hm, %bs, %Hbs, Hcells⟩ | ⟨%Herr, Hm⟩)
   rotate_left
-  · obtain ⟨He, rfl⟩ := Herr
+  · obtain ⟨He, rfl, -⟩ := Herr
     unfold errnoErr; rw [if_neg He]
     (try wp_auto)
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlocked Hmap0 Hflds0]
@@ -142,7 +142,11 @@ theorem DB.mmap.wp_proof (wp_munmap : DB.munmap.spec (GF := GF) (hG := hG))
   obtain ⟨rfl, rfl⟩ := Hok
   unfold errnoErr; rw [if_pos rfl]
   (try wp_auto)
-  wp_apply wp_Madvise ⟨base, sz, sz⟩ _ (by decide) as %e2 -
+  wp_apply wp_Madvise ⟨base, sz, sz⟩ _ none (by decide) (Int.le_of_lt Hsz0)
+    (fun _ _ _ h => nomatch h) $$ [Hos] as %e2 -
+  · isplitl [Hos]
+    · iexact Hos
+    · iempintro
   (try wp_auto)
   wp_join (Q := fun v => iprop(err_ptr ↦ errnoErr e2 ∗ ⌜∃ b : Bool, v = #b ∧ (b = true → e2 ≠ 0)⌝))
     at (if: _ then _ else #false) with [err]

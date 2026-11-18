@@ -5,7 +5,7 @@ internal `Tx.Commit_err.spec` (the same function), its error branch's `fmtErrorO
 module
 
 public import Spec.go_etcd_io.bbolt.Tx__Commit
-public import Spec.go_etcd_io.bbolt.Tx__Commit_err
+public import Proof.go_etcd_io.bbolt.Tx__Commit_err
 
 @[expose] public section
 

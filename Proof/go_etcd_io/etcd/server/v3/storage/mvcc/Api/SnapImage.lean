@@ -541,7 +541,7 @@ theorem reach_shape (σ : api.MvccState) (h : api.MvccReachable σ) :
     ∃ R : Log, σ.log = [[], []] ++ R ∧ ∀ cs ∈ R, cs ≠ [] := by
   induction h with
   | start => exact ⟨[], rfl, by simp⟩
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     obtain ⟨R, hR, hne⟩ := ih
     show ∃ R', commitLog σ.log (σ.pending.getD []) = _ ∧ _

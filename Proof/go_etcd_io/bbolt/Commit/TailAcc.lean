@@ -24,6 +24,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The records after `tx.write()`: `tx.pages` the fresh empty map `pml`, no buffers. -/
 def WX.clearPages (X : WX) (pml : Loc) : WX :=
@@ -56,7 +58,7 @@ kept, its size grown at most to the mapping's end (a write past the end, `Tx.wri
 slots inside the file whole pages, the synced freelist page's bytes kept. -/
 theorem wdbOK_reslot (w : WDb) (m : OsMeta) (W : List Nat) (wb : Nat → List w8) (hok : wdbOK w)
     (hW : ∀ s, s ∈ W ↔ s ∈ w.W) (hsz1 : w.m.size ≤ m.size)
-    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 63)
+    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : wdbSz m w.ms)
     (hmaps : m.maps = w.m.maps)
     (hwb : ∀ s ∈ w.W, 4096 * (s + 1) ≤ m.size → (wb s).length = 4096)
     (hfl : ∀ f, w.C.flpg = some f → extentBytes wb f = extentBytes w.wb f)
@@ -163,26 +165,32 @@ theorem cm_write_acc (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) :
 the file, its fd and its `OsMeta`, the `W` slots' cells and bytes; back with any `OsMeta`, `W`
 list and bytes (`WDb.reslot`). -/
 theorem cm_file_acc (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) (tx : Loc) (ws : WSt)
-    (w : WDb) :
+    (w : WDb) (hX : ∀ wb : Nat → List w8, flxS w.C w.fl wb = []) :
     wdbLive (GF := GF) B db p sp t0 tx ws w ⊢
-      db.[DB, go!"file"] ↦ w.f ∗
+      db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f ∗
       (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-      fileOwn w.f w.fd p.path (DFrac.own 1) ∗ osFd w.fd (DFrac.own 1) (dbFd p.ino) ∗
+      fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
+      osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) ∗
       osMeta p.ino (DFrac.own 1) w.m ∗ wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
       (∀ (m : OsMeta) (W : List Nat) (wb : Nat → List w8),
-        db.[DB, go!"file"] ↦ w.f -∗
+        db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
         (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
           methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-        fileOwn w.f w.fd p.path (DFrac.own 1) -∗ osFd w.fd (DFrac.own 1) (dbFd p.ino) -∗
+        fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) -∗
+        osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) -∗
         osMeta p.ino (DFrac.own 1) m -∗ wCells w.ms W -∗ wBytes p W wb m.size -∗
         wdbLive B db p sp t0 tx ws (w.reslot m W wb)) := by
   unfold wdbLive wdbCoreG
   iintro ⟨⟨Hcur, Hfl, Hmap, Hout, Hwv, Hfli, Hopn, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf, Hom, Hfo, Hfd,
     Hmc, Hmb, Hwc, Hwb, Hjk⟩, Hflo, Hsp, Hrc⟩
+  rw [hX w.wb] at *
+  ihave Hwb := (wBytesX_nil p w.W w.wb w.m.size).1 $$ Hwb
   iframe Hfile Hwa Hfo Hfd Hom Hwc Hwb
   iintro %m %W %wb Hfile Hwa Hfo Hfd Hom Hwc Hwb
+  ihave Hwb := (wBytesX_nil p W wb m.size).2 $$ Hwb
   simp only [WDb.reslot]
+  rw [hX wb]
   iframe
 
 /-- The writer side's mapping is at most `maxMapSize` long. -/

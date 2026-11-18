@@ -136,7 +136,7 @@ theorem rdTxK_cells_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView
       (viewCells qc v -∗ rdTxK K tx src q T v) := by
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
-    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, %Hf⟩, Hpool⟩
+    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, Hrdx, %Hf⟩, Hpool⟩
   iexists _
   iframe Hcells
   iintro Hcells
@@ -152,7 +152,7 @@ theorem rdTxK_base_pos (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView)
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
     ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells,
-      ⟨%l, Hg, Hmf, %Hl⟩, #Hvo, %Hf⟩, Hpool⟩
+      ⟨%l, Hg, Hmf, %Hl⟩, #Hvo, Hrdx, %Hf⟩, Hpool⟩
   iapply mapFields_base_nonnull
   iexact Hmf
 

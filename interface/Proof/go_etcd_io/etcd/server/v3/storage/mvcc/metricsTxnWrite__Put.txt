@@ -14,7 +14,8 @@ theorem mvcc.metricsTxnWrite.Put.wp_proof (hPut : mvcc.storeTxnWrite.Put.spec) :
               ownSlice key k DFrac.discard ∗
                 ownSlice value v DFrac.discard ∗
                   ⌜↑(List.length k) < 2 ^ 63 - 1⌝ ∗
-                    lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ -∗
+                    ⌜List.length k ≤ etcdKeyMax ∧ List.length v ≤ etcdKeyMax⌝ ∗
+                      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ -∗
           ▷
               (mvcc.isTxnWrite mw s γ trace ilog (pend ++ [mvcc.Change.put k v leaseID]) (puts + W64 1) deletes
                     (putSize + (key.len + value.len)) crev Z ∗

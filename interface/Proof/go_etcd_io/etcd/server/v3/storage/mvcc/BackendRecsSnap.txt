@@ -70,4 +70,4 @@ theorem mvcc.rt_lockedRS [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ mvcc.keySized γ P b ∗ backend.fkRd γ P rv ⊢
     mvcc.keyReadLockedR (mvcc.bkRTx γ P b) (mvcc.bkRecs γ r) r true { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen)
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen)

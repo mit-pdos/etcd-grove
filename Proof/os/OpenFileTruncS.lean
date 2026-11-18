@@ -9,7 +9,7 @@ the file and returned `EINTR`, the retry truncates it (`wp_osOpenTruncS`, with t
 module
 
 public import Proof.os.ErrorOk
-public import Proof.os.OpenFileLemmas
+public import Proof.os.OpenFile
 public import Spec.os.OpenFileTruncS
 
 @[expose] public section

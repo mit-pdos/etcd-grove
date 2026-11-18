@@ -12,6 +12,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.WriteModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Writer
+public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccrand.itoa
 
 @[expose] public section
 
@@ -25,6 +26,30 @@ open github_com.mit_pdos.etcd_grove.examples.mvccrand mvcc mvcc.api
 
 section model
 variable [GooseExts]
+
+/-- (S1b, 2026-11-17) A number below `10 ^ k` has at most `k` decimal digits. -/
+theorem decDigits_length_le : ∀ (k n : Nat), n < 10 ^ k → (decDigits n).length ≤ k
+  | 0, n, h => by
+    have : n = 0 := by simpa using h
+    subst this; rw [decDigits]; simp
+  | k + 1, n, h => by
+    rw [decDigits]
+    split
+    · simp
+    · simp only [List.length_append, List.length_singleton]
+      have := decDigits_length_le k (n / 10) (by rw [Nat.pow_succ] at h; omega)
+      omega
+
+/-- (S1b) The tester's values (`"v"` and a counter) are short. -/
+theorem newVal_short (n : Nat) (h : n < 2 ^ 64) : (go!"v" ++ itoaM n).length ≤ 21 := by
+  have h20 : n < 10 ^ 20 := by omega
+  unfold itoaM
+  split
+  · decide
+  · have := decDigits_length_le 20 n h20
+    simp only [List.length_append]
+    have : (go!"v" : GoString).length = 1 := by decide
+    omega
 
 /-- The tester's keys are short. -/
 theorem keyList_short (k : GoString) (hk : k ∈ keyList) : k.length ≤ 2 := by

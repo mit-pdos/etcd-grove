@@ -39,7 +39,7 @@ theorem rdTxK_page_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView)
       (bytesPointsto (pageLoc v id) dq pg -∗ rdTxK K tx src q T v) := by
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
-    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, %Hf⟩, Hpool⟩
+    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, Hrdx, %Hf⟩, Hpool⟩
   icases viewCells_page_acc _ v id pg h $$ Hcells with ⟨Hpg, Hcells⟩
   iexists _
   iframe Hpg
@@ -59,7 +59,7 @@ theorem rdTxK_loc_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) 
       (bytesPointsto l dq bs -∗ rdTxK K tx src q T v) := by
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
-    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, %Hf⟩, Hpool⟩
+    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, Hrdx, %Hf⟩, Hpool⟩
   icases viewCells_loc_acc _ v l bs h $$ Hcells with ⟨%dq, Hpg, Hcells⟩
   iexists dq
   iframe Hpg

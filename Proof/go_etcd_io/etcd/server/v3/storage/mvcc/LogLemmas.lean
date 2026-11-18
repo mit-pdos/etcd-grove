@@ -348,6 +348,27 @@ theorem LogPutsLe.snoc {n : Nat} {L : Log} {cs : List Change} (h : LogPutsLe n L
   · exact h c hcs
   · rw [List.mem_singleton] at hcs; subst hcs; exact hc
 
+/-- (S1b) One more put of short key and value. -/
+theorem ChPutsLe.append_put {n : Nat} {cs : List Change} (h : ChPutsLe n cs) {k v : GoString}
+    (l : w64) (hk : k.length ≤ n) (hv : v.length ≤ n) : ChPutsLe n (cs ++ [.put k v l]) := by
+  intro k' v' l' hm
+  rcases List.mem_append.1 hm with hm | hm
+  · exact h k' v' l' hm
+  · simp only [List.mem_singleton, Change.put.injEq] at hm
+    obtain ⟨rfl, rfl, rfl⟩ := hm
+    exact ⟨hk, hv⟩
+
+/-- (S1b) Deletes put nothing. -/
+theorem ChPutsLe.append_dels {n : Nat} {cs : List Change} (h : ChPutsLe n cs)
+    (ks : List GoString) : ChPutsLe n (cs ++ ks.map .del) := by
+  intro k' v' l' hm
+  rcases List.mem_append.1 hm with hm | hm
+  · exact h k' v' l' hm
+  · simp at hm
+
+/-- (S1b) No change puts nothing. -/
+theorem ChPutsLe.nil (n : Nat) : ChPutsLe n [] := fun _ _ _ h => by cases h
+
 /-- The start log (`NewStore`'s two empty revisions) puts no key. -/
 theorem LogPutsLe.empties (n : Nat) : LogPutsLe n [[], []] := by
   intro cs hcs k v l hk
@@ -404,6 +425,17 @@ theorem stateAfter_keys {n : Nat} {log : Log} (h : LogPutsLe n log) :
 theorem stateAt_keys {n : Nat} {log : Log} (h : LogPutsLe n log) (r : Nat) :
     ∀ v ∈ stateAt log r, v.key.length ≤ n :=
   stateAfter_keys (h.take (r + 1))
+
+/-- (S1b, 2026-11-17) **A key present after a write transaction's changes is short** when the
+log's and the changes' puts are: a tombstone's key fits a bbolt entry. -/
+theorem findKey_key_le {n : Nat} {log : Log} {pend : List Change} (r : w64)
+    (hl : LogPutsLe n log) (hp : ChPutsLe n pend) {k : GoString}
+    (h : (findKey k (applyChanges r (stateAfter log) pend)).isSome) : k.length ≤ n := by
+  obtain ⟨kv, hkv⟩ := Option.isSome_iff_exists.1 h
+  unfold findKey at hkv
+  have hk : kv.key = k := by simpa using List.find?_some hkv
+  rw [← hk]
+  exact applyChanges_keys r pend hp _ (stateAfter_keys hl) kv (List.mem_of_find?_eq_some hkv)
 
 /-- The values of a state after changes: the state's, or a put's. -/
 theorem applyChanges_vals {n : Nat} (r : w64) (cs : List Change) (hc : ChPutsLe n cs) :

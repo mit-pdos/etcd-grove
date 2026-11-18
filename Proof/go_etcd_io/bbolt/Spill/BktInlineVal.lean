@@ -10,7 +10,7 @@ module
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopInv
 public import Proof.go_etcd_io.bbolt.Spill.WrittenPage
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
-public import Proof.go_etcd_io.bbolt.Spill.InlineableDefs
+public import Proof.go_etcd_io.bbolt.Spill.Inlineable
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillTailInitSize
 
 @[expose] public section

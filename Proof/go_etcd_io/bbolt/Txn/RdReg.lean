@@ -131,12 +131,13 @@ theorem store_pages_bound (C : CommitSt) (b : Loc) (l : Nat) (q : Qp) :
   have := pagesInv_timeless_r (GF := GF) B p
   imod inv_acc hE $$ Hinv with ⟨>Hi, Hclose⟩
   unfold pagesInv
-  icases Hi with ⟨%σ, %W, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %Hok⟩
+  icases Hi with ⟨%σ, %W, Hcur', Hfl, Hmap', Hwv, Hrds, Hdep, Hcells, Hos, Hbw, Hml, %HokF⟩
+  have Hok := HokF.1
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   icombine Hmap Hmap' gives % ⟨_, hms⟩
   have hb := Hok.2.2.2.2.2.2.2.2.2.2.2.2.1 b l hms.symm
   imod Hclose $$ [Hcur' Hfl Hmap' Hwv Hrds Hdep Hcells Hos Hbw Hml] with -
-  · inext; iexists σ, W; iframe; ipureintro; exact Hok
+  · inext; iexists σ, W; iframe; ipureintro; exact HokF
   imodintro
   iframe
   ipureintro

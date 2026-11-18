@@ -130,10 +130,11 @@ theorem noIoErr_keeps (S : IoSet) : StepKeeps (NoIoErr S) := by
   intro _ _ o v h st e' h' st' huniq hs
   by_cases hc : IoCovers S o v st ∧ ∃ e'' st'', IsFsStep o v st e'' st'' ∧ ErrnoZero o e''
   · obtain ⟨hc, e'', st'', hs'', hz⟩ := hc
+    have hs := fsStepV_of_ne (by rintro rfl; simp [IoCovers] at hc) hs
     have h1 := isFsStep_maps hc hs.1
     have h2 := isFsStep_maps hc hs''
     obtain ⟨h'', hr⟩ := heapRendered_restamp huniq h1 h2 hs.2.2
-    exact ⟨e'', h'', st'', ⟨hs'', mapsFresh_same h2, hr⟩, fun _ _ => hz⟩
+    exact ⟨e'', h'', st'', .inl ⟨hs'', mapsFresh_same h2, hr⟩, fun _ _ => hz⟩
   · exact ⟨e', h', st', hs, fun hc' hex => absurd ⟨hc', hex⟩ hc⟩
 
 end Fs

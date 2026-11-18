@@ -41,7 +41,7 @@ theorem DB.close.wp_proof_crash (wp_munmap : DB.munmap.specCrash (GF := GF) (hG 
   wp_apply wp_Fd f fd name _ $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_Flock fd (W64 8) d none false rfl (fun h => absurd rfl h) $$ [Hinv Hfd Hfl] as %e Hout
+  wp_apply wp_Flock fd (W64 8) d none false rfl (fun h => absurd rfl h) $$ [Hinv Hfd Hfl] as %e ⟨-, Hout⟩
   · iframe; iframe #
   (try wp_auto)
   unfold lockOut

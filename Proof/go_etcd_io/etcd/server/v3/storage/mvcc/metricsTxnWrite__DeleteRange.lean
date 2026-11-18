@@ -28,12 +28,13 @@ theorem mvcc.metricsTxnWrite.DeleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.metricsTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro trace mw s γ ilog pend puts deletes putSize key endk k e L crev Z Tr
-  wp_start as ⟨Htx, #Hkey, #Hend, Hown⟩
+  wp_start as ⟨Htx, #Hkey, #Hend, Hown, %Hfit⟩
   iunfold mvcc.isTxnWriteT at Htx
   iNamed Htx
   (try wp_auto)
   wp_apply (hDel trace tw s γ ilog pend key endk k e L crev Z) $$ [$Htw $Hkey $Hend $Hown]
     as %n %rev ⟨Htw, Hown, %Hnr⟩
+  · ipureintro; exact Hfit
   (try wp_auto)
   iapply HΦ
   iframe Hown

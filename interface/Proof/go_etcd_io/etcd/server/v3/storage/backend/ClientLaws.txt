@@ -17,8 +17,9 @@ theorem backend.thinV_intro (γ : backend.BNames) (vd L : backend.VData) : (⌜�
     GoString) (v : GoString), vd !! nk = some v → L !! nk = some v⌝ ∗ □ ∀ nk, ⌜L !! nk ≠ none ∧ vd
     !! nk = none⌝ -∗ backend.dlIs γ nk) ⊢ backend.thinV γ vd L
 
-theorem backend.kvsOutRd_nil (E : CoPset) (rtx : Loc) (keys vals : GoSlice) : backend.kvsOutRd rtx
-    keys vals [] ⊢ |={E}=> ownSlice keys [] DFrac.discard ∗ ownSlice vals [] DFrac.discard
+theorem backend.kvsOutRd_nil (E : CoPset) (γd : backend.DBNames) (rtx : Loc) (keys vals : GoSlice) :
+    backend.kvsOutRd γd rtx keys vals [] ⊢ |={E}=> ownSlice keys [] DFrac.discard ∗ ownSlice vals []
+    DFrac.discard
 
 theorem backend.dlIs_of_dlReg (γ : backend.BNames) (Φ : GoString × GoString → IProp GF) (nk :
     GoString × GoString) : backend.dlReg γ Φ ∗ □ Φ nk ⊢ backend.dlIs γ nk
@@ -26,16 +27,17 @@ theorem backend.dlIs_of_dlReg (γ : backend.BNames) (Φ : GoString × GoString �
 theorem backend.fkPut_of_fk (γ : backend.BNames) (n k : GoString) (h : backend.fkKey n k) :
     backend.fkPut γ n k = iprop(∃ f, backend.fkOwn γ f)
 
-theorem backend.rdB_iff (rtx : Loc) (s : GoSlice) (b : GoString) : backend.rdB rtx s b ⊣⊢ ownSlice s
-    b DFrac.discard ∨ backend.txBytes rtx s b
+theorem backend.rdB_iff (γd : backend.DBNames) (rtx : Loc) (s : GoSlice) (b : GoString) :
+    backend.rdB γd rtx s b ⊣⊢ ownSlice s b DFrac.discard ∨ backend.txBytes rtx γd s b
 
 theorem backend.fkCl_open (γ : backend.BNames) (P : backend.BParams) (D : backend.Data) :
     backend.fkCl γ P D ⊢ backend.fkOwn γ (backend.fkInit D) ∗ backend.fkV γ (backend.fkWInit P D) ∗
     backend.fkOpen γ (backend.fkInit D) (backend.fkVals D)
 
-theorem backend.kvsOutRd_single (E : CoPset) (rtx : Loc) (keys vals : GoSlice) (k v : GoString) :
-    backend.kvsOutRd rtx keys vals [(k, v)] ⊢ |={E}=> ∃ ksl vsl, ownSlice keys [ksl] DFrac.discard ∗
-    backend.rdB rtx ksl k ∗ ownSlice vals [vsl] DFrac.discard ∗ backend.rdB rtx vsl v
+theorem backend.kvsOutRd_single (E : CoPset) (γd : backend.DBNames) (rtx : Loc) (keys vals :
+    GoSlice) (k v : GoString) : backend.kvsOutRd γd rtx keys vals [(k, v)] ⊢ |={E}=> ∃ ksl vsl,
+    ownSlice keys [ksl] DFrac.discard ∗ backend.rdB γd rtx ksl k ∗ ownSlice vals [vsl] DFrac.discard
+    ∗ backend.rdB γd rtx vsl v
 
 theorem backend.guarded_RLock (hRL : backend.readTx.RLock.spec) (γ : backend.BNames) (G : Qp → IProp
     GF) (f : Qp → Qp) (hG1 : ∀ (q : Qp), G q ⊢ |={⊤}=> backend.bOpen γ (f q) ∗ (backend.bOpen γ (f

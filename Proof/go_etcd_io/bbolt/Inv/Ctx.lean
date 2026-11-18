@@ -167,7 +167,7 @@ def rdTxK (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     ⌜T = TxView.ofC c ∧ r.db = K.db ∧ r.rw = false ∧ r.src = src⌝ ∗ reg tx K.B r ∗
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ K.core ∗
     ghostVar r.n.v q.half (c, TxX.rd v mv k) ∗ ghostVar r.n.ex q () ∗
-    rtxFrac K.B tx r q T v mv ∗
+    rtxFrac K.B tx r q T v mv k ∗
     (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool (rdPair K.B K.db K.sp)
      else ghostVar K.B.spr q.half (some k)))
 
@@ -585,7 +585,7 @@ theorem rdTxK_root (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v 
       (rBkt v tx (txRoot (GF := GF) tx) (DFrac.own q) (rootVal v) -∗ rdTxK K tx src q T v) := by
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, Hreg, Hpk, Hcore, Hv, Hex,
-    ⟨%t, Hw, Hm, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, Hvo, %Hf⟩, Hpool⟩
+    ⟨%t, Hw, Hm, Hme, Hrb, Hfp, Hpg, Hch, Hwf, Hdb, Hmv, Hvc, Hmap, Hvo, Hrdx, %Hf⟩, Hpool⟩
   isplitl [Hrb]
   · iexact Hrb
   iintro Hrb
@@ -599,7 +599,7 @@ theorem rdTxK_root (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v 
 theorem rdTxK_view (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) :
     rdTxK (GF := GF) K tx src q T v ⊢ ⌜T = TxView.ro v.data ∧ viewWF v⌝ := by
   unfold rdTxK rtxFrac
-  iintro ⟨%r, %c, %mv, %k, -, -, -, -, -, -, ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hf⟩, -⟩
+  iintro ⟨%r, %c, %mv, %k, -, -, -, -, -, -, ⟨%t, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %Hf⟩, -⟩
   ipureintro; exact ⟨Hf.1, Hf.2.1⟩
 
 end ctx

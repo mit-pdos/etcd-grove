@@ -16,7 +16,7 @@ have made of the state: a failed attempt may have created the file) and `Proof/o
 module
 
 public import Proof.os.CrashWrite
-public import Proof.os.OpenFileLemmas
+public import Proof.os.OpenFile
 
 @[expose] public section
 

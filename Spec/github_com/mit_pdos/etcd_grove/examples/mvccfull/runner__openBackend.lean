@@ -31,7 +31,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- See the file header. -/
 abbrev runner.openBackend.spec : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (x : Loc) (ks : List GoString) (cfg : Config) (wr : List w64)
     (h : Loc) (γh : HistNames) (path : GoString) (D : backend.Data)
     (W Pk K : backend.BNames → IProp GF),
   backend.dbOpenOk → sint.Z (limOf cfg) ≤ 2 ^ 57 →
@@ -42,7 +42,9 @@ abbrev runner.openBackend.spec : Prop :=
   {{ (r : GoInterface), RET #r; threadTok ∗
       ∃ (b : Loc) (γB : backend.BNames),
         ⌜r = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b⌝ ∗
-        backend.newPostK γB (mvccrand.rcP (limOf cfg)) W Pk K b D ∗ backend.bFile γB path }}
+        backend.newPostK γB (mvccrand.rcP (limOf cfg)) W Pk K b D ∗ backend.bFile γB path ∗
+        -- (S5, 2026-11-18) the claim on the file's name (`New`'s)
+        backend.bPath γB.db path }}
 
 end spec
 

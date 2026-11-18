@@ -6,7 +6,8 @@ it stores in a fresh `fileStat`. On success the result is that `*fileStat` as a 
 the size (`os.ownFileStat`, read by `Size`, `Spec/os/fileStat__Size.lean`); on failure a nil
 `FileInfo` and a non-nil error. The error is one `fmt` formats (`fmtErrorOkOrNil`) and, if
 non-nil, the model's fresh `*PathError` of a nonzero errno (`os.errnoPathErr`; so never `io.EOF`, an
-`*errorString`: what the WAL's decoder needs of its readers' errors, `ReadBridge.lean`).
+`*errorString`: what the WAL's decoder needs of its readers' errors, `ReadBridge.lean`). A failure
+witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names, `fstat` returns 0; session S6 folded the former `specNoErr`/`specW` into this spec).
 Proved in `Proof/os/File__Stat.lean`. Lean-first (no Rocq counterpart).
 -/
 module
@@ -15,6 +16,7 @@ public import Proof.os.Base
 public import Spec.fmt.ErrorOk
 public import Perennial.Proof.errors.Base
 public import Proof.os.ErrnoPathErr
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -44,7 +46,7 @@ abbrev os.File.Stat.spec : Prop :=
       ((∃ fs : Loc, ⌜err = interface.nil ∧
           fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
           os.ownFileStat fs (W64 m.size)) ∨
-       ⌜err ≠ interface.nil ∧ fi = interface.nil⌝) ∗
+       ⌜err ≠ interface.nil ∧ fi = interface.nil ∧ ¬ FsNoErr⌝) ∗
       fmtErrorOkOrNil err ∗
       (⌜err = GoInterface.nil⌝ ∨ ∃ e : w64, ⌜e ≠ 0⌝ ∗ os.errnoPathErr err e) }}
 

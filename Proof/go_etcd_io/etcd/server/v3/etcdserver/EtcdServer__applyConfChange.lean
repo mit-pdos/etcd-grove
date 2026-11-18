@@ -241,7 +241,9 @@ local macro "succ_tail" : tactic => `(tactic| (
   ihave #Hcsok : ownCSM (GF := GF) csp DFrac.discard csm $$ []
   · iapply csPts_weaken; iexact Hcsp
   wp_apply (hSetCS bh ix lgh csp) $$ []
-  · iframe #; first | done | (iright; iexists csm; iexact Hcsok)
+  · iframe #
+    iunfold storage.csOkN; iright; iexists csm; iframe Hcsok
+    ipureintro; exact csIdCount_simple_le csm _ (by rw [← Hmb]; exact Hcsm) Hcfg
   wp_apply (hGetType.1 cc _ m) $$ [] as -
   · iframe #
   rw [hty0, show decide ((W32 0 : w32) = W32 3) = false by simp]
@@ -363,7 +365,8 @@ local macro "succ_tail" : tactic => `(tactic| (
       isplitl [Hcsf]
       · iunfold epConfState
         iframe Hcsf
-        iunfold epCsOk; iright; iexists csm; iexact Hcsok
+        iunfold epCsOk; iright; iexists csm; iframe Hcsok
+        ipureintro; exact csIdCount_simple_le csm _ (by rw [← Hmb]; exact Hcsm) Hcfg
       ileft
       iunfold epCsVoters
       iexists csm
@@ -439,7 +442,8 @@ local macro "succ_tail" : tactic => `(tactic| (
       isplitl [Hcsf]
       · iunfold epConfState
         iframe Hcsf
-        iunfold epCsOk; iright; iexists csm; iexact Hcsok
+        iunfold epCsOk; iright; iexists csm; iframe Hcsok
+        ipureintro; exact csIdCount_simple_le csm _ (by rw [← Hmb]; exact Hcsm) Hcfg
       ileft
       iunfold epCsVoters
       iexists csm
@@ -494,7 +498,7 @@ theorem EtcdServer.applyConfChange.wp_proof
     (hZErr : zap.Error.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) := by
   intro s cc ep m cs v3 ci ua E γs Pre Q Post Adv i t γB cl rs d al st lp dv ds vw k mb e
-    lg bh ix lgh tl lid prs lgc cid Hok HRO Hpeer Hloc Hsz Hv3p
+    lg bh ix lgh tl lid prs lgc cid Hok HRO Hpeer Hloc Hsz Hcfg Hv3p
   cases v3
   · -- (R2d'a, swap batch 1) a replayed `AddNode`: `applyConfChange(cc, ep, false)`
     simp only [Bool.false_eq_true, ↓reduceIte]
@@ -543,9 +547,13 @@ theorem EtcdServer.applyConfChange.wp_proof
     wp_apply (hSetCS bh ix lgh cs) $$ []
     · iframe #
       iunfold epCsOk at Hcsok
-      icases Hcsok with (%h | ⟨%c, #Hc⟩)
+      iunfold storage.csOkN
+      icases Hcsok with (%h | ⟨%c, #Hc, %Hcn⟩)
       · ileft; ipureintro; exact h
-      · iright; iexists c; iapply csPts_weaken; iexact Hc
+      · iright; iexists c
+        isplitl
+        · iapply csPts_weaken; iexact Hc
+        ipureintro; exact Hcn
     wp_apply (hGetType.1 cc _ m) $$ [] as -
     · iframe #
     rw [hty0, show decide ((W32 0 : w32) = W32 3) = false by simp]

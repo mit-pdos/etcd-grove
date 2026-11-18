@@ -10,7 +10,7 @@ write; given back with `j` bytes written,
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Tx__writeMetaDefs
+public import Proof.go_etcd_io.bbolt.Tx__writeMeta
 public import Proof.go_etcd_io.bbolt.Commit.MetaBytes
 public import Proof.go_etcd_io.bbolt.Commit.Fire
 
@@ -93,7 +93,10 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     (hfl : flBelow fl (C.publish (metaBuf mv) (metaSummed mv) pages) (some (C.txid + 1)))
     (hnp : ∀ s ∈ treeSlots (C.publish (metaBuf mv) (metaSummed mv) pages), s ∉ pendSlots fl)
     (hSb : ∀ s ∈ S, (bs s).length = 4096 ∧ W64 (s : Int) ∉ fl.free ∧
-      (∀ b' l', (some (b, l) : MapSt) = some (b', l') → s < l' / 4096) ∧ 2 ≤ s) :
+      (∀ b' l', (some (b, l) : MapSt) = some (b', l') → s < l' / 4096) ∧ 2 ≤ s)
+    (hC'fl : (C.publish (metaBuf mv) (metaSummed mv) pages).flpg = none)
+    (hfreed : ∀ f, C.flpg = some f → f ∈ pendSlots fl)
+    (hhwmb : (C.publish (metaBuf mv) (metaSummed mv) pages).hwm * 4096 ≤ 0xFFFFFFFFFFFF) :
     K.core (GF := GF) ∗ cpRes K C fl b l v (C.txid + 1) false wl (treeData C) ∗
       slotsOwn (some (b, l)) K.p S bs ∗
       fbTok K.B C fl ((some v, some (C.txid + 1), false, wl) : WSt) Fb ∗
@@ -116,7 +119,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
   unfold commitStep
   iintro HR
   iunfold metaR at HR
-  icases HR with ⟨%C0, %F, %cl, %fli, %wa, Hcur, Hst, Hcls, Hop, Hfli, Hwa, Hob, Hmlk, Hfa, Hro,
+  icases HR with ⟨%C0, %F, %cl, %fli, %wa, Hcur, Hst, Hcls, Hop, Hfli, Hwa, Hob, Hmlk, Hfa, Hro, #Hrcm,
     %Hok, %HF⟩
   icombine Hcur Hcurq gives % ⟨_, hC0⟩
   subst C0
@@ -127,7 +130,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · simp only [Bool.not_true] at hop; exact absurd hop (by simp)
   subst hcl
   simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
-  obtain ⟨hmok, htok, htx1⟩ := Hok rfl
+  obtain ⟨hmok, htok, htx1, hhwm0⟩ := Hok rfl
   imod meta_take K.B K.N K.p ⊤ CoPset.subseteq_top C (some (b, l)) $$ [Hpi Hout Hmlk Hcurq Hmap]
     with ⟨Hmcl, Hout, Hcurq, Hmap⟩
   · iframe; iframe #
@@ -140,14 +143,14 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · exact hmok.1
     · exact hmok.2.1
   imodintro
-  iexists xa, C.slot (mv.txid'.toNat % 2)
-  iframe Hxa Hold
+  iexists C.txid, xa, C.slot (mv.txid'.toNat % 2)
+  iframe Hrcm Hxa Hold
   isplitr
   · ipureintro
     have := congrArg List.length hxab.1
     simp only [List.length_map] at this
     exact ⟨this.trans (hslotlen _), hslotlen _⟩
-  iintro %j %ys %hj Hys Hnew Hrc
+  iintro %j %ys %hj Hys Hnew Hrc #Hrc1
   obtain ⟨hj01, hys⟩ := hj
   rcases hj01 with rfl | rfl
   · -- nothing written: everything back, the update unfired
@@ -168,8 +171,9 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · iunfold metaR
       iexists C, F, false, fli, wa
       simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
+      iframe Hrcm
       iframe
-      ipureintro; exact ⟨fun _ => ⟨hmok, htok, htx1⟩, HF⟩
+      ipureintro; exact ⟨fun _ => ⟨hmok, htok, htx1, hhwm0⟩, HF⟩
     unfold cpPost
     iright
     isplitr
@@ -184,7 +188,7 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     have htx' : (C.publish (metaBuf mv) (metaSummed mv) pages).txid = C.txid + 1 := by
       simp only [CommitSt.publish, metaSummed_txid]; exact htx
     imod store_publish K.B K.N K.p ⊤ CoPset.subseteq_top C _ fl (some (b, l)) v (C.txid + 1) wl S bs
-      Fb htx' hmeta htree hhwm hdrop hS hbytes hfl hnp hSb (by simp)
+      Fb htx' hmeta htree hhwm hdrop hS hbytes hfl hnp hSb (by simp) hC'fl hfreed
       $$ [Hpi Hcur Hcurq Hfl Hmap Hwv HS Hout Hfb] with ⟨Hcur, Hcurq, Hfl, Hmap, Hwv, Hout⟩
     · iframe; iframe #
       iapply (ghostVar_split_half K.B.cur (1 : Qp).half C).1 $$ Hcur
@@ -220,10 +224,11 @@ theorem commitStep_commit (K : BC) (N' : Namespace) (C : CommitSt) (fl : FLPg) (
     · iunfold metaR
       iexists (C.publish (metaBuf mv) (metaSummed mv) pages), F, false, fli, wa
       simp only [Bool.false_eq_true, ↓reduceIte, Bool.not_false]
-      rw [hDn]
+      rw [hDn, htx']
+      iframe Hrc1
       iframe
       ipureintro
-      refine ⟨fun _ => ⟨hmeta, htree, by omega⟩, fun k t h => ?_⟩
+      refine ⟨fun _ => ⟨hmeta, htree, by omega, hhwmb⟩, fun k t h => ?_⟩
       have := HF k t h
       omega
     unfold cpPost

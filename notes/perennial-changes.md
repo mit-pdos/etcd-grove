@@ -17,6 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `io.NewSectionReader`, `io.CopyN` without bodies (2026-11-18, S4, branch `s4-io`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only for `NewSectionReader`, `CopyN`,
+  `Copy`, `copyBuffer`, `LimitReader`, `(*LimitedReader).Read` and `(*SectionReader).Read`
+  (`Perennial/Code/io.lean`), so none can be stepped. bbolt's `Tx.WriteTo` (tx.go) copies its data
+  pages with `io.CopyN(w, io.NewSectionReader(tx.db.file, dataOffset, dataSize), dataSize)`.
+- **Workaround here.** Two trust-boundary axioms: `io.NewSectionReader.wp_proof`
+  (`Spec/io/NewSectionReader.lean`) and `io.CopyN.wp_proof` (`Spec/io/CopyN.lean`), over the
+  vocabulary of `Proof/io/SectionReader.lean` (`io.secReader`, opaque; the `io.ReaderAt` contract
+  `io.readerAtOk`; `io.writerPlain`: no `ReadFrom`, which `copyBuffer` would call instead) and the
+  backend's writer contract `backend.writerOk`. An `*os.File` meets `readerAtOk` from its racing
+  read (`os.File.readerAtOk`, `Proof/os/ReaderAt.lean`). Not a part-local translation, for the reason
+  of `io.ReadFull`'s entry below (`io` is imported by Perennial's other packages).
+- **Proposed.** `io.toml`: translate the seven with bodies (`SectionReader`'s struct and its other
+  methods may stay names-only; `EOF`, `ErrShortWrite` and `errInvalidWrite` are package variables
+  already), and prove in `Perennial/Proof/io/` the two specs over a `ReaderAt` contract and a `Writer`
+  contract (the latter moved from etcd-grove's backend to Perennial with `writerPlain`):
+  `NewSectionReader` an allocation, `CopyN` a Löb induction over `copyBuffer`'s loop with the
+  invariant "`written` bytes appended, the section and limited readers at `off + written`, `n -
+  written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
+  `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
+  become theorems with the same statements. Not yet proposed.
+
 ### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
 
 `k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
@@ -2777,3 +2800,25 @@ local copy of `spsc_send_au` whose token and element resource come from `X` at t
 `X ⊢ ∃ sent, spscProducer γ sent ∗ (spscProducer γ sent -∗ X)` to refute the closed states). General
 fix to propose on its own: that lemma in `Spsc.lean` (`spsc_send_au_inv`), or `isSpsc` with a namespace
 parameter.
+
+## 2026-11-17: `Sprintf`'s `%p` (bbolt's `(*Options).String`, S2 of `notes/bbolt-integration-plan.md`)
+
+- **Missing.** No spec of `fmt.Sprintf` (Perennial's `wp_Sprintf` over `ArgsWf`, this repository's
+  `Spec/fmt/Sprintf*.lean` over `fmt.argOkAt`) admits `%p` of a func or of a pointer: `ArgWf` takes predeclared basic
+  types and named integers only, and `argOkAt` asks the same under a verb that is not a method verb. Go's `%p` prints
+  the pointer's address (`fmt/print.go`, `fmtPointer`), calling no method and reading no memory. bbolt's
+  `(*Options).String` formats its `OpenFile` and `Logger` with `%p`.
+- **Workaround here.** `bbolt.Options.String.wp_proof` stays a trust-boundary axiom (now over the translated
+  `Options`' points-to); no new axiom.
+- **Proposed.** `ArgWf` (or a verb-indexed variant) admitting a func, pointer, map, channel or unsafe-pointer value
+  under `%p`, with the model's output arbitrary (`other`); a `%s` of a `Stringer` (`time.Duration`) then needs
+  `fmt.argOkAt`'s method-verb disjunct only.
+
+## 2026-11-18: no bound on the iterations of a range loop over a string (`fs.FileMode.String`, S3g)
+
+- **Missing.** `go.runes s` (`goose/model/strings/Base.lean`) has no length lemma: a proof whose loop
+  body indexes a buffer by the iteration count (`FileMode.String`'s `buf[w]`, `w` at most the runes
+  seen) needs `(go.runes s).length ≤ s.length`.
+- **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
+  `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
+- **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.

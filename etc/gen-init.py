@@ -399,13 +399,12 @@ SPECIAL['go_etcd_io.bbolt'] = dict(
 `DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
-which the fact records: a `*nopLogger`).
-And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
-`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
+`errors`' variables (loads of them), `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`), and `DefaultOptions` (`&Options{...}`, an allocation;
+translated since 2026-11-17, `Code/go_etcd_io/bbolt.toml`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
-                     discardLogger='GoInterface'),
+                     discardLogger='GoInterface', DefaultOptions='Loc'),
     before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
@@ -413,6 +412,8 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar',
                 'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + ', -⟩'],
+            # `&Options{...}`: a literal of the translated struct, allocated (2026-11-17)
+            'DefaultOptions': ['try wp_auto'],
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},
@@ -1717,8 +1718,8 @@ _E['finish'] = ([f'ipersist H{x}' for x in _E['newvars']] + FIN_PRE[:6] +
 
 _B = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']
 _B['custom']['boltOpenOptions'] = dict(
-    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems): read-write options with the default page size and `OpenFile`. -/',
-    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)',
+    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems, but the file model is Linux\'s, configuration C): read-write options with the default page size and `OpenFile`, `NoFreelistSync`, no `Timeout`. (S3e, 2026-11-18: until then possibly nil.) -/',
+    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝',
     pat='⟨%p@, H@, #S@⟩')
 _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
 # (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
@@ -2466,7 +2467,7 @@ def exec_order(p):
             items.append(('import', m.group(1)))
         elif m.group(2):
             # an axiom of the translation, or a trusted variable's model (in `TrustedCode/`)
-            kind = 'opaque' if f'axiom {m.group(2)}.init ' in t else 'trusted'
+            kind = 'opaque' if (f'axiom {m.group(2)}.init ' in t or f'opaque {m.group(2)}.init ' in t) else 'trusted'
             items.append((kind, m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))

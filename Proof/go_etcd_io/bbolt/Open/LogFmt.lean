@@ -5,7 +5,7 @@
 module
 
 public import Spec.go_etcd_io.bbolt.Options__String
-public import Proof.go_etcd_io.bbolt.Mmap.LoggerDefs
+public import Proof.go_etcd_io.bbolt.Mmap.Logger
 
 @[expose] public section
 

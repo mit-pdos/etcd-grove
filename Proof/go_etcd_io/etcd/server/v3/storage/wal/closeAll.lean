@@ -70,7 +70,7 @@ theorem wal.wp_rcClose (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) (ii
   icases Hty with (%hty | ⟨%lf, %hty, #Hlf⟩)
   · unfold interface.mkOk at hty
     cases hty
-    wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, #Herr⟩
+    wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, -, #Herr⟩
     · iframe; iexact Hinv
     iapply HΦ $$ Herr
   · unfold interface.mkOk at hty
@@ -80,7 +80,7 @@ theorem wal.wp_rcClose (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) (ii
     wp_method_call
     wp_call
     (try wp_auto)
-    wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, #Herr⟩
+    wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, -, #Herr⟩
     · iframe; iexact Hinv
     iapply HΦ $$ Herr
 

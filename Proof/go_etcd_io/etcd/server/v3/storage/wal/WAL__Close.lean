@@ -187,7 +187,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
         wp_method_call
         wp_call
         (try wp_auto)
-        wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, #Herr⟩
+        wp_apply wp_Close f1 fd1 nm1 d1 $$ [Hf1 Hfd1 Hlt1] as %err1 ⟨-, -, #Herr⟩
         · iframe; iexact Hosinv
         (try wp_auto)
         have hdk : decide (sint.nat (k + W64 1) < lfs2.length) = decide (sint.nat k < lfs2.length) := by
@@ -242,7 +242,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldA
         wp_method_call
         wp_call
         (try wp_auto)
-        wp_apply wp_Close f2 fd2 name2 _ $$ [Hf2 Hfd2 Hlt2c] as %err1 ⟨-, #Herr⟩
+        wp_apply wp_Close f2 fd2 name2 _ $$ [Hf2 Hfd2 Hlt2c] as %err1 ⟨-, -, #Herr⟩
         · iframe; iexact Hosinv
         (try wp_auto)
         have hdk : decide (sint.nat (k + W64 1) < lfs2.length) = false := by

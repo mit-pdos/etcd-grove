@@ -18,6 +18,7 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx Perennial.EtcdG
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx Perennial.EtcdGrove.backend.backend.BatchTx.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Close Perennial.EtcdGrove.backend.Close.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Close Perennial.EtcdGrove.backend.backend.Close.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Close Perennial.EtcdGrove.backend.dbRestF.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Commits Perennial.EtcdGrove.backend.Commits.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__Commits Perennial.EtcdGrove.backend.backend.Commits.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__ConcurrentReadTx Perennial.EtcdGrove.backend.ConcurrentReadTx.wp_proof  # missing: a proof file proves its spec
@@ -45,9 +46,11 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelet
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__UnlockForSafeRangeDelete Perennial.EtcdGrove.backend.backend.UnlockForSafeRangeDelete.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__begin Perennial.EtcdGrove.backend.backend.begin.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__begin Perennial.EtcdGrove.backend.begin.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__begin Perennial.EtcdGrove.bbolt.statSlot.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run Perennial.EtcdGrove.backend.backend.run.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__run Perennial.EtcdGrove.backend.run.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.backend.unsafeBegin.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.dbRestF.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.backend__unsafeBegin Perennial.EtcdGrove.backend.unsafeBegin.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.backend.baseReadTx.UnsafeRange.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.baseReadTx__UnsafeRange Perennial.EtcdGrove.backend.bktEnts_empty  # exposed by a proof file (theorem)
@@ -104,6 +107,7 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeRange Perennial.E
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeSeqPut Perennial.EtcdGrove.backend.batchTx.UnsafeSeqPut.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeSeqPut Perennial.EtcdGrove.batchTx.UnsafeSeqPut.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit Perennial.EtcdGrove.backend.batchTx.commit.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit Perennial.EtcdGrove.backend.dbRestF.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit Perennial.EtcdGrove.batchTx.commit.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__lock Perennial.EtcdGrove.backend.batchTx.lock.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTx__lock Perennial.EtcdGrove.batchTx.lock.wp_proof  # missing: a proof file proves its spec
@@ -148,11 +152,12 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange Pe
 Proof.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__UnsafeRange Perennial.EtcdGrove.concurrentReadTx.UnsafeRange.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommitUnsafe Perennial.EtcdGrove.backend.hooks.OnPreCommitUnsafe.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.hooks__OnPreCommitUnsafe Perennial.EtcdGrove.hooks.OnPreCommitUnsafe.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.backend.FsCtx.mk.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.backend.dbRestF.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.backend.newBackend.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.bbolt.boltCloser.congr_simp  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.crOut.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.newBackend.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.optsTypeRepr  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.optsTypeRepr'  # exposed by a proof file (theorem)
-Proof.go_etcd_io.etcd.server.v3.storage.backend.newBackend Perennial.EtcdGrove.optsTypeReprU  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered Perennial.EtcdGrove.backend.newBatchTxBuffered.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered Perennial.EtcdGrove.newBatchTxBuffered.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap Perennial.EtcdGrove.backend.newBoltLoggerZap.wp_proof  # exposed by a proof file (axiom)
@@ -171,11 +176,12 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.Et
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange Perennial.EtcdGrove.readTx.UnsafeRange.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset Perennial.EtcdGrove.backend.readTx.reset.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset Perennial.EtcdGrove.readTx.reset.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close Perennial.EtcdGrove.backend.snapshot.Close.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close Perennial.EtcdGrove.backend.snapshot.Close.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close Perennial.EtcdGrove.snapshot.Close.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size Perennial.EtcdGrove.backend.snapshot.Size.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size Perennial.EtcdGrove.backend.snapshot.Size.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size Perennial.EtcdGrove.snapshot.Size.wp_proof  # missing: a proof file proves its spec
-Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.backend.snapshot.WriteTo.wp_proof  # exposed by a proof file (axiom)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.backend.snapshot.WriteTo.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.bbolt.boltImageRcpt.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo Perennial.EtcdGrove.snapshot.WriteTo.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset Perennial.EtcdGrove.backend.bksReset_lookup  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.txBuffer__reset Perennial.EtcdGrove.backend.resetInv  # exposed by a proof file (def)
@@ -208,6 +214,7 @@ Proof.go_etcd_io.etcd.server.v3.storage.backend.txWriteBuffer__writeback Perenni
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.cursorRange_eq  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.cursorRange_take  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.backend.unsafeRange.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.bbolt.curAt.congr_simp  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange Perennial.EtcdGrove.unsafeRange.wp_proof  # missing: a proof file proves its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.BackendConfig__mmapSize Perennial.EtcdGrove.BackendConfig.mmapSize.spec  # missing: a spec file declares its spec
 Spec.go_etcd_io.etcd.server.v3.storage.backend.BackendConfig__mmapSize Perennial.EtcdGrove.backend.BackendConfig.mmapSize.spec  # exposed by a spec file (def)

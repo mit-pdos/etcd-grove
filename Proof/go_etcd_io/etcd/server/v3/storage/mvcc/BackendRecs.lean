@@ -67,7 +67,7 @@ theorem rt_metaRecs (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
       fkOpen γ n (recsVals r) ⊢
       fkFlag γ n ∗
         metaReadSpecR ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
-          (some r) (rdB rtx) (rtTok γ P b rtx rv qo) := by
+          (some r) (rdB γ.db rtx) (rtTok γ P b rtx rv qo) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hfk, Ho, #Hop⟩
   icases fkRd_openF γ P rv n (recsVals r) $$ [$Ho $Hop $Hfk] with ⟨Ho, %Hval⟩
   iframe Ho
@@ -92,7 +92,7 @@ theorem rt_metaRecs (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
       vOf_fkVal Hval hP.2.1 (fkKey_meta Hkn), fkAt_recsVals _ Hkn]
     simp only [CmpRecs.at, CmpRecs.empty, ite_self, Option.map_none]
     iintro Hout
-    imod kvsOutRd_nil _ rtx ks vs $$ Hout with ⟨#Hk, #Hv⟩
+    imod kvsOutRd_nil _ γ.db rtx ks vs $$ Hout with ⟨#Hk, #Hv⟩
     imodintro
     iapply HΦ
     iframe Hkey
@@ -120,7 +120,7 @@ theorem rt_metaRecs (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
     | none =>
       simp only [Option.map_none]
       iintro Hout
-      imod kvsOutRd_nil _ rtx ks vs $$ Hout with ⟨#Hk, #Hv⟩
+      imod kvsOutRd_nil _ γ.db rtx ks vs $$ Hout with ⟨#Hk, #Hv⟩
       imodintro
       iapply HΦ
       iframe Hkey
@@ -131,7 +131,7 @@ theorem rt_metaRecs (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
     | some x =>
       simp only [Option.map_some]
       iintro Hout
-      imod kvsOutRd_single _ rtx ks vs kn _ $$ Hout with ⟨%ksl, %vsl, #Hk, #Hrk1, #Hv, #Hrv1⟩
+      imod kvsOutRd_single _ γ.db rtx ks vs kn _ $$ Hout with ⟨%ksl, %vsl, #Hk, #Hrk1, #Hv, #Hrv1⟩
       imodintro
       iapply HΦ
       iframe Hkey
@@ -163,7 +163,7 @@ theorem rt_lockedR (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
       isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ∗ fkRd γ P rv ⊢
       keyReadLockedR (bkRTx γ P b) (bkRecs γ r) r true
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
-        m (rdB rtx) (rtTok γ P b rtx rv rdOpen) true := by
+        m (rdB γ.db rtx) (rtTok γ P b rtx rv rdOpen) true := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe, #Hfk⟩
   ihave #Hl := rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m hv true (fun _ => hcl)
     $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe $Hfk]
@@ -234,7 +234,7 @@ theorem bridge_rt_cleanR (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG
     iexists (vData P rv)
     iframe Hv'
     ipureintro; exact Hvd
-  iexists (rdB rtx), iprop(rtTok γ P b rtx rv rdOpen ∗ dlInit γ)
+  iexists (rdB γ.db rtx), iprop(rtTok γ P b rtx rv rdOpen ∗ dlInit γ)
   isplitl [Hh Ho Hdl]
   · iframe Hdl; iunfold rtTok; iframe
   iapply keyReadLockedR_frame

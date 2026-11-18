@@ -93,7 +93,7 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
     (hEndW : mvcc.watchableStoreTxnWrite.End.spec (GF := GF) (hG := hG))
     (ty : go.GoType) (v : val) (γ : StoreNames) (trace : Loc) (σ₀ : MvccState) (pend : List Change)
     (mw s : Loc) (p : PhysNames) (puts deletes putSize : w64) (ld : Bool) :
-    ⌜σ₀.pending = none⌝ ∗
+    ⌜σ₀.pending = none ∧ ChPutsLe etcdKeyMax pend⌝ ∗
       isTxnWriteT mw s (γ.withPhys p) trace σ₀.log pend puts deletes putSize σ₀.crev iprop(True) ld
         iprop(True) ∗
       tokBack s (γ.withPhys p) ∗ certFree (γ.withPhys p) ∗
@@ -106,7 +106,8 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
                   <{ ⌜σ' = σ₀.notify pend⌝ ∗ mvccState γ σ'.commitPending, COMM Q }> }> -∗
         ▷ (mvccReaders γ 1 ∗ mvccBackend γ q B P ∗ Q -∗ Φ #()) -∗
         WP (App (Val #(methods ty go!"End" v)) (Val #())) {{ Φ }} := by
-  iintro ⟨%Hpn, Htx, Hback, #Hfree, Hwrap⟩ %q %B %P %Q %Φ ⟨#Hpkg, HB, HP, Hau⟩ HΦ
+  iintro ⟨%Hpp, Htx, Hback, #Hfree, Hwrap⟩ %q %B %P %Q %Φ ⟨#Hpkg, HB, HP, Hau⟩ HΦ
+  obtain ⟨Hpn, Hpl⟩ := Hpp
   iapply wp_fupd
   iunfold mvccBackend at HB
   icases HB with ⟨HF, %p', %o', %d, Hcur', %Hd, #Hbk, #Hrg, #Hhp, #Hwts, %Hlp⟩
@@ -120,7 +121,7 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
     subst hpp
     have hwq' : (γ.withPhys p).watchQ = false := by simpa using Hwq
     iunfold mvccState at Hau
-    have hcb := endCb_of_au (GF := GF) (γ.withPhys p) σ₀ σ₀.log pend σ₀.crev Q hwq' rfl Hpn
+    have hcb := endCb_of_au (GF := GF) (γ.withPhys p) σ₀ σ₀.log pend σ₀.crev Q hwq' rfl Hpn Hpl
     simp only [endAU, StoreNames.withPhys_api] at hcb
     ihave Hcb := hcb $$ Hau
     ihave #Hx : □ (slotF (γ.withPhys p) ∗ api.shareTok γ.api q -∗ False) $$ []
@@ -175,7 +176,7 @@ private theorem txnW_end (hEndM : mvcc.metricsTxnWrite.End.spec (GF := GF) (hG :
     ihave Htw := wsWrap_join tw sw s γw mw trace σ₀.log pend puts deletes putSize σ₀.crev ld
       iprop(True) $$ [$Hwrap $Htx]
     iunfold mvccState at Hau
-    have hcb := wsEndCbY_of_au (GF := GF) γw σ₀ pend Q Hwq Hpn
+    have hcb := wsEndCbY_of_au (GF := GF) γw σ₀ pend Q Hwq Hpn Hpl
     have ha : γw.st.api = γ.api := by rw [hγw]; rfl
     simp only [endAU, ha] at hcb
     ihave Hcb := hcb $$ Hau
@@ -288,7 +289,7 @@ theorem mvccTxn_leaseDelete.law_holds (hEndM : mvcc.metricsTxnWrite.End.spec (GF
     [Hmw Htw' Htrc Hback Hwrap] %q %(etcdStorage d) %Pk %Q
   iframe Hback Hfree Hwrap
   isplitr
-  · ipureintro; exact Hk0.1
+  · ipureintro; exact ⟨Hk0.1, Hk0.2.2⟩
   iunfold isTxnWriteT
   iexists tw, ranges
   iframe Hmw Htw' Htrc

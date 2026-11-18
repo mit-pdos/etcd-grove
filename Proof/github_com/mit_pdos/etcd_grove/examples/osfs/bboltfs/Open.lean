@@ -12,7 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__read
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__init
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmap
 public import Spec.os.OpenFile
-public import Proof.os.OpenFileLemmas
+public import Proof.os.OpenFile
 public import Spec.os.File__Name
 public import Spec.os.File__Close
 public import Spec.os.File__Stat
@@ -191,7 +191,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left
-  · obtain ⟨Herr2, rfl⟩ := Hfi
+  · obtain ⟨Herr2, rfl, -⟩ := Hfi
     cases err2 with
     | nil => exact absurd rfl Herr2
     | ok ie =>

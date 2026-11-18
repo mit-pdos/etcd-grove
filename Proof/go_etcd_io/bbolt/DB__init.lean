@@ -15,6 +15,7 @@ public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Proof.go_etcd_io.bbolt.Commit.MetaPage
 public import Spec.go_etcd_io.bbolt.DB__pageInBuffer
 public import Spec.go_etcd_io.bbolt.fdatasync
+public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetId
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetFlags
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetCount
@@ -73,7 +74,8 @@ abbrev DB.init.spec : Prop :=
       ((⌜err = interface.nil⌝ ∗ ∃ (m' : OsMeta) (xs : List ByteG),
           osMeta p.ino (DFrac.own 1) m' ∗ osBytes p.ino 0 (DFrac.own 1) xs ∗
           ⌜m'.maps = ∅ ∧ xs.length = m'.size ∧ xs.map Prod.fst = initImg⌝) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err ∗
+          ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
 
 end spec
 
@@ -273,7 +275,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hSum64 : internal.common.Meta.Sum64.spec (GF := GF) (hG := hG))
     (hNewIB : internal.common.NewInBucket.spec (GF := GF) (hG := hG))
     (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
-    (hSync : fdatasync.spec (GF := GF) (hG := hG)) :
+    (hSync : fdatasync.specW (GF := GF) (hG := hG)) :
     DB.init.spec (GF := GF) (hG := hG) := by
   intro db f fd p lg m dqf dqw hdb hsz hmaps
   wp_start as ⟨#Hos, #Hps, #Hlg, #Hlgok, Hwa, Hf, Hfo, Hfd, Hm, Hxs⟩
@@ -520,6 +522,10 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     cases err with
     | ok ei =>
       -- the write failed: log, return the error
+      have hfs : ¬ FsNoErr := by
+        rcases hres with ⟨-, -, h⟩ | ⟨-, -, h⟩
+        · cases h
+        · exact h.resolve_right (by rw [initPages_length]; decide)
       simp only [fmtErrorOkOrNil]
       icases Herr with #Herr
       try wp_auto
@@ -547,14 +553,14 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       iframe Hwa Hf Hfo Hfd
       iright
       isplitr
-      · ipureintro; exact fun h => nomatch h
+      · ipureintro; exact ⟨(fun h => nomatch h), hfs⟩
       iframe Herr
       iexists _; iexact Hm
     | nil =>
       have hj : j = initPages.length := by
         rcases hres with ⟨h1, -, -⟩ | ⟨-, h2⟩
         · exact h1
-        · exact absurd rfl h2
+        · exact absurd rfl h2.1
       subst hj
       obtain ⟨hysl, hysp⟩ := pwOut_full hysp (by rw [initPages_length]; decide)
       rw [initPages_length] at hysl
@@ -576,7 +582,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       rotate_left
       · -- the sync failed: log, return the error
         cases e2 with
-        | nil => exact absurd rfl He
+        | nil => exact absurd rfl He.1
         | ok e2 =>
         ihave %hgoos : ⌜goosLinux⌝ $$ []
         · iapply goosLinux_of_pkgInit $$ Hpkg
@@ -608,7 +614,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iframe Hwa Hf Hfo Hfd
         iright
         isplitr
-        · ipureintro; exact fun h => nomatch h
+        · ipureintro; exact ⟨(fun h => nomatch h), He.2⟩
         iframe Hfe
         iexists _; iexact Hm
       subst He
@@ -646,9 +652,13 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       cases err2 with
       | ok ei =>
         -- the write failed: log, return the error
+        have hfs : ¬ FsNoErr := by
+          rcases hres2 with ⟨-, -, h⟩ | ⟨-, -, h⟩
+          · cases h
+          · exact h.resolve_right (by rw [metaBufs_length]; decide)
         simp only [fmtErrorOkOrNil]
         icases Herr2 with #Herr
-        clear hysp hysl Hm2 hpr hsr hres hjle hm0 hysp2 hres2
+        clear hysp hysl Hm2 hpr hsr hres hjle hm0 hysp2
         try wp_auto
         wp_apply wp_slice_literal
         isplitr
@@ -674,14 +684,14 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iframe Hwa Hf Hfo Hfd
         iright
         isplitr
-        · ipureintro; exact fun h => nomatch h
+        · ipureintro; exact ⟨(fun h => nomatch h), hfs⟩
         iframe Herr
         iexists _; iexact Hm
       | nil =>
         have hj2 : j2 = (metaBuf (initMv 0) ++ metaBuf (initMv 1)).length := by
           rcases hres2 with ⟨h1, -, -⟩ | ⟨-, h2⟩
           · exact h1
-          · exact absurd rfl h2
+          · exact absurd rfl h2.1
         subst hj2
         obtain ⟨hys2l, hys2⟩ := pwOut_full hysp2 (by rw [metaBufs_length]; decide)
         rw [metaBufs_length] at hys2l
@@ -702,7 +712,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         rotate_left
         · -- the sync failed: log, return the error
           cases e3 with
-          | nil => exact absurd rfl He
+          | nil => exact absurd rfl He.1
           | ok e3 =>
           ihave %hgoos : ⌜goosLinux⌝ $$ []
           · iapply goosLinux_of_pkgInit $$ Hpkg
@@ -735,7 +745,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iframe Hwa Hf Hfo Hfd
           iright
           isplitr
-          · ipureintro; exact fun h => nomatch h
+          · ipureintro; exact ⟨(fun h => nomatch h), He.2⟩
           iframe Hfe
           iexists _; iexact Hm
         subst He

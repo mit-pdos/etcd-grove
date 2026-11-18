@@ -1240,7 +1240,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `srvSnapRm` until then), over the member's removal counter `γt`, allocated here at `0`
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γt, Hγt, -⟩
   -- (restart S6a, M1) its ghost map named by the directory's right (`bootOk`'s `Hsdo`)
-  imod (snapDir_init bs.ss' cfg.DataDir' Hssp γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsdir
+  imod (snapDir_init bs.ss' cfg.DataDir' Hssp γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsfree Hsdir
     with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t

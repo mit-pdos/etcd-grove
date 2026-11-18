@@ -105,7 +105,8 @@ theorem leasingKV.revokeLeaseKvs.wp_proof
         (W64 0) $$ [$Hpkg $Hlkv $Hrd $Hctx $HctxC $Hcc $Hopv $H0]
       as %resp %err ⟨Hrd, -⟩
     · ipureintro
-      have Hk : v.key.length ≤ 2 ^ 27 := Hkeys v (List.mem_of_getElem? Hvi)
+      have Hk : v.key.length ≤ 2 ^ 27 := by
+        have := Hkeys v (List.mem_of_getElem? Hvi); unfold etcdKeyMax at this; omega
       have Ht : (strings.trimPrefix v.key pfx).length ≤ 2 ^ 27 := by
         unfold strings.trimPrefix; split <;> (try simp only [List.length_drop]) <;> omega
       refine ⟨by simp [op_simps], Ht, ?_⟩

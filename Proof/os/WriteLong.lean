@@ -89,7 +89,7 @@ theorem os.File.WriteAt.wp_proof_long : os.File.WriteAt.specLong (GF := GF) (hG 
     iframe Hm Hbs Hmc Hok
     ipureintro
     refine ⟨hj, Nat.le_refl _, fun _ => rfl, by split <;> omega, fun h => by rw [if_pos h],
-      os.PwOut.pwOutA hout, .inl hcut, hres⟩
+      os.PwOut.pwOutA hout, .inl hcut, hres.imp_right (fun h => ⟨h.1, h.2.1⟩)⟩
   · -- past `maxRW`: the chunked loop (see the file header)
     have hbig' : 0x40000000 < data.length := by omega
     have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap

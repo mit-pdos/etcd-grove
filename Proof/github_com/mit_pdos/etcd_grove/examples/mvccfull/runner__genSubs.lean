@@ -69,7 +69,8 @@ theorem subsOk_nil (ks : List GoString) (L : List w64) : subsOk ks L [] := by
 
 /-- **Appending a sub-operation that passes `genSubs`' checks.** -/
 theorem subsOk_snoc {ks : List GoString} {L : List w64} {sms : List SubM} {b : SubM}
-    (h : subsOk ks L sms) (hb : b.kind = W64 0 → b.key ∈ ks ∧ (b.lease = W64 0 ∨ b.lease ∈ L))
+    (h : subsOk ks L sms) (hb : b.kind = W64 0 → b.key ∈ ks ∧ (b.lease = W64 0 ∨ b.lease ∈ L) ∧
+      b.key.length ≤ etcdKeyMax ∧ b.val.length ≤ etcdKeyMax)
     (hput : b.kind = W64 0 → ∀ a ∈ sms, (a.kind = W64 0 → a.key ≠ b.key) ∧
       (a.kind = W64 1 → inRangeM a.endNil a.key a.e b.key = false))
     (hdel : b.kind = W64 1 → ∀ a ∈ sms, a.kind = W64 0 → inRangeM b.endNil b.key b.e a.key = false) :
@@ -132,7 +133,7 @@ theorem runner.genSubs.wp_proof
     (wp_genEnd : runner.genEnd.spec (GF := GF) (hG := hG))
     (wp_genRange : runner.genRange.spec (GF := GF) (hG := hG)) :
     runner.genSubs.spec (GF := GF) (hG := hG) := by
-  intro x ks cfg mp rv c sl L nv h0 h1 h2
+  intro x ks cfg mp rv c sl L nv h0 h1 h2 hkeyl hm0 hm1
   wp_start as ⟨Hks, Hmix, Hrv, Hc, Hls, Hsl, Hnv⟩
   iunfold runnerRangeMix at Hmix
   icases Hmix with ⟨#Hcfg, %wrr, #Hwrr⟩
@@ -361,7 +362,7 @@ theorem runner.genSubs.wp_proof
             have hnv1 : sint.Z nv' + 1 < 2 ^ 63 := by
               have : sint.Z jj < 3 := by omega
               omega
-            wp_apply wp_newVal x cfg nv' hnv0 hnv1 $$ [Hnv] as %vl Hnv
+            wp_apply wp_newVal x cfg nv' hnv0 hnv1 hm0 hm1 $$ [Hnv] as %vl ⟨Hnv, %Hvl⟩
             · iframe; iexact Hcfg
             (try wp_auto)
             wp_apply wp_genLease x mp sl L $$ [Hls Hsl] as %l ⟨Hls, Hsl, %Hl⟩
@@ -403,7 +404,7 @@ theorem runner.genSubs.wp_proof
             refine ⟨by rw [if_neg h01, List.append_nil]; exact Hds_eq, ?_,
               by simp only [List.length_append, List.length_singleton]; rw [hj1n]; omega,
               fun _ => by simp, by word, by word, by word, by word⟩
-            refine subsOk_snoc hok (fun _ => ⟨Hkk, Hl⟩) (fun _ a ha => ⟨fun h0 => ?_, fun h1 => ?_⟩)
+            refine subsOk_snoc hok (fun _ => ⟨Hkk, Hl, hkeyl _ Hkk, Hvl⟩) (fun _ a ha => ⟨fun h0 => ?_, fun h1 => ?_⟩)
               (fun h => absurd h hb1)
             · exact hokb.1 _ (mem_putKeys ha h0)
             · exact hokb.2 _ (by rw [Hds_eq]; exact mem_delsOf ha h1)

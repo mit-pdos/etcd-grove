@@ -1,13 +1,14 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__Bucket_r.lean` (U6, `notes/bbolt-proof-plan.md`): no
+The internal spec `Bucket.Bucket_r` (below) and its proof (U6, `notes/bbolt-proof-plan.md`): no
 cache (a reader's `buckets` is nil); a cursor, `seek(name)` (the leaf where the name lands,
 `rRoute_bkt`), the key compared with `bytes.Equal`, the flags tested, then `openBucket` on the
 value; a miss is no nested bucket (`not_bktNames`).
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Bucket__Bucket_r
-public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
+public import Proof.go_etcd_io.bbolt.Inv.Ctx
+public import Proof.go_etcd_io.bbolt.Read.Src
+public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Spec.go_etcd_io.bbolt.Cursor__seek_r
 public import Spec.go_etcd_io.bbolt.Bucket__openBucket_r
 public import Perennial.Spec.bytes.Equal
@@ -15,6 +16,53 @@ public import Proof.go_etcd_io.bbolt.Read.BktOK
 public import Proof.go_etcd_io.bbolt.Read.Pub
 
 @[expose] public section
+
+/- The internal spec `Bucket.Bucket_r` (session S6 moved it here from `Spec/`: one
+spec per function in `Spec/`; this one is a helper of bbolt's own proofs, not exported).
+`Bucket.Bucket_r` (bbolt, internal): its spec (U0b of `notes/bbolt-proof-plan.md`, a frozen
+cross-unit contract). Proved by U6; used by U10 (`tx_check` in `freepages`). Proof:
+`Proof/go_etcd_io/bbolt/Bucket__Bucket_r.lean` (a `sorry` until U6).
+-/
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace bbolt
+
+open Fs
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- `b.Bucket(name)` of a reader's bucket `b` (the root bucket, or a top-level one; its header
+at `ibp`, its inline page at `pp`, `rBktP`, which it keeps), the name a reader's key (`keyR`:
+caller-owned at a fraction, or bytes of the view; given back; maintainer R's U6g item 4, from
+U6g's `specK`): the nested bucket `name`, opened from its value `cv` (persistent: a reader never
+writes it), or nil if there is none. -/
+abbrev Bucket.Bucket_r.spec : Prop :=
+  ∀ (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (v : View) (b : Loc) (dq : DFrac)
+    (bv : List w8) (ibp pp : Loc) (name : GoSlice) (kr : KeyR) (nb : List w8),
+  (bv = rootVal v ∨ ∃ n, (n, bv) ∈ treeEntries v.pages v.root) →
+  {{ rdTxK (GF := GF) K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗ keyR v name kr nb }}
+    (App (Val (b @!! go.GoType.PointerType Bucket.ty @!! go!"Bucket")) (Val #name))
+  {{ (c : Loc), RET #c; rdTxK K tx src q T v ∗ rBktP v tx b dq bv ibp pp ∗ keyR v name kr nb ∗
+      ((⌜c = null ∧ nb ∉ bktNames v.pages bv⌝) ∨
+       (∃ cv : List w8, ⌜c ≠ null ∧ bktEntry v.pages bv nb cv⌝ ∗ rBkt v tx c DFrac.discard cv)) }}
+
+end spec
+
+end bbolt
+end EtcdGrove
+end Perennial
+
 
 noncomputable section
 
