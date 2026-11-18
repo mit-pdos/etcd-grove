@@ -10,14 +10,22 @@
   `E ⊇ ↑rbClaimN` in `Unlock`/`commit`/`unsafeCommit` (docstring: the window vs the four forbidden laws). The 42
   changed modules + `AuthRealRead` built (`/shared/tmp/auth-schema-srv/fenc-build2.log`); backend `Link` + server
   `Results`: `/shared/tmp/auth-schema-srv/fenc-build3.log`.
-- Next, in order: (1) the per-backend realization invariant, design below ("A6 realization design"); (2) the read
-  side: `authBackendOk` from `authBE_real` (ticket pool) + post-hoc view facts; `authBackendReads`' reads from a
-  second `authBE_real` (the reserved pool, `R := T`); (3) the write side over F-acc (`Lk`, `rbAcc` at the
-  invariant's mask); (4) `authBkLend`, `authBkLife`, `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`,
-  `authSchemaSnap` from one per-backend lemma. Report at A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s
-  fraction, `newPostK`'s tokens, `authRdSlots`' tokens, `authSchemaSrv`'s ticket count, fix (A)).
+- **Pool** (ebb39ec414, 5e577037ab): `etcdserver/AuthRealPool.lean` (lean-check clean, not yet in a lake build):
+  the generic slot pool (`poolSt`, `pool_alloc`/`_acq`/`_obs`/`_rel`/`_release`, `poolRel`) and its counters
+  (`ticketsIn` with `ticketsIn_dep`/`_wd`; `tokIn` for the reserved slot).
+- Next, in order: (1) the rest of the per-backend invariant (design below): the bucket/history part
+  (`viewAt v D`: per-bucket predicates from `usersAt`/`rolesAt` and the `auth` bucket's flag/revision, `viewAt →
+  authWf`), the life part, one `inv` per backend holding both pools; (2) the read side: `authTxReadsV` of
+  `Hs v := ∃ x D, Held x D ∗ authReader … ∗ ⌜viewAt v D⌝` from schema's `authReadTx.*` specs (+ F-enc's
+  `userOutD_are`; `GetAllUsers`' names `es.map fst`), `authBackendOk` from `authBE_real` (ticket pool) + post-hoc
+  view facts; `authBackendReads`' reads from a second `authBE_real` (reserved pool, `R := T`); (3) the write side
+  over F-acc; (4) `authBkLend`, `authBkLife`, `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`,
+  `authSchemaSnap`. Report at A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s fraction, `newPostK`'s tokens,
+  `authRdSlots`' tokens, `authSchemaSrv`'s ticket count, fix (A)).
 - Pitfalls: (0)-(18) as before (History); (19) `rbAcc_nil γ ok Rr E` now takes the mask; callers at `⊤` pass
-  `⊤ CoPset.subseteq_top` to the specs.
+  `⊤ CoPset.subseteq_top` to the specs; (20) a lemma stated with a bare `|==>` goal fails `imod`/`imodintro` ("is
+  not a modality"): state ghost steps at `|={E}=>` (AuthRealPool does); (21) an Iris hypothesis cannot be the
+  target of `rw … at`: rewrite the goal (the context is part of it).
 
 ## A6 realization design (2026-11-18; checked against the specs, no Lean yet)
 
