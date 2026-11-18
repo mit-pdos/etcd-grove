@@ -591,3 +591,9 @@ premises: `rnStopOkStarted`, `bootstrapContract`).
 |---|---|---|
 | `apierrors.NewConflict.wp_proof` (no precondition) | **false** (2026-11-17); fixed on `apierrors-fix` | `%v` of an error whose `Error()`/`Format` panics with a value whose `Error()` panics re-panics in `fmt` (`print.go:591-594`). Fix: precondition `fmt.argOk err`; post gains `statusDetailsAt st []` (survived the attack). Bug record `notes/apierrors-new-precondition.md` |
 | `apierrors.NewInternalError.wp_proof` (no precondition; round-1 text with `stringMethodSpec` only) | **false** (2026-11-17); fixed on `apierrors-fix` | `err.Error()` on `nil` panics; with `Error()`'s spec, a `Format` method panicking nestedly still panics (`print.go:630-634`). Fix: non-nil, `Error()` returns, no `Format`; post gains `statusDetailsAt st [c]`, `c.Type' = ""` (survived). Bug record `notes/apierrors-new-precondition.md` |
+
+### Found by etcd-grove-03's attack on incomingof's T8 (2026-11-18; Go: grpc v1.84.0 `status/status.go:96-127`; review `notes/axiom-review/incomingof-b.md`, "T8'")
+
+| axiom | verdict | reason |
+|---|---|---|
+| `status.FromError.wp_proof`, last post conjunct `□ (∀ e m, ⌜ok = false ∧ err = ok e⌝ → errorMsgIs e m -∗ ⌜errDesc err = m⌝)` (since fromerror-stable, 2026-11-06) | **false** (2026-11-18); fixed in incomingof Part B | The persistent wand accepts an `errorMsgIs` proved after the call; an `Error()` that diverges after `FromError` returns satisfies `errorMsgIs e m` for every `m` (a partial-correctness WP), so two messages give `False` and a panic after the call is "proved" unreachable (`examples/axiomcx/fromerrorflip`, `TestFlip`: Go panics). Bug record `notes/fromerror-wand.md`. Fix: `m` a parameter, `errorMsgIs e m` in the precondition, post `⌜ok = false → errDesc err = m⌝` (no wand); with T8's `no GRPCStatus() *Status → ok = false` |

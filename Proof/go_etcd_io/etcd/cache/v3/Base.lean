@@ -328,7 +328,12 @@ instance errorStringSpec_persistent (e : GoInterfaceOk) :
 fromerror-stable, 2026-11-06): what `status.FromError` needs to take the string as the error's
 description (`errDesc`): it calls `Error()` on each call, so an `Error()` that reads mutable state
 (`examples/axiomcx/flipdesc`, `notes/axiom-review/invoker-filled.md`) has no one description.
-Stronger than `errorStringSpec` (`errorMsgIs_errorStringSpec`), which the printing paths keep. -/
+Stronger than `errorStringSpec` (`errorMsgIs_errorStringSpec`), which the printing paths keep.
+A partial-correctness WP: it says each call returns `m` *or does not return*, so it does not pin `m`
+against later divergence (an `Error()` that starts looping holds `errorMsgIs e m` for every `m` from
+then on). A pure fact about `m` may only come from a call made while it held, with `m` fixed before the
+call (a precondition), never from a wand applied to an `errorMsgIs` proved later (fromerror-wand,
+2026-11-18: `notes/fromerror-wand.md`, `examples/axiomcx/fromerrorflip`). -/
 def errorMsgIs (e : GoInterfaceOk) (m : GoString) : IProp GF :=
   iprop(□ ∀ Φ : val → IProp GF, ▷ Φ #m -∗
     WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }})

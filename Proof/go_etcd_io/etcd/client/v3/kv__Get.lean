@@ -125,7 +125,7 @@ theorem kv.Get.wp_members
   iintro %hs
   unfold rangeErrOut
   iintro %h
-  ihave Heo' := Heo $$ %⟨h.1, hs⟩
+  ihave Heo' := Heo $$ %(And.intro h.1 hs)
   icases Heo' with (Heo' | %hctx)
   · ileft
     iapply (rangeErrΨ_of_ifc ms c F _ Q err h.2)

@@ -1,6 +1,20 @@
 # incomingof handoff
 
-## START HERE (2026-11-18, T2' survived; STOP at T8, a new trusted text)
+## START HERE (2026-11-18, STOP at T8': restated FromError text awaits one more attack)
+
+- Branch head: see `git log`; lean f256fa496e merged (d36642209b; pin still c6b, manifest-c6b).
+- Done: T2' in code (`ctxErrMsg`, `ctxErrMsg_not_handler`, producers ErrorsNewOk/ChanCtx), bfb59d3c9c;
+  `descDeadline` deleted (unused); kv__Get `%(And.intro …)` fix; T8 + weaker (2)/(3) decided (note).
+- fromerror-wand (BLOCKER in the existing `status.FromError.wp_proof`, found by the T8 attack): bug record
+  `notes/fromerror-wand.md`, audit row, Go `examples/axiomcx/fromerrorflip`, `errorMsgIs` docstring fixed.
+  User's fix: `m` a parameter of FromError/ErrorDesc/rpctypes.Error/ContextError, no wand in any post.
+  Restated FromError text: note section "T8'". **STOPPED** for its attack; not in the code yet.
+- A targeted build (T2' only, before the FromError change) ran: log /shared/tmp/incomingof/build-c1.log.
+- Next: FromError text; `statusErrOk_msg`; ErrorDesc/rpctypes.Error/ContextError with `m`; callers
+  (isUnavailableErr, isHaltErr, isSafeRetry*, leasingKV.acquire, ContextError callers); kv.Do/kv.Get; build;
+  then merge lean, full build, tcb --check, interfaces, gates, STATUS, land stop.
+
+## Earlier START HERE (2026-11-18, T2' survived; STOP at T8, a new trusted text)
 
 - T2' attack survived; MINORs folded (7c0c332548). `ctxErrMsg` added to `cache/v3/Base.lean` (unused yet).
 - **STOPPED:** (2) needs a new conjunct in the trusted `status.FromError.spec` (T8: a leaf without

@@ -484,6 +484,89 @@ comes back as one, or with a context-message description) ACCEPTED.
 - `kv.Get`: the second call keeps `kv.Do`'s outcome (description kept), or the ctx disjunct, or a context
   message description, where `rangeErrΨ` is vacuous.
 
+### T8' (2026-11-18): the restated `status.FromError.spec` — STOP for one more attack
+
+**Why restated.** etcd-grove-03's attack on T8 found T8's own conjunct true but a BLOCKER in the existing
+axiom: its last post conjunct `□ (∀ e m, ⌜ok = false ∧ err = ok e⌝ → errorMsgIs e m -∗ ⌜errDesc err = m⌝)`
+accepts an `errorMsgIs` proved after the call, which a later-diverging `Error()` satisfies for every `m`
+(bug record `notes/fromerror-wand.md`; audit row; Go `examples/axiomcx/fromerrorflip` `TestFlip`).
+**The user decided (2026-11-18, via etcd-grove-03): fix it in Part B**: `m` a parameter, `errorMsgIs` in the
+precondition, `⌜ok = false → errDesc err = m⌝` in the post (no wand), plus T8's conjunct; `ErrorDesc`,
+`rpctypes.Error`, `ContextError` take `m` the same way; no post restates the wand.
+
+**New text** (`Spec/google_golang_org/grpc/status/FromError.lean`; the axiom `status.FromError.wp_proof`
+keeps its name; old text: the last conjunct above, no `m`, pre `isPkgInit status ∗ statusErrOk err`):
+```lean
+abbrev status.FromError.spec : Prop :=
+  ∀ (err : GoInterface) (m : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status ∗ statusErrOk err ∗
+      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
+    (App (Val (@! google_golang_org.grpc.status.FromError)) (Val #err))
+  {{ (s : Loc) (ok : Bool), RET (PairV #s #ok);
+      ⌜err = GoInterface.nil → ok = true⌝ ∗
+      □ (∀ Φ : val → IProp GF, ▷ Φ #(statusCode err) -∗
+        WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Code"))
+          (Val #())) {{ Φ }}) ∗
+      □ (∀ Φ : val → IProp GF, ▷ Φ #(errDesc err) -∗
+        WP (App (Val (s @!! go.GoType.PointerType google_golang_org.grpc.status.Status.ty @!! go!"Message"))
+          (Val #())) {{ Φ }}) ∗
+      □ (∀ e : GoInterfaceOk, ⌜ok = false ∧ err = GoInterface.ok e⌝ → ∀ Φ : val → IProp GF,
+        ▷ Φ #(errDesc err) -∗
+        WP (App (Val #(methods e.ty go!"Error" e.v)) (Val #())) {{ Φ }}) ∗
+      -- (fromerror-wand fix, 2026-11-18) not a status error: its description is the message `Error()`
+      -- stably returned at the call (the precondition's `m`)
+      ⌜ok = false → errDesc err = m⌝ ∗
+      -- (incomingof T8) a leaf error without grpc's `GRPCStatus() *Status` is no status error
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
+        methodSet e.ty !! go!"GRPCStatus" ≠
+          some (go.Signature [] false
+            [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) →
+        ok = false⌝ }}
+```
+(The precondition's message clause is persistent: `errorMsgIs` is; for `err = nil` it is vacuous and `m`
+arbitrary, and `ok = true` then, so the new pure conjunct says nothing. Callers get `m` from `statusErrOk
+err`'s `∃ m, errorMsgIs e m` at the call: a lemma `statusErrOk_msg : statusErrOk err ⊢ ∃ m, ∀ e, ⌜err = ok
+e⌝ → errorMsgIs e m`.)
+
+**Why true in Go** (grpc v1.84.0 `status/status.go:96-127`).
+- `⌜ok = false → errDesc err = m⌝`: `ok = false` with `err = ok e` happens only on lines 108, 120, 126,
+  each returning `New(codes.Unknown, err.Error())`: `FromError` calls `Error()` **during** this call, and the
+  precondition `errorMsgIs e m` (held at the call, persistent) says that call returns `m` (if it returns at
+  all; if it does not, `FromError` does not return and the post is vacuous). The description `errDesc err` is
+  what `Message()` returns, `m`. Unlike the old wand, `m` is fixed before the call, so a later divergence of
+  `Error()` cannot choose another `m`. Two calls with different `m`s: the second's precondition
+  `errorMsgIs e m'` with `m' ≠ m` holds only if `Error()` no longer returns (it returned `m` before), so the
+  second `FromError` diverges and its post (giving `False` with the first) is never reached: sound under
+  partial correctness. (The fourth conjunct, a WP form, is unchanged: it pins nothing against divergence
+  and gives no pure fact.)
+- T8's conjunct: as in T8 (both `true` returns are guarded by the `GRPCStatus() *Status` method; on a leaf,
+  `errors.As` checks only `err` itself).
+
+**Checks.** (a) crossWorld / (b) fresh world: a triple, not an entailment; its pure facts are in the post
+of a call, never derived from a resource alone; in `W` the triple is vacuous. The flip attack is exactly the
+"pure fact from a resource provable later" shape, now gone: no wand or persistent implication from
+`errorMsgIs` to a pure fact remains in the post. (c) adequacy + allocation: grpc's `status` is names-only
+(uninterpreted); the facts are about the returned boolean, a string and the dynamic type's method set, no
+address. Re-checked 2026-11-18: no other trusted text restates the wand (grep `errorMsgIs .* -∗ ⌜` over
+`Spec`, `Proof`: only `FromError.lean:73`).
+
+**Go evidence.** `examples/axiomcx/fromerrorflip` (`TestFlip`, the counterexample to the old text: `ok=false`
+with message `"A"`, then `Error()` diverges and `Main` panics; under the new text `Main`'s panic is not
+provable away: the post gives `errDesc = "A"` only, for the `m = "A"` chosen at the call);
+`examples/axiomcx/incomingof-real/ctx_test.go` `TestFromErrorNoGRPCStatus` (T8's conjunct, and `ok=false` ⇒
+message = `Error()` for five leaf errors); `TestCtxErrDescs` (`examples/axiomcx/incomingof`).
+
+**Specs restated with `m` (proved, no trusted text), after the attack:**
+- `rpctypes.ErrorDesc.spec`: `∀ err m`, pre adds the message clause; post `⌜d = errDesc err⌝ ∗ ⌜∀ e, err =
+  ok e → noGRPCStatus e.ty → d = m⌝`.
+- `rpctypes.Error.spec`: `∀ err m`, pre adds the message clause; post adds `⌜∀ e, err = ok e →
+  noGRPCStatus e.ty → err' = err ∨ errDesc err' = m⌝` (accepted weaker form of (2)).
+- `ContextError.spec`: `∀ ci cd err m`, pre adds the message clause; the ctx disjunct carries `ctxErrIs err'`;
+  post adds `⌜¬ (∃ e, err = ok e ∧ ctxErrMsg m ∧ ctxErrShape e)⌝ ∨ ctxErrIs err' ∨ ⌜ctxErrMsg (errDesc err')⌝`
+  (accepted weaker form of (3); a disjunction, no wand).
+- Every caller of these and of `FromError` (`isUnavailableErr`, `isHaltErr`, `isSafeRetry{Mutable,Immutable}RPC`,
+  `leasingKV.acquire`, the `ContextError` callers) fixes `m` at the call from `statusErrOk`.
+
 ## Trust-base delta (expected)
 
 - Axioms: none added or removed (`incomingOf_cancelCtx` stays: Part A is not linked).
