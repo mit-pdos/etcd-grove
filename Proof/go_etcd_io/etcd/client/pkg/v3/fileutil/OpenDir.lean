@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir
 public import Proof.os.NsAbove
+public import Proof.os.NsSOk
 
 @[expose] public section
 
@@ -29,7 +30,7 @@ theorem go_etcd_io.etcd.client.pkg.v3.fileutil.OpenDir.wp_proof :
   intro p R j dq qc
   wp_start as ⟨#Hinv, #Hsi, Hp, Hperm⟩
   wp_auto
-  wp_apply os.Open.wp_dirS p R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
+  wp_apply os.Open.wp_dirSOk p R j dq qc $$ [Hinv Hsi Hp Hperm] as %f %err Hr
   · iframe; isplitl [] <;> iassumption
   iapply HΦ
   iexact Hr

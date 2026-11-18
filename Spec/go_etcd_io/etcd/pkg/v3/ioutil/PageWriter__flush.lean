@@ -37,7 +37,7 @@ abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.spec : Prop :=
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ioutil.ownPageWriter pw wi [] ∗
         ((⌜err = GoInterface.nil ∧ sint.Z n = pend.length⌝ ∗ W (out ++ pend)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
+         (⌜err ≠ GoInterface.nil⌝ ∗ errOkOrNil err ∗ B out pend)) }}
 
 /-- `spec` over a writer called only with bytes (`io.writerStreamPNE`): `flush` writes only a non-empty buffer (unit `noioerr`). -/
 abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.specNE : Prop :=
@@ -51,7 +51,7 @@ abbrev go_etcd_io.etcd.pkg.v3.ioutil.PageWriter.flush.specNE : Prop :=
     {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
         ioutil.ownPageWriter pw wi [] ∗
         ((⌜err = GoInterface.nil ∧ sint.Z n = pend.length⌝ ∗ W (out ++ pend)) ∨
-         (⌜err ≠ GoInterface.nil⌝ ∗ B out pend)) }}
+         (⌜err ≠ GoInterface.nil⌝ ∗ errOkOrNil err ∗ B out pend)) }}
 
 end spec
 
