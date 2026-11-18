@@ -37,20 +37,20 @@ live: a read holds a fraction, a writer's commit takes it whole) and of the clos
 (`boltCloser`, from `Open`: so no other thread closes the database under its owner; Go lets any
 goroutine close it any number of times). It takes the three locks and closes the database (every
 later `Begin` fails). Outcomes:
-- `nil`, and the file of inode `i` (`Open`'s, `boltIno`) given back holding `D`;
+- `nil`, and the file of inode `i` (`Open`'s, `boltIno`) given back holding `D`, mappable
+  (`fileHoldsM`: what `Open.spec` takes, so the database can be reopened; session S3g: the file never
+  grows past `maxAddr + AllocSize < maxMapSize`, since every mapping fits the model's address space);
 - `¬ FsNoErr`: some step of the file model failed in a way `NoIoErr`/`NoMapLockErr` exclude (here: an
-  `munmap`, `flock` or `close`; or earlier: a remap's `munmap` or `madvise` that leaked a mapping),
-  which `Fs.fsNoErr_of` refutes under those premises;
-- `nil` and `boltNoFile γ`: the file is not whole pages (a commit's chunked write failed part way
-  past the file's end; under the premises only a write past `maxBytes`, 16 TiB, fails so, with
-  `EFBIG`), so it is not given back (`notes/bbolt-spec-decisions.md`, D-F5). -/
+  `munmap`, `flock` or `close`; or earlier: a remap's `munmap` or `madvise` that leaked a mapping, or a
+  commit's write that failed part way, leaving a partial last page), which `Fs.fsNoErr_of` refutes
+  under those premises. (Session S3g: under the premises a write fails only at `maxBytes`, page-aligned,
+  so the file stays whole pages.) -/
 abbrev DB.Close.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) (i : Ino) (D : Data),
   {{ isBolt (GF := GF) db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ fileHolds i D) ∨ ⌜¬ FsNoErr⌝ ∨
-      (⌜err = GoInterface.nil⌝ ∗ boltNoFile γ) }}
+      (⌜err = GoInterface.nil⌝ ∗ fileHoldsM i D) ∨ ⌜¬ FsNoErr⌝ }}
 
 end spec
 
