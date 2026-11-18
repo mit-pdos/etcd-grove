@@ -1,6 +1,38 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6: L-rev/P2 applied, the read side done)
+## START HERE (2026-11-18, A6: reserved reads and lifecycle done)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean fb68edfec8 merged (lean has not moved since):
+  pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc, the pool, L-rev/P2, the read side (forms ACCEPTED by
+  etcd-grove-03, questions.md "A6 read side: decided"); **(a) the reserved pool's reads** (80ed776890,
+  `AuthRealRsv.lean`: `real_acqR`/`real_obsR`/`real_relR` at `R := authWTok ∗ X` (any `X`: the boot token's
+  `plHook` rides along), `L _ := authOwn (.on γa) hs` lent to `RLock`, `Y rv` carries the view of `hs`'s last
+  (`viewL`) so schema's `Φ` premise is a plain observation (`heldR_phiL`); `real_BER`; `real_reads3`: the three
+  read-transaction clauses of `authBackendReads`); **(b) the lifecycle** (bac82a9720, `AuthRealLife.lean`:
+  `pool_release_later`, `real_retire`/`real_release`/`real_publish`, `real_life` at `authOpenQ = qpRep q0 s0 authRdN`;
+  no credits: `▷ realSt` destructured with `icases` (IntoExists under `▷` needs `Inhabited`: local instances for
+  `GMap Nat (Option Qp)`, `BktData`), timeless leaves taken with `>`). lean-check clean (without `--fast`);
+  targeted build: `/shared/tmp/auth-schema-srv/life-build1.log`.
+- Next, in order: (c) the write side over F-acc: `authBatchTxLkR` (Lock/Unlock/the six writes/two reads/reader) from
+  schema's `authBatchTx.*` specs (A5, generic in the backend transaction's triples) instantiated with the backend's
+  `batchTxBuffered.{LockInsideApply,UnsafePut,UnsafeDelete,UnsafeRange,Unlock,Commit}` at the claimed parts
+  (`rbPut … true` = `rbPutR`; `Unlock.spec` at `Sc = authBktL`, `Rr`/`rbAcc` opening `realInv` around
+  `E = ⊤ ∖ ↑authRealN`, moving each bucket's `rbRd ½`/`authStateAt` to the `Unlock`'s `st`); the Unlock precondition's
+  `thinV … ∗ W ∗ Pk ∗ Q` side (see how `Unlock.spec_free`/`Unlock.bare` (UnlockBare.lean) and the mvcc session
+  realization `NewStoreSessReal.lean` discharge it: `thinV_refl`, `viewSame_noPuts`); `GetAllRoles` (a batch);
+  `ForceCommit`; then `authWBackendOkR` at `authWTok γc` (authWAtHook) and at the boot token; (d) `authBkLend`
+  (`1 ≤ st.revision`; agreement law `rbOwnInR` vs `rbOwn`), `CreateAuthBuckets`; (e) creation (claim, tickets,
+  pools, `γc`, `realInv` allocation) and `⊢ authSchemaSrv`, `authSchemaSnap`. A7 HARD STOP for the user (trusted
+  texts: fix (A), L-rev, P2, `rbPartF`, `newPostK`, `authRdSlots`, the ticket count).
+- Pitfalls: (0)-(26) as before; (27) section `variable [schema_sem …]` is included in every theorem of the section
+  (instance-implicit): a file using `AuthRealRsv`'s lemmas needs the schema `Assumptions` variable too; (28) `>⟨`
+  lexes as one token: write `> ⟨`, but `>` cannot open `▷ ∃` (not timeless): destructure `▷ ∃` plainly; (29)
+  `rw [← lemma]` on a `Qp` sum rewrites every `1` in the goal: combine fractions in a separate lemma (`pub_join`);
+  (30) `ihave #H := lemma $$ []` on a `⊢ □ ∀ …` lemma specializes the `∀`: drop the `$$ []`.
+
+## History (START HERE of 2026-11-18, L-rev/P2 and the read side, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean fb68edfec8 merged (a03f3662f7, 198b95c198):
   pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
