@@ -87,6 +87,13 @@ def ctxErrShape [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (e : GoInte
   e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
 
+/-- **Go's two context-error messages** (incomingof Part B, option (a), decided by etcd-grove-03,
+2026-11-18): `context.go`'s `Canceled = errors.New("context canceled")` and
+`deadlineExceededError.Error()`'s `"context deadline exceeded"` (`examples/axiomcx/incomingof-real`
+`TestCtxErrOnlyTwo`). -/
+def ctxErrMsg (m : GoString) : Prop :=
+  m = go!"context canceled" ∨ m = go!"context deadline exceeded"
+
 end desc
 
 section init

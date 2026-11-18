@@ -1,6 +1,13 @@
 # incomingof handoff
 
-## START HERE (2026-11-18, option (a) decided; T2' written; STOP for attack)
+## START HERE (2026-11-18, T2' survived; STOP at T8, a new trusted text)
+
+- T2' attack survived; MINORs folded (7c0c332548). `ctxErrMsg` added to `cache/v3/Base.lean` (unused yet).
+- **STOPPED:** (2) needs a new conjunct in the trusted `status.FromError.spec` (T8: a leaf without
+  `GRPCStatus() *Status` gives `ok = false`), else `errDesc` of a context error is unknown and `kv.Get` fails.
+  Text, checks, Go evidence and the revised plan for (2)/(3): note, section "T8". Nothing else implemented.
+
+## Earlier START HERE (2026-11-18, option (a) decided; T2' written; STOP for attack)
 
 - Head 0e013c5ab0 (on dbb741dd80, WIP: kv__Get.lean fails). **Decided by etcd-grove-03 (2026-11-18): option (a)**
   of the blocker: (1) T2' narrows `ctxErrsErr`/`ctxErrClient`'s conjunct to `ctxErrMsg m` (Go's two context

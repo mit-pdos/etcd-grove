@@ -12,6 +12,8 @@ import (
 
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var errCause = errors.New("my custom cause: etcdserver: mvcc: required revision is a future revision")
@@ -148,4 +150,36 @@ func TestContextErrorTwice(t *testing.T) {
 		}
 	}
 	t.Log("ContextError twice returns the context error unchanged on every done context and on a live one")
+}
+
+type leafNoStatus struct{ s string }
+
+func (e leafNoStatus) Error() string { return e.s }
+
+// otherSigStatus has a GRPCStatus method of another signature: not grpc's grpcstatus interface.
+type otherSigStatus struct{}
+
+func (otherSigStatus) Error() string   { return "other signature" }
+func (otherSigStatus) GRPCStatus() int { return 0 }
+
+// TestFromErrorNoGRPCStatus (T8, FromError.spec's new conjunct): status.FromError of a leaf error
+// (no Unwrap, no As) without a `GRPCStatus() *status.Status` method returns ok = false (grpc v1.84.0
+// status.go:96-127: the type assertion fails, errors.As on a leaf checks only it), and its status's
+// message is the error's Error().
+func TestFromErrorNoGRPCStatus(t *testing.T) {
+	for _, e := range []error{context.Canceled, context.DeadlineExceeded, errors.New("x"),
+		leafNoStatus{"etcdserver: mvcc: required revision is a future revision"}, otherSigStatus{}} {
+		s, ok := status.FromError(e)
+		if ok {
+			t.Fatalf("FromError(%T %q): ok = true", e, e)
+		}
+		if s.Message() != e.Error() {
+			t.Fatalf("FromError(%T): message %q, Error() %q", e, s.Message(), e.Error())
+		}
+		t.Logf("FromError(%T %q): ok=false msg=%q", e, e, s.Message())
+	}
+	// A status error has the method: ok = true (the conjunct's guard is needed).
+	if _, ok := status.FromError(status.Error(codes.Canceled, "context canceled")); !ok {
+		t.Fatal("FromError(*status.Error): ok = false")
+	}
 }

@@ -427,6 +427,59 @@ What is not covered: a user-defined `Context` whose `Err()` returns another erro
   `□ (ctxErrIs err -∗ ctxErrIs err')` with `ctxErrIs err := ∃ e m, ⌜err = ok e ∧ ctxErrMsg m ∧ ctxErrShape e
   ∧ noGRPCStatus e.ty⌝ ∗ errorMsgIs e m`, so `kv.Get`'s second call keeps `kv.Do`'s context error.
 
+### T8 (new, found implementing (2), 2026-11-18): `status.FromError.spec` needs "no `GRPCStatus` → `ok = false`" — STOP
+
+**Why.** (2) needs `rpctypes.Error`'s lookup key `d = ErrorDesc(e)` to be `e`'s message `m` (`errorMsgIs e m`):
+then the result is `e` unchanged (no key) or an `EtcdError` of description `d = m` (a key), and with `m` a
+context message (`ctxErrMsg`, so no handler description) the Range outcome holds in both cases.
+`ErrorDesc.spec` gives only `d = errDesc e`; `FromError.spec`'s last conjunct gives `errorMsgIs e m -∗
+⌜errDesc e = m⌝` **only when `ok = false`**, and nothing in `FromError.spec` says when `ok` is `false`. So
+without a new trusted fact `errDesc` of a context error stays unknown (the point of Part B) and `kv.Get`'s
+second `ContextError` cannot be shown to keep the outcome. No proof-only route exists: `errDesc` has no other
+per-run source. (Key facts about `errStringToError`, the alternative the attack mentioned, would not suffice
+alone either: they speak of `d`, still unlinked to `m`.)
+
+**Proposed text** (`Spec/google_golang_org/grpc/status/FromError.lean`, a new post conjunct of the axiom
+`status.FromError.wp_proof`; the rest unchanged):
+```lean
+      -- (incomingof Part B, T8) a leaf error without grpc's `GRPCStatus() *Status` is no status error
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
+        methodSet e.ty !! go!"GRPCStatus" ≠
+          some (go.Signature [] false
+            [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty]) →
+        ok = false⌝
+```
+(The signature is `grpcErrMethodsOk`'s, `cache/v3/Base.lean:354`.)
+
+**Why true in Go** (grpc v1.84.0 `status/status.go:96-127`): for a non-nil `err`, `ok = true` only through
+`err.(grpcstatus)` (the dynamic type has `GRPCStatus() *Status`) or `errors.As(err, &gs)`; the precondition
+`statusErrOk err` makes `err` a leaf (`errors.isLeafError`: no `Unwrap`, no `As`), so `errors.As` checks only
+`err` itself against the same interface, which fails as well. Both `true` returns are guarded by the method;
+the `grpcStatus == nil` branches return `false`.
+
+**Checks.** (a)/(b): a triple's post, not an entailment; in `W` the triple is vacuous and exports nothing.
+(c): grpc's `status` is names-only (uninterpreted), so no closed program's adequacy reaches this post; and the
+fact is about the dynamic type's method set and a boolean, with no address in it. No consumer changes
+meaning: the conjunct is new, read only by `ErrorDesc`/`rpctypes.Error`'s proofs.
+
+**Go evidence** (`examples/axiomcx/incomingof-real/ctx_test.go` `TestFromErrorNoGRPCStatus`, go1.27.3, grpc
+v1.84.0, passes): `FromError` returns `ok=false` and the message `Error()` for `Canceled`, `DeadlineExceeded`,
+an `errors.New`, a leaf struct whose message is a handler description, and a type with a `GRPCStatus() int`
+method (another signature); `ok=true` for a `*status.Error` (the guard is needed).
+
+**Plan with T8** (all proved, no further trusted text):
+- `ErrorDesc.spec` gains `□ (∀ e m, ⌜err = ok e ∧ noGRPCStatus e.ty⌝ → errorMsgIs e m -∗ ⌜d = m⌝)`.
+- `rpctypes.Error.spec` gains `□ (∀ e m, ⌜err = ok e ∧ noGRPCStatus e.ty⌝ → errorMsgIs e m -∗
+  ⌜err' = err ∨ errDesc err' = m⌝)` — weaker than the decided wording (2) ("comes back unchanged" when `m` is
+  no key), which would also need the 57 keys in the trusted `errStringToError_init` (another trusted text);
+  the disjunction suffices because `rangeErrΨ` holds vacuously at a non-handler description.
+- `ContextError.spec`: the ctx disjunct carries `ctxErrIs err'` (`∃ e m, ⌜err' = ok e ∧ ctxErrMsg m ∧
+  ctxErrShape e⌝ ∗ errorMsgIs e m`), and a new conjunct `□ (ctxErrIs err -∗ ctxErrIs err' ∨
+  ⌜ctxErrMsg (errDesc err')⌝)`. `noGRPCStatus` of a ctx-shaped client error is derived (a `*status.Error` has
+  `Is`, so `ctxErrShape` leaves `*errorString`/`deadlineExceededError`, whose method sets lack `GRPCStatus`).
+- `kv.Get`: the second call keeps `kv.Do`'s outcome (description kept), or the ctx disjunct, or a context
+  message description, where `rangeErrΨ` is vacuous.
+
 ## Trust-base delta (expected)
 
 - Axioms: none added or removed (`incomingOf_cancelCtx` stays: Part A is not linked).
