@@ -328,7 +328,6 @@ RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1 RaftNoAx.Proof.go
 RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2 RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1  # proof->proof
 RaftTla.Proof.go_etcd_io.raft.v3.TracedConfChangeHook RaftTla.Proof.go_etcd_io.raft.v3.traceConfChangeEvent  # defs->proof
 RaftWitness.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvwitness.Base RaftWitness.Proof.go_etcd_io.raft.v3.Link  # defs->linking
-Robustness.Linearizability Proof.github_com.anishathalye.porcupine.Theory  # base->defs
 WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.RestartAu WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__close  # defs->proof
 WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SaveAu WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__close  # defs->proof
 WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SavePure WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.toRaft  # defs->proof
