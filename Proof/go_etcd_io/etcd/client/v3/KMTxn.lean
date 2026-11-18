@@ -26,7 +26,6 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.ServerKVTxn
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
-public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
 
 @[expose] public section

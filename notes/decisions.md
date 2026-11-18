@@ -40619,3 +40619,47 @@ translation is about a build nobody ships; the stage-2 merge had made every raft
 - **Tooling.** `etc/gen-init.py` generates the trace check's `Init`/`PkgTable` under `RaftTla/`
   (`tla_outs`: the part's translations over the main tree's); `etc/import-all-check.py` reads
   `RaftTla/`; `etc/proof_roots.py` finds the part from `etc/goose.py`.
+
+## Import tiers: specs never import proofs (2026-11-18 · the user's direction · branch `tiers2/2026-11-18`)
+
+**The problem.** A spec (`Spec/.../examples/etcd/auth/Run.lean`) imported `NewServerR.lean`, a
+2640-line proof, through `auth/Hist.lean` -> `client/v3/Results.lean` -> `v3rpc/Results.lean` ->
+`etcdserver/Link.lean`: 620 non-linking modules (250 specs) were in that proof's rebuild cone, and the
+build's critical path ran through it. The cause was general: definitions and pure lemmas that specs
+name (`putKeyOp`, `srvAuthStoreOn`, `etcdKVAt`, `GenIn`, ...) lived in modules that also proved
+results over linked theorems (a `Link`'s `wp_<M>`), so importing the vocabulary imported the proofs.
+
+**Decision.** Five tiers, a module importing only its own tier or lower (CLAUDE.md, "Import tiers";
+`etc/tier-check.py`): base (translations, framework, everything outside the `Spec`/`Proof` roots),
+spec, defs (`Proof/` modules that are neither below; specs and defs may import each other), proof (a
+module declaring `<F>.wp_proof`), linking (`Link`, `Results`, `*Linked`, `Adequacy*`, and the modules
+listed in `etc/tier-linking.txt`). Only a linking module imports a proof or linking module. The check
+reads the sources only (seconds; in `etc/gates.sh`, section `api`), and ratchets: the violations
+left are `etc/tier-baseline.txt`, which only shrinks.
+
+- **Which modules are linking** is decided by what they prove, not their name: a module declaring a
+  constant whose statement or proof reaches a constant of a `Link`/`Linked`/`TracedLinked`/
+  `MainLinked` module of this repository (Perennial's own `Link`s are framework, base tier) is
+  linking. Such modules found under other names are either split (the linked theorems moved to a
+  `<Name>Linked.lean` beside them, the definitions staying under the old name: `NodeBridge`,
+  `NodeStart`, `AuthSrv`, `Served`, `ServedLease`, `WatchServed`, `WatchWrites`, `txnlin/Calls`,
+  `auth/WorkCalls`, RaftTla's `ProbeA`) or listed in `etc/tier-linking.txt` (the client's `KM*`,
+  `ServerKV*`, `LinkMembers`, `ServeFromStart`, `*Served*`, ...). A definition used below moved down
+  instead when that was smaller (`client/v3/KeyOps.lean` out of `client/v3/Results.lean`,
+  `AuthnSpec`, `ReadUpds`, `apply_no_v3_no_write` into `apply/InvUber`, `etcdLeaseReadAt` into
+  `InvLeaseRead`). Names and statements unchanged; porcupine's `Linked.lean` (a linked *list*, no
+  linked result) renamed `LinkedList.lean`.
+- **What is left** (the baseline): proof files that use linked results of their callees instead of
+  taking their specs as hypotheses (the examples' `Main`s over the server's served theorems, the
+  k8s client's calls over `client_range_any`, the auth checks over `adt`'s `Link`, `NewServer` over
+  `NodeStartLinked`): `proof->linking`. Fixing one changes its `wp_proof`'s hypotheses (its spec
+  stays), so `Link` passes the linked result: a statement change, left to the owners. Also
+  `proof->proof` and `defs->proof` (a lemma in one function's proof file used by another: bbolt,
+  `os`, the WAL tester), and three base modules importing proof definitions (`GooseLang/Ext/AbsDisk`,
+  `ManualProof/.../durable`, `Robustness/Linearizability`).
+- **A hazard when moving imports**: this repository does not set `autoImplicit false`, so a name a
+  removed import made unknown becomes, in a declaration's signature, an auto-bound implicit
+  variable instead of an error (seen: `MemStorNames`, `CompactorId`; both happened to fail later, on
+  a projection). The moves were checked by comparing the type (and a definition's value) of every
+  declaration the tcb-report roots reach, by name, between `origin/lean`'s build and the branch's
+  (a Lean script over `importModules`, hashes of `ConstantInfo.type`): identical.

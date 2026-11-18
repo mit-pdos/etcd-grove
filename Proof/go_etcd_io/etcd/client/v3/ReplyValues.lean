@@ -12,7 +12,9 @@ counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.Results
+public import Proof.go_etcd_io.etcd.client.v3.KeyOps
+public import Proof.go_etcd_io.etcd.client.v3.KVService
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

@@ -25,10 +25,10 @@ public import Spec.go_etcd_io.etcd.client.v3.WithRange
 public import Spec.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Spec.fmt.ErrorfPlain
 public import Perennial.Proof.time.Link
-public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ErrOk
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.SyncPages
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.OptsOwn
+public import Proof.go_etcd_io.etcd.client.v3.Results
 
 @[expose] public section
 

@@ -10,6 +10,7 @@ public import Spec.encoding.json.Marshal
 public import Perennial.Proof.strings.Link
 public import Perennial.Proof.fmt.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.lessor__Leases
 public import Perennial.Spec.context.Background
 public import Spec.context.WithTimeoutBackground
 public import Spec.context.ErrAny
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

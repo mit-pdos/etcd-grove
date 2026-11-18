@@ -35,6 +35,7 @@ public import Spec.go_opentelemetry_io.otel.attribute.String
 public import Spec.go_opentelemetry_io.otel.attribute.Int
 public import Spec.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Perennial.Proof.bytes.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

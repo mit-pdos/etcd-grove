@@ -22,6 +22,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.SelectionPredicate__Empty
 public import Spec.k8s_io.apiserver.pkg.storage.PrepareContinueToken
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RefineList
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.ObjSpec
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

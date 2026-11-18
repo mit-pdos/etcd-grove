@@ -2,7 +2,7 @@
 # The checks a branch passes before it lands on `lean`, in one run (the ones CI runs, plus the
 # trust base's and every generator's): the full build, every generated Link.lean, the trust base
 # and every collection, the axiom-tok gate, the translations (and the examples' go.mod pins), the generated
-# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports and interfaces. Prints one line per check and exits 1 if any fails.
+# initializers, the issues' front matter, the bounds and auth-mode checks, the packages' imports, the import tiers and the interfaces. Prints one line per check and exits 1 if any fails.
 #
 #   etc/gates.sh                     in a checkout whose .lake/packages holds the pinned Perennial
 #   LAKE_PACKAGES=.lake/manifest-stdinit.json PERENNIAL_CHECKOUT=/shared/perennial-std-init \
@@ -287,6 +287,13 @@ if python3 etc/import-all-check.py --check > "$tmp/ia.log" 2>&1; then
   echo "$(tail -1 "$tmp/ia.log")"
 else
   echo "import-all: FAILED"; head -20 "$tmp/ia.log"; fail=1
+fi
+# the import tiers: no spec, definition or proof module imports a proof or linking module, but the
+# known ones of etc/tier-baseline.txt (CLAUDE.md, "Import tiers"; reads the sources only, seconds)
+if python3 etc/tier-check.py --check > "$tmp/tier.log" 2>&1; then
+  echo "$(tail -1 "$tmp/tier.log")"
+else
+  echo "tier: FAILED"; head -20 "$tmp/tier.log"; fail=1
 fi
 return $fail
 }
