@@ -10,6 +10,7 @@ anything. Proved in `Proof/os/File__ReadAt.lean`. Lean-first (no Rocq counterpar
 module
 
 public import Proof.os.Base
+public import Proof.os.HeldAcc
 public import Spec.fmt.ErrorOk
 public import GooseLang.Ext.Fs.FsNoErr
 
@@ -86,22 +87,26 @@ abbrev os.File.ReadAt.specRacy : Prop :=
 returns it only when a `pread` reads nothing with `len(b) > 0`), and a failure's `*PathError`
 (wrapping the errno) is one `fmt` formats (`fmtErrorOk`), and witnesses that **the file system
 can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names a `pread` returns errno 0; session S6
-folded the former `specRacyLtNoErr`/`specRacyLtW` into it). `specRacy` is a corollary
+folded the former `specRacyLtNoErr`/`specRacyLtW` into it). The held bytes are behind an accessor
+(S4, 2026-11-18): the client's `P` and `os.heldAcc d.ino rs P E` (`Proof/os/HeldAcc.lean`), which
+opens around each `pread` to bytes saying at least what the ranges `rs` say (bbolt's reader keeps
+its pages' bytes in an invariant, so it cannot hold them across the call); the guarantees are over
+`rs`. Holding the bytes is the instance `P := [∗list] osBytes rs` at `E := ⊤` (`os.heldAcc_own`;
+`os.File.ReadAt.wp_racyLtOwn`, `Proof/os/ReadAtOwn.lean`). `specRacy` is a corollary
 (`Proof/os/File__ReadAt.lean`). -/
 abbrev os.File.ReadAt.specRacyLt : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List ByteG))
-    (eof : GoInterface),
+    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List ByteG)) (P : IProp GF)
+    (E : CoPset) (eof : GoInterface),
   d.readable = true → 0 ≤ off.toInt → vs.length ≤ 0x40000000 → off.toNat + vs.length < 2 ^ 63 →
+  ↑osN ⊆ E →
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
-      osFd (GF := GF) fd dq d ∗
-      ([∗list] r ∈ rs, osBytes (GF := GF) d.ino r.1 r.2.1 r.2.2) ∗
+      osFd (GF := GF) fd dq d ∗ P ∗ os.heldAcc d.ino rs P E ∗
       globalAddr io.EOF ↦□ eof }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ([∗list] r ∈ rs, osBytes d.ino r.1 r.2.1 r.2.2) ∗
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ P ∗
       ∃ vs' : List w8, sl ↦* vs' ∗
         ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
           (∀ i b, os.heldByte rs i b → off.toNat ≤ i → i < off.toNat + n.toNat →

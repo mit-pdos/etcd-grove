@@ -9,6 +9,8 @@ module
 
 public import Proof.os.ErrorOk
 public import Spec.os.File__ReadAt
+public import Proof.os.ReadAtOwn
+public import Proof.os.CrashFile
 public import GooseLang.Ext.Fs.NoErrSpecsOpen
 
 @[expose] public section
@@ -304,6 +306,40 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
           refine ⟨?_, .inr (by intro h; cases h)⟩
           rw [List.length_append, hpl, hc2l, hcl]; omega
 
+/-- A `pread` exact at every byte of the ranges `rs'` it saw is exact at every byte `rs` says, if
+`rs'` says at least as much. -/
+private theorem held_read_of (rs rs' : List (Nat × DFrac × List ByteG)) (o n : w64) (r : List w8)
+    (hsub : ∀ i b, os.heldByte rs i b → os.heldByte rs' i b)
+    (h1 : ∀ x ∈ rs', ∀ k (hk : k < x.2.2.length), o.toNat ≤ x.1 + k →
+      x.1 + k < o.toNat + n.toNat →
+      ∀ (h : x.1 + k - o.toNat < r.length), r[x.1 + k - o.toNat] = x.2.2[k].1) :
+    ∀ i b, os.heldByte rs i b → o.toNat ≤ i → i < o.toNat + n.toNat →
+      i - o.toNat < r.length → r[i - o.toNat]? = some b := by
+  intro i b hh hi1 hi2 hlt
+  obtain ⟨x, hx, hx1, hxb⟩ := hsub i b hh
+  have hk : i - x.1 < x.2.2.length := by
+    apply Classical.byContradiction; intro hk
+    rw [List.getElem?_eq_none (by omega)] at hxb; cases hxb
+  have hidx : x.1 + (i - x.1) - o.toNat = i - o.toNat := by omega
+  rw [← hidx, List.getElem?_eq_getElem (by omega),
+    h1 x hx (i - x.1) hk (by omega) (by omega) (by omega)]
+  rw [List.getElem?_eq_getElem hk] at hxb
+  simpa using hxb
+
+/-- An empty `pread` that reached no byte of the ranges `rs'` reached none that `rs` says, if `rs'`
+says at least as much. -/
+private theorem held_empty_of (rs rs' : List (Nat × DFrac × List ByteG)) (o n : w64)
+    (hsub : ∀ i b, os.heldByte rs i b → os.heldByte rs' i b)
+    (h2 : ∀ x ∈ rs', ∀ k (_ : k < x.2.2.length), o.toNat ≤ x.1 + k →
+      x.1 + k < o.toNat + n.toNat → False) :
+    ∀ i b, os.heldByte rs i b → o.toNat ≤ i → i < o.toNat + n.toNat → False := by
+  intro i b hh hi1 hi2
+  obtain ⟨x, hx, hx1, hxb⟩ := hsub i b hh
+  have hk : i - x.1 < x.2.2.length := by
+    apply Classical.byContradiction; intro hk
+    rw [List.getElem?_eq_none (by omega)] at hxb; cases hxb
+  exact h2 x hx (i - x.1) hk (by omega) (by omega)
+
 /-- **The racing read, generic in its `pread`s' errnos** (`specRacyLt` with a `*PathError` only
 of an errno `e ≠ 0` with `Pe e`): over a semantics whose `pread` steps return an errno with `Pe`
 (`hpost`, a strengthening of their weakest preconditions as `wp_ext_post` gives). `specRacyLt`
@@ -314,19 +350,17 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → Pe e⌝ -∗ Φ r }} ⊢
         WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#o) (#n))))) {{ Φ }})
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
-    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List ByteG))
-    (eof : GoInterface)
+    (off : w64) (dq : DFrac) (d : OsFd) (rs : List (Nat × DFrac × List ByteG)) (P : IProp GF)
+    (E : CoPset) (eof : GoInterface)
     (hrd : d.readable = true) (hoff : 0 ≤ off.toInt) (hn2 : vs.length ≤ 0x40000000)
-    (hend : off.toNat + vs.length < 2 ^ 63) :
+    (hend : off.toNat + vs.length < 2 ^ 63) (hE : ↑osN ⊆ E) :
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦* vs ∗
-      osFd (GF := GF) fd dq d ∗
-      ([∗list] r ∈ rs, osBytes (GF := GF) d.ino r.1 r.2.1 r.2.2) ∗
+      osFd (GF := GF) fd dq d ∗ P ∗ os.heldAcc d.ino rs P E ∗
       globalAddr io.EOF ↦□ eof }}
     (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"ReadAt")) (Val #sl))
       (Val #off))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
-      os.ownFile f fd name dqf ∗ osFd fd dq d ∗
-      ([∗list] r ∈ rs, osBytes d.ino r.1 r.2.1 r.2.2) ∗
+      os.ownFile f fd name dqf ∗ osFd fd dq d ∗ P ∗
       ∃ vs' : List w8, sl ↦* vs' ∗
         ⌜vs'.length = vs.length ∧ n.toNat ≤ vs.length ∧
           (∀ i b, os.heldByte rs i b → off.toNat ≤ i → i < off.toNat + n.toNat →
@@ -336,26 +370,33 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
               i < off.toNat + vs.length → i < off.toNat + n.toNat)⌝ ∨
          (∃ pe : Loc, ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe ∧
            ∃ e : w64, Pe e ∧ e ≠ W64 0⌝ ∗ fmtErrorOk err)) }} := by
+  -- one `pread`, atomic: the accessor opened around it (`wp_atomic`, at `E`), the facts of the
+  -- bytes it opened to restated over `rs`
   have hread : ∀ (o n : w64) (Φ : val → IProp GF), 0 ≤ o.toInt →
-      ⊢ osInv (GF := GF) -∗ osFd (GF := GF) fd dq d -∗
-        ([∗list] x ∈ rs, osBytes (GF := GF) d.ino x.1 x.2.1 x.2.2) -∗
+      ⊢ osInv (GF := GF) -∗ os.heldAcc d.ino rs P E -∗ osFd (GF := GF) fd dq d -∗ P -∗
         (∀ r : List w8, ∀ e : w64,
-          ⌜∀ x ∈ rs, ∀ k (hk : k < x.2.2.length), o.toNat ≤ x.1 + k →
-            x.1 + k < o.toNat + n.toNat →
-            ∀ (h : x.1 + k - o.toNat < r.length), r[x.1 + k - o.toNat] = x.2.2[k].1⌝ -∗
-          ⌜e = W64 0 → r = [] → ∀ x ∈ rs, ∀ k (_ : k < x.2.2.length), o.toNat ≤ x.1 + k →
-            x.1 + k < o.toNat + n.toNat → False⌝ -∗ ⌜Pe e⌝ -∗
-          osFd (GF := GF) fd dq d -∗ ([∗list] x ∈ rs, osBytes (GF := GF) d.ino x.1 x.2.1 x.2.2) -∗
-          Φ (PairV (#r) (#e))) -∗
+          ⌜∀ i b, os.heldByte rs i b → o.toNat ≤ i → i < o.toNat + n.toNat →
+            i - o.toNat < r.length → r[i - o.toNat]? = some b⌝ -∗
+          ⌜e = W64 0 → r = [] → ∀ i b, os.heldByte rs i b → o.toNat ≤ i →
+            i < o.toNat + n.toNat → False⌝ -∗ ⌜Pe e⌝ -∗
+          osFd (GF := GF) fd dq d -∗ P -∗ Φ (PairV (#r) (#e))) -∗
         WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#o) (#n))))) {{ Φ }} := by
     intro o n Φ hoI
-    iintro #Hinv Hfd Hbs HΦ
+    unfold os.heldAcc
+    iintro #Hinv #Hacc Hfd HP HΦ
     iapply hpost
-    iapply wp_osPRead_racy_list fd o n dq d rs CoPset.subseteq_top hrd hoI _ $$ Hinv Hfd Hbs
-    iintro %r %e %h1 %h2 Hfd Hbs %hP
-    iapply HΦ $$ %r %e %h1 %h2 %(hP _ _ rfl) Hfd Hbs
+    iapply (wp_atomic (E2 := E))
+    imod Hacc $$ HP with ⟨%rs', Hbs, %hsub, Hcl⟩
+    imodintro
+    iapply wp_osPRead_racy_list fd o n dq d rs' hE hrd hoI _ $$ Hinv Hfd Hbs
+    iintro %r %e %h1 %h2 Hfd Hbs
+    imod Hcl $$ Hbs with HP
+    imodintro
+    iintro %hP
+    iapply HΦ $$ %r %e %(held_read_of rs rs' o n r hsub h1)
+      %(fun he hr => held_empty_of rs rs' o n hsub (h2 he hr)) %(hP _ _ rfl) Hfd HP
   unfold os.ownFile
-  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hbs, #Heof⟩
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hbs, #Hacc, #Heof⟩
   unfold os.model.inner
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
@@ -452,7 +493,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
       rw [hblZ, show sint.Z (W64 1073741824) = 1073741824 from rfl]; omega
     rw [decide_eq_false hmx]
     wp_auto
-    wp_apply hread o b.len _ hoI $$ Hinv Hosfd Hbs as %r %e %hre %hemp %hPe Hosfd Hbs
+    wp_apply hread o b.len _ hoI $$ Hinv Hacc Hosfd Hbs as %r %e %hre %hemp %hPe Hosfd Hbs
     wp_apply wp_string_to_bytes r as %tmp ⟨Htmp, -⟩
     by_cases hr0 : r = []
     · icases ownSlice_len tmp _ _ $$ Htmp with %Htl
@@ -483,12 +524,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           refine .inr ⟨rfl, by omega, fun i bt hh h1 h2 => ?_⟩
           -- `io.EOF`: the empty read at `off + n` reached no held byte, so all are below it
           apply Nat.lt_of_not_le; intro hge
-          obtain ⟨x, hx', hx1, hx2⟩ := hh
-          have hk' : i - x.1 < x.2.2.length := by
-            cases hq : x.2.2[i - x.1]? with
-            | none => rw [hq] at hx2; cases hx2
-            | some _ => exact (List.getElem?_eq_some_iff.1 hq).1
-          exact hemp rfl hr0 x hx' (i - x.1) hk' (by omega) (by omega)
+          exact hemp rfl hr0 i bt hh (by omega) (by omega)
         · have he0' : ¬ e = W64 0 := he0
           simp only [decide_eq_false he0', Bool.not_false]
           wp_auto
@@ -568,16 +604,8 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
             · rw [List.getElem?_append_right (by omega), hpl, hmmNat, List.getElem?_take,
                 if_pos (by omega), List.getElem?_append_left (by simp; omega), List.getElem?_take,
                 if_pos (by omega)]
-              obtain ⟨x, hx, hx1, hxb⟩ := hh
-              have hk : i - x.1 < x.2.2.length := by
-                apply Classical.byContradiction; intro hk
-                rw [List.getElem?_eq_none (by omega)] at hxb; cases hxb
-              have hidx : x.1 + (i - x.1) - o.toNat = i - o.toNat := by omega
-              have hr := hre x hx (i - x.1) hk (by omega) (by omega) (by omega)
-              rw [List.getElem?_eq_getElem hk] at hxb
-              simp only [Option.map_some, Option.some.injEq] at hxb
-              rw [show i - off.toNat - n.toNat = i - o.toNat by omega, ← hidx,
-                List.getElem?_eq_getElem (by omega), hr, hxb]
+              rw [show i - off.toNat - n.toNat = i - o.toNat by omega]
+              exact hre i bt hh (by omega) (by omega) (by omega)
           wp_auto
           rw [show b.len - mm = (slice.slice b w8 mm b.len).len from rfl]
           iapply IH $$ %(slice.slice b w8 mm b.len) %(o + mm) %(n + mm) %_ %_ %hk' %hb'' %ho''
@@ -601,7 +629,7 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
 `pread` returns errno 0, `pread_noErr` through `wp_ext_post`), so a `*PathError`, of an errno
 `e ≠ 0`, witnesses `¬ FsNoErr`. -/
 theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
+  intro f fd name dqf sl vs off dq d rs P E eof hrd hoff hn2 hend hE
   iintro %Φ Hpre HΦ
   iapply os.File.ReadAt.wp_proofRacyLtQ (fun e => FsNoErr → e = W64 0)
     (fun fd o n Φ => by
@@ -621,7 +649,7 @@ theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG
         exact (go.intoVal_inj (val.PairV.inj he).2).symm
       · exact wp_mono (fun _ => by
           iintro H; iapply H; ipureintro; intro _ _ _ h; exact absurd h hne))
-    f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend $$ Hpre
+    f fd name dqf sl vs off dq d rs P E eof hrd hoff hn2 hend hE $$ Hpre
   inext
   iintro %n %err ⟨Hfo, Hfd, Hbs, %vs', Hsl, %h, Hr⟩
   iapply HΦ
@@ -638,7 +666,8 @@ theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG
 theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := hG) := by
   intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
   iintro %Φ Hpre HΦ
-  iapply os.File.ReadAt.wp_proofRacyLt f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend $$ Hpre
+  iapply os.File.ReadAt.wp_racyLtOwn os.File.ReadAt.wp_proofRacyLt f fd name dqf sl vs off dq d rs eof
+    hrd hoff hn2 hend $$ Hpre
   inext
   iintro %n %err ⟨Hfo, Hfd, Hbs, %vs', Hsl, %h, Hr⟩
   obtain ⟨h1, h2, h3⟩ := h
