@@ -558,3 +558,23 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `InitialMmapSize := bcfg.mmapSize()` (10 GiB default; a configured larger one must stay below
     `maxMapSize`); the file must be `nameHoldsM` (fresh, or a snapshot image: `fileHoldsM_of_image`);
     `Close_kv` passes the `boltCloser` its `Open_kv` got.
+  - **Change of direction (the user, mid-session): one canonical spec per bbolt function** (D-F6).
+    Final statements (supersede the bullets above for `Open`/`Close`/`Begin`):
+    `Open.spec` = the former `Open_sharedNoErr` pre (shared mode, `nameHolds` over `fileHoldsM`,
+    `optsAtNoErr`) without the `FsStepSat` premises, post `optsAtNoErr ∗ osPathS ∗ osCallPerm ∗ ∃ oc,
+    crOut j b h 1 oc ∗ ((⌜err = nil⌝ ∗ ∃ γ i, ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗
+    boltState γ 1 D ∗ boltCloser γ) ∨ ⌜err ≠ nil ∧ ¬ FsNoErr⌝)`;
+    `DB.Close.spec`: `{isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ} db.Close()
+    {err. (⌜err = nil⌝ ∗ fileHolds i D) ∨ ⌜¬ FsNoErr⌝ ∨ (⌜err = nil⌝ ∗ boltNoFile γ)}`;
+    `DB.Begin.spec`: error arm `⌜err ≠ nil ∧ tx = null⌝ ∗ fmtErrorOk err ∗ …`.
+    Deleted: `Open_shared`, `Open_sharedNoErr`, `DB__Close_noErr`, `DB__Close_own`,
+    `DB__Close_ownNoErr`, `DB__Begin_err` (spec files; `DB.Begin_err.spec` survives as an internal
+    helper in its proof file), `pathHolds`, `nameHoldsM` (`nameHolds` is over `fileHoldsM`). Internal:
+    `DB.Close.specTok` (`Open/CloseTok.lean`). `FsNoErr` covers every path; `Fs.fsNoErr_of`.
+    `Tx.rollback.wp_proof`'s binders now take the instances (`∀ [fs instances]`), as
+    `Tx.rollback_f`'s: the junk clause's new conjunct made the elaborator's unification of the
+    two forms time out.
+    Other public functions with more than one public spec (reported, not changed): `Bucket.Bucket`
+    (`_r`, `_w`), `Bucket.Cursor` (and `_i`), `Bucket.ForEachBucket` (`_r`, `_rP`, `_w`),
+    `Tx.Bucket` (and the backend's `_kvr`/`_kvw`), `Tx.Commit` (and `Tx.Commit_err`, `Open`'s internal
+    use, as `Begin_err` was), `Tx.Rollback` (and `_r`), and the backend's `_kv` layer (S3e deletes it).

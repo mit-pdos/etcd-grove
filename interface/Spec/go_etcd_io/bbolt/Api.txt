@@ -5,6 +5,9 @@
 theorem bbolt.boltIno_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
     bbolt.BoltName) (i : Fs.Ino) : Persistent (bbolt.boltIno γ i)
 
+theorem bbolt.boltCloser_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
+    bbolt.BoltName) : Timeless (bbolt.boltCloser γ)
+
 def (sealed) bbolt.isBolt [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (db : Loc) (γ :
     bbolt.BoltName) : IProp GF
 
@@ -20,6 +23,9 @@ def bbolt.statSlot [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ : 
 
 def bbolt.instInhabitedBoltName.default : bbolt.BoltName :=
   { gs := default, ns := default }
+
+theorem bbolt.boltCloser_excl [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
+    bbolt.BoltName) : bbolt.boltCloser γ ∗ bbolt.boltCloser γ ⊢ False
 
 theorem bbolt.fileHolds_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
     Fs.Ino) (D : bbolt.Data) : Timeless (bbolt.fileHolds i D)
@@ -58,14 +64,6 @@ def (sealed) bbolt.boltImage (bs : List w8) (D : bbolt.Data) : Prop
 theorem bbolt.boltState_valid [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
     bbolt.BoltName) (q : Qp) (D : bbolt.Data) : bbolt.boltState γ q D ⊢ ⌜q ≤ 1⌝
 
-def bbolt.pathHolds [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (R : Fs.Roots) (V :
-    Fs.Hist) (path : GoString) (D : bbolt.Data) : IProp GF :=
-  iprop((∃ i, ⌜Fs.lookupH R V path = some (Fs.Node.file i)⌝ ∗ bbolt.fileHolds i D) ∨
-      ⌜Fs.RootsOk R ∧
-          ∃ d b j,
-            path = Fs.child d b ∧
-              NameOk b ∧ Fs.lookupH R V d = some (Fs.Node.dir j) ∧ Fs.lookupH R V path = none ∧ D = ∅⌝)
-
 structure bbolt.BoltName : Type where
   gs : List GName
   ns : Namespace
@@ -76,6 +74,12 @@ def (sealed) bbolt.boltState [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsE
 def bbolt.instInhabitedBoltName : Inhabited bbolt.BoltName :=
   { default := bbolt.instInhabitedBoltName.default }
 
+theorem bbolt.fileHoldsM_of_image [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
+    Fs.Ino) (m : Fs.OsMeta) (xs : List Fs.ByteG) (D : bbolt.Data) (hmaps : m.maps = ∅) (hsize :
+    m.size = xs.length) (himg : bbolt.boltImage (List.map Prod.fst xs) D) (hlen : xs.length ≤
+    bbolt.boltMaxMapSize) : Fs.osMeta i (DFrac.own 1) m ∗ Fs.osBytes i 0 (DFrac.own 1) xs ∗
+    bbolt.boltImageRcpt (List.map Prod.fst xs) ⊢ bbolt.fileHoldsM i D
+
 def (sealed) bbolt.boltBkt [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx : Loc) (γ :
     bbolt.BoltName) (b : Loc) (n : GoString) (g : Nat) : IProp GF
 
@@ -85,6 +89,9 @@ def (sealed) bbolt.txDB [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (
     bbolt.BoltName) (db : Loc) : IProp GF
 
 theorem bbolt.boltPageSize_eq_osPageSize : bbolt.boltPageSize = Fs.osPageSize
+
+def bbolt.boltMaxMapSize : Nat :=
+  281474976710655
 
 theorem bbolt.boltTx_base [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx : Loc) (γ
     : bbolt.BoltName) (q q' : Qp) (T : bbolt.TxView) (D : bbolt.Data) : bbolt.boltTx tx γ q T ∗
@@ -121,6 +128,9 @@ theorem bbolt.boltBkt_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasEx
     Loc) (γ : bbolt.BoltName) (b : Loc) (n : GoString) (g : Nat) : Timeless (bbolt.boltBkt tx γ b n
     g)
 
+def (sealed) bbolt.boltCloser [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
+    bbolt.BoltName) : IProp GF
+
 def bbolt.instDecidableEqBoltName : DecidableEq bbolt.BoltName :=
   bbolt.instDecidableEqBoltName.decEq
 
@@ -132,6 +142,9 @@ def bbolt.boltName_countable : Pos.Countable bbolt.BoltName :=
 
 def (sealed) bbolt.boltImageRcpt [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (bs : List
     w8) : IProp GF
+
+theorem bbolt.fileHoldsM_fileHolds [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
+    Fs.Ino) (D : bbolt.Data) : bbolt.fileHoldsM i D ⊢ bbolt.fileHolds i D
 
 def (sealed) bbolt.boltCur [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (tx : Loc) (γ :
     bbolt.BoltName) (c : Loc) (T : bbolt.TxView) (es : List bbolt.BoltEnt) (pos : Option Nat) :
@@ -149,6 +162,9 @@ theorem bbolt.txDB_persistent [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt
 
 theorem bbolt.fileHolds_new [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
     Fs.Ino) : Fs.osMeta i (DFrac.own 1) Fs.newMeta ⊢ bbolt.fileHolds i ∅
+
+theorem bbolt.fileHoldsM_new [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
+    Fs.Ino) : Fs.osMeta i (DFrac.own 1) Fs.newMeta ⊢ bbolt.fileHoldsM i ∅
 
 theorem bbolt.boltState_fractional [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (γ :
     bbolt.BoltName) (D : bbolt.Data) : Fractional fun q => bbolt.boltState γ q D
@@ -176,6 +192,9 @@ def (sealed) bbolt.txBytes [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt
 theorem bbolt.boltTx_nonnull [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (tx : Loc)
     (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) : bbolt.boltTx tx γ q T ⊢ ⌜tx ≠ null⌝
 
+theorem bbolt.fileHoldsM_timeless [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (i :
+    Fs.Ino) (D : bbolt.Data) : Timeless (bbolt.fileHoldsM i D)
+
 def (sealed) bbolt.boltNoFile [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
     bbolt.BoltName) : IProp GF
 
@@ -183,6 +202,9 @@ def bbolt.instDecidableEqBoltName.decEq (x✝ x✝¹ : bbolt.BoltName) : Decidab
   match x✝¹, x✝ with
   | { gs := a, ns := a_1 }, { gs := b, ns := b_1 } =>
     if h : a = b then h ▸ if h : a_1 = b_1 then h ▸ isTrue ⋯ else isFalse ⋯ else isFalse ⋯
+
+def (sealed) bbolt.fileHoldsM [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (i : Fs.Ino) (D
+    : bbolt.Data) : IProp GF
 
 theorem bbolt.boltTx_later [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (db tx :
     Loc) (γ : bbolt.BoltName) (q : Qp) (T : bbolt.TxView) : bbolt.isBolt db γ ⊢ ▷ bbolt.boltTx tx γ
