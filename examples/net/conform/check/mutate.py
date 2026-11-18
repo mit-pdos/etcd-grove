@@ -9,7 +9,7 @@ shows that the real runs exercise the rules: a vacuous checker would admit the m
   m-readclosed  a Read added after a successful Close of the same end, returning io.EOF
                 (ReadOutcome: a closed end gives only `closed`)
   m-swap        two successive successful Reads of one end, their bytes swapped (where that
-                changes the stream: TcpDir.bytes is a queue)
+                changes the stream: NetDir.bytes is a queue)
   m-early       a successful Read with bytes moved before every other call
   m-timeout     a successful Read at an end that never set a deadline returns a timeout (ReadAvail:
                 `st.rdl = true`)

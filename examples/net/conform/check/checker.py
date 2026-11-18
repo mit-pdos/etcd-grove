@@ -1,4 +1,4 @@
-"""The conformance checker: does some execution of the TCP extension's semantics (Impl.lean,
+"""The conformance checker: does some execution of the net extension's semantics (Impl.lean,
 transcribed in model.py) produce a traced run? README.md has the design; in short:
 
 1. Load the run (trace.py): its node processes, and its drivers' process events.
@@ -294,7 +294,7 @@ class Checker:
                 continue
             if c.op in ADDR_QUERIES:
                 a = c.e.get("addr")
-                if not G.tcp_addr_ok(a):
+                if not G.net_addr_ok(a):
                     self.find("shape", c, f"{c.op} returned {a} (net.lean, D18: a non-nil *TCPAddr)")
                 continue
             m = G.map_call(c)

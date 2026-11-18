@@ -1,14 +1,14 @@
 // Package semantics measures, by tests over real TCP, each decision of the TCP
-// extension's trusted semantics (GooseLang/Ext/Tcp/Impl.lean: the steps
+// extension's trusted semantics (GooseLang/Ext/Net/Impl.lean: the steps
 // ReadStep, WriteStep, CloseStep, CloseWriteStep, SetDeadlineStep, ListenStep,
 // AcceptStep, DialStep, LisClose and the node crash; each operation's outcome
 // is a relation there: ReadOutcome, WriteOutcome, CloseOutcome,
 // CloseWriteOutcome, DeadlineOutcome, LisCloseOutcome, ListenAt), and of the
-// trusted net models (NetTcp/TrustedCode/net.lean), numbered D1-D22 as in
+// trusted net models (Net/TrustedCode/net.lean), numbered D1-D22 as in
 // Impl.lean's header:
 //
 //	D1  ReadStep         D8   DialStep              D15 a Write is a loop of steps (WriteOutcome)
-//	D2  WriteStep        D9   LisClose              D16 abandoned dials (DialStep, TcpConn.abandoned)
+//	D2  WriteStep        D9   LisClose              D16 abandoned dials (DialStep, NetConn.abandoned)
 //	D3  CloseStep        D10  crash (a node's listeners go; connections untouched)
 //	D4  CloseWriteStep   D11  process exit: as a crash, for the peers
 //	D5  SetDeadlineStep  D12  not modeled (ENOMEM/ENOBUFS, other addresses, ...)
@@ -18,7 +18,7 @@
 //	                                             D20 PlanWellFormed (Deploy.lean)
 //	                                             D21 wildcard Listen (ListenAt)
 //	                                             D22 steps: every operation may stutter
-//	                                                 (waiting); invalid uses panic (TcpStep)
+//	                                                 (waiting); invalid uses panic (NetStep)
 //
 // Each test is one behavior: its doc comment says the decision it supports or
 // refutes, what Linux and Go do, and why (the kernel or Go code path). Every
@@ -36,7 +36,7 @@
 // Index. Each row: the test; the decisions; what it establishes; the class of
 // its evidence (measured: the test; documented: a cited source; assumed: no
 // evidence, an assumption every theorem makes); the Lean definition, and the
-// example of GooseLang/Ext/Tcp/Tests.lean that checks the relation allows (or
+// example of GooseLang/Ext/Net/Tests.lean that checks the relation allows (or
 // excludes) the outcome (by the test's name in its comment).
 //
 // Reads (read_test.go):
@@ -50,7 +50,7 @@
 //
 // Resets (reset_test.go):
 //
-//	TestResetCloseUnreadInput    D1,D3 Close with unread input sends RST; the peer reads the bytes        measured   ReadOutcome (break), TcpErr.sys
+//	TestResetCloseUnreadInput    D1,D3 Close with unread input sends RST; the peer reads the bytes        measured   ReadOutcome (break), NetErr.sys
 //	                                  it had received, then ECONNRESET, then EOF
 //	TestResetLingerZero          D1   SetLinger(0)+Close: the same                                         measured   ReadOutcome (break)
 //	TestResetErrorTakenByWrite   D1,D2 the reset error goes to the first call: a Write takes it, then     measured   WriteOutcome (cut)
@@ -78,7 +78,7 @@
 //
 // Close, CloseWrite (close_test.go, v3_test.go):
 //
-//	TestCloseTwice               D1-D5,D17 Close: nil, FIN; after it every operation errs, ErrClosed     measured   CloseOutcome, TcpErr.closed
+//	TestCloseTwice               D1-D5,D17 Close: nil, FIN; after it every operation errs, ErrClosed     measured   CloseOutcome, NetErr.closed
 //	TestCloseUnblocksRead        D1,D3 own Close wakes a blocked Read with ErrClosed                     measured   ReadOutcome (closed)
 //	TestCloseAfterReset          D3,D5,D17 Close and SetDeadline of a reset end: nil                     measured   CloseOutcome, DeadlineOutcome
 //	TestCloseOpenNil             D17  Close of an open end (fresh, after FIN, after CloseWrite, after a   measured   CloseOutcome, LisCloseOutcome
@@ -113,11 +113,11 @@
 //
 //	TestErrorsAreOpErrors        D14  every failure an *OpError, Net "tcp", Op read/write/close/          measured   model.opError
 //	                                  set/dial/listen/accept; EOF is io.EOF itself
-//	TestErrClosed                D14  own closed end or listener (also a blocked Read, Accept): Err is     measured   TcpErr.closed, model.closedErr
+//	TestErrClosed                D14  own closed end or listener (also a blocked Read, Accept): Err is     measured   NetErr.closed, model.closedErr
 //	                                  net.ErrClosed, Timeout/Temporary false; no other failure Is it
-//	TestDeadlineErrors           D14  a Read or Write deadline: Err is os.ErrDeadlineExceeded itself,     measured   TcpErr.timeout, model.deadlineErr
+//	TestDeadlineErrors           D14  a Read or Write deadline: Err is os.ErrDeadlineExceeded itself,     measured   NetErr.timeout, model.deadlineErr
 //	                                  Timeout/Temporary true
-//	TestSyscallErrors            D14  other failures: *os.SyscallError{read|write|shutdown|connect|bind}  measured   TcpErr.sys, model.sysErr
+//	TestSyscallErrors            D14  other failures: *os.SyscallError{read|write|shutdown|connect|bind}  measured   NetErr.sys, model.sysErr
 //	                                  around an Errno; the OpError's Source and Addr per operation
 //	(Timeout of sys errors)      D14  an Errno's Timeout/Temporary: ETIMEDOUT, EAGAIN true (syscall_unix.go documented model.errFlag (arbitrary)
 //	                                  Errno.Timeout), so OpError.Timeout is arbitrary for sys errors
@@ -149,20 +149,20 @@
 //
 // Steps (D22; Impl.lean's header has the table of every operation's outcomes in every state):
 //
-//	(the stutter convention)     D22  every operation may take a step that changes nothing; a blocked     documented TcpStep, IsTcpStep, OrInvalid;
-//	                                  Read, Accept, Write step is that stutter until an outcome decides            Tests.lean: isTcpStep_total,
-//	                                  it; every state has an outcome besides it; an argument the                   isTcpStep_result
+//	(the stutter convention)     D22  every operation may take a step that changes nothing; a blocked     documented NetStep, IsNetStep, OrInvalid;
+//	                                  Read, Accept, Write step is that stutter until an outcome decides            Tests.lean: isNetStep_total,
+//	                                  it; every state has an outcome besides it; an argument the                   isNetStep_result
 //	                                  extension cannot use (an address outside the plan: D13; an id
 //	                                  naming nothing) panics (GooseLang's stuck Panic). The convention
 //	                                  of Perennial's Grove extension (Perennial/GooseLang/Ext/Grove/
 //	                                  Impl.lean, GroveStep); no Go behavior of its own: a stutter is
 //	                                  never a call's last step
 //
-// Network faults, in network namespaces (netns_test.go; NETTCP_NETNS=1, re-run as root by sudo -n;
+// Network faults, in network namespaces (netns_test.go; NET_NETNS=1, re-run as root by sudo -n;
 // client, router and server namespaces, the faults in the router's FORWARD chain):
 //
 //	TestTimeoutOnBreak           D1,D2,D14 a partition, the kernel gives up (TCP_USER_TIMEOUT 2s, a     measured   ReadOutcome (break), WriteOutcome
-//	                                  Read or a 16 MiB Write blocked; keepalive 1s/1s/2 idle): ETIMEDOUT            (open: sys, cut), TcpErr.sys,
+//	                                  Read or a 16 MiB Write blocked; keepalive 1s/1s/2 idle): ETIMEDOUT            (open: sys, cut), NetErr.sys,
 //	                                  as *OpError > *os.SyscallError > Errno, Timeout() and Temporary()               model.errFlag (arbitrary for sys)
 //	                                  true, not ErrDeadlineExceeded; the Write (110048, ETIMEDOUT); bytes
 //	                                  written before lost; then EOF, EOF, EPIPE, EPIPE; the peer, healed:

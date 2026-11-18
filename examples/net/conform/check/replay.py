@@ -1,6 +1,6 @@
 """The witness of an admitted run: the components' linearizations merged into one, made concrete
 (every hidden choice of the model taken), and replayed through model.py's literal transcription
-of Impl.lean: each step is checked by `model.tcp_step` (or `model.crash`). A step that does not
+of Impl.lean: each step is checked by `model.net_step` (or `model.crash`). A step that does not
 replay is a checker bug (the lazy model of lazy.py, or the merge, disagrees with model.py).
 
 The merge (README.md, "The witness"): each operation of a component's linearization gets the
@@ -18,15 +18,15 @@ the replay starts over (lazy.py's `a`: that is the cut gamma has). A connection 
 witness order); a failed Dial whose connection no Accept took is a plain failure; an unfinished
 Dial no Accept needed is left out.
 
-Each model step is checked on the connections it touches only (a one-connection TcpGlobal): the
-steps of TcpStep change at most one connection (`TcpGlobal.setConn`) and read no other, so this is
+Each model step is checked on the connections it touches only (a one-connection NetGlobal): the
+steps of NetStep change at most one connection (`NetGlobal.setConn`) and read no other, so this is
 the relation on the whole state with the others unchanged.
 """
 
 import model as M
 import lazy as Z
 
-FORMAT = "nettcp-witness"
+FORMAT = "net-witness"
 VERSION = 1
 
 
@@ -106,20 +106,20 @@ def _read_after(st, d, n, r, cut):
     if st.closed or n == 0:
         return d, None
     if cut:
-        dc = M.TcpDir(d.bytes, M.CUT)
+        dc = M.NetDir(d.bytes, M.CUT)
         if r[0] == "bytes":
-            return M.TcpDir(d.bytes[len(r[1]):], M.CUT), len(d.bytes)
+            return M.NetDir(d.bytes[len(r[1]):], M.CUT), len(d.bytes)
         return dc, len(d.bytes)
     if r[0] == "bytes":
         return d._replace(bytes=d.bytes[len(r[1]):]), None
     if r == M.R_EOF:
         if d.bytes == b"" and d.status != M.OPEN:
             return d, None
-        return M.TcpDir(b"", M.CUT), 0
+        return M.NetDir(b"", M.CUT), 0
     if r == M.R_ERR(M.SYS):
         if d.status == M.CUT:
             return d, None
-        return M.TcpDir(d.bytes, M.CUT), len(d.bytes)
+        return M.NetDir(d.bytes, M.CUT), len(d.bytes)
     return d, None  # timeout
 
 
@@ -137,7 +137,7 @@ def _write_after(est, d, rs, k, res):
 def _replay(ck, ents, token_of, used, marks):
     plan = ck.plan
     conns = {}
-    local = {ch.name: M.TcpLocal(ch.host, {}) for ch in ck.chains}
+    local = {ch.name: M.NetLocal(ch.host, {}) for ch in ck.chains}
     conn_num = {}
     token_conn = {}
     lis_num = {}
@@ -147,10 +147,10 @@ def _replay(ck, ents, token_of, used, marks):
     wprog = {}       # (component, op) -> the bytes a Write call's steps have taken so far
     wpart = {}       # (component, op) -> the number of its steps so far
     steps = []
-    G0 = M.TcpGlobal(plan, {})
+    G0 = M.NetGlobal(plan, {})
 
     def one(c, cn):
-        return M.TcpGlobal(plan, {c: cn})
+        return M.NetGlobal(plan, {c: cn})
 
     def fail(x, what):
         raise ReplayError(f"witness step {len(steps)} ({what}) is not a step of model.py")
@@ -159,7 +159,7 @@ def _replay(ck, ents, token_of, used, marks):
         if kind == "crash":
             chain, idx = cp, i
             L = local[chain.name]
-            L2 = M.TcpLocal(L.host, {})
+            L2 = M.NetLocal(L.host, {})
             if not M.crash(L, L2):
                 fail(x, "crash")
             local[chain.name] = L2
@@ -183,12 +183,12 @@ def _replay(ck, ents, token_of, used, marks):
                 if m.res[0] == "ok":
                     lid = next_lid[node]
                     next_lid[node] += 1
-                    L2 = M.TcpLocal(L.host, {**L.lis, lid: (a0, True)})
+                    L2 = M.NetLocal(L.host, {**L.lis, lid: (a0, True)})
                     e2 = (lid, 0)
                     lis_num[(c.proc.pid, m.res[1]["id"])] = (node, lid)
                 else:
                     L2, e2 = L, M.fail_v(M.SYS)
-                if not M.tcp_step("Listen", a, L, G0, e2, L2, G0):
+                if not M.net_step("Listen", a, L, G0, e2, L2, G0):
                     fail(x, f"Listen {a}")
                 local[node] = L2
                 st.update(op="Listen", node=node, addr=a.decode(), a0=a0.decode(),
@@ -205,22 +205,22 @@ def _replay(ck, ents, token_of, used, marks):
                     cn = conns[cnum]
                     cn2 = cn._replace(accepted=True)
                     e2 = (M.end_id(cnum, True), 0)
-                    if not M.tcp_step("Accept", lid, L, one(cnum, cn), e2, L, one(cnum, cn2)):
+                    if not M.net_step("Accept", lid, L, one(cnum, cn), e2, L, one(cnum, cn2)):
                         fail(x, f"Accept of conn {cnum}")
                     conns[cnum] = cn2
                     st.update(op="Accept", node=node, lis=lid, res={"code": 0, "conn": cnum, "end": e2[0]})
                 else:
                     e2 = M.fail_v(m.res[1])
-                    if not M.tcp_step("Accept", lid, L, G0, e2, L, G0):
+                    if not M.net_step("Accept", lid, L, G0, e2, L, G0):
                         fail(x, "Accept failure")
                     st.update(op="Accept", node=node, lis=lid, res={"code": e2[1]})
             elif c.op == "ListenerClose":
                 lnode, lid = lis_num[(c.proc.pid, c.id)]
                 res = None if pending else m.res
                 a, o = L.lis[lid]
-                L2 = M.TcpLocal(L.host, {**L.lis, lid: (a, False)})
+                L2 = M.NetLocal(L.host, {**L.lis, lid: (a, False)})
                 e2 = M.err_code(res)
-                if not M.tcp_step("LisClose", lid, L, G0, e2, L2, G0):
+                if not M.net_step("LisClose", lid, L, G0, e2, L2, G0):
                     fail(x, "LisClose")
                 local[node] = L2
                 st.update(op="LisClose", node=node, lis=lid, res={"code": e2})
@@ -232,7 +232,7 @@ def _replay(ck, ents, token_of, used, marks):
                     conn_num[("D", c.proc.pid, m.res[1]["id"])] = cnum
                     cn = M.conn_fresh(a)
                     e2 = (M.end_id(cnum, False), 0)
-                    if cnum in conns or not M.tcp_step("Dial", a, L, G0, e2, L, one(cnum, cn)):
+                    if cnum in conns or not M.net_step("Dial", a, L, G0, e2, L, one(cnum, cn)):
                         fail(x, "Dial")
                     conns[cnum] = cn
                     st.update(op="Dial", node=node, addr=a.decode(), res={"code": 0, "conn": cnum, "end": e2[0]})
@@ -248,7 +248,7 @@ def _replay(ck, ents, token_of, used, marks):
                         cn = M.conn_abandoned(a)
                         e2 = M.fail_v(M.SYS)
                         res = {"code": e2[1], "abandoned": cnum}
-                    if cnum in conns or not M.tcp_step("Dial", a, L, G0, e2, L, one(cnum, cn)):
+                    if cnum in conns or not M.net_step("Dial", a, L, G0, e2, L, one(cnum, cn)):
                         fail(x, "Dial (a connection left for an Accept)")
                     conns[cnum] = cn
                     st.update(op="Dial", node=node, addr=a.decode(), res=res)
@@ -256,7 +256,7 @@ def _replay(ck, ents, token_of, used, marks):
                     continue  # unfinished, and no Accept needed it: left out
                 else:
                     e2 = M.fail_v(M.SYS)
-                    if not M.tcp_step("Dial", a, L, G0, e2, L, G0):
+                    if not M.net_step("Dial", a, L, G0, e2, L, G0):
                         fail(x, "Dial failure")
                     st.update(op="Dial", node=node, addr=a.decode(), res={"code": e2[1]})
             steps.append(st)
@@ -279,7 +279,7 @@ def _replay(ck, ents, token_of, used, marks):
             if not est.closed and n > 0:
                 cut_point[(cnum, not s)] = x
             cn2 = M.set_out(cn, not s, d2)
-            if not M.tcp_step("Read", (e, n), L, one(cnum, cn), r, L, one(cnum, cn2), keep):
+            if not M.net_step("Read", (e, n), L, one(cnum, cn), r, L, one(cnum, cn2), keep):
                 fail(x, f"Read {r[0]}")
             conns[cnum] = cn2
             res = {"code": 0 if r[0] == "bytes" else (M.EOF_CODE if r == M.R_EOF else M.ERR_CODE[r[1]])}
@@ -314,7 +314,7 @@ def _replay(ck, ents, token_of, used, marks):
                         raise _Restart()
                     fail(x, f"Write step ({k}, {res})")
                 cn2 = M.set_out(cn, s, d2)
-                if not M.tcp_step("Write", (e, rs), L, one(cnum, cn), (k, M.err_code(res)), L, one(cnum, cn2)):
+                if not M.net_step("Write", (e, rs), L, one(cnum, cn), (k, M.err_code(res)), L, one(cnum, cn2)):
                     fail(x, f"Write step ({k}, {res})")
                 conns[cnum] = cn2
                 wprog[(id(cp), i)] = p + k
@@ -334,7 +334,7 @@ def _replay(ck, ents, token_of, used, marks):
                 cn2 = M.set_out(M.set_end(cn, s, est._replace(closed=True)), s, M.shut(d))
             else:
                 cn2 = M.set_out(cn, s, M.shut(d) if res is None else d)
-            if not M.tcp_step(c.op, e, L, one(cnum, cn), M.err_code(res), L, one(cnum, cn2)):
+            if not M.net_step(c.op, e, L, one(cnum, cn), M.err_code(res), L, one(cnum, cn2)):
                 fail(x, f"{c.op} ({res})")
             conns[cnum] = cn2
             st.update(op=c.op, res={"code": M.err_code(res)})
@@ -347,7 +347,7 @@ def _replay(ck, ents, token_of, used, marks):
             else:
                 cn2 = M.set_end(cn, s, est._replace(rdl=est.rdl if kind == 2 else set_,
                                                      wdl=est.wdl if kind == 1 else set_))
-            if not M.tcp_step("SetDeadline", (e, kind, wall, ext), L, one(cnum, cn), M.err_code(res), L,
+            if not M.net_step("SetDeadline", (e, kind, wall, ext), L, one(cnum, cn), M.err_code(res), L,
                               one(cnum, cn2)):
                 fail(x, "SetDeadline")
             conns[cnum] = cn2

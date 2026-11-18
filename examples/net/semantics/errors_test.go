@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// TestErrorsAreOpErrors (D14; the trusted models, NetTcp/TrustedCode/net.lean,
+// TestErrorsAreOpErrors (D14; the trusted models, Net/TrustedCode/net.lean,
 // model.opError: every failure an *OpError whose Op is Go's and Net "tcp";
 // Read's end is io.EOF itself). Every failure of the modeled operations on values
 // that Listen, Dial and Accept returned is an *net.OpError (never a bare

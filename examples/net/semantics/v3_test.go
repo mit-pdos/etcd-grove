@@ -29,7 +29,7 @@ func opErr(t *testing.T, what string, err error) *net.OpError {
 	return oe
 }
 
-// TestErrClosed (D14, Impl.lean TcpErr.closed; TrustedCode/net.lean
+// TestErrClosed (D14, Impl.lean NetErr.closed; TrustedCode/net.lean
 // model.closedErr, OpError.Timeout/Temporary). An operation on one's own
 // closed end or listener fails with an *OpError whose Err is
 // poll.ErrNetClosing, so errors.Is(err, net.ErrClosed) is true, and
@@ -119,7 +119,7 @@ func TestErrClosed(t *testing.T) {
 	forkMu.RUnlock()
 }
 
-// TestDeadlineErrors (D14, Impl.lean TcpErr.timeout; TrustedCode/net.lean
+// TestDeadlineErrors (D14, Impl.lean NetErr.timeout; TrustedCode/net.lean
 // model.deadlineErr, OpError.Timeout/Temporary). A Read or a Write past its
 // deadline fails with an *OpError whose Err is os.ErrDeadlineExceeded itself
 // (the pointer poll.ErrDeadlineExceeded), so errors.Is(err,
@@ -149,7 +149,7 @@ func TestDeadlineErrors(t *testing.T) {
 	check("Write", err)
 }
 
-// TestSyscallErrors (D14, Impl.lean TcpErr.sys; TrustedCode/net.lean
+// TestSyscallErrors (D14, Impl.lean NetErr.sys; TrustedCode/net.lean
 // model.sysErr, the module docstring's syscall names and OpError addresses).
 // Every other failure's Err is an *os.SyscallError wrapping a syscall.Errno,
 // with Go's system call name: ECONNRESET from "read", EPIPE from "write",
@@ -369,7 +369,7 @@ func TestAddrs(t *testing.T) {
 }
 
 // TestDialTimeoutAccepted (D16, D19; Impl.lean DialStep's last disjunct,
-// TcpConn.abandoned; TrustedCode/net.lean DialTimeout.impl). A DialTimeout
+// NetConn.abandoned; TrustedCode/net.lean DialTimeout.impl). A DialTimeout
 // that fails can leave a connection that the listener's Accept returns: Go's
 // connect waits for the socket to become writable under the dial's deadline
 // and, when it fires, closes the socket and returns a timeout even if the

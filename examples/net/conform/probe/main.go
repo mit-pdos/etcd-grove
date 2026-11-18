@@ -1,5 +1,5 @@
 // Command probe drives, over real TCP on 127.0.0.1, the patterns of Go's net that stress the
-// TCP semantics (GooseLang/Ext/Tcp/Impl.lean), for the conformance traces
+// TCP semantics (GooseLang/Ext/Net/Impl.lean), for the conformance traces
 // (examples/net/conform/README.md, "The probe"). Each mode is one pattern, repeated:
 //
 //   - writeclose: a large Write to a slow reader while another goroutine Closes the writer's
@@ -410,12 +410,12 @@ func killWrite(st *stats) {
 	l := listen(*addr)
 	defer l.Close()
 	var log *events.Log
-	node := os.Getenv("NETTCP_NODE")
+	node := os.Getenv("NET_NODE")
 	if node == "" {
 		node = "probe"
 	}
 	child := node + ".writer"
-	if dir := os.Getenv("NETTCP_TRACE_DIR"); dir != "" {
+	if dir := os.Getenv("NET_TRACE_DIR"); dir != "" {
 		var err error
 		if log, err = events.Open(dir, node); err != nil {
 			fatal("events: %v", err)
@@ -428,7 +428,7 @@ func killWrite(st *stats) {
 	}
 	for it := 0; it < *iters; it++ {
 		cmd := exec.Command(self, "-mode", "killwrite-child", "-addr", *addr, "-size", fmt.Sprint(*size), "-iter", fmt.Sprint(it))
-		cmd.Env = append(os.Environ(), "NETTCP_NODE="+child)
+		cmd.Env = append(os.Environ(), "NET_NODE="+child)
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
 			fatal("start the writer: %v", err)

@@ -16,7 +16,7 @@ crash of a machine that has a boot program. Its list of boot programs is `crashi
 machines of `stable`, which come after them, have none and never crash (`distCrashStep_cases`).
 Everything else is that relation's nondeterminism: the scheduler (a machine that never runs
 again, or starts late, is one it does not pick), the crashes, and the faults the extensions'
-semantics allow (the TCP extension: a direction cut at any read or write, any delay, a dial
+semantics allow (the net extension: a direction cut at any read or write, any delay, a dial
 failing; a partition is such an execution).
 
 **Every machine starts as a fresh Go process** (`Fresh`, a premise inside `Robust`, so that no
