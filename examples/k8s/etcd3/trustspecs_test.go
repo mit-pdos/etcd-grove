@@ -578,6 +578,35 @@ func TestStatusChecksPlain(t *testing.T) {
 	}
 }
 
+// The extended `.plain` view (proposal V, M2 of the step 1 review): a wrapper is `.plain` only
+// through its `Unwrap`'s `□ WP` premise, and that premise is where a typed-nil receiver is excluded:
+// a typed nil *StorageError, bare or as the nil embedded pointer of a struct, panics in every
+// status check (errors.As calls its Unwrap, which dereferences nil). A non-nil wrapper whose
+// Unwrap returns nil or a leaf is false everywhere (the view's answer).
+type embedSE struct{ *storage.StorageError }
+
+func TestPlainWrapperTypedNil(t *testing.T) {
+	var nilSE *storage.StorageError
+	for name, err := range map[string]error{"typedNil": nilSE, "embeddedNil": embedSE{}} {
+		for check, f := range map[string]func(error){
+			"IsTimeout":           func(e error) { apierrors.IsTimeout(e) },
+			"HasStatusCause":      func(e error) { apierrors.HasStatusCause(e, "x") },
+			"IsTooManyRequests":   func(e error) { apierrors.IsTooManyRequests(e) },
+			"SuggestsClientDelay": func(e error) { apierrors.SuggestsClientDelay(e) },
+		} {
+			if !panics(func() { f(err) }) {
+				t.Errorf("%s(%s): no panic", check, name)
+			}
+		}
+	}
+	for _, err := range []error{embedSE{storage.NewKeyNotFoundError("k", 1)}, storage.NewInvalidObjError("k", "m")} {
+		n, ok := apierrors.SuggestsClientDelay(err)
+		if apierrors.IsTimeout(err) || apierrors.HasStatusCause(err, "x") || apierrors.IsTooManyRequests(err) || n != 0 || ok {
+			t.Errorf("%T: a status check answers true", err)
+		}
+	}
+}
+
 func panics(f func()) (p bool) {
 	defer func() { p = recover() != nil }()
 	f()

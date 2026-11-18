@@ -10,9 +10,27 @@ an error only through `err.(APIStatus)` / `errors.As(err, &status)` and `Status(
 
 - `.status st cs`: a `*StatusError` with its status `st` (read-only) and, when its details are not
   `nil`, their causes `cs` (read-only; `[]` for `nil` details: `statusDetailsAt`);
-- `.plain`: an error that neither is nor wraps an `APIStatus`: its dynamic type is outside
-  `APIStatus`'s type set and is a leaf (`leafErrTy`: none of `Unwrap() error`, `Unwrap() []error`,
-  `As(any) bool`, the three methods `errors.As` follows; the attack's `asErr`, `joinErr`).
+- `.plain`: an error in which `errors.As` finds no `APIStatus`: `nil` or a leaf (`plainLeaf`: a
+  dynamic type outside `APIStatus`'s type set and a leaf, `leafErrTy`: none of `Unwrap() error`,
+  `Unwrap() []error`, `As(any) bool`, the three methods `errors.As` follows; the attack's `asErr`,
+  `joinErr`), or a one-level wrapper: a dynamic type outside `APIStatus`'s type set with
+  `Unwrap() error` (so not `Unwrap() []error`: a method set has one signature per name) and no
+  `As(any) bool`, whose `Unwrap` returns, persistently (`□ WP`), `nil` or a leaf.
+
+The wrapper case (k8s 7g, proposal V, `notes/k8s-7g-trust.md` §2; the checker passes
+`*storage.StorageError`s, which have `Unwrap() error`) follows `errors/wrap.go`'s `As`: `nil` gives
+`false`; a type outside `APIStatus` is not assignable to the target; no `As` method is asked; the
+`Unwrap() error` case returns `false` on `nil` and otherwise loops on the result, a leaf, which is
+neither assignable nor unwrapped. **The `□ WP` premise on `Unwrap` is where typed-nil receivers are
+excluded** (M2 of the step 1 review): a typed nil pointer whose `Unwrap` dereferences it, or a struct
+whose embedded pointer providing a promoted `Unwrap` is nil, panics in `Unwrap`, and no WP of that
+call holds; so `errors.As`, hence every check over a `.plain` view, never reaches such a call. The
+premise is persistent, so `Unwrap` reads only what is held read-only (a mutable field could change
+the result between the view and the check). Go: `examples/k8s/etcd3/trustspecs_test.go`
+`TestStatusChecksPlain` (nil, `*StorageError`s with inner `nil` or an `errors.New`, an `errors.New`,
+a sentinel: every check false), `TestStorageErrorNotAPIStatus`, `TestPlainWrapperTypedNil` (a typed
+nil `*StorageError`, bare or embedded nil, panics in `IsTimeout`, `HasStatusCause`,
+`IsTooManyRequests`, `SuggestsClientDelay`; a non-nil wrapper of a leaf is false everywhere).
 
 `timeoutV st` is `IsTimeout`'s test of a status (`errors.go:689-698`: reason `Timeout`, or an
 unknown reason with code 504; `knownReasons`, the 19 of `errors.go:49-67`, without `""`),
@@ -69,7 +87,7 @@ def tooLargeV : ApiErrView → Bool
   | .plain => false
 
 section leaf
-variable [GoSemanticsFunctions]
+variable [GoSemanticsFunctions] [go_gctx : GoGlobalContext]
 
 /-- **A leaf error type** (revision after the attack, change 3): `errors.As` neither unwraps nor
 asks it: its method set has none of `Unwrap() error`, `Unwrap() []error`, `As(any) bool`
@@ -79,6 +97,13 @@ def leafErrTy (t : go.GoType) : Prop :=
   GoSemanticsFunctions.methodSet t !! go!"Unwrap" ≠
     some (go.signature.Signature [] false [go.GoType.SliceType go.error]) ∧
   GoSemanticsFunctions.methodSet t !! go!"As" ≠ some (go.signature.Signature [go.any] false [go.bool])
+
+/-- **`errors.As` finds no `APIStatus` in `err` without unwrapping it**: `nil`, or a non-nil leaf
+whose dynamic type is outside `APIStatus`'s type set. -/
+def plainLeaf (err : GoInterface) : Prop :=
+  err = interface.nil ∨ ∃ ii : GoInterfaceOk, err = GoInterface.ok ii ∧
+    go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
+    leafErrTy ii.ty
 
 end leaf
 
@@ -119,9 +144,15 @@ def apiErrAt (err : GoInterface) : ApiErrView → IProp GF
   | .status st cs => iprop(∃ l : Loc, ⌜err = interface.mkOk
         (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
       l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ statusDetailsAt st cs)
-  | .plain => iprop(⌜∃ ii : GoInterfaceOk, err = GoInterface.ok ii ∧
-      go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
-      leafErrTy ii.ty⌝)
+  | .plain => iprop(⌜plainLeaf err⌝ ∨ ∃ ii : GoInterfaceOk,
+      ⌜err = GoInterface.ok ii ∧
+        go.typeSetContains ii.ty k8s_io.apimachinery.pkg.api.errors.APIStatus.ty = false ∧
+        GoSemanticsFunctions.methodSet ii.ty !! go!"Unwrap" =
+          some (go.signature.Signature [] false [go.error]) ∧
+        GoSemanticsFunctions.methodSet ii.ty !! go!"As" ≠
+          some (go.signature.Signature [go.any] false [go.bool])⌝ ∗
+      □ ∀ Φ : val → IProp GF, (∀ e : GoInterface, ⌜plainLeaf e⌝ -∗ Φ #e) -∗
+          WP (App (Val #(methods ii.ty go!"Unwrap" ii.v)) (Val #())) {{ Φ }})
 
 instance apiErrAt_persistent (err : GoInterface) (w : ApiErrView) :
     Persistent (apiErrAt (GF := GF) err w) := by
@@ -132,7 +163,8 @@ after the review of 2026-11-10: a typed-nil `*StatusError`, bare or wrapped with
 `Status()`, `examples/k8s7e2attack/attack_test.go` `TestTypedNilStatusError`): a `*StatusError`
 whose struct is held read-only (so non-nil), with its details (`statusDetailsAt`, read-only, so
 every view of the error built later agrees on its causes: the fix of `HasStatusCause`,
-`notes/hasstatuscause-later-view.md`), or a `.plain` error. A view with its causes existential. -/
+`notes/hasstatuscause-later-view.md`), or a `.plain` error (`nil` included, since proposal V). A
+view with its causes existential. -/
 def apiErrOk (err : GoInterface) : IProp GF :=
   iprop((∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status), ⌜err = interface.mkOk
       (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗

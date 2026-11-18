@@ -8,20 +8,30 @@ the error answers, under `apiErrOk err`. Called by the checker's `Model.validate
 `validateList` on every stale read's output error (k8s 7g, `notes/k8s-7g-trust.md`): `nil`, a
 `*storage.StorageError` (inner `nil` or an `errors.New`), an `errors.New`, or storage's too-large
 `*StatusError`; the first three are `.plain` in the extended view (proposal V of the step 1
-report). Its axiom will be `apierrors.SuggestsClientDelay.wp_proof`.
+report, applied in `View.lean`). Its axiom will be `apierrors.SuggestsClientDelay.wp_proof`.
+
+Restated (2026-11-18) over the fixed `apiErrOk` (fix (a) of the step 1 review, landed with the
+apierrors-fix stage): the text as proposed was refuted with `HasStatusCause`'s
+(`notes/axiom-review/k8s-7g-trust.md`: `apiErrOk` held the struct but not `*st.Details`, so a caller
+still owning the details could change `RetryAfterSeconds` after the call and build a view whose
+details contradict the answer). `apiErrOk` now holds the details read-only (`statusDetailsAt`), so
+the `d` of the post, which any view gives (`st.Details' ↦□ d`), is the pointee the call read; the
+statement is unchanged.
 
 Faithful: `t, ok := err.(APIStatus)`; if not, `errors.As(err, &t)`; then, if `t.Status().Details
 != nil`, the reason test and the `RetryAfterSeconds > 0` test, each returning
 `int(RetryAfterSeconds)` (an `int32` sign-extended); otherwise `(0, false)`. `Status()` of a
 `*StatusError` is its `ErrStatus` (`errors.go:75-79`), so the answer reads the struct and the
-details' pointee, both held read-only by the view (`statusDetailsAt`); a typed nil `*StatusError`
-panics in `Status()`, which `apiErrOk` excludes. A `.plain` error is no `APIStatus` and
+details' pointee, both held read-only by the precondition and by every view (`statusDetailsAt`);
+a typed nil `*StatusError` panics in `Status()`, which `apiErrOk` excludes. A `.plain` error is
+no `APIStatus` and
 `errors.As` finds none in it (nil: `As` returns false; a leaf: nothing to unwrap; a wrapper:
-its `Unwrap` returns nil or a leaf). Go evidence: `examples/k8s/etcd3/trustspecs_test.go`
+its `Unwrap` returns nil or a leaf; a typed-nil wrapper panics in `Unwrap`, excluded by the view's
+`□ WP` premise). Go evidence: `examples/k8s/etcd3/trustspecs_test.go`
 `TestSuggestsClientDelay` (the checker's errors; too-large with retry 0 is `(0, false)`, with 2
 `(2, true)`; `NewServerTimeout`, `NewTooManyRequests` with and without retry; nil details; the
 answer equals `delayV` on every `*StatusError`; a typed nil `*StatusError` panics),
-`TestStorageErrorNotAPIStatus`. Lean-first.
+`TestStorageErrorNotAPIStatus`, `TestPlainWrapperTypedNil`. Lean-first.
 -/
 module
 

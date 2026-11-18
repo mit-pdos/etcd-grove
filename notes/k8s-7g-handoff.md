@@ -2,43 +2,45 @@
 
 ## START HERE
 
-**Paused 2026-11-17 (user, via etcd-grove-03): the Hctx soundness repair goes first; 7g resumes after it lands.**
+**Resumed 2026-11-18 (user, via etcd-grove-03). At the STOP for the attack on V + `SuggestsClientDelay`.**
 
-- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 3cd4b72599 merged. Pin c6b39d4f8:
-  `--packages=/shared/tmp/manifest-c6b.json`; `.lake/package-overrides.json` is that manifest.
+- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean b0bb9df7c3 merged (pin 6d365ee1a,
+  apierrors-fix). `--packages=/shared/tmp/manifest-6d3.json`; `.lake/package-overrides.json` is that
+  manifest. lean has moved since (49bd7924e6, incomingof): merge again before the next full build.
   Scope (approved): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local, untracked).
-- Done: steps 0-2 (`e9bf69f83a`, `47eae5838c`, `11962185aa`, `50faaad1a3`, `2e775cc56e`). Step 3 proved:
-  `keyInScope`, `checkKey`, `Get/ListReadConsistency`, driver `Obj.DeepCopyObject`/`SetResourceVersion`,
-  `NewEmptyModel`, `Model.Clone`, `Model.Equal`, `Model.get` (`54887034bf`), `Model.create` (`348f1a01da`),
-  `Model.validCacherContinue` (`540f6eab11`), `Model.listItems` (`105b090e97`).
-- STOP 2 applied (`50be6070ef`): `maps.Keys.spec_objMap` → `(f : GoFunc)`; `ListAccessor.spec` gains the
-  `*ObjList` row (reflector callers use `.1`). Both in `notes/k8s-7g-trust.md` §4 for the joint attack.
-- Last commit: `versioner.UpdateList.spec` pre weakened in place to `metaAtD` (proved spec;
-  `ListContract.lean` frames the items); `ListSpecD.listObjOutL` gets `Raw := zeroValDef`.
-- Next, in order: `newObjList` spec/proof (driver, new: `p ↦ zero ObjList`); `Model.list` (loop as
-  `listItems` plus `ListModel.lstep` for limit/hasMore/total/lastKey, `mlistPCT.wp_proof` for the token,
-  `meta.SetList.spec_objList`, then `UpdateList` on the fields `iStructNamed` gives); `listResponseRV`,
-  `equalListResponse` (ListAccessor `.2`); then the step-4 bridges that need no blocked function.
-- Blocked: `update`/`delete`/`execute` until the Perennial pin bump to 6d365ee1a (Sprintf `%v`);
-  `validateGet`/`validateList`/`Step` until the apierrors fix (soundness-1117). Do not touch View.lean,
-  HasStatusCause, IsTooManyRequests, SuggestsClientDelay.
-- Known breakage, pre-existing (step 0's `Output.Raw`/`call` change, fixed in step 5): `call.lean`
-  (and so the driver's `Link`) does not build; `RefineList`, `ListSpecD`, `ListContract` do.
+- Done: steps 0-2; step 3 proved: `keyInScope`, `checkKey`, `Get/ListReadConsistency`, driver
+  `Obj.DeepCopyObject`/`SetResourceVersion`, `NewEmptyModel`, `Model.Clone/Equal/get/create`,
+  `validCacherContinue`, `listItems`; `UpdateList.spec` pre weakened (`0196b813e6`).
+- Pending attack (trusted text, `notes/k8s-7g-trust.md` top): V in `View.lean` (`plainLeaf`, `.plain`
+  arm, M2 header) and `SuggestsClientDelay.spec` (header only; statement unchanged). Go:
+  `TestPlainWrapperTypedNil` (new), `TestStatusChecksPlain`, `TestSuggestsClientDelay`.
+  Until it passes, these do not build: `Calls.lean` (`clientErr_notTooLarge`: `iexists .plain` needs
+  `ileft` + `Or.inr`; `sentV_plain`: same), and the `.plain` branches after `iunfold apiErrAt` in
+  `call.lean:143`, `watchChan__syncPaginated:362`, `store__GetList:1094`,
+  `handleCompactedErrorForPaging:53`, `interpretListError:93` (the pure fact is now `plainLeaf ∨ wrapper`).
+- Next, in order (after the attack): repair those; add `Proof/.../errors/SuggestsClientDelay.lean` axiom;
+  `newObjList` spec/proof (driver, `p ↦ zero ObjList`); `Model.list` (loop as `listItems` plus
+  `ListModel.lstep`, `mlistPCT.wp_proof`, `meta.SetList.spec_objList`, `UpdateList`); `listResponseRV`,
+  `equalListResponse` (ListAccessor `.2`); then `update`/`delete`/`execute` (unblocked by the pin);
+  `validateGet`/`validateList`/`Step`; then step 4.
+- Known breakage, pre-existing (step 0's `Output.Raw`, fixed in step 5): `call.lean` and the driver's `Link`.
 - Pitfalls:
-  - `wp_for` takes the whole spatial context: after `iStructNamed` on an owned struct, drop its
-    `"_" ∷ True` leftover (`irename : ("_" ∷ True : IProp GF) => H; iclear H`) or iNamed fails on "?".
+  - `wp_for` takes the whole spatial context: after `iStructNamed` drop its `"_" ∷ True` leftover.
   - `wp_apply` already runs `wp_auto`: write `(try wp_auto)` after it.
-  - Iris hypothesis with explicit args: `wp_apply Hf $$ %M %DFrac.discard [] [HI]` (the `isPkgInit`
-    premise is discharged automatically). `iunfold` fails on `modelAt` (use `modelAt_pkg`).
+  - `wp_apply Hf $$ %M %DFrac.discard [] [HI]`; `iunfold` fails on `modelAt` (use `modelAt_pkg`).
   - A file whose imports are not built hangs lean-check: build it first with the build slot.
   - `#versionerV` parses as `#version`: write `#(versionerV)`. `go!""` → `([] : GoString)`.
   - Driver specs need `[reg : EtcdGrove.k8s.CompactorRegistry]`; proofs `[driver_sem : ...etcd3.Assumptions]`.
-- Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build MODULE...`;
-  check: `LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 FILE`.
+  - Pin 6d3: `ArgWf` has a named-string case (one more `Or.inl`).
+- Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
+  (targets of the merge check: `/shared/tmp/k8s7g/targets.txt`); check:
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 FILE`.
 - Go runs: `cd examples/k8s/etcd3; GOWORK=off systemd-run --scope -q -p MemoryMax=32G go test
-  -count=1 -run 'TestListAccessorObjList|TestMapsKeys' .`
+  -count=1 -run 'TestPlainWrapperTypedNil|TestStatusChecksPlain|TestSuggestsClientDelay' .`
 
 ## History
+
+- Paused 2026-11-17 for the Hctx repair, at `0196b813e6` (step 3 through `listItems`).
 
 - Step 2's START HERE (2026-11-17): the pure model in `RModel.lean`/`RReplay.lean` (see the commit
   `2e775cc56e`); `KModel`/`KList` build against `Output.Raw` (its `MDefs.Output_intoVal_inj` was left

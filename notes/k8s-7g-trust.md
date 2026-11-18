@@ -10,6 +10,16 @@ axiom file is added**. Each spec's file header says why it is faithful and names
 Go evidence: `examples/k8s/etcd3/trustspecs_test.go` (package `etcd3`) and
 `examples/k8s/etcd3/correctness/cmpdiff_test.go`, all green (`/shared/tmp/k8s7g/step1-go.out`).
 
+**2026-11-18 (resumed after apierrors-fix and the pin bump): V applied in place and
+`SuggestsClientDelay.spec` restated, both PENDING the independent attack** (hard stop; texts in
+`Proof/k8s_io/apimachinery/pkg/api/errors/View.lean`, `plainLeaf` and `apiErrAt`'s `.plain` arm, with
+M2's header; `Spec/k8s_io/apimachinery/pkg/api/errors/SuggestsClientDelay.lean`, statement unchanged,
+header restated over the fixed `apiErrOk`). T landed with apierrors-fix (`IsTooManyRequests.spec`, pre
+`nil ∨ apiErrOk`). New Go test `TestPlainWrapperTypedNil` (M2). No axiom file for
+`SuggestsClientDelay` yet. The ~6 proofs that build or destructure `apiErrAt _ .plain`
+(`Calls.lean` `clientErr_notTooLarge`/`sentV_plain`, `call.lean`, `watchChan__syncPaginated`,
+`store__GetList`, `handleCompactedErrorForPaging`, `interpretListError`) are repaired after the attack.
+
 ## 1. New trust-boundary specs (files written)
 
 | Spec | File | Axiom to come | Go tests |
