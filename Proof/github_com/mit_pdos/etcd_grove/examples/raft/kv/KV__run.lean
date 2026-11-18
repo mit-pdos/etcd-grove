@@ -197,7 +197,7 @@ theorem KV.run.wp_proof
   iNamed Hrep'
   ihave #Hcl' := Hcl
   iunfold kvCluster at Hcl'
-  icases Hcl' with ⟨#Hiscl, -, #Hca0, -, %Hnsn⟩
+  icases Hcl' with ⟨#Hiscl, -, #Hca0, -, %Hnsn, -⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []

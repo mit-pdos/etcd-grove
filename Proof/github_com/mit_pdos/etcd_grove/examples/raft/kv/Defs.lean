@@ -386,7 +386,7 @@ open Iris.ProofMode in
 theorem kvCluster_untraced (γr : RKVNames) :
     kvCluster (GF := GF) γr ⊢ ⌜Cluster.trace γr.cluster = none⌝ := by
   unfold kvCluster
-  iintro ⟨-, -, -, -, %H⟩
+  iintro ⟨-, -, -, -, -, %H⟩
   ipureintro; exact H
 
 end clusterI
