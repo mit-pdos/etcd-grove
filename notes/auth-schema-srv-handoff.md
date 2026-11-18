@@ -1,26 +1,35 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6 STOP 2: the lend at boot, the snapshot's recorded states)
+## START HERE (2026-11-18, A6: L-rev/P2 applied, the read side done)
 
-- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 49bd7924e6 merged: pin 6d365ee1a,
-  `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest). lean will
-  move (origin's big merge): merge it before the next full build.
-- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc (c35919e62f), the pool (ebb39ec414, 5e577037ab);
-  decided by etcd-grove-03 (questions.md "F-enc/F-acc as committed…"): F-enc/F-acc, their two forms, and the
-  deposit design ACCEPTED. Rebuild of backend `Link` + server `Results` + `AuthRealPool`:
-  `/shared/tmp/auth-schema-srv/fenc-build4.log` (see the STOP report for its outcome).
-- **STOP (questions.md "A6 STOP 2")**: F-lend, a fourth refutation of `authSchemaSrv` (the lend before the revision
-  is written; `notes/auth-schema-srv-refuted.md`), recommended (L-rev) `⌜1 ≤ st.revision⌝` in `authBkLend`; F-perm,
-  `authSchemaSnap` cannot record the snapshot's state (`authStateAt` needs `permKeysOk`), recommended (P2)
-  `⌜permKeysOk st⌝` in `authSchemaSnap`. Both trusted text (weaker hypotheses). No A6-proper Lean yet.
-- Next, after the decision, in order: (0) the pool edits below; (1) `AuthRealInv.lean`: the per-backend invariant
-  (refined design below) and its creation lemma (premise `permKeysOk st`); (2) the read side; (3) the write side
-  over F-acc; (4) `authBkLend` (premise `1 ≤ st.revision`; agreement law `rbOwnInR` vs `rbOwn`), `authBkLife`,
-  `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`, `authSchemaSnap`. Report at A6's end; A7 HARD STOP.
-- Pitfalls: (0)-(21) as before (History); (22) `authLockQ` carries no `permKeysOk`: record a state from the reader's
-  `authHistHalf` (`authHistHalf_stateAt`) or from the invariant's own witnesses, never from the lock's quarter.
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean fb68edfec8 merged (a03f3662f7, 198b95c198):
+  pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc, the pool; STOP 2 decided (questions.md "A6 STOP 2
+  decided"): **L-rev** (`authBkLend` takes `1 ≤ st.revision`; consumer `srvAuthAtLog_rev_pos`, `kvAppliedM_rev`) and
+  **P2** (`authSchemaSnap` takes `permKeysOk st`), ledger entry; pool forms (`pool_release` by `Rs`, `poolRel` keeps the
+  empty map, `poolRel_rel`, `poolRel_noRcpt`): 3c6d5319cf, cce362ea70; full build green (`lrev-full4.log`, 21846 jobs).
+- **Read side** (forms: questions.md "A6 read side"): later credits on schema's read contract; `AuthRealInv.lean`
+  (the invariant `realSt`/`realInv`, the ticket pool's steps `real_acq`/`real_obs`/`real_rel`, the views
+  `real_view`/`real_viewIdle`, `usersOutD_at`); `AuthRealRd.lean` (`real_BE`, `real_readTxOk`, `real_backendOk`).
+  lean-check clean; targeted build `/shared/tmp/auth-schema-srv/rd-build1.log` (35 leaves of the changes).
+- Next, in order: (a) the reserved pool's reads (`authBackendReads`' `GetUser`/`GetRole`/`GetAllUsers` at `R := T`:
+  a second `authBE_real`, steps like the ticket pool's on `γm'`/`γh'`, view = idle via `real_viewIdle`'s argument);
+  (b) the life (`authBkLife`): retire/publish need no credit (touch timeless parts only: destructure `▷ realSt` with
+  `>`); release needs a `pool_release_later` on `▷ poolSt` (Timeless `dep`/`Rs`/`sh`; the free slots' `rdTok` under
+  `▷`) and `authOpenQ = qpRep q0 s0 authRdN`; (c) the write side over F-acc (`authWBackendOkR`, `authWAtHook`;
+  `rbAcc` opens `realInv` around `E = ⊤ ∖ ↑authRealN`); (d) `authBkLend` (`1 ≤ st.revision`: an absent revision key
+  reads 0; agreement law `rbOwnInR` vs `rbOwn`), `CreateAuthBuckets`; (e) creation (claim, tickets, pools, `γc`) and
+  `⊢ authSchemaSrv`, `authSchemaSnap`. A7 HARD STOP for the user (trusted texts: fix (A), L-rev, P2, `rbPartF`,
+  `newPostK`, `authRdSlots`, the ticket count).
+- Pitfalls: (0)-(22) as before; (23) `wp_apply` leaves the post (`Φ v`), not a WP: `iapply wp_fupd` before a call
+  whose continuation opens an invariant; `wp_apply (lc := n)` credits come from pure steps AFTER the call (none after
+  a bare method call); (24) `lc_fupd_elim_later` needs `HasLC.hasLC` and explicit `(E := …) (P := …)`; (25)
+  `obtain … := h` clears `h`: use `id h` to keep it; (26) `subst` on `su = sa` removes `sa`.
 
 ## A6 invariant, refined (2026-11-18, over "A6 realization design" below)
+
+- As built (`AuthRealInv.lean`): the branch sits with the life (`realSt`): live ∗ (idle ∨ batch `T`), retired ∗ gone,
+  released ∗ gone, gone = `authWTok ∗ batchTok`; the rest below holds.
 
 - **Pool edits** (AuthRealPool, forms): `pool_release`'s hypothesis `∀ d a, dep d ∗ Rs (a+1) ∗ Z ⊢ False` (the
   reserved pool refutes by `Rs`, its `dep` is `True`); `poolRel` keeps `ghostMapAuth γm 1 ∅` (a reader's `Robs`
@@ -73,6 +82,27 @@ One invariant per backend `γc` (namespace disjoint from `rbClaimN`, `curN`), ho
   `authPubLb i`), or with `T ∗ authHistHalf hs` in hand the idle branch: `uni st`, `hs` last `st`.
 
 ## History
+
+### A6 STOP 2 (2026-11-18, superseded)
+
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 49bd7924e6 merged: pin 6d365ee1a,
+  `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest). lean will
+  move (origin's big merge): merge it before the next full build.
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc (c35919e62f), the pool (ebb39ec414, 5e577037ab);
+  decided by etcd-grove-03 (questions.md "F-enc/F-acc as committed…"): F-enc/F-acc, their two forms, and the
+  deposit design ACCEPTED. Rebuild of backend `Link` + server `Results` + `AuthRealPool`:
+  `/shared/tmp/auth-schema-srv/fenc-build4.log` (see the STOP report for its outcome).
+- **STOP (questions.md "A6 STOP 2")**: F-lend, a fourth refutation of `authSchemaSrv` (the lend before the revision
+  is written; `notes/auth-schema-srv-refuted.md`), recommended (L-rev) `⌜1 ≤ st.revision⌝` in `authBkLend`; F-perm,
+  `authSchemaSnap` cannot record the snapshot's state (`authStateAt` needs `permKeysOk`), recommended (P2)
+  `⌜permKeysOk st⌝` in `authSchemaSnap`. Both trusted text (weaker hypotheses). No A6-proper Lean yet.
+- Next, after the decision, in order: (0) the pool edits below; (1) `AuthRealInv.lean`: the per-backend invariant
+  (refined design below) and its creation lemma (premise `permKeysOk st`); (2) the read side; (3) the write side
+  over F-acc; (4) `authBkLend` (premise `1 ≤ st.revision`; agreement law `rbOwnInR` vs `rbOwn`), `authBkLife`,
+  `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`, `authSchemaSnap`. Report at A6's end; A7 HARD STOP.
+- Pitfalls: (0)-(21) as before (History); (22) `authLockQ` carries no `permKeysOk`: record a state from the reader's
+  `authHistHalf` (`authHistHalf_stateAt`) or from the invariant's own witnesses, never from the lock's quarter.
 
 ### A6 F-enc/F-acc done (2026-11-18, superseded)
 
