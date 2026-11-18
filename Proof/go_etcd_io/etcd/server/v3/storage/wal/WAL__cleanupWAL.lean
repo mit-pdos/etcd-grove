@@ -56,7 +56,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   try wp_auto
   wp_apply wp_CloseU R jr r w (child r nm) Rp qp tf $$ [Hw Hpw] as %cerr Hc
   · iframe; iframe #
-  icases Hc with (⟨Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, Hlk, Hnf, Htf⟩)
+  icases Hc with (⟨#Hek, Hdir, Hu, Hnf, Hperm2, Hpaths, Htf⟩ | ⟨%hcerr, #Hek, Hlk, Hnf, Htf⟩)
   rotate_left
   · -- the sync failed: `Close`'s error returned
     rcases cerr with ei | _
@@ -75,7 +75,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply HΦ
     ileft
     iframe
-    ipureintro; exact hcerr
+    isplitr
+    · ipureintro; exact hcerr
+    iexact Hek
   by_cases hce : cerr = interface.nil
   rotate_left
   · -- `Close` returned everything but an error: returned
@@ -95,7 +97,9 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
     iapply HΦ
     iright; ileft
     iframe
-    ipureintro; exact hce
+    isplitr
+    · ipureintro; exact hce
+    iapply fmtErrorOkOrNil_ne _ hce; iexact Hek
   subst hce
   try wp_auto
   wp_apply wp_Now as %t -

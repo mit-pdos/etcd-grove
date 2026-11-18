@@ -97,19 +97,48 @@ theorem errOk_wp (e : GoInterfaceOk) : errOk (GF := GF) e ⊢
   iexact H
 
 /-- `errOk` is `fmtErrorOk`. -/
-theorem errOk_iff [_root_.Perennial.fmt.Assumptions] (e : GoInterfaceOk) :
+theorem errOk_iff (e : GoInterfaceOk) :
     errOk (GF := GF) e ⊣⊢ fmtErrorOk (.ok e) := by
   simp only [errOk, fmtErrorOk, fmt.stringMethodSpec_unfold]
   exact .rfl
 
-theorem errOk_of_fmtErrorOk [_root_.Perennial.fmt.Assumptions] (e : GoInterfaceOk) :
+theorem errOk_of_fmtErrorOk (e : GoInterfaceOk) :
     fmtErrorOk (GF := GF) (.ok e) ⊢ errOk e := (errOk_iff e).2
 
-theorem errOk_of_fmtErrorOkOrNil [_root_.Perennial.fmt.Assumptions] (e : GoInterfaceOk) :
+theorem errOk_of_fmtErrorOkOrNil (e : GoInterfaceOk) :
     fmtErrorOkOrNil (GF := GF) (.ok e) ⊢ errOk e := (errOk_iff e).2
 
-theorem fmtErrorOk_of_errOk [_root_.Perennial.fmt.Assumptions] (e : GoInterfaceOk) :
+theorem fmtErrorOk_of_errOk (e : GoInterfaceOk) :
     errOk (GF := GF) e ⊢ fmtErrorOk (.ok e) := (errOk_iff e).1
+
+/-- **`err` is `nil` or `errOk`** (persistent; 2026-11-18): what the writer contract `io.writerStreamP`
+says of a failed `Write`'s error, and what the page writer and the encoder pass on. -/
+def errOkOrNil : GoInterface → IProp GF
+  | .nil => iprop(True)
+  | .ok e => errOk e
+
+instance errOkOrNil_persistent (err : GoInterface) : Persistent (errOkOrNil (GF := GF) err) := by
+  cases err <;> unfold errOkOrNil <;> infer_instance
+
+theorem errOkOrNil_ne (e : GoInterfaceOk) : errOkOrNil (GF := GF) (.ok e) ⊢ errOk e := .rfl
+
+theorem errOkOrNil_of_fmtErrorOkOrNil (err : GoInterface) :
+    fmtErrorOkOrNil (GF := GF) err ⊢ errOkOrNil err := by
+  cases err with
+  | nil => unfold errOkOrNil; iintro -; itrivial
+  | ok e => exact (errOk_iff e).2
+
+theorem errOkOrNil_of_fmtErrorOk (err : GoInterface) :
+    fmtErrorOk (GF := GF) err ⊢ errOkOrNil err := by
+  cases err with
+  | nil => unfold errOkOrNil; iintro -; itrivial
+  | ok e => exact (errOk_iff e).2
+
+theorem fmtErrorOk_of_errOkOrNil (err : GoInterface)
+    (h : err ≠ GoInterface.nil) : errOkOrNil (GF := GF) err ⊢ fmtErrorOk err := by
+  cases err with
+  | nil => exact absurd rfl h
+  | ok e => exact (errOk_iff e).1
 
 /-- See the file header. -/
 abbrev fmt.ErrorfErrs.spec : Prop :=
@@ -163,7 +192,7 @@ macro "errargs_wf" : tactic => `(tactic| (
     | exact Or.inl (argWf_int _)
     | exact Or.inl (argWf_string _)
     | (apply Or.inr; refine ⟨?_, ?_, ?_⟩
-       · simp only [List.mem_cons, List.not_mem_nil, or_false, true_or]
+       · simp only [List.mem_cons, List.not_mem_nil, _root_.or_false, _root_.true_or, _root_.or_true]
        · decide
        · first | rfl | exact True.intro)))
 

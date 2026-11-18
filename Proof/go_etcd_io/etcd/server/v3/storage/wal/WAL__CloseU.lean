@@ -111,7 +111,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
     iframe Hlg Hzap Hdir Hdf Hdff Hmd Hmds Hsp Hst Hdec Hrc Hns Hmu Henti Hsnapi He Henc Htw Hdh
       Hlocks Hls Hcap Hlks Hltf Hfp Henv Hcrc Hwpk Hopen
     ipureintro; exact ⟨Hen, Hlt, Hpure⟩
-  icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | ⟨%Herr, Hlk⟩)
+  icases Hpost with (⟨%Herr, Hh, #Hsy⟩ | ⟨%Herr, #Hek, Hlk⟩)
   rotate_left
   · -- the sync failed: returned before the locks
     rcases err with ei | _
@@ -123,7 +123,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
     iapply HΦ
     icases Hlk with ⟨Hlk, Hnf, %f', %fd', %nmf, %d', %R', %q', %hpin, Hf', Hfd', Hlks'⟩
     obtain ⟨rfl, -, -⟩ := hpin
-    iright; iframe Hlk Hnf
+    iright; iframe Hlk Hnf Hek
     isplitr
     · ipureintro; exact Herr
     iexists fd', nmf, d'
@@ -329,14 +329,14 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proofU [os.file.Field
   imodintro
   iframe Hnc
   -- the directory's `Close`
-  wp_apply os.File.Close.wp_dirS df2 dfd2 dnm2 j ph $$ [Hdff Hdfd] as %err3 -
+  wp_apply os.File.Close.wp_dirS df2 dfd2 dnm2 j ph $$ [Hdff Hdfd] as %err3 #Hek3
   · iframe; iexact Hosinv
   (try wp_auto)
   wp_apply sync.Mutex.wp_Unlock _ (BI.pure True : IProp GF) $$ [$Hmu $Hsync $Hlocked]
   (try wp_auto)
   iapply HΦ
   ileft
-  iframe Hunl Hdir Hnf
+  iframe Hek3 Hunl Hdir Hnf
   isplitl [Hperm Hperm2]
   · iapply osCallPerm_joinU
     iframe

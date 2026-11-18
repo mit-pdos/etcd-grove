@@ -80,11 +80,11 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"cleanupWAL")) (Val #lg))
   {{ (err : GoInterface), RET #err;
-      (⌜err ≠ interface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some (child r nm)) ∗
+      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some (child r nm)) ∗
         osCallPerm (1 : Qp).half ∗ Fr ∗
         ∃ (fd : w64) (nmf : GoString) (d : OsFd),
           os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) ∨
-      (⌜err ≠ interface.nil⌝ ∗ WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some (child r nm)) ∗
+      (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗ WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some (child r nm)) ∗
         osCallPerm (1 : Qp).half ∗ Fr ∗
         (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) ∗
         ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨

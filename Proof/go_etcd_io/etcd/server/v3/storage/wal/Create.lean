@@ -55,7 +55,7 @@ public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import Proof.os.NsS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateCleanup
-public import Spec.fmt.ErrorfAny
+public import Spec.fmt.ErrorfErrs
 
 @[expose] public section
 
@@ -118,6 +118,18 @@ macro "create_seg_exit" : tactic => `(tactic| (
     ipureintro; intro hc; cases hc))
 
 set_option hygiene false in
+/-- `fmt.ErrorfErrs.spec`'s error arguments `[cei, pei]` (the cleanup's error, `Hcef`, and the parent
+directory's, `Hpe`): `errOk` each. Unhygienic. -/
+macro "create_errs_pre" : tactic => `(tactic| (
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ e => errOk (GF := GF) e)).2
+    isplitr
+    · first | (iapply errOk_of_fmtErrorOkOrNil; iexact Hcef) | (iapply errOk_of_fmtErrorOk; iexact Hcef)
+    iapply (BigSepL.bigSepL_cons (PROP := IProp GF) (Φ := fun _ e => errOk (GF := GF) e)).2
+    isplitr
+    · first | (iapply errOk_of_fmtErrorOkOrNil; iexact Hpe) | (iapply errOk_of_fmtErrorOk; iexact Hpe)
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; iempintro))
+
+set_option hygiene false in
 /-- **The deferred calls after the commit, on an error exit of the parent's sync** (the parent's
 `OpenDir`, `Fsync` or `Close` failed, `perr = ok pei`; at the deferred cleanup closure, the handle
 before naming `walOpenWFU P Mr w (child r nm) R d f` whole): `cleanupWAL` (`WAL.cleanupWAL.spec`) over
@@ -137,8 +149,8 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       · unfold createFr; iframe
       iapply create_cleanupLaw Mr R jr r nm _ N h cl Wn c d hn J $tf hok hin.1 hNnm hnmO _hcq hnm.1
         $$ Hok
-    icases Hcr with (⟨%hce, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd', Hlks'⟩ |
-      ⟨%hce, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | ⟨Hfin, #Hcef⟩)
+    icases Hcr with (⟨%hce, #Hcef, Hlt, Hnf, Hcp, Hfr, %fd', %nmf, %d', Hf', Hfd', Hlks'⟩ |
+      ⟨%hce, #Hcef, Hlt, Hnf, Hcp, Hfr, -, %nmf, Hf'⟩ | ⟨Hfin, #Hcef⟩)
     · -- `Close` failed in its sync: no rename
       rcases cerr with cei | _
       rotate_left
@@ -149,11 +161,11 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       try wp_auto
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
-      · iexact Hasl
-      rcases ef with efi | _
-      rotate_left
-      · exact absurd rfl hef
+      wp_apply wp_ErrorfErrs _ _ [GoInterface.ok cei, GoInterface.ok pei] [cei, pei] ?wf $$ [Hasl]
+        as %efi -
+      case wf => errargs_wf
+      · iframe Hasl
+        create_errs_pre
       try wp_auto
       ($fA)
       try wp_auto
@@ -187,11 +199,11 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       try wp_auto
-      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
-      · iexact Hasl
-      rcases ef with efi | _
-      rotate_left
-      · exact absurd rfl hef
+      wp_apply wp_ErrorfErrs _ _ [GoInterface.ok cei, GoInterface.ok pei] [cei, pei] ?wf $$ [Hasl]
+        as %efi -
+      case wf => errargs_wf
+      · iframe Hasl
+        create_errs_pre
       try wp_auto
       ($fB)
       try wp_auto
@@ -229,11 +241,11 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
         try wp_auto
-        wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, %hef⟩
-        · iexact Hasl
-        rcases ef with efi | _
-        rotate_left
-        · exact absurd rfl hef)
+        wp_apply wp_ErrorfErrs _ _ [GoInterface.ok cei, GoInterface.ok pei] [cei, pei] ?wf $$ [Hasl]
+          as %efi -
+        case wf => errargs_wf
+        · iframe Hasl
+          create_errs_pre)
       all_goals (
         try wp_auto
         ($fC)
@@ -314,7 +326,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     wp_apply wp_FsyncDir pf pfd r (DFrac.own 1) R jr .idle (x.1 + 1) $$ [Hpf Hpfd] as %ferr
       ⟨Hpf, Hpfd, Hfr⟩
     · iframe; iframe #
-    icases Hfr with (⟨%hfe, #Hfe⟩ | ⟨%hfe, #Hcm⟩)
+    icases Hfr with (⟨%hfe, #Hpe⟩ | ⟨%hfe, #Hcm⟩)
     · -- `Fsync` failed: the parent closed (not by `dirCloser`, which would overwrite `perr`: the fork's
       -- fix, `nonissues/etcd-wal-create-parent-fsync-nil-nil.md`), logged, the deferred `cleanupWAL`
       rcases ferr with pei | _
@@ -360,7 +372,7 @@ macro "create_named_cont" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tac
     iclear Hhspec Hhs
     try wp_auto
     -- `dirCloser()`
-    wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr -
+    wp_apply os.File.Close.wp_dirS pf pfd r jr .idle $$ [Hpf Hpfd] as %cerr #Hpe
     · iframe; iframe #
     by_cases hce : cerr = interface.nil
     rotate_left
@@ -472,7 +484,7 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
     (wp_Since : time.Since.spec (GF := GF) (hG := hG))
     (wp_Seconds : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (wp_cleanupWAL : go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (W := W) P Mr)
-    (wp_ErrorfAny : fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorfErrs : fmt.ErrorfErrs.spec (GF := GF) (hG := hG)) :
     wal.Create.spec (GF := GF) P Mr := by
   intro lg R jr r dir nm mp md qp Q Pv hin hnmO hdl hr hmp hmd hmdne hMr
   wp_start as ⟨#Hzap, #Hmd, #Hok, #Hdd, Hp, Hres, Hperm, Hu, Hau⟩

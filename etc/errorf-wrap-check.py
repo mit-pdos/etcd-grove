@@ -51,9 +51,14 @@ REVIEWED = {
     # []string (read under the fraction given back) arguments: Go calls no method with an effect
     'Perennial.EtcdGrove.fmt.ErrorfStrs.wp_proof': 'post errOk only; arguments basic, []string '
         'or FileMode (String() local), no error arguments',
-    # NOT reviewed (fmt soundness item 3, refuted 2026-11-18: their premises admit arguments whose
-    # Format/String/Error Go calls with effects or nested panics):
-    # Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof, Perennial.EtcdGrove.fmt.ErrorfAny.wp_proof
+    # fmt soundness item 3 (2026-11-18): the premise fmt.errArgsWf admits, besides nil and basic or
+    # method-less named values, only the error arguments errs, each errOk (= fmtErrorOk: Error() string,
+    # no Format, Error()'s WP), and only under %v/%s/%w without # (no GoString, no reflection into an
+    # error's fields): Go calls only those Error() methods. Post errOk: Go's *wrapError/*wrapErrors/
+    # *errorString and the model's *errorString all are. (ErrorfAny, refuted, was deleted: its one site,
+    # Create's cleanup, uses ErrorfErrs.)
+    'Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof': 'premise errArgsWf + errOk errs (no Format, '
+        'Error() string, only %v/%s/%w without #); post errOk',
 }
 
 
