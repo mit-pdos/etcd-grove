@@ -1,6 +1,6 @@
 # incomingof handoff
 
-## START HERE (2026-11-18, Part B implemented; full build, then tcb/interfaces/gates, then the land stop)
+## START HERE (2026-11-18, Part B done; at the land stop)
 
 - Branch `incomingof-scope`; lean b0bb9df7c3 merged (07a6fc8f09); **pin 6d365ee1a: manifest-6d3**
   (`.lake/package-overrides.json` updated; gates: `LAKE_PACKAGES=/shared/tmp/manifest-6d3.json
@@ -12,8 +12,10 @@
   `ErrorDesc`/`rpctypes.Error`/`ContextError` take `m`; callers get `m` via `statusErrOk_msg` at the call;
   `kv.Do.specG` states `ctxErrIs err` outside the condition; `kv.Get` calls its second `ContextError` at the
   context message. The five Link targets built (build-c4) before the merge.
-- Next: full build (/shared/tmp/incomingof/build-full2.log); `etc/tcb-report.py --check` (expected: no axiom
-  change); interfaces; gates under flock /shared/tmp/etcd-grove-full-build.lock; STATUS; land stop report.
+- Full build green (build-full2, 20480 jobs); `etc/tcb-report.py --check` matches (892 axioms, 4 sorries);
+  interfaces unchanged (all six api lists); STATUS entry; `etc/gen-init.py` updated (the Init files are
+  generated: never hand-edit them); `etc/gates.sh` all passed (/shared/tmp/incomingof/gates2.log).
+- **LAND STOP** (trusted texts changed): no commits until etcd-grove-03 says the land finished.
 
 ## History
 
