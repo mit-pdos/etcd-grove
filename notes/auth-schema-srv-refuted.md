@@ -3,7 +3,7 @@ title: authSchemaSrv is false (lend grants writes; write-back budget; two encodi
 found: 2026-11-12
 by: S0 of the etcd_auth_safe Scope, axiom-skill review (report /shared/tmp/auth-safe/s0/report.md, Go tests /shared/tmp/auth-safe/s0/tests/)
 blocks-proof: yes (for an auth closed theorem); no closed *_safe theorem rests on it
-status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there. **Refuted again 2026-11-16** (the read contract's one-state snapshot, below): open, the fix to be decided (`notes/auth-schema-srv-scope.md`, Q1); fixed by A0 (Q1 (a)). **Refuted a third time 2026-11-18** (the boot write contract outlives the unset hook, below): fixed by fix (A) on branch auth-schema-srv (decided by etcd-grove-03)
+status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there. **Refuted again 2026-11-16** (the read contract's one-state snapshot, below): open, the fix to be decided (`notes/auth-schema-srv-scope.md`, Q1); fixed by A0 (Q1 (a)). **Refuted a third time 2026-11-18** (the boot write contract outlives the unset hook, below): fixed by fix (A) on branch auth-schema-srv (decided by etcd-grove-03). **Refuted a fourth time 2026-11-18** (the lend before the revision is written, below): open, fix recommended (L-rev)
 ---
 # `authSchemaSrv` is false
 
@@ -108,3 +108,27 @@ hook out of `T_b` (`LockInsideApply` at `f = nil`), `Unlock` gives it back. The 
 (`authWHeld`), the hook to the hook's setting. `authApplyResPre` no longer carries the boot contract: it names the
 schema auth backend (`ablOn`), and `authApplyResB_of_pre` takes the contract at the frozen hook. Ledger:
 `notes/specs-only/ledger.md`, 2026-11-18.
+
+## Fourth refutation (2026-11-18, auth-schema-srv A6): the lend before the revision is written
+
+Found while laying out the realization's per-backend invariant (questions.md "A6 STOP 2"). `authSchemaSrv` hands out
+the lend `authBkLend γa γc d` (`AuthBkHook.lean`) with the boot write token `T_b`, at boot: before `CreateAuthBuckets`
+and before `NewAuthStore`'s first batch writes the revision. The lend's law gives, with the batch lock's `rbOwn d.γB
+r`, `⌜authBucketsAt st r⌝` for the latest state `st` of any history `hs` the holder of `authWTok γc` holds the
+admin half of. At boot `hs`'s last is `bootState` and the auth buckets are empty (the premise's `r`), while
+`authBucketsAt` (`schema.authBucketsAre`) needs the `auth` bucket's `authRevision` key, equal to `u64Be 0`. A client
+splits `T_b`, lends at `[bootState]`, and calls `backend.Snapshot` with the lend's `RL` as the observation resource
+and the law as its `Q`: Snapshot's post (a sound spec) claims `authBucketsAt bootState (rbData P D)` of the real
+committed data `D`, which has no auth bucket at all (or an empty one). Unrealizable as well: the realization would
+have to refute `RL ∗ rbOwn r` on empty buckets, an exclusivity law between a claimed resource and a `γ.rbk` share
+(forbidden law (i), soundness note §6). Not a Go bug (the store never reads the buckets before creating them and
+writing the revision). No Go test (the Go fact: a fresh backend has no auth bucket until `CreateAuthBuckets`).
+`authSchemaSnap`'s lend is not affected (its premise gives `authBucketsAt st r`). The one consumer,
+`srvAuthApplyResB_lend` (StoreLatest.lean), lends from the apply thread after boot, at a state of revision ≥ 1.
+
+### The fix (to be decided; recommended (L-rev))
+
+The lend takes `⌜1 ≤ st.revision⌝`. The realization proves the law from its invariant (an absent revision key reads
+as revision `0`, so the `auth` bucket of a state of revision ≥ 1 holds the key, 8 bytes, the revision's `u64Be`);
+the consumer proves `1 ≤ st.revision` of the apply thread's latest state (`bump bootState`, then steps that bump or
+keep the revision).

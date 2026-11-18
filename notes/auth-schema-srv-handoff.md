@@ -1,31 +1,43 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, F-enc and F-acc done; the realization next)
+## START HERE (2026-11-18, A6 STOP 2: the lend at boot, the snapshot's recorded states)
 
-- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 49bd7924e6 merged (2e7984f8a5): pin
-  6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
-- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A) (all ACCEPTED; questions.md "A6 design findings decided").
-  **F-enc** and **F-acc** (c35919e62f): schema's reads return the record the caller names (`usersDec`/`rolesDec`,
-  `usersAt`/`rolesAt`, `authBucketsAre_usersAt`/`_rolesAt` by choice; no injectivity); `rbAcc … E` atomic around
-  `E ⊇ ↑rbClaimN` in `Unlock`/`commit`/`unsafeCommit` (docstring: the window vs the four forbidden laws). The 42
-  changed modules + `AuthRealRead` built (`/shared/tmp/auth-schema-srv/fenc-build2.log`); backend `Link` + server
-  `Results`: `/shared/tmp/auth-schema-srv/fenc-build3.log`.
-- **Pool** (ebb39ec414, 5e577037ab): `etcdserver/AuthRealPool.lean` (lean-check clean, not yet in a lake build):
-  the generic slot pool (`poolSt`, `pool_alloc`/`_acq`/`_obs`/`_rel`/`_release`, `poolRel`) and its counters
-  (`ticketsIn` with `ticketsIn_dep`/`_wd`; `tokIn` for the reserved slot).
-- Next, in order: (1) the rest of the per-backend invariant (design below): the bucket/history part
-  (`viewAt v D`: per-bucket predicates from `usersAt`/`rolesAt` and the `auth` bucket's flag/revision, `viewAt →
-  authWf`), the life part, one `inv` per backend holding both pools; (2) the read side: `authTxReadsV` of
-  `Hs v := ∃ x D, Held x D ∗ authReader … ∗ ⌜viewAt v D⌝` from schema's `authReadTx.*` specs (+ F-enc's
-  `userOutD_are`; `GetAllUsers`' names `es.map fst`), `authBackendOk` from `authBE_real` (ticket pool) + post-hoc
-  view facts; `authBackendReads`' reads from a second `authBE_real` (reserved pool, `R := T`); (3) the write side
-  over F-acc; (4) `authBkLend`, `authBkLife`, `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`,
-  `authSchemaSnap`. Report at A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s fraction, `newPostK`'s tokens,
-  `authRdSlots`' tokens, `authSchemaSrv`'s ticket count, fix (A)).
-- Pitfalls: (0)-(18) as before (History); (19) `rbAcc_nil γ ok Rr E` now takes the mask; callers at `⊤` pass
-  `⊤ CoPset.subseteq_top` to the specs; (20) a lemma stated with a bare `|==>` goal fails `imod`/`imodintro` ("is
-  not a modality"): state ghost steps at `|={E}=>` (AuthRealPool does); (21) an Iris hypothesis cannot be the
-  target of `rw … at`: rewrite the goal (the context is part of it).
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 49bd7924e6 merged: pin 6d365ee1a,
+  `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest). lean will
+  move (origin's big merge): merge it before the next full build.
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc (c35919e62f), the pool (ebb39ec414, 5e577037ab);
+  decided by etcd-grove-03 (questions.md "F-enc/F-acc as committed…"): F-enc/F-acc, their two forms, and the
+  deposit design ACCEPTED. Rebuild of backend `Link` + server `Results` + `AuthRealPool`:
+  `/shared/tmp/auth-schema-srv/fenc-build4.log` (see the STOP report for its outcome).
+- **STOP (questions.md "A6 STOP 2")**: F-lend, a fourth refutation of `authSchemaSrv` (the lend before the revision
+  is written; `notes/auth-schema-srv-refuted.md`), recommended (L-rev) `⌜1 ≤ st.revision⌝` in `authBkLend`; F-perm,
+  `authSchemaSnap` cannot record the snapshot's state (`authStateAt` needs `permKeysOk`), recommended (P2)
+  `⌜permKeysOk st⌝` in `authSchemaSnap`. Both trusted text (weaker hypotheses). No A6-proper Lean yet.
+- Next, after the decision, in order: (0) the pool edits below; (1) `AuthRealInv.lean`: the per-backend invariant
+  (refined design below) and its creation lemma (premise `permKeysOk st`); (2) the read side; (3) the write side
+  over F-acc; (4) `authBkLend` (premise `1 ≤ st.revision`; agreement law `rbOwnInR` vs `rbOwn`), `authBkLife`,
+  `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`, `authSchemaSnap`. Report at A6's end; A7 HARD STOP.
+- Pitfalls: (0)-(21) as before (History); (22) `authLockQ` carries no `permKeysOk`: record a state from the reader's
+  `authHistHalf` (`authHistHalf_stateAt`) or from the invariant's own witnesses, never from the lock's quarter.
+
+## A6 invariant, refined (2026-11-18, over "A6 realization design" below)
+
+- **Pool edits** (AuthRealPool, forms): `pool_release`'s hypothesis `∀ d a, dep d ∗ Rs (a+1) ∗ Z ⊢ False` (the
+  reserved pool refutes by `Rs`, its `dep` is `True`); `poolRel` keeps `ghostMapAuth γm 1 ∅` (a reader's `Robs`
+  after the release refutes its receipt).
+- **Readers' family**: `ι := Option Qp`, `L (some q) := authCur γc q` (clauses 1-2; `authPubLb` stays with the
+  reader), `L none := authWTok γc` (clause 3; `authHistHalf` stays with the reader); `dep := L`; `C o qo := ∃ k,
+  ghostMapElem γm k (own 1) o ∗ ⌜qo = s0⌝`; `Y _ := ownToks γh 1`. Views post hoc after schema's `RLock` (unfold
+  `heldR`, `rtHeldF_rbRd` per bucket). `Hs v := ∃ x D, Held x D ∗ authReader rt (Held x D) D ∗ ⌜viewAt v D⌝`.
+- **Buckets** (always): `rbRd ½ c_n` ×3, `authStateAt j_n s_n` ×3, `authPubQ ¼ p`, pure: `authAt s_a c_a`
+  (flag `= enabledOf`, `uint.nat revisionOf = revision`, `revWf`), `∃ dU, usersAt s_u c_u dU`, `∃ dR, rolesAt …`,
+  `j_u, j_r ≤ j_a`, `p ≤ j_u, j_r`; branch **idle** `∃ hs, authLockQ hs ∗ rbOwnInR γB (· ∈ authBktL) rc ∗ batchTok
+  ∗ ⌜last hs = s_a = s_u = s_r, j_n = hs.length - 1, bktOf rc n = c_n⌝` | **batch** `authWTok γc` (Lock deposits
+  `T`; the writer's `Lk` holds `batchTok`, refuting idle/gone at `Unlock`) | **gone** `batchTok` (after retire).
+- **Life**: live `authSucc ∗ authRetired ∗ pools ∗ bOpen q0` | retired `authWTok ∗ authPubTok ∗ pools ∗ bOpen q0`
+  | released `authWTok ∗ authCur 1 ∗ authRetired ∗ poolRel`s. Pools: tickets `poolSt γm γh (ticketsIn γt K) L
+  rdTok (bOpen s0) K` (`K = authRdN - 1`), reserved `poolSt γm' γh' (tokIn (authWTok γc)) (fun _ => True) rdTok
+  (bOpen s0) 1`; `authOpenQ = qpRep q0 s0 authRdN` (`bOpen_rep`). Release's `Z := authCur 1 ∗ authWTok`.
 
 ## A6 realization design (2026-11-18; checked against the specs, no Lean yet)
 
@@ -61,6 +73,35 @@ One invariant per backend `γc` (namespace disjoint from `rbClaimN`, `curN`), ho
   `authPubLb i`), or with `T ∗ authHistHalf hs` in hand the idle branch: `uni st`, `hs` last `st`.
 
 ## History
+
+### A6 F-enc/F-acc done (2026-11-18, superseded)
+
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 49bd7924e6 merged (2e7984f8a5): pin
+  6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A) (all ACCEPTED; questions.md "A6 design findings decided").
+  **F-enc** and **F-acc** (c35919e62f): schema's reads return the record the caller names (`usersDec`/`rolesDec`,
+  `usersAt`/`rolesAt`, `authBucketsAre_usersAt`/`_rolesAt` by choice; no injectivity); `rbAcc … E` atomic around
+  `E ⊇ ↑rbClaimN` in `Unlock`/`commit`/`unsafeCommit` (docstring: the window vs the four forbidden laws). The 42
+  changed modules + `AuthRealRead` built (`/shared/tmp/auth-schema-srv/fenc-build2.log`); backend `Link` + server
+  `Results`: `/shared/tmp/auth-schema-srv/fenc-build3.log`.
+- **Pool** (ebb39ec414, 5e577037ab): `etcdserver/AuthRealPool.lean` (lean-check clean, not yet in a lake build):
+  the generic slot pool (`poolSt`, `pool_alloc`/`_acq`/`_obs`/`_rel`/`_release`, `poolRel`) and its counters
+  (`ticketsIn` with `ticketsIn_dep`/`_wd`; `tokIn` for the reserved slot).
+- Next, in order: (1) the rest of the per-backend invariant (design below): the bucket/history part
+  (`viewAt v D`: per-bucket predicates from `usersAt`/`rolesAt` and the `auth` bucket's flag/revision, `viewAt →
+  authWf`), the life part, one `inv` per backend holding both pools; (2) the read side: `authTxReadsV` of
+  `Hs v := ∃ x D, Held x D ∗ authReader … ∗ ⌜viewAt v D⌝` from schema's `authReadTx.*` specs (+ F-enc's
+  `userOutD_are`; `GetAllUsers`' names `es.map fst`), `authBackendOk` from `authBE_real` (ticket pool) + post-hoc
+  view facts; `authBackendReads`' reads from a second `authBE_real` (reserved pool, `R := T`); (3) the write side
+  over F-acc; (4) `authBkLend`, `authBkLife`, `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`,
+  `authSchemaSnap`. Report at A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s fraction, `newPostK`'s tokens,
+  `authRdSlots`' tokens, `authSchemaSrv`'s ticket count, fix (A)).
+- Pitfalls: (0)-(18) as before (History); (19) `rbAcc_nil γ ok Rr E` now takes the mask; callers at `⊤` pass
+  `⊤ CoPset.subseteq_top` to the specs; (20) a lemma stated with a bare `|==>` goal fails `imod`/`imodintro` ("is
+  not a modality"): state ghost steps at `|={E}=>` (AuthRealPool does); (21) an Iris hypothesis cannot be the
+  target of `rw … at`: rewrite the goal (the context is part of it).
+
 
 ### F-enc/F-acc decision (2026-11-18, superseded)
 
