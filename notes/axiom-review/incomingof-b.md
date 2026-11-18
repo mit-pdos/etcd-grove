@@ -258,6 +258,29 @@ it; `GOTOOLCHAIN=go1.27.3 GOWORK=off go test -v ./...`, all pass): `TestRealType
   as a pre-existing hardening item for the per-heap Scope; the trusted text is unchanged (old = new).
 - **M5.** The T2 → T4 cross-reference is fixed.
 
+## Blocker found while implementing (2026-11-18)
+
+Go's client applies `ContextError` twice on a Range error: `kv.Do` returns `ContextError(ctx, err)` and `kv.Get`
+returns `ContextError(ctx, err')` of `kv.Do`'s result (`kv__Do.lean:120`, `kv__Get.lean:73`). T4's
+`ContextError.spec` post, `errDesc err'' = errDesc err' ∨ ctx-shaped err''`, keeps a ctx-shaped `err'` only in
+its second disjunct: in the first (the description kept, `rpctypes.Error`'s branch) nothing says `err''` is
+ctx-shaped, and its description is that of the context error, about which no pure fact exists (the point of
+Part B). So `kv.Get` cannot produce `rangeErrOut`'s new disjunct. In Go the second call returns the context
+error unchanged (`rpctypes.Error` maps by `ErrorDesc(err) = err.Error()`, `"context canceled"`/`"context deadline
+exceeded"`, which no `errStringToError` key is; `errors.As` to `EtcdError` fails; `status.FromError` is not ok).
+
+Options:
+- (a, recommended) `ContextError.spec` gains "a ctx-shaped `err` comes back ctx-shaped" (proved spec, stronger
+  post), from (i) `ctxErrsErr`'s message restricted to Go's two context messages (`m = "context canceled" ∨ m =
+  "context deadline exceeded"`, instead of `m ∉ handlerDescs`; true of every producer) and (ii)
+  `rpctypes.Error.spec` strengthened (proved): an error without `GRPCStatus` whose `Error()` stably returns a
+  message that is no key of `errStringToError` comes back unchanged (its proof reads `ErrorDesc` as `Error()`).
+  The ctx disjunct then carries `errorMsgIs e m` with that `m`. Trusted-text change: (i) narrows T2's
+  conjunct (stronger claim on contexts, still true in Go). Estimate 100-200 lines.
+- (b) Make the second `ContextError` irrelevant to the outcome: `kv.Get.specG`'s outcome stated of `kv.Do`'s
+  error and `kv.Get` returning `ContextError` of it — changes `client_range_any` to speak of an intermediate
+  error, not the returned one; rejected (the caller sees only the returned error).
+
 ## Trust-base delta (expected)
 
 - Axioms: none added or removed (`incomingOf_cancelCtx` stays: Part A is not linked).

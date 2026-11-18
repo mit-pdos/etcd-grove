@@ -1,18 +1,27 @@
 # incomingof handoff
 
-## START HERE (2026-11-17, Part B texts at the attack stop)
+## START HERE (2026-11-18, Part B implementation: BLOCKER at T4, stopped)
 
-- Branch `incomingof-scope`, worktree /shared/etcd-grove-incomingof; lean 5fb716b5eb merged (5ef8f6520f).
-- Part A refuted, not linked, Lean reverted (5dab7c3336; land the branch with it, decided). B0 done (Scope §B.0).
-- Part B approved (Scope, top). Exact texts + soundness note: `notes/axiom-review/incomingof-b.md` (T1-T7);
-  Go: `examples/axiomcx/incomingof/is_test.go`. **STOP: waiting for 03's independent attack.**
-- Next after the go: implement T1-T7 (files listed in each T); merge lean (if the pin moved to 6d365ee1a use
-  /shared/tmp/manifest-6d3.json and update .lake/package-overrides.json); full build via build-slot
-  (LEAN_NUM_THREADS=4, retry); tcb-report --check (no axiom delta; trusted texts: ContextReadErrs,
-  ctxErrsErr/ctxErrClient, IsStatusErr.spec); interfaces; gates under flock
-  /shared/tmp/etcd-grove-full-build.lock; STATUS entry; STOP at the land stop with client_range_any old → new.
-- Pitfalls: a persistent-auth fresh world makes every WP form true and any wand from cells to a pure fact
-  buildable; only entailments (axioms, premise fields) are exposed: keep pure errDesc facts out of them.
+- Branch `incomingof-scope`, worktree /shared/etcd-grove-incomingof (lean 5fb716b5eb merged; lean had not moved
+  at the last check; pin still c6b, manifest-c6b). Part A refuted/reverted; B0 done; Part B texts attacked,
+  all survive (note `notes/axiom-review/incomingof-b.md`, MINORs folded).
+- Implemented (WIP commit, last on the branch): T1 (`descDeadline`), T2 (`ctxErrsErr`/`ctxErrClient` message
+  form; `ctxErrShape` in `cache/v3/Base.lean`, section `desc`), T3 (`IsStatusErr.spec`), T4 text
+  (`ContextError.spec`, `rangeErrOut`, `kv.Do.specG`, `kv.Get.specG`), T5 (`rangeErrSound`, `readErrIs`,
+  Client.Get/List, getList, listReadError), T6 (`ctxErrDescs` from `toGRPCErrorMap_init`), T7 (producers:
+  `errorMsgIs_errorString`, `errorMsgIs_deadline`, `ctxErrClientAllW_of`, `canceledOk_of_init`, `chanCtx_ok`).
+  Fixed after the first targeted build: `.1` of `IsStatusErr`'s post in shouldRefreshToken/isSafeRetry; the
+  nil case `ileft; ipureintro; rfl` in InvClientAuth/InvServerKV.
+- **BLOCKER (T4):** Go applies `ContextError` twice (`kv.Do` returns `ContextError(ctx, err)`, `kv.Get` returns
+  `ContextError(ctx, err')` of that). `ContextError.spec`'s new post (`errDesc err'' = errDesc err' ∨ ctx-shaped
+  err''`) does not carry a ctx-shaped `err'` through the second call: in the description-kept branch nothing
+  says `err''` is still ctx-shaped (or what its description is). Options in the report / note ("Blocker").
+- Remaining build errors at the stop: `kv__Get.lean` (the blocker, ~:80 and ~:128; also `%⟨…⟩` is not
+  accepted in `$$`, use `%(And.intro …)`); unknown beyond the four link targets (build-b2 log:
+  /shared/tmp/incomingof/build-b2.log). Other files that may need the nil case `ileft`: examples auth/authN/auth3
+  run, watchGRPCStream__run, InvGrpc (grep `ipureintro; left; rfl`).
+- Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build <the four Link targets>`
+  (client v3 Link, LinkMembers, v3rpc Link, k8s etcd3 Link), LEAN_NUM_THREADS=4.
 
 ## History
 

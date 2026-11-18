@@ -78,6 +78,15 @@ def compactedDesc : GoString := go!"etcdserver: mvcc: required revision has been
 def noRefusal [GooseExts] (err : GoInterface) : Prop :=
   err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
 
+/-- **A context error's shape** (incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03):
+not an `rpctypes.EtcdError` and without an `Is(error) bool` method, as Go's `context.Canceled` (a
+`*errors.errorString`) and `context.DeadlineExceeded` (a `deadlineExceededError`) are
+(`examples/axiomcx/incomingof-real` `TestRealTypes`). A fact of the type only, the same in every run:
+what rules a context error out of `errors.Is(err, <an EtcdError>)` (`errors.IsStatusErr.spec`). -/
+def ctxErrShape [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (e : GoInterfaceOk) : Prop :=
+  e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ∧
+    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
+
 end desc
 
 section init
@@ -380,15 +389,6 @@ instance grpc_status_is_pkg_init_inst :
 instance grpc_status_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.status :=
   build_get_is_pkg_init_wf
-
-/-- **A context error's shape** (incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03):
-not an `rpctypes.EtcdError` and without an `Is(error) bool` method, as Go's `context.Canceled` (a
-`*errors.errorString`) and `context.DeadlineExceeded` (a `deadlineExceededError`) are
-(`examples/axiomcx/incomingof-real` `TestRealTypes`). A fact of the type only, the same in every run:
-what rules a context error out of `errors.Is(err, <an EtcdError>)` (`errors.IsStatusErr.spec`). -/
-def ctxErrShape (e : GoInterfaceOk) : Prop :=
-  e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ∧
-    methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
 
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`), as far as
 grpc's and Go's `errors` functions look (Go's typing, which the model lacks: method sets are

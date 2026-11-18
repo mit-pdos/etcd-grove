@@ -65,17 +65,17 @@ theorem Client.shouldRefreshToken.wp_proof
         · ipureintro; exact Hne
         wp_apply (wp_Is e3 _ (Or.inl ⟨xAO, rfl⟩)) $$ [$Herrs $Hse3] as %b3 %Hb3
         iapply HΦ; ipureintro; intro h
-        rw [← Hd3, Hb3 h, rpctypes.errDesc_etcdError, HdAO]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+        rw [← Hd3, (Hb3 h).1, rpctypes.errDesc_etcdError, HdAO]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
       · wp_auto
         iapply HΦ; ipureintro; intro _
-        rw [← Hd2, Hb2 rfl, rpctypes.errDesc_etcdError, HdIA]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+        rw [← Hd2, (Hb2 rfl).1, rpctypes.errDesc_etcdError, HdIA]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
     · iapply HΦ; ipureintro; intro h; cases h
   · wp_auto
     cases atb
     all_goals
       wp_auto
       iapply HΦ; ipureintro; intro _
-      rw [← Hd1, Hb1 rfl, rpctypes.errDesc_etcdError, HdUE]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
+      rw [← Hd1, (Hb1 rfl).1, rpctypes.errDesc_etcdError, HdUE]; simp [go_etcd_io.etcd.cache.v3.refusalDescs]
 
 end proof
 
