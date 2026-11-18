@@ -1172,7 +1172,7 @@ theorem kvTxnOk_of_serverM (hTxn : EtcdServer.Txn.spec (GF := GF) (hG := hG))
       exact txnShape_of_check n' cs ts es ts' es' hts hes Hck HivT HivE ⟨hz.2.1, hz.2.2⟩
         ⟨hsT, hsE⟩ hpl ⟨hnT, hnE⟩
     ihave Hdep := txnPermitM_of_dep E.authOn s E ρ γr tok d t
-      (hdrBoundM E.authOn s E (GoInterface.ok ci))
+      (hdrBoundM E.authOn s E tok)
       (fun h hm => by rw [h]; exact hdrBoundM_tok s E _ hm) ⟨hq, hpl, hz⟩ hsh
       (fun h => Hsh h t hm hro) $$ Hdep
     simp only [hro, Bool.false_eq_true, ↓reduceIte] at hT
@@ -1543,7 +1543,7 @@ theorem raftKV_srvKVAnsM_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
       imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
       imodintro
       iframe Hc Hrc Hdep HF Hn
-      ipureintro; exact fun h => by cases h)
+      iintro !> %h; cases h)
     (fun q h => ⟨h.1, h.2, fun h' => by cases h'⟩)
     (fun q resp h r => by
       cases q with
@@ -1575,12 +1575,12 @@ theorem raftKV_srvKVAnsM_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr
   raftKV_mono s _ _ rfl
     (fun ctx => by
       simp only [srvKVAnsOn, srvKVAnsM]
-      iintro ⟨Hc, Hrc, Hdep, #HF, #Hn, %Ht⟩
+      iintro ⟨Hc, Hrc, Hdep, #HF, #Hn, #Ht⟩
       imodintro
       iframe Hc Hrc HF Hn
       isplitl [Hdep]
       · iapply (kvDepOwnM_true s E ρ γr tok d).2 $$ Hdep
-      ipureintro; exact fun _ => Ht)
+      iintro !> -; iexact Ht)
     (fun q h => ⟨h.1, kvDepPreM_of_on _ d q h.2⟩)
     (fun q resp h r => by
       cases q with

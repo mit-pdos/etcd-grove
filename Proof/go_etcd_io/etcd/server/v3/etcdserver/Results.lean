@@ -677,6 +677,8 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
   ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
   · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
   have h' := EtcdServer.wp_Range s E ρ γr c ctx cd none r o ot te (fun _ => iprop(True)) F 0
     (by rw [hoff]; intro h; cases h)
   rw [hon] at h'
@@ -740,6 +742,8 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
   ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
   · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
   have h' := EtcdServer.wp_Range s E ρ γr c ctx cd none r o ot te (fun _ => iprop(True)) F 0
     (by rw [hoff]; intro h; cases h)
   rw [hon] at h'
@@ -798,6 +802,8 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
   ihave #Hlb := srvAuthLb_off s E ρ $$ Hq
   ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
   · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
   have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd none r t (fun _ => iprop(True)) (fun _ => iprop(True))
     ot te F 0
   rw [hon] at hT
@@ -841,6 +847,8 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
   imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E none) t Q $$ Hnp with Hnp
   ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  ihave #HtokF : □ (False → auth.ctxToken (GoInterface.ok ctx) none) $$ []
   · iintro !> %h; cases h
   have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd none r t Q (fun _ => iprop(True)) ot te F 0
   rw [hon] at hT
