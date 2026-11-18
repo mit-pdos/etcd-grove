@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Cluster__Reconfigure.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Cluster__Reconfigure.lean`.
 Lean-first (no Rocq counterpart).
@@ -16,7 +15,7 @@ public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurab
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Cluster__random
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats__add
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__ProposeConfChange
-public import Spec.context.WithTimeoutBackground
+public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.withTimeout
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.ReconfAu
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeCtx
 
@@ -47,7 +46,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     (wp_random : Cluster.random.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG))
     (wp_ProposeConfChange : node.ProposeConfChange.spec (GF := GF) (hG := hG))
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
+    (hWT : withTimeout.spec (GF := GF) (hG := hG)) :
     Cluster.Reconfigure.spec (GF := GF) (hG := hG) := by
   intro γ vs dir c pause stop γc
   wp_start as ⟨#Hc, #Hstop⟩
@@ -73,9 +72,7 @@ theorem Cluster.Reconfigure.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG
     wp_apply wp_randomChange γ vs dir c $$ [$Hc] as %cc %o ⟨Hcc, %Hto⟩
     wp_apply wp_add _ _ $$ [$Hpkg $Hcnt]
     try wp_auto
-    wp_apply context.wp_Background
-    try wp_auto
-    wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
+    wp_apply hWT _ $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     wp_apply wp_random γ vs dir c $$ [$Hc] as %r ⟨%id, #Hr, -⟩
     iunfold isRep at Hr

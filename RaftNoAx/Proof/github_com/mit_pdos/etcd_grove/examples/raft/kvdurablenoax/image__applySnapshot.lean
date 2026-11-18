@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/image__applySnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/image__applySnapshot.lean`.
 Lean-first (no Rocq counterpart): the image's snapshot index read (refused at a non-zero index at
@@ -11,7 +10,7 @@ public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurab
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.LemmasEnts
 
 @[expose] public section
@@ -36,7 +35,7 @@ theorem image.applySnapshot.wp_proof
     (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (wp_Clone : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_Clone : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     image.applySnapshot.spec (GF := GF) (hG := hG) := by
   intro p I sp dq sv eood
   wp_start as ⟨Himg, Hsv, #Herr⟩

@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/raftpb/ConfState__Equivalent.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/go_etcd_io/raft/v3/raftpb/ConfState__Equivalent.lean`. Port of the old
 `Proof/go_etcd_io/raft/v3/raftpb/ConfState__Equivalent.lean` to raft v3.7: `Equivalent` now
@@ -15,7 +14,7 @@ module
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfState__Equivalent
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetAutoLeave
 public import RaftNoAx.Spec.slices.Sort
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.confStatesEqual
 
 @[expose] public section
@@ -70,7 +69,7 @@ def csStage (p : Loc) (c : ConfStateM) (done : Bool) : IProp GF :=
   else ownCSM p (DFrac.own 1) c
 
 theorem raftpb.ConfState.Equivalent.wp_proof
-    (wp_proto_CloneConfState : proto.CloneConfState.spec (GF := GF) (hG := hG))
+    (wp_proto_CloneConfState : raftpb.CloneConfState.spec (GF := GF) (hG := hG))
     (wp_slices_Sort : slices.«Sort».spec (GF := GF) (hG := hG))
     (wp_ConfState_GetAutoLeave : raftpb.ConfState.GetAutoLeave.spec (GF := GF) (hG := hG))
     (wp_confStatesEqual : raftpb.confStatesEqual.spec (GF := GF) (hG := hG)) :

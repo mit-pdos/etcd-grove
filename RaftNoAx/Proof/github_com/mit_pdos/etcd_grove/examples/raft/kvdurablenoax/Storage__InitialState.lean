@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Storage__InitialState.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Storage__InitialState.lean`. Lean-first
 (no Rocq counterpart).
@@ -13,7 +12,7 @@ module
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Storage__InitialState
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Storage__snapIndex
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvPbLog
 
@@ -52,7 +51,7 @@ private def trivJ : MemJust GF where
 theorem Storage.InitialState.wp_proof
     (wp_InitialState : MemoryStorage.InitialState.spec (GF := GF) (hG := hG))
     (wp_snapIndex : Storage.snapIndex.spec (GF := GF) (hG := hG))
-    (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG)) :
+    (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG)) :
     Storage.InitialState.spec (GF := GF) (hG := hG) := by
   intro s ms bp γs hs c sv boot
   wp_start as ⟨#Hrec, #Hboot, Hlock, Hmeta, Hfresh⟩
@@ -63,7 +62,7 @@ theorem Storage.InitialState.wp_proof
   icases Hboot with ⟨#Hb, #Hcs⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
-  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   wp_auto
   wp_apply wp_InitialState ms γs hs c sv $$ [$Hraft $Hmeta $Hfresh] as %hp %cs0 ⟨#Hhs, Hmeta, Hfresh, #Hcs0⟩

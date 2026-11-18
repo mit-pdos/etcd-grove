@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Cluster__Disrupt.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Cluster__Disrupt.lean`.
 Lean-first (no Rocq counterpart).
@@ -18,7 +17,7 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__TransferLeadership
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__Campaign
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__ForgetLeader
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__Status
-public import Spec.context.WithTimeoutBackground
+public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.withTimeout
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
 
@@ -51,7 +50,7 @@ theorem Cluster.Disrupt.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG))
     (wp_Campaign : node.Campaign.spec (GF := GF) (hG := hG))
     (wp_ForgetLeader : node.ForgetLeader.spec (GF := GF) (hG := hG))
     (wp_Status : node.Status.spec (GF := GF) (hG := hG))
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
+    (hWT : withTimeout.spec (GF := GF) (hG := hG)) :
     Cluster.Disrupt.spec (GF := GF) (hG := hG) := by
   intro γ vs dir c pause stop γc
   wp_start as ⟨#Hc, #Hstop⟩
@@ -77,9 +76,7 @@ theorem Cluster.Disrupt.wp_proof (wp_sleep : sleep.spec (GF := GF) (hG := hG))
     iunfold isReplica at Hrep
     icases Hrep with ⟨-, -, -, -, #Hnode, -, -, -, -, -, #HisNode, -⟩
     try wp_auto
-    wp_apply context.wp_Background
-    try wp_auto
-    wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
+    wp_apply hWT _ $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     ihave #Hnc : nodeCtx ctx' cd $$ []
     · unfold nodeCtx; iright; iexact Hctx

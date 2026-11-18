@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/KvrStorage.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Lean-first (no Rocq counterpart).
 
@@ -28,7 +27,7 @@ module
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Base
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.MemstorageInstance
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeRule
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
 
 @[expose] public section
 
@@ -109,7 +108,7 @@ theorem kvrStorRec_same (st : Storage) (s1 s2 ms1 ms2 : Loc) (γs1 γs2 : MemSto
   iapply kvrStorRec_agree s1 ms1 ms2 γs1 γs2 $$ H1 H2
 
 /-- The wrapper's bootstrap conf state (persistent): its `boot` field, a read-only `ConfState`
-holding `csm` (what `proto.CloneConfState.spec` reads). -/
+holding `csm` (what `raftpb.CloneConfState.spec` reads). -/
 def kvrStorBoot (s bp : Loc) (csm : ConfStateM) : IProp GF :=
   iprop(s.[github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Storage, go!"boot"] ↦□ bp ∗
     ownCSM bp DFrac.discard csm)

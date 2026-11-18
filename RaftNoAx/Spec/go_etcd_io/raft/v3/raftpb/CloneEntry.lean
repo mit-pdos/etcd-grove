@@ -4,7 +4,8 @@
 -/
 module
 
-public import RaftNoAx.Proof.google_golang_org.protobuf.proto.InvProto
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvPb
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbContentOwnCore
 
 @[expose] public section
 
@@ -24,18 +25,15 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `CloneEntry(e)` (`raftpb/noax.go`, the fork's branch raft37-goose-lean-noax,
 `notes/raft-noax.md`): what `proto.Clone` of a frozen message of a registered type was stated to do
-(`Spec/google_golang_org/protobuf/proto/ClonePb.lean`), at the type `*pb.Entry`: a fresh `*Entry`
-owned, at a content `c'` of the same wire content, whose unknown fields are valid, and which is
-exactly `c` when `c`'s model marshals. -/
+(`Spec/google_golang_org/protobuf/proto/ClonePb.lean`), at `Entry`'s instance `pbEntryC` (so without
+the registration premise `pbModelOf … = some pbEntryC`: the function is `Entry`'s own): of a frozen
+`*Entry` holding the wire content `c` (`entRoC`, `pbEntryC`'s `roC`), a fresh `*Entry` owned at the
+same content (`entPtsCC`, its `decC`; `ClonePb`'s `c' = c`, since every entry marshals). -/
 abbrev raftpb.CloneEntry.spec : Prop :=
-  ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I → I.data.ty = raftpb.Entry.ty →
-  ∀ (l : Loc) (c : I.data.C),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ I.data.roC l c }}
+  ∀ (l : Loc) (c : EntryC),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ entRoC l c }}
     (App (Val #(functions raftpb.CloneEntry [])) (Val #l))
-  {{ (l' : Loc), RET #l';
-      ∃ c' : I.data.C, I.data.decC l' c' ∗
-        ⌜I.data.eqv (I.data.modelOf c) (I.data.modelOf c') ∧ I.data.ufValid c' ∧
-          (I.data.marshals (I.data.modelOf c) → c' = c)⌝ }}
+  {{ (l' : Loc), RET #l'; entPtsCC l' (DFrac.own 1) c }}
 
 end spec
 

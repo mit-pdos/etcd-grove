@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/confchange/Changer__apply.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/go_etcd_io/raft/v3/confchange/Changer__apply.lean`. Lean-first (no Rocq
 counterpart). (2026-10-15, raft v3.7 retarget, stage R2: each change a `*pb.ConfChangeSingle`
@@ -11,7 +10,6 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.confchange.Changer__makeVoter
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.confchange.Changer__makeLearner
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.confchange.Changer__remove
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.confchange.incoming
-public import Spec.fmt.Errorf
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetNodeId
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeSingle__GetType
 
@@ -77,7 +75,6 @@ theorem confchange.Changer.apply.wp_proof
     (wp_Changer_makeLearner : confchange.Changer.makeLearner.spec (GF := GF) (hG := hG))
     (wp_Changer_remove : confchange.Changer.remove.spec (GF := GF) (hG := hG))
     (wp_confchange_incoming : confchange.incoming.spec (GF := GF) (hG := hG))
-    (wp_fmt_Errorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetNodeId : raftpb.ConfChangeSingle.GetNodeId.spec (GF := GF) (hG := hG))
     (wp_ConfChangeSingle_GetType : raftpb.ConfChangeSingle.GetType.spec (GF := GF) (hG := hG)) :
     confchange.Changer.apply.spec (GF := GF) (hG := hG) := by
@@ -180,18 +177,8 @@ theorem confchange.Changer.apply.wp_proof
       refine ⟨by word, by word, ?_⟩
       rw [Hstep]; simp only [applyOne, ite_eq_right H0, ite_eq_right H1, ite_eq_right H2, ite_eq_right H3, ite_eq_left Hif]
     · -- any other type: "unexpected conf type %d"
-      wp_apply wp_ConfChangeSingle_GetType.1 q DFrac.discard cc $$ [Hcq] as -
-      · iexact Hcq
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl' ⟨Hsl', -⟩
-      wp_auto
-      -- a `ConfChangeType` argument: etcd-grove's `fmt.Errorf` (Perennial's admits basic types
-      -- only); under `%d` Go prints it as an integer, calling no method (`fmt.argOkAt`'s integer
-      -- disjunct, premise fixes 6, D): the enum's `String()` is not called
-      wp_apply wp_fmt_Errorf $$ [$Hsl'] as %e -
-      · fmt_args_ok
+      -- (raft-noax) `errors.New("unexpected conf type")`: no `fmt.Errorf`, no `GetType` call
+      wp_apply errors.wp_New as %e -
       wp_for_post
       iapply HΦ
       iframe

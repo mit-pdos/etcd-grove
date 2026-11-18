@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/stepLeader.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of `election_proof/proof_stepLeader.v`: the main theorem, by the message type, over the
 branches of `stepLeader/Rest.lean` and `stepLeader/MsgProp.lean` (raft v3.7, stage R4).
@@ -62,11 +61,10 @@ theorem stepLeader.wp_proof
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
     (wp_raft_sendTimeoutNow : raft.sendTimeoutNow.spec (GF := GF) (hG := hG))
     (wp_raft_abortLeaderTransfer : raft.abortLeaderTransfer.spec (GF := GF) (hG := hG))
-    (wp_UnmarshalConfChange : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
-    (wp_UnmarshalConfChangeV2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
+    (wp_UnmarshalConfChange : raftpb.UnmarshalConfChangeV1.spec (GF := GF) (hG := hG))
+    (wp_UnmarshalConfChangeV2 : raftpb.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
-    (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_traceChangeConfEvent : traceChangeConfEvent.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_GetFrom : raftpb.Message.GetFrom.spec (GF := GF) (hG := hG))
@@ -79,7 +77,6 @@ theorem stepLeader.wp_proof
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
-    (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
     -- (2026-10-17, `CheckQuorum` on) the quorum check
     (wp_ProgressTracker_QuorumActive :
       tracker.ProgressTracker.QuorumActive.spec (GF := GF) (hG := hG))
@@ -106,8 +103,8 @@ theorem stepLeader.wp_proof
     rw [flag_moves (by rw [Hp]; exact movesB_MsgProp)]
     iapply wp_stepLeader_prop c wp_raft_bcastAppend wp_raft_appendEntry wp_raftLog_lastIndex
       wp_UnmarshalConfChange wp_UnmarshalConfChangeV2 wp_ConfChange_AsV2 wp_ConfChangeV2_AsV2
-      wp_fmt_Sprintf wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
-      wp_Entry_GetData wp_EntryType_Enum wp_DescribeConfChange r id s ml m ents sn ctx rs cs k0 Hp
+      wp_traceChangeConfEvent wp_GetType wp_Entry_GetType
+      wp_Entry_GetData wp_EntryType_Enum r id s ml m ents sn ctx rs cs k0 Hp
       Hne Hsmall Hnz Hlead (Hncc Hp) G Gp1 Gp2 HiP $$ [Hphys Hm HG Hgprep Hgpack]
     · iframe Hphys Hm HG Hgprep Hgpack
       iframe Hinit Hcc Hrc Hnosnap

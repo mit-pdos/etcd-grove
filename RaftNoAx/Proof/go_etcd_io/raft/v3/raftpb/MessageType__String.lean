@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/raftpb/MessageType__String.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/go_etcd_io/raft/v3/raftpb/MessageType__String.lean`, over the trusted model of
 protoc-gen-go's `MessageType.String` (`TrustedCode/go_etcd_io/raft/v3/raftpb.lean`, Q9 of
@@ -36,7 +35,8 @@ theorem raftpb.MessageType.String.wp_proof
   ihave #Hfact : iprop(∃ m : Loc,
       (globalAddr go_etcd_io.raft.v3.raftpb.MessageType_name ↦□ m : IProp GF) ∗
       m ↦$□ go_etcd_io.raft.v3.raftpb.msgTypeNames) $$ []
-  · iapply isPkgInit_access $$ Hpkg
+  · -- (raft-noax) the package fact's first half (the second is `errDecodeConfChange`'s)
+    iapply (isPkgInit_access (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb).trans sep_elim_left $$ Hpkg
   icases Hfact with ⟨%m, #Hg, #Hm⟩
   -- the trusted model names the translation's type and table by their names
   have hty : (go_etcd_io.raft.v3.raftpb.model.MessageType : go.GoType) =

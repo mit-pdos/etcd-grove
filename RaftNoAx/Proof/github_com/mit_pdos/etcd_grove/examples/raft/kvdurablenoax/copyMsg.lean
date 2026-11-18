@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/copyMsg.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/copyMsg.lean`. Lean-first
 (no Rocq counterpart).
@@ -8,7 +7,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/copyMs
 module
 
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.copyMsg
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvPbMsg
 
 @[expose] public section
@@ -31,7 +30,7 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
 
 theorem copyMsg.wp_proof
-    (wp_Clone : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_Clone : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     copyMsg.spec (GF := GF) (hG := hG) := by
   intro l dq dqe cap st
   wp_start as Hm
@@ -77,7 +76,7 @@ theorem copyMsg.wp_proof
       iframe
       iframe Hpbs
       ipureintro; exact Hpsn
-    ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+    ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
     · iPkgInit
     try wp_auto
     simp only [Hpsn, decide_false, Bool.not_false]

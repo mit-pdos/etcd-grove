@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Replica__read.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__read.lean`. Lean-first (no
 Rocq counterpart); kv's `KV.Read` (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kv/KV__Read.lean`)
@@ -16,7 +15,7 @@ module
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica__read
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readCtx
-public import Spec.context.WithTimeoutBackground
+public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.withTimeout
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.ApplyLemmas
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.readSeqs__next
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeCtx
@@ -48,7 +47,7 @@ theorem Replica.read.wp_proof
     (wp_readCtx : readCtx.spec (GF := GF) (hG := hG))
     (wp_next : readSeqs.next.spec (GF := GF) (hG := hG))
     (wp_node_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG))
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
+    (hWT : withTimeout.spec (GF := GF) (hG := hG)) :
     Replica.read.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ms γs ph key tmo L0 Hkey
   wp_start as ⟨#Hrep, #HL0⟩
@@ -105,9 +104,7 @@ theorem Replica.read.wp_proof
     iexists readCtxB id seq key, γh
     iframe Hmint Hho Hprod
   try wp_auto
-  wp_apply context.wp_Background
-  try wp_auto
-  wp_apply hWT tmo $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
+  wp_apply hWT tmo $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
   try wp_auto
   wp_apply wp_readCtx id seq key Hkey $$ [$Hpkg] as %b ⟨Hb, -⟩
   imod ownSlice_persist b _ _ $$ Hb with #Hb

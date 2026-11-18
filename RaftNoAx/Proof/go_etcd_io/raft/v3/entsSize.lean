@@ -1,11 +1,10 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/entsSize.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of `election_proof/proof_entsSize.v`.
 -/
 module
 
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.entsSize
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.SizePb
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.EntrySize
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbEntryType
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.MsgOut
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.LimitSizeLemmas
@@ -31,7 +30,7 @@ is a `*pb.Entry` (allocated outside the loop, so in the invariant). (out_size C3
 `proto.SizePb` at `Entry`'s registered instance (at `HasLC.hasLC`); the invariant tracks, when the
 entries are sized and their sizes sum below `2^64`, that `size` is the sum over the prefix seen. -/
 theorem entsSize.wp_proof
-    (wp_SizePb : proto.SizePb.spec (GF := GF) (hG := hG)) :
+    (wp_SizePb : raftpb.EntrySize.spec (GF := GF) (hG := hG)) :
     entsSize.spec (GF := GF) (hG := hG) := by
   intro sz s cs dq
   wp_start as H
@@ -60,8 +59,7 @@ theorem entsSize.wp_proof
     simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z s.len from ⟨Hn.1, Hif⟩]
     wp_apply wp_load_slice_index s (sint.Z n) ls dq l Hn.1 $$ [Hs] as Hs
     · iframe; ipureintro; exact Hl
-    have wpS := wp_SizePb pbEntryC pbEntryC_reg l c
-    simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_size] at wpS
+    have wpS := wp_SizePb l c
     wp_apply wpS $$ [$Hl] as %ni %Hni
     wp_for_post
     iframe

@@ -4,7 +4,8 @@
 -/
 module
 
-public import RaftNoAx.Proof.google_golang_org.protobuf.proto.InvProto
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvPb
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbContentOwnCore
 
 @[expose] public section
 
@@ -24,14 +25,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `EntrySize(e)` (`raftpb/noax.go`, the fork's branch raft37-goose-lean-noax,
 `notes/raft-noax.md`): what `proto.Size` of a frozen message of a registered type was stated to do
-(`Spec/google_golang_org/protobuf/proto/SizePb.lean`), at the type `*pb.Entry`: if the content's
-size (the instance's `size`) is below `2^63`, the result is it. -/
+(`Spec/google_golang_org/protobuf/proto/SizePb.lean`), at `Entry`'s instance `pbEntryC` (so without
+the registration premise: the function is `Entry`'s own): of a frozen `*Entry` holding the wire
+content `c` (`entRoC`), if `entrySize c` (protobuf's size of it) is below `2^63`, the result is it. -/
 abbrev raftpb.EntrySize.spec : Prop :=
-  ∀ (I : PbTypeC GF), pbModelOf GF I.data.ty = some I → I.data.ty = raftpb.Entry.ty →
-  ∀ (l : Loc) (c : I.data.C),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ I.data.roC l c }}
+  ∀ (l : Loc) (c : EntryC),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ entRoC l c }}
     (App (Val #(functions raftpb.EntrySize [])) (Val #l))
-  {{ (n : w64), RET #n; ⌜I.data.size c < 2 ^ 63 → sint.Z n = I.data.size c⌝ }}
+  {{ (n : w64), RET #n; ⌜entrySize c < 2 ^ 63 → sint.Z n = entrySize c⌝ }}
 
 end spec
 

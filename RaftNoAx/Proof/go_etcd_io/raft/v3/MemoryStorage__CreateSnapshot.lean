@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/MemoryStorage__CreateSnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /- `MemoryStorage.CreateSnapshot` (`storage.go:244`), proved 2026-10-12 (Lean-first); U8 v2 step 3
 (2026-10-29): over the lock's invariant and the stored snapshot's home (`InvMemstorage.lean`). kvreconf-snapshot-thread (2026-10-30): no client snapshot half: the stored index's authority (the
 lock's) gives `memSnapLb γs i` either way, raised on success; the caller's frozen entry at
@@ -12,8 +11,8 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetTerm
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvMemstorageAt
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.MemoryStorage__lastIndex
@@ -41,8 +40,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec (GF := GF) (hG := hG))
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.Entry.GetTerm.spec (GF := GF) (hG := hG))
-    (wp_CloneConfState : proto.CloneConfState.spec (GF := GF) (hG := hG))
-    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_CloneConfState : raftpb.CloneConfState.spec (GF := GF) (hG := hG))
+    (wp_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
   intro ms γs J o i e cs dq cc data bs eood

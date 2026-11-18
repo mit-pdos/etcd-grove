@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/MemoryStorage__Snapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 `MemoryStorage.Snapshot` (`storage.go:207`; U8 v2 step 3): under the lock, the snapshot taken out of
 its home with the lock's key (`memSnap_take`), ensured, cloned, and put back (`memSnap_put`). The
@@ -9,7 +8,7 @@ module
 
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvMemstorageAt
 
 @[expose] public section
@@ -32,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 theorem MemoryStorage.Snapshot.wp_proof
     (wp_EnsureSnapshot : raftpb.EnsureSnapshot.spec (GF := GF) (hG := hG))
-    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.Snapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memStorN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
   intro ms γs J o c tt esu

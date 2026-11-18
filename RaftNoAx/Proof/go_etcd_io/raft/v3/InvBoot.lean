@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/InvBoot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `notes/decisions.md`,
 "The new cluster's start: the bootstrap log in raft's model"): what `RawNode.Bootstrap`,
@@ -17,7 +16,7 @@ The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `no
 * `bootMarshal ps ctxs bootLog`: `proto.Marshal` of the `k`-th peer's `ConfChange`
   (`{Type: AddNode, NodeId: ps[k], Context: ctxs[k]}`, `Id` unset) returns the bytes of
   `bootLog[k]` -- the premise of `Bootstrap`/`StartNode` that ties the bytes the Go code
-  computes to the log `RaftNames.reBoot` fixes before the call. `proto.MarshalConfChange.spec`
+  computes to the log `RaftNames.reBoot` fixes before the call. `raftpb.MarshalConfChangeV1.spec`
   (the trust boundary) says only that the bytes decode back to the change, with no pure
   encoder: the determinism of `Marshal` at these inputs is a fact of protobuf discharged where
   the node is composed (every member marshals the same changes), in the style of

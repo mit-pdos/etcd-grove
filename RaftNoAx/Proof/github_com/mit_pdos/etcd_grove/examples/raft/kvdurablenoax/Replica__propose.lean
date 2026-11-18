@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Replica__propose.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of
 `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__propose.lean`. Lean-first
@@ -15,7 +14,7 @@ module
 
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica__propose
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
-public import Spec.context.WithTimeoutBackground
+public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.withTimeout
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.ClientLemmas
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeCtx
 
@@ -43,7 +42,7 @@ attribute [local instance] kdStorageModel
 
 theorem Replica.propose.wp_proof
     (wp_node_Propose : node.Propose.spec (GF := GF) (hG := hG))
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
+    (hWT : withTimeout.spec (GF := GF) (hG := hG)) :
     Replica.propose.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r d γp opsl tmo
   wp_start as ⟨#HisRep, #Hop, #Hopsl⟩
@@ -120,9 +119,7 @@ theorem Replica.propose.wp_proof
       iframe HcsO Hap
       ipureintro; exact HA
     try wp_auto
-    wp_apply context.wp_Background
-    try wp_auto
-    wp_apply hWT tmo $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
+    wp_apply hWT tmo $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
     try wp_auto
     ihave #Hhch : isChan ch γh.chanName GoString $$ [Hho]
     · unfold isHandoff; icases Hho with ⟨$, -⟩

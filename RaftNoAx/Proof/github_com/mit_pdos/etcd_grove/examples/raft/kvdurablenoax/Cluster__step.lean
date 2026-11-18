@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Cluster__step.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Cluster__step.lean`. Lean-first
 (no Rocq counterpart).
@@ -15,7 +14,7 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__Step
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__ReportUnreachable
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.node__ReportSnapshot
-public import Spec.context.WithTimeoutBackground
+public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.withTimeout
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
 
@@ -49,7 +48,7 @@ theorem Cluster.step.wp_proof
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG))
     (wp_ReportUnreachable : node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (wp_ReportSnapshot : node.ReportSnapshot.spec (GF := GF) (hG := hG))
-    (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG)) :
+    (hWT : withTimeout.spec (GF := GF) (hG := hG)) :
     Cluster.step.spec (GF := GF) (hG := hG) := by
   intro γ vs dir c sid src dst ml st
   wp_start as ⟨#Hcc, #Hsrc, #Hdst, Hm, #Hsent, Hcred⟩
@@ -81,9 +80,7 @@ theorem Cluster.step.wp_proof
   wp_apply wp_GetType.1 ml _ _ _ _ $$ [$Hpbinit $Hm] as Hm
   wp_apply wp_GetTo.1 ml _ _ _ _ $$ [$Hpbinit $Hm] as Hm
   try wp_auto
-  wp_apply context.wp_Background
-  try wp_auto
-  wp_apply hWT _ $$ [$Hctxinit $Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
+  wp_apply hWT _ $$ [$Hcci] as %ctx' %cd %cancel ⟨#Hcancel, #Hctx, -⟩
   try wp_auto
   ihave #Hnc : nodeCtx ctx' cd $$ []
   · unfold nodeCtx; iright; iexact Hctx

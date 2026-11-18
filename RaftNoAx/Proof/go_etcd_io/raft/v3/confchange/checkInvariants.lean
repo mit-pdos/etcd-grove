@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/confchange/checkInvariants.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/go_etcd_io/raft/v3/confchange/checkInvariants.lean`. Lean-first (no Rocq counterpart).
 -/
@@ -239,13 +238,8 @@ theorem confchange.checkInvariants.wp_proof
         · exact Hseen k hk
         · subst hk; simpa using Hif
       · -- `key` is untracked: the error "no progress for %d"
-        wp_apply wp_slice_literal
-        isplitr
-        · ipureintro; rfl
-        iintro %sl' ⟨Hsl', -⟩
-        wp_auto
-        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
-        case wf => raft_args_wf
+        -- (raft-noax) `errors.New` of a constant message
+        wp_apply errors.wp_New as %e #He
         unfold forMapPostcondition
         iright; iright; iright
         iexists _
@@ -339,13 +333,8 @@ theorem confchange.checkInvariants.wp_proof
       case true =>
         -- "%d is in LearnersNext, but is already marked as learner"
         wp_auto
-        wp_apply wp_slice_literal
-        isplitr
-        · ipureintro; rfl
-        iintro %sl' ⟨Hsl', -⟩
-        wp_auto
-        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
-        case wf => raft_args_wf
+        -- (raft-noax) `errors.New` of a constant message
+        wp_apply errors.wp_New as %e #He
         unfold forMapPostcondition
         iright; iright; iright
         iexists _
@@ -381,13 +370,8 @@ theorem confchange.checkInvariants.wp_proof
           rw [flagsOf_lookup pvs k pv hpv]
           simp_all
     · -- "%d is in LearnersNext, but not Voters[1]"
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl' ⟨Hsl', -⟩
-      wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
-      case wf => raft_args_wf
+      -- (raft-noax) `errors.New` of a constant message
+      wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -447,13 +431,8 @@ theorem confchange.checkInvariants.wp_proof
     wp_apply wp_idset_lookup2 $$ Hout as Hout
     wp_if_destruct
     · -- "%d is in Learners and Voters[1]"
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl' ⟨Hsl', -⟩
-      wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
-      case wf => raft_args_wf
+      -- (raft-noax) `errors.New` of a constant message
+      wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -474,13 +453,8 @@ theorem confchange.checkInvariants.wp_proof
     wp_apply wp_idset_lookup2 $$ Hin as Hin
     wp_if_destruct
     · -- "%d is in Learners and Voters[0]"
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl' ⟨Hsl', -⟩
-      wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
-      case wf => raft_args_wf
+      -- (raft-noax) `errors.New` of a constant message
+      wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -533,13 +507,8 @@ theorem confchange.checkInvariants.wp_proof
     case false =>
       -- "%d is in Learners, but is not marked as learner"
       wp_auto
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl' ⟨Hsl', -⟩
-      wp_auto
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hsl'] as %e #He
-      case wf => raft_args_wf
+      -- (raft-noax) `errors.New` of a constant message
+      wp_apply errors.wp_New as %e #He
       unfold forMapPostcondition
       iright; iright; iright
       iexists _
@@ -604,10 +573,8 @@ theorem confchange.checkInvariants.wp_proof
         exact ⟨fun _ => ⟨fun k hk => Hmem k hk, HLN, HL, fun _ => ⟨Hln0, hal⟩⟩, fun _ => rfl⟩
       · -- "AutoLeave must be false when not joint"
         wp_auto
-        ihave Hnil : (slice.nil ↦* ([] : List GoAny)) $$ []
-        · iapply ownSlice_nil
-        wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hnil] as %e #He
-        case wf => raft_args_wf
+        -- (raft-noax) `errors.New` of a constant message
+        wp_apply errors.wp_New as %e #He
         iapply HΦ
         iframe Htrk Hprs
         isplitl [Hin Hout Hl Hln]
@@ -617,10 +584,8 @@ theorem confchange.checkInvariants.wp_proof
         have := (Hinv.2.2.2 Hout0).2
         simp_all
     · -- "cfg.LearnersNext must be nil when not joint"
-      ihave Hnil : (slice.nil ↦* ([] : List GoAny)) $$ []
-      · iapply ownSlice_nil
-      wp_apply _root_.Perennial.fmt.wp_Errorf _ _ _ ?wf $$ [$Hnil] as %e #He
-      case wf => raft_args_wf
+      -- (raft-noax) `errors.New` of a constant message
+      wp_apply errors.wp_New as %e #He
       iapply HΦ
       iframe Htrk Hprs
       isplitl [Hin Hout Hl Hln]

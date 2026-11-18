@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Replica__install.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__install.lean`. Lean-first
 (no Rocq counterpart).
@@ -18,7 +17,7 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetVotersOutgoing
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetLearners
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfState__GetLearnersNext
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Halves
 public import Proof.go_etcd_io.raft.v3.FrameH
 
@@ -196,7 +195,7 @@ theorem Replica.install.wp_proof
     (wp_GetVotersOutgoing : raftpb.ConfState.GetVotersOutgoing.spec (GF := GF) (hG := hG))
     (wp_GetLearners : raftpb.ConfState.GetLearners.spec (GF := GF) (hG := hG))
     (wp_GetLearnersNext : raftpb.ConfState.GetLearnersNext.spec (GF := GF) (hG := hG))
-    (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG)) :
+    (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG)) :
     Replica.install.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ms γs ph ap idx csp m mA A mdp dq md mK' mA' K' A' L mL HLlen HLlen' HK' HA' HmLc HmLsz
   wp_start as ⟨#Hrep, Hown, Hsm, HKf, HAf, #HL, #HmL⟩
@@ -208,7 +207,7 @@ theorem Replica.install.wp_proof
   have HLlen2 : ((L.length : Int) < 2 ^ 61) := HLlen'
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
-  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   try wp_auto
   wp_apply wp_GetConfState mdp dq md $$ [$Hpb $Hsm] as %pc ⟨Hpc, Hback⟩

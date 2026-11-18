@@ -1,11 +1,10 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/raftLog__snapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of election_proof/proof_raftLog__snapshot.v.
 -/
 module
 
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftLog__snapshot
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 
 @[expose] public section
 
@@ -27,7 +26,7 @@ from the log's read-only copy: `pendKsn`'s, whose id is the pending `sid` -- it 
 (`LogStoreOk`) and one the node may send; otherwise `Storage.Snapshot`, which returns a fresh
 clone of the storage's `ss` (`HSnapshot`), related to the log by `StoredSnapOk`. -/
 theorem raftLog.snapshot.wp_proof
-    (wp_proto_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_proto_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     raftLog.snapshot.spec (GF := GF) (hG := hG) := by
   intro l ls esu
   wp_start as H

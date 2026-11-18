@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import RaftNoAx.ManualProof.go_etcd_io.raft.v3.raftpb
+public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
 public import GeneratedProof.google_golang_org.protobuf.reflect.protoreflect
 public import GeneratedProof.google_golang_org.protobuf.runtime.protoimpl

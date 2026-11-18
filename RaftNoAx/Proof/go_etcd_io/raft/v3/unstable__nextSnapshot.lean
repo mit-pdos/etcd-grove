@@ -1,11 +1,10 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/unstable__nextSnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of `election_proof/proof_unstable__nextSnapshot.v` (857d09190).
 -/
 module
 
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.unstable__nextSnapshot
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 
 @[expose] public section
 
@@ -26,7 +25,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- raft v3.7: the pending snapshot is returned as a fresh clone (`log_unstable.go:114`); the
 clone is taken of the snapshot `pendKsn` describes, so the record it holds is in `ksn`. -/
 theorem unstable.nextSnapshot.wp_proof
-    (wp_proto_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_proto_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     unstable.nextSnapshot.spec (GF := GF) (hG := hG) := by
   intro u us
   wp_start as H

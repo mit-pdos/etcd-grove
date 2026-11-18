@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/raft__appendEntry.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of election_proof/proof_raft__appendEntry.v.
 
@@ -21,7 +20,7 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.traceReplicate
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftLog__append
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raft__send
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.ClonePb
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneEntry
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbEntryType
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.LemmasSendRB
 public import Proof.ReceiptTactics
@@ -118,7 +117,7 @@ theorem raft.appendEntry.wp_proof
     (wp_traceReplicate : traceReplicate.spec (GF := GF) (hG := hG))
     (wp_raftLog_append : raftLog.append.spec (GF := GF) (hG := hG))
     (wp_raft_send : raft.send.spec (GF := GF) (hG := hG))
-    (wp_ClonePb : proto.ClonePb.spec (GF := GF) (hG := hG))
+    (wp_ClonePb : raftpb.CloneEntry.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.appendEntry.spec (GF := GF) (hG := hG) := by
   intro c r id s es ents dq m G G1 G2 Hsmall Hnz
@@ -192,13 +191,8 @@ theorem raft.appendEntry.wp_proof
     -- (2026-10-18, D19b stage 5) the receipt of this entry: `proto.Clone`'s resolution
     wp_raise_receipt Hrc
     try wp_auto
-    have wpC := wp_ClonePb pbEntryC pbEntryC_reg le c0
-    simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_decC, pbEntryC_C, pbEntryC_modelOf,
-      pbEntryC_marshals] at wpC
-    wp_apply wpC $$ [$Hc0] as %l' ⟨%c', Hl', %Hc'⟩
-    obtain ⟨-, -, Hcc⟩ := Hc'
-    have Hcc : c' = c0 := Hcc trivial
-    subst Hcc
+    -- (raft-noax) `raftpb.CloneEntry`, at the entry's content itself
+    wp_apply wp_ClonePb le c0 $$ [$Hc0] as %l' Hl'
     try wp_auto
     simp only [Hbndc, _root_.and_self, ↓reduceIte]
     wp_apply wp_store_slice_index cl (sint.Z n) _ l' $$ [Hcl] as Hcl

@@ -4,6 +4,8 @@
 module
 
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.withTimeout
+public import Perennial.Proof.context.Results
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -22,10 +24,36 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Assumptions]
 
--- raft-noax: TODO prove `withTimeout` (Perennial's `wp_WithCancel_Background` and
--- `time.wp_AfterFunc`, theorems).
+/-- Perennial's `wp_WithCancel_Background` (no `Done` proposition) and `time.wp_AfterFunc`, the
+timer's function `cancel` itself (which never panics). -/
 theorem withTimeout.wp_proof : withTimeout.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d
+  wp_start as ⟨#Hpkg, Hcci⟩
+  ihave #Hctxinit : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  wp_auto
+  wp_apply context.wp_Background
+  try wp_auto
+  wp_apply (_root_.Perennial.context.wp_WithCancel_Background iprop(True)) $$ [$Hctxinit $Hcci]
+    as %ctx' %γ' %cancel ⟨#Hcancel, #Hctx, -, #Hfrom⟩
+  wp_auto
+  wp_apply time.wp_AfterFunc $$ [] as %t -
+  · iapply Hcancel
+    · imodintro; itrivial
+    inext
+    iintro -
+    ipureintro; rfl
+  wp_auto
+  iapply HΦ
+  iframe Hctx Hfrom
+  imodintro
+  iintro %Φ' - HΦ'
+  iapply Hcancel
+  · imodintro; itrivial
+  inext
+  iintro -
+  iapply HΦ'
+  itrivial
 
 end proof
 

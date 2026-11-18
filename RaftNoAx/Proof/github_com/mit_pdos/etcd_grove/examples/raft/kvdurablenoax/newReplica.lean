@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/newReplica.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/newReplica.lean`. Lean-first
 (no Rocq counterpart).
@@ -17,7 +16,7 @@ public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurab
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica__run
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica__ticker
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Replica__snapshotter
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneConfState
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Halves
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.DefsLaws
 
@@ -43,14 +42,12 @@ variable [raft_sem : go_etcd_io.raft.v3.Assumptions] [AllG GF] [KdStor GF]
 
 attribute [local instance] kdStorageModel
 
-/-- `proto.Clone` of a read-only conf state that may be `nil`. -/
-theorem wp_cloneOpt (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG))
+/-- `pb.CloneConfState` of a read-only conf state that may be `nil`. -/
+theorem wp_cloneOpt (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG))
     (p : Loc) (c : ConfStateM) :
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ csOpt p DFrac.discard c }}
-    (App (Val (@! google_golang_org.protobuf.proto.Clone))
-      (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #p)))
-  {{ (p' : Loc), RET #(interface.mkOk (go.GoType.PointerType raftpb.ConfState.ty) #p');
-      csOpt p' DFrac.discard c }} := by
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ csOpt p DFrac.discard c }}
+    (App (Val #(functions raftpb.CloneConfState [])) (Val #p))
+  {{ (p' : Loc), RET #p'; csOpt p' DFrac.discard c }} := by
   unfold csOpt
   iintro %Φ ⟨#Hpkg, Hc⟩ HΦ
   icases Hc with (⟨%Hnull, %Hc⟩ | #Hc)
@@ -68,14 +65,14 @@ theorem wp_cloneOpt (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG))
 theorem newReplica.wp_proof (wp_run : Replica.run.spec (GF := GF) (hG := hG))
     (wp_ticker : Replica.ticker.spec (GF := GF) (hG := hG))
     (wp_snapshotter : Replica.snapshotter.spec (GF := GF) (hG := hG))
-    (wp_Clone : proto.CloneConfState.spec (GF := GF) (hG := hG)) :
+    (wp_Clone : raftpb.CloneConfState.spec (GF := GF) (hG := hG)) :
     newReplica.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id n st sts sq ms γs K mK mA csp Kv A ap l m cfg ip hs S o M rafted tick f
     Htick HMhs Hok Hholds Hap61 Hrafted Ho Hlap Hpl Hlc Hid1 Hid9 Hsz Hapsi
   wp_start as ⟨#Hcci, #Hcl, #Hstats, #Hseqs, #HfInv, #HisNode, Hdrv, Hcfg, Hrun, #Hrec, #HmsInv,
     Hmeta, #Himg, Himage, #Hcert, Hwr, #Hcomp, #Hfz, #Hfro, #HsnLbM, HK, HA, #Hcs0, %Hcsm, #Hap,
     #Hca, %Hval, %HAok, #Hsend, %Hmd⟩
-  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   -- the `dmu` names
   imod ghostVar_alloc (GF := GF) ((none : Option GName), S) with ⟨%γph, Hph⟩

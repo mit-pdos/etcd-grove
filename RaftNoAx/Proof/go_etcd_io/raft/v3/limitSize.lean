@@ -1,9 +1,8 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/limitSize.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Port of election_proof/proof_limitSize.v. -/
 module
 
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.limitSize
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.SizePb
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.EntrySize
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbEntryType
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.MsgOut
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.LimitSizeLemmas
@@ -36,7 +35,7 @@ loop invariant tracks, when the entries are sized and `maxSize ≤ entsCutMax`, 
 of the sizes of `ents[:limit]` and that it is within `maxSize` unless `limit = 1`: each size is below
 `2^33` (`entrySize_lt_of_ok`), so the running sum never wraps. -/
 theorem limitSize.wp_proof
-    (wp_SizePb : proto.SizePb.spec (GF := GF) (hG := hG)) :
+    (wp_SizePb : raftpb.EntrySize.spec (GF := GF) (hG := hG)) :
     limitSize.spec (GF := GF) (hG := hG) := by
   intro sz s cs dq maxSize
   wp_start as H
@@ -64,8 +63,7 @@ theorem limitSize.wp_proof
   rw [ite_eq_left ⟨by word, by word⟩]
   wp_apply wp_load_slice_index s (sint.Z (W64 0)) ls dq l0 (by word) $$ [Hs] as Hs
   · iframe; ipureintro; exact Hl0
-  have wpS0 := wp_SizePb pbEntryC pbEntryC_reg l0 c0
-  simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_size] at wpS0
+  have wpS0 := wp_SizePb l0 c0
   wp_apply wpS0 $$ [$Hl0] as %n0 %Hn0
   have Hsz0 : sz = true → uint.nat maxSize ≤ entsCutMax → uint.nat n0 = entrySize c0 := by
     intro h1 _
@@ -94,8 +92,7 @@ theorem limitSize.wp_proof
     rw [ite_eq_left ⟨by word, by word⟩]
     wp_apply wp_load_slice_index s (sint.Z lim) ls dq l (by word) $$ [Hs] as Hs
     · iframe; ipureintro; exact Hl
-    have wpS := wp_SizePb pbEntryC pbEntryC_reg l c
-    simp only [pbEntryC_ty, pbEntryC_roC, pbEntryC_size] at wpS
+    have wpS := wp_SizePb l c
     wp_apply wpS $$ [$Hl] as %ni %Hni
     -- the new sum, exact when sized and `maxSize ≤ entsCutMax`
     have Hsum : sz = true → uint.nat maxSize ≤ entsCutMax →

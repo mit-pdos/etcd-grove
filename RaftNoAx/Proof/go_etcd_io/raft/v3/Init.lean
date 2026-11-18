@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/Init.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Lean-first (no Rocq counterpart).
 
@@ -112,15 +111,19 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.MessageType_name _ as HMessageType_name
   wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.EntryType_value _ as HEntryType_value
   wp_apply wp_GlobalAlloc (V := Loc) go_etcd_io.raft.v3.raftpb.EntryType_name _ as HEntryType_name
+  -- (raft-noax) `noax.go`'s `errDecodeConfChange = errors.New(...)`
+  wp_apply wp_GlobalAlloc (V := GoInterface) go_etcd_io.raft.v3.raftpb.errDecodeConfChange go.error as HerrDecode
   repeat (first
     | wp_apply google_golang_org.protobuf.runtime.protoimpl.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H7⟩
     | wp_apply google_golang_org.protobuf.reflect.protoreflect.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H6⟩
     | wp_apply slices.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #H5⟩
-    | wp_apply google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
-    | wp_apply strings.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
-    | wp_apply strconv.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
-    | wp_apply fmt.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #H1⟩
+    | wp_apply strings.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #H4⟩
+    | wp_apply strconv.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #H3⟩
+    | wp_apply fmt.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #H2⟩
+    | wp_apply errors.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #H1⟩
     | wp_auto)
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %eD #_
+  try wp_auto
   wp_apply (wp_map_make1 (K := w32) (V := GoString) _ _) as %m0 Hm0
   repeat (first
     | wp_apply (wp_mapInsert (K := w32) (V := GoString) _ m0 _ _ _) $$ Hm0 as Hm0
@@ -171,13 +174,18 @@ theorem go_etcd_io.raft.v3.raftpb.wp_initialize'
   ipersist HMessageType_name
   imod ownMap_persist _ _ _ $$ Hm2 with Hm2
   ipersist Hm2
+  ipersist HerrDecode
   -- init.0: its trusted model does nothing
   wp_func_call
   wp_call
   iframe Hown
   is_pkg_init_finish
-  unfold go_etcd_io.raft.v3.raftpb.msgTypeNames
-  iexact Hm2
+  isplitl
+  · unfold go_etcd_io.raft.v3.raftpb.msgTypeNames
+    iexact Hm2
+  first
+    | (imodintro; ipureintro; exact nofun)
+    | (iexists _; iframe HerrDecode; ipureintro; exact nofun)
 
 end init_lc
 
@@ -310,25 +318,25 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := sync.Mutex) raftLoggerMu _ as HraftLoggerMu
   wp_apply wp_GlobalAlloc (V := Loc) discardLogger _ as _
   wp_apply wp_GlobalAlloc (V := Loc) defaultLogger _ as _
-  -- (2026-11-08) `state_trace.go`'s imports (raft translated under the `goose` tag)
-  wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd18⟩
-  wp_apply go_etcd_io.raft.v3.tracker.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply go_etcd_io.raft.v3.confchange.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply slices.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply math.big.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply crypto.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply context.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply os.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply log.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply io.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply fmt.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hdp⟩
+  -- (2026-11-08) `state_trace.go`'s imports (raft translated under the `goose` tag); (raft-noax)
+  -- no `proto`
+  wp_apply strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd18⟩
+  wp_apply go_etcd_io.raft.v3.tracker.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd17⟩
+  wp_apply go_etcd_io.raft.v3.quorum.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply go_etcd_io.raft.v3.confchange.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd15⟩
+  wp_apply slices.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply math.big.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply math.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply crypto.rand.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply context.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply os.wp_initialize' _ Hinit.2.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply log.wp_initialize' _ Hinit.2.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply io.wp_initialize' _ Hinit.2.2.2.2.1 $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply fmt.wp_initialize' _ Hinit.2.2.2.1 $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.2.1 $$ Hown as ⟨Hown, #Hd2⟩
   wp_apply errors.wp_initialize' _ Hinit.2.1 $$ Hown as ⟨Hown, #Hd1⟩
   icases os_isPkgInit_Stderr $$ Hd6 with ⟨%stderr, #Hstderr⟩
   icases io_isPkgInit_Discard $$ Hd4 with ⟨%discard, #Hdiscard⟩

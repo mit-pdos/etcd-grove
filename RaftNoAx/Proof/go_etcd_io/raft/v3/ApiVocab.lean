@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/ApiVocab.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 The vocabulary of raft's node API (2026-10-26, raft's signature, stage 1;
 `notes/decisions.md`, "Package signatures"): the records and predicates the public node specs
@@ -649,7 +648,8 @@ def bootConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
     p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
     pbMsg raftpb.ConfChange p [])
 
-/-- `proto.Marshal` of the `k`-th peer's conf change returns the bytes of the `k`-th boot entry
+/-- (raft-noax: `raftpb.MarshalConfChangeV1`, which returns no error, in place of `proto.Marshal`)
+`proto.Marshal` of the `k`-th peer's conf change returns the bytes of the `k`-th boot entry
 (see the file header): for the `*pb.ConfChange` raft's `Bootstrap` builds at `p` (`bootConfChange`:
 `Type = AddNode` and `NodeId = ps[k]` set, `Id` unset, `Context = ctxs[k]`, no unknown fields), the
 call returns a fresh slice holding `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the
@@ -664,9 +664,8 @@ def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) 
     (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
       m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
     bootConfChange p dq m -∗
-    (∀ (d : GoSlice), bootConfChange p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
-    WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
-          (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
+    (∀ (d : GoSlice), bootConfChange p dq m -∗ d ↦* e.Data' -∗ Φ #d) -∗
+    WP (App (Val #(functions go_etcd_io.raft.v3.raftpb.MarshalConfChangeV1 [])) (Val #p)) {{ Φ }})
 
 instance bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
     Persistent (bootMarshal (GF := GF) ps ctxs bootLog) := by

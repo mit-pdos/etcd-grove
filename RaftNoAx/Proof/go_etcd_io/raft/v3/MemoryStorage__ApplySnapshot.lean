@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/MemoryStorage__ApplySnapshot.lean` (etc/copy-part.py; rerun it, do not edit).
 /- `MemoryStorage.ApplySnapshot` (`storage.go:218`; U8 v2 step 3). The stored snapshot's index is
 `0` or frozen in the map, so below the caller's owned range from `j ≤ s` (`s` the argument's index):
 the out-of-date test fails. The caller's range is deleted from the map, the dummy at `s` inserted
@@ -12,7 +11,7 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.EnsureSnapshot
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetTerm
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvMemstorageAt
 
@@ -65,7 +64,7 @@ private theorem wp_ApplySnapshot_gen
     (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG))
+    (wp_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG))
     (ms : Loc) (γs : MemStorNames) (J : MemJust GF) (o : Option (Nat × SnapshotM)) (j : Nat)
     (old : List EntryM) (sp : Loc) (dq : DFrac) (sv : SnapshotM) (eood : GoInterface)
     (w : Option SnapshotM)
@@ -342,7 +341,7 @@ theorem MemoryStorage.ApplySnapshot.wp_proof
     (wp_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
     (wp_GetTerm : raftpb.SnapshotMetadata.GetTerm.spec (GF := GF) (hG := hG))
-    (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG) := by
   refine ⟨?_, ?_, ?_, ?_⟩
   · intro ms γs J o j old sp dq sv eood Hjs Hs61

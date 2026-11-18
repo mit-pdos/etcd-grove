@@ -130,11 +130,15 @@ def raftpb.msgTypeNames : GMap w32 GoString :=
   <[W32 0 := go!"MsgHup"]> ∅)))))))))))))))))))))))
 
 /-- `raftpb`'s package fact (Q9, 2026-11-09; `True` until then): `MessageType_name` holds a map
-with `raftpb.msgTypeNames`, both read-only (nothing but the initializer writes the table). -/
+with `raftpb.msgTypeNames`, both read-only (nothing but the initializer writes the table). (raft-noax)
+And `errDecodeConfChange` (`noax.go`, `errors.New`'s) holds a non-`nil` error, read-only: the conf
+change decoders' error. -/
 instance raftpb_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
-  define_is_pkg_init iprop(∃ m : Loc,
+  define_is_pkg_init iprop((∃ m : Loc,
     (globalAddr go_etcd_io.raft.v3.raftpb.MessageType_name ↦□ m : IProp GF) ∗
-    m ↦$□ raftpb.msgTypeNames)
+    m ↦$□ raftpb.msgTypeNames) ∗
+    ∃ e : GoInterface, (globalAddr go_etcd_io.raft.v3.raftpb.errDecodeConfChange ↦□ e : IProp GF) ∗
+      ⌜e ≠ interface.nil⌝)
 instance raftpb_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb :=
   build_get_is_pkg_init_wf

@@ -1,11 +1,10 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/unstable__restore.lean` (etc/copy-part.py; rerun it, do not edit).
 /- Port of election_proof/proof_unstable__restore.v. -/
 module
 
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.unstable__restore
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Snapshot__GetMetadata
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.CloneSnapshot
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneSnapshot
 
 @[expose] public section
 
@@ -29,7 +28,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 theorem unstable.restore.wp_proof
     (wp_Snapshot_GetMetadata : raftpb.Snapshot.GetMetadata.spec (GF := GF) (hG := hG))
     (wp_SnapshotMetadata_GetIndex : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG))
-    (wp_proto_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_proto_CloneSnapshot : raftpb.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     unstable.restore.spec (GF := GF) (hG := hG) := by
   intro u us sp dq sv Hhas
   wp_start as ⟨Hun, Hsp⟩

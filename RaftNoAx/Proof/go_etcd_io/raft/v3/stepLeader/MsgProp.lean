@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/stepLeader/MsgProp.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 `stepLeader`'s `MsgProp` branch (split out of `stepLeader.lean` on 2026-10-13, with the
 conf-change loop of reconfiguration stage D): `wp_stepLeader_prop`.
@@ -10,17 +9,15 @@ public import RaftNoAx.Proof.go_etcd_io.raft.v3.LemmasStepR
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raft__bcastAppend
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raft__appendEntry
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftLog__lastIndex
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.UnmarshalConfChangeV2
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
-public import RaftNoAx.Spec.fmt.Sprintf
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.traceChangeConfEvent
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.EntryType__Enum
-public import RaftNoAx.Spec.go_etcd_io.raft.v3.DescribeConfChange
 public import Proof.go_etcd_io.raft.v3.FrameH
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.TracedUntracedSend
 
@@ -110,10 +107,8 @@ or non-empty inside one): the log line, the slot overwritten with a fresh
 local macro "cc_refuse_tail" : tactic => `(tactic| (
     wp_apply raft.wp_load_disableConfChangeValidationC $$ Hphys as Hphys
     wp_apply raft.wp_load_idC $$ Hphys as Hphys
-    first
-    | wp_apply wp_DescribeConfChange.1 _ _ _ $$ [$(frameH `Hown)] as %str Hown
-    | (ihave Hown := Hownback $$ HCh
-       wp_apply wp_DescribeConfChange.2 _ _ _ $$ [$(frameH `Hown)] as %str Hown)
+    -- (raft-noax) the change is logged lazily (`describedConfChange{cc}`): no call
+    try (ihave Hown := Hownback $$ HCh)
     icases ownRaftPhysC_tracker_same c r id _ $$ Hphys with ⟨%tv2, Htrkf, Htrk, Hback⟩
     icases (Access.access
         (A := r.[raft, go!"trk"].[tracker.ProgressTracker, go!"Config"] ↦ tv2.Config')
@@ -143,6 +138,13 @@ local macro "cc_refuse_tail" : tactic => `(tactic| (
     iframe Hents'
     ipureintro; word
   ))
+
+/-- (raft-noax) A `failedCheck` set (an interface holding a `lazySprintf`) is not `nil`. -/
+local macro "ifc_ne_nil" : tactic => `(tactic| first
+  | nofun
+  | (intro h; cases h)
+  | (simp [interface.mkOk])
+  | simp)
 
 set_option hygiene false in
 /-- A case of `cc_join` at its end, refused: `Hstep0`, and `failedCheck` non-empty by `hne`
@@ -183,18 +185,13 @@ local macro "cc_pending" ccm:term:max : tactic => `(tactic| (
     iintro %sla Hargs0
     icases Hargs0 with ⟨Hargs, -⟩
     wp_auto
-    wp_apply wp_fmt_Sprintf $$ [$(frameH `Hargs)] as %str ⟨Hargs, %Hout⟩
-    · ipureintro
-      exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _)
-        (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil)
-    have Hstr : str ≠ [] := by
-      obtain ⟨o', rfl, -⟩ := _root_.Perennial.fmt.SprintfOut.byte_inv (by decide) Hout
-      simp
+    -- (raft-noax) `lazySprintf{format, args}`, formatted only if the logger prints it
+    try wp_auto
     have Hstep0 : propConfStep c.joint s.logst.applied (logLast s.logst) (lpc (sint.nat n))
         (e, some $ccm) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
       unfold propConfStep
       simp only [Hpend, _root_.true_or, ↓reduceIte]
-    cc_join_refuse Hstr
+    cc_join_refuse (by ifc_ne_nil)
   ))
 
 set_option hygiene false in
@@ -254,13 +251,13 @@ that the refusal and the acceptance are each verified once (`cc_after`), not onc
 Leaves the two cases of `alreadyPending` (`Hif`; each ends with `cc_join_refuse` or
 `cc_join_accept`), then the code after the chain. -/
 local macro "cc_join" ccm:term:max : tactic => `(tactic| (
-    wp_join iprop(∃ (str : GoString), failedCheck_ptr ↦ str ∗ r_ptr ↦ r ∗
+    wp_join iprop(∃ (str : GoInterface), failedCheck_ptr ↦ str ∗ r_ptr ↦ r ∗
         alreadyJoint_ptr ↦ c.joint ∗ wantsLeaveJoint_ptr ↦ decide (chs.len = W64 0) ∗
         ownRaftPhysCV c c.voters r id { s with pci := (lpc (sint.nat n)).2 } ∗
-        ⌜(str ≠ [] ∧ propConfStep c.joint s.logst.applied (logLast s.logst)
+        ⌜(str ≠ interface.nil ∧ propConfStep c.joint s.logst.applied (logLast s.logst)
             (lpc (sint.nat n)) (e, some $ccm) =
               ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2)) ∨
-          (str = [] ∧ propConfStep c.joint s.logst.applied (logLast s.logst)
+          (str = interface.nil ∧ propConfStep c.joint s.logst.applied (logLast s.logst)
             (lpc (sint.nat n)) (e, some $ccm) = ((lpc (sint.nat n)).1 ++ [e],
               logLast s.logst + W64 ((sint.nat n : Nat) : Int) + W64 1))⌝)
       with [failedCheck r alreadyJoint wantsLeaveJoint Hphys]
@@ -310,17 +307,15 @@ theorem wp_stepLeader_prop
     (wp_raft_bcastAppend : raft.bcastAppend.spec (GF := GF) (hG := hG))
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_raftLog_lastIndex : raftLog.lastIndex.spec (GF := GF) (hG := hG))
-    (wp_UnmarshalConfChange : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
-    (wp_UnmarshalConfChangeV2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
+    (wp_UnmarshalConfChange : raftpb.UnmarshalConfChangeV1.spec (GF := GF) (hG := hG))
+    (wp_UnmarshalConfChangeV2 : raftpb.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
-    (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
     (wp_traceChangeConfEvent : traceChangeConfEvent.spec (GF := GF) (hG := hG))
     (wp_GetType : raftpb.Message.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
-    (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option ConfChangeIM)) (k0 : Nat)
     (Hty : m.Type' = MsgProp) (Hne : ents ≠ [])
@@ -610,7 +605,7 @@ theorem wp_stepLeader_prop
               (e, some (.v1 c1)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
             unfold propConfStep
             simp only [ccWantsLeave, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true, ↓reduceIte]
-          cc_join_refuse (List.cons_ne_nil _ _)
+          cc_join_refuse (by ifc_ne_nil)
       cc_after
     · -- a `ConfChangeV2`
       iunfold ccEntOk at Heo
@@ -653,7 +648,7 @@ theorem wp_stepLeader_prop
                 (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
               unfold propConfStep
               simp only [ccWantsLeave, Hcw, Hjv, List.isEmpty_nil, ne_eq, Bool.true_eq_false, not_false_eq_true, _root_.or_true, ↓reduceIte]
-            cc_join_refuse (List.cons_ne_nil _ _)
+            cc_join_refuse (by ifc_ne_nil)
           · -- a request to leave the joint configuration: accepted
             rw [Hjv]
             try wp_auto
@@ -687,7 +682,7 @@ theorem wp_stepLeader_prop
                 (e, some (.v2 c2)) = ((lpc (sint.nat n)).1 ++ [zero_val EntryM], (lpc (sint.nat n)).2) := by
               unfold propConfStep
               simp only [ccWantsLeave, Hne, Hjv, ne_eq, Bool.false_eq_true, not_false_eq_true, _root_.or_true, ↓reduceIte]
-            cc_join_refuse (List.cons_ne_nil _ _)
+            cc_join_refuse (by ifc_ne_nil)
       cc_after
   · -- the loop is done: `appendEntry` of the loop's batch
     have Hnend : sint.nat n = ents.length := by

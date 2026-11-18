@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Replica__applyEntry.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 kvreconf's proof (the same Go text), ported. Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Replica__applyEntry.lean`. Lean-first
 (no Rocq counterpart).
@@ -17,8 +16,8 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import RaftNoAx.Spec.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Stats__add
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.UnmarshalConfChangeV2
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV1
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.UnmarshalConfChangeV2
 public import RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.ApplyLemmas
 public import Proof.go_etcd_io.raft.v3.FrameH
 
@@ -113,8 +112,8 @@ theorem Replica.applyEntry.wp_proof
     (wp_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG))
     (wp_GetIndex : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal1 : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
-    (wp_Unmarshal2 : proto.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
+    (wp_Unmarshal1 : raftpb.UnmarshalConfChangeV1.spec (GF := GF) (hG := hG))
+    (wp_Unmarshal2 : raftpb.UnmarshalConfChangeV2.spec (GF := GF) (hG := hG))
     (wp_add : Stats.add.spec (GF := GF) (hG := hG)) :
     Replica.applyEntry.spec (GF := GF) (hG := hG) := by
   intro γ vs dir id r n st sts sq ms γs ph q ap idx csp m mA A l k e ep Htk Hap Hk61 Hidxap Hkap
@@ -172,7 +171,7 @@ theorem Replica.applyEntry.wp_proof
     rw [List.append_assoc, List.getElem?_append_right (Nat.le_refl _)]; simp
   ihave #Hce : isCommittedLogLb γ.r.cluster (ap ++ [e]) $$ []
   · iapply isCommittedLogLb_mono γ.r.cluster (ap ++ [e]) l Hpre $$ Hl
-  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  ihave #Hproto : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
   -- every committed conf entry decodes, with a defined transition
   ihave #Hcl' := Hcl

@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Proof of `Spec/go_etcd_io/raft/v3/raftpb/MarshalConfChange.lean`.
 -/
@@ -8,8 +7,8 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChange
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV1
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV1
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.MarshalConfChange
-public import RaftNoAx.Spec.google_golang_org.protobuf.proto.MarshalConfChangeV2
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChangeV1
+public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.MarshalConfChangeV2
 
 @[expose] public section
 
@@ -31,8 +30,8 @@ theorem raftpb.MarshalConfChange.wp_proof
     (wp_ConfChange_AsV1 : raftpb.ConfChange.AsV1.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV1 : raftpb.ConfChangeV2.AsV1.spec (GF := GF) (hG := hG))
     (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec (GF := GF) (hG := hG))
-    (wp_proto_MarshalConfChange : proto.MarshalConfChange.spec (GF := GF) (hG := hG))
-    (wp_proto_MarshalConfChangeV2 : proto.MarshalConfChangeV2.spec (GF := GF) (hG := hG)) :
+    (wp_proto_MarshalConfChange : raftpb.MarshalConfChangeV1.spec (GF := GF) (hG := hG))
+    (wp_proto_MarshalConfChangeV2 : raftpb.MarshalConfChangeV2.spec (GF := GF) (hG := hG)) :
     raftpb.MarshalConfChange.spec (GF := GF) (hG := hG) := by
   intro c oc dq
   wp_start as Hc

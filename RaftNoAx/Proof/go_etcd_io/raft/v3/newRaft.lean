@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/newRaft.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of election_proof/proof_newRaft.v.
 
@@ -27,8 +26,6 @@ public import RaftNoAx.Spec.go_etcd_io.raft.v3.traceConfChangeEvent
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__ConfState
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raft__becomeFollower
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.tracker.ProgressTracker__VoterNodes
-public import RaftNoAx.Spec.fmt.Sprintf
-public import RaftNoAx.Spec.strings.Join
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.TracedUntraced
 public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftLog__lastEntryID
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.TracedNodeBoot
@@ -753,9 +750,7 @@ theorem newRaft.wp_proof
     (wp_HardState_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))
     (wp_HardState_GetVote : raftpb.HardState.GetVote.spec (GF := GF) (hG := hG))
     (wp_raft_becomeFollower : raft.becomeFollower.spec (GF := GF) (hG := hG))
-    (wp_ProgressTracker_VoterNodes : tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG))
-    (wp_fmt_Sprintf : fmt.Sprintf.spec (GF := GF) (hG := hG))
-    (wp_strings_Join : strings.Join.spec (GF := GF) (hG := hG)) :
+    (wp_ProgressTracker_VoterNodes : tracker.ProgressTracker.VoterNodes.spec (GF := GF) (hG := hG)) :
     newRaft.spec (GF := GF) (hG := hG) := by
   have wp_bfU := raft.becomeFollower.untraced wp_raft_becomeFollower
   intro c cv lok si sn σ hs csm R R' cs' γ vs Hvalid Hlok Hsto HmaxInfl Hdpf Hros Hdccv Hmcs Hmms Hidx Hpend
@@ -1065,48 +1060,7 @@ theorem newRaft.wp_proof
     icases ownRaftPhysC_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
     wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
     ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
-    -- the log line's `nodesStrs` loop; what it builds is never read
-    ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
-        "i" ∷ i_ptr ↦ k ∗ "n" ∷ n_ptr ↦ x ∗ "nodesStrs" ∷ nodesStrs_ptr ↦ sl' ∗
-        "Hstrs" ∷ sl' ↦* strs ∗
-        "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
-        "Hnsl" ∷ nsl ↦* nxs ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
-    · iexists W64 0, _, slice.nil, []
-      iframe i n nodesStrs Hnsl
-      isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · iapply ownSliceCap_nil
-      ipureintro; constructor <;> word
-    wp_for IH
-    wp_if_destruct
-    · ihave %Hnl := ownSlice_len $$ Hnsl
-      have Hlt : (sint.Z k).toNat < nxs.length := by word
-      list_elem nxs (sint.Z k).toNat as e
-      rw [ite_eq_left (show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z nsl.len by word)]
-      wp_apply wp_load_slice_index nsl (sint.Z k) nxs (DFrac.own 1) e Hk.1 $$ [Hnsl] as Hnsl
-      · iframe; ipureintro; exact He_lookup
-      wp_apply wp_slice_literal
-      try (isplitr; (ipureintro; rfl))
-      iintro %sla ⟨Hargs, -⟩
-      wp_auto
-      wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
-      · ipureintro
-        exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
-      wp_apply wp_slice_literal
-      try (isplitr; (ipureintro; rfl))
-      iintro %sl2 ⟨Hsl2, -⟩
-      wp_auto
-      wp_apply wp_slice_append $$ [$Hstrs $Hstrs_cap $Hsl2] as %sl3 ⟨Hstrs, Hstrs_cap, -⟩
-      wp_for_post
-      iframe
-      iexists _, _, _, _
-      iframe
-      ipureintro; constructor <;> word
-    -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
-    -- `r.raftLog.committed` and `r.raftLog.applied` through the log
-    wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+    -- (raft-noax) the log line names the voters lazily (`hexIDs(...)`): no loop, no `Join`
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
@@ -1566,48 +1520,7 @@ theorem newRaft.wp_proof
     icases ownRaftPhysC_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
     wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
     ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
-    -- the log line's `nodesStrs` loop; what it builds is never read
-    ihave IH : iprop(∃ (k x : w64) (sl' : GoSlice) (strs : List GoString),
-        "i" ∷ i_ptr ↦ k ∗ "n" ∷ n_ptr ↦ x ∗ "nodesStrs" ∷ nodesStrs_ptr ↦ sl' ∗
-        "Hstrs" ∷ sl' ↦* strs ∗
-        "Hstrs_cap" ∷ ownSliceCap GoString sl' (DFrac.own 1) ∗
-        "Hnsl" ∷ nsl ↦* nxs ∗
-        "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (nxs.length : Int)⌝) $$ [i n nodesStrs Hnsl]
-    · iexists W64 0, _, slice.nil, []
-      iframe i n nodesStrs Hnsl
-      isplitr
-      · iapply ownSlice_nil
-      isplitr
-      · iapply ownSliceCap_nil
-      ipureintro; constructor <;> word
-    wp_for IH
-    wp_if_destruct
-    · ihave %Hnl := ownSlice_len $$ Hnsl
-      have Hlt : (sint.Z k).toNat < nxs.length := by word
-      list_elem nxs (sint.Z k).toNat as e
-      rw [ite_eq_left (show 0 ≤ sint.Z k ∧ sint.Z k < sint.Z nsl.len by word)]
-      wp_apply wp_load_slice_index nsl (sint.Z k) nxs (DFrac.own 1) e Hk.1 $$ [Hnsl] as Hnsl
-      · iframe; ipureintro; exact He_lookup
-      wp_apply wp_slice_literal
-      try (isplitr; (ipureintro; rfl))
-      iintro %sla ⟨Hargs, -⟩
-      wp_auto
-      wp_apply wp_fmt_Sprintf $$ [$Hargs] as %str Hargs
-      · ipureintro
-        exact _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) _root_.Perennial.fmt.ArgsWf.nil
-      wp_apply wp_slice_literal
-      try (isplitr; (ipureintro; rfl))
-      iintro %sl2 ⟨Hsl2, -⟩
-      wp_auto
-      wp_apply wp_slice_append $$ [$Hstrs $Hstrs_cap $Hsl2] as %sl3 ⟨Hstrs, Hstrs_cap, -⟩
-      wp_for_post
-      iframe
-      iexists _, _, _, _
-      iframe
-      ipureintro; constructor <;> word
-    -- the log line: `r.id`, `strings.Join(nodesStrs, ",")`, `r.Term`, then
-    -- `r.raftLog.committed` and `r.raftLog.applied` through the log
-    wp_apply wp_strings_Join $$ [$Hstrs] as %joined Hstrs
+    -- (raft-noax) the log line names the voters lazily (`hexIDs(...)`): no loop, no `Join`
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_apply raft.wp_load_raftLogC $$ Hphys as Hphys
     icases ownRaftPhysC_log_same _ _ _ s3 $$ Hphys with ⟨Hlog3, Hlogback⟩
