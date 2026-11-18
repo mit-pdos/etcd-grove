@@ -51,7 +51,7 @@ theorem interpretWatchError.wp_proof
   cases b
   case true =>
     wp_auto
-    wp_apply wp_NewResourceExpired $$ [] as %p ⟨%st, Hp, %Hst⟩
+    wp_apply wp_NewResourceExpired $$ [] as %p ⟨%st, Hp, -, %Hst⟩
     (try wp_auto)
     iapply HΦ
     iright

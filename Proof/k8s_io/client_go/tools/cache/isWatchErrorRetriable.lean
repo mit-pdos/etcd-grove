@@ -31,7 +31,7 @@ theorem isWatchErrorRetriable.wp_proof
     (wp_IsTooManyRequests : apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG)) :
     isWatchErrorRetriable.spec (GF := GF) (hG := hG) := by
   intro err
-  wp_start
+  wp_start as #Hok
   ihave #Hnet : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.net $$ []
   · iPkgInit
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors $$ []
@@ -41,7 +41,7 @@ theorem isWatchErrorRetriable.wp_proof
   (try wp_auto)
   rcases b1 with _ | _
   · (try wp_auto)
-    wp_apply (wp_IsTooManyRequests err) $$ [$Herrs] as %b2 -
+    wp_apply (wp_IsTooManyRequests err) $$ [$Herrs $Hok] as %b2 -
     (try wp_auto)
     rcases b2 with _ | _ <;> (try wp_auto) <;> (iapply HΦ; itrivial)
   · (try wp_auto)

@@ -192,6 +192,21 @@ theorem waCut_short (off len nn c k : Nat)
     · right; omega
   · left; rw [← Nat.add_assoc]; exact h0
 
+/-- The split of the bytes `WriteAt`'s loop has read at the chunk's start, in a lemma of its own: `omega` in
+the loop's context took 257s (profiled 2026-11-17). -/
+theorem wa_take_split (o oc s P L yl nn : Nat) (hocN : oc = o + nn) (hnl : nn < L) (hsz : s ≤ P)
+    (hyl : yl = min (o + L) P - min o s) :
+    min oc P = min o s + min (min oc P - min o s) yl := by
+  omega
+
+/-- The bounds of a chunk the loop of `WriteAt` wrote (`nn + c`, `c` the chunk's length capped at
+`2^30`), in a lemma of its own: `omega` in the loop's context, with the invariant's disjunctions,
+took 1318s (profiled 2026-11-17). -/
+theorem wa_chunk_bounds (j nn k c len : Nat) (hjc : j ≤ nn + c) (hk : k ≤ c) (hcn : nn + c ≤ len)
+    (hcdef : c = min (len - nn) 1073741824) (hc0 : 0 < c) :
+    max j (nn + k) ≤ nn + c ∧ nn + c ≤ len ∧ min len 0x40000000 ≤ nn + c ∧ 0 < nn + c := by
+  omega
+
 set_option maxHeartbeats 4000000 in
 /-- **`WriteAt.specExt`, generic in its `pwrite`s' errnos** (as `wp_proofQ`): a failure only with
 an errno `e ≠ 0` with `Pe e`, over a semantics whose `pwrite` ends at an offset below `B` return an
@@ -440,7 +455,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         (min (oc.toNat + c) (pwSize m.size off.toNat j) - min oc.toNat (pwSize m.size off.toNat j)))
       zs)
     (ys.drop (min (oc.toNat + c) (pwSize m.size off.toNat j) - min off.toNat m.size))
-    (by simp only [List.length_take]; omega)
+    (by simp only [List.length_take]; exact wa_take_split _ _ _ _ _ _ _ hocN hnl hsz hyl)
     (by rw [hL2, hmsz]; rcases hend with h1 | h1
         · left; omega
         · right; exact h1) $$ [Hbs1 Hbs2 Hbs3]
@@ -464,8 +479,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
   have hnJ : nn ≤ max j (nn + k) := by omega
   have hcj' : os.WaCut off.toNat data.length (max j (nn + k)) :=
     waCut_step _ _ _ _ _ _ hcj hcn hcdef hk hnl hnj hpc
-  have hA : max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
-      min data.length 0x40000000 ≤ nn + c ∧ 0 < nn + c := by omega
+  have hA := wa_chunk_bounds j nn k c data.length hjc hk hcn' hcdef hc0
   have hinv' : ∀ nn', nn ≤ nn' → (max j (nn + k) = 0 ∧ nn' = 0 ∧
       os.pwPostE m off.toNat (nn + c) (max j (nn + k)) E' = m ∧
       E' = 0) ∨
@@ -475,7 +489,8 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
         (max j (nn + k) = nn + c → E' = nn + c) ∧
         m.lo ≤ m.size ∧ max j (nn + k) ≤ nn + c ∧ nn + c ≤ data.length ∧
         min data.length 0x40000000 ≤ nn + c ∧ nn + c ≤ nn' + 0x40000000 ∧ 0 < nn + c) :=
-    fun nn' h => .inr ⟨rfl, hE'.1, hE'.2, hml, hA.1, hA.2.1, hA.2.2.1, by omega, hA.2.2.2⟩
+    fun nn' h => .inr ⟨rfl, hE'.1, hE'.2, hml, hA.1, hA.2.1, hA.2.2.1,
+      hcdef ▸ Nat.add_le_add h (Nat.min_le_right _ _), hA.2.2.2⟩
   clear hend hL2 hyl hsz hlZ hsb hsb2 hys hcd hslz Hlen Hwf hmsz hmaps
   by_cases he4 : e = W64 4
   · rw [decide_eq_true he4]

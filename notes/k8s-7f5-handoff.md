@@ -3,7 +3,150 @@
 **Read first:** `/shared/tmp/coord-81/common-rules.md`; the worktree's untracked `questions.md` (decisions; never
 re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §11.2: E1); `notes/k8s-7f5-scope.md`.
 
-## START HERE (2026-11-16, twenty-first 7f-5 agent): steps 6-prep and 7's linking done; land-stop checks
+## START HERE (2026-11-16, sixth 7f-5b agent): step 5 done; at the LAND STOP
+
+- **Head:** `k8s-7f5` at the commit of this note; lean `d559d8bc9f` merged (`3ab5bf13ff`, the ledger conflict: both entries kept).
+- **Decided (02, questions.md):** storeWatchOk's crv clause pair-shaped (A); New's post gives storeWatchOk (form).
+- **Done (this session):** `e66f4d6857` the crv clause, its users (watcher.Watch x2, startWatching), New's post proved
+  (the closure: `wp_bind` the method call, `wp_wand`, the pair). `3f064a689e` the watch path linked
+  (`etc/link-lean-first-k8s-etcd3.txt`; the client's `watcher__Watch` key is now `v3_watcher__Watch` in five lists, the
+  k8s one `etcd3_watcher__Watch`), `Proof/k8s_io/apiserver/pkg/storage/etcd3/Results.lean` (store.wp_Watch, wp_New).
+- **Next:** the land-stop checks (full build, tcb-report --check + collections, interfaces, bounds, STATUS, gates under
+  `flock /shared/tmp/etcd-grove-full-build.lock`), then report to 02 and STOP before etc/land.sh. See the report in
+  the coordinator's log / questions.md for the trust-base delta awaiting acceptance.
+- **Pitfalls:** a new k8s spec named like a client one (`watcher__Watch`) makes the bare link key ambiguous in every
+  list that names it: run all modes (`/shared/tmp/k8s7f5b/linkcheck.sh`). New's post has one more conjunct: the
+  `icases Hnew` in examples/k8s/etcd3 Main*/ take a `-`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...`; lean-check
+  `--max-open 2`, `--stop` before builds and at the end.
+
+## History (older START HERE sections, newest first; the commits say the rest)
+
+### START HERE (2026-11-16, fifth 7f-5b agent): store.Watch and the concurrent branch PROVED; step 5 next
+
+- **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Decided (02, questions.md):** storeWatchOk's `objectType` conjunct ACCEPTED; keep the k8s `watcher.Watch.spec` name
+  (qualify the client's at linking); run/createWatchChan forms ACCEPTED.
+- **Done (this session, unlinked; lean-check `--fast` green, kernel check of store.Watch green):** `2e0d171918`
+  `store.Watch` (prepareKey; ParseResourceVersion via `versionerOk`; `watchContext` over `WithRequireLeader`:
+  `isContext_of_post`, the `Err` transfer for `ctxErrClient`, the `Value` transfer for the APF key). `8372b01ad9`
+  step 4: `WatchConc.lean` (`kResOf`, `kRcElem`, `kQElem`), specs+proofs of `scheduleEventProcessing`,
+  `collectEventProcessing`, `concurrentProcessEvents` (its spec now imports WatchConc).
+- **STOPPED (hard stop, questions.md, fifth agent):** `storeWatchOk`'s `getCurrentStorageRV` clause is unprovable
+  from `New` (Goose's closure destructures the call's pair); recommended a pair-shaped clause. Wait for 02's answer.
+  WIP of New's post: `/shared/tmp/k8s7f5b/new-post-wip.patch` (apply, then prove the two WP clauses).
+- **Next, in order:** (1) `New`'s stronger post: add `□ ∀ W γk, clientWatchOk cl γk -∗ watchContractOk S W codec -∗
+  newItemOk S nf -∗ storeWatchOk sp c W γk` (no new premise; the watcher `w`'s fields must be split and persisted in
+  New's proof, `s` persisted for the `getCurrentStorageRV` closure, `objectType` from both `newFunc` branches).
+  (2) link list `etc/link-lean-first-k8s-etcd3.txt` (new entries: store__Watch, watcher__Watch (k8s; the existing key
+  `watcher__Watch: @` is the client's), createWatchChan, run, processEvents, serial/concurrent, schedule, collect,
+  Stop, ResultChan, watchContext, WithRequireLeader), `etc/gen-link.py`, Results. (3) land stop: merge lean, full build
+  via the slot wrapper, tcb-report --check + collections (fields.Everything's axiom text changed), interfaces,
+  bounds, STATUS, gates under the full-build lock; STOP before land.sh.
+- **Pitfalls:** after `cases he : kRawToEv …`, Iris hyps are already rewritten (no `rw [he]`). Loop locals
+  written in the body (`e`, `r`, `processingResponse`) must be in the `wp_for` invariant (`"x" ∷ x_ptr ↦ v`).
+  `iStructNamed p` clashes with locals of the same field name (`wc`): `irename wc => Hwcv` first. Credits from a
+  second `isContext_Done (lc := 3)` reuse the names `Hlc1..3`. `persistent_entails_left (threadToks_lt 1)` gives
+  `threadToks 1 ∗ ⌜1 < T⌝`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...`; lean-check
+  `--max-open 2`, `--stop` before builds and at the end.
+
+### START HERE (2026-11-16, fourth 7f-5b agent, end of context): run, createWatchChan, watcher.Watch PROVED
+
+- **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Done (this session, all unlinked; targeted lake build green, `/shared/tmp/k8s7f5b/build-s3b.log`):** `d1c5ec30d4`
+  `watchChan.run` (Draft §4 with store.Watch's six-part read law). `33971175af` `watcher.createWatchChan`; WatchCons
+  `kWatch_alloc`, `clientWatchOk_ctxErr`; **storeWatchOk gains `∃ ot, watcher.objectType ↦□ ot`** (FLAGGED for 02,
+  questions.md). `2072fedae6` the k8s `watcher.Watch` (spec on the require-leader ctx: `isContext`, `outgoingCtxOkC`,
+  `ctxErrClient`, `valueAt ci initSignalKeyAny initSignalRes`, prepared key `kp` with `c.pfx <+: kp`, `kp ≠ []`, short,
+  recursive ⇒ ends in `/`); `readAus_crv` moved from startWatching's file to WatchProd.
+- **Next, in order:** (1) `store.Watch` (`store.go:1142-1152`): `prepareKey.spec` (k = pathPrefix ++ k'; `c.pfx <+: k`
+  from `prepareKeyM_prefix`, `≠ []` from `prepareKeyM_ne_nil`, the `/` suffix from `prepareKeyM`'s def), the versioner's
+  `ParseResourceVersion` (`versionerOk`'s 4th triple, from isStore's `contractOk`), `watchContext.spec` over
+  `WithRequireLeader.spec` (pre: `watchCtx_of_isContext`; post → `WithRequireLeader.isContext_of_post`; `ctxErrClient`
+  through the `Err` transfer; `valueAt` of the init-signal key through the `Value` triple transfer, needs
+  `initSignalKeyAny`'s type ≠ `mdOutgoingKey`; from `k8sCtxOk ci`'s 4th conjunct), `|==> readAus` → `imod`.
+  (2) Draft step 4 (concurrent branch). (3) step 5: link list (NOTE: the k8s `watcher.Watch.spec` shadows the client's
+  `EtcdGrove.watcher.Watch.spec` inside `namespace k8s`; startWatching and compactor__runWatchLoop name the client's
+  unqualified: qualify them, and the link-list key `watcher__Watch: @` is the client's), `New`'s post must give
+  `storeWatchOk` (with `objectType`), Results, land-stop checks.
+- **Pitfalls:** after `cases emp`, a bare `emp` is BI `emp`. `kInElem γ` vs a structure-updated γ: prove equality by
+  `unfold …; rfl`, `rw`. A `wp_apply` may run to the function's end: `iapply wp_fupd` BEFORE the last call to keep an
+  update modality. `iunfold context.cancelSpec` before `iapply`. Go locals a goroutine captures: `ipersist` before
+  `wp_fork_tok`. `cases hr : opts.Recursive'` rewrites HΦ but not later field loads: `rw [hr]` after them, pass `_`.
+  A Fork's post needs `ipureintro; exact isPanic_intoVal ()` after `iframe Htok`.
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...`; lean-check
+  `--max-open 2`, `--stop` before builds and at the end.
+
+
+### START HERE (2026-11-16, third 7f-5b agent)
+- **Head:** `k8s-7f5` at the commit of this note. lean is `54c7fb38f0`+; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Done (this session):** H2 (a)+(b) applied `e6ad966eac` (fields.Everything.spec, `storageInit` + `everythingOk`,
+  gen-init SPECIAL, Init regenerated). `740fc6ce26`: H2 (c) `selPredOkW` (SelDefs; filter/acceptAll/prepareObjs/
+  transform take it), `labelFieldEmpty.spec` over `selEmptyOk` (forms, questions.md), `WatchCons.lean`
+  (`kRaw_transformOk`, `kWcCons`, `kProcSt`, `rwgN`, `kRes_evCommit`, `kRes_filterStep`, `wp_Empty_everything`,
+  `everything_selPredOkW`), `serialProcessEvents` PROVED. `d88142b205`: `processEvents` PROVED (both branches;
+  `concurrentProcessEvents.spec` stated, a hypothesis). `346f95c6ca`: `Stop`, `ResultChan` PROVED. All unlinked.
+- **Next, in order (Draft §6):** step 3 rest: `run` (spec: Draft §4; holds `rwgAdder`; forks startWatching via
+  `rwg.wp_Add_top` + `wp_fork_tok` (see processEvents' proof), then processEvents with `n = 1`; after `Wait`, close
+  `resultChan` with `kRes_close_au` (WatchCons, checked; as `wp_spsc_close` over `chan.wp_close`, needs `kResAlive alive 1`); `watchClosedCh` a broadcast
+  (`start_broadcast`) whose Q is `kProdExited γ`); `createWatchChan` (pred `Empty()` → `everything_selPredOkW` with
+  `storageInit`'s `Everything`, else `selPredOk_W`; `wp_WithCancel_ctx`, names before it, Draft §5); `watcher.Watch`;
+  `store.Watch` (`kp ≠ []` from `prepareKeyM_ne_nil`; `c.pfx <+: kp` from `prepareKeyM_prefix`). Then step 4
+  (concurrent: WatchConc, schedule, collect, concurrentProcessEvents), step 5 (link list, Results, land-stop checks:
+  tcb + collections (fields.Everything's axiom text changed), interfaces (`etc/gen-interface.py`), bounds, STATUS).
+- **Pitfalls:** `wp_start` takes `isPkgInit` itself (don't name it in the pattern). `wp_for HI` destructs HI's
+  existential. In a loop, `return` needs `wp_for_post` before the deferred calls; ghost steps go before the
+  `wp_auto` that runs `continue`. Credits: `wp_apply (lc := 3) context.isContext_Done ...`. Fork: `wp_apply
+  wp_fork_tok` then `iintro Htok` (no `inext`). `etc/gen-specs-pkginit.py` has no `--help`: it REGENERATES (the
+  untracked SpecPlan/Spec/PkgInit files dated Nov 13 are stale leftovers, not this branch's; leave them).
+- **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-e9e.json build TARGET...` (common-rules'
+  last section); lean-check `--max-open 2`, `--stop` before builds. A SelDefs/WatchDefs edit rebuilds all etcd3.
+
+
+### START HERE (2026-11-16, second 7f-5b agent, end of context): H1 applied; H2 texts reviewed, awaiting 02
+
+- **Head:** `k8s-7f5` past `3d68958e4d`. lean is `54c7fb38f0`; merge it (and k8s-7f6c's `KvOne`) before the land stop.
+- **Done:** step 1 in part (`87fef18b7d`): `kvWritesDec` (ListDefs); `store.Watch.spec` new: first read law
+  `⌜lb ≤ σ.rev ∧ kvWf ∧ kvWfHist ∧ kvKeysShort ∧ kvWritesDec c σ ∧ kvRevFits σ.rev⌝`, `concurrentDecodeOff`
+  dropped and deleted (ledger "store.Watch without `concurrentDecodeOff`", third defect = H1); incoming SPSC
+  `R := False` (form). H2 (`3d68958e4d` + this commit): `notes/k8s-7f5b-everything.md` (texts (a) `fields.Everything.spec`,
+  (b) `storageInit`'s `Everything ↦□ p ∗ everythingOk p`, (c) `selPredOkW`), Go test
+  `examples/premisefix/watcherctx/everything_test.go` (passes, -race), review
+  `/shared/tmp/k8s7f5b/axiom-review-everything.md` (READY WITH CHANGES, two doc findings, applied in the note).
+- **OPEN:** 02's approval of H2 (a)/(b). After it: edit the axiom spec (+ new header), `Base.lean`'s `storageInit` +
+  `everythingOk`, gen-init SPECIAL (keep both Everything posts, `ipersist HEverything`), regenerate, tcb/collections.
+- **Next (Draft §6), may run over (a)/(b) as hypotheses:** rest of step 1 in `WatchCons.lean` (`kInElemX` +
+  `kInElem` equation, `kWcCons` with `⌜c.pfx <+: kp⌝`, `kProcSt`, strengthened `evsOfRevM_mem` copy, `kInElemX_transformOk`
+  using `kvRevFits`, `kRawStreamSub`, `kRangeEvsL_mem`, `kRawRevOk`), `selPredOkW` (c); step 3 (run needs a local
+  close over `kResChan`'s one invariant, as `spsc_send_au_inv`; `start_broadcast` for `watchClosedCh`; alive ½/½); 4; 5.
+- **Pitfalls:** `KVState.revEvents r = evsOfRevM r (σ.at (r-1)).kvs (σ.changesAt r)`; scope keys under `c.pfx` via
+  `prepareKeyM_prefix`; Go's `SelectionPredicate.Matches` never calls the selectors' `Matches` when `labelFieldEmpty`.
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json`; targeted `lake build` of leaves (the step-1 one took 5 min).
+
+
+### START HERE (2026-11-16, 7f-5b agent, end of context): Draft §6 step 2 done; steps 1, 3-5 next
+
+- **Head:** `k8s-7f5` = lean `edf33c7a14` + 7f-5b commits (Draft `484c470b3a`, §7 `d5a7529c3e`, decision `768cad6d15`, and
+  the commit of this note). **lean is now `54c7fb38f0`** (7f-6 stage A): merge it before the land stop.
+- **Decided (02, questions.md):** local wait-group idiom (a); this session also does 7f-5a step 6; Draft §7 option (A):
+  the fourth read law `kvWritesDec c σ` in `store.Watch.spec` (with dropping `concurrentDecodeOff`, one ledger entry,
+  "store.Watch without `concurrentDecodeOff`"); `kCdw`'s `wcDone` accepted as a form.
+- **Done (this commit):** `kCdw` `Done_gn := γ.wcDone` (`KWatchNames.wcDone`); startWatching and syncPaginated rebuilt
+  green (`/shared/tmp/k8s7f5b/build1.log`). `InvRunWg.lean` (`k8s.rwg`: `rwgAdder/Done/Pending/MemDone`, `init`,
+  `wp_Add_top`, `wp_Add_member`, `wp_fork_member`, `wp_Done_top`, `wp_Done_member`, `wp_Wait`) lake-built, no sorry.
+- **Next, in order (Draft §6):** (1) forms: `kvWritesDec` (ListDefs) and the spec edit (store__Watch.lean: drop
+  `concurrentDecodeOff`, add the law), `kInElemX` refactor, `kWcCons`, `kProcSt`, `kInElemX_transformOk`
+  (`evsOfRevM_mem`, now in `examples/k8s/compactor/KeyHist.lean`: move or copy it to the etcd3 proof); (3) serial and
+  wiring; (4) concurrent; (5) link, merge lean, land-stop checks, STATUS entry.
+- **Pitfalls:** a WatchDefs edit rebuilds every etcd3 importer (lean-check sits at "line 1" for an hour: use a targeted
+  `lake build` of the leaves instead). `transform` never errors under its spec. Top-level wait-group slots are not
+  token-backed. `ownToks_add m n γ : ownToks γ (n + m) ⊣⊢ ownToks γ n ∗ ownToks γ m`.
+- **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere (lean-check: `LAKE_OPTS=...`); full builds under
+  the flock and the 64G cap; `etc/lean-check.py --fast --split` for long proofs.
+
+
+### START HERE (2026-11-16, twenty-first 7f-5 agent): steps 6-prep and 7's linking done; land-stop checks
 
 - **Head:** `k8s-7f5` past `bdbeb422b1` (lean `ee15ea8d45` merged: clientWatchCE landed). 81's go needed for land.sh.
 - **Done (`bdbeb422b1`):** `kraw_countable` (WatchDefs; the `[Pos.Countable KRaw]` binders dropped everywhere);
@@ -26,8 +169,6 @@ re-add it tracked); `notes/k8s-7f5a-draft.md` (§11: the error leaves E1-E6; §1
   GetRevision, ...) are listed plain here, with their callees. run/serveSubstream: `lean-check --fast --split`.
   Dropping an instance binder shifts the `intro _ _ Obj _ _ …` patterns of the proofs.
 - **Build:** `--packages=/shared/tmp/manifest-e9e.json` everywhere; full builds under the flock and the 64G cap.
-
-## History (older START HERE sections, newest first; the commits say the rest)
 
 ### START HERE (2026-11-16, twentieth 7f-5 agent): clientWatchCE closed (landed ee15ea8d45)
 

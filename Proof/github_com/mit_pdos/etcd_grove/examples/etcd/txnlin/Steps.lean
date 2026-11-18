@@ -412,11 +412,11 @@ theorem stepL_sound (n : Nat) (hn : n < 2 ^ 63) (g : GCfg) (hb : Bounded n g) (x
     · rw [if_pos hw, List.mem_singleton] at hg'; subst hg'
       have hw' : TS.isWrite (decP x) = true := by
         rw [hdi]; show i.isWrite = true; rw [← isWriteL_dec x i hi]; exact hw
-      exact .errW (absCfg g) (decP x) hw'
+      exact .errW (absCfg g) (decP x) hw' rfl
     · rw [if_neg hw, List.mem_singleton] at hg'; subst g'
       have hw' : TS.isWrite (decP x) = false := by
         rw [hdi]; show i.isWrite = false; rw [← isWriteL_dec x i hi]; simpa using hw
-      exact .errR (absCfg g) (decP x) hw'
+      exact .errR (absCfg g) (decP x) hw' rfl
   · rw [if_neg he] at hg'
     split at hg'
     · next heq =>
@@ -431,7 +431,7 @@ theorem stepL_sound (n : Nat) (hn : n < 2 ^ 63) (g : GCfg) (hb : Bounded n g) (x
         show (⟨absSt (mstepL x g.st).1, g.pend.map decP⟩ : MC) = _
         rw [h1]; rfl
       rw [e1, e2]
-      exact .ok _ _
+      exact .ok _ _ rfl
     · cases hg'
 
 /-- A `PStep` of a configuration equivalent to `g`'s is one of `stepL g`, up to equivalence. -/
@@ -478,6 +478,7 @@ theorem stepL_complete (n : Nat) (hn : n < 2 ^ 63) (g : GCfg) (hb : Bounded n g)
     rw [hE]
     simp only [↓reduceIte, hw', Bool.false_eq_true, List.mem_singleton, exists_eq_left]
     exact he
+  | obs o h => exact absurd h Bool.false_ne_true
 
 /-! ## `addConfig` and `Step`'s loops -/
 

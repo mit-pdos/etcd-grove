@@ -20,8 +20,8 @@ its past-revision reads use, as the pure functions its helpers compute (their sp
 - `HSt`, the model's state: a store and its history (`hist[R-1]` the store at revision `R`),
   `histAtL` (`histAt`), `advanceL` (`advance`: the history grows iff the revision does);
 - `mlistL x h` (`mlist(in, c)`) and **`kstepL`**, the model's step: `mlistL` for a list, else
-  `mstepL` with the history advanced; **`kSpec h0`**, the driver's model, linkv's `PendSpec` of
-  `kstepL` from the seeded `h0`.
+  `mstepL` with the history advanced (the driver's model, `kSpec h0`, is in `KWatch.lean`, with
+  the watches' check).
 -/
 module
 
@@ -256,9 +256,6 @@ def mlistL (x : Input) (h : HSt) : Output :=
 def kstepL (x : Input) (h : HSt) : HSt × Output :=
   if x.Kind' = W64 4 then (h, mlistL x h)
   else (advanceL h (mstepL x h.st).1, (mstepL x h.st).2)
-
-/-- **The driver's model** from the seeded store and its history `h0`. -/
-abbrev kSpec (h0 : HSt) : linkv.PendSpec HSt Input Output := ⟨h0, kstepL, isWriteL⟩
 
 /-- A write is no list: its step is `mstepL`'s, advanced (`closure`'s). -/
 theorem kstepL_write (x : Input) (h : HSt) (hw : isWriteL x = true) :

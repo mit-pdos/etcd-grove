@@ -69,6 +69,33 @@ def fieldSelOk (fs : GoInterface) (fe : Bool) (fm : GMap GoString GoString → B
         WP (App (Val #(methods ii.ty go!"Matches" ii.v))
           (Val #(interface.mkOk k8s_io.apimachinery.pkg.fields.Set'.ty #m))) {{ Φ }}))
 
+/-- **A selector's `Empty` answers `e`** (a label or a field selector; what `labelFieldEmpty` reads of
+each: `labelSelOk`/`fieldSelOk` without `Matches`; k8s 7f-5b, so that `storage.Everything`'s selectors,
+whose `Matches` no spec states, meet it). -/
+def selEmptyOk (s : GoInterface) (e : Bool) : IProp GF :=
+  iprop(∃ ii : GoInterfaceOk, ⌜s = GoInterface.ok ii⌝ ∗
+    □ (∀ Φ : val → IProp GF, ▷ Φ #e -∗
+        WP (App (Val #(methods ii.ty go!"Empty" ii.v)) (Val #())) {{ Φ }}))
+
+instance selEmptyOk_persistent (s : GoInterface) (e : Bool) : Persistent (selEmptyOk (GF := GF) s e) := by
+  unfold selEmptyOk; infer_instance
+
+theorem labelSelOk_empty (ls : GoInterface) (le : Bool) (lm : GMap GoString GoString → Bool) :
+    labelSelOk (GF := GF) ls le lm ⊢ selEmptyOk ls le := by
+  unfold labelSelOk selEmptyOk
+  iintro ⟨%ii, %h, #HE, -⟩
+  iexists ii
+  iframe HE
+  ipureintro; exact h
+
+theorem fieldSelOk_empty (fs : GoInterface) (fe : Bool) (fm : GMap GoString GoString → Bool) :
+    fieldSelOk (GF := GF) fs fe fm ⊢ selEmptyOk fs fe := by
+  unfold fieldSelOk selEmptyOk
+  iintro ⟨%ii, %h, #HE, -⟩
+  iexists ii
+  iframe HE
+  ipureintro; exact h
+
 /-- **`GetAttrs` on an object answers its label and field sets** (read-only), no error. -/
 def getAttrsOk (objAt : GoInterface → O → IProp GF) (ga : GoFunc)
     (lab fld : O → GMap GoString GoString) : IProp GF :=
@@ -104,6 +131,37 @@ def selPredOk {Obj : Type} (S : ObjSpec GF Obj) (p : k8s_io.apiserver.pkg.storag
 instance selPredOk_persistent {Obj : Type} (S : ObjSpec GF Obj) p sel emp :
     Persistent (selPredOk S p sel emp) := by
   unfold selPredOk; infer_instance
+
+/-- **`selPredOk` as the watcher reads it** (k8s 7f-5b H2 (c)): the `Matches` triple only for a
+non-empty predicate (`filter` calls `Matches` only when `Empty()` is `false`), so that
+`storage.Everything` (`createWatchChan`'s replacement of an empty predicate), whose selectors'
+`Matches` no spec states, meets it (`everythingOk`). -/
+def selPredOkW {Obj : Type} (S : ObjSpec GF Obj) (p : k8s_io.apiserver.pkg.storage.SelectionPredicate)
+    (sel : Obj → Bool) (emp : Bool) : IProp GF :=
+  iprop(⌜p.ShardSelector' = GoInterface.nil ∧ (emp = true → ∀ o, sel o = true)⌝ ∗
+    □ (⌜emp = false⌝ -∗
+      ∀ (pp : Loc) (dq : DFrac) (x : GoInterface) (o : Obj) (rv : GoString) (Φ : val → IProp GF),
+      pp ↦{dq} p -∗ S.objAt x o rv -∗
+      ▷ (pp ↦{dq} p -∗ S.objAt x o rv -∗ Φ (PairV #(sel o) #GoInterface.nil)) -∗
+      WP (App (Val (pp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.SelectionPredicate.ty
+        @!! go!"Matches")) (Val #x)) {{ Φ }}) ∗
+    □ (∀ (pp : Loc) (dq : DFrac) (Φ : val → IProp GF),
+      pp ↦{dq} p -∗ ▷ (pp ↦{dq} p -∗ Φ #emp) -∗
+      WP (App (Val (pp @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.SelectionPredicate.ty
+        @!! go!"Empty")) (Val #())) {{ Φ }}))
+
+instance selPredOkW_persistent {Obj : Type} (S : ObjSpec GF Obj) p sel emp :
+    Persistent (selPredOkW S p sel emp) := by
+  unfold selPredOkW; infer_instance
+
+theorem selPredOk_W {Obj : Type} (S : ObjSpec GF Obj) p sel emp :
+    selPredOk S p sel emp ⊢ selPredOkW S p sel emp := by
+  unfold selPredOk selPredOkW
+  iintro ⟨%h, #HM, #HE⟩
+  isplitr; · ipureintro; exact h
+  isplitr
+  · imodintro; iintro -; iexact HM
+  iexact HE
 
 end defs
 

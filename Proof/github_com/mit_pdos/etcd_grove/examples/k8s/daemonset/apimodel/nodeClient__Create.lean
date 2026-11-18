@@ -72,7 +72,7 @@ theorem nodeClient.Create.wp_proof
   | error e =>
     icases Hret with ⟨%hx, #He⟩
     iunfold errIs at He
-    icases He with ⟨%p, %st, %herr, #Hp, %hst⟩
+    icases He with ⟨%p, %st, %herr, #Hp, #Hd, %hst⟩
     subst herr hx
     wp_auto
     iapply HK
@@ -111,7 +111,7 @@ theorem nodeClient.Create.wp_proof
       | ds d' => simp [Obj.res] at hres
       | cr d' => simp [Obj.res] at hres
     · iunfold errIs at He
-      icases He with ⟨%p, %st, %herr, #Hp, %hst⟩
+      icases He with ⟨%p, %st, %herr, #Hp, #Hd, %hst⟩
       subst herr hx
       wp_auto
       iapply HK

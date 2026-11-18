@@ -1111,6 +1111,8 @@ end lemmas
 
 
 section proof
+-- `curMeta` stays folded (`wp_auto` unfolding it cost repeated unifications: DB__Snapshot.lean)
+attribute [local irreducible] curMeta
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]

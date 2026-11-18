@@ -36,7 +36,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof
     (hPut : mvcc.keyIndex.put.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.tombstone.spec (GF := GF) (hG := hG) := by
   intro p gs ki k lg main sub e
-  wp_start as ⟨%Hlg, %Hne, #Hkey, Hki, #Herr⟩
+  wp_start as ⟨#Hlg, %Hne, #Hkey, Hki, #Herr⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec, -⟩, -, -, -, -, -⟩
@@ -61,7 +61,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof
     iintro %fsl ⟨-, -⟩
     (try wp_auto)
     wp_apply hPanic lg _ _ $$ [] as %r %Hr
-    · ipureintro; exact Hlg
+    · iexact Hlg
     subst Hr
     wp_auto
     iapply HΦ
@@ -103,7 +103,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof
     ihave Hki : iprop(mvcc.ownKi p gs ki (DFrac.own 1)) $$ [Hmod Hgs Hback]
     · iunfold mvcc.ownKi; iframe Hmod Hgs Hback
     wp_apply (hPut p gs ki lg main sub) $$ [Hki] as %r Hr
-    · iframe Hki; ipureintro; exact Hlg
+    · iframe Hki; iexact Hlg
     by_cases Hlt : mvcc.Rev.lt ki.modified ⟨main, sub⟩
     rotate_left
     · -- `put` panics, the key index unchanged

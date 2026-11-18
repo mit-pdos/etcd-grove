@@ -143,7 +143,7 @@ theorem logArgOk_int (R : IProp GF) (v : w8) (n : w64) :
   apply logArgOk_of_argWf
   have hi : IsIntType go.int := by simp [IsIntType]
   refine ⟨fun h => absurd h (by simp [go.int, go.string]), fun _ => ⟨_, .int n⟩,
-    Or.inr (Or.inl hi)⟩
+    Or.inr (Or.inl (Or.inl hi))⟩
 
 /-- The tail of an error path after the rollback: return `err` (the deferred line runs on it). -/
 syntax "cm_return" : tactic

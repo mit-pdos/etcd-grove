@@ -40,6 +40,46 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
   become theorems with the same statements. Not yet proposed.
 
+### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
+
+`k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
+literal and takes 147s, in many sub-second steps (no unification of a second or more). The struct
+automation's cost seems superlinear in the number of fields; every proof building a large Go struct
+pays it (`NewServer`/`NewServerR` build the server's). To investigate in Perennial with a reproduction
+(a struct of n fields, n = 4, 8, 16, 32), not worked around here.
+
+### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
+
+Perennial `cb8e7bc67` (on `lean`): `pkgInitChain` remembers the packages whose dependencies were searched
+without reaching the target (the same proof found). `EtcdServer.LeaseRenew` 220s to 175s (14 calls, 3.5s
+each); it runs in nearly every proof's `wp_apply`/`wp_auto`. Take it with the next pin bump (a bump
+rebuilds everything; no bump of its own).
+
+
+### The thread-token `WaitGroup` joins have no `Add` by a member, during a `Wait` (2026-11-16, k8s 7f-5b)
+
+- **Missing.** `sync.tokJoin` and `sync.tokJoinL` (`Perennial/Proof/sync/WaitGroupTokJoin{,L}.lean`)
+  let only the holder of the exclusive `ownAdder` call `Add`, and `Wait` consumes `ownAdder`: the
+  `added` count is split half in the invariant, half in `ownAdder` (`ownTokAuthDfrac γ.ndGn ½`), and
+  `ownAdder` holds `ownWaitGroupWaiters γ 0`. So no goroutine can `Add` while another `Wait`s, even at
+  a positive count. The raw specs allow it: `sync.WaitGroup.Add.spec`'s first disjunct (`oldc ≠ 0`)
+  needs no waiter state, as Go's `Add` panics ("Add called concurrently with Wait") only when the
+  count was `0`.
+- **Who needs it.** k8s's watcher (`k8s.io/apiserver/pkg/storage/etcd3/watcher.go`, 7f-5b, the
+  `ConcurrentWatchObjectDecode` branch): `run` waits on `resultChanWG` while
+  `concurrentOrderedEventProcessing.scheduleEventProcessing` (itself a goroutine of the group,
+  holding a count until its deferred `Done`) runs `wg.Add(1); go func(){ defer wg.Done(); ... }()`
+  once per event, unboundedly; so the counter needs thread tokens (tokJoinL with pending level `1`
+  fits the accounting: the scheduler holds `threadTokFrom 1`).
+- **Workaround here (proposed, not written).** A local idiom over the raw `Add`/`Done`/`Wait` specs
+  (no trusted text): tokJoinL's invariant without the `added` half in the adder, a member's `Add(1)`
+  (`ownDone P ∗ levelTok p ⊢ … ownDone P ∗ ownPending True`), the counter at least the member's own
+  unit, `Wait` giving the top-level `Done` propositions.
+- **Proposed change.** `tokJoinL.WaitGroup.wp_Add_member`: a holder of `ownDone N p wg P` and a
+  level-`p` token may `Add(1)` at any time, the new slot's `Done` proposition folded into `P`'s (or
+  `True`), with the invariant's `added` count owned by the invariant (the adder keeping a fragment).
+- **Status.** Open; hard stop of 7f-5b (2026-11-16), options to etcd-grove-02.
+
 ### `internal/stringslite.HasPrefix`/`HasSuffix` and `strings.HasSuffix` without bodies (2026-11-14, branch `wal-leaf6`)
 
 - **Missing.** Perennial's `internal/stringslite.toml` translates nothing but `Clone` (trusted), and

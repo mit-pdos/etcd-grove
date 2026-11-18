@@ -129,7 +129,7 @@ theorem etcd_putgetN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine etcd_adequate_members (GF := putgetNGF) (hAsLit := etcd_putgetN.putgetNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Main) #(W64 (k : Int)))

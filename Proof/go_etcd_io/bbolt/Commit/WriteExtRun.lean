@@ -13,6 +13,7 @@ module
 public import Proof.go_etcd_io.bbolt.Commit.WriteExtDefs
 public import Proof.go_etcd_io.bbolt.Tx__write
 public import Spec.go_etcd_io.bbolt.Tx__write_ext
+public import Proof.github_com.mit_pdos.etcd_grove.OmegaOnly
 
 @[expose] public section
 
@@ -77,6 +78,11 @@ context, with its byte lists, ran out of memory). -/
 theorem wr_rem_sub (a w cs : Nat) (h : w + cs ≤ a) :
     W64 ((a - w : Nat) : Int) - W64 ((cs : Nat) : Int) = W64 ((a - (w + cs) : Nat) : Int) := by
   rw [show ((a - (w + cs) : Nat) : Int) = ((a - w : Nat) : Int) - ((cs : Nat) : Int) by omega]
+  word
+
+/-- The loop counter's increment, as a word (stated apart: `word` in the write loop's context took
+296s, profiled 2026-11-17). -/
+theorem wr_sintNat_succ (j : w64) (h0 : 0 ≤ sint.Z j) (h : sint.nat j < 2 ^ 62) : sint.nat (j + W64 1) = sint.nat j + 1 := by
   word
 
 set_option maxHeartbeats 0 in
@@ -500,9 +506,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       ihave Hpool := Hgw $$ [] Hyg Hgc
       · ipureintro; refine ⟨hsz3', ?_⟩; simp only [List.length_take]; omega
       ihave Hpool := poolZ_resize b K.p _ _ sz3 (fun s hs => by
-        have := hdisC s hs
-        have := Hom2w
-        omega) $$ Hpool
+        omega_only [hdisC s hs, Hom2w, Hom2z, Hom2a, Hom2b, hsz3, hsz3', hclen, Hcs]) $$ Hpool
       ihave Hro2 : oAnyZ (GF := GF) K.p sz3 (4096 * c.1.toNat + w + cs) (c.2.2.length - w - cs)
         $$ [Hro2]
       · iapply oAnyZ_congr K.p om2.size sz3 _ _ (by omega); iexact Hro2
@@ -539,10 +543,11 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         ihave Hyc : oAnyZ (GF := GF) K.p sz3 (4096 * c.1.toNat + w) cs $$ [Hyc]
         · unfold oAnyZ oAny; iexists _; iframe Hyc; ipureintro; exact hysl2
         ihave Hcur := cur_anyZ b K.p sz3 c.1.toNat (1 + pageOverflow c.2.2) w cs
-          (c.2.2.length - w - cs) ysd (c.2.2.take w) hyd (by simp only [List.length_take]; omega)
+          (c.2.2.length - w - cs) ysd (c.2.2.take w) hyd
+          (by simp only [List.length_take]; omega_only [Hcs, Hcs0])
           (by rcases Nat.eq_zero_or_pos w with h | h
               · exact Or.inr h
-              · exact Or.inl (by have := Hom2w h; omega)) (by omega)
+              · exact Or.inl (by omega_only [Hom2w h, hsz3'])) (by omega_only [Hcs, Hcs0, hclen])
           $$ [Hd1 Hd2 Hyc Hrc1 Hro2 Hrc2]
         · iframe
         ihave Hdz : [∗list] e ∈ L'.take (sint.nat j), [∗list] s ∈ extE e,
@@ -576,7 +581,8 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iframe Hm
         isplitr
         · ipureintro
-          refine ⟨by omega, by omega, hm3.2.trans Hom2m, Hwb1, Hwb2,
+          refine ⟨by omega_only [Hjs1, Hom2a, hsz3'], by omega_only [hsz3, Hom2b, hcin', hclen, Hcs, Hcs0],
+            hm3.2.trans Hom2m, Hwb1, Hwb2,
             fun s hs _ h2 => by rw [Hwb3 s hs]; omega, fun hfs => ?_⟩
           -- under the premises the failed `pwrite` started at `maxBytes` (page-aligned): the file
           -- ends there, or where it ended (session S3g)
@@ -656,10 +662,10 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · -- the page is written
           have hend : w + cs = c.2.2.length := by
             have h := Hif
-            have : c.2.2.length - (w + cs) < 2 ^ 63 := by omega
+            have hlt : c.2.2.length - (w + cs) < 2 ^ 63 := by omega_only [hclen, hov]
             have h2 : (c.2.2.length - (w + cs) : Nat) = 0 := by
-              have := congrArg BitVec.toNat h; simp at this; omega
-            omega
+              have h3 := congrArg BitVec.toNat h; simp at h3; omega_only [h3, hlt]
+            omega_only [h2, Hcs, Hcs0]
           rw [hend, List.take_length] at hfst
           rw [hend, List.take_length]
           icases run_pgDone b K.p c (ysd ++ ys2) hfst hclen Hcp $$ [Hpb Hd1 Hd2] with ⟨Hh, Hcd⟩
@@ -672,9 +678,8 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · rw [List.take_add_one, Hc, Option.toList_some]; iexact Hdone
           wp_for_post
           wp_for_post
-          have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by
-            have : sint.nat j < 2 ^ 62 := by omega
-            word
+          have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 :=
+            wr_sintNat_succ j (by omega) (by omega)
           rw [fileOwn_eq]
           iframe
           iexists j + W64 1, c.2.1, om3
@@ -711,7 +716,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           iframe
           ipureintro
           have hc2 := hcut.2
-          exact ⟨hnend, hfst, hm3.2.trans Hom2m, by omega, by omega, fun _ => by omega, by omega,
+          exact ⟨hnend, hfst, hm3.2.trans Hom2m, by omega_only [Hom2a, hsz3'],
+            by omega_only [hsz3e, Hom2b, hcin, hclen, Hcs, Hcs0], fun _ => by omega_only [hsz3e],
+            by omega_only [hsz3e, Hom2z],
             fun _ => by rw [hcl] at hc2; omega⟩
   · have Hjl : sint.nat j = L'.length := by have := Hsll.1; word
     obtain ⟨-, -, Hom'm, Hom's1, Hom's2, Hjd, Hjz⟩ := Hj

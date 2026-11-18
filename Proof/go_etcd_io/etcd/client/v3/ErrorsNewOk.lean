@@ -231,6 +231,32 @@ theorem eofPtr_of_init [_root_.Perennial.io.Assumptions] :
   ipureintro
   exact errPtrOk_ptr x
 
+/-- **An `*errors.errorString`'s `Error()` returns its cell's message** (incomingof Part B): per run,
+from the persistent `s` field. -/
+theorem errorMsgIs_errorString (x : Loc) (m : GoString) :
+    x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ m ⊢
+      errorMsgIs (GF := GF)
+        (interface.mk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) m := by
+  iintro #Hs
+  unfold errorMsgIs
+  iintro !> %Φ HΦ
+  rw [method_unfold]
+  wp_auto
+  iexact HΦ
+
+/-- **`DeadlineExceeded`'s `Error()` returns `"context deadline exceeded"`** (incomingof Part B): its
+method body is the literal (`context.go`). -/
+theorem errorMsgIs_deadline [_root_.Perennial.context.Assumptions] :
+    ⊢ errorMsgIs (GF := GF)
+        (interface.mk _root_.Perennial.context.deadlineExceededError.ty
+          #(zero_val _root_.Perennial.context.deadlineExceededError)) go!"context deadline exceeded" := by
+  unfold errorMsgIs
+  iintro !> %Φ HΦ
+  wp_method_call
+  unfold _root_.Perennial.context.deadlineExceededError.Error.impl
+  wp_auto
+  iexact HΦ
+
 /-- **Every context's `Err()` returns client errors** (see the file header). -/
 theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
@@ -250,11 +276,6 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
   icombine Hec Hec' gives %Heqc
   icombine Hed Hed' gives %Heqd
   cases Heqc; cases Heqd
-  -- (k8s etcd3 7c-2 part 2, S7) their descriptions, neither read error's
-  ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, ⟨%ed3, #Hed3, %Hdd⟩⟩ := EtcdGrove.ContextReadErrs.descs $$ Hp
-  icombine Hec Hec3 gives %Heqc3
-  icombine Hed Hed3 gives %Heqd3
-  subst Heqc3; subst Heqd3
   -- (k8s 7e-1) their dynamic types, from `context`'s package fact
   ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
   · iapply _root_.Perennial.context.isInit_access $$ Hp
@@ -284,7 +305,7 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
     · ipureintro; exact ⟨hAs, fun ii h => by cases h⟩
     · iapply statusErrOk_nil
     · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
-    · ipureintro; left; rfl
+    · ileft; ipureintro; rfl
   · icombine Hv Hec gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -294,8 +315,14 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
       rw [Hx]
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_cell x _
         (by simp [go_etcd_io.etcd.cache.v3.clientErrMsgs]) $$ Hcell
-    · ipureintro; right; simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil,
-        or_false, not_or, Hdc, Hdd]; decide
+    · -- (incomingof Part B) `Error()` returns `"context canceled"`, of a context error's shape
+      iright; iexists ec, go!"context canceled"
+      have hx : ec = interface.mk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x :=
+        GoInterface.ok.inj Hx
+      isplitl []
+      · ipureintro
+        exact ⟨rfl, Or.inl rfl, Htc.2, Hlc.2.2.1⟩
+      · rw [hx]; iapply errorMsgIs_errorString $$ Hcell
   · icombine Hv Hed gives %Heq
     subst Heq
     iapply HΦ $$ Hpost
@@ -303,8 +330,14 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
     · iexact Hsd
     · -- (D37) `DeadlineExceeded` is of no `*errorString` type
       iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty ed (Hnd ed rfl)
-    · ipureintro; right; simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil,
-        or_false, not_or, Hdc, Hdd]; decide
+    · -- (incomingof Part B) `Error()` returns `"context deadline exceeded"`
+      iright; iexists ed, go!"context deadline exceeded"
+      have hd : ed = interface.mk _root_.Perennial.context.deadlineExceededError.ty
+          #(zero_val _root_.Perennial.context.deadlineExceededError) := GoInterface.ok.inj HtyD
+      isplitl []
+      · ipureintro
+        exact ⟨rfl, Or.inr rfl, Htd.2, Hld.2.1⟩
+      · rw [hd]; iapply errorMsgIs_deadline
 
 end proofs
 

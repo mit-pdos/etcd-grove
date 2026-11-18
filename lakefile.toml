@@ -1,5 +1,5 @@
 name = "etcdGrove"
-defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "NetTcp"]
+defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "RaftNoAx", "PorcupineDag", "Bbolt", "WalTester", "SpecPlan", "Robustness", "NetTcp"]
 
 # The Perennial framework, including the Goose translator that produced `Code/` and
 # `GeneratedProof/` (checked by `etc/goose.py --check`). The pin follows branch `lean` of
@@ -7,7 +7,7 @@ defaultTargets = ["EtcdGrove", "RaftTla", "RaftWitness", "PorcupineDag", "Bbolt"
 [[require]]
 name = "perennial"
 git = "https://github.com/mit-pdos/perennial"
-rev = "c6b39d4f8c0e6d4a08a615a4023516b8079a3b37"
+rev = "6d365ee1aac396061ed93e644a7f5aa53228ced9"
 
 # Everything here, laid out by kind and then by Go package path:
 #   Code/<pkg>, GeneratedProof/<pkg>  the Goose translations of raft and of etcd's
@@ -50,6 +50,16 @@ globs = ["RaftTla.+"]
 name = "RaftWitness"
 globs = ["RaftWitness.+"]
 
+# Raft without hand-written axioms (notes/raft-noax-part.md): the raft proof and kvdurable's closed
+# theorem over a raft of its own (etc/goose.py's projects raft-noax and kvdurable-noax), in a
+# parallel tree with the same layout (RaftNoAx/{Code,TrustedCode,GeneratedProof,ManualProof,Spec,
+# Proof}/; the copies of the main tree's modules written by etc/copy-part.py). It imports the main
+# tree, but not its raft or kvdurable, and nothing outside it imports it: its modules declare the
+# main raft's names.
+[[lean_lib]]
+name = "RaftNoAx"
+globs = ["RaftNoAx.+"]
+
 # porcupine's pull request #46 (the DAG search; notes/porcupine-dag-plan.md), vendored in
 # third_party/porcupine-dag and translated by etc/goose.py's project porcupine-dag into a parallel
 # tree with the same layout (PorcupineDag/{Code,GeneratedProof,Spec,Proof}/): the Go path is
@@ -90,11 +100,10 @@ name = "WalTester"
 globs = ["WalTester.+"]
 
 # Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
-# every run of its nodes (the real programs) with crashes, the network's faults and any clients,
-# under assumptions on the environment's events only, leaves the nodes fine and satisfies a
-# guarantee on the observed trace (e.g. linearizability) -- generic over the programs, the
-# extensions and the network. Used by the examples' statements (raft/kvnet); its Go counterpart is
-# the test harness examples/lib/robust.
+# in every execution (Perennial's DistCrashNsteps) of programs on machines that crash and restart
+# and programs on machines that never crash, with whatever extensions are plugged in, no thread is
+# stuck or has a top-level panic. Used by the examples' statements (raft/kvnet); its Go counterpart
+# is the test harness examples/lib/robust.
 [[lean_lib]]
 name = "Robustness"
 globs = ["Robustness.+"]

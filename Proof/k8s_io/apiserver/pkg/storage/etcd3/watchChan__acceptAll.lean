@@ -28,7 +28,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 theorem watchChan.acceptAll.wp_proof : watchChan.acceptAll.spec (GF := GF) (hG := hG) := by
   intro Obj S wc p sel emp
-  unfold selPredOk
+  unfold selPredOkW
   wp_start as ⟨#Hp, ⟨-, -, #Hempty⟩⟩
   wp_auto
   wp_apply Hempty $$ [$Hp] as #Hp

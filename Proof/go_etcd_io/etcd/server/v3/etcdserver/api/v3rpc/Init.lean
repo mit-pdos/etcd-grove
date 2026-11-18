@@ -293,7 +293,25 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   · iapply isPkgInit_access $$ Hd2
   icases Hpi with ⟨#HSO, #HST, #HDescs⟩
   ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1
-  ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1
+  -- (incomingof Part B) the context errors are keys of the map, so neither read error's description
+  ihave #HCD : (ctxErrDescs : IProp GF) $$ []
+  · ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []
+    · iapply _root_.Perennial.context.isInit_access $$ Hd1
+    iNamed Hci
+    icases HCanceledCell with ⟨%xc, #Hxc, -⟩
+    unfold ctxErrDescs
+    isplitl []
+    · iexists _; iframe Hxc
+      ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc
+      obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
+      obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv
+      ipureintro; exact ⟨h1, h2⟩
+    · iexists _; iframe HDeadlineExceededTy
+      ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)
+        HDeadlineExceededTy
+      obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
+      obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv
+      ipureintro; exact ⟨h1, h2⟩
   ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗
       ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []
   · iunfold EtcdGrove.errVarLeaf at HCL

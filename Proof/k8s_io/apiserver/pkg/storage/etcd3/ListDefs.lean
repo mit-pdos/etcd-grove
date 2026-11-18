@@ -141,6 +141,13 @@ def kvWfHist (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
   ∀ r, r ≤ σ.rev → ∀ v ∈ (σ.at r).kvs, (c.pfx <+: v.key → c.S.dec v.value ≠ none) ∧
     0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ r
 
+/-- **Every value a revision of `σ` puts under the store's prefix decodes** (`notes/k8s-7f5b-draft.md`
+§7, option (A), decided by etcd-grove-02, 2026-11-16): also a value put and overwritten within one
+revision, which is in no state `σ.at r` (so `kvWfHist` says nothing of it) but is an etcd watch
+event's value (`mvcc.evsOfRevM`). -/
+def kvWritesDec (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
+  ∀ r, r ≤ σ.rev → ∀ ch ∈ σ.changesAt r, ∀ k v l, ch = .put k v l → c.pfx <+: k → c.S.dec v ≠ none
+
 /-- **The default gate has `EtcdRangeStream` off** (Draft §2, #13, persistent): the gate
 `DefaultFeatureGate` holds (read-only, as `features`' fact `featuresInit` says) had
 `Set("EtcdRangeStream=false")` succeed. Producer: the driver's `noStreaming` before `etcd3.New`. -/
@@ -362,6 +369,9 @@ def readErrIs (c : StoreCfg GF Obj) (rev : w64) (Q : w64 → KVState → IProp G
     (err : GoInterface) : IProp GF :=
   iprop(kClientErr err ∗
     □ (⌜go_etcd_io.etcd.cache.v3.errDesc err = go_etcd_io.etcd.cache.v3.futureRevDesc⌝ -∗
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e →
+        methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) →
+        e.ty = go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty⌝ -∗
       ∃ (R : w64) (σ : KVState), □ Q R σ ∗ ⌜σ.rev < sint.nat rev⌝))
 
 instance readErrIs_persistent (c : StoreCfg GF Obj) rev Q err :

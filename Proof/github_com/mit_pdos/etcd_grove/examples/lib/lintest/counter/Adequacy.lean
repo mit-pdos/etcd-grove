@@ -44,6 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.PkgTable
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -131,7 +132,7 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([counterProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := counterGF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
@@ -148,6 +149,19 @@ theorem counter_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe #
   ipureintro
   rfl
+
+/-- **`counter_adequate` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `counter_adequate`'s other hypotheses: in every
+execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
+theorem counter_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.counter.Assumptions]
+    (σ : state) (g : GlobalState) :
+    Robustness.Robust [] [(counterProgram, σ)] g (2 ^ 63) :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    (counter_adequate
+      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end adequacy
 

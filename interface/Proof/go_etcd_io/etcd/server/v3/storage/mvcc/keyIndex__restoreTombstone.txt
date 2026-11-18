@@ -8,7 +8,7 @@ theorem mvcc.keyIndex.restoreTombstone.wp_proof (hRestore : mvcc.keyIndex.restor
   ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lg : Loc) (main sub : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ ∗ mvcc.ownKi p gs ki (DFrac.own 1) -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ zapLoggerOk lg ∗ mvcc.ownKi p gs ki (DFrac.own 1) -∗
           (▷
               ∀ r,
                 (if ki.gens = [] then
@@ -17,7 +17,9 @@ theorem mvcc.keyIndex.restoreTombstone.wp_proof (hRestore : mvcc.keyIndex.restor
                   else
                     ⌜r =
                           (intoVal
-                              go!"'restore' got an unexpected non-empty generations").PanicV⌝ ∗
+                              (interface.mkOk go.string
+                                (intoVal
+                                  go!"'restore' got an unexpected non-empty generations"))).PanicV⌝ ∗
                       mvcc.ownKi p gs ki (DFrac.own 1)) -∗
                   Φ r) -∗
             WP

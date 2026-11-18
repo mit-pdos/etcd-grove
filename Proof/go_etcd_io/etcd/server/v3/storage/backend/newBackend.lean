@@ -217,7 +217,6 @@ theorem backend.newBackend.wp_proof
   wp_auto
   ihave Hbo := Hback $$ [Hf]
   · simp only [HP.2.2.1]; iexact Hf
-  ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlz
   wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
   · iexact Hlz
   icases optsAt_logger bo _ $$ Hbo with ⟨Hf, Hback⟩

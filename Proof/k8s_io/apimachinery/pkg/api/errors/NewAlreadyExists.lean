@@ -39,13 +39,19 @@ theorem NewAlreadyExists.wp_proof
   isplitr
   · ipureintro; rfl
   iintro %asl ⟨Hasl, -⟩
+  iapply wp_fupd
   wp_apply (_root_.Perennial.fmt.wp_Sprintf _ _ _ (DFrac.own 1) (by
     exact _root_.Perennial.fmt.ArgsWf.cons_string _ _ (_root_.Perennial.fmt.ArgsWf.cons_string _ _
       _root_.Perennial.fmt.ArgsWf.nil)))
     $$ [$Hasl] as %s -
+  ipersist «$v3»
+  imodintro
   iapply HΦ
   iexists _
   iframe
+  isplitr
+  · unfold statusDetailsAt; iright; iexists _; iframe «$v3»
+    iapply (ownSlice_nil (V := k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) DFrac.discard)
   ipureintro
   exact ⟨rfl, rfl, rfl⟩
 

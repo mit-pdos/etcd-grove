@@ -31,7 +31,7 @@ variable [package_sem : k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
 
 /-- See the file header. -/
 abbrev watchChan.transform.spec : Prop :=
-  ∀ (Obj : Type) (S : ObjSpec GF Obj) (W : WatchSpec Obj) (codec : GoInterface)
+  ∀ (Obj : Type) (S : ObjSpec GF Obj) (W : WatchSpec GF Obj) (codec : GoInterface)
     (vi ti : GoInterfaceOk) (wc wp : Loc) (ctx : GoInterface) (nf : GoFunc)
     (p : k8s_io.apiserver.pkg.storage.SelectionPredicate) (sel : Obj → Bool) (emp : Bool)
     (ep : Loc) (x : k8s_io.apiserver.pkg.storage.etcd3.event) (σ : KVState) (r : KRaw),
@@ -48,7 +48,7 @@ abbrev watchChan.transform.spec : Prop :=
         GoInterface.ok vi ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watcher go!"transformer" wp ↦□
         GoInterface.ok ti ∗
-      selPredOk S p sel emp ∗ transformerOk S ti ∗ versionerOk S vi ∗ watchContractOk S W codec ∗
+      selPredOkW S p sel emp ∗ transformerOk S ti ∗ versionerOk S vi ∗ watchContractOk S W codec ∗
       newItemOk S nf ∗ ep ↦□ x ∗ kEvIs σ x r }}
     (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
       go!"transform")) (Val #ep))

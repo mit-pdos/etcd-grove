@@ -2654,6 +2654,30 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `uint.Z n < 2^63 - 1`; the Draft (§3) updated.
 - **Decision.** Approved (etcd-grove-81, 2026-11-15).
 
+## 2026-11-16: store.Watch without `concurrentDecodeOff` (k8s 7f-5b)
+
+- **Spec.** `k8s.store.Watch.spec` (`Spec/k8s_io/apiserver/pkg/storage/etcd3/store__Watch.lean`; a hypothesis of the 7f-6 lines).
+- **Defect.** Its premise `concurrentDecodeOff` (the default gate has `ConcurrentWatchObjectDecode` off) was the temporary
+  premise of Q6 (`notes/k8s-7f5-scope.md`): only the serial branch of `processEvents` was planned for 7f-5a.
+- **Evidence.** 7f-5b proves both branches of `processEvents` (`notes/k8s-7f5b-draft.md` §§2-4); `Enabled` of a queried
+  feature returns some `b` under `featureGateOk` with no gate fact.
+- **Second defect (found drafting 7f-5b, both branches).** The read laws (`kvWf`, `kvWfHist`, `kvKeysShort`) do not
+  give `transform`'s premise `kRawDecOk`: an etcd event's value is the value right after its own change, so a value
+  put and overwritten within one revision is in no state `kvWfHist` covers (etcd admits such revisions:
+  `issues/etcd-txn-delete-then-ignore-put.md`, `issues/etcd-txn-check-intervals-sibling.md`). `notes/k8s-7f5b-draft.md` §7.
+- **Proposed change.** (1) The precondition's `watchListOn ∗ rangeStreamOff ∗ concurrentDecodeOff ∗` becomes
+  `watchListOn ∗ rangeStreamOff ∗`. (2) The first read law `Q lb σ ⊢ ⌜lb ≤ σ.rev ∧ kvWf c σ ∧ kvWfHist c σ ∧
+  kvKeysShort σ⌝` gains `∧ kvWritesDec c σ` (every value a revision up to `σ.rev` puts under the store's prefix
+  decodes). Nothing else. Uses of the spec as a hypothesis drop the gate argument and prove the new law.
+- **Decision.** (1) planned by the Scope (Q6); (2) option (A), decided by etcd-grove-02, 2026-11-16; producer 7f-6
+  (stage C's `KvOne` in `KvNext`). Both reported again at the land stop.
+- **Third defect (found at 7f-5b step 1).** `transform` needs `0 ≤ sint.Z modRev` of each raw event (its proof uses
+  `W64 (sint.nat modRev) = modRev`); nothing in the spec bounds `σ.rev` (`kvWfHist` bounds the unsigned `modRev`
+  only, the client watch gives no `kvRevFits`). Without it the stream facts are false at `σ.rev ≥ 2^63` (`kEvOfL`'s
+  `rv = sint.nat modRev = 0`; Go's `UpdateObject(obj, uint64(rev))` the wrapped value).
+- **Proposed change (3).** The first read law also gains `∧ kvRevFits σ.rev` (`σ.rev + 3 < 2^63`).
+- **Decision (3).** Decided by etcd-grove-02, 2026-11-16; producer 7f-6 (the reads its `Q` fires at give `kvRevFits`).
+
 ## 2026-11-16: the store's update report gains "one change per step" (k8s 7f-6 C, F1)
 
 - **Spec.** `KvNext` (`Proof/k8s_io/apiserver/pkg/storage/etcd3/Updates.lean`), in the posts of `k8sAu1` and `k8sAuRW`
@@ -2666,6 +2690,53 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** `KvNext`'s step disjunct gains `KvOne σ σ'` (every revision the step adds has at most one change);
   `kvNext_step` takes it of the operation's step, `kvOne_optPut`/`kvOne_optDel`/`seedOp_one` prove it of every producer.
 - **Decision.** Approved (etcd-grove-02, 2026-11-16, F1 option 1).
+
+## 2026-11-16: the auth read contract per bucket, the write contract's sessions (auth-schema-srv A0)
+
+- **Spec.** `auth.authReadTxOk` (trusted: given by `authSchemaSrv`, `authSchemaSnap`, `authSchemaBoot` through
+  `authBackendOk`), `authReadTxLocked`, `authReadTxLockedFrom`, `auth.passwordChecked` (`CheckPassword.spec`'s post);
+  `authBatchTxLk`/`authBatchTxLkR` (trusted likewise, through `authWBackendOkR`), `commitRevision.spec`.
+- **Defect.** The read contract promised every `RLock` one recorded auth state; Go's `batchTxBuffered.Unlock` writes a
+  step's puts back and releases the read lock before it commits the step's deletes, so a reader sees a step half
+  applied (`notes/auth-schema-srv-refuted.md`, "Second refutation"). `passwordChecked` ("the revision of a recorded
+  state that has the user") is false of Go for the same reason.
+- **Evidence.** `nonissues/etcd-auth-readtx-delete-window-mixed-state/zz_authschema_window_test.go` (fails);
+  `zz_authschema_perbucket_test.go`: `TestAuthSchemaReadPerBucket` (the store's admin steps; 0 per-bucket violations in
+  three runs of ~10-13k steps and ~1.1-1.5M reads, ~13-17k reads of no single state, the old text's control) and
+  `TestAuthSchemaReadMixedBucketSession` (a batch that puts and deletes in one bucket: readers see the bucket in
+  neither state, ~33k times in 20 s: the per-bucket reading needs the write side's discipline).
+- **Proposed change.** Q1 (a): `RLock` gives a view `BkView` (a state per bucket: `auth`, `authUsers`, `authRoles`),
+  `authViewSnap(From)`: each recorded (at an index ≥ the lower bound), the users' index ≤ the `auth` bucket's; each
+  read at its bucket's state (`authReaderOkV`); the latest clause (with the write token) one state, `BkView.uni st`.
+  `passwordChecked`: the user in a recorded state and `rev` the revision of a recorded state not earlier. The write
+  contract gains a session token `Sw : AuthSess → IProp` (puts and deletes never in one bucket in one session).
+- **Decision.** Q1 (a) approved by the user 2026-11-16 via etcd-grove-02; the session discipline is what makes Q1 (a)
+  true (reported at the A0 stop).
+
+## 2026-11-16: the watch's annotated object is not expressible for the driver (k8s 7f-6 D)
+
+- **Spec.** `store.Watch.spec`'s vocabulary (`Proof/k8s_io/apiserver/pkg/storage/etcd3/WatchDefs.lean`):
+  `WatchSpec.annotate : Obj → Obj`, `watchContractOk`'s second conjunct (`AnnotateInitialEventsEndBookmark`'s post
+  `S.objAt x (W.annotate o) rv`), `wevAt` (`S.objAt v.Object' (if e.ann then W.annotate e.o else e.o) …`); through
+  them `New.spec`'s `storeWatchOk` (given `watchContractOk S W codec`).
+- **Defect.** No `W : WatchSpec DObj` satisfies `watchContractOk driverSpec W codec`, so the driver can never produce
+  the `storeWatchOk` that `store.Watch.spec` takes (the 7f-6 closed theorems could not be linked). The driver's
+  `driverSpec.objAt` is `objAtD x o rv := ∃ p n, … ∗ p ↦ o.toObj n`, and `DObj.toObj` sets `Annotated' := false`
+  (`DObj` has no annotation; every stored object is unannotated). Go's `AnnotateInitialEventsEndBookmark` on the
+  driver's `*Obj` calls `SetAnnotations`, which sets `Annotated = true` (`examples/k8s/etcd3/k8setcd3.go:306-314`):
+  the post `objAtD x (W.annotate o) rv` is false for every `annotate`. For the same reason `toWEvent` cannot give the
+  bridge's `kWEvRel e w` (`KWatchBridge.lean`, `kToWEv`: `Annotated' := e.ann`) from `wevAt` for the annotated bookmark,
+  the event `watchOk` checks the annotation of (`watchListOk`).
+- **Evidence.** Code reading of the three definitions and the Go driver; found writing stage D's `toWEvent` spec.
+- **Proposed change.** `WatchSpec` describes the annotated object by an ownership predicate instead of a function on
+  bodies: `structure WatchSpec (GF) (Obj) where annAt : GoInterface → Obj → GoString → IProp GF` ("`x` holds the body
+  `o`, annotated, at `rv`"); `watchContractOk`'s annotate conjunct posts `W.annAt x o rv`; `wevAt` reads
+  `if e.ann then W.annAt v.Object' e.o rv' else S.objAt v.Object' e.o rv'`. The driver's `W`: `annAt x o rv := ∃ p n,
+  ⌜x = mkOk (*Obj) p ∧ p ≠ null ∧ rv = rvStr n⌝ ∗ p ↦ { o.toObj n with Annotated' := true }`. Users: `WatchDefs`
+  (3 places), `watchChan__transform`'s spec and proof (the bookmark), `New.spec` (the `W` binder's type);
+  `store.Watch.spec`'s statement changes only in `W`'s type. No trust-base change.
+- **Decision.** Accepted as proposed, decided by etcd-grove-02, 2026-11-16; made by the 7f-6 stage D agent on `k8s-7f6`
+  (7f-5's landed proofs: bodies only).
 
 ## 2026-11-16: three more closed theorems over the file extension (decision A, landing `wal-lean`)
 
@@ -2712,3 +2783,31 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   proposed sum bounds (`k + v ≤ n`) in `ChPutsLe`/`irrPutsLe`/`TxnOp.putsLe` and `MarshalIRR`'s statement,
   which this replaces: no axiom statement and no definition but this constant changes.
 - **Decision.** Applied on `bbolt-putbound` (2026-11-17); for the coordinator's review.
+
+## 2026-11-17: `zap.Logger.Panic.spec` (and the mvcc `keyIndex` panics) -- a panic value no Go program raises
+
+- **Spec.** `Spec/go_uber_org/zap/Logger__Panic.lean` (`zap.Logger.Panic.spec`, the axiom
+  `zap.Logger.Panic.wp_proof`) and the plan's `SpecPlan/Spec/go_uber_org/zap/Logger__Panic.lean`; through
+  it, the panics of `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/keyIndex__{put,get,tombstone,restore,
+  restoreTombstone}.lean`.
+- **Defect.** False of the Go code: the post `r = PanicV #msg` is a panic with the bare string. Go's
+  `panic(x)` (Perennial's `go.panic`, `wp_panic`) panics with the interface value,
+  `PanicV #(interface.mkOk go.string #msg)`; zap's `WriteThenPanic.OnWrite` does `panic(ce.Message)`. The
+  `keyIndex` specs inherit the bare string from it.
+- **Evidence.** The reference implementation of zap in mit-pdos/etcd-refimpl (`Refimpl/go_uber_org/zap/`,
+  `36ef0d5`) can meet the spec only with GooseLang's `Raise msg`, which no Go source translates to; with
+  `panic(msg)` the proof fails at the final equality. `wp_panic` (Perennial, `Golang/Theory/Defer.lean`).
+- **Second defect (same spec).** Its premise `⌜l ≠ null⌝` (kept by premise fixes 6, D4) admits loggers
+  for which the axiom is false of zap v1.28.0 (`logger.go:283-357`, `terminalHookOverride`): a zero
+  `&zap.Logger{}` panics with a nil-dereference runtime error (`log.core.Check` on a nil core), not
+  `msg`; a logger built with `WithPanicHook(h)` for an `h` that returns makes `Panic` return normally.
+  D4's reason (only a `recover` that inspects the value tells the panics apart) does not cover the
+  second.
+- **Proposed change.** `⌜r = PanicV #(interface.mkOk go.string #msg)⌝` in both zap specs; the same value
+  at each `keyIndex` panic (`PanicV #(interface.mkOk go.string #(go!"…"))`). The premise `zapLoggerOk l`
+  (as `Debug`/`Info`/`Warn`/`Error`/`Check`/`Fatal` have since premise fixes 6), and `zapLoggerOk lg` in
+  place of `⌜lg ≠ null⌝` in `keyIndex.{put,get,tombstone,restore,restoreTombstone}` and
+  `treeIndex.unsafeGet`; their callers have it from `isTreeIndex` (`#Hlgnn`). No trust-base change (the
+  same axiom, restated). The plan's spec already has the premise (`isLogger l`).
+- **Decision.** Accepted (the user, 2026-11-17: "fix the axioms ... and the proofs above that axiom");
+  made on branch `zap-panic-iface`.

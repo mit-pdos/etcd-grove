@@ -146,7 +146,7 @@ theorem etcd_putget3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine etcd_adequate_members (GF := putget3GF) (hAsLit := by decide) (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.putget3.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) putget3Addrs (by decide) [(etcd_putget3.name₁ ++ go!".etcd"), (etcd_putget3.name₂ ++ go!".etcd"), (etcd_putget3.name₃ ++ go!".etcd")] (by decide)
