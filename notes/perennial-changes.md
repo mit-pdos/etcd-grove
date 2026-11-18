@@ -2750,3 +2750,12 @@ parameter.
 - **Proposed.** `ArgWf` (or a verb-indexed variant) admitting a func, pointer, map, channel or unsafe-pointer value
   under `%p`, with the model's output arbitrary (`other`); a `%s` of a `Stringer` (`time.Duration`) then needs
   `fmt.argOkAt`'s method-verb disjunct only.
+
+## 2026-11-18: no bound on the iterations of a range loop over a string (`fs.FileMode.String`, S3g)
+
+- **Missing.** `go.runes s` (`goose/model/strings/Base.lean`) has no length lemma: a proof whose loop
+  body indexes a buffer by the iteration count (`FileMode.String`'s `buf[w]`, `w` at most the runes
+  seen) needs `(go.runes s).length ≤ s.length`.
+- **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
+  `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
+- **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.

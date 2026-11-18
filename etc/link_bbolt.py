@@ -25,7 +25,8 @@ The rules:
   callees of the other modes); else the result of etcd-grove's own proof of it
   (`Proof/os/`, `Proof/syscall/`, ...: the file-system model's, as minibolt's Link links them),
   linked here too, in the namespace `bbolt` (`bbolt.os.File.wp_Close`).
-- **Specs with no proof** (a callee left a hypothesis: `fs.FileMode.String.spec`) and the **premises
+- **Specs with no proof** (a callee left a hypothesis; none since `fs.FileMode.String.spec` was
+  proved, 2026-11-18) and the **premises
   without proof** (`PREMISES` with no term; none since `PidSetDeleteUnfold` was proved,
   2026-11-17) are hypotheses `h_<name>`: every result reaching one is stated in a section
   `links_pending`, as a `?` callee of the other modes, and takes those it reaches (since
@@ -523,9 +524,11 @@ The callees are read off each proof's binders (`etc/link_bbolt.py`'s docstring).
 `etc/gen-link.py --bbolt` -- do not edit by hand.
 
 `#print axioms` on a result is its trust base (`Results.lean` prints the public specs').
-""" + textwrap.fill("The results reaching a spec with no proof, or a premise with no proof, are "
+""" + textwrap.fill(("The results reaching a spec with no proof, or a premise with no proof, are "
                     "in `links_pending`, which takes them as hypotheses: "
-                    + ", ".join(f"`{n}`" for n in hyp_names) + ".", 96,
+                    + ", ".join(f"`{n}`" for n in hyp_names) + ".") if hyp_names else
+                    "Every result is linked to proofs: none reaches a spec or a premise with no "
+                    "proof (no `links_pending`).", 96,
                     break_on_hyphens=False) + "\n-/"
     out = [header, "module", ""]
     out.extend(f"public import {m}" for m in sorted(imports, key=mod_key))

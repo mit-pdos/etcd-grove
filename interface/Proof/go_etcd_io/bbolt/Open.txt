@@ -26,7 +26,7 @@ theorem bbolt.Open.wp_proof [go.BasicIntoValInj] [sync.Assumptions] (hCS : ∀ [
     Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.Tx.Commit_err.spec) (hClose :
     bbolt.DB.Close.specTok) (hclose : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt
     Fs.fsExt], bbolt.DB.close.spec_owned) (hLogger : bbolt.DB.Logger.spec) (hOptStr :
-    bbolt.Options.String.spec) (hModeStr : bbolt.fs.FileMode.String.spec) : bbolt.Open.spec
+    bbolt.Options.String.spec) (hModeStr : fs.FileMode.String.spec) : bbolt.Open.spec
   -- `Perennial.EtcdGrove.bbolt.Open.spec`, unfolded:
   ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] [ThreadBoundLe GF (2 ^ 29)]
     [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (R : Fs.Roots) (d b : GoString) (dq : DFrac) (j : Fs.Ino) (qc : Qp)

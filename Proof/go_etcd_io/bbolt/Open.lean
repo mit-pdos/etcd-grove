@@ -13,7 +13,7 @@ Every error exit closes the database (`DB.close.spec_owned`, or `DB.Close` once 
 began), logs, and returns through the deferred log (`Hdef`, the deferred function's spec).
 The page pool's `New` reads the named result `db`, which the returns write: it borrows the cell
 from the protocol `Open/PoolNew.dpProt` against its caller's lease (U11j).
-A local assumption until the method is translated: `fs.FileMode.String.spec`.
+`fs.FileMode.String.spec` (`Spec/io/fs/FileMode__String.lean`) is a hypothesis, linked to its proof.
 -/
 module
 
