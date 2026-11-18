@@ -51,10 +51,11 @@ CI and `etc/gates.sh` (`etc/copy-part.py --check`). `etc/proof_roots.py` finds t
 To regenerate after the main tree moves:
 
     etc/goose.py --project raft-noax --project kvdurable-noax --project kvreconf --project etcd
+    # (raft-noax: add --src raft-noax=DIR for a local checkout of the fork at RAFT_NOAX_REV)
     etc/copy-part.py
     etc/gen-init.py
     etc/gen-link.py --raft-noax > RaftNoAx/Proof/go_etcd_io/raft/v3/Link.lean
-    etc/gen-link.py --kvdurable-noax > RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean
+    etc/gen-link.py --kvdurable-noax > RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Link.lean
 
 ## What the part holds (stage 1, 2026-11-17)
 
@@ -118,3 +119,78 @@ after a full build).
 5. `etc/gen-link.py --kvdurable-noax`: its output path (the docstring line the gates read) moves to
    the new directory, the list may need the new package's names;
 6. `etc/tcb-collections/raft-noax.txt`'s `roots` line: the new directory.
+
+## Stage 2 (2026-11-18): the part on the modified code
+
+Commits `190bbe2d7f`..(this one). The part is now the noax fork (`RAFT_NOAX_REV = 91e2ea7`) and
+`examples/raft/kvdurablenoax` (`KVDURABLE_NOAX_DIR/PKG`; `GO_MOD_PINS` checks its go.mod's replace).
+`lake build RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results`
+builds (3828 jobs). `etc/goose.py --check` (both part projects), `etc/copy-part.py --check`,
+`etc/gen-init.py --check` and the two Links pass. The kvreconf and walpb pieces were not regenerated:
+their translations name raft's types and functions only, which did not change.
+
+**What the switch took** (beyond the steps above):
+- `RaftNoAx/Code/go_etcd_io/raft/v3/raftpb.toml` is the part's own: its `imports` list (which overrides
+  the package's real imports in the translation) gains `errors` (noax.go's `errDecodeConfChange =
+  errors.New(...)`, a translated package variable) and loses `proto`.
+- gen-init: kvdurablenoax's `Init.lean` and `PkgTable.lean` are generated from the part's translation
+  (`noax_inits`, as `wt_inits`), since the part's raft imports other packages than the main one (no
+  `proto`, raftpb imports `errors`); copy-part skips them (`NOAX_MAIN_PATHS`).
+- The link lists name `kvdurablenoax_*` (the functions' package) and the new callees; `kvdurablenoax_withTimeout`
+  replaces `context_WithTimeoutBackground`; `fmt_Errorf`, `fmt_Sprintf`, `strings_Join`, `DescribeConfChange` are gone.
+- Hand fixes (the files are the part's own, first line removed): raft's `Base.lean` (imports protobuf's
+  `proto` translation, which raft no longer does; raftpb's package fact also says `errDecodeConfChange`
+  holds a non-`nil` error, for the decoders' error) and `Init.lean` (raftpb's initializer allocates and
+  sets `errDecodeConfChange`; raft's import list lost `proto`); `MessageType__String` (the fact's first
+  half); every `proto.*` caller re-pointed to the `raftpb.*` spec (the call no longer goes through an
+  interface and a type assertion); `confchange.checkInvariants`/`Changer.apply` call `errors.New`
+  (Perennial's `errors.wp_New`, a theorem); `newRaft` without the `nodesStrs` loop (`hexIDs`, lazy);
+  `stepLeader`'s `MsgProp` with `failedCheck` an interface (`lazySprintf`), compared with `nil`, no
+  `DescribeConfChange`; `bootMarshal` (`ApiVocab`) over `raftpb.MarshalConfChangeV1` (no error result);
+  the kvdurable callers of `withTimeout` (it calls `context.Background` itself).
+- New specs, the part's own (`RaftNoAx/Spec/go_etcd_io/raft/v3/raftpb/`): `CloneSnapshot`, `CloneConfState`,
+  `MarshalConfChangeV1/V2`, `UnmarshalConfChangeV1/V2` are the `proto` trust-boundary specs they replace,
+  verbatim but for the call (and `isPkgInit` of raftpb, no error result for the encoders).
+  `CloneEntry` and `EntrySize` are `proto.ClonePb`/`SizePb` **at `Entry`'s instance `pbEntryC`**:
+  `entRoC l c` in, `entPtsCC l' 1 c` / `entrySize c` out, with no registration premise
+  (`pbModelOf … = some pbEntryC`), since the functions are `Entry`'s own; so `pbEntryC_reg` and
+  `entryEncC_ok` are no longer reached (nothing else on the path used the registration).
+- `withTimeout` (kvdurablenoax): spec = `context.WithTimeoutBackground.spec` at the new call;
+  **proved** (Perennial's `wp_WithCancel_Background`, `time.wp_AfterFunc`).
+
+**The inventory** (`#print axioms raft_kvdurable_porcupine_safe`: 316 constants, 328 in stage 1).
+Gone: all 13 hand-written axioms but one (`DescribeConfChange.wp_proof`, `fmt.Errorf.wp_proof`, the
+eight `proto.*.wp_proof`, `entryEncC_ok`, `pbEntryC_reg`) and Perennial's `time.Now.wp_proof`. Left:
+Lean's three, Goose's type axioms (untranslatable protobuf/`fmt`/`os`/`strings`/`sync` types),
+`ccDecodeV2_nil`, and `sorryAx` from exactly these eight proofs (each reached from
+`raft_kvdurable_porcupine_safe`, chains by `AxPath2.lean`):
+
+| obligation | reached through | difficulty, what it needs |
+|---|---|---|
+| `raftpb.CloneConfState.wp_proof` | `newReplica`, `Storage.InitialState`, `Replica.install`, `MemoryStorage.CreateSnapshot`, `ConfState.Equivalent` | easy-moderate: four `append(nil, s...)` slice copies, `cloneBool`, a fresh struct; `cloneUnknown` of the hidden `unknownFields` (see `pbMsg` below); the new `pbMsg` invariant allocated (`pbMsg_alloc`) |
+| `raftpb.CloneSnapshot.wp_proof` (5 conjuncts) | `MemoryStorage.Snapshot/ApplySnapshot/CreateSnapshot`, `raftLog.snapshot`, `unstable.nextSnapshot/restore`, kvdurable `copyMsg`, `image.applySnapshot` | moderate: `cloneSnapshotMetadata` + `CloneConfState` + `cloneBytes`, one proof per ownership form (`ownSnapM/W/S/V`); share a core lemma |
+| `raftpb.CloneEntry.wp_proof` | `raft.appendEntry` | easy-moderate: `entRoC` in, `entPtsCC` out; `cloneBytes` keeps nil vs non-nil (`bytesC`), cells fresh |
+| `raftpb.EntrySize.wp_proof` | `entsSize`, `limitSize` | moderate: `sizeVarint` loop = `varintSize` (a pure lemma), the sign-extended enum, overflow only above `2^63` (the spec's premise) |
+| `raftpb.MarshalConfChangeV1/V2.wp_proof` | `raftpb.MarshalConfChange` (`ProposeConfChange`) | hard: the round trip `ccDecodeV1 (bytes) = some m` needs `ccDecodeV1/V2` to be **definitions** (now `opaque` in `CCModel.lean`), mirroring the Go decoders; then a pure encode/decode round-trip theorem and the `appendVarint`/`appendBytes` loops; `ccLenMax` bound |
+| `raftpb.UnmarshalConfChangeV1/V2.wp_proof` | kvdurable `Replica.applyEntry`, `stepLeader` | hard: same definitions; the Go decoder's loops (`consumeVarint`, field order) against the pure `ccDecodeV*`; the error is `errDecodeConfChange` (non-nil by raftpb's package fact, added this stage) |
+| `ccDecodeV2_nil` (axiom) | `StepProof.isMessage_leave` | trivial once `ccDecodeV2` is a definition (empty input gives the empty message): a theorem by `rfl`/`simp` |
+
+**`pbMsg` must change** (the question of the hidden fields): `pbMsg T l uf` is an invariant holding
+`unknownFields ↦ us ∗ us ↦* uf` (full ownership of the bytes inside the invariant). The clones
+`cloneUnknown(m.unknownFields)` = `append(nil, u...)`, which reads the bytes over several steps, so
+the invariant cannot be kept open; and `EntrySize` reads only `len(u)` (one load, fine). So the
+definition must change to `us ↦*□ uf` (the bytes persistent, read-only): no code of the closure
+writes the bytes of a message's unknown fields once it is allocated (the `proto` axioms were the only
+writers of the hidden fields: `sizeCache`). Affected: `InvPbCore.pbMsg` and `pbMsg_alloc`'s proof (its
+statement can stay: it can persist the bytes under its update), raft's `Init.lean`/`Base.lean`
+(`emptyState`'s invariant, `isInitialized`), `LemmasMiscR.emptyState_hsRO`. An alternative that keeps
+`pbMsg`: none (a full points-to inside an invariant cannot be read over many steps).
+
+**Not in the closure, still built**: `RawNode.Bootstrap`'s proof builds over the new `bootMarshal`
+(`MarshalConfChangeV1`); `bootMarshal` stays a premise of `Bootstrap`/`StartNode` (kvdurable restarts,
+`RestartNode`, so it is not on the path).
+
+**Gates not yet updated**: `etc/tcb-collections/raft-noax.txt` has the new baseline (by hand: roots
+the kvdurablenoax directory, `ccDecodeV2_nil` and the eight sorries); `etc/tcb-baseline.txt` (the
+repository's axioms and sorries) has not been regenerated: it needs a full `lake build` and
+`etc/tcb-report.py --check --update` (the part's eight new `sorry`s, and its stage-1 axiom copies gone).
