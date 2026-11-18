@@ -106,6 +106,32 @@ a change to the trusted semantics adds its Go example in `examples/net/semantics
   `"tcp4"` (3 uses), `SetKeepAlive`/`SetKeepAlivePeriod` (7 each), `SetReadBuffer` (10),
   `SetWriteBuffer` (7).
 
+**Phase 0's findings (2026-11-18, read-only inventory):**
+- *Not modeled here, used by kits:* `"tcp4"` (go-vsr `pkg/network/tcp.go:38,69`); `SetKeepAlive`,
+  `SetKeepAlivePeriod`, `SetReadBuffer`, `SetWriteBuffer` (rabia `internal/tcp/tcp.go:49-61`, through a
+  `*net.TCPConn` assertion); the pure address helpers `SplitHostPort`, `ParseIP`, `net.IP`'s
+  `To4`/`String`/`Equal` (go-vsr `pkg/ipv4port`; names-only in both models, the run rewrote them);
+  `Dial("udp")` (swiftpaxos `latency.go:235`, which the kit already requires off the path).
+- *Concurrent writes:* every kit and model serializes its writes on a connection (a mutex, or one
+  writer goroutine), so none visibly relies on Go's write lock; one suspect, quepaxa's
+  `connectToClient` (the 4-byte handshake written unlocked after the writer is published), unknown in
+  the run's fork. The lab's one-step `Write` made the question invisible; under our `Write` loop a
+  proof keeping `sendTok` in an invariant would break. Decision: model Go's write lock (phase 2.3): it
+  is Go's behavior, and it removes the risk.
+- *Addresses:* node `i` at `10.77.0.(10+i)`, ports 7000-9006 (none ephemeral, none loopback); the two
+  kits listening on wildcards (epaxos, gryff) use a distinct port per node, so D21 already holds:
+  phase 2.4 is not needed for the kits (kept as an option for later).
+- *The proofs:* `theorems/<run>/` keeps 1-12 Lean files per run (the goal, results); the proof trees
+  are `runs/<run>/home/work/<proj>` at tag `final` on the experiment machines (paxos-net-3 `dbb8647`,
+  craq-net-2 `ac82100`, epaxos-net-1 `0e71508`, epaxos-net-2 `eeb7fa7`, gryff-net-2 `c03461d`,
+  quepaxa-net-2 `7a689be`, rabia-net-1 `4fc8d6b`, vsr-net-1 `fa054c9`), not reachable from this
+  machine (`fk-lean1`/`fk-lean2` do not resolve; no ssh configuration). Phase 6 needs them copied here
+  (the user's action).
+- *Spec facts:* the lab's exported specs do not expose "a `Dial` succeeds only with an open listener"
+  or "a read error only after the bytes are drained" (`Specs.lean:1702-1706`, `:1829-1835`); the
+  visible kit files use only `addrProto`, `addrTok`, `addrUnset` (and the `G` variants) of the net
+  vocabulary.
+
 ### Phase 1: the rename (no change of meaning)
 
 `tcp` names become `net` names; Go's own identifiers (`TCPConn`, `TCPListener`, `tcpsock`,
@@ -133,15 +159,17 @@ From `net-tcp-dsverify-final.md` ("What one admits and the other excludes") and 
    `SetNoDelay`/`SetLinger` if reached): `nil` on an open end, a `closed`-kind error on a closed one,
    no state; keepalive's effect is already covered by cuts. Measured rows.
 3. **Go's write lock**: concurrent `Write`s on one end do not interleave (`fd_unix.go:366`). Model it
-   (a lock in the end's state held across a `Write`'s loop of steps) unless phase 0 shows no kit writes
-   concurrently.
+   (a lock in the end's state held across a `Write`'s loop of steps): decided after phase 0.
 4. **Wildcard `Listen` with one IP per node.** D21 (`ListenAt`, `Impl.lean:446`) requires the
    wildcard's port to be the plan's only address with that port, because on one machine a wildcard
    listener takes every local address (`TestAddressAliases`); kits listening on `":p"` on every node
    would panic. Make the deployment's kind part of the plan (one machine, or one network namespace per
    host): per host, the wildcard resolves to (this node's host, `p`), unique per host; measured in
    namespaces (dsverify's `node_identity_netns_test.go` is the evidence to port).
-5. **The deployment premise**: `NetConfig.WellFormed` onto `PlanWellFormed` (dsverify forbids 127/8;
+   (Not needed by the kits: phase 0.)
+5. **The address helpers** `SplitHostPort`, `ParseIP`, `net.IP` (pure Go code): translated, not
+   modeled.
+6. **The deployment premise**: `NetConfig.WellFormed` onto `PlanWellFormed` (dsverify forbids 127/8;
    we forbid ephemeral ports): the kits' configured ports out of 32768-60999 if any are there.
 Each with its `Tests.lean` example, a conformance run, and a soundness review (the `axiom` skill)
 of the changed rows.
