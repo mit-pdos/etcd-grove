@@ -48,8 +48,8 @@ theorem EtcdServer.DeleteRange.wp_proof
     (hAS : «attribute».String.spec (GF := GF) (hG := hG))
   :
     EtcdServer.DeleteRange.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd r op Q F
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hst, #Hdel, Hnp, #HF⟩
+  intro s E ρ ctx cd tok r op Q F
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #HtokC, #Hspc, #Hst, #Hdel, Hnp, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave Hinit : (srvInit : IProp GF) $$ []
@@ -87,7 +87,7 @@ theorem EtcdServer.DeleteRange.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, #Hst1, #Hlibw, -⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hmd1, #Hsp, #Hspw, #Hst1, #Hlibw, -⟩
   · iframe #; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hstc1 := Hst1 $$ Hst
   ihave #Hctx1 := Hctx1w $$ Hctx
@@ -231,6 +231,11 @@ theorem EtcdServer.DeleteRange.wp_proof
         · iright; iexact Hdep
       · exact absurd rfl Hne
   · -- auth on
+    ihave #Htok1 : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+    · iintro !> -
+      iapply auth.ctxToken_transfer ctx ctx1 tok
+      iframe Hmd1
+      iapply HtokC; ipureintro; exact hon
     have hRR := hRR s E ρ
     rw [hon] at hRR
     ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.raft ρ.kv _ op Q $$ Hnp
@@ -239,13 +244,13 @@ theorem EtcdServer.DeleteRange.wp_proof
       · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
       · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hnz0
       · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
-    wp_apply hRR ctx1 _ «$a1_ptr» (irrDeleteRange op)
+    wp_apply hRR ctx1 _ tok «$a1_ptr» (irrDeleteRange op)
         (deleteQhOn ρ.kv op γc Q) F rfl (apply.irrDepthOk_of_txnW_none rfl)
         $$ [Hrd Hard Hcred Header Hnp] as %resp %err ⟨Hrd, Hard, Hres⟩
     · iframe # Hrd Hard Hcred
       isplitl [Hnp]
       · iapply deletePermitOn_reqPropOk ρ.raft ρ.kv _ _ op Q γc
-          (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc1) $$ Hnp
+          (fun _ => BIBase.Entails.rfl) $$ Hnp
       iexists _; iexact Header
     (try wp_auto)
     icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq, #Hhb⟩ | ⟨%Hre, #HaE, Hfail⟩)
@@ -296,7 +301,7 @@ theorem EtcdServer.DeleteRange.wp_proof
           · cases h
           · exact Hlt h
         isplitr
-        · iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+        · iexact Hhb
         iintro !> -
         iexists Lq; iframe HpAf; ipureintro; exact Hga
       ipureintro
@@ -325,7 +330,7 @@ theorem EtcdServer.DeleteRange.wp_proof
         · ileft; iexists hm, rq'; iframe Herr
           isplitr
           · ipureintro; exact Hwire
-          iapply hdrBoundM_ctx true s E _ _ hm Hinc1 $$ Hhb
+          iexact Hhb
         · iright; iexact Hdep
       · exact absurd rfl Hne
 

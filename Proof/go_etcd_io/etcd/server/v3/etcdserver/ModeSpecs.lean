@@ -438,12 +438,14 @@ theorem EtcdServer.processInternalRaftRequestOnce.spec_off
   iintro %Φ Hpre HΦ
   icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, #Hlib, Hsp, Hg, Hok, Hi, Hj⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
-  have hM := h s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt
+  have hM := h s E ρ ctx cd none p rq (fun _ => Qr) F Hid0 Hdpt
   rw [hon] at hM
+  ihave #Htok : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
   iapply hM $$ [Ha Hc Hd He Hf Hsp Hg Hok Hi Hj] [HΦ]
   · ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
     rw [isServerReqM_false]
-    iframe Ha Hb Hc Hd He Hf Hlib Hsp Hg Hok' Hi Hj
+    iframe Ha Hb Hc Hd He Hf Hlib Htok Hsp Hg Hok' Hi Hj
   · iintro !> %res %err ⟨Hrd, Hard, Hpost⟩
     iapply HΦ
     iframe Hrd Hard
@@ -480,12 +482,14 @@ theorem EtcdServer.raftRequest.spec_off
   iintro %Φ Hpre HΦ
   icases Hpre with ⟨Ha, #Hb, Hc, Hd, He, Hf, #Hlib, Hsp, #Hst, Hg, Hok, Hi, Hj⟩
   ihave %hon := isServerReq_authOn s E ρ $$ Hb
-  have hM := h s E ρ ctx cd p rq (fun _ => Qr) F Hid0 Hdpt
+  have hM := h s E ρ ctx cd none p rq (fun _ => Qr) F Hid0 Hdpt
   rw [hon] at hM
+  ihave #Htok : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
   ihave Hok' := reqPropOkM_of_false ρ.raft ρ.kv _ rq Qr (attrIdOk_of_kind _ _ Hka) $$ Hok
   rw [← isServerReqM_false]
   iapply hM $$ [Ha Hc Hd He Hf Hsp Hg Hok' Hi Hj] [HΦ]
-  · iframe Ha Hb Hc Hd He Hf Hlib Hsp Hst Hg Hok' Hi Hj
+  · iframe Ha Hb Hc Hd He Hf Hlib Htok Hsp Hst Hg Hok' Hi Hj
   iintro !> %resp %err ⟨Hrd, Hard, Hpost⟩
   iapply HΦ
   iframe Hrd Hard
@@ -529,11 +533,13 @@ theorem EtcdServer.doSerialize.spec_off
   have hoff : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
-  have hM := h s E ρ γr ctx cd chk get G Q C (fun _ _ => iprop(True)) t e 0
+  have hM := h s E ρ γr ctx cd none chk get G Q C (fun _ _ => iprop(True)) t e 0
   rw [hon] at hM
+  ihave #Htok : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
   iapply hM $$ %Φ [Ha Hrd Hctx Hlib Hct Hget HG Htrc Hard]
   · rw [isServerReqM_false, isServerReadM_false]
-    iframe Ha Hb Hrd Hctx Hlib Hct Hget HG Htrc Hard HaLb
+    iframe Ha Hb Hrd Hctx Hlib Htok Hct Hget HG Htrc Hard HaLb
     isplitr
     · iintro !>; rw [hoff]; unfold auth.authPubLbM; itrivial
     · iintro %a %info %dq !> %Φ' Hp HΦ'

@@ -628,7 +628,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
           rw [hM]
           iframe Hcl1
           isplitr
-          · iapply (infoBoundM_ctx true s E _ _ infoc (by rw [Hinc2, Hinc1])) $$ Hib
+          · iexact Hib
           iexact Hfl
         iunfold txnReadOkM
         iexists log
@@ -849,7 +849,7 @@ theorem EtcdServer.Txn.wp_proof
   · ipureintro; rfl
   iintro %osl ⟨-, -⟩
   (try wp_auto)
-  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, %Hinc1, #Hsp, #Hspw, -, #Hlibw, -⟩
+  wp_apply (traceutil.Tracer.Start.spec_txn hTS) tr ctx cd _ _ $$ [] as %ctx1 %sp ⟨⟨%vs1, #Hctx1t, Hctx1w⟩, #Hctr1, #Hmd1, #Hsp, #Hspw, -, #Hlibw, -⟩
   · iframe Htr Hlib; iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hctx1 := Hctx1w $$ Hctx
   ihave #Hlib1 := Hlibw $$ Hlib
@@ -1178,7 +1178,7 @@ theorem EtcdServer.Txn.wp_proof
       · iframe # Hlt Hard Hcred
         isplitl [Hau]
         · iapply txnPermitOn_reqPropOk ρ.raft ρ.kv _ _ tw Q γc
-            (fun hm => hdrBoundM_ctx true s E _ _ hm Hinc)
+            (fun _ => BIBase.Entails.rfl)
           iunfold txnPermitOn
           isplitr
           · ipureintro; exact Ht
@@ -1244,7 +1244,7 @@ theorem EtcdServer.Txn.wp_proof
             exact ⟨by first | rfl | trivial, grantedAt_of_applied ρ.kv _ Lq x.log log' skip
               (by rw [dispatchKind_withHeader, irrTxn_kind]; rfl) Hmo⟩
           isplitr
-          · iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb
+          · iexact Hhb
           iexact HpAf
         iunfold txnAppliedOk
         iexists tw, hm, apply.withHeader (irrTxn tw) hm, t', x, x', log', skip
@@ -1289,7 +1289,7 @@ theorem EtcdServer.Txn.wp_proof
           · ileft; iexists hm, rq'; iframe Herr
             isplitr
             · ipureintro; exact Hwire
-            iapply hdrBoundM_ctx true s E _ _ hm Hinc $$ Hhb
+            iexact Hhb
           · iright; iexact Hdep
         · exact absurd rfl Hne
   · -- read-only: as `Range`, through `doSerialize`; the modes differ from the auth check on

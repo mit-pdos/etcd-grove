@@ -1404,6 +1404,31 @@ theorem ctxToken_of_ctxInMD (c : GoInterfaceOk) md :
   iframe H
   ipureintro; exact ⟨rfl, rfl⟩
 
+/-- **The token carries over** to a context whose incoming metadata is its parent's (the transfer
+`Tracer.Start`, `WithValue`, `EnsureTrace` and the cancel wrappers give). -/
+theorem ctxToken_transfer (c c' : GoInterfaceOk) (o : Option GoString) :
+    □ (∀ md, metadata.ctxInMD (GF := GF) c md -∗ metadata.ctxInMD c' md) ∗
+      ctxToken (GoInterface.ok c) o ⊢ ctxToken (GoInterface.ok c') o := by
+  iintro ⟨#Ht, #H⟩
+  unfold ctxToken
+  icases H with ⟨%c0, %md, %Heq, #Hmd, %Hm⟩
+  cases Heq
+  iexists c', md
+  ihave #Hmd' := Ht $$ %md Hmd
+  iframe Hmd'
+  ipureintro; exact ⟨rfl, Hm⟩
+
+/-- `ctxToken_transfer` under a gate (the mode's, `□ (⌜b = true⌝ → …)`). -/
+theorem ctxToken_transfer_gate (b : Bool) (c c' : GoInterfaceOk) (o : Option GoString) :
+    □ (∀ md, metadata.ctxInMD (GF := GF) c md -∗ metadata.ctxInMD c' md) ∗
+      □ (⌜b = true⌝ → ctxToken (GoInterface.ok c) o) ⊢
+      □ (⌜b = true⌝ → ctxToken (GoInterface.ok c') o) := by
+  iintro ⟨#Ht, #H⟩
+  iintro !> %hb
+  ihave #H' := H $$ %hb
+  iapply ctxToken_transfer c c' o
+  iframe Ht H'
+
 end ctxtok
 
 section wdefs

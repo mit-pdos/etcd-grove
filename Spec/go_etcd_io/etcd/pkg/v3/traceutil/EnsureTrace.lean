@@ -38,8 +38,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 /-- `EnsureTrace(ctx, lg, op, fields...)`, `ctx` carrying the trace `o` (owned by the caller, empty
 or not as `e`), the fields owned: a context like `ctx` (an `isContext` of `ctx` stays one),
 carrying the trace `t` returned, owned, not empty: the caller's if not empty, else a new one; and
-(2026-10-28, the auth plan's E3zb) `ctx`'s incoming gRPC metadata (`metadata.incomingOf`: `ctx`
-itself, or a `context.WithValue` of it); and (R8, 2026-11-07) `ctx`'s span fact
+(2026-10-28, the auth plan's E3zb) `ctx`'s incoming gRPC metadata (`metadata.ctxInMD` carried over,
+since perheap C1a, 2026-11-18: `ctx` itself, or a `context.WithValue` of it); and (R8, 2026-11-07) `ctx`'s span fact
 (`trace.spanCtxOk`: `WithValue` at `TraceKey{}`, not otel's key, delegates otel's key to `ctx`).
 (Premise fixes 6) The logger nil or a zap logger: a new trace keeps it (`ownTrace`). -/
 abbrev traceutil.EnsureTrace.spec : Prop :=
@@ -52,7 +52,7 @@ abbrev traceutil.EnsureTrace.spec : Prop :=
   {{ (ctx' : GoInterfaceOk) (t : Loc), RET (PairV #(GoInterface.ok ctx') #t);
       ⌜t ≠ null ∧ ∀ t0, o = some t0 → e = false → t = t0⌝ ∗ traceutil.ownTrace t false ∗
       traceutil.ctxTraceIs ctx' (some t) ∗
-      ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
+      □ (∀ md, metadata.ctxInMD ctx md -∗ metadata.ctxInMD ctx' md) ∗
       ∃ vs : GMap GoInterface GoInterface,
         mvcc.txnCtx ctx' { cd with Values := vs } ∗
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs }) ∗

@@ -36,9 +36,12 @@ variable [package_sem : context.Assumptions]
 context like `ctx` (the same deadline and `Done`, other values: otel's `ContextWithSpan` is a
 `context.WithValue`), a context (`context.isContext`) if `ctx` is one (2026-10-12, unit 2: the
 request path's `WithTimeout`), carrying `ctx`'s trace (2026-10-14, unit P1b: otel's key is not
-`traceutil.TraceKey`) and its incoming gRPC metadata (`metadata.incomingOf`, 2026-10-28, the auth
-plan's E3zb: otel's key is not grpc's `mdIncomingKey{}`, so `metadata.FromIncomingContext` reads
-`ctx`'s), and a span (`trace.isSpan`); and (2026-11-06, the fix of `trace.SpanFromContext`'s axiom,
+`traceutil.TraceKey`) and its incoming gRPC metadata (2026-10-28, the auth plan's E3zb: otel's key
+is not grpc's `mdIncomingKey{}`, so `metadata.FromIncomingContext` reads `ctx`'s; since perheap C1a,
+2026-11-18, the per-heap relation `metadata.ctxInMD` carried over, `□ ∀ md, ctxInMD ctx md -∗ ctxInMD
+ctx' md`, in place of the pure equation on `metadata.incomingOf`: `ContextWithSpan(ctx, s)` is a
+`*valueCtx` at otel's `currentSpanKey`, whose `Value(mdIncomingKey{})` is `ctx`'s call, or `ctx`
+itself, the no-op tracer), and a span (`trace.isSpan`); and (2026-11-06, the fix of `trace.SpanFromContext`'s axiom,
 `notes/axiom-review/otel-spanfromcontext-todo.md`) a context whose span is a span if `ctx`'s is
 (`trace.spanCtxOk`): otel's tracers return `ContextWithSpan(ctx, s)` (a `valueCtx` whose
 `Value(currentSpanKey)` is `s`) with the span `s` they return (the SDK's `tracer.Start`, a new SDK
@@ -102,7 +105,7 @@ abbrev traceutil.Tracer.Start.spec : Prop :=
         (context.isContext ctx cd -∗ context.isContext ctx' { cd with Values := vs })) ∗
       □ (srvCtxWeak ctx cd -∗ srvCtxWeak ctx' cd) ∗
       □ (∀ o : Option Loc, traceutil.ctxTraceIs ctx o -∗ traceutil.ctxTraceIs ctx' o) ∗
-      ⌜metadata.incomingOf (GoInterface.ok ctx') = metadata.incomingOf (GoInterface.ok ctx)⌝ ∗
+      □ (∀ md, metadata.ctxInMD ctx md -∗ metadata.ctxInMD ctx' md) ∗
       trace.isSpan sp ∗ □ (trace.spanCtxOk ctx -∗ trace.spanCtxOk ctx') ∗
       □ (context.startTimeOk ctx -∗ context.startTimeOk ctx') ∗
       □ (context.libCtxOk ctx -∗ context.libCtxOk ctx') ∗
