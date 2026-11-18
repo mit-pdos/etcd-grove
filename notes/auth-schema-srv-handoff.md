@@ -1,6 +1,30 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6: reserved reads and lifecycle done)
+## START HERE (2026-11-18, A6: STOP 3 before the write side)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 1b298c1e70 merged (c6546c5303; fmt
+  soundness: no repair needed, nothing of this branch names `errOk`/`fmt.Errorf`): pin 6d365ee1a,
+  `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+  Full build after the merge: `/shared/tmp/auth-schema-srv/merge-fmt-full1.log`.
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc, the pool, L-rev/P2, the read side, (a) reserved
+  reads (80ed776890), (b) the lifecycle (bac82a9720); (a)/(b) and their forms ACCEPTED (questions.md "A6 reserved
+  reads and lifecycle: decided").
+- **STOP 3 (questions.md "A6 STOP 3")**: F-perm2, `Unlock` cannot record the session's state (`authLockQ` has no
+  `permKeysOk`); recommended P1' (`authLockQ` carries `∀ st ∈ hs, permKeysOk st`, trusted text, ~20 lines).
+- Next, after the decision, in order: (0) P1' if approved (Model.lean:701, `authHist_split`, `authHistHalf_lockQ_agree`);
+  (1) the forms of STOP 3's last bullet (the idle branch holds `bOpen q0`; the batch token a ghost variable of the
+  three readers' contents, ½ in the batch branch, ½ in `Lk`; `viewSame_putHB`/`viewSame_del` at any `cl`);
+  (2) (c): `Lk st X` = `batchLocked … true` ∗ `rbPartR γB (· ∈ authBktL) (rbData P bs.S)` ∗ the token's ½ ∗
+  `bOpen q0` ∗ `W` ∗ `Pk` ∗ `X` ∗ `⧗ k` ∗ pure (`freeOk`-derived facts, `cw ⊆ authBktL`, `tk` = `Sw`'s kinds, untouched
+  ⇒ contents = the token's, the writer's contents encode `st` (`authAt`/`usersAt`/`rolesAt`), `pend < limit + k`);
+  Lock deposits `T` (borrow lemma), Unlock with `Sc = authBktL`, `Rr` = the lock share ∗ token ½, `E = ⊤ ∖ ↑authRealN`;
+  writes by schema's `authBatchTx.*` at `batchTxBuffered.UnsafePut/UnsafeDelete` (`k = true`, `rbPartR_split`);
+  GetAllRoles (no writes: `Sc = []`, `rbAcc_nil`); ForceCommit (borrow `bOpen q0` with `T`); then (d), (e) as below.
+  `⊢ authSchemaSrv` takes `receiptBound GF ≤ 2 ^ 48` (closed theorems: `receiptBound = n + 1`, `n + 2 ≤ 2 ^ 28`).
+- Pitfalls: (0)-(30) as before (History).
+
+## History (START HERE of 2026-11-18, A6 reserved reads and lifecycle, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean fb68edfec8 merged (lean has not moved since):
   pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
