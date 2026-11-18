@@ -76,8 +76,8 @@ theorem itemOk_of (o : Obj) (hf : fitsD o) (ha : o.Annotated' = false) (hv : o.V
   refine ⟨hf, ha, ?_⟩
   rw [encodeWith_length]; obtain ⟨h1, h2, h3, h4, h5⟩ := hf; omega
 
-theorem itemOk_value (o : Obj) (h : itemOk o) : o.Value'.length < 2 ^ 62 := by
-  have := h.2.2; rw [encodeWith_length] at this; omega
+/-- `itemOk` does not read the resource version. -/
+theorem itemOk_rv (o : Obj) (r : w64) (h : itemOk o) : itemOk { o with ResourceVersion' := r } := h
 
 theorem lookupL_mem' (its : List item) (n : GoString) (h : (lookupL its n).2 = true) :
     (lookupL its n).1 ∈ its := by
@@ -111,7 +111,7 @@ theorem stGood_set (st : GSt) (it : item) (hg : StGood st) (hr : uint.nat st.rv 
   · show _ ≤ uint.nat (st.rv + W64 1)
     rw [rv_succ _ hr]
     rcases hm e he with rfl | he
-    · rw [hrv, rv_succ _ hr]
+    · rw [hrv, rv_succ _ hr]; exact Nat.le_refl _
     · have := hv e he; omega
 
 /-- A store with the key `k` deleted. -/
@@ -153,6 +153,9 @@ theorem mstepL_ok (x : Input) (st : GSt) (hg : StGood st) (hr : uint.nat st.rv +
     · exact ⟨stGood_del st _ hg hr, Or.inr rfl⟩
   split
   · unfold mupdateL; dsimp only
+    have hc := hcur _ rfl
+    generalize (if (lookupL st.items x.Key').2 = true then (lookupL st.items x.Key').1.obj' else zObj) = cur
+      at hc ⊢
     split
     · exact ⟨hg, Or.inl rfl⟩
     split
@@ -162,14 +165,14 @@ theorem mstepL_ok (x : Input) (st : GSt) (hg : StGood st) (hr : uint.nat st.rv +
     split
     · exact ⟨hg, Or.inl rfl⟩
     · refine ⟨stGood_set st _ hg hr ?_ (by simp), Or.inr rfl⟩
-      have hc := hcur _ rfl
-      have hf := updGo_fitsD x _ hc.1 ⟨hx.1.1, hx.1.2.2.1, hx.1.2.2.2⟩
-      refine itemOk_of _ hf ((updGo_annotated x _).trans hc.2.1) ?_
-      show (updGo x _).Value'.length < _
-      unfold updGo
-      split
-      · exact itemOk_value _ hc
-      · exact hx.2
+      apply itemOk_rv
+      show itemOk (updGo x cur)
+      by_cases hn : x.NoOp' = true
+      · have e : updGo x cur = cur := by simp [updGo, hn]
+        rw [e]; exact hc
+      · have hf := updGo_fitsD x cur hc.1 ⟨hx.1.1, hx.1.2.2.1, hx.1.2.2.2⟩
+        have hv : (updGo x cur).Value' = x.Val' := by simp [updGo, hn]
+        exact itemOk_of _ hf ((updGo_annotated x _).trans hc.2.1) (by rw [hv]; exact hx.2)
   · exact ⟨hg, Or.inl rfl⟩
 
 /-- **B4's `hpres`: a unary step keeps `RunOk`**, with room under `2^63`, moving the revision by at most one. -/
@@ -178,7 +181,7 @@ theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.
     RunOk (kstepL x h).1 ∧ uint.nat (kstepL x h).1.st.rv ≤ uint.nat h.st.rv + 1 := by
   unfold kstepL
   split
-  · exact ⟨hrun, by omega⟩
+  · exact ⟨hrun, Nat.le_succ _⟩
   obtain ⟨hcfg, hhc, hsort, hrvb⟩ := hrun
   have hg : StGood h.st := ⟨hcfg.1, hcfg.2.1, fun it hit => hcfg.2.2.1.1 _ _ (by
     show (GMap.ofList (h.st.items.map fun it => (storeKeyL it.key', it.obj'))) !! storeKeyL it.key' = _
@@ -187,24 +190,27 @@ theorem kstepL_runOk (x : Input) (h : HSt) (hrun : RunOk h) (hr : uint.nat h.st.
   generalize (mstepL x h.st).1 = st' at hg' hc
   rcases hc with rfl | hc
   · have : advanceL h h.st = h := by unfold advanceL; rw [if_neg (fun e => e rfl)]
-    rw [this]; exact ⟨⟨hcfg, hhc, hsort, hrvb⟩, by omega⟩
+    rw [this]; exact ⟨⟨hcfg, hhc, hsort, hrvb⟩, Nat.le_succ _⟩
   have hne : st'.rv ≠ h.st.rv := by rw [hc]; intro e; have := congrArg (fun r => uint.nat r) e; simp at this; word
   have ha : advanceL h st' = ⟨st', h.hist ++ [st']⟩ := by unfold advanceL; rw [if_pos hne]
   rw [ha]
+  show RunOk ⟨st', h.hist ++ [st']⟩ ∧ uint.nat st'.rv ≤ uint.nat h.st.rv + 1
   have hrv' : uint.nat st'.rv = uint.nat h.st.rv + 1 := by rw [hc]; exact rv_succ _ hr
   have hlen := hhc.1
   have hat : ∀ q : w64, uint.nat q ≤ uint.nat st'.rv → uint.nat h.st.rv < uint.nat q →
       histAtL (h.hist ++ [st']) q = st' := fun q _ hq => histAtL_snoc_gt _ _ _ (by omega)
   have hold : ∀ q : w64, uint.nat q ≤ uint.nat h.st.rv →
       histAtL (h.hist ++ [st']) q = histAtL h.hist q := fun q hq => histAtL_snoc_le _ _ _ (by omega)
-  refine ⟨⟨⟨hg'.1, hg'.2.1, rmWf_absR _ hg'.2.2, by omega, fun q hq0 hq => ?_⟩,
-    ⟨by simp; omega, by simp, fun q hq0 hq => ?_⟩, fun r hr' => ?_, by omega⟩, by omega⟩
-  · by_cases hle : uint.nat q ≤ uint.nat h.st.rv
+  refine ⟨⟨⟨hg'.1, hg'.2.1, rmWf_absR _ hg'.2.2, by dsimp only; omega, fun q hq0 hq => ?_⟩,
+    ⟨by simp; omega, by simp, fun q hq0 hq => ?_⟩, fun r hr' => ?_, by dsimp only; omega⟩, by omega⟩
+  · dsimp only at hq ⊢
+    by_cases hle : uint.nat q ≤ uint.nat h.st.rv
     · rw [hold q hle]; exact hcfg.2.2.2.2 q hq0 hle
     · rw [hat q hq (by omega)]
       have : uint.nat q = uint.nat st'.rv := by omega
       word
-  · by_cases hle : uint.nat q ≤ uint.nat h.st.rv
+  · dsimp only at hq ⊢
+    by_cases hle : uint.nat q ≤ uint.nat h.st.rv
     · rw [hold q hle]; exact hhc.2.2 q hq0 hle
     · rw [hat q hq (by omega)]; exact ⟨hg'.1, hg'.2.1⟩
   · simp only [List.length_append, List.length_singleton] at hr'
