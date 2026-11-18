@@ -1418,6 +1418,19 @@ theorem ctxToken_transfer (c c' : GoInterfaceOk) (o : Option GoString) :
   iframe Hmd'
   ipureintro; exact ⟨rfl, Hm⟩
 
+/-- **Some token**: a context with grpc's library values (`context.libCtxOk`, whose incoming part is
+`∃ md, ctxInMD c md`) carries some token (the token of a caller with no request of its own, which
+the mode's gate makes irrelevant or `Authenticate` does not read). -/
+theorem ctxToken_of_libCtxOk (c : GoInterfaceOk) :
+    context.libCtxOk (GF := GF) c ⊢ ∃ tok, ctxToken (GoInterface.ok c) tok := by
+  iintro #Hlib
+  iunfold context.libCtxOk at Hlib
+  icases Hlib with ⟨#Hinc, -, -, -⟩
+  iunfold metadata.incomingCtxOk at Hinc
+  icases Hinc with ⟨%md, #Hmd⟩
+  iexists (mdTokenOf md)
+  iapply ctxToken_of_ctxInMD c md $$ Hmd
+
 /-- `ctxToken_transfer` under a gate (the mode's, `□ (⌜b = true⌝ → …)`). -/
 theorem ctxToken_transfer_gate (b : Bool) (c c' : GoInterfaceOk) (o : Option GoString) :
     □ (∀ md, metadata.ctxInMD (GF := GF) c md -∗ metadata.ctxInMD c' md) ∗

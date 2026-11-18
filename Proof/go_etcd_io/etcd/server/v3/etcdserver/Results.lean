@@ -675,7 +675,9 @@ theorem range_linearizable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   have hoff : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
-  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F 0
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd none r o ot te (fun _ => iprop(True)) F 0
     (by rw [hoff]; intro h; cases h)
   rw [hon] at h'
   rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
@@ -736,7 +738,9 @@ theorem range_serializable (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : 
   have hoff : E.authMode = .off := by
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
-  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd r o ot te (fun _ => iprop(True)) F 0
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have h' := EtcdServer.wp_Range s E ρ γr c ctx cd none r o ot te (fun _ => iprop(True)) F 0
     (by rw [hoff]; intro h; cases h)
   rw [hon] at h'
   rw [isServerReqM_false, isServerReadM_false, kvStM_false] at h'
@@ -792,7 +796,9 @@ theorem txn_readonly (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNa
     unfold apply.AEnv.authOn at hon
     cases hM : E.authMode <;> simp_all [auth.AuthMode.isOn]
   ihave #Hlb := srvAuthLb_off s E ρ $$ Hq
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t (fun _ => iprop(True)) (fun _ => iprop(True))
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd none r t (fun _ => iprop(True)) (fun _ => iprop(True))
     ot te F 0
   rw [hon] at hT
   simp only [hro, ↓reduceIte, txnReadOkM_false, isServerReqM_false, isServerReadM_false,
@@ -833,8 +839,10 @@ theorem txn_applied (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNam
          (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }} := by
   iintro %Φ ⟨#Hp, #Hq, #Hd, Hlt, Hcr, Hrc, #Hctx, #Hlib, #Hspc, Hct, Hot, #Hr, #HF, Hnp⟩ HΦ
   ihave %hon := isServerReq_authOn s E ρ $$ Hq
-  imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E (GoInterface.ok ctx)) t Q $$ Hnp with Hnp
-  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd r t Q (fun _ => iprop(True)) ot te F 0
+  imod txnPermitM_false ρ.raft ρ.kv (hdrBoundM false s E none) t Q $$ Hnp with Hnp
+  ihave #HtokN : □ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ctx) none) $$ []
+  · iintro !> %h; cases h
+  have hT := EtcdServer.wp_Txn s E ρ γr c ctx cd none r t Q (fun _ => iprop(True)) ot te F 0
   rw [hon] at hT
   simp only [hw, Bool.false_eq_true, ↓reduceIte, isServerReqM_false, isServerReadM_false] at hT
   iapply hT $$ [Hlt Hcr Hrc Hct Hot Hnp]
