@@ -2,43 +2,48 @@
 
 ## START HERE
 
-**2026-11-18 (night; for etcd-grove-03). Step 3: update/delete/execute proved; STOP for the
-independent attack on `reflect.DeepEqual.spec_k8s` clause 4 (new trusted text) before
-`validateGet`/`validateList`/`Step`.**
+**2026-11-18 (late; for etcd-grove-03). Step 3 done through `Step`: report at step 3's end. Next: step 4
+(bridges) in the scope's order (§5: B3 and B5's statements first, report).**
 
 - Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`;
   `.lake/package-overrides.json` = that manifest. Scope `notes/k8s-7g-scope.md`; decisions `questions.md`
-  (untracked; last two sections); trust `notes/k8s-7g-trust.md` (top: clause 4).
-- Done this round: clause 4 + Go test `TestDeepEqualTooLarge` (`54eee2867d`, PENDING attack); Check /
-  NewInvalidObjError posts name the message, driver `errVarOk` holds the errorString, `Model.delete`
-  (`70a127d5d3`); `Model.update`, `rvStr_inj` → Codec (`7b9ccdeba2`); `Model.execute` + `reqRep`
-  (`af26175d28`); Calls fix (next commit). Targeted build `/shared/tmp/k8s7g/build3b.sh` (all of the
-  above + Model__update/execute, Init, Calls, store GuaranteedUpdate/conditionalDelete): rc 0
-  (`/shared/tmp/k8s7g/build-s3c.out`, 8086 jobs). `etc/gen-init.py --check` clean.
-- Next, in order (after the attack): `validateGet`, `validateList`, `Step` (clause 4 for the output's
-  too-large error; a premise excluding `.other` expected errors); then step 4.
-- Premises to discharge in this branch (questions.md, night forms): `itemsFitL` invariant, closures
-  non-nil (strengthen `tryUpdateFor`/`validateFor` posts), `reqRep` from `realRequest`.
+  (untracked; last three sections); trust `notes/k8s-7g-trust.md` (clause 4 accepted).
+- Done this round (commits `6c09889608`..HEAD): clause 4 accepted + m2 header; `itemsFitL` kept by every step,
+  non-nil closures (`tryUpdateFor`/`validateFor`); the too-large error's delay and code pinned
+  (`NewTimeoutError`/`NewTooLargeResourceVersionError` posts, `errRep .tooLarge`); `storage.isErrCode`,
+  `IsNotFound`, `StorageError.Unwrap` specs; `correctness/ErrViews.lean`; `equalListResponse` takes a flat
+  output error; `Model.validateGet`, `Model.validateList`, `Model.Step` proved. Forms: questions.md "(late)".
+  Targeted build `/shared/tmp/k8s7g/build3c.sh` (output `/shared/tmp/k8s7g/build-s3d.out`).
+- Premises still to discharge (step 5): `Step`'s `(rexecL x m).1.err ≠ .other`, `flatE out.err`, the output
+  object shapes, `inFits`/`crFits` and the list premises from `realRequest`/`InOk`; `reqRep` from `realRequest`.
 - Known breakage, pre-existing since step 0 (step 5): `call`, `consume`, `Check`, `Gen`, `genList`,
   `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`, `runWatch`, `watchEvents`,
   driver `Link`/`Results`. `etc/tcb-baseline.txt` and collections not updated for 7g axioms (step 6).
+  Link lists (step 6) need the new specs: `Model.validateGet/validateList/Step`, `storage.isErrCode/IsNotFound/
+  StorageError.Unwrap`.
 - Pitfalls (new):
-  - `iexists l, _` then `iframe Hl` can fail on a struct points-to: `iexists l; iexists _; isplitr; …; iexact Hl`.
-  - `iexact` does not unfold `rvStr (W64 0)` / `DObj.ofObj … .uid`: state facts with `have h : … := rfl`
-    and `isimp only [h] at H`, or give the model's equation in the reduced form.
-  - A tryUpdate/validate closure: `ihave #H' := H; iunfold k8s_etcd3.tryUpdateD at H'`, then
-    `rw [show (0 : w64) = W64 0 from rfl]` (TTL) before `iapply H' $$ %x %o %r %_ [Ho]`.
-  - simp on `decide ({o with RV := 0} = {u with RV := 0})` expands `Obj.mk.injEq`: pass
-    `-…etcd3.Obj.mk.injEq` and close the leftover implication with `simpa`.
-  - `ipersist` of a fresh points-to after `wp_apply` finished the program: `iapply wp_fupd` first,
-    `imodintro` before `iapply HΦ`. Spatial leftovers before `ipureintro`: `iclear «$res0» …`.
-  - `section meta` is a parse error (keyword); `etc/gen-init.py` needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`.
-- Older pitfalls: History.
+  - Paths that converge with different Lean contexts: `wp_join (v := #b) at (if: (if: #(d) then _ else
+    #false) then _ else #false) with [ptrs]` for a condition; for whole branches, `set_option hygiene false
+    in local macro` (Model__validateGet). In a macro `$H` is an antiquotation: write `$$ [H]` then `· iexact H`.
+  - A predicate defined by `match` (`errRep`, `deepRep`, `apiErrAt`, `errCodeAt`): `simp only [errRep, …]`
+    before `iintro`; `unfold` leaves the match.
+  - `ihave %h : ⌜P⌝ $$ []` + `· iapply lemma; iframe A B` to apply a lemma whose premise is a `∗`.
+  - `wp_apply` already runs `wp_auto`: a following `wp_auto` fails "no progress". `wp_if_destruct` too.
+  - `obtain ⟨rfl, rfl⟩` on `n = m` eliminates the variable you still need: `obtain ⟨rfl, h⟩; subst n`.
+  - builtin `max`: `have hmax : #(functions go.max [go.uint64, go.uint64]) = max.impl go.uint64 2 :=
+    FuncUnfold.func_unfold (f := go.max) (type_args := List.replicate 2 go.uint64)`, `simp only [hmax]`.
+  - `simp_all` on large contexts hits max recursion: prove pure facts in separate lemmas (`getL_*`, `listL_*`).
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
   (LEAN_NUM_THREADS=4); check: `/shared/tmp/k8s7g/lc.sh -a FILE` (full output `/shared/tmp/k8s7g/lc.out`).
 
 ## History
 
+- 2026-11-18 night START HERE (superseded): step 3 update/delete/execute (`af26175d28`, `de06cdaa56`);
+  pitfalls kept: `iexists l; iexists _; isplitr; …; iexact Hl` for struct points-to; `have h : … := rfl`
+  + `isimp only [h] at H` where `iexact` will not unfold; tryUpdate closure: `iunfold k8s_etcd3.tryUpdateD
+  at H'` then `rw [show (0 : w64) = W64 0 from rfl]`; `-…Obj.mk.injEq` in simp on record equalities;
+  `iapply wp_fupd` before the last `wp_auto` to `ipersist`/`imod` at the end; `section meta` is a parse
+  error; `etc/gen-init.py` needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`.
 - 2026-11-18 evening START HERE (superseded): step 3 to listResponseRV/equalListResponse
   (`284724cd7a`); pitfalls kept: interface calls through `meta.List` need the `haveI : List'.ty ≤u
   InterfaceType _` workaround (perennial-changes.md); `x == nil` on an interface is a `match`
