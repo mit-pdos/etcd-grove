@@ -33,7 +33,6 @@ theorem mvcc.treeIndex.Get.wp_proof
   wp_start as ⟨#Hti, Hrd, Hkn, Hcu, %Hcb, %Hrev, #Hkey, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
-  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxReader at Hrd
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
@@ -59,7 +58,7 @@ theorem mvcc.treeIndex.Get.wp_proof
   wp_apply (hUnsafe ti t lg L sync.rfrac key k atRev e) $$ [$HtreeL] as %cs ⟨HtreeL, -⟩
   · iframe #
     ipureintro
-    exact ⟨Hlgnn, entries_not_emptyC L _ cmax HLL.1⟩
+    exact entries_not_emptyC L _ cmax HLL.1
   -- the answer is the certified log's
   icases mvcc.idxKnows_facts γ kn log hlog ilog pend sync.rfrac $$ Hkn HhistL HnevL with ⟨%Hfacts, Hkn, HnevL⟩
   obtain ⟨Hcmp, Hcnt', Hwf0, Hlen0, Hcs0⟩ := Hfacts

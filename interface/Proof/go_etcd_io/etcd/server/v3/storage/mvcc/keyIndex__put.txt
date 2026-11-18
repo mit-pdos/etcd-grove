@@ -8,7 +8,7 @@ theorem mvcc.keyIndex.put.wp_proof (hGT : mvcc.Revision.GreaterThan.spec) (hZI :
   ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (lg : Loc) (main sub : w64),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ ⌜lg ≠ null⌝ ∗ mvcc.ownKi p gs ki (DFrac.own 1) -∗
+        isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗ zapLoggerOk lg ∗ mvcc.ownKi p gs ki (DFrac.own 1) -∗
           (▷
               ∀ r,
                 (if ki.modified.lt { main := main, sub := sub } then
@@ -16,7 +16,9 @@ theorem mvcc.keyIndex.put.wp_proof (hGT : mvcc.Revision.GreaterThan.spec) (hZI :
                   else
                     ⌜r =
                           (intoVal
-                              go!"'put' with an unexpected smaller revision").PanicV⌝ ∗
+                              (interface.mkOk go.string
+                                (intoVal
+                                  go!"'put' with an unexpected smaller revision"))).PanicV⌝ ∗
                       mvcc.ownKi p gs ki (DFrac.own 1)) -∗
                   Φ r) -∗
             WP
