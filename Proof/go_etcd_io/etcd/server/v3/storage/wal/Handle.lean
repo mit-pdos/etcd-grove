@@ -526,7 +526,7 @@ def walDirH (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : GoString)
     IProp GF :=
   iprop(∃ (R : Roots) (q : Qp) (X : List GoString) (hj : NamesH) (nm0 : GoString) (ph : DirPhS),
     walDirKey (W := W) dir j X ∗ osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-    osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (1 : Qp).half.half ∗ osDirFdS dfd j ph ∗
+    osPathS R dir (DFrac.own q) j ∗ osSharedInv R ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ osDirFdS dfd j ph ∗
     nmd R q ∗ walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ ∗
     walDirLks (W := W) dir hj nm0 lfs cuts ∗
     walNamesFrag (W := W) nf ∗

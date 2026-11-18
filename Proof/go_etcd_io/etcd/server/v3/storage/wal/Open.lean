@@ -199,7 +199,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He2'
       try wp_auto
-      ihave Hperm := osCallPerm_halfJoin 1 $$ Hperm Hcp
+      ihave Hperm := osCallPerm_halfJoin _ 1 $$ Hperm Hcp
       iapply HΦ
       iframe Hp Hres
       iexists o

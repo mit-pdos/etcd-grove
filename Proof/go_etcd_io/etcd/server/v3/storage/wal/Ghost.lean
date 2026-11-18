@@ -138,7 +138,7 @@ class WalGS (GF : BundledGFunctors) where
   the call permission a WAL handle holds is of its directory's key, `osCallPerm (callKey W.roots dir) q`
   (the key of the area's root, which holds the WAL directories), so that a sealed handle predicate,
   which names no roots, names its key. -/
-  roots : Fs.Roots
+  roots : List (GoString × Fs.Ino)
 
 /-! ## The WALs' step bound (`notes/bounds-plan.md`, "The WAL's segment sequence") -/
 
@@ -1451,7 +1451,7 @@ variable {GF : BundledGFunctors} {hlc : HasLC} [GooseExts] [GooseInterp] [G : Go
 /-- **A new generation's ghost state** at the real state `s` (every WAL key in the area): the
 invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and the crash token; the
 WALs' step bound carried over (`walStepsLb`: a crash keeps a prefix of each history). -/
-theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : Fs.Roots) (s : AbsDiskState) (hk : walKeysInArea s) :
+theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : List (GoString × Fs.Ino)) (s : AbsDiskState) (hk : walKeysInArea s) :
     ⊢@{IProp GF} walStepsLb s -∗ |==> ∃ W : WalGS GF, ⌜W.roots = R⌝ ∗ walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true ∗

@@ -40,11 +40,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 
-theorem osCallPerm_joinU :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+theorem osCallPerm_joinU (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
 
@@ -67,7 +67,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
           (Val #()))
       {{ (err : GoInterface), RET #err;
           (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗ WalFs.walUnlockedTokX ∗
-            WalFs.walNamesFrag (some dir) ∗ osCallPerm (1 : Qp).half ∗
+            WalFs.walNamesFrag (some dir) ∗ osCallPerm (callKey R dir) (1 : Qp).half ∗
             (∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∗
             ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗
@@ -349,7 +349,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   ileft
   iframe Hunl Hdir Hnf
   isplitl [Hperm Hperm2]
-  · iapply osCallPerm_joinU
+  · iapply osCallPerm_joinU _
     iframe
   isplitl [Hpd Hpp]
   · iexists j

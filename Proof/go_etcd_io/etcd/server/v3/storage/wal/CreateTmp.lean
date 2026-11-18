@@ -36,10 +36,10 @@ variable [os_sem : os.Assumptions] [os.file.FieldAssumptions] [os.fileStat.Field
 
 /-- `os.Stat` of a directory, its result's `FileInfo` dropped (the form `fileutil.Exist.spec` takes). -/
 theorem wp_statDir_err (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Stat)) (Val #p))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R p dq J ∗
-        osCallPerm qc }} := by
+        osCallPerm (callKey R p) qc }} := by
   iintro %Φ Hpre HΦ
   wp_apply os.Stat.wp_dirS p R J dq qc $$ Hpre as %fi %err ⟨Hp, Hperm, -⟩
   iapply HΦ
@@ -49,9 +49,9 @@ theorem wp_statDir_err (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Q
 theorem wp_existTmp (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.spec (GF := GF) (hG := hG))
     (d b : GoString) (R : Roots) (j : Ino) (qd : Qp) (h : NamesH) (qc : Qp) (hb : NameOk b) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ tmpDirH j b h ∗
-        osCallPerm qc }}
+        osCallPerm (callKey R d) qc }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Exist)) (Val #(child d b)))
-    {{ (x : Bool), RET #x; osPathS R d (DFrac.own qd) j ∗ tmpDirH j b h ∗ osCallPerm qc }} := by
+    {{ (x : Bool), RET #x; osPathS R d (DFrac.own qd) j ∗ tmpDirH j b h ∗ osCallPerm (callKey R d) qc }} := by
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Ht, Hperm⟩ HΦ
   iunfold tmpDirH at Ht
   icases Ht with ⟨Hn, Hs⟩
@@ -130,9 +130,9 @@ theorem wp_removeAllTmp (wp_RmAbs : os.RemoveAll.specAbsentS (GF := GF) (hG := h
     (wp_RmDir : os.RemoveAll.specDirS (GF := GF) (hG := hG))
     (d b : GoString) (R : Roots) (j : Ino) (qd : Qp) (h : NamesH) (hb : NameOk b) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ tmpDirH j b h ∗
-        osCallPerm 1 }}
+        osCallPerm (callKey R d) 1 }}
       (App (Val (@! os.RemoveAll)) (Val #(child d b)))
-    {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+    {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
         (∃ h', tmpDirH j b h') ∗ fmtErrorOkOrNil err }} := by
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Ht, Hperm⟩ HΦ
   iunfold tmpDirH at Ht

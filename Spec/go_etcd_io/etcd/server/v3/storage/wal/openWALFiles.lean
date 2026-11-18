@@ -49,12 +49,12 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.spec : Prop :=
     N.Mem b ∧ NameOk b ∧ b.length < 2 ^ 60 ∧ h.cur !! b = some (.file i)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R d dq j ∗
-      osCallPerm (GF := GF) qc ∗ osNames (GF := GF) j N dqn h ∗ sl ↦*{dqs} names }}
+      osCallPerm (GF := GF) (callKey R d) qc ∗ osNames (GF := GF) j N dqn h ∗ sl ↦*{dqs} names }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.openWALFiles))
       (Val #lg)) (Val #d)) (Val #sl)) (Val #k)) (Val #write))
   {{ (rsl lsl : GoSlice) (cl : GoFunc) (err : GoInterface),
       RET (PairV (PairV (PairV #rsl #lsl) #cl) #err);
-      osPathS R d dq j ∗ osCallPerm qc ∗ osNames j N dqn h ∗ sl ↦*{dqs} names ∗
+      osPathS R d dq j ∗ osCallPerm (callKey R d) qc ∗ osNames j N dqn h ∗ sl ↦*{dqs} names ∗
       ((∃ (frs : List GoInterfaceOk) (lfs : List Loc),
           ⌜err = interface.nil ∧ frs.length = is.length ∧ lfs.length = is.length⌝ ∗
           rsl ↦* frs.map GoInterface.ok ∗ ownSliceCap GoInterface rsl (DFrac.own 1) ∗

@@ -35,8 +35,8 @@ left (`walCloseLeft dir`) and the client's half of the call permission, `Repair(
 theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) (hG := hG))
     (lg : Loc) (dir : GoString) (hdir : dir.length < 2 ^ 59) (Φ : val → IProp GF) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal -∗ zapLoggerOk lg -∗
-      osInv (GF := GF) -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (1 : Qp).half -∗
-      (∀ b : Bool, ⌜b = false⌝ -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (1 : Qp).half -∗
+      osInv (GF := GF) -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (callKey W.roots dir) (1 : Qp).half -∗
+      (∀ b : Bool, ⌜b = false⌝ -∗ walCloseLeft (GF := GF) dir -∗ osCallPerm (GF := GF) (callKey W.roots dir) (1 : Qp).half -∗
         Φ #b) -∗
       WP (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir)) {{ Φ }} := by
   iintro #Hpi #Hzap #Hos Hleft Hp HΦ
@@ -44,7 +44,7 @@ theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) 
   icases Hleft with ⟨%R, %j, %X, %hj, %segs, %gL, %qd, %k, %fd, %hok, #Hsh, Hpath, Hnm, Hlk, #Hk, Hp2⟩
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hok
   have h8 := hdir
-  have hs := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
+  have hs := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hs
   ihave Hperm := hs.2 $$ [Hp Hp2]
   · iframe

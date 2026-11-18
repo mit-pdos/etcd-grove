@@ -461,7 +461,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   imod osPathS_root R r jr (DFrac.own 1) hr hE $$ Hsh with Hsp
   -- the new invariant
   imod walInv_alloc (W := W) C hC Mr L R jr r s V (bootCl V jr) hV (bootCl_hcl V jr) (bootCl_area V jr)
-    (fun nm J h he => ⟨_, bootCl_dirs h he⟩) (bootCl_dirs1 hwf hr)
+    (fun nm J h he => ⟨_, bootCl_dirs h he⟩) (bootCl_dirs1 hwf hr) hWR
     (dirsOk_roots hR hdr _ 0) (dirsAvoid_roots hR hdr jr) (bootJm V jr r)
     (fun dir nm J hin he => bootJm_lookup dir nm J hin he) (fun nm J h he => ⟨_, bootCl_names h he⟩)
     (bootCl_nok hwf) hbd hdr 1 E $$ Hst [Har Hwc Hnc] [Hwt] Hsp [Hwo]
@@ -523,7 +523,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   isplitr
   · unfold walAreaOk
     iframe Hinv Hos Hsh
-    ipureintro; exact ⟨hrb, henc, hWR⟩
+    ipureintro; exact ⟨hrb, henc⟩
   unfold walAreaRes
   iexists bootN V.now jr, namesOf V jr (bootN V.now jr), bootCls V jr,
     nameClaimsOf jr Ls ((jr, bootN V.now jr, namesOf V jr (bootN V.now jr)) ::

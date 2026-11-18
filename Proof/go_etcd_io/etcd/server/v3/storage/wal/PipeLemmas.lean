@@ -176,12 +176,12 @@ theorem wp_createTmp [os.file.FieldAssumptions]
     (wp_open : os.OpenFile.specCreateTruncSnc (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (hb : NameOk b) :
     {{ osInv (GF := GF) ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-        osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (1 : Qp).half.half ∗ tmpClaim j b }}
+        osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ tmpClaim j b }}
       (App (App (Val #(functions go_etcd_io.etcd.server.v3.storage.wal.createNewWALFile
           [go.GoType.PointerType go_etcd_io.etcd.client.pkg.v3.fileutil.LockedFile.ty]))
           (Val #(child dir b))) (Val #true))
     {{ (lf : Loc) (err : GoInterface), RET (PairV #lf #err);
-        osPathS R dir dq j ∗ osCallPerm (1 : Qp).half.half ∗
+        osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
         ((⌜err = interface.nil⌝ ∗ ∃ (f : Loc) (fd : w64) (i : Ino) (h : NamesH) (lo lk : Option Bool),
             fileutil.lockedFile lf f ∗ os.ownFile f fd (child dir b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
@@ -197,10 +197,10 @@ theorem wp_createTmp [os.file.FieldAssumptions]
   | none =>
     -- the name absent: a create, with the trivial update
     let A : Option (Nat × Nat × Ino) → Bool → IProp GF := fun o ok =>
-      iprop(osPathS R dir dq j ∗ osCallPerm (1 : Qp).half.half ∗ crOut j b h (DFrac.own 1) o ∗
+      iprop(osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ crOut j b h (DFrac.own 1) o ∗
         crTr (ok = true) o)
     have hT : fileutil.OpenTriple
-        iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (1 : Qp).half.half ∗
+        iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           osNames j (.only [b]) (DFrac.own 1) h)
         (child dir b) (wal.walOpenFlag true) (W32 384) A (crIno b h) := by
       unfold fileutil.OpenTriple
@@ -299,10 +299,10 @@ theorem wp_createTmp [os.file.FieldAssumptions]
       -- a leftover file: truncated
       let A : Unit → Bool → IProp GF := fun _ ok =>
         iprop(osPathS R dir dq j ∗ osNames j (.only [b]) (DFrac.own 1) h ∗
-          osCallPerm (1 : Qp).half.half ∗ trFile i (ok = true))
+          osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i (ok = true))
       have hT : fileutil.OpenTriple
           iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗
-            osNames j (.only [b]) (DFrac.own 1) h ∗ osCallPerm (1 : Qp).half.half ∗ trFile i False)
+            osNames j (.only [b]) (DFrac.own 1) h ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗ trFile i False)
           (child dir b) (wal.walOpenFlag true) (W32 384) A (fun _ i' => i' = i) := by
         unfold fileutil.OpenTriple
         iintro %Ψ ⟨#Hos, #Hsi, Hp, Hn, Hperm, Htr⟩ HΨ
@@ -411,10 +411,10 @@ theorem rmFile_tmpClaim (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
 theorem wp_removeTmp (wp_Remove : os.Remove.specFileSnc (GF := GF) (hG := hG))
     (R : Roots) (dir : GoString) (dq : DFrac) (j : Ino) (b : GoString) (i : Ino) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hcur : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm qc ∗
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ trFile i False }}
       (App (Val (@! os.Remove)) (Val #(child dir b)))
-    {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm qc ∗ tmpClaim j b }} := by
+    {{ (err : GoInterface), RET #err; osPathS R dir dq j ∗ osCallPerm (callKey R dir) qc ∗ tmpClaim j b }} := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hperm, Hn, Ht⟩ HΦ
   icases (osNames_join j _ _ _ h (Qp.half_add_half 1)).2 $$ Hn with ⟨Hn, Hr⟩
   ihave Hau := osAUnc_triv (A := Option (Nat × Nat))

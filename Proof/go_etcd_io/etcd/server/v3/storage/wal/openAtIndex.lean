@@ -194,7 +194,7 @@ theorem walReadTie_facts {dir : GoString} {write : Bool} {gs : List SegG} {fs : 
 theorem osCallPerm_halves' :
     osCallPerm (L := hG.goose_localGS) 1 ⊢
       osCallPerm (L := hG.goose_localGS) (1 : Qp).half ∗ osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact h.1
 
@@ -581,8 +581,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       · iapply isPkgInit_access $$ Hpkg
       ihave #Hseg := wal.walInit_segSize $$ Hw2
       try wp_auto
-      ihave ⟨Hperm1, Hcp⟩ := osCallPerm_halves' $$ Hperm
-      icases osCallPerm_halfSplit (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm2⟩
+      ihave ⟨Hperm1, Hcp⟩ := osCallPerm_halves _' $$ Hperm
+      icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm2⟩
       imod walTmpsRes_mem_except R lay.j X _ hj $$ Hsi Hj Ht with ⟨%hXt, Hj, Ht⟩
       ihave ⟨Ht0, Ht1⟩ := walTmpsRes_split lay.j $$ Ht
       iapply wp_notCrashed_acc _ _ rfl

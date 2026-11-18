@@ -150,6 +150,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
   have hu : UniqNames V'.now := uniqNames_of_wf hwf
   -- open the old invariant and close it with the crash tokens
   unfold walInv
+  icases Hinv with ⟨-, #Hinv⟩
   imod inv_acc (E := E) hE $$ Hinv with ⟨Hi, Hclose⟩
   icases Hi with (Hb | ⟨-, >Ht⟩)
   rotate_left
@@ -660,7 +661,7 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
       (J, NameSet.except walTmps, h) ∈ cl → ClaimOnce (J, NameSet.except walTmps, h) cl ∧
         ∀ c' ∈ cl, c' ≠ (J, NameSet.except walTmps, h) → c'.1 = J →
           ∀ b, (NameSet.except walTmps).Mem b → ¬ c'.2.1.Mem b)
-    (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
+    (hWR : W.roots = R) (hdok : DirsOk R s cl 0) (hav : DirsAvoid R jr s) (Jm : GMap GoString Ino)
     (hJm : ∀ dir nm J, InArea r dir nm → V.now.entry jr nm = some (.dir J) → Jm !! dir = some J)
     (hnames : ∀ nm J, walNameOk nm → V.now.entry jr nm = some (.dir J) →
       ∃ h, (jr, NameSet.only [nm], h) ∈ cl)
@@ -886,6 +887,8 @@ theorem walInv_alloc (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   imodintro
   unfold walInv
   iframe Hinv
+  isplitr
+  · ipureintro; exact hWR
   iexists Ls
   iframe Hc3 Hnwf
   ipureintro; exact ⟨hstart, hW⟩

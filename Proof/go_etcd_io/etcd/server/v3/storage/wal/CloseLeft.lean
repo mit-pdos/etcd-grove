@@ -39,7 +39,7 @@ def walCloseLeft (dir : GoString) : IProp GF :=
       (k : LockKind) (fd : w64),
     ⌜CloseLeftOk X hj segs gL⌝ ∗ osSharedInv R ∗ osPathS R dir (DFrac.own qd) j ∗
     osNames j (.except X) (DFrac.own (1 : Qp).half) hj ∗
-    osLock k gL.ino fd ∗ fileutil.lockKind k ∗ osCallPerm (1 : Qp).half)
+    osLock k gL.ino fd ∗ fileutil.lockKind k ∗ osCallPerm (callKey R dir) (1 : Qp).half)
 
 end defs
 

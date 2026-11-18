@@ -336,7 +336,7 @@ theorem restartRead.wp_proof
       rw [if_neg (by decide : ¬ (W64 1 = W64 0))]
       itrivial
     wp_auto
-    ihave Hperm := osCallPerm_halfJoin 1 $$ Hph Hph2
+    ihave Hperm := osCallPerm_halfJoin _ 1 $$ Hph Hph2
     wp_apply (wp_repair W lg e.R e.jr e.area (tWalDir e.area) go!"wal" qp
         (fun od => iprop(⌜od = some (walOpenRaise pr dc)⌝ ∗ tWalOwn γ (some (walOpenRaise pr dc))))
         hia hnm hca hdl) $$ [Hpath Hres Hperm Htok Hwo]

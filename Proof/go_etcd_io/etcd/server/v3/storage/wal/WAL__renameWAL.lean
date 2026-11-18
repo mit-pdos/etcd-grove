@@ -146,8 +146,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.wp_proof (P : WalPbI
   icases walTmpsRes_split' J $$ Htmps with ⟨Ht0, Ht1⟩
   ihave Hperm : osCallPerm ((1 : Qp).half + (1 : Qp).half) $$ [Hperm]
   · rw [Qp.half_add_half]; iexact Hperm
-  icases (osCallPerm_split _ _).1 $$ Hperm with ⟨Hperm1, Hperm2⟩
-  icases osCallPerm_halfSplit (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm3⟩
+  icases (osCallPerm_split _ _ _).1 $$ Hperm with ⟨Hperm1, Hperm2⟩
+  icases osCallPerm_halfSplit _ (1 : Qp).half $$ Hperm1 with ⟨Hperm1, Hperm3⟩
   try wp_auto
   have hdl' : (child r nm).length < 2 ^ 61 := by omega
   wp_apply wp_nfp lg (child r nm) (W64 64000000) R dq J (by decide) (by decide) hdl' (by decide)

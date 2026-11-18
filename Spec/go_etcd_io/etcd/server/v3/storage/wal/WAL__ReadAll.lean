@@ -57,7 +57,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (
     (Q : WalDur → IProp GF),
   InArea r dir nm → cleanAbsPath r →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-      WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm qc ∗
+      WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) qc ∗
       walOpeningF w dir s ∗
       AU <{ ∃∃ d : WalDur, WalFs.walDiskAt dir d ∗
           ⌜some s = walNewestPair (walValidSnaps (d.H.map WalOpG.toM) d.cut) ∧
@@ -67,7 +67,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.ReadAll.spec (P : WalPbIn GF) (
       (Val #()))
   {{ (mdp : GoSlice) (hp : Loc) (sl : GoSlice) (err : GoInterface),
       RET (PairV (PairV (PairV #mdp #hp) #sl) #err);
-      osPathS R r (DFrac.own qp) jr ∗ osCallPerm qc ∗ ∃ d : WalDur, Q d ∗
+      osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) qc ∗ ∃ d : WalDur, Q d ∗
       ((⌜err ≠ GoInterface.nil⌝ ∗ walReadFailedF Mr w dir) ∨
        (⌜err = GoInterface.nil⌝ ∗ ∃ (σ : StorContents) (esL : List Loc),
         ⌜walReadAllOk (d.H.map WalOpG.toM) d.cut s σ⌝ ∗ P.hsIn hp σ.hs ∗ sl ↦*□ esL ∗

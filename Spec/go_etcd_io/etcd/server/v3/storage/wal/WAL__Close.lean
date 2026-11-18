@@ -78,7 +78,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
       | .failed => iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           walReadFailedF Mr w dir)
       | .opening s => iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
-          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half.half ∗
+          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc))
       | .unnamed Rp qp tf => iprop(walOpenWFU P Mr w dir Rp qp tf ∗ WalFs.walPurgeW w dir) }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
@@ -86,14 +86,14 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.spec (P : WalPbIn GF) (Mr
   {{ (err : GoInterface), RET #err;
       match m with
       | .shared _ => iprop((⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
-            WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
+            WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
           ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝)
-      | .failed => iprop((WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
+      | .failed => iprop((WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir))
-      | .opening _ => iprop(WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half)
+      | .opening _ => iprop(WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half)
       | .unnamed Rp qp tf => iprop(
           (structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dir" w ↦ dir ∗
-            WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some dir) ∗ osCallPerm (1 : Qp).half ∗
+            WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some dir) ∗ osCallPerm (callKey R dir) (1 : Qp).half ∗
             (∃ j : Ino, osPathS Rp dir (DFrac.own qp) j ∗ osPathS Rp dir (DFrac.own qp) j) ∗
             ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
           (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some dir) ∗

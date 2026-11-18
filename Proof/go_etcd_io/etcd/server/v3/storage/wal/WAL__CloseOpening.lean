@@ -44,11 +44,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [bufio_sem : _root_.Perennial.bufio.Assumptions]
 
-theorem osCallPerm_halves :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+theorem osCallPerm_halves (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
 
@@ -87,11 +87,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
       ∀ (R : Roots) (jr : Ino) (r : GoString) (w : Loc) (dir : GoString) (s : w64 × w64),
       {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           WalFs.walAreaOk walCodec Mr R jr r ∗
-          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (1 : Qp).half.half ∗
+          WalFs.walOpening w dir s ∗ walReadH true w dir s ∗ osCallPerm (callKey R dir) (1 : Qp).half.half ∗
           structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ (null : Loc) }}
         (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
           (Val #()))
-      {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half }} := by
+      {{ (err : GoInterface), RET #err; WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half }} := by
   intro R jr r w dir s
   wp_start as ⟨#Harea, Hop, Hrh, Hperm, Hdf⟩
   unfold walReadH walOpenIn walReadTie
@@ -205,7 +205,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
     (try wp_auto)
     iapply HΦ
     iframe Hunl
-    iapply osCallPerm_halves
+    iapply osCallPerm_halves _
     iframe
   | nil =>
   wp_auto
@@ -310,7 +310,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   (try wp_auto)
   iapply HΦ
   iframe Hunl
-  iapply osCallPerm_halves
+  iapply osCallPerm_halves _
   iframe
 
 end proof

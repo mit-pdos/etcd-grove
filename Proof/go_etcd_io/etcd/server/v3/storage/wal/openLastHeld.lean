@@ -107,7 +107,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openLast.wp_specHeld [os.file.Fiel
   · iframe; iframe #
   icases fileutil.lockPost_held (X := Unit)
       (fun _ _ => iprop(osPathS (GF := GF) R dir (DFrac.own qd) j ∗ osNames j (.except X) dqn hj ∗
-        osCallPerm 1))
+        osCallPerm (callKey R dir) 1))
       (fun _ i' => i' = gL.ino) _ _ lf err k gL.ino fd (fun _ i' h => h) $$ [Hpost Hl Hk]
     with ⟨⟨%herr, %hlf⟩, ⟨%u, %b, Hpd, Hj, Hperm⟩, Hl⟩
   · iframe; iframe #

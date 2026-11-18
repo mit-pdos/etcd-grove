@@ -131,7 +131,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   imod walInv_alloc (W := W) C hC Mr L R jr r (walBoot0St r) V cl hV
     (fun c hc => by rw [List.mem_singleton] at hc; subst hc; rfl)
     (fun nm h => ⟨N, namesOf V jr N, List.mem_singleton_self _, hnot nm h⟩)
-    (fun nm J h he => (hdir nm J h he).elim) (fun nm J _ h he => (hdir nm J h he).elim)
+    (fun nm J h he => (hdir nm J h he).elim) (fun nm J _ h he => (hdir nm J h he).elim) hWR
     (dirsOk_roots hR (walBoot0St_dirsRoots hr) cl 0) (dirsAvoid_roots hR (walBoot0St_dirsRoots hr) jr)
     ∅ (fun dir nm J hin he => (hdir nm J hin.1 he).elim) (fun nm J h he => (hdir nm J h he).elim)
     (fun b h hc => by simp [cl, N] at hc) (walBoot0St_bounded r) (walBoot0St_dirsRoots hr) 1 E
@@ -172,7 +172,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   isplitr
   · unfold walAreaOk
     iframe Hinv Hos Hsh
-    ipureintro; exact ⟨hrb, henc, hWR⟩
+    ipureintro; exact ⟨hrb, henc⟩
   unfold walAreaRes
   iexists N, namesOf V jr N, [], []
   iframe Hcl Hnw

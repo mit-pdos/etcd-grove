@@ -331,9 +331,9 @@ theorem walOpen_triple [os.Assumptions] [os.file.FieldAssumptions] (R : Roots) (
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
     fileutil.OpenTriple (X := Unit)
-      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (iprop(osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (child d b) flag (W32 384)
-      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc))
+      (fun _ _ => iprop(osPathS (GF := GF) R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc))
       (fun _ i' => i' = i) := by
   unfold fileutil.OpenTriple
   iintro %Φ ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩ HΦ
@@ -398,7 +398,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
       "Hrsc" ∷ ownSliceCap GoInterface rssl (DFrac.own 1) ∗
       "ls" ∷ ls_ptr ↦ lssl ∗ "Hls" ∷ lssl ↦* lfs ∗ "Hlsc" ∷ ownSliceCap Loc lssl (DFrac.own 1) ∗
       "Hw2" ∷ slice.slice sl GoString k sl.len ↦*{dqs} ns ∗
-      "Hp" ∷ osPathS R d dq j ∗ "Hperm" ∷ osCallPerm qc ∗ "Hn" ∷ osNames j N dqn h ∗
+      "Hp" ∷ osPathS R d dq j ∗ "Hperm" ∷ osCallPerm (callKey R d) qc ∗ "Hn" ∷ osNames j N dqn h ∗
       "Hop" ∷ walOpenedRcs write d ns is (sint.nat jj) frs lfs rcs ∗
       "%Hj" ∷ ⌜0 ≤ sint.Z jj ∧ sint.nat jj ≤ ns.length ∧ frs.length = sint.nat jj ∧
         lfs.length = sint.nat jj ∧ rcs.length = sint.nat jj⌝)

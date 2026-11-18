@@ -113,7 +113,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   subst hbn
   try wp_auto
   -- the rename, over the law
-  ihave Hperm := (osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half).2 $$ [Hperm Hperm2]
+  ihave Hperm := (osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half).2 $$ [Hperm Hperm2]
   · iframe
   rw [Qp.half_add_half]
   iunfold cleanupLaw at Hlaw

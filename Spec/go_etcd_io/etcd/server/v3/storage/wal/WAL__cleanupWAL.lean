@@ -54,7 +54,7 @@ def cleanupLaw (R : Roots) (jr : Ino) (r nm : GoString) (Rp : Roots) (qp : Qp) (
       osAUnc (osNames jr N (DFrac.own rr) h)
         (renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own rr) lb) Qr ∗
       ∀ err : GoInterface, notCrashed (hC := hG.goose_localGS.goose_crashGS) -∗
-        osPathS R r (DFrac.own qd) jr -∗ osCallPerm 1 -∗
+        osPathS R r (DFrac.own qd) jr -∗ osCallPerm (callKey R r) 1 -∗
         ((⌜err ≠ interface.nil ∧ os.renameErrOk err⌝ ∗ osNames jr N (DFrac.own q) h ∗
             osAUnc (osNames jr N (DFrac.own rr) h)
               (renDirOutA jr J N nm (brokenName nm ts) h (DFrac.own rr) lb) Qr) ∨
@@ -74,17 +74,17 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.spec (P : WalPbIn GF
   NameOk nm →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ walOpenWFU P Mr w (child r nm) Rp qp tf ∗
-      WalFs.walPurgeW w (child r nm) ∗ osCallPerm (1 : Qp).half ∗ Fr ∗
+      WalFs.walPurgeW w (child r nm) ∗ osCallPerm (callKey R r) (1 : Qp).half ∗ Fr ∗
       cleanupLaw (W := W) R jr r nm Rp qp tf Fr Fin }}
     (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!!
       go!"cleanupWAL")) (Val #lg))
   {{ (err : GoInterface), RET #err;
       (⌜err ≠ interface.nil⌝ ∗ WalFs.walLockedTok ∗ WalFs.walNamesFrag (some (child r nm)) ∗
-        osCallPerm (1 : Qp).half ∗ Fr ∗
+        osCallPerm (callKey R r) (1 : Qp).half ∗ Fr ∗
         ∃ (fd : w64) (nmf : GoString) (d : OsFd),
           os.ownFile tf fd nmf (DFrac.own 1) ∗ osFd fd (DFrac.own 1) d ∗ fdLocks fd d) ∨
       (⌜err ≠ interface.nil⌝ ∗ WalFs.walUnlockedTokX ∗ WalFs.walNamesFrag (some (child r nm)) ∗
-        osCallPerm (1 : Qp).half ∗ Fr ∗
+        osCallPerm (callKey R r) (1 : Qp).half ∗ Fr ∗
         (∃ j : Ino, osPathS Rp (child r nm) (DFrac.own qp) j ∗ osPathS Rp (child r nm) (DFrac.own qp) j) ∗
         ∃ nmf : GoString, os.ownFile tf (-1 : w64) nmf (DFrac.own 1)) ∨
       Fin err }}

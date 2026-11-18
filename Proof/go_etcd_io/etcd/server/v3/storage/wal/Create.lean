@@ -218,7 +218,7 @@ macro "create_cleanup" w:term:max tf:term:max "(" fA:tacticSeq ")" "(" fB:tactic
     · -- the rename was called: `createFin`; `retErr` the cleanup's error wrapped, or `perr`
       unfold createFin
       icases Hfin with ⟨Hp, Hcp, ⟨%nmf, Hf'⟩, HaL⟩
-      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
+      ihave Hcp := (osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half).1 $$ [Hcp]
       · rw [Qp.half_add_half]; iexact Hcp
       icases Hcp with ⟨Hcp, -⟩
       rcases cerr with cei | _

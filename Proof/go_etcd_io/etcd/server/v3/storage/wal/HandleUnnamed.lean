@@ -154,8 +154,8 @@ theorem walOpenWFU_dirAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : Go
 /-- **The handle's quarter of the call permission, lent** (`Create`'s parent fsync after `renameWAL`). -/
 theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : GoString) (Rp : Roots)
     (qp : Qp) (tf : Loc) :
-    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ osCallPerm (1 : Qp).half.half ∗
-      (osCallPerm (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
+    ⊢ walOpenWFU (W := W) P Mr w dir Rp qp tf -∗ osCallPerm (callKey W.roots dir) (1 : Qp).half.half ∗
+      (osCallPerm (callKey W.roots dir) (1 : Qp).half.half -∗ walOpenWFU (W := W) P Mr w dir Rp qp tf) := by
   iintro H
   unfold walOpenWFU
   icases H with ⟨%h, Hh, Hr⟩

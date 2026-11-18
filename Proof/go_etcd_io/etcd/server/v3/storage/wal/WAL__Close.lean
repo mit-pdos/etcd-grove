@@ -56,7 +56,7 @@ theorem osCallPerm_join' :
     osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
       osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
       osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
-  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+  have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
 
@@ -82,7 +82,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
       (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜walCov Sio → err = GoInterface.nil⌝ ∗ ∃ d : WalDur, Q d ∗
-          WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
+          WalFs.walSyncedLb dir d.H.length ∗ WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
         ⌜err ≠ GoInterface.nil ∧ ¬ walCov Sio⌝ }} := by
   wp_start as ⟨#Harea, Hw, Hpw, Hau⟩
   icases walOpenWS_pers Sio P Mr w dir γ 1 $$ Hw with ⟨Hw, #Hpers⟩

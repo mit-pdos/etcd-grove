@@ -53,11 +53,11 @@ abbrev wal.Repair.spec (Mr : WalMarshal) : Prop :=
   InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
-      osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      osCallPerm (callKey R r) 1 ∗ WalFs.walUnlockedTok ∗
       AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
         <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
-  {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+  {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
       (WalFs.walUnlockedTok ∨ ⌜b = false⌝) ∗ ∃ o : Option WalDur, Q o }}
 
 /-- **`Repair(lg, dir)` while the last segment's lock is held** through another open file description
@@ -78,10 +78,10 @@ abbrev wal.Repair.specHeld : Prop :=
   dir.length < 2 ^ 59 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
       osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R dir (DFrac.own qd) j ∗
-      osCallPerm (GF := GF) 1 ∗ osNames (GF := GF) j (.except X) dqn hj ∗
+      osCallPerm (GF := GF) (callKey R dir) 1 ∗ osNames (GF := GF) j (.except X) dqn hj ∗
       osLock (GF := GF) k gL.ino fd ∗ fileutil.lockKind (GF := GF) k }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
-  {{ (b : Bool), RET #b; ⌜b = false⌝ ∗ osPathS R dir (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ (b : Bool), RET #b; ⌜b = false⌝ ∗ osPathS R dir (DFrac.own qd) j ∗ osCallPerm (callKey R dir) 1 ∗
       osNames j (.except X) dqn hj ∗ osLock k gL.ino fd }}
 
 end spec

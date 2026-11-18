@@ -209,12 +209,12 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     iframe Hnc
     have hcall : {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ zapLoggerOk lg ∗
-          (osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osNames jr N (DFrac.own (1 : Qp).half) h) }}
+          (osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ osNames jr N (DFrac.own (1 : Qp).half) h) }}
         (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries)) (Val #lg)) (Val #dir))
         {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
           (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
             osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ zapLoggerOk lg ∗
-            (osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osNames jr N (DFrac.own (1 : Qp).half) h)) ∗
+            (osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ osNames jr N (DFrac.own (1 : Qp).half) h)) ∗
           ((⌜err ≠ GoInterface.nil⌝ ∗ wal.vseErrIs err) ∨ (⌜err = GoInterface.nil⌝ ∗ (BI.pure False : IProp GF))) }} := by
       iintro %Φ' ⟨#Hpk, #Hoi, #Hsi', #Hz, Hp', Hperm', HN'⟩ HΦ'
       rw [hdc]
@@ -225,7 +225,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
       iframe; iframe #
       ileft; iframe #; ipureintro; exact herr
     wp_apply (wal.ValidSnapshotEntries.wp_core lg dir _ (fun _ => (BI.pure False : IProp GF))
-      (fun sl err => iprop(osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+      (fun sl err => iprop(osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
         WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ (d : WalDur) (ps : List Loc), ⌜o = some d⌝ ∗ sl ↦*□ ps ∗
           walSnapsAt ps (walValidSnaps (d.H.map WalOpG.toM) d.cut))))
@@ -253,13 +253,13 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     have hS : ∀ g ∈ lay.segs, g.om.size = g.bs.length := fun g hg => (habs.metas g hg).1
     have hcall : {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
           zapLoggerOk lg ∗ WalFs.walAreaOk walCodec Mr R jr r ∗
-          (osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm 1 ∗ ([∗list] g ∈ lay.segs, segRes g) ∗
+          (osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm (callKey R r) 1 ∗ ([∗list] g ∈ lay.segs, segRes g) ∗
             osNames lay.j (.except X) (DFrac.own (1 : Qp).half) hj) }}
         (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.validSnapshotEntries)) (Val #lg)) (Val #dir))
         {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
           (isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗
             zapLoggerOk lg ∗ WalFs.walAreaOk walCodec Mr R jr r ∗
-            (osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm 1 ∗ ([∗list] g ∈ lay.segs, segRes g) ∗
+            (osPathS R dir (DFrac.own qd) lay.j ∗ osCallPerm (callKey R r) 1 ∗ ([∗list] g ∈ lay.segs, segRes g) ∗
               osNames lay.j (.except X) (DFrac.own (1 : Qp).half) hj)) ∗
           ((⌜err ≠ GoInterface.nil⌝ ∗ wal.vseErrIs err) ∨
            (⌜err = GoInterface.nil⌝ ∗ ∃ ps : List Loc, sl ↦*□ ps ∗
@@ -273,7 +273,7 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
     wp_apply (wal.ValidSnapshotEntries.wp_core lg dir _
       (fun sl => iprop(∃ ps : List Loc, sl ↦*□ ps ∗
         walSnapsAt ps (walValidSnaps (d.H.map WalOpG.toM) d.cut)))
-      (fun sl err => iprop(osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+      (fun sl err => iprop(osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm (callKey R r) 1 ∗
         WalFs.walUnlockedTok ∗ ∃ o : Option WalDur, Q o ∗
         (⌜err ≠ GoInterface.nil⌝ ∨ ∃ (d : WalDur) (ps : List Loc), ⌜o = some d⌝ ∗ sl ↦*□ ps ∗
           walSnapsAt ps (walValidSnaps (d.H.map WalOpG.toM) d.cut))))

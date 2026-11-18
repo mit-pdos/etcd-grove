@@ -66,7 +66,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         (App (Val (w @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.wal.WAL.ty @!! go!"Close"))
           (Val #()))
       {{ (err : GoInterface), RET #err;
-          (WalFs.walUnlockedTok ∗ osCallPerm (1 : Qp).half) ∨
+          (WalFs.walUnlockedTok ∗ osCallPerm (callKey R dir) (1 : Qp).half) ∨
             (⌜err ≠ GoInterface.nil⌝ ∗ WalFs.walCloseLeft dir) }} := by
   intro R jr r w dir
   wp_start as ⟨#Harea, Hrf⟩
@@ -171,7 +171,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       iframe Hsi Hpd Hn Hlk Hkk
       isplitr
       · ipureintro; exact hcl
-      iapply osCallPerm_halves'
+      iapply osCallPerm_halves _'
       iframe
     ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
       (pipeTmp_mem_walTmpsF _) $$ [Htb Hpc]
@@ -203,7 +203,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       iapply HΦ
       ileft
       iframe Hunl
-      iapply osCallPerm_halves'
+      iapply osCallPerm_halves _'
       iframe
     | nil =>
       wp_auto
@@ -311,7 +311,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
       iapply HΦ
       ileft
       iframe Hunl
-      iapply osCallPerm_halves'
+      iapply osCallPerm_halves _'
       iframe
   · -- the tail lent: its fdatasync puts it back on success
     unfold walFailLent
@@ -374,7 +374,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         iframe Hsi Hpd Hn Hlk Hkk
         isplitr
         · ipureintro; exact hcl
-        iapply osCallPerm_halves'
+        iapply osCallPerm_halves _'
         iframe
       ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
         (pipeTmp_mem_walTmpsF _) $$ [Htb Hpc]
@@ -406,7 +406,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         iapply HΦ
         ileft
         iframe Hunl
-        iapply osCallPerm_halves'
+        iapply osCallPerm_halves _'
         iframe
       | nil =>
         wp_auto
@@ -514,7 +514,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         iapply HΦ
         ileft
         iframe Hunl
-        iapply osCallPerm_halves'
+        iapply osCallPerm_halves _'
         iframe
     · wp_apply (wp_syncLentE R jr r w lg locks ls lt (fls.getD gs0.length null) fdt (child dir gL.name) dir γt
           gL.ino H md cuts o0 sz kt hwr) $$ [He Hns Hlg Hlocks Hls Htf Hcf Htw]
@@ -572,7 +572,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         iframe Hsi Hpd Hn Hlk Hkk
         isplitr
         · ipureintro; exact hcl
-        iapply osCallPerm_halves'
+        iapply osCallPerm_halves _'
         iframe
       ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
         (pipeTmp_mem_walTmpsF _) $$ [Htb Hpc]
@@ -604,7 +604,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         iapply HΦ
         ileft
         iframe Hunl
-        iapply osCallPerm_halves'
+        iapply osCallPerm_halves _'
         iframe
       | nil =>
         wp_auto
@@ -712,7 +712,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_failed [os.file.Field
         iapply HΦ
         ileft
         iframe Hunl
-        iapply osCallPerm_halves'
+        iapply osCallPerm_halves _'
         iframe
 
 end proof

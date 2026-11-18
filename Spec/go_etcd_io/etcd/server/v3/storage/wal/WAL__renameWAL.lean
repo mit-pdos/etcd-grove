@@ -128,14 +128,14 @@ def renameWALPost (P : WalPbIn GF) (Mr : WalMarshal) (R : Roots) (jr J : Ino) (r
         isFilePipe fp γ R dir dq J sz ∗ pipeMain γ 0 ∗ tmpClaim J (pipeTmp 1) ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.wal.WAL go!"dirFile" w ↦ df ∗
         os.ownFile df dfd dir (DFrac.own 1) ∗ osDirFdS dfd J .idle ∗ osPathS R dir dq J ∗
-        osCallPerm (1 : Qp).half.half ∗ osCallPerm (1 : Qp).half) ∨
+        osCallPerm (callKey R r) (1 : Qp).half.half ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
      (⌜err = interface.nil⌝ ∗ ∃ (x : Nat × Nat) (qd : Qp) (tf : Loc), ⌜dq = DFrac.own qd⌝ ∗ UH x ∗
         walOpenWFU P Mr w' dir R qd tf ∗ walLockLeft f fd fname d ∗
-        WalFs.walPurgeW w' dir ∗ osCallPerm (1 : Qp).half) ∨
-     (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm 1 ∗
+        WalFs.walPurgeW w' dir ∗ osCallPerm (callKey R r) (1 : Qp).half) ∨
+     (⌜err ≠ interface.nil⌝ ∗ U none ∗ osNames jr N (DFrac.own (1 : Qp).half) h ∗ osCallPerm (callKey R r) 1 ∗
         Sp ∗ walTmpsRes J ∗ (walPreIn w lg dir mds md e lt f snapi enti ∨ emp) ∗
         walLockLeft f fd fname d) ∨
-     (⌜err ≠ interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ osCallPerm (1 : Qp).half ∗
+     (⌜err ≠ interface.nil⌝ ∗ ∃ x : Nat × Nat, U (some x) ∗ SpR x ∗ osCallPerm (callKey R r) (1 : Qp).half ∗
         walLockLeft f fd fname d)))
 
 end defs
@@ -157,7 +157,7 @@ abbrev go_etcd_io.etcd.server.v3.storage.wal.WAL.renameWAL.spec (P : WalPbIn GF)
     (U : Option (Nat × Nat) → IProp GF) (Sp : IProp GF) (SpR UH : Nat × Nat → IProp GF),
   RenameWALOk R jr J r dir nm tmp N h lb dq U Sp SpR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ osInv ∗
-      osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm 1 ∗ osLogLb lb ∗
+      osSharedInv R ∗ osPathS R r (DFrac.own qp) jr ∗ osCallPerm (callKey R r) 1 ∗ osLogLb lb ∗
       osNames jr N (DFrac.own (1 : Qp).half) h ∗
       osAUnc (osNames jr N (DFrac.own (1 : Qp).half) h)
         (renDirOut jr J N tmp nm h (DFrac.own (1 : Qp).half) lb) U ∗
