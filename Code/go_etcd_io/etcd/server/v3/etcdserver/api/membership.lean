@@ -105,68 +105,68 @@ attribute [irreducible] DowngradeInfoBackend.ty
 @[reducible] noncomputable def ApplyV2storeOnly [GooseExts] [GoGlobalContext] : val :=
   #false
 
-axiom DefaultMaxLearners [GooseExts] [GoGlobalContext] : val
+opaque DefaultMaxLearners [GooseExts] [GoGlobalContext] : val
 
-axiom storePrefix [GooseExts] [GoGlobalContext] : val
+opaque storePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom attributesSuffix [GooseExts] [GoGlobalContext] : val
+opaque attributesSuffix [GooseExts] [GoGlobalContext] : val
 
-axiom raftAttributesSuffix [GooseExts] [GoGlobalContext] : val
+opaque raftAttributesSuffix [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIDRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ErrIDRemoved"
 
-axiom ErrIDRemoved.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIDRemoved.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIDExists [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ErrIDExists"
 
-axiom ErrIDExists.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIDExists.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIDNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ErrIDNotFound"
 
-axiom ErrIDNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIDNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrPeerURLexists [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ErrPeerURLexists"
 
-axiom ErrPeerURLexists.init [GooseExts] [GoGlobalContext] : val
+opaque ErrPeerURLexists.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ErrMemberNotLearner"
 
-axiom ErrMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ErrTooManyLearners"
 
-axiom ErrTooManyLearners.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ClusterVersionMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.ClusterVersionMetrics"
 
-axiom ClusterVersionMetrics.init [GooseExts] [GoGlobalContext] : val
+opaque ClusterVersionMetrics.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def knownPeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.knownPeers"
 
-axiom knownPeers.init [GooseExts] [GoGlobalContext] : val
+opaque knownPeers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def isLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.isLearner"
 
-axiom isLearner.init [GooseExts] [GoGlobalContext] : val
+opaque isLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def StoreMembersPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.StoreMembersPrefix"
 
-axiom StoreMembersPrefix.init [GooseExts] [GoGlobalContext] : val
+opaque StoreMembersPrefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def storeRemovedMembersPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.storeRemovedMembersPrefix"
 
-axiom storeRemovedMembersPrefix.init [GooseExts] [GoGlobalContext] : val
+opaque storeRemovedMembersPrefix.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewClusterFromURLsMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.NewClusterFromURLsMap"
@@ -1050,7 +1050,7 @@ noncomputable def MembersByID.Swap.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership where
   pkgImportedPkgs := [pkg_id.encoding.json, pkg_id.sort, pkg_id.sync, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.raft.v3.raftpb]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

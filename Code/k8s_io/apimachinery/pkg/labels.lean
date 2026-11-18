@@ -90,71 +90,71 @@ noncomputable def ValidatedSetSelector.ty [GooseExts] [GoGlobalContext] : go.GoT
 
 attribute [irreducible] ValidatedSetSelector.ty
 
-axiom Requirement.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Requirement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Parser.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Parser.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ErrorToken [GooseExts] [GoGlobalContext] : val
+opaque ErrorToken [GooseExts] [GoGlobalContext] : val
 
-axiom EndOfStringToken [GooseExts] [GoGlobalContext] : val
+opaque EndOfStringToken [GooseExts] [GoGlobalContext] : val
 
-axiom ClosedParToken [GooseExts] [GoGlobalContext] : val
+opaque ClosedParToken [GooseExts] [GoGlobalContext] : val
 
-axiom CommaToken [GooseExts] [GoGlobalContext] : val
+opaque CommaToken [GooseExts] [GoGlobalContext] : val
 
-axiom DoesNotExistToken [GooseExts] [GoGlobalContext] : val
+opaque DoesNotExistToken [GooseExts] [GoGlobalContext] : val
 
-axiom DoubleEqualsToken [GooseExts] [GoGlobalContext] : val
+opaque DoubleEqualsToken [GooseExts] [GoGlobalContext] : val
 
-axiom EqualsToken [GooseExts] [GoGlobalContext] : val
+opaque EqualsToken [GooseExts] [GoGlobalContext] : val
 
-axiom GreaterThanToken [GooseExts] [GoGlobalContext] : val
+opaque GreaterThanToken [GooseExts] [GoGlobalContext] : val
 
-axiom IdentifierToken [GooseExts] [GoGlobalContext] : val
+opaque IdentifierToken [GooseExts] [GoGlobalContext] : val
 
-axiom InToken [GooseExts] [GoGlobalContext] : val
+opaque InToken [GooseExts] [GoGlobalContext] : val
 
-axiom LessThanToken [GooseExts] [GoGlobalContext] : val
+opaque LessThanToken [GooseExts] [GoGlobalContext] : val
 
-axiom NotEqualsToken [GooseExts] [GoGlobalContext] : val
+opaque NotEqualsToken [GooseExts] [GoGlobalContext] : val
 
-axiom NotInToken [GooseExts] [GoGlobalContext] : val
+opaque NotInToken [GooseExts] [GoGlobalContext] : val
 
-axiom OpenParToken [GooseExts] [GoGlobalContext] : val
+opaque OpenParToken [GooseExts] [GoGlobalContext] : val
 
-axiom KeyAndOperator [GooseExts] [GoGlobalContext] : val
+opaque KeyAndOperator [GooseExts] [GoGlobalContext] : val
 
-axiom Values [GooseExts] [GoGlobalContext] : val
+opaque Values [GooseExts] [GoGlobalContext] : val
 
 noncomputable def unaryOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.unaryOperators"
 
-axiom unaryOperators.init [GooseExts] [GoGlobalContext] : val
+opaque unaryOperators.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def binaryOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.binaryOperators"
 
-axiom binaryOperators.init [GooseExts] [GoGlobalContext] : val
+opaque binaryOperators.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validRequirementOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.validRequirementOperators"
 
-axiom validRequirementOperators.init [GooseExts] [GoGlobalContext] : val
+opaque validRequirementOperators.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sharedEverythingSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.sharedEverythingSelector"
 
-axiom sharedEverythingSelector.init [GooseExts] [GoGlobalContext] : val
+opaque sharedEverythingSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sharedNothingSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.sharedNothingSelector"
 
-axiom sharedNothingSelector.init [GooseExts] [GoGlobalContext] : val
+opaque sharedNothingSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def string2token [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.string2token"
 
-axiom string2token.init [GooseExts] [GoGlobalContext] : val
+opaque string2token.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def FormatLabels [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/labels.FormatLabels"
@@ -270,7 +270,7 @@ noncomputable def Set.Get.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.labels where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -421,8 +421,10 @@ attribute [instance] ByKey.TypeAssumptions.underlying
   ByKey.TypeAssumptions.method_set
   ByKey.TypeAssumptions.ptr_method_set
 
-axiom Requirement : Type
-axiom Requirement.zero_val : ZeroVal Requirement
+opaque Requirement.nonempty_type : NonemptyType.{0}
+def Requirement : Type := Requirement.nonempty_type.type
+instance Requirement.nonempty : Nonempty Requirement := Requirement.nonempty_type.property
+opaque Requirement.zero_val : ZeroVal Requirement := ⟨Classical.ofNonempty⟩
 attribute [instance] Requirement.zero_val
 
 class Requirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -534,8 +536,10 @@ attribute [instance] Lexer.TypeAssumptions.type_repr
   Lexer.TypeAssumptions.method_set
   Lexer.TypeAssumptions.ptr_method_set
 
-axiom Parser : Type
-axiom Parser.zero_val : ZeroVal Parser
+opaque Parser.nonempty_type : NonemptyType.{0}
+def Parser : Type := Parser.nonempty_type.type
+instance Parser.nonempty : Nonempty Parser := Parser.nonempty_type.property
+opaque Parser.zero_val : ZeroVal Parser := ⟨Classical.ofNonempty⟩
 attribute [instance] Parser.zero_val
 
 class Parser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

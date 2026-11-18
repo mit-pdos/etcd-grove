@@ -23,62 +23,62 @@ namespace k8s_io.kubernetes.pkg.apis.core.helper
 noncomputable def Semantic [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.Semantic"
 
-axiom Semantic.init [GooseExts] [GoGlobalContext] : val
+opaque Semantic.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def standardResourceQuotaScopes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardResourceQuotaScopes"
 
-axiom standardResourceQuotaScopes.init [GooseExts] [GoGlobalContext] : val
+opaque standardResourceQuotaScopes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def podObjectCountQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.podObjectCountQuotaResources"
 
-axiom podObjectCountQuotaResources.init [GooseExts] [GoGlobalContext] : val
+opaque podObjectCountQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def podComputeQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.podComputeQuotaResources"
 
-axiom podComputeQuotaResources.init [GooseExts] [GoGlobalContext] : val
+opaque podComputeQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def pvcObjectCountQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.pvcObjectCountQuotaResources"
 
-axiom pvcObjectCountQuotaResources.init [GooseExts] [GoGlobalContext] : val
+opaque pvcObjectCountQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def pvcStorageQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.pvcStorageQuotaResources"
 
-axiom pvcStorageQuotaResources.init [GooseExts] [GoGlobalContext] : val
+opaque pvcStorageQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def standardContainerResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardContainerResources"
 
-axiom standardContainerResources.init [GooseExts] [GoGlobalContext] : val
+opaque standardContainerResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def standardLimitRangeTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardLimitRangeTypes"
 
-axiom standardLimitRangeTypes.init [GooseExts] [GoGlobalContext] : val
+opaque standardLimitRangeTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def standardQuotaResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardQuotaResources"
 
-axiom standardQuotaResources.init [GooseExts] [GoGlobalContext] : val
+opaque standardQuotaResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def standardResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardResources"
 
-axiom standardResources.init [GooseExts] [GoGlobalContext] : val
+opaque standardResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def integerResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.integerResources"
 
-axiom integerResources.init [GooseExts] [GoGlobalContext] : val
+opaque integerResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def standardFinalizers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.standardFinalizers"
 
-axiom standardFinalizers.init [GooseExts] [GoGlobalContext] : val
+opaque standardFinalizers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IsPodLevelResourcesSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/helper.IsPodLevelResourcesSet"
@@ -188,7 +188,7 @@ noncomputable def HasInvalidLabelValueInNodeSelectorTerms [GooseExts] [GoGlobalC
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.apis.core.helper where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

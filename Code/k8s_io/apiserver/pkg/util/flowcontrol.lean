@@ -166,59 +166,59 @@ noncomputable def indexValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] indexValue.ty
 
-axiom initializationSignal.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque initializationSignal.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestDigest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RequestDigest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom configController.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque configController.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom updateAttempt.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque updateAttempt.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom priorityLevelState.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque priorityLevelState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fsStatusUpdate.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fsStatusUpdate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TestableConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TestableConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom droppedRequestsStats.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque droppedRequestsStats.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom droppedRequestsTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque droppedRequestsTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom maxSeatsTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque maxSeatsTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WatchTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WatchTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom watchTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque watchTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def priorityAndFairnessInitializationSignalKey [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
-axiom timeFmt [GooseExts] [GoGlobalContext] : val
+opaque timeFmt [GooseExts] [GoGlobalContext] : val
 
-axiom priorityLevelMaxSeatsPercent [GooseExts] [GoGlobalContext] : val
+opaque priorityLevelMaxSeatsPercent [GooseExts] [GoGlobalContext] : val
 
-axiom borrowingAdjustmentPeriod [GooseExts] [GoGlobalContext] : val
+opaque borrowingAdjustmentPeriod [GooseExts] [GoGlobalContext] : val
 
-axiom seatDemandSmoothingCoefficient [GooseExts] [GoGlobalContext] : val
+opaque seatDemandSmoothingCoefficient [GooseExts] [GoGlobalContext] : val
 
-axiom queryIncludeRequestDetails [GooseExts] [GoGlobalContext] : val
+opaque queryIncludeRequestDetails [GooseExts] [GoGlobalContext] : val
 
-axiom ConfigConsumerAsFieldManager [GooseExts] [GoGlobalContext] : val
+opaque ConfigConsumerAsFieldManager [GooseExts] [GoGlobalContext] : val
 
-axiom MinTarget [GooseExts] [GoGlobalContext] : val
+opaque MinTarget [GooseExts] [GoGlobalContext] : val
 
-axiom epsilon [GooseExts] [GoGlobalContext] : val
+opaque epsilon [GooseExts] [GoGlobalContext] : val
 
-axiom maxRetryAfter [GooseExts] [GoGlobalContext] : val
+opaque maxRetryAfter [GooseExts] [GoGlobalContext] : val
 
-axiom unsetValue [GooseExts] [GoGlobalContext] : val
+opaque unsetValue [GooseExts] [GoGlobalContext] : val
 
 noncomputable def readOnlyVerbs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/flowcontrol.readOnlyVerbs"
 
-axiom readOnlyVerbs.init [GooseExts] [GoGlobalContext] : val
+opaque readOnlyVerbs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def WithInitializationSignal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/flowcontrol.WithInitializationSignal"
@@ -427,7 +427,7 @@ noncomputable def WatchInitialized.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.util.flowcontrol where
   pkgImportedPkgs := [pkg_id.context]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -473,8 +473,10 @@ attribute [instance] InitializationSignal.TypeAssumptions.underlying
   InitializationSignal.TypeAssumptions.method_set
   InitializationSignal.TypeAssumptions.ptr_method_set
 
-axiom initializationSignal : Type
-axiom initializationSignal.zero_val : ZeroVal initializationSignal
+opaque initializationSignal.nonempty_type : NonemptyType.{0}
+def initializationSignal : Type := initializationSignal.nonempty_type.type
+instance initializationSignal.nonempty : Nonempty initializationSignal := initializationSignal.nonempty_type.property
+opaque initializationSignal.zero_val : ZeroVal initializationSignal := ⟨Classical.ofNonempty⟩
 attribute [instance] initializationSignal.zero_val
 
 class initializationSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -504,8 +506,10 @@ attribute [instance] StartFunction.TypeAssumptions.underlying
   StartFunction.TypeAssumptions.method_set
   StartFunction.TypeAssumptions.ptr_method_set
 
-axiom RequestDigest : Type
-axiom RequestDigest.zero_val : ZeroVal RequestDigest
+opaque RequestDigest.nonempty_type : NonemptyType.{0}
+def RequestDigest : Type := RequestDigest.nonempty_type.type
+instance RequestDigest.nonempty : Nonempty RequestDigest := RequestDigest.nonempty_type.property
+opaque RequestDigest.zero_val : ZeroVal RequestDigest := ⟨Classical.ofNonempty⟩
 attribute [instance] RequestDigest.zero_val
 
 class RequestDigest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -521,8 +525,10 @@ attribute [instance] RequestDigest.TypeAssumptions.type_repr
   RequestDigest.TypeAssumptions.method_set
   RequestDigest.TypeAssumptions.ptr_method_set
 
-axiom configController : Type
-axiom configController.zero_val : ZeroVal configController
+opaque configController.nonempty_type : NonemptyType.{0}
+def configController : Type := configController.nonempty_type.type
+instance configController.nonempty : Nonempty configController := configController.nonempty_type.property
+opaque configController.zero_val : ZeroVal configController := ⟨Classical.ofNonempty⟩
 attribute [instance] configController.zero_val
 
 class configController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -538,8 +544,10 @@ attribute [instance] configController.TypeAssumptions.type_repr
   configController.TypeAssumptions.method_set
   configController.TypeAssumptions.ptr_method_set
 
-axiom updateAttempt : Type
-axiom updateAttempt.zero_val : ZeroVal updateAttempt
+opaque updateAttempt.nonempty_type : NonemptyType.{0}
+def updateAttempt : Type := updateAttempt.nonempty_type.type
+instance updateAttempt.nonempty : Nonempty updateAttempt := updateAttempt.nonempty_type.property
+opaque updateAttempt.zero_val : ZeroVal updateAttempt := ⟨Classical.ofNonempty⟩
 attribute [instance] updateAttempt.zero_val
 
 class updateAttempt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -555,8 +563,10 @@ attribute [instance] updateAttempt.TypeAssumptions.type_repr
   updateAttempt.TypeAssumptions.method_set
   updateAttempt.TypeAssumptions.ptr_method_set
 
-axiom priorityLevelState : Type
-axiom priorityLevelState.zero_val : ZeroVal priorityLevelState
+opaque priorityLevelState.nonempty_type : NonemptyType.{0}
+def priorityLevelState : Type := priorityLevelState.nonempty_type.type
+instance priorityLevelState.nonempty : Nonempty priorityLevelState := priorityLevelState.nonempty_type.property
+opaque priorityLevelState.zero_val : ZeroVal priorityLevelState := ⟨Classical.ofNonempty⟩
 attribute [instance] priorityLevelState.zero_val
 
 class priorityLevelState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -702,8 +712,10 @@ attribute [instance] cfgMeal.TypeAssumptions.type_repr
   cfgMeal.TypeAssumptions.method_set
   cfgMeal.TypeAssumptions.ptr_method_set
 
-axiom fsStatusUpdate : Type
-axiom fsStatusUpdate.zero_val : ZeroVal fsStatusUpdate
+opaque fsStatusUpdate.nonempty_type : NonemptyType.{0}
+def fsStatusUpdate : Type := fsStatusUpdate.nonempty_type.type
+instance fsStatusUpdate.nonempty : Nonempty fsStatusUpdate := fsStatusUpdate.nonempty_type.property
+opaque fsStatusUpdate.zero_val : ZeroVal fsStatusUpdate := ⟨Classical.ofNonempty⟩
 attribute [instance] fsStatusUpdate.zero_val
 
 class fsStatusUpdate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -719,8 +731,10 @@ attribute [instance] fsStatusUpdate.TypeAssumptions.type_repr
   fsStatusUpdate.TypeAssumptions.method_set
   fsStatusUpdate.TypeAssumptions.ptr_method_set
 
-axiom Interface : Type
-axiom Interface.zero_val : ZeroVal Interface
+opaque Interface.nonempty_type : NonemptyType.{0}
+def Interface : Type := Interface.nonempty_type.type
+instance Interface.nonempty : Nonempty Interface := Interface.nonempty_type.property
+opaque Interface.zero_val : ZeroVal Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] Interface.zero_val
 
 class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -736,8 +750,10 @@ attribute [instance] Interface.TypeAssumptions.type_repr
   Interface.TypeAssumptions.method_set
   Interface.TypeAssumptions.ptr_method_set
 
-axiom TestableConfig : Type
-axiom TestableConfig.zero_val : ZeroVal TestableConfig
+opaque TestableConfig.nonempty_type : NonemptyType.{0}
+def TestableConfig : Type := TestableConfig.nonempty_type.type
+instance TestableConfig.nonempty : Nonempty TestableConfig := TestableConfig.nonempty_type.property
+opaque TestableConfig.zero_val : ZeroVal TestableConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] TestableConfig.zero_val
 
 class TestableConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -984,8 +1000,10 @@ attribute [instance] unixStat.TypeAssumptions.type_repr
   unixStat.TypeAssumptions.method_set
   unixStat.TypeAssumptions.ptr_method_set
 
-axiom droppedRequestsStats : Type
-axiom droppedRequestsStats.zero_val : ZeroVal droppedRequestsStats
+opaque droppedRequestsStats.nonempty_type : NonemptyType.{0}
+def droppedRequestsStats : Type := droppedRequestsStats.nonempty_type.type
+instance droppedRequestsStats.nonempty : Nonempty droppedRequestsStats := droppedRequestsStats.nonempty_type.property
+opaque droppedRequestsStats.zero_val : ZeroVal droppedRequestsStats := ⟨Classical.ofNonempty⟩
 attribute [instance] droppedRequestsStats.zero_val
 
 class droppedRequestsStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1001,8 +1019,10 @@ attribute [instance] droppedRequestsStats.TypeAssumptions.type_repr
   droppedRequestsStats.TypeAssumptions.method_set
   droppedRequestsStats.TypeAssumptions.ptr_method_set
 
-axiom droppedRequestsTracker : Type
-axiom droppedRequestsTracker.zero_val : ZeroVal droppedRequestsTracker
+opaque droppedRequestsTracker.nonempty_type : NonemptyType.{0}
+def droppedRequestsTracker : Type := droppedRequestsTracker.nonempty_type.type
+instance droppedRequestsTracker.nonempty : Nonempty droppedRequestsTracker := droppedRequestsTracker.nonempty_type.property
+opaque droppedRequestsTracker.zero_val : ZeroVal droppedRequestsTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] droppedRequestsTracker.zero_val
 
 class droppedRequestsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1032,8 +1052,10 @@ attribute [instance] MaxSeatsTracker.TypeAssumptions.underlying
   MaxSeatsTracker.TypeAssumptions.method_set
   MaxSeatsTracker.TypeAssumptions.ptr_method_set
 
-axiom maxSeatsTracker : Type
-axiom maxSeatsTracker.zero_val : ZeroVal maxSeatsTracker
+opaque maxSeatsTracker.nonempty_type : NonemptyType.{0}
+def maxSeatsTracker : Type := maxSeatsTracker.nonempty_type.type
+instance maxSeatsTracker.nonempty : Nonempty maxSeatsTracker := maxSeatsTracker.nonempty_type.property
+opaque maxSeatsTracker.zero_val : ZeroVal maxSeatsTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] maxSeatsTracker.zero_val
 
 class maxSeatsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1116,8 +1138,10 @@ attribute [instance] ForgetWatchFunc.TypeAssumptions.underlying
   ForgetWatchFunc.TypeAssumptions.method_set
   ForgetWatchFunc.TypeAssumptions.ptr_method_set
 
-axiom WatchTracker : Type
-axiom WatchTracker.zero_val : ZeroVal WatchTracker
+opaque WatchTracker.nonempty_type : NonemptyType.{0}
+def WatchTracker : Type := WatchTracker.nonempty_type.type
+instance WatchTracker.nonempty : Nonempty WatchTracker := WatchTracker.nonempty_type.property
+opaque WatchTracker.zero_val : ZeroVal WatchTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] WatchTracker.zero_val
 
 class WatchTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1147,8 +1171,10 @@ attribute [instance] builtinIndexes.TypeAssumptions.underlying
   builtinIndexes.TypeAssumptions.method_set
   builtinIndexes.TypeAssumptions.ptr_method_set
 
-axiom watchTracker : Type
-axiom watchTracker.zero_val : ZeroVal watchTracker
+opaque watchTracker.nonempty_type : NonemptyType.{0}
+def watchTracker : Type := watchTracker.nonempty_type.type
+instance watchTracker.nonempty : Nonempty watchTracker := watchTracker.nonempty_type.property
+opaque watchTracker.zero_val : ZeroVal watchTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] watchTracker.zero_val
 
 class watchTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

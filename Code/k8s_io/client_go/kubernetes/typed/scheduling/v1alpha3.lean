@@ -90,33 +90,33 @@ noncomputable def workloads.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] workloads.ty
 
-axiom CompositePodGroupsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CompositePodGroupsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CompositePodGroupInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CompositePodGroupInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom compositePodGroups.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque compositePodGroups.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CompositePodGroupExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CompositePodGroupExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodGroupExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodGroupExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WorkloadExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WorkloadExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodGroupsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodGroupsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodGroupInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodGroupInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podGroups.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque podGroups.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SchedulingV1alpha3Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SchedulingV1alpha3Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SchedulingV1alpha3Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SchedulingV1alpha3Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WorkloadsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WorkloadsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WorkloadInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WorkloadInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom workloads.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque workloads.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newCompositePodGroups [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/scheduling/v1alpha3.newCompositePodGroups"
@@ -145,7 +145,7 @@ noncomputable def newWorkloads [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.scheduling.v1alpha3 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -154,8 +154,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom CompositePodGroupsGetter : Type
-axiom CompositePodGroupsGetter.zero_val : ZeroVal CompositePodGroupsGetter
+opaque CompositePodGroupsGetter.nonempty_type : NonemptyType.{0}
+def CompositePodGroupsGetter : Type := CompositePodGroupsGetter.nonempty_type.type
+instance CompositePodGroupsGetter.nonempty : Nonempty CompositePodGroupsGetter := CompositePodGroupsGetter.nonempty_type.property
+opaque CompositePodGroupsGetter.zero_val : ZeroVal CompositePodGroupsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CompositePodGroupsGetter.zero_val
 
 class CompositePodGroupsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -171,8 +173,10 @@ attribute [instance] CompositePodGroupsGetter.TypeAssumptions.type_repr
   CompositePodGroupsGetter.TypeAssumptions.method_set
   CompositePodGroupsGetter.TypeAssumptions.ptr_method_set
 
-axiom CompositePodGroupInterface : Type
-axiom CompositePodGroupInterface.zero_val : ZeroVal CompositePodGroupInterface
+opaque CompositePodGroupInterface.nonempty_type : NonemptyType.{0}
+def CompositePodGroupInterface : Type := CompositePodGroupInterface.nonempty_type.type
+instance CompositePodGroupInterface.nonempty : Nonempty CompositePodGroupInterface := CompositePodGroupInterface.nonempty_type.property
+opaque CompositePodGroupInterface.zero_val : ZeroVal CompositePodGroupInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CompositePodGroupInterface.zero_val
 
 class CompositePodGroupInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -188,8 +192,10 @@ attribute [instance] CompositePodGroupInterface.TypeAssumptions.type_repr
   CompositePodGroupInterface.TypeAssumptions.method_set
   CompositePodGroupInterface.TypeAssumptions.ptr_method_set
 
-axiom compositePodGroups : Type
-axiom compositePodGroups.zero_val : ZeroVal compositePodGroups
+opaque compositePodGroups.nonempty_type : NonemptyType.{0}
+def compositePodGroups : Type := compositePodGroups.nonempty_type.type
+instance compositePodGroups.nonempty : Nonempty compositePodGroups := compositePodGroups.nonempty_type.property
+opaque compositePodGroups.zero_val : ZeroVal compositePodGroups := ⟨Classical.ofNonempty⟩
 attribute [instance] compositePodGroups.zero_val
 
 class compositePodGroups.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -205,8 +211,10 @@ attribute [instance] compositePodGroups.TypeAssumptions.type_repr
   compositePodGroups.TypeAssumptions.method_set
   compositePodGroups.TypeAssumptions.ptr_method_set
 
-axiom CompositePodGroupExpansion : Type
-axiom CompositePodGroupExpansion.zero_val : ZeroVal CompositePodGroupExpansion
+opaque CompositePodGroupExpansion.nonempty_type : NonemptyType.{0}
+def CompositePodGroupExpansion : Type := CompositePodGroupExpansion.nonempty_type.type
+instance CompositePodGroupExpansion.nonempty : Nonempty CompositePodGroupExpansion := CompositePodGroupExpansion.nonempty_type.property
+opaque CompositePodGroupExpansion.zero_val : ZeroVal CompositePodGroupExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CompositePodGroupExpansion.zero_val
 
 class CompositePodGroupExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -222,8 +230,10 @@ attribute [instance] CompositePodGroupExpansion.TypeAssumptions.type_repr
   CompositePodGroupExpansion.TypeAssumptions.method_set
   CompositePodGroupExpansion.TypeAssumptions.ptr_method_set
 
-axiom PodGroupExpansion : Type
-axiom PodGroupExpansion.zero_val : ZeroVal PodGroupExpansion
+opaque PodGroupExpansion.nonempty_type : NonemptyType.{0}
+def PodGroupExpansion : Type := PodGroupExpansion.nonempty_type.type
+instance PodGroupExpansion.nonempty : Nonempty PodGroupExpansion := PodGroupExpansion.nonempty_type.property
+opaque PodGroupExpansion.zero_val : ZeroVal PodGroupExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] PodGroupExpansion.zero_val
 
 class PodGroupExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -239,8 +249,10 @@ attribute [instance] PodGroupExpansion.TypeAssumptions.type_repr
   PodGroupExpansion.TypeAssumptions.method_set
   PodGroupExpansion.TypeAssumptions.ptr_method_set
 
-axiom WorkloadExpansion : Type
-axiom WorkloadExpansion.zero_val : ZeroVal WorkloadExpansion
+opaque WorkloadExpansion.nonempty_type : NonemptyType.{0}
+def WorkloadExpansion : Type := WorkloadExpansion.nonempty_type.type
+instance WorkloadExpansion.nonempty : Nonempty WorkloadExpansion := WorkloadExpansion.nonempty_type.property
+opaque WorkloadExpansion.zero_val : ZeroVal WorkloadExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] WorkloadExpansion.zero_val
 
 class WorkloadExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -256,8 +268,10 @@ attribute [instance] WorkloadExpansion.TypeAssumptions.type_repr
   WorkloadExpansion.TypeAssumptions.method_set
   WorkloadExpansion.TypeAssumptions.ptr_method_set
 
-axiom PodGroupsGetter : Type
-axiom PodGroupsGetter.zero_val : ZeroVal PodGroupsGetter
+opaque PodGroupsGetter.nonempty_type : NonemptyType.{0}
+def PodGroupsGetter : Type := PodGroupsGetter.nonempty_type.type
+instance PodGroupsGetter.nonempty : Nonempty PodGroupsGetter := PodGroupsGetter.nonempty_type.property
+opaque PodGroupsGetter.zero_val : ZeroVal PodGroupsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] PodGroupsGetter.zero_val
 
 class PodGroupsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -273,8 +287,10 @@ attribute [instance] PodGroupsGetter.TypeAssumptions.type_repr
   PodGroupsGetter.TypeAssumptions.method_set
   PodGroupsGetter.TypeAssumptions.ptr_method_set
 
-axiom PodGroupInterface : Type
-axiom PodGroupInterface.zero_val : ZeroVal PodGroupInterface
+opaque PodGroupInterface.nonempty_type : NonemptyType.{0}
+def PodGroupInterface : Type := PodGroupInterface.nonempty_type.type
+instance PodGroupInterface.nonempty : Nonempty PodGroupInterface := PodGroupInterface.nonempty_type.property
+opaque PodGroupInterface.zero_val : ZeroVal PodGroupInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] PodGroupInterface.zero_val
 
 class PodGroupInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -290,8 +306,10 @@ attribute [instance] PodGroupInterface.TypeAssumptions.type_repr
   PodGroupInterface.TypeAssumptions.method_set
   PodGroupInterface.TypeAssumptions.ptr_method_set
 
-axiom podGroups : Type
-axiom podGroups.zero_val : ZeroVal podGroups
+opaque podGroups.nonempty_type : NonemptyType.{0}
+def podGroups : Type := podGroups.nonempty_type.type
+instance podGroups.nonempty : Nonempty podGroups := podGroups.nonempty_type.property
+opaque podGroups.zero_val : ZeroVal podGroups := ⟨Classical.ofNonempty⟩
 attribute [instance] podGroups.zero_val
 
 class podGroups.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -307,8 +325,10 @@ attribute [instance] podGroups.TypeAssumptions.type_repr
   podGroups.TypeAssumptions.method_set
   podGroups.TypeAssumptions.ptr_method_set
 
-axiom SchedulingV1alpha3Interface : Type
-axiom SchedulingV1alpha3Interface.zero_val : ZeroVal SchedulingV1alpha3Interface
+opaque SchedulingV1alpha3Interface.nonempty_type : NonemptyType.{0}
+def SchedulingV1alpha3Interface : Type := SchedulingV1alpha3Interface.nonempty_type.type
+instance SchedulingV1alpha3Interface.nonempty : Nonempty SchedulingV1alpha3Interface := SchedulingV1alpha3Interface.nonempty_type.property
+opaque SchedulingV1alpha3Interface.zero_val : ZeroVal SchedulingV1alpha3Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] SchedulingV1alpha3Interface.zero_val
 
 class SchedulingV1alpha3Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -324,8 +344,10 @@ attribute [instance] SchedulingV1alpha3Interface.TypeAssumptions.type_repr
   SchedulingV1alpha3Interface.TypeAssumptions.method_set
   SchedulingV1alpha3Interface.TypeAssumptions.ptr_method_set
 
-axiom SchedulingV1alpha3Client : Type
-axiom SchedulingV1alpha3Client.zero_val : ZeroVal SchedulingV1alpha3Client
+opaque SchedulingV1alpha3Client.nonempty_type : NonemptyType.{0}
+def SchedulingV1alpha3Client : Type := SchedulingV1alpha3Client.nonempty_type.type
+instance SchedulingV1alpha3Client.nonempty : Nonempty SchedulingV1alpha3Client := SchedulingV1alpha3Client.nonempty_type.property
+opaque SchedulingV1alpha3Client.zero_val : ZeroVal SchedulingV1alpha3Client := ⟨Classical.ofNonempty⟩
 attribute [instance] SchedulingV1alpha3Client.zero_val
 
 class SchedulingV1alpha3Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -341,8 +363,10 @@ attribute [instance] SchedulingV1alpha3Client.TypeAssumptions.type_repr
   SchedulingV1alpha3Client.TypeAssumptions.method_set
   SchedulingV1alpha3Client.TypeAssumptions.ptr_method_set
 
-axiom WorkloadsGetter : Type
-axiom WorkloadsGetter.zero_val : ZeroVal WorkloadsGetter
+opaque WorkloadsGetter.nonempty_type : NonemptyType.{0}
+def WorkloadsGetter : Type := WorkloadsGetter.nonempty_type.type
+instance WorkloadsGetter.nonempty : Nonempty WorkloadsGetter := WorkloadsGetter.nonempty_type.property
+opaque WorkloadsGetter.zero_val : ZeroVal WorkloadsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] WorkloadsGetter.zero_val
 
 class WorkloadsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -358,8 +382,10 @@ attribute [instance] WorkloadsGetter.TypeAssumptions.type_repr
   WorkloadsGetter.TypeAssumptions.method_set
   WorkloadsGetter.TypeAssumptions.ptr_method_set
 
-axiom WorkloadInterface : Type
-axiom WorkloadInterface.zero_val : ZeroVal WorkloadInterface
+opaque WorkloadInterface.nonempty_type : NonemptyType.{0}
+def WorkloadInterface : Type := WorkloadInterface.nonempty_type.type
+instance WorkloadInterface.nonempty : Nonempty WorkloadInterface := WorkloadInterface.nonempty_type.property
+opaque WorkloadInterface.zero_val : ZeroVal WorkloadInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] WorkloadInterface.zero_val
 
 class WorkloadInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -375,8 +401,10 @@ attribute [instance] WorkloadInterface.TypeAssumptions.type_repr
   WorkloadInterface.TypeAssumptions.method_set
   WorkloadInterface.TypeAssumptions.ptr_method_set
 
-axiom workloads : Type
-axiom workloads.zero_val : ZeroVal workloads
+opaque workloads.nonempty_type : NonemptyType.{0}
+def workloads : Type := workloads.nonempty_type.type
+instance workloads.nonempty : Nonempty workloads := workloads.nonempty_type.property
+opaque workloads.zero_val : ZeroVal workloads := ⟨Classical.ofNonempty⟩
 attribute [instance] workloads.zero_val
 
 class workloads.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

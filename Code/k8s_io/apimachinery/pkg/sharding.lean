@@ -62,7 +62,7 @@ noncomputable def NewShardRangeSelector [GooseExts] [GoGlobalContext] : GoString
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.sharding where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -20,12 +20,12 @@ end pkg_id
 
 namespace k8s_io.apiextensions_apiserver.pkg.features
 
-axiom CRDObservedGenerationTracking [GooseExts] [GoGlobalContext] : val
+opaque CRDObservedGenerationTracking [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiextensions-apiserver/pkg/features.defaultVersionedKubernetesFeatureGates"
 
-axiom defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
+opaque defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiextensions-apiserver/pkg/features.init.0"
@@ -33,7 +33,7 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiextensions_apiserver.pkg.features where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -715,155 +715,155 @@ noncomputable def connLRU.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] connLRU.ty
 
-axiom Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cancelTimerBody.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cancelTimerBody.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom newClientConner.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque newClientConner.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Cookie.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Cookie.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CrossOriginProtection.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CrossOriginProtection.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom populateResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque populateResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom File.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque File.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fileInfoDirs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fileInfoDirs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dirEntryDirs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque dirEntryDirs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ioFS.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ioFS.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ioFile.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ioFile.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom stringWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque stringWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HTTP2Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HTTP2Config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2Server [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2Server [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2Transport [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2Transport [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2ResponseWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2ResponseWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2ExternalServerConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2ExternalServerConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2ExternalTransportConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2ExternalTransportConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2RoundTripper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2RoundTripper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http2ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque http2ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CookieJar.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CookieJar.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom maxBytesReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque maxBytesReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Response.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Response.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serveMux121.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serveMux121.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Hijacker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Hijacker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque conn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom response.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque response.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom writerOnly.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque writerOnly.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom connReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque connReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom expectContinueReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque expectContinueReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unencryptedHTTP2Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unencryptedHTTP2Request.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unencryptedNetConnInTLSConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unencryptedNetConnInTLSConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServeMux.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServeMux.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom http3ServerHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque http3ServerHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timeoutHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timeoutHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timeoutWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timeoutWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom onceCloseListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque onceCloseListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom initALPNRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque initALPNRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom loggingConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque loggingConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom socksAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque socksAddr.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom socksConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque socksConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom socksDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque socksDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom transferWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque transferWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom transferReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque transferReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom body.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque body.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom bufioFlushWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque bufioFlushWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Transport.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Transport.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dialClientConner.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque dialClientConner.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom transportRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque transportRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom readTrackingBody.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque readTrackingBody.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom wantConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque wantConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom connOrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque connOrError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom connectMethod.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque connectMethod.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom persistConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque persistConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom readWriteCloserBody.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque readWriteCloserBody.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom bodyEOFSignal.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque bodyEOFSignal.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom gzipReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque gzipReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom connLRU.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque connLRU.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SameSiteDefaultMode [GooseExts] [GoGlobalContext] : val
+opaque SameSiteDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom SameSiteLaxMode [GooseExts] [GoGlobalContext] : val
+opaque SameSiteLaxMode [GooseExts] [GoGlobalContext] : val
 
-axiom SameSiteStrictMode [GooseExts] [GoGlobalContext] : val
+opaque SameSiteStrictMode [GooseExts] [GoGlobalContext] : val
 
-axiom SameSiteNoneMode [GooseExts] [GoGlobalContext] : val
+opaque SameSiteNoneMode [GooseExts] [GoGlobalContext] : val
 
-axiom defaultCookieMaxNum [GooseExts] [GoGlobalContext] : val
+opaque defaultCookieMaxNum [GooseExts] [GoGlobalContext] : val
 
-axiom condNone [GooseExts] [GoGlobalContext] : val
+opaque condNone [GooseExts] [GoGlobalContext] : val
 
-axiom condTrue [GooseExts] [GoGlobalContext] : val
+opaque condTrue [GooseExts] [GoGlobalContext] : val
 
-axiom condFalse [GooseExts] [GoGlobalContext] : val
+opaque condFalse [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMaxContentRanges [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxContentRanges [GooseExts] [GoGlobalContext] : val
 
-axiom protoHTTP1 [GooseExts] [GoGlobalContext] : val
+opaque protoHTTP1 [GooseExts] [GoGlobalContext] : val
 
-axiom protoHTTP2 [GooseExts] [GoGlobalContext] : val
+opaque protoHTTP2 [GooseExts] [GoGlobalContext] : val
 
-axiom protoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val
+opaque protoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val
 
-axiom protoHTTP3 [GooseExts] [GoGlobalContext] : val
+opaque protoHTTP3 [GooseExts] [GoGlobalContext] : val
 
-axiom maxInt64 [GooseExts] [GoGlobalContext] : val
+opaque maxInt64 [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def MethodGet [GooseExts] [GoGlobalContext] : val :=
   #(go!"GET")
@@ -893,77 +893,77 @@ axiom maxInt64 [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def MethodTrace [GooseExts] [GoGlobalContext] : val :=
   #(go!"TRACE")
 
-axiom equivalent [GooseExts] [GoGlobalContext] : val
+opaque equivalent [GooseExts] [GoGlobalContext] : val
 
-axiom moreGeneral [GooseExts] [GoGlobalContext] : val
+opaque moreGeneral [GooseExts] [GoGlobalContext] : val
 
-axiom moreSpecific [GooseExts] [GoGlobalContext] : val
+opaque moreSpecific [GooseExts] [GoGlobalContext] : val
 
-axiom disjoint [GooseExts] [GoGlobalContext] : val
+opaque disjoint [GooseExts] [GoGlobalContext] : val
 
-axiom overlaps [GooseExts] [GoGlobalContext] : val
+opaque overlaps [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMaxMemory [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxMemory [GooseExts] [GoGlobalContext] : val
 
-axiom defaultUserAgent [GooseExts] [GoGlobalContext] : val
+opaque defaultUserAgent [GooseExts] [GoGlobalContext] : val
 
-axiom bufferBeforeChunkingSize [GooseExts] [GoGlobalContext] : val
+opaque bufferBeforeChunkingSize [GooseExts] [GoGlobalContext] : val
 
-axiom TrailerPrefix [GooseExts] [GoGlobalContext] : val
+opaque TrailerPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom debugServerConnections [GooseExts] [GoGlobalContext] : val
+opaque debugServerConnections [GooseExts] [GoGlobalContext] : val
 
-axiom copyBufPoolSize [GooseExts] [GoGlobalContext] : val
+opaque copyBufPoolSize [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultMaxHeaderBytes [GooseExts] [GoGlobalContext] : val
+opaque DefaultMaxHeaderBytes [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultMaxHeaderValueCount [GooseExts] [GoGlobalContext] : val
+opaque DefaultMaxHeaderValueCount [GooseExts] [GoGlobalContext] : val
 
-axiom TimeFormat [GooseExts] [GoGlobalContext] : val
+opaque TimeFormat [GooseExts] [GoGlobalContext] : val
 
-axiom maxPostHandlerReadBytes [GooseExts] [GoGlobalContext] : val
+opaque maxPostHandlerReadBytes [GooseExts] [GoGlobalContext] : val
 
-axiom runHooks [GooseExts] [GoGlobalContext] : val
+opaque runHooks [GooseExts] [GoGlobalContext] : val
 
-axiom skipHooks [GooseExts] [GoGlobalContext] : val
+opaque skipHooks [GooseExts] [GoGlobalContext] : val
 
-axiom nextProtoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val
+opaque nextProtoUnencryptedHTTP2 [GooseExts] [GoGlobalContext] : val
 
-axiom shutdownPollIntervalMax [GooseExts] [GoGlobalContext] : val
+opaque shutdownPollIntervalMax [GooseExts] [GoGlobalContext] : val
 
-axiom StateNew [GooseExts] [GoGlobalContext] : val
+opaque StateNew [GooseExts] [GoGlobalContext] : val
 
-axiom StateActive [GooseExts] [GoGlobalContext] : val
+opaque StateActive [GooseExts] [GoGlobalContext] : val
 
-axiom StateIdle [GooseExts] [GoGlobalContext] : val
+opaque StateIdle [GooseExts] [GoGlobalContext] : val
 
-axiom StateHijacked [GooseExts] [GoGlobalContext] : val
+opaque StateHijacked [GooseExts] [GoGlobalContext] : val
 
-axiom StateClosed [GooseExts] [GoGlobalContext] : val
+opaque StateClosed [GooseExts] [GoGlobalContext] : val
 
-axiom socksVersion5 [GooseExts] [GoGlobalContext] : val
+opaque socksVersion5 [GooseExts] [GoGlobalContext] : val
 
-axiom socksAddrTypeIPv4 [GooseExts] [GoGlobalContext] : val
+opaque socksAddrTypeIPv4 [GooseExts] [GoGlobalContext] : val
 
-axiom socksAddrTypeFQDN [GooseExts] [GoGlobalContext] : val
+opaque socksAddrTypeFQDN [GooseExts] [GoGlobalContext] : val
 
-axiom socksAddrTypeIPv6 [GooseExts] [GoGlobalContext] : val
+opaque socksAddrTypeIPv6 [GooseExts] [GoGlobalContext] : val
 
-axiom socksCmdConnect [GooseExts] [GoGlobalContext] : val
+opaque socksCmdConnect [GooseExts] [GoGlobalContext] : val
 
-axiom sockscmdBind [GooseExts] [GoGlobalContext] : val
+opaque sockscmdBind [GooseExts] [GoGlobalContext] : val
 
-axiom socksAuthMethodNotRequired [GooseExts] [GoGlobalContext] : val
+opaque socksAuthMethodNotRequired [GooseExts] [GoGlobalContext] : val
 
-axiom socksAuthMethodUsernamePassword [GooseExts] [GoGlobalContext] : val
+opaque socksAuthMethodUsernamePassword [GooseExts] [GoGlobalContext] : val
 
-axiom socksAuthMethodNoAcceptableMethods [GooseExts] [GoGlobalContext] : val
+opaque socksAuthMethodNoAcceptableMethods [GooseExts] [GoGlobalContext] : val
 
-axiom socksStatusSucceeded [GooseExts] [GoGlobalContext] : val
+opaque socksStatusSucceeded [GooseExts] [GoGlobalContext] : val
 
-axiom socksauthUsernamePasswordVersion [GooseExts] [GoGlobalContext] : val
+opaque socksauthUsernamePasswordVersion [GooseExts] [GoGlobalContext] : val
 
-axiom socksauthStatusSucceeded [GooseExts] [GoGlobalContext] : val
+opaque socksauthStatusSucceeded [GooseExts] [GoGlobalContext] : val
 
 /-- RFC 9110, 15.2.1 -/
 @[reducible] noncomputable def StatusContinue [GooseExts] [GoGlobalContext] : val :=
@@ -1213,26 +1213,26 @@ axiom socksauthStatusSucceeded [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def StatusNetworkAuthenticationRequired [GooseExts] [GoGlobalContext] : val :=
   #(511 : Int)
 
-axiom DefaultMaxIdleConnsPerHost [GooseExts] [GoGlobalContext] : val
+opaque DefaultMaxIdleConnsPerHost [GooseExts] [GoGlobalContext] : val
 
-axiom maxPostCloseReadBytes [GooseExts] [GoGlobalContext] : val
+opaque maxPostCloseReadBytes [GooseExts] [GoGlobalContext] : val
 
-axiom maxPostCloseReadTime [GooseExts] [GoGlobalContext] : val
+opaque maxPostCloseReadTime [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.DefaultClient"
 
-axiom DefaultClient.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultClient.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrSchemeMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrSchemeMismatch"
 
-axiom ErrSchemeMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrSchemeMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUseLastResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrUseLastResponse"
 
-axiom ErrUseLastResponse.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUseLastResponse.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookClientDoResult [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookClientDoResult"
@@ -1240,112 +1240,112 @@ noncomputable def testHookClientDoResult [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def httpcookiemaxnum [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httpcookiemaxnum"
 
-axiom httpcookiemaxnum.init [GooseExts] [GoGlobalContext] : val
+opaque httpcookiemaxnum.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errBlankCookie [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errBlankCookie"
 
-axiom errBlankCookie.init [GooseExts] [GoGlobalContext] : val
+opaque errBlankCookie.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errEqualNotFoundInCookie [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errEqualNotFoundInCookie"
 
-axiom errEqualNotFoundInCookie.init [GooseExts] [GoGlobalContext] : val
+opaque errEqualNotFoundInCookie.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidCookieName [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errInvalidCookieName"
 
-axiom errInvalidCookieName.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidCookieName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidCookieValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errInvalidCookieValue"
 
-axiom errInvalidCookieValue.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidCookieValue.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCookieNumLimitExceeded [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCookieNumLimitExceeded"
 
-axiom errCookieNumLimitExceeded.init [GooseExts] [GoGlobalContext] : val
+opaque errCookieNumLimitExceeded.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cookieNameSanitizer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.cookieNameSanitizer"
 
-axiom cookieNameSanitizer.init [GooseExts] [GoGlobalContext] : val
+opaque cookieNameSanitizer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sentinelHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.sentinelHandler"
 
-axiom sentinelHandler.init [GooseExts] [GoGlobalContext] : val
+opaque sentinelHandler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCrossOriginRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCrossOriginRequest"
 
-axiom errCrossOriginRequest.init [GooseExts] [GoGlobalContext] : val
+opaque errCrossOriginRequest.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCrossOriginRequestFromOldBrowser [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCrossOriginRequestFromOldBrowser"
 
-axiom errCrossOriginRequestFromOldBrowser.init [GooseExts] [GoGlobalContext] : val
+opaque errCrossOriginRequestFromOldBrowser.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidUnsafePath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errInvalidUnsafePath"
 
-axiom errInvalidUnsafePath.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalidUnsafePath.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpservecontentkeepheaders [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httpservecontentkeepheaders"
 
-axiom httpservecontentkeepheaders.init [GooseExts] [GoGlobalContext] : val
+opaque httpservecontentkeepheaders.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errSeeker [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errSeeker"
 
-axiom errSeeker.init [GooseExts] [GoGlobalContext] : val
+opaque errSeeker.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNoOverlap [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errNoOverlap"
 
-axiom errNoOverlap.init [GooseExts] [GoGlobalContext] : val
+opaque errNoOverlap.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def unixEpochTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.unixEpochTime"
 
-axiom unixEpochTime.init [GooseExts] [GoGlobalContext] : val
+opaque unixEpochTime.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMissingSeek [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errMissingSeek"
 
-axiom errMissingSeek.init [GooseExts] [GoGlobalContext] : val
+opaque errMissingSeek.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMissingReadDir [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errMissingReadDir"
 
-axiom errMissingReadDir.init [GooseExts] [GoGlobalContext] : val
+opaque errMissingReadDir.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpservecontentmaxranges [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httpservecontentmaxranges"
 
-axiom httpservecontentmaxranges.init [GooseExts] [GoGlobalContext] : val
+opaque httpservecontentmaxranges.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def timeFormats [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.timeFormats"
 
-axiom timeFormats.init [GooseExts] [GoGlobalContext] : val
+opaque timeFormats.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def headerNewlineToSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.headerNewlineToSpace"
 
-axiom headerNewlineToSpace.init [GooseExts] [GoGlobalContext] : val
+opaque headerNewlineToSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def headerSorterPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.headerSorterPool"
 
-axiom headerSorterPool.init [GooseExts] [GoGlobalContext] : val
+opaque headerSorterPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def aLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.aLongTimeAgo"
 
-axiom aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
+opaque aLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def omitBundledHTTP2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.omitBundledHTTP2"
@@ -1353,72 +1353,72 @@ noncomputable def omitBundledHTTP2 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def NoBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.NoBody"
 
-axiom NoBody.init [GooseExts] [GoGlobalContext] : val
+opaque NoBody.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.maxSlice"
 
-axiom maxSlice.init [GooseExts] [GoGlobalContext] : val
+opaque maxSlice.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMissingFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrMissingFile"
 
-axiom ErrMissingFile.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMissingFile.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotSupported [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrNotSupported"
 
-axiom ErrNotSupported.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotSupported.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedTrailer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrUnexpectedTrailer"
 
-axiom ErrUnexpectedTrailer.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedTrailer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMissingBoundary [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrMissingBoundary"
 
-axiom ErrMissingBoundary.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMissingBoundary.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotMultipart [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrNotMultipart"
 
-axiom ErrNotMultipart.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotMultipart.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrHeaderTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrHeaderTooLong"
 
-axiom ErrHeaderTooLong.init [GooseExts] [GoGlobalContext] : val
+opaque ErrHeaderTooLong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrShortBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrShortBody"
 
-axiom ErrShortBody.init [GooseExts] [GoGlobalContext] : val
+opaque ErrShortBody.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMissingContentLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrMissingContentLength"
 
-axiom ErrMissingContentLength.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMissingContentLength.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reqWriteExcludeHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.reqWriteExcludeHeader"
 
-axiom reqWriteExcludeHeader.init [GooseExts] [GoGlobalContext] : val
+opaque reqWriteExcludeHeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoCookie [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrNoCookie"
 
-axiom ErrNoCookie.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoCookie.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def multipartByReader [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.multipartByReader"
 
-axiom multipartByReader.init [GooseExts] [GoGlobalContext] : val
+opaque multipartByReader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMissingHost [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errMissingHost"
 
-axiom errMissingHost.init [GooseExts] [GoGlobalContext] : val
+opaque errMissingHost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def textprotoReaderPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.textprotoReaderPool"
@@ -1426,17 +1426,17 @@ noncomputable def textprotoReaderPool [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def respExcludeHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.respExcludeHeader"
 
-axiom respExcludeHeader.init [GooseExts] [GoGlobalContext] : val
+opaque respExcludeHeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoLocation [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrNoLocation"
 
-axiom ErrNoLocation.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoLocation.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpmuxgo121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httpmuxgo121"
 
-axiom httpmuxgo121.init [GooseExts] [GoGlobalContext] : val
+opaque httpmuxgo121.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def use121 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.use121"
@@ -1444,42 +1444,42 @@ noncomputable def use121 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrBodyNotAllowed [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrBodyNotAllowed"
 
-axiom ErrBodyNotAllowed.init [GooseExts] [GoGlobalContext] : val
+opaque ErrBodyNotAllowed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrHijacked [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrHijacked"
 
-axiom ErrHijacked.init [GooseExts] [GoGlobalContext] : val
+opaque ErrHijacked.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrContentLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrContentLength"
 
-axiom ErrContentLength.init [GooseExts] [GoGlobalContext] : val
+opaque ErrContentLength.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrWriteAfterFlush [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrWriteAfterFlush"
 
-axiom ErrWriteAfterFlush.init [GooseExts] [GoGlobalContext] : val
+opaque ErrWriteAfterFlush.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ServerContextKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ServerContextKey"
 
-axiom ServerContextKey.init [GooseExts] [GoGlobalContext] : val
+opaque ServerContextKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LocalAddrContextKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.LocalAddrContextKey"
 
-axiom LocalAddrContextKey.init [GooseExts] [GoGlobalContext] : val
+opaque LocalAddrContextKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def crlf [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.crlf"
 
-axiom crlf.init [GooseExts] [GoGlobalContext] : val
+opaque crlf.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def colonSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.colonSpace"
 
-axiom colonSpace.init [GooseExts] [GoGlobalContext] : val
+opaque colonSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bufioReaderPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.bufioReaderPool"
@@ -1493,47 +1493,47 @@ noncomputable def bufioWriter4kPool [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def copyBufPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.copyBufPool"
 
-axiom copyBufPool.init [GooseExts] [GoGlobalContext] : val
+opaque copyBufPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errTooLarge"
 
-axiom errTooLarge.init [GooseExts] [GoGlobalContext] : val
+opaque errTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def extraHeaderKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.extraHeaderKeys"
 
-axiom extraHeaderKeys.init [GooseExts] [GoGlobalContext] : val
+opaque extraHeaderKeys.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def headerContentLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.headerContentLength"
 
-axiom headerContentLength.init [GooseExts] [GoGlobalContext] : val
+opaque headerContentLength.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def headerDate [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.headerDate"
 
-axiom headerDate.init [GooseExts] [GoGlobalContext] : val
+opaque headerDate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rstAvoidanceDelay [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.rstAvoidanceDelay"
 
-axiom rstAvoidanceDelay.init [GooseExts] [GoGlobalContext] : val
+opaque rstAvoidanceDelay.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAbortHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrAbortHandler"
 
-axiom ErrAbortHandler.init [GooseExts] [GoGlobalContext] : val
+opaque ErrAbortHandler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def htmlReplacer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.htmlReplacer"
 
-axiom htmlReplacer.init [GooseExts] [GoGlobalContext] : val
+opaque htmlReplacer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultServeMux [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.DefaultServeMux"
 
-axiom DefaultServeMux.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultServeMux.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultServeMux [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.defaultServeMux"
@@ -1541,7 +1541,7 @@ noncomputable def defaultServeMux [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def stateName [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.stateName"
 
-axiom stateName.init [GooseExts] [GoGlobalContext] : val
+opaque stateName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookServerServe [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookServerServe"
@@ -1549,17 +1549,17 @@ noncomputable def testHookServerServe [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def ErrServerClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrServerClosed"
 
-axiom ErrServerClosed.init [GooseExts] [GoGlobalContext] : val
+opaque ErrServerClosed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def http2server [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.http2server"
 
-axiom http2server.init [GooseExts] [GoGlobalContext] : val
+opaque http2server.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrHandlerTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrHandlerTimeout"
 
-axiom ErrHandlerTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ErrHandlerTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def uniqNameMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.uniqNameMu"
@@ -1567,92 +1567,92 @@ noncomputable def uniqNameMu [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def uniqNameNext [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.uniqNameNext"
 
-axiom uniqNameNext.init [GooseExts] [GoGlobalContext] : val
+opaque uniqNameNext.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def socksnoDeadline [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.socksnoDeadline"
 
-axiom socksnoDeadline.init [GooseExts] [GoGlobalContext] : val
+opaque socksnoDeadline.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def socksaLongTimeAgo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.socksaLongTimeAgo"
 
-axiom socksaLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
+opaque socksaLongTimeAgo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLineTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrLineTooLong"
 
-axiom ErrLineTooLong.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLineTooLong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def suppressedHeaders304 [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.suppressedHeaders304"
 
-axiom suppressedHeaders304.init [GooseExts] [GoGlobalContext] : val
+opaque suppressedHeaders304.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def suppressedHeadersNoBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.suppressedHeadersNoBody"
 
-axiom suppressedHeadersNoBody.init [GooseExts] [GoGlobalContext] : val
+opaque suppressedHeadersNoBody.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def excludedHeadersNoBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.excludedHeadersNoBody"
 
-axiom excludedHeadersNoBody.init [GooseExts] [GoGlobalContext] : val
+opaque excludedHeadersNoBody.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrBodyReadAfterClose [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrBodyReadAfterClose"
 
-axiom ErrBodyReadAfterClose.init [GooseExts] [GoGlobalContext] : val
+opaque ErrBodyReadAfterClose.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def singleCRLF [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.singleCRLF"
 
-axiom singleCRLF.init [GooseExts] [GoGlobalContext] : val
+opaque singleCRLF.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def doubleCRLF [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.doubleCRLF"
 
-axiom doubleCRLF.init [GooseExts] [GoGlobalContext] : val
+opaque doubleCRLF.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTrailerEOF [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errTrailerEOF"
 
-axiom errTrailerEOF.init [GooseExts] [GoGlobalContext] : val
+opaque errTrailerEOF.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httplaxcontentlength [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.httplaxcontentlength"
 
-axiom httplaxcontentlength.init [GooseExts] [GoGlobalContext] : val
+opaque httplaxcontentlength.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nopCloserType [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.nopCloserType"
 
-axiom nopCloserType.init [GooseExts] [GoGlobalContext] : val
+opaque nopCloserType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nopCloserWriterToType [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.nopCloserWriterToType"
 
-axiom nopCloserWriterToType.init [GooseExts] [GoGlobalContext] : val
+opaque nopCloserWriterToType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultTransport [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.DefaultTransport"
 
-axiom DefaultTransport.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultTransport.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def http2client [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.http2client"
 
-axiom http2client.init [GooseExts] [GoGlobalContext] : val
+opaque http2client.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCannotRewind [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCannotRewind"
 
-axiom errCannotRewind.init [GooseExts] [GoGlobalContext] : val
+opaque errCannotRewind.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrSkipAltProtocol [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.ErrSkipAltProtocol"
 
-axiom ErrSkipAltProtocol.init [GooseExts] [GoGlobalContext] : val
+opaque ErrSkipAltProtocol.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def envProxyOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.envProxyOnce"
@@ -1663,47 +1663,47 @@ noncomputable def envProxyFuncValue [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def errKeepAlivesDisabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errKeepAlivesDisabled"
 
-axiom errKeepAlivesDisabled.init [GooseExts] [GoGlobalContext] : val
+opaque errKeepAlivesDisabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errConnBroken [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errConnBroken"
 
-axiom errConnBroken.init [GooseExts] [GoGlobalContext] : val
+opaque errConnBroken.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCloseIdle [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCloseIdle"
 
-axiom errCloseIdle.init [GooseExts] [GoGlobalContext] : val
+opaque errCloseIdle.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTooManyIdle [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errTooManyIdle"
 
-axiom errTooManyIdle.init [GooseExts] [GoGlobalContext] : val
+opaque errTooManyIdle.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTooManyIdleHost [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errTooManyIdleHost"
 
-axiom errTooManyIdleHost.init [GooseExts] [GoGlobalContext] : val
+opaque errTooManyIdleHost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCloseIdleConns [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCloseIdleConns"
 
-axiom errCloseIdleConns.init [GooseExts] [GoGlobalContext] : val
+opaque errCloseIdleConns.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errReadLoopExiting [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errReadLoopExiting"
 
-axiom errReadLoopExiting.init [GooseExts] [GoGlobalContext] : val
+opaque errReadLoopExiting.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errIdleConnTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errIdleConnTimeout"
 
-axiom errIdleConnTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque errIdleConnTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errServerClosedIdle [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errServerClosedIdle"
 
-axiom errServerClosedIdle.init [GooseExts] [GoGlobalContext] : val
+opaque errServerClosedIdle.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def zeroDialer [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.zeroDialer"
@@ -1711,92 +1711,92 @@ noncomputable def zeroDialer [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def testHookProxyConnectTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookProxyConnectTimeout"
 
-axiom testHookProxyConnectTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque testHookProxyConnectTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errCallerOwnsConn [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errCallerOwnsConn"
 
-axiom errCallerOwnsConn.init [GooseExts] [GoGlobalContext] : val
+opaque errCallerOwnsConn.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errClosedEarly [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errClosedEarly"
 
-axiom errClosedEarly.init [GooseExts] [GoGlobalContext] : val
+opaque errClosedEarly.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxWriteWaitBeforeConnReuse [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.maxWriteWaitBeforeConnReuse"
 
-axiom maxWriteWaitBeforeConnReuse.init [GooseExts] [GoGlobalContext] : val
+opaque maxWriteWaitBeforeConnReuse.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errTimeout"
 
-axiom errTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque errTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errRequestCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errRequestCanceled"
 
-axiom errRequestCanceled.init [GooseExts] [GoGlobalContext] : val
+opaque errRequestCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errRequestCanceledConn [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errRequestCanceledConn"
 
-axiom errRequestCanceledConn.init [GooseExts] [GoGlobalContext] : val
+opaque errRequestCanceledConn.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errRequestDone [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errRequestDone"
 
-axiom errRequestDone.init [GooseExts] [GoGlobalContext] : val
+opaque errRequestDone.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookEnterRoundTrip [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookEnterRoundTrip"
 
-axiom testHookEnterRoundTrip.init [GooseExts] [GoGlobalContext] : val
+opaque testHookEnterRoundTrip.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookWaitResLoop [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookWaitResLoop"
 
-axiom testHookWaitResLoop.init [GooseExts] [GoGlobalContext] : val
+opaque testHookWaitResLoop.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookRoundTripRetried [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookRoundTripRetried"
 
-axiom testHookRoundTripRetried.init [GooseExts] [GoGlobalContext] : val
+opaque testHookRoundTripRetried.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookPrePendingDial [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookPrePendingDial"
 
-axiom testHookPrePendingDial.init [GooseExts] [GoGlobalContext] : val
+opaque testHookPrePendingDial.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookPostPendingDial [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookPostPendingDial"
 
-axiom testHookPostPendingDial.init [GooseExts] [GoGlobalContext] : val
+opaque testHookPostPendingDial.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookMu"
 
-axiom testHookMu.init [GooseExts] [GoGlobalContext] : val
+opaque testHookMu.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def testHookReadLoopBeforeNextRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.testHookReadLoopBeforeNextRead"
 
-axiom testHookReadLoopBeforeNextRead.init [GooseExts] [GoGlobalContext] : val
+opaque testHookReadLoopBeforeNextRead.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errReadOnClosedResBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errReadOnClosedResBody"
 
-axiom errReadOnClosedResBody.init [GooseExts] [GoGlobalContext] : val
+opaque errReadOnClosedResBody.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errConcurrentReadOnResBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.errConcurrentReadOnResBody"
 
-axiom errConcurrentReadOnResBody.init [GooseExts] [GoGlobalContext] : val
+opaque errConcurrentReadOnResBody.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def gzipPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.gzipPool"
 
-axiom gzipPool.init [GooseExts] [GoGlobalContext] : val
+opaque gzipPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def refererForURL [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/http.refererForURL"
@@ -2437,7 +2437,7 @@ noncomputable def defaultTransportDialContext [GooseExts] [GoGlobalContext] : Go
 noncomputable instance info' : PkgInfo pkg_id.net.http where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2797,8 +2797,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val DefaultClient.init) (Val #()))))))))
 
-axiom Client : Type
-axiom Client.zero_val : ZeroVal Client
+opaque Client.nonempty_type : NonemptyType.{0}
+def Client : Type := Client.nonempty_type.type
+instance Client.nonempty : Nonempty Client := Client.nonempty_type.property
+opaque Client.zero_val : ZeroVal Client := ⟨Classical.ofNonempty⟩
 attribute [instance] Client.zero_val
 
 class Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2828,8 +2830,10 @@ attribute [instance] RoundTripper.TypeAssumptions.underlying
   RoundTripper.TypeAssumptions.method_set
   RoundTripper.TypeAssumptions.ptr_method_set
 
-axiom cancelTimerBody : Type
-axiom cancelTimerBody.zero_val : ZeroVal cancelTimerBody
+opaque cancelTimerBody.nonempty_type : NonemptyType.{0}
+def cancelTimerBody : Type := cancelTimerBody.nonempty_type.type
+instance cancelTimerBody.nonempty : Nonempty cancelTimerBody := cancelTimerBody.nonempty_type.property
+opaque cancelTimerBody.zero_val : ZeroVal cancelTimerBody := ⟨Classical.ofNonempty⟩
 attribute [instance] cancelTimerBody.zero_val
 
 class cancelTimerBody.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2845,8 +2849,10 @@ attribute [instance] cancelTimerBody.TypeAssumptions.type_repr
   cancelTimerBody.TypeAssumptions.method_set
   cancelTimerBody.TypeAssumptions.ptr_method_set
 
-axiom ClientConn : Type
-axiom ClientConn.zero_val : ZeroVal ClientConn
+opaque ClientConn.nonempty_type : NonemptyType.{0}
+def ClientConn : Type := ClientConn.nonempty_type.type
+instance ClientConn.nonempty : Nonempty ClientConn := ClientConn.nonempty_type.property
+opaque ClientConn.zero_val : ZeroVal ClientConn := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientConn.zero_val
 
 class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2862,8 +2868,10 @@ attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.method_set
   ClientConn.TypeAssumptions.ptr_method_set
 
-axiom newClientConner : Type
-axiom newClientConner.zero_val : ZeroVal newClientConner
+opaque newClientConner.nonempty_type : NonemptyType.{0}
+def newClientConner : Type := newClientConner.nonempty_type.type
+instance newClientConner.nonempty : Nonempty newClientConner := newClientConner.nonempty_type.property
+opaque newClientConner.zero_val : ZeroVal newClientConner := ⟨Classical.ofNonempty⟩
 attribute [instance] newClientConner.zero_val
 
 class newClientConner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2928,8 +2936,10 @@ attribute [instance] http1ClientConn.TypeAssumptions.type_repr
   http1ClientConn.TypeAssumptions.method_set
   http1ClientConn.TypeAssumptions.ptr_method_set
 
-axiom Cookie : Type
-axiom Cookie.zero_val : ZeroVal Cookie
+opaque Cookie.nonempty_type : NonemptyType.{0}
+def Cookie : Type := Cookie.nonempty_type.type
+instance Cookie.nonempty : Nonempty Cookie := Cookie.nonempty_type.property
+opaque Cookie.zero_val : ZeroVal Cookie := ⟨Classical.ofNonempty⟩
 attribute [instance] Cookie.zero_val
 
 class Cookie.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2959,8 +2969,10 @@ attribute [instance] SameSite.TypeAssumptions.underlying
   SameSite.TypeAssumptions.method_set
   SameSite.TypeAssumptions.ptr_method_set
 
-axiom CrossOriginProtection : Type
-axiom CrossOriginProtection.zero_val : ZeroVal CrossOriginProtection
+opaque CrossOriginProtection.nonempty_type : NonemptyType.{0}
+def CrossOriginProtection : Type := CrossOriginProtection.nonempty_type.type
+instance CrossOriginProtection.nonempty : Nonempty CrossOriginProtection := CrossOriginProtection.nonempty_type.property
+opaque CrossOriginProtection.zero_val : ZeroVal CrossOriginProtection := ⟨Classical.ofNonempty⟩
 attribute [instance] CrossOriginProtection.zero_val
 
 class CrossOriginProtection.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3090,8 +3102,10 @@ attribute [instance] fileTransport.TypeAssumptions.type_repr
   fileTransport.TypeAssumptions.method_set
   fileTransport.TypeAssumptions.ptr_method_set
 
-axiom populateResponse : Type
-axiom populateResponse.zero_val : ZeroVal populateResponse
+opaque populateResponse.nonempty_type : NonemptyType.{0}
+def populateResponse : Type := populateResponse.nonempty_type.type
+instance populateResponse.nonempty : Nonempty populateResponse := populateResponse.nonempty_type.property
+opaque populateResponse.zero_val : ZeroVal populateResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] populateResponse.zero_val
 
 class populateResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3121,8 +3135,10 @@ attribute [instance] Dir.TypeAssumptions.underlying
   Dir.TypeAssumptions.method_set
   Dir.TypeAssumptions.ptr_method_set
 
-axiom File : Type
-axiom File.zero_val : ZeroVal File
+opaque File.nonempty_type : NonemptyType.{0}
+def File : Type := File.nonempty_type.type
+instance File.nonempty : Nonempty File := File.nonempty_type.property
+opaque File.zero_val : ZeroVal File := ⟨Classical.ofNonempty⟩
 attribute [instance] File.zero_val
 
 class File.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3152,8 +3168,10 @@ attribute [instance] anyDirs.TypeAssumptions.underlying
   anyDirs.TypeAssumptions.method_set
   anyDirs.TypeAssumptions.ptr_method_set
 
-axiom fileInfoDirs : Type
-axiom fileInfoDirs.zero_val : ZeroVal fileInfoDirs
+opaque fileInfoDirs.nonempty_type : NonemptyType.{0}
+def fileInfoDirs : Type := fileInfoDirs.nonempty_type.type
+instance fileInfoDirs.nonempty : Nonempty fileInfoDirs := fileInfoDirs.nonempty_type.property
+opaque fileInfoDirs.zero_val : ZeroVal fileInfoDirs := ⟨Classical.ofNonempty⟩
 attribute [instance] fileInfoDirs.zero_val
 
 class fileInfoDirs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3169,8 +3187,10 @@ attribute [instance] fileInfoDirs.TypeAssumptions.type_repr
   fileInfoDirs.TypeAssumptions.method_set
   fileInfoDirs.TypeAssumptions.ptr_method_set
 
-axiom dirEntryDirs : Type
-axiom dirEntryDirs.zero_val : ZeroVal dirEntryDirs
+opaque dirEntryDirs.nonempty_type : NonemptyType.{0}
+def dirEntryDirs : Type := dirEntryDirs.nonempty_type.type
+instance dirEntryDirs.nonempty : Nonempty dirEntryDirs := dirEntryDirs.nonempty_type.property
+opaque dirEntryDirs.zero_val : ZeroVal dirEntryDirs := ⟨Classical.ofNonempty⟩
 attribute [instance] dirEntryDirs.zero_val
 
 class dirEntryDirs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3200,8 +3220,10 @@ attribute [instance] condResult.TypeAssumptions.underlying
   condResult.TypeAssumptions.method_set
   condResult.TypeAssumptions.ptr_method_set
 
-axiom ioFS : Type
-axiom ioFS.zero_val : ZeroVal ioFS
+opaque ioFS.nonempty_type : NonemptyType.{0}
+def ioFS : Type := ioFS.nonempty_type.type
+instance ioFS.nonempty : Nonempty ioFS := ioFS.nonempty_type.property
+opaque ioFS.zero_val : ZeroVal ioFS := ⟨Classical.ofNonempty⟩
 attribute [instance] ioFS.zero_val
 
 class ioFS.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3217,8 +3239,10 @@ attribute [instance] ioFS.TypeAssumptions.type_repr
   ioFS.TypeAssumptions.method_set
   ioFS.TypeAssumptions.ptr_method_set
 
-axiom ioFile : Type
-axiom ioFile.zero_val : ZeroVal ioFile
+opaque ioFile.nonempty_type : NonemptyType.{0}
+def ioFile : Type := ioFile.nonempty_type.type
+instance ioFile.nonempty : Nonempty ioFile := ioFile.nonempty_type.property
+opaque ioFile.zero_val : ZeroVal ioFile := ⟨Classical.ofNonempty⟩
 attribute [instance] ioFile.zero_val
 
 class ioFile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3303,8 +3327,10 @@ attribute [instance] Header.TypeAssumptions.underlying
   Header.TypeAssumptions.method_set
   Header.TypeAssumptions.ptr_method_set
 
-axiom stringWriter : Type
-axiom stringWriter.zero_val : ZeroVal stringWriter
+opaque stringWriter.nonempty_type : NonemptyType.{0}
+def stringWriter : Type := stringWriter.nonempty_type.type
+instance stringWriter.nonempty : Nonempty stringWriter := stringWriter.nonempty_type.property
+opaque stringWriter.zero_val : ZeroVal stringWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] stringWriter.zero_val
 
 class stringWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3565,8 +3591,10 @@ attribute [instance] Pusher.TypeAssumptions.underlying
   Pusher.TypeAssumptions.method_set
   Pusher.TypeAssumptions.ptr_method_set
 
-axiom HTTP2Config : Type
-axiom HTTP2Config.zero_val : ZeroVal HTTP2Config
+opaque HTTP2Config.nonempty_type : NonemptyType.{0}
+def HTTP2Config : Type := HTTP2Config.nonempty_type.type
+instance HTTP2Config.nonempty : Nonempty HTTP2Config := HTTP2Config.nonempty_type.property
+opaque HTTP2Config.zero_val : ZeroVal HTTP2Config := ⟨Classical.ofNonempty⟩
 attribute [instance] HTTP2Config.zero_val
 
 class HTTP2Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3631,8 +3659,10 @@ attribute [instance] http2Handler.TypeAssumptions.type_repr
   http2Handler.TypeAssumptions.method_set
   http2Handler.TypeAssumptions.ptr_method_set
 
-axiom http2ResponseWriter : Type
-axiom http2ResponseWriter.zero_val : ZeroVal http2ResponseWriter
+opaque http2ResponseWriter.nonempty_type : NonemptyType.{0}
+def http2ResponseWriter : Type := http2ResponseWriter.nonempty_type.type
+instance http2ResponseWriter.nonempty : Nonempty http2ResponseWriter := http2ResponseWriter.nonempty_type.property
+opaque http2ResponseWriter.zero_val : ZeroVal http2ResponseWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] http2ResponseWriter.zero_val
 
 class http2ResponseWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3683,8 +3713,10 @@ attribute [instance] http2ServerConfig.TypeAssumptions.type_repr
   http2ServerConfig.TypeAssumptions.method_set
   http2ServerConfig.TypeAssumptions.ptr_method_set
 
-axiom http2ExternalServerConfig : Type
-axiom http2ExternalServerConfig.zero_val : ZeroVal http2ExternalServerConfig
+opaque http2ExternalServerConfig.nonempty_type : NonemptyType.{0}
+def http2ExternalServerConfig : Type := http2ExternalServerConfig.nonempty_type.type
+instance http2ExternalServerConfig.nonempty : Nonempty http2ExternalServerConfig := http2ExternalServerConfig.nonempty_type.property
+opaque http2ExternalServerConfig.zero_val : ZeroVal http2ExternalServerConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] http2ExternalServerConfig.zero_val
 
 class http2ExternalServerConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3700,8 +3732,10 @@ attribute [instance] http2ExternalServerConfig.TypeAssumptions.type_repr
   http2ExternalServerConfig.TypeAssumptions.method_set
   http2ExternalServerConfig.TypeAssumptions.ptr_method_set
 
-axiom http2ExternalTransportConfig : Type
-axiom http2ExternalTransportConfig.zero_val : ZeroVal http2ExternalTransportConfig
+opaque http2ExternalTransportConfig.nonempty_type : NonemptyType.{0}
+def http2ExternalTransportConfig : Type := http2ExternalTransportConfig.nonempty_type.type
+instance http2ExternalTransportConfig.nonempty : Nonempty http2ExternalTransportConfig := http2ExternalTransportConfig.nonempty_type.property
+opaque http2ExternalTransportConfig.zero_val : ZeroVal http2ExternalTransportConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] http2ExternalTransportConfig.zero_val
 
 class http2ExternalTransportConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3752,8 +3786,10 @@ attribute [instance] http2ErringRoundTripper.TypeAssumptions.type_repr
   http2ErringRoundTripper.TypeAssumptions.method_set
   http2ErringRoundTripper.TypeAssumptions.ptr_method_set
 
-axiom http2RoundTripper : Type
-axiom http2RoundTripper.zero_val : ZeroVal http2RoundTripper
+opaque http2RoundTripper.nonempty_type : NonemptyType.{0}
+def http2RoundTripper : Type := http2RoundTripper.nonempty_type.type
+instance http2RoundTripper.nonempty : Nonempty http2RoundTripper := http2RoundTripper.nonempty_type.property
+opaque http2RoundTripper.zero_val : ZeroVal http2RoundTripper := ⟨Classical.ofNonempty⟩
 attribute [instance] http2RoundTripper.zero_val
 
 class http2RoundTripper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3769,8 +3805,10 @@ attribute [instance] http2RoundTripper.TypeAssumptions.type_repr
   http2RoundTripper.TypeAssumptions.method_set
   http2RoundTripper.TypeAssumptions.ptr_method_set
 
-axiom http2ClientConn : Type
-axiom http2ClientConn.zero_val : ZeroVal http2ClientConn
+opaque http2ClientConn.nonempty_type : NonemptyType.{0}
+def http2ClientConn : Type := http2ClientConn.nonempty_type.type
+instance http2ClientConn.nonempty : Nonempty http2ClientConn := http2ClientConn.nonempty_type.property
+opaque http2ClientConn.zero_val : ZeroVal http2ClientConn := ⟨Classical.ofNonempty⟩
 attribute [instance] http2ClientConn.zero_val
 
 class http2ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -3835,8 +3873,10 @@ attribute [instance] http2Configer.TypeAssumptions.underlying
   http2Configer.TypeAssumptions.method_set
   http2Configer.TypeAssumptions.ptr_method_set
 
-axiom CookieJar : Type
-axiom CookieJar.zero_val : ZeroVal CookieJar
+opaque CookieJar.nonempty_type : NonemptyType.{0}
+def CookieJar : Type := CookieJar.nonempty_type.type
+instance CookieJar.nonempty : Nonempty CookieJar := CookieJar.nonempty_type.property
+opaque CookieJar.zero_val : ZeroVal CookieJar := ⟨Classical.ofNonempty⟩
 attribute [instance] CookieJar.zero_val
 
 class CookieJar.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4089,8 +4129,10 @@ attribute [instance] ProtocolError.TypeAssumptions.type_repr
   ProtocolError.TypeAssumptions.method_set
   ProtocolError.TypeAssumptions.ptr_method_set
 
-axiom Request : Type
-axiom Request.zero_val : ZeroVal Request
+opaque Request.nonempty_type : NonemptyType.{0}
+def Request : Type := Request.nonempty_type.type
+instance Request.nonempty : Nonempty Request := Request.nonempty_type.property
+opaque Request.zero_val : ZeroVal Request := ⟨Classical.ofNonempty⟩
 attribute [instance] Request.zero_val
 
 class Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4176,8 +4218,10 @@ attribute [instance] MaxBytesError.TypeAssumptions.type_repr
   MaxBytesError.TypeAssumptions.method_set
   MaxBytesError.TypeAssumptions.ptr_method_set
 
-axiom maxBytesReader : Type
-axiom maxBytesReader.zero_val : ZeroVal maxBytesReader
+opaque maxBytesReader.nonempty_type : NonemptyType.{0}
+def maxBytesReader : Type := maxBytesReader.nonempty_type.type
+instance maxBytesReader.nonempty : Nonempty maxBytesReader := maxBytesReader.nonempty_type.property
+opaque maxBytesReader.zero_val : ZeroVal maxBytesReader := ⟨Classical.ofNonempty⟩
 attribute [instance] maxBytesReader.zero_val
 
 class maxBytesReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4193,8 +4237,10 @@ attribute [instance] maxBytesReader.TypeAssumptions.type_repr
   maxBytesReader.TypeAssumptions.method_set
   maxBytesReader.TypeAssumptions.ptr_method_set
 
-axiom Response : Type
-axiom Response.zero_val : ZeroVal Response
+opaque Response.nonempty_type : NonemptyType.{0}
+def Response : Type := Response.nonempty_type.type
+instance Response.nonempty : Nonempty Response := Response.nonempty_type.property
+opaque Response.zero_val : ZeroVal Response := ⟨Classical.ofNonempty⟩
 attribute [instance] Response.zero_val
 
 class Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4414,8 +4460,10 @@ attribute [instance] routingNode.TypeAssumptions.type_repr
   routingNode.TypeAssumptions.method_set
   routingNode.TypeAssumptions.ptr_method_set
 
-axiom serveMux121 : Type
-axiom serveMux121.zero_val : ZeroVal serveMux121
+opaque serveMux121.nonempty_type : NonemptyType.{0}
+def serveMux121 : Type := serveMux121.nonempty_type.type
+instance serveMux121.nonempty : Nonempty serveMux121 := serveMux121.nonempty_type.property
+opaque serveMux121.zero_val : ZeroVal serveMux121 := ⟨Classical.ofNonempty⟩
 attribute [instance] serveMux121.zero_val
 
 class serveMux121.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4486,8 +4534,10 @@ attribute [instance] Flusher.TypeAssumptions.underlying
   Flusher.TypeAssumptions.method_set
   Flusher.TypeAssumptions.ptr_method_set
 
-axiom Hijacker : Type
-axiom Hijacker.zero_val : ZeroVal Hijacker
+opaque Hijacker.nonempty_type : NonemptyType.{0}
+def Hijacker : Type := Hijacker.nonempty_type.type
+instance Hijacker.nonempty : Nonempty Hijacker := Hijacker.nonempty_type.property
+opaque Hijacker.zero_val : ZeroVal Hijacker := ⟨Classical.ofNonempty⟩
 attribute [instance] Hijacker.zero_val
 
 class Hijacker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4517,8 +4567,10 @@ attribute [instance] CloseNotifier.TypeAssumptions.underlying
   CloseNotifier.TypeAssumptions.method_set
   CloseNotifier.TypeAssumptions.ptr_method_set
 
-axiom conn : Type
-axiom conn.zero_val : ZeroVal conn
+opaque conn.nonempty_type : NonemptyType.{0}
+def conn : Type := conn.nonempty_type.type
+instance conn.nonempty : Nonempty conn := conn.nonempty_type.property
+opaque conn.zero_val : ZeroVal conn := ⟨Classical.ofNonempty⟩
 attribute [instance] conn.zero_val
 
 class conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4587,8 +4639,10 @@ attribute [instance] chunkWriter.TypeAssumptions.type_repr
   chunkWriter.TypeAssumptions.method_set
   chunkWriter.TypeAssumptions.ptr_method_set
 
-axiom response : Type
-axiom response.zero_val : ZeroVal response
+opaque response.nonempty_type : NonemptyType.{0}
+def response : Type := response.nonempty_type.type
+instance response.nonempty : Nonempty response := response.nonempty_type.property
+opaque response.zero_val : ZeroVal response := ⟨Classical.ofNonempty⟩
 attribute [instance] response.zero_val
 
 class response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4604,8 +4658,10 @@ attribute [instance] response.TypeAssumptions.type_repr
   response.TypeAssumptions.method_set
   response.TypeAssumptions.ptr_method_set
 
-axiom writerOnly : Type
-axiom writerOnly.zero_val : ZeroVal writerOnly
+opaque writerOnly.nonempty_type : NonemptyType.{0}
+def writerOnly : Type := writerOnly.nonempty_type.type
+instance writerOnly.nonempty : Nonempty writerOnly := writerOnly.nonempty_type.property
+opaque writerOnly.zero_val : ZeroVal writerOnly := ⟨Classical.ofNonempty⟩
 attribute [instance] writerOnly.zero_val
 
 class writerOnly.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4674,8 +4730,10 @@ attribute [instance] readResult.TypeAssumptions.type_repr
   readResult.TypeAssumptions.method_set
   readResult.TypeAssumptions.ptr_method_set
 
-axiom connReader : Type
-axiom connReader.zero_val : ZeroVal connReader
+opaque connReader.nonempty_type : NonemptyType.{0}
+def connReader : Type := connReader.nonempty_type.type
+instance connReader.nonempty : Nonempty connReader := connReader.nonempty_type.property
+opaque connReader.zero_val : ZeroVal connReader := ⟨Classical.ofNonempty⟩
 attribute [instance] connReader.zero_val
 
 class connReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4691,8 +4749,10 @@ attribute [instance] connReader.TypeAssumptions.type_repr
   connReader.TypeAssumptions.method_set
   connReader.TypeAssumptions.ptr_method_set
 
-axiom expectContinueReader : Type
-axiom expectContinueReader.zero_val : ZeroVal expectContinueReader
+opaque expectContinueReader.nonempty_type : NonemptyType.{0}
+def expectContinueReader : Type := expectContinueReader.nonempty_type.type
+instance expectContinueReader.nonempty : Nonempty expectContinueReader := expectContinueReader.nonempty_type.property
+opaque expectContinueReader.zero_val : ZeroVal expectContinueReader := ⟨Classical.ofNonempty⟩
 attribute [instance] expectContinueReader.zero_val
 
 class expectContinueReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4822,8 +4882,10 @@ attribute [instance] statusError.TypeAssumptions.type_repr
   statusError.TypeAssumptions.method_set
   statusError.TypeAssumptions.ptr_method_set
 
-axiom unencryptedHTTP2Request : Type
-axiom unencryptedHTTP2Request.zero_val : ZeroVal unencryptedHTTP2Request
+opaque unencryptedHTTP2Request.nonempty_type : NonemptyType.{0}
+def unencryptedHTTP2Request : Type := unencryptedHTTP2Request.nonempty_type.type
+instance unencryptedHTTP2Request.nonempty : Nonempty unencryptedHTTP2Request := unencryptedHTTP2Request.nonempty_type.property
+opaque unencryptedHTTP2Request.zero_val : ZeroVal unencryptedHTTP2Request := ⟨Classical.ofNonempty⟩
 attribute [instance] unencryptedHTTP2Request.zero_val
 
 class unencryptedHTTP2Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4839,8 +4901,10 @@ attribute [instance] unencryptedHTTP2Request.TypeAssumptions.type_repr
   unencryptedHTTP2Request.TypeAssumptions.method_set
   unencryptedHTTP2Request.TypeAssumptions.ptr_method_set
 
-axiom unencryptedNetConnInTLSConn : Type
-axiom unencryptedNetConnInTLSConn.zero_val : ZeroVal unencryptedNetConnInTLSConn
+opaque unencryptedNetConnInTLSConn.nonempty_type : NonemptyType.{0}
+def unencryptedNetConnInTLSConn : Type := unencryptedNetConnInTLSConn.nonempty_type.type
+instance unencryptedNetConnInTLSConn.nonempty : Nonempty unencryptedNetConnInTLSConn := unencryptedNetConnInTLSConn.nonempty_type.property
+opaque unencryptedNetConnInTLSConn.zero_val : ZeroVal unencryptedNetConnInTLSConn := ⟨Classical.ofNonempty⟩
 attribute [instance] unencryptedNetConnInTLSConn.zero_val
 
 class unencryptedNetConnInTLSConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4911,8 +4975,10 @@ attribute [instance] redirectHandler.TypeAssumptions.type_repr
   redirectHandler.TypeAssumptions.method_set
   redirectHandler.TypeAssumptions.ptr_method_set
 
-axiom ServeMux : Type
-axiom ServeMux.zero_val : ZeroVal ServeMux
+opaque ServeMux.nonempty_type : NonemptyType.{0}
+def ServeMux : Type := ServeMux.nonempty_type.type
+instance ServeMux.nonempty : Nonempty ServeMux := ServeMux.nonempty_type.property
+opaque ServeMux.zero_val : ZeroVal ServeMux := ⟨Classical.ofNonempty⟩
 attribute [instance] ServeMux.zero_val
 
 class ServeMux.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4928,8 +4994,10 @@ attribute [instance] ServeMux.TypeAssumptions.type_repr
   ServeMux.TypeAssumptions.method_set
   ServeMux.TypeAssumptions.ptr_method_set
 
-axiom Server : Type
-axiom Server.zero_val : ZeroVal Server
+opaque Server.nonempty_type : NonemptyType.{0}
+def Server : Type := Server.nonempty_type.type
+instance Server.nonempty : Nonempty Server := Server.nonempty_type.property
+opaque Server.zero_val : ZeroVal Server := ⟨Classical.ofNonempty⟩
 attribute [instance] Server.zero_val
 
 class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4994,8 +5062,10 @@ attribute [instance] serverHandler.TypeAssumptions.type_repr
   serverHandler.TypeAssumptions.method_set
   serverHandler.TypeAssumptions.ptr_method_set
 
-axiom http3ServerHandler : Type
-axiom http3ServerHandler.zero_val : ZeroVal http3ServerHandler
+opaque http3ServerHandler.nonempty_type : NonemptyType.{0}
+def http3ServerHandler : Type := http3ServerHandler.nonempty_type.type
+instance http3ServerHandler.nonempty : Nonempty http3ServerHandler := http3ServerHandler.nonempty_type.property
+opaque http3ServerHandler.zero_val : ZeroVal http3ServerHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] http3ServerHandler.zero_val
 
 class http3ServerHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5011,8 +5081,10 @@ attribute [instance] http3ServerHandler.TypeAssumptions.type_repr
   http3ServerHandler.TypeAssumptions.method_set
   http3ServerHandler.TypeAssumptions.ptr_method_set
 
-axiom timeoutHandler : Type
-axiom timeoutHandler.zero_val : ZeroVal timeoutHandler
+opaque timeoutHandler.nonempty_type : NonemptyType.{0}
+def timeoutHandler : Type := timeoutHandler.nonempty_type.type
+instance timeoutHandler.nonempty : Nonempty timeoutHandler := timeoutHandler.nonempty_type.property
+opaque timeoutHandler.zero_val : ZeroVal timeoutHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] timeoutHandler.zero_val
 
 class timeoutHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5028,8 +5100,10 @@ attribute [instance] timeoutHandler.TypeAssumptions.type_repr
   timeoutHandler.TypeAssumptions.method_set
   timeoutHandler.TypeAssumptions.ptr_method_set
 
-axiom timeoutWriter : Type
-axiom timeoutWriter.zero_val : ZeroVal timeoutWriter
+opaque timeoutWriter.nonempty_type : NonemptyType.{0}
+def timeoutWriter : Type := timeoutWriter.nonempty_type.type
+instance timeoutWriter.nonempty : Nonempty timeoutWriter := timeoutWriter.nonempty_type.property
+opaque timeoutWriter.zero_val : ZeroVal timeoutWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] timeoutWriter.zero_val
 
 class timeoutWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5045,8 +5119,10 @@ attribute [instance] timeoutWriter.TypeAssumptions.type_repr
   timeoutWriter.TypeAssumptions.method_set
   timeoutWriter.TypeAssumptions.ptr_method_set
 
-axiom onceCloseListener : Type
-axiom onceCloseListener.zero_val : ZeroVal onceCloseListener
+opaque onceCloseListener.nonempty_type : NonemptyType.{0}
+def onceCloseListener : Type := onceCloseListener.nonempty_type.type
+instance onceCloseListener.nonempty : Nonempty onceCloseListener := onceCloseListener.nonempty_type.property
+opaque onceCloseListener.zero_val : ZeroVal onceCloseListener := ⟨Classical.ofNonempty⟩
 attribute [instance] onceCloseListener.zero_val
 
 class onceCloseListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5092,8 +5168,10 @@ attribute [instance] globalOptionsHandler.TypeAssumptions.type_repr
   globalOptionsHandler.TypeAssumptions.method_set
   globalOptionsHandler.TypeAssumptions.ptr_method_set
 
-axiom initALPNRequest : Type
-axiom initALPNRequest.zero_val : ZeroVal initALPNRequest
+opaque initALPNRequest.nonempty_type : NonemptyType.{0}
+def initALPNRequest : Type := initALPNRequest.nonempty_type.type
+instance initALPNRequest.nonempty : Nonempty initALPNRequest := initALPNRequest.nonempty_type.property
+opaque initALPNRequest.zero_val : ZeroVal initALPNRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] initALPNRequest.zero_val
 
 class initALPNRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5109,8 +5187,10 @@ attribute [instance] initALPNRequest.TypeAssumptions.type_repr
   initALPNRequest.TypeAssumptions.method_set
   initALPNRequest.TypeAssumptions.ptr_method_set
 
-axiom loggingConn : Type
-axiom loggingConn.zero_val : ZeroVal loggingConn
+opaque loggingConn.nonempty_type : NonemptyType.{0}
+def loggingConn : Type := loggingConn.nonempty_type.type
+instance loggingConn.nonempty : Nonempty loggingConn := loggingConn.nonempty_type.property
+opaque loggingConn.zero_val : ZeroVal loggingConn := ⟨Classical.ofNonempty⟩
 attribute [instance] loggingConn.zero_val
 
 class loggingConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5203,8 +5283,10 @@ attribute [instance] socksReply.TypeAssumptions.underlying
   socksReply.TypeAssumptions.method_set
   socksReply.TypeAssumptions.ptr_method_set
 
-axiom socksAddr : Type
-axiom socksAddr.zero_val : ZeroVal socksAddr
+opaque socksAddr.nonempty_type : NonemptyType.{0}
+def socksAddr : Type := socksAddr.nonempty_type.type
+instance socksAddr.nonempty : Nonempty socksAddr := socksAddr.nonempty_type.property
+opaque socksAddr.zero_val : ZeroVal socksAddr := ⟨Classical.ofNonempty⟩
 attribute [instance] socksAddr.zero_val
 
 class socksAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5220,8 +5302,10 @@ attribute [instance] socksAddr.TypeAssumptions.type_repr
   socksAddr.TypeAssumptions.method_set
   socksAddr.TypeAssumptions.ptr_method_set
 
-axiom socksConn : Type
-axiom socksConn.zero_val : ZeroVal socksConn
+opaque socksConn.nonempty_type : NonemptyType.{0}
+def socksConn : Type := socksConn.nonempty_type.type
+instance socksConn.nonempty : Nonempty socksConn := socksConn.nonempty_type.property
+opaque socksConn.zero_val : ZeroVal socksConn := ⟨Classical.ofNonempty⟩
 attribute [instance] socksConn.zero_val
 
 class socksConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5237,8 +5321,10 @@ attribute [instance] socksConn.TypeAssumptions.type_repr
   socksConn.TypeAssumptions.method_set
   socksConn.TypeAssumptions.ptr_method_set
 
-axiom socksDialer : Type
-axiom socksDialer.zero_val : ZeroVal socksDialer
+opaque socksDialer.nonempty_type : NonemptyType.{0}
+def socksDialer : Type := socksDialer.nonempty_type.type
+instance socksDialer.nonempty : Nonempty socksDialer := socksDialer.nonempty_type.property
+opaque socksDialer.zero_val : ZeroVal socksDialer := ⟨Classical.ofNonempty⟩
 attribute [instance] socksDialer.zero_val
 
 class socksDialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5371,8 +5457,10 @@ attribute [instance] byteReader.TypeAssumptions.type_repr
   byteReader.TypeAssumptions.method_set
   byteReader.TypeAssumptions.ptr_method_set
 
-axiom transferWriter : Type
-axiom transferWriter.zero_val : ZeroVal transferWriter
+opaque transferWriter.nonempty_type : NonemptyType.{0}
+def transferWriter : Type := transferWriter.nonempty_type.type
+instance transferWriter.nonempty : Nonempty transferWriter := transferWriter.nonempty_type.property
+opaque transferWriter.zero_val : ZeroVal transferWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] transferWriter.zero_val
 
 class transferWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5388,8 +5476,10 @@ attribute [instance] transferWriter.TypeAssumptions.type_repr
   transferWriter.TypeAssumptions.method_set
   transferWriter.TypeAssumptions.ptr_method_set
 
-axiom transferReader : Type
-axiom transferReader.zero_val : ZeroVal transferReader
+opaque transferReader.nonempty_type : NonemptyType.{0}
+def transferReader : Type := transferReader.nonempty_type.type
+instance transferReader.nonempty : Nonempty transferReader := transferReader.nonempty_type.property
+opaque transferReader.zero_val : ZeroVal transferReader := ⟨Classical.ofNonempty⟩
 attribute [instance] transferReader.zero_val
 
 class transferReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5440,8 +5530,10 @@ attribute [instance] unsupportedTEError.TypeAssumptions.type_repr
   unsupportedTEError.TypeAssumptions.method_set
   unsupportedTEError.TypeAssumptions.ptr_method_set
 
-axiom body : Type
-axiom body.zero_val : ZeroVal body
+opaque body.nonempty_type : NonemptyType.{0}
+def body : Type := body.nonempty_type.type
+instance body.nonempty : Nonempty body := body.nonempty_type.property
+opaque body.zero_val : ZeroVal body := ⟨Classical.ofNonempty⟩
 attribute [instance] body.zero_val
 
 class body.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5527,8 +5619,10 @@ attribute [instance] finishAsyncByteRead.TypeAssumptions.type_repr
   finishAsyncByteRead.TypeAssumptions.method_set
   finishAsyncByteRead.TypeAssumptions.ptr_method_set
 
-axiom bufioFlushWriter : Type
-axiom bufioFlushWriter.zero_val : ZeroVal bufioFlushWriter
+opaque bufioFlushWriter.nonempty_type : NonemptyType.{0}
+def bufioFlushWriter : Type := bufioFlushWriter.nonempty_type.type
+instance bufioFlushWriter.nonempty : Nonempty bufioFlushWriter := bufioFlushWriter.nonempty_type.property
+opaque bufioFlushWriter.zero_val : ZeroVal bufioFlushWriter := ⟨Classical.ofNonempty⟩
 attribute [instance] bufioFlushWriter.zero_val
 
 class bufioFlushWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5544,8 +5638,10 @@ attribute [instance] bufioFlushWriter.TypeAssumptions.type_repr
   bufioFlushWriter.TypeAssumptions.method_set
   bufioFlushWriter.TypeAssumptions.ptr_method_set
 
-axiom Transport : Type
-axiom Transport.zero_val : ZeroVal Transport
+opaque Transport.nonempty_type : NonemptyType.{0}
+def Transport : Type := Transport.nonempty_type.type
+instance Transport.nonempty : Nonempty Transport := Transport.nonempty_type.property
+opaque Transport.zero_val : ZeroVal Transport := ⟨Classical.ofNonempty⟩
 attribute [instance] Transport.zero_val
 
 class Transport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5561,8 +5657,10 @@ attribute [instance] Transport.TypeAssumptions.type_repr
   Transport.TypeAssumptions.method_set
   Transport.TypeAssumptions.ptr_method_set
 
-axiom dialClientConner : Type
-axiom dialClientConner.zero_val : ZeroVal dialClientConner
+opaque dialClientConner.nonempty_type : NonemptyType.{0}
+def dialClientConner : Type := dialClientConner.nonempty_type.type
+instance dialClientConner.nonempty : Nonempty dialClientConner := dialClientConner.nonempty_type.property
+opaque dialClientConner.zero_val : ZeroVal dialClientConner := ⟨Classical.ofNonempty⟩
 attribute [instance] dialClientConner.zero_val
 
 class dialClientConner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5592,8 +5690,10 @@ attribute [instance] closeIdleConnectionser.TypeAssumptions.underlying
   closeIdleConnectionser.TypeAssumptions.method_set
   closeIdleConnectionser.TypeAssumptions.ptr_method_set
 
-axiom transportRequest : Type
-axiom transportRequest.zero_val : ZeroVal transportRequest
+opaque transportRequest.nonempty_type : NonemptyType.{0}
+def transportRequest : Type := transportRequest.nonempty_type.type
+instance transportRequest.nonempty : Nonempty transportRequest := transportRequest.nonempty_type.property
+opaque transportRequest.zero_val : ZeroVal transportRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] transportRequest.zero_val
 
 class transportRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5609,8 +5709,10 @@ attribute [instance] transportRequest.TypeAssumptions.type_repr
   transportRequest.TypeAssumptions.method_set
   transportRequest.TypeAssumptions.ptr_method_set
 
-axiom readTrackingBody : Type
-axiom readTrackingBody.zero_val : ZeroVal readTrackingBody
+opaque readTrackingBody.nonempty_type : NonemptyType.{0}
+def readTrackingBody : Type := readTrackingBody.nonempty_type.type
+instance readTrackingBody.nonempty : Nonempty readTrackingBody := readTrackingBody.nonempty_type.property
+opaque readTrackingBody.zero_val : ZeroVal readTrackingBody := ⟨Classical.ofNonempty⟩
 attribute [instance] readTrackingBody.zero_val
 
 class readTrackingBody.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5661,8 +5763,10 @@ attribute [instance] transportReadFromServerError.TypeAssumptions.type_repr
   transportReadFromServerError.TypeAssumptions.method_set
   transportReadFromServerError.TypeAssumptions.ptr_method_set
 
-axiom wantConn : Type
-axiom wantConn.zero_val : ZeroVal wantConn
+opaque wantConn.nonempty_type : NonemptyType.{0}
+def wantConn : Type := wantConn.nonempty_type.type
+instance wantConn.nonempty : Nonempty wantConn := wantConn.nonempty_type.property
+opaque wantConn.zero_val : ZeroVal wantConn := ⟨Classical.ofNonempty⟩
 attribute [instance] wantConn.zero_val
 
 class wantConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5678,8 +5782,10 @@ attribute [instance] wantConn.TypeAssumptions.type_repr
   wantConn.TypeAssumptions.method_set
   wantConn.TypeAssumptions.ptr_method_set
 
-axiom connOrError : Type
-axiom connOrError.zero_val : ZeroVal connOrError
+opaque connOrError.nonempty_type : NonemptyType.{0}
+def connOrError : Type := connOrError.nonempty_type.type
+instance connOrError.nonempty : Nonempty connOrError := connOrError.nonempty_type.property
+opaque connOrError.zero_val : ZeroVal connOrError := ⟨Classical.ofNonempty⟩
 attribute [instance] connOrError.zero_val
 
 class connOrError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5791,8 +5897,10 @@ attribute [instance] persistConnWriter.TypeAssumptions.type_repr
   persistConnWriter.TypeAssumptions.method_set
   persistConnWriter.TypeAssumptions.ptr_method_set
 
-axiom connectMethod : Type
-axiom connectMethod.zero_val : ZeroVal connectMethod
+opaque connectMethod.nonempty_type : NonemptyType.{0}
+def connectMethod : Type := connectMethod.nonempty_type.type
+instance connectMethod.nonempty : Nonempty connectMethod := connectMethod.nonempty_type.property
+opaque connectMethod.zero_val : ZeroVal connectMethod := ⟨Classical.ofNonempty⟩
 attribute [instance] connectMethod.zero_val
 
 class connectMethod.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5861,8 +5969,10 @@ attribute [instance] connectMethodKey.TypeAssumptions.type_repr
   connectMethodKey.TypeAssumptions.method_set
   connectMethodKey.TypeAssumptions.ptr_method_set
 
-axiom persistConn : Type
-axiom persistConn.zero_val : ZeroVal persistConn
+opaque persistConn.nonempty_type : NonemptyType.{0}
+def persistConn : Type := persistConn.nonempty_type.type
+instance persistConn.nonempty : Nonempty persistConn := persistConn.nonempty_type.property
+opaque persistConn.zero_val : ZeroVal persistConn := ⟨Classical.ofNonempty⟩
 attribute [instance] persistConn.zero_val
 
 class persistConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5878,8 +5988,10 @@ attribute [instance] persistConn.TypeAssumptions.type_repr
   persistConn.TypeAssumptions.method_set
   persistConn.TypeAssumptions.ptr_method_set
 
-axiom readWriteCloserBody : Type
-axiom readWriteCloserBody.zero_val : ZeroVal readWriteCloserBody
+opaque readWriteCloserBody.nonempty_type : NonemptyType.{0}
+def readWriteCloserBody : Type := readWriteCloserBody.nonempty_type.type
+instance readWriteCloserBody.nonempty : Nonempty readWriteCloserBody := readWriteCloserBody.nonempty_type.property
+opaque readWriteCloserBody.zero_val : ZeroVal readWriteCloserBody := ⟨Classical.ofNonempty⟩
 attribute [instance] readWriteCloserBody.zero_val
 
 class readWriteCloserBody.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -6154,8 +6266,10 @@ attribute [instance] tLogKey.TypeAssumptions.type_repr
   tLogKey.TypeAssumptions.method_set
   tLogKey.TypeAssumptions.ptr_method_set
 
-axiom bodyEOFSignal : Type
-axiom bodyEOFSignal.zero_val : ZeroVal bodyEOFSignal
+opaque bodyEOFSignal.nonempty_type : NonemptyType.{0}
+def bodyEOFSignal : Type := bodyEOFSignal.nonempty_type.type
+instance bodyEOFSignal.nonempty : Nonempty bodyEOFSignal := bodyEOFSignal.nonempty_type.property
+opaque bodyEOFSignal.zero_val : ZeroVal bodyEOFSignal := ⟨Classical.ofNonempty⟩
 attribute [instance] bodyEOFSignal.zero_val
 
 class bodyEOFSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -6171,8 +6285,10 @@ attribute [instance] bodyEOFSignal.TypeAssumptions.type_repr
   bodyEOFSignal.TypeAssumptions.method_set
   bodyEOFSignal.TypeAssumptions.ptr_method_set
 
-axiom gzipReader : Type
-axiom gzipReader.zero_val : ZeroVal gzipReader
+opaque gzipReader.nonempty_type : NonemptyType.{0}
+def gzipReader : Type := gzipReader.nonempty_type.type
+instance gzipReader.nonempty : Nonempty gzipReader := gzipReader.nonempty_type.property
+opaque gzipReader.zero_val : ZeroVal gzipReader := ⟨Classical.ofNonempty⟩
 attribute [instance] gzipReader.zero_val
 
 class gzipReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -6278,8 +6394,10 @@ attribute [instance] fakeLocker.TypeAssumptions.type_repr
   fakeLocker.TypeAssumptions.method_set
   fakeLocker.TypeAssumptions.ptr_method_set
 
-axiom connLRU : Type
-axiom connLRU.zero_val : ZeroVal connLRU
+opaque connLRU.nonempty_type : NonemptyType.{0}
+def connLRU : Type := connLRU.nonempty_type.type
+instance connLRU.nonempty : Nonempty connLRU := connLRU.nonempty_type.property
+opaque connLRU.zero_val : ZeroVal connLRU := ⟨Classical.ofNonempty⟩
 attribute [instance] connLRU.zero_val
 
 class connLRU.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

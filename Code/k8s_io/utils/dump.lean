@@ -23,12 +23,12 @@ namespace k8s_io.utils.dump
 noncomputable def prettyPrintConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.prettyPrintConfig"
 
-axiom prettyPrintConfig.init [GooseExts] [GoGlobalContext] : val
+opaque prettyPrintConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def prettyPrintConfigForHash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.prettyPrintConfigForHash"
 
-axiom prettyPrintConfigForHash.init [GooseExts] [GoGlobalContext] : val
+opaque prettyPrintConfigForHash.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Pretty [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/dump.Pretty"
@@ -42,7 +42,7 @@ noncomputable def OneLine [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.dump where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -20,18 +20,18 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.rand
 
-axiom alphanums [GooseExts] [GoGlobalContext] : val
+opaque alphanums [GooseExts] [GoGlobalContext] : val
 
-axiom alphanumsIdxBits [GooseExts] [GoGlobalContext] : val
+opaque alphanumsIdxBits [GooseExts] [GoGlobalContext] : val
 
-axiom alphanumsIdxMask [GooseExts] [GoGlobalContext] : val
+opaque alphanumsIdxMask [GooseExts] [GoGlobalContext] : val
 
-axiom maxAlphanumsPerInt [GooseExts] [GoGlobalContext] : val
+opaque maxAlphanumsPerInt [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rng [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.rng"
 
-axiom rng.init [GooseExts] [GoGlobalContext] : val
+opaque rng.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Int' [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/rand.Int"
@@ -60,7 +60,7 @@ noncomputable def SafeEncodeString [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.rand where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

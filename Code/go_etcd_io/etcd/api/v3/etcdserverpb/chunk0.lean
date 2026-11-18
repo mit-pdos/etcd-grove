@@ -856,69 +856,69 @@ noncomputable def UnsafeAuthServer.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] UnsafeAuthServer.ty
 
-axiom Metadata.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Metadata.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EmptyResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EmptyResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HashRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HashRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HashKVRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HashKVRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HashKVResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HashKVResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HashResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HashResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SnapshotRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SnapshotRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SnapshotResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SnapshotResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Member.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Member.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberAddRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberAddRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberAddResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberAddResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberRemoveRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberRemoveRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberRemoveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberRemoveResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberUpdateRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberUpdateRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberUpdateResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberUpdateResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberListResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberPromoteRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberPromoteRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MemberPromoteResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MemberPromoteResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DefragmentRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DefragmentRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DefragmentResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DefragmentResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MoveLeaderRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MoveLeaderRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MoveLeaderResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MoveLeaderResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DowngradeRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DowngradeRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DowngradeResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DowngradeResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DowngradeVersionTestRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DowngradeVersionTestRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatusRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatusRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatusResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatusResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DowngradeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DowngradeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthDisableRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthDisableRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthStatusRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthStatusRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthUserListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthUserListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthRoleListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthRoleListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def KV_RangeStreamClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty RangeStreamResponse.ty)
@@ -944,9 +944,9 @@ axiom AuthRoleListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 @[reducible] noncomputable def Maintenance_SnapshotServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty SnapshotResponse.ty)
 
-axiom file_etcdserver_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_etcdserver_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-axiom file_raft_internal_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_raft_internal_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 /-- default, used to query if any alarm is active -/
 @[reducible] noncomputable def AlarmType_NONE [GooseExts] [GoGlobalContext] : val :=
@@ -1029,18 +1029,18 @@ axiom file_raft_internal_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def AlarmRequest_DEACTIVATE [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom DowngradeRequest_VALIDATE [GooseExts] [GoGlobalContext] : val
+opaque DowngradeRequest_VALIDATE [GooseExts] [GoGlobalContext] : val
 
-axiom DowngradeRequest_ENABLE [GooseExts] [GoGlobalContext] : val
+opaque DowngradeRequest_ENABLE [GooseExts] [GoGlobalContext] : val
 
-axiom DowngradeRequest_CANCEL [GooseExts] [GoGlobalContext] : val
+opaque DowngradeRequest_CANCEL [GooseExts] [GoGlobalContext] : val
 
-axiom file_rpc_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_rpc_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def KV_Range_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.KV/Range")
 
-axiom KV_RangeStream_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque KV_RangeStream_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def KV_Put_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.KV/Put")
@@ -1072,38 +1072,38 @@ axiom KV_RangeStream_FullMethodName [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def Lease_LeaseLeases_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Lease/LeaseLeases")
 
-axiom Cluster_MemberAdd_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Cluster_MemberAdd_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Cluster_MemberRemove_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Cluster_MemberRemove_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Cluster_MemberUpdate_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Cluster_MemberUpdate_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Cluster_MemberList_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Cluster_MemberList_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Cluster_MemberPromote_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Cluster_MemberPromote_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_Alarm_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_Alarm_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_Status_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_Status_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_Defragment_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_Defragment_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_Hash_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_Hash_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_HashKV_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_HashKV_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_Snapshot_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_Snapshot_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_MoveLeader_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_MoveLeader_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Maintenance_Downgrade_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Maintenance_Downgrade_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Auth_AuthEnable_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Auth/AuthEnable")
 
-axiom Auth_AuthDisable_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_AuthDisable_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Auth_AuthStatus_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_AuthStatus_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Auth_Authenticate_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Auth/Authenticate")
@@ -1111,32 +1111,32 @@ axiom Auth_AuthStatus_FullMethodName [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def Auth_UserAdd_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Auth/UserAdd")
 
-axiom Auth_UserGet_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_UserGet_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Auth_UserList_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_UserList_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Auth_UserDelete_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_UserDelete_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Auth_UserChangePassword_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_UserChangePassword_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Auth_UserGrantRole_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Auth/UserGrantRole")
 
-axiom Auth_UserRevokeRole_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_UserRevokeRole_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Auth_RoleAdd_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Auth/RoleAdd")
 
-axiom Auth_RoleGet_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_RoleGet_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Auth_RoleList_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_RoleList_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Auth_RoleDelete_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_RoleDelete_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Auth_RoleGrantPermission_FullMethodName [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Auth/RoleGrantPermission")
 
-axiom Auth_RoleRevokePermission_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Auth_RoleRevokePermission_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_etcdserver_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.File_etcdserver_proto"
@@ -1150,17 +1150,17 @@ noncomputable def file_etcdserver_proto_rawDescData [GooseExts] [GoGlobalContext
 noncomputable def file_etcdserver_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_msgTypes"
 
-axiom file_etcdserver_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_etcdserver_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_etcdserver_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_goTypes"
 
-axiom file_etcdserver_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_etcdserver_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_etcdserver_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_etcdserver_proto_depIdxs"
 
-axiom file_etcdserver_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_etcdserver_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_raft_internal_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.File_raft_internal_proto"
@@ -1174,97 +1174,97 @@ noncomputable def file_raft_internal_proto_rawDescData [GooseExts] [GoGlobalCont
 noncomputable def file_raft_internal_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_msgTypes"
 
-axiom file_raft_internal_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_raft_internal_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_raft_internal_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_goTypes"
 
-axiom file_raft_internal_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_raft_internal_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_raft_internal_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_raft_internal_proto_depIdxs"
 
-axiom file_raft_internal_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_raft_internal_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AlarmType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType_name"
 
-axiom AlarmType_name.init [GooseExts] [GoGlobalContext] : val
+opaque AlarmType_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AlarmType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmType_value"
 
-axiom AlarmType_value.init [GooseExts] [GoGlobalContext] : val
+opaque AlarmType_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortOrder_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_name"
 
-axiom RangeRequest_SortOrder_name.init [GooseExts] [GoGlobalContext] : val
+opaque RangeRequest_SortOrder_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortOrder_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortOrder_value"
 
-axiom RangeRequest_SortOrder_value.init [GooseExts] [GoGlobalContext] : val
+opaque RangeRequest_SortOrder_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortTarget_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_name"
 
-axiom RangeRequest_SortTarget_name.init [GooseExts] [GoGlobalContext] : val
+opaque RangeRequest_SortTarget_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RangeRequest_SortTarget_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.RangeRequest_SortTarget_value"
 
-axiom RangeRequest_SortTarget_value.init [GooseExts] [GoGlobalContext] : val
+opaque RangeRequest_SortTarget_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Compare_CompareResult_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareResult_name"
 
-axiom Compare_CompareResult_name.init [GooseExts] [GoGlobalContext] : val
+opaque Compare_CompareResult_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Compare_CompareResult_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareResult_value"
 
-axiom Compare_CompareResult_value.init [GooseExts] [GoGlobalContext] : val
+opaque Compare_CompareResult_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Compare_CompareTarget_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareTarget_name"
 
-axiom Compare_CompareTarget_name.init [GooseExts] [GoGlobalContext] : val
+opaque Compare_CompareTarget_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Compare_CompareTarget_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.Compare_CompareTarget_value"
 
-axiom Compare_CompareTarget_value.init [GooseExts] [GoGlobalContext] : val
+opaque Compare_CompareTarget_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def WatchCreateRequest_FilterType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.WatchCreateRequest_FilterType_name"
 
-axiom WatchCreateRequest_FilterType_name.init [GooseExts] [GoGlobalContext] : val
+opaque WatchCreateRequest_FilterType_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def WatchCreateRequest_FilterType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.WatchCreateRequest_FilterType_value"
 
-axiom WatchCreateRequest_FilterType_value.init [GooseExts] [GoGlobalContext] : val
+opaque WatchCreateRequest_FilterType_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AlarmRequest_AlarmAction_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmRequest_AlarmAction_name"
 
-axiom AlarmRequest_AlarmAction_name.init [GooseExts] [GoGlobalContext] : val
+opaque AlarmRequest_AlarmAction_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AlarmRequest_AlarmAction_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.AlarmRequest_AlarmAction_value"
 
-axiom AlarmRequest_AlarmAction_value.init [GooseExts] [GoGlobalContext] : val
+opaque AlarmRequest_AlarmAction_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DowngradeRequest_DowngradeAction_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.DowngradeRequest_DowngradeAction_name"
 
-axiom DowngradeRequest_DowngradeAction_name.init [GooseExts] [GoGlobalContext] : val
+opaque DowngradeRequest_DowngradeAction_name.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DowngradeRequest_DowngradeAction_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.DowngradeRequest_DowngradeAction_value"
 
-axiom DowngradeRequest_DowngradeAction_value.init [GooseExts] [GoGlobalContext] : val
+opaque DowngradeRequest_DowngradeAction_value.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_rpc_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.File_rpc_proto"
@@ -1278,22 +1278,22 @@ noncomputable def file_rpc_proto_rawDescData [GooseExts] [GoGlobalContext] : GoS
 noncomputable def file_rpc_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_enumTypes"
 
-axiom file_rpc_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_rpc_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_rpc_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_msgTypes"
 
-axiom file_rpc_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_rpc_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_rpc_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_goTypes"
 
-axiom file_rpc_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_rpc_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_rpc_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.file_rpc_proto_depIdxs"
 
-axiom file_rpc_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_rpc_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def KV_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/etcdserverpb.KV_ServiceDesc"
@@ -5606,7 +5606,7 @@ noncomputable def _Auth_RoleGrantPermission_Handler.impl [GooseExts] [GoGlobalCo
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl, pkg_id.go_etcd_io.etcd.api.v3.membershippb, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.context, pkg_id.google_golang_org.grpc]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -5879,8 +5879,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Auth_ServiceDesc _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty)) (Val #()))))))))
 
-axiom Metadata : Type
-axiom Metadata.zero_val : ZeroVal Metadata
+opaque Metadata.nonempty_type : NonemptyType.{0}
+def Metadata : Type := Metadata.nonempty_type.type
+instance Metadata.nonempty : Nonempty Metadata := Metadata.nonempty_type.property
+opaque Metadata.zero_val : ZeroVal Metadata := ⟨Classical.ofNonempty⟩
 attribute [instance] Metadata.zero_val
 
 structure RequestHeader [GooseExts] where
@@ -6001,8 +6003,10 @@ noncomputable instance equals_unfold_InternalRaftRequest [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def InternalRaftRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InternalRaftRequest.fields)
 
-axiom EmptyResponse : Type
-axiom EmptyResponse.zero_val : ZeroVal EmptyResponse
+opaque EmptyResponse.nonempty_type : NonemptyType.{0}
+def EmptyResponse : Type := EmptyResponse.nonempty_type.type
+instance EmptyResponse.nonempty : Nonempty EmptyResponse := EmptyResponse.nonempty_type.property
+opaque EmptyResponse.zero_val : ZeroVal EmptyResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] EmptyResponse.zero_val
 
 structure InternalAuthenticateRequest [GooseExts] where
@@ -6908,28 +6912,40 @@ noncomputable instance equals_unfold_CompactionResponse [GooseExts] [GoGlobalCon
 @[reducible] noncomputable def CompactionResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CompactionResponse.fields)
 
-axiom HashRequest : Type
-axiom HashRequest.zero_val : ZeroVal HashRequest
+opaque HashRequest.nonempty_type : NonemptyType.{0}
+def HashRequest : Type := HashRequest.nonempty_type.type
+instance HashRequest.nonempty : Nonempty HashRequest := HashRequest.nonempty_type.property
+opaque HashRequest.zero_val : ZeroVal HashRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] HashRequest.zero_val
 
-axiom HashKVRequest : Type
-axiom HashKVRequest.zero_val : ZeroVal HashKVRequest
+opaque HashKVRequest.nonempty_type : NonemptyType.{0}
+def HashKVRequest : Type := HashKVRequest.nonempty_type.type
+instance HashKVRequest.nonempty : Nonempty HashKVRequest := HashKVRequest.nonempty_type.property
+opaque HashKVRequest.zero_val : ZeroVal HashKVRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] HashKVRequest.zero_val
 
-axiom HashKVResponse : Type
-axiom HashKVResponse.zero_val : ZeroVal HashKVResponse
+opaque HashKVResponse.nonempty_type : NonemptyType.{0}
+def HashKVResponse : Type := HashKVResponse.nonempty_type.type
+instance HashKVResponse.nonempty : Nonempty HashKVResponse := HashKVResponse.nonempty_type.property
+opaque HashKVResponse.zero_val : ZeroVal HashKVResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] HashKVResponse.zero_val
 
-axiom HashResponse : Type
-axiom HashResponse.zero_val : ZeroVal HashResponse
+opaque HashResponse.nonempty_type : NonemptyType.{0}
+def HashResponse : Type := HashResponse.nonempty_type.type
+instance HashResponse.nonempty : Nonempty HashResponse := HashResponse.nonempty_type.property
+opaque HashResponse.zero_val : ZeroVal HashResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] HashResponse.zero_val
 
-axiom SnapshotRequest : Type
-axiom SnapshotRequest.zero_val : ZeroVal SnapshotRequest
+opaque SnapshotRequest.nonempty_type : NonemptyType.{0}
+def SnapshotRequest : Type := SnapshotRequest.nonempty_type.type
+instance SnapshotRequest.nonempty : Nonempty SnapshotRequest := SnapshotRequest.nonempty_type.property
+opaque SnapshotRequest.zero_val : ZeroVal SnapshotRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] SnapshotRequest.zero_val
 
-axiom SnapshotResponse : Type
-axiom SnapshotResponse.zero_val : ZeroVal SnapshotResponse
+opaque SnapshotResponse.nonempty_type : NonemptyType.{0}
+def SnapshotResponse : Type := SnapshotResponse.nonempty_type.type
+instance SnapshotResponse.nonempty : Nonempty SnapshotResponse := SnapshotResponse.nonempty_type.property
+opaque SnapshotResponse.zero_val : ZeroVal SnapshotResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] SnapshotResponse.zero_val
 
 abbrev isWatchRequest_RequestUnion [GooseExts] : Type := GoInterface
@@ -7541,32 +7557,46 @@ noncomputable instance equals_unfold_LeaseLeasesResponse [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def LeaseLeasesResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaseLeasesResponse.fields)
 
-axiom Member : Type
-axiom Member.zero_val : ZeroVal Member
+opaque Member.nonempty_type : NonemptyType.{0}
+def Member : Type := Member.nonempty_type.type
+instance Member.nonempty : Nonempty Member := Member.nonempty_type.property
+opaque Member.zero_val : ZeroVal Member := ⟨Classical.ofNonempty⟩
 attribute [instance] Member.zero_val
 
-axiom MemberAddRequest : Type
-axiom MemberAddRequest.zero_val : ZeroVal MemberAddRequest
+opaque MemberAddRequest.nonempty_type : NonemptyType.{0}
+def MemberAddRequest : Type := MemberAddRequest.nonempty_type.type
+instance MemberAddRequest.nonempty : Nonempty MemberAddRequest := MemberAddRequest.nonempty_type.property
+opaque MemberAddRequest.zero_val : ZeroVal MemberAddRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberAddRequest.zero_val
 
-axiom MemberAddResponse : Type
-axiom MemberAddResponse.zero_val : ZeroVal MemberAddResponse
+opaque MemberAddResponse.nonempty_type : NonemptyType.{0}
+def MemberAddResponse : Type := MemberAddResponse.nonempty_type.type
+instance MemberAddResponse.nonempty : Nonempty MemberAddResponse := MemberAddResponse.nonempty_type.property
+opaque MemberAddResponse.zero_val : ZeroVal MemberAddResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberAddResponse.zero_val
 
-axiom MemberRemoveRequest : Type
-axiom MemberRemoveRequest.zero_val : ZeroVal MemberRemoveRequest
+opaque MemberRemoveRequest.nonempty_type : NonemptyType.{0}
+def MemberRemoveRequest : Type := MemberRemoveRequest.nonempty_type.type
+instance MemberRemoveRequest.nonempty : Nonempty MemberRemoveRequest := MemberRemoveRequest.nonempty_type.property
+opaque MemberRemoveRequest.zero_val : ZeroVal MemberRemoveRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberRemoveRequest.zero_val
 
-axiom MemberRemoveResponse : Type
-axiom MemberRemoveResponse.zero_val : ZeroVal MemberRemoveResponse
+opaque MemberRemoveResponse.nonempty_type : NonemptyType.{0}
+def MemberRemoveResponse : Type := MemberRemoveResponse.nonempty_type.type
+instance MemberRemoveResponse.nonempty : Nonempty MemberRemoveResponse := MemberRemoveResponse.nonempty_type.property
+opaque MemberRemoveResponse.zero_val : ZeroVal MemberRemoveResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberRemoveResponse.zero_val
 
-axiom MemberUpdateRequest : Type
-axiom MemberUpdateRequest.zero_val : ZeroVal MemberUpdateRequest
+opaque MemberUpdateRequest.nonempty_type : NonemptyType.{0}
+def MemberUpdateRequest : Type := MemberUpdateRequest.nonempty_type.type
+instance MemberUpdateRequest.nonempty : Nonempty MemberUpdateRequest := MemberUpdateRequest.nonempty_type.property
+opaque MemberUpdateRequest.zero_val : ZeroVal MemberUpdateRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberUpdateRequest.zero_val
 
-axiom MemberUpdateResponse : Type
-axiom MemberUpdateResponse.zero_val : ZeroVal MemberUpdateResponse
+opaque MemberUpdateResponse.nonempty_type : NonemptyType.{0}
+def MemberUpdateResponse : Type := MemberUpdateResponse.nonempty_type.type
+instance MemberUpdateResponse.nonempty : Nonempty MemberUpdateResponse := MemberUpdateResponse.nonempty_type.property
+opaque MemberUpdateResponse.zero_val : ZeroVal MemberUpdateResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberUpdateResponse.zero_val
 
 structure MemberListRequest [GooseExts] where
@@ -7595,32 +7625,46 @@ noncomputable instance equals_unfold_MemberListRequest [GooseExts] [GoGlobalCont
 @[reducible] noncomputable def MemberListRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MemberListRequest.fields)
 
-axiom MemberListResponse : Type
-axiom MemberListResponse.zero_val : ZeroVal MemberListResponse
+opaque MemberListResponse.nonempty_type : NonemptyType.{0}
+def MemberListResponse : Type := MemberListResponse.nonempty_type.type
+instance MemberListResponse.nonempty : Nonempty MemberListResponse := MemberListResponse.nonempty_type.property
+opaque MemberListResponse.zero_val : ZeroVal MemberListResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberListResponse.zero_val
 
-axiom MemberPromoteRequest : Type
-axiom MemberPromoteRequest.zero_val : ZeroVal MemberPromoteRequest
+opaque MemberPromoteRequest.nonempty_type : NonemptyType.{0}
+def MemberPromoteRequest : Type := MemberPromoteRequest.nonempty_type.type
+instance MemberPromoteRequest.nonempty : Nonempty MemberPromoteRequest := MemberPromoteRequest.nonempty_type.property
+opaque MemberPromoteRequest.zero_val : ZeroVal MemberPromoteRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberPromoteRequest.zero_val
 
-axiom MemberPromoteResponse : Type
-axiom MemberPromoteResponse.zero_val : ZeroVal MemberPromoteResponse
+opaque MemberPromoteResponse.nonempty_type : NonemptyType.{0}
+def MemberPromoteResponse : Type := MemberPromoteResponse.nonempty_type.type
+instance MemberPromoteResponse.nonempty : Nonempty MemberPromoteResponse := MemberPromoteResponse.nonempty_type.property
+opaque MemberPromoteResponse.zero_val : ZeroVal MemberPromoteResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] MemberPromoteResponse.zero_val
 
-axiom DefragmentRequest : Type
-axiom DefragmentRequest.zero_val : ZeroVal DefragmentRequest
+opaque DefragmentRequest.nonempty_type : NonemptyType.{0}
+def DefragmentRequest : Type := DefragmentRequest.nonempty_type.type
+instance DefragmentRequest.nonempty : Nonempty DefragmentRequest := DefragmentRequest.nonempty_type.property
+opaque DefragmentRequest.zero_val : ZeroVal DefragmentRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] DefragmentRequest.zero_val
 
-axiom DefragmentResponse : Type
-axiom DefragmentResponse.zero_val : ZeroVal DefragmentResponse
+opaque DefragmentResponse.nonempty_type : NonemptyType.{0}
+def DefragmentResponse : Type := DefragmentResponse.nonempty_type.type
+instance DefragmentResponse.nonempty : Nonempty DefragmentResponse := DefragmentResponse.nonempty_type.property
+opaque DefragmentResponse.zero_val : ZeroVal DefragmentResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] DefragmentResponse.zero_val
 
-axiom MoveLeaderRequest : Type
-axiom MoveLeaderRequest.zero_val : ZeroVal MoveLeaderRequest
+opaque MoveLeaderRequest.nonempty_type : NonemptyType.{0}
+def MoveLeaderRequest : Type := MoveLeaderRequest.nonempty_type.type
+instance MoveLeaderRequest.nonempty : Nonempty MoveLeaderRequest := MoveLeaderRequest.nonempty_type.property
+opaque MoveLeaderRequest.zero_val : ZeroVal MoveLeaderRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] MoveLeaderRequest.zero_val
 
-axiom MoveLeaderResponse : Type
-axiom MoveLeaderResponse.zero_val : ZeroVal MoveLeaderResponse
+opaque MoveLeaderResponse.nonempty_type : NonemptyType.{0}
+def MoveLeaderResponse : Type := MoveLeaderResponse.nonempty_type.type
+instance MoveLeaderResponse.nonempty : Nonempty MoveLeaderResponse := MoveLeaderResponse.nonempty_type.property
+opaque MoveLeaderResponse.zero_val : ZeroVal MoveLeaderResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] MoveLeaderResponse.zero_val
 
 structure AlarmRequest [GooseExts] where
@@ -7709,28 +7753,40 @@ noncomputable instance equals_unfold_AlarmResponse [GooseExts] [GoGlobalContext]
 @[reducible] noncomputable def AlarmResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AlarmResponse.fields)
 
-axiom DowngradeRequest : Type
-axiom DowngradeRequest.zero_val : ZeroVal DowngradeRequest
+opaque DowngradeRequest.nonempty_type : NonemptyType.{0}
+def DowngradeRequest : Type := DowngradeRequest.nonempty_type.type
+instance DowngradeRequest.nonempty : Nonempty DowngradeRequest := DowngradeRequest.nonempty_type.property
+opaque DowngradeRequest.zero_val : ZeroVal DowngradeRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] DowngradeRequest.zero_val
 
-axiom DowngradeResponse : Type
-axiom DowngradeResponse.zero_val : ZeroVal DowngradeResponse
+opaque DowngradeResponse.nonempty_type : NonemptyType.{0}
+def DowngradeResponse : Type := DowngradeResponse.nonempty_type.type
+instance DowngradeResponse.nonempty : Nonempty DowngradeResponse := DowngradeResponse.nonempty_type.property
+opaque DowngradeResponse.zero_val : ZeroVal DowngradeResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] DowngradeResponse.zero_val
 
-axiom DowngradeVersionTestRequest : Type
-axiom DowngradeVersionTestRequest.zero_val : ZeroVal DowngradeVersionTestRequest
+opaque DowngradeVersionTestRequest.nonempty_type : NonemptyType.{0}
+def DowngradeVersionTestRequest : Type := DowngradeVersionTestRequest.nonempty_type.type
+instance DowngradeVersionTestRequest.nonempty : Nonempty DowngradeVersionTestRequest := DowngradeVersionTestRequest.nonempty_type.property
+opaque DowngradeVersionTestRequest.zero_val : ZeroVal DowngradeVersionTestRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] DowngradeVersionTestRequest.zero_val
 
-axiom StatusRequest : Type
-axiom StatusRequest.zero_val : ZeroVal StatusRequest
+opaque StatusRequest.nonempty_type : NonemptyType.{0}
+def StatusRequest : Type := StatusRequest.nonempty_type.type
+instance StatusRequest.nonempty : Nonempty StatusRequest := StatusRequest.nonempty_type.property
+opaque StatusRequest.zero_val : ZeroVal StatusRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] StatusRequest.zero_val
 
-axiom StatusResponse : Type
-axiom StatusResponse.zero_val : ZeroVal StatusResponse
+opaque StatusResponse.nonempty_type : NonemptyType.{0}
+def StatusResponse : Type := StatusResponse.nonempty_type.type
+instance StatusResponse.nonempty : Nonempty StatusResponse := StatusResponse.nonempty_type.property
+opaque StatusResponse.zero_val : ZeroVal StatusResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] StatusResponse.zero_val
 
-axiom DowngradeInfo : Type
-axiom DowngradeInfo.zero_val : ZeroVal DowngradeInfo
+opaque DowngradeInfo.nonempty_type : NonemptyType.{0}
+def DowngradeInfo : Type := DowngradeInfo.nonempty_type.type
+instance DowngradeInfo.nonempty : Nonempty DowngradeInfo := DowngradeInfo.nonempty_type.property
+opaque DowngradeInfo.zero_val : ZeroVal DowngradeInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] DowngradeInfo.zero_val
 
 structure AuthEnableRequest [GooseExts] where
@@ -7757,12 +7813,16 @@ noncomputable instance equals_unfold_AuthEnableRequest [GooseExts] [GoGlobalCont
 @[reducible] noncomputable def AuthEnableRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AuthEnableRequest.fields)
 
-axiom AuthDisableRequest : Type
-axiom AuthDisableRequest.zero_val : ZeroVal AuthDisableRequest
+opaque AuthDisableRequest.nonempty_type : NonemptyType.{0}
+def AuthDisableRequest : Type := AuthDisableRequest.nonempty_type.type
+instance AuthDisableRequest.nonempty : Nonempty AuthDisableRequest := AuthDisableRequest.nonempty_type.property
+opaque AuthDisableRequest.zero_val : ZeroVal AuthDisableRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthDisableRequest.zero_val
 
-axiom AuthStatusRequest : Type
-axiom AuthStatusRequest.zero_val : ZeroVal AuthStatusRequest
+opaque AuthStatusRequest.nonempty_type : NonemptyType.{0}
+def AuthStatusRequest : Type := AuthStatusRequest.nonempty_type.type
+instance AuthStatusRequest.nonempty : Nonempty AuthStatusRequest := AuthStatusRequest.nonempty_type.property
+opaque AuthStatusRequest.zero_val : ZeroVal AuthStatusRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthStatusRequest.zero_val
 
 structure AuthenticateRequest [GooseExts] where
@@ -8015,12 +8075,16 @@ noncomputable instance equals_unfold_AuthRoleGetRequest [GooseExts] [GoGlobalCon
 @[reducible] noncomputable def AuthRoleGetRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AuthRoleGetRequest.fields)
 
-axiom AuthUserListRequest : Type
-axiom AuthUserListRequest.zero_val : ZeroVal AuthUserListRequest
+opaque AuthUserListRequest.nonempty_type : NonemptyType.{0}
+def AuthUserListRequest : Type := AuthUserListRequest.nonempty_type.type
+instance AuthUserListRequest.nonempty : Nonempty AuthUserListRequest := AuthUserListRequest.nonempty_type.property
+opaque AuthUserListRequest.zero_val : ZeroVal AuthUserListRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthUserListRequest.zero_val
 
-axiom AuthRoleListRequest : Type
-axiom AuthRoleListRequest.zero_val : ZeroVal AuthRoleListRequest
+opaque AuthRoleListRequest.nonempty_type : NonemptyType.{0}
+def AuthRoleListRequest : Type := AuthRoleListRequest.nonempty_type.type
+instance AuthRoleListRequest.nonempty : Nonempty AuthRoleListRequest := AuthRoleListRequest.nonempty_type.property
+opaque AuthRoleListRequest.zero_val : ZeroVal AuthRoleListRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthRoleListRequest.zero_val
 
 structure AuthRoleDeleteRequest [GooseExts] where

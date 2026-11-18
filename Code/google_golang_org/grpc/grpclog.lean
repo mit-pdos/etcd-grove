@@ -40,16 +40,16 @@ noncomputable def DepthLoggerV2.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] DepthLoggerV2.ty
 
-axiom Logger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Logger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DepthLoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DepthLoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def cache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.cache"
 
-axiom cache.init [GooseExts] [GoGlobalContext] : val
+opaque cache.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Component [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Component"
@@ -135,7 +135,7 @@ noncomputable def newLoggerV2 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.grpclog where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -182,8 +182,10 @@ attribute [instance] componentData.TypeAssumptions.type_repr
   componentData.TypeAssumptions.method_set
   componentData.TypeAssumptions.ptr_method_set
 
-axiom Logger : Type
-axiom Logger.zero_val : ZeroVal Logger
+opaque Logger.nonempty_type : NonemptyType.{0}
+def Logger : Type := Logger.nonempty_type.type
+instance Logger.nonempty : Nonempty Logger := Logger.nonempty_type.property
+opaque Logger.zero_val : ZeroVal Logger := ⟨Classical.ofNonempty⟩
 attribute [instance] Logger.zero_val
 
 class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -199,8 +201,10 @@ attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.method_set
   Logger.TypeAssumptions.ptr_method_set
 
-axiom LoggerV2 : Type
-axiom LoggerV2.zero_val : ZeroVal LoggerV2
+opaque LoggerV2.nonempty_type : NonemptyType.{0}
+def LoggerV2 : Type := LoggerV2.nonempty_type.type
+instance LoggerV2.nonempty : Nonempty LoggerV2 := LoggerV2.nonempty_type.property
+opaque LoggerV2.zero_val : ZeroVal LoggerV2 := ⟨Classical.ofNonempty⟩
 attribute [instance] LoggerV2.zero_val
 
 class LoggerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -216,8 +220,10 @@ attribute [instance] LoggerV2.TypeAssumptions.type_repr
   LoggerV2.TypeAssumptions.method_set
   LoggerV2.TypeAssumptions.ptr_method_set
 
-axiom DepthLoggerV2 : Type
-axiom DepthLoggerV2.zero_val : ZeroVal DepthLoggerV2
+opaque DepthLoggerV2.nonempty_type : NonemptyType.{0}
+def DepthLoggerV2 : Type := DepthLoggerV2.nonempty_type.type
+instance DepthLoggerV2.nonempty : Nonempty DepthLoggerV2 := DepthLoggerV2.nonempty_type.property
+opaque DepthLoggerV2.zero_val : ZeroVal DepthLoggerV2 := ⟨Classical.ofNonempty⟩
 attribute [instance] DepthLoggerV2.zero_val
 
 class DepthLoggerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

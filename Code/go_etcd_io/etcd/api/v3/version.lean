@@ -29,82 +29,82 @@ attribute [irreducible] Versions.ty
 noncomputable def MinClusterVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.MinClusterVersion"
 
-axiom MinClusterVersion.init [GooseExts] [GoGlobalContext] : val
+opaque MinClusterVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Version [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Version"
 
-axiom Version.init [GooseExts] [GoGlobalContext] : val
+opaque Version.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def APIVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.APIVersion"
 
-axiom APIVersion.init [GooseExts] [GoGlobalContext] : val
+opaque APIVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def GitSHA [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.GitSHA"
 
-axiom GitSHA.init [GooseExts] [GoGlobalContext] : val
+opaque GitSHA.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_0"
 
-axiom V3_0.init [GooseExts] [GoGlobalContext] : val
+opaque V3_0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_1"
 
-axiom V3_1.init [GooseExts] [GoGlobalContext] : val
+opaque V3_1.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_2"
 
-axiom V3_2.init [GooseExts] [GoGlobalContext] : val
+opaque V3_2.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_3"
 
-axiom V3_3.init [GooseExts] [GoGlobalContext] : val
+opaque V3_3.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_4 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_4"
 
-axiom V3_4.init [GooseExts] [GoGlobalContext] : val
+opaque V3_4.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_5 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_5"
 
-axiom V3_5.init [GooseExts] [GoGlobalContext] : val
+opaque V3_5.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_6 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_6"
 
-axiom V3_6.init [GooseExts] [GoGlobalContext] : val
+opaque V3_6.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_7 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_7"
 
-axiom V3_7.init [GooseExts] [GoGlobalContext] : val
+opaque V3_7.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_8"
 
-axiom V3_8.init [GooseExts] [GoGlobalContext] : val
+opaque V3_8.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V3_9 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_9"
 
-axiom V3_9.init [GooseExts] [GoGlobalContext] : val
+opaque V3_9.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def V4_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V4_0"
 
-axiom V4_0.init [GooseExts] [GoGlobalContext] : val
+opaque V4_0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AllVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.AllVersions"
 
-axiom AllVersions.init [GooseExts] [GoGlobalContext] : val
+opaque AllVersions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.init.0"
@@ -141,7 +141,7 @@ noncomputable def LessThan.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.version where
   pkgImportedPkgs := [pkg_id.github_com.Masterminds.semver.v3]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

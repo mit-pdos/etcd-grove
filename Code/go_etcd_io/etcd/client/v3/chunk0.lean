@@ -589,13 +589,13 @@ attribute [irreducible] valCtx.ty
 @[reducible] noncomputable def PermReadWrite [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom CompareVersion [GooseExts] [GoGlobalContext] : val
+opaque CompareVersion [GooseExts] [GoGlobalContext] : val
 
-axiom CompareCreated [GooseExts] [GoGlobalContext] : val
+opaque CompareCreated [GooseExts] [GoGlobalContext] : val
 
-axiom CompareModified [GooseExts] [GoGlobalContext] : val
+opaque CompareModified [GooseExts] [GoGlobalContext] : val
 
-axiom CompareValue [GooseExts] [GoGlobalContext] : val
+opaque CompareValue [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def defaultTTL [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000000000)
@@ -606,11 +606,11 @@ axiom CompareValue [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def retryConnWait [GooseExts] [GoGlobalContext] : val :=
   #(W64 500000000)
 
-axiom DowngradeValidate [GooseExts] [GoGlobalContext] : val
+opaque DowngradeValidate [GooseExts] [GoGlobalContext] : val
 
-axiom DowngradeEnable [GooseExts] [GoGlobalContext] : val
+opaque DowngradeEnable [GooseExts] [GoGlobalContext] : val
 
-axiom DowngradeCancel [GooseExts] [GoGlobalContext] : val
+opaque DowngradeCancel [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def tRange [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
@@ -624,7 +624,7 @@ axiom DowngradeCancel [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def tTxn [GooseExts] [GoGlobalContext] : val :=
   #(W64 4)
 
-axiom MaxLeaseTTL [GooseExts] [GoGlobalContext] : val
+opaque MaxLeaseTTL [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def repeatable [GooseExts] [GoGlobalContext] : val :=
   #(W8 0)
@@ -644,7 +644,7 @@ axiom MaxLeaseTTL [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def SortByKey [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
-axiom SortByVersion [GooseExts] [GoGlobalContext] : val
+opaque SortByVersion [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def SortByCreateRevision [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
@@ -652,7 +652,7 @@ axiom SortByVersion [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def SortByModRevision [GooseExts] [GoGlobalContext] : val :=
   #(W64 3)
 
-axiom SortByValue [GooseExts] [GoGlobalContext] : val
+opaque SortByValue [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def EventTypeDelete [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
@@ -678,22 +678,22 @@ axiom SortByValue [GooseExts] [GoGlobalContext] : val
 noncomputable def ErrNoAvailableEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrNoAvailableEndpoints"
 
-axiom ErrNoAvailableEndpoints.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoAvailableEndpoints.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrOldCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrOldCluster"
 
-axiom ErrOldCluster.init [GooseExts] [GoGlobalContext] : val
+opaque ErrOldCluster.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMutuallyExclusiveCfg [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.ErrMutuallyExclusiveCfg"
 
-axiom ErrMutuallyExclusiveCfg.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMutuallyExclusiveCfg.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def LeaseResponseChSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.LeaseResponseChSize"
 
-axiom LeaseResponseChSize.init [GooseExts] [GoGlobalContext] : val
+opaque LeaseResponseChSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noPrefixEnd [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.noPrefixEnd"
@@ -701,47 +701,47 @@ noncomputable def noPrefixEnd [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultWaitForReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultWaitForReady"
 
-axiom defaultWaitForReady.init [GooseExts] [GoGlobalContext] : val
+opaque defaultWaitForReady.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultMaxCallSendMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultMaxCallSendMsgSize"
 
-axiom defaultMaxCallSendMsgSize.init [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxCallSendMsgSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultMaxCallRecvMsgSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultMaxCallRecvMsgSize"
 
-axiom defaultMaxCallRecvMsgSize.init [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxCallRecvMsgSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultUnaryMaxRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultUnaryMaxRetries"
 
-axiom defaultUnaryMaxRetries.init [GooseExts] [GoGlobalContext] : val
+opaque defaultUnaryMaxRetries.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultStreamMaxRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultStreamMaxRetries"
 
-axiom defaultStreamMaxRetries.init [GooseExts] [GoGlobalContext] : val
+opaque defaultStreamMaxRetries.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffWaitBetween [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultBackoffWaitBetween"
 
-axiom defaultBackoffWaitBetween.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffWaitBetween.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffJitterFraction [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultBackoffJitterFraction"
 
-axiom defaultBackoffJitterFraction.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffJitterFraction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultCallOpts [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultCallOpts"
 
-axiom defaultCallOpts.init [GooseExts] [GoGlobalContext] : val
+opaque defaultCallOpts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.defaultOptions"
 
-axiom defaultOptions.init [GooseExts] [GoGlobalContext] : val
+opaque defaultOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def valCtxCh [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3.valCtxCh"
@@ -11178,7 +11178,7 @@ noncomputable def progressRequest.toPB.impl [GooseExts] [GoGlobalContext] : val 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.fmt, pkg_id.strings, pkg_id.google_golang_org.grpc, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.sync, pkg_id.time, pkg_id.errors, pkg_id.sync.atomic, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.credentials, pkg_id.google_golang_org.grpc.credentials.insecure, pkg_id.google_golang_org.grpc.keepalive, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint, pkg_id.go_etcd_io.etcd.client.v3.internal.resolver, pkg_id.google_golang_org.protobuf.proto, pkg_id.crypto.tls, pkg_id.google_golang_org.grpc.metadata, pkg_id.io, pkg_id.google_golang_org.grpc.peer, pkg_id.go_etcd_io.etcd.api.v3.mvccpb]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

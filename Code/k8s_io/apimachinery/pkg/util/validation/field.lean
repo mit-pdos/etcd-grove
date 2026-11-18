@@ -75,42 +75,42 @@ noncomputable def Path.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Path.ty
 
-axiom NormalizationRule.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NormalizationRule.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom stabilityLevelUnknown [GooseExts] [GoGlobalContext] : val
+opaque stabilityLevelUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom stabilityLevelAlpha [GooseExts] [GoGlobalContext] : val
+opaque stabilityLevelAlpha [GooseExts] [GoGlobalContext] : val
 
-axiom stabilityLevelBeta [GooseExts] [GoGlobalContext] : val
+opaque stabilityLevelBeta [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeNotFound [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeNotFound [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeRequired [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeRequired [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeDuplicate [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeDuplicate [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeInvalid [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeInvalid [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeNotSupported [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeNotSupported [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeForbidden [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeForbidden [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeTooLong [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeTooLong [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeTooMany [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeTooMany [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeTooFew [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeTooFew [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeInternal [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeInternal [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeTypeInvalid [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeTypeInvalid [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorTypeTooShort [GooseExts] [GoGlobalContext] : val
+opaque ErrorTypeTooShort [GooseExts] [GoGlobalContext] : val
 
 noncomputable def omitValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation/field.omitValue"
 
-axiom omitValue.init [GooseExts] [GoGlobalContext] : val
+opaque omitValue.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def isChildPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation/field.isChildPath"
@@ -175,7 +175,7 @@ noncomputable def NewPath [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.validation.field where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -187,8 +187,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #()))))))))
 
-axiom NormalizationRule : Type
-axiom NormalizationRule.zero_val : ZeroVal NormalizationRule
+opaque NormalizationRule.nonempty_type : NonemptyType.{0}
+def NormalizationRule : Type := NormalizationRule.nonempty_type.type
+instance NormalizationRule.nonempty : Nonempty NormalizationRule := NormalizationRule.nonempty_type.property
+opaque NormalizationRule.zero_val : ZeroVal NormalizationRule := ⟨Classical.ofNonempty⟩
 attribute [instance] NormalizationRule.zero_val
 
 class NormalizationRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

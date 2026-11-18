@@ -34,25 +34,25 @@ attribute [irreducible] Code.ty
 @[reducible] noncomputable def Unknown [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom InvalidArgument [GooseExts] [GoGlobalContext] : val
+opaque InvalidArgument [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DeadlineExceeded [GooseExts] [GoGlobalContext] : val :=
   #(W32 4)
 
-axiom NotFound [GooseExts] [GoGlobalContext] : val
+opaque NotFound [GooseExts] [GoGlobalContext] : val
 
-axiom AlreadyExists [GooseExts] [GoGlobalContext] : val
+opaque AlreadyExists [GooseExts] [GoGlobalContext] : val
 
-axiom PermissionDenied [GooseExts] [GoGlobalContext] : val
+opaque PermissionDenied [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceExhausted [GooseExts] [GoGlobalContext] : val
+opaque ResourceExhausted [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def FailedPrecondition [GooseExts] [GoGlobalContext] : val :=
   #(W32 9)
 
-axiom Aborted [GooseExts] [GoGlobalContext] : val
+opaque Aborted [GooseExts] [GoGlobalContext] : val
 
-axiom OutOfRange [GooseExts] [GoGlobalContext] : val
+opaque OutOfRange [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Unimplemented [GooseExts] [GoGlobalContext] : val :=
   #(W32 12)
@@ -63,16 +63,16 @@ axiom OutOfRange [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def Unavailable [GooseExts] [GoGlobalContext] : val :=
   #(W32 14)
 
-axiom DataLoss [GooseExts] [GoGlobalContext] : val
+opaque DataLoss [GooseExts] [GoGlobalContext] : val
 
-axiom Unauthenticated [GooseExts] [GoGlobalContext] : val
+opaque Unauthenticated [GooseExts] [GoGlobalContext] : val
 
-axiom _maxCode [GooseExts] [GoGlobalContext] : val
+opaque _maxCode [GooseExts] [GoGlobalContext] : val
 
 noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.strToCode"
 
-axiom strToCode.init [GooseExts] [GoGlobalContext] : val
+opaque strToCode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.init.0"
@@ -83,7 +83,7 @@ noncomputable def canonicalString [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.codes where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

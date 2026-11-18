@@ -24,17 +24,17 @@ namespace k8s_io.apiserver.pkg.util.feature
 noncomputable def DefaultMutableFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/feature.DefaultMutableFeatureGate"
 
-axiom DefaultMutableFeatureGate.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultMutableFeatureGate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/util/feature.DefaultFeatureGate"
 
-axiom DefaultFeatureGate.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultFeatureGate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.util.feature where
   pkgImportedPkgs := [pkg_id.k8s_io.component_base.featuregate]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
