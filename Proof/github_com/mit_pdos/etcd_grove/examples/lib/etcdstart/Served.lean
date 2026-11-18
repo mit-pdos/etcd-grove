@@ -233,8 +233,8 @@ theorem memberUpOn_intro (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : 
 
 /-- **A member started with auth on, for serving** (N6, 2026-11-06; `memberUp_served`'s): what
 `Serve` and authkv's ghost steps take of `memberUpOn`, the views in its mode (`E.authOn`, which is `true`: what `Serve` takes), the store's range
-check (`srvAuthLb`), the TLS fallback off and the auth store's `Authenticate` side besides. The rest
-(`srvWatchBuilt`) is dropped. -/
+check (`srvAuthLb`), the TLS fallback off, the auth store's `Authenticate` side and (auth-lease S4) the
+lessor's reader side at the lease mode (`srvLeaseRd`) besides. -/
 theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg : Loc)
     (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (m : lease.Mode := .none) :
     memberUpOn (GF := GF) s ρ E₀ lg γn id γa m ⊢
@@ -245,16 +245,16 @@ theorem memberUpOn_served (s : Loc) (ρ : ReqNames) (E₀ : apply.AEnv GF) (lg :
         srvAuthLb s E ∗ srvServeFacts s E cfg ∗
         srvGoRes s ∗ srvLgReader s ∗ srvBemuReader s ∗ srvWatchBuilt s E ∗
         kvServeStocks s E ρ.rd ∗
-        srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD := by
+        srvPeerCtl γn s id ∗ □ (srvTLSId s -∗ False) ∗ srvAuthStoreOn s E.RD ∗ srvLeaseRd s E m := by
   iintro Hup
   iunfold memberUpOn at Hup
   icases Hup with ⟨%E, %cfg, %γw, %HEc, Hstk, Hrun, #Hreq, #Hrd, #Hlb, Hgo, Hlg3, -, #Hwb, #Hsf,
-    Hbemu, Hctl, #Htls, #HBF, -⟩
+    Hbemu, Hctl, #Htls, #HBF, #Hlrd⟩
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEc.2.1]; rfl
   iexists E, cfg, γw
   isplitr; · ipureintro; exact HEc
   rw [hon]
-  iframe Hreq Hrd Hlb Hsf Hgo Hlg3 Hbemu Hwb Hctl Htls HBF
+  iframe Hreq Hrd Hlb Hsf Hgo Hlg3 Hbemu Hwb Hctl Htls HBF Hlrd
   unfold kvServeStocks
   iframe Hstk Hrun
 

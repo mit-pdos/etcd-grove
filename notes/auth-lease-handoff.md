@@ -1,6 +1,36 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-18, item 9: D-k ACCEPTED, lean 49bd7924e6 merged; driver IN PROGRESS)
+## START HERE (S4, 2026-11-18, item 9: lean fb68edfec8 merged; Served done; Cell BLOCKED on check 6)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done:** 7b, D-k, the six driver helpers (all accepted by etcd-grove-03; questions.md). Merge of lean fb68edfec8
+  `b33b59741c` (one conflict: `etc/goose.py`'s usage line, both sides' project names). **Served** (see the commit after it):
+  new `etcdstart/ServedLeaseOn.lean` (`etcdLeaseServedOn`, `lease_served_on`: the four Lease registrations with auth on
+  from `grpcLeaseUp`, `srvLeaseRd s E .revocable`, `grpcServerAt`, the pools); `ak_served_kv`'s post + `grpcServerAt`,
+  `memberUpOn_served`'s post + `srvLeaseRd` (forms; callers auth/Run, auth3/run, authN/run take `-`).
+  Build: `/shared/tmp/auth-lease-s4/served-build.log`.
+- **BLOCKER (stopped here; questions.md, last entry):** check 6 is not provable: at auth on the KV writes' and the grants'
+  updates are persistent (no `writeOnce`: it is `noRefusalAt`, auth off only), so a re-delivered grant may re-grant `Lu`
+  after the revocation (`kvOpStep` only checks the current table) and a re-delivered `Put(a/lease, Lu)` re-attach `a/lease`.
+  Options (A) thaw: grant freshness in the grant's write grant (`opGrantTN`); (B) drop check 6's reads. Awaiting decision.
+- **Cell design (worked out, not written):** one invariant `∃ σ ps gs d, etcdKV γk σ ∗ monoListAuthOwn γ.ps 1 ps ∗
+  monoListAuthOwn γ.gs 1 gs ∗ monoNatAuthOwn γ.d 1 d ∗ monoNatAuthOwn γ.v 1 σ.rev ∗ ⌜cellOk σ ps gs d⌝` (all updates are
+  persistent at auth on, so no exclusive half can ride in one; every append is guarded by `ps`'s length, a re-fire keeps
+  `leaseKeptIn`): `ps : List (w64 × Nat)` = `[(Lz, rz), (Lu, ru), (Lu, rt)]` appended by root's put / u's put / u's txn
+  updates at their first effective firing; `gs` = ids our grant updates fired with (`id ≠ 0` ⇒ `id` in the table after the
+  firing, whatever `leaseGrantOk`), keeps `Lz`/`Lu` live for the puts; `d` = revocation flag (u's `Revoke(Lu)`, `d = 1 →
+  a/lease, a/txn absent`: this is what the blocker breaks); `γ.v` = σ.rev lower bounds (the lessor law's
+  `leaseKeptIn σ (F.length-1)` needs `F.length - 1 ≤ σ.rev`). Refusals at G: `writeGrantG_granted` + `akAuthFixed_write`
+  (`setupSt r` denies u `z/lease`, v `a/lease`); `Lu ≠ Lz` from u's put's G. Pure lemmas: `findKey_applyChanges_other`
+  (txn/WinLemmas), `KVState.commit_at`.
+- **Next after the decision:** Cell, barriers/grantPut/noAuth/foreign/absent, run, Main (plan below, unchanged).
+- **Pitfalls:** no literal modes in the package (mode gate); `etc/gen-link.py --bbolt`/`--walfs` and
+  `gen-specs-pkginit --check` differ in a worktree without `.lake/packages/perennial`: do not commit those. Monitor
+  filters: anchor `^Terminated`. `questions.md` is untracked (gitignored).
+
+## Previous START HERE (S4, 2026-11-18, item 9: driver plan)
+
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
   everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.

@@ -186,7 +186,7 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
             watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag (.on γa)) }} := by
   iintro %Φ ⟨#Pst, #Psrv, #Pv3, #Ppb, #Heo, #Hlgz, Haddr, Hup⟩ HΦ
   icases etcdstart.memberUpOn_served _ _ _ _ _ _ _ $$ Hup with ⟨%E, %cfg, %γw, %HE, #Hreq, #Hrd0,
-    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF⟩
+    #Hlb, #Hsf, Hgo, Hlg3, Hbemu, #Hwb, Hstk, -, #Htls, #HBF, -⟩
   obtain ⟨HEa, HEo, HElg, HEtr, HEw⟩ := HE
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [HEo]; rfl
   ihave #HzlgC : zapLoggerOk cfg.Logger' $$ []
@@ -215,7 +215,7 @@ theorem serve_member [go_etcd_io.etcd.cache.v3.Assumptions]
     rw [HCA]
     imod (ak_served_kv addr gs q p pa s lis E { ρ with wait := γw } cid mid C.n
         il im iu ims is svcs regs sregs γa HEo Hregs1 HregsA wp_BcryptCost Hrf Hnd HLv)
-      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu⟩
+      $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HKV, #HSA, #HAu, -⟩
     · iframe; iframe #
       iintro !>
       imodintro
