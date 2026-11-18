@@ -19,12 +19,11 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Error
 public import Proof.os.NsS
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CloseLaw
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.HandleLaws
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.SaveHandle
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.ReleaseAu
 public import Perennial.Proof.sync.Results
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseLemmas
 
 @[expose] public section
 
@@ -43,6 +42,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
+
+theorem osCallPerm_join' :
+    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
+  have h := osCallPerm_split (L := hG.goose_localGS) (1 : Qp).half.half (1 : Qp).half.half
+  rw [Qp.half_add_half] at h
+  exact h.2
+
+theorem pipeTmp_mem (n : Nat) : pipeTmp n ∈ walTmps := by
+  unfold pipeTmp walTmps; split <;> simp
 
 /-- See the file header. -/
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_proof [os.file.FieldAssumptions]

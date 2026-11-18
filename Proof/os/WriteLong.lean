@@ -13,7 +13,6 @@ split in three around each chunk, and the pure steps of `WriteLongStep.lean` (20
 module
 
 public import Proof.os.WriteLongStep
-public import Proof.os.File__WriteAt
 public import Perennial.Golang.Theory.IfJoin
 
 @[expose] public section

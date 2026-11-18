@@ -186,6 +186,8 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGr
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__HashStorage Perennial.EtcdGrove.store.HashStorage.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read Perennial.EtcdGrove.mvcc.store.Read.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Read Perennial.EtcdGrove.store.Read.wp_proof  # missing: a proof file proves its spec
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.cmpOk_restored  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.cmpTrack_restored  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.mvcc.store.Restore.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Restore Perennial.EtcdGrove.store.Restore.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev Perennial.EtcdGrove.mvcc.store.Rev.wp_proof  # exposed by a proof file (theorem)
@@ -295,6 +297,7 @@ Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perenni
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.mvcc.watchableStoreTxnWrite.End.wp_proof  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End Perennial.EtcdGrove.watchableStoreTxnWrite.End.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.mvcc.watchableStore.Close.wp_proof  # exposed by a proof file (theorem)
+Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.mvcc.wp_wsWg_Wait  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Close Perennial.EtcdGrove.watchableStore.Close.wp_proof  # missing: a proof file proves its spec
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.mvcc.isWatchable_store  # exposed by a proof file (theorem)
 Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__NewWatchStream Perennial.EtcdGrove.mvcc.watchableStore.NewWatchStream.wp_proof  # exposed by a proof file (theorem)

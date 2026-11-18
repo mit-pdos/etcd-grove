@@ -13,7 +13,7 @@ invariant and runs in mode `false` (`statsTok`: the exclusive part's `done` half
 module
 
 public import Proof.go_etcd_io.bbolt.Write.Retarget
-public import Proof.go_etcd_io.bbolt.Tx__RollbackDefs
+public import Proof.go_etcd_io.bbolt.Tx__Rollback
 
 @[expose] public section
 

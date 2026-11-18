@@ -10,7 +10,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Open.InitImage
 public import Proof.go_etcd_io.bbolt.Inv.Locks
-public import Proof.go_etcd_io.bbolt.Mmap.LoggerDefs
+public import Proof.go_etcd_io.bbolt.Mmap.Logger
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Proof.go_etcd_io.bbolt.Commit.MetaPage
 public import Spec.go_etcd_io.bbolt.DB__pageInBuffer
