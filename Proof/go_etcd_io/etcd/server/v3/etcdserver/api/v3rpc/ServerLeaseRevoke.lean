@@ -81,7 +81,7 @@ theorem lessorRevokeOk_of_server (hLR : EtcdServer.LeaseRevoke.spec (GF := GF) (
     · iright
       cases hon : E.authOn
       · iapply leaseRevokeResT_false
-      · iapply leaseRevokeResT_true s E ρ ci id Q $$ Hres
+      · iapply leaseRevokeResT_true s E ρ tok id Q $$ Hres
     iunfold leaseRevokedResp at Hresp
     icases Hresp with ⟨%hh, %rv, #Hh, #Hrv, %Hrv0, #Hlb, Hown⟩
     iunfold txn.respHdrOwn at Hown
