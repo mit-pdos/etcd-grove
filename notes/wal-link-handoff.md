@@ -6,10 +6,10 @@
   `/shared/tmp/manifest-6d3.json` everywhere (also as `LAKE_OPTS` for `etc/gen-link.py`, which finds Perennial's
   sources through it), `.lake/package-overrides.json` = a copy of it.
 - **Decided (etcd-grove-03, questions.md 2026-11-18):** `walCutPos` widened; Create's Seek law/fp premises; fork
-  fix 0008 approved with 0007 (the user pushes `goose-lean-walfs3-fp`, head `34dea163a`, which contains both;
-  then run `notes/wal-fsext-fork/bump-go-mod.sh`; until then `etc/goose.py --check` fails: **land stop needs the push**).
+  fix 0008 approved with 0007; the user pushed `goose-lean-walfs3-fp` (`34dea163a`); the examples' go.mod/go.sum
+  moved to it (44be2fb320, `notes/wal-fsext-fork/bump-go-mod.sh`); `etc/goose.py --check` (etcd, etcd-wal) passes.
 - **Done (6cc3f71187, eb86d5ca41):** see History i. Full default build green (21789 jobs,
-  `/shared/tmp/wallink/full5.log`); the six `etc/api` interfaces unchanged; TCB check: `/shared/tmp/wallink/tcb5.log`.
+  `/shared/tmp/wallink/full5.log`); the six `etc/api` interfaces unchanged; TCB check matches the baseline (891 axioms, 4 sorries).
 - **Next: L3** (scope §3.5, §1 #3-#6, §3.1-3.3): the handle record `WalH` in
   `Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean` (instances, `Sio` with `walCov`, `W : WalGS`, `R jr r`,
   `w`, `dir`, `γ : WalShN`, the base's ghost name); `walRecs`/`walBaseLb`/`walFiles`/`walPurgeRight`/`walMetaIs`/
