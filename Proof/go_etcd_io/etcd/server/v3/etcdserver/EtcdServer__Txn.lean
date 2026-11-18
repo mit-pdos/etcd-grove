@@ -1182,6 +1182,8 @@ theorem EtcdServer.Txn.wp_proof
           F rfl (apply.irrDepthOk_irrTxn (Hdpt hro))
           $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
       · iframe # Hlt Hard Hcred
+        isplitr
+        · iintro !> -; iapply HtokR; first | itrivial | (ipureintro; trivial)
         isplitl [Hau]
         · iapply txnPermitOn_reqPropOk ρ.raft ρ.kv _ _ tw Q γc
             (fun _ => BIBase.Entails.rfl)

@@ -1,37 +1,38 @@
 # perheap handoff
 
-## START HERE (2026-11-18, C1a in progress: draft `bf4de1328e` on branch `perheap-c1a-wip`, UNCOMPILED)
+## START HERE (2026-11-18, C1a compiling: draft cherry-picked onto `perheap-scope`, server chain lean-checked)
 
-- Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), head `a1adfde31e` + this note. Pin 6d365ee1a:
-  `--packages=/shared/tmp/manifest-6d3.json`. Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`).
-- **First:** the post-merge full build of `cd350b3c75` (log `/shared/tmp/perheap/s/full-m1.log`; launched 2026-11-18,
-  waited for a slot the whole session). If it is not green, fix on `perheap-scope` before bringing C1a over.
-- **C1a draft** (written in the detached scratch worktree `/shared/tmp/perheap/c1a/wt`, no `.lake`, so never compiled):
-  bring it over with `git -C /shared/etcd-grove-incomingof cherry-pick bf4de1328e` (or merge the branch), then compile
-  bottom-up: LibKeys → InvAuth → WhyDefs → `Spec/…/auth/authStore__AuthInfoFromCtx` → its proof → InvRequest →
-  AuthReqDerive → AuthBound → AuthWhy → ReadWhy → `EtcdServer__AuthInfoFromCtx` → `requireAuthInfo` (targeted builds).
-  Done in the draft: `FromIncomingContext.spec` restated (`∀ ctx md`, pre `ctxInMD ctx md`; attacked SOUND,
-  `/shared/tmp/perheap/c1a/attack-fic.md`, its two docstring fixes applied; moved here from 1b, its only users the
-  store and the two interceptors, which take `libCtxOk`'s `md`); `auth.ctxToken` (+`ctxToken_of_ctxInMD`, InvAuth);
-  `ctxBound`/`noPrincipalFrom`/`tokRefusedFrom` by token; store `AuthInfoFromCtx.spec` = the probe's (FreshCtx.lean
-  deleted; `IsAuthEnabled.wp_lb` used outright, so the link list drops that callee); server `AuthInfoFromCtx.spec` =
-  old `specLb` + `tok` + gated premise (old `wp_proof` deleted; `+Lb` link entries renamed); `isReqAuthBound` one row
-  (`∀ n ctx tok`); `isReqAuthBound_ctx`, `isReqAuth_ctxM` deleted; `principalBound`, `adminOutB`, `authedOutB`,
-  `ctxBoundOrTLS`, the `*Why` family, `rangeWhy(Out)`, `txnWhy(Out)` by token; `principalBoundI` deleted (its users
-  take `v3rpc.infoBoundT`, same body); `rangeWhy_ctx`/`txnWhy_ctx` deleted; `requireAuthInfo.spec(C)` with `tok`.
-- **Next, in order** (Scope §4.2): users of the above (`grep -rn "principalBoundI\|specLb\|ctxTokenOf" Proof Spec`):
-  `checkMembershipOperationPermission`, `doSerialize`, `checkLease*`, `processInternalRaftRequestOnce`, `ReqOn`
-  (830, 867), `LeaseCheck` (`leaseCheckFrom` by token; v3rpc's `leaseCheckT`/`principalBoundT` then merge into it),
-  `AdminOn`/`ProposeOn`/`LeaseReqOn`, `hdrBoundM`→`hdrBoundT`, `infoBoundM`→`infoBoundT`, the request specs with `tok`
-  (Range/Txn: the inner contexts get `ctxToken` by `WithValue`'s transfer and `ctxInMD_cancel`), v3rpc (§4.2), the
-  auth-off theorems (`tok := none`). File list: `/shared/tmp/perheap/c1a/files.txt` (152 files naming the chain).
-- Forms decided (report at C1a's end): `auth.ctxToken (ctx : GoInterface)` as the Scope; `tokRefusedFrom` keeps its
-  unused `M n` (less churn); gates written `E.authMode.isOn` in internal check specs (`E.authOn` unfolds to it);
-  `auth_ctx_lb` (etcdserver `Results.lean`) kept, its type `.specLb` → `.spec` (to add to Q9's list).
-- Pitfalls: `iframe #` may not match `E.authOn` against `E.authMode.isOn` syntactically; `authPubLbM_zero` is a `|==>`.
-- Scans: `/shared/tmp/perheap/closure2.py` (`closure2.txt`), `scan4.py`, `scan-text.txt`/`scan-meaning.txt`.
+- Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`). Pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`.
+  Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`). Post-merge full build of `cd350b3c75`: GREEN
+  (`/shared/tmp/perheap/s/full-m1-1.log`). Check loop: `/shared/tmp/perheap/s/chk.sh FILE...` (lean-check `--fast -q -a`).
+- **Done (C1a, lean-checked, 0 errors):** LibKeys, InvAuth (`ctxToken`, `ctxToken_transfer(_gate)`, `ctxToken_of_libCtxOk`),
+  WhyDefs, `FromIncomingContext.spec`, the store's and the server's `AuthInfoFromCtx` (one spec each), InvRequest,
+  AuthReqDerive, AuthBound, AuthWhy, ReadWhy, requireAuthInfo, ReqOn (`hdrBoundM`/`infoBoundM` by token; `wpM`/`wpMLb`
+  gated on `on`), LeaseCheck (`leaseCheckFrom` by token, v3rpc `leaseCheckT`/`principalBoundT` merged in), the checks,
+  doSerialize, processInternalRaftRequestOnce, raftRequest, ModeSpecs (admin `specOn` texts by token, `spec_off`s at
+  `tok := none`), Put, DeleteRange, Range, Txn, LeaseGrant/Revoke/Renew/TimeToLive/Leases, RemoveMember, MemberList,
+  revokeExpiredLeases, Compact, AdminOn (`adminPreOn` + tok and gate; `adminHistAu`/`adminOutOn` by tok), AuthnOn
+  (token from `libCtxOk`), Authenticate, traceutil (`Tracer.Start` post = the ctxInMD transfer, moved from 1b;
+  StartLaws, EnsureTrace). Drafted, not yet checked: etcdserver Link/Results, restart examples (`tok := none`), v3rpc
+  `ServerKVOn` (call contracts carry the gated `ctxToken`), `LeaseOn` (`lessorGrantOkGM`/`lessorRevokeOkM` + tok), the
+  server lease proofs.
+- **Next, in order:** etcdserver `Link`/`Results`; restart examples; the rest of etcdserver's importers
+  (`etc/importers.py`); then v3rpc (ServerKVOn, LeaseOn, ServerLease*, AuthService, InvLease*, InvWatch, isWatchPermitted,
+  recvLoop, sendLoop, AuthAdmin__*, Results) and 1b (grpcAccepted supplies `ctxToken`; remove `incomingOf`, the two
+  axioms, `WithValue`'s old equation, `ctxTokenOf`); client Results; examples auth (§4.3); full build at C1.
+- Forms decided this session (report at C1a's end): `hdrBoundM`/`infoBoundM` kept as the mode-gated wrappers,
+  re-indexed by token (not renamed to `hdrBoundT`: less churn; their `*_ctx` transfer lemmas deleted); `wpM`/`wpMLb`
+  gate the token premise on their `on`; `RemoveMember`/`MemberList`/`checkLease*`/`checkMembership` gate on
+  `E.authMode.isOn` (frames straight into their callees), the other request specs on `E.authOn` (Scope text);
+  `leaseCheckFrom` merged with `leaseCheckT`; `Tracer.Start`'s restatement moved from 1b into C1a (Scope §4.1 text).
+- Pitfalls: `$$ [$H]` framing is syntactic (`E.authOn` ≠ `E.authMode.isOn`): convert with `iintro !> %h; iapply H;
+  ipureintro; exact h`; after `cases hon : E.authOn` the Iris context's gates become `⌜true = true⌝` (use
+  `first | rfl | exact hon`), and a later `simp` can turn them into `True → …` (frame by hand); `authPubLbM_zero` is
+  unqualified (outside `namespace auth`) and a `|==>`; name clash `Htok` (kvResTok) → the token premise is `HtokC`.
 
 ## History
+
+- C1a mid-point (2026-11-18, `e39906a4a4`): draft `bf4de1328e` written uncompiled in a scratch worktree; post-merge build queued.
 
 - C0 START HERE (2026-11-18, `a1adfde31e`): step 0 done `be6b6ca8c6` (full build green, interfaces unchanged,
   tcb 892/4); lean merged `cd350b3c75`.
