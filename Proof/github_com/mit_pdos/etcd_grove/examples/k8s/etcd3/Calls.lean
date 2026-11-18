@@ -141,8 +141,10 @@ theorem drvInit_sents :
   iintro ⟨-, -, -, HD, HU⟩
   iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HD
   iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HU
-  icases HD with ⟨%lD, HD, -, CD⟩
-  icases HU with ⟨%lU, HU, -, CU⟩
+  icases HD with ⟨%lD, HD, -, #CD⟩
+  icases HU with ⟨%lU, HU, -, #CU⟩
+  ihave #CD := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lD _ $$ CD
+  ihave #CU := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lU _ $$ CU
   iexists lD, lU
   iframe
 

@@ -4,9 +4,9 @@ Package initialization of `github_com.mit_pdos.etcd_grove.examples.k8s.etcd3`
 
 Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errDeleteRejected`, `errUpdateRejected`, translated
-`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
-its message (`wp_New_errorString_cell`). Its initializer allocates them, initializes its imports
-and runs their translated initializers.
+`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and which holds
+its message, read-only (`wp_New_errorString_struct`). Its initializer allocates them, initializes
+its imports and runs their translated initializers.
 -/
 module
 
@@ -163,15 +163,15 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of errDeleteRejected))
   -- translated initializer of errUpdateRejected))
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xNO ⟨#MNO, #CNO⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xNO ⟨#MNO, #CNO⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xBD ⟨#MBD, #CBD⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xBD ⟨#MBD, #CBD⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xBR ⟨#MBR, #CBR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xBR ⟨#MBR, #CBR⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xDR ⟨#MDR, #CDR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xDR ⟨#MDR, #CDR⟩
   try wp_auto
-  wp_apply EtcdGrove.wp_New_errorString_cell as %xUR ⟨#MUR, #CUR⟩
+  wp_apply github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.wp_New_errorString_struct as %xUR ⟨#MUR, #CUR⟩
   try wp_auto
   ipersist HerrNotObj
   ipersist HerrBadData

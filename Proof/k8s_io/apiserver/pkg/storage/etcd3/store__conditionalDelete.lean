@@ -516,7 +516,7 @@ theorem store.conditionalDelete.wp_proof
       iintro %e1 ⟨Hobj, Hck⟩
       cases hpok : pr.ok (c.S.uid s.o) (c.S.fmtRV s.rev)
       · isimp only [hpok, Bool.false_eq_true, ↓reduceIte] at Hck
-        ihave #Hck0 := Hck
+        ihave #Hck0 := invalidErrMsg_is _ _ _ $$ Hck
         ihave #Hck' := Hck0
         iunfold invalidErrIs at Hck'
         icases Hck' with ⟨%l, %e2, %Hl, -⟩

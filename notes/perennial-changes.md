@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
+
+- **Missing.** `fmt`'s inversions (`Perennial/Proof/fmt/Base.lean`) go one byte at a time
+  (`byte_inv`) or name whole formats (`v_str`, `str_x`, ...); nothing copies a `%`-free literal in one
+  step, nor computes a format of the shape `lit%vlit%v`.
+- **Who needs it.** `storage.Preconditions.Check`'s message (`KPre.failMsg`, k8s 7g: the checker's
+  model compares two `NewInvalidObjError`s by their messages).
+- **Workaround.** `k8s.sprintfOut_lit` and `k8s.sprintfOut_v2` in
+  `Proof/k8s_io/apiserver/pkg/storage/InvalidMsg.lean`, from `byte_inv`, `strArg_inv`, `v_str`.
+- **Proposed.** `SprintfOut.lit_inv` (a `%`-free literal) beside `byte_inv`. Status: recorded, not
+  proposed yet.
+
 ### `≤u` to an interface does not chain through a named interface alias (2026-11-18, k8s 7g)
 
 - **Missing.** `method_interface_ok` needs `[t ≤u go.InterfaceType elems]`. For `meta.List`
