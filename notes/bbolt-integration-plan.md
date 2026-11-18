@@ -734,6 +734,28 @@ statement of a backend spec changed. Gates config: `etc/axiom-tok-allow.txt` los
 `Open_kv`/`DB.Close_kv`; the axiom-tok selftest imports `InvBbolt` in place of `DB__Begin_kv`;
 `etc/reader-slot-allow.txt`'s note names `Tx.Rollback`.
 
+**Over S3f's canonical `Open`/`DB.Close` and S3g's `Close` statement** (2026-11-18, the coordinator's
+decisions). The interim `Open_sharedNoErrH`/`DB.Close_ownNoErrH` and their `pendingS3d` axioms are
+deleted. `newBackend` takes bbolt's `Open.spec` (private `bbolt.kvGlue_Open`: `Open`'s error case
+`¬ FsNoErr` refuted by `Fs.fsNoErr_of` from `theFs`'s `FsNoErrAll`; `dbRestF` keeps `boltCloser`;
+the options come back with their `InitialMmapSize` unknown, `optsAtNoErr` bounding it only);
+`backend.Close` takes `DB.Close.spec` in S3g's form (`(err = nil ∗ fileHoldsM i D) ∨ ¬ FsNoErr`:
+the file back as a `nameHolds` holder, so `fileHolds` again; no `boltNoFile` case), so a closed
+database's file reopens and mvccfull needs no premise. **The options**: the backend's `OptsM` tracks
+`Timeout`, `NoFreelistSync`, `InitialMmapSize`; `optsAt` is the typed points-to with `optsVal` (bbolt's
+at `Mlock` false, `MmapFlags` zero or `MAP_POPULATE`, and the three fields), its laws re-proved field
+by field (`bbolt.optsPt_eq`): `optsAt_bool` (`NoGrowSync`, `PreLoadFreelist`, `NoSync`,
+`NoStatistics`), `optsAt_noFreelistSync`, `optsAt_mlock` (stores `false`), `optsAt_initialMmapSize`,
+`optsAt_maxSize`, `optsAt_freelist`, `optsAt_timeout`, `optsAt_logger`, `optsAt_nonnull`, `optsAt_bolt`
+(to `bbolt.optsAtNoErr` under `OptsM.ok` and the new `OptsM.noErr`). `boltOpenOptionsOk` (and the
+generated `boltOpenOptions_init` axiom, `etc/gen-init.py`) says the variable is not nil, with
+`NoFreelistSync` and no `Timeout`: true of `config_linux.go`'s initializer, the file model being
+Linux's (until then nil was allowed). `backend.New`/`newBackend`'s pure premise gains `cfg.Timeout' =
+W64 0 ∧ sint.Z cfg.MmapSize' ≤ 0xFFFFFFFFFFFF` (beside `cfg.Mlock' = false`); mvccrand's and
+mvccfull's `DefaultBackendConfig` posts give `Timeout' = 0`, `MmapSize' = 10 GiB`, which discharge it;
+the server does not call `New` (`storage.OpenBackend`'s axiom). `Open`'s linked result still takes
+bbolt's pending `fs.FileMode.String.spec`, which S3g removes.
+
 **Left.** S3f's merge (the two interim axioms and `boltCloserH`, the option constraints above,
 `FileMode.String`); `storage.OpenBackend` (item 5, its own unit next, per the coordinator); the cleanup
 of the trivial `dbOpenOk`/`dbCloseOk`.
