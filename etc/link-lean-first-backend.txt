@@ -18,6 +18,8 @@ ValidateCalledInsideApply:
 ValidateCalledInsideUnittest:
 ValidateCalledOutSideApply:
 bbolt_Bucket__Cursor: @
+bbolt_DB__Close: @
+bbolt_Open: @
 bbolt_Bucket__Delete: @
 bbolt_Bucket__Put: @
 bbolt_Cursor__Next: @
@@ -48,7 +50,7 @@ BackendConfig__mmapSize:
 backend_New: backend_newBackend
 NewHooks: hooks__OnPreCommitUnsafe
 backend__BatchTx: 
-backend__Close:
+backend__Close: bbolt_DB__Close
 backend__Commits: 
 backend__ConcurrentReadTx: txReadBuffer__unsafeCopy
 backend__ForceCommit: batchTxBuffered__Commit
@@ -124,7 +126,7 @@ txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
 txWriteBuffer__reset: txBuffer__reset
 txWriteBuffer__writeback: bucketBuffer__dedupe bucketBuffer__merge txWriteBuffer__reset
 unsafeRange: bbolt_Cursor__Seek bbolt_Cursor__Next
-backend_newBackend: newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run
+backend_newBackend: newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run bbolt_Open
 newBatchTxBuffered: backend__begin
 newBoltLoggerZap:
 # (D22 S-f, 2026-10-19) the snapshot path's backend boundary (InvSnapshot.lean): `backend.Snapshot`

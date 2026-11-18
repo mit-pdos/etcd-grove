@@ -41,7 +41,7 @@ private theorem wp_DefaultBackendConfig' (lg : Loc) :
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.DefaultBackendConfig)) (Val #lg))
     {{ (c : BackendConfig), RET #c;
         ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil ∧ c.Logger' = lg ∧
-          c.Mlock' = false⌝ }} := by
+          c.Mlock' = false ∧ c.Timeout' = W64 0 ∧ c.MmapSize' = W64 10737418240⌝ }} := by
   wp_start as #Hpkg
   ihave Hbi : (backendInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -49,7 +49,7 @@ private theorem wp_DefaultBackendConfig' (lg : Loc) :
   wp_auto
   iapply HΦ
   ipureintro
-  exact ⟨rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 theorem runner.openBackend.wp_proof
     (wp_bNew : backend.New.spec (GF := GF) (hG := hG)) :
@@ -65,7 +65,7 @@ theorem runner.openBackend.wp_proof
   iNamed Hcfg
   wp_auto
   wp_apply wp_DefaultBackendConfig' as %bc %Hbc
-  obtain ⟨hdl, hhooks, hlgc, hmlk⟩ := Hbc
+  obtain ⟨hdl, hhooks, hlgc, hmlk, htmo, hmms⟩ := Hbc
   (try wp_auto)
   -- the batch limit set: `limOf cfg` (the interval, any)
   have hW0 : sint.Z (W64 0) = 0 := rfl
@@ -86,7 +86,9 @@ theorem runner.openBackend.wp_proof
         iapply zapLoggerOk_orNil; iexact Hlgz
       isplitr
       · ipureintro
-        refine ⟨mvccrand.rcP_wf _ hl0 hlim, ?_, by first | exact hmlk | simpa using hmlk⟩
+        refine ⟨mvccrand.rcP_wf _ hl0 hlim, ?_, by first | exact hmlk | simpa using hmlk,
+          by first | exact htmo | simpa using htmo,
+          by simp only [hmms]; decide⟩
         show limOf cfg = _
         unfold limOf
         simp only [hb, ↓reduceIte, hdl]

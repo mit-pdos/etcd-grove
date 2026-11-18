@@ -19,7 +19,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.MutexLit
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
 public import Perennial.ProgramLogic.Bounds
-public import Spec.go_etcd_io.bbolt.Open_sharedNoErrH
+public import Spec.go_etcd_io.bbolt.Open
 
 @[expose] public section
 
@@ -63,17 +63,23 @@ private theorem crOut_file [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.Ass
     exact GMap.lookup_insert _ _ _
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
-/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
-`_kv` spec `Open_kv`). -/
-private theorem bbolt.kvGlue_Open_kv :
+/-- (S3e) bbolt's canonical `Open.spec` in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Open_kv`): no error (`Open`'s error case is `¬ FsNoErr`, which `theFs`'s `FsNoErrAll`
+refutes, `Fs.fsNoErr_of`); the database opened in the namespace `dbNs path`, what it keeps of its
+file (`dbRestF`, with the closer token) in `ownDB`. The options come back with their
+`InitialMmapSize` unknown (`Open` gives back `optsAtNoErr`, which bounds it only). -/
+private theorem bbolt.kvGlue_Open
+    (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+      bbolt.Open.spec (GF := GF) (hG := hG)) :
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
     (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.fileHolds path D ∗ backend.optsAt opts dq o ∗
-      ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ backend.boltLogger o.logger) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.fileHolds path D ∗
+      backend.optsAt opts dq o ∗ ⌜o.ok ∧ o.noErr⌝ ∗
+      (⌜o.logger = GoInterface.nil⌝ ∨ backend.boltLogger o.logger) }}
     (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
-  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); backend.optsAt opts dq o ∗
+  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err);
+      (∃ x : w64, backend.optsAt opts dq { o with initialMmapSize := x }) ∗
       ⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db γ ∗
-          -- (2026-11-04, R2b-3c, the user's approval) which file it is (`DB.Close_kv` gives it back)
           dbFile db γ path }} := by
   intro hT hR path mode opts dq o D
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
@@ -81,16 +87,17 @@ private theorem bbolt.kvGlue_Open_kv :
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
   · haveI := fax; haveI := fsax
-    have h := bbolt.Open_sharedNoErrH.pendingS3d (GF := GF) (hG := hG)
+    have h' := @h fax fsax
     simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, hfs,
       onFs_some hfs]
     obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := nex.ok
+    have hne : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath
     iintro %Φ ⟨#Hpkg, Hf, Hbo, %Hok, #Hlog⟩ HΦ
     unfold fileHoldsF
     icases Hf with ⟨%R, %d, %b, %dqp, %j, %qc, %hn, %hpb, #Hinv, #Hsh, Hpath, Hcp, Hnm, Hnh⟩
     obtain ⟨hp, hb⟩ := hpb
     subst hp
-    icases optsAt_bolt opts dq o Hok $$ Hbo with ⟨%f, %Hok', Hbo, Hback⟩
+    icases optsAt_bolt opts dq o Hok.1 Hok.2 $$ Hbo with ⟨%f, %Hok', Hbo, Hback⟩
     ihave #Hlog' : ⌜(o.toBolt false f).logger = GoInterface.nil⌝ ∨
         bbolt.boltLogger (o.toBolt false f).logger $$ []
     · icases Hlog with (%Hl | #Hl)
@@ -98,13 +105,16 @@ private theorem bbolt.kvGlue_Open_kv :
       · iright
         rw [show (o.toBolt false f).logger = o.logger from rfl]
         iexact Hl
-    wp_apply (h Sio hino hpath (dbNs (child d b)) R d b dqp j qc hn mode opts dq (o.toBolt false f) D hb)
+    wp_apply (h' (dbNs (child d b)) R d b dqp j qc hn mode opts dq (o.toBolt false f) D hb)
       $$ [$Hpkg $Hinv $Hsh $Hpath $Hcp $Hnm $Hnh $Hbo $Hlog']
-      as %db %err ⟨Hbo, Hpath, Hcp, %He, %oc, %γ, %i, Hcr, %hnc, #Hdb, #Hino, Hst, Hcl⟩
+      as %db %err ⟨Hbo, Hpath, Hcp, %oc, Hcr, Hres⟩
     · iframe %Hok'
       ipureintro; exact dbNs_osN _
+    icases Hres with (⟨%He, %γ, %i, %hnc, #Hdb, #Hino, Hst, Hcl⟩ | %Hbad)
+    rotate_left
+    · exact absurd hne Hbad.2
     obtain ⟨hns, hci⟩ := hnc
-    icases crOut_file j b hn (DFrac.own 1) oc i hci $$ Hcr with ⟨%h', Hnm, %hh'⟩
+    icases crOut_file j b hn (DFrac.own 1) oc i hci $$ Hcr with ⟨%h'', Hnm, %hh'⟩
     ihave Hbo := Hback $$ Hbo
     iapply HΦ
     iframe Hbo
@@ -114,7 +124,7 @@ private theorem bbolt.kvGlue_Open_kv :
     iframe Hdb Hst
     isplitl [Hpath Hcp Hnm Hcl]
     · unfold dbRestF
-      iexists R, d, b, dqp, j, qc, h', i
+      iexists R, d, b, dqp, j, qc, h'', i
       iframe Hinv Hsh Hpath Hcp Hnm Hino Hcl
       ipureintro; exact ⟨hns, hb, hh'⟩
     unfold wrTok dbFile
@@ -132,10 +142,12 @@ theorem backend.newBackend.wp_proof
     (hErr : zap.Error.spec (GF := GF) (hG := hG))
     (hPanic : zap.Logger.Panic.spec (GF := GF) (hG := hG))
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
-    (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
+    (hRun : backend.backend.run.spec (GF := GF) (hG := hG))
+    (hOpen : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+      bbolt.Open.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
-  have hOpen := @bbolt.kvGlue_Open_kv
   intro _ _ cfg P D W Pk K
+  replace hOpen := bbolt.kvGlue_Open hOpen
   wp_start as ⟨#Hzl, Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)
   ihave #Hboo : (boltOpenOptionsOk : IProp GF) $$ []
@@ -144,20 +156,19 @@ theorem backend.newBackend.wp_proof
     icases Hbi with ⟨-, -, -, -, #H, -⟩
     iexact H
   iunfold boltOpenOptionsOk at Hboo
-  icases Hboo with ⟨%p, #Hgp, #Hpo⟩
+  icases Hboo with ⟨%p, #Hgp, %o0, #Ho0, %Hok0⟩
+  ihave %Hpnn := optsAt_nonnull p DFrac.discard o0 $$ Ho0
   -- `&bolt.Options{}`: `wp_auto` runs the literal and the allocation (the type is translated,
   -- 2026-11-17), and `optsAt_zero` reads the zero value as `optsZero`
   wp_auto
   obtain ⟨bo, rfl⟩ : ∃ bo, bo = «$r0_ptr» := ⟨_, rfl⟩
   ihave Hbo := optsAt_zero bo $$ «$r0»
-  -- `*bopts = *boltOpenOptions` when that is not nil
-  wp_join iprop(bopts_ptr ↦ bo ∗ ∃ o : OptsM, optsAt bo (DFrac.own 1) o ∗ ⌜o.ok⌝) with [Hbo bopts]
+  -- `*bopts = *boltOpenOptions` (never nil on Linux, `boltOpenOptionsOk`)
+  wp_join iprop(bopts_ptr ↦ bo ∗ ∃ o : OptsM, optsAt bo (DFrac.own 1) o ∗
+      ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝) with [Hbo bopts]
     as ⟨bopts, %o, Hbo, %Hok⟩
-  · iframe
-    ipureintro; exact optsZero_ok
-  · icases Hpo with (%Hn | ⟨%o0, #Ho0, %Hok0⟩)
-    · exfalso; simp_all
-    wp_apply (wp_optsLoad p DFrac.discard o0) as %v1 ⟨-, %hv1⟩
+  · exfalso; simp_all
+  · wp_apply (wp_optsLoad p DFrac.discard o0) as %v1 ⟨-, %hv1⟩
     · iexact Ho0
     wp_apply_core (wp_optsStore bo optsZero o0 v1 hv1) $$ [$Hbo]
     iintro Hbo
@@ -183,26 +194,26 @@ theorem backend.newBackend.wp_proof
     iexact Hok
   -- the options' fields
   wp_apply (hMmap bcfg_ptr _) $$ [$bcfg] as bcfg
-  icases optsAt_int bo o go!"InitialMmapSize" (by simp) $$ Hbo with ⟨%x1, Hf, Hback⟩
+  icases optsAt_initialMmapSize bo o $$ Hbo with ⟨%x1, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  icases optsAt_freelist bo o $$ Hbo with ⟨%x2, Hf, Hback⟩
+  icases optsAt_freelist bo _ $$ Hbo with ⟨%x2, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  icases optsAt_bool bo o go!"NoSync" (by simp) $$ Hbo with ⟨%x3, Hf, Hback⟩
+  icases optsAt_bool bo _ go!"NoSync" (by simp) $$ Hbo with ⟨%x3, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  icases optsAt_bool bo o go!"NoGrowSync" (by simp) $$ Hbo with ⟨%x4, Hf, Hback⟩
+  icases optsAt_bool bo _ go!"NoGrowSync" (by simp) $$ Hbo with ⟨%x4, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
-  icases optsAt_mlock bo o $$ Hbo with ⟨%x5, Hf, Hback⟩
+  icases optsAt_mlock bo _ $$ Hbo with ⟨%x5, Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ [Hf]
-  · simp only [HP.2.2]; iexact Hf
+  · simp only [HP.2.2.1]; iexact Hf
   ihave %Hlg := zapLoggerOk_ne_null lg $$ Hlz
   wp_apply (hLog _) as %l ⟨#Hl, %Hlty⟩
   · iexact Hlz
-  icases optsAt_logger bo o $$ Hbo with ⟨Hf, Hback⟩
+  icases optsAt_logger bo _ $$ Hbo with ⟨Hf, Hback⟩
   wp_auto
   ihave Hbo := Hback $$ Hf
   icases optsAt_timeout bo _ $$ Hbo with ⟨%x6, Hf, Hback⟩
@@ -210,11 +221,13 @@ theorem backend.newBackend.wp_proof
   ihave Hbo := Hback $$ Hf
   -- `bolt.Open`
   wp_apply (hOpen cfg.Path' (W32 384) bo (DFrac.own 1) _ D) $$ [$Hfile $Hbo]
-    as %db %err ⟨Hbo, Hres⟩
+    as %db %err ⟨-, Hres⟩
   · iframe #
     ipureintro
     obtain ⟨lc, rfl⟩ := Hlty
-    exact OptsM.ok_withLogger o _ Hok ⟨_, lc, rfl, rfl⟩
+    refine ⟨OptsM.ok_withLogger o _ Hok.1 ⟨_, lc, rfl, rfl⟩, ?_, Hok.2.1, ?_⟩
+    · simp only []; exact HP.2.2.2.1
+    · simp only []; exact HP.2.2.2.2
   icases Hres with ⟨%Herr, %γd, Hown, Hwr, #Hdb, #Hdbfile⟩
   subst Herr
   wp_auto

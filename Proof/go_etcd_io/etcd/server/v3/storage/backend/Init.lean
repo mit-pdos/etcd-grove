@@ -93,10 +93,10 @@ axiom writeSec_init :
     {{ (True : IProp GF) }} (App (Val writeSec.init) (Val #()))
     {{ RET #(); ∃ h : GoInterfaceOk, globalAddr writeSec ↦ GoInterface.ok h ∗ histSpec h }}
 
-/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems): read-write options with the default page size and `OpenFile`. -/
+/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems, but the file model is Linux's, configuration C): read-write options with the default page size and `OpenFile`, `NoFreelistSync`, no `Timeout`. (S3e, 2026-11-18: until then possibly nil.) -/
 axiom boltOpenOptions_init :
     {{ (True : IProp GF) }} (App (Val boltOpenOptions.init) (Val #()))
-    {{ RET #(); ∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝) }}
+    {{ RET #(); ∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝ }}
 
 end go_etcd_io.etcd.server.v3.storage.backend
 end opaqueInits

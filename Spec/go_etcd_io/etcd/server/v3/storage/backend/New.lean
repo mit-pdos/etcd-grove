@@ -40,8 +40,10 @@ abbrev backend.New.spec : Prop :=
       -- (premise fixes 6, D2a) the logger nil (replaced by `zap.NewNop()`) or a zap logger
       zapLoggerOrNil cfg.Logger' ∗
       fileHolds cfg.Path' D ∗
-      -- (S3e, 2026-11-17) `Mlock` off: bbolt's proved `Open` does not model `mlock`
-      ⌜P.Wf ∧ P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false⌝ ∗
+      -- (S3e) `Mlock` off (bbolt's proved `Open` does not model `mlock`); no `Timeout` and an mmap
+      -- size `mmapSize` accepts (`Open` has then no error of its own, `bbolt.optsNoErr`)
+      ⌜P.Wf ∧ P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false ∧ cfg.Timeout' = W64 0 ∧
+        sint.Z cfg.MmapSize' ≤ 0xFFFFFFFFFFFF⌝ ∗
       hooksOk P W Pk cfg.Hooks' ∗
       -- (sweep repairs 1, B4) `ETCD_VERIFY` off (the new backend's `isBackend` carries it)
       envVerifyOff ∗

@@ -54,7 +54,6 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBuffer
 public import Spec.go_etcd_io.bbolt.Api
 public import Spec.go_etcd_io.bbolt.ApiS
-public import Spec.go_etcd_io.bbolt.Open_sharedNoErrH
 public import GooseLang.Ext.Fs.TreeSharedRes
 public import GooseLang.Ext.Fs.FilteredSem
 
@@ -242,13 +241,13 @@ def fileHoldsF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (
 
 /-- **What an open database keeps of its file** (S3e), at the instances: the claim on its name,
 which names the file `Open` opened (`boltIno γ i`), with the path's spine and the call permission's
-share, given back by `Close` as `fileHolds`, and the right to close it (`boltCloserH`, pending S3f's
-`boltCloser`). Its path is the one `γ.ns` records (`dbNs`). -/
+share, given back by `Close` as `fileHolds`, and the right to close it (`boltCloser`,
+S3f). Its path is the one `γ.ns` records (`dbNs`). -/
 def dbRestF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : DBNames) : IProp GF :=
   iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (i : Ino),
     ⌜γ.ns = dbNs (child d b) ∧ NameOk b ∧ h.cur !! b = some (.file i)⌝ ∗ osInv ∗ osSharedInv R ∗
     osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i ∗
-    bbolt.boltCloserH γ)
+    bbolt.boltCloser γ)
 
 /-- `db` is the open database `γ` with committed data `D`, all of it, and its file's claim
 (`dbRestF`, S3e). -/

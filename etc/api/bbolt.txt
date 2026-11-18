@@ -57,5 +57,3 @@ importable Spec.go_etcd_io.bbolt.Options__String
 ## the generated `Init.lean`s are exempt above.
 
 
-## Interim (S3e, until S3f is merged): the error-free Open/Close statements the backend takes
-importable Spec.go_etcd_io.bbolt.Open_sharedNoErrH

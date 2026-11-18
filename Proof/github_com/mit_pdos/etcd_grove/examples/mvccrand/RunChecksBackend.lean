@@ -376,13 +376,13 @@ theorem wp_DefaultBackendConfig (lg : Loc) :
       (App (Val (@! go_etcd_io.etcd.server.v3.storage.backend.DefaultBackendConfig)) (Val #lg))
     {{ (c : BackendConfig), RET #c;
         ⌜c.BatchLimit' = W64 10000 ∧ c.Hooks' = GoInterface.nil ∧ c.Logger' = lg ∧
-          c.Mlock' = false⌝ }} := by
+          c.Mlock' = false ∧ c.Timeout' = W64 0 ∧ c.MmapSize' = W64 10737418240⌝ }} := by
   wp_start as #Hpkg
   ihave ⟨#Hbi, #Hbl, #Hms⟩ := backend_defaults $$ Hpkg
   wp_auto
   iapply HΦ
   ipureintro
-  exact ⟨rfl, rfl, rfl, rfl⟩
+  exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
 
 end config
 
