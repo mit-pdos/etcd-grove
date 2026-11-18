@@ -54,7 +54,7 @@ theorem Server.get.wp_proof
   ihave #Hinit : (github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.apimodelInit :
     IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨⟨%eS, #HeS⟩, ⟨%eR, #HeR⟩, ⟨%sA, #HeA⟩⟩
+  icases Hinit with ⟨⟨%eS, #HeS, #HeSok⟩, ⟨%eR, #HeR, #HeRok⟩, ⟨%sA, #HeA⟩⟩
   ihave #Hsrv := Hs
   iunfold isServer at Hs
   icases Hs with ⟨%L, #Hs⟩
@@ -90,7 +90,7 @@ theorem Server.get.wp_proof
         | some _ => simp [hk, h'] at hd
       simp only [Option.isSome_none, Option.getD_none]
       wp_auto
-      wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, %Hst⟩
+      wp_apply +noauto wp_NewNotFound as %p ⟨%st, Hp, #Hd, %Hst⟩
       ipersist Hp
       wp_auto
       wp_apply wp_Unlock $$ [$Hmu $Hown Hhist Hws Hrev Huids Hrvsm Hrc Hback HM Hrel Hlog Hsl Hcap Hcs]
@@ -144,7 +144,8 @@ theorem Server.get.wp_proof
       iexact Hy
   · imod (au_read_any γ (fun σ => iprop(∀ x err, getRet cfg.FailReads' admin (getObj r ns name σ) x err -∗ Φ (PairV #x #err)))) $$ HΦ with ⟨%σ, HΦ⟩
     wp_auto
-    wp_apply +noauto wp_NewInternalError as %p ⟨%st, Hp, %Hst⟩
+    wp_apply +noauto wp_NewInternalError as %p ⟨%st, %c, Hp, #Hd, %Hst⟩
+    · first | iexact HeRok | iexact HeSok
     ipersist Hp
     wp_auto
     iapply HΦ
@@ -156,7 +157,7 @@ theorem Server.get.wp_proof
     iexists p, st
     iframe #
     ipureintro
-    exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+    exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
 end proof
 
 end apimodel

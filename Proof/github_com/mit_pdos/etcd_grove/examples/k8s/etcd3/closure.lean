@@ -159,7 +159,7 @@ theorem closure.wp_proof (wp_addConfig : addConfig.spec (GF := GF) (hG := hG))
         · isplit
           · iexact Hdp
           · ipureintro; exact Hx_lookup
-        have hwr : isWriteL x = true := Hhb.2.2 x (List.mem_of_getElem? Hx_lookup)
+        have hwr : isWriteL x = true := Hhb.2.2.1 x (List.mem_of_getElem? Hx_lookup)
         wp_apply wp_mstep x d.st' h.st.st $$ [$Hds] as %nk %o ⟨#Hnk, -⟩
         · ipureintro; unfold Bounded at Hhb; omega
         wp_apply wp_removeAt d.pend' h.pend DFrac.discard j $$ [$Hdp] as %np ⟨-, Hnp, -⟩

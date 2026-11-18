@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 theorem rpctypes.ErrorDesc.wp_proof
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG)) :
     rpctypes.ErrorDesc.spec (GF := GF) (hG := hG) := by
-  intro err
-  wp_start as #Hok
+  intro err m
+  wp_start as ⟨#Hok, #Hm⟩
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_FromError err $$ [$Hst $Hok] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
+  wp_apply wp_FromError err m $$ [$Hst $Hok $Hm] as %s %ok ⟨%Hnil, #HCode, #HMsg, #HErr, %Hdm, %Hng⟩
   cases ok
   · wp_auto
     cases err with
@@ -42,11 +42,13 @@ theorem rpctypes.ErrorDesc.wp_proof
       ihave #HE := HErr $$ %e %hpe
       wp_apply HE
       iapply HΦ
-      ipureintro; rfl
+      ipureintro
+      exact ⟨rfl, fun _ _ _ => Hdm rfl⟩
   · wp_auto
     wp_apply HMsg
     iapply HΦ
-    ipureintro; rfl
+    ipureintro
+    exact ⟨rfl, fun e he hng => absurd (Hng e he hng) (by simp)⟩
 
 end proof
 

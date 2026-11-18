@@ -224,6 +224,12 @@ def watchOkL (x : Input) (y : Output) (h : HSt) : Bool :=
                 else reliableOkL x req (evs.drop b) h
             else reliableOkL x req evs h
 
+/-- **The driver's model** from the seeded store and its history `h0`: linkv's `PendSpec` of
+`kstepL`, with (stage E of 7f-6) the watches (kind 5) its observations, an answer allowed iff
+`watchOkL` passes at the configuration's store and history. -/
+abbrev kSpec (h0 : HSt) : linkv.PendSpec HSt Input Output :=
+  ⟨h0, kstepL, isWriteL, fun x => decide (x.Kind' = W64 5), fun x h y => watchOkL x y h = true⟩
+
 end go
 
 end k8s_etcd3

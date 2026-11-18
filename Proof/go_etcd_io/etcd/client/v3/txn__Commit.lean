@@ -95,7 +95,8 @@ theorem txn.Commit.wp_generic (wp_retry_Txn : retryKVClient.Txn.spec (GF := GF) 
     | nil => exact absurd rfl Hne
     | ok ei =>
       wp_auto
-      wp_apply wp_ContextError ci cd (GoInterface.ok ei) $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
+      ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      wp_apply wp_ContextError ci cd (GoInterface.ok ei) mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
       · iframe #; ipureintro; exact fun _ => Hce'
       ihave #Hcl' := Hclw $$ Hcl
       wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked]

@@ -22,12 +22,17 @@ Lean-first (no Rocq counterpart).
   the prefix (etcd's first revision: none; the seed's puts, `Apply`'s writes: one each).
 - `cacheInv c tbl`: the table's map, owned, every entry `cachedObjOk` (persistent facts: `Apply`
   adds an entry from an answer it has the facts of, `Gen` reads one).
-- `isCache c tbl`: the mutex, with `cacheInv` as its lock invariant (persistent).
+- `isCache c tbl`: the mutex, with `cacheInv` as its lock invariant (persistent); and (stage E of
+  7f-6) the read-only fields `watch`, `unary`, `total` (whether the clients from `unary` on are
+  watchers, the unary operations' count) and the `done` counter in an invariant (no fact on its
+  value: Go's `Add` wraps, and `Gen` only compares it). The watchers' map (`wobjs`) is in the lock
+  invariant with no fact on its entries (G2: a watcher only reads its object's resource version).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Inv
 public import Perennial.Proof.sync.Base
+public import Perennial.Proof.sync.atomic.Base
 
 @[expose] public section
 
@@ -54,14 +59,25 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- **The table's state** (`cache`'s lock invariant; see the file header): its map, owned, every
 entry a cached object. -/
 def cacheInv (c : StoreCfg GF DObj) (tbl : Loc) : IProp GF :=
-  iprop(∃ (mp : GoMap) (m : GMap w64 Obj),
+  iprop(∃ (mp : GoMap) (m : GMap w64 Obj) (mpw : GoMap) (mw : GMap w64 Obj),
     tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"objs"] ↦ mp ∗ mp ↦$ m ∗
-    [∗map] _id ↦ ob ∈ m, cachedObjOk c ob)
+    ([∗map] _id ↦ ob ∈ m, cachedObjOk c ob) ∗
+    tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"wobjs"] ↦ mpw ∗ mpw ↦$ mw)
 
-/-- **The table** (see the file header; persistent): its mutex, with `cacheInv`. -/
+/-- The `done` counter's invariant's namespace. -/
+def cacheDoneN : Namespace := nroot .@ "k8setcd3_done"
+
+/-- **The table** (see the file header; persistent): its mutex, with `cacheInv`; its read-only
+fields; its `done` counter. -/
 def isCache (c : StoreCfg GF DObj) (tbl : Loc) : IProp GF :=
   iprop(sync.isMutex (tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"mu"])
-    (cacheInv c tbl))
+    (cacheInv c tbl) ∗
+    (∃ (w : Bool) (u t : w64),
+      tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"watch"] ↦□ w ∗
+      tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"unary"] ↦□ u ∗
+      tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"total"] ↦□ t) ∗
+    inv cacheDoneN (∃ v : w64, sync.atomic.ownInt64
+      (tbl.[github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.cache, go!"done"]) (DFrac.own 1) v))
 
 instance isCache_persistent (c : StoreCfg GF DObj) (tbl : Loc) :
     Persistent (isCache (GF := GF) c tbl) := by

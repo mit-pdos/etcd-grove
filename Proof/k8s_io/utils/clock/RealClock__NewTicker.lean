@@ -1,9 +1,12 @@
 /-
-The trust boundary: `Spec/k8s_io/utils/clock/RealClock__NewTicker.lean`. Lean-first.
+`clock.RealClock.NewTicker`, verified: k8s.io/utils/clock's code as released (translated with its body,
+`Code/k8s_io/utils/clock.toml`) over Perennial's verified `time`. Until 2026-11-18 a trust-boundary
+axiom (its reference implementation, mit-pdos/etcd-refimpl, was this same code).
 -/
 module
 
 public import Spec.k8s_io.utils.clock.RealClock__NewTicker
+public import Perennial.Proof.time
 
 @[expose] public section
 
@@ -21,8 +24,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [package_sem : k8s_io.utils.clock.Assumptions]
 
-axiom clock.RealClock.NewTicker.wp_proof : clock.RealClock.NewTicker.spec (GF := GF) (hG := hG)
+theorem clock.RealClock.NewTicker.wp_proof : clock.RealClock.NewTicker.spec (GF := GF) (hG := hG) := by
+  intro c d hd
+  wp_start
+  wp_alloc res as Hres
+  wp_auto
+  wp_apply time.NewTicker.wp_proof as %t %ch %γ #Ht
+  · ipureintro; exact hd
+  wp_alloc p as Hp
+  icases typedPointsto_split _ _ _ $$ Hp with Hp
+  simp only [TypedPointsto.typedPointstoDef]
+  icases Hp with ⟨Hf, -⟩
+  imod (typedPointsto_dfractional (GF := GF) _ t).dfractional_persist _ $$ Hf with #Hf
+  wp_auto
+  iapply HΦ
+  unfold clock.realTickerOk
+  iexists t, ch, γ
+  iframe #
 
 end proof
 

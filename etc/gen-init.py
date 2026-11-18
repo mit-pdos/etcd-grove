@@ -24,8 +24,8 @@ come from their `wp_initialize'` by `EtcdGrove.initLb_of_spec` (Perennial's
 `initLb_of_initSpec`), over the initializers listed in the generated
 `Proof/runtime/PkgInitExt.lean` (`ExternalInit`).
 
-The parallel tree `RaftWitness/` gets copies of the files it imports that reach raft
-(`PART_INITS`, and `PkgInitExt`), at `RaftWitness/<path>`.
+The parallel trees `RaftWitness/` and `RaftNoAx/` get copies of the files they import that reach
+raft (`PARTS`: `PART_INITS`, and `PkgInitExt`), at `<part>/<path>`.
 The part `PorcupineDag/` (porcupine PR #46) gets its own package's `Init.lean`, from its own
 translation, and `Closures.lean`, the func literals its package fact names (`DAG_*`).
 
@@ -1047,7 +1047,9 @@ panic, no write to its argument), `opaqueInitsOk` the others.''',
 
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
-`tooLargeResourceVersionCauseMsg` hold strings.
+`tooLargeResourceVersionCauseMsg` hold strings, and `Everything` holds, for good, a predicate with no
+shard selector whose label and field selectors' `Empty()` is `true` (`everythingOk`, from the two
+axioms' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -1066,12 +1068,17 @@ its imports and runs the translated initializers.''',
         'wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap',
         'try wp_auto',
         'repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)',
-        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ -',
+        'wp_apply EtcdGrove.labels.Everything.wp_proof as %_ ⟨%il, %Hil, -, #HlE⟩',
         'try wp_auto',
-        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
+        'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ ⟨%ifd, %Hif, #HfE⟩',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
-           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg',
+            'ipersist HEverything'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _, _', 'iframe #',
+            'unfold _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.everythingOk',
+            'isplitr', '· ipureintro; rfl',
+            'isplitr', '· iexists il; iframe #; ipureintro; exact Hil',
+            'iexists ifd; iframe #; ipureintro; exact Hif'],
 )
 
 # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md): their facts are `True`; their
@@ -2168,7 +2175,7 @@ names) and the four
              'ihave Hpi : (go_etcd_io.etcd.cache.v3.etcdserverpbInit : IProp GF) $$ []',
              '· iapply isPkgInit_access $$ Hd2',
              'icases Hpi with ⟨#HSO, #HST, #HDescs⟩',
-             'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', 'ihave #HCD := EtcdGrove.ContextReadErrs.descs $$ Hd1',
+             'ihave ⟨#HCL, -⟩ := EtcdGrove.ContextReadErrs.errs_strong $$ Hd1', "-- (incomingof Part B) the context errors are keys of the map, so neither read error's description", 'ihave #HCD : (ctxErrDescs : IProp GF) $$ []', '· ihave #Hci : (_root_.Perennial.context.isInit : IProp GF) $$ []', '  · iapply _root_.Perennial.context.isInit_access $$ Hd1', '  iNamed Hci', '  icases HCanceledCell with ⟨%xc, #Hxc, -⟩', '  unfold ctxErrDescs', '  isplitl []', '  · iexists _; iframe Hxc', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.Canceled %_ %(by mem_tac) Hxc', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv', '    ipureintro; exact ⟨h1, h2⟩', '  · iexists _; iframe HDeadlineExceededTy', '    ihave %hs := KtoGRPCErrorMap $$ %_root_.Perennial.context.DeadlineExceeded %_ %(by mem_tac)', '      HDeadlineExceededTy', '    obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs', '    obtain ⟨-, -, -, h1, h2⟩ := PtoGRPCErrorMap.1 _ _ hv', '    ipureintro; exact ⟨h1, h2⟩',
              'ihave #HCP : (∃ e : GoInterfaceOk, globalAddr _root_.Perennial.context.Canceled ↦□ GoInterface.ok e ∗',
              '    ⌜_root_.Perennial.errors.IsPointerError e⌝ : IProp GF) $$ []',
              '· iunfold EtcdGrove.errVarLeaf at HCL', '  icases HCL with ⟨%e, #He, %Hl, -⟩',
@@ -2257,26 +2264,15 @@ _RD_CTX_PRE = [
     'general fix is a Perennial change (`notes/decisions.md`, "Item 8: context\'s facts"). A',
     'premise rather than an axiom: `isPkgInit context` is not sealed (any proof holding the',
     'variables\' cells could make it), so as an axiom the entailment could be used to prove `False`.',
-    '(`v3rpc`\'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.) -/',
+    '(`v3rpc`\'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.)',
+    "(incomingof Part B, 2026-11-18) Its former fields `descs` (both errors' `errDesc`) and, after it,",
+    "`descDeadline` (`DeadlineExceeded`'s) are gone: the users take `Error()`'s message per run",
+    '(`ctxErrsErr`, `ctxErrMsg`), and a pure `errDesc` fact had no per-run source',
+    '(`notes/axiom-review/incomingof-b.md`). -/',
     'class EtcdGrove.ContextReadErrs : Prop where',
     '  errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
     '    EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗',
     '      go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW',
-    '  /-- The two errors\' gRPC descriptions (k8s etcd3 7c-2 part 2, S1, HS-2): neither is a status',
-    '  error, so `errDesc` is its `Error()`, `"context canceled"` and `"context deadline exceeded"`',
-    "  (`context.go`). How to read it (premise-fixes-4, the round-2 premise attack's H1): as a hypothesis",
-    '  for every `hG`, at the unit resource, the entailment is of every resource satisfying `isPkgInit',
-    '  context`, and `isPkgInit` is persistent fragments only, valid at any location; so it holds only if',
-    '  `errDesc` of `*errorString` at every location whose `s` is `"context canceled"` is that string',
-    "  (and likewise of `deadlineExceededError`), not only at the location this run's initializer",
-    '  allocates. That is the per-execution claim Go makes of the values themselves (`errDesc` is opaque:',
-    '  `status.FromError` of a non-status error is its `Error()`); this repository neither proves nor',
-    '  refutes it (`notes/STATUS.md`, the unproved bag items). -/',
-    '  descs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢',
-    '    (∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗',
-    '        ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗',
-    '      (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗',
-    '        ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝)',
     '',
     '/-- `ContextReadErrs.errs` with the two errors\' `Format` facts (premise-fixes-4: `errVarLeaf`,',
     '`ctxDeadlineLeaf`): neither has a `Format` method, from Perennial\'s `context.isInit` (`Canceled`\'s',
@@ -3012,22 +3008,44 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
               'os', 'syscall', 'io.fs',
               # (2026-11-07) `os`'s translated initializers' imports
               'internal.poll', 'internal.syscall.unix']
-PART_PATHS = {f'Proof/{dirof(p)}/Init.lean' for p in PART_INITS} | {'Proof/runtime/PkgInitExt.lean'}
-PART_MODULES = {p[:-len('.lean')].replace('/', '.') for p in PART_PATHS}
 
 
-def part_copy(path, txt):
-    """The part's copy of the generated file `path`."""
+def part_paths(inits):
+    return {f'Proof/{dirof(p)}/Init.lean' for p in inits} | {'Proof/runtime/PkgInitExt.lean'}
+
+
+# Every such part: its packages, and the module prefixes (besides its copies of these files) whose
+# imports are the part's. The part `RaftNoAx/` (raft without hand-written axioms,
+# notes/raft-noax-part.md) imports kvdurable's initializer too, so durable's and trusted_proph's;
+# its other copies (etc/copy-part.py) are raft's proofs, kvdurable's and kvreconf's, and the
+# translations of kvdurable, kvreconf and walpb (etc/goose.py).
+PARTS = {
+    PART_ROOT: (PART_INITS, ['Code.go_etcd_io.raft']),
+    'RaftNoAx': (PART_INITS + ['github_com.mit_pdos.etcd_grove.examples.lib.durable',
+                               'github_com.mit_pdos.gokv.trusted_proph'],
+                 ['Code.go_etcd_io.raft', 'GeneratedProof.go_etcd_io.raft', 'Spec.go_etcd_io.raft',
+                  'Proof.go_etcd_io.raft', 'Code.go_etcd_io.etcd.server.v3.storage.wal.walpb']
+                 + [f'{d}.github_com.mit_pdos.etcd_grove.examples.raft.{p}'
+                    for d in ('Code', 'GeneratedProof', 'Spec', 'Proof')
+                    for p in ('kvdurable', 'kvdurablenoax', 'kvreconf')]),
+}
+PART_PATHS = part_paths(PART_INITS)
+
+
+def part_copy(path, txt, root=PART_ROOT):
+    """The part `root`'s copy of the generated file `path`."""
+    inits, prefixes = PARTS[root]
+    mods = {p[:-len('.lean')].replace('/', '.') for p in part_paths(inits)}
     def imp(m):
         x = m.group(2)
-        if x in PART_MODULES or x == 'Code.go_etcd_io.raft' or x.startswith('Code.go_etcd_io.raft.'):
-            x = PART_ROOT + '.' + x
+        if x in mods or any(x == q or x.startswith(q + '.') for q in prefixes):
+            x = root + '.' + x
         return m.group(1) + x
     txt = re.sub(r'(?m)^(public import )(\S+)', imp, txt)
     i = txt.index('\nmodule\n') + 1
-    note = (f'-- The copy for the parallel tree `{PART_ROOT}/` of `{path}` (`PART_INITS` in\n'
+    note = (f'-- The copy for the parallel tree `{root}/` of `{path}` (`PART_INITS` in\n'
             f'-- `etc/gen-init.py`): the same, but its imports of the copied modules and of raft are the part\'s.\n')
-    return f'{PART_ROOT}/{path}', txt[:i] + note + txt[i:]
+    return f'{root}/{path}', txt[:i] + note + txt[i:]
 
 # The part `PorcupineDag/` (porcupine's pull request #46, the DAG search; notes/porcupine-dag-plan.md):
 # the same Go path as v1.3.1's porcupine, translated into a module root of its own. Its package's
@@ -3290,6 +3308,46 @@ def wt_inits():
     return [(f'{WT_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
 
 
+# The part `RaftNoAx/` (raft without hand-written axioms, notes/raft-noax-part.md): its kvdurable is
+# the Go package `goose.KVDURABLE_NOAX_PKG` (examples/raft/kvdurablenoax) over the part's raft, whose
+# packages import other packages than the main raft's (no `proto`), so its `Init.lean` and
+# `PkgTable.lean` are generated as the main tree's kvdurable's, from the part's translation and
+# instances (over the main tree's), with the imports of the part's modules prefixed. (Raft's own
+# `Init.lean` is hand-written, the part's own copy.) etc/copy-part.py does not copy these
+# (`NOAX_MAIN_PATHS`, the main tree's files they stand for).
+NOAX_ROOT = 'RaftNoAx'
+sys.path.insert(0, os.path.join(ROOT, 'etc'))
+import goose as _goose  # noqa: E402
+NOAX_PKG = _goose.KVDURABLE_NOAX_PKG.replace('.', '_').replace('-', '_').replace('/', '.')
+NOAX_MAIN_PKG = 'github_com.mit_pdos.etcd_grove.examples.raft.kvdurable'
+NOAX_MAIN_PATHS = [f'Proof/{dirof(NOAX_MAIN_PKG)}/Init.lean', f'Proof/{dirof(NOAX_MAIN_PKG)}/PkgTable.lean']
+
+
+def noax_inits():
+    """The part's kvdurable's `Init.lean` and `PkgTable.lean`."""
+    global inv, inst
+    saved = inv, inst
+    try:
+        inv = dict(inv)
+        for q, d in inventory(f'{NOAX_ROOT}/Code').items():
+            if not d['perennial']:
+                inv[q] = d
+        inst = {**inst, **instances(f'{NOAX_ROOT}/Proof/')}
+        raw = [gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))),
+               gen_table(NOAX_PKG, f'Proof/{dirof(NOAX_PKG)}/PkgTable.lean')]
+    finally:
+        inv, inst = saved
+    made = {path for path, _ in raw}
+
+    def imp(m):
+        x = m.group(2)
+        f = x.replace('.', '/') + '.lean'
+        if os.path.exists(f'{NOAX_ROOT}/{f}') or f in made or x == 'Proof.runtime.PkgInitExt':
+            x = f'{NOAX_ROOT}.{x}'
+        return m.group(1) + x
+    return [(f'{NOAX_ROOT}/{path}', re.sub(r'(?m)^(public import )(\S+)', imp, txt)) for path, txt in raw]
+
+
 # The part `NetTcp/` (the TCP extension's `net` and the programs over it, `examples/net/`; project
 # nettcp): `net` is a Go path the main tree translates too (names only), so the part's packages'
 # initializers are generated as `LinuxFs/`'s, from the part's translation and instances, with the
@@ -3375,12 +3433,14 @@ def main(argv):
     if not [a for a in argv if not a.startswith('--')]:
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
-    outs += [part_copy(path, txt) for path, txt in outs if path in PART_PATHS]
+    outs += [part_copy(path, txt, root) for root, (inits, _) in PARTS.items()
+             for path, txt in outs if path in part_paths(inits)]
     if not [a for a in argv if not a.startswith('--')]:
         outs += [dag_closures(), dag_init(),
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()
+        outs += noax_inits()
         outs += nt_inits(next(t for p, t in outs if p == 'Proof/runtime/PkgInitExt.lean'))
     for path, txt in outs:
         old = open(path).read() if os.path.exists(path) else None

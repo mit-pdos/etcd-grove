@@ -560,20 +560,31 @@ theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Input) with ⟨%γp, Hp⟩
   imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := KVState) with ⟨%γr, Hr⟩
   imod ghost_map_insert_persist σs2.rev σs2 rfl $$ Hr with ⟨Hr, #He⟩
+  imod (mono_list_own_alloc (GF := GF) σs2.changes) with ⟨%γch, Hch, -⟩
   icases (ghostVar_split_half γh 1 ([] : List OpV)).1 $$ Hh with ⟨Hh1, Hh2⟩
-  imod inv_alloc drvInvN E (kInvBody (GF := GF) ⟨γh, γp, γr⟩ c g0s γk) $$ [Hh1 Hσ Hp Hr Hhist]
+  imod inv_alloc drvInvN E (kInvBody (GF := GF) ⟨γh, γp, γr, γch, σb.base⟩ c g0s γk)
+    $$ [Hh1 Hσ Hp Hr Hch Hhist]
     with #Hinv
   · inext
     iunfold kInvBody
     iexists [], linkv.pInit (kSpec g0s), σs2, ∅, 0
     iframe
-    isplitl [Hr]
+    isplitl [Hr Hch]
     · iunfold revOwn
       iexists _
-      iframe He Hr
+      iframe He Hr Hch
+      have h1 : k8s.KvNext σb σs1 :=
+        k8s.kvNext_step _ _ (by simp [seedOp, KVOp.isKV]) (seedOp_one _ _)
+      have h2 : k8s.KvNext σs1 σs2 :=
+        k8s.kvNext_step _ _ (by simp [seedOp, KVOp.isKV]) (seedOp_one _ _)
+      have hkh : KHistI ⟨γh, γp, γr, γch, σb.base⟩ σs2 := by
+        refine khistI_next _ (khistI_next _ ⟨rfl, rfl, ?_, by rw [σb_rev]; exact Nat.le_refl 1⟩ h1) h2
+        intro cs hcs
+        simp [σb, kvStateOf] at hcs
+        subst hcs; simp
       ipureintro
-      refine ⟨GMap.lookup_insert _ _ _, fun n hn => by
-        rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl, fun n s hs => ?_⟩
+      refine ⟨⟨GMap.lookup_insert _ _ _, fun n hn => by
+        rw [GMap.lookup_insert_ne _ _ (by omega)]; rfl, fun n s hs => ?_⟩, hkh⟩
       by_cases e : σs2.rev = n
       · subst e; rw [GMap.lookup_insert] at hs; cases hs; exact kvExt_refl _
       · rw [GMap.lookup_insert_ne _ _ e] at hs; cases hs
@@ -593,7 +604,7 @@ theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     ipureintro
     exact ⟨rfl, kOk_init σs2 (seed_wf c hc hp) (seed_wfHist c hc) seed_keys seed_krel g0s_len⟩
   imodintro
-  iexists ⟨γh, γp, γr⟩
+  iexists ⟨γh, γp, γr, γch, σb.base⟩
   iunfold kInv
   iframe Hinv
   iunfold kState

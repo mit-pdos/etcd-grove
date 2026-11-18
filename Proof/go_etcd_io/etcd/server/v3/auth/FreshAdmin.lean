@@ -360,10 +360,11 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
     iunfold authReadTxLockedFrom at Htx
     icases Htx with ⟨%ti, %Hti, Htx⟩
     subst Hti
-    icases Htx with ⟨%sta, %Hs, Htok, #Hsnap, #Hreads⟩
-    iunfold authTxReads at Hreads
+    icases Htx with ⟨%v, %Hs, Htok, #Hsnap0, #Hreads⟩
+    ihave #Hsnap := authViewSnapFrom_users M n v $$ Hsnap0
+    iunfold authTxReadsV at Hreads
     icases Hreads with ⟨#Hrds, #HRU⟩
-    iunfold authReaderOk at Hrds
+    iunfold authReaderOkV at Hrds
     icases Hrds with ⟨#HUG, -, -, -, -⟩
     wp_auto
     wp_bind (App (Val #(methods ti.ty go!"UnsafeGetUser" ti.v)) (Val #info.Username'))
@@ -376,7 +377,7 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
       iframe
     wp_auto
     wp_if_destruct
-    · ihave %Hnone := userOut_null sta info.Username' $$ Hu
+    · ihave %Hnone := userOut_null v.atUsers info.Username' $$ Hu
       (try wp_auto)
       wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
       iapply HRU $$ Htok
@@ -394,9 +395,9 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
         iexists ErrUserNotFound, eUNF
         iframe HeUNFa
         ipureintro; simp
-      · iapply (adminVerdictFromO_noUser M n info (GoInterface.ok eUNF) sta (fun h => by cases h)
+      · iapply (adminVerdictFromO_noUser M n info (GoInterface.ok eUNF) v.atUsers (fun h => by cases h)
           hname Hnone) $$ Hev Hsnap HoUNF
-    ihave Hu' := userOut_some u sta info.Username' Hif $$ Hu
+    ihave Hu' := userOut_some u v.atUsers info.Username' Hif $$ Hu
     icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
     wp_apply h_hasRootRole $$ [$Hu] as %root ⟨Hu, %Hroot⟩
     · ipureintro; rw [Hur.2.1]; exact Hur.2.2
@@ -419,7 +420,7 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
         iexists ErrPermissionDenied, ePD
         iframe HePDa
         ipureintro; simp
-      · iapply (adminVerdictFromO_notRoot M n info (GoInterface.ok ePD) sta roles
+      · iapply (adminVerdictFromO_notRoot M n info (GoInterface.ok ePD) v.atUsers roles
           (fun h => by cases h) hname Hur.1 hn) $$ Hev Hsnap HoPD
     · have hroot : isRoot roles := by rw [← Hur.2.1]; exact of_decide_eq_true Hroot.symm
       (try wp_auto)
@@ -435,7 +436,7 @@ theorem auth.authStore.IsAdminPermitted.wp_lbO
       · iunfold authInfoAt; iexact Ha
       isplitl []
       · iunfold authErrIs; ileft; ipureintro; rfl
-      · iapply (adminVerdictFromO_root M n info sta roles hname Hur.1 hroot) $$ Hsnap
+      · iapply (adminVerdictFromO_root M n info v.atUsers roles hname Hur.1 hroot) $$ Hsnap
 
 /-- `specLb`, of `specLbO` at a non-`nil` auth info (the refusal half dropped). -/
 theorem auth.authStore.IsAdminPermitted.wp_lb

@@ -1,8 +1,11 @@
 /-
-`fields.Everything()` (`k8s.io/apimachinery/pkg/fields`, `selector.go`, names-only here): it
-returns `andTerm{}`, a selector that matches everything; the spec says it returns some
-`Selector`. The trust boundary: an axiom, `Proof/k8s_io/apimachinery/pkg/fields/Everything.lean`. Lean-first (no Rocq
-counterpart).
+`fields.Everything()` (`k8s.io/apimachinery/pkg/fields`, `selector.go:76`, names-only here): it
+returns `andTerm{}` (a non-nil, length-0 value of the slice type `andTerm`); the spec says it
+returns a non-nil `Selector` whose `Empty()` is `true` (`andTerm.Empty`, value receiver,
+`selector.go:190`: `true` on `nil` or length 0, before its loop; pure, so the triple is
+persistent), for `storage.Everything` (`storageInit`, 2026-11-16, k8s 7f-5b H2). Evidence:
+`examples/premisefix/watcherctx/everything_test.go`. The trust boundary: an axiom,
+`Proof/k8s_io/apimachinery/pkg/fields/Everything.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -27,7 +30,8 @@ variable [sem : go.Semantics]
 abbrev fields.Everything.spec : Prop :=
   {{ (True : IProp GF) }}
     (App (Val (@! k8s_io.apimachinery.pkg.fields.Everything)) (Val #()))
-  {{ (s : k8s_io.apimachinery.pkg.fields.Selector), RET #s; True }}
+  {{ (s : k8s_io.apimachinery.pkg.fields.Selector), RET #s; ∃ i : GoInterfaceOk, ⌜s = interface.ok i⌝ ∗
+      {{ True }} (App (Val #(methods i.ty go!"Empty" i.v)) (Val #())) {{ RET #true; True }} }}
 
 end spec
 

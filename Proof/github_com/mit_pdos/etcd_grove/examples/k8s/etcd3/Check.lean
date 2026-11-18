@@ -1,11 +1,11 @@
 module
 
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newCache
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newWCache
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Model
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
-public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Run
+public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.RunLin2
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.lintest.CounterClock
 
 @[expose] public section
@@ -55,32 +55,33 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem Check.wp_proof
-    (wp_Run : lintest.Run.spec (GF := GF) (hG := hG))
+    (wp_Run : lintest.RunLin2.spec (GF := GF) (hG := hG))
     (wp_CounterClock : lintest.CounterClock.spec (GF := GF) (hG := hG))
     (wp_Model : Model.spec (GF := GF) (hG := hG))
-    (wp_newCache : newCache.spec (GF := GF) (hG := hG))
+    (wp_newCache : newWCache.spec (GF := GF) (hG := hG))
     (wp_Gen : Gen.spec (GF := GF) (hG := hG))
     (wp_Apply : Apply.spec (GF := GF) (hG := hG)) :
     Check.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ γ sp c g0 s0 hsl hs clients ops dur hc hpfx hrp hdi hvi hAs hse htb hnr hne Hrb H0
-    H31 Hops Hmul Hg0
-  wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #Hs0, #Hsl, #Hhs⟩
+  intro _ _ _ γ sp c g0 γk s0 hsl hs clients ops watchers wops dur hc hpfx hrp hdi hvi hAs hse htb
+    hnr hne Hrb H0 Hw0 H31 Hops Hwops Hmul Hg0 Hrv0
+  wp_start as ⟨#Hcc, #Hst, #Hrs, #Hinvs, Hks, #HinvK, #Hsw, #Hwl, #Hs0, #Hsl, #Hhs⟩
   wp_auto
-  wp_apply wp_newCache c as %tbl #Htbl
+  wp_apply wp_newCache c clients (clients * ops) as %tbl #Htbl
   (try wp_auto)
   ipersist s
   ipersist tbl
-  ihave #HA := (wp_Apply γ sp tbl c g0 hc hpfx hrp hdi hvi hAs hse htb hnr) $$ Hpkg Hpkg2 Hst Hinvs
-    %hne Htbl Hrs
+  ihave #HA := (wp_Apply γ sp tbl c g0 γk hc hpfx hrp hdi hvi hAs hse htb hnr) $$ Hpkg Hpkg2 Hst
+    Hinvs %hne Htbl Hrs HinvK Hsw Hwl
   wp_apply wp_Model s0 hsl hs g0 $$ [] as %m ⟨%Hp, #Hinit, %Hsc, #Hstep, #Heh⟩
   · iframe #
-    ipureintro; exact Hg0
+    ipureintro; exact ⟨Hg0, Hrv0⟩
   ihave #Hm := github_com.anishathalye.porcupine.isModel_of_step (k8setcd3S g0) m $$ [Hinit Hstep Heh]
   · iframe Hinit Hstep Heh
     ipureintro; exact ⟨Hp, Hsc⟩
   wp_apply wp_CounterClock clockN Hrb as %clock ⟨%clockVal, #Hclk, Hc0⟩
   wp_apply wp_Run (linkv.PSet HSt Input) (k8setcd3S g0) m _ _ clock (kInOk c) (kState γ g0) clockVal
-    (W64 0) drvE ↑clockN clients ops dur lintestN_drvE lintestN_clockN H0 H31 Hops Hmul
+    (W64 0) drvE ↑clockN clients ops watchers wops dur lintestN_drvE lintestN_clockN H0 Hw0 H31 Hops
+    Hwops Hmul
     $$ [Hks Hc0]
   · iframe Hc0 Hcc Hm Hclk
     isplitr
@@ -122,7 +123,7 @@ theorem Check.wp_proof
       iframe Hcx
       ipureintro; exact ⟨rfl, Hx⟩
     · iExactEq Hks; rfl
-  iintro %r %Hr
+  iintro %r %lsl ⟨%Hr, -⟩
   wp_auto
   iapply HΦ
   ipureintro; exact Hr

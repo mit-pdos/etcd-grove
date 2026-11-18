@@ -31,7 +31,7 @@ Client__Get: @
 Client__OptimisticPut: @
 Client__OptimisticDelete: @
 # (Q1 (b), the watch loop) the client's watch and the response's error, its watch option
-watcher__Watch: @
+v3_watcher__Watch: @
 WatchResponse__Err: @
 WithRev:
 #
@@ -128,7 +128,7 @@ compactor__Stop:
 compactor__runCompactLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value clock_RealClock__After Compact compactor__UpdateCompactRevision Client__Endpoints v2_Errorf
 compactor__getCompactRev: strconv_ParseInt fmt_Errorf
 compactor__fromWatchResponse: WatchResponse__Err strconv_ParseInt
-compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
+compactor__runWatchLoop: ContextForChannel channelContext__Done channelContext__Err channelContext__Deadline channelContext__Value =_root_.Perennial.time.wp_After compactor__getCompactRev compactor__UpdateCompactRevision WithRev v3_watcher__Watch compactor__fromWatchResponse Client__Endpoints v2_Errorf
 NewCompactor: compactor__runCompactLoop compactor__runWatchLoop
 # (Q1 (c), 2026-11-05) the compactor registry
 StartCompactorPerEndpoint: NewCompactor Client__Endpoints v2_V Verbose__Infof
@@ -225,4 +225,34 @@ parseEvent: Event__IsCreate Event_EventType__StringPtr fmt_ErrorfPlain
 logWatchChannelErr: isCancelError strings_Contains v2_Warningf v2_Errorf
 watchChan__syncPaginated: errors_AsLeafTy rpctypes_EtcdError__Code Status__Code WithRev WithLimit WithRange GetPrefixRangeEnd RecordEtcdRequest fmt_ErrorfPlain interpretListError parseKV watchChan__queueEvent
 watchChan__sync: watchChan__syncPaginated
-watchChan__startWatching: errors_AsLeafTy rpctypes_EtcdError__Code Status__Code store__GetCurrentResourceVersion NewTooLargeResourceVersionError Jitter time_Duration__Seconds watchChan__sendError watchChan__sync v2_Errorf progressNotifyEvent watchChan__queueEvent WithRev WithPrevKV WithPrefix watcher__Watch store__getResourceSizeEstimator WatchResponse__Err WatchResponse__IsProgressNotify ResponseHeader__GetRevision RecordEtcdBookmark RecordEtcdEvent parseEvent logWatchChannelErr
+watchChan__startWatching: errors_AsLeafTy rpctypes_EtcdError__Code Status__Code store__GetCurrentResourceVersion NewTooLargeResourceVersionError Jitter time_Duration__Seconds watchChan__sendError watchChan__sync v2_Errorf progressNotifyEvent watchChan__queueEvent WithRev WithPrevKV WithPrefix v3_watcher__Watch store__getResourceSizeEstimator WatchResponse__Err WatchResponse__IsProgressNotify ResponseHeader__GetRevision RecordEtcdBookmark RecordEtcdEvent parseEvent logWatchChannelErr
+#
+# (k8s 7f-5, notes/k8s-7f5a-draft.md, notes/k8s-7f5-scope.md) the watch's consumer and the store's
+# Watch (`watcher.go`, `store.go`): the trust boundary (the client's WithRequireLeader, linked in the
+# client's Link; klog's clock.RealClock.Now; flowcontrol's WatchInitialized, with its body)
+WithRequireLeader: @
+initializationSignalFrom:
+WatchInitialized: initializationSignalFrom
+clock_RealClock__Now:
+newBlockLogger:
+decodeObj:
+watchChan__acceptAll:
+watchChan__filter:
+watchChan__prepareObjs: decodeObj watchChan__acceptAll
+watchChan__transform: watchChan__prepareObjs watchChan__filter watchChan__acceptAll
+watchChan__sendEvent: blockLogger__recordWait
+watchChan__serialProcessEvents: watchChan__transform watchChan__sendEvent =_root_.Perennial.sync.WaitGroup.wp_Done
+concurrentOrderedEventProcessing__scheduleEventProcessing: watchChan__transform =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Done
+concurrentOrderedEventProcessing__collectEventProcessing: watchChan__sendEvent
+watchChan__concurrentProcessEvents: concurrentOrderedEventProcessing__scheduleEventProcessing concurrentOrderedEventProcessing__collectEventProcessing =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Done
+watchChan__processEvents: watchChan__concurrentProcessEvents watchChan__serialProcessEvents =_root_.Perennial.sync.WaitGroup.wp_Add
+watchChan__run: watchChan__startWatching watchChan__processEvents =_root_.Perennial.sync.WaitGroup.wp_Add =_root_.Perennial.sync.WaitGroup.wp_Done =_root_.Perennial.sync.WaitGroup.wp_Wait
+watchChan__Stop:
+watchChan__ResultChan:
+watcher__createWatchChan: SelectionPredicate__ShardingEnabled SelectionPredicate__labelFieldEmpty newBlockLogger clock_RealClock__Now
+watcher__getStartWatchResourceVersion:
+isInitialEventsEndBookmarkRequired:
+areInitialEventsRequired:
+etcd3_watcher__Watch: HasSuffix watcher__getStartWatchResourceVersion store__GetCurrentResourceVersion watcher__createWatchChan isInitialEventsEndBookmarkRequired areInitialEventsRequired watchChan__run WatchInitialized watchChan__Stop watchChan__ResultChan
+store__watchContext:
+store__Watch: store__prepareKey store__watchContext WithRequireLeader etcd3_watcher__Watch

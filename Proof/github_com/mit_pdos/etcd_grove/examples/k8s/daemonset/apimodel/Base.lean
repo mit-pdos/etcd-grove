@@ -8,14 +8,18 @@ which `tools/cache` needs since phase 4), `discovery`, the apply configurations 
 `notes/k8s-apimodel-goose.md`). Their facts are `True`.
 
 The model's fact (`apimodelInit`): its error variables hold some error each (`errStorage`,
-`errRead`) and `errAmbiguous` some string; the specs do not depend on their values. (Its
-initialization, `errors.New` calls and a string, is not proved yet: no `Init.lean`.)
+`errRead`), non-nil, with no `Format` method and an `Error()` that returns (`fmt.stringMethodSpec`:
+what `apierrors.NewInternalError` needs of them; `errors.New` errors are such), and `errAmbiguous`
+some string; the specs do not depend on their values otherwise. (Its initialization, `errors.New`
+calls and a string, is not proved yet: no `Init.lean`; the fact is a precondition of every spec of
+the package, `isPkgInit`. The error clauses: the apierrors-fix stage, 2026-11-17.)
 Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.k8s_io.client_go.Base
 public import Proof.math.rand.Base
+public import Spec.fmt.Errorf
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel
 public import GeneratedProof.k8s_io.api.authentication.v1
 public import GeneratedProof.k8s_io.api.autoscaling.v1
@@ -365,10 +369,15 @@ instance k8s_io_client_go_kubernetes_getIsPkgInitWf : GetIsPkgInitWf (IProp GF) 
 
 namespace github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel
 
-/-- The model's package fact: its error variables hold some value each (persistent). -/
+/-- The model's package fact: its error variables hold some value each (persistent), the two
+errors `fmt` and `apierrors.NewInternalError` print without panicking (see the file header). -/
 abbrev apimodelInit : IProp GF :=
-  iprop((∃ e : GoInterface, globalAddr errStorage ↦□ e) ∗
-    (∃ e : GoInterface, globalAddr errRead ↦□ e) ∗
+  iprop((∃ e : GoInterface, globalAddr errStorage ↦□ e ∗
+      ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ EtcdGrove.fmt.stringMethodSpec ei go!"Error" ∗
+        ⌜methodSet ei.ty !! go!"Format" = none⌝) ∗
+    (∃ e : GoInterface, globalAddr errRead ↦□ e ∗
+      ∃ ei : GoInterfaceOk, ⌜e = GoInterface.ok ei⌝ ∗ EtcdGrove.fmt.stringMethodSpec ei go!"Error" ∗
+        ⌜methodSet ei.ty !! go!"Format" = none⌝) ∗
     (∃ s : GoString, globalAddr errAmbiguous ↦□ s))
 
 instance isPkgInit_inst :

@@ -30,6 +30,9 @@ namespace osfs_bboltfs
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs
 
 section proof
+-- `curMeta`'s body is an `if` on both meta pages: unfolded by `wp_auto` when it loads a field of
+-- `m ↦ curMeta mp`, it was then unified against `curMeta mp` by unfolding again (97s to 9s)
+attribute [local irreducible] curMeta
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]

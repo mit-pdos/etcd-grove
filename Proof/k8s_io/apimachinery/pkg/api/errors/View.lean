@@ -98,6 +98,22 @@ def statusDetailsAt (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
   iprop(⌜st.Details' = null ∧ cs = []⌝ ∨
     ∃ d : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails, st.Details' ↦□ d ∗ d.Causes' ↦*□ cs)
 
+instance statusDetailsAt_persistent (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
+    (cs : List k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) :
+    Persistent (statusDetailsAt (GF := GF) st cs) := by
+  unfold statusDetailsAt; infer_instance
+
+/-- Details held read-only whose causes slice is `nil` (as `NewTimeoutError` makes them) have no
+causes. -/
+theorem statusDetailsAt_nil (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
+    (d : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails) (h : d.Causes' = slice.nil) :
+    st.Details' ↦□ d ⊢ statusDetailsAt (GF := GF) st [] := by
+  unfold statusDetailsAt
+  iintro #Hd
+  iright; iexists d; iframe Hd
+  rw [h]
+  iapply (ownSlice_nil (V := k8s_io.apimachinery.pkg.apis.«meta».v1.StatusCause) DFrac.discard)
+
 /-- **The error `err` seen as the view `w`** (see the file header). -/
 def apiErrAt (err : GoInterface) : ApiErrView → IProp GF
   | .status st cs => iprop(∃ l : Loc, ⌜err = interface.mkOk
@@ -114,15 +130,17 @@ instance apiErrAt_persistent (err : GoInterface) (w : ApiErrView) :
 /-- **An error `apierrors`' checks may read** (the precondition of `IsTimeout`/`HasStatusCause`,
 after the review of 2026-11-10: a typed-nil `*StatusError`, bare or wrapped with `%w`, panics in
 `Status()`, `examples/k8s7e2attack/attack_test.go` `TestTypedNilStatusError`): a `*StatusError`
-whose struct is held read-only (so non-nil), or a `.plain` error. Weaker than a view: the pod
-control's create holds the struct (`errIs`) but not its details' causes. -/
+whose struct is held read-only (so non-nil), with its details (`statusDetailsAt`, read-only, so
+every view of the error built later agrees on its causes: the fix of `HasStatusCause`,
+`notes/hasstatuscause-later-view.md`), or a `.plain` error. A view with its causes existential. -/
 def apiErrOk (err : GoInterface) : IProp GF :=
   iprop((∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status), ⌜err = interface.mkOk
       (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l⌝ ∗
-      l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st) ∨ apiErrAt err .plain)
+      l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
+      ∃ cs, statusDetailsAt st cs) ∨ apiErrAt err .plain)
 
 instance apiErrOk_persistent (err : GoInterface) : Persistent (apiErrOk (GF := GF) err) := by
-  unfold apiErrOk apiErrAt; infer_instance
+  unfold apiErrOk apiErrAt statusDetailsAt; infer_instance
 
 /-- A view gives the precondition. -/
 theorem apiErrAt_ok (err : GoInterface) (w : ApiErrView) :
@@ -130,10 +148,10 @@ theorem apiErrAt_ok (err : GoInterface) (w : ApiErrView) :
   cases w with
   | status st cs =>
     unfold apiErrOk apiErrAt
-    iintro ⟨%l, %h, #Hl, -⟩
+    iintro ⟨%l, %h, #Hl, #Hd⟩
     ileft; iexists l, st; isplitr
     · ipureintro; exact h
-    · iexact Hl
+    · iframe Hl; iexists cs; iexact Hd
   | plain =>
     unfold apiErrOk
     iintro #H

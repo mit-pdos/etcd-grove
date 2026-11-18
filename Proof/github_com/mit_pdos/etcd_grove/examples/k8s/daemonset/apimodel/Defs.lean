@@ -25,6 +25,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimod
 public import Proof.k8s_io.client_go.util.consistency.Defs
 public import Perennial.Golang.Theory.Chan.Idioms.Spsc
 public import Perennial.Proof.sync.Results
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -159,15 +161,26 @@ def objPtrAt (p : Loc) (dq : DFrac) : Obj → IProp GF
 /-! ## Errors -/
 
 /-- **An API error of reason `e`** (persistent): a `*StatusError` whose status has `e`'s reason
-and HTTP code. -/
+and HTTP code, with its details held read-only (`apierrors.statusDetailsAt`, so the error is
+`apierrors.apiErrOk`: `errIs_apiErrOk`). -/
 def errIs (err : GoInterface) (e : ApiErr) : IProp GF :=
   iprop(∃ (p : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status),
     ⌜err = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty)
       #p⌝ ∗ p ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
+    (∃ cs, apierrors.statusDetailsAt st cs) ∗
     ⌜st.Reason' = e.reason.1 ∧ st.Code' = e.reason.2⌝)
 
 instance errIs_persistent (err : GoInterface) (e : ApiErr) : Persistent (errIs (GF := GF) err e) := by
   unfold errIs; infer_instance
+
+/-- An API error is one `apierrors`' checks may read. -/
+theorem errIs_apiErrOk (err : GoInterface) (e : ApiErr) :
+    errIs (GF := GF) err e ⊢ apierrors.apiErrOk err := by
+  unfold errIs apierrors.apiErrOk
+  iintro ⟨%p, %st, %h, #Hp, #Hd, -⟩
+  ileft; iexists p, st
+  iframe Hp; iframe Hd
+  ipureintro; exact h
 
 /-- **What a write returns** for its outcome `oc` (`ok (wrote, o)`: the object stored, written
 or not; `error e`: no effect): the object, or, after a write, if ambiguous writes are flagged, a
@@ -612,6 +625,30 @@ def watchRet (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (r : Res) (n
       pastSt γ σ ∗ ⌜watchStartOk r ns lo σ inits n0⌝))
 
 end defs
+
+section errStr
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [errors_sem : _root_.Perennial.errors.Assumptions]
+
+/-- An `errors.New` error (`EtcdGrove.wp_New_errorString_cell`'s method spec) is one `fmt` prints
+without panicking (what `apierrors.NewConflict` needs of its error). -/
+theorem errorString_argOk (x : Loc) (msg : GoString) :
+    (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
+      WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+        go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
+    fmt.argOk (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
+  iintro #H
+  ihave #Hok := EtcdGrove.errorString_fmtErrorOk x msg $$ H
+  unfold interface.mkOk fmtErrorOk fmt.argOk
+  icases Hok with ⟨%h, #Hs⟩
+  iright; ileft
+  iframe Hs
+  ipureintro; exact h.1
+
+end errStr
 
 end apimodel
 end EtcdGrove

@@ -9,7 +9,8 @@ equal lists, so on one state; and `Step` steps as `pM (kSpec g0) decOp` does.
 `(k8setcd3S g0).rep k` is `stRepB g0 (k + g0.st.items.length + g0.hist.length + 1)`: a value
 made by `k` steps has items, history and pending inputs fewer than that (`Bounded`), so the
 `make`s of `len + 1` and the history's length stay far from overflow below porcupine's index
-`2^60` (the premise bounds the seeded store's items and history the same way).
+`2^60` (the premise bounds the seeded store's items and history the same way, and its revision by
+its history's length, as `Bounded`).
 -/
 module
 
@@ -39,7 +40,7 @@ abbrev Model.spec : Prop :=
   ∀ (s0 : mstore) (hsl : GoSlice) (hs : List mstore) (g0 : HSt),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 ∗
       storeOwn s0 g0.st ∗ hsl ↦*□ hs ∗ ([∗list] x;g ∈ hs;g0.hist, storeOwn x g) ∗
-      ⌜g0.st.items.length + g0.hist.length < 2 ^ 60⌝ }}
+      ⌜g0.st.items.length + g0.hist.length < 2 ^ 60 ∧ uint.nat g0.st.rv ≤ g0.hist.length⌝ }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Model)) (Val #s0))
       (Val #hsl))
   {{ (m : github_com.anishathalye.porcupine.Model), RET #m;

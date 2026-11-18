@@ -31,15 +31,15 @@ theorem isExpiredError.wp_proof
     (wp_IsGone : apierrors.IsGone.spec (GF := GF) (hG := hG)) :
     isExpiredError.spec (GF := GF) (hG := hG) := by
   intro err
-  wp_start
+  wp_start as #Hok
   ihave #Herrs : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.api.errors $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_IsResourceExpired err) $$ [$Herrs] as %b1 -
+  wp_apply (wp_IsResourceExpired err) $$ [$Herrs $Hok] as %b1 -
   (try wp_auto)
   rcases b1 with _ | _
   · (try wp_auto)
-    wp_apply (wp_IsGone err) $$ [$Herrs] as %b2 -
+    wp_apply (wp_IsGone err) $$ [$Herrs $Hok] as %b2 -
     (try wp_auto)
     iapply HΦ
     itrivial

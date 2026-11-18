@@ -49,7 +49,7 @@ theorem raft_kvreconf_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvreconfProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kvreconf_adequate_of kvreconf_wp_Main_kvrGF σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 
@@ -74,7 +74,7 @@ theorem raft_kvreconfN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvreconfProgramN k], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   kvreconfN_adequate_of kvreconf_wp_MainN_kvrGF k hk1 hk σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
 end adequacy

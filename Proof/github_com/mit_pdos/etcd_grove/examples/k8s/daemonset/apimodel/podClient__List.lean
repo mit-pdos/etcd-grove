@@ -59,7 +59,7 @@ theorem podClient.List.wp_proof
   by_cases hsel : lo.LabelSelector' ≠ go!"" ∨ lo.FieldSelector' ≠ go!""
   · rw [if_pos hsel]
     iunfold errIs at Hret
-    icases Hret with ⟨%p, %st, %herr, #Hp, %hst⟩
+    icases Hret with ⟨%p, %st, %herr, #Hp, #Hd, %hst⟩
     subst herr
     wp_auto
     iapply HK
@@ -75,7 +75,7 @@ theorem podClient.List.wp_proof
   · rw [if_neg hsel]
     icases Hret with (⟨%hm, #He⟩ | ⟨%herr, Hl⟩)
     · iunfold errIs at He
-      icases He with ⟨%p, %st, %herr, #Hp, %hst⟩
+      icases He with ⟨%p, %st, %herr, #Hp, #Hd, %hst⟩
       subst herr
       wp_auto
       iapply HK

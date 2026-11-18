@@ -28,7 +28,7 @@ theorem mvcc.keyIndex.restoreTombstone.wp_proof
     (hRestore : mvcc.keyIndex.restore.spec (GF := GF) (hG := hG)) :
     mvcc.keyIndex.restoreTombstone.spec (GF := GF) (hG := hG) := by
   intro p gs ki lg main sub
-  wp_start as ⟨%Hlg, Hki⟩
+  wp_start as ⟨#Hlg, Hki⟩
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, ⟨%gg, #Hgauge, #Hgspec, -⟩, -⟩
@@ -39,7 +39,7 @@ theorem mvcc.keyIndex.restoreTombstone.wp_proof
   rw [show mvcc.revVal mvcc.Rev.zero = zero_val Revision from rfl,
     show mvcc.revVal ⟨main, sub⟩ = ({ Main' := main, Sub' := sub } : Revision) from rfl] at hR
   wp_apply hR $$ [Hki] as %r Hr
-  · iframe Hki; ipureintro; exact Hlg
+  · iframe Hki; iexact Hlg
   by_cases hnil : ki.gens = []
   rotate_left
   · -- `restore` panicked

@@ -230,7 +230,7 @@ theorem Reflector.watch.wp_proof
       ipureintro; rfl
     iintro %wv %werr %σw Hlo Hret Hargerr
     ihave Hret := watchRet_cases γa cfg res _ σw wv werr rfl rfl rfl $$ Hret
-    icases Hret with (%hwe | ⟨%he, Hw⟩)
+    icases Hret with (⟨%hwe, %ae, #HwErr⟩ | ⟨%he, Hw⟩)
     · obtain ⟨hw, hne⟩ := hwe
       subst hw
       cases werr with
@@ -238,6 +238,7 @@ theorem Reflector.watch.wp_proof
       | ok werr =>
       (try wp_auto)
       wp_apply (wp_isWatchErrorRetriable _) $$ [$Hpkg] as %cr -
+      · iright; iapply apimodel.errIs_apiErrOk $$ HwErr
       (try wp_auto)
       wp_if_destruct
       · wp_for_post
@@ -332,7 +333,7 @@ theorem Reflector.watch.wp_proof
         iframe #
         ipureintro
         exact ⟨hpos', hcur'⟩
-      icases Hpost with ⟨%n', %p', Hcons', HL'⟩
+      icases Hpost with ⟨#HerrOk, %n', %p', Hcons', HL'⟩
       iunfold wL at HL'
       icases HL' with ⟨%u2, %σ2, Hown, Hmisc, Hlast, #Hσ2, %hl2⟩
       obtain ⟨hpos2, hcur2⟩ := hl2
@@ -372,15 +373,15 @@ theorem Reflector.watch.wp_proof
         iintro %bis -
         cases bis
         · (try wp_auto)
-          wp_apply (wp_isExpiredError _) $$ [$Hpkg] as %bexp -
+          wp_apply (wp_isExpiredError _) $$ [$Hpkg $HerrOk] as %bexp -
           (try wp_auto)
           cases bexp
           · (try wp_auto)
-            wp_apply (wp_IsTooManyRequests _) $$ [$Herrs] as %b429 -
+            wp_apply (wp_IsTooManyRequests _) $$ [$Herrs $HerrOk] as %b429 -
             (try wp_auto)
             cases b429
             · (try wp_auto)
-              wp_apply (wp_IsInternalError _) $$ [$Herrs] as %b500 -
+              wp_apply (wp_IsInternalError _) $$ [$Herrs $HerrOk] as %b500 -
               (try wp_auto)
               cases b500
               · (try wp_auto)

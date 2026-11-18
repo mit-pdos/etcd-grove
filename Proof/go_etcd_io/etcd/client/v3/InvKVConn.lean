@@ -1597,7 +1597,10 @@ def ctxErrClient (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IP
          | _ => if err = interface.nil then iprop(True)
                 else context.ContextClosed cd.Done_gn) -∗
         ⌜clientErr err⌝ -∗ statusErrOk err -∗ errCellOk err -∗
-        ⌜err = interface.nil ∨ go_etcd_io.etcd.cache.v3.errDesc err ∉ handlerDescs⌝ -∗ Φ #err) -∗
+        (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
+          ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
+            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+          go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 
 instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
@@ -1608,6 +1611,32 @@ instance ctxErrClient_persistent (ci : GoInterfaceOk) (cd : context.ContextDesc 
 file's definition predates; premise fixes 5: `ctxErrs` adds `Done()`'s, `ctxDone`). -/
 theorem ctxErrClient_eq_errs (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) :
     ctxErrClient (GF := GF) ci cd = ctxErrsErr ci cd := rfl
+
+/-- **A client error of a context error's shape has no `GRPCStatus` method** (incomingof Part B,
+2026-11-18): of `clientErrTys`, `*status.Error` has an `Is` method and `EtcdError` is excluded by the
+shape, and neither `*errors.errorString` nor `context.deadlineExceededError` has `GRPCStatus`. -/
+theorem ctxShape_noGRPCStatus (e : GoInterfaceOk) (hc : clientErr (GoInterface.ok e))
+    (hs : go_etcd_io.etcd.cache.v3.ctxErrShape e) :
+    go_etcd_io.etcd.cache.v3.noGRPCStatus e.ty := by
+  obtain ⟨-, h⟩ := hc
+  obtain ⟨-, -, hty⟩ := h e rfl
+  simp only [clientErrTys, List.mem_cons, List.not_mem_nil, or_false] at hty
+  unfold go_etcd_io.etcd.cache.v3.noGRPCStatus
+  rcases hty with h | h | h | h
+  · exfalso; apply hs.2; rw [h]
+    have := go.MethodSetIs.method_set_is
+      (t := go.GoType.PointerType google_golang_org.grpc.internal.status.Error.ty) go!"Is"
+    simpa [go.methodSetLookup_cons, go.methodSetLookup_nil] using this
+  · exact absurd h hs.1
+  · rw [h]
+    have := go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+      go!"GRPCStatus"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at this
+    simp [this]
+  · rw [h]
+    have := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"GRPCStatus"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at this
+    simp [this]
 
 namespace client
 

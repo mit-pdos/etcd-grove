@@ -146,13 +146,13 @@ theorem RealPodControl.createPods.wp_proof
         iunfold writeRet at Hret
         icases Hret with ⟨%hq, Herr⟩
         iunfold errIs at Herr
-        icases Herr with ⟨%sp, %st, %herr, #Hsp, %hst⟩
+        icases Herr with ⟨%sp, %st, %herr, #Hsp, #Hd, %hst⟩
         subst herr
         wp_auto
         wp_apply (wp_HasStatusCause _ _) $$ [] as %b _
         · iunfold apierrors.apiErrOk; ileft; iexists sp, st; isplitr
           · ipureintro; rfl
-          · iexact Hsp
+          · iframe Hsp; iexact Hd
         iunfold recorderOk at Hrec
         icases Hrec with ⟨%i, %hi, #HEv⟩
         cases b
@@ -265,13 +265,13 @@ theorem RealPodControl.createPods.wp_proof
           iexists dp
           iexact HΨ'
         · iunfold errIs at Herr
-          icases Herr with ⟨%sp, %st, %herr, #Hsp, %hst⟩
+          icases Herr with ⟨%sp, %st, %herr, #Hsp, #Hd, %hst⟩
           subst herr
           wp_auto
           wp_apply (wp_HasStatusCause _ _) $$ [] as %b _
           · iunfold apierrors.apiErrOk; ileft; iexists sp, st; isplitr
             · ipureintro; rfl
-            · iexact Hsp
+            · iframe Hsp; iexact Hd
           iunfold recorderOk at Hrec
           icases Hrec with ⟨%i, %hi, #HEv⟩
           cases b

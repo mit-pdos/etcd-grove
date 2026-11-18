@@ -34,10 +34,11 @@ in the mode `off`), the atomic is its revision, and the token's state has the re
 atomic is not tied to the model). -/
 abbrev auth.authStore.commitRevision.spec : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF)
-    (ti : GoInterfaceOk) (Lk : AuthState → IProp GF → IProp GF) (sta : AuthState) (X : IProp GF)
+    (ti : GoInterfaceOk) (Lk : AuthState → IProp GF → IProp GF) (Sw : AuthSess → IProp GF)
+    (sta : AuthState) (X : IProp GF)
     (hs : List AuthState) (st0 : AuthState),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
-      authBatchTxLk ti M P f T Wb Lk ∗ Lk sta X ∗ authOwnF M hs ∗ capNext M hs (bump sta) ∗
+      authBatchTxLk ti M P f T Wb Lk Sw ∗ Lk sta X ∗ authOwnF M hs ∗ capNext M hs (bump sta) ∗
       ⌜histLast M hs st0 ∧ sta.revision = st0.revision ∧ sta.revision + 1 < 2 ^ 64 ∧
         (M.isOn = true → M ≠ .any → permKeysOk sta) ∧ (M = .off → sta.enabled = false)⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"commitRevision"))

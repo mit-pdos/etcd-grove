@@ -1,5 +1,5 @@
 /-
-`(*watchChan).acceptAll()` (`k8s.io/apiserver/pkg/storage/etcd3/watcher.go:672-674`): whether the watch's predicate (`internalPred`, read-only once made, `selPredOk`) is empty. Proved (k8s 7f-5a-P step 3). Lean-first (no Rocq counterpart).
+`(*watchChan).acceptAll()` (`k8s.io/apiserver/pkg/storage/etcd3/watcher.go:672-674`): whether the watch's predicate (`internalPred`, read-only once made, `selPredOkW`) is empty. Proved (k8s 7f-5a-P step 3). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -29,7 +29,7 @@ abbrev watchChan.acceptAll.spec : Prop :=
     (sel : Obj → Bool) (emp : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3 ∗
       structFieldRef k8s_io.apiserver.pkg.storage.etcd3.watchChan go!"internalPred" wc ↦□ p ∗
-      selPredOk S p sel emp }}
+      selPredOkW S p sel emp }}
     (App (Val (wc @!! go.GoType.PointerType k8s_io.apiserver.pkg.storage.etcd3.watchChan.ty @!!
       go!"acceptAll")) (Val #()))
   {{ RET #emp; True }}

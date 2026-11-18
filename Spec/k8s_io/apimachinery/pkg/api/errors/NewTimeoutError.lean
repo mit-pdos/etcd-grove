@@ -2,11 +2,14 @@
 `apierrors.NewTimeoutError(message, retryAfterSeconds)` (`k8s.io/apimachinery/pkg/api/errors/
 errors.go`): a new `*StatusError` whose status is a failure (`"Failure"`, reason `"Timeout"`,
 code 504), with new status details (owned: the caller may set their causes, as
-`storage.NewTooLargeResourceVersionError` does). Lean-first (no Rocq counterpart).
+`storage.NewTooLargeResourceVersionError` does), with no causes yet (`Causes` `nil`: a caller that
+sets none persists them into `apierrors.statusDetailsAt st []`, `statusDetailsAt_nil`; the
+apierrors-fix stage, 2026-11-17). Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.Defs
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 
 @[expose] public section
 
@@ -32,7 +35,7 @@ abbrev apierrors.NewTimeoutError.spec : Prop :=
       (Val #retry))
   {{ (p : Loc), RET #p; ∃ (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
         (dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails),
-      p ↦ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ st.Details' ↦ dv ∗
+      p ↦ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ st.Details' ↦ dv ∗ ⌜dv.Causes' = slice.nil⌝ ∗
       ⌜st.Status' = go!"Failure" ∧ st.Reason' = go!"Timeout" ∧ st.Code' = W32 504⌝ }}
 
 end spec
