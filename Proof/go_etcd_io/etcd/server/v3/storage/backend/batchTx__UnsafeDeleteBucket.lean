@@ -5,10 +5,11 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__UnsafeDeleteBucket
-public import Spec.go_etcd_io.bbolt.Tx__DeleteBucket_kv
 public import Spec.go_uber_org.zap.Stringer
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Spec.go_etcd_io.bbolt.Tx__DeleteBucket
 
 @[expose] public section
 
@@ -29,12 +30,53 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Tx.DeleteBucket_kv`). -/
+private theorem bbolt.kvGlue_Tx__DeleteBucket_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.DeleteBucket.spec (GF := GF) (hG := hG)) :
+  ∀ (tx : Loc) (γ : DBNames) (D S : backend.Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
+    (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ name ↦*{dq} n }}
+    (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"DeleteBucket")) (Val #name))
+  {{ (err : GoInterface), RET #err; name ↦*{dq} n ∗
+      ((⌜S.lookup n = none⌝ ∗ ownWTxG tx γ D S G ∗
+        globalAddr go_etcd_io.bbolt.errors.ErrBucketNotFound ↦□ err) ∨
+       (⌜n = [] ∧ S.lookup n = none⌝ ∗ ownWTxG tx γ D S G ∗
+        globalAddr go_etcd_io.bbolt.errors.ErrIncompatibleValue ↦□ err) ∨
+       (⌜S.lookup n ≠ none ∧ err = GoInterface.nil⌝ ∗
+        ownWTxG tx γ D (S.delete n) (fun x => if x = n then G n + 1 else G x))) }} := by
+  intro tx γ D S G name n dq
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, Hl, Hn⟩ HΦ
+    have h' := h tx γ (wView D S G) name n dq
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+    wp_apply h' $$ [$Hl $Hn] as %err ⟨Hn, Hr⟩
+    all_goals try (ipureintro; first | trivial | rfl)
+    iapply HΦ; iframe Hn
+    icases Hr with (⟨%Hr, Hl, #He⟩ | ⟨%Hr, Hl, #He⟩ | ⟨%Hr, Hl⟩)
+    · ileft; iframe Hl; isplitr; · ipureintro; exact Hr
+      iexact He
+    · iright; ileft; iframe Hl; isplitr; · ipureintro; exact Hr
+      iexact He
+    · iright; iright; isplitr; · ipureintro; exact Hr
+      iexact Hl
+
 theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
-    (hDelBkt : bbolt.Tx.DeleteBucket_kv.spec (GF := GF) (hG := hG))
+    (hDelBkt : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.DeleteBucket.spec (GF := GF) (hG := hG))
     (hStringer : zap.Stringer.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG)) :
     backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) := by
+  replace hDelBkt := bbolt.kvGlue_Tx__DeleteBucket_kv hDelBkt
   intro γ P W Pk b t st bk bi Hne
   wp_start as ⟨#Hb, #Ht, Hw, #Hbk⟩
   ihave #Hep : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt.errors $$ []

@@ -11,13 +11,15 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.newBatchTxBuffered
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.BackendConfig__mmapSize
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__run
-public import Spec.go_etcd_io.bbolt.Open_kv
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.go_uber_org.zap.String
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Panic
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.NewAlloc
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.MutexLit
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.BboltOptions
+public import Perennial.ProgramLogic.Bounds
+public import Spec.go_etcd_io.bbolt.Open_sharedNoErrH
 
 @[expose] public section
 
@@ -37,10 +39,92 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
+open Fs in
+/-- **The claim after `Open`'s create names the file it opened** (`crOut`/`crIno`, `OpenFileS.lean`):
+a whole claim on `b` whose entry is the file `i`. -/
+private theorem crOut_file [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [os.Assumptions] (j : Ino) (b : GoString) (h : NamesH) (dq : DFrac)
+    (oc : Option (Nat × Nat × Ino)) (i : Ino) (hi : crIno b h oc i) :
+    crOut (GF := GF) j b h dq oc ⊢ ∃ h' : NamesH, osNames j (.only [b]) dq h' ∗
+      ⌜h'.cur !! b = some (.file i)⌝ := by
+  rcases oc with _ | ⟨x, s, i0⟩
+  · simp only [crOut]
+    iintro H
+    iexists h
+    iframe H
+    ipureintro; exact hi
+  · simp only [crOut]
+    iintro ⟨-, -, H⟩
+    iexists _
+    iframe H
+    ipureintro
+    simp only [crIno] at hi
+    subst hi
+    simp only [NamesH.log]
+    exact GMap.lookup_insert _ _ _
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Open_kv`). -/
+private theorem bbolt.kvGlue_Open_kv :
+  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
+    (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac) (o : backend.OptsM) (D : backend.Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.fileHolds path D ∗ backend.optsAt opts dq o ∗
+      ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ backend.boltLogger o.logger) }}
+    (App (App (App (Val (@! go_etcd_io.bbolt.Open)) (Val #path)) (Val #mode)) (Val #opts))
+  {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); backend.optsAt opts dq o ∗
+      ⌜err = GoInterface.nil⌝ ∗ ∃ γ : DBNames, ownDB db γ D ∗ wrTok γ ∗ isDB db γ ∗
+          -- (2026-11-04, R2b-3c, the user's approval) which file it is (`DB.Close_kv` gives it back)
+          dbFile db γ path }} := by
+  intro hT hR path mode opts dq o D
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.fileHolds, onFs_none hfs]
+    iintro %Φ ⟨-, H, -⟩ HΦ
+    iexfalso; iexact H
+  · haveI := fax; haveI := fsax
+    have h := bbolt.Open_sharedNoErrH.pendingS3d (GF := GF) (hG := hG)
+    simp only [backend.fileHolds, backend.ownDB, backend.isDB, backend.boltLogger, hfs,
+      onFs_some hfs]
+    obtain ⟨Sio, hino, hpath, hs1, hs2⟩ := nex.ok
+    iintro %Φ ⟨#Hpkg, Hf, Hbo, %Hok, #Hlog⟩ HΦ
+    unfold fileHoldsF
+    icases Hf with ⟨%R, %d, %b, %dqp, %j, %qc, %hn, %hpb, #Hinv, #Hsh, Hpath, Hcp, Hnm, Hnh⟩
+    obtain ⟨hp, hb⟩ := hpb
+    subst hp
+    icases optsAt_bolt opts dq o Hok $$ Hbo with ⟨%f, %Hok', Hbo, Hback⟩
+    ihave #Hlog' : ⌜(o.toBolt false f).logger = GoInterface.nil⌝ ∨
+        bbolt.boltLogger (o.toBolt false f).logger $$ []
+    · icases Hlog with (%Hl | #Hl)
+      · ileft; ipureintro; exact Hl
+      · iright
+        rw [show (o.toBolt false f).logger = o.logger from rfl]
+        iexact Hl
+    wp_apply (h Sio hino hpath (dbNs (child d b)) R d b dqp j qc hn mode opts dq (o.toBolt false f) D hb)
+      $$ [$Hpkg $Hinv $Hsh $Hpath $Hcp $Hnm $Hnh $Hbo $Hlog']
+      as %db %err ⟨Hbo, Hpath, Hcp, %He, %oc, %γ, %i, Hcr, %hnc, #Hdb, #Hino, Hst, Hcl⟩
+    · iframe %Hok'
+      ipureintro; exact dbNs_osN _
+    obtain ⟨hns, hci⟩ := hnc
+    icases crOut_file j b hn (DFrac.own 1) oc i hci $$ Hcr with ⟨%h', Hnm, %hh'⟩
+    ihave Hbo := Hback $$ Hbo
+    iapply HΦ
+    iframe Hbo
+    isplitr
+    · ipureintro; exact He
+    iexists γ
+    iframe Hdb Hst
+    isplitl [Hpath Hcp Hnm Hcl]
+    · unfold dbRestF
+      iexists R, d, b, dqp, j, qc, h', i
+      iframe Hinv Hsh Hpath Hcp Hnm Hino Hcl
+      ipureintro; exact ⟨hns, hb, hh'⟩
+    unfold wrTok dbFile
+    isplitr
+    · itrivial
+    ipureintro; exact hns
+
 set_option maxHeartbeats 0 in
 set_option maxRecDepth 100000 in
 theorem backend.newBackend.wp_proof
-    (hOpen : bbolt.Open_kv.spec (GF := GF) (hG := hG))
     (hLog : backend.newBoltLoggerZap.spec (GF := GF) (hG := hG))
     (hMmap : backend.BackendConfig.mmapSize.spec (GF := GF) (hG := hG))
     (hNop : zap.NewNop.spec (GF := GF) (hG := hG))
@@ -50,6 +134,7 @@ theorem backend.newBackend.wp_proof
     (hNew : backend.newBatchTxBuffered.spec (GF := GF) (hG := hG))
     (hRun : backend.backend.run.spec (GF := GF) (hG := hG)) :
     backend.newBackend.spec (GF := GF) (hG := hG) := by
+  have hOpen := @bbolt.kvGlue_Open_kv
   intro _ _ cfg P D W Pk K
   wp_start as ⟨#Hzl, Hfile, %HP, #Hhk, #Hvoff, Hmk, Htok⟩
   -- `boltOpenOptions`: the backend's package fact (item 8)

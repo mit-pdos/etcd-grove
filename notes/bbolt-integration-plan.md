@@ -658,6 +658,24 @@ beside `cfg.Mlock' = false`, which mvcc's `DefaultBackendConfig` meets: `Timeout
 `NoFreelistSync` from `boltOpenOptions` (`config_linux.go`: `true`; `boltOpenOptionsOk` must then say
 the variable is not nil, as `boltOpenOptions_init` can).
 
+**The `_kv` layer removed** (2026-11-18, the user's direction via the coordinator: one canonical spec
+per function). The 20 `Spec/go_etcd_io/bbolt/*_kv*.lean` and `Proof/go_etcd_io/bbolt/*_kv*.lean` are
+deleted. Each backend proof that called a `_kv` spec takes bbolt's canonical spec as its hypothesis
+(`∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+[os.fileStat.FieldAssumptions], bbolt.X.spec`: `DB.Begin`, `Tx.Commit`, `Tx.Bucket`, `Bucket.Put`,
+`Bucket.Cursor`, `Bucket.Delete`, `Cursor.Seek`, `Cursor.Next`, `Tx.Rollback`, `DB.Stats`, `DB.Info`,
+`Tx.Size`, `Tx.DB`, `Tx.Stats`, `Tx.CreateBucketIfNotExists`, `Tx.DeleteBucket`), linked as `@` callees
+(`etc/link-lean-first-backend.txt`, the backend `Link.lean` regenerated); the conversion to the
+backend's vocabulary at `theFs` (what the `_kv` proofs did) is a private lemma of that proof file
+(`bbolt.kvGlue_<X>`: not a spec, not exported; a later cleanup can turn the repeated ones into laws of
+the predicates). `newBackend` and `backend.Close` use the interim `Open_sharedNoErrH`/`DB.Close_ownNoErrH`
+the same way (private `bbolt.kvGlue_Open_kv`, `bbolt.kvGlue_DB__Close_kv`, `crOut_file`); on S3f's merge
+they take S3f's single `Open.spec`/`DB.Close.spec` (shared mode, `boltCloser`, error case `¬ FsNoErr`,
+refuted by `theFs`'s `FsNoErrAll`, which then becomes `Fs.FsNoErr`, the same proposition). No
+statement of a backend spec changed. Gates config: `etc/axiom-tok-allow.txt` loses the `trunc` lines of
+`Open_kv`/`DB.Close_kv`; the axiom-tok selftest imports `InvBbolt` in place of `DB__Begin_kv`;
+`etc/reader-slot-allow.txt`'s note names `Tx.Rollback`.
+
 **Left.** S3f's merge (the two interim axioms and `boltCloserH`, the option constraints above,
 `FileMode.String`); `storage.OpenBackend` (item 5, its own unit next, per the coordinator); the cleanup
 of the trivial `dbOpenOk`/`dbCloseOk`.

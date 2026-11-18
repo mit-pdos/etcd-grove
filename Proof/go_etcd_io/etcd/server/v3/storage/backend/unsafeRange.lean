@@ -5,9 +5,10 @@ counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
-public import Spec.go_etcd_io.bbolt.Cursor__Seek_kv
-public import Spec.go_etcd_io.bbolt.Cursor__Next_kv
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Spec.go_etcd_io.bbolt.Cursor__Seek
+public import Spec.go_etcd_io.bbolt.Cursor__Next
 
 @[expose] public section
 
@@ -26,6 +27,56 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Cursor.Seek_kv`). -/
+private theorem bbolt.kvGlue_Cursor__Seek_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG)) :
+  ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (pos : Option Nat) (q : Qp)
+    (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es pos ∗ txLive tx γ q T ∗ key ↦*{dk} kb }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.bbolt.Cursor.ty @!! go!"Seek")) (Val #key))
+  {{ (k v : GoSlice), RET (PairV #k #v); ownCur tx γ c T es (some (backend.seekIdx es kb)) ∗
+      txLive tx γ q T ∗ key ↦*{dk} kb ∗ backend.curAt tx γ es (backend.seekIdx es kb) k v }} := by
+  intro tx c γ T es pos q key kb dk
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, Hc, Hl, Hk⟩ HΦ
+    have h' := h tx c γ q T es pos key kb dk
+    wp_apply h' $$ [$Hl $Hc $Hk] as %k %v ⟨Hl, Hk, Hc, #Ha⟩
+    iapply HΦ; iframe Hl Hk Hc; iexact Ha
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Cursor.Next_kv`). -/
+private theorem bbolt.kvGlue_Cursor__Next_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
+  ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (i : Nat) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es (some i) ∗ txLive tx γ q T }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.bbolt.Cursor.ty @!! go!"Next")) (Val #()))
+  {{ (k v : GoSlice), RET (PairV #k #v);
+      ownCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
+      txLive tx γ q T ∗ backend.curAt tx γ es (i + 1) k v }} := by
+  intro tx c γ T es i q
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, Hc, Hl⟩ HΦ
+    have h' := h tx c γ q T es (some i)
+    wp_apply h' $$ [$Hl $Hc] as %k %v ⟨Hl, Hc, #Ha⟩
+    iapply HΦ; iframe Hl Hc; iexact Ha
 
 /-- `cursorRange` as the loop computes it: the entries from the seek position matching
 `isMatch`, at most the effective limit. -/
@@ -60,9 +111,13 @@ theorem backend.cursorRange_take (es : List Ent) (kb eb : GoString) (limit : w64
   exact takeWhile_take_eq _ _ _ _ hall hle hend
 
 theorem backend.unsafeRange.wp_proof
-    (hSeek : bbolt.Cursor.Seek_kv.spec (GF := GF) (hG := hG))
-    (hNext : bbolt.Cursor.Next_kv.spec (GF := GF) (hG := hG)) :
+    (hSeek : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG))
+    (hNext : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
     backend.unsafeRange.spec (GF := GF) (hG := hG) := by
+  replace hSeek := bbolt.kvGlue_Cursor__Seek_kv hSeek
+  replace hNext := bbolt.kvGlue_Cursor__Next_kv hNext
   intro tx c γd T es pos q key endKey kb eb dk de limit
   wp_start as ⟨Hcur, Hlive, Hk, He⟩
   wp_auto

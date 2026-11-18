@@ -42,7 +42,7 @@ import proof_roots  # noqa: E402
 PROG = "axiom-tok"
 SELFTEST = os.path.join(ROOT, "etc", "axiom-tok-selftest", "Selftest.lean")
 SELFTEST_ALLOW = os.path.join(ROOT, "etc", "axiom-tok-selftest", "allow.txt")
-SELFTEST_MODULES = ["Spec.go_etcd_io.bbolt.DB__Begin_kv"]
+SELFTEST_MODULES = ["Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt", "Perennial.ProgramLogic.Bounds"]
 DEFAULT_ALLOW = os.path.join(ROOT, "etc", "axiom-tok-allow.txt")
 
 
