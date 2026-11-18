@@ -133,7 +133,9 @@ def authKitIn (M : auth.AuthMode) (d : mvcc.KBReal) : IProp GF :=
   match M with
   | .on _ => iprop(backend.bOpen d.γB authOpenQ ∗ authRdSlots d ∗ backend.wbTok d.γB ∗
       backend.wbTok d.γB)
-  | _ => iprop(True)
+  -- (the authstore-noax stage, 2026-11-18) the boot's two write-back tokens beyond the kit's in
+  -- every mode: `NewAuthStore`'s proof spends four over the backend's specs
+  | _ => iprop(backend.wbTok d.γB ∗ backend.wbTok d.γB)
 
 /-- **What the store's construction gives back of the auth buckets, in the mode `M`** (the Prove
 step): in `on γa` nothing (their write authority stays with the realization, `authSchemaSrv`); in
@@ -206,7 +208,8 @@ empty, and no auth-on restart is claimed). -/
 def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
   iprop(∃ K : IProp GF, K ∗ □ ∀ (lg : Loc) (ab : GoInterface) (abl : Loc)
       (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData) (cost : w64),
-    {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOk lg ∗
+    {{ K ∗ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ zapLoggerOk lg ∗
         ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗ ⌜ab = authBkIface abl⌝ ∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
@@ -338,16 +341,24 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   iexists iprop(True)
   isplitr
   · itrivial
-  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe,
-    #Hablg, #HB, Ho, Hh, Hwb, Hrb, -, %Hr, %Hhas⟩ HΦ
-  -- (the auth-on snapshot plan's Prove step) the axiom at the auth buckets, idle
+  iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, #Hpkg, #Hspkg, #Hlg, %Htp, %Hfit, %Hab,
+    #Habbe, #Hablg, #HB, Ho, Hh, Hwb, Hrb, HkIn, %Hr, %Hhas⟩ HΦ
+  -- (the auth-on snapshot plan's Prove step) the constructor at the auth buckets, idle
   ihave Hrb := backend.rbOwnIn_part _ _ _ $$ Hrb
+  -- (the authstore-noax stage) the boot's four write-back tokens: the kit's two and `authKitIn`'s two
+  simp only [authKitIn]
+  icases HkIn with ⟨Hwb3, Hwb4⟩
+  iunfold backend.wbTok at Hwb3 Hwb4
+  ihave Hwb := (ownToks_add 2 2 d.γB.wb).2 $$ [$Hwb Hwb3 Hwb4]
+  · iapply (ownToks_add 1 1 d.γB.wb).2; iframe
   iapply (h30 lg ab tp cost abl d W Pk qo authBkts r (fun _ h => h) Hhas.1 Hhas.2.1
     Hhas.2.2) $$ [Ho Hh Hwb Hrb]
-  · iframe Hpkg Habbe Hablg HB Ho Hh Hwb Hrb
+  · iframe Hpkg Hspkg Hlg Habbe Hablg HB Ho Hh Hrb
     isplitr
-    · iapply zapLoggerOk_orNil; iexact Hlg
-    ipureintro; exact ⟨Htp, Hfit, Hab, Hr.1.imp_right And.right, Hr.2⟩
+    · ipureintro; exact ⟨Htp, Hfit, Hab⟩
+    isplitl [Hwb]
+    · iExactEq Hwb; rfl
+    ipureintro; exact ⟨Hr.1.imp_right And.right, Hr.2⟩
   iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR, #HauC⟩
   iapply HΦ
   iframe Ho Hh
@@ -471,7 +482,7 @@ theorem authStoreKit_on
     auth.authSucc γa ∗ ghostVar γa.bk 1 γ0 ∗ auth.authPubQ γa (1 : Qp).half 0)
   iframe HA Hown Hcur HI Hfr Hcap Hsucc Hbk HpubQ
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨⟨HA, Hown, Hcur, HI, Hfr, Hcap, Hsucc, Hbk,
-    HpubQ⟩, #Hpkg, #Hlg, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, HkIn, %Hr,
+    HpubQ⟩, #Hpkg, -, #Hlg, %Htp, %Hfit, %Hab, #Habbe, #Hablg, #HB, Hopen, Hhook, Hwb, Hrbo, HkIn, %Hr,
     %Hhas⟩ HΦ
   simp only [authKitIn]
   icases HkIn with ⟨HopQ, Hslots0, Hwb3, Hwb4⟩
@@ -750,7 +761,7 @@ theorem kitSet_of (M : auth.AuthMode) (n : GoString) (h : ¬ authBkts n) : kitSe
 /-- **The kit's pre from the constructors' half of the open token, the auth share of the
 reader slots and two write-back tokens**: in `on` a quarter of the token, the slots and the tokens
 (auth-schema-fix F1: the boot's two beyond the kit's) to the kit, the apply thread keeping
-`srvOpenQ` (a quarter); in the others the half kept, the slots and the tokens dropped. -/
+`srvOpenQ` (a quarter); in the others the half kept, the slots dropped, the tokens to the kit (the authstore-noax stage). -/
 theorem authKitIn_take (M : auth.AuthMode) (d : mvcc.KBReal) :
     backend.bOpen (GF := GF) d.γB (1 : Qp).half ∗ authRdSlots d ∗ backend.wbTok d.γB ∗
         backend.wbTok d.γB ⊢
@@ -765,8 +776,8 @@ theorem authKitIn_take (M : auth.AuthMode) (d : mvcc.KBReal) :
     iframe Ho1 Hs Ho2 Hw1 Hw2
   | _ =>
     simp only [authKitIn, srvOpenQ]
-    iintro ⟨Ho, -⟩
-    iframe Ho
+    iintro ⟨Ho, -, Hw1, Hw2⟩
+    iframe Ho Hw1 Hw2
 
 /-- **The idle buckets after the store's construction, by the mode**: the other buckets the
 constructing thread kept, with what the kit gives back (`authKitOut`), at the buckets after

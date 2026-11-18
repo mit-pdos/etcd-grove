@@ -1,8 +1,10 @@
 /-
 `auth.NewAuthStore(lg, be, tp, cost)` (`store.go`): names-only. Lean-first (no Rocq counterpart);
 the server-construction unit, stage N0 (2026-10-16, D13: `notes/decisions.md`), for `NewServer`;
-an axiom at the trust boundary since unit N4 (2026-10-17, D14d/D14f/D14g), why it is true of the
-Go code below.
+an axiom at the trust boundary from unit N4 (2026-10-17, D14d/D14f/D14g) to the authstore-noax stage
+(2026-11-18, `notes/decisions.md`, "authstore-noax"), which proves it
+(`Proof/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`); the reasons below are what the proof
+follows.
 -/
 module
 
@@ -34,7 +36,9 @@ start leaves, `authBoot`: restart S5, HS1, below) in a part of any bucket set `S
 containing them (`backend.rbPart d.γB S r`) and in the backend's table (`d.P.has` of each): an auth
 store, disabled, with its reader resource `RD`: the request path's contract (`isReqAuth`) and the
 apply contract with auth off (`isAuthStore … false`) at the backend's batch lock `Pk` and any frozen
-post-lock hook `f` (D14d), one write-back token per write, the reader's open share lent (D14f); the
+post-lock hook `f` (D14d), one write-back token per write (the constructor four: the authstore-noax
+stage, 2026-11-18, `notes/specs-only/ledger.md`; until then two, the code's own count, below the
+backend's specs'), the reader's open share lent (D14f); the
 part comes back **idle** at the auth buckets' new contents (`backend.rbOwnIn d.γB S …`).
 
 Why it is true of the Go code (`NewAuthStore`, `authStore`'s methods, `schema`'s `authBackend`,
@@ -53,7 +57,7 @@ at the etcd pin):
   to decode, no panic), `Unlock` (`authBatchTx.Unlock` is the batch `Unlock`, one write-back, then
   `Commit`, which commits first and does not write back: after the write-back a read transaction
   begun later sees the writer's contents on every bucket, the file header's Go basis, so the part
-  is **idle**, `TestBksNewAuthStoreIdle`), `ForceCommit` (likewise none): two tokens.
+  is **idle**, `TestBksNewAuthStoreIdle`), `ForceCommit` (likewise none): two tokens in Go; four over the backend's specs, which charge a token at every `Unlock`, `Commit` and `ForceCommit`.
   `setupMetricsReporter` registers gauge functions that read the revision under its lock.
 * (restart S5, HS1, 2026-11-13; drafted in R2d, 2026-11-06, `notes/decisions.md`, "R2d: the server's restart chain") **Two
   cases, one end state.** (1) A first start: the auth bucket empty (`∅`), as above: `enabled`
@@ -76,7 +80,10 @@ at the etcd pin):
 * Auth disabled: the permission checks return `nil` (`IsPutPermitted` etc. return early when
   `!isAuthEnabled()`), `IsAdminPermitted` too; only `AuthEnable` enables it, which the contract
   takes only at `on = true`: with `on = false` it stays disabled.
-* Each write method (the admin requests, `AuthDisable`) takes the batch lock inside the apply
+* (The authstore-noax stage, 2026-11-18, `notes/specs-only/ledger.md`) The apply contract's admin
+  clauses are admitted in no mode (`apply.adminAdmitted`), so `authApplyOk` states none of the
+  write methods below; until then it stated them with auth off, for this reason, and no closed
+  theorem applied one. Each write method (the admin requests, `AuthDisable`) takes the batch lock inside the apply
   (`Lock` = `LockInsideApply`: the backend open, a share lent in `mvcc.bkRTx`, and the frozen hook
   run under `Pk`, `srvApi.csContractA Pk f`), puts into the auth buckets (hook buckets for the readers'
   view: unchanged), and unlocks with one write-back (its `Commit` and `AuthEnable`'s
@@ -88,7 +95,8 @@ at the etcd pin):
   `issues/etcd-auth-useradd-long-name-fatal.md`); its values: within bbolt's value bound
   (`authRecordsFit`, a named workload premise).
 * The reader resource `RD` is a reader slot of the store's `enabledMu` (a `sync.RWMutex`, made by
-  `NewAuthStore`): the lock's slots, one per reader (D14i, 2026-10-17: the request path's and the
+  `NewAuthStore`; with auth off the only lock the request path's methods take, the proof's
+  `auth.offRd`): the lock's slots, one per reader (D14i, 2026-10-17: the request path's and the
   apply thread's each hold one; the Go `RWMutex` panics only beyond `2 ^ 30` readers); likewise of
   `rangePermCacheMu` and (the fork's d52eec43e, D22k (A)) of `beMu`, under which the permission
   checks take their read transaction (`lockedReadTx`) and `Recover` replaces `be`.
@@ -134,7 +142,11 @@ abbrev auth.NewAuthStore.spec : Prop :=
     (W Pk : IProp GF) (qo : Qp) (S : GoString → Prop) (r : GMap GoString backend.BktData),
   (∀ n, auth.authBkts n → S n) →
   d.P.has mvcc.authBI → d.P.has mvcc.authUsersBI → d.P.has mvcc.authRolesBI →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ zapLoggerOrNil lg ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      -- (the authstore-noax stage, 2026-11-18, `notes/specs-only/ledger.md`) schema's package facts
+      -- (the constructor runs schema's methods), the logger not nil (it is the backend's, which
+      -- `authBeOn` names); until then `zapLoggerOrNil lg` and no `schema` facts
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ zapLoggerOk lg ∗
       ⌜tp ≠ GoInterface.nil⌝ ∗ ⌜authRecordsFit⌝ ∗
       ⌜ab = interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) #abl⌝ ∗
@@ -143,7 +155,7 @@ abbrev auth.NewAuthStore.spec : Prop :=
           #d.be : GoInterface) ∗
       structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl ↦□ lg ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗
-      backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 2 ∗ backend.rbPart d.γB S r ∗
+      backend.plHook d.γB func.nil ∗ ownToks d.γB.wb 4 ∗ backend.rbPart d.γB S r ∗
       -- (restart S5, HS1, 2026-11-13) the auth bucket a first start finds (empty) or a restart finds
       -- (the boot state a first start leaves, `authBoot`); the users' and roles' as before
       ⌜((r.lookup go!"auth").getD ∅ = ∅ ∨ (r.lookup go!"auth").getD ∅ = authBoot) ∧
