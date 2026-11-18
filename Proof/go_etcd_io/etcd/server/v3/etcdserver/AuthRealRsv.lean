@@ -140,7 +140,7 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
     icases Hp with ⟨Hp1, Hp2⟩
     icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs', %rc, Hlq, Hro, Hbt, Hq, %Hid⟩
+      icases Hid with ⟨%hs', %rc, %w, Hlq, Hro, Hbt, Hsw, Hq, %Hid⟩
       simp only [auth.authOwn]
       icases HL with ⟨Hhh, HcurH⟩
       ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hhh Hlq
@@ -150,7 +150,7 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
       icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, Hp', %Hv⟩
       imod pool_obs _ γ.γm' γ.γh' (tokIn (auth.authWTok γ.γc)) (fun _ => iprop(True)) _ _ 1 k none
         $$ [$Hp2 $Hk $Ho] with ⟨Hp2, -, Hy⟩
-      imod Hclose $$ [Ha Hu Hr' Hp' Hs Hr Hp1 Hp2 Hq Hlq Hro Hbt]
+      imod Hclose $$ [Ha Hu Hr' Hp' Hs Hr Hp1 Hp2 Hq Hlq Hro Hbt Hsw]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, p
@@ -162,8 +162,8 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
         · iunfold pools; iframe Hp1 Hp2
         ileft
         iunfold bkIdle
-        iexists hs, rc
-        iframe Hlq Hro Hbt Hq
+        iexists hs, rc, w
+        iframe Hlq Hro Hbt Hsw Hq
         ipureintro; exact Hid
       have hv : viewAt (auth.BkView.uni sa) (schema.rvAuth d.P rv) := by
         rw [Hcs]

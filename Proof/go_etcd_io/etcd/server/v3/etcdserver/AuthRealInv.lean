@@ -64,7 +64,8 @@ end pure
 /-! ## The ghost names -/
 
 /-- **The realization's names of one backend**: the store's (`γa`), the backend's auth names (`γc`), the
-tickets' (`γt`), the ticket pool's (`γm`, `γh`), the reserved pool's (`γm'`, `γh'`) and the batch token's (`γk`). -/
+tickets' (`γt`), the ticket pool's (`γm`, `γh`), the reserved pool's (`γm'`, `γh'`), the batch token's (`γk`) and the
+batch session's writes' (`γw`). -/
 structure RNames where
   γa : auth.AuthNames
   γc : auth.AuthBkNames
@@ -74,6 +75,7 @@ structure RNames where
   γm' : GName
   γh' : GName
   γk : GName
+  γw : GName
 
 /-- The realization's invariants' namespace. -/
 def authRealN : Namespace := nroot.@"authReal"
@@ -103,16 +105,29 @@ branch holds it whole, a batch half (its lock token the other half: an untouched
 the writer's), the gone branches whole at any contents. -/
 def bkTok (γ : RNames) (q : Qp) (x : BktData × BktData × BktData) : IProp GF := ghostVar γ.γk q x
 
+/-- A batch session's writes' kind, as a number (the session token's ghost variable). -/
+def encW : auth.BkW → Nat
+  | .idle => 0
+  | .puts => 1
+  | .dels => 2
+
+theorem encW_inj : ∀ {a b : auth.BkW}, encW a = encW b → a = b := by
+  intro a b h; cases a <;> cases b <;> first | rfl | (simp [encW] at h)
+
+/-- **The batch session token's share** `q` at the session's writes `w` (the write contract's `Sw w` is a half, the
+lock token `Lk` the other half; the idle branch holds it whole between sessions). -/
+def bkSw (γ : RNames) (q : Qp) (w : auth.AuthSess) : IProp GF := ghostVar γ.γw q (encW w.users, encW w.roles)
+
 /-- **The batch token** (exclusive): the gone branches hold it. -/
 def batchTok (γ : RNames) : IProp GF := iprop(∃ x, bkTok γ 1 x)
 
 /-- **The buckets idle**: the lock's share of a history `hs` whose last is every bucket's state, at its last
-index; the claimed part at contents `rc` that the readers see; the batch token at those contents; the rest `q0`
+index; the claimed part at contents `rc` that the readers see; the batch token at those contents; the session token whole; the rest `q0`
 of the open share (a batch borrows it: `LockInsideApply` and `Commit` take a share). -/
 def bkIdle (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (sa su sr : auth.AuthState) (ja ju jr : Nat)
     (cs : GoString → BktData) : IProp GF :=
-  iprop(∃ (hs : List auth.AuthState) (rc : GMap GoString BktData), auth.authLockQ γ.γa hs ∗
-    rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗ bkTok γ 1 (csT cs) ∗ bOpen d.γB q0 ∗
+  iprop(∃ (hs : List auth.AuthState) (rc : GMap GoString BktData) (w : auth.AuthSess), auth.authLockQ γ.γa hs ∗
+    rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗ bkTok γ 1 (csT cs) ∗ bkSw γ 1 w ∗ bOpen d.γB q0 ∗
     ⌜hs.getLast? = some sa ∧ su = sa ∧ sr = sa ∧ ja = hs.length - 1 ∧ ju = ja ∧ jr = ja ∧
       ∀ n, n ∈ authBktL → bktOf rc n = cs n⌝)
 
@@ -452,13 +467,13 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
   icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
   · icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs', %rc, Hlq, Hro, Hbt, Hq, %Hid⟩
+      icases Hid with ⟨%hs', %rc, %w, Hlq, Hro, Hbt, Hsw, Hq, %Hid⟩
       ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hhh Hlq
       subst Heq
       obtain ⟨hl, hu, hr, -, -, -, -⟩ := id Hid
       iunfold bkCommon at Hc
       icases Hc with ⟨Ha, Hu, Hr', #Hsa, #Hsu, #Hsr, Hp', %Hv⟩
-      imod Hclose $$ [Ha Hu Hr' Hp' Hs Hr Hp Hq Hlq Hro Hbt]
+      imod Hclose $$ [Ha Hu Hr' Hp' Hs Hr Hp Hq Hlq Hro Hbt Hsw]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, p
@@ -468,8 +483,8 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
         iframe Hs Hr Hp
         ileft
         iunfold bkIdle
-        iexists hs, rc
-        iframe Hlq Hro Hbt Hq
+        iexists hs, rc, w
+        iframe Hlq Hro Hbt Hsw Hq
         ipureintro; exact Hid
       imodintro
       iframe HT Hhh

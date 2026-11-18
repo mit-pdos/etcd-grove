@@ -34,6 +34,7 @@ variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance inhGMapNatOQ : Inhabited (GMap Nat (Option Qp)) := ⟨∅⟩
 instance inhBktData : Inhabited BktData := ⟨∅⟩
+instance inhAuthSess : Inhabited auth.AuthSess := ⟨auth.AuthSess.init⟩
 
 instance bOpen_timeless' (γ : BNames) (q : Qp) : Timeless (bOpen (GF := GF) γ q) := by
   unfold bOpen; infer_instance
@@ -70,6 +71,10 @@ instance pubTok_timeless (γa : auth.AuthNames) : Timeless (auth.authPubTok (GF 
 instance bkTok_timeless (γ : RNames) (q : Qp) (x : BktData × BktData × BktData) :
     Timeless (bkTok (GF := GF) γ q x) := by
   unfold bkTok; infer_instance
+
+instance bkSw_timeless (γ : RNames) (q : Qp) (w : auth.AuthSess) :
+    Timeless (bkSw (GF := GF) γ q w) := by
+  unfold bkSw; infer_instance
 
 instance batchTok_timeless (γ : RNames) : Timeless (batchTok (GF := GF) γ) := by
   unfold batchTok; infer_instance
@@ -150,7 +155,7 @@ theorem real_retire (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
   icases Hl with (⟨>Hs, >Hr, Hp, Hb⟩ | ⟨Hpt', Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
   · icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs, %rc, >Hlq, -, >Hbt, Hq, >%Hid⟩
+      icases Hid with ⟨%hs, %rc, %w, >Hlq, -, >Hbt, -, Hq, >%Hid⟩
       ihave Hbt : batchTok γ $$ [Hbt]
       · iunfold batchTok; iexists _; iexact Hbt
       imod Hclose $$ [Hc Hp Hq HT Hpt Hbt]
@@ -232,7 +237,7 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
   icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt', Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
   · icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs', %rc, >Hlq, Hro, Hbt, Hq, >%Hid⟩
+      icases Hid with ⟨%hs', %rc, %w, >Hlq, Hro, Hbt, Hsw, Hq, >%Hid⟩
       ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hhh Hlq
       subst Heq
       obtain ⟨hl, hu, hr, hja, hju, hjr, hcs⟩ := id Hid
@@ -248,7 +253,7 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
       ihave Hfull := (pub_join γ.γa.pub p).2 $$ [$Hph $Hpt $Hpq]
       imod mono_nat_own_update (hs.length - 1) (by omega) $$ Hfull with ⟨Hfull, -⟩
       icases (pub_join γ.γa.pub (hs.length - 1)).1 $$ Hfull with ⟨Hph, Hpt, Hpq⟩
-      imod Hclose $$ [Ha Hu Hr' Hsa Hsu Hsr Hpq Hs Hr Hp Hq Hlq Hro Hbt]
+      imod Hclose $$ [Ha Hu Hr' Hsa Hsu Hsr Hpq Hs Hr Hp Hq Hlq Hro Hbt Hsw]
       · inext
         iunfold realSt
         iexists cs, sa, su, sr, ja, ju, jr, hs.length - 1
@@ -263,8 +268,8 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
         iframe Hs Hr Hp
         ileft
         iunfold bkIdle
-        iexists hs, rc
-        iframe Hlq Hro Hbt Hq
+        iexists hs, rc, w
+        iframe Hlq Hro Hbt Hsw Hq
         ipureintro; exact Hid
       imodintro
       iframe HT Hhh
