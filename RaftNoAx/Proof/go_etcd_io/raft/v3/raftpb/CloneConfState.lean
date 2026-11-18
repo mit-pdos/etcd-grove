@@ -1,10 +1,11 @@
 /-
 Proof of `RaftNoAx/Spec/go_etcd_io/raft/v3/raftpb/CloneConfState.lean`: the part's own (raft without
-hand-written axioms, `notes/raft-noax-part.md`).
+hand-written axioms, `notes/raft-noax-part.md`, "Stage 3a"): `wp_CloneConfState_al`
+(`CloneCS.lean`) at `al = false`.
 -/
 module
 
-public import RaftNoAx.Spec.go_etcd_io.raft.v3.raftpb.CloneConfState
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.raftpb.CloneCS
 
 @[expose] public section
 
@@ -22,9 +23,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
--- raft-noax: TODO prove `raftpb.CloneConfState` (`raftpb/noax.go`) against its spec.
-theorem raftpb.CloneConfState.wp_proof : raftpb.CloneConfState.spec (GF := GF) (hG := hG) := by
-  sorry
+theorem raftpb.CloneConfState.wp_proof : raftpb.CloneConfState.spec (GF := GF) (hG := hG) :=
+  ⟨fun p dq c => wp_CloneConfState_al p dq c false, wp_CloneConfState_nil⟩
 
 end proof
 
