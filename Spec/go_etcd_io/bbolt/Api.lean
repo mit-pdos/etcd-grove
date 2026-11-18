@@ -98,19 +98,26 @@ read transactions, a panic on any report). etcd writes none of them. -/
   isBoltDef (bnsOf γ.gs) γ.ns db
 
 /-- **The database `γ`'s file is the inode `i`** (persistent; session bbolt-inv): the file `Open`
-opened (`Open.spec`, `Open_shared.spec` give it), which a closer owning the data gets back
-(`DB.Close_own.spec`). -/
+opened (`Open.spec` gives it), which a closer owning the data gets back
+(`DB.Close.spec`). -/
 @[no_expose] def boltIno [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (i : Ino) : IProp GF :=
   iprop(∃ t0 : Nat, t0At (GF := GF) (bnsOf γ.gs) t0 i)
 
-/-- **The database `γ`'s file was given up** (persistent; session bbolt-inv): `DB.Close` closed it
-(`DB.Close` does not give the file back), or a mapping of it leaked (a remap's `munmap` failed, or
-its `mmap`'s `madvise`, after which bbolt does not unmap: `mmap` in `bolt_unix.go`), or the file
-was not whole pages when it was closed (a commit's write failed part way past the file's end: the
-writes are chunked, `Tx.write`, so a failed one can leave a partial last page; `fileHolds` asks
-whole pages). What `DB.Close_own.spec` gives in place of the file. -/
+/-- **The database `γ`'s file was given up** (persistent; session bbolt-inv): a mapping of it leaked
+(a remap's `munmap` failed, or its `mmap`'s `madvise`, after which bbolt does not unmap: `mmap` in
+`bolt_unix.go`; session S3f: such a leak also records `¬ FsNoErr`), or the file was not whole pages
+when it was closed (a commit's write failed part way past the file's end: the writes are chunked,
+`Tx.write`, so a failed one can leave a partial last page; `fileHolds` asks whole pages). What
+`DB.Close.spec` gives in place of the file. (Since session S3f, `DB.Close` takes the closer
+token, so an earlier `Close` is no longer a source.) -/
 @[no_expose] def boltNoFile [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
   dghostVar (bnsOf γ.gs).nf DFrac.discard true
+
+/-- **The database `γ` is closed only by the holder of this token** (exclusive, timeless; session
+S3f): `Open` gives it, `DB.Close` (and its variants) consumes it. So a holder knows the database open
+(no other thread can close it), which `DB.Close.spec` needs to give the file back. -/
+@[no_expose] def boltCloser [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
+  ghostVar (bnsOf γ.gs).clo 1 ()
 
 /-- **The committed data of `γ` is `D`**, at fraction `q`: the client's view, which the
 atomic updates of `Begin(false)` and `Commit` act on (fractional: a read needs some fraction, a
@@ -260,6 +267,21 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 @[no_expose] def fileHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
   fileHoldsDef i D
 
+/-- bbolt's largest mapping, `maxMapSize` (`0xFFFFFFFFFFFF` on amd64, `internal/common/types.go`):
+`mmapSize` refuses a larger one ("mmap too large"). -/
+@[word_unfold] def boltMaxMapSize : Nat := 0xFFFFFFFFFFFF
+
+/-- **The file of inode `i` holds a database with the data `D`, and is mappable** (session S3f): what
+`fileHolds` says, with the file's size at most `boltMaxMapSize`, so that `Open`'s `mmap` of it does
+not fail with "mmap too large" (`Open.spec` takes it, through `nameHolds`). Not every file bbolt writes is:
+`DB.grow` can truncate past `maxMapSize` (`growSize + AllocSize` at a mapping of `maxMapSize`,
+`nonissues/bbolt-grow-past-max-map-size.md`), and so `DB.Close.spec` gives back `fileHolds`
+only. A fresh file is (`fileHoldsM_new`), and so is an image no longer than `boltMaxMapSize`
+(`fileHoldsM_of_image`; `Tx.WriteTo` writes the pages below the high-water mark, inside the
+mapping). -/
+@[no_expose] def fileHoldsM [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
+  fileHoldsMDef i D
+
 /-- **The bytes `bs` are a bbolt database file holding `D`** (S4a of
 `notes/bbolt-integration-plan.md`, D-I6; pure): what `fileHolds` asks of a file's page-cache bytes,
 with the file's size the length of `bs`: whole pages below `2 ^ 62` bytes (session bbolt-inv: whole
@@ -280,17 +302,6 @@ each a counted step of the program, so it is below the bound on the program's st
 @[no_expose] def boltImageRcpt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (bs : List w8) : IProp GF :=
   fileRcpt bs
 
-/-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
-file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
-tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). In the
-second case the roots are well formed (`RootsOk R`, which the tree does not export): after the
-create, `path` names the new file (`lookupH_create`, `Proof/os/OpenFile.lean`). -/
-def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : Hist) (path : GoString)
-    (D : Data) : IProp GF :=
-  iprop((∃ i, ⌜lookupH R V path = some (.file i)⌝ ∗ fileHolds i D) ∨
-    ⌜RootsOk R ∧ ∃ d b j, path = child d b ∧ NameOk b ∧ lookupH R V d = some (.dir j) ∧
-      lookupH R V path = none ∧ D = ∅⌝)
-
 /-! ## Laws -/
 
 @[instance] theorem isBolt_persistent (db : Loc) (γ : BoltName) :
@@ -307,6 +318,21 @@ def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : His
 @[instance] theorem boltNoFile_persistent (γ : BoltName) :
     Persistent (boltNoFile (GF := GF) γ) := by
   unfold boltNoFile; infer_instance
+@[instance] theorem boltCloser_timeless (γ : BoltName) :
+    Timeless (boltCloser (GF := GF) γ) := by
+  unfold boltCloser; infer_instance
+
+/-- The closer token is exclusive. -/
+theorem boltCloser_excl (γ : BoltName) :
+    boltCloser (GF := GF) γ ∗ boltCloser γ ⊢ False := by
+  unfold boltCloser
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  exfalso
+  have h1 := h.1
+  rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+  grind
+
 @[instance] theorem boltImageRcpt_persistent (bs : List w8) :
     Persistent (boltImageRcpt (GF := GF) bs) := by
   unfold boltImageRcpt; infer_instance
@@ -394,6 +420,15 @@ backend keeps its read transaction's handles in an invariant, `backend.cmFacts`)
     Timeless (fileHolds (GF := GF) i D) := by
   unfold fileHolds; infer_instance
 
+@[instance] theorem fileHoldsM_timeless (i : Ino) (D : Data) :
+    Timeless (fileHoldsM (GF := GF) i D) := by
+  unfold fileHoldsM; infer_instance
+
+/-- A mappable file holds its data (session S3f). -/
+theorem fileHoldsM_fileHolds (i : Ino) (D : Data) :
+    fileHoldsM (GF := GF) i D ⊢ fileHolds i D := by
+  unfold fileHoldsM fileHolds; exact fileHoldsMDef_holds _ _
+
 /-- A slice the transaction returned is read while the transaction is live (any fraction). -/
 theorem txBytes_acc (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (s : GoSlice) (b : GoString) :
     txBytes (GF := GF) tx γ s b ∗ boltTx tx γ q T ⊢
@@ -456,6 +491,24 @@ theorem fileHolds_new (i : Ino) :
     osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHolds i ∅ := by
   unfold fileHolds; exact fileHoldsDef_new _
 
+/-- **A file just created holds the empty database, and is mappable** (session S3f). -/
+theorem fileHoldsM_new (i : Ino) :
+    osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHoldsM i ∅ := by
+  unfold fileHoldsM fileHoldsMDef
+  iintro H
+  iexists newMeta, []
+  iframe H
+  isplitl
+  · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
+  isplitr
+  · ipureintro
+    exact ⟨rfl, rfl, by decide, Or.inl ⟨rfl, rfl⟩⟩
+  isplitr
+  · ipureintro; rw [show newMeta.size = 0 from rfl]; omega
+  unfold fileRcpt
+  ileft; ipureintro
+  exact fun C h => fileImage_nil_not C (by simpa using h)
+
 /-- **A file holding a database image holds its data** (S4a, D-I6: the receiver's half of the
 snapshot's round trip): the whole `OsMeta` of a file with no mapping, of size `xs.length`, and all
 of its page-cache bytes `xs` (any crash candidates), whose values are an image of `D`, with the
@@ -472,6 +525,24 @@ theorem fileHolds_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
   iframe Hm Hb Hr
   ipureintro
   exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
+
+/-- **A mappable image holds its data, mappable** (session S3f; `fileHolds_of_image` with the image no
+longer than `boltMaxMapSize`). -/
+theorem fileHoldsM_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
+    (hmaps : m.maps = ∅) (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D)
+    (hlen : xs.length ≤ boltMaxMapSize) :
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes i 0 (DFrac.own 1) xs ∗
+      boltImageRcpt (xs.map Prod.fst) ⊢ fileHoldsM i D := by
+  unfold fileHoldsM fileHoldsMDef boltImageRcpt
+  unfold boltImage at himg
+  rw [List.length_map] at himg
+  iintro ⟨Hm, Hb, #Hr⟩
+  iexists m, xs
+  iframe Hm Hb Hr
+  isplitr
+  · ipureintro
+    exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
+  · ipureintro; rw [hsize]; exact hlen
 
 end vocab
 

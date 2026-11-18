@@ -2,6 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def bbolt.optsNoErr (v : go_etcd_io.bbolt.Options) : Prop :=
+  v.Timeout' = W64 0 ∧ v.NoFreelistSync' = true ∧ sint.Z v.InitialMmapSize' ≤ 281474976710655
+
+theorem bbolt.optsAtNoErr_optsAt (l : Loc) (dq : DFrac) (o : bbolt.OptsM) : bbolt.optsAtNoErr l dq o
+    ⊢ bbolt.optsAt l dq o
+
 def bbolt.optsVal (v : go_etcd_io.bbolt.Options) (o : bbolt.OptsM) : Prop :=
   v.ReadOnly' = o.readOnly ∧
     v.PageSize' = o.pageSize ∧
@@ -24,6 +30,9 @@ def bbolt.OptsM.ok (o : bbolt.OptsM) : Prop :=
 
 def bbolt.optsAt (l : Loc) (dq : DFrac) (o : bbolt.OptsM) : IProp GF :=
   iprop(∃ v, typedPointsto l v dq ∗ ⌜bbolt.optsVal v o⌝)
+
+def bbolt.optsAtNoErr (l : Loc) (dq : DFrac) (o : bbolt.OptsM) : IProp GF :=
+  iprop(∃ v, typedPointsto l v dq ∗ ⌜bbolt.optsVal v o ∧ bbolt.optsNoErr v⌝)
 
 theorem bbolt.optsZero_ok : bbolt.optsZero.ok
 

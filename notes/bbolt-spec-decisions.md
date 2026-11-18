@@ -2051,3 +2051,79 @@ the user's review** where marked.
   `NoFreelistSync` untracked by `OptsM` and the file's size bounded only by `2 ^ 62`, `Open` returns
   `ErrTimeout`, `mmap too large`, or `Commit`'s errors without any error of the environment, so
   `err = nil` is false for some states its pre allows. The provable statement is in the Log.
+
+## S3f: the closer token, error-free `Open`, the mappable file (2026-11-18)
+
+Session `bbolt-noerr-final` (`notes/bbolt-integration-plan.md`, Log, "S3f"). The coordinator's
+decisions after S3d (D-N4, D-N5), implemented; deviations marked.
+
+- **D-F1. The closer token** (decision 2). `boltCloser γ` (Api, sealed, timeless, exclusive:
+  `boltCloser_excl`) is `ghostVar B.clo 1 ()`, a new ghost name `clo` (`Inv/Names.lean`, allocated by
+  `Open/Core.open_core_fl`, threaded through `lfPost`). `Open.spec`, `Open_shared.spec` and
+  `Open_sharedNoErr.spec` give it on success; `DB.Close.spec`, `DB.Close_noErr.spec`,
+  `DB.Close_own.spec`, `DB.Close_ownNoErr.spec` take it. Every `Close` deposits it in `closedR`
+  (which no longer holds `nf true ∨ bq 1`), so its holder knows the database open: `Close_own`'s
+  closed case is now a contradiction, and "an earlier plain `DB.Close`" is no longer a source of
+  `boltNoFile`. Go lets any goroutine close a database any number of times; the specs do not (no
+  client closes twice: the backend closes once, in `Close` or `applySnapshot`).
+- **D-F2. The file's size bound is a separate predicate, `fileHoldsM`** (deviation: the coordinator
+  asked for `size ≤ maxMapSize` inside `fileHolds`). It is *false* of files bbolt writes: `DB.grow`
+  truncates to `growSize + AllocSize`, past `maxMapSize` once the high-water mark nears a mapping of
+  `maxMapSize` (`nonissues/bbolt-grow-past-max-map-size.md`); such a file fails every reopen with
+  "mmap too large". So `fileHolds` (what `Close_own` gives back) keeps `< 2 ^ 62`, and
+  `fileHoldsM i D` (Api, sealed: `fileHolds` with `size ≤ boltMaxMapSize`) is what
+  `Open_sharedNoErr.spec` takes, through `nameHoldsM` (ApiS). Laws: `fileHoldsM_fileHolds`,
+  `fileHoldsM_new`, `fileHoldsM_of_image` (an image no longer than `boltMaxMapSize`: `Tx.WriteTo`'s
+  are, its pages lie below the high-water mark inside the mapping), `nameHoldsM_nameHolds`,
+  `nameHoldsM_new`. Also: `maxBytes` (`0xffffffff000`, 16 TiB) is below `maxMapSize`, so a write past
+  it fails with `EFBIG` whatever the premises; `Open` writes only `init`'s 16 KiB, so this does not
+  touch `Open_sharedNoErr`, but it does `Close_ownNoErr` (D-F5).
+- **D-F3. The options: `optsAtNoErr`** (Options.lean): `optsAt` with `optsNoErr v` (`Timeout = 0`,
+  `NoFreelistSync`, `sint.Z InitialMmapSize ≤ maxMapSize`) on the struct value; `optsAtNoErr_optsAt`.
+  `OptsM` is unchanged (tracking the fields there would change the backend's `toBolt` and every store
+  law). In the proof, half of the options' points-to is a witness that agrees with the three fields
+  `Open` reads through `optsAt` (whose value `Options.String`'s axiom forgets in between).
+- **D-F4. Error-free `Open`: the error arms witness `¬ FsNoErr`.** Leaf "W" specs, each proved by
+  cases on `FsNoErr` from the spec and its `…NoErr` variant: `os.File.ReadAt.specRacyLtW`,
+  `os.File.Stat.specW`, `os.File.WriteAt.specW` (ending by `maxBytes`), `syscall.Flock.specW`,
+  `syscall.Fdatasync.specBW`, `unix.Mmap.specW`, `unix.Madvise.specW`, bbolt's `fdatasync.specW`,
+  `DB.munmap.specW`. bbolt's internal specs strengthened in place (error arm: `¬ FsNoErr`, or the
+  non-environment cause): `flock.spec` (`¬ FsNoErr ∨ tmo ≠ 0`), `DB.metasZero.spec_own`,
+  `DB.init.spec`, `DB.getPageSize.spec_own` (and `FromFirstMeta`/`FromSecondMeta`),
+  `DB.fileSize.spec` (`¬ FsNoErr ∨ size < 8192`), `mmapF.spec`, `DB.mmapUnlocked.spec_own`
+  (`¬ FsNoErr ∨ size < 8192 ∨ mmapSizeOf (max size minsz) = none`). `Open.wp_proofG` is generic in
+  `Ek` (the error arm's witness), a size bound `B` on the opened file, and the options' witness `W`;
+  `Open.spec`/`Open_shared.spec` are its instance at `Ek := True`, `Open_sharedNoErr.spec` at
+  `Ek := False`.
+- **D-F5. `DB.Close_ownNoErr.spec` keeps one escape** (deviation from "no escape"): `boltNoFile`
+  now has a single source, a file that is not whole pages at `Close` (a write that failed part way
+  past the file's end). Leaked mappings record `¬ FsNoErr` (`junkRes`; `DB.munmap.specW`,
+  `mmapF.spec`), so under the premises they are refuted. The partial page is not refutable from the
+  premises alone: a chunked write (`Tx.write`'s chunks of `maxAllocSize - 1` bytes end unaligned)
+  past `maxBytes` fails with `EFBIG` under `NoIoErr`, and whole pages would need `wdbOK` to carry
+  `size % 4096 = 0 ∨ ¬ FsNoErr` with a bound on writes below `maxBytes` (a file below 16 TiB),
+  threaded through `Commit`'s write and rollback proofs. Not done here.
+- **D-F6. One canonical spec per bbolt function** (the user, via the coordinator, during S3f;
+  supersedes the variants of D-S3, D-V6, D-F1's list and D-F4's `Open_sharedNoErr`). Error-free
+  outcomes are not separate specs: the error arm carries `⌜¬ FsNoErr⌝` (persistent, pure; `FsNoErr`
+  now also covers every path, and `Fs.fsNoErr_of` builds it from `FsStepSat (NoIoErr Sio)`,
+  `FsStepSat (NoMapLockErr Sio)` and full coverage), which a client under the premises refutes.
+  - `Open.spec` is the shared mode's `Open` (whole claim on the name, `osPathS`, `osSharedInv`,
+    `osCallPerm`), `nameHolds` over `fileHoldsM` (mappable file: the one non-environment error,
+    "mmap too large", constrained away), `optsAtNoErr` (no `Timeout`, `NoFreelistSync`,
+    `InitialMmapSize ≤ maxMapSize`: `ErrTimeout` and `Commit`'s errors constrained away); success
+    `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ`; error `⌜err ≠ nil ∧ ¬ FsNoErr⌝`.
+    Deleted: `Open_shared.spec`, `Open_sharedNoErr.spec`, the whole-tree `Open.spec` (and `pathHolds`).
+  - `DB.Close.spec`: pre `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ`; post
+    `(⌜err = nil⌝ ∗ fileHolds i D) ∨ ⌜¬ FsNoErr⌝ ∨ (⌜err = nil⌝ ∗ boltNoFile γ)`. Deviation from the
+    requested `(err = nil ∗ fileHolds) ∨ (err ≠ nil ∗ witness)`: a failure of an earlier remap's
+    `munmap`/`madvise` (a leaked mapping) is recorded but `Close` still returns `nil`, so the witness
+    arm cannot claim `err ≠ nil`; and the partial-last-page case (D-F5) is no environment error under
+    the premises (`EFBIG` past `maxBytes`). Deleted: `DB.Close_noErr.spec`, `DB.Close_own.spec`,
+    `DB.Close_ownNoErr.spec`. The old "close with the token, nothing about the file" is an internal
+    spec, `DB.Close.specTok` (`Proof/go_etcd_io/bbolt/Open/CloseTok.lean`), which `Open`'s error exits
+    use (they keep the client's `boltState` for the page pool's protocol).
+  - `DB.Begin.spec` takes `DB.Begin_err.spec`'s error arm (`tx = null`, `fmtErrorOk err`);
+    `DB.Begin_err.spec` is now an internal helper (in its proof file), `DB.Begin.wp_proof` its instance.
+  - The leaf W specs (`os.File.Stat.specW`, ...) are second specs of stdlib/`os` functions, not of
+    bbolt's; they stay (outside the rule's scope as stated; report).

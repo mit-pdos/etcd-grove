@@ -70,7 +70,8 @@ abbrev DB.mmapUnlocked.spec_own : Prop :=
           osMeta p.ino (DFrac.own 1) { m with maps := GMap.singleton base L } ∗
           bytesPointsto base (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
           ∃ vf, cellsR base m.size (L - m.size) vf) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err ∗
+       (⌜err ≠ interface.nil ∧ (¬ FsNoErr ∨ m.size < 8192 ∨
+            mmapSizeOf (max m.size (sint.nat minsz)) = none)⌝ ∗ fmtErrorOk err ∗
           mapFields db (DFrac.own 1) (none : MapSt) ∗ db.[DB, go!"datasz"] ↦ W64 0 ∗
           ∃ m' : OsMeta, osMeta p.ino (DFrac.own 1) m')) }}
 
@@ -127,7 +128,11 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     iframe; iframe #
     iright
     isplitr
-    · ipureintro; exact fun h => nomatch h
+    · ipureintro
+      refine ⟨(fun h => nomatch h), ?_⟩
+      rcases hne.2.2 with h | h
+      · exact Or.inl h
+      · exact Or.inr (Or.inl h)
     iframe
   obtain ⟨rfl, rfl, hfs8⟩ := Hfs
   have hfz : sint.Z (W64 (m.size : Int)) = m.size := by word
@@ -161,7 +166,13 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     iframe; iframe #
     iright
     isplitr
-    · ipureintro; exact fun h => nomatch h
+    · ipureintro
+      refine ⟨(fun h => nomatch h), Or.inr (Or.inr ?_)⟩
+      have hsz0 : sint.nat sz0 = max m.size (sint.nat minsz) := by
+        have e : sint.nat sz0 = (sint.Z sz0).toNat := rfl
+        have e2 : sint.nat minsz = (sint.Z minsz).toNat := rfl
+        omega
+      rw [← hsz0]; exact hmo
     iframe
   iintro %Hms
   obtain ⟨rfl, hnsz⟩ := Hms
@@ -215,7 +226,7 @@ theorem DB.mmapUnlocked.wp_proof_own (hLogger : DB.Logger.spec (GF := GF) (hG :=
     iframe; iframe #
     iright
     isplitr
-    · ipureintro; exact fun h => nomatch h
+    · ipureintro; exact ⟨(fun h => nomatch h), Or.inl he.2.2⟩
     try simp only [mapFields]
     iframe
     icases Hres with (Hosm | ⟨%b', -, Hosm, -⟩)

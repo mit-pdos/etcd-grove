@@ -13,8 +13,8 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
-public import Spec.golang_org.x.sys.unix.Mmap
-public import Spec.golang_org.x.sys.unix.Madvise
+public import Spec.golang_org.x.sys.unix.MmapW
+public import Spec.golang_org.x.sys.unix.MadviseW
 public import Spec.os.File__Fd
 public import Spec.fmt.Errorf
 public import Proof.golang_org.x.sys.unix.Munmap
@@ -68,15 +68,15 @@ abbrev mmapF.spec : Prop :=
           osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
           mapCells base sz m) ∨
        (db.[DB, go!"dataref"] ↦ x ∗ db.[DB, go!"data"] ↦ y ∗ db.[DB, go!"datasz"] ↦ z ∗
-         ⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err ∗
+         ⌜err ≠ interface.nil ∧ errPtrTyped err ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err ∗
          (osMeta p.ino (DFrac.own 1) m ∨
           (∃ base : Loc, ⌜0 < base.addr⌝ ∗
             osMeta p.ino (DFrac.own 1) { m with maps := <[base := sz.toNat]> m.maps } ∗
             mapCells base sz m)))) }}
 
 theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hMmap : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
-    (hMadvise : golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG))
+    (hMmap : golang_org.x.sys.unix.Mmap.specW (GF := GF) (hG := hG))
+    (hMadvise : golang_org.x.sys.unix.Madvise.specW (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     mmapF.spec (GF := GF) (hG := hG) := by
@@ -97,10 +97,12 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   · obtain ⟨rfl, rfl⟩ := Hbe
     simp only [errnoErr, ↓reduceIte]
     wp_auto
-    wp_apply hMadvise _ (W64 1) (by decide) (Int.le_of_lt hsz) $$ Hos as %e2 -
-    try wp_auto
     have hszn : 0 < sz.toNat := by have := hsz; simp [BitVec.toInt] at this; omega
     icases cellsR_pos _ _ _ hszn $$ Hc with ⟨Hc, %Hpos⟩
+    wp_apply hMadvise base sz sz (W64 1) p.ino (DFrac.own 1) ({ m with maps := <[base := sz.toNat]> m.maps }) sz.toNat (by decide) Hpos hsz
+      (GMap.lookup_insert _ _ _) $$ [Hm] as %e2 ⟨Hm, %he2⟩
+    · iframe; iframe #
+    try wp_auto
     ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     by_cases h0 : e2 = 0
@@ -165,7 +167,11 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
         iframe Hdr Hd Hsz
         icases HiS with ⟨#HiS, %Hty, %Hptr⟩
         isplitr
-        · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr⟩
+        · ipureintro
+          refine ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr, ?_⟩
+          rcases he2 with h | h
+          · exact absurd h h0
+          · exact h
         isplitr
         · simp only [fmtErrorOk, noArgStringSig]
           iframe HiS; ipureintro; exact Hty
@@ -175,7 +181,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
           isplitr
           · ipureintro; exact Hpos
           · unfold mapCells; iexists bs; iframe; ipureintro; exact Hbs
-  · obtain ⟨he, rfl⟩ := Hbe
+  · obtain ⟨he, rfl, hfs⟩ := Hbe
     simp only [errnoErr, he, ↓reduceIte]
     wp_auto
     ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
@@ -189,7 +195,7 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     ihave #HeS := hS
     isplitr
     · ipureintro
-      refine ⟨by simp [interface.mkOk], ?_⟩
+      refine ⟨by simp [interface.mkOk], ?_, hfs⟩
       have := errPtrTyped_errno e
       unfold errnoErr at this; rw [if_neg he] at this; exact this
     · iframe HeS

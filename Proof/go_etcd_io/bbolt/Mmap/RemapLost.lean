@@ -74,15 +74,19 @@ theorem wtxCore_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : 
   ipureintro; exact Hp
 
 /-- The junk mapping's cells, and the file-given-up flag `nf` (session bbolt-inv): discarded at
-`true` once a mapping leaked, `false` at 1 while none did (`wdbCoreG`'s last clause). -/
+`true` once a mapping leaked, `false` at 1 while none did (`wdbCoreG`'s last clause); a leak records
+that the file system can fail (session S3f: a remap's `munmap`, or `madvise` after its `mmap`, failed,
+which the premises `FsNoErr` names exclude). -/
 def junkRes (B : BNs) (j : Option (Loc × Nat)) : IProp GF :=
   match j with
-  | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true)
+  | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true ∗
+      ⌜¬ FsNoErr⌝)
   | none => iprop(dghostVar B.nf (DFrac.own 1) false)
 
 /-- **A mapping leaks** (a failed remap's `munmap`, or `madvise` after its `mmap`): the old junk
 clause's flag set to `true` (or kept, if a mapping leaked before), the leaked mapping's cells. -/
-theorem junkRes_leak (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) (jb : Loc) (jl : Nat) :
+theorem junkRes_leak (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) (jb : Loc) (jl : Nat)
+    (hfs : ¬ FsNoErr) :
     junkRes (GF := GF) B jo ∗ (∃ vf, cellsR jb 0 jl vf) ⊢ |={E}=> junkRes B (some (jb, jl)) := by
   iintro ⟨Hj, Hc⟩
   rcases jo with _ | ⟨jb', jl'⟩
@@ -91,10 +95,12 @@ theorem junkRes_leak (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) (jb : Loc
     imod dghostVar_persist (GF := GF) B.nf 1 true $$ Hj with #Hj
     imodintro
     iframe Hc Hj
+    ipureintro; exact hfs
   · simp only [junkRes]
-    icases Hj with ⟨-, #Hj⟩
+    icases Hj with ⟨-, #Hj, -⟩
     imodintro
     iframe Hc Hj
+    ipureintro; exact hfs
 
 /-- **The file given up** (`DB.Close`, which does not give it back): the junk clause's flag set to
 `true`, discarded (kept, if a mapping leaked before); the leaked mapping's cells dropped. -/
@@ -107,19 +113,19 @@ theorem junkRes_shut (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) :
     imod dghostVar_persist (GF := GF) B.nf 1 true $$ Hj with #Hj
     imodintro; iexact Hj
   · simp only [junkRes]
-    icases Hj with ⟨-, #Hj⟩
+    icases Hj with ⟨-, #Hj, -⟩
     imodintro; iexact Hj
 
 /-- **A failed remap's outcome with the junk clause**: no leak (`P`), the old clause kept; a
 leaked mapping `x` (its cells), the clause at the leak (`junkRes_leak`). Taken while the remap's
 WP is open, before its failure path's steps (the ghost update needs a modality). -/
 theorem junkRes_leak_or (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) (P : IProp GF) {X : Type}
-    (Q : X → IProp GF) (jb : X → Loc) (jl : X → Nat) :
+    (Q : X → IProp GF) (jb : X → Loc) (jl : X → Nat) (hfs : ¬ FsNoErr) :
     junkRes (GF := GF) B jo ∗ (P ∨ ∃ x, Q x ∗ ∃ vf, cellsR (jb x) 0 (jl x) vf) ⊢
       |={E}=> (P ∗ junkRes B jo) ∨ ∃ x, Q x ∗ junkRes B (some (jb x, jl x)) := by
   iintro ⟨Hj, (HP | ⟨%x, HQ, Hc⟩)⟩
   · imodintro; ileft; iframe
-  · imod junkRes_leak E B jo (jb x) (jl x) $$ [Hj Hc] with Hj
+  · imod junkRes_leak E B jo (jb x) (jl x) hfs $$ [Hj Hc] with Hj
     · iframe
     imodintro; iright; iexists x; iframe
 
@@ -129,8 +135,17 @@ theorem junkRes_some_nf (B : BNs) (j : Option (Loc × Nat)) (jb : Loc) (jl : Nat
     junkRes (GF := GF) B j ⊢ dghostVar B.nf DFrac.discard true := by
   subst hj
   simp only [junkRes]
-  iintro ⟨-, #H⟩
+  iintro ⟨-, #H, -⟩
   iexact H
+
+/-- A leaked mapping's junk clause records that the file system can fail (session S3f). -/
+theorem junkRes_some_fs (B : BNs) (j : Option (Loc × Nat)) (jb : Loc) (jl : Nat)
+    (hj : j = some (jb, jl)) :
+    junkRes (GF := GF) B j ⊢ ⌜¬ FsNoErr⌝ := by
+  subst hj
+  simp only [junkRes]
+  iintro ⟨-, -, %h⟩
+  ipureintro; exact h
 
 /-- **The writer side after a failed remap**, from its pieces (batch 44.1: flagged, with the
 writer's `fbTok`). -/

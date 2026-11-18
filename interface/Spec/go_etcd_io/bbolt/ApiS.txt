@@ -4,7 +4,7 @@
 
 def bbolt.nameHolds [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (h : Fs.NamesH) (b :
     GoString) (D : bbolt.Data) : IProp GF :=
-  iprop((∃ i, ⌜h.cur !! b = some (Fs.Node.file i)⌝ ∗ bbolt.fileHolds i D) ∨ ⌜h.cur !! b = none ∧ D = ∅⌝)
+  iprop((∃ i, ⌜h.cur !! b = some (Fs.Node.file i)⌝ ∗ bbolt.fileHoldsM i D) ∨ ⌜h.cur !! b = none ∧ D = ∅⌝)
 
 theorem bbolt.nameHolds_new [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (h : Fs.NamesH)
     (b : GoString) (i : Fs.Ino) (hb : h.cur !! b = some (Fs.Node.file i)) : Fs.osMeta i (DFrac.own

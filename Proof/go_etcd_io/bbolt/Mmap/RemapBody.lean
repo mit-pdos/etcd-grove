@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Alloc
 public import Proof.go_etcd_io.bbolt.Mmap.Munmap
+public import Proof.go_etcd_io.bbolt.Mmap.MunmapW
 public import Proof.go_etcd_io.bbolt.Mmap.Map
 public import Proof.go_etcd_io.bbolt.Mmap.Rebase
 public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
@@ -204,7 +205,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     (hFileSize : DB.fileSize.spec (GF := GF) (hG := hG))
     (hMmapSize : DB.mmapSize.spec (GF := GF) (hG := hG))
     (hDeref : Bucket.dereference.spec (GF := GF) (hG := hG))
-    (hMunmap : DB.munmap.spec (GF := GF) (hG := hG))
+    (hMunmap : DB.munmap.specW (GF := GF) (hG := hG))
     (hMmapF : mmapF.spec (GF := GF) (hG := hG))
     (hPage : DB.page.spec (GF := GF) (hG := hG))
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
@@ -255,7 +256,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · iframe
     · log_args_ok
     try wp_auto
-    have Hpt := hne.2
+    have Hpt := hne.2.1
     ihave Hdb := Hdbback $$ [Hfile Hfo Hfd Hosm]
     · iframe
     iapply HΦ
@@ -380,7 +381,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · unfold junkRes; iexact Hjunk
     imod junkRes_leak_or ⊤ K.B w.junk
       (osMeta (GF := GF) K.p.ino (DFrac.own 1) { w.m with maps := GMap.delete b0 w.m.maps })
-      (fun _ : Unit => osMeta (GF := GF) K.p.ino (DFrac.own 1) w.m) (fun _ => b0) (fun _ => l)
+      (fun _ : Unit => osMeta (GF := GF) K.p.ino (DFrac.own 1) w.m) (fun _ => b0) (fun _ => l) he.2.2
       $$ [Hjunk Hun] with HunJ
     · iframe Hjunk
       icases Hun with (H | ⟨H, Hc⟩)
@@ -388,7 +389,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       · iright; iexists (); iframe H; iexists vf; iexact Hc
     try wp_auto
     icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩
-    have Hpt := he.2
+    have Hpt := he.2.1
     ihave Hwl := remap_lostX K tx r m Xd hrel.1 $$ [Hwc0 Hm1]
     · iframe
     ihave Hgwv : ghostVar K.B.wv (1 : Qp).half
@@ -455,7 +456,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
       (fun base : Loc => iprop(⌜0 < base.addr⌝ ∗ osMeta (GF := GF) K.p.ino (DFrac.own 1)
         { { w.m with maps := GMap.delete b0 w.m.maps } with
           maps := <[base := nsz.toNat]> (GMap.delete b0 w.m.maps) }))
-      (fun base => base) (fun _ => nsz.toNat)
+      (fun base => base) (fun _ => nsz.toNat) he.2.2
       $$ [Hjunk Hres] with HresJ
     · iframe Hjunk
       icases Hres with (H | ⟨%base, %hbase, H, Hmc⟩)
@@ -480,7 +481,7 @@ theorem DB.mmapUnlocked.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG)
     · iframe
     · log_args_ok
     try wp_auto
-    have Hpt := he.2
+    have Hpt := he.2.1
     ihave Hmf0 : mapFields K.db (DFrac.own 1) (none : MapSt) $$ [Hdr Hdd Hm0f Hm1f]
     · simp only [mapFields]; iframe
     icases (mapFields_join K.db none).2 $$ Hmf0 with ⟨Hm1, Hm2, Hm3⟩

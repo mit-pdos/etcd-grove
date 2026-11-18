@@ -59,7 +59,9 @@ open Iris
   its reader, ½ in `metaR`);
 - `nf`: `dghostVar Bool`, the file given up (session bbolt-inv, `boltNoFile`): `false` at 1 in the
   writer side's junk clause while no mapping leaked; `true`, discarded, once a mapping leaked or
-  `DB.Close` closed the database without giving the file back (`closedR`). -/
+  `DB.Close` closed the database without giving the file back (`closedR`);
+- `clo`: `ghostVar Unit`, the closer token (session S3f, `boltCloser`): whole with the client from
+  `Open` until a `Close`, which deposits it in `closedR`; so the holder knows the database open. -/
 structure BNs where
   st : GName
   bq : GName
@@ -83,6 +85,7 @@ structure BNs where
   opn : GName
   spr : GName
   nf : GName
+  clo : GName
   deriving Inhabited
 
 /-- The names of a `BoltName`'s list `gs` (`γ.gs`), by position. -/
@@ -92,12 +95,12 @@ def bnsOf (gs : List GName) : BNs :=
    gs.getD 8 default, gs.getD 9 default, gs.getD 10 default, gs.getD 11 default,
    gs.getD 12 default, gs.getD 13 default, gs.getD 14 default, gs.getD 15 default,
    gs.getD 16 default, gs.getD 17 default, gs.getD 18 default, gs.getD 19 default,
-   gs.getD 20 default, gs.getD 21 default⟩
+   gs.getD 20 default, gs.getD 21 default, gs.getD 22 default⟩
 
 /-- The list of names `Open` returns (`⟨mkGs B, N⟩` is the database's `BoltName`). -/
 def mkGs (B : BNs) : List GName :=
   [B.st, B.bq, B.cur, B.fl, B.rds, B.fltx, B.mtok, B.map, B.out, B.mlk, B.wv, B.txs, B.dbl,
-    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr, B.nf]
+    B.cls, B.t0, B.pool, B.mln, B.byt, B.fpb, B.opn, B.spr, B.nf, B.clo]
 
 theorem bnsOf_mkGs (B : BNs) : bnsOf (mkGs B) = B := rfl
 
