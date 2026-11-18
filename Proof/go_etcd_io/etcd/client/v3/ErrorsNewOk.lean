@@ -321,9 +321,7 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
         GoInterface.ok.inj Hx
       isplitl []
       · ipureintro
-        refine ⟨rfl, ?_, Htc.2, Hlc.2.2.1⟩
-        simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]
-        decide
+        exact ⟨rfl, Or.inl rfl, Htc.2, Hlc.2.2.1⟩
       · rw [hx]; iapply errorMsgIs_errorString $$ Hcell
   · icombine Hv Hed gives %Heq
     subst Heq
@@ -338,9 +336,7 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
           #(zero_val _root_.Perennial.context.deadlineExceededError) := GoInterface.ok.inj HtyD
       isplitl []
       · ipureintro
-        refine ⟨rfl, ?_, Htd.2, Hld.2.1⟩
-        simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false, not_or]
-        decide
+        exact ⟨rfl, Or.inr rfl, Htd.2, Hld.2.1⟩
       · rw [hd]; iapply errorMsgIs_deadline
 
 end proofs

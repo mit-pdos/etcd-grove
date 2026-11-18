@@ -150,6 +150,11 @@ an attempt's error with one of them is the handler's own, with the handler's err
 def handlerDescs : List GoString :=
   [go_etcd_io.etcd.cache.v3.futureRevDesc, go_etcd_io.etcd.cache.v3.compactedDesc]
 
+/-- Go's two context messages are no handler's description (incomingof Part B, T2'). -/
+theorem ctxErrMsg_not_handler {m : GoString} (h : go_etcd_io.etcd.cache.v3.ctxErrMsg m) :
+    m ∉ handlerDescs := by
+  rcases h with rfl | rfl <;> decide
+
 /-- A handler's success holds its error outcome vacuously. -/
 theorem handlerErr_nil (Ψe : GoString → IProp GF) :
     ⊢ (⌜GoInterface.nil ≠ GoInterface.nil ∧
@@ -1410,9 +1415,16 @@ K4 of `notes/k8s-compactor-plan.md`, the user's approval): `Err()` returns `nil`
 context is done (`ContextClosed cd.Done_gn`), a non-nil error; a non-nil error means it is done, and
 is a client error grpc's `status` accepts (`clientErr`, `statusErrOk`, `errCellOk`: true of
 `context.Canceled` and `DeadlineExceeded`, the only errors Go lets `Err()` return), whose
-`Error()` stably returns a message that is not a handler's description (`errorMsgIs e m`, `m ∉
-handlerDescs`; k8s etcd3 7c, HS-5 (a), approved by the user 2026-11-06 via etcd-grove-82; restated in
-message form by incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03: the former
+`Error()` stably returns one of Go's two context messages (`errorMsgIs e m`, `ctxErrMsg m`, hence no
+handler's description, `ctxErrMsg_not_handler`; narrowed from `m ∉ handlerDescs` by incomingof Part B
+option (a), decided by etcd-grove-03 2026-11-18). This is proved per producer, not claimed of every Go
+context: Perennial's context model (`context.ErrAny`: `Canceled` or `DeadlineExceeded`), k8s's
+`channelContext` (`chanCtx_ok`), value contexts over those (`withVersion`, `tracing.Start`); etcd's
+`v3rpc.cancellableContext`, whose `Err()` may be a `*status.Error` ("etcdserver: no leader"), is excluded
+(modelled separately, `InvCancellable`/`SrvCtxWeak`), and any producer for it must fail by `ctxErrMsg`
+(`notes/axiom-review/incomingof-b.md`, T2'). (k8s etcd3 7c, HS-5 (a), approved by the user 2026-11-06 via
+etcd-grove-82; restated in message form by incomingof Part B, approved by the user 2026-11-17 via
+etcd-grove-03: the former
 `errDesc err ∉ handlerDescs`, a pure fact about a pointer's description, had no per-run source; grpc
 returns `status.FromContextError(ctx.Err())`, which keeps `m`, or prefixes it for an error other than
 the two context errors (`transport.ContextErr`: `"Unexpected error from context packet: " + m`), so an
@@ -1434,7 +1446,8 @@ def ctxErrsErr (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) : IPro
         ⌜clientErr err⌝ -∗ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
         go_etcd_io.etcd.cache.v3.errCellOk err -∗
         (⌜err = interface.nil⌝ ∨ ∃ (e : GoInterfaceOk) (m : GoString),
-          ⌜err = GoInterface.ok e ∧ m ∉ handlerDescs ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
+          ⌜err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrMsg m ∧
+            go_etcd_io.etcd.cache.v3.ctxErrShape e⌝ ∗
           go_etcd_io.etcd.cache.v3.errorMsgIs e m) -∗ Φ #err) -∗
     WP (App (Val #(methods ci.ty go!"Err" ci.v)) (Val #())) {{ Φ }})
 

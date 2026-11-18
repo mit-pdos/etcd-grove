@@ -64,22 +64,15 @@ key) without `Is` whose `Error()` returns (`context.go`: its methods are `Error`
 general fix is a Perennial change (`notes/decisions.md`, "Item 8: context's facts"). A
 premise rather than an axiom: `isPkgInit context` is not sealed (any proof holding the
 variables' cells could make it), so as an axiom the entailment could be used to prove `False`.
-(`v3rpc`'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.) -/
+(`v3rpc`'s `context.Canceled` fact, until then the premise `ContextCanceledPtr`, follows.)
+(incomingof Part B, 2026-11-18) Its former fields `descs` (both errors' `errDesc`) and, after it,
+`descDeadline` (`DeadlineExceeded`'s) are gone: the users take `Error()`'s message per run
+(`ctxErrsErr`, `ctxErrMsg`), and a pure `errDesc` fact had no per-run source
+(`notes/axiom-review/incomingof-b.md`). -/
 class EtcdGrove.ContextReadErrs : Prop where
   errs : isPkgInit (PROP := IProp GF) pkg_id.context ⊢
     EtcdGrove.errVarLeafW _root_.Perennial.context.Canceled ∗
       go_etcd_io.etcd.server.v3.etcdserver.read.ctxDeadlineLeafW
-  /-- `DeadlineExceeded`'s gRPC description (k8s etcd3 7c-2 part 2, S1; restated by incomingof Part B,
-  approved by the user 2026-11-17 via etcd-grove-03): its value is `deadlineExceededError{}`
-  (`context.isInit`'s `HDeadlineExceededTy`), not a status error, so `status.FromError` gives its
-  `Error()`, `"context deadline exceeded"` (`context.go`; `examples/axiomcx/incomingof` `TestCtxErrDescs`).
-  A fact of one value with no location, the same in every run. The former `Canceled` half (an
-  entailment from `isPkgInit context` to `errDesc` of a `*errorString` pointer) is gone: a pure fact
-  about a pointer's description, from persistent cells, holds of every location (`crossWorld`,
-  `notes/axiom-review/ctx-descs.md`); its users now take `Error()`'s message per run (`ctxErrsErr`). -/
-  descDeadline : go_etcd_io.etcd.cache.v3.errDesc
-      (interface.mkOk _root_.Perennial.context.deadlineExceededError.ty
-        #(zero_val _root_.Perennial.context.deadlineExceededError)) = go!"context deadline exceeded"
 
 /-- `ContextReadErrs.errs` with the two errors' `Format` facts (premise-fixes-4: `errVarLeaf`,
 `ctxDeadlineLeaf`): neither has a `Format` method, from Perennial's `context.isInit` (`Canceled`'s

@@ -467,6 +467,10 @@ v1.84.0, passes): `FromError` returns `ok=false` and the message `Error()` for `
 an `errors.New`, a leaf struct whose message is a handler description, and a type with a `GRPCStatus() int`
 method (another signature); `ok=true` for a `*status.Error` (the guard is needed).
 
+**Decided by etcd-grove-03 (2026-11-18):** T8 approved pending a short independent attack (not added to the
+axiom until the verdict); the weaker forms of (2) (`err' = err ∨ errDesc err' = m`) and (3) (a context error
+comes back as one, or with a context-message description) ACCEPTED.
+
 **Plan with T8** (all proved, no further trusted text):
 - `ErrorDesc.spec` gains `□ (∀ e m, ⌜err = ok e ∧ noGRPCStatus e.ty⌝ → errorMsgIs e m -∗ ⌜d = m⌝)`.
 - `rpctypes.Error.spec` gains `□ (∀ e m, ⌜err = ok e ∧ noGRPCStatus e.ty⌝ → errorMsgIs e m -∗

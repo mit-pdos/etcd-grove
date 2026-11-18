@@ -224,10 +224,7 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
         iright; iexists e', go!"context canceled"
         isplitl []
         · ipureintro
-          refine ⟨He'.1, ?_, He'.2⟩
-          simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false,
-            not_or]
-          decide
+          exact ⟨He'.1, Or.inl rfl, He'.2⟩
         · iexact Hm'
   -- (premise fixes 8, N1) `Deadline()` returns `(zero, false)`
   ihave #HDl : ctxDeadline (chanCtxVal sc) $$ []
