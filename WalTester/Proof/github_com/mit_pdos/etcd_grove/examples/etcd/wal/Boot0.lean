@@ -85,7 +85,11 @@ theorem tBoot0 (hPre : AbsDiskGpreS GF) (L : GooseLocalGS GF)
   iintro #Hos #Hsh #Hab Hcps Hall
   ihave Hcp := tPerm_of_osCallPerms e hR hr ho hne $$ Hcps
   -- the WAL's area
-  imod walBoot0 hPre walCodec walCodec_ok walRaftMr L e.R e.jr (e.area) V hV hR hr hjr hslots
+  have hjrm : e.jr ∈ (GMap.toList V.now).map (·.1) := by
+    cases he : V.now !! e.jr with
+    | none => have := (GMap.mem_iff _ _).1 hjr; rw [he] at this; cases this
+    | some x => exact List.mem_map.2 ⟨(e.jr, x), (GMap.mem_toList _ _ _).2 he, rfl⟩
+  imod walBoot0 hPre walCodec walCodec_ok walRaftMr L e.R e.jr (e.area) V hV hR hr _ hjrm hslots
     hrb walRaftMr_encState_lt E hE $$ Hos Hsh Hab Hall
     with ⟨%W, #Hok, Hres, Hu, Hc, #Hp, Hown, -, Hrest⟩
   ihave #Hdd := dirDurable_boot0 (W := W) (e.area) $$ Hp

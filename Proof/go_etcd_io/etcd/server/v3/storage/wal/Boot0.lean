@@ -15,7 +15,8 @@ Its premises, each a world premise of a closed theorem's first boot:
 * `hR`, `hr`: the roots well formed (`FsInit`) and **the area `r` one of them** (its directory `jr`):
   the area must be durable for `Create` (`dirDurable r`), and no `fsExt` step makes a directory durable
   (`BootPure`);
-* `hjr`: the area's directory is one of the tree (a root of a well-formed tree is, `TreeWf`);
+* `Js`, `hjr`: the directories whose whole claims the caller holds (the boot tree's, from `wp_osShare`, or
+  what an earlier area's boot left: `walBoot0s`), the area's among them;
 * `hslots`: **no entry of the area at a name a WAL function may change** (`AreaSlot`: a WAL name `nm`,
   no `.` or `/`, or `nm.<sfx>`: every name not starting with `.`), so no WAL is found (as
   `absDiskInitOk`'s `s.wal = ∅`), and the program's part of the area (`walAreaRes`) holds no entry:
@@ -88,26 +89,23 @@ the WAL's area resources, its tokens and past; back, the area's claim on its nam
 and every other directory's whole claim. -/
 theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal)
     (L : GooseLocalGS GF) (R : Roots) (jr : Ino) (r : GoString) (V : Hist) (hV : V.2 = [])
-    (hR : RootsOk R) (hr : (r, jr) ∈ R) (hjr : jr ∈ V.now)
+    (hR : RootsOk R) (hr : (r, jr) ∈ R) (Js : List Ino) (hjr : jr ∈ Js)
     (hslots : ∀ b, AreaSlot b → V.now.entry jr b = none)
     (hrb : ReceiptBoundLe GF (2 ^ 62)) (henc : ∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32)
     (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗
-      ([∗list] j ∈ (GMap.toList V.now).map (·.1),
+      ([∗list] j ∈ Js,
         osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
       ∃ W : WalGS GF, walAreaOk (L := L) (W := W) C Mr R jr r ∗ walAreaRes (L := L) (W := W) jr ∗
         walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗ walPast (W := W) (walBoot0St r) ∗
         walOwn (W := W) ∅ ∗
         osNames (L := L) jr ((NameSet.except []).inter (areaOthers V.now jr)) (DFrac.own 1)
           (namesOf V jr ((NameSet.except []).inter (areaOthers V.now jr))) ∗
-        [∗list] j ∈ ((GMap.toList V.now).map (·.1)).erase jr,
+        [∗list] j ∈ Js.erase jr,
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except [])) := by
   iintro #Hos #Hsh #Hab Hall
   -- the area's claim, out of the others
-  have hmem : jr ∈ (GMap.toList V.now).map (·.1) := by
-    cases he : V.now !! jr with
-    | none => have := (GMap.mem_iff _ _).1 hjr; rw [he] at this; cases this
-    | some e => exact List.mem_map.2 ⟨(jr, e), (GMap.mem_toList _ _ _).2 he, rfl⟩
+  have hmem : jr ∈ Js := hjr
   ihave Hall := (BigSepL.bigSepL_perm (Φ := fun j => osNames (L := L) j (.except []) (DFrac.own 1)
     (namesOf V j (.except []))) (List.perm_cons_erase hmem)).1 $$ Hall
   icases Hall with ⟨Hjr, Hrest⟩
@@ -196,6 +194,60 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   · ipureintro
     intro nm _
     exact Or.inl (hcur _)
+
+/-- **The first boot of several WAL areas, one ghost generation each** (`notes/wal-link-scope.md` §4.3, L4:
+one `WalGS` per area, its own lock token `walUnlockedTok` and crash token): `walBoot0` for each area `(r, jr)`
+of `As` in turn, each in a root of `R`, their directories distinct and among the claims held (`Js`); back,
+each area's claim on its names holding an entry, and the claims of the directories no area took. -/
+theorem walBoot0s (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal)
+    (L : GooseLocalGS GF) (R : Roots) (V : Hist) (hV : V.2 = []) (hR : RootsOk R)
+    (hrb : ReceiptBoundLe GF (2 ^ 62)) (henc : ∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32)
+    (E : CoPset) (hE : ↑osShN ⊆ E) :
+    ∀ (As : List (GoString × Ino)) (Js : List Ino), (∀ a ∈ As, a ∈ R) → (As.map (·.2)).Nodup →
+      (∀ a ∈ As, a.2 ∈ Js) → (∀ a ∈ As, ∀ b, AreaSlot b → V.now.entry a.2 b = none) →
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗
+      ([∗list] j ∈ Js,
+        osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) ={E}=∗
+      ([∗list] a ∈ As, ∃ W : WalGS GF, walAreaOk (L := L) (W := W) C Mr R a.2 a.1 ∗
+          walAreaRes (L := L) (W := W) a.2 ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
+          walPast (W := W) (walBoot0St a.1) ∗ walOwn (W := W) ∅ ∗
+          osNames (L := L) a.2 ((NameSet.except []).inter (areaOthers V.now a.2)) (DFrac.own 1)
+            (namesOf V a.2 ((NameSet.except []).inter (areaOthers V.now a.2)))) ∗
+        [∗list] j ∈ As.foldl (fun l a => l.erase a.2) Js,
+          osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except [])) := by
+  intro As
+  induction As with
+  | nil =>
+    intro Js _ _ _ _
+    iintro _ _ _ Hall
+    imodintro
+    simp only [List.foldl_nil]
+    iframe Hall
+    iapply BigSepL.bigSepL_nil.2; iempintro
+  | cons a As ih =>
+    intro Js hAR hnd hJ hsl
+    have hnd' : (As.map (·.2)).Nodup := (List.nodup_cons.1 hnd).2
+    have hJ' : ∀ a' ∈ As, a'.2 ∈ Js.erase a.2 := by
+      intro a' ha'
+      have hne : a'.2 ≠ a.2 := by
+        intro h
+        have hm := List.mem_map_of_mem (f := fun x : GoString × Ino => x.2) ha'
+        rw [h] at hm
+        exact (List.nodup_cons.1 hnd).1 hm
+      exact (List.mem_erase_of_ne hne).2 (hJ a' (List.mem_cons_of_mem _ ha'))
+    iintro #Hos #Hsh #Hab Hall
+    imod walBoot0 hPre C hC Mr L R a.2 a.1 V hV hR (hAR a List.mem_cons_self) Js
+      (hJ a List.mem_cons_self) (hsl a List.mem_cons_self) hrb henc E hE $$ Hos Hsh Hab Hall
+      with ⟨%W, Hok, Hres, Hu, Hc, Hp, Hown, Hoth, Hrest⟩
+    imod ih (Js.erase a.2) (fun a' h => hAR a' (List.mem_cons_of_mem _ h)) hnd' hJ'
+      (fun a' h => hsl a' (List.mem_cons_of_mem _ h)) $$ Hos Hsh Hab Hrest with ⟨Has, Hrest⟩
+    imodintro
+    simp only [List.foldl_cons]
+    iframe Hrest
+    iapply BigSepL.bigSepL_cons.2
+    iframe Has
+    iexists W
+    iframe
 
 end boot
 
