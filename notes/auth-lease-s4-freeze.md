@@ -764,3 +764,56 @@ fixed namespace to its body later is a body-only form. Second tier, applied (Scr
 **Status:** rev 3 (with rounds 3 and 4's second tier applied) is ready for the Freeze review. Round 4 found
 nothing first-tier against D-a..D-g, D-i, D-j, D-k or `lessorLawMask` (ACCEPTED by etcd-grove-02 on that
 condition); D-h is with the user.
+
+## Thaw 1 (2026-11-18): grant freshness in the write grant (option (A), approved by the user via etcd-grove-03)
+
+**Why.** Item 9's check 6 (root's `Get(a/lease)`, `Get(a/txn)` find nothing after u's `Revoke(Lu)`) was not
+provable: with auth on, every KV write's and every grant's client update is persistent, so in the model the
+driver sees a re-delivered grant could fire after the revocation with `id = Lu` (`kvOpStep`'s `leaseGrantOk`
+only checks the current table) and a re-delivered `Put(a/lease, Lu)` re-attach `a/lease`. The server
+excludes it (`kvGrantIds`: the log's grant ids are generated distinct), but no client update was told so.
+Not a Go bug (`questions.md`, "Item 9, the Cell: BLOCKER").
+
+**Old text** (`ProposeOn.lean`, `writeGrantG`; `opGrantTN`'s `.leaseGrant` row, `writeGrantG … (irrLeaseGrant id
+ttl) L₀`, reads it; `opGrantTN`'s own text is unchanged):
+
+    iprop(∃ (hm : apply.HeaderModel) (L : List EntryModel), Gb hm ∗
+      authHistLb γk (admStates γk st₀ L) ∗
+      ⌜L₀ <+: L ∧ grantedAt γk st₀ (apply.withHeader rq₀ hm) L ∧
+        kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L) = σ⌝)
+
+**New text** (one conjunct added, only informative at a revocable-mode grant, `rqRevGrantId`):
+
+    iprop(∃ (hm : apply.HeaderModel) (L : List EntryModel), Gb hm ∗
+      authHistLb γk (admStates γk st₀ L) ∗
+      ⌜L₀ <+: L ∧ grantedAt γk st₀ (apply.withHeader rq₀ hm) L ∧
+        kvStateOf (kvModelOn γk st₀ L) (kvLeasesOn γk st₀ L) = σ ∧
+        ∀ g, rqRevGrantId γk.lm rq₀ = some g →
+          ∀ r ≤ σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ W64 0 → kv.lease ≠ g⌝)
+
+i.e. at a grant of `g` in the revocable mode, no key had the lease `g` at any revision up to the state the
+update fires at. Client law: `writeGrantG_grant_fresh` (`LeaseReqOn.lean`, at `γk.lm = .revocable`, for
+`irrLeaseGrant id ttl`). Narrowness: only grants, only the revocable mode, only keys' leases (not the table,
+which `leaseGrantOk` already covers), only nonzero leases.
+
+**Proof (server).** `GrantFresh.lean` (new, pure): in the mode-`on` model from a lease-free start log
+(`kvInvOn`'s `mvcc.LogNoLease γk.log0`), every lease attached at any revision, and every lease of the table,
+is among the log's revocable grant ids (`histLeasesIn`, `kvRaftOfOn_hist_leases`, `kvStateOf_grant_fresh`);
+`kv_prop_au_on` (granted branch) gets `g ∉ logRevGrantIds L` from `kvGrantIds (L ++ [e])`'s distinctness
+(`kvGrantIds_nodup`). **Compaction:** no premise needed: the model's log keeps every revision (`kvStateOf`
+has `compacted = 0`; a compaction entry does not shorten `kvModelOn`), so the fact is proved in every
+compaction mode. No new trusted text; no axiom or sorry.
+
+**SpecPlan.** Counterpart: `leaseStep`'s grant (`SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`) asks only
+`σ.leases id' = none`; ledger entry 2026-11-18 (proposed: `id' ∉ σ.granted` for a server-chosen id).
+
+**Independent attack** (fresh read-only agent, 2026-11-18, given the new text and the Go code: `v3_server.go`
+`LeaseGrant`, `idutil`, `lessor.Grant`, `txn/put.go`, `client/v3/lease.go`): **no refutation** under the stated
+premises. It holds under (X1) `ID = 0` grant requests in the revocable mode (a stated premise of
+`EtcdServer.LeaseGrant.spec` and the handler's filter; clientv3 sends 0, a raw gRPC client could re-grant a revoked
+id), (X2) `kvPfxOk` (distinct masked prefixes), (X3) the `IdIssue` extension's trusted "no two generators issue the
+same id" (a restart with the clock stepped back breaks it in Go; already in the trust base,
+`nonissues/etcd-request-id-restart-reuse.md`). Dispositions: X1-X3 named in `writeGrantG`'s docstring (docstring only);
+the reviewer's suggestion to also state table freshness (`g` never granted along `L`) not taken: check 6 needs only
+the keys' history (narrowest form), and the table is `leaseGrantOk`'s; the `kv.lease ≠ 0 →` guard kept (the model does
+not know a drawn id is nonzero).

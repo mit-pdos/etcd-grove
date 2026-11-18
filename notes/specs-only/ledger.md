@@ -25,6 +25,21 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: `leaseStep`'s grant -- a server-chosen id is fresh in the history, the plan says only "not live"
+
+- **Spec.** `SpecPlan/Spec/go_etcd_io/etcd/api/v3/Model.lean`, `leaseStep` (`.leaseGrant`: `σ.leases id' = none`);
+  the real counterpart `writeGrantG` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/ProposeOn.lean`), read by
+  `v3rpc.opGrantT`'s `.leaseGrant` row (frozen `opGrantTN`, `notes/auth-lease-s4-freeze.md`, "Thaw 1").
+- **Defect.** Too weak for a user: a client holding a persistent grant update (auth on) cannot rule out a
+  re-grant of a revoked id, so a later re-delivered put could re-attach a key to it; the auth-lease driver's
+  check 6 (keys of a revoked lease stay deleted) is unprovable.
+- **Evidence.** `questions.md` (auth-lease S4, "Item 9, the Cell: BLOCKER", 2026-11-18); Go: `EtcdServer.LeaseGrant`
+  draws `r.ID` from `reqIDGen` while it is 0 (`v3_server.go:436`), ids distinct per member prefix (`kvGrantIds`).
+- **Proposed change.** Real spec (done, approved): `writeGrantG` gains `∀ g, rqRevGrantId γk.lm rq₀ = some g → ∀ r ≤
+  σ.rev, ∀ kv ∈ (σ.at r).kvs, kv.lease ≠ 0 → kv.lease ≠ g`. Plan: `leaseStep`'s chosen-id case (`id = 0`) adds
+  `id' ∉ σ.granted` (the plan's own history of granted ids), which implies the real form.
+- **Decision.** Real spec: accepted (the user, 2026-11-18, option (A), via etcd-grove-03). Plan change: pending.
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`
