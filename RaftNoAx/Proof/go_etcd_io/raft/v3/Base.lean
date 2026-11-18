@@ -19,6 +19,7 @@ public import Proof.reflect.PkgInit
 public import RaftNoAx.Code.go_etcd_io.raft.v3
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.raftpb
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.InvPbCore
 -- (raft-noax) raft no longer imports `proto`; kvdurable does (`proto.Equal`), and the proto specs
 -- name its package
 public import GeneratedProof.google_golang_org.protobuf.proto
@@ -240,7 +241,8 @@ def isInitialized : IProp GF :=
     -- representation the redesign settles, `notes/raft-retarget-plan.md`).
     -- (Stage R4 phase 3) As the read-only hard state `hsRO es ⟨0, 0, 0⟩` of `InvPb.lean`,
     -- unfolded (this file is below `InvPb`): non-`nil`, its three cells `nil` (frozen), its
-    -- hidden fields in the `protobuf` invariant (`pbMsg raftpb.HardState es []`), as
+    -- hidden fields frozen (`pbMsg raftpb.HardState es []`; raft-noax stage 3a: in the main tree
+    -- the `protobuf` invariant, spelled out here since `pbMsg` was below `InvPb`), as
     -- `isHardStateEqual`'s getters need; `emptyState_hsRO` (`LemmasMiscR.lean`) folds it.
     -- (Until phase 3: `es ↦□ zero_val raftpb.HardState`, which no proof used and which the
     -- invariant's owned hidden fields exclude.)
@@ -248,10 +250,7 @@ def isInitialized : IProp GF :=
       (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
       (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
       (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
-      inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
-          (sc : w32) (us : GoSlice),
-        es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
-          es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))) ∗
+      EtcdGrove.pbMsg raftpb.HardState es []) ∗
     -- the tables behind `IsLocalMsg` and `IsResponseMsg` (`util.go`), read by
     -- `RawNode.Step`; nothing but the initializer writes them, and their contents do
     -- not matter to the specs (2026-10-09)

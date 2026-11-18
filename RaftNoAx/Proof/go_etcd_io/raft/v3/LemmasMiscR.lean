@@ -1,10 +1,10 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/LemmasMiscR.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Lemmas of the leaf and utility functions of `raft.go`/`util.go`/`node.go` (raft v3.7 retarget,
 stage R4 phase 3, group G1).
 
 * `emptyState_hsRO`: `isInitialized`'s `#emptyState` (`Base.lean`, which is below `InvPb` and
-  states it unfolded) is `hsRO es ⟨0, 0, 0⟩`.
+  states it unfolded) is `hsRO es ⟨0, 0, 0⟩`. (The part's own, raft-noax stage 3a: `Base.lean`
+  states the hidden fields as `pbMsg`, which is now frozen fields, not an invariant.)
 * `wp_hsOpt_GetTerm`/`_GetVote`/`_GetCommit`: the getters of a `nil`-or-read-only hard state
   (`hsOpt`), from R1's getter specs (one per case of `hsOpt`).
 * `msgOwn_zero`: a fresh `&pb.Message{}` is an owned message holding the zero record
@@ -59,10 +59,7 @@ theorem emptyState_hsRO :
   · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   isplitr
   · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
-  unfold pbMsg pbN
-  isplitl
-  · iexact Hpb
-  · ipureintro; exact ufWire_nil _
+  iexact Hpb
 
 /-- The getters of a `nil`-or-read-only hard state. -/
 theorem wp_hsOpt_GetTerm (wp_GetTerm : raftpb.HardState.GetTerm.spec (GF := GF) (hG := hG))

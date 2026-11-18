@@ -356,21 +356,16 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
     iexists _
     iframe HraftLogger
   -- (stage R4 phase 3) `emptyState`'s struct: its cells (all `nil`) frozen, its hidden fields
-  -- made into the `protobuf` invariant (`hsRO es ⟨0, 0, 0⟩` unfolded, `Base.lean`)
+  -- frozen (`pbMsg`) (`hsRO es ⟨0, 0, 0⟩` unfolded, `Base.lean`)
   ihave %HesNN := typedPointsto_not_null $$ «$r0»
   icases typedPointsto_split _ _ _ $$ «$r0» with Hes
   simp only [TypedPointsto.typedPointstoDef]
   icases Hes with ⟨Hst, HeT, HeV, HeC, Heuf, Hesc, -⟩
   ihave Hnil : (slice.nil ↦* ([] : List w8) : IProp GF) $$ []
   · iapply ownSlice_nil
-  imod inv_alloc (nroot.@"protobuf") ⊤
-      iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState) (sc : w32) (us : GoSlice),
-        _.[raftpb.HardState, go!"state"] ↦ st ∗ _.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
-          _.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8))
+  imod EtcdGrove.pbMsg_alloc raftpb.HardState _ _ _ _ [] ⊤ (EtcdGrove.ufWire_nil _)
       $$ [Hst Heuf Hesc Hnil] with #HesPb
-  · inext
-    iexists _, _, _
-    iframe Hst Hesc Heuf Hnil
+  · iframe Hst Hesc Heuf Hnil
   ipersist HES
   ipersist HEPD
   ipersist HGR
@@ -409,10 +404,7 @@ theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
       (es.[raftpb.HardState, go!"Term"] ↦□ null : IProp GF) ∗
       (es.[raftpb.HardState, go!"Vote"] ↦□ null : IProp GF) ∗
       (es.[raftpb.HardState, go!"Commit"] ↦□ null : IProp GF) ∗
-      inv (nroot.@"protobuf") iprop(∃ (st : google_golang_org.protobuf.internal.impl.MessageState)
-          (sc : w32) (us : GoSlice),
-        es.[raftpb.HardState, go!"state"] ↦ st ∗ es.[raftpb.HardState, go!"sizeCache"] ↦ sc ∗
-          es.[raftpb.HardState, go!"unknownFields"] ↦ us ∗ us ↦* ([] : List w8)))
+      EtcdGrove.pbMsg raftpb.HardState es [])
       $$ [HEmpty HeT HeV HeC HesPb]
   · iexists _
     iframe HEmpty HeT HeV HeC HesPb
