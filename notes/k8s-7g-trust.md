@@ -30,11 +30,25 @@ to a separate audit; no 7g proof steps into `fmt.Errorf`'s model. The axiom
 `apierrors.SuggestsClientDelay.wp_proof` is added
 (`Proof/k8s_io/apimachinery/pkg/api/errors/SuggestsClientDelay.lean`).
 
+**2026-11-18 (night): clause 4 of `reflect.DeepEqual.spec_k8s`, PENDING the independent attack**
+(hard stop; option (B), decided by etcd-grove-03; no proof uses it yet). `Spec/reflect/DeepEqualK8s.lean`,
+the fourth conjunct (header: "4." and "Clause 4"): `DeepEqual(Response{o1, e1}, Response{o2,
+*StatusError at l})`, with deep views of `o1`, `e1`, `o2` (any `dq`), any `l` (null too) and no
+ownership of the `*StatusError`, returns `false` and gives the views back. Why: the `Object` field is
+compared on the held cells, then `Err`: nil against non-nil, or differing dynamic types (no `DeepV` is a
+`*StatusError`), without reading the `*StatusError`. One orientation only (the model's expected
+response first, as `Step`, `validateGet`, `validateList`, `equalListResponse` call it). The axiom
+`reflect.DeepEqual.wp_proof_k8s` (`Proof/reflect/DeepEqualK8s.lean`, docstring updated) now states it.
+Go test: `examples/k8s/etcd3/trustspecs_test.go` `TestDeepEqualTooLarge` (20000 random pairs from
+`TestDeepEqualViews`' generators; too-large errors with retry 0 and 2, a zero `*StatusError`, a typed nil
+`*StatusError`; the second object independent, mutated, or the same pointer; `false` in both orders, no
+panic): PASS.
+
 ## 1. New trust-boundary specs (files written)
 
 | Spec | File | Axiom to come | Go tests |
 | --- | --- | --- | --- |
-| `reflect.DeepEqual.spec_k8s` (3 clauses: two interface values; two `correctness.Response`; two `map[string]runtime.Object`) over `k8sDeep.deepRep`/`mapRep` | `Spec/reflect/DeepEqualK8s.lean`; vocabulary `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Deep.lean` (`DeepV`, `deepRep`, `itemsRep`, `remRep`, `mapRep`) | `reflect.DeepEqual.wp_proof_k8s` | `TestDeepEqualViews` (60000 random pairs, the three shapes), `TestDeepEqualNamedCases`, `TestDeepEqualFacts` |
+| `reflect.DeepEqual.spec_k8s` (4 clauses: two interface values; two `correctness.Response`; two `map[string]runtime.Object`; clause 4, 2026-11-18: a deep `Response` against one with a `*StatusError` error, `false`) over `k8sDeep.deepRep`/`mapRep` | `Spec/reflect/DeepEqualK8s.lean`; vocabulary `Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Deep.lean` (`DeepV`, `deepRep`, `itemsRep`, `remRep`, `mapRep`) | `reflect.DeepEqual.wp_proof_k8s` | `TestDeepEqualViews` (60000 random pairs, the three shapes), `TestDeepEqualTooLarge` (clause 4), `TestDeepEqualNamedCases`, `TestDeepEqualFacts` |
 | `cmp.Diff.spec_eventRefs` (no options, two `[]eventReference`: `""` iff same nil-ness and equal elements) | `Spec/github_com/google/go_cmp/cmp/Diff.lean` | `cmp.Diff.wp_proof_eventRefs` | `TestCmpDiffEventRefs`, `TestCmpDiffEventRefsRandom` |
 | `maps.Keys.spec_objMap` (returns `f`; `slices.Sorted(f)` gives the map's keys at that time, strictly increasing by `go.GoStringLt`) | `Spec/maps/Keys.lean` | `maps.Keys.wp_proof_objMap` | `TestMapsKeysSorted` |
 | `maps.Clone.spec_strBool` | `Spec/maps/Clone.lean` | `maps.Clone.wp_proof_strBool` | `TestMapsCloneEqual` |

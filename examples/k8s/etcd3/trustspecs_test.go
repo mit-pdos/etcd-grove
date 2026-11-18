@@ -274,6 +274,54 @@ func TestDeepEqualViews(t *testing.T) {
 	t.Logf("%d pairs", n)
 }
 
+// Clause 4 of reflect.DeepEqual.spec_k8s: a Response whose object and error have views, against
+// one whose object has a view and whose error is a *apierrors.StatusError (storage's too-large
+// error, retry or not; a zero StatusError; a typed nil *StatusError): DeepEqual is false, in both
+// argument orders, and does not panic. The second object is drawn independently, mutated from the
+// first, or the same pointer as the first (DeepEqual's identity shortcut on the Object field).
+func TestDeepEqualTooLarge(t *testing.T) {
+	r := rand.New(rand.NewSource(11))
+	objKinds := []int{0, 1, 2}
+	errKinds := []int{0, 3, 4}
+	statusErrs := []func() error{
+		func() error { return storage.NewTooLargeResourceVersionError(5, 4, 0) },
+		func() error { return storage.NewTooLargeResourceVersionError(5, 4, 2) },
+		func() error { return &apierrors.StatusError{} },
+		func() error { var e *apierrors.StatusError; return e },
+	}
+	n := 0
+	for i := 0; i < 20000; i++ {
+		oa, ea := rview(r, objKinds, 0), rview(r, errKinds, 0)
+		var ob *dview
+		switch r.Intn(3) {
+		case 0:
+			ob = rview(r, objKinds, 0)
+		default:
+			ob = mutate(r, oa)
+		}
+		xa := asObject(materialize(r, oa))
+		xb := asObject(materialize(r, ob))
+		if r.Intn(4) == 0 {
+			xb = xa
+		}
+		se := statusErrs[r.Intn(len(statusErrs))]()
+		if _, ok := se.(*apierrors.StatusError); !ok {
+			t.Fatalf("not a *StatusError: %T", se)
+		}
+		ra := correctness.Response{Object: xa, Err: asError(materialize(r, ea))}
+		rb := correctness.Response{Object: xb, Err: se}
+		var got1, got2 bool
+		if panics(func() { got1 = reflect.DeepEqual(ra, rb) }) || panics(func() { got2 = reflect.DeepEqual(rb, ra) }) {
+			t.Fatalf("DeepEqual panicked on (%+v,%+v) vs (%+v,%T)", oa, ea, ob, se)
+		}
+		if got1 || got2 {
+			t.Fatalf("(%+v,%+v) vs (%+v,%#v): DeepEqual %v %v, want false", oa, ea, ob, se, got1, got2)
+		}
+		n++
+	}
+	t.Logf("%d pairs", n)
+}
+
 // The cases the spec relies on, named (beside TestDeepEqualFacts): unexported fields are
 // compared (a StorageError's inner error, an errorString's text); a typed nil pointer in an
 // interface is not a nil interface (the spec's `nil` view is the nil interface only); the

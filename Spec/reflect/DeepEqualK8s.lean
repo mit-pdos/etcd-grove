@@ -9,7 +9,12 @@ the checker's calls pass:
    (errors);
 2. two `correctness.Response` structs (converted to `any`: `interface.mkOk Response.ty`): `Step`,
    `validateGet`, `validateList`, `equalListResponse`, `Replay.validateGet`;
-3. two `map[string]runtime.Object` (`Model.Equal`'s `Items`).
+3. two `map[string]runtime.Object` (`Model.Equal`'s `Items`);
+4. two `correctness.Response` structs, the first with deep values (object and error), the second
+   with a deep object and an `*apierrors.StatusError` error (storage's too-large error, which has
+   no `DeepV`): `false` (`Step`'s writes, `validateGet`, `validateList` and `equalListResponse`
+   compare the model's expected response, first, with the store's output, which may hold one).
+   Added 2026-11-18 (option (B), decided by etcd-grove-03).
 
 Stated at these types only (as `reflect.DeepEqual.spec_pgidSet`, `Spec/reflect/DeepEqual.lean`):
 the trust boundary, a second trust-boundary spec of the function at other types (the spec
@@ -40,8 +45,21 @@ Go mirror of `=` on `DeepV`), `TestDeepEqualNamedCases` (unexported fields compa
 count by its pointee; two `NewInvalidObjError` of one message equal; an empty and a nil map
 differ).
 
+Clause 4 (faithful by the same rules): the two `Response`s have one type, so `deepValueEqual`
+compares the fields in order; `Object` reads only the cells the two `deepRep`s hold, and if the
+objects differ the answer is `false` already; then `Err`: if the first is the nil interface
+(`de1 = nil`) and the second is not (an interface holding a `*StatusError`, nil or not, is not the
+nil interface), `false`; else the dynamic types differ (no `DeepV` constructor is a
+`*StatusError`: `*Obj`, `*ObjList`, `*StorageError`, `*errorString`), `false`, without reading
+the `*StatusError` (so no ownership of `l` is needed; `l` may be null). Go evidence:
+`trustspecs_test.go` `TestDeepEqualTooLarge` (the first response's object and error drawn from the
+views of `TestDeepEqualViews`, the second's object too, its error
+`storage.NewTooLargeResourceVersionError` with each retry setting, a zero `*StatusError` and a
+typed nil `*StatusError`: `DeepEqual` is `false` in both argument orders, and never panics).
+
 Not covered (no claim): a typed nil pointer in an interface (no `DeepV` holds one), any other
-dynamic type (`*apierrors.StatusError`, `*fmt.wrapError`, `*metav1.Status`), maps of other types.
+dynamic type (`*apierrors.StatusError` except as clause 4's second error, `*fmt.wrapError`,
+`*metav1.Status`), maps of other types.
 Lean-first.
 -/
 module
@@ -90,7 +108,20 @@ abbrev reflect.DeepEqual.spec_k8s : Prop :=
         (Val #(interface.mkOk (go.GoType.MapType go.string
           k8s_io.apimachinery.pkg.runtime.Object.ty) #m2)))
     {{ (b : Bool), RET #b; ⌜b = true ↔ D1 = D2⌝ ∗
-        m1 ↦${dq1} M1 ∗ mapRep dq1 M1 D1 ∗ m2 ↦${dq2} M2 ∗ mapRep dq2 M2 D2 }})
+        m1 ↦${dq1} M1 ∗ mapRep dq1 M1 D1 ∗ m2 ↦${dq2} M2 ∗ mapRep dq2 M2 D2 }}) ∧
+  (∀ (o1 e1 o2 : GoInterface) (l : Loc) (do1 de1 do2 : DeepV) (dq1 dq2 : DFrac),
+    {{ deepRep (GF := GF) dq1 o1 do1 ∗ deepRep dq1 e1 de1 ∗ deepRep dq2 o2 do2 }}
+      (App (App (Val #(functions _root_.Perennial.reflect.DeepEqual []))
+        (Val #(interface.mkOk
+          github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.ty
+          #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.mk o1 e1))))
+        (Val #(interface.mkOk
+          github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.ty
+          #(github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.mk o2
+            (interface.mkOk (go.GoType.PointerType
+              k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l)))))
+    {{ (b : Bool), RET #b; ⌜b = false⌝ ∗
+        deepRep dq1 o1 do1 ∗ deepRep dq1 e1 de1 ∗ deepRep dq2 o2 do2 }})
 
 end spec
 
