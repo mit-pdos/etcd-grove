@@ -1,10 +1,15 @@
 # fmt soundness: handoff
 
-## START HERE (2026-11-18, STOP: the third attack refuted the parser, `notes/fmt-third-attack.md`)
-- R1 (trailing `.` is Go's verb, the parser reads a precision) refutes `fmt.Errorf.spec` AND the drafts
-  `ErrorfErrs/Not/Term` (WalTester hypotheses); R2 (`%w` of a Stringer) and R3 (no signature facts in
-  `fmt.argOk`) refute `fmt.Errorf.spec` (pre-existing). Fixes proposed in the note; awaiting etcd-grove-03.
-- The full build (/shared/tmp/fmtfix/full2.log) was started before the refutation; links/gates not run.
+## START HERE (2026-11-18, STOP: R2/R3 cost delta; R1 fixed, differential test 0 mismatches)
+- Branch `fmt-soundness` head 9df60b7bbc. R1 fixed in place (`fmt.fmtDirectivesAux`: a `.` starts a
+  precision only if a byte follows); differential test `/shared/tmp/fmtfix-diff/` (`notes/fmt-third-attack.md`):
+  43,121 mismatches before (all trailing `.`), 0 after over 2,127,162 formats.
+- R2/R3 NOT applied: `fmt.argOk`'s `Error` disjunct needs `Error = some noArgStringSig`, which its producers
+  `cache/v3/Base.lean`'s `statusErrOk`/`errStrOk` and `net/http/Boundary.lean`'s `errStrOk` do not carry: they
+  would gain it (a typing fact, true of every Go `error`), changing the meaning of the ~30 axiom files whose
+  posts give them, plus ~60 unfold sites in ~40 files and the 21 files of the `fmt_args_ok`/`fmt_arg_method`
+  macros. Reported to etcd-grove-03 (in-place cost well over the estimate).
+- The full build was stopped (the parser change rebuilds the fmt importers); nothing past it run.
 
 ### Previous START HERE (after etcd-grove-03's decisions on the %#w stop)
 - Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness`; lean merged (fb68edfec8 is an ancestor).
