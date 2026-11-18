@@ -506,7 +506,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       iframe Hout HW Hco
       isplitr
       · ipureintro; exact ⟨hkey, hkl, rfl⟩
-      rw [hpp, hc, show (driverSpec (GF := GF)).preOk (kpreOf x) = preD x from rfl]
+      rw [hpp, hc, show (driverSpec (GF := GF)).preF (kpreOf x) = preD x from rfl]
       iexact Haus
     iunfold delOut at Hres
     ihave Hy : (∃ y : Output, ((⌜err0 ≠ GoInterface.nil⌝ ∗ errIs err0 y) ∨
@@ -528,7 +528,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
           ipureintro; exact Hne
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
-          ((c.abs σ).delete (c.pathPrefix ++ storeKeyL x.Key') (c.S.preOk (kpreOf x))
+          ((c.abs σ).delete (c.pathPrefix ++ storeKeyL x.Key') (c.S.preF (kpreOf x))
             (rejD eD x.HasReject' x.Reject')).2 err0 _ eD eU (delete_noOdd _ _ _ _ _ _)
           (fun e e' h he => Or.inl ((show e' = e from he).trans (delete_user _ _ _ _ _ _ _ h)))
           $$ [HD HU Hr]
@@ -632,7 +632,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
       iframe Hout HW Hco
       isplitr
       · ipureintro; exact ⟨hkey, hkl, hsz, hzs, hcs, hscope⟩
-      rw [hpp, hz0, hc, show (driverSpec (GF := GF)).preOk (kpreOf x) = preD x from rfl]
+      rw [hpp, hz0, hc, show (driverSpec (GF := GF)).preF (kpreOf x) = preD x from rfl]
       iexact Haus
     iunfold updOut at Hres
     rw [hz0] at *
@@ -656,7 +656,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
         ileft; ipureintro; rfl
       · ihave Hy := respIs_call c hc
           ((c.abs σ).update (c.pathPrefix ++ storeKeyL x.Key') x.IgnoreNotFound' dzero
-            (c.S.preOk (kpreOf x)) (updD eU x)).2 err0 _ eD eU (update_noOdd _ _ _ _ _ _)
+            (c.S.preF (kpreOf x)) (updD eU x)).2 err0 _ eD eU (update_noOdd _ _ _ _ _ _)
           (fun e e' h he => Or.inr ((show e' = e from he).trans (update_user _ _ _ _ _ _ _ h)))
           $$ [HD HU Hr]
         · iframe Hpkg HD HU Hr

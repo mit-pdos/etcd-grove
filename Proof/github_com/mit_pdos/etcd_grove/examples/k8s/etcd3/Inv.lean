@@ -126,7 +126,7 @@ theorem dobjOf_toObj (o : DObj) (r : w64) : dobjOf (o.toObj r) = o := by
 abbrev cachedOf (y : Output) : Obj := objOfL y
 
 /-- The store's preconditions of an input, as the store's model takes them. -/
-abbrev preD (x : Input) : DObj → Nat → Bool := driverCodec.preOk (kpreOf x)
+abbrev preD (x : Input) : KPreF DObj := driverCodec.preF (kpreOf x)
 
 /-- **The store's model on the input `x`** (see the file header; not a list): its next state and
 the driver's output of its answer. -/
@@ -223,7 +223,7 @@ theorem respFrom_create {E : Type} (ks : KSt DObj) (k : GoString) (o : DObj) :
   repeat' split
   all_goals simp_all [RespFrom, KSt.setItem]
 
-theorem respFrom_delete {E : Type} (ks : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool)
+theorem respFrom_delete {E : Type} (ks : KSt DObj) (k : GoString) (pre : KPreF DObj)
     (v : DObj → Nat → Option E) :
     RespFrom ks (ks.delete k pre v).1 k (ks.delete k pre v).2 := by
   unfold KSt.delete
@@ -231,7 +231,7 @@ theorem respFrom_delete {E : Type} (ks : KSt DObj) (k : GoString) (pre : DObj �
   all_goals simp_all [RespFrom, KSt.delItem]
 
 theorem respFrom_update {E : Type} (ks : KSt DObj) (k : GoString) (ig : Bool) (z : DObj)
-    (pre : DObj → Nat → Bool) (f : DObj → Nat → Except E DObj) :
+    (pre : KPreF DObj) (f : DObj → Nat → Except E DObj) :
     RespFrom ks (ks.update k ig z pre f).1 k (ks.update k ig z pre f).2 := by
   unfold KSt.update
   repeat' split
@@ -258,7 +258,7 @@ theorem ansFrom_outOf {E : Type} (ks ks' : KSt DObj) (K : GoString) (r : KResp D
   | obj o rv => exact ⟨o, rv, rfl, h⟩
   | zero => exact absurd rfl hn
   | err e =>
-    cases e <;> simp [outOf, rejectedL, otherL, tooLargeL, errOutL] at he hn
+    cases e <;> simp [outOf, rejectedL, otherL, tooLargeL, errOutL, invalidOutL] at he hn
 
 /-- **The model's answer, with a name, is an item's** (`AnsFrom`). -/
 theorem kStep_ansFrom (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
@@ -307,7 +307,7 @@ theorem mstepL_err (x : Input) (g : GSt)
     (hk : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) : (mstepL x g).2.Err' ≠ W64 4 := by
   unfold mstepL mcreateL mdeleteL mupdateL
   rcases hk with h | h | h <;>
-    simp only [h, objOutL, existsL, notFoundL, rejectedL, invalidObjL, errOutL]
+    simp only [h, objOutL, existsL, notFoundL, rejectedL, invalidObjL, invalidOutL, errOutL]
   all_goals (repeat' split) <;> simp_all
 
 /-- A write's model answer, as porcupine's model decodes its output. -/

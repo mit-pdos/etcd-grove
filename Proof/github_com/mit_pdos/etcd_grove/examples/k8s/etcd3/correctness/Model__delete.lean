@@ -2,7 +2,7 @@
 Lean-first (no Rocq counterpart).
 
 The proof of `(*Model).delete`: `checkKey`, the lookup ("not found"), `Preconditions.Check` on the
-stored (read-only) object (`metaAt_obj`; the message is the model's, `preMsgL_kpre`), the
+stored (read-only) object (`metaAt_obj`; the message is the model's, `checkMsgL_kpre`), the
 callback on a copy (`validateD`), and the delete at the next resource version (a copy of the stored
 object with it, `SetResourceVersion(FormatUint(rv))`), both maps' entries removed.
 -/
@@ -140,7 +140,7 @@ theorem Model.delete.wp_proof
       iapply HΦ
       have : rdeleteL x m = failR m (invalidE m (k8s_etcd3.storeKeyL x.Key')
           ((k8s_etcd3.kpreOf x).failMsg o.UID' (k8s_etcd3.rvStr o.ResourceVersion'))) := by
-        unfold rdeleteL; simp [hk, ho, preMsgL_kpre x o hpok]
+        unfold rdeleteL; simp [hk, ho, checkMsgL_kpre x o hpok]
       rw [this]
       unfold failR respRep changeRep errRep deepRO deepRep invalidE
       simp only
@@ -209,7 +209,7 @@ theorem Model.delete.wp_proof
             RM.mk (GMap.delete (k8s_etcd3.storeKeyL x.Key') m.items) (m.rv + W64 1) m.pfx
               (GMap.delete (k8s_etcd3.storeKeyL x.Key') m.rewrites),
             some ⟨k8s_etcd3.storeKeyL x.Key', m.rv + W64 1, none, some o⟩) := by
-          unfold rdeleteL; simp [hk, ho, (preMsgL_none x o).2 hpok, hrj]
+          unfold rdeleteL; simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj]
         rw [hd]
         unfold respRep changeRep errRep optObjD deepRO deepRep
         simp only
@@ -244,7 +244,7 @@ theorem Model.delete.wp_proof
         wp_auto
         iapply HΦ
         have : rdeleteL x m = failR m delRejE := by
-          unfold rdeleteL; simp [hk, ho, (preMsgL_none x o).2 hpok, hrj]
+          unfold rdeleteL; simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj]
         rw [this]
         unfold failR respRep changeRep errRep delRejE
         simp only

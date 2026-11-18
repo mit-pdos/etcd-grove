@@ -82,7 +82,7 @@ continue token `cont` and remaining count `rem`: no error, the items encoded (`e
 remaining count iff the list has one. -/
 def listObjOutL (vs : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj) (rv : w64)
     (cont : GoString) (rem : Option w64) : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output :=
-  ⟨W64 0, [], 0, [], [], [], [], [], [], 0, encItemsL vs, rv, cont, rem.isSome, rem.getD 0, [], false, zeroValDef⟩
+  ⟨W64 0, [], 0, [], [], [], [], [], [], [], 0, encItemsL vs, rv, cont, rem.isSome, rem.getD 0, [], false, zeroValDef⟩
 
 /-- **The driver's list objects** (see the file header). -/
 def driverListSpec : ListSpec GF DObj where

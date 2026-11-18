@@ -7,7 +7,7 @@ Lean-first (no Rocq counterpart).
   annotation, so that it is an `objAtD` of its `DObj` (what `tryUpdateFor`'s closure and the
   driver's `metav1.Object` methods take); `rcreateL`, `rupdateL`, `rdeleteL` keep it
   (`itemsFitL_create`, ..., `itemsFitL_exec`), for an input that fits (`crFits`).
-- `preMsgL_kpre`: the model's precondition message is `storage.Preconditions.Check`'s
+- `checkMsgL_kpre`: the model's precondition message is `storage.Preconditions.Check`'s
   (`KPre.failMsg` of `kpreOf x`).
 - `metaAt_obj`: a `*Obj` held at any fraction is a `metav1.Object` whose `GetUID` and
   `GetResourceVersion` answer its UID and `rvStr` of its resource version (what `Check` takes; the
@@ -147,9 +147,9 @@ theorem kpreOf_ok (x : Input) (o : Obj) :
 
 set_option linter.unusedSimpArgs false in
 /-- **The model's precondition message is `Check`'s.** -/
-theorem preMsgL_kpre (x : Input) (o : Obj) (h : preOkL x o = false) :
-    preMsgL x o = some ((kpreOf x).failMsg o.UID' (rvStr o.ResourceVersion')) := by
-  unfold preMsgL k8s.KPre.failMsg kpreOf
+theorem checkMsgL_kpre (x : Input) (o : Obj) (h : preOkL x o = false) :
+    checkMsgL x o = some ((kpreOf x).failMsg o.UID' (rvStr o.ResourceVersion')) := by
+  unfold checkMsgL k8s.KPre.failMsg kpreOf
   unfold preOkL at h
   cases h1 : x.HasPreUID' <;> cases h3 : x.HasPreRV' <;>
     by_cases h2 : x.PreUID' = o.UID' <;> by_cases h4 : x.PreRV' = rvStr o.ResourceVersion' <;>

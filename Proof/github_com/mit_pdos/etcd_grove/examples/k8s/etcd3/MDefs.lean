@@ -273,6 +273,8 @@ theorem Output_intoVal_inj : Function.Injective (intoVal (V := Output)) := by
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
     (Output.TypeAssumptions.get_ErrRV x) (Output.TypeAssumptions.get_ErrRV y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (Output.TypeAssumptions.get_ErrMsg x) (Output.TypeAssumptions.get_ErrMsg y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
     (Output.TypeAssumptions.get_Namespace x) (Output.TypeAssumptions.get_Namespace y) h))
   have := go.intoVal_inj (Expr.Val.inj (proj_eq
     (Output.TypeAssumptions.get_Name x) (Output.TypeAssumptions.get_Name y) h))

@@ -174,3 +174,19 @@ For the joint independent attack of all 7g trust texts before the step-6 Freeze:
 - Nil-ness of slices is the model's `= slice.nil` (what `== nil` decides), of pointers `= null`.
 - Not covered: typed nil pointers in interfaces, other dynamic types, other map/slice types, `nil`
   maps.
+
+## 6. Freeze list: changes to the 7g statement after step 3
+
+- **The driver's output records a failed precondition's message** (option (C) of the step-4 STOP, decided by
+  etcd-grove-03, 2026-11-18). Reason: the stale-precondition counterexample (`questions.md`, "Step 4 STOP"):
+  without the message, an update A whose precondition fails (PreRV "9") overlapping an update B of the same key
+  (RV 1 -> 2) has the same plain output at either state, so the driver's model may linearize B before A, while
+  A's real response (from its commit, "... ResourceVersion in object meta: 1") fails the maintainers' `Step` at
+  the state with RV 2. Changed text (examples/k8s/etcd3/k8setcd3.go): `Output.ErrMsg` (filled only on
+  `EInvalid`, from the store error's inner error, `se.Unwrap().Error()`), `invalidObj(key, msg)`,
+  `preMsg(in, o)` (`Preconditions.Check`'s message: the UID's mismatch first, else the resource version's),
+  `outEqual` compares `ErrMsg`. Lean: `invalidObjL key msg`, `invalidOutL`, `preMsgL`, `mdeleteL`/`mupdateL`.
+  Go evidence: `TestInvalidMsg` (`invalidmsg_test.go`).
+- **The store's spec vocabulary carries the message** (consequence, proved, not trusted): `KErr.invalidObj key
+  msg`, `KPreF` (`ok`, `msg`), `ObjCodec.preF`, `respIs`'s `invalidErrMsg` case; the specs of
+  `GuaranteedUpdate`, `Delete`, `conditionalDelete` take `c.S.preF pr`. A stronger post: no premise added.

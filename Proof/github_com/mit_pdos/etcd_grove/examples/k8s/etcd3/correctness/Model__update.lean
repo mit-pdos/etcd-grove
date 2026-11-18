@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 The proof of `(*Model).update`: `checkKey`, the lookup ("not found", or `NewFunc()`'s zero object
 under `ignoreNotFound`), `Preconditions.Check` on the current object (a copy of the stored one:
-`metaAt_obj`; the message is the model's, `preMsgL_kpre`), the callback (`tryUpdateD`, on the
+`metaAt_obj`; the message is the model's, `checkMsgL_kpre`), the callback (`tryUpdateD`, on the
 current object as an `objAtD`: `itemsFitL`), the no-op shortcut (D30g: unless the key needs a
 rewrite; `reflect.DeepEqual` of the two objects with their resource versions cleared) and the write
 at the next resource version.
@@ -159,8 +159,8 @@ theorem Model.update.wp_proof
         subst hl
         wp_auto
         iapply HΦ
-        have hmsg : preMsgL x k8s_etcd3.zObj = some ((k8s_etcd3.kpreOf x).failMsg [] []) :=
-          preMsgL_kpre x k8s_etcd3.zObj hpok
+        have hmsg : checkMsgL x k8s_etcd3.zObj = some ((k8s_etcd3.kpreOf x).failMsg [] []) :=
+          checkMsgL_kpre x k8s_etcd3.zObj hpok
         have : rupdateL x m = failR m (invalidE m (k8s_etcd3.storeKeyL x.Key')
             ((k8s_etcd3.kpreOf x).failMsg [] [])) := by
           unfold rupdateL; simp [hk, hin, hig, hmsg]
@@ -239,7 +239,7 @@ theorem Model.update.wp_proof
               k8s_etcd3.updGo x k8s_etcd3.zObj := k8s_etcd3.updObj_toObj x k8s_etcd3.dzero 0 hfx
           have hd : rupdateL x m = updWriteL m (k8s_etcd3.storeKeyL x.Key') none
               (k8s_etcd3.updGo x k8s_etcd3.zObj) := by
-            unfold rupdateL; simp [hk, hin, hig, (preMsgL_none x k8s_etcd3.zObj).2 hpok, hrj]
+            unfold rupdateL; simp [hk, hin, hig, (checkMsgL_none x k8s_etcd3.zObj).2 hpok, hrj]
           rw [hd]
           ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c2
             { k8s_etcd3.updGo x k8s_etcd3.zObj with ResourceVersion' := m.rv + W64 1 } $$ [Hit Hc2]
@@ -281,7 +281,7 @@ theorem Model.update.wp_proof
           wp_auto
           iapply HΦ
           have : rupdateL x m = failR m updRejE := by
-            unfold rupdateL; simp [hk, hin, hig, (preMsgL_none x k8s_etcd3.zObj).2 hpok, hrj]
+            unfold rupdateL; simp [hk, hin, hig, (checkMsgL_none x k8s_etcd3.zObj).2 hpok, hrj]
           rw [this]
           unfold failR respRep changeRep errRep updRejE
           simp only
@@ -328,7 +328,7 @@ theorem Model.update.wp_proof
       iapply HΦ
       have : rupdateL x m = failR m (invalidE m (k8s_etcd3.storeKeyL x.Key')
           ((k8s_etcd3.kpreOf x).failMsg o.UID' (k8s_etcd3.rvStr o.ResourceVersion'))) := by
-        unfold rupdateL; simp [hk, ho, preMsgL_kpre x o hpok]
+        unfold rupdateL; simp [hk, ho, checkMsgL_kpre x o hpok]
       rw [this]
       unfold failR respRep changeRep errRep deepRO deepRep invalidE
       simp only
@@ -447,7 +447,7 @@ theorem Model.update.wp_proof
                   { k8s_etcd3.updGo x o with ResourceVersion' := 0 }) := fun h => by
                 rw [h] at hb; simp at hb
               unfold rupdateL
-              simp [hk, ho, (preMsgL_none x o).2 hpok, hrj, hnr,
+              simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj, hnr,
                 -github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk.injEq]
               intro h; exfalso; apply hne'; simpa using h
             rw [hd]
@@ -493,7 +493,7 @@ theorem Model.update.wp_proof
               have := hb.1 rfl; injection this
             have hd : rupdateL x m = (⟨.obj o, .none⟩, m, none) := by
               unfold rupdateL
-              simp [hk, ho, (preMsgL_none x o).2 hpok, hrj, hnr,
+              simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj, hnr,
                 -github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Obj.mk.injEq]
               intro h; exfalso; apply h; simpa using heq
             rw [hd]
@@ -537,7 +537,7 @@ theorem Model.update.wp_proof
           iapply HΦ
           have hd : rupdateL x m = updWriteL m (k8s_etcd3.storeKeyL x.Key') (some o)
               (k8s_etcd3.updGo x o) := by
-            unfold rupdateL; simp [hk, ho, (preMsgL_none x o).2 hpok, hrj, hnr]
+            unfold rupdateL; simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj, hnr]
           rw [hd]
           ihave #HD := itemsRO_insert M m.items (k8s_etcd3.storeKeyL x.Key') c2
             { k8s_etcd3.updGo x o with ResourceVersion' := m.rv + W64 1 } $$ [Hit Hc2]
@@ -582,7 +582,7 @@ theorem Model.update.wp_proof
         wp_auto
         iapply HΦ
         have : rupdateL x m = failR m updRejE := by
-          unfold rupdateL; simp [hk, ho, (preMsgL_none x o).2 hpok, hrj]
+          unfold rupdateL; simp [hk, ho, (checkMsgL_none x o).2 hpok, hrj]
         rw [this]
         unfold failR respRep changeRep errRep updRejE
         simp only

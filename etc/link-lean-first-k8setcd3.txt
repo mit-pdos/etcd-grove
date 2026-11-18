@@ -11,6 +11,7 @@ storeKey:
 objOut:
 notFound: storeKey
 invalidObj: storeKey
+preMsg: rvString
 rvBytes:
 rvString: rvBytes
 preOk: rvString
@@ -20,8 +21,8 @@ splitKey:
 updated: splitKey
 tryUpdateFor: updated
 mcreate: lookup setItem storeKey objOut splitKey
-mdelete: lookup delItem notFound preOk invalidObj objOut validateFor
-mupdate: lookup setItem notFound preOk invalidObj objOut updated sameObj
+mdelete: lookup delItem notFound preOk invalidObj preMsg objOut validateFor
+mupdate: lookup setItem notFound preOk invalidObj preMsg objOut updated sameObj
 parseRV:
 mget: parseRV lookup notFound objOut
 mstep: mcreate mdelete mupdate mget

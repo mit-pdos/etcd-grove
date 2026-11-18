@@ -252,7 +252,7 @@ def tooLargeE : RErr := .tooLarge false
 /-- **`preconditions(in).Check(key, o)`'s message**, if it fails (`storage/interfaces.go:145`):
 the UID first, then the resource version as the versioner's string (`GetResourceVersion`); `%v`
 of a string is the string. -/
-def preMsgL (x : Input) (o : Obj) : Option GoString :=
+def checkMsgL (x : Input) (o : Obj) : Option GoString :=
   if x.HasPreUID' && !decide (x.PreUID' = o.UID') then
     some (go!"Precondition failed: UID in precondition: " ++ x.PreUID' ++
       go!", UID in object meta: " ++ o.UID')
@@ -261,8 +261,8 @@ def preMsgL (x : Input) (o : Obj) : Option GoString :=
       go!", ResourceVersion in object meta: " ++ rvStr o.ResourceVersion')
   else none
 
-theorem preMsgL_none (x : Input) (o : Obj) : preMsgL x o = none ↔ preOkL x o = true := by
-  unfold preMsgL preOkL
+theorem checkMsgL_none (x : Input) (o : Obj) : checkMsgL x o = none ↔ preOkL x o = true := by
+  unfold checkMsgL preOkL
   by_cases h1 : x.HasPreUID' <;> by_cases h2 : x.PreUID' = o.UID' <;>
     by_cases h3 : x.HasPreRV' <;> by_cases h4 : x.PreRV' = rvStr o.ResourceVersion' <;> simp [*]
 
@@ -306,7 +306,7 @@ def rupdateL (x : Input) (m : RM) : RRes :=
     if stored.isNone && !x.IgnoreNotFound' then failR m (notFoundE m key)
     else
       let cur := stored.getD zObj
-      match preMsgL x cur with
+      match checkMsgL x cur with
       | some msg => failR m (invalidE m key msg)
       | none =>
         if rejects x.HasReject' x.Reject' cur.Node' then failR m updRejE
@@ -329,7 +329,7 @@ def rdeleteL (x : Input) (m : RM) : RRes :=
   else match m.items !! key with
     | none => failR m (notFoundE m key)
     | some s =>
-      match preMsgL x s with
+      match checkMsgL x s with
       | some msg => failR m (invalidE m key msg)
       | none =>
         if rejects x.HasReject' x.Reject' s.Node' then failR m delRejE

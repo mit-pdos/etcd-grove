@@ -24,7 +24,7 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 theorem Output_eq_iff (a b : Output) : a = b ↔
-    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧
+    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧ a.ErrMsg' = b.ErrMsg' ∧
     a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
     a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
     a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧

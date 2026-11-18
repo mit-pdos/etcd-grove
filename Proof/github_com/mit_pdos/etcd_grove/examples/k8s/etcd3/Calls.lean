@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart).
 # k8setcd3: what `call` and `errOut` are stated with (stage 6f)
 
 - `errIs err y`: `errOut(err)` is `y`: a `*StorageError` "not found" or "key exists" (its key and
-  resource version), a callback's sentinel (`errDeleteRejected`, `errUpdateRejected`:
+  resource version), or "invalid object" (its key and, stage 7g, its inner error's message), a callback's sentinel (`errDeleteRejected`, `errUpdateRejected`:
   `ERejected`), or any other error (`EOther`: not a `*StorageError` and neither sentinel).
 - `unkErr_errIs`: an error of the store whose outcome is unknown (`unkErr`) is the last kind: an
   `InternalError`, the driver codec's (none), or the client's (`clientErr_other`): the client's
@@ -90,7 +90,7 @@ instance notTooLarge_persistent (err : GoInterface) : Persistent (notTooLarge (G
 def errIs (err : GoInterface) (y : Output) : IProp GF :=
   iprop((∃ k rv, storageErrIs err (W64 1) k rv ∗ ⌜y = errOutL (W64 1) k rv⌝) ∨
     (∃ k rv, storageErrIs err (W64 2) k rv ∗ ⌜y = errOutL (W64 2) k rv⌝) ∨
-    (∃ k, invalidErrIs err k ∗ ⌜y = errOutL (W64 5) k 0⌝) ∨
+    (∃ k m, invalidErrMsg err k m ∗ ⌜y = invalidOutL k m⌝) ∨
     (apierrors.tooLargeErrIs err ∗ ⌜y = tooLargeL⌝) ∨
     ((globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errDeleteRejected ↦□ err ∨
         globalAddr github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errUpdateRejected ↦□ err) ∗
@@ -360,11 +360,11 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
         · rw [h]; iright; iexact HU
       ipureintro; rfl
     | rvSetOnCreate => exact hodd.elim
-    | invalidObj k =>
+    | invalidObj k m =>
       unfold respIs
       icases Hr with ⟨#Hse, -⟩
       ihave %Hne : ⌜err ≠ GoInterface.nil⌝ $$ [Hse]
-      · iunfold invalidErrIs at Hse
+      · iunfold invalidErrMsg at Hse
         icases Hse with ⟨%l, %e, %He, -⟩
         ipureintro; rw [He]; nofun
       ileft
@@ -372,7 +372,7 @@ theorem respIs_call {E : Type} [KUserErr E] (c : StoreCfg GF DObj) (hc : c.S = d
       · ipureintro; exact Hne
       iunfold errIs
       iright; iright; ileft
-      iexists k
+      iexists k, m
       iframe Hse
       ipureintro; rfl
     | tooLarge _ _ =>
@@ -399,20 +399,20 @@ theorem get_noOdd {E : Type} (s : KSt DObj) (k : GoString) (n : Nat) (ign : Bool
   repeat' split
   all_goals trivial
 
-theorem delete_noOdd (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
+theorem delete_noOdd (s : KSt DObj) (k : GoString) (pre : KPreF DObj) (eD : GoInterface)
     (b : Bool) (r : GoString) : NoOddErr (s.delete k pre (rejD eD b r)).2 := by
   unfold KSt.delete
   repeat' split
   all_goals trivial
 
-theorem update_noOdd (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → Nat → Bool)
+theorem update_noOdd (s : KSt DObj) (k : GoString) (ign : Bool) (pre : KPreF DObj)
     (eU : GoInterface) (x : Input) : NoOddErr (s.update k ign dzero pre (updD eU x)).2 := by
   unfold KSt.update
   repeat' split
   all_goals trivial
 
 /-- A `Delete`'s callback error is `errDeleteRejected`'s value. -/
-theorem delete_user (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) (eD : GoInterface)
+theorem delete_user (s : KSt DObj) (k : GoString) (pre : KPreF DObj) (eD : GoInterface)
     (b : Bool) (r : GoString) (e : GoInterface)
     (h : (s.delete k pre (rejD eD b r)).2 = .err (.user e)) :
     e = eD := by
@@ -426,7 +426,7 @@ theorem delete_user (s : KSt DObj) (k : GoString) (pre : DObj → Nat → Bool) 
   split at he <;> simp_all
 
 /-- An update's callback error is `errUpdateRejected`'s value. -/
-theorem update_user (s : KSt DObj) (k : GoString) (ign : Bool) (pre : DObj → Nat → Bool)
+theorem update_user (s : KSt DObj) (k : GoString) (ign : Bool) (pre : KPreF DObj)
     (eU : GoInterface) (x : Input) (e : GoInterface)
     (h : (s.update k ign dzero pre (updD eU x)).2 = .err (.user e)) :
     e = eU := by
@@ -592,7 +592,7 @@ theorem outOf_err {E : Type} (r : KResp DObj E) (h : NoOddErr r)
     cases e with
     | notFound k rv => simp [outOf, errOutL]
     | keyExists k => simp [outOf, errOutL]
-    | invalidObj k => simp [outOf, errOutL]
+    | invalidObj k m => simp [outOf, invalidOutL]
     | user e => simp [outOf, rejectedL, errOutL]
     | rvSetOnCreate => exact h.elim
     | tooLarge a b => exact absurd rfl (ht a b)

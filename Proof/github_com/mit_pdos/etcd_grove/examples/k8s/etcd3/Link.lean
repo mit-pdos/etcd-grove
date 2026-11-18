@@ -106,6 +106,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.outEqual
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.parseRV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.pastRead
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.pick
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preMsg
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preOk
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.preconditions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.predicate
@@ -443,13 +444,17 @@ theorem wp_invalidObj :
     EtcdGrove.k8s_etcd3.invalidObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.invalidObj.wp_proof wp_storeKey
 
+theorem wp_preMsg :
+    EtcdGrove.k8s_etcd3.preMsg.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.preMsg.wp_proof wp_rvString
+
 theorem wp_validateFor :
     EtcdGrove.k8s_etcd3.validateFor.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.validateFor.wp_proof
 
 theorem wp_mdelete :
     EtcdGrove.k8s_etcd3.mdelete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.mdelete.wp_proof wp_lookup wp_delItem wp_notFound wp_preOk wp_invalidObj wp_objOut wp_validateFor
+  EtcdGrove.k8s_etcd3.mdelete.wp_proof wp_lookup wp_delItem wp_notFound wp_preOk wp_invalidObj wp_preMsg wp_objOut wp_validateFor
 
 theorem wp_updated :
     EtcdGrove.k8s_etcd3.updated.spec (GF := GF) (hG := hG) :=
@@ -461,7 +466,7 @@ theorem wp_sameObj :
 
 theorem wp_mupdate :
     EtcdGrove.k8s_etcd3.mupdate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.mupdate.wp_proof wp_lookup wp_setItem wp_notFound wp_preOk wp_invalidObj wp_objOut wp_updated wp_sameObj
+  EtcdGrove.k8s_etcd3.mupdate.wp_proof wp_lookup wp_setItem wp_notFound wp_preOk wp_invalidObj wp_preMsg wp_objOut wp_updated wp_sameObj
 
 theorem wp_mget :
     EtcdGrove.k8s_etcd3.mget.spec (GF := GF) (hG := hG) :=
