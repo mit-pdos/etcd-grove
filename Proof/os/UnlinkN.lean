@@ -82,13 +82,15 @@ theorem wp_osUnlinkSN (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (dq
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, -⟩ := wf_tree hw
     have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp)
     refine ⟨hR ▸ treeWf_removeFile htw (reach_of_lookup hp) (hent st hat) _,
       named_remove _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
-      fun _ => ⟨⟨hjm, hent st hat⟩, fun _ _ _ he => by simp [o] at he⟩, fun c hc => ?_⟩
+      fun _ => ⟨⟨hjm, hent st hat⟩, fun _ _ _ he => by simp [o] at he⟩, fun c hc => ?_,
+      rootClause_one hR hp b (by simp [cl])⟩
     · rcases mem_remove _ _ _ _ _ hx with rfl | hx
       · exact .inl hjm
       · exact .inl hx

@@ -101,13 +101,15 @@ theorem wp_osUnlinkS' (R : Roots) (d b : GoString) (j i : Ino) (dq : DFrac) (h :
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, -⟩ := wf_tree hw
     have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp)
     refine ⟨hR ▸ treeWf_removeFile htw (reach_of_lookup hp) (hent st hat) _,
       named_remove _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
-      fun _ => ⟨⟨hjm, hent st hat⟩, fun _ _ _ he => by simp [o] at he⟩, fun c hc => ?_⟩
+      fun _ => ⟨⟨hjm, hent st hat⟩, fun _ _ _ he => by simp [o] at he⟩, fun c hc => ?_,
+      rootClause_one hR hp b (by simp [cl])⟩
     · rcases mem_remove _ _ _ _ _ hx with rfl | hx
       · exact .inl hjm
       · exact .inl hx
@@ -267,7 +269,8 @@ theorem wp_osRenameFileS' (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N 
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d bs) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, -⟩ := wf_tree hw
     have hjm := mem_of_reach htw (reach_of_lookup hp.1)
@@ -278,7 +281,8 @@ theorem wp_osRenameFileS' (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N 
         (hsrcE st hat) hnt _ _,
       named_rename _ _ _ _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
       fun _ => ⟨⟨hjm, hjm', hsrcE st hat, htgtE st hat⟩, fun _ _ _ he => by simp [o] at he⟩,
-      fun c hc => ?_⟩
+      fun c hc => ?_,
+      rootClause_two hw.roots hR hp.1 hp.2 hsr (by intro c hc; rcases (hcl c).1 hc with rfl | rfl <;> simp)⟩
     · rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
       · exact .inl hjm
       · exact .inl hjm'
@@ -444,14 +448,16 @@ theorem wp_osRename1S (R : Roots) (d bs bt : GoString) (j : Ino) (N : NameSet) (
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d bs) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, -⟩ := wf_tree hw
     have hjm := mem_of_reach htw (reach_of_lookup hp)
     refine ⟨hR ▸ hwf st hw hp (hsrcE st hat) (htgtE st hat),
       named_rename _ _ _ _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
       fun _ => ⟨⟨hjm, hjm, hsrcE st hat, htgtE st hat⟩, fun _ _ _ he => by simp [o] at he⟩,
-      fun c hc => ?_⟩
+      fun c hc => ?_,
+      rootClause_one hR hp bs (by simp [cl])⟩
     · rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
       · exact .inl hjm
       · exact .inl hjm
@@ -614,13 +620,15 @@ theorem wp_osRmdirSGen (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h 
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, -⟩ := wf_tree hw
     have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp.1)
     refine ⟨hR ▸ treeWf_rmdir htw (reach_of_lookup hp.1) (hent st hat) hp.2 _,
       named_remove _ _ _ _, fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
-      fun hnd => absurd ⟨J, rfl⟩ hnd, fun c hc => ?_⟩
+      fun hnd => absurd ⟨J, rfl⟩ hnd, fun c hc => ?_,
+      rootClause_one hR hp.1 b (by simp [cl])⟩
     · rcases mem_remove _ _ _ _ _ hx with rfl | hx
       · exact .inl hjm
       · exact .inl hx
@@ -777,7 +785,8 @@ theorem wp_osMkdirSGen (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : 
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) := by
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
     intro st hw hR hp hat
     obtain ⟨htw, -, hlt⟩ := wf_tree hw
     have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp)
@@ -787,7 +796,8 @@ theorem wp_osMkdirSGen (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : 
     have hJj : st.fs.nextIno ≠ j := fun h => hJm (h ▸ hjm)
     refine ⟨hR ▸ treeWf_mkdir htw (reach_of_lookup hp) hb (hent st hat) hJm hJr,
       named_mkdir _ _ _ _, fun x hx => ?_, fun J hJ => ?_, fun hnd => absurd trivial hnd,
-      fun c hc => ?_⟩
+      fun c hc => ?_,
+      rootClause_one hR hp b (by simp [cl])⟩
     · rcases mem_mkdir _ _ _ _ _ hx with rfl | rfl | hx
       · exact .inr (by simp [oF, MetaOp.newDirs])
       · exact .inl hjm

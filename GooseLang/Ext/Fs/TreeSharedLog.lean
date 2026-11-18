@@ -262,6 +262,70 @@ theorem writes_dir (o : MetaOp) : ∃ b, o.Writes o.dir b := by
   | remove j b n => exact ⟨b, .inl (by simp [MetaOp.slots, MetaOp.dir])⟩
   | rename j b j' b' n old => exact ⟨b, .inl (by simp [MetaOp.slots, MetaOp.dir])⟩
 
+/-- A walk from a directory reachable from `ri` ends at one reachable from `ri`. -/
+theorem reachFrom_walk {m : Tree} {ri : Ino} : ∀ {cs : List GoString} {j x : Ino},
+    ReachFrom m ri j → walk m (.dir j) cs = some (.dir x) → ReachFrom m ri x
+  | [], j, x, hj, h => by simp [walk] at h; subst h; exact hj
+  | c :: cs, j, x, hj, h => by
+    simp only [walk] at h
+    cases he : m.entry j c with
+    | none => rw [he] at h; cases h
+    | some n =>
+      rw [he] at h; simp only at h
+      cases n with
+      | dir j' => exact reachFrom_walk (.child j c j' hj he) h
+      | file i => cases cs <;> simp [walk] at h
+
+/-- **A directory a path names is reachable from the root the path is under** (and so are the
+path's children). -/
+theorem reachFrom_of_lookup {st : OsState} {d : GoString} {j : Ino}
+    (h : st.lookup d = some (.dir j)) :
+    ∃ rj ∈ st.fs.roots, IsUnder rj.1 d ∧ (∀ b, IsUnder rj.1 (child d b)) ∧
+      ReachFrom st.tree rj.2 j := by
+  obtain ⟨r, j0, cs, hrj, -, rfl, hw⟩ := lookup_some h
+  exact ⟨(r, j0), hrj, isUnder_joinPath _ _,
+    fun b => by rw [← joinPath_snoc]; exact isUnder_joinPath _ _, reachFrom_walk .root hw⟩
+
+theorem isUnder_prefix {a x : GoString} (h : IsUnder a x) :
+    (a ++ [slashB]).IsPrefix (x ++ [slashB]) := by
+  rcases h with rfl | h
+  · exact List.prefix_refl _
+  · exact h.trans (List.prefix_append _ _)
+
+/-- **A path is under at most one root** (well-formed roots: none under another). -/
+theorem root_of_isUnder {R : List (GoString × Ino)} (hR : RootsOk R) {r r' : GoString × Ino}
+    (hr : r ∈ R) (hr' : r' ∈ R) {x : GoString} (h : IsUnder r.1 x) (h' : IsUnder r'.1 x) :
+    r = r' := by
+  suffices he : r.1 = r'.1 from eq_of_nodup_map hR.1 hr hr' he
+  apply Classical.byContradiction; intro hne
+  have p1 := isUnder_prefix h
+  have p2 := isUnder_prefix h'
+  -- the shorter of the two roots, with its slash, is a prefix of the other root
+  have key : ∀ {a b : GoString × Ino}, a ∈ R → b ∈ R → a.1 ≠ b.1 →
+      (a.1 ++ [slashB]).IsPrefix (x ++ [slashB]) → (b.1 ++ [slashB]).IsPrefix (x ++ [slashB]) →
+      a.1.length ≤ b.1.length → False := by
+    intro a b ha hb hab pa pb hl
+    have hab' : (a.1 ++ [slashB]).IsPrefix (b.1 ++ [slashB]) :=
+      List.prefix_of_prefix_length_le pa pb (by simp; omega)
+    rcases Nat.lt_or_ge a.1.length b.1.length with hlt | hge
+    · have : (a.1 ++ [slashB]).IsPrefix b.1 :=
+        List.prefix_of_prefix_length_le hab' (List.prefix_append _ _) (by simp; omega)
+      exact (hR.2.2 a ha).2 b hb hab (.inr this)
+    · have hlen : a.1.length = b.1.length := by omega
+      have := hab'.eq_of_length (by simp [hlen])
+      exact hab (List.append_cancel_right this)
+  rcases Nat.le_total r.1.length r'.1.length with hl | hl
+  · exact key hr hr' hne p1 p2 hl
+  · exact key hr' hr (Ne.symm hne) p2 p1 hl
+
+/-- An operation's directory is one of its slots'. -/
+theorem dir_mem_slots (o : MetaOp) : ∃ b, (o.dir, b) ∈ o.slots := by
+  cases o with
+  | create j b i => exact ⟨b, by simp [MetaOp.slots, MetaOp.dir]⟩
+  | mkdir j b J => exact ⟨b, by simp [MetaOp.slots, MetaOp.dir]⟩
+  | remove j b n => exact ⟨b, by simp [MetaOp.slots, MetaOp.dir]⟩
+  | rename j b j' b' n old => exact ⟨b, by simp [MetaOp.slots, MetaOp.dir]⟩
+
 /-- The directories of an earlier tree of the run are directories of a later one. -/
 theorem prefTree_mono_mem (T0 : Tree) (log : List LogEntry) {t : Nat} :
     ∀ u, t ≤ u → u ≤ log.length → ∀ x, x ∈ prefTree T0 log t → x ∈ prefTree T0 log u
@@ -678,6 +742,32 @@ structure ClaimsAt (st : OsState) (cl : List ClaimW) : Prop where
   out : ∀ c ∈ cl, ∀ b, ¬ c.2.1.Mem b → c.2.2.1.cur !! b = none
   disj : ∀ c ∈ cl, ∀ c' ∈ cl, c.1 = c'.1 → c.2.1 ≠ c'.2.1 → ∀ b, c.2.1.Mem b → ¬ c'.2.1.Mem b
 
+/-- **The root clause of a logging step** (`wp_logStepSWG`'s `htree`) for claims all of the
+directory `j` that `d` names, the call on `d/b`. -/
+theorem rootClause_one {st : OsState} {R : Roots} (hR : st.fs.roots = R) {d : GoString} {j : Ino}
+    (hp : st.lookup d = some (.dir j)) (b : GoString) {cl : List ClaimW} (hcl : ∀ c ∈ cl, c.1 = j) :
+    ∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1 := by
+  obtain ⟨rj, hrj, -, hch, hre⟩ := reachFrom_of_lookup hp
+  exact ⟨rj, hR ▸ hrj, hch b, fun c hc => (hcl c hc) ▸ hre⟩
+
+/-- The root clause for claims of the directories `j` and `j'` that `d` and `d'` name, the call on
+`d/bs`, the two names in one root's tree. -/
+theorem rootClause_two {st : OsState} {R : Roots} (hRok : RootsOk st.fs.roots) (hR : st.fs.roots = R)
+    {d d' bs bt : GoString} {j j' : Ino} (hp : st.lookup d = some (.dir j))
+    (hp' : st.lookup d' = some (.dir j')) (hsr : SameRootR R (child d bs) (child d' bt))
+    {cl : List ClaimW} (hcl : ∀ c ∈ cl, c.1 = j ∨ c.1 = j') :
+    ∃ rj ∈ R, IsUnder rj.1 (child d bs) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1 := by
+  obtain ⟨rj, hrj, -, hch, hre⟩ := reachFrom_of_lookup hp
+  obtain ⟨rj', hrj', -, hch', hre'⟩ := reachFrom_of_lookup hp'
+  obtain ⟨r0, hr0, h0, h0'⟩ := hsr
+  rw [← hR] at hr0
+  have e1 := root_of_isUnder hRok hrj hr0 (hch bs) h0
+  have e2 := root_of_isUnder hRok hrj' hr0 (hch' bt) h0'
+  refine ⟨rj, hR ▸ hrj, hch bs, fun c hc => ?_⟩
+  rcases hcl c hc with h | h
+  · exact h ▸ hre
+  · rw [h, e1, ← e2]; exact hre'
+
 /-- `st'` is `st` after a step of the call `k` (begun at `s0`) that logged `o`, the next inode
 perhaps taken, the files as they were. -/
 structure LoggedFrom (st st' : OsState) (k s0 : Nat) (o : MetaOp) : Prop where
@@ -1048,7 +1138,8 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide)
     (hl : ¬ LockOp op := by simp [LockOp]) :
@@ -1192,8 +1283,35 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
     · iexact HG
     · iexact Hcl
   · -- logged
-    obtain ⟨hdirs, hnew, hok, hcur⟩ := htree0 _ st' hw hR hcall hP hat Hst hlf
+    obtain ⟨hdirs, hnew, hok, hcur, rj, hrjR, -, hreach⟩ := htree0 _ st' hw hR hcall hP hat Hst hlf
     have htr := hlf.tree
+    have hρ : ∀ ρ, RootCoh st s1 ρ → ∃ ρ' : Ino → GoString, (∀ j, j ∈ st.tree → ρ' j = ρ j) ∧
+        (∀ j b, o.Writes j b → ρ' j = ρ' o.dir) ∧ ∀ j b, o.Writes j b → j ∈ o.apply st.tree := by
+      intro ρ hrc
+      have hrj : (rj.1, rj.2) ∈ st.fs.roots := by rw [hR]; exact hrjR
+      have hsl : ∀ j b, (j, b) ∈ o.slots → j ∈ st.tree ∧ ρ j = rj.1 := by
+        intro j b hjb
+        obtain ⟨c, hcm, hc1, -⟩ := hslots (j, b) hjb
+        simp only at hc1; subst hc1
+        refine ⟨hcoh.2.dirs _ _ _ (hlk c hcm).1, ?_⟩
+        have hre := hreach c hcm
+        rw [tree_prefTree] at hre
+        exact rho_of_reachFrom hrc.tags.roots
+          (hrc.tags.ents _ hc.s0le (Nat.le_refl _)) hrj hre
+      obtain ⟨bd, hbd⟩ := dir_mem_slots o
+      have hnin : ∀ j, j ∈ st.tree → j ∉ o.newDirs := fun j hj hn => hnew j hn hj
+      classical
+      refine ⟨fun j => if j ∈ o.newDirs then ρ o.dir else ρ j, fun j hj => if_neg (hnin j hj), ?_, ?_⟩
+      · intro j b hwj
+        have hd : (if o.dir ∈ o.newDirs then ρ o.dir else ρ o.dir) = ρ o.dir := by split <;> rfl
+        simp only [hd]
+        rcases writes_cases o j b hwj with h | h
+        · rw [if_neg (hnin j (hsl j b h).1), (hsl j b h).2, (hsl _ _ hbd).2]
+        · rw [if_pos h]
+      · intro j b hwj
+        rcases writes_cases o j b hwj with h | h
+        · exact mem_apply_of_mem _ _ _ (hsl j b h).1
+        · exact mem_apply_newDirs o st.tree j h
     have hpss : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey →
         (∃ sl ∈ o.slots, sl ∈ ey.op.slots) → y < s0 := by
       rintro y ey hy ⟨sl, hsl, hsl'⟩
@@ -1211,7 +1329,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       treeCohS_log hc hk o hlf.dur hlf.log hlf.dfds hlf.calls htr hpss
         (fun hd => (hwhole (hdir hd)).1)
         (fun t x hne hx => ⟨(hexcl t x hne hx).1, fun hd => (hwhole (hdir hd)).2 t x hne hx⟩)
-        hval.1 hok hadd
+        hval.1 hok hadd hw hlf.roots hρ
     have hnc := namesCoh_log hcoh.2 ⟨o, s0⟩ (cl.map (fun c => (c.1, c.2.1)))
       (fun kk hkk => by
         obtain ⟨c, hcm, rfl⟩ := List.mem_map.1 hkk
@@ -1416,7 +1534,8 @@ theorem wp_logStepSW (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
@@ -1476,7 +1595,8 @@ theorem wp_logStepSN (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
@@ -1552,7 +1672,8 @@ theorem wp_logStepS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
@@ -1616,7 +1737,8 @@ theorem wp_logStepSNG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗
@@ -1692,7 +1814,8 @@ theorem wp_logStepSG (op : String) (v : val) (hv : v.isPanic = false) (R : Roots
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2))
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = c.2.2.2) ∧
+      (∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1))
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF)
     (hO : op ≠ "OutClose" := by decide) (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗

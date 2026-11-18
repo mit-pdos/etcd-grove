@@ -203,8 +203,9 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
       (∀ J ∈ o.newDirs, J ∉ st.tree) ∧
       (¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
         t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i) ∧
-      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) := by
-    intro st e' st' hw _ hcall hp hat Hst hlf
+      (∀ c ∈ cl, restrictN c.2.1 (entsOf (o.apply st.tree) c.1) = curF st.fs.nextIno c) ∧
+      (∃ rj ∈ R, IsUnder rj.1 (child d b) ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1) := by
+    intro st e' st' hw hR hcall hp hat Hst hlf
     have hen : st.tree.entry j b = none := by
       rcases openCreateStep_cases hcr (htrE st hat) hw hcall hp hb (hndE st hat) Hst with
         ⟨_e, _he, _he', hst'⟩ | ⟨_i, _fd, _h1, _h2, _h3, hst'⟩ | ⟨hen, -⟩ | ⟨hen, -⟩
@@ -216,7 +217,8 @@ theorem wp_osOpenCreateSN (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (
     have hjm : j ∈ st.tree := mem_of_reach htw (reach_of_lookup hp)
     have hnf := files_next_none hw
     refine ⟨fun x hx => ?_, fun J hJ => by simp [oF, MetaOp.newDirs] at hJ,
-      fun _ => ⟨⟨hjm, hen⟩, ?_⟩, fun c hc => ?_⟩
+      fun _ => ⟨⟨hjm, hen⟩, ?_⟩, fun c hc => ?_,
+      rootClause_one hR hp b (by simp [cl])⟩
     · simp only [oF, MetaOp.apply] at hx
       rw [mem_upd] at hx
       rcases hx with rfl | hx

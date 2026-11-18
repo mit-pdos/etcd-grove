@@ -190,12 +190,13 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
       imodintro
       iexists Γb, Γm, Γf, Γt
       iframe)
-    (fun st e' st' hw _ hcall hp hat _ _ => by
+    (fun st e' st' hw hR hcall hp hat _ _ => by
       obtain ⟨htw, -, -⟩ := wf_tree hw
       have hjm := mem_of_reach htw (reach_of_lookup hp)
       refine ⟨fun x hx => ?_, fun J hJ => by simp [o, MetaOp.newDirs] at hJ,
         fun _ => ⟨⟨hjm, hjm, hsrcE st hat, htgtE st hat⟩, fun _ _ _ he => by simp [o] at he⟩,
-        fun c hc => ?_⟩
+        fun c hc => ?_,
+        rootClause_one hR hp bs (by simp [cl])⟩
       · rcases mem_rename _ _ _ _ _ _ _ _ hx with rfl | rfl | hx
         · exact .inl hjm
         · exact .inl hjm

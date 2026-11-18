@@ -1,6 +1,45 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18, per-root crash theorem: pure part done; fs library NOT building at this head)
+## START HERE (2026-11-18 b, wal-link root clause done; next: stage 2, the per-key permission)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
+  (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands; not landed on 2026-11-18).
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** the per-root crash theorem and its forms ACCEPTED.
+- **Done:** 9d55b227ae the per-root cut (History). This commit: `wp_logStepSWG`'s `htree` premise gains the **root
+  clause** `∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2 c.1`, through `wp_logStepSW/SN/S/SNG/SG`;
+  `treeCohS_log`'s ρ' built in place (`ρ' j = if j ∈ o.newDirs then ρ o.dir else ρ j`). New lemmas (TreeSharedLog):
+  `reachFrom_walk`, `reachFrom_of_lookup`, `isUnder_prefix`, `root_of_isUnder` (a path is under at most one root),
+  `dir_mem_slots`, `rootClause_one`/`rootClause_two` (the clause from the claims' lookups; `two` for
+  cross-directory renames, from `hsr : SameRootR`). The 9 client sites (Meta 5, Create, CreateN, RenameAny,
+  `Proof/os/UnlinkN`) pass `rootClause_*`. Fs library + clients build (see the commit message for the check).
+- **Next, in order:** stage 2, the per-key call permission (design below), then the ~144 `osCallPerm` client files,
+  one `WalGS` per area, then L3 (task list: `questions.md` 2026-11-18, the coordinator's brief).
+- **Stage 2 design** (form decisions to record at the checkpoint):
+  (1) `callKey (R : Roots) (p : GoString) : GoString` := the root `r` with `IsUnder r p` (`Classical.choose`), else
+  `[]`; `callKey_eq : RootsOk R → rj ∈ R → IsUnder rj.1 p → callKey R p = rj.1` (by `root_of_isUnder`).
+  (2) `γperm` a ghost map `GoString → Unit`: `osCallPerm r q := gElem γperm r (own q) ()`; `callResS hL R Γc :=
+  [∗map] t ↦ x ∈ Γc, gElem γperm (callKey R x.1.2) (own x.2) ()`; legacy: `gAuth γperm ∅`; shared: an existential
+  auth; the switch (`cohS_switch`/TreeSharedSwitch) inserts one whole per root and one for `[]`; `fs_start` hands
+  them out (`[∗list] r ∈ R.map (·.1) ++ [[]], osCallPerm r 1`).
+  (3) `whole`/`after`/`pair` move from `TreeCohS` into `RootCoh` (they need its ρ), per key `K = callKey R x.1.2`:
+  whole: `x.2 = 1 → ∀ y ≥ x.1.1, y ≥ s0, tagOf ρ (log y) ≠ K`; after: `(IsDirOp ∧ tag = K) ∨ y < s0 → y < x.1.1`;
+  pair: same key, `x.2 + g.2 = 1`, `g.1.1 ≤ x.1.1` → no entry of tag K from `x.1.1` on. Plus `RootTags.ops`' tag of a
+  logged entry = the logging call's key: from the root clause (`ρ o.dir = rj.1 = callKey R pc`). `DirOpExcl` per root
+  then follows at a dir op from whole (before) and every in-flight call's `after` (later).
+  (4) `sole_of`/`callResS_excl`/`callsRes_facts`/`wholeG_facts` compare only calls of the same key (validity of
+  `gElem γperm K`); `hexcl`/`hval` premises of `treeCohS_log` become per key.
+  Files touching `callResS`/`legacyHolds`: Ghost, CrashTok, TreeSharedLog/Step/Switch/Guard/Create/DirFd/OpenDir/
+  OpenFileN/Out/Trunc; `whole/after/pair` uses: TreeSharedStep, Switch, OpenDir, DirFd, Log.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 -q -a
+  --fast FILE`. **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build`.
+- **Pitfalls:** `cases o` inside a big proof fails (o in many hypotheses): state a standalone lemma (`dir_mem_slots`);
+  `by_contra` is not available in these files (`Classical.byContradiction`); a state built by
+  `callBegin`/`delDfd`/`setDfd`/`metaEnd` is not syntactically `st` in `RootCoh`: pass `hc.rc.elim (fun ρ h => ⟨ρ,
+  h.congr rfl rfl rfl⟩)`.
+
+## History
+
+### START HERE (2026-11-18, per-root crash theorem: pure part done; fs library NOT building at this head)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
   (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands; not landed on 2026-11-18).
@@ -35,8 +74,6 @@
 - **Pitfalls:** a state built by `callBegin`/`delDfd`/`setDfd`/`metaEnd` is not syntactically `st` in `RootCoh`:
   pass `hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩)`, not `hc.rc`; `writer_tag`/`Writes` from `.inl hsl` needs
   `(j := sl.1) (b := sl.2)`; a `let` bound by `Classical.choose` is opaque to `omega` (ascribe the fact to the let).
-
-## History
 
 ### START HERE (2026-11-17, L4 phase A: calls carry their paths; STOP at the per-root cost delta)
 
