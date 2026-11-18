@@ -26,6 +26,7 @@ public import Proof.strconv.Itoa
 public import Perennial.Proof.context.Link
 public import Proof.context.Link
 public import Proof.context.WithTimeoutBackground
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 
 @[expose] public section
 
@@ -52,16 +53,16 @@ variable (h_After : EtcdGrove.clock.RealClock.After.spec (GF := GF) (hG := hG))
 
 theorem k8s_compactor.wp_ready : k8s_compactor.ready.spec (GF := GF) (hG := hG) :=
   k8s_compactor.ready.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny client.client_Get_st_law_holds
 
 theorem k8s_compactor.wp_writer : k8s_compactor.writer.spec (GF := GF) (hG := hG) :=
   k8s_compactor.writer.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny strconv.Itoa.wp_proof
+    context.wp_ErrAny strconv.Itoa.wp_proof client.client_Put_kv_law_holds
 
 theorem k8s_compactor.wp_check : k8s_compactor.check.spec (GF := GF) (hG := hG) :=
   k8s_compactor.check.wp_proof k8s.compactor.wp_CompactRevision k8s.compactor.wp_Stop
     strconv.ParseInt.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
-    context.wp_ErrAny
+    context.wp_ErrAny client.client_Get_st_law_holds
 
 include h_After in
 theorem k8s_compactor.wp_apiserver : k8s_compactor.apiserver.spec (GF := GF) (hG := hG) :=

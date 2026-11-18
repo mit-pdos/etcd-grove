@@ -40,6 +40,8 @@ public import Proof.google_golang_org.grpc.model.finishStream
 public import Proof.google_golang_org.grpc.model.respond
 public import Proof.net.Listen
 public import Proof.strconv.FormatUint
+public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Link
@@ -187,7 +189,7 @@ theorem grpc.Server.wp_Serve :
 
 theorem wp_Serve :
     EtcdGrove.etcdstart.Serve.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve
+  EtcdGrove.etcdstart.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve client.grpcCfgOk_of_startedM_law_holds client.raftKV_serverM_law_holds
 
 theorem wp_StartCompactingServer [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdGrove.etcdstart.StartCompactingServer.spec (GF := GF) (hG := hG) :=
@@ -211,7 +213,7 @@ theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem wp_Writer :
     EtcdGrove.etcdstart.Writer.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcdstart.Writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
+  EtcdGrove.etcdstart.Writer.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny client.client_Put_kv_law_holds
 
 end links_hasLC
 

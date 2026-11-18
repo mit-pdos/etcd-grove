@@ -40649,7 +40649,8 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   `AuthnSpec`, `ReadUpds`, `apply_no_v3_no_write` into `apply/InvUber`, `etcdLeaseReadAt` into
   `InvLeaseRead`). Names and statements unchanged; porcupine's `Linked.lean` (a linked *list*, no
   linked result) renamed `LinkedList.lean`.
-- **What is left** (the baseline): proof files that use linked results of their callees instead of
+- *(Superseded in part, 2026-11-18: the `proof->linking` edges are fixed, "Import tiers: a proof
+  takes a linked lemma as a law" below.)* **What is left** (the baseline): proof files that use linked results of their callees instead of
   taking their specs as hypotheses (the examples' `Main`s over the server's served theorems, the
   k8s client's calls over `client_range_any`, the auth checks over `adt`'s `Link`, `NewServer` over
   `NodeStartLinked`): `proof->linking`. Fixing one changes its `wp_proof`'s hypotheses (its spec
@@ -40663,3 +40664,46 @@ left are `etc/tier-baseline.txt`, which only shrinks.
   a projection). The moves were checked by comparing the type (and a definition's value) of every
   declaration the tcb-report roots reach, by name, between `origin/lean`'s build and the branch's
   (a Lean script over `importModules`, hashes of `ConstantInfo.type`): identical.
+
+## Import tiers: a proof takes a linked lemma as a law (2026-11-18 · the user's direction · branch `tiers3/2026-11-18`)
+
+Supersedes in part "Import tiers: specs never import proofs" above, whose baseline left the 86
+`proof->linking` edges (proof files using a callee's linked result) to their owners.
+
+**The fix.** A function's proof never imports a linking module: what it used of one becomes a
+hypothesis of its `wp_proof`, and the `Link` (generated or, for the examples' `MainLinked`, by hand)
+passes the linked result. Three kinds:
+
+- **a callee's linked spec** (`client.v3.kv.wp_Txn`, `txn.wp_If`, adt's `intervalTree.wp_*_bytes`,
+  `kv.wp_Get`, `txn.wp_CommitM`): the callee's `.spec` (`.specM`) is the hypothesis, an `@` callee
+  of the mode's list (or `=client.v3.txn.wp_CommitM`). The plain-operation corollaries
+  `txn.Then.spec_plain`/`Else.spec_plain` moved to a defs module (`client/v3/TxnPlainSpec.lean`), so
+  a proof takes `txn.Then.spec` and applies them; `TxnPlain.lean` keeps the linked instances.
+- **a lemma proved over linked results** (`client_Get_st`, `client_range_any`, `client_Put_on`,
+  `work_*`, `grpcCfgOk_of_startedM`, v3rpc's `raftKV_serverM`, `raftNode_of_StartNode`, ...): its
+  statement, copied verbatim, is `abbrev <lemma>.law : Prop` in a defs module beside the linking one
+  (`client/v3/ClientCallLaws.lean`, `ServeLaws.lean`, txnlin's `CallsLaws`, auth's `CallLaws`,
+  partition's `WatchWritesLaws`, compactwatch's `RoundLaws`, the server's `NodeStartLaws`); `<lemma>_law_holds : <lemma>.law := <lemma>` in the linking module (not a
+  `Link`/`Results`, so no new root); the proof takes `(h_<lemma> : <lemma>.law)`, the Link passes
+  `=<lemma>_law_holds` (`etc/gen-link.py`'s `EXTRA_IMPORTS` imports the linking module). The
+  lemma's statement is unchanged; Lean checks the law against it (`_law_holds` is the lemma itself,
+  by unfolding). A law is the narrowest hypothesis the proof needed without re-proving the lemma
+  over its own callees' specs; doing that (the lemma's proof moved to defs, over the callees'
+  `.spec`s) is the better fix where a lemma has few linked inputs, left for when one is touched.
+- **a linked lemma inside a proof file** (k8s etcd3's `cas_commit`, `client_Get_nil`, `wp_syncGet`):
+  the same hypothesis on the helper, passed by the `wp_proof`. `NewServer`'s `wp_proofG`/`wp_proofM`
+  take the node-start law too (the server's `Results.lean` passes it to `wp_proofM`).
+
+Lemmas of a linking module that use no linked result (`clientWriteOnce_api`,
+`srvRangeOk_getKeyRev`, compactor's `loop_step`) moved to a defs module, unchanged (client
+`Results.lean`'s `kvServerAt_of_is`, a root, stays; `cluster3.StartMember`, which used it, is linking).
+
+**The examples' entry points are linking** (22 modules, `etc/tier-linking.txt`): each `Main`/`run`/
+cluster or member start (`cluster3.StartMember`) composes the started server's served results (`kv_served`, `wk_served_nd`,
+`ak_served_*`: the whole server's linked proof at the member it starts) with the client's linked
+calls, and only its `MainLinked`/`Link` imports it. Taking each served theorem as a law would move
+the composition into a hypothesis without making the proof any less a composition.
+
+**Checked:** every exported result (`Link`/`Results`/`MainLinked` root) has the same statement; every
+declaration reachable from the roots has the same type and value hash except the changed `wp_proof`s
+(and helpers) and the new laws; `etc/tcb-report.py --check` and every collection unchanged.

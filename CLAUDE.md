@@ -251,8 +251,12 @@ definition, a pure lemma, an instance) gets it moved down into a defs module, th
 unchanged (`client/v3/KeyOps.lean`: `putKeyOp`, out of `client/v3/Results.lean`); a module that
 genuinely uses a linked result (a `wp_<M>` of a `Link`) is linking, and nothing below imports it: its
 linked theorems go to a `<Name>Linked.lean` beside it (`NodeBridgeLinked`, `ServedLinked`), or the
-module is listed. A proof file that uses a callee's linked result instead of its spec is the
-known debt the baseline holds (`proof->linking`).
+module is listed. A proof file that needs a linked result takes it as a hypothesis of its
+`wp_proof`, which the `Link` passes: the callee's `.spec` (an `@` callee), or, for a lemma proved over
+linked results, its statement as `abbrev <lemma>.law : Prop` in a defs module beside it
+(`client/v3/ClientCallLaws.lean`), proved by `<lemma>_law_holds` in the linking module and passed as an
+`=<lemma>_law_holds` callee (`notes/decisions.md`, "Import tiers: a proof takes a linked lemma as a
+law").
 `etc/tier-check.py --check` (in `etc/gates.sh`) refuses a violation not in `etc/tier-baseline.txt`
 (the ones left; `--check --update` only shrinks it); `--tier MODULE` prints a module's tier, its
 importers and its cone (what an edit to it rebuilds, by tier).
