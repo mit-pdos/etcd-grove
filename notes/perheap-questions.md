@@ -42,3 +42,20 @@
   `leaseCheckFrom`/`principalBound`; `ctxToken_of_libCtxOk` for `authnRaft_on` and `revokeExpiredLeases`. Q9 list
   additions (to the user at the land stop, with `auth_ctx_lb` and the rest): `put_applied`, `deleteRange_applied`,
   `request_handoff`, `server_raft_request` (meaning change, text unchanged).
+- **Forms decided by the agent in 1b, reviewed at the land stop (2026-11-18):** the contracts' "`∀ md`, pre
+  `ctxInMD ci md ∗ Spec md …`" written with a bundling definition, `grpcSpecAt Spec ci m Φ Ψe := ∃ md, ctxInMD ci
+  md ∗ Spec md m Φ Ψe` (unary, `InvGrpc.lean`) and `grpcStreamSpecAt` (stream, `InvGrpcStream.lean`): equivalent
+  (an existential in a pre), and it keeps every contract's conjunct count; `grpcAccepted` itself has the Scope's
+  text (one more `∃ md`, `ctxInMD ci md ∗ ▷ Spec md …`). `srvStreamInterceptorWOk`'s handler continuation takes the
+  transfer `□ ∀ md, ctxInMD ci md -∗ ctxInMD ci' md` (as `WithValue`/`Tracer.Start`) in place of the Scope's "receives
+  `ctxInMD ci md` and passes `ctxInMD ci' md`": it implies it, and `newStreamInterceptor` proves it
+  (`v3rpc.ctxInMD_wrapper`, or the identity); the interceptor's own read keeps `libCtxOk`'s anonymous `md` (Q14:
+  two existentials, no law relates them). `swsIs` takes `tok` and holds `□ (⌜isOn⌝ → ctxToken ci tok)`;
+  `ctrlP`/`ctrlMid` take `tok` for `ci`; `watchServer.Watch.spec` and the four `LeaseServer` handler specs take
+  `tok` and the gated premise (`on`/`E.authOn`); `userAddAnsOn` takes `tok` after `ctx` (as `adminPreOn`), not
+  after `F` as the Scope's §7 row writes it. `isWatchPermitted.spec`'s post binds by `v3rpc.infoBoundT … tok` (the
+  deleted `principalBoundI`, the same body). `FromIncomingContext.weakSpec` kept (a proved corollary with a user,
+  `newUnaryInterceptor`).
+- **Independent attack of 1b's trusted text (2026-11-18):** `grpcAccepted` (the model's posts) and
+  `WithValue.spec`'s dropped conjunct SOUND (`/shared/tmp/perheap/attack-accepted.md`); note
+  `notes/axiom-review/perheap-incoming.md`.
