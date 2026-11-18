@@ -1,10 +1,10 @@
 /-
-`os.Rename(oldpath, newpath)` (names only in Perennial; D22 S-f, 2026-10-19): the database file
-at `oldpath` moved to `newpath`, replacing what was there. The trust boundary, a file-system
-fact (an axiom in `Proof/os/Rename.lean`), stated over the backend's file predicates
-(`backend.srvFileHolds`, `backend.pathOwn`: `Proof/go_etcd_io/etcd/server/v3/storage/backend/
-InvSnapshot.lean`), the only files the verified code renames (`storage.OpenSnapshotBackend`'s
-received snapshot onto the backend's path).
+`os.Rename(oldpath, newpath)` (D22 S-f, 2026-10-19): the database file at `oldpath` moved to
+`newpath`, replacing what was there, the only files the verified server renames
+(`storage.OpenSnapshotBackend`'s received snapshot onto the backend's path). Over the backend's file
+predicates in the tree's shared mode (`backend.fileAt`, `backend.bPath`, `backend.fileFree`,
+`Proof/go_etcd_io/etcd/server/v3/storage/backend/InvBbolt.lean`); proved in `Proof/os/Rename.lean`
+from the model (S5, 2026-11-18; until then an axiom over the abstract `srvFileHolds`, `pathOwn`).
 -/
 module
 
@@ -29,26 +29,18 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `os.Rename(src, dst)` of the file holding `D` onto the program's entry `dst`: on success the
-file is at `dst`, the entry `dst` still the program's (2026-10-31, the user's decision, D22 J8a: until
-then the entry `src` the program's instead, dubious, since the snapshot directory's owner, the
-transport, may create a file at `src` again; nothing in the program needs `src` after the rename,
-and the program's right to `dst`, which nothing else renames onto or removes, is unchanged by it); on an error (an error `fmt` can format)
-nothing moved, the environment failing it (`¬ renameOk src dst`: D22 receiver epochs, S8d,
-2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). (S5,
-2026-11-18) The entry `dst` is the claim on its name in the tree's shared mode, naming an open
-database's file (`bPath γ dst`, until then the opaque `pathOwn dst`); on success the claim is in
-the file at `dst` (`srvFileHolds dst D`, the server's abstract file), so it is not given back: an
-interim statement, until `srvFileHolds` is the concrete `fileHolds` and this axiom a proof from
-`os.Rename.specFileS` (`notes/bbolt-integration-plan.md`, S5). -/
+/-- `os.Rename(src, dst)` of the file at `src` holding `D` onto `dst`, the name of an open
+database's file (S5, 2026-11-18): `nil`, the file at `dst` and the name `src` free. Over the tree's
+shared mode (`fileAt`, `bPath`, `fileFree`: the claims on the two names), from the model
+(`os.Rename.specFileSNE`): no error, the semantics having no I/O error where a success exists
+(`theFs`'s `FsNoErrAll`). The file at `dst` it replaces is the open database's, which keeps its
+inode (`bClosed` after its `Close`). Until S5 an axiom over the abstract `srvFileHolds` and
+`pathOwn`, with an error case `¬ renameOk src dst`. -/
 abbrev os.Rename.spec : Prop :=
   ∀ (src dst : GoString) (D : Data) (γ : DBNames),
-  {{ srvFileHolds (GF := GF) src D ∗ bPath γ dst }}
+  {{ fileAt (GF := GF) src D ∗ bPath γ dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
-  {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ srvFileHolds dst D) ∨
-      (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmt.argOk err ∗ srvFileHolds src D ∗
-        bPath γ dst) }}
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ fileAt dst D ∗ fileFree src }}
 
 end spec
 

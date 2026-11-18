@@ -42,7 +42,7 @@ index's meta keys in the hooks' resource) for the modeled part, and, for `bkRest
 compaction keys (in buckets the model does not track), a trust-boundary axiom of the server's
 determinism (D22c (A): the apply path writes them as a function of the applied entries, the
 workload plain). Who reads it: the receiver (D22 S-j), through `OpenSnapshotBackend`
-(`srvFileHolds` of the file the transport saved, D22 S-i), `mvcc.store.restore` (D22 S-g:
+(`fileAt` of the file the transport saved, D22 S-i), `mvcc.store.restore` (D22 S-g:
 `keyImage`), the `Recover` axioms (`bkRestAt`) and `consistIndex.SetBackend` (the stored index).
 -/
 module

@@ -267,6 +267,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
     -- names the one ghost map of its files (`snapDir_init`)
     "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir') ∗
+    -- (S5, 2026-11-18) and the claims on that directory's snapshot names, every index's, free
+    -- (`snapFreeAll`: the shared mode's claims on the names `bootstrap`'s new snapshot directory has,
+    -- none of them a file), which the directory's invariant keeps for `SaveDBFrom`
+    "Hsfree" ∷ snapFreeAll (snap.snapDBPathOf cfg.DataDir') ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)

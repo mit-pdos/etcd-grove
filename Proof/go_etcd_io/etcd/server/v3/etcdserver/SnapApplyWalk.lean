@@ -159,7 +159,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗ backend.srvFileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
+       snap.isSnapshotter ss ∗ backend.fileAt (snap.snapDBPath ss sv.Metadata'.Index') D ∗
        backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)

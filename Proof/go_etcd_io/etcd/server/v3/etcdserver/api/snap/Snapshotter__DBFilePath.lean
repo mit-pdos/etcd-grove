@@ -27,7 +27,8 @@ variable [sem : go.Semantics]
 file exists (`fileutil.Exist`), else `ErrNoDBSnapshot` (an `errors.New` error, after a warning on
 the snapshotter's logger), or the directory read's `*os.PathError`; it writes nothing. What would
 discharge it: translating `snap/db.go` with its body over specs of `fileutil.ReadDir`,
-`fileutil.Exist` and `filepath.Join` (a file-system model). -/
+`fileutil.Exist` and `filepath.Join` (a file-system model). (S5, 2026-11-18) Over the concrete `backend.fileAt` (the claim on the name with the file), which
+it gives back unchanged: it reads the directory, creating nothing. -/
 axiom snap.Snapshotter.DBFilePath.wp_proof : snap.Snapshotter.DBFilePath.spec (GF := GF) (hG := hG)
 
 end proof

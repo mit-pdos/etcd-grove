@@ -327,10 +327,10 @@ theorem backend.newBackend.wp_proof
     iframe Hb
     iexact Hpost
   iframe Hbfile Htok
-  isplitl [Hbp]
+  isplitr [Hbp]
+  · unfold hooksAt
+    iexact hooks
   · rw [Hγd]; iexact Hbp
-  unfold hooksAt
-  iexact hooks
 
 end proof
 

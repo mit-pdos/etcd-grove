@@ -65,39 +65,20 @@ theorem storage.OpenSnapshotBackend.wp_proof
     ihave #Hcf := cfg
     iStructNamed Hcf
     wp_apply wp_BackendPath $$ [$DataDir] as -
-    wp_apply wp_Rename $$ [$Hf $Hpo] as %err2 Hr
-    icases Hr with (⟨%Hr, Hf⟩ | ⟨%Hr, Hok, Hf, Hpo⟩)
-    · subst Hr
-      wp_auto
-      wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo⟩
-      iapply HΦ
-      iframe Hmdp Hsm
-      ileft
-      isplitr
-      · ipureintro; rfl
-      iexists b, γ
-      iframe Hnew Hhka Hpo Hbf
-      ipureintro; rfl
-    · obtain ⟨ei, rfl⟩ : ∃ ei, err2 = GoInterface.ok ei := by
-        cases err2 with
-        | nil => exact absurd rfl Hr.1
-        | ok ei => exact ⟨ei, rfl⟩
-      wp_auto
-      wp_apply wp_slice_literal
-      isplitr
-      · ipureintro; rfl
-      iintro %sl ⟨Hsl, -⟩
-      wp_apply wp_Errorf $$ [$Hfmt $Hsl Hok] as %e -
-      · fmt_args_intro
-        isplitl [Hok]
-        · fmt_arg_method; iexact Hok
-        · itrivial
-      iapply HΦ
-      iframe Hmdp Hsm
-      iright
-      iframe Hf Hpo
-      ipureintro
-      exact ⟨nofun, rfl, fun h => Hr.2 h.2⟩
+    -- (S5) the rename, with no error: the file at the backend path, the snapshot's name free
+    wp_apply wp_Rename $$ [$Hf $Hpo] as %err2 ⟨%Hr, Hf, -⟩
+    subst Hr
+    wp_auto
+    ihave Hf := backend.fileAt_fileHolds _ _ $$ Hf
+    wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo⟩
+    iapply HΦ
+    iframe Hmdp Hsm
+    ileft
+    isplitr
+    · ipureintro; rfl
+    iexists b, γ
+    iframe Hnew Hhka Hpo Hbf
+    ipureintro; rfl
   · obtain ⟨ei, rfl⟩ : ∃ ei, err = GoInterface.ok ei := by
       cases err with
       | nil => exact absurd rfl Herr.1

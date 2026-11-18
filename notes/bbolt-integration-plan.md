@@ -836,6 +836,83 @@ concrete `fsExt` ghost state (`isBolt`'s invariants, the claim on the file's nam
    (since S1/S3e: `bootOk` gives a backend whose `isBolt` is concrete from the abstract
    `dataDirFresh`). Reported.
 
-**Scope decision.** Items 1, 3 first (the backend gives the name up; `pathOwn` concrete; the server
-and mvcc threading it; `OpenBackend`'s pre concrete), then 2 and 4; what is not done is listed
-under "Left" below.
+**Scope decision.** Item 1 first (it is what every other item needs: with the claim in `ownDB` a
+concrete `pathOwn` would be a second claim on the open database's name, so `bootOk` would be
+contradictory), then 2, 3, 4. Item 3 cannot come alone: with `OpenBackend`'s pre concrete,
+`OpenSnapshotBackend` must get the concrete file from `os.Rename`, whose axiom would then make it
+from the abstract `srvFileHolds` (the unsoundness moved, and worse: a second claim on the backend
+path while the old backend is open). So 2, 3, 4 land together.
+
+**Done.**
+- Item 1 (commit `89a7a8abf5`). `InvBbolt.lean`: `dbRestF γ` is `∃ i, boltIno γ i ∗ boltCloser γ`
+  (no claim); `nameAtF path i` (the claim on `path`'s name naming the inode `i`, with the path's
+  spine and a share of the call permission); `bPath γ path := onFs (∃ i, boltIno γ i ∗ nameAtF path
+  i)` (exclusive); `bClosed γ D := onFs (∃ i, boltIno γ i ∗ fileHoldsM i D)`; `bPath_join : bPath γ p
+  ∗ bClosed γ D ⊢ fileHolds p D`, by `bbolt.boltIno_agree` (`Spec/go_etcd_io/bbolt/ApiIno.lean`, a new
+  importable vocabulary module of bbolt's API that `import all`s `Api.lean`: no bbolt proof touched or
+  rebuilt). `newBackend`/`New`: post `… ∗ bFile γ cfg.Path' ∗ bPath γ.db cfg.Path' ∗ threadTok`;
+  `backend.Close`: success post `bClosed γ.db D` (was `∃ path, bFile γ path ∗ fileHolds path D`).
+  Clients: mvccfull's `bkKeep` keeps `bPath` beside `bFile` (`inc_open_backend`, `inc_census`,
+  `runner.openBackend`'s post; `runner.shut` joins); `EtcdServer.Cleanup`'s post `bClosed d.γB.db D ∨
+  ¬ dbCloseOk`; `stop_cleanup_image` joins it with the snapshot path's claim into `srvFiles`' file.
+- `pathOwn` (opaque, exclusive) is gone: the server holds `bPath γB.db (backendPathOf dd)`
+  (`bootOk`'s and `bootOkR`'s `"Hpath"`, `srvSnapRes`, `srvSnapAppliedG`, the walk,
+  `applySnapshot.spec`, `OpenSnapshotBackend.spec` at the old backend's names `γo`, its success post
+  the new backend's). `srvDiskImageAt` and `bootstrapRestartContract`'s pre no longer hold a second
+  right on the backend path (`srvFiles`' file has the claim).
+- Item 2: **`os.Rename` is a theorem** (`Proof/os/Rename.lean`; the axiom `os.Rename.wp_proof` gone):
+  `{{ fileAt src D ∗ bPath γ dst }} os.Rename src dst {{ err, ⌜err = nil⌝ ∗ fileAt dst D ∗ fileFree src }}`.
+  From `os.Rename.specFileSNE` (`Spec/os/RenameSNE.lean`, proved in `Proof/os/RenameSNE.lean`: the
+  model's `LstatDir`, one `CallBegin` and `rename(2)` with no error, `GooseLang/Ext/Fs/NoErrSpecsRename.lean`:
+  `renameFile_succ`, a file renamed onto a non-directory has a success step, so `NoIoErr` covering every
+  path gives errno 0; `wp_logStepSQ`, `wp_osRenameFileSNE`). The two claims' shared invariants agree on
+  the roots at the call's first step (`GooseLang/Ext/Fs/TreeSharedRoots.lean`, `wp_osSharedAgree`: each
+  invariant's `γs` element against the state interpretation's authority, opened one after the other);
+  their keys are distinct by the two whole claims' validity (`osNames_keys_ne`).
+- Item 4: `srvFileHolds` is gone. The snapshot directory's files are `backend.fileAt` (the claim on the
+  name with a file holding `D`); `snapDirInv` also holds `snapFree (snapDBPath ss) E` (`Net.lean`: for
+  some finite map `F` with every index `E` lacks, `fileFree` of each index's name: the claim naming
+  nothing). `snapDir_init` takes `snapFreeAll` (`snapFree p ∅`), a new row `"Hsfree"` of `bootOk`.
+  `SaveDBFrom`, `storage.Release`, `DBFilePath` stay names-only trust boundaries with unchanged
+  statements but concrete meaning; their docstrings argue they create nothing: `SaveDBFrom`'s link of
+  a never-saved index takes the index's free claim and puts back the file (a body creating the file
+  under that claim realizes it), `Release` drops the removed files' claims, `DBFilePath` gives the
+  file back unchanged.
+- Item 3: **`OpenBackend` option (b)**: pre `fileHolds (backendPathOf dd) D` (`backend.New`'s), post
+  `New`'s (`newPostK`, `hooksAt`, `bFile`, `bPath γ.db`). It is sound in the strict sense: everything
+  concrete in its post is `New`'s proved post of what it consumes; it adds only the goroutine/`select`
+  (no resource) and the absence of `newBackend`'s panic (`dbOpensOk`, `openMmapOk`).
+  `OpenSnapshotBackend`'s proof: `DBFilePath` (`fileAt` of the snapshot), `os.Rename` (no error),
+  `fileAt_fileHolds`, `OpenBackend`.
+
+**Producers of concrete file state, audited** (no axiom makes a claim from nothing): `start_fileHolds`
+(derived from `FsInit`); `backend.New`/`Close` (proved); `os.Rename` (proved); `OpenBackend` (axiom,
+consumes `fileHolds`); `SaveDBFrom` (axiom, consumes the index's free claim); `Release` (drops);
+`DBFilePath` (returns its input). **Premises** that hand out concrete state: `bootstrapContract`'s
+`bootOk` (the boot backend's `newPostK` with `isBolt`, since S1/S3e; `bPath` of the backend path, was
+the opaque `pathOwn`; `snapFreeAll`, new), from the abstract `dataDirFresh`; `bootstrapRestartContract`'s
+`bootOkR` (`bPath`, from the consumed `srvFiles`: realizable).
+
+**Left.**
+1. **The top** (item 5 of the design): the closed theorems' data directories are relative strings
+   (`examples/lib/etcdstart`: `DataDir: name + ".etcd"`), which the file model leaves stuck (canonical
+   paths below an absolute root only), so the claims `bootOk` hands out cannot be derived from the
+   initial tree. Deriving them needs the examples to pass an absolute root (a Go change in the
+   examples, retranslation, each closed theorem's program), and `bootstrapContract` to take a concrete
+   `dataDirFresh` (the claim on the data directory's name in a root, absent in `FsInit`): a unit of its
+   own, for the coordinator. Until then `bootOk` gives concrete state from the abstract `dataDirFresh`,
+   as it did for the boot backend since S3e.
+2. `OpenBackend` option (a): translate `storage.OpenBackend`/`newBackend` with bodies (the goroutine,
+   `select`/`time.After`), the axiom then a proof from `backend.New`.
+3. `renameOk` and `snapOpensOk`'s conjunct are now unused by any spec's error (a cleanup).
+
+**Changed statements**: `backend.newBackend.spec`, `backend.New.spec` (post `bPath`),
+`backend.backend.Close.spec` (post `bClosed`), `EtcdServer.Cleanup.spec` (post `bClosed`),
+`os.Rename.spec` (concrete, no error), `snap.Snapshotter.DBFilePath.spec` (`fileAt`),
+`storage.OpenBackend.spec` (pre `fileHolds`, post `bPath`), `storage.OpenSnapshotBackend.spec` (`γo`,
+`fileAt`, `bPath`), `EtcdServer.applySnapshot.spec` (`fileAt`, `bPath d.γB.db`),
+`mvccfull.runner.openBackend.spec` (post `bPath`); the premises' contents: `bootOk` (`"Hpath"` is
+`bPath`; new `"Hsfree"`), `bootOkR` (`"Hpath"`), `bootstrapRestartContract`'s pre (no `pathOwn`),
+`srvDiskImageAt` (no `pathOwn`), `snapDirInv` (`fileAt`, `snapFree`). **No closed theorem's statement
+text changed**; the meaning of their premises `bootstrapContract`/`bootstrapRestartContract` did, as
+listed.

@@ -266,6 +266,27 @@ def nameAtF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (i :
     ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = some (.file i)⌝ ∗ osInv ∗ osSharedInv R ∗
     osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
 
+/-- **The file at `path` holds `D`, a file** (S5), at the instances: `fileHoldsF`'s case of a file
+(the claim on the name naming the inode `i`, whose file holds a database with the data `D`). -/
+def fileAtF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) (D : Data) :
+    IProp GF :=
+  iprop(∃ i : Ino, nameAtF path i ∗ bbolt.fileHoldsM i D)
+
+/-- **The name `path` is free** (S5), at the instances: the whole claim on it (with the path's spine
+and a share of the call permission), naming nothing. -/
+def fileFreeF [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (path : GoString) : IProp GF :=
+  iprop(∃ (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH),
+    ⌜path = child d b ∧ NameOk b ∧ h.cur !! b = none⌝ ∗ osInv ∗ osSharedInv R ∗
+    osPathS R d dq j ∗ osCallPerm qc ∗ osNames j (.only [b]) (DFrac.own 1) h)
+
+/-- **The file at `path` holds `D`, and is a file** (S5; exclusive): what a received snapshot's file
+is (`snapDirInv`'s files), what `os.Rename` moves. -/
+def fileAt (path : GoString) (D : Data) : IProp GF := onFs (fileAtF path D)
+
+/-- **The name `path` is free** (S5; exclusive): the claim on a name no file has, what `SaveDBFrom`
+saves a snapshot's file under. -/
+def fileFree (path : GoString) : IProp GF := onFs (fileFreeF path)
+
 /-- **The open database `γ`'s file is at `path`, the name the caller's** (S5, 2026-11-18;
 exclusive): the claim on `path`, which names `γ`'s inode. `New` gives it; the caller keeps it while
 the database is open, and either joins it with what `Close` gives back (`bPath_join`: the file at
@@ -343,6 +364,26 @@ theorem bPath_join (γ : DBNames) (path : GoString) (D : Data) :
     subst he
     unfold nameAtF fileHoldsF
     icases Hn with ⟨%R, %d, %b, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hnm⟩
+    obtain ⟨hp, hb, hi⟩ := hp
+    iexists R, d, b, dq, j, qc, h
+    iframe Hinv Hsh Hp Hcp Hnm
+    isplitr
+    · ipureintro; exact ⟨hp, hb⟩
+    unfold bbolt.nameHolds
+    ileft
+    iexists i
+    iframe Hf
+    ipureintro; exact hi
+
+/-- A file at `path` holding `D` is the file `path` holds (`fileHolds`). -/
+theorem fileAt_fileHolds (path : GoString) (D : Data) :
+    fileAt (GF := GF) path D ⊢ fileHolds path D := by
+  rcases hfs : theFs GF with _ | ⟨S, ok, has, fa, fsa, ne⟩
+  · simp only [fileAt, onFs_none hfs]
+    iintro H; iexfalso; iexact H
+  · simp only [fileAt, fileHolds, onFs_some hfs]
+    unfold fileAtF nameAtF fileHoldsF
+    iintro ⟨%i, ⟨%R, %d, %b, %dq, %j, %qc, %h, %hp, #Hinv, #Hsh, Hp, Hcp, Hnm⟩, Hf⟩
     obtain ⟨hp, hb, hi⟩ := hp
     iexists R, d, b, dq, j, qc, h
     iframe Hinv Hsh Hp Hcp Hnm

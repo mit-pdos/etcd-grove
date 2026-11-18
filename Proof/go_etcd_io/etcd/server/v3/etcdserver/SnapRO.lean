@@ -371,18 +371,18 @@ theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDB
 removal counter `c` (restart S6a: `c ≤ ai + 1 ≤ i` at the applied index `ai < i`) is present, its
 removal fact (`snapRmM γm i`, the counter past `i`) refuted by the counter's authority; the counter
 raised to `i + 1` gives that fact, so the file leaves the directory, with its certificate. A later
-credit strips the invariant's later (`srvFileHolds` is not timeless). -/
+credit strips the invariant's later (`fileAt` is not timeless: its claims are under invariants). -/
 theorem snapDir_take (ss : Loc) (γd γm : GName)
     (img : w64 → backend.Data → IProp GF) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
     ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (snapRmM γm)) -∗ snapSaved γd i -∗
       monoNatAuthOwn γm 1 c ={⊤}=∗
       monoNatAuthOwn γm 1 (uint.nat i + 1) ∗
-      ∃ D : backend.Data, backend.srvFileHolds (snap.snapDBPath ss i) D ∗ □ img i D := by
+      ∃ D : backend.Data, backend.fileAt (snap.snapDBPath ss i) D ∗ □ img i D := by
   iintro Hlc #Hinv #Hsv Hγm
   iinv Hinv with Hi Hclose
   imod (lc_fupd_elim_later (P := snapDirInv ss γd img (snapRmM γm))) $$ Hlc Hi with Hi
   iunfold snapDirInv at Hi
-  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, HF, #HEs, #HRm⟩
   iunfold snapSaved at Hsv
   ihave %HEi := ghost_map_lookup $$ Ha Hsv
   cases hMi : M.lookup i with
@@ -394,14 +394,14 @@ theorem snapDir_take (ss : Loc) (γd γm : GName)
     exfalso; omega
   | some D =>
     imod (mono_nat_own_update (uint.nat i + 1) (by omega)) $$ Hγm with ⟨Hγm, #Htk⟩
-    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.srvFileHolds
+    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileAt
       (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
-    imod Hclose $$ [Ha HM] with -
+    imod Hclose $$ [Ha HM HF] with -
     · inext
       iunfold snapDirInv
       iframe Hdi
       iexists GMap.delete i M, Es
-      iframe Ha HM HEs
+      iframe Ha HM HF HEs
       isplitr
       · ipureintro
         intro j hj

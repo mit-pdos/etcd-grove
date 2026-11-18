@@ -57,7 +57,13 @@ drops the locks of the segments before the one holding `i` (`wal.go:941-981`: it
 segment that starts below `i`), and the server's purge may then remove them; a restart opens at the
 snapshot record of the records' base, at or above `i`, in a kept segment. Until W2 the spec took no
 fact about the WAL, and a `Release` above the base was provable (`notes/axiom-review/wal-tokens.md`,
-attack 10; Go: `examples/sweeprepairs/wal`, `TestW1W2WalPurge`). -/
+attack 10; Go: `examples/sweeprepairs/wal`, `TestW1W2WalPurge`).
+
+(S5, 2026-11-18) The invariant's files are now concrete file-extension state (`backend.fileAt`, the
+claim on the name with the file; and the free names of the indices never saved, `snapFree`): the
+removal's ghost step consumes a removed file's claim (it leaves `M`; its index stays in `E`, so
+`snapFree` need not have it), so the axiom creates no claim; a body that unlinks each removed name
+under its claim realizes it. -/
 abbrev storage.storage.Release.spec : Prop :=
   ∀ (p ss sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
     (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
