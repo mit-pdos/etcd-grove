@@ -772,6 +772,86 @@ theorem reliableOkR_prefix (s0 : w64) (R : RReplay) (h : HSt) (x : Input) (reqw 
     rw [hwin]
     exact compareEventsL_self _ (fromW_objs _ (fun e he => ht e (hmemT e (List.mem_filter.1 he).1)))
 
+/-! ### The initial events -/
+
+theorem ofList_isSome (l : List (GoString × Obj)) (k : GoString) :
+    (GMap.ofList l !! k).isSome ↔ k ∈ l.map Prod.fst := by
+  induction l with
+  | nil => show ((∅ : GMap GoString Obj) !! k).isSome ↔ _; simp
+  | cons a l ih =>
+    obtain ⟨k', v⟩ := a
+    show (<[k' := v]> (GMap.ofList l) !! k).isSome ↔ _
+    rw [GMap.lookup_insert_eq_iff]
+    by_cases h : k' = k
+    · subst h; simp
+    · simp only [h, if_false, ih, List.map_cons, List.mem_cons]
+      constructor
+      · exact Or.inr
+      · rintro (e | e)
+        · exact absurd e.symm h
+        · exact e
+
+theorem fI_mem (its : List item) (hs : SortedI its) (it : item) (h : it ∈ its) :
+    fI its it.key' = some it := by
+  induction its with
+  | nil => cases h
+  | cons e es ih =>
+    obtain ⟨hs', hlt⟩ := sortedI_cons' hs
+    rw [fI_cons]
+    rcases List.mem_cons.1 h with rfl | h'
+    · simp
+    · have hne : e.key' ≠ it.key' := by
+        intro he
+        unfold SortedI at hs
+        simp only [List.map_cons, List.pairwise_cons, List.mem_map] at hs
+        exact go.goStringLt_irrefl it.key' (he ▸ hs.1 it.key' ⟨it, h', rfl⟩)
+      rw [if_neg hne]; exact ih hs' h'
+
+/-- **The checker's items of a sorted store's model** are its items, in order, at their store keys. -/
+theorem itemsL_absR (st : GSt) (hs : SortedI st.items) :
+    itemsL (absR st) = st.items.map fun it => (storeKeyL it.key', it.obj') := by
+  unfold itemsL
+  have hk : sortedKeysL (absR st).items = st.items.map fun it => storeKeyL it.key' := by
+    symm
+    apply sortedKeysL_unique
+    · intro k
+      simp only [absR]
+      rw [ofList_isSome, List.map_map]; rfl
+    · unfold SortedI at hs
+      rw [List.pairwise_map] at hs ⊢
+      exact hs.imp fun h => (storeKeyL_lt _ _).2 h
+  rw [hk, List.filterMap_map, ← List.filterMap_eq_map]
+  refine filterMap_congr' (fun it hit => ?_)
+  simp only [Function.comp, absR]
+  rw [ofList_items, fI_mem _ hs it hit]; rfl
+
+theorem initialEventsL_absR (x : Input) (st : GSt) (hs : SortedI st.items) :
+    (initialEventsL x st).map fromW =
+      (listItemsL x x.WKey' (absR st)).map fun o => (⟨evAdded, .obj o⟩ : REv) := by
+  unfold initialEventsL listItemsL scopeR
+  rw [itemsL_absR st hs]
+  simp only [List.map_map, List.filter_map, List.filter_filter]
+  congr 1
+  apply List.filter_congr; intro it _; simp [Function.comp, Bool.and_comm]
+
+/-! ### The first bookmark -/
+
+theorem dropWhile_findIdx (L : List WEv) (b : Nat)
+    (h : L.findIdx? (fun e => decide (e.t = 3)) = some b) :
+    L.dropWhile (fun e => decide (e.t ≠ 3)) = L.drop b := by
+  induction L generalizing b with
+  | nil => simp at h
+  | cons e L ih =>
+    rw [List.findIdx?_cons] at h
+    rw [List.dropWhile_cons]
+    by_cases h3 : e.t = 3
+    · simp only [h3, decide_true, if_true, Option.some.injEq] at h
+      subst h; simp [h3]
+    · simp only [h3, decide_false, Bool.false_eq_true, if_false] at h
+      obtain ⟨b', hb', rfl⟩ := Option.map_eq_some_iff.1 h
+      simp only [h3, ne_eq, not_false_eq_true, decide_true, if_true, List.drop_succ_cons]
+      exact ih b' hb'
+
 /-! ## B5 -/
 
 /-- **B5.** A watch of `x` that ran (not skipped, its `Watch` call did not fail), whose output's
@@ -789,7 +869,162 @@ theorem validateWatchL_of_watchOkL (s0 : w64) (R : RReplay) (h : HSt) (x : Input
     (hfrom : WatchFromL s0 x (raw.map toWEvL))
     (hok : watchOkL x y h = true) :
     validateWatchL R x (realEventsL x raw) = true := by
-  sorry
+  have hH : uint.nat h.st.rv < 2 ^ 63 := hlen ▸ hwf.1
+  unfold watchOkL at hok
+  rw [hfail, hskip, hdec] at hok
+  simp only [Bool.or_false, Bool.false_eq_true, if_false] at hok
+  generalize hW : raw.map toWEvL = W at hok hfrom
+  split at hok
+  · cases hok
+  rename_i h5
+  split at hok
+  · cases hok
+  rename_i hrvb
+  split at hok
+  · cases hok
+  rename_i hbm
+  split at hok
+  · cases hok
+  rename_i reqw hp
+  have hreqw := hreq reqw hp
+  have h5' : ∀ e ∈ W, e.t < 5 := fun e he => by
+    have := List.any_eq_false.1 (Bool.eq_false_iff.2 h5) e he
+    simp only [decide_eq_true_eq] at this; omega
+  have hrv' : ∀ e ∈ nonErr W, uint.nat e.o.ResourceVersion' ≤ uint.nat h.st.rv := fun e he => by
+    have := List.any_eq_false.1 (Bool.eq_false_iff.2 hrvb) e he
+    simp only [decide_eq_true_eq] at this; omega
+  have hbm' : bookmarksOkL (nonErr W) = true := by unfold nonErr; simpa using hbm
+  have ht : ∀ e ∈ nonErr W, e.t ≤ 3 := fun e he => by
+    have h1 := List.mem_filter.1 he
+    have := h5' e h1.1
+    simp only [decide_eq_true_eq] at h1; omega
+  have hord := bmOrd_of_bookmarksOkL _ hbm'
+  have hraw : raw = W.map fromW := by
+    rw [← hW, List.map_map]
+    refine (List.map_id raw).symm.trans (List.map_congr_left (fun e he => ?_))
+    exact (fromW_toWEvL e (h5' _ (by rw [← hW]; exact List.mem_map_of_mem he))).symm
+  rw [hraw, realEventsL_map]
+  obtain ⟨N, E, hc, hN, hE, hE1, hNp⟩ := cut0_split W
+  obtain ⟨Np, hNp'⟩ := hNp
+  have hNW : ∀ e ∈ N, e ∈ nonErr W := fun e he => hNp' ▸ List.mem_append_left _ he
+  rw [hc]
+  have hNE5 : ∀ e ∈ N ++ E, e.t < 5 := by
+    intro e he
+    rcases List.mem_append.1 he with he | he
+    · have := ht e (hNW e he); omega
+    · have := hE e he; omega
+  have hlast := lastErrOkL_split N E hN hE hE1
+  have hbmR : bookmarksOkR ((N ++ E).map fromW) = true := by
+    rw [bookmarksOkR_map _ hNE5, nonErr_append_err N E hN hE]
+    exact bookmarksOkL_prefix hbm' ⟨Np, hNp'⟩
+  by_cases hsi : x.SendInit' = W64 2
+  · rw [if_pos hsi] at hok
+    rw [if_pos hsi]
+    by_cases hb : (N ++ E).any (fun e => decide (e.t = 3)) = true
+    · rw [if_pos hb]
+      have hEb : E.any (fun e => decide (e.t = 3)) = false :=
+        List.any_eq_false.2 (fun e he => by have := hE e he; simp [this])
+      have hbN : (N.findIdx? (fun e => decide (e.t = 3))).isSome := by
+        rw [List.findIdx?_isSome]; rw [List.any_append, hEb, Bool.or_false] at hb; exact hb
+      obtain ⟨b, hbN'⟩ := Option.isSome_iff_exists.1 hbN
+      obtain ⟨hbl, hb3, -⟩ := List.findIdx?_eq_some_iff_getElem.1 hbN'
+      have hb3' : N[b].t = 3 := by simpa using hb3
+      have hbW : (nonErr W).findIdx? (fun e => decide (e.t = 3)) = some b := by
+        rw [← hNp', List.findIdx?_append, hbN']; rfl
+      change (match (nonErr W).findIdx? (fun e => decide (e.t = 3)) with
+        | none => _ | some b => _) = true at hok
+      rw [hbW] at hok
+      simp only [] at hok
+      have hgd : (W.filter fun e => decide (e.t ≠ 4)).getD b ⟨0, ⟨[], [], [], [], [], [], 0, false⟩⟩ =
+          N[b] := by
+        show (nonErr W).getD b _ = _
+        rw [← hNp', List.getD_eq_getElem?_getD, List.getElem?_append_left hbl,
+          List.getElem?_eq_getElem hbl]; rfl
+      rw [hgd] at hok
+      split at hok
+      · cases hok
+      rename_i hann
+      split at hok
+      · cases hok
+      rename_i hcond
+      split at hok
+      · cases hok
+      rename_i hinit
+      have hann' : N[b].o.Annotated' = true := by simpa using hann
+      simp only [Bool.not_eq_true', Bool.not_eq_false] at hinit
+      have hinit' : initialEventsL x (histN h.hist (uint.nat N[b].o.ResourceVersion')) =
+          (nonErr W).take b := evsEqL_eq hinit
+      have hdropN : ∀ e ∈ N.drop b, e.t ≠ 4 := fun e he => hN e (List.mem_of_mem_drop he)
+      -- the start of the reliable part, after `s0`
+      have hdrop : (nonErr W).dropWhile (fun e => decide (e.t ≠ 3)) = (nonErr W).drop b :=
+        dropWhile_findIdx _ b hbW
+      have hfromT : ∀ e ∈ (nonErr W).drop b, uint.nat s0 < evLo e := by
+        unfold WatchFromL at hfrom; rw [if_pos hsi, hdrop] at hfrom; exact hfrom
+      have hdropW : (nonErr W).drop b = N.drop b ++ Np := by
+        rw [← hNp', List.drop_append_of_le_length (by omega)]
+      have hbmem : N[b] ∈ (nonErr W).drop b := by
+        rw [hdropW, List.drop_eq_getElem_cons hbl]
+        exact List.mem_append_left _ (List.mem_cons_self ..)
+      have hs0b : uint.nat s0 ≤ uint.nat N[b].o.ResourceVersion' := by
+        have := hfromT _ hbmem; simp only [evLo, hb3', if_true] at this; omega
+      have hbH : uint.nat N[b].o.ResourceVersion' ≤ uint.nat h.st.rv :=
+        hrv' _ (hNW _ (List.getElem_mem hbl))
+      unfold validateWatchL
+      rw [hlast, hbmR, if_pos hsi]
+      simp only [Bool.true_and]
+      have hsplit : splitInitL ((N ++ E).map fromW) =
+          some ((N.take b).map fromW, (N.drop b ++ E).map fromW) := by
+        unfold splitInitL
+        rw [List.findIdx?_map]
+        have hp3 : ((fun e : REv => decide (e.ty = evBookmark)) ∘ fromW) = (fun e => decide (e.t = 3)) := by
+          funext e; simp [fromW_ty_bm]
+        rw [hp3, List.findIdx?_append, hbN']
+        simp only [Option.some_or]
+        have hgb : ((N ++ E).map fromW).getD b ⟨[], .other⟩ = fromW N[b] := by
+          rw [List.getD_eq_getElem?_getD, List.getElem?_map, List.getElem?_append_left hbl,
+            List.getElem?_eq_getElem hbl]; rfl
+        rw [hgb, fromW_obj _ (by omega)]
+        simp only [annotL, hann']
+        rw [← List.map_take, ← List.map_drop, List.take_append_of_le_length (by omega),
+          List.drop_append_of_le_length (by omega)]
+      rw [hsplit, List.drop_eq_getElem_cons hbl, List.cons_append, List.map_cons]
+      simp only [fromW_obj _ (show N[b].t ≤ 3 by omega), objRVL]
+      rw [← List.map_cons, ← List.cons_append, ← List.drop_eq_getElem_cons hbl,
+        reliableOkR_append_err R x _ E hdropN hE, Bool.and_eq_true]
+      constructor
+      · -- the initial events
+        unfold initialOkL
+        rw [Bool.and_eq_true]
+        constructor
+        · split
+          · rw [hp]; simp only [decide_eq_true_eq]; omega
+          · rfl
+        · unfold initialEventsR
+          rw [hR.1 _ hs0b hbH]
+          simp only [Option.map_some]
+          have htk : N.take b = initialEventsL x (histN h.hist (uint.nat N[b].o.ResourceVersion')) := by
+            rw [hinit', ← hNp', List.take_append_of_le_length (by omega)]
+          rw [htk, initialEventsL_absR x _ (hsort _ (by omega))]
+          refine compareEventsL_self _ (fun e he => ?_)
+          obtain ⟨o, -, rfl⟩ := List.mem_map.1 he
+          exact ⟨o, rfl⟩
+      · -- the events from the bookmark on
+        exact reliableOkR_prefix s0 R h x reqw ((nonErr W).drop b) (N.drop b) hlen hwf hs0 hs0h hR hp
+          hreqw (fun e he => ht e (List.mem_of_mem_drop he))
+          (fun e he => hrv' e (List.mem_of_mem_drop he)) (hord.sublist (List.drop_sublist _ _))
+          hfromT hok ⟨Np, hdropW.symm⟩
+    · rw [if_neg hb]
+      simp [validateWatchL, lastErrOkL, bookmarksOkR, splitInitL, filterBE, hsi]
+  · rw [if_neg hsi] at hok
+    rw [if_neg hsi]
+    unfold validateWatchL
+    rw [hlast, hbmR, if_neg hsi]
+    simp only [Bool.true_and]
+    rw [reliableOkR_append_err R x N E hN hE]
+    have hfromT : ∀ e ∈ nonErr W, uint.nat s0 < evLo e := by
+      unfold WatchFromL at hfrom; rw [if_neg hsi] at hfrom; exact hfrom
+    exact reliableOkR_prefix s0 R h x reqw (nonErr W) N hlen hwf hs0 hs0h hR hp hreqw ht hrv' hord
+      hfromT hok ⟨Np, hNp'⟩
 
 end go
 
