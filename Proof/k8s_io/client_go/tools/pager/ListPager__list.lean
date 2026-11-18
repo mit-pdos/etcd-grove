@@ -23,6 +23,7 @@ local macro "ret_err" : tactic => `(tactic| (
     unfold pageRes
     ileft
     iframe
+    iframe HeOk
     ipureintro; exact ⟨hne, Or.inl rfl⟩))
 
 noncomputable section
@@ -70,13 +71,14 @@ theorem ListPager.list.wp_proof
       ipureintro; exact hts
     (try wp_auto)
     iunfold pageRes at Hres
-    icases Hres with (⟨%herr, Hae⟩ | ⟨%he, %q, %os, %rv, %hobj, Hl, HS⟩)
+    icases Hres with (⟨%herr, Hae, #HeOk⟩ | ⟨%he, %q, %os, %rv, %hobj, Hl, HS⟩)
     · obtain ⟨hne, hobj⟩ := herr
       cases err with
       | nil => exact absurd rfl hne
       | ok ei =>
         (try wp_auto)
         wp_apply (wp_IsResourceExpired _) $$ [$Herrs] as %bexp -
+        · iright; iexact HeOk
         (try wp_auto)
         cases bexp
         · (try wp_auto)

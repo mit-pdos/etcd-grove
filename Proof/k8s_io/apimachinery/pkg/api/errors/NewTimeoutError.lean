@@ -48,6 +48,8 @@ theorem apierrors.NewTimeoutError.wp_proof :
   iapply HΦ
   iexists _, _
   iframe
+  isplitr
+  · ipureintro; rfl
   ipureintro
   exact ⟨rfl, rfl, rfl⟩
 

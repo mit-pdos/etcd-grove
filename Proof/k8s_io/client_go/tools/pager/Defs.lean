@@ -2,8 +2,9 @@
 **The pager's contracts** (`k8s.io/client-go/tools/pager`; phase 4 of `notes/k8s-daemonset-plan.md`,
 fifth round): what the reflector's list path through the pager is stated with. Lean-first.
 
-* `pageRes res S obj err`: a page's (and the pager's) result: an error, printable (`fmt.argOk`),
-  with no list (`nil`, or a typed list's `nil` pointer); or no error and a typed list of resource
+* `pageRes res S obj err`: a page's (and the pager's) result: an error, printable (`fmt.argOk`)
+  and one `apierrors`' checks may read (`apierrors.apiErrOk`: the pager asks
+  `apierrors.IsResourceExpired` of it; the apierrors-fix stage, 2026-11-17), with no list (`nil`, or a typed list's `nil` pointer); or no error and a typed list of resource
   `res` (`typedListAt`, which has no continue token) with the caller's facts `S` about it.
 * `fnOk fn res S` (persistent): `fn(opts)` (the reflector's closure over its list-watch) returns a
   `pageRes`, the options kept; `pfnOk` the same for a `ListPageFunc` `fn(ctx, opts)`.
@@ -12,6 +13,7 @@ module
 
 public import Proof.k8s_io.client_go.tools.cache.RefWatchDefs
 public import Spec.fmt.Errorf
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 
 @[expose] public section
 
@@ -36,10 +38,28 @@ def pageRes (res : Res) (S : Loc → List Obj → GoString → IProp GF) (obj er
     IProp GF :=
   iprop((⌜err ≠ interface.nil ∧ (obj = interface.nil ∨
         obj = interface.mkOk (go.GoType.PointerType (resListTy res)) #(null : Loc))⌝ ∗
-      fmt.argOk err) ∨
+      fmt.argOk err ∗ apierrors.apiErrOk err) ∨
     (⌜err = interface.nil⌝ ∗ ∃ (q : Loc) (os : List Obj) (rv : GoString),
       ⌜obj = interface.mkOk (go.GoType.PointerType (resListTy res)) #q⌝ ∗
       typedListAt res q os rv ∗ S q os rv))
+
+open Iris.ProofMode in
+/-- A page result's error is `nil` or one `apierrors`' checks may read. -/
+theorem pageRes_errOk (res : Res) (S : Loc → List Obj → GoString → IProp GF) (obj err : GoInterface) :
+    pageRes res S obj err ⊢
+      (⌜err = interface.nil⌝ ∨ apierrors.apiErrOk err) ∗ pageRes res S obj err := by
+  unfold pageRes
+  iintro (⟨%h, Hae, #Hok⟩ | ⟨%he, H⟩)
+  · isplitr
+    · iright; iexact Hok
+    ileft; iframe Hae; isplitr
+    · ipureintro; exact h
+    iexact Hok
+  · isplitr
+    · ileft; ipureintro; exact he
+    iright; isplitr
+    · ipureintro; exact he
+    iexact H
 
 /-- **A list function `fn(opts)`** returns a `pageRes` (persistent). -/
 def fnOk (fn : GoFunc) (res : Res) (S : Loc → List Obj → GoString → IProp GF) : IProp GF :=

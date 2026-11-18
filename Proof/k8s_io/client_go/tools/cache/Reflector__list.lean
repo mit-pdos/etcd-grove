@@ -148,7 +148,9 @@ theorem Reflector.list.wp_proof
       wp_apply (wp_ListWithAlloc pgr _ _ res (listS γa σ0 res) rfl rfl) $$ [$Hpgr $Hpfn]
         as %obj %pag %err1 ⟨Hpgr, Hres⟩
       (try wp_auto)
-      wp_apply (wp_isExpiredError _) $$ [$Hpkg] as %b1 -
+      ihave Hres := pager.pageRes_errOk _ _ _ _ $$ Hres
+      icases Hres with ⟨#HeOk, Hres⟩
+      wp_apply (wp_isExpiredError _) $$ [$Hpkg $HeOk] as %b1 -
       (try wp_auto)
       cases b1
       · (try wp_auto)
@@ -342,7 +344,7 @@ theorem Reflector.list.wp_proof
       · iPkgInit
       wp_auto
       iunfold pager.pageRes at Hres
-      icases Hres with (⟨%herr, Hae⟩ | ⟨%he, %q, %os, %rv, %hobj, Hl, HS⟩)
+      icases Hres with (⟨%herr, Hae, -⟩ | ⟨%he, %q, %os, %rv, %hobj, Hl, HS⟩)
       · -- the list failed: its error, wrapped
         obtain ⟨hne, hobj⟩ := herr
         wp_apply (wp_LenList res obj null [] go!"") $$ [$Hmeta]
