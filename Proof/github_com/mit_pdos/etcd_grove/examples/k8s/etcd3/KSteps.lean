@@ -12,11 +12,11 @@ effect (`pend`). As linkvtxn's `Steps.lean`, here are the pure forms of
 
 - `CfgEquiv`, `setOf`, `GClosed`, `GOk`, `ClosureOk` as in linkvtxn;
 - **`step_closure_ok`**: `Step`'s result, the `closure` of `stepAllL gs x y`, represents
-  `ppost S x (ansOf y)` and is closed.
+  `ppost S x (ansOf y)` and is closed (for a watch, whose output is never an error).
 -/
 module
 
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KList
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatch
 
 @[expose] public section
 
@@ -43,9 +43,13 @@ instance GCfg_decEq : DecidableEq GCfg := fun a b =>
 /-- `addConfig(s, c)`: `s`, or `s` with `c` appended if no configuration of `s` equals it. -/
 def addConfigL (gs : List GCfg) (g : GCfg) : List GCfg := if g ∈ gs then gs else gs ++ [g]
 
-/-- `step(c, in, out)`. -/
+/-- `step(c, in, out)`: a watch (kind 5) keeps `g` if `watchOkL` passes (`KWatch.lean`: the model's
+observation, `kSpec`); the lemmas relating `stepL` to the model (`stepL_sound`, `stepL_complete`,
+`step_closure_ok`) take a watch's output not an error (`EOther`), which the model would read as a
+failed call. -/
 def stepL (g : GCfg) (x : Input) (y : Output) : List GCfg :=
-  if y.Err' = W64 4 then (if isWriteL x then [⟨g.st, x :: g.pend⟩] else [g])
+  if x.Kind' = W64 5 then (if watchOkL x y g.st then [g] else [])
+  else if y.Err' = W64 4 then (if isWriteL x then [⟨g.st, x :: g.pend⟩] else [g])
   else if y = (kstepL x g.st).2 then [⟨(kstepL x g.st).1, g.pend⟩] else []
 
 /-- `Step`'s inner loop, over one configuration's steps. -/
@@ -186,10 +190,12 @@ theorem mem_succsUpTo (g h : GCfg) (j : Nat) :
 /-- **A configuration's bound**: its items and pending inputs fewer than `n`, and its history and
 pending inputs too (the Go model's `make`s of `len + 1` and the history's length `histLen + 1`
 never overflow; a step adds at most one to each count, a pending write taking effect nothing);
-and its pending inputs are writes (`closure` steps them with `mstep`, `kstepL_write`). -/
+its pending inputs are writes (`closure` steps them with `mstep`, `kstepL_write`); and (stage E of
+7f-6) its store's revision at most its history's length (a write moves the revision by one exactly
+when `advanceL` grows the history), which bounds the revision a watch's check reads. -/
 def Bounded (n : Nat) (g : GCfg) : Prop :=
   g.st.st.items.length + g.pend.length < n ∧ g.st.hist.length + g.pend.length < n ∧
-    ∀ p ∈ g.pend, isWriteL p = true
+    (∀ p ∈ g.pend, isWriteL p = true) ∧ uint.nat g.st.st.rv ≤ g.st.hist.length
 
 /-- `setItem`'s loop state's potential: the output's length, one more until `it` is written. -/
 def setPot (st : List item × Bool) : Nat := st.1.length + if st.2 then 0 else 1
@@ -262,6 +268,40 @@ theorem mstepL_length (x : Input) (st : GSt) :
       · exact mupdateL_length x st
       · simp
 
+/-- A step's revision is the store's, or one more. -/
+theorem mstepL_rv (x : Input) (st : GSt) :
+    (mstepL x st).1.rv = st.rv ∨ (mstepL x st).1.rv = st.rv + W64 1 := by
+  unfold mstepL
+  split
+  · unfold mcreateL; split <;> simp
+  split
+  · unfold mdeleteL; dsimp only; split
+    · simp
+    split
+    · simp
+    split <;> simp
+  split
+  · unfold mupdateL; dsimp only; repeat' split
+    all_goals simp
+  · simp
+
+/-- A step keeps the store's revision at most its history's length. -/
+theorem kstepL_rv_le (x : Input) (h : HSt) (hb : uint.nat h.st.rv ≤ h.hist.length) :
+    uint.nat (kstepL x h).1.st.rv ≤ (kstepL x h).1.hist.length := by
+  unfold kstepL
+  split
+  · exact hb
+  · unfold advanceL
+    split
+    · next hne =>
+      simp only [List.length_append, List.length_singleton]
+      rcases mstepL_rv x h.st with he | he
+      · exact absurd he hne
+      · rw [he]; word
+    · next he =>
+      have he' : (mstepL x h.st).1.rv = h.st.rv := by simpa using he
+      simp only; rw [he']; exact hb
+
 /-- A step adds at most one item and one store to the history. -/
 theorem kstepL_length (x : Input) (h : HSt) :
     (kstepL x h).1.st.items.length ≤ h.st.items.length + 1 ∧
@@ -277,8 +317,8 @@ theorem succAt_bounded (n : Nat) (g : GCfg) (i : Nat) (hb : Bounded n g)
     (hi : i < g.pend.length) : Bounded n (succAt g i) := by
   have h1 := kstepL_length (pendAt g i) g.st
   have h2 := length_removeAtL g.pend i hi
-  obtain ⟨hb1, hb2, hb3⟩ := hb
-  refine ⟨?_, ?_, fun p hp => hb3 p (mem_removeAtL hp)⟩
+  obtain ⟨hb1, hb2, hb3, hb4⟩ := hb
+  refine ⟨?_, ?_, fun p hp => hb3 p (mem_removeAtL hp), kstepL_rv_le _ _ hb4⟩
   · simp only [succAt]; omega
   · simp only [succAt]; omega
 
@@ -370,17 +410,28 @@ theorem ansOf_err (y : Output) : ansOf y = .err ↔ y.Err' = W64 4 := by
 
 variable {st0} in
 /-- A configuration's step by `stepL` is a `PStep`. -/
-theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (g' : GCfg) (hg' : g' ∈ stepL g x y) :
-    linkv.PStep (kSpec st0) g x (ansOf y) g' := by
+theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (hk : x.Kind' = W64 5 → y.Err' ≠ W64 4)
+    (g' : GCfg) (hg' : g' ∈ stepL g x y) : linkv.PStep (kSpec st0) g x (ansOf y) g' := by
   unfold stepL at hg'
+  by_cases hk5 : x.Kind' = W64 5
+  · rw [if_pos hk5] at hg'
+    split at hg'
+    · next hw =>
+      rw [List.mem_singleton] at hg'; subst g'
+      have e1 : ansOf y = .ok y := by unfold ansOf; rw [if_neg (hk hk5)]
+      rw [e1]
+      exact .obs g x y (decide_eq_true hk5) hw
+    · cases hg'
+  have ho : (kSpec st0).isObs x = false := decide_eq_false hk5
+  rw [if_neg hk5] at hg'
   by_cases he : y.Err' = W64 4
   · rw [(ansOf_err y).2 he]
     rw [if_pos he] at hg'
     by_cases hw : isWriteL x = true
     · rw [if_pos hw, List.mem_singleton] at hg'; subst hg'
-      exact .errW g x hw
+      exact .errW g x hw ho
     · rw [if_neg hw, List.mem_singleton] at hg'; subst g'
-      exact .errR g x (by simpa using hw)
+      exact .errR g x (by simpa using hw) ho
   · rw [if_neg he] at hg'
     split at hg'
     · next heq =>
@@ -388,19 +439,23 @@ theorem stepL_sound (g : GCfg) (x : Input) (y : Output) (g' : GCfg) (hg' : g' �
       have e1 : ansOf y = .ok ((kSpec st0).step x g.st).2 := by
         unfold ansOf; rw [if_neg he, heq]
       rw [e1]
-      exact .ok g x
+      exact .ok g x ho
     · cases hg'
 
 variable {st0} in
 /-- A `PStep` of a configuration equivalent to `g` is one of `stepL g`, up to equivalence. -/
-theorem stepL_complete (g : GCfg) (x : Input) (y : Output) (c c₁ : GCfg)
-    (he : CfgEquiv g c) (hs : linkv.PStep (kSpec st0) c x (ansOf y) c₁) :
+theorem stepL_complete (g : GCfg) (x : Input) (y : Output) (hk : x.Kind' = W64 5 → y.Err' ≠ W64 4)
+    (c c₁ : GCfg) (he : CfgEquiv g c) (hs : linkv.PStep (kSpec st0) c x (ansOf y) c₁) :
     ∃ g' ∈ stepL g x y, CfgEquiv g' c₁ := by
   have hst : c.st = g.st := he.1.symm
   unfold stepL
   generalize hO : ansOf y = o at hs
   cases hs with
-  | ok =>
+  | ok ho =>
+    have hk5 : ¬ x.Kind' = W64 5 := by
+      have h : decide (x.Kind' = W64 5) = false := ho
+      simpa using h
+    rw [if_neg hk5]
     have hE : ¬ y.Err' = W64 4 := fun h => by rw [(ansOf_err y).2 h] at hO; cases hO
     have hy : y = (kstepL x g.st).2 := by
       unfold ansOf at hO; rw [if_neg hE] at hO
@@ -411,17 +466,36 @@ theorem stepL_complete (g : GCfg) (x : Input) (y : Output) (c c₁ : GCfg)
     refine ⟨?_, he.2⟩
     show (kstepL x g.st).1 = _
     rw [hst]
-  | errW hw =>
+  | errW hw ho =>
+    have hk5 : ¬ x.Kind' = W64 5 := by
+      have h : decide (x.Kind' = W64 5) = false := ho
+      simpa using h
+    rw [if_neg hk5]
     have hE : y.Err' = W64 4 := (ansOf_err y).1 hO
     have hw' : isWriteL x = true := hw
     rw [if_pos hE]
     simp only [hw', ↓reduceIte, List.mem_singleton, exists_eq_left]
     exact ⟨he.1, he.2.cons x⟩
-  | errR hw =>
+  | errR hw ho =>
+    have hk5 : ¬ x.Kind' = W64 5 := by
+      have h : decide (x.Kind' = W64 5) = false := ho
+      simpa using h
+    rw [if_neg hk5]
     have hE : y.Err' = W64 4 := (ansOf_err y).1 hO
     have hw' : isWriteL x = false := hw
     rw [if_pos hE]
     simp only [hw', Bool.false_eq_true, ↓reduceIte, List.mem_singleton, exists_eq_left]
+    exact he
+  | obs o h ho =>
+    have hk5 : x.Kind' = W64 5 := by
+      have h' : decide (x.Kind' = W64 5) = true := h
+      simpa using h'
+    rw [if_pos hk5]
+    have hy : y = o := by
+      unfold ansOf at hO; rw [if_neg (hk hk5)] at hO; exact linkv.Ans.ok.inj hO
+    subst hy
+    have hw : watchOkL x y g.st = true := by rw [← hst]; exact ho
+    simp only [hw, ↓reduceIte, List.mem_singleton, exists_eq_left]
     exact he
 
 /-! ## `addConfig` and `Step`'s loops -/
@@ -470,13 +544,18 @@ theorem mem_stepAllL (gs : List GCfg) (x : Input) (y : Output) (h : GCfg) :
 /-- A step keeps the bound, one more. -/
 theorem stepL_bounded (n : Nat) (g : GCfg) (x : Input) (y : Output) (hb : Bounded n g)
     (g' : GCfg) (hg' : g' ∈ stepL g x y) : Bounded (n + 1) g' := by
-  obtain ⟨hb1, hb2, hb3⟩ := hb
+  obtain ⟨hb1, hb2, hb3, hb4⟩ := hb
   unfold stepL at hg'
+  split at hg'
+  · split at hg'
+    · simp only [List.mem_singleton] at hg'; subst hg'
+      exact ⟨by omega, by omega, hb3, hb4⟩
+    · cases hg'
   split at hg'
   · split at hg'
     · next hw =>
       simp only [List.mem_singleton] at hg'; subst hg'
-      refine ⟨?_, ?_, ?_⟩
+      refine ⟨?_, ?_, ?_, hb4⟩
       · simp only [List.length_cons]; omega
       · simp only [List.length_cons]; omega
       · intro p hp
@@ -484,11 +563,11 @@ theorem stepL_bounded (n : Nat) (g : GCfg) (x : Input) (y : Output) (hb : Bounde
         · exact hw
         · exact hb3 p hp
     · simp only [List.mem_singleton] at hg'; subst hg'
-      exact ⟨by omega, by omega, hb3⟩
+      exact ⟨by omega, by omega, hb3, hb4⟩
   · split at hg'
     · simp only [List.mem_singleton] at hg'; subst hg'
       have := kstepL_length x g.st
-      exact ⟨by simp only; omega, by simp only; omega, hb3⟩
+      exact ⟨by simp only; omega, by simp only; omega, hb3, kstepL_rv_le x g.st hb4⟩
     · cases hg'
 
 /-- `Step`'s loops keep the bound, one more. -/
@@ -503,7 +582,8 @@ theorem stepAllL_bounded (n : Nat) (gs : List GCfg) (x : Input) (y : Output)
 /-- **`Step`'s result** (see the file header): the `closure` `out` of `stepAllL gs x y`
 represents `ppost S x (ansOf y)` and is closed. -/
 theorem step_closure_ok (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Input) (y : Output)
-    (hS : GOk st0 gs S) (hc : ClosureOk st0 (stepAllL gs x y) out) (hcl : GClosed st0 out) :
+    (hk : x.Kind' = W64 5 → y.Err' ≠ W64 4) (hS : GOk st0 gs S) (hc : ClosureOk st0 (stepAllL gs x y) out)
+    (hcl : GClosed st0 out) :
     GOk st0 out (linkv.ppost (kSpec st0) S x (ansOf y)) := by
   refine ⟨hcl, ?_⟩
   obtain ⟨hgs, rfl⟩ := hS
@@ -512,13 +592,13 @@ theorem step_closure_ok (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Inp
   constructor
   · rintro ⟨c₀, c, c₁, ⟨g₀, hg₀, he₀⟩, hr₀, hs, hr₁⟩
     obtain ⟨g, hg, he⟩ := hgs g₀ hg₀ c (he₀.reach.trans hr₀)
-    obtain ⟨g₁, hg₁, he₁⟩ := stepL_complete g x y c c₁ he hs
+    obtain ⟨g₁, hg₁, he₁⟩ := stepL_complete g x y hk c c₁ he hs
     have hm : g₁ ∈ stepAllL gs x y := (mem_stepAllL gs x y g₁).2 ⟨g, hg, hg₁⟩
     exact hc.2 g₁ hm c' (he₁.reach.trans hr₁)
   · rintro ⟨g', hg', he'⟩
     obtain ⟨g₁, hg₁, hr⟩ := hc.1 g' hg'
     obtain ⟨g, hg, hs⟩ := (mem_stepAllL gs x y g₁).1 hg₁
-    have hcs := stepL_sound (st0 := st0) g x y g₁ hs
+    have hcs := stepL_sound (st0 := st0) g x y hk g₁ hs
     exact ⟨g, g, g₁, ⟨g, hg, CfgEquiv.refl _⟩, .refl _, hcs, hr.trans he'.reach⟩
 
 /-- A representation is empty only when its list is. -/
@@ -533,8 +613,9 @@ theorem setOf_nonempty (gs : List GCfg) : (∃ c, setOf gs c) ↔ gs ≠ [] := b
 /-- `Init()`'s configuration: the seeded store, nothing pending. -/
 def gInit : GCfg := ⟨st0, []⟩
 
-theorem bounded_gInit : Bounded (st0.st.items.length + st0.hist.length + 1) (gInit st0) := by
-  unfold Bounded gInit; simp; omega
+theorem bounded_gInit (hrv : uint.nat st0.st.rv ≤ st0.hist.length) :
+    Bounded (st0.st.items.length + st0.hist.length + 1) (gInit st0) := by
+  unfold Bounded gInit; simp only [List.length_nil, List.not_mem_nil]; exact ⟨by omega, by omega, by simp, hrv⟩
 
 /-- The initial state: one configuration. -/
 theorem gok_init : GOk st0 [gInit st0] (linkv.pInit (kSpec st0)) := by

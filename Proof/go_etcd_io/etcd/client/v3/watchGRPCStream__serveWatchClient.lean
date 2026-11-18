@@ -5,6 +5,7 @@ Rocq counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.client.v3.watchGRPCStream__serveWatchClient
+public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 
 @[expose] public section
 
@@ -143,7 +144,12 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
         · ipureintro; exact Hen
         isplitr
         · iright; iexact Heofe
-        iframe Hst
+        isplitr
+        · ihave #Hio : isPkgInit (PROP := IProp GF) pkg_id.io $$ []
+          · iPkgInit
+          ihave #Hep0 := eofPtr_of_init (GF := GF) $$ Hio
+          ihave %Hp := Hep0 $$ %(GoInterface.ok ei) Heofe
+          iapply (closeErrOk_intro _ ⟨fun _ => Hok.2, Hp⟩) $$ Hst
         iunfold prodBack
         iexists e, sent0.length, γs, γc, i, tok, sent
         iframe Hep Hprod Hcnt
@@ -192,7 +198,8 @@ theorem watchGRPCStream.serveWatchClient.wp_proof :
         · ipureintro; exact Hok.1
         isplitr
         · ileft; iexact Hse
-        iframe Hst
+        isplitr
+        · iapply cliStreamErr_closeErrOk $$ Hse
         iunfold prodBack
         iexists e, sent0.length, γs, γc, i, tok, sent
         iframe Hep Hprod Hcnt

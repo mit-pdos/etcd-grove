@@ -73,7 +73,7 @@ theorem wp_OpenFile_db (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         ((∃ (fd : w64) (i : Ino) (m : OsMeta),
             ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧ lookupH R V' (child d b) = some (.file i) ∧
               lookupH R V' d = some (.dir j)⌝ ∗
-            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+            os.ownFile f fd (child d b) (DFrac.own 1) ∗ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗
             osMeta i (DFrac.own 1) m ∗ openSt (GF := GF) i t vo n m) ∨
          (⌜err ≠ interface.nil ∧ f = null⌝ ∗ openFail (GF := GF) R V' (child d b))) }} := by
   iintro %Φ ⟨#Hos, Ht, Hf⟩ HΦ
@@ -160,13 +160,15 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   wp_apply wp_Name f fd (child d nm) (DFrac.own 1) $$ [Hf] as Hf
   · iexact Hf
   (try wp_auto)
-  wp_apply wp_flock f fd (child d nm) (DFrac.own 1) (DFrac.own 1) _ true $$ [Hf Hfdo] as %err1 ⟨Hf, Hfdo⟩
+  wp_apply wp_flock f fd (child d nm) (DFrac.own 1) ⟨i, true, true, none, none⟩ true rfl $$ [Hf Hfdo] as %err1 ⟨Hf, Hr⟩
   · iframe; iframe #
   cases err1 with
   | ok ie =>
+    icases Hr with (⟨%herr, -, -⟩ | ⟨-, Hfdo⟩)
+    · cases herr
     (try wp_auto)
     wp_apply wp_FClose f fd (child d nm) _ $$ [Hf Hfdo] as %e Hf
-    · iframe; iframe #
+    · iframe; iframe #; iapply lockToks_unlocked <;> rfl
     (try wp_auto)
     iapply HΦ
     iexists V'; iframe Ht
@@ -175,6 +177,14 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     · ipureintro; exact ⟨by simp, rfl⟩
     · unfold openFail; ileft; iexists _, m; iframe Hm; ipureintro; exact hl
   | nil =>
+  icases Hr with (⟨-, Hfdo, Hlk⟩ | ⟨%herr, -⟩)
+  rotate_left
+  · exact absurd rfl herr
+  rw [show (OsFd.mk i true true none none).setLk LockKind.flock (some true) =
+    OsFd.mk i true true none (some true) from rfl]
+  ihave Hlk : osLock (GF := GF) .flock i fd $$ [Hlk]
+  · iapply (lockTok_some (GF := GF) .flock fd (OsFd.mk i true true none (some true)) rfl).1
+    iexact Hlk
   (try wp_auto)
   wp_apply wp_Stat f fd (child d nm) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) _ m $$ [Hf Hfdo Hm]
     as %fi %err2 ⟨Hf, Hfdo, Hm, Hfi, -, -⟩
@@ -186,8 +196,9 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl Herr2
     | ok ie =>
     (try wp_auto)
+    ihave Hlt := db_lockToks _ fd $$ Hlk
     wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f (DFrac.own 1) fd (child d nm) _ i m
-        (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 file Hf Hfdo]
+        (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 file Hf Hfdo Hlt]
       as %_errc ⟨-, -, -, -, -, file, Hf⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try wp_auto)
@@ -216,23 +227,24 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   wp_join (Q := fun v => iprop((⌜v = executeVal⌝ ∗ ∃ b : Bool, valid_ptr ↦ b ∗
       validSt (GF := GF) i t vo n m b ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd (child d nm) (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗ osMeta (GF := GF) i (DFrac.own 1) m ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, some true⟩ ∗ osLock (GF := GF) .flock i fd ∗ osMeta (GF := GF) i (DFrac.own 1) m ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
     (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
       «$res0_ptr» ↦ null ∗ «$res1_ptr» ↦ e ∗ ∃ mo', osMeta (GF := GF) i (DFrac.own 1) mo')))
-    with [Hst valid db Hf Hfdo Hm dataref datasz meta0 meta1 «$res0» «$res1»]
+    with [Hst valid db Hf Hfdo Hlk Hm dataref datasz meta0 meta1 «$res0» «$res1»]
   · icases openSt_metas i t vo n m (by omega) $$ Hst with ⟨%X, HX, %HXl, HXs⟩
     wp_apply wp_readPageSize db f DFrac.discard fd (child d nm) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-        (DFrac.own 1) ⟨i, true, true⟩ m X rfl HXl (by omega) $$ [Hf Hfdo Hm HX]
+        (DFrac.own 1) ⟨i, true, true, none, some true⟩ m X rfl HXl (by omega) $$ [Hf Hfdo Hm HX]
       as %ps %ok %err3 ⟨-, Hf, Hfdo, Hm, HX, %Hrd⟩
     · iframe; iframe #
     cases err3 with
     | ok ie =>
       (try wp_auto)
+      ihave Hlt := db_lockToks _ fd $$ Hlk
       wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd (child d nm) _ i m
-          (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo]
+          (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo Hlt]
         as %_errc ⟨-, -, -, -, -, -, Hf⟩
       · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
       (try wp_auto)
@@ -271,8 +283,9 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       · (try wp_auto)
         simp only [decide_eq_false hps, Bool.not_false]
         (try wp_auto)
+        ihave Hlt := db_lockToks _ fd $$ Hlk
         wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd (child d nm) _ i m
-            (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo]
+            (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo Hlt]
           as %_errc ⟨-, -, -, -, -, -, Hf⟩
         · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
         (try wp_auto)
@@ -295,7 +308,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     simp only [validSt]
     iframe
     (try (ipureintro; exact Ht))
-  iintro (⟨%Hv, %b, valid, Hvs, db, Hf, Hfdo, Hm, dataref, datasz, meta0, meta1, «$res0», «$res1»⟩ |
+  iintro (⟨%Hv, %b, valid, Hvs, db, Hf, Hfdo, Hlk, Hm, dataref, datasz, meta0, meta1, «$res0», «$res1»⟩ |
     ⟨%e, %Hv, db, «$res0», «$res1», %mo', Hm⟩)
   rotate_left
   · obtain ⟨rfl, He⟩ := Hv
@@ -313,13 +326,13 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
       db.[DB, go!"filesz"] ↦ W64 (m'.size : Int) ∗ osMeta (GF := GF) i (DFrac.own 1) m' ∗
       dbStoredAt (GF := GF) i t vo n m' ∗ db_ptr ↦ db ∗
       os.ownFile (GF := GF) f fd (child d nm) (DFrac.own 1) ∗
-      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩ ∗
+      osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, some true⟩ ∗ osLock (GF := GF) .flock i fd ∗
       db.[DB, go!"dataref"] ↦ (zero_val DB).dataref' ∗ db.[DB, go!"datasz"] ↦ (zero_val DB).datasz' ∗
       db.[DB, go!"meta0"] ↦ (zero_val DB).meta0' ∗ db.[DB, go!"meta1"] ↦ (zero_val DB).meta1' ∗
       «$res0_ptr» ↦ zero_val Loc ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
     (∃ e : GoInterface, ⌜v = returnVal #() ∧ e ≠ interface.nil⌝ ∗ db_ptr ↦ db ∗
       «$res0_ptr» ↦ null ∗ «$res1_ptr» ↦ e ∗ ∃ mo', osMeta (GF := GF) i (DFrac.own 1) mo')))
-    at next with [Hvs filesz db Hf Hfdo Hm dataref datasz meta0 meta1 «$res0» «$res1»]
+    at next with [Hvs filesz db Hf Hfdo Hlk Hm dataref datasz meta0 meta1 «$res0» «$res1»]
   · cases b with
     | true =>
       simp only [validSt]
@@ -345,15 +358,16 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         ileft
         isplitr
         · ipureintro; trivial
-        iexists ({ m with size := max m.size 16384 } : OsMeta).synced
+        iexists ({ m with size := max m.size 16384, cz := pwCz m 0 16384 16384 } : OsMeta).synced
         rw [show (max (m.size : Int) 16384) = ((max m.size 16384 : Nat) : Int) by omega]
         iframe
       · cases err4 with
         | nil => exact absurd rfl He
         | ok ie =>
         (try wp_auto)
+        ihave Hlt := db_lockToks _ fd $$ Hlk
         wp_apply wp_close db (DFrac.own 1) slice.nil (W64 0) null null f DFrac.discard fd (child d nm) _ i m'
-            (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo]
+            (fun h => absurd rfl h) $$ [dataref datasz meta0 meta1 Hf Hfdo Hlt]
           as %_errc ⟨-, -, -, -, -, -, Hf⟩
         · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
         (try wp_auto)
@@ -362,7 +376,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
         isplitr
         · ipureintro; simp
         iframe
-  iintro (⟨%Hv, %m', filesz, Hm, Hs, db, Hf, Hfdo, dataref, datasz, meta0, meta1, «$res0», «$res1»⟩ |
+  iintro (⟨%Hv, %m', filesz, Hm, Hs, db, Hf, Hfdo, Hlk, dataref, datasz, meta0, meta1, «$res0», «$res1»⟩ |
     ⟨%e, %Hv, db, «$res0», «$res1», %mo', Hm⟩)
   rotate_left
   · obtain ⟨rfl, He⟩ := Hv
@@ -414,9 +428,9 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   · subst He5
     obtain ⟨rfl, Hmaps'', Hlen, -, Hbase, Hl41⟩ := Hst'
     imod sync.init_Mutex (rwR (GF := GF) γ db f fd (child d nm)) ⊤ db.[DB, go!"rwlock"] $$ rwlock
-        [Hcur1 Hmap1 Hout1 Hflds1 Hw Hcls Htok Hwc] with #Hrw
+        [Hcur1 Hmap1 Hout1 Hflds1 Hw Hcls Htok Hwc Hlk] with #Hrw
     · inext
-      unfold rwR
+      unfold rwR clsOpen
       ileft
       iexists mp, false, curPgid mp, some (base, len, γm), m''
       iframe
@@ -462,8 +476,9 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
     | nil => exact absurd rfl Herr5
     | ok ie =>
     (try wp_auto)
+    ihave Hlt := db_lockToks _ fd $$ Hlk
     wp_apply wp_close db (DFrac.own (1 : Qp).half) slice.nil (W64 0) null null f DFrac.discard fd (child d nm) _ γ.ino
-        m'' (fun h => absurd rfl h) $$ [Hd Hdsz H0 H1 Hf Hfd]
+        m'' (fun h => absurd rfl h) $$ [Hd Hdsz H0 H1 Hf Hfd Hlt]
       as %_errc ⟨-, -, -, -, -, -, Hf⟩
     · iframe; iframe #; unfold mappingRes; ileft; ipureintro; rfl
     (try wp_auto)

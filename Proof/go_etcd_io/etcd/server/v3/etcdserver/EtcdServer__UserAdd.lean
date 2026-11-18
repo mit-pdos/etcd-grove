@@ -340,41 +340,6 @@ theorem EtcdServer.UserAdd.wp_proof
           ipureintro; exact ⟨rfl, He⟩
         · exact absurd rfl He
 
-/-- `spec`'s instance at `raftRequest.spec` with auth on (`authRaftOk_on`, for every model of the
-request). -/
-theorem EtcdServer.UserAdd.wp_proofOn
-    (h_gen : bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG))
-    (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG)) :
-    EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd Qa ast r name pw hpw o b F
-  wp_start_folded as ⟨#Hast, #Hcost, %Hrnn, #HN, Hpw, Hhpw, #Ho, #Hopts, %Hn, HP⟩
-  ihave #Hc : □ (∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
-      authRaftOk s ctx (irrUserAdd m) etcdserverpb.AuthUserAddResponse.ty
-        (adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
-        (userAddOutOn s E ρ ctx F name b Qa)) $$ []
-  · imodintro
-    iintro %m %Hm
-    obtain ⟨Hmn, Hmb, Hms⟩ := Hm
-    iapply authRaftOk_on hRR s E ρ ctx cd (irrUserAdd m) F _ _ Qa _ rfl rfl
-      (adminPropOk_userAdd m (Hmn ▸ Hn) Hms) (irrNoZeroEnd_admin _ rfl rfl rfl) rfl
-      (by
-        unfold userAddHistAu
-        iintro #Hu
-        iapply Hu
-        ipureintro; exact ⟨Hmn, Hmb, Hms⟩)
-    iintro %l %err H
-    iunfold userAddOutOn
-    iexists m
-    iframe H
-    ipureintro; exact ⟨Hmn, Hmb, Hms⟩
-  wp_apply EtcdServer.UserAdd.wp_proof h_gen s ctx ast r name pw hpw o b
-      (adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Qa))
-      (userAddOutOn s E ρ ctx F name b Qa) $$ [Hpw Hhpw HP] as %resp %err H
-  · iframe # Hpw Hhpw HP
-    ipureintro; exact Hrnn
-  iapply HΦ
-  iexact H
-
 end proof
 
 end EtcdGrove

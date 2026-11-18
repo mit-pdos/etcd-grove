@@ -36,7 +36,7 @@ abbrev watchGRPCStream.sendCloseSubstream.spec : Prop :=
       wsF P.ws go!"outc" ↦ P.outc ∗
       resp ↦ v ∗ v.Header' ↦ (zero_val etcdserverpb.ResponseHeader) ∗
       ⌜v.Header' ≠ null ∧ v.Events' = slice.nil ∧ v.CompactRevision' = W64 0 ∧
-        v.Canceled' = true ∧ v.Created' = false⌝ ∗ statusErrOk v.closeErr' }}
+        v.Canceled' = true ∧ v.Created' = false⌝ ∗ closeErrOk v.closeErr' }}
     (App (App (Val (wgs @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.watchGRPCStream.ty @!! go!"sendCloseSubstream")) (Val #P.ws)) (Val #resp))
   {{ RET #(); True }}
 

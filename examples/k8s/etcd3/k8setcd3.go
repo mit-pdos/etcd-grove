@@ -36,8 +36,10 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/anishathalye/porcupine"
@@ -46,6 +48,7 @@ import (
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/kubernetes"
+	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -61,6 +64,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
 
 // ---------------------------------------------------------------------------------------------
@@ -426,6 +430,8 @@ const (
 	KUpdate = 2
 	KGet    = 3
 	KList   = 4
+	// (7f) a watch (watch.go)
+	KWatch = 5
 )
 
 // The resource version matches of a list (Input.Match: metav1.ResourceVersionMatch's "",
@@ -1196,10 +1202,17 @@ func closure(s state) state {
 	return out
 }
 
-// step returns the configurations c steps to by (in, out): a call that returned no error took
-// effect and answered the model's output; a failed write becomes pending; a failed read does
+// step returns the configurations c steps to by (in, out): a watch keeps c if its events pass the
+// watch check against c's history (watchOk), and drops it otherwise; a call that returned no error
+// took effect and answered the model's output; a failed write becomes pending; a failed read does
 // nothing.
 func step(c mcfg, in Input, out Output) []mcfg {
+	if in.Kind == KWatch {
+		if !watchOk(in, out, c) {
+			return nil
+		}
+		return []mcfg{c}
+	}
 	if out.Err == EOther {
 		if isWrite(in) {
 			pend := make([]Input, 0, len(c.pend)+1)
@@ -1503,10 +1516,28 @@ func genFrom(n uint64, id int, c Obj, hasC bool) Input {
 type cache struct {
 	mu   sync.Mutex
 	objs map[int]Obj
+	// (7f) the watchers' cached objects (the object of a watch's last event that is not an error,
+	// which may be a bookmark's or a deleted object's): kept apart from objs, whose entries the
+	// unary clients' updates pass to the store as cachedExistingObject (the proof's invariant asks
+	// those to be objects the store held); a watcher only reads its resource version (genWatch)
+	wobjs map[int]Obj
+	// (7f) whether the clients from unary on are watchers (the second group of lintest.RunLin2);
+	// the unary operations done, of total
+	watch bool
+	unary int
+	total int64
+	done  atomic.Int64
 }
 
 func newCache() *cache {
-	return &cache{objs: make(map[int]Obj)}
+	return &cache{objs: make(map[int]Obj), wobjs: make(map[int]Obj)}
+}
+
+// newWCache is a cache for Check's clients: the clients from unary on are watchers, and the unary
+// clients run total operations.
+func newWCache(unary int, total int64) *cache {
+	return &cache{objs: make(map[int]Obj), wobjs: make(map[int]Obj), watch: true, unary: unary,
+		total: total}
 }
 
 // get returns client id's cached object, if any.
@@ -1524,9 +1555,32 @@ func (c *cache) put(id int, o Obj) {
 	c.mu.Unlock()
 }
 
+// getW returns watcher id's cached object, if any.
+func (c *cache) getW(id int) (Obj, bool) {
+	c.mu.Lock()
+	o, ok := c.wobjs[id]
+	c.mu.Unlock()
+	return o, ok
+}
+
+// putW makes o watcher id's cached object.
+func (c *cache) putW(id int, o Obj) {
+	c.mu.Lock()
+	c.wobjs[id] = o
+	c.mu.Unlock()
+}
+
 // Gen picks client id's next operation at random (genFrom of a random number and the client's
-// cached object).
+// cached object). A watcher's is a watch (genWatch), or a skipped one once the unary operations
+// are done (the test's watchers stop with its unary traffic; lintest's operation counts are fixed).
 func Gen(tbl *cache, id int) Input {
+	if tbl.watch && id >= tbl.unary {
+		if tbl.done.Load() >= tbl.total {
+			return Input{Kind: KWatch, Skip: true, Client: id}
+		}
+		wc, wok := tbl.getW(id)
+		return genWatch(id, wc, wok)
+	}
 	c, ok := tbl.get(id)
 	return genFrom(primitive.RandomUint64(), id, c, ok)
 }
@@ -1625,12 +1679,20 @@ func call(s storage.Interface, in Input) Output {
 	return objOut(*out)
 }
 
-// Apply runs one operation through the store s, resolving a prophecy with the output's numeric
+// Apply runs one operation through the store s (a watch: runWatch, the object of its last event
+// that is not an error becoming the watcher's cached object), resolving a prophecy with the output's numeric
 // fields (its error kind, its error's resource version, its object's resource version): what the
 // proof's linearization point compares the store's answer at a read with, the rest of the output
 // following from them. An answer with a name becomes the client's cached object in tbl.
 func Apply(s storage.Interface, tbl *cache, input any) any {
 	in := input.(Input)
+	if in.Kind == KWatch {
+		out, last, ok := runWatch(s, in)
+		if ok {
+			tbl.putW(in.Client, last)
+		}
+		return out
+	}
 	p := primitive.NewProph()
 	out := call(s, in)
 	p.ResolveU64(uint64(out.Err))
@@ -1639,17 +1701,20 @@ func Apply(s storage.Interface, tbl *cache, input any) any {
 	if out.Err == ENone && out.Name != "" {
 		tbl.put(in.Client, objOf(out))
 	}
+	tbl.done.Add(1)
 	return out
 }
 
-// Check runs lintest.Run of clients concurrent clients of the store s, each running ops
-// operations, and returns porcupine's verdict against Model from the store st0 with its history
-// h0.
-func Check(s storage.Interface, st0 mstore, h0 []mstore, clients int, ops int, timeout time.Duration) porcupine.CheckResult {
-	tbl := newCache()
+// Check runs lintest.RunLin2 of clients concurrent clients of the store s, each running ops
+// operations, and watchers watchers, each running wops watches (genWatch; skipped once the unary
+// operations are done), and returns porcupine's verdict against Model from the store st0 with its
+// history h0.
+func Check(s storage.Interface, st0 mstore, h0 []mstore, clients int, ops int, watchers int, wops int, timeout time.Duration) porcupine.CheckResult {
+	tbl := newWCache(clients, int64(clients)*int64(ops))
 	apply := func(input any) any { return Apply(s, tbl, input) }
 	gen := func(id int) any { return Gen(tbl, id) }
-	return lintest.Run(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, timeout)
+	r, _ := lintest.RunLin2(Model(st0, h0), apply, gen, lintest.CounterClock(), clients, ops, watchers, wops, timeout)
+	return r
 }
 
 // seedOne writes the key k's object of value "x" (no node, no app) in the older encoding directly
@@ -1701,11 +1766,30 @@ func watchList() bool {
 // host:port, no scheme). Not the other examples', so that their tests can run at once.
 const clientAddr = "127.0.0.1:23896"
 
+// newStore seeds the keys through the kubernetes client kc (seed), sets the features (no
+// streaming lists, WatchList on) and makes the store over kc with the driver's codec, versioner,
+// decoder and transformer. It returns the store, the model's store after the seeds and its
+// history, or false if a step failed.
+func newStore(kc *kubernetes.Client) (storage.Interface, mstore, []mstore, bool) {
+	st0, h0, ok := seed(kc.Client)
+	if !ok || !noStreaming() || !watchList() {
+		return nil, mstore{}, nil, false
+	}
+	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
+		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
+		decoder{}, versioner{})
+	if err != nil {
+		return nil, mstore{}, nil, false
+	}
+	return s, st0, h0, true
+}
+
 // Main starts one member of a new cluster (as examples/etcd/txnlin's Main does), connects a
-// kubernetes client configured for one attempt per call, seeds the keys, makes the store and runs
-// Check; it panics if porcupine finds the history illegal. An error from a step before Check ends
-// Main without a check.
-func Main(clients int, ops int) porcupine.CheckResult {
+// kubernetes client configured for one attempt per call, seeds the keys, makes the store
+// (newStore) and runs Check with clients unary clients of ops operations each and watchers
+// watchers of wops watches each; it panics if porcupine finds the history illegal. An error from a
+// step before Check ends Main without a check.
+func Main(clients int, ops int, watchers int, wops int) porcupine.CheckResult {
 	lg := zap.NewNop()
 	srv, err := etcdstart.StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)
 	if err != nil {
@@ -1725,109 +1809,141 @@ func Main(clients int, ops int) porcupine.CheckResult {
 	if err != nil {
 		return porcupine.Unknown
 	}
-	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() || !watchList() {
+	s, st0, h0, ok := newStore(kc)
+	if !ok {
 		return porcupine.Unknown
 	}
-	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
-		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
-		decoder{}, versioner{})
-	if err != nil {
-		return porcupine.Unknown
-	}
-	r := Check(s, st0, h0, clients, ops, 0)
+	r := Check(s, st0, h0, clients, ops, watchers, wops, 0)
 	if r == porcupine.Illegal {
 		panic("k8setcd3: porcupine found the history not linearizable")
 	}
 	return r
 }
 
-// clusterConfig is MainCluster's three-member cluster (examples/lib/cluster3): its own token, names
-// and addresses, not the other examples', so that their tests can run at once.
-func clusterConfig() cluster3.Config {
-	return cluster3.Config{
-		Token: "k8setcd3c", Name1: "k8setcd3c-1", Name2: "k8setcd3c-2", Name3: "k8setcd3c-3",
-		Peer1: "127.0.0.1:24041", Peer2: "127.0.0.1:24042", Peer3: "127.0.0.1:24043",
-		Client1: "127.0.0.1:24051", Client2: "127.0.0.1:24052", Client3: "127.0.0.1:24053",
-		Bridge1: "127.0.0.1:24061", Bridge2: "127.0.0.1:24062", Bridge3: "127.0.0.1:24063",
-		SnapCount: 1, SnapCatchUp: 1,
+// The cluster's members' address ranges (MainCluster, MainPartition: k members, as
+// examples/etcd/txnlinfaultsN's): member i's peer address is 127.0.0.1:(PeerBase+i) (its one peer
+// URL http://<addr>, served by its raft handler), its client address 127.0.0.1:(ClientBase+i)
+// (served by its gRPC server), and its bridge's address 127.0.0.1:(BridgeBase+i) (the bridge to its
+// client address, which the client dials). Not another example's, and below Linux's ephemeral
+// ports, so that the examples' tests can run at once.
+const (
+	PeerBase   uint64 = 20000
+	ClientBase uint64 = 21000
+	BridgeBase uint64 = 22000
+)
+
+// Token is the cluster's token (etcd's --initial-cluster-token), from which, with its peer URL,
+// etcd computes each member's id. It is the first "k8setcd3N-<i>" at which the ids' 16 low bits
+// are distinct and not 0 for every k <= 1000 (the premise on the ids; TestMemberIDs checks it), as
+// txnlinfaultsN's.
+const Token = "k8setcd3N-6285"
+
+// The members' snapshot settings (cluster3's, as MainCluster's three members had): a disk snapshot
+// every SnapCount applied entries, raft's log then compacted to SnapCatchUp entries below it, so
+// that a member a cut kept behind is caught up by a snapshot.
+const (
+	SnapCount   uint64 = 1
+	SnapCatchUp uint64 = 1
+)
+
+// bridgeAddr is member i's bridge address, 127.0.0.1:(BridgeBase+i), the number in decimal (as
+// etcdstart.Members writes the members' addresses).
+func bridgeAddr(i uint64) string {
+	return "127.0.0.1:" + strconv.FormatUint(BridgeBase+i, 10)
+}
+
+// holdToken sleeps forever (cluster3's): startCluster runs it on a goroutine of its own beside each
+// member's gRPC server, which touches no lock; the proof hands that goroutine's thread token to the
+// member's serving, as cluster3.StartMember does.
+func holdToken() {
+	for {
+		time.Sleep(time.Hour)
 	}
 }
 
-// MainCluster is Main over a three-member cluster: it starts the cluster (cluster3.StartCluster),
-// connects a kubernetes client to the three members' bridges, configured as etcd's clients are in
-// practice (etcdstart.NewClients' timeouts and keepalive, the default retries: a write is retried
-// only after a refusal, which the members never send, so it is sent at most once), seeds the keys,
-// makes the store and runs Check; it panics if porcupine finds the history illegal. An error from a
-// step before Check ends MainCluster without a check.
-func MainCluster(clients int, ops int) porcupine.CheckResult {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	_, _, ok := cluster3.StartCluster(cfg, lg)
-	if !ok {
-		return porcupine.Unknown
+// startCluster starts the k members of a new cluster (etcdstart.Members, etcdstart.StartMembers,
+// as examples/etcd/txnlinfaultsN starts them), then, for each member in order, its gRPC server on
+// its client address (etcdstart.Serve, with a holdToken goroutine beside it) and a bridge to that
+// address (cluster3.StartBridge), and connects a kubernetes client to the k bridges, configured as
+// etcd's clients are in practice (etcdstart.NewClients' timeouts and keepalive, the default
+// retries: a write is retried only after a refusal, which the members never send, so it is sent at
+// most once). It returns the members, the bridges and the client, and false if a step failed.
+func startCluster(k uint64, lg *zap.Logger) ([]*etcdserver.EtcdServer, []bridge.Bridge,
+	*kubernetes.Client, bool) {
+	ms := etcdstart.Members("k8setcd3N", k, PeerBase, ClientBase)
+	srvs, err := etcdstart.StartMembers(ms, Token, SnapCount, SnapCatchUp, lg)
+	if err != nil {
+		return nil, nil, nil, false
+	}
+	brs := make([]bridge.Bridge, k)
+	baddrs := make([]string, k)
+	for i := uint64(0); i < k; i++ {
+		go holdToken()
+		if err := etcdstart.Serve(srvs[i], ms[i].Client); err != nil {
+			return nil, nil, nil, false
+		}
+		ba := bridgeAddr(i)
+		br, err := cluster3.StartBridge(ba, ms[i].Client)
+		if err != nil {
+			return nil, nil, nil, false
+		}
+		brs[i] = br
+		baddrs[i] = ba
 	}
 	kc, err := kubernetes.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
+		Endpoints:            baddrs,
 		DialTimeout:          etcdstart.DialTimeout,
 		DialKeepAliveTime:    etcdstart.KeepAliveTime,
 		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
 		Logger:               lg,
 	})
 	if err != nil {
+		return nil, nil, nil, false
+	}
+	return srvs, brs, kc, true
+}
+
+// MainCluster is Main over a k-member cluster (startCluster): it seeds the keys, makes the store
+// (newStore) and runs Check; it panics if porcupine finds the history illegal. A failed start, or
+// k = 0, ends MainCluster without a check.
+func MainCluster(k uint64, clients int, ops int, watchers int, wops int) porcupine.CheckResult {
+	if k == 0 {
 		return porcupine.Unknown
 	}
-	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() || !watchList() {
+	_, _, kc, ok := startCluster(k, zap.NewNop())
+	if !ok {
 		return porcupine.Unknown
 	}
-	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
-		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
-		decoder{}, versioner{})
-	if err != nil {
+	s, st0, h0, ok := newStore(kc)
+	if !ok {
 		return porcupine.Unknown
 	}
-	r := Check(s, st0, h0, clients, ops, 0)
+	r := Check(s, st0, h0, clients, ops, watchers, wops, 0)
 	if r == porcupine.Illegal {
 		panic("k8setcd3: porcupine found the cluster's history not linearizable")
 	}
 	return r
 }
 
-// MainPartition is MainCluster under the partition schedule sched: once the store is made, the
-// schedule runs (cluster3.Partitioner, on a goroutine of its own) while Check's clients run. A call
-// to a member cut off from its clients ends when keepalive closes its dead transport (etcdstart's
-// KeepAliveTime/KeepAliveTimeout); a write that fails is kept pending by the model (it takes
-// effect later or never).
-func MainPartition(clients int, ops int, sched []cluster3.Step) porcupine.CheckResult {
-	lg := zap.NewNop()
-	cfg := clusterConfig()
-	srvs, brs, ok := cluster3.StartCluster(cfg, lg)
+// MainPartition is MainCluster under the partition schedule sched (its steps name members by
+// index, below k): once the store is made, the schedule runs (cluster3.Partitioner, on a goroutine
+// of its own) while Check's clients run. A call to a member cut off from its clients ends when
+// keepalive closes its dead transport (etcdstart's KeepAliveTime/KeepAliveTimeout); a write that
+// fails is kept pending by the model (it takes effect later or never).
+func MainPartition(k uint64, clients int, ops int, watchers int, wops int, sched []cluster3.Step) porcupine.CheckResult {
+	if k == 0 {
+		return porcupine.Unknown
+	}
+	srvs, brs, kc, ok := startCluster(k, zap.NewNop())
 	if !ok {
 		return porcupine.Unknown
 	}
-	kc, err := kubernetes.New(clientv3.Config{
-		Endpoints:            []string{cfg.Bridge1, cfg.Bridge2, cfg.Bridge3},
-		DialTimeout:          etcdstart.DialTimeout,
-		DialKeepAliveTime:    etcdstart.KeepAliveTime,
-		DialKeepAliveTimeout: etcdstart.KeepAliveTimeout,
-		Logger:               lg,
-	})
-	if err != nil {
-		return porcupine.Unknown
-	}
-	st0, h0, ok := seed(kc.Client)
-	if !ok || !noStreaming() || !watchList() {
-		return porcupine.Unknown
-	}
-	s, err := etcd3.New(kc, noCompactor{}, codec{}, newObj, nil, nil, Prefix, ResourcePrefix,
-		schema.GroupResource{Resource: "objs"}, identity{}, etcd3.NewDefaultLeaseManagerConfig(),
-		decoder{}, versioner{})
-	if err != nil {
+	s, st0, h0, ok := newStore(kc)
+	if !ok {
 		return porcupine.Unknown
 	}
 	go cluster3.Partitioner(srvs, brs, sched)
-	r := Check(s, st0, h0, clients, ops, 0)
+	r := Check(s, st0, h0, clients, ops, watchers, wops, 0)
 	if r == porcupine.Illegal {
 		panic("k8setcd3: porcupine found the partitioned cluster's history not linearizable")
 	}

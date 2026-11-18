@@ -118,6 +118,7 @@ noncomputable instance Options_typed_pointsto :
     TypedPointsto (GF := GF) github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options where
   typedPointstoDef l v dq := iprop(
     "Voters" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"Voters" l) v.Voters' dq ∗
+    "MaxReplicas" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"MaxReplicas" l) v.MaxReplicas' dq ∗
     "PreVote" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"PreVote" l) v.PreVote' dq ∗
     "CheckQuorum" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"CheckQuorum" l) v.CheckQuorum' dq ∗
     "StepDownOnRemoval" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"StepDownOnRemoval" l) v.StepDownOnRemoval' dq ∗
@@ -146,6 +147,22 @@ noncomputable instance Options_access_store_Voters (l : Loc) (v : github_com.mit
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"Voters" l) v.Voters' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"Voters" l) Voters' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Voters' := Voters' } : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Options_access_load_MaxReplicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"MaxReplicas" l) v.MaxReplicas' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"MaxReplicas" l) v.MaxReplicas' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Options_access_store_MaxReplicas (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options) (MaxReplicas' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"MaxReplicas" l) v.MaxReplicas' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options go!"MaxReplicas" l) MaxReplicas' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with MaxReplicas' := MaxReplicas' } : github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Options) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

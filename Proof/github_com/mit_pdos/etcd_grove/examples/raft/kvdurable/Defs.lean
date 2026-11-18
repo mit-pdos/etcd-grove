@@ -105,7 +105,8 @@ def kdMask : CoPset :=
 /-- **The durable store's ghost names**: kvreconf's (raft's cluster, the store's history, the
 minted operations and reads, ...), the files' (`durableFilesInv`), and per replica id the file's
 writer variable (`kdWriter`); the map of the current incarnations and the crasher's token
-(`curRep`, `crasher`: 2026-11-01, the crasher). -/
+(`curRep`, `crasher`: 2026-11-01, the crasher); the cluster's replica bound `max` (`opts.MaxReplicas`;
+2026-11-16, kvraftN: until then the constant `9`). -/
 structure KdNames where
   r : raft_kvreconf.RNames
   files : GName
@@ -115,6 +116,8 @@ structure KdNames where
   cur : GName
   /-- the crasher's token (`token`: `crasher`) -/
   crt : GName
+  /-- the replicas the cluster may start (`opts.MaxReplicas`): their ids are `1 … max` -/
+  max : Nat
 
 /-- **An incarnation's `dmu` names** (2026-11-01, stage II (h)): the pending batch's claim, and the
 monotone lower bounds of the image's frozen bound (`fz`: the image's entries up to it are frozen in
@@ -192,11 +195,13 @@ def KdFileOk (f : StorFile) : Prop :=
   uint.Z f.prev ≤ uint.Z f.hs.Commit' ∧ uint.nat f.hs.Commit' ≤ uint.nat f.prev + f.ents.length ∧
   KdSnapTermOk f
 
-/-- **The options a cluster may run with** (kvreconf's `OptsOk`, `RandomOptions`): one to five
-voters, a positive window of at most 256, not both sizes zero (raft's `RestartNode` premises, through
-`Cluster.config`). -/
+/-- **The options a cluster may run with** (kvreconf's `OptsOk`, `RandomOptions`, `RandomOptionsN`): at
+least one voter and no more than the replicas the cluster may start, fewer than `2^60` of those
+(2026-11-16, kvraftN: until then one to five voters, at most `9` replicas), a positive window of at
+most 256, not both sizes zero (raft's `RestartNode` premises, through `Cluster.config`). -/
 def kdOptsOk (o : KOptions) : Prop :=
-  1 ≤ uint.Z o.Voters' ∧ uint.Z o.Voters' ≤ 5 ∧
+  1 ≤ uint.Z o.Voters' ∧
+  (uint.Z o.Voters' ≤ uint.Z o.MaxReplicas' ∧ uint.Z o.MaxReplicas' < 2 ^ 60) ∧
   0 < sint.Z o.MaxInflightMsgs' ∧ sint.Z o.MaxInflightMsgs' ≤ 256 ∧
   (o.MaxCommittedSizePerReady' ≠ W64 0 ∨ o.MaxSizePerMsg' ≠ W64 0)
 
@@ -389,7 +394,18 @@ the files. -/
 def kdCluster (γ : KdNames) (vs : List w64) : IProp GF :=
   iprop(isCluster γ.r.cluster kdRaftN ∗ confPolicy γ.r.cluster kdConfN raft_kvreconf.kvrRule ∗
     confAt γ.r.cluster 0 (Membership.simple (GMap.listToSet vs)) ∗ kdSnapInv γ ∗ rkvInv γ ∗
-    durableFilesInv γ.files kdFilesN)
+    durableFilesInv γ.files kdFilesN ∗
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster (`cluster_alloc`'s): the
+    -- node API's `ReadIndex` is refused at a traced one
+    ⌜Cluster.trace γ.r.cluster = none⌝)
+
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The store's cluster is untraced. -/
+theorem kdCluster_untraced (γ : KdNames) (vs : List w64) :
+    kdCluster (GF := GF) γ vs ⊢ ⌜Cluster.trace γ.r.cluster = none⌝ := by
+  unfold kdCluster
+  iintro ⟨-, -, -, -, -, -, %H⟩
+  ipureintro; exact H
 
 /-! ## The durable part -/
 
@@ -484,24 +500,24 @@ def kdDmuInv (γ : KdNames) (id : w64) (r n st ms : Loc) (γs : MemStorNames) (p
 
 /-- **The reads' sequence numbers** (`readSeqs`'s lock invariant): the last one issued, at least
 every replica's last read sequence number (`γ.r.rseq`, the elements of the ids `0..9`), which
-`next` moves to the one it issues for its caller's id. -/
+`next` moves to the one it issues for its caller's id (the ids `0 … γ.max`). -/
 def readSeqsInv (γ : KdNames) (s : Loc) : IProp GF :=
   iprop(∃ last : w64, s.[KReadSeqs, go!"last"] ↦ last ∗
-    [∗list] i ∈ raft_kvreconf.freshIds 0, ∃ ns : w64, i ↪[γ.r.rseq] ns ∗ ⌜uint.Z ns ≤ uint.Z last⌝)
+    [∗list] i ∈ raft_kvreconf.freshIdsM γ.max 0, ∃ ns : w64, i ↪[γ.r.rseq] ns ∗ ⌜uint.Z ns ≤ uint.Z last⌝)
 
 /-- The cluster's `readSeqs` at `s` (persistent). -/
 def isReadSeqs (γ : KdNames) (s : Loc) : IProp GF :=
   sync.isMutex (s.[KReadSeqs, go!"mu"]) (readSeqsInv γ s)
 
 /-- **Incarnation `r` of replica `id`** (persistent; kvreconf's `isReplica`): its id among the
-cluster's (`1 ≤ id ≤ 9`: at most `maxReplicas = 9` replicas are started, ids from `1`; what
+cluster's (`1 ≤ id ≤ γ.max`: at most `opts.MaxReplicas` replicas are started, ids from `1`; what
 `readSeqs.next` takes), its fields read-only (with its file and the cluster's `readSeqs`), its node,
 the cluster, its `mu` and `dmu` locks, and its file's invariant. -/
 def isReplica (γ : KdNames) (vs : List w64) (dir : GoString) (id : w64) (r n st sts sq : Loc)
     (ms : Loc) (γs : MemStorNames) (ph : KdDmuNames) : IProp GF :=
   iprop(
     "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable ∗
-    "%Hidr" ∷ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ 9⌝ ∗
+    "%Hidr" ∷ ⌜1 ≤ uint.nat id ∧ uint.nat id ≤ γ.max⌝ ∗
     "#Hid" ∷ r.[KReplica, go!"id"] ↦□ id ∗
     "#Hfile" ∷ r.[KReplica, go!"file"] ↦□ kdFileName dir id ∗
     "#Hnode" ∷ r.[KReplica, go!"node"] ↦□ interface.mkOk (go.GoType.PointerType node.ty) #n ∗
@@ -655,7 +671,7 @@ def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : I
     "Hjoin" ∷ joinAuth γ.r.cluster U ∗
     "%Hdom" ∷ ⌜(∀ i, (R !! i).isSome ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
       (∀ i, i ∈ U ↔ 1 ≤ uint.nat i ∧ uint.nat i < uint.nat nid) ∧
-      vs.length < uint.nat nid ∧ uint.nat nid ≤ 10⌝ ∗
+      vs.length < uint.nat nid ∧ uint.nat nid ≤ γ.max + 1⌝ ∗
     "Hreps" ∷ ([∗map] id ↦ r ∈ R, isRep γ vs dir id r) ∗
     -- (2026-11-01, the crasher) the current incarnations' map, and their `repStop`s; (2026-11-01,
     -- the stopper) or, once `Stop` has taken them (`Cluster.all.specStop`), the fragments alone and
@@ -663,7 +679,7 @@ def clusterLockInv (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : I
     "Hcur" ∷ ghostMapAuth γ.cur 1 R ∗
     "Hstops" ∷ ((crasher γ ∗ [∗map] id ↦ r ∈ R, curRep γ id r) ∨
       [∗map] id ↦ r ∈ R, (curRep γ id r ∗ repStop γ vs dir id r) ∨ crasher γ) ∗
-    "Hfiles" ∷ ([∗list] i ∈ raft_kvreconf.freshIds (uint.nat nid), dfile γ.files (kdFileName dir i) none ∗
+    "Hfiles" ∷ ([∗list] i ∈ raft_kvreconf.freshIdsM γ.max (uint.nat nid), dfile γ.files (kdFileName dir i) none ∗
       ∃ g : RaftState × Option GoString, ghostVar (γ.wr i) (1 : Qp) g))
 
 /-- **The cluster at `c`** (persistent; kvreconf's `isClusterC`), of the bootstrap voters `vs`, its
@@ -674,12 +690,14 @@ def isClusterC (γ : KdNames) (vs : List w64) (dir : GoString) (c : Loc) : IProp
     "#Hcl" ∷ kdCluster γ vs ∗
     -- (2026-11-01, the cluster helpers) the options, read by `Cluster.config` (kvreconf's `%Ho`)
     "#Hopts" ∷ c.[KCluster, go!"opts"] ↦□ o ∗
-    "%Ho" ∷ ⌜kdOptsOk o ∧ vs = raft_kvreconf.bootVoters (uint.nat o.Voters')⌝ ∗
+    "%Ho" ∷ ⌜kdOptsOk o ∧ vs = raft_kvreconf.bootVoters (uint.nat o.Voters') ∧ uint.nat o.MaxReplicas' = γ.max⌝ ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
     "%Hdup" ∷ ⌜γ.r.cluster.dup = true⌝ ∗
     -- (2026-11-01, the start functions) the cluster has no bootstrap log (`cluster_alloc` at the
     -- empty one): `RestartNode`'s `γ.bootLen ≤ σ.commit` (kvreconf's `%Hbl0`)
     "%Hbl0" ∷ ⌜γ.r.cluster.bootLen = 0⌝ ∗
+    -- (2026-11-09, Q8 stage 0) an untraced cluster (`cluster_alloc`'s): `RestartNode`'s premise
+    "%Htr0" ∷ ⌜Cluster.trace γ.r.cluster = none⌝ ∗
     -- (2026-11-02, `lean`'s J8a) no snapshot directories (kvreconf's `%Hsl`)
     "%Hsl" ∷ ⌜γ.r.cluster.snapLoc = fun _ => none⌝ ∗
     -- (raft-entsize §2, 2026-11-09) no bound on proposed data (`cluster_alloc`'s `md = none`): the

@@ -1,0 +1,655 @@
+//go:build linux
+
+package semantics
+
+// Measurements behind the trusted models' Go examples (model_*.go), on
+// configuration C (env_config.go): run-models-on-c.sh makes and mounts a C
+// filesystem with notes/axiom-review/fs-config/mkfs-mount.sh, checks it with
+// check.sh (its output is the record) and runs these tests in it
+// ($SEMANTICS_C_DIR). Run with plain `go test`, they use a directory under the
+// working directory, not $TMPDIR (often a tmpfs).
+
+import (
+	"errors"
+	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"sync"
+	"syscall"
+	"testing"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
+)
+
+// extDir is a fresh directory under $SEMANTICS_C_DIR (a configuration-C mount made by
+// run-models-on-c.sh) or, if unset, under the working directory, removed after the test.
+func extDir(t *testing.T) string {
+	t.Helper()
+	base := os.Getenv("SEMANTICS_C_DIR")
+	if base == "" {
+		base = "."
+	}
+	d, err := os.MkdirTemp(base, "models-test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { os.RemoveAll(d) })
+	return d
+}
+
+// model_os_close_nil.go: a nil *File's Close is ErrInvalid.
+func TestCloseNil(t *testing.T) {
+	var f *os.File
+	if err := f.Close(); err != os.ErrInvalid {
+		t.Fatalf("Close of a nil *File: %v, want os.ErrInvalid", err)
+	}
+}
+
+// model_os_close_twice.go: a closed *File's Close is &PathError{"close", name, ErrClosed},
+// and closes no other fd (a file opened after the first Close, which may reuse its number,
+// stays open).
+func TestCloseTwice(t *testing.T) {
+	d := extDir(t)
+	name := d + "/seg"
+	f, err := os.Create(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatal(err)
+	}
+	g, err := os.Open(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer g.Close()
+	err = f.Close()
+	var pe *os.PathError
+	if !errors.As(err, &pe) || pe.Op != "close" || pe.Path != name || pe.Err != os.ErrClosed {
+		t.Fatalf("second Close: %#v, want &PathError{close, %q, ErrClosed}", err, name)
+	}
+	if _, err := g.Stat(); err != nil {
+		t.Fatalf("the file opened after the first Close: %v", err)
+	}
+}
+
+// model_syscall_fallocate.go: syscall.Fallocate's mode 0 grows the size, mode 1 does not.
+func TestSyscallFallocate(t *testing.T) {
+	d := extDir(t)
+	f, err := os.Create(d + "/seg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if err := syscall.Fallocate(int(f.Fd()), 0, 0, 4096); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Fallocate(int(f.Fd()), 1, 0, 8192); err != nil {
+		t.Fatal(err)
+	}
+	fi, _ := f.Stat()
+	if fi.Size() != 4096 {
+		t.Fatalf("size %d, want 4096", fi.Size())
+	}
+	if err := syscall.Fallocate(int(f.Fd()), 0, 0, 0); !errors.Is(err, syscall.EINVAL) {
+		t.Fatalf("len 0: %v, want EINVAL", err)
+	}
+}
+
+// model_syscall_fcntlflock.go: F_OFD_GETLK on a closed fd is EBADF; on /dev/null and on a
+// regular file with no lock, nil and Type F_UNLCK.
+func TestOFDGetlk(t *testing.T) {
+	// a closed fd: a fresh fd, closed
+	fd, err := syscall.Open("/dev/null", syscall.O_RDONLY|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	syscall.Close(fd)
+	lk := syscall.Flock_t{Type: syscall.F_RDLCK}
+	if err := syscall.FcntlFlock(uintptr(fd), unix.F_OFD_GETLK, &lk); err != syscall.EBADF {
+		t.Fatalf("closed fd: %v, want EBADF", err)
+	}
+	if lk.Type != syscall.F_RDLCK {
+		t.Fatalf("closed fd: Type %d changed", lk.Type)
+	}
+	for _, name := range []string{"/dev/null", extDir(t) + "/LOCK"} {
+		f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE, 0o600)
+		if err != nil {
+			t.Fatal(err)
+		}
+		lk := syscall.Flock_t{Type: syscall.F_RDLCK}
+		if err := syscall.FcntlFlock(f.Fd(), unix.F_OFD_GETLK, &lk); err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		if lk.Type != syscall.F_UNLCK {
+			t.Fatalf("%s: Type %d, want F_UNLCK", name, lk.Type)
+		}
+		f.Close()
+	}
+	// a conflicting OFD lock held through another open file description
+	name := extDir(t) + "/LOCK2"
+	a, _ := os.Create(name)
+	defer a.Close()
+	w := syscall.Flock_t{Type: syscall.F_WRLCK}
+	if err := syscall.FcntlFlock(a.Fd(), unix.F_OFD_SETLK, &w); err != nil {
+		t.Fatal(err)
+	}
+	b, _ := os.Open(name)
+	defer b.Close()
+	q := syscall.Flock_t{Type: syscall.F_RDLCK}
+	if err := syscall.FcntlFlock(b.Fd(), unix.F_OFD_GETLK, &q); err != nil {
+		t.Fatal(err)
+	}
+	if q.Type != syscall.F_WRLCK || q.Pid != -1 {
+		t.Fatalf("conflict: Type %d Pid %d, want F_WRLCK and -1", q.Type, q.Pid)
+	}
+}
+
+// model_syscall_fcntlflock.go: F_OFD_GETLK writes the description's padding back as it was
+// (with no concurrent writer).
+func TestOFDGetlkPadding(t *testing.T) {
+	f, err := os.Create(extDir(t) + "/LOCK")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	lk := syscall.Flock_t{Type: syscall.F_RDLCK,
+		Pad_cgo_0: [4]byte{0xaa, 0xbb, 0xcc, 0xdd}, Pad_cgo_1: [4]byte{0x11, 0x22, 0x33, 0x44}}
+	if err := syscall.FcntlFlock(f.Fd(), unix.F_OFD_GETLK, &lk); err != nil {
+		t.Fatal(err)
+	}
+	if lk.Pad_cgo_0 != [4]byte{0xaa, 0xbb, 0xcc, 0xdd} || lk.Pad_cgo_1 != [4]byte{0x11, 0x22, 0x33, 0x44} {
+		t.Fatalf("padding changed: %x %x", lk.Pad_cgo_0, lk.Pad_cgo_1)
+	}
+}
+
+// model_os_writefile.go: an empty Write is (0, nil) on a writable fd and EBADF on a read-only
+// one, and changes nothing; WriteFile of an empty slice makes an empty file.
+func TestEmptyWrite(t *testing.T) {
+	d := extDir(t)
+	f, _ := os.Create(d + "/f")
+	f.Write([]byte("abc"))
+	if n, err := f.Write(nil); n != 0 || err != nil {
+		t.Fatalf("writable: (%d, %v), want (0, nil)", n, err)
+	}
+	if off, _ := f.Seek(0, 1); off != 3 {
+		t.Fatalf("offset %d, want 3", off)
+	}
+	f.Close()
+	r, _ := os.Open(d + "/f")
+	if _, err := r.Write(nil); !errors.Is(err, syscall.EBADF) {
+		t.Fatalf("read-only: %v, want EBADF", err)
+	}
+	r.Close()
+	if err := os.WriteFile(d+"/.touch", []byte(""), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Stat(d + "/.touch"); err != nil || fi.Size() != 0 {
+		t.Fatalf("Stat: %v %v", fi, err)
+	}
+}
+
+// model_os_stat.go: Stat's mode of a directory and of a file: the type, and the permission
+// bits (Mkdir's and OpenFile's perm under the umask).
+func TestStatMode(t *testing.T) {
+	d := extDir(t)
+	if err := os.Mkdir(d+"/d", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	f, _ := os.OpenFile(d+"/f", os.O_RDWR|os.O_CREATE, 0o600)
+	f.Close()
+	di, err := os.Stat(d + "/d")
+	if err != nil || !di.IsDir() || di.Mode()&os.ModeType != os.ModeDir || di.Mode().Perm() != 0o700 {
+		t.Fatalf("dir: %v %v", di.Mode(), err)
+	}
+	fi, err := os.Stat(d + "/f")
+	if err != nil || fi.IsDir() || !fi.Mode().IsRegular() || fi.Mode().Perm() != 0o600 || fi.Size() != 0 {
+		t.Fatalf("file: %v %v", fi.Mode(), err)
+	}
+	if _, err := os.Stat(d + "/none"); !errors.Is(err, syscall.ENOENT) {
+		t.Fatalf("missing: %v", err)
+	}
+	li, err := os.Lstat(d + "/d")
+	if err != nil || !li.IsDir() {
+		t.Fatalf("Lstat: %v %v", li, err)
+	}
+}
+
+// model_os_mkdirall.go and model_os_removeall.go: MkdirAll makes the chain; RemoveAll removes
+// the tree, and nil on a missing path.
+func TestMkdirAllRemoveAll(t *testing.T) {
+	d := extDir(t)
+	if err := os.MkdirAll(d+"/a/b/c", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(d+"/a/b/c", 0o700); err != nil {
+		t.Fatalf("again: %v", err)
+	}
+	f, _ := os.Create(d + "/a/b/f")
+	f.Close()
+	if err := os.MkdirAll(d+"/a/b/f", 0o700); !errors.Is(err, syscall.ENOTDIR) {
+		t.Fatalf("over a file: %v, want ENOTDIR", err)
+	}
+	if err := os.RemoveAll(d + "/a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(d + "/a"); !errors.Is(err, syscall.ENOENT) {
+		t.Fatalf("a after RemoveAll: %v", err)
+	}
+	if err := os.RemoveAll(d + "/a"); err != nil {
+		t.Fatalf("missing: %v", err)
+	}
+	var pe *os.PathError
+	if err := os.RemoveAll(d + "/."); !errors.As(err, &pe) || pe.Op != "RemoveAll" || !errors.Is(err, syscall.EINVAL) {
+		t.Fatalf("dot: %v", err)
+	}
+}
+
+// model_os_mkdirall_above.go: at an existing directory (a root) and at its parent (an
+// ancestor), Stat succeeds with a directory, Mkdir fails with EEXIST and changes nothing, and
+// MkdirAll returns nil.
+func TestMkdirAllAboveRoot(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, _ := os.Create(d + "/f")
+	f.Close()
+	for _, p := range []string{d, filepath.Dir(d)} {
+		var before syscall.Stat_t
+		if err := syscall.Stat(p, &before); err != nil {
+			t.Fatal(err)
+		}
+		names0, _ := os.ReadDir(p)
+		if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
+			t.Fatalf("Stat(%s): %v %v", p, fi, err)
+		}
+		if err := os.Mkdir(p, 0o700); !errors.Is(err, syscall.EEXIST) {
+			t.Fatalf("Mkdir(%s): %v, want EEXIST", p, err)
+		}
+		if err := os.MkdirAll(p, 0o700); err != nil {
+			t.Fatalf("MkdirAll(%s): %v", p, err)
+		}
+		var after syscall.Stat_t
+		if err := syscall.Stat(p, &after); err != nil || after.Ino != before.Ino || after.Nlink != before.Nlink {
+			t.Fatalf("%s changed: ino %d->%d nlink %d->%d (%v)", p, before.Ino, after.Ino, before.Nlink, after.Nlink, err)
+		}
+		names1, _ := os.ReadDir(p)
+		if p == d && len(names1) != len(names0) {
+			t.Fatalf("%s: entries %d -> %d", p, len(names0), len(names1))
+		}
+	}
+}
+
+// model_os_stat_above.go and model_os_open_above.go: at "/" and at a root's parent (an
+// ancestor of a directory of C), Stat and Lstat succeed with a directory; a read-only open
+// succeeds, its fsync and close return 0; the directory is unchanged; a writable open fails with
+// EISDIR. Lstat of a symlink to a directory sees a symlink, Stat a directory.
+func TestStatOpenAboveRoot(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, p := range []string{"/", filepath.Dir(d)} {
+		var before syscall.Stat_t
+		if err := syscall.Stat(p, &before); err != nil {
+			t.Fatal(err)
+		}
+		if fi, err := os.Stat(p); err != nil || !fi.IsDir() {
+			t.Fatalf("Stat(%s): %v %v", p, fi, err)
+		}
+		if fi, err := os.Lstat(p); err != nil || !fi.IsDir() {
+			t.Fatalf("Lstat(%s): %v %v", p, fi, err)
+		}
+		f, err := os.Open(p)
+		if err != nil {
+			t.Fatalf("Open(%s): %v", p, err)
+		}
+		if err := f.Sync(); err != nil {
+			t.Fatalf("Sync(%s): %v", p, err)
+		}
+		if err := f.Close(); err != nil {
+			t.Fatalf("Close(%s): %v", p, err)
+		}
+		for _, fl := range []int{os.O_WRONLY, os.O_RDWR} {
+			if _, err := os.OpenFile(p, fl, 0); !errors.Is(err, syscall.EISDIR) {
+				t.Fatalf("OpenFile(%s, %d): %v, want EISDIR", p, fl, err)
+			}
+		}
+		var after syscall.Stat_t
+		if err := syscall.Stat(p, &after); err != nil || after.Ino != before.Ino ||
+			after.Nlink != before.Nlink || after.Mtim != before.Mtim {
+			t.Fatalf("%s changed: ino %d->%d nlink %d->%d (%v)", p, before.Ino, after.Ino,
+				before.Nlink, after.Nlink, err)
+		}
+	}
+	if err := os.Mkdir(d+"/dir", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(d+"/dir", d+"/link"); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Lstat(d + "/link"); err != nil || fi.Mode()&os.ModeType != os.ModeSymlink {
+		t.Fatalf("Lstat(link): %v %v", fi, err)
+	}
+	if fi, err := os.Stat(d + "/link"); err != nil || !fi.IsDir() {
+		t.Fatalf("Stat(link): %v %v", fi, err)
+	}
+}
+
+// model_os_filestat_name.go: Name is the base name of the path given to Stat, "/" for "/", and
+// the base name of the *File's name for File.Stat.
+func TestFileStatName(t *testing.T) {
+	d, err := filepath.Abs(extDir(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(d+"/wal", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	f, err := os.Create(d + "/wal/0000-0000.wal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	if fi, err := os.Stat(d + "/wal"); err != nil || fi.Name() != "wal" {
+		t.Fatalf("Stat(wal): %v %v", fi, err)
+	}
+	if fi, err := os.Lstat(d + "/wal"); err != nil || fi.Name() != "wal" {
+		t.Fatalf("Lstat(wal): %v %v", fi, err)
+	}
+	if fi, err := os.Stat("/"); err != nil || fi.Name() != "/" {
+		t.Fatalf("Stat(/): %v %v", fi, err)
+	}
+	if fi, err := f.Stat(); err != nil || fi.Name() != "0000-0000.wal" {
+		t.Fatalf("File.Stat: %v %v", fi, err)
+	}
+}
+
+// meta_enoent.go: ENOENT from open only for a path that does not resolve, from getdents only
+// for a removed directory; never for a present directory, a file in it, or a read of it, while
+// other goroutines create, rename and remove other entries of the directory and of its parent.
+func TestEnoent(t *testing.T) {
+	d := extDir(t)
+	isNoent := func(err error) bool { return errors.Is(err, syscall.ENOENT) }
+	if _, err := os.Open(d + "/missing"); !isNoent(err) {
+		t.Fatalf("Open(missing): %v, want ENOENT", err)
+	}
+	if _, err := os.Open(d + "/missing/x"); !isNoent(err) {
+		t.Fatalf("Open(missing/x): %v, want ENOENT", err)
+	}
+	if err := os.Mkdir(d+"/gone", 0o700); err != nil {
+		t.Fatal(err)
+	}
+	g, err := os.Open(d + "/gone")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(d + "/gone"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.OpenFile(d+"/gone/x", os.O_RDWR|os.O_CREATE, 0o600); !isNoent(err) {
+		t.Fatalf("OpenFile(gone/x, O_CREAT): %v, want ENOENT", err)
+	}
+	if names, err := g.Readdirnames(-1); !isNoent(err) {
+		t.Fatalf("Readdirnames of a removed directory: %v %v, want ENOENT", names, err)
+	}
+	g.Close()
+
+	// A directory large enough for an htree index (ext4 dir_index: more than one block).
+	w := d + "/wal"
+	if err := os.Mkdir(w, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	seg := func(i int) string { return filepath.Join(w, fmt.Sprintf("%016x-%016x.wal", i, i)) }
+	for i := 0; i < 2000; i++ {
+		f, err := os.Create(seg(i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+	}
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	churn := func(dir string, k int) {
+		defer wg.Done()
+		for n := 0; ; n++ {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			a := filepath.Join(dir, fmt.Sprintf("churn-%d-%d", k, n%64))
+			b := a + ".tmp"
+			if f, err := os.Create(b); err == nil {
+				f.Close()
+			}
+			os.Rename(b, a)
+			os.Remove(a)
+			os.Mkdir(b, 0o700)
+			os.Remove(b)
+		}
+	}
+	for k := 0; k < 4; k++ {
+		wg.Add(2)
+		go churn(w, k)
+		go churn(d, k)
+	}
+	fails := 0
+	for i := 0; i < 3000; i++ {
+		if f, err := os.Open(w); err != nil {
+			fails++
+			if isNoent(err) {
+				t.Errorf("Open(wal) under churn: ENOENT (%v)", err)
+			}
+		} else {
+			if _, err := f.Readdirnames(-1); err != nil {
+				fails++
+				if isNoent(err) {
+					t.Errorf("Readdirnames(wal) under churn: ENOENT (%v)", err)
+				}
+			}
+			f.Close()
+		}
+		if f, err := os.Open(seg(i % 2000)); err != nil {
+			fails++
+			if isNoent(err) {
+				t.Errorf("Open(wal/seg) under churn: ENOENT (%v)", err)
+			}
+		} else {
+			f.Close()
+		}
+	}
+	close(stop)
+	wg.Wait()
+	t.Logf("3000 rounds of open/readdir under churn: %d failures, none ENOENT", fails)
+}
+
+// data_maxbytes.go: ext4's s_maxbytes (2^44 - 4096 with 4 KiB blocks and extents). A pwrite
+// crossing it is cut there (a short count, errno 0), one at it fails EFBIG with nothing landed;
+// ftruncate to it succeeds, past it EFBIG with no change; fallocate ending past it EFBIG with no
+// change (mode 0 and KEEP_SIZE), ending at it succeeds. A sparse file: no block is written but
+// the first page and the last.
+func TestMaxBytes(t *testing.T) {
+	const maxBytes = int64(0xffffffff000)
+	d := extDir(t)
+	f, err := os.Create(d + "/f")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+	fd := int(f.Fd())
+	size := func() int64 {
+		var st syscall.Stat_t
+		if err := syscall.Fstat(fd, &st); err != nil {
+			t.Fatal(err)
+		}
+		return st.Size
+	}
+	// pwrite crossing s_maxbytes: cut at it
+	n, err := syscall.Pwrite(fd, fill(100, 'a'), maxBytes-1)
+	t.Logf("pwrite(100 at max-1) = (%d, %v), size %d", n, err, size())
+	if n != 1 || err != nil || size() != maxBytes {
+		t.Fatalf("pwrite at max-1: (%d, %v) size %d, want (1, nil) size max", n, err, size())
+	}
+	// pwrite at s_maxbytes: EFBIG, nothing landed
+	n, err = syscall.Pwrite(fd, fill(100, 'b'), maxBytes)
+	t.Logf("pwrite(100 at max) = (%d, %v), size %d", n, err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != maxBytes {
+		t.Fatalf("pwrite at max: (%d, %v), want EFBIG", n, err)
+	}
+	// Go's WriteAt crossing it: one short pwrite, then EFBIG
+	m, err := f.WriteAt(fill(8192, 'c'), maxBytes-4096-100)
+	t.Logf("WriteAt(8192 at max-4196) = (%d, %v), size %d", m, err, size())
+	if !errors.Is(err, syscall.EFBIG) {
+		t.Fatalf("WriteAt crossing max: (%d, %v), want EFBIG", m, err)
+	}
+	// ftruncate to s_maxbytes, then past it
+	if err := syscall.Ftruncate(fd, 4096); err != nil {
+		t.Fatal(err)
+	}
+	if err := syscall.Ftruncate(fd, maxBytes); err != nil || size() != maxBytes {
+		t.Fatalf("ftruncate to max: %v size %d", err, size())
+	}
+	if err := syscall.Ftruncate(fd, 4096); err != nil {
+		t.Fatal(err)
+	}
+	err = syscall.Ftruncate(fd, maxBytes+1)
+	t.Logf("ftruncate(max+1) = %v, size %d", err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != 4096 {
+		t.Fatalf("ftruncate past max: %v size %d, want EFBIG size 4096", err, size())
+	}
+	// fallocate ending past s_maxbytes, mode 0 and KEEP_SIZE; then ending at it
+	err = syscall.Fallocate(fd, 0, maxBytes-4096, 8192)
+	t.Logf("fallocate(0, max-4096, 8192) = %v, size %d", err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != 4096 {
+		t.Fatalf("fallocate past max: %v size %d, want EFBIG size 4096", err, size())
+	}
+	err = syscall.Fallocate(fd, unix.FALLOC_FL_KEEP_SIZE, maxBytes-4096, 8192)
+	t.Logf("fallocate(KEEP_SIZE, max-4096, 8192) = %v, size %d", err, size())
+	if !errors.Is(err, syscall.EFBIG) || size() != 4096 {
+		t.Fatalf("fallocate keep-size past max: %v size %d, want EFBIG size 4096", err, size())
+	}
+	err = syscall.Fallocate(fd, 0, maxBytes-4096, 4096)
+	t.Logf("fallocate(0, max-4096, 4096) = %v, size %d", err, size())
+	if err != nil || size() != maxBytes {
+		t.Fatalf("fallocate to max: %v size %d, want nil size max", err, size())
+	}
+}
+
+// model_os_readdirnames_len.go: append of one string to a []string of 2^44 panics with
+// "growslice: len out of range" (the slice header made by unsafe.Slice over one string:
+// growslice checks the new capacity before it allocates anything).
+func TestAppendStringsLenLimit(t *testing.T) {
+	var one string
+	big := unsafe.Slice(&one, 1<<44)
+	msg := func() (msg string) {
+		defer func() {
+			if r := recover(); r != nil {
+				msg = fmt.Sprint(r)
+			}
+		}()
+		big = append(big, "x")
+		return ""
+	}()
+	if msg != "runtime error: growslice: len out of range" {
+		t.Fatalf("append past 2^44 strings: %q, want growslice's panic", msg)
+	}
+}
+
+// model_os_copy_file_range.go: copy_file_range(2) with NULL offsets copies the source's bytes from
+// its offset to the destination's offset and advances both by the count; 0 at the source's end;
+// EINVAL for overlapping ranges of one file, nothing changed.
+func TestCopyFileRange(t *testing.T) {
+	d := extDir(t)
+	src, err := os.Create(d + "/src")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer src.Close()
+	data := make([]byte, 3*4096+200)
+	for i := range data {
+		data[i] = byte(i % 251)
+	}
+	if _, err := src.Write(data); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := src.Seek(100, 0); err != nil {
+		t.Fatal(err)
+	}
+	dst, err := os.Create(d + "/dst")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer dst.Close()
+	if _, err := dst.Write(fill(50, 'x')); err != nil {
+		t.Fatal(err)
+	}
+	n, err := unix.CopyFileRange(int(src.Fd()), nil, int(dst.Fd()), nil, 1<<20, 0)
+	if err != nil || n != len(data)-100 {
+		t.Fatalf("copy_file_range = (%d, %v), want (%d, nil)", n, err, len(data)-100)
+	}
+	so, _ := src.Seek(0, 1)
+	do, _ := dst.Seek(0, 1)
+	if so != int64(len(data)) || do != int64(50+n) {
+		t.Fatalf("offsets after: src %d dst %d, want %d %d", so, do, len(data), 50+n)
+	}
+	got, err := os.ReadFile(d + "/dst")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got[:50]) != string(fill(50, 'x')) || string(got[50:]) != string(data[100:]) {
+		t.Fatalf("dst's bytes are not x*50 ++ src[100:]")
+	}
+	n, err = unix.CopyFileRange(int(src.Fd()), nil, int(dst.Fd()), nil, 1<<20, 0)
+	if err != nil || n != 0 {
+		t.Fatalf("copy_file_range at the source's end = (%d, %v), want (0, nil)", n, err)
+	}
+	// one file, overlapping ranges
+	offIn, offOut := int64(0), int64(100)
+	n, err = unix.CopyFileRange(int(src.Fd()), &offIn, int(src.Fd()), &offOut, 1000, 0)
+	if err != unix.EINVAL {
+		t.Fatalf("copy_file_range on overlapping ranges = (%d, %v), want EINVAL", n, err)
+	}
+	after, _ := os.ReadFile(d + "/src")
+	if string(after) != string(data) {
+		t.Fatalf("overlapping copy_file_range changed the file")
+	}
+	t.Logf("copy_file_range: %d bytes from offset 100 of %d to offset 50, then 0, then EINVAL",
+		len(data)-100, len(data))
+}
+
+// model_os_copy_file_range.go: io.Copy between two files, nonempty and empty source. Run the test
+// binary under `strace -f -e trace=copy_file_range,read,write,splice,sendfile` with COPY_TRACE=1
+// to see its system calls between the markers; plain, it checks io.Copy's results.
+func TestCopyFileRangeIoCopy(t *testing.T) {
+	d := extDir(t)
+	mark := func(s string) {
+		if os.Getenv("COPY_TRACE") != "" {
+			fmt.Fprintln(os.Stderr, "--- "+s)
+		}
+	}
+	src, _ := os.Create(d + "/src")
+	defer src.Close()
+	src.Write(fill(10000, 'a'))
+	src.Seek(100, 0)
+	dst, _ := os.Create(d + "/dst")
+	defer dst.Close()
+	mark("io.Copy nonempty")
+	n, err := io.Copy(dst, src)
+	if n != 9900 || err != nil {
+		t.Fatalf("io.Copy = (%d, %v), want (9900, nil)", n, err)
+	}
+	empty, _ := os.Create(d + "/empty")
+	defer empty.Close()
+	dst2, _ := os.Create(d + "/dst2")
+	defer dst2.Close()
+	mark("io.Copy empty")
+	n, err = io.Copy(dst2, empty)
+	if n != 0 || err != nil {
+		t.Fatalf("io.Copy from empty = (%d, %v), want (0, nil)", n, err)
+	}
+	mark("done")
+}

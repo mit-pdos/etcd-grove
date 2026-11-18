@@ -127,7 +127,7 @@ theorem auth.authStore.UserDelete.wp_tie
   clear Hif
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -136,7 +136,7 @@ theorem auth.authStore.UserDelete.wp_tie
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨#HUG, -, -, -, -⟩
@@ -149,7 +149,7 @@ theorem auth.authStore.UserDelete.wp_tie
   wp_if_destruct
   · -- no such user
     ihave %Hnone := userOut_null st0 name $$ Hu
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -185,9 +185,10 @@ theorem auth.authStore.UserDelete.wp_tie
   ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok en st0 Hl0)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
-  iapply HDelU $$ %st0 %Post %name HL
+  iapply HDelU $$ %st0 %Post %name %AuthSess.init [$HL $Hsw]
+  · ipureintro; decide
   inext
-  iintro HL
+  iintro ⟨HL, Hsw⟩
   (try wp_auto)
   have hstep : userDeleteF en name st0 = .next (bump (delUser st0 name)) := by
     simp [userDeleteF, hnr, Hur.1]
@@ -196,7 +197,7 @@ theorem auth.authStore.UserDelete.wp_tie
   ihave #Hcap1 := Hcap $$ %en
   ihave #Hcn := capNextM_step M hs (userDeleteF en name) st0 (bump (delUser st0 name)) Hl0
     (by rw [hstep]; try simp_all) $$ Hcap1
-  wp_apply (h_commitRevision st R M P f T Wb ti Lk (delUser st0 name) Post hs st0)
+  wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (delUser st0 name) Post hs st0)
     $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
   · ipureintro
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delUser _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -255,7 +256,7 @@ theorem auth.authStore.UserDelete.wp_tie
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp
   (try wp_auto)
-  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (delUser st0 name)]) [HL $Hown $Hw1 $Hw2]
+  wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (delUser st0 name)]) [HL $Hsw $Hown $Hw1 $Hw2]
     as ⟨HPost, HT, Hown⟩
   · isplitl [HL]
     · iExactEq HL

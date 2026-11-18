@@ -1,0 +1,13 @@
+diff --git a/server/storage/wal/wal.go b/server/storage/wal/wal.go
+index a9d580b80..2c325ea8a 100644
+--- a/server/storage/wal/wal.go
++++ b/server/storage/wal/wal.go
+@@ -899,6 +899,8 @@ func (w *WAL) sync() error {
+ }
+ 
+ func (w *WAL) Sync() error {
++	w.mu.Lock()
++	defer w.mu.Unlock()
+ 	return w.sync()
+ }
+ 

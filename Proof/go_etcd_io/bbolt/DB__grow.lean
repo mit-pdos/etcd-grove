@@ -30,6 +30,11 @@ open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
+/-- A resize to a page-aligned size at least the file's announces up to that size (`rsHi`: the end of
+the page holding the larger of the two). -/
+private theorem grow_rsHi (s tg : Nat) (h : s ≤ tg) (hal : tg % 4096 = 0) : rsHi true s tg = tg := by
+  simp only [rsHi, if_true, pageEnd]; omega
+
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -66,7 +71,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   · iframe #
   try wp_auto
   wp_apply hFileSize K.db w.f w.fd K.p (DFrac.own 1) (DFrac.own 1) (DFrac.own 1) (DFrac.own 1)
-    ⟨K.p.ino, true, true⟩ w.m rfl (hok.2.2.2.2.2.2.2.2.2.2.2.2.1) $$ [Hfile Hfo Hfd Hosm]
+    (dbFd K.p.ino) w.m rfl (hok.2.2.2.2.2.2.2.2.2.2.2.2.1) $$ [Hfile Hfo Hfd Hosm]
     as %fsz %err ⟨Hfile, Hfo, Hfd, Hosm, Hfs⟩
   · iframe; iframe #
   have hrefl : wdbGrown w { w with m := w.m, W := w.W, wb := w.wb } :=
@@ -184,24 +189,24 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat hSge $$ Htail with ⟨Htail, Hrest⟩
   ihave Htail : mcellsAny (GF := GF) w.m.maps
       (min w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat)
-      (max w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) $$ [Htail]
-  · rw [hmaps, Nat.min_eq_left hSge, Nat.max_eq_right hSge]; iexact Htail
+      (rsHi true w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) $$ [Htail]
+  · rw [hmaps, Nat.min_eq_left hSge, grow_rsHi _ _ hSge hSal]; iexact Htail
   ihave Hnil : osBytes (GF := GF) K.p.ino
       (min w.m.size (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat) (DFrac.own 1) [] $$ []
   · iapply growBytes_nil
   wp_apply hTruncate w.f w.fd K.p.path (DFrac.own 1) (growSizeOf (W64 (mapLen w.ms : Int)) sz)
-    (DFrac.own 1) ⟨K.p.ino, true, true⟩ w.m [] (wdbOK'_fd fr w hok) rfl hS0
+    (DFrac.own 1) (dbFd K.p.ino) w.m [] (wdbOK'_fd fr w hok) rfl hS0
     (by simp only [List.length_nil]; omega)
     $$ [Hfo Hfd Hosm Hnil Htail] as %e ⟨Hfo, Hfd, Htr, #HeOk⟩
   · rw [← fileOwn_eq]; iframe; iframe #
   ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo
   generalize hSdef : growSizeOf (W64 (mapLen w.ms : Int)) sz = S at *
-  have hrm : (rsPost w.m S.toNat S.toNat).maps = w.m.maps :=
-    grow_announce_maps w.m (min w.m.size S.toNat) (max w.m.size S.toNat) S.toNat
+  have hrm : (rsPost true w.m S.toNat S.toNat).maps = w.m.maps :=
+    grow_announce_maps w.m (min w.m.size S.toNat) (rsHi true w.m.size S.toNat) S.toNat
   have hGrown : os.ftDone (GF := GF) K.p.ino w.m S.toNat ∗
       mcellsAny (GF := GF) (GMap.singleton v.base (mapLen w.ms)) S.toNat (mapLen w.ms) ⊢
-      osMeta K.p.ino (DFrac.own 1) (rsPost w.m S.toNat S.toNat) ∗
+      osMeta K.p.ino (DFrac.own 1) (rsPost true w.m S.toNat S.toNat) ∗
       zBytes K.p w.m.size (S.toNat - w.m.size) ∗
       ∃ vf, cellsR (GF := GF) v.base (min w.m.size (mapLen w.ms))
         (mapLen w.ms - min w.m.size (mapLen w.ms)) vf := by
@@ -211,7 +216,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     isplitl [Hz]
     · unfold zBytes; iexists _; iframe Hz; ipureintro
       rw [List.map_map, ← hzs]; exact List.map_const'
-    · rw [hmaps, Nat.min_eq_left hSge, Nat.max_eq_right hSge]
+    · rw [hmaps, Nat.min_eq_left hSge, grow_rsHi _ _ hSge hSal]
       iapply grown_cells_back v.base (mapLen w.ms) w.m.size S.toNat _ hSge
       iframe
   cases e with
@@ -222,15 +227,15 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     icases hGrown $$ [Htr Hrest] with ⟨Hosm, Hz, Htail⟩
     · iframe
     wp_auto
-    wp_apply hSync w.f w.fd K.p.path (DFrac.own 1) (DFrac.own 1) ⟨K.p.ino, true, true⟩
-      (rsPost w.m S.toNat S.toNat) $$ [Hfo Hfd Hosm] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
+    wp_apply hSync w.f w.fd K.p.path (DFrac.own 1) (DFrac.own 1) (dbFd K.p.ino)
+      (rsPost true w.m S.toNat S.toNat) $$ [Hfo Hfd Hosm] as %e2 ⟨Hfo, Hfd, Hsy, #He2⟩
     · rw [← fileOwn_eq]; iframe; iframe #
     ihave Hfo : fileOwn w.f w.fd K.p.path (DFrac.own 1) $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     have hfin : ∀ m' : OsMeta, m'.size = S.toNat → m'.maps = w.m.maps →
         growCloser (GF := GF) fr K tx v w -∗
         K.db.[DB, go!"file"] ↦ w.f -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-        osFd w.fd (DFrac.own 1) ⟨K.p.ino, true, true⟩ -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
+        osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗ osMeta K.p.ino (DFrac.own 1) m' -∗
         K.db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) -∗
         ([∗list] s ∈ wSlots (min w.m.size (mapLen w.ms) / 4096) w.C w.fl,
           ∃ vf, cellsR (GF := GF) v.base (4096 * s) 4096 vf) -∗
@@ -248,7 +253,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     · subst he2
       wp_auto
       iapply HΦ
-      ihave Hfin := hfin ((rsPost w.m S.toNat S.toNat).bsynced c) rfl hrm $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
+      ihave Hfin := hfin ((rsPost true w.m S.toNat S.toNat).bsynced c) rfl hrm $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
       icases Hfin with ⟨%w', Hw', %hg⟩
       iexists w'
       iframe Hw'
@@ -288,7 +293,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · itrivial
     try wp_auto
     iapply HΦ
-    have hfin' := hfin (rsPost w.m S.toNat S.toNat) rfl hrm
+    have hfin' := hfin (rsPost true w.m S.toNat S.toNat) rfl hrm
     ihave Hfin := hfin' $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
     icases Hfin with ⟨%w', Hw', %hg⟩
     iexists w'
@@ -340,17 +345,17 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · icases hGrown $$ [Htr Hrest] with ⟨Hosm, Hz, Htail⟩
         · iframe
         have hfin := grow_finish (GF := GF) fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8
-          (rsPost w.m S.toNat S.toNat) hSge hrm hSal hS10 hS63 S.toNat rfl
+          (rsPost true w.m S.toNat S.toNat) hSge hrm hSal hS10 hS63 S.toNat rfl
         iapply hfin $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb Hz
       · unfold os.ftUndone
         icases Htr with ⟨%xs', -, Hosm, -, Htail⟩
         ihave Htail : mcellsAny (GF := GF) (GMap.singleton v.base (mapLen w.ms)) w.m.size S.toNat
           $$ [Htail]
-        · rw [hmaps, Nat.min_eq_left hSge, Nat.max_eq_right hSge]; iexact Htail
+        · rw [hmaps, Nat.min_eq_left hSge, grow_rsHi _ _ hSge hSal]; iexact Htail
         ihave Htail := mcellsAny_single_join v.base (mapLen w.ms) w.m.size S.toNat hSge $$ [Htail Hrest]
         · iframe
         iapply grow_finish_same fr K tx v w hok v.base (mapLen w.ms) hms hL.2 hfs8
-          (w.m.announce (min w.m.size S.toNat) (max w.m.size S.toNat) S.toNat)
+          (w.m.announce (min w.m.size S.toNat) (rsHi true w.m.size S.toNat) S.toNat)
           (grow_announce_size _ _ _ _) (grow_announce_maps _ _ _ _)
           $$ Hclose Hfile Hfo Hfd Hosm Hdsz Hlow Hpart Htail Hwb
     icases Hfin with ⟨%w', Hw', %hg⟩

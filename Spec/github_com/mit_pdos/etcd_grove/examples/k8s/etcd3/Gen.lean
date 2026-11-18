@@ -1,7 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
 `Gen(tbl, id)` (k8s_etcd3.go): `genFrom` of a random number and client `id`'s cached object in the
-table `tbl` (`isCache c tbl`): an input `Gen` may return, its cached object one of the store `c`
+table `tbl` (`isCache c tbl`), or (stage E of 7f-6) for a watcher a watch (`genWatch` of its
+watcher object, or a skipped one): an input `Gen` may return (`GenInA`), its cached object one of
+the store `c`
 (`cachedIn`): boxed, `Apply`'s input (`kInOk c`), as `Check`'s closure gives `lintest.genSpec`
 (stage 7b: the table).
 -/
@@ -36,7 +38,7 @@ abbrev Gen.spec : Prop :=
       isCache c tbl }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen)) (Val #tbl))
       (Val #id))
-  {{ (x : Input), RET #x; ⌜GenIn x⌝ ∗ cachedIn c x }}
+  {{ (x : Input), RET #x; ⌜GenInA x⌝ ∗ cachedIn c x }}
 
 end spec
 

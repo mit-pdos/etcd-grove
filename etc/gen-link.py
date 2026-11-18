@@ -28,7 +28,10 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvreconf > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvreconf/Link.lean
        etc/gen-link.py --kvdurable > Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurable/Link.lean
        etc/gen-link.py --raft-witness > RaftWitness/Proof/go_etcd_io/raft/v3/Link.lean
+       etc/gen-link.py --raft-tla > RaftTla/Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --kvwitness > RaftWitness/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvwitness/Link.lean
+       etc/gen-link.py --raft-noax > RaftNoAx/Proof/go_etcd_io/raft/v3/Link.lean
+       etc/gen-link.py --kvdurable-noax > RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/Link.lean
        etc/gen-link.py --mvcc > Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Link.lean
        etc/gen-link.py --backend > Proof/go_etcd_io/etcd/server/v3/storage/backend/Link.lean
        etc/gen-link.py --adt > Proof/go_etcd_io/etcd/pkg/v3/adt/Link.lean
@@ -66,6 +69,9 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --k8sinformers > Proof/k8s_io/client_go/informers/Link.lean
        etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8s/daemonset/apimodel/Link.lean
        etc/gen-link.py --bboltfs > Proof/github_com/mit_pdos/etcd_grove/examples/osfs/bboltfs/Link.lean
+       etc/gen-link.py --tracecheck > Proof/github_com/mit_pdos/etcd_grove/examples/raft/tracecheck/etcdraft/Link.lean
+       etc/gen-link.py --walfs > Proof/go_etcd_io/etcd/server/v3/storage/wal/Link.lean
+       etc/gen-link.py --durable > WalTester/Proof/github_com/mit_pdos/etcd_grove/examples/lib/durable/Link.lean
        etc/gen-link.py --mvccrand > Proof/github_com/mit_pdos/etcd_grove/examples/mvccrand/Link.lean
        etc/gen-link.py --mvccfull > Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/Link.lean
        etc/gen-link.py --bbolt > Proof/go_etcd_io/bbolt/Link.lean
@@ -168,6 +174,15 @@ durableExt] [go.IntoValInj GoString]`, which its specs take).
 read off each proof's binders, the specs with no proof are hypotheses of `links_pending`, and the
 non-spec premises are given by a table (`etc/link_bbolt.py`, whose docstring has the rules);
 `--bbolt --results` writes the `Results.lean` of its public results.
+`--walfs` links etcd's real WAL over the per-byte Linux file extension (`wal`, `walpb`, `fileutil`
+and the packages they call; `--durable`: `examples/lib/durable`'s, in the part `WalTester/`), with no
+list file either: the callees are
+read off the proofs' binders, the results are generic in the specs' model parameters (`P`, `Mr`,
+...), and the specs with no proof and the premises on the parameters are each result's
+hypotheses (`etc/link_walfs.py`, whose docstring has the rules); `--walfs --check` compares the
+output with the committed `Link.lean`. `--durable` is the same over `examples/lib/durable`;
+`--wal-tester` over the WAL tester (`examples/etcd/wal`), given the WAL's and `durable`'s linked
+results as they are (`link_walfs.TESTER`: a binder `∀ W : WalGS GF, ...` gets `fun W => ...`).
 
 A function with a second spec and proof (`Replica.persist`'s `specRun`/`wp_proofRun`) is listed a
 second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, its result
@@ -177,15 +192,38 @@ second time as `<fn>+<S>`: its spec `<F>.spec<S>`, its proof `<F>.wp_proof<S>`, 
 etc/link-lean-first-porcupine-dag.txt, as `--porcupine`: its specs are searched in the main tree
 and in `PorcupineDag/` (the part's spec of a function taking the place of v1.3.1's of the same
 name; `sort.Sort`'s is the main tree's).
+`--tracecheck` links the trace checker's proofs (`examples/raft/tracecheck/etcdraft`, layer C of
+`notes/trace-validation-plan.md`), from etc/link-lean-first-tracecheck.txt: every callee is in the
+package (no `@`, `?` or `=`); the trace check's `Results.lean` takes `NewTrace`'s, `CheckTrace`'s
+and `Result.TLCOK`'s results from it.
 `--raft-witness` and `--kvwitness` link the same in the parallel tree `RaftWitness/` (raft's
 witness experiment, `notes/raft-witness.md`), from etc/link-lean-first-raft-witness.txt and
 etc/link-lean-first-kvwitness.txt: their specs are searched in the main tree and in
 `RaftWitness/`, the part's spec of a function taking the place of the main tree's.
+`--raft-noax` and `--kvdurable-noax` link the same in the part `RaftNoAx/` (raft without hand-written
+axioms, `notes/raft-noax-part.md`), as `--raft` and `--kvdurable` (`PART_ALIASES`), from
+etc/link-lean-first-raft-noax.txt and etc/link-lean-first-kvdurable-noax.txt.
 """
 import os
 import re
 import sys
 import textwrap
+
+# The modes of a part that is a renamed copy of the main tree (`RaftNoAx/`, etc/copy-part.py,
+# `notes/raft-noax-part.md`): each links as its main-tree mode (that mode's tables: namespace,
+# section variables, extra imports, ...), from its own callee list, with its specs searched in the
+# main tree and in the part (the part's taking the place of the main tree's), its extra imports
+# the part's where the part has the module, and the package paths renamed as etc/copy-part.py does.
+PART_ALIASES = {
+    "--raft-noax": ("--raft", "link-lean-first-raft-noax.txt", "RaftNoAx",
+                    "The Raft proof without hand-written axioms (`RaftNoAx/`)"),
+    "--kvdurable-noax": ("--kvdurable", "link-lean-first-kvdurable-noax.txt", "RaftNoAx",
+                         "The durable key-value store example's proofs without hand-written axioms "
+                         "(`RaftNoAx/`)"),
+}
+ALIAS = None
+if len(sys.argv) > 1 and sys.argv[1] in PART_ALIASES:
+    ALIAS, sys.argv[1] = sys.argv[1], PART_ALIASES[sys.argv[1]][0]
 
 # The v3rpc package's assumptions (the server's model, `v3rpc.etcdModelOfServer`), which the
 # client's watch specs take besides the client's (the watch slice's unit W-C).
@@ -221,7 +259,7 @@ LEAN_FIRST = {
     "--server": ("link-lean-first-server.txt",
                  "go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage "
                  "go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 "
-                 "go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
+                 "_root_.Perennial.go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3",
                  "go_etcd_io.etcd.server.v3.etcdserver.Assumptions",
                  "The etcd server's proofs (the consistent index and the apply thread)",
                  [""]),
@@ -258,7 +296,7 @@ LEAN_FIRST = {
     # the server's apply package (etcd's server/v3/etcdserver/apply), over the txn package
     "--apply": ("link-lean-first-apply.txt",
                 "go_etcd_io.etcd.server.v3.etcdserver.apply go_etcd_io.etcd.server.v3.etcdserver.txn "
-                "go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3 "
+                "go_etcd_io.etcd.server.v3.storage.mvcc go_etcd_io.etcd.api.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3 "
                 "go_uber_org",
                 "go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions",
                 "The server's `apply` package's proofs (etcd's `server/v3/etcdserver/apply`) and the "
@@ -267,7 +305,7 @@ LEAN_FIRST = {
     # path; its assumptions include the server's
     "--v3rpc": ("link-lean-first-v3rpc.txt",
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver "
-                "go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3",
+                "go_etcd_io.etcd.api.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3",
                 "go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions",
                 "The gRPC KV service's proofs (etcd's `server/v3/etcdserver/api/v3rpc`) and the "
                 "functions they call", [""]),
@@ -337,6 +375,14 @@ LEAN_FIRST = {
                        "go_etcd_io.raft.v3.Assumptions",
                        "The Raft proof of the witness experiment (raft v3.7 plus the read-index "
                        "fix and witness support, `RaftWitness/`)", ["", "RaftWitness"]),
+    # raft's `with_tla` build (the parallel tree RaftTla/, project raft-tla of etc/goose.py): the
+    # same proofs as `--raft`'s, compiled against that build (etc/gen-raft-tla.py), with the trace
+    # hooks' own proofs and their helpers' (`traceEvent`, `traceNodeEvent`, ...), which exist in
+    # that build only. A module of the part is linked in place of the main tree's.
+    "--raft-tla": ("link-lean-first-raft-tla.txt", "go_etcd_io.raft.v3",
+                   "go_etcd_io.raft.v3.Assumptions",
+                   "The Raft proof in raft's `with_tla` build (`RaftTla/`: the trace hooks with their "
+                   "bodies, for the trace check)", ["", "RaftTla"]),
     "--kvwitness": ("link-lean-first-kvwitness.txt",
                     "github_com.mit_pdos.etcd_grove.examples.raft.kvwitness go_etcd_io.raft.v3 "
                     "github_com.mit_pdos.etcd_grove.examples.lib.lintest github_com.anishathalye.porcupine",
@@ -541,6 +587,13 @@ LEAN_FIRST = {
                    "github_com.mit_pdos.etcd_grove.examples.lib.cluster3",
                    "github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Assumptions",
                    "The three-member cluster's start's proofs (`examples/lib/cluster3`)", [""]),
+    # the trace check's checker (examples/raft/tracecheck/etcdraft, layer C of
+    # notes/trace-validation-plan.md): every proof over its callees', all in the package
+    "--tracecheck": ("link-lean-first-tracecheck.txt",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft",
+                     "github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.etcdraft.Assumptions",
+                     "The trace checker's proofs (`examples/raft/tracecheck/etcdraft`, the Go "
+                     "transcription of raft's TLA+ trace specification)", [""]),
 }
 # The GooseLang extensions a mode's specs assume (their binders, after the semantics variables): the
 # Linux file extension's specs are over any semantics of it with `FsSemOk`
@@ -566,6 +619,8 @@ REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # (Q8 stage 1, slice 4) Perennial's `time.Sleep` (`traceReceiveMessage`, `=` callee)
+                 "--raft": ["Perennial.Proof.time.Link"],
                  # Perennial's `time.After` (the compactor's watch loop, `=` callee)
                  "--k8s-etcd3": ["Perennial.Proof.time.Link"],
                  # Perennial's linked results `sets.List`'s proof takes as terms (`=` callees)
@@ -624,6 +679,17 @@ for _m in ["--cachekv", "--watchkv", "--linkvtxn", "--k8setcd3", "--cluster3", "
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}
+if sys.argv[1:2] in (["--walfs"], ["--durable"], ["--wal-tester"]):
+    # etcd's WAL over the per-byte Linux file extension: the callees read off the proofs' binders,
+    # the results generic in the model parameters (`etc/link_walfs.py`); `--check` compares
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import link_walfs  # noqa: E402
+    import proof_roots  # noqa: E402  (Perennial's checkout as Lake resolves it)
+    link_walfs.main(os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")),
+                    proof_roots.PERENNIAL, sys.argv[0], check="--check" in sys.argv[2:],
+                    cfg={"--durable": link_walfs.DURABLE, "--wal-tester": link_walfs.TESTER}.get(sys.argv[1]))
+    sys.exit(0)
 if sys.argv[1:2] == ["--bbolt"]:
     # bbolt's Link: the callees read off the proofs' binders (`etc/link_bbolt.py`)
     sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -645,7 +711,21 @@ LEAN_FIRST["--mvccfull"] = ("link-lean-first-mvccfull.txt",
                             "mvcc's full tester's proofs (`examples/mvccfull`)", [""])
 mode = LEAN_FIRST.get(sys.argv[1]) if len(sys.argv) > 1 else None
 if mode is None:
-    sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)})")
+    sys.exit(f"usage: etc/gen-link.py MODE [--skip-unproved] (modes: {' '.join(LEAN_FIRST)} {' '.join(PART_ALIASES)})")
+if ALIAS:
+    _base, _list, _part, _what = PART_ALIASES[ALIAS]
+    sys.dont_write_bytecode = True  # no etc/__pycache__
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import importlib.util  # noqa: E402
+    _spec = importlib.util.spec_from_file_location(
+        "copy_part", os.path.join(os.path.dirname(os.path.abspath(__file__)), "copy-part.py"))
+    _cp = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_cp)
+    mode = (_list, _cp.rename(mode[1]), _cp.rename(mode[2]), _what, ["", _part])
+    _top = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    EXTRA_IMPORTS[sys.argv[1]] = [
+        f"{_part}.{_cp.rename(m)}" if os.path.exists(os.path.join(_top, _part, *_cp.rename(m).split(".")) + ".lean")
+        else m for m in EXTRA_IMPORTS.get(sys.argv[1], [])]
 # The modes whose results rest on porcupine's `checkSingle`, which shares the model's state values
 # in non-atomic invariants (`Shared.lean`) of iris-lean's camera `NaInvG GF`, not yet in
 # Perennial's `allG`: their sections assume the instance (`notes/STATUS.md`, "Porcupine").
@@ -931,7 +1011,7 @@ if cache:
         seen_links.add(mod)
         src = open(link_file(mod)).read()
         links.append((mod, link_namespace(src), set(re.findall(r"^theorem (\S+)", src, re.M))))
-        todo.extend(re.findall(r"^public import ((?:RaftWitness\.)?Proof\.\S+\.Link)$", src, re.M))
+        todo.extend(re.findall(r"^public import ((?:(?:RaftWitness|RaftTla|RaftNoAx)\.)?Proof\.\S+\.Link)$", src, re.M))
     here_ns = "EtcdGrove" + (f".{nsd}" if nsd else "")
     # an `@` callee's result named, in its Link, by the name `result` gives but in another
     # namespace than this one's (the client's `v3.clientv3.wp_New`, in `EtcdGrove.client`, called
@@ -1021,7 +1101,7 @@ if cache:
     out = [f"""/-
 {what}, every proof instantiated with its
 callees' results. All of them are Lean-first, listed with their callees in
-`etc/{listfile}`. Generated by `etc/gen-link.py {sys.argv[1]}` -- do not edit by
+`etc/{listfile}`. Generated by `etc/gen-link.py {ALIAS or sys.argv[1]}` -- do not edit by
 hand.
 
 `#print axioms` on a result is its trust base.""" + ("\n\n" + textwrap.fill(

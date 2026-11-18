@@ -50,6 +50,8 @@ theorem not_touch {m : OsMeta} {lo hi b : Nat}
   unfold OsMeta.touch; split <;> (try split) <;> rfl
 @[simp] theorem touch_zf (m : OsMeta) (lo hi : Nat) : (m.touch lo hi).zf = m.zf := by
   unfold OsMeta.touch; split <;> (try split) <;> rfl
+@[simp] theorem touch_cz (m : OsMeta) (lo hi : Nat) : (m.touch lo hi).cz = m.cz := by
+  unfold OsMeta.touch; split <;> (try split) <;> rfl
 
 @[simp] theorem announce_size (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg).size = m.size := by
   simp [OsMeta.announce]
@@ -61,6 +63,8 @@ theorem not_touch {m : OsMeta} {lo hi b : Nat}
     (m.announce lo hi tg).hi = max m.hi tg := rfl
 @[simp] theorem announce_zf (m : OsMeta) (lo hi tg : Nat) :
     (m.announce lo hi tg).zf = m.zf.map (fun z => if lo < hi then max z hi else z) := rfl
+@[simp] theorem announce_cz (m : OsMeta) (lo hi tg : Nat) : (m.announce lo hi tg).cz = m.cz := by
+  simp [OsMeta.announce]
 theorem announce_dlo (m : OsMeta) (lo hi tg : Nat) :
     (m.announce lo hi tg).dlo = (m.touch lo hi).dlo := rfl
 theorem announce_dhi (m : OsMeta) (lo hi tg : Nat) :
@@ -79,10 +83,20 @@ theorem metaOk_announce {st st' : OsState} {i : Ino} {m : OsMeta} {f f' : OsFile
     (hcache : ∀ b, f'.cache b = f.cache b)
     (hcand : ∀ b, ¬ (lo ≤ b ∧ b < hi) → f'.cand b = f.cand b)
     (hmaps : ∀ b len, m.maps !! b = some len ↔ st'.proc.maps !! b = some ⟨i, len⟩)
-    (htg : ∀ t c, st'.proc.inflight !! t = some c → c.ino = i → c.target = tg) :
+    (htg : ∀ t c, st'.proc.inflight !! t = some c → c.ino = i → c.target = tg)
+    (hrz : ∀ s ∈ f.rzs, s ∈ f'.rzs) :
     MetaOk st' i (m.announce lo hi tg) f' := by
   refine ⟨by simp [hmo.size, hsz.1], by simp; have := hmo.lo; omega,
-    by simp; have := hmo.hi; omega, by simpa using hmaps, fun t c ht hc => ?_, ?_, ?_, ?_⟩
+    by simp; have := hmo.hi; omega, by simpa using hmaps, fun t c ht hc => ?_, ?_, ?_, ?_,
+    fun b hb hbz => by
+      rw [announce_cz] at hbz
+      rw [hcache b]; exact hmo.cz b (by rw [← hsz.1]; exact hb) hbz,
+    fun s hs => hrz s (hmo.rz s (by simpa using hs)), fun z hz b hb => ?_,
+    fun b hb => by rw [hcache b]; exact hmo.ce b (by rw [← hsz.1]; exact hb)⟩
+  rotate_right
+  · simp only [announce_zf, Option.map_eq_some_iff] at hz
+    obtain ⟨z0, hz0, rfl⟩ := hz
+    rw [hcache b]; exact hmo.zc z0 hz0 b (by split at hb <;> omega)
   · rw [htg t c ht hc]; exact ⟨Nat.min_le_right _ _, Nat.le_max_right _ _⟩
   · intro b hb hn
     rw [announce_dlo, announce_dhi] at hn
@@ -492,7 +506,7 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       else f.cand b := fun b => rfl
   refine ⟨fun q => ?_, fun q m' hm => ?_, fun q b x hx => ?_, fun q f1 b h1 hb => ?_,
     hcoh.fds, fun t' => ?_, fun t' ti' c' h1 h2 => ?_, fun t' ti' h => ?_, fun t' ti' h => ?_,
-    fun t' ti' h => ?_, fun q m' c' hm hc => ?_⟩
+    fun t' ti' h => ?_, fun t' ti' h hk => ?_, fun q m' c' hm hc => ?_⟩
   · simp only [startState, OsState.addInflight, OsState.stampFile, GMap.lookup_insert_eq_iff]
     split
     · simp
@@ -513,12 +527,17 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
           · simp only [startState, OsState.addInflight] at h1
             rw [GMap.lookup_insert_ne _ _ he] at h1
             exact absurd h2 (hni t' c' h1))
+        (fun s hs => by
+          simp only [f', OsFile.announce]; split
+          · exact List.mem_cons_of_mem _ hs
+          · exact hs)
       rw [TokInfo.meta]; exact this
     · rename_i hne
       obtain ⟨f1, h1, hm1⟩ := hcoh.meta_some q m' hm
       refine ⟨f1, by simp only [startState, OsState.addInflight, OsState.stampFile,
         GMap.lookup_insert_eq_iff, if_neg hne]; exact h1, ?_⟩
-      refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail⟩
+      refine ⟨hm1.size, hm1.lo, hm1.hi, hm1.maps, fun t' c' h1' h2' => ?_, hm1.dur, hm1.zf, hm1.tail, hm1.cz,
+        hm1.rz, hm1.zc, hm1.ce⟩
       by_cases he : t = t'
       · subst he; simp only [startState, OsState.addInflight, GMap.lookup_insert] at h1'
         cases h1'; exact absurd (hcp.symm.trans h2') hne
@@ -589,6 +608,14 @@ theorem osCoh_start {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (ht : st
       · rw [hm0] at hz; exact (hmo.zf z hz).2 b hzb
       · rw [hm0] at hsz hc; exact hmo.tail b c (by rw [← hmo.size]; exact hsz) hc
     · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t' ti' h
+      exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t' ti' h))]; exact h1, hrest⟩
+  · rw [GMap.lookup_insert_eq_iff] at h
+    split at h
+    · cases h
+      refine ⟨f', by rw [hfile, hp, if_pos rfl], ?_⟩
+      simp only [f', OsFile.announce]
+      rw [show c.kind = ti.kind from hkind, if_pos hk, hn]; exact List.mem_cons_self
+    · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_rz t' ti' h hk
       exact ⟨f1, by rw [hfile, if_neg (Ne.symm (hnt t' ti' h))]; exact h1, hrest⟩
   · show c' ≤ st.fs.stamp + 1
     rw [GMap.lookup_insert_eq_iff] at hm
@@ -679,7 +706,7 @@ theorem wp_osPWriteStartG (fd off : w64) (data : List w8) (dq : DFrac) (d : OsFd
   obtain ⟨hwf, hcoh⟩ := Hwc
   unfold osFd osMeta osBytes
   icases bytesG_lookup _ d.ino _ _ xs Γb $$ HAb Hbs with %Hbl
-  icases gAuth_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
+  icases gFdElem_lookup _ _ _ _ _ _ $$ HAf Hfd with %Hfdl
   icases gAuth_lookup _ _ _ _ _ _ $$ HAm Hm with %Hml
   icases tokRes_meta_whole _ $$ Htok Hm with %Hnt
   icases cellsRes_lookup h _ $$ Hσ Hcells with %Hag
@@ -878,7 +905,7 @@ theorem MetaOk.mono_infl {st st' : OsState} {q : Ino} {m : OsMeta} {f : OsFile}
     (hin : ∀ t c, st'.proc.inflight !! t = some c → st.proc.inflight !! t = some c)
     (h : MetaOk st q m f) : MetaOk st' q m f :=
   ⟨h.size, h.lo, h.hi, by rw [hm]; exact h.maps, fun t c ht => h.targets t c (hin t c ht), h.dur,
-    h.zf, h.tail⟩
+    h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
 
 theorem doneInflight_sub (st : OsState) (t : Nat) :
     ∀ t' c', (st.doneInflight t).proc.inflight !! t' = some c' → st.proc.inflight !! t' = some c' := by
@@ -914,7 +941,7 @@ theorem osCoh_done {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) :
     OsCoh (st.doneInflight t) Γb Γm Γf (GMap.delete t Γt) := by
   refine ⟨hcoh.meta_dom, fun q m hm => ?_, hcoh.bytes, hcoh.bytes_full, hcoh.fds, fun t' => ?_,
     fun t' ti c' h1 h2 => ?_, fun t' ti h => ?_, fun t' ti h => ?_, fun t' ti h => ?_,
-    fun q m c hm hc => hcoh.cut_le q m c hm hc⟩
+    fun t' ti h hk => ?_, fun q m c hm hc => hcoh.cut_le q m c hm hc⟩
   · obtain ⟨f, hf, hmo⟩ := hcoh.meta_some q m hm
     exact ⟨f, hf, hmo.mono_infl (st := st) rfl (doneInflight_sub st t)⟩
   · simp only [OsState.doneInflight, GMap.lookup_delete_iff]; split
@@ -929,6 +956,7 @@ theorem osCoh_done {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) :
   · exact hcoh.tok_meta t' ti h
   · exact hcoh.tok_file t' ti h
   · exact hcoh.tok_cand t' ti h
+  · exact hcoh.tok_rz t' ti h hk
 
 /-- With the change `t` on `p` done, no other change in flight is on `p`. -/
 theorem noTok_done {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm Γf Γt)
@@ -961,10 +989,33 @@ theorem insertBytes_append (p : Ino) : ∀ (off : Nat) (xs ys : List (ByteG))
 /-- The size after a `pwrite` of `k` bytes at `off` of a file of size `sz`. -/
 def pwSize (sz off k : Nat) : Nat := if k = 0 then sz else max sz (off + k)
 
+/-- The page cache known zero past the size after a `pwrite` of `n` bytes at `off` that wrote `k`:
+a write that wrote all of its data up to or past the zeros known (`zf ≤ off + n`) leaves the page
+cache zero to the end of the page holding its end (what it did not write there was past the zeros
+known, `MetaOk.zc`); otherwise as before (a short write ends on a page boundary, `PwCut`, so there
+would be nothing to add; and leaving it out keeps a retry's `OsMeta` the whole write's,
+`pwPost_step`). -/
+def pwCz (m : OsMeta) (off n k : Nat) : Nat :=
+  match m.zf with
+  | some z => if 0 < n ∧ k = n ∧ z ≤ off + n then max m.cz (pageEnd (off + n)) else m.cz
+  | none => m.cz
+
+theorem le_pwCz (m : OsMeta) (off n k : Nat) : m.cz ≤ pwCz m off n k := by
+  unfold pwCz; split
+  · split <;> omega
+  · exact Nat.le_refl _
+
+/-- A write of all of its data up to or past the zeros known raises `cz` to its end's page. -/
+theorem pwCz_raise {m : OsMeta} {off n z : Nat} (hz : m.zf = some z) (hn : 0 < n)
+    (hzk : z ≤ off + n) : pageEnd (off + n) ≤ pwCz m off n n := by
+  unfold pwCz; rw [hz]; dsimp only; rw [if_pos ⟨hn, rfl, hzk⟩]; omega
+
 /-- The `OsMeta` after a `pwrite` of `n` bytes at `off` that wrote `k`: as its first step left it,
-with the size it leaves. -/
+with the size it leaves, and the page cache known zero past it (`pwCz`). -/
 def pwPost (m : OsMeta) (off n k : Nat) : OsMeta :=
-  { m.announce (min off m.size) (off + n) (max m.size (off + n)) with size := pwSize m.size off k }
+  { m.announce (min off m.size) (off + n) (max m.size (off + n)) with
+    size := pwSize m.size off k
+    cz := pwCz m off n k }
 
 /-- The candidates known past the size after a `pwrite` of `data` at `off` (inside the file),
 announced as change `n`: each byte of its range past the old size with the data's byte as a new
@@ -1167,6 +1218,27 @@ abbrev pwState (st : OsState) (t : Nat) (p : Ino) (f : OsFile) (c : OsChange) (o
 
 end finish
 
+/-- The page cache past the end of a write that raised `cz` (`pwCz`) is zero: the write wrote all
+of its data, and the bytes past it were past the zeros its first step announced (`MetaOk.zc`). -/
+theorem pwFinish_cz_raise {st : OsState} {i : Ino} {m : OsMeta} {f : OsFile} {off k b lo : Nat}
+    {data : List w8} (hlo : lo ≤ off)
+    (hmo : MetaOk st i (m.announce lo (off + data.length) (max m.size (off + data.length))) f)
+    (hb : pwSize f.size off k ≤ b) (hbz : b < pwCz m off data.length k) (hbc : ¬ b < m.cz) :
+    f.cache b = 0 := by
+  unfold pwCz at hbz
+  split at hbz
+  · rename_i z0 hz0
+    split at hbz
+    · rename_i hraise
+      obtain ⟨hn0, hfull, hzk⟩ := hraise
+      subst hfull
+      have hbk : off + data.length ≤ b := by unfold pwSize at hb; split at hb <;> omega
+      refine hmo.zc (max z0 (off + data.length)) ?_ b (by omega)
+      simp only [announce_zf, hz0, Option.map_some]
+      rw [if_pos (by omega)]
+    · omega
+  · omega
+
 section specs2
 variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [GoGlobalContext]
   [go.BasicIntoValInj]
@@ -1175,8 +1247,10 @@ variable {s : Stuckness} {E : CoPset}
 attribute [local instance] Classical.propDecidable
 
 /-- What a `pwrite`'s count may be (the page-cut rule, `Impl.lean`'s `PWriteFinish`): none of the
-data, all of it, or a prefix ending on a page boundary of the file. -/
-def PwCut (off len k : Nat) : Prop := k = 0 ∨ k = len ∨ (off + k) % osPageSize = 0
+data, all of it, or a prefix ending on a page boundary of the file; and what it landed ends at or
+below `maxBytes` (the model's bound, `Impl.lean`: ext4's `s_maxbytes` on C), unless it is empty. -/
+def PwCut (off len k : Nat) : Prop :=
+  (k = 0 ∨ k = len ∨ (off + k) % osPageSize = 0) ∧ (k = 0 ∨ off + k ≤ maxBytes)
 
 set_option maxHeartbeats 400000 in
 /-- The second step of `pwrite(fd, data, off)`, anywhere (`wp_osPWriteFinishK` is the case
@@ -1269,22 +1343,29 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
     obtain ⟨x, hx⟩ := cellView_isSome hwf hm
     obtain ⟨m0, hm0⟩ := Hag l x hx
     rw [hm0]; rfl
-  have hfin := fun (k : Nat) (_hk : k ≤ data.length) => osWf_setFile' (osWf_done (t := t) hwf)
+  have hfin := fun (k : Nat) (_hk : k ≤ data.length) (hkm : k = 0 ∨ off + k ≤ maxBytes) =>
+    osWf_setFile' (osWf_done (t := t) hwf)
     (f' := pwFile f c off k) hf
-    (by simp only [pwFile, OsFile.land]; omega)
+    (by simp only [pwFile, OsFile.land]; split <;> omega)
     (fun b p0 hp0 => hwf.stamps c.ino f b p0 hf hp0)
   imodintro
   isplitr
   · ipureintro
-    exact ⟨_, renderHeap (pwState st t c.ino f c off data.length) h, _,
-      ⟨t, c, off, data, f, data.length, 0, rfl, hct, hckind, hf, Nat.le_refl _, .inl ⟨.inl rfl, rfl⟩,
-        .inr (.inl rfl), rfl, rfl⟩, mapsFresh_same rfl, heapRendered_render (hfin _ (Nat.le_refl _)) rfl Hh⟩
+    by_cases hfit : off + data.length ≤ maxBytes
+    · exact ⟨_, renderHeap (pwState st t c.ino f c off data.length) h, _,
+        ⟨t, c, off, data, f, data.length, 0, rfl, hct, hckind, hf, Nat.le_refl _, .inl ⟨.inl rfl, rfl⟩,
+          .inr (.inl rfl), .inr hfit, rfl, rfl⟩, mapsFresh_same rfl,
+        heapRendered_render (hfin _ (Nat.le_refl _) (.inr hfit)) rfl Hh⟩
+    · exact ⟨_, renderHeap (pwState st t c.ino f c off 0) h, _,
+        ⟨t, c, off, data, f, 0, 27, rfl, hct, hckind, hf, Nat.zero_le _, .inr (by decide),
+          .inl rfl, .inl rfl, rfl, rfl⟩, mapsFresh_same rfl,
+        heapRendered_render (hfin _ (Nat.zero_le _) (.inl rfl)) rfl Hh⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
-  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, hpc0, hst', rfl⟩ := Hst
-  have hpc : PwCut off' data'.length k := hpc0
+  obtain ⟨t', c', off', data', f', k, e, hv, hinfl, hkind', hf', hk, hke, hpc0, hpm0, hst', rfl⟩ := Hst
+  have hpc : PwCut off' data'.length k := ⟨hpc0, hpm0⟩
   clear hpc0
   have htt : t = t' := by injection hv with hv; exact extVal_inj hv
   subst htt
@@ -1293,7 +1374,7 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
   injection hkind' with ho hd'; subst ho; subst hd'
   rw [hf, Option.some.injEq] at hf'; subst hf'
   subst hst'
-  have hwf2 := hfin k hk
+  have hwf2 := hfin k hk hpc.2
   have hsz2 : (pwFile f c off k).size = pwSize f.size off k :=
     pwFile_sizeG f c off k (by rw [hclo]; omega) (by rw [hclo]; omega)
   have hcache := fun b => pwFile_cacheG f c off k b hclo
@@ -1345,7 +1426,8 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
       { m.announce (min off m.size) (off + data.length) (max m.size (off + data.length)) with
         size := pwSize m.size off k,
         tc := cond keep (pwTailG m off data n)
-          (m.announce (min off m.size) (off + data.length) (max m.size (off + data.length))).tc } := by
+          (m.announce (min off m.size) (off + data.length) (max m.size (off + data.length))).tc,
+        cz := pwCz m off data.length k } := by
     simp only [pwPostKG, pwPost]
   have hcoh2 : OsCoh (pwState st t c.ino f c off k) (insertBytes c.ino (min off m.size) ys Γb)
       (<[c.ino := pwPostKG keep m off data k n]> Γm) Γf (GMap.delete t Γt) := by
@@ -1361,8 +1443,20 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
         fun b len => by
           have h1 := hmo.maps b len; simp only [announce_maps] at h1; simp only [announce_maps]
           exact h1,
-        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_⟩
-      rotate_right
+        fun t2 c2 h1 h2 => ?_, fun b hb hn => ?_, fun z hz => ?_, fun b cs hb hc => ?_,
+        fun b hb hbz => ?_, fun s hs => hmo.rz s (by simpa using hs), fun z hz b hzb => ?_,
+        fun b hb => ?_⟩
+      rotate_right 1
+      · -- the page cache past the new size's last page: not written, past the old one's
+        rw [hsz2] at hb
+        have h1 : pwSize f.size off k ≤ pageEnd (pwSize f.size off k) := le_pageEnd _
+        have h2 : pageEnd f.size ≤ pageEnd (pwSize f.size off k) :=
+          pageEnd_mono (by unfold pwSize; split <;> omega)
+        have h3 : k = 0 ∨ off + k ≤ pwSize f.size off k := by unfold pwSize; split <;> omega
+        have hk : ¬ (min off m.size ≤ b ∧ 0 < k ∧ b < off + k) := by omega
+        rw [hcache b, if_neg hk]
+        exact hmo.ce b (by omega)
+      rotate_right 3
       · rw [show (pwFile f c off k).cand b = f.cand b from rfl]
         rw [hsz2] at hb
         have hfb : f.size ≤ b := by
@@ -1389,6 +1483,22 @@ theorem wp_osPWriteFinishKG (keep : Bool) (t : Nat) (p : Ino) (off : Nat) (data 
             · cases hc
           · rename_i hr
             exact hmo.tail b cs hfb (by rw [announce_tc, if_neg hr]; exact hc)
+      · rw [hsz2] at hb
+        have hk : ¬ (min off m.size ≤ b ∧ 0 < k ∧ b < off + k) := by
+          unfold pwSize at hb; split at hb <;> omega
+        have hfb : f.size ≤ b := by unfold pwSize at hb; split at hb <;> omega
+        rw [hcache b, if_neg hk]
+        change b < pwCz m off data.length k at hbz
+        by_cases hbc : b < m.cz
+        · exact hmo.cz b hfb (by simpa only [announce_cz] using hbc)
+        · exact pwFinish_cz_raise (Nat.min_le_left _ _) hmo hb hbz hbc
+      · simp only [announce_zf, Option.map_eq_some_iff] at hz
+        obtain ⟨z0, hz0, rfl⟩ := hz
+        have hz1 := hmo.zc _ (by simp only [announce_zf, hz0]; rfl) b hzb
+        have hlt : min off m.size < off + data.length := by omega
+        rw [if_pos hlt] at hzb
+        rw [hcache b, if_neg (by omega)]
+        exact hz1
       · simp only [pwFile, OsFile.land, announce_lo]; omega
       · simp only [pwFile, OsFile.land, announce_hi]; split <;> omega
       · exfalso
@@ -1794,6 +1904,24 @@ theorem mcells_any (M : GMap Loc Nat) (lo hi : Nat) (vf : Nat → val) :
   apply BigSepM.bigSepM_mono
   intro b len _
   iintro H; iexists vf; iexact H
+
+/-- `mcells_congr` both ways. -/
+theorem mcells_congr_iff (M : GMap Loc Nat) (lo hi : Nat) (vf vf' : Nat → val)
+    (h : ∀ i, lo ≤ i → i < hi → vf i = vf' i) :
+    mcells (GF := GF) M lo hi vf ⊣⊢ mcells M lo hi vf' := by
+  unfold mcells
+  constructor <;> apply BigSepM.bigSepM_mono <;> intro b len _
+  · exact (cellsR_congr _ _ _ vf vf' (fun i h1 h2 => h i (by omega) (by omega))).1
+  · exact (cellsR_congr _ _ _ vf vf' (fun i h1 h2 => h i (by omega) (by omega))).2
+
+theorem mcells_split (M : GMap Loc Nat) (lo mid hi : Nat) (vf : Nat → val) (h1 : lo ≤ mid)
+    (h2 : mid ≤ hi) :
+    mcells (GF := GF) M lo hi vf ⊣⊢ mcells M lo mid vf ∗ mcells M mid hi vf := by
+  unfold mcells
+  rw [← BigSepM.bigSepM_sep_eq]
+  constructor <;> apply BigSepM.bigSepM_mono <;> intro b len _
+  · exact (cellsR_split b len lo mid hi vf h1 h2).1
+  · exact (cellsR_split b len lo mid hi vf h1 h2).2
 
 end specs4
 

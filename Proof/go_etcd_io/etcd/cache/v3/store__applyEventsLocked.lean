@@ -378,7 +378,7 @@ theorem store.applyEventsLocked.wp_proof
     wp_apply wp_load_slice_index evSl (sint.Z j) ls DFrac.discard evp Hj.1 $$ [] as -
     · iframe Hsl; ipureintro; exact Hevp_lookup
     ihave He0 := Hev $$ %(sint.nat j) %evp %e0 %Hevp_lookup %He0_lookup
-    iunfold eventAt at He0
+    ihave He0 := eventAt_elim $$ He0
     icases He0 with ⟨%keySl, #Htyp, #Hkv, #Hkey, #Hks, #Hmod⟩
     wp_auto
     have He0j : evs[sint.nat j] = e0 := by
@@ -415,7 +415,7 @@ theorem store.applyEventsLocked.wp_proof
       wp_apply wp_load_slice_index evSl (sint.Z k) ls DFrac.discard evp1 Hk.2.2 $$ [] as -
       · iframe Hsl; ipureintro; exact Hevp1_lookup
       ihave He1 := Hev $$ %(sint.nat k) %evp1 %e1 %Hevp1_lookup %He1_lookup
-      iunfold eventAt at He1
+      ihave He1 := eventAt_elim $$ He1
       icases He1 with ⟨%keySl1, #Htyp1, #Hkv1, #Hkey1, #Hks1, #Hmod1⟩
       wp_auto
       rw [if_decide_bool_eq_true]

@@ -6,9 +6,12 @@ no `APIStatus` and wraps none (`.plain`), `false`. Stated as a post every view o
 some bool, the former statement). Precondition `apiErrOk err` (`View.lean`): a `*StatusError` held
 read-only, or a `.plain` error; added after the review of 2026-11-10, which refuted the
 precondition-free statement: a typed-nil `*StatusError`, bare or wrapped with `%w`, panics in
-`Status().Details` (`examples/k8s7e2attack/attack_test.go` `TestTypedNilStatusError`). The details
-and their causes are read without being held (the pod control's create holds only the struct):
-once non-nil, `Status().Details.Causes` cannot panic in Go.
+`Status().Details` (`examples/k8s7e2attack/attack_test.go` `TestTypedNilStatusError`). `apiErrOk`
+holds a `*StatusError`'s details and their causes read-only too (fix (a) of 2026-11-17, the stage
+apierrors-fix: the former `apiErrOk` held only the struct, and a caller that still owned the
+details could write their causes after the call and build a view the answer contradicts,
+`notes/hasstatuscause-later-view.md`, `examples/axiomcx/hasstatuscause` `TestLaterView`), so every
+view built later has the causes the call read.
 
 Faithful: `StatusCause` reads the error only through `err.(APIStatus)` / `errors.As(err, &status)` and
 `Status().Details.Causes` (`TestStatusView`, `TestPlainView`). The trust boundary: restated in stage

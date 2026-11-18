@@ -15,6 +15,7 @@ module
 
 public import Spec.go_etcd_io.raft.v3.releasePendingReadIndexMessages
 public import Spec.go_etcd_io.raft.v3.raft__committedEntryInCurrentTerm
+public import Proof.go_etcd_io.raft.v3.TracedSend
 
 @[expose] public section
 
@@ -94,7 +95,7 @@ theorem releasePendingReadIndexMessages.wp_proof
       raft.committedEntryInCurrentTerm.spec (GF := GF) (hG := hG))
     (wp_sendMsgReadIndexResponse : sendMsgReadIndexResponse.spec (GF := GF) (hG := hG)) :
     releasePendingReadIndexMessages.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hlead Hterm Hcit Hpne
+  intro c r id s G Hlead Hterm Hcit Hpne
   wp_start as Hpre
   iNamed Hpre
   wp_auto
@@ -122,7 +123,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     rw [decide_eq_true Hz]
     wp_auto
     iapply HΦ $$ %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     by_cases Hsg : CfgSingle c id
     · left
@@ -169,10 +170,10 @@ theorem releasePendingReadIndexMessages.wp_proof
   obtain ⟨Hl1, Hl2⟩ := Hprl
   by_cases Hsg : CfgSingle c id
   · -- (2026-10-14) the leader is the single voter: each request answered at once
-    ihave Hphys := ownRaftPhysC_eq c r id _
-      (readRespondAll id { s with rd := { s.rd with pend := [] } }
-        ((pendReqs s).take (sint.nat (W64 0))))
-      (by rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; rfl) $$ Hphys
+    icases physG_eq c r id G (s2 := readRespondAll id { s with rd := { s.rd with pend := [] } }
+          ((pendReqs s).take (sint.nat (W64 0))))
+        (by rw [show sint.nat (W64 0) = 0 from rfl, List.take_zero]; try rfl) $$ [$Hphys $HG]
+      with ⟨Hphys, HG⟩
     ihave IH : iprop(∃ (n : w64) (mv : Loc),
         "i" ∷ i_ptr ↦ n ∗
         "m" ∷ m_ptr ↦ mv ∗
@@ -180,9 +181,11 @@ theorem releasePendingReadIndexMessages.wp_proof
         "Hphys" ∷ ownRaftPhysCV c c.voters r id
           (readRespondAll id { s with rd := { s.rd with pend := [] } }
             ((pendReqs s).take (sint.nat n))) ∗
-        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (s.rd.pend.length : Int)⌝) $$ [i m Hpri Hphys]
+        "HG" ∷ G (readRespondAll id { s with rd := { s.rd with pend := [] } }
+            ((pendReqs s).take (sint.nat n))).outbox ∗
+        "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (s.rd.pend.length : Int)⌝) $$ [i m Hpri Hphys HG]
     · iexists W64 0, _
-      iframe i m Hpri Hphys
+      iframe i m Hpri Hphys HG
       ipureintro
       word
     wp_for IH
@@ -209,23 +212,32 @@ theorem releasePendingReadIndexMessages.wp_proof
         ((pendReqs s).take (sint.nat n))
       wp_apply wp_sendMsgReadIndexResponse _ _ _
         (readRespondAll id { s with rd := { s.rd with pend := [] } }
-          ((pendReqs s).take (sint.nat n))) l p.1 p.2 psn pctx prs (by rw [Hcf.2.1]; exact Hlead)
+          ((pendReqs s).take (sint.nat n))) l p.1 p.2 psn pctx prs G (by rw [Hcf.2.1]; exact Hlead)
         (by first | exact Hterm | simpa using Hterm | simp_all)
-        (Hpne p (List.mem_of_getElem? Hp)) Hpty
-        $$ [$Hphys $Hpl] as %s' ⟨Hphys, %Hres⟩
+        (Hpne p (List.mem_of_getElem? Hp)) Hpty $$ [$Hphys $Hpl HG] as %s' ⟨Hphys, %Hres, HG⟩
+      · -- (Q8 stage 1, slice 6) the response's gate (at no event, at the caller's mode); no heartbeat
+        iframe HG
+        isplitr
+        · iintro %Hs1 %mm %o %Hmm HG
+          iapply hookGateOpt_congr s.gh.tr _ r none none _ ?hr1 rfl
+          case hr1 => rw [readRespondAll_gh]
+          iapply Hgresp $$ %Hs1 %mm %o %Hmm HG
+        imodintro
+        iintro %Hns1
+        iexfalso; ipureintro; exact Hns1 Hsg
       obtain ⟨-, rfl⟩ := Hres.resolve_right (fun h => h.1 Hsg)
       wp_for_post
       iframe HΦ r
       iexists n + W64 1, l
       have Hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
       rw [Hsucc]
-      ihave Hphys := ownRaftPhysC_eq c r id _
-        (readRespondAll id { s with rd := { s.rd with pend := [] } }
-          ((pendReqs s).take (sint.nat n + 1)))
-        (by
-          rw [readRespondAll_take_succ id _ _ _ _ (pendReqs_lookup s _ p Hp)]
-          simp only [arriveReq, Hcf.1]) $$ Hphys
-      iframe i m Hpri Hphys
+      icases physG_eq c r id G (s2 := readRespondAll id { s with rd := { s.rd with pend := [] } }
+            ((pendReqs s).take (sint.nat n + 1)))
+          (by
+            rw [readRespondAll_take_succ id _ _ _ _ (pendReqs_lookup s _ p Hp)]
+            simp only [arriveReq, Hcf.1]) $$ [$Hphys $HG]
+        with ⟨Hphys, HG⟩
+      iframe i m Hpri Hphys HG
       ipureintro
       word
     · -- all answered
@@ -233,12 +245,12 @@ theorem releasePendingReadIndexMessages.wp_proof
         simp only [pendReqs, List.length_map]; word
       rw [Hfull, List.take_length]
       iapply HΦ
-      iframe Hphys
+      iframe Hphys HG
       ipureintro
       exact Or.inl ⟨Hsg, rfl⟩
-  ihave Hphys := ownRaftPhysC_eq c r id _
-    { sendMsgs (relState id s (sint.nat (W64 0))) [] with prvals := s.prvals }
-    (by simp [relState, sendMsgs, readonlyRelease]; rfl) $$ Hphys
+  icases physG_eq c r id G (s2 := { sendMsgs (relState id s (sint.nat (W64 0))) [] with prvals := s.prvals })
+      (by simp [relState, sendMsgs, readonlyRelease]; try rfl) $$ [$Hphys $HG]
+    with ⟨Hphys, HG⟩
   -- the loop: after `n` requests, the first `n` are released
   ihave IH : iprop(∃ (n : w64) (mv : Loc) (ms : List Msg) (pvs : GMap w64 Progress),
       "i" ∷ i_ptr ↦ n ∗
@@ -250,9 +262,10 @@ theorem releasePendingReadIndexMessages.wp_proof
          ∃ k, 0 < k ∧ k ≤ sint.nat n ∧
            m'.ctx = hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take k))⌝ ∗
       "%Hmm" ∷ ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗
-      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (s.rd.pend.length : Int)⌝) $$ [i m Hpri Hphys]
+      "HG" ∷ G ({ sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } : NState).outbox ∗
+      "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ (s.rd.pend.length : Int)⌝) $$ [i m Hpri Hphys HG]
   · iexists W64 0, _, [], s.prvals
-    iframe i m Hpri Hphys
+    iframe i m Hpri Hphys HG
     ipureintro
     refine ⟨fun _ h => absurd h List.not_mem_nil, rfl, by word, by word⟩
   wp_for IH
@@ -274,10 +287,42 @@ theorem releasePendingReadIndexMessages.wp_proof
     · iframe; ipureintro; exact Hl
     try wp_auto
     wp_apply wp_sendMsgReadIndexResponse _ _ _
-      { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } l p.1 p.2 psn pctx prs Hlead
+      { sendMsgs (relState id s (sint.nat n)) ms with prvals := pvs } l p.1 p.2 psn pctx prs G Hlead
       (by first | exact Hterm | simpa using Hterm | simp_all)
-      (Hpne p (List.mem_of_getElem? Hp)) Hpty
-      $$ [$Hphys $Hpl] as %s1 ⟨Hphys, %Hres⟩
+      (Hpne p (List.mem_of_getElem? Hp)) Hpty $$ [$Hphys $Hpl HG] as %s1 ⟨Hphys, %Hres, HG⟩
+    · -- (Q8 stage 1, slice 6) this request's heartbeats' gates, at the state with the first
+      -- `n + 1` requests released; no response
+      iframe HG
+      isplitr
+      · iintro %Hs1
+        iexfalso; ipureintro; exact Hsg Hs1
+      imodintro
+      iintro %Hns1 %to %cm %o %Hto %Hcm HG
+      have Hcm' : uint.Z cm = min (uint.Z s.logst.committed)
+          (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) := by
+        simp only at Hcm
+        rw [Hmm] at Hcm
+        exact Hcm
+      iapply hookGateOpt_congrQ s.gh.tr _ r
+        (sendOutGate id
+          { s with rd := { s.rd with pend := [],
+                                     ro := readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take (sint.nat n + 1)) } }
+          c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take (sint.nat n + 1))))])
+        _ (G (o ++ [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] []
+            (hbCtx (readonlyRelease s.rd.ro id s.logst.committed (s.rd.pend.take (sint.nat n + 1))))])) _
+        ?hh1 ?hh2 ?hh3
+      case hh1 => rfl
+      case hh2 =>
+        rw [readonlyRelease_take_succ _ _ _ _ _ _ Hp]
+        simp only [readonlyArrive, hbCtx_recvAck]
+        rfl
+      case hh3 =>
+        rw [readonlyRelease_take_succ _ _ _ _ _ _ Hp]
+        simp only [readonlyArrive, hbCtx_recvAck]
+        rfl
+      iapply Hgate $$ %Hns1 %(sint.nat n + 1) %to %cm %o %(And.intro (Nat.succ_pos (sint.nat n)) Hlt) %Hto %Hcm' HG
     rcases Hres with ⟨Hs1, -⟩ | ⟨-, ms', pvs', rfl, Hms', Hmm'⟩
     · exact absurd Hs1 Hsg
     wp_for_post
@@ -285,11 +330,11 @@ theorem releasePendingReadIndexMessages.wp_proof
     iexists n + W64 1, l, ms ++ ms', pvs'
     have Hsucc : sint.nat (n + W64 1) = sint.nat n + 1 := by word
     rw [Hsucc]
-    ihave Hphys := ownRaftPhysC_eq c r id _
-      { sendMsgs (relState id s (sint.nat n + 1)) (ms ++ ms') with prvals := pvs' }
-      (by simp only [sendMsgs, arriveState, relState, arriveReq,
-            readonlyRelease_take_succ _ _ _ _ _ _ Hp, List.append_assoc]) $$ Hphys
-    iframe i m Hpri Hphys
+    icases physG_eq c r id G (s2 := { sendMsgs (relState id s (sint.nat n + 1)) (ms ++ ms') with prvals := pvs' })
+        (by simp only [sendMsgs, arriveState, relState, arriveReq,
+            readonlyRelease_take_succ _ _ _ _ _ _ Hp, List.append_assoc]) $$ [$Hphys $HG]
+      with ⟨Hphys, HG⟩
+    iframe i m Hpri Hphys HG
     ipureintro
     refine ⟨?_, Hmm'.trans Hmm, by word, by word⟩
     intro m' Hm'
@@ -307,7 +352,7 @@ theorem releasePendingReadIndexMessages.wp_proof
     have Hfull : sint.nat n = s.rd.pend.length := by word
     rw [Hfull, relState_full]
     iapply HΦ
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact Or.inr ⟨Hsg, ms, pvs, rfl, fun m' Hm' => by
       obtain ⟨Hhb, k, Hk0, Hkn, Hctx⟩ := Hms m' Hm'

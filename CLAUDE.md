@@ -126,10 +126,42 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   specs, `Spec/slices/Sort`, ...; the generated package initializers and `PkgInitExt`,
   `etc/gen-init.py`'s `PART_INITS`); nothing outside it imports it. Links: `etc/gen-link.py
   --raft-witness`/`--kvwitness`; trust base: `etc/tcb-collections/raft-witness.txt`.
+- `RaftTla/` is another: raft's `with_tla` build (`state_trace.go`: the trace hooks with their
+  bodies), for raft's TLA+ trace validation (`examples/raft/tracecheck`) and nothing else. The main
+  tree translates and verifies raft WITHOUT the tag (the build etcd ships, `state_trace_nop.go`:
+  empty hooks), and every theorem outside `RaftTla/` is about that build. `RaftTla/{Code,
+  GeneratedProof}/` hold raft's own package translated with `-tags with_tla` (project `raft-tla`)
+  and the trace check's harness (project `tracecheck`'s part). Its specs and proofs of raft are
+  **generated copies** of the main tree's modules, imports redirected (`etc/gen-raft-tla.py`, files
+  starting with its marker line; `--check` in `etc/gates.sh` and CI): one proof text, compiled
+  against each build. Never edit a copy: edit the main tree's file and rerun the script. A raft file
+  of the main tree must therefore compile in both trees (name nothing that only one build has, and
+  do not unfold `isTraceLogger`). What differs between the builds is hand-written once per tree, at
+  the same module path: `InvTraceLogger` (the logger's contract: nil only in the main tree, the
+  `TraceEvent` method in `RaftTla/`), the eleven hooks' proofs (their specs are shared), raft's
+  `Init`, and `Link` (`etc/gen-link.py --raft-tla`, list `etc/link-lean-first-raft-tla.txt`);
+  `RaftTla/` alone has the hooks' helpers and the trace check's specs and proofs (its `Init` and
+  `PkgTable` from `etc/gen-init.py`). Nothing outside it imports it; trust base:
+  `etc/tcb-collections/tracecheck.txt` (`notes/decisions.md`, "One raft proof for both builds").
+- `RaftNoAx/` is another: raft without hand-written axioms (`notes/raft-noax-part.md`), for a closed
+  kvdurable theorem whose trust base has no axiom of this repository: raft of project `raft-noax` and
+  kvdurable of project `kvdurable-noax` (`etc/goose.py`'s `RAFT_NOAX_REV`, `KVDURABLE_NOAX_*`; with
+  kvreconf and walpb translated into it as parts of their projects), and copies of every main-tree
+  module of kvdurable's `Results` closure that reaches them, written by `etc/copy-part.py` (a first
+  line naming it; `--check` in CI; a file without that line is the part's own); its initializers
+  from `etc/gen-init.py`'s `PARTS`, its Links from `etc/gen-link.py --raft-noax`/`--kvdurable-noax`.
+  Nothing outside it imports it; trust base: `etc/tcb-collections/raft-noax.txt`.
 - `PorcupineDag/` is another: porcupine's unmerged PR #46 (the DAG search; `third_party/porcupine-dag`,
   project `porcupine-dag`), with v1.3.1's Go path, so its modules declare the main porcupine's names
   and nothing outside it imports it (`notes/porcupine-dag-plan.md`). Links: `etc/gen-link.py
   --porcupine-dag`; trust base: `etc/tcb-collections/porcupine-dag.txt`.
+- `WalTester/` is another: etcd's WAL tester (`examples/etcd/wal`, project `etcd-wal`) and the library it
+  keeps its oracle with, `examples/lib/durable` translated **with its bodies** (project `durable`'s part)
+  and proved over the per-byte file extension `fsExt`, where the main tree keeps `durable` trusted over
+  `durableExt` for kvdurable, kvfile and `etcdstart` (`notes/wal-lean-integration.md`, "`lib/durable`:
+  two translations", decided 2026-11-15). Its modules declare the main `durable`'s names, so nothing outside it imports it;
+  it imports the main tree's `os`, WAL, `fileutil` and raftpb. Temporary: it goes once kvdurable is
+  ported onto the bodied `durable` and `durableExt` retires. Links: `etc/gen-link.py --durable`.
 - `SpecPlan/` is another: the spec plan (`notes/specs-only/README.md`), intermediate specs for all of
   etcd (client, raft, server, apply/txn/lease/auth, mvcc, backend, bbolt and their trust boundaries)
   over opaque predicates, with no proofs: `SpecPlan/Spec/<pkg>/`, modules `SpecPlan.Spec.*`, one
@@ -282,6 +314,18 @@ Their roots are found by `etc/proof_roots.py` (every `Link.lean`/`MainLinked.lea
 reaches; the namespace from the `Link.lean` files), and a `.lake/tcb.json` that is
 not of the current roots (an interrupted run, a new package) is refused with `--reuse`.
 
+**Per top-level theorem, without a build**: `etc/theorem-loc.py THEOREM...` (e.g.
+`etcd_putget3_safe`) counts, read off the source text, the Lean lines the theorem trusts (its TCB:
+the axioms of its `etc/tcb-collections` file and the definitions its statement and those axioms are
+written in, split into premises and axioms) and the Go code lines its proof verifies (the functions
+whose `wp_proof` theorems it reaches, outside this repository and in it). It approximates
+`etc/tcb-report.lean` (see its `--help` for what it does not follow); its axioms are only as current
+as the collection's baseline. `--list-tcb`/`--list-verified` list what it counted, `--json` keeps it.
+`etc/theorem-tcb.py THEOREM... [-o DIR]` writes that TCB out to read (default: a fresh temporary
+directory): `TCB.lean` in reading order (the statement, its premises, then each axiom with the
+definitions it brings in), the same declarations in a trimmed copy of the tree, and a `README.md`
+with the counts by part and file.
+
 ## Proof writing
 
 Perennial's Lean docs (in the dependency, `.lake/packages/perennial/docs/`):
@@ -350,6 +394,15 @@ generated: never edit the `.lean` files by hand.
   name types- or names-only (zap, bbolt, `net/http`, ...); its raft dependency
   (`go.etcd.io/raft/v3` v3.7.0) is the raft above, which the etcd project does not translate
   (`-lean-root go.etcd.io/raft/v3=`).
+- From the same fork (branch `goose-lean-walfs2`, the WAL's fixes 0001-0006 rebased onto `lean`'s etcd pin
+  `6e8f0c004`, head `8c28a4296`: `notes/wal-fsext-fork/README.md`),
+  etcd's real WAL with bodies over the per-byte file extension's `os`: `server/v3/storage/wal` (but
+  `version.go`, `metrics.go`), `wal/walpb`, `client/pkg/v3/fileutil`, `pkg/v3/ioutil`, `pkg/v3/crc`, and
+  the standard-library packages they call that Perennial does not translate (`bufio`'s `Reader`,
+  `path/filepath`'s lexical functions over `internal/filepathlite`, `hash/crc32` names only); its proofs
+  are `Proof/go_etcd_io/etcd/server/v3/storage/wal/` (`Link.lean`: `etc/gen-link.py --walfs`; trust
+  base `etc/tcb-collections/wal-fsext.txt`). Until 2026-11-15 in the part `LinuxFs/`, with the main
+  tree's names-only WAL beside it (`notes/wal-lean-integration.md`).
 - `RaftWitness/{Code,GeneratedProof}/`: the witness experiment's raft (project `raft-witness`:
   the fork's branch `raft-witness-goose-lean`, commit `99cb9e2d9`, etcd-io/raft#168 rebased onto
   `raft37-goose-lean-a1` with fixes; the same packages and configuration as `raft`,

@@ -3,7 +3,9 @@ Package initialization of `k8s_io.apiserver.pkg.storage`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
 Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
-`tooLargeResourceVersionCauseMsg` hold strings.
+`tooLargeResourceVersionCauseMsg` hold strings, and `Everything` holds, for good, a predicate with no
+shard selector whose label and field selectors' `Empty()` is `true` (`everythingOk`, from the two
+axioms' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -147,12 +149,13 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (wp_map_make1 (K := w64) (V := GoString) go.int go.string) as %mref Hmap
   try wp_auto
   repeat (wp_apply (wp_mapInsert (K := w64) (V := GoString) go.int) $$ Hmap as Hmap; try wp_auto)
-  wp_apply EtcdGrove.labels.Everything.wp_proof as %_ -
+  wp_apply EtcdGrove.labels.Everything.wp_proof as %_ ⟨%il, %Hil, -, #HlE⟩
   try wp_auto
-  wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -
+  wp_apply EtcdGrove.fields.Everything.wp_proof as %_ ⟨%ifd, %Hif, #HfE⟩
   try wp_auto
   ipersist HRequestWatchProgress
   ipersist HtooLargeResourceVersionCauseMsg
+  ipersist HEverything
   iframe Hown
   imodintro
   isplitr
@@ -161,8 +164,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
-  iexists _, _
+  iexists _, _, _
   iframe #
+  unfold _root_.Perennial.k8s_io.apiserver.pkg.storage.etcd3.everythingOk
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iexists il; iframe #; ipureintro; exact Hil
+  iexists ifd; iframe #; ipureintro; exact Hif
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

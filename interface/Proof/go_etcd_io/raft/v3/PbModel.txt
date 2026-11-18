@@ -14,6 +14,13 @@ structure MessageM : Type where
   Reject' : Bool
   RejectHint' : w64
 
+structure MsgSt : Type where
+  msg : MessageM
+  ents : List EntryM
+  snap : Option SnapshotM
+  ctx : List w8
+  resps : List Loc
+
 structure SnapshotMetadataM : Type where
   ConfState' : ConfStateM
   Index' : w64

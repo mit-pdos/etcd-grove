@@ -20,7 +20,9 @@ process and cluster, the cluster told by its endpoints.
   countable values).
 * **The lock invariant** (`registryInv`): `endpointsMap` holds a map whose every entry `ep ↦ c`
   carries a claim of `ep` and its predicate of `c` (persistently: compactors are persistent).
-* **The package fact** (`registryFact`): `endpointsMapMu` is a mutex over it.
+* **The package fact** (`registryFact`): `endpointsMapMu` is a mutex over it; and (k8s 7f-5a-P
+  step 5) `defaultWatcherMaxLimit` holds `maxLimit` (10000), read-only (only tests write it):
+  `syncPaginated`'s page limit.
 -/
 module
 
@@ -83,7 +85,8 @@ def registryInv : IProp GF :=
 
 /-- **`etcd3`'s package fact** (see the file header). -/
 def registryFact : IProp GF :=
-  sync.isMutex (globalAddr k8s_io.apiserver.pkg.storage.etcd3.endpointsMapMu) registryInv
+  iprop(sync.isMutex (globalAddr k8s_io.apiserver.pkg.storage.etcd3.endpointsMapMu) registryInv ∗
+    globalAddr k8s_io.apiserver.pkg.storage.etcd3.defaultWatcherMaxLimit ↦□ (W64 10000))
 
 instance registryFact_persistent : Persistent (registryFact (GF := GF)) := by
   unfold registryFact; infer_instance

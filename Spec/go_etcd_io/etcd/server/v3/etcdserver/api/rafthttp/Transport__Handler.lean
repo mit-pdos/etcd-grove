@@ -34,7 +34,7 @@ abbrev rafthttp.Transport.Handler.spec : Prop :=
       trState γn t c }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
   {{ (h : GoInterface), RET #h;
-      http.handlerOk (raftHttpNet (netRh γn)) a iprop(c.R ∗ trTok γn t c) h }}
+      http.handlerOk (raftHttpNet (netRh γn)) a iprop(c.R ∗ transportTok γn t c) h }}
 
 end spec
 

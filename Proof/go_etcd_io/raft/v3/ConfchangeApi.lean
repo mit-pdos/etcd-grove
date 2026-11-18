@@ -126,6 +126,18 @@ theorem Membership.applyChange_restorable {o : ConfChangeIM} {m m' : Membership}
     · cases h; exact Membership.applyGo_restorable hw hr hg
     · cases h
 
+/-- (2026-11-12, trace-check implementation step 1; the design's Probe A, P1) **The empty
+`ConfChangeV2` leaves a joint membership**: at a valid, restorable joint membership (`confAt_valid`,
+`confAt_restorable`), `LeaveJoint` applies. (The design wrote it without `Restorable`; a valid joint
+membership whose staged learner is an incoming voter is one `LeaveJoint` refuses, Go's
+`checkInvariants` as raft's model, and `Valid` does not exclude it.) -/
+theorem Membership.applyChange_leaveJoint (m : Membership) :
+    m.Valid → m.Restorable → m.isJoint →
+    ∃ m', Membership.applyChange (.v2 ConfChangeV2M.empty) m = some m' := by
+  intro hv hr hj
+  unfold Membership.applyChange
+  exact ApiImpl.memApply_leaveJoint m hv hr.2 hj
+
 /-- (raft-final, 2026-10-29, for kvreconf) `Membership.Valid.snapListsOk` (`InvNodeRule`) with
 `Restorable`: a valid, restorable membership's `ConfState`, at fewer than `2^61` ids and an index
 below `2^61`, has the lists `snapshotCert_make` takes (`SnapListsOk`). -/

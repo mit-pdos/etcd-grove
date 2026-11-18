@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.RaftReadLend
 
 @[expose] public section
 
@@ -23,13 +23,17 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 r.raftLog.committed}`.
 
 raft v3.7 (2026-10-15, stage R4): a fresh `&pb.HardState{Term: new(r.Term), ...}`, returned
-read-only for good (`hsRO`, D4: shared by `Ready`, `prevHardSt` and the storage). -/
+read-only for good (`hsRO`, D4: shared by `Ready`, `prevHardSt` and the storage).
+
+(2026-11-12, trace-check step 4) On the fields it reads only (`ownRaftCore`: `Term`, `Vote`,
+`raftLog` and the log), so that `makeTracingState`, hence `traceEvent`, runs on raft's read view
+(`RaftReadLend`) at `switchToConfig`'s hook, the struct open at its tracker; a caller holding the
+whole struct takes the core out of it (`ownRaftPhysC_core`). Until then on `ownRaftPhysCV c c.voters`. -/
 abbrev raft.hardState.spec : Prop :=
-  -- (2026-10-14, stage B7 part 2) at any configuration (until then `ownRaftPhys cfg`)
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState),
-  {{ ownRaftPhysCV (GF := GF) c c.voters r id s }}
+  ∀ (r : Loc) (id : w64) (s : NState),
+  {{ ownRaftCore (GF := GF) r id s }}
     (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"hardState")) (Val #()))
-  {{ (p : Loc), RET #p; hsRO p (hardstateVal (nodeHardstate s)) ∗ ownRaftPhysCV c c.voters r id s }}
+  {{ (p : Loc), RET #p; hsRO p (hardstateVal (nodeHardstate s)) ∗ ownRaftCore r id s }}
 
 end spec
 

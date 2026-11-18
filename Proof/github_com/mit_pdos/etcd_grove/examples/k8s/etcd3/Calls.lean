@@ -17,6 +17,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.InvSteps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Cache
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatchStream
 
 @[expose] public section
 
@@ -541,11 +542,30 @@ def GenIn (x : Input) : Prop :=
   InOk x ∧ (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3 ∨ x.Kind' = W64 4) ∧
     x.Val'.length ≤ 2 ^ 20 ∧ CachedNoRV x
 
+/-- **A watch `Gen` may return** (stage E of 7f-6: a watcher's `genWatchFrom`, or a skipped watch):
+kind 5, no cached object; unless skipped, its key under the driver's resource prefix and one
+`PrepareKey` takes, short, its resource version parsed below `2^62 + 201` (G1: a cached object at
+`2^62` or above counts as none), its match and initial-events options as the watch check reads
+them (`WatchInOk`), a watch-list asking for bookmarks, and any other watch from revision 0 asking
+for initial events (`kModeOk_of`'s premises); a skipped watch has no resource version. -/
+def GenInW (x : Input) : Prop :=
+  x.Kind' = W64 5 ∧ x.UseCached' = false ∧ (x.Skip' = true → x.MinRV' = []) ∧
+  (x.Skip' = false →
+    go!"/objs/" <+: x.WKey' ∧ (k8s.prepareKeyM go!"/objs" x.WKey' x.Recursive').isSome ∧
+    x.WKey'.length ≤ 2 ^ 20 ∧
+    ∃ n, parseRVD x.MinRV' = some n ∧ uint.nat n < 2 ^ 62 + 201 ∧ WatchInOk x (uint.nat n) ∧
+      (x.SendInit' = W64 2 → x.Bookmarks' = true) ∧
+      (x.SendInit' ≠ W64 2 → x.SendInit' = W64 1 ∨ 0 < uint.nat n))
+
+/-- **An input `Gen` may return** (stage E of 7f-6): a unary client's (`GenIn`) or a watcher's
+(`GenInW`). -/
+def GenInA (x : Input) : Prop := GenIn x ∨ GenInW x
+
 
 /-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, with its cached object
 one of the store `c` (`cachedIn`). -/
 def kInOk (c : StoreCfg GF DObj) (i : GoInterface) : IProp GF :=
-  iprop(∃ x, ⌜i = boxIn x ∧ GenIn x⌝ ∗ cachedIn c x)
+  iprop(∃ x, ⌜i = boxIn x ∧ GenInA x⌝ ∗ cachedIn c x)
 
 instance kInOk_persistent (c : StoreCfg GF DObj) (i : GoInterface) :
     Persistent (kInOk (GF := GF) c i) := by

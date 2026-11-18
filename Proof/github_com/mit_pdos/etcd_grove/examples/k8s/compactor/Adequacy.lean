@@ -59,6 +59,14 @@ premises. For `Main` (one member, `etcdstart.StartCompactingServer` with retenti
   for `MainPartition` the three directories of `k8scompactorPDataDirs`) used by this process alone,
   as `dataDirsAbsent` also requires. Nothing in the program makes it false; a full disk or an I/O
   error does.
+
+**Over Linux files** (2026-11-15, the user's decision (A) on `wal-lean`): the program's extensions are
+`[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own semantics, no premise on
+the environment), since `fileutil`'s package initializer, which the server's initialization runs,
+probes `F_OFD_GETLK` through `syscall.FcntlFlock` over the file extension; the theorem's one new
+premise is the file extension's initial state, `Fs.FsInit` (`Hfs`: the files as on disk, the roots
+well formed), so it says that the program runs on a real file system. Until then the extensions were
+`TrivialExt.lean`'s `[idIssueExt]`.
 -/
 module
 
@@ -68,7 +76,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainLi
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
 
 @[expose] public section
@@ -84,7 +92,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 
 /-! ## The ghost-state bundle -/
 
@@ -110,7 +119,7 @@ instance k8scompactorGF_gooseGpreS : GooseGpreS k8scompactorGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨k8scompactorGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨k8scompactorGF_allG⟩, ⟨k8scompactorGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := k8scompactorGF_allG
 
@@ -161,7 +170,9 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     -- the named hypothesis of `clock.RealClock.After` (`time.After(d)`), as in client-go's link
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([k8scompactorProgram], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -174,7 +185,7 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23976"] (by decide) [go!"k8scompactor.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(k8s_compactor.memberName, ⟨none, some k8s_compactor.clientAddr⟩)] [] (List.Perm.refl _)
-    (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
+    (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC k8scompactorGF := heapAtKc hG lctx
   -- (Q1 (c), C3, 2026-11-05) the compactor registry, allocated before the program's proof is
@@ -250,7 +261,9 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     -- the named hypothesis of `clock.RealClock.After` (`time.After(d)`), as in client-go's link
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([k8scompactorPProgram steps], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -265,7 +278,7 @@ theorem k8s_compactor_partition_adequate [lctx : GoLocalContext] [sem : go.Seman
     k8scompactorPDataDirs (by decide)
     -- (hub step 7's A3) the cluster's members and its bridges; the program's address list is theirs
     -- up to order (peers, then clients, then bridges)
-    (cluster3.members k8s_compactor.clusterCfg) (cluster3.bridges k8s_compactor.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs
+    (cluster3.members k8s_compactor.clusterCfg) (cluster3.bridges k8s_compactor.clusterCfg) (by decide) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs
     HAs HDs n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC k8scompactorGF := heapAtKc hG lctx
   -- the compactor registry, allocated before the program's proof is chosen (as `k8s_compactor_adequate`)

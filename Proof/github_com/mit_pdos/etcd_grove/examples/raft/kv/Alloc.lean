@@ -60,9 +60,10 @@ theorem kvStorInv_alloc (E : CoPset) :
 (`cluster_alloc`): the committed requested entries, none, and the read contexts, none
 used; with the client's half of the value and the sequence-number tokens of `S0` (`New` takes
 `id ↪[γr.seq] 0`). -/
-theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
+theorem rkvInv_alloc (E : CoPset) (vs : List w64) (hv : KvVotersOk vs) (γ : Cluster)
+    (S0 : GMap w64 w64) :
     ⊢ ownCommittedOps (GF := GF) γ [] -∗ ownReadCtxs γ ∅ ={E}=∗
-      ∃ γr : RKVNames, ⌜γr.cluster = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
+      ∃ γr : RKVNames, ⌜γr.cluster = γ ∧ γr.voters = vs⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
         [∗map] id ↦ s ∈ S0, id ↪[γr.seq] s := by
   iintro Hops HU
   imod ghostVar_alloc (GF := GF) ([] : List (List w8)) with ⟨%γv, Hv⟩
@@ -70,7 +71,7 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
   imod ghost_map_alloc (GF := GF) S0 with ⟨%γs, HS, Hels⟩
   imod ghost_map_alloc_empty (GF := GF) (K := w64 × w64) (V := List w8) with ⟨%γm, HMi⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γo, HO⟩
-  imod inv_alloc rkvN E (rkvInvBody (GF := GF) ⟨γ, γv, γs, γm, γo⟩)
+  imod inv_alloc rkvN E (rkvInvBody (GF := GF) ⟨vs, hv, γ, γv, γs, γm, γo⟩)
     $$ [Hops Hv1 HU HS HMi HO] with #Hinv
   · inext
     unfold rkvInvBody
@@ -89,9 +90,9 @@ theorem rkvInv_alloc (E : CoPset) (γ : Cluster) (S0 : GMap w64 w64) :
     · iapply BigSepM.bigSepM_empty.2
       itrivial
   imodintro
-  iexists ⟨γ, γv, γs, γm, γo⟩
+  iexists ⟨vs, hv, γ, γv, γs, γm, γo⟩
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, rfl⟩
   unfold rkvInv rkvVal
   iframe Hinv Hels
   iexists []
@@ -103,30 +104,34 @@ premise), the store's cluster `kvCluster`, its invariant, the client's half at t
 sequence-number tokens of `S0`, `γ.dup = false`, no snapshot directories (2026-11-01, J8a), no
 bootstrap log (`γ.bootLen = 0`; 2026-11-01, durability stage II (l): `RestartNode`'s scope premise),
 and each voter's durable state at `RaftState.init` and its vacant id. -/
-theorem kvCluster_alloc (E : CoPset) (S0 : GMap w64 w64) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
+theorem kvCluster_alloc (E : CoPset) (vs : List w64) (hv : KvVotersOk vs) (S0 : GMap w64 w64)
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={E}=> ∃ γr : RKVNames,
-        ⌜γr.cluster.dup = false ∧ γr.cluster.snapLoc = (fun _ => none) ∧ γr.cluster.bootLen = 0 ∧
+        ⌜γr.voters = vs ∧ γr.cluster.dup = false ∧ γr.cluster.snapLoc = (fun _ => none) ∧ γr.cluster.bootLen = 0 ∧
+          -- (2026-11-09, Q8 stage 0) an untraced cluster (`cluster_alloc`'s)
+          Cluster.trace γr.cluster = none ∧
           γr.cluster.maxData = none⌝ ∗
         kvCluster γr ∗ rkvInv γr ∗
         rkvVal γr kvEmpty ∗ ([∗map] id ↦ s ∈ S0, id ↪[γr.seq] s) ∗
-        [∗list] id ∈ kvVoters, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
+        [∗list] id ∈ vs, raftState γr.cluster id RaftState.init ∗ nodeVacant γr.cluster id := by
   iintro
-  imod cluster_alloc (GF := GF) kvRaftN kvVoters [] [] false (fun _ => none) none E Hrb (by decide) (by decide)
-      (by decide) (by decide) (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
+  imod cluster_alloc (GF := GF) kvRaftN vs [] [] false (fun _ => none) none E Hrb hv.ne hv.nodup
+      hv.zero hv.len (fun h => absurd rfl h) (fun _ h => by cases h) (fun _ h => by cases h)
       $$ [] with
-    ⟨%γ, %Hγ, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hslots, -⟩
+    ⟨%γ, %Hγ, %Htr, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hslots, -⟩
   · iempintro
   imod confPolicy_alloc γ kvConfN kvRule E $$ Hdec with #Hpol
-  imod rkvInv_alloc (GF := GF) E γ S0 $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hseqs⟩
-  subst Hγr
+  imod rkvInv_alloc (GF := GF) E vs hv γ S0 $$ Hops HU with ⟨%γr, ⟨%Hγr, %Hvs⟩, #Hinv, Hval, Hseqs⟩
+  subst Hγr Hvs
   imod kvSnapInv_alloc γr E $$ Hsm with #Hsinv
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact Hγ
+  · ipureintro; exact ⟨rfl, Hγ.1, Hγ.2.1, Hγ.2.2.1, Htr, Hγ.2.2.2⟩
   iframe Hinv Hval Hseqs Hslots
   unfold kvCluster
   iframe Hiscl Hpol Hca0 Hsinv
+  ipureintro; exact Htr
 
 end alloc
 

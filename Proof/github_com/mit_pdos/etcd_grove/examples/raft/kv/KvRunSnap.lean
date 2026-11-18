@@ -242,7 +242,7 @@ entry, from the voters' membership at its start. -/
 theorem kv_noConf_upto (γr : RKVNames) (l : List LogEntry)
     (Hev : ∀ e, e ∈ l → e.isConfChange → e.isEmptyV2) :
     ∀ k, k ≤ l.length → isCluster (GF := GF) γr.cluster kvRaftN ∗ isCommittedLogLb γr.cluster l ∗
-      confAt γr.cluster 0 kvMembership ⊢ ⌜NoConfChangeIn l 0 k⌝
+      confAt γr.cluster 0 (kvMembership γr) ⊢ ⌜NoConfChangeIn l 0 k⌝
   | 0, _ => by
     iintro -
     ipureintro; exact noConf_empty l 0
@@ -253,10 +253,10 @@ theorem kv_noConf_upto (γr : RKVNames) (l : List LogEntry)
     have hkl : k < l.length := by omega
     obtain ⟨e, he⟩ : ∃ e, l[k]? = some e := ⟨_, List.getElem?_eq_getElem hkl⟩
     by_cases hcc : e.isConfChange
-    · ihave #Hk := confAt_noConf γr.cluster l 0 k kvMembership IH (Nat.zero_le _) (by omega)
+    · ihave #Hk := confAt_noConf γr.cluster l 0 k (kvMembership γr) IH (Nat.zero_le _) (by omega)
         $$ [Hl H0]
       · iframe Hl H0
-      ihave %Hj := committed_emptyV2_joint γr.cluster kvRaftN l k e kvMembership he
+      ihave %Hj := committed_emptyV2_joint γr.cluster kvRaftN l k e (kvMembership γr) he
         (Hev e (List.mem_of_getElem? he) hcc) $$ [Hc Hl Hk]
       · iframe Hc Hl Hk
       exact absurd Hj (fun h => h rfl)
@@ -266,7 +266,7 @@ theorem kv_noConf_upto (γr : RKVNames) (l : List LogEntry)
 of one keeps the voters' membership. -/
 theorem kv_noConf (γr : RKVNames) (l : List LogEntry) (E : CoPset) (HE : ↑rkvN ⊆ E) :
     ⊢ rkvInv (GF := GF) γr -∗ kvCluster γr -∗ isCommittedLogLb γr.cluster l ={E}=∗
-      ⌜NoConfChangeIn l 0 l.length⌝ ∗ confAt γr.cluster l.length kvMembership := by
+      ⌜NoConfChangeIn l 0 l.length⌝ ∗ confAt γr.cluster l.length (kvMembership γr) := by
   iintro #Hinv #Hcl #Hl
   imod kv_committed_conf_all γr l E HE $$ Hinv Hl with %Hev
   unfold kvCluster
@@ -276,7 +276,7 @@ theorem kv_noConf (γr : RKVNames) (l : List LogEntry) (E : CoPset) (HE : ↑rkv
   imodintro
   isplitl []
   · ipureintro; exact Hnc
-  iapply confAt_noConf γr.cluster l 0 l.length kvMembership Hnc (Nat.zero_le _) (Nat.le_refl _)
+  iapply confAt_noConf γr.cluster l 0 l.length (kvMembership γr) Hnc (Nat.zero_le _) (Nat.le_refl _)
   iframe Hl H0
 
 end noconf

@@ -36,7 +36,8 @@ theorem restart1_Main [go_etcd_io.etcd.cache.v3.Assumptions] :
 end results
 
 section adequacy
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs
 variable [go_gctx : GoGlobalContext]
 
 /-- **The one-member restart example is safe, in the operational semantics.**
@@ -133,7 +134,9 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart1GF,
       ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([restart1Program], ((σ, g) : CfgState)) κs (t2, σ2))
@@ -141,7 +144,7 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  etcd_restart1_adequate Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n Hprem σ g Hlctx Hinit
+  etcd_restart1_adequate Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n Hprem σ g Hfs Hlctx Hinit
     Hthreads κs t2 σ2 Hsteps Hn
 
 end adequacy

@@ -33,7 +33,7 @@ theorem flCreat_ok : OpenFlagsOk flCreat.toNat := by
 
 /-- The fd an open with the flags `fl` gives on the file `i`. -/
 def openFd (i : Ino) (fl : w64) : OsFd :=
-  ⟨i, decide (fl.toNat % 4 ≠ O_WRONLY), decide (fl.toNat % 4 ≠ O_RDONLY)⟩
+  ⟨i, decide (fl.toNat % 4 ≠ O_WRONLY), decide (fl.toNat % 4 ≠ O_RDONLY), none, none⟩
 
 theorem fsTreeWf_metaEnd {st : OsState} (hw : FsTreeWf st) (k : Nat) : FsTreeWf (st.metaEnd k) :=
   ⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩
@@ -131,7 +131,7 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
     rw [hp, hn] at hf; cases hf
   refine ⟨fun q => ?_, fun q m hm => ?_, fun q i x hx => ?_, fun q f1 i h1 hi => ?_,
     hcoh.fds, hcoh.toks, hcoh.tok_is, fun t ti h => ?_, fun t ti h => ?_, fun t ti h => ?_,
-    fun q m c hm hc => ?_⟩
+    fun t ti h hk => ?_, fun q m c hm hc => ?_⟩
   · rw [files_setFile, GMap.lookup_insert_eq_iff]; split
     · simp
     · exact hcoh.meta_dom q
@@ -160,6 +160,8 @@ theorem osCoh_create {Γb Γm Γf Γt} (hwf : OsWf st) (hcoh : OsCoh st Γb Γm 
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_file t ti h
     exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
   · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_cand t ti h
+    exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
+  · obtain ⟨f1, h1, hrest⟩ := hcoh.tok_rz t ti h hk
     exact ⟨f1, by rw [file_setFile_ne _ _ (Ne.symm (hnt' t ti h))]; exact h1, hrest⟩
   · rw [GMap.lookup_insert_eq_iff] at hm
     split at hm
@@ -193,7 +195,7 @@ theorem treeWorld_mk {st st' : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirP
 the files alone (`st0`, then `fd` added). -/
 theorem osWorld_addFd {st st0 : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (NonAtomic val)}
     (hs : FilesSame st st0) {fd : w64} {d : OsFd} (hfd : st.proc.fds !! fd = none)
-    (hfile : ∃ f, st.file d.ino = some f)
+    (hfd0 : 0 ≤ fd.toInt) (hfile : ∃ f, st.file d.ino = some f)
     (hr : HeapRendered st (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) h h')
     (hfr : MapsFresh st (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) h) :
     ⊢ osWorld (L := L) st Γb Γm Γf Γt h ==∗
@@ -215,7 +217,7 @@ theorem osWorld_addFd {st st0 : OsState} {Γb Γm Γf Γt} {h h' : GMap Loc (Non
       (<[fd := d]> Γf) Γt := by
     rw [hΓf]; exact osCoh_fds hcoh0 _
   have hΓfn : Γf !! fd = none := by rw [hcoh.fds]; exact hfd
-  imod gAuth_insert _ _ _ fd d hΓfn $$ HAf with ⟨HAf, Hfd⟩
+  imod gFdElem_insert _ _ _ fd d hfd0 hΓfn $$ HAf with ⟨HAf, Hfd⟩
   have hcv : cellView (st0.setProc { st0.proc with fds := <[fd := d]> st0.proc.fds }) =
       cellView st := cellView_congr hwf hwf' hs.2.2.2.1 (fun i => congrArg _ (hf0 i)) hs.2.2.1
   imod cells_same hwf hwf' hr hfr hs.2.2.2.1 hcv $$ [Hσ Hcells] with ⟨Hσ, Hcells⟩
@@ -239,8 +241,8 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -261,12 +263,13 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl', flRO_ok, hcall,
-      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+    exact ⟨_, h, _, .inl ⟨p, flRO, k, s0, rfl, treePath_of_lookup hl', flRO_ok, hcall,
+      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl, k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -280,18 +283,18 @@ theorem wp_osOpenDir (p : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s0 : N
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨-, -, -, hst1, rfl⟩ := heff
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hΓ : Γdf !! fd = none := by
       have := hc.fds fd; rw [hdfn] at this
       cases h0 : Γdf !! fd with
       | none => rfl
       | some x => rw [h0] at this; cases this
-    imod gAuth_insert _ _ _ fd (j, DirPh.idle (dview (st.fs.treeDur, st.fs.metaLog) j) q) hΓ $$ HAdf
+    imod gFdElem_insert _ _ _ fd (j, DirPh.idle (dview (st.fs.treeDur, st.fs.metaLog) j) q) hfd0 hΓ $$ HAdf
       with ⟨HAdf, Hfd⟩
     have hst'' : st' = setDfd (st.metaEnd k') fd ⟨j, .idle⟩ := hst
     subst hst''
@@ -363,8 +366,8 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#fl))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -384,12 +387,13 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) Hwc.1 (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨p, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
-      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+    exact ⟨_, h, _, .inl ⟨p, fl, k, s0, rfl, treePath_of_lookup hl', hfl, hcall,
+      ⟨fun h => absurd h (by simp [htr']), .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (treePath_of_lookup hl')
   obtain ⟨p', fl, k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -406,17 +410,17 @@ theorem wp_osOpenFile (p : GoString) (fl : w64) (R : Roots) (V : Hist) (q1 q : Q
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h $$ [HAb HAm HAf HAt Htok Hcells Hσ]
   · unfold osWorld; iframe; ipureintro; exact Hwc
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
     rw [hl0] at heff
     obtain ⟨⟨f', -, hst1⟩, rfl⟩ := heff
     simp only [htr', Bool.false_eq_true, ↓reduceIte] at hst1
     subst st1
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (st.metaEnd k').setProc { (st.metaEnd k').proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k').proc.fds } := hst
     subst hst''
-    imod osWorld_addFd (filesSame_metaEnd st k') hfdn ⟨f, hfi⟩ Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
+    imod osWorld_addFd (filesSame_metaEnd st k') hfdn hfd0 ⟨f, hfi⟩ Hr Hfr $$ Hw with ⟨Hw, Hfd⟩
     have hw' : FsTreeWf ((st.metaEnd k').setProc { (st.metaEnd k').proc with
         fds := <[fd := openFd i fl]> (st.metaEnd k').proc.fds }) := by
       refine ⟨hw.roots, hw.hist, hw.dfds, fun fd' h' => ?_, fun i' hi' => hw.files_lt i' hi'⟩
@@ -592,7 +596,7 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own q1) R V -∗ osCall (L := L) k s0 q -∗
       (∀ fd : w64, ∀ e : w64, ⌜RootsOk R⌝ -∗
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i, osTree (L := L) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
-            osMeta (L := L) i (DFrac.own 1) newMeta ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osMeta (L := L) i (DFrac.own 1) newMeta ∗ osFd (L := L) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osTree (L := L) (DFrac.own 1) R V ∨ ∃ i,
             osTree (L := L) (DFrac.own 1) R (V.push ⟨.create j b i, V.2.length⟩) ∗
             osMeta (L := L) i (DFrac.own 1) newMeta))) -∗
@@ -600,8 +604,8 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flCreat)))))
         @ s; E {{ Φ }} := by
   iintro #Hinv Hh Hk HΦ
-  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
-  iintro %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
+  iapply wp_fs_stepT "Open" _ Φ (by simp [val.isPanic]) hE _ (legacyWit_call _ _ _) $$ Hinv Hk
+  iintro Hk %st %Γb %Γm %Γf %Γt %V0 %Γdf %Γc %h Hw Hn
   unfold treeWorld
   icases Hn with ⟨%Hns, HAd, HAdf, HAc, Hrd, Hcr⟩
   obtain ⟨hw, hc⟩ := Hns
@@ -627,12 +631,13 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
   isplitr
   · ipureintro
     obtain ⟨hfr, hr⟩ := step_filesSame (h := h) hwf (filesSame_metaEnd st k) Hag
-    exact ⟨_, h, _, ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hl hb), flCreat_ok, hcall,
-      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
+    exact ⟨_, h, _, .inl ⟨child d b, flCreat, k, s0, rfl, .inr (treeName_child hl hb), flCreat_ok, hcall,
+      ⟨fun h => (Bool.false_ne_true (htr.symm.trans h)).elim, .inr ⟨1, by decide, fun h => absurd h (by decide), rfl, .inl rfl⟩⟩⟩, hfr, hr⟩
   inext
   iintro %e' %h' %st' %Hst
   obtain ⟨Hst, Hfr, Hr⟩ := Hst
   simp only [IsFsStep] at Hst
+  replace Hst := open_inTree Hst (.inr (treeName_child hl hb))
   obtain ⟨p', fl', k', s', hv, -, -, hk', hres⟩ := Hst
   injection hv with hv1 hv2
   have hkk : k' = k := by injection hv1 with h1; exact (extVal_inj h1).symm
@@ -686,12 +691,12 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
     iframe
   -- the files' world of the created state, from the old one's parts
   obtain ⟨-, hres⟩ := hres
-  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, rfl, hst | ⟨tgt, heff⟩⟩
+  rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst | ⟨tgt, heff⟩⟩
   · -- success
     obtain ⟨rfl, rfl⟩ := heffect st1 tgt heff
-    obtain ⟨hfd0, hfdn, hdfn⟩ := hfree
+    obtain ⟨hfd0, hfdn, hdfn, -⟩ := hfree
     have hst'' : st' = (createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds } := by
+        fds := <[fd := ⟨st.fs.nextIno, true, true, none, none⟩]> (createdSt st k' j b s0).proc.fds } := by
       rw [hst]; simp [O_WRONLY, O_RDONLY]
     subst hst''
     imod hghost $$ HAm HAd Hh with ⟨HAm, HAd, Hh, Hm⟩
@@ -699,14 +704,14 @@ theorem wp_osOpenCreate (d b : GoString) (R : Roots) (V : Hist) (q1 q : Qp) (k s
       $$ [HAb HAm HAf HAt Htok Hcells Hσ]
     · unfold osWorld; rw [hcvC]; iframe; ipureintro; exact ⟨hwfC, hcohC⟩
     imod osWorld_addFd (st := createdSt st k' j b s0) (filesSame_refl _) (fd := fd)
-      (d := ⟨st.fs.nextIno, true, true⟩) hfdn ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
+      (d := ⟨st.fs.nextIno, true, true, none, none⟩) hfdn hfd0 ⟨_, hfC⟩ Hr Hfr $$ Hwc with ⟨Hwc, Hfd⟩
     have hw' : FsTreeWf ((createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds }) := by
+        fds := <[fd := ⟨st.fs.nextIno, true, true, none, none⟩]> (createdSt st k' j b s0).proc.fds }) := by
       refine ⟨hwC.roots, hwC.hist, hwC.dfds, fun fd' _ => ?_, hwC.files_lt⟩
       show (createdSt st k' j b s0).proc.dfds !! fd' = none
       rw [hdfC]; simp
     have hc' := hcC.congr (st' := (createdSt st k' j b s0).setProc { (createdSt st k' j b s0).proc with
-        fds := <[fd := ⟨st.fs.nextIno, true, true⟩]> (createdSt st k' j b s0).proc.fds }) rfl rfl rfl rfl
+        fds := <[fd := ⟨st.fs.nextIno, true, true, none, none⟩]> (createdSt st k' j b s0).proc.fds }) rfl rfl rfl rfl
     ihave Hn := treeWorld_mk (st := st) (by rfl) hw' hc' $$ HAd HAdf HAc Hrd Hcr
     imodintro
     iexists Γb, _, _, Γt, _, ∅, ∅

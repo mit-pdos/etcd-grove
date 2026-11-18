@@ -71,7 +71,7 @@ theorem validateRevisions.wp_proof
         wp_apply wp_load_slice_index resp.Events' (sint.Z n) ls DFrac.discard evp' Hn.1 $$ [Hsl] as _
         · iframe Hsl; ipureintro; exact Hevp
         ihave Hev := Hall $$ %(sint.nat n) %evp' %e %Hevp %He
-        simp only [eventAt]
+        ihave Hev := eventAt_elim $$ Hev
         icases Hev with ⟨%keySl, #Htyp, #Hkv, #Hkey, #Hks, #Hmod⟩
         wp_auto
         have Hmem : e ∈ r.events := List.mem_of_getElem? He

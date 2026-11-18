@@ -133,7 +133,7 @@ theorem Cluster.start.wp_proof
   iNamed Hc'
   ihave #Hcl' := Hcl
   iunfold kdCluster at Hcl'
-  icases Hcl' with ⟨#HisC, -, #Hca0, -, -, #Hfiles⟩
+  icases Hcl' with ⟨#HisC, -, #Hca0, -, -, #Hfiles, -⟩
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
@@ -141,7 +141,7 @@ theorem Cluster.start.wp_proof
   ihave #Hinit := isInitialized_access $$ Hraft
   iunfold isInitialized at Hinit
   iNamed Hinit
-  have Hvnd : vs.Nodup := by rw [Ho.2]; exact raft_kvreconf.bootVoters_nodup _ (by have := Ho.1.2.1; word)
+  have Hvnd : vs.Nodup := by rw [Ho.2.1]; exact raft_kvreconf.bootVoters_nodup _ (by have := Ho.1.2.1.1; have := Ho.1.2.1.2; word)
   try wp_auto
   wp_apply (lc := 2) wp_fileOf γ vs dir c id $$ [$Hc]
   try wp_auto
@@ -310,8 +310,8 @@ theorem Cluster.start.wp_proof
           · simp [raft_kvreconf.logHist, raft_kvreconf.histOf]
           · simp at h
         · simp only [Membership.ids, Membership.simple, GMap.union_empty_r_L]
-          rw [GMap.size_list_to_set vs Hvnd, Ho.2, raft_kvreconf.bootVoters_length]
-          have := Ho.1.2.1; word
+          rw [GMap.size_list_to_set vs Hvnd, Ho.2.1, raft_kvreconf.bootVoters_length]
+          have := Ho.1.2.1.1; have := Ho.1.2.1.2; word
         · unfold kdInitCS; rw [if_pos (by word)]; exact raft_kvreconf.bootCS_is vs Hvnd
       ileft; ipureintro; word
     · -- a snapshot
@@ -424,11 +424,12 @@ theorem Cluster.start.wp_proof
     · rw [h0]; simp
     · exact (HFSH.2.2.2.2.2.2.2.2.1 F.snap (by simp only [kdContents]; rw [if_neg h0])).2
   have Hnid0 : id ≠ W64 0 := by intro h; rw [h] at Hid1; simp at Hid1
-  wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
-  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+  wp_apply wp_config γ vs dir c id s ap0 Hnid0 (by have := Ho.1.2.1.2; have := Ho.2.2; word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
+  obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
+  ihave %Htr := kdCluster_untraced γ vs $$ Hcl
   ihave Hrs := kd_restartStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
     wp_Entries s ms bp γs F (raft_kvreconf.bootCS vs) e0 γ.r.cluster (uint.nat ap0)
-    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Hmd HFok He0
+    (fun K => iprop(memStorMeta ms γs F.hs ∗ memStorInvP ms γs (kdJ γ.r.cluster K))) Htr Hmd HFok He0
     (by word) Hsc
     $$ Hpkg Hrec Hsb Hl Hfresh Hmeta Hd0 Hfro Hents Hend Hcmp Hval []
   · iintro %K Hm Hi; iframe Hm Hi
@@ -455,7 +456,7 @@ theorem Cluster.start.wp_proof
           · rw [h1]; simp; word
           · omega)
       (by simp only [kdContents_some_commit]; exact Hsc)
-      (by rw [Hbl0]; omega) Hinit)
+      (by rw [Hbl0]; omega) Hinit HcTL Htr0)
     $$ [$Hraft $Hcv $Hlogger $HisC $Hfits Hvac Hau Hrs]
     as %nd ⟨%n, %S', %l, %K, %Hnd, #HisNode, #Hl', %Hllen, %HS1b, Hdrv, Hncfg, Hrun, ⟨Hwr, %HS'⟩,
       ⟨Hmeta, #HmsInv⟩⟩

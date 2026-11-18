@@ -39,7 +39,7 @@ theorem fdatasync.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
   wp_apply hFd f fd p.path dq $$ [Hfo] as Hfo
   · rw [← fileOwn_eq]; iexact Hfo
   try wp_auto
-  wp_apply hSync fd dq ⟨i, true, true⟩ m $$ [Hfd Hm] as %e ⟨Hfd, Hr⟩
+  wp_apply hSync fd dq (dbFd i) m $$ [Hfd Hm] as %e ⟨Hfd, Hr⟩
   · iframe; iframe #
   ihave Hfo : fileOwn f fd p.path dq $$ [Hfo]
   · rw [fileOwn_eq]; iexact Hfo

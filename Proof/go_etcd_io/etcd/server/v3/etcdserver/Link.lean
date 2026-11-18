@@ -250,6 +250,7 @@ public import Proof.context.ValueStartTime
 public import Proof.context.WithCancelBackground
 public import Proof.context.WithValue
 public import Proof.errors.AsLeaf
+public import Proof.errors.AsLeafTy
 public import Proof.errors.Is
 public import Proof.errors.IsCtxErr
 public import Proof.errors.IsStatusErr
@@ -465,7 +466,6 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.streamWrit
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__pick
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.urlPicker__unreachable
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.waitSchedule
-public import Proof.go_etcd_io.raft.v3.raftpb.MessageType__String
 public import Proof.golang_org.x.time.rate.Every
 public import Proof.golang_org.x.time.rate.Limiter__Wait
 public import Proof.golang_org.x.time.rate.NewLimiter
@@ -619,7 +619,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.cindex go_etcd_io.etcd.server.v3.storage go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.server.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3 go_uber_org go_etcd_io.raft.v3
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
@@ -1099,10 +1099,6 @@ theorem binary.wp_WriteUint8 :
 theorem pbutil.wp_MustUnmarshalMessagePb :
     pbutil.MustUnmarshalMessagePb.spec (GF := GF) (hG := hG) :=
   pbutil.MustUnmarshalMessagePb.wp_proof proto.wp_UnmarshalPb
-
-theorem raftpb.MessageType.wp_String :
-    raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
-  raftpb.MessageType.String.wp_proof
 
 theorem zap.wp_Bool :
     zap.Bool.spec (GF := GF) (hG := hG) :=
@@ -1935,9 +1931,13 @@ theorem ioutil.wp_NewLimitedBufferReader :
     ioutil.NewLimitedBufferReader.spec (GF := GF) (hG := hG) :=
   ioutil.NewLimitedBufferReader.wp_proof
 
+theorem errors.wp_AsLeafTy :
+    errors.AsLeafTy.spec (GF := GF) (hG := hG) :=
+  errors.AsLeafTy.wp_proof
+
 theorem errors.wp_AsLeaf :
     errors.AsLeaf.spec (GF := GF) (hG := hG) :=
-  errors.AsLeaf.wp_proof
+  errors.AsLeaf.wp_proof errors.wp_AsLeafTy
 
 theorem rafthttp.pipelineHandler.wp_ServeHTTP :
     rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG) :=

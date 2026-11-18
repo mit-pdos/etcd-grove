@@ -661,7 +661,7 @@ theorem EtcdServer.start.wp_proof
     iframe Htok
     ipureintro; exact isPanic_intoVal ()
   -- what `Start`'s goroutines and the request path get
-  ihave #Hrs := isReadServer_of_serverM C.isOn hAW hDone hStop hLC hFC hNRID hRT (hAI C.isOn) hLg s E
+  ihave #Hrs := isReadServer_of_serverM C.isOn hAW hDone hStop hLC hFC hNRID hRT hAI hLg s E
     { ρ with wait := γw } γr Hρrd $$ [$Hpkg $Hreq $Hrd]
   -- the minted contexts (2026-10-16, stage R7b): from the mint and raft's commit invariant
   ihave #Hmint : readCtxMinted (GF := GF) γr $$ []

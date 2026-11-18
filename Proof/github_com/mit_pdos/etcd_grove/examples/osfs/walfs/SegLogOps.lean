@@ -115,7 +115,7 @@ theorem wp_logCreate (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hr
       (∀ fd : w64, ∀ e : w64,
         ((⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create j logB i, V.2.length⟩) ∗
-            osMeta (GF := GF) i (DFrac.own 1) newMeta ∗ osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true⟩) ∨
+            osMeta (GF := GF) i (DFrac.own 1) newMeta ∗ osFd (GF := GF) fd (DFrac.own 1) ⟨i, true, true, none, none⟩) ∨
          (⌜e ≠ 0 ∧ fd = -1⌝ ∗ (osTree (GF := GF) (DFrac.own (1 : Qp).half) R V ∨ ∃ i,
             osTree (GF := GF) (DFrac.own (1 : Qp).half) R (V.push ⟨.create j logB i, V.2.length⟩) ∗
             osMeta (GF := GF) i (DFrac.own 1) newMeta))) -∗
@@ -282,7 +282,7 @@ theorem wp_openLog (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj 
         ((∃ (fd : w64) (i : Ino) (V' : Hist), ⌜err = interface.nil ∧ 0 ≤ fd.toInt ∧
               V'.now.entry j logB = some (.file i)⌝ ∗
             os.ownFile f fd (child dir logB) (DFrac.own 1) ∗ os.ownOff f (W64 0) ∗
-            osFd fd (DFrac.own 1) ⟨i, true, true⟩ ∗ osMeta i (DFrac.own 1) newMeta ∗
+            osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩ ∗ osMeta i (DFrac.own 1) newMeta ∗
             osTree (DFrac.own (1 : Qp).half) R V') ∨
          (⌜err ≠ interface.nil⌝ ∗ ∃ V', osTree (DFrac.own (1 : Qp).half) R V')) }} := by
   wp_start as ⟨#Hos, #Hinv, Hh⟩
@@ -365,7 +365,7 @@ theorem wp_openLog (R : Roots) (hR : RootsOk R) (dir : GoString) (j : Ino) (hrj 
     · subst he0
       rw [decide_eq_true rfl]
       ihave Hfd := (show (if W64 0 = (0 : w64) then osFd (GF := GF) fd (DFrac.own 1)
-          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true⟩
+          (openFd i (W64 0x80042)) else emp) ⊢ osFd fd (DFrac.own 1) ⟨i, true, true, none, none⟩
         by rw [openFd_rw]; split
            · iintro H; iexact H
            · exact absurd rfl ‹_›) $$ Hfd

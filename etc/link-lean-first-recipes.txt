@@ -81,7 +81,7 @@ rpctypes_ErrorDesc: status_FromError
 rpctypes_EtcdError__Error:
 rpctypes_Error: rpctypes_ErrorDesc status_FromError rpctypes_EtcdError__Error
 status_Error:
-WatchResponse__Err: rpctypes_Error status_Error
+WatchResponse__Err: rpctypes_Error status_Error rpctypes_EtcdError__Error
 # watch.go: waiting for events.
 waitEvents: WatchResponse__Err
 WaitEvents: WithRev waitEvents

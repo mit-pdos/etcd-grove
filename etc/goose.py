@@ -9,8 +9,8 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, txnlinfaultsN, auth3, etcd-wal,
-               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, k8s-apiserver,
+  --project    only this project (raft, bbolt, etcd, kv, kvreconf, durable, prophkv, bboltfs, crashlog, walfs, durablekv, kvdurable, putget, putgetc, putget3, putgetN, leaseN, leaseexpiryN, txnlinfaultsN, restartN, authN, auth3, etcd-wal,
+               linkvtxn, porcupine, bridge, lintest, raft-witness, kvwitness, raft-noax, kvdurable-noax, raft-tla, tracecheck, k8s-apiserver,
                k8s-daemonset, k8s-compactor, bbolt-bank or bbolttest; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -66,6 +66,17 @@ WORK = os.path.join(ROOT, ".lake", "goose")
 # The Go toolchain the translations are generated with (the module docstring says why).
 GO_TOOLCHAIN = "go1.27.3"
 
+# Project raft's pin (projects raft and raft-tla translate two builds of it).
+RAFT_REV = "d2c16c558247d0a07b96986fc348a003dad80f6e"
+
+# The part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): project raft-noax's
+# pin (the fork's branch raft37-goose-lean-noax, notes/raft-noax.md), and project kvdurable-noax's
+# source directory and Go package, examples/raft/kvdurablenoax (`etc/copy-part.py`, which reads these,
+# renames the copied kvdurable proofs' package accordingly).
+RAFT_NOAX_REV = "91e2ea70f48377487eccbf01bf80dd9787fac450"
+KVDURABLE_NOAX_DIR = os.path.join("examples", "raft", "kvdurablenoax")
+KVDURABLE_NOAX_PKG = "github.com/mit-pdos/etcd-grove/examples/raft/kvdurablenoax"
+
 
 @dataclass
 class Part:
@@ -102,6 +113,10 @@ class Project:
     # The Go source is this directory of this repository (relative to its root) instead
     # of a fork (`repo`, `rev`: None).
     local: str = None
+    # Additional Go build tags the packages are loaded with, beside `goose` (goose's and proofgen's
+    # `-tags`, Perennial c6b39d4f8). Every package of one program must be translated with the same
+    # tags: projects raft-tla and tracecheck (the `with_tla` build) are the only ones with any.
+    tags: list = None
     # The module root of the translation: "" for `Code/`, `GeneratedProof/`; else
     # `<root>/Code/`, `<root>/GeneratedProof/` (configured by `<root>/Code/**.toml`), for
     # a project whose Go paths another project also translates (raft-witness and kvwitness,
@@ -132,7 +147,7 @@ PROJECTS = [
         # stages R0-R5 of notes/raft-retarget-plan.md; stage R6 made it the raft tree, 2026-10-16.)
         # Modules Code.go_etcd_io.raft.v3*, GeneratedProof.go_etcd_io.raft.v3*.
         repo="https://github.com/upamanyus/etcd",
-        rev="d2c16c558247d0a07b96986fc348a003dad80f6e",
+        rev=RAFT_REV,
         # raft's `proto` import is the names-only `Code.google_golang_org.protobuf.proto`
         # of the etcd project (as the protobuf runtime types raftpb's messages hold).
         # (`os`, `io/fs`: this repository's translations, project bboltfs's, not Perennial's; every
@@ -291,11 +306,18 @@ PROJECTS = [
         # (`ReportSnapshot`), so that a merged image is always at its own index and a dropped one
         # does not leave the follower in `StateSnapshot` (notes/restart3-a0-draft.md §3, §8; D-A0-1,
         # approved by the user via etcd-grove-81; D-A0-6).
+        # Then (the WAL over fsExt, 2026-11-14) branch `goose-lean-walfs`: the WAL's local fixes
+        # 0001-0005 (notes/wal-fsext-fork/README.md: `NewFileReader`'s Stat, `Create`'s cleanup, the
+        # byte-mix tests, `N.tmp` opened with `O_TRUNC`, `Create`'s parent close) and 0006 (2026-11-15:
+        # `WAL.Sync` takes `w.mu`, issues/etcd-wal-sync-releaselockto-race.md, the reproduced data
+        # race with `ReleaseLockTo`), first on 2eaeb872b (3df9b265f, e115818f5), rebased (2026-11-16,
+        # wal-lean session 6) onto 6e8f0c004 with each commit's author, committer and dates kept:
+        # 8c28a4296.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="6e8f0c004c15d59f9fa03fa646965ab3df63e359",
+        rev="8c28a4296f1699c699bc4d59459c691bcff995f0",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -313,7 +335,15 @@ PROJECTS = [
                     "github.com/grpc-ecosystem=",
                     # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
                     # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
-                    "encoding/base64="],
+                    "encoding/base64=",
+                    # (the WAL over fsExt, 2026-11-15: notes/wal-lean-integration.md) the
+                    # standard-library packages the WAL calls that Perennial does not translate:
+                    # `bufio`'s Reader and `path/filepath`'s lexical functions (over
+                    # `internal/filepathlite`) with bodies, `hash/crc32` (`hash=` above) names only
+                    "bufio=", "path/filepath=", "internal/filepathlite=",
+                    # (the same) `fileutil`'s lock and preallocation calls: the per-byte file
+                    # extension's `syscall` and `golang.org/x/sys/unix` (project bboltfs's), as `os=`
+                    "syscall=", "golang.org/x/sys=", "internal/poll=", "internal/syscall="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -403,11 +433,16 @@ PROJECTS = [
             # v3.7 retarget, 2026-10-16: `newRaftNode`'s dead logger branch, the WAL
             # `bootstrappedRaft.newRaftNode` wraps)
             "go.etcd.io/etcd/client/pkg/v3/logutil",
+            # (the WAL over fsExt, 2026-11-13; in the main tree since 2026-11-15) the real WAL with
+            # bodies (wal.toml: but version.go and metrics.go, names only), `walpb`, `fileutil`,
+            # `pkg/v3/ioutil` (PageWriter) and `pkg/v3/crc`, and the standard-library packages they
+            # call that nothing else translates (`hash/crc32` names only; `bufio`'s `Reader` and
+            # `path/filepath`'s lexical functions, over `internal/filepathlite`, with bodies)
             "go.etcd.io/etcd/server/v3/storage/wal",
-            # types and names only (WAL W4a, 2026-11-11): the WAL's record types (`walpb.Snapshot`,
-            # which the read path's specs name) and `fileutil` (`TouchDirAll`, the WAL tester's call)
             "go.etcd.io/etcd/server/v3/storage/wal/walpb",
             "go.etcd.io/etcd/client/pkg/v3/fileutil",
+            "go.etcd.io/etcd/pkg/v3/crc",
+            "hash/crc32", "bufio", "path/filepath", "internal/filepathlite",
             "go.etcd.io/etcd/client/pkg/v3/transport",
             "go.etcd.io/etcd/pkg/v3/featuregate",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery",
@@ -532,7 +567,8 @@ PROJECTS = [
                os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
-               os.path.join("github_com", "grpc_ecosystem")],
+               os.path.join("github_com", "grpc_ecosystem"),
+               "bufio", os.path.join("path", "filepath"), os.path.join("internal", "filepathlite")],
         # etcd itself: not its tests, tools or root module
         counted_modules=[
             "go.etcd.io/etcd/api/v3",
@@ -544,6 +580,15 @@ PROJECTS = [
             "go.etcd.io/etcd/pkg/v3",
             "go.etcd.io/etcd/server/v3",
         ],
+        # the WAL's records alone into the part RaftNoAx too, over its raftpb
+        # (notes/raft-noax-part.md): `proto`'s schemas (`PbSchema.lean`), which raft's message
+        # invariant reads, name walpb's two registered types
+        parts=[Part(
+            root="RaftNoAx",
+            lean_roots=["go.etcd.io/etcd/server/v3/storage/wal/walpb=RaftNoAx", "go.etcd.io/etcd=",
+                        "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org="],
+            packages=["go.etcd.io/etcd/server/v3/storage/wal/walpb"],
+            owned=[os.path.join("go_etcd_io", "etcd", "server", "v3", "storage", "wal", "walpb")])],
     ),
     Project(
         name="kv",
@@ -583,6 +628,15 @@ PROJECTS = [
         packages=[".", "github.com/mit-pdos/gokv/trusted_proph"],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf"),
                os.path.join("github_com", "mit_pdos", "gokv", "trusted_proph")],
+        # the store alone into the part RaftNoAx too, over its raft (notes/raft-noax-part.md): the
+        # kvdurable proofs the part copies use kvreconf's shared proofs, which name its translation
+        parts=[Part(
+            root="RaftNoAx",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/kvreconf=RaftNoAx",
+                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
+                        "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvreconf")])],
     ),
     Project(
         name="durable",
@@ -597,6 +651,19 @@ PROJECTS = [
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")],
+        # (2026-11-14, W4c U2: notes/wal-fsext-w4c-plan.md) translated with its bodies into the part
+        # `WalTester/` too (until 2026-11-15 `LinuxFs/`), over the main tree's `os` (fsExt) and
+        # `path/filepath`, where its specs are proved (no trusted function:
+        # `WalTester/Code/.../examples/lib/durable.toml` absent); the main tree's stays trusted over
+        # `durableExt` for kvdurable, kvfile and etcdstart (notes/wal-lean-integration.md)
+        parts=[Part(
+            root="WalTester",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
+                        "github.com/mit-pdos/etcd-grove=", "os=", "syscall=", "golang.org/x/sys=",
+                        "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                        "internal/filepathlite="],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "lib", "durable")])],
     ),
     Project(
         name="prophkv",
@@ -1036,6 +1103,51 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "putgetN")],
     ),
     Project(
+        name="authN",
+        # auth3 with any number of members (notes/authN-plan.md): Main(k) starts k members
+        # in-process with auth on (etcdstart.Members, etcdstart.StartMembersAuth), each serving its
+        # raft handler on its own peer listener and its gRPC API, then authkv's set-up, barriers,
+        # workloads and checks across them (run). A package of the examples' Go module
+        # (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root) and examples/etcd/auth.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "authN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "authN")],
+    ),
+    Project(
+        name="leaseN",
+        # the lease example with any number of members (notes/leaseN-plan.md): Main(k) starts k
+        # members in-process (etcdstart.Members, etcdstart.StartMembers), each serving its raft
+        # handler and its gRPC API, then the lease example's two reads at every member (run). A
+        # package of the examples' Go module (examples/go.mod); its imports are the etcd
+        # project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "leaseN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseN")],
+    ),
+    Project(
+        name="leaseexpiryN",
+        # the lease-expiry example with any number of members (notes/leaseN-plan.md): Main(k)
+        # starts k members in-process (etcdstart.Members, etcdstart.StartMembers), each serving its
+        # raft handler and its gRPC API, grants a lease through every member, and checks at every
+        # member that the lease granted through it, once gone from its listing, stays gone (run).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "leaseexpiryN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "leaseexpiryN")],
+    ),
+    Project(
         name="txnlinfaultsN",
         # linkv3p (examples/etcd/partition) with any number of members (notes/txnlinfaultsN-plan.md):
         # Main(k, clients, ops, sched) starts k members in-process (etcdstart.Members,
@@ -1070,6 +1182,23 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restart")],
     ),
     Project(
+        name="restartN",
+        # restart3 with any number of members (notes/restartN-plan.md): Run(k) starts k members
+        # in-process (etcdstart.Members, StartMembers' steps with each peer address served through
+        # the example's swap handler), in-process Puts through member 0 before and while a follower
+        # is stopped (HardStop), the follower started again on its data directory (a merged snapshot
+        # installed), and an in-process Range at it checked exactly. A package of the examples' Go
+        # module (examples/go.mod); its imports are the etcd project's translations (names reached
+        # through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "etcd", "restartN"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "restartN")],
+    ),
+    Project(
         name="restart1",
         # The one-member restart example (restart S7, notes/restart-s7-scope.md): one member started
         # in-process, Puts of distinct keys through its own API, a graceful stop (HardStop) and a
@@ -1091,15 +1220,24 @@ PROJECTS = [
         # incarnation of a member's WAL per run (`Main`, rerun after every crash), checking each
         # restart's read against the crash-aware WAL spec, with its reference state in a durable
         # file (lib/durable). A package of the examples' Go module (examples/go.mod); its imports
-        # are the etcd project's translations (`wal`, `walpb`, `fileutil` names-only). Its crash
+        # are the etcd project's translations (`wal`, `walpb`, `fileutil` with bodies). Its crash
         # driver (`*_test.go`, `crashtest/`) is Go-only.
         repo=None,
         rev=None,
         local=os.path.join("examples", "etcd", "wal"),
-        # `os` and `io/fs` are this repository's (as the etcd project's), so that the translation
-        # and the WAL's specs can be imported together
-        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
-                    "go.uber.org=", "google.golang.org=", "os=", "io/fs="],
+        # (2026-11-14, W4c U1: notes/wal-fsext-w4c-plan.md) translated with its bodies (`purgeRound`
+        # too) over the per-byte file extension's `os`, the WAL, `fileutil`, `walpb` (the main tree's)
+        # and `lib/durable` with bodies, all in the part `WalTester/` (until 2026-11-15 `LinuxFs/`;
+        # `WalTester/Code/.../examples/etcd/wal.toml` absent: every function translated): the main
+        # tree's `lib/durable` is the trusted one (notes/wal-lean-integration.md). The absDisk
+        # tester's main-tree translation retired with it (2026-11-15).
+        root="WalTester",
+        lean_roots=["github.com/mit-pdos/etcd-grove/examples/etcd/wal=WalTester",
+                    "github.com/mit-pdos/etcd-grove/examples/lib/durable=WalTester",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "os=", "syscall=", "golang.org/x/sys=",
+                    "io/fs=", "internal/poll=", "internal/syscall=", "path/filepath=",
+                    "internal/filepathlite="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "etcd", "wal")],
     ),
@@ -1494,6 +1632,100 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "kvwitness")],
     ),
     Project(
+        name="raft-noax",
+        # Raft without hand-written axioms (notes/raft-noax-part.md): raft whose `proto` calls are
+        # replaced by hand-written raftpb functions, `fmt.Errorf` by `errors.New`, and stepLeader's
+        # `DescribeConfChange` dropped, for a closed theorem of kvdurable whose trust base has no
+        # axiom of this repository. Translated into the parallel tree RaftNoAx (modules
+        # RaftNoAx.Code.go_etcd_io.raft.v3*, ...), which nothing outside it imports; the same packages
+        # as project raft, configured by RaftNoAx/Code/**.toml. At the fork's branch
+        # raft37-goose-lean-noax (`RAFT_NOAX_REV`, notes/raft-noax.md).
+        repo="https://github.com/upamanyus/etcd",
+        rev=RAFT_NOAX_REV,
+        root="RaftNoAx",
+        # raft's `proto` import is the main tree's names-only `Code.google_golang_org.protobuf.proto`
+        lean_roots=["go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=", "os=", "io/fs="],
+        packages=[
+            ".",
+            "go.etcd.io/raft/v3/confchange",
+            "go.etcd.io/raft/v3/quorum",
+            "go.etcd.io/raft/v3/raftpb",
+            "go.etcd.io/raft/v3/tracker",
+        ],
+        owned=[os.path.join("go_etcd_io", "raft")],
+        counted_modules=["go.etcd.io/raft/v3"],
+    ),
+    Project(
+        name="kvdurable-noax",
+        # The durable key-value store (project kvdurable) on raft-noax's raft, for its closed theorem
+        # without hand-written axioms (notes/raft-noax-part.md): `KVDURABLE_NOAX_DIR`, the Go package
+        # `KVDURABLE_NOAX_PKG`, translated into RaftNoAx, its raft the raft-noax project's, lintest,
+        # porcupine, durable and trusted_proph the main tree's (examples/raft/kvdurablenoax, a Go
+        # module of its own whose go.mod replaces raft by `RAFT_NOAX_REV`, GO_MOD_PINS).
+        repo=None,
+        rev=None,
+        local=KVDURABLE_NOAX_DIR,
+        root="RaftNoAx",
+        lean_roots=[f"{KVDURABLE_NOAX_PKG}=RaftNoAx",
+                    "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftNoAx", "google.golang.org=",
+                    "github.com/anishathalye/porcupine=", "github.com/mit-pdos/gokv="],
+        packages=["."],
+        owned=[os.path.join(*KVDURABLE_NOAX_PKG.replace(".", "_").replace("-", "_").split("/"))],
+    ),
+    Project(
+        name="raft-tla",
+        # Raft in its `with_tla` build (`state_trace.go`: the trace hooks with their bodies, the
+        # `TraceLogger` interface with its `TraceEvent` method, the `Tracing*` types), for raft's
+        # TLA+ trace validation (project tracecheck) and nothing else: every other project is on
+        # project raft's translation, the build etcd ships (`state_trace_nop.go`). The same source
+        # and pin as project raft, loaded with `-tags with_tla`; only raft's own package, into the
+        # parallel tree RaftTla (module RaftTla.Code.go_etcd_io.raft.v3): its subpackages, whose
+        # files have no build constraint, are the main tree's. RaftTla's specs and proofs of raft
+        # are the main tree's, copied by etc/gen-raft-tla.py, but for the few files about the
+        # trace hooks' bodies (notes/decisions.md, "One raft proof for both builds").
+        repo="https://github.com/upamanyus/etcd",
+        rev=RAFT_REV,
+        root="RaftTla",
+        lean_roots=["go.etcd.io/raft/v3=RaftTla", "go.etcd.io/raft/v3/confchange=",
+                    "go.etcd.io/raft/v3/quorum=", "go.etcd.io/raft/v3/raftpb=",
+                    "go.etcd.io/raft/v3/tracker=", "google.golang.org=", "os=", "io/fs="],
+        packages=["."],
+        owned=[os.path.join("go_etcd_io", "raft")],
+        counted_modules=[],
+        tags=["with_tla"],
+    ),
+    Project(
+        name="tracecheck",
+        # Raft's TLA+ trace validation, closed (notes/trace-validation-plan.md): the concurrent
+        # harness of raft.Nodes with Main (package tracecheck), and the Go transcription of
+        # etcdraft.tla and Traceetcdraft.tla its checker (package etcdraft; not its ndjson reader
+        # nor its porcupine model, pmodel, which only cross-check). A Go module of its own, whose
+        # go.mod replaces go.etcd.io/raft/v3 by the fork at project raft's pin (GO_MOD_PINS), loaded
+        # in the `with_tla` build. The checker (package etcdraft, which does not import raft) is
+        # translated into the main tree; the harness (package tracecheck) into RaftTla, on project
+        # raft-tla's raft.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "raft", "tracecheck"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "google.golang.org=",
+                    "github.com/anishathalye/porcupine="],
+        packages=["./etcdraft"],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft", "tracecheck",
+                            "etcdraft")],
+        parts=[Part(
+            root="RaftTla",
+            lean_roots=["github.com/mit-pdos/etcd-grove/examples/raft/tracecheck=RaftTla",
+                        "github.com/mit-pdos/etcd-grove/examples/raft/tracecheck/etcdraft=",
+                        "github.com/mit-pdos/etcd-grove=", "go.etcd.io/raft/v3=RaftTla",
+                        "go.etcd.io/raft/v3/confchange=", "go.etcd.io/raft/v3/quorum=",
+                        "go.etcd.io/raft/v3/raftpb=", "go.etcd.io/raft/v3/tracker=",
+                        "google.golang.org=", "github.com/anishathalye/porcupine="],
+            packages=["."],
+            owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "raft",
+                                "tracecheck")])],
+        tags=["with_tla"],
+    ),
+    Project(
         name="bbolt-bank",
         # (Named `bbolt` until 2026-11-05, when the main tree's bbolt (project `bbolt`, the fork's
         # goose-lean-v2) got bodies; the bank test moves onto it in the clean-up after the merge.)
@@ -1537,6 +1769,7 @@ PROJECTS = [
 ]
 
 
+
 # The Go modules of this repository that build the examples against the forks, and which project's
 # pinned `rev` each replaced Go path must be at (a replace's pseudo-version names the commit): the
 # examples' module, kvwitness's, whose raft is the witness experiment's, and k8setcd3's. `--check` fails on a
@@ -1545,6 +1778,8 @@ GO_MOD_PINS = {
     os.path.join("examples", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft",
                                          "go.etcd.io/bbolt": "bbolt"},
     os.path.join("examples", "raft", "kvwitness", "go.mod"): {"go.etcd.io/raft/v3": "raft-witness"},
+    os.path.join("examples", "raft", "kvdurablenoax", "go.mod"): {"go.etcd.io/raft/v3": "raft-noax"},
+    os.path.join("examples", "raft", "tracecheck", "go.mod"): {"go.etcd.io/raft/v3": "raft"},
     os.path.join("examples", "bbolt", "bank", "go.mod"): {"go.etcd.io/bbolt": "bbolt-bank"},
     # the Kubernetes etcd3 store's driver, a module of its own (it requires k8s.io/apiserver)
     os.path.join("examples", "k8s", "etcd3", "go.mod"): {"go.etcd.io/etcd/": "etcd", "go.etcd.io/raft/v3": "raft"},
@@ -1612,10 +1847,20 @@ def go_mod_pin_errors():
     return errors
 
 
-def run(args, cwd=None, quiet=False):
+def run(args, cwd=None, quiet=False, env=None):
     if not quiet:
         print("+ " + " ".join(args), file=sys.stderr)
-    subprocess.run(args, cwd=cwd, check=True)
+    subprocess.run(args, cwd=cwd, check=True, env=env)
+
+
+def host_env():
+    """The environment without the target settings (`GOOS`, `GOARCH`, `CGO_ENABLED`, `CC`), for
+    building the translator to run on this machine: those settings, when given, are for the
+    translation only (the standard library's cgo-processed packages, e.g. `net`, translate
+    differently per target; the checked-in translations are linux/amd64's, so an arm64 host
+    checks them with `GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-linux-gnu-gcc`)."""
+    target = {"GOOS", "GOARCH", "CGO_ENABLED", "CC"}
+    return {k: v for k, v in os.environ.items() if k not in target}
 
 
 def git_head(d):
@@ -1721,6 +1966,8 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             piece_out = os.path.join(out, str(i))
             config = os.path.join(lib_dir, "Code")
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
+            if proj.tags:
+                roots = ["-tags", ",".join(proj.tags)] + roots
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
                 run([os.path.join(bindir, tool)] + roots +
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]
@@ -1787,9 +2034,9 @@ def main():
     bindir = os.path.join(WORK, "bin")
     os.makedirs(bindir, exist_ok=True)
     run(["go", "build", "-o", bindir + os.sep, "./goose/cmd/goose", "./goose/cmd/proofgen"],
-        cwd=perennial)
+        cwd=perennial, env=host_env())
 
-    ok = [translate(p, src, bindir, rev, desc, args.check) for p, src, desc in sources]
+    ok =[translate(p, src, bindir, rev, desc, args.check) for p, src, desc in sources]
     pin_errors = go_mod_pin_errors()
     for e in pin_errors:
         print("goose.py: " + e, file=sys.stderr)

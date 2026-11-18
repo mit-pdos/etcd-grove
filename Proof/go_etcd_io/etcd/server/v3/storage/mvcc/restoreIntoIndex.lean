@@ -211,7 +211,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
     mvcc.restoreIntoIndex.spec (GF := GF) (hG := hG) := by
   intro lg ti ents Rd Tok e0
   wp_start as ⟨#Hlgz, Hix, #Hrc, Htok, %Hok, #Herr⟩
-  ihave %Hlg := zapLoggerOk_ne_null _ $$ Hlgz
   ihave Hinit : (mvccInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hinit with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HrCK, -⟩
@@ -550,7 +549,6 @@ theorem mvcc.restoreIntoIndex.wp_proof
       have Hnlt : n < ents.length := (List.getElem?_eq_some_iff.1 He').1
       iunfold mvcc.ownIdxPriv at Hix
       icases Hix with ⟨%t, %lg', #Htree, #Hlg', #Hlgnn, Hmu, Htr⟩
-      ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
       icases mvcc.ownTree_sorted t L 1 $$ Htr with ⟨Htr, %Hsorted⟩
       have Hsorted' := (mvcc.itemsOfEntries_sorted_iff L).1 Hsorted
       cases okb
@@ -575,7 +573,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
             mvcc.revVal ⟨e.kv.createRev, W64 0⟩ from rfl]
           wp_apply (hKIrestore p slice.nil mvcc.KeyIndex.fresh lg ⟨e.kv.createRev, W64 0⟩ e.rev
             e.kv.version) $$ [$Hki] as %r Hr
-          · ipureintro; exact Hlg
+          · iexact Hlgz
           try simp only [show mvcc.KeyIndex.fresh.gens = [] from rfl, ↓reduceIte]
           icases Hr with ⟨%Hr, %gs', Hki⟩
           subst Hr
@@ -629,7 +627,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
           (try wp_auto)
           wp_apply (hKIrestoreT p slice.nil mvcc.KeyIndex.fresh lg e.rev.main e.rev.sub) $$ [$Hki]
             as %r Hr
-          · ipureintro; exact Hlg
+          · iexact Hlgz
           try simp only [show mvcc.KeyIndex.fresh.gens = [] from rfl, ↓reduceIte]
           icases Hr with ⟨%Hr, %gs', Hki⟩
           subst Hr
@@ -709,7 +707,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
           simp only [Bool.false_eq_true, ↓reduceIte]
           (try wp_auto)
           wp_apply (hKIput p gs kiM lg e.rev.main e.rev.sub) $$ [$Hki] as %r Hr
-          · ipureintro; exact Hlg
+          · iexact Hlgz
           simp only [show mvcc.Rev.lt kiM.modified ⟨e.rev.main, e.rev.sub⟩ from Hlt, ↓reduceIte]
           icases Hr with ⟨%Hr, %gs', Hki⟩
           subst Hr
@@ -754,7 +752,7 @@ theorem mvcc.restoreIntoIndex.wp_proof
           (try wp_auto)
           wp_apply (hKItomb p gs kiM e.kv.key lg e.rev.main e.rev.sub e0) $$ [$Hki $Hpk $Herr]
             as %r Hr
-          · ipureintro; exact ⟨Hlg, Hgens⟩
+          · iframe Hlgz; ipureintro; exact Hgens
           simp only [Hne, Bool.false_eq_true, ↓reduceIte]
           have hsame : L.set i (p, e.kv.key, kiM) = L := by
             rw [← (List.getElem?_eq_some_iff.1 hi).2]; exact List.set_getElem_self _

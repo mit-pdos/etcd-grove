@@ -27,6 +27,9 @@ importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
 # (putgetN, the clusterN Scope, 2026-11-15) a cluster of any size: the members' vocabulary and the allocation
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersDefs
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
+# (authN, 2026-11-15) the k-member start with auth on
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersAuthDefs
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocNOn
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 # the package's initialization
@@ -37,6 +40,8 @@ importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewMember
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMember
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Members
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembers
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMemberAuth
+importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartMembersAuth
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartCompactingServer
 importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartPeriodicServer
@@ -57,6 +62,11 @@ importable Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
 # compacting member from its writers' plan (`OnceUpTo`)
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OnceUpTo
+# (k8s 7f-6 stage E, checkpoint E-1 approved by etcd-grove-03, 2026-11-17) a member served with its
+# watch registration (`kvWatch_served`, `watchRegAt`), and the client's watch environment over a list
+# of members (`watchEnvL`, `watchEnvL_conn`)
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServed
+importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchEnvL
 
 ## Debt: proof internals the examples import today
 importable Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Base

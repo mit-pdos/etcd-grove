@@ -66,6 +66,16 @@ macro "srb_tac" : tactic => `(tactic| first
   | (intro h1; exfalso; apply h1; simp_all; done)
   | (intro h1 h2; simp_all))
 
+set_option hygiene false in
+/-- (2026-11-12, trace-check implementation step 3) `RoleUp` for a concrete end state: a follower
+afterwards, or the role kept (then the start was no follower). -/
+macro "ru_tac" : tactic => `(tactic| first
+  | (intro h1 h2; exact absurd h2 h1)
+  | (intro h1 _; exact absurd rfl h1)
+  | (intro h1 h2; simp only at h1 h2 ⊢; exact absurd h2 h1)
+  | (intro h1 _; exfalso; apply h1; simp_all; done)
+  | (intro h1 h2; exfalso; simp_all; done))
+
 /-- `PreCandStep` for a concrete end state: the role, term and log kept, or a role that is no
 pre-candidate's (2026-10-17); and (stage U0) `srb_tac`. -/
 macro "pc1_tac" : tactic => `(tactic| first

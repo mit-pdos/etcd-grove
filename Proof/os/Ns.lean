@@ -114,6 +114,11 @@ theorem os.File.Close.wp_dir (f : Loc) (fd : w64) (name : GoString) (x : Ino × 
   rw [os.file_ty_eq, os.File_ty_eq]
   ihave #Hf2 := Hf
   iStructNamed Hf2
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  rw [decide_eq_false hnn]
+  wp_auto
+  ihave %hfd0 := osDirFd_nonneg _ _ _ $$ Hosfd
+  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
   wp_auto
   wp_apply wp_osFdKindDir fd (DFrac.own 1) x CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
   wp_apply wp_osDirClose fd x CoPset.subseteq_top $$ Hinv Hosfd as %e Hb
@@ -211,6 +216,9 @@ theorem os.File.Readdirnames.wp_dir (f : Loc) (fd : w64) (name : GoString) (dqf 
   icases Hv with (⟨%b, %hv, Hosfd⟩ | ⟨%hv, Hosfd⟩ | ⟨%e, %hv, Hosfd⟩)
   · obtain ⟨rfl, hb, hbr⟩ := hv
     wp_auto
+    wp_apply_core wp_assume
+    iintro %-
+    wp_auto
     wp_apply wp_slice_literal (V := GoString) [b]
     isplitr
     · ipureintro; rfl
@@ -269,7 +277,7 @@ theorem os.OpenFile.wp_nsRO (p : GoString) (perm : w32) (q : Qp) (R : Roots) (V 
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osTree (DFrac.own q) R V ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
-            osFd fd (DFrac.own 1) ⟨i, true, false⟩) ∨
+            osFd fd (DFrac.own 1) ⟨i, true, false, none, none⟩) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hinv, Hh⟩
   iloeb as IH generalizing Hh HΦ
@@ -285,7 +293,7 @@ theorem os.OpenFile.wp_nsRO (p : GoString) (perm : w32) (q : Qp) (R : Roots) (V 
   · subst he0
     rw [decide_eq_true rfl]
     rw [if_pos (show W64 0 = (0 : w64) from rfl),
-      show openFd i flRO = ⟨i, true, false⟩ by simp [openFd, O_WRONLY, O_RDONLY]]
+      show openFd i flRO = ⟨i, true, false, none, none⟩ by simp [openFd, O_WRONLY, O_RDONLY]]
     wp_auto
     iStructNamed inner
     iapply wp_fupd

@@ -358,11 +358,22 @@ instance kvrSnapInv_persistent (γr : RNames) : Persistent (kvrSnapInv (GF := GF
 from the bootstrap voters `vs`, the registry of the snapshots made, and the store's invariant. -/
 def kvrCluster (γr : RNames) (vs : List w64) : IProp GF :=
   iprop(isCluster γr.cluster kvrRaftN ∗ confPolicy γr.cluster kvrConfN kvrRule ∗
-    confAt γr.cluster 0 (Membership.simple (GMap.listToSet vs)) ∗ kvrSnapInv γr ∗ rkvInv γr)
+    confAt γr.cluster 0 (Membership.simple (GMap.listToSet vs)) ∗ kvrSnapInv γr ∗ rkvInv γr ∗
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster (`cluster_alloc`'s): the
+    -- node API's `ReadIndex` is refused at a traced one
+    ⌜Cluster.trace γr.cluster = none⌝)
 
 instance kvrCluster_persistent (γr : RNames) (vs : List w64) :
     Persistent (kvrCluster (GF := GF) γr vs) := by
   unfold kvrCluster; infer_instance
+
+open Iris.ProofMode in
+/-- (2026-11-12, trace-check implementation step 1) The store's cluster is untraced. -/
+theorem kvrCluster_untraced (γr : RNames) (vs : List w64) :
+    kvrCluster (GF := GF) γr vs ⊢ ⌜Cluster.trace γr.cluster = none⌝ := by
+  unfold kvrCluster
+  iintro ⟨-, -, -, -, -, %H⟩
+  ipureintro; exact H
 
 /-- **Replica `id` at `r`** (persistent), on node `n` of the store's cluster, with the storage `st`
 and the statistics `sts`: its fields read-only, its lock. -/

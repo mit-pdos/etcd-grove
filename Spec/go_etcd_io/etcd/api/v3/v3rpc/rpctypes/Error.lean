@@ -50,7 +50,10 @@ abbrev rpctypes.Error.spec : Prop :=
       ⌜errDesc err' = errDesc err⌝ ∗
       -- (2026-10-23, D37) no caller's `errors.New` value if `err` is none: `err` itself or an
       -- `EtcdError` value
-      □ (errCellOk err -∗ errCellOk err') }}
+      □ (errCellOk err -∗ errCellOk err') ∗
+      -- (k8s 7f-5, 2026-11-16) a pointer if an `*errors.errorString`, if `err` is (`err` itself or
+      -- an `EtcdError` value)
+      ⌜errPtrOk err → errPtrOk err'⌝ }}
 
 end spec
 

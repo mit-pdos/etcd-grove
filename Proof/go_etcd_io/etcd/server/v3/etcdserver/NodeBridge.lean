@@ -388,7 +388,7 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
     icases Hcl with ⟨-, #Hcl, -⟩
     iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
-    ipureintro; exact H
+    ipureintro; exact H.2
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -442,6 +442,7 @@ theorem raftApplyCC_of_isNode (γ : RNNames)
   letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpraft, #Hnode, #Hcl⟩
   iunfold rnIsNode at Hnode
+  ihave %Huntr := srvClusterOk_untraced γ.srv $$ Hcl
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨#Hisc, #Hpol, -⟩
   iunfold raftApplyCC
@@ -468,7 +469,7 @@ theorem raftApplyCC_of_isNode (γ : RNNames)
     iexact Hdec
   ihave #Hsk := skippedIn_noConf γ.node.cl l v.applied k h4
   wp_apply (wp_ApplyConfChange γ.nl γ.node.cl srvClusterN γ.id c (.v1 cm) o' l k e v m'
-      h1 h2 h3 h6 h7) $$ [Hc Hcfg] as %csp %cs Hres
+      h1 h2 h3 h6 h7 (fun h => absurd Huntr h)) $$ [Hc Hcfg] as %csp %cs Hres
   · iframe #
     iframe Hc Hcfg
   icases Hres with (⟨Hcs, Hcfg, %Hcsi⟩ | ⟨%-, #Hst⟩)
@@ -527,7 +528,7 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   ihave %Hmd : ⌜γ.node.cl.maxData = some (2 ^ 30)⌝ $$ []
   · iunfold srvClusterOk at Hcl
     icases Hcl with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
-    ipureintro; exact H
+    ipureintro; exact H.2
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -725,8 +726,9 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
       iexact Hctx
     ihave #Hrc' : isReadCtx γ.node.cl srvClusterN (beBytes id) (srvReadQ E.γr.raft Qr) $$ []
     · rw [← Hraft]; iexact Hrc
+    ihave %Htr := srvClusterOk_untraced (γ := γ.srv) $$ Hcl
     wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
-      (srvReadQ E.γr.raft Qr) ctx cd $$ [] as %err #Herr
+      (srvReadQ E.γr.raft Qr) ctx cd Htr $$ [] as %err #Herr
     · iframe #
       -- (raft-entsize §3) the read context's 8 bytes, within the cluster's bound (`2^30`)
       ipureintro; intro b h; rw [Hmd] at h; cases h; rw [beBytes_length]; omega
@@ -753,7 +755,10 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
     (wp_ReportUnreachable : letI := srvStor (GF := GF) γ.node;
       node.ReportUnreachable.spec (GF := GF) (hG := hG))
     (wp_ReportSnapshot : letI := srvStor (GF := GF) γ.node;
-      node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+      node.ReportSnapshot.spec (GF := GF) (hG := hG))
+    -- (2026-11-12, trace-check implementation step 1) an untraced cluster: `ReportSnapshot` is
+    -- refused at a traced one
+    (htr : Cluster.trace γ.node.cl = none) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnIsNode γ ⊢
       rnStepIfc γ (rnNodeIface γ) := by
   letI := srvStor (GF := GF) γ.node
@@ -778,7 +783,7 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
     iapply HΦ
     itrivial
   · iintro !> %x %st %Φ !> - HΦ
-    wp_apply wp_ReportSnapshot γ.nl γ.node.cl srvClusterN γ.id x st $$ []
+    wp_apply wp_ReportSnapshot γ.nl γ.node.cl srvClusterN γ.id x st htr $$ []
     · iframe #
     iapply HΦ
     itrivial

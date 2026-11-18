@@ -39,7 +39,7 @@ theorem RandomConfig.wp_proof (wp_RandomOptions : RandomOptions.spec (GF := GF) 
   have h := Hr.2 (by decide)
   iapply HΦ
   ipureintro
-  refine ⟨Ho, rfl, rfl, ?_, ?_⟩ <;> word
+  refine ⟨Ho.1, Ho.2, rfl, rfl, ?_, ?_⟩ <;> word
 
 end proof
 

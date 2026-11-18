@@ -1,0 +1,57 @@
+diff --git a/tla/etcdraft.tla b/tla/etcdraft.tla
+index 7828474..84490c2 100644
+--- a/tla/etcdraft.tla
++++ b/tla/etcdraft.tla
+@@ -599,16 +599,48 @@ NoConflictAppendEntriesRequest(i, index, m) ==
+     /\ log' = [log EXCEPT ![i] = @ \o SubSeq(m.mentries, Len(@)-index+2, Len(m.mentries))]
+     /\ UNCHANGED <<messageVars, serverVars, commitIndex, durableState>>
+ 
++\* Server i receives a snapshot of j's log up to index Len(m.mentries), all of it committed.
++\* As raft.restore: a snapshot at or below i's commit index is ignored; when i has the
++\* snapshot's last entry, i fast-forwards its commit index to it and keeps its log; otherwise
++\* i's log is replaced by the snapshot's. Either way i acknowledges its commit index.
++\* (The configuration is installed by the ApplyConfChange event raft logs while restoring.)
++\* @type: (Int, Int, AEREQT) => Bool;
++HandleSnapshotRequest(i, j, m) ==
++    LET last == Len(m.mentries)
++        hasLast == last <= Len(log[i]) /\ log[i][last].term = m.mentries[last].term
++    IN
++    /\ \/ /\ last <= commitIndex[i]
++          /\ UNCHANGED <<logVars>>
++       \/ /\ last > commitIndex[i]
++          /\ hasLast
++          /\ CommitTo(i, last)
++          /\ UNCHANGED <<log>>
++       \/ /\ last > commitIndex[i]
++          /\ ~hasLast
++          /\ log' = [log EXCEPT ![i] = m.mentries]
++          /\ CommitTo(i, last)
++    /\ Reply([  mtype           |-> AppendEntriesResponse,
++                msubtype        |-> "app",
++                mterm           |-> currentTerm[i],
++                msuccess        |-> TRUE,
++                mmatchIndex     |-> Max({commitIndex[i], last}),
++                msource         |-> i,
++                mdest           |-> j],
++                m)
++    /\ UNCHANGED <<serverVars, configVars, durableState>>
++
+ \* @type: (Int, Int, Bool, AEREQT) => Bool;
+ AcceptAppendEntriesRequest(i, j, logOk, m) ==
+     \* accept request
+     /\ m.mterm = currentTerm[i]
+     /\ state[i] = Follower
+     /\ logOk
+-    /\ LET index == m.mprevLogIndex + 1
+-       IN \/ AppendEntriesAlreadyDone(i, j, index, m)
+-          \/ ConflictAppendEntriesRequest(i, index, m)
+-          \/ NoConflictAppendEntriesRequest(i, index, m)
++    /\ IF m.msubtype = "snapshot"
++       THEN HandleSnapshotRequest(i, j, m)
++       ELSE LET index == m.mprevLogIndex + 1
++            IN \/ AppendEntriesAlreadyDone(i, j, index, m)
++               \/ ConflictAppendEntriesRequest(i, index, m)
++               \/ NoConflictAppendEntriesRequest(i, index, m)
+ 
+ \* Server i receives an AppendEntries request from server j with
+ \* m.mterm <= currentTerm[i]. This just handles m.entries of length 0 or 1, but

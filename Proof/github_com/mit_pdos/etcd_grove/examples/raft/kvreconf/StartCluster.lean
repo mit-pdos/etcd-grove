@@ -70,8 +70,9 @@ theorem StartCluster.wp_proof
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro o Hok Hrb
   wp_start as ⟨#Hcci, #HstorInv⟩
-  obtain ⟨HV1, HV5, Hm1, Hm2, Hsz⟩ := Hok
-  have HVn : uint.nat o.Voters' ≤ 5 := by word
+  obtain ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩ := Hok
+  have HVn : uint.nat o.Voters' ≤ uint.nat o.MaxReplicas' := by word
+  have HMn : uint.nat o.MaxReplicas' < 2 ^ 60 := by word
   have HV0 : 1 ≤ uint.nat o.Voters' := by word
   ihave #Hraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
@@ -81,7 +82,7 @@ theorem StartCluster.wp_proof
     (bootVoters_nodup _ (by omega)) (bootVoters_zero _ (by omega))
     (by rw [bootVoters_length]; omega) (fun h => absurd rfl h) (fun _ h => by cases h)
     (fun _ h => by cases h)
-    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
+    $$ [] with ⟨%γ, ⟨%Hdup, %Hsl, %Hbl, %Hmd⟩, %Htr, Hops, HU, #Hiscl, Hdec, #Hca0, Hsm, Hfounders, Hjoin⟩
   · rw [if_pos rfl]; iempintro
   -- (2026-11-02) `RestartNode`'s `readyFits`: no bootstrap log, the receipts' bound
   ihave #Hfits : readyFits (GF := GF) γ kvrRaftN $$ []
@@ -91,12 +92,13 @@ theorem StartCluster.wp_proof
   imod mono_nat_own_alloc (GF := GF) (uint.nat o.Voters' + 1) with ⟨%γn, HnidA, #Hlb⟩
   imod ghostVar_alloc (GF := GF) false with ⟨%γs, Hstp⟩
   icases (ghostVar_split_half (GF := GF) γs 1 false).1 $$ Hstp with ⟨Hstp1, Hstp2⟩
-  imod rkvInv_alloc ⊤ γ γn γs $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hopn, Hrseqs⟩
+  imod rkvInv_alloc ⊤ (uint.nat o.MaxReplicas') (by omega) γ γn γs $$ Hops HU with ⟨%γr, %Hγr, #Hinv, Hval, Hopn, Hrseqs⟩
   obtain ⟨Hγc, Hγn, Hγs⟩ := Hγr
   subst Hγc Hγn Hγs
   imod kvrSnapInv_alloc γr ⊤ $$ Hsm with #Hsinv
   ihave #Hcl : kvrCluster γr (bootVoters (uint.nat o.Voters')) $$ []
   · unfold kvrCluster; iframe #
+    ipureintro; exact Htr
   try wp_auto
   icases typedPointsto_split _ _ _ $$ opts with Hopt
   simp only [TypedPointsto.typedPointstoDef]
@@ -113,7 +115,7 @@ theorem StartCluster.wp_proof
   ihave #Hos := opts
   icases typedPointsto_split _ _ _ $$ Hos with Hos
   simp only [TypedPointsto.typedPointstoDef]
-  icases Hos with ⟨#oV, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
+  icases Hos with ⟨#oV, #oR, #oP, #oC, #oS, #oM, #oMC, #oI, -⟩
   ihave %Hv3nn := typedPointsto_not_null $$ «$v3»
   icases typedPointsto_split _ _ _ $$ «$v3» with Hv3
   simp only [TypedPointsto.typedPointstoDef]
@@ -186,21 +188,20 @@ theorem StartCluster.wp_proof
   · iPkgInit
   try wp_auto
   wp_apply wp_Mutex_Lock_fresh (cl.[RCluster, go!"mu"])
-    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) cl) $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
+    (clusterLockInv γr (bootVoters (uint.nat o.Voters')) (uint.nat o.MaxReplicas') cl) $$ [$Hsync $mu] as ⟨#Hmu, Hlocked⟩
   ihave #Hc : isClusterC γr (bootVoters (uint.nat o.Voters')) cl $$ []
   · unfold isClusterC
     iexists o, «$v3_ptr»
     simp only [named]
     iframe #
     ipureintro
-    exact ⟨Hdup, Hsl, Hmd, Hbl, ⟨HV1, HV5, Hm1, Hm2, Hsz⟩, trivial⟩
+    exact ⟨Hdup, Hsl, Hmd, Hbl, Htr, ⟨HV1, ⟨HVM, HM⟩, Hm1, Hm2, Hsz⟩, trivial⟩
   try wp_auto
-  have HVv : uint.nat o.Voters' ≤ 9 := by omega
   have Hvnd : (bootVoters (uint.nat o.Voters')).Nodup := bootVoters_nodup _ (by omega)
   -- the founders' tokens with their read-sequence elements, and the fresh ids' elements
-  ihave Hrseqs : iprop([∗list] id ∈ bootVoters (uint.nat o.Voters') ++ freshIds (uint.nat o.Voters' + 1),
-      id ↪[γr.rseq] W64 0) $$ [Hrseqs]
-  · rw [allIds_split _ HVv]; iexact Hrseqs
+  ihave Hrseqs : iprop([∗list] id ∈ bootVoters (uint.nat o.Voters') ++
+      freshIdsM (uint.nat o.MaxReplicas') (uint.nat o.Voters' + 1), id ↪[γr.rseq] W64 0) $$ [Hrseqs]
+  · rw [allIdsM_split _ _ HVn]; iexact Hrseqs
   icases (BigSepL.bigSepL_append (Φ := fun _ id => iprop(id ↪[γr.rseq] W64 0))).1 $$ Hrseqs
     with ⟨Hrs1, Hrseq⟩
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
@@ -244,11 +245,12 @@ theorem StartCluster.wp_proof
     imod kvrStor_alloc «$r0_ptr» ms «$v3_ptr» γs' (bootCS (bootVoters (uint.nat o.Voters'))) ⊤
       (fun _ _ => CoPset.mem_full) Hsz $$ HstorInv MemoryStorage boot HbootCS with ⟨#Hsrec, #Hsboot⟩
     wp_apply wp_config γr _ cl k «$r0_ptr» Hnid0 (by word) $$ [$Hc] as %cp ⟨%cv, Hcv, %Hcfg⟩
-    obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp⟩ := Hcfg
+    obtain ⟨HcID, HcSt, HcLg, HcV, HcM, HcDP, HcRO, HcDC, HcSz, HcAS, HcAp, HcTL⟩ := Hcfg
+    ihave %Htr := kvrCluster_untraced γr _ $$ Hcl
     ihave Hboot := kvr_bootStorage wp_InitialState wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term
       wp_Entries «$r0_ptr» ms «$v3_ptr» γs' _ (bootCS (bootVoters (uint.nat o.Voters'))) γr.cluster
       (fun K => iprop(memStorMeta ms γs' (HardStateM.mk (W64 0) (W64 0) (W64 0)) ∗
-        memStorInvP ms γs' (kvrJ γr.cluster K))) Hmd
+        memStorInvP ms γs' (kvrJ γr.cluster K))) Htr Hmd
       $$ Hpkg Hsrec Hsboot Hml Hfresh Hmeta Hmlog Hmend []
     · iintro %K Hm Hi; iframe Hm Hi
     ihave Hau := kvr_restartAu γr.cluster kvrRaftN k kvrBootContents kvrBoot_holds $$ [HrS]
@@ -265,7 +267,7 @@ theorem StartCluster.wp_proof
           memStorInvP ms γs' (kvrJ γr.cluster K)))
         HcV HcLg HcSt HcM HcDP HcRO HcDC HcSz HcAS (fun h => absurd Hmd h) (Or.inl (by rw [HcAp]; rfl))
         (by rw [HcAp]; simp [StorContents.b]) (by simp [StorContents.commit])
-        (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd))
+        (by rw [Hbl]; simp [StorContents.commit]) (bootCS_is _ Hvnd) HcTL Htr)
       $$ [$Hraft $Hcv $Hlogger Hboot Hvac Hau]
       as %nd ⟨%n, %S, %l, %K, %Hnd, #HisNode, #Hl, %Hlen, %-, Hdrv, Hncfg, Hrun, ⟨HrS, %HS⟩, Hmeta,
         #HmsInv⟩

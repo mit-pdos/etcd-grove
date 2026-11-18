@@ -1212,13 +1212,15 @@ theorem storeTree_return (s : Loc) (γ : StoreNames) (m : KvMap) :
 
 /-- A watch event `ev` (a `*mvccpb.Event`) modelled by `e`: the fields the store reads,
 read-only (`Type`, `Kv`, and the `KeyValue`'s `Key` and `ModRevision`; on the fields, as
-`kvAt`). -/
+`kvAt`), and both pointers non-nil (k8s 7f-5a-P, ledger 2026-11-15 (B): the getters `IsCreate` reads
+answer defaults on a nil pointer; etcd's events are never nil, `mvcc.evRd`). Readers destructure
+it through `eventAt_elim` (the fields) and `eventAt_nonnull`. -/
 def eventAt (ev : Loc) (e : EvModel) : IProp GF :=
   iprop(∃ keySl : GoSlice,
     structFieldRef mvccpb.Event go!"Type" ev ↦□ e.typ ∗
     structFieldRef mvccpb.Event go!"Kv" ev ↦□ e.kv ∗
     structFieldRef mvccpb.KeyValue go!"Key" e.kv ↦□ keySl ∗ keySl ↦*□ e.key ∗
-    structFieldRef mvccpb.KeyValue go!"ModRevision" e.kv ↦□ e.rev)
+    structFieldRef mvccpb.KeyValue go!"ModRevision" e.kv ↦□ e.rev ∗ ⌜ev ≠ null ∧ e.kv ≠ null⌝)
 
 instance eventAt_persistent (ev : Loc) (e : EvModel) : Persistent (eventAt (GF := GF) ev e) := by
   unfold eventAt; infer_instance
@@ -1263,7 +1265,13 @@ theorem eventAt_elim {ev : Loc} {e : EvModel} :
       structFieldRef mvccpb.Event go!"Kv" ev ↦□ e.kv ∗
       structFieldRef mvccpb.KeyValue go!"Key" e.kv ↦□ keySl ∗ keySl ↦*□ e.key ∗
       structFieldRef mvccpb.KeyValue go!"ModRevision" e.kv ↦□ e.rev := by
-  unfold eventAt; iintro H; iexact H
+  unfold eventAt; iintro ⟨%ks, H1, H2, H3, H4, H5, -⟩; iexists ks; iframe
+
+omit package_sem in
+/-- A delivered event's pointers are non-nil. -/
+theorem eventAt_nonnull {ev : Loc} {e : EvModel} :
+    eventAt (GF := GF) ev e ⊢ ⌜ev ≠ null ∧ e.kv ≠ null⌝ := by
+  unfold eventAt; iintro ⟨%ks, -, -, -, -, -, %H⟩; ipureintro; exact H
 
 omit package_sem in
 theorem eventsAt_elim {sl : GoSlice} {evs : List EvModel} :

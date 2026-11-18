@@ -2,7 +2,15 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-axiom raftpb.MessageType.String.wp_proof : raftpb.MessageType.String.spec
+theorem raftpb.MessageType.String.wp_proof (hItoa : strconv.Itoa.spec) :
+    raftpb.MessageType.String.spec
   -- `Perennial.EtcdGrove.raftpb.MessageType.String.spec`, unfolded:
   ∀ (t : w32),
-    ⊢ fmt.stringMethodSpec (interface.mk raftpb.MessageType.ty (intoVal t)) go!"String"
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb -∗
+          ▷ (True -∗ Φ (intoVal (raftpb.msgTypeString t))) -∗
+            WP
+              ((intoVal (methods raftpb.MessageType.ty go!"String" (intoVal t)))
+                (intoVal ()))
+              {{ Φ }}

@@ -126,7 +126,7 @@ theorem leaderStepResult_rest (c : CfgM) (id : w64) (s : NState) (m : MessageM)
   obtain ⟨rfl, Hres⟩ := H
   unfold LeaderNonpropResultC at Hres
   rcases Hres with ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ | ⟨Hc, -⟩ |
-    ⟨-, lt', ms, pvs, rfl, Hms, Hpm⟩ | ⟨Hc, -⟩
+    ⟨-, lt', ms, pvs, rfl, Hms, Hpm, -⟩ | ⟨Hc, -⟩
   rotate_right 2
   · refine ⟨rfl, Hwf, StepCD.frame ?_ ⟨rfl, rfl, fun _ => ⟨Hr, rfl⟩⟩, rfl, rfl, rfl, rfl⟩
     have Hpr : (toPState s).role = .leader := by rw [toPState_role, Hr]; rfl
@@ -193,12 +193,14 @@ local macro "local_follower" : tactic => `(tactic| (
   ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
   try (ihave Hm := Hmb $$ Hm)
-  wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by ty_cases simp [Hty])
+  gates_fol
+  wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by ty_cases simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · iframe Hphys Hsrc0
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+  · iframe Hphys Hsrc0 HG Hfg
     msg_pass
+  ihave HG := stepOut_or R _ _ $$ HGo
   -- the step's result, per type: `MsgForgetLeader` forgets the leader, the reports change nothing
   rcases Hty3 with Hty | Hty | Hty
   · obtain ⟨rfl, rfl, rfl⟩ := followerStepResult_forget _ _ _ _ _ _ _ _ _ Hty Hres
@@ -206,11 +208,13 @@ local macro "local_follower" : tactic => `(tactic| (
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %{ s with lead := W64 0 }
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     refine ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil, StepCD.frame ?_ (by rframe)⟩, rfl,
-      NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _)⟩
+      NetFrame.of_logst rfl, TermStep.of_term rfl (fun _ => Int.le_refl _),
+      StepEnd.localRep (.inl Hty) Hterm hnbf (fun h => absurd (Hty.symm.trans h) (by w32_ne))⟩
     rw [toPState_forget s Hrole (Hfv Hrole)]
     exact StepCF.abandon _ (by rw [toPState_role, Hrole]; decide)
   all_goals
@@ -220,12 +224,14 @@ local macro "local_follower" : tactic => `(tactic| (
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
-      TermStep.refl _ _⟩))
+      TermStep.refl _ _, StepEnd.localRep (by simp [Hty]) Hterm hnbf
+        (fun _ => StepFnEnd.follower Hrole Hres)⟩))
 
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a candidate or pre-candidate: nothing. -/
@@ -234,25 +240,34 @@ local macro "local_candidate" : tactic => `(tactic| (
   ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
   try (ihave Hm := Hmb $$ Hm)
-  wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx (by ty_cases simp [Hty])
+  gates_cand
+  wp_apply _P.stepCandidate c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE R.Gf R.Gb1 R.Gb2 0 (by ty_cases simp [Hty])
       (by ty_other) (by simp [Hrole]) (by ty_other) (by ty_other)
       (fun _ Hc => by ty_cases (rw [Hty] at Hc; exact absurd Hc (by w32_ne)))
       (by ty_other)
-    $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · iframe Hphys Hsrc0
+    Hgok.1 Hgok.2.2.1 Hgok.2.1 $$ [Hphys Hm Hsrc0 HG Hcg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+  · iframe Hphys Hrc00 Hsrc0 HG Hcg
     msg_pass
+  ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨rfl, rfl, Hs1⟩ := candidateStepResult_rest _ _ _ _ _ _ _ _ _ Hty5 Hres
   subst s1
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
-  exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
-    StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
-    TermStep.refl _ _⟩))
+  -- (slice 27n) `wp_Step_MsgLocal`'s end state; the other callers' postconditions have none
+  first
+  | exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+      StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
+      TermStep.refl _ _, StepEnd.localRep Hty3 Hterm hnbf
+        (fun _ => StepFnEnd.candidate (by simp [Hrole]) Hres)⟩
+  | exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
+      StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
+      TermStep.refl _ _⟩))
 
 set_option hygiene false in
 /-- `wp_Step_MsgLocal` at a leader: `leaderStepResult_rest`. -/
@@ -261,26 +276,35 @@ local macro "local_leader" : tactic => `(tactic| (
   imod (preceipt_zero (GF := GF)) with #Hrc00
   icases ownRaftPhysC_dom c r id s $$ Hphys with ⟨%Hpc, Hphys⟩
   try (ihave Hm := Hmb $$ Hm)
-  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
+  gates_lead_ne (by ty_cases (rw [Hty]; w32_ne))
+  wp_apply _P.stepLeader c r id s ml m ents sn ctx rs 0 R.G1 R.GE R.Gp1 R.Gp2 R.Gc (by ty_cases simp [Hty]) Hrole (by first | (intro _; exact HLT Hrole) | ty_other)
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (by ty_other)
-    $$ [Hphys Hm] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn⟩
-  · iframe Hphys Hrc00
+    (by p3_tac) Hgok.2.1 Hgok.2.2.2.1 Hgok.2.2.2.2 (by xtr_tac) (by ltr_tac) $$ [Hphys Hm HG Hlg] as %err %s' %dropped ⟨Hphys, -, %Hres, Herrn, HGo⟩
+  · iframe Hphys Hrc00 HG Hlg
     isplitl [Hm]
     · msg_pass
     ity_other
+  ihave HG := stepOut_leader R _ _ _ _ $$ HGo
   obtain ⟨rfl, Hwf', Hst, Hl, Ht, Hpv, Hg⟩ :=
     leaderStepResult_rest (B := B) _ _ _ _ _ _ _ _ Hty5 Hrole Hwf Hpc Hres
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s'
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
-  exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
-    TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
-      (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
+  -- (slice 27n) `wp_Step_MsgLocal`'s end state; the other callers' postconditions have none
+  first
+  | exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
+      TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
+        (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres)),
+      StepEnd.localRep Hty3 Hterm hnbf (fun _ => StepFnEnd.leader Hrole Hres)⟩
+  | exact ⟨Hwf', ⟨[], fun _ h => absurd h List.not_mem_nil, Hst⟩, rfl, NetFrame.of_logst Hl Hpv Hg,
+      TermStep.of_term Ht (fun _ => by rw [Hl]; exact Int.le_refl _)
+        (.mk' fun h => absurd h (LeaderStepResultC.not_precand Hrole Hres))⟩))
 
 set_option hygiene false in
 /-- A leader-transfer request at a follower (at the state `s`): forwarded, or dropped. -/
@@ -289,21 +313,24 @@ local macro "transfer_follower " h:term : tactic => `(tactic| (
   ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
   try (ihave Hm := Hmb $$ Hm)
-  wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by simp [Hty])
+  gates_fol
+  wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun _ => ⟨$h, Hent, Hctx0, Hxo Hrole⟩, fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
       (by ty_other)
-    (fun _ => Hnors) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · iframe Hphys Hsrc0
+    (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+  · iframe Hphys Hsrc0 HG Hfg
     msg_pass
+  ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
   subst s1
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   exact ⟨Hwf, ⟨[], fun _ h => absurd h List.not_mem_nil,
     StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl, NetFrame.refl _,
@@ -316,13 +343,15 @@ local macro "timeout_follower" : tactic => `(tactic| (
   ihave #Hsrc0 : rcvSrc (GF := GF) s.gh.sn m.Type' sn $$ []
   · iapply rcvSrc_ne; notsnap_tac
   try (ihave Hm := Hmb $$ Hm)
-  wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx (by simp [Hty])
+  gates_fol
+  wp_apply _P.stepFollower c ∅ r id s ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
       (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
       (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnw, Hwf, Hfla⟩⟩)
       (by ty_other)
-    (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
-  · iframe Hphys Hsrc0
+    (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 HG Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
+  · iframe Hphys Hsrc0 HG Hfg
     msg_pass
+  ihave HG := stepOut_or R _ _ $$ HGo
   obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
   have HCD := stepCD_hup (B := B) (m := m) Hok Hnw Hlogf
   obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -, Hhg⟩ := Hok
@@ -330,14 +359,16 @@ local macro "timeout_follower" : tactic => `(tactic| (
   icases Herrn with %Herrn
   subst Herrn
   wp_auto
+  try phys_out
   iapply HΦ $$ %interface.nil %s1
-  iframe Hphys
+  iframe Hphys HG
   ipureintro
   exact ⟨Hwf1, ⟨[], fun _ h => absurd h List.not_mem_nil, HCD⟩, rfl, NetFrame.of_logst Hl1 Hpv1 Hg1,
     ⟨Ht1, fun h => absurd h (by rw [Hty]; w32_ne), fun _ _ h => absurd Hty h,
      fun _ => by rw [Hl1]; exact Int.le_refl _,
      fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega,
-     ⟨fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide), Hhg.snapRoleBack Hl1⟩⟩⟩))
+     ⟨fun h => absurd ((Hrl h).symm.trans h) (by rw [Hrole]; decide), Hhg.snapRoleBack Hl1,
+       Hhg.roleUp Hl1 rfl (.inl rfl) (.inr Hty) Hlogf⟩⟩⟩))
 
 set_option hygiene false in
 /-- `Step`'s stale-term test `(r.checkQuorum || r.preVote) && (m.Type == MsgHeartbeat ||
@@ -345,7 +376,7 @@ m.Type == MsgApp)`: false for these types whichever way the flags go, so joined 
 `#false`, the flags split (`wp_cq_pv`) in the condition only, and the rest of the stale arm verified
 once. -/
 local macro "stale_cond" : tactic => `(tactic| (
-  wp_join (v := #false) at (if: _ then _ else #false) with [Hphys r m Hm]
+  wp_join (v := #false) at (if: _ then _ else #false) with [Hphys r m Hm HG]
   · wp_cq_pv
     -- `MsgHeartbeat` (8), then `MsgApp` (3), where the flags are not both off
     all_goals try (wp_gets; ty_ne' 8; try wp_auto)
@@ -357,7 +388,7 @@ set_option maxHeartbeats 2000000 in
 theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) :
     (m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
     m.Term' = W64 0 →
     NStateWf s →
@@ -365,7 +396,9 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -374,19 +407,22 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        -- (2026-11-11, slice 27n, Q27 (a)) the end state (`MsgUnreachable`'s)
+        "%Hend" ∷ ⌜StepEnd c id m ents ctx s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty3 Hterm Hwf Hfv
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by
     rcases Hty3 with h | h | h <;> simp [h]
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   wp_auto
   wp_gets
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_gets
   rw [decide_eq_true Hterm]
@@ -408,6 +444,9 @@ theorem wp_Step_MsgLocal (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   ty_ne' 5
   wp_auto
   wp_gets
+  -- a local message: the preamble skipped
+  have hnbf : ¬ PreBF m s := PreBF.of_zero Hterm
+  imod preGate_nobf c r id s m _ _ (.inl Hterm) hnbf $$ Hgpre HG with HG
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   wp_gets
   rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
@@ -439,7 +478,9 @@ set_option maxHeartbeats 2000000 in
 theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF)
+    -- (2026-11-12, trace-check implementation step 3) not at a traced node (`raft.Step.spec`'s premise)
+    (Hxtr : m.Type' = MsgTransferLeader → s.gh.tr = none) :
     m.Type' = MsgTransferLeader →
     ents = [] →
     ctx = [] →
@@ -459,7 +500,9 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgInC s.gh.sn.sz ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -468,13 +511,14 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hent Hctx0 Hxo Htr Hlok Hwf Hnors HLT
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
     iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgInC_nn _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   icases msgInC_halfD _ _ _ $$ Hm with ⟨Hm, Hmb⟩
   wp_auto
@@ -482,7 +526,7 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_gets
   by_cases Hz : m.Term' = W64 0
@@ -494,6 +538,8 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     rw [Hty]
     wp_auto
     wp_gets
+    have hnbf : ¬ PreBF m s := PreBF.of_zero Hz
+    imod preGate_nobf c r id s m _ _ (.inl Hz) hnbf $$ Hgpre HG with HG
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
     wp_gets
     rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
@@ -521,7 +567,10 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_raft_logC
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
-    wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+    bf_gate
+    wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+      as %pvs ⟨Hphys, HG⟩
+    phys_idx HG
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
@@ -532,25 +581,28 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_gets
     ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
     · iapply rcvSrc_ne; notsnap_tac
+    gates_fol
     try (ihave Hm := Hmb $$ Hm)
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        ml m ents sn rs (zero_val _) ctx (by simp [Hty])
+        ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun _ => ⟨.inl rfl, Hent, Hctx0, fun h => absurd rfl h⟩,
           fun h' => absurd h' (by rw [Hty]; w32_ne)⟩)
         (by ty_other)
-      (fun _ => Hnors) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      (fun _ => Hnors) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       msg_pass
+    ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, Hs1⟩ := followerStepResult_rnoop _ _ _ _ _ _ _ _ _ (by simp [Hty]) Hres
     subst s1
     simp only [Bool.false_eq_true, ↓reduceIte]
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %{ becomeFollower s m.Term' (W64 0) with prvals := pvs }
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := { becomeFollower s m.Term' (W64 0) with prvals := pvs })
@@ -577,8 +629,10 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_gets
     wp_raft_logC
+    ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
@@ -592,6 +646,8 @@ theorem wp_Step_MsgTransferLeader (_P : raft.Step.Postulates (GF := GF) (hG := h
   rw [Hty]
   wp_auto
   wp_gets
+  have hnbf : ¬ PreBF m s := PreBF.of_le (by rw [Hteq]; exact Int.le_refl _)
+  imod preGate_nobf c r id s m _ _ (.inr (by rw [Hteq]; exact Int.le_refl _)) hnbf $$ Hgpre HG with HG
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   wp_gets
   rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
@@ -606,7 +662,7 @@ set_option maxHeartbeats 2000000 in
 theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (PB : raft.Step.PbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
-    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) :
+    (ents : List EntryM) (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (R : StepG GF) :
     m.Type' = MsgTimeoutNow →
     uint.Z s.term + 1 < 2 ^ 64 →
     uint.Z m.Term' + 1 < 2 ^ 64 →
@@ -616,7 +672,9 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
         -- (stage R4) the message, as `Step` received it
-        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ }}
+        "Hm" ∷ msgIn ml DFrac.discard ⟨m, ents, sn, ctx, rs⟩ ∗
+        -- (2026-11-10, Q8 stage 1 slice 11) the caller's resource and `Step`'s gates
+        "HG" ∷ R.G ∗ "Hgates" ∷ stepGates c r id s m ents sn ctx rs R }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"Step")) (Val #ml))
     {{ (err : GoInterface) (s' : NState), RET #err;
         "Hphys" ∷ ownRaftPhysCV c c.voters r id s' ∗
@@ -625,13 +683,14 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             StepCD c id B m s recv s'⌝ ∗
         "%Herr" ∷ ⌜err = interface.nil⌝ ∗
         "%Hframe" ∷ ⌜NetFrame s s'⌝ ∗
-        "%Hterm" ∷ ⌜TermStep m s s'⌝ }} := by
+        "%Hterm" ∷ ⌜TermStep m s s'⌝ ∗
+        "HG" ∷ stepOut R s'.outbox }} := by
   intro Hty Hnw Hnwm Hwf Hfla
   have Hty5 : m.Type' = MsgForgetLeader ∨ m.Type' = MsgTimeoutNow ∨ m.Type' = MsgUnreachable ∨
       m.Type' = MsgSnapStatus ∨ m.Type' = MsgTransferLeader := by simp [Hty]
   have Hsnap0 : ∀ (P : IProp GF), ⊢ (⌜m.Type' = MsgSnap⌝ -∗ P : IProp GF) := fun P => by
     iintro %Hc; exfalso; rw [Hty] at Hc; exact absurd Hc (by w32_ne)
-  wp_start as ⟨Hphys, Hm⟩
+  wp_start as ⟨Hphys, Hm, HG, Hgates⟩
   icases msgPtsC_nn _ _ _ _ _ $$ Hm with ⟨%Hnn, Hm⟩
   -- (2026-10-14, stage B7) the log facts the campaign guard reads on the full log
   icases ownRaftPhysC_log_same c r id s $$ Hphys with ⟨Hlog, Hback⟩
@@ -646,7 +705,7 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [decide_eq_false Hnn]
   wp_auto
   wp_gets
-  wp_apply _P.traceReceiveMessage
+  wp_recv_gate_ns
   try wp_auto
   wp_gets
   by_cases Hz : m.Term' = W64 0
@@ -656,6 +715,8 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     rw [Hty]
     wp_auto
     wp_gets
+    have hnbf : ¬ PreBF m s := PreBF.of_zero Hz
+    imod preGate_nobf c r id s m _ _ (.inl Hz) hnbf $$ Hgpre HG with HG
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
     wp_gets
     rw [show s.stepfn = stepFuncOf s.role from Hwf.1]
@@ -683,7 +744,10 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_raft_logC
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
-    wp_apply _P.becomeFollower _ _ _ _ _ _ (by exact Int.le_of_lt Hgt) $$ [$Hphys] as %pvs Hphys
+    bf_gate
+    wp_apply _P.becomeFollower c r id s m.Term' _ (R.G1 s.outbox) (by exact Int.le_of_lt Hgt) (fun _ => rfl) $$ [$Hphys $Hgb]
+      as %pvs ⟨Hphys, HG⟩
+    phys_idx HG
     iterate 6 (try (wp_gets; rw [Hty]; try wp_auto))
     wp_gets
     wp_apply raft.wp_load_stepC $$ Hphys as Hphys
@@ -694,16 +758,18 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_gets
     ihave #Hsrc0 : rcvSrc (GF := GF) ({ becomeFollower s m.Term' (W64 0) with prvals := pvs } : NState).gh.sn m.Type' sn $$ []
     · iapply rcvSrc_ne; notsnap_tac
+    gates_fol
     try (ihave Hm := Hmb $$ Hm)
     wp_apply _P.stepFollower c ∅ r id { becomeFollower s m.Term' (W64 0) with prvals := pvs }
-        ml m ents sn rs (zero_val _) ctx (by simp [Hty])
+        ml m ents sn rs (zero_val _) ctx R.G1 R.GE (by simp [Hty])
         (by ty_other) (by ty_other) (by ty_other) (by ty_other) (by ty_other)
         (fun _ => ⟨fun h' => absurd h' (by rw [Hty]; w32_ne), fun _ => ⟨Hnwm, ⟨rfl, rfl⟩, Hfla⟩⟩)
         (by ty_other)
-      (by notfwd_tac) $$ [Hphys Hm Hsrc0] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn⟩
+      (by notfwd_tac) Hgok.1 Hgok.2.1 (by xtr_tac) $$ [Hphys Hm Hsrc0 $HG $Hfg] as %err %s1 %dropped %c1 ⟨Hphys, %Hres, Herrn, HGo⟩
     · iframe Hphys Hsrc0
       wp_gets
       msg_pass
+    ihave HG := stepOut_or R _ _ $$ HGo
     obtain ⟨rfl, rfl, Hok, Hrl⟩ := followerStepResult_timeout _ _ _ _ _ _ _ _ _ Hty Hres
     have HCD := stepCD_hup (B := B) (m := m) Hok Hnwm Hlogf
     obtain ⟨Hwf1, -, ⟨Hl1, Ht1, Ht2, Hpv1, Hg1⟩, -, Hhg⟩ := Hok
@@ -711,8 +777,9 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     icases Herrn with %Herrn
     subst Herrn
     wp_auto
+    try phys_out
     iapply HΦ $$ %interface.nil %s1
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     have Hfr := stepdown_frame (m := m) (s := s)
       (s' := { becomeFollower s m.Term' (W64 0) with prvals := pvs })
@@ -732,7 +799,8 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
           = uint.Z m.Term' := rfl
       omega
     · -- (U0) the campaign was of the stepped-down follower: no snapshot pending
-      exact fun h1 h2 => absurd (Hhg.snapRoleBack Hl1 h1 h2).1 (by simp [becomeFollower])
+      exact ⟨fun h1 h2 => absurd (Hhg.snapRoleBack Hl1 h1 h2).1 (by simp [becomeFollower]),
+        Hhg.roleUp Hl1 rfl (.inr rfl) (.inr Hty) Hlogf⟩
   wp_gets
   rw [decide_eq_false Hgt]
   wp_auto
@@ -752,12 +820,15 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     wp_apply raft.wp_load_TermC $$ Hphys as Hphys
     wp_gets
     wp_raft_logC
+    ihave HG := stepOut_G0 R $$ HG
+    try phys_out
     iapply HΦ $$ %interface.nil %s
-    iframe Hphys
+    iframe Hphys HG
     ipureintro
     exact ⟨Hwf, ⟨[], fun _ Hin => absurd Hin List.not_mem_nil,
       StepCD.frame (.refl _) (RFrame.refl _)⟩, rfl,
       NetFrame.refl _, TermStep.refl _ _⟩
+  have Hteq : m.Term' = s.term := by word
   wp_gets
   rw [decide_eq_false Hlt]
   wp_auto
@@ -765,6 +836,8 @@ theorem wp_Step_MsgTimeoutNow (_P : raft.Step.Postulates (GF := GF) (hG := hG))
   rw [Hty]
   wp_auto
   wp_gets
+  have hnbf : ¬ PreBF m s := PreBF.of_le (by rw [Hteq]; exact Int.le_refl _)
+  imod preGate_nobf c r id s m _ _ (.inr (by rw [Hteq]; exact Int.le_refl _)) hnbf $$ Hgpre HG with HG
   wp_apply raft.wp_load_stepC $$ Hphys as Hphys
   wp_gets
   rw [show s.stepfn = stepFuncOf s.role from Hwf.1]

@@ -86,34 +86,6 @@ def userAddHistAu (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfa
   iprop(∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
     adminHistAu s E ρ ctx (irrUserAdd m) Q)
 
-/-- **`s.UserAdd(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
-with its contract `raftRequest.spec` with auth on's (`authRaftOk_on`), the request admitted (`adminPropOk`,
-for a name of at most `maxKeySize` bytes, its password choice sure by `spec`); the outcome: the
-hashing's error before any proposal (`applyErrIs`, `adminPreOn` back), or `authEntryOut` of `userAddOutOn`: on
-success, the request applied at the committed prefix `L` before its entry (`appliedOkM true`), the
-auth state after it published (`pubAfterM true`) and its step determinate there (`adminQh`), with
-(5b) the result `Q` of its client's update of the auth history (`userAddHistAu`) if its entry is
-recorded; else the apply thread's error, or the request perhaps proposed. -/
-abbrev EtcdServer.UserAdd.specOn : Prop :=
-  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (Q : List auth.AuthState → IProp GF) (ast : GoInterfaceOk)
-    (r : Loc) (name pw hpw : GoString) (o : Loc) (b : Bool) (F : mvcc.Log),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      structFieldRef EtcdServer go!"authStore" s ↦□ GoInterface.ok ast ∗
-      bcryptCostOk ast ∗
-      ⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" r ↦□ name ∗
-      structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦ pw ∗
-      structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦ hpw ∗
-      structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ auth.userOptsAt o b ∗
-      ⌜name.length ≤ backend.maxKeySize⌝ ∗
-      adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Q) }}
-    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"UserAdd"))
-      (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
-      (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
-        adminPreOn s E ρ ctx cd F (userAddHistAu s E ρ ctx name b Q)) ∨
-      (applyErrIs err ∗ authEntryOut (userAddOutOn s E ρ ctx F name b Q) resp err) }}
-
 end spec
 
 end EtcdGrove

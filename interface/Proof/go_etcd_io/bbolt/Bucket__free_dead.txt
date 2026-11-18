@@ -67,9 +67,9 @@ theorem bbolt.wdbW.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K
     : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb)
     (e_w : w = w✝) : bbolt.wdbW K tx v w = bbolt.wdbW K✝ tx✝ v✝ w✝
 
-theorem Perennial.Fs.osFd.congr_simp [ExtSemantics Fs.fsExt] [HasExt Fs.fsExt] [L : GooseLocalGS GF]
-    (fd fd✝ : w64) (e_fd : fd = fd✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (d d✝ : Fs.OsFd) (e_d : d =
-    d✝) : Fs.osFd fd dq d = Fs.osFd fd✝ dq✝ d✝
+theorem bbolt.dbPathLk.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (db db✝ : Loc)
+    (e_db : db = db✝) (p p✝ : bbolt.BFile) (e_p : p = p✝) (fd fd✝ : w64) (e_fd : fd = fd✝) :
+    bbolt.dbPathLk db p fd = bbolt.dbPathLk db✝ p✝ fd✝
 
 theorem bbolt.wBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ : bbolt.BFile)
     (e_p : p = p✝) (W W✝ : List Nat) (e_W : W = W✝) (wb wb✝ : Nat → List w8) (e_wb : wb = wb✝) (size

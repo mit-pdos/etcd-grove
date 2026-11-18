@@ -2,7 +2,7 @@
 **The transport's methods over its state** (rafthttp stage 6d; D43 M5c): `AddPeer` and `Stop`
 (`Stop_live`) on a live transport (`trLive`); `AddRemote` (of an id of the pool's `L`), `Send`,
 `CutPeer` and `MendPeer` on a started one (`trState`), the read-locked ones
-with a reader's token (`trTok`); `Stop` and `Handler` on a frozen one (`trFrozen`); a frozen
+with a reader's token (`transportTok`); `Stop` and `Handler` on a frozen one (`trFrozen`); a frozen
 transport as the network's (`trFrozen_net`: `netTransport` with a free `Stop`, `isTransporter`),
 and a started one (`trState_net`: `netTransport` whose `Stop` takes the live right). Lean-first.
 -/
@@ -156,17 +156,17 @@ theorem rafthttp.Transport.CutPeer_full (hM : rafthttp.peer.Pause.spec (GF := GF
     (hR : rafthttp.remote.Pause.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trState γn t c ∗ trTok γn t c }}
+        trState γn t c ∗ transportTok γn t c }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"CutPeer")) (Val #id))
-    {{ RET #(); trTok γn t c }} := by
+    {{ RET #(); transportTok γn t c }} := by
   wp_start_folded as ⟨#Hst, Htok⟩
   tr_state Hst
-  iunfold trTok at Htok
+  iunfold transportTok at Htok
   wp_apply (rafthttp.Transport.CutPeer_core hM hR (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L id)
     $$ [Htok] as Htok
   · iframe; iframe #
   iapply HΦ
-  iunfold trTok
+  iunfold transportTok
   iframe
 
 /-- **`t.MendPeer(id)`**, as `CutPeer`. -/
@@ -174,17 +174,17 @@ theorem rafthttp.Transport.MendPeer_full (hM : rafthttp.peer.Resume.spec (GF := 
     (hR : rafthttp.remote.Resume.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trState γn t c ∗ trTok γn t c }}
+        trState γn t c ∗ transportTok γn t c }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
-    {{ RET #(); trTok γn t c }} := by
+    {{ RET #(); transportTok γn t c }} := by
   wp_start_folded as ⟨#Hst, Htok⟩
   tr_state Hst
-  iunfold trTok at Htok
+  iunfold transportTok at Htok
   wp_apply (rafthttp.Transport.MendPeer_core hM hR (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L id)
     $$ [Htok] as Htok
   · iframe; iframe #
   iapply HΦ
-  iunfold trTok
+  iunfold transportTok
   iframe
 
 /-- **`t.Stop()`** on a frozen transport, with its stop token (D43 M5e): it returns. -/
@@ -240,17 +240,17 @@ neither is dropped). -/
 theorem rafthttp.Transport.Send_full (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (sl : GoSlice) (msL : List Loc) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trState γn t c ∗ trTok γn t c ∗ sl ↦* msL ∗
+        trState γn t c ∗ transportTok γn t c ∗ sl ↦* msL ∗
         [∗list] m ∈ msL, sendMsg (netRh γn) c.lid m }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Send")) (Val #sl))
-    {{ RET #(); trTok γn t c }} := by
+    {{ RET #(); transportTok γn t c }} := by
   wp_start_folded as ⟨#Hst, Htok, Hsl, Hms⟩
   tr_state Hst
-  iunfold trTok at Htok
+  iunfold transportTok at Htok
   wp_apply (hSend (netRh γn) t c.lid c.γd c.R c.γs c.γr sl msL) $$ [Htok Hsl Hms] as Htok
   · iframe; iframe #
   iapply HΦ
-  iunfold trTok
+  iunfold transportTok
   iexact Htok
 
 /-- **`t.Handler()`** on a started transport (D22 J-T: until then frozen, with every other member
@@ -281,7 +281,7 @@ theorem rafthttp.Transport.Handler_full
         trState γn t c }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
     {{ (h : GoInterface), RET #h;
-        http.handlerOk (raftHttpNet (netRh γn)) a iprop(c.R ∗ trTok γn t c) h }} := by
+        http.handlerOk (raftHttpNet (netRh γn)) a iprop(c.R ∗ transportTok γn t c) h }} := by
   wp_start_folded as #Hst
   tr_state Hst
   ihave #HAR := trAddRemote_of_state hNewURLs hStartRemote hIDStringPtr hInfo hZString hZStrings
@@ -293,7 +293,7 @@ theorem rafthttp.Transport.Handler_full
     rw [show (netRh γn).γn = γn from rfl]
     iexact Hdir
   iapply HΦ
-  iunfold trTok
+  iunfold transportTok
   iexact Hh
 
 /-- **A started transport is the network's** (stage 6d; D43 M5c): `netTransport` of its member,
@@ -309,7 +309,7 @@ theorem trState_net_gen (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := 
         □ {{ TS }} (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Stop"))
           (Val #())) {{ RET #(); True }} ⊢
       netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-          (trTok γn t c) TS ∗
+          (transportTok γn t c) TS ∗
         rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) := by
   iintro ⟨#Hpkg, #Hst, #hStop⟩
   isplitr
@@ -358,7 +358,7 @@ theorem trFrozen_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFrozen γn t c rs ⊢
       netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-          (trTok γn t c) (trFrozenTok c.γr rs) ∗
+          (transportTok γn t c) (trFrozenTok c.γr rs) ∗
         rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) := by
   iintro ⟨#Hpkg, #Hf⟩
   ihave #Hf' := Hf
@@ -383,7 +383,7 @@ theorem trState_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trState γn t c ⊢
       netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-          (trTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
+          (transportTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
         rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) := by
   iintro ⟨#Hpkg, #Hst⟩
   iapply trState_net_gen hSend hSS hAS γn t c iprop(∃ rs : trIds, trLive γn t c rs)

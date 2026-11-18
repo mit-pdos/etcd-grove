@@ -31,6 +31,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.getMap
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Gen
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.MainN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.Model
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.New
 public import Proof.github_com.mit_pdos.etcd_grove.examples.raft.kv.StartCluster
@@ -247,9 +248,13 @@ theorem raft_kv.wp_StartCluster [KVStor GF] :
     raft_kv.StartCluster.spec (GF := GF) (hG := hG) :=
   raft_kv.StartCluster.wp_proof raft_kv.wp_NewStorage raft_kv.Storage.wp_InitialState raft_kv.Storage.wp_Snapshot raft_kv.wp_New raft_kv.wp_deliver raft_kv.wp_tick raft_kv.quietLogger.wp_Debugf raft_kv.quietLogger.wp_Errorf raft_kv.quietLogger.wp_Infof raft_kv.quietLogger.wp_Warningf wp_RestartNode MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex MemoryStorage.wp_Term MemoryStorage.wp_Entries
 
+theorem raft_kv.wp_MainN :
+    raft_kv.MainN.spec (GF := GF) (hG := hG) :=
+  raft_kv.MainN.wp_proof raft_kv.wp_StartCluster raft_kv.wp_Check lintest.wp_CounterClock
+
 theorem raft_kv.wp_Main :
     raft_kv.Main.spec (GF := GF) (hG := hG) :=
-  raft_kv.Main.wp_proof raft_kv.wp_StartCluster raft_kv.wp_Check lintest.wp_CounterClock
+  raft_kv.Main.wp_proof raft_kv.wp_MainN
 
 end links_hasLC
 

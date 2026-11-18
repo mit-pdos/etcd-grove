@@ -13,6 +13,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.TracedMsg
 
 @[expose] public section
 
@@ -47,10 +48,20 @@ exposed as pure facts, against `prvalsMatch` (what `toPstate`'s `matched` is for
 leader) and the log's `committed`. `ctx` is not owned: it is only copied into
 `Context`; the abstract message carries the list it holds (`cl`, read-only; since
 2026-10-12, when `Msg` gained `ctx`). `SentCommit` writes `sentCommit` and nothing
-else, so `Match` is untouched. -/
+else, so `Match` is untouched.
+
+**One spec for both trace modes** (2026-11-09, trace-check Q8 stage 1 slice 5): the caller gives
+`send`'s hook's gate (`raft.send.spec`'s `HookGateOpt`), at the heartbeat as queued, for whichever
+commit `cm` the function computes (with its two bounds), and gets `Q` back. Until slice 5 the premise
+`s.gh.tr = none` (stage 0), now `raft.sendHeartbeat.untraced`'s (`TracedUntraced.lean`). (2026-11-10,
+slice 14) `Q` is indexed by the heartbeat's commit `cm`, which the gate is given and the postcondition
+names: a broadcast's caller indexes its resource by the messages queued so far (`notes/decisions.md`,
+"Q8 stage 1 (slice 14)"). (2026-11-10, slice 17) The gate is given `cm` exactly, `min(committed, Match of to)`
+(until then only its two bounds): the trace's heartbeat line checks the commit it carries
+(`notes/decisions.md`, "Q8 stage 1 (slice 17)"). -/
 abbrev raft.sendHeartbeat.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (to : w64) (ctx : GoSlice)
-    (cl : List w8),
+    (cl : List w8) (Q : w64 → IProp GF),
   to ≠ id →
   to ∈ domSet s.progress →
   -- (2026-10-29, stage U7) the term past `0` that `send` stamps (`SentMsgShape`)
@@ -59,7 +70,13 @@ abbrev raft.sendHeartbeat.spec : Prop :=
   cl.length ≤ entBytesMax →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗
-      "#Hctx" ∷ ctx ↦*□ cl }}
+      "#Hctx" ∷ ctx ↦*□ cl ∗
+      -- (2026-11-09, Q8 stage 1 slice 5) `send`'s hook's gate, at the heartbeat's commit `cm`
+      -- ((2026-11-10, slice 17) exactly `min(committed, Match)`; until then its two bounds)
+      "Hgate" ∷ (∀ cm : w64, ⌜uint.Z cm = min (uint.Z s.logst.committed)
+          (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)))⌝ -∗
+        HookGateOpt s.gh.tr r (sendOutGate id s c MsgHeartbeat
+          [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl]) (Q cm)) }}
     (App (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"sendHeartbeat"))
       (Val #to)) (Val #ctx))
   {{ (cm : w64) (pvs : GMap w64 Progress), RET #();
@@ -68,7 +85,7 @@ abbrev raft.sendHeartbeat.spec : Prop :=
                         (W64 0) (W64 0) cm (W64 0) [] [] cl] with prvals := pvs } ∗
       ⌜uint.Z cm ≤ uint.Z s.logst.committed⌝ ∗
       ⌜uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))⌝ ∗
-      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ }}
+      ⌜prvalsMatch pvs = prvalsMatch s.prvals⌝ ∗ Q cm }}
 
 end spec
 

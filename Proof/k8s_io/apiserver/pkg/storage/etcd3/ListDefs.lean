@@ -141,6 +141,13 @@ def kvWfHist (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
   ∀ r, r ≤ σ.rev → ∀ v ∈ (σ.at r).kvs, (c.pfx <+: v.key → c.S.dec v.value ≠ none) ∧
     0 < uint.nat v.modRev ∧ uint.nat v.modRev ≤ r
 
+/-- **Every value a revision of `σ` puts under the store's prefix decodes** (`notes/k8s-7f5b-draft.md`
+§7, option (A), decided by etcd-grove-02, 2026-11-16): also a value put and overwritten within one
+revision, which is in no state `σ.at r` (so `kvWfHist` says nothing of it) but is an etcd watch
+event's value (`mvcc.evsOfRevM`). -/
+def kvWritesDec (c : StoreCfg GF Obj) (σ : KVState) : Prop :=
+  ∀ r, r ≤ σ.rev → ∀ ch ∈ σ.changesAt r, ∀ k v l, ch = .put k v l → c.pfx <+: k → c.S.dec v ≠ none
+
 /-- **The default gate has `EtcdRangeStream` off** (Draft §2, #13, persistent): the gate
 `DefaultFeatureGate` holds (read-only, as `features`' fact `featuresInit` says) had
 `Set("EtcdRangeStream=false")` succeed. Producer: the driver's `noStreaming` before `etcd3.New`. -/
@@ -333,6 +340,27 @@ theorem kClientErr_unkErr (c : StoreCfg GF Obj) (err : GoInterface) :
   unfold kClientErr
   iintro ⟨%h, #Hs, #Hc⟩
   iapply (unkErr_client c err h.1 h.2) $$ Hc Hs
+
+/-- **`listErr` with the status's `Failure`** (k8s 7f-5a-P, E5: `interpretListError`'s post; the
+watcher's `sendError` needs an `APIStatus` error's status to be a `Failure`). The first arm is the
+client's error itself (`kClientErr`, 7f-5a-P step 5: `kErrOk` follows from it; `unkErr` by
+`kClientErr_unkErr`). -/
+def listErrF (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
+  iprop(kClientErr err ∨ ∃ st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status,
+    apierrors.apiErrAt err (.status st []) ∗
+    ⌜st.Reason' = go!"Expired" ∧ st.Code' = W32 410 ∧ st.Status' = go!"Failure"⌝)
+
+instance listErrF_persistent (c : StoreCfg GF Obj) (err : GoInterface) :
+    Persistent (listErrF c err) := by
+  unfold listErrF; infer_instance
+
+theorem listErrF_listErr (c : StoreCfg GF Obj) (err : GoInterface) :
+    listErrF c err ⊢ listErr c err := by
+  unfold listErrF listErr
+  iintro (#H | ⟨%st, #H, %h⟩)
+  · ileft; iapply kClientErr_unkErr $$ H
+  · iright; iexists st; isplitl; · iexact H
+    ipureintro; exact ⟨h.1, h.2.1⟩
 
 /-- **A failed read's error** (Draft §3.5): the client's error (`kClientErr`, so `unkErr`; D1), and,
 by its description (`errDesc`, D29), a future revision only if the state `Q` fired at (for some

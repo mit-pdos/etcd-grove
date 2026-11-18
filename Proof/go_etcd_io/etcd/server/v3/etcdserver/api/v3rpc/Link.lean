@@ -192,7 +192,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace v3rpc
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3 go_etcd_io.etcd.pkg.v3
+open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3 _root_.Perennial.go_etcd_io.etcd.pkg.v3
 
 section links
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]

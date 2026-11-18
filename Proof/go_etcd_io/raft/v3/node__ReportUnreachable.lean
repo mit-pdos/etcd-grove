@@ -103,7 +103,7 @@ private theorem node.ReportUnreachable.wp_raw
     · iapply isHandshake_isChan $$ Hrecvc
     iapply handshake_send_au γ.recvc nv.recvc' _ (netP γ id) iprop(True)
       $$ [$Hlc1 $Hlc2 $Hlc3] Hrecvc [Hmsg Hcr Htc]
-    · iapply netP_local γ id _ _ (.inr (.inr (.inl rfl))) rfl rfl rfl rfl
+    · iapply netP_local γ id _ _ (.inr (.inr (.inl rfl))) rfl rfl rfl rfl (.inr rfl)
         $$ Hmsg Hlb Hcr Htc
     inext
     iintro -

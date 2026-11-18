@@ -63,6 +63,7 @@ theorem StartCompactorPerEndpoint.wp_proof
   iunfold clientEndpointsAt at Heps
   icases Heps with ⟨%esl0, #Hef, #Hes⟩
   iunfold registryFact at Hreg
+  icases Hreg with ⟨#Hreg, -⟩
   (try wp_auto)
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)

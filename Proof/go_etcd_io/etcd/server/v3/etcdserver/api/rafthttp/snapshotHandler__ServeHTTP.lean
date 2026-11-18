@@ -505,7 +505,11 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               simp only [interface.mkOk] at *
               wp_auto
               wp_apply hAs xs writerErr_ptr (zero_val _) hAsT (ErrorStringLeaf.leaf _)
-                ErrorStringNotWriter.notIn $$ [$writerErr] as writerErr
+                ErrorStringNotWriter.notIn
+                (fun h => by
+                  exfalso; rw [go.is_underlying (t := rafthttp.writerToResponse.ty)] at h
+                  simp [rafthttp.writerToResponse.underlying, go.isInterfaceType] at h) $$ [$writerErr]
+                as writerErr
               sprintf_err (GoInterface.ok ⟨go.GoType.PointerType errors.errorString.ty, #xs⟩)
               zap_log
               wp_apply hError (raftHttpNet Rh) _ a R γk $$ [$Hw Hhd] as Hw

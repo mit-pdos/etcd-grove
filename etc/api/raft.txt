@@ -96,10 +96,16 @@ importable Proof.go_etcd_io.raft.v3.LemmasEnts
 
 ## raftpb: the getters' specs, the protobuf records' models
 importable Spec.go_etcd_io.raft.v3.raftpb.*
+# (Q9 of notes/trace-validation-plan.md, 2026-11-09) `MessageType.String`'s result
+# (`raftpb.msgTypeString`, the names) and the law giving rafthttp its `fmt.stringMethodSpec`
+importable Proof.go_etcd_io.raft.v3.raftpb.MsgTypeName
 importable Proof.go_etcd_io.raft.v3.PbModel
 importable Proof.go_etcd_io.raft.v3.InvPb
 importable Proof.go_etcd_io.raft.v3.InvPbLog
 importable Proof.go_etcd_io.raft.v3.InvPbMsg
+# (2026-11-12, trace-check B4) `pbMessage`, the `PbType` of a `*raftpb.Message` (the trusted wire
+# model; until then in rafthttp's tree): what rafthttp's codecs and the trace-check harness clone with
+importable Proof.go_etcd_io.raft.v3.PbMessage
 importable Proof.go_etcd_io.raft.v3.InvPbSnapSet
 # (raft-entsize §2, 2026-11-09) the wire contents of messages and entries (`MsgC`, `EntryC`), the
 # frozen objects at a content (`msgRoC`, `entRoC`), moved from stage A's rafthttp `PerType*`
@@ -165,6 +171,30 @@ importable Proof.go_etcd_io.raft.v3.InvReadylog
 importable Proof.go_etcd_io.raft.v3.InvRestore
 importable Proof.go_etcd_io.raft.v3.InvBig
 
+## Trace validation (gated: a traced cluster only; `notes/trace-validation-plan.md`)
+# (2026-11-09) the trace-check example's recorder and converter: the trace mode's ghost state
+# (`InvTrace`) and the simulation of the TLA spec by raft's events (`TraceSim`)
+importable Proof.go_etcd_io.raft.v3.InvTrace
+# the logger's contract, per build (this tree: the build without `with_tla`, nil only; `RaftTla/`: the real one)
+importable Proof.go_etcd_io.raft.v3.InvTraceLogger
+importable Proof.go_etcd_io.raft.v3.TraceSim
+# (Q13, 2026-11-09) the simulation's invariant at the end of the run (`simInv_end`), for `Main`'s
+# pure obligations (`tracecheck/MainSim.lean`), with the modules it publicly imports
+importable Proof.go_etcd_io.raft.v3.TraceSimEnd
+importable Proof.go_etcd_io.raft.v3.TraceSimGhost
+importable Proof.go_etcd_io.raft.v3.TraceSimBag
+importable Proof.go_etcd_io.raft.v3.TraceSimLemmas
+# (S7 part 2, 2026-11-11) the traced node API as the harness sees it: the frozen Draft's invariant
+# and `StartNode` precondition re-sealed (the Draft publicly imports raft's internals), and the traced
+# statements not yet proved (`StartNode.tracedSpec`, `isReadyChan_recvAu.tracedSpec`,
+# `node.Step.tracedSpec`), which the harness takes as hypotheses
+importable Proof.go_etcd_io.raft.v3.TracedNodeApi
+# (2026-11-12, trace-check implementation step 1) the traced node API's linked results
+# (`node.Advance.tracedSpec`, `node.Step.tracedSpec`), apart from `Linked` (the server imports that)
+importable Proof.go_etcd_io.raft.v3.TracedLinked
+# (2026-11-12) `node.Advance.tracedSpec` stated over `sentTok` (re-exported by `TracedNodeApi`)
+importable Proof.go_etcd_io.raft.v3.TracedAdvanceSpec
+
 ## Debt: proof internals clients reach today (take them out of the list)
 # tactics and lemma files the server, the examples or other packages' specs import
 importable Proof.go_etcd_io.raft.v3.FrameH
@@ -180,3 +210,13 @@ importable Proof.go_etcd_io.raft.v3.SpecResults
 importable Proof.go_etcd_io.raft.v3.Protocol.LeaderCompleteness
 importable Proof.go_etcd_io.raft.v3.Protocol.RefinementDyn
 importable Proof.go_etcd_io.raft.v3.Protocol.StepRInv
+
+# (2026-11-15, the WAL over fsExt into the main tree, notes/wal-lean-integration.md) the parts of
+# importable modules the WAL imports alone (their sources import them publicly; the whole sources
+# bring names that clash with the WAL's): no new exposure, each is a piece of a listed module.
+importable Proof.go_etcd_io.raft.v3.NodeApiVocabCore
+importable Proof.go_etcd_io.raft.v3.Protocol.CommitWitCore
+importable Proof.go_etcd_io.raft.v3.InvPbCore
+importable Proof.go_etcd_io.raft.v3.PbContentCore
+importable Proof.go_etcd_io.raft.v3.PbContentOwnCore
+importable Proof.go_etcd_io.raft.v3.PbEntryTypeCore

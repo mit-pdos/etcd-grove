@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.raft.v3.raft__send
 public import Spec.go_etcd_io.raft.v3.tracker.Progress__SentCommit
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.raft.v3.LemmasSendR
+public import Proof.go_etcd_io.raft.v3.TracedUntraced
 
 @[expose] public section
 
@@ -38,7 +39,8 @@ theorem raft.sendHeartbeat.wp_proof
     (wp_Progress_SentCommit : tracker.Progress.SentCommit.spec (GF := GF) (hG := hG))
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     raft.sendHeartbeat.spec (GF := GF) (hG := hG) := by
-  intro c r id s to ctx cl Hto Hcfg Htz Hcl
+  intro c r id s to ctx cl Q Hto Hcfg Htz Hcl
+  rw [show (MsgHeartbeat : w32) = W32 8 from rfl]
   wp_start as H
   iNamed H
   icases ownRaftPhysC_tracker_same $$ Hphys with ⟨%tv, Htrkf, Htrk, Hback⟩
@@ -84,24 +86,36 @@ theorem raft.sendHeartbeat.wp_proof
   have Hok : SendOk id s ⟨W32 8, to, 0, 0, 0, 0, cm, 0, false, 0⟩ [] cl
       [Msg.mkV .heartbeat id to s.term false (W64 0) (W64 0) cm (W64 0) [] [] cl] :=
     Or.inr (Or.inl ⟨.heartbeat, Or.inr (Or.inl rfl), rfl, rfl, Hto, Htz, rfl⟩)
-  wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Or.inl rfl) Hok
+  -- (Q8 stage 1, slice 5) the caller's gate at this commit
+  obtain ⟨Hlv1, -⟩ := Hlv
+  have Hmin : uint.Z cm = min (uint.Z p.matched) (uint.Z lv.committed') := w64Min_spec _ _
+  have Hcm1 : uint.Z cm ≤ uint.Z s.logst.committed := by rw [← Hlv1]; omega
+  have Hcm2 : uint.Z cm ≤ uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0)) := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some,
+      Option.getD_some]
+    omega
+  -- (slice 17) the gate is given the commit exactly, `min(Match, committed)`
+  have Hcmeq : uint.Z cm = min (uint.Z s.logst.committed)
+      (uint.Z ((prvalsMatch s.prvals !! to).getD (W64 0))) := by
+    simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some,
+      Option.getD_some]
+    rw [← Hlv1]; omega
+  ihave Hgate := Hgate $$ %cm %Hcmeq
+  wp_apply wp_raft_send c r id s «$a0_ptr» _ [] none cl [] _ (Q cm) (Or.inl rfl) Hok
     (fun h => absurd h (by simp [MsgSnap]))
-      (fun h => absurd h (by simp [MsgApp])) rfl $$ [$Hphys $Hm] as Hphys
-  · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+      (fun h => absurd h (by simp [MsgApp])) rfl (fun _ => mtypeOf_send_eq (u := W32 8) rfl)
+      $$ [$Hphys $Hm Hgate] as ⟨Hphys, HQ⟩
+  · isplitr
+    · iapply tsSrc_ne; exact (fun h => absurd h (by simp [MsgSnap]))
+    simp only
+    iexact Hgate
   icases ownRaftPhysC_pr_upd _ _ _ _ _ _ p $$ Hphys %Hlk %Hpvs with ⟨%Hok, -, Hpa, Hpback⟩
   wp_apply wp_Progress_SentCommit $$ [$Hpa] as Hpa
   ihave Hphys := Hpback $$ %_ Hpa %rfl %(fun Hl => (Hok Hl).sentCommit _)
   iapply HΦ $$ %cm %_
-  iframe Hphys
-  obtain ⟨Hlv1, -⟩ := Hlv
-  have Hmin : uint.Z cm = min (uint.Z p.matched) (uint.Z lv.committed') := w64Min_spec _ _
+  iframe Hphys HQ
   ipureintro
-  refine ⟨?_, ?_, ?_⟩
-  · rw [← Hlv1]; omega
-  · simp only [prvalsMatch, GMap.fmap_eq, GMap.lookup_fmap, Hpvs, Option.map_some,
-      Option.getD_some]
-    omega
-  · exact prvalsMatch_insert_same _ _ p _ Hpvs rfl
+  exact ⟨Hcm1, Hcm2, prvalsMatch_insert_same _ _ p _ Hpvs rfl⟩
 
 end proof
 

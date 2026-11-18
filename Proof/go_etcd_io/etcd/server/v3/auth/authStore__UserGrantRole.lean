@@ -69,7 +69,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   (try wp_auto)
   wp_apply HBatch as %tx Htx
   iunfold authBatchTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Lk, #HLk⟩
+  icases Htx with ⟨%ti, %Hti, %Lk, %Sw, #HLk⟩
   subst Hti
   ihave #HLk' := HLk
   iunfold authBatchTxLk at HLk'
@@ -78,7 +78,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   wp_bind (App (Val #(methods ti.ty go!"Lock" ti.v)) (Val #()))
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
-  iintro ⟨%st0, HL, Hown, %Hl0⟩
+  iintro ⟨%st0, HL, Hsw, Hown, %Hl0⟩
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
   icases HRd' with ⟨-, #HRG, -, -, -⟩
@@ -91,7 +91,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   wp_if_destruct
   · -- no such user
     ihave %Hnone := userOutX_null st0 user $$ Hu
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -137,7 +137,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
   wp_if_destruct
   · ihave %Hrnone := roleOut_null st0 rn0 $$ Hrl
     (try wp_auto)
-    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+    wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
@@ -242,7 +242,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         simp only [TypedPointsto.typedPointstoDef]
         iNamed Hresp
         (try wp_auto)
-        wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
+        wp_apply HUnlock $$ %st0 %Post %hs [$HL $Hsw $Hown $Hw1 $Hw2] as ⟨HPost, HT, Hown⟩
         · ipureintro; exact Hl0
         (try wp_auto)
         iapply HΦ
@@ -313,21 +313,21 @@ theorem auth.authStore.UserGrantRole.wp_tieB
         rw [if_neg hc, if_neg hnin']
         exact ⟨xs', by rw [← Hurr]; exact Hperm.symm, hxs, rfl⟩
       wp_bind (App (Val #(methods ti.ty go!"UnsafePutUser" ti.v)) (Val #u))
-      iapply HPutU $$ %st0 %Post %u %urN [HL Hup]
-      · iframe HL
+      iapply HPutU $$ %st0 %Post %u %urN %AuthSess.init [HL Hsw Hup]
+      · iframe HL Hsw
         isplitl [Hup]
         · iunfold ownUser
           iexists ums, unm, upw, s2, uo, usc
           iframe Hup Hunm Hupw Hs2 Huo
         ipureintro
-        refine ⟨hxs, by
+        refine ⟨by decide, hxs, by
             show 0 < ur.name.length; rw [Hurn]
             exact List.length_pos_iff.2 ((Hok st0 Hl0).2.2.2.1 user (by rw [Hlook]; rfl)),
           by show ur.name.length ≤ _; rw [Hurn]; exact Hnamelen, ?_⟩
         exact ((Hok st0 Hl0).2.1 _ _ hstepR rfl).2 user xs'
           (by simp only [bump, putUser, GMap.lookup_insert])
       inext
-      iintro ⟨HL, Huu⟩
+      iintro ⟨HL, Hsw, Huu⟩
       (try wp_auto)
       ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := Hok st0 Hl0
@@ -336,7 +336,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       obtain ⟨Hrevfit, Hfit, -⟩ := Hstep
       have Hfit' := (Hfit _ _ hstepR rfl).1
       ihave #Hcn := capNextM_use M hs _ st0 _ Hl0 hstepR $$ Hcap
-      wp_apply (h_commitRevision st R M P f T Wb ti Lk (putUser st0 user xs') Post hs st0)
+      wp_apply (h_commitRevision st R M P f T Wb ti Lk Sw (putUser st0 user xs') Post hs st0)
         $$ [$Hinv $HLk $HL $Hown $Hcn] as ⟨%rev, %Hrev, HL, Hown⟩
       · ipureintro
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
@@ -393,7 +393,7 @@ theorem auth.authStore.UserGrantRole.wp_tieB
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
       (try wp_auto)
-      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 user xs')]) [HL $Hown $Hw1 $Hw2]
+      wp_apply HUnlock $$ %_ %Post %(hs ++ [bump (putUser st0 user xs')]) [HL $Hsw $Hown $Hw1 $Hw2]
         as ⟨HPost, HT, Hown⟩
       · isplitl [HL]
         · iExactEq HL

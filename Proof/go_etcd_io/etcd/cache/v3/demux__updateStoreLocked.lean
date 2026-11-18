@@ -278,7 +278,7 @@ theorem demux.updateStoreLocked.wp_proof
       wp_apply wp_load_slice_index resp.Events' (sint.Z k) ls DFrac.discard evp1 Hk0 $$ [] as -
       · iframe Hls; ipureintro; exact Hevp1_lookup
       ihave He1 := Hev $$ %(sint.nat k) %evp1 %e1 %Hevp1_lookup %He1_lookup
-      iunfold eventAt at He1
+      ihave He1 := eventAt_elim $$ He1
       icases He1 with ⟨%keySl1, #Htyp1, #Hkv1, #Hkey1, #Hks1, #Hmod1⟩
       wp_auto
       have Hjlt : sint.Z j < sint.Z resp.Events'.len := by word
@@ -286,7 +286,7 @@ theorem demux.updateStoreLocked.wp_proof
       wp_apply wp_load_slice_index resp.Events' (sint.Z j) ls DFrac.discard evp0 Hidx.1 $$ [] as -
       · iframe Hls; ipureintro; exact Hevp0_lookup
       ihave He0 := Hev $$ %(sint.nat j) %evp0 %e0 %Hevp0_lookup %He0_lookup
-      iunfold eventAt at He0
+      ihave He0 := eventAt_elim $$ He0
       icases He0 with ⟨%keySl0, #Htyp0, #Hkv0, #Hkey0, #Hks0, #Hmod0⟩
       wp_auto
       by_cases hr : e1.rev = e0.rev
@@ -436,7 +436,7 @@ theorem demux.updateStoreLocked.wp_proof
         have : (sint.Z (resp.Events'.len - W64 1)).toNat = r.events.length - 1 := by word
         rw [this] <;> exact Hevpl_lookup
       ihave Hel := Hev $$ %(r.events.length - 1) %evpl %el %Hevpl_lookup %Hel_lookup
-      iunfold eventAt at Hel
+      ihave Hel := eventAt_elim $$ Hel
       icases Hel with ⟨%keySll, #Htypl, #Hkvl, #Hkeyl, #Hksl, #Hmodl⟩
       wp_auto
       have Hlast : r.events.getLast? = some el := by

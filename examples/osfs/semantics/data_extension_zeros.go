@@ -15,7 +15,8 @@ import (
 // crash left stale bytes on disk past the recovered size.
 //
 // Lean: Impl.lean: OsFile.resized, OsFile.written (`0` past `f.size`), used by
-// OsChange.ofResize/ofWrite and OsFile.land.
+// OsChange.ofResize/ofWrite and OsFile.land. (An ftruncate also zeroes the rest
+// of the page holding the old end: data_truncate_tail_zeros.go.)
 //
 // Allowed: after the extensions below, the bytes past the old size read 00.
 // Excluded: the stale 07 showing through.

@@ -78,6 +78,7 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   simp only at HN
   subst HN
   iintro ⟨#Hcl, Hr⟩
+  ihave %Htr := srvClusterOk_untraced (γ := γ.srv) $$ Hcl
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, %Hcsl⟩
   iunfold netRecv at Hr
@@ -97,11 +98,12 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     iapply (nodeSnapLocal_of_elem γ.node.cl γ.id γd (by rw [Hcsl.1]; exact Hd))
     iunfold snapSaved at Hsav
     iexact Hsav
+  ihave Htok := sentTok_untraced γ.node.cl st Htr
   -- (raft-entsize §4) the copy at its content, of bounded size in a cluster with a bound on
   -- proposed data (the server's payload: `srvNet.Sz`)
   iapply stepIn_intro γ.node.cl srvClusterN γ.id ml sid st cm Hto Hcm Hcs
     (fun b h => Hsz (by simp [h]))
-  iframe Hrm Hm HO Hloc
+  iframe Hrm Hm HO Hloc Htok
 
 end lemmas
 

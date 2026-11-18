@@ -47,6 +47,8 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
   -- read by `newRaft` (2026-10-14, reconfiguration stage B7 part 2: a dynamic `RawNode` needs
   -- it on)
   cv'.StepDownOnRemoval' = cv.StepDownOnRemoval' ∧
+  -- read by `newRaft` (2026-11-08, the trace hooks: `TraceLoggerOk` of the caller's)
+  cv'.TraceLogger' = cv.TraceLogger' ∧
   -- (out_size C3) read by `newRaft` into `maxMsgSize` (`ownRaftPhys`'s bound)
   cv'.MaxSizePerMsg' = cv.MaxSizePerMsg'
 

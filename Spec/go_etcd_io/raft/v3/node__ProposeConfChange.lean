@@ -41,6 +41,9 @@ cluster's bound on proposed data, if any: the entry's data, its encoding, is at 
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM)
     (cc : ConfChangeIC) (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  -- (2026-11-12, trace-check implementation step 1: the design's §3.5) refused at a traced
+  -- cluster: `run` steps no message of this kind there
+  Cluster.trace γ = none →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       -- (raft-entsize §3, [r3e]) the conf change at its content `cc` (its unknown fields pinned),
       -- of model `o`, its size within the cluster's bound on proposed data, if any

@@ -1,51 +1,88 @@
 /-
-`wal.Repair` (WAL W4a, 2026-11-11, revised after the Freeze review and its second and third rounds, and in W4a.1 and its revision 1 (2026-11-12, findings F-W4b-1/F-W4b-2 and the delta review's B1/M1/M2, decided by etcd-grove-81), and in W4a.2 (2026-11-12: the purge bounds' completeness, R1/R2, the soundness findings F-W4a2-1/F-W4a2-2, logically atomic restatements, decided by etcd-grove-81; the fork fixes `1aaca041c` and `0b50f0426` approved by the user; revision 1 after the Freeze review: no index `2^64-1` in `Save`/`SaveSnapshot`, decided by etcd-grove-81) the approved W4 Draft's §1.4 and the revision design, `notes/decisions.md`, "WAL W4a" and "WAL W4a revision") Lean-first. Names-only: an axiom at the trust boundary (`Proof/...`), true of the Go code at the etcd pin `0b50f0426` (S/ = `server/storage/wal/`, line numbers of `c90b03b56`) under the world assumptions of `GooseLang/Ext/AbsDisk/Impl.lean`; the Go evidence is the WAL tester under the crash harness (`notes/decisions.md`, "WAL W3"). An axiomatized body is read as one that performs the abstract-disk extension's steps (`AbsDiskStep`): the step each spec's atomic update or post names (`Proof/go_etcd_io/etcd/server/v3/storage/WalBodies.lean` gives the bodies of the posts that name a past state). `walDiskAt`'s synced mark and `named` are lower bounds of the real ones (W4a.1 revision 1, `GooseLang/Ext/AbsDisk/Specs.lean`).
+`wal.Repair` over `fsExt` (W7 of `notes/wal-fsext-plan.md`; the W7-W12 log, fifth session): the main
+tree's axiom `Spec/go_etcd_io/etcd/server/v3/storage/wal/Repair.lean` restated with plan §3's binders (over
+`fsExt`: the WAL layer `walAreaOk`, the area's spine and `walAreaRes`, the call permission, the update at
+`walAuMask`, plan §11) and §6 Q7 (the lock token, framed; `notes/specs-only/ledger.md`, 2026-11-14). `Open`'s
+binders, as `Repair` reads the same directory (`openLast`: `readWALNames`, `fileutil.LockFile` of the last
+name). S/ = `server/storage/wal/` at the pin with the local fork patches. Not yet proved (the proof plan, its
+callee specs and the invariant laws it needs: the W7-W12 log, fifth session). Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.WalDisk
-public import Proof.go_etcd_io.etcd.server.v3.storage.InvOpen
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.CreateDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PkgInit
+public import GeneratedProof.go_etcd_io.etcd.server.v3.storage.wal
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.LockDefs
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.OpenLastDefs
 public import Spec.go_uber_org.zap.Defs
-public import Proof.go_etcd_io.raft.v3.InvPbLog
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.Init
 
 @[expose] public section
-
-set_option linter.unusedSectionVars false
 
 noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.raft.v3
+open Iris Iris.BI
+open Fs WalEnc WalFs
 
 section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt absDiskExt]
-variable [go_gctx : GoGlobalContext] [go.IntoValInj GoString]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+variable [go_gctx : GoGlobalContext] [go.BasicIntoValInj]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [W : WalGS GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
-variable [walpb_sem : go_etcd_io.etcd.server.v3.storage.wal.walpb.Assumptions]
 
-/-- **`Repair(lg, dir)`** (S/repair.go:32-106): truncates a torn last record and fsyncs; the decoded
-records are unchanged (a synced record is never torn: the sector assumption). With no WAL at `dir`
-(`o = none`) it returns false (`readWALNames`). It takes the tail file's lock blocking (`LockFile`,
-S/repair.go:30-38, 120-127): while a handle holds it, `Repair` blocks until none does (a
-concurrent `Close` of the handle, e.g. of an opening or failed one, whose `Close` needs no
-`walDirIs`, releases it), then acts as with no handle; no other WAL call intervenes, since `Repair`'s
-atomic update holds the whole map (`walDirIs`) for its caller's invariant. Go test `rev3-tests`
-`TestReview3RepairLive` (with `Create`'s or an opening handle live, `Repair` does not return within
-2s; after `Close` it completes). Logically atomic (WAL W4a.2, the W4c gate of W4a.1 revision 1, M-R1): W4c's restart runs under the
-crash model, so the tester keeps the WAL in an invariant and finds it there at a crash during the
-call; the post's `Q` is of the accessed state. The body linearizes at its truncation (no step:
-the model's state, which holds no torn record, is unchanged). -/
-abbrev wal.Repair.spec : Prop :=
-  ∀ (lg : Loc) (r dir : GoString) (Q : Option WalDur → IProp GF), walAreaDir r dir →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗ walAreaOk r ∗
-      AU <{ ∃∃ o : Option WalDur, walDirIs dir o }> @ ⊤, ∅ <{ walDirIs dir o, COMM Q o }> }}
+/-- **`Repair(lg, dir)`** (S/repair.go:30-106): `openLast` (`readWALNames`, then `fileutil.LockFile` of the
+last segment, read-write), the decoder over it until an error; on `io.EOF` true; on
+`io.ErrUnexpectedEOF` a copy of the segment to `<segment>.broken` (`createNewWALFile`, `Seek`, `io.Copy`),
+the segment truncated at the last record's end and fsynced, true; otherwise false. The records the WAL's
+history decodes to are unchanged: the decoder accepts exactly the frames of the last segment's stream
+(the invariant's crash condition, W1: no frame past it passes the CRC), so the truncation is at the
+stream's end and removes no record of the history; the state is unchanged. Logically atomic, committed as accessed (no step changes the
+state). With the lock token, framed (plan §6 Q7: with the trivial lock model, `LockFile` waits for
+nothing, so a concurrent appender would race the truncation; both callers, the WAL tester and
+`openWALFromSnapshot`, call `Repair` after a successful `Close`; the main tree's "blocks until the
+handle's `Close`" scenario is dropped until the lock model). The boolean claims nothing, as the main
+tree's. On `false` the token may be lost (`notes/specs-only/ledger.md`, 2026-11-14, "the `false` arm after a
+failed `Truncate` or `Fsync`"; plan §6 Q6): after a failed truncate or fsync of the last segment the
+truncate's window stays open and the tail `Repair` registered cannot be unregistered; every client stops on
+`false` (the WAL tester's `restartRead`, etcd's `openWALFromSnapshot`: `lg.Fatal`). -/
+abbrev wal.Repair.spec (Mr : WalMarshal) : Prop :=
+  ∀ (lg : Loc) (R : Roots) (jr : Ino) (r dir nm : GoString) (qp : Qp) (Q : Option WalDur → IProp GF),
+  InArea r dir nm → NameOk nm → cleanAbsPath r → dir.length < 2 ^ 59 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
+      WalFs.walAreaOk walCodec Mr R jr r ∗ osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗
+      osCallPerm 1 ∗ WalFs.walUnlockedTok ∗
+      AU <{ ∃∃ o : Option WalDur, WalFs.walDirIs dir o }> @ walAuMask, ∅
+        <{ WalFs.walDirIs dir o, COMM Q o }> }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
-  {{ (b : Bool), RET #b; ∃ o : Option WalDur, Q o }}
+  {{ (b : Bool), RET #b; osPathS R r (DFrac.own qp) jr ∗ walAreaRes jr ∗ osCallPerm 1 ∗
+      (WalFs.walUnlockedTok ∨ ⌜b = false⌝) ∗ ∃ o : Option WalDur, Q o }}
+
+/-- **`Repair(lg, dir)` while the last segment's lock is held** through another open file description
+(2026-11-15, the lock semantics; `notes/wal-units/locks.md`, item 5; the user's decision of 2026-11-15: the
+lock model as it is, a blocking lock may fail at any time): etcd's `openWALFromSnapshot` ignores a failed
+`w.Close()` (whose sync failed before the locks were released) and calls `Repair`, whose `openLast` takes a
+blocking `fileutil.LockFile` on the last segment. Its two outcomes are covered: it never returns while the
+lock is held (any post holds), or it fails and `Repair` returns `false` (`openLast.specHeld`). With the
+directory claim's share the failed handle holds (a path to `dir`, `osNames j (.except X)` at the
+layout's names, the segments `segs` in name order, the last `gL`) and the held lock: `false`, nothing
+changed, the share and the held lock kept. -/
+abbrev wal.Repair.specHeld : Prop :=
+  ∀ (lg : Loc) (R : Roots) (dir : GoString) (j : Ino) (X : List GoString) (hj : NamesH)
+    (segs : List SegG) (gL : SegG) (qd : Qp) (dqn : DFrac) (k : LockKind) (fd : w64),
+  (∀ b ∈ X, walNameP b = false) → SegsNamed segs hj.cur → walInos hj.cur = segs.map (·.ino) →
+  (segs.map (·.ino)).Nodup → (segs.map (·.name)).Pairwise (fun a b => go.GoStringLt a b) →
+  (∀ g ∈ segs, ∃ sq ix : Nat, g.name = walFileName sq ix) → segs.getLast? = some gL →
+  dir.length < 2 ^ 59 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.wal ∗ zapLoggerOk lg ∗
+      osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osPathS (GF := GF) R dir (DFrac.own qd) j ∗
+      osCallPerm (GF := GF) 1 ∗ osNames (GF := GF) j (.except X) dqn hj ∗
+      osLock (GF := GF) k gL.ino fd ∗ fileutil.lockKind (GF := GF) k }}
+    (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir))
+  {{ (b : Bool), RET #b; ⌜b = false⌝ ∗ osPathS R dir (DFrac.own qd) j ∗ osCallPerm 1 ∗
+      osNames j (.except X) dqn hj ∗ osLock k gL.ino fd }}
 
 end spec
 

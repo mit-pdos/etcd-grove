@@ -16,13 +16,21 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Compact
 public import Proof.k8s_io.apimachinery.pkg.util.wait.ContextForChannel
 public import Proof.k8s_io.apiserver.pkg.storage.EncodeContinue
 public import Proof.k8s_io.apimachinery.pkg.conversion.EnforcePtr
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType__StringPtr
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Event__GetKv
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Event__GetType
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.Event__IsCreate
 public import Proof.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
+public import Proof.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Proof.k8s_io.apimachinery.pkg.api.errors.HasStatusCause
 public import Proof.strings.HasSuffix
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTimeout
 public import Proof.k8s_io.apiserver.pkg.storage.IsTooLargeResourceVersion
+public import Proof.k8s_io.apimachinery.pkg.util.wait.Jitter
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.KeyValue__GetCreateRevision
+public import Proof.go_etcd_io.etcd.api.v3.mvccpb.KeyValue__GetModRevision
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewCompactor
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.NewDefaultLeaseManagerConfig
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.NewEtcdMetricsTracker
@@ -41,9 +49,12 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyT
 public import Proof.k8s_io.apiserver.pkg.storage.Preconditions__Check
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareContinueToken
 public import Proof.k8s_io.apiserver.pkg.storage.PrepareKey
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdBookmark
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdEvent
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordEtcdRequest
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordListLatency
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.metrics.RecordStorageListMetrics
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
 public import Proof.k8s_io.apiserver.pkg.storage.SelectionPredicate__Empty
 public import Proof.k8s_io.apiserver.pkg.storage.SelectionPredicate__Matches
@@ -55,18 +66,29 @@ public import Proof.k8s_io.apiserver.pkg.storage.SelectionPredicate__labelFieldE
 public import Proof.k8s_io.component_base.tracing.Span__AddEvent
 public import Proof.k8s_io.component_base.tracing.Span__End
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.StartCompactorPerEndpoint
+public import Proof.google_golang_org.grpc.status.Status__Code
 public import Proof.strings.TrimSuffix
 public import Proof.reflect.TypeOf
 public import Proof.k8s_io.apiserver.pkg.storage.ValidateListOptions
+public import Proof.k8s_io.klog.v2.Verbose__InfoS
 public import Proof.k8s_io.klog.v2.Verbose__Infof
 public import Proof.go_etcd_io.etcd.client.v3.Version
+public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.WatchInitialized
+public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
+public import Proof.go_etcd_io.etcd.client.v3.WithLimit
+public import Proof.go_etcd_io.etcd.client.v3.WithPrefix
+public import Proof.go_etcd_io.etcd.client.v3.WithPrevKV
+public import Proof.go_etcd_io.etcd.client.v3.WithRange
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.areInitialEventsRequired
 public import Proof.go_opentelemetry_io.otel.attribute.Int
 public import Proof.go_opentelemetry_io.otel.attribute.String
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.blockLogger__recordWait
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Deadline
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Done
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Err
 public import Proof.k8s_io.apimachinery.pkg.util.wait.channelContext__Value
+public import Proof.k8s_io.utils.clock.RealClock__Now
 public import Proof.go_etcd_io.etcd.client.v3.cloneCompare
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__CompactRevision
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__Stop
@@ -75,30 +97,48 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__fromWatchRespo
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__getCompactRev
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runCompactLoop
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.compactor__runWatchLoop
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProcessing__collectEventProcessing
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProcessing__scheduleEventProcessing
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.corruptObjErrAggregatorFactory
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.decodeObj
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.defaultListErrorAggregatorFactory
+public import Proof.errors.AsLeafTy
 public import Proof.errors.IsStatusErr
+public import Proof.k8s_io.apimachinery.pkg.api.errors.NewInternalError
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.New
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__Watch
 public import Proof.k8s_io.apimachinery.pkg.fields.Set__Get
+public import Proof.fmt.ErrorfPlain
 public import Proof.fmt.SprintfNamed
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getNewItemFunc
+public import Proof.go_etcd_io.etcd.client.v3.getPrefix
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.getTypeName
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.growSlice
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.handleCompactedErrorForPaging
+public import Proof.k8s_io.apiserver.pkg.util.flowcontrol.initializationSignalFrom
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.interpretListError
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.interpretWatchError
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.isCancelError
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.isInitialEventsEndBookmarkRequired
 public import Proof.encoding.json.Marshal
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Get
 public import Proof.k8s_io.apimachinery.pkg.labels.Set__Has
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.logWatchChannelErr
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64
 public import Proof.go_etcd_io.etcd.client.v3.mustInt64orLeaseID
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newBlockLogger
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newDefaultLeaseManager
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newLeaseManager
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.newStorageKeyReverseFunc
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.parseEvent
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.parseKV
 public import Proof.path.Clean
 public import Proof.path.Join
 public import Proof.path.lazybuf__append
 public import Proof.path.lazybuf__index
 public import Proof.path.lazybuf__string
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.progressNotifyEvent
 public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.reflect.KindCompare
 public import Proof.reflect.New
@@ -113,6 +153,7 @@ public import Proof.reflect.Value__Len
 public import Proof.reflect.Value__Set
 public import Proof.reflect.Value__Type
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
+public import Proof.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError__Code
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.shouldStream
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Create
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
@@ -120,6 +161,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Get
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GetCurrentResourceVersion
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GetList
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GuaranteedUpdate
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Watch
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__appendChunk
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__deleteOnce
@@ -136,14 +178,36 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__stateFromEtcdRespo
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateOnce
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__updateState
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__validateMinimumResourceVersion
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__watchContext
 public import Proof.strconv.FormatInt
 public import Proof.strconv.ParseInt
 public import Proof.strings.Contains
+public import Proof.time.Duration__Seconds
 public import Proof.k8s_io.component_base.tracing.Start
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.transformErrorToEvent
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.txnError
 public import Proof.k8s_io.klog.v2.Errorf
 public import Proof.k8s_io.klog.v2.V
+public import Proof.k8s_io.klog.v2.Warningf
 public import Proof.go_etcd_io.etcd.client.v3.Compare
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__ResultChan
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__Stop
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__acceptAll
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__concurrentProcessEvents
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__filter
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__prepareObjs
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__processEvents
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__queueEvent
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__run
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__sendError
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__sendEvent
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__serialProcessEvents
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__startWatching
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__sync
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__syncPaginated
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__transform
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__createWatchChan
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__getStartWatchResourceVersion
 public import Perennial.Proof.time.Link
 public import Spec.k8s_io.utils.clock.RealClock__After
 public import Proof.fmt.Link
@@ -240,6 +304,14 @@ theorem conversion.wp_EnforcePtr :
     EtcdGrove.conversion.EnforcePtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.conversion.EnforcePtr.wp_proof
 
+theorem v3.wp_getPrefix :
+    EtcdGrove.getPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.getPrefix.wp_proof
+
+theorem v3.wp_GetPrefixRangeEnd :
+    EtcdGrove.GetPrefixRangeEnd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.GetPrefixRangeEnd.wp_proof v3.wp_getPrefix
+
 theorem v3.wp_WithRev :
     EtcdGrove.WithRev.spec (GF := GF) (hG := hG) :=
   EtcdGrove.WithRev.wp_proof
@@ -248,9 +320,37 @@ theorem fmt.wp_SprintfNamed :
     EtcdGrove.fmt.SprintfNamed.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fmt.SprintfNamed.wp_proof
 
+theorem ResponseHeader.wp_GetRevision :
+    EtcdGrove.ResponseHeader.GetRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.ResponseHeader.GetRevision.wp_proof
+
+theorem status.Status.wp_Code :
+    EtcdGrove.status.Status.Code.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.status.Status.Code.wp_proof
+
 theorem reflect.wp_TypeOf :
     EtcdGrove.reflect.TypeOf.spec (GF := GF) (hG := hG) :=
   EtcdGrove.reflect.TypeOf.wp_proof
+
+theorem v3.WatchResponse.wp_IsProgressNotify :
+    EtcdGrove.WatchResponse.IsProgressNotify.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WatchResponse.IsProgressNotify.wp_proof ResponseHeader.wp_GetRevision
+
+theorem v3.wp_WithLimit :
+    EtcdGrove.WithLimit.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithLimit.wp_proof
+
+theorem v3.wp_WithPrefix :
+    EtcdGrove.WithPrefix.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithPrefix.wp_proof v3.wp_getPrefix
+
+theorem v3.wp_WithPrevKV :
+    EtcdGrove.WithPrevKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithPrevKV.wp_proof
+
+theorem v3.wp_WithRange :
+    EtcdGrove.WithRange.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.WithRange.wp_proof
 
 theorem «attribute».wp_Int :
     EtcdGrove.«attribute».Int.spec (GF := GF) (hG := hG) :=
@@ -259,6 +359,18 @@ theorem «attribute».wp_Int :
 theorem «attribute».wp_String :
     EtcdGrove.«attribute».String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.«attribute».String.wp_proof
+
+theorem fmt.wp_ErrorfPlain :
+    EtcdGrove.fmt.ErrorfPlain.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.ErrorfPlain.wp_proof
+
+theorem rpctypes.EtcdError.wp_Code :
+    EtcdGrove.rpctypes.EtcdError.Code.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.rpctypes.EtcdError.Code.wp_proof
+
+theorem time.Duration.wp_Seconds :
+    EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Duration.Seconds.wp_proof
 
 theorem reflect.Value.wp_Type :
     EtcdGrove.reflect.Value.Type.spec (GF := GF) (hG := hG) :=
@@ -353,6 +465,30 @@ theorem storage.wp_EncodeContinue :
     EtcdGrove.storage.EncodeContinue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.EncodeContinue.wp_proof encoding.json.wp_Marshal
 
+theorem mvccpb.Event_EventType.wp_StringPtr :
+    EtcdGrove.mvccpb.Event_EventType.StringPtr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccpb.Event_EventType.StringPtr.wp_proof
+
+theorem mvccpb.Event.wp_GetKv :
+    EtcdGrove.mvccpb.Event.GetKv.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccpb.Event.GetKv.wp_proof
+
+theorem mvccpb.Event.wp_GetType :
+    EtcdGrove.mvccpb.Event.GetType.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccpb.Event.GetType.wp_proof
+
+theorem mvccpb.KeyValue.wp_GetCreateRevision :
+    EtcdGrove.mvccpb.KeyValue.GetCreateRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccpb.KeyValue.GetCreateRevision.wp_proof
+
+theorem mvccpb.KeyValue.wp_GetModRevision :
+    EtcdGrove.mvccpb.KeyValue.GetModRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccpb.KeyValue.GetModRevision.wp_proof
+
+theorem mvccpb.Event.wp_IsCreate :
+    EtcdGrove.mvccpb.Event.IsCreate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.mvccpb.Event.IsCreate.wp_proof mvccpb.Event.wp_GetType mvccpb.Event.wp_GetKv mvccpb.KeyValue.wp_GetCreateRevision mvccpb.KeyValue.wp_GetModRevision
+
 theorem audit.wp_GetAuditIDTruncated :
     EtcdGrove.audit.GetAuditIDTruncated.spec (GF := GF) (hG := hG) :=
   EtcdGrove.audit.GetAuditIDTruncated.wp_proof
@@ -372,6 +508,10 @@ theorem apierrors.wp_IsTimeout :
 theorem storage.wp_IsTooLargeResourceVersion :
     EtcdGrove.storage.IsTooLargeResourceVersion.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.IsTooLargeResourceVersion.wp_proof apierrors.wp_IsTimeout apierrors.wp_HasStatusCause
+
+theorem wait.wp_Jitter :
+    EtcdGrove.wait.Jitter.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.wait.Jitter.wp_proof
 
 theorem wait.channelContext.wp_Done :
     EtcdGrove.wait.channelContext.Done.spec (GF := GF) (hG := hG) :=
@@ -469,6 +609,14 @@ theorem storage.wp_PrepareKey :
     EtcdGrove.storage.PrepareKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.PrepareKey.wp_proof strings.wp_HasSuffix strings.wp_Contains fmt.wp_Errorf
 
+theorem metrics.wp_RecordEtcdBookmark :
+    EtcdGrove.metrics.RecordEtcdBookmark.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metrics.RecordEtcdBookmark.wp_proof
+
+theorem metrics.wp_RecordEtcdEvent :
+    EtcdGrove.metrics.RecordEtcdEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metrics.RecordEtcdEvent.wp_proof
+
 theorem metrics.wp_RecordEtcdRequest :
     EtcdGrove.metrics.RecordEtcdRequest.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metrics.RecordEtcdRequest.wp_proof
@@ -525,6 +673,30 @@ theorem storage.wp_ValidateListOptions :
     EtcdGrove.storage.ValidateListOptions.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.ValidateListOptions.wp_proof
 
+theorem klog.Verbose.wp_InfoS :
+    EtcdGrove.klog.Verbose.InfoS.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.Verbose.InfoS.wp_proof
+
+theorem flowcontrol.wp_initializationSignalFrom :
+    EtcdGrove.flowcontrol.initializationSignalFrom.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.flowcontrol.initializationSignalFrom.wp_proof
+
+theorem flowcontrol.wp_WatchInitialized :
+    EtcdGrove.flowcontrol.WatchInitialized.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.flowcontrol.WatchInitialized.wp_proof flowcontrol.wp_initializationSignalFrom
+
+theorem wp_areInitialEventsRequired :
+    EtcdGrove.k8s.areInitialEventsRequired.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.areInitialEventsRequired.wp_proof
+
+theorem blockLogger.wp_recordWait :
+    EtcdGrove.k8s.blockLogger.recordWait.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.blockLogger.recordWait.wp_proof klog.wp_V klog.Verbose.wp_InfoS _root_.Perennial.time.Time.wp_Sub
+
+theorem clock.RealClock.wp_Now :
+    EtcdGrove.clock.RealClock.Now.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.clock.RealClock.Now.wp_proof
+
 theorem compactor.wp_CompactRevision :
     EtcdGrove.k8s.compactor.CompactRevision.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.CompactRevision.wp_proof
@@ -532,6 +704,38 @@ theorem compactor.wp_CompactRevision :
 theorem compactor.wp_Stop :
     EtcdGrove.k8s.compactor.Stop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.compactor.Stop.wp_proof
+
+theorem watchChan.wp_sendEvent :
+    EtcdGrove.k8s.watchChan.sendEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.sendEvent.wp_proof blockLogger.wp_recordWait
+
+theorem concurrentOrderedEventProcessing.wp_collectEventProcessing :
+    EtcdGrove.k8s.concurrentOrderedEventProcessing.collectEventProcessing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.concurrentOrderedEventProcessing.collectEventProcessing.wp_proof watchChan.wp_sendEvent
+
+theorem wp_decodeObj :
+    EtcdGrove.k8s.decodeObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.decodeObj.wp_proof
+
+theorem watchChan.wp_acceptAll :
+    EtcdGrove.k8s.watchChan.acceptAll.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.acceptAll.wp_proof
+
+theorem watchChan.wp_prepareObjs :
+    EtcdGrove.k8s.watchChan.prepareObjs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.prepareObjs.wp_proof wp_decodeObj watchChan.wp_acceptAll
+
+theorem watchChan.wp_filter :
+    EtcdGrove.k8s.watchChan.filter.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.filter.wp_proof
+
+theorem watchChan.wp_transform :
+    EtcdGrove.k8s.watchChan.transform.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.transform.wp_proof watchChan.wp_prepareObjs watchChan.wp_filter watchChan.wp_acceptAll
+
+theorem concurrentOrderedEventProcessing.wp_scheduleEventProcessing :
+    EtcdGrove.k8s.concurrentOrderedEventProcessing.scheduleEventProcessing.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.concurrentOrderedEventProcessing.scheduleEventProcessing.wp_proof watchChan.wp_transform _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done
 
 theorem wp_defaultListErrorAggregatorFactory :
     EtcdGrove.k8s.defaultListErrorAggregatorFactory.spec (GF := GF) (hG := hG) :=
@@ -541,9 +745,17 @@ theorem wp_corruptObjErrAggregatorFactory :
     EtcdGrove.k8s.corruptObjErrAggregatorFactory.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.corruptObjErrAggregatorFactory.wp_proof wp_defaultListErrorAggregatorFactory
 
+theorem errors.wp_AsLeafTy :
+    EtcdGrove.errors.AsLeafTy.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.AsLeafTy.wp_proof
+
 theorem errors.wp_IsStatusErr :
     EtcdGrove.errors.IsStatusErr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.errors.IsStatusErr.wp_proof
+
+theorem apierrors.wp_NewInternalError :
+    EtcdGrove.apierrors.NewInternalError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.NewInternalError.wp_proof
 
 theorem wp_newLeaseManager :
     EtcdGrove.k8s.newLeaseManager.spec (GF := GF) (hG := hG) :=
@@ -581,6 +793,122 @@ theorem wp_New :
     EtcdGrove.k8s.New.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.New.wp_proof wp_newDefaultLeaseManager wp_defaultListErrorAggregatorFactory wp_corruptObjErrAggregatorFactory wp_newStorageKeyReverseFunc metrics.wp_NewEtcdMetricsTracker path.wp_Join strings.wp_TrimSuffix v3.Client.wp_Ctx reflect.wp_TypeOf
 
+theorem watcher.wp_getStartWatchResourceVersion :
+    EtcdGrove.k8s.watcher.getStartWatchResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watcher.getStartWatchResourceVersion.wp_proof
+
+theorem store.wp_prepareKey :
+    EtcdGrove.k8s.store.prepareKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.prepareKey.wp_proof storage.wp_PrepareKey
+
+theorem store.wp_GetCurrentResourceVersion :
+    EtcdGrove.k8s.store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get fmt.wp_ErrorfPlain
+
+theorem wp_newBlockLogger :
+    EtcdGrove.k8s.newBlockLogger.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.newBlockLogger.wp_proof
+
+theorem watcher.wp_createWatchChan :
+    EtcdGrove.k8s.watcher.createWatchChan.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watcher.createWatchChan.wp_proof storage.SelectionPredicate.wp_ShardingEnabled storage.SelectionPredicate.wp_labelFieldEmpty wp_newBlockLogger clock.RealClock.wp_Now
+
+theorem wp_isInitialEventsEndBookmarkRequired :
+    EtcdGrove.k8s.isInitialEventsEndBookmarkRequired.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.isInitialEventsEndBookmarkRequired.wp_proof
+
+theorem wp_isCancelError :
+    EtcdGrove.k8s.isCancelError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.isCancelError.wp_proof
+
+theorem wp_interpretWatchError :
+    EtcdGrove.k8s.interpretWatchError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.interpretWatchError.wp_proof apierrors.wp_NewResourceExpired
+
+theorem wp_transformErrorToEvent :
+    EtcdGrove.k8s.transformErrorToEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.transformErrorToEvent.wp_proof wp_interpretWatchError apierrors.wp_NewInternalError
+
+theorem watchChan.wp_sendError :
+    EtcdGrove.k8s.watchChan.sendError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.sendError.wp_proof wp_isCancelError wp_transformErrorToEvent
+
+theorem wp_handleCompactedErrorForPaging :
+    EtcdGrove.k8s.handleCompactedErrorForPaging.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.handleCompactedErrorForPaging.wp_proof storage.wp_EncodeContinue apierrors.wp_NewResourceExpired
+
+theorem wp_interpretListError :
+    EtcdGrove.k8s.interpretListError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.interpretListError.wp_proof apierrors.wp_NewResourceExpired wp_handleCompactedErrorForPaging
+
+theorem wp_parseKV :
+    EtcdGrove.k8s.parseKV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.parseKV.wp_proof
+
+theorem watchChan.wp_queueEvent :
+    EtcdGrove.k8s.watchChan.queueEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.queueEvent.wp_proof blockLogger.wp_recordWait
+
+theorem watchChan.wp_syncPaginated :
+    EtcdGrove.k8s.watchChan.syncPaginated.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.syncPaginated.wp_proof errors.wp_AsLeafTy rpctypes.EtcdError.wp_Code status.Status.wp_Code v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd metrics.wp_RecordEtcdRequest fmt.wp_ErrorfPlain wp_interpretListError wp_parseKV watchChan.wp_queueEvent
+
+theorem watchChan.wp_sync :
+    EtcdGrove.k8s.watchChan.sync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.sync.wp_proof watchChan.wp_syncPaginated
+
+theorem wp_progressNotifyEvent :
+    EtcdGrove.k8s.progressNotifyEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.progressNotifyEvent.wp_proof
+
+theorem store.wp_getResourceSizeEstimator :
+    EtcdGrove.k8s.store.getResourceSizeEstimator.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.getResourceSizeEstimator.wp_proof
+
+theorem wp_parseEvent :
+    EtcdGrove.k8s.parseEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.parseEvent.wp_proof mvccpb.Event.wp_IsCreate mvccpb.Event_EventType.wp_StringPtr fmt.wp_ErrorfPlain
+
+theorem klog.wp_Warningf :
+    EtcdGrove.klog.Warningf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.klog.Warningf.wp_proof
+
+theorem wp_logWatchChannelErr :
+    EtcdGrove.k8s.logWatchChannelErr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.logWatchChannelErr.wp_proof wp_isCancelError strings.wp_Contains klog.wp_Warningf klog.wp_Errorf
+
+theorem watchChan.wp_startWatching :
+    EtcdGrove.k8s.watchChan.startWatching.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.startWatching.wp_proof errors.wp_AsLeafTy rpctypes.EtcdError.wp_Code status.Status.wp_Code store.wp_GetCurrentResourceVersion storage.wp_NewTooLargeResourceVersionError wait.wp_Jitter time.Duration.wp_Seconds watchChan.wp_sendError watchChan.wp_sync klog.wp_Errorf wp_progressNotifyEvent watchChan.wp_queueEvent v3.wp_WithRev v3.wp_WithPrevKV v3.wp_WithPrefix client.v3.watcher.wp_Watch store.wp_getResourceSizeEstimator client.v3.WatchResponse.wp_Err v3.WatchResponse.wp_IsProgressNotify ResponseHeader.wp_GetRevision metrics.wp_RecordEtcdBookmark metrics.wp_RecordEtcdEvent wp_parseEvent wp_logWatchChannelErr
+
+theorem watchChan.wp_concurrentProcessEvents :
+    EtcdGrove.k8s.watchChan.concurrentProcessEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.concurrentProcessEvents.wp_proof concurrentOrderedEventProcessing.wp_scheduleEventProcessing concurrentOrderedEventProcessing.wp_collectEventProcessing _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done
+
+theorem watchChan.wp_serialProcessEvents :
+    EtcdGrove.k8s.watchChan.serialProcessEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.serialProcessEvents.wp_proof watchChan.wp_transform watchChan.wp_sendEvent _root_.Perennial.sync.WaitGroup.wp_Done
+
+theorem watchChan.wp_processEvents :
+    EtcdGrove.k8s.watchChan.processEvents.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.processEvents.wp_proof watchChan.wp_concurrentProcessEvents watchChan.wp_serialProcessEvents _root_.Perennial.sync.WaitGroup.wp_Add
+
+theorem watchChan.wp_run :
+    EtcdGrove.k8s.watchChan.run.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.run.wp_proof watchChan.wp_startWatching watchChan.wp_processEvents _root_.Perennial.sync.WaitGroup.wp_Add _root_.Perennial.sync.WaitGroup.wp_Done _root_.Perennial.sync.WaitGroup.wp_Wait
+
+theorem watchChan.wp_Stop :
+    EtcdGrove.k8s.watchChan.Stop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.Stop.wp_proof
+
+theorem watchChan.wp_ResultChan :
+    EtcdGrove.k8s.watchChan.ResultChan.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watchChan.ResultChan.wp_proof
+
+theorem watcher.wp_Watch :
+    EtcdGrove.k8s.watcher.Watch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.watcher.Watch.wp_proof strings.wp_HasSuffix watcher.wp_getStartWatchResourceVersion store.wp_GetCurrentResourceVersion watcher.wp_createWatchChan wp_isInitialEventsEndBookmarkRequired wp_areInitialEventsRequired watchChan.wp_run flowcontrol.wp_WatchInitialized watchChan.wp_Stop watchChan.wp_ResultChan
+
 theorem fields.Set.wp_Get :
     EtcdGrove.fields.Set.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fields.Set.Get.wp_proof
@@ -597,10 +925,6 @@ theorem wp_growSlice :
     EtcdGrove.k8s.growSlice.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.growSlice.wp_proof reflect.Value.wp_Cap reflect.Value.wp_Len reflect.Value.wp_Type reflect.Value.wp_Set
 
-theorem wp_interpretListError :
-    EtcdGrove.k8s.interpretListError.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.interpretListError.wp_proof apierrors.wp_NewResourceExpired
-
 theorem labels.Set.wp_Get :
     EtcdGrove.labels.Set.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.labels.Set.Get.wp_proof
@@ -616,10 +940,6 @@ theorem wp_refreshOnError :
 theorem wp_shouldStream :
     EtcdGrove.k8s.shouldStream.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.shouldStream.wp_proof
-
-theorem store.wp_prepareKey :
-    EtcdGrove.k8s.store.prepareKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.prepareKey.wp_proof storage.wp_PrepareKey
 
 theorem wp_txnError :
     EtcdGrove.k8s.txnError.spec (GF := GF) (hG := hG) :=
@@ -665,14 +985,6 @@ theorem store.wp_Get :
     EtcdGrove.k8s.store.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.Get.wp_proof store.wp_prepareKey store.wp_validateMinimumResourceVersion storage.wp_NewKeyNotFoundError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.OperationLatencyTracker.wp_Record kubernetes.Client.wp_Get
 
-theorem store.wp_GetCurrentResourceVersion :
-    EtcdGrove.k8s.store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get fmt.wp_Errorf
-
-theorem store.wp_getResourceSizeEstimator :
-    EtcdGrove.k8s.store.getResourceSizeEstimator.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.store.getResourceSizeEstimator.wp_proof
-
 theorem store.wp_getList :
     EtcdGrove.k8s.store.getList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.getList.wp_proof kubernetes.Client.wp_List kubernetes.Client.wp_Get metrics.wp_RecordEtcdRequest store.wp_getResourceSizeEstimator
@@ -712,6 +1024,14 @@ theorem store.wp_updateOnce :
 theorem store.wp_GuaranteedUpdate :
     EtcdGrove.k8s.store.GuaranteedUpdate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.GuaranteedUpdate.wp_proof store.wp_prepareKey wp_getTypeName conversion.wp_EnforcePtr store.wp_getCurrentState store.wp_getStateFromObject storage.Preconditions.wp_Check store.wp_updateState store.wp_updateOnce wp_refreshOnError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated
+
+theorem store.wp_watchContext :
+    EtcdGrove.k8s.store.watchContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.watchContext.wp_proof
+
+theorem store.wp_Watch :
+    EtcdGrove.k8s.store.Watch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.Watch.wp_proof store.wp_prepareKey store.wp_watchContext client.v3.wp_WithRequireLeader watcher.wp_Watch
 
 end links_hasLC
 

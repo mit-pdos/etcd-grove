@@ -39,7 +39,6 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
   icases Hinit with ⟨⟨%e, #Herr⟩, -, -, -, -, -, -, -, -⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
-  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxWriter at Hw
   icases Hw with ⟨Hauth, #Hwlb, %Hwwf, Hlauth, #Hrc⟩
   obtain ⟨Hwf, Hlen, Hplen, Hcs⟩ := Hwwf
@@ -147,7 +146,7 @@ theorem mvcc.treeIndex.Tombstone.wp_proof
     exact mvcc.kiFold_modified_lt k _ _ _ (mvcc.Rev.lt_zero_of_pos _ _ Hilog (by omega))
       (mvcc.evsOf_rev_lt ilog pend (by omega) Hplen)
   wp_apply (hTomb z.1 gs z.2.2 z.2.1 lg rev.Main' rev.Sub' _) $$ [$HzKey $Hki $Herr] as %err Hpost
-  · ipureintro; exact ⟨Hlgnn, hne.2⟩
+  · iframe Hlgnn; ipureintro; exact hne.2
   rw [hne.1, hlast]
   simp only [Hlt, Bool.false_eq_true, ↓reduceIte]
   icases Hpost with ⟨%Herr', %gs', Hki⟩

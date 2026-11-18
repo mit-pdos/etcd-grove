@@ -9,7 +9,7 @@ What `run`, `New` and `StartCluster` use of the store's cluster (`kvCluster`, `D
 * **The configuration stays the voters'.** The store proposes no conf change (`NormalReqs`), so a
   committed conf entry is raft's empty `ConfChangeV2` (`kv_committed_conf`, `Lemmas.lean`), which
   no simple configuration has (`committed_emptyV2_joint`): no committed entry is a conf entry, and
-  every position keeps `kvMembership` (`skippedIn_noConf`, `confAt_skipped`). The positions with
+  every position keeps `kvMembership γr` (`skippedIn_noConf`, `confAt_skipped`). The positions with
   no conf entry (`NoConfChangeIn`) grow along a log (`noConf_snoc`) and survive extending it
   (`noConf_prefix`). (Until 2026-10-30 the committed conf entries were `RemoveMember`'s of
   non-voters, `rmShrink_notVoter`, `kvMembership_rm`, `kvRule_decide`.)
@@ -84,8 +84,9 @@ theorem kv_perm_elements_empty : ([] : List w64) ≡ₚ GMap.elements (∅ : GSe
   exact GMap.not_elem_of_empty _
 
 /-- The `ConfState` of the store's snapshots (the voters) reports the voters' membership. -/
-theorem kvConfState_is : confStateIs (raft_kv.kvConfState kvVoters) kvMembership :=
-  ⟨kv_perm_elements_listToSet _ (by decide), kv_perm_elements_empty, kv_perm_elements_empty,
+theorem kvConfState_is (γr : RKVNames) :
+    confStateIs (raft_kv.kvConfState γr.voters) (kvMembership γr) :=
+  ⟨kv_perm_elements_listToSet _ γr.votersOk.nodup, kv_perm_elements_empty, kv_perm_elements_empty,
     kv_perm_elements_empty, rfl⟩
 
 end pure
@@ -124,7 +125,7 @@ theorem kv_snap_read (γr : RKVNames) (k : SnapTrip) (E : CoPset) (HE : ↑kvSna
   iintro #Hcl #Hcert
   ihave #Hcl' := Hcl
   unfold kvCluster
-  icases Hcl' with ⟨#Hc, -, -, #Hinv⟩
+  icases Hcl' with ⟨#Hc, -, -, #Hinv, -⟩
   icases snapshotCert_made γr.cluster kvRaftN k $$ [Hc Hcert] with ⟨%l, %m, #Hl, #Ha, #Hmade, %Hp⟩
   · iframe Hc Hcert
   unfold kvSnapInv
@@ -156,23 +157,23 @@ conf entry in `l`.) -/
 theorem kv_snap_make (γr : RKVNames) (l : List LogEntry) (i t : w64) (d : List w8)
     (Hlen : l.length = uint.nat i) (Hpos : 0 < uint.Z i) (Hi : uint.Z i < 2 ^ 61)
     (Hlast : Option.map LogEntry.term l.getLast? = some t)
-    (Hok : SnapListsOk ⟨⟨t, i⟩, (raft_kv.kvConfState kvVoters).lists, false, d⟩)
+    (Hok : SnapListsOk ⟨⟨t, i⟩, (raft_kv.kvConfState γr.voters).lists, false, d⟩)
     (Hd : kvSnapOk l d) :
     ⊢ kvCluster (GF := GF) γr -∗ isCommittedLogLb γr.cluster l -∗
-      confAt γr.cluster l.length kvMembership ={⊤}=∗
-      snapshotValid γr.cluster (memSnapMade i t (raft_kv.kvConfState kvVoters) d) := by
+      confAt γr.cluster l.length (kvMembership γr) ={⊤}=∗
+      snapshotValid γr.cluster (memSnapMade i t (raft_kv.kvConfState γr.voters) d) := by
   iintro #Hcl #Hl #Ha
   unfold kvCluster
-  icases Hcl with ⟨#Hc, -, -, #Hinv⟩
+  icases Hcl with ⟨#Hc, -, -, #Hinv, -⟩
   unfold kvSnapInv
   iinv Hinv with >Hb Hclose
   icases Hb with ⟨%S, Hown, #HS⟩
-  imod snapshotCert_make γr.cluster kvRaftN (⊤ \ ↑kvSnapN) l i t d kvMembership
-      (raft_kv.kvConfState kvVoters) S kvSnapN_raftN Hlen Hlast Hok kvConfState_is
+  imod snapshotCert_make γr.cluster kvRaftN (⊤ \ ↑kvSnapN) l i t d (kvMembership γr)
+      (raft_kv.kvConfState γr.voters) S kvSnapN_raftN Hlen Hlast Hok (kvConfState_is γr)
     $$ Hc Hl Ha Hown with ⟨Hown, #Hcert⟩
   imod Hclose $$ [Hown] with -
   · inext
-    iexists S ++ [⟨l.length, kvMembership, d⟩]
+    iexists S ++ [⟨l.length, kvMembership γr, d⟩]
     iframe Hown
     iapply (BigSepL.bigSepL_snoc (Φ := fun _ s => kvSnapRecOk (GF := GF) γr s)).2
     iframe HS
@@ -182,10 +183,10 @@ theorem kv_snap_make (γr : RKVNames) (l : List LogEntry) (i t : w64) (d : List 
     ipureintro
     exact ⟨rfl, Hd⟩
   imodintro
-  iapply snapshotCert_valid γr.cluster kvRaftN (memSnapMade i t (raft_kv.kvConfState kvVoters) d) Hpos Hi
+  iapply snapshotCert_valid γr.cluster kvRaftN (memSnapMade i t (raft_kv.kvConfState γr.voters) d) Hpos Hi
   iframe Hc
   simp only [snapTrip, snapId, memSnapMade]
-  rw [show (false = kvMembership.autoLeave) from rfl]
+  rw [show (false = (kvMembership γr).autoLeave) from rfl]
   iexact Hcert
 
 end reg

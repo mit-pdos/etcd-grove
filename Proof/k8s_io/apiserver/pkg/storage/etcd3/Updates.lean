@@ -43,11 +43,16 @@ revision, `σ`'s changes a prefix of `σ'`'s (so they agree at every revision of
 def KvExt (σ σ' : KVState) : Prop :=
   σ.compacted = σ'.compacted ∧ σ.base = σ'.base ∧ σ.changes <+: σ'.changes
 
+/-- **A step adds revisions of at most one change each** (k8s 7f-6 C, decided by etcd-grove-02
+2026-11-16): the store's transactions are single-operation (`putTxn`, `delTxn`), so a revision
+they commit changes one key at most, at etcd's level (its events), not only in the state. -/
+def KvOne (σ σ' : KVState) : Prop := ∀ cs ∈ σ'.changes.drop σ.changes.length, cs.length ≤ 1
+
 /-- **A step of etcd's state, for the caller's history** (see the file header; stage 7e-4: it
-extends the history, `KvExt`). -/
+extends the history, `KvExt`; 7f-6 C: one change at most, `KvOne`). -/
 def KvNext (σ σ' : KVState) : Prop :=
   σ' = σ ∨ (σ'.rev = σ.rev + 1 ∧ (∀ v ∈ σ'.kvs, v ∈ σ.kvs ∨ v.modRev = W64 ((σ'.rev : Nat) : Int)) ∧
-    KvExt σ σ')
+    KvExt σ σ' ∧ KvOne σ σ')
 
 /-- **A step's new keys are under the prefix `pfx`** (stage 7e-4): every key of `σ'`'s key-values is
 one of `σ`'s or under `pfx` (the store writes only its own keys). -/
@@ -56,8 +61,25 @@ def KeysIn (pfx : GoString) (σ σ' : KVState) : Prop :=
 
 theorem keysIn_refl (pfx : GoString) (σ : KVState) : KeysIn pfx σ σ := fun v hv => Or.inl ⟨v, hv, rfl⟩
 
-/-- A commit is such a step. -/
-theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) : KvNext σ (σ.commit cs) := by
+/-- A commit of at most one change is one. -/
+theorem kvOne_commit (σ : KVState) (cs : List mvcc.Change) (h : cs.length ≤ 1) :
+    KvOne σ (σ.commit cs) := by
+  intro cs' hcs
+  unfold KVState.commit at hcs
+  split at hcs
+  · simp at hcs
+  · simp only [List.drop_left] at hcs
+    simp only [List.mem_singleton] at hcs
+    subst hcs; exact h
+
+/-- A step that keeps the state adds nothing. -/
+theorem kvOne_refl (σ : KVState) : KvOne σ σ := by
+  intro cs h; simp at h
+
+/-- A commit is such a step (without `KvOne`). -/
+theorem kvNext_commit₀ (σ : KVState) (cs : List mvcc.Change) :
+    σ.commit cs = σ ∨ ((σ.commit cs).rev = σ.rev + 1 ∧ (∀ v ∈ (σ.commit cs).kvs, v ∈ σ.kvs ∨
+      v.modRev = W64 (((σ.commit cs).rev : Nat) : Int)) ∧ KvExt σ (σ.commit cs)) := by
   by_cases hc : cs = []
   · subst hc; exact Or.inl (KVState.commit_nil σ)
   · refine Or.inr ⟨KVState.commit_rev σ cs hc, fun v hv => ?_,
@@ -68,26 +90,39 @@ theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) : KvNext σ (σ.com
     · exact Or.inr hm
     · exact Or.inl (txn.mem_applyChanges_modRev cs _ v hv hm)
 
-/-- **Any key-value operation's step is such a step** (unit T3: a lease's grant changes the state
-at the same revision). -/
-theorem kvNext_step (op : KVOp) (σ : KVState) (hop : op.isKV) : KvNext σ (kvOpStep op σ) := by
-  cases op with
-  | put o =>
-    simp only [kvOpStep]
-    split
-    · exact Or.inl rfl
-    split
-    · exact Or.inl rfl
-    · exact kvNext_commit _ _
-  | range o => exact Or.inl rfl
-  | deleteRange o => exact kvNext_commit _ _
-  | txn t =>
-    simp only [kvOpStep]
-    split
-    · exact kvNext_commit _ _
-    · exact Or.inl rfl
-  | leaseGrant _ _ => exact hop.elim
-  | leaseRevoke _ => exact hop.elim
+/-- A commit of at most one change is such a step. -/
+theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) (h : cs.length ≤ 1) :
+    KvNext σ (σ.commit cs) := by
+  rcases kvNext_commit₀ σ cs with e | ⟨a, b, c⟩
+  · exact Or.inl e
+  · exact Or.inr ⟨a, b, c, kvOne_commit σ cs h⟩
+
+/-- **A key-value operation's step that adds one change at most is such a step** (unit T3: a
+lease's grant changes the state at the same revision; 7f-6 C: the single write, `hone`). -/
+theorem kvNext_step (op : KVOp) (σ : KVState) (hop : op.isKV) (hone : KvOne σ (kvOpStep op σ)) :
+    KvNext σ (kvOpStep op σ) := by
+  have h0 : kvOpStep op σ = σ ∨ ((kvOpStep op σ).rev = σ.rev + 1 ∧ (∀ v ∈ (kvOpStep op σ).kvs,
+      v ∈ σ.kvs ∨ v.modRev = W64 (((kvOpStep op σ).rev : Nat) : Int)) ∧ KvExt σ (kvOpStep op σ)) := by
+    cases op with
+    | put o =>
+      simp only [kvOpStep]
+      split
+      · exact Or.inl rfl
+      split
+      · exact Or.inl rfl
+      · exact kvNext_commit₀ _ _
+    | range o => exact Or.inl rfl
+    | deleteRange o => exact kvNext_commit₀ _ _
+    | txn t =>
+      simp only [kvOpStep]
+      split
+      · exact kvNext_commit₀ _ _
+      · exact Or.inl rfl
+    | leaseGrant _ _ => exact hop.elim
+    | leaseRevoke _ => exact hop.elim
+  rcases h0 with e | ⟨a, b, c⟩
+  · exact Or.inl e
+  · exact Or.inr ⟨a, b, c, hone⟩
 
 /-- **The caller's update for a write** (see the file header). (2026-11-05, H-rr1) The caller no
 longer vouches for the revision's room: the commit tells it (`kvRoom σ`, the server's, through the
@@ -112,7 +147,8 @@ def StepOk (c : StoreCfg GF Obj) (op : KVOp) (step : KSt Obj → KSt Obj) : Prop
 /-- **The caller's update gives the client's** for a transaction whose step is the model's. -/
 theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     (step : KSt Obj → KSt Obj) (Φ : KVState → IProp GF) (h : StepOk c op step) (hop : op.isKV)
-    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ)) :
+    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ))
+    (hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)) :
     k8sAu1 γk c step Φ ⊢
       kvAu1 γk (kvOpStep op)
         (fun σ => iprop(Φ σ ∗ ⌜kvWf c σ ∧ σ.rev + 2 < 2 ^ 63⌝ ∗ kvSeen c.γh σ)) := by
@@ -143,7 +179,7 @@ theorem k8sAu1_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (op : KVOp)
     ispecialize Hcommit $$ %(kvOpStep op σ)
     imod Hcommit $$ [Hkv] with HΦ
     · iframe Hkv
-      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop, Hroom, hk σ Hwf⟩
+      ipureintro; exact ⟨hwf', habs, kvNext_step op σ hop (hone σ Hwf), Hroom, hk σ Hwf⟩
     imodintro
     iframe HΦ Hseen
     ipureintro; exact ⟨Hwf, hr⟩
@@ -210,7 +246,8 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
       (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ)))
-    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ)) :
+    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ))
+    (hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)) :
     k8sAuRW γk c step W Φ ∗ W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝) ⊢
       kvAu1 γk (kvOpStep op) (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
         rdFacts c σ ∗ ⌜A σ⌝)) := by
@@ -274,7 +311,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
       isimp only [↓reduceIte] at Hcommit
       imod Hcommit $$ [Hkv HW] with HΦ
       · iframe Hkv HW
-        ipureintro; exact ⟨Hroom, hwf', habs, kvNext_step op σ hop, hk σ Hwf⟩
+        ipureintro; exact ⟨Hroom, hwf', habs, kvNext_step op σ hop (hone σ Hwf), hk σ Hwf⟩
       imodintro
       simp only [Bool.true_or, ↓reduceIte]
       iframe HΦ
@@ -290,7 +327,8 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
       (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ)))
-    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ)) :
+    (hk : ∀ σ, kvWf c σ → KeysIn c.pfx σ (kvOpStep op σ))
+    (hone : ∀ σ, kvWf c σ → KvOne σ (kvOpStep op σ)) :
     (W ∗ □ (∀ σ, kvSeen c.γh σ -∗ ⌜A σ⌝)) ∗ ([∗list] x ∈ ms, k8sAuRW x.γr.kv c step W Φ) ⊢
       [∧list] x ∈ ms, kvOpAu1 x.γr.kv op (fun σ => iprop((if ok σ || hand σ then Φ σ else W) ∗
         rdFacts c σ ∗ ⌜A σ⌝)) := by
@@ -298,7 +336,7 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
   intro x hx
   iintro ⟨⟨HW, #HA⟩, #Hx⟩
   unfold kvOpAu1
-  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h hk
+  iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h hk hone
   iframe Hx HW HA
 
 end defs
