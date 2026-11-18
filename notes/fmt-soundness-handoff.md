@@ -1,6 +1,10 @@
 # fmt soundness: handoff
 
-## START HERE (2026-11-18, task 3 implemented; full build, gates next, then the land stop)
+## START HERE (2026-11-18, STOP: refutation by the second attack, fixed locally; awaiting etcd-grove-03)
+- The second attack refuted the drafts' premise with `%#w` (`notes/fmt-sharpw.md`); fixed in
+  `fmt.errArgsWf` (`W8 35 ∉ format`), lean-checked at Validate, decodeRecord, LockFile. The same hole is in
+  the trusted axiom `fmt.Errorf.spec` (pre-existing): decision needed (parser fix proposed in the note).
+- The full build was NOT run yet (stopped in the slot queue at the refutation).
 - Worktree /shared/etcd-grove-fmtfix, branch `fmt-soundness`; lean merged (d87c45b206, conflict only in
   etc/gates.sh: lean's batched collections kept, the errorf-wrap gate after them).
 - Done: H0, the term gate, ErrorfWrap premise (commits ed402890f6..35c7b9f54d).

@@ -11,10 +11,11 @@ error argument, which the model (`errors.New(format)`, ignoring the arguments) d
 `nil`, of a basic or method-less named type (`fmt.ArgWf`: Go calls no method, under any verb), or one of
 `errs`, each `errOk` (= `fmtErrorOk`: its dynamic type has `Error() string` and no `Format`, and its
 `Error()` returns some string needing nothing), and then only under `%v`, `%s` or `%w` without `#`
-(`fmt.errArgsWf`). Go's `printArg` -> `handleMethods` then calls that `Error()` and nothing else of it (no
-`Format`: excluded; no `GoString`/reflection: `%#v` excluded; no reflection into its fields: other verbs
-excluded), so the call touches no memory the caller owns and does not panic (`Error()`'s WP rules out a
-panic, so `catchPanic`'s nested-panic escape is unreachable). Until 2026-11-18 `errOk` was the `Error()`
+(`fmt.errArgsWf`), and the format has no `#` (so neither `%#v` nor `%#w`, under which Go calls
+`GoString()` or reflects: the second attack, 2026-11-18). Go's `printArg` -> `handleMethods` then calls
+that `Error()` and nothing else of it (no `Format`: excluded; no `GoString`/reflection: no `#`; no
+reflection into its fields: other verbs excluded), so the call touches no memory the caller owns and
+raises no panic of its own (`Error()`'s WP rules out a panic in it, the only method called). Until 2026-11-18 `errOk` was the `Error()`
 WP alone, with no type facts, and any verb was admitted: a `Format` method ran (`fmtr`), an `Error() int`
 was not `fmt`'s error (`noterr`). The post, `errOk err`, is true of Go (`*fmt.wrapError`,
 `*fmt.wrapErrors`, `*errors.errorString`: `Error() string`, no `Format`) and of the model.
@@ -55,16 +56,19 @@ def fmt.errArgsAt (errs : List GoInterfaceOk) : List fmt.Directive → List GoIn
   | d :: ds, a :: xs => fmt.errArgAt errs d a ∧ fmt.errArgsAt errs ds xs
   | [], a :: xs => fmt.errArgAt errs ⟨W8 118, false⟩ a ∧ fmt.errArgsAt errs [] xs
 
-/-- **The arguments `args` of `format`, with the error arguments `errs`**: the format's directives
-parse (`fmt.fmtDirectives`: no `*`, no `[n]`, digit runs Go accepts) and each argument is
-`fmt.errArgAt` its directive. -/
+/-- **The arguments `args` of `format`, with the error arguments `errs`**: the format has no `#` at all
+(byte 35: Go's `doPrintf` sets `sharpV` for `%#w` as for `%#v`, `case 'w'` falling through to `case 'v'`,
+and then calls `GoString()` or reflects, which `fmt.Directive.sharpV` does not record for `w`: the second
+attack's `%#w`, 2026-11-18, `/shared/tmp/fmtfix-attack2/sharpw`); its directives parse
+(`fmt.fmtDirectives`: no `*`, no `[n]`, digit runs Go accepts) and each argument is `fmt.errArgAt` its
+directive. -/
 def fmt.errArgsWf (errs : List GoInterfaceOk) (format : GoString) (args : List GoInterface) : Prop :=
-  ∃ ds, fmt.fmtDirectives format = some ds ∧ fmt.errArgsAt errs ds args
+  W8 35 ∉ format ∧ ∃ ds, fmt.fmtDirectives format = some ds ∧ fmt.errArgsAt errs ds args
 
 /-- `fmt.errArgsWf` from the format's directives. -/
 theorem fmt.errArgsWf_intro {errs : List GoInterfaceOk} {format : GoString} {args : List GoInterface}
-    {ds : List fmt.Directive} (h : fmt.fmtDirectives format = some ds)
-    (h2 : fmt.errArgsAt errs ds args) : fmt.errArgsWf errs format args := ⟨ds, h, h2⟩
+    {ds : List fmt.Directive} (h0 : W8 35 ∉ format) (h : fmt.fmtDirectives format = some ds)
+    (h2 : fmt.errArgsAt errs ds args) : fmt.errArgsWf errs format args := ⟨h0, ds, h, h2⟩
 
 example : fmt.fmtDirectives go!"%w (after: %v)" = some [⟨W8 119, false⟩, ⟨W8 118, false⟩] := by rfl
 
@@ -181,7 +185,7 @@ end spec
 /-- **`fmt.errArgsWf` of a call with a literal format** (2026-11-18): the directives by `rfl`, then each
 argument either basic (`argWf_*`) or one of the error arguments under `%v`/`%s`/`%w`. -/
 macro "errargs_wf" : tactic => `(tactic| (
-  refine fmt.errArgsWf_intro (by rfl) ?_
+  refine fmt.errArgsWf_intro (by decide) (by rfl) ?_
   simp only [fmt.errArgsAt, fmt.errArgAt, fmt.errArgVerbs, interface.mkOk]
   repeat' first
     | exact True.intro

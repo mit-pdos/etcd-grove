@@ -10,7 +10,7 @@ result. **A hypothesis** (of `readWALNames`' and `openWALFiles`' proofs), not pr
 (`wal-vsnap4`). Lean-first.
 
 Restated 2026-11-18 (fmt soundness; approved by the user, 2026-11-18, via etcd-grove-03): the premise is
-`fmt.ErrorfErrs.spec`'s, `fmt.errArgsWf` (an error argument only under `%v`/`%s`/`%w` without `#`) with
+`fmt.ErrorfErrs.spec`'s, `fmt.errArgsWf` (an error argument only under `%v`/`%s`/`%w`, no `#` in the format) with
 `errOk` = `fmtErrorOk` (`Error() string`, no `Format`), so that Go calls only the error arguments'
 `Error()`; the post's `errOk err` says `fmtErrorOk` of the result (true of Go's three result types and of
 the model's). Until then any verb and any type with an `Error()` WP were admitted, which Go does not satisfy
