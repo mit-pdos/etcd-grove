@@ -56,7 +56,7 @@ theorem txid_argWf (v : w64) : _root_.Perennial.fmt.ArgWf (interface.mk Txid.ty 
   have hint : _root_.Perennial.fmt.IsIntType (underlying Txid.ty) := by
     rw [hu]; simp [_root_.Perennial.fmt.IsIntType]
   have hnf := _root_.Perennial.fmt.NoFmtMethods.of_methodSetIs_nil Txid.ty
-  refine ⟨fun h => ?_, fun _ => ⟨uint.Z v, .named _ _ _ hni hint hnf ?_⟩, Or.inr (Or.inr ⟨hint, hnf⟩)⟩
+  refine ⟨fun h => ?_, fun _ => ⟨uint.Z v, .named _ _ _ hni hint hnf ?_⟩, Or.inr (Or.inl (Or.inr ⟨hint, hnf⟩))⟩
   · simp [Txid.ty, go.string] at h
   · show _root_.Perennial.fmt.IntArgValue (interface.mk (underlying Txid.ty) #v) (uint.Z v)
     rw [hu]; exact .uint64 v
