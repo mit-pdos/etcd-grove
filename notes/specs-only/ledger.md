@@ -2812,3 +2812,22 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `authSchemaSnap`'s text has no ticket count (the boot's tickets work on every later backend): unchanged.
 - **Decision.** Option (b), decided by etcd-grove-03 (2026-11-17), after the supply check: `authRdSupply`
   (`authRdN - 1` plain copies), `newAuthStore_on` (`N = authRdN - 1`), the server's 66: no consumer short.
+
+## 2026-11-18: the auth realization's boot write contract takes the unset hook (auth-schema-srv A6, fix (A))
+
+- **Spec.** `authSchemaSrv` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`; trusted text, the closed
+  auth theorems' named hypothesis `hD22`, discharged at A7).
+- **Defect.** False (`notes/auth-schema-srv-refuted.md`, third refutation): the boot write contract (persistent, at
+  `authWTok γc`, hook `P f` chosen at boot) outlives the unset hook, which the constructor's wand gave back; a
+  client that sets a panicking hook and calls the contract's `Lock` (schema: `LockInsideApply`, which runs the
+  hook) gets a no-panic triple of a panicking call.
+- **Evidence.** `batch_tx.go:113-120` (`LockInsideApply` runs `txPostLockInsideApplyHook`);
+  `backend.batchTxBuffered.LockInsideApply.spec` takes `plHookAt γ dq f`; questions.md "A6 STOP".
+- **Change.** Old: `authWBackendOkR … P f (authWTok γc) Wb`; `{{ authWTok γc ∗ Wb }} CreateAuthBuckets {{ authWTok γc
+  }}`; the token `authWTok γc` handed out; `(Post -∗ bOpen d.γB qo ∗ plHook d.γB func.nil)`. New: at `T_b :=
+  authWTok γc ∗ plHook d.γB func.nil` (the contract, the triple, the token handed out); `(Post -∗ bOpen d.γB qo)`.
+  The premise is unchanged (still takes `plHook d.γB func.nil`). The contract now promises its `Lock` only to the
+  holder of the unset hook; the hook comes back with the token rather than after `Post`. Server: passes `T_b` to
+  `newAuthStore_on` and splits the token it gets back; `authApplyResPre` (internal) names the schema auth backend
+  (`ablOn`) in place of the boot contract, `authApplyResB_of_pre` taking the contract at the frozen hook.
+- **Decision.** Fix (A), decided by etcd-grove-03 (2026-11-18); for the A7 trusted-text list.

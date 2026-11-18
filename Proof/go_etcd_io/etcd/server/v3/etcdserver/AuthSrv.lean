@@ -66,14 +66,15 @@ boot and every snapshot): for any auth names, given what `NewAuthStore`'s axiom 
 server's backend, its open share `authOpenQ`, the batch lock's share of the history at the boot
 state and **half the published index's authority** (decision 2), schema's auth backend `abl` over
 `d` meets, for fresh names `γc`: the guarded read contract at a reader resource `R`, with the whole
-currency; the write contract (with the hook `P f`) and at every schema auth backend on `d` at its
-frozen hook, `CreateAuthBuckets`, at the write token `T := authWTok γc`; the publication quarter
+currency; the write contract at every schema auth backend on `d` at its frozen hook, at the write
+token `authWTok γc`; the boot write contract (with the hook `P f`) and `CreateAuthBuckets` at the boot
+write token `T_b := authWTok γc ∗ plHook d.γB func.nil`, which it gives back; the publication quarter
 and the lifecycle (its realization keeping the open share and a quarter of the published index's
 authority); `authRdN - 1` copies of `R` (tickets, backed by the store's share of the backend's reader
 slots, `authRdSlots`, taken; N4; A6.1b's option (b), decided by etcd-grove-03 2026-11-17: one slot fewer
 than the share, which the realization keeps for the write token's reads, `authBackendReads`, which take
 no ticket); the constructor's critical section, whose `Post`
-gives back the open share and the hook; and the snapshot clause at `R`. It takes the client's idle
+gives back the open share; and the snapshot clause at `R`. It takes the client's idle
 half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
 client keeps the others') and the succession right (one live backend).
 
@@ -83,6 +84,13 @@ paid from the apply loop's receipts and, at boot, `NewServer`'s): a batch `Unloc
 `authBatchTx.Unlock` is the backend batch's `Unlock` then `Commit`), `ForceCommit` one,
 `CreateAuthBuckets` one, `GetAllRoles` two (a batch). Until F1 the premise handed it a bag of two
 tokens (`ownToks d.γB.wb 2`) for every batch it would ever commit.
+**The boot write token carries the unset hook** (auth-schema-srv A6's fix (A), decided by etcd-grove-03,
+2026-11-18): until then the boot write contract was at `authWTok γc` and `Post` gave back the hook
+(`plHook d.γB func.nil`), after which the caller may set the hook; the contract, persistent, then
+promised a `Lock` (schema's `LockInsideApply`, which runs the hook) at `f` with no share of the hook
+left: false for `f = nil` (a client sets the hook to a panicking function and calls the boot `Lock`
+with a trivial contract; `notes/auth-schema-srv-refuted.md`, the third refutation). Now the boot
+contract serves only the holder of the unset hook, which nobody can set meanwhile.
 **The lend** (`authBkLend`, F2): a read-only observation of the auth buckets (an abstract `RL` with a
 law against the batch lock's `rbOwn`), with no write authority; until F2 it lent the buckets'
 `rbPart`, through which a client could write them.
@@ -113,16 +121,17 @@ def authSchemaSrv : IProp GF :=
     auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
     |={⊤}=> ∃ (R P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
       auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
-      auth.authWBackendOkR (authBkIface abl) (.on γa) P f (auth.authWTok γc) (backend.wbTok d.γB) ∗
+      auth.authWBackendOkR (authBkIface abl) (.on γa) P f
+        iprop(auth.authWTok γc ∗ backend.plHook d.γB func.nil) (backend.wbTok d.γB) ∗
       authWAtHook γa d γc ∗ authBkLend γa γc d ∗
-      □ ({{ auth.authWTok γc ∗ backend.wbTok d.γB }} (App (Val #(methods
+      □ ({{ (auth.authWTok γc ∗ backend.plHook d.γB func.nil) ∗ backend.wbTok d.γB }} (App (Val #(methods
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-          go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc }}) ∗
-      auth.authWTok γc ∗ auth.authPubTok γa ∗
+          go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc ∗ backend.plHook d.γB func.nil }}) ∗
+      (auth.authWTok γc ∗ backend.plHook d.γB func.nil) ∗ auth.authPubTok γa ∗
       auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
       srvApi.csContractA P f Pre Q Post ∗
       ([∗list] _x ∈ List.replicate (backend.authRdN - 1) (), R) ∗
-      (Post -∗ backend.bOpen d.γB qo ∗ backend.plHook d.γB func.nil) ∗
+      (Post -∗ backend.bOpen d.γB qo) ∗
       authSchemaSnap γa R)
 
 instance authSchemaSrv_persistent : Persistent (authSchemaSrv (GF := GF)) := by
@@ -508,7 +517,7 @@ theorem authStoreKit_on
   wp_apply (auth.newAuthStore_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh lg
       (authBkIface abl) tp cost
       (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
-        #abl) γa γc R P f (auth.authWTok γc) (backend.wbTok d.γB) A Pre Q Post [auth.bootState] auth.bootState rfl
+        #abl) γa γc R P f (iprop(auth.authWTok γc ∗ backend.plHook d.γB func.nil)) (backend.wbTok d.γB) A Pre Q Post [auth.bootState] auth.bootState rfl
       auth.bootState_permsFit ⟨auth.bootState, List.mem_singleton_self _, rfl⟩
       (backend.authRdN - 1) hR)
     $$ [$Hpkg $Hrdok Hbk $Hcu $HwokR $HCreate $HT $Hwb1 $Hwb2 $Hwb3 $Hwb4 $Hcs $HtpA $HA $Hown $Hcur $Hcn]
@@ -518,9 +527,10 @@ theorem authStoreKit_on
     isplitr
     · ipureintro; rfl
     unfold auth.authBkCur; iexact Hbk
-  ihave ⟨Hopen, Hhook⟩ := Hback $$ HPost
+  ihave Hopen := Hback $$ HPost
   iunfold auth.authWRAt at HWR
-  icases HWR with ⟨⟨Hbe, #Hwok⟩, HT', Hen, Hca⟩
+  -- (fix (A)) the boot write token back: the write token and the unset hook
+  icases HWR with ⟨⟨Hbe, -⟩, ⟨HT', Hhook⟩, Hen, Hca⟩
   -- (E2k) the boot state's revision is `0`: the history `[bootState, bump bootState]`, its fuel
   have hhs' : hs' = [auth.bootState, auth.bump auth.bootState] := by
     rcases Hhs' with ⟨h, -⟩ | ⟨-, h⟩
@@ -565,7 +575,12 @@ theorem authStoreKit_on
   · unfold authApplyResPre
     iexists [auth.bootState, auth.bump auth.bootState], P, f, γc, (authBkIface abl)
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HX HtpAd Hwok Hfr Hpt
+    iframe Hown' Hfu HX HtpAd Hfr Hpt
+    isplitr
+    · iexists abl, lg
+      isplitr
+      · ipureintro; rfl
+      iunfold ablOn; iframe Habbe Hablg
     isplitl [HT' Hbk']
     · iunfold auth.authWHeld; iframe HT'; unfold auth.authBkCur; iexact Hbk'
     isplitr

@@ -172,7 +172,13 @@ the claimed flags, the token laws). `batchLocked_claim`, `trkSide_claim1`, `trkS
   claimed `γ.rbk` flag is never set). `rbPartR_idle` still takes the idle premise (A1 review MINOR 2), unused.
 - **A claimed `UnsafeCreateBucket`** sets the claim marker's flag but not `cw` (a completeness gap, the second
   review's MINOR 3): such a bucket need not be in `Unlock.specC`'s `Sc`, and its `rbOwnInR` may come back only
-  from a later `Unlock`. A6 creates no claimed bucket (`CreateAuthBuckets` runs before the claim).
+  from a later `Unlock`. **A6 does create claimed buckets** (corrected 2026-11-18; until then this said A6 creates
+  none): the realization claims the auth buckets in its update, before the server calls `CreateAuthBuckets`, whose
+  three `UnsafeCreateBucket`s are then claimed creates (`rbPut … true`, which `UnsafeCreateBucket.spec` gives back
+  updated, recording no claimed write). The gap does not cost the client its parts: `Unlock.spec` takes any `Sc`
+  with `∀ n, st.cw n → n ∈ Sc` (a superset of the claimed writes), so the realization hands it all three claimed
+  parts (`Sc = authBkts`) and gets all three back idle (`rbOwnInR`); the accessor `rbAcc` is asked to move a
+  created-only bucket's readers' contents by `unlockOk`, which keeps it (a creation changes no kind).
 - **Forbidden future laws** (second review MINOR 1, decided by etcd-grove-03; also in `bStopView`'s and
   `rbOwnInR`'s docstrings): (i) any exclusivity law between a claimed resource and a `γ.rbk` share (e.g.
   `rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`); (ii) any reader law or axiom taking `rbOwnIn` without `bOpen` or a

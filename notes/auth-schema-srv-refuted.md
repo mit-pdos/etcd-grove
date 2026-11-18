@@ -3,7 +3,7 @@ title: authSchemaSrv is false (lend grants writes; write-back budget; two encodi
 found: 2026-11-12
 by: S0 of the etcd_auth_safe Scope, axiom-skill review (report /shared/tmp/auth-safe/s0/report.md, Go tests /shared/tmp/auth-safe/s0/tests/)
 blocks-proof: yes (for an auth closed theorem); no closed *_safe theorem rests on it
-status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there. **Refuted again 2026-11-16** (the read contract's one-state snapshot, below): open, the fix to be decided (`notes/auth-schema-srv-scope.md`, Q1)
+status: fixed and landed (auth-schema-fix, lean 51ee20f154, 2026-11-13; F3 e450457d89, F2 350380537e, F4 350baf65a5, F1 398c6dc09f + 10da96a817); etcd-grove-81's axiom re-review READY WITH CHANGES (unknown fields nil in the stored user and role messages, non-empty names, the per-batch put count recorded for D22), then its review's MAJ-1/MAJ-2 (nested unknown fields, `notes/auth-unknown-fields-nested.md`) fixed and re-reviewed GO; open follow-ups (a) `sizeCache` under `↦□`, (b) the client send's `wireLen` there. **Refuted again 2026-11-16** (the read contract's one-state snapshot, below): open, the fix to be decided (`notes/auth-schema-srv-scope.md`, Q1); fixed by A0 (Q1 (a)). **Refuted a third time 2026-11-18** (the boot write contract outlives the unset hook, below): fixed by fix (A) on branch auth-schema-srv (decided by etcd-grove-03)
 ---
 # `authSchemaSrv` is false
 
@@ -76,3 +76,35 @@ and deletes in one bucket (`TestAuthSchemaReadMixedBucketSession` fails otherwis
 the users' or roles' bucket needs no delete there in the session, a delete no put; `Unlock` takes it). The
 store's admin steps meet it. Go: `TestAuthSchemaReadPerBucket` (the store's steps, 0 per-bucket violations,
 the old text's control fails ~15k times a run). Ledger: `notes/specs-only/ledger.md`, 2026-11-16.
+
+## Third refutation (2026-11-18, auth-schema-srv A6): the boot write contract outlives the unset hook
+
+Found while realizing `authSchemaSrv` (A6; questions.md "A6 STOP"). Its boot clause
+`auth.authWBackendOkR (authBkIface abl) (.on γa) P f (authWTok γc) (wbTok d.γB)`, with `P f` chosen by the
+realization at boot, is persistent: its `Lock` (`{{ csContractA P f Pre Q Post ∗ T ∗ … }}`) must hold at any
+time for any holder of `T = authWTok γc`. Schema's `authBatchTx.Lock` is the backend's `LockInsideApply`, which runs
+the post-lock hook if set (`batch_tx.go:113-120`); its spec needs a share of the hook, `plHookAt d.γB dq f`. The
+text handed the unset hook (`plHook d.γB func.nil`, its premise) back through the constructor's wand (`Post -∗
+bOpen qo ∗ plHook func.nil`), after which the client may set the hook (`SetTxPostLockInsideApplyHook` takes the
+whole `plHook`). With `f = nil` (the only `f` the realization can know at boot) the text is false: a client sets
+the hook to a function that panics, then calls the boot write contract's `Lock` with the trivial contract
+`csContractA P nil Pre (P ∗ Pre) Pre`; the text gives a no-panic triple, and Go runs the hook and panics. With
+`f ≠ nil` it is false at boot (no hook runs; `csContractA`'s `Q` is then not made). Not a Go bug: the store uses
+the boot contract only for `NewAuthStore`'s construction, before the server sets the hook; afterwards the server
+switches to `authWAtHook`'s contract at the frozen hook. No Go test (the Go fact is the hook call above).
+
+Consequence: until the fix `etcd_auth_safe`, `etcd_auth3_safe`, `etcd_authN_safe` (which take `authSchemaSrv` as
+`hD22`) were vacuous. `authSchemaSnap` and `authWAtHook` are not affected (the hook frozen, `plHookRO` persistent).
+`auth.authSchemaBoot` (the premise of the exported `auth.newAuthStore_boot`) has the same shape: Q8 recommends
+deleting it at A7.
+
+### The fix (A) (decided by etcd-grove-03, 2026-11-18)
+
+The boot write contract and the `CreateAuthBuckets` triple take the boot write token `T_b := authWTok γc ∗ plHook
+d.γB func.nil`, which the realization hands out (in place of `authWTok γc`); the constructor's wand is `Post -∗ bOpen
+d.γB qo`. The contract now serves only the holder of the unset hook, whom nobody can preempt; its `Lock` takes the
+hook out of `T_b` (`LockInsideApply` at `f = nil`), `Unlock` gives it back. The server passes `T_b` to
+`newAuthStore_on` (generic in `T`) and splits the returned token: `authWTok γc` to the apply thread
+(`authWHeld`), the hook to the hook's setting. `authApplyResPre` no longer carries the boot contract: it names the
+schema auth backend (`ablOn`), and `authApplyResB_of_pre` takes the contract at the frozen hook. Ledger:
+`notes/specs-only/ledger.md`, 2026-11-18.
