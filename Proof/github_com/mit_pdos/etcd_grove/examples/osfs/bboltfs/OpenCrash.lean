@@ -474,7 +474,7 @@ theorem Open.wp_proof_crash (wp_OpenFile : os.OpenFile.specCrashS (GF := GF) (hG
   · iframe; ipureintro; exact Hl
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left
-  · obtain ⟨Herr2, rfl⟩ := Hfi
+  · obtain ⟨Herr2, rfl, -⟩ := Hfi
     cases err2 with
     | nil => exact absurd rfl Herr2
     | ok ie =>

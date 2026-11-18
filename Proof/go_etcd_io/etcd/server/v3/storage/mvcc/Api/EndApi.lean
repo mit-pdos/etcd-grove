@@ -121,7 +121,7 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
   | write σ₀ pend =>
     simp only [mvccTxnI]
     icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
-    obtain ⟨Hpn, -⟩ := Hk0
+    obtain ⟨Hpn, -, Hpl⟩ := Hk0
     ihave %Hw := wrWrap_pm t0 _ s mw σ₀.log $$ Hwrap
     obtain ⟨hm, Hwq⟩ := Hw
     subst hm
@@ -135,7 +135,7 @@ theorem metricsTxnWrite.End.wp_api (hEnd : mvcc.metricsTxnWrite.End.spec (GF := 
     have hwq' : (γ.withPhys p).watchQ = false := by simpa using Hwq
     -- the commit's step from the client's update
     iunfold mvccState at Hau
-    have hcb := endCb_of_au (GF := GF) (γ.withPhys p) σ₀ σ₀.log pend σ₀.crev Q hwq' rfl Hpn
+    have hcb := endCb_of_au (GF := GF) (γ.withPhys p) σ₀ σ₀.log pend σ₀.crev Q hwq' rfl Hpn Hpl
     simp only [endAU, StoreNames.withPhys_api] at hcb
     ihave Hcb := hcb $$ Hau
     ihave #Hx : □ (slotF (γ.withPhys p) ∗ api.shareTok γ.api q -∗ False) $$ []

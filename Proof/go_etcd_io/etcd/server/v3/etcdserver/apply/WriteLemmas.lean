@@ -246,7 +246,8 @@ at every outcome, the request, and `mPre` split at its live set. -/
 theorem putPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (o : OpFull)
     (log : mvcc.Log) (Pre Q Post : IProp GF)
-    (h : rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log) :
+    (h : rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log ∧
+      o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax) :
     certPre E c rq log ∗ txn.putRequestIs r o ∗ mPre E c a info log Pre Q Post ⊢
       putPre E c a info r rq o log Pre Q Post := by
   iintro ⟨#Hcp, #Hr, Hm⟩
@@ -262,7 +263,8 @@ theorem putPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
 theorem txnPre_of_mPre (E : AEnv GF) (c : Chain) (a : GoInterface)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (r : Loc) (rq : IRRModel) (t : TxnModel)
     (log : mvcc.Log) (Pre Q Post : IProp GF)
-    (h : rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log) :
+    (h : rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log ∧
+      t.putsLe etcdKeyMax) :
     certPre E c rq log ∗ txn.txnRequestIs r t ∗ mPre E c a info log Pre Q Post ⊢
       txnPre E c a info r rq t log Pre Q Post := by
   iintro ⟨#Hcp, #Hr, Hm⟩

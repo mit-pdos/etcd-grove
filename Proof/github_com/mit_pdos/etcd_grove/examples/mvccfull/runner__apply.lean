@@ -231,7 +231,7 @@ theorem runner.apply.wp_proof
       iunfold rangeIs; iframe #; ipureintro; simp
     (try wp_auto)
     -- `p.put(…)`, `tw.Put(…)`
-    obtain ⟨hkks, hlL⟩ := hvput hk0
+    obtain ⟨hkks, hlL, hkl0, hvl0⟩ := hvput hk0
     wp_apply wp_bytes_to_string ov.key' o.key DFrac.discard $$ [$Hok] as -
     (try wp_auto)
     rw [hval, hlease]
@@ -247,7 +247,7 @@ theorem runner.apply.wp_proof
     wp_apply (hTPut v.ι.kv trc true (σOf ks ops v.ops) [] ov.key' vs o.key o.val o.lease
         (leasesAfter ks ops v.ops)) $$ [Htw Htrc Hok Hvs Hlo] as ⟨Htw, Htrc, Hlo⟩
     · iframe; iframe #
-      ipureintro; exact ⟨Hkslen _ hkks, hlL⟩
+      ipureintro; exact ⟨Hkslen _ hkks, ⟨hkl0, hvl0⟩, hlL⟩
     (try wp_auto)
     iunfold ownPending at Hpp
     icases Hpp with ⟨%pv, Hpv, %Hprev, Hpst, Hpch, Hpcap⟩
@@ -526,7 +526,7 @@ theorem runner.apply.wp_proof
     iunfold hookOk at HhookOk
     icases HhookOk with ⟨%Hfnil, #Hhrun⟩
     iunfold bkKeep at Hbk
-    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hoh, HRT, Htoks, Hcen⟩
+    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hbp, Hoh, HRT, Htoks, Hcen⟩
     ihave ⟨Hles, Hlbk⟩ := lessorW_backend v.ι.kv v.bk f v.lp _ v.U _ Hfnil $$ [$Hles $Hisb $Hhk]
     iunfold lessorW at Hles
     icases Hles with ⟨%rd, %r, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #Hlok, Hlrd, Hlo, Hrvk, Hever,
@@ -658,7 +658,7 @@ theorem runner.apply.wp_proof
     · ipureintro; exact hvl
     isplitl [Hret Hσw Hbw]
     · iunfold incW; iframe; iframe #
-    isplitl [Hbf Hoh HRT Htoks Hcen]
+    isplitl [Hbf Hbp Hoh HRT Htoks Hcen]
     · iunfold bkKeep; iframe; iframe #; ipureintro; exact HbkP
     isplitl
     · iunfold lessorW
@@ -880,7 +880,7 @@ theorem runner.apply.wp_proof
     iunfold mvccDeleter at Hdel
     icases Hdel with ⟨%Hrdnn, #Hdel⟩
     iunfold bkKeep at Hbk
-    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hoh, HRT, Htoks, Hcen⟩
+    icases Hbk with ⟨%HbkP, #Hisb, #Hsc, Hbf, Hbp, Hoh, HRT, Htoks, Hcen⟩
     have hR1 : mvccReaders (GF := GF) v.ι.kv nw ⊣⊢ mvccReaders v.ι.kv (nw - 1) ∗ mvccReaders v.ι.kv 1 := by
       have := hRdSplit v.ι.kv (nw - 1) 1; rwa [Nat.sub_add_cancel hnw] at this
     icases hR1.1 $$ Hrdrs with ⟨Hrdrs, Hr1⟩
@@ -1095,7 +1095,7 @@ theorem runner.apply.wp_proof
     · iexists rsl; iframe
     isplitr
     · ipureintro; exact hvl
-    isplitl [Hbf Hoh HRT Htoks Hcen]
+    isplitl [Hbf Hbp Hoh HRT Htoks Hcen]
     · iunfold bkKeep; iframe; iframe #; ipureintro; exact HbkP
     isplitl
     · iunfold lessorW

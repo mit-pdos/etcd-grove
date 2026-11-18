@@ -501,6 +501,7 @@ Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.ap
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.onceUpTo  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.pendItems_nil  # exposed by a spec file (theorem)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.reach_logWf  # exposed by a spec file (theorem)
+Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.reach_putsLe  # exposed by a spec file (theorem)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.recvEvs  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.stateOk  # exposed by a spec file (def)
 Spec.go_etcd_io.etcd.server.v3.storage.mvcc.ApiState Perennial.EtcdGrove.mvcc.api.watchLo  # exposed by a spec file (def)

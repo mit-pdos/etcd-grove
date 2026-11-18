@@ -11,10 +11,8 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TopLevelDefs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
-public import Spec.sort.Slice
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.Adequacy
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -32,7 +30,8 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 
@@ -50,10 +49,12 @@ def mvccrand_robust.spec : Prop :=
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     (Hsort : ∀ hG : HeapGS .hasLC mvccrandGF,
       sort.Slice.spec (GF := mvccrandGF) (hG := heapWith hG lctx))
-    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
-    (HFs : dbFilesAbsent mvccrandProgram [go!"mvccrand.db"]) (HEnv : verifyEnvOff mvccrandProgram)
-    (σ : state) (g : GlobalState),
-    Robustness.Robust [] [(mvccrandProgram, σ)] g (2 ^ 28 - 1)
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions] (r : GoString)
+    (HEnv : verifyEnvOff (mvccrandProgram r)) (σ : state) (g : GlobalState)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
+    (Habs : (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 go!"mvccrand.db" = none),
+    Robustness.Robust [] [(mvccrandProgram r, σ)] g (2 ^ 28 - 1)
 
 end adequacy
 end EtcdGrove

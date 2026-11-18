@@ -3,10 +3,12 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem backend.batchTx.UnsafeRange.wp_proof [go_etcd_io.bbolt.Assumptions]
-    [go_uber_org.zap.Assumptions] (hBucket : bbolt.Tx.Bucket_kvw.spec) (hStringer :
-    zap.Stringer.spec) (hStack : zap.Stack.spec) (hFatal : zap.Logger.Fatal.spec) (hCursor :
-    bbolt.Bucket.Cursor_kvw.spec) (hRange : backend.unsafeRange.spec) :
-    backend.batchTx.UnsafeRange.spec
+    [go_uber_org.zap.Assumptions] (hBucket : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec)
+    (hStringer : zap.Stringer.spec) (hStack : zap.Stack.spec) (hFatal : zap.Logger.Fatal.spec)
+    (hCursor : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Bucket.Cursor.spec) (hRange :
+    backend.unsafeRange.spec) : backend.batchTx.UnsafeRange.spec
   -- `Perennial.EtcdGrove.backend.batchTx.UnsafeRange.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t : Loc) (st : backend.BSess) (bk : GoInterface)
     (bi : backend.BucketInfo) (key endKey : GoSlice) (kb eb : GoString) (dk de : DFrac) (limit : w64),
@@ -21,7 +23,7 @@ theorem backend.batchTx.UnsafeRange.wp_proof [go_etcd_io.bbolt.Assumptions]
                 backend.btW γ t st ∗
                     ownSlice key kb dk ∗
                       ownSlice endKey eb de ∗
-                        backend.kvsOutRd st.tx keys vals
+                        backend.kvsOutRd γ.db st.tx keys vals
                           (backend.cursorRange (backend.bktEnts (backend.bktOf st.S bi.name)) kb eb limit) -∗
                   Φ (intoVal keys, intoVal vals)) -∗
             WP

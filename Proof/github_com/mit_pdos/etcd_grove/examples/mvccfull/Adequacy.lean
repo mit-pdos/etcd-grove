@@ -22,9 +22,14 @@ members, each over a bbolt-backed store) takes more steps than that. The theorem
 check fails in the first `2 ^ 28 - 2` steps of any interleaving. It says nothing about a run's later
 steps, and in particular it does not say that a complete run of `Main` returns.
 
-As `mvccrand_adequate` (`examples/mvccrand/Adequacy.lean`; `notes/decisions.md`, "mvccrand's closed
-theorem"): from `goose_adequacy_start_files` (`Proof/runtime/Start.lean`), with the trivial
-extension and a ghost-state bundle `mvccfullGF`, `mvccfull`'s `wp_initialize'` (`Init.lean`, over the
+(S3e, 2026-11-17) **The program is `Run(MainConfig(r/mvccfull))`**, `Main`'s run with its files in
+a root `r` of the file system's model (`Main`'s prefix `mvccfull` is relative, and the file extension
+gives meaning only to paths in its roots' trees; until then the theorem was about `Main()` over the
+trivial extension, where bbolt's file operations are stuck). As `mvccrand_adequate`
+(`examples/mvccrand/Adequacy.lean`): from `goose_adequacy_start` (`Proof/runtime/Start.lean`) over
+the etcd examples' extensions with the no-file-error semantics (`etcdstart/FsExts.lean`), the fresh
+files from the tree at start (`start_fileHolds`, `Proof/runtime/StartFiles.lean`), a ghost-state
+bundle `mvccfullGF`, `mvccfull`'s `wp_initialize'` (`Init.lean`, over the
 program's package table `PkgTable.lean`) and `mvccfull.wp_Main` (`Link.lean`; `Results.lean`'s
 `mvccfull_Main`). The program's fresh files are `FilePaths(MainConfig("mvccfull"))`
 (`filePathsM`: the members' two and one per possible snapshot install, `Ops = 12000`), distinct
@@ -32,12 +37,13 @@ program's package table `PkgTable.lean`) and `mvccfull.wp_Main` (`Link.lean`; `R
 
 **Its hypotheses** are mvccrand's, but `sort.Slice.spec` (`mvccfull.wp_Main` takes no hypothesis:
 the tester's lease checks compare the lessor's list against the model's without sorting it):
-* pure facts of the program's environment: `dbOpenOk` and `dbCloseOk` (bbolt's `Open` and `Close`
-  do not fail for the environment's reasons), `dbFilesAbsent` of `Main`'s files (absent at start,
-  touched only by the backend) and `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
+* pure facts of the program's environment: `verifyEnvOff` (`ETCD_VERIFY` unset), and the execution's length
   (`n + 2 ≤ 2 ^ 28`: the thread bound, and with `N = n + 1` the receipt bound `2 ^ 38`);
-* the semantics: `go.Semantics` and the package assumptions (`mvccfull`'s, mvcc's, the server's,
-  the cache's).
+* the semantics: `go.Semantics`, the package assumptions (`mvccfull`'s, mvcc's, the server's,
+  the cache's) and (S3e) the `os` structs' field facts; the file extension's steps restricted by
+  `etcdSQ` (no file I/O error);
+* (S3e) the file extension's initial state: `FsInit`, `r` a root (`j0` its directory) with no entry
+  at any of `Main`'s file names (`mvccfullNames`; until then the axiomatized `dbFilesAbsent`).
 Nothing beyond mvccrand's. (Until premise fixes 5, 2026-11-10, also the store's key-count premise
 `keySized` at every ghost-state instance; now proved, `mvcc.keySized_all`, from bbolt's address-space
 bound `backend.rtxSnap_size`.)
@@ -47,10 +53,9 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.PkgTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequacy
-public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
-public import Proof.runtime.Start
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.runtime.StartFiles
 public import Proof.runtime.Threads
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
 
 @[expose] public section
 
@@ -64,8 +69,6 @@ namespace Perennial
 namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
-
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
 
 /-! ## The program's files -/
 
@@ -164,6 +167,122 @@ theorem filePaths_main_nodup [GooseExts] [GoGlobalContext] (mx : Mix) : (filePat
 
 end mvccfull
 
+/-! ## The program's files at a root (S3e) -/
+
+namespace mvccfull
+
+open github_com.mit_pdos.etcd_grove.examples.mvccfull
+
+/-- A decimal digit's byte. -/
+theorem decDigits_mem : ∀ (n : Nat) (c : w8), c ∈ decDigits n → 48 ≤ c.toNat ∧ c.toNat ≤ 57 := by
+  intro n
+  induction n using Nat.strongRecOn with
+  | ind n ih =>
+    intro c hc
+    by_cases h0 : n = 0
+    · subst h0; rw [decDigits_zero] at hc; exact absurd hc List.not_mem_nil
+    · rw [decDigits_pos n h0] at hc
+      rcases List.mem_append.1 hc with h | h
+      · exact ih (n / 10) (by omega) c h
+      · simp only [List.mem_singleton] at h
+        subst h
+        have h10 := Nat.mod_lt n (by decide : 10 > 0)
+        refine ⟨?_, ?_⟩ <;> word
+
+theorem itoaM_mem (n : Nat) (c : w8) (hc : c ∈ itoaM n) : 48 ≤ c.toNat ∧ c.toNat ≤ 57 := by
+  unfold itoaM at hc
+  split at hc
+  · simp only [List.mem_singleton] at hc; subst hc; decide
+  · exact decDigits_mem n c hc
+
+/-- A name of at least three bytes, none a slash or a NUL, is a name (`NameOk`). -/
+theorem nameOk_of (b : GoString) (hl : 3 ≤ b.length) (hc : ∀ c ∈ b, c.toNat ≠ 47 ∧ c.toNat ≠ 0) :
+    NameOk b := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · intro h; subst h; simp at hl
+  · intro h; subst h; simp at hl
+  · intro h; subst h; simp at hl
+  · intro h; exact (hc _ h).1 rfl
+  · intro h; exact (hc _ h).2 rfl
+
+/-- **`Main`'s files, by name** (`FilePaths(MainConfig("mvccfull"))`): the members' `mvccfull-0.db`,
+`mvccfull-1.db` and the builders' `mvccfull-b<n>.db`. -/
+def mvccfullNames [GooseExts] [GoGlobalContext] : List GoString :=
+  filePathsM (mainConfigM go!"mvccfull" (zeroValDef : Mix))
+
+theorem memberPathM_child (r p : GoString) (k : Nat) :
+    memberPathM (Fs.child r p) k = Fs.child r (memberPathM p k) := by
+  simp [memberPathM, Fs.child, List.append_assoc]
+
+theorem buildPathM_child (r p : GoString) (k : Nat) :
+    buildPathM (Fs.child r p) k = Fs.child r (buildPathM p k) := by
+  simp [buildPathM, Fs.child, List.append_assoc]
+
+/-- The files of the run at the prefix `r/mvccfull` are the names in the directory `r`. -/
+theorem filePaths_at [GooseExts] [GoGlobalContext] (r : GoString) (mx : Mix) :
+    filePathsM (mainConfigM (Fs.child r go!"mvccfull") mx) = mvccfullNames.map (Fs.child r) := by
+  unfold mvccfullNames filePathsM mainConfigM
+  simp only [memberPathM_child, List.map_append, List.map_cons, List.map_nil, List.map_map]
+  congr 1
+  apply List.map_congr_left
+  intro k _
+  simp [buildPathM_child]
+
+theorem mvccfullNames_nodup [GooseExts] [GoGlobalContext] : mvccfullNames.Nodup := filePaths_main_nodup _
+
+/-- Each of `Main`'s files is a name. -/
+theorem mvccfullNames_ok [GooseExts] [GoGlobalContext] : ∀ b ∈ mvccfullNames, NameOk b := by
+  intro b hb
+  unfold mvccfullNames filePathsM at hb
+  rcases List.mem_append.1 hb with h | h
+  · simp only [List.mem_cons, List.not_mem_nil, or_false] at h
+    rcases h with rfl | rfl <;> apply nameOk_of <;>
+      first
+      | (simp [memberPathM, mainConfigM]; done)
+      | (intro c hc
+         simp only [memberPathM, mainConfigM, List.mem_append] at hc
+         rcases hc with (hc | hc) | hc
+         · revert c; decide
+         · have := itoaM_mem _ c hc; omega
+         · revert c; decide)
+  · obtain ⟨k, -, rfl⟩ := List.mem_map.1 h
+    apply nameOk_of
+    · simp [buildPathM, mainConfigM]
+    · intro c hc
+      simp only [buildPathM, mainConfigM, List.mem_append] at hc
+      rcases hc with (hc | hc) | hc
+      · revert c; decide
+      · have := itoaM_mem k c hc; omega
+      · revert c; decide
+
+/-- **`MainConfig`'s configuration is in `Run`'s scope** (its read weights the code's), at any
+prefix (`Main.lean`'s `mainConfig_ok`, at `"mvccfull"`). -/
+theorem mainConfig_okAt [GooseExts] [GoGlobalContext] (pfx : GoString) (mx : Mix) :
+    runCfgOk (mainConfigM pfx mx) [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] := by
+  have hk : (keysOf 4).length = 120 := by decide
+  have hlim : limOf (mainConfigM pfx mx) = W64 3 := by
+    unfold limOf; exact if_pos (show (0 : Int) < sint.Z (W64 3) by decide)
+  have hcbl : cblOf (mainConfigM pfx mx) = W64 2 := by
+    unfold cblOf; exact if_pos (show (0 : Int) < sint.Z (W64 2) by decide)
+  have hdep : (normalizeM (mainConfigM pfx mx)).Depth' = W64 4 := by
+    unfold normalizeM mainConfigM; rfl
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · unfold readMixOk; refine ⟨by decide, ⟨0, by decide, by decide⟩, by decide⟩
+  · show (0 : Int) ≤ sint.Z (W64 12000); decide
+  · show sint.Z (W64 12000) < 2 ^ 38; decide
+  · show 2 * max 0 (sint.Z (W64 2)) + 4 * max 0 (sint.Z (W64 2)) + 3 ≤ 2 ^ 28; decide
+  · rw [hlim]; decide
+  · rw [hcbl]; unfold mvcc.batchLimitOk; decide
+  · rw [hdep, show sint.nat (W64 4) = 4 by decide, hk]; decide
+  · show sint.Z (mainConfigM pfx mx).MaxVal' ≤ 2 ^ 20
+    rw [show (mainConfigM pfx mx).MaxVal' = W64 5000 from rfl]; decide
+  · rw [hdep]; decide
+
+end mvccfull
+
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
+
 /-! ## The ghost-state bundle -/
 
 /-- The functors (as `putgetGF`): the universal camera (`AllG`) at slot 0, then invariants, later
@@ -188,7 +307,7 @@ instance mvccfullGF_gooseGpreS : GooseGpreS mvccfullGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGExts := (⟨mvccfullGF_allG⟩, PUnit.unit)
+  goosePreGExts := (⟨mvccfullGF_allG⟩, ⟨mvccfullGF_allG⟩, PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := mvccfullGF_allG
 
@@ -197,35 +316,42 @@ instance mvccfullGF_gooseGpreS : GooseGpreS mvccfullGF where
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
+/-- The program: `mvccfull`'s initialization, then `Run(MainConfig(r/mvccfull))`: `Main`'s run with
+its files in the directory `r`, its report dropped, as `Main` does (S3e; until then `Main()`, whose prefix `mvccfull` is relative). -/
+def mvccfullProgram [GoSemanticsFunctions] (r : GoString) : Expr :=
+  github_com.mit_pdos.etcd_grove.examples.mvccfull.initialize' #() ;;
+  ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.Run)
+    ((@! github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig) #(Fs.child r go!"mvccfull")) ;; #())
+
 /-- **mvcc's full tester passes** (see the file header): every real execution of
-`mvccfullProgram` from a fresh state with one thread, of `n` steps: if the main thread has
-finished, its result is `#()` (`Main` returned: every check of mvcc passed); no thread is stuck;
-no thread has ended in a panic. -/
+`mvccfullProgram r` from a fresh state with one thread, whose file system's root `r` has none of
+`Main`'s file names, of `n` steps: if the main thread has finished, its result is `#()` (`Run`
+returned: every check of mvcc passed); no thread is stuck; no thread has ended in a panic. -/
 theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    (Hdbo : backend.dbOpenOk) (Hdbc : backend.dbCloseOk)
-    (HFs : dbFilesAbsent mvccfullProgram
-      (mvccfull.filePathsM (mvccfull.mainConfigM go!"mvccfull"
-        (zeroValDef : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix))))
-    (HEnv : verifyEnvOff mvccfullProgram)
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
+    (r : GoString)
+    (HEnv : verifyEnvOff (mvccfullProgram r))
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
+    (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
+    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none)
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([mvccfullProgram], ((σ, g) : CfgState)) κs (t2, σ2))
+    (Hsteps : RealNsteps n ([mvccfullProgram r], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start_files (GF := mvccfullGF) (n + 1) (n + 2) mvccfullProgram σ g
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial⟩
-    ⟨trivial, trivial⟩ [] [] [] _ List.nodup_nil List.nodup_nil List.nodup_nil
-    (mvccfull.filePaths_main_nodup _)
+  refine goose_adequacy_start (GF := mvccfullGF) (n + 1) (n + 2) (mvccfullProgram r) σ g
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) ⟨trivial, trivial, trivial⟩
+    ⟨trivial, Hfs, trivial⟩ [] [] [] List.nodup_nil List.nodup_nil List.nodup_nil
     (fun _ h => absurd h List.not_mem_nil) (fun _ h => absurd h List.not_mem_nil)
     (fun _ h => absurd h List.not_mem_nil) ⟨fun _ h => absurd h List.not_mem_nil, List.Pairwise.nil⟩
-    HFs HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
+    HEnv ?_ n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads (realThreadsBelow_of_one Hthreads)
   intro hG HN HT HL
   obtain ⟨G, ⟨fl, lc, nh, gs, th, cr⟩⟩ := hG
   subst Hlctx
@@ -235,17 +361,38 @@ theorem mvccfull_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   rw [Hinit]
   haveI : ThreadBoundLe mvccfullGF (2 ^ 28) := ⟨by rw [HT]; omega⟩
   haveI : ReceiptBoundLe mvccfullGF (2 ^ 38) := ⟨by rw [HN]; omega⟩
-  iintro - - Hgs Htok Hrights Hfiles
+  iintro - Hl Hgs Htok Hrights
   iunfold startRights at Hrights
   icases Hrights with ⟨-, -, -, -, #Hvoff⟩
+  have Hst : extsLocalStart (GF := mvccfullGF) σ.world ⊢
+      Fs.osStart (Fs.gooseOsGS (L := (inferInstance : HeapGS .hasLC mvccfullGF).goose_localGS))
+        (extLocal Fs.fsExt σ.world) :=
+    sep_elim_right.trans sep_elim_left
   ihave Hown := (ownInitializing_of_empty
     (github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit (GF := mvccfullGF))) $$ Hgs
-  imodintro
+  iapply start_fileHolds (extLocal Fs.fsExt σ.world) Hfs r j0 mvccfull.mvccfullNames Hr
+    mvccfull.mvccfullNames_nodup mvccfull.mvccfullNames_ok Habs _ rfl _ $$ [Hl]
+  · iapply Hst $$ Hl
+  iintro Hfiles
   unfold mvccfullProgram
   wp_apply (github_com.mit_pdos.etcd_grove.examples.mvccfull.wp_initialize' _
     github_com.mit_pdos.etcd_grove.examples.mvccfull.getIsPkgInit_wf) $$ Hown as ⟨-, #Hpkg⟩
-  wp_apply (mvccfull.wp_Main Hdbo Hdbc) $$ [Hfiles Htok]
-  · iframe Hfiles Htok Hvoff
+  wp_apply mvccfull.wp_MainConfig as %mx Hmix
+  iunfold mvccfull.mainMixOwn at Hmix
+  icases Hmix with ⟨%Hp, Hs, Ho, Hc, Hrr, Hrd, Ha, Hstt⟩
+  wp_apply (mvccfull.wp_Run (mvccfull.mainConfigM (Fs.child r go!"mvccfull") mx)
+      [W64 1, W64 1, W64 2, W64 1, W64 1, W64 0] (mvccfull.mainConfig_okAt _ mx) trivial trivial)
+    $$ [Hfiles Htok Hvoff Hs Ho Hc Hrr Hrd Ha Hstt] as %rep -
+  · iframe Htok Hvoff
+    isplitl [Hs Ho Hc Hrr Hrd Ha Hstt]
+    · iunfold mvccfull.mixOwn
+      simp only [mvccfull.mainConfigM]
+      iexists DFrac.own 1, _, _, _, _, _, _
+      iframe
+    rw [mvccfull.filePaths_at r mx]
+    rw [BigSepL.bigSepL_map]
+    iexact Hfiles
+  (try wp_auto)
   ipureintro
   rfl
 

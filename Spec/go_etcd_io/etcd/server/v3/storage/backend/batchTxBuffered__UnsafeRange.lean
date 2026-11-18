@@ -40,8 +40,8 @@ abbrev backend.batchTxBuffered.UnsafeRange.spec : Prop :=
     (App (App (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeRange")) (Val #bk)) (Val #key)) (Val #endKey)) (Val #limit))
   {{ (keys vals : GoSlice), RET (PairV #keys #vals); batchLocked γ P b st ∗
       key ↦*{dk} kb ∗ endKey ↦*{de} eb ∗
-      kvsOutRd st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) ∗
-      □ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗ batchLocked γ P b st' -∗
+      kvsOutRd γ.db st.tx keys vals (cursorRange (bktEnts (bktOf st.S bi.name)) kb eb limit) ∗
+      □ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB γ.db st.tx s v -∗ batchLocked γ P b st' -∗
           ⌜st'.tx = st.tx⌝ -∗
           ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st')) }}
 

@@ -26,7 +26,9 @@ public import GooseLang.Ext.Fs.TreeSpecs
 public import GooseLang.Ext.Fs.TreeSpecsOpen
 public import Proof.go_etcd_io.bbolt.PkgInit
 public import Spec.go_etcd_io.bbolt.Data
+public import Perennial.Ghost.DGhostVar
 import Proof.go_etcd_io.bbolt.Inv.FileHolds
+import Proof.go_etcd_io.bbolt.Inv.TxSize
 
 @[expose] public section
 
@@ -94,6 +96,18 @@ points-to). `StrictMode = true` alone would change `Commit` (it runs `tx.Check()
 read transactions, a panic on any report). etcd writes none of them. -/
 @[no_expose] def isBolt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) : IProp GF :=
   isBoltDef (bnsOf γ.gs) γ.ns db
+
+/-- **The database `γ`'s file is the inode `i`** (persistent; session bbolt-inv): the file `Open`
+opened (`Open.spec` gives it), which a closer owning the data gets back
+(`DB.Close.spec`). -/
+@[no_expose] def boltIno [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) (i : Ino) : IProp GF :=
+  iprop(∃ t0 : Nat, t0At (GF := GF) (bnsOf γ.gs) t0 i)
+
+/-- **The database `γ` is closed only by the holder of this token** (exclusive, timeless; session
+S3f): `Open` gives it, `DB.Close` (and its variants) consumes it. So a holder knows the database open
+(no other thread can close it), which `DB.Close.spec` needs to give the file back. -/
+@[no_expose] def boltCloser [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : IProp GF :=
+  ghostVar (bnsOf γ.gs).clo 1 ()
 
 /-- **The committed data of `γ` is `D`**, at fraction `q`: the client's view, which the
 atomic updates of `Begin(false)` and `Commit` act on (fractional: a read needs some fraction, a
@@ -243,16 +257,41 @@ commit (`recursivelyCheckBucket`, which panics on any report) finds nothing. -/
 @[no_expose] def fileHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
   fileHoldsDef i D
 
-/-- **What `Open(path)` needs of the file system**, in the directory tree `(R, V)`: `path` names a
-file that holds a database with the data `D` (`fileHolds`), or nothing, in a directory of the
-tree, and then `D = ∅` (`Open` creates the file there: bbolt always passes `O_CREATE`). In the
-second case the roots are well formed (`RootsOk R`, which the tree does not export): after the
-create, `path` names the new file (`lookupH_create`, `Proof/os/OpenFile.lean`). -/
-def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : Hist) (path : GoString)
-    (D : Data) : IProp GF :=
-  iprop((∃ i, ⌜lookupH R V path = some (.file i)⌝ ∗ fileHolds i D) ∨
-    ⌜RootsOk R ∧ ∃ d b j, path = child d b ∧ NameOk b ∧ lookupH R V d = some (.dir j) ∧
-      lookupH R V path = none ∧ D = ∅⌝)
+/-- bbolt's largest mapping, `maxMapSize` (`0xFFFFFFFFFFFF` on amd64, `internal/common/types.go`):
+`mmapSize` refuses a larger one ("mmap too large"). -/
+@[word_unfold] def boltMaxMapSize : Nat := 0xFFFFFFFFFFFF
+
+/-- **The file of inode `i` holds a database with the data `D`, and is mappable** (session S3f): what
+`fileHolds` says, with the file's size at most `boltMaxMapSize`, so that `Open`'s `mmap` of it does
+not fail with "mmap too large" (`Open.spec` takes it, through `nameHolds`). `DB.Close.spec` gives it
+back (session S3g): in the model every mapping fits the address space (`maxAddr = 2 ^ 47`), so
+`DB.grow` never truncates past `2 ^ 47 + 2 ^ 12 + AllocSize`, below `maxMapSize` (on real hardware it
+can, `nonissues/bbolt-grow-past-max-map-size.md`, which needs about 256 TiB of pages). A fresh file
+is (`fileHoldsM_new`), and so is an image no longer than `boltMaxMapSize`
+(`fileHoldsM_of_image`; `Tx.WriteTo` writes the pages below the high-water mark, inside the
+mapping). -/
+@[no_expose] def fileHoldsM [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (i : Ino) (D : Data) : IProp GF :=
+  fileHoldsMDef i D
+
+/-- **The bytes `bs` are a bbolt database file holding `D`** (S4a of
+`notes/bbolt-integration-plan.md`, D-I6; pure): what `fileHolds` asks of a file's page-cache bytes,
+with the file's size the length of `bs`: whole pages below `2 ^ 62` bytes (session bbolt-inv: whole
+pages, as every file bbolt writes), and either empty (`D = ∅`) or a
+well-formed bbolt file whose committed tree holds `D` (every clause of `fileHolds`' docstring:
+metas, page extents, the synced freelist page, the high-water mark inside the bytes, the txid's
+bounds). What `Tx.WriteTo` writes (its two meta pages and its data pages; many byte strings encode
+one `D`, by their page layout and free pages), and what a file must hold for `Open` to read `D`
+(`fileHolds_of_image`). Sealed: a client relates it only through that law. -/
+@[no_expose] def boltImage (bs : List w8) (D : Data) : Prop :=
+  (bs.length < 2 ^ 62 ∧ bs.length % 4096 = 0) ∧ fileOK bs bs.length D
+
+/-- **The bytes `bs`' txid has been reached** (persistent; session bbolt-inv): the time receipt
+of the txid of the committed state `bs` is an image of (if any). A file's txid counts its commits,
+each a counted step of the program, so it is below the bound on the program's steps: what an
+`Open` of the file needs, besides `boltImage`, to bound its later txids (`fileHolds_of_image`).
+`Tx.WriteTo` gives it for the bytes it writes; a client carries it with them. -/
+@[no_expose] def boltImageRcpt [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (bs : List w8) : IProp GF :=
+  fileRcpt bs
 
 /-! ## Laws -/
 
@@ -264,6 +303,27 @@ def pathHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (R : Roots) (V : His
 -- is a fixed proposition, so a ghost name inside it does not agree between two copies; D-E).
 -- The clients carry `γ` instead: the backend already has it (`BNames`' `γ.db`, beside every
 -- `isDB db`), so its layer is `isDB db := isBolt db γ.db` (`notes/bbolt-spec-decisions.md`, D19).
+@[instance] theorem boltIno_persistent (γ : BoltName) (i : Ino) :
+    Persistent (boltIno (GF := GF) γ i) := by
+  unfold boltIno t0At; infer_instance
+@[instance] theorem boltCloser_timeless (γ : BoltName) :
+    Timeless (boltCloser (GF := GF) γ) := by
+  unfold boltCloser; infer_instance
+
+/-- The closer token is exclusive. -/
+theorem boltCloser_excl (γ : BoltName) :
+    boltCloser (GF := GF) γ ∗ boltCloser γ ⊢ False := by
+  unfold boltCloser
+  iintro ⟨H1, H2⟩
+  icombine H1 H2 gives %h
+  exfalso
+  have h1 := h.1
+  rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+  grind
+
+@[instance] theorem boltImageRcpt_persistent (bs : List w8) :
+    Persistent (boltImageRcpt (GF := GF) bs) := by
+  unfold boltImageRcpt; infer_instance
 @[instance] theorem boltState_timeless (γ : BoltName) (q : Qp) (D : Data) :
     Timeless (boltState (GF := GF) γ q D) := by
   unfold boltState; infer_instance
@@ -306,6 +366,19 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
     boltTx (GF := GF) tx γ q T ∗ boltState γ q' D ⊢ ⌜T.rw = true → T.base = D⌝ := by
   unfold boltTx boltState; exact boltTxDef_base _ _ _ _ _ _ _
 
+/-- **A read transaction's buckets hold fewer than `2 ^ 61` entries** (S1a of
+`notes/bbolt-integration-plan.md`, D-I3; the backend's `rtxSnap_size`, an axiom until then). Every
+entry of a bucket of the snapshot is an element of a leaf page of the database's memory map (or of
+the inline page in such an element): a page holds at most `2 ^ 16` (its header's `count` is a
+`uint16`), the leaves of a bucket are distinct pages (no page is shared), and every page lies
+within the map, of at most `maxMapSize < 2 ^ 48` bytes, so there are fewer than `2 ^ 36` of them:
+at most `2 ^ 52` entries. For a read transaction only: a writer's view holds its nodes' entries,
+which no bound of the invariant counts (the backend needs it only for its read transactions). -/
+theorem boltTx_size (tx : Loc) (γ : BoltName) (q : Qp) (D : Data) :
+    boltTx (GF := GF) tx γ q (TxView.ro D) ⊢
+      ⌜∀ (n : GoString) (m : BktData), D.lookup n = some m → m.size < 2 ^ 61⌝ := by
+  unfold boltTx; exact boltTxDef_size_ro _ _ _ _ _
+
 @[instance] theorem txDB_persistent (tx : Loc) (γ : BoltName) (db : Loc) :
     Persistent (txDB (GF := GF) tx γ db) := by
   unfold txDB; infer_instance
@@ -314,6 +387,17 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
 @[instance] theorem boltBkt_persistent (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
     (g : Nat) : Persistent (boltBkt (GF := GF) tx γ b n g) := by
   unfold boltBkt; infer_instance
+private instance ite_timeless_api (c : Prop) [Decidable c] (P Q : IProp GF) [Timeless P]
+    [Timeless Q] : Timeless (if c then P else Q) := by
+  split <;> infer_instance
+/-- A bucket handle is timeless (ghost state and persistent points-tos; stage S1, 2026-11-17: the
+backend keeps its read transaction's handles in an invariant, `backend.cmFacts`). -/
+@[instance] theorem boltBkt_timeless (tx : Loc) (γ : BoltName) (b : Loc) (n : GoString)
+    (g : Nat) : Timeless (boltBkt (GF := GF) tx γ b n g) := by
+  unfold boltBkt boltBktDef reg handleFrag viewOf rBkt locOwn
+  refine @exists_timeless _ _ _ _ (fun r => ?_)
+  rcases r with ⟨db, n', rw, src⟩
+  cases rw <;> simp only [Bool.false_eq_true, ↓reduceIte] <;> infer_instance
 @[instance] theorem txBytes_persistent (tx : Loc) (γ : BoltName) (s : GoSlice) (b : GoString) :
     Persistent (txBytes (GF := GF) tx γ s b) := by
   unfold txBytes; infer_instance
@@ -323,6 +407,15 @@ theorem boltTx_base (tx : Loc) (γ : BoltName) (q q' : Qp) (T : TxView) (D : Dat
 @[instance] theorem fileHolds_timeless (i : Ino) (D : Data) :
     Timeless (fileHolds (GF := GF) i D) := by
   unfold fileHolds; infer_instance
+
+@[instance] theorem fileHoldsM_timeless (i : Ino) (D : Data) :
+    Timeless (fileHoldsM (GF := GF) i D) := by
+  unfold fileHoldsM; infer_instance
+
+/-- A mappable file holds its data (session S3f). -/
+theorem fileHoldsM_fileHolds (i : Ino) (D : Data) :
+    fileHoldsM (GF := GF) i D ⊢ fileHolds i D := by
+  unfold fileHoldsM fileHolds; exact fileHoldsMDef_holds _ _
 
 /-- A slice the transaction returned is read while the transaction is live (any fraction). -/
 theorem txBytes_acc (tx : Loc) (γ : BoltName) (q : Qp) (T : TxView) (s : GoSlice) (b : GoString) :
@@ -386,6 +479,59 @@ theorem fileHolds_new (i : Ino) :
     osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHolds i ∅ := by
   unfold fileHolds; exact fileHoldsDef_new _
 
+/-- **A file just created holds the empty database, and is mappable** (session S3f). -/
+theorem fileHoldsM_new (i : Ino) :
+    osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ fileHoldsM i ∅ := by
+  unfold fileHoldsM fileHoldsMDef
+  iintro H
+  iexists newMeta, []
+  iframe H
+  isplitl
+  · unfold osBytes; iapply (bytesG_nil _ _ _ _).2; iempintro
+  isplitr
+  · ipureintro
+    exact ⟨rfl, rfl, by decide, Or.inl ⟨rfl, rfl⟩⟩
+  isplitr
+  · ipureintro; rw [show newMeta.size = 0 from rfl]; omega
+  unfold fileRcpt
+  ileft; ipureintro
+  exact fun C h => fileImage_nil_not C (by simpa using h)
+
+/-- **A file holding a database image holds its data** (S4a, D-I6: the receiver's half of the
+snapshot's round trip): the whole `OsMeta` of a file with no mapping, of size `xs.length`, and all
+of its page-cache bytes `xs` (any crash candidates), whose values are an image of `D`, with the
+time receipt of their txid (`boltImageRcpt`, session bbolt-inv). -/
+theorem fileHolds_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
+    (hmaps : m.maps = ∅) (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D) :
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes i 0 (DFrac.own 1) xs ∗
+      boltImageRcpt (xs.map Prod.fst) ⊢ fileHolds i D := by
+  unfold fileHolds fileHoldsDef boltImageRcpt
+  unfold boltImage at himg
+  rw [List.length_map] at himg
+  iintro ⟨Hm, Hb, #Hr⟩
+  iexists m, xs
+  iframe Hm Hb Hr
+  ipureintro
+  exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
+
+/-- **A mappable image holds its data, mappable** (session S3f; `fileHolds_of_image` with the image no
+longer than `boltMaxMapSize`). -/
+theorem fileHoldsM_of_image (i : Ino) (m : OsMeta) (xs : List ByteG) (D : Data)
+    (hmaps : m.maps = ∅) (hsize : m.size = xs.length) (himg : boltImage (xs.map Prod.fst) D)
+    (hlen : xs.length ≤ boltMaxMapSize) :
+    osMeta (GF := GF) i (DFrac.own 1) m ∗ osBytes i 0 (DFrac.own 1) xs ∗
+      boltImageRcpt (xs.map Prod.fst) ⊢ fileHoldsM i D := by
+  unfold fileHoldsM fileHoldsMDef boltImageRcpt
+  unfold boltImage at himg
+  rw [List.length_map] at himg
+  iintro ⟨Hm, Hb, #Hr⟩
+  iexists m, xs
+  iframe Hm Hb Hr
+  isplitr
+  · ipureintro
+    exact ⟨hmaps, hsize.symm, hsize ▸ himg.1, hsize ▸ himg.2⟩
+  · ipureintro; rw [hsize]; exact hlen
+
 end vocab
 
 section stat
@@ -401,15 +547,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- What pays for `statlock`'s reader slot in `DB.Stats`: the caller's `threadTok` (`none`), or
-the whole of a read transaction (`some (tx, D)`), whose reader slot covers `statlock` too: for a
-caller whose token a read transaction holds, as the backend's `begin` right after
-`Begin(false)` (`notes/bbolt-spec-decisions.md`, D2). Sound because the implementation's reader pool lends a
-*pair* per token, an `mmaplock` reader token and a `statlock` one, so a read transaction's slot
-covers its `Stats`; it needs all of the transaction, since two holders of fractions calling
-`Stats` at once would need two `statlock` tokens. -/
-def statSlot [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : Option (Loc × Data) → IProp GF
+the whole of a transaction (`some (tx, T)`, S1a of `notes/bbolt-integration-plan.md`: a read or a
+write transaction), whose slot covers `statlock` too: for a caller whose token a transaction
+holds, as the backend's `begin` right after `Begin` (`notes/bbolt-spec-decisions.md`, D2). Sound
+because the implementation's reader pool lends a *pair* per token, an `mmaplock` reader token and a
+`statlock` one, so a read transaction's slot covers its `Stats`; a write transaction holds
+`rwlock`, whose resource keeps the spare pair (for `Commit`'s `freepages`, which borrows it only
+inside `Commit`, when no caller holds the transaction), whose `statlock` token covers its `Stats`.
+It needs all of the transaction, since two holders of fractions calling `Stats` at once would need
+two `statlock` tokens. -/
+def statSlot [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (γ : BoltName) : Option (Loc × TxView) → IProp GF
   | none => threadTok
-  | some (tx, D) => boltTx tx γ 1 (TxView.ro D)
+  | some (tx, T) => boltTx tx γ 1 T
 
 end stat
 

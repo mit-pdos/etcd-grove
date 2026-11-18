@@ -30,11 +30,30 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumpt
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
+/-- (S1b, 2026-11-17) A number below `10 ^ k` has at most `k` decimal digits. -/
+private theorem decDigits_length_le : ∀ (k n : Nat), n < 10 ^ k → (decDigits n).length ≤ k
+  | 0, n, h => by
+    have : n = 0 := by simpa using h
+    subst this; rw [decDigits]; simp
+  | k + 1, n, h => by
+    rw [decDigits]
+    split
+    · simp
+    · simp only [List.length_append, List.length_singleton]
+      have := decDigits_length_le k (n / 10) (by rw [Nat.pow_succ] at h; omega)
+      omega
+
+private theorem itoaM_length_le (n : Nat) (h : n < 2 ^ 64) : (itoaM n).length ≤ 20 := by
+  unfold itoaM
+  split
+  · decide
+  · exact decDigits_length_le 20 n (by omega)
+
 theorem runner.newVal.wp_proof
     (wp_choose : choose.spec (GF := GF) (hG := hG))
     (wp_itoa : itoa.spec (GF := GF) (hG := hG)) :
     runner.newVal.spec (GF := GF) (hG := hG) := by
-  intro x cfg n h0 h1
+  intro x cfg n h0 h1 hm0 hm1
   have hn1 : 0 ≤ sint.Z (n + W64 1) := by word
   wp_start as ⟨#Hcfg, Hv⟩
   icases typedPointsto_split _ _ _ $$ Hcfg with #Hcfgf
@@ -52,7 +71,7 @@ theorem runner.newVal.wp_proof
       "i" ∷ i_ptr ↦ j ∗ "ui" ∷ ui ↦ u ∗ "Hsl" ∷ sl ↦* bs ∗ "pad" ∷ pad_ptr ↦ sl ∗
       "x" ∷ x_ptr ↦ x ∗ "Hv" ∷ rF go!"vals" x ↦ (n + W64 1) ∗
       "res" ∷ «$res0_ptr» ↦ (zero_val GoString) ∗
-      "Hpost" ∷ (∀ v : GoString, rF go!"vals" x ↦ (n + W64 1) -∗ Φ #v) ∗
+      "Hpost" ∷ (∀ v : GoString, rF go!"vals" x ↦ (n + W64 1) ∗ ⌜v.length ≤ etcdKeyMax⌝ -∗ Φ #v) ∗
       "%Hj" ∷ ⌜bs.length = sint.nat sl.len ∧ 0 ≤ sint.Z j⌝ : IProp GF) $$ [-Hcap]
   · iexists W64 0, _, _
     iframe
@@ -92,6 +111,19 @@ theorem runner.newVal.wp_proof
     (try wp_auto)
     iapply Hpost
     iframe
+    ipureintro
+    have h63 : sint.Z (n + W64 1) < 2 ^ 63 := by word
+    have hil := itoaM_length_le (sint.nat (n + W64 1)) (by
+      show (sint.Z (n + W64 1)).toNat < 2 ^ 64; omega)
+    have hc1 : sint.Z c < sint.Z cfg.MaxVal' + 1 := by
+      have := Hc.2.1 (by word); word
+    have hc0 : 0 ≤ sint.Z c := Hc.1
+    have hbs : bs.length = sint.nat c := by
+      rw [Hj.1]; simp only [List.length_replicate] at Hsn; rw [← Hsn.1]
+    simp only [List.length_append]
+    have hv1 : (go!"v" : GoString).length = 1 := by decide
+    have hcn : sint.nat c ≤ 2 ^ 20 := by show (sint.Z c).toNat ≤ 2 ^ 20; omega
+    unfold etcdKeyMax; omega
 
 end proof
 

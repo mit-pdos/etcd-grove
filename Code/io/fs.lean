@@ -290,6 +290,85 @@ noncomputable def errClosed.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "$res0") (Var "$r0")))))))
   (App (Val (GoInstruction (GoLoad go.error))) (Var "$res0")))))
 
+/-- go: fs.go:215:19 -/
+noncomputable def FileMode.String.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc FileMode.ty))) (Var "m"))
+  (let str := #(go!"dalTLDpSugct?");
+  (Let "buf" (App (Val (GoInstruction (GoAlloc (go.GoType.ArrayType 32 go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ArrayType 32 go.byte)))) (Val #())))
+  (Let "$r0" (Val #(W64 0))
+  (Let "w" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (let rwx := #(go!"rwxrwxrwx");
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.SliceType go.byte) go.string))) (Let "$s" (Var "buf")
+  (App (Val (GoInstruction (Slice (go.GoType.ArrayType 32 go.byte)))) (Pair (Pair (Var "$s") (Val #(W64 0))) (App (Val (GoInstruction (GoLoad go.int))) (Var "w"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$range" (Val rwx)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.rune))) (App (Val (GoInstruction (GoZeroVal go.rune))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val string.forRange) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "w") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "w")) (Val #(W64 1)))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals FileMode.ty))) (Pair (App (Val (GoInstruction (GoOp GoAnd FileMode.ty))) (Pair (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "m")) (App (Val (GoInstruction (GoOp GoShiftl FileMode.ty))) (Pair (Val #(W32 1)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (Convert go.int go.uint))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Val #(W64 8)) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))) (Val #(W32 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.rune go.byte))) (App (Val (GoInstruction (GoLoad go.rune))) (Var "c")))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 32 go.byte)))) (Pair (Var "buf") (App (Val (GoInstruction (GoLoad go.int))) (Var "w")))) (Var "$r0")))))
+  (Let "$r0" (Val #(W8 45))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 32 go.byte)))) (Pair (Var "buf") (App (Val (GoInstruction (GoLoad go.int))) (Var "w")))) (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.rune))) (Pair (Var "c") (Var "$value")))))))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "w")) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W8 45))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "w") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "w")) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 32 go.byte)))) (Pair (Var "buf") (App (Val (GoInstruction (GoLoad go.int))) (Var "w")))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (Let "$range" (Val str)
+  (Let "c" (App (Val (GoInstruction (GoAlloc go.rune))) (App (Val (GoInstruction (GoZeroVal go.rune))) (Val #())))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val string.forRange) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals FileMode.ty))) (Pair (App (Val (GoInstruction (GoOp GoAnd FileMode.ty))) (Pair (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "m")) (App (Val (GoInstruction (GoOp GoShiftl FileMode.ty))) (Pair (Val #(W32 1)) (App (Val (GoInstruction (Convert go.uint go.uint64))) (App (Val (GoInstruction (Convert go.int go.uint))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (Val #(W64 31)) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))))) (Val #(W32 0))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.rune go.byte))) (App (Val (GoInstruction (GoLoad go.rune))) (Var "c")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "w") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "w")) (Val #(W64 1)))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 32 go.byte)))) (Pair (Var "buf") (App (Val (GoInstruction (GoLoad go.int))) (Var "w")))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$key")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.rune))) (Pair (Var "c") (Var "$value"))))))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "w") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0"))))))
+
 /-- IsDir reports whether m describes a directory.
     That is, it tests for the [ModeDir] bit being set in m.
 
@@ -496,18 +575,23 @@ class FileMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType FileMode.ty) [(go!"IsDir", (some (go.signature.Signature [] false [go.bool]))), (go!"IsRegular", (some (go.signature.Signature [] false [go.bool]))), (go!"Perm", (some (go.signature.Signature [] false [FileMode.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [FileMode.ty])))]
   IsDir_unfold : MethodUnfold FileMode.ty go!"IsDir" FileMode.IsDir.impl
   Perm_unfold : MethodUnfold FileMode.ty go!"Perm" FileMode.Perm.impl
+  String_unfold : MethodUnfold FileMode.ty go!"String" FileMode.String.impl
   ptr_IsDir_unfold : MethodUnfold (go.GoType.PointerType FileMode.ty) go!"IsDir" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve FileMode.ty go!"IsDir"))) (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$r"))))
   ptr_Perm_unfold : MethodUnfold (go.GoType.PointerType FileMode.ty) go!"Perm" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve FileMode.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$r"))))
+  ptr_String_unfold : MethodUnfold (go.GoType.PointerType FileMode.ty) go!"String" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve FileMode.ty go!"String"))) (App (Val (GoInstruction (GoLoad FileMode.ty))) (Var "$r"))))
 
 attribute [instance] FileMode.TypeAssumptions.underlying
   FileMode.TypeAssumptions.method_set
   FileMode.TypeAssumptions.ptr_method_set
   FileMode.TypeAssumptions.IsDir_unfold
   FileMode.TypeAssumptions.Perm_unfold
+  FileMode.TypeAssumptions.String_unfold
   FileMode.TypeAssumptions.ptr_IsDir_unfold
   FileMode.TypeAssumptions.ptr_Perm_unfold
+  FileMode.TypeAssumptions.ptr_String_unfold
 
 structure PathError [GooseExts] where
   mk ::

@@ -11,32 +11,33 @@ theorem backend.batchTxBuffered.UnsafePut.wp_proof [go_etcd_io.bbolt.Assumptions
     P.has bi →
       0 < List.length kb →
         List.length kb ≤ backend.maxKeySize →
-          sint.Z st.pend + 1 < 2 ^ 58 →
-            (P.SB bi.name = true →
-                (∀ (kc vc : GoString), backend.bktOf st.C bi.name !! kc = some vc → backend.strLt kc kb) ∧
-                  st.dl !! (bi.name, kb) = none) →
-              (backend.fkKey bi.name kb → P.FV vb) →
-                ⊢
-                  ∀ Φ,
-                    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
-                        backend.isBackend γ P W Pk b ∗
-                          typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
-                            backend.batchLocked γ P b st ∗
-                              backend.isBucket bk bi ∗
-                                ownSlice key kb DFrac.discard ∗
-                                  ownSlice value vb DFrac.discard ∗
-                                    backend.hkPut γ P bi.name kb st.S ∗
-                                      backend.rbPut γ P bi.name st.S ∗ backend.fkPut γ bi.name kb -∗
-                      ▷
-                          (backend.batchLocked γ P b (st.put bi kb vb false) ∗
-                              backend.hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
-                                backend.rbPut γ P bi.name (st.put bi kb vb false).S ∗ backend.fkPut γ bi.name kb -∗
-                            Φ (intoVal ())) -∗
-                        WP
-                          ((((intoVal
-                                  (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
-                                    go!"UnsafePut" (intoVal t)))
-                                (intoVal bk))
-                              (intoVal key))
-                            (intoVal value))
-                          {{ Φ }}
+          List.length kb + List.length vb ≤ bbolt.bboltEntryMax →
+            sint.Z st.pend + 1 < 2 ^ 58 →
+              (P.SB bi.name = true →
+                  (∀ (kc vc : GoString), backend.bktOf st.C bi.name !! kc = some vc → backend.strLt kc kb) ∧
+                    st.dl !! (bi.name, kb) = none) →
+                (backend.fkKey bi.name kb → P.FV vb) →
+                  ⊢
+                    ∀ Φ,
+                      isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+                          backend.isBackend γ P W Pk b ∗
+                            typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
+                              backend.batchLocked γ P b st ∗
+                                backend.isBucket bk bi ∗
+                                  ownSlice key kb DFrac.discard ∗
+                                    ownSlice value vb DFrac.discard ∗
+                                      backend.hkPut γ P bi.name kb st.S ∗
+                                        backend.rbPut γ P bi.name st.S ∗ backend.fkPut γ bi.name kb -∗
+                        ▷
+                            (backend.batchLocked γ P b (st.put bi kb vb false) ∗
+                                backend.hkPut γ P bi.name kb (st.put bi kb vb false).S ∗
+                                  backend.rbPut γ P bi.name (st.put bi kb vb false).S ∗ backend.fkPut γ bi.name kb -∗
+                              Φ (intoVal ())) -∗
+                          WP
+                            ((((intoVal
+                                    (methods go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty.PointerType
+                                      go!"UnsafePut" (intoVal t)))
+                                  (intoVal bk))
+                                (intoVal key))
+                              (intoVal value))
+                            {{ Φ }}

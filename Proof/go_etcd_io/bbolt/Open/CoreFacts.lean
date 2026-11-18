@@ -24,6 +24,8 @@ open Spill Read
 
 section facts
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- A page's header is in its first 16 bytes. -/
 theorem pageOverflow_take (pg : List w8) (n : Nat) (h : 16 ≤ n) :
@@ -157,6 +159,66 @@ theorem storeOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat)
   · intro _ s hs; rw [pendSlots_empty'] at hs; cases hs
   · omega
 
+/-- **The store's facts of the synced freelist page at `Open`** (session S4, `flxOK`), and its
+slots the writer side's `W` slots inside the file (`Open/Core.open_core_fl`'s `hX`): the opened
+file's page is valid (`flFileOK`), no page is pending or allocated, the loaded free ids are the
+page's (`hfree`), no reader is registered. -/
+theorem open_flx (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (fl : FLPg)
+    (hfl : flFileOK xs C) (hhwm : C.hwm * 4096 ≤ xs.length) (hxs : xs.length = m.size)
+    (hsz : xs.length < 2 ^ 63) (hL : m.size ≤ L) (hpend : fl.pending = ∅) (hallocs : fl.allocs = ∅)
+    (hfree : ∀ f, C.flpg = some f → ∀ x ∈ fl.free, x ∈ flIds (filePage xs f)) :
+    flxOK { openSigma b L C (fun s => bytesAt xs (4096 * s) 4096) with fl := fl } ∧
+    (∀ s ∈ flxS C fl (fun s => bytesAt xs (4096 * s) 4096),
+      s ∈ wSlots (L / 4096) C FLPg.empty ∧ 4096 * (s + 1) ≤ m.size) := by
+  have hps : pendSlots fl = [] := by
+    unfold pendSlots FLPg.pendingIds; rw [hpend]; simp
+  have hext : ∀ f, extentBytes (fun s => bytesAt xs (4096 * s) 4096) f = filePage xs f := by
+    intro f
+    unfold extentBytes filePage
+    exact (bytesAt_slots xs _ f).symm
+  -- the page's facts
+  have hpg : ∀ f, C.flpg = some f → flPgOK C f (filePage xs f) := fun f h => hfl f h
+  have hslot : ∀ f, C.flpg = some f → ∀ s ∈ flExt (fun s => bytesAt xs (4096 * s) 4096) f,
+      f ≤ s ∧ s < f + (1 + pageOverflow (filePage xs f)) := by
+    intro f _ s hs
+    unfold flExt at hs
+    rw [List.mem_range'_1] at hs
+    rw [filePage_overflow]; omega
+  refine ⟨⟨fun f hf => ?_, ?_⟩, fun s hs => ?_⟩
+  · simp only [openSigma]
+    rw [hext]
+    refine ⟨hpg f hf, fun s hs => ?_, ?_⟩
+    · obtain ⟨h1, h2⟩ := hslot f hf s hs
+      obtain ⟨-, hh, -, -, -, -, hx, -, -⟩ := hpg f hf
+      refine ⟨?_, ?_, ?_, ?_, ?_⟩
+      · unfold bytesAt; simp only [List.length_take, List.length_drop]; omega
+      · intro hx'
+        have hin := hfree f hf _ hx'
+        have := (hx _ hin).1
+        have hs64 : (W64 (s : Int)).toNat = s := by
+          simp only [W64, BitVec.toNat_ofInt]; omega
+        rw [hs64] at this
+        exact this ⟨h1, h2⟩
+      · rw [hps]; simp
+      · intro h; rw [hps] at h; cases h
+      · intro t pd i h; rw [hpend] at h; cases h
+    · intro a h; rw [hallocs] at h; cases h
+  · intro k r h; simp [openSigma] at h
+  · unfold flxS at hs
+    rcases hf : C.flpg with _ | f
+    · rw [hf] at hs; cases hs
+    rw [hf] at hs
+    simp only [hps, List.not_mem_nil, ↓reduceIte] at hs
+    obtain ⟨h1, h2⟩ := hslot f hf s hs
+    obtain ⟨h2f, hh, -, -, -, -, -, hcov, -⟩ := hpg f hf
+    refine ⟨(mem_wSlots _ _ _ s).2 ⟨by omega, ?_, ?_⟩, by omega⟩
+    · omega
+    · rw [mem_slotsOf, pendSlots_empty']
+      simp only [List.not_mem_nil, or_false]
+      unfold treeSlots
+      rw [mem_pagesSlots_iff]
+      exact hcov s h1 h2
+
 /-- **The writer side's invariant once the freelist is loaded** (`Open/Core.open_writer`'s
 `wdbOK`): `openW` with the loaded freelist `fl` (no pending page; free ids below the mark, not
 tree slots; the synced page reloadable) and its interface `fli`, the mapping `(b, L)` at least the
@@ -164,7 +226,7 @@ file `xs` (`m`'s bytes), registered in `m`. -/
 theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (f : Loc)
     (fd : w64) (fl : FLPg) (fli : GoInterface)
     (htree : treeOK C) (hhwm : C.hwm * 4096 ≤ xs.length) (hxs : xs.length = m.size)
-    (hL : m.size ≤ L) (hsz : m.size < 2 ^ 63) (htx : C.txid < 2 ^ 62)
+    (hL : m.size ≤ L) (hsz : wdbSz m (some (b, L))) (htx : C.txid < 2 ^ 62)
     (hmaps : m.maps = GMap.singleton b L)
     (hpend : fl.pending = ∅)
     (hfree : ∀ x ∈ fl.free, x.toNat < C.hwm ∧ x.toNat ∉ treeSlots C)
@@ -180,10 +242,11 @@ theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta
     rw [mem_pagesSlots_iff] at hs
     obtain ⟨id, pg, hp, h1, h2⟩ := hs
     have := htree.2.2.2.1 id pg hp; omega
+  have hsz62 := hsz.lt
   unfold wdbOK
   simp only [openW, mapLen]
   refine ⟨?_, ?_, by omega, ?_, fun x hx => (hfree x hx).2, hcur, by omega, by omega, ?_, ?_, ?_,
-    fun x hx => (hfree x hx).1, by omega, ?_, ?_, ?_, ?_⟩
+    fun x hx => (hfree x hx).1, hsz, ?_, ?_, ?_, ?_⟩
   · intro b' l h; cases h; exact hmaps
   · intro h; cases h
   · intro s

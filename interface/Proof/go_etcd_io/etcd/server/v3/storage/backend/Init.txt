@@ -50,5 +50,6 @@ theorem Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_lb [e
 
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init : ⊢ ∀ Φ, True -∗ ▷
     ((∃ p, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions) p
-    (DFrac.own 1) ∗ (⌜p = null⌝ ∨ ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)) -∗ Φ (intoVal
-    ())) -∗ WP (go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions.init (intoVal ())) {{ Φ }}
+    (DFrac.own 1) ∗ ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧
+    o.timeout = W64 0⌝) -∗ Φ (intoVal ())) -∗ WP
+    (go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions.init (intoVal ())) {{ Φ }}

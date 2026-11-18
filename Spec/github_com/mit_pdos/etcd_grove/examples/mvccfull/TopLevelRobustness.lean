@@ -11,11 +11,8 @@ states it (to audit); the proof is in
 -/
 module
 
-public import Code.go_etcd_io.etcd.server.v3.etcdserver
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Results
 public import Robustness.Statement
-public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.FilePaths
-public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.MainConfig
 
 @[expose] public section
 
@@ -35,7 +32,8 @@ open Iris Iris.BI
 
 section adequacy
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 variable [go_gctx : GoGlobalContext]
 
@@ -48,13 +46,12 @@ def mvccfull_robust.spec : Prop :=
     [package_sem : github_com.mit_pdos.etcd_grove.examples.mvccfull.Assumptions]
     [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
     [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] (Hdbo : backend.dbOpenOk)
-    (Hdbc : backend.dbCloseOk)
-    (HFs : dbFilesAbsent mvccfullProgram
-      (mvccfull.filePathsM (mvccfull.mainConfigM go!"mvccfull"
-        (zeroValDef : github_com.mit_pdos.etcd_grove.examples.mvccfull.Mix))))
-    (HEnv : verifyEnvOff mvccfullProgram) (σ : state) (g : GlobalState),
-    Robustness.Robust [] [(mvccfullProgram, σ)] g (2 ^ 28 - 1)
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions] (r : GoString) (HEnv : verifyEnvOff (mvccfullProgram r))
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (j0 : Fs.Ino)
+    (Hr : (r, j0) ∈ (extLocal Fs.fsExt σ.world).fs.roots)
+    (Habs : ∀ b ∈ mvccfull.mvccfullNames, (extLocal Fs.fsExt σ.world).fs.treeDur.entry j0 b = none),
+    Robustness.Robust [] [(mvccfullProgram r, σ)] g (2 ^ 28 - 1)
 
 end adequacy
 end EtcdGrove

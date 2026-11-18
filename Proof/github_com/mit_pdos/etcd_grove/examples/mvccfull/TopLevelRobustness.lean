@@ -9,7 +9,6 @@ from the example's closed theorem (`Results.lean`).
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.mvccfull.TopLevelRobustness
-public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccfull.Results
 
 @[expose] public section
 
@@ -29,18 +28,19 @@ open Iris Iris.BI
 
 section adequacy
 
-attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp trivialExts_hasExt
+attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 variable [go_gctx : GoGlobalContext]
 
 /-- `mvccfull_robust.spec`
 (`Spec/github_com/mit_pdos/etcd_grove/examples/mvccfull/TopLevelRobustness.lean`). -/
 theorem mvccfull_robust : mvccfull_robust.spec := by
-  intro lctx sem package_sem mvcc_sem srv_sem cache_sem Hdbo Hdbc HFs HEnv σ g
+  intro lctx sem package_sem mvcc_sem srv_sem cache_sem _ _ r HEnv σ g Hfs j0 Hr Habs
   exact
     Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
       (mvccfull_safe
-        Hdbo Hdbc HFs HEnv σ g hf.1 hf.2.1 hf.2.2 n κs t2 σ2 Hsteps (by omega)).2
+        r HEnv σ g hf.1 hf.2.1 Hfs j0 Hr Habs hf.2.2 n κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 end EtcdGrove

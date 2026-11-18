@@ -1285,6 +1285,15 @@ theorem ofdCtx_step [GooseExts] [GoGlobalContext] (hL : OsGS GF) {o : String} {v
     imod gAuth_insert hL _ _ fd () hfree.2.2.2 $$ Ha with ⟨Ha, -⟩
     imodintro; iframe Ha; ipureintro; exact hd'
 
+/-- `ofdCtx_step` for any step (`mmap`'s step to itself changes nothing). -/
+theorem ofdCtx_stepF [GooseExts] [GoGlobalContext] (hL : OsGS GF) {o : String} {v : val}
+    {h : GMap Loc (NonAtomic val)} {st st' : OsState} {e' : Expr} {h' : GMap Loc (NonAtomic val)}
+    (hs : FsStep o v h st () e' h' st' ()) (ho : o ≠ "OutClose") :
+    ofdCtx hL st ⊢ |==> ofdCtx hL st' := by
+  rcases fsStep_cases hs with hs | rfl
+  · exact ofdCtx_step hL hs ho
+  · iintro H; imodintro; iexact H
+
 /-- At most one description holds a lock of a kind on a file when one holds an exclusive lock of
 that kind on it (what the lock rule keeps: `LockStep`). -/
 def LockWf (st : OsState) : Prop :=

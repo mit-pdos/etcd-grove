@@ -3,9 +3,12 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 theorem backend.batchTx.UnsafeDelete.wp_proof [go_etcd_io.bbolt.Assumptions]
-    [go_uber_org.zap.Assumptions] (hBucket : bbolt.Tx.Bucket_kvw.spec) (hStringer :
-    zap.Stringer.spec) (hStack : zap.Stack.spec) (hFatal : zap.Logger.Fatal.spec) (hDelete :
-    bbolt.Bucket.Delete_kv.spec) (hError : zap.Error.spec) : backend.batchTx.UnsafeDelete.spec
+    [go_uber_org.zap.Assumptions] (hBucket : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Tx.Bucket.spec)
+    (hStringer : zap.Stringer.spec) (hStack : zap.Stack.spec) (hFatal : zap.Logger.Fatal.spec)
+    (hDelete : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt]
+    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.Bucket.Delete.spec) (hError :
+    zap.Error.spec) : backend.batchTx.UnsafeDelete.spec
   -- `Perennial.EtcdGrove.backend.batchTx.UnsafeDelete.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b t : Loc) (st : backend.BSess) (bk : GoInterface)
     (bi : backend.BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac) (own : Bool),
@@ -15,10 +18,11 @@ theorem backend.batchTx.UnsafeDelete.wp_proof [go_etcd_io.bbolt.Assumptions]
             backend.isBackend γ P W Pk b ∗
               typedPointsto (backend.bF go!"batchTx" b) t DFrac.discard ∗
                 backend.btW γ t st ∗
-                  backend.isBucket bk bi ∗ if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) -∗
+                  backend.isBucket bk bi ∗
+                    if own = true then ownSlice key kb dk else backend.txBytes st.tx γ.db key kb) -∗
           ▷
               ((backend.btW γ t (st.del bi kb) ∗
-                  if own = true then ownSlice key kb dk else backend.txBytes st.tx key kb) -∗
+                  if own = true then ownSlice key kb dk else backend.txBytes st.tx γ.db key kb) -∗
                 Φ (intoVal ())) -∗
             WP
               (((intoVal

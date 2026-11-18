@@ -4,7 +4,7 @@
 
 def bbolt.DB.Stats.spec : Prop :=
   ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] (db : Loc) (γ : bbolt.BoltName)
-    (o : Option (Loc × bbolt.Data)),
+    (o : Option (Loc × bbolt.TxView)),
     ⊢
       ∀ Φ,
         bbolt.isBolt db γ ∗ bbolt.statSlot γ o -∗

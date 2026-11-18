@@ -9,6 +9,7 @@ public import Perennial.Proof.io.Base
 public import Perennial.Proof.sync.Base
 public import Perennial.Proof.sync.atomic.Base
 public import Perennial.Proof.time.Base
+public import SpecPlan.Spec.PkgInit.github_com.dustin.go_humanize
 public import SpecPlan.Spec.PkgInit.go_uber_org.zap
 public import SpecPlan.Spec.PkgInit.go_etcd_io.bbolt
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.verify
