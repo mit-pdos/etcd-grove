@@ -66,6 +66,12 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__Unsa
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
+# (the authstore-noax stage, 2026-11-18) schema's auth batch side and the disabled auth store's
+# `Recover`: the batch's `Commit`, `UnsafeForEach` on an empty bucket, a read begun with an idle part
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock_idle
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
