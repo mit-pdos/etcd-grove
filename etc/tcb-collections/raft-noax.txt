@@ -5,4 +5,7 @@
 # the sorry users its closure reaches (the eight raftpb noax functions' proofs); rerun `--check --update`
 # after a full build. Stage 3a (2026-11-18): the clones' and EntrySize's sorries gone (by hand, as above).
 # Stage 3b (2026-11-18, notes/raft-noax-codec.md): the conf change codecs proved, ccDecodeV2_nil a theorem.
+# Checked 2026-11-18 by `etc/tcb-report.py --collection ... --check` after a full build: 0 axioms, 0 sorries
+# (the axioms Goose emits for untranslatable declarations are not counted: `#print axioms` lists 331 of them,
+# each declared in a generated `Code` module).
 roots ^RaftNoAx/Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvdurablenoax/(Link|Results)\.lean$
