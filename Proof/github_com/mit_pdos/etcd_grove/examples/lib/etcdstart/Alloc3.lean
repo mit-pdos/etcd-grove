@@ -263,6 +263,7 @@ private theorem alloc3Http (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id�
     with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %HnoSnap, #Hsrl, #Hkv, Hetcd, #Hcl, #H0, #Hpm, #Hrc, Hms,
       Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hkr, hklg, hgp, hgps⟩ := Hγ
+  have HnoSnap : ¬ clusterNoSnap γ.cl := fun h => Bool.false_ne_true (HnoSnap.1 h)
   -- (lease-mono3 step 2) the cluster's names meet the grant prefixes' condition, each member's
   -- prefix one of them
   have hpo : kvPfxOk γk :=

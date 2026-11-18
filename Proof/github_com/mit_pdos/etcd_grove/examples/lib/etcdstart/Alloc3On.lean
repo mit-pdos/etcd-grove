@@ -227,7 +227,7 @@ private theorem alloc3OnHttp (hne : mvcc.api.names_nonempty.law) (id₁ id₂ id
       (hperm.nodup_iff.2 (by simp [hn12, hn13, hn23]))
       (fun h => by rw [h] at hperm; exact absurd hperm.length_eq (by simp))
       (fun h => Hnz _ (hperm.subset h) rfl)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, -, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, -, -⟩ := Hγ
   have hklg : γk.lg = false := by rw [KVNames.lg_eq, hklm]; rfl

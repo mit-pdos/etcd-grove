@@ -33,16 +33,16 @@ theorem etcdstart.allocNOnM [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.ap
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h ∈ List.map (fun x =>
     x.snd.fst) ms) (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^
     61) (lm : lease.Mode) (hrun : lease.runCfg lm lm) (hnx : lm = lease.Mode.revocable →
-    lease.leasesNoExpiry) (hap : lm = lease.Mode.revocable → leaseIdsApart ids) : ⊢ bootMarshal ps
-    ctxs (LogEntry.toEntries boot 0) -∗ ([∗list] m ∈ ms, etcdstart.memberStartRes m.fst { peer :=
-    some m.snd.fst, client := m.snd.snd }) ={⊤}=∗ ∃ γ γk Φs γn gs, ⌜γ.vs = ps ∧ γ.rule = srvRule
-    (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧
-    γn.dir = dir ∧ List.map (fun x => x.id) gs = ids ∧ (∀ (g : etcdstart.MemberG GF), g ∈ gs →
-    etcdstart.memberGOkOn γ γk g) ∧ γk.c0 = W64 0 ∧ γk.log0 = [[], []]⌝ ∗ (□ ∀ lid, netHttpOk γn
-    lid) ∗ ([∗list] g ∈ gs, etcdstart.memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm) ∗ ([∗list] m ∈
-    ms, etcdstart.memberFreshRes m.fst { peer := some m.snd.fst, client := m.snd.snd } γn) ∗ etcdKV
-    γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
-    authHistView γk [srvAuthSt0]
+    lease.leasesNoExpiry) (hap : lm = lease.Mode.revocable → leaseIdsApart ids) (ns : Bool := false)
+    : ⊢ bootMarshal ps ctxs (LogEntry.toEntries boot 0) -∗ ([∗list] m ∈ ms, etcdstart.memberStartRes
+    m.fst { peer := some m.snd.fst, client := m.snd.snd }) ={⊤}=∗ ∃ γ γk Φs γn gs, ⌜γ.vs = ps ∧
+    γ.rule = srvRule (W64 0) (LogEntry.toEntries boot 0) ∧ γ.boot = LogEntry.toEntries boot 0 ∧ γn.N
+    = srvNet γ ∧ γn.dir = dir ∧ List.map (fun x => x.id) gs = ids ∧ (∀ (g : etcdstart.MemberG GF), g
+    ∈ gs → etcdstart.memberGOkOn γ γk g) ∧ γk.c0 = W64 0 ∧ γk.log0 = [[], []]⌝ ∗ ⌜clusterNoSnap γ.cl
+    ↔ ns = true⌝ ∗ (□ ∀ lid, netHttpOk γn lid) ∗ ([∗list] g ∈ gs, etcdstart.memberBootOn g.γ ctxs
+    g.ρ g.E Φs g.id false lm) ∗ ([∗list] m ∈ ms, etcdstart.memberFreshRes m.fst { peer := some
+    m.snd.fst, client := m.snd.snd } γn) ∗ etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0
+    (bootEntries (LogEntry.toEntries boot 0)))) ∗ authHistView γk [srvAuthSt0]
 
 theorem etcdstart.allocNOn [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm : ps.Perm ids) (id0 : w64) (hid0

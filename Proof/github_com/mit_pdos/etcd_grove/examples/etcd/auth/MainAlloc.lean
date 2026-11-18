@@ -59,7 +59,7 @@ theorem ak_alloc (hne : mvcc.api.names_nonempty.law) (id : w64) (ctxs : List (Li
   let Φs : w64 → w64 → List w8 → GName → IProp GF := fun _ => srvFloorFacts idx.slog
   imod (srvClusterBootOn_alloc (GF := GF) [id] ctxs boot (fun _ => idx.slog) reg Hrb Hrb2 Hbc (by simp)
       (by simp) (by simpa using Hid0.symm)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, -, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
   obtain ⟨hvs, hrule, hboot, hreg, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hlm, -, -⟩ := Hγ
   icases BigSepL.bigSepL_cons.1 $$ Hms with ⟨⟨Hp, #Hkf, Hnb, Hsd⟩, -⟩

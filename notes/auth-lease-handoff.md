@@ -1,30 +1,37 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-18, item 7b COMPLETE: lean merged (pin 6d3), full build green; item 9 next)
+## START HERE (S4, 2026-11-18, item 9: D-k's texts written and built; STOPPED at D-k's stop)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Pin **6d365ee1a**:
-  `--packages=/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = its copy,
-  `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
-- **Done (7b):** merges `73e19b65cd` (lean f256fa496e, 37 conflicts) and `cc966bf868` (lean b0bb9df7c3, pin 6d3);
-  repairs `f401c9b4a8`, the kv fix; mode baseline `e5cbc82997` (v3rpc lit-mode 30: lean 33, S4 29); interfaces
-  `c07678a7a3` (raft, mvcc). Full build at 6d3: `Build completed successfully (20489 jobs)`
-  (`/shared/tmp/auth-lease-s4/full3.log`); `tcb-report --check`: 892 axioms, 4 sorries, matches; every collection
-  `--check` clean; every `etc/api` list `gen-interface --check --layout` clean; `goose.py --check` clean (6d3);
-  `gen-init --check`, `gen-raft-tla --check`, api/import-all/bounds/mode checks clean. No Results/MainLinked/
-  Adequacy file was edited by the merge resolution.
-- Merge integrations (for review): `storBnd` sealed + trace-gated, untraced arm with `⌜clusterNoSnap γ → k ≤ 1⌝`;
-  `storBnd_intro_untraced` gains `(hns : clusterNoSnap γ → k ≤ 1)` (callers: memStorage, kv/kvreconf/kvdurable
-  storages, discharged from their justifications' conjunct); `storBnd_off`/`storBnd_le_one` (unused) dropped;
-  `storBnd_cap` by cases. `cluster_alloc_ns` post `… ∧ (clusterNoSnap γ ↔ ns)⌝ ∗ ⌜trace = none⌝`; `cluster_alloc`
-  `⌜¬clusterNoSnap⌝ ∗ ⌜trace = none⌝`; `cluster_alloc_boot_impl(_tr)` take `ns` (traced: `false`). Lean moved StartNode's
-  proof to `TracedStartNode`, node.run's to `node__run_gated`: S4's edits ported there. `NsLink` is a conjunction
-  (`Hnl.1`). `TracedNodeRun`'s net-step lemma's MsgSnap clause gains `γ.reNoSnap = false` (as `netP`'s);
-  `TracedRawNode`/`TracedNodeRun`: the raft.Step MsgSnap premise by `trnet_ne`/`trrcv_ne` (no MsgSnap traced).
-- **Next, in order:** item 9 (driver; STOP at D-k's texts and at `Main.wp_proof`), item 10 (linking: gen-init PkgTable
-  entry for authlease, gates, land stop). Merge lean again first if it moved.
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done:** 7b (accepted by etcd-grove-03, 2026-11-18; record in STATUS at the land stop). Item 9 step 1, **D-k**
+  (commit after this section's): `(ns : Bool := false)` appended after `hgps` in `srvClusterBoot_alloc`
+  (NewServerAlloc), `srvClusterBootOn_alloc` (NewServerAllocOn) and its export `server_cluster_alloc_on` (server
+  Results), after `hap` in `allocNOnM` (etcdstart AllocNOn); posts `⌜clusterNoSnap γ.cl ↔ ns = true⌝` (the off
+  allocation's `⌜¬ clusterNoSnap γ.cl⌝` replaced: its `ns = false` instance); both allocations call
+  `cluster_alloc_ns … ns (fun _ => hbne)`. Callers: Alloc/Alloc3/AllocN derive `¬ clusterNoSnap` from the iff,
+  Alloc3On/auth MainAlloc skip the conjunct, `allocNOn` (statement unchanged) by a short Iris proof. Built: the
+  29 importer leaves of the change (`/shared/tmp/auth-lease-s4/dk-build.log`).
+  Boot path at `ns = true`: `memberBootOn` has no `¬ clusterNoSnap` (only `memberBoot`, the auth-off bundle, does);
+  `StartMember(s)Auth.spec` is generic in the cluster with `clusterNoSnap → 2^48 ≤ catchUp` (NoSnapCatchUp); the
+  remaining `¬ clusterNoSnap` premises in the server are restart/snapshot-only (`srvMem_restartStorage`,
+  `rnRestartOk`, `run_job_snapC`, `SnapApplyWalk`).
+- **Next, in order:** (after etcd-grove-03's go on D-k) the driver: `Spec/…/authlease/{Main,run,barrier,barriers,
+  grantPut,noAuth,foreign,absent,reqCtx,refused,newUserClient}.lean` and proofs, on authN's skeleton (`authN/run.lean`,
+  `Main.lean`); `Main` allocates with `allocNOnM … .revocable … (ns := true)` so the lessor law's `clusterNoSnap`
+  holds; lessor-side refusals via `lessor_keys_of_read` (LessorFollows) + the per-index form of
+  `Scratch/S4Probe.lean`'s `leaseKeysVerdict_refused`; client calls via `client_put_on`/`client_txn_on`/
+  `client_range_on`/`client_lease_grant_on`/`client_lease_revoke_on` (client/v3 `ResultsOn`) and
+  `etcd_lease_read_auth_served_on`. STOP at `Main.wp_proof` (present the closed statement, Draft §2). Then item 10.
+  Merge lean again first if it moved (Hctx Part B and origin's zap.Logger.Panic merge were landing 2026-11-18).
 - **Pitfalls:** `etc/gen-link.py --bbolt`/`--walfs` and `gen-specs-pkginit --check` differ in a worktree without
   `.lake/packages/perennial` (environmental): do not commit those regenerations. Monitor filters: "Terminated" matches
   k8s type names; anchor `^Terminated`. A Perennial pin bump rebuilds everything (~20k jobs, ~3.5 h in a slot).
+  `questions.md` is untracked (gitignored): decisions live only in the worktree file.
+
+## Previous START HERE (S4, 2026-11-18, item 7b COMPLETE: lean merged (pin 6d3), full build green; item 9 next)
+
+(7b's section: see commit ad75410f86.)
 
 ## Previous START HERE (S4, 2026-11-17, item 7b: steps 7 and 8 DONE; the lean merge is NEXT and is a real integration)
 

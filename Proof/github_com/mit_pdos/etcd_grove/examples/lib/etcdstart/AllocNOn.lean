@@ -124,7 +124,9 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h ∈ ms.map (·.2.1))
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
     (lm : lease.Mode) (hrun : lease.runCfg (GF := GF) lm lm)
-    (hnx : lm = .revocable → lease.leasesNoExpiry) (hap : lm = .revocable → leaseIdsApart ids) :
+    (hnx : lm = .revocable → lease.leasesNoExpiry) (hap : lm = .revocable → leaseIdsApart ids)
+    -- (auth-lease S4, D-k) raft's no-snapshot mode, the caller's choice (`srvClusterBootOn_alloc`'s)
+    (ns : Bool := false) :
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       ([∗list] m ∈ ms, memberStartRes (GF := GF) m.1 ⟨some m.2.1, m.2.2⟩) ={⊤}=∗
       ∃ (γ : SrvRaft) (γk : KVNames) (Φs : w64 → w64 → List w8 → GName → IProp GF)
@@ -133,6 +135,8 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
         γ.boot = LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ ∧ γn.dir = dir ∧
         gs.map (·.id) = ids ∧ (∀ g ∈ gs, memberGOkOn γ γk g) ∧
         γk.c0 = W64 0 ∧ γk.log0 = [[], []]⌝ ∗
+      -- (auth-lease S4, D-k) the members' cluster in raft's no-snapshot mode exactly when `ns`
+      ⌜clusterNoSnap γ.cl ↔ ns = true⌝ ∗
       (□ ∀ lid : w64, netHttpOk γn lid) ∗
       ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm) ∗
       ([∗list] m ∈ ms, memberFreshRes m.1 ⟨some m.2.1, m.2.2⟩ γn) ∗
@@ -154,8 +158,8 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
   have γm : mvcc.api.MvccName := Classical.choice hne.1
   imod (srvClusterBootOn_alloc (GF := GF) ps ctxs boot (xsOf ids idx) (reg id0) Hrb Hrb2 Hbc Hpsnd
       Hpsne Hnz lm (idPfxOf (W16 (uint.Z id0))) (idPfxsOf ids)
-      (gpsOk_of_apart lm ids id0 hid0 hap)) $$ Hmarsh
-    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
+      (gpsOk_of_apart lm ids id0 hid0 hap) ns) $$ Hmarsh
+    with ⟨%γ, %issued, %cnt, %wn, %fs, %γk, %Hγ, %Hns, #Hsrl, #Hkv, Hetcd, Hview, #Hcl, #H0, #Hpm, #Hrc,
       Hms, Hwns⟩
   obtain ⟨hvs, hrule, hboot, -, hc0, hch, hlog, hiss, -, hwn, hfs, hkc, hklm, hgp, hgps⟩ := Hγ
   have hpo : kvPfxOk γk := kvPfxOk_of_apart γk ids id0 hid0 hgp hgps (fun h => hap (hklm ▸ h))
@@ -182,6 +186,8 @@ theorem allocNOnM (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm
   isplitr
   · ipureintro
     exact ⟨hvs, by rw [hboot]; exact hrule, rfl, Hγn.1, Hγn.2, Hgs.1, Hgs.2, hc0, hlog⟩
+  isplitr
+  · ipureintro; exact Hns
   iexact Hnet
 
 
@@ -207,9 +213,16 @@ theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm 
       ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id) ∗
       ([∗list] m ∈ ms, memberFreshRes m.1 ⟨some m.2.1, m.2.2⟩ γn) ∗
       etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries (LogEntry.toEntries boot 0)))) ∗
-      authHistView γk [srvAuthSt0] :=
-  allocNOnM hne ids ps hperm id0 hid0 ctxs boot Hbc dir ms Hd0 Hhost Hrb Hrb2 .none lease.runCfg_none
-    (fun h => nomatch h) (fun h => nomatch h)
+      authHistView γk [srvAuthSt0] := by
+  iintro #Hm Hs
+  imod (allocNOnM hne ids ps hperm id0 hid0 ctxs boot Hbc dir ms Hd0 Hhost Hrb Hrb2 .none
+      lease.runCfg_none (fun h => nomatch h) (fun h => nomatch h)) $$ Hm Hs
+    with ⟨%γ, %γk, %Φs, %γn, %gs, Hp, -, Hr⟩
+  imodintro
+  iexists γ, γk, Φs, γn, gs
+  isplitl [Hp]
+  · iexact Hp
+  iexact Hr
 
 end alloc
 
