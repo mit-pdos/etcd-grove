@@ -13,7 +13,7 @@ As linkvtxn's `Defs.lean`:
   history chain read-only);
 - `boxIn x`, `boxOut y`, `boxSt sl`: a Go `Input`, `Output`, `state` boxed (`any(x)`); `decOp`, the
   model's decoder of porcupine's operations (a boxed `Input` and `Output` is the input and
-  `ansOf` the output, `decOp_box`; any other pair is no operation);
+  `ansOf` the output's plain value, `plainOut`, which zeroes the `Raw` the model ignores, `decOp_box`; any other pair is no operation);
 - `stRepB h0 n v S`: a Go state value (a boxed `state`, its slice and configurations read-only) whose
   configurations `gs` represent `S` (`GOk`), each `Bounded n`;
 - `k8setcd3S h0`, the model's `ModelSpec` from the seeded store and its history `h0`:
@@ -143,7 +143,7 @@ open Classical in
 /-- The model's decoder of porcupine's operations (see the file header). -/
 def decOp (io : github_com.anishathalye.porcupine.OpV) : Option (Input × linkv.Ans Output) :=
   if h : ∃ p : Input × Output, io = (boxIn p.1, boxOut p.2) then
-    some (h.choose.1, ansOf h.choose.2)
+    some (h.choose.1, ansOf (plainOut h.choose.2))
   else none
 
 /-- Two values with a field's deterministic projection have equal projections. -/
@@ -306,7 +306,7 @@ theorem Output_intoVal_inj : Function.Injective (intoVal (V := Output)) := by
 
 include sem package_sem in
 /-- The decoder of a boxed input and output. -/
-theorem decOp_box (x : Input) (y : Output) : decOp (boxIn x, boxOut y) = some (x, ansOf y) := by
+theorem decOp_box (x : Input) (y : Output) : decOp (boxIn x, boxOut y) = some (x, ansOf (plainOut y)) := by
   have h : ∃ p : Input × Output, (boxIn x, boxOut y) = (boxIn p.1, boxOut p.2) := ⟨(x, y), rfl⟩
   unfold decOp
   rw [dif_pos h]

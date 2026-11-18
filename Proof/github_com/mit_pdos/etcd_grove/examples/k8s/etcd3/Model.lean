@@ -3,7 +3,7 @@ Lean-first (no Rocq counterpart).
 
 The proof of `Model(st0)`: the three closures. `Init`'s state is one configuration, the seeded
 store (`gok_init`). `Step` runs `step` on each configuration and `addConfig`s the results
-(`stepAllL`), then `closure`; its result represents `ppost S x (ansOf y)` (`step_closure_ok`), so
+(`stepAllL`), then `closure`; its result represents `ppost S x (ansOf (plainOut y))` (`step_closure_ok`), so
 its verdict is `pM (kSpec g0) decOp`'s (`step_result`). `Equal` compares the two lists
 configuration by configuration (`configEqual`): equal lists represent one state.
 -/
@@ -39,16 +39,16 @@ variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 include sem package_sem in
-/-- `Step`'s verdict and next state, from `closure`'s result `out` on `stepAllL gs x y`. -/
+/-- `Step`'s verdict and next state, from `closure`'s result `out` on `stepAllL gs x (plainOut y)`. -/
 theorem step_result (g0 : HSt) (gs out : List GCfg) (S : linkv.PSet HSt Input) (x : Input)
-    (y : Output) (hk : x.Kind' = W64 5 → y.Err' ≠ W64 4) (hS : GOk g0 gs S) (hc : ClosureOk g0 (stepAllL gs x y) out)
+    (y : Output) (hk : x.Kind' = W64 5 → y.Err' ≠ W64 4) (hS : GOk g0 gs S) (hc : ClosureOk g0 (stepAllL gs x (plainOut y)) out)
     (hcl : GClosed g0 out) :
     ((linkv.pM (kSpec g0) decOp).step S (boxIn x, boxOut y)).isSome = decide (out ≠ []) ∧
     ∀ S', (linkv.pM (kSpec g0) decOp).step S (boxIn x, boxOut y) = some S' → GOk g0 out S' := by
-  rw [linkv.pM_step (kSpec g0) decOp S _ x (ansOf y)
+  rw [linkv.pM_step (kSpec g0) decOp S _ x (ansOf (plainOut y))
     (decOp_box (sem := sem) (package_sem := package_sem) x y)]
-  have hok := step_closure_ok g0 gs out S x y hk hS hc hcl
-  have hpost : linkv.ppost (kSpec g0) S x (ansOf y) = setOf out := hok.2
+  have hok := step_closure_ok g0 gs out S x (plainOut y) hk hS hc hcl
+  have hpost : linkv.ppost (kSpec g0) S x (ansOf (plainOut y)) = setOf out := hok.2
   refine ⟨?_, ?_⟩
   · simp only [linkv.pSeq]
     split
@@ -144,7 +144,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     ihave HI : (∃ (j : w64) (c0 : mcfg) (sn : GoSlice) (ncs : List mcfg),
         "i" ∷ i_ptr ↦ j ∗ "c" ∷ c_ptr ↦ c0 ∗ "next" ∷ next_ptr ↦ sn ∗ "Hn" ∷ sn ↦* ncs ∗
         "Hncap" ∷ ownSliceCap mcfg sn (DFrac.own 1) ∗
-        "#Hncs" ∷ ([∗list] c;g ∈ ncs;(gs.take (sint.nat j)).foldl (stepOneL x y) [], cfgOwn c g) ∗
+        "#Hncs" ∷ ([∗list] c;g ∈ ncs;(gs.take (sint.nat j)).foldl (stepOneL x (plainOut y)) [], cfgOwn c g) ∗
         "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z sl.len⌝ : IProp GF)
       $$ [i c next Hn0 Hn0cap]
     · iexists W64 0, _, _, []
@@ -176,15 +176,15 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
         refine ⟨by omega, by omega, by omega, fun h => ⟨by word, (Hxk h).2⟩⟩
       ihave %Hrl := ownSlice_len $$ Hr
       ihave %Hrlen := BigSepL2.bigSepL2_length $$ Hrcs
-      have Htake : (gs.take (sint.nat (j + W64 1))).foldl (stepOneL x y) [] =
-          stepOneL x y ((gs.take (sint.nat j)).foldl (stepOneL x y) []) g := by
+      have Htake : (gs.take (sint.nat (j + W64 1))).foldl (stepOneL x (plainOut y)) [] =
+          stepOneL x (plainOut y) ((gs.take (sint.nat j)).foldl (stepOneL x (plainOut y)) []) g := by
         rw [show sint.nat (j + W64 1) = sint.nat j + 1 by word, List.take_add_one, Hg_lookup]
         simp
-      generalize (gs.take (sint.nat j)).foldl (stepOneL x y) [] = acc at Htake ⊢
+      generalize (gs.take (sint.nat j)).foldl (stepOneL x (plainOut y)) [] = acc at Htake ⊢
       ihave HJ : (∃ (k : w64) (d0 : mcfg) (sn' : GoSlice) (ncs' : List mcfg),
           "i" ∷ i_ptr ↦ k ∗ "d" ∷ d_ptr ↦ d0 ∗ "next" ∷ next_ptr ↦ sn' ∗ "Hn" ∷ sn' ↦* ncs' ∗
           "Hncap" ∷ ownSliceCap mcfg sn' (DFrac.own 1) ∗
-          "#Hncs" ∷ ([∗list] c;g ∈ ncs';((stepL g x y).take (sint.nat k)).foldl addConfigL acc,
+          "#Hncs" ∷ ([∗list] c;g ∈ ncs';((stepL g x (plainOut y)).take (sint.nat k)).foldl addConfigL acc,
             cfgOwn c g) ∗
           "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ sint.Z r.len⌝ : IProp GF)
         $$ [i d next Hn Hncap]
@@ -202,7 +202,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
         have Hk' : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z r.len := ⟨Hk.1, Hif⟩
         simp only [Hk', _root_.and_self, ↓reduceIte]
         list_elem rcs (sint.nat k) as d
-        list_elem (stepL g x y) (sint.nat k) as g'
+        list_elem (stepL g x (plainOut y)) (sint.nat k) as g'
         wp_apply wp_load_slice_index r (sint.Z k) rcs _ d Hk.1 $$ [Hr] as Hr
         · iframe; ipureintro; exact Hd_lookup
         ihave #Hd := BigSepL2.bigSepL2_lookup (Φ := fun _ c' g' => cfgOwn (GF := GF) c' g')
@@ -221,7 +221,7 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
         (try simp only [decide_eq_false Hif, Bool.false_eq_true, ↓reduceIte])
         (try simp only [decide_eq_false false_neq_true, Bool.false_eq_true, ↓reduceIte]); wp_pures
         cleanup_bool_decide; (try wp_auto); cleanup_bool_decide
-        have hall : (stepL g x y).take (sint.nat k) = stepL g x y :=
+        have hall : (stepL g x (plainOut y)).take (sint.nat k) = stepL g x (plainOut y) :=
           List.take_of_length_le (by word)
         rw [hall] at *
         wp_for_post
@@ -237,10 +237,10 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
       (try simp only [decide_eq_false false_neq_true, Bool.false_eq_true, ↓reduceIte]); wp_pures
       cleanup_bool_decide; (try wp_auto); cleanup_bool_decide
       have hall : gs.take (sint.nat j) = gs := List.take_of_length_le (by word)
-      rw [hall, show gs.foldl (stepOneL x y) [] = stepAllL gs x y from rfl]
-      have hb1 : ∀ g' ∈ stepAllL gs x y, Bounded (n + 1) g' :=
-        stepAllL_bounded n gs x y hbd
-      wp_apply +noauto wp_closure g0 sn ncs (stepAllL gs x y) (DFrac.own 1) (n + 1) $$ [$Hn $Hncs]
+      rw [hall, show gs.foldl (stepOneL x (plainOut y)) [] = stepAllL gs x (plainOut y) from rfl]
+      have hb1 : ∀ g' ∈ stepAllL gs x (plainOut y), Bounded (n + 1) g' :=
+        stepAllL_bounded n gs x (plainOut y) hbd
+      wp_apply +noauto wp_closure g0 sn ncs (stepAllL gs x (plainOut y)) (DFrac.own 1) (n + 1) $$ [$Hn $Hncs]
         as %out %ocs %ogs ⟨-, Hout, -, #Hocs, %Hco⟩
       · ipureintro; exact ⟨by omega, hb1⟩
       ipersist Hout

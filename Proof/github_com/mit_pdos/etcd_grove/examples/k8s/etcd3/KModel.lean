@@ -81,6 +81,25 @@ instance Output_decEq : DecidableEq Output := fun a b =>
       a.Raw' = b.Raw')
     (by cases a; cases b; simp)
 
+/-- **An output's plain value** (stage 7g): the output with its `Raw` (the store's answer itself, which
+`outEqual` and the model ignore) zeroed; two outputs `outEqual` compares equal iff their plain values are. -/
+@[reducible] def plainOut (y : Output) : Output := { y with Raw' := zeroValDef }
+
+/-- Equal plain values are equal plain fields. -/
+theorem plainOut_eq_iff (a b : Output) : plainOut a = plainOut b ↔
+    a.Err' = b.Err' ∧ a.ErrKey' = b.ErrKey' ∧ a.ErrRV' = b.ErrRV' ∧ a.ErrMsg' = b.ErrMsg' ∧
+    a.Namespace' = b.Namespace' ∧ a.Name' = b.Name' ∧ a.UID' = b.UID' ∧ a.Value' = b.Value' ∧
+    a.Node' = b.Node' ∧ a.App' = b.App' ∧ a.RV' = b.RV' ∧ a.Items' = b.Items' ∧
+    a.ListRV' = b.ListRV' ∧ a.Continue' = b.Continue' ∧ a.HasRemaining' = b.HasRemaining' ∧
+    a.Remaining' = b.Remaining' ∧ a.WEvents' = b.WEvents' ∧ a.WFailed' = b.WFailed' := by
+  cases a; cases b; simp [plainOut]
+
+/-- An output with a zero `Raw` is its plain value. -/
+theorem plainOut_of_raw (y : Output) (h : y.Raw' = zeroValDef) : plainOut y = y := by
+  cases y; simp only [plainOut] at h ⊢; rw [h]
+
+theorem plainOut_idem (y : Output) : plainOut (plainOut y) = plainOut y := rfl
+
 /-! ## The store's helpers -/
 
 /-- The zero `item` (`item{}`). -/
