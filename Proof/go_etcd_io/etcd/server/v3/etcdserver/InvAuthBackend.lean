@@ -197,11 +197,15 @@ def usersAt (st : auth.AuthState) (m : backend.BktData) (dU : GoString → auth.
   ∀ n v, m.lookup n = some v → v = auth.userEncode (dU n) ∧ (dU n).name = n ∧
     st.users.lookup n = some (dU n).roles ∧ (dU n).roles.Pairwise go.GoStringLt
 
-/-- **The roles bucket `m` holds the state `st`'s roles with the records `dR`** (F-enc). -/
+/-- **The roles bucket `m` holds the state `st`'s roles with the records `dR`** (F-enc): a name is in `m`
+iff a role of `st`; its value is `dR n`'s encoding, a record of that name whose permissions are the state's up to
+order (auth-schema-srv A6 (c), 2026-11-18, form decided by the agent: `UnsafePutRole` puts a record whose
+permissions are a permutation of the state's, `rr.toRole.Perm ps`, and what a read promises is up to order,
+`auth.roleOut`; until then exactly the state's). -/
 def rolesAt (st : auth.AuthState) (m : backend.BktData) (dR : GoString → auth.RoleRec) : Prop :=
   (∀ n, (m.lookup n).isSome ↔ (st.roles.lookup n).isSome) ∧
   ∀ n v, m.lookup n = some v → v = auth.roleEncode (dR n) ∧ (dR n).name = n ∧
-    st.roles.lookup n = some (dR n).toRole
+    ∃ ps, st.roles.lookup n = some ps ∧ (dR n).toRole.Perm ps
 
 theorem usersAt_dec {st : auth.AuthState} {m : backend.BktData} {dU : GoString → auth.UserRec}
     (h : usersAt st m dU) : usersDec m dU := fun n v hl => (h.2 n v hl).1
@@ -234,7 +238,9 @@ theorem authBucketsAre_rolesAt {st : auth.AuthState} {D : AuthData} (h : authBuc
     | some v0 =>
       obtain ⟨x, hx⟩ := hu2 n v0 hl
       exact ⟨x, fun v hv => by cases hv; exact hx⟩
-  exact ⟨fun n => Classical.choose (H n), hu1, fun n v hl => Classical.choose_spec (H n) v hl⟩
+  exact ⟨fun n => Classical.choose (H n), hu1, fun n v hl => by
+    obtain ⟨h1, h2, h3⟩ := Classical.choose_spec (H n) v hl
+    exact ⟨h1, h2, _, h3, List.Perm.refl _⟩⟩
 
 /-- A bucket's read of a user is the state's (`auth.userOut`): the record read is the one `dU`
 names (F-enc; until then the record was recovered from the bytes, which needed `userEncode`'s
@@ -287,12 +293,12 @@ theorem roleOutD_are (st : auth.AuthState) (m : backend.BktData) (r : Loc) (name
       have := hr1 name; rw [hl] at this; simpa using this
     rw [this]
   | some v =>
-    obtain ⟨-, hn, hs⟩ := hr2 name v hl
+    obtain ⟨-, hn, ps, hs, hp⟩ := hr2 name v hl
     rw [hs]
     iintro H
     iexists dR name
     iframe H
-    ipureintro; exact ⟨hn, List.Perm.refl _⟩
+    ipureintro; exact ⟨hn, hp⟩
 
 theorem roleOutDX_are (st : auth.AuthState) (m : backend.BktData) (r : Loc) (name : GoString)
     (dR : GoString → auth.RoleRec) (h : rolesAt st m dR) :
@@ -305,12 +311,12 @@ theorem roleOutDX_are (st : auth.AuthState) (m : backend.BktData) (r : Loc) (nam
       have := hr1 name; rw [hl] at this; simpa using this
     rw [this]
   | some v =>
-    obtain ⟨-, hn, hs⟩ := hr2 name v hl
+    obtain ⟨-, hn, ps, hs, hp⟩ := hr2 name v hl
     rw [hs]
     iintro H
     iexists dR name
     iframe H
-    ipureintro; exact ⟨hn, List.Perm.refl _⟩
+    ipureintro; exact ⟨hn, hp⟩
 
 /-! ## The contracts -/
 

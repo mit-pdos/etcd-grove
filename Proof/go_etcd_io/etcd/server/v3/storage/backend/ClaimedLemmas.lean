@@ -981,6 +981,98 @@ private theorem batchGhostAt_idle (γ : BNames) (P : BParams) (st : BSess) (c : 
   iframe
   ipureintro; exact Hok
 
+/-! ### A claimed part agrees with the batch lock (auth-schema-srv A6 (c), 2026-11-18) -/
+
+/-- **One bucket of a claimed part agrees with the batch lock's writer's contents** (auth-schema-srv A6 (c), form
+decided by the agent): the claim invariant's claimed branch holds three quarters of the bucket's element at the
+claimed part's contents (`rbClaimC`, `w.1 = c`), the batch lock's side the last quarter at the writer's contents.
+An agreement law, not one of the four forbidden ones (soundness §6): it needs the batch lock, takes no `γ.rbk`
+share of the client's, and changes no ghost state. -/
+private theorem trkSide_rbPartR_agree (γ : BNames) (P : BParams) (st : BSess) (c : Bool) (S : GoString → Prop)
+    (r : GMap GoString BktData) (n : GoString) (hS : S n) (E : CoPset) (hE : ↑rbClaimN ⊆ E) :
+    iprop(trkSide (GF := GF) γ P st c ∗ rbPartR γ S r) ⊢
+      |={E}=> iprop(trkSide γ P st c ∗ rbPartR γ S r ∗ ⌜r.lookup n = (rbData P st.S).lookup n⌝) := by
+  unfold trkSide trkHalf rbSide rbPartR rbPartRF rbPartF
+  iintro ⟨⟨⟨Hh, Ha, ⟨%F, ⟨%Hl0, Hl⟩, %HF⟩, %Hbt, #Hinv⟩, Hr⟩, %G, %Hs, Hp⟩
+  have hd := Hs n hS
+  obtain ⟨u, hu⟩ := Option.ne_none_iff_exists'.mp hd
+  iinv Hinv with >Hb Hclose
+  iunfold rbClaimInv at Hb
+  icases Hb with ⟨%Mc, %Cl, Hac, %Hbt2, Hm⟩
+  icases (BigSepM.bigSepM_lookup_acc
+    (Φ := fun k (_ : Unit) => if S k then ghostMapElem (GF := GF) γ.rbc k (DFrac.own (1 : Qp).half)
+      (some (r.lookup k, G k) : Option (Option BktData × Bool)) else iprop(True))
+    (m := γ.rbD) (i := n) (x := u) hu).1 $$ Hp with ⟨Hpn, Hp⟩
+  ihave Hpn := (show (if S n then ghostMapElem (GF := GF) γ.rbc n (DFrac.own (1 : Qp).half)
+      (some (r.lookup n, G n) : Option (Option BktData × Bool)) else iprop(True)) ⊢
+    ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half) (some (r.lookup n, G n)) by
+      rw [if_pos hS]) $$ Hpn
+  ihave Hl := (rbEls_top γ _ _).1 $$ Hl
+  icases (BigSepM.bigSepM_lookup_acc
+    (Φ := fun k (_ : Unit) => ghostMapElem (GF := GF) γ.rbk k (DFrac.own (1 : Qp).half.half)
+      ((fun n => ((rbData P st.S).lookup n, F n)) k))
+    (m := γ.rbD) (i := n) (x := u) hu).1 $$ Hl with ⟨Hln, Hl⟩
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun k (_ : Unit) => rbClaimOne (GF := GF) γ k (Cl k))
+    (m := γ.rbD) (i := n) (x := u) hu).1 $$ Hm with ⟨Hmn, Hm⟩
+  cases hcl : Cl n
+  · ihave Hmn := (rbClaimOne_U γ n _ rfl).1 $$ Hmn
+    iunfold rbClaimU at Hmn
+    icases Hmn with ⟨%c0, %f, %v, -, -, Hcn, -⟩
+    ihave %Hv := ghostMapElem_agree n γ.rbc _ _ _ _ $$ Hcn Hpn
+    cases Hv
+  · ihave Hmn := (rbClaimOne_C γ n _ rfl).1 $$ Hmn
+    iunfold rbClaimC at Hmn
+    icases Hmn with ⟨%c0, %w, Hk, Hcn, %Hw⟩
+    icombine Hcn Hpn gives %Hag1
+    icombine Hk Hln gives %Hag2
+    have h1 : w = (r.lookup n, G n) := Option.some.inj Hag1.2
+    have h2 : (c0, false) = ((rbData P st.S).lookup n, F n) := Hag2.2
+    have hres : r.lookup n = (rbData P st.S).lookup n := by
+      rw [← (Prod.mk.inj h2).1, ← Hw, h1]
+    ihave Hmn : rbClaimOne γ n true $$ [Hk Hcn]
+    · iapply (rbClaimOne_C γ n _ rfl).2
+      iunfold rbClaimC
+      iexists c0, w
+      iframe Hk Hcn
+      ipureintro; exact Hw
+    ihave Hm := Hm $$ Hmn
+    imod Hclose $$ [Hac Hm] with -
+    · inext
+      iunfold rbClaimInv
+      iexists Mc, Cl
+      iframe Hac Hm
+      ipureintro; exact Hbt2
+    ihave Hpn := (show ghostMapElem (GF := GF) γ.rbc n (DFrac.own (1 : Qp).half)
+        (some (r.lookup n, G n) : Option (Option BktData × Bool)) ⊢
+      (if S n then ghostMapElem γ.rbc n (DFrac.own (1 : Qp).half) (some (r.lookup n, G n)) else iprop(True)) by
+        rw [if_pos hS]) $$ Hpn
+    ihave Hp := Hp $$ Hpn
+    ihave Hl := Hl $$ Hln
+    ihave Hl := (rbEls_top γ _ _).2 $$ Hl
+    imodintro
+    iframe Hh Ha Hr Hinv Hl Hp
+    ipureintro
+    exact ⟨⟨⟨Hl0, HF⟩, Hbt⟩, Hs, hres⟩
+
+/-- **A claimed part agrees with the batch lock's writer's contents**, one bucket `n` of it (as
+`trkSide_rbPartR_agree`). -/
+theorem batchLocked_rbPartR_agree (γ : BNames) (P : BParams) (b : Loc) (st : BSess) (c : Bool)
+    (S : GoString → Prop) (r : GMap GoString BktData) (n : GoString) (hS : S n) (E : CoPset)
+    (hE : ↑rbClaimN ⊆ E) :
+    batchLocked (GF := GF) γ P b st c ∗ rbPartR γ S r ⊢
+      |={E}=> batchLocked γ P b st c ∗ rbPartR γ S r ∗ ⌜r.lookup n = (rbData P st.S).lookup n⌝ := by
+  unfold batchLocked batchLockedAt batchGhost batchGhostAt
+  iintro ⟨⟨%t, %db, #Ht, Hown, Hph, ⟨Hv, %n0, %w, %u, Hr, Ha, Hm, Hu, Ho, Hk, Hfk, %Hok⟩, %Hwf⟩, Hp⟩
+  imod trkSide_rbPartR_agree γ P st c S r n hS E hE $$ [$Hk $Hp] with ⟨Hk, Hp, %Hag⟩
+  imodintro
+  iframe Hp
+  isplitl
+  · iexists t, db
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hok, Hwf⟩
+  · ipureintro; exact Hag
+
 /-! ### `Unlock`'s confirmation of the claimed buckets (auth-schema-srv A6 (c), 2026-11-18) -/
 
 /-- **A claiming client's confirmation window** for the buckets `Sc` at the contents `f` (auth-schema-srv A6
