@@ -2,48 +2,46 @@
 
 ## START HERE
 
-**2026-11-18 (night 2; for etcd-grove-03). Step 4 in progress: B3b proved; B3a and B5 left (`sorry`), then
-B1, B2, B4 (scope §5). Statements accepted (questions.md "Step 4 statements decided").**
+**2026-11-18 (night 3; for etcd-grove-03). Step 4: B3 (a and b) and B5 proved, no `sorry` in
+`RealReplay`/`RealWatch`; B1, B2, B4 left (statements not yet written). Paused at a context stop.**
 
 - Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`;
-  `.lake/package-overrides.json` = that manifest. lean 1b298c1e70 (fmt-soundness) merged (`741bc81066`, clean, no
-  repair needed: every step-3 target rebuilt, rc 0 but for the WIP RealReplay at the time).
-- Done: statements `edee4c6d0f`; B3b `0c6a267190`..HEAD: `simR_init`, `simR_step`, `replayAt_prefix` and helpers
-  (`chgListL_filter`/`_snoc`, `rstepL_true`, `rexecL_bump`, `ofList_items`/`_rewrites`, `fI_eq_of_absR`,
-  `kstepL_hist`). Forms (to report): `SimR` gains `s0 ≤ rv` and `rmWf acc.1` (so `simR_init` takes
-  `rmWf (absR h0.st)`, already an accepted step-5 discharge); B5 gains `hreq` (MinRV parses below `2^63`,
-  from `InOk`): without it B5 is FALSE (`watchRangeL`'s `req+1` wraps at `2^64-1`, the driver's Nat range does not).
-  RealReplay now imports `KWatchBridge` (for `changeAtL_one`, `fI`, `SortedI`).
+  `.lake/package-overrides.json` = that manifest. lean 1b298c1e70 merged (`741bc81066`).
+- Done this session: `RealReplay`/`RealWatch` built through the slot (rc 0); B5 `212cb98b18`, `93e37ced04`
+  (`validateWatchL_of_watchOkL`: `fromW` inverts `toWEvL`; the cut is `N ++ E`, `E` at most one error;
+  `reliableOkR_prefix` is the core: the window `[max mn (s0+1), mx)` of a prefix `T'` of the driver's `T`,
+  `eventsInL_window` + `eventsForRVsL_eq`); nonissue `k8s-correctness-watchrange-requested-rv-wrap` (`6a0ab49a7b`,
+  B5's `hreq`); B3a `0062bd8daa` (`replayL_perm`: the accumulator is `runOf init kv` for the writes `kv` that moved
+  the RV; `RInv` adds: each object stored past `init.rv` was left by the write at its RV, each write is some op's
+  answer (`wrObj`/`gOf`), each op's object answer past `init.rv` is the write at that RV; two runs' `kv` agree index
+  by index). Earlier: statements `edee4c6d0f`, B3b `0c6a267190`..`8a27a2b8ae`.
+- Forms decided this session (to report): none beyond the accepted ones (B5 needed no new premise past `hreq`).
 - Next, in order:
-  1. **B5** (`RealWatch.lean`). Plan: `fromW` (inverse of `toWEvL` on `t < 5`; `raw = all.map fromW` since
-     `watchOkL` rejects `t ≥ 5`); the cut `C` of `realEventsL` is a prefix of `all` with an error only last;
-     `lastErrOkL` from that; `bookmarksOkR (C.map fromW)` ↔ `bookmarksOkL (nonErr C)` (state map `uint.nat`,
-     exact: `wmax`/comparisons are by `uint.nat`), prefix of `nonErr all`; reliable part: `E := tail.filter (t≠3)
-     = eventsInL x hs lo hiF` (driver), RVs strictly increasing (`HistWf`: `evAtL` at `r` has RV `r`), later
-     events of the full list have RV `≥ hiT` (events increase; a non-bookmark after a bookmark `b` is `> b`,
-     `bmStepL`'s `lb`), so `eventsInL lo' hiT = T'`; `lo'`/`lo` window lemma (all `T'` RVs `≥ f(loT)`);
-     revisions `≤ s0` give no event (`WatchFromL`); then `eventsForRVsL R x lo hi = (eventsInL x hs lo hi).map
-     fromW` for `s0 < lo`, `hi ≤ rv+1` from `ReplayAt.2` (`chgListL`; `evAtL` needs `2 ≤ r`: `1 ≤ s0`).
-     Watch-list: initial events = `listItemsL x WKey (absR (histN brv))` (sorted keys: `sortedKeysL_unique`,
-     `storeKeyL` keeps the order) and `ReplayAt.1` at `brv` (`s0 ≤ brv` by `WatchFromL`). Existing lemmas:
-     KWatchStream `eventsInL_split`/`_one`/`_eq_nil`, `evRangeL_cons`, `bmStepL_none_foldl`.
-  2. **B3a** `replayL_perm`. Plan: by strong induction on revisions `r` from `init.rv`: the bump at `r` in `l1`
-     (op A) and in `l2`: same op → same state (deterministic from equal states); else A is a no-op update in
-     `l2` returning the stored object at A's key with RV `r` (`rmWf`: init objects `≤ init.rv`; invariant: an
-     object stored at `k` with RV `> init.rv` was written by the bump at that RV at `k`), so the `l2` bump at
-     `r` wrote the same object at the same key; states and changes equal (`rewrites ⊆ items` for create vs
-     update). Number of bumps equal by symmetry. `rexecL_bump` gives the shape of a bump.
-  3. B1, B2, B4 (scope §2.3), statements as forms of the scope's prose; then report at step 4's end.
+  1. **B1** (scope §2.3): `rexecL x (absR st)` vs `mstepL x st` under `absR`/`respOf`, and the list as `mlistL`
+     (`itemsL_absR` in `RealWatch` already gives the key order of `absR`); `rvalidateGetL`/`rvalidateListL` accept
+     what `kstepL` accepts. Write the statements as forms of the scope's prose (form decisions; report them).
+  2. **B2**: no failed call ⇒ `pM (kSpec h0)` keeps one configuration, no pending write; the unary projection of
+     its linearization is one for `realS` (by B1).
+  3. **B4**: along any `lin2`: `NewReplay` succeeds; stale Get and Exact/NotOlderThan lists validate (B3b's
+     `ReplayAt` at the op's configuration, `replayAt_prefix`, B3a to move to porcupine's `lin2`).
+  4. Report at step 4's end.
 - Premises still to discharge (step 5): Step's output premises; `WatchFromL`, `HistSorted`, length = revision,
-  `rmWf (absR st0)`, B5's `hreq`; `inFits`/`crFits`; `reqRep` from `realRequest`. Pre-existing breakage and
-  step-6 link-list entries as below (History, 2026-11-18 late).
-- Pitfalls (new): no Mathlib (`by_contra`, `le_trans` absent: `Classical.byContradiction`, `Nat.le_trans`);
-  `split at h` on a `match` may rewrite the goal too (`try rw [hs]`); `cases e` does not touch hypotheses
-  (`generalize … at h ⊢` first); `GMap.ofList` unfolds to `<[k := v]>` via `show`.
+  `rmWf (absR st0)`, B5's `hreq`; `inFits`/`crFits`; `reqRep` from `realRequest`; B3a's `hn` (`init.rv + |l1| <
+  2^64`). Pre-existing breakage and step-6 link-list entries as below (History, 2026-11-18 late).
+- Pitfalls (new): `etc/lean-check.py`'s first check after an edit sometimes prints the previous diagnostics: use
+  `-a` (waits for the file) or check twice; no `swap`, `conv_lhs`, `List.reverseRecOn` (no Mathlib:
+  `List.eq_nil_or_concat`); `ext` on `GMap` gives an `Option` `↔` goal: `refine GMap.ext (fun k => ?_)`; `rw` with
+  `List.filter_eq_self.2`/`_nil_iff.2` picks the first filter: state the two halves as `have`s; `(repeat' split)
+  <;> simp_all` does not `subst` a `{…} = o` (split by hand, `simp only [DeepV.obj.injEq] at h; subst h`).
+  Earlier: no Mathlib (`Classical.byContradiction`, `Nat.le_trans`); `split at h` may rewrite the goal; `cases e`
+  leaves hypotheses (`generalize … at h ⊢`); `GMap.ofList` unfolds via `show`.
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
   (LEAN_NUM_THREADS=4; `/shared/tmp/k8s7g/build3c.sh EXTRA…`); check: `/shared/tmp/k8s7g/lc.sh -a FILE`.
 
 ## History
+
+- 2026-11-18 night 2 START HERE (superseded): B3b proved; B5's plan (done as planned) and B3a's (done
+  differently: the writes as a sequence, not strong induction on revisions).
 
 - 2026-11-18 late START HERE (superseded): step 3 done through `Step`; pitfalls there kept below.
 
