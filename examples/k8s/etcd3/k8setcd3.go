@@ -563,7 +563,7 @@ const (
 	// any other error (the client's: the call may or may not have taken effect)
 	EOther = 4
 	// a *storage.StorageError, "invalid object" (storage.ErrCodeInvalidObj: a failed
-	// precondition), with ErrKey
+	// precondition), with ErrKey and ErrMsg
 	EInvalid = 5
 	// a resource version above the store's (storage.IsTooLargeResourceVersion: a Get's minimum
 	// above the revision read, or a List's resource version above it, ErrFutureRev). The client's
@@ -576,9 +576,13 @@ const (
 // its resource version ListRV, its continue token Continue, and its remaining item count Remaining
 // if HasRemaining), or its error. A plain value: porcupine's model decodes it purely.
 type Output struct {
-	Err          int
-	ErrKey       string
-	ErrRV        int64
+	Err    int
+	ErrKey string
+	ErrRV  int64
+	// (7g) a failed precondition's message (EInvalid only: the inner error of
+	// storage.NewInvalidObjError, Preconditions.Check's message, which names the stored object's
+	// UID or resource version)
+	ErrMsg       string
 	Namespace    string
 	Name         string
 	UID          string
@@ -958,8 +962,19 @@ func notFound(st mstore, key string) Output {
 	return Output{Err: ENotFound, ErrKey: Prefix + storeKey(key), ErrRV: int64(st.rv)}
 }
 
-func invalidObj(key string) Output {
-	return Output{Err: EInvalid, ErrKey: Prefix + storeKey(key)}
+func invalidObj(key string, msg string) Output {
+	return Output{Err: EInvalid, ErrKey: Prefix + storeKey(key), ErrMsg: msg}
+}
+
+// preMsg is the message of preconditions(in).Check on the object o when they fail (k8s.io/apiserver
+// storage/interfaces.go, Preconditions.Check): the UID's mismatch if there is one, else the
+// resource version's (as the versioner's string).
+func preMsg(in Input, o Obj) string {
+	if in.HasPreUID && in.PreUID != o.UID {
+		return "Precondition failed: UID in precondition: " + in.PreUID + ", UID in object meta: " + o.UID
+	}
+	return "Precondition failed: ResourceVersion in precondition: " + in.PreRV +
+		", ResourceVersion in object meta: " + rvString(o.ResourceVersion)
 }
 
 func objOut(o Obj) Output {
@@ -1012,7 +1027,7 @@ func mdelete(in Input, st mstore) (mstore, Output) {
 		return st, notFound(st, in.Key)
 	}
 	if !preOk(in, it.obj) {
-		return st, invalidObj(in.Key)
+		return st, invalidObj(in.Key, preMsg(in, it.obj))
 	}
 	c := it.obj
 	if err := validateFor(in.HasReject, in.Reject)(context.Background(), &c); err != nil {
@@ -1038,7 +1053,7 @@ func mupdate(in Input, st mstore) (mstore, Output) {
 		return st, notFound(st, in.Key)
 	}
 	if !preOk(in, cur) {
-		return st, invalidObj(in.Key)
+		return st, invalidObj(in.Key, preMsg(in, cur))
 	}
 	r, err := updated(in, &cur)
 	if err != nil {
@@ -1183,7 +1198,8 @@ func encodeItems(items []Obj) string {
 }
 
 func outEqual(a, b Output) bool {
-	return a.Err == b.Err && a.ErrKey == b.ErrKey && a.ErrRV == b.ErrRV && a.Namespace == b.Namespace &&
+	return a.Err == b.Err && a.ErrKey == b.ErrKey && a.ErrRV == b.ErrRV && a.ErrMsg == b.ErrMsg &&
+		a.Namespace == b.Namespace &&
 		a.Name == b.Name && a.UID == b.UID && a.Value == b.Value && a.Node == b.Node &&
 		a.App == b.App && a.RV == b.RV && a.Items == b.Items && a.ListRV == b.ListRV &&
 		a.Continue == b.Continue && a.HasRemaining == b.HasRemaining && a.Remaining == b.Remaining &&
@@ -1664,7 +1680,7 @@ func errOut(err error) Output {
 			return Output{Err: EExists, ErrKey: se.Key, ErrRV: se.ResourceVersion}
 		}
 		if se.Code == storage.ErrCodeInvalidObj {
-			return Output{Err: EInvalid, ErrKey: se.Key}
+			return Output{Err: EInvalid, ErrKey: se.Key, ErrMsg: se.Unwrap().Error()}
 		}
 	}
 	if storage.IsTooLargeResourceVersion(err) {

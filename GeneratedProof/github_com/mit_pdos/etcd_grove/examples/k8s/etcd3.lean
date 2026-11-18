@@ -1066,6 +1066,7 @@ noncomputable instance Output_typed_pointsto :
     "Err" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"Err" l) v.Err' dq ∗
     "ErrKey" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrKey" l) v.ErrKey' dq ∗
     "ErrRV" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrRV" l) v.ErrRV' dq ∗
+    "ErrMsg" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrMsg" l) v.ErrMsg' dq ∗
     "Namespace" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"Namespace" l) v.Namespace' dq ∗
     "Name" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"Name" l) v.Name' dq ∗
     "UID" ∷ typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"UID" l) v.UID' dq ∗
@@ -1135,6 +1136,22 @@ noncomputable instance Output_access_store_ErrRV (l : Loc) (v : github_com.mit_p
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrRV" l) v.ErrRV' (DFrac.own 1))
       (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrRV" l) ErrRV' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrRV' := ErrRV' } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Output_access_load_ErrMsg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrMsg" l) v.ErrMsg' dq)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrMsg" l) v.ErrMsg' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Output_access_store_ErrMsg (l : Loc) (v : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output) (ErrMsg' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrMsg" l) v.ErrMsg' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output go!"ErrMsg" l) ErrMsg' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ErrMsg' := ErrMsg' } : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Output) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
