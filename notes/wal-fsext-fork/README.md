@@ -53,9 +53,7 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   2 KiB segment size cut the tail (more than one file, the tail below the segment size) and the WAL opens at
   the last snapshot; it fails without the change (one file). `go test ./storage/wal/...` (GOWORK=off, go1.27.3, 32 min) passes but for
   `TestWALByteMix`, failing by design as at 0006 (the synthetic byte mixes, see above). `etc/goose.py` pins it (project `etcd`,
-  translated with `--src etcd=/shared/tmp/wal-fork/etcd`); **the user pushes `goose-lean-walfs3`, then the
-  examples' `go.mod`/`go.sum` move to its pseudo-version** (until then `etc/goose.py --check` fails on the
-  examples' replace lines and on the unfetchable revision).
+  translated with `--src etcd=/shared/tmp/wal-fork/etcd` until the push; the pin is now 0008's, below).
 - `0008` (wal-link, 2026-11-18; **pushed by the user 2026-11-18** as upamanyus/etcd branch `goose-lean-walfs3-fp`,
   head `34dea163a76cc68a02e9a6ae1e86df0cec069be7`, on `f01ae14c9`): `SaveSnapshot` does not cut while `w.fp` is
   nil, i.e. in `Create`'s own call (before the file pipeline exists). Found while re-proving `SaveSnapshot`'s

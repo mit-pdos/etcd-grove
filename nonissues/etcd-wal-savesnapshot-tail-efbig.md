@@ -33,8 +33,7 @@ need a premise excluding the run.
 ## Fix
 
 Fixed on the goosed fork (2026-11-18, the user's approval via etcd-grove-03): fork fix 0007
-(`notes/wal-fsext-fork/README.md`; upamanyus/etcd branch `goose-lean-walfs3`, `f01ae14c9`, pending the
-user's push): `SaveSnapshot` cuts once the tail passes `SegmentSizeBytes`, as `Save` does, with the test
+(`notes/wal-fsext-fork/README.md`; upamanyus/etcd branch `goose-lean-walfs3-fp`, `f01ae14c9`, with 0008 `34dea163a`: no cut while `w.fp` is nil, `Create`'s call): `SaveSnapshot` cuts once the tail passes `SegmentSizeBytes`, as `Save` does, with the test
 `TestSaveSnapshotCuts` (fails before, passes after). The proof then needs no room budget for snapshot
 records (wal-link L1a's `walUsed`/`walSnapBudget` go); it does need `walCutPos` to admit a cut right after a
 snapshot record (`notes/wal-link-handoff.md`).
