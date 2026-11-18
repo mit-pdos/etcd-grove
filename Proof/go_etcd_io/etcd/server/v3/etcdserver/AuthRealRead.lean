@@ -449,7 +449,8 @@ theorem heldR_reader (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG
     iapply heldR_forEach hFE γ P W Pk b rt Y x D hP.2.1 (authUsers_isBucket hID hName hSafe) $$ H
 
 /-- **The real backend is an `authBE`** for the read resource `R` and the lent family `L`, over the
-caller's ghost steps: `R` with the lent `L i` is redeemed for a reader slot, an open share and the
+caller's ghost steps, each with a later credit (the caller's invariant holds reader slots, which are not
+timeless): `R` with the lent `L i` is redeemed for a reader slot, an open share and the
 caller's `C i qo` (`Racq`); after `readTx.RLock` the caller observes, with the held read, the share and
 `C i qo`, the lent `L i` back, its `Y rv` and the well-formedness of the auth buckets read (`Robs`); at
 `RUnlock` the slot and `Y rv` give `R` back (`Rrel`). The token is `heldR … Y`. -/
@@ -466,10 +467,10 @@ theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗
-      □ (∀ i : ι, R ∗ L i ={⊤}=∗ ∃ qo : Qp, rdTok γ P b ∗ bOpen γ qo ∗ C i qo) ∗
-      □ (∀ (i : ι) (x : Loc) (rv : RView) (qo : Qp), rtHeld γ P b x rv ∗ bOpen γ qo ∗ C i qo ={⊤}=∗
+      □ (∀ i : ι, R ∗ L i ∗ £ 1 ={⊤}=∗ ∃ qo : Qp, rdTok γ P b ∗ bOpen γ qo ∗ C i qo) ∗
+      □ (∀ (i : ι) (x : Loc) (rv : RView) (qo : Qp), rtHeld γ P b x rv ∗ bOpen γ qo ∗ C i qo ∗ £ 1 ={⊤}=∗
           rtHeld γ P b x rv ∗ L i ∗ Y rv ∗ ⌜authWf (rvAuth P rv)⌝) ∗
-      □ (∀ rv : RView, rdTok γ P b ∗ Y rv ={⊤}=∗ R) ⊢
+      □ (∀ rv : RView, rdTok γ P b ∗ Y rv ∗ £ 1 ={⊤}=∗ R) ⊢
       authBE (beIface b) R L (heldR γ P b Y) := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hacq, #Hobs, #Hrel⟩
   iunfold authBE
@@ -481,11 +482,12 @@ theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   · ipureintro; rfl
   iunfold authRTx
   isplitr
-  · iintro !> %i !> %Ψ ⟨HR, HL⟩ HΨ
-    imod Hacq $$ %i [$HR $HL] with ⟨%qo, Htok, Ho, HC⟩
+  · iintro !> %i !> %Ψ ⟨HR, HL, Hlc⟩ HΨ
+    icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc, Hlc1⟩
+    imod Hacq $$ %i [$HR $HL $Hlc] with ⟨%qo, Htok, Ho, HC⟩
     iapply wp_fupd
     wp_apply (hRL γ P W Pk b rt qo) $$ [$Hb $Hrt $Htok $Ho] as ⟨%x, %rv, Hh, Ho⟩
-    imod Hobs $$ %i %x %rv %qo [$Hh $Ho $HC] with ⟨Hh, HL, HY, %Hawf⟩
+    imod Hobs $$ %i %x %rv %qo [$Hh $Ho $HC $Hlc1] with ⟨Hh, HL, HY, %Hawf⟩
     icases rtHeld_wf γ P b x rv $$ Hh with ⟨Hh, %Hwf⟩
     imodintro
     iapply HΨ
@@ -500,12 +502,12 @@ theorem authBE_real (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     iframe HL
     iapply heldR_reader hUR hFE hID hName hSafe γ P W Pk b rt Y x (rvAuth P rv) hP $$
       [$Hpkg $Hsch $Hb $Hrt]
-  · iintro !> %x %D !> %Ψ Hh HΨ
+  · iintro !> %x %D !> %Ψ ⟨Hh, Hlc1⟩ HΨ
     iunfold heldR at Hh
     icases Hh with ⟨%rv, -, Hh, HY⟩
     iapply wp_fupd
     wp_apply (hRU γ P W Pk b rt x rv) $$ [$Hb $Hrt $Hh] as Htok
-    imod Hrel $$ %rv [$Htok $HY] with HR
+    imod Hrel $$ %rv [$Htok $HY $Hlc1] with HR
     imodintro
     iapply HΨ
     iexact HR

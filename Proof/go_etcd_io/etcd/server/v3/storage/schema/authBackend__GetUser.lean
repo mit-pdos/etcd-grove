@@ -41,7 +41,7 @@ theorem schema.authBackend.GetUser.wp_proof
   wp_apply (hRT abe bi lg R Held L) $$ [$Hbe $Hlg $HBE] as %tx ⟨%l, %rt, %Htx, #Htxf, #Hlgf, #Hrtx⟩
   subst Htx
   (try wp_auto)
-  wp_apply (hRL l rt R Held L i) $$ [$Htxf $Hrtx $HR $HL] as ⟨%x, %D, %Hwf, HD, HL, #HrdD⟩
+  wp_apply (hRL l rt R Held L i) $$ [$Htxf $Hrtx $HR $HL] as ⟨⟨%x, %D, %Hwf, HD, HL, #HrdD⟩, -⟩
   icases HΦp $$ %x %D HD with ⟨HD, %HΦD⟩
   (try wp_auto)
   wp_apply (hG_ l rt lg name (Held x D) D (dU D) Hlgnn (hdU D Hwf HΦD)) $$ [$Htxf $Hlgf $HrdD $HD] as %u ⟨HD, Hu⟩

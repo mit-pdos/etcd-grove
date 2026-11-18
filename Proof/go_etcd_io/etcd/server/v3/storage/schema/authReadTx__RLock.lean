@@ -29,13 +29,15 @@ theorem schema.authReadTx.RLock.wp_proof :
   wp_start as ⟨#Htx, #Hrtx, HR, HL⟩
   iunfold schema.authRTx at Hrtx
   icases Hrtx with ⟨#HRL, -⟩
-  wp_auto
+  wp_auto_lc 3
+  icombine Hlc1 Hlc2 as Hlc
   wp_bind (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
-  iapply HRL $$ %i [$HR $HL]
+  iapply HRL $$ %i [$HR $HL $Hlc]
   inext
   iintro ⟨%x, %D, %Hwf, HD, HL, #Hrd⟩
   (try wp_auto)
   iapply HΦ
+  iframe Hlc3
   iexists x, D
   iframe HD HL Hrd
   ipureintro; exact Hwf

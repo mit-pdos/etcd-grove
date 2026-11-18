@@ -383,14 +383,16 @@ instance authReader_persistent (r : GoInterfaceOk) (H : IProp GF) (D : AuthData)
 bbolt's transaction `x`), under which its reads are `authReader`'s, and `RUnlock()` turns the token
 back into `R`. `RLock()` borrows a resource `L i` of the caller's and gives it back (auth-schema-srv A6:
 the realization lends its share of the backend's open token against the caller's share of the
-currency, `authCur γc q`, or its write token). -/
+currency, `authCur γc q`, or its write token), and later credits (auth-schema-srv A6, form: the realization
+redeems `R` for a reader slot kept in its invariant, which is not timeless, and observes after the backend's
+`RLock`, which takes no step after; schema's `RLock`/`RUnlock` make the credits from their own steps). -/
 def authRTx (rt : GoInterfaceOk) (R : IProp GF) {ι : Type} (L : ι → IProp GF)
     (Held : Loc → AuthData → IProp GF) : IProp GF :=
-  iprop(□ (∀ i : ι, {{ R ∗ L i }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
+  iprop(□ (∀ i : ι, {{ R ∗ L i ∗ £ 2 }} (App (Val #(methods rt.ty go!"RLock" rt.v)) (Val #()))
       {{ RET #(); ∃ (x : Loc) (D : AuthData), ⌜authWf D⌝ ∗ Held x D ∗ L i ∗
         authReader rt (Held x D) D }}) ∗
     □ (∀ (x : Loc) (D : AuthData),
-      {{ Held x D }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); R }}))
+      {{ Held x D ∗ £ 1 }} (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #())) {{ RET #(); R }}))
 
 instance authRTx_persistent (rt : GoInterfaceOk) (R : IProp GF) {ι : Type} (L : ι → IProp GF)
     (Held : Loc → AuthData → IProp GF) : Persistent (authRTx rt R L Held) := by

@@ -29,9 +29,9 @@ theorem schema.authReadTx.RUnlock.wp_proof :
   wp_start as ⟨#Htx, #Hrtx, HD⟩
   iunfold schema.authRTx at Hrtx
   icases Hrtx with ⟨-, #HRU⟩
-  wp_auto
+  wp_auto_lc 1
   wp_bind (App (Val #(methods rt.ty go!"RUnlock" rt.v)) (Val #()))
-  iapply HRU $$ %x %D HD
+  iapply HRU $$ %x %D [$HD $Hlc1]
   inext
   iintro HR
   (try wp_auto)
