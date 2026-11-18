@@ -556,6 +556,13 @@ provable away: the post gives `errDesc = "A"` only, for the `m = "A"` chosen at 
 `examples/axiomcx/incomingof-real/ctx_test.go` `TestFromErrorNoGRPCStatus` (T8's conjunct, and `ok=false` ⇒
 message = `Error()` for five leaf errors); `TestCtxErrDescs` (`examples/axiomcx/incomingof`).
 
+**Attack on T8' (etcd-grove-03, 2026-11-18): SURVIVES** (fixing `m` at the call closes the flip in every
+variant: two calls with `m ≠ m'`, location-free globals, `GRPCStatus` paths, prophecies; the four
+unchanged conjuncts are sound). MINORs folded into the docstring: (1) "the call returns `m`" rests on the
+soundness (adequacy) of the precondition's WP at the call, so `errorMsgIs` is never read as total
+correctness; (2) the `Message()` conjunct rests on `s` being unwritable (fresh, no ownership given out, when
+`ok = false`; `grpcStatusRO` when `ok = true`). Implemented 2026-11-18.
+
 **Specs restated with `m` (proved, no trusted text), after the attack:**
 - `rpctypes.ErrorDesc.spec`: `∀ err m`, pre adds the message clause; post `⌜d = errDesc err⌝ ∗ ⌜∀ e, err =
   ok e → noGRPCStatus e.ty → d = m⌝`.

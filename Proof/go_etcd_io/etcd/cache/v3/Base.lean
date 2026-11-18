@@ -87,6 +87,12 @@ def ctxErrShape [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (e : GoInte
   e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool])
 
+/-- **The type `t` has no grpc `GRPCStatus() *Status` method** (incomingof T8): `status.FromError`
+of a leaf error of such a type is no status error (`ok = false`). -/
+def noGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] (t : go.GoType) : Prop :=
+  methodSet t !! go!"GRPCStatus" ≠
+    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+
 /-- **Go's two context-error messages** (incomingof Part B, option (a), decided by etcd-grove-03,
 2026-11-18): `context.go`'s `Canceled = errors.New("context canceled")` and
 `deadlineExceededError.Error()`'s `"context deadline exceeded"` (`examples/axiomcx/incomingof-real`
@@ -376,12 +382,6 @@ def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
     □ ∀ (target : GoInterface) (Φ : val → IProp GF),
       ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
-
-/-- **The type `t` has no grpc `GRPCStatus() *Status` method** (incomingof T8): `status.FromError`
-of a leaf error of such a type is no status error (`ok = false`). -/
-def noGRPCStatus (t : go.GoType) : Prop :=
-  methodSet t !! go!"GRPCStatus" ≠
-    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
 
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks

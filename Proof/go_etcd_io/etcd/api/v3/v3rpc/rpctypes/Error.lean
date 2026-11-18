@@ -90,15 +90,15 @@ theorem rpctypes.Error.wp_proof
   · iPkgInit
   ihave Hri : (rpctypesInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hrpc
-  icases Hri with ⟨-, -, -, ⟨%mref, %m, #Hmg, #Hm, #Hmv, %Hmd⟩, %Hty, -⟩
+  icases Hri with ⟨-, -, -, ⟨%mref, %M, #Hmg, #HM, #Hmv, %Hmd⟩, %Hty, -⟩
   obtain ⟨e, rfl⟩ : ∃ e, err = GoInterface.ok e := by
     cases err with
     | nil => exact absurd rfl Hne
     | ok e => exact ⟨e, rfl⟩
   wp_auto
   wp_apply wp_ErrorDesc (GoInterface.ok e) m $$ [$Hok $Hm] as %d ⟨%Hd, %Hdm⟩
-  wp_apply wp_map_lookup2 $$ [$Hm] as -
-  cases hk : m !! d with
+  wp_apply wp_map_lookup2 $$ [$HM] as -
+  cases hk : M !! d with
   | none =>
     simp only [Option.getD_none, Option.isSome_none]
     wp_auto
