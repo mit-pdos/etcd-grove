@@ -1,6 +1,30 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 i, step 3 done (SaveSnapshot re-proved, budget removed); STOPPED: fork fix 0008)
+## START HERE (2026-11-18 j, step 3 done, full build green; L3 next (not started); stopped for context)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere (also as `LAKE_OPTS` for `etc/gen-link.py`, which finds Perennial's
+  sources through it), `.lake/package-overrides.json` = a copy of it.
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** `walCutPos` widened; Create's Seek law/fp premises; fork
+  fix 0008 approved with 0007 (the user pushes `goose-lean-walfs3-fp`, head `34dea163a`, which contains both;
+  then run `notes/wal-fsext-fork/bump-go-mod.sh`; until then `etc/goose.py --check` fails: **land stop needs the push**).
+- **Done (6cc3f71187, eb86d5ca41):** see History i. Full default build green (21789 jobs,
+  `/shared/tmp/wallink/full5.log`); the six `etc/api` interfaces unchanged; TCB check: `/shared/tmp/wallink/tcb5.log`.
+- **Next: L3** (scope §3.5, §1 #3-#6, §3.1-3.3): the handle record `WalH` in
+  `Proof/go_etcd_io/etcd/server/v3/storage/WalRecs.lean` (instances, `Sio` with `walCov`, `W : WalGS`, `R jr r`,
+  `w`, `dir`, `γ : WalShN`, the base's ghost name); `walRecs`/`walBaseLb`/`walFiles`/`walPurgeRight`/`walMetaIs`/
+  `walDirOf` redefined in place over layer 1 (`WalFs.walDiskAt`, `walPurgeW`, the read bridge); then the
+  server-statement stop: exact old → new of `isWalStorage`'s laws (Save: `hardStateAt` → `hsOptC`, F2), SaveSnap
+  without the budget, `rnNewStorageOk`, `storage.Release.spec`, `diskOk`, plus the exported-spec meaning changes of
+  step 3 (`walCutPos`: Open/openAtIndex/ReadAll/ReleaseLockTo/cut, WalTester's `cutPos`/`nameBound`).
+- **Check/Build:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`;
+  `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]`.
+  Wait on builds with run_in_background/Monitor, never `pgrep -f` loops (they match themselves).
+- **Pitfalls:** History i.
+
+## History
+
+### START HERE (2026-11-18 i, step 3 done (SaveSnapshot re-proved, budget removed); STOPPED: fork fix 0008)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere (also `LAKE_OPTS` for `etc/gen-link.py`: it finds Perennial's sources
@@ -26,8 +50,6 @@
 - **Pitfalls:** `generalize … at H` only takes Lean hypotheses (an IPM one is in the goal: omit `at`); goose turns
   `a || b` into nested ifs (`rw [decide_eq_false h]` per test); `wp_take_receipt` before `wp_auto` consumes the
   method resolve; `walHandleIn_win` keeps the record (close `cut`'s `h'` directly).
-
-## History
 
 ### START HERE (2026-11-18 h, fork fix 0007 made and translated; STOPPED before re-proving: walCutPos must widen)
 
