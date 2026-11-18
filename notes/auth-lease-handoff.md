@@ -13,9 +13,13 @@
   lt)` from `rangeReplyOk`; `isServerReadM E.authOn`, no literal mode). State: see the commit that adds them.
 - **Driver plan (what is left, in order):**
   1. `Served.lean`: authN's `serve_member`/`srvdAt`/`Wit` (authN `run.lean`) plus the lease registrations at the member
-     (`etcd_lease_auth_served_on`: LeaseGrant/LeaseRevoke at `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn`;
-     `etcd_lease_read_served`: TimeToLive/Leases at `etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`), from `memberUpOn … .revocable`
-     (`srvLeaseRd`) and `grpcUpOn`'s `grpcLeaseUp`.
+     (`etcd_lease_auth_served_on`, AuthnServedOn:499: LeaseGrant/LeaseRevoke at `etcdLeaseGrantSpecOn`/`…RevokeSpecOn`;
+     `etcd_lease_read_served`, LeaseReadServed:800: TimeToLive/Leases at `etcdLeaseTTLSpecMd`/`…LeasesSpecMd`). Neither
+     has a user yet. Their inputs: `grpcUpOn`'s `grpcLeaseUp` (`quotaLeaseServerAt`, `leaseServerAt`, `leaseRegs ⊆ regs`),
+     `grpcServerAt`, the interceptors, `srvRevokeBuilt`, `srvRunPool` (as `kv_lease_served` builds them from the stocks,
+     etcdstart `ServedLease.lean:386`, the auth-off model), `raftLeaseRead` from `memberUpOn … .revocable`'s `srvLeaseRd`,
+     `isServerReqM/ReadM true`, `□ |==> idCred ρ.ids 1`. Likely an etcdstart lemma `ak_served_lease` beside authN's
+     `ak_served_kv`/`ak_served_watch` (find them: `grep -rn "theorem ak_served" Proof`), passed to `Serve.spec`'s callback.
   2. `Cell.lean`: the driver's invariant over the client half `etcdKV γk σ` (Freeze §8.3): phases after the set-up
      (`a/x`, `z/lease`, `a/lease`, `a/txn` absent), after root's put (`leaseKeptIn σ rz Lz z/lease`), after u's puts (`…
      Lu a/lease`, `… Lu a/txn`), after u's revocation (`a/lease`, `a/txn` absent); `a/x` absent throughout. Every update
