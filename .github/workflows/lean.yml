@@ -134,6 +134,10 @@ jobs:
           if-no-files-found: ignore
       - name: Check the trust base
         run: ./etc/tcb-report.py --check
+      # No proof steps into Perennial's `fmt.Errorf` model outside the reviewed modules (reads the
+      # .lake/tcb.json the step above wrote).
+      - name: Check the fmt.Errorf model steps
+        run: ./etc/errorf-wrap-check.py --reuse
       # The checked-in interfaces (`interface/`) must be exactly what the build exports, as the
       # translations must be what Goose produces; and no new layout violation. After the build:
       # the interface is read from the built modules.

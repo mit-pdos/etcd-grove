@@ -949,7 +949,7 @@ theorem ctxWrapErr_stringMethodSpec [_root_.Perennial.fmt.Assumptions] (ii : GoI
     cases Hii
     icases Hch with (#Hm | ⟨%mid, #Hw, -⟩)
     · iunfold EtcdGrove.fmt.modelErrIs at Hm
-      icases Hm with ⟨-, %s, #Hs⟩
+      icases Hm with ⟨%x, -, %s, -, #Hs⟩
       unfold EtcdGrove.fmt.stringMethodSpec
       iintro !> %Φ HΦ
       iapply Hs

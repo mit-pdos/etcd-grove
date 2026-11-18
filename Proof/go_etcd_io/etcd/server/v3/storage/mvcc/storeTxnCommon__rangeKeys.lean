@@ -692,12 +692,16 @@ theorem mvcc.storeTxnCommon.rangeKeys.wp_proof
                   · iunfold mvcc.ctxErrorf
                     iapply go_etcd_io.etcd.cache.v3.ctxWrapErr_wrap $$ Hw Hce
                   isplitr
-                  · ipureintro; exact Hpre
+                  · iexists e0, _
+                    isplitr
+                    · ipureintro; rfl
+                    iframe Hw
+                    ipureintro; exact Hpre
                   iexists e0
                   iunfold EtcdGrove.fmt.errorfWrapIs at Hw
                   icases Hw with (#HM | #HW)
                   · iunfold EtcdGrove.fmt.modelErrIs at HM
-                    icases HM with ⟨-, %s, #HE⟩
+                    icases HM with ⟨%x, -, %s, -, #HE⟩
                     iexists s
                     isplitr
                     · ipureintro; rfl
