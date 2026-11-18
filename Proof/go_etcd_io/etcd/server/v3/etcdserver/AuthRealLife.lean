@@ -67,6 +67,10 @@ instance pubQ_timeless (γa : auth.AuthNames) (q : Qp) (p : Nat) : Timeless (aut
 instance pubTok_timeless (γa : auth.AuthNames) : Timeless (auth.authPubTok (GF := GF) γa) := by
   unfold auth.authPubTok; infer_instance
 
+instance bkTok_timeless (γ : RNames) (q : Qp) (x : BktData × BktData × BktData) :
+    Timeless (bkTok (GF := GF) γ q x) := by
+  unfold bkTok; infer_instance
+
 instance batchTok_timeless (γ : RNames) : Timeless (batchTok (GF := GF) γ) := by
   unfold batchTok; infer_instance
 
@@ -143,10 +147,12 @@ theorem real_retire (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
   iinv Hinv with Hi Hclose
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
-  icases Hl with (⟨>Hs, >Hr, Hp, Hq, Hb⟩ | ⟨Hpt', Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
-  · icases Hb with (Hid | >HT')
+  icases Hl with (⟨>Hs, >Hr, Hp, Hb⟩ | ⟨Hpt', Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
+  · icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs, %rc, >Hlq, -, Hbt, >%Hid⟩
+      icases Hid with ⟨%hs, %rc, >Hlq, -, >Hbt, Hq, >%Hid⟩
+      ihave Hbt : batchTok γ $$ [Hbt]
+      · iunfold batchTok; iexists _; iexact Hbt
       imod Hclose $$ [Hc Hp Hq HT Hpt Hbt]
       · inext
         iunfold realSt
@@ -162,7 +168,9 @@ theorem real_retire (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
       simp only [auth.authLockShare, auth.histLast]
       iframe Hlq
       ipureintro; exact Hid.1
-    · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
+    · iunfold bkBatch at Hbb
+      icases Hbb with ⟨>HT', -⟩
+      iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
   · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
   · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
 
@@ -175,7 +183,7 @@ theorem real_release (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (hq : authOpen
   iinv Hinv with Hi Hclose
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
-  icases Hl with (⟨Hs, >Hr, Hp, Hq, Hb⟩ | ⟨>Hpt, Hp, >Hq, >HT, Hbt⟩ | ⟨Hcur', >Hr, Hpr, HT', Hbt⟩)
+  icases Hl with (⟨Hs, >Hr, Hp, Hb⟩ | ⟨>Hpt, Hp, >Hq, >HT, Hbt⟩ | ⟨Hcur', >Hr, Hpr, HT', Hbt⟩)
   · iexfalso; iapply retired_excl γ.γc $$ [$HR $Hr]
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
@@ -221,10 +229,10 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
   · exact authRealN_authRev
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p', Hc, Hl⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt', Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
-  · icases Hb with (Hid | >HT')
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt', Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
+  · icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs', %rc, >Hlq, Hro, Hbt, >%Hid⟩
+      icases Hid with ⟨%hs', %rc, >Hlq, Hro, Hbt, Hq, >%Hid⟩
       ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hhh Hlq
       subst Heq
       obtain ⟨hl, hu, hr, hja, hju, hjr, hcs⟩ := id Hid
@@ -252,18 +260,20 @@ theorem real_publish (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
           ipureintro
           exact ⟨Hv.1, Hv.2.1, Hv.2.2.1, by omega, by omega⟩
         ileft
-        iframe Hs Hr Hp Hq
+        iframe Hs Hr Hp
         ileft
         iunfold bkIdle
         iexists hs, rc
-        iframe Hlq Hro Hbt
+        iframe Hlq Hro Hbt Hq
         ipureintro; exact Hid
       imodintro
       iframe HT Hhh
       isplitl [Hpt]
       · iunfold auth.authPubTok; iexists hs.length - 1; iunfold auth.authPubQ; iexact Hpt
       iunfold auth.authPubQ; iexact Hph
-    · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
+    · iunfold bkBatch at Hbb
+      icases Hbb with ⟨>HT', -⟩
+      iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
   · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
   · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
 

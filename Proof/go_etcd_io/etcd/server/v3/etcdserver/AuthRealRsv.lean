@@ -91,20 +91,20 @@ theorem real_acqR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
   imod lc_fupd_elim_later (E := ⊤ ∖ ↑authRealN) (P := realSt γ d s0 q0) $$ Hlc Hi with Hi
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
     ihave Htt : iprop(True) $$ []
     · itrivial
     imod pool_acq _ γ.γm' γ.γh' (tokIn (auth.authWTok γ.γc)) (fun _ => iprop(True)) _ _ (auth.authWTok γ.γc) 1
       (fun a => tokIn_dep _ (wTok_excl γ.γc) a) none $$ [$Hp2 $HT $Htt] with ⟨Hp2, Htok, Hsh, %k, Hk⟩
-    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hq Hb]
+    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hb]
     · inext
       iunfold realSt
       iexists cs, sa, su, sr, ja, ju, jr, p
       iframe Hc
       ileft
-      iframe Hs Hr Hq Hb
+      iframe Hs Hr Hb
       iunfold pools
       iframe Hp1 Hp2
     imodintro
@@ -135,12 +135,12 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
   icases bkCommon_rv γ d cs sa su sr ja ju jr p x rv $$ [$Hc $Hh] with ⟨Hc, Hh, %Hcs⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
-    icases Hb with (Hid | HT')
+    icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs', %rc, Hlq, Hro, Hbt, %Hid⟩
+      icases Hid with ⟨%hs', %rc, Hlq, Hro, Hbt, Hq, %Hid⟩
       simp only [auth.authOwn]
       icases HL with ⟨Hhh, HcurH⟩
       ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hhh Hlq
@@ -157,13 +157,13 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
         isplitl [Ha Hu Hr' Hp']
         · iunfold bkCommon; iframe Ha Hu Hr' Hp'; iframe #; ipureintro; exact Hv
         ileft
-        iframe Hs Hr Hq
+        iframe Hs Hr
         isplitl [Hp1 Hp2]
         · iunfold pools; iframe Hp1 Hp2
         ileft
         iunfold bkIdle
         iexists hs, rc
-        iframe Hlq Hro Hbt
+        iframe Hlq Hro Hbt Hq
         ipureintro; exact Hid
       have hv : viewAt (auth.BkView.uni sa) (schema.rvAuth d.P rv) := by
         rw [Hcs]
@@ -175,7 +175,9 @@ theorem real_obsR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
       isplitl [Hy HX]
       · iunfold yR; iframe Hy HX; ipureintro; exact ⟨sa, hl, hv⟩
       ipureintro; exact viewAt_wf hv
-    · iexfalso
+    · iunfold bkBatch at Hbb
+      icases Hbb with ⟨HT', -⟩
+      iexfalso
       iapply poolSt_rcpt_T γ.γm' γ.γh' _ (wTok_excl γ.γc) _ _ _ 1 k none $$ [$Hp2 $Hk $HT']
   · iunfold pools at Hp
     icases Hp with ⟨-, Hp2⟩
@@ -199,18 +201,18 @@ theorem real_relR (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (X : IProp GF) (h
   imod lc_fupd_elim_later (E := ⊤ ∖ ↑authRealN) (P := realSt γ d s0 q0) $$ Hlc Hi with Hi
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
     imod pool_rel _ γ.γm' γ.γh' (tokIn (auth.authWTok γ.γc)) (fun _ => iprop(True)) _ _ (auth.authWTok γ.γc) 1
       (fun a => tokIn_wd _ a) $$ [$Hp2 $Hy $Htok] with ⟨Hp2, HT⟩
-    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hq Hb]
+    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hb]
     · inext
       iunfold realSt
       iexists cs, sa, su, sr, ja, ju, jr, p
       iframe Hc
       ileft
-      iframe Hs Hr Hq Hb
+      iframe Hs Hr Hb
       iunfold pools
       iframe Hp1 Hp2
     imodintro

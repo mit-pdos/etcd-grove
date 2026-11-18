@@ -1,6 +1,43 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6: STOP 3 before the write side)
+## START HERE (2026-11-18, A6: P1' and the write side's forms applied; (c) next)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 1b298c1e70 merged (c6546c5303): pin
+  6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A), F-enc + F-acc, the pool, L-rev/P2, the read side, (a) reserved
+  reads, (b) the lifecycle (all ACCEPTED); **STOP 3 decided** (questions.md "A6 STOP 3 decided"): **P1'** applied
+  (`auth.authLockQ` carries `∀ st ∈ hs, permKeysOk st`, Model.lean; independent read-only check: OK, every producer
+  via `authHist_split`), and the forms: `bkIdle` takes `q0` and holds `bOpen q0` and the batch token `bkTok γ 1 (csT
+  cs)` (a ghost variable of the three readers' contents); live branch `succ ∗ retired ∗ pools ∗ (bkIdle ∨ bkBatch)`,
+  `bkBatch γ cs = authWTok ∗ bkTok γ ½ (csT cs)`; `batchTok γ = ∃ x, bkTok γ 1 x` (gone branches);
+  `viewSame_putHB`/`viewSame_del` at any `cl` (BackendBridge). Builds: `p1-build1.log`, `p1-build2.log`
+  (`/shared/tmp/auth-schema-srv/`); full build after P1': see the latest `p1-full*.log`.
+- **Next, (c) the write side** (new file `etcdserver/AuthRealWr.lean`, importing AuthRealInv, mvcc BackendBridge,
+  schema's `authBatchTx.*`/`authBackend.{BatchTx,ForceCommit,GetAllRoles}` specs, backend `batchTxBuffered.*`):
+  1. a batch reader: `schema.authReader t H D` and `authRolesRange t H m` under `H ⊇ batchLocked γ P b st c` with
+     `D` the auth buckets of `st.S` (from `batchTxBuffered.UnsafeRange.spec` (its `rdB` capability) and
+     `batchTx.UnsafeForEach.spec`; model the read side's `schema.authBE_real`, schema `InvAuthBackend`);
+  2. `Lk st X := ∃ bs k, batchLocked d.γB d.P d.be bs true ∗ rbPartR d.γB (· ∈ authBktL) (rbData d.P bs.S) ∗
+     bkTok γ ½ x ∗ bOpen d.γB q0 ∗ W ∗ Pk ∗ X ∗ ⧗ k ∗ ⌜sessWf, cnt.hw = false, ndel/viewSame, cw ⊆ authBktL,
+     tk n = idle → bktOf bs.S n = x.n, the writer's contents encode st (authAt/usersAt/rolesAt), pend < limit + k,
+     permKeysOk st? (not needed: P1')⌝`; `Sw w := ⌜bs.tk users/roles = w's kinds⌝` inside Lk (Sw may be `True` and the
+     kinds kept in Lk: Sw is the contract's own token, choose `Sw w := ghostVar`-free pure if possible);
+  3. Lock: borrow (deposit `T`, take `bkIdle`, leave `bkBatch`), `LockInsideApply` (hookRun's non-nil branch from
+     `csContractA`; boot token: nil branch with `plHook nil`), `batchLocked_claimed`, `rbOwnInR_part`;
+  4. the six writes (schema's spec with the backend's `UnsafePut`/`UnsafeDelete` at `k = c = true`, `rbPartR_split`/
+     `_congr`/`rbPutR`; `hkPut`/`fkPut` trivial off `Meta`; `isBucket` of schema's globals; receipts:
+     `receipt_add_one_lt`, `receiptBound GF ≤ 2^48` a section premise, `P.Wf`: `limit ≤ 2^57`, `hookMax ≤ 2^16`);
+  5. Unlock: schema's `authBatchTx.Unlock` = backend `Unlock` (first branch: `viewSame_thin`, `W ∗ Pk`, `Sc =
+     authBktL`, `Rr = authLockI ∗ bkTok ½`, `rbAcc` opening `realInv` at `E = ⊤ ∖ ↑authRealN`: each moved or untouched
+     bucket to `st` at `hs.length - 1` (`authStateAt` from `authLockQ`, P1'), a deleted-only kept bucket at its old
+     state; back to idle at the first window or the second) then `Commit` (`commitReq_true`, `bOpen q0`);
+  6. `authBackendReads.GetAllRoles` (Lock, `UnsafeGetAllRoles`, Unlock with `Sc = []`, `rbAcc_nil`), `ForceCommit`
+     (borrow with `T`), `BatchTx`; then `authWBackendOkR` at `authWTok γc` (authWAtHook) and at the boot token.
+  Then (d) `authBkLend`, `CreateAuthBuckets`; (e) creation and `⊢ authSchemaSrv`, `authSchemaSnap`; A6-end report.
+- Pitfalls: (0)-(30) as before (History); (31) `bkTok` needs its `Timeless` instance (AuthRealLife) for `>` patterns.
+
+## History (START HERE of 2026-11-18, A6 STOP 3, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 1b298c1e70 merged (c6546c5303; fmt
   soundness: no repair needed, nothing of this branch names `errOk`/`fmt.Errorf`): pin 6d365ee1a,

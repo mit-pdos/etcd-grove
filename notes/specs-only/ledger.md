@@ -2876,3 +2876,17 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   same axiom, restated). The plan's spec already has the premise (`isLogger l`).
 - **Decision.** Accepted (the user, 2026-11-17: "fix the axioms ... and the proofs above that axiom");
   made on branch `zap-panic-iface`.
+
+## 2026-11-18: the batch lock's share of the auth history carries the states' permission keys (auth-schema-srv A6, STOP 3)
+
+- **Spec.** `auth.authLockQ` (Model.lean), through `authLockI`: `authSchemaSrv`'s premise `authLockI (.on γa) bootState`,
+  the write contract `authBatchTxLkR`'s `Lock` (gives it) and `Unlock` (takes it), `authSchemaSnap`'s lock share.
+- **Defect.** Unprovable as stated, not false: at the write contract's `Unlock` the realization holds only the lock's
+  quarter of the history; the write-back moves the auth buckets to the session's state `st`, which the invariant must
+  record (`authStateAt`, which includes `permKeysOk st`, as the read contract's views hand it to readers), and nothing
+  gives `permKeysOk st` (the quarter carried none; `roleEncode` opaque; `UnsafePutRole` allows an empty key).
+- **Evidence.** `questions.md` "A6 STOP 3"; the store's history carries the fact (`authHist`, `authHistHalf`).
+- **Proposed change.** `authLockQ γa hs := monoListAuthOwn γa.hist ¼ hs ∗ ⌜∀ st ∈ hs, permKeysOk st⌝` (P1'). Every
+  producer goes through `authHist_split`; independent read-only check: no producer lacks the fact, nothing new for a
+  client against the four forbidden laws. P2 kept (now redundant).
+- **Decision.** Approved by etcd-grove-03, 2026-11-18 (on the A7 list); made on branch `auth-schema-srv`.

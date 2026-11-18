@@ -361,8 +361,8 @@ theorem sData_del_HB {P : BParams} {S : Data} {n k : GoString} (h : P.HB n = tru
   rw [GMap.lookup_insert_ne _ _ this]
 
 /-- A delete from a hook's bucket changes nothing the readers see. -/
-theorem viewSame_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString}
-    (hb : P.HB bi.name = true) (h : viewSame P st) : viewSame P (st.del bi k) := by
+theorem viewSame_del {P : BParams} {st : BSess} {bi : BucketInfo} {k : GoString} {cl : Bool}
+    (hb : P.HB bi.name = true) (h : viewSame P st) : viewSame P (st.del bi k cl) := by
   refine ⟨?_, h.2⟩
   show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).delete k))
   rw [sData_del_HB hb]
@@ -383,8 +383,8 @@ theorem sData_insert_HB {P : BParams} {S : Data} {n : GoString} (x : BktData) (h
 off the hook's buckets are the same, and the write buffer's entry is at the hook bucket's id, which
 no other bucket of the table has (`BParams.Wf`). -/
 theorem viewSame_putHB {P : BParams} (hWf : P.Wf) {st : BSess} {bi : BucketInfo} {k v : GoString}
-    (hb : P.HB bi.name = true) (hhas : P.has bi) (h : viewSame P st) :
-    viewSame P (st.put bi k v false) := by
+    {cl : Bool} (hb : P.HB bi.name = true) (hhas : P.has bi) (h : viewSame P st) :
+    viewSame P (st.put bi k v false cl) := by
   refine ⟨?_, ?_⟩
   · show vData P (st.C, st.R) = sData P (st.S.insert bi.name ((bktOf st.S bi.name).insert k v))
     rw [sData_insert_HB _ hb]

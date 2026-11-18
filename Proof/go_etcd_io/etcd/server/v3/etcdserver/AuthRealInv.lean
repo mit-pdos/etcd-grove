@@ -94,15 +94,25 @@ def depT (γ : RNames) : Option Qp → IProp GF
   | some q => auth.authCur γ.γc q
   | none => auth.authWTok γ.γc
 
-/-- **The batch token** (exclusive): the idle and gone branches hold it, a batch's lock token holds it. -/
-def batchTok (γ : RNames) : IProp GF := token γ.γk
+/-- The three auth buckets' readers' contents, as a triple. -/
+def csT (cs : GoString → BktData) : BktData × BktData × BktData :=
+  (cs go!"auth", cs go!"authUsers", cs go!"authRoles")
+
+/-- **The batch token's share** `q` at the auth buckets' readers' contents `x` (a ghost variable): the idle
+branch holds it whole, a batch half (its lock token the other half: an untouched bucket's readers' contents are
+the writer's), the gone branches whole at any contents. -/
+def bkTok (γ : RNames) (q : Qp) (x : BktData × BktData × BktData) : IProp GF := ghostVar γ.γk q x
+
+/-- **The batch token** (exclusive): the gone branches hold it. -/
+def batchTok (γ : RNames) : IProp GF := iprop(∃ x, bkTok γ 1 x)
 
 /-- **The buckets idle**: the lock's share of a history `hs` whose last is every bucket's state, at its last
-index; the claimed part at contents `rc` that the readers see; the batch token. -/
-def bkIdle (γ : RNames) (d : mvcc.KBReal) (sa su sr : auth.AuthState) (ja ju jr : Nat)
+index; the claimed part at contents `rc` that the readers see; the batch token at those contents; the rest `q0`
+of the open share (a batch borrows it: `LockInsideApply` and `Commit` take a share). -/
+def bkIdle (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (sa su sr : auth.AuthState) (ja ju jr : Nat)
     (cs : GoString → BktData) : IProp GF :=
   iprop(∃ (hs : List auth.AuthState) (rc : GMap GoString BktData), auth.authLockQ γ.γa hs ∗
-    rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗ batchTok γ ∗
+    rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗ bkTok γ 1 (csT cs) ∗ bOpen d.γB q0 ∗
     ⌜hs.getLast? = some sa ∧ su = sa ∧ sr = sa ∧ ja = hs.length - 1 ∧ ju = ja ∧ jr = ja ∧
       ∀ n, n ∈ authBktL → bktOf rc n = cs n⌝)
 
@@ -130,16 +140,20 @@ def pools (γ : RNames) (d : mvcc.KBReal) (s0 : Qp) : IProp GF :=
 def poolsRel (γ : RNames) : IProp GF :=
   iprop(poolRel γ.γm γ.γh (ticketsIn γ.γt ticketN) ∗ poolRel γ.γm' γ.γh' (tokIn (auth.authWTok γ.γc)))
 
+/-- **The buckets in a batch**: the write token deposited, half the batch token at the readers' contents. -/
+def bkBatch (γ : RNames) (cs : GoString → BktData) : IProp GF :=
+  iprop(auth.authWTok γ.γc ∗ bkTok γ (1 : Qp).half (csT cs))
+
 /-- **The realization's state of one backend** (see the file header): the buckets' common part and the life:
-live (the succession right, the retired token, the pools, the rest `q0` of the open share; the buckets idle or
-in a batch, the write token then deposited), retired (the publication quarter, the pools, the rest of the open
+live (the succession right, the retired token, the pools; the buckets idle, with the rest `q0` of the open
+share, or in a batch, the write token then deposited), retired (the publication quarter, the pools, the rest of the open
 share; the buckets gone: the write token and the batch token kept) or released (the whole currency, the retired
 token, the pools' remains; gone). -/
 def realSt (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) : IProp GF :=
   iprop(∃ (cs : GoString → BktData) (sa su sr : auth.AuthState) (ja ju jr p : Nat),
     bkCommon γ d cs sa su sr ja ju jr p ∗
-    ((auth.authSucc γ.γa ∗ auth.authRetired γ.γc ∗ pools γ d s0 ∗ bOpen d.γB q0 ∗
-        (bkIdle γ d sa su sr ja ju jr cs ∨ auth.authWTok γ.γc)) ∨
+    ((auth.authSucc γ.γa ∗ auth.authRetired γ.γc ∗ pools γ d s0 ∗
+        (bkIdle γ d q0 sa su sr ja ju jr cs ∨ bkBatch γ cs)) ∨
       (auth.authPubTok γ.γa ∗ pools γ d s0 ∗ bOpen d.γB q0 ∗ auth.authWTok γ.γc ∗ batchTok γ) ∨
       (auth.authCur γ.γc 1 ∗ auth.authRetired γ.γc ∗ poolsRel γ ∗ auth.authWTok γ.γc ∗ batchTok γ)))
 
@@ -186,18 +200,18 @@ theorem real_acq (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (o : Option Qp) :
   imod lc_fupd_elim_later (E := ⊤ ∖ ↑authRealN) (P := realSt γ d s0 q0) $$ Hlc Hi with Hi
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
     imod pool_acq _ γ.γm γ.γh (ticketsIn γ.γt ticketN) (depT γ) _ _ (ownToks γ.γt 1) ticketN
       (fun a => ticketsIn_dep γ.γt ticketN a) o $$ [$Hp1 $Ht $Hd] with ⟨Hp1, Htok, Hsh, %k, Hk⟩
-    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hq Hb]
+    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hb]
     · inext
       iunfold realSt
       iexists cs, sa, su, sr, ja, ju, jr, p
       iframe Hc
       ileft
-      iframe Hs Hr Hq Hb
+      iframe Hs Hr Hb
       iunfold pools
       iframe Hp1 Hp2
     imodintro
@@ -272,18 +286,18 @@ theorem real_obs (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (o : Option Qp) (x
   · iunfold bkCommon at Hc
     icases Hc with ⟨-, -, -, -, -, -, -, %Hv⟩
     ipureintro; rw [Hrv]; exact viewAt_wf Hv.1
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
     imod pool_obs _ γ.γm γ.γh (ticketsIn γ.γt ticketN) (depT γ) _ _ ticketN k o $$ [$Hp1 $Hk $Ho]
       with ⟨Hp1, Hd, Hy⟩
-    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hq Hb]
+    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hb]
     · inext
       iunfold realSt
       iexists cs, sa, su, sr, ja, ju, jr, p
       iframe Hc
       ileft
-      iframe Hs Hr Hq Hb
+      iframe Hs Hr Hb
       iunfold pools
       iframe Hp1 Hp2
     imodintro
@@ -319,18 +333,18 @@ theorem real_rel (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
   imod lc_fupd_elim_later (E := ⊤ ∖ ↑authRealN) (P := realSt γ d s0 q0) $$ Hlc Hi with Hi
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT, Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, Hbt⟩)
   · iunfold pools at Hp
     icases Hp with ⟨Hp1, Hp2⟩
     imod pool_rel _ γ.γm γ.γh (ticketsIn γ.γt ticketN) (depT γ) _ _ (ownToks γ.γt 1) ticketN
       (fun a => ticketsIn_wd γ.γt ticketN a) $$ [$Hp1 $Hy $Htok] with ⟨Hp1, HR⟩
-    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hq Hb]
+    imod Hclose $$ [Hc Hs Hr Hp1 Hp2 Hb]
     · inext
       iunfold realSt
       iexists cs, sa, su, sr, ja, ju, jr, p
       iframe Hc
       ileft
-      iframe Hs Hr Hq Hb
+      iframe Hs Hr Hb
       iunfold pools
       iframe Hp1 Hp2
     imodintro
@@ -435,10 +449,10 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
   iunfold realSt at Hi
   icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
   icases bkCommon_rv γ d cs sa su sr ja ju jr p x rv $$ [$Hc $Hh] with ⟨Hc, Hh, %Hcs⟩
-  icases Hl with (⟨Hs, Hr, Hp, Hq, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
-  · icases Hb with (Hid | HT')
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, HT', Hbt⟩)
+  · icases Hb with (Hid | Hbb)
     · iunfold bkIdle at Hid
-      icases Hid with ⟨%hs', %rc, Hlq, Hro, Hbt, %Hid⟩
+      icases Hid with ⟨%hs', %rc, Hlq, Hro, Hbt, Hq, %Hid⟩
       ihave %Heq := auth.authHistHalf_lockQ_agree γ.γa hs hs' $$ Hhh Hlq
       subst Heq
       obtain ⟨hl, hu, hr, -, -, -, -⟩ := id Hid
@@ -451,11 +465,11 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
         isplitl [Ha Hu Hr' Hp']
         · iunfold bkCommon; iframe Ha Hu Hr' Hp'; iframe #; ipureintro; exact Hv
         ileft
-        iframe Hs Hr Hp Hq
+        iframe Hs Hr Hp
         ileft
         iunfold bkIdle
         iexists hs, rc
-        iframe Hlq Hro Hbt
+        iframe Hlq Hro Hbt Hq
         ipureintro; exact Hid
       imodintro
       iframe HT Hhh
@@ -472,7 +486,9 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
       simp only [auth.authSnap]
       iexists ja
       iexact Hsa
-    · iunfold auth.authWTok at HT HT'
+    · iunfold bkBatch at Hbb
+      icases Hbb with ⟨HT', -⟩
+      iunfold auth.authWTok at HT HT'
       iexfalso
       iapply token_exclusive $$ HT HT'
   · iunfold auth.authWTok at HT HT'
