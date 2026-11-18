@@ -2,6 +2,10 @@
 
 ## START HERE
 
+**2026-11-18 (night 4; for etcd-grove-03). STOP before B1/B2/B4: B2 as scoped is false (the precondition
+message is not in the plain output; questions.md "Step 4 STOP"). Waiting for the choice of fix; nothing else
+changed. B3, B5 proved and accepted.**
+
 **2026-11-18 (night 3; for etcd-grove-03). Step 4: B3 (a and b) and B5 proved, no `sorry` in
 `RealReplay`/`RealWatch`; B1, B2, B4 left (statements not yet written). Paused at a context stop.**
 
