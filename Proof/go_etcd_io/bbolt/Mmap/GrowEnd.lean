@@ -178,7 +178,8 @@ theorem grow_finish_same (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (h
   have hag : ∀ s, 4096 * (s + 1) ≤ w.m.size → w.wb s = w.wb s := fun _ _ => rfl
   have hok' := wdbOK'_grown fr w hok b L hms m' w.wb (by omega) hmaps
     (wdbOK'_flHdr fr w hok) hag (fun s h1 h2 => by omega)
-    (fun h => by rw [hsz]; exact hk10 h) (by rw [hsz]; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.1)
+    (fun h => by rw [hsz]; exact hk10 h) (by rw [hsz]; exact (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).1)
+    (fun hf => by rw [hsz]; exact (hok.2.2.2.2.2.2.2.2.2.2.2.2.1).2.2 hf)
     (by rw [hsz]; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.1 b L hms)
     (fun s h1 h2 => by rw [hsz] at h1 h2 ⊢; exact hok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s h1 h2)
   iexists ({ w with m := m', W := wSlots k w.C w.fl, wb := w.wb } : WDb)

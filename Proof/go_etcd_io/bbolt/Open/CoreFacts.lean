@@ -182,6 +182,7 @@ theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta
     rw [mem_pagesSlots_iff] at hs
     obtain ⟨id, pg, hp, h1, h2⟩ := hs
     have := htree.2.2.2.1 id pg hp; omega
+  have hsz62 := hsz.lt
   unfold wdbOK
   simp only [openW, mapLen]
   refine ⟨?_, ?_, by omega, ?_, fun x hx => (hfree x hx).2, hcur, by omega, by omega, ?_, ?_, ?_,

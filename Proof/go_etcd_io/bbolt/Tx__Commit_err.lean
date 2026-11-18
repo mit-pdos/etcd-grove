@@ -664,6 +664,7 @@ theorem Tx.Commit_err.wp_proof'
           imod cm_wdbW'_cfacts (GF := GF) fr K tx X4.v w4 $$ [Hwdb] with ⟨Hwdb, %Hcf4⟩
           · iframe; iframe #
           icases (cm_keep_pure (cm_wdbW'_mapLen fr K tx X4.v w4)) $$ Hwdb with ⟨Hwdb, %Hml4⟩
+          replace Hml4 : mapLen w4.ms ≤ 0xFFFFFFFFFFFF := Nat.le_trans Hml4 (by decide)
           icases (cm_keep_pure (cm_wdbW'_bounds fr K tx X4.v w4)) $$ Hwdb with ⟨Hwdb, %Hbd4⟩
           obtain ⟨htt4, hrl4, htx4⟩ := allocRes_keep _ _ _ _ _ _ _ _ Hal.1
           have htt5 : X4.t.t = X.t.t := by rw [htt4, htt3, htt2, htt1]
@@ -752,6 +753,7 @@ theorem Tx.Commit_err.wp_proof'
         imod cm_wdbW'_cfacts (GF := GF) fr K tx X2.v w3 $$ [Hwdb] with ⟨Hwdb, %Hcf2⟩
         · iframe; iframe #
         icases (cm_keep_pure (cm_wdbW'_mapLen fr K tx X2.v w3)) $$ Hwdb with ⟨Hwdb, %Hml2⟩
+        replace Hml2 : mapLen w3.ms ≤ 0xFFFFFFFFFFFF := Nat.le_trans Hml2 (by decide)
         try wp_auto
         try simp only [WX.withMv_withMv]
         imod cm_excl_update K r X1 (X2.withMv ({ X2.t.mv with
@@ -881,7 +883,7 @@ theorem Tx.Commit_err.wp_proof'
           icases (cm_keep_pure (cm_wdbW'_mapLen fr K tx Xt.v wt)) $$ Hwdb with ⟨Hwdb, %Hml⟩
           have hn : Xt.t.mv.pgid'.toNat < 2 ^ 36 := by omega
           have hz1 : 0 ≤ sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) := by word
-          have hn' : Xt.t.mv.pgid'.toNat * 4096 ≤ 0x800000000000 := by omega
+          have hn' : Xt.t.mv.pgid'.toNat * 4096 ≤ 0x800000000000 := Nat.le_trans hmapt Hml
           have hz2 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) + 0x1000000 ≤ 0xFFFFFFFFFFFF := by
             word
           have hz3 : sint.Z ((Xt.t.mv.pgid' + W64 1) * W64 4096) % 4096 = 0 := by word

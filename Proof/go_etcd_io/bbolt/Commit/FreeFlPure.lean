@@ -102,7 +102,7 @@ theorem freeFl_ok (w : WDb) (f : Nat) (hok : wdbOK w) (hf : w.C.flpg = some f)
       rw [Nat.lt_div_iff_mul_lt (by omega)]; omega
     exact Nat.lt_of_lt_of_le this (Nat.div_le_div_right (Nat.le_max_right _ _))
   have hh48 : w.C.hwm < 2 ^ 51 := by
-    have := hfree.2.1; omega
+    have := hfree.2.1.lt; omega
   refine ⟨h16, c1, c2, hh48, fun j hj => ?_, fun hal => ?_, ?_, ?_, ?_⟩
   · -- the run's slots
     have a : f ≤ f + j := Nat.le_add_right _ _

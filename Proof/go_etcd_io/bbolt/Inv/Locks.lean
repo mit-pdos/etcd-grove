@@ -31,6 +31,34 @@ open Fs
 
 open Iris Iris.BI go_etcd_io.bbolt
 
+section size
+variable [GooseExts] [ExtSemantics fsExt]
+
+/-- **The file's size bounds** (session S3g; `wdbOK`'s clause): at most `maxMapSize`, the mapping
+inside the model's address space (`maxAddr = 2 ^ 47`), and, unless the file model failed in a way
+the premises exclude, whole pages. -/
+def wdbSz (m : OsMeta) (ms : MapSt) : Prop :=
+  m.size ≤ 0xFFFFFFFFFFFF ∧ mapLen ms ≤ 0x800000000000 ∧ (FsNoErr → m.size % 4096 = 0)
+
+theorem wdbSz.lt {m : OsMeta} {ms : MapSt} (h : wdbSz m ms) : m.size < 2 ^ 62 := by
+  have := h.1; omega
+
+theorem wdbSz.written {m m' : OsMeta} {ms : MapSt} (h : wdbSz m ms)
+    (h2 : m'.size ≤ max m.size (mapLen ms)) (hal : FsNoErr → m'.size = m.size ∨ m'.size % 4096 = 0) :
+    wdbSz m' ms := by
+  obtain ⟨h1, hl, h3⟩ := h
+  refine ⟨by omega, hl, fun hf => ?_⟩
+  rcases hal hf with e | e
+  · rw [e]; exact h3 hf
+  · exact e
+
+theorem wdbSz.congr {m m' : OsMeta} {ms ms' : MapSt} (h : wdbSz m ms) (hs : m'.size = m.size)
+    (hl : mapLen ms' = mapLen ms) : wdbSz m' ms' := by
+  obtain ⟨h1, h2, h3⟩ := h
+  exact ⟨by omega, by omega, fun hf => by rw [hs]; exact h3 hf⟩
+
+end size
+
 section locks
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -248,29 +276,6 @@ def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IPro
       iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp))
-
-/-- **The file's size bounds** (session S3g; `wdbOK`'s clause): at most `maxMapSize`, the mapping
-inside the model's address space (`maxAddr = 2 ^ 47`), and, unless the file model failed in a way
-the premises exclude, whole pages. -/
-def wdbSz (m : OsMeta) (ms : MapSt) : Prop :=
-  m.size ≤ 0xFFFFFFFFFFFF ∧ mapLen ms ≤ 0x800000000000 ∧ (FsNoErr → m.size % 4096 = 0)
-
-theorem wdbSz.lt {m : OsMeta} {ms : MapSt} (h : wdbSz m ms) : m.size < 2 ^ 62 := by
-  have := h.1; omega
-
-theorem wdbSz.written {m m' : OsMeta} {ms : MapSt} (h : wdbSz m ms)
-    (h2 : m'.size ≤ max m.size (mapLen ms)) (hal : FsNoErr → m'.size = m.size ∨ m'.size % 4096 = 0) :
-    wdbSz m' ms := by
-  obtain ⟨h1, hl, h3⟩ := h
-  refine ⟨by omega, hl, fun hf => ?_⟩
-  rcases hal hf with e | e
-  · rw [e]; exact h3 hf
-  · exact e
-
-theorem wdbSz.congr {m m' : OsMeta} {ms ms' : MapSt} (h : wdbSz m ms) (hs : m'.size = m.size)
-    (hl : mapLen ms' = mapLen ms) : wdbSz m' ms' := by
-  obtain ⟨h1, h2, h3⟩ := h
-  exact ⟨by omega, by omega, fun hf => by rw [hs]; exact h3 hf⟩
 
 /-- **The writer side's facts** (design §3.5). -/
 def wdbOK (w : WDb) : Prop :=

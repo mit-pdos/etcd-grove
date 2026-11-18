@@ -44,7 +44,8 @@ theorem wdbOK'_lost [GooseExts] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (fr : Bool)
     exact mem_W_of_wSlots _ _ _ s
   · intro b l h; simp [WDb.lost] at h
   · intro b l h; simp [WDb.lost] at h
-  · simp only [WDb.lost]; rw [hsz]; exact hk13
+  · obtain ⟨a1, -, a3⟩ := hk13
+    refine ⟨?_, ?_, ?_⟩ <;> simp only [WDb.lost, mapLen, hsz] <;> first | exact a1 | exact a3 | omega
   · intro b l h; simp [WDb.lost] at h
   · intro s hs hle
     simp only [WDb.lost, hsz] at hs hle ⊢
