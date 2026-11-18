@@ -643,7 +643,8 @@ structure OsGS (GF : BundledGFunctors) where
   γcm : GName
   /-- The shared mode's (`notes/wal-fsext-i2-design.md`, §2): its history (a map of one entry,
   `Unit ↦ Roots × Hist`), its directory fds (`w64 ↦ Ino × DirPhS`), its calls in flight
-  (`Nat ↦ (Nat × GoString) × Qp`: start, path, fraction), the call permission (`Unit ↦ Unit`, fractional), the name claims
+  (`Nat ↦ (Nat × GoString) × Qp`: start, path, fraction), the call permission (`GoString ↦ Unit`, fractional,
+  one per key: a root, or `[]` for the paths under no root, `callKey`), the name claims
   (`Ino × NameSet ↦ NamesH`), the log's length (a mono nat) and its entries (`Nat ↦ LogEntry`,
   persistent). Allocated at boot, used from the mode switch on. -/
   γs : GName
@@ -1124,20 +1125,28 @@ theorem gCommitLb_le (hL : OsGS GF) {n : Nat} (n' : Nat) (h : n' ≤ n) :
 /-- The tree's roots and history, as a ghost map of one entry. -/
 def histMap (RV : Roots × Hist) : GMap Unit (Roots × Hist) := {[() := RV]}
 
+open Classical in
+/-- **The key of a call on the path `p`**: the root `p` is in the tree of (unique for well-formed
+roots: `root_of_isUnder`), or `[]` for a path under no root. A call's share of the call permission
+is a share of its key's (`osCallPerm`). -/
+noncomputable def callKey (R : Roots) (p : GoString) : GoString :=
+  if h : ∃ rj ∈ R, IsUnder rj.1 p then h.choose.1 else []
+
 /-- What the state interpretation holds, in the legacy mode, of the shared mode's ghost state
-(`notes/wal-fsext-i2-design.md`, §2.1, review M3): its authorities, empty (the log's length `0`),
-and the whole call permission. So no resource of the shared mode exists in the legacy mode. -/
+(`notes/wal-fsext-i2-design.md`, §2.1, review M3): its authorities, empty (the log's length `0`;
+the call permission's, no key yet). So no resource of the shared mode exists in the legacy mode. -/
 def legacyHolds (hL : OsGS GF) : IProp GF :=
   iprop(gAuth hL hL.γs (∅ : GMap Unit (Roots × Hist)) ∗
     gAuth hL hL.γdfS (∅ : GMap w64 (Ino × DirPhS)) ∗ gAuth hL hL.γcS (∅ : GMap Nat CallV) ∗
-    gElem hL hL.γperm () (DFrac.own 1) () ∗ gAuth hL hL.γn (∅ : GMap (Ino × NameSet) NamesH) ∗
+    gAuth hL hL.γperm (∅ : GMap GoString Unit) ∗ gAuth hL hL.γn (∅ : GMap (Ino × NameSet) NamesH) ∗
     (letI := hL.osAllG; monoNatAuthOwn hL.γlen 1 0) ∗ gAuth hL hL.γlog (∅ : GMap Nat LogEntry) ∗
     gAuth hL hL.γg (∅ : GMap Nat CallV))
 
 /-- What the state interpretation holds, in the shared mode, of each call on a path in flight:
-the fraction of the call permission its `CallBegin` took. -/
-def callResS (hL : OsGS GF) (Γc : GMap Nat CallV) : IProp GF :=
-  iprop([∗map] _t ↦ x ∈ Γc, gElem hL hL.γperm () (DFrac.own x.2) ())
+the fraction of its key's call permission its `CallBegin` took (the key of its path under the
+roots `R`, `callKey`). -/
+def callResS (hL : OsGS GF) (R : Roots) (Γc : GMap Nat CallV) : IProp GF :=
+  iprop([∗map] _t ↦ x ∈ Γc, gElem hL hL.γperm (callKey R x.1.2) (DFrac.own x.2) ())
 
 /-- A shared directory fd's read, the ghost state's and the state's, agree: not begun, done, or
 begun when the log had `r0` entries, the names of `N` returned `rs`; while no entry from `r0` on
@@ -1168,13 +1177,6 @@ theorem RootCoh.congr {st st' : OsState} {s0 : Nat} {ρ : Ino → GoString} (h :
   obtain ⟨⟨h1, h2, h3⟩, h4, h5⟩ := h
   exact ⟨⟨hr ▸ h1, by rw [hd, hl]; exact h2, by rw [hl]; exact h3⟩, hl ▸ h4,
     by rw [hl, ht]; exact h5⟩
-
-open Classical in
-/-- **The key of a call on the path `p`**: the root `p` is in the tree of (unique for well-formed
-roots: `root_of_isUnder`), or `[]` for a path under no root. A call's share of the call permission
-is a share of its key's (`osCallPerm`). -/
-noncomputable def callKey (R : Roots) (p : GoString) : GoString :=
-  if h : ∃ rj ∈ R, IsUnder rj.1 p then h.choose.1 else []
 
 /-- The calls' part of the shared coherence, per key, under the map `ρ` of `RootCoh` (an entry's
 tag is its directory's root, `tagOf ρ`): a logging call holding its key's whole permission began
@@ -1253,8 +1255,8 @@ def treeShared (hL : OsGS GF) (st : OsState) : IProp GF :=
     gAuth hL hL.γd (histMap (st.fs.roots, V0)) ∗ gElem hL hL.γd () (DFrac.own 1) (st.fs.roots, V0) ∗
     gAuth hL hL.γdf (∅ : GMap w64 (Ino × DirPh)) ∗ gAuth hL hL.γc (∅ : GMap Nat CallV) ∗
     gAuth hL hL.γs (histMap (st.fs.roots, ((st.fs.treeDur, st.fs.metaLog) : Hist))) ∗
-    gAuth hL hL.γdfS Γdf ∗ gAuth hL hL.γcS Γc ∗ callResS hL Γc ∗ gAuth hL hL.γg Γg ∗
-    callResS hL Γg)
+    gAuth hL hL.γdfS Γdf ∗ gAuth hL hL.γcS Γc ∗ callResS hL st.fs.roots Γc ∗ gAuth hL hL.γg Γg ∗
+    callResS hL st.fs.roots Γg)
 
 /-- The interpretation of the tree of `st`: in the legacy mode or in the shared mode, and the
 committed prefix's bound (both modes'). -/
@@ -1535,8 +1537,7 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
   imod ghost_map_alloc (GF := GF) (∅ : GMap Unit (Roots × Hist)) with ⟨%γs, Has, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap w64 (Ino × DirPhS)) with ⟨%γdfS, Hadfs, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat CallV) with ⟨%γcS, Hacs, -⟩
-  imod ghost_map_alloc (GF := GF) (∅ : GMap Unit Unit) with ⟨%γperm, Hap, -⟩
-  imod ghost_map_insert (GF := GF) () () (by rfl) $$ Hap with ⟨-, Hperm⟩
+  imod ghost_map_alloc (GF := GF) (∅ : GMap GoString Unit) with ⟨%γperm, Hperm, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap (Ino × NameSet) NamesH) with ⟨%γn, Han, -⟩
   imod mono_nat_own_alloc (GF := GF) 0 with ⟨%γlen, Halen, -⟩
   imod ghost_map_alloc (GF := GF) (∅ : GMap Nat LogEntry) with ⟨%γlog, Halog, -⟩
@@ -1559,7 +1560,7 @@ theorem os_local_init {GF : BundledGFunctors} (hPre : OsGpreS GF) (st : OsState)
     · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag Hcm]
       · isplitl [Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag]
         · ileft
-          unfold treeLegacy legacyHolds gAuth gElem
+          unfold treeLegacy legacyHolds gAuth
           iexists ((st.fs.treeDur, ([] : List LogEntry)) : Hist), ∅, ∅
           iframe Had Hadf Hac Has Hadfs Hacs Hperm Han Halen Halog Hag
           isplitr

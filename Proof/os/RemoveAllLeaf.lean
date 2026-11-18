@@ -60,9 +60,9 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J'))
     (hw : dqn = DFrac.own 1 ∨ hc.cur !! c = none) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child p c)))
-    {{ (e : w64), RET #e; osPathS R p dq J ∗ osCallPerm qc ∗
+    {{ (e : w64), RET #e; osPathS R p dq J ∗ osCallPerm (callKey R p) qc ∗
         ∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   have hcN' : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
@@ -72,6 +72,7 @@ theorem os.model.wp_unlinkLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq d
   iloeb as IH generalizing Hperm Hp Hst
   icases Hst with ⟨%hc', Hn, %hsub⟩
   imod osNames_next R J _ _ hc' CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc hc'.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -132,16 +133,17 @@ an error, or an fd of the file. -/
 theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J')) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.openLoop) (Val #(child p c)))
     {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
-        osCallPerm qc ∗ ⌜hc.cur !! c = none → e ≠ 0⌝ ∗
+        osCallPerm (callKey R p) qc ∗ ⌜hc.cur !! c = none → e ≠ 0⌝ ∗
         (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ ∃ i, osFd fd (DFrac.own 1) (openFd i flRO)) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   have hcN' : (NameSet.only [c]).Mem c := by simp [NameSet.Mem]
   obtain ⟨hfl, htr, hcr⟩ := os.flRO_ok
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -203,13 +205,14 @@ theorem os.model.wp_openLoop_leaf (p c : GoString) (R : Roots) (J : Ino) (dq dqn
 theorem os.model.wp_rmdirLoop_none (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J')) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.rmdirLoop) (Val #(child p c)))
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
-        osCallPerm qc }} := by
+        osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -231,9 +234,9 @@ theorem os.model.wp_removeAllFrom_leaf (p c : GoString) (R : Roots) (J : Ino) (d
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hcf : ∀ J', hc.cur !! c ≠ some (.dir J'))
     (hw : dqn = DFrac.own 1 ∨ hc.cur !! c = none) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (App (Val os.model.removeAllFrom) (Val #p)) (Val #c))
-    {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm qc ∗ os.peOk pe ∗
+    {{ (pe : Loc), RET #pe; osPathS R p dq J ∗ osCallPerm (callKey R p) qc ∗ os.peOk pe ∗
         ∃ hc', osNames J (.only [c]) dqn hc' ∗ ⌜LeafOk c hc hc'⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   rw [show p ++ [47#8] ++ c = child p c by simp [child, slashB]]

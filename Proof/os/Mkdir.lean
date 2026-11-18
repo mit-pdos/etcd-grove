@@ -39,6 +39,7 @@ theorem os.Mkdir.wp_proofSnc : os.Mkdir.specSnc (GF := GF) (hG := hG) := by
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ 1 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

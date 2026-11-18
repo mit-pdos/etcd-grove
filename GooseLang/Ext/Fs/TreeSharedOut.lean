@@ -297,7 +297,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ (⌜e = 0⌝ -∗ osOutFd (L := L) fd) -∗ Φ (PairV (#fd) (#e))) -∗
+        osCallPerm (L := L) (callKey R p) q -∗ (⌜e = 0⌝ -∗ osOutFd (L := L) fd) -∗ Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
   iintro #Hinv #Hsi Hk HΦ
@@ -349,7 +349,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : CallV) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   unfold ofdCtx

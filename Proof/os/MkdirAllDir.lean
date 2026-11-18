@@ -32,10 +32,10 @@ a `fileStat`, or an error; nothing changes. -/
 theorem os.Stat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Qp) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc }}
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Stat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc ∗
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨
@@ -62,10 +62,10 @@ theorem os.Stat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Q
 theorem os.Lstat.wp_childDirS (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Qp) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc }}
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Lstat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc ∗
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨

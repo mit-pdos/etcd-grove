@@ -49,7 +49,7 @@ theorem wp_osLstatDirS' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) 
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → (∃ J, h.cur !! b = some (.dir J)) ∧ e ≠ 0⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E
         {{ Φ }} := by
@@ -86,6 +86,7 @@ theorem wp_osLstatDirS' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) 
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨isDir, e, rfl, h1⟩ := hW
+  icases osCallPerm_unchild R d b _ j q $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %isDir %e %h1 Hq Hp Hn
 
 theorem wp_osUnlinkS_none' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
@@ -93,7 +94,7 @@ theorem wp_osUnlinkS_none' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFra
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
@@ -124,6 +125,7 @@ theorem wp_osUnlinkS_none' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFra
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ j q $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hn
 
 theorem wp_osRmdirS_none' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (h : NamesH)
@@ -131,7 +133,7 @@ theorem wp_osRmdirS_none' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   have hbN : (NameSet.only [b]).Mem b := by simp [NameSet.Mem]
@@ -162,6 +164,7 @@ theorem wp_osRmdirS_none' (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ j q $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hn
 
 theorem wp_osRenameAbsentS' (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N : NameSet)
@@ -170,7 +173,7 @@ theorem wp_osRenameAbsentS' (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N 
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d bs) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
         (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} := by
@@ -220,6 +223,7 @@ theorem wp_osRenameAbsentS' (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N 
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hp', Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d bs _ j q $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hp' Hn
 
 end specs

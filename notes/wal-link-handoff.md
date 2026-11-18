@@ -1,6 +1,56 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 c, stage 2 step A done: per-key call coherence under the global permission)
+## START HERE (2026-11-18 d, stage 2 step B: per-key permission in the fs library; os clients WIP; STOP for a decision)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 49bd7924e6 merged (9d28ebb29f); pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
+- **Done (step A, accepted):** b93dd9be92 (CallsK per key), full build green at 8c66a9bb3d.
+- **Done (step B, this WIP commit; the fs library `GooseLang/Ext/Fs/*` builds, checked by lean-check through
+  `Proof/os/SharedExt`):** `γperm : GoString ↦ Unit`; `osCallPerm r q` (TreeSharedRes); legacy holds
+  `gAuth γperm ∅` (no element: `legacy_perm_excl` by `gAuth_lookup`); `callResS hL R Γc` keyed by
+  `callKey R x.1.2`; `permMap R` (`[]` and each root), `osCallPerms R`, `perm_alloc`; `wp_osShare` gives
+  `osCallPerms R`, `osCallPerms_root` takes one root's whole; CallBegin(Guard) take `osCallPerm (callKey R p) q`;
+  `callResS_excl`/`callsRes_facts`/`sole_of`/`wholeG_facts` per key; `hsole` (hprog/hpost/hworld) per key
+  (`callKey R s'.2 = callKey R pc → k' = k`), `renameStep_err`'s `hex` takes `SameRoot (child d bs) s'.2`
+  (`callKey_of_sameRoot`); `osCallPermG r q gd`; `wp_logStepS*`/`wp_callEndS` give back `callKey R pc`; every
+  step spec on a name of a spine directory `d` gives back `osCallPerm (callKey R d) q` (`osCallPerm_unchild`);
+  OpenDir/OpenAbove/LstatDirGuard give back `callKey R p`. Moved to TreeSharedRes: `isUnder_prefix`,
+  `root_of_isUnder`, `callKey_eq`; new: `callKey_of_sameRoot`, `callKey_joinPath`, `permMap_lookup`,
+  `osPathS_callKey`, `osCallPerm_congr`, `osCallPerm_child`/`_unchild`.
+- **Clients (WIP, not building yet):** `Spec/os`, `Proof/os`, fileutil `Spec`/`Proof` rewritten by
+  `/shared/tmp/wallink/scripts/keyperm.py` (key = `callKey R D`, `D` the first `osPathS R D` of the declaration),
+  `unchild.py` (Proof/os fs-level wrappers), `childbegin.py` (+ hand-placed `osCallPerm_child` before each
+  `wp_osCallBeginS` on `child d b`). lean-check status: `/shared/tmp/wallink/os-check1.log` (most Proof/os
+  files 0 errors; open: MkdirAllParts (edited after the check: `callKey_joinPath` conversions), RemoveAllDir
+  l.345-357, StatS l.135/182, fileutil CreateDirAll, RemoveAll*, RenameS (d' key)). WAL, WalTester, walfs:
+  not started.
+- **STOP: decision needed (keys of calls above the roots).** `fileutil.TouchDirAll`'s proof (`wp_statAnc`,
+  `wp_syncDirAnc`, `wp_existAnc`, TouchLemmas/TouchDirAll*) stats/syncs ancestors ABOVE the root
+  (`os.Stat.specAboveRoot`, `syncDir.specAboveRoot`, `OpenDir.specAboveRoot`, `NsAbove`) with the same
+  `osCallPerm qc` it uses in the root. With keys, an above-root call's key is `[]`, so a client holding only its
+  root's key cannot make it. Options: (a) above-root specs take a share of key `[]`
+  (`osCallPerm [] qa`), threaded through TouchDirAll/CreateDirAll/wal.Create up to the boot (ripples into the
+  WAL's Create spec); (b) recommended: the `[]` key's permission lives in a dispenser invariant
+  (`∃ q, osCallPerm [] q`, halved on each take) folded into `osSharedInv` (or a persistent `osAboveInv` the
+  switch gives beside it); an above-root `CallBegin` needs no share (takes half of what the dispenser holds; the
+  returned share may be dropped): the above-root specs lose their `osCallPerm` (weaker pre), no client above
+  them changes. Cost of (b): ~32 `unfold osSharedInv` sites (fs library, 4 WAL Create files, PathKindS) if folded,
+  or one persistent premise on the above-root specs if separate.
+- **Next after the decision:** finish Proof/os + fileutil; then WAL (32 Proof + 23 Spec files: its handle
+  predicates `walOpeningF`, `walReadH`, ... hold `osCallPerm` without `R`: a key parameter or `callKey R dir` with
+  `R` in the handle record, to design with the per-area WalGS), WalTester (16), walfs; full build; then per-area
+  WalGS, L3 (as before).
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -q -a
+  --fast FILE` (it rebuilds changed imports with lake: a changed `TreeSharedRes` costs minutes). **Build:**
+  `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build`.
+- **Pitfalls:** `wp_osCallBeginS R _ q` unifies `p` with the held key's path: convert first
+  (`icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩`); in a direct step proof (no
+  `wp_logStepS`), the `[Hq]` subgoal needs `rw [← hkd b, ← hR]` (`osPathS_callKey` at the start);
+  `obtain ⟨hR, rfl⟩ := hVs` gives `hR : st.fs.roots = R` (Out substs it).
+
+## History
+
+### START HERE (2026-11-18 c, stage 2 step A done: per-key call coherence under the global permission)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; **lean merged** (9bc323ff9d, lean b0bb9df7c3, Perennial pin
   6d365ee1a): use `/shared/tmp/manifest-6d3.json` everywhere; `.lake/package-overrides.json` = a copy of it. Full
@@ -43,7 +93,6 @@
   `callBegin`/`delDfd`/`setDfd`/`metaEnd` is not syntactically `st` in `RootCoh`: pass `hc.rc.elim (fun ρ h => ⟨ρ,
   h.congr rfl rfl rfl⟩)`.
 
-## History
 
 ### START HERE (2026-11-18, per-root crash theorem: pure part done; fs library NOT building at this head)
 

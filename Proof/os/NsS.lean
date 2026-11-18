@@ -43,10 +43,10 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
     (hfl : OpenFlagsOk (flag ||| W64 0x80000).toNat)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
-        osCallPerm qc ∗
+        osCallPerm (callKey R d) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil ∧ 0 ≤ fd.toInt⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             os.ownOff f (W64 0) ∗
             osFd fd (DFrac.own 1) (openFd i (flag ||| W64 0x80000))) ∨
@@ -56,6 +56,7 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -125,9 +126,9 @@ theorem os.OpenFile.wp_fileS (d b : GoString) (flag : w64) (perm : w32) (R : Roo
 not read, holding nothing; or a `*PathError` of a nonzero errno. -/
 theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
@@ -187,9 +188,9 @@ theorem os.OpenFile.wp_dirErrS (p : GoString) (perm : w32) (R : Roots) (j : Ino)
 not read, holding nothing; or an error. -/
 theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (dq : DFrac)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
@@ -246,9 +247,9 @@ theorem os.OpenFile.wp_dirS (p : GoString) (perm : w32) (R : Roots) (j : Ino) (d
 
 /-- `os.Open(p)` of the directory `j`, the error explicit: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirErrS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
@@ -261,9 +262,9 @@ theorem os.Open.wp_dirErrS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc
 
 /-- `os.Open(p)` of the directory `j`: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_dirS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗
             osDirFdS fd j .idle) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by

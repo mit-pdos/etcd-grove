@@ -51,6 +51,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
   ihave #Hlb := osLogLb_max h.next h'.next $$ [Hlb1 Hlb2]
   · iframe #
   iclear Hlb1 Hlb2
+  icases osCallPerm_child R d' bt _ _ _ $$ Hp' Hperm with ⟨Hp', Hperm⟩
   wp_apply wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -66,6 +67,7 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
     $$ [Hau Hn1 Hn2]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp Hp' HSt HΦ
+  icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -194,6 +196,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     · rw [Nat.max_eq_right hle]; iexact Hlb0
     · rw [Nat.max_eq_left hle]; iexact Hlb1
   iclear Hlb0 Hlb1
+  icases osCallPerm_child R d bt _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -209,6 +212,7 @@ theorem os.Rename.wp_proofDirSnc : os.Rename.specDirSnc (GF := GF) (hG := hG) :=
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
+  icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ 1 (max h.next lb) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

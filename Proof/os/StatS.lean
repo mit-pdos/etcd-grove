@@ -36,10 +36,10 @@ variable [os.Assumptions] [os.fileStat.FieldAssumptions] [go.BasicIntoValInj]
 
 /-- `model.stat(op, p)` of the directory `J` (a spine to it): a `fileStat`, or an error. -/
 theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm (callKey R p) qc }}
       (App (App (Val os.model.stat) (Val #op)) (Val #p))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R p dq J ∗
-        osCallPerm qc ∗
+        osCallPerm (callKey R p) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨
@@ -117,10 +117,10 @@ theorem os.model.wp_stat_dirS (op p : GoString) (R : Roots) (J : Ino) (dq : DFra
 theorem os.model.wp_stat_absentS (op d b : GoString) (R : Roots) (j : Ino) (N : NameSet)
     (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (Val os.model.stat) (Val #op)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d dq j ∗
-        osNames j N dqn h ∗ osCallPerm qc ∗ ⌜err ≠ interface.nil⌝ }} := by
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   try unfold os.model.stat
@@ -132,6 +132,7 @@ theorem os.model.wp_stat_absentS (op d b : GoString) (R : Roots) (j : Ino) (N : 
   try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -157,11 +158,11 @@ and of the file's `OsMeta`): a `fileStat` of the file's size, or an error. -/
 theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : NameSet)
     (dq dqn dqm : DFrac) (h : NamesH) (m : OsMeta) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc ∗
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         osMeta i dqm m }}
       (App (App (Val os.model.stat) (Val #op)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d dq j ∗
-        osNames j N dqn h ∗ osCallPerm qc ∗ osMeta i dqm m ∗
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗ osMeta i dqm m ∗
         ((∃ fs : Loc, ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs (W64 m.size)) ∨
@@ -179,6 +180,7 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
   try rw [decide_eq_false hk2]
   try wp_auto
   iloeb as IH generalizing Hperm Hp Hn Hm HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -259,10 +261,10 @@ theorem os.model.wp_stat_fileS (op d b : GoString) (R : Roots) (j i : Ino) (N : 
 
 /-- `os.Stat(p)` of the directory `J` (a spine to it): a `fileStat`, or an error. -/
 theorem os.Stat.wp_dirS (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Stat)) (Val #p))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R p dq J ∗
-        osCallPerm qc ∗
+        osCallPerm (callKey R p) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨
@@ -273,10 +275,10 @@ theorem os.Stat.wp_dirS (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : 
 
 /-- `os.Lstat(p)` of the directory `J` (a spine to it): a `fileStat`, or an error. -/
 theorem os.Lstat.wp_dirS (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Lstat)) (Val #p))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R p dq J ∗
-        osCallPerm qc ∗
+        osCallPerm (callKey R p) qc ∗
         ((∃ (fs : Loc) (sz : w64), ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs sz) ∨
@@ -289,10 +291,10 @@ theorem os.Lstat.wp_dirS (p : GoString) (R : Roots) (J : Ino) (dq : DFrac) (qc :
 error, no effect. -/
 theorem os.Stat.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b) (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Stat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d dq j ∗
-        osNames j N dqn h ∗ osCallPerm qc ∗ ⌜err ≠ interface.nil⌝ }} := by
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil⌝ }} := by
   wp_start as Hpre
   wp_apply os.model.wp_stat_absentS _ d b R j N dq dqn h qc hb hN hi $$ Hpre
   iexact HΦ
@@ -300,10 +302,10 @@ theorem os.Stat.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) 
 /-- `os.Lstat(d/b)` of a name holding nothing: an error, no effect. -/
 theorem os.Lstat.wp_absentS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet) (dq dqn : DFrac)
     (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b) (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Lstat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d dq j ∗
-        osNames j N dqn h ∗ osCallPerm qc ∗ ⌜err ≠ interface.nil⌝ }} := by
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗ ⌜err ≠ interface.nil⌝ }} := by
   wp_start as Hpre
   wp_apply os.model.wp_stat_absentS _ d b R j N dq dqn h qc hb hN hi $$ Hpre
   iexact HΦ
@@ -313,11 +315,11 @@ the file's `OsMeta`): a `fileStat` of its size, or an error. -/
 theorem os.Stat.wp_fileS (d b : GoString) (R : Roots) (j i : Ino) (N : NameSet)
     (dq dqn dqm : DFrac) (h : NamesH) (m : OsMeta) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = some (.file i)) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc ∗
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         osMeta i dqm m }}
       (App (Val (@! os.Stat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d dq j ∗
-        osNames j N dqn h ∗ osCallPerm qc ∗ osMeta i dqm m ∗
+        osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗ osMeta i dqm m ∗
         ((∃ fs : Loc, ⌜err = interface.nil ∧
             fi = interface.mkOk (go.GoType.PointerType os.fileStat.ty) #fs⌝ ∗
             os.ownFileStat fs (W64 m.size)) ∨

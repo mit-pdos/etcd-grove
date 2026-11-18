@@ -88,7 +88,7 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d bs) 1 -∗
-      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) 1 -∗ osPathS (L := L) R d dq j -∗
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j N (DFrac.own 1) h) ∨
          (⌜RenTgtOk (h.cur !! bt)⌝ ∗ ∃ x, osLogged (L := L) x ⟨.rename j bs j bt (.dir J) (h.cur !! bt), s0⟩ ∗
            osNames (L := L) j N (DFrac.own 1)
@@ -170,8 +170,9 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
       · simp at hb; subst hb; exact hbt
       · simp at hb)
     (fun st Γn hR hcoh => pathS_of R d dq j st Γn hR hcoh)
-    (fun st hw _ hcall hsole hp hat =>
-      ⟨_, _, renameStep_err hp hp hbs hbt (sameRoot_child_child hp) hcall (fun _ => hsole rfl), filesSame_metaEnd st k⟩)
+    (fun st hw hR hcall hsole hp hat =>
+      ⟨_, _, renameStep_err hp hp hbs hbt (sameRoot_child_child hp) hcall (fun _ k' s' hk' hs =>
+        hsole rfl k' s' hk' (by rw [← hR]; exact callKey_of_sameRoot hw.roots hs)), filesSame_metaEnd st k⟩)
     (fun st e' st' hw _ hcall _ hp hat Hst => by
       obtain ⟨e, rfl, hr⟩ := hcases st e' st' hw hcall hp hat Hst
       rcases hr with ⟨rfl, he⟩ | ⟨rfl, ht⟩
@@ -218,12 +219,14 @@ theorem wp_osRenameDirAnyS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : Nam
   iintro %w Hq Hp Hpost
   icases Hpost with (⟨%hW, -, Hl⟩ | ⟨%hW, %n, %x, -, Hlg, Hl, -⟩)
   · obtain ⟨e, rfl, he, -⟩ := hW
+    icases osCallPerm_unchild R d bs _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
     iapply HΦ $$ %e Hq Hp
     ileft
     isplitr
     · ipureintro; exact he rfl
     · iapply (BigSepL.bigSepL_singleton).1 $$ Hl
   · obtain ⟨e, rfl, -, hR⟩ := hW
+    icases osCallPerm_unchild R d bs _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
     iapply HΦ $$ %e Hq Hp
     iright
     isplitr

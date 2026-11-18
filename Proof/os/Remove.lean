@@ -36,6 +36,7 @@ fraction of its claim (`Hn`): each attempt a nonzero errno with no effect, `EINT
 the goal after the error is built (`Φ` of it, with `Hp`, `Hperm`, `Hn` back). -/
 local macro "rmdir_loop" hnd:term " => " post:tacticSeq : tactic => `(tactic| (
   iloeb as IH2 generalizing Hperm Hp Hn
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t1 %s1 %hs1 Hk1 Hls1
   iclear Hls1
@@ -78,6 +79,7 @@ theorem os.Remove.wp_proofFileSnc : os.Remove.specFileSnc (GF := GF) (hG := hG) 
     $$ [Hau Hn]
   · ileft; iframe
   iloeb as IH generalizing Hperm Hp HSt HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls

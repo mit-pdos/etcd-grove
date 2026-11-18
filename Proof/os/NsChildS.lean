@@ -37,16 +37,17 @@ theorem os.OpenFile.wp_dirChildS (d b : GoString) (perm : w32) (R : Roots) (jp J
     (Np : NameSet) (dq dqn : DFrac) (hp : NamesH) (qc : Qp) (hb : NameOk b) (hNp : Np.Mem b)
     (hJ : hp.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq jp ∗ osNames jp Np dqn hp ∗
-        osCallPerm qc }}
+        osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #(W64 0))) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq jp ∗
-        osNames jp Np dqn hp ∗ osCallPerm qc ∗
+        osNames jp Np dqn hp ∗ osCallPerm (callKey R d) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             osDirFdS fd J .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -105,10 +106,10 @@ theorem os.Open.wp_dirChildS (d b : GoString) (R : Roots) (jp J : Ino) (Np : Nam
     (dq dqn : DFrac) (hp : NamesH) (qc : Qp) (hb : NameOk b) (hNp : Np.Mem b)
     (hJ : hp.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq jp ∗ osNames jp Np dqn hp ∗
-        osCallPerm qc }}
+        osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Open)) (Val #(child d b)))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq jp ∗
-        osNames jp Np dqn hp ∗ osCallPerm qc ∗
+        osNames jp Np dqn hp ∗ osCallPerm (callKey R d) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd (child d b) (DFrac.own 1) ∗
             osDirFdS fd J .idle) ∨
          (∃ e : w64, ⌜e ≠ 0 ∧ e ≠ ENOENT ∧ f = null⌝ ∗ os.errnoPathErr err e)) }} := by
@@ -128,14 +129,15 @@ theorem os.OpenFile.wp_absentErrS (d b : GoString) (flag : w64) (perm : w32) (R 
     (hcr : (flag ||| W64 0x80000).toNat / O_CREAT % 2 = 0)
     (htr : (flag ||| W64 0x80000).toNat / O_TRUNC % 2 = 0) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #(child d b))) (Val #flag)) (Val #perm))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
-        osCallPerm qc ∗ ∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e }} := by
+        osCallPerm (callKey R d) qc ∗ ∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   generalize hfl' : flag ||| W64 0x80000 = fl at hfl hcr htr ⊢
   imod osNames_next R j _ _ h CoPset.subseteq_top $$ Hsi Hn with ⟨Hn, #Hlb⟩
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -166,10 +168,10 @@ theorem os.OpenFile.wp_absentErrS (d b : GoString) (flag : w64) (perm : w32) (R 
 theorem os.Open.wp_absentErrS (d b : GoString) (R : Roots) (j : Ino) (N : NameSet)
     (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : h.cur !! b = none) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Open)) (Val #(child d b)))
     {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osPathS R d dq j ∗ osNames j N dqn h ∗
-        osCallPerm qc ∗ ∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e }} := by
+        osCallPerm (callKey R d) qc ∗ ∃ e : w64, ⌜e ≠ 0 ∧ f = null⌝ ∗ os.errnoPathErr err e }} := by
   wp_start as ⟨#Hinv, #Hsi, Hp, Hn, Hperm⟩
   wp_auto
   have e : W64 0 ||| W64 0x80000 = flRO := by decide

@@ -61,10 +61,10 @@ theorem osPathS_child_borrow (R : Roots) (d b : GoString) (j J : Ino) (qd qn : Q
 theorem wp_statChildDir_err (d b : GoString) (R : Roots) (j J : Ino) (qd qn : Qp) (h : NamesH)
     (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc }}
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc }}
       (App (Val (@! os.Stat)) (Val #(child d b)))
     {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osPathS R d (DFrac.own qd) j ∗
-        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm qc }} := by
+        osNames j (.only [b]) (DFrac.own qn) h ∗ osCallPerm (callKey R d) qc }} := by
   iintro %Φ Hpre HΦ
   wp_apply os.Stat.wp_childDirS d b R j J qd qn h qc hb hJ $$ Hpre as %fi %err ⟨Hp, Hn, Hperm, -⟩
   iapply HΦ
@@ -78,10 +78,10 @@ theorem wp_isDirWriteableAny
     (dir : GoString) (R : Roots) (J : Ino) (dq : DFrac) (hT : NamesH) (qc : Qp)
     (hlen : dir.length < 2 ^ 60) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗
-        osSharedInv R ∗ osPathS R dir dq J ∗ osCallPerm qc ∗
+        osSharedInv R ∗ osPathS R dir dq J ∗ osCallPerm (callKey R dir) qc ∗
         osNames J (.only [go!".touch"]) (DFrac.own 1) hT ∗ tmpEnt (hT.cur !! go!".touch") }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable)) (Val #dir))
-    {{ (err : GoInterface), RET #err; osPathS R dir dq J ∗ osCallPerm qc ∗
+    {{ (err : GoInterface), RET #err; osPathS R dir dq J ∗ osCallPerm (callKey R dir) qc ∗
         ∃ hT', osNames J (.only [go!".touch"]) (DFrac.own 1) hT' ∗
           (⌜hT'.cur !! go!".touch" = none⌝ ∨
             ∃ i, ⌜hT'.cur !! go!".touch" = some (.file i)⌝ ∗ trFile i False) ∗
@@ -117,11 +117,11 @@ theorem wp_touchProbe
     (hlen : (child parent name).length < 2 ^ 60) (hcur : h.cur !! name = some (.dir J))
     (hfo : FilesOnly hJ.cur) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗ osInv (GF := GF) ∗
-        osSharedInv R ∗ osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
+        osSharedInv R ∗ osPathS R parent (DFrac.own qp) jp ∗ osCallPerm (callKey R parent) 1 ∗
         osNames jp (.only [name]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ ∗
         tmpEnt (hJ.cur !! go!".touch") }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable)) (Val #(child parent name)))
-    {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
+    {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm (callKey R parent) 1 ∗
         ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
           (⌜err = interface.nil⌝ ∗ ∃ hJ' : NamesH,
             ⌜FilesOnly hJ'.cur ∧ hJ'.cur !! go!".touch" = none⌝ ∗
@@ -346,7 +346,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
     ihave IH : iprop(∃ (k : Nat) (sl : GoSlice),
         "d" ∷ d_ptr ↦ os.ancPath (full.take k) ∗ "created" ∷ created_ptr ↦ sl ∗
         "Hsl" ∷ sl ↦* touchC full (k + 1) ∗ "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗
-        "Hn" ∷ osNames jp (.only [name]) (DFrac.own 1) h ∗ "Hperm" ∷ osCallPerm 1 ∗
+        "Hn" ∷ osNames jp (.only [name]) (DFrac.own 1) h ∗ "Hperm" ∷ osCallPerm (callKey at Hp) 1 ∗
         "%hk" ∷ ⌜k ≤ full.length⌝) $$ [d created Hs Hn Hperm]
     · iexists full.length, slice.nil
       rw [hdir, touchC_end]
@@ -355,7 +355,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
       · iapply ownSlice_nil
       ipureintro; exact Nat.le_refl _
     wp_join iprop(∃ (j : Nat) (sl : GoSlice), created_ptr ↦ sl ∗ sl ↦* touchC full j ∗
-        osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm 1 ∗
+        osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm (callKey at Hp) 1 ∗
         ⌜j ≤ full.length + 1⌝)
       at (App (App (App (Val doFor) _) _) _) with [IH] as ⟨%j, %sl, created, Hsl, Hs, Hn, Hperm, %hj⟩
     · wp_for IH
@@ -434,7 +434,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
     wp_auto
     ihave IH : iprop(∃ (i : w64) (dv : GoString),
         "i" ∷ i_ptr ↦ i ∗ "d" ∷ d_ptr ↦ dv ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗
-        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm 1 ∗
+        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm (callKey at Hp) 1 ∗
         "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ (touchC full j).length⌝) $$ [i d err Hs Hperm]
     · iexists W64 0, _
       iframe

@@ -38,7 +38,7 @@ theorem wp_osMkdirS_some (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
     (hi : (h.cur !! b).isSome) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Mkdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
@@ -68,6 +68,7 @@ theorem wp_osMkdirS_some (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hn
 
 /-- **`open(2)` without `O_CREAT` of `d/b`, a name holding nothing**, with a fraction of a claim on
@@ -79,7 +80,7 @@ theorem wp_osOpenAbsentS (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (PairV (#(-1 : w64)) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} := by
@@ -120,6 +121,7 @@ theorem wp_osOpenAbsentS (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) (d
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hn
 
 end specs

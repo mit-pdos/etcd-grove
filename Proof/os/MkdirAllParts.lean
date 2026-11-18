@@ -146,13 +146,14 @@ a fraction of the call permission: an error, no effect. -/
 theorem os.Mkdir.wp_takenS (d b : GoString) (perm : w32) (R : Roots) (j : Ino) (N : NameSet)
     (dq dqn : DFrac) (h : NamesH) (qc : Qp) (hb : NameOk b) (hN : N.Mem b)
     (hi : (h.cur !! b).isSome) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc }}
       (App (App (Val (@! os.Mkdir)) (Val #(child d b))) (Val #perm))
-    {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm qc ∗
+    {{ (err : GoInterface), RET #err; osPathS R d dq j ∗ osNames j N dqn h ∗ osCallPerm (callKey R d) qc ∗
         ⌜err ≠ interface.nil⌝ }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn HΦ
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -257,9 +258,9 @@ fraction of the call permission: `nil` or an error, nothing changes. -/
 theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots) (dq : DFrac)
     (qc : Qp) (hR : RootsOk R) (hm : (r, j0) ∈ R) (cs : List GoString) (J : Ino)
     (hcs : ∀ c ∈ cs, NameOk c) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osSpine j0 cs dq J ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osSpine j0 cs dq J ∗ osCallPerm (callKey R r) qc }}
       (App (App (Val #(functions go!"os.MkdirAll" [])) (Val #(joinPath r cs))) (Val #perm))
-    {{ (err : GoInterface), RET #err; osSpine j0 cs dq J ∗ osCallPerm qc }} := by
+    {{ (err : GoInterface), RET #err; osSpine j0 cs dq J ∗ osCallPerm (callKey R r) qc }} := by
   obtain ⟨rcs, rfl⟩ : ∃ rcs, cs = rcs.reverse := ⟨cs.reverse, by simp⟩
   induction rcs generalizing J with
   | nil =>
@@ -289,8 +290,10 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
     wp_auto
     rw [show (go!"os.Stat" : GoString) = os.Stat from rfl]
     ihave Hp := (os.osPathS_joinPath R r j0 _ dq J hR hm hcs).2 $$ Hs
+    ihave Hperm := osCallPerm_congr _ (callKey_joinPath hR hm (rcs.reverse ++ [c])).symm $$ Hperm
     wp_apply os.Stat.wp_dirS $$ [Hp Hperm] as %fi %err ⟨Hp, Hperm, Hres⟩
     · iframe; iframe #
+    ihave Hperm := osCallPerm_congr _ (callKey_joinPath hR hm (rcs.reverse ++ [c])) $$ Hperm
     icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr)
     · obtain ⟨rfl, rfl⟩ := hfe
       wp_auto
@@ -338,6 +341,7 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
       rw [joinPath_snoc] at hPS ⊢
       rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
       ihave Hp := (os.osPathS_joinPath R r j0 _ dq j hR hm hcs').2 $$ Hs
+      ihave Hperm := osCallPerm_congr _ (callKey_joinPath hR hm rcs.reverse).symm $$ Hperm
       wp_apply os.Mkdir.wp_takenS (joinPath r rcs.reverse) c perm R j (.only [c]) dq dq h qc hc
         (by simp [NameSet.Mem]) (by rw [hJ]; rfl) $$ [Hp Hn Hperm] as %e ⟨Hp, Hn, Hperm, %he⟩
       · iframe; iframe #
@@ -347,8 +351,12 @@ theorem os.MkdirAll.wp_spineS (r : GoString) (j0 : Ino) (perm : w32) (R : Roots)
       wp_auto
       rw [show (go!"os.Lstat" : GoString) = os.Lstat from rfl]
       ihave Hpc := osPathS_child R _ c dq j J h hc hJ $$ Hp Hn
+      have hkc : callKey R (child (joinPath r rcs.reverse) c) = callKey R (joinPath r rcs.reverse) := by
+        rw [← joinPath_snoc, callKey_joinPath hR hm, callKey_joinPath hR hm]
+      ihave Hperm := osCallPerm_congr _ hkc.symm $$ Hperm
       wp_apply os.Lstat.wp_dirS $$ [Hpc Hperm] as %fi %err ⟨Hpc, Hperm, Hres⟩
       · iframe; iframe #
+      ihave Hperm := osCallPerm_congr _ (hkc.trans (callKey_joinPath hR hm rcs.reverse)) $$ Hperm
       ihave Hs := hPS.1 $$ Hpc
       icases Hres with (⟨%fs, %sz, %hfe, Hfs⟩ | %herr)
       · obtain ⟨rfl, rfl⟩ := hfe

@@ -158,7 +158,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) (hO : op ≠ "OutClose" := by decide)
     (hl : ¬ LockOp op := by simp [LockOp]) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ F -∗ osCallS (L := L) k s0 pc q -∗
-      (∀ w, ⌜W w⌝ -∗ osCallPerm (L := L) q -∗ F -∗ Φ w) -∗
+      (∀ w, ⌜W w⌝ -∗ osCallPerm (L := L) (callKey R pc) q -∗ F -∗ Φ w) -∗
       WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi HF Hk HΦ
   iapply wp_fs_stepM op _ Φ hv hE hO hl $$ Hinv
@@ -205,7 +205,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : CallV) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   imodintro
@@ -225,7 +225,7 @@ theorem wp_callEndS (op : String) (v : val) (hv : v.isPanic = false) (R : Roots)
     ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
   iapply wp_value'
   iapply HΦ $$ %w %hW [Hq] HF
-  unfold osCallPerm; iexact Hq
+  unfold osCallPerm; rw [← hR]; iexact Hq
 
 end specs
 

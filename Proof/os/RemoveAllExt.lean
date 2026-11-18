@@ -37,7 +37,7 @@ theorem wp_osRmdirS_nonempty (R : Roots) (d b : GoString) (j J : Ino) (N : NameS
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R (child d b) dqJ J -∗
       osNames (L := L) J N dqn hJ -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osPathS (L := L) R (child d b) dqJ J -∗ osNames (L := L) J N dqn hJ -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} := by
   let P : OsState → Prop := fun st => st.lookup d = some (.dir j) ∧
@@ -79,6 +79,7 @@ theorem wp_osRmdirS_nonempty (R : Roots) (d b : GoString) (j J : Ino) (N : NameS
   · iframe
   iintro %w %hW Hq ⟨Hp, Hp', Hn⟩
   obtain ⟨e, he, rfl⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %e %he Hq Hp Hp' Hn
 
 end specs

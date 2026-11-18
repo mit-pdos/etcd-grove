@@ -282,7 +282,7 @@ theorem wp_osLstatDirS_mem (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → (∃ J, h.cur !! b = some (.dir J)) ∧ e ≠ 0⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j N dqn h -∗ Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E
         {{ Φ }} := by
@@ -318,6 +318,7 @@ theorem wp_osLstatDirS_mem (R : Roots) (d b : GoString) (j : Ino) (N : NameSet) 
     · iexact Hn
   iintro %w %hW Hq ⟨Hp, Hn⟩
   obtain ⟨isDir, e, rfl, h1⟩ := hW
+  icases osCallPerm_unchild R d b _ _ _ $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %isDir %e %h1 Hq Hp Hn
 
 end lstat

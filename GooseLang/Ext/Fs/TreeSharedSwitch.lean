@@ -284,6 +284,16 @@ theorem log_alloc (log : List LogEntry) :
   rw [this]
   imodintro; iexact H
 
+/-- The call permission of every key, from the empty authority. -/
+theorem perm_alloc (R : Roots) :
+    ⊢ gAuth hL hL.γperm (∅ : GMap GoString Unit) ==∗
+      [∗map] r ↦ u ∈ permMap R, gElem hL hL.γperm r (DFrac.own 1) u := by
+  unfold gAuth gElem
+  letI := hL.osAllG
+  iintro H
+  imod ghost_map_insert_big (permMap R) (fun k _ h => by simp at h) $$ H with ⟨-, H⟩
+  imodintro; iexact H
+
 end ghost
 
 /-! ## The switch and `CallBegin` -/
@@ -301,7 +311,7 @@ theorem histMap_insert_empty (RV : Roots × Hist) :
 theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osCallPerm (L := L) 1 -∗ osLogLb (L := L) V.2.length -∗
+      (osSharedInv (L := L) R -∗ osCallPerms (L := L) R -∗ osLogLb (L := L) V.2.length -∗
         ([∗list] j ∈ (GMap.toList V.now).map (·.1),
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
         WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
@@ -329,6 +339,7 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     mono_nat_own_update (γ := (gooseOsGS (L := L)).γlen) V.2.length (Nat.zero_le _)) $$ Halen
     with ⟨Halen, #Hlb⟩
   imod log_alloc _ V.2 $$ Halog with Halog
+  imod perm_alloc _ σ.fs.roots $$ Hperm with Hperm
   imod claims_alloc _ V _ (GMap.toList_keys_nodup _) $$ Han with ⟨Han, Hcl⟩
   imod inv_alloc osShN E iprop(∃ (Vs : Hist) (Γn : GMap (Ino × NameSet) NamesH),
     gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γs () (DFrac.own 1) (σ.fs.roots, Vs) ∗
@@ -359,7 +370,7 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     · iapply BigSepM.bigSepM_empty.2; itrivial
   iframe Hg
   simp only [osNames_except]
-  unfold osSharedInv osCallPerm osLogLb
+  unfold osSharedInv osCallPerms osCallPerm osLogLb
   iapply HΦ $$ Hsi Hperm Hlb Hcl
 
 instance osSharedBody_timeless (R : Roots) : Timeless (PROP := IProp GF)
@@ -375,16 +386,17 @@ theorem commitRes_setProc (st : OsState) (p : ProcState) :
   commitRes_grow _ (commitGrows_of_eq rfl)
 
 /-- A shared resource (a fraction of the call permission) excludes the legacy mode. -/
-theorem legacy_perm_excl (st : OsState) (q : Qp) :
-    ⊢ osCallPerm (L := L) q -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
+theorem legacy_perm_excl (st : OsState) (r : GoString) (q : Qp) :
+    ⊢ osCallPerm (L := L) r q -∗ treeLegacy (gooseOsGS (L := L)) st -∗ False := by
   unfold treeLegacy legacyHolds osCallPerm
   iintro Hq ⟨%V0, %Γdf, %Γc, %hns, -, -, -, -, -, -, -, -, Hperm, -⟩
-  icases gElem_valid_2 _ _ _ _ _ _ _ $$ Hq Hperm with %Hv
-  exact absurd (DFrac.valid_op_own Hv.1) (by simp)
+  icases gAuth_lookup _ _ _ _ _ _ $$ Hperm Hq with %Hv
+  simp at Hv
 
 theorem wp_osCallBeginS' (R : Roots) (p : GoString) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) q -∗ osLogLb (L := L) n -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) (callKey R p) q -∗
+      osLogLb (L := L) n -∗
       (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osCallS (L := L) t s0 p q -∗ osLogLb (L := L) s0 -∗
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} := by
@@ -394,7 +406,7 @@ theorem wp_osCallBeginS' (R : Roots) (p : GoString) (q : Qp) (n : Nat) (hE : ↑
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_perm_excl st q $$ Hq Hm
+  · iexfalso; iapply legacy_perm_excl st _ q $$ Hq Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -455,9 +467,10 @@ theorem wp_osCallBeginS' (R : Roots) (p : GoString) (q : Qp) (n : Nat) (hE : ↑
       exact ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩, treeCohS_begin hc t' p q h1'⟩
     · unfold callResS
       iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (x : CallV) =>
-        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hΓc).2
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2)
+          (DFrac.own x.2) ()) hΓc).2
       iframe Hcr
-      unfold osCallPerm; iexact Hq
+      unfold osCallPerm; rw [hR]; iexact Hq
   iapply wp_value'
   unfold osCallS
   iapply HΦ $$ %t' %st.fs.metaLog.length %hn.2 Hk Hlb'

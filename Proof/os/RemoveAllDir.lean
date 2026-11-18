@@ -93,13 +93,14 @@ effect. -/
 theorem os.model.wp_unlinkLoop_nofile (p c : GoString) (R : Roots) (J : Ino) (dq dqn : DFrac)
     (hc : NamesH) (qc : Qp) (hcN : NameOk c) (hnf : ∀ i, hc.cur !! c ≠ some (.file i)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq J ∗
-        osNames J (.only [c]) dqn hc ∗ osCallPerm qc }}
+        osNames J (.only [c]) dqn hc ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child p c)))
     {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R p dq J ∗ osNames J (.only [c]) dqn hc ∗
-        osCallPerm qc }} := by
+        osCallPerm (callKey R p) qc }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hn, Hperm⟩
   imod osLogLb_0 with #Hlb
   iloeb as IH generalizing Hperm Hp Hn
+  icases osCallPerm_child R p c _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
@@ -129,12 +130,13 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
     (h hJ0 : NamesH) (q g : Qp) (t sg : Nat) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J))
     (hqg : q + g = 1) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
+        osCallPerm (callKey R d) q ∗ osGuardS t sg (child d b) g ∗ osLogLb sg }}
       (App (Val os.model.rmdirLoop) (Val #(child d b)))
-    {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm q ∗
+    {{ (e : w64), RET #e; osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) q ∗
         osGuardS t sg (child d b) g }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hst, Hperm, Hg, #Hlsg⟩
   iloeb as IH generalizing Hperm Hp Hst Hg
+  icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ q sg CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlsg as %t1 %s0 %hs Hk Hls
   iclear Hls
@@ -224,9 +226,9 @@ theorem os.model.wp_rmdirLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd
 /-- `open` loop (read-only) of the directory `j` (a spine to it): an error, or a shared directory
 fd on it. -/
 theorem os.model.wp_openLoop_spine (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R p dq j ∗ osCallPerm (callKey R p) qc }}
       (App (Val os.model.openLoop) (Val #p))
-    {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm qc ∗
+    {{ (fd e : w64), RET (PairV #fd #e); osPathS R p dq j ∗ osCallPerm (callKey R p) qc ∗
         (⌜e ≠ 0⌝ ∨ ⌜e = 0⌝ ∗ osDirFdS fd j .idle) }} := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm⟩
   imod osLogLb_0 with #Hlb
@@ -288,9 +290,9 @@ theorem os.rmPresent_out (j : Ino) (b : GoString) (J : Ino) (h hJ0 : NamesH) :
 theorem os.model.wp_unlinkLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (dq : DFrac)
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm qc }}
+        osCallPerm (callKey R d) qc }}
       (App (Val os.model.unlinkLoop) (Val #(child d b)))
-    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm qc }} := by
+    {{ (e : w64), RET #e; ⌜e ≠ 0⌝ ∗ osPathS R d dq j ∗ rmAllOut j b J h hJ0 ∗ osCallPerm (callKey R d) qc }} := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hst, Hperm⟩ HΦ
   isimp only [rmAllOut] at Hst
   icases Hst with ⟨%h', %hJ', Hb, HJ, %hsub, Hor⟩
@@ -326,9 +328,9 @@ directory fd on `J`, `b` still `J`. -/
 theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd : Qp)
     (h hJ0 : NamesH) (qc : Qp) (hb : NameOk b) (hJ : h.cur !! b = some (.dir J)) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ rmAllOut j b J h hJ0 ∗
-        osCallPerm qc }}
+        osCallPerm (callKey R d) qc }}
       (App (Val os.model.openLoop) (Val #(child d b)))
-    {{ (fd e : w64), RET (PairV #fd #e); osPathS R d (DFrac.own qd) j ∗ osCallPerm qc ∗
+    {{ (fd e : w64), RET (PairV #fd #e); osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) qc ∗
         ((⌜e ≠ 0⌝ ∗ rmAllOut j b J h hJ0) ∨
          (⌜e = 0⌝ ∗ osDirFdS fd J .idle ∗ os.rmPresent j b J h hJ0)) }} := by
   iintro %Φ ⟨#Hos, #Hsi, Hp, Hst, Hperm⟩ HΦ

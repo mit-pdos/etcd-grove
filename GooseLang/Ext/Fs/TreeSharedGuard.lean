@@ -40,7 +40,8 @@ variable {s : Stuckness} {E : CoPset}
 
 theorem wp_osCallBeginGuardS' (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) g -∗ osLogLb (L := L) n -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) (callKey R p) g -∗
+      osLogLb (L := L) n -∗
       (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osGuardS (L := L) t s0 p g -∗ osLogLb (L := L) s0 -∗
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} := by
@@ -50,7 +51,7 @@ theorem wp_osCallBeginGuardS' (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE 
   unfold treeCtx
   icases Ht with ⟨Hm, Hcm⟩
   icases Hm with (Hm | Hm)
-  · iexfalso; iapply legacy_perm_excl st g $$ Hq Hm
+  · iexfalso; iapply legacy_perm_excl st _ g $$ Hq Hm
   unfold treeShared
   icases Hm with ⟨%V0, %s0, %Γdf, %Γc, %Γg, %hns, HAd, Hd, HAdf, HAc, Has, Hadfs, Hacs, Hcr, HAg, Hgr⟩
   obtain ⟨hw, hc⟩ := hns
@@ -111,9 +112,9 @@ theorem wp_osCallBeginGuardS' (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE 
       exact ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩, treeCohS_beginGuard hc t' p g h1'⟩
     · unfold callResS
       iapply (BigSepM.bigSepM_insert (Φ := fun (_t : Nat) (x : CallV) =>
-        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hΓg).2
+        gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hΓg).2
       iframe Hgr
-      unfold osCallPerm; iexact Hq
+      unfold osCallPerm; rw [hR]; iexact Hq
   iapply wp_value'
   unfold osGuardS
   iapply HΦ $$ %t' %st.fs.metaLog.length %hn.2 Hk Hlb'
@@ -130,7 +131,7 @@ theorem wp_osLstatDirGuardS' (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
     (hp : ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osGuardS (L := L) t sg p g -∗
-      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → e ≠ 0⌝ -∗ osCallPerm (L := L) g -∗
+      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R p) g -∗
         Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV t) (#p)))) @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hk HΦ
@@ -184,7 +185,7 @@ theorem wp_osLstatDirGuardS' (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : CallV) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hgr
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hgr
     with ⟨Hq, Hgr⟩
   imod gAuth_delete _ _ _ _ _ $$ HAg Hk with HAg
   imodintro
@@ -205,7 +206,7 @@ theorem wp_osLstatDirGuardS' (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
     ipureintro; exact ⟨fsTreeWf_metaEnd hw t, treeCohS_guardEnd hc t hk⟩
   iapply wp_value'
   iapply HΦ $$ %isDir %e %hW [Hq]
-  unfold osCallPerm; iexact Hq
+  unfold osCallPerm; rw [← hR]; iexact Hq
 
 end specs
 

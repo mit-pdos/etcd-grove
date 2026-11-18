@@ -41,9 +41,9 @@ abbrev fileutil.TouchDirAll.specDir : Prop :=
   d = child parent name → NameOk name → d.length < 2 ^ 60 → h.cur !! name = some (.dir J) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.fileutil ∗
       zapLoggerOk (GF := GF) lg ∗ osInv ∗ osSharedInv R ∗ osPathS R parent (DFrac.own qp) jp ∗
-      osCallPerm 1 ∗ tmpDirH jp name h }}
+      osCallPerm (callKey R parent) 1 ∗ tmpDirH jp name h }}
     (App (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll)) (Val #lg)) (Val #d))
-  {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R parent (DFrac.own qp) jp ∗ osCallPerm (callKey R parent) 1 ∗
       ((⌜err ≠ interface.nil⌝ ∗ ∃ h', tmpDirH jp name h') ∨
         (⌜err = interface.nil⌝ ∗ ∃ hJ : NamesH,
           ⌜FilesOnly hJ.cur ∧ hJ.cur !! go!".touch" = none⌝ ∗

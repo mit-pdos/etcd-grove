@@ -16,9 +16,12 @@ The resources (all of the generation's ghost state):
   after their last change, `h.next ≤ s`); a fraction keeps them from changing (a spine).
 * `osPathS R p dq j`: the path `p` leads to the directory `j`: fractions of the claims on each of
   its components.
-* `osCallPerm q`, `osCallS t s p q`: a fraction of the call permission; the call `t` in flight, begun
-  on `p` at the log's length `s`, holding `q` of the permission. A directory operation (`mkdir`, `rmdir`,
-  a directory's rename) needs a call holding all of it (`DirOpExcl`).
+* `osCallPerm r q`, `osCallS t s p q`: a fraction of the call permission of the key `r` (a root, or
+  `[]` for the paths under no root: a call on `p` takes its key's, `callKey R p`); the call `t` in
+  flight, begun on `p` at the log's length `s`, holding `q` of its key's permission. A directory
+  operation (`mkdir`, `rmdir`, a directory's rename) needs a call holding all of its key's
+  (`DirOpExcl`, per root). The specs of the steps on a name of a spine's directory `d` give back a
+  share of `d`'s key (`osCallPerm_child`/`_unchild` convert).
 * `osGuardS t s p g`: the guard call `t` in flight (begun at the log's length `s`, holding `g` of the
   permission): a call that never logs, ended by `LstatDir`; while it is in flight no directory is
   renamed, and a `mkdir`/`rmdir` may be done by a call holding the rest of the permission, begun no
@@ -67,15 +70,26 @@ variable [GooseExts] [GooseSemantics] [GooseInterp] [ExtSemantics fsExt] [FsSemO
 variable {hlc : HasLC} {GF : BundledGFunctors} [G : GooseGlobalGS hlc GF] [L : GooseLocalGS GF]
 variable {s : Stuckness} {E : CoPset}
 
-theorem osCallPerm_split (q1 q2 : Qp) :
-    osCallPerm (L := L) (q1 + q2) ⊣⊢ osCallPerm (L := L) q1 ∗ osCallPerm (L := L) q2 := by
+theorem osCallPerm_split (r : GoString) (q1 q2 : Qp) :
+    osCallPerm (L := L) r (q1 + q2) ⊣⊢ osCallPerm (L := L) r q1 ∗ osCallPerm (L := L) r q2 := by
   unfold osCallPerm; exact gElem_split _ _ _ q1 q2 ()
 
-theorem osCallPerm_valid (q : Qp) : osCallPerm (L := L) q ⊢ ⌜q ≤ 1⌝ := by
+theorem osCallPerm_valid (r : GoString) (q : Qp) : osCallPerm (L := L) r q ⊢ ⌜q ≤ 1⌝ := by
   unfold osCallPerm
   iintro H
   icases gElem_valid _ _ _ _ _ $$ H with %hv
   ipureintro; exact DFrac.valid_own.1 hv
+
+/-- The whole permission of a root's key, out of what the switch gives (`osCallPerms`); the
+other keys' stay. -/
+theorem osCallPerms_root (R : Roots) (r : GoString) (j0 : Ino) (hR : RootsOk R) (hr : (r, j0) ∈ R) :
+    osCallPerms (L := L) R ⊢ osCallPerm (L := L) (callKey R r) 1 ∗
+      [∗map] r' ↦ _u ∈ GMap.delete r (permMap R), osCallPerm (L := L) r' 1 := by
+  rw [callKey_eq hR hr (.inl rfl)]
+  unfold osCallPerms
+  exact (BigSepM.bigSepM_delete (M := GMap GoString)
+    (Φ := fun (r' : GoString) (_u : Unit) => osCallPerm (L := L) r' 1)
+    (permMap_lookup R r (.inr ⟨j0, hr⟩))).1
 
 /-- Splitting a claim along a finite set of names `M`. -/
 theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
@@ -174,7 +188,7 @@ log's length, a claim on all names of every directory of the tree. Irreversible.
 theorem wp_osShare (R : Roots) (V : Hist) (op : String) (v : val) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osCallPerm (L := L) 1 -∗ osLogLb (L := L) V.2.length -∗
+      (osSharedInv (L := L) R -∗ osCallPerms (L := L) R -∗ osLogLb (L := L) V.2.length -∗
         ([∗list] j ∈ (GMap.toList V.now).map (·.1),
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
         WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
@@ -185,7 +199,8 @@ theorem wp_osShare (R : Roots) (V : Hist) (op : String) (v : val) (hv : v.isPani
 in flight holding it, begun at a log length `s0` at least any the caller knew. -/
 theorem wp_osCallBeginS (R : Roots) (p : GoString) (q : Qp) (n : Nat) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) q -∗ osLogLb (L := L) n -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) (callKey R p) q -∗
+      osLogLb (L := L) n -∗
       (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osCallS (L := L) t s0 p q -∗ osLogLb (L := L) s0 -∗
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} :=
@@ -195,7 +210,8 @@ theorem wp_osCallBeginS (R : Roots) (p : GoString) (q : Qp) (n : Nat) (hE : ↑o
 guard call on `p` in flight holding it, begun at a log length `s0` at least any the caller knew. -/
 theorem wp_osCallBeginGuardS (R : Roots) (p : GoString) (g : Qp) (n : Nat) (hE : ↑osN ⊆ E)
     (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
-    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) g -∗ osLogLb (L := L) n -∗
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osCallPerm (L := L) (callKey R p) g -∗
+      osLogLb (L := L) n -∗
       (∀ (t s0 : Nat), ⌜n ≤ s0⌝ -∗ osGuardS (L := L) t s0 p g -∗ osLogLb (L := L) s0 -∗
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} :=
@@ -207,7 +223,7 @@ theorem wp_osLstatDirGuardS (R : Roots) (p : GoString) (t sg : Nat) (g : Qp)
     (hp : ∃ r j0 cs, (r, j0) ∈ R ∧ (∀ c ∈ cs, NameOk c) ∧ p = joinPath r cs)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osGuardS (L := L) t sg p g -∗
-      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → e ≠ 0⌝ -∗ osCallPerm (L := L) g -∗
+      (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R p) g -∗
         Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV t) (#p)))) @ s; E {{ Φ }} :=
   wp_osLstatDirGuardS' R p t sg g hp hE hE' Φ
@@ -221,7 +237,7 @@ theorem wp_osUnlinkS (R : Roots) (d b : GoString) (j i : Ino) (dq : DFrac) (h : 
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.file i), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
@@ -233,7 +249,7 @@ theorem wp_osUnlinkS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Unlink" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
   wp_osUnlinkS_none' R d b j dq dqn h k s0 q hb hi hE hE' Φ
@@ -250,7 +266,7 @@ theorem wp_osRenameFileS (R : Roots) (d bs d' bt : GoString) (j j' i : Ino) (N N
       osPathS (L := L) R d' dq' j' -∗
       osNames (L := L) j N (DFrac.own 1) h -∗ osNames (L := L) j' N' (DFrac.own 1) h' -∗
       osCallS (L := L) k s0 (child d bs) q -∗
-      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osPathS (L := L) R d' dq' j' -∗
                 ((⌜e ≠ 0⌝ ∗ osNames (L := L) j N (DFrac.own 1) h ∗ osNames (L := L) j' N' (DFrac.own 1) h') ∨
          ∃ x, osLogged (L := L) x (⟨.rename j bs j' bt (.file i) (h'.cur !! bt), s0⟩ : LogEntry) ∗
@@ -269,7 +285,7 @@ theorem wp_osRenameFileS1 (R : Roots) (d bs bt : GoString) (j i : Ino) (N : Name
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d bs) q -∗
-      (∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNamesAfter (L := L) j N h ⟨.rename j bs j bt (.file i) (h.cur !! bt), s0⟩
           (<[bt := .file i]> (GMap.delete bs h.cur)) (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
@@ -284,7 +300,7 @@ theorem wp_osRenameDirS (R : Roots) (d bs bt : GoString) (j J : Ino) (N : NameSe
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d bs) 1 -∗
-      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) 1 -∗ osPathS (L := L) R d dq j -∗
         osNamesAfter (L := L) j N h ⟨.rename j bs j bt (.dir J) none, s0⟩
           (<[bt := .dir J]> (GMap.delete bs h.cur)) (e ≠ 0) -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
@@ -298,7 +314,7 @@ theorem wp_osRenameAbsentS (R : Roots) (d bs d' bt : GoString) (j j' : Ino) (N :
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d bs) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osPathS (L := L) R d' dq' j' -∗ osNames (L := L) j N dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rename" (Val (PairV (osTokV k)
         (PairV (#(child d bs)) (#(child d' bt)))))) @ s; E {{ Φ }} :=
@@ -312,7 +328,7 @@ theorem wp_osMkdirS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Nam
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) 1 -∗
-      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) 1 -∗ osPathS (L := L) R d dq j -∗
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
            osNames (L := L) j (.only [b]) (DFrac.own 1) (h.log x (⟨.mkdir j b J, s0⟩ : LogEntry) (<[b := .dir J]> h.cur)) ∗
@@ -329,7 +345,7 @@ theorem wp_osMkdirSG (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h : Na
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
       osGuardS (L := L) t sg pg g -∗
-      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg pg g -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osGuardS (L := L) t sg pg g -∗
         osPathS (L := L) R d dq j -∗
         ((⌜e ≠ 0⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h) ∨
          ∃ x J, osLogged (L := L) x (⟨.mkdir j b J, s0⟩ : LogEntry) ∗
@@ -347,7 +363,7 @@ theorem wp_osRmdirS (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ 
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
       osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 (child d b) 1 -∗
-      (∀ e : w64, osCallPerm (L := L) 1 -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) 1 -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
@@ -364,7 +380,7 @@ theorem wp_osRmdirSG (R : Roots) (d b : GoString) (j J : Ino) (dq : DFrac) (h hJ
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗
       osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗ osCallS (L := L) k s0 (child d b) q -∗
       osGuardS (L := L) t sg pg g -∗
-      (∀ e : w64, osCallPerm (L := L) q -∗ osGuardS (L := L) t sg pg g -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osGuardS (L := L) t sg pg g -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) J (.except []) (DFrac.own 1) hJ -∗
         osNamesAfter (L := L) j (.only [b]) h ⟨.remove j b (.dir J), s0⟩ (GMap.delete b h.cur)
           (e ≠ 0) -∗ Φ (#e)) -∗
@@ -377,7 +393,7 @@ theorem wp_osRmdirS_none (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac)
     (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ e : w64, ⌜e ≠ 0⌝ -∗ osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name "Rmdir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E {{ Φ }} :=
   wp_osRmdirS_none' R d b j dq dqn h k s0 q hb hi hE hE' Φ
@@ -389,7 +405,7 @@ theorem wp_osLstatDirS (R : Roots) (d b : GoString) (j : Ino) (dq dqn : DFrac) (
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ isDir : w64, ∀ e : w64, ⌜isDir = 1 → (∃ J, h.cur !! b = some (.dir J)) ∧ e ≠ 0⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         osNames (L := L) j (.only [b]) dqn h -∗ Φ (PairV (#isDir) (#e))) -∗
       WP (ExternalOp fsExt.name "LstatDir" (Val (PairV (osTokV k) (#(child d b))))) @ s; E
         {{ Φ }} :=
@@ -405,7 +421,7 @@ theorem wp_osOpenCreateS (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h 
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
             (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
@@ -428,7 +444,7 @@ theorem wp_osOpenFileS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (d
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
         (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
@@ -442,7 +458,7 @@ theorem wp_osOpenDirS (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 : 
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
       osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗
+        osCallPerm (L := L) (callKey R p) q -∗
         osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
@@ -458,7 +474,7 @@ theorem wp_osOpenDirChildS (R : Roots) (d b : GoString) (j J : Ino) (N : NameSet
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
         (⌜e = 0⌝ -∗ osDirFdS (L := L) fd J .idle) -∗ Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#flRO)))))
         @ s; E {{ Φ }} := by
@@ -474,6 +490,7 @@ theorem wp_osOpenDirChildS (R : Roots) (d b : GoString) (j J : Ino) (N : NameSet
     · iexact Hp
     · iexact Hn
   iintro %fd %e %hr Hq ⟨Hp, Hn⟩ Hfd
+  icases osCallPerm_unchild R d b dq j q $$ Hp Hq with ⟨Hp, Hq⟩
   iapply HΦ $$ %fd %e %hr Hq Hp Hn Hfd
 
 /-! ## Shared directory fds -/

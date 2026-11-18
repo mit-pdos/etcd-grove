@@ -53,11 +53,11 @@ abbrev os.Rename.specDirAnySnc : Prop :=
     (q r : Qp) (lb : Nat) (Q : Option (Nat × Nat) → IProp GF),
   NameOk bs → NameOk bt → N.Mem bs → N.Mem bt → bs ≠ bt →
   h.cur !! bs = some (.dir J) → q + r = 1 →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       osLogLb lb ∗ osNames j N (DFrac.own q) h ∗
       osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
-  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+  {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm (callKey R d) 1 ∗
       ((⌜err ≠ interface.nil ∧ os.renameErrOk err⌝ ∗ osNames j N (DFrac.own q) h ∗
           osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q) ∨
         ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗

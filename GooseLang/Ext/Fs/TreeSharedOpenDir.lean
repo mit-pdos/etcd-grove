@@ -51,7 +51,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ P -∗
       osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ P -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
+        osCallPerm (L := L) (callKey R p) q -∗ P -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E
         {{ Φ }} := by
@@ -112,7 +112,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : CallV) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   obtain ⟨-, hres⟩ := hres
@@ -157,7 +157,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
       ipureintro; exact ⟨hw', hc'⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hR]; iexact Hq
     iintro -
     unfold osDirFdS; iexact Hfd
   · have hst' : st' = st.metaEnd k' := by
@@ -188,7 +188,7 @@ theorem wp_osOpenDirGenS' (R : Roots) (p : GoString) (j : Ino) (P : IProp GF) (k
     have hne : e ≠ ENOENT := fun h0 => by
       have := hnoent h0; rw [hl0] at this; cases this
     iapply HΦ $$ %(-1) %e %(.inr ⟨he, hne, rfl⟩) [Hq] Hp
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hR]; iexact Hq
     iintro %he0
     exact absurd he0 he
 
@@ -197,7 +197,7 @@ theorem wp_osOpenDirS' (R : Roots) (p : GoString) (j : Ino) (dq : DFrac) (k s0 :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R p dq j -∗
       osCallS (L := L) k s0 p q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ e ≠ ENOENT ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗
+        osCallPerm (L := L) (callKey R p) q -∗
         osPathS (L := L) R p dq j -∗ (⌜e = 0⌝ -∗ osDirFdS (L := L) fd j .idle) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#p) (#flRO))))) @ s; E

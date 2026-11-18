@@ -242,7 +242,7 @@ theorem fileutil.TouchDirAll.wp_proof
   ihave IH : iprop(∃ (k : Nat) (sl : GoSlice),
       "d" ∷ d_ptr ↦ os.ancPath (full.take k) ∗ "created" ∷ created_ptr ↦ sl ∗
       "Hsl" ∷ sl ↦* touchC full (k + 1) ∗ "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗
-      "Hn" ∷ osNames jp (.only [name]) (DFrac.own 1) h ∗ "Hperm" ∷ osCallPerm 1 ∗
+      "Hn" ∷ osNames jp (.only [name]) (DFrac.own 1) h ∗ "Hperm" ∷ osCallPerm (callKey at Hp) 1 ∗
       "%hk" ∷ ⌜k ≤ full.length⌝) $$ [d created Hs Hn Hperm]
   · iexists full.length, slice.nil
     rw [hdir, touchC_end]
@@ -251,7 +251,7 @@ theorem fileutil.TouchDirAll.wp_proof
     · iapply ownSlice_nil
     ipureintro; exact Nat.le_refl _
   wp_join iprop(∃ (j : Nat) (sl : GoSlice), created_ptr ↦ sl ∗ sl ↦* touchC full j ∗
-      osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm 1 ∗
+      osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm (callKey at Hp) 1 ∗
       ⌜j ≤ full.length⌝)
     at (App (App (App (Val doFor) _) _) _) with [IH] as ⟨%j, %sl, created, Hsl, Hs, Hn, Hperm, %hj⟩
   · wp_for IH
@@ -356,7 +356,7 @@ theorem fileutil.TouchDirAll.wp_proof
     wp_auto
     ihave IH : iprop(∃ (i : w64) (dv : GoString),
         "i" ∷ i_ptr ↦ i ∗ "d" ∷ d_ptr ↦ dv ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗
-        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm 1 ∗
+        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm (callKey at Hp) 1 ∗
         "Hc" ∷ (⌜sint.nat i < (touchC full j).length⌝ ∨ osCommitLb h1.next) ∗
         "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ (touchC full j).length⌝) $$ [i d err Hs Hperm]
     · iexists W64 0, _

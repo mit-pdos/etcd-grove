@@ -260,7 +260,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
     (hs : h.next ≤ s0) (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j (.only [b]) (DFrac.own 1) h -∗ osCallS (L := L) k s0 (child d b) q -∗
-      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗
+      (∀ fd : w64, ∀ e : w64, osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗
         ((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ osNames (L := L) j (.only [b]) (DFrac.own 1) h ∗
             (⌜e ≠ 0 ∧ fd = -1⌝ ∨ ⌜e = 0 ∧ 0 ≤ fd.toInt⌝ ∗ osFd (L := L) fd (DFrac.own 1) (openFd i fl))) ∨
          (⌜h.cur !! b = none⌝ ∗ ∃ x i, osLogged (L := L) x (⟨.create j b i, s0⟩ : LogEntry) ∗
@@ -285,7 +285,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
   have htrE : ∀ st, ClaimsAt st cl → fl.toNat / O_TRUNC % 2 = 0 ∨ st.tree.entry j b = none :=
     fun st hat => htr.imp id (fun hn => (hentE st hat).trans hn)
   have hprog : ∀ st, FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       ∃ e' st', IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' ∧
         FilesSame st st' := by
@@ -300,7 +300,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
       have hl' : (st.metaEnd k).lookup (child d b) = some (.file i) := hl
       rw [hl0, hentE st hat, hnone] at hl'; cases hl'
   have hpost : ∀ st e' st', FsTreeWf st → st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       ∃ w, e' = Val w ∧ FsTreeWf st' ∧
@@ -319,7 +319,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
         .inr ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl⟩, _, _, rfl, fun _ => (hentE st hat).symm.trans hen⟩⟩
   have hworld : ∀ st e' st' (hh hh' : GMap Loc (NonAtomic val)) Γb Γm Γf Γt w lg, FsTreeWf st →
       st.fs.roots = R → st.proc.calls !! k = some (s0, child d b) →
-      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → k' = k) →
+      (q = 1 → ∀ k' s', st.proc.calls !! k' = some s' → callKey R s'.2 = callKey R (child d b) → k' = k) →
       st.lookup d = some (.dir j) → ClaimsAt st cl →
       IsFsStep "Open" (PairV (osTokV k) (PairV (#(child d b)) (#fl))) st e' st' →
       e' = Val w → W w lg → (lg = false → EndedT st st' k) →
@@ -490,6 +490,7 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
     obtain rfl := go.intoVal_inj h2
     icases HG with (⟨%hlg, -⟩ | ⟨-, HG⟩)
     · cases hlg
+    icases osCallPerm_unchild R d b _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
     iapply HΦ $$ %fd %e Hq Hp
     icases HG with (⟨%i, %hi, HG⟩ | %hf)
     · ileft
@@ -510,7 +511,8 @@ theorem wp_osOpenCreateS' (R : Roots) (d b : GoString) (j : Ino) (dq : DFrac) (h
     obtain rfl := go.intoVal_inj h1
     obtain rfl := go.intoVal_inj h2
     icases HG with (⟨-, Hm, HG⟩ | ⟨%hlg, -⟩)
-    · iapply HΦ $$ %fd %e Hq Hp
+    · icases osCallPerm_unchild R d b _ j _ $$ Hp Hq with ⟨Hp, Hq⟩
+      iapply HΦ $$ %fd %e Hq Hp
       iright; ileft
       isplitr
       · ipureintro; exact hnone rfl
@@ -533,12 +535,13 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osPathS (L := L) R d dq j -∗
       osNames (L := L) j N dqn h -∗ osCallS (L := L) k s0 (child d b) q -∗
       (∀ fd : w64, ∀ e : w64, ⌜(e = 0 ∧ 0 ≤ fd.toInt) ∨ (e ≠ 0 ∧ fd = -1)⌝ -∗
-        osCallPerm (L := L) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
+        osCallPerm (L := L) (callKey R d) q -∗ osPathS (L := L) R d dq j -∗ osNames (L := L) j N dqn h -∗
         (if e = 0 then osFd (L := L) fd (DFrac.own 1) (openFd i fl) else emp) -∗
         Φ (PairV (#fd) (#e))) -∗
       WP (ExternalOp fsExt.name "Open" (Val (PairV (osTokV k) (PairV (#(child d b)) (#fl)))))
         @ s; E {{ Φ }} := by
   iintro #Hinv #Hsi Hp Hn Hk HΦ
+  icases osPathS_callKey R d dq j $$ Hp with ⟨Hp, %hkd⟩
   iapply wp_fs_stepM "Open" _ Φ (by simp [val.isPanic]) hE $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h0 Hw Ht
   unfold treeCtx
@@ -590,7 +593,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
   unfold callResS
   icases (BigSepM.bigSepM_delete (M := GMap Nat)
     (Φ := fun (_t : Nat) (x : CallV) =>
-      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm () (DFrac.own x.2) ()) hk).1 $$ Hcr
+      gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm (callKey st.fs.roots x.1.2) (DFrac.own x.2) ()) hk).1 $$ Hcr
     with ⟨Hq, Hcr⟩
   imod gAuth_delete _ _ _ _ _ $$ Hacs Hk with Hacs
   ihave Hw : osWorld (L := L) st Γb Γm Γf Γt h0 $$ [HAb HAm HAf HAt Htok Hcells Hσ]
@@ -629,7 +632,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
         (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hkd b, ← hR]; iexact Hq
     rw [if_pos rfl]; iexact Hfd
   · have hst' : st' = st.metaEnd k := by
       rcases hst with rfl | ⟨tgt, heff⟩
@@ -657,7 +660,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       ipureintro; exact ⟨fsTreeWf_metaEnd hw k, treeCohS_metaEnd hc k hk⟩
     iapply wp_value'
     iapply HΦ $$ %(-1) %e %(.inr ⟨he, rfl⟩) [Hq] Hp Hn
-    · unfold osCallPerm; iexact Hq
+    · unfold osCallPerm; rw [← hkd b, ← hR]; iexact Hq
     rw [if_neg he]; iempintro
 
 end specs

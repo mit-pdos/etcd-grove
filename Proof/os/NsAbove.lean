@@ -116,9 +116,9 @@ variable [os.file.FieldAssumptions] in
 /-- `os.OpenFile(p, O_RDONLY, perm)` of a strict ancestor of a root: an outside fd, or an error. -/
 theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : RootsAbove R p)
     (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R p) qc }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hos, #Hsi, Hperm⟩
@@ -175,9 +175,9 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
 variable [os.file.FieldAssumptions] in
 /-- `os.Open(p)` of a strict ancestor of a root: `OpenFile(p, O_RDONLY, 0)`. -/
 theorem os.Open.wp_aboveS (p : GoString) (R : Roots) (hp : RootsAbove R p) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm qc }}
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R p) qc }}
       (App (Val (@! os.Open)) (Val #p))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R p) qc ∗
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
   wp_start as ⟨#Hinv, #Hsi, Hperm⟩
