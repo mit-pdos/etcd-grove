@@ -35,15 +35,20 @@ then the entry `src` the program's instead, dubious, since the snapshot director
 transport, may create a file at `src` again; nothing in the program needs `src` after the rename,
 and the program's right to `dst`, which nothing else renames onto or removes, is unchanged by it); on an error (an error `fmt` can format)
 nothing moved, the environment failing it (`¬ renameOk src dst`: D22 receiver epochs, S8d,
-2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). -/
+2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). (S5,
+2026-11-18) The entry `dst` is the claim on its name in the tree's shared mode, naming an open
+database's file (`bPath γ dst`, until then the opaque `pathOwn dst`); on success the claim is in
+the file at `dst` (`srvFileHolds dst D`, the server's abstract file), so it is not given back: an
+interim statement, until `srvFileHolds` is the concrete `fileHolds` and this axiom a proof from
+`os.Rename.specFileS` (`notes/bbolt-integration-plan.md`, S5). -/
 abbrev os.Rename.spec : Prop :=
-  ∀ (src dst : GoString) (D : Data),
-  {{ srvFileHolds (GF := GF) src D ∗ pathOwn dst }}
+  ∀ (src dst : GoString) (D : Data) (γ : DBNames),
+  {{ srvFileHolds (GF := GF) src D ∗ bPath γ dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
   {{ (err : GoInterface), RET #err;
-      (⌜err = GoInterface.nil⌝ ∗ srvFileHolds dst D ∗ pathOwn dst) ∨
+      (⌜err = GoInterface.nil⌝ ∗ srvFileHolds dst D) ∨
       (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmt.argOk err ∗ srvFileHolds src D ∗
-        pathOwn dst) }}
+        bPath γ dst) }}
 
 end spec
 

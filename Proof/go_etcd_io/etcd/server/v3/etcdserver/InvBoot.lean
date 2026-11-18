@@ -454,8 +454,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     -- (D22 S-j2, 2026-10-20; an environment assumption the user approved, "D22's environment
     -- assumptions approved") the backend file's directory entry is the server's: nothing else
     -- creates, renames or deletes a file at `<DataDir>/member/snap/db`. `applySnapshot`'s
-    -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it)
-    "Hpath" ∷ backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+    -- `storage.OpenSnapshotBackend` renames a received image onto it (`os.Rename`'s axiom takes it).
+    -- (S5, 2026-11-18) The claim on that name, which names the backend's file (`backend.bPath`, what
+    -- `backend.New` gives with the backend; until then the opaque `pathOwn`)
+    "Hpath" ∷ backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
     -- (2026-11-04, the restart plan's R2b-3d, the user's approval) the backend's file is the
     -- configuration's backend path (`bootstrapBackend`'s `OpenBackend(cfg, ...)`, whose post gives it)
     "#Hbfile" ∷ backend.bFile d.γB (config.backendPathOf cfg.DataDir'))

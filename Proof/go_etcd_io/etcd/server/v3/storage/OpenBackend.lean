@@ -47,7 +47,12 @@ not locked by another process). (2026-11-06, branch `begin-tok`, `notes/begin-to
 Under `[ThreadBoundLe GF (2 ^ 29)]`, which `New`'s spec takes (bbolt's `Open_kv`: each read
 transaction holds a thread's token): `New` now also takes a `threadTok` and gives it back on
 success, and the goroutine `OpenBackend` starts (`server/storage/backend.go:79`) pays it with its
-own fork token, so the caller's triple is unchanged. -/
+own fork token, so the caller's triple is unchanged. (S5, 2026-11-18) The post also gives the claim
+on the file's name (`bPath γ.db`), which `New`'s spec now gives its caller (`ownDB` keeping the
+inode only). **Not sound in the strict sense** (S3e's item 5, unchanged): from the abstract
+`srvFileHolds` it gives a backend over concrete file-extension state, and the claim; the fix (its
+pre the concrete `fileHolds`, what `New` takes) needs the server's snapshot files over the tree
+(`notes/bbolt-integration-plan.md`, S5). -/
 axiom storage.OpenBackend.wp_proof : storage.OpenBackend.spec (GF := GF) (hG := hG)
 
 end proof

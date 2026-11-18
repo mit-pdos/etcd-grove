@@ -35,7 +35,12 @@ backend's bbolt database is unaffected), or fails and changes nothing; Go then r
 `*os.LinkError`, whose `Error()` returns a string. The file's contents do not change. The
 program owning `dst` (`pathOwn`) is the data directory's closed-world assumption. What would
 discharge it: a model of the file system (directory entries and inodes) under which `srvFileHolds`
-is a points-to of a path. -/
+is a points-to of a path. (S5, 2026-11-18) The entry `dst` is now the concrete claim on its name
+(`backend.bPath γ dst`, which `backend.New` gives); on success the axiom consumes it (it is in the
+file at `dst`, the abstract `srvFileHolds dst D`), so it creates no claim: no proof holds two
+claims on `dst` after it. The proof from the shared mode is `os.Rename.specFileSNE`
+(`Proof/os/RenameSNE.lean`, no error under `NoIoErr`), once `srvFileHolds` is the concrete
+`fileHolds` at the claims' roots (`notes/bbolt-integration-plan.md`, S5, "Left"). -/
 axiom os.Rename.wp_proof : os.Rename.spec (GF := GF) (hG := hG)
 
 end proof

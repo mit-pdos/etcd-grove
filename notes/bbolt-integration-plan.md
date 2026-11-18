@@ -787,3 +787,55 @@ bbolt's pending `fs.FileMode.String.spec`, which S3g removes.
 **Left.** S3f's merge (the two interim axioms and `boltCloserH`, the option constraints above,
 `FileMode.String`); `storage.OpenBackend` (item 5, its own unit next, per the coordinator); the cleanup
 of the trivial `dbOpenOk`/`dbCloseOk`.
+
+### S5 (branch `srv-files`, off `bbolt-integrate` `413fd1e22a`, 2026-11-18): `storage.OpenBackend` sound
+
+**The problem** (S3e's item 5): `storage.OpenBackend`'s axiom makes a backend whose `ownDB` holds
+concrete `fsExt` ghost state (`isBolt`'s invariants, the claim on the file's name) from the abstract
+`srvFileHolds`, which no exclusive resource backs.
+
+**Design** (written before coding).
+
+1. *The backend gives its file's name up at `Open`.* Today `ownDB` keeps the claim on the database
+   file's name (`dbRestF`), so that `Close` can give back `fileHolds path D`. The server must rename
+   a received snapshot onto that name while the old backend is still open (`applySnapshot`:
+   `OpenSnapshotBackend`, then the old backend's `Close` on a goroutine), and a rename needs the
+   claim on its destination (`os.Rename.specFileS`). So: `ownDB` keeps the inode only (`boltIno`,
+   the closer token), `backend.New` gives the claim to its caller as `pathOwn γ path` (the claim on
+   the name, which names the opened inode, `∃ i, bIno γ.db i ∗ nameAt path i`), and `Close` gives
+   back the inode (`inoHolds γ.db D`: `∃ i, bIno γ.db i ∗ fileHoldsM i D`). A client that never
+   renames joins the two back (`pathOwn_join : pathOwn γ p ∗ inoHolds γ.db D ⊢ fileHolds p D`), which
+   needs the inode to agree: `boltIno γ i ∗ boltIno γ i' ⊢ ⌜i = i'⌝`, a law added to bbolt's API in a
+   module of its own (`Spec/go_etcd_io/bbolt/ApiIno.lean`, so bbolt's proofs do not rebuild; proved
+   from `t0At`'s agreement; no bbolt proof changes). `pathOwn` (until now opaque, exclusive) becomes
+   this concrete claim, so the server's `pathOwn bp` is the backend's name, and it takes the
+   backend's names: `pathOwn γ p`.
+2. *`os.Rename` over the tree.* With `pathOwn` the claim on the destination and the source's
+   `fileHolds` the claim on its name with the file, `os.Rename.spec` (an axiom over `srvFileHolds`)
+   becomes a theorem from `os.Rename.specFileS` (`Proof/os/RenameS.lean`): the two claims split in
+   halves (the update trivial, `osAU_triv`). Its error: the model's `rename(2)` fails only as
+   `NoIoErr` allows (`IoCovers` names `Rename`), so under `theFs`'s `FsNoErrAll` a rename of a file
+   onto a name that is not a directory succeeds; that needs an error-free variant of `specFileS`.
+3. *`OpenBackend`, option (b).* It stays an axiom (translating `OpenBackend`/`newBackend` with
+   bodies needs the goroutine, `select`/`time.After` and `newBackend`'s config plumbing: a unit of
+   its own), its pre the concrete `fileHolds (backendPathOf dd) D`, what `backend.New` takes, its post
+   `New`'s (with the claim, `pathOwn`). It then creates nothing: what it gives is what `New` gives for
+   what it consumes.
+4. *The snapshot directory's files.* `srvFileHolds` goes: the snapshot directory's invariant
+   (`snapDirInv`) holds the concrete `fileHolds` of each saved index, and the claims on the names of
+   the indices not yet saved; `SaveDBFrom` (names-only) takes the fresh claim of its index at its
+   link and puts `fileHolds` of the image in the invariant (exclusive: it cannot duplicate);
+   `DBFilePath` reads; `storage.Release` drops the files it removes (consuming).
+5. *Where the claims come from at the top.* The closed theorems' data directories are **relative**
+   strings (`examples/lib/etcdstart`: `DataDir: name + ".etcd"`), which the file model gives no
+   meaning (`Paths.lean`: canonical paths below an absolute root only; the steps are stuck), so no
+   claim on a data directory's names can be derived from the initial tree (`start_fileHolds`): that
+   needs the examples to take an absolute root (a Go change in the examples, their retranslation and
+   every closed theorem's program), beyond this unit. Until then the server's first claims come from
+   `bootstrap`'s contract (`bootOk`), a premise, as the boot backend's concrete `ownDB` already does
+   (since S1/S3e: `bootOk` gives a backend whose `isBolt` is concrete from the abstract
+   `dataDirFresh`). Reported.
+
+**Scope decision.** Items 1, 3 first (the backend gives the name up; `pathOwn` concrete; the server
+and mvcc threading it; `OpenBackend`'s pre concrete), then 2 and 4; what is not done is listed
+under "Left" below.

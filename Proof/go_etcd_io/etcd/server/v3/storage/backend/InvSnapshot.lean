@@ -19,13 +19,10 @@ axioms of etcd's backend (`backend.Snapshot`, `snapshot.WriteTo`) and of the fil
   (what `Tx.WriteTo` writes: its two meta pages and its data pages; many byte strings encode one
   `D`, by their page layout and free list). A file holding such bytes holds `D` (`fileHolds`):
   that is the receiver's half of the round trip, the transport's (D22 S-i).
-* `pathOwn p` (opaque, exclusive): the program's right to the directory entry `p`: no other part
-  of the program, and no other process, creates, removes or renames a file at `p` (the
-  closed-world assumption of the data directory, as `netAddrFree` is of the addresses).
-  `os.Rename` onto `p` needs it (else a `fileHolds p` could go stale under its holder); opening a
-  database (`bolt.Open`) does not, and keeps the file open whatever then happens to its entry.
-  `fileHolds p D` (`InvBbolt.lean`) is read as: the file at `p` holds `D`, and its holder may
-  open it or rename it (exclusively, as a points-to).
+* (S5, 2026-11-18) The program's right to the backend file's directory entry, until then the opaque
+  exclusive `pathOwn p`, is the claim on the name in the tree's shared mode, `bPath γ p`
+  (`InvBbolt.lean`): `backend.New` gives it, naming the opened file; `os.Rename` onto `p` takes it.
+  `fileHolds p D` (`InvBbolt.lean`) is the claim with the file holding `D`.
 * `writerOk w Wr`: the `io.Writer` `w`'s contract, by its client's predicate `Wr c bs` of the bytes
   written so far, `c` whether a `Write` call has returned (D22 S-h, 2026-10-20: a pipe's writer
   learns at its first `Write`'s return that its reader has started, `Spec/io/Pipe.lean`):
@@ -88,9 +85,6 @@ theorem snapOpenQ_half (sp : Loc) (D : Data) (γ : GName) (q : Qp) :
     iframe Hro
     iapply (ghostVar_split_half (GF := GF) γ q ()).2
     iframe Hg1 Hg2
-
-/-- **The directory entry `p` is the program's** (opaque, exclusive; see the file header). -/
-opaque pathOwn (p : GoString) : IProp GF
 
 /-- **The database file at `p` holds `D`, as the server's snapshot path sees it** (opaque; S3e,
 2026-11-17, `notes/bbolt-integration-plan.md`): what `backend.fileHolds` was (an axiom) before the

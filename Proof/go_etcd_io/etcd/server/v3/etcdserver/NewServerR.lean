@@ -265,7 +265,7 @@ theorem NewServer.wp_proofRG
   -- the stopped member's image
   iunfold srvDiskImageAt at Himg
   icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
-    Hfiles, Hpath, Hsdimg⟩
+    Hfiles, Hsdimg⟩
   rw [Hρo] at Himp
   ihave #HA0 : srvRLogLb ⟨γ, [], W64 0⟩ A $$ []
   · rw [← Hρo]; iexact HA
@@ -293,7 +293,7 @@ theorem NewServer.wp_proofRG
   · iexists ρo.rd.kv, A, u
     iframe Hmvi
     ipureintro; exact ⟨Himr.2, Himg, Hist⟩
-  wp_apply Hbc $$ [Hrauth Hfiles Hpath] as %b %err Hb
+  wp_apply Hbc $$ [Hrauth Hfiles] as %b %err Hb
   · iframe; iframe Hcfgro Hzlg Hvoff
     iright; iexact Hfg
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)

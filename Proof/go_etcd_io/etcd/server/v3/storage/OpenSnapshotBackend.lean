@@ -49,7 +49,7 @@ theorem storage.OpenSnapshotBackend.wp_proof
     (wp_BackendPath : config.ServerConfig.BackendPath.spec (GF := GF) (hG := hG))
     (wp_OpenBackend : storage.OpenBackend.spec (GF := GF) (hG := hG)) :
     storage.OpenSnapshotBackend.spec (GF := GF) (hG := hG) := by
-  intro _ cfg ss sn mp hk dq dq' md P D W Pk K
+  intro _ cfg ss sn mp hk dq dq' md P D W Pk K γo
   wp_start as ⟨#Hss, Hmdp, Hsm, Hf, Hpo, Hpre⟩
   ihave #Hraftpb : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
@@ -66,10 +66,10 @@ theorem storage.OpenSnapshotBackend.wp_proof
     iStructNamed Hcf
     wp_apply wp_BackendPath $$ [$DataDir] as -
     wp_apply wp_Rename $$ [$Hf $Hpo] as %err2 Hr
-    icases Hr with (⟨%Hr, Hf, Hpo⟩ | ⟨%Hr, Hok, Hf, Hpo⟩)
+    icases Hr with (⟨%Hr, Hf⟩ | ⟨%Hr, Hok, Hf, Hpo⟩)
     · subst Hr
       wp_auto
-      wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf⟩
+      wp_apply wp_OpenBackend cfg _ P D W Pk K $$ [$Hpkg $Hf $Hpre] as %b %γ ⟨Hnew, #Hhka, #Hbf, Hpo⟩
       iapply HΦ
       iframe Hmdp Hsm
       ileft

@@ -60,7 +60,9 @@ abbrev storage.OpenBackend.spec : Prop :=
       newPostK γ P W Pk K b D ∗ hooksAt b h ∗
       -- (2026-11-04, R2b-3c part 2, the user's approval) the backend's file is the configuration's
       -- backend path
-      bFile γ (config.backendPathOf cfg.DataDir') }}
+      bFile γ (config.backendPathOf cfg.DataDir') ∗
+      -- (S5, 2026-11-18) and the claim on its name, `backend.New`'s (`bPath`)
+      bPath γ.db (config.backendPathOf cfg.DataDir') }}
 
 end spec
 

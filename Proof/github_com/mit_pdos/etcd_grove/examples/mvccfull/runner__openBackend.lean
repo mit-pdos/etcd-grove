@@ -93,7 +93,7 @@ theorem runner.openBackend.wp_proof
         unfold limOf
         simp only [hb, ↓reduceIte, hdl]
       · rw [hhooks]; iapply backend.hooksOk_nil
-    icases Hr with (⟨%b, %γB, %Hr, Hnew, -, Hbf, Htok⟩ | %Hpan)
+    icases Hr with (⟨%b, %γB, %Hr, Hnew, -, Hbf, Hbp, Htok⟩ | %Hpan)
     rotate_left
     · exact absurd hdbo Hpan.1
     subst Hr
@@ -101,7 +101,7 @@ theorem runner.openBackend.wp_proof
     iapply HΦ
     iframe Htok
     iexists b, γB
-    iframe Hnew Hbf
+    iframe Hnew Hbf Hbp
     ipureintro; rfl
 
 end proof

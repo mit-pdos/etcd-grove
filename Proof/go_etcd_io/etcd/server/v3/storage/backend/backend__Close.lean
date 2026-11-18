@@ -30,33 +30,28 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Pe
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
 /-- (S3e) bbolt's canonical `DB.Close.spec` in the backend's vocabulary, at `theFs` (until then the
 `_kv` spec `DB.Close_kv`): no error (`Close`'s error case is `¬ FsNoErr`, which `theFs`'s
-`FsNoErrAll` refutes); the file it gives back (`fileHoldsM`, S3g) with the claim the database kept
-(`dbRestF`) is the backend's `fileHolds` again. -/
+`FsNoErrAll` refutes); the file it gives back (`fileHoldsM`, S3g), at the inode the database kept
+(`dbRestF`): `bClosed` (S5; until then, with the claim the database kept, `fileHolds`). -/
 private theorem bbolt.kvGlue_DB__Close
     (h : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
       bbolt.DB.Close.spec (GF := GF) (hG := hG)) :
-  ∀ (db : Loc) (γ : DBNames) (D : backend.Data) (path : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ dbFile db γ path ∗ ownDB db γ D }}
+  ∀ (db : Loc) (γ : DBNames) (D : backend.Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ isDB db γ ∗ ownDB db γ D }}
     (App (Val (db @!! go.GoType.PointerType go_etcd_io.bbolt.DB.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ backend.fileHolds path D }} := by
-  intro db γ D path
+  {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ backend.bClosed γ D }} := by
+  intro db γ D
   rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
   · simp only [backend.isDB, onFs_none hfs]
     iintro %Φ ⟨-, H, -⟩ HΦ
     iexfalso; iexact H
   · haveI := fax; haveI := fsax
     have h' := @h fax fsax
-    simp only [backend.fileHolds, backend.ownDB, backend.isDB, onFs_some hfs]
+    simp only [backend.bClosed, backend.ownDB, backend.isDB, onFs_some hfs]
     obtain ⟨Sio, hino, hpath', hs1, hs2⟩ := nex.ok
     have hne : Fs.FsNoErr := Fs.fsNoErr_of Sio hino hpath'
-    iintro %Φ ⟨-, #Hdb, Hpath, -, Hst, Hrest⟩ HΦ
-    iunfold dbFile at Hpath
-    icases Hpath with %Hpath
+    iintro %Φ ⟨-, #Hdb, -, Hst, Hrest⟩ HΦ
     unfold dbRestF
-    icases Hrest with ⟨%R, %d, %b, %dq, %j, %qc, %hn, %i, %hr, #Hinv, #Hsh, Hp, Hcp, Hnm, #Hino, Hcl⟩
-    obtain ⟨hns, hb, hi⟩ := hr
-    have hpath : path = child d b := dbNs_inj (Hpath.symm.trans hns)
-    subst hpath
+    icases Hrest with ⟨%i, #Hino, Hcl⟩
     wp_apply (h' db γ i D) $$ [$Hdb $Hino $Hst $Hcl] as %err Hres
     icases Hres with (⟨%He, Hf⟩ | %Hbad)
     rotate_left
@@ -64,16 +59,8 @@ private theorem bbolt.kvGlue_DB__Close
     iapply HΦ
     isplitr
     · ipureintro; exact He
-    unfold fileHoldsF
-    iexists R, d, b, dq, j, qc, hn
-    iframe Hinv Hsh Hp Hcp Hnm
-    isplitr
-    · ipureintro; exact ⟨rfl, hb⟩
-    unfold bbolt.nameHolds
-    ileft
     iexists i
-    iframe Hf
-    ipureintro; exact hi
+    iframe Hino Hf
 
 theorem backend.backend.Close.wp_proof
     (hClose : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
@@ -120,13 +107,13 @@ theorem backend.backend.Close.wp_proof
   obtain ⟨rfl, rfl⟩ := Hag
   wp_auto
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmug2] as ⟨Hwl, Hdbp⟩
-  wp_apply (hClose db' γ.db C path') $$ [$Hisdb2 $Hfile $Hown] as %err ⟨%He, Hf⟩
+  wp_apply (hClose db' γ.db C) $$ [$Hisdb2 $Hown] as %err ⟨%He, Hf⟩
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl $Hdbp]
   iapply HΦ
   iframe HY
   iexists C
   iframe Hsv
-  ileft; iframe %He; iexists path'; iframe Hf; iunfold bFile; iexists db'; iexact Hdbat
+  ileft; iframe %He; iframe Hf
 
 end proof
 

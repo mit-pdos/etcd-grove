@@ -35,13 +35,13 @@ theorem backend.New.wp_proof
   · iframe
     iframe #
     ipureintro; exact HP
-  icases Hr with (⟨%b, %γ, %Hr, Hp, #Hhka, #Hbf, Htok⟩ | %Hpan)
+  icases Hr with (⟨%b, %γ, %Hr, Hp, #Hhka, #Hbf, Hbp, Htok⟩ | %Hpan)
   · subst Hr
     wp_auto
     iapply HΦ
     ileft
     iexists b, γ
-    iframe Hp Hhka Hbf Htok
+    iframe Hp Hhka Hbf Hbp Htok
     ipureintro; rfl
   · obtain ⟨Hno, pv, rfl⟩ := Hpan
     wp_auto

@@ -185,7 +185,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
        snap.isSnapshotter ss ∗ backend.srvFileHolds (snap.snapDBPath ss sv.Metadata'.Index') D ∗
-       backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
+       backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
        envVerifyOff ∗
