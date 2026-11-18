@@ -891,7 +891,7 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       wp_apply time.wp_Now as %now -
       (try wp_auto)
-      wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, %c3', %vs3', %Hc3e', -, -, -, -, -, #Hdel3⟩
+      wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, %c3', %vs3', %Hc3e', -, #Hmd3, -, -, -, -, #Hdel3⟩
       · ipureintro; right; right; left; rfl
       ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
       subst Hc3e
@@ -899,7 +899,7 @@ theorem EtcdServer.Txn.wp_proof
       · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
         iapply (context.libCtxOk_of_valueWand (GF := GF) ctx2 c3'
           ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _
-          (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel3 Hlib2
+          (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel3 Hmd3 Hlib2
       -- (the span fact) the context `raftRequest` sees has it, through `WithValue`'s delegation
       ihave #Hspc3 : trace.spanCtxOk ctx3 $$ []
       · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
@@ -1090,7 +1090,7 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       wp_apply time.wp_Now as %now -
       (try wp_auto)
-      wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, %c3', %vs3', %Hc3e', %Hinc3, -, -, -, -, #Hdel3⟩
+      wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, %c3', %vs3', %Hc3e', %Hinc3, #Hmd3, -, -, -, -, #Hdel3⟩
       · ipureintro; right; right; left; rfl
       ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
       subst Hc3e
@@ -1098,7 +1098,7 @@ theorem EtcdServer.Txn.wp_proof
       · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
         iapply (context.libCtxOk_of_valueWand (GF := GF) ctx2 c3'
           ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _
-          (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel3 Hlib2
+          (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel3 Hmd3 Hlib2
       -- (the span fact) the context `raftRequest` sees has it, through `WithValue`'s delegation
       ihave #Hspc3 : trace.spanCtxOk ctx3 $$ []
       · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']

@@ -201,7 +201,8 @@ its tracer's `Start` returns (an SDK span, or the no-op tracer's `Span`, over th
 `ContextWithRemoteSpanContext` stores, a `nonRecordingSpan`), each a span whose `End`,
 `AddEvent` and `RecordError` return. And (premise-fixes-7, 2026-11-11) its library values are
 well formed (`context.libCtxOk`, `Proof/context/LibKeys.lean`): grpc's server stores under
-`mdIncomingKey{}` the `MD` its transport read from the stream's headers (`transportMD`), under
+`mdIncomingKey{}` the `MD` its transport read from the stream's headers (`metadata.transportMDRaw`, through
+`metadata.ctxInMD`; perheap step 0), under
 `peerKey{}` the transport's `*Peer` (`transportPeer`), nothing under `mdOutgoingKey{}` (only
 `NewOutgoingContext`/`AppendToOutgoingContext` store there, which no server code here calls on a
 run's context), and under otel's `currentSpanKey` nothing or otelgrpc's span (`otelSpan`; its

@@ -12,20 +12,24 @@ and `TestContradictions`).
 * `context.valueAt ctx k R` (persistent): `ctx.Value(k)` returns, from any goroutine, a value
   satisfying the pure `R` (the pattern of `context.startTimeOk`; pure, so that Perennial's
   `ctxValue` laws and `WithValue`'s `Value` wand carry it).
-* The results the libraries accept (`metadata.incomingRes`, `metadata.outgoingRes`, `peer.peerRes`,
-  `trace.spanRes`): a value of another type than the library stores (nothing to misuse: the
-  library's type assertion fails), or one the library made (the opaque, trusted predicates
-  `metadata.transportMD`, `metadata.builtRawMD`, `peer.transportPeer`, `trace.otelSpan`; D4: only
-  the owning package can store a value under its unexported key).
-* `context.libCtxOk ctx`: the four facts, what callers carry. The metadata facts are deterministic
-  (`Value` returns one value `v` on every call): the metadata is a function of the context
-  (`metadata.incomingOf`/`outgoingOf`).
+* The results the libraries accept (`metadata.outgoingRes`, `peer.peerRes`, `trace.spanRes`): a value
+  of another type than the library stores (nothing to misuse: the library's type assertion fails), or
+  one the library made (the opaque, trusted predicates `metadata.builtRawMD`, `peer.transportPeer`,
+  `trace.otelSpan`; D4: only the owning package can store a value under its unexported key).
+* (perheap step 0, 2026-11-18; `notes/perheap-scope.md` §2) **The incoming metadata as a per-heap
+  relation**: `metadata.ctxInMD ctx md` (persistent), "`ctx`'s incoming metadata is `md`", over
+  Perennial's chain (`context.ctxValue`) at `mdIncomingKey{}`: the value there is not an `MD` and
+  `md = none`, or it is an `MD` grpc's transport made holding `f` (the opaque leaf
+  `metadata.transportMDRaw`, no law) and `md = some f`. No law concludes a pure fact from it (no
+  agreement of two `md`s for one context: the Scope's §5); the chain laws carry it
+  (`LibKeysChain.lean`). `metadata.incomingCtxOk ctx := ∃ md, ctxInMD ctx md`.
+* `context.libCtxOk ctx`: the four facts, what callers carry.
 
 Producers (proved): a context with Perennial's `ctxValue` at the keys (`libCtxOk_of_ctxValueNil`),
 hence `Background()`, `TODO()` and their children by `WithCancel` and the deadline constructors
 (`libCtxOk_background`, `libCtxOk_todo`, `libCtxOk_bgFrom`), a `WithValue` at another key type
-(`libCtxOk_of_valueWand`), and contexts answering `nil` at every key (`libCtxOk_of_nil`: k8s's
-`channelContext`). The k8s keys are in `Proof/k8s_io/apiserver/pkg/audit/CtxKeys.lean`.
+(`libCtxOk_of_valueWand`, with `WithValue`'s incoming transfer), and contexts of a type `value()` does not
+special-case answering `nil` at every key (`libCtxOk_of_nil`: k8s's `channelContext`). The k8s keys are in `Proof/k8s_io/apiserver/pkg/audit/CtxKeys.lean`.
 -/
 module
 
@@ -46,15 +50,6 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 /-! ### The opaque "made by the library" predicates (TRUSTED; D4) -/
-
-/-- (opaque; TRUSTED) **An `MD` grpc's server transport put in a stream's context**: the value
-`metadata.NewIncomingContext` stores under `mdIncomingKey{}` when grpc's HTTP/2 server transport
-reads a stream's headers (grpc v1.84.0 `internal/transport/http2_server.go`, `operateHeaders`:
-`mdata[hf.Name] = append(mdata[hf.Name], v)` for each header field, then
-`metadata.NewIncomingContext(s.ctx, mdata)`): a `metadata.MD` with one key per header field name,
-lower case (HTTP/2 header names are), each key with at least one value. Nothing writes it after:
-only grpc's `metadata` package reads or stores under the unexported key. -/
-opaque metadata.transportMD [GooseExts] : GoInterface → Prop
 
 /-- (opaque; TRUSTED) **A `rawMD` grpc's `metadata` stored** under `mdOutgoingKey{}`:
 `metadata.NewOutgoingContext(ctx, md)` (`rawMD{md: md}`) or `AppendToOutgoingContext(ctx, kv...)`
@@ -132,12 +127,6 @@ abbrev peer.peerKeyAny : GoInterface :=
   interface.mkOk google_golang_org.grpc.peer.peerKey.ty
     #(zero_val google_golang_org.grpc.peer.peerKey)
 
-/-- What `FromIncomingContext` accepts at `mdIncomingKey{}`: not an `MD` (its `, ok` assertion
-fails), or the transport's (`transportMD`). -/
-def metadata.incomingRes (v : GoInterface) : Prop :=
-  (∀ vi : GoInterfaceOk, v = GoInterface.ok vi → vi.ty ≠ google_golang_org.grpc.metadata.MD.ty) ∨
-    metadata.transportMD v
-
 /-- What `FromOutgoingContext` accepts at `mdOutgoingKey{}`: not a `rawMD`, or one grpc's
 `metadata` stored (`builtRawMD`). -/
 def metadata.outgoingRes (v : GoInterface) : Prop :=
@@ -153,12 +142,6 @@ def peer.peerRes (v : GoInterface) : Prop :=
 /-- What `trace.SpanFromContext`'s callers accept at `currentSpanKey`: `nil` or otel's span. -/
 def trace.spanRes (v : GoInterface) : Prop :=
   v = GoInterface.nil ∨ trace.otelSpan v
-
-/-- **`ctx`'s incoming metadata is the transport's** (persistent): `Value(mdIncomingKey{})` returns
-one value `v` on every call, which `FromIncomingContext` accepts. -/
-def metadata.incomingCtxOk (ctx : GoInterfaceOk) : IProp GF :=
-  iprop(∃ v : GoInterface, ⌜metadata.incomingRes v⌝ ∗
-    context.valueAt ctx metadata.mdIncomingKeyAny (· = v))
 
 /-- **`ctx`'s outgoing metadata is grpc's** (persistent): `Value(mdOutgoingKey{})` returns one
 value `v` on every call, which `FromOutgoingContext` accepts. -/
@@ -180,14 +163,6 @@ def trace.spanValOk (ctx : GoInterfaceOk) : IProp GF :=
 def trace.spanValOkNil (ctx : GoInterface) : IProp GF :=
   iprop(⌜ctx = GoInterface.nil⌝ ∨ ∃ ci : GoInterfaceOk, ⌜ctx = GoInterface.ok ci⌝ ∗ trace.spanValOk ci)
 
-/-- **A context's library values are well formed** (persistent): what callers carry. -/
-def context.libCtxOk (ctx : GoInterfaceOk) : IProp GF :=
-  iprop(metadata.incomingCtxOk ctx ∗ metadata.outgoingCtxOk ctx ∗ peer.peerCtxOk ctx ∗
-    trace.spanValOk ctx)
-
-instance metadata.incomingCtxOk_persistent (ctx : GoInterfaceOk) :
-    Persistent (metadata.incomingCtxOk (GF := GF) ctx) := by
-  unfold metadata.incomingCtxOk; infer_instance
 instance metadata.outgoingCtxOk_persistent (ctx : GoInterfaceOk) :
     Persistent (metadata.outgoingCtxOk (GF := GF) ctx) := by
   unfold metadata.outgoingCtxOk; infer_instance
@@ -200,15 +175,86 @@ instance trace.spanValOk_persistent (ctx : GoInterfaceOk) :
 instance trace.spanValOkNil_persistent (ctx : GoInterface) :
     Persistent (trace.spanValOkNil (GF := GF) ctx) := by
   unfold trace.spanValOkNil; infer_instance
-instance context.libCtxOk_persistent (ctx : GoInterfaceOk) :
-    Persistent (context.libCtxOk (GF := GF) ctx) := by
-  unfold context.libCtxOk; infer_instance
-
 /-- The four keys, for the laws' side conditions. -/
 abbrev context.libKeys : List GoInterface :=
   [metadata.mdIncomingKeyAny, metadata.mdOutgoingKeyAny, peer.peerKeyAny, trace.spanKeyVal]
 
 end defs
+
+/-! ### The incoming metadata, per heap (perheap step 0; `notes/perheap-scope.md` §2) -/
+
+/-- (opaque; TRUSTED; no law) **An `MD` grpc's server transport made, holding `f`**: `v` is the
+value `metadata.NewIncomingContext` stores under `mdIncomingKey{}` when grpc's HTTP/2 server
+transport reads a stream's headers (grpc v1.84.0 `internal/transport/http2_server.go`,
+`operateHeaders`: `mdata[hf.Name] = append(mdata[hf.Name], v)` for each header field, then
+`metadata.NewIncomingContext(s.ctx, mdata)`): a `metadata.MD` (a map) whose contents are `f`, with one
+key per header field name, lower case (HTTP/2 header names are), each key with at least one value.
+(Likewise grpc's `ServeHTTP` transport, which etcd also serves through: `internal/transport/
+handler_server.go:116-135, 413` builds the map with `metadata.Pairs`, lower-casing each key, each with at
+least one value. Independent attack, `/shared/tmp/perheap/attack-step0.md`.)
+Nothing writes the map after: only grpc's `metadata` package reads or stores under the unexported key,
+and etcd's server installs no `InTapHandle` (the only code handed the map after
+`NewIncomingContext`; `examples/axiomcx/perheap`). An `IProp` of the heap whose names it takes
+(`hG`): its producers are the posts of grpc's model (`grpcAccepted`, `srvRawStreamIs`'s `libCtxOk`),
+never code with Lean semantics; no law relates two of them. -/
+opaque metadata.transportMDRaw [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
+    {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [go.Semantics] (v : GoInterface)
+    (f : GoString → Option (List GoString)) : IProp GF
+
+section defsLC
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The value `v` at `mdIncomingKey{}` holds the metadata `md`** (persistent): `v` is not an `MD`
+(`FromIncomingContext`'s `, ok` assertion fails) and `md = none`; or `v` is an `MD` grpc's transport
+made holding `f` (`transportMDRaw`) and `md = some f`, each key with at least one value. -/
+def metadata.incomingHeld (v : GoInterface) (md : Option (GoString → Option (List GoString))) :
+    IProp GF :=
+  iprop((⌜md = none ∧ ∀ vi : GoInterfaceOk, v = GoInterface.ok vi →
+      vi.ty ≠ google_golang_org.grpc.metadata.MD.ty⌝) ∨
+    ∃ f, ⌜md = some f ∧ ∀ k vs, f k = some vs → vs ≠ []⌝ ∗ □ metadata.transportMDRaw v f)
+
+instance metadata.incomingHeld_persistent (v : GoInterface)
+    (md : Option (GoString → Option (List GoString))) :
+    Persistent (metadata.incomingHeld (GF := GF) v md) := by
+  unfold metadata.incomingHeld; infer_instance
+
+/-- **`ctx`'s incoming metadata is `md`** (persistent, per heap): as Perennial's chain says
+(`context.ctxValue`), `ctx.Value(mdIncomingKey{})` and `context.value(ctx, mdIncomingKey{})` return one
+value `v`, which holds `md` (`incomingHeld`). SpecPlan's `ctxInMD`. -/
+def metadata.ctxInMD (ctx : GoInterfaceOk) (md : Option (GoString → Option (List GoString))) :
+    IProp GF :=
+  iprop(∃ v : GoInterface,
+    _root_.Perennial.context.ctxValue ctx metadata.mdIncomingKeyAny (· = v) ∗
+    metadata.incomingHeld v md)
+
+instance metadata.ctxInMD_persistent (ctx : GoInterfaceOk)
+    (md : Option (GoString → Option (List GoString))) :
+    Persistent (metadata.ctxInMD (GF := GF) ctx md) := by
+  unfold metadata.ctxInMD; infer_instance
+
+/-- **`ctx`'s incoming metadata is grpc's** (persistent): some `md` (`ctxInMD`). What `libCtxOk`
+carries; a spec relating a context's metadata to something else takes the `md` as a parameter
+(the Scope's Q14). -/
+def metadata.incomingCtxOk (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(∃ md, metadata.ctxInMD ctx md)
+
+instance metadata.incomingCtxOk_persistent (ctx : GoInterfaceOk) :
+    Persistent (metadata.incomingCtxOk (GF := GF) ctx) := by
+  unfold metadata.incomingCtxOk; infer_instance
+
+/-- **A context's library values are well formed** (persistent): what callers carry. -/
+def context.libCtxOk (ctx : GoInterfaceOk) : IProp GF :=
+  iprop(metadata.incomingCtxOk ctx ∗ metadata.outgoingCtxOk ctx ∗ peer.peerCtxOk ctx ∗
+    trace.spanValOk ctx)
+
+instance context.libCtxOk_persistent (ctx : GoInterfaceOk) :
+    Persistent (context.libCtxOk (GF := GF) ctx) := by
+  unfold context.libCtxOk; infer_instance
+
+end defsLC
 
 /-- The side condition of `context.libCtxOk_of_valueWand` at a key of the named types `tys`
 (their `.ty` definitions): none of the libraries' key types. -/
@@ -244,18 +290,46 @@ theorem context.valueAt_mono (ctx : GoInterfaceOk) (k : GoInterface) (R R' : GoI
   iapply HΦ
   ipureintro; exact h v hv
 
-/-- A context answering `nil` at a key answers what each library accepts. -/
-theorem context.libCtxOk_of_nil (ctx : GoInterfaceOk) :
+variable [package_sem : _root_.Perennial.context.Assumptions]
+
+/-- `nil` at `mdIncomingKey{}` holds no metadata. -/
+theorem metadata.incomingHeld_nil :
+    ⊢ metadata.incomingHeld (GF := GF) GoInterface.nil none := by
+  unfold metadata.incomingHeld
+  ileft
+  ipureintro
+  exact ⟨rfl, fun vi h => by cases h⟩
+
+/-- **A context of a type `value()` does not special-case** (k8s's `channelContext`, etcd's
+`valCtx`): its own `Value` is what the chain calls, so the WP form gives `ctxInMD`. -/
+theorem metadata.ctxInMD_raw (ctx : GoInterfaceOk) (v : GoInterface)
+    (md : Option (GoString → Option (List GoString)))
+    (hty : ctx.ty ∉ _root_.Perennial.context.valueSpecialTypes) :
+    context.valueAt (GF := GF) ctx metadata.mdIncomingKeyAny (· = v) ∗ metadata.incomingHeld v md ⊢
+      metadata.ctxInMD ctx md := by
+  iintro ⟨#Hv, #Hh⟩
+  unfold metadata.ctxInMD
+  iexists v
+  iframe #
+  iapply _root_.Perennial.context.ctxValue_other ctx _ _ hty
+  unfold context.valueAt
+  iexact Hv
+
+/-- A context of a type `value()` does not special-case, answering `nil` at a key, answers what each
+library accepts. -/
+theorem context.libCtxOk_of_nil (ctx : GoInterfaceOk)
+    (hty : ctx.ty ∉ _root_.Perennial.context.valueSpecialTypes) :
     (□ ∀ k : GoInterface, ⌜k ∈ context.libKeys⌝ -∗
       context.valueAt (GF := GF) ctx k (· = GoInterface.nil)) ⊢ context.libCtxOk ctx := by
   iintro #H
   unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
     trace.spanValOk
   isplitl []
-  · iexists GoInterface.nil
+  · iexists none
+    iapply metadata.ctxInMD_raw ctx GoInterface.nil none hty
     isplitl []
-    · ipureintro; left; intro vi h; cases h
-    iapply H; ipureintro; simp
+    · iapply H; ipureintro; simp
+    iapply metadata.incomingHeld_nil
   isplitl []
   · iexists GoInterface.nil
     isplitl []
@@ -268,8 +342,6 @@ theorem context.libCtxOk_of_nil (ctx : GoInterfaceOk) :
   · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
     · intro v hv; left; exact hv
     iapply H; ipureintro; simp
-
-variable [package_sem : _root_.Perennial.context.Assumptions]
 
 /-- A context with Perennial's `ctxValue` at a key answers as it says. -/
 theorem context.valueAt_of_ctxValue (ctx : GoInterfaceOk) (k : GoInterface)
@@ -305,13 +377,33 @@ theorem context.libCtxOk_of_ctxValueNil (ctx : GoInterfaceOk) :
         _root_.Perennial.context.ctxValue ctx k (· = GoInterface.nil)) ⊢
       context.libCtxOk ctx := by
   iintro ⟨#Hpkg, #H⟩
-  iapply context.libCtxOk_of_nil
-  imodintro
-  iintro %k %hk
-  iapply context.valueAt_of_ctxValue
-  iframe #
-  iapply H
-  ipureintro; exact context.libKeys_notIntPtr k hk
+  unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
+    trace.spanValOk
+  isplitl []
+  · iexists none
+    unfold metadata.ctxInMD
+    iexists GoInterface.nil
+    isplitl []
+    · iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+    iapply metadata.incomingHeld_nil
+  isplitl []
+  · iexists GoInterface.nil
+    isplitl []
+    · ipureintro; left; intro vi h; cases h
+    iapply context.valueAt_of_ctxValue
+    iframe #
+    iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+  isplitl []
+  · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
+    · intro v hv; subst hv; left; intro vi h; cases h
+    iapply context.valueAt_of_ctxValue
+    iframe #
+    iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
+  · iapply context.valueAt_mono _ _ (· = GoInterface.nil)
+    · intro v hv; left; exact hv
+    iapply context.valueAt_of_ctxValue
+    iframe #
+    iapply H; ipureintro; exact context.libKeys_notIntPtr _ (by simp)
 
 theorem context.libCtxOk_background :
     isPkgInit (PROP := IProp GF) pkg_id.context ⊢
@@ -393,8 +485,10 @@ theorem context.valueAt_of_valueWand (parent c' key : GoInterfaceOk) (v k : GoIn
   · itrivial
   · inext; iexact HΦ
 
-/-- **`WithValue` at a key of none of the libraries' types keeps `libCtxOk`.** Its side condition
-`hk` at a named key type `T` (`⟨T.ty, _⟩`): `by context_libKeys_ne [T.ty]`. -/
+/-- **`WithValue` at a key of none of the libraries' types keeps `libCtxOk`**, given `WithValue`'s
+incoming transfer (`□ ∀ md, ctxInMD parent md -∗ ctxInMD c' md`: `c'`'s type is abstract here, so the
+`Value` wand cannot give the chain form). Its side condition `hk` at a named key type `T`
+(`⟨T.ty, _⟩`): `by context_libKeys_ne [T.ty]`. -/
 theorem context.libCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v : GoInterface)
     (hk : ∀ k ∈ context.libKeys, ∀ k' : GoInterfaceOk, k = GoInterface.ok k' → k'.ty ≠ key.ty) :
     (□ (∀ (k : GoInterface) (R : GoInterface → Prop),
@@ -405,14 +499,15 @@ theorem context.libCtxOk_of_valueWand (parent c' key : GoInterfaceOk) (v : GoInt
             {{ (w : GoInterface), RET #w; ⌜R w⌝ }}) -∗
           {{ True }} (App (Val #(methods c'.ty go!"Value" c'.v)) (Val #k))
           {{ (w : GoInterface), RET #w; ⌜R w⌝ }})) -∗
+      (□ ∀ md, metadata.ctxInMD parent md -∗ metadata.ctxInMD c' md) -∗
       context.libCtxOk (GF := GF) parent -∗ context.libCtxOk c' := by
-  iintro #Hw #Hp
+  iintro #Hw #Htr #Hp
   unfold context.libCtxOk metadata.incomingCtxOk metadata.outgoingCtxOk peer.peerCtxOk
     trace.spanValOk
-  icases Hp with ⟨⟨%vi, %hvi, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hpe, #Hsp⟩
+  icases Hp with ⟨⟨%md, #Hi⟩, ⟨%vo, %hvo, #Ho⟩, #Hpe, #Hsp⟩
   isplitl []
-  · iexists vi; iframe %hvi
-    iapply context.valueAt_of_valueWand parent c' key v _ _ (hk _ (by simp)) $$ Hw Hi
+  · iexists md
+    iapply Htr; iexact Hi
   isplitl []
   · iexists vo; iframe %hvo
     iapply context.valueAt_of_valueWand parent c' key v _ _ (hk _ (by simp)) $$ Hw Ho

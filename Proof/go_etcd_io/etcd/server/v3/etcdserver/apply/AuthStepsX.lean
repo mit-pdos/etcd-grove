@@ -1250,12 +1250,12 @@ theorem applierV3backend.Authenticate.wp_specX
   · iunfold srvApi.csContractA; iframe HPre Hhk Hfin
   wp_apply (hWV context.backgroundCtxVal
       ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamIndex.ty, _⟩ _)
-    as %c1 ⟨%Hc1, -, -, %c1', %vs1, %Hc1e, -, -, -, -, -, #HV1⟩
+    as %c1 ⟨%Hc1, -, -, %c1', %vs1, %Hc1e, -, -, -, -, -, -, #HV1⟩
   · ipureintro; exact Or.inl rfl
   subst Hc1e
   wp_apply (hWV c1'
       ⟨go_etcd_io.etcd.server.v3.auth.AuthenticateParamSimpleTokenPrefix.ty, _⟩ _)
-    as %c2 ⟨%Hc2, -, -, %c2', %vs2, %Hc2e, -, -, -, -, -, #HV2⟩
+    as %c2 ⟨%Hc2, -, -, %c2', %vs2, %Hc2e, -, -, -, -, -, -, #HV2⟩
   · ipureintro; exact Or.inr (Or.inl rfl)
   subst Hc2e
   -- the context the store's `assign` reads: the index at the inner key, the prefix at the outer

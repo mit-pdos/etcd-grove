@@ -269,10 +269,6 @@ theorem api.wp_IsCapabilityEnabled :
     EtcdGrove.api.IsCapabilityEnabled.spec (GF := GF) (hG := hG) :=
   EtcdGrove.api.IsCapabilityEnabled.wp_proof
 
-theorem metadata.wp_FromIncomingContext :
-    EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.metadata.FromIncomingContext.wp_proof
-
 theorem metadata.MD.wp_Get :
     EtcdGrove.metadata.MD.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metadata.MD.Get.wp_proof
@@ -635,6 +631,10 @@ theorem grpc_prometheus.ServerMetrics.wp_UnaryServerInterceptor :
 theorem wp_isRPCSupportedForLearner :
     EtcdGrove.v3rpc.isRPCSupportedForLearner.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.isRPCSupportedForLearner.wp_proof
+
+theorem metadata.wp_FromIncomingContext :
+    EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.FromIncomingContext.wp_proof
 
 theorem wp_newUnaryInterceptor :
     EtcdGrove.v3rpc.newUnaryInterceptor.spec (GF := GF) (hG := hG) :=

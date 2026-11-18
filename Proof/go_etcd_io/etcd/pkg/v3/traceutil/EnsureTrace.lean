@@ -37,7 +37,7 @@ local macro "et_new" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply hWV ctx ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _ $$ []
-    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, %Hinc, #Htx, #Hic, #Htr, -, #Hdel⟩
+    as %c ⟨%Hcnn, -, -, %c', %vs, %Hc, %Hinc, #Hmd, #Htx, #Hic, #Htr, -, #Hdel⟩
   · iframe #; ipureintro; right; right; right; left; rfl
   subst Hc
   (try wp_auto)
@@ -71,7 +71,7 @@ local macro "et_new" : tactic => `(tactic| (
   iintro !> #Hlib
   iapply (context.libCtxOk_of_valueWand (GF := GF) ctx c' ⟨go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty,
       #(zero_val go_etcd_io.etcd.pkg.v3.traceutil.TraceKey)⟩ _
-      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty])) $$ Hdel Hlib))
+      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.TraceKey.ty])) $$ Hdel Hmd Hlib))
 
 theorem traceutil.EnsureTrace.wp_proof
     (hGet : traceutil.Get.spec (GF := GF) (hG := hG))

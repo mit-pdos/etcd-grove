@@ -21,7 +21,7 @@ open Iris Iris.BI google_golang_org.grpc
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `metadata.FromIncomingContext(ctx)`: `(md, ok)`; `ok` exactly when the context has incoming
@@ -29,8 +29,10 @@ metadata (`metadata.incomingOf ctx`, the auth plan's E2c, 2026-10-25), and then 
 (grpc copies the context's metadata: `out[key] = copyOf(v)`) with that metadata's keys, each value
 a fresh slice of that key's strings, **at least one**. For a context whose `Value(mdIncomingKey{})`
 returns one value on every call, not an `MD` or the transport's (`metadata.incomingCtxOk`,
-premise-fixes-8 S2): the metadata is a function of the context (`incomingOf`), and a transport `MD`
-has lower-case keys, each with at least one value (`transportMD`), so `vs ≠ []` holds. A context
+premise-fixes-8 S2; since perheap step 0, `∃ md, metadata.ctxInMD ctx md`, over Perennial's chain and
+the transport's leaf `metadata.transportMDRaw`): the metadata is a function of the context
+(`incomingOf`; restated over `ctxInMD` in the perheap incoming part), and a transport `MD` has
+lower-case keys, each with at least one value, so `vs ≠ []` holds. A context
 built with `metadata.NewIncomingContext(ctx, MD{k: {}})` (on which etcd's `AuthInfoFromCtx` panics,
 `ts[0]`; `nonissues/etcd-auth-token-md-empty.md`) or whose `Value` panics is excluded by the premise
 (`examples/premisefix/ctxvalue`). -/

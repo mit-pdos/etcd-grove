@@ -1328,10 +1328,6 @@ theorem auth.authStore.wp_IsAuthEnabled :
     auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
   auth.authStore.IsAuthEnabled.wp_proof
 
-theorem metadata.wp_FromIncomingContext :
-    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
-  metadata.FromIncomingContext.wp_proof
-
 theorem auth.authStore.wp_authInfoFromToken :
     auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
   auth.authStore.authInfoFromToken.wp_proof auth.authStore.wp_Revision
@@ -1339,14 +1335,6 @@ theorem auth.authStore.wp_authInfoFromToken :
 theorem auth.wp_redactToken :
     auth.redactToken.spec (GF := GF) (hG := hG) :=
   auth.redactToken.wp_proof
-
-theorem auth.authStore.wp_AuthInfoFromCtx :
-    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
-
-theorem auth.authStore.wp_AuthInfoFromTLS :
-    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromTLS.wp_proof
 
 theorem zap.Logger.wp_Check :
     zap.Logger.Check.spec (GF := GF) (hG := hG) :=
@@ -2690,6 +2678,18 @@ theorem auth.authStore.wp_AuthDisable :
 theorem auth.authStore.wp_AuthEnable :
     auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) :=
   auth.authStore.AuthEnable.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info
+
+theorem metadata.wp_FromIncomingContext :
+    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  metadata.FromIncomingContext.wp_proof
+
+theorem auth.authStore.wp_AuthInfoFromCtx :
+    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+
+theorem auth.authStore.wp_AuthInfoFromTLS :
+    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromTLS.wp_proof
 
 theorem auth.authStore.wp_Authenticate :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) :=

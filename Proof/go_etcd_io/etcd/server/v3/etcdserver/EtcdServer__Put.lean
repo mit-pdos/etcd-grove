@@ -89,7 +89,7 @@ theorem EtcdServer.Put.wp_proof
   (try wp_auto)
   wp_apply time.wp_Now as %now -
   (try wp_auto)
-  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, -, -, -, -, #Hdel2⟩
+  wp_apply hWV ctx1 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c2 ⟨%Hc2, -, #Hc2w, %c2', %vs2', %Hc2e', %Hinc2, #Hmd2, -, -, -, -, #Hdel2⟩
   · iframe #; ipureintro; right; right; left; rfl
   ihave ⟨%ctx2, %vs2, %Hc2e, #Hctx2⟩ := Hc2w $$ %_ Hctx1
   subst Hc2e
@@ -121,7 +121,7 @@ theorem EtcdServer.Put.wp_proof
   · rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e']
     iapply (context.libCtxOk_of_valueWand (GF := GF) ctx1 c2'
       ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _
-      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel2 Hlib1
+      (by context_libKeys_ne [go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty])) $$ Hdel2 Hmd2 Hlib1
   -- (E3zb) the context `raftRequest` sees carries the request's metadata
   have Hinc : metadata.incomingOf (GoInterface.ok ctx2) = metadata.incomingOf (GoInterface.ok ctx) := by
     rw [show ctx2 = c2' from GoInterface.ok.inj Hc2e', Hinc2, Hinc1]
