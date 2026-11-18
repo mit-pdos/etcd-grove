@@ -3,7 +3,7 @@ title: apierrors.HasStatusCause.wp_proof is false (a view built after the call)
 found: 2026-11-17
 by: the k8s 7g step-1 attack (notes/axiom-review/k8s-7g-trust.md on branch k8s-7g); Go test examples/axiomcx/hasstatuscause
 blocks-proof: no (refuted as stated; its callers, RealPodControl.createPods and storage.IsTooLargeResourceVersion, do not write the details after the call)
-status: open; fix (a) in the apierrors-fix stage (approved 2026-11-17)
+status: fixed on branch apierrors-fix (fix (a)), pending land
 ---
 # `HasStatusCause.wp_proof` is false
 

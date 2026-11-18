@@ -26,11 +26,17 @@ each event received:
 * when the result channel closes, it returns (`nil`, or a `VeryShortWatchError` after a watch
   shorter than a second with no event); a deferred `w.Stop()` (`stopWatcher` stays true).
 So the caller's state `L` follows the watch's consumer side (`watchCons`) event by event, and
-comes back at whatever event the loop stopped at; the returned error is any.
+comes back at whatever event the loop stopped at. The returned error is `nil` or one `apierrors`'
+checks may read (`apierrors.apiErrOk`, the apierrors-fix stage, 2026-11-17: the reflector passes
+it to `apierrors.IsTooManyRequests`, ..., which panic on a typed-nil `*StatusError`): the error
+returns are `errorStopRequested` (`errors.New`: a `*errorString`), `&VeryShortWatchError{..}`,
+both leaf types outside `APIStatus` (`.plain`), `apierrors.FromObject` (not reached, above) and
+`errCh`'s value (never: `errChOk`'s channel stays empty).
 -/
 module
 
 public import Proof.k8s_io.client_go.tools.cache.RefWatchDefs
+public import Proof.k8s_io.apimachinery.pkg.api.errors.View
 
 @[expose] public section
 
@@ -72,6 +78,7 @@ abbrev handleAnyWatch.spec : Prop :=
       (Val #(interface.mkOk k8s_io.utils.clock.RealClock.ty #clk : k8s_io.utils.clock.Clock)))
       (Val #errCh))
   {{ (b : Bool) (err : GoInterface), RET (PairV #b #err);
+      (⌜err = interface.nil⌝ ∨ apierrors.apiErrOk err) ∗
       ∃ (n' : Nat) (p' : Pos'), watchCons γw n' p' ∗ L n' p' }}
 
 end spec

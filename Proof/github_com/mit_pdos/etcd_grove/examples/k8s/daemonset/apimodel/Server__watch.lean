@@ -79,7 +79,7 @@ theorem Server.watch.wp_proof
   ihave #Hinit : (github_com.mit_pdos.etcd_grove.examples.k8s.daemonset.apimodel.apimodelInit :
     IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hinit with ⟨⟨%eS, #HeS⟩, ⟨%eR, #HeR⟩, ⟨%sA, #HeA⟩⟩
+  icases Hinit with ⟨⟨%eS, #HeS, #HeSok⟩, ⟨%eR, #HeR, #HeRok⟩, ⟨%sA, #HeA⟩⟩
   ihave #Hsrv := Hs
   iunfold isServer at Hs
   icases Hs with ⟨%L, #Hs⟩
@@ -99,7 +99,7 @@ theorem Server.watch.wp_proof
       · -- `SendInitialEvents`
         simp only [decide_eq_false hsn, Bool.not_false, ↓reduceIte]
         (try wp_auto)
-        wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+        wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
         ipersist Hp
         imod (au_read_any γ (fun σ => iprop(∀ w err, kd.meta.ListOptions.own opts dq lo ∗ watchRet γ cfg admin r ns lo σ w err -∗ Φ (PairV #w #err)))) $$ HΦ with ⟨%σ, HΦ⟩
         (try wp_auto)
@@ -919,7 +919,7 @@ theorem Server.watch.wp_proof
                   iframe
                   ipureintro; exact ⟨Huidlt, Hok⟩
                 (try wp_auto)
-                wp_apply +noauto wp_NewResourceExpired as %p ⟨%st, Hp, %Hst⟩
+                wp_apply +noauto wp_NewResourceExpired as %p ⟨%st, Hp, #Hd, %Hst⟩
                 ipersist Hp
                 (try wp_auto)
                 iapply HΦ
@@ -1225,7 +1225,7 @@ theorem Server.watch.wp_proof
                       iframe
                       ipureintro; exact ⟨Huidlt, Hok⟩
                     (try wp_auto)
-                    wp_apply +noauto wp_NewResourceExpired as %p ⟨%st, Hp, %Hst⟩
+                    wp_apply +noauto wp_NewResourceExpired as %p ⟨%st, Hp, #Hd, %Hst⟩
                     ipersist Hp
                     (try wp_auto)
                     iapply HΦ
@@ -1510,7 +1510,8 @@ theorem Server.watch.wp_proof
           imod (au_read_any γ (fun σ => iprop(∀ w err, kd.meta.ListOptions.own opts dq lo ∗
             watchRet γ cfg admin r ns lo σ w err -∗ Φ (PairV #w #err)))) $$ HΦ with ⟨%σ, HΦ⟩
           (try wp_auto)
-          wp_apply +noauto wp_NewInternalError as %p ⟨%st, Hp, %Hst⟩
+          wp_apply +noauto wp_NewInternalError as %p ⟨%st, %c, Hp, #Hd, %Hst⟩
+          · first | iexact HeRok | iexact HeSok
           ipersist Hp
           (try wp_auto)
           iapply HΦ
@@ -1524,9 +1525,9 @@ theorem Server.watch.wp_proof
           iexists p, st
           iframe #
           ipureintro
-          exact ⟨rfl, Hst.2.1, Hst.2.2⟩
+          exact ⟨rfl, Hst.2.1, Hst.2.2.1⟩
     · -- a field selector
-      wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+      wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
       ipersist Hp
       imod (au_read_any γ (fun σ => iprop(∀ w err, kd.meta.ListOptions.own opts dq lo ∗ watchRet γ cfg admin r ns lo σ w err -∗ Φ (PairV #w #err)))) $$ HΦ with ⟨%σ, HΦ⟩
       (try wp_auto)
@@ -1542,7 +1543,7 @@ theorem Server.watch.wp_proof
       ipureintro
       exact ⟨rfl, Hst.2.1, Hst.2.2⟩
   · -- a label selector
-    wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, %Hst⟩
+    wp_apply +noauto wp_NewBadRequest as %p ⟨%st, Hp, #Hd, %Hst⟩
     ipersist Hp
     imod (au_read_any γ (fun σ => iprop(∀ w err, kd.meta.ListOptions.own opts dq lo ∗ watchRet γ cfg admin r ns lo σ w err -∗ Φ (PairV #w #err)))) $$ HΦ with ⟨%σ, HΦ⟩
     (try wp_auto)
