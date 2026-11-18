@@ -34,7 +34,8 @@ open Iris Iris.BI Iris.ProofMode backend
 /-! ## The buckets' encodings -/
 
 section pure
-variable [GooseExts]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
 
 /-- The auth buckets, as a list (the claim's `Sc`). -/
 def authBktL : List GoString := [go!"auth", go!"authUsers", go!"authRoles"]

@@ -1433,7 +1433,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
               iexact HW
             icases srvApplyKVOn_coreA s E' ρ.wait x' _ $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
             -- (#7-on) the auth row lends the auth buckets to the window
-            ihave HL := srvAuthApplyResB_lend s E' _ γa hM' (srvAuthAtLog_rev_pos γr.kv A') $$ HAr
+            ihave HL := srvAuthApplyResB_lend s E' (srvAuthAtLog γr.kv srvAuthSt0 A') γa hM' (srvAuthAtLog_rev_pos γr.kv A') $$ HAr
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
             ihave HthT : apply.applyTok (GF := GF) E' $$ [Hrdk]
             · iunfold apply.applyTok; iexact Hrdk
