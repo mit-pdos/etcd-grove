@@ -127,11 +127,11 @@ theorem leaseRevokeResT_false (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok
 
 /-- **A grant's result with auth on, at the request context's token** (the server's `leaseGrantResM
 true` gives the response's `ID` and `leaseGrantResT` at it, by `hdrBoundM_tok`). -/
-theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (ttl : w64) (resp : Loc) (Q : w64 → KVState → IProp GF) :
-    leaseGrantResM (GF := GF) true s E ρ ctx ttl resp Q ⊢
+    leaseGrantResM (GF := GF) true s E ρ tok ttl resp Q ⊢
       ∃ id : w64, structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗
-        leaseGrantResT true s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) ttl id Q := by
+        leaseGrantResT true s E ρ tok ttl id Q := by
   unfold leaseGrantResM leaseGrantResT
   iintro ⟨%id, %hm, %L, #Hid, #Hb, Hp, HQ⟩
   iexists id
@@ -139,19 +139,19 @@ theorem leaseGrantResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx :
   iintro -
   iexists hm, L
   iframe Hp HQ
-  iapply hdrBoundM_tok s E (GoInterface.ok ctx) hm $$ Hb
+  iapply hdrBoundM_tok s E tok hm $$ Hb
 
 /-- **A revocation's result with auth on, at the request context's token.** -/
-theorem leaseRevokeResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+theorem leaseRevokeResT_true (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (tok : Option GoString)
     (id : w64) (Q : KVState → IProp GF) :
-    leaseRevokeResM (GF := GF) true s E ρ ctx id Q ⊢
-      leaseRevokeResT true s E ρ (auth.ctxTokenOf (GoInterface.ok ctx)) id Q := by
+    leaseRevokeResM (GF := GF) true s E ρ tok id Q ⊢
+      leaseRevokeResT true s E ρ tok id Q := by
   unfold leaseRevokeResM leaseRevokeResT
   iintro ⟨%hm, %L, #Hb, %Hg, Hp, HQ⟩ -
   iexists hm, L
   iframe Hp HQ
   isplitl
-  · iapply hdrBoundM_tok s E (GoInterface.ok ctx) hm $$ Hb
+  · iapply hdrBoundM_tok s E tok hm $$ Hb
   ipureintro; exact Hg
 
 /-- **The grant contract in the mode, off, is `lessorGrantOkG`** (C5′'s bridge). -/

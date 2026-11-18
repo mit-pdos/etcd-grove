@@ -83,7 +83,7 @@ abbrev EtcdServer.LeaseGrant.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseGrantedResp E resp ttl ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
-          leaseGrantResM E.authOn s E ρ ctx ttl resp Q) ∨
+          leaseGrantResM E.authOn s E ρ tok ttl resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

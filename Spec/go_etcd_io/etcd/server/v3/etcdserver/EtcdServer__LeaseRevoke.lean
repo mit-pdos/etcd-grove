@@ -74,7 +74,7 @@ abbrev EtcdServer.LeaseRevoke.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ leaseRevokedResp E resp ∗
           authedOutB s E.authMode tok GoInterface.nil ∗
-          leaseRevokeResM E.authOn s E ρ ctx id Q) ∨
+          leaseRevokeResM E.authOn s E ρ tok id Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec
