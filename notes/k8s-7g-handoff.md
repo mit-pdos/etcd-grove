@@ -2,44 +2,54 @@
 
 ## START HERE
 
-**Resumed 2026-11-18 (user, via etcd-grove-03). At the STOP for the attack on V + `SuggestsClientDelay`.**
+**2026-11-18 (resumed after the attack; for etcd-grove-03). Step 3 in progress; checkpoint report sent.**
 
-- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean b0bb9df7c3 merged (pin 6d365ee1a,
-  apierrors-fix). `--packages=/shared/tmp/manifest-6d3.json`; `.lake/package-overrides.json` is that
-  manifest. lean has moved since (49bd7924e6, incomingof): merge again before the next full build.
-  Scope (approved): `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local, untracked).
-- Done: steps 0-2; step 3 proved: `keyInScope`, `checkKey`, `Get/ListReadConsistency`, driver
-  `Obj.DeepCopyObject`/`SetResourceVersion`, `NewEmptyModel`, `Model.Clone/Equal/get/create`,
-  `validCacherContinue`, `listItems`; `UpdateList.spec` pre weakened (`0196b813e6`).
-- Pending attack (trusted text, `notes/k8s-7g-trust.md` top): V in `View.lean` (`plainLeaf`, `.plain`
-  arm, M2 header) and `SuggestsClientDelay.spec` (header only; statement unchanged). Go:
-  `TestPlainWrapperTypedNil` (new), `TestStatusChecksPlain`, `TestSuggestsClientDelay`.
-  Until it passes, these do not build: `Calls.lean` (`clientErr_notTooLarge`: `iexists .plain` needs
-  `ileft` + `Or.inr`; `sentV_plain`: same), and the `.plain` branches after `iunfold apiErrAt` in
-  `call.lean:143`, `watchChan__syncPaginated:362`, `store__GetList:1094`,
-  `handleCompactedErrorForPaging:53`, `interpretListError:93` (the pure fact is now `plainLeaf ∨ wrapper`).
-- Next, in order (after the attack): repair those; add `Proof/.../errors/SuggestsClientDelay.lean` axiom;
-  `newObjList` spec/proof (driver, `p ↦ zero ObjList`); `Model.list` (loop as `listItems` plus
-  `ListModel.lstep`, `mlistPCT.wp_proof`, `meta.SetList.spec_objList`, `UpdateList`); `listResponseRV`,
-  `equalListResponse` (ListAccessor `.2`); then `update`/`delete`/`execute` (unblocked by the pin);
-  `validateGet`/`validateList`/`Step`; then step 4.
-- Known breakage, pre-existing (step 0's `Output.Raw`, fixed in step 5): `call.lean` and the driver's `Link`.
+- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean 49bd7924e6 merged (`4063a12bf8`, pin
+  6d365ee1a). `--packages=/shared/tmp/manifest-6d3.json`; `.lake/package-overrides.json` = that manifest.
+  Scope: `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local, untracked).
+- Done: steps 0-2; attack on V + `SuggestsClientDelay` passed, R2/R4 applied, axiom file added
+  (`1674097f92`); step 3 proved so far: `keyInScope`, `checkKey`, `Get/ListReadConsistency`, driver
+  `Obj.DeepCopyObject`/`SetResourceVersion`, `newObjList` (new), `NewEmptyModel`,
+  `Model.Clone/Equal/get/create/listItems/validCacherContinue`, **`Model.list`** (`897279346e`);
+  `errRep .other` now says `≠ nil` (`cf3b9ec2ae`, form).
+- Next, in order: `listResponseRV` (needs new driver specs `ObjList.GetResourceVersion` (via `rvString`),
+  and a premise: output object nil or a list, since `ListAccessor.spec` has no `*Obj` row);
+  `equalListResponse` (`ObjList.GetContinue/SetContinue/DeepCopyObject` specs; `reflect.DeepEqual.spec_k8s`
+  clause 2); then `update`/`delete`/`execute`; `validateGet`/`validateList`/`Step` (needs `errRep .tooLarge
+  delay` tied to `SuggestsClientDelay`'s answer: add `∃ st d, …, delayV st d = (_, delay)` to errRep's
+  tooLarge case, provable from `NewTooLargeResourceVersionError`'s details); then step 4.
+- Known breakage, pre-existing since step 0 (step 5 re-proofs; not from the merge): `call`, `consume`,
+  `Check`, `Gen`, `genList`, `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`,
+  `runWatch`, `watchEvents` (driver signature/`Output.Raw` changes), and the driver's `Link`/`Results`.
+  Everything else in `/shared/tmp/k8s7g/leaves2.txt` builds (`/shared/tmp/k8s7g/build-merge2.out`).
+- `etc/tcb-baseline.txt` and the collections do not list the 7g axioms yet (step 6).
 - Pitfalls:
-  - `wp_for` takes the whole spatial context: after `iStructNamed` drop its `"_" ∷ True` leftover.
-  - `wp_apply` already runs `wp_auto`: write `(try wp_auto)` after it.
-  - `wp_apply Hf $$ %M %DFrac.discard [] [HI]`; `iunfold` fails on `modelAt` (use `modelAt_pkg`).
-  - A file whose imports are not built hangs lean-check: build it first with the build slot.
-  - `#versionerV` parses as `#version`: write `#(versionerV)`. `go!""` → `([] : GoString)`.
+  - `wp_for` takes the whole spatial context: drop every `"_" ∷ True` leftover
+    (`repeat (irename : ("_" ∷ True : IProp GF) => H; iclear H)`).
+  - A case split whose branches converge before any allocation: `refine ?k` / `rotate_left` /
+    `exact ?k` (after `clear` of the case hypothesis); once `wp_auto` allocates, use
+    `wp_join at next with [hyps the branch reads]` (Model.list's Exact check). Never `all_goals` over
+    the rest of a function (copies it).
+  - A spec whose post is pure: `wp_apply … as … H` then `icases H with %H` (a `%H` in `as` may vanish
+    when the precondition left a side goal: `· iframe #`).
+  - Splitting a struct for field loads and recombining for a method call:
+    `icases typedPointsto_not_null_dup _ _ _ $$ H with ⟨H, %Hn⟩` before `iStructNamed H`, then
+    `iapply typedPointsto_combine _ _ _ Hn; simp only [TypedPointsto.typedPointstoDef, …]; iframe`.
+  - `functions f [] ≠ func.nil`: `FuncUnfold.func_unfold` + `go.intoVal_unfold GoFunc` (`getAttrs_ne_nil`).
+  - lean-check without `-a` may report 0 errors before reaching them: use `-a` before trusting a check.
+  - `wp_apply` already runs `wp_auto`: write `(try wp_auto)` after it; `+noauto` when you must
+    `ipersist` before the function returns.
   - Driver specs need `[reg : EtcdGrove.k8s.CompactorRegistry]`; proofs `[driver_sem : ...etcd3.Assumptions]`.
-  - Pin 6d3: `ArgWf` has a named-string case (one more `Or.inl`).
+  - Never `wp_func_call` into `fmt.Errorf` (R1 audit): use its spec.
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
-  (targets of the merge check: `/shared/tmp/k8s7g/targets.txt`); check:
-  `LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 FILE`.
+  (both slots are often busy for an hour); check:
+  `LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`.
 - Go runs: `cd examples/k8s/etcd3; GOWORK=off systemd-run --scope -q -p MemoryMax=32G go test
   -count=1 -run 'TestPlainWrapperTypedNil|TestStatusChecksPlain|TestSuggestsClientDelay' .`
 
 ## History
 
+- Paused 2026-11-18 at the STOP for the attack on V + `SuggestsClientDelay` (`067bd749fa`).
 - Paused 2026-11-17 for the Hctx repair, at `0196b813e6` (step 3 through `listItems`).
 
 - Step 2's START HERE (2026-11-17): the pure model in `RModel.lean`/`RReplay.lean` (see the commit
