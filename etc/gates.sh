@@ -26,7 +26,17 @@ pk=()
 if [ -n "${LAKE_PACKAGES:-}" ]; then pk=(--packages="$LAKE_PACKAGES"); export LAKE_OPTS="--packages=$LAKE_PACKAGES"; fi
 fail=0
 pids=()
-tmp=$(mktemp -d)
+# The work directory, and the temporary directory of everything the gates run (TMPDIR: the Go
+# tests' data directories, go's build directories, the race tests' logs), on the worktree's disk,
+# not /tmp: /tmp is a tmpfs of 7.9G shared by every session (3-4G in use), and each etcd member a
+# Go test starts preallocates a 64MB WAL there, so under the premise-fix and k8s tests' clusters it
+# filled: premisefix/zaplogger's cluster3.StartCluster panicked in etcdserver.NewServer ("failed to
+# create WAL", reproduced on a 100MB tmpfs; 2026-11-17). GATES_TMPDIR overrides the parent.
+gtmp=${GATES_TMPDIR:-$root/.lake}
+mkdir -p "$gtmp"
+tmp=$(mktemp -d "$gtmp/gates.XXXXXX")
+mkdir -p "$tmp/tmpdir"
+export TMPDIR="$tmp/tmpdir"
 trap 'rm -rf "$tmp"; unlink_perennial' EXIT
 
 linked=0
