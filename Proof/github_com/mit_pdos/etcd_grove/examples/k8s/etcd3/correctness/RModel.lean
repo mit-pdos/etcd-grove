@@ -437,6 +437,19 @@ def rvalidateGetL (x : Input) (m : RM) (exp out : RResp) : Bool :=
         | _ => false
       | _ => false
 
+/-- **An error `reflect.DeepEqual` can compare** (`reflect.DeepEqual.spec_k8s` clause 2): one with a
+deep view (no error, a `*StorageError`, an `errors.New` error). -/
+def deepErrE : RErr → Prop
+  | .deep _ => True
+  | _ => False
+
+/-- **An output object `meta.ListAccessor` can take**: nil or a list (`listResponseRV`'s premise:
+`ListAccessor`'s spec has no row for the driver's `*Obj` or an error value). -/
+def listOrNilD : DeepV → Prop
+  | .nil => True
+  | .list _ _ _ _ => True
+  | _ => False
+
 /-- **`listResponseRV(output)`**: a list output's resource version, if positive (no error, a
 non-nil `*ObjList`: `meta.ListAccessor` fails on anything else). -/
 def listRespRVL (out : RResp) : Option w64 :=
@@ -453,14 +466,16 @@ def validCacherContinueL (x : Input) (m : RM) (outC : GoString) : Bool :=
     decide (((listItemsL x x.ListKey' m).length : Int) = sint.Z x.Limit')
 
 /-- **`equalListResponse(key, opts, expected, output)`**: the same response, or, with a limit,
-two lists that differ only by the output's missing continue token (`validCacherContinueL`). -/
+two lists that differ only by the output's missing continue token (`validCacherContinueL`). The
+expected list is compared through `DeepCopyObject`'s copy, whose items are never nil (`append([]Obj{},
+...)`). -/
 def equalListRespL (x : Input) (m : RM) (exp out : RResp) : Bool :=
   respEqL exp out ||
     (decide (0 < sint.Z x.Limit') && !errNonNil exp.err && !errNonNil out.err &&
       match exp.obj, out.obj with
       | .list ei erv ec erem, .list _ _ oc _ =>
         decide (ec ≠ []) && validCacherContinueL x m oc &&
-          decide (DeepV.list ei erv oc erem = out.obj)
+          decide (DeepV.list (some (ei.getD [])) erv oc erem = out.obj)
       | _, _ => false)
 
 /-- **`validateList(key, opts, expected, output)`**: an expected too-large error asks one of the

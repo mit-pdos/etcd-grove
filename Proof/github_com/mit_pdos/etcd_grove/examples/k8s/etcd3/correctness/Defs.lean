@@ -207,6 +207,45 @@ def rconsStr : RCons → GoString
   | .exact => go!"Exact"
   | .notOlderThan => go!"NotOlderThan"
 
+/-! ## Nil-ness of a view -/
+
+/-- An interface value with a deep view is nil iff its view is. -/
+theorem deepRep_nil_iff (dq : DFrac) (x : GoInterface) (d : DeepV) :
+    deepRep (GF := GF) dq x d ⊢ ⌜x = GoInterface.nil ↔ d = .nil⌝ := by
+  cases d <;> unfold deepRep
+  · iintro %h; ipureintro; simp [h]
+  all_goals
+    iintro H
+    first
+    | (icases H with ⟨%p, %h, -⟩; ipureintro; subst h; simp [interface.mkOk])
+    | (icases H with ⟨%p, %sl, %rp, %h, -⟩; ipureintro; subst h; simp [interface.mkOk])
+    | (icases H with ⟨%p, %e, %h, -⟩; ipureintro; subst h; simp [interface.mkOk])
+
+/-- A `Response.Err` is nil iff its view says no error (`errNonNil`). -/
+theorem errRep_nil_iff (x : GoInterface) (e : RErr) :
+    errRep (GF := GF) x e ⊢ ⌜x = GoInterface.nil ↔ errNonNil e = false⌝ := by
+  cases e with
+  | deep d =>
+    unfold errRep deepRO
+    iintro H
+    icases deepRep_nil_iff _ _ _ $$ H with %h
+    ipureintro
+    rw [h]
+    cases d <;> simp [errNonNil]
+  | tooLarge b =>
+    unfold errRep
+    iintro H
+    unfold apierrors.tooLargeErrIs apierrors.apiErrAt
+    icases H with ⟨%st, %cs, ⟨%l, %h, -⟩, -⟩
+    ipureintro
+    subst h
+    simp [errNonNil, interface.mkOk]
+  | other =>
+    unfold errRep
+    iintro %h
+    ipureintro
+    simp [errNonNil, h]
+
 end defs
 
 end k8s_correctness
