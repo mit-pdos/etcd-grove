@@ -315,6 +315,109 @@ theorem newView {bs : BSess} {st sa su sr su' sr' : auth.AuthState} {cs v : GoSt
     · show ∃ dR, schema.rolesAt sr' (v go!"authRoles") dR; rw [h]; exact hr
     · show ∃ dR, schema.rolesAt sr' (v go!"authRoles") dR; rw [h]; exact hr0
 
+/-! ## The writes on the state's encoding -/
+
+theorem usersAt_put {st : auth.AuthState} {m : BktData} {dU : GoString → auth.UserRec} (ur : auth.UserRec)
+    (h : schema.usersAt st m dU) (hs : ur.roles.Pairwise go.GoStringLt) :
+    schema.usersAt (auth.putUser st ur.name ur.roles) (m.insert ur.name (auth.userEncode ur))
+      (fun n => if n = ur.name then ur else dU n) := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun n => ?_, fun n v hl => ?_⟩
+  · simp only [auth.putUser, GMap.lookup_insert_eq_iff]
+    by_cases hn : ur.name = n
+    · simp [hn]
+    · simp only [hn, ↓reduceIte]; exact h1 n
+  · simp only [GMap.lookup_insert_eq_iff] at hl
+    simp only [auth.putUser, GMap.lookup_insert_eq_iff]
+    by_cases hn : ur.name = n
+    · subst hn
+      simp only [↓reduceIte, Option.some.injEq] at hl
+      subst hl
+      simp only [↓reduceIte]
+      exact ⟨trivial, trivial, trivial, hs⟩
+    · have hn' : n ≠ ur.name := fun e => hn e.symm
+      simp only [hn, hn', ↓reduceIte] at hl ⊢
+      exact h2 n v hl
+
+theorem usersAt_del {st : auth.AuthState} {m : BktData} {dU : GoString → auth.UserRec} (name : GoString)
+    (h : schema.usersAt st m dU) :
+    schema.usersAt (auth.delUser st name) (m.delete name) dU := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun n => ?_, fun n v hl => ?_⟩
+  · simp only [auth.delUser, GMap.lookup_delete_iff]
+    by_cases hn : name = n
+    · simp [hn]
+    · simp only [hn, ↓reduceIte]; exact h1 n
+  · simp only [GMap.lookup_delete_iff] at hl
+    simp only [auth.delUser, GMap.lookup_delete_iff]
+    by_cases hn : name = n
+    · simp [hn] at hl
+    · simp only [hn, ↓reduceIte] at hl ⊢
+      exact h2 n v hl
+
+theorem rolesAt_put {st : auth.AuthState} {m : BktData} {dR : GoString → auth.RoleRec} (rr : auth.RoleRec)
+    (ps : auth.Role) (h : schema.rolesAt st m dR) (hp : rr.toRole.Perm ps) :
+    schema.rolesAt (auth.putRole st rr.name ps) (m.insert rr.name (auth.roleEncode rr))
+      (fun n => if n = rr.name then rr else dR n) := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun n => ?_, fun n v hl => ?_⟩
+  · simp only [auth.putRole, GMap.lookup_insert_eq_iff]
+    by_cases hn : rr.name = n
+    · simp [hn]
+    · simp only [hn, ↓reduceIte]; exact h1 n
+  · simp only [GMap.lookup_insert_eq_iff] at hl
+    simp only [auth.putRole, GMap.lookup_insert_eq_iff]
+    by_cases hn : rr.name = n
+    · subst hn
+      simp only [↓reduceIte, Option.some.injEq] at hl
+      subst hl
+      simp only [↓reduceIte]
+      simpa using hp
+    · have hn' : n ≠ rr.name := fun e => hn e.symm
+      simp only [hn, hn', ↓reduceIte] at hl ⊢
+      exact h2 n v hl
+
+theorem rolesAt_del {st : auth.AuthState} {m : BktData} {dR : GoString → auth.RoleRec} (name : GoString)
+    (h : schema.rolesAt st m dR) :
+    schema.rolesAt { st with roles := GMap.delete name st.roles } (m.delete name) dR := by
+  obtain ⟨h1, h2⟩ := h
+  refine ⟨fun n => ?_, fun n v hl => ?_⟩
+  · simp only [GMap.lookup_delete_iff]
+    by_cases hn : name = n
+    · simp [hn]
+    · simp only [hn, ↓reduceIte]; exact h1 n
+  · simp only [GMap.lookup_delete_iff] at hl
+    simp only [GMap.lookup_delete_iff]
+    by_cases hn : name = n
+    · simp [hn] at hl
+    · simp only [hn, ↓reduceIte] at hl ⊢
+      exact h2 n v hl
+
+theorem authAt_enabled {st : auth.AuthState} {ca : BktData} (b : Bool) (h : authAt st ca) :
+    authAt { st with enabled := b } (ca.insert schema.authEnabledKey (if b then [W8 1] else [W8 0])) := by
+  obtain ⟨he, hr, hw⟩ := h
+  have hne : schema.authEnabledKey ≠ schema.authRevisionKey := by decide
+  refine ⟨?_, ?_, ?_⟩
+  · simp only [schema.enabledOf, GMap.lookup_insert_eq_iff, ↓reduceIte]
+    cases b <;> decide
+  · simp only [schema.revisionOf, GMap.lookup_insert_eq_iff, hne, ↓reduceIte] at hr ⊢
+    exact hr
+  · intro v hv
+    simp only [GMap.lookup_insert_eq_iff, hne, ↓reduceIte] at hv
+    exact hw v hv
+
+theorem authAt_revision {st : auth.AuthState} {ca : BktData} (rev : w64) (h : authAt st ca) :
+    authAt { st with revision := uint.nat rev } (ca.insert schema.authRevisionKey (u64Be rev)) := by
+  obtain ⟨he, hr, hw⟩ := h
+  have hne : schema.authRevisionKey ≠ schema.authEnabledKey := by decide
+  refine ⟨?_, ?_, ?_⟩
+  · simp only [schema.enabledOf, GMap.lookup_insert_eq_iff, hne, ↓reduceIte] at he ⊢
+    exact he
+  · simp only [schema.revisionOf, GMap.lookup_insert_eq_iff, ↓reduceIte, beToU64_u64Be]
+  · intro v hv
+    simp only [GMap.lookup_insert_eq_iff, ↓reduceIte, Option.some.injEq] at hv
+    subst hv; exact u64Be_length rev
+
 section wr
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
