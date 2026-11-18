@@ -55,7 +55,11 @@ def fmt.maxNumDigits : Nat := 7
 
 /-- `fmt.fmtDirectives`' parser, structurally recursive over the bytes: `st = none` in literal
 text, `st = some (sharp, ph)` inside a directive, `sharp` saying whether the `#` flag was read and
-`ph` what is being read (Go's `doPrintf`). -/
+`ph` what is being read (Go's `doPrintf`). A `.` starts the precision only if a byte follows it, as
+in Go (`if i+1 < end && format[i] == '.'`, go1.27.3 `fmt/print.go:1100`); a trailing `.` is the verb
+and consumes an argument (fmt soundness, 2026-11-18, the third attack's R1: until then `"x%."` parsed
+to no directive, its argument counted as `EXTRA` under `%v`; checked against Go by the differential
+test `notes/fmt-third-attack.md`). -/
 def fmt.fmtDirectivesAux : Option (Bool × fmt.DirPhase) → GoString → Option (List fmt.Directive)
   | _, [] => some []
   | none, b :: bs =>
@@ -76,13 +80,13 @@ def fmt.fmtDirectivesAux : Option (Bool × fmt.DirPhase) → GoString → Option
       else if b = W8 43 ∨ b = W8 45 ∨ b = W8 48 ∨ b = W8 32 then
         fmt.fmtDirectivesAux (some (sharp, .flags)) bs
       else if digit then fmt.fmtDirectivesAux (some (sharp, .width 1)) bs
-      else if b = W8 46 then fmt.fmtDirectivesAux (some (sharp, .prec 0)) bs
+      else if b = W8 46 ∧ bs ≠ [] then fmt.fmtDirectivesAux (some (sharp, .prec 0)) bs
       else verb
     | .width n =>
       if digit then
         (if n < fmt.maxNumDigits then fmt.fmtDirectivesAux (some (sharp, .width (n + 1))) bs
          else none)
-      else if b = W8 46 then fmt.fmtDirectivesAux (some (sharp, .prec 0)) bs
+      else if b = W8 46 ∧ bs ≠ [] then fmt.fmtDirectivesAux (some (sharp, .prec 0)) bs
       else verb
     | .prec n =>
       if digit then
@@ -109,6 +113,9 @@ example : fmt.fmtDirectives go!"%#x %+v %-08.3s %.q % d" =
       ⟨W8 100, false⟩] := by decide
 example : fmt.fmtDirectives go!"%#w %w %+w" =
     some [⟨W8 119, true⟩, ⟨W8 119, false⟩, ⟨W8 119, false⟩] := by decide
+example : fmt.fmtDirectives go!"x%." = some [⟨W8 46, false⟩] := by decide
+example : fmt.fmtDirectives go!"x%5." = some [⟨W8 46, false⟩] := by decide
+example : fmt.fmtDirectives go!"%.5.d" = some [⟨W8 46, false⟩] := by decide
 example : fmt.fmtDirectives go!"%*d" = none := by decide
 example : fmt.fmtDirectives go!"%5.*d" = none := by decide
 example : fmt.fmtDirectives go!"%[1]d" = none := by decide

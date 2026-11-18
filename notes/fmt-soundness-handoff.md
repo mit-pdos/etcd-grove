@@ -45,6 +45,13 @@
    errors part (`notes/perheap-scope.md` Part II, branch `perheap-scope`) and in `notes/audit.md`'s row.
    `ErrorfAny` deleted and the writer contract's `errOkOrNil`: ACCEPTED.
 
+7. (etcd-grove-03, 2026-11-18, after the third attack) R1, R2, R3 fixes APPROVED in place: parser, a trailing
+   `.` in the flags/width phases is the verb or the parse fails (examples `"x%."`, `"x%5."`); `fmt.argOk`'s
+   `Error`/`String` cases require `some noArgStringSig`; under `w` only `ArgWf` or `Error`. Stricter premises
+   only, to the user at the land stop. Before attack round 4: a SYSTEMATIC differential test of the Lean
+   parser against Go (`/shared/tmp/fmtfix-diff/`), mismatch counts before/after, each mismatch fixed or shown
+   harmless (parser `none` or stricter).
+
 ## Specs touched (for the wal-link merge)
 - `Spec/fmt/ErrorfWrap.lean`: premise `fmtErrorOk (ok inner)`; `fmt.wrapErrIs` + `Format = none ∧ Error = noArgStringSig`.
 - `Proof/os/NsS.lean` `os.File.Close.wp_dirS`: post `emp` → `fmtErrorOkOrNil err`.

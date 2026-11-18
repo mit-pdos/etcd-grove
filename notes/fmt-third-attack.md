@@ -21,3 +21,19 @@ iteration and map write` (fmt reflects into a caller-owned map the spec does not
   proposed: `Error`/`String` = `some noArgStringSig` in `fmt.argOk` (as `errOk`/`fmtErrorOk` already).
 - No refutation: `errOk`'s type facts, `errIsNot`/`errIsTerm`, `fmt.ErrorfWrap.spec`, the writer
   contract's `errOkOrNil` (real `*os.File.Write` errors checked: `writererr/`).
+
+## The differential test (2026-11-18, decision 7 of the handoff)
+
+`/shared/tmp/fmtfix-diff/`: `gen.py` (2,127,162 formats: every string of length 1-5 over
+`% . # + - 0 space 1 9 * [ ] v s w d q x a` with a `%`, every length-6 string over `% . # 0 space 1 9 * v w a +`
+with a `%`, 300k random ones of length 6-14 adding `T`, `é`, `\xff` and long digit runs); `gofmt/main.go`
+(go1.27.3: `fmt.Errorf(format, 8 probes)`, each probe an error with a `Format` method logging the verb and
+`#`); `lean/Diff.lean` (`lake env lean --run`: `fmt.fmtDirectives` of each format, padded with `%v` for the
+EXTRA arguments); `cmp.py` (compares; `#` counts only under `v`, as `sharpV`; Go's `%T` calls no method where
+Lean has a non-method-verb directive, stricter; an invalid UTF-8 verb is U+FFFD in Go, the byte in Lean,
+neither a method verb).
+
+- Before (0a5f7fbe4c's parser): Lean `none` 275,098 (harmless: no premise holds), agree 1,808,943,
+  **mismatch 43,121, every one a format ending in a trailing `.`** after `%`, flags or a width (R1).
+- After the fix (a `.` starts a precision only if a byte follows it): `none` 275,098, agree 1,852,064,
+  **mismatch 0**.
