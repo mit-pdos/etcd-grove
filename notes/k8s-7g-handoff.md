@@ -2,6 +2,41 @@
 
 ## START HERE
 
+**2026-11-18 (night 5; for etcd-grove-03). Option (C) done (Go + Lean); B1 for writes and gets proved
+(`RealBridge.lean`, no `sorry`); B1-list, B2, B4 left. Paused at a context stop.**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`). Commits: Go `2324797d5a`
+  (`Output.ErrMsg`, `preMsg`, `invalidObj(key, msg)`, `outEqual`; `TestInvalidMsg`; retranslated, goose `--check`
+  clean; whole driver Go suite green, log `/shared/tmp/k8s7g/gotest-optC.log`); Lean `b521d378c2` (store model
+  `KPreF`/`KErr.invalidObj key msg`/`respIs` with `invalidErrMsg`; specs take `c.S.preF pr`; `errOut`,
+  `invalidObj`, new `preMsg`, `mdelete`, `mupdate`, `Refine` (`preMsg_rel`), `Calls`, `Inv`, `MDefs`,
+  `outEqual`; RModel's Option-valued `preMsgL` renamed `checkMsgL`); B1 writes `rstepL_write`, gets
+  `rstepL_get` (`8dc51b298a`).
+- Decision record: `questions.md` "Step 4 STOP decided" (gitignored, local) and `notes/k8s-7g-trust.md` §6
+  (Freeze list). The store-vocabulary change (7e-frozen `respIs`) awaits acknowledgement.
+- Verified: store files, `Refine`, `Calls`, `errOut`, `invalidObj`, `preMsg`, `mdelete`, `mupdate`, `Inv`,
+  `RealBridge` (and its imports `RealWatch`, `ModelFit`, ...) by lean-check; targeted build of the rest queued
+  (`/shared/tmp/k8s7g/build-optC.log`: outEqual, MDefs, ListSpecD, KList, RefineList, Apply, InvSteps,
+  Model__update/delete, store__Delete/deleteOnce/updateOnce, storage Link). `call.lean` stays broken (step 5).
+- Next, in order:
+  1. **B1-list**: `rvalidateListL x (absR h.st) (rlistL ..) r` for the driver's `mlistL x h` answer: Exact
+     (`listRespRVL = some req`: `histAtL h.hist req` has rv `req`), NotOlderThan (rv in range), consistent
+     (`equalListRespL`: `rlistL` on `absR h.st` = the driver's list on the current store: `scopeR`/`ListModel.loop`
+     vs `listLoopL`, `prepareKeyM [] ` vs `"/objs"`, `itemsL_absR` gives the key order).
+  2. **B2**: a generic porcupine lemma (filtering a history by a predicate under a simulation of models:
+     `IsLinearization M H π → IsLinearization M' (filter H) (reindex π)`), then `pM (kSpec h0)` on a failure-free
+     history stays a singleton `{⟨h, []⟩}` (no pending: `PReach` from `[]` is the identity), and B1 is the step.
+     Statement over `H : List (Op (Input × Output × RResp))`; `realS init` := `SeqModel RM (Input × RResp)` with
+     `rstepL`.
+  3. **B4**, as scoped (B3b `ReplayAt`, `replayAt_prefix`, B3a to move to porcupine's `lin2`).
+- Premises added by B1 (step 5 discharges): `RawRel` per unary op (the Raw/plain-field relation), `keyOkL
+  (storeKeyL x.Key')`, `StOk st` (sorted, no `Annotated` object), `rmWf (absR st)`, `0 < st.rv`.
+- Note for step 5: `outEqual.spec`'s `decide (a = b)` is false once `Raw` differs (Go ignores `Raw`); known
+  pre-existing breakage, to restate as equality of the plain fields.
+- Pitfalls (new): never `cat >> /dev/null` before a heredoc (blocks on stdin); a `simp` on `RawRel` with `h4 :
+  x.Kind' ≠ W64 4` needs `simp only [..., h4, ↓reduceIte]` (full `simp` turns `W64 4` into `4#64` first);
+  `if_neg`/`if_pos` rewriting is more reliable than `simp` for `rexecL`'s kind tests.
+
 **2026-11-18 (night 4; for etcd-grove-03). STOP before B1/B2/B4: B2 as scoped is false (the precondition
 message is not in the plain output; questions.md "Step 4 STOP"). Waiting for the choice of fix; nothing else
 changed. B3, B5 proved and accepted.**
