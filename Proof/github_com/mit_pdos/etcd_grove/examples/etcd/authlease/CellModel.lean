@@ -9,6 +9,8 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.InvKVConn
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.WinLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthModel
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.Model
 
 @[expose] public section
 
@@ -515,6 +517,60 @@ theorem cellOk_revokeU {σ : KVState} {ids : List w64} {ps : List Nat} {gs : Lis
 theorem cellOk_revokeLu_done {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64}
     (h : CellOk σ ids ps gs 1) : kvOpStep (.leaseRevoke (luOf ids)) σ = σ :=
   step_revoke_missing _ σ (h.lu_dead rfl)
+
+/-! ### The lease checks at the set-up's auth state -/
+
+/-- A key with a nonzero lease is in the state's lease items. -/
+theorem leaseItemsOf_of_leaseOf {k : GoString} {s : List EtcdKv} {l : w64} (h : leaseOf k s = some l)
+    (hl : l ≠ W64 0) : (mvcc.leaseItemsOf s).lookup ⟨k⟩ = some l := by
+  show (mvcc.findKey k s).bind mvcc.kvLease = some l
+  obtain ⟨kv, hkv, hkl⟩ := leaseOf_some_findKey h
+  rw [hkv]
+  simp only [Option.bind_some, mvcc.kvLease]
+  simp only [hkl, hl, ↓reduceIte]
+
+/-- **The lease check at `setupSt` fails** for a lease holding the key `k`, a principal whose user is
+empty, `u` or `v`, and `k` not one `u` may write (when the user is `u`). -/
+theorem not_leaseOk_setupSt (r : Nat) (a : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) (k : GoString) (L : w64)
+    (hI : I.lookup ⟨k⟩ = some L)
+    (hu : a.Username' = (zeroValDef : GoString) ∨ (a.Username' = go!"u" ∧ ¬ etcd_auth.inRangeK k) ∨
+      a.Username' = go!"v") :
+    ¬ leaseOk (etcd_auth.setupSt r) a I L := by
+  have h0 : (etcd_auth.setupSt r).users !! (zeroValDef : GoString) = none := by
+    simp [etcd_auth.setupSt, zeroValDef]
+  intro hok
+  unfold leaseOk at hok
+  rcases hok with hen | hadm | hall
+  · simp [etcd_auth.setupSt] at hen
+  · unfold auth.adminOk at hadm
+    rcases hadm with hen | ⟨a', u', ha, -, hus, hroot⟩
+    · simp [etcd_auth.setupSt] at hen
+    cases ha
+    simp only [auth.authInfoM] at hus
+    rcases hu with hz | ⟨hu', -⟩ | hv
+    · rw [hz, h0] at hus; cases hus
+    · rw [hu', etcd_auth.setupSt_users_u] at hus; cases hus; exact etcd_auth.not_isRoot_u hroot
+    · rw [hv, etcd_auth.setupSt_users_v] at hus; cases hus; exact etcd_auth.not_isRoot_v hroot
+  · obtain ⟨-, -, u', hus, hc⟩ := hall k hI
+    simp only [auth.authInfoM] at hus
+    rcases hu with hz | ⟨hu', hk⟩ | hv
+    · rw [hz, h0] at hus; cases hus
+    · rw [hu', etcd_auth.setupSt_users_u] at hus; cases hus
+      rcases hc with hroot | hc
+      · exact etcd_auth.not_isRoot_u hroot
+      · simp only [auth.covers, auth.coversPoint, etcd_auth.userPerms_u, List.mem_singleton,
+          exists_eq_left] at hc
+        exact hk ((etcd_auth.permR_covers _ k).1 hc)
+    · rw [hv, etcd_auth.setupSt_users_v] at hus; cases hus
+      rcases hc with hroot | hc
+      · exact etcd_auth.not_isRoot_v hroot
+      · simp [auth.covers, auth.coversPoint, etcd_auth.userPerms_v] at hc
+
+/-- `z/lease` is not in `[a, b)`: u may not write it. -/
+theorem not_inRangeK_zK : ¬ etcd_auth.inRangeK zK := by
+  unfold etcd_auth.inRangeK
+  decide
 
 end pure
 
