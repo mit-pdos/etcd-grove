@@ -281,7 +281,6 @@ axiom backend.backend.Snapshot.wp_proof
 axiom backend.snapshot.Close.wp_proof
 axiom backend.snapshot.Size.wp_proof
 axiom backend.snapshot.WriteTo.wp_proof
-axiom bbolt.DB.Close_ownNoErrH.pendingS3d
 axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.ReadUint64.wp_proof

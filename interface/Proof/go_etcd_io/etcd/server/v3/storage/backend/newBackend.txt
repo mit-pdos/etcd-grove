@@ -13,7 +13,8 @@ theorem backend.FsCtx.mk.congr_simp (S S✝ : ExtSemantics Fs.fsExt) (e_S : S = 
 theorem backend.newBackend.wp_proof (hLog : backend.newBoltLoggerZap.spec) (hMmap :
     backend.BackendConfig.mmapSize.spec) (hNop : zap.NewNop.spec) (hStr : zap.String.spec) (hErr :
     zap.Error.spec) (hPanic : zap.Logger.Panic.spec) (hNew : backend.newBatchTxBuffered.spec) (hRun
-    : backend.backend.run.spec) : backend.newBackend.spec
+    : backend.backend.run.spec) (hOpen : ∀ [os.file.FieldAssumptions]
+    [os.fileStat.FieldAssumptions], bbolt.Open.spec) : backend.newBackend.spec
   -- `Perennial.EtcdGrove.backend.newBackend.spec`, unfolded:
   ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
     (cfg : go_etcd_io.etcd.server.v3.storage.backend.BackendConfig) (P : backend.BParams) (D : backend.Data)
@@ -23,7 +24,9 @@ theorem backend.newBackend.wp_proof (hLog : backend.newBoltLoggerZap.spec) (hMma
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
             zapLoggerOrNil cfg.Logger' ∗
               backend.fileHolds cfg.Path' D ∗
-                ⌜P.Wf ∧ P.limit = cfg.BatchLimit' ∧ cfg.Mlock' = false⌝ ∗
+                ⌜P.Wf ∧
+                      P.limit = cfg.BatchLimit' ∧
+                        cfg.Mlock' = false ∧ cfg.Timeout' = W64 0 ∧ sint.Z cfg.MmapSize' ≤ 281474976710655⌝ ∗
                   backend.hooksOk P W Pk cfg.Hooks' ∗
                     envVerifyOff ∗
                       (∀ γ, backend.hkOwn γ (backend.hkData P D) ∗ backend.bFresh γ ={⊤}=∗ W γ ∗ Pk γ ∗ K γ) ∗
@@ -38,6 +41,10 @@ theorem backend.newBackend.wp_proof (hLog : backend.newBoltLoggerZap.spec) (hMma
                   Φ r) -∗
             WP ((intoVal (functions go_etcd_io.etcd.server.v3.storage.backend.newBackend [])) (intoVal cfg)) {{ Φ }}
 
+theorem bbolt.boltIno.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) (i i✝ : Fs.Ino) (e_i : i = i✝) : bbolt.boltIno γ i =
+    bbolt.boltIno γ✝ i✝
+
 theorem backend.fileHoldsF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (path
     path✝ : GoString) (e_path : path = path✝) (D D✝ : backend.Data) (e_D : D = D✝) :
     backend.fileHoldsF path D = backend.fileHoldsF path✝ D✝
@@ -46,3 +53,6 @@ theorem crOut.congr_simp [ExtSemantics Fs.fsExt] [HasExt Fs.fsExt] (j j✝ : Fs.
     b✝ : GoString) (e_b : b = b✝) (h h✝ : Fs.NamesH) (e_h : h = h✝) (dq dq✝ : DFrac) (e_dq : dq =
     dq✝) (a✝ a✝¹ : Option (Nat × Nat × Fs.Ino)) : a✝ = a✝¹ → crOut j b h dq a✝ = crOut j✝ b✝ h✝ dq✝
     a✝¹
+
+theorem bbolt.boltCloser.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    bbolt.BoltName) (e_γ : γ = γ✝) : bbolt.boltCloser γ = bbolt.boltCloser γ✝

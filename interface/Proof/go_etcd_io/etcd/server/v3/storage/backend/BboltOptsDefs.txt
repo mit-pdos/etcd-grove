@@ -7,21 +7,29 @@ theorem backend.optsAt_discard_persistent (l : Loc) (o : backend.OptsM) : Persis
 
 theorem backend.OptsM.ok_withLogger [GoGlobalContext] (o : backend.OptsM) (l : GoInterface) (h :
     o.ok) (hl : backend.loggerPtrOk l) : { readOnly := o.readOnly, pageSize := o.pageSize, openFile
-    := o.openFile, logger := l }.ok
+    := o.openFile, logger := l, timeout := o.timeout, noFreelistSync := o.noFreelistSync,
+    initialMmapSize := o.initialMmapSize }.ok
+
+def backend.optsVal (v : go_etcd_io.bbolt.Options) (o : backend.OptsM) : Prop :=
+  ∃ f,
+    (BitVec.toNat f = 0 ∨ BitVec.toNat f = bbolt.mapPopulate) ∧
+      bbolt.optsVal v (o.toBolt false f) ∧
+        v.Timeout' = o.timeout ∧ v.NoFreelistSync' = o.noFreelistSync ∧ v.InitialMmapSize' = o.initialMmapSize
 
 def backend.optsZero : backend.OptsM :=
-  { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil }
+  { readOnly := false, pageSize := W64 0, openFile := func.nil, logger := GoInterface.nil, timeout := W64 0,
+    noFreelistSync := false, initialMmapSize := W64 0 }
 
 def backend.boltOpenOptionsOk : IProp GF :=
   iprop(∃ p,
       typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions) p DFrac.discard ∗
-        (⌜p = null⌝ ∨ ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝))
+        ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝)
 
 def backend.OptsM.ok [GoGlobalContext] (o : backend.OptsM) : Prop :=
   o.readOnly = false ∧ o.pageSize = W64 0 ∧ o.openFile = func.nil ∧ backend.loggerPtrOk o.logger
 
 def backend.optsAt (l : Loc) (dq : DFrac) (o : backend.OptsM) : IProp GF :=
-  iprop(∃ f, ⌜BitVec.toNat f = 0 ∨ BitVec.toNat f = bbolt.mapPopulate⌝ ∗ bbolt.optsAt l dq (o.toBolt false f))
+  iprop(∃ v, typedPointsto l v dq ∗ ⌜backend.optsVal v o⌝)
 
 theorem backend.optsZero_ok [GoGlobalContext] : backend.optsZero.ok
 
@@ -30,6 +38,9 @@ structure backend.OptsM : Type where
   pageSize : w64
   openFile : GoFunc
   logger : GoInterface
+  timeout : w64
+  noFreelistSync : Bool
+  initialMmapSize : w64
 
 theorem backend.boltOpenOptionsOk_persistent : Persistent backend.boltOpenOptionsOk
 
@@ -41,3 +52,6 @@ def backend.loggerPtrOk [GoGlobalContext] : GoInterface → Prop :=
 def backend.OptsM.toBolt (o : backend.OptsM) (m : Bool) (f : w64) : bbolt.OptsM :=
   { readOnly := o.readOnly, pageSize := o.pageSize, openFile := o.openFile, logger := o.logger, mlock := m,
     mmapFlags := f }
+
+def backend.OptsM.noErr (o : backend.OptsM) : Prop :=
+  o.timeout = W64 0 ∧ o.noFreelistSync = true ∧ sint.Z o.initialMmapSize ≤ 281474976710655

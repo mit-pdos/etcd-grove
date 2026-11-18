@@ -313,7 +313,6 @@ axiom backend.backend.Snapshot.wp_proof
 axiom backend.snapshot.Close.wp_proof
 axiom backend.snapshot.Size.wp_proof
 axiom backend.snapshot.WriteTo.wp_proof
-axiom bbolt.DB.Close_ownNoErrH.pendingS3d
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof

@@ -175,7 +175,7 @@ def backend.dbRestF [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ :
           Fs.osSharedInv R ∗
             Fs.osPathS R d dq j ∗
               Fs.osCallPerm qc ∗
-                Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i ∗ bbolt.boltCloserH γ)
+                Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗ bbolt.boltIno γ i ∗ bbolt.boltCloser γ)
 
 def backend.wBkt (tx : Loc) (γ : backend.DBNames) (b : Loc) (n : GoString) (g : Nat) : IProp GF :=
   backend.onFs fun [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] => bbolt.boltBkt tx γ b n g
