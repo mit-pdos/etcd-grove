@@ -1,6 +1,19 @@
 # incomingof handoff
 
-## START HERE (2026-11-18, Part B implementation: BLOCKER at T4, stopped)
+## START HERE (2026-11-18, option (a) decided; T2' written; STOP for attack)
+
+- Head 0e013c5ab0 (on dbb741dd80, WIP: kv__Get.lean fails). **Decided by etcd-grove-03 (2026-11-18): option (a)**
+  of the blocker: (1) T2' narrows `ctxErrsErr`/`ctxErrClient`'s conjunct to `ctxErrMsg m` (Go's two context
+  messages; trusted text claiming more); (2) proved `rpctypes.Error.spec`: no-`GRPCStatus` error with a stable
+  non-key message comes back unchanged; (3) proved `ContextError.spec`: a context error comes back as one. M4
+  stays a pre-existing hardening item (accepted). T2' text, checks and Go evidence: note
+  `notes/axiom-review/incomingof-b.md`, section "Option (a)"; Go: `examples/axiomcx/incomingof-real/ctx_test.go`.
+- **STOPPED** for a short independent attack on T2' before relying on it. Nothing implemented for (1)-(3) yet.
+- Next after the attack: `ctxErrMsg` + `ctxErrMsg_not_handler` in `cache/v3/Base.lean`; T2' in InvGrpc/InvKVConn;
+  producers (ErrorsNewOk `ctxErrClientAllW_of`, ChanCtx `chanCtx_ok`); (2), (3); kv__Get; the nil-case
+  one-liners (below); decide `descDeadline`; merge lean; full build; tcb --check; interfaces; gates; STATUS; land stop.
+
+## Earlier START HERE (2026-11-18, Part B implementation: BLOCKER at T4, stopped)
 
 - Branch `incomingof-scope`, worktree /shared/etcd-grove-incomingof (lean 5fb716b5eb merged; lean had not moved
   at the last check; pin still c6b, manifest-c6b). Part A refuted/reverted; B0 done; Part B texts attacked,
