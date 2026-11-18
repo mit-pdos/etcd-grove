@@ -27,6 +27,7 @@ public import Perennial.Proof.sync.Link
 public import Spec.go_etcd_io.bbolt.fdatasync
 public import Spec.go_etcd_io.bbolt.TxStats__IncWrite
 public import Spec.os.File__WriteAt
+public import Proof.github_com.mit_pdos.etcd_grove.OmegaOnly
 
 @[expose] public section
 
@@ -39,6 +40,23 @@ namespace bbolt
 open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
+
+/-- Word facts of `tx.write()`'s chunk loop, proved outside its large context (where `word` took
+up to a minute each: 2026-11-18). -/
+private theorem txw_sub_cast (a b : Nat) (h : b ≤ a) :
+    W64 ((a : Nat) : Int) - W64 ((b : Nat) : Int) = W64 ((a - b : Nat) : Int) := by word
+
+private theorem txw_add_cast (a b : Nat) :
+    W64 ((a : Nat) : Int) + W64 ((b : Nat) : Int) = W64 ((a + b : Nat) : Int) := by word
+
+private theorem txw_sint_nat_succ (j : w64) (h0 : 0 ≤ sint.Z j) (h : sint.nat j < 2 ^ 62) :
+    sint.nat (j + W64 1) = sint.nat j + 1 := by word
+
+private theorem txw_sint_succ_nonneg (j : w64) (h0 : 0 ≤ sint.Z j) (h : sint.nat j < 2 ^ 62) :
+    0 ≤ sint.Z (j + W64 1) := by word
+
+private theorem txw_sint_cast (n : Nat) (h : n < 2 ^ 63) : sint.Z (W64 ((n : Nat) : Int)) = (n : Int) := by
+  word
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -360,7 +378,8 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · rw [show c.2.2.length - w = cs by omega]; iexact Hrc
     all_goals
       have hsw : sint.Z (W64 ((w : Nat) : Int)) = (w : Int) := by word
-      have hscs : sint.Z (W64 ((cs : Nat) : Int)) = (cs : Int) := by word
+      have hscs : sint.Z (W64 ((cs : Nat) : Int)) = (cs : Int) :=
+        txw_sint_cast cs (by rw [Hcs]; exact Nat.lt_of_le_of_lt (Nat.min_le_right _ _) (by decide))
       wp_apply hUBS c.2.1 (W64 ((w : Nat) : Int)) (W64 0) (W64 ((cs : Nat) : Int))
         (by simp only [Loc.add, hsw]; omega) (by simp only [Loc.add, hsw, hscs]; omega)
         (by decide) (by rw [hscs]; simp)
@@ -396,7 +415,8 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         rw [BitVec.toInt_eq_toNat_cond]; split <;> omega
       wp_apply hWriteAt f fd K.p.path (DFrac.own 1) _ (bytesAt c.2.2 w cs) (DFrac.own 1)
         (W64 ((4096 * c.1.toNat + w : Nat) : Int)) (DFrac.own 1) (dbFd K.p.ino) om2 xs rfl h0
-        (by rw [hcl, htn]; omega) (by rw [hcl]; omega) (by rw [hcl, htn, hmin2]; omega)
+        (by rw [hcl, htn]; omega_only [hcin', hsz, Hcs, Hwlt]) (by rw [hcl]; omega)
+        (by rw [hcl, htn, hmin2]; omega_only [Hxl, Hom2s, hcin', Hcs, Hwlt])
         $$ [Hfo Hck Hfd Hm Hxs Hc] as %nn %err ⟨Hfo, Hck, Hfd, %jj, %aa, %EE, %ys, %Hjj, Hm, Hys, Hc, Herr⟩
       · iframe #
         rw [htn, hmin2, ← fileOwn_eq]
@@ -405,16 +425,16 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       have hsize : pwSize om2.size (4096 * c.1.toNat + w) jj = om2.size :=
-        pwSize_inside _ _ _ cs (by rw [hcl] at hjjle; exact hjjle) (by omega)
+        pwSize_inside _ _ _ cs (by rw [hcl] at hjjle; exact hjjle) (by omega_only [Hom2s, hcin', Hcs, Hwlt])
       have hpi := pwPostE_inside om2 (4096 * c.1.toNat + w) cs aa jj EE
-        (by rw [hcl] at hjjle; exact hjjle) (by omega)
+        (by rw [hcl] at hjjle; exact hjjle) (by omega_only [Hom2s, hcin', Hcs, Hwlt])
       rw [hmin2, hcl]
       have hyl : ys.length = cs := by
         have := congrArg List.length hysp
         simp only [List.length_map] at this
-        rw [this, pwValsG_length, hsize, hcl, hmin2]; omega
+        rw [this, pwValsG_length, hsize, hcl, hmin2]; omega_only [Hom2s, hcin', Hcs, Hwlt]
       ihave Hc : cAny b (4096 * c.1.toNat + w) cs $$ [Hc]
-      · rw [Hom2m, hmaps]; iapply (mcells_single b l _ cs (by omega)).1; iexact Hc
+      · rw [Hom2m, hmaps]; iapply (mcells_single b l _ cs (by omega_only [hcin', Hcs, Hwlt])).1; iexact Hc
       cases err with
       | ok ei =>
         have hyd : ysd.length = w := by
@@ -443,7 +463,8 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         wp_for_post
         try wp_auto
         ihave Hcur := cur_any b K.p c.1.toNat (1 + pageOverflow c.2.2) w cs (c.2.2.length - w - cs)
-          ysd ys (c.2.2.take w) hyd (by simp only [List.length_take]; omega) hyl (by omega)
+          ysd ys (c.2.2.take w) hyd (by simp only [List.length_take]; omega_only [Hwlt]) hyl
+          (by omega_only [hclen, Hcs, Hwlt])
           $$ [Hd1 Hd2 Hys Hc Hro2 Hrc2]
         · iframe
         ihave Hall := err_assemble b K.p L' (sint.nat j) c Hc hlenL $$ [Hdone Hcur Htodo]
@@ -474,7 +495,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have hys : ys.map Prod.fst = bytesAt c.2.2 w cs := by
           rw [hysp]
           have := pwValsG_inside om2.size (4096 * c.1.toNat + w) (bytesAt c.2.2 w cs) cs xs
-            (by rw [hcl]; omega) (by rw [hcl]; exact Hxl) (Or.inr hcl.symm)
+            (by rw [hcl]; omega_only [Hom2s, hcin', Hcs, Hwlt]) (by rw [hcl]; exact Hxl) (Or.inr hcl.symm)
           rw [this, if_neg (by omega)]
         try wp_auto
         iunfold cAny at Hc
@@ -483,7 +504,8 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         · rw [hyl]; iexact Hc
         have hbm : (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE).maps !! b = some l := by
           rw [hpi.2, Hom2m, hmaps]; exact GMap.lookup_singleton_eq b l
-        have hyl' : 4096 * c.1.toNat + w + ys.length ≤ l := by rw [hyl]; omega
+        have hyl' : 4096 * c.1.toNat + w + ys.length ≤ l := by
+          rw [hyl]; omega_only [hcin', Hcs, Hwlt]
         iapply cellsR_agree_bytes _ rfl K.p (DFrac.own 1) (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE) b l hbm
           (DFrac.own 1) (by simp) _ ys (4096 * c.1.toNat + w) vf hyl' $$ Hos Hm Hys Hc
         iintro Hm Hys Hc
@@ -512,15 +534,16 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
             show w + cs - w = cs by omega]
           iframe
         have hremv2 : W64 ((c.2.2.length - w : Nat) : Int) - W64 ((cs : Nat) : Int) =
-            W64 ((c.2.2.length - (w + cs) : Nat) : Int) := by word
+            W64 ((c.2.2.length - (w + cs) : Nat) : Int) := by
+          rw [txw_sub_cast _ _ (by rw [Hcs]; exact Nat.min_le_left _ _), Nat.sub_sub]
         rw [hremv2]
         wp_if_destruct
         · -- the page is written
           have hend : w + cs = c.2.2.length := by
             have h := Hif
-            have : c.2.2.length - (w + cs) < 2 ^ 62 := by omega
+            have h62 : c.2.2.length - (w + cs) < 2 ^ 62 := by omega_only [hnw]
             have h2 : (c.2.2.length - (w + cs) : Nat) = 0 := by
-              have := congrArg BitVec.toNat h; simp at this; omega
+              have := congrArg BitVec.toNat h; simp at this; omega_only [this, h62]
             omega
           rw [hend, List.take_length] at hfst
           rw [hend, List.take_length]
@@ -534,25 +557,24 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           · rw [List.take_add_one, Hc, Option.toList_some]; iexact Hdone
           wp_for_post
           wp_for_post
-          have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by
-            have : sint.nat j < 2 ^ 62 := by omega
-            word
+          have hj62 : sint.nat j < 2 ^ 62 := by omega
+          have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := txw_sint_nat_succ j Hj.1 hj62
           rw [fileOwn_eq]
           iframe
           iexists j + W64 1, c.2.1, (os.pwPostE om2 (4096 * c.1.toNat + w) aa cs EE)
           rw [hj1]
           iframe
           ipureintro
-          exact ⟨by word, by omega, hpi.1.trans Hom2s, hpi.2.trans Hom2m⟩
+          exact ⟨txw_sint_succ_nonneg j Hj.1 hj62, by omega, hpi.1.trans Hom2s, hpi.2.trans Hom2m⟩
         · have hnend : w + cs < c.2.2.length := by
             have h := Hif
             refine Classical.byContradiction fun hc => h ?_
             rw [show c.2.2.length - (w + cs) = 0 by omega]; rfl
           try wp_auto
           have ho : W64 ((4096 * c.1.toNat + w : Nat) : Int) + W64 ((cs : Nat) : Int) =
-              W64 ((4096 * c.1.toNat + (w + cs) : Nat) : Int) := by word
-          have hw2 : W64 ((w : Nat) : Int) + W64 ((cs : Nat) : Int) = W64 ((w + cs : Nat) : Int) := by
-            word
+              W64 ((4096 * c.1.toNat + (w + cs) : Nat) : Int) := by rw [txw_add_cast, Nat.add_assoc]
+          have hw2 : W64 ((w : Nat) : Int) + W64 ((cs : Nat) : Int) = W64 ((w + cs : Nat) : Int) :=
+            txw_add_cast w cs
           rw [ho, hw2]
           ihave Hro2 : oAny (GF := GF) K.p (4096 * c.1.toNat + (w + cs)) (c.2.2.length - (w + cs))
             $$ [Hro2]
