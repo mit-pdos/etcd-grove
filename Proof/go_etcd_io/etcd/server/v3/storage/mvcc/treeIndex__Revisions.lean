@@ -49,7 +49,6 @@ theorem mvcc.treeIndex.Revisions.wp_proof
   wp_start as ⟨#Hti, Hrd, Hkn, Hcu, %Hcb, %Hrev, #Hkey, #Hend, #Herr⟩
   iunfold mvcc.isTreeIndex at Hti
   iNamed Hti
-  ihave %Hlgnn := zapLoggerOk_ne_null _ $$ Hlgnn
   iunfold mvcc.idxReader at Hrd
   icases Hrd with ⟨%t', #Htree', Hrd⟩
   icombine Htree Htree' gives %Ht'
@@ -87,7 +86,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
     wp_apply (hUnsafe ti t lg L sync.rfrac key k (W64 r) e0) $$ [$HtreeL] as %_ ⟨HtreeL, -⟩
     · iframe #
       ipureintro
-      exact ⟨Hlgnn, hne⟩
+      exact hne
     have hstab := mvcc.reader_answerC log ilog pend L cmax Hcmp Hcnt' ⟨HwfL, HlenL, HpendL, HcsL⟩
       Hwf0 Hcs0 HLL.1 k r hrlt Hlen0 (by omega)
     have hval : mvcc.kiGetVal ((mvcc.idxGet (mvcc.idxOfEntries L) k).getD mvcc.kiEmpty) (W64 r)
@@ -238,7 +237,7 @@ theorem mvcc.treeIndex.Revisions.wp_proof
           icases HzKey with ⟨-, #HzKey⟩
           wp_apply (hget z.1 gs z.2.2 z.2.1 (DFrac.own sync.rfrac) lg (W64 r) e0) $$ [$HzKey $Hki $Herr]
             as %res Hres
-          · ipureintro; exact Hlgnn
+          · iexact Hlgnn
           simp only [hne z hzL, Bool.false_eq_true, ↓reduceIte]
           icases Hres with ⟨%Hres, Hki⟩
           obtain ⟨_, rfl⟩ := Hres

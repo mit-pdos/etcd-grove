@@ -4,6 +4,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Defs
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -21,7 +22,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
-/-- `ki.tombstone(lg, main, sub)` (a non-nil logger) on a key index with a generation, in the
+/-- `ki.tombstone(lg, main, sub)` (a zap logger, `zapLoggerOk lg`) on a key index with a generation, in the
 code's order: if the key index is empty (`isEmpty`), `lg.Panic` panics with its message; if
 the last generation is empty (the key is already deleted), `ErrRevisionNotFound`; if the
 revision is not above `modified`, `ki.put` panics with its message; all three with the key
@@ -35,13 +36,13 @@ abbrev mvcc.keyIndex.tombstone.spec : Prop :=
   ∀ (p : Loc) (gs : GoSlice) (ki : mvcc.KeyIndex) (k : GoString) (lg : Loc) (main sub : w64)
     (e : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ⌜lg ≠ null⌝ ∗ ⌜ki.gens ≠ []⌝ ∗ mvcc.kiKey p k ∗ mvcc.ownKi p gs ki (DFrac.own 1) ∗
+      zapLoggerOk lg ∗ ⌜ki.gens ≠ []⌝ ∗ mvcc.kiKey p k ∗ mvcc.ownKi p gs ki (DFrac.own 1) ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}
     (App (App (App (Val (p @!! go.GoType.PointerType keyIndex.ty @!! go!"tombstone")) (Val #lg))
       (Val #main)) (Val #sub))
   {{ (r : val), RET r;
       if mvcc.kiIsEmpty ki then
-        ⌜r = PanicV #(go!"'tombstone' got an unexpected empty keyIndex")⌝ ∗
+        ⌜r = PanicV #(interface.mkOk go.string #(go!"'tombstone' got an unexpected empty keyIndex"))⌝ ∗
           mvcc.ownKi p gs ki (DFrac.own 1)
       else if mvcc.kiLastEmpty ki then
         ⌜r = #(GoInterface.ok e)⌝ ∗ mvcc.ownKi p gs ki (DFrac.own 1)
@@ -49,7 +50,7 @@ abbrev mvcc.keyIndex.tombstone.spec : Prop :=
         ⌜r = #GoInterface.nil⌝ ∗
           ∃ gs' : GoSlice, mvcc.ownKi p gs' (mvcc.kiTombstone ki ⟨main, sub⟩) (DFrac.own 1)
       else
-        ⌜r = PanicV #(go!"'put' with an unexpected smaller revision")⌝ ∗
+        ⌜r = PanicV #(interface.mkOk go.string #(go!"'put' with an unexpected smaller revision"))⌝ ∗
           mvcc.ownKi p gs ki (DFrac.own 1) }}
 
 end spec

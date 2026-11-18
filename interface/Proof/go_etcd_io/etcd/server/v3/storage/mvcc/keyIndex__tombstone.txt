@@ -10,7 +10,7 @@ theorem mvcc.keyIndex.tombstone.wp_proof (hIE : mvcc.keyIndex.isEmpty.spec) (hGE
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-            ⌜lg ≠ null⌝ ∗
+            zapLoggerOk lg ∗
               ⌜ki.gens ≠ []⌝ ∗
                 mvcc.kiKey p k ∗
                   mvcc.ownKi p gs ki (DFrac.own 1) ∗
@@ -21,7 +21,9 @@ theorem mvcc.keyIndex.tombstone.wp_proof (hIE : mvcc.keyIndex.isEmpty.spec) (hGE
                 (if mvcc.kiIsEmpty ki = true then
                     ⌜r =
                           (intoVal
-                              go!"'tombstone' got an unexpected empty keyIndex").PanicV⌝ ∗
+                              (interface.mkOk go.string
+                                (intoVal
+                                  go!"'tombstone' got an unexpected empty keyIndex"))).PanicV⌝ ∗
                       mvcc.ownKi p gs ki (DFrac.own 1)
                   else
                     if mvcc.kiLastEmpty ki = true then ⌜r = intoVal (GoInterface.ok e)⌝ ∗ mvcc.ownKi p gs ki (DFrac.own 1)
@@ -32,7 +34,9 @@ theorem mvcc.keyIndex.tombstone.wp_proof (hIE : mvcc.keyIndex.isEmpty.spec) (hGE
                       else
                         ⌜r =
                               (intoVal
-                                  go!"'put' with an unexpected smaller revision").PanicV⌝ ∗
+                                  (interface.mkOk go.string
+                                    (intoVal
+                                      go!"'put' with an unexpected smaller revision"))).PanicV⌝ ∗
                           mvcc.ownKi p gs ki (DFrac.own 1)) -∗
                   Φ r) -∗
             WP

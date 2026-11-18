@@ -5,6 +5,7 @@ module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import GeneratedProof.go_uber_org.zap
+public import Spec.go_uber_org.zap.Defs
 
 @[expose] public section
 
@@ -21,16 +22,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- `l.Panic(msg, fields...)` (a non-nil logger) logs, then panics with the message (zapcore's
-`CheckedEntry.Write`: `panic(ce.Message)`), whatever the logger's core (a nop logger too:
-`Panic`/`Fatal` entries are always written). A zero `&zap.Logger{}` panics too, with a runtime
-error in place of the message, which only a `recover` that inspects the value tells apart: the
-premise stays `l ≠ null` (premise fixes 6, D4). -/
+/-- `l.Panic(msg, fields...)` (a zap logger, `zapLoggerOk l`) logs, then panics with the message as an
+`any` (zapcore's `CheckedEntry.Write`: `panic(ce.Message)`), whatever the logger's core (a nop logger
+too: `Panic`/`Fatal` entries are always written). The premise is `zapLoggerOk l`, not `l ≠ null`
+(2026-11-17, `notes/specs-only/ledger.md`): a zero `&zap.Logger{}` panics with a nil-dereference
+runtime error instead of the message, and a logger with a custom `WithPanicHook` that returns makes
+`Panic` return. -/
 abbrev zap.Logger.Panic.spec : Prop :=
   ∀ (l : Loc) (msg : GoString) (fields : GoSlice),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ ⌜l ≠ null⌝ }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap ∗ zapLoggerOk l }}
     (App (App (Val (l @!! go.GoType.PointerType zap.Logger.ty @!! go!"Panic")) (Val #msg)) (Val #fields))
-  {{ (r : val), RET r; ⌜r = PanicV #msg⌝ }}
+  {{ (r : val), RET r; ⌜r = PanicV #(interface.mkOk go.string #msg)⌝ }}
 
 end spec
 
