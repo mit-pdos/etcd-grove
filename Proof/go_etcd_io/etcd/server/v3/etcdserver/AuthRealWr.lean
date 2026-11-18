@@ -36,6 +36,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ForceCommi
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBackend__BatchTx
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ForceCommit
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
 
 @[expose] public section
 
@@ -1960,6 +1961,143 @@ theorem real_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG 
   imodintro
   iapply HΦ
   iframe HT HHk
+
+/-- **The `GetAllRoles` clause** of the store's backend reads (`auth.authBackendReads`' last), at the schema auth backend
+`abl`: kept apart (auth-schema-srv A6 (c), 2026-11-18: open, see the handoff's "F-roles"; `real_wbackendOkR` takes it). -/
+def garClause (abl : Loc) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) : IProp GF :=
+  iprop(□ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF),
+      {{ srvApi.csContractA P f Pre Q Post ∗ T ∗ Wb ∗ Wb ∗ auth.authOwn M hs }}
+        (App (Val #(methods (ablIface abl).ty go!"GetAllRoles" (ablIface abl).v)) (Val #()))
+      {{ (s : GoSlice), RET #s; Post ∗ T ∗ auth.authOwn M hs ∗
+          ∃ sta : auth.AuthState, ⌜auth.histLast M hs sta⌝ ∗ auth.rolesOut s sta }}))
+
+instance garClause_persistent (abl : Loc) (M : auth.AuthMode) (P : IProp GF) (f : GoFunc) (T Wb : IProp GF) :
+    Persistent (garClause (GF := GF) abl M P f T Wb) := by
+  unfold garClause; infer_instance
+
+/-- **Schema's auth backend over the real backend meets the store's write side** (`auth.authWBackendOkR` in `on γa`,
+at the hook `f`, the write token `T = authWTok ∗ Hk`): `BatchTx()` is schema's over the backend's batch transaction
+(`real_batchTxLkR`), `ForceCommit()` borrows the open share (`real_forceCommit`), the reads are the reserved pool's
+(`real_reads3`) and `GetAllRoles` the premise `garClause`. -/
+theorem real_wbackendOkR
+    (hLk : schema.authBatchTx.Lock.spec (GF := GF) (hG := hG))
+    (hUn : schema.authBatchTx.Unlock.spec (GF := GF) (hG := hG))
+    (hPU : schema.authBatchTx.UnsafePutUser.spec (GF := GF) (hG := hG))
+    (hDU : schema.authBatchTx.UnsafeDeleteUser.spec (GF := GF) (hG := hG))
+    (hPR : schema.authBatchTx.UnsafePutRole.spec (GF := GF) (hG := hG))
+    (hDR : schema.authBatchTx.UnsafeDeleteRole.spec (GF := GF) (hG := hG))
+    (hSE : schema.authBatchTx.UnsafeSaveAuthEnabled.spec (GF := GF) (hG := hG))
+    (hSR : schema.authBatchTx.UnsafeSaveAuthRevision.spec (GF := GF) (hG := hG))
+    (hGU : schema.authBatchTx.UnsafeGetUser.spec (GF := GF) (hG := hG))
+    (hGR : schema.authBatchTx.UnsafeGetRole.spec (GF := GF) (hG := hG))
+    (hEn : schema.authBatchTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
+    (hRev : schema.authBatchTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
+    (hGA : schema.authBatchTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
+    (hBTs : schema.authBackend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFCs : schema.authBackend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hGUb : schema.authBackend.GetUser.spec (GF := GF) (hG := hG))
+    (hGRb : schema.authBackend.GetRole.spec (GF := GF) (hG := hG))
+    (hGAb : schema.authBackend.GetAllUsers.spec (GF := GF) (hG := hG))
+    (hBT : backend.backend.BatchTx.spec (GF := GF) (hG := hG))
+    (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
+    (hRL : backend.readTx.RLock.spec (GF := GF) (hG := hG))
+    (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
+    (hURr : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hFEr : backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hCm : backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hFE : backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hRB : receiptBound GF ≤ 2 ^ 48)
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) (hPw : d.P.Wf) (hP : schema.authHas d.P)
+    (abl lg : Loc) (hlg : lg ≠ null) (dq : DFrac) (f : GoFunc) (T : IProp GF)
+    (hT : T ⊣⊢ iprop(auth.authWTok γ.γc ∗ Hk)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend d.γB d.P W Pk d.be ∗ realInv γ d s0 q0 ∗ ablOn abl d.be lg ∗
+      □ (Hk -∗ plHookAt d.γB dq f ∗ (plHookAt d.γB dq f -∗ Hk)) ∗
+      garClause abl (.on γ.γa) Pk f T (wbTok d.γB) ⊢
+      auth.authWBackendOkR (authBkIface abl) (.on γ.γa) Pk f T (wbTok d.γB) := by
+  iintro ⟨#Hp1, #Hp2, #Hb, #Hinv, #Habl, #Hhk, #Hgar⟩
+  ihave ⟨#HGU, #HGR, #HGA⟩ := real_reads3 hRT hRL hRU hURr hFEr hID hName hSafe hGUb hGRb hGAb γ d s0 q0 W Pk hP
+    Hk abl lg hlg $$ [$Hp1 $Hp2 $Hb $Hinv $Habl]
+  ihave #HFC := real_forceCommit hFC γ d s0 q0 W Pk Hk $$ [$Hp1 $Hb $Hinv]
+  iunfold ablOn at Habl
+  icases Habl with ⟨#Hbf, #Hlf⟩
+  iunfold auth.authWBackendOkR
+  iexists ablIface abl
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %Φ !> - HΦ
+    wp_apply (hBTs abl (schema.beIface d.be) lg
+        (fun t' => iprop(∃ t0 : Loc, ⌜t' = btIface t0⌝ ∗ bF go!"batchTx" d.be ↦□ t0)))
+      $$ [$Hp2 $Hbf $Hlf] as %tx ⟨%l, %t', %Htx, #Htxf, #Hlgf, ⟨%t0, %Ht', #Ht0⟩⟩
+    · iintro %Ψ !> - HΨ
+      wp_apply (hBT d.γB d.P W Pk d.be) $$ [$Hb] as %t1 #Ht1
+      iapply HΨ
+      iexists btIface t1
+      isplitr
+      · ipureintro; rfl
+      iexists t1
+      iframe Ht1
+      ipureintro; rfl
+    subst Ht'
+    iapply HΦ
+    iunfold auth.authBatchTxOkR
+    iexists abtIface l
+    isplitr
+    · ipureintro; exact Htx
+    iexists lkT γ d q0 W Pk Hk, (fun w => bkSw γ (1 : Qp).half w)
+    iapply real_batchTxLkR hLk hUn hPU hDU hPR hDR hSE hSR hGU hGR hEn hRev hGA hLI hUL hCm hUP hDel hUR hFE hID
+      hName hSafe hRB γ d s0 q0 W Pk Hk hPw hP l t0 lg hlg dq f T hT
+    iframe #
+  isplitr
+  · iintro !> %Φ !> ⟨HT, Hw⟩ HΦ
+    wp_apply (hFCs abl (schema.beIface d.be) iprop((auth.authWTok γ.γc ∗ Hk) ∗ wbTok d.γB)
+        iprop(auth.authWTok γ.γc ∗ Hk)) $$ [$Hp2 $Hbf HT Hw] as HT
+    · isplitl [HT Hw]
+      · iframe Hw; iapply hT.1 $$ HT
+      iexact HFC
+    iapply HΦ
+    iapply hT.2 $$ HT
+  iunfold auth.authBackendReads
+  isplitr
+  · iintro !> %hs %name !> %Φ ⟨HT, Ho⟩ HΦ
+    iapply HGU $$ %hs %name %Φ [HT Ho]
+    · iframe Ho; iapply hT.1 $$ HT
+    inext
+    iintro %u ⟨HT, Ho, Hu⟩
+    iapply HΦ
+    iframe Ho Hu
+    iapply hT.2 $$ HT
+  isplitr
+  · iintro !> %hs %name !> %Φ ⟨HT, Ho⟩ HΦ
+    iapply HGR $$ %hs %name %Φ [HT Ho]
+    · iframe Ho; iapply hT.1 $$ HT
+    inext
+    iintro %u ⟨HT, Ho, Hu⟩
+    iapply HΦ
+    iframe Ho Hu
+    iapply hT.2 $$ HT
+  isplitr
+  · iintro !> %hs !> %Φ ⟨HT, Ho⟩ HΦ
+    iapply HGA $$ %hs %Φ [HT Ho]
+    · iframe Ho; iapply hT.1 $$ HT
+    inext
+    iintro %u ⟨HT, Ho, Hu⟩
+    iapply HΦ
+    iframe Ho Hu
+    iapply hT.2 $$ HT
+  iunfold garClause at Hgar
+  iexact Hgar
 
 end wr
 
