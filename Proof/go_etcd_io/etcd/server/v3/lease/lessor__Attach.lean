@@ -29,7 +29,7 @@ theorem lease.lessor.Attach.wp_proof : lease.lessor.Attach.spec (GF := GF) (hG :
   intro lp γl id items xs dq L0 I0
   wp_start as ⟨#Hinv, Hown, %HidL, %Hxs0, %Hshort, Hxs⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi, #Hloop⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto

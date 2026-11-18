@@ -767,7 +767,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   ihave #Hlrdinv : lease.lessorRdInv (GF := GF) γl $$ []
   · ihave #Hli := Hlinv
     iunfold lease.lessorInv at Hli
-    icases Hli with ⟨-, -, -, #H⟩
+    icases Hli with ⟨-, -, -, #H, -⟩
     iexact H
   imod (lease.lessorAt_empty γl ⊤ (fun _ _ => CoPset.mem_full)) $$ [$Hlrdinv $HlEv]
     with ⟨#Hl0, HlEv⟩

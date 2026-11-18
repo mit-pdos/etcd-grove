@@ -35,7 +35,7 @@ theorem lease.lessor.Recover.wp_proof
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrd⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrd, #Hloop⟩
   ihave #Hcfg' := Hcfg
   iunfold lessorCfg at Hcfg'
   icases Hcfg' with ⟨%mt, %cpp, %cl, %ci, %lg, %rr, #Hmt, -, -, -, -, -, -, -⟩
@@ -51,7 +51,7 @@ theorem lease.lessor.Recover.wp_proof
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, -, Hbl⟩
+  icases Hx with ⟨%dc, %h, %hx, %bl, Hdc, Hh, Hhq, Hcp, -, Hbl, Hwt⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im0, #Hp, %HC, Him0, HI0, -, -, Hcs, Hch⟩
   -- `le.b`, `le.rd`, `le.itemMap`: the two halves made whole
@@ -76,12 +76,26 @@ theorem lease.lessor.Recover.wp_proof
   (try wp_auto)
   wp_apply (wp_map_make1 (V := w64) LeaseItem.ty LeaseID.ty) as %im' HI'
   (try wp_auto)
+  -- (the lessor-noax stage) the expiry notifier, from the loop's invariant, for the writers' token
+  icases Hwt with ⟨%γrw, #Hprw, Hwt⟩
+  iapply fupd_wp
+  imod lessorLoop_wtake lp γl γrw ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hloop $Hprw $Hwt]
+    with ⟨⟨%np, %dc2, HT, HD⟩, Hwback⟩
+  iunfold notifierFreeT at HT
+  icases HT with ⟨Hnp, Hnot, Hdc2⟩
+  imodintro
   -- `le.initAndRecover()`
   have hS' : S mvcc.leaseName := hS
   have hrecs' : backend.bktEnts ((r.lookup mvcc.leaseName).getD ∅) = recs.map leaseRecEnc := hrecs
   wp_apply (hIR lp lm' np h hx mt d.γB d.P W Pk d.be qo S r recs hS' hLp hrecs')
     $$ [$Hpkg $Hb $Hlm $HM' $Hmt $Hnp $Hnot $Hh $Hhq $HB $Ho $Htoks $Hrb]
     as ⟨%ls, %h', %hx', %Hlen, Hb, Hlm, HM', Hrl, #Hr, Hnp, Hnot, Hh, Hhq, Ho, Hrb⟩
+  iapply fupd_wp
+  imod Hwback $$ [Hnp Hnot Hdc2 HD] with Hwt
+  · iexists np, dc2; iunfold notifierFreeT; iframe
+  imodintro
+  ihave Hwt : (∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2 1 ()) $$ [Hwt]
+  · iexists γrw; iframe Hprw Hwt
   (try wp_auto)
   -- the ghost step: the recovered leases in place of the old ones
   have hfst : (recs.zip ls).map Prod.fst = recs := List.map_fst_zip (by omega)
@@ -135,8 +149,8 @@ theorem lease.lessor.Recover.wp_proof
     omega
   icases ptsto_halves_split _ _ $$ Hb with ⟨Hb, Hbl⟩
   icases ptsto_halves_split _ _ $$ Hrdw with ⟨Hrdw, Hrdf⟩
-  ihave Hx : lessorExtra lp (recMap (recs.zip ls)) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmetas Hbl]
-  · iunfold lessorExtra; iexists dc, np, h', hx', _; iframe
+  ihave Hx : lessorExtra lp γl (recMap (recs.zip ls)) 1 $$ [Hdc Hh Hhq Hcp Hmetas Hbl Hwt]
+  · iunfold lessorExtra; iexists dc, h', hx', _; iframe
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM' Himw HI' Hrdf Ha Hg Hx Hhist]
   · iframe #
     inext

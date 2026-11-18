@@ -460,7 +460,7 @@ theorem grant_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     | none => rfl
     | some r' => exact absurd (HQo.2 id r' hq) hev
   imod ghost_map_insert id r hQn $$ HQ with ⟨HQ, Hqe⟩
-  imod ghostMapElem_persist id γr.2.2.2.2 _ r $$ Hqe with #Hqe
+  imod ghostMapElem_persist id γr.2.2.2.2.1 _ r $$ Hqe with #Hqe
   imod Hclose $$ [Ha HS HU HQ] with -
   · inext; iunfold lessorRdBody; iexists hs ++ [(M.insert id l, I, T.insert id t)], Sm.insert l ∅
     iframe Ha HS Htie'

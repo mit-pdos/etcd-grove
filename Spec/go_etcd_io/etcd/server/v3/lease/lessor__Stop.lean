@@ -1,7 +1,8 @@
 /-
-`(*lease.lessor).Stop()` (`lessor.go`): names-only. Lean-first (no Rocq counterpart); R2b-3c part 2
-(2026-11-04, the user's approval), for `EtcdServer.Cleanup`; an axiom at the trust boundary
-(`Proof/.../lease/lessor__Stop.lean`), why it is true of the Go code below.
+`(*lease.lessor).Stop()` (`lessor.go`). Lean-first (no Rocq counterpart); R2b-3c part 2
+(2026-11-04, the user's approval), for `EtcdServer.Cleanup`; until 2026-11-18 an axiom at the trust
+boundary (names-only), since the lessor-noax stage translated with its body and proved
+(`Proof/.../lease/lessor__Stop.lean`), over `lessorStopTok`, now a definition.
 -/
 module
 
@@ -33,9 +34,8 @@ it returns once `runLoop` (forked by `newLessor`) returns -- its `select` takes 
 its deferred `close(le.doneC)` runs -- or blocks, which partial correctness allows. `runLoop` runs
 from `NewLessor` on (its effects are in `NewLessor`'s statement), so stopping it adds no behavior;
 the lessor's other methods do not depend on it. Nothing comes back: no client needs the stopped
-loop's state. What would discharge it: `runLoop` translated and verified (its ticker,
-`revokeExpiredLeases`, `checkpointScheduledLeases`), with the stop channels as broadcast channels,
-as the backend's `run`/`Close` are. -/
+loop's state. (2026-11-18) Proved: the stop channels are broadcast channels (`lessorStopTok`); that
+`runLoop` closes `doneC` is `NewLessor`'s (still assumed). -/
 abbrev lease.lessor.Stop.spec : Prop :=
   ∀ (lp : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorStopTok lp }}

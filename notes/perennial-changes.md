@@ -17,6 +17,15 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `ownSliceCap` has no `Timeless` instance (2026-11-18, lessor-noax)
+
+`ownSliceCap V s dq` (`Golang/Theory/Slice.lean`) is timeless (pure facts and a typed points-to) but
+has no instance (unlike `ownSlice_timeless`), so a predicate holding a slice's capacity (the lessor's
+`notifierAt`, `queueAt`) is not timeless and cannot be taken out of an invariant with `>`. Workaround:
+a local instance at `Loc` (`lease.ownSliceCap_timeless_loc`, `Proof/.../lease/InvLessor.lean`).
+Proposed: `instance ownSliceCap_timeless (s) (dq) : Timeless (ownSliceCap V s dq)` beside
+`ownSlice_timeless`. Status: not started.
+
 ### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
 
 `k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct

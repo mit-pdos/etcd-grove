@@ -60,7 +60,7 @@ theorem lease.lessor.Grant.wp_proof
   icases Htl' with ⟨%etl, #Hetl, -⟩
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrd⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrd, #Hloop⟩
   ihave #Hcfg' := Hcfg
   iunfold lessorCfg at Hcfg'
   icases Hcfg' with ⟨%mt, %cpp, %cl, %ci, %lg, %rr, #Hmt, #Hcpp, #Hcl, #Hclok, #Hci, #Hlg, -⟩
@@ -130,15 +130,15 @@ theorem lease.lessor.Grant.wp_proof
   ihave %Hag := leaseFrag_agree γl _ _ _ _ $$ [$Hown $Hg]
   subst Hag
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %h, %hx, %bl, Hdc, Hh, Hhq, Hcp, Hmeta, Hbl, Hwt⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   cases hM : M !! id with
   | some l0 =>
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     (try wp_auto)
-    ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
+    ihave Hx : lessorExtra lp γl M 1 $$ [Hdc Hh Hhq Hcp Hmeta Hbl Hwt]
+    · iunfold lessorExtra; iexists dc, h, hx, bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
@@ -176,7 +176,7 @@ theorem lease.lessor.Grant.wp_proof
       iframe le l
       iexact Httl
     ipersist Httl
-    wp_apply (hPrim lp dc (DFrac.own 1)) $$ [$Hdc] as Hdc
+    wp_apply (hPrim lp dc (DFrac.own (1 : Qp).half)) $$ [$Hdc] as Hdc
     wp_join iprop(l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ (W64 0) ∗
         ∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own (1 : Qp).half} e)
       with [l Hrem Hexp] as ⟨l, Hrem, %e, Hexp⟩
@@ -216,7 +216,15 @@ theorem lease.lessor.Grant.wp_proof
     icases Hcgs with #Hcgs
     wp_apply Hcgs
     (try wp_auto)
-    wp_apply (hPrim lp dc (DFrac.own 1)) $$ [$Hdc] as Hdc
+    wp_apply (hPrim lp dc (DFrac.own (1 : Qp).half)) $$ [$Hdc] as Hdc
+    -- (the lessor-noax stage) the expiry notifier, from the loop's invariant, for the writers' token
+    icases Hwt with ⟨%γrw, #Hprw, Hwt⟩
+    iapply fupd_wp
+    imod lessorLoop_wtake lp γl γrw ⊤ (fun _ _ => CoPset.mem_full) $$ [$Hloop $Hprw $Hwt]
+      with ⟨⟨%np, %dc2, HT, HD⟩, Hwback⟩
+    iunfold notifierFreeT at HT
+    icases HT with ⟨Hnp, Hnot, Hdc2⟩
+    imodintro
     wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ (W64 0) ∗
         lsF go!"expiry" l ↦{DFrac.own (1 : Qp).half} e ∗
         lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1 ∗ lF go!"cp" lp ↦ func.nil ∗
@@ -233,6 +241,12 @@ theorem lease.lessor.Grant.wp_proof
       wp_apply (hSched lp l func.nil h hx (W64 0) (grantTTL mt ttl) (DFrac.own 1) (DFrac.own 1) DFrac.discard)
         $$ [$Hpkg $Hcfg $Hcp $Hh $Hhq $Hrem $Httl] as ⟨Hcp, ⟨%h', %hx', Hh, Hhq⟩, Hrem, -⟩
       wp_join_done
+    iapply fupd_wp
+    imod Hwback $$ [Hnp Hnot Hdc2 HD] with Hwt
+    · iexists np, dc2; iunfold notifierFreeT; iframe
+    imodintro
+    ihave Hwt : (∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2 1 ()) $$ [Hwt]
+    · iexists γrw; iframe Hprw Hwt
     (try wp_auto)
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
     · iunfold leaseMeta
@@ -248,8 +262,8 @@ theorem lease.lessor.Grant.wp_proof
       $$ [$Hml $Hmeta]
     ihave #Hls' := (BigSepM.bigSepM_insert (Φ := fun _ x => isLeaseObj (GF := GF) γl x) hM).2
       $$ [$Hlo $Hls]
-    ihave Hx : lessorExtra lp (<[id := l]> M) 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h', hx', b; iframe
+    ihave Hx : lessorExtra lp γl (<[id := l]> M) 1 $$ [Hdc Hh Hhq Hcp Hmeta Hbl Hwt]
+    · iunfold lessorExtra; iexists dc, h', hx', b; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext

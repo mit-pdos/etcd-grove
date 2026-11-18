@@ -507,7 +507,7 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
     · intro x hx; rw [h] at hx; cases hx
     · exact fun x _ => h x
   icases HQ with ⟨%Q, HQa, %HQok⟩
-  ihave #HrqE : iprop([∗list] id ∈ Un, ⌜id ∉ U0⌝ ∨ id ↪[γr.2.2.2.2]□ rq id) $$ []
+  ihave #HrqE : iprop([∗list] id ∈ Un, ⌜id ∉ U0⌝ ∨ id ↪[γr.2.2.2.2.1]□ rq id) $$ []
   · iapply (BigSepL.bigSepL_impl (PROP := IProp GF)) $$ Hrq
     iintro !> %k %x %hk Hx
     icases Hx with (%Hn | Hx)
@@ -516,12 +516,12 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
       icases Hx with ⟨%γr3, #Hp3, #He⟩
       ihave %H3 := lessorPinR_agree γl γr γr3 $$ [$Hp $Hp3]
       subst H3; iright; iexact He
-  ihave #Hnil : iprop([∗list] id ∈ ([] : List w64), id ↪[γr.2.2.2.2]□ rq id) $$ []
+  ihave #Hnil : iprop([∗list] id ∈ ([] : List w64), id ↪[γr.2.2.2.2.1]□ rq id) $$ []
   · iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
   have hQ0 : ∀ id r, Q.lookup id = some r → id ∈ U0 := fun id r hr => by
     obtain ⟨i, σ, hi, hl⟩ := HQok.2 id r hr
     exact HUi.2.1 i σ id hi (Or.inl hl)
-  imod req_issue γr.2.2.2.2 U0 rq Q hQ0 Un [] Q (fun id r hr => Or.inl hr)
+  imod req_issue γr.2.2.2.2.1 U0 rq Q hQ0 Un [] Q (fun id r hr => Or.inl hr)
     (fun _ h => by cases h) $$ [$HQa $Hnil $HrqE] with ⟨%Q', HQa, %HQ', #HeOut⟩
   simp only [List.nil_append] at HQ' ⊢
   have HQok' : reqOk (hs ++ [σ']) Q' := by
@@ -537,7 +537,7 @@ theorem recover_hist (γl : GName) (γr : LessorRdNames) (hs : List LSnap)
   · iapply (BigSepL.bigSepL_impl (PROP := IProp GF)) $$ HeOut
     iintro !> %k %x %_ He
     iunfold leaseReqIs; iexists γr; iframe Hp He
-  ihave HQ : iprop(∃ Q : GMap w64 w64, ghostMapAuth (GF := GF) γr.2.2.2.2 (1 : Qp) Q ∗
+  ihave HQ : iprop(∃ Q : GMap w64 w64, ghostMapAuth (GF := GF) γr.2.2.2.2.1 (1 : Qp) Q ∗
       ⌜reqOk (hs ++ [σ']) Q⌝) $$ [HQa]
   · iexists Q'; iframe HQa; ipureintro; exact HQok'
   ihave %HSm := ghostMapAuth_agree γr.2.1 _ _ Sm Sm0 $$ HSo HS

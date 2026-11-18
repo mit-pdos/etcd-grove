@@ -317,11 +317,14 @@ public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Renew
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Revoke
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__SetRangeDeleter
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__Stop
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__clearLeaseExpiredNotifier
+public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__clearScheduledLeasesCheckpoints
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__initAndRecover
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__isPrimary
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__scheduleCheckpointIfNeeded
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__shouldPersistCheckpoints
 public import Proof.go_etcd_io.etcd.server.v3.lease.lessor__unsafeLeases
+public import Proof.go_etcd_io.etcd.server.v3.lease.newLeaseExpiredNotifier
 public import Proof.go_etcd_io.etcd.server.v3.lease.leasehttp.RenewHTTP
 public import Proof.math.Ceil
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ID
@@ -490,6 +493,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeG
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthRevision
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.leaseIDToBytes
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustReadMembersFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
@@ -1184,9 +1188,13 @@ theorem sort.StringSlice.wp_Sort :
     sort.StringSlice.Sort.spec (GF := GF) (hG := hG) :=
   sort.StringSlice.Sort.wp_proof
 
+theorem schema.wp_leaseIDToBytes :
+    schema.leaseIDToBytes.spec (GF := GF) (hG := hG) :=
+  schema.leaseIDToBytes.wp_proof binary.bigEndian.wp_PutUint64
+
 theorem schema.wp_UnsafeDeleteLease :
     schema.UnsafeDeleteLease.spec (GF := GF) (hG := hG) :=
-  schema.UnsafeDeleteLease.wp_proof
+  schema.UnsafeDeleteLease.wp_proof schema.wp_leaseIDToBytes
 
 theorem auth.wp_getMergedPerms :
     auth.getMergedPerms.spec (GF := GF) (hG := hG) :=
@@ -1467,10 +1475,6 @@ theorem math.wp_Ceil :
 theorem lease.lessor.wp_Promote :
     lease.lessor.Promote.spec (GF := GF) (hG := hG) :=
   lease.lessor.Promote.wp_proof
-
-theorem lease.lessor.wp_Demote :
-    lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
-  lease.lessor.Demote.wp_proof
 
 theorem proto.wp_UnmarshalRole :
     proto.UnmarshalRole.spec (GF := GF) (hG := hG) :=
@@ -2938,6 +2942,22 @@ theorem rafthttp.Transport.wp_Start :
 theorem rafthttp.Transport.wp_AddRemote :
     rafthttp.Transport.AddRemote.spec (GF := GF) (hG := hG) :=
   rafthttp.Transport.AddRemote.wp_proof types.wp_NewURLs rafthttp.wp_startRemote types.ID.wp_String_ptr zap.Logger.wp_Info zap.wp_String zap.wp_Strings
+
+theorem lease.lessor.wp_clearScheduledLeasesCheckpoints :
+    lease.lessor.clearScheduledLeasesCheckpoints.spec (GF := GF) (hG := hG) :=
+  lease.lessor.clearScheduledLeasesCheckpoints.wp_proof
+
+theorem lease.wp_newLeaseExpiredNotifier :
+    lease.newLeaseExpiredNotifier.spec (GF := GF) (hG := hG) :=
+  lease.newLeaseExpiredNotifier.wp_proof
+
+theorem lease.lessor.wp_clearLeaseExpiredNotifier :
+    lease.lessor.clearLeaseExpiredNotifier.spec (GF := GF) (hG := hG) :=
+  lease.lessor.clearLeaseExpiredNotifier.wp_proof lease.wp_newLeaseExpiredNotifier
+
+theorem lease.lessor.wp_Demote :
+    lease.lessor.Demote.spec (GF := GF) (hG := hG) :=
+  lease.lessor.Demote.wp_proof lease.Lease.wp_forever lease.lessor.wp_clearScheduledLeasesCheckpoints lease.lessor.wp_clearLeaseExpiredNotifier
 
 theorem lease.lessor.wp_ExpiredLeasesC :
     lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG) :=

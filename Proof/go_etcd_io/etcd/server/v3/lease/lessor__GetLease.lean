@@ -29,7 +29,7 @@ theorem lease.lessor.GetLease.wp_proof : lease.lessor.GetLease.spec (GF := GF) (
   intro lp γl item L0 I0
   wp_start as ⟨#Hinv, Hrd, Hown⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi, #Hloop⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold lessorRd at Hrd

@@ -10,12 +10,13 @@
 # membership backend's constructor (`NewMembershipBackend`, with its struct), for `applySnapshot`'s
 # `cluster.SetBackend`. The lessor's `Lease` bucket and its name (2026-10-25, leases T3:
 # notes/leases-plan.md); (2026-11-04, the lease-expiry plan's S1) `UnsafeCreateLeaseBucket`, for
-# `lessor.Recover`.
+# `lessor.Recover`; (2026-11-18, the lessor-noax stage) `UnsafeDeleteLease` and its key's encoding
+# `leaseIDToBytes`, for `lessor.Revoke`.
 translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUpdateConsistentIndex", "UnsafeUpdateConsistentIndexForce", "unsafeUpdateConsistentIndex", "Meta", "MetaConsistentIndexKeyName", "MetaTermKeyName", "UnsafeCreateMetaBucket", "Key", "keyBucketName", "metaBucketName", "bucket.ID", "bucket.Name", "bucket.String", "bucket.IsSafeRangeBucket", "NewAlarmBackend", "NewAuthBackend",
   "NewMembershipBackend",
   "UnsafeCreateAuthRolesBucket", "revBytesLen", "authEnabled", "authDisabled",
   "Auth", "AuthUsers", "AuthRoles", "authBucketName", "authUsersBucketName", "authRolesBucketName",
-  "Lease", "leaseBucketName", "UnsafeCreateLeaseBucket",
+  "Lease", "leaseBucketName", "UnsafeCreateLeaseBucket", "UnsafeDeleteLease", "leaseIDToBytes",
   "AuthEnabledKeyName", "AuthRevisionKeyName",
   "authBackend.CreateAuthBuckets", "authBackend.ForceCommit", "authBackend.ReadTx", "authBackend.BatchTx",
   "authBackend.GetUser", "authBackend.GetAllUsers", "authBackend.GetRole", "authBackend.GetAllRoles",
@@ -26,7 +27,7 @@ translate = ["!*", "UnsafeReadConsistentIndex", "ReadConsistentIndex", "UnsafeUp
   "authReadTx.UnsafeReadAuthEnabled", "authReadTx.UnsafeReadAuthRevision", "authReadTx.RLock", "authReadTx.RUnlock",
   "authReadTx.UnsafeGetUser", "authReadTx.UnsafeGetAllUsers", "authReadTx.UnsafeGetRole", "authReadTx.UnsafeGetAllRoles",
   "unsafeReadAuthEnabled", "unsafeReadAuthRevision", "unsafeGetUser", "unsafeGetAllUsers", "unsafeGetRole", "unsafeGetAllRoles"]
-imports = ["!*", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
+imports = ["!*", "bytes", "encoding/binary", "google.golang.org/protobuf/proto", "go.etcd.io/etcd/api/v3/authpb", "go.etcd.io/etcd/server/v3/lease/leasepb", "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/client/pkg/v3/verify",
   "go.uber.org/zap", "go.etcd.io/etcd/server/v3/auth", "go.etcd.io/etcd/api/v3/etcdserverpb"]
 
 # translate the definitions of all type declarations goose supports

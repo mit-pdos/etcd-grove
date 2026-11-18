@@ -132,9 +132,12 @@ to its item set); (the lease-grant plan's D2, 2026-11-02) and the lessor's **mod
 `NewLessor`'s caller; (the lease-expiry plan's E3 (c), 2026-11-05) and the ids the lessor ever
 had (`γr.2.2.2.1`, a ghost variable `U` in halves: `lessorRdBody`'s and the owner's, `leaseEver`);
 (the lease-expiry plan's S2–S4, Q-S6, 2026-11-05) and the TTLs the leases were requested at
-(`γr.2.2.2.2`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`).
-The mode is `γr.2.2.1`. -/
-abbrev LessorRdNames := GName × GName × Bool × GName × GName
+(`γr.2.2.2.2.1`, a ghost map of discarded elements, id to requested TTL: `leaseReqIs`, `reqOk`);
+(the lessor-noax stage, 2026-11-18) and the writers' token (`γr.2.2.2.2.2`, a fractional ghost
+variable at `()`: `le.mu`'s invariant holds it at its fraction, `lessorMu`, so a writer holds all of
+it and the expiry loop, a reader, its read share: what tells them apart at the expiry notifier,
+`lessorLoopInv`). The mode is `γr.2.2.1`. -/
+abbrev LessorRdNames := GName × GName × Bool × GName × GName × GName
 
 /-- **A snapshot of the lessor**: its lease map (id to `*Lease`), its item map (item to id) and
 (the lease-expiry plan's R5, 2026-11-04) its TTLs (id to the lease's `ttl` field, which `Grant` and
@@ -419,7 +422,7 @@ def lessorRdBody (γr : LessorRdNames) : IProp GF :=
       ⌜histOnce hs ∧ histIn hs U ∧ histCover hs U⌝) ∗
     ([∗list] σ ∈ hs, ttlTie σ) ∗
     ([∗map] l ↦ _S ∈ Sm, ∃ id : w64, lsF go!"ID" l ↦□ id) ∗
-    ∃ Q : GMap w64 w64, ghostMapAuth γr.2.2.2.2 (1 : Qp) Q ∗ ⌜reqOk hs Q⌝)
+    ∃ Q : GMap w64 w64, ghostMapAuth γr.2.2.2.2.1 (1 : Qp) Q ∗ ⌜reqOk hs Q⌝)
 
 /-- **The lessor `γl`'s reader-side invariant** (persistent). -/
 def lessorRdInv (γl : GName) : IProp GF :=
@@ -449,7 +452,7 @@ def leaseEver (γl : GName) (U : List w64) : IProp GF :=
 lease (the TTL its caller names for the record). Every TTL the history gives `id` is at least `r`
 (`leaseTTLAt_ge_req`). -/
 def leaseReqIs (γl : GName) (id r : w64) : IProp GF :=
-  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostMapElem γr.2.2.2.2 id DFrac.discard r)
+  iprop(∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostMapElem γr.2.2.2.2.1 id DFrac.discard r)
 
 instance leaseReqIs_persistent (γl : GName) (id r : w64) :
     Persistent (leaseReqIs (GF := GF) γl id r) := by
@@ -906,18 +909,87 @@ def leaseMeta (id : w64) (l : Loc) (q : Qp) : IProp GF :=
     (∃ e : _root_.Perennial.time.Time, lsF go!"expiry" l ↦{DFrac.own q.half} e) ∗
     sync.isRWMutexGuard (lsF go!"expiryMu" l) (leaseExpiry l))
 
-/-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: `demotec`,
-the expiry notifier, the checkpoint heap (a queue of fresh items, any ids), the checkpointer
+/-- **The lessor's apply-side fields** under `le.mu` at `q`, for its lease map `M`: half of
+`demotec` (the other half is the expiry loop's invariant's, `lessorLoopInv`, with the right to
+close it; the lessor-noax stage, 2026-11-18: until then all of it), the checkpoint heap (a queue of
+fresh items, any ids), the checkpointer
 `cp`, `nil` (no checkpointer is installed: `NewLessor.spec`; stage B3, 2026-11-12), and every granted lease's `leaseMeta`; (D22 receiver epochs, S7c, 2026-10-23) half the
-fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it). -/
-def lessorExtra (lp : Loc) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
-  iprop(∃ (dc : GoChan) (np : Loc) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
-    lF go!"demotec" lp ↦{DFrac.own q} dc ∗
-    lF go!"leaseExpiredNotifier" lp ↦{DFrac.own q} np ∗ notifierAt np q ∗
+fraction of the backend `b` (the other half its user's, `lessorBeOn`: `Recover` replaces it);
+(the lessor-noax stage, 2026-11-18) the writers' token at `q` (`γr.2.2.2.2.2`: a writer holds all
+of it, a reader its read share). (The lessor-noax stage, 2026-11-18) The expiry notifier is no longer here: the expiry loop
+writes it under the read lock (`expireExists`), so it is the loop invariant's (`lessorLoopInv`). -/
+def lessorExtra (lp : Loc) (γl : GName) (M : GMap w64 Loc) (q : Qp) : IProp GF :=
+  iprop(∃ (dc : GoChan) (h : GoSlice) (hx : List (Loc × w64)) (b : GoInterface),
+    lF go!"demotec" lp ↦{DFrac.own q.half} dc ∗
     lF go!"leaseCheckpointHeap" lp ↦{DFrac.own q} h ∗ queueAt h hx q ∗
     lF go!"cp" lp ↦{DFrac.own q} func.nil ∗
     ([∗map] id ↦ l ∈ M, leaseMeta id l q) ∗
-    lF go!"b" lp ↦{DFrac.own q.half} b)
+    lF go!"b" lp ↦{DFrac.own q.half} b ∗
+    (∃ γr : LessorRdNames, lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2 q ()))
+
+/-- (The lessor-noax stage, 2026-11-18) **The right to close `demotec`** at `dc`: none for `nil`;
+for a channel, the right to close it, as a lease's `revokec`'s (`revokeCloser`: `Promote` makes
+the channel, `Demote` closes it). -/
+def demotecRight (dc : GoChan) : IProp GF :=
+  iprop(⌜dc = chan.nil⌝ ∨ revokeCloser dc)
+
+/-- The timeless part of the expiry notifier and `demotec`, as no lock holder has them: the
+notifier's field and the notifier at `np`, half of `demotec` at `dc`. -/
+def notifierFreeT (lp np : Loc) (dc : GoChan) : IProp GF :=
+  iprop(lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1 ∗
+    lF go!"demotec" lp ↦{DFrac.own (1 : Qp).half} dc)
+
+/-- `ownSliceCap` is timeless (a local instance: Perennial has none; `notes/perennial-changes.md`). -/
+instance ownSliceCap_timeless_loc (s : GoSlice) (dq : DFrac) :
+    Timeless (ownSliceCap (GF := GF) Loc s dq) := by
+  rw [ownSliceCap_unseal]; unfold ownSliceCapDef; infer_instance
+
+instance notifierAt_timeless (np : Loc) (q : Qp) : Timeless (notifierAt (GF := GF) np q) := by
+  unfold notifierAt queueAt
+  have : ∀ xs : List (Loc × w64),
+      Timeless (iprop([∗list] k ↦ x ∈ xs, lwtAt (GF := GF) x.1 x.2 (W64 k) q) : IProp GF) :=
+    fun _ => BigSepL.bigSepL_timeless fun {_ _} _ => by unfold lwtAt; infer_instance
+  infer_instance
+
+instance notifierFreeT_timeless (lp np : Loc) (dc : GoChan) :
+    Timeless (notifierFreeT (GF := GF) lp np dc) := by
+  unfold notifierFreeT; infer_instance
+
+/-- **The expiry loop's invariant's body** (the lessor-noax stage, 2026-11-18), at the writers'
+token `γw` (`lessorExtra`'s, by its fraction), the loop's key `γk` and the state variable `γs`
+(`0` free, `1` the loop's, `2` a writer's: the taker holds the other half). The expiry loop writes
+the expiry notifier holding only the read lock (`expireExists`: `Unregister`, `RegisterOrUpdate`),
+the writers (`Grant`, `Promote`, `Demote`, `Recover`) holding the write lock, so the notifier
+cannot be in `le.mu`'s fractional invariant. It is here: free (`notifierFreeT` and `demotec`'s
+close right); taken by the loop (`demotec`'s half and close right, half the loop's read share of
+the writers' token, and the loop's key); taken by a writer (all of the writers' token). A taker
+excludes the others by what it holds: the loop its key and its read share of the token, a writer
+the whole token. -/
+def loopBody (lp : Loc) (γw γk γs : GName) : IProp GF :=
+  iprop((ghostVar γs 1 (0 : Nat) ∗ ∃ (np : Loc) (dc : GoChan), notifierFreeT lp np dc ∗
+      demotecRight dc) ∨
+    (ghostVar γs (1 : Qp).half (1 : Nat) ∗ ∃ dc : GoChan,
+      lF go!"demotec" lp ↦{DFrac.own (1 : Qp).half} dc ∗ demotecRight dc ∗
+      ghostVar γw sync.rfrac.half () ∗ ghostVar γk 1 ()) ∨
+    (ghostVar γs (1 : Qp).half (2 : Nat) ∗ ghostVar γw 1 ()))
+
+def lessorLoopN : Namespace := nroot .@ "lessor_loop"
+
+/-- **The expiry loop's invariant** of the lessor `lp` of `γl` (persistent; the lessor-noax stage,
+2026-11-18). -/
+def lessorLoopInv (lp : Loc) (γl : GName) : IProp GF :=
+  iprop(∃ (γr : LessorRdNames) (γk γs : GName), lessorPinR γl γr ∗
+    inv lessorLoopN (loopBody lp γr.2.2.2.2.2 γk γs))
+
+instance lessorLoopInv_persistent (lp : Loc) (γl : GName) :
+    Persistent (lessorLoopInv (GF := GF) lp γl) := by
+  unfold lessorLoopInv; infer_instance
+
+/-- **The expiry loop's key** (exclusive; the lessor-noax stage, 2026-11-18): the loop's invariant
+at the key `γk`, and the key. `NewLessor` gives it to `runLoop`. -/
+def lessorLoopKey (lp : Loc) (γl : GName) : IProp GF :=
+  iprop(∃ (γr : LessorRdNames) (γk γs : GName), lessorPinR γl γr ∗
+    inv lessorLoopN (loopBody lp γr.2.2.2.2.2 γk γs) ∗ ghostVar γk 1 ())
 
 /-- **What `le.mu` guards** at fraction `q`: the lease map `M` (whose domain is the live set
 `L`; the lessor's share of it, `q/2`, and of the ghost map's authority), half of the item map
@@ -939,14 +1011,15 @@ def lessorMu (lp : Loc) (γl : GName) (q : Qp) : IProp GF :=
     lF go!"rd" lp ↦{DFrac.own q.half} rd ∗
     lessorAuth γl q lp L M ∗ leaseFrag γl q.half L ∗
     ⌜∀ id : w64, id ∈ L ↔ (M.lookup id).isSome⌝ ∗ ⧖ (GMap.size M) ∗
-    ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp M q ∗
+    ([∗map] _id ↦ l ∈ M, isLeaseObj γl l) ∗ lessorExtra lp γl M q ∗
     (∃ (γr : LessorRdNames) (hs : List LSnap), lessorPinR γl γr ∗
       monoListAuthOwn γr.1 q.half.half hs ∗ ⌜∃ T, hs.getLast? = some (M, I, T)⌝))
 
-/-- **The lessor** at `lp` with ghost map `γl` (persistent): pinned, its lock's guard. -/
+/-- **The lessor** at `lp` with ghost map `γl` (persistent): pinned, its lock's guard; (the
+lessor-noax stage, 2026-11-18) the expiry loop's invariant (`lessorLoopInv`). -/
 def lessorInv (lp : Loc) (γl : GName) : IProp GF :=
   iprop(⌜lp ≠ null⌝ ∗ lessorPin γl lp ∗ sync.isRWMutexGuard (lF go!"mu" lp) (lessorMu lp γl) ∗
-    lessorRdInv γl)
+    lessorRdInv γl ∗ lessorLoopInv lp γl)
 
 instance lessorInv_persistent (lp : Loc) (γl : GName) :
     Persistent (lessorInv (GF := GF) lp γl) := by
@@ -1494,6 +1567,102 @@ theorem lessorUser_items (γl : GName) (L : List w64) (I : GMap LeaseItem w64) :
   ihave ⟨Ho, %HIL⟩ := leaseOwn_items_live γl L I $$ Ho
   iframe Ho Hrd Hrv
   ipureintro; exact ⟨HIS, HIL⟩
+
+/-! ### The expiry loop's invariant (the lessor-noax stage, 2026-11-18) -/
+
+theorem qp_one_add_not_le (q : Qp) : ¬ ((1 : Qp) + q ≤ 1) := by
+  intro h; have := q.2; simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at h; grind
+
+theorem qp_add_one_not_le (q : Qp) : ¬ (q + (1 : Qp) ≤ 1) := by
+  intro h; have := q.2; simp only [Qp.le_iff, Qp.val_add, Qp.val_one] at h; grind
+
+/-- **A writer takes the expiry notifier and `demotec`'s other half and close right** (holding
+the write lock: all of the writers' token `γw`, `lessorExtra`'s at `1`), and gives them back
+(any notifier, any `demotec`) for its token. -/
+theorem lessorLoop_wtake (lp : Loc) (γl : GName) (γr : LessorRdNames) (E : CoPset)
+    (hE : ↑lessorLoopN ⊆ E) :
+    lessorLoopInv (GF := GF) lp γl ∗ lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2 1 () ⊢
+      |={E}=> (∃ (np : Loc) (dc : GoChan), notifierFreeT lp np dc ∗ ▷ demotecRight dc) ∗
+        ((∃ (np : Loc) (dc : GoChan), notifierFreeT lp np dc ∗ ▷ demotecRight dc) ={E}=∗
+          ghostVar γr.2.2.2.2.2 1 ()) := by
+  unfold lessorLoopInv
+  iintro ⟨⟨%γr', %γk, %γs, #Hp', #Hi⟩, #Hp, Hw⟩
+  ihave %Heq := lessorPinR_agree γl γr γr' $$ [$Hp $Hp']
+  subst Heq
+  iinv Hi with Hb Hclose <;> try exact hE
+  iunfold loopBody at Hb
+  icases Hb with (⟨>Hs, %np, %dc, >HT, HD⟩ | ⟨>Hs, %dc, >Hd, HD, >Hw', >Hk⟩ | ⟨>Hs, >Hw'⟩)
+  · icases (ghostVar_split_half γs 1 (0 : Nat)).1 $$ Hs with ⟨Hs1, Hs2⟩
+    imod ghostVar_update_halves (2 : Nat) γs 0 0 $$ Hs1 Hs2 with ⟨Hs1, Hs2⟩
+    imod Hclose $$ [Hs1 Hw] with -
+    · inext; iunfold loopBody; iright; iright; iframe
+    imodintro
+    isplitl [HT HD]
+    · iexists np, dc; iframe
+    iintro ⟨%np', %dc', HT', HD'⟩
+    iinv Hi with Hb Hclose <;> try exact hE
+    iunfold loopBody at Hb
+    icases Hb with (⟨>Hs', -⟩ | ⟨>Hs', -⟩ | ⟨>Hs', >Hw⟩)
+    · icombine Hs2 Hs' gives %Hq
+      exact absurd Hq.1 (qp_add_one_not_le _)
+    · icombine Hs2 Hs' gives %Hv
+      exact absurd Hv.2 (by decide)
+    · imod ghostVar_update_halves (0 : Nat) γs 2 2 $$ Hs2 Hs' with ⟨Hs1, Hs2⟩
+      ihave Hs := (ghostVar_split_half γs 1 (0 : Nat)).2 $$ [$Hs1 $Hs2]
+      imod Hclose $$ [Hs HT' HD'] with -
+      · inext; iunfold loopBody; ileft; iframe Hs; iexists np', dc'; iframe
+      imodintro; iexact Hw
+  · icombine Hw Hw' gives %Hq
+    exact absurd Hq.1 (qp_one_add_not_le _)
+  · icombine Hw Hw' gives %Hq
+    exact absurd Hq.1 (qp_one_add_not_le _)
+
+/-- **The expiry loop takes the expiry notifier** (holding the read lock: its read share of the
+writers' token, `lessorExtra`'s at `rfrac`, and its key), and gives it back (any notifier) for
+its share and its key. -/
+theorem lessorLoop_ltake (lp : Loc) (γl : GName) (γr : LessorRdNames) (E : CoPset)
+    (hE : ↑lessorLoopN ⊆ E) :
+    lessorLoopKey (GF := GF) lp γl ∗ lessorPinR γl γr ∗ ghostVar γr.2.2.2.2.2 sync.rfrac () ⊢
+      |={E}=> (∃ np : Loc, lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1) ∗
+        ((∃ np : Loc, lF go!"leaseExpiredNotifier" lp ↦ np ∗ notifierAt np 1) ={E}=∗
+          lessorLoopKey lp γl ∗ ghostVar γr.2.2.2.2.2 sync.rfrac ()) := by
+  unfold lessorLoopKey
+  iintro ⟨⟨%γr', %γk, %γs, #Hp', #Hi, Hk⟩, #Hp, Hw⟩
+  ihave %Heq := lessorPinR_agree γl γr γr' $$ [$Hp $Hp']
+  subst Heq
+  iinv Hi with Hb Hclose <;> try exact hE
+  iunfold loopBody at Hb
+  icases Hb with (⟨>Hs, %np, %dc, >HT, HD⟩ | ⟨>Hs, %dc, >Hd, HD, >Hw', >Hk'⟩ | ⟨>Hs, >Hw'⟩)
+  · icases (ghostVar_split_half γs 1 (0 : Nat)).1 $$ Hs with ⟨Hs1, Hs2⟩
+    imod ghostVar_update_halves (1 : Nat) γs 0 0 $$ Hs1 Hs2 with ⟨Hs1, Hs2⟩
+    icases (ghostVar_split_half _ sync.rfrac ()).1 $$ Hw with ⟨Hw1, Hw2⟩
+    iunfold notifierFreeT at HT
+    icases HT with ⟨Hf, Hn, Hd⟩
+    imod Hclose $$ [Hs1 Hd HD Hw1 Hk] with -
+    · inext; iunfold loopBody; iright; ileft; iframe Hs1; iexists dc; iframe
+    imodintro
+    isplitl [Hf Hn]
+    · iexists np; iframe
+    iintro ⟨%np', Hf', Hn'⟩
+    iinv Hi with Hb Hclose <;> try exact hE
+    iunfold loopBody at Hb
+    icases Hb with (⟨>Hs', -⟩ | ⟨>Hs', %dc', >Hd', HD', >Hw1, >Hk⟩ | ⟨>Hs', -⟩)
+    · icombine Hs2 Hs' gives %Hq
+      exact absurd Hq.1 (qp_add_one_not_le _)
+    · imod ghostVar_update_halves (0 : Nat) γs 1 1 $$ Hs2 Hs' with ⟨Hs1, Hs2⟩
+      ihave Hs := (ghostVar_split_half γs 1 (0 : Nat)).2 $$ [$Hs1 $Hs2]
+      ihave Hw := (ghostVar_split_half _ sync.rfrac ()).2 $$ [$Hw1 $Hw2]
+      imod Hclose $$ [Hs Hf' Hn' Hd' HD'] with -
+      · inext; iunfold loopBody; ileft; iframe Hs; iexists np', dc'; iunfold notifierFreeT; iframe
+      imodintro
+      iframe Hw
+      iexists γr, γk, γs; iframe Hp Hi Hk
+    · icombine Hs2 Hs' gives %Hv
+      exact absurd Hv.2 (by decide)
+  · icombine Hk Hk' gives %Hq
+    exact absurd Hq.1 (qp_one_add_not_le _)
+  · icombine Hw Hw' gives %Hq
+    exact absurd Hq.1 (qp_add_one_not_le _)
 
 end defs
 

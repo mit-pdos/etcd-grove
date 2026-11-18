@@ -62,7 +62,7 @@ theorem lease.lessor.Revoke.wp_proof
   icases Hnf' with ⟨%enf, #Henf, -⟩
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrdi, #Hloop⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -357,7 +357,7 @@ theorem lease.lessor.Revoke.wp_proof
       ihave Ha := Hback $$ %(C4.delete id) Hcl
       imod lessor_live_revoke _ lp L (C4.delete id) id $$ [$Ha $Hg $Hfr] with ⟨Ha, Hg, Hfr⟩
       iunfold lessorExtra at Hx
-      icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+      icases Hx with ⟨%dc, %h, %hx, %bl, Hdc, Hh, Hhq, Hcp, Hmeta, Hbl, Hwt⟩
       icases (BigSepM.bigSepM_delete (Φ := fun i x => leaseMeta (GF := GF) i x 1) HM2l).1 $$ Hmeta
         with ⟨Hml, Hmeta⟩
       iunfold leaseMeta at Hml
@@ -445,7 +445,7 @@ theorem lease.lessor.Revoke.wp_proof
           T.delete id)]).getLast? =
           some (C4.delete id, mvcc.pendItems σ₀.log (ks'.map mvcc.Change.del), T.delete id) := by
         simp
-      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp
+      wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hh Hhq Hcp Hwt
           Hmeta Hbl Hhl]
       · inext
         iunfold lessorMu
@@ -467,9 +467,9 @@ theorem lease.lessor.Revoke.wp_proof
         · icases (BigSepM.bigSepM_delete (Φ := fun _ x => isLeaseObj (GF := GF) (mvccLeases γ) x) HM2l).1 $$ Hls2
             with ⟨-, #H⟩
           iexact H
-        isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
+        isplitl [Hdc Hh Hhq Hcp Hmeta Hbl Hwt]
         · iunfold lessorExtra
-          iexists dc, np, h, hx, _
+          iexists dc, h, hx, _
           iframe
         iexists γr, _; iframe Hpr Hhl
         ipureintro; exact ⟨_, hlast'⟩

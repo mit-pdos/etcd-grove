@@ -133,7 +133,7 @@ theorem lease.lessor.Leases.wp_proof
   intro lp γl m
   wp_start as ⟨#Hinv, #Hpool, #Hlb, Htt, %Hb, %Hrb⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi, #Hloop⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   -- a reader slot borrowed from the pool with the token, for the read lock (the lease-src plan)
@@ -158,7 +158,7 @@ theorem lease.lessor.Leases.wp_proof
   ihave %Hszlt := preceipt_lt _ $$ Hsz
   -- the leases' `ID` facts, from their `leaseMeta`s
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %h, %hx, %bl, Hdc, Hh, Hhq, Hcp, Hmeta, Hbl, Hwt⟩
   icases lease.leaseMeta_ids M _ $$ Hmeta with ⟨Hmeta, #Hids⟩
   wp_apply (hUL lp lm M _) $$ [$Hlm $HM] as %sl %ls ⟨Hlm, HM, Hsl, %Hls0⟩
   obtain ⟨Hnd, Hpairs⟩ := Hls0
@@ -179,7 +179,7 @@ theorem lease.lessor.Leases.wp_proof
   · iapply (lease.bigSepM_pairs (P := fun id l => lsF go!"ID" l ↦□ id) M ls Hpairs)
     iexact Hids
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hnp Hnot Hh Hhq Hcp Hmeta
+  wp_apply sync.RWMutex.wp_RUnlock $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hdc Hh Hhq Hcp Hmeta Hwt
       Hbl Hhl] as Hrd
   · inext
     iunfold lessorMu
@@ -188,8 +188,8 @@ theorem lease.lessor.Leases.wp_proof
     isplitr
     · ipureintro; exact HL
     iframe Hsz Hls
-    isplitl [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
+    isplitl [Hdc Hh Hhq Hcp Hmeta Hbl Hwt]
+    · iunfold lessorExtra; iexists dc, h, hx, bl; iframe
     iexists γr, hs
     iframe Hpr Hhl
     ipureintro; exact ⟨Tq, Hlast⟩

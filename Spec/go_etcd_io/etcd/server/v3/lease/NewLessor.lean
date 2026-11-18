@@ -225,7 +225,18 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   `NewLessor`'s code depends on it; `Grant` and `Recover` (proved) are what insert requests and keep
   every TTL above them.
 * (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop it** (`lessorStopTok lp`,
-  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here. -/
+  for `lessor.Stop`): `newLessor` makes `stopC`, which only `Stop` closes; one right, given here.
+  (The lessor-noax stage, 2026-11-18) Now a definition, not an opaque axiom: `stopC` and `doneC`
+  (read-only after `newLessor`) as broadcast channels, the right to close `stopC` and a receiver's
+  view of `doneC`, which `runLoop` closes (deferred) when it returns; `stopC`'s other receivers are
+  `runLoop` and its `revokeExpiredLeases`, `doneC` has no other closer.
+* (The lessor-noax stage, 2026-11-18) **The expiry loop's invariant** (`lessorInv`'s
+  `lessorLoopInv`): the expiry notifier (its field and the notifier) and the other half of `demotec`
+  with its close right (`demotecRight`: `nil`, a fresh lessor's) are kept free, or taken by the loop
+  or by a writer; `le.mu`'s invariant holds the writers' token (`lessorExtra`, a sixth reader-side name)
+  by its fraction. Ghost state allocated with the lock's: `runLoop` (`go l.runLoop()`) holds the
+  loop's key; it takes the notifier under its read lock (`expireExists` writes it: `Unregister`,
+  `RegisterOrUpdate`), the writers (`Grant`, `Recover`, `Demote`, `Promote`) under the write lock. -/
 abbrev lease.NewLessor.spec : Prop :=
   ∀ (lg : Loc) (cl : GoInterface) (cfg : go_etcd_io.etcd.server.v3.lease.LessorConfig)
     (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp) (GA : w64 → IProp GF)

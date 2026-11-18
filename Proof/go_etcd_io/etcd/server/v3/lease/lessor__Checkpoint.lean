@@ -41,7 +41,7 @@ theorem lease.lessor.Checkpoint.wp_proof
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold lessorInv at Hinv'
-  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
+  icases Hinv' with ⟨%Hlp, #Hpin, #Hmu, #Hrdi, #Hloop⟩
   ihave #Hbe' := Hbe
   iunfold lessorBackend at Hbe'
   icases Hbe' with ⟨%b, #Hbk, #Hlens⟩
@@ -52,15 +52,15 @@ theorem lease.lessor.Checkpoint.wp_proof
   iunfold lessorMu at HR
   icases HR with ⟨%lm, %im, %M, %I, %rd0, %L, Hlm, HM, Him, HI, Hrdf, Ha, Hg, %HL, #Hsz, #Hls, Hx, Hhist⟩
   iunfold lessorExtra at Hx
-  icases Hx with ⟨%dc, %np, %h, %hx, %bl, Hdc, Hnp, Hnot, Hh, Hhq, Hcp, Hmeta, Hbl⟩
+  icases Hx with ⟨%dc, %h, %hx, %bl, Hdc, Hh, Hhq, Hcp, Hmeta, Hbl, Hwt⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   cases hM : M !! id with
   | none =>
     simp only [Option.getD_none, Option.isSome_none]
     (try wp_auto)
-    ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h, hx, bl; iframe
+    ihave Hx : lessorExtra lp γl M 1 $$ [Hdc Hh Hhq Hcp Hmeta Hbl Hwt]
+    · iunfold lessorExtra; iexists dc, h, hx, bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext
@@ -104,7 +104,7 @@ theorem lease.lessor.Checkpoint.wp_proof
       wp_join_done
       iframe le l Hrem Hrtk Hln
       ileft; iframe HPost; iexists t; iexact HRb
-    wp_apply (hPrim lp dc (DFrac.own 1)) $$ [$Hdc] as Hdc
+    wp_apply (hPrim lp dc (DFrac.own (1 : Qp).half)) $$ [$Hdc] as Hdc
     wp_join iprop(le_ptr ↦ lp ∗ l_ptr ↦ l ∗ lsF go!"remainingTTL" l ↦ rem ∗ lF go!"cp" lp ↦ func.nil ∗
         ∃ (h' : GoSlice) (hx' : List (Loc × w64)), lF go!"leaseCheckpointHeap" lp ↦ h' ∗
           queueAt h' hx' 1)
@@ -123,8 +123,8 @@ theorem lease.lessor.Checkpoint.wp_proof
       isplitl [Hrem]
       · iexists _; iexact Hrem
       iexact Hexp
-    ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
-    · iunfold lessorExtra; iexists dc, np, h', hx', bl; iframe
+    ihave Hx : lessorExtra lp γl M 1 $$ [Hdc Hh Hhq Hcp Hmeta Hbl Hwt]
+    · iunfold lessorExtra; iexists dc, h', hx', bl; iframe
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hlm HM Him HI Hrdf Ha Hg Hx Hhist]
     · iframe #
       inext

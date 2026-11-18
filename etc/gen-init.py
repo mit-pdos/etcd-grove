@@ -1416,7 +1416,8 @@ SPECIAL['go_etcd_io.etcd.server.v3.lease'] = dict(
 `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
-(`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
+(`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`), the defaults and rates
+`newLessor` and the expiry loop read (translated); `opaqueInitsOk` states the
 other untranslated initializers run.''',
     imports=['Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar'],
     custom={'leaseGranted': counter_inc('leaseGranted'), 'leaseRevoked': counter_inc('leaseRevoked'),
@@ -1426,7 +1427,11 @@ other untranslated initializers run.''',
                 pat='⟨%h@, H@, #S@⟩')},
     alloc_types={'ErrNotPrimary': 'GoInterface',
                  'ErrLeaseTTLTooLarge': 'GoInterface', 'ErrLeaseExists': 'GoInterface',
-                 'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time'},
+                 'ErrLeaseNotFound': 'GoInterface', 'forever': '_root_.Perennial.time.Time',
+                 # (the lessor-noax stage, 2026-11-18) newLessor's defaults and the expiry loop's rates
+                 'defaultLeaseRevokeRate': 'w64', 'leaseCheckpointRate': 'w64',
+                 'defaultLeaseCheckpointInterval': 'w64', 'maxLeaseCheckpointBatchSize': 'w64',
+                 'defaultExpiredleaseRetryInterval': 'w64'},
     before={'leaseGranted': [
         'wp_apply _root_.Perennial.context.wp_New_errorString as %xNP ⟨-, #MNP⟩',
         'wp_apply EtcdGrove.wp_New_errorString_cell as %xNF ⟨#MNF, #CNF⟩',
@@ -1435,6 +1440,9 @@ other untranslated initializers run.''',
     finish=['ipersist HErrNotPrimary', 'ipersist HErrLeaseNotFound', 'ipersist HErrLeaseExists', 'ipersist HErrLeaseTTLTooLarge',
             'ipersist Hforever', 'ipersist HleaseGranted', 'ipersist HleaseRevoked',
             'ipersist HleaseTotalTTLs',
+            'ipersist HdefaultLeaseRevokeRate', 'ipersist HleaseCheckpointRate',
+            'ipersist HdefaultLeaseCheckpointInterval', 'ipersist HmaxLeaseCheckpointBatchSize',
+            'ipersist HdefaultExpiredleaseRetryInterval',
             'ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP',
             'ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF',
             'ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx',

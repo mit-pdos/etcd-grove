@@ -118,7 +118,12 @@ lease_lessor__Grant: lease_NewLease lease_lessor__isPrimary lease_Lease__refresh
 lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__persistTo lease_lessor__isPrimary lease_lessor__scheduleCheckpointIfNeeded
 lease_lessor__ExpiredLeasesC:
 lease_lessor__Promote:
-lease_lessor__Demote:
+# (the lessor-noax stage, 2026-11-18) `Demote` proved: the leases' `forever`, the fresh heap and
+# notifier, `demotec`'s close right from the expiry loop's invariant
+lease_lessor__clearScheduledLeasesCheckpoints:
+lease_newLeaseExpiredNotifier:
+lease_lessor__clearLeaseExpiredNotifier: lease_newLeaseExpiredNotifier
+lease_lessor__Demote: lease_Lease__forever lease_lessor__clearScheduledLeasesCheckpoints lease_lessor__clearLeaseExpiredNotifier
 # Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
 # the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
 # deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
@@ -126,7 +131,8 @@ lease_lessor__Demote:
 # lease-revoke plan (2026-10-31): the apply thread's `Revoke` clause is derived of it.
 lease_Lease__Keys:
 sort_StringSlice__Sort:
-schema_UnsafeDeleteLease:
+schema_leaseIDToBytes: binary_bigEndian__PutUint64
+schema_UnsafeDeleteLease: schema_leaseIDToBytes
 mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds

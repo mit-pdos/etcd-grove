@@ -6,7 +6,8 @@ Its fact (`leaseInit`, `Base.lean`): the error variables `ErrNotPrimary`,
 `ErrLeaseNotFound`, `ErrLeaseExists`, `ErrLeaseTTLTooLarge` (translated `errors.New` calls: leaf pointer errors
 without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose `Error()` returns), `forever` (the zero
 `time.Time`), the counters `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`
-(`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`); `opaqueInitsOk` states the
+(`metrics.go`, untranslated: the trust-boundary axioms `<X>_init`), the defaults and rates
+`newLessor` and the expiry loop read (translated); `opaqueInitsOk` states the
 other untranslated initializers run.
 -/
 module
@@ -14,6 +15,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.lease.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
+public import Perennial.Proof.math.Link
 public import Perennial.Proof.sort.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.time.Link
@@ -59,12 +61,7 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([defaultLeaseRevokeRate.init,
-        leaseCheckpointRate.init,
-        defaultLeaseCheckpointInterval.init,
-        maxLeaseCheckpointBatchSize.init,
-        defaultExpiredleaseRetryInterval.init,
-        leaseRenewed.init] : List val),
+    ∀ v ∈ ([leaseRenewed.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.lease`'s untranslated `init` functions return.** Goose
@@ -121,32 +118,39 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseExists _ as HErrLeaseExists
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrLeaseNotFound _ as HErrLeaseNotFound
   wp_apply wp_GlobalAlloc (V := GoInterface) ErrNotPrimary _ as HErrNotPrimary
+  wp_apply wp_GlobalAlloc (V := w64) defaultExpiredleaseRetryInterval _ as HdefaultExpiredleaseRetryInterval
+  wp_apply wp_GlobalAlloc (V := w64) maxLeaseCheckpointBatchSize _ as HmaxLeaseCheckpointBatchSize
+  wp_apply wp_GlobalAlloc (V := w64) defaultLeaseCheckpointInterval _ as HdefaultLeaseCheckpointInterval
+  wp_apply wp_GlobalAlloc (V := w64) leaseCheckpointRate _ as HleaseCheckpointRate
+  wp_apply wp_GlobalAlloc (V := w64) defaultLeaseRevokeRate _ as HdefaultLeaseRevokeRate
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.time.Time) forever _ as Hforever
-  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sort _root_.Perennial.sort.initialize'
-      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+      EtcdGrove.ExternalInit.sort _root_.Perennial.sort.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
-      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (_root_.Perennial.container.heap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.container.heap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.schema.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_lb _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.wp_initialize'_lb _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
   wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.math _root_.Perennial.math.initialize'
+      EtcdGrove.ExternalInit.math _root_.Perennial.math.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   -- translated initializer of forever))
-  wp_apply (opaqueInitsOk defaultLeaseRevokeRate.init (by mem_tac))
-  wp_apply (opaqueInitsOk leaseCheckpointRate.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultLeaseCheckpointInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk maxLeaseCheckpointBatchSize.init (by mem_tac))
-  wp_apply (opaqueInitsOk defaultExpiredleaseRetryInterval.init (by mem_tac))
+  -- translated initializer of defaultLeaseRevokeRate))
+  -- translated initializer of leaseCheckpointRate))
+  -- translated initializer of defaultLeaseCheckpointInterval))
+  -- translated initializer of maxLeaseCheckpointBatchSize))
+  -- translated initializer of defaultExpiredleaseRetryInterval))
   -- translated initializer of ErrNotPrimary))
   -- translated initializer of ErrLeaseNotFound))
   -- translated initializer of ErrLeaseExists))
@@ -168,6 +172,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   ipersist HleaseGranted
   ipersist HleaseRevoked
   ipersist HleaseTotalTTLs
+  ipersist HdefaultLeaseRevokeRate
+  ipersist HleaseCheckpointRate
+  ipersist HdefaultLeaseCheckpointInterval
+  ipersist HmaxLeaseCheckpointBatchSize
+  ipersist HdefaultExpiredleaseRetryInterval
   ihave #TNP := EtcdGrove.errorMsg_triple _ _ _ $$ MNP
   ihave #TNF := EtcdGrove.errorMsg_triple _ _ _ $$ MNF
   ihave #TEx := EtcdGrove.errorMsg_triple _ _ _ $$ MEx

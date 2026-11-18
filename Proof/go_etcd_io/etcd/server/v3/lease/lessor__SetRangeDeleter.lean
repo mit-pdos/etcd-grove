@@ -29,7 +29,7 @@ theorem lease.lessor.SetRangeDeleter.wp_proof : lease.lessor.SetRangeDeleter.spe
   intro lp γl rd0 rd
   wp_start as ⟨#Hinv, Hown⟩
   iunfold lessorInv at Hinv
-  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi⟩
+  icases Hinv with ⟨%Hlp, #Hpin, #Hmu, #Hrdi, #Hloop⟩
   iunfold rdOwn at Hown
   icases Hown with ⟨%lp', #Hpin', Hro⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']

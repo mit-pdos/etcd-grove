@@ -35,6 +35,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
+public import Perennial.Golang.Theory.Chan.Idioms.Broadcast
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseRecord
 public import Proof.go_etcd_io.etcd.server.v3.lease.MvccShapes
 
@@ -197,11 +198,16 @@ instance lessorExpiredC_persistent (lp : Loc) (GA : w64 → IProp GF) :
     Persistent (lessorExpiredC (GF := GF) lp GA) := by
   unfold lessorExpiredC; infer_instance
 
-/-- (2026-11-04, R2b-3c part 2, the user's approval; trust boundary) **The right to stop the lessor
-`lp` once**: `NewLessor` gives it, `lessor.Stop` takes it (`close(le.stopC)`, which a second call
-would make panic). Exclusive by use: nothing duplicates it. -/
-axiom lessorStopTok (lp : Loc) : IProp GF
-@[instance] axiom lessorStopTok_timeless (lp : Loc) : Timeless (lessorStopTok (GF := GF) lp)
+/-- (2026-11-04, R2b-3c part 2, the user's approval) **The right to stop the lessor `lp` once**:
+`NewLessor` gives it, `lessor.Stop` takes it. (The lessor-noax stage, 2026-11-18: until then an
+opaque trust-boundary axiom.) `le.stopC` and `le.doneC` (read-only, `newLessor`'s) are broadcast
+channels: the right to close `stopC` (`close(le.stopC)`, which a second call would make panic: the
+right is exclusive), and a receiver's view of `doneC`, which the expiry loop closes when it returns
+(`runLoop`'s deferred `close(le.doneC)`). -/
+def lessorStopTok (lp : Loc) : IProp GF :=
+  iprop(∃ (sc dn : GoChan) (γs γd : ChanNames), lF go!"stopC" lp ↦□ sc ∗
+    ownBroadcastChan sc γs iprop(True) .Pending ∗ lF go!"doneC" lp ↦□ dn ∗
+    ownBroadcastChan dn γd iprop(True) .Unknown)
 
 end defs
 

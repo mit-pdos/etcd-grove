@@ -25,6 +25,69 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: `lease.NewLessor.spec` (trust boundary) -- four clauses no proof of the translated `NewLessor` can give
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean` (`lease.NewLessor.spec`, the axiom
+  `lease.NewLessor.wp_proof`); the plan's `SpecPlan/Spec/go_etcd_io/etcd/server/v3/lease/NewLessor.lean`.
+- **Defect.** Found translating `NewLessor`, `newLessor`, `runLoop` and its callees with their bodies
+  (branch `lessor-noax`, 2026-11-18) and writing the proof's plan; each clause is true of Go but not
+  provable from the proved callees and Perennial's specs:
+  (a) **the `Lookup` clause** `□ ∀ id, {{ True }} lp.Lookup(id) {{ … }}` takes no reader slot, but the
+  proved `lessor.Lookup.spec` (and the plan's, `lessorReaders γ 1`) needs one, and a persistent clause
+  can hold none (the model's `RWMutex` bounds readers by its slots); (b) **one write-back token**
+  (`backend.wbTok`) where the proved `lessor.initAndRecover.spec` takes `ownToks γB.wb 2` (the
+  spec's docstring calls the difference "the original's known margin"); (c) **the expiry payload**
+  `⌜¬ leasesNoExpiry⌝` of `expiredC` (`lessorExpiredC`): `time.Now`'s spec returns any time, so the loop's
+  `l.expired()` may be true in any execution of the model, and the opaque premise `leasesNoExpiry`
+  cannot be refuted from code: a proved `runLoop` needs the premise's meaning at the clock's read as a
+  trusted statement; (d) **all `actualMaxReaders` reader slots** are given to the caller, but `runLoop`
+  read-locks `le.mu` (`revokeExpiredLeases`) and needs one of them; and (e) `runLoop`'s `l.expired()`
+  (`Remaining()`, the lease's `expiryMu` pool) needs `⌜threadBound GF ≤ 2 ^ 30 - 1⌝`, not in the pre.
+- **Evidence.** (a) `lessor__Lookup.lean`'s pre (`lessorRd lp γl`); no consumer applies the clause
+  (`isApplyLessor`'s last clause and `lessorLookupOk` are only built and passed on: every `icases` of
+  `apply.isApplyLessor` drops it, `SnapApplyOptsLemmas.lean:247` frames it). (b) `NewServer.lean:722-723`
+  splits `ownToks d.γB.wb 5` as `1 + 4` for the lessor. (c) `Perennial/Spec/time/Now.lean` (post `True`);
+  `lessor.go:700-750` (`expireExists`, `findExpiredLeases`: `l.expired()` decides the send). (d), (e)
+  `lessor.go:640-660`, `lease.go:117-124`.
+- **Proposed change.** (a) the clause takes the caller's `levelTok lessorLvl` and gives it back (the
+  proof keeps a `lessorRdPool` of slots), or is dropped with `isApplyLessor`'s and `lessorLookupOk`'s
+  (nobody uses it); (b) the pre takes `ownToks d.γB.wb 2` (`NewServer`, `NewServerR` split `2 + 3`; the
+  examples `mvccfull`, `mvccrand` likewise); (c) the one trusted statement left: `Lease.expired` kept
+  names-only with the trust-boundary spec "returns `true` only under `¬ leasesNoExpiry`" (the premise's
+  meaning, word for word; `Renew`, also assumed, is its other caller), replacing the whole `NewLessor`
+  axiom; (d) the post gives `actualMaxReaders - 1` slots; (e) the pre takes the bound (`NewServer` has
+  `threadBound GF ≤ 2 ^ 28`). With (a)-(e) the post is otherwise provable: the expiry loop's invariant
+  `lessorLoopInv` (`InvLessor.lean`, this branch) is what lets the loop write the expiry notifier under
+  the read lock.
+- **Decision.** Pending (trust-boundary spec and an added trust-boundary axiom in (c): the user's
+  approval). Not applied: `NewLessor` stays the axiom on branch `lessor-noax`.
+
+## 2026-11-18: `lease.lessor.Demote.spec` -- stated at every `HasLC`, but its proof spends a later credit
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/lease/lessor__Demote.lean` (`lease.lessor.Demote.spec`;
+  until 2026-11-18 a trust-boundary axiom); the plan's `lessor__Demote.lean` (over `isLessor`).
+- **Defect.** Too general for its proof: `demotec`'s close right (`revokeCloser`, a channel's `isChan`,
+  not timeless) is kept in the expiry loop's invariant (`lessorLoopInv`), so it comes out under a later,
+  which the proof strips with a later credit (`HasLC.hasLC` only).
+- **Evidence.** `Proof/go_etcd_io/etcd/server/v3/lease/lessor__Demote.lean` (`lc_fupd_elim_later`). Every
+  user is at `HasLC.hasLC` (`etcdserver/LessorOk.lean`).
+- **Proposed change.** The spec's section at `[hG : HeapGS HasLC.hasLC GF]`; the Hoare triple's text
+  unchanged.
+- **Decision.** Applied on branch `lessor-noax` (2026-11-18), for the user's review before landing.
+
+## 2026-11-18: `lease.lessorStopTok` (trust boundary) -- an opaque axiom where a definition holds
+
+- **Spec.** `Proof/go_etcd_io/etcd/server/v3/lease/LessorBackend.lean` (`axiom lessorStopTok`,
+  `lessorStopTok_timeless`); `lease.lessor.Stop.spec`; the plan's `lessorStop`.
+- **Defect.** Assumed for expediency: `Stop` is `close(le.stopC); <-le.doneC`, which a definition over
+  Perennial's broadcast channels proves.
+- **Evidence.** `Proof/go_etcd_io/etcd/server/v3/lease/lessor__Stop.lean` (this branch).
+- **Proposed change.** `lessorStopTok lp := ∃ sc dn γs γd, lF "stopC" lp ↦□ sc ∗ ownBroadcastChan sc γs True
+  .Pending ∗ lF "doneC" lp ↦□ dn ∗ ownBroadcastChan dn γd True .Unknown` (the right to close `stopC`, a
+  receiver's view of `doneC`); `Stop.spec`'s text unchanged; `NewLessor` (still assumed) gives it. The
+  timeless instance goes (no user).
+- **Decision.** Applied on branch `lessor-noax` (2026-11-18), for the user's review before landing.
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`

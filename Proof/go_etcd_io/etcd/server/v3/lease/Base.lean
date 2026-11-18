@@ -78,16 +78,8 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 
 end go_etcd_io.etcd.api.v3.version
 
--- `server/v3/lease/leasepb` (types only: the lease's protobuf message)
-namespace go_etcd_io.etcd.server.v3.lease.leasepb
-
-instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
-  define_is_pkg_init iprop(True)
-instance get_isPkgInit_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb :=
-  build_get_is_pkg_init_wf
-
-end go_etcd_io.etcd.server.v3.lease.leasepb
+-- `server/v3/lease/leasepb`: its instance is in `etcdserver/Base.lean` (2026-11-18: `schema`
+-- imports `leasepb` since `UnsafeDeleteLease` is translated, and `schema`'s instance is there)
 
 -- `container/heap` (names only)
 namespace container.heap
@@ -128,7 +120,11 @@ instance counterSpec_persistent (c : GoInterfaceOk) : Persistent (counterSpec (G
 `ErrLeaseTTLTooLarge` (`leaseErrVar`), `forever` (the zero `time.Time`), the counters
 `leaseGranted`, `leaseRevoked` and the histogram `leaseTotalTTLs`; `ErrLeaseNotFound`'s message
 cell (`errVarCell`, D19k: what tells it apart from the server's `ErrNoSpace`); `ErrNotPrimary`
-(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it). -/
+(`leaseErrVar`; the lease-renew plan, 2026-11-01: `LeaseRenew` returns it); (the lessor-noax stage,
+2026-11-18) the variables `newLessor` and the expiry loop read, translated: `defaultLeaseRevokeRate`
+(`1000`, so a zero configured rate becomes a positive one), `leaseCheckpointRate`,
+`defaultLeaseCheckpointInterval`, `maxLeaseCheckpointBatchSize`, `defaultExpiredleaseRetryInterval`
+(read-only; their values unconstrained: no proof depends on them). -/
 abbrev leaseInit : IProp GF :=
   iprop(leaseErrVar ErrLeaseNotFound ∗ leaseErrVar ErrLeaseExists ∗
     leaseErrVar ErrLeaseTTLTooLarge ∗
@@ -139,7 +135,12 @@ abbrev leaseInit : IProp GF :=
       go_etcd_io.etcd.server.v3.storage.backend.histSpec h) ∗
     EtcdGrove.errVarCell ErrLeaseNotFound go!"lease not found" ∗
     EtcdGrove.errVarCell ErrLeaseExists go!"lease already exists" ∗
-    EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" ∗ leaseErrVar ErrNotPrimary)
+    EtcdGrove.errVarCell ErrLeaseTTLTooLarge go!"too large lease TTL" ∗ leaseErrVar ErrNotPrimary ∗
+    globalAddr defaultLeaseRevokeRate ↦□ (W64 1000) ∗
+    (∃ r : w64, globalAddr leaseCheckpointRate ↦□ r) ∗
+    (∃ d : w64, globalAddr defaultLeaseCheckpointInterval ↦□ d) ∗
+    (∃ r : w64, globalAddr maxLeaseCheckpointBatchSize ↦□ r) ∗
+    (∃ d : w64, globalAddr defaultExpiredleaseRetryInterval ↦□ d))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease :=
   define_is_pkg_init leaseInit

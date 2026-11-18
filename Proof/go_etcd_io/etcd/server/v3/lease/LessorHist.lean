@@ -597,7 +597,7 @@ hold `lessorInv` and must not unfold it: review r2 S4, 2026-11-06). -/
 theorem lessorInv_rdInv (lp : Loc) (γl : GName) :
     lessorInv (GF := GF) lp γl ⊢ lessorRdInv γl := by
   unfold lessorInv
-  iintro ⟨-, -, -, #H⟩
+  iintro ⟨-, -, -, #H, -⟩
   iexact H
 
 /-- **In the monotone mode every id the lessor ever had is live** (the lease-expiry plan's S2–S4

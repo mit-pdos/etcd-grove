@@ -25,8 +25,15 @@ translate = ["!*", "Lessor", "NoLease", "MaxLeaseTTL", "forever", "ErrNotPrimary
   "LeaseQueue.Len", "LeaseQueue.Less", "LeaseQueue.Swap", "LeaseQueue.Push", "LeaseQueue.Pop",
   "newLeaseExpiredNotifier", "LeaseExpiredNotifier.RegisterOrUpdate",
   # the lease-expiry plan's S1 (2026-11-03, the user's): the snapshot's restore, proved
-  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init"]
-imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors",
+  "lessor.Recover", "lessor.initAndRecover", "LeaseExpiredNotifier.Init",
+  # the lessor-noax stage (2026-11-18): the constructor, its expiry loop and `Stop`, proved
+  "NewLessor", "newLessor", "lessor.runLoop", "lessor.revokeExpiredLeases",
+  "lessor.checkpointScheduledLeases", "lessor.findExpiredLeases", "lessor.expireExists",
+  "lessor.findDueScheduledCheckpoints", "lessor.Stop",
+  "LeaseExpiredNotifier.Unregister", "LeaseExpiredNotifier.Peek", "LeaseExpiredNotifier.Len",
+  "defaultLeaseRevokeRate", "leaseCheckpointRate", "defaultLeaseCheckpointInterval",
+  "maxLeaseCheckpointBatchSize", "defaultExpiredleaseRetryInterval"]
+imports = ["!*", "container/heap", "context", "sort", "sync", "time", "errors", "math",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/version",
   "go.etcd.io/etcd/server/v3/lease/leasepb",
   "go.etcd.io/etcd/server/v3/storage/backend", "go.etcd.io/etcd/server/v3/storage/schema",

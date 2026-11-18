@@ -1,6 +1,9 @@
 /-
-`(*lessor).Demote` (`server/lease/lessor.go`). The trust boundary. Lean-first (no Rocq
-counterpart); see `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
+`(*lessor).Demote` (`server/lease/lessor.go`). Lean-first (no Rocq counterpart); see
+`Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`. (The lessor-noax stage, 2026-11-18) proved;
+until then the trust boundary. Stated at `HasLC.hasLC` (until then at any `hlc`), the instance of
+every caller (`LessorOk.lean`): the proof spends a later credit on `demotec`'s close right, kept in
+the expiry loop's invariant.
 -/
 module
 
@@ -18,7 +21,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.lease lease
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
