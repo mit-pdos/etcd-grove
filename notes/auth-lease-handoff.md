@@ -1,27 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-18, item 7b: the lean merges DONE in the tree; the full build at pin 6d3 is NEXT/running)
+## START HERE (S4, 2026-11-18, item 7b COMPLETE: lean merged (pin 6d3), full build green; item 9 next)
 
-- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`,
-  `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
-- **Done:** `73e19b65cd` merge of lean f256fa496e (37 conflicts: rule "both sides' premises/conjuncts, base's
-  `γ.reNoSnap = false →` dropped"); `f401c9b4a8`, then a kv fix commit: build repairs; `cc966bf868`-amended merge of lean
-  b0bb9df7c3 (pin 6d3, no conflicts). At pin c6b the full build was green except one kv module (fixed after).
-  Key integrations: `storBnd` sealed + trace-gated, untraced arm with `⌜clusterNoSnap γ → k ≤ 1⌝`;
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`, head = this commit. Pin **6d365ee1a**:
+  `--packages=/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = its copy,
+  `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done (7b):** merges `73e19b65cd` (lean f256fa496e, 37 conflicts) and `cc966bf868` (lean b0bb9df7c3, pin 6d3);
+  repairs `f401c9b4a8`, the kv fix; mode baseline `e5cbc82997` (v3rpc lit-mode 30: lean 33, S4 29); interfaces
+  `c07678a7a3` (raft, mvcc). Full build at 6d3: `Build completed successfully (20489 jobs)`
+  (`/shared/tmp/auth-lease-s4/full3.log`); `tcb-report --check`: 892 axioms, 4 sorries, matches; every collection
+  `--check` clean; every `etc/api` list `gen-interface --check --layout` clean; `goose.py --check` clean (6d3);
+  `gen-init --check`, `gen-raft-tla --check`, api/import-all/bounds/mode checks clean. No Results/MainLinked/
+  Adequacy file was edited by the merge resolution.
+- Merge integrations (for review): `storBnd` sealed + trace-gated, untraced arm with `⌜clusterNoSnap γ → k ≤ 1⌝`;
   `storBnd_intro_untraced` gains `(hns : clusterNoSnap γ → k ≤ 1)` (callers: memStorage, kv/kvreconf/kvdurable
-  storages, from their justifications' conjunct); `storBnd_off`/`storBnd_le_one` (unused) dropped; `storBnd_cap` by cases.
-  `cluster_alloc_ns`: post `… ∧ (clusterNoSnap γ ↔ ns)⌝ ∗ ⌜trace = none⌝`; `cluster_alloc`: `⌜¬clusterNoSnap⌝ ∗
-  ⌜trace = none⌝`; `cluster_alloc_traced`/`cluster_alloc_boot_impl(_tr)` take `ns` (traced: `false`). Lean moved StartNode's
-  proof to `TracedStartNode` and node.run's to `node__run_gated`: S4's edits ported there. `NsLink` is now a conjunction
-  (`Hnl.1`). `TracedNodeRun`'s net-step lemma's MsgSnap clause gains `γ.reNoSnap = false` (as `netP`'s).
-- **Next, in order:** full build (`/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build`,
-  `LEAN_NUM_THREADS=4`; log `/shared/tmp/auth-lease-s4/full3.log`); fix; `etc/gen-raft-tla.py` after any raft edit;
-  `etc/tcb-report.py --check` (`LAKE_OPTS=--packages=…`); `etc/gen-interface.py` for every `etc/api/*.txt` (raft API,
-  the two apply Specs `uberApplier__Apply`/`__dispatch`); report 7b's completion. Then items 9 (driver; STOP at D-k's
-  texts and at `Main.wp_proof`), 10 (linking, gates, land stop).
-- **Pitfalls:** `etc/gen-link.py --bbolt`/`--walfs` differ from lean's files in a worktree without
-  `.lake/packages/perennial`: do not commit those regenerations. `gen-specs-pkginit --check` likewise (hard-codes the
-  package path). Monitor filters: "Terminated" matches k8s type names; anchor `^Terminated`.
+  storages, discharged from their justifications' conjunct); `storBnd_off`/`storBnd_le_one` (unused) dropped;
+  `storBnd_cap` by cases. `cluster_alloc_ns` post `… ∧ (clusterNoSnap γ ↔ ns)⌝ ∗ ⌜trace = none⌝`; `cluster_alloc`
+  `⌜¬clusterNoSnap⌝ ∗ ⌜trace = none⌝`; `cluster_alloc_boot_impl(_tr)` take `ns` (traced: `false`). Lean moved StartNode's
+  proof to `TracedStartNode`, node.run's to `node__run_gated`: S4's edits ported there. `NsLink` is a conjunction
+  (`Hnl.1`). `TracedNodeRun`'s net-step lemma's MsgSnap clause gains `γ.reNoSnap = false` (as `netP`'s);
+  `TracedRawNode`/`TracedNodeRun`: the raft.Step MsgSnap premise by `trnet_ne`/`trrcv_ne` (no MsgSnap traced).
+- **Next, in order:** item 9 (driver; STOP at D-k's texts and at `Main.wp_proof`), item 10 (linking: gen-init PkgTable
+  entry for authlease, gates, land stop). Merge lean again first if it moved.
+- **Pitfalls:** `etc/gen-link.py --bbolt`/`--walfs` and `gen-specs-pkginit --check` differ in a worktree without
+  `.lake/packages/perennial` (environmental): do not commit those regenerations. Monitor filters: "Terminated" matches
+  k8s type names; anchor `^Terminated`. A Perennial pin bump rebuilds everything (~20k jobs, ~3.5 h in a slot).
 
 ## Previous START HERE (S4, 2026-11-17, item 7b: steps 7 and 8 DONE; the lean merge is NEXT and is a real integration)
 
