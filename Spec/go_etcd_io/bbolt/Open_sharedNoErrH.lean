@@ -34,8 +34,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- **The right to close the database `γ`** (pending S3f's `boltCloser`; exclusive there). -/
-opaque boltCloserH (γ : BoltName) : IProp GF
+/-- **The right to close the database `γ`**: a stand-in (`True`) for S3f's exclusive `boltCloser` until S3f is
+merged (as an opaque it would be a resource the interim axiom makes from nothing). -/
+def boltCloserH (_γ : BoltName) : IProp GF := iprop(True)
 
 /-- `Open_shared.spec` when the semantics' steps do not fail on files: no error, and the close
 token. -/
