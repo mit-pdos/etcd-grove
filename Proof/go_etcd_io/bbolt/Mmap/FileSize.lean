@@ -7,7 +7,7 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.PkgInit
-public import Spec.os.File__StatW
+public import Spec.os.File__Stat
 public import Spec.os.fileStat__Size
 public import Spec.fmt.Errorf
 public import Spec.fmt.ErrorOk
@@ -69,7 +69,7 @@ abbrev DB.fileSize.spec : Prop :=
        (⌜err ≠ interface.nil ∧ errPtrTyped err ∧ (¬ FsNoErr ∨ m.size < 8192)⌝ ∗
           fmtErrorOk err)) }}
 
-theorem DB.fileSize.wp_proof (hStat : os.File.Stat.specW (GF := GF) (hG := hG))
+theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     DB.fileSize.spec (GF := GF) (hG := hG) := by

@@ -16,7 +16,6 @@ public import Proof.go_etcd_io.bbolt.Commit.MetaPage
 public import Spec.go_etcd_io.bbolt.DB__pageInBuffer
 public import Spec.go_etcd_io.bbolt.fdatasync
 public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
-public import Spec.os.File__WriteAtW
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetId
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetFlags
 public import Spec.go_etcd_io.bbolt.internal.common.Page__SetCount
@@ -275,7 +274,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     (hSetChecksum : internal.common.Meta.SetChecksum.spec (GF := GF) (hG := hG))
     (hSum64 : internal.common.Meta.Sum64.spec (GF := GF) (hG := hG))
     (hNewIB : internal.common.NewInBucket.spec (GF := GF) (hG := hG))
-    (hWriteAt : os.File.WriteAt.specW (GF := GF) (hG := hG))
+    (hWriteAt : os.File.WriteAt.spec (GF := GF) (hG := hG))
     (hSync : fdatasync.specW (GF := GF) (hG := hG)) :
     DB.init.spec (GF := GF) (hG := hG) := by
   intro db f fd p lg m dqf dqw hdb hsz hmaps
@@ -526,7 +525,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       have hfs : ¬ FsNoErr := by
         rcases hres with ⟨-, -, h⟩ | ⟨-, -, h⟩
         · cases h
-        · exact h
+        · exact h.resolve_right (by rw [initPages_length]; decide)
       simp only [fmtErrorOkOrNil]
       icases Herr with #Herr
       try wp_auto
@@ -656,7 +655,7 @@ theorem DB.init.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         have hfs : ¬ FsNoErr := by
           rcases hres2 with ⟨-, -, h⟩ | ⟨-, -, h⟩
           · cases h
-          · exact h
+          · exact h.resolve_right (by rw [metaBufs_length]; decide)
         simp only [fmtErrorOkOrNil]
         icases Herr2 with #Herr
         clear hysp hysl Hm2 hpr hsr hres hjle hm0 hysp2

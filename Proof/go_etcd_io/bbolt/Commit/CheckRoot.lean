@@ -12,8 +12,8 @@ public import Proof.go_etcd_io.bbolt.Commit.CheckSplit
 public import Proof.go_etcd_io.bbolt.Commit.CheckPureRoot
 public import Proof.go_etcd_io.bbolt.Read.Root
 public import Proof.go_etcd_io.bbolt.Inv.RdMeta
-public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_r
-public import Spec.go_etcd_io.bbolt.Bucket__Bucket_r
+public import Proof.go_etcd_io.bbolt.Bucket__ForEachBucket_r
+public import Proof.go_etcd_io.bbolt.Bucket__Bucket_r
 
 @[expose] public section
 

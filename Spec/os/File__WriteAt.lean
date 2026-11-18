@@ -15,7 +15,9 @@ durable, a crash bound to the end of the write), and the bytes of the range (`os
 values, the zero gap past the old end, then `b`'s first `j` bytes, then the old bytes; their
 candidates, the old ones, then the data's byte (once per attempt that announced it). On success
 `j = n` and the result is `(n, nil)`; on failure, `(0, err)` with a non-nil `err`, its `Error()` a
-`fmt`-printable string (`fmtErrorOkOrNil`). Whatever the result, `j` is a page cut of the write
+`fmt`-printable string (`fmtErrorOkOrNil`), which witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names, a
+`pwrite` that starts below `maxBytes` does not fail) or that the write ends past `maxBytes`
+(session S6 folded the former `specNoErr`/`specW` into this spec). Whatever the result, `j` is a page cut of the write
 (`PwCut`: `0`, `n`, or ending on a 4096-byte page boundary of the file; the page-cut rule of each
 `pwrite`, carried through Go's retries), so one aligned page lands whole or not at all. Proved in `Proof/os/File__WriteAt.lean`. Lean-first (no Rocq counterpart).
 -/
@@ -61,7 +63,7 @@ abbrev os.File.WriteAt.spec : Prop :=
       ∃ (j : Nat) (ys : List ByteG),
         ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧ PwCut off.toNat data.length j ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
-           (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+           (n = W64 0 ∧ err ≠ interface.nil ∧ (¬ FsNoErr ∨ maxBytes < off.toNat + data.length)))⌝ ∗
         osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
         osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
         mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗

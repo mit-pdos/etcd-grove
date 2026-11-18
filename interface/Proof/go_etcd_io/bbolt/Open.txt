@@ -9,11 +9,10 @@ theorem bbolt.isBolt.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.
 syntax bbolt.tacticOpen_exit_j__
 
 theorem bbolt.Open.wp_proof [go.BasicIntoValInj] [sync.Assumptions] (hCS : ∀ [inst : ExtSemantics
-    Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], os.OpenFile.specCreateS) (hCSN : ∀ [inst :
-    ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], os.OpenFile.specCreateSNoErr)
-    (hName : os.File.Name.spec) (hFlock : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 :
-    HasExt Fs.fsExt], bbolt.flock.spec) (hStat : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk]
-    [inst_2 : HasExt Fs.fsExt], os.File.Stat.specW) (hSize : os.fileStat.Size.spec) (hMZ : ∀ [inst :
+    Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], os.OpenFile.specCreateS) (hName :
+    os.File.Name.spec) (hFlock : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt
+    Fs.fsExt], bbolt.flock.spec) (hStat : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 :
+    HasExt Fs.fsExt], os.File.Stat.spec) (hSize : os.fileStat.Size.spec) (hMZ : ∀ [inst :
     ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt], bbolt.DB.metasZero.spec_own)
     (hInit : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt],
     bbolt.DB.init.spec) (hGPS : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [inst_2 : HasExt

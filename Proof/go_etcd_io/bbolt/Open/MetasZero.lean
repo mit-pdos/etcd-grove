@@ -51,7 +51,7 @@ abbrev DB.metasZero.spec_own : Prop :=
        (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.metasZero.wp_proof_own
-    (hRead : os.File.ReadAt.specRacyLtW (GF := GF) (hG := hG)) :
+    (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG)) :
     DB.metasZero.spec_own (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d xs hrd hp hx
   rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp

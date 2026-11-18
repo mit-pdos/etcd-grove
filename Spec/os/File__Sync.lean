@@ -8,13 +8,15 @@ the size and every byte are durable (`OsMeta.synced`, each byte its value alone,
 failure nothing changes (no failed writeback: the semantics' rule). `os.File.Sync.specB` is the
 byte-less variant (`wp_osFsyncB`), for a client that holds none of the bytes (bbolt's `DB.grow`): on
 success the `OsMeta` is `m.bsynced c` for some change number `c` (size and mappings unchanged), on
-failure nothing changes. Proved in
+failure nothing changes, and the failure witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names, `fsync` returns 0; session S6 folded the
+former `specBNoErr` into it). Proved in
 `Proof/os/File__Sync.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.os.Base
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -57,7 +59,7 @@ abbrev os.File.Sync.specB : Prop :=
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
   {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
       ((⌜err = interface.nil⌝ ∗ ∃ c, osMeta d.ino (DFrac.own 1) (m.bsynced c)) ∨
-       (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m)) ∗
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ osMeta d.ino (DFrac.own 1) m)) ∗
       fmtErrorOkOrNil err }}
 
 end spec

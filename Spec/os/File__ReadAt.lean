@@ -11,6 +11,7 @@ module
 
 public import Proof.os.Base
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -83,7 +84,9 @@ abbrev os.File.ReadAt.specRacy : Prop :=
 
 /-- **`specRacy`, sharpened**: `io.EOF` only with fewer bytes than asked (`n < len(b)`: the model
 returns it only when a `pread` reads nothing with `len(b) > 0`), and a failure's `*PathError`
-(wrapping the errno) is one `fmt` formats (`fmtErrorOk`). `specRacy` is a corollary
+(wrapping the errno) is one `fmt` formats (`fmtErrorOk`), and witnesses that **the file system
+can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names a `pread` returns errno 0; session S6
+folded the former `specRacyLtNoErr`/`specRacyLtW` into it). `specRacy` is a corollary
 (`Proof/os/File__ReadAt.lean`). -/
 abbrev os.File.ReadAt.specRacyLt : Prop :=
   ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (vs : List w8)
@@ -107,7 +110,7 @@ abbrev os.File.ReadAt.specRacyLt : Prop :=
            (err = eof ∧ n.toNat < vs.length ∧ ∀ i b, os.heldByte rs i b → off.toNat ≤ i →
               i < off.toNat + vs.length → i < off.toNat + n.toNat)⌝ ∨
          (∃ pe : Loc, ⌜err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
-           fmtErrorOk err)) }}
+           fmtErrorOk err ∗ ⌜¬ FsNoErr⌝)) }}
 
 end spec
 

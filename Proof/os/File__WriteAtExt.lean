@@ -195,8 +195,8 @@ theorem waCut_short (off len nn c k : Nat)
 set_option maxHeartbeats 4000000 in
 /-- **`WriteAt.specExt`, generic in its `pwrite`s' errnos** (as `wp_proofQ`): a failure only with
 an errno `e ≠ 0` with `Pe e`, over a semantics whose `pwrite` ends at an offset below `B` return an
-errno with `Pe` (`hpost`), for a write ending by `B`. `specExt` (any errno, `B = 2 ^ 63`) and
-`specExtNoErr` (errno 0 below `maxBytes`: no failure) are its instances. -/
+errno with `Pe` (`hpost`), for a write ending by `B`. `specExt` is its instance (session S6 removed the unused
+`specExtNoErr`, errno 0 below `maxBytes`). -/
 theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
     (hpost : ∀ (t : Nat) (p : Ino) (o : Nat) (dt : List w8) (m : OsMeta) (xs : List ByteG) (n : Nat)
       (Φ : val → IProp GF), o < B →

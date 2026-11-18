@@ -7,7 +7,7 @@ exclusive part out, rolls the freelist back (`Interface.Rollback`, `store_rollba
 module
 
 public import Spec.go_etcd_io.bbolt.Tx__Rollback
-public import Spec.go_etcd_io.bbolt.Tx__Rollback_r
+public import Proof.go_etcd_io.bbolt.Tx__Rollback_r
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 public import Proof.go_etcd_io.bbolt.Tx__close_w
 public import Proof.go_etcd_io.bbolt.Txn.WRoll

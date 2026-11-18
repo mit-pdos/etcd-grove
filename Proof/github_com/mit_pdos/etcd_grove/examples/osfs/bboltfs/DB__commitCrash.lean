@@ -1551,7 +1551,7 @@ theorem DB.commit.wp_proof_crash (wp_mmap : DB.mmap.specCrash (GF := GF) (hG := 
   rotate_left
   · obtain ⟨-, -, -, hs4, hm4, -, hok4⟩ := dataW_after (i := γ.ino) hcc hbl hmp hhwm h2 hin hdl h30 h16 hR
     cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl (by first | exact hne | exact hne.1)
     | ok ie =>
     (try wp_auto)
     iapply HΦ

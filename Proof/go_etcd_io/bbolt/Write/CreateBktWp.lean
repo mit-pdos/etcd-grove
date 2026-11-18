@@ -25,8 +25,8 @@ public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsOpen
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsGens
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsMat
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsBkt
-public import Spec.go_etcd_io.bbolt.Bucket__Bucket_w
-public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
+public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
+public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Spec.go_etcd_io.bbolt.Cursor__seek_w
 public import Spec.go_etcd_io.bbolt.Cursor__node
 public import Spec.go_etcd_io.bbolt.node__put

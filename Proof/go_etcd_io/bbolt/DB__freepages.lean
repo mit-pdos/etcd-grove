@@ -11,7 +11,7 @@ module
 
 public import Spec.go_etcd_io.bbolt.DB__freepages
 public import Spec.go_etcd_io.bbolt.DB__beginTx_s
-public import Spec.go_etcd_io.bbolt.Tx__Rollback_r
+public import Proof.go_etcd_io.bbolt.Tx__Rollback_r
 public import Spec.go_etcd_io.bbolt.DB__meta
 public import Proof.go_etcd_io.bbolt.Commit.FreepagesScan
 public import Proof.go_etcd_io.bbolt.Commit.CheckChan

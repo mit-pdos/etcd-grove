@@ -262,7 +262,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · ipureintro; exact hg
       ileft; ipureintro; rfl
     cases e2 with
-    | nil => exact absurd rfl he2
+    | nil => exact absurd rfl he2.1
     | ok ii =>
     ihave #HeS : fmtErrorOk (GF := GF) (GoInterface.ok ii) $$ []
     · iapply fmtErrorOkOrNil_ne (GoInterface.ok ii) (by intro h; cases h) $$ He2

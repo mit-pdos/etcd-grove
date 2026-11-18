@@ -12,7 +12,7 @@ module
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 public import Spec.os.File__Fd
-public import Spec.syscall.FlockW
+public import Spec.syscall.Flock
 public import Perennial.Spec.time.Now
 public import Perennial.Spec.time.Since
 public import Perennial.Spec.time.Sleep
@@ -66,7 +66,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 theorem flock.wp_proof [syscall.Assumptions]
     (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hFlock : syscall.Flock.specW (GF := GF) (hG := hG))
+    (hFlock : syscall.Flock.spec (GF := GF) (hG := hG))
     (hNow : time.Now.spec (GF := GF) (hG := hG))
     (hSince : time.Since.spec (GF := GF) (hG := hG))
     (hSleep : time.Sleep.spec (GF := GF) (hG := hG))
@@ -115,7 +115,7 @@ theorem flock.wp_proof [syscall.Assumptions]
       try simp only [_root_.decide_true, ↓reduceIte]
       try rw [if_pos rfl]
       try wp_auto
-      wp_apply hFlock fd fl d (some exv) true Hreq (fun _ => hd) (Or.inr rfl) $$ [Hfd]
+      wp_apply hFlock fd fl d (some exv) true Hreq (fun _ => hd) $$ [Hfd]
         as %e ⟨%hW, Hout⟩
       · iframe #; iframe; iapply lockTok_none; simp [OsFd.lk, hd]
       unfold lockOut
@@ -156,7 +156,7 @@ theorem flock.wp_proof [syscall.Assumptions]
         · iapply fmtErrorOkOrNil_of $$ HeS
         iright; iframe; ipureintro
         refine ⟨(fun h => nomatch h), Or.inl ?_⟩
-        rcases hW with h | h | h
+        rcases hW (Or.inr rfl) with h | h | h
         · exact absurd h he
         · exact absurd h.2 h11
         · exact h

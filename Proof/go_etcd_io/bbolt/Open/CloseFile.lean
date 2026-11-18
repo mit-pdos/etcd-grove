@@ -12,7 +12,10 @@ public import Proof.go_etcd_io.bbolt.Mmap.RemapBase
 public import Proof.go_etcd_io.bbolt.Mmap.Cells
 public import Proof.go_etcd_io.bbolt.Mmap.RemapCells
 public import Proof.go_etcd_io.bbolt.Commit.MetaBytes
-public import Proof.go_etcd_io.bbolt.Open.CloseNoErr
+public import Proof.go_etcd_io.bbolt.Open.Close
+public import Proof.go_etcd_io.bbolt.Mmap.MunmapNoErr
+public import Spec.os.File__Close
+public import Spec.syscall.Flock
 
 @[expose] public section
 
@@ -245,8 +248,7 @@ theorem closeMapResM_res (p : BFile) (m : OsMeta) (ms : MapSt) :
 
 /-- `db.munmap()` of what `close` unmaps, with no error: the fields cleared, the `OsMeta` back. -/
 theorem DB.munmap.wp_closeResNoErrM (hMunmap : DB.munmap.specNoErr (GF := GF) (hG := hG))
-    (Sio : IoSet) [FsStepSat (NoMapLockErr Sio)] (hS : ∀ st i, Sio.ino st i)
-    (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (m : OsMeta) (hdb : db ≠ null) :
+    (hne : FsNoErr) (db : Loc) (lg : GoInterface) (ms : MapSt) (p : BFile) (m : OsMeta) (hdb : db ≠ null) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
         db.[DB, go!"logger"] ↦□ lg ∗ boltLogger lg ∗
         mapFields db (DFrac.own 1) ms ∗ db.[DB, go!"datasz"] ↦ W64 (mapLen ms : Int) ∗
@@ -263,15 +265,15 @@ theorem DB.munmap.wp_closeResNoErrM (hMunmap : DB.munmap.specNoErr (GF := GF) (h
     iframe
   · simp only [closeMapResM, closeMapBack, mapLen]
     icases Hmr with ⟨%hm, Hosm, %vf, Hc⟩
-    wp_apply hMunmap Sio hS db b l lg p m vf hdb hm.1 hm.2 $$ [Hmf Hdsz Hosm Hc] as ⟨Hmf, Hdsz, Hosm⟩
+    wp_apply hMunmap hne db b l lg p m vf hdb hm.1 hm.2 $$ [Hmf Hdsz Hosm Hc] as ⟨Hmf, Hdsz, Hosm⟩
     · iframe; iframe #
     iapply HΦ
     iframe
 
 /-- **`db.close()` over owned fields, with no error, the file's `OsMeta` back** (as
-`DB.close.spec_ownedNoErr`, for `DB.Close_own`; the file non-nil). -/
+for `DB.Close`; the file non-nil): under `FsNoErr`, which refutes the callees' error arms. -/
 abbrev DB.close.spec_ownedNoErrM : Prop :=
-  ∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) →
+  FsNoErr →
   ∀ (db : Loc) (lg : GoInterface) (dqr : DFrac) (fli : GoInterface) (wa : GoFunc) (s : GoString)
     (ms : MapSt) (p : BFile) (m : OsMeta) (f : Loc) (fd : w64) (name : GoString) (d : OsFd),
   db ≠ null → f ≠ null →
@@ -293,14 +295,14 @@ abbrev DB.close.spec_ownedNoErrM : Prop :=
 theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     (hMunmap : DB.munmap.specNoErr (GF := GF) (hG := hG))
     (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hFlock : syscall.Flock.specNoErr (GF := GF) (hG := hG))
-    (hClose : os.File.Close.specNoErr (GF := GF) (hG := hG)) :
+    (hFlock : syscall.Flock.spec (GF := GF) (hG := hG))
+    (hClose : os.File.Close.spec (GF := GF) (hG := hG)) :
     DB.close.spec_ownedNoErrM (GF := GF) (hG := hG) := by
-  intro Sio _ _ hS db lg dqr fli wa s ms p m f fd name d hdb hf
+  intro hne db lg dqr fli wa s ms p m f fd name d hdb hf
   wp_start as ⟨#Hos, #Hlg, #Hlgok, Hro, Hop, Hfl, Hwa, Hpath, Hmf, Hdsz, Hmr, Hfile, Hfo, Hfd, Hlt⟩
   wp_auto
   -- `munmap`: `nil`, nothing appended, the `OsMeta` back
-  wp_apply DB.munmap.wp_closeResNoErrM hMunmap Sio hS db lg ms p m hdb $$ [Hmf Hdsz Hmr]
+  wp_apply DB.munmap.wp_closeResNoErrM hMunmap hne db lg ms p m hdb $$ [Hmf Hdsz Hmr]
     as ⟨Hmf, Hdsz, Hback⟩
   · iframe; iframe #
   try wp_auto
@@ -313,13 +315,14 @@ theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
   wp_apply hFd f fd name (DFrac.own 1) $$ [Hfo] as Hfo
   · rw [← fileOwn_eq]; iexact Hfo
   try wp_auto
-  wp_apply hFlock Sio hS fd (W64 8) d none false rfl (fun h => absurd rfl h) (Or.inl rfl)
+  wp_apply hFlock fd (W64 8) d none false rfl (fun h => absurd rfl h)
     $$ [Hfd Hfl] as %e ⟨%he, Hout⟩
   · iframe; iframe #
   have he0 : e = 0 := by
-    rcases he with he | ⟨hn, -⟩
+    rcases he (Or.inl rfl) with he | ⟨hn, -⟩ | hn
     · exact he
     · exact absurd rfl hn
+    · exact absurd hne hn
   subst he0
   unfold lockOut
   icases Hout with ⟨%d', Hfd, Hfl, %hd'⟩
@@ -329,8 +332,9 @@ theorem DB.close.wp_proof_ownedNoErrM [os.Assumptions] [syscall.Assumptions]
     · iapply (lockTok_setLk_ne fd d none (by decide)).2; iexact Hlo
   simp only [errnoErr, ↓reduceIte]
   try wp_auto
-  wp_apply hClose Sio hS f fd name d' $$ [Hfo Hfd Hlo Hfl] as Hfo
+  wp_apply hClose f fd name d' $$ [Hfo Hfd Hlo Hfl] as %cerr ⟨Hfo, %hc, -⟩
   · unfold lockToks; iframe; iframe #
+  obtain rfl : cerr = interface.nil := hc.resolve_right (fun h => h hne)
   try wp_auto
   iapply HΦ
   iframe
