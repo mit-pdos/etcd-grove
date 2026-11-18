@@ -312,7 +312,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply checkErrIs_applyErrIs $$ Hvars Hce
-          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n tok t (GoInterface.ok ei) $$ []
           · unfold txnWhyOut; iright; iright; ileft; iexact Hce
           replace Hnull := Hnull.1
           txn_ret_null
@@ -320,7 +320,7 @@ local macro "txn_tail" : tactic => `(tactic| (
         · cases Hn
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply applyErrIs_ctxErrorf _ Hleaf $$ He HCtxE
-          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n tok t (GoInterface.ok ei) $$ []
           · unfold txnWhyOut; iright; iright; iright; iexact He
           txn_ret_rd
           txn_close_err
@@ -389,7 +389,7 @@ local macro "txn_tail" : tactic => `(tactic| (
       | ok sei =>
         ihave #HeE : applyErrIs (GoInterface.ok sei) $$ []
         · iapply authApplyErrIs_apply _ $$ HsE
-        ihave #HeW := txnWhyOut_off s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok sei) hon
+        ihave #HeW := txnWhyOut_off s E.authMode n tok t (GoInterface.ok sei) hon
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -439,7 +439,7 @@ set_option hygiene false in
 local macro "txn_tailOnR" : tactic => `(tactic| (
   wp_apply time.wp_Now as %start -
   (try wp_auto)
-  wp_apply (hDS ctx2 _ _ _
+  wp_apply (hDS ctx2 _ tok _ _
     iprop(resp_ptr ↦ (null : Loc) ∗ err_ptr ↦ GoInterface.nil ∗
       mvcc.api.mvccReaders E.γ 1 ∗ srvLgReader s)
     iprop(∃ (respv : Loc) (errv : GoInterface) (log : mvcc.Log), resp_ptr ↦ respv ∗
@@ -574,7 +574,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
       · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply checkErrIs_applyErrIs $$ Hvars Hce
-          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n tok t (GoInterface.ok ei) $$ []
           · unfold txnWhyOut; iright; iright; ileft; iexact Hce
           replace Hnull := Hnull.1
           txn_ret_null
@@ -582,7 +582,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         · cases Hn
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
           · iapply applyErrIs_ctxErrorf _ Hleaf $$ He HCtxE
-          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok ei) $$ []
+          ihave #HeW : txnWhyOut (GF := GF) s E.authMode n tok t (GoInterface.ok ei) $$ []
           · unfold txnWhyOut; iright; iright; iright; iexact He
           txn_ret_rd
           txn_close_err
@@ -650,9 +650,8 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         · iapply authApplyErrIs_apply _ $$ HsE
         ihave #HsW1 := txnWhy_of_serialWhy s E.authMode γa hM n nA HnA _ t tw Htw (GoInterface.ok sei)
           (by intro h; cases h) $$ HsW
-        ihave #HsW2 := HsW1  -- by token (perheap C1a): was `txnWhy_ctx`
-        ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok sei) $$ []
-        · unfold txnWhyOut; ileft; iexact HsW2
+        ihave #HeW : txnWhyOut (GF := GF) s E.authMode n tok t (GoInterface.ok sei) $$ []
+        · unfold txnWhyOut; ileft; iexact HsW1
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |
           ⟨%respv, %errv, %log, resp, err, Hsr, Hlr, -, -, -, -, Hres, Hown⟩)
         · wp_auto
@@ -731,8 +730,8 @@ theorem EtcdServer.Txn.wp_proof
     (hSize : proto.Size.spec (GF := GF) (hG := hG))
     (hLb : apply.CheckTxnAuth.specLbW (GF := GF) (hG := hG)) :
     EtcdServer.Txn.spec (GF := GF) (hG := hG) := by
-  intro s E ρ γr c ctx cd r t Q Qr ot te F n
-  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hlib, #Hspc, #Hct, Hto, #Hrt, %Hro2, %Hdpt, #HF, Hnp⟩
+  intro s E ρ γr c ctx cd tok r t Q Qr ot te F n
+  wp_start as ⟨#Hsrv, #Hrd, Hlt, Hcred, Hcall, #Hctx, #Hlib, #HtokC, #Hspc, #Hct, Hto, #Hrt, %Hro2, %Hdpt, #HF, Hnp⟩
   have Hgets : txn.txnReadonly t = true → txn.txnGetsOk t := fun h => (Hro2 h).1
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -867,7 +866,7 @@ theorem EtcdServer.Txn.wp_proof
   iintro %fsl' ⟨Hfl, Hflc⟩
   (try wp_auto)
   wp_apply hET ctx1 _ ot te w.lg _ _ $$ [Hto Hfl Hflc]
-    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, %Hinc2, %vs2, #Hctx2, Hctx2w, #Hspw2, #Hlibw2⟩
+    as %ctx2 %trc ⟨⟨%Htrc, -⟩, Hown0, #Hct2, #HmdE, %vs2, #Hctx2, Hctx2w, #Hspw2, #Hlibw2⟩
   · iframe Hctx1t
     isplitr
     · iapply Hctr1 $$ Hct
@@ -880,6 +879,9 @@ theorem EtcdServer.Txn.wp_proof
   ihave #Hctx2i := Hctx2w $$ Hctx1
   ihave #Hspc2 := Hspw2 $$ Hspc1
   ihave #Hlib2 := Hlibw2 $$ Hlib1
+  ihave #HtokC2 : □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
+  · ihave #Htok1 := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+    iapply auth.ctxToken_transfer_gate E.authOn ctx1 ctx2 tok $$ [$HmdE $Htok1]
   (try wp_auto)
   cases hro : txn.txnReadonly t
   · -- a write: through raft, as `Put`; the modes differ at the permit and the grant
@@ -1089,7 +1091,7 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       wp_apply time.wp_Now as %now -
       (try wp_auto)
-      wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, %c3', %vs3', %Hc3e', %Hinc3, #Hmd3, -, -, -, -, #Hdel3⟩
+      wp_apply hWV ctx2 ⟨go_etcd_io.etcd.pkg.v3.traceutil.StartTimeKey.ty, _⟩ _ $$ [] as %c3 ⟨%Hc3, -, #Hc3w, %c3', %vs3', %Hc3e', -, #Hmd3, -, -, -, -, #Hdel3⟩
       · ipureintro; right; right; left; rfl
       ihave ⟨%ctx3, %vs3, %Hc3e, #Hctx3⟩ := Hc3w $$ %_ Hctx2i
       subst Hc3e
@@ -1121,8 +1123,12 @@ theorem EtcdServer.Txn.wp_proof
         · itrivial
         · iexact HΦ'
       -- (E3zb) the context `raftRequest` sees carries the request's metadata
-      have Hinc : metadata.incomingOf (GoInterface.ok ctx3) = metadata.incomingOf (GoInterface.ok ctx) := by
-        rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e', Hinc3, Hinc2, Hinc1]
+      ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx3) tok) $$ []
+      · rw [show ctx3 = c3' from GoInterface.ok.inj Hc3e']
+        iintro !> -
+        iapply auth.ctxToken_transfer ctx2 c3' tok
+        iframe Hmd3
+        iapply HtokC2; ipureintro; exact hon
       (try wp_auto)
       ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
       iStructNamed Hirr
@@ -1172,7 +1178,7 @@ theorem EtcdServer.Txn.wp_proof
       (try wp_auto)
       -- (2026-10-20, linkv-txn stage A) the token of the transaction's result
       imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
-      wp_apply hRR ctx3 _ «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
+      wp_apply hRR ctx3 _ tok «$a1_ptr» (irrTxn tw) (txnQhOn ρ.kv tw γc Q)
           F rfl (apply.irrDepthOk_irrTxn (Hdpt hro))
           $$ [Hlt Hard Hcred Header Hau] as %resp %err ⟨Hlt, Hard, Hres⟩
       · iframe # Hlt Hard Hcred
@@ -1399,7 +1405,7 @@ theorem EtcdServer.Txn.wp_proof
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright
-        ihave #HrW := txnWhyOut_read s E.authMode n (GoInterface.ok ctx) t _ $$ HrdE
+        ihave #HrW := txnWhyOut_read s E.authMode n tok t _ $$ HrdE
         iframe HrE HrW
         ipureintro; intro h; cases h
 
@@ -1412,6 +1418,8 @@ theorem EtcdServer.Txn.wp_proof
         | on γa => exact ⟨γa, rfl⟩
       have hDS := hDS s E ρ γr
       rw [hon] at hDS
+      ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
+      · iintro !> -; iapply HtokC2; ipureintro; exact hon
       have hCTA := hLb
       (try isimp only [↓reduceIte] at Hnp)
       icases Hnp with ⟨#HaLb, #Hpub, Hnp⟩
@@ -1543,7 +1551,7 @@ theorem EtcdServer.Txn.wp_proof
         (try rw [hro]); (try simp only [↓reduceIte])
         iframe Hcred
         iright
-        ihave #HrW := txnWhyOut_read s E.authMode n (GoInterface.ok ctx) t _ $$ HrdE
+        ihave #HrW := txnWhyOut_read s E.authMode n tok t _ $$ HrdE
         iframe HrE HrW
         ipureintro; intro h; cases h
 
