@@ -27,12 +27,12 @@ namespace EtcdGrove
 
 /-! ## Bits -/
 
-theorem w8_and_127 (c : w8) : uint.Z (c &&& W8 127) = uint.Z c % 128 := by
+theorem cc_w8_and_127 (c : w8) : uint.Z (c &&& W8 127) = uint.Z c % 128 := by
   have h : (c &&& W8 127).toNat = c.toNat % 128 := by
     rw [BitVec.toNat_and, show (W8 127).toNat = 2 ^ 7 - 1 from rfl, Nat.and_two_pow_sub_one_eq_mod]
   unfold uint.Z; rw [h]; push_cast; rfl
 
-theorem w8_or_128 (v : w64) :
+theorem cc_w8_or_128 (v : w64) :
     W8 (uint.Z v) ||| W8 128 = W8 ((uint.nat v % 128 + 128 : Nat) : Int) := by
   have hd : ∀ m, m < 256 → m ||| 128 = m % 128 + 128 := by decide +kernel
   apply BitVec.eq_of_toNat_eq
@@ -48,7 +48,7 @@ theorem w8_or_128 (v : w64) :
   rw [e1, e2, e3, hd _ (Nat.mod_lt _ (by decide))]
   omega
 
-theorem w64_or_shiftl (acc : w64) (y s : Nat) (hs : s < 64) (hacc : uint.nat acc < 2 ^ s)
+theorem cc_w64_or_shiftl (acc : w64) (y s : Nat) (hs : s < 64) (hacc : uint.nat acc < 2 ^ s)
     (hy : y < 2 ^ (64 - s)) :
     acc ||| (W64 (y : Int) <<< W64 (s : Int)) = W64 ((uint.nat acc + 2 ^ s * y : Nat) : Int) := by
   have hp : 2 ^ (64 - s) * 2 ^ s = 2 ^ 64 := by rw [← Nat.pow_add]; congr 1; omega
@@ -79,14 +79,14 @@ theorem w64_or_shiftl (acc : w64) (y s : Nat) (hs : s < 64) (hacc : uint.nat acc
 
 /-! ## Varints -/
 
-theorem varintEnc_lt (n : Nat) (h : n < 128) : varintEnc n = [W8 n] := by
+theorem cc_varintEnc_lt (n : Nat) (h : n < 128) : varintEnc n = [W8 n] := by
   rw [varintEnc]; simp [h]
 
-theorem varintEnc_ge (n : Nat) (h : ¬ n < 128) :
+theorem cc_varintEnc_ge (n : Nat) (h : ¬ n < 128) :
     varintEnc n = W8 ((n % 128 + 128 : Nat) : Int) :: varintEnc (n / 128) := by
   rw [varintEnc]; simp [h]
 
-theorem varintEnc_pos (n : Nat) : 0 < (varintEnc n).length := by
+theorem cc_varintEnc_pos (n : Nat) : 0 < (varintEnc n).length := by
   rw [varintEnc]; split <;> simp
 
 /-- `consumeVarint`'s loop reads back `varintEnc`, from any iteration `n` whose accumulated value
@@ -102,7 +102,7 @@ theorem ccVarintLoop_enc (rest : List w8) : ∀ (w n : Nat) (pre : List w8) (acc
   obtain ⟨k, hk⟩ : ∃ k, 10 - n = k + 1 := ⟨9 - n, by omega⟩
   rw [hk]
   by_cases h128 : w < 128
-  · rw [varintEnc_lt w h128]
+  · rw [cc_varintEnc_lt w h128]
     have hget : (pre ++ [W8 (w : Int)] ++ rest)[pre.length]? = some (W8 (w : Int)) := by simp
     simp only [ccVarintLoop, hget]
     have hc : uint.Z (W8 (w : Int)) = w := by word
@@ -117,10 +117,10 @@ theorem ccVarintLoop_enc (rest : List w8) : ∀ (w n : Nat) (pre : List w8) (acc
       rw [hc] at this; have h00 : uint.Z (W8 0) = 0 := rfl; omega
     rw [ite_eq_right hn9, ite_eq_left (by rw [hc]; omega), ite_eq_right h0]
     have hm : uint.Z (W8 (w : Int) &&& W8 127) = (w : Int) := by
-      rw [w8_and_127, hc]; omega
-    rw [hm, w64_or_shiftl acc w (7 * n) (by omega) hacc hw]
+      rw [cc_w8_and_127, hc]; omega
+    rw [hm, cc_w64_or_shiftl acc w (7 * n) (by omega) hacc hw]
     simp
-  · rw [varintEnc_ge w h128]
+  · rw [cc_varintEnc_ge w h128]
     have hn9 : n ≠ 9 := by
       rintro rfl; have : w < 2 := by simpa using hw
       omega
@@ -131,8 +131,8 @@ theorem ccVarintLoop_enc (rest : List w8) : ∀ (w n : Nat) (pre : List w8) (acc
     have hc : uint.Z c = ((w % 128 + 128 : Nat) : Int) := by rw [← hcdef]; word
     rw [ite_eq_right (by rintro ⟨h, _⟩; exact hn9 h), ite_eq_right (by rw [hc]; omega)]
     have hm : uint.Z (c &&& W8 127) = ((w % 128 : Nat) : Int) := by
-      rw [w8_and_127, hc]; omega
-    rw [hm, w64_or_shiftl acc (w % 128) (7 * n) (by omega) hacc (by
+      rw [cc_w8_and_127, hc]; omega
+    rw [hm, cc_w64_or_shiftl acc (w % 128) (7 * n) (by omega) hacc (by
       have : 2 ^ 7 ≤ 2 ^ (64 - 7 * n) := Nat.pow_le_pow_right (by decide) (by omega)
       have := Nat.mod_lt w (show 128 > 0 by decide)
       omega)]
@@ -323,18 +323,18 @@ theorem ccDecodeSingle_of [GooseExts] {c : ConfChangeSingleM} {bs : List w8} (h 
   obtain ⟨ty, nid, rfl, h1, h2⟩ := h
   rw [ccDecodeSingle_enc, h1, h2]
 
-theorem varintEnc_length_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) →
+theorem cc_varintEnc_length_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) →
     (varintEnc n).length ≤ k + 1 := by
   intro k
   induction k with
   | zero =>
     intro n h
-    rw [varintEnc_lt n (by simpa using h)]; simp
+    rw [cc_varintEnc_lt n (by simpa using h)]; simp
   | succ k ih =>
     intro n h
     by_cases h128 : n < 128
-    · rw [varintEnc_lt n h128]; simp
-    · rw [varintEnc_ge n h128]
+    · rw [cc_varintEnc_lt n h128]; simp
+    · rw [cc_varintEnc_ge n h128]
       simp only [List.length_cons]
       have h2 : n / 128 < 2 ^ (7 * (k + 1)) := by
         rw [Nat.div_lt_iff_lt_mul (by decide)]
@@ -345,7 +345,7 @@ theorem varintEnc_length_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) →
       omega
 
 theorem ccVarint_length_le (v : w64) : (ccVarint v).length ≤ 10 :=
-  varintEnc_length_le_of_lt 9 _ (by
+  cc_varintEnc_length_le_of_lt 9 _ (by
     have : uint.nat v < 2 ^ 64 := by word
     have h : (2 : Nat) ^ 64 ≤ 2 ^ (7 * (9 + 1)) := Nat.pow_le_pow_right (by decide) (by decide)
     omega)
