@@ -23,7 +23,6 @@ with no proof and the premises on the model parameters (the client's protobuf la
 -/
 module
 
-public import Perennial.Proof.errors.Link
 public import Perennial.Proof.sort.Link
 public import Proof.fmt.ErrorfErrs
 public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.ReadDir
@@ -617,7 +616,7 @@ theorem syscall.wp_Flock :
 
 theorem fmt.wp_ErrorfErrs :
     _root_.Perennial.EtcdGrove.fmt.ErrorfErrs.spec (GF := GF) (hG := hG) :=
-  _root_.Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof _root_.Perennial.errors.wp_New
+  _root_.Perennial.EtcdGrove.fmt.ErrorfErrs.wp_proof
 
 theorem os.wp_RemoveFileSncN :
     _root_.Perennial.EtcdGrove.os.Remove.specFileSncN (GF := GF) (hG := hG) :=

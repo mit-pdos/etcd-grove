@@ -5,16 +5,19 @@ The proof of `Spec/fmt/ErrorfErrs.lean`, over Perennial's model of `fmt.Errorf`
 
 Why the model may be used here, although its spec (`fmt.Errorf.spec`) admits only basic arguments:
 the model departs from Go by not calling the arguments' `Error()` methods while formatting. The
-premise gives, of every error argument, that its `Error()` returns some string (`errOk`, a WP that
-needs no resource), so Go's calls of them return without panicking, and Go's `Errorf` returns a
-non-nil error whose `Error()` returns some string (a `*fmt.wrapError`/`*fmt.wrapErrors` or an
-`*errors.errorString`): all the post says. The model's other departure (no wrapping) is invisible
-to a post that says only `errOk`. (2026-11-14.)
+premise (`fmt.errArgsWf`, `errOk` = `fmtErrorOk`) gives that Go calls only those `Error()` methods
+(no `Format`, no `%#v`, no reflection into an error's fields), each returning some string needing
+nothing, so the call touches no caller-owned memory and does not panic; Go's `Errorf` returns a non-nil
+`*fmt.wrapError`/`*fmt.wrapErrors`/`*errors.errorString` (`Error() string`, no `Format`): `errOk`,
+all the post says, which the model's `*errorString` also is (`errorString_fmtErrorOk`, from
+`errors.wp_New_errorString`'s exact type). The model's other departure (no wrapping) is invisible
+to a post that says only `errOk`. (2026-11-14; premise and post restated 2026-11-18, fmt soundness.)
 -/
 module
 
 public import Spec.fmt.ErrorfErrs
-public import Perennial.Spec.errors.New
+public import Perennial.Proof.errors.NewVar
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -32,19 +35,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [_root_.Perennial.fmt.Assumptions] [_root_.Perennial.errors.Assumptions]
 
-theorem fmt.ErrorfErrs.wp_proof
-    (wp_New : _root_.Perennial.errors.New.spec (GF := GF) (hG := hG)) :
+theorem fmt.ErrorfErrs.wp_proof :
     fmt.ErrorfErrs.spec (GF := GF) (hG := hG) := by
   intro format args_sl args errs _
   wp_start as _
-  wp_apply wp_New as %err ⟨-, #Herr⟩
+  wp_apply _root_.Perennial.errors.wp_New_errorString as %x #Herr
   iapply HΦ
-  iunfold errOk
-  imodintro
-  iintro %Φ HΦ
-  iapply Herr
-  inext
-  iapply HΦ
+  iapply errorString_errOk
+  iexact Herr
 
 end proof
 

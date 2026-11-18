@@ -8,6 +8,7 @@ module
 
 public import Spec.os.RenameAny
 public import Proof.os.RenameS
+public import Proof.os.ErrorOk
 @[expose] public section
 
 noncomputable section
@@ -43,10 +44,12 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
   · -- a directory at the target: Go's `EEXIST`, no `rename(2)`
     rw [decide_eq_true (show isDir = W64 1 from hd1)]
     wp_auto
-    wp_apply wp_linkError
-    iintro %le
+    wp_apply (os.wp_linkError_ok _ _ _ _ (hd hd1).2)
+    iintro %le #Hle
     iapply HΦ
     iframe Hp Hperm
+    isplitl []
+    · iapply fmtErrorOkOrNil_of $$ Hle
     ileft
     iframe Hn Hau
     ipureintro; exact ⟨fun hc => (by cases hc), Or.inr ⟨le, rfl⟩⟩
@@ -91,10 +94,12 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         wp_auto
         rw [decide_eq_false (show e ≠ W64 0 from he)]
         wp_auto
-        wp_apply wp_linkError
-        iintro %le
+        wp_apply (os.wp_linkError_ok _ _ _ _ he)
+        iintro %le #Hle
         iapply HΦ
         iframe Hp Hperm
+        isplitl []
+        · iapply fmtErrorOkOrNil_of $$ Hle
         iright
         iexists none
         iframe HQ
@@ -127,16 +132,20 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
         wp_auto
         iapply HΦ
         iframe Hp Hperm
+        isplitl []
+        · iapply fmtErrorOkOrNil_nil
         iright
         iexists some (x, s0)
         iframe HQ Hout
         ipureintro; exact ⟨fun _ => rfl, Or.inl rfl⟩
       rw [decide_eq_false (show e ≠ W64 0 from he0)]
       wp_auto
-      wp_apply wp_linkError
-      iintro %le
+      wp_apply (os.wp_linkError_ok _ _ _ _ he0)
+      iintro %le #Hle
       iapply HΦ
       iframe Hp Hperm
+      isplitl []
+      · iapply fmtErrorOkOrNil_of $$ Hle
       iright
       iexists some (x, s0)
       iframe HQ Hout
@@ -173,10 +182,12 @@ theorem os.Rename.wp_proofDirAnySnc : os.Rename.specDirAnySnc (GF := GF) (hG := 
     wp_auto
     rw [decide_eq_false (show e ≠ W64 0 from he)]
     wp_auto
-    wp_apply wp_linkError
-    iintro %le
+    wp_apply (os.wp_linkError_ok _ _ _ _ he)
+    iintro %le #Hle
     iapply HΦ
     iframe Hp Hperm
+    isplitl []
+    · iapply fmtErrorOkOrNil_of $$ Hle
     iright
     iexists some (x, sx)
     iframe HQ Hout

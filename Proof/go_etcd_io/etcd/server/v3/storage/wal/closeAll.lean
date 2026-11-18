@@ -11,7 +11,8 @@ public import Spec.os.File__Close
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Perennial.Spec.strings.Join
-public import Perennial.Spec.errors.New
+public import Perennial.Proof.errors.NewVar
+public import Proof.errors.ErrorStringOk
 
 @[expose] public section
 
@@ -88,8 +89,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
     (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
     (wp_Error : zap.Error.spec (GF := GF) (hG := hG))
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
-    (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG))
-    (wp_New : _root_.Perennial.errors.New.spec (GF := GF) (hG := hG)) :
+    (wp_Join : _root_.Perennial.strings.Join.spec (GF := GF) (hG := hG)) :
     go_etcd_io.etcd.server.v3.storage.wal.closeAll.spec (GF := GF) (hG := hG) := by
   intro lg sl rcs dq
   wp_start as ⟨#Hlg, #Hinv, Hsl, Hrcs⟩
@@ -190,19 +190,16 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.closeAll.wp_proof
     · try wp_auto
       wp_apply wp_Join $$ [Hw] as Hw
       · iframe
-      wp_apply wp_New as %e ⟨-, #He⟩
+      wp_apply _root_.Perennial.errors.wp_New_errorString as %x #He
       try wp_auto
       iapply HΦ
       iframe
       iright
-      iexists e
+      iexists _
       isplitr
       · ipureintro; rfl
-      unfold errOk
-      iintro !> %Φ' HΦ'
-      iapply He
-      inext
-      iapply HΦ'
+      iapply errorString_errOk
+      iexact He
 
 end proof
 

@@ -294,12 +294,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-        intro ii hii
-        right
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-        cases hii
-        simp) $$ [Hasl] as %e1 #He1
+    wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
       iexact He
@@ -356,12 +352,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
-      wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-          intro ii hii
-          right
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          cases hii
-          simp) $$ [Hasl] as %e1 #He1
+      wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+      case wf => errargs_wf
       · iframe
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He
@@ -412,12 +404,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
         with ⟨Hnc, Hu⟩
       imodintro
       iframe Hnc
-      wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-          intro ii hii
-          right
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          cases hii
-          simp) $$ [Hasl] as %e1 #He1
+      wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+      case wf => errargs_wf
       · iframe
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He

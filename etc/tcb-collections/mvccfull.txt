@@ -215,7 +215,6 @@ axiom dataDirFresh
 axiom dataDirsApart
 axiom dbFileAbsent
 axiom envVerifyOffTok
-axiom fmt.ErrorfWrap.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom goose_adequacy_start_files
 axiom heap.Init_.wp_proof

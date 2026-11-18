@@ -956,10 +956,44 @@ theorem rangeErrOther_facts (e kf kc : GoInterface) (hne : e ≠ GoInterface.nil
         %(by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) Hl
     · iapply Hvar $$ %go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTimeout %go!"etcdserver: request timed out"
         %(by unfold go_etcd_io.etcd.server.v3.etcdserver.errors.errorsMsgs; mem_tac) Ht
-  · -- the `rangeKeys` wrap: its description's prefix
+  · -- the `rangeKeys` wrap: Go's `*fmt.wrapError` (its description's prefix) or Perennial's model's
+    -- `*errors.errorString` (its message cell; H0, 2026-11-18)
     iunfold mvcc.rangeKeysErr at Hk
-    icases Hk with ⟨-, %Hpre, -⟩
-    obtain ⟨t, ht⟩ := Hpre
+    icases Hk with ⟨-, ⟨%ii, %inner, %Hii, #Hw, %Hpre⟩, -⟩
+    subst Hii
+    iunfold EtcdGrove.fmt.errorfWrapIs at Hw
+    icases Hw with (#HM | #HW)
+    · -- the model's: apart from mvcc's variables (the cells' messages differ), a leaf
+      iunfold EtcdGrove.fmt.modelErrIs at HM
+      icases HM with ⟨%y, %Hy, %s, #Hc, -⟩
+      subst Hy
+      iunfold EtcdGrove.errVarCell at CF CC
+      icases CF with ⟨%xf, #HF, #CFc⟩
+      icases CC with ⟨%xc, #HC, #CCc⟩
+      icombine Hkf HF gives %h1
+      icombine Hkc HC gives %h2
+      subst h1 h2
+      ihave %Hyf := EtcdGrove.errStrCell_ne y xf _ _
+        (fun h => absurd (congrArg List.head? h) (by simp)) $$ Hc CFc
+      ihave %Hyc := EtcdGrove.errStrCell_ne y xc _ _
+        (fun h => absurd (congrArg List.head? h) (by simp)) $$ Hc CCc
+      isplitr
+      · ipureintro
+        constructor
+        · intro h; apply Hyf; injection h with h; injection h with _ hv
+          exact go.intoVal_inj (V := Loc) hv
+        · intro h; apply Hyc; injection h with h; injection h with _ hv
+          exact go.intoVal_inj (V := Loc) hv
+      iintro #Hp
+      iunfold ctxPassed at Hp
+      have hl := EtcdGrove.errorString_errLeaf y
+      ihave #Hx' := Hp $$ %(⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #y⟩ : GoInterfaceOk)
+        %(And.intro rfl ⟨hl.2.1, hl.2.2.1⟩)
+      iapply Hcx $$ Hx'
+    -- Go's: its `Unwrap` method gives the description's prefix
+    iunfold EtcdGrove.fmt.wrapErrIs at HW
+    icases HW with ⟨%Hm, -, -⟩
+    obtain ⟨t, ht⟩ := Hpre Hm.2.1
     isplitr
     · ipureintro
       constructor

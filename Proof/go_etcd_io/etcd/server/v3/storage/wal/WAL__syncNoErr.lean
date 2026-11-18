@@ -95,7 +95,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_coreNE [os.file.FieldA
       [Henc Htw] as %err ⟨Henc, Hres⟩
   · iexact Hws
   · iframe; iframe #
-  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, HB⟩)
+  icases Hres with (⟨%Herr, Htw⟩ | ⟨%Herr, -, HB⟩)
   rotate_left
   · iexfalso; iexact HB
   subst Herr

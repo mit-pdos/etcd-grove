@@ -317,11 +317,7 @@ theorem walOpen_succ (jj : w64) (n : Nat) (hj0 : 0 ≤ sint.Z jj) (hn : n < 2 ^ 
 /-- A `fmtErrorOk` error is `errOk` (as `fileutil.errOk_of_fmtErrorOk`, a proof file's lemma). -/
 theorem walOpen_errOk (e : GoInterfaceOk) :
     fmtErrorOkOrNil (GF := GF) (GoInterface.ok e) ⊢ errOk e := by
-  unfold fmtErrorOkOrNil fmtErrorOk
-  iintro ⟨-, H⟩
-  unfold errOk
-  rw [fmt.stringMethodSpec_unfold]
-  iexact H
+  exact errOk_of_fmtErrorOkOrNil e
 
 /-- `os.OpenFile(d/b, flag, 0600)` of a file `b` of a claim, as `TryLockFile` takes it: the
 claim's resources lent and given back, the inode `i`. -/
@@ -537,12 +533,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] (by
-            intro ii hii
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-            rcases hii with hii | hii
-            · left; cases hii; exact argWf_string _
-            · right; cases hii; simp) $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
+        wp_apply wp_ErrorfT _ _ [interface.mkOk go.string #(child d b), interface.ok e] [e] ?wf $$ [Hasl] as %e1 ⟨#He1, #He1t⟩
+        case wf => errargs_wf
         · iframe
           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => iprop(errOk (GF := GF) e ∗
             errIsTerm (GoInterface.ok e)))).2
@@ -662,12 +654,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openWALFiles.wp_proof
         isplitr
         · ipureintro; rfl
         iintro %asl ⟨Hasl, -⟩
-        wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-            intro ii hii
-            right
-            simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-            cases hii
-            simp) $$ [Hasl] as %e1 #He1
+        wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+        case wf => errargs_wf
         · iframe
           iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
           iexact Hok

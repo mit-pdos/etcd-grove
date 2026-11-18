@@ -379,7 +379,7 @@ theorem txn.executeTxn.wp_proof
           -- `%w` of `rangeKeys`' error: no fact from Perennial's model (errorf-wrap)
           ihave #He2 := He
           iunfold mvcc.ctxErrorf at He2
-          ihave #Hxs := go_etcd_io.etcd.cache.v3.ctxWrapErr_stringMethodSpec x $$ He2
+          ihave #Hxs := go_etcd_io.etcd.cache.v3.ctxWrapErr_fmtErrorOk x $$ He2
           rw [show (go!"applyTxn: failed Range: %w" : GoString) = go!"applyTxn: failed Range: " ++ go!"%w" from rfl]
           wp_apply (hWrap go!"applyTxn: failed Range: " _ x (DFrac.own 1) (by decide))
             $$ [$Hfmt $Hasl $Hxs] as %e0 ⟨-, #Hw, -⟩
