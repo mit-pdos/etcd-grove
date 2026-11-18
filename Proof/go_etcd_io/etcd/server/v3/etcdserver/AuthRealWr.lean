@@ -1694,6 +1694,172 @@ theorem lk_reads (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
     · iunfold lkT; iexists bs; iframe Hl HR
     iapply schema.roleOutDX_are st _ u name dR hr $$ Hu
 
+/-- **Schema's batch transaction over the real backend meets the store's write contract** (`auth.authBatchTxLkR` in
+`on γa`, at the hook `f` with the hooks' resource `Pk`, the write token `T = authWTok ∗ Hk` and the write-back token):
+the lock token `lkT`, the session token half `bkSw`. -/
+theorem real_batchTxLkR
+    (hLk : schema.authBatchTx.Lock.spec (GF := GF) (hG := hG))
+    (hUn : schema.authBatchTx.Unlock.spec (GF := GF) (hG := hG))
+    (hPU : schema.authBatchTx.UnsafePutUser.spec (GF := GF) (hG := hG))
+    (hDU : schema.authBatchTx.UnsafeDeleteUser.spec (GF := GF) (hG := hG))
+    (hPR : schema.authBatchTx.UnsafePutRole.spec (GF := GF) (hG := hG))
+    (hDR : schema.authBatchTx.UnsafeDeleteRole.spec (GF := GF) (hG := hG))
+    (hSE : schema.authBatchTx.UnsafeSaveAuthEnabled.spec (GF := GF) (hG := hG))
+    (hSR : schema.authBatchTx.UnsafeSaveAuthRevision.spec (GF := GF) (hG := hG))
+    (hGU : schema.authBatchTx.UnsafeGetUser.spec (GF := GF) (hG := hG))
+    (hGR : schema.authBatchTx.UnsafeGetRole.spec (GF := GF) (hG := hG))
+    (hEn : schema.authBatchTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
+    (hRev : schema.authBatchTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
+    (hGA : schema.authBatchTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
+    (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hCm : backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG))
+    (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
+    (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hFE : backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hRB : receiptBound GF ≤ 2 ^ 48)
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) (hPw : d.P.Wf) (hP : schema.authHas d.P)
+    (l t lg : Loc) (hlg : lg ≠ null) (dq : DFrac) (f : GoFunc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ∗ realInv γ d s0 q0 ∗
+      schema.abtF go!"tx" l ↦□ (GoInterface.ok (btIface t) : GoInterface) ∗ schema.abtF go!"lg" l ↦□ lg ∗
+      □ (Hk -∗ plHookAt d.γB dq f ∗ (plHookAt d.γB dq f -∗ Hk)) ⊢
+      auth.authBatchTxLkR (abtIface l) (.on γ.γa) Pk f iprop(auth.authWTok γ.γc ∗ Hk) (wbTok d.γB)
+        (lkT γ d q0 W Pk Hk) (fun w => bkSw γ (1 : Qp).half w) := by
+  iintro ⟨#Hp1, #Hp2, #Hb, #Ht, #Hinv, #Htx, #Hlg, #Hhk⟩
+  ihave ⟨#Hrd, #HGUX, #HGRX⟩ := lk_reads hUR hFE hID hName hSafe hGU hGR hEn hRev hGA γ d q0 W Pk Hk l t lg hlg
+    $$ [$Hp1 $Hp2 $Hb $Ht $Htx $Hlg]
+  ihave #Hlock := lk_lock hLI γ d s0 q0 W Pk Hk t dq f $$ [$Hp1 $Hb $Ht $Hinv $Hhk]
+  ihave #Hunl := lk_unlock hUL hRB γ d s0 q0 W Pk Hk t $$ [$Hp1 $Hb $Ht $Hinv]
+  ihave #Hcom := lk_commit hCm γ d s0 q0 W Pk Hk t $$ [$Hp1 $Hb $Ht $Hinv]
+  iunfold auth.authBatchTxLkR
+  -- Lock
+  isplitr
+  · iintro !> %Pre %Q %Post !> %Φ ⟨Hcs, HT, HHk⟩ HΦ
+    wp_apply (hLk l (btIface t) iprop(srvApi.csContractA Pk f Pre Q Post ∗ auth.authWTok γ.γc ∗ Hk) _)
+      $$ [$Hp2 $Htx Hcs HT HHk] as H
+    · iframe Hcs HT HHk
+      iapply Hlock
+    iapply HΦ
+    iexact H
+  isplitr
+  · iexact Hrd
+  -- UnsafePutUser
+  isplitr
+  · iintro !> %st %X %u %ur %w !> %Φ ⟨Hlk, Hr1, Hsw, Hown, %Hc⟩ HΦ
+    obtain ⟨hw, hs, hk0, hk1, hutf⟩ := Hc
+    wp_apply (hPU l (btIface t) lg u ur iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗ bkSw γ (1 : Qp).half w)
+        iprop(lkT γ d q0 W Pk Hk (auth.putUser st ur.name ur.roles) X ∗
+          bkSw γ (1 : Qp).half { w with users := .puts }) hutf)
+      $$ [$Hp2 $Htx $Hlg $Hown Hlk Hr1 Hsw] as ⟨Hown, Hlk, Hsw⟩
+    · iframe Hlk Hr1 Hsw
+      iintro !> %bk %key %val !> %Ψ ⟨#Hg, #Hkey, #Hval, Hlk, Hr1, Hsw⟩ HΨ
+      ihave #Hbk := schema.authUsers_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
+      iapply (lk_put hUP hRB γ d q0 W Pk Hk t hPw mvcc.authUsersBI (by simp [authBktL, authUsersBI_name]) hP.2.1
+        ur.name (auth.userEncode ur) hk0 hk1 st (auth.putUser st ur.name ur.roles) X w { w with users := .puts }
+        (fun bs x k h hb => lkOk_putUser hPw hP.2.1 ur h hb hw hs)) $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ
+        [$Hbk $Hkey $Hval $Hlk $Hr1 $Hsw] HΨ
+    iapply HΦ
+    iframe Hown Hlk Hsw
+  -- UnsafeDeleteUser
+  isplitr
+  · iintro !> %st %X %name %w !> %Φ ⟨Hlk, Hr1, Hsw, %Hc⟩ HΦ
+    wp_apply (hDU l (btIface t) name iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗ bkSw γ (1 : Qp).half w)
+        iprop(lkT γ d q0 W Pk Hk (auth.delUser st name) X ∗ bkSw γ (1 : Qp).half { w with users := .dels }))
+      $$ [$Hp2 $Htx Hlk Hr1 Hsw] as ⟨Hlk, Hsw⟩
+    · iframe Hlk Hr1 Hsw
+      iintro !> %bk %key !> %Ψ ⟨#Hg, Hkey, Hlk, Hr1, Hsw⟩ HΨ
+      ihave #Hbk := schema.authUsers_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
+      iapply (lk_del hDel hRB γ d q0 W Pk Hk t hPw mvcc.authUsersBI (by simp [authBktL, authUsersBI_name]) hP.2.1
+        name st (auth.delUser st name) X w { w with users := .dels }
+        (fun bs x k h hb => lkOk_delUser name h hb Hc)) $$ [$Hp1 $Hb $Ht] %bk %key %Ψ
+        [$Hbk $Hkey $Hlk $Hr1 $Hsw] HΨ
+    iapply HΦ
+    iframe Hlk Hsw
+  -- UnsafePutRole
+  isplitr
+  · iintro !> %st %X %r %rr %ps %w !> %Φ ⟨Hlk, Hr1, Hsw, Hown, %Hc⟩ HΦ
+    obtain ⟨hw, hk0, hk1, hp⟩ := Hc
+    wp_apply (hPR l (btIface t) lg r rr iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗ bkSw γ (1 : Qp).half w)
+        iprop(lkT γ d q0 W Pk Hk (auth.putRole st rr.name ps) X ∗
+          bkSw γ (1 : Qp).half { w with roles := .puts }))
+      $$ [$Hp2 $Htx $Hlg $Hown Hlk Hr1 Hsw] as ⟨Hown, Hlk, Hsw⟩
+    · iframe Hlk Hr1 Hsw
+      iintro !> %bk %key %val !> %Ψ ⟨#Hg, #Hkey, #Hval, Hlk, Hr1, Hsw⟩ HΨ
+      ihave #Hbk := schema.authRoles_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
+      iapply (lk_put hUP hRB γ d q0 W Pk Hk t hPw mvcc.authRolesBI (by simp [authBktL, authRolesBI_name]) hP.2.2
+        rr.name (auth.roleEncode rr) hk0 hk1 st (auth.putRole st rr.name ps) X w { w with roles := .puts }
+        (fun bs x k h hb => lkOk_putRole hPw hP.2.2 rr ps h hb hw hp)) $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ
+        [$Hbk $Hkey $Hval $Hlk $Hr1 $Hsw] HΨ
+    iapply HΦ
+    iframe Hown Hlk Hsw
+  -- UnsafeDeleteRole
+  isplitr
+  · iintro !> %st %X %name %w !> %Φ ⟨Hlk, Hr1, Hsw, %Hc⟩ HΦ
+    wp_apply (hDR l (btIface t) name iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 ∗ bkSw γ (1 : Qp).half w)
+        iprop(lkT γ d q0 W Pk Hk { st with roles := GMap.delete name st.roles } X ∗
+          bkSw γ (1 : Qp).half { w with roles := .dels }))
+      $$ [$Hp2 $Htx Hlk Hr1 Hsw] as ⟨Hlk, Hsw⟩
+    · iframe Hlk Hr1 Hsw
+      iintro !> %bk %key !> %Ψ ⟨#Hg, Hkey, Hlk, Hr1, Hsw⟩ HΨ
+      ihave #Hbk := schema.authRoles_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
+      iapply (lk_del hDel hRB γ d q0 W Pk Hk t hPw mvcc.authRolesBI (by simp [authBktL, authRolesBI_name]) hP.2.2
+        name st { st with roles := GMap.delete name st.roles } X w { w with roles := .dels }
+        (fun bs x k h hb => lkOk_delRole name h hb Hc)) $$ [$Hp1 $Hb $Ht] %bk %key %Ψ
+        [$Hbk $Hkey $Hlk $Hr1 $Hsw] HΨ
+    iapply HΦ
+    iframe Hlk Hsw
+  -- UnsafeSaveAuthEnabled
+  isplitr
+  · iintro !> %st %X %b !> %Φ ⟨Hlk, Hr1⟩ HΦ
+    wp_apply (hSE l (btIface t) b iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1)
+        iprop(lkT γ d q0 W Pk Hk { st with enabled := b } X))
+      $$ [$Hp2 $Htx Hlk Hr1] as Hlk
+    · iframe Hlk Hr1
+      iintro !> %bk %key %val !> %Ψ ⟨#Hg, #Hkey, #Hval, Hlk, Hr1⟩ HΨ
+      ihave #Hbk := schema.auth_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
+      iapply (lk_putA hUP hRB γ d q0 W Pk Hk t hPw mvcc.authBI (by simp [authBktL, authBI_name]) hP.1
+        schema.authEnabledKey (if b then [W8 1] else [W8 0]) (by decide) (by decide) st { st with enabled := b } X
+        (fun bs x w k h hb => lkOk_putAuth hPw hP.1 _ _ h hb rfl rfl (authAt_enabled b)))
+        $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ [$Hbk $Hkey $Hval $Hlk $Hr1] HΨ
+    iapply HΦ
+    iexact Hlk
+  -- UnsafeSaveAuthRevision
+  isplitr
+  · iintro !> %st %X %rev !> %Φ ⟨Hlk, Hr1⟩ HΦ
+    wp_apply (hSR l (btIface t) rev iprop(lkT γ d q0 W Pk Hk st X ∗ ⧗ 1)
+        iprop(lkT γ d q0 W Pk Hk { st with revision := uint.nat rev } X))
+      $$ [$Hp2 $Htx Hlk Hr1] as Hlk
+    · iframe Hlk Hr1
+      iintro !> %bk %key %val !> %Ψ ⟨#Hg, #Hkey, #Hval, Hlk, Hr1⟩ HΨ
+      ihave #Hbk := schema.auth_isBucket hID hName hSafe bk $$ [$Hp2 $Hg]
+      iapply (lk_putA hUP hRB γ d q0 W Pk Hk t hPw mvcc.authBI (by simp [authBktL, authBI_name]) hP.1
+        schema.authRevisionKey (u64Be rev) (by decide) (by decide) st { st with revision := uint.nat rev } X
+        (fun bs x w k h hb => lkOk_putAuth hPw hP.1 _ _ h hb rfl rfl (authAt_revision rev)))
+        $$ [$Hp1 $Hb $Ht] %bk %key %val %Ψ [$Hbk $Hkey $Hval $Hlk $Hr1] HΨ
+    iapply HΦ
+    iexact Hlk
+  -- Unlock
+  isplitr
+  · iintro !> %st %X %w !> %Φ ⟨Hlk, Hsw, HI, Hw1, Hw2⟩ HΦ
+    wp_apply (hUn l (btIface t)
+        iprop(lkT γ d q0 W Pk Hk st X ∗ bkSw γ (1 : Qp).half w ∗ auth.authLockI (.on γ.γa) st ∗
+          wbTok d.γB ∗ wbTok d.γB)
+        (unC γ d q0 Hk X) iprop(X ∗ auth.authWTok γ.γc ∗ Hk))
+      $$ [$Hp2 $Htx Hlk Hsw HI Hw1 Hw2] as H
+    · iframe Hlk Hsw HI Hw1 Hw2
+      isplitl
+      · iapply Hunl
+      · iapply Hcom
+    iapply HΦ
+    iexact H
+  iframe HGUX HGRX
+
 end wr
 
 end authReal
