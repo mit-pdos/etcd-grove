@@ -1,6 +1,34 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 f, step B: option (C) done; WAL + WalTester + durable build; lean merged; full build)
+## START HERE (2026-11-18 g, per-area WalGS done; L3 STOPPED at a blocker: the snapshot room budget)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** the option (C) forms ACCEPTED; next per-area WalGS, then L3.
+- **Done:** 3f2e245eb1 one `WalGS` per area: `walBoot0` takes the claims held (`Js`, `hjr : jr ∈ Js`; it was the
+  boot tree's list), new `walBoot0s` (each area of a list `As` in turn: its own `WalGS`, lock and crash tokens,
+  `walAreaOk`/`walAreaRes`; back the claims no area took); WalTester's `Boot0` passes the tree's list. Nothing
+  else was global: `WalGS` already came per `walBoot0` call (`absDisk_local_init`); `walN` is shared but no proof
+  opens two areas' invariants at once. lean-check 0 errors (Boot0, WalTester Boot0). Multi-area crash (one
+  `crashRest` per crash) is L6's.
+- **BLOCKER (STOP, for etcd-grove-03):** L1a's (A) SaveSnapshot budget (`walUsed γ u`, `u + snapRoom ≤ 2^42`
+  since the last writing `Save`) is not dischargeable by the server: the apply thread saves a snapshot record per
+  applied batch (`appliedi - diskSnapshotIndex > SnapshotCount`), raft hands a commit backlog out over many
+  `Ready`s with empty hard state and entries (whose `Save` writes nothing), so the records between two writing
+  `Save`s are bounded only by the commit backlog, which nothing bounds (raft's room: `2^61`). The Go code really
+  hits `EFBIG` there (16 TiB tail, `lg.Panic`): `nonissues/etcd-wal-savesnapshot-tail-efbig.md`. Options in
+  questions.md (2026-11-18, OPEN "the snapshot room budget").
+- **Next after the decision:** L3 (scope §3.5): the handle record `WalH` (instances, `Sio` with `walCov`, `W`,
+  `R jr r`, `w`, `dir`, `γ : WalShN`, the base's ghost name) in `St/WalRecs.lean`; the vocabulary redefined in place
+  over it; the server-statement stop with exact old → new.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`
+  (`--fast` can hide errors: re-check without it, or build). **Build:**
+  `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]`.
+- **Pitfalls:** previous START HERE (History, f).
+
+## History
+
+### START HERE (2026-11-18 f, step B: option (C) done; WAL + WalTester + durable build; lean merged; full build)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 (origin's big merge) merged (898bd6d54d);
   pin still 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
@@ -26,7 +54,6 @@
   sealed W.roots keys: `walPerm_toW/ofW hWR`; `subst Rp'` may pick the wrong equation (use `subst hRp` by name);
   `e.orFile.d` vs `e.orDir` is defeq but not reducible: `osCallPerm_congr qc (show … from rfl)`.
 
-## History
 
 ### START HERE (2026-11-18 e, step B: option (b) done; os + fileutil converted; WAL started; STOP for the handle-roots form)
 
