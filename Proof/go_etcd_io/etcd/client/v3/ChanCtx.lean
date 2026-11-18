@@ -118,7 +118,9 @@ header). -/
 theorem canceledOk_of_init
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) (e : GoInterface) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗ globalAddr context.Canceled ↦□ e ⊢
-      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e ∗ errCellOk e := by
+      ⌜e ≠ GoInterface.nil ∧ clientErr e⌝ ∗ statusErrOk e ∗ errCellOk e ∗
+      (∃ e' : GoInterfaceOk, ⌜e = GoInterface.ok e' ∧ ctxErrShape e'⌝ ∗
+        errorMsgIs e' go!"context canceled") := by
   iintro ⟨#Pctx, #He⟩
   ihave Hci : (context.isInit : IProp GF) $$ []
   · iapply context.isInit_access $$ Pctx
@@ -143,7 +145,13 @@ theorem canceledOk_of_init
   isplitr
   · ipureintro; exact ⟨nofun, Hc⟩
   iframe Hs
-  iapply errCellOk_of_cell x _ (by simp [clientErrMsgs]) $$ Hcell
+  isplitl []
+  · iapply errCellOk_of_cell x _ (by simp [clientErrMsgs]) $$ Hcell
+  -- (incomingof Part B) its message and shape
+  iexists ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩
+  isplitl []
+  · ipureintro; exact ⟨rfl, hty, hl.2.2⟩
+  · iapply client.errorMsgIs_errorString $$ Hcell
 
 /-- **A `channelContext` over a broadcast channel is a context the client takes** (see the file
 header): `ctxOk` (its third case, `ctxErrs`: since premise fixes 5 also `Done()`, which returns
@@ -162,8 +170,6 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
   iintro ⟨#Pw, #Hint⟩
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
   · iPkgInit
-  -- (k8s etcd3 7c-2 part 2, S7) `Canceled`'s description, neither read error's
-  ihave ⟨⟨%ec3, #Hec3, %Hdc⟩, -⟩ := EtcdGrove.ContextReadErrs.descs $$ Pctx
   -- (premise fixes 5) `Done()` returns `stopCh`, a broadcast channel whose done flag is the
   -- descriptor's closed flag
   ihave #HDn : ctxDone (chanCtxVal sc) (chanCd γi) $$ []
@@ -202,8 +208,8 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
       · ipureintro; exact ⟨hAs, fun ii h => by cases h⟩
       · iapply go_etcd_io.etcd.cache.v3.statusErrOk_nil
       · iapply go_etcd_io.etcd.cache.v3.errCellOk_nil
-      · ipureintro; left; rfl
-    · ihave ⟨%Hne, #Hs, #Hcell⟩ := canceledOk_of_init hAs err $$ [Pctx Hc]
+      · ileft; ipureintro; rfl
+    · ihave ⟨%Hne, #Hs, #Hcell, #Hmsg⟩ := canceledOk_of_init hAs err $$ [Pctx Hc]
       · iframe Pctx Hc
       iapply HΦ
       · rcases cl with _ | _ | _ <;> dsimp only
@@ -213,12 +219,13 @@ theorem chanCtx_ok [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
       · ipureintro; exact Hne.2
       · iexact Hs
       · iexact Hcell
-      · icombine Hc Hec3 gives %Heq3
-        subst Heq3
-        ipureintro; right
-        simp only [handlerDescs, List.mem_cons, List.mem_singleton, List.not_mem_nil, or_false,
-          not_or, Hdc]
-        decide
+      · -- (incomingof Part B) `Error()` returns `"context canceled"`, of a context error's shape
+        icases Hmsg with ⟨%e', %He', #Hm'⟩
+        iright; iexists e', go!"context canceled"
+        isplitl []
+        · ipureintro
+          exact ⟨He'.1, Or.inl rfl, He'.2⟩
+        · iexact Hm'
   -- (premise fixes 8, N1) `Deadline()` returns `(zero, false)`
   ihave #HDl : ctxDeadline (chanCtxVal sc) $$ []
   · unfold ctxDeadline
