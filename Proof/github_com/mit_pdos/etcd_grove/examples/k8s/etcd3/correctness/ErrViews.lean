@@ -38,6 +38,7 @@ namespace EtcdGrove
 namespace k8s_correctness
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8sDeep
+open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input)
 
 section pure
 variable [GooseExts]
@@ -89,6 +90,92 @@ theorem notFound_shape (e : RErr) (h : isNotFoundE e = true) :
   rcases e with d | _ | _ <;> simp [isNotFoundE] at h
   cases d <;> simp at h ⊢
   exact h
+
+/-! The model's responses (`rexecL`): flat errors, nil-or-list objects for a list. -/
+
+/-- **A deep error the model makes** (create, update, delete, get): flat and deep. -/
+def modelDeepE (m : RM) (key : GoString) (e : RErr) : Prop :=
+  e = .none ∨ e = existsE m key ∨ e = notFoundE m key ∨ (∃ msg, e = invalidE m key msg) ∨
+    e = updRejE ∨ e = delRejE
+
+theorem modelDeepE_flat (m : RM) (key : GoString) (e : RErr) (h : modelDeepE m key e) :
+    flatE e ∧ deepErrE e := by
+  rcases h with rfl | rfl | rfl | ⟨msg, rfl⟩ | rfl | rfl <;> exact ⟨trivial, trivial⟩
+
+theorem rcreateL_err (x : Input) (m : RM) :
+    (rcreateL x m).1.err = .other ∨ modelDeepE m (k8s_etcd3.storeKeyL x.Key') (rcreateL x m).1.err := by
+  unfold rcreateL failR modelDeepE; dsimp only; (repeat' split) <;> simp
+
+theorem rdeleteL_err (x : Input) (m : RM) :
+    (rdeleteL x m).1.err = .other ∨ modelDeepE m (k8s_etcd3.storeKeyL x.Key') (rdeleteL x m).1.err := by
+  unfold rdeleteL failR modelDeepE; dsimp only; (repeat' split) <;> first | (simp; done) | exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨_, rfl⟩))))
+
+theorem rupdateL_err (x : Input) (m : RM) :
+    (rupdateL x m).1.err = .other ∨ modelDeepE m (k8s_etcd3.storeKeyL x.Key') (rupdateL x m).1.err := by
+  unfold rupdateL failR updWriteL modelDeepE; dsimp only; (repeat' split) <;> first | (simp; done) | exact Or.inr (Or.inr (Or.inr (Or.inr (Or.inl ⟨_, rfl⟩))))
+
+theorem rgetL_err (x : Input) (m : RM) :
+    (rgetL x m).err = .other ∨ (rgetL x m).err = tooLargeE ∨
+      modelDeepE m (k8s_etcd3.storeKeyL x.Key') (rgetL x m).err := by
+  unfold rgetL modelDeepE; dsimp only; (repeat' split) <;> simp
+
+theorem rlistL_err (x : Input) (m : RM) :
+    (rlistL x m).err = .other ∨ (rlistL x m).err = tooLargeE ∨ (rlistL x m).err = .none := by
+  unfold rlistL; dsimp only; (repeat' split) <;> simp
+
+theorem rexecL_flat (x : Input) (m : RM) (h : (rexecL x m).1.err ≠ .other) :
+    flatE (rexecL x m).1.err := by
+  unfold rexecL at h ⊢
+  by_cases k4 : x.Kind' = W64 4
+  · simp only [k4, ↓reduceIte] at h ⊢
+    rcases rlistL_err x m with e | e | e
+    · exact absurd e h
+    · rw [e]; trivial
+    · rw [e]; trivial
+  by_cases k0 : x.Kind' = W64 0
+  · simp only [k4, k0, ↓reduceIte] at h ⊢
+    rcases rcreateL_err x m with e | e
+    · exact absurd e h
+    · exact (modelDeepE_flat _ _ _ e).1
+  by_cases k1 : x.Kind' = W64 1
+  · simp only [k4, k0, k1, ↓reduceIte] at h ⊢
+    rcases rdeleteL_err x m with e | e
+    · exact absurd e h
+    · exact (modelDeepE_flat _ _ _ e).1
+  by_cases k2 : x.Kind' = W64 2
+  · simp only [k4, k0, k1, k2, ↓reduceIte] at h ⊢
+    rcases rupdateL_err x m with e | e
+    · exact absurd e h
+    · exact (modelDeepE_flat _ _ _ e).1
+  · simp only [k4, k0, k1, k2, ↓reduceIte] at h ⊢
+    rcases rgetL_err x m with e | e | e
+    · exact absurd e h
+    · rw [e]; trivial
+    · exact (modelDeepE_flat _ _ _ e).1
+
+theorem rexecL_write_deep (x : Input) (m : RM) (hw : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2)
+    (h : (rexecL x m).1.err ≠ .other) : deepErrE (rexecL x m).1.err := by
+  have h4 : x.Kind' ≠ W64 4 := by rcases hw with e | e | e <;> rw [e] <;> decide
+  unfold rexecL at h ⊢
+  by_cases k0 : x.Kind' = W64 0
+  · simp only [h4, k0, ↓reduceIte] at h ⊢
+    rcases rcreateL_err x m with e | e
+    · exact absurd e h
+    · exact (modelDeepE_flat _ _ _ e).2
+  by_cases k1 : x.Kind' = W64 1
+  · simp only [h4, k0, k1, ↓reduceIte] at h ⊢
+    rcases rdeleteL_err x m with e | e
+    · exact absurd e h
+    · exact (modelDeepE_flat _ _ _ e).2
+  have k2 : x.Kind' = W64 2 := by rcases hw with e | e | e <;> simp_all
+  simp only [h4, k0, k1, k2, ↓reduceIte] at h ⊢
+  rcases rupdateL_err x m with e | e
+  · exact absurd e h
+  · exact (modelDeepE_flat _ _ _ e).2
+
+theorem rlistL_listOrNil (x : Input) (m : RM) : listOrNilD (rlistL x m).obj := by
+  unfold rlistL; dsimp only
+  (repeat' split) <;> simp [listOrNilD]
 
 end pure
 
