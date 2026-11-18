@@ -8,6 +8,31 @@ fail, where one is needed; every such change is reported to the user.
 Supersedes the backend table of `notes/bbolt-spec-decisions.md` ("The backend: each `_kv` axiom
 against the new specs"), written before begin-tok and the port onto `fsExt`.
 
+## Where it ends (2026-11-18, branch `bbolt-integrate` `6a8e0ff85a`, not landed)
+
+- **Gone:** every `bbolt.*_kv` spec (all 20 deleted; the backend calls bbolt's canonical specs, one
+  per function, S6); the backend's axiomatized bbolt predicates and laws; `fileHolds`, `dbFile`; the
+  option axioms and the two `Options` `sorry`s (S2); `goose_adequacy_start_files`; `os.Rename`'s
+  axiom (S5); `snapshot.WriteTo/Size/Close` (S4b). Global trust base 892 → about 810 axioms, 4 → 2
+  `sorry`s; `putget3` 647 → about 594.
+- **Kept, bbolt-related:** `backend.backend.Snapshot.wp_proof` (translated, unproved: a pool of `b.mu`
+  reader slots and commits that help waiting snapshots, S4b); `storage.OpenBackend.wp_proof` (sound:
+  consumes the concrete file, gives what `backend.New` gives, S5); the new stdlib trust-boundary
+  specs `io.CopyN`, `io.NewSectionReader` (S4, not yet independently reviewed).
+- **Closed theorems changed:** the 25 etcd/k8s theorems run over `etcdFsSem` (no I/O, `flock`,
+  `mmap`, `madvise`, fd-exhaustion failure on any file) instead of `fs_semantics`; mvccrand/mvccfull
+  run `Run(cfg at r/…)` over the file model, with `dbOpenOk`/`dbCloseOk`/`dbFilesAbsent` replaced by
+  `FsInit` and a root `r` without their files (they were vacuous over the trivial extension, S3e).
+- **Pending the user's review:** the trusted file-model changes (`NoMapLockErr` and its
+  `open`/`madvise` clauses, the `mmap` stall rule `MmapStall`, the `madvise` operation); `io.CopyN`,
+  `io.NewSectionReader`; S1b's `etcdKeyMax` and two encoding-length facts; `io.writerOk`'s
+  `fmtErrorOkOrNil`; gate configuration (axiom-tok trunc entries, layout baselines, reader-slot floor).
+- **Open:** the etcd examples' data directories are relative, so the server's first file claims come
+  from `bootstrapContract` over the abstract `dataDirFresh` (concrete claims from an abstract token: a
+  premise that may be undischargeable); grounding them needs the examples to take an absolute root
+  (a change to our example Go code: the user's call). About 180 pre-existing functions elsewhere
+  still have several specs (S6's inventory).
+
 ## Where it starts (`origin/lean` `d09e1d0ab5`)
 
 * The proved bbolt: its API (`Spec/go_etcd_io/bbolt/Api.lean`, sealed `isBolt`, `boltState`, `boltTx`,
