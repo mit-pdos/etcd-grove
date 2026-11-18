@@ -493,6 +493,7 @@ section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
 
 /-- **A network's names, allocated** for the members `S` (the closed theorem's, once per
 cluster): its payload and directory chosen, a slot per member, the streams' registry (empty;
