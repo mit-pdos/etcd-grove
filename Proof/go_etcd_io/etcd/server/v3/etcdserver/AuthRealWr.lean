@@ -1380,6 +1380,98 @@ theorem lk_lock (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (
     iapply HΦ
     iexact H
 
+/-- **Between the backend's `Unlock()` and `Commit()`** (schema's `Unlock` makes both calls): `X`, the hook's share,
+the rest of the open share and the second write-back token; the batch token at the writer's contents with the lock's
+share of the history (`unRr'`, from the confirmation), the claimed part idle, the session token whole. -/
+def unC (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (Hk X : IProp GF) : IProp GF :=
+  iprop(∃ (bs : BSess) (st : auth.AuthState) (hs : List auth.AuthState) (w : auth.AuthSess),
+    X ∗ Hk ∗ bOpen d.γB q0 ∗ wbTok d.γB ∗ unRr' γ bs st hs ∗
+    rbOwnInR d.γB (fun n => n ∈ authBktL) (rbData d.P bs.S) ∗ bkSw γ 1 w ∗
+    ⌜viewAt (auth.BkView.uni st) (authD bs.S)⌝)
+
+/-- **The backend's `Unlock()`** under the lock token, with the session token, the lock's share of the history at the
+token's state and two write-back tokens: the claimed part handed in with the windows (`real_acc`) and the
+confirmation (`real_conf`) around the invariant; the session changed nothing the readers see (`viewSame`). -/
+theorem rbClaimN_authReal : (↑rbClaimN : CoPset) ⊆ ⊤ \ ↑authRealN := by
+  unfold authRealN
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  exact ⟨CoPset.mem_full, fun h' => ndot_ne_disjoint nroot (by decide : "backend" ≠ "authReal") p
+    ⟨nclose_subseteq (nroot.@"backend") "rbclaim" p hp, h'⟩⟩
+
+theorem lk_unlock (hUL : backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG))
+    (hRB : receiptBound GF ≤ 2 ^ 48)
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) (t : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ∗ realInv γ d s0 q0 ⊢
+      ∀ (st : auth.AuthState) (X : IProp GF) (w : auth.AuthSess),
+        {{ lkT γ d q0 W Pk Hk st X ∗ bkSw γ (1 : Qp).half w ∗ auth.authLockI (.on γ.γa) st ∗
+            wbTok d.γB ∗ wbTok d.γB }}
+          (App (Val #(methods (btIface t).ty go!"Unlock" (btIface t).v)) (Val #()))
+        {{ RET #(); unC γ d q0 Hk X }} := by
+  iintro ⟨#Hpkg, #Hb, #Ht, #Hinv⟩ %st %X %w !> %Φ ⟨Hlk, Hsw, HI, Hw1, Hw2⟩ HΦ
+  icases isBackend_b d.γB d.P W Pk d.be $$ Hb with ⟨%t', %rt, %db, %lg, -, -, -, -, -, -, -, -, -, -, -, %HPw⟩
+  iunfold lkT at Hlk
+  icases Hlk with ⟨%bs, Hl, HR⟩
+  iunfold lkR at HR
+  icases HR with ⟨%x, %w0, %k, Hrp, Hx, Hsw0, Hq, HW, HPk, HHk, HX, Hrk, %Hok⟩
+  iunfold bkSw at Hsw Hsw0
+  icombine Hsw Hsw0 gives %Hwe
+  have hww : w = w0 := encW_sess Hwe.2
+  subst hww
+  ihave Hswf : bkSw γ 1 w $$ [Hsw Hsw0]
+  · iunfold bkSw; iapply (ghostVar_split_half γ.γw 1 _).2; iframe Hsw Hsw0
+  simp only [auth.authLockI, auth.authLockShare, auth.histLast]
+  icases HI with ⟨%hs, Hlq, %hl⟩
+  imod receipt_snapshot k $$ Hrk with ⟨-, #Hpr⟩
+  ihave %Hlt := preceipt_lt k $$ Hpr
+  have hroom : sint.Z bs.pend + d.P.hookMax < 2 ^ 58 := by
+    have := Hok.pend; have := HPw.2.2.1; have := HPw.2.2.2.1
+    omega
+  ihave #Hacc := real_acc γ d s0 q0 bs st hs Hok.view $$ Hinv
+  ihave Hcf := real_conf γ d s0 q0 bs st hs Hok.view $$ Hinv
+  ihave Hrb := rbPart_none (hG := hG) d.γB (∅ : GMap GoString BktData)
+  ihave HRr : unRr γ bs st hs $$ [Hx Hlq]
+  · iunfold unRr; iexists x; iframe Hx Hlq; ipureintro; exact ⟨hl, Hok.tkOk⟩
+  icases viewSame_thin (hG := hG) d.γB d.P bs Hok.vs with ⟨#Hth, %Hwe0⟩
+  wp_apply (hUL d.γB d.P W Pk d.be t bs iprop(X ∗ Hk ∗ bOpen d.γB q0 ∗ bkSw γ 1 w) (fun _ => False) ∅ authBktL
+      (rbData d.P bs.S) (unRr γ bs st hs) (unRr' γ bs st hs) (⊤ ∖ ↑authRealN) rbClaimN_authReal Hok.hw hroom
+      (by decide) Hok.cw)
+    $$ [$Hb $Ht $Hl $Hw1 $Hrb $Hrp $HRr $Hacc $Hcf HW HPk HX HHk Hq Hswf] as ⟨⟨HX, HHk, Hq, Hswf⟩, -, Hro, HRr'⟩
+  · ileft
+    iframe Hth HW HPk HX HHk Hq Hswf
+    ipureintro; exact Hwe0
+  iapply HΦ
+  iunfold unC
+  iexists bs, st, hs, w
+  iframe HX HHk Hq Hw2 HRr' Hro Hswf
+  ipureintro; exact Hok.view
+
+/-- **The backend's `Commit()`** after `Unlock()`: commits (nothing pending), then the batch ends in the invariant
+(`real_return`): the buckets idle at the session's state, the write token back. -/
+theorem lk_commit (hCm : backend.batchTxBuffered.Commit.spec (GF := GF) (hG := hG))
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) (t : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ∗ realInv γ d s0 q0 ⊢
+      ∀ X : IProp GF,
+        {{ unC γ d q0 Hk X }}
+          (App (Val #(methods (btIface t).ty go!"Commit" (btIface t).v)) (Val #()))
+        {{ RET #(); X ∗ auth.authWTok γ.γc ∗ Hk }} := by
+  iintro ⟨#Hpkg, #Hb, #Ht, #Hinv⟩ %X !> %Φ HC HΦ
+  iunfold unC at HC
+  icases HC with ⟨%bs, %st, %hs, %w, HX, HHk, Hq, Hw, HRr', Hro, Hsw, %Hv⟩
+  iunfold unRr' at HRr'
+  icases HRr' with ⟨Hx, Hlq, %hl⟩
+  iapply wp_fupd
+  wp_apply (hCm d.γB d.P W Pk d.be t q0 iprop(True) iprop(True)) $$ [$Hb $Ht $Hq $Hw] as ⟨Hq, -⟩
+  · isplitr
+    · itrivial
+    iapply commitReq_true
+  imod real_return γ d s0 q0 bs st hs w Hv hl $$ [$Hinv $Hx $Hlq $Hro $Hsw $Hq] with HT
+  imodintro
+  iapply HΦ
+  iframe HX HT HHk
+
 end wr
 
 end authReal
