@@ -1,688 +1,442 @@
 # Scope: the per-heap redesign — pointer-keyed pure functions become per-run Iris relations
 
-**Status: SCOPE, revision 2 (after independent review 1, `/shared/tmp/perheap/review-1.md`), for a second
-independent review, then the user (hard stop). No Lean changed in the tree.** Approved to be written
-by the user 2026-11-18 via etcd-grove-03. Revision 2 answers every item of review 1 (§9 maps each item to
-its answer); revision 1 is commit `dda8f5f7d8`. Branch `perheap-scope` off `lean` `49bd7924e6` (worktree
-`/shared/etcd-grove-incomingof`), the perheap agent of etcd-grove-03. Background: `notes/axiom-review/
-ctx-descs.md`, `notes/axiom-review/incomingof.md` (Part A refuted), `notes/axiom-review/incomingof-b.md`
-(Part B, T1–T8'), `notes/incomingof-crossworld.md`, `notes/fromerror-wand.md`, `notes/incomingof-scope.md`
-(§0, A-D, Q1). Lean probes (throwaway, not in the tree), checked with `lake env lean` at this head, no errors: the
-incoming side `/shared/tmp/perheap/Probe.lean`, the errors side `/shared/tmp/perheap/ProbeErr.lean` (§2.4).
+**Status: SCOPE, revision 3 (after independent review 2, `/shared/tmp/perheap/review-2.md`), for a short
+independent check, then implementation (hard stop). No Lean changed in the tree.** Branch `perheap-scope`
+off `lean` `49bd7924e6` (worktree `/shared/etcd-grove-incomingof`), the perheap agent of etcd-grove-03.
+Revision 1: `dda8f5f7d8`; revision 2: `3b10ff2b93` (its full inventory and old→new tables for the errors and
+outgoing parts stand as the outline of Part II). Background: `notes/axiom-review/ctx-descs.md`,
+`notes/axiom-review/incomingof.md` (Part A refuted), `notes/axiom-review/incomingof-b.md`,
+`notes/incomingof-crossworld.md`, `notes/fromerror-wand.md`, `notes/incomingof-scope.md`.
 
-**The goal (the user's):** no trusted text concludes a pure fact about a pointer-typed value. Replace the
-opaque Lean functions of a heap-dependent value (`metadata.incomingOf`, `metadata.outgoingOf`,
-`errDesc`, `statusCode`, and the rest of the family, §1.3) by per-run Iris relations, so that every pure
-fact a trusted text gives is about a value fixed in a precondition or returned by the call (a string, a
-metadata map value, a code), never an equation about an opaque function of a pointer.
+**The user's decisions, 2026-11-18 (via etcd-grove-03):**
+
+1. **H0 is no longer part of this redesign.** A separate branch (fmt-soundness) lands it now:
+   `fmt.ErrorfWrap` restated and **proved** (review 2's H0′: `wp_New_errorString_cell`, 20 lines; the axiom
+   leaves the trust base) plus a term-level `Errorf` gate. Revision 2's §5a (H0) is withdrawn from this
+   Scope; F1 is that branch's (§9).
+2. **Incoming first, then decide.** This redesign proceeds with **step 0 and the incoming part only**:
+   the two refuted axioms `incomingOf_cancelCtx` and `v3rpc.incomingOf_cancellableContext` become theorems,
+   `metadata.incomingOf` goes. The errors and outgoing parts come back to the user afterwards (Part II
+   records their state and review 2's findings, no detail).
+
+**The goal (the user's):** no trusted text concludes a pure fact about a pointer-typed value. Opaque Lean
+functions of a heap-dependent value become per-run Iris relations; every pure fact a trusted text gives is
+about a value fixed in a precondition or returned by the call.
 
 ---
 
-## 0. The rule, restated for the redesign
+## 0. The rule (all parts)
 
-A trusted fact about the Go meaning of a pointer-typed value `x` (a context, an error, a `*Status`, an
-`MD` map) is true only of the heap of one execution. Three ways turn such a fact into a Lean fact about
-every heap (all three are now on record):
+Three ways turn a trusted fact about the Go meaning of a pointer-typed value into a Lean fact about every
+heap: **(a) crossWorld** (an entailment from bare persistent points-tos holds in a fresh heap of any
+content, `ctx-descs.md`); **(b) the persistent-authoritative fresh world** (`Auth DFrac.discard σ` decides
+every points-to and satisfies every WP of a non-value, `incomingof.md`); **(c) adequacy with allocation**
+(a pure post fact of code with Lean semantics about an address it allocated, `incomingof-scope.md` §0.2).
+The invariant every new text is checked against:
 
-- **(a) crossWorld** (`ctx-descs.md`): an entailment whose left side is bare persistent points-tos holds
-  in a fresh heap with any content.
-- **(b) the persistent-authoritative fresh world** (`incomingof.md`, "The refutation"): a fresh world
-  owning `Auth DFrac.discard σ` decides every points-to by `σ` and satisfies every WP of a non-value, so
-  any wand from cells (or WP forms) to a pure fact holds there by the choice of `σ`.
-- **(c) adequacy with allocation** (`incomingof-scope.md` §0.2): a pure fact in the post of code with
-  Lean semantics, about an address the code allocated, becomes a Lean fact for every address the
-  allocator may return; two closed runs then join.
-
-The redesign's invariant, which every new text below is checked against:
-
-> **(I1)** No trusted text has an opaque *pure* function of a pointer-typed value. Opaque functions of
-> that kind are deleted; what replaces them is an `IProp` relation `R x a` (persistent).
-> **(I2)** No entailment (axiom, premise-class field, law) concludes a pure fact from such a relation:
-> its conclusions are relations again (transfer laws), and each transfer law is *proved* where the
-> relation is defined, or is in the post of a call to uninterpreted code (`WithValue`, `Tracer.Start`:
-> review 1, m2).
+> **(I1)** No trusted text has an opaque *pure* function of a pointer-typed value; what replaces one is a
+> persistent `IProp` relation `R x a`.
+> **(I2)** No entailment (axiom, premise-class field, law) concludes a pure fact from such a relation: its
+> conclusions are relations (transfer laws), each **proved** where the relation is defined or stated in the
+> post of a call to uninterpreted code. *Exemption (review 2, m2):* an (I5) fact about a pointer-free value
+> that a relation carries inside its definition (the errors part's value pin) may be extracted.
 > **(I3)** A pure fact about `a` comes only from a triple whose precondition holds `R x a` with `a` fixed
-> before the call (the fromerror-wand lesson), and is about `a` and the call's results; never a wand in a
-> post that takes `R x a'` later.
+> before the call, and is about `a` and the call's results.
 > **(I4)** The only opaque leaves are `IProp`s made by trusted producers (posts of uninterpreted calls),
-> with **no law** (no agreement, no transfer), so no proof and no fresh world can build or combine them.
-> **(I4')** No post of code with Lean semantics (translated, or a Perennial model with an `impl`)
-> produces a leaf, and every leaf takes the heap's names (`[hG : HeapGS _ GF]`) in its binders, so that
-> its intended model may sit at the run's ghost names (review 1, m1: the revision-1 probe's leaf was
-> `hG`-free, so a leaf made inside a nested interpreted run would be the real run's leaf). Checked per
-> text in Step 4 (`notes/axiom-review/perheap.md`).
-> **(I5)** A pure fact a producer gives about a *pointer-free* value (an `rpctypes.EtcdError` struct, a
-> metadata map value `GrpcMd`, a code) is allowed (it is the same in every heap); the value pin of
-> `descIs` (§2.2) is one.
-
-(I2)+(I4) defeat (a) and (b): a fresh world may build relations (it satisfies WP forms and, with a
-discarded authority, points-tos), but no law lets it extract a pure fact; the pure facts sit in triple
-posts, which are vacuous in such a world and are never Lean facts. (I3) defeats (c): a post of interpreted
-code states a pure fact about `a`, a precondition parameter tied to that run's resources, not about the
-pointer; two runs with the same address give facts about their own `a`s, which no Lean statement joins.
+> with **no law**. **(I4')** No post of code with Lean semantics produces a leaf, and every leaf takes the
+> heap's names (`[hG : HeapGS _ GF]`) in its binders.
+> **(I5)** A pure fact a producer gives about a *pointer-free* value (a metadata map value `GrpcMd`, a
+> token string, an `EtcdError` struct) is allowed.
+> **(P-i test, review 2, m5)** Every trusted text over interpreted code (translated, or a Perennial model
+> with an `impl`) must be provable from the Lean semantics with every opaque leaf and relation left
+> abstract. (Sharper than "facts only about parameters"; Step 1's per-text check applies it.)
 
 ---
 
-## 1. Inventory (at `lean` `49bd7924e6`)
+# Part I — step 0 and the incoming part (in detail)
 
-### 1.1 The four primary opaque functions
+## 1. Inventory of the incoming part (at `lean` `49bd7924e6`)
 
-| opaque | declared | files (Spec / Proof) | occurrences |
-|---|---|---|---|
-| `metadata.incomingOf : GoInterface → GrpcMd` | `Proof/google_golang_org/grpc/metadata/Incoming.lean:27` | 41 (21 / 20) | 81 |
-| `metadata.outgoingOf : GoInterface → GrpcMd` | `Proof/google_golang_org/grpc/metadata/Outgoing.lean:31` | 31 (7 / 24) | 88 |
-| `errDesc : GoInterface → GoString` | `Proof/google_golang_org/grpc/status/ErrDesc.lean:25` | 48 (28 / 20) | 176 |
-| `statusCode : GoInterface → w32` | `Proof/google_golang_org/grpc/status/StatusRO.lean:24` | 6 (2 / 4) | 13 |
+**Counts.** 122 files (`Proof/` + `Spec/`) mention the incoming vocabulary below, 683 occurrences
+(`/shared/tmp/perheap/incoming-files.txt`); of them 66 files / 450 occurrences are the auth chain
+(`ctxTokenOf`, `ctxBound`, `ctxBoundOrTLS`, `principalBound(I)`, `noPrincipalFrom`, `tokRefusedFrom`,
+`hdrBoundM`, `infoBoundM`, `rangeWhy_ctx`/`txnWhy_ctx`, `AuthInfoFromCtx.spec(Lb)`); 21 files state a
+handler's `Spec (metadata.incomingOf ci)`. None in `GooseLang/`, `TrustedCode/`, `RaftWitness/`, `RaftTla/`,
+`PorcupineDag/`, `WalTester/`; `SpecPlan/` mentions it in 2 files (prose).
 
-Union: **100 files** mention one of the four (94 with a declaration that does, by the declaration scan
-`/shared/tmp/perheap/decls.py`). Derived pure vocabulary built on them (each must move too):
-`auth.ctxTokenOf` (`server/v3/auth/InvAuth.lean:748`, `match incomingOf ctx`; 28 files, 119 occ),
-`deliversOutgoing` (examples auth `ClientAuth.lean:98`), `grpcAttemptMd` (`grpc/InvGrpc.lean:1595`),
-`clientAttemptMdOf` (`client/v3/InvKVConn.lean:1317`), `grpcErrMapOk` (`v3rpc/Base.lean:130`),
-`notReadDesc` (`v3rpc/Base.lean:300`), `ctxErrDescs` (`v3rpc/Base.lean:232`), `grpcErrOut`
-(`v3rpc/InvKV.lean:340`), `rangeErrDesc` (`etcdserver/ReadOn.lean:294`), `rangeKeysErr`
-(`mvcc/InvStore.lean:5632`), `noRefusal` (`cache/v3/Base.lean:78`), `ifcErrOut`
-(`client/v3/InvKVConn.lean:1371`), `rangeErrOut` (`client/v3/KVService.lean:1023`), `rangeErrSound`, `limN`
-(`client/v3/kubernetes/Defs.lean:314, 296`), `readErrIs` (`k8s etcd3/ListDefs.lean:368`), the handler
-outcome clause `⌜err ≠ nil ∧ errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)` (in every handler contract).
-Pure functions of a *metadata value* (`mdTokenOf`, `mdVals`, `mdAdd`, `mdSet`, `streamKeyOf`) are not of
-the family: their argument is a Lean value, not a pointer; they stay.
-
-### 1.2 Trusted texts that state pure facts about them
-
-Kind: **E** entailment (axiom/law/premise field); **P-u** post of a triple over uninterpreted code
-(names-only or model-only); **P-i** post of a triple over code with Lean semantics (translated, or a
-Perennial trusted model with an `impl`); **D** a definition inside a trusted statement (the grpc model's
-contracts). Exposure: which of (a)/(b)/(c) of §0 reaches it.
-
-| trusted text | file:line | kind | fact | exposure |
+| trusted text | file:line | kind | today | in this part |
 |---|---|---|---|---|
-| `incomingOf_cancelCtx` | `grpc/metadata/Incoming.lean:61` | E | `ctxField c ↦□ p ⊢ ⌜incomingOf (*cancelCtx c) = incomingOf p⌝` | (a) **refuted** (`incomingOf_const`) |
-| `v3rpc.incomingOf_cancellableContext` | `v3rpc/WrapperMd.lean:76` | E | same for etcd's wrapper | (a) **refuted** in meaning |
-| `metadata.FromIncomingContext.wp_proof` | `Proof/google_golang_org/grpc/metadata/FromIncomingContext.lean:23` (spec `Spec/…:37`) | P-u | `ok ↔ incomingOf ctx ≠ none`, result = `incomingOf ctx` | per run only |
-| `context.WithValue.wp_proof` | `Proof/context/WithValue.lean:24` (spec `Spec/context/WithValue.lean:51`) | P-u (WithValue has no body in Perennial) | `incomingOf c' = incomingOf parent` | per run only |
-| `traceutil.Tracer.Start.wp_proof` | `Proof/go_etcd_io/etcd/pkg/v3/traceutil/Tracer__Start.lean:26` | P-u | `incomingOf ctx' = incomingOf ctx` | per run only |
-| `metadata.AppendToOutgoingContext.wp_proof` | `Proof/google_golang_org/grpc/metadata/AppendToOutgoingContext.lean:25` | P-u | `outgoingOf c' = mdAdd (outgoingOf ctx) k v` | per run only |
-| `withVersion.wp_proof` | `Proof/go_etcd_io/etcd/client/v3/withVersion.lean:27` | P-u (names-only) | `outgoingOf c' = mdSet (outgoingOf ctx) …` | per run only |
-| `streamKeyFromCtx.wp_proof` | `Proof/go_etcd_io/etcd/client/v3/streamKeyFromCtx.lean:37` | P-u | `RET streamKeyOf (outgoingOf ctx)` | per run only |
-| `context.WithCancelValCtx.wp_proof` | `Proof/context/WithCancelValCtx.lean:38` | **P-i** (`WithCancel.impl`) | `outgoingOf ctx' = outgoingOf inctx`, `ctx'` allocated | **(c)** in form (no conflicting fact found: only `none`/equalities reach interpreted posts) |
-| `context.WithTimeoutBackgroundMd.wp_proof` | `Proof/context/WithTimeoutBackgroundMd.lean:27` | **P-i** (`WithTimeout.impl`) | `outgoingOf ctx' = none`, `ctx'` allocated | **(c)** in form (as above) |
-| `status.FromError.wp_proof` | `Proof/google_golang_org/grpc/status/FromError.lean:29` | P-u | `Code()` returns `statusCode err`, `Message()` `errDesc err`, `ok = false → errDesc err = m` | per run only |
-| `status.Error.wp_proof` | `Proof/google_golang_org/grpc/status/Error.lean:26` | P-u | `errDesc err = msg` (allocated `*status.Error`) | per run only |
-| `errors.IsStatusErr.wp_proof` | `Proof/errors/IsStatusErr.lean:25` | **P-i** (`errors.Is` translated) | `b = true → errDesc err = errDesc target` | **(c)** |
-| `fmt.ErrorfWrap.wp_proof` | `Proof/fmt/ErrorfWrap.lean:32` | **P-i** (Perennial's trusted `fmt.Errorf` model) | `pre <+: errDesc err`, `err` allocated by the call | **(c), with a conflict: finding F1 below** |
-| `grpc.model.respond.wp_proof` | `Proof/google_golang_org/grpc/model/respond.lean:25` | P-u (model-only) | pre: `errDesc err ∈ handlerDescs -∗ Ψe (errDesc err)` | per run only |
-| `waitRetryBackoff.wp_proof` | `Proof/go_etcd_io/etcd/client/v3/waitRetryBackoff.lean:26` | P-u | `errDesc err ∉ handlerDescs` | per run only |
-| `rpctypes.errDesc_etcdError` | `Proof/go_etcd_io/etcd/api/v3/v3rpc/rpctypes/ErrDesc.lean:26` | E (pure, no antecedent) | `errDesc (EtcdError x) = x.desc` | location-free (sound) |
-| 16 `rpctypes` initializer axioms (`ErrFutureRev_init` … `ErrGRPCNoLeader_init`) | `rpctypes/Init.lean:150-265` | P-u (uninterpreted `.init`) | `errDesc e = <literal>` of the variable's value (`*status.Error`s are pointers) | per run only |
-| `errStringToError_init` | `rpctypes/Init.lean:170` | P-u | `∀ k v, m !! k = some v → errDesc v = k` | per run only |
-| `v3rpc.toGRPCErrorMap_init` | `v3rpc/Init.lean:112` | P-u | `grpcErrMapOk M kf kc` (pure `errDesc` facts of the map's pointer keys and values) and the wand `globalAddr g ↦□ k -∗ ⌜(M !! k).isSome⌝` | per run only; the wand is (b)-shaped but sits in a post (Part B T6, M4) |
-| `rpctypesInit` (package fact, made by the initializer from the axioms above) | `cache/v3/Base.lean:444` | D | `errDesc (ErrFutureRev) = …`, `errDesc (ErrGRPCNotSupportedForLearner) = …` | inherits |
-| `grpcErrMethodsOk` / `statusErrOk` / `srvErrOk` | `cache/v3/Base.lean:374, 405` | D | `grpcStatusRO s (statusCode e)`; `Is` → `errDesc e = errDesc target` | inherits |
-| grpc model contracts: `grpcAccepted` | `grpc/InvGrpcRun.lean:134` | D (post of `acceptRun`/`acceptRunConns`) | `▷ Spec (incomingOf ci) …`, `□ Spec (incomingOf ci) γs Dn` | per run only |
-| `grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`, `grpcRunOkMd`, `srvInterceptorOk`, `grpcDecOk` | `grpc/InvGrpc.lean:296, 364, 595, 980, 657, 546` | D | `Spec (incomingOf ci)`; handler outcome at `errDesc err` | per run only |
-| `grpcStreamHandlerOk`, `grpcStreamMethodOk`, `grpcStreamRunOk`, `srvStreamInterceptorWOk` | `grpc/InvGrpcStream.lean:869, 1235, 1284, 1073` | D | `Spec (incomingOf ci)`; `⌜incomingOf ci' = incomingOf ci⌝` | per run only |
-| `grpcInvokerOk`, `grpcAttemptMd` | `grpc/InvGrpc.lean:1678, 1595` | D | attempt metadata from `outgoingOf ctx`; outcome at `errDesc err` | per run only |
-| `metadata.transportMD`, `builtRawMD` (opaque `Prop`s of an `MD`/`rawMD` value, a map pointer) | `Proof/context/LibKeys.lean:57, 65` | opaque, in `libCtxOk(C)`, `srvRawStreamIs`, `AppendToOutgoingContext` | "grpc made it" | family (§1.3) |
-| `grpcStatusROP` (opaque `Prop` of a `*Status`) | `grpc/status/StatusRO.lean:27` | opaque, in `grpcErrMethodsOk` | read-only with code `c` | family (§1.3) |
+| `metadata.incomingOf : GoInterface → GrpcMd` (opaque) | `Proof/google_golang_org/grpc/metadata/Incoming.lean:27` | opaque | pure function of a pointer | **deleted** |
+| `incomingOf_cancelCtx` (+ `_parent_unique`) | `…/metadata/Incoming.lean:61` | E | `ctxField c ↦□ p ⊢ ⌜incomingOf (*cancelCtx c) = incomingOf p⌝` | **refuted** (a); deleted, `ctxInMD_cancel` **proved** |
+| `v3rpc.incomingOf_cancellableContext` (+ `_field_unique`, `incomingOf_wrapper`) | `…/v3rpc/WrapperMd.lean:76` | E | same for etcd's wrapper | **refuted** in meaning; deleted, `v3rpc.ctxInMD_cc` **proved** |
+| `metadata.transportMD : GoInterface → Prop` (opaque) | `Proof/context/LibKeys.lean:57` | opaque | "the transport made this `MD`" | replaced by the leaf `transportMDRaw` (§2) |
+| `metadata.incomingRes`, `metadata.incomingCtxOk` (defs in `libCtxOk`, `libCtxOkC`) | `LibKeys.lean:137, 159`; `LibKeysChain.lean:67` | D | `∃ v, ⌜incomingRes v⌝ ∗ valueAt ctx mdIncomingKey (· = v)` | `incomingCtxOk ctx := ∃ md, ctxInMD ctx md` (§2, §3) |
+| `metadata.FromIncomingContext.wp_proof` | `Proof/…/metadata/FromIncomingContext.lean:23` (spec `Spec/…:37`) | P-u | `ok ↔ incomingOf ctx ≠ none`, result `incomingOf ctx` | restated over `ctxInMD ctx md` (facts about `md`) |
+| `context.WithValue.wp_proof` | `Proof/context/WithValue.lean:24` | P-u | `⌜incomingOf c' = incomingOf parent⌝` | `□ ∀ md, ctxInMD parent md -∗ ctxInMD c' md` |
+| `traceutil.Tracer.Start.wp_proof` | `Proof/…/traceutil/Tracer__Start.lean:26` | P-u | `⌜incomingOf ctx' = incomingOf ctx⌝` | the same transfer |
+| `auth.authStore.AuthInfoFromTLS.wp_proof` | `Spec/…/auth/authStore__AuthInfoFromTLS.lean` | P-u | pre `peerCtxOk ctx ∗ incomingCtxOk ctx` | **text unchanged**; meaning through `incomingCtxOk` |
+| `auth.NewAuthStore.wp_proof` | `Proof/…/auth/NewAuthStore.lean:26` (spec `:158`) | P-u | post `isReqAuth st RD` (`InvRequest.lean:2801`: `AuthInfoFromCtx`/`AuthInfoFromTLS` triples under `libCtxOk ctx`) | **text unchanged**; meaning through `libCtxOk` (§3: why it must keep an incoming part) |
+| grpc model `acceptRun`/`acceptRunConns` posts: `grpcAccepted` | `Proof/google_golang_org/grpc/InvGrpcRun.lean:134` | D | `▷ Spec (incomingOf ci) m Φ Ψe`; stream `□ Spec (incomingOf ci) γs Dn` | `∃ md, ctxInMD ci md ∗ ▷ Spec md …` (the source of every handler's `md`) |
+| `grpcRunCtx` (in `grpcAccepted`; holds `libCtxOk ci`), `srvRawStreamIs` | `InvGrpc.lean:229`; `InvGrpcStream.lean` | D | incoming part through `libCtxOk` | text unchanged (meaning through `libCtxOk`) |
+| grpc contracts `grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`, `grpcRunOkMd`, `srvInterceptorOk`, `grpcStream{Handler,Method,Run}Ok`, `srvStreamInterceptorWOk`, `GrpcSpec`, `etcdPkgPrefix` | `InvGrpc.lean:296, 364, 595, 980, 657`; `InvGrpcStream.lean:869, 1235, 1284, 1073` | D (in `grpc.start`'s and the model's statements) | `Spec (incomingOf ci)`; stream `⌜incomingOf ci' = incomingOf ci⌝` | `∀ md, ctxInMD ci md -∗ Spec md …`; the stream interceptor receives and passes `ctxInMD ci md` |
 
-**Finding F1 (soundness, in meaning; same class as Scope §0.2, not formalized).** `fmt.ErrorfWrap.wp_proof`
-states `pre <+: errDesc (GoInterface.ok err)` of the error `fmt.Errorf` *allocates*, and `fmt.Errorf` has
-Lean semantics (Perennial's trusted model with an `impl`). Two closed programs, `Errorf("A%w", e)` and
-`Errorf("B%w", e)` (`e = errors.New("x")`, interpreted), may allocate the result at the same address;
-adequacy then gives `"A" <+: errDesc v` and `"B" <+: errDesc v` for the same interface value `v`, i.e.
-`False`, as a Lean fact. Formalizing it needs a Lean proof that such an execution exists (as for §0.2).
-`errors.IsStatusErr.wp_proof` (`errors.Is` translated) is (c)-exposed the same way when combined with such
-a fact. Review 1 (§5) confirms F1 and that it is a Lean-level defect today; revision 2 proposes a
-separate early hot fix, **H0** (§5a), which can land before the redesign (Q8). `errors.IsStatusErr`'s
-current text (`b = true → errDesc err = errDesc target`) is not exposed on its own: its identity case is
-`errDesc e = errDesc e`, its `Is`-method case is what `statusErrOk`'s `Is` clause (a premise the producer
-proves) already says, and once H0 is in no other post of interpreted code fixes an `errDesc` value, so
-equalities alone are satisfiable (a constant `errDesc`). B1 (§2.2) is a defect of revision 1's
-*proposed* text, not of the current one. Not yet in `notes/audit.md` (H0 adds the row).
+Derived pure vocabulary over `incomingOf` (each moves): `auth.ctxTokenOf` (`server/v3/auth/InvAuth.lean:748`),
+`auth.ctxBound` (`:767`), `noPrincipalFrom`, `tokRefusedFrom` (`auth/WhyDefs.lean:48, 59`),
+`principalBound`/`principalBoundI` (`etcdserver/AuthBound.lean:58, 182`), `hdrBoundM` (`ReqOn.lean:460`),
+`infoBoundM`, `ctxBoundOrTLS` (`AuthReqDerive.lean:92`), `isReqAuthBound` (`InvRequest.lean:2842`),
+`srvKVAnsOn`/`srvKVAnsM` (`v3rpc/ServerKVOn.lean`, `⌜on = true → ctxTokenOf ctx = tok⌝`), `lessorGrantOkGM`,
+`lessorRevokeOkM` (`v3rpc/LeaseOn.lean`), `ctrlP`, `swsIs` (`v3rpc/InvWatch.lean`), `v3rpc.ctrlMid`
+(`serverWatchStream__sendLoop.lean`), `userAttemptOk`, `deliversOutgoing` (examples auth
+`ClientAuth.lean:92, 98`), `rangeWhy_ctx`/`txnWhy_ctx` (`ReadWhy.lean:189, 200`, hypothesis `incomingOf c =
+incomingOf c'`), `metadata.FromIncomingContext.weakSpec` (`FromIncomingWeak.lean`; no user).
+**Token-indexed versions already exist** beside several of these: `principalBoundT`
+(`v3rpc/InvLeaseKeepAlive.lean:63`), `hdrBoundT`, `v3rpc.infoBoundT` (`AuthReqDerive.lean:70`). Re-indexing
+the context-indexed ones by the token makes them these: they merge (no new family; one fewer).
 
-**Closed and exported statements.** No closed (Adequacy/MainLinked) statement mentions any of these or the
-derived vocabulary (scan of every `Results.lean`/`Adequacy*.lean`/`MainLinked.lean`/`Robust*.lean`).
-Exported statements that do (text changes, §4): `client_range_any` (`client/v3/Results.lean:2865`, through
-`rangeErrOut`), `put_end_to_endM`, `deleteRange_end_to_endM`, `range_end_to_endM`, `txn_end_to_endM`,
-`authWrapOut_userAdd` (`v3rpc/Results.lean:392-862`, through `auth.ctxTokenOf`), `authkv_bad_unbound`
-(examples auth `Results.lean:123`, `deliversOutgoing`, `outgoingOf`). (`v3rpc`'s watch results mention
-`mdTokenOf`, a function of a metadata value: unchanged.)
+**Twins found (review 2, MAJOR 2):** `auth.authStore.AuthInfoFromCtx.spec` (proof
+`Proof/…/auth/authStore__AuthInfoFromCtx.lean`) and `.specLb` (`FreshCtx.lean:50`, proof `wp_lb` `:73`) are two
+specs with two proofs of one Go function; likewise `EtcdServer.AuthInfoFromCtx.spec`/`.specLb`
+(`Spec/…/etcdserver/EtcdServer__AuthInfoFromCtx.lean:46, 65`; proofs `wp_proof`/`wp_proofLb` in
+`Proof/…/EtcdServer__AuthInfoFromCtx.lean:29, 91`). Both merge in this part (§4.2).
 
-**Collections reached** (`etc/tcb-collections/*.txt`, 68 in all): the two `incomingOf` axioms, 22
-(auth3, authN, authkv, cachekv, compactkv, k8scompactor, k8setcd3, leaseN, leasecatchup, leaseexpiry,
-leaseexpiryN, leasekv, linkv3p, linkvtxn, m2, putget, putget3, putgetN, txnlinfaultsN, v3rpc, watch,
-watchkv); `FromIncomingContext` 23; `WithValue` 35; `Tracer.Start` 31; `status.FromError` 32 (adds
-concurrency, lease, cache, slice, client, cache-client, k8s, k8s-compactor, leasing, lease-served,
-recipes); `status.Error` 32; `IsStatusErr` 29; `ErrorfWrap` 36; `respond` 20; `errDesc_etcdError` 31;
-the `rpctypes`/`toGRPCErrorMap` initializers 23–24; `withVersion` 22; `waitRetryBackoff` 22;
-`streamKeyFromCtx` 14; `WithCancelValCtx` 14; `AppendToOutgoingContext` 3; `WithTimeoutBackgroundMd` 3.
-In short: every closed etcd and k8s theorem that serves a request.
+## 2. The vocabulary (step 0)
 
-### 1.2a What revision 1's inventory missed (review 1, §1)
-
-Counts by `grep -rlE` over `Proof/` and `Spec/` at `49bd7924e6` (files; a file can be in several rows):
-
-| vocabulary | files | how it moves |
-|---|---|---|
-| `auth.ctxTokenOf` and the predicates built on it: `auth.ctxBound` (`server/v3/auth/InvAuth.lean:767`, the post of `AuthInfoFromCtx`), `principalBound` (`etcdserver/AuthBound.lean`), `noPrincipalFrom`, `tokRefusedFrom` (`auth/WhyDefs.lean`), `userAttemptOk` (examples auth `ClientAuth.lean:92`) | 38 | re-indexed by the token (`Option GoString`), not the context (§3.1, M1); checkpoint C1a |
-| specs taking `metadata.incomingCtxOk` (`AuthInfoFromCtx`, `AuthInfoFromTLS` `Spec/…/auth/authStore__AuthInfoFromCtx.lean:25`, `FreshCtx.lean:53`, `FromIncomingWeak.lean:31`) and `ReadWhy.lean:190,201` (lemmas with `incomingOf c = incomingOf c'` as a hypothesis) | 9 | `∀ md`, pre `ctxInMD ctx md` (§3.1) |
-| `context.libCtxOk` (its incoming part; the server's `etcdserver/Results.lean:657,719,780,825` take it) | 81 | the incoming part leaves `libCtxOk` (M2, §3.1); most files only rebuild |
-| `srvRawStreamIs`, `grpcRunCtx` | 44 | likewise (M2) |
-| the outgoing family `outgoingCtxOk`, `outgoingCtxOkC`, `builtRawMD` (88 for `outgoingCtxOkC` alone in review 1's count; 110 now; ~65 `Spec/` files: leasing, concurrency, election, lock, cache, k8s watch, `WithRequireLeader.spec`) | 115 | `outgoingCtxOkC ctx` keeps its name and arity, redefined as `∃ md, outMD ctx md` (§3.2): most files only rebuild; text edits where `outgoingOf` is named (31 files) |
-| `statusErrOk`, `srvErrOk`, `grpcErrMethodsOk` (definitions change, names kept) | 198 | rebuild; text edits only where the old `grpcStatusRO`/`errDesc` is unfolded |
-| k8s `ListDefs.listErrF`/`kClientErr`, `readErrIs`; client `rangeErrOut`, `rangeErrSound`, `isSafeRetry*`, `shouldRefreshToken`, `rpctypes.Error` | (in the 100) | restated, not converted (M1; §3.3) |
-| `status.Code.wp_proof` (`Proof/google_golang_org/grpc/status/Code.lean:27`, post `True`) | 1 | its premise `statusErrOk` changes meaning only |
-| **`SpecPlan/`** (`errView`/`statusErr`/`errMsg`/`plainErr`/`statusAt`/`sentStatus`/`outMD`, `SpecPlan/Spec/google_golang_org/grpc/Api.lean:246-290`; `ctxInMD`, `ctxInMD_agree.spec`, `Api.lean:463, 922-925`; `ctxTokenMd`, `SpecPlan/Spec/go_etcd_io/etcd/client/v3/Api.lean:609`; 14 files use `errView`/`ctxInMD`; 3 mention `errDesc` in prose) | 14 | converge (§2.0); two ledger entries (`notes/specs-only/ledger.md`, 2026-11-18, Pending) |
-
-Union of every name above and the four: **362 files** mention one; of them ~190 need text edits (the rest
-rebuild because a definition under a kept name changes). No mention in `GooseLang/`, `TrustedCode/`,
-`RaftWitness/`, `RaftTla/`, `PorcupineDag/`, `WalTester/` (review 1 confirms).
-
-### 1.3 The rest of the family
-
-Every other `opaque` to a pure type whose argument holds a `Loc`, a `GoInterface` or a pointer-carrying
-value was classified (read-only sweep by a subagent, 2026-11-18; spot-checked). Verdicts: **(i)** same
-flaw (a trusted entailment, or a post of interpreted code, concludes the pure fact); **(ii)** per-run only
-(heap-dependent, given only by posts of uninterpreted calls: sound per execution, not in Iris's model);
-**(iii)** not of the family (identity- or type-keyed, or a function of pure data).
-
-| opaque | declared | trusted sources of its pure fact | verdict | in the redesign |
-|---|---|---|---|---|
-| `grpcStatusROP` (`*Status` read-only with code `c`) | `grpc/status/StatusRO.lean:27` | `status.Error`, `ErrGRPC*_init`, `toGRPCErrorMap_init`, grpc model posts, inside `grpcErrMethodsOk` | ii | **replaced** (`status.statusAt`, step 2) |
-| `metadata.transportMD`, `metadata.builtRawMD` | `Proof/context/LibKeys.lean:57, 65` | `grpcRunCtx`/`grpcAccepted` (model), `AppendToOutgoingContext` | ii | **replaced** (`transportMDRaw`, `builtRawMDRaw`, steps 1, 3) |
-| `peer.transportPeer` | `LibKeys.lean:73` | `grpcRunCtx` (model) | ii | step 4 (Q7) |
-| `trace.otelSpan` | `LibKeys.lean:103` | `grpcRunCtx`, `Tracer.Start`, k8s `tracing.Start`, `otelgrpc.NewServerHandler` (all names-only) | ii | step 4 (Q7) |
-| `utiltrace.builtTrace` | `k8s apiserver audit/CtxKeys.lean:60` | k8s `tracing.Start` (names-only) | ii | step 4 (Q7) |
-| `vecLabels` (prometheus, k8s metrics) | `prometheus/Labels.lean:32`, `component_base/metrics/Defs.lean:38` | package `*_init` axioms (uninterpreted) | ii (fixed at allocation) | record only |
-| `credsYield` (a connection's per-RPC credentials' metadata) | `grpc/InvGrpc.lean:1585` | `grpc.NewClient.wp_proof` (names-only) | ii | step 3 (it feeds `grpcAttemptMd`; restate as a relation there, or record) |
-| `storageSnap`, `walReady`, `walOf` | `storage/InvOpen.lean:60, 71, 93` | bootstrap / `NewStorage` contracts (names-only) | ii | record only |
-| `walDirOf` | `storage/WalRecs.lean:181` | bootstrap contracts | ii | record only |
-| `snapDBPath`, `dirReadOk` | `snap/Defs.lean:48, 92` | `DBFilePath.wp_proof`, bootstrap contracts (names-only) | ii | record only |
-| `mvcc.kvHasherOk` | `mvcc/HashDefs.lean:50` | `newKVHasher`, `WriteKeyValue` (names-only) | ii | record only |
-| `reflSliceV` | `Proof/reflect/Values.lean:111` | `reflect.MakeSlice`/`Append` axioms | ii | record only |
-| `walGName`, `walRecGName`, `walBaseGName`; `membership.membersOf`; `reflElem`, `reflPtr`, `reflType`, `reflZero`; `msgEncC` | various | — | iii | none |
-| **`membership.memBucketsOk`** (cluster `c`'s buckets good, "the local member among them", read off `c.localID`) | `etcdserver/InvRest.lean:625` | the entailment-form axiom `clusterImageOk_restModel.wp_proof` (`Proof/…/membership/clusterImageOk_restModel.lean:26`): `⊢ isRaftCluster c -∗ srvRLogLb γ L' -∗ clusterMem c mem -∗ … ∗ ⌜clusterImageOk c …⌝` | **(i) in form, unverified** | **not in this redesign**: a separate axiom review (Q10) |
-
-The `memBucketsOk` row is the sweep's one candidate of the flawed shape: a pure conclusion about a
-pointer-keyed opaque from an entailment. Whether a fresh world can build its left side
-(`isRaftCluster c` is a mutex and half points-tos, `srvRLogLb` a ghost lower bound) was not checked, nor
-whether its consumer (`RaftCluster.Recover`, names-only) yields a panicking program. Not a finding yet.
-Pointer predicates declared as `axiom … : Prop` rather than `opaque` (`grpcPeerOpt`, `grpcSrvOpt`,
-`grpcProtoCodec`, `grpcStatsHandlerOk`, `grpcDialOptIs`, `collectorName`) were not classified (Q7).
-
----
-
-## 2. The new vocabulary
-
-### 2.0 Convergence with `SpecPlan/` (review 1, (1) MAJOR)
-
-CLAUDE.md ("The spec plan and convergence"): a reworked spec takes `SpecPlan/`'s statement unless the proof
-shows it wrong, and a divergence goes in the ledger first. `SpecPlan/` already has per-run `IProp` vocabulary
-for this redesign (`SpecPlan/Spec/google_golang_org/grpc/Api.lean`); revision 2 **adopts its names and
-split** and records the two places where it must differ (ledger, 2026-11-18, two entries, Pending):
-
-| SpecPlan | here | realization | difference |
-|---|---|---|---|
-| `ctxInMD ctx o` (`Api.lean:463`) | `metadata.ctxInMD` (was `incomingIs`) | defined, §2.1 | **no** `ctxInMD_agree` (ledger entry 1, §2.3a) |
-| `outMD ctx md` (`Api.lean:290`) | `metadata.outMD` (was `outgoingIs`) | defined, §2.1 | `Option`: `none` for a context with no outgoing metadata (SpecPlan's `md : MD` reads `none` as the empty map; the proofs distinguish them today, `outgoingOf ctx = none`) |
-| `statusAt s c m` (`Api.lean:263`) | `status.statusAt` (was `grpcStatusRaw`/`grpcStatusIs`) | opaque leaf (with `s ≠ null`) | none (SpecPlan's `nil` = `OK` case is a definition over it) |
-| `errMsg err m` (`Api.lean:252`) | `errMsg` (on `GoInterface`) | defined: `∃ e, err = ok e ∗ errorMsgIs e m` | none |
-| `plainErr err` (`Api.lean:256`) | `plainErr` | defined: no `GRPCStatus` method on `err` nor on any error its `Unwrap` chain reaches (for the leaf errors `statusErrOk` admits: no `GRPCStatus` method) | none |
-| `statusErr err c m` (`Api.lean:248`) | `statusErr` | defined: `GRPCStatus` method that stably returns `s` with `statusAt s c m` | none |
-| `errView err c m ok` (`Api.lean:266`) | `errView`, `FromError`'s pre | as SpecPlan's | none |
-| — | **`descIs err m`** (message only), with the value pin (§2.2) | defined | new (ledger entry 2): `errView` has no case for an error *wrapping* a status error (grpc v1.84.0 `status/status.go:112-125`: the wrapped code, message `err.Error()`), and the server's and client's description reasoning needs the message without the code |
-| `ctxTokenMd ctx tok` (client `Api.lean:609`) | `ctxTokenMd` (outgoing, examples auth) | `∃ md, outMD ctx (some md) ∗ ⌜mdVals md "token" = [tok]⌝` | none |
-
-### 2.1 Incoming and outgoing metadata (defined; two opaque leaves)
-
-In `Proof/context/LibKeys.lean` (beside `incomingCtxOk`, which it replaces) and `LibKeysChain.lean`:
+In `Proof/context/LibKeys.lean` / `LibKeysChain.lean` (SpecPlan's names, §2.0 of revision 2):
 
 ```lean
 /-- (opaque; TRUSTED; no law) grpc's server transport made the `MD` `v` (a map) holding `f`, with
-lower-case keys each with at least one value, and nothing writes it after: grpc writes it once in
-`operateHeaders`, and passes it to a user `InTapHandle` after `NewIncomingContext`
-(`internal/transport/http2_server.go:543-575`); etcd's server installs none (no `InTapHandle` in etcd
-server v3.7.x), a configuration fact the Step 1 Go test checks (review 1, m3). -/
-opaque metadata.transportMDRaw [hG : HeapGS _ GF] (v : GoInterface) (f : GoString → Option (List GoString)) : IProp GF
-/-- (opaque; TRUSTED; no law) grpc's `metadata` made the `rawMD` `v` (`NewOutgoingContext`,
-`AppendToOutgoingContext`) whose `FromOutgoingContext` view is `f`, never written after. -/
-opaque metadata.builtRawMDRaw [hG : HeapGS _ GF] (v : GoInterface) (f : GoString → Option (List GoString)) : IProp GF
-
+lower-case keys each with at least one value, and nothing writes it after (`operateHeaders`; etcd's server
+installs no `InTapHandle`: Step 1's Go test). -/
+opaque metadata.transportMDRaw {GF} [hG : HeapGS HasLC.hasLC GF] (v : GoInterface)
+  (f : GoString → Option (List GoString)) : IProp GF
 def metadata.incomingHeld (v : GoInterface) (md : GrpcMd) : IProp GF :=
-  (⌜md = none ∧ notMD v⌝) ∨ ∃ f, ⌜md = some f ∧ (∀ k vs, f k = some vs → vs ≠ [])⌝ ∗ □ transportMDRaw v f
-/-- **`ctx`'s incoming metadata is `md`** (persistent, per heap): `ctx.Value(mdIncomingKey{})` returns
-`v` (Perennial's chain) and `v` holds `md`. -/
+  (⌜md = none ∧ v is not an MD⌝) ∨ ∃ f, ⌜md = some f ∧ ∀ k vs, f k = some vs → vs ≠ []⌝ ∗ □ transportMDRaw v f
+/-- **`ctx`'s incoming metadata is `md`** (persistent, per heap), over Perennial's chain. -/
 def metadata.ctxInMD (ctx : GoInterfaceOk) (md : GrpcMd) : IProp GF :=
   ∃ v, context.ctxValue ctx mdIncomingKeyAny (· = v) ∗ incomingHeld v md
--- outgoingHeld / outMD: the same at mdOutgoingKey{} with builtRawMDRaw (none: not a rawMD)
+/-- **`ctx`'s incoming metadata is grpc's** (kept name, redefined): what `libCtxOk` carries. -/
+def metadata.incomingCtxOk (ctx : GoInterfaceOk) : IProp GF := ∃ md, ctxInMD ctx md
+/-- **The token `ctx` carries is `o`** (SpecPlan's `Auth.ctxToken`, `SpecPlan/…/auth/Api.lean:505`). -/
+def auth.ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
+  ∃ c md, ⌜ctx = ok c⌝ ∗ metadata.ctxInMD c md ∗ ⌜auth.mdTokenOf md = o⌝
+/-- **`a` is bound to the token `tok`** (`ctxBound`, re-indexed by the token). -/
+def auth.ctxBound (M : AuthMode) (tok : Option GoString) (a : Loc) : IProp GF :=
+  ⌜a = null⌝ ∨ ∃ t, ⌜tok = some t⌝ ∗ infoBound M t a
 ```
 
-`metadata.incomingCtxOk ctx` is deleted (its users take `ctxInMD ctx md` with `md` a parameter);
-`incomingRes`, `outgoingRes`, `transportMD`, `builtRawMD`, `incomingOf`, `outgoingOf` are deleted.
-`outgoingCtxOkC ctx` keeps its name, redefined as `∃ md, outMD ctx md` (its 110 files rebuild; only those
-naming `outgoingOf` change text).
+- **Laws (all proved; none trusted):** `ctxInMD_cancel`, `_timer`, `_valueCtx` (another key), `_from`
+  (`ctxValueFrom`), `_background`/`_todo` (`none`), `v3rpc.ctxInMD_cc` (etcd's wrapper), `ctxInMD_valueAt`
+  (the `valueAt` form readers use), persistence. The two refuted axioms' replacements are proved in the probe
+  (§6). `libCtxOk`'s producers (`libCtxOk_of_ctxValueNil`, `_background`, `_todo`, `_bgFrom`,
+  `_of_valueWand`, `_of_nil`) give `incomingCtxOk` through these; `_of_nil` (6 users) from a `valueAt` at a
+  foreign context type, through `ctxChain`'s foreign root (`Perennial/Proof/context/CtxValue.lean:79-82`).
+- **`HasLC.hasLC` (form).** `ctxValue` is stated at `HasLC.hasLC`; `ctxInMD`, hence `incomingCtxOk` and
+  `libCtxOk`, move from `{hlc}` to `HasLC.hasLC`, with the ~12 `{hlc}`-generic files that take them
+  (`FromIncomingContext`, the auth store's `AuthInfoFromCtx`/`AuthInfoFromTLS` and its proof files, the grpc
+  sections at `InvGrpc.lean:795`, `InvGrpcStream.lean`). Every caller is at `HasLC.hasLC` already. Q3.
+- **What is deleted:** `incomingOf`, the two axioms and their `_unique`/`_wrapper` lemmas, `transportMD`,
+  `incomingRes`, `auth.ctxTokenOf`, `rangeWhy_ctx`/`txnWhy_ctx`, `FromIncomingContext.weakSpec` (no user; or a
+  two-line corollary).
 
-**Laws (all proved; none trusted).** `ctxInMD_cancel` (`ctxField c ↦□ p ∗ ctxInMD p md ⊢ ctxInMD
-(*cancelCtx c) md`, from Perennial's `ctxValue_cancel`: probe), `_timer`, `_valueCtx` at another key,
-`v3rpc.ctxInMD_cc` (etcd's wrapper: probe), `_from` (`ctxValueFrom`), `_background` (`none`), and the same
-for `outMD` (most exist for `outgoingCtxOkC`: `LibKeysChain.lean:106-248`). Persistence instances.
-**No `_raw` law** (no `ctxInMD` from a `Value` WP form of a user context type): a run's context's root is
-grpc's (`grpcAccepted`, M2). **No agreement law** (§2.3a).
+## 3. Review 2's MAJOR 2: what the auth-off theorems need, and why `libCtxOk` keeps an incoming part
 
-### 2.2 Errors (defined; one opaque leaf)
+Revision 2 removed the incoming part from `libCtxOk` (review 1's M2, "one source"). Review 2 found that this
+breaks the auth-off exported theorems (`etcdserver/Results.lean:652, 714, 774, 819`, which take only
+`libCtxOk ctx` for an arbitrary `ctx`) unless `AuthInfoFromCtx` needs metadata only when auth is on. Revision
+3 adopts that gate **and** finds that it is not enough on its own:
 
-```lean
-/-- (opaque; TRUSTED; no law) `s` is a non-nil grpc `*Status` with code `c` and message `m`, never
-written after (the producer's guarantee; `grpcStatusRO`'s today, `examples/premisefix/grpcstatusro`). -/
-opaque status.statusAt [hG : HeapGS _ GF] (s : Loc) (c : w32) (m : GoString) : IProp GF
-def statusErr (err) (c) (m) := ∃ e s, ⌜err = ok e ∧ GRPCStatus ∈ e.ty⌝ ∗ gsReturns e s ∗ ⌜s ≠ null⌝ ∗ □ statusAt s c m
-def errMsg (err) (m) := ∃ e, ⌜err = ok e⌝ ∗ errorMsgIs e m
-def plainErr (err) : Prop := ∀ e, err = ok e → GRPCStatus ∉ e.ty ∧ isLeafError e   -- the leaf errors statusErrOk admits
-/-- **What `status.FromError` sees of `err`** (SpecPlan's). -/
-def errView (err) (c) (m) (ok : Bool) :=
-  (⌜ok⌝ ∗ statusErr err c m) ∨ (⌜¬ok ∧ c = Unknown ∧ plainErr err⌝ ∗ errMsg err m) ∨ ⌜err = nil ∧ ok ∧ c = OK ∧ m = ""⌝
-/-- **`err`'s description is `m`**: what `rpctypes.ErrorDesc`/`FromError(err).Message()` returns (for an
-error without `GRPCStatus`, wrapping or not, its `Error()`; with it, the status's message), plus the
-**value pin**: of an `EtcdError` value, `m` is its `desc`. -/
-def descIs (err) (m) :=
-  (⌜err = nil ∧ m = ""⌝ ∨ (∃ e, ⌜err = ok e ∧ GRPCStatus ∉ e.ty⌝ ∗ errorMsgIs e m) ∨ ∃ c, statusErr err c m) ∗
-  ⌜∀ y : EtcdError, err = mkOk EtcdError.ty #y → m = y.desc⌝
-```
+- **The store's `AuthInfoFromCtx` reads metadata only when auth is on** (true of Go: `store.go`
+  `AuthInfoFromCtx` returns `nil, nil` on `!as.IsAuthEnabled()` before `FromIncomingContext`). In the model,
+  `.off`'s verdict is `false` (`enabledVerdictFrom .off _ b = ⌜b = false⌝`, `auth/Fresh.lean:58`), so the
+  read branch is absurd there: **probed** (§6, `spec_off`).
+- **But the server's `AuthInfoFromCtx` reads the incoming metadata whatever the auth mode** when the TLS
+  fallback is on: `v3_server.go:1206-1216` calls `AuthInfoFromTLS(ctx)` after the store's `(nil, nil)` when
+  `ClientCertAuthEnabled`, and `AuthInfoFromTLS` (`store.go:1025-1069`) calls `metadata.FromIncomingContext`
+  (`:1044`) for a TLS peer with a verified chain (the gateway check). `cca` is the server's configuration
+  (`srvCfgFieldAddr s "ClientCertAuthEnabled" ↦□ v.cca`, arbitrary in the auth-off theorems).
+- **And the real store's request side is stated for every mode under `libCtxOk` alone**:
+  `isReqAuth_of_authInv` (`AuthReqDerive.lean:113`) proves `isReqAuth` (`InvRequest.lean:2801`: both
+  triples under `libCtxOk ctx ∗ ctxDoneAny ctx`) for any `M`, and `isReqAuth` is the post of the trusted
+  `auth.NewAuthStore.wp_proof`. With auth on, the store's read needs an `md` for the context; it can come only
+  from `libCtxOk`.
+- **Finding (about revision 2's plan, not the tree):** with `libCtxOk`'s incoming part removed, the trusted
+  `NewAuthStore` post would promise `AuthInfoFromTLS` is safe for a context whose `Value(mdIncomingKey{})`
+  panics (with a TLS peer), which is false in Go. Revision 3 withdraws that removal.
 
-`errDesc`, `statusCode`, `grpcStatusROP`, `grpcStatusRO` are deleted. `grpcErrMethodsOk` gives `statusErr`
-for its `GRPCStatus` clause and, for `Is`, `□ ∀ target m m', descIs (ok e) m -∗ descIs target m' -∗ WP
-e.Is(target) {b. ⌜b = true → m = m'⌝}` (a user `Is` method: the producer's obligation; `*status.Error.Is`
-compares the two statuses' messages, `internal/status/status.go:222-228`).
+**Decision of revision 3 (Q14, replaces revision 2's).** `libCtxOk` keeps an incoming part, redefined as the
+anonymous `metadata.incomingCtxOk ctx = ∃ md, ctxInMD ctx md` (its text, and that of `AuthInfoFromTLS`,
+`NewAuthStore`, `grpcRunCtx`, `isReqAuth` and the four auth-off theorems, unchanged). **The `md` a spec is
+about comes from one source, `grpcAccepted`** (with `Spec md`); every spec that relates a context's metadata to
+something else takes `md` (or the token) as a parameter, never from `libCtxOk`'s existential. Two existentials
+for one context are harmless: no law relates them (no agreement, §5), so no proof can derive anything from
+having both; and both are true in Go (the same map). Review 1's M2 case (`newStreamInterceptor`) is closed by
+the contract: `srvStreamInterceptorWOk` passes the stream's `ctxInMD ci md` in, and the interceptor reads with
+it (§4.1).
 
-- **Why the pin (review 1, M1).** Without agreement, `err = target` (B1's identity branch) gives nothing
-  about the `m` a producer fixed for `err`. Every error value the chains compare by identity is an
-  `EtcdError` *value* (`rpctypes`' `ErrFutureRev`, `ErrUserEmpty`, `ErrInvalidAuthToken`,
-  `ErrAuthOldRevision`, `ErrNoLeader`, …: pointer-free structs), and for those the pin turns identity into
-  equal descriptions with no agreement law: `err = mkOk #x` and the pin give `m = x.desc`. The pin is a pure
-  fact of a pointer-free value (I5), true in Go (`EtcdError.Error` returns `e.desc`, translated and proved:
-  `rpctypes.EtcdError.Error.wp_proof`), and every producer proves it: the law below for `EtcdError`
-  values, and vacuously (by type) for everything else (a `*status.Error`, a `*fmt.wrapError`, an
-  `*errorString`, a context error).
-- **Laws (proved):** `descIs_etcdError : ⊢ descIs (mkOk EtcdError.ty #x) x.desc` (replaces the axiom
-  `rpctypes.errDesc_etcdError`; **proved in the probe** from `EtcdError.Error`'s proved spec, with
-  `go.IntoValInj EtcdError`: a two-field struct, derivable from `go.BasicIntoValInj` as
-  `k8s …/consistency/Defs.lean:181-209` does; Step 0), `descIs_errorString` (`errStrCell x m`),
-  `descIs_ctxErr` (Part B's `ctxErrIs`), `descIs_of_errView` (when `ok = false` or `nil`),
-  `errorfWrap_descIs` (B2, below: **proved in the probe**). **No agreement law.**
-- **`errView` for leaf errors only (review 1, m4).** The no-`GRPCStatus` case of `errView` requires
-  `plainErr` (code `Unknown` is false of an error wrapping a status error: `FromError` returns the wrapped
-  code); `descIs` keeps the message case without `plainErr` (the message *is* `err.Error()` there).
-- **Incompleteness, not unsoundness (review 1, m5).** A type whose `GRPCStatus()` returns `nil`
-  (`status.go:103-108`: `Unknown`, `err.Error()`) satisfies no case of `errView`/`descIs`; no producer
-  makes one. Stated in the docstrings.
+## 4. Old → new (incoming)
 
-### 2.3 Why none of it transfers across heaps
-
-- **crossWorld (a).** No entailment in the redesign concludes a pure fact from `ctxInMD`, `outMD`,
-  `descIs`, `errView` or a leaf (I2); the transfer laws conclude relations. The value pin is a pure fact
-  *inside* `descIs`, about a pointer-free value: a fresh heap can build `descIs` only through a producer
-  that proves the pin, which holds of the value in every heap.
-- **The persistent-authoritative fresh world (b).** It can build WP forms (`errorMsgIs`, a `GRPCStatus`
-  WP), so it builds `descIs x m` for an error with no `GRPCStatus` method and a looping `Error()`, for
-  every `m`. Harmless: the pure facts sit in triple posts (`FromError`, `errors.Is`, the handler and invoker
-  contracts), vacuous in such a world. It cannot build `transportMDRaw`/`builtRawMDRaw`/`statusAt` (I4), nor
-  `ctxInMD` (no `_raw` law: its only root is the leaf; `ctxInMD x none` needs `ctxValue`'s chain to end at
-  `Background()`), so it builds no run context.
-- **Adequacy with allocation (c).** Posts of interpreted code (`WithCancel`, `WithTimeout`,
-  `newCancellableContext`, `errors.Is`, `fmt.Errorf`) carry relations about allocated values and pure facts
-  only about precondition parameters (`b = true → err = target ∨ m = m'`) or pointer-free values; no leaf
-  (I4'). A closed run's adequacy gives facts about its own parameters; no Lean equation about an address
-  remains.
-- **Within one run.** Each pure fact is produced by one call at the parameters its precondition fixed:
-  `FromError` reads `GRPCStatus()`/`Error()` *during* the call (grpc `status/status.go:96-127`), so its
-  post is true for every `(c, m)` its pre admits (the T8' argument); `errors.Is` is B1's restatement,
-  true in Go branch by branch (identity: go1.27.3 `src/errors/wrap.go:54-57`; `*status.Error.Is`; a user
-  `Is` method: the producer's obligation).
-
-### 2.3a Agreement: why not SpecPlan's `ctxInMD_agree` (ledger entry 1)
-
-`ctxInMD_agree.spec` (`ctxInMD ctx o ∗ ctxInMD ctx o' ⊢ ⌜o = o'⌝`) is an entailment with a pure conclusion
-over a per-heap relation. Its soundness depends on the realization, which SpecPlan leaves open:
-
-- **With this Scope's realization (defined over Perennial's `ctxValue`), it is false.** `ctxValue` has a
-  case for a context type that is not one of `context`'s own (a `Value` WP form); a partial-correctness WP of
-  a `Value` that loops satisfies every result, so `ctxInMD ctx o` holds for every `o`. Dropping that case
-  (no `_raw` law, §2.1) removes the producer but not the issue for the *derived* chains: `ctxValue`'s
-  `valueCtx` case delegates every other key to its parent's `Value`, again a WP form.
-- **As an opaque with trusted transfer entailments (SpecPlan's shape), it needs all of:** leaves indexed by
-  `hG` (otherwise attack (b) crosses worlds: `ctxField c ↦□ p` in a fresh heap of one's choice, with real
-  `ctxInMD p o1` and `ctxInMD p' o2`, gives `ctxInMD (*cancelCtx c) o1` and `… o2`, which agreement joins:
-  review 1's m1 shape); producers only along chains of `context`'s own types and etcd's wrapper, whose
-  fields Go never writes after construction; transfers *assumed* (they could not be proved from
-  `ctxValue`, whose WP-form cases defeat agreement); and an intended model (a ghost map from contexts to
-  metadata, whose consistency rests on the chains' immutability). That is two more trusted entailments
-  (the refuted pair's relational versions) and a model argument, to buy one law.
-- **Nothing needs it.** The two consumers that seemed to (review 1: `authkv_bad_unbound`/`ctxBound`, and
-  `newStreamInterceptor`) are restated with one `md` carried from one producer (M1's re-indexing, M2's single
-  source; §3.1). Every other `incomingOf` rewrite in the tree is a transfer (`incomingOf ctx' = incomingOf
-  ctx`), which the proved transfer laws replace.
-
-Recommendation (Q2): no agreement law; ledger entry 1 proposes deleting `ctxInMD_agree.spec` from
-`SpecPlan/` (and `ctxPeerCN`'s half with it, for the same reason: `peer.FromContext` reads through the same
-`Value` chain), with this argument as evidence; Pending the user's decision.
-
-### 2.4 Probes (de-risk of the shape)
-
-Both throwaway, not in the tree, checked with `cd /shared/etcd-grove-incomingof && lake
---packages=/shared/tmp/manifest-6d3.json env lean <file>` at `49bd7924e6`, no errors, no `sorry`:
-
-- `/shared/tmp/perheap/Probe.lean` (incoming, revision 1): `incomingIsP` (= `ctxInMD`) defined as §2.1;
-  **both refuted axioms' replacements are theorems**: `metadata.incomingIsP_cancel` (6 lines,
-  `ctxValue_cancel`), `v3rpc.incomingIsP_cc` (14 lines, `valueAt_cc` + `valueAt_of_ctxValue` +
-  `ctxValue_other`). (Its leaf is `hG`-free; Step 0 declares the leaves with `hG`, I4'.)
-- `/shared/tmp/perheap/ProbeErr.lean` (errors, revision 2, ~170 lines): `descIsP` as §2.2 with the value
-  pin over an opaque `grpcStatusRawP`;
-  - `descIsP_etcdError` (**the axiom `errDesc_etcdError` becomes a theorem**, 20 lines, from
-    `rpctypes.EtcdError.Error.spec` and `go.IntoValInj EtcdError`);
-  - `errorfWrap_descIsP` (**B2: `fmt.errorfWrapIs ii inner pre ⊢ ∃ s, descIsP (ok ii) (pre ++ s)`**, both
-    disjuncts, from `ErrorStringLeaf` and `EtcdError`'s leaf fact; nothing new trusted);
-  - `IsStatusErrP.spec`: **B1's restated `errors.IsStatusErr`** (post `b = true → (err = target ∨ m = m')
-    ∧ T3`);
-  - `listRead_step`: **M1's k8s chain closes without agreement**: the triple of `errors.Is(err,
-    ErrFutureRev)` under `readErrIs`'s restated pre (`∃ m, statusErrOk err ∗ descIsP err m ∗ □(⌜m =
-    futureRevDesc⌝ -∗ ⌜T3⌝ -∗ □ Qf)`) gives `b = true → Qf`, both branches of B1 (identity through the
-    pin, equal descriptions directly).
-
-  Not probed: `statusErrOk` is today's (its `Is` clause still names `errDesc`; Step 0 restates it as
-  above); `shouldRefreshToken` (the same shape as `listRead_step`, §3.3).
-
----
-
-## 3. Old → new, per trusted text
-
-### 3.1 Incoming metadata
+### 4.1 Texts
 
 | text | old | new |
 |---|---|---|
-| `incomingOf_cancelCtx` (+ `_parent_unique`) | axiom | **deleted**; `metadata.ctxInMD_cancel` (proved) |
-| `v3rpc.incomingOf_cancellableContext` (+ `_field_unique`, `incomingOf_wrapper`) | axiom | **deleted**; `v3rpc.ctxInMD_cc` (proved) |
-| `FromIncomingContext.spec` | pre `incomingCtxOk ctx`; post on `incomingOf ctx` | `∀ ctx md`, pre `ctxInMD ctx md`; post `⌜ok = false ∧ md = none⌝ ∨ ∃ f m, ⌜ok ∧ md = some f ∧ dom m = dom f⌝ ∗ mp ↦$ m ∗ [∗map] …` (facts about the parameter `md`) |
-| `context.WithValue.spec` | `⌜incomingOf c' = incomingOf parent⌝` | `□ ∀ md, ctxInMD parent md -∗ ctxInMD c' md` (transfer in the post of uninterpreted code, m2) |
-| `traceutil.Tracer.Start.spec`, `EnsureTrace.spec` (proved) | `⌜incomingOf ctx' = incomingOf ctx⌝` | `□ ∀ md, ctxInMD ctx md -∗ ctxInMD ctx' md` |
-| `grpcAccepted` (model post; **the single source**, M2) | `▷ Spec (incomingOf ci) m Φ Ψe`; stream `□ Spec (incomingOf ci) γs Dn` | `∃ md, ctxInMD ci md ∗ ▷ Spec md m Φ Ψe` (stream: `∃ md, ctxInMD ci md ∗ □ Spec md γs Dn`); the `md` is the one the client's attempt deposited |
-| `grpcRunCtx`, `context.libCtxOk(C)`, `srvRawStreamIs` (M2) | incoming part `∃ v, incomingRes v ∗ ctxValue …` | **incoming part removed**: they keep the library keys' other facts (outgoing `none` for a run context, peer, span, trace); a run context's `ctxInMD` comes only from `grpcAccepted`. `etcdserver/Results.lean:657,719,780,825` take `libCtxOk ctx`: meaning weakens (one fact fewer), text unchanged |
-| `grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`, `grpcRunOkMd`, `grpcStream{Handler,Method,Run}Ok`, `srvInterceptorOk` | pre `Spec (incomingOf ci) …` | `∀ … md`, pre `ctxInMD ci md ∗ Spec md …` |
-| `srvStreamInterceptorWOk` (M2; `newStreamInterceptor.lean:220, 264-268`) | handler gets `⌜incomingOf ci' = incomingOf ci⌝`; interceptor reads `incomingCtxOk` from `libCtxOk_of_runCtx` | the interceptor **receives** the stream's `ctxInMD ci md` in its contract and reads with it (`FromIncomingContext` at that `md`), and passes `ctxInMD ci' md` to the handler; one `md` from `grpcAccepted` to the handler |
-| 16 handler specs, 3 `quota*` specs (proved) | as the contracts | as the contracts |
-| `auth.ctxTokenOf ctx` (def) | `mdTokenOf (incomingOf ctx)` | **deleted**; `auth.ctxTokenIs ctx tok := ∃ md, ctxInMD ctx md ∗ ⌜mdTokenOf md = tok⌝` (for statements); proofs carry `md` |
-| `auth.ctxBound M ctx a` (+ `principalBound`, `noPrincipalFrom`, `tokRefusedFrom`, `userAttemptOk`; M1) | indexed by the context, through `ctxTokenOf` | **indexed by the token**: `ctxBound M (tok : Option GoString) a := ⌜a = null⌝ ∨ ∃ t, ⌜tok = some t⌝ ∗ infoBound M t a`; likewise the others |
-| `authStore.AuthInfoFromCtx.spec`, `AuthInfoFromTLS.spec` (M1) | pre `incomingCtxOk ctx`; post `ctxBound M ctx a` | `∀ md`, pre `ctxInMD ctx md`; post `ctxBound M (mdTokenOf md) a` |
+| `incomingOf_cancelCtx`, `v3rpc.incomingOf_cancellableContext` (+ lemmas) | axioms | **deleted**; `ctxInMD_cancel`, `v3rpc.ctxInMD_cc` proved |
+| `metadata.FromIncomingContext.spec` (P-u) | pre `incomingCtxOk ctx`; post on `incomingOf ctx` | `∀ ctx md`, pre `ctxInMD ctx md`; post `⌜ok = false ∧ md = none⌝ ∨ ∃ md0 m, ⌜ok ∧ md = some md0 ∧ dom m = dom md0⌝ ∗ mp ↦$ m ∗ [∗map] …` (facts about `md`; probe `FromIncomingContextQ.spec`) |
+| `context.WithValue.spec` (P-u) | `⌜incomingOf c' = incomingOf parent⌝` | `□ ∀ md, ctxInMD parent md -∗ ctxInMD c' md` |
+| `traceutil.Tracer.Start.spec` (P-u), `EnsureTrace.spec` (proved) | `⌜incomingOf ctx' = incomingOf ctx⌝` | `□ ∀ md, ctxInMD ctx md -∗ ctxInMD ctx' md` |
+| `grpcAccepted` (model post; **the source**) | `▷ Spec (incomingOf ci) m Φ Ψe`; stream `□ Spec (incomingOf ci) γs Dn` | one more existential `md`: `ctxInMD ci md ∗ ▷ Spec md m Φ Ψe`; stream `ctxInMD ci md ∗ □ Spec md γs Dn` |
+| handler/method/run contracts (`grpcHandlerOkMd`, `grpcHandlerOwnOkMd`, `grpcMethodOkMd`, `grpcRunOkMd`, `srvInterceptorOk`, `grpcStream{Handler,Method,Run}Ok`) | pre `Spec (incomingOf ci) …` | `∀ … md`, pre `ctxInMD ci md ∗ Spec md …` |
+| `srvStreamInterceptorWOk` (`newStreamInterceptor.lean:220, 264-268`) | handler gets `⌜incomingOf ci' = incomingOf ci⌝`; interceptor reads `incomingCtxOk` from `libCtxOk_of_runCtx` | the interceptor receives `ctxInMD ci md`, reads with it (`FromIncomingContext` at `md`), and passes `ctxInMD ci' md` to the handler |
+| 16 handler specs (`_KV_*`, `_Lease_*`, `_Auth_*`, `_Watch_Watch` `_Handler`), 3 `quota*`, 4 `LeaseServer.*`, `watchServer.Watch` (proved) | as the contracts | as the contracts |
+| `libCtxOk`, `grpcRunCtx`, `srvRawStreamIs`, `isReqAuth`, `AuthInfoFromTLS.spec`, `NewAuthStore.spec` | incoming part `incomingCtxOk` | **text unchanged**; `incomingCtxOk` redefined (§2) |
 
-**Checkpoint C1a** (M1, inside step 1, first): the chain from `AuthInfoFromCtx` through `ctxBound` and
-`principalBound` to the handler's `tok` (`EtcdServer__{Put,Range,Txn}` auth paths, `ReqOn`, `ReadWhy`),
-converted and checked with `lean-check`, before the rest of step 1.
+### 4.2 The auth chain, by token (checkpoint C1a; review 2 MAJOR 2, the twins)
 
-How grpc's delivery produces `ctxInMD`: `acceptRun`/`acceptRunConns` (model-only, uninterpreted) post
-`grpcAccepted`. True in Go: grpc's HTTP/2 server transport builds `mdata` from the headers and calls
-`metadata.NewIncomingContext(s.ctx, mdata)` (`operateHeaders`), and the run context is a `*valueCtx` chain
-(`TestRealGrpcTwoStreams`, `examples/axiomcx/incomingof-attack`).
+- **`auth.authStore.AuthInfoFromCtx.spec` — one spec** (today's `specLb`, the stronger), by token, the
+  metadata gated by the mode (PRINCIPLES, "One spec, a gated row"):
+  `∀ st R M n ctx (tok : Option GoString)`, pre `… ∗ □ (⌜M.isOn = true⌝ → auth.ctxToken ctx tok) ∗ tpReady M ∗
+  ctxDoneRecv ctx ∗ authPubLbM M n`; post `… ∗ ctxBound M tok a ∗ (a = null ∧ err = nil → noPrincipalFrom M n
+  tok) ∗ (err ≠ nil → … ∗ tokRefusedFrom tok) ∗ (a ≠ null → enabledVerdictFrom M n true)`. **Proved in the
+  probe** (§6), the whole proof (both the `token` and `authorization` branches).
+  Today's `.spec` (no lower bound) becomes **the corollary** `AuthInfoFromCtx.spec_w : spec → specW` (floor
+  `0`, `authPubLbM_zero`: proved in the probe); `wp_proof` of the old `.spec` (~250 lines) is deleted. Callers
+  that took `.spec` (`AuthApplyOn.lean:63`, `AuthBound.lean:216`, `AuthSrv.lean:428, 668`,
+  `AuthReqDerive.lean:114, 152`, `Link.lean:1344`) take `specW` (a corollary) or the spec.
+- **`EtcdServer.AuthInfoFromCtx.spec` — one spec** (today's `specLb`), by token: pre adds
+  `□ (⌜M.isOn = true⌝ → auth.ctxToken ctx tok)` (the store's read) and keeps `context.libCtxOk ctx` (the TLS
+  fallback's read, §3); post `□ (⌜M.isOn⌝ → ctxBoundOrTLS s M tok a)` and the `specLb` rows at `tok`. Today's
+  `.spec` a corollary (`spec_w`); `wp_proof` (one of the two proofs) deleted. Callers: `checkLeaseTimeToLive`,
+  `checkLeaseRenew`, `processInternalRaftRequestOnce`, `ReqOn.lean:830` (`.spec`); `requireAuthInfo`,
+  `checkMembershipOperationPermission`, `doSerialize`, `AuthAdmin.isPermitted`, `isWatchPermitted`,
+  `ReqOn.lean:867` (`.specLb`).
+- **`isReqAuthBound`** (`InvRequest.lean:2842`, a definition, not trusted): its `AuthInfoFromCtx` triples take
+  `tok` and `□ (⌜M.isOn⌝ → ctxToken ctx tok)`, post `ctxBound M tok a`. **`isReqAuth`**: unchanged (the
+  unbound side; its real-store proof takes `tok := mdTokenOf md` from `libCtxOk`'s `md`).
+- **Merges** (the context-indexed predicate becomes the existing token-indexed one): `principalBound s M ctx`
+  → `principalBoundT s M tok` (and `principalBoundI`), `hdrBoundM on s E ctx` → `hdrBoundT s E.authMode tok`
+  gated by `on` (as `hdrBoundM` is), `infoBoundM` → `v3rpc.infoBoundT`, `ctxBoundOrTLS s M ctx` →
+  `… tok`, `noPrincipalFrom M n ctx` → `… tok`, `tokRefusedFrom M n ctx` → `tokRefusedFrom tok`.
+- **The request specs take the token:** `EtcdServer.{Put, DeleteRange, Txn, Range, LeaseGrant, LeaseRevoke,
+  raftRequest, processInternalRaftRequestOnce}.spec` (7 `Spec/` files name `hdrBoundM … (ok ctx)`): `∀ … tok`,
+  pre `□ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok)`, `hdrBoundT … tok` in place of `hdrBoundM … ctx`. The
+  auth-off theorems instantiate `tok := none` (premise vacuous: `E.authOn = false`), so their text is unchanged.
+- **v3rpc:** `srvKVAnsOn`/`srvKVAnsM`'s `⌜on = true → auth.ctxTokenOf ctx = tok⌝` → `□ (⌜on = true⌝ →
+  auth.ctxToken ctx tok)` (the tree already indexes the answers by `tok`); `lessorGrantOkGM`/`lessorRevokeOkM`,
+  `ctrlP`, `swsIs`, `ctrlMid`, `userAddAnsOn` & co. take `tok`; `ReadWhy`'s `rangeWhy`/`txnWhy` by `tok`, and
+  `rangeWhy_ctx`/`txnWhy_ctx` go.
+- **Who supplies `ctxToken ctx tok` with auth on:** the handler, from `grpcAccepted`'s `ctxInMD ci md`
+  (`tok := mdTokenOf md`), through `WithValue`/`Tracer.Start`/`ctxInMD_cancel`/`ctxInMD_cc` to the internal
+  contexts (`txnCtx`, `srvCtxWeak`); in `.any` mode, callers with no run context take it from `libCtxOk`.
 
-### 3.2 Outgoing metadata
+### 4.3 The examples' auth contract (review 2, m4)
 
-| text | old | new |
+`deliversOutgoing c h` (`incomingOf h = outgoingOf c`) and `userAttemptOk γa u h` are used only by
+`badCtx_unbound` and its export `authkv_bad_unbound`. Revision 3 keeps the client-to-server link explicit:
+`deliversOutgoing c h md := ⌜∃ hc, h = ok hc⌝ ∗ ctxInMD hc md ∗ ⌜outgoingOf c = md⌝` in this part (the outgoing
+part, later, makes the last conjunct `outMD c md`), and `userAttemptOk γa u tok` by token. The theorem
+(§7) says: the request whose handler context `h` carries the client context `c`'s outgoing metadata `md`, whose
+`token` values are `[badToken]`, has no principal bound to the token it carries. **Said plainly for Q9:** its
+logical content is "a bad token binds no auth info"; the `c`/`h` premises carry the link for the reader, not
+for the proof (as today: the old statement also followed from the token alone, through `ctxTokenOf_bad`).
+
+## 5. Why none of it transfers across heaps (incoming), and agreement
+
+- **(a)** No entailment concludes a pure fact from `ctxInMD`, `incomingCtxOk`, `ctxToken` or the leaf (I2);
+  the laws conclude relations. **(b)** A fresh world builds `ctxInMD x none` for a context of a foreign type
+  (`ctxChain`'s foreign root admits any `Value` WP form, which a fresh world satisfies) and `ctxInMD x none`
+  for `Background()`/`TODO()`-rooted chains; it builds no `ctxInMD x (some f)` (that needs the leaf
+  `transportMDRaw`, I4). Nothing follows from what it builds: every pure fact sits in a triple's post
+  (`FromIncomingContext`, `AuthInfoFromCtx`), vacuous there (review 2, m1: revision 2's "cannot build
+  `ctxInMD`" was inaccurate; `ctxInMD` is a definition, constructible from it, and is not sealed).
+  **(c)** No post of interpreted code concludes anything about incoming metadata but transfers (`WithCancel`
+  & co. through the proved laws); the leaf has no interpreted producer (I4'; review 2, (5): grpc's `metadata`
+  is names-only, `acceptRun`/`acceptRunConns` model-only names without an unfold).
+- **Agreement (ledger entry 1, wording corrected after review 2, (3)).** `ctxInMD ctx o ∗ ctxInMD ctx o' ⊢ ⌜o =
+  o'⌝` is **unprovable from the definitions** (a foreign root's `Value` WP form admits every result, and the
+  leaves have no agreement) and **false in the intended model** (a context whose `Value` diverges carries both
+  `none` and `some f`), yet **consistent as a Lean axiom** (interpret the leaf as `False`: `some` never
+  derivable, grpc's producers vacuous). At another key a `valueCtx` continues the *chain*
+  (`CtxValue.lean:90-94`); the WP form appears only at a foreign root, which any chain can reach. No proof
+  needs it: the two consumers that seemed to are restated with one `md` from one producer (§3, §4.2, §4.3).
+  SpecPlan uses it nowhere (no spec, no `examples/specreq` snippet: only its definition `Api.lean:923` and
+  `notes/specs-only/integration-I3.md:65`): ledger entry 1 proposes deleting it (and `ctxPeerCN`'s half).
+
+## 6. Probes (throwaway, not in the tree)
+
+Checked with `cd /shared/etcd-grove-incomingof && lake --packages=/shared/tmp/manifest-6d3.json env lean
+<file>` at `49bd7924e6`, **no errors, no `sorry`**:
+
+- `/shared/tmp/perheap/Probe.lean` (revision 1; 13 s): `ctxInMD` (as `incomingIsP`) over `ctxValue`; the two
+  refuted axioms' replacements as theorems (`incomingIsP_cancel`, 6 lines; `v3rpc.incomingIsP_cc`, 14 lines).
+- **`/shared/tmp/perheap/ProbeAuth.lean`** (revision 3, ~330 lines, 28 s): the leaf with `hG` in its binders,
+  `ctxInMDQ`, `ctxTokenIsQ` (= `auth.ctxToken`), `ctxBoundQ`/`noPrincipalFromQ`/`tokRefusedFromQ` by token,
+  `FromIncomingContextQ.spec` restated;
+  - `auth.authStore.AuthInfoFromCtxQ.wp_proof`: **the one spec proved** (today's `specLb` by token, metadata
+    gated by `M.isOn`), adapted from `FreshCtx.lean`'s `wp_lb` (both key branches); the gate costs 6 lines
+    (the `true` verdict excludes `.off`);
+  - `spec_w`: today's weaker `.spec` shape **as a corollary** (floor `0`: `authPubLbM_zero`);
+  - `spec_off`: **the auth-off instance needs no metadata at all** and returns `a = null` — what the chain of
+    `range_linearizable` & co. needs from the store (their `EtcdServer.Range` call instantiates `tok := none`).
+  Not probed: the EtcdServer-level merge (the TLS fallback reads `libCtxOk`'s anonymous `md`: no new reasoning)
+  and the v3rpc callers (mechanical: `ctxTokenOf ctx` → the parameter `tok`).
+
+## 7. Closed and exported statements (incoming part, complete)
+
+Scan: every theorem statement in every `Results.lean`/`MainLinked.lean`/`Adequacy*.lean`/`Robust*.lean` under
+`Proof/` and the parts (`/shared/tmp/perheap/scan4.py`), for the incoming vocabulary and every definition that
+mentions it (the 63 definitions of `/shared/tmp/perheap/inc-defs.txt`).
+
+**Closed statements (Adequacy/MainLinked/Robust): no text change, no new premise.** The trust base shrinks:
+deleted axioms `incomingOf_cancelCtx`, `v3rpc.incomingOf_cancellableContext` (22 collections: auth3, authN,
+authkv, cachekv, compactkv, k8scompactor, k8setcd3, leaseN, leasecatchup, leaseexpiry, leaseexpiryN, leasekv,
+linkv3p, linkvtxn, m2, putget, putget3, putgetN, txnlinfaultsN, v3rpc, watch, watchkv); deleted opaques
+`incomingOf`, `transportMD`; added opaque `transportMDRaw` (no law); restated trusted texts
+`FromIncomingContext` (23 collections), `WithValue` (35), `Tracer.Start` (31), the model's `acceptRun`/
+`acceptRunConns` posts (through `grpcAccepted`); meaning-only: `AuthInfoFromTLS`, `NewAuthStore`.
+
+**Exported statements whose text changes (for approval, Q9):**
+
+| statement | file:line | change |
 |---|---|---|
-| `AppendToOutgoingContext.spec` | `⌜outgoingOf c' = mdAdd (outgoingOf ctx) k v⌝` | `∀ md`, pre `outMD ctx md`; post `outMD c' (mdAdd md k v)` |
-| `withVersion.spec` | `⌜∃ v, outgoingOf c' = mdSet …⌝` | pre `outMD ctx md`; post `∃ v, outMD c' (mdSet md "client-api-version" [v])` |
-| `streamKeyFromCtx.spec` | `RET #(streamKeyOf (outgoingOf ctx))` | pre `outMD ctx md`; `RET #(streamKeyOf md)` |
-| `WithCancelValCtx.spec` (P-i) | axiom, `⌜outgoingOf ctx' = outgoingOf inctx⌝` | **a corollary** (m6): `□ ∀ md, outMD inctx md -∗ outMD ctx' md`, proved from `WithCancel`'s proved spec and `ctxValue_cancel`; the axiom goes |
-| `WithTimeoutBackgroundMd.spec` (P-i) | axiom, `⌜outgoingOf ctx' = none⌝` | **a corollary** (Q6): `outMD ctx' none` from `ctxValueFrom` + `Background()`; the axiom goes if Perennial's proved `WithTimeout` gives the rest (else restated) |
-| `grpcAttemptMd`, `grpcInvokerOk`, `credsYield` | `mdVals md k = mdVals cm k ++ mdVals (outgoingOf ctx) k` | `grpcAttemptMdOf conn om md` (pure, of metadata values); pre `outMD ctx om` and the deposit `▷ ∀ md, ⌜grpcAttemptMdOf conn om md⌝ -∗ Spec md …` |
-| `deliversOutgoing c h` (examples auth) | `incomingOf h = outgoingOf c` | dropped (§4) |
+| `put_end_to_endM`, `deleteRange_end_to_endM`, `range_end_to_endM`, `txn_end_to_endM` | `v3rpc/Results.lean:392, 442, 492, 552` | `auth.ctxTokenOf ctx` (in `srvKVAnsM …`, `kvDepOwnM …`, `writeGrantOn …`) → a new binder `(tok : Option GoString)`, and a new premise `□ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok)`. Dischargeable and not vacuous: their users `etcd_putHandlerM` & co. (`client/v3/Results.lean:1194, 1375, 1543, 1880`) receive `ctxInMD ci md` from the handler contract (`tok := mdTokenOf md`); with auth off it is vacuous and `tok` is free (off, the answers' token rows are gated by `on`) |
+| `authWrapOut_userAdd` | `v3rpc/Results.lean:856` | `userAddReplied … (auth.ctxTokenOf (ok ctx)) …` → the answer's token parameter: `authWrapOut (userAddAnsOn s E ρ ctx cd F tok name false Qa) resp err ⊢ authSlot s E ∗ (⌜err = nil⌝ -∗ userAddReplied s E ρ tok name Qa)` (no new premise: the token is the answer's) |
+| `authkv_bad_unbound` | examples auth `Results.lean:123` | `(hd : deliversOutgoing c h) (ht : mdVals (outgoingOf c) "token" = [badToken]) : ctxBound (.on γa) h a ⊢ ⌜a = null⌝` → `(md : GrpcMd) (ht : mdVals md "token" = [badToken]) : deliversOutgoing c h md ∗ ctxBound (.on γa) (mdTokenOf md) a ⊢ ⌜a = null⌝` (§4.3) |
 
-### 3.3 Errors
+**Exported statements whose text is kept and meaning changes** (through redefined definitions; none gains a
+conjunct a caller must newly discharge):
 
-| text | old | new |
-|---|---|---|
-| `status.FromError.spec` | `Code()` returns `statusCode err`; `Message()` `errDesc err`; `ok = false → errDesc err = m` | `∀ err c m ok`, pre `statusErrOk err ∗ errView err c m ok`; returns `ok`, `Code()` `c`, `Message()` `m` (SpecPlan's shape; all about parameters) |
-| `status.Error.spec` | `errDesc err = msg` | post `statusErr err c msg` (uninterpreted; the pin is vacuous: a pointer) |
-| **`errors.IsStatusErr.spec`** (P-i; **B1**) | `b = true → errDesc err = errDesc target` (+ T3) | `∀ err target m m'`, pre `statusErrOk err ∗ descIs err m ∗ descIs target m'`; post `⌜b = true → (err = target ∨ m = m') ∧ T3⌝`. Revision 1's `b = true → m = m'` is **false** (review 1, B1: Go's `err == target` shortcut reads no description, and a looping `Error()` gives `descIs e m` for every `m`; `TestIsSelfLoop`/`TestIsSelfFlip` pass in Go) |
-| **`fmt.ErrorfWrap.spec`** (P-i; **B2**) | post `errorfWrapIs err inner pre ∗ ⌜pre <+: errDesc err⌝` | post `errorfWrapIs err inner pre` only (the conjunct **deleted**); `∃ s, descIs err (pre ++ s)` is the proved `errorfWrap_descIs` (probe). Revision 1's `errorMsgIs inner m`/`descIs err (pre ++ m)` is **false of the model** (review 1, B2: `Errorf.impl` is `errors.New(format)`, `TrustedCode/fmt.lean:27-28`) |
-| `grpc.model.respond.spec` | pre `⌜err ≠ nil ∧ errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)` | `∀ … m`, pre `descIs err m ∗ (⌜err ≠ nil ∧ m ∈ handlerDescs⌝ -∗ Ψe m)` (T8': grpc's server reads `Error()`/`GRPCStatus()` in `status.Convert`, after `m` is fixed) |
-| handler outcome clause, `grpcInvokerOk` outcome | `⌜… errDesc err ∈ handlerDescs⌝ -∗ Ψe (errDesc err)` | `∃ m, descIs err m ∗ (⌜err ≠ nil ∧ m ∈ handlerDescs⌝ -∗ Ψe m)`; the invoker's error is a `*status.Error` (type stated: pin vacuous, not an `EtcdError`) |
-| `waitRetryBackoff.spec` | `errDesc err ∉ handlerDescs` | `∃ m, descIs err m ∗ ⌜m ∉ handlerDescs⌝` |
-| `rpctypes.errDesc_etcdError` | axiom (pure) | **deleted**; `descIs_etcdError` (proved, probe) |
-| 16 `rpctypes` `Err*_init` | `⌜errDesc e = lit⌝` | the `EtcdError` ones (`ErrFutureRev`, `ErrCompacted`, `ErrUserEmpty`, …): **a pure fact of the value**, `⌜e = mkOk EtcdError.ty #x ∧ x.desc = lit⌝` (I5; `descIs` follows by the law); the `*status.Error` ones (`ErrGRPC*`): `statusErr (ok e) code lit` |
-| `errStringToError_init` | `∀ k v, m !! k = some v → errDesc v = k` | `□ ∀ k v, ⌜m !! k = some v⌝ → descIs v k` (values are `*status.Error`s: pin vacuous) |
-| `toGRPCErrorMap_init` / `grpcErrMapOk` | pure, over `errDesc` of pointer keys and values | an `IProp`: `[∗ map] k ↦ v ∈ M, ∃ mk mv, descIs k mk ∗ descIs v mv ∗ ⌜mv = futureRevDesc → k = kf⌝ ∗ … ∗ ⌜mk ∉ readDescs⌝`; the cell wand unchanged |
-| `grpcErrMethodsOk`, `statusErrOk`, `srvErrOk`, `rpctypesInit` | `grpcStatusRO s (statusCode e)`; `errDesc` | §2.2 forms (names kept) |
-| `isHaltErr.spec`, `leasingKV.acquire` (proved) | `statusCode err` | pre `errView err c m ok`, `c` in the post |
+- `libCtxOk` (incoming part: `transportMD` → the leaf, as `∃ md, ctxInMD ctx md`): `range_linearizable`,
+  `range_serializable`, `txn_readonly`, `txn_applied` (`etcdserver/Results.lean:652, 714, 774, 819`; review 2's
+  MAJOR 2: **text kept**, §3); `ctxTraceIs_none_of_runCtx` (`client/v3/Results.lean:1172`, `grpcRunCtx`).
+- the grpc contracts (`Spec md` at a received `ctxInMD ci md`): `etcd_cache_served` (`cache/v3/Results.lean:240`);
+  in `client/v3/Results.lean`: `etcd_{put,range,delete,txn}HandlerM` (1194, 1375, 1543, 1880),
+  `etcd_{put,range,delete,txn}MethodMd` (2214, 2243, 2274, 2303), `etcd_compactMethodM` (2334),
+  `etcd_quotaHandler{,Own,Plain}_lent` (2401, 2413, 2425), `etcd_runOk(s)_of_slot` (2439, 2453),
+  `etcd_kv_servedM_with` (2484), `etcd_kv_served(_with)` (2647, 2715), `etcd_kv_started(_with)` (3637, 3686),
+  `etcd_leaseGrantMethodOk(Md)` (3927, 4022), `etcd_leaseRevokeMethodOk(Md)` (3967, 4002), `etcdGrpcSlot_eq`
+  (4088), `srvRunOks_of_slot` (4163), `etcd_lease_served` (4195), `etcd_kv_lease_served` (4241),
+  `client_lessor_isEtcdLease_served` (4300), `client_new_isEtcdLeaseClient_served` (4331); in
+  `v3rpc/Results.lean`: `raftKV_serverM` (160, `srvKVAnsM`), `etcd_{userAdd,roleAdd,userGrantRole,
+  roleGrantPermission,authEnable}HandlerOk` (927–1125), `…MethodOk` (1172–1300), `grpcHandlerOwnOkMd_frame`
+  (1350), `watch_streamHandlerOk` (1745), `etcd_watchMethodOk` (1779), `etcd_watch_served(_chain)` (1865, 1964),
+  `lessorGrantOkLiveM_server`, `lessorRevokeOkM_server` (2135, 2146).
+- `watch_registered_authorized` (`v3rpc/Results.lean:1700`): already by token (`infoBoundT … tok`); unchanged.
 
-**The restated chains (M1; not mechanical).** Each carries one `m` from its producer to the call that
-fixes it, and uses the value pin where the code compares by identity:
+## 8. Go evidence (incoming)
 
-- **`rpctypes.Error.spec`** (translated, proved): pre `descIs err m` (was `errorMsgIs … m`); post `descIs
-  err' m` with the same `m` (Go: `err' = err` when `m ∉ dom errStringToError`, else `EtcdError{code, m}`,
-  whose `descIs` is the law), plus `⌜err' = err ∨ ∃ c, err' = mkOk #⟨c, m⟩⌝` (pure).
-- **`Client.shouldRefreshToken`** (`Client__shouldRefreshToken.lean:69-79`): pre `descIs err m`; post `b =
-  true → m ∈ refusalDescs`. Proof: `rpctypes.Error` gives `descIs err' m`; `IsStatusErr(err', ErrUserEmpty)`
-  with `m' := xUE.desc` (law) gives `err' = eUE ∨ m = xUE.desc`; the identity branch gives `m = xUE.desc` by
-  the pin; `xUE.desc` is the initializer's literal. Same for `ErrInvalidAuthToken`, `ErrAuthOldRevision`.
-- **k8s `store.listReadError`** (`store__listReadError.lean:66`): `readErrIs`/`rangeErrSound`/`rangeErrOut`
-  carry `∃ m, descIs err m ∗ □(⌜m = futureRevDesc⌝ -∗ ⌜T3⌝ -∗ …)`: **probed** (`listRead_step`).
-- **`isSafeRetry*`**: `IsStatusErr(err, ErrGRPCNotSupportedForLearner)` (a `*status.Error`, a pointer
-  target): the identity branch gives `err = that pointer`, whose description the initializer fixes as
-  `statusErr`; the consumer's goal is stated as `∃ m, descIs err m ∗ P m`, so it takes the initializer's
-  `m` there, not the producer's (no agreement: a fresh existential).
-- **The server's Range error path** (`ServerKVOn.rangeErrOther_facts`, `rangeErrDesc_of_grpcErrOut`,
-  `ReadOn.rangeErrDesc`, `mvcc.rangeKeysErr`): `rangeErrDesc` becomes `∃ m, descIs err m ∗ (⌜m ≠
-  futureRevDesc⌝ ∨ …) ∗ …`; the `rangeKeys` wrap's `m` is `pre ++ s` from `errorfWrap_descIs`.
-
-Every row's (a)/(b)/(c) check: each is a triple, a definition in a triple's pre/post, or a proved law; none
-is an entailment with a pure conclusion about a pointer (I2); every pure post fact is about a parameter fixed
-in the pre, a returned value, or a pointer-free value (I3, I5); the leaves have no law and no interpreted
-producer (I4, I4'). The second reviewer should re-run this check on the final Lean texts (Step 4).
-
----
-
-## 4. Closed and exported statements touched (completed after review 1, (4))
-
-- **Closed statements (Adequacy/MainLinked): no text change** (review 1 scanned 147 files and confirms).
-  The trust base only shrinks or restates: deleted axioms `incomingOf_cancelCtx`,
-  `v3rpc.incomingOf_cancellableContext`, `rpctypes.errDesc_etcdError`, `context.WithCancelValCtx.wp_proof`,
-  maybe `context.WithTimeoutBackgroundMd.wp_proof`; deleted opaques `incomingOf`, `outgoingOf`, `errDesc`,
-  `statusCode`, `grpcStatusROP`, `transportMD`, `builtRawMD`; added opaques `transportMDRaw`,
-  `builtRawMDRaw`, `statusAt` (no laws); ~40 trusted texts restated (§3). **Meaning changes through
-  redefined vocabulary** (Q9): every closed etcd and k8s theorem's premises that mention `statusErrOk`,
-  `libCtxOk`, `ContextReadErrs` keep their text and change meaning with the definitions (none gains a
-  conjunct a caller must newly discharge; `libCtxOk` loses one).
-- **Exported statements whose text or meaning changes** (for approval, Q9):
-  - `client_range_any` (`client/v3/Results.lean:2865`) through `rangeErrOut`: `rangeErrΨ … (errDesc err)` →
-    `∃ m, descIs err m ∗ rangeErrΨ … m` (the context-error disjunct unchanged). Its users change in step 2:
-    k8s `watchChan__syncPaginated.lean:108`, examples `txnlin/Calls.lean:344`, `ClientPutGet.lean:298`,
-    `Results.lean:3168`.
-  - `range_end_to_endM` (`v3rpc/Results.lean:514-515`): `rangeErrDesc … err` (an `errDesc` disjunction,
-    `ReadOn.lean:294`) → the `∃ m, descIs err m ∗ …` form; `srvErrOk err` (meaning, §2.2). `put`,
-    `deleteRange`, `txn_end_to_endM` (`:413, 463, 583`): `srvErrOk err` (meaning).
-  - `put/deleteRange/range/txn_end_to_endM`, `authWrapOut_userAdd` (`v3rpc/Results.lean:392, 442, 492, 554,
-    862`): `auth.ctxTokenOf ctx` → a quantified `tok` with the premise `auth.ctxTokenIs ctx tok`
-    (dischargeable and not vacuous: the callers `etcd_putHandlerM` etc., `client/v3/Results.lean:1210, 1248,
-    1391, 1419, 1561, 1897`, receive `ctxInMD ci md` with the handler's metadata; review 1, (4)).
-  - `etcdserver/Results.lean:657, 719, 780, 825`: `context.libCtxOk ctx` (meaning: no incoming part, M2).
-  - `authkv_bad_unbound` (examples auth `Results.lean:123`): premises `deliversOutgoing c h`, `mdVals
-    (outgoingOf c) "token" = [badToken]` → `ctxInMD h (some md) ∗ ⌜mdVals md "token" = [badToken]⌝`, and its
-    conclusion `ctxBound (.on γa) h a …` → `ctxBound (.on γa) (mdTokenOf md) a …` (M1's re-indexing; the
-    statement says "the auth info bound to the token the context carries").
-
----
-
-## 5. Go evidence
-
-Behavior the new texts claim (go1.27.3, grpc v1.84.0, the etcd pin):
-
-- `FromIncomingContext(ctx)` reads `ctx.Value(mdIncomingKey{})`, asserts `MD`, copies (grpc
-  `metadata/metadata.go:268-282`); `FromOutgoingContext` reads `mdOutgoingKey{}`'s `rawMD`.
-- `*cancelCtx`/`*timerCtx` and etcd's `cancellableContext` answer other keys as their parent:
-  `examples/axiomcx/incomingof` `TestWrapperInheritsIncoming`, `TestIncomingNotConstant`;
-  `examples/axiomcx/incomingof-attack` (`TestRealGrpcTwoStreams` …), re-run 2026-11-18: `ok`.
-- `FromError`'s paths: `examples/axiomcx/incomingof-real` `TestFromErrorNoGRPCStatus`, `TestCtxErrDescs`;
-  stability: `examples/axiomcx/fromerrorflip`; the wrapped-status code (m4): `status.go:112-125`.
-- **`errors.Is`'s identity shortcut (B1)**: go1.27.3 `src/errors/wrap.go:54-57`; review 1's scratch test
-  (`…/scratchpad/isloop/isloop_test.go`: `TestIsSelfLoop`, `TestIsSelfFlip` pass). Step 0 moves it into
-  `examples/axiomcx/perheap/` (Go test that `errors.Is(e, e)` is `true` for an `Error()` that loops).
-- `fmt.Errorf`'s model (B2): `TrustedCode/fmt.lean:20-28`; Go's `*fmt.wrapError`: `fmt/errors.go:46-49`.
+- `FromIncomingContext` reads `ctx.Value(mdIncomingKey{})`, asserts `MD`, copies (grpc
+  `metadata/metadata.go:268-282`); `*cancelCtx`/`*timerCtx`/etcd's `cancellableContext` answer other keys as
+  their parent (`examples/axiomcx/incomingof` `TestWrapperInheritsIncoming`, `TestIncomingNotConstant`;
+  `examples/axiomcx/incomingof-attack`, re-run 2026-11-18: `ok`).
+- The store's read only when enabled (`server/auth/store.go` `AuthInfoFromCtx`); the server's TLS fallback
+  reads the metadata whatever the mode (`server/etcdserver/v3_server.go:1206-1216`, `store.go:1025-1069`, `:1044`).
 - The transport's `MD`: built once in `operateHeaders`, handed to a tap handle after `NewIncomingContext`
-  (m3); Step 1 adds a Go test that etcd's server has no tap handle and that a handler's
-  `FromIncomingContext` copy is independent of the context's map.
+  (`internal/transport/http2_server.go:543-575`). Step 1 adds a Go test (`examples/axiomcx/perheap/`) that etcd's
+  server installs no tap handle and that a handler's `FromIncomingContext` copy is independent of the map.
 
-## 5a. H0: a separate early hot fix of F1, on `lean` now
+## 9. Steps, estimates, checkpoints (step 0 + incoming)
 
-F1 is a Lean-level defect today (review 1, (5)): two closed programs `Errorf("A%w", e)`, `Errorf("B%w", e)`
-with the result allocated at one address give `"A" <+: errDesc v ∧ "B" <+: errDesc v`. H0 removes it without
-the redesign, in the current `errDesc` vocabulary, so it can land in days.
+Each lands on its own (`etc/land.sh` after the coordinator's go), in place (no twins: the two `AuthInfoFromCtx`
+pairs merge).
 
-- **The deletion alone breaks one proof.** The conjunct's only consumer is `mvcc.rangeKeysErr`
-  (`InvStore.lean:5632-5637`, conjunct `⌜"rangeKeys: context cancelled: " <+: errDesc err⌝`), used by
-  `ServerKVOn.rangeErrOther_facts` (`ServerKVOn.lean:961-982`) for (i) `e ≠ kf ∧ e ≠ kc` (the wrap is
-  neither of mvcc's read errors, `togRPCError`'s map lookup) and (ii) `ctxPassed e -∗ rangeErrMsgOk
-  (errDesc e)` (the description the server sends for a passed-through wrap). Without it neither holds:
-  `errDesc` of the wrap is then unconstrained, and nothing distinguishes it from `kf`. (`ServerKVOn.lean:783`
-  uses only the `Error()` WP part.)
-- **H0's text (the minimal sound one).** In `Spec/fmt/ErrorfWrap.lean`:
-  1. the post's conjunct `⌜pre <+: errDesc err⌝` becomes `⌜methodSet err.ty !! "Unwrap" = some (Signature []
-     false [error]) → pre <+: errDesc err⌝`: a fact of Go's `*fmt.wrapError` only (it has `Unwrap`), true
-     per run as before, and **vacuous in the model**, whose error is an `*errorString` with no `Unwrap`
-     (`ErrorStringLeaf.leaf`, the generated method set): adequacy over the model yields no `errDesc` fact, so
-     F1's two runs give nothing;
-  2. `fmt.modelErrIs` gains the model's cell, `errStrCell x (pre ++ s)` (`Proof/errors/NewVarCell.lean:38`):
-     true of the model (`errors.New` allocates the `errorString` and never writes it; Perennial's
-     `wp_New_errorString` persists the field), and in the model's disjunct only, so Go's side is untouched.
-- **Consumers to repair** (file:line):
-  - `Spec/fmt/ErrorfWrap.lean:35-40` (`modelErrIs`), `:113` (post), `Proof/fmt/ErrorfWrap.lean` (docstring);
-  - `Proof/go_etcd_io/etcd/server/v3/storage/mvcc/InvStore.lean:5632-5637`: `rangeKeysErr` keeps the
-    conditional conjunct and the `errorfWrapIs` disjunction (in place of the bare prefix);
-  - `…/mvcc/storeTxnCommon__rangeKeys.lean:687-708`: builds it (pattern `%Hpre` → the implication);
-  - `…/v3rpc/ServerKVOn.lean:961-982`: case on the disjunct — Go's: the prefix from the implication, as
-    today, and (i) by method set (`*wrapError` has `Unwrap`; `kf`, `kc` are `*errorString`s, leaves); the
-    model's: (i) by the cells (`errStrCell x (pre ++ s)` against `kf`'s and `kc`'s `errVarCell`, in
-    `mvccInit`, `mvcc/Base.lean:264-265`; the prefixes differ), (ii) by `ctxPassed` (an `*errorString` is a
-    leaf without `Is`, so `ctxPassed e` makes it `Canceled`'s or `DeadlineExceeded`'s value, whose
-    description `ctxErrDescs` gives: the existing `Hcx` step);
-  - `…/v3rpc/ServerKVOn.lean:783`, `Proof/go_etcd_io/etcd/cache/v3/Base.lean:901-933` (`ctxWrapErr_wrap*`),
-    `…/txn/executeTxn.lean:384`: `icases` patterns of `modelErrIs` (one more conjunct).
-- **Cost:** 7 files, ~100 lines, 1.5–2 days (the `modelErrIs` change rebuilds everything importing
-  `cache/v3/Base`: one full build). No exported or closed statement changes; one trusted text restated
-  (`fmt.ErrorfWrap.wp_proof`): hard stop for approval, and an `axiom`-skill review with the cross-world
-  check (the new conjunct is an implication with a pure conclusion about `errDesc` of an allocated value,
-  sound because its antecedent is false of every value the model allocates; the cell is a model fact).
-- `errors.IsStatusErr` needs no hot fix (§1.2, F1 paragraph). The redesign's step 2 then deletes the
-  conditional conjunct with `errDesc` (B2's deletion), keeping the cell.
-
----
-
-## 6. Steps, estimates, checkpoints (re-estimated after review 1, (6))
-
-Each phase lands on its own (`etc/land.sh` after the coordinator's go), in place (no twin specs).
-
-| step | what | files (text edits) | lines (est.) | time (agent-days) |
+| step | what | files (text edits) | lines (est., changed) | agent-days |
 |---|---|---|---|---|
-| H0 | §5a, on `lean`, independent of the rest | 7 | 100 | 1.5–2 |
-| 0 | Vocabulary (§2, SpecPlan names; leaves with `hG`); laws incl. `descIs_etcdError` (+ `IntoValInj EtcdError`), `errorfWrap_descIs`, the transfer laws; the probes' theorems in the tree; **errors probe against the real consumers** (`listReadError`, `shouldRefreshToken` with the restated `IsStatusErr`/`rpctypes.Error`, on a scratch branch: `lean-check` only); the Go test for B1; ledger entries 1–2 decided | 6 | 500 | 3–4 |
-| 1 | **Incoming** (§3.1): delete `incomingOf`, the two axioms; FromIncomingContext/WithValue/Tracer.Start/EnsureTrace; grpc contracts with the single source (M2: `grpcAccepted`, `libCtxOk`, `srvRawStreamIs`, `srvStreamInterceptorWOk`, `newStreamInterceptor`); 16+3 handler specs; **C1a** (the `ctxBound` family by token, `AuthInfoFromCtx`/`AuthInfoFromTLS`, 38 files); server `Hinc` lemmas; v3rpc Results (5) | ~110 | 2000 | 10–13 |
-| — | **C1a** (first), **C1**: builds; `tcb-report --check --update` shows the two axioms gone from 22 collections; interfaces regenerated; stop, land | | | |
-| 2 | **Errors** (§3.3): delete `errDesc`, `statusCode`, `grpcStatusROP`, `errDesc_etcdError`; FromError/Error/IsStatusErr/ErrorfWrap/respond/waitRetryBackoff; inits (17), `toGRPCErrorMap_init`; `statusErrOk` family (198 files rebuild); handler outcomes; the restated chains (server Range path, `rpctypes.Error`, `shouldRefreshToken`, `isSafeRetry*`, `rangeErrOut`/`rangeErrSound`/`readErrIs`, `listReadError`, leasing `acquire`, `isHaltErr`); `client_range_any`'s users (syncPaginated, txnlin) | ~80 | 2600 | 12–16 |
-| — | **C2a** (first): the server's Range path **and** `listReadError`, `shouldRefreshToken` converted and `lean-check`ed; report. **C2**: builds; stop, land | | | |
-| 3 | **Outgoing** (§3.2): delete `outgoingOf`, `builtRawMD`; `outgoingCtxOkC` redefined (110 files rebuild, ~31 edited); Append/withVersion/streamKeyFromCtx; `WithCancelValCtx`/`WithTimeoutBackgroundMd` as corollaries; `grpcAttemptMd`/`grpcInvokerOk`/`clientAttemptMdOf`/`credsYield`; client watch; examples auth, `authkv_bad_unbound` | ~45 | 1400 | 6–8 |
-| — | **C3**: builds; stop, land | | | |
-| 4 | The rest of §1.3 (Q7); `notes/axiom-review/perheap.md` (final texts, (a)/(b)/(c)/I4' per text), audit rows, `incomingof-crossworld.md` closed, the `axiom` skill's cross-world paragraph with (I1)–(I5) | ~10 | 300 | 2–3 |
-| all | Per phase: merges of `lean`, two full builds (~12.8k modules, 45G slot, retries), 68 collection baselines, interface regeneration, handoffs | | | 4–6 |
+| 0 | Vocabulary (§2: leaf with `hG`, `incomingHeld`, `ctxInMD`, `incomingCtxOk` redefined, `auth.ctxToken`, `ctxBound` by token); the laws (the probe's two theorems in the tree, `_timer`, `_valueCtx`, `_from`, `_background`, `ctxInMD_valueAt`); the `HasLC.hasLC` move (~12 files, form); `libCtxOk`'s producers re-proved (incl. the 6 `_of_nil` users); Go test; ledger entry 1 decided | ~20 | 400 | 3–4 |
+| 1a | **C1a, first**: the auth chain by token (§4.2): store and server `AuthInfoFromCtx` merged (the probe's proof in the tree), `isReqAuthBound`, the predicate merges, `ReqOn`/`AuthBound`/`AuthReqDerive`/`AuthSrv`/`AuthApplyOn`/`ReadWhy`, the checks (`requireAuthInfo`, `checkLease*`, `doSerialize`, `processInternalRaftRequestOnce`, `checkMembershipOperationPermission`), the 7 request specs with `tok`, the four auth-off theorems' proofs (`tok := none`) | ~66 | 1300 (−350 deleted twin proofs) | 7–9 |
+| — | **C1a checkpoint**: the chain and the auth-off theorems `lean-check`ed; report (forms decided, measured cost) | | | |
+| 1b | the rest (§4.1): delete `incomingOf` and the axioms; `FromIncomingContext`/`WithValue`/`Tracer.Start`/`EnsureTrace`; `grpcAccepted` and the contracts; `newStreamInterceptor` with the passed `md`; the 21 handler specs + 4 `LeaseServer` + `watchServer.Watch` and their proofs; v3rpc (`ServerKVOn`, `LeaseOn`, `InvWatch`, `sendLoop`, `SrvCtxWeakLaws`, Results); client Results (the handler theorems pass `ctxInMD`); examples auth (§4.3); otel/`net/http` stragglers | ~50 | 1300 | 6–8 |
+| — | **C1**: full build; `tcb-report --check --update` (the two axioms gone from 22 collections; restated texts); interfaces regenerated (`etc/gen-interface.py` for raft, cache, server APIs touched); `notes/axiom-review/perheap-incoming.md` (each new trusted text against (a)/(b)/(c), I4', the P-i test); audit rows; stop, land | | | |
+| all | merges of `lean`, two full builds (~12.8k modules, 45G slot, retries), collection baselines, interfaces, handoffs | | | 3–4 |
 
-Total: ~250 files edited (362 touched), ~6900 lines, **39–52 agent-days, 8–10.5 weeks** (review 1: 7–9;
-revision 1: 5–6.5). The largest uncertainty is step 2's chains: C2a measures them before the rest.
+**Total: ~120 files, ~3000 lines changed, 19–25 agent-days: 4–5 weeks** (target 3–4: not met honestly; the auth
+chain is 66 files, not revision 2's 38). 3.5 weeks is reachable only if C1a finds the request-spec changes
+mechanical (one binder and one premise per spec, most proofs unchanged after a `tok := mdTokenOf md`).
 
----
+## 10. Risks (incoming)
 
-## 7. Risks
+- **R1. A proof needs agreement after all** (two `ctxInMD` of one context, no call between, and the two `md`s
+  must be equal). Stop: an agreement law needs its own review (§5). Mitigation: C1a covers the known consumers.
+- **R2. `libCtxOk` producers without a chain.** `libCtxOk_of_nil` at one of `context`'s own types (not foreign)
+  cannot give `ctxInMD`; each of its 6 users is checked in step 0 (expected: foreign types or `ctxValue` forms).
+- **R3. The `HasLC.hasLC` move** hits a `{hlc}`-generic user that is instantiated elsewhere. None known (every
+  caller is at `HasLC.hasLC`); found in step 0's build.
+- **R4. Build cost and memory**: two full builds; `[∗list]`/`List.replicate` contexts framed explicitly.
+- **R5. Interference** (shared grpc contracts, the auth chain): land soon after C1.
+- **R6. SpecPlan divergence**: ledger entry 1 (agreement) pending; if the user keeps `ctxInMD_agree`, step 1
+  needs revision 2's §2.3a opaque realization (two trusted transfer entailments, a model argument): +3–5 days
+  and a separate review.
 
-- **R1. Proofs that use `errDesc` as a function** (the chains of §3.3). Each must carry one `m` from the
-  producer to the consumer's call, with the value pin where the code compares by identity; probed for
-  `listReadError` only. C2a measures the rest first.
-- **R2. A proof needs agreement after all** (two relations of one value, no call between, not an
-  `EtcdError` value). Stop: an agreement law needs its own review (§2.3a).
-- **R3. Build cost and memory** (rebuild of most of the tree per phase; `[∗list]`/`List.replicate` contexts
-  framed explicitly).
-- **R4. Meaning of "∃ m, descIs err m ∗ P m"** (partial correctness: for a looping `Error()` any `m`
-  works, but nothing that reads the description returns). Stated in the docstrings of `rangeErrOut`, the
-  handler contracts and `descIs`.
-- **R5. The secondary family** (§1.3): Q7.
-- **R6. Interference with other sessions** (shared grpc contracts, `cache/v3/Base`): land each phase soon
-  after its checkpoint.
-- **R7. SpecPlan divergence** (ledger 1–2): if the user keeps `ctxInMD_agree`, step 1 needs the opaque
-  realization of §2.3a instead (two trusted transfer entailments, a model argument), and the proved
-  transfer laws go: +3–5 days and a separate review.
-- **R8. `go.IntoValInj EtcdError`**: the value pin's law needs it; if `go.BasicIntoValInj` is not available
-  to the closed theorems, Step 0 states the pin through a field projection of the `val` instead.
+## 11. Open questions (incoming), each with a recommendation
 
----
-
-## 8. Open questions (each with a recommendation)
-
-- **Q1. Order.** Recommend: **H0 now** (independent, on `lean`); then step 0 (with the errors probe against
-  real consumers and the B1/B2 texts); step 1 incoming (C1a first); step 2 errors (C2a first, incl.
-  `listReadError`/`shouldRefreshToken`); step 3 outgoing; step 4 rest. Each landed separately.
-- **Q2. Agreement laws.** Recommend **none**; ledger entry 1 proposes deleting SpecPlan's `ctxInMD_agree.spec`
-  (false for the defined realization; sound only as an opaque with trusted transfers and a model, which
-  nothing needs; §2.3a). User decision (a SpecPlan law).
-- **Q3. `ctxInMD` defined or opaque.** Recommend **defined** over Perennial's `ctxValue` (both refuted axioms
-  become theorems), opaque only at the `MD` leaf, no `_raw` law.
-- **Q4. Error relations.** Recommend SpecPlan's `errView`/`statusErr`/`errMsg`/`plainErr`/`statusAt` for
-  `FromError`, plus **`descIs`** (message, with the value pin) for the description reasoning; ledger entry 2
-  (`errView`'s missing wrapped-status case). Revision 1's single `errStatusIs` is withdrawn (its
-  no-`GRPCStatus` branch claimed `Unknown` for wrap errors, m4).
-- **Q5. `rpctypes.errDesc_etcdError`.** Recommend **delete** (proved `descIs_etcdError`, probe).
-- **Q6. `WithTimeoutBackgroundMd`, `WithCancelValCtx`.** Recommend both as corollaries of Perennial's proved
-  `WithTimeout`/`WithCancel` (m6), deleting the axioms; restate only what Perennial's specs do not give.
-- **Q7. The secondary family.** Unchanged: step 4 replaces `transportPeer`, `otelSpan`, `builtTrace` (beside
-  `transportMD` in `libCtxOk`) by raw `IProp` leaves; the per-run-only ones are recorded in
-  `notes/axiom-review/perheap.md`; the `axiom … : Prop` pointer predicates classified there.
-- **Q8. F1.** Recommend (changed): **the H0 hot fix now** (§5a: conditional conjunct + the model's cell; 7
-  files, 1.5–2 days, one trusted text restated: approval + axiom review), with the audit row; the redesign
-  deletes the conjunct in step 2. Revision 1's "no hot fix" is withdrawn: F1 is a Lean-level defect today.
-- **Q9. Exported statements** (§4, completed): approve the listed text changes (`client_range_any`,
-  `range_end_to_endM`'s `rangeErrDesc`, the five `tok` premises, `authkv_bad_unbound` with `ctxBound` by
-  token) and the meaning changes through `srvErrOk`/`statusErrOk`/`libCtxOk`.
-- **Q10. `membership.memBucketsOk`.** Unchanged: a separate `axiom`-skill review of
-  `clusterImageOk_restModel.wp_proof`, before step 4.
-- **Q11 (new, B1). `errors.IsStatusErr`'s post.** Recommend `b = true → (err = target ∨ m = m') ∧ T3`, the
-  identity as an equation of interface values (consumers rewrite with it; for `EtcdError` targets the pin
-  turns it into `m = m'`).
-- **Q12 (new, M1). The value pin in `descIs`.** Recommend yes (I5: a pure fact of a pointer-free value, true
-  in Go, proved by every producer; it is what lets the identity branch close the `EtcdError` chains without
-  agreement: probe `listRead_step`).
-- **Q13 (new, M1). The `ctxBound` family by token.** Recommend `ctxBound M (tok : Option GoString) a` (and
-  `principalBound`, `noPrincipalFrom`, `tokRefusedFrom`, `userAttemptOk` likewise), `AuthInfoFromCtx` with
-  `md` a parameter; checkpoint C1a.
-- **Q14 (new, M2). One source of a run context's `ctxInMD`.** Recommend: remove the incoming part from
-  `libCtxOk`/`grpcRunCtx`/`srvRawStreamIs`; `grpcAccepted` is the only producer; the stream interceptor
-  contract passes the stream's `ctxInMD ci md` in.
-- **Q15 (new, m1). Leaves with `hG`, and (I4').** Recommend yes; Step 4 checks (I4') per text.
-- **Q16 (new). SpecPlan names.** Recommend adopting them (§2.0) in `Spec/`/`Proof/`, with ledger entries
-  for the two divergences.
+- **Q2. Agreement law.** Recommend **none**; delete `ctxInMD_agree.spec` from `SpecPlan/` (ledger entry 1:
+  unprovable from the definitions, false in the intended model, consistent as an axiom, used nowhere).
+- **Q3. `ctxInMD` defined over the chain, at `HasLC.hasLC`.** Recommend yes (both refuted axioms become
+  theorems); the ~12 `{hlc}`-generic files move to `HasLC.hasLC` (form). Alternative (not recommended): a
+  `valueAt`-based twin for readers, the `libCtxOk`/`libCtxOkC` split again.
+- **Q9. Exported statements** (§7): approve the three text changes (the four `*_end_to_endM` with `tok` and the
+  gated premise; `authWrapOut_userAdd` at the answer's `tok`; `authkv_bad_unbound` with `md` and the explicit
+  link, its content said plainly) and the meaning changes listed.
+- **Q13. The auth chain by token, the twins merged.** Recommend: `ctxBound`/`noPrincipalFrom`/`tokRefusedFrom`
+  by token; `principalBound`→`principalBoundT`, `hdrBoundM`→`hdrBoundT`, `infoBoundM`→`infoBoundT`; each
+  `AuthInfoFromCtx` one spec (the `Lb` form) with the old form a corollary (probe).
+- **Q14 (changed). Sources of a context's metadata.** Recommend: `libCtxOk` keeps the anonymous
+  `incomingCtxOk = ∃ md, ctxInMD ctx md` (needed: the TLS fallback and `NewAuthStore`'s `isReqAuth`, §3); the
+  `md` a spec is about comes only from `grpcAccepted`; specs relating metadata take `md`/`tok` as a parameter.
+- **Q17 (new). The mode gate.** Recommend `□ (⌜M.isOn = true⌝ → auth.ctxToken ctx tok)` in the `AuthInfoFromCtx`
+  and request specs (true of Go; the auth-off theorems keep their text). SpecPlan's
+  `authStore.AuthInfoFromCtx.spec` takes `ctxToken ctx o` ungated, having no mode: in `.on`/`.any` the two
+  coincide, so this is the mode's row, not a SpecPlan defect; no ledger entry (say if you want one).
+- **Q15. Leaves with `hG`, (I4').** Recommend yes (probe: the leaf declared with `[hG : HeapGS HasLC.hasLC GF]`).
 
 ---
 
-## 9. Review 1, item by item
+# Part II — errors and outgoing (outline; back to the user after Part I)
+
+Revision 2's §1.2 (errors and outgoing rows), §1.3, §2.2, §3.2, §3.3 (commit `3b10ff2b93`) stand as the
+outline; nothing there is decided beyond the directions below. Recorded for the later Scope:
+
+- **Review 2, MAJOR 1 (`isSafeRetry` needs agreement on a pointer-typed status error; R2 occurred) —
+  decided direction (a):** the invoker's post (`grpcInvokerOk`'s outcome) states that its error is a **fresh**
+  `*status.Error`, unequal to the value of every `rpctypes` variable (true in Go: grpc's client builds the error
+  from the received status; a pure fact about a returned value in an uninterpreted post, I3). `isSafeRetry`'s
+  identity branch is then absurd. C2a converts `isSafeRetry`/`Client.unaryClientInterceptor` first (with
+  `listReadError`, `shouldRefreshToken`, which close with the value pin).
+- **Review 2, MAJOR 3 (B1's `descIs` obligations at ~12 call sites; the pin unprovable for errors of unknown
+  type) — decided direction:** `errors.IsStatusErr`'s precondition as the disjunction `(descIs err m ∗ descIs
+  target m') ∨ ⌜m = m'⌝` (callers ignoring the result supply the trivial side), or `∃ m, descIs err m` inside
+  `statusErrOk` (its producers know the types); `descIs_of_errView` with a type premise
+  (`∀ y, err ≠ mkOk EtcdError.ty #y`) or dropped. To be chosen in the errors Scope.
+- **m3 (inventory):** `status.Status.Code.wp_proof` (`Proof/google_golang_org/grpc/status/Status__Code.lean:26`,
+  spec `Spec/…/Status__Code.lean:31-35`, pre `grpcStatusRO s c`; users: `client/v3/leasing`'s `Code()`, k8s E1)
+  is an axiom over names-only code; the errors part restates it (pre `□ statusAt s c m`, `s ≠ null`).
+- **m2, m5:** the (I2) exemption for (I5) facts and the P-i test are in §0 (they apply to all parts).
+- **Estimate (review 2):** the whole redesign 9.5–12 weeks; Part I is 4–5 of them; Part II's remaining steps
+  (errors 12–16 days + MAJOR 1/3 design 5–9 days; outgoing 6–8 days; the rest of the family 2–3) are re-scoped
+  when the user decides.
+
+# H0 — withdrawn from this Scope
+
+Revision 2's §5a (H0, the hot fix of F1) is withdrawn: by the user's decision of 2026-11-18 a separate
+fmt-soundness branch lands `fmt.ErrorfWrap` restated and proved (review 2's H0′) with a term-level `Errorf` gate,
+including review 2's consumer list (8 files: `apply/Base.lean:488-489, 531-532`, `cache/v3/Base.lean:951`,
+`storeTxnCommon__rangeKeys.lean:699` added) and the `notes/decisions.md` supersession. Part II's errors steps
+assume it has landed (`errDesc`'s only allocated-value conjunct is then a theorem's; F1 closed by construction).
+
+---
+
+## 12. Review 2, item by item
 
 | item | answer |
 |---|---|
-| B1 (`IsStatusErr` post false) | §3.3 row, Q11; probed (`IsStatusErrP.spec`, `listRead_step`) |
-| B2 (`ErrorfWrap` post false of the model) | §3.3 row (conjunct deleted, `errorfWrap_descIs` proved in the probe); H0 (§5a), Q8 |
-| M1 (agreement chains) | value pin (§2.2, Q12); restated chains (§3.3: `rpctypes.Error`, `shouldRefreshToken`, `listReadError` probed, `isSafeRetry*`, Range path); `ctxBound` family by token, `AuthInfoFromCtx` with `md` (§3.1, Q13); C1a |
-| M2 (two sources of incoming metadata) | §3.1 (`libCtxOk`/`grpcRunCtx`/`srvRawStreamIs` lose the incoming part; `srvStreamInterceptorWOk` passes it), Q14 |
-| SpecPlan (MAJOR, process) | §2.0 names adopted; §2.3a `ctxInMD_agree` (ledger entry 1); `errView` gap (ledger entry 2); Q2, Q4, Q16 |
-| §4 omissions | §4 completed (`range_end_to_endM`'s `rangeErrDesc`, `srvErrOk` in four, `etcdserver/Results` `libCtxOk`, `client_range_any`'s users, `authkv_bad_unbound`'s real shape) |
-| m1 (leaves `hG`-free) | (I4'), §2.1/§2.2 binders, Q15 |
-| m2 (transfer laws assumed) | (I2) restated |
-| m3 (tap handle) | `transportMDRaw` docstring (§2.1), Step 1 Go test (§5) |
-| m4 (`Unknown` for wrap errors) | `errView` needs `plainErr`; `descIs` separate (§2.2), Q4 |
-| m5 (`GRPCStatus()` returning nil) | §2.2, stated as incompleteness |
-| m6 (`WithCancelValCtx` derivable) | §3.2 row, Q6 |
-| Inventory (derived predicates, `incomingCtxOk` specs, outgoing 114/115 files, `status.Code`) | §1.2a |
-| Estimate (7–9 weeks) | §6: 8–10.5 weeks |
-| Order (errors probe in step 0; C2a with k8s/client; C1a) | §6, Q1 |
-| F1 priority | H0, Q8 |
+| H0 verdict, H0′, fixes 1–4 | out of this Scope (the user's decision): the fmt-soundness branch (H0 section) |
+| MAJOR 1 (`isSafeRetry`) | Part II: direction (a) recorded; C2a order |
+| MAJOR 2 (auth-off callers, `specLb` twins) | §3 (gate adopted; `libCtxOk` keeps an anonymous incoming part: the TLS fallback, `NewAuthStore`), §4.2 (both pairs merged, probe), §7 (four auth-off theorems: text kept), Q13, Q14, Q17 |
+| MAJOR 3 (`descIs` obligations, the pin) | Part II: direction recorded |
+| m1 (§2.3 wording) | §5 (b) |
+| m2 (I2 exemption) | §0 |
+| m3 (`status.Status.Code`) | Part II |
+| m4 (`authkv_bad_unbound`) | §4.3, §7 |
+| m5 (P-i test) | §0; C1's per-text check |
+| (3) `ctxInMD_agree` wording | §5; ledger entry 1 reworded |
+| (4) `grpcAccepted` single source | §3 (single source of the `md` a spec is about), §4.1 |
+| (6) §4 completeness | §7 (scan of every exported statement, with the definitions that mention the vocabulary) |
+| (7) twins, estimate | §1, §4.2; §9 (4–5 weeks for Part I) |
