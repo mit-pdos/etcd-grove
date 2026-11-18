@@ -321,6 +321,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 
 instance stateAt_timeless (γa : auth.AuthNames) (i : Nat) (st : auth.AuthState) :
     Timeless (auth.authStateAt (GF := GF) γa i st) := by
@@ -498,6 +499,227 @@ theorem real_acc (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st :
   refine ⟨hl, hka, hnu, hnr, fun _ => hA.symm, ?_, ?_⟩
   · intro h; exact (hU.2 h).symm
   · intro h; exact (hR.2 h).symm
+
+/-- The view with every bucket at the writer's contents, which hold the session's state. -/
+theorem viewAt_writer {bs : BSess} {st : auth.AuthState} {cs : GoString → BktData}
+    (hv : viewAt (auth.BkView.uni st) (authD bs.S)) (ha : cs go!"auth" = bktOf bs.S go!"auth")
+    (hu : cs go!"authUsers" = bktOf bs.S go!"authUsers") (hr : cs go!"authRoles" = bktOf bs.S go!"authRoles") :
+    viewAt ⟨st, st, st⟩ ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩ := by
+  rw [authD_eq] at hv
+  rw [ha, hu, hr]
+  exact hv
+
+/-- **`Unlock`'s confirmation** (`rbConf`): the readers' halves of the auth buckets are at the writer's contents,
+which hold the session's state: every bucket recorded at it, at the history's last index; the batch token at
+the writer's contents. -/
+theorem real_conf (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st : auth.AuthState)
+    (hs : List auth.AuthState) (hv : viewAt (auth.BkView.uni st) (authD bs.S)) :
+    realInv (GF := GF) γ d s0 q0 ⊢
+      rbConf d.γB authBktL (fun n => bktOf bs.S n) (unRr γ bs st hs) (unRr' γ bs st hs) (⊤ ∖ ↑authRealN) := by
+  iintro #Hinv
+  unfold rbConf
+  iintro HR
+  iunfold unRr at HR
+  icases HR with ⟨%x, Hx, Hlq, %Hh⟩
+  iunfold realInv at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold realSt at Hi
+  icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, HT, >Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, >Hbt⟩)
+  rotate_left
+  · iunfold batchTok at Hbt
+    icases Hbt with ⟨%y, Hbt⟩
+    iexfalso; iapply bkTok_half_one γ x y $$ [$Hx $Hbt]
+  · iunfold batchTok at Hbt
+    icases Hbt with ⟨%y, Hbt⟩
+    iexfalso; iapply bkTok_half_one γ x y $$ [$Hx $Hbt]
+  icases Hb with (Hid | Hbb)
+  · iunfold bkIdle at Hid
+    icases Hid with ⟨%hs', %rc, %w, -, -, >Hbt, -, -, -⟩
+    iexfalso; iapply bkTok_half_one γ x _ $$ [$Hx $Hbt]
+  iunfold bkBatch at Hbb
+  icases Hbb with ⟨HT, >Hbt⟩
+  iunfold bkTok at Hx Hbt
+  icombine Hx Hbt gives %Hxe
+  obtain ⟨-, rfl⟩ := Hxe
+  iunfold bkCommon at Hc
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  imodintro
+  iexists cs
+  isplitl [Ha Hu Hr']
+  · iapply (rbRd3 d.γB cs).2
+    iframe Ha Hu Hr'
+  iintro %Hcs Hv3
+  icases (rbRd3 d.γB cs).1 $$ Hv3 with ⟨Ha, Hu, Hr'⟩
+  have ha := Hcs go!"auth" (by simp [authBktL])
+  have hu := Hcs go!"authUsers" (by simp [authBktL])
+  have hr := Hcs go!"authRoles" (by simp [authBktL])
+  have hcsT : csT cs = csT (fun n => bktOf bs.S n) := by simp only [csT, ha, hu, hr]
+  icases lockQ_rec γ.γa hs st Hh.1 $$ Hlq with ⟨Hlq, #HsL⟩
+  icases lockQ_idx γ.γa hs ju su $$ [$Hlq $Hsu] with ⟨Hlq, %Hju⟩
+  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp HT Hbt] with -
+  · inext
+    iunfold realSt
+    iexists cs, st, st, st, hs.length - 1, hs.length - 1, hs.length - 1, p
+    isplitl [Ha Hu Hr' Hpq]
+    · iunfold bkCommon
+      iframe Ha Hu Hr' Hpq
+      iframe #
+      ipureintro
+      obtain ⟨-, -, -, hpu, -⟩ := Hv
+      exact ⟨viewAt_writer hv ha hu hr, Nat.le_refl _, Nat.le_refl _, by omega, by omega⟩
+    ileft
+    iframe Hs Hr Hp
+    iright
+    iunfold bkBatch
+    iframe HT
+    iunfold bkTok
+    iexact Hbt
+  imodintro
+  iunfold unRr'
+  rw [← hcsT]
+  iunfold bkTok
+  iframe Hx Hlq
+  ipureintro; exact Hh.1
+
+theorem rb_auth (d : mvcc.KBReal) : ∀ n, n ∈ authBktL → d.P.RB n = true := by
+  intro n h
+  simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at h
+  rcases h with rfl | rfl | rfl <;> simp [mvcc.KBReal.P, mvcc.restBuckets]
+
+theorem bktOf_rbData (P : BParams) (S : Data) (n : GoString) (h : P.RB n = true) :
+    bktOf (rbData P S) n = bktOf S n := by
+  unfold bktOf; rw [rbData_lookup, h]; rfl
+
+/-- **A batch begins** (`Lock`'s ghost step, before `LockInsideApply`): the write token deposited, the idle branch's
+lock share of the history, claimed part, half the batch token, session token and the rest of the open share taken
+out; the buckets are at the history's last state. -/
+theorem real_borrow (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) :
+    realInv (GF := GF) γ d s0 q0 ∗ auth.authWTok γ.γc ⊢
+      |={⊤}=> ∃ (cs : GoString → BktData) (hs : List auth.AuthState) (rc : GMap GoString BktData)
+        (w : auth.AuthSess) (st : auth.AuthState),
+        auth.authLockQ γ.γa hs ∗ rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗
+        bkTok γ (1 : Qp).half (csT cs) ∗ bkSw γ 1 w ∗ bOpen d.γB q0 ∗
+        ⌜hs.getLast? = some st ∧ viewAt ⟨st, st, st⟩ ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩ ∧
+          ∀ n, n ∈ authBktL → bktOf rc n = cs n⌝ := by
+  iintro ⟨#Hinv, HT⟩
+  iunfold realInv at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold realSt at Hi
+  icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq, >HT', Hbt⟩ | ⟨Hcur, Hr, Hpr, >HT', Hbt⟩)
+  rotate_left
+  · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
+  · iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
+  icases Hb with (Hid | Hbb)
+  rotate_left
+  · iunfold bkBatch at Hbb
+    icases Hbb with ⟨>HT', -⟩
+    iexfalso; iapply wTok_excl γ.γc $$ [$HT $HT']
+  iunfold bkIdle at Hid
+  icases Hid with ⟨%hs, %rc, %w, >Hlq, >Hro, >Hbt, >Hsw, >Hq, >%Hid⟩
+  obtain ⟨hl, hu, hr, -, -, -, hcs⟩ := Hid
+  iunfold bkCommon at Hc
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  iunfold bkTok at Hbt
+  icases (ghostVar_split_half γ.γk 1 (csT cs)).1 $$ Hbt with ⟨Hb1, Hb2⟩
+  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp HT Hb1] with -
+  · inext
+    iunfold realSt
+    iexists cs, sa, su, sr, ja, ju, jr, p
+    isplitl [Ha Hu Hr' Hpq]
+    · iunfold bkCommon
+      iframe Ha Hu Hr' Hpq
+      iframe #
+      ipureintro; exact Hv
+    ileft
+    iframe Hs Hr Hp
+    iright
+    iunfold bkBatch
+    iframe HT
+    iunfold bkTok
+    iexact Hb1
+  imodintro
+  iexists cs, hs, rc, w, sa
+  iframe Hlq Hro Hsw Hq
+  iunfold bkTok
+  iframe Hb2
+  ipureintro
+  refine ⟨hl, ?_, hcs⟩
+  have h := Hv.1
+  rw [hu, hr] at h
+  exact h
+
+/-- **A batch ends** (after `Unlock`'s confirmation and `Commit`): the batch token's halves at the writer's
+contents, which hold the session's state, the last of the lock's share of the history; the buckets idle at it, each
+recorded at the history's last index; the write token taken out. -/
+theorem real_return (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (bs : BSess) (st : auth.AuthState)
+    (hs : List auth.AuthState) (w : auth.AuthSess) (hv : viewAt (auth.BkView.uni st) (authD bs.S))
+    (hl : hs.getLast? = some st) :
+    realInv (GF := GF) γ d s0 q0 ∗ bkTok γ (1 : Qp).half (csT (fun n => bktOf bs.S n)) ∗
+      auth.authLockQ γ.γa hs ∗ rbOwnInR d.γB (fun n => n ∈ authBktL) (rbData d.P bs.S) ∗ bkSw γ 1 w ∗
+      bOpen d.γB q0 ⊢ |={⊤}=> auth.authWTok γ.γc := by
+  iintro ⟨#Hinv, Hx, Hlq, Hro, Hsw, Hq⟩
+  iunfold realInv at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold realSt at Hi
+  icases Hi with ⟨%cs, %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq', HT, >Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, >Hbt⟩)
+  rotate_left
+  · iunfold batchTok at Hbt
+    icases Hbt with ⟨%y, Hbt⟩
+    iexfalso; iapply bkTok_half_one γ _ y $$ [$Hx $Hbt]
+  · iunfold batchTok at Hbt
+    icases Hbt with ⟨%y, Hbt⟩
+    iexfalso; iapply bkTok_half_one γ _ y $$ [$Hx $Hbt]
+  icases Hb with (Hid | Hbb)
+  · iunfold bkIdle at Hid
+    icases Hid with ⟨%hs', %rc, %w', -, -, >Hbt, -, -, -⟩
+    iexfalso; iapply bkTok_half_one γ _ _ $$ [$Hx $Hbt]
+  iunfold bkBatch at Hbb
+  icases Hbb with ⟨>HT, >Hbt⟩
+  iunfold bkTok at Hx Hbt
+  icombine Hx Hbt gives %Hxe
+  obtain ⟨-, Hxe⟩ := Hxe
+  have ha : cs go!"auth" = bktOf bs.S go!"auth" := (congrArg (fun t => t.1) Hxe).symm
+  have hu : cs go!"authUsers" = bktOf bs.S go!"authUsers" := (congrArg (fun t => t.2.1) Hxe).symm
+  have hr : cs go!"authRoles" = bktOf bs.S go!"authRoles" := (congrArg (fun t => t.2.2) Hxe).symm
+  iunfold bkCommon at Hc
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases lockQ_rec γ.γa hs st hl $$ Hlq with ⟨Hlq, #HsL⟩
+  icases lockQ_idx γ.γa hs ju su $$ [$Hlq $Hsu] with ⟨Hlq, %Hju⟩
+  ihave Hbt := (ghostVar_split_half γ.γk 1 (csT cs)).2 $$ [Hx Hbt]
+  · rw [← Hxe]; iframe Hx Hbt
+  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp Hbt Hlq Hro Hsw Hq] with -
+  · inext
+    iunfold realSt
+    iexists cs, st, st, st, hs.length - 1, hs.length - 1, hs.length - 1, p
+    isplitl [Ha Hu Hr' Hpq]
+    · iunfold bkCommon
+      iframe Ha Hu Hr' Hpq
+      iframe #
+      ipureintro
+      obtain ⟨-, -, -, hpu, -⟩ := Hv
+      exact ⟨viewAt_writer hv ha hu hr, Nat.le_refl _, Nat.le_refl _, by omega, by omega⟩
+    ileft
+    iframe Hs Hr Hp
+    ileft
+    iunfold bkIdle
+    iexists hs, rbData d.P bs.S, w
+    iframe Hlq Hro Hsw Hq
+    iunfold bkTok
+    iframe Hbt
+    ipureintro
+    refine ⟨hl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+    intro n hn
+    rw [bktOf_rbData _ _ _ (rb_auth d n hn)]
+    simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at hn
+    rcases hn with rfl | rfl | rfl
+    · exact ha.symm
+    · exact hu.symm
+    · exact hr.symm
+  imodintro
+  iexact HT
 
 end wr
 
