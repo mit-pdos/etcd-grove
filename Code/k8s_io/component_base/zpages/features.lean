@@ -20,9 +20,9 @@ end pkg_id
 
 namespace k8s_io.component_base.zpages.features
 
-axiom ComponentFlagz [GooseExts] [GoGlobalContext] : val
+opaque ComponentFlagz [GooseExts] [GoGlobalContext] : val
 
-axiom ComponentStatusz [GooseExts] [GoGlobalContext] : val
+opaque ComponentStatusz [GooseExts] [GoGlobalContext] : val
 
 noncomputable def featureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/zpages/features.featureGates"
@@ -33,7 +33,7 @@ noncomputable def AddFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.zpages.features where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

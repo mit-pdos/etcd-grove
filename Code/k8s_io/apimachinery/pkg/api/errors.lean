@@ -44,12 +44,12 @@ noncomputable def ErrorReporter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ErrorReporter.ty
 
-axiom UnexpectedObjectError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnexpectedObjectError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def knownReasons [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.knownReasons"
 
-axiom knownReasons.init [GooseExts] [GoGlobalContext] : val
+opaque knownReasons.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def HasStatusCause [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/errors.HasStatusCause"
@@ -370,7 +370,7 @@ noncomputable def NewTimeoutError.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.errors where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.net.http, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime.schema]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -447,8 +447,10 @@ attribute [instance] APIStatus.TypeAssumptions.underlying
   APIStatus.TypeAssumptions.method_set
   APIStatus.TypeAssumptions.ptr_method_set
 
-axiom UnexpectedObjectError : Type
-axiom UnexpectedObjectError.zero_val : ZeroVal UnexpectedObjectError
+opaque UnexpectedObjectError.nonempty_type : NonemptyType.{0}
+def UnexpectedObjectError : Type := UnexpectedObjectError.nonempty_type.type
+instance UnexpectedObjectError.nonempty : Nonempty UnexpectedObjectError := UnexpectedObjectError.nonempty_type.property
+opaque UnexpectedObjectError.zero_val : ZeroVal UnexpectedObjectError := ⟨Classical.ofNonempty⟩
 attribute [instance] UnexpectedObjectError.zero_val
 
 class UnexpectedObjectError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

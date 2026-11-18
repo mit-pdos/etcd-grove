@@ -287,177 +287,177 @@ noncomputable def multiWriteSyncer.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] multiWriteSyncer.ty
 
-axiom BufferedWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BufferedWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jsonEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque jsonEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyWithCore.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lazyWithCore.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom counter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque counter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lockedWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lockedWriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom _defaultBufferSize [GooseExts] [GoGlobalContext] : val
+opaque _defaultBufferSize [GooseExts] [GoGlobalContext] : val
 
-axiom _defaultFlushInterval [GooseExts] [GoGlobalContext] : val
+opaque _defaultFlushInterval [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultLineEnding [GooseExts] [GoGlobalContext] : val
+opaque DefaultLineEnding [GooseExts] [GoGlobalContext] : val
 
-axiom OmitKey [GooseExts] [GoGlobalContext] : val
+opaque OmitKey [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenNoop [GooseExts] [GoGlobalContext] : val
+opaque WriteThenNoop [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenGoexit [GooseExts] [GoGlobalContext] : val
+opaque WriteThenGoexit [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenPanic [GooseExts] [GoGlobalContext] : val
+opaque WriteThenPanic [GooseExts] [GoGlobalContext] : val
 
-axiom WriteThenFatal [GooseExts] [GoGlobalContext] : val
+opaque WriteThenFatal [GooseExts] [GoGlobalContext] : val
 
-axiom UnknownType [GooseExts] [GoGlobalContext] : val
+opaque UnknownType [GooseExts] [GoGlobalContext] : val
 
-axiom ArrayMarshalerType [GooseExts] [GoGlobalContext] : val
+opaque ArrayMarshalerType [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectMarshalerType [GooseExts] [GoGlobalContext] : val
+opaque ObjectMarshalerType [GooseExts] [GoGlobalContext] : val
 
-axiom BinaryType [GooseExts] [GoGlobalContext] : val
+opaque BinaryType [GooseExts] [GoGlobalContext] : val
 
-axiom BoolType [GooseExts] [GoGlobalContext] : val
+opaque BoolType [GooseExts] [GoGlobalContext] : val
 
-axiom ByteStringType [GooseExts] [GoGlobalContext] : val
+opaque ByteStringType [GooseExts] [GoGlobalContext] : val
 
-axiom Complex128Type [GooseExts] [GoGlobalContext] : val
+opaque Complex128Type [GooseExts] [GoGlobalContext] : val
 
-axiom Complex64Type [GooseExts] [GoGlobalContext] : val
+opaque Complex64Type [GooseExts] [GoGlobalContext] : val
 
-axiom DurationType [GooseExts] [GoGlobalContext] : val
+opaque DurationType [GooseExts] [GoGlobalContext] : val
 
-axiom Float64Type [GooseExts] [GoGlobalContext] : val
+opaque Float64Type [GooseExts] [GoGlobalContext] : val
 
-axiom Float32Type [GooseExts] [GoGlobalContext] : val
+opaque Float32Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int64Type [GooseExts] [GoGlobalContext] : val
+opaque Int64Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int32Type [GooseExts] [GoGlobalContext] : val
+opaque Int32Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int16Type [GooseExts] [GoGlobalContext] : val
+opaque Int16Type [GooseExts] [GoGlobalContext] : val
 
-axiom Int8Type [GooseExts] [GoGlobalContext] : val
+opaque Int8Type [GooseExts] [GoGlobalContext] : val
 
-axiom StringType [GooseExts] [GoGlobalContext] : val
+opaque StringType [GooseExts] [GoGlobalContext] : val
 
-axiom TimeType [GooseExts] [GoGlobalContext] : val
+opaque TimeType [GooseExts] [GoGlobalContext] : val
 
-axiom TimeFullType [GooseExts] [GoGlobalContext] : val
+opaque TimeFullType [GooseExts] [GoGlobalContext] : val
 
-axiom Uint64Type [GooseExts] [GoGlobalContext] : val
+opaque Uint64Type [GooseExts] [GoGlobalContext] : val
 
-axiom Uint32Type [GooseExts] [GoGlobalContext] : val
+opaque Uint32Type [GooseExts] [GoGlobalContext] : val
 
-axiom Uint16Type [GooseExts] [GoGlobalContext] : val
+opaque Uint16Type [GooseExts] [GoGlobalContext] : val
 
-axiom Uint8Type [GooseExts] [GoGlobalContext] : val
+opaque Uint8Type [GooseExts] [GoGlobalContext] : val
 
-axiom UintptrType [GooseExts] [GoGlobalContext] : val
+opaque UintptrType [GooseExts] [GoGlobalContext] : val
 
-axiom ReflectType [GooseExts] [GoGlobalContext] : val
+opaque ReflectType [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceType [GooseExts] [GoGlobalContext] : val
+opaque NamespaceType [GooseExts] [GoGlobalContext] : val
 
-axiom StringerType [GooseExts] [GoGlobalContext] : val
+opaque StringerType [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorType [GooseExts] [GoGlobalContext] : val
+opaque ErrorType [GooseExts] [GoGlobalContext] : val
 
-axiom SkipType [GooseExts] [GoGlobalContext] : val
+opaque SkipType [GooseExts] [GoGlobalContext] : val
 
-axiom InlineMarshalerType [GooseExts] [GoGlobalContext] : val
+opaque InlineMarshalerType [GooseExts] [GoGlobalContext] : val
 
-axiom _hex [GooseExts] [GoGlobalContext] : val
+opaque _hex [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DebugLevel [GooseExts] [GoGlobalContext] : val :=
   #(W8 (-1))
 
-axiom InfoLevel [GooseExts] [GoGlobalContext] : val
+opaque InfoLevel [GooseExts] [GoGlobalContext] : val
 
-axiom WarnLevel [GooseExts] [GoGlobalContext] : val
+opaque WarnLevel [GooseExts] [GoGlobalContext] : val
 
-axiom ErrorLevel [GooseExts] [GoGlobalContext] : val
+opaque ErrorLevel [GooseExts] [GoGlobalContext] : val
 
-axiom DPanicLevel [GooseExts] [GoGlobalContext] : val
+opaque DPanicLevel [GooseExts] [GoGlobalContext] : val
 
-axiom PanicLevel [GooseExts] [GoGlobalContext] : val
+opaque PanicLevel [GooseExts] [GoGlobalContext] : val
 
-axiom FatalLevel [GooseExts] [GoGlobalContext] : val
+opaque FatalLevel [GooseExts] [GoGlobalContext] : val
 
-axiom _minLevel [GooseExts] [GoGlobalContext] : val
+opaque _minLevel [GooseExts] [GoGlobalContext] : val
 
-axiom _maxLevel [GooseExts] [GoGlobalContext] : val
+opaque _maxLevel [GooseExts] [GoGlobalContext] : val
 
-axiom InvalidLevel [GooseExts] [GoGlobalContext] : val
+opaque InvalidLevel [GooseExts] [GoGlobalContext] : val
 
-axiom _numLevels [GooseExts] [GoGlobalContext] : val
+opaque _numLevels [GooseExts] [GoGlobalContext] : val
 
-axiom _countersPerLevel [GooseExts] [GoGlobalContext] : val
+opaque _countersPerLevel [GooseExts] [GoGlobalContext] : val
 
-axiom LogDropped [GooseExts] [GoGlobalContext] : val
+opaque LogDropped [GooseExts] [GoGlobalContext] : val
 
-axiom LogSampled [GooseExts] [GoGlobalContext] : val
+opaque LogSampled [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.DefaultClock"
 
-axiom DefaultClock.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultClock.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _sliceEncoderPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._sliceEncoderPool"
 
-axiom _sliceEncoderPool.init [GooseExts] [GoGlobalContext] : val
+opaque _sliceEncoderPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _cePool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._cePool"
 
-axiom _cePool.init [GooseExts] [GoGlobalContext] : val
+opaque _cePool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _errArrayElemPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._errArrayElemPool"
 
-axiom _errArrayElemPool.init [GooseExts] [GoGlobalContext] : val
+opaque _errArrayElemPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _jsonPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._jsonPool"
 
-axiom _jsonPool.init [GooseExts] [GoGlobalContext] : val
+opaque _jsonPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nullLiteralBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.nullLiteralBytes"
 
-axiom nullLiteralBytes.init [GooseExts] [GoGlobalContext] : val
+opaque nullLiteralBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errUnmarshalNilLevel [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.errUnmarshalNilLevel"
 
-axiom errUnmarshalNilLevel.init [GooseExts] [GoGlobalContext] : val
+opaque errUnmarshalNilLevel.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _levelToColor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._levelToColor"
 
-axiom _levelToColor.init [GooseExts] [GoGlobalContext] : val
+opaque _levelToColor.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _unknownLevelColor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._unknownLevelColor"
 
-axiom _unknownLevelColor.init [GooseExts] [GoGlobalContext] : val
+opaque _unknownLevelColor.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _levelToLowercaseColorString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._levelToLowercaseColorString"
 
-axiom _levelToLowercaseColorString.init [GooseExts] [GoGlobalContext] : val
+opaque _levelToLowercaseColorString.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def _levelToCapitalColorString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore._levelToCapitalColorString"
 
-axiom _levelToCapitalColorString.init [GooseExts] [GoGlobalContext] : val
+opaque _levelToCapitalColorString.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def getSliceEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.uber.org/zap/zapcore.getSliceEncoder"
@@ -621,7 +621,7 @@ noncomputable def NewMultiWriteSyncer [GooseExts] [GoGlobalContext] : GoString :
 noncomputable instance info' : PkgInfo pkg_id.go_uber_org.zap.zapcore where
   pkgImportedPkgs := [pkg_id.time, pkg_id.io]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -702,8 +702,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #()))))))))
 
-axiom BufferedWriteSyncer : Type
-axiom BufferedWriteSyncer.zero_val : ZeroVal BufferedWriteSyncer
+opaque BufferedWriteSyncer.nonempty_type : NonemptyType.{0}
+def BufferedWriteSyncer : Type := BufferedWriteSyncer.nonempty_type.type
+instance BufferedWriteSyncer.nonempty : Nonempty BufferedWriteSyncer := BufferedWriteSyncer.nonempty_type.property
+opaque BufferedWriteSyncer.zero_val : ZeroVal BufferedWriteSyncer := ⟨Classical.ofNonempty⟩
 attribute [instance] BufferedWriteSyncer.zero_val
 
 class BufferedWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -856,8 +858,10 @@ attribute [instance] LevelEnabler.TypeAssumptions.underlying
   LevelEnabler.TypeAssumptions.method_set
   LevelEnabler.TypeAssumptions.ptr_method_set
 
-axiom Encoder : Type
-axiom Encoder.zero_val : ZeroVal Encoder
+opaque Encoder.nonempty_type : NonemptyType.{0}
+def Encoder : Type := Encoder.nonempty_type.type
+instance Encoder.nonempty : Nonempty Encoder := Encoder.nonempty_type.property
+opaque Encoder.zero_val : ZeroVal Encoder := ⟨Classical.ofNonempty⟩
 attribute [instance] Encoder.zero_val
 
 class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1634,8 +1638,10 @@ attribute [instance] levelFilterCore.TypeAssumptions.type_repr
   levelFilterCore.TypeAssumptions.method_set
   levelFilterCore.TypeAssumptions.ptr_method_set
 
-axiom jsonEncoder : Type
-axiom jsonEncoder.zero_val : ZeroVal jsonEncoder
+opaque jsonEncoder.nonempty_type : NonemptyType.{0}
+def jsonEncoder : Type := jsonEncoder.nonempty_type.type
+instance jsonEncoder.nonempty : Nonempty jsonEncoder := jsonEncoder.nonempty_type.property
+opaque jsonEncoder.zero_val : ZeroVal jsonEncoder := ⟨Classical.ofNonempty⟩
 attribute [instance] jsonEncoder.zero_val
 
 class jsonEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1651,8 +1657,10 @@ attribute [instance] jsonEncoder.TypeAssumptions.type_repr
   jsonEncoder.TypeAssumptions.method_set
   jsonEncoder.TypeAssumptions.ptr_method_set
 
-axiom lazyWithCore : Type
-axiom lazyWithCore.zero_val : ZeroVal lazyWithCore
+opaque lazyWithCore.nonempty_type : NonemptyType.{0}
+def lazyWithCore : Type := lazyWithCore.nonempty_type.type
+instance lazyWithCore.nonempty : Nonempty lazyWithCore := lazyWithCore.nonempty_type.property
+opaque lazyWithCore.zero_val : ZeroVal lazyWithCore := ⟨Classical.ofNonempty⟩
 attribute [instance] lazyWithCore.zero_val
 
 class lazyWithCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1828,8 +1836,10 @@ attribute [instance] ReflectedEncoder.TypeAssumptions.underlying
   ReflectedEncoder.TypeAssumptions.method_set
   ReflectedEncoder.TypeAssumptions.ptr_method_set
 
-axiom counter : Type
-axiom counter.zero_val : ZeroVal counter
+opaque counter.nonempty_type : NonemptyType.{0}
+def counter : Type := counter.nonempty_type.type
+instance counter.nonempty : Nonempty counter := counter.nonempty_type.property
+opaque counter.zero_val : ZeroVal counter := ⟨Classical.ofNonempty⟩
 attribute [instance] counter.zero_val
 
 class counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1980,8 +1990,10 @@ attribute [instance] multiCore.TypeAssumptions.underlying
   multiCore.TypeAssumptions.method_set
   multiCore.TypeAssumptions.ptr_method_set
 
-axiom lockedWriteSyncer : Type
-axiom lockedWriteSyncer.zero_val : ZeroVal lockedWriteSyncer
+opaque lockedWriteSyncer.nonempty_type : NonemptyType.{0}
+def lockedWriteSyncer : Type := lockedWriteSyncer.nonempty_type.type
+instance lockedWriteSyncer.nonempty : Nonempty lockedWriteSyncer := lockedWriteSyncer.nonempty_type.property
+opaque lockedWriteSyncer.zero_val : ZeroVal lockedWriteSyncer := ⟨Classical.ofNonempty⟩
 attribute [instance] lockedWriteSyncer.zero_val
 
 class lockedWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

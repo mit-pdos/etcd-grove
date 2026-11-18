@@ -32,7 +32,7 @@ noncomputable def group.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] group.ty
 
-axiom Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/informers/apps.New"
@@ -83,7 +83,7 @@ noncomputable def group.V1.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.informers.apps where
   pkgImportedPkgs := [pkg_id.k8s_io.client_go.informers.apps.v1, pkg_id.k8s_io.client_go.informers.internalinterfaces]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -95,8 +95,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.client_go.informers.internalinterfaces.initialize') (Val #()))))))))
 
-axiom Interface : Type
-axiom Interface.zero_val : ZeroVal Interface
+opaque Interface.nonempty_type : NonemptyType.{0}
+def Interface : Type := Interface.nonempty_type.type
+instance Interface.nonempty : Nonempty Interface := Interface.nonempty_type.property
+opaque Interface.zero_val : ZeroVal Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] Interface.zero_val
 
 class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

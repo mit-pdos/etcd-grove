@@ -369,41 +369,41 @@ noncomputable def serviceAccounts.ty [GooseExts] [GoGlobalContext] : go.GoType :
 
 attribute [irreducible] serviceAccounts.ty
 
-axiom componentStatuses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque componentStatuses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom configMaps.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque configMaps.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CoreV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CoreV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom endpoints.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque endpoints.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom events.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque events.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventSinkImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventSinkImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom limitRanges.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque limitRanges.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom namespaces.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque namespaces.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom nodes.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque nodes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom persistentVolumes.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque persistentVolumes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom persistentVolumeClaims.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque persistentVolumeClaims.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pods.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque pods.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podTemplates.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque podTemplates.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicationControllers.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque replicationControllers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceQuotas.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resourceQuotas.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom secrets.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque secrets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom services.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque services.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serviceAccounts.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serviceAccounts.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newComponentStatuses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/core/v1.newComponentStatuses"
@@ -474,7 +474,7 @@ noncomputable def newServiceAccounts [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.core.v1 where
   pkgImportedPkgs := [pkg_id.context, pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.client_go.applyconfigurations.core.v1, pkg_id.net.http, pkg_id.k8s_io.client_go.rest, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.api.policy.v1, pkg_id.k8s_io.api.policy.v1beta1, pkg_id.k8s_io.api.autoscaling.v1, pkg_id.k8s_io.api.authentication.v1]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -550,8 +550,10 @@ attribute [instance] ComponentStatusInterface.TypeAssumptions.underlying
   ComponentStatusInterface.TypeAssumptions.method_set
   ComponentStatusInterface.TypeAssumptions.ptr_method_set
 
-axiom componentStatuses : Type
-axiom componentStatuses.zero_val : ZeroVal componentStatuses
+opaque componentStatuses.nonempty_type : NonemptyType.{0}
+def componentStatuses : Type := componentStatuses.nonempty_type.type
+instance componentStatuses.nonempty : Nonempty componentStatuses := componentStatuses.nonempty_type.property
+opaque componentStatuses.zero_val : ZeroVal componentStatuses := ⟨Classical.ofNonempty⟩
 attribute [instance] componentStatuses.zero_val
 
 class componentStatuses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -595,8 +597,10 @@ attribute [instance] ConfigMapInterface.TypeAssumptions.underlying
   ConfigMapInterface.TypeAssumptions.method_set
   ConfigMapInterface.TypeAssumptions.ptr_method_set
 
-axiom configMaps : Type
-axiom configMaps.zero_val : ZeroVal configMaps
+opaque configMaps.nonempty_type : NonemptyType.{0}
+def configMaps : Type := configMaps.nonempty_type.type
+instance configMaps.nonempty : Nonempty configMaps := configMaps.nonempty_type.property
+opaque configMaps.zero_val : ZeroVal configMaps := ⟨Classical.ofNonempty⟩
 attribute [instance] configMaps.zero_val
 
 class configMaps.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -626,8 +630,10 @@ attribute [instance] CoreV1Interface.TypeAssumptions.underlying
   CoreV1Interface.TypeAssumptions.method_set
   CoreV1Interface.TypeAssumptions.ptr_method_set
 
-axiom CoreV1Client : Type
-axiom CoreV1Client.zero_val : ZeroVal CoreV1Client
+opaque CoreV1Client.nonempty_type : NonemptyType.{0}
+def CoreV1Client : Type := CoreV1Client.nonempty_type.type
+instance CoreV1Client.nonempty : Nonempty CoreV1Client := CoreV1Client.nonempty_type.property
+opaque CoreV1Client.zero_val : ZeroVal CoreV1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] CoreV1Client.zero_val
 
 class CoreV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -671,8 +677,10 @@ attribute [instance] EndpointsInterface.TypeAssumptions.underlying
   EndpointsInterface.TypeAssumptions.method_set
   EndpointsInterface.TypeAssumptions.ptr_method_set
 
-axiom endpoints : Type
-axiom endpoints.zero_val : ZeroVal endpoints
+opaque endpoints.nonempty_type : NonemptyType.{0}
+def endpoints : Type := endpoints.nonempty_type.type
+instance endpoints.nonempty : Nonempty endpoints := endpoints.nonempty_type.property
+opaque endpoints.zero_val : ZeroVal endpoints := ⟨Classical.ofNonempty⟩
 attribute [instance] endpoints.zero_val
 
 class endpoints.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -716,8 +724,10 @@ attribute [instance] EventInterface.TypeAssumptions.underlying
   EventInterface.TypeAssumptions.method_set
   EventInterface.TypeAssumptions.ptr_method_set
 
-axiom events : Type
-axiom events.zero_val : ZeroVal events
+opaque events.nonempty_type : NonemptyType.{0}
+def events : Type := events.nonempty_type.type
+instance events.nonempty : Nonempty events := events.nonempty_type.property
+opaque events.zero_val : ZeroVal events := ⟨Classical.ofNonempty⟩
 attribute [instance] events.zero_val
 
 class events.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -747,8 +757,10 @@ attribute [instance] EventExpansion.TypeAssumptions.underlying
   EventExpansion.TypeAssumptions.method_set
   EventExpansion.TypeAssumptions.ptr_method_set
 
-axiom EventSinkImpl : Type
-axiom EventSinkImpl.zero_val : ZeroVal EventSinkImpl
+opaque EventSinkImpl.nonempty_type : NonemptyType.{0}
+def EventSinkImpl : Type := EventSinkImpl.nonempty_type.type
+instance EventSinkImpl.nonempty : Nonempty EventSinkImpl := EventSinkImpl.nonempty_type.property
+opaque EventSinkImpl.zero_val : ZeroVal EventSinkImpl := ⟨Classical.ofNonempty⟩
 attribute [instance] EventSinkImpl.zero_val
 
 class EventSinkImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -946,8 +958,10 @@ attribute [instance] LimitRangeInterface.TypeAssumptions.underlying
   LimitRangeInterface.TypeAssumptions.method_set
   LimitRangeInterface.TypeAssumptions.ptr_method_set
 
-axiom limitRanges : Type
-axiom limitRanges.zero_val : ZeroVal limitRanges
+opaque limitRanges.nonempty_type : NonemptyType.{0}
+def limitRanges : Type := limitRanges.nonempty_type.type
+instance limitRanges.nonempty : Nonempty limitRanges := limitRanges.nonempty_type.property
+opaque limitRanges.zero_val : ZeroVal limitRanges := ⟨Classical.ofNonempty⟩
 attribute [instance] limitRanges.zero_val
 
 class limitRanges.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -991,8 +1005,10 @@ attribute [instance] NamespaceInterface.TypeAssumptions.underlying
   NamespaceInterface.TypeAssumptions.method_set
   NamespaceInterface.TypeAssumptions.ptr_method_set
 
-axiom namespaces : Type
-axiom namespaces.zero_val : ZeroVal namespaces
+opaque namespaces.nonempty_type : NonemptyType.{0}
+def namespaces : Type := namespaces.nonempty_type.type
+instance namespaces.nonempty : Nonempty namespaces := namespaces.nonempty_type.property
+opaque namespaces.zero_val : ZeroVal namespaces := ⟨Classical.ofNonempty⟩
 attribute [instance] namespaces.zero_val
 
 class namespaces.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1050,8 +1066,10 @@ attribute [instance] NodeInterface.TypeAssumptions.underlying
   NodeInterface.TypeAssumptions.method_set
   NodeInterface.TypeAssumptions.ptr_method_set
 
-axiom nodes : Type
-axiom nodes.zero_val : ZeroVal nodes
+opaque nodes.nonempty_type : NonemptyType.{0}
+def nodes : Type := nodes.nonempty_type.type
+instance nodes.nonempty : Nonempty nodes := nodes.nonempty_type.property
+opaque nodes.zero_val : ZeroVal nodes := ⟨Classical.ofNonempty⟩
 attribute [instance] nodes.zero_val
 
 class nodes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1109,8 +1127,10 @@ attribute [instance] PersistentVolumeInterface.TypeAssumptions.underlying
   PersistentVolumeInterface.TypeAssumptions.method_set
   PersistentVolumeInterface.TypeAssumptions.ptr_method_set
 
-axiom persistentVolumes : Type
-axiom persistentVolumes.zero_val : ZeroVal persistentVolumes
+opaque persistentVolumes.nonempty_type : NonemptyType.{0}
+def persistentVolumes : Type := persistentVolumes.nonempty_type.type
+instance persistentVolumes.nonempty : Nonempty persistentVolumes := persistentVolumes.nonempty_type.property
+opaque persistentVolumes.zero_val : ZeroVal persistentVolumes := ⟨Classical.ofNonempty⟩
 attribute [instance] persistentVolumes.zero_val
 
 class persistentVolumes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1154,8 +1174,10 @@ attribute [instance] PersistentVolumeClaimInterface.TypeAssumptions.underlying
   PersistentVolumeClaimInterface.TypeAssumptions.method_set
   PersistentVolumeClaimInterface.TypeAssumptions.ptr_method_set
 
-axiom persistentVolumeClaims : Type
-axiom persistentVolumeClaims.zero_val : ZeroVal persistentVolumeClaims
+opaque persistentVolumeClaims.nonempty_type : NonemptyType.{0}
+def persistentVolumeClaims : Type := persistentVolumeClaims.nonempty_type.type
+instance persistentVolumeClaims.nonempty : Nonempty persistentVolumeClaims := persistentVolumeClaims.nonempty_type.property
+opaque persistentVolumeClaims.zero_val : ZeroVal persistentVolumeClaims := ⟨Classical.ofNonempty⟩
 attribute [instance] persistentVolumeClaims.zero_val
 
 class persistentVolumeClaims.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1199,8 +1221,10 @@ attribute [instance] PodInterface.TypeAssumptions.underlying
   PodInterface.TypeAssumptions.method_set
   PodInterface.TypeAssumptions.ptr_method_set
 
-axiom pods : Type
-axiom pods.zero_val : ZeroVal pods
+opaque pods.nonempty_type : NonemptyType.{0}
+def pods : Type := pods.nonempty_type.type
+instance pods.nonempty : Nonempty pods := pods.nonempty_type.property
+opaque pods.zero_val : ZeroVal pods := ⟨Classical.ofNonempty⟩
 attribute [instance] pods.zero_val
 
 class pods.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1258,8 +1282,10 @@ attribute [instance] PodTemplateInterface.TypeAssumptions.underlying
   PodTemplateInterface.TypeAssumptions.method_set
   PodTemplateInterface.TypeAssumptions.ptr_method_set
 
-axiom podTemplates : Type
-axiom podTemplates.zero_val : ZeroVal podTemplates
+opaque podTemplates.nonempty_type : NonemptyType.{0}
+def podTemplates : Type := podTemplates.nonempty_type.type
+instance podTemplates.nonempty : Nonempty podTemplates := podTemplates.nonempty_type.property
+opaque podTemplates.zero_val : ZeroVal podTemplates := ⟨Classical.ofNonempty⟩
 attribute [instance] podTemplates.zero_val
 
 class podTemplates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1303,8 +1329,10 @@ attribute [instance] ReplicationControllerInterface.TypeAssumptions.underlying
   ReplicationControllerInterface.TypeAssumptions.method_set
   ReplicationControllerInterface.TypeAssumptions.ptr_method_set
 
-axiom replicationControllers : Type
-axiom replicationControllers.zero_val : ZeroVal replicationControllers
+opaque replicationControllers.nonempty_type : NonemptyType.{0}
+def replicationControllers : Type := replicationControllers.nonempty_type.type
+instance replicationControllers.nonempty : Nonempty replicationControllers := replicationControllers.nonempty_type.property
+opaque replicationControllers.zero_val : ZeroVal replicationControllers := ⟨Classical.ofNonempty⟩
 attribute [instance] replicationControllers.zero_val
 
 class replicationControllers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1348,8 +1376,10 @@ attribute [instance] ResourceQuotaInterface.TypeAssumptions.underlying
   ResourceQuotaInterface.TypeAssumptions.method_set
   ResourceQuotaInterface.TypeAssumptions.ptr_method_set
 
-axiom resourceQuotas : Type
-axiom resourceQuotas.zero_val : ZeroVal resourceQuotas
+opaque resourceQuotas.nonempty_type : NonemptyType.{0}
+def resourceQuotas : Type := resourceQuotas.nonempty_type.type
+instance resourceQuotas.nonempty : Nonempty resourceQuotas := resourceQuotas.nonempty_type.property
+opaque resourceQuotas.zero_val : ZeroVal resourceQuotas := ⟨Classical.ofNonempty⟩
 attribute [instance] resourceQuotas.zero_val
 
 class resourceQuotas.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1393,8 +1423,10 @@ attribute [instance] SecretInterface.TypeAssumptions.underlying
   SecretInterface.TypeAssumptions.method_set
   SecretInterface.TypeAssumptions.ptr_method_set
 
-axiom secrets : Type
-axiom secrets.zero_val : ZeroVal secrets
+opaque secrets.nonempty_type : NonemptyType.{0}
+def secrets : Type := secrets.nonempty_type.type
+instance secrets.nonempty : Nonempty secrets := secrets.nonempty_type.property
+opaque secrets.zero_val : ZeroVal secrets := ⟨Classical.ofNonempty⟩
 attribute [instance] secrets.zero_val
 
 class secrets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1438,8 +1470,10 @@ attribute [instance] ServiceInterface.TypeAssumptions.underlying
   ServiceInterface.TypeAssumptions.method_set
   ServiceInterface.TypeAssumptions.ptr_method_set
 
-axiom services : Type
-axiom services.zero_val : ZeroVal services
+opaque services.nonempty_type : NonemptyType.{0}
+def services : Type := services.nonempty_type.type
+instance services.nonempty : Nonempty services := services.nonempty_type.property
+opaque services.zero_val : ZeroVal services := ⟨Classical.ofNonempty⟩
 attribute [instance] services.zero_val
 
 class services.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1497,8 +1531,10 @@ attribute [instance] ServiceAccountInterface.TypeAssumptions.underlying
   ServiceAccountInterface.TypeAssumptions.method_set
   ServiceAccountInterface.TypeAssumptions.ptr_method_set
 
-axiom serviceAccounts : Type
-axiom serviceAccounts.zero_val : ZeroVal serviceAccounts
+opaque serviceAccounts.nonempty_type : NonemptyType.{0}
+def serviceAccounts : Type := serviceAccounts.nonempty_type.type
+instance serviceAccounts.nonempty : Nonempty serviceAccounts := serviceAccounts.nonempty_type.property
+opaque serviceAccounts.zero_val : ZeroVal serviceAccounts := ⟨Classical.ofNonempty⟩
 attribute [instance] serviceAccounts.zero_val
 
 class serviceAccounts.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

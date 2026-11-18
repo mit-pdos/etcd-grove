@@ -20,11 +20,11 @@ end pkg_id
 
 namespace k8s_io.kubernetes.pkg.util.taints
 
-axiom MODIFIED [GooseExts] [GoGlobalContext] : val
+opaque MODIFIED [GooseExts] [GoGlobalContext] : val
 
-axiom TAINTED [GooseExts] [GoGlobalContext] : val
+opaque TAINTED [GooseExts] [GoGlobalContext] : val
 
-axiom UNTAINTED [GooseExts] [GoGlobalContext] : val
+opaque UNTAINTED [GooseExts] [GoGlobalContext] : val
 
 noncomputable def parseTaint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/util/taints.parseTaint"
@@ -68,7 +68,7 @@ noncomputable def CheckTaintValidation [GooseExts] [GoGlobalContext] : GoString 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.util.taints where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

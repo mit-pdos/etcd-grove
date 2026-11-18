@@ -60,17 +60,17 @@ noncomputable def cacheEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] cacheEntry.ty
 
-axiom Expiring.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Expiring.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom entry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque entry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom expiringHeapEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque expiringHeapEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Clock.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Clock.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LRUExpireCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LRUExpireCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cacheEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cacheEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewExpiring [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/cache.NewExpiring"
@@ -87,7 +87,7 @@ noncomputable def NewLRUExpireCacheWithClock [GooseExts] [GoGlobalContext] : GoS
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.cache where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -96,8 +96,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val «_».init) (Val #())))))))
 
-axiom Expiring : Type
-axiom Expiring.zero_val : ZeroVal Expiring
+opaque Expiring.nonempty_type : NonemptyType.{0}
+def Expiring : Type := Expiring.nonempty_type.type
+instance Expiring.nonempty : Nonempty Expiring := Expiring.nonempty_type.property
+opaque Expiring.zero_val : ZeroVal Expiring := ⟨Classical.ofNonempty⟩
 attribute [instance] Expiring.zero_val
 
 class Expiring.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -113,8 +115,10 @@ attribute [instance] Expiring.TypeAssumptions.type_repr
   Expiring.TypeAssumptions.method_set
   Expiring.TypeAssumptions.ptr_method_set
 
-axiom entry : Type
-axiom entry.zero_val : ZeroVal entry
+opaque entry.nonempty_type : NonemptyType.{0}
+def entry : Type := entry.nonempty_type.type
+instance entry.nonempty : Nonempty entry := entry.nonempty_type.property
+opaque entry.zero_val : ZeroVal entry := ⟨Classical.ofNonempty⟩
 attribute [instance] entry.zero_val
 
 class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -130,8 +134,10 @@ attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.method_set
   entry.TypeAssumptions.ptr_method_set
 
-axiom expiringHeapEntry : Type
-axiom expiringHeapEntry.zero_val : ZeroVal expiringHeapEntry
+opaque expiringHeapEntry.nonempty_type : NonemptyType.{0}
+def expiringHeapEntry : Type := expiringHeapEntry.nonempty_type.type
+instance expiringHeapEntry.nonempty : Nonempty expiringHeapEntry := expiringHeapEntry.nonempty_type.property
+opaque expiringHeapEntry.zero_val : ZeroVal expiringHeapEntry := ⟨Classical.ofNonempty⟩
 attribute [instance] expiringHeapEntry.zero_val
 
 class expiringHeapEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -161,8 +167,10 @@ attribute [instance] expiringHeap.TypeAssumptions.underlying
   expiringHeap.TypeAssumptions.method_set
   expiringHeap.TypeAssumptions.ptr_method_set
 
-axiom Clock : Type
-axiom Clock.zero_val : ZeroVal Clock
+opaque Clock.nonempty_type : NonemptyType.{0}
+def Clock : Type := Clock.nonempty_type.type
+instance Clock.nonempty : Nonempty Clock := Clock.nonempty_type.property
+opaque Clock.zero_val : ZeroVal Clock := ⟨Classical.ofNonempty⟩
 attribute [instance] Clock.zero_val
 
 class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -208,8 +216,10 @@ attribute [instance] realClock.TypeAssumptions.type_repr
   realClock.TypeAssumptions.method_set
   realClock.TypeAssumptions.ptr_method_set
 
-axiom LRUExpireCache : Type
-axiom LRUExpireCache.zero_val : ZeroVal LRUExpireCache
+opaque LRUExpireCache.nonempty_type : NonemptyType.{0}
+def LRUExpireCache : Type := LRUExpireCache.nonempty_type.type
+instance LRUExpireCache.nonempty : Nonempty LRUExpireCache := LRUExpireCache.nonempty_type.property
+opaque LRUExpireCache.zero_val : ZeroVal LRUExpireCache := ⟨Classical.ofNonempty⟩
 attribute [instance] LRUExpireCache.zero_val
 
 class LRUExpireCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,8 +235,10 @@ attribute [instance] LRUExpireCache.TypeAssumptions.type_repr
   LRUExpireCache.TypeAssumptions.method_set
   LRUExpireCache.TypeAssumptions.ptr_method_set
 
-axiom cacheEntry : Type
-axiom cacheEntry.zero_val : ZeroVal cacheEntry
+opaque cacheEntry.nonempty_type : NonemptyType.{0}
+def cacheEntry : Type := cacheEntry.nonempty_type.type
+instance cacheEntry.nonempty : Nonempty cacheEntry := cacheEntry.nonempty_type.property
+opaque cacheEntry.zero_val : ZeroVal cacheEntry := ⟨Classical.ofNonempty⟩
 attribute [instance] cacheEntry.zero_val
 
 class cacheEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

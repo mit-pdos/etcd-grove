@@ -35,13 +35,13 @@ noncomputable def noopTracerProvider.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] noopTracerProvider.ty
 
-axiom Span.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Span.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TracerProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TracerProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopTracerProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque noopTracerProvider.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom instrumentationScope [GooseExts] [GoGlobalContext] : val
+opaque instrumentationScope [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Start [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/tracing.Start"
@@ -73,7 +73,7 @@ noncomputable def Propagators [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.tracing where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -82,8 +82,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom Span : Type
-axiom Span.zero_val : ZeroVal Span
+opaque Span.nonempty_type : NonemptyType.{0}
+def Span : Type := Span.nonempty_type.type
+instance Span.nonempty : Nonempty Span := Span.nonempty_type.property
+opaque Span.zero_val : ZeroVal Span := ⟨Classical.ofNonempty⟩
 attribute [instance] Span.zero_val
 
 class Span.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -99,8 +101,10 @@ attribute [instance] Span.TypeAssumptions.type_repr
   Span.TypeAssumptions.method_set
   Span.TypeAssumptions.ptr_method_set
 
-axiom TracerProvider : Type
-axiom TracerProvider.zero_val : ZeroVal TracerProvider
+opaque TracerProvider.nonempty_type : NonemptyType.{0}
+def TracerProvider : Type := TracerProvider.nonempty_type.type
+instance TracerProvider.nonempty : Nonempty TracerProvider := TracerProvider.nonempty_type.property
+opaque TracerProvider.zero_val : ZeroVal TracerProvider := ⟨Classical.ofNonempty⟩
 attribute [instance] TracerProvider.zero_val
 
 class TracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -116,8 +120,10 @@ attribute [instance] TracerProvider.TypeAssumptions.type_repr
   TracerProvider.TypeAssumptions.method_set
   TracerProvider.TypeAssumptions.ptr_method_set
 
-axiom noopTracerProvider : Type
-axiom noopTracerProvider.zero_val : ZeroVal noopTracerProvider
+opaque noopTracerProvider.nonempty_type : NonemptyType.{0}
+def noopTracerProvider : Type := noopTracerProvider.nonempty_type.type
+instance noopTracerProvider.nonempty : Nonempty noopTracerProvider := noopTracerProvider.nonempty_type.property
+opaque noopTracerProvider.zero_val : ZeroVal noopTracerProvider := ⟨Classical.ofNonempty⟩
 attribute [instance] noopTracerProvider.zero_val
 
 class noopTracerProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

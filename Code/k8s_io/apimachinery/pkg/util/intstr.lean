@@ -30,26 +30,26 @@ noncomputable def Type'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Type'.ty
 
-axiom IntOrString.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IntOrString.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Int' [GooseExts] [GoGlobalContext] : val
+opaque Int' [GooseExts] [GoGlobalContext] : val
 
-axiom String [GooseExts] [GoGlobalContext] : val
+opaque String [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/intstr.encodeVarintGenerated"
@@ -93,7 +93,7 @@ noncomputable def getIntOrPercentValueSafely [GooseExts] [GoGlobalContext] : GoS
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.intstr where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -111,8 +111,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
 
-axiom IntOrString : Type
-axiom IntOrString.zero_val : ZeroVal IntOrString
+opaque IntOrString.nonempty_type : NonemptyType.{0}
+def IntOrString : Type := IntOrString.nonempty_type.type
+instance IntOrString.nonempty : Nonempty IntOrString := IntOrString.nonempty_type.property
+opaque IntOrString.zero_val : ZeroVal IntOrString := ⟨Classical.ofNonempty⟩
 attribute [instance] IntOrString.zero_val
 
 class IntOrString.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

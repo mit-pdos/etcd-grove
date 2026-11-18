@@ -51,24 +51,24 @@ noncomputable def Digest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Digest.ty
 
-axiom Checker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Checker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom getLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque getLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def CheckPeriod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.CheckPeriod"
 
-axiom CheckPeriod.init [GooseExts] [GoGlobalContext] : val
+opaque CheckPeriod.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def PanicOnCacheInconsistency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.PanicOnCacheInconsistency"
 
-axiom PanicOnCacheInconsistency.init [GooseExts] [GoGlobalContext] : val
+opaque PanicOnCacheInconsistency.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def checkerListPageSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.checkerListPageSize"
 
-axiom checkerListPageSize.init [GooseExts] [GoGlobalContext] : val
+opaque checkerListPageSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/consistency.init.0"
@@ -85,7 +85,7 @@ noncomputable def addObjectToDigest [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.consistency where
   pkgImportedPkgs := [pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -106,8 +106,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.cacher.metrics.initialize') (Val #()))))))))
 
-axiom Checker : Type
-axiom Checker.zero_val : ZeroVal Checker
+opaque Checker.nonempty_type : NonemptyType.{0}
+def Checker : Type := Checker.nonempty_type.type
+instance Checker.nonempty : Nonempty Checker := Checker.nonempty_type.property
+opaque Checker.zero_val : ZeroVal Checker := ⟨Classical.ofNonempty⟩
 attribute [instance] Checker.zero_val
 
 class Checker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -137,8 +139,10 @@ attribute [instance] cacher.TypeAssumptions.underlying
   cacher.TypeAssumptions.method_set
   cacher.TypeAssumptions.ptr_method_set
 
-axiom getLister : Type
-axiom getLister.zero_val : ZeroVal getLister
+opaque getLister.nonempty_type : NonemptyType.{0}
+def getLister : Type := getLister.nonempty_type.type
+instance getLister.nonempty : Nonempty getLister := getLister.nonempty_type.property
+opaque getLister.zero_val : ZeroVal getLister := ⟨Classical.ofNonempty⟩
 attribute [instance] getLister.zero_val
 
 class getLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

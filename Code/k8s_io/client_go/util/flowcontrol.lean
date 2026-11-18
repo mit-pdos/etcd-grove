@@ -1034,7 +1034,7 @@ noncomputable def fakeNeverRateLimiter.Wait.impl [GooseExts] [GoGlobalContext] :
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.flowcontrol where
   pkgImportedPkgs := [pkg_id.math.rand, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock, pkg_id.context, pkg_id.errors, pkg_id.golang_org.x.time.rate]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

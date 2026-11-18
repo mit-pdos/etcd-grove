@@ -315,7 +315,7 @@ attribute [irreducible] ConfChangeV2.ty
 @[reducible] noncomputable def ConfChangeType_ConfChangeAddWitness [GooseExts] [GoGlobalContext] : val :=
   #(W32 4)
 
-axiom file_raft_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_raft_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 noncomputable def EntryType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EntryType_name"

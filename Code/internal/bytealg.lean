@@ -20,25 +20,25 @@ end pkg_id
 
 namespace internal.bytealg
 
-axiom offsetPPC64HasPOWER9 [GooseExts] [GoGlobalContext] : val
+opaque offsetPPC64HasPOWER9 [GooseExts] [GoGlobalContext] : val
 
-axiom offsetRISCV64HasV [GooseExts] [GoGlobalContext] : val
+opaque offsetRISCV64HasV [GooseExts] [GoGlobalContext] : val
 
-axiom offsetLOONG64HasLSX [GooseExts] [GoGlobalContext] : val
+opaque offsetLOONG64HasLSX [GooseExts] [GoGlobalContext] : val
 
-axiom offsetLOONG64HasLASX [GooseExts] [GoGlobalContext] : val
+opaque offsetLOONG64HasLASX [GooseExts] [GoGlobalContext] : val
 
-axiom offsetS390xHasVX [GooseExts] [GoGlobalContext] : val
+opaque offsetS390xHasVX [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasSSE42 [GooseExts] [GoGlobalContext] : val
+opaque offsetX86HasSSE42 [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasAVX2 [GooseExts] [GoGlobalContext] : val
+opaque offsetX86HasAVX2 [GooseExts] [GoGlobalContext] : val
 
-axiom offsetX86HasPOPCNT [GooseExts] [GoGlobalContext] : val
+opaque offsetX86HasPOPCNT [GooseExts] [GoGlobalContext] : val
 
-axiom primeRK [GooseExts] [GoGlobalContext] : val
+opaque primeRK [GooseExts] [GoGlobalContext] : val
 
-axiom MaxBruteForce [GooseExts] [GoGlobalContext] : val
+opaque MaxBruteForce [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MaxLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/bytealg.MaxLen"
@@ -152,7 +152,7 @@ noncomputable def LastIndexByteString.impl [GooseExts] [GoGlobalContext] : val :
 noncomputable instance info' : PkgInfo pkg_id.internal.bytealg where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

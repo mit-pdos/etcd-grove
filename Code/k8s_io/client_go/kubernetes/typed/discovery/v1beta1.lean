@@ -50,17 +50,17 @@ noncomputable def EndpointSliceExpansion.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] EndpointSliceExpansion.ty
 
-axiom DiscoveryV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DiscoveryV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DiscoveryV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSlicesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointSlicesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSliceInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointSliceInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom endpointSlices.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque endpointSlices.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSliceExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointSliceExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/discovery/v1beta1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newEndpointSlices [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.discovery.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom DiscoveryV1beta1Interface : Type
-axiom DiscoveryV1beta1Interface.zero_val : ZeroVal DiscoveryV1beta1Interface
+opaque DiscoveryV1beta1Interface.nonempty_type : NonemptyType.{0}
+def DiscoveryV1beta1Interface : Type := DiscoveryV1beta1Interface.nonempty_type.type
+instance DiscoveryV1beta1Interface.nonempty : Nonempty DiscoveryV1beta1Interface := DiscoveryV1beta1Interface.nonempty_type.property
+opaque DiscoveryV1beta1Interface.zero_val : ZeroVal DiscoveryV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] DiscoveryV1beta1Interface.zero_val
 
 class DiscoveryV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] DiscoveryV1beta1Interface.TypeAssumptions.type_repr
   DiscoveryV1beta1Interface.TypeAssumptions.method_set
   DiscoveryV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom DiscoveryV1beta1Client : Type
-axiom DiscoveryV1beta1Client.zero_val : ZeroVal DiscoveryV1beta1Client
+opaque DiscoveryV1beta1Client.nonempty_type : NonemptyType.{0}
+def DiscoveryV1beta1Client : Type := DiscoveryV1beta1Client.nonempty_type.type
+instance DiscoveryV1beta1Client.nonempty : Nonempty DiscoveryV1beta1Client := DiscoveryV1beta1Client.nonempty_type.property
+opaque DiscoveryV1beta1Client.zero_val : ZeroVal DiscoveryV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] DiscoveryV1beta1Client.zero_val
 
 class DiscoveryV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] DiscoveryV1beta1Client.TypeAssumptions.type_repr
   DiscoveryV1beta1Client.TypeAssumptions.method_set
   DiscoveryV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom EndpointSlicesGetter : Type
-axiom EndpointSlicesGetter.zero_val : ZeroVal EndpointSlicesGetter
+opaque EndpointSlicesGetter.nonempty_type : NonemptyType.{0}
+def EndpointSlicesGetter : Type := EndpointSlicesGetter.nonempty_type.type
+instance EndpointSlicesGetter.nonempty : Nonempty EndpointSlicesGetter := EndpointSlicesGetter.nonempty_type.property
+opaque EndpointSlicesGetter.zero_val : ZeroVal EndpointSlicesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointSlicesGetter.zero_val
 
 class EndpointSlicesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] EndpointSlicesGetter.TypeAssumptions.type_repr
   EndpointSlicesGetter.TypeAssumptions.method_set
   EndpointSlicesGetter.TypeAssumptions.ptr_method_set
 
-axiom EndpointSliceInterface : Type
-axiom EndpointSliceInterface.zero_val : ZeroVal EndpointSliceInterface
+opaque EndpointSliceInterface.nonempty_type : NonemptyType.{0}
+def EndpointSliceInterface : Type := EndpointSliceInterface.nonempty_type.type
+instance EndpointSliceInterface.nonempty : Nonempty EndpointSliceInterface := EndpointSliceInterface.nonempty_type.property
+opaque EndpointSliceInterface.zero_val : ZeroVal EndpointSliceInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointSliceInterface.zero_val
 
 class EndpointSliceInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] EndpointSliceInterface.TypeAssumptions.type_repr
   EndpointSliceInterface.TypeAssumptions.method_set
   EndpointSliceInterface.TypeAssumptions.ptr_method_set
 
-axiom endpointSlices : Type
-axiom endpointSlices.zero_val : ZeroVal endpointSlices
+opaque endpointSlices.nonempty_type : NonemptyType.{0}
+def endpointSlices : Type := endpointSlices.nonempty_type.type
+instance endpointSlices.nonempty : Nonempty endpointSlices := endpointSlices.nonempty_type.property
+opaque endpointSlices.zero_val : ZeroVal endpointSlices := ⟨Classical.ofNonempty⟩
 attribute [instance] endpointSlices.zero_val
 
 class endpointSlices.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] endpointSlices.TypeAssumptions.type_repr
   endpointSlices.TypeAssumptions.method_set
   endpointSlices.TypeAssumptions.ptr_method_set
 
-axiom EndpointSliceExpansion : Type
-axiom EndpointSliceExpansion.zero_val : ZeroVal EndpointSliceExpansion
+opaque EndpointSliceExpansion.nonempty_type : NonemptyType.{0}
+def EndpointSliceExpansion : Type := EndpointSliceExpansion.nonempty_type.type
+instance EndpointSliceExpansion.nonempty : Nonempty EndpointSliceExpansion := EndpointSliceExpansion.nonempty_type.property
+opaque EndpointSliceExpansion.zero_val : ZeroVal EndpointSliceExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointSliceExpansion.zero_val
 
 class EndpointSliceExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

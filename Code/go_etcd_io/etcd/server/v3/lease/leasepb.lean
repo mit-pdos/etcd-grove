@@ -36,11 +36,11 @@ noncomputable def LeaseInternalResponse.ty [GooseExts] [GoGlobalContext] : go.Go
 
 attribute [irreducible] LeaseInternalResponse.ty
 
-axiom LeaseInternalRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LeaseInternalRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseInternalResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LeaseInternalResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom file_lease_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_lease_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_lease_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.File_lease_proto"
@@ -54,17 +54,17 @@ noncomputable def file_lease_proto_rawDescData [GooseExts] [GoGlobalContext] : G
 noncomputable def file_lease_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_msgTypes"
 
-axiom file_lease_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_lease_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_lease_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_goTypes"
 
-axiom file_lease_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_lease_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_lease_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_depIdxs"
 
-axiom file_lease_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_lease_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_lease_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_rawDescGZIP"
@@ -78,7 +78,7 @@ noncomputable def file_lease_proto_init [GooseExts] [GoGlobalContext] : GoString
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -164,8 +164,10 @@ attribute [instance] Lease.TypeAssumptions.type_repr
   Lease.TypeAssumptions.method_set
   Lease.TypeAssumptions.ptr_method_set
 
-axiom LeaseInternalRequest : Type
-axiom LeaseInternalRequest.zero_val : ZeroVal LeaseInternalRequest
+opaque LeaseInternalRequest.nonempty_type : NonemptyType.{0}
+def LeaseInternalRequest : Type := LeaseInternalRequest.nonempty_type.type
+instance LeaseInternalRequest.nonempty : Nonempty LeaseInternalRequest := LeaseInternalRequest.nonempty_type.property
+opaque LeaseInternalRequest.zero_val : ZeroVal LeaseInternalRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] LeaseInternalRequest.zero_val
 
 class LeaseInternalRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -181,8 +183,10 @@ attribute [instance] LeaseInternalRequest.TypeAssumptions.type_repr
   LeaseInternalRequest.TypeAssumptions.method_set
   LeaseInternalRequest.TypeAssumptions.ptr_method_set
 
-axiom LeaseInternalResponse : Type
-axiom LeaseInternalResponse.zero_val : ZeroVal LeaseInternalResponse
+opaque LeaseInternalResponse.nonempty_type : NonemptyType.{0}
+def LeaseInternalResponse : Type := LeaseInternalResponse.nonempty_type.type
+instance LeaseInternalResponse.nonempty : Nonempty LeaseInternalResponse := LeaseInternalResponse.nonempty_type.property
+opaque LeaseInternalResponse.zero_val : ZeroVal LeaseInternalResponse := ⟨Classical.ofNonempty⟩
 attribute [instance] LeaseInternalResponse.zero_val
 
 class LeaseInternalResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
