@@ -18,6 +18,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.isInitialEventsEndBookmark
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.areInitialEventsRequired
 public import Spec.k8s_io.apiserver.pkg.util.flowcontrol.WatchInitialized
 public import Spec.strings.HasSuffix
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

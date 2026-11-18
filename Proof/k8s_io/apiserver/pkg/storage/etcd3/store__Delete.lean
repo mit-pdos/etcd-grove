@@ -11,6 +11,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__prepareKey
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Spec.k8s_io.apimachinery.pkg.conversion.EnforcePtr
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

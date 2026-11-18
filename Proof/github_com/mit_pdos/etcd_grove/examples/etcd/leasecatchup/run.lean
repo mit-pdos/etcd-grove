@@ -22,6 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.lis
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartCluster
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.PeerStep
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.NewClients
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

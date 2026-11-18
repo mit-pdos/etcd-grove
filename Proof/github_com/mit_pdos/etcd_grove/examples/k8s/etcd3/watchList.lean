@@ -4,6 +4,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.watchList
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
 public import GeneratedProof.k8s_io.component_base.featuregate
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

@@ -7,6 +7,7 @@ module
 
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRange
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

@@ -9,20 +9,5 @@ def etcdstart.watchRegAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : 
         (v3rpc.watchUp R) fun md => v3rpc.watchSpec R (etcdstart.srvWOf E γr false) (auth.mdTokenOf md)) ∗
       (∃ pw, v3rpc.isWatchServer pw R) ∗ client.srvWLaws (etcdstart.srvWOf E γr false) ∗ ⌜R.s = s ∧ R.E = E⌝)
 
-theorem etcdstart.kvWatch_served [HasExt idIssueExt] [v3rpc_sem :
-    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [cache_sem :
-    go_etcd_io.etcd.cache.v3.Assumptions] (Hp : mvcc.api.persistent.law) (Hr :
-    mvcc.api.mvccState_reachable.law) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
-    (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (gs : Loc) (lis : GoInterface) (addr :
-    GoString) (cid mid : w64) (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf :
-    grpcRepliesFit) (hρ : ρ.rd = γr) (HL : srvLevels) (Hms : v3rpc.ServerMethodSets) (Htb :
-    threadBound GF ≤ sync.rwmutex.actualMaxReaders.toNat) : isPkgInit
-    pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ isPkgInit
-    pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isPkgInit
-    pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ isServerReq s E ρ ∗ isServerRead s E γr ∗
-    srvServeFacts s E cfg ∗ etcdstart.kvServeStocks s E γr ∗ etcdstart.grpcUp s E ρ γr gs lis addr
-    cid mid R ⊢ |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdstart.etcdKVAt addr E ρ γr cid mid ∗
-    etcdstart.watchRegAt addr s E γr R
-
 theorem etcdstart.watchRegAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr :
     ReadNames) (R : v3rpc.WSrv GF) : Persistent (etcdstart.watchRegAt addr s E γr R)

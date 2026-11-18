@@ -8,6 +8,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watchChan__processEvents
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watchChan__concurrentProcessEvents
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watchChan__serialProcessEvents
 public import Perennial.Spec.sync.WaitGroup__Add
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
