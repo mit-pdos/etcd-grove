@@ -581,7 +581,10 @@ harmless only because nothing relates a claimed resource to a `γ.rbk` share. No
 share, e.g. `rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`, or "claimed ⇒ no `rbPart`/`rbOwn` of `n`";
 (ii) a reader law or axiom taking `rbOwnIn` (or a `γ.rbk` share at flag `false`) without `bOpen` or a held
 read lock; (iii) anything that re-opens a closed backend under the same ghost names `γ` (giving a batch lock)
-while a client may hold `bStopView`'s share. -/
+while a client may hold `bStopView`'s share;
+(iv) a law updating a bucket's `γ.rbk` element (contents or flag) from client-shaped shares plus the claim
+invariant or a token (`rbClaimToks`) without `rbSide` (the batch lock's side): after `Close` the stale lock quarter, a
+client quarter and the invariant's half make a whole element (delta review of the A6.2 forms, MINOR 1). -/
 def rbOwnInR (γ : BNames) (S : GoString → Prop) (r : GMap GoString BktData) : IProp GF :=
   rbPartRF γ S r (fun _ => false)
 

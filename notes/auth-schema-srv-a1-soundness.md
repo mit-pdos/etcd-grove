@@ -177,7 +177,9 @@ the claimed flags, the token laws). `batchLocked_claim`, `trkSide_claim1`, `trkS
   `rbOwnInR`'s docstrings): (i) any exclusivity law between a claimed resource and a `γ.rbk` share (e.g.
   `rbOwnInR γ {n} r ∗ rbPart γ {n} r' ⊢ False`); (ii) any reader law or axiom taking `rbOwnIn` without `bOpen` or a
   held read lock; (iii) anything re-opening a closed backend under the same ghost names while `bStopView`'s share
-  is held. After `Close` a client may hold the stopped lock's client-shaped quarter of a claimed bucket; it is
+  is held; (iv) any law updating a bucket's `γ.rbk` element (contents or flag) from client-shaped shares plus the
+  claim invariant or a token without `rbSide` (after `Close`, the stale lock quarter + a client quarter + the
+  invariant's half make a whole element; delta review MINOR 1, decided by etcd-grove-03). After `Close` a client may hold the stopped lock's client-shaped quarter of a claimed bucket; it is
   harmless only because none of these exists.
 - **Trusted texts.** `rbPartF`'s fraction (½ → ¼, uniformly, so the lock still holds one `rbOwn`-shaped share,
   `backend.Snapshot`'s observation); `OpenBackend`'s `newPostK` gains the tokens (standing argument: `New`'s proof

@@ -1,6 +1,30 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A6.2: claim-law Scope revised after review, STOPPED for a second review)
+## START HERE (2026-11-17, A6.2 C1-C5 written; targeted build pending/ see log)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin c6b39d4f8: `--packages=/shared/tmp/manifest-c6b.json`
+  everywhere (`.lake/package-overrides.json` = that manifest). lean merged at f256fa496e (04b1fa5134).
+- Decisions: questions.md "A6.2 second review" (GO for C1, MINORs folded) and "A6.2 C1-C5" (forms: invariant in the token,
+  not `isBackend`; M1 by a clear claimed `γ.rbk` flag + `tkI := idle ∨ cw`; `newPostKP` unchanged, tokens beside it).
+- Done (commits 9d…→a9fe8620fc): `InvBackend` (`rbClaimU/C/One/Inv`, `rbClaimN`, `rbClaimToks`, `rbPartF` ¼, `rbRd` q/2,
+  uniform `rbrOne` ¼, `rbrSide` without `rbc`, `rbSide` holds the inv); `TrackedLemmas` (writes/flag clears over the inv,
+  helpers); `ClaimedLemmas` (`rbOwnIn_claim` lock-free, token laws, stepR, `rbPartR_idle`); `NewAlloc` allocation;
+  `newPostK` + `newPostK_pool`; `authRdSlots := rdAuth ∗ rbClaimToks authBkts`; boot (`BootBackend`, `boot_storage(R)`,
+  NewServer(R)) and snapshot (`SnapApplyWalk`) threading; soundness note §6; forbidden laws in `bStopView`/`rbOwnInR`.
+- Checked: lean-check of InvBackend, TrackedLemmas, ClaimedLemmas, InvBatch, NewAlloc, Unlock, RdPool, UnsafePut,
+  unsafeCommit, newBackend, InvCommit: 0 errors. Targeted build (backend/etcdserver/mvccrand/mvccfull Links):
+  `/shared/tmp/auth-schema-srv/c1-build2.log`.
+- Next: fix the build's errors; C5 (`etc/gen-interface.py etc/api/backend.txt`, api-check, tcb `--check`: no axiom/sorry
+  change expected); then A6 proper (realization invariant using `rbOwnIn_claim` in the update, write side, auth read
+  contract); A7 HARD STOP (old → new statements: `authRdSlots`, `newPostK`, `rbPartF` fraction, `authSchemaSrv` tickets).
+- Pitfalls: (0)-(10) of History "A6.1b STOP"; (11) `if` instances: `rbEls`/`rbClaimToks` use `Classical.propDecidable`;
+  state helpers with a generic `S` (see `mapIf_one`) or `dsimp only` + explicit `@ite`; (12) after `cases hcl : Cl n`
+  apply `rbClaimOne_U/C γ n _ rfl`, not `… (Cl n) hcl`; (13) build slots can be busy for >30 min.
+
+## History
+
+### A6.2 Scope STOP (2026-11-17, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; Perennial pin c6b39d4f8:
   `--packages=/shared/tmp/manifest-c6b.json` everywhere (`.lake/package-overrides.json` = that manifest). Scope
@@ -20,7 +44,6 @@
   (realization invariant, write side, auth-level read contract), then A7 HARD STOP.
 - Pitfalls: as in History "A6.1b STOP" (0)-(10).
 
-## History
 
 ### A6.2 STOP (2026-11-17, superseded)
 
