@@ -487,7 +487,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply wp_preconditions as %pp #Hpp
     (try wp_auto)
-    wp_apply wp_validateFor as %vf #Hvf
+    wp_apply wp_validateFor as %vf ⟨-, #Hvf⟩
     (try wp_auto)
     wp_apply wp_cachedObj as %cx Hcx
     (try wp_auto)
@@ -557,7 +557,7 @@ theorem call.wp_proof (wp_errOut : errOut.spec (GF := GF) (hG := hG))
     (try wp_auto)
     wp_apply wp_preconditions as %pp #Hpp
     (try wp_auto)
-    wp_apply wp_tryUpdateFor x (inOk_inFits x hx) as %uf #Huf
+    wp_apply wp_tryUpdateFor x (inOk_inFits x hx) as %uf ⟨-, #Huf⟩
     (try wp_auto)
     wp_apply wp_cachedObj as %cx Hcx
     (try wp_auto)

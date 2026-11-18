@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
 `tryUpdateFor(in)` (k8setcd3.go), for an input whose key, node and app fit (`inFits`): a
-`GuaranteedUpdate`'s `tryUpdate`, its closure's spec (`tryUpdateD`: `updated`'s answer, with no TTL).
+`GuaranteedUpdate`'s `tryUpdate`, a closure (not the nil func) with its spec (`tryUpdateD`: `updated`'s answer, with no TTL).
 -/
 module
 
@@ -31,7 +31,7 @@ abbrev tryUpdateFor.spec : Prop :=
   ∀ (inp : Input), inFits inp →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.tryUpdateFor)) (Val #inp))
-  {{ (uf : GoFunc), RET #uf; tryUpdateD inp uf }}
+  {{ (uf : GoFunc), RET #uf; ⌜uf ≠ func.nil⌝ ∗ tryUpdateD inp uf }}
 
 end spec
 

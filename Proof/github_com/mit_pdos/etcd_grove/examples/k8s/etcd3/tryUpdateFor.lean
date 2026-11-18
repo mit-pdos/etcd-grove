@@ -33,6 +33,8 @@ theorem tryUpdateFor.wp_proof (wp_updated : updated.spec (GF := GF) (hG := hG)) 
   ipersist «in»
   imodintro
   iapply HΦ
+  isplitr
+  · ipureintro; simp [func.nil]
   iunfold tryUpdateD
   imodintro
   iintro %x %o %r %Ψ Ho HΨ

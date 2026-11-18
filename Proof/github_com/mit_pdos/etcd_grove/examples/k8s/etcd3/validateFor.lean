@@ -32,6 +32,8 @@ theorem validateFor.wp_proof : validateFor.spec (GF := GF) (hG := hG) := by
   ipersist reject
   imodintro
   iapply HΦ
+  isplitr
+  · ipureintro; simp [func.nil]
   iunfold validateD
   imodintro
   iintro %ctx %p %v %Ψ Hp HΨ

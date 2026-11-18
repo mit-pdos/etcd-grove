@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart).
 
-`validateFor(rejects, reject)` (k8setcd3.go): a `Delete`'s `validateDeletion`, its closure's spec
-(`validateD`: `nil`, or `errDeleteRejected`'s error on an object on the node `reject` if `rejects`).
+`validateFor(rejects, reject)` (k8setcd3.go): a `Delete`'s `validateDeletion`, a closure (not the
+nil func) with its spec (`validateD`: `nil`, or `errDeleteRejected`'s error on an object on the node `reject` if `rejects`).
 -/
 module
 
@@ -31,7 +31,7 @@ abbrev validateFor.spec : Prop :=
   ∀ (has : Bool) (reject : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
     (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.validateFor)) (Val #has)) (Val #reject))
-  {{ (vf : GoFunc), RET #vf; validateD has reject vf }}
+  {{ (vf : GoFunc), RET #vf; ⌜vf ≠ func.nil⌝ ∗ validateD has reject vf }}
 
 end spec
 

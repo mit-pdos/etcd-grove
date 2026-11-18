@@ -6,7 +6,7 @@ Lean-first (no Rocq counterpart).
 - `itemsFitL m`: every item of the model fits the driver's objects (`fitsD`) and carries no
   annotation, so that it is an `objAtD` of its `DObj` (what `tryUpdateFor`'s closure and the
   driver's `metav1.Object` methods take); `rcreateL`, `rupdateL`, `rdeleteL` keep it
-  (`itemsFitL_create`, ...), for an input that fits (`inFits`).
+  (`itemsFitL_create`, ..., `itemsFitL_exec`), for an input that fits (`crFits`).
 - `preMsgL_kpre`: the model's precondition message is `storage.Preconditions.Check`'s
   (`KPre.failMsg` of `kpreOf x`).
 - `metaAt_obj`: a `*Obj` held at any fraction is a `metav1.Object` whose `GetUID` and
@@ -41,6 +41,103 @@ variable [GooseExts]
 /-- **The model's items are the driver's objects**: each fits a `DObj` and is not annotated. -/
 def itemsFitL (m : RM) : Prop :=
   ∀ k o, m.items !! k = some o → fitsD o ∧ o.Annotated' = false
+
+/-- `updGo` keeps an object that fits fitting, for an input that fits, and its annotation. -/
+theorem updGo_fitsD (x : Input) (v : Obj) (hv : fitsD v) (hx : inFits x) : fitsD (updGo x v) := by
+  obtain ⟨hk, hn, ha⟩ := hx
+  obtain ⟨f1, f2, f3, f4, f5⟩ := hv
+  have hc := splitKeyL_length x.Key'
+  unfold updGo
+  split
+  · exact ⟨f1, f2, f3, f4, f5⟩
+  · refine ⟨?_, ?_, f3, hn, ha⟩ <;> dsimp only <;> split <;> omega
+
+theorem updGo_annotated (x : Input) (v : Obj) : (updGo x v).Annotated' = v.Annotated' := by
+  unfold updGo; split <;> rfl
+
+/-- **`create` keeps `itemsFitL`**, for an input whose fields fit (`crFits`). -/
+theorem itemsFitL_create (x : Input) (m : RM) (hm : itemsFitL m) (hx : crFits x) :
+    itemsFitL (rcreateL x m).2.1 := by
+  unfold rcreateL failR
+  dsimp only
+  split
+  · exact hm
+  split
+  · exact hm
+  intro k o h
+  simp only [GMap.lookup_insert_eq_iff] at h
+  split at h
+  · cases h; exact ⟨crFits_fitsD x hx (m.rv + W64 1), rfl⟩
+  · exact hm k o h
+
+/-- **`update` keeps `itemsFitL`**, for an input that fits (`inFits`). -/
+theorem itemsFitL_update (x : Input) (m : RM) (hm : itemsFitL m) (hx : inFits x) :
+    itemsFitL (rupdateL x m).2.1 := by
+  have hcur : fitsD ((m.items !! storeKeyL x.Key').getD zObj) ∧
+      ((m.items !! storeKeyL x.Key').getD zObj).Annotated' = false := by
+    cases hs : m.items !! storeKeyL x.Key' with
+    | none => exact ⟨by unfold fitsD zObj; simp, rfl⟩
+    | some s => exact hm _ _ hs
+  have hw : ∀ st, itemsFitL (updWriteL m (storeKeyL x.Key') st
+      (updGo x ((m.items !! storeKeyL x.Key').getD zObj))).2.1 := by
+    intro st k o h
+    unfold updWriteL at h
+    simp only [GMap.lookup_insert_eq_iff] at h
+    split at h
+    · cases h
+      have hf := updGo_fitsD x _ hcur.1 hx
+      refine ⟨⟨hf.1, hf.2.1, hf.2.2.1, hf.2.2.2.1, hf.2.2.2.2⟩, ?_⟩
+      exact (updGo_annotated x _).trans hcur.2
+    · exact hm k o h
+  unfold rupdateL failR
+  dsimp only
+  split
+  · exact hm
+  split
+  · exact hm
+  split
+  · exact hm
+  split
+  · exact hm
+  split
+  · split
+    · exact hm
+    · exact hw _
+  · exact hw _
+
+/-- **`delete` keeps `itemsFitL`.** -/
+theorem itemsFitL_delete (x : Input) (m : RM) (hm : itemsFitL m) :
+    itemsFitL (rdeleteL x m).2.1 := by
+  unfold rdeleteL failR
+  dsimp only
+  split
+  · exact hm
+  split
+  · exact hm
+  split
+  · exact hm
+  split
+  · exact hm
+  intro k o h
+  simp only [GMap.lookup_delete_iff] at h
+  split at h
+  · cases h
+  · exact hm k o h
+
+/-- **Every model step keeps `itemsFitL`** (`execute`'s next state), for an input whose fields fit. -/
+theorem itemsFitL_exec (x : Input) (m : RM) (hm : itemsFitL m) (hx : crFits x) :
+    itemsFitL (rexecL x m).2.1 := by
+  have hi : inFits x := ⟨hx.1, hx.2.2.1, hx.2.2.2⟩
+  unfold rexecL
+  split
+  · exact hm
+  split
+  · exact itemsFitL_create x m hm hx
+  split
+  · exact itemsFitL_delete x m hm
+  split
+  · exact itemsFitL_update x m hm hi
+  · exact hm
 
 /-- `Check`'s test is the model's (`preOkL`). -/
 theorem kpreOf_ok (x : Input) (o : Obj) :
