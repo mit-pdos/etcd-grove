@@ -1,6 +1,30 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-18, item 9: lean fb68edfec8 merged; Served done; Cell BLOCKED on check 6)
+## START HERE (S4, 2026-11-18 late, item 9: thaw 1 done; Cell in progress)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
+  `.lake/package-overrides.json` its copy). A merge bringing pin f551a1b46 / manifest-f55 is coming: switch when merged.
+- **Thaw 1 (user-approved option (A)) done** `fe14388f43`: `writeGrantG` gains grant freshness (revocable-mode grant id `g`:
+  no key had lease `g` at any revision ≤ σ.rev); server proof `GrantFresh.lean` (+ `kv_prop_au_on`), client law
+  `writeGrantG_grant_fresh` (`LeaseReqOn.lean`). Recorded: `notes/auth-lease-s4-freeze.md` "Thaw 1" (old/new text,
+  independent attack: no refutation, X1-X3 named in the docstring), ledger 2026-11-18. No compaction premise needed.
+- **Build of the thaw's 51 leaves** (`/shared/tmp/auth-lease-s4/thaw-leaves.txt`, log `thaw-build.log`): queued for a
+  slot for hours at 22:45; NOT yet run. Run it (build-slot) before anything else; `tcb-report --check` after (no axiom change expected).
+- **Cell**: `authlease/CellModel.lean` (pure, CHECKED 0 errors: `CellOk` and its preservation by grant/putZ/putA/txnT/
+  revokeU, `cellOk_fix`, `cellOk_fresh`, `not_leaseOk_setupSt`). `authlease/Cell.lean` (Iris, WRITTEN, NOT COMPILED: needs
+  the build): `cellInv` (ids ½ main, ps, gs, d with `⌜d=0⌝ ∨ lb a 1`, v = rev lb, a ½ main = revocation permit),
+  `cell_writeAu`/`cell_readAu`/`cellSeen`, per-update AUs, `cell_fix`, `cell_permit`, `cell_not_revoked`.
+  Design change vs the earlier sketch: the leases live in `ids` (fixed by the main thread), `ps` holds only revisions;
+  the permit `a` lets the main thread refute `revoked` (foreign Revoke(Lu) successes) before u's revocation.
+- **Next, in order:** compile Cell (`etc/lean-check.py --fast`), fix; refutation lemma from `clientGrant` (lease-aware
+  `akOpGranted_of_grant`: `writeGrantG_granted` + `akAuthFixed_write` + `akUser_hdr` → `kvGrantedL (setupSt r)
+  (leaseItemsOf σ.kvs) …`, then `not_leaseOk_setupSt` with zK↦Lz (u) / aK↦Lu (v, anon, bad)); then barriers/grantPut/
+  noAuth/foreign/absent, run, Main (plan below, unchanged). STOP at Main.wp_proof.
+- **Pitfalls:** no literal modes in the package; `ihave %h := lem $$ H1 H2` keeps H1/H2 for pure results (wand-form
+  helpers); `set`/`by_contra` are Mathlib (not available); deprecated `if_pos` warns: use `simp only [h, ↓reduceIte]`.
+
+## Previous START HERE (S4, 2026-11-18, item 9: lean fb68edfec8 merged; Served done; Cell BLOCKED on check 6)
+
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
   everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
