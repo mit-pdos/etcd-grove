@@ -173,7 +173,11 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  have hkd : callKey R dir = callKey R r := by rw [show dir = child r nm by rw [hin.2]; simp [child]; rfl]; exact hkc nm
+  rw [← hkd]
   ihave %hlgn := zapLoggerOk_ne_null lg $$ Hzap
   try wp_auto
   wp_apply wp_with_defer as %defer Hdefer
@@ -182,7 +186,8 @@ theorem wal.Repair.wp_proof (Mr : WalMarshal)
   try wp_auto
   wp_apply wp_openLast lg R jr r dir nm qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %lf %err ⟨Hp, Hres, Hperm, %o, HQ, Hcase⟩
-  · iframe; iframe #
+  · (try rw [hkd]); iframe; iframe #
+  (try rw [← hkd])
   icases Hcase with (⟨%herr, Hu⟩ | ⟨⟨%herr, %ho⟩, Hlo⟩)
   · -- `openLast` failed: `false`, the token back
     cases err

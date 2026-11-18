@@ -194,9 +194,12 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
   iintro %Φ ⟨#Hpkg, #Hzap, #Hok, Hp, Hres, Hperm, Hu, Hau⟩ HΦ
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
   icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
   have hnm := hin.1
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  have hkd : callKey R dir = callKey R r := by rw [dir_child hin]; exact hkc nm
   have hdc := dir_child hin
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -267,7 +270,8 @@ theorem wal.ValidSnapshotEntries.wp_proof (Mr : WalMarshal)
       iintro %Φ' ⟨#Hpk, #Hz, #Hok2, Hpd', Hperm', HS', Hj'⟩ HΦ'
       wp_apply wp_pinned lg R jr r dir qd d lay X hj ⟨hljr, hX, hcoh, habs, hidle, hnd, hsn⟩ hdl
         $$ [Hpd' Hperm' HS' Hj'] as %sl %err ⟨Hpd', Hperm', HS', Hj', Hres⟩
-      · iframe; iframe #
+      · rw [hkd]; iframe; iframe #
+      rw [hkd]
       iapply HΦ'
       iframe; iframe #
     wp_apply (wal.ValidSnapshotEntries.wp_core lg dir _

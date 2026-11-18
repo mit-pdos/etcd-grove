@@ -113,9 +113,6 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   subst hbn
   try wp_auto
   -- the rename, over the law
-  ihave Hperm := (osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half).2 $$ [Hperm Hperm2]
-  · iframe
-  rw [Qp.half_add_half]
   iunfold cleanupLaw at Hlaw
   iapply wp_notCrashed_acc _ _ rfl
   iintro Hnc
@@ -124,6 +121,11 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.cleanupWAL.wp_proof (P : WalPb
   iframe Hnc
   imodintro
   obtain ⟨hN1, hN2, hJ, hq⟩ := hp
+  icases osPathS_callKey R r _ _ $$ Hp with ⟨Hp, %hkc⟩
+  ihave Hperm2 := osCallPerm_congr _ (hkc nm) $$ Hperm2
+  ihave Hperm := (osCallPerm_split (L := hG.goose_localGS) (callKey R r) (1 : Qp).half (1 : Qp).half).2 $$ [Hperm Hperm2]
+  · iframe
+  rw [Qp.half_add_half]
   have hne : nm ≠ brokenName nm ts := fun he => by
     have := congrArg List.length he
     simp [brokenName] at this

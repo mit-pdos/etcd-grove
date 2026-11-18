@@ -68,7 +68,8 @@ theorem wal.Exist.wp_core (C : WalCodec) (Mr : WalMarshal)
   subst hdc
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
   iunfold walAreaRes at Hres
   icases Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %a1, %a2, Hc, %a3, %a4⟩
   iapply wp_notCrashed_acc _ _ rfl

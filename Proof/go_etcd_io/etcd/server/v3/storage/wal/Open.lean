@@ -91,11 +91,18 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
   wp_start as ⟨#Hzap, #Hok, Hp, Hres, Hperm, #Hsp, Hu, Hau⟩
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
-  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb0, %hrb1, -⟩
+  have hrb := And.intro hrb0 hrb1
+  icases osPathS_callKey R r _ jr $$ Hp with ⟨Hp, %hkc⟩
+  have hdc : dir = child r nm := by rw [hin.2]; simp [child]; rfl
+  have hkd : callKey R dir = callKey R r := by rw [hdc]; exact hkc nm
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
+  rw [← hkd]
   try wp_auto
   wp_apply wp_open lg R jr r dir nm sp s true qp Q hin hnmO hr hdl $$ [Hp Hres Hperm Hu Hau]
     as %w %err ⟨Hp, Hres, %o, HQ, Hr⟩
-  · iframe; iframe #
+  · (try rw [hkd]); iframe; iframe #
+  (try rw [← hkd])
   icases Hr with (⟨%he, Hu, Hperm, %e, %hee, #He⟩ | ⟨%he, %ho, Hdf, Hop, Hrh, Hperm, Hcp⟩)
   · -- `openAtIndex` failed
     subst hee
@@ -152,6 +159,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
       · ipureintro; rfl
       isplitr
       · ipureintro; exact ho
+      ihave Hperm := walPerm_toW hWR dir _ $$ Hperm
       unfold walOpeningF
       iframe Hop Hperm Hcp
       isplitl [Hlg Hdir Hstart Hrest]

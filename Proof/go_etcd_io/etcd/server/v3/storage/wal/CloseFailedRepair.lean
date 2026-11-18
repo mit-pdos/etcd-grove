@@ -41,23 +41,24 @@ theorem wal.Repair.wp_afterCloseFailed (wp_rep : wal.Repair.specHeld (GF := GF) 
       WP (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.wal.Repair)) (Val #lg)) (Val #dir)) {{ Φ }} := by
   iintro #Hpi #Hzap #Hos Hleft Hp HΦ
   unfold walCloseLeft
-  icases Hleft with ⟨%R, %j, %X, %hj, %segs, %gL, %qd, %k, %fd, %hok, #Hsh, Hpath, Hnm, Hlk, #Hk, Hp2⟩
+  icases Hleft with ⟨%R, %j, %X, %hj, %segs, %gL, %qd, %k, %fd, %hok, #Hsh, %hRW, Hpath, Hnm, Hlk, #Hk, Hp2⟩
+  subst hRW
   obtain ⟨h1, h2, h3, h4, h5, h6, h7⟩ := hok
   have h8 := hdir
-  have hs := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half (1 : Qp).half
+  have hs := osCallPerm_split (L := hG.goose_localGS) (callKey W.roots dir) (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hs
   ihave Hperm := hs.2 $$ [Hp Hp2]
   · iframe
-  iapply (wp_rep lg R dir j X hj segs gL qd (DFrac.own (1 : Qp).half) k fd h1 h2 h3 h4 h5 h6 h7 h8)
+  iapply (wp_rep lg W.roots dir j X hj segs gL qd (DFrac.own (1 : Qp).half) k fd h1 h2 h3 h4 h5 h6 h7 h8)
     $$ [Hpath Hperm Hnm Hlk]
   · iframe; iframe #
   inext
   iintro %b ⟨%hb, Hpath, Hperm, Hnm, Hlk⟩
   ihave ⟨Hp1, Hp2⟩ := hs.1 $$ Hperm
   iapply HΦ $$ %b %hb [Hpath Hnm Hlk Hp1] Hp2
-  iexists R, j, X, hj, segs, gL, qd, k, fd
+  iexists W.roots, j, X, hj, segs, gL, qd, k, fd
   iframe; iframe #
-  ipureintro; exact ⟨h1, h2, h3, h4, h5, h6, h7⟩
+  ipureintro; exact ⟨⟨h1, h2, h3, h4, h5, h6, h7⟩, rfl⟩
 
 end proof
 

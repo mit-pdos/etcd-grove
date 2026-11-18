@@ -52,10 +52,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 variable [os_sem : os.Assumptions] [ioutil_sem : go_etcd_io.etcd.pkg.v3.ioutil.Assumptions]
 variable {Sio : IoSet} [FsStepSat (NoIoErr Sio)]
 
-theorem osCallPerm_join' :
-    osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ∗
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half.half ⊢
-      osCallPerm (L := hG.goose_localGS) (1 : Qp).half := by
+theorem osCallPerm_join' (k : GoString) :
+    osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ∗
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half.half ⊢
+      osCallPerm (L := hG.goose_localGS) k (1 : Qp).half := by
   have h := osCallPerm_split (L := hG.goose_localGS) k (1 : Qp).half.half (1 : Qp).half.half
   rw [Qp.half_add_half] at h
   exact h.2
@@ -90,6 +90,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   ihave #Harea2 := Harea
   iunfold WalFs.walAreaOk at Harea2
   icases Harea2 with ⟨#Hinv, #Hosinv, -⟩
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
@@ -161,6 +162,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
   unfold walDirH walDirLks
   icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, %hRdW, Hperm, Hdfd, #Hnamed, Hout,
     ⟨%γt, %bL, %lsI, Htf, HlksI, %hlkr⟩, Hnf, %hdh⟩
+  subst hRdW hRpW
   ihave Hlks := walLocksHI_H _ _ $$ HlksI
   ihave Hlkt2 := fdLocksW_locks _ _ $$ Hlkt2
   ihave %Hll2 := ownSlice_len _ _ _ $$ Hls
@@ -363,7 +365,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
     · ipureintro; intro; rfl
     iexists d
     iframe HQ Hsd Hunl
-    iapply osCallPerm_join'
+    iapply walPerm_ofW hWR dir
+    iapply osCallPerm_join' _
     iframe
   · wp_apply os.File.Close.wp_dirS df2 dfd2 dnm2 j ph $$ [Hdff Hdfd] as %err3 -
     · iframe; iexact Hosinv
@@ -380,7 +383,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_shared [os.file.Field
     · ipureintro; intro h; exact absurd h hc
     iexists d
     iframe HQ Hsd Hunl
-    iapply osCallPerm_join'
+    iapply walPerm_ofW hWR dir
+    iapply osCallPerm_join' _
     iframe
 
 /-- See the file header. -/
