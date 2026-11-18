@@ -32,6 +32,10 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeG
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthEnabled
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthRevision
 public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetAllUsers
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ForceCommit
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__BatchTx
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBackend__BatchTx
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ForceCommit
 
 @[expose] public section
 
@@ -1723,13 +1727,14 @@ theorem real_batchTxLkR
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hRB : receiptBound GF ≤ 2 ^ 48)
     (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) (hPw : d.P.Wf) (hP : schema.authHas d.P)
-    (l t lg : Loc) (hlg : lg ≠ null) (dq : DFrac) (f : GoFunc) :
+    (l t lg : Loc) (hlg : lg ≠ null) (dq : DFrac) (f : GoFunc) (T : IProp GF)
+    (hT : T ⊣⊢ iprop(auth.authWTok γ.γc ∗ Hk)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ∗ realInv γ d s0 q0 ∗
       schema.abtF go!"tx" l ↦□ (GoInterface.ok (btIface t) : GoInterface) ∗ schema.abtF go!"lg" l ↦□ lg ∗
       □ (Hk -∗ plHookAt d.γB dq f ∗ (plHookAt d.γB dq f -∗ Hk)) ⊢
-      auth.authBatchTxLkR (abtIface l) (.on γ.γa) Pk f iprop(auth.authWTok γ.γc ∗ Hk) (wbTok d.γB)
+      auth.authBatchTxLkR (abtIface l) (.on γ.γa) Pk f T (wbTok d.γB)
         (lkT γ d q0 W Pk Hk) (fun w => bkSw γ (1 : Qp).half w) := by
   iintro ⟨#Hp1, #Hp2, #Hb, #Ht, #Hinv, #Htx, #Hlg, #Hhk⟩
   ihave ⟨#Hrd, #HGUX, #HGRX⟩ := lk_reads hUR hFE hID hName hSafe hGU hGR hEn hRev hGA γ d q0 W Pk Hk l t lg hlg
@@ -1740,7 +1745,8 @@ theorem real_batchTxLkR
   iunfold auth.authBatchTxLkR
   -- Lock
   isplitr
-  · iintro !> %Pre %Q %Post !> %Φ ⟨Hcs, HT, HHk⟩ HΦ
+  · iintro !> %Pre %Q %Post !> %Φ ⟨Hcs, HT⟩ HΦ
+    icases hT.1 $$ HT with ⟨HT, HHk⟩
     wp_apply (hLk l (btIface t) iprop(srvApi.csContractA Pk f Pre Q Post ∗ auth.authWTok γ.γc ∗ Hk) _)
       $$ [$Hp2 $Htx Hcs HT HHk] as H
     · iframe Hcs HT HHk
@@ -1851,14 +1857,109 @@ theorem real_batchTxLkR
         iprop(lkT γ d q0 W Pk Hk st X ∗ bkSw γ (1 : Qp).half w ∗ auth.authLockI (.on γ.γa) st ∗
           wbTok d.γB ∗ wbTok d.γB)
         (unC γ d q0 Hk X) iprop(X ∗ auth.authWTok γ.γc ∗ Hk))
-      $$ [$Hp2 $Htx Hlk Hsw HI Hw1 Hw2] as H
+      $$ [$Hp2 $Htx Hlk Hsw HI Hw1 Hw2] as ⟨HX, HW, HHk⟩
     · iframe Hlk Hsw HI Hw1 Hw2
       isplitl
       · iapply Hunl
       · iapply Hcom
     iapply HΦ
-    iexact H
+    iframe HX
+    iapply hT.2
+    iframe HW HHk
   iframe HGUX HGRX
+
+/-- **A borrow ends** (after `ForceCommit`, the open share borrowed with the write token, `real_borrow`): the buckets
+idle again at the history's last state, re-recorded at its last index; the write token taken out. -/
+theorem real_unborrow (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (cs : GoString → BktData)
+    (hs : List auth.AuthState) (rc : GMap GoString BktData) (w : auth.AuthSess) (st : auth.AuthState)
+    (hl : hs.getLast? = some st)
+    (hv : viewAt ⟨st, st, st⟩ ⟨cs go!"auth", cs go!"authUsers", cs go!"authRoles"⟩)
+    (hrc : ∀ n, n ∈ authBktL → bktOf rc n = cs n) :
+    realInv (GF := GF) γ d s0 q0 ∗ bkTok γ (1 : Qp).half (csT cs) ∗ auth.authLockQ γ.γa hs ∗
+      rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗ bkSw γ 1 w ∗ bOpen d.γB q0 ⊢ |={⊤}=> auth.authWTok γ.γc := by
+  iintro ⟨#Hinv, Hx, Hlq, Hro, Hsw, Hq⟩
+  iunfold realInv at Hinv
+  iinv Hinv with Hi Hclose
+  iunfold realSt at Hi
+  icases Hi with ⟨%cs', %sa, %su, %sr, %ja, %ju, %jr, %p, Hc, Hl⟩
+  icases Hl with (⟨Hs, Hr, Hp, Hb⟩ | ⟨Hpt, Hp, Hq', HT, >Hbt⟩ | ⟨Hcur, Hr, Hpr, HT, >Hbt⟩)
+  rotate_left
+  · iunfold batchTok at Hbt
+    icases Hbt with ⟨%y, Hbt⟩
+    iexfalso; iapply bkTok_half_one γ _ y $$ [$Hx $Hbt]
+  · iunfold batchTok at Hbt
+    icases Hbt with ⟨%y, Hbt⟩
+    iexfalso; iapply bkTok_half_one γ _ y $$ [$Hx $Hbt]
+  icases Hb with (Hid | Hbb)
+  · iunfold bkIdle at Hid
+    icases Hid with ⟨%hs', %rc', %w', -, -, >Hbt, -, -, -⟩
+    iexfalso; iapply bkTok_half_one γ _ _ $$ [$Hx $Hbt]
+  iunfold bkBatch at Hbb
+  icases Hbb with ⟨>HT, >Hbt⟩
+  iunfold bkTok at Hx Hbt
+  icombine Hx Hbt gives %Hxe
+  obtain ⟨-, Hxe⟩ := Hxe
+  have ha : cs' go!"auth" = cs go!"auth" := (congrArg (fun t => t.1) Hxe).symm
+  have hu : cs' go!"authUsers" = cs go!"authUsers" := (congrArg (fun t => t.2.1) Hxe).symm
+  have hr : cs' go!"authRoles" = cs go!"authRoles" := (congrArg (fun t => t.2.2) Hxe).symm
+  iunfold bkCommon at Hc
+  icases Hc with ⟨>Ha, >Hu, >Hr', >#Hsa, >#Hsu, >#Hsr, >Hpq, >%Hv⟩
+  icases lockQ_rec γ.γa hs st hl $$ Hlq with ⟨Hlq, #HsL⟩
+  icases lockQ_idx γ.γa hs ju su $$ [$Hlq $Hsu] with ⟨Hlq, %Hju⟩
+  ihave Hbt := (ghostVar_split_half γ.γk 1 (csT cs')).2 $$ [Hx Hbt]
+  · rw [← Hxe]; iframe Hx Hbt
+  imod Hclose $$ [Ha Hu Hr' Hpq Hs Hr Hp Hbt Hlq Hro Hsw Hq] with -
+  · inext
+    iunfold realSt
+    iexists cs', st, st, st, hs.length - 1, hs.length - 1, hs.length - 1, p
+    isplitl [Ha Hu Hr' Hpq]
+    · iunfold bkCommon
+      iframe Ha Hu Hr' Hpq
+      iframe #
+      ipureintro
+      obtain ⟨-, -, -, hpu, -⟩ := Hv
+      refine ⟨?_, Nat.le_refl _, Nat.le_refl _, by omega, by omega⟩
+      rw [ha, hu, hr]; exact hv
+    ileft
+    iframe Hs Hr Hp
+    ileft
+    iunfold bkIdle
+    iexists hs, rc, w
+    iframe Hlq Hro Hsw Hq
+    iunfold bkTok
+    iframe Hbt
+    ipureintro
+    refine ⟨hl, rfl, rfl, rfl, rfl, rfl, ?_⟩
+    intro n hn
+    rw [hrc n hn]
+    simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at hn
+    rcases hn with rfl | rfl | rfl
+    · exact ha.symm
+    · exact hu.symm
+    · exact hr.symm
+  imodintro
+  iexact HT
+
+/-- **`ForceCommit()`** of the backend with the write token, the hook's share and a write-back token: the open share
+borrowed from the idle branch (`real_borrow`) for the commit, then given back (`real_unborrow`). -/
+theorem real_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG := hG))
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ realInv γ d s0 q0 ⊢
+      {{ (auth.authWTok γ.γc ∗ Hk) ∗ wbTok d.γB }}
+        (App (Val #(methods (schema.beIface d.be).ty go!"ForceCommit" (schema.beIface d.be).v)) (Val #()))
+      {{ RET #(); auth.authWTok γ.γc ∗ Hk }} := by
+  iintro ⟨#Hpkg, #Hb, #Hinv⟩ !> %Φ ⟨⟨HT, HHk⟩, Hw⟩ HΦ
+  imod real_borrow γ d s0 q0 $$ [$Hinv $HT] with ⟨%cs, %hs, %rc, %w, %st, Hlq, Hro, Hbt, Hsw, Hq, %Hbr⟩
+  iapply wp_fupd
+  wp_apply (hFC d.γB d.P W Pk d.be q0 iprop(True) iprop(True)) $$ [$Hb $Hq $Hw] as ⟨Hq, -⟩
+  · isplitr
+    · itrivial
+    iapply commitReq_true
+  imod real_unborrow γ d s0 q0 cs hs rc w st Hbr.1 Hbr.2.1 Hbr.2.2 $$ [$Hinv $Hbt $Hlq $Hro $Hsw $Hq] with HT
+  imodintro
+  iapply HΦ
+  iframe HT HHk
 
 end wr
 
