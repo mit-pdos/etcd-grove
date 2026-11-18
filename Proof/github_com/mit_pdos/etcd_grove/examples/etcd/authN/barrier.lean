@@ -15,6 +15,7 @@ public import Spec.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
 
 @[expose] public section
 

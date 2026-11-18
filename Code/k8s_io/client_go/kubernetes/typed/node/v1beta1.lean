@@ -50,17 +50,17 @@ noncomputable def runtimeClasses.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] runtimeClasses.ty
 
-axiom RuntimeClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RuntimeClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RuntimeClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RuntimeClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RuntimeClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RuntimeClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom runtimeClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque runtimeClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/node/v1beta1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newRuntimeClasses [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.node.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom RuntimeClassExpansion : Type
-axiom RuntimeClassExpansion.zero_val : ZeroVal RuntimeClassExpansion
+opaque RuntimeClassExpansion.nonempty_type : NonemptyType.{0}
+def RuntimeClassExpansion : Type := RuntimeClassExpansion.nonempty_type.type
+instance RuntimeClassExpansion.nonempty : Nonempty RuntimeClassExpansion := RuntimeClassExpansion.nonempty_type.property
+opaque RuntimeClassExpansion.zero_val : ZeroVal RuntimeClassExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] RuntimeClassExpansion.zero_val
 
 class RuntimeClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] RuntimeClassExpansion.TypeAssumptions.type_repr
   RuntimeClassExpansion.TypeAssumptions.method_set
   RuntimeClassExpansion.TypeAssumptions.ptr_method_set
 
-axiom NodeV1beta1Interface : Type
-axiom NodeV1beta1Interface.zero_val : ZeroVal NodeV1beta1Interface
+opaque NodeV1beta1Interface.nonempty_type : NonemptyType.{0}
+def NodeV1beta1Interface : Type := NodeV1beta1Interface.nonempty_type.type
+instance NodeV1beta1Interface.nonempty : Nonempty NodeV1beta1Interface := NodeV1beta1Interface.nonempty_type.property
+opaque NodeV1beta1Interface.zero_val : ZeroVal NodeV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeV1beta1Interface.zero_val
 
 class NodeV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] NodeV1beta1Interface.TypeAssumptions.type_repr
   NodeV1beta1Interface.TypeAssumptions.method_set
   NodeV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom NodeV1beta1Client : Type
-axiom NodeV1beta1Client.zero_val : ZeroVal NodeV1beta1Client
+opaque NodeV1beta1Client.nonempty_type : NonemptyType.{0}
+def NodeV1beta1Client : Type := NodeV1beta1Client.nonempty_type.type
+instance NodeV1beta1Client.nonempty : Nonempty NodeV1beta1Client := NodeV1beta1Client.nonempty_type.property
+opaque NodeV1beta1Client.zero_val : ZeroVal NodeV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeV1beta1Client.zero_val
 
 class NodeV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] NodeV1beta1Client.TypeAssumptions.type_repr
   NodeV1beta1Client.TypeAssumptions.method_set
   NodeV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom RuntimeClassesGetter : Type
-axiom RuntimeClassesGetter.zero_val : ZeroVal RuntimeClassesGetter
+opaque RuntimeClassesGetter.nonempty_type : NonemptyType.{0}
+def RuntimeClassesGetter : Type := RuntimeClassesGetter.nonempty_type.type
+instance RuntimeClassesGetter.nonempty : Nonempty RuntimeClassesGetter := RuntimeClassesGetter.nonempty_type.property
+opaque RuntimeClassesGetter.zero_val : ZeroVal RuntimeClassesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] RuntimeClassesGetter.zero_val
 
 class RuntimeClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] RuntimeClassesGetter.TypeAssumptions.type_repr
   RuntimeClassesGetter.TypeAssumptions.method_set
   RuntimeClassesGetter.TypeAssumptions.ptr_method_set
 
-axiom RuntimeClassInterface : Type
-axiom RuntimeClassInterface.zero_val : ZeroVal RuntimeClassInterface
+opaque RuntimeClassInterface.nonempty_type : NonemptyType.{0}
+def RuntimeClassInterface : Type := RuntimeClassInterface.nonempty_type.type
+instance RuntimeClassInterface.nonempty : Nonempty RuntimeClassInterface := RuntimeClassInterface.nonempty_type.property
+opaque RuntimeClassInterface.zero_val : ZeroVal RuntimeClassInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] RuntimeClassInterface.zero_val
 
 class RuntimeClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] RuntimeClassInterface.TypeAssumptions.type_repr
   RuntimeClassInterface.TypeAssumptions.method_set
   RuntimeClassInterface.TypeAssumptions.ptr_method_set
 
-axiom runtimeClasses : Type
-axiom runtimeClasses.zero_val : ZeroVal runtimeClasses
+opaque runtimeClasses.nonempty_type : NonemptyType.{0}
+def runtimeClasses : Type := runtimeClasses.nonempty_type.type
+instance runtimeClasses.nonempty : Nonempty runtimeClasses := runtimeClasses.nonempty_type.property
+opaque runtimeClasses.zero_val : ZeroVal runtimeClasses := ⟨Classical.ofNonempty⟩
 attribute [instance] runtimeClasses.zero_val
 
 class runtimeClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

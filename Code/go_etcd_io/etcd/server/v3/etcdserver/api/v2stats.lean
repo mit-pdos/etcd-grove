@@ -69,9 +69,9 @@ noncomputable def serverStats.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] serverStats.ty
 
-axiom serverStats.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serverStats.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom queueCapacity [GooseExts] [GoGlobalContext] : val
+opaque queueCapacity [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewLeaderStats [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v2stats.NewLeaderStats"
@@ -166,7 +166,7 @@ noncomputable def LeaderStats.Follower.impl [GooseExts] [GoGlobalContext] : val 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.raft.v3]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -539,8 +539,10 @@ attribute [instance] statsQueue.TypeAssumptions.type_repr
   statsQueue.TypeAssumptions.method_set
   statsQueue.TypeAssumptions.ptr_method_set
 
-axiom serverStats : Type
-axiom serverStats.zero_val : ZeroVal serverStats
+opaque serverStats.nonempty_type : NonemptyType.{0}
+def serverStats : Type := serverStats.nonempty_type.type
+instance serverStats.nonempty : Nonempty serverStats := serverStats.nonempty_type.property
+opaque serverStats.zero_val : ZeroVal serverStats := ⟨Classical.ofNonempty⟩
 attribute [instance] serverStats.zero_val
 
 class serverStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

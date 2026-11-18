@@ -146,46 +146,46 @@ noncomputable def FakeRecorder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] FakeRecorder.ty
 
-axiom CorrelatorOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CorrelatorOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventRecorderLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventRecorderLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom config.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom eventBroadcasterImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque eventBroadcasterImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom recorderImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque recorderImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom recorderImplLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque recorderImplLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventSourceObjectSpamFilter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventSourceObjectSpamFilter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom spamRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque spamRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventAggregator.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventAggregator.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aggregateRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque aggregateRecord.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom eventLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque eventLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom maxTriesPerEvent [GooseExts] [GoGlobalContext] : val
+opaque maxTriesPerEvent [GooseExts] [GoGlobalContext] : val
 
-axiom maxQueuedEvents [GooseExts] [GoGlobalContext] : val
+opaque maxQueuedEvents [GooseExts] [GoGlobalContext] : val
 
-axiom maxLruCacheEntries [GooseExts] [GoGlobalContext] : val
+opaque maxLruCacheEntries [GooseExts] [GoGlobalContext] : val
 
-axiom defaultAggregateMaxEvents [GooseExts] [GoGlobalContext] : val
+opaque defaultAggregateMaxEvents [GooseExts] [GoGlobalContext] : val
 
-axiom defaultAggregateIntervalInSeconds [GooseExts] [GoGlobalContext] : val
+opaque defaultAggregateIntervalInSeconds [GooseExts] [GoGlobalContext] : val
 
-axiom defaultSpamBurst [GooseExts] [GoGlobalContext] : val
+opaque defaultSpamBurst [GooseExts] [GoGlobalContext] : val
 
-axiom defaultSpamQPS [GooseExts] [GoGlobalContext] : val
+opaque defaultSpamQPS [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultSleepDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.defaultSleepDuration"
 
-axiom defaultSleepDuration.init [GooseExts] [GoGlobalContext] : val
+opaque defaultSleepDuration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewEventRecorderAdapter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/record.NewEventRecorderAdapter"
@@ -253,7 +253,7 @@ noncomputable def NewFakeRecorder [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.tools.record where
   pkgImportedPkgs := [pkg_id.context, pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.klog.v2]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -306,8 +306,10 @@ attribute [instance] EventSink.TypeAssumptions.underlying
   EventSink.TypeAssumptions.method_set
   EventSink.TypeAssumptions.ptr_method_set
 
-axiom CorrelatorOptions : Type
-axiom CorrelatorOptions.zero_val : ZeroVal CorrelatorOptions
+opaque CorrelatorOptions.nonempty_type : NonemptyType.{0}
+def CorrelatorOptions : Type := CorrelatorOptions.nonempty_type.type
+instance CorrelatorOptions.nonempty : Nonempty CorrelatorOptions := CorrelatorOptions.nonempty_type.property
+opaque CorrelatorOptions.zero_val : ZeroVal CorrelatorOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] CorrelatorOptions.zero_val
 
 class CorrelatorOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -337,8 +339,10 @@ attribute [instance] EventRecorder.TypeAssumptions.underlying
   EventRecorder.TypeAssumptions.method_set
   EventRecorder.TypeAssumptions.ptr_method_set
 
-axiom EventRecorderLogger : Type
-axiom EventRecorderLogger.zero_val : ZeroVal EventRecorderLogger
+opaque EventRecorderLogger.nonempty_type : NonemptyType.{0}
+def EventRecorderLogger : Type := EventRecorderLogger.nonempty_type.type
+instance EventRecorderLogger.nonempty : Nonempty EventRecorderLogger := EventRecorderLogger.nonempty_type.property
+opaque EventRecorderLogger.zero_val : ZeroVal EventRecorderLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] EventRecorderLogger.zero_val
 
 class EventRecorderLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -417,8 +421,10 @@ attribute [instance] BroadcasterOption.TypeAssumptions.underlying
   BroadcasterOption.TypeAssumptions.method_set
   BroadcasterOption.TypeAssumptions.ptr_method_set
 
-axiom config : Type
-axiom config.zero_val : ZeroVal config
+opaque config.nonempty_type : NonemptyType.{0}
+def config : Type := config.nonempty_type.type
+instance config.nonempty : Nonempty config := config.nonempty_type.property
+opaque config.zero_val : ZeroVal config := ⟨Classical.ofNonempty⟩
 attribute [instance] config.zero_val
 
 class config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -434,8 +440,10 @@ attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.method_set
   config.TypeAssumptions.ptr_method_set
 
-axiom eventBroadcasterImpl : Type
-axiom eventBroadcasterImpl.zero_val : ZeroVal eventBroadcasterImpl
+opaque eventBroadcasterImpl.nonempty_type : NonemptyType.{0}
+def eventBroadcasterImpl : Type := eventBroadcasterImpl.nonempty_type.type
+instance eventBroadcasterImpl.nonempty : Nonempty eventBroadcasterImpl := eventBroadcasterImpl.nonempty_type.property
+opaque eventBroadcasterImpl.zero_val : ZeroVal eventBroadcasterImpl := ⟨Classical.ofNonempty⟩
 attribute [instance] eventBroadcasterImpl.zero_val
 
 class eventBroadcasterImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -451,8 +459,10 @@ attribute [instance] eventBroadcasterImpl.TypeAssumptions.type_repr
   eventBroadcasterImpl.TypeAssumptions.method_set
   eventBroadcasterImpl.TypeAssumptions.ptr_method_set
 
-axiom recorderImpl : Type
-axiom recorderImpl.zero_val : ZeroVal recorderImpl
+opaque recorderImpl.nonempty_type : NonemptyType.{0}
+def recorderImpl : Type := recorderImpl.nonempty_type.type
+instance recorderImpl.nonempty : Nonempty recorderImpl := recorderImpl.nonempty_type.property
+opaque recorderImpl.zero_val : ZeroVal recorderImpl := ⟨Classical.ofNonempty⟩
 attribute [instance] recorderImpl.zero_val
 
 class recorderImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -468,8 +478,10 @@ attribute [instance] recorderImpl.TypeAssumptions.type_repr
   recorderImpl.TypeAssumptions.method_set
   recorderImpl.TypeAssumptions.ptr_method_set
 
-axiom recorderImplLogger : Type
-axiom recorderImplLogger.zero_val : ZeroVal recorderImplLogger
+opaque recorderImplLogger.nonempty_type : NonemptyType.{0}
+def recorderImplLogger : Type := recorderImplLogger.nonempty_type.type
+instance recorderImplLogger.nonempty : Nonempty recorderImplLogger := recorderImplLogger.nonempty_type.property
+opaque recorderImplLogger.zero_val : ZeroVal recorderImplLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] recorderImplLogger.zero_val
 
 class recorderImplLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -513,8 +525,10 @@ attribute [instance] EventFilterFunc.TypeAssumptions.underlying
   EventFilterFunc.TypeAssumptions.method_set
   EventFilterFunc.TypeAssumptions.ptr_method_set
 
-axiom EventSourceObjectSpamFilter : Type
-axiom EventSourceObjectSpamFilter.zero_val : ZeroVal EventSourceObjectSpamFilter
+opaque EventSourceObjectSpamFilter.nonempty_type : NonemptyType.{0}
+def EventSourceObjectSpamFilter : Type := EventSourceObjectSpamFilter.nonempty_type.type
+instance EventSourceObjectSpamFilter.nonempty : Nonempty EventSourceObjectSpamFilter := EventSourceObjectSpamFilter.nonempty_type.property
+opaque EventSourceObjectSpamFilter.zero_val : ZeroVal EventSourceObjectSpamFilter := ⟨Classical.ofNonempty⟩
 attribute [instance] EventSourceObjectSpamFilter.zero_val
 
 class EventSourceObjectSpamFilter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -530,8 +544,10 @@ attribute [instance] EventSourceObjectSpamFilter.TypeAssumptions.type_repr
   EventSourceObjectSpamFilter.TypeAssumptions.method_set
   EventSourceObjectSpamFilter.TypeAssumptions.ptr_method_set
 
-axiom spamRecord : Type
-axiom spamRecord.zero_val : ZeroVal spamRecord
+opaque spamRecord.nonempty_type : NonemptyType.{0}
+def spamRecord : Type := spamRecord.nonempty_type.type
+instance spamRecord.nonempty : Nonempty spamRecord := spamRecord.nonempty_type.property
+opaque spamRecord.zero_val : ZeroVal spamRecord := ⟨Classical.ofNonempty⟩
 attribute [instance] spamRecord.zero_val
 
 class spamRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -575,8 +591,10 @@ attribute [instance] EventAggregatorMessageFunc.TypeAssumptions.underlying
   EventAggregatorMessageFunc.TypeAssumptions.method_set
   EventAggregatorMessageFunc.TypeAssumptions.ptr_method_set
 
-axiom EventAggregator : Type
-axiom EventAggregator.zero_val : ZeroVal EventAggregator
+opaque EventAggregator.nonempty_type : NonemptyType.{0}
+def EventAggregator : Type := EventAggregator.nonempty_type.type
+instance EventAggregator.nonempty : Nonempty EventAggregator := EventAggregator.nonempty_type.property
+opaque EventAggregator.zero_val : ZeroVal EventAggregator := ⟨Classical.ofNonempty⟩
 attribute [instance] EventAggregator.zero_val
 
 class EventAggregator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -592,8 +610,10 @@ attribute [instance] EventAggregator.TypeAssumptions.type_repr
   EventAggregator.TypeAssumptions.method_set
   EventAggregator.TypeAssumptions.ptr_method_set
 
-axiom aggregateRecord : Type
-axiom aggregateRecord.zero_val : ZeroVal aggregateRecord
+opaque aggregateRecord.nonempty_type : NonemptyType.{0}
+def aggregateRecord : Type := aggregateRecord.nonempty_type.type
+instance aggregateRecord.nonempty : Nonempty aggregateRecord := aggregateRecord.nonempty_type.property
+opaque aggregateRecord.zero_val : ZeroVal aggregateRecord := ⟨Classical.ofNonempty⟩
 attribute [instance] aggregateRecord.zero_val
 
 class aggregateRecord.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -662,8 +682,10 @@ attribute [instance] eventLog.TypeAssumptions.type_repr
   eventLog.TypeAssumptions.method_set
   eventLog.TypeAssumptions.ptr_method_set
 
-axiom eventLogger : Type
-axiom eventLogger.zero_val : ZeroVal eventLogger
+opaque eventLogger.nonempty_type : NonemptyType.{0}
+def eventLogger : Type := eventLogger.nonempty_type.type
+instance eventLogger.nonempty : Nonempty eventLogger := eventLogger.nonempty_type.property
+opaque eventLogger.zero_val : ZeroVal eventLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] eventLogger.zero_val
 
 class eventLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

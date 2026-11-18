@@ -171,111 +171,111 @@ noncomputable def resourceByPreferredGroupVersion.ty [GooseExts] [GoGlobalContex
 
 attribute [irreducible] resourceByPreferredGroupVersion.ty
 
-axiom AmbiguousResourceError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AmbiguousResourceError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AmbiguousKindError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AmbiguousKindError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NoResourceMatchError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NoResourceMatchError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NoKindMatchError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NoKindMatchError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MetadataAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MetadataAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RESTMapping.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RESTMapping.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RESTMapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RESTMapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RESTMapperWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RESTMapperWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResettableRESTMapperWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResettableRESTMapperWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyObject.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lazyObject.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom objectAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque objectAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom genericAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque genericAccessor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityRESTMapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityRESTMapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityRESTMapperWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityRESTMapperWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DefaultRESTMapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DefaultRESTMapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom kindByPreferredGroupVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque kindByPreferredGroupVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceByPreferredGroupVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resourceByPreferredGroupVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RESTScopeNameNamespace [GooseExts] [GoGlobalContext] : val
+opaque RESTScopeNameNamespace [GooseExts] [GoGlobalContext] : val
 
-axiom RESTScopeNameRoot [GooseExts] [GoGlobalContext] : val
+opaque RESTScopeNameRoot [GooseExts] [GoGlobalContext] : val
 
-axiom AnyGroup [GooseExts] [GoGlobalContext] : val
+opaque AnyGroup [GooseExts] [GoGlobalContext] : val
 
-axiom AnyVersion [GooseExts] [GoGlobalContext] : val
+opaque AnyVersion [GooseExts] [GoGlobalContext] : val
 
-axiom AnyResource [GooseExts] [GoGlobalContext] : val
+opaque AnyResource [GooseExts] [GoGlobalContext] : val
 
-axiom AnyKind [GooseExts] [GoGlobalContext] : val
+opaque AnyKind [GooseExts] [GoGlobalContext] : val
 
 noncomputable def isListCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.isListCache"
 
-axiom isListCache.init [GooseExts] [GoGlobalContext] : val
+opaque isListCache.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errExpectFieldItems [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errExpectFieldItems"
 
-axiom errExpectFieldItems.init [GooseExts] [GoGlobalContext] : val
+opaque errExpectFieldItems.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errExpectSliceItems [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errExpectSliceItems"
 
-axiom errExpectSliceItems.init [GooseExts] [GoGlobalContext] : val
+opaque errExpectSliceItems.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def objectSliceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.objectSliceType"
 
-axiom objectSliceType.init [GooseExts] [GoGlobalContext] : val
+opaque objectSliceType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def objectType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.objectType"
 
-axiom objectType.init [GooseExts] [GoGlobalContext] : val
+opaque objectType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rawExtensionObjectType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.rawExtensionObjectType"
 
-axiom rawExtensionObjectType.init [GooseExts] [GoGlobalContext] : val
+opaque rawExtensionObjectType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNotList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotList"
 
-axiom errNotList.init [GooseExts] [GoGlobalContext] : val
+opaque errNotList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNotCommon [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotCommon"
 
-axiom errNotCommon.init [GooseExts] [GoGlobalContext] : val
+opaque errNotCommon.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errNotObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.errNotObject"
 
-axiom errNotObject.init [GooseExts] [GoGlobalContext] : val
+opaque errNotObject.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RESTScopeNamespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.RESTScopeNamespace"
 
-axiom RESTScopeNamespace.init [GooseExts] [GoGlobalContext] : val
+opaque RESTScopeNamespace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RESTScopeRoot [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.RESTScopeRoot"
 
-axiom RESTScopeRoot.init [GooseExts] [GoGlobalContext] : val
+opaque RESTScopeRoot.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def unpluralizedSuffixes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.unpluralizedSuffixes"
 
-axiom unpluralizedSuffixes.init [GooseExts] [GoGlobalContext] : val
+opaque unpluralizedSuffixes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SetStatusCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/meta.SetStatusCondition"
@@ -483,7 +483,7 @@ noncomputable def Accessor.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.«meta» where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -564,8 +564,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.initialize') (Val #()))))))))
 
-axiom AmbiguousResourceError : Type
-axiom AmbiguousResourceError.zero_val : ZeroVal AmbiguousResourceError
+opaque AmbiguousResourceError.nonempty_type : NonemptyType.{0}
+def AmbiguousResourceError : Type := AmbiguousResourceError.nonempty_type.type
+instance AmbiguousResourceError.nonempty : Nonempty AmbiguousResourceError := AmbiguousResourceError.nonempty_type.property
+opaque AmbiguousResourceError.zero_val : ZeroVal AmbiguousResourceError := ⟨Classical.ofNonempty⟩
 attribute [instance] AmbiguousResourceError.zero_val
 
 class AmbiguousResourceError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -581,8 +583,10 @@ attribute [instance] AmbiguousResourceError.TypeAssumptions.type_repr
   AmbiguousResourceError.TypeAssumptions.method_set
   AmbiguousResourceError.TypeAssumptions.ptr_method_set
 
-axiom AmbiguousKindError : Type
-axiom AmbiguousKindError.zero_val : ZeroVal AmbiguousKindError
+opaque AmbiguousKindError.nonempty_type : NonemptyType.{0}
+def AmbiguousKindError : Type := AmbiguousKindError.nonempty_type.type
+instance AmbiguousKindError.nonempty : Nonempty AmbiguousKindError := AmbiguousKindError.nonempty_type.property
+opaque AmbiguousKindError.zero_val : ZeroVal AmbiguousKindError := ⟨Classical.ofNonempty⟩
 attribute [instance] AmbiguousKindError.zero_val
 
 class AmbiguousKindError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -598,8 +602,10 @@ attribute [instance] AmbiguousKindError.TypeAssumptions.type_repr
   AmbiguousKindError.TypeAssumptions.method_set
   AmbiguousKindError.TypeAssumptions.ptr_method_set
 
-axiom NoResourceMatchError : Type
-axiom NoResourceMatchError.zero_val : ZeroVal NoResourceMatchError
+opaque NoResourceMatchError.nonempty_type : NonemptyType.{0}
+def NoResourceMatchError : Type := NoResourceMatchError.nonempty_type.type
+instance NoResourceMatchError.nonempty : Nonempty NoResourceMatchError := NoResourceMatchError.nonempty_type.property
+opaque NoResourceMatchError.zero_val : ZeroVal NoResourceMatchError := ⟨Classical.ofNonempty⟩
 attribute [instance] NoResourceMatchError.zero_val
 
 class NoResourceMatchError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -615,8 +621,10 @@ attribute [instance] NoResourceMatchError.TypeAssumptions.type_repr
   NoResourceMatchError.TypeAssumptions.method_set
   NoResourceMatchError.TypeAssumptions.ptr_method_set
 
-axiom NoKindMatchError : Type
-axiom NoKindMatchError.zero_val : ZeroVal NoKindMatchError
+opaque NoKindMatchError.nonempty_type : NonemptyType.{0}
+def NoKindMatchError : Type := NoKindMatchError.nonempty_type.type
+instance NoKindMatchError.nonempty : Nonempty NoKindMatchError := NoKindMatchError.nonempty_type.property
+opaque NoKindMatchError.zero_val : ZeroVal NoKindMatchError := ⟨Classical.ofNonempty⟩
 attribute [instance] NoKindMatchError.zero_val
 
 class NoKindMatchError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -723,8 +731,10 @@ attribute [instance] «Type».TypeAssumptions.underlying
   «Type».TypeAssumptions.method_set
   «Type».TypeAssumptions.ptr_method_set
 
-axiom MetadataAccessor : Type
-axiom MetadataAccessor.zero_val : ZeroVal MetadataAccessor
+opaque MetadataAccessor.nonempty_type : NonemptyType.{0}
+def MetadataAccessor : Type := MetadataAccessor.nonempty_type.type
+instance MetadataAccessor.nonempty : Nonempty MetadataAccessor := MetadataAccessor.nonempty_type.property
+opaque MetadataAccessor.zero_val : ZeroVal MetadataAccessor := ⟨Classical.ofNonempty⟩
 attribute [instance] MetadataAccessor.zero_val
 
 class MetadataAccessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -768,8 +778,10 @@ attribute [instance] RESTScope.TypeAssumptions.underlying
   RESTScope.TypeAssumptions.method_set
   RESTScope.TypeAssumptions.ptr_method_set
 
-axiom RESTMapping : Type
-axiom RESTMapping.zero_val : ZeroVal RESTMapping
+opaque RESTMapping.nonempty_type : NonemptyType.{0}
+def RESTMapping : Type := RESTMapping.nonempty_type.type
+instance RESTMapping.nonempty : Nonempty RESTMapping := RESTMapping.nonempty_type.property
+opaque RESTMapping.zero_val : ZeroVal RESTMapping := ⟨Classical.ofNonempty⟩
 attribute [instance] RESTMapping.zero_val
 
 class RESTMapping.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -785,8 +797,10 @@ attribute [instance] RESTMapping.TypeAssumptions.type_repr
   RESTMapping.TypeAssumptions.method_set
   RESTMapping.TypeAssumptions.ptr_method_set
 
-axiom RESTMapper : Type
-axiom RESTMapper.zero_val : ZeroVal RESTMapper
+opaque RESTMapper.nonempty_type : NonemptyType.{0}
+def RESTMapper : Type := RESTMapper.nonempty_type.type
+instance RESTMapper.nonempty : Nonempty RESTMapper := RESTMapper.nonempty_type.property
+opaque RESTMapper.zero_val : ZeroVal RESTMapper := ⟨Classical.ofNonempty⟩
 attribute [instance] RESTMapper.zero_val
 
 class RESTMapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -802,8 +816,10 @@ attribute [instance] RESTMapper.TypeAssumptions.type_repr
   RESTMapper.TypeAssumptions.method_set
   RESTMapper.TypeAssumptions.ptr_method_set
 
-axiom RESTMapperWithContext : Type
-axiom RESTMapperWithContext.zero_val : ZeroVal RESTMapperWithContext
+opaque RESTMapperWithContext.nonempty_type : NonemptyType.{0}
+def RESTMapperWithContext : Type := RESTMapperWithContext.nonempty_type.type
+instance RESTMapperWithContext.nonempty : Nonempty RESTMapperWithContext := RESTMapperWithContext.nonempty_type.property
+opaque RESTMapperWithContext.zero_val : ZeroVal RESTMapperWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] RESTMapperWithContext.zero_val
 
 class RESTMapperWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -868,8 +884,10 @@ attribute [instance] ResettableRESTMapper.TypeAssumptions.underlying
   ResettableRESTMapper.TypeAssumptions.method_set
   ResettableRESTMapper.TypeAssumptions.ptr_method_set
 
-axiom ResettableRESTMapperWithContext : Type
-axiom ResettableRESTMapperWithContext.zero_val : ZeroVal ResettableRESTMapperWithContext
+opaque ResettableRESTMapperWithContext.nonempty_type : NonemptyType.{0}
+def ResettableRESTMapperWithContext : Type := ResettableRESTMapperWithContext.nonempty_type.type
+instance ResettableRESTMapperWithContext.nonempty : Nonempty ResettableRESTMapperWithContext := ResettableRESTMapperWithContext.nonempty_type.property
+opaque ResettableRESTMapperWithContext.zero_val : ZeroVal ResettableRESTMapperWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] ResettableRESTMapperWithContext.zero_val
 
 class ResettableRESTMapperWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -926,8 +944,10 @@ attribute [instance] resettableRESTMapperWrapper.TypeAssumptions.type_repr
   resettableRESTMapperWrapper.TypeAssumptions.method_set
   resettableRESTMapperWrapper.TypeAssumptions.ptr_method_set
 
-axiom lazyObject : Type
-axiom lazyObject.zero_val : ZeroVal lazyObject
+opaque lazyObject.nonempty_type : NonemptyType.{0}
+def lazyObject : Type := lazyObject.nonempty_type.type
+instance lazyObject.nonempty : Nonempty lazyObject := lazyObject.nonempty_type.property
+opaque lazyObject.zero_val : ZeroVal lazyObject := ⟨Classical.ofNonempty⟩
 attribute [instance] lazyObject.zero_val
 
 class lazyObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -943,8 +963,10 @@ attribute [instance] lazyObject.TypeAssumptions.type_repr
   lazyObject.TypeAssumptions.method_set
   lazyObject.TypeAssumptions.ptr_method_set
 
-axiom objectAccessor : Type
-axiom objectAccessor.zero_val : ZeroVal objectAccessor
+opaque objectAccessor.nonempty_type : NonemptyType.{0}
+def objectAccessor : Type := objectAccessor.nonempty_type.type
+instance objectAccessor.nonempty : Nonempty objectAccessor := objectAccessor.nonempty_type.property
+opaque objectAccessor.zero_val : ZeroVal objectAccessor := ⟨Classical.ofNonempty⟩
 attribute [instance] objectAccessor.zero_val
 
 class objectAccessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -990,8 +1012,10 @@ attribute [instance] resourceAccessor.TypeAssumptions.type_repr
   resourceAccessor.TypeAssumptions.method_set
   resourceAccessor.TypeAssumptions.ptr_method_set
 
-axiom genericAccessor : Type
-axiom genericAccessor.zero_val : ZeroVal genericAccessor
+opaque genericAccessor.nonempty_type : NonemptyType.{0}
+def genericAccessor : Type := genericAccessor.nonempty_type.type
+instance genericAccessor.nonempty : Nonempty genericAccessor := genericAccessor.nonempty_type.property
+opaque genericAccessor.zero_val : ZeroVal genericAccessor := ⟨Classical.ofNonempty⟩
 attribute [instance] genericAccessor.zero_val
 
 class genericAccessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1021,8 +1045,10 @@ attribute [instance] MultiRESTMapperWithContext.TypeAssumptions.underlying
   MultiRESTMapperWithContext.TypeAssumptions.method_set
   MultiRESTMapperWithContext.TypeAssumptions.ptr_method_set
 
-axiom PriorityRESTMapper : Type
-axiom PriorityRESTMapper.zero_val : ZeroVal PriorityRESTMapper
+opaque PriorityRESTMapper.nonempty_type : NonemptyType.{0}
+def PriorityRESTMapper : Type := PriorityRESTMapper.nonempty_type.type
+instance PriorityRESTMapper.nonempty : Nonempty PriorityRESTMapper := PriorityRESTMapper.nonempty_type.property
+opaque PriorityRESTMapper.zero_val : ZeroVal PriorityRESTMapper := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityRESTMapper.zero_val
 
 class PriorityRESTMapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1038,8 +1064,10 @@ attribute [instance] PriorityRESTMapper.TypeAssumptions.type_repr
   PriorityRESTMapper.TypeAssumptions.method_set
   PriorityRESTMapper.TypeAssumptions.ptr_method_set
 
-axiom PriorityRESTMapperWithContext : Type
-axiom PriorityRESTMapperWithContext.zero_val : ZeroVal PriorityRESTMapperWithContext
+opaque PriorityRESTMapperWithContext.nonempty_type : NonemptyType.{0}
+def PriorityRESTMapperWithContext : Type := PriorityRESTMapperWithContext.nonempty_type.type
+instance PriorityRESTMapperWithContext.nonempty : Nonempty PriorityRESTMapperWithContext := PriorityRESTMapperWithContext.nonempty_type.property
+opaque PriorityRESTMapperWithContext.zero_val : ZeroVal PriorityRESTMapperWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityRESTMapperWithContext.zero_val
 
 class PriorityRESTMapperWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1090,8 +1118,10 @@ attribute [instance] restScope.TypeAssumptions.type_repr
   restScope.TypeAssumptions.method_set
   restScope.TypeAssumptions.ptr_method_set
 
-axiom DefaultRESTMapper : Type
-axiom DefaultRESTMapper.zero_val : ZeroVal DefaultRESTMapper
+opaque DefaultRESTMapper.nonempty_type : NonemptyType.{0}
+def DefaultRESTMapper : Type := DefaultRESTMapper.nonempty_type.type
+instance DefaultRESTMapper.nonempty : Nonempty DefaultRESTMapper := DefaultRESTMapper.nonempty_type.property
+opaque DefaultRESTMapper.zero_val : ZeroVal DefaultRESTMapper := ⟨Classical.ofNonempty⟩
 attribute [instance] DefaultRESTMapper.zero_val
 
 class DefaultRESTMapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1107,8 +1137,10 @@ attribute [instance] DefaultRESTMapper.TypeAssumptions.type_repr
   DefaultRESTMapper.TypeAssumptions.method_set
   DefaultRESTMapper.TypeAssumptions.ptr_method_set
 
-axiom kindByPreferredGroupVersion : Type
-axiom kindByPreferredGroupVersion.zero_val : ZeroVal kindByPreferredGroupVersion
+opaque kindByPreferredGroupVersion.nonempty_type : NonemptyType.{0}
+def kindByPreferredGroupVersion : Type := kindByPreferredGroupVersion.nonempty_type.type
+instance kindByPreferredGroupVersion.nonempty : Nonempty kindByPreferredGroupVersion := kindByPreferredGroupVersion.nonempty_type.property
+opaque kindByPreferredGroupVersion.zero_val : ZeroVal kindByPreferredGroupVersion := ⟨Classical.ofNonempty⟩
 attribute [instance] kindByPreferredGroupVersion.zero_val
 
 class kindByPreferredGroupVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1124,8 +1156,10 @@ attribute [instance] kindByPreferredGroupVersion.TypeAssumptions.type_repr
   kindByPreferredGroupVersion.TypeAssumptions.method_set
   kindByPreferredGroupVersion.TypeAssumptions.ptr_method_set
 
-axiom resourceByPreferredGroupVersion : Type
-axiom resourceByPreferredGroupVersion.zero_val : ZeroVal resourceByPreferredGroupVersion
+opaque resourceByPreferredGroupVersion.nonempty_type : NonemptyType.{0}
+def resourceByPreferredGroupVersion : Type := resourceByPreferredGroupVersion.nonempty_type.type
+instance resourceByPreferredGroupVersion.nonempty : Nonempty resourceByPreferredGroupVersion := resourceByPreferredGroupVersion.nonempty_type.property
+opaque resourceByPreferredGroupVersion.zero_val : ZeroVal resourceByPreferredGroupVersion := ⟨Classical.ofNonempty⟩
 attribute [instance] resourceByPreferredGroupVersion.zero_val
 
 class resourceByPreferredGroupVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

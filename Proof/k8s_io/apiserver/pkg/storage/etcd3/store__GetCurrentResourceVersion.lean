@@ -15,6 +15,7 @@ public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.fmt.ErrorfPlain
 public import Perennial.Proof.time.Link
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.GetLatest
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

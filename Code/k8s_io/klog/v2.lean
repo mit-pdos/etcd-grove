@@ -150,50 +150,50 @@ attribute [irreducible] klogger.ty
 @[reducible] noncomputable def RuntimeInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.github_com.go_logr.logr.RuntimeInfo.ty
 
-axiom severityValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque severityValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom settings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque settings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom loggingT.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque loggingT.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom syncBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque syncBuffer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom flushDaemon.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque flushDaemon.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fileArray.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fileArray.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom logBridge.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque logBridge.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom bufferSize [GooseExts] [GoGlobalContext] : val
+opaque bufferSize [GooseExts] [GoGlobalContext] : val
 
-axiom flushInterval [GooseExts] [GoGlobalContext] : val
+opaque flushInterval [GooseExts] [GoGlobalContext] : val
 
-axiom nameKey [GooseExts] [GoGlobalContext] : val
+opaque nameKey [GooseExts] [GoGlobalContext] : val
 
 noncomputable def klogLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.klogLogger"
 
-axiom klogLogger.init [GooseExts] [GoGlobalContext] : val
+opaque klogLogger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ExitFlushTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.ExitFlushTimeout"
 
-axiom ExitFlushTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ExitFlushTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def OsExit [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.OsExit"
 
-axiom OsExit.init [GooseExts] [GoGlobalContext] : val
+opaque OsExit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.New"
 
-axiom New.init [GooseExts] [GoGlobalContext] : val
+opaque New.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nilToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.nilToken"
 
-axiom nilToken.init [GooseExts] [GoGlobalContext] : val
+opaque nilToken.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Stats [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.Stats"
@@ -201,17 +201,17 @@ noncomputable def Stats [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def severityStats [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.severityStats"
 
-axiom severityStats.init [GooseExts] [GoGlobalContext] : val
+opaque severityStats.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errVmoduleSyntax [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.errVmoduleSyntax"
 
-axiom errVmoduleSyntax.init [GooseExts] [GoGlobalContext] : val
+opaque errVmoduleSyntax.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errTraceSyntax [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.errTraceSyntax"
 
-axiom errTraceSyntax.init [GooseExts] [GoGlobalContext] : val
+opaque errTraceSyntax.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logging [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.logging"
@@ -222,7 +222,7 @@ noncomputable def commandLine [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def timeNow [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.timeNow"
 
-axiom timeNow.init [GooseExts] [GoGlobalContext] : val
+opaque timeNow.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logExitFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.logExitFunc"
@@ -233,7 +233,7 @@ noncomputable def fatalNoStacks [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MaxSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.MaxSize"
 
-axiom MaxSize.init [GooseExts] [GoGlobalContext] : val
+opaque MaxSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logDirs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.logDirs"
@@ -241,22 +241,22 @@ noncomputable def logDirs [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def pid [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.pid"
 
-axiom pid.init [GooseExts] [GoGlobalContext] : val
+opaque pid.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def program [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.program"
 
-axiom program.init [GooseExts] [GoGlobalContext] : val
+opaque program.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def host [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.host"
 
-axiom host.init [GooseExts] [GoGlobalContext] : val
+opaque host.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def userName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.userName"
 
-axiom userName.init [GooseExts] [GoGlobalContext] : val
+opaque userName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def userNameOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/klog/v2.userNameOnce"
@@ -519,7 +519,7 @@ noncomputable def SafePtr [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.klog.v2 where
   pkgImportedPkgs := [pkg_id.github_com.go_logr.logr]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -833,8 +833,10 @@ attribute [instance] kobjSlice.TypeAssumptions.type_repr
   kobjSlice.TypeAssumptions.method_set
   kobjSlice.TypeAssumptions.ptr_method_set
 
-axiom severityValue : Type
-axiom severityValue.zero_val : ZeroVal severityValue
+opaque severityValue.nonempty_type : NonemptyType.{0}
+def severityValue : Type := severityValue.nonempty_type.type
+instance severityValue.nonempty : Nonempty severityValue := severityValue.nonempty_type.property
+opaque severityValue.zero_val : ZeroVal severityValue := ⟨Classical.ofNonempty⟩
 attribute [instance] severityValue.zero_val
 
 class severityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1028,8 +1030,10 @@ attribute [instance] traceLocation.TypeAssumptions.type_repr
   traceLocation.TypeAssumptions.method_set
   traceLocation.TypeAssumptions.ptr_method_set
 
-axiom settings : Type
-axiom settings.zero_val : ZeroVal settings
+opaque settings.nonempty_type : NonemptyType.{0}
+def settings : Type := settings.nonempty_type.type
+instance settings.nonempty : Nonempty settings := settings.nonempty_type.property
+opaque settings.zero_val : ZeroVal settings := ⟨Classical.ofNonempty⟩
 attribute [instance] settings.zero_val
 
 class settings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1045,8 +1049,10 @@ attribute [instance] settings.TypeAssumptions.type_repr
   settings.TypeAssumptions.method_set
   settings.TypeAssumptions.ptr_method_set
 
-axiom loggingT : Type
-axiom loggingT.zero_val : ZeroVal loggingT
+opaque loggingT.nonempty_type : NonemptyType.{0}
+def loggingT : Type := loggingT.nonempty_type.type
+instance loggingT.nonempty : Nonempty loggingT := loggingT.nonempty_type.property
+opaque loggingT.zero_val : ZeroVal loggingT := ⟨Classical.ofNonempty⟩
 attribute [instance] loggingT.zero_val
 
 class loggingT.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1123,8 +1129,10 @@ attribute [instance] state.TypeAssumptions.type_repr
   state.TypeAssumptions.method_set
   state.TypeAssumptions.ptr_method_set
 
-axiom syncBuffer : Type
-axiom syncBuffer.zero_val : ZeroVal syncBuffer
+opaque syncBuffer.nonempty_type : NonemptyType.{0}
+def syncBuffer : Type := syncBuffer.nonempty_type.type
+instance syncBuffer.nonempty : Nonempty syncBuffer := syncBuffer.nonempty_type.property
+opaque syncBuffer.zero_val : ZeroVal syncBuffer := ⟨Classical.ofNonempty⟩
 attribute [instance] syncBuffer.zero_val
 
 class syncBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1140,8 +1148,10 @@ attribute [instance] syncBuffer.TypeAssumptions.type_repr
   syncBuffer.TypeAssumptions.method_set
   syncBuffer.TypeAssumptions.ptr_method_set
 
-axiom flushDaemon : Type
-axiom flushDaemon.zero_val : ZeroVal flushDaemon
+opaque flushDaemon.nonempty_type : NonemptyType.{0}
+def flushDaemon : Type := flushDaemon.nonempty_type.type
+instance flushDaemon.nonempty : Nonempty flushDaemon := flushDaemon.nonempty_type.property
+opaque flushDaemon.zero_val : ZeroVal flushDaemon := ⟨Classical.ofNonempty⟩
 attribute [instance] flushDaemon.zero_val
 
 class flushDaemon.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1157,8 +1167,10 @@ attribute [instance] flushDaemon.TypeAssumptions.type_repr
   flushDaemon.TypeAssumptions.method_set
   flushDaemon.TypeAssumptions.ptr_method_set
 
-axiom fileArray : Type
-axiom fileArray.zero_val : ZeroVal fileArray
+opaque fileArray.nonempty_type : NonemptyType.{0}
+def fileArray : Type := fileArray.nonempty_type.type
+instance fileArray.nonempty : Nonempty fileArray := fileArray.nonempty_type.property
+opaque fileArray.zero_val : ZeroVal fileArray := ⟨Classical.ofNonempty⟩
 attribute [instance] fileArray.zero_val
 
 class fileArray.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1174,8 +1186,10 @@ attribute [instance] fileArray.TypeAssumptions.type_repr
   fileArray.TypeAssumptions.method_set
   fileArray.TypeAssumptions.ptr_method_set
 
-axiom logBridge : Type
-axiom logBridge.zero_val : ZeroVal logBridge
+opaque logBridge.nonempty_type : NonemptyType.{0}
+def logBridge : Type := logBridge.nonempty_type.type
+instance logBridge.nonempty : Nonempty logBridge := logBridge.nonempty_type.property
+opaque logBridge.zero_val : ZeroVal logBridge := ⟨Classical.ofNonempty⟩
 attribute [instance] logBridge.zero_val
 
 class logBridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

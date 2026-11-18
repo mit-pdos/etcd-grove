@@ -39,7 +39,7 @@ attribute [irreducible] EnforcementPolicy.ty
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.keepalive where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

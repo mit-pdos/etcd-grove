@@ -68,15 +68,15 @@ noncomputable def UnsafeLockServer.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] UnsafeLockServer.ty
 
-axiom LockClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LockClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lockClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque lockClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom file_v3lock_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_v3lock_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-axiom Lock_Lock_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Lock_Lock_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Lock_Unlock_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Lock_Unlock_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_v3lock_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.File_v3lock_proto"
@@ -90,22 +90,22 @@ noncomputable def file_v3lock_proto_rawDescData [GooseExts] [GoGlobalContext] : 
 noncomputable def file_v3lock_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_msgTypes"
 
-axiom file_v3lock_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_v3lock_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_v3lock_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_goTypes"
 
-axiom file_v3lock_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_v3lock_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_v3lock_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_depIdxs"
 
-axiom file_v3lock_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_v3lock_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Lock_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.Lock_ServiceDesc"
 
-axiom Lock_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
+opaque Lock_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_v3lock_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_rawDescGZIP"
@@ -545,8 +545,10 @@ attribute [instance] UnlockResponse.TypeAssumptions.type_repr
   UnlockResponse.TypeAssumptions.ptr_method_set
   UnlockResponse.TypeAssumptions.ptr_GetHeader_unfold
 
-axiom LockClient : Type
-axiom LockClient.zero_val : ZeroVal LockClient
+opaque LockClient.nonempty_type : NonemptyType.{0}
+def LockClient : Type := LockClient.nonempty_type.type
+instance LockClient.nonempty : Nonempty LockClient := LockClient.nonempty_type.property
+opaque LockClient.zero_val : ZeroVal LockClient := ⟨Classical.ofNonempty⟩
 attribute [instance] LockClient.zero_val
 
 class LockClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -562,8 +564,10 @@ attribute [instance] LockClient.TypeAssumptions.type_repr
   LockClient.TypeAssumptions.method_set
   LockClient.TypeAssumptions.ptr_method_set
 
-axiom lockClient : Type
-axiom lockClient.zero_val : ZeroVal lockClient
+opaque lockClient.nonempty_type : NonemptyType.{0}
+def lockClient : Type := lockClient.nonempty_type.type
+instance lockClient.nonempty : Nonempty lockClient := lockClient.nonempty_type.property
+opaque lockClient.zero_val : ZeroVal lockClient := ⟨Classical.ofNonempty⟩
 attribute [instance] lockClient.zero_val
 
 class lockClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -8,6 +8,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.blockLogger__recordWait
 public import Spec.k8s_io.klog.v2.V
 public import Spec.k8s_io.klog.v2.Verbose__InfoS
 public import Perennial.Proof.time.PtrMethods
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

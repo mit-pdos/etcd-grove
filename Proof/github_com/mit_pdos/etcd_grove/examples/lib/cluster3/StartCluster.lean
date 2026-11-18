@@ -26,6 +26,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartMem
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartBridge
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Dir
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

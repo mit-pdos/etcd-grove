@@ -228,8 +228,38 @@ importable list and a generated interface"):
 
 Raft is the first (2026-10-26): `etc/api/raft.txt`; `Spec/go_etcd_io/raft/v3/Api.lean` (the module a
 client imports), `InvNode`/`InvNodeCtx` (the node API, sealed), `ApiVocab`/`ApiCtx` (the vocabulary
-moved out of the internals), `Linked` (raft's linked results for proofs outside the linking files,
-`open RaftLink`).
+moved out of the internals), `Linked` (raft's linked results, `open RaftLink`, for the linking
+modules of raft's clients: a proof or definition takes raft's specs instead, "Import tiers").
+
+## Import tiers
+
+Specs never import proofs. Every module is in one of five tiers, and imports only from its own tier
+or lower (`etc/tier-check.py`; `notes/decisions.md`, "Import tiers"):
+
+1. **base**: the translations and the framework (`Code/`, `GeneratedProof/`, `TrustedCode/`,
+   `ManualProof/`, `GooseLang/`, Perennial, Iris), and every module outside the `Spec`/`Proof` roots;
+2. **spec**: a module under `Spec/` (or a part's `<Part>/Spec/`);
+3. **defs**: a module under `Proof/` that is neither of the two below: shared definitions,
+   invariants, lemmas (`Defs`, `Inv*`, `Base`, `KeyOps`, ...). Specs and defs may import each other
+   (defs are a spec's vocabulary);
+4. **proof**: a `Proof/` module declaring `theorem`/`axiom <F>.wp_proof`, one function's proof: it
+   imports specs and defs only (its callees through their specs);
+5. **linking**: `Link`, `Results`, `*Linked` (`Linked`, `MainLinked`, `TracedLinked`, a split's
+   `<Name>Linked`), `Adequacy*`, and the modules listed in `etc/tier-linking.txt` (each with why: it
+   composes linked results under another name). Only a linking module imports a proof or linking
+   module.
+
+So a proof's edit rebuilds the linking modules above it and nothing else, and a spec's cone holds no
+proof. A spec or a definition that needs something declared in a proof or linking module (a
+definition, a pure lemma, an instance) gets it moved down into a defs module, the name and statement
+unchanged (`client/v3/KeyOps.lean`: `putKeyOp`, out of `client/v3/Results.lean`); a module that
+genuinely uses a linked result (a `wp_<M>` of a `Link`) is linking, and nothing below imports it: its
+linked theorems go to a `<Name>Linked.lean` beside it (`NodeBridgeLinked`, `ServedLinked`), or the
+module is listed. A proof file that uses a callee's linked result instead of its spec is the
+known debt the baseline holds (`proof->linking`).
+`etc/tier-check.py --check` (in `etc/gates.sh`) refuses a violation not in `etc/tier-baseline.txt`
+(the ones left; `--check --update` only shrinks it); `--tier MODULE` prints a module's tier, its
+importers and its cone (what an edit to it rebuilds, by tier).
 
 ## Issues in the verified code
 

@@ -37,7 +37,7 @@ noncomputable def Snapshot.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Snapshot.ty
 
-axiom file_record_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_record_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCRCMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.ErrCRCMismatch"
@@ -54,17 +54,17 @@ noncomputable def file_record_proto_rawDescData [GooseExts] [GoGlobalContext] : 
 noncomputable def file_record_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_msgTypes"
 
-axiom file_record_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_record_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_record_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_goTypes"
 
-axiom file_record_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_record_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_record_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.file_record_proto_depIdxs"
 
-axiom file_record_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_record_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateSnapshotForWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.ValidateSnapshotForWrite"

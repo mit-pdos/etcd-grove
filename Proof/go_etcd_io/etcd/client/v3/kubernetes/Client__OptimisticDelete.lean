@@ -16,6 +16,7 @@ public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.OpDelete
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
 public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
 
 @[expose] public section
 

@@ -50,17 +50,17 @@ noncomputable def horizontalPodAutoscalers.ty [GooseExts] [GoGlobalContext] : go
 
 attribute [irreducible] horizontalPodAutoscalers.ty
 
-axiom AutoscalingV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AutoscalingV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AutoscalingV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AutoscalingV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalersGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalersGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom horizontalPodAutoscalers.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque horizontalPodAutoscalers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/autoscaling/v1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newHorizontalPodAutoscalers [GooseExts] [GoGlobalContext] : Go
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.autoscaling.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom AutoscalingV1Interface : Type
-axiom AutoscalingV1Interface.zero_val : ZeroVal AutoscalingV1Interface
+opaque AutoscalingV1Interface.nonempty_type : NonemptyType.{0}
+def AutoscalingV1Interface : Type := AutoscalingV1Interface.nonempty_type.type
+instance AutoscalingV1Interface.nonempty : Nonempty AutoscalingV1Interface := AutoscalingV1Interface.nonempty_type.property
+opaque AutoscalingV1Interface.zero_val : ZeroVal AutoscalingV1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] AutoscalingV1Interface.zero_val
 
 class AutoscalingV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] AutoscalingV1Interface.TypeAssumptions.type_repr
   AutoscalingV1Interface.TypeAssumptions.method_set
   AutoscalingV1Interface.TypeAssumptions.ptr_method_set
 
-axiom AutoscalingV1Client : Type
-axiom AutoscalingV1Client.zero_val : ZeroVal AutoscalingV1Client
+opaque AutoscalingV1Client.nonempty_type : NonemptyType.{0}
+def AutoscalingV1Client : Type := AutoscalingV1Client.nonempty_type.type
+instance AutoscalingV1Client.nonempty : Nonempty AutoscalingV1Client := AutoscalingV1Client.nonempty_type.property
+opaque AutoscalingV1Client.zero_val : ZeroVal AutoscalingV1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] AutoscalingV1Client.zero_val
 
 class AutoscalingV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] AutoscalingV1Client.TypeAssumptions.type_repr
   AutoscalingV1Client.TypeAssumptions.method_set
   AutoscalingV1Client.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerExpansion : Type
-axiom HorizontalPodAutoscalerExpansion.zero_val : ZeroVal HorizontalPodAutoscalerExpansion
+opaque HorizontalPodAutoscalerExpansion.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerExpansion : Type := HorizontalPodAutoscalerExpansion.nonempty_type.type
+instance HorizontalPodAutoscalerExpansion.nonempty : Nonempty HorizontalPodAutoscalerExpansion := HorizontalPodAutoscalerExpansion.nonempty_type.property
+opaque HorizontalPodAutoscalerExpansion.zero_val : ZeroVal HorizontalPodAutoscalerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerExpansion.zero_val
 
 class HorizontalPodAutoscalerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] HorizontalPodAutoscalerExpansion.TypeAssumptions.type_repr
   HorizontalPodAutoscalerExpansion.TypeAssumptions.method_set
   HorizontalPodAutoscalerExpansion.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalersGetter : Type
-axiom HorizontalPodAutoscalersGetter.zero_val : ZeroVal HorizontalPodAutoscalersGetter
+opaque HorizontalPodAutoscalersGetter.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalersGetter : Type := HorizontalPodAutoscalersGetter.nonempty_type.type
+instance HorizontalPodAutoscalersGetter.nonempty : Nonempty HorizontalPodAutoscalersGetter := HorizontalPodAutoscalersGetter.nonempty_type.property
+opaque HorizontalPodAutoscalersGetter.zero_val : ZeroVal HorizontalPodAutoscalersGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalersGetter.zero_val
 
 class HorizontalPodAutoscalersGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] HorizontalPodAutoscalersGetter.TypeAssumptions.type_repr
   HorizontalPodAutoscalersGetter.TypeAssumptions.method_set
   HorizontalPodAutoscalersGetter.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerInterface : Type
-axiom HorizontalPodAutoscalerInterface.zero_val : ZeroVal HorizontalPodAutoscalerInterface
+opaque HorizontalPodAutoscalerInterface.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerInterface : Type := HorizontalPodAutoscalerInterface.nonempty_type.type
+instance HorizontalPodAutoscalerInterface.nonempty : Nonempty HorizontalPodAutoscalerInterface := HorizontalPodAutoscalerInterface.nonempty_type.property
+opaque HorizontalPodAutoscalerInterface.zero_val : ZeroVal HorizontalPodAutoscalerInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerInterface.zero_val
 
 class HorizontalPodAutoscalerInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] HorizontalPodAutoscalerInterface.TypeAssumptions.type_repr
   HorizontalPodAutoscalerInterface.TypeAssumptions.method_set
   HorizontalPodAutoscalerInterface.TypeAssumptions.ptr_method_set
 
-axiom horizontalPodAutoscalers : Type
-axiom horizontalPodAutoscalers.zero_val : ZeroVal horizontalPodAutoscalers
+opaque horizontalPodAutoscalers.nonempty_type : NonemptyType.{0}
+def horizontalPodAutoscalers : Type := horizontalPodAutoscalers.nonempty_type.type
+instance horizontalPodAutoscalers.nonempty : Nonempty horizontalPodAutoscalers := horizontalPodAutoscalers.nonempty_type.property
+opaque horizontalPodAutoscalers.zero_val : ZeroVal horizontalPodAutoscalers := ⟨Classical.ofNonempty⟩
 attribute [instance] horizontalPodAutoscalers.zero_val
 
 class horizontalPodAutoscalers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

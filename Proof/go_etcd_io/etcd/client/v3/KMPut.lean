@@ -19,7 +19,6 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.ServerKVPut
 public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
-public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
 

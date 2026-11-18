@@ -38,31 +38,31 @@ noncomputable def client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] client.ty
 
-axiom FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom defaultFeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque defaultFeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rangeStreamRecheckInterval [GooseExts] [GoGlobalContext] : val
+opaque rangeStreamRecheckInterval [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v3_4_31 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.v3_4_31"
 
-axiom v3_4_31.init [GooseExts] [GoGlobalContext] : val
+opaque v3_4_31.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v3_5_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.v3_5_0"
 
-axiom v3_5_0.init [GooseExts] [GoGlobalContext] : val
+opaque v3_5_0.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v3_5_13 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.v3_5_13"
 
-axiom v3_5_13.init [GooseExts] [GoGlobalContext] : val
+opaque v3_5_13.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.DefaultFeatureSupportChecker"
 
-axiom DefaultFeatureSupportChecker.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultFeatureSupportChecker.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newDefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.newDefaultFeatureSupportChecker"
@@ -76,7 +76,7 @@ noncomputable def endpointSupportsRequestWatchProgress [GooseExts] [GoGlobalCont
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.feature where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.k8s_io.apiserver.pkg.storage]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -103,8 +103,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.apiserver.pkg.storage.initialize') (Val #()))))))))
 
-axiom FeatureSupportChecker : Type
-axiom FeatureSupportChecker.zero_val : ZeroVal FeatureSupportChecker
+opaque FeatureSupportChecker.nonempty_type : NonemptyType.{0}
+def FeatureSupportChecker : Type := FeatureSupportChecker.nonempty_type.type
+instance FeatureSupportChecker.nonempty : Nonempty FeatureSupportChecker := FeatureSupportChecker.nonempty_type.property
+opaque FeatureSupportChecker.zero_val : ZeroVal FeatureSupportChecker := ⟨Classical.ofNonempty⟩
 attribute [instance] FeatureSupportChecker.zero_val
 
 class FeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -120,8 +122,10 @@ attribute [instance] FeatureSupportChecker.TypeAssumptions.type_repr
   FeatureSupportChecker.TypeAssumptions.method_set
   FeatureSupportChecker.TypeAssumptions.ptr_method_set
 
-axiom defaultFeatureSupportChecker : Type
-axiom defaultFeatureSupportChecker.zero_val : ZeroVal defaultFeatureSupportChecker
+opaque defaultFeatureSupportChecker.nonempty_type : NonemptyType.{0}
+def defaultFeatureSupportChecker : Type := defaultFeatureSupportChecker.nonempty_type.type
+instance defaultFeatureSupportChecker.nonempty : Nonempty defaultFeatureSupportChecker := defaultFeatureSupportChecker.nonempty_type.property
+opaque defaultFeatureSupportChecker.zero_val : ZeroVal defaultFeatureSupportChecker := ⟨Classical.ofNonempty⟩
 attribute [instance] defaultFeatureSupportChecker.zero_val
 
 class defaultFeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -90,76 +90,76 @@ noncomputable def PortRange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] PortRange.ty
 
-axiom RoundTripperWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RoundTripperWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DialFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DialFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TLSClientConfigHolder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TLSClientConfigHolder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DialerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DialerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Route.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Route.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RouteFile.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RouteFile.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom networkInterfacer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque networkInterfacer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom familyIPv4 [GooseExts] [GoGlobalContext] : val
+opaque familyIPv4 [GooseExts] [GoGlobalContext] : val
 
-axiom familyIPv6 [GooseExts] [GoGlobalContext] : val
+opaque familyIPv6 [GooseExts] [GoGlobalContext] : val
 
-axiom LoopbackInterfaceName [GooseExts] [GoGlobalContext] : val
+opaque LoopbackInterfaceName [GooseExts] [GoGlobalContext] : val
 
-axiom ipv4RouteFile [GooseExts] [GoGlobalContext] : val
+opaque ipv4RouteFile [GooseExts] [GoGlobalContext] : val
 
-axiom ipv6RouteFile [GooseExts] [GoGlobalContext] : val
+opaque ipv6RouteFile [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultTransport [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.defaultTransport"
 
-axiom defaultTransport.init [GooseExts] [GoGlobalContext] : val
+opaque defaultTransport.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultProxyFuncPointer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.defaultProxyFuncPointer"
 
-axiom defaultProxyFuncPointer.init [GooseExts] [GoGlobalContext] : val
+opaque defaultProxyFuncPointer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def codeMatcher [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.codeMatcher"
 
-axiom codeMatcher.init [GooseExts] [GoGlobalContext] : val
+opaque codeMatcher.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def wordDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.wordDecoder"
 
-axiom wordDecoder.init [GooseExts] [GoGlobalContext] : val
+opaque wordDecoder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def preferIPv4 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.preferIPv4"
 
-axiom preferIPv4.init [GooseExts] [GoGlobalContext] : val
+opaque preferIPv4.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def preferIPv6 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.preferIPv6"
 
-axiom preferIPv6.init [GooseExts] [GoGlobalContext] : val
+opaque preferIPv6.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v4File [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.v4File"
 
-axiom v4File.init [GooseExts] [GoGlobalContext] : val
+opaque v4File.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v6File [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.v6File"
 
-axiom v6File.init [GooseExts] [GoGlobalContext] : val
+opaque v6File.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validSchemes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.validSchemes"
 
-axiom validSchemes.init [GooseExts] [GoGlobalContext] : val
+opaque validSchemes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def JoinPreservingTrailingSlash [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/net.JoinPreservingTrailingSlash"
@@ -332,7 +332,7 @@ noncomputable def IsConnectionRefused [GooseExts] [GoGlobalContext] : GoString :
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.net where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -365,8 +365,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultTransport.init) (Val #()))))))))
 
-axiom RoundTripperWrapper : Type
-axiom RoundTripperWrapper.zero_val : ZeroVal RoundTripperWrapper
+opaque RoundTripperWrapper.nonempty_type : NonemptyType.{0}
+def RoundTripperWrapper : Type := RoundTripperWrapper.nonempty_type.type
+instance RoundTripperWrapper.nonempty : Nonempty RoundTripperWrapper := RoundTripperWrapper.nonempty_type.property
+opaque RoundTripperWrapper.zero_val : ZeroVal RoundTripperWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] RoundTripperWrapper.zero_val
 
 class RoundTripperWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -382,8 +384,10 @@ attribute [instance] RoundTripperWrapper.TypeAssumptions.type_repr
   RoundTripperWrapper.TypeAssumptions.method_set
   RoundTripperWrapper.TypeAssumptions.ptr_method_set
 
-axiom DialFunc : Type
-axiom DialFunc.zero_val : ZeroVal DialFunc
+opaque DialFunc.nonempty_type : NonemptyType.{0}
+def DialFunc : Type := DialFunc.nonempty_type.type
+instance DialFunc.nonempty : Nonempty DialFunc := DialFunc.nonempty_type.property
+opaque DialFunc.zero_val : ZeroVal DialFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] DialFunc.zero_val
 
 class DialFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -399,8 +403,10 @@ attribute [instance] DialFunc.TypeAssumptions.type_repr
   DialFunc.TypeAssumptions.method_set
   DialFunc.TypeAssumptions.ptr_method_set
 
-axiom TLSClientConfigHolder : Type
-axiom TLSClientConfigHolder.zero_val : ZeroVal TLSClientConfigHolder
+opaque TLSClientConfigHolder.nonempty_type : NonemptyType.{0}
+def TLSClientConfigHolder : Type := TLSClientConfigHolder.nonempty_type.type
+instance TLSClientConfigHolder.nonempty : Nonempty TLSClientConfigHolder := TLSClientConfigHolder.nonempty_type.property
+opaque TLSClientConfigHolder.zero_val : ZeroVal TLSClientConfigHolder := ⟨Classical.ofNonempty⟩
 attribute [instance] TLSClientConfigHolder.zero_val
 
 class TLSClientConfigHolder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -416,8 +422,10 @@ attribute [instance] TLSClientConfigHolder.TypeAssumptions.type_repr
   TLSClientConfigHolder.TypeAssumptions.method_set
   TLSClientConfigHolder.TypeAssumptions.ptr_method_set
 
-axiom DialerFunc : Type
-axiom DialerFunc.zero_val : ZeroVal DialerFunc
+opaque DialerFunc.nonempty_type : NonemptyType.{0}
+def DialerFunc : Type := DialerFunc.nonempty_type.type
+instance DialerFunc.nonempty : Nonempty DialerFunc := DialerFunc.nonempty_type.property
+opaque DialerFunc.zero_val : ZeroVal DialerFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] DialerFunc.zero_val
 
 class DialerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -433,8 +441,10 @@ attribute [instance] DialerFunc.TypeAssumptions.type_repr
   DialerFunc.TypeAssumptions.method_set
   DialerFunc.TypeAssumptions.ptr_method_set
 
-axiom Dialer : Type
-axiom Dialer.zero_val : ZeroVal Dialer
+opaque Dialer.nonempty_type : NonemptyType.{0}
+def Dialer : Type := Dialer.nonempty_type.type
+instance Dialer.nonempty : Nonempty Dialer := Dialer.nonempty_type.property
+opaque Dialer.zero_val : ZeroVal Dialer := ⟨Classical.ofNonempty⟩
 attribute [instance] Dialer.zero_val
 
 class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -525,8 +535,10 @@ attribute [instance] AddressFamilyPreference.TypeAssumptions.underlying
   AddressFamilyPreference.TypeAssumptions.method_set
   AddressFamilyPreference.TypeAssumptions.ptr_method_set
 
-axiom Route : Type
-axiom Route.zero_val : ZeroVal Route
+opaque Route.nonempty_type : NonemptyType.{0}
+def Route : Type := Route.nonempty_type.type
+instance Route.nonempty : Nonempty Route := Route.nonempty_type.property
+opaque Route.zero_val : ZeroVal Route := ⟨Classical.ofNonempty⟩
 attribute [instance] Route.zero_val
 
 class Route.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -542,8 +554,10 @@ attribute [instance] Route.TypeAssumptions.type_repr
   Route.TypeAssumptions.method_set
   Route.TypeAssumptions.ptr_method_set
 
-axiom RouteFile : Type
-axiom RouteFile.zero_val : ZeroVal RouteFile
+opaque RouteFile.nonempty_type : NonemptyType.{0}
+def RouteFile : Type := RouteFile.nonempty_type.type
+instance RouteFile.nonempty : Nonempty RouteFile := RouteFile.nonempty_type.property
+opaque RouteFile.zero_val : ZeroVal RouteFile := ⟨Classical.ofNonempty⟩
 attribute [instance] RouteFile.zero_val
 
 class RouteFile.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -594,8 +608,10 @@ attribute [instance] noRoutesError.TypeAssumptions.type_repr
   noRoutesError.TypeAssumptions.method_set
   noRoutesError.TypeAssumptions.ptr_method_set
 
-axiom networkInterfacer : Type
-axiom networkInterfacer.zero_val : ZeroVal networkInterfacer
+opaque networkInterfacer.nonempty_type : NonemptyType.{0}
+def networkInterfacer : Type := networkInterfacer.nonempty_type.type
+instance networkInterfacer.nonempty : Nonempty networkInterfacer := networkInterfacer.nonempty_type.property
+opaque networkInterfacer.zero_val : ZeroVal networkInterfacer := ⟨Classical.ofNonempty⟩
 attribute [instance] networkInterfacer.zero_val
 
 class networkInterfacer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

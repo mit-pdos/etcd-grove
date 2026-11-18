@@ -18,7 +18,35 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
-public import Proof.go_etcd_io.raft.v3.Linked
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+public import Spec.go_etcd_io.raft.v3.RestartNode
+public import Spec.go_etcd_io.raft.v3.StartNode
+public import Spec.go_etcd_io.raft.v3.node__Advance
+public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
+public import Spec.go_etcd_io.raft.v3.node__ForgetLeader
+public import Spec.go_etcd_io.raft.v3.node__Campaign
+public import Spec.go_etcd_io.raft.v3.node__Status
+public import Spec.go_etcd_io.raft.v3.node__Stop
+public import Spec.go_etcd_io.raft.v3.node__Propose
+public import Spec.go_etcd_io.raft.v3.node__Step
+public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.node__ReadIndex
+public import Spec.go_etcd_io.raft.v3.node__Ready
+public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
+public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
+public import Spec.go_etcd_io.raft.v3.node__Tick
+public import Spec.go_etcd_io.raft.v3.node__TransferLeadership
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__InitialState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Snapshot
+public import Perennial.Proof.time.Link
 
 @[expose] public section
 
@@ -29,7 +57,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 

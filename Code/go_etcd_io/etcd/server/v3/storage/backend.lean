@@ -178,7 +178,7 @@ attribute [irreducible] bucketBuffer.ty
 @[reducible] noncomputable def bucketBufferInitialSize [GooseExts] [GoGlobalContext] : val :=
   #(512 : Int)
 
-axiom EnvVerifyValueLock [GooseExts] [GoGlobalContext] : val
+opaque EnvVerifyValueLock [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBatchLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defaultBatchLimit"
@@ -201,47 +201,47 @@ noncomputable def safeRangeBucketNames [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def boltOpenOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.boltOpenOptions"
 
-axiom boltOpenOptions.init [GooseExts] [GoGlobalContext] : val
+opaque boltOpenOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def commitSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.commitSec"
 
-axiom commitSec.init [GooseExts] [GoGlobalContext] : val
+opaque commitSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rebalanceSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.rebalanceSec"
 
-axiom rebalanceSec.init [GooseExts] [GoGlobalContext] : val
+opaque rebalanceSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def spillSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.spillSec"
 
-axiom spillSec.init [GooseExts] [GoGlobalContext] : val
+opaque spillSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def writeSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.writeSec"
 
-axiom writeSec.init [GooseExts] [GoGlobalContext] : val
+opaque writeSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defragSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragSec"
 
-axiom defragSec.init [GooseExts] [GoGlobalContext] : val
+opaque defragSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defragBlockingSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.defragBlockingSec"
 
-axiom defragBlockingSec.init [GooseExts] [GoGlobalContext] : val
+opaque defragBlockingSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotTransferSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.snapshotTransferSec"
 
-axiom snapshotTransferSec.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotTransferSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def isDefragActive [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.isDefragActive"
 
-axiom isDefragActive.init [GooseExts] [GoGlobalContext] : val
+opaque isDefragActive.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultBackendConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/backend.DefaultBackendConfig"
@@ -3326,7 +3326,7 @@ noncomputable def bucketBuffer.CopyUsed.impl [GooseExts] [GoGlobalContext] : val
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.backend where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.io, pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.errors, pkg_id.math, pkg_id.go_etcd_io.bbolt.errors, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.hex, pkg_id.sort]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

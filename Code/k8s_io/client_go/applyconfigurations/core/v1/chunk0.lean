@@ -1100,437 +1100,437 @@ noncomputable def WindowsSecurityContextOptionsApplyConfiguration.ty [GooseExts]
 
 attribute [irreducible] WindowsSecurityContextOptionsApplyConfiguration.ty
 
-axiom AffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AppArmorProfileApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AppArmorProfileApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AttachedVolumeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AttachedVolumeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AWSElasticBlockStoreVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AWSElasticBlockStoreVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AzureDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AzureDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AzureFilePersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AzureFilePersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AzureFileVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AzureFileVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CapabilitiesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CapabilitiesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CephFSPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CephFSPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CephFSVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CephFSVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CinderPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CinderPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CinderVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CinderVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientIPConfigApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientIPConfigApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundleProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundleProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ComponentConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ComponentConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ComponentStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ComponentStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConfigMapApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapEnvSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConfigMapEnvSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapKeySelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConfigMapKeySelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapNodeConfigSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConfigMapNodeConfigSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConfigMapProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConfigMapVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConfigMapVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerExtendedResourceRequestApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerExtendedResourceRequestApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerImageApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerImageApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerPortApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerPortApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerResizePolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerResizePolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerRestartRuleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerRestartRuleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerRestartRuleOnExitCodesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerRestartRuleOnExitCodesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerStateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerStateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerStateRunningApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerStateRunningApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerStateTerminatedApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerStateTerminatedApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerStateWaitingApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerStateWaitingApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ContainerUserApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ContainerUserApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CSIVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CSIVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonEndpointApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonEndpointApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DownwardAPIProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DownwardAPIProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DownwardAPIVolumeFileApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DownwardAPIVolumeFileApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DownwardAPIVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DownwardAPIVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EmptyDirVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EmptyDirVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointAddressApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointAddressApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointPortApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointPortApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EndpointSubsetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EndpointSubsetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnvFromSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EnvFromSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnvVarApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EnvVarApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnvVarSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EnvVarSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EphemeralContainerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EphemeralContainerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EphemeralContainerCommonApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EphemeralContainerCommonApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EphemeralVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EphemeralVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventSeriesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventSeriesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionResponderApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionResponderApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExecActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExecActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FCVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FCVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FileKeySelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FileKeySelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlexPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlexPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlexVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlexVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlockerVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlockerVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GCEPersistentDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GCEPersistentDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GitRepoVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GitRepoVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GlusterfsPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GlusterfsPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GlusterfsVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GlusterfsVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GRPCActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GRPCActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HostAliasApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HostAliasApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HostIPApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HostIPApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HostPathVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HostPathVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HTTPGetActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HTTPGetActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HTTPHeaderApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HTTPHeaderApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ImageVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ImageVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ImageVolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ImageVolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ISCSIPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ISCSIPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ISCSIVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ISCSIVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom KeyToPathApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque KeyToPathApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LifecycleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LifecycleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LifecycleHandlerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LifecycleHandlerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LimitRangeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeItemApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LimitRangeItemApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LimitRangeSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LimitRangeSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LinuxContainerUserApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LinuxContainerUserApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LoadBalancerIngressApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LoadBalancerIngressApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LoadBalancerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LoadBalancerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LocalObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LocalObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LocalVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LocalVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ModifyVolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ModifyVolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NamespaceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NamespaceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NamespaceConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NamespaceConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NamespaceSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NamespaceSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NamespaceStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NamespaceStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NFSVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NFSVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeAddressApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeAddressApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeAllocatableMappedResourcesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeAllocatableMappedResourcesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeAllocatableOverheadResourcesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeAllocatableOverheadResourcesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeAllocatableResourceClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeAllocatableResourceClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeConfigSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeConfigSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeConfigStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeConfigStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeDaemonEndpointsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeDaemonEndpointsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeFeaturesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeFeaturesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodePodPreemptionPolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodePodPreemptionPolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeRuntimeHandlerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeRuntimeHandlerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeRuntimeHandlerFeaturesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeRuntimeHandlerFeaturesApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeSelectorRequirementApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeSelectorRequirementApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeSelectorTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeSelectorTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeSwapStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeSwapStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NodeSystemInfoApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NodeSystemInfoApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectFieldSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ObjectFieldSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeClaimApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeClaimConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeClaimSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimTemplateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeClaimTemplateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeClaimVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeClaimVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PersistentVolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PersistentVolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PhotonPersistentDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PhotonPersistentDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodAffinityTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodAffinityTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodAntiAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodAntiAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodCertificateProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodCertificateProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDNSConfigApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDNSConfigApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDNSConfigOptionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDNSConfigOptionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodExtendedResourceClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodExtendedResourceClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodIPApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodIPApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodOSApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodOSApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodReadinessGateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodReadinessGateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodResourceClaimApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodResourceClaimApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodResourceClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodResourceClaimStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodSchedulingGateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodSchedulingGateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodSchedulingGroupApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodSchedulingGroupApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodSecurityContextApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodSecurityContextApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodTemplateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodTemplateApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodTemplateSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodTemplateSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodVolumeHealthApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodVolumeHealthApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PortStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PortStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PortworxVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PortworxVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PreferredSchedulingTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PreferredSchedulingTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ProbeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ProbeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ProbeHandlerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ProbeHandlerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ProjectedVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ProjectedVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom QuobyteVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque QuobyteVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RBDPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RBDPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RBDVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RBDVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicationControllerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicationControllerConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicationControllerSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicationControllerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicationControllerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceFieldSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceFieldSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceHealthApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceHealthApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceQuotaApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceQuotaSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceQuotaStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceQuotaStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceRequirementsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceRequirementsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleIOPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleIOPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleIOVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleIOVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScopedResourceSelectorRequirementApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScopedResourceSelectorRequirementApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScopeSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScopeSelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SeccompProfileApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SeccompProfileApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecretApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretEnvSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecretEnvSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretKeySelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecretKeySelectorApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecretProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecretReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecretVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecretVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SecurityContextApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SecurityContextApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SELinuxOptionsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SELinuxOptionsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceAccountApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceAccountApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceAccountTokenProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceAccountTokenProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServicePortApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServicePortApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServiceStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServiceStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SessionAffinityConfigApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SessionAffinityConfigApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SleepActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SleepActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageOSPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageOSPersistentVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageOSVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageOSVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SysctlApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SysctlApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TaintApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TaintApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TCPSocketActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TCPSocketActionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TolerationApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TolerationApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TopologySelectorLabelRequirementApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TopologySelectorLabelRequirementApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TopologySelectorTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TopologySelectorTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TopologySpreadConstraintApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TopologySpreadConstraintApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedLocalObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TypedLocalObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypedObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TypedObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeDeviceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeDeviceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeHealthConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeHealthConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeHealthStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeHealthStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeMountApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeMountApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeMountStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeMountStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeNodeAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeNodeAffinityApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeProjectionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeResourceRequirementsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeResourceRequirementsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VolumeStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom VsphereVirtualDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque VsphereVirtualDiskVolumeSourceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WeightedPodAffinityTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WeightedPodAffinityTermApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WindowsSecurityContextOptionsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque WindowsSecurityContextOptionsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def Affinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/core/v1.Affinity"
@@ -2315,7 +2315,7 @@ noncomputable def WindowsSecurityContextOptions [GooseExts] [GoGlobalContext] : 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.applyconfigurations.core.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2324,868 +2324,1300 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom AffinityApplyConfiguration : Type
-axiom AffinityApplyConfiguration.zero_val : ZeroVal AffinityApplyConfiguration
+opaque AffinityApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AffinityApplyConfiguration : Type := AffinityApplyConfiguration.nonempty_type.type
+instance AffinityApplyConfiguration.nonempty : Nonempty AffinityApplyConfiguration := AffinityApplyConfiguration.nonempty_type.property
+opaque AffinityApplyConfiguration.zero_val : ZeroVal AffinityApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AffinityApplyConfiguration.zero_val
 
-axiom AppArmorProfileApplyConfiguration : Type
-axiom AppArmorProfileApplyConfiguration.zero_val : ZeroVal AppArmorProfileApplyConfiguration
+opaque AppArmorProfileApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AppArmorProfileApplyConfiguration : Type := AppArmorProfileApplyConfiguration.nonempty_type.type
+instance AppArmorProfileApplyConfiguration.nonempty : Nonempty AppArmorProfileApplyConfiguration := AppArmorProfileApplyConfiguration.nonempty_type.property
+opaque AppArmorProfileApplyConfiguration.zero_val : ZeroVal AppArmorProfileApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AppArmorProfileApplyConfiguration.zero_val
 
-axiom AttachedVolumeApplyConfiguration : Type
-axiom AttachedVolumeApplyConfiguration.zero_val : ZeroVal AttachedVolumeApplyConfiguration
+opaque AttachedVolumeApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AttachedVolumeApplyConfiguration : Type := AttachedVolumeApplyConfiguration.nonempty_type.type
+instance AttachedVolumeApplyConfiguration.nonempty : Nonempty AttachedVolumeApplyConfiguration := AttachedVolumeApplyConfiguration.nonempty_type.property
+opaque AttachedVolumeApplyConfiguration.zero_val : ZeroVal AttachedVolumeApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AttachedVolumeApplyConfiguration.zero_val
 
-axiom AWSElasticBlockStoreVolumeSourceApplyConfiguration : Type
-axiom AWSElasticBlockStoreVolumeSourceApplyConfiguration.zero_val : ZeroVal AWSElasticBlockStoreVolumeSourceApplyConfiguration
+opaque AWSElasticBlockStoreVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AWSElasticBlockStoreVolumeSourceApplyConfiguration : Type := AWSElasticBlockStoreVolumeSourceApplyConfiguration.nonempty_type.type
+instance AWSElasticBlockStoreVolumeSourceApplyConfiguration.nonempty : Nonempty AWSElasticBlockStoreVolumeSourceApplyConfiguration := AWSElasticBlockStoreVolumeSourceApplyConfiguration.nonempty_type.property
+opaque AWSElasticBlockStoreVolumeSourceApplyConfiguration.zero_val : ZeroVal AWSElasticBlockStoreVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AWSElasticBlockStoreVolumeSourceApplyConfiguration.zero_val
 
-axiom AzureDiskVolumeSourceApplyConfiguration : Type
-axiom AzureDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal AzureDiskVolumeSourceApplyConfiguration
+opaque AzureDiskVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AzureDiskVolumeSourceApplyConfiguration : Type := AzureDiskVolumeSourceApplyConfiguration.nonempty_type.type
+instance AzureDiskVolumeSourceApplyConfiguration.nonempty : Nonempty AzureDiskVolumeSourceApplyConfiguration := AzureDiskVolumeSourceApplyConfiguration.nonempty_type.property
+opaque AzureDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal AzureDiskVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AzureDiskVolumeSourceApplyConfiguration.zero_val
 
-axiom AzureFilePersistentVolumeSourceApplyConfiguration : Type
-axiom AzureFilePersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal AzureFilePersistentVolumeSourceApplyConfiguration
+opaque AzureFilePersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AzureFilePersistentVolumeSourceApplyConfiguration : Type := AzureFilePersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance AzureFilePersistentVolumeSourceApplyConfiguration.nonempty : Nonempty AzureFilePersistentVolumeSourceApplyConfiguration := AzureFilePersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque AzureFilePersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal AzureFilePersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AzureFilePersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom AzureFileVolumeSourceApplyConfiguration : Type
-axiom AzureFileVolumeSourceApplyConfiguration.zero_val : ZeroVal AzureFileVolumeSourceApplyConfiguration
+opaque AzureFileVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def AzureFileVolumeSourceApplyConfiguration : Type := AzureFileVolumeSourceApplyConfiguration.nonempty_type.type
+instance AzureFileVolumeSourceApplyConfiguration.nonempty : Nonempty AzureFileVolumeSourceApplyConfiguration := AzureFileVolumeSourceApplyConfiguration.nonempty_type.property
+opaque AzureFileVolumeSourceApplyConfiguration.zero_val : ZeroVal AzureFileVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] AzureFileVolumeSourceApplyConfiguration.zero_val
 
-axiom CapabilitiesApplyConfiguration : Type
-axiom CapabilitiesApplyConfiguration.zero_val : ZeroVal CapabilitiesApplyConfiguration
+opaque CapabilitiesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CapabilitiesApplyConfiguration : Type := CapabilitiesApplyConfiguration.nonempty_type.type
+instance CapabilitiesApplyConfiguration.nonempty : Nonempty CapabilitiesApplyConfiguration := CapabilitiesApplyConfiguration.nonempty_type.property
+opaque CapabilitiesApplyConfiguration.zero_val : ZeroVal CapabilitiesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CapabilitiesApplyConfiguration.zero_val
 
-axiom CephFSPersistentVolumeSourceApplyConfiguration : Type
-axiom CephFSPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal CephFSPersistentVolumeSourceApplyConfiguration
+opaque CephFSPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CephFSPersistentVolumeSourceApplyConfiguration : Type := CephFSPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance CephFSPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty CephFSPersistentVolumeSourceApplyConfiguration := CephFSPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque CephFSPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal CephFSPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CephFSPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom CephFSVolumeSourceApplyConfiguration : Type
-axiom CephFSVolumeSourceApplyConfiguration.zero_val : ZeroVal CephFSVolumeSourceApplyConfiguration
+opaque CephFSVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CephFSVolumeSourceApplyConfiguration : Type := CephFSVolumeSourceApplyConfiguration.nonempty_type.type
+instance CephFSVolumeSourceApplyConfiguration.nonempty : Nonempty CephFSVolumeSourceApplyConfiguration := CephFSVolumeSourceApplyConfiguration.nonempty_type.property
+opaque CephFSVolumeSourceApplyConfiguration.zero_val : ZeroVal CephFSVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CephFSVolumeSourceApplyConfiguration.zero_val
 
-axiom CinderPersistentVolumeSourceApplyConfiguration : Type
-axiom CinderPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal CinderPersistentVolumeSourceApplyConfiguration
+opaque CinderPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CinderPersistentVolumeSourceApplyConfiguration : Type := CinderPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance CinderPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty CinderPersistentVolumeSourceApplyConfiguration := CinderPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque CinderPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal CinderPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CinderPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom CinderVolumeSourceApplyConfiguration : Type
-axiom CinderVolumeSourceApplyConfiguration.zero_val : ZeroVal CinderVolumeSourceApplyConfiguration
+opaque CinderVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CinderVolumeSourceApplyConfiguration : Type := CinderVolumeSourceApplyConfiguration.nonempty_type.type
+instance CinderVolumeSourceApplyConfiguration.nonempty : Nonempty CinderVolumeSourceApplyConfiguration := CinderVolumeSourceApplyConfiguration.nonempty_type.property
+opaque CinderVolumeSourceApplyConfiguration.zero_val : ZeroVal CinderVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CinderVolumeSourceApplyConfiguration.zero_val
 
-axiom ClientIPConfigApplyConfiguration : Type
-axiom ClientIPConfigApplyConfiguration.zero_val : ZeroVal ClientIPConfigApplyConfiguration
+opaque ClientIPConfigApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ClientIPConfigApplyConfiguration : Type := ClientIPConfigApplyConfiguration.nonempty_type.type
+instance ClientIPConfigApplyConfiguration.nonempty : Nonempty ClientIPConfigApplyConfiguration := ClientIPConfigApplyConfiguration.nonempty_type.property
+opaque ClientIPConfigApplyConfiguration.zero_val : ZeroVal ClientIPConfigApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientIPConfigApplyConfiguration.zero_val
 
-axiom ClusterTrustBundleProjectionApplyConfiguration : Type
-axiom ClusterTrustBundleProjectionApplyConfiguration.zero_val : ZeroVal ClusterTrustBundleProjectionApplyConfiguration
+opaque ClusterTrustBundleProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundleProjectionApplyConfiguration : Type := ClusterTrustBundleProjectionApplyConfiguration.nonempty_type.type
+instance ClusterTrustBundleProjectionApplyConfiguration.nonempty : Nonempty ClusterTrustBundleProjectionApplyConfiguration := ClusterTrustBundleProjectionApplyConfiguration.nonempty_type.property
+opaque ClusterTrustBundleProjectionApplyConfiguration.zero_val : ZeroVal ClusterTrustBundleProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundleProjectionApplyConfiguration.zero_val
 
-axiom ComponentConditionApplyConfiguration : Type
-axiom ComponentConditionApplyConfiguration.zero_val : ZeroVal ComponentConditionApplyConfiguration
+opaque ComponentConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ComponentConditionApplyConfiguration : Type := ComponentConditionApplyConfiguration.nonempty_type.type
+instance ComponentConditionApplyConfiguration.nonempty : Nonempty ComponentConditionApplyConfiguration := ComponentConditionApplyConfiguration.nonempty_type.property
+opaque ComponentConditionApplyConfiguration.zero_val : ZeroVal ComponentConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ComponentConditionApplyConfiguration.zero_val
 
-axiom ComponentStatusApplyConfiguration : Type
-axiom ComponentStatusApplyConfiguration.zero_val : ZeroVal ComponentStatusApplyConfiguration
+opaque ComponentStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ComponentStatusApplyConfiguration : Type := ComponentStatusApplyConfiguration.nonempty_type.type
+instance ComponentStatusApplyConfiguration.nonempty : Nonempty ComponentStatusApplyConfiguration := ComponentStatusApplyConfiguration.nonempty_type.property
+opaque ComponentStatusApplyConfiguration.zero_val : ZeroVal ComponentStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ComponentStatusApplyConfiguration.zero_val
 
-axiom ConfigMapApplyConfiguration : Type
-axiom ConfigMapApplyConfiguration.zero_val : ZeroVal ConfigMapApplyConfiguration
+opaque ConfigMapApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ConfigMapApplyConfiguration : Type := ConfigMapApplyConfiguration.nonempty_type.type
+instance ConfigMapApplyConfiguration.nonempty : Nonempty ConfigMapApplyConfiguration := ConfigMapApplyConfiguration.nonempty_type.property
+opaque ConfigMapApplyConfiguration.zero_val : ZeroVal ConfigMapApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ConfigMapApplyConfiguration.zero_val
 
-axiom ConfigMapEnvSourceApplyConfiguration : Type
-axiom ConfigMapEnvSourceApplyConfiguration.zero_val : ZeroVal ConfigMapEnvSourceApplyConfiguration
+opaque ConfigMapEnvSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ConfigMapEnvSourceApplyConfiguration : Type := ConfigMapEnvSourceApplyConfiguration.nonempty_type.type
+instance ConfigMapEnvSourceApplyConfiguration.nonempty : Nonempty ConfigMapEnvSourceApplyConfiguration := ConfigMapEnvSourceApplyConfiguration.nonempty_type.property
+opaque ConfigMapEnvSourceApplyConfiguration.zero_val : ZeroVal ConfigMapEnvSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ConfigMapEnvSourceApplyConfiguration.zero_val
 
-axiom ConfigMapKeySelectorApplyConfiguration : Type
-axiom ConfigMapKeySelectorApplyConfiguration.zero_val : ZeroVal ConfigMapKeySelectorApplyConfiguration
+opaque ConfigMapKeySelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ConfigMapKeySelectorApplyConfiguration : Type := ConfigMapKeySelectorApplyConfiguration.nonempty_type.type
+instance ConfigMapKeySelectorApplyConfiguration.nonempty : Nonempty ConfigMapKeySelectorApplyConfiguration := ConfigMapKeySelectorApplyConfiguration.nonempty_type.property
+opaque ConfigMapKeySelectorApplyConfiguration.zero_val : ZeroVal ConfigMapKeySelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ConfigMapKeySelectorApplyConfiguration.zero_val
 
-axiom ConfigMapNodeConfigSourceApplyConfiguration : Type
-axiom ConfigMapNodeConfigSourceApplyConfiguration.zero_val : ZeroVal ConfigMapNodeConfigSourceApplyConfiguration
+opaque ConfigMapNodeConfigSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ConfigMapNodeConfigSourceApplyConfiguration : Type := ConfigMapNodeConfigSourceApplyConfiguration.nonempty_type.type
+instance ConfigMapNodeConfigSourceApplyConfiguration.nonempty : Nonempty ConfigMapNodeConfigSourceApplyConfiguration := ConfigMapNodeConfigSourceApplyConfiguration.nonempty_type.property
+opaque ConfigMapNodeConfigSourceApplyConfiguration.zero_val : ZeroVal ConfigMapNodeConfigSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ConfigMapNodeConfigSourceApplyConfiguration.zero_val
 
-axiom ConfigMapProjectionApplyConfiguration : Type
-axiom ConfigMapProjectionApplyConfiguration.zero_val : ZeroVal ConfigMapProjectionApplyConfiguration
+opaque ConfigMapProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ConfigMapProjectionApplyConfiguration : Type := ConfigMapProjectionApplyConfiguration.nonempty_type.type
+instance ConfigMapProjectionApplyConfiguration.nonempty : Nonempty ConfigMapProjectionApplyConfiguration := ConfigMapProjectionApplyConfiguration.nonempty_type.property
+opaque ConfigMapProjectionApplyConfiguration.zero_val : ZeroVal ConfigMapProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ConfigMapProjectionApplyConfiguration.zero_val
 
-axiom ConfigMapVolumeSourceApplyConfiguration : Type
-axiom ConfigMapVolumeSourceApplyConfiguration.zero_val : ZeroVal ConfigMapVolumeSourceApplyConfiguration
+opaque ConfigMapVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ConfigMapVolumeSourceApplyConfiguration : Type := ConfigMapVolumeSourceApplyConfiguration.nonempty_type.type
+instance ConfigMapVolumeSourceApplyConfiguration.nonempty : Nonempty ConfigMapVolumeSourceApplyConfiguration := ConfigMapVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ConfigMapVolumeSourceApplyConfiguration.zero_val : ZeroVal ConfigMapVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ConfigMapVolumeSourceApplyConfiguration.zero_val
 
-axiom ContainerApplyConfiguration : Type
-axiom ContainerApplyConfiguration.zero_val : ZeroVal ContainerApplyConfiguration
+opaque ContainerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerApplyConfiguration : Type := ContainerApplyConfiguration.nonempty_type.type
+instance ContainerApplyConfiguration.nonempty : Nonempty ContainerApplyConfiguration := ContainerApplyConfiguration.nonempty_type.property
+opaque ContainerApplyConfiguration.zero_val : ZeroVal ContainerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerApplyConfiguration.zero_val
 
-axiom ContainerExtendedResourceRequestApplyConfiguration : Type
-axiom ContainerExtendedResourceRequestApplyConfiguration.zero_val : ZeroVal ContainerExtendedResourceRequestApplyConfiguration
+opaque ContainerExtendedResourceRequestApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerExtendedResourceRequestApplyConfiguration : Type := ContainerExtendedResourceRequestApplyConfiguration.nonempty_type.type
+instance ContainerExtendedResourceRequestApplyConfiguration.nonempty : Nonempty ContainerExtendedResourceRequestApplyConfiguration := ContainerExtendedResourceRequestApplyConfiguration.nonempty_type.property
+opaque ContainerExtendedResourceRequestApplyConfiguration.zero_val : ZeroVal ContainerExtendedResourceRequestApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerExtendedResourceRequestApplyConfiguration.zero_val
 
-axiom ContainerImageApplyConfiguration : Type
-axiom ContainerImageApplyConfiguration.zero_val : ZeroVal ContainerImageApplyConfiguration
+opaque ContainerImageApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerImageApplyConfiguration : Type := ContainerImageApplyConfiguration.nonempty_type.type
+instance ContainerImageApplyConfiguration.nonempty : Nonempty ContainerImageApplyConfiguration := ContainerImageApplyConfiguration.nonempty_type.property
+opaque ContainerImageApplyConfiguration.zero_val : ZeroVal ContainerImageApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerImageApplyConfiguration.zero_val
 
-axiom ContainerPortApplyConfiguration : Type
-axiom ContainerPortApplyConfiguration.zero_val : ZeroVal ContainerPortApplyConfiguration
+opaque ContainerPortApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerPortApplyConfiguration : Type := ContainerPortApplyConfiguration.nonempty_type.type
+instance ContainerPortApplyConfiguration.nonempty : Nonempty ContainerPortApplyConfiguration := ContainerPortApplyConfiguration.nonempty_type.property
+opaque ContainerPortApplyConfiguration.zero_val : ZeroVal ContainerPortApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerPortApplyConfiguration.zero_val
 
-axiom ContainerResizePolicyApplyConfiguration : Type
-axiom ContainerResizePolicyApplyConfiguration.zero_val : ZeroVal ContainerResizePolicyApplyConfiguration
+opaque ContainerResizePolicyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerResizePolicyApplyConfiguration : Type := ContainerResizePolicyApplyConfiguration.nonempty_type.type
+instance ContainerResizePolicyApplyConfiguration.nonempty : Nonempty ContainerResizePolicyApplyConfiguration := ContainerResizePolicyApplyConfiguration.nonempty_type.property
+opaque ContainerResizePolicyApplyConfiguration.zero_val : ZeroVal ContainerResizePolicyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerResizePolicyApplyConfiguration.zero_val
 
-axiom ContainerRestartRuleApplyConfiguration : Type
-axiom ContainerRestartRuleApplyConfiguration.zero_val : ZeroVal ContainerRestartRuleApplyConfiguration
+opaque ContainerRestartRuleApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerRestartRuleApplyConfiguration : Type := ContainerRestartRuleApplyConfiguration.nonempty_type.type
+instance ContainerRestartRuleApplyConfiguration.nonempty : Nonempty ContainerRestartRuleApplyConfiguration := ContainerRestartRuleApplyConfiguration.nonempty_type.property
+opaque ContainerRestartRuleApplyConfiguration.zero_val : ZeroVal ContainerRestartRuleApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerRestartRuleApplyConfiguration.zero_val
 
-axiom ContainerRestartRuleOnExitCodesApplyConfiguration : Type
-axiom ContainerRestartRuleOnExitCodesApplyConfiguration.zero_val : ZeroVal ContainerRestartRuleOnExitCodesApplyConfiguration
+opaque ContainerRestartRuleOnExitCodesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerRestartRuleOnExitCodesApplyConfiguration : Type := ContainerRestartRuleOnExitCodesApplyConfiguration.nonempty_type.type
+instance ContainerRestartRuleOnExitCodesApplyConfiguration.nonempty : Nonempty ContainerRestartRuleOnExitCodesApplyConfiguration := ContainerRestartRuleOnExitCodesApplyConfiguration.nonempty_type.property
+opaque ContainerRestartRuleOnExitCodesApplyConfiguration.zero_val : ZeroVal ContainerRestartRuleOnExitCodesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerRestartRuleOnExitCodesApplyConfiguration.zero_val
 
-axiom ContainerStateApplyConfiguration : Type
-axiom ContainerStateApplyConfiguration.zero_val : ZeroVal ContainerStateApplyConfiguration
+opaque ContainerStateApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerStateApplyConfiguration : Type := ContainerStateApplyConfiguration.nonempty_type.type
+instance ContainerStateApplyConfiguration.nonempty : Nonempty ContainerStateApplyConfiguration := ContainerStateApplyConfiguration.nonempty_type.property
+opaque ContainerStateApplyConfiguration.zero_val : ZeroVal ContainerStateApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerStateApplyConfiguration.zero_val
 
-axiom ContainerStateRunningApplyConfiguration : Type
-axiom ContainerStateRunningApplyConfiguration.zero_val : ZeroVal ContainerStateRunningApplyConfiguration
+opaque ContainerStateRunningApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerStateRunningApplyConfiguration : Type := ContainerStateRunningApplyConfiguration.nonempty_type.type
+instance ContainerStateRunningApplyConfiguration.nonempty : Nonempty ContainerStateRunningApplyConfiguration := ContainerStateRunningApplyConfiguration.nonempty_type.property
+opaque ContainerStateRunningApplyConfiguration.zero_val : ZeroVal ContainerStateRunningApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerStateRunningApplyConfiguration.zero_val
 
-axiom ContainerStateTerminatedApplyConfiguration : Type
-axiom ContainerStateTerminatedApplyConfiguration.zero_val : ZeroVal ContainerStateTerminatedApplyConfiguration
+opaque ContainerStateTerminatedApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerStateTerminatedApplyConfiguration : Type := ContainerStateTerminatedApplyConfiguration.nonempty_type.type
+instance ContainerStateTerminatedApplyConfiguration.nonempty : Nonempty ContainerStateTerminatedApplyConfiguration := ContainerStateTerminatedApplyConfiguration.nonempty_type.property
+opaque ContainerStateTerminatedApplyConfiguration.zero_val : ZeroVal ContainerStateTerminatedApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerStateTerminatedApplyConfiguration.zero_val
 
-axiom ContainerStateWaitingApplyConfiguration : Type
-axiom ContainerStateWaitingApplyConfiguration.zero_val : ZeroVal ContainerStateWaitingApplyConfiguration
+opaque ContainerStateWaitingApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerStateWaitingApplyConfiguration : Type := ContainerStateWaitingApplyConfiguration.nonempty_type.type
+instance ContainerStateWaitingApplyConfiguration.nonempty : Nonempty ContainerStateWaitingApplyConfiguration := ContainerStateWaitingApplyConfiguration.nonempty_type.property
+opaque ContainerStateWaitingApplyConfiguration.zero_val : ZeroVal ContainerStateWaitingApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerStateWaitingApplyConfiguration.zero_val
 
-axiom ContainerStatusApplyConfiguration : Type
-axiom ContainerStatusApplyConfiguration.zero_val : ZeroVal ContainerStatusApplyConfiguration
+opaque ContainerStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerStatusApplyConfiguration : Type := ContainerStatusApplyConfiguration.nonempty_type.type
+instance ContainerStatusApplyConfiguration.nonempty : Nonempty ContainerStatusApplyConfiguration := ContainerStatusApplyConfiguration.nonempty_type.property
+opaque ContainerStatusApplyConfiguration.zero_val : ZeroVal ContainerStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerStatusApplyConfiguration.zero_val
 
-axiom ContainerUserApplyConfiguration : Type
-axiom ContainerUserApplyConfiguration.zero_val : ZeroVal ContainerUserApplyConfiguration
+opaque ContainerUserApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ContainerUserApplyConfiguration : Type := ContainerUserApplyConfiguration.nonempty_type.type
+instance ContainerUserApplyConfiguration.nonempty : Nonempty ContainerUserApplyConfiguration := ContainerUserApplyConfiguration.nonempty_type.property
+opaque ContainerUserApplyConfiguration.zero_val : ZeroVal ContainerUserApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ContainerUserApplyConfiguration.zero_val
 
-axiom CSIPersistentVolumeSourceApplyConfiguration : Type
-axiom CSIPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal CSIPersistentVolumeSourceApplyConfiguration
+opaque CSIPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CSIPersistentVolumeSourceApplyConfiguration : Type := CSIPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance CSIPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty CSIPersistentVolumeSourceApplyConfiguration := CSIPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque CSIPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal CSIPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom CSIVolumeSourceApplyConfiguration : Type
-axiom CSIVolumeSourceApplyConfiguration.zero_val : ZeroVal CSIVolumeSourceApplyConfiguration
+opaque CSIVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CSIVolumeSourceApplyConfiguration : Type := CSIVolumeSourceApplyConfiguration.nonempty_type.type
+instance CSIVolumeSourceApplyConfiguration.nonempty : Nonempty CSIVolumeSourceApplyConfiguration := CSIVolumeSourceApplyConfiguration.nonempty_type.property
+opaque CSIVolumeSourceApplyConfiguration.zero_val : ZeroVal CSIVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CSIVolumeSourceApplyConfiguration.zero_val
 
-axiom DaemonEndpointApplyConfiguration : Type
-axiom DaemonEndpointApplyConfiguration.zero_val : ZeroVal DaemonEndpointApplyConfiguration
+opaque DaemonEndpointApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DaemonEndpointApplyConfiguration : Type := DaemonEndpointApplyConfiguration.nonempty_type.type
+instance DaemonEndpointApplyConfiguration.nonempty : Nonempty DaemonEndpointApplyConfiguration := DaemonEndpointApplyConfiguration.nonempty_type.property
+opaque DaemonEndpointApplyConfiguration.zero_val : ZeroVal DaemonEndpointApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonEndpointApplyConfiguration.zero_val
 
-axiom DownwardAPIProjectionApplyConfiguration : Type
-axiom DownwardAPIProjectionApplyConfiguration.zero_val : ZeroVal DownwardAPIProjectionApplyConfiguration
+opaque DownwardAPIProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DownwardAPIProjectionApplyConfiguration : Type := DownwardAPIProjectionApplyConfiguration.nonempty_type.type
+instance DownwardAPIProjectionApplyConfiguration.nonempty : Nonempty DownwardAPIProjectionApplyConfiguration := DownwardAPIProjectionApplyConfiguration.nonempty_type.property
+opaque DownwardAPIProjectionApplyConfiguration.zero_val : ZeroVal DownwardAPIProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DownwardAPIProjectionApplyConfiguration.zero_val
 
-axiom DownwardAPIVolumeFileApplyConfiguration : Type
-axiom DownwardAPIVolumeFileApplyConfiguration.zero_val : ZeroVal DownwardAPIVolumeFileApplyConfiguration
+opaque DownwardAPIVolumeFileApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DownwardAPIVolumeFileApplyConfiguration : Type := DownwardAPIVolumeFileApplyConfiguration.nonempty_type.type
+instance DownwardAPIVolumeFileApplyConfiguration.nonempty : Nonempty DownwardAPIVolumeFileApplyConfiguration := DownwardAPIVolumeFileApplyConfiguration.nonempty_type.property
+opaque DownwardAPIVolumeFileApplyConfiguration.zero_val : ZeroVal DownwardAPIVolumeFileApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DownwardAPIVolumeFileApplyConfiguration.zero_val
 
-axiom DownwardAPIVolumeSourceApplyConfiguration : Type
-axiom DownwardAPIVolumeSourceApplyConfiguration.zero_val : ZeroVal DownwardAPIVolumeSourceApplyConfiguration
+opaque DownwardAPIVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DownwardAPIVolumeSourceApplyConfiguration : Type := DownwardAPIVolumeSourceApplyConfiguration.nonempty_type.type
+instance DownwardAPIVolumeSourceApplyConfiguration.nonempty : Nonempty DownwardAPIVolumeSourceApplyConfiguration := DownwardAPIVolumeSourceApplyConfiguration.nonempty_type.property
+opaque DownwardAPIVolumeSourceApplyConfiguration.zero_val : ZeroVal DownwardAPIVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DownwardAPIVolumeSourceApplyConfiguration.zero_val
 
-axiom EmptyDirVolumeSourceApplyConfiguration : Type
-axiom EmptyDirVolumeSourceApplyConfiguration.zero_val : ZeroVal EmptyDirVolumeSourceApplyConfiguration
+opaque EmptyDirVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EmptyDirVolumeSourceApplyConfiguration : Type := EmptyDirVolumeSourceApplyConfiguration.nonempty_type.type
+instance EmptyDirVolumeSourceApplyConfiguration.nonempty : Nonempty EmptyDirVolumeSourceApplyConfiguration := EmptyDirVolumeSourceApplyConfiguration.nonempty_type.property
+opaque EmptyDirVolumeSourceApplyConfiguration.zero_val : ZeroVal EmptyDirVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EmptyDirVolumeSourceApplyConfiguration.zero_val
 
-axiom EndpointAddressApplyConfiguration : Type
-axiom EndpointAddressApplyConfiguration.zero_val : ZeroVal EndpointAddressApplyConfiguration
+opaque EndpointAddressApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EndpointAddressApplyConfiguration : Type := EndpointAddressApplyConfiguration.nonempty_type.type
+instance EndpointAddressApplyConfiguration.nonempty : Nonempty EndpointAddressApplyConfiguration := EndpointAddressApplyConfiguration.nonempty_type.property
+opaque EndpointAddressApplyConfiguration.zero_val : ZeroVal EndpointAddressApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointAddressApplyConfiguration.zero_val
 
-axiom EndpointPortApplyConfiguration : Type
-axiom EndpointPortApplyConfiguration.zero_val : ZeroVal EndpointPortApplyConfiguration
+opaque EndpointPortApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EndpointPortApplyConfiguration : Type := EndpointPortApplyConfiguration.nonempty_type.type
+instance EndpointPortApplyConfiguration.nonempty : Nonempty EndpointPortApplyConfiguration := EndpointPortApplyConfiguration.nonempty_type.property
+opaque EndpointPortApplyConfiguration.zero_val : ZeroVal EndpointPortApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointPortApplyConfiguration.zero_val
 
-axiom EndpointsApplyConfiguration : Type
-axiom EndpointsApplyConfiguration.zero_val : ZeroVal EndpointsApplyConfiguration
+opaque EndpointsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EndpointsApplyConfiguration : Type := EndpointsApplyConfiguration.nonempty_type.type
+instance EndpointsApplyConfiguration.nonempty : Nonempty EndpointsApplyConfiguration := EndpointsApplyConfiguration.nonempty_type.property
+opaque EndpointsApplyConfiguration.zero_val : ZeroVal EndpointsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointsApplyConfiguration.zero_val
 
-axiom EndpointSubsetApplyConfiguration : Type
-axiom EndpointSubsetApplyConfiguration.zero_val : ZeroVal EndpointSubsetApplyConfiguration
+opaque EndpointSubsetApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EndpointSubsetApplyConfiguration : Type := EndpointSubsetApplyConfiguration.nonempty_type.type
+instance EndpointSubsetApplyConfiguration.nonempty : Nonempty EndpointSubsetApplyConfiguration := EndpointSubsetApplyConfiguration.nonempty_type.property
+opaque EndpointSubsetApplyConfiguration.zero_val : ZeroVal EndpointSubsetApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EndpointSubsetApplyConfiguration.zero_val
 
-axiom EnvFromSourceApplyConfiguration : Type
-axiom EnvFromSourceApplyConfiguration.zero_val : ZeroVal EnvFromSourceApplyConfiguration
+opaque EnvFromSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EnvFromSourceApplyConfiguration : Type := EnvFromSourceApplyConfiguration.nonempty_type.type
+instance EnvFromSourceApplyConfiguration.nonempty : Nonempty EnvFromSourceApplyConfiguration := EnvFromSourceApplyConfiguration.nonempty_type.property
+opaque EnvFromSourceApplyConfiguration.zero_val : ZeroVal EnvFromSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EnvFromSourceApplyConfiguration.zero_val
 
-axiom EnvVarApplyConfiguration : Type
-axiom EnvVarApplyConfiguration.zero_val : ZeroVal EnvVarApplyConfiguration
+opaque EnvVarApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EnvVarApplyConfiguration : Type := EnvVarApplyConfiguration.nonempty_type.type
+instance EnvVarApplyConfiguration.nonempty : Nonempty EnvVarApplyConfiguration := EnvVarApplyConfiguration.nonempty_type.property
+opaque EnvVarApplyConfiguration.zero_val : ZeroVal EnvVarApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EnvVarApplyConfiguration.zero_val
 
-axiom EnvVarSourceApplyConfiguration : Type
-axiom EnvVarSourceApplyConfiguration.zero_val : ZeroVal EnvVarSourceApplyConfiguration
+opaque EnvVarSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EnvVarSourceApplyConfiguration : Type := EnvVarSourceApplyConfiguration.nonempty_type.type
+instance EnvVarSourceApplyConfiguration.nonempty : Nonempty EnvVarSourceApplyConfiguration := EnvVarSourceApplyConfiguration.nonempty_type.property
+opaque EnvVarSourceApplyConfiguration.zero_val : ZeroVal EnvVarSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EnvVarSourceApplyConfiguration.zero_val
 
-axiom EphemeralContainerApplyConfiguration : Type
-axiom EphemeralContainerApplyConfiguration.zero_val : ZeroVal EphemeralContainerApplyConfiguration
+opaque EphemeralContainerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EphemeralContainerApplyConfiguration : Type := EphemeralContainerApplyConfiguration.nonempty_type.type
+instance EphemeralContainerApplyConfiguration.nonempty : Nonempty EphemeralContainerApplyConfiguration := EphemeralContainerApplyConfiguration.nonempty_type.property
+opaque EphemeralContainerApplyConfiguration.zero_val : ZeroVal EphemeralContainerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EphemeralContainerApplyConfiguration.zero_val
 
-axiom EphemeralContainerCommonApplyConfiguration : Type
-axiom EphemeralContainerCommonApplyConfiguration.zero_val : ZeroVal EphemeralContainerCommonApplyConfiguration
+opaque EphemeralContainerCommonApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EphemeralContainerCommonApplyConfiguration : Type := EphemeralContainerCommonApplyConfiguration.nonempty_type.type
+instance EphemeralContainerCommonApplyConfiguration.nonempty : Nonempty EphemeralContainerCommonApplyConfiguration := EphemeralContainerCommonApplyConfiguration.nonempty_type.property
+opaque EphemeralContainerCommonApplyConfiguration.zero_val : ZeroVal EphemeralContainerCommonApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EphemeralContainerCommonApplyConfiguration.zero_val
 
-axiom EphemeralVolumeSourceApplyConfiguration : Type
-axiom EphemeralVolumeSourceApplyConfiguration.zero_val : ZeroVal EphemeralVolumeSourceApplyConfiguration
+opaque EphemeralVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EphemeralVolumeSourceApplyConfiguration : Type := EphemeralVolumeSourceApplyConfiguration.nonempty_type.type
+instance EphemeralVolumeSourceApplyConfiguration.nonempty : Nonempty EphemeralVolumeSourceApplyConfiguration := EphemeralVolumeSourceApplyConfiguration.nonempty_type.property
+opaque EphemeralVolumeSourceApplyConfiguration.zero_val : ZeroVal EphemeralVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EphemeralVolumeSourceApplyConfiguration.zero_val
 
-axiom EventApplyConfiguration : Type
-axiom EventApplyConfiguration.zero_val : ZeroVal EventApplyConfiguration
+opaque EventApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EventApplyConfiguration : Type := EventApplyConfiguration.nonempty_type.type
+instance EventApplyConfiguration.nonempty : Nonempty EventApplyConfiguration := EventApplyConfiguration.nonempty_type.property
+opaque EventApplyConfiguration.zero_val : ZeroVal EventApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EventApplyConfiguration.zero_val
 
-axiom EventSeriesApplyConfiguration : Type
-axiom EventSeriesApplyConfiguration.zero_val : ZeroVal EventSeriesApplyConfiguration
+opaque EventSeriesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EventSeriesApplyConfiguration : Type := EventSeriesApplyConfiguration.nonempty_type.type
+instance EventSeriesApplyConfiguration.nonempty : Nonempty EventSeriesApplyConfiguration := EventSeriesApplyConfiguration.nonempty_type.property
+opaque EventSeriesApplyConfiguration.zero_val : ZeroVal EventSeriesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EventSeriesApplyConfiguration.zero_val
 
-axiom EventSourceApplyConfiguration : Type
-axiom EventSourceApplyConfiguration.zero_val : ZeroVal EventSourceApplyConfiguration
+opaque EventSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EventSourceApplyConfiguration : Type := EventSourceApplyConfiguration.nonempty_type.type
+instance EventSourceApplyConfiguration.nonempty : Nonempty EventSourceApplyConfiguration := EventSourceApplyConfiguration.nonempty_type.property
+opaque EventSourceApplyConfiguration.zero_val : ZeroVal EventSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EventSourceApplyConfiguration.zero_val
 
-axiom EvictionResponderApplyConfiguration : Type
-axiom EvictionResponderApplyConfiguration.zero_val : ZeroVal EvictionResponderApplyConfiguration
+opaque EvictionResponderApplyConfiguration.nonempty_type : NonemptyType.{0}
+def EvictionResponderApplyConfiguration : Type := EvictionResponderApplyConfiguration.nonempty_type.type
+instance EvictionResponderApplyConfiguration.nonempty : Nonempty EvictionResponderApplyConfiguration := EvictionResponderApplyConfiguration.nonempty_type.property
+opaque EvictionResponderApplyConfiguration.zero_val : ZeroVal EvictionResponderApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionResponderApplyConfiguration.zero_val
 
-axiom ExecActionApplyConfiguration : Type
-axiom ExecActionApplyConfiguration.zero_val : ZeroVal ExecActionApplyConfiguration
+opaque ExecActionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ExecActionApplyConfiguration : Type := ExecActionApplyConfiguration.nonempty_type.type
+instance ExecActionApplyConfiguration.nonempty : Nonempty ExecActionApplyConfiguration := ExecActionApplyConfiguration.nonempty_type.property
+opaque ExecActionApplyConfiguration.zero_val : ZeroVal ExecActionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ExecActionApplyConfiguration.zero_val
 
-axiom FCVolumeSourceApplyConfiguration : Type
-axiom FCVolumeSourceApplyConfiguration.zero_val : ZeroVal FCVolumeSourceApplyConfiguration
+opaque FCVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def FCVolumeSourceApplyConfiguration : Type := FCVolumeSourceApplyConfiguration.nonempty_type.type
+instance FCVolumeSourceApplyConfiguration.nonempty : Nonempty FCVolumeSourceApplyConfiguration := FCVolumeSourceApplyConfiguration.nonempty_type.property
+opaque FCVolumeSourceApplyConfiguration.zero_val : ZeroVal FCVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] FCVolumeSourceApplyConfiguration.zero_val
 
-axiom FileKeySelectorApplyConfiguration : Type
-axiom FileKeySelectorApplyConfiguration.zero_val : ZeroVal FileKeySelectorApplyConfiguration
+opaque FileKeySelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def FileKeySelectorApplyConfiguration : Type := FileKeySelectorApplyConfiguration.nonempty_type.type
+instance FileKeySelectorApplyConfiguration.nonempty : Nonempty FileKeySelectorApplyConfiguration := FileKeySelectorApplyConfiguration.nonempty_type.property
+opaque FileKeySelectorApplyConfiguration.zero_val : ZeroVal FileKeySelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] FileKeySelectorApplyConfiguration.zero_val
 
-axiom FlexPersistentVolumeSourceApplyConfiguration : Type
-axiom FlexPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal FlexPersistentVolumeSourceApplyConfiguration
+opaque FlexPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def FlexPersistentVolumeSourceApplyConfiguration : Type := FlexPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance FlexPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty FlexPersistentVolumeSourceApplyConfiguration := FlexPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque FlexPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal FlexPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] FlexPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom FlexVolumeSourceApplyConfiguration : Type
-axiom FlexVolumeSourceApplyConfiguration.zero_val : ZeroVal FlexVolumeSourceApplyConfiguration
+opaque FlexVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def FlexVolumeSourceApplyConfiguration : Type := FlexVolumeSourceApplyConfiguration.nonempty_type.type
+instance FlexVolumeSourceApplyConfiguration.nonempty : Nonempty FlexVolumeSourceApplyConfiguration := FlexVolumeSourceApplyConfiguration.nonempty_type.property
+opaque FlexVolumeSourceApplyConfiguration.zero_val : ZeroVal FlexVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] FlexVolumeSourceApplyConfiguration.zero_val
 
-axiom FlockerVolumeSourceApplyConfiguration : Type
-axiom FlockerVolumeSourceApplyConfiguration.zero_val : ZeroVal FlockerVolumeSourceApplyConfiguration
+opaque FlockerVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def FlockerVolumeSourceApplyConfiguration : Type := FlockerVolumeSourceApplyConfiguration.nonempty_type.type
+instance FlockerVolumeSourceApplyConfiguration.nonempty : Nonempty FlockerVolumeSourceApplyConfiguration := FlockerVolumeSourceApplyConfiguration.nonempty_type.property
+opaque FlockerVolumeSourceApplyConfiguration.zero_val : ZeroVal FlockerVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] FlockerVolumeSourceApplyConfiguration.zero_val
 
-axiom GCEPersistentDiskVolumeSourceApplyConfiguration : Type
-axiom GCEPersistentDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal GCEPersistentDiskVolumeSourceApplyConfiguration
+opaque GCEPersistentDiskVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def GCEPersistentDiskVolumeSourceApplyConfiguration : Type := GCEPersistentDiskVolumeSourceApplyConfiguration.nonempty_type.type
+instance GCEPersistentDiskVolumeSourceApplyConfiguration.nonempty : Nonempty GCEPersistentDiskVolumeSourceApplyConfiguration := GCEPersistentDiskVolumeSourceApplyConfiguration.nonempty_type.property
+opaque GCEPersistentDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal GCEPersistentDiskVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] GCEPersistentDiskVolumeSourceApplyConfiguration.zero_val
 
-axiom GitRepoVolumeSourceApplyConfiguration : Type
-axiom GitRepoVolumeSourceApplyConfiguration.zero_val : ZeroVal GitRepoVolumeSourceApplyConfiguration
+opaque GitRepoVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def GitRepoVolumeSourceApplyConfiguration : Type := GitRepoVolumeSourceApplyConfiguration.nonempty_type.type
+instance GitRepoVolumeSourceApplyConfiguration.nonempty : Nonempty GitRepoVolumeSourceApplyConfiguration := GitRepoVolumeSourceApplyConfiguration.nonempty_type.property
+opaque GitRepoVolumeSourceApplyConfiguration.zero_val : ZeroVal GitRepoVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] GitRepoVolumeSourceApplyConfiguration.zero_val
 
-axiom GlusterfsPersistentVolumeSourceApplyConfiguration : Type
-axiom GlusterfsPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal GlusterfsPersistentVolumeSourceApplyConfiguration
+opaque GlusterfsPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def GlusterfsPersistentVolumeSourceApplyConfiguration : Type := GlusterfsPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance GlusterfsPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty GlusterfsPersistentVolumeSourceApplyConfiguration := GlusterfsPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque GlusterfsPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal GlusterfsPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] GlusterfsPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom GlusterfsVolumeSourceApplyConfiguration : Type
-axiom GlusterfsVolumeSourceApplyConfiguration.zero_val : ZeroVal GlusterfsVolumeSourceApplyConfiguration
+opaque GlusterfsVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def GlusterfsVolumeSourceApplyConfiguration : Type := GlusterfsVolumeSourceApplyConfiguration.nonempty_type.type
+instance GlusterfsVolumeSourceApplyConfiguration.nonempty : Nonempty GlusterfsVolumeSourceApplyConfiguration := GlusterfsVolumeSourceApplyConfiguration.nonempty_type.property
+opaque GlusterfsVolumeSourceApplyConfiguration.zero_val : ZeroVal GlusterfsVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] GlusterfsVolumeSourceApplyConfiguration.zero_val
 
-axiom GRPCActionApplyConfiguration : Type
-axiom GRPCActionApplyConfiguration.zero_val : ZeroVal GRPCActionApplyConfiguration
+opaque GRPCActionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def GRPCActionApplyConfiguration : Type := GRPCActionApplyConfiguration.nonempty_type.type
+instance GRPCActionApplyConfiguration.nonempty : Nonempty GRPCActionApplyConfiguration := GRPCActionApplyConfiguration.nonempty_type.property
+opaque GRPCActionApplyConfiguration.zero_val : ZeroVal GRPCActionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] GRPCActionApplyConfiguration.zero_val
 
-axiom HostAliasApplyConfiguration : Type
-axiom HostAliasApplyConfiguration.zero_val : ZeroVal HostAliasApplyConfiguration
+opaque HostAliasApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HostAliasApplyConfiguration : Type := HostAliasApplyConfiguration.nonempty_type.type
+instance HostAliasApplyConfiguration.nonempty : Nonempty HostAliasApplyConfiguration := HostAliasApplyConfiguration.nonempty_type.property
+opaque HostAliasApplyConfiguration.zero_val : ZeroVal HostAliasApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HostAliasApplyConfiguration.zero_val
 
-axiom HostIPApplyConfiguration : Type
-axiom HostIPApplyConfiguration.zero_val : ZeroVal HostIPApplyConfiguration
+opaque HostIPApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HostIPApplyConfiguration : Type := HostIPApplyConfiguration.nonempty_type.type
+instance HostIPApplyConfiguration.nonempty : Nonempty HostIPApplyConfiguration := HostIPApplyConfiguration.nonempty_type.property
+opaque HostIPApplyConfiguration.zero_val : ZeroVal HostIPApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HostIPApplyConfiguration.zero_val
 
-axiom HostPathVolumeSourceApplyConfiguration : Type
-axiom HostPathVolumeSourceApplyConfiguration.zero_val : ZeroVal HostPathVolumeSourceApplyConfiguration
+opaque HostPathVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HostPathVolumeSourceApplyConfiguration : Type := HostPathVolumeSourceApplyConfiguration.nonempty_type.type
+instance HostPathVolumeSourceApplyConfiguration.nonempty : Nonempty HostPathVolumeSourceApplyConfiguration := HostPathVolumeSourceApplyConfiguration.nonempty_type.property
+opaque HostPathVolumeSourceApplyConfiguration.zero_val : ZeroVal HostPathVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HostPathVolumeSourceApplyConfiguration.zero_val
 
-axiom HTTPGetActionApplyConfiguration : Type
-axiom HTTPGetActionApplyConfiguration.zero_val : ZeroVal HTTPGetActionApplyConfiguration
+opaque HTTPGetActionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HTTPGetActionApplyConfiguration : Type := HTTPGetActionApplyConfiguration.nonempty_type.type
+instance HTTPGetActionApplyConfiguration.nonempty : Nonempty HTTPGetActionApplyConfiguration := HTTPGetActionApplyConfiguration.nonempty_type.property
+opaque HTTPGetActionApplyConfiguration.zero_val : ZeroVal HTTPGetActionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HTTPGetActionApplyConfiguration.zero_val
 
-axiom HTTPHeaderApplyConfiguration : Type
-axiom HTTPHeaderApplyConfiguration.zero_val : ZeroVal HTTPHeaderApplyConfiguration
+opaque HTTPHeaderApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HTTPHeaderApplyConfiguration : Type := HTTPHeaderApplyConfiguration.nonempty_type.type
+instance HTTPHeaderApplyConfiguration.nonempty : Nonempty HTTPHeaderApplyConfiguration := HTTPHeaderApplyConfiguration.nonempty_type.property
+opaque HTTPHeaderApplyConfiguration.zero_val : ZeroVal HTTPHeaderApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HTTPHeaderApplyConfiguration.zero_val
 
-axiom ImageVolumeSourceApplyConfiguration : Type
-axiom ImageVolumeSourceApplyConfiguration.zero_val : ZeroVal ImageVolumeSourceApplyConfiguration
+opaque ImageVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ImageVolumeSourceApplyConfiguration : Type := ImageVolumeSourceApplyConfiguration.nonempty_type.type
+instance ImageVolumeSourceApplyConfiguration.nonempty : Nonempty ImageVolumeSourceApplyConfiguration := ImageVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ImageVolumeSourceApplyConfiguration.zero_val : ZeroVal ImageVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ImageVolumeSourceApplyConfiguration.zero_val
 
-axiom ImageVolumeStatusApplyConfiguration : Type
-axiom ImageVolumeStatusApplyConfiguration.zero_val : ZeroVal ImageVolumeStatusApplyConfiguration
+opaque ImageVolumeStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ImageVolumeStatusApplyConfiguration : Type := ImageVolumeStatusApplyConfiguration.nonempty_type.type
+instance ImageVolumeStatusApplyConfiguration.nonempty : Nonempty ImageVolumeStatusApplyConfiguration := ImageVolumeStatusApplyConfiguration.nonempty_type.property
+opaque ImageVolumeStatusApplyConfiguration.zero_val : ZeroVal ImageVolumeStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ImageVolumeStatusApplyConfiguration.zero_val
 
-axiom ISCSIPersistentVolumeSourceApplyConfiguration : Type
-axiom ISCSIPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal ISCSIPersistentVolumeSourceApplyConfiguration
+opaque ISCSIPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ISCSIPersistentVolumeSourceApplyConfiguration : Type := ISCSIPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance ISCSIPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty ISCSIPersistentVolumeSourceApplyConfiguration := ISCSIPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ISCSIPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal ISCSIPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ISCSIPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom ISCSIVolumeSourceApplyConfiguration : Type
-axiom ISCSIVolumeSourceApplyConfiguration.zero_val : ZeroVal ISCSIVolumeSourceApplyConfiguration
+opaque ISCSIVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ISCSIVolumeSourceApplyConfiguration : Type := ISCSIVolumeSourceApplyConfiguration.nonempty_type.type
+instance ISCSIVolumeSourceApplyConfiguration.nonempty : Nonempty ISCSIVolumeSourceApplyConfiguration := ISCSIVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ISCSIVolumeSourceApplyConfiguration.zero_val : ZeroVal ISCSIVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ISCSIVolumeSourceApplyConfiguration.zero_val
 
-axiom KeyToPathApplyConfiguration : Type
-axiom KeyToPathApplyConfiguration.zero_val : ZeroVal KeyToPathApplyConfiguration
+opaque KeyToPathApplyConfiguration.nonempty_type : NonemptyType.{0}
+def KeyToPathApplyConfiguration : Type := KeyToPathApplyConfiguration.nonempty_type.type
+instance KeyToPathApplyConfiguration.nonempty : Nonempty KeyToPathApplyConfiguration := KeyToPathApplyConfiguration.nonempty_type.property
+opaque KeyToPathApplyConfiguration.zero_val : ZeroVal KeyToPathApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] KeyToPathApplyConfiguration.zero_val
 
-axiom LifecycleApplyConfiguration : Type
-axiom LifecycleApplyConfiguration.zero_val : ZeroVal LifecycleApplyConfiguration
+opaque LifecycleApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LifecycleApplyConfiguration : Type := LifecycleApplyConfiguration.nonempty_type.type
+instance LifecycleApplyConfiguration.nonempty : Nonempty LifecycleApplyConfiguration := LifecycleApplyConfiguration.nonempty_type.property
+opaque LifecycleApplyConfiguration.zero_val : ZeroVal LifecycleApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LifecycleApplyConfiguration.zero_val
 
-axiom LifecycleHandlerApplyConfiguration : Type
-axiom LifecycleHandlerApplyConfiguration.zero_val : ZeroVal LifecycleHandlerApplyConfiguration
+opaque LifecycleHandlerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LifecycleHandlerApplyConfiguration : Type := LifecycleHandlerApplyConfiguration.nonempty_type.type
+instance LifecycleHandlerApplyConfiguration.nonempty : Nonempty LifecycleHandlerApplyConfiguration := LifecycleHandlerApplyConfiguration.nonempty_type.property
+opaque LifecycleHandlerApplyConfiguration.zero_val : ZeroVal LifecycleHandlerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LifecycleHandlerApplyConfiguration.zero_val
 
-axiom LimitRangeApplyConfiguration : Type
-axiom LimitRangeApplyConfiguration.zero_val : ZeroVal LimitRangeApplyConfiguration
+opaque LimitRangeApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LimitRangeApplyConfiguration : Type := LimitRangeApplyConfiguration.nonempty_type.type
+instance LimitRangeApplyConfiguration.nonempty : Nonempty LimitRangeApplyConfiguration := LimitRangeApplyConfiguration.nonempty_type.property
+opaque LimitRangeApplyConfiguration.zero_val : ZeroVal LimitRangeApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LimitRangeApplyConfiguration.zero_val
 
-axiom LimitRangeItemApplyConfiguration : Type
-axiom LimitRangeItemApplyConfiguration.zero_val : ZeroVal LimitRangeItemApplyConfiguration
+opaque LimitRangeItemApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LimitRangeItemApplyConfiguration : Type := LimitRangeItemApplyConfiguration.nonempty_type.type
+instance LimitRangeItemApplyConfiguration.nonempty : Nonempty LimitRangeItemApplyConfiguration := LimitRangeItemApplyConfiguration.nonempty_type.property
+opaque LimitRangeItemApplyConfiguration.zero_val : ZeroVal LimitRangeItemApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LimitRangeItemApplyConfiguration.zero_val
 
-axiom LimitRangeSpecApplyConfiguration : Type
-axiom LimitRangeSpecApplyConfiguration.zero_val : ZeroVal LimitRangeSpecApplyConfiguration
+opaque LimitRangeSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LimitRangeSpecApplyConfiguration : Type := LimitRangeSpecApplyConfiguration.nonempty_type.type
+instance LimitRangeSpecApplyConfiguration.nonempty : Nonempty LimitRangeSpecApplyConfiguration := LimitRangeSpecApplyConfiguration.nonempty_type.property
+opaque LimitRangeSpecApplyConfiguration.zero_val : ZeroVal LimitRangeSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LimitRangeSpecApplyConfiguration.zero_val
 
-axiom LinuxContainerUserApplyConfiguration : Type
-axiom LinuxContainerUserApplyConfiguration.zero_val : ZeroVal LinuxContainerUserApplyConfiguration
+opaque LinuxContainerUserApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LinuxContainerUserApplyConfiguration : Type := LinuxContainerUserApplyConfiguration.nonempty_type.type
+instance LinuxContainerUserApplyConfiguration.nonempty : Nonempty LinuxContainerUserApplyConfiguration := LinuxContainerUserApplyConfiguration.nonempty_type.property
+opaque LinuxContainerUserApplyConfiguration.zero_val : ZeroVal LinuxContainerUserApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LinuxContainerUserApplyConfiguration.zero_val
 
-axiom LoadBalancerIngressApplyConfiguration : Type
-axiom LoadBalancerIngressApplyConfiguration.zero_val : ZeroVal LoadBalancerIngressApplyConfiguration
+opaque LoadBalancerIngressApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LoadBalancerIngressApplyConfiguration : Type := LoadBalancerIngressApplyConfiguration.nonempty_type.type
+instance LoadBalancerIngressApplyConfiguration.nonempty : Nonempty LoadBalancerIngressApplyConfiguration := LoadBalancerIngressApplyConfiguration.nonempty_type.property
+opaque LoadBalancerIngressApplyConfiguration.zero_val : ZeroVal LoadBalancerIngressApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LoadBalancerIngressApplyConfiguration.zero_val
 
-axiom LoadBalancerStatusApplyConfiguration : Type
-axiom LoadBalancerStatusApplyConfiguration.zero_val : ZeroVal LoadBalancerStatusApplyConfiguration
+opaque LoadBalancerStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LoadBalancerStatusApplyConfiguration : Type := LoadBalancerStatusApplyConfiguration.nonempty_type.type
+instance LoadBalancerStatusApplyConfiguration.nonempty : Nonempty LoadBalancerStatusApplyConfiguration := LoadBalancerStatusApplyConfiguration.nonempty_type.property
+opaque LoadBalancerStatusApplyConfiguration.zero_val : ZeroVal LoadBalancerStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LoadBalancerStatusApplyConfiguration.zero_val
 
-axiom LocalObjectReferenceApplyConfiguration : Type
-axiom LocalObjectReferenceApplyConfiguration.zero_val : ZeroVal LocalObjectReferenceApplyConfiguration
+opaque LocalObjectReferenceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LocalObjectReferenceApplyConfiguration : Type := LocalObjectReferenceApplyConfiguration.nonempty_type.type
+instance LocalObjectReferenceApplyConfiguration.nonempty : Nonempty LocalObjectReferenceApplyConfiguration := LocalObjectReferenceApplyConfiguration.nonempty_type.property
+opaque LocalObjectReferenceApplyConfiguration.zero_val : ZeroVal LocalObjectReferenceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LocalObjectReferenceApplyConfiguration.zero_val
 
-axiom LocalVolumeSourceApplyConfiguration : Type
-axiom LocalVolumeSourceApplyConfiguration.zero_val : ZeroVal LocalVolumeSourceApplyConfiguration
+opaque LocalVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def LocalVolumeSourceApplyConfiguration : Type := LocalVolumeSourceApplyConfiguration.nonempty_type.type
+instance LocalVolumeSourceApplyConfiguration.nonempty : Nonempty LocalVolumeSourceApplyConfiguration := LocalVolumeSourceApplyConfiguration.nonempty_type.property
+opaque LocalVolumeSourceApplyConfiguration.zero_val : ZeroVal LocalVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] LocalVolumeSourceApplyConfiguration.zero_val
 
-axiom ModifyVolumeStatusApplyConfiguration : Type
-axiom ModifyVolumeStatusApplyConfiguration.zero_val : ZeroVal ModifyVolumeStatusApplyConfiguration
+opaque ModifyVolumeStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ModifyVolumeStatusApplyConfiguration : Type := ModifyVolumeStatusApplyConfiguration.nonempty_type.type
+instance ModifyVolumeStatusApplyConfiguration.nonempty : Nonempty ModifyVolumeStatusApplyConfiguration := ModifyVolumeStatusApplyConfiguration.nonempty_type.property
+opaque ModifyVolumeStatusApplyConfiguration.zero_val : ZeroVal ModifyVolumeStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ModifyVolumeStatusApplyConfiguration.zero_val
 
-axiom NamespaceApplyConfiguration : Type
-axiom NamespaceApplyConfiguration.zero_val : ZeroVal NamespaceApplyConfiguration
+opaque NamespaceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NamespaceApplyConfiguration : Type := NamespaceApplyConfiguration.nonempty_type.type
+instance NamespaceApplyConfiguration.nonempty : Nonempty NamespaceApplyConfiguration := NamespaceApplyConfiguration.nonempty_type.property
+opaque NamespaceApplyConfiguration.zero_val : ZeroVal NamespaceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NamespaceApplyConfiguration.zero_val
 
-axiom NamespaceConditionApplyConfiguration : Type
-axiom NamespaceConditionApplyConfiguration.zero_val : ZeroVal NamespaceConditionApplyConfiguration
+opaque NamespaceConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NamespaceConditionApplyConfiguration : Type := NamespaceConditionApplyConfiguration.nonempty_type.type
+instance NamespaceConditionApplyConfiguration.nonempty : Nonempty NamespaceConditionApplyConfiguration := NamespaceConditionApplyConfiguration.nonempty_type.property
+opaque NamespaceConditionApplyConfiguration.zero_val : ZeroVal NamespaceConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NamespaceConditionApplyConfiguration.zero_val
 
-axiom NamespaceSpecApplyConfiguration : Type
-axiom NamespaceSpecApplyConfiguration.zero_val : ZeroVal NamespaceSpecApplyConfiguration
+opaque NamespaceSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NamespaceSpecApplyConfiguration : Type := NamespaceSpecApplyConfiguration.nonempty_type.type
+instance NamespaceSpecApplyConfiguration.nonempty : Nonempty NamespaceSpecApplyConfiguration := NamespaceSpecApplyConfiguration.nonempty_type.property
+opaque NamespaceSpecApplyConfiguration.zero_val : ZeroVal NamespaceSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NamespaceSpecApplyConfiguration.zero_val
 
-axiom NamespaceStatusApplyConfiguration : Type
-axiom NamespaceStatusApplyConfiguration.zero_val : ZeroVal NamespaceStatusApplyConfiguration
+opaque NamespaceStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NamespaceStatusApplyConfiguration : Type := NamespaceStatusApplyConfiguration.nonempty_type.type
+instance NamespaceStatusApplyConfiguration.nonempty : Nonempty NamespaceStatusApplyConfiguration := NamespaceStatusApplyConfiguration.nonempty_type.property
+opaque NamespaceStatusApplyConfiguration.zero_val : ZeroVal NamespaceStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NamespaceStatusApplyConfiguration.zero_val
 
-axiom NFSVolumeSourceApplyConfiguration : Type
-axiom NFSVolumeSourceApplyConfiguration.zero_val : ZeroVal NFSVolumeSourceApplyConfiguration
+opaque NFSVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NFSVolumeSourceApplyConfiguration : Type := NFSVolumeSourceApplyConfiguration.nonempty_type.type
+instance NFSVolumeSourceApplyConfiguration.nonempty : Nonempty NFSVolumeSourceApplyConfiguration := NFSVolumeSourceApplyConfiguration.nonempty_type.property
+opaque NFSVolumeSourceApplyConfiguration.zero_val : ZeroVal NFSVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NFSVolumeSourceApplyConfiguration.zero_val
 
-axiom NodeApplyConfiguration : Type
-axiom NodeApplyConfiguration.zero_val : ZeroVal NodeApplyConfiguration
+opaque NodeApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeApplyConfiguration : Type := NodeApplyConfiguration.nonempty_type.type
+instance NodeApplyConfiguration.nonempty : Nonempty NodeApplyConfiguration := NodeApplyConfiguration.nonempty_type.property
+opaque NodeApplyConfiguration.zero_val : ZeroVal NodeApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeApplyConfiguration.zero_val
 
-axiom NodeAddressApplyConfiguration : Type
-axiom NodeAddressApplyConfiguration.zero_val : ZeroVal NodeAddressApplyConfiguration
+opaque NodeAddressApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeAddressApplyConfiguration : Type := NodeAddressApplyConfiguration.nonempty_type.type
+instance NodeAddressApplyConfiguration.nonempty : Nonempty NodeAddressApplyConfiguration := NodeAddressApplyConfiguration.nonempty_type.property
+opaque NodeAddressApplyConfiguration.zero_val : ZeroVal NodeAddressApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeAddressApplyConfiguration.zero_val
 
-axiom NodeAffinityApplyConfiguration : Type
-axiom NodeAffinityApplyConfiguration.zero_val : ZeroVal NodeAffinityApplyConfiguration
+opaque NodeAffinityApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeAffinityApplyConfiguration : Type := NodeAffinityApplyConfiguration.nonempty_type.type
+instance NodeAffinityApplyConfiguration.nonempty : Nonempty NodeAffinityApplyConfiguration := NodeAffinityApplyConfiguration.nonempty_type.property
+opaque NodeAffinityApplyConfiguration.zero_val : ZeroVal NodeAffinityApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeAffinityApplyConfiguration.zero_val
 
-axiom NodeAllocatableMappedResourcesApplyConfiguration : Type
-axiom NodeAllocatableMappedResourcesApplyConfiguration.zero_val : ZeroVal NodeAllocatableMappedResourcesApplyConfiguration
+opaque NodeAllocatableMappedResourcesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeAllocatableMappedResourcesApplyConfiguration : Type := NodeAllocatableMappedResourcesApplyConfiguration.nonempty_type.type
+instance NodeAllocatableMappedResourcesApplyConfiguration.nonempty : Nonempty NodeAllocatableMappedResourcesApplyConfiguration := NodeAllocatableMappedResourcesApplyConfiguration.nonempty_type.property
+opaque NodeAllocatableMappedResourcesApplyConfiguration.zero_val : ZeroVal NodeAllocatableMappedResourcesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeAllocatableMappedResourcesApplyConfiguration.zero_val
 
-axiom NodeAllocatableOverheadResourcesApplyConfiguration : Type
-axiom NodeAllocatableOverheadResourcesApplyConfiguration.zero_val : ZeroVal NodeAllocatableOverheadResourcesApplyConfiguration
+opaque NodeAllocatableOverheadResourcesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeAllocatableOverheadResourcesApplyConfiguration : Type := NodeAllocatableOverheadResourcesApplyConfiguration.nonempty_type.type
+instance NodeAllocatableOverheadResourcesApplyConfiguration.nonempty : Nonempty NodeAllocatableOverheadResourcesApplyConfiguration := NodeAllocatableOverheadResourcesApplyConfiguration.nonempty_type.property
+opaque NodeAllocatableOverheadResourcesApplyConfiguration.zero_val : ZeroVal NodeAllocatableOverheadResourcesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeAllocatableOverheadResourcesApplyConfiguration.zero_val
 
-axiom NodeAllocatableResourceClaimStatusApplyConfiguration : Type
-axiom NodeAllocatableResourceClaimStatusApplyConfiguration.zero_val : ZeroVal NodeAllocatableResourceClaimStatusApplyConfiguration
+opaque NodeAllocatableResourceClaimStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeAllocatableResourceClaimStatusApplyConfiguration : Type := NodeAllocatableResourceClaimStatusApplyConfiguration.nonempty_type.type
+instance NodeAllocatableResourceClaimStatusApplyConfiguration.nonempty : Nonempty NodeAllocatableResourceClaimStatusApplyConfiguration := NodeAllocatableResourceClaimStatusApplyConfiguration.nonempty_type.property
+opaque NodeAllocatableResourceClaimStatusApplyConfiguration.zero_val : ZeroVal NodeAllocatableResourceClaimStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeAllocatableResourceClaimStatusApplyConfiguration.zero_val
 
-axiom NodeConditionApplyConfiguration : Type
-axiom NodeConditionApplyConfiguration.zero_val : ZeroVal NodeConditionApplyConfiguration
+opaque NodeConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeConditionApplyConfiguration : Type := NodeConditionApplyConfiguration.nonempty_type.type
+instance NodeConditionApplyConfiguration.nonempty : Nonempty NodeConditionApplyConfiguration := NodeConditionApplyConfiguration.nonempty_type.property
+opaque NodeConditionApplyConfiguration.zero_val : ZeroVal NodeConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeConditionApplyConfiguration.zero_val
 
-axiom NodeConfigSourceApplyConfiguration : Type
-axiom NodeConfigSourceApplyConfiguration.zero_val : ZeroVal NodeConfigSourceApplyConfiguration
+opaque NodeConfigSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeConfigSourceApplyConfiguration : Type := NodeConfigSourceApplyConfiguration.nonempty_type.type
+instance NodeConfigSourceApplyConfiguration.nonempty : Nonempty NodeConfigSourceApplyConfiguration := NodeConfigSourceApplyConfiguration.nonempty_type.property
+opaque NodeConfigSourceApplyConfiguration.zero_val : ZeroVal NodeConfigSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeConfigSourceApplyConfiguration.zero_val
 
-axiom NodeConfigStatusApplyConfiguration : Type
-axiom NodeConfigStatusApplyConfiguration.zero_val : ZeroVal NodeConfigStatusApplyConfiguration
+opaque NodeConfigStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeConfigStatusApplyConfiguration : Type := NodeConfigStatusApplyConfiguration.nonempty_type.type
+instance NodeConfigStatusApplyConfiguration.nonempty : Nonempty NodeConfigStatusApplyConfiguration := NodeConfigStatusApplyConfiguration.nonempty_type.property
+opaque NodeConfigStatusApplyConfiguration.zero_val : ZeroVal NodeConfigStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeConfigStatusApplyConfiguration.zero_val
 
-axiom NodeDaemonEndpointsApplyConfiguration : Type
-axiom NodeDaemonEndpointsApplyConfiguration.zero_val : ZeroVal NodeDaemonEndpointsApplyConfiguration
+opaque NodeDaemonEndpointsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeDaemonEndpointsApplyConfiguration : Type := NodeDaemonEndpointsApplyConfiguration.nonempty_type.type
+instance NodeDaemonEndpointsApplyConfiguration.nonempty : Nonempty NodeDaemonEndpointsApplyConfiguration := NodeDaemonEndpointsApplyConfiguration.nonempty_type.property
+opaque NodeDaemonEndpointsApplyConfiguration.zero_val : ZeroVal NodeDaemonEndpointsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeDaemonEndpointsApplyConfiguration.zero_val
 
-axiom NodeFeaturesApplyConfiguration : Type
-axiom NodeFeaturesApplyConfiguration.zero_val : ZeroVal NodeFeaturesApplyConfiguration
+opaque NodeFeaturesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeFeaturesApplyConfiguration : Type := NodeFeaturesApplyConfiguration.nonempty_type.type
+instance NodeFeaturesApplyConfiguration.nonempty : Nonempty NodeFeaturesApplyConfiguration := NodeFeaturesApplyConfiguration.nonempty_type.property
+opaque NodeFeaturesApplyConfiguration.zero_val : ZeroVal NodeFeaturesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeFeaturesApplyConfiguration.zero_val
 
-axiom NodePodPreemptionPolicyApplyConfiguration : Type
-axiom NodePodPreemptionPolicyApplyConfiguration.zero_val : ZeroVal NodePodPreemptionPolicyApplyConfiguration
+opaque NodePodPreemptionPolicyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodePodPreemptionPolicyApplyConfiguration : Type := NodePodPreemptionPolicyApplyConfiguration.nonempty_type.type
+instance NodePodPreemptionPolicyApplyConfiguration.nonempty : Nonempty NodePodPreemptionPolicyApplyConfiguration := NodePodPreemptionPolicyApplyConfiguration.nonempty_type.property
+opaque NodePodPreemptionPolicyApplyConfiguration.zero_val : ZeroVal NodePodPreemptionPolicyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodePodPreemptionPolicyApplyConfiguration.zero_val
 
-axiom NodeRuntimeHandlerApplyConfiguration : Type
-axiom NodeRuntimeHandlerApplyConfiguration.zero_val : ZeroVal NodeRuntimeHandlerApplyConfiguration
+opaque NodeRuntimeHandlerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeRuntimeHandlerApplyConfiguration : Type := NodeRuntimeHandlerApplyConfiguration.nonempty_type.type
+instance NodeRuntimeHandlerApplyConfiguration.nonempty : Nonempty NodeRuntimeHandlerApplyConfiguration := NodeRuntimeHandlerApplyConfiguration.nonempty_type.property
+opaque NodeRuntimeHandlerApplyConfiguration.zero_val : ZeroVal NodeRuntimeHandlerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeRuntimeHandlerApplyConfiguration.zero_val
 
-axiom NodeRuntimeHandlerFeaturesApplyConfiguration : Type
-axiom NodeRuntimeHandlerFeaturesApplyConfiguration.zero_val : ZeroVal NodeRuntimeHandlerFeaturesApplyConfiguration
+opaque NodeRuntimeHandlerFeaturesApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeRuntimeHandlerFeaturesApplyConfiguration : Type := NodeRuntimeHandlerFeaturesApplyConfiguration.nonempty_type.type
+instance NodeRuntimeHandlerFeaturesApplyConfiguration.nonempty : Nonempty NodeRuntimeHandlerFeaturesApplyConfiguration := NodeRuntimeHandlerFeaturesApplyConfiguration.nonempty_type.property
+opaque NodeRuntimeHandlerFeaturesApplyConfiguration.zero_val : ZeroVal NodeRuntimeHandlerFeaturesApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeRuntimeHandlerFeaturesApplyConfiguration.zero_val
 
-axiom NodeSelectorApplyConfiguration : Type
-axiom NodeSelectorApplyConfiguration.zero_val : ZeroVal NodeSelectorApplyConfiguration
+opaque NodeSelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeSelectorApplyConfiguration : Type := NodeSelectorApplyConfiguration.nonempty_type.type
+instance NodeSelectorApplyConfiguration.nonempty : Nonempty NodeSelectorApplyConfiguration := NodeSelectorApplyConfiguration.nonempty_type.property
+opaque NodeSelectorApplyConfiguration.zero_val : ZeroVal NodeSelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeSelectorApplyConfiguration.zero_val
 
-axiom NodeSelectorRequirementApplyConfiguration : Type
-axiom NodeSelectorRequirementApplyConfiguration.zero_val : ZeroVal NodeSelectorRequirementApplyConfiguration
+opaque NodeSelectorRequirementApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeSelectorRequirementApplyConfiguration : Type := NodeSelectorRequirementApplyConfiguration.nonempty_type.type
+instance NodeSelectorRequirementApplyConfiguration.nonempty : Nonempty NodeSelectorRequirementApplyConfiguration := NodeSelectorRequirementApplyConfiguration.nonempty_type.property
+opaque NodeSelectorRequirementApplyConfiguration.zero_val : ZeroVal NodeSelectorRequirementApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeSelectorRequirementApplyConfiguration.zero_val
 
-axiom NodeSelectorTermApplyConfiguration : Type
-axiom NodeSelectorTermApplyConfiguration.zero_val : ZeroVal NodeSelectorTermApplyConfiguration
+opaque NodeSelectorTermApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeSelectorTermApplyConfiguration : Type := NodeSelectorTermApplyConfiguration.nonempty_type.type
+instance NodeSelectorTermApplyConfiguration.nonempty : Nonempty NodeSelectorTermApplyConfiguration := NodeSelectorTermApplyConfiguration.nonempty_type.property
+opaque NodeSelectorTermApplyConfiguration.zero_val : ZeroVal NodeSelectorTermApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeSelectorTermApplyConfiguration.zero_val
 
-axiom NodeSpecApplyConfiguration : Type
-axiom NodeSpecApplyConfiguration.zero_val : ZeroVal NodeSpecApplyConfiguration
+opaque NodeSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeSpecApplyConfiguration : Type := NodeSpecApplyConfiguration.nonempty_type.type
+instance NodeSpecApplyConfiguration.nonempty : Nonempty NodeSpecApplyConfiguration := NodeSpecApplyConfiguration.nonempty_type.property
+opaque NodeSpecApplyConfiguration.zero_val : ZeroVal NodeSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeSpecApplyConfiguration.zero_val
 
-axiom NodeStatusApplyConfiguration : Type
-axiom NodeStatusApplyConfiguration.zero_val : ZeroVal NodeStatusApplyConfiguration
+opaque NodeStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeStatusApplyConfiguration : Type := NodeStatusApplyConfiguration.nonempty_type.type
+instance NodeStatusApplyConfiguration.nonempty : Nonempty NodeStatusApplyConfiguration := NodeStatusApplyConfiguration.nonempty_type.property
+opaque NodeStatusApplyConfiguration.zero_val : ZeroVal NodeStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeStatusApplyConfiguration.zero_val
 
-axiom NodeSwapStatusApplyConfiguration : Type
-axiom NodeSwapStatusApplyConfiguration.zero_val : ZeroVal NodeSwapStatusApplyConfiguration
+opaque NodeSwapStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeSwapStatusApplyConfiguration : Type := NodeSwapStatusApplyConfiguration.nonempty_type.type
+instance NodeSwapStatusApplyConfiguration.nonempty : Nonempty NodeSwapStatusApplyConfiguration := NodeSwapStatusApplyConfiguration.nonempty_type.property
+opaque NodeSwapStatusApplyConfiguration.zero_val : ZeroVal NodeSwapStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeSwapStatusApplyConfiguration.zero_val
 
-axiom NodeSystemInfoApplyConfiguration : Type
-axiom NodeSystemInfoApplyConfiguration.zero_val : ZeroVal NodeSystemInfoApplyConfiguration
+opaque NodeSystemInfoApplyConfiguration.nonempty_type : NonemptyType.{0}
+def NodeSystemInfoApplyConfiguration : Type := NodeSystemInfoApplyConfiguration.nonempty_type.type
+instance NodeSystemInfoApplyConfiguration.nonempty : Nonempty NodeSystemInfoApplyConfiguration := NodeSystemInfoApplyConfiguration.nonempty_type.property
+opaque NodeSystemInfoApplyConfiguration.zero_val : ZeroVal NodeSystemInfoApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] NodeSystemInfoApplyConfiguration.zero_val
 
-axiom ObjectFieldSelectorApplyConfiguration : Type
-axiom ObjectFieldSelectorApplyConfiguration.zero_val : ZeroVal ObjectFieldSelectorApplyConfiguration
+opaque ObjectFieldSelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ObjectFieldSelectorApplyConfiguration : Type := ObjectFieldSelectorApplyConfiguration.nonempty_type.type
+instance ObjectFieldSelectorApplyConfiguration.nonempty : Nonempty ObjectFieldSelectorApplyConfiguration := ObjectFieldSelectorApplyConfiguration.nonempty_type.property
+opaque ObjectFieldSelectorApplyConfiguration.zero_val : ZeroVal ObjectFieldSelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ObjectFieldSelectorApplyConfiguration.zero_val
 
-axiom ObjectReferenceApplyConfiguration : Type
-axiom ObjectReferenceApplyConfiguration.zero_val : ZeroVal ObjectReferenceApplyConfiguration
+opaque ObjectReferenceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ObjectReferenceApplyConfiguration : Type := ObjectReferenceApplyConfiguration.nonempty_type.type
+instance ObjectReferenceApplyConfiguration.nonempty : Nonempty ObjectReferenceApplyConfiguration := ObjectReferenceApplyConfiguration.nonempty_type.property
+opaque ObjectReferenceApplyConfiguration.zero_val : ZeroVal ObjectReferenceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ObjectReferenceApplyConfiguration.zero_val
 
-axiom PersistentVolumeApplyConfiguration : Type
-axiom PersistentVolumeApplyConfiguration.zero_val : ZeroVal PersistentVolumeApplyConfiguration
+opaque PersistentVolumeApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeApplyConfiguration : Type := PersistentVolumeApplyConfiguration.nonempty_type.type
+instance PersistentVolumeApplyConfiguration.nonempty : Nonempty PersistentVolumeApplyConfiguration := PersistentVolumeApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeApplyConfiguration.zero_val : ZeroVal PersistentVolumeApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeApplyConfiguration.zero_val
 
-axiom PersistentVolumeClaimApplyConfiguration : Type
-axiom PersistentVolumeClaimApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimApplyConfiguration
+opaque PersistentVolumeClaimApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeClaimApplyConfiguration : Type := PersistentVolumeClaimApplyConfiguration.nonempty_type.type
+instance PersistentVolumeClaimApplyConfiguration.nonempty : Nonempty PersistentVolumeClaimApplyConfiguration := PersistentVolumeClaimApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeClaimApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeClaimApplyConfiguration.zero_val
 
-axiom PersistentVolumeClaimConditionApplyConfiguration : Type
-axiom PersistentVolumeClaimConditionApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimConditionApplyConfiguration
+opaque PersistentVolumeClaimConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeClaimConditionApplyConfiguration : Type := PersistentVolumeClaimConditionApplyConfiguration.nonempty_type.type
+instance PersistentVolumeClaimConditionApplyConfiguration.nonempty : Nonempty PersistentVolumeClaimConditionApplyConfiguration := PersistentVolumeClaimConditionApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeClaimConditionApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeClaimConditionApplyConfiguration.zero_val
 
-axiom PersistentVolumeClaimSpecApplyConfiguration : Type
-axiom PersistentVolumeClaimSpecApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimSpecApplyConfiguration
+opaque PersistentVolumeClaimSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeClaimSpecApplyConfiguration : Type := PersistentVolumeClaimSpecApplyConfiguration.nonempty_type.type
+instance PersistentVolumeClaimSpecApplyConfiguration.nonempty : Nonempty PersistentVolumeClaimSpecApplyConfiguration := PersistentVolumeClaimSpecApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeClaimSpecApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeClaimSpecApplyConfiguration.zero_val
 
-axiom PersistentVolumeClaimStatusApplyConfiguration : Type
-axiom PersistentVolumeClaimStatusApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimStatusApplyConfiguration
+opaque PersistentVolumeClaimStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeClaimStatusApplyConfiguration : Type := PersistentVolumeClaimStatusApplyConfiguration.nonempty_type.type
+instance PersistentVolumeClaimStatusApplyConfiguration.nonempty : Nonempty PersistentVolumeClaimStatusApplyConfiguration := PersistentVolumeClaimStatusApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeClaimStatusApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeClaimStatusApplyConfiguration.zero_val
 
-axiom PersistentVolumeClaimTemplateApplyConfiguration : Type
-axiom PersistentVolumeClaimTemplateApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimTemplateApplyConfiguration
+opaque PersistentVolumeClaimTemplateApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeClaimTemplateApplyConfiguration : Type := PersistentVolumeClaimTemplateApplyConfiguration.nonempty_type.type
+instance PersistentVolumeClaimTemplateApplyConfiguration.nonempty : Nonempty PersistentVolumeClaimTemplateApplyConfiguration := PersistentVolumeClaimTemplateApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeClaimTemplateApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimTemplateApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeClaimTemplateApplyConfiguration.zero_val
 
-axiom PersistentVolumeClaimVolumeSourceApplyConfiguration : Type
-axiom PersistentVolumeClaimVolumeSourceApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimVolumeSourceApplyConfiguration
+opaque PersistentVolumeClaimVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeClaimVolumeSourceApplyConfiguration : Type := PersistentVolumeClaimVolumeSourceApplyConfiguration.nonempty_type.type
+instance PersistentVolumeClaimVolumeSourceApplyConfiguration.nonempty : Nonempty PersistentVolumeClaimVolumeSourceApplyConfiguration := PersistentVolumeClaimVolumeSourceApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeClaimVolumeSourceApplyConfiguration.zero_val : ZeroVal PersistentVolumeClaimVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeClaimVolumeSourceApplyConfiguration.zero_val
 
-axiom PersistentVolumeSourceApplyConfiguration : Type
-axiom PersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal PersistentVolumeSourceApplyConfiguration
+opaque PersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeSourceApplyConfiguration : Type := PersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance PersistentVolumeSourceApplyConfiguration.nonempty : Nonempty PersistentVolumeSourceApplyConfiguration := PersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal PersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom PersistentVolumeSpecApplyConfiguration : Type
-axiom PersistentVolumeSpecApplyConfiguration.zero_val : ZeroVal PersistentVolumeSpecApplyConfiguration
+opaque PersistentVolumeSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeSpecApplyConfiguration : Type := PersistentVolumeSpecApplyConfiguration.nonempty_type.type
+instance PersistentVolumeSpecApplyConfiguration.nonempty : Nonempty PersistentVolumeSpecApplyConfiguration := PersistentVolumeSpecApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeSpecApplyConfiguration.zero_val : ZeroVal PersistentVolumeSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeSpecApplyConfiguration.zero_val
 
-axiom PersistentVolumeStatusApplyConfiguration : Type
-axiom PersistentVolumeStatusApplyConfiguration.zero_val : ZeroVal PersistentVolumeStatusApplyConfiguration
+opaque PersistentVolumeStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PersistentVolumeStatusApplyConfiguration : Type := PersistentVolumeStatusApplyConfiguration.nonempty_type.type
+instance PersistentVolumeStatusApplyConfiguration.nonempty : Nonempty PersistentVolumeStatusApplyConfiguration := PersistentVolumeStatusApplyConfiguration.nonempty_type.property
+opaque PersistentVolumeStatusApplyConfiguration.zero_val : ZeroVal PersistentVolumeStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PersistentVolumeStatusApplyConfiguration.zero_val
 
-axiom PhotonPersistentDiskVolumeSourceApplyConfiguration : Type
-axiom PhotonPersistentDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal PhotonPersistentDiskVolumeSourceApplyConfiguration
+opaque PhotonPersistentDiskVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PhotonPersistentDiskVolumeSourceApplyConfiguration : Type := PhotonPersistentDiskVolumeSourceApplyConfiguration.nonempty_type.type
+instance PhotonPersistentDiskVolumeSourceApplyConfiguration.nonempty : Nonempty PhotonPersistentDiskVolumeSourceApplyConfiguration := PhotonPersistentDiskVolumeSourceApplyConfiguration.nonempty_type.property
+opaque PhotonPersistentDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal PhotonPersistentDiskVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PhotonPersistentDiskVolumeSourceApplyConfiguration.zero_val
 
-axiom PodApplyConfiguration : Type
-axiom PodApplyConfiguration.zero_val : ZeroVal PodApplyConfiguration
+opaque PodApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodApplyConfiguration : Type := PodApplyConfiguration.nonempty_type.type
+instance PodApplyConfiguration.nonempty : Nonempty PodApplyConfiguration := PodApplyConfiguration.nonempty_type.property
+opaque PodApplyConfiguration.zero_val : ZeroVal PodApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodApplyConfiguration.zero_val
 
-axiom PodAffinityApplyConfiguration : Type
-axiom PodAffinityApplyConfiguration.zero_val : ZeroVal PodAffinityApplyConfiguration
+opaque PodAffinityApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodAffinityApplyConfiguration : Type := PodAffinityApplyConfiguration.nonempty_type.type
+instance PodAffinityApplyConfiguration.nonempty : Nonempty PodAffinityApplyConfiguration := PodAffinityApplyConfiguration.nonempty_type.property
+opaque PodAffinityApplyConfiguration.zero_val : ZeroVal PodAffinityApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodAffinityApplyConfiguration.zero_val
 
-axiom PodAffinityTermApplyConfiguration : Type
-axiom PodAffinityTermApplyConfiguration.zero_val : ZeroVal PodAffinityTermApplyConfiguration
+opaque PodAffinityTermApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodAffinityTermApplyConfiguration : Type := PodAffinityTermApplyConfiguration.nonempty_type.type
+instance PodAffinityTermApplyConfiguration.nonempty : Nonempty PodAffinityTermApplyConfiguration := PodAffinityTermApplyConfiguration.nonempty_type.property
+opaque PodAffinityTermApplyConfiguration.zero_val : ZeroVal PodAffinityTermApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodAffinityTermApplyConfiguration.zero_val
 
-axiom PodAntiAffinityApplyConfiguration : Type
-axiom PodAntiAffinityApplyConfiguration.zero_val : ZeroVal PodAntiAffinityApplyConfiguration
+opaque PodAntiAffinityApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodAntiAffinityApplyConfiguration : Type := PodAntiAffinityApplyConfiguration.nonempty_type.type
+instance PodAntiAffinityApplyConfiguration.nonempty : Nonempty PodAntiAffinityApplyConfiguration := PodAntiAffinityApplyConfiguration.nonempty_type.property
+opaque PodAntiAffinityApplyConfiguration.zero_val : ZeroVal PodAntiAffinityApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodAntiAffinityApplyConfiguration.zero_val
 
-axiom PodCertificateProjectionApplyConfiguration : Type
-axiom PodCertificateProjectionApplyConfiguration.zero_val : ZeroVal PodCertificateProjectionApplyConfiguration
+opaque PodCertificateProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodCertificateProjectionApplyConfiguration : Type := PodCertificateProjectionApplyConfiguration.nonempty_type.type
+instance PodCertificateProjectionApplyConfiguration.nonempty : Nonempty PodCertificateProjectionApplyConfiguration := PodCertificateProjectionApplyConfiguration.nonempty_type.property
+opaque PodCertificateProjectionApplyConfiguration.zero_val : ZeroVal PodCertificateProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodCertificateProjectionApplyConfiguration.zero_val
 
-axiom PodConditionApplyConfiguration : Type
-axiom PodConditionApplyConfiguration.zero_val : ZeroVal PodConditionApplyConfiguration
+opaque PodConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodConditionApplyConfiguration : Type := PodConditionApplyConfiguration.nonempty_type.type
+instance PodConditionApplyConfiguration.nonempty : Nonempty PodConditionApplyConfiguration := PodConditionApplyConfiguration.nonempty_type.property
+opaque PodConditionApplyConfiguration.zero_val : ZeroVal PodConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodConditionApplyConfiguration.zero_val
 
-axiom PodDNSConfigApplyConfiguration : Type
-axiom PodDNSConfigApplyConfiguration.zero_val : ZeroVal PodDNSConfigApplyConfiguration
+opaque PodDNSConfigApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodDNSConfigApplyConfiguration : Type := PodDNSConfigApplyConfiguration.nonempty_type.type
+instance PodDNSConfigApplyConfiguration.nonempty : Nonempty PodDNSConfigApplyConfiguration := PodDNSConfigApplyConfiguration.nonempty_type.property
+opaque PodDNSConfigApplyConfiguration.zero_val : ZeroVal PodDNSConfigApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDNSConfigApplyConfiguration.zero_val
 
-axiom PodDNSConfigOptionApplyConfiguration : Type
-axiom PodDNSConfigOptionApplyConfiguration.zero_val : ZeroVal PodDNSConfigOptionApplyConfiguration
+opaque PodDNSConfigOptionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodDNSConfigOptionApplyConfiguration : Type := PodDNSConfigOptionApplyConfiguration.nonempty_type.type
+instance PodDNSConfigOptionApplyConfiguration.nonempty : Nonempty PodDNSConfigOptionApplyConfiguration := PodDNSConfigOptionApplyConfiguration.nonempty_type.property
+opaque PodDNSConfigOptionApplyConfiguration.zero_val : ZeroVal PodDNSConfigOptionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDNSConfigOptionApplyConfiguration.zero_val
 
-axiom PodExtendedResourceClaimStatusApplyConfiguration : Type
-axiom PodExtendedResourceClaimStatusApplyConfiguration.zero_val : ZeroVal PodExtendedResourceClaimStatusApplyConfiguration
+opaque PodExtendedResourceClaimStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodExtendedResourceClaimStatusApplyConfiguration : Type := PodExtendedResourceClaimStatusApplyConfiguration.nonempty_type.type
+instance PodExtendedResourceClaimStatusApplyConfiguration.nonempty : Nonempty PodExtendedResourceClaimStatusApplyConfiguration := PodExtendedResourceClaimStatusApplyConfiguration.nonempty_type.property
+opaque PodExtendedResourceClaimStatusApplyConfiguration.zero_val : ZeroVal PodExtendedResourceClaimStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodExtendedResourceClaimStatusApplyConfiguration.zero_val
 
-axiom PodIPApplyConfiguration : Type
-axiom PodIPApplyConfiguration.zero_val : ZeroVal PodIPApplyConfiguration
+opaque PodIPApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodIPApplyConfiguration : Type := PodIPApplyConfiguration.nonempty_type.type
+instance PodIPApplyConfiguration.nonempty : Nonempty PodIPApplyConfiguration := PodIPApplyConfiguration.nonempty_type.property
+opaque PodIPApplyConfiguration.zero_val : ZeroVal PodIPApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodIPApplyConfiguration.zero_val
 
-axiom PodOSApplyConfiguration : Type
-axiom PodOSApplyConfiguration.zero_val : ZeroVal PodOSApplyConfiguration
+opaque PodOSApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodOSApplyConfiguration : Type := PodOSApplyConfiguration.nonempty_type.type
+instance PodOSApplyConfiguration.nonempty : Nonempty PodOSApplyConfiguration := PodOSApplyConfiguration.nonempty_type.property
+opaque PodOSApplyConfiguration.zero_val : ZeroVal PodOSApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodOSApplyConfiguration.zero_val
 
-axiom PodReadinessGateApplyConfiguration : Type
-axiom PodReadinessGateApplyConfiguration.zero_val : ZeroVal PodReadinessGateApplyConfiguration
+opaque PodReadinessGateApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodReadinessGateApplyConfiguration : Type := PodReadinessGateApplyConfiguration.nonempty_type.type
+instance PodReadinessGateApplyConfiguration.nonempty : Nonempty PodReadinessGateApplyConfiguration := PodReadinessGateApplyConfiguration.nonempty_type.property
+opaque PodReadinessGateApplyConfiguration.zero_val : ZeroVal PodReadinessGateApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodReadinessGateApplyConfiguration.zero_val
 
-axiom PodResourceClaimApplyConfiguration : Type
-axiom PodResourceClaimApplyConfiguration.zero_val : ZeroVal PodResourceClaimApplyConfiguration
+opaque PodResourceClaimApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodResourceClaimApplyConfiguration : Type := PodResourceClaimApplyConfiguration.nonempty_type.type
+instance PodResourceClaimApplyConfiguration.nonempty : Nonempty PodResourceClaimApplyConfiguration := PodResourceClaimApplyConfiguration.nonempty_type.property
+opaque PodResourceClaimApplyConfiguration.zero_val : ZeroVal PodResourceClaimApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodResourceClaimApplyConfiguration.zero_val
 
-axiom PodResourceClaimStatusApplyConfiguration : Type
-axiom PodResourceClaimStatusApplyConfiguration.zero_val : ZeroVal PodResourceClaimStatusApplyConfiguration
+opaque PodResourceClaimStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodResourceClaimStatusApplyConfiguration : Type := PodResourceClaimStatusApplyConfiguration.nonempty_type.type
+instance PodResourceClaimStatusApplyConfiguration.nonempty : Nonempty PodResourceClaimStatusApplyConfiguration := PodResourceClaimStatusApplyConfiguration.nonempty_type.property
+opaque PodResourceClaimStatusApplyConfiguration.zero_val : ZeroVal PodResourceClaimStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodResourceClaimStatusApplyConfiguration.zero_val
 
-axiom PodSchedulingGateApplyConfiguration : Type
-axiom PodSchedulingGateApplyConfiguration.zero_val : ZeroVal PodSchedulingGateApplyConfiguration
+opaque PodSchedulingGateApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodSchedulingGateApplyConfiguration : Type := PodSchedulingGateApplyConfiguration.nonempty_type.type
+instance PodSchedulingGateApplyConfiguration.nonempty : Nonempty PodSchedulingGateApplyConfiguration := PodSchedulingGateApplyConfiguration.nonempty_type.property
+opaque PodSchedulingGateApplyConfiguration.zero_val : ZeroVal PodSchedulingGateApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodSchedulingGateApplyConfiguration.zero_val
 
-axiom PodSchedulingGroupApplyConfiguration : Type
-axiom PodSchedulingGroupApplyConfiguration.zero_val : ZeroVal PodSchedulingGroupApplyConfiguration
+opaque PodSchedulingGroupApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodSchedulingGroupApplyConfiguration : Type := PodSchedulingGroupApplyConfiguration.nonempty_type.type
+instance PodSchedulingGroupApplyConfiguration.nonempty : Nonempty PodSchedulingGroupApplyConfiguration := PodSchedulingGroupApplyConfiguration.nonempty_type.property
+opaque PodSchedulingGroupApplyConfiguration.zero_val : ZeroVal PodSchedulingGroupApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodSchedulingGroupApplyConfiguration.zero_val
 
-axiom PodSecurityContextApplyConfiguration : Type
-axiom PodSecurityContextApplyConfiguration.zero_val : ZeroVal PodSecurityContextApplyConfiguration
+opaque PodSecurityContextApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodSecurityContextApplyConfiguration : Type := PodSecurityContextApplyConfiguration.nonempty_type.type
+instance PodSecurityContextApplyConfiguration.nonempty : Nonempty PodSecurityContextApplyConfiguration := PodSecurityContextApplyConfiguration.nonempty_type.property
+opaque PodSecurityContextApplyConfiguration.zero_val : ZeroVal PodSecurityContextApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodSecurityContextApplyConfiguration.zero_val
 
-axiom PodSpecApplyConfiguration : Type
-axiom PodSpecApplyConfiguration.zero_val : ZeroVal PodSpecApplyConfiguration
+opaque PodSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodSpecApplyConfiguration : Type := PodSpecApplyConfiguration.nonempty_type.type
+instance PodSpecApplyConfiguration.nonempty : Nonempty PodSpecApplyConfiguration := PodSpecApplyConfiguration.nonempty_type.property
+opaque PodSpecApplyConfiguration.zero_val : ZeroVal PodSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodSpecApplyConfiguration.zero_val
 
-axiom PodStatusApplyConfiguration : Type
-axiom PodStatusApplyConfiguration.zero_val : ZeroVal PodStatusApplyConfiguration
+opaque PodStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodStatusApplyConfiguration : Type := PodStatusApplyConfiguration.nonempty_type.type
+instance PodStatusApplyConfiguration.nonempty : Nonempty PodStatusApplyConfiguration := PodStatusApplyConfiguration.nonempty_type.property
+opaque PodStatusApplyConfiguration.zero_val : ZeroVal PodStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodStatusApplyConfiguration.zero_val
 
-axiom PodTemplateApplyConfiguration : Type
-axiom PodTemplateApplyConfiguration.zero_val : ZeroVal PodTemplateApplyConfiguration
+opaque PodTemplateApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodTemplateApplyConfiguration : Type := PodTemplateApplyConfiguration.nonempty_type.type
+instance PodTemplateApplyConfiguration.nonempty : Nonempty PodTemplateApplyConfiguration := PodTemplateApplyConfiguration.nonempty_type.property
+opaque PodTemplateApplyConfiguration.zero_val : ZeroVal PodTemplateApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodTemplateApplyConfiguration.zero_val
 
-axiom PodTemplateSpecApplyConfiguration : Type
-axiom PodTemplateSpecApplyConfiguration.zero_val : ZeroVal PodTemplateSpecApplyConfiguration
+opaque PodTemplateSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodTemplateSpecApplyConfiguration : Type := PodTemplateSpecApplyConfiguration.nonempty_type.type
+instance PodTemplateSpecApplyConfiguration.nonempty : Nonempty PodTemplateSpecApplyConfiguration := PodTemplateSpecApplyConfiguration.nonempty_type.property
+opaque PodTemplateSpecApplyConfiguration.zero_val : ZeroVal PodTemplateSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodTemplateSpecApplyConfiguration.zero_val
 
-axiom PodVolumeHealthApplyConfiguration : Type
-axiom PodVolumeHealthApplyConfiguration.zero_val : ZeroVal PodVolumeHealthApplyConfiguration
+opaque PodVolumeHealthApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PodVolumeHealthApplyConfiguration : Type := PodVolumeHealthApplyConfiguration.nonempty_type.type
+instance PodVolumeHealthApplyConfiguration.nonempty : Nonempty PodVolumeHealthApplyConfiguration := PodVolumeHealthApplyConfiguration.nonempty_type.property
+opaque PodVolumeHealthApplyConfiguration.zero_val : ZeroVal PodVolumeHealthApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PodVolumeHealthApplyConfiguration.zero_val
 
-axiom PortStatusApplyConfiguration : Type
-axiom PortStatusApplyConfiguration.zero_val : ZeroVal PortStatusApplyConfiguration
+opaque PortStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PortStatusApplyConfiguration : Type := PortStatusApplyConfiguration.nonempty_type.type
+instance PortStatusApplyConfiguration.nonempty : Nonempty PortStatusApplyConfiguration := PortStatusApplyConfiguration.nonempty_type.property
+opaque PortStatusApplyConfiguration.zero_val : ZeroVal PortStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PortStatusApplyConfiguration.zero_val
 
-axiom PortworxVolumeSourceApplyConfiguration : Type
-axiom PortworxVolumeSourceApplyConfiguration.zero_val : ZeroVal PortworxVolumeSourceApplyConfiguration
+opaque PortworxVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PortworxVolumeSourceApplyConfiguration : Type := PortworxVolumeSourceApplyConfiguration.nonempty_type.type
+instance PortworxVolumeSourceApplyConfiguration.nonempty : Nonempty PortworxVolumeSourceApplyConfiguration := PortworxVolumeSourceApplyConfiguration.nonempty_type.property
+opaque PortworxVolumeSourceApplyConfiguration.zero_val : ZeroVal PortworxVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PortworxVolumeSourceApplyConfiguration.zero_val
 
-axiom PreferredSchedulingTermApplyConfiguration : Type
-axiom PreferredSchedulingTermApplyConfiguration.zero_val : ZeroVal PreferredSchedulingTermApplyConfiguration
+opaque PreferredSchedulingTermApplyConfiguration.nonempty_type : NonemptyType.{0}
+def PreferredSchedulingTermApplyConfiguration : Type := PreferredSchedulingTermApplyConfiguration.nonempty_type.type
+instance PreferredSchedulingTermApplyConfiguration.nonempty : Nonempty PreferredSchedulingTermApplyConfiguration := PreferredSchedulingTermApplyConfiguration.nonempty_type.property
+opaque PreferredSchedulingTermApplyConfiguration.zero_val : ZeroVal PreferredSchedulingTermApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] PreferredSchedulingTermApplyConfiguration.zero_val
 
-axiom ProbeApplyConfiguration : Type
-axiom ProbeApplyConfiguration.zero_val : ZeroVal ProbeApplyConfiguration
+opaque ProbeApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ProbeApplyConfiguration : Type := ProbeApplyConfiguration.nonempty_type.type
+instance ProbeApplyConfiguration.nonempty : Nonempty ProbeApplyConfiguration := ProbeApplyConfiguration.nonempty_type.property
+opaque ProbeApplyConfiguration.zero_val : ZeroVal ProbeApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ProbeApplyConfiguration.zero_val
 
-axiom ProbeHandlerApplyConfiguration : Type
-axiom ProbeHandlerApplyConfiguration.zero_val : ZeroVal ProbeHandlerApplyConfiguration
+opaque ProbeHandlerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ProbeHandlerApplyConfiguration : Type := ProbeHandlerApplyConfiguration.nonempty_type.type
+instance ProbeHandlerApplyConfiguration.nonempty : Nonempty ProbeHandlerApplyConfiguration := ProbeHandlerApplyConfiguration.nonempty_type.property
+opaque ProbeHandlerApplyConfiguration.zero_val : ZeroVal ProbeHandlerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ProbeHandlerApplyConfiguration.zero_val
 
-axiom ProjectedVolumeSourceApplyConfiguration : Type
-axiom ProjectedVolumeSourceApplyConfiguration.zero_val : ZeroVal ProjectedVolumeSourceApplyConfiguration
+opaque ProjectedVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ProjectedVolumeSourceApplyConfiguration : Type := ProjectedVolumeSourceApplyConfiguration.nonempty_type.type
+instance ProjectedVolumeSourceApplyConfiguration.nonempty : Nonempty ProjectedVolumeSourceApplyConfiguration := ProjectedVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ProjectedVolumeSourceApplyConfiguration.zero_val : ZeroVal ProjectedVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ProjectedVolumeSourceApplyConfiguration.zero_val
 
-axiom QuobyteVolumeSourceApplyConfiguration : Type
-axiom QuobyteVolumeSourceApplyConfiguration.zero_val : ZeroVal QuobyteVolumeSourceApplyConfiguration
+opaque QuobyteVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def QuobyteVolumeSourceApplyConfiguration : Type := QuobyteVolumeSourceApplyConfiguration.nonempty_type.type
+instance QuobyteVolumeSourceApplyConfiguration.nonempty : Nonempty QuobyteVolumeSourceApplyConfiguration := QuobyteVolumeSourceApplyConfiguration.nonempty_type.property
+opaque QuobyteVolumeSourceApplyConfiguration.zero_val : ZeroVal QuobyteVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] QuobyteVolumeSourceApplyConfiguration.zero_val
 
-axiom RBDPersistentVolumeSourceApplyConfiguration : Type
-axiom RBDPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal RBDPersistentVolumeSourceApplyConfiguration
+opaque RBDPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def RBDPersistentVolumeSourceApplyConfiguration : Type := RBDPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance RBDPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty RBDPersistentVolumeSourceApplyConfiguration := RBDPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque RBDPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal RBDPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] RBDPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom RBDVolumeSourceApplyConfiguration : Type
-axiom RBDVolumeSourceApplyConfiguration.zero_val : ZeroVal RBDVolumeSourceApplyConfiguration
+opaque RBDVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def RBDVolumeSourceApplyConfiguration : Type := RBDVolumeSourceApplyConfiguration.nonempty_type.type
+instance RBDVolumeSourceApplyConfiguration.nonempty : Nonempty RBDVolumeSourceApplyConfiguration := RBDVolumeSourceApplyConfiguration.nonempty_type.property
+opaque RBDVolumeSourceApplyConfiguration.zero_val : ZeroVal RBDVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] RBDVolumeSourceApplyConfiguration.zero_val
 
-axiom ReplicationControllerApplyConfiguration : Type
-axiom ReplicationControllerApplyConfiguration.zero_val : ZeroVal ReplicationControllerApplyConfiguration
+opaque ReplicationControllerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicationControllerApplyConfiguration : Type := ReplicationControllerApplyConfiguration.nonempty_type.type
+instance ReplicationControllerApplyConfiguration.nonempty : Nonempty ReplicationControllerApplyConfiguration := ReplicationControllerApplyConfiguration.nonempty_type.property
+opaque ReplicationControllerApplyConfiguration.zero_val : ZeroVal ReplicationControllerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicationControllerApplyConfiguration.zero_val
 
-axiom ReplicationControllerConditionApplyConfiguration : Type
-axiom ReplicationControllerConditionApplyConfiguration.zero_val : ZeroVal ReplicationControllerConditionApplyConfiguration
+opaque ReplicationControllerConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicationControllerConditionApplyConfiguration : Type := ReplicationControllerConditionApplyConfiguration.nonempty_type.type
+instance ReplicationControllerConditionApplyConfiguration.nonempty : Nonempty ReplicationControllerConditionApplyConfiguration := ReplicationControllerConditionApplyConfiguration.nonempty_type.property
+opaque ReplicationControllerConditionApplyConfiguration.zero_val : ZeroVal ReplicationControllerConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicationControllerConditionApplyConfiguration.zero_val
 
-axiom ReplicationControllerSpecApplyConfiguration : Type
-axiom ReplicationControllerSpecApplyConfiguration.zero_val : ZeroVal ReplicationControllerSpecApplyConfiguration
+opaque ReplicationControllerSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicationControllerSpecApplyConfiguration : Type := ReplicationControllerSpecApplyConfiguration.nonempty_type.type
+instance ReplicationControllerSpecApplyConfiguration.nonempty : Nonempty ReplicationControllerSpecApplyConfiguration := ReplicationControllerSpecApplyConfiguration.nonempty_type.property
+opaque ReplicationControllerSpecApplyConfiguration.zero_val : ZeroVal ReplicationControllerSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicationControllerSpecApplyConfiguration.zero_val
 
-axiom ReplicationControllerStatusApplyConfiguration : Type
-axiom ReplicationControllerStatusApplyConfiguration.zero_val : ZeroVal ReplicationControllerStatusApplyConfiguration
+opaque ReplicationControllerStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicationControllerStatusApplyConfiguration : Type := ReplicationControllerStatusApplyConfiguration.nonempty_type.type
+instance ReplicationControllerStatusApplyConfiguration.nonempty : Nonempty ReplicationControllerStatusApplyConfiguration := ReplicationControllerStatusApplyConfiguration.nonempty_type.property
+opaque ReplicationControllerStatusApplyConfiguration.zero_val : ZeroVal ReplicationControllerStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicationControllerStatusApplyConfiguration.zero_val
 
-axiom ResourceClaimApplyConfiguration : Type
-axiom ResourceClaimApplyConfiguration.zero_val : ZeroVal ResourceClaimApplyConfiguration
+opaque ResourceClaimApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceClaimApplyConfiguration : Type := ResourceClaimApplyConfiguration.nonempty_type.type
+instance ResourceClaimApplyConfiguration.nonempty : Nonempty ResourceClaimApplyConfiguration := ResourceClaimApplyConfiguration.nonempty_type.property
+opaque ResourceClaimApplyConfiguration.zero_val : ZeroVal ResourceClaimApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimApplyConfiguration.zero_val
 
-axiom ResourceFieldSelectorApplyConfiguration : Type
-axiom ResourceFieldSelectorApplyConfiguration.zero_val : ZeroVal ResourceFieldSelectorApplyConfiguration
+opaque ResourceFieldSelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceFieldSelectorApplyConfiguration : Type := ResourceFieldSelectorApplyConfiguration.nonempty_type.type
+instance ResourceFieldSelectorApplyConfiguration.nonempty : Nonempty ResourceFieldSelectorApplyConfiguration := ResourceFieldSelectorApplyConfiguration.nonempty_type.property
+opaque ResourceFieldSelectorApplyConfiguration.zero_val : ZeroVal ResourceFieldSelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceFieldSelectorApplyConfiguration.zero_val
 
-axiom ResourceHealthApplyConfiguration : Type
-axiom ResourceHealthApplyConfiguration.zero_val : ZeroVal ResourceHealthApplyConfiguration
+opaque ResourceHealthApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceHealthApplyConfiguration : Type := ResourceHealthApplyConfiguration.nonempty_type.type
+instance ResourceHealthApplyConfiguration.nonempty : Nonempty ResourceHealthApplyConfiguration := ResourceHealthApplyConfiguration.nonempty_type.property
+opaque ResourceHealthApplyConfiguration.zero_val : ZeroVal ResourceHealthApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceHealthApplyConfiguration.zero_val
 
-axiom ResourceQuotaApplyConfiguration : Type
-axiom ResourceQuotaApplyConfiguration.zero_val : ZeroVal ResourceQuotaApplyConfiguration
+opaque ResourceQuotaApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceQuotaApplyConfiguration : Type := ResourceQuotaApplyConfiguration.nonempty_type.type
+instance ResourceQuotaApplyConfiguration.nonempty : Nonempty ResourceQuotaApplyConfiguration := ResourceQuotaApplyConfiguration.nonempty_type.property
+opaque ResourceQuotaApplyConfiguration.zero_val : ZeroVal ResourceQuotaApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceQuotaApplyConfiguration.zero_val
 
-axiom ResourceQuotaSpecApplyConfiguration : Type
-axiom ResourceQuotaSpecApplyConfiguration.zero_val : ZeroVal ResourceQuotaSpecApplyConfiguration
+opaque ResourceQuotaSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceQuotaSpecApplyConfiguration : Type := ResourceQuotaSpecApplyConfiguration.nonempty_type.type
+instance ResourceQuotaSpecApplyConfiguration.nonempty : Nonempty ResourceQuotaSpecApplyConfiguration := ResourceQuotaSpecApplyConfiguration.nonempty_type.property
+opaque ResourceQuotaSpecApplyConfiguration.zero_val : ZeroVal ResourceQuotaSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceQuotaSpecApplyConfiguration.zero_val
 
-axiom ResourceQuotaStatusApplyConfiguration : Type
-axiom ResourceQuotaStatusApplyConfiguration.zero_val : ZeroVal ResourceQuotaStatusApplyConfiguration
+opaque ResourceQuotaStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceQuotaStatusApplyConfiguration : Type := ResourceQuotaStatusApplyConfiguration.nonempty_type.type
+instance ResourceQuotaStatusApplyConfiguration.nonempty : Nonempty ResourceQuotaStatusApplyConfiguration := ResourceQuotaStatusApplyConfiguration.nonempty_type.property
+opaque ResourceQuotaStatusApplyConfiguration.zero_val : ZeroVal ResourceQuotaStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceQuotaStatusApplyConfiguration.zero_val
 
-axiom ResourceRequirementsApplyConfiguration : Type
-axiom ResourceRequirementsApplyConfiguration.zero_val : ZeroVal ResourceRequirementsApplyConfiguration
+opaque ResourceRequirementsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceRequirementsApplyConfiguration : Type := ResourceRequirementsApplyConfiguration.nonempty_type.type
+instance ResourceRequirementsApplyConfiguration.nonempty : Nonempty ResourceRequirementsApplyConfiguration := ResourceRequirementsApplyConfiguration.nonempty_type.property
+opaque ResourceRequirementsApplyConfiguration.zero_val : ZeroVal ResourceRequirementsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceRequirementsApplyConfiguration.zero_val
 
-axiom ResourceStatusApplyConfiguration : Type
-axiom ResourceStatusApplyConfiguration.zero_val : ZeroVal ResourceStatusApplyConfiguration
+opaque ResourceStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ResourceStatusApplyConfiguration : Type := ResourceStatusApplyConfiguration.nonempty_type.type
+instance ResourceStatusApplyConfiguration.nonempty : Nonempty ResourceStatusApplyConfiguration := ResourceStatusApplyConfiguration.nonempty_type.property
+opaque ResourceStatusApplyConfiguration.zero_val : ZeroVal ResourceStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceStatusApplyConfiguration.zero_val
 
-axiom ScaleIOPersistentVolumeSourceApplyConfiguration : Type
-axiom ScaleIOPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal ScaleIOPersistentVolumeSourceApplyConfiguration
+opaque ScaleIOPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScaleIOPersistentVolumeSourceApplyConfiguration : Type := ScaleIOPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance ScaleIOPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty ScaleIOPersistentVolumeSourceApplyConfiguration := ScaleIOPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ScaleIOPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal ScaleIOPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleIOPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom ScaleIOVolumeSourceApplyConfiguration : Type
-axiom ScaleIOVolumeSourceApplyConfiguration.zero_val : ZeroVal ScaleIOVolumeSourceApplyConfiguration
+opaque ScaleIOVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScaleIOVolumeSourceApplyConfiguration : Type := ScaleIOVolumeSourceApplyConfiguration.nonempty_type.type
+instance ScaleIOVolumeSourceApplyConfiguration.nonempty : Nonempty ScaleIOVolumeSourceApplyConfiguration := ScaleIOVolumeSourceApplyConfiguration.nonempty_type.property
+opaque ScaleIOVolumeSourceApplyConfiguration.zero_val : ZeroVal ScaleIOVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleIOVolumeSourceApplyConfiguration.zero_val
 
-axiom ScopedResourceSelectorRequirementApplyConfiguration : Type
-axiom ScopedResourceSelectorRequirementApplyConfiguration.zero_val : ZeroVal ScopedResourceSelectorRequirementApplyConfiguration
+opaque ScopedResourceSelectorRequirementApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScopedResourceSelectorRequirementApplyConfiguration : Type := ScopedResourceSelectorRequirementApplyConfiguration.nonempty_type.type
+instance ScopedResourceSelectorRequirementApplyConfiguration.nonempty : Nonempty ScopedResourceSelectorRequirementApplyConfiguration := ScopedResourceSelectorRequirementApplyConfiguration.nonempty_type.property
+opaque ScopedResourceSelectorRequirementApplyConfiguration.zero_val : ZeroVal ScopedResourceSelectorRequirementApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScopedResourceSelectorRequirementApplyConfiguration.zero_val
 
-axiom ScopeSelectorApplyConfiguration : Type
-axiom ScopeSelectorApplyConfiguration.zero_val : ZeroVal ScopeSelectorApplyConfiguration
+opaque ScopeSelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScopeSelectorApplyConfiguration : Type := ScopeSelectorApplyConfiguration.nonempty_type.type
+instance ScopeSelectorApplyConfiguration.nonempty : Nonempty ScopeSelectorApplyConfiguration := ScopeSelectorApplyConfiguration.nonempty_type.property
+opaque ScopeSelectorApplyConfiguration.zero_val : ZeroVal ScopeSelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScopeSelectorApplyConfiguration.zero_val
 
-axiom SeccompProfileApplyConfiguration : Type
-axiom SeccompProfileApplyConfiguration.zero_val : ZeroVal SeccompProfileApplyConfiguration
+opaque SeccompProfileApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SeccompProfileApplyConfiguration : Type := SeccompProfileApplyConfiguration.nonempty_type.type
+instance SeccompProfileApplyConfiguration.nonempty : Nonempty SeccompProfileApplyConfiguration := SeccompProfileApplyConfiguration.nonempty_type.property
+opaque SeccompProfileApplyConfiguration.zero_val : ZeroVal SeccompProfileApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SeccompProfileApplyConfiguration.zero_val
 
-axiom SecretApplyConfiguration : Type
-axiom SecretApplyConfiguration.zero_val : ZeroVal SecretApplyConfiguration
+opaque SecretApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecretApplyConfiguration : Type := SecretApplyConfiguration.nonempty_type.type
+instance SecretApplyConfiguration.nonempty : Nonempty SecretApplyConfiguration := SecretApplyConfiguration.nonempty_type.property
+opaque SecretApplyConfiguration.zero_val : ZeroVal SecretApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecretApplyConfiguration.zero_val
 
-axiom SecretEnvSourceApplyConfiguration : Type
-axiom SecretEnvSourceApplyConfiguration.zero_val : ZeroVal SecretEnvSourceApplyConfiguration
+opaque SecretEnvSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecretEnvSourceApplyConfiguration : Type := SecretEnvSourceApplyConfiguration.nonempty_type.type
+instance SecretEnvSourceApplyConfiguration.nonempty : Nonempty SecretEnvSourceApplyConfiguration := SecretEnvSourceApplyConfiguration.nonempty_type.property
+opaque SecretEnvSourceApplyConfiguration.zero_val : ZeroVal SecretEnvSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecretEnvSourceApplyConfiguration.zero_val
 
-axiom SecretKeySelectorApplyConfiguration : Type
-axiom SecretKeySelectorApplyConfiguration.zero_val : ZeroVal SecretKeySelectorApplyConfiguration
+opaque SecretKeySelectorApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecretKeySelectorApplyConfiguration : Type := SecretKeySelectorApplyConfiguration.nonempty_type.type
+instance SecretKeySelectorApplyConfiguration.nonempty : Nonempty SecretKeySelectorApplyConfiguration := SecretKeySelectorApplyConfiguration.nonempty_type.property
+opaque SecretKeySelectorApplyConfiguration.zero_val : ZeroVal SecretKeySelectorApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecretKeySelectorApplyConfiguration.zero_val
 
-axiom SecretProjectionApplyConfiguration : Type
-axiom SecretProjectionApplyConfiguration.zero_val : ZeroVal SecretProjectionApplyConfiguration
+opaque SecretProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecretProjectionApplyConfiguration : Type := SecretProjectionApplyConfiguration.nonempty_type.type
+instance SecretProjectionApplyConfiguration.nonempty : Nonempty SecretProjectionApplyConfiguration := SecretProjectionApplyConfiguration.nonempty_type.property
+opaque SecretProjectionApplyConfiguration.zero_val : ZeroVal SecretProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecretProjectionApplyConfiguration.zero_val
 
-axiom SecretReferenceApplyConfiguration : Type
-axiom SecretReferenceApplyConfiguration.zero_val : ZeroVal SecretReferenceApplyConfiguration
+opaque SecretReferenceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecretReferenceApplyConfiguration : Type := SecretReferenceApplyConfiguration.nonempty_type.type
+instance SecretReferenceApplyConfiguration.nonempty : Nonempty SecretReferenceApplyConfiguration := SecretReferenceApplyConfiguration.nonempty_type.property
+opaque SecretReferenceApplyConfiguration.zero_val : ZeroVal SecretReferenceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecretReferenceApplyConfiguration.zero_val
 
-axiom SecretVolumeSourceApplyConfiguration : Type
-axiom SecretVolumeSourceApplyConfiguration.zero_val : ZeroVal SecretVolumeSourceApplyConfiguration
+opaque SecretVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecretVolumeSourceApplyConfiguration : Type := SecretVolumeSourceApplyConfiguration.nonempty_type.type
+instance SecretVolumeSourceApplyConfiguration.nonempty : Nonempty SecretVolumeSourceApplyConfiguration := SecretVolumeSourceApplyConfiguration.nonempty_type.property
+opaque SecretVolumeSourceApplyConfiguration.zero_val : ZeroVal SecretVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecretVolumeSourceApplyConfiguration.zero_val
 
-axiom SecurityContextApplyConfiguration : Type
-axiom SecurityContextApplyConfiguration.zero_val : ZeroVal SecurityContextApplyConfiguration
+opaque SecurityContextApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SecurityContextApplyConfiguration : Type := SecurityContextApplyConfiguration.nonempty_type.type
+instance SecurityContextApplyConfiguration.nonempty : Nonempty SecurityContextApplyConfiguration := SecurityContextApplyConfiguration.nonempty_type.property
+opaque SecurityContextApplyConfiguration.zero_val : ZeroVal SecurityContextApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SecurityContextApplyConfiguration.zero_val
 
-axiom SELinuxOptionsApplyConfiguration : Type
-axiom SELinuxOptionsApplyConfiguration.zero_val : ZeroVal SELinuxOptionsApplyConfiguration
+opaque SELinuxOptionsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SELinuxOptionsApplyConfiguration : Type := SELinuxOptionsApplyConfiguration.nonempty_type.type
+instance SELinuxOptionsApplyConfiguration.nonempty : Nonempty SELinuxOptionsApplyConfiguration := SELinuxOptionsApplyConfiguration.nonempty_type.property
+opaque SELinuxOptionsApplyConfiguration.zero_val : ZeroVal SELinuxOptionsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SELinuxOptionsApplyConfiguration.zero_val
 
-axiom ServiceApplyConfiguration : Type
-axiom ServiceApplyConfiguration.zero_val : ZeroVal ServiceApplyConfiguration
+opaque ServiceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ServiceApplyConfiguration : Type := ServiceApplyConfiguration.nonempty_type.type
+instance ServiceApplyConfiguration.nonempty : Nonempty ServiceApplyConfiguration := ServiceApplyConfiguration.nonempty_type.property
+opaque ServiceApplyConfiguration.zero_val : ZeroVal ServiceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceApplyConfiguration.zero_val
 
-axiom ServiceAccountApplyConfiguration : Type
-axiom ServiceAccountApplyConfiguration.zero_val : ZeroVal ServiceAccountApplyConfiguration
+opaque ServiceAccountApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ServiceAccountApplyConfiguration : Type := ServiceAccountApplyConfiguration.nonempty_type.type
+instance ServiceAccountApplyConfiguration.nonempty : Nonempty ServiceAccountApplyConfiguration := ServiceAccountApplyConfiguration.nonempty_type.property
+opaque ServiceAccountApplyConfiguration.zero_val : ZeroVal ServiceAccountApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceAccountApplyConfiguration.zero_val
 
-axiom ServiceAccountTokenProjectionApplyConfiguration : Type
-axiom ServiceAccountTokenProjectionApplyConfiguration.zero_val : ZeroVal ServiceAccountTokenProjectionApplyConfiguration
+opaque ServiceAccountTokenProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ServiceAccountTokenProjectionApplyConfiguration : Type := ServiceAccountTokenProjectionApplyConfiguration.nonempty_type.type
+instance ServiceAccountTokenProjectionApplyConfiguration.nonempty : Nonempty ServiceAccountTokenProjectionApplyConfiguration := ServiceAccountTokenProjectionApplyConfiguration.nonempty_type.property
+opaque ServiceAccountTokenProjectionApplyConfiguration.zero_val : ZeroVal ServiceAccountTokenProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceAccountTokenProjectionApplyConfiguration.zero_val
 
-axiom ServicePortApplyConfiguration : Type
-axiom ServicePortApplyConfiguration.zero_val : ZeroVal ServicePortApplyConfiguration
+opaque ServicePortApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ServicePortApplyConfiguration : Type := ServicePortApplyConfiguration.nonempty_type.type
+instance ServicePortApplyConfiguration.nonempty : Nonempty ServicePortApplyConfiguration := ServicePortApplyConfiguration.nonempty_type.property
+opaque ServicePortApplyConfiguration.zero_val : ZeroVal ServicePortApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ServicePortApplyConfiguration.zero_val
 
-axiom ServiceSpecApplyConfiguration : Type
-axiom ServiceSpecApplyConfiguration.zero_val : ZeroVal ServiceSpecApplyConfiguration
+opaque ServiceSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ServiceSpecApplyConfiguration : Type := ServiceSpecApplyConfiguration.nonempty_type.type
+instance ServiceSpecApplyConfiguration.nonempty : Nonempty ServiceSpecApplyConfiguration := ServiceSpecApplyConfiguration.nonempty_type.property
+opaque ServiceSpecApplyConfiguration.zero_val : ZeroVal ServiceSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceSpecApplyConfiguration.zero_val
 
-axiom ServiceStatusApplyConfiguration : Type
-axiom ServiceStatusApplyConfiguration.zero_val : ZeroVal ServiceStatusApplyConfiguration
+opaque ServiceStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ServiceStatusApplyConfiguration : Type := ServiceStatusApplyConfiguration.nonempty_type.type
+instance ServiceStatusApplyConfiguration.nonempty : Nonempty ServiceStatusApplyConfiguration := ServiceStatusApplyConfiguration.nonempty_type.property
+opaque ServiceStatusApplyConfiguration.zero_val : ZeroVal ServiceStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ServiceStatusApplyConfiguration.zero_val
 
-axiom SessionAffinityConfigApplyConfiguration : Type
-axiom SessionAffinityConfigApplyConfiguration.zero_val : ZeroVal SessionAffinityConfigApplyConfiguration
+opaque SessionAffinityConfigApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SessionAffinityConfigApplyConfiguration : Type := SessionAffinityConfigApplyConfiguration.nonempty_type.type
+instance SessionAffinityConfigApplyConfiguration.nonempty : Nonempty SessionAffinityConfigApplyConfiguration := SessionAffinityConfigApplyConfiguration.nonempty_type.property
+opaque SessionAffinityConfigApplyConfiguration.zero_val : ZeroVal SessionAffinityConfigApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SessionAffinityConfigApplyConfiguration.zero_val
 
-axiom SleepActionApplyConfiguration : Type
-axiom SleepActionApplyConfiguration.zero_val : ZeroVal SleepActionApplyConfiguration
+opaque SleepActionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SleepActionApplyConfiguration : Type := SleepActionApplyConfiguration.nonempty_type.type
+instance SleepActionApplyConfiguration.nonempty : Nonempty SleepActionApplyConfiguration := SleepActionApplyConfiguration.nonempty_type.property
+opaque SleepActionApplyConfiguration.zero_val : ZeroVal SleepActionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SleepActionApplyConfiguration.zero_val
 
-axiom StorageOSPersistentVolumeSourceApplyConfiguration : Type
-axiom StorageOSPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal StorageOSPersistentVolumeSourceApplyConfiguration
+opaque StorageOSPersistentVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StorageOSPersistentVolumeSourceApplyConfiguration : Type := StorageOSPersistentVolumeSourceApplyConfiguration.nonempty_type.type
+instance StorageOSPersistentVolumeSourceApplyConfiguration.nonempty : Nonempty StorageOSPersistentVolumeSourceApplyConfiguration := StorageOSPersistentVolumeSourceApplyConfiguration.nonempty_type.property
+opaque StorageOSPersistentVolumeSourceApplyConfiguration.zero_val : ZeroVal StorageOSPersistentVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageOSPersistentVolumeSourceApplyConfiguration.zero_val
 
-axiom StorageOSVolumeSourceApplyConfiguration : Type
-axiom StorageOSVolumeSourceApplyConfiguration.zero_val : ZeroVal StorageOSVolumeSourceApplyConfiguration
+opaque StorageOSVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StorageOSVolumeSourceApplyConfiguration : Type := StorageOSVolumeSourceApplyConfiguration.nonempty_type.type
+instance StorageOSVolumeSourceApplyConfiguration.nonempty : Nonempty StorageOSVolumeSourceApplyConfiguration := StorageOSVolumeSourceApplyConfiguration.nonempty_type.property
+opaque StorageOSVolumeSourceApplyConfiguration.zero_val : ZeroVal StorageOSVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageOSVolumeSourceApplyConfiguration.zero_val
 
-axiom SysctlApplyConfiguration : Type
-axiom SysctlApplyConfiguration.zero_val : ZeroVal SysctlApplyConfiguration
+opaque SysctlApplyConfiguration.nonempty_type : NonemptyType.{0}
+def SysctlApplyConfiguration : Type := SysctlApplyConfiguration.nonempty_type.type
+instance SysctlApplyConfiguration.nonempty : Nonempty SysctlApplyConfiguration := SysctlApplyConfiguration.nonempty_type.property
+opaque SysctlApplyConfiguration.zero_val : ZeroVal SysctlApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] SysctlApplyConfiguration.zero_val
 
-axiom TaintApplyConfiguration : Type
-axiom TaintApplyConfiguration.zero_val : ZeroVal TaintApplyConfiguration
+opaque TaintApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TaintApplyConfiguration : Type := TaintApplyConfiguration.nonempty_type.type
+instance TaintApplyConfiguration.nonempty : Nonempty TaintApplyConfiguration := TaintApplyConfiguration.nonempty_type.property
+opaque TaintApplyConfiguration.zero_val : ZeroVal TaintApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TaintApplyConfiguration.zero_val
 
-axiom TCPSocketActionApplyConfiguration : Type
-axiom TCPSocketActionApplyConfiguration.zero_val : ZeroVal TCPSocketActionApplyConfiguration
+opaque TCPSocketActionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TCPSocketActionApplyConfiguration : Type := TCPSocketActionApplyConfiguration.nonempty_type.type
+instance TCPSocketActionApplyConfiguration.nonempty : Nonempty TCPSocketActionApplyConfiguration := TCPSocketActionApplyConfiguration.nonempty_type.property
+opaque TCPSocketActionApplyConfiguration.zero_val : ZeroVal TCPSocketActionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TCPSocketActionApplyConfiguration.zero_val
 
-axiom TolerationApplyConfiguration : Type
-axiom TolerationApplyConfiguration.zero_val : ZeroVal TolerationApplyConfiguration
+opaque TolerationApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TolerationApplyConfiguration : Type := TolerationApplyConfiguration.nonempty_type.type
+instance TolerationApplyConfiguration.nonempty : Nonempty TolerationApplyConfiguration := TolerationApplyConfiguration.nonempty_type.property
+opaque TolerationApplyConfiguration.zero_val : ZeroVal TolerationApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TolerationApplyConfiguration.zero_val
 
-axiom TopologySelectorLabelRequirementApplyConfiguration : Type
-axiom TopologySelectorLabelRequirementApplyConfiguration.zero_val : ZeroVal TopologySelectorLabelRequirementApplyConfiguration
+opaque TopologySelectorLabelRequirementApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TopologySelectorLabelRequirementApplyConfiguration : Type := TopologySelectorLabelRequirementApplyConfiguration.nonempty_type.type
+instance TopologySelectorLabelRequirementApplyConfiguration.nonempty : Nonempty TopologySelectorLabelRequirementApplyConfiguration := TopologySelectorLabelRequirementApplyConfiguration.nonempty_type.property
+opaque TopologySelectorLabelRequirementApplyConfiguration.zero_val : ZeroVal TopologySelectorLabelRequirementApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TopologySelectorLabelRequirementApplyConfiguration.zero_val
 
-axiom TopologySelectorTermApplyConfiguration : Type
-axiom TopologySelectorTermApplyConfiguration.zero_val : ZeroVal TopologySelectorTermApplyConfiguration
+opaque TopologySelectorTermApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TopologySelectorTermApplyConfiguration : Type := TopologySelectorTermApplyConfiguration.nonempty_type.type
+instance TopologySelectorTermApplyConfiguration.nonempty : Nonempty TopologySelectorTermApplyConfiguration := TopologySelectorTermApplyConfiguration.nonempty_type.property
+opaque TopologySelectorTermApplyConfiguration.zero_val : ZeroVal TopologySelectorTermApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TopologySelectorTermApplyConfiguration.zero_val
 
-axiom TopologySpreadConstraintApplyConfiguration : Type
-axiom TopologySpreadConstraintApplyConfiguration.zero_val : ZeroVal TopologySpreadConstraintApplyConfiguration
+opaque TopologySpreadConstraintApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TopologySpreadConstraintApplyConfiguration : Type := TopologySpreadConstraintApplyConfiguration.nonempty_type.type
+instance TopologySpreadConstraintApplyConfiguration.nonempty : Nonempty TopologySpreadConstraintApplyConfiguration := TopologySpreadConstraintApplyConfiguration.nonempty_type.property
+opaque TopologySpreadConstraintApplyConfiguration.zero_val : ZeroVal TopologySpreadConstraintApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TopologySpreadConstraintApplyConfiguration.zero_val
 
-axiom TypedLocalObjectReferenceApplyConfiguration : Type
-axiom TypedLocalObjectReferenceApplyConfiguration.zero_val : ZeroVal TypedLocalObjectReferenceApplyConfiguration
+opaque TypedLocalObjectReferenceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TypedLocalObjectReferenceApplyConfiguration : Type := TypedLocalObjectReferenceApplyConfiguration.nonempty_type.type
+instance TypedLocalObjectReferenceApplyConfiguration.nonempty : Nonempty TypedLocalObjectReferenceApplyConfiguration := TypedLocalObjectReferenceApplyConfiguration.nonempty_type.property
+opaque TypedLocalObjectReferenceApplyConfiguration.zero_val : ZeroVal TypedLocalObjectReferenceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TypedLocalObjectReferenceApplyConfiguration.zero_val
 
-axiom TypedObjectReferenceApplyConfiguration : Type
-axiom TypedObjectReferenceApplyConfiguration.zero_val : ZeroVal TypedObjectReferenceApplyConfiguration
+opaque TypedObjectReferenceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def TypedObjectReferenceApplyConfiguration : Type := TypedObjectReferenceApplyConfiguration.nonempty_type.type
+instance TypedObjectReferenceApplyConfiguration.nonempty : Nonempty TypedObjectReferenceApplyConfiguration := TypedObjectReferenceApplyConfiguration.nonempty_type.property
+opaque TypedObjectReferenceApplyConfiguration.zero_val : ZeroVal TypedObjectReferenceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] TypedObjectReferenceApplyConfiguration.zero_val
 
-axiom VolumeApplyConfiguration : Type
-axiom VolumeApplyConfiguration.zero_val : ZeroVal VolumeApplyConfiguration
+opaque VolumeApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeApplyConfiguration : Type := VolumeApplyConfiguration.nonempty_type.type
+instance VolumeApplyConfiguration.nonempty : Nonempty VolumeApplyConfiguration := VolumeApplyConfiguration.nonempty_type.property
+opaque VolumeApplyConfiguration.zero_val : ZeroVal VolumeApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeApplyConfiguration.zero_val
 
-axiom VolumeDeviceApplyConfiguration : Type
-axiom VolumeDeviceApplyConfiguration.zero_val : ZeroVal VolumeDeviceApplyConfiguration
+opaque VolumeDeviceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeDeviceApplyConfiguration : Type := VolumeDeviceApplyConfiguration.nonempty_type.type
+instance VolumeDeviceApplyConfiguration.nonempty : Nonempty VolumeDeviceApplyConfiguration := VolumeDeviceApplyConfiguration.nonempty_type.property
+opaque VolumeDeviceApplyConfiguration.zero_val : ZeroVal VolumeDeviceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeDeviceApplyConfiguration.zero_val
 
-axiom VolumeHealthConditionApplyConfiguration : Type
-axiom VolumeHealthConditionApplyConfiguration.zero_val : ZeroVal VolumeHealthConditionApplyConfiguration
+opaque VolumeHealthConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeHealthConditionApplyConfiguration : Type := VolumeHealthConditionApplyConfiguration.nonempty_type.type
+instance VolumeHealthConditionApplyConfiguration.nonempty : Nonempty VolumeHealthConditionApplyConfiguration := VolumeHealthConditionApplyConfiguration.nonempty_type.property
+opaque VolumeHealthConditionApplyConfiguration.zero_val : ZeroVal VolumeHealthConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeHealthConditionApplyConfiguration.zero_val
 
-axiom VolumeHealthStatusApplyConfiguration : Type
-axiom VolumeHealthStatusApplyConfiguration.zero_val : ZeroVal VolumeHealthStatusApplyConfiguration
+opaque VolumeHealthStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeHealthStatusApplyConfiguration : Type := VolumeHealthStatusApplyConfiguration.nonempty_type.type
+instance VolumeHealthStatusApplyConfiguration.nonempty : Nonempty VolumeHealthStatusApplyConfiguration := VolumeHealthStatusApplyConfiguration.nonempty_type.property
+opaque VolumeHealthStatusApplyConfiguration.zero_val : ZeroVal VolumeHealthStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeHealthStatusApplyConfiguration.zero_val
 
-axiom VolumeMountApplyConfiguration : Type
-axiom VolumeMountApplyConfiguration.zero_val : ZeroVal VolumeMountApplyConfiguration
+opaque VolumeMountApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeMountApplyConfiguration : Type := VolumeMountApplyConfiguration.nonempty_type.type
+instance VolumeMountApplyConfiguration.nonempty : Nonempty VolumeMountApplyConfiguration := VolumeMountApplyConfiguration.nonempty_type.property
+opaque VolumeMountApplyConfiguration.zero_val : ZeroVal VolumeMountApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeMountApplyConfiguration.zero_val
 
-axiom VolumeMountStatusApplyConfiguration : Type
-axiom VolumeMountStatusApplyConfiguration.zero_val : ZeroVal VolumeMountStatusApplyConfiguration
+opaque VolumeMountStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeMountStatusApplyConfiguration : Type := VolumeMountStatusApplyConfiguration.nonempty_type.type
+instance VolumeMountStatusApplyConfiguration.nonempty : Nonempty VolumeMountStatusApplyConfiguration := VolumeMountStatusApplyConfiguration.nonempty_type.property
+opaque VolumeMountStatusApplyConfiguration.zero_val : ZeroVal VolumeMountStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeMountStatusApplyConfiguration.zero_val
 
-axiom VolumeNodeAffinityApplyConfiguration : Type
-axiom VolumeNodeAffinityApplyConfiguration.zero_val : ZeroVal VolumeNodeAffinityApplyConfiguration
+opaque VolumeNodeAffinityApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeNodeAffinityApplyConfiguration : Type := VolumeNodeAffinityApplyConfiguration.nonempty_type.type
+instance VolumeNodeAffinityApplyConfiguration.nonempty : Nonempty VolumeNodeAffinityApplyConfiguration := VolumeNodeAffinityApplyConfiguration.nonempty_type.property
+opaque VolumeNodeAffinityApplyConfiguration.zero_val : ZeroVal VolumeNodeAffinityApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeNodeAffinityApplyConfiguration.zero_val
 
-axiom VolumeProjectionApplyConfiguration : Type
-axiom VolumeProjectionApplyConfiguration.zero_val : ZeroVal VolumeProjectionApplyConfiguration
+opaque VolumeProjectionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeProjectionApplyConfiguration : Type := VolumeProjectionApplyConfiguration.nonempty_type.type
+instance VolumeProjectionApplyConfiguration.nonempty : Nonempty VolumeProjectionApplyConfiguration := VolumeProjectionApplyConfiguration.nonempty_type.property
+opaque VolumeProjectionApplyConfiguration.zero_val : ZeroVal VolumeProjectionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeProjectionApplyConfiguration.zero_val
 
-axiom VolumeResourceRequirementsApplyConfiguration : Type
-axiom VolumeResourceRequirementsApplyConfiguration.zero_val : ZeroVal VolumeResourceRequirementsApplyConfiguration
+opaque VolumeResourceRequirementsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeResourceRequirementsApplyConfiguration : Type := VolumeResourceRequirementsApplyConfiguration.nonempty_type.type
+instance VolumeResourceRequirementsApplyConfiguration.nonempty : Nonempty VolumeResourceRequirementsApplyConfiguration := VolumeResourceRequirementsApplyConfiguration.nonempty_type.property
+opaque VolumeResourceRequirementsApplyConfiguration.zero_val : ZeroVal VolumeResourceRequirementsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeResourceRequirementsApplyConfiguration.zero_val
 
-axiom VolumeSourceApplyConfiguration : Type
-axiom VolumeSourceApplyConfiguration.zero_val : ZeroVal VolumeSourceApplyConfiguration
+opaque VolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeSourceApplyConfiguration : Type := VolumeSourceApplyConfiguration.nonempty_type.type
+instance VolumeSourceApplyConfiguration.nonempty : Nonempty VolumeSourceApplyConfiguration := VolumeSourceApplyConfiguration.nonempty_type.property
+opaque VolumeSourceApplyConfiguration.zero_val : ZeroVal VolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeSourceApplyConfiguration.zero_val
 
-axiom VolumeStatusApplyConfiguration : Type
-axiom VolumeStatusApplyConfiguration.zero_val : ZeroVal VolumeStatusApplyConfiguration
+opaque VolumeStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VolumeStatusApplyConfiguration : Type := VolumeStatusApplyConfiguration.nonempty_type.type
+instance VolumeStatusApplyConfiguration.nonempty : Nonempty VolumeStatusApplyConfiguration := VolumeStatusApplyConfiguration.nonempty_type.property
+opaque VolumeStatusApplyConfiguration.zero_val : ZeroVal VolumeStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VolumeStatusApplyConfiguration.zero_val
 
-axiom VsphereVirtualDiskVolumeSourceApplyConfiguration : Type
-axiom VsphereVirtualDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal VsphereVirtualDiskVolumeSourceApplyConfiguration
+opaque VsphereVirtualDiskVolumeSourceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def VsphereVirtualDiskVolumeSourceApplyConfiguration : Type := VsphereVirtualDiskVolumeSourceApplyConfiguration.nonempty_type.type
+instance VsphereVirtualDiskVolumeSourceApplyConfiguration.nonempty : Nonempty VsphereVirtualDiskVolumeSourceApplyConfiguration := VsphereVirtualDiskVolumeSourceApplyConfiguration.nonempty_type.property
+opaque VsphereVirtualDiskVolumeSourceApplyConfiguration.zero_val : ZeroVal VsphereVirtualDiskVolumeSourceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] VsphereVirtualDiskVolumeSourceApplyConfiguration.zero_val
 
-axiom WeightedPodAffinityTermApplyConfiguration : Type
-axiom WeightedPodAffinityTermApplyConfiguration.zero_val : ZeroVal WeightedPodAffinityTermApplyConfiguration
+opaque WeightedPodAffinityTermApplyConfiguration.nonempty_type : NonemptyType.{0}
+def WeightedPodAffinityTermApplyConfiguration : Type := WeightedPodAffinityTermApplyConfiguration.nonempty_type.type
+instance WeightedPodAffinityTermApplyConfiguration.nonempty : Nonempty WeightedPodAffinityTermApplyConfiguration := WeightedPodAffinityTermApplyConfiguration.nonempty_type.property
+opaque WeightedPodAffinityTermApplyConfiguration.zero_val : ZeroVal WeightedPodAffinityTermApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] WeightedPodAffinityTermApplyConfiguration.zero_val
 
-axiom WindowsSecurityContextOptionsApplyConfiguration : Type
-axiom WindowsSecurityContextOptionsApplyConfiguration.zero_val : ZeroVal WindowsSecurityContextOptionsApplyConfiguration
+opaque WindowsSecurityContextOptionsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def WindowsSecurityContextOptionsApplyConfiguration : Type := WindowsSecurityContextOptionsApplyConfiguration.nonempty_type.type
+instance WindowsSecurityContextOptionsApplyConfiguration.nonempty : Nonempty WindowsSecurityContextOptionsApplyConfiguration := WindowsSecurityContextOptionsApplyConfiguration.nonempty_type.property
+opaque WindowsSecurityContextOptionsApplyConfiguration.zero_val : ZeroVal WindowsSecurityContextOptionsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] WindowsSecurityContextOptionsApplyConfiguration.zero_val
 
 end k8s_io.client_go.applyconfigurations.core.v1

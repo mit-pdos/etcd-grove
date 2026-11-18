@@ -14,8 +14,8 @@ exists. What a `k`-member start keeps of each member, for a watcher over the mem
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchSrv
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Results
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
@@ -55,59 +55,6 @@ def watchRegAt (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
 instance watchRegAt_persistent (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (R : v3rpc.WSrv GF) : Persistent (watchRegAt addr s E γr R) := by
   unfold watchRegAt; infer_instance
-
-/-- **etcd's KV calls and the watch registration at the address** (see the file header); under
-`grpcRepliesFit` (`grpc.start`'s), the mvcc laws `srvWOk_of_up` reads, and v3rpc's method sets. -/
-theorem kvWatch_served (Hp : mvcc.api.persistent.law (GF := GF))
-    (Hr : mvcc.api.mvccState_reachable.law (GF := GF)) (s : Loc) (E : apply.AEnv GF)
-    (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
-    (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
-    (HL : srvLevels (GF := GF)) (Hms : v3rpc.ServerMethodSets)
-    (Htb : threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ srvServeFacts s E cfg ∗
-        kvServeStocks s E γr ∗ grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdKVAt addr E ρ γr cid mid ∗
-        watchRegAt addr s E γr R := by
-  iintro ⟨#Pv3, #Psrv, #Ppb, #Hreq, #Hrd, #Hsf, Hstk, Hup⟩
-  iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
-  obtain ⟨HCA, -, Hregs, Hsreg, hRs, hRE, hRw, -, Hnd⟩ := HC
-  imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
-  ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
-  rw [HCA]
-  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, #Hss, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  · iframe; iframe #
-    iintro !>
-    imodintro
-    iunfold idCred
-    ipureintro; exact Hrb
-  -- the watch path's server facts (R9), then the `Watch` stream at the address
-  have hrb62 : receiptBound GF ≤ 2 ^ 62 := by omega
-  haveI := v3rpc.srvWOk_persistent Hp (srvWOf E γr false) R.wsl v3rpc.wsN
-  ihave #HWok : v3rpc.srvWOk (srvWOf E γr false) R.wsl v3rpc.wsN $$ []
-  · rw [hRw]
-    iapply (srvWOk_of_up Hp Hr s E γr cfg C hrb62)
-    iframe #
-  subst hRs hRE
-  imod (v3rpc.etcd_watch_served_chain addr pw R (srvWOf R.E γr false) ims is sregs γ γr rfl Htb HL
-    Hms.watch_impl Hsreg) $$ [] with #Hst
-  · iframe #
-  ihave #Hwl := client.srvWLaws_of_ok (srvWOf R.E γr false) R.wsl v3rpc.wsN $$ HWok
-  imodintro
-  isplitl [Hserv]
-  · iexists γ; iexact Hserv
-  isplitr
-  · iunfold etcdKVAt
-    iframe #
-  iunfold watchRegAt
-  iframe #
-  ipureintro; simp
 
 end served
 

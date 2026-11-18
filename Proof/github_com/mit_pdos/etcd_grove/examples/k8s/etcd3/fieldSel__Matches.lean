@@ -6,6 +6,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.fieldSel__Matches
 public import Spec.k8s_io.apimachinery.pkg.fields.Set__Get
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

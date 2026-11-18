@@ -1629,382 +1629,382 @@ attribute [irreducible] NodeAllocatableOverheadResources.ty
 @[reducible] noncomputable def IPFamilyPolicyType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   IPFamilyPolicy.ty
 
-axiom ImagePolicyFailedOpenKey [GooseExts] [GoGlobalContext] : val
+opaque ImagePolicyFailedOpenKey [GooseExts] [GoGlobalContext] : val
 
-axiom MirrorPodAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque MirrorPodAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom TolerationsAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque TolerationsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom TaintsAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque TaintsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompPodAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque SeccompPodAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompContainerAnnotationKeyPrefix [GooseExts] [GoGlobalContext] : val
+opaque SeccompContainerAnnotationKeyPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileRuntimeDefault [GooseExts] [GoGlobalContext] : val
+opaque SeccompProfileRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileNameUnconfined [GooseExts] [GoGlobalContext] : val
+opaque SeccompProfileNameUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompLocalhostProfileNamePrefix [GooseExts] [GoGlobalContext] : val
+opaque SeccompLocalhostProfileNamePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaContainerAnnotationKeyPrefix [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedAppArmorBetaContainerAnnotationKeyPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaProfileRuntimeDefault [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedAppArmorBetaProfileRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaProfileNamePrefix [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedAppArmorBetaProfileNamePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAppArmorBetaProfileNameUnconfined [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedAppArmorBetaProfileNameUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedSeccompProfileDockerDefault [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedSeccompProfileDockerDefault [GooseExts] [GoGlobalContext] : val
 
-axiom PreferAvoidPodsAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque PreferAvoidPodsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom ObjectTTLAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque ObjectTTLAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom NonConvertibleAnnotationPrefix [GooseExts] [GoGlobalContext] : val
+opaque NonConvertibleAnnotationPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom kubectlPrefix [GooseExts] [GoGlobalContext] : val
+opaque kubectlPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom LastAppliedConfigAnnotation [GooseExts] [GoGlobalContext] : val
+opaque LastAppliedConfigAnnotation [GooseExts] [GoGlobalContext] : val
 
-axiom AnnotationLoadBalancerSourceRangesKey [GooseExts] [GoGlobalContext] : val
+opaque AnnotationLoadBalancerSourceRangesKey [GooseExts] [GoGlobalContext] : val
 
-axiom EndpointsLastChangeTriggerTime [GooseExts] [GoGlobalContext] : val
+opaque EndpointsLastChangeTriggerTime [GooseExts] [GoGlobalContext] : val
 
-axiom EndpointsOverCapacity [GooseExts] [GoGlobalContext] : val
+opaque EndpointsOverCapacity [GooseExts] [GoGlobalContext] : val
 
-axiom MigratedPluginsAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque MigratedPluginsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom PodDeletionCost [GooseExts] [GoGlobalContext] : val
+opaque PodDeletionCost [GooseExts] [GoGlobalContext] : val
 
-axiom DeprecatedAnnotationTopologyAwareHints [GooseExts] [GoGlobalContext] : val
+opaque DeprecatedAnnotationTopologyAwareHints [GooseExts] [GoGlobalContext] : val
 
-axiom AnnotationTopologyMode [GooseExts] [GoGlobalContext] : val
+opaque AnnotationTopologyMode [GooseExts] [GoGlobalContext] : val
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDefault [GooseExts] [GoGlobalContext] : val
+opaque NamespaceDefault [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceAll [GooseExts] [GoGlobalContext] : val
+opaque NamespaceAll [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceNodeLease [GooseExts] [GoGlobalContext] : val
+opaque NamespaceNodeLease [GooseExts] [GoGlobalContext] : val
 
-axiom BetaStorageClassAnnotation [GooseExts] [GoGlobalContext] : val
+opaque BetaStorageClassAnnotation [GooseExts] [GoGlobalContext] : val
 
-axiom MountOptionAnnotation [GooseExts] [GoGlobalContext] : val
+opaque MountOptionAnnotation [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeReclaimRecycle [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeReclaimRecycle [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeReclaimDelete [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeReclaimDelete [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeReclaimRetain [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeReclaimRetain [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeBlock [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeBlock [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeFilesystem [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeFilesystem [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimResizing [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimResizing [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimFileSystemResizePending [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimFileSystemResizePending [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimControllerResizeError [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimControllerResizeError [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizeError [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimNodeResizeError [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimVolumeModifyVolumeError [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimVolumeModifyVolumeError [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimVolumeModifyingVolume [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimVolumeModifyingVolume [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimUnused [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimUnused [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimControllerResizeInProgress [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimControllerResizeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimControllerResizeInfeasible [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimControllerResizeInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizePending [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimNodeResizePending [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizeInProgress [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimNodeResizeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimNodeResizeInfeasible [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimNodeResizeInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimModifyVolumePending [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimModifyVolumePending [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimModifyVolumeInProgress [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimModifyVolumeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PersistentVolumeClaimModifyVolumeInfeasible [GooseExts] [GoGlobalContext] : val
+opaque PersistentVolumeClaimModifyVolumeInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeHealthInaccessible [GooseExts] [GoGlobalContext] : val
+opaque VolumeHealthInaccessible [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeHealthDataLoss [GooseExts] [GoGlobalContext] : val
+opaque VolumeHealthDataLoss [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeHealthDegraded [GooseExts] [GoGlobalContext] : val
+opaque VolumeHealthDegraded [GooseExts] [GoGlobalContext] : val
 
-axiom ReadWriteOnce [GooseExts] [GoGlobalContext] : val
+opaque ReadWriteOnce [GooseExts] [GoGlobalContext] : val
 
-axiom ReadOnlyMany [GooseExts] [GoGlobalContext] : val
+opaque ReadOnlyMany [GooseExts] [GoGlobalContext] : val
 
-axiom ReadWriteMany [GooseExts] [GoGlobalContext] : val
+opaque ReadWriteMany [GooseExts] [GoGlobalContext] : val
 
-axiom ReadWriteOncePod [GooseExts] [GoGlobalContext] : val
+opaque ReadWriteOncePod [GooseExts] [GoGlobalContext] : val
 
-axiom VolumePending [GooseExts] [GoGlobalContext] : val
+opaque VolumePending [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeAvailable [GooseExts] [GoGlobalContext] : val
+opaque VolumeAvailable [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeBound [GooseExts] [GoGlobalContext] : val
+opaque VolumeBound [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeReleased [GooseExts] [GoGlobalContext] : val
+opaque VolumeReleased [GooseExts] [GoGlobalContext] : val
 
-axiom VolumeFailed [GooseExts] [GoGlobalContext] : val
+opaque VolumeFailed [GooseExts] [GoGlobalContext] : val
 
-axiom ClaimPending [GooseExts] [GoGlobalContext] : val
+opaque ClaimPending [GooseExts] [GoGlobalContext] : val
 
-axiom ClaimBound [GooseExts] [GoGlobalContext] : val
+opaque ClaimBound [GooseExts] [GoGlobalContext] : val
 
-axiom ClaimLost [GooseExts] [GoGlobalContext] : val
+opaque ClaimLost [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathUnset [GooseExts] [GoGlobalContext] : val
+opaque HostPathUnset [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathDirectoryOrCreate [GooseExts] [GoGlobalContext] : val
+opaque HostPathDirectoryOrCreate [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathDirectory [GooseExts] [GoGlobalContext] : val
+opaque HostPathDirectory [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathFileOrCreate [GooseExts] [GoGlobalContext] : val
+opaque HostPathFileOrCreate [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathFile [GooseExts] [GoGlobalContext] : val
+opaque HostPathFile [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathSocket [GooseExts] [GoGlobalContext] : val
+opaque HostPathSocket [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathCharDev [GooseExts] [GoGlobalContext] : val
+opaque HostPathCharDev [GooseExts] [GoGlobalContext] : val
 
-axiom HostPathBlockDev [GooseExts] [GoGlobalContext] : val
+opaque HostPathBlockDev [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumDefault [GooseExts] [GoGlobalContext] : val
+opaque StorageMediumDefault [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumMemory [GooseExts] [GoGlobalContext] : val
+opaque StorageMediumMemory [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumHugePages [GooseExts] [GoGlobalContext] : val
+opaque StorageMediumHugePages [GooseExts] [GoGlobalContext] : val
 
-axiom StorageMediumHugePagesPrefix [GooseExts] [GoGlobalContext] : val
+opaque StorageMediumHugePagesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ProtocolTCP [GooseExts] [GoGlobalContext] : val
+opaque ProtocolTCP [GooseExts] [GoGlobalContext] : val
 
-axiom ProtocolUDP [GooseExts] [GoGlobalContext] : val
+opaque ProtocolUDP [GooseExts] [GoGlobalContext] : val
 
-axiom ProtocolSCTP [GooseExts] [GoGlobalContext] : val
+opaque ProtocolSCTP [GooseExts] [GoGlobalContext] : val
 
-axiom SecretVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
+opaque SecretVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDataDiskCachingNone [GooseExts] [GoGlobalContext] : val
+opaque AzureDataDiskCachingNone [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDataDiskCachingReadOnly [GooseExts] [GoGlobalContext] : val
+opaque AzureDataDiskCachingReadOnly [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDataDiskCachingReadWrite [GooseExts] [GoGlobalContext] : val
+opaque AzureDataDiskCachingReadWrite [GooseExts] [GoGlobalContext] : val
 
-axiom AzureSharedBlobDisk [GooseExts] [GoGlobalContext] : val
+opaque AzureSharedBlobDisk [GooseExts] [GoGlobalContext] : val
 
-axiom AzureDedicatedBlobDisk [GooseExts] [GoGlobalContext] : val
+opaque AzureDedicatedBlobDisk [GooseExts] [GoGlobalContext] : val
 
-axiom AzureManagedDisk [GooseExts] [GoGlobalContext] : val
+opaque AzureManagedDisk [GooseExts] [GoGlobalContext] : val
 
-axiom ConfigMapVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
+opaque ConfigMapVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom ProjectedVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
+opaque ProjectedVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom BindMountOptionNoExec [GooseExts] [GoGlobalContext] : val
+opaque BindMountOptionNoExec [GooseExts] [GoGlobalContext] : val
 
-axiom BindMountOptionNoDev [GooseExts] [GoGlobalContext] : val
+opaque BindMountOptionNoDev [GooseExts] [GoGlobalContext] : val
 
-axiom BindMountOptionNoSUID [GooseExts] [GoGlobalContext] : val
+opaque BindMountOptionNoSUID [GooseExts] [GoGlobalContext] : val
 
-axiom MountPropagationNone [GooseExts] [GoGlobalContext] : val
+opaque MountPropagationNone [GooseExts] [GoGlobalContext] : val
 
-axiom MountPropagationHostToContainer [GooseExts] [GoGlobalContext] : val
+opaque MountPropagationHostToContainer [GooseExts] [GoGlobalContext] : val
 
-axiom MountPropagationBidirectional [GooseExts] [GoGlobalContext] : val
+opaque MountPropagationBidirectional [GooseExts] [GoGlobalContext] : val
 
-axiom RecursiveReadOnlyDisabled [GooseExts] [GoGlobalContext] : val
+opaque RecursiveReadOnlyDisabled [GooseExts] [GoGlobalContext] : val
 
-axiom RecursiveReadOnlyIfPossible [GooseExts] [GoGlobalContext] : val
+opaque RecursiveReadOnlyIfPossible [GooseExts] [GoGlobalContext] : val
 
-axiom RecursiveReadOnlyEnabled [GooseExts] [GoGlobalContext] : val
+opaque RecursiveReadOnlyEnabled [GooseExts] [GoGlobalContext] : val
 
-axiom HTTPProtocolHTTP1 [GooseExts] [GoGlobalContext] : val
+opaque HTTPProtocolHTTP1 [GooseExts] [GoGlobalContext] : val
 
-axiom HTTPProtocolHTTP2 [GooseExts] [GoGlobalContext] : val
+opaque HTTPProtocolHTTP2 [GooseExts] [GoGlobalContext] : val
 
-axiom URISchemeHTTP [GooseExts] [GoGlobalContext] : val
+opaque URISchemeHTTP [GooseExts] [GoGlobalContext] : val
 
-axiom URISchemeHTTPS [GooseExts] [GoGlobalContext] : val
+opaque URISchemeHTTPS [GooseExts] [GoGlobalContext] : val
 
-axiom GRPCProbeModePlaintext [GooseExts] [GoGlobalContext] : val
+opaque GRPCProbeModePlaintext [GooseExts] [GoGlobalContext] : val
 
-axiom GRPCProbeModeTLS [GooseExts] [GoGlobalContext] : val
+opaque GRPCProbeModeTLS [GooseExts] [GoGlobalContext] : val
 
-axiom PullAlways [GooseExts] [GoGlobalContext] : val
+opaque PullAlways [GooseExts] [GoGlobalContext] : val
 
-axiom PullNever [GooseExts] [GoGlobalContext] : val
+opaque PullNever [GooseExts] [GoGlobalContext] : val
 
-axiom PullIfNotPresent [GooseExts] [GoGlobalContext] : val
+opaque PullIfNotPresent [GooseExts] [GoGlobalContext] : val
 
-axiom NotRequired [GooseExts] [GoGlobalContext] : val
+opaque NotRequired [GooseExts] [GoGlobalContext] : val
 
-axiom RestartContainer [GooseExts] [GoGlobalContext] : val
+opaque RestartContainer [GooseExts] [GoGlobalContext] : val
 
-axiom PreemptLowerPriority [GooseExts] [GoGlobalContext] : val
+opaque PreemptLowerPriority [GooseExts] [GoGlobalContext] : val
 
-axiom PreemptNever [GooseExts] [GoGlobalContext] : val
+opaque PreemptNever [GooseExts] [GoGlobalContext] : val
 
-axiom TerminationMessageReadFile [GooseExts] [GoGlobalContext] : val
+opaque TerminationMessageReadFile [GooseExts] [GoGlobalContext] : val
 
-axiom TerminationMessageFallbackToLogsOnError [GooseExts] [GoGlobalContext] : val
+opaque TerminationMessageFallbackToLogsOnError [GooseExts] [GoGlobalContext] : val
 
-axiom TerminationMessagePathDefault [GooseExts] [GoGlobalContext] : val
+opaque TerminationMessagePathDefault [GooseExts] [GoGlobalContext] : val
 
-axiom SIGABRT [GooseExts] [GoGlobalContext] : val
+opaque SIGABRT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGALRM [GooseExts] [GoGlobalContext] : val
+opaque SIGALRM [GooseExts] [GoGlobalContext] : val
 
-axiom SIGBUS [GooseExts] [GoGlobalContext] : val
+opaque SIGBUS [GooseExts] [GoGlobalContext] : val
 
-axiom SIGCHLD [GooseExts] [GoGlobalContext] : val
+opaque SIGCHLD [GooseExts] [GoGlobalContext] : val
 
-axiom SIGCLD [GooseExts] [GoGlobalContext] : val
+opaque SIGCLD [GooseExts] [GoGlobalContext] : val
 
-axiom SIGCONT [GooseExts] [GoGlobalContext] : val
+opaque SIGCONT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGFPE [GooseExts] [GoGlobalContext] : val
+opaque SIGFPE [GooseExts] [GoGlobalContext] : val
 
-axiom SIGHUP [GooseExts] [GoGlobalContext] : val
+opaque SIGHUP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGILL [GooseExts] [GoGlobalContext] : val
+opaque SIGILL [GooseExts] [GoGlobalContext] : val
 
-axiom SIGINT [GooseExts] [GoGlobalContext] : val
+opaque SIGINT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGIO [GooseExts] [GoGlobalContext] : val
+opaque SIGIO [GooseExts] [GoGlobalContext] : val
 
-axiom SIGIOT [GooseExts] [GoGlobalContext] : val
+opaque SIGIOT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGKILL [GooseExts] [GoGlobalContext] : val
+opaque SIGKILL [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPIPE [GooseExts] [GoGlobalContext] : val
+opaque SIGPIPE [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPOLL [GooseExts] [GoGlobalContext] : val
+opaque SIGPOLL [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPROF [GooseExts] [GoGlobalContext] : val
+opaque SIGPROF [GooseExts] [GoGlobalContext] : val
 
-axiom SIGPWR [GooseExts] [GoGlobalContext] : val
+opaque SIGPWR [GooseExts] [GoGlobalContext] : val
 
-axiom SIGQUIT [GooseExts] [GoGlobalContext] : val
+opaque SIGQUIT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSEGV [GooseExts] [GoGlobalContext] : val
+opaque SIGSEGV [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSTKFLT [GooseExts] [GoGlobalContext] : val
+opaque SIGSTKFLT [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSTOP [GooseExts] [GoGlobalContext] : val
+opaque SIGSTOP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGSYS [GooseExts] [GoGlobalContext] : val
+opaque SIGSYS [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTERM [GooseExts] [GoGlobalContext] : val
+opaque SIGTERM [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTRAP [GooseExts] [GoGlobalContext] : val
+opaque SIGTRAP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTSTP [GooseExts] [GoGlobalContext] : val
+opaque SIGTSTP [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTTIN [GooseExts] [GoGlobalContext] : val
+opaque SIGTTIN [GooseExts] [GoGlobalContext] : val
 
-axiom SIGTTOU [GooseExts] [GoGlobalContext] : val
+opaque SIGTTOU [GooseExts] [GoGlobalContext] : val
 
-axiom SIGURG [GooseExts] [GoGlobalContext] : val
+opaque SIGURG [GooseExts] [GoGlobalContext] : val
 
-axiom SIGUSR1 [GooseExts] [GoGlobalContext] : val
+opaque SIGUSR1 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGUSR2 [GooseExts] [GoGlobalContext] : val
+opaque SIGUSR2 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGVTALRM [GooseExts] [GoGlobalContext] : val
+opaque SIGVTALRM [GooseExts] [GoGlobalContext] : val
 
-axiom SIGWINCH [GooseExts] [GoGlobalContext] : val
+opaque SIGWINCH [GooseExts] [GoGlobalContext] : val
 
-axiom SIGXCPU [GooseExts] [GoGlobalContext] : val
+opaque SIGXCPU [GooseExts] [GoGlobalContext] : val
 
-axiom SIGXFSZ [GooseExts] [GoGlobalContext] : val
+opaque SIGXFSZ [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMIN [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMIN [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS1 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS1 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS2 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS2 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS3 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS3 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS4 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS4 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS5 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS5 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS6 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS6 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS7 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS7 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS8 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS8 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS9 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS9 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS10 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS10 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS11 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS11 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS12 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS12 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS13 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS13 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS14 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS14 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMINPLUS15 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMINPLUS15 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS14 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS14 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS13 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS13 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS12 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS12 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS11 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS11 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS10 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS10 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS9 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS9 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS8 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS8 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS7 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS7 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS6 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS6 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS5 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS5 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS4 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS4 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS3 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS3 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS2 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS2 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAXMINUS1 [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAXMINUS1 [GooseExts] [GoGlobalContext] : val
 
-axiom SIGRTMAX [GooseExts] [GoGlobalContext] : val
+opaque SIGRTMAX [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ConditionTrue [GooseExts] [GoGlobalContext] : val :=
   #(go!"True")
 
-axiom ConditionFalse [GooseExts] [GoGlobalContext] : val
+opaque ConditionFalse [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionUnknown [GooseExts] [GoGlobalContext] : val
+opaque ConditionUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthStatusHealthy [GooseExts] [GoGlobalContext] : val
+opaque ResourceHealthStatusHealthy [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthStatusUnhealthy [GooseExts] [GoGlobalContext] : val
+opaque ResourceHealthStatusUnhealthy [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthStatusUnknown [GooseExts] [GoGlobalContext] : val
+opaque ResourceHealthStatusUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHealthMessageMaxLength [GooseExts] [GoGlobalContext] : val
+opaque ResourceHealthMessageMaxLength [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def PodPending [GooseExts] [GoGlobalContext] : val :=
   #(go!"Pending")
@@ -2024,44 +2024,44 @@ axiom ResourceHealthMessageMaxLength [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def ContainersReady [GooseExts] [GoGlobalContext] : val :=
   #(go!"ContainersReady")
 
-axiom PodInitialized [GooseExts] [GoGlobalContext] : val
+opaque PodInitialized [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def PodReady [GooseExts] [GoGlobalContext] : val :=
   #(go!"Ready")
 
-axiom PodScheduled [GooseExts] [GoGlobalContext] : val
+opaque PodScheduled [GooseExts] [GoGlobalContext] : val
 
-axiom DisruptionTarget [GooseExts] [GoGlobalContext] : val
+opaque DisruptionTarget [GooseExts] [GoGlobalContext] : val
 
-axiom PodReadyToStartContainers [GooseExts] [GoGlobalContext] : val
+opaque PodReadyToStartContainers [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizePending [GooseExts] [GoGlobalContext] : val
+opaque PodResizePending [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeInProgress [GooseExts] [GoGlobalContext] : val
+opaque PodResizeInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom AllContainersRestarting [GooseExts] [GoGlobalContext] : val
+opaque AllContainersRestarting [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonUnschedulable [GooseExts] [GoGlobalContext] : val
+opaque PodReasonUnschedulable [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonSchedulingGated [GooseExts] [GoGlobalContext] : val
+opaque PodReasonSchedulingGated [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonSchedulerError [GooseExts] [GoGlobalContext] : val
+opaque PodReasonSchedulerError [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonTerminationByKubelet [GooseExts] [GoGlobalContext] : val
+opaque PodReasonTerminationByKubelet [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonPreemptionByScheduler [GooseExts] [GoGlobalContext] : val
+opaque PodReasonPreemptionByScheduler [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonDeferred [GooseExts] [GoGlobalContext] : val
+opaque PodReasonDeferred [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonInfeasible [GooseExts] [GoGlobalContext] : val
+opaque PodReasonInfeasible [GooseExts] [GoGlobalContext] : val
 
-axiom PodReasonError [GooseExts] [GoGlobalContext] : val
+opaque PodReasonError [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeStatusInProgress [GooseExts] [GoGlobalContext] : val
+opaque PodResizeStatusInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeStatusDeferred [GooseExts] [GoGlobalContext] : val
+opaque PodResizeStatusDeferred [GooseExts] [GoGlobalContext] : val
 
-axiom PodResizeStatusInfeasible [GooseExts] [GoGlobalContext] : val
+opaque PodResizeStatusInfeasible [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def RestartPolicyAlways [GooseExts] [GoGlobalContext] : val :=
   #(go!"Always")
@@ -2072,28 +2072,28 @@ axiom PodResizeStatusInfeasible [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def RestartPolicyNever [GooseExts] [GoGlobalContext] : val :=
   #(go!"Never")
 
-axiom ContainerRestartPolicyAlways [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartPolicyAlways [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartPolicyNever [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartPolicyNever [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartPolicyOnFailure [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartPolicyOnFailure [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleActionRestart [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartRuleActionRestart [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleActionRestartAllContainers [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartRuleActionRestartAllContainers [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleOnExitCodesOpIn [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartRuleOnExitCodesOpIn [GooseExts] [GoGlobalContext] : val
 
-axiom ContainerRestartRuleOnExitCodesOpNotIn [GooseExts] [GoGlobalContext] : val
+opaque ContainerRestartRuleOnExitCodesOpNotIn [GooseExts] [GoGlobalContext] : val
 
-axiom DNSClusterFirstWithHostNet [GooseExts] [GoGlobalContext] : val
+opaque DNSClusterFirstWithHostNet [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DNSClusterFirst [GooseExts] [GoGlobalContext] : val :=
   #(go!"ClusterFirst")
 
-axiom DNSDefault [GooseExts] [GoGlobalContext] : val
+opaque DNSDefault [GooseExts] [GoGlobalContext] : val
 
-axiom DNSNone [GooseExts] [GoGlobalContext] : val
+opaque DNSNone [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DefaultTerminationGracePeriodSeconds [GooseExts] [GoGlobalContext] : val :=
   #(30 : Int)
@@ -2119,7 +2119,7 @@ axiom DNSNone [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def TaintEffectNoSchedule [GooseExts] [GoGlobalContext] : val :=
   #(go!"NoSchedule")
 
-axiom TaintEffectPreferNoSchedule [GooseExts] [GoGlobalContext] : val
+opaque TaintEffectPreferNoSchedule [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def TaintEffectNoExecute [GooseExts] [GoGlobalContext] : val :=
   #(go!"NoExecute")
@@ -2127,182 +2127,182 @@ axiom TaintEffectPreferNoSchedule [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def TolerationOpExists [GooseExts] [GoGlobalContext] : val :=
   #(go!"Exists")
 
-axiom TolerationOpEqual [GooseExts] [GoGlobalContext] : val
+opaque TolerationOpEqual [GooseExts] [GoGlobalContext] : val
 
-axiom TolerationOpLt [GooseExts] [GoGlobalContext] : val
+opaque TolerationOpLt [GooseExts] [GoGlobalContext] : val
 
-axiom TolerationOpGt [GooseExts] [GoGlobalContext] : val
+opaque TolerationOpGt [GooseExts] [GoGlobalContext] : val
 
-axiom Linux [GooseExts] [GoGlobalContext] : val
+opaque Linux [GooseExts] [GoGlobalContext] : val
 
-axiom Windows [GooseExts] [GoGlobalContext] : val
+opaque Windows [GooseExts] [GoGlobalContext] : val
 
-axiom DoNotSchedule [GooseExts] [GoGlobalContext] : val
+opaque DoNotSchedule [GooseExts] [GoGlobalContext] : val
 
-axiom ScheduleAnyway [GooseExts] [GoGlobalContext] : val
+opaque ScheduleAnyway [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInclusionPolicyIgnore [GooseExts] [GoGlobalContext] : val
+opaque NodeInclusionPolicyIgnore [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInclusionPolicyHonor [GooseExts] [GoGlobalContext] : val
+opaque NodeInclusionPolicyHonor [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultEnableServiceLinks [GooseExts] [GoGlobalContext] : val
+opaque DefaultEnableServiceLinks [GooseExts] [GoGlobalContext] : val
 
-axiom FSGroupChangeOnRootMismatch [GooseExts] [GoGlobalContext] : val
+opaque FSGroupChangeOnRootMismatch [GooseExts] [GoGlobalContext] : val
 
-axiom FSGroupChangeAlways [GooseExts] [GoGlobalContext] : val
+opaque FSGroupChangeAlways [GooseExts] [GoGlobalContext] : val
 
-axiom SupplementalGroupsPolicyMerge [GooseExts] [GoGlobalContext] : val
+opaque SupplementalGroupsPolicyMerge [GooseExts] [GoGlobalContext] : val
 
-axiom SupplementalGroupsPolicyStrict [GooseExts] [GoGlobalContext] : val
+opaque SupplementalGroupsPolicyStrict [GooseExts] [GoGlobalContext] : val
 
-axiom SELinuxChangePolicyRecursive [GooseExts] [GoGlobalContext] : val
+opaque SELinuxChangePolicyRecursive [GooseExts] [GoGlobalContext] : val
 
-axiom SELinuxChangePolicyMountOption [GooseExts] [GoGlobalContext] : val
+opaque SELinuxChangePolicyMountOption [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileTypeUnconfined [GooseExts] [GoGlobalContext] : val
+opaque SeccompProfileTypeUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileTypeRuntimeDefault [GooseExts] [GoGlobalContext] : val
+opaque SeccompProfileTypeRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom SeccompProfileTypeLocalhost [GooseExts] [GoGlobalContext] : val
+opaque SeccompProfileTypeLocalhost [GooseExts] [GoGlobalContext] : val
 
-axiom AppArmorProfileTypeUnconfined [GooseExts] [GoGlobalContext] : val
+opaque AppArmorProfileTypeUnconfined [GooseExts] [GoGlobalContext] : val
 
-axiom AppArmorProfileTypeRuntimeDefault [GooseExts] [GoGlobalContext] : val
+opaque AppArmorProfileTypeRuntimeDefault [GooseExts] [GoGlobalContext] : val
 
-axiom AppArmorProfileTypeLocalhost [GooseExts] [GoGlobalContext] : val
+opaque AppArmorProfileTypeLocalhost [GooseExts] [GoGlobalContext] : val
 
-axiom PodQOSGuaranteed [GooseExts] [GoGlobalContext] : val
+opaque PodQOSGuaranteed [GooseExts] [GoGlobalContext] : val
 
-axiom PodQOSBurstable [GooseExts] [GoGlobalContext] : val
+opaque PodQOSBurstable [GooseExts] [GoGlobalContext] : val
 
-axiom PodQOSBestEffort [GooseExts] [GoGlobalContext] : val
+opaque PodQOSBestEffort [GooseExts] [GoGlobalContext] : val
 
-axiom ReplicationControllerReplicaFailure [GooseExts] [GoGlobalContext] : val
+opaque ReplicationControllerReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAffinityClientIP [GooseExts] [GoGlobalContext] : val
+opaque ServiceAffinityClientIP [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAffinityNone [GooseExts] [GoGlobalContext] : val
+opaque ServiceAffinityNone [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultClientIPServiceAffinitySeconds [GooseExts] [GoGlobalContext] : val
+opaque DefaultClientIPServiceAffinitySeconds [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeClusterIP [GooseExts] [GoGlobalContext] : val
+opaque ServiceTypeClusterIP [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeNodePort [GooseExts] [GoGlobalContext] : val
+opaque ServiceTypeNodePort [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeLoadBalancer [GooseExts] [GoGlobalContext] : val
+opaque ServiceTypeLoadBalancer [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTypeExternalName [GooseExts] [GoGlobalContext] : val
+opaque ServiceTypeExternalName [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceInternalTrafficPolicyCluster [GooseExts] [GoGlobalContext] : val
+opaque ServiceInternalTrafficPolicyCluster [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceInternalTrafficPolicyLocal [GooseExts] [GoGlobalContext] : val
+opaque ServiceInternalTrafficPolicyLocal [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyCluster [GooseExts] [GoGlobalContext] : val
+opaque ServiceExternalTrafficPolicyCluster [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyLocal [GooseExts] [GoGlobalContext] : val
+opaque ServiceExternalTrafficPolicyLocal [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyTypeLocal [GooseExts] [GoGlobalContext] : val
+opaque ServiceExternalTrafficPolicyTypeLocal [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceExternalTrafficPolicyTypeCluster [GooseExts] [GoGlobalContext] : val
+opaque ServiceExternalTrafficPolicyTypeCluster [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTrafficDistributionPreferSameZone [GooseExts] [GoGlobalContext] : val
+opaque ServiceTrafficDistributionPreferSameZone [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTrafficDistributionPreferSameNode [GooseExts] [GoGlobalContext] : val
+opaque ServiceTrafficDistributionPreferSameNode [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceTrafficDistributionPreferClose [GooseExts] [GoGlobalContext] : val
+opaque ServiceTrafficDistributionPreferClose [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerPortsError [GooseExts] [GoGlobalContext] : val
+opaque LoadBalancerPortsError [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerPortsErrorReason [GooseExts] [GoGlobalContext] : val
+opaque LoadBalancerPortsErrorReason [GooseExts] [GoGlobalContext] : val
 
-axiom IPv4Protocol [GooseExts] [GoGlobalContext] : val
+opaque IPv4Protocol [GooseExts] [GoGlobalContext] : val
 
-axiom IPv6Protocol [GooseExts] [GoGlobalContext] : val
+opaque IPv6Protocol [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyUnknown [GooseExts] [GoGlobalContext] : val
+opaque IPFamilyUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyPolicySingleStack [GooseExts] [GoGlobalContext] : val
+opaque IPFamilyPolicySingleStack [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyPolicyPreferDualStack [GooseExts] [GoGlobalContext] : val
+opaque IPFamilyPolicyPreferDualStack [GooseExts] [GoGlobalContext] : val
 
-axiom IPFamilyPolicyRequireDualStack [GooseExts] [GoGlobalContext] : val
+opaque IPFamilyPolicyRequireDualStack [GooseExts] [GoGlobalContext] : val
 
-axiom ClusterIPNone [GooseExts] [GoGlobalContext] : val
+opaque ClusterIPNone [GooseExts] [GoGlobalContext] : val
 
-axiom NodePending [GooseExts] [GoGlobalContext] : val
+opaque NodePending [GooseExts] [GoGlobalContext] : val
 
-axiom NodeRunning [GooseExts] [GoGlobalContext] : val
+opaque NodeRunning [GooseExts] [GoGlobalContext] : val
 
-axiom NodeTerminated [GooseExts] [GoGlobalContext] : val
+opaque NodeTerminated [GooseExts] [GoGlobalContext] : val
 
-axiom NodeReady [GooseExts] [GoGlobalContext] : val
+opaque NodeReady [GooseExts] [GoGlobalContext] : val
 
-axiom NodeMemoryPressure [GooseExts] [GoGlobalContext] : val
+opaque NodeMemoryPressure [GooseExts] [GoGlobalContext] : val
 
-axiom NodeDiskPressure [GooseExts] [GoGlobalContext] : val
+opaque NodeDiskPressure [GooseExts] [GoGlobalContext] : val
 
-axiom NodePIDPressure [GooseExts] [GoGlobalContext] : val
+opaque NodePIDPressure [GooseExts] [GoGlobalContext] : val
 
-axiom NodeNetworkUnavailable [GooseExts] [GoGlobalContext] : val
+opaque NodeNetworkUnavailable [GooseExts] [GoGlobalContext] : val
 
-axiom NodeGracefulNodeShutdownInProgress [GooseExts] [GoGlobalContext] : val
+opaque NodeGracefulNodeShutdownInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom NodeDrainInProgress [GooseExts] [GoGlobalContext] : val
+opaque NodeDrainInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom NodeDrained [GooseExts] [GoGlobalContext] : val
+opaque NodeDrained [GooseExts] [GoGlobalContext] : val
 
-axiom NodeMaintenancePlanned [GooseExts] [GoGlobalContext] : val
+opaque NodeMaintenancePlanned [GooseExts] [GoGlobalContext] : val
 
-axiom NodeMaintenanceInProgress [GooseExts] [GoGlobalContext] : val
+opaque NodeMaintenanceInProgress [GooseExts] [GoGlobalContext] : val
 
-axiom NodeHostName [GooseExts] [GoGlobalContext] : val
+opaque NodeHostName [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInternalIP [GooseExts] [GoGlobalContext] : val
+opaque NodeInternalIP [GooseExts] [GoGlobalContext] : val
 
-axiom NodeExternalIP [GooseExts] [GoGlobalContext] : val
+opaque NodeExternalIP [GooseExts] [GoGlobalContext] : val
 
-axiom NodeInternalDNS [GooseExts] [GoGlobalContext] : val
+opaque NodeInternalDNS [GooseExts] [GoGlobalContext] : val
 
-axiom NodeExternalDNS [GooseExts] [GoGlobalContext] : val
+opaque NodeExternalDNS [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceCPU [GooseExts] [GoGlobalContext] : val
+opaque ResourceCPU [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceMemory [GooseExts] [GoGlobalContext] : val
+opaque ResourceMemory [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceStorage [GooseExts] [GoGlobalContext] : val
+opaque ResourceStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceEphemeralStorage [GooseExts] [GoGlobalContext] : val
+opaque ResourceEphemeralStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceDefaultNamespacePrefix [GooseExts] [GoGlobalContext] : val
+opaque ResourceDefaultNamespacePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceHugePagesPrefix [GooseExts] [GoGlobalContext] : val
+opaque ResourceHugePagesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceAttachableVolumesPrefix [GooseExts] [GoGlobalContext] : val
+opaque ResourceAttachableVolumesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom FinalizerKubernetes [GooseExts] [GoGlobalContext] : val
+opaque FinalizerKubernetes [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceActive [GooseExts] [GoGlobalContext] : val
+opaque NamespaceActive [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceTerminating [GooseExts] [GoGlobalContext] : val
+opaque NamespaceTerminating [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def NamespaceTerminatingCause [GooseExts] [GoGlobalContext] : val :=
   #(go!"NamespaceTerminating")
 
-axiom NamespaceDeletionDiscoveryFailure [GooseExts] [GoGlobalContext] : val
+opaque NamespaceDeletionDiscoveryFailure [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDeletionContentFailure [GooseExts] [GoGlobalContext] : val
+opaque NamespaceDeletionContentFailure [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDeletionGVParsingFailure [GooseExts] [GoGlobalContext] : val
+opaque NamespaceDeletionGVParsingFailure [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceContentRemaining [GooseExts] [GoGlobalContext] : val
+opaque NamespaceContentRemaining [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceFinalizersRemaining [GooseExts] [GoGlobalContext] : val
+opaque NamespaceFinalizersRemaining [GooseExts] [GoGlobalContext] : val
 
-axiom LogStreamStdout [GooseExts] [GoGlobalContext] : val
+opaque LogStreamStdout [GooseExts] [GoGlobalContext] : val
 
-axiom LogStreamStderr [GooseExts] [GoGlobalContext] : val
+opaque LogStreamStderr [GooseExts] [GoGlobalContext] : val
 
-axiom LogStreamAll [GooseExts] [GoGlobalContext] : val
+opaque LogStreamAll [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def EventTypeNormal [GooseExts] [GoGlobalContext] : val :=
   #(go!"Normal")
@@ -2310,206 +2310,206 @@ axiom LogStreamAll [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def EventTypeWarning [GooseExts] [GoGlobalContext] : val :=
   #(go!"Warning")
 
-axiom LimitTypePod [GooseExts] [GoGlobalContext] : val
+opaque LimitTypePod [GooseExts] [GoGlobalContext] : val
 
-axiom LimitTypeContainer [GooseExts] [GoGlobalContext] : val
+opaque LimitTypeContainer [GooseExts] [GoGlobalContext] : val
 
-axiom LimitTypePersistentVolumeClaim [GooseExts] [GoGlobalContext] : val
+opaque LimitTypePersistentVolumeClaim [GooseExts] [GoGlobalContext] : val
 
-axiom ResourcePods [GooseExts] [GoGlobalContext] : val
+opaque ResourcePods [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceServices [GooseExts] [GoGlobalContext] : val
+opaque ResourceServices [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceReplicationControllers [GooseExts] [GoGlobalContext] : val
+opaque ResourceReplicationControllers [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotas [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotas [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceSecrets [GooseExts] [GoGlobalContext] : val
+opaque ResourceSecrets [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceConfigMaps [GooseExts] [GoGlobalContext] : val
+opaque ResourceConfigMaps [GooseExts] [GoGlobalContext] : val
 
-axiom ResourcePersistentVolumeClaims [GooseExts] [GoGlobalContext] : val
+opaque ResourcePersistentVolumeClaims [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceServicesNodePorts [GooseExts] [GoGlobalContext] : val
+opaque ResourceServicesNodePorts [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceServicesLoadBalancers [GooseExts] [GoGlobalContext] : val
+opaque ResourceServicesLoadBalancers [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsCPU [GooseExts] [GoGlobalContext] : val
+opaque ResourceRequestsCPU [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsMemory [GooseExts] [GoGlobalContext] : val
+opaque ResourceRequestsMemory [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsStorage [GooseExts] [GoGlobalContext] : val
+opaque ResourceRequestsStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsEphemeralStorage [GooseExts] [GoGlobalContext] : val
+opaque ResourceRequestsEphemeralStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceLimitsCPU [GooseExts] [GoGlobalContext] : val
+opaque ResourceLimitsCPU [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceLimitsMemory [GooseExts] [GoGlobalContext] : val
+opaque ResourceLimitsMemory [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceLimitsEphemeralStorage [GooseExts] [GoGlobalContext] : val
+opaque ResourceLimitsEphemeralStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceClaimsPerClass [GooseExts] [GoGlobalContext] : val
+opaque ResourceClaimsPerClass [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceImplicitExtendedClaimsPerClass [GooseExts] [GoGlobalContext] : val
+opaque ResourceImplicitExtendedClaimsPerClass [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceRequestsHugePagesPrefix [GooseExts] [GoGlobalContext] : val
+opaque ResourceRequestsHugePagesPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultResourceRequestsPrefix [GooseExts] [GoGlobalContext] : val
+opaque DefaultResourceRequestsPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeTerminating [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopeTerminating [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeNotTerminating [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopeNotTerminating [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeBestEffort [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopeBestEffort [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeNotBestEffort [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopeNotBestEffort [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopePriorityClass [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopePriorityClass [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeCrossNamespacePodAffinity [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopeCrossNamespacePodAffinity [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceQuotaScopeVolumeAttributesClass [GooseExts] [GoGlobalContext] : val
+opaque ResourceQuotaScopeVolumeAttributesClass [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpIn [GooseExts] [GoGlobalContext] : val
+opaque ScopeSelectorOpIn [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
+opaque ScopeSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpExists [GooseExts] [GoGlobalContext] : val
+opaque ScopeSelectorOpExists [GooseExts] [GoGlobalContext] : val
 
-axiom ScopeSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
+opaque ScopeSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
 
-axiom MaxSecretSize [GooseExts] [GoGlobalContext] : val
+opaque MaxSecretSize [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeOpaque [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeOpaque [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeServiceAccountToken [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeServiceAccountToken [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountNameKey [GooseExts] [GoGlobalContext] : val
+opaque ServiceAccountNameKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountUIDKey [GooseExts] [GoGlobalContext] : val
+opaque ServiceAccountUIDKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountTokenKey [GooseExts] [GoGlobalContext] : val
+opaque ServiceAccountTokenKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountKubeconfigKey [GooseExts] [GoGlobalContext] : val
+opaque ServiceAccountKubeconfigKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountRootCAKey [GooseExts] [GoGlobalContext] : val
+opaque ServiceAccountRootCAKey [GooseExts] [GoGlobalContext] : val
 
-axiom ServiceAccountNamespaceKey [GooseExts] [GoGlobalContext] : val
+opaque ServiceAccountNamespaceKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeDockercfg [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeDockercfg [GooseExts] [GoGlobalContext] : val
 
-axiom DockerConfigKey [GooseExts] [GoGlobalContext] : val
+opaque DockerConfigKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeDockerConfigJson [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeDockerConfigJson [GooseExts] [GoGlobalContext] : val
 
-axiom DockerConfigJsonKey [GooseExts] [GoGlobalContext] : val
+opaque DockerConfigJsonKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeBasicAuth [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeBasicAuth [GooseExts] [GoGlobalContext] : val
 
-axiom BasicAuthUsernameKey [GooseExts] [GoGlobalContext] : val
+opaque BasicAuthUsernameKey [GooseExts] [GoGlobalContext] : val
 
-axiom BasicAuthPasswordKey [GooseExts] [GoGlobalContext] : val
+opaque BasicAuthPasswordKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeSSHAuth [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeSSHAuth [GooseExts] [GoGlobalContext] : val
 
-axiom SSHAuthPrivateKey [GooseExts] [GoGlobalContext] : val
+opaque SSHAuthPrivateKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeTLS [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeTLS [GooseExts] [GoGlobalContext] : val
 
-axiom TLSCertKey [GooseExts] [GoGlobalContext] : val
+opaque TLSCertKey [GooseExts] [GoGlobalContext] : val
 
-axiom TLSPrivateKeyKey [GooseExts] [GoGlobalContext] : val
+opaque TLSPrivateKeyKey [GooseExts] [GoGlobalContext] : val
 
-axiom SecretTypeBootstrapToken [GooseExts] [GoGlobalContext] : val
+opaque SecretTypeBootstrapToken [GooseExts] [GoGlobalContext] : val
 
-axiom ComponentHealthy [GooseExts] [GoGlobalContext] : val
+opaque ComponentHealthy [GooseExts] [GoGlobalContext] : val
 
-axiom DownwardAPIVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
+opaque DownwardAPIVolumeSourceDefaultMode [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultProcMount [GooseExts] [GoGlobalContext] : val
+opaque DefaultProcMount [GooseExts] [GoGlobalContext] : val
 
-axiom UnmaskedProcMount [GooseExts] [GoGlobalContext] : val
+opaque UnmaskedProcMount [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DefaultSchedulerName [GooseExts] [GoGlobalContext] : val :=
   #(go!"default-scheduler")
 
-axiom DefaultHardPodAffinitySymmetricWeight [GooseExts] [GoGlobalContext] : val
+opaque DefaultHardPodAffinitySymmetricWeight [GooseExts] [GoGlobalContext] : val
 
-axiom ExecStdinParam [GooseExts] [GoGlobalContext] : val
+opaque ExecStdinParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecStdoutParam [GooseExts] [GoGlobalContext] : val
+opaque ExecStdoutParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecStderrParam [GooseExts] [GoGlobalContext] : val
+opaque ExecStderrParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecTTYParam [GooseExts] [GoGlobalContext] : val
+opaque ExecTTYParam [GooseExts] [GoGlobalContext] : val
 
-axiom ExecCommandParam [GooseExts] [GoGlobalContext] : val
+opaque ExecCommandParam [GooseExts] [GoGlobalContext] : val
 
-axiom StreamType [GooseExts] [GoGlobalContext] : val
+opaque StreamType [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeStdin [GooseExts] [GoGlobalContext] : val
+opaque StreamTypeStdin [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeStdout [GooseExts] [GoGlobalContext] : val
+opaque StreamTypeStdout [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeStderr [GooseExts] [GoGlobalContext] : val
+opaque StreamTypeStderr [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeData [GooseExts] [GoGlobalContext] : val
+opaque StreamTypeData [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeError [GooseExts] [GoGlobalContext] : val
+opaque StreamTypeError [GooseExts] [GoGlobalContext] : val
 
-axiom StreamTypeResize [GooseExts] [GoGlobalContext] : val
+opaque StreamTypeResize [GooseExts] [GoGlobalContext] : val
 
-axiom PortHeader [GooseExts] [GoGlobalContext] : val
+opaque PortHeader [GooseExts] [GoGlobalContext] : val
 
-axiom PortForwardRequestIDHeader [GooseExts] [GoGlobalContext] : val
+opaque PortForwardRequestIDHeader [GooseExts] [GoGlobalContext] : val
 
-axiom MixedProtocolNotSupported [GooseExts] [GoGlobalContext] : val
+opaque MixedProtocolNotSupported [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerIPModeVIP [GooseExts] [GoGlobalContext] : val
+opaque LoadBalancerIPModeVIP [GooseExts] [GoGlobalContext] : val
 
-axiom LoadBalancerIPModeProxy [GooseExts] [GoGlobalContext] : val
+opaque LoadBalancerIPModeProxy [GooseExts] [GoGlobalContext] : val
 
-axiom LabelHostname [GooseExts] [GoGlobalContext] : val
+opaque LabelHostname [GooseExts] [GoGlobalContext] : val
 
-axiom AnnotationPeerAdvertiseAddress [GooseExts] [GoGlobalContext] : val
+opaque AnnotationPeerAdvertiseAddress [GooseExts] [GoGlobalContext] : val
 
-axiom LabelTopologyZone [GooseExts] [GoGlobalContext] : val
+opaque LabelTopologyZone [GooseExts] [GoGlobalContext] : val
 
-axiom LabelTopologyRegion [GooseExts] [GoGlobalContext] : val
+opaque LabelTopologyRegion [GooseExts] [GoGlobalContext] : val
 
-axiom LabelFailureDomainBetaZone [GooseExts] [GoGlobalContext] : val
+opaque LabelFailureDomainBetaZone [GooseExts] [GoGlobalContext] : val
 
-axiom LabelFailureDomainBetaRegion [GooseExts] [GoGlobalContext] : val
+opaque LabelFailureDomainBetaRegion [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneFailureDomain [GooseExts] [GoGlobalContext] : val
+opaque LabelZoneFailureDomain [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneRegion [GooseExts] [GoGlobalContext] : val
+opaque LabelZoneRegion [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneFailureDomainStable [GooseExts] [GoGlobalContext] : val
+opaque LabelZoneFailureDomainStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelZoneRegionStable [GooseExts] [GoGlobalContext] : val
+opaque LabelZoneRegionStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelInstanceType [GooseExts] [GoGlobalContext] : val
+opaque LabelInstanceType [GooseExts] [GoGlobalContext] : val
 
-axiom LabelInstanceTypeStable [GooseExts] [GoGlobalContext] : val
+opaque LabelInstanceTypeStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelOSStable [GooseExts] [GoGlobalContext] : val
+opaque LabelOSStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelArchStable [GooseExts] [GoGlobalContext] : val
+opaque LabelArchStable [GooseExts] [GoGlobalContext] : val
 
-axiom LabelWindowsBuild [GooseExts] [GoGlobalContext] : val
+opaque LabelWindowsBuild [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNamespaceSuffixKubelet [GooseExts] [GoGlobalContext] : val
+opaque LabelNamespaceSuffixKubelet [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNamespaceSuffixNode [GooseExts] [GoGlobalContext] : val
+opaque LabelNamespaceSuffixNode [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNamespaceNodeRestriction [GooseExts] [GoGlobalContext] : val
+opaque LabelNamespaceNodeRestriction [GooseExts] [GoGlobalContext] : val
 
-axiom IsHeadlessService [GooseExts] [GoGlobalContext] : val
+opaque IsHeadlessService [GooseExts] [GoGlobalContext] : val
 
-axiom LabelNodeExcludeBalancers [GooseExts] [GoGlobalContext] : val
+opaque LabelNodeExcludeBalancers [GooseExts] [GoGlobalContext] : val
 
-axiom LabelMetadataName [GooseExts] [GoGlobalContext] : val
+opaque LabelMetadataName [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def TaintNodeNotReady [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/not-ready")
@@ -2532,1267 +2532,1267 @@ axiom LabelMetadataName [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def TaintNodePIDPressure [GooseExts] [GoGlobalContext] : val :=
   #(go!"node.kubernetes.io/pid-pressure")
 
-axiom TaintNodeOutOfService [GooseExts] [GoGlobalContext] : val
+opaque TaintNodeOutOfService [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AWSElasticBlockStoreVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AWSElasticBlockStoreVolumeSource"
 
-axiom map_AWSElasticBlockStoreVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_AWSElasticBlockStoreVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Affinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Affinity"
 
-axiom map_Affinity.init [GooseExts] [GoGlobalContext] : val
+opaque map_Affinity.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AppArmorProfile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AppArmorProfile"
 
-axiom map_AppArmorProfile.init [GooseExts] [GoGlobalContext] : val
+opaque map_AppArmorProfile.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AttachedVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AttachedVolume"
 
-axiom map_AttachedVolume.init [GooseExts] [GoGlobalContext] : val
+opaque map_AttachedVolume.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AvoidPods [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AvoidPods"
 
-axiom map_AvoidPods.init [GooseExts] [GoGlobalContext] : val
+opaque map_AvoidPods.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AzureDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AzureDiskVolumeSource"
 
-axiom map_AzureDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_AzureDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AzureFilePersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AzureFilePersistentVolumeSource"
 
-axiom map_AzureFilePersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_AzureFilePersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_AzureFileVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_AzureFileVolumeSource"
 
-axiom map_AzureFileVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_AzureFileVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Binding [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Binding"
 
-axiom map_Binding.init [GooseExts] [GoGlobalContext] : val
+opaque map_Binding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CSIPersistentVolumeSource"
 
-axiom map_CSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_CSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CSIVolumeSource"
 
-axiom map_CSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_CSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Capabilities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Capabilities"
 
-axiom map_Capabilities.init [GooseExts] [GoGlobalContext] : val
+opaque map_Capabilities.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CephFSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CephFSPersistentVolumeSource"
 
-axiom map_CephFSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_CephFSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CephFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CephFSVolumeSource"
 
-axiom map_CephFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_CephFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CinderPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CinderPersistentVolumeSource"
 
-axiom map_CinderPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_CinderPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CinderVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_CinderVolumeSource"
 
-axiom map_CinderVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_CinderVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ClientIPConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ClientIPConfig"
 
-axiom map_ClientIPConfig.init [GooseExts] [GoGlobalContext] : val
+opaque map_ClientIPConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ClusterTrustBundleProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ClusterTrustBundleProjection"
 
-axiom map_ClusterTrustBundleProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_ClusterTrustBundleProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ComponentCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ComponentCondition"
 
-axiom map_ComponentCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_ComponentCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ComponentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ComponentStatus"
 
-axiom map_ComponentStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ComponentStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ComponentStatusList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ComponentStatusList"
 
-axiom map_ComponentStatusList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ComponentStatusList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMap"
 
-axiom map_ConfigMap.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMap.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMapEnvSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapEnvSource"
 
-axiom map_ConfigMapEnvSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMapEnvSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMapKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapKeySelector"
 
-axiom map_ConfigMapKeySelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMapKeySelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMapList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapList"
 
-axiom map_ConfigMapList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMapList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMapNodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapNodeConfigSource"
 
-axiom map_ConfigMapNodeConfigSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMapNodeConfigSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMapProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapProjection"
 
-axiom map_ConfigMapProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMapProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ConfigMapVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ConfigMapVolumeSource"
 
-axiom map_ConfigMapVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ConfigMapVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Container [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Container"
 
-axiom map_Container.init [GooseExts] [GoGlobalContext] : val
+opaque map_Container.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerExtendedResourceRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerExtendedResourceRequest"
 
-axiom map_ContainerExtendedResourceRequest.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerExtendedResourceRequest.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerImage [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerImage"
 
-axiom map_ContainerImage.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerImage.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerPort"
 
-axiom map_ContainerPort.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerPort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerResizePolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerResizePolicy"
 
-axiom map_ContainerResizePolicy.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerResizePolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerRestartRule [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerRestartRule"
 
-axiom map_ContainerRestartRule.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerRestartRule.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerRestartRuleOnExitCodes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerRestartRuleOnExitCodes"
 
-axiom map_ContainerRestartRuleOnExitCodes.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerRestartRuleOnExitCodes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerState [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerState"
 
-axiom map_ContainerState.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerState.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerStateRunning [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStateRunning"
 
-axiom map_ContainerStateRunning.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerStateRunning.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerStateTerminated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStateTerminated"
 
-axiom map_ContainerStateTerminated.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerStateTerminated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerStateWaiting [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStateWaiting"
 
-axiom map_ContainerStateWaiting.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerStateWaiting.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerStatus"
 
-axiom map_ContainerStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ContainerUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ContainerUser"
 
-axiom map_ContainerUser.init [GooseExts] [GoGlobalContext] : val
+opaque map_ContainerUser.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonEndpoint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DaemonEndpoint"
 
-axiom map_DaemonEndpoint.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonEndpoint.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DownwardAPIProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DownwardAPIProjection"
 
-axiom map_DownwardAPIProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_DownwardAPIProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DownwardAPIVolumeFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DownwardAPIVolumeFile"
 
-axiom map_DownwardAPIVolumeFile.init [GooseExts] [GoGlobalContext] : val
+opaque map_DownwardAPIVolumeFile.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DownwardAPIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_DownwardAPIVolumeSource"
 
-axiom map_DownwardAPIVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_DownwardAPIVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EmptyDirVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EmptyDirVolumeSource"
 
-axiom map_EmptyDirVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_EmptyDirVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EndpointAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointAddress"
 
-axiom map_EndpointAddress.init [GooseExts] [GoGlobalContext] : val
+opaque map_EndpointAddress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EndpointPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointPort"
 
-axiom map_EndpointPort.init [GooseExts] [GoGlobalContext] : val
+opaque map_EndpointPort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EndpointSubset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointSubset"
 
-axiom map_EndpointSubset.init [GooseExts] [GoGlobalContext] : val
+opaque map_EndpointSubset.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Endpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Endpoints"
 
-axiom map_Endpoints.init [GooseExts] [GoGlobalContext] : val
+opaque map_Endpoints.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EndpointsList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EndpointsList"
 
-axiom map_EndpointsList.init [GooseExts] [GoGlobalContext] : val
+opaque map_EndpointsList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EnvFromSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EnvFromSource"
 
-axiom map_EnvFromSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_EnvFromSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EnvVar [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EnvVar"
 
-axiom map_EnvVar.init [GooseExts] [GoGlobalContext] : val
+opaque map_EnvVar.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EnvVarSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EnvVarSource"
 
-axiom map_EnvVarSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_EnvVarSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EphemeralContainer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EphemeralContainer"
 
-axiom map_EphemeralContainer.init [GooseExts] [GoGlobalContext] : val
+opaque map_EphemeralContainer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EphemeralContainerCommon [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EphemeralContainerCommon"
 
-axiom map_EphemeralContainerCommon.init [GooseExts] [GoGlobalContext] : val
+opaque map_EphemeralContainerCommon.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EphemeralVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EphemeralVolumeSource"
 
-axiom map_EphemeralVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_EphemeralVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Event [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Event"
 
-axiom map_Event.init [GooseExts] [GoGlobalContext] : val
+opaque map_Event.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EventList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EventList"
 
-axiom map_EventList.init [GooseExts] [GoGlobalContext] : val
+opaque map_EventList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EventSeries [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EventSeries"
 
-axiom map_EventSeries.init [GooseExts] [GoGlobalContext] : val
+opaque map_EventSeries.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EventSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EventSource"
 
-axiom map_EventSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_EventSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_EvictionResponder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_EvictionResponder"
 
-axiom map_EvictionResponder.init [GooseExts] [GoGlobalContext] : val
+opaque map_EvictionResponder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ExecAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ExecAction"
 
-axiom map_ExecAction.init [GooseExts] [GoGlobalContext] : val
+opaque map_ExecAction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_FCVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FCVolumeSource"
 
-axiom map_FCVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_FCVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_FileKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FileKeySelector"
 
-axiom map_FileKeySelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_FileKeySelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_FlexPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FlexPersistentVolumeSource"
 
-axiom map_FlexPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_FlexPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_FlexVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FlexVolumeSource"
 
-axiom map_FlexVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_FlexVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_FlockerVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_FlockerVolumeSource"
 
-axiom map_FlockerVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_FlockerVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GCEPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GCEPersistentDiskVolumeSource"
 
-axiom map_GCEPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_GCEPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GRPCAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GRPCAction"
 
-axiom map_GRPCAction.init [GooseExts] [GoGlobalContext] : val
+opaque map_GRPCAction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GitRepoVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GitRepoVolumeSource"
 
-axiom map_GitRepoVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_GitRepoVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GlusterfsPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GlusterfsPersistentVolumeSource"
 
-axiom map_GlusterfsPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_GlusterfsPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GlusterfsVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_GlusterfsVolumeSource"
 
-axiom map_GlusterfsVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_GlusterfsVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HTTPGetAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HTTPGetAction"
 
-axiom map_HTTPGetAction.init [GooseExts] [GoGlobalContext] : val
+opaque map_HTTPGetAction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HTTPHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HTTPHeader"
 
-axiom map_HTTPHeader.init [GooseExts] [GoGlobalContext] : val
+opaque map_HTTPHeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HostAlias [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HostAlias"
 
-axiom map_HostAlias.init [GooseExts] [GoGlobalContext] : val
+opaque map_HostAlias.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HostIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HostIP"
 
-axiom map_HostIP.init [GooseExts] [GoGlobalContext] : val
+opaque map_HostIP.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HostPathVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_HostPathVolumeSource"
 
-axiom map_HostPathVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_HostPathVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ISCSIPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ISCSIPersistentVolumeSource"
 
-axiom map_ISCSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ISCSIPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ISCSIVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ISCSIVolumeSource"
 
-axiom map_ISCSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ISCSIVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ImageVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ImageVolumeSource"
 
-axiom map_ImageVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ImageVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ImageVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ImageVolumeStatus"
 
-axiom map_ImageVolumeStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ImageVolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_KeyToPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_KeyToPath"
 
-axiom map_KeyToPath.init [GooseExts] [GoGlobalContext] : val
+opaque map_KeyToPath.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Lifecycle [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Lifecycle"
 
-axiom map_Lifecycle.init [GooseExts] [GoGlobalContext] : val
+opaque map_Lifecycle.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LifecycleHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LifecycleHandler"
 
-axiom map_LifecycleHandler.init [GooseExts] [GoGlobalContext] : val
+opaque map_LifecycleHandler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LimitRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRange"
 
-axiom map_LimitRange.init [GooseExts] [GoGlobalContext] : val
+opaque map_LimitRange.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LimitRangeItem [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRangeItem"
 
-axiom map_LimitRangeItem.init [GooseExts] [GoGlobalContext] : val
+opaque map_LimitRangeItem.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LimitRangeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRangeList"
 
-axiom map_LimitRangeList.init [GooseExts] [GoGlobalContext] : val
+opaque map_LimitRangeList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LimitRangeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LimitRangeSpec"
 
-axiom map_LimitRangeSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_LimitRangeSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LinuxContainerUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LinuxContainerUser"
 
-axiom map_LinuxContainerUser.init [GooseExts] [GoGlobalContext] : val
+opaque map_LinuxContainerUser.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LoadBalancerIngress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LoadBalancerIngress"
 
-axiom map_LoadBalancerIngress.init [GooseExts] [GoGlobalContext] : val
+opaque map_LoadBalancerIngress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LoadBalancerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LoadBalancerStatus"
 
-axiom map_LoadBalancerStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_LoadBalancerStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LocalObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LocalObjectReference"
 
-axiom map_LocalObjectReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_LocalObjectReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LocalVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_LocalVolumeSource"
 
-axiom map_LocalVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_LocalVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ModifyVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ModifyVolumeStatus"
 
-axiom map_ModifyVolumeStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ModifyVolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NFSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NFSVolumeSource"
 
-axiom map_NFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_NFSVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Namespace [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Namespace"
 
-axiom map_Namespace.init [GooseExts] [GoGlobalContext] : val
+opaque map_Namespace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NamespaceCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceCondition"
 
-axiom map_NamespaceCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_NamespaceCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NamespaceList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceList"
 
-axiom map_NamespaceList.init [GooseExts] [GoGlobalContext] : val
+opaque map_NamespaceList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NamespaceSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceSpec"
 
-axiom map_NamespaceSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_NamespaceSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NamespaceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NamespaceStatus"
 
-axiom map_NamespaceStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_NamespaceStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Node [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Node"
 
-axiom map_Node.init [GooseExts] [GoGlobalContext] : val
+opaque map_Node.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeAddress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAddress"
 
-axiom map_NodeAddress.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeAddress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAffinity"
 
-axiom map_NodeAffinity.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeAffinity.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeAllocatableMappedResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAllocatableMappedResources"
 
-axiom map_NodeAllocatableMappedResources.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeAllocatableMappedResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeAllocatableOverheadResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAllocatableOverheadResources"
 
-axiom map_NodeAllocatableOverheadResources.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeAllocatableOverheadResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeAllocatableResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeAllocatableResourceClaimStatus"
 
-axiom map_NodeAllocatableResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeAllocatableResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeCondition"
 
-axiom map_NodeCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeConfigSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeConfigSource"
 
-axiom map_NodeConfigSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeConfigSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeConfigStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeConfigStatus"
 
-axiom map_NodeConfigStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeConfigStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeDaemonEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeDaemonEndpoints"
 
-axiom map_NodeDaemonEndpoints.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeDaemonEndpoints.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeFeatures"
 
-axiom map_NodeFeatures.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeFeatures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeList"
 
-axiom map_NodeList.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodePodPreemptionPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodePodPreemptionPolicy"
 
-axiom map_NodePodPreemptionPolicy.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodePodPreemptionPolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeProxyOptions"
 
-axiom map_NodeProxyOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeProxyOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeRuntimeHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeRuntimeHandler"
 
-axiom map_NodeRuntimeHandler.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeRuntimeHandler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeRuntimeHandlerFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeRuntimeHandlerFeatures"
 
-axiom map_NodeRuntimeHandlerFeatures.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeRuntimeHandlerFeatures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSelector"
 
-axiom map_NodeSelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSelectorRequirement"
 
-axiom map_NodeSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeSelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSelectorTerm"
 
-axiom map_NodeSelectorTerm.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeSelectorTerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSpec"
 
-axiom map_NodeSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeStatus"
 
-axiom map_NodeStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeSwapStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSwapStatus"
 
-axiom map_NodeSwapStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeSwapStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NodeSystemInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_NodeSystemInfo"
 
-axiom map_NodeSystemInfo.init [GooseExts] [GoGlobalContext] : val
+opaque map_NodeSystemInfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ObjectFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ObjectFieldSelector"
 
-axiom map_ObjectFieldSelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_ObjectFieldSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ObjectReference"
 
-axiom map_ObjectReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_ObjectReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolume"
 
-axiom map_PersistentVolume.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolume.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaim"
 
-axiom map_PersistentVolumeClaim.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaim.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaimCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimCondition"
 
-axiom map_PersistentVolumeClaimCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaimCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaimList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimList"
 
-axiom map_PersistentVolumeClaimList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaimList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaimSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimSpec"
 
-axiom map_PersistentVolumeClaimSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaimSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimStatus"
 
-axiom map_PersistentVolumeClaimStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaimTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimTemplate"
 
-axiom map_PersistentVolumeClaimTemplate.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaimTemplate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeClaimVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeClaimVolumeSource"
 
-axiom map_PersistentVolumeClaimVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeClaimVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeList"
 
-axiom map_PersistentVolumeList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeSource"
 
-axiom map_PersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeSpec"
 
-axiom map_PersistentVolumeSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PersistentVolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PersistentVolumeStatus"
 
-axiom map_PersistentVolumeStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PersistentVolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PhotonPersistentDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PhotonPersistentDiskVolumeSource"
 
-axiom map_PhotonPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_PhotonPersistentDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Pod [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Pod"
 
-axiom map_Pod.init [GooseExts] [GoGlobalContext] : val
+opaque map_Pod.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAffinity"
 
-axiom map_PodAffinity.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodAffinity.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAffinityTerm"
 
-axiom map_PodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodAntiAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAntiAffinity"
 
-axiom map_PodAntiAffinity.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodAntiAffinity.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodAttachOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodAttachOptions"
 
-axiom map_PodAttachOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodAttachOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodCertificateProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodCertificateProjection"
 
-axiom map_PodCertificateProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodCertificateProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodCondition"
 
-axiom map_PodCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodDNSConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodDNSConfig"
 
-axiom map_PodDNSConfig.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodDNSConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodDNSConfigOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodDNSConfigOption"
 
-axiom map_PodDNSConfigOption.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodDNSConfigOption.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodExecOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodExecOptions"
 
-axiom map_PodExecOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodExecOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodExtendedResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodExtendedResourceClaimStatus"
 
-axiom map_PodExtendedResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodExtendedResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodIP"
 
-axiom map_PodIP.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodIP.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodList"
 
-axiom map_PodList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodLogOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodLogOptions"
 
-axiom map_PodLogOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodLogOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodOS [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodOS"
 
-axiom map_PodOS.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodOS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodPortForwardOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodPortForwardOptions"
 
-axiom map_PodPortForwardOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodPortForwardOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodProxyOptions"
 
-axiom map_PodProxyOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodProxyOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodReadinessGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodReadinessGate"
 
-axiom map_PodReadinessGate.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodReadinessGate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodResourceClaim"
 
-axiom map_PodResourceClaim.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodResourceClaim.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodResourceClaimStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodResourceClaimStatus"
 
-axiom map_PodResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodResourceClaimStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodSchedulingGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSchedulingGate"
 
-axiom map_PodSchedulingGate.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodSchedulingGate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodSchedulingGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSchedulingGroup"
 
-axiom map_PodSchedulingGroup.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodSchedulingGroup.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodSecurityContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSecurityContext"
 
-axiom map_PodSecurityContext.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodSecurityContext.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodSignature [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSignature"
 
-axiom map_PodSignature.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodSignature.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodSpec"
 
-axiom map_PodSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodStatus"
 
-axiom map_PodStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodTemplate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodTemplate"
 
-axiom map_PodTemplate.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodTemplate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodTemplateList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodTemplateList"
 
-axiom map_PodTemplateList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodTemplateList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodTemplateSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodTemplateSpec"
 
-axiom map_PodTemplateSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodTemplateSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodVolumeHealth [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PodVolumeHealth"
 
-axiom map_PodVolumeHealth.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodVolumeHealth.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PortStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PortStatus"
 
-axiom map_PortStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PortStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PortworxVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PortworxVolumeSource"
 
-axiom map_PortworxVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_PortworxVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Preconditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Preconditions"
 
-axiom map_Preconditions.init [GooseExts] [GoGlobalContext] : val
+opaque map_Preconditions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PreferAvoidPodsEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PreferAvoidPodsEntry"
 
-axiom map_PreferAvoidPodsEntry.init [GooseExts] [GoGlobalContext] : val
+opaque map_PreferAvoidPodsEntry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PreferredSchedulingTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_PreferredSchedulingTerm"
 
-axiom map_PreferredSchedulingTerm.init [GooseExts] [GoGlobalContext] : val
+opaque map_PreferredSchedulingTerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Probe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Probe"
 
-axiom map_Probe.init [GooseExts] [GoGlobalContext] : val
+opaque map_Probe.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ProbeHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ProbeHandler"
 
-axiom map_ProbeHandler.init [GooseExts] [GoGlobalContext] : val
+opaque map_ProbeHandler.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ProjectedVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ProjectedVolumeSource"
 
-axiom map_ProjectedVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ProjectedVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_QuobyteVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_QuobyteVolumeSource"
 
-axiom map_QuobyteVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_QuobyteVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RBDPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_RBDPersistentVolumeSource"
 
-axiom map_RBDPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_RBDPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RBDVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_RBDVolumeSource"
 
-axiom map_RBDVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_RBDVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RangeAllocation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_RangeAllocation"
 
-axiom map_RangeAllocation.init [GooseExts] [GoGlobalContext] : val
+opaque map_RangeAllocation.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicationController [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationController"
 
-axiom map_ReplicationController.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicationController.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicationControllerCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerCondition"
 
-axiom map_ReplicationControllerCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicationControllerCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicationControllerList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerList"
 
-axiom map_ReplicationControllerList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicationControllerList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicationControllerSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerSpec"
 
-axiom map_ReplicationControllerSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicationControllerSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicationControllerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ReplicationControllerStatus"
 
-axiom map_ReplicationControllerStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicationControllerStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceClaim [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceClaim"
 
-axiom map_ResourceClaim.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceClaim.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceFieldSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceFieldSelector"
 
-axiom map_ResourceFieldSelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceFieldSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceHealth [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceHealth"
 
-axiom map_ResourceHealth.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceHealth.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceQuota [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuota"
 
-axiom map_ResourceQuota.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceQuota.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceQuotaList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuotaList"
 
-axiom map_ResourceQuotaList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceQuotaList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceQuotaSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuotaSpec"
 
-axiom map_ResourceQuotaSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceQuotaSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceQuotaStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceQuotaStatus"
 
-axiom map_ResourceQuotaStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceQuotaStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceRequirements"
 
-axiom map_ResourceRequirements.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceRequirements.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ResourceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ResourceStatus"
 
-axiom map_ResourceStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ResourceStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SELinuxOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SELinuxOptions"
 
-axiom map_SELinuxOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_SELinuxOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScaleIOPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScaleIOPersistentVolumeSource"
 
-axiom map_ScaleIOPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScaleIOPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScaleIOVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScaleIOVolumeSource"
 
-axiom map_ScaleIOVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScaleIOVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScopeSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScopeSelector"
 
-axiom map_ScopeSelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScopeSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScopedResourceSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ScopedResourceSelectorRequirement"
 
-axiom map_ScopedResourceSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScopedResourceSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SeccompProfile [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SeccompProfile"
 
-axiom map_SeccompProfile.init [GooseExts] [GoGlobalContext] : val
+opaque map_SeccompProfile.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Secret [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Secret"
 
-axiom map_Secret.init [GooseExts] [GoGlobalContext] : val
+opaque map_Secret.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecretEnvSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretEnvSource"
 
-axiom map_SecretEnvSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecretEnvSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecretKeySelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretKeySelector"
 
-axiom map_SecretKeySelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecretKeySelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecretList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretList"
 
-axiom map_SecretList.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecretList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecretProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretProjection"
 
-axiom map_SecretProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecretProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecretReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretReference"
 
-axiom map_SecretReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecretReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecretVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecretVolumeSource"
 
-axiom map_SecretVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecretVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SecurityContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SecurityContext"
 
-axiom map_SecurityContext.init [GooseExts] [GoGlobalContext] : val
+opaque map_SecurityContext.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SerializedReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SerializedReference"
 
-axiom map_SerializedReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_SerializedReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Service [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Service"
 
-axiom map_Service.init [GooseExts] [GoGlobalContext] : val
+opaque map_Service.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceAccount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceAccount"
 
-axiom map_ServiceAccount.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceAccount.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceAccountList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceAccountList"
 
-axiom map_ServiceAccountList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceAccountList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceAccountTokenProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceAccountTokenProjection"
 
-axiom map_ServiceAccountTokenProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceAccountTokenProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceList"
 
-axiom map_ServiceList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServicePort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServicePort"
 
-axiom map_ServicePort.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServicePort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceProxyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceProxyOptions"
 
-axiom map_ServiceProxyOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceProxyOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceSpec"
 
-axiom map_ServiceSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServiceStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_ServiceStatus"
 
-axiom map_ServiceStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServiceStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SessionAffinityConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SessionAffinityConfig"
 
-axiom map_SessionAffinityConfig.init [GooseExts] [GoGlobalContext] : val
+opaque map_SessionAffinityConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SleepAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_SleepAction"
 
-axiom map_SleepAction.init [GooseExts] [GoGlobalContext] : val
+opaque map_SleepAction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StorageOSPersistentVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_StorageOSPersistentVolumeSource"
 
-axiom map_StorageOSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_StorageOSPersistentVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StorageOSVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_StorageOSVolumeSource"
 
-axiom map_StorageOSVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_StorageOSVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Sysctl [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Sysctl"
 
-axiom map_Sysctl.init [GooseExts] [GoGlobalContext] : val
+opaque map_Sysctl.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TCPSocketAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TCPSocketAction"
 
-axiom map_TCPSocketAction.init [GooseExts] [GoGlobalContext] : val
+opaque map_TCPSocketAction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Taint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Taint"
 
-axiom map_Taint.init [GooseExts] [GoGlobalContext] : val
+opaque map_Taint.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Toleration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Toleration"
 
-axiom map_Toleration.init [GooseExts] [GoGlobalContext] : val
+opaque map_Toleration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TopologySelectorLabelRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TopologySelectorLabelRequirement"
 
-axiom map_TopologySelectorLabelRequirement.init [GooseExts] [GoGlobalContext] : val
+opaque map_TopologySelectorLabelRequirement.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TopologySelectorTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TopologySelectorTerm"
 
-axiom map_TopologySelectorTerm.init [GooseExts] [GoGlobalContext] : val
+opaque map_TopologySelectorTerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TopologySpreadConstraint [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TopologySpreadConstraint"
 
-axiom map_TopologySpreadConstraint.init [GooseExts] [GoGlobalContext] : val
+opaque map_TopologySpreadConstraint.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TypedLocalObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TypedLocalObjectReference"
 
-axiom map_TypedLocalObjectReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_TypedLocalObjectReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TypedObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_TypedObjectReference"
 
-axiom map_TypedObjectReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_TypedObjectReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Volume [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_Volume"
 
-axiom map_Volume.init [GooseExts] [GoGlobalContext] : val
+opaque map_Volume.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeDevice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeDevice"
 
-axiom map_VolumeDevice.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeDevice.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeHealthCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeHealthCondition"
 
-axiom map_VolumeHealthCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeHealthCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeHealthStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeHealthStatus"
 
-axiom map_VolumeHealthStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeHealthStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeMount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeMount"
 
-axiom map_VolumeMount.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeMount.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeMountStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeMountStatus"
 
-axiom map_VolumeMountStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeMountStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeNodeAffinity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeNodeAffinity"
 
-axiom map_VolumeNodeAffinity.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeNodeAffinity.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeProjection [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeProjection"
 
-axiom map_VolumeProjection.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeProjection.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeResourceRequirements [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeResourceRequirements"
 
-axiom map_VolumeResourceRequirements.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeResourceRequirements.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeSource"
 
-axiom map_VolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VolumeStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VolumeStatus"
 
-axiom map_VolumeStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_VolumeStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_VsphereVirtualDiskVolumeSource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_VsphereVirtualDiskVolumeSource"
 
-axiom map_VsphereVirtualDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
+opaque map_VsphereVirtualDiskVolumeSource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_WeightedPodAffinityTerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_WeightedPodAffinityTerm"
 
-axiom map_WeightedPodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
+opaque map_WeightedPodAffinityTerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_WindowsSecurityContextOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.map_WindowsSecurityContextOptions"
 
-axiom map_WindowsSecurityContextOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_WindowsSecurityContextOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/core/v1.encodeVarintGenerated"
@@ -3821,7 +3821,7 @@ noncomputable def compareNumericValues [GooseExts] [GoGlobalContext] : GoString 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.core.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.api.resource, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.intstr]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
