@@ -46,7 +46,7 @@ theorem os.Rename.wp_proofAbsentSrc : os.Rename.specAbsentSrc (GF := GF) (hG := 
   rw [decide_eq_false h1]
   wp_auto
   iloeb as IH generalizing Hperm Hp Hn HΦ
-  icases osCallPerm_child R d bs _ _ _ $$ Hp1 Hperm with ⟨Hp1, Hperm⟩
+  icases osCallPerm_child R d bs _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
   wp_apply +noauto wp_osCallBeginS R _ qc h.next CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t' %s1 %hs' Hk Hls
   iclear Hls
