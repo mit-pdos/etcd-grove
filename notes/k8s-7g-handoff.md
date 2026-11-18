@@ -2,8 +2,13 @@
 
 ## START HERE
 
-**2026-11-18 (late; for etcd-grove-03). Step 3 done through `Step`: report at step 3's end. Next: step 4
-(bridges) in the scope's order (§5: B3 and B5's statements first, report).**
+**2026-11-18 (later). Step 3 DONE (decided). Step 4: B3 and B5's STATEMENTS written (proofs `sorry`),
+STOP for their review: `RealReplay.lean` (B3a `replayL_perm`, B3b `simR_init`/`simR_step`/`replayAt_prefix`,
+vocabulary `rmWf`, `HistSorted`, `chgListL`, `ReplayAt`, `SimR`), `RealWatch.lean` (B5
+`validateWatchL_of_watchOkL`; `toWEvL`, `realEventsL`, `WatchFromL`). After the go: prove them, then B1,
+B2, B4 (scope §5). lean unchanged since fb68edfec8 (fmt-soundness not landed yet).**
+
+(Previous: step 3 done through `Step`.)
 
 - Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`;
   `.lake/package-overrides.json` = that manifest. Scope `notes/k8s-7g-scope.md`; decisions `questions.md`
