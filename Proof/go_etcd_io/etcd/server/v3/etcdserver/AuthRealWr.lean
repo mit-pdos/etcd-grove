@@ -418,6 +418,243 @@ theorem authAt_revision {st : auth.AuthState} {ca : BktData} (rev : w64) (h : au
     simp only [GMap.lookup_insert_eq_iff, ↓reduceIte, Option.some.injEq] at hv
     subst hv; exact u64Be_length rev
 
+/-! ## The lock token's facts -/
+
+theorem authBI_name : mvcc.authBI.name = go!"auth" := rfl
+theorem authUsersBI_name : mvcc.authUsersBI.name = go!"authUsers" := rfl
+theorem authRolesBI_name : mvcc.authRolesBI.name = go!"authRoles" := rfl
+
+/-- **The lock token's facts** of a session `bs` at the state `st`, the readers' contents `x` (the batch token), the
+session's writes `w` and the receipts `k` held: out of the hook's window; nothing the readers see changed
+(`viewSame`: the auth buckets are hook buckets); the claimed writes on the auth buckets; the pending writes bounded by
+the receipts; the kinds (`auth` only put into, the others as `w`); an untouched bucket's writer's contents the
+readers'; the writer's auth buckets hold `st`. -/
+structure LkOk (d : mvcc.KBReal) (bs : BSess) (st : auth.AuthState) (x : BktData × BktData × BktData)
+    (w : auth.AuthSess) (k : Nat) : Prop where
+  hw : bs.cnt.hw = false
+  vs : viewSame d.P bs
+  cw : ∀ n, bs.cw n = true → n ∈ authBktL
+  pend : sint.Z bs.pend < sint.Z d.P.limit + k
+  ka : bs.tk go!"auth" = .idle ∨ bs.tk go!"auth" = .put
+  ku : bs.tk go!"authUsers" = kindW w.users
+  kr : bs.tk go!"authRoles" = kindW w.roles
+  ia : bs.tk go!"auth" = .idle → bktOf bs.S go!"auth" = x.1
+  iu : bs.tk go!"authUsers" = .idle → bktOf bs.S go!"authUsers" = x.2.1
+  ir : bs.tk go!"authRoles" = .idle → bktOf bs.S go!"authRoles" = x.2.2
+  view : viewAt (auth.BkView.uni st) (authD bs.S)
+
+theorem kindW_ne_mix (b : auth.BkW) : kindW b ≠ .mix := by cases b <;> simp [kindW]
+
+theorem LkOk.tkOk {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : BktData × BktData × BktData}
+    {w : auth.AuthSess} {k : Nat} (h : LkOk d bs st x w k) : tkOk bs x :=
+  ⟨h.ka, by rw [h.ku]; exact kindW_ne_mix _, by rw [h.kr]; exact kindW_ne_mix _, h.ia, h.iu, h.ir⟩
+
+theorem pend_succ {p lim : w64} {k : Nat} (h : sint.Z p < sint.Z lim + k) (hb : sint.Z p + 1 < 2 ^ 58) :
+    sint.Z (p + W64 1) < sint.Z lim + (k + 1 : Nat) := by
+  have : sint.Z (p + W64 1) = sint.Z p + 1 := by word
+  push_cast; omega
+
+theorem auth_ne_users : go!"auth" ≠ go!"authUsers" := by decide
+theorem auth_ne_roles : go!"auth" ≠ go!"authRoles" := by decide
+theorem users_ne_roles : go!"authUsers" ≠ go!"authRoles" := by decide
+
+theorem hb_auth (d : mvcc.KBReal) (n : GoString) (h : n ∈ authBktL) : d.P.HB n = true := by
+  simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at h
+  rcases h with rfl | rfl | rfl <;> simp [mvcc.KBReal.P, go_etcd_io.etcd.server.v3.storage.schema.keyName]
+
+/-- The data's other buckets after a change of one. -/
+theorem bktOf_ins_ne (S : Data) (n m : GoString) (b : BktData) (h : n ≠ m) :
+    bktOf (S.insert n b) m = bktOf S m := by
+  unfold bktOf; rw [GMap.lookup_insert_ne _ _ h]
+
+theorem bktOf_ins (S : Data) (n : GoString) (b : BktData) : bktOf (S.insert n b) n = b := by
+  unfold bktOf; rw [GMap.lookup_insert]; rfl
+
+/-- **A put into the users' bucket** keeps the lock token's facts at the state with the user. -/
+theorem lkOk_putUser {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : BktData × BktData × BktData}
+    {w : auth.AuthSess} {k : Nat} (hWf : d.P.Wf) (hhas : d.P.has mvcc.authUsersBI) (ur : auth.UserRec)
+    (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58) (hw : w.users ≠ .dels)
+    (hs : ur.roles.Pairwise go.GoStringLt) :
+    LkOk d (bs.put mvcc.authUsersBI ur.name (auth.userEncode ur) false true) (auth.putUser st ur.name ur.roles) x
+      { w with users := .puts } (k + 1) where
+  hw := h.hw
+  vs := mvcc.viewSame_putHB hWf (hb_auth d _ (by simp [authBktL, authUsersBI_name])) hhas h.vs
+  cw := fun n hn => by
+    simp only [BSess.put, ↓reduceIte, cwAdd] at hn
+    split at hn
+    · rename_i he; subst he; simp [authBktL, authUsersBI_name]
+    · exact h.cw n hn
+  pend := pend_succ h.pend hb
+  ka := by simp only [BSess.put, tkSet, authUsersBI_name, if_neg auth_ne_users]; exact h.ka
+  ku := by
+    simp only [BSess.put, tkSet, authUsersBI_name, ↓reduceIte, h.ku, kindW]
+    cases hu : w.users <;> simp_all [RbK.join]
+  kr := by simp only [BSess.put, tkSet, authUsersBI_name, if_neg users_ne_roles.symm]; exact h.kr
+  ia := by
+    simp only [BSess.put, tkSet, authUsersBI_name, if_neg auth_ne_users]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ auth_ne_users.symm]; exact h.ia hi
+  iu := by
+    simp only [BSess.put, tkSet, authUsersBI_name, ↓reduceIte, h.ku]
+    intro hi; cases hu : w.users <;> simp_all [RbK.join, kindW]
+  ir := by
+    simp only [BSess.put, tkSet, authUsersBI_name, if_neg users_ne_roles.symm]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ users_ne_roles]; exact h.ir hi
+  view := by
+    have hv := h.view
+    rw [authD_eq] at hv ⊢
+    obtain ⟨ha, ⟨dU, hu⟩, hr⟩ := hv
+    simp only [BSess.put, authUsersBI_name]
+    rw [bktOf_ins_ne _ _ _ _ auth_ne_users.symm, bktOf_ins_ne _ _ _ _ users_ne_roles, bktOf_ins]
+    exact ⟨ha, ⟨_, usersAt_put ur hu hs⟩, hr⟩
+
+/-- **A delete from the users' bucket.** -/
+theorem lkOk_delUser {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : BktData × BktData × BktData}
+    {w : auth.AuthSess} {k : Nat} (name : GoString)
+    (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58) (hw : w.users ≠ .puts) :
+    LkOk d (bs.del mvcc.authUsersBI name true) (auth.delUser st name) x { w with users := .dels } (k + 1) where
+  hw := h.hw
+  vs := mvcc.viewSame_del (hb_auth d _ (by simp [authBktL, authUsersBI_name])) h.vs
+  cw := fun n hn => by
+    simp only [BSess.del, ↓reduceIte, cwAdd] at hn
+    split at hn
+    · rename_i he; subst he; simp [authBktL, authUsersBI_name]
+    · exact h.cw n hn
+  pend := pend_succ h.pend hb
+  ka := by simp only [BSess.del, tkSet, authUsersBI_name, if_neg auth_ne_users]; exact h.ka
+  ku := by
+    simp only [BSess.del, tkSet, authUsersBI_name, ↓reduceIte, h.ku, kindW]
+    cases hu : w.users <;> simp_all [RbK.join]
+  kr := by simp only [BSess.del, tkSet, authUsersBI_name, if_neg users_ne_roles.symm]; exact h.kr
+  ia := by
+    simp only [BSess.del, tkSet, authUsersBI_name, if_neg auth_ne_users]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ auth_ne_users.symm]; exact h.ia hi
+  iu := by
+    simp only [BSess.del, tkSet, authUsersBI_name, ↓reduceIte, h.ku]
+    intro hi; cases hu : w.users <;> simp_all [RbK.join, kindW]
+  ir := by
+    simp only [BSess.del, tkSet, authUsersBI_name, if_neg users_ne_roles.symm]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ users_ne_roles]; exact h.ir hi
+  view := by
+    have hv := h.view
+    rw [authD_eq] at hv ⊢
+    obtain ⟨ha, ⟨dU, hu⟩, hr⟩ := hv
+    simp only [BSess.del, authUsersBI_name]
+    rw [bktOf_ins_ne _ _ _ _ auth_ne_users.symm, bktOf_ins_ne _ _ _ _ users_ne_roles, bktOf_ins]
+    exact ⟨ha, ⟨_, usersAt_del name hu⟩, hr⟩
+
+/-- **A put into the roles' bucket.** -/
+theorem lkOk_putRole {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : BktData × BktData × BktData}
+    {w : auth.AuthSess} {k : Nat} (hWf : d.P.Wf) (hhas : d.P.has mvcc.authRolesBI) (rr : auth.RoleRec)
+    (ps : auth.Role) (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58) (hw : w.roles ≠ .dels)
+    (hp : rr.toRole.Perm ps) :
+    LkOk d (bs.put mvcc.authRolesBI rr.name (auth.roleEncode rr) false true) (auth.putRole st rr.name ps) x
+      { w with roles := .puts } (k + 1) where
+  hw := h.hw
+  vs := mvcc.viewSame_putHB hWf (hb_auth d _ (by simp [authBktL, authRolesBI_name])) hhas h.vs
+  cw := fun n hn => by
+    simp only [BSess.put, ↓reduceIte, cwAdd] at hn
+    split at hn
+    · rename_i he; subst he; simp [authBktL, authRolesBI_name]
+    · exact h.cw n hn
+  pend := pend_succ h.pend hb
+  ka := by simp only [BSess.put, tkSet, authRolesBI_name, if_neg auth_ne_roles]; exact h.ka
+  ku := by simp only [BSess.put, tkSet, authRolesBI_name, if_neg users_ne_roles]; exact h.ku
+  kr := by
+    simp only [BSess.put, tkSet, authRolesBI_name, ↓reduceIte, h.kr, kindW]
+    cases hu : w.roles <;> simp_all [RbK.join]
+  ia := by
+    simp only [BSess.put, tkSet, authRolesBI_name, if_neg auth_ne_roles]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ auth_ne_roles.symm]; exact h.ia hi
+  iu := by
+    simp only [BSess.put, tkSet, authRolesBI_name, if_neg users_ne_roles]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ users_ne_roles.symm]; exact h.iu hi
+  ir := by
+    simp only [BSess.put, tkSet, authRolesBI_name, ↓reduceIte, h.kr]
+    intro hi; cases hu : w.roles <;> simp_all [RbK.join, kindW]
+  view := by
+    have hv := h.view
+    rw [authD_eq] at hv ⊢
+    obtain ⟨ha, hu, ⟨dR, hr⟩⟩ := hv
+    simp only [BSess.put, authRolesBI_name]
+    rw [bktOf_ins_ne _ _ _ _ auth_ne_roles.symm, bktOf_ins_ne _ _ _ _ users_ne_roles.symm, bktOf_ins]
+    exact ⟨ha, hu, ⟨_, rolesAt_put rr ps hr hp⟩⟩
+
+/-- **A delete from the roles' bucket.** -/
+theorem lkOk_delRole {d : mvcc.KBReal} {bs : BSess} {st : auth.AuthState} {x : BktData × BktData × BktData}
+    {w : auth.AuthSess} {k : Nat} (name : GoString)
+    (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58) (hw : w.roles ≠ .puts) :
+    LkOk d (bs.del mvcc.authRolesBI name true) { st with roles := GMap.delete name st.roles } x
+      { w with roles := .dels } (k + 1) where
+  hw := h.hw
+  vs := mvcc.viewSame_del (hb_auth d _ (by simp [authBktL, authRolesBI_name])) h.vs
+  cw := fun n hn => by
+    simp only [BSess.del, ↓reduceIte, cwAdd] at hn
+    split at hn
+    · rename_i he; subst he; simp [authBktL, authRolesBI_name]
+    · exact h.cw n hn
+  pend := pend_succ h.pend hb
+  ka := by simp only [BSess.del, tkSet, authRolesBI_name, if_neg auth_ne_roles]; exact h.ka
+  ku := by simp only [BSess.del, tkSet, authRolesBI_name, if_neg users_ne_roles]; exact h.ku
+  kr := by
+    simp only [BSess.del, tkSet, authRolesBI_name, ↓reduceIte, h.kr, kindW]
+    cases hu : w.roles <;> simp_all [RbK.join]
+  ia := by
+    simp only [BSess.del, tkSet, authRolesBI_name, if_neg auth_ne_roles]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ auth_ne_roles.symm]; exact h.ia hi
+  iu := by
+    simp only [BSess.del, tkSet, authRolesBI_name, if_neg users_ne_roles]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ users_ne_roles.symm]; exact h.iu hi
+  ir := by
+    simp only [BSess.del, tkSet, authRolesBI_name, ↓reduceIte, h.kr]
+    intro hi; cases hu : w.roles <;> simp_all [RbK.join, kindW]
+  view := by
+    have hv := h.view
+    rw [authD_eq] at hv ⊢
+    obtain ⟨ha, hu, ⟨dR, hr⟩⟩ := hv
+    simp only [BSess.del, authRolesBI_name]
+    rw [bktOf_ins_ne _ _ _ _ auth_ne_roles.symm, bktOf_ins_ne _ _ _ _ users_ne_roles.symm, bktOf_ins]
+    exact ⟨ha, hu, ⟨_, rolesAt_del name hr⟩⟩
+
+/-- **A put into the `auth` bucket** of a key and a value that keep its facts, at the state `st'` with `st`'s users and
+roles. -/
+theorem lkOk_putAuth {d : mvcc.KBReal} {bs : BSess} {st st' : auth.AuthState} {x : BktData × BktData × BktData}
+    {w : auth.AuthSess} {k : Nat} (hWf : d.P.Wf) (hhas : d.P.has mvcc.authBI) (kb vb : GoString)
+    (h : LkOk d bs st x w k) (hb : sint.Z bs.pend + 1 < 2 ^ 58)
+    (hu : st'.users = st.users) (hr : st'.roles = st.roles)
+    (ha : authAt st (bktOf bs.S go!"auth") → authAt st' ((bktOf bs.S go!"auth").insert kb vb)) :
+    LkOk d (bs.put mvcc.authBI kb vb false true) st' x w (k + 1) where
+  hw := h.hw
+  vs := mvcc.viewSame_putHB hWf (hb_auth d _ (by simp [authBktL, authBI_name])) hhas h.vs
+  cw := fun n hn => by
+    simp only [BSess.put, ↓reduceIte, cwAdd] at hn
+    split at hn
+    · rename_i he; subst he; simp [authBktL, authBI_name]
+    · exact h.cw n hn
+  pend := pend_succ h.pend hb
+  ka := by
+    simp only [BSess.put, tkSet, authBI_name, ↓reduceIte]
+    rcases h.ka with h1 | h1 <;> rw [h1] <;> simp [RbK.join]
+  ku := by simp only [BSess.put, tkSet, authBI_name, if_neg auth_ne_users.symm]; exact h.ku
+  kr := by simp only [BSess.put, tkSet, authBI_name, if_neg auth_ne_roles.symm]; exact h.kr
+  ia := by
+    simp only [BSess.put, tkSet, authBI_name, ↓reduceIte]
+    intro hi; rcases h.ka with h1 | h1 <;> rw [h1] at hi <;> simp [RbK.join] at hi
+  iu := by
+    simp only [BSess.put, tkSet, authBI_name, if_neg auth_ne_users.symm]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ auth_ne_users]; exact h.iu hi
+  ir := by
+    simp only [BSess.put, tkSet, authBI_name, if_neg auth_ne_roles.symm]
+    intro hi; rw [bktOf_ins_ne _ _ _ _ auth_ne_roles]; exact h.ir hi
+  view := by
+    have hv := h.view
+    rw [authD_eq] at hv ⊢
+    obtain ⟨ha0, ⟨dU, hu0⟩, ⟨dR, hr0⟩⟩ := hv
+    simp only [BSess.put, authBI_name]
+    rw [bktOf_ins_ne _ _ _ _ auth_ne_users, bktOf_ins_ne _ _ _ _ auth_ne_roles, bktOf_ins]
+    refine ⟨ha ha0, ⟨dU, ?_⟩, ⟨dR, ?_⟩⟩
+    · show schema.usersAt st' _ dU; unfold schema.usersAt; rw [hu]; exact hu0
+    · show schema.rolesAt st' _ dR; unfold schema.rolesAt; rw [hr]; exact hr0
+
 section wr
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
