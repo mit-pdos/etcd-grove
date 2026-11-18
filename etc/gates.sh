@@ -17,6 +17,11 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 export PATH=/usr/local/go/bin:$HOME/go/bin:$HOME/.elan/bin:$PATH
 export GOTOOLCHAIN=${GOTOOLCHAIN:-go1.27.1}
+# Lake's artifact cache (shared by the worktrees, keyed by the build traces' input hashes), restored
+# into .lake/build (which tcb-report and the other checks read), so that this build and every
+# check's `lake build --no-build` agree on what is up to date. Off with LAKE_ARTIFACT_CACHE=false.
+export LAKE_ARTIFACT_CACHE=${LAKE_ARTIFACT_CACHE:-true}
+export LAKE_RESTORE_ARTIFACTS=${LAKE_RESTORE_ARTIFACTS:-true}
 pk=()
 if [ -n "${LAKE_PACKAGES:-}" ]; then pk=(--packages="$LAKE_PACKAGES"); export LAKE_OPTS="--packages=$LAKE_PACKAGES"; fi
 fail=0
@@ -35,8 +40,9 @@ unlink_perennial() {
 }
 
 # 1. the full build
+bstart=$(date +%s)
 if lake "${pk[@]}" build > "$tmp/build.log" 2>&1; then
-  echo "build: ok ($(grep -o 'Build completed successfully ([0-9]* jobs)' "$tmp/build.log"))"
+  echo "build: ok ($(grep -o 'Build completed successfully ([0-9]* jobs)' "$tmp/build.log"), $(( $(date +%s) - bstart ))s)"
 else
   echo "build: FAILED"; grep -E "error:|error: build failed" "$tmp/build.log" | head -20; fail=1
 fi
@@ -79,15 +85,13 @@ if python3 etc/tcb-report.py --check > "$tmp/tcb.log" 2>&1; then
 else
   echo "tcb: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/tcb.log" | tail -20; fail=1
 fi
-coll_ok=0; coll_bad=0
-for c in etc/tcb-collections/*.txt; do
-  if python3 etc/tcb-report.py --reuse --collection "$c" --check > "$tmp/c.log" 2>&1; then
-    coll_ok=$((coll_ok+1))
-  else
-    coll_bad=$((coll_bad+1)); echo "collection $c: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/c.log" | tail -10
-  fi
-done
-echo "collections: $coll_ok match, $coll_bad differ"; [ "$coll_bad" = 0 ] || fail=1
+# the collections, in one run (the JSON loaded once; each collection checked as on its own: 68
+# runs of 5.6s each, nearly all of it parsing the JSON, took six minutes), beside the axiom-tok gate
+# below: both only read the .lake/tcb.json the check above wrote
+ncoll=$(ls etc/tcb-collections/*.txt | wc -l)
+( python3 etc/tcb-report.py --reuse --collection etc/tcb-collections/*.txt --check > "$tmp/c.log" 2>&1
+  echo $? > "$tmp/c.status" ) &
+coll_pid=$!
 # 3b. the axiom-tok gate (per-type stage B, Scope r5 §5.1): no trusted statement lets its user
 # obtain tokens or resources it chose beyond what it gives, but for the entries of
 # etc/axiom-tok-allow.txt; reads the .lake/tcb.json the trust-base check above wrote (so after it,
@@ -105,6 +109,15 @@ else
 fi
 # its selftests, and the real axioms they name (`real-pass`) in the run above
 "${cap[@]}" python3 etc/axiom-tok-check.py --selftest --reuse-raw "$tmp/atok.jsonl" > "$tmp/atoks.log" 2>&1 || { echo "axiom-tok selftest: FAILED"; grep "FAIL\|error" "$tmp/atoks.log" | head -20; fail=1; }
+wait "$coll_pid"
+coll_ok=$(grep -c "^tcb: trust base matches" "$tmp/c.log")
+coll_bad=$((ncoll - coll_ok))
+if [ "$(cat "$tmp/c.status" 2>/dev/null)" != 0 ] || [ "$coll_bad" != 0 ]; then
+  [ "$coll_bad" != 0 ] || coll_bad="?"
+  grep "^tcb: collection .*: FAILED" "$tmp/c.log" | sed 's/^tcb: //'
+  grep -v "root theorems\|distinct trust bases\|^tcb: trust base matches" "$tmp/c.log" | tail -20; fail=1
+fi
+echo "collections: $coll_ok match, $coll_bad differ"
 return $fail
 }
 
@@ -341,15 +354,17 @@ secs=(links tcb goose models issues bounds mode api iface premisefix k8s7e)
 start=$(date +%s)
 for s in "${secs[@]}"; do
   mkdir -p "$tmp/sec.$s"
-  ( tmp="$tmp/sec.$s"; "sec_$s" ) > "$tmp/out.$s" 2>&1 &
+  ( tmp="$tmp/sec.$s"; t0=$(date +%s); "sec_$s"; st=$?; echo $(( $(date +%s) - t0 )) > "$tmp/time"; exit $st ) > "$tmp/out.$s" 2>&1 &
   pids+=("$!")
 done
+times=
 for i in "${!secs[@]}"; do
   wait "${pids[$i]}" || fail=1
   cat "$tmp/out.${secs[$i]}"
+  times="$times ${secs[$i]} $(cat "$tmp/sec.${secs[$i]}/time" 2>/dev/null)s"
 done
 unlink_perennial
-echo "checks after the build: $(( $(date +%s) - start ))s (in parallel)"
+echo "checks after the build: $(( $(date +%s) - start ))s (in parallel; per section:$times)"
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail
