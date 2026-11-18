@@ -1,6 +1,61 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, fix (A) applied; A6 design findings F-acc, F-enc to decide)
+## START HERE (2026-11-18, F-enc and F-acc done; the realization next)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 49bd7924e6 merged (2e7984f8a5): pin
+  6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5, fix (A) (all ACCEPTED; questions.md "A6 design findings decided").
+  **F-enc** and **F-acc** (c35919e62f): schema's reads return the record the caller names (`usersDec`/`rolesDec`,
+  `usersAt`/`rolesAt`, `authBucketsAre_usersAt`/`_rolesAt` by choice; no injectivity); `rbAcc … E` atomic around
+  `E ⊇ ↑rbClaimN` in `Unlock`/`commit`/`unsafeCommit` (docstring: the window vs the four forbidden laws). The 42
+  changed modules + `AuthRealRead` built (`/shared/tmp/auth-schema-srv/fenc-build2.log`); backend `Link` + server
+  `Results`: `/shared/tmp/auth-schema-srv/fenc-build3.log`.
+- Next, in order: (1) the per-backend realization invariant, design below ("A6 realization design"); (2) the read
+  side: `authBackendOk` from `authBE_real` (ticket pool) + post-hoc view facts; `authBackendReads`' reads from a
+  second `authBE_real` (the reserved pool, `R := T`); (3) the write side over F-acc (`Lk`, `rbAcc` at the
+  invariant's mask); (4) `authBkLend`, `authBkLife`, `authWAtHook`, `CreateAuthBuckets`; (5) `⊢ authSchemaSrv`,
+  `authSchemaSnap` from one per-backend lemma. Report at A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s
+  fraction, `newPostK`'s tokens, `authRdSlots`' tokens, `authSchemaSrv`'s ticket count, fix (A)).
+- Pitfalls: (0)-(18) as before (History); (19) `rbAcc_nil γ ok Rr E` now takes the mask; callers at `⊤` pass
+  `⊤ CoPset.subseteq_top` to the specs.
+
+## A6 realization design (2026-11-18; checked against the specs, no Lean yet)
+
+One invariant per backend `γc` (namespace disjoint from `rbClaimN`, `curN`), holding:
+- **Tickets**: `R := ownToks γt 1`, global names `γt` with the discarded authority `ownTokAuthDfrac γt discard
+  (authRdN - 1)` (persistent, allocated once in `⊢ authSchemaSrv`, shared by `authSchemaSnap γa R`).
+- **Ticket pool** (`authRdN - 1` slots of `authRdSlots`; each slot carries `sh := bOpen γB s0`, `s0` a fixed share of
+  the realization's `authOpenQ`, `bOpen_rep`): free `rdTok ∗ sh`; acquiring (between `Racq` and `Robs`: `sh` lent to
+  `readTx.RLock`) a deposit in a ghost map `m : GMap Nat (Option Qp)` (`some q`: `authCur γc q`, clauses 1-2;
+  `none`: `authWTok γc`, clause 3; the persistent `authPubLb` and `authHistHalf` stay in the reader's `C`), receipt
+  `C i qo := ghostMapElem γm k d ∗ …`; held (between `Robs` and `Rrel`) `R ∗ sh` with receipt `Y := ownToks γh 1`;
+  counts `kf + kh + m.size = authRdN - 1` (`GMap.size`); `kf ≥ 1` at `Racq` by `toks_bound` (deposited tickets
+  `kh + m.size` and the one in hand ≤ `authRdN - 1`). Deposits are needed: release must refute every acquiring
+  loan (`authCur γc 1`, the retired `T`) to collect its `sh`; a receipt holding `authCur q` in the reader's hands
+  is not visible to the release. (Fraction-scaled vaults were rejected: they need `Σ`-invariants over `Qp`.)
+- **Reserved pool** (1 slot, `R := T = authWTok γc`, same moves, deposit `T` from `Racq` to `Rrel`):
+  `authBackendReads`' `GetUser`/`GetRole`/`GetAllUsers` call schema's `authBackend.Get*` at `R := T`, `L i :=
+  authOwn hs`. `T` in the invariant here = no batch (idle facts hold).
+- **Life**: live | retired (holds `authWTok γc`; `authBkLife` clause 1 mints `authRetired γc`) | released (holds
+  `authCur γc 1 ∗ authWTok γc`: refutes every `Racq`). Release (clause 2) refutes every acquiring entry and
+  collects the `sh` of free and held slots: `bOpen authOpenQ` back; held readers' `Rrel` still works after it.
+- **Buckets** (no lent state, F-acc): `rbRd γB n ½ c_n` for `auth`, `authUsers`, `authRoles`; states `s_n` recorded
+  at `j_n` (`authStateAt`), `c_a` encodes `s_a`'s flag and revision (`enabledOf`/`revisionOf`, `revWf`: also the boot
+  buckets, where `authBucketsAre` fails), `c_u` `∃ dU, usersAt s_u c_u dU`, `c_r` likewise; `j_u, j_r ≤ j_a`; the
+  realization's quarter `authPubQ γa ¼ p` with `p ≤ j_u, j_r`. Idle branch (T with the client or in the reserved
+  pool): `authLockI (.on γa) st` and every `s_n = st` at its index. Batch branch: `T` deposited by `Lock`.
+  At each `rbAcc` window (write-back, commit) a bucket moves to the writer's contents, which encode the `Unlock`'s
+  `st` (recorded, latest), or stays (`unlockOk`; no session puts and deletes in one bucket): `s_n := st` whenever
+  `c_n` encodes `st` (an untouched bucket encodes `st` too: the step changed nothing it holds), so `j_a` is always the
+  latest and `j_u, j_r ≤ j_a` holds; `p` moves only with `T` in hand (idle).
+- **Views, post hoc**: after `RLock`, with the token's `rtHeld`, open the invariant: `rtHeldF_rbRd` gives `rvBkt = c_n`
+  (the read lock stops the write-back): the view `⟨s_a, s_u, s_r⟩` with `authViewSnapFrom` (`p ≥ i` from
+  `authPubLb i`), or with `T ∗ authHistHalf hs` in hand the idle branch: `uni st`, `hs` last `st`.
+
+## History
+
+### F-enc/F-acc decision (2026-11-18, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean b0bb9df7c3 merged (75f8363b83; lean had
   not moved on 2026-11-18): pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere
@@ -25,7 +80,6 @@
 - Pitfalls: (0)-(16) as before (History); (17) resolved (soundness §6); (18) a term argument of type `IProp` with
   `∗` inside a definition needs `iprop(…)` (the elaborator error "`term_∗_` has not been implemented").
 
-## History
 
 ### A6 STOP (2026-11-18, superseded)
 
