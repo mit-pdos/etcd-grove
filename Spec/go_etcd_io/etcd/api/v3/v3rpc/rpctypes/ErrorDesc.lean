@@ -24,12 +24,18 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 /-- `rpctypes.ErrorDesc(err)` of an error grpc's `status` accepts (`statusErrOk`; `nil` included:
-`status.FromError(nil)` succeeds, so `Error()` is not called) returns some string. -/
+`status.FromError(nil)` succeeds, so `Error()` is not called) returns some string. (incomingof T8,
+2026-11-18) For an error without `GRPCStatus`, it is the message `m` its `Error()` stably returns at the
+call (a parameter, as `status.FromError.spec`'s). -/
 abbrev rpctypes.ErrorDesc.spec : Prop :=
-  ∀ (err : GoError),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗ statusErrOk err }}
+  ∀ (err : GoError) (m : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes ∗ statusErrOk err ∗
+      (∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m) }}
     (App (Val (@! go_etcd_io.etcd.api.v3.v3rpc.rpctypes.ErrorDesc)) (Val #err))
-  {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ }}
+  {{ (d : GoString), RET #d; ⌜d = errDesc err⌝ ∗
+      -- (incomingof T8, 2026-11-18) of an error without `GRPCStatus`, the message its `Error()`
+      -- stably returned at the call
+      ⌜∀ e : GoInterfaceOk, err = GoInterface.ok e → noGRPCStatus e.ty → d = m⌝ }}
 
 end spec
 

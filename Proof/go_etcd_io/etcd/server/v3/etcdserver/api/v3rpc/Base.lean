@@ -222,16 +222,20 @@ instance sortNameMaps_persistent : Persistent (sortNameMaps (GF := GF)) := by
 instance ctxCanceledPtr_persistent : Persistent (ctxCanceledPtr (GF := GF)) := by
   unfold ctxCanceledPtr; infer_instance
 
-/-- **The context errors' descriptions** (k8s etcd3 7c-2 part 2, S1, HS-2): `context.Canceled`'s
-`errDesc` is `"context canceled"`, `DeadlineExceeded`'s `"context deadline exceeded"` (neither is a
-status error, so its description is its `Error()`: `context.go`). From the read package's premise
-`EtcdGrove.ContextReadErrs` (`descs`). What `togRPCError`'s pass-through branch needs, its error
-going out as it is. -/
+/-- **The context errors' descriptions are neither read error's** (k8s etcd3 7c-2 part 2, S1, HS-2;
+restated by incomingof Part B, approved by the user 2026-11-17 via etcd-grove-03): the descriptions of
+`context.Canceled`'s and `DeadlineExceeded`'s values are neither mvcc's future-revision nor its
+compacted gRPC description. Per run: both variables are keys of `toGRPCErrorMap`, whose keys have
+neither description (`toGRPCErrorMap_init`'s post, `grpcErrMapOk`). What `togRPCError`'s pass-through
+branch needs, its error going out as it is. (Until then the two `errDesc` equations, from the premise
+field `ContextReadErrs.descs`, whose `Canceled` half was unsound: `notes/axiom-review/ctx-descs.md`.) -/
 def ctxErrDescs : IProp GF :=
   iprop((∃ e : GoInterface, globalAddr _root_.Perennial.context.Canceled ↦□ e ∗
-      ⌜go_etcd_io.etcd.cache.v3.errDesc e = go!"context canceled"⌝) ∗
+      ⌜go_etcd_io.etcd.cache.v3.errDesc e ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
+        go_etcd_io.etcd.cache.v3.errDesc e ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝) ∗
     (∃ d : GoInterface, globalAddr _root_.Perennial.context.DeadlineExceeded ↦□ d ∗
-      ⌜go_etcd_io.etcd.cache.v3.errDesc d = go!"context deadline exceeded"⌝))
+      ⌜go_etcd_io.etcd.cache.v3.errDesc d ≠ go_etcd_io.etcd.cache.v3.futureRevDesc ∧
+        go_etcd_io.etcd.cache.v3.errDesc d ≠ go_etcd_io.etcd.cache.v3.compactedDesc⌝))
 
 instance ctxErrDescs_persistent : Persistent (ctxErrDescs (GF := GF)) := by
   unfold ctxErrDescs; infer_instance
