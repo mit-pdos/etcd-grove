@@ -27,7 +27,7 @@ def jstr (s : String) : String := (Json.str s).compress
 
 def modOf (env : Environment) (n : Name) : Name :=
   match env.getModuleIdxFor? n with
-  | some i => env.header.moduleNames[i.toNat]!
+  | some i => env.header.modules[i.toNat]!.module
   | none => .anonymous
 
 /-- The declaration an auxiliary constant belongs to: the nearest enclosing constant with a
