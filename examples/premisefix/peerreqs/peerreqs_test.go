@@ -36,7 +36,19 @@ func (s *statusRec) Flush() {
 func TestPeerRequests(t *testing.T) {
 	t.Chdir(t.TempDir()) // the members' data directories
 	lg := zap.NewNop()
-	addrs := []string{"127.0.0.1:33811", "127.0.0.1:33812", "127.0.0.1:33813"}
+	// the peer listeners first, each on a port the kernel picks, kept open until served: no port
+	// fixed in advance (33811-33813 were, in the ephemeral range: another process's connection
+	// could hold one, "bind: address already in use", 2026-11-17), none closed and re-taken
+	lis := make([]net.Listener, 3)
+	addrs := make([]string, 3)
+	for i := range lis {
+		l, err := net.Listen("tcp", "127.0.0.1:0")
+		if err != nil {
+			t.Fatal(err)
+		}
+		lis[i] = l
+		addrs[i] = l.Addr().String()
+	}
 	names := []string{"p-1", "p-2", "p-3"}
 	cluster := types.URLsMap{}
 	peers := make([]types.URLs, 3)
@@ -52,10 +64,7 @@ func TestPeerRequests(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		l, err := net.Listen("tcp", addrs[i])
-		if err != nil {
-			t.Fatal(err)
-		}
+		l := lis[i]
 		h := s.RaftHandler()
 		go http.Serve(l, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			rec := &statusRec{ResponseWriter: w, st: 200}

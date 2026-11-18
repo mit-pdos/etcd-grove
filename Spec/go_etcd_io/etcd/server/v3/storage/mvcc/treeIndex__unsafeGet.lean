@@ -29,7 +29,7 @@ abbrev mvcc.treeIndex.unsafeGet.spec : Prop :=
   ∀ (ti t lg : Loc) (L : List mvcc.IdxEntry) (q : Qp) (key : GoSlice) (k : GoString)
     (atRev : w64) (e : GoInterfaceOk),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      ti.[treeIndex, go!"tree"] ↦□ t ∗ ti.[treeIndex, go!"lg"] ↦□ lg ∗ ⌜lg ≠ null⌝ ∗
+      ti.[treeIndex, go!"tree"] ↦□ t ∗ ti.[treeIndex, go!"lg"] ↦□ lg ∗ zapLoggerOk lg ∗
       mvcc.ownTree t L q ∗
       ⌜∀ z ∈ L, mvcc.kiIsEmpty z.2.2 = false⌝ ∗ key ↦*□ k ∗
       globalAddr ErrRevisionNotFound ↦□ GoInterface.ok e }}

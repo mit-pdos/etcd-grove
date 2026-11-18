@@ -2748,3 +2748,31 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   premise `Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)`; every other premise and the conclusion unchanged.
 - **Decision.** The user's decision (A) of 2026-11-15 for this class of change; listed for the user's review
   with the earlier 25.
+
+## 2026-11-17: `zap.Logger.Panic.spec` (and the mvcc `keyIndex` panics) -- a panic value no Go program raises
+
+- **Spec.** `Spec/go_uber_org/zap/Logger__Panic.lean` (`zap.Logger.Panic.spec`, the axiom
+  `zap.Logger.Panic.wp_proof`) and the plan's `SpecPlan/Spec/go_uber_org/zap/Logger__Panic.lean`; through
+  it, the panics of `Spec/go_etcd_io/etcd/server/v3/storage/mvcc/keyIndex__{put,get,tombstone,restore,
+  restoreTombstone}.lean`.
+- **Defect.** False of the Go code: the post `r = PanicV #msg` is a panic with the bare string. Go's
+  `panic(x)` (Perennial's `go.panic`, `wp_panic`) panics with the interface value,
+  `PanicV #(interface.mkOk go.string #msg)`; zap's `WriteThenPanic.OnWrite` does `panic(ce.Message)`. The
+  `keyIndex` specs inherit the bare string from it.
+- **Evidence.** The reference implementation of zap in mit-pdos/etcd-refimpl (`Refimpl/go_uber_org/zap/`,
+  `36ef0d5`) can meet the spec only with GooseLang's `Raise msg`, which no Go source translates to; with
+  `panic(msg)` the proof fails at the final equality. `wp_panic` (Perennial, `Golang/Theory/Defer.lean`).
+- **Second defect (same spec).** Its premise `⌜l ≠ null⌝` (kept by premise fixes 6, D4) admits loggers
+  for which the axiom is false of zap v1.28.0 (`logger.go:283-357`, `terminalHookOverride`): a zero
+  `&zap.Logger{}` panics with a nil-dereference runtime error (`log.core.Check` on a nil core), not
+  `msg`; a logger built with `WithPanicHook(h)` for an `h` that returns makes `Panic` return normally.
+  D4's reason (only a `recover` that inspects the value tells the panics apart) does not cover the
+  second.
+- **Proposed change.** `⌜r = PanicV #(interface.mkOk go.string #msg)⌝` in both zap specs; the same value
+  at each `keyIndex` panic (`PanicV #(interface.mkOk go.string #(go!"…"))`). The premise `zapLoggerOk l`
+  (as `Debug`/`Info`/`Warn`/`Error`/`Check`/`Fatal` have since premise fixes 6), and `zapLoggerOk lg` in
+  place of `⌜lg ≠ null⌝` in `keyIndex.{put,get,tombstone,restore,restoreTombstone}` and
+  `treeIndex.unsafeGet`; their callers have it from `isTreeIndex` (`#Hlgnn`). No trust-base change (the
+  same axiom, restated). The plan's spec already has the premise (`isLogger l`).
+- **Decision.** Accepted (the user, 2026-11-17: "fix the axioms ... and the proofs above that axiom");
+  made on branch `zap-panic-iface`.

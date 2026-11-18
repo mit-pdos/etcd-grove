@@ -3,7 +3,7 @@
 
 usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
                          [--check [--update]]
-       etc/tcb-report.py (--roots PATTERN... | --collection FILE) [--per-root]
+       etc/tcb-report.py (--roots PATTERN... | --collection FILE...) [--per-root]
                          [--check [--update]] [-o OUT] [--json TCB.json] [--reuse]
 
   -o       where to write the Markdown report (default: stdout)
@@ -24,7 +24,14 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
   --collection  the same for the `roots PATTERN` lines of FILE (one per line, as
            `etc/tcb-collections/*.txt`), whose `axiom X`/`sorry X` lines are its
            baseline: with --check, compared (exit 1 if they differ); with
-           --check --update, rewritten (the other lines kept)
+           --check --update, rewritten (the other lines kept). With --check, several
+           FILEs are checked in one run, each as on its own (exit 1 if any differs;
+           `tcb: collection FILE: FAILED` names it), the JSON loaded once
+
+The Lean runs (one per group of root modules) run in two lanes, natively
+(etc/proof_roots.py: `run_groups`, `lean_script`); with `$TCB_CACHE` a directory, each
+run's output is cached there under a key of everything it can read (etc/lean_cache.py: its
+whole import closure's `.olean`s, proofs included), as etc/gates.sh does.
 
 Needs an up-to-date build of the root modules: it never builds, and exits saying so
 if `lake build --no-build` finds them out of date (`$LAKE_OPTS` is passed to lake, e.g.
@@ -264,7 +271,7 @@ def main():
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--update", action="store_true")
     ap.add_argument("--roots", nargs="+", metavar="PATTERN")
-    ap.add_argument("--collection", metavar="FILE")
+    ap.add_argument("--collection", metavar="FILE", nargs="+")
     ap.add_argument("--per-root", action="store_true")
     args = ap.parse_args()
 
@@ -358,16 +365,7 @@ def main():
         return sorted([f"axiom {short(n)}" for n in axs] + [f"sorry {short(n)}" for n in srs])
 
     # --roots/--collection: what a collection of roots rests on
-    if args.collection:
-        coll = read(args.collection).splitlines()
-        pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("roots ")]
-        if args.roots:
-            sys.exit("tcb: give --roots or --collection, not both")
-        if not pats:
-            sys.exit(f"tcb: {args.collection} has no `roots PATTERN` line")
-    else:
-        pats = args.roots or []
-    if pats:
+    def selection(pats, coll_file, coll):
         sel = []
         for p in pats:
             hit = [r for r in roots.values() if matches(r, p, defs, at_)]
@@ -380,7 +378,7 @@ def main():
         current = entries(sel_ax, sel_sr)
         if args.check:
             kept = [x for x in coll if not x.startswith(("axiom ", "sorry "))]
-            return check(args.collection, current, kept, sel_sr, sorries, args.update)
+            return check(coll_file, current, kept, sel_sr, sorries, args.update)
         text = selection_report(sel, pats, len(roots), sel_ax, sel_sr, axioms, sorries,
                                 users, fw_ax, defs, at_, args.per_root)
         if args.out:
@@ -390,6 +388,31 @@ def main():
         else:
             print(text, end="")
         return 0
+
+    if args.collection:
+        if args.roots:
+            sys.exit("tcb: give --roots or --collection, not both")
+        if len(args.collection) > 1 and not args.check:
+            sys.exit("tcb: several collections only with --check")
+        # several collections (with --check): each checked as if on its own, the data loaded once
+        # (etc/gates.sh: one run for every collection instead of one per collection)
+        status = 0
+        for cf in args.collection:
+            coll = read(cf).splitlines()
+            pats = [x.split(None, 1)[1].strip() for x in coll if x.startswith("roots ")]
+            if not pats:
+                sys.exit(f"tcb: {cf} has no `roots PATTERN` line")
+            try:
+                st = selection(pats, cf, coll)
+            except SystemExit as e:  # a pattern no root matches: this collection fails
+                print(e.code)
+                st = 1
+            if st != 0:
+                print(f"tcb: collection {cf}: FAILED")
+                status = 1
+        return status
+    if args.roots:
+        return selection(args.roots, None, None)
 
     # --check: the project's part of the trust base against the baseline
     if args.check:
