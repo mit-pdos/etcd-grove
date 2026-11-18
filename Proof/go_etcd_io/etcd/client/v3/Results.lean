@@ -1828,8 +1828,11 @@ theorem etcd_compactHandlerOk (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (�
   -- `kvServer.Compact` (the auth bound `0`, `authPubLbM_zero`)
   imod (authPubLbM_zero (GF := GF) E.authMode) with #Hna0
   iapply wp_fupd
+  ihave ⟨%tok, #HtokC0⟩ := auth.ctxToken_of_libCtxOk ci $$ Hlibc
+  ihave #HtokC : iprop(□ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok)) $$ []
+  · iintro !> -; iexact HtokC0
   iapply (v3rpc.kvServer.wp_Compact p s (v3rpc.srvKVAns s E ρ γr (W64 0) [] .none) cid mid n aa E
-    ci cd r Pin Q 0) $$ [Hrd Hlt Hlg Hsr Hid Hreq]
+    ci cd tok r Pin Q 0) $$ [Hrd Hlt Hlg Hsr Hid Hreq]
   · iframe #
     iframe Hrd
     isplitr
@@ -2211,8 +2214,9 @@ theorem etcd_compactMethodOk (q : Loc) (E : apply.AEnv GF)
     ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaKVServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ (fun _ => iprop(True)) ci cd dec ui rfl rfl v3rpc.QuotaKVServerIsKVServer.is_kv)
     $$ [HS HRs HSpec]
-  · simp only [GrpcSpec.md]
-    iframe; iframe #
+  · iframe; iframe #
+    iapply (grpcSpecAt_md_intro _ ci m Φ (fun _ => iprop(True)))
+    iframe HSpec Hrc
     iintro !> %_
     itrivial
   inext
@@ -3824,8 +3828,10 @@ theorem etcd_leaseGrantHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w6
   -- (auth-lease S3c) the handler's spec at auth off: the contract by `_false`, the off permit
   ihave #HLM := (v3rpc.lessorGrantOkGM_false s E (⟨γr.kv.st, γr⟩ : ReqNames) S (fun _ _ => iprop(True))
       (fun _ => True)).2 $$ HLG
+  ihave #HtokF : iprop(□ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ci) none)) $$ []
+  · iintro !> %h; cases h
   iapply (v3rpc.LeaseServer.wp_LeaseGrant lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S
-      (fun _ _ => iprop(True)) (fun _ => True) ci cd r m (fun _ _ => iprop(True))) $$ [HS Hid]
+      (fun _ _ => iprop(True)) (fun _ => True) ci none cd r m (fun _ _ => iprop(True))) $$ [HS Hid]
   · iframe; iframe #
     isplitr
     · ipureintro; trivial
@@ -3887,7 +3893,9 @@ theorem etcd_leaseRevokeHandlerOk (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
     iunfold v3rpc.raftLessor at HL
     icases HL with ⟨-, #HR⟩
     iexact HR
-  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S ci cd r m
+  ihave #HtokF : iprop(□ (⌜false = true⌝ → auth.ctxToken (GoInterface.ok ci) none)) $$ []
+  · iintro !> %h; cases h
+  iapply (v3rpc.LeaseServer.wp_LeaseRevoke lp s A cid mid false E (⟨γr.kv.st, γr⟩ : ReqNames) S ci none cd r m
       (fun _ => iprop(True))) $$ [HS]
   · iframe; iframe #
     iunfold leaseRevokePermitM
@@ -3970,8 +3978,9 @@ theorem etcd_leaseGrantMethodOk (q : Loc)
       go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.quotaLeaseServer.ty, #q⟩
     S ics Rs v3rpc.learnerReqOk m Φ (fun _ => iprop(True)) ci cd dec ui rfl rfl v3rpc.ServerMethodSets.lease_impl)
     $$ [HS HRs HSpec]
-  · simp only [GrpcSpec.md]
-    iframe; iframe #
+  · iframe; iframe #
+    iapply (grpcSpecAt_md_intro _ ci m Φ (fun _ => iprop(True)))
+    iframe HSpec Hrc
     iintro !> %_
     itrivial
   inext

@@ -85,7 +85,7 @@ theorem tokIssued_badToken {GF : BundledGFunctors} [AllG GF] (γa : auth.AuthNam
 section contract
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **C1**: the token `tok` an attempt of a client built with the user name `u` carries (its
@@ -124,12 +124,12 @@ theorem mdTokenOf_bad (md : Option (GoString → Option (List GoString)))
       rw [hm] at ht
       simp only [Option.getD_some] at ht
       subst ht
-      simp only [trimPrefix_badToken]
+      simp only [hm, trimPrefix_badToken]
 
 section bound
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **The bad principal's request has no principal** (C2, C4 and E2c's facts): the auth info the
