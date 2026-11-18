@@ -2831,3 +2831,21 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `newAuthStore_on` and splits the token it gets back; `authApplyResPre` (internal) names the schema auth backend
   (`ablOn`) in place of the boot contract, `authApplyResB_of_pre` taking the contract at the frozen hook.
 - **Decision.** Fix (A), decided by etcd-grove-03 (2026-11-18); for the A7 trusted-text list.
+
+## 2026-11-18: the auth lend takes a revision of at least 1; the snapshot clause takes `permKeysOk` (auth-schema-srv A6, STOP 2)
+
+- **Spec.** `authBkLend` (`Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthBkHook.lean`; trusted text, in both
+  `authSchemaSrv` and `authSchemaSnap`) and `authSchemaSnap` (`AuthSnapKit.lean`; trusted text).
+- **Defect.** (L) False (`notes/auth-schema-srv-refuted.md`, fourth refutation): `authSchemaSrv` hands out the lend at
+  boot, before the auth buckets exist or hold a revision; its law promises `authBucketsAt bootState r` (which needs the
+  `authRevision` key) of empty buckets; a client lends at `[bootState]` and runs `backend.Snapshot` with the lend's
+  `RL`, whose post then claims it of the real data. (P) `authSchemaSnap` is not realizable as stated: the read
+  contract's views need `authStateAt` (with `permKeysOk`) of the snapshot's state, which neither `authLockI st` nor
+  `authBucketsAt st r` gives.
+- **Evidence.** `backend.backend.Snapshot.spec` (the observation's `Q` of the committed data); a fresh backend has
+  no auth bucket before `CreateAuthBuckets`; `auth.authStateAt` (`Model.lean`); questions.md "A6 STOP 2".
+- **Change.** (L) `authBkLend`'s clause takes `⌜1 ≤ st.revision⌝` after `⌜hs.getLast? = some st⌝`; the consumer
+  (`srvAuthApplyResB_lend`) discharges it from `bump bootState` and the monotone revision. (P) `authSchemaSnap` takes
+  `⌜auth.permKeysOk st⌝` after `⌜authBucketsAt st r⌝`; its caller discharges it from `SnapAuthRecover.histWf`. Both
+  ask less of the realization (weaker hypotheses).
+- **Decision.** (L-rev) and (P2) approved by etcd-grove-03 (2026-11-18); for the A7 trusted-text list with fix (A).
