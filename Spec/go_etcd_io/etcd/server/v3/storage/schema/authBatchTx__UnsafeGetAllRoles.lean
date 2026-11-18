@@ -24,14 +24,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- An `authBatchTx` whose `tx` ranges the roles bucket `m` under `H` (`authRolesRange`), its values
-role encodings: returns the records of the range's entries (`rolesOutD`). -/
+the encodings of the records `dR` names: returns the records of the range's entries (`rolesOutD`). -/
 abbrev schema.authBatchTx.UnsafeGetAllRoles.spec : Prop :=
-  ∀ (atx : Loc) (t : GoInterfaceOk) (lg : Loc) (H : IProp GF) (m : backend.BktData),
-  schema.rolesWf m →
+  ∀ (atx : Loc) (t : GoInterfaceOk) (lg : Loc) (H : IProp GF) (m : backend.BktData) (dR : GoString → auth.RoleRec),
+  schema.rolesDec m dR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.abtF go!"tx" atx ↦□ (GoInterface.ok t : GoInterface) ∗ schema.abtF go!"lg" atx ↦□ lg ∗
       □ schema.authRolesRange t H m ∗ H }}
     (App (Val (atx @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.ty @!! go!"UnsafeGetAllRoles")) (Val #()))
-  {{ (s : GoSlice), RET #s; H ∗ schema.rolesOutD s (schema.rolesRangeEnts m) }}
+  {{ (s : GoSlice), RET #s; H ∗ schema.rolesOutD s (schema.rolesRangeEnts m) dR }}
 
 end spec
 

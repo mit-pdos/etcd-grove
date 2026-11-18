@@ -49,8 +49,8 @@ theorem backend.batchTxBuffered.Unlock.spec_free
   icases batchLocked_cwOk γ P b st false $$ Hl with ⟨Hl, %Hcw⟩
   ihave Hl := batchLocked_claimed γ P b st $$ Hl
   ihave Hrc := rbPartR_nil (hG := hG) γ (∅ : GMap GoString BktData)
-  ihave #Hacc := rbAcc_nil (hG := hG) γ (unlockOk P st) iprop(True)
-  iapply (h γ P W Pk b t st Q S r [] ∅ iprop(True) Hhw Hroom List.nodup_nil
+  ihave #Hacc := rbAcc_nil (hG := hG) γ (unlockOk P st) iprop(True) ⊤
+  iapply (h γ P W Pk b t st Q S r [] ∅ iprop(True) ⊤ CoPset.subseteq_top Hhw Hroom List.nodup_nil
     (fun n h => by rw [Hcw rfl Hhw n] at h; cases h)) $$ %Φ [Hl Htok Hrb Hrc Hcase]
   · iframe Hl Htok Hrb Hrc Hcase; iframe #
   inext

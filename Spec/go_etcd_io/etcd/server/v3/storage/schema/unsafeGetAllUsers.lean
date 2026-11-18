@@ -24,15 +24,15 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The reader `r` over the auth buckets `D` (its users encodings) under `H`: returns the users bucket's
+/-- The reader `r` over the auth buckets `D` (its users the encodings of the records `dU` names) under `H`: returns the users bucket's
 records, one fresh message per entry (`usersOutD`; nil if there is none). The two panics (the walk's
 error, a value that does not decode) are not reached: the walk returns nil (`authForEachSpec`) and
 every value is an encoding (`usersWf`). -/
 abbrev schema.unsafeGetAllUsers.spec : Prop :=
-  ∀ (lg : Loc) (r : GoInterfaceOk) (H : IProp GF) (D : schema.AuthData), schema.usersWf D.users →
+  ∀ (lg : Loc) (r : GoInterfaceOk) (H : IProp GF) (D : schema.AuthData) (dU : GoString → auth.UserRec), schema.usersDec D.users dU →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ schema.authReader r H D ∗ H }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllUsers)) (Val #lg)) (Val #(GoInterface.ok r)))
-  {{ (s : GoSlice), RET #s; H ∗ schema.usersOutD s D.users }}
+  {{ (s : GoSlice), RET #s; H ∗ schema.usersOutD s D.users dU }}
 
 end spec
 

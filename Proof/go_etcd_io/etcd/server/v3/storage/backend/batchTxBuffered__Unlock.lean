@@ -110,9 +110,9 @@ set_option hygiene false in
 /-- `commit` of the written-back batch (`vw`: whether a view update is owed, `L` the logical view
 it comes back at; `Hpc` the commit's thinness premise), up to its outcome `Hpost` (both commit tests, with or without the view). -/
 local macro "bu_commit" S:term:max vw:term:max L:term:max : tactic => `(tactic| (
-    ihave #HaccC := rbAcc_mono (hG := hG) γ Sc (unlockOk P st) (fun n _ v => v = bktOf ($S).S n) Rr
+    ihave #HaccC := rbAcc_mono (hG := hG) γ Sc (unlockOk P st) (fun n _ v => v = bktOf ($S).S n) Rr E
       (fun n o v _ h => Or.inl h) $$ Hacc
-    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L true Sc Rr) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc HRr] as ⟨-, HRr, HPk, -, Hpost⟩
+    wp_apply (hC γ P W Pk b t rt $S $vw false 2 0 iprop(True) iprop(True) $L true Sc Rr E hE) $$ [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh HPk Hpc HRr] as ⟨-, HRr, HPk, -, Hpost⟩
     · iframe #
       unfold batchLockedW batchGhostW batchPhys
       isplitl [Hown Htxf Hpend Hdel HW Hhkf Hhk Hdb Hwtx Hmu Hv Hrvs Ha Hmo Hus Hopn Hhkd Hfkh]
@@ -183,18 +183,18 @@ private theorem unlock_coreC
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
-      (Sc : List GoString) (Rr : IProp GF) (Sp : GoString → Prop) (rp rc : GMap GoString BktData),
-    st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
+      (Sc : List GoString) (Rr : IProp GF) (E : CoPset) (Sp : GoString → Prop) (rp rc : GMap GoString BktData),
+    ↑rbClaimN ⊆ E → st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
     (∀ n, st.cw n = true → n ∈ Sc) → (∀ n, n ∈ Sc → P.RB n = true) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
-        bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr ∗
+        bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr E ∗
         rbPart γ Sp rp ∗ rbPartR γ (fun n => n ∈ Sc) rc ∗
         ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
            ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
          (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}
       (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"Unlock")) (Val #()))
     {{ RET #(); Q ∗ Rr ∗ rbOwnIn γ Sp rp ∗ rbOwnInR γ (fun n => n ∈ Sc) rc }} := by
-  intro γ P W Pk b t st Q Sc Rr Sp rp rc Hhw Hroom Hnd HcwS HScRB
+  intro γ P W Pk b t st Q Sc Rr E Sp rp rc hE Hhw Hroom Hnd HcwS HScRB
   wp_start as ⟨#Hb, #Ht, Hl, Htok, HRr, #Hacc, Hrb, Hrc, Hcase⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb0, %HP⟩
@@ -271,7 +271,7 @@ private theorem unlock_coreC
       ihave Hfkh := fkHalf_mono γ P (st' := wbSt P st) fkOkG_wb rfl rfl $$ Hfkh
       have hsame := vData_writeback_same P st.C st.W st.R Hnw
       ihave Hupd := trkSide_updR γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) true true Sc
-        (unlockOk P st) Rr Hnd rfl rfl rfl
+        (unlockOk P st) Rr E hE Hnd rfl rfl rfl
         (fun n hn hi _ => ⟨by simp [wbSt, tkWb, hi],
           (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb (fun n _ hi => by simp [wbSt, tkWb, hi]) HcwS (fun h => by cases h)
         (unlockOk_wb Hbg.2.2.2.2.2.2.2.2.2.2.1) $$ [$Hhkd $HRr $Hacc]
@@ -348,7 +348,7 @@ private theorem unlock_coreC
       · -- committed: the window opens at the exact new physical view, the commit's close moves it
         -- to `relog` (R11-2)
         ihave Hupd := trkSide_updR γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) true true Sc
-          (unlockOk P st) Rr Hnd rfl rfl rfl
+          (unlockOk P st) Rr E hE Hnd rfl rfl rfl
           (fun n hn hi _ => ⟨by simp [wbSt, tkWb, hi],
             (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb (fun n _ hi => by simp [wbSt, tkWb, hi]) HcwS (fun h => by cases h)
           (unlockOk_wb Hbg.2.2.2.2.2.2.2.2.2.2.1) $$ [$Hhkd $HRr $Hacc]
@@ -386,7 +386,7 @@ private theorem unlock_coreC
         have hvf : vData P (st.C, writebackR st.W st.R) = sData P st.S := by
           rw [← wbSt_S P st, ← vData_free P (wbSt P st) hwf' hfo'.2.2.1 hfo'.2.2.2.1, wbSt_C, wbSt_R]
         ihave Hupd := trkSide_updR γ P st (wbSt P st) (st.C, st.R) (st.C, writebackR st.W st.R) true true Sc
-          (unlockOk P st) Rr Hnd rfl rfl rfl
+          (unlockOk P st) Rr E hE Hnd rfl rfl rfl
           (fun n hn hi _ => ⟨by simp [wbSt, tkWb, hi],
             (rvBkt_wb_keep Hbg.2.2.2.2.2.2.2.2.2.2.1 hn (Or.inl hi)).symm⟩) HclWb (fun n _ hi => by simp [wbSt, tkWb, hi]) HcwS (fun h => by cases h)
           (unlockOk_wb Hbg.2.2.2.2.2.2.2.2.2.2.1) $$ [$Hhkd $HRr $Hacc]
@@ -415,10 +415,10 @@ theorem backend.batchTxBuffered.Unlock.wp_proof
     (hC : backend.batchTxBuffered.commit.spec (GF := GF) (hG := hG))
     (hBU : backend.batchTx.Unlock.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.Unlock.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st Q S r Sc rc Rr Hhw Hroom Hnd HcwS
+  intro γ P W Pk b t st Q S r Sc rc Rr E hE Hhw Hroom Hnd HcwS
   iintro %Φ ⟨#Hpkg, #Hb, #Ht, Hl, Htok, Hrb, Hrc, HRr, #Hacc, Hcase⟩ HΦ
   icases batchLocked_rbPartR_RB γ P b st true _ rc $$ [$Hl $Hrc] with ⟨Hl, Hrc, %HScRB⟩
-  iapply (unlock_coreC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Sc Rr S r rc Hhw Hroom Hnd HcwS HScRB) $$ %Φ
+  iapply (unlock_coreC hRLock hWB hRUnlock hC hBU γ P W Pk b t st Q Sc Rr E S r rc hE Hhw Hroom Hnd HcwS HScRB) $$ %Φ
     [Hl Htok HRr Hrb Hrc Hcase]
   · iframe Hl Htok HRr Hrb Hrc Hcase; iframe #
   inext

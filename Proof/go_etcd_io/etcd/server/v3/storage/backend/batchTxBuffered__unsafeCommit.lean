@@ -38,7 +38,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
     (hBC : backend.batchTx.commit.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.unsafeCommit.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr
+  intro γ P W Pk b t rt st win stop m u X Y L' c Sc Rr E hE
   wp_start as ⟨#Hb, #Ht, #Hrt, Hl, HWR, Hrr, %Hc, Hpre, %Hdlw, %Hhw0, Hpay, HX, #Hrq, %Hsc, HRr, #Hacc⟩
   obtain ⟨Hroom, Hp0, HWe, Htk⟩ := Hc
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
@@ -215,7 +215,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.C) (tx' := st'.tx) (cnt' := st'.cnt) (Or.inr rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
       ihave Hupd := trkSide_updR γ P st' (commitSt st' st'.C st'.tx ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
-        (st'.C, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr Hsc.1 rfl rfl rfl
+        (st'.C, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr E hE Hsc.1 rfl rfl rfl
         (fun n hn hi _ => ⟨rfl, rvBkt_commit_idle Hs Htk Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inr ⟨HA.1, rfl⟩) hn hi⟩)
         (fun _ _ => Or.inl rfl) (fun _ _ _ => rfl) HcwS' (fun _ _ _ => rfl) (fun n hn hRB => HokC _ (Or.inr ⟨HA.1, rfl⟩) n hn hRB)
         $$ [$Hhkd $HRr $Hacc]
@@ -262,7 +262,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
         (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
         $$ Hfkh with ⟨Hfkh, #Hfkr⟩
       ihave Hupd := trkSide_updR γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
-        (st'.S, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr Hsc.1 rfl rfl rfl
+        (st'.S, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr E hE Hsc.1 rfl rfl rfl
         (fun n hn hi _ => ⟨rfl, rvBkt_commit_idle Hs Htk Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩)
         (fun _ _ => Or.inl rfl) (fun _ _ _ => rfl) HcwS' (fun _ _ _ => rfl) (fun n hn hRB => HokC _ (Or.inl rfl) n hn hRB)
         $$ [$Hhkd $HRr $Hacc]
@@ -309,7 +309,7 @@ theorem backend.batchTxBuffered.unsafeCommit.wp_proof
       (fun f w h => fkOkRvG_of (fkOkG_commit (C' := st'.S) (tx' := tx') (cnt' := st'.cnt) (Or.inl rfl) f w h))
       $$ Hfkh with ⟨Hfkh, #Hfkr⟩
     ihave Hupd := trkSide_updR γ P st' (commitSt st' st'.S tx' ⟨0, 0, 0, 0, false⟩) (st'.C, st'.R)
-      (st'.S, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr Hsc.1 rfl rfl rfl
+      (st'.S, st'.R.reset) false false Sc (fun n _ v => v = bktOf st.S n) Rr E hE Hsc.1 rfl rfl rfl
       (fun n hn hi _ => ⟨rfl, rvBkt_commit_idle Hs Htk Hbg.2.2.2.2.2.2.2.2.2.2.1 Hwf' (Or.inl rfl) hn hi⟩)
       (fun _ _ => Or.inl rfl) (fun _ _ _ => rfl) HcwS' (fun _ _ _ => rfl) (fun n hn hRB => HokC _ (Or.inl rfl) n hn hRB)
       $$ [$Hhkd $HRr $Hacc]

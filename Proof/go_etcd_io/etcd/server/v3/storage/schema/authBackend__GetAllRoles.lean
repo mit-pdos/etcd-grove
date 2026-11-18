@@ -33,7 +33,7 @@ theorem schema.authBackend.GetAllRoles.wp_proof
     (hR : schema.authBatchTx.UnsafeGetAllRoles.spec (GF := GF) (hG := hG))
     (hU : schema.authBatchTx.Unlock.spec (GF := GF) (hG := hG)) :
     schema.authBackend.GetAllRoles.spec (GF := GF) (hG := hG) := by
-  intro abe bi lg R Lk C Q
+  intro abe bi lg R Lk C Q dR
   wp_start_folded as ⟨#Hbe, #Hlg, HR, #HB⟩
   rw [MethodUnfold.method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty) (m := go!"GetAllRoles")]
   wp_call
@@ -42,17 +42,17 @@ theorem schema.authBackend.GetAllRoles.wp_proof
   (try wp_auto)
   wp_apply (hBT abe bi lg (fun t => iprop(
       ({{ R }} (App (Val #(methods t.ty go!"LockInsideApply" t.v)) (Val #()))
-        {{ RET #(); ∃ m : backend.BktData, ⌜schema.rolesWf m⌝ ∗ Lk m }}) ∗
+        {{ RET #(); ∃ m : backend.BktData, ⌜schema.rolesDec m (dR m)⌝ ∗ Lk m }}) ∗
       (∀ m : backend.BktData, □ schema.authRolesRange t (Lk m) m) ∗
       (∀ m : backend.BktData, {{ Lk m }} (App (Val #(methods t.ty go!"Unlock" t.v)) (Val #())) {{ RET #(); C m }}) ∗
       (∀ m : backend.BktData, {{ C m }} (App (Val #(methods t.ty go!"Commit" t.v)) (Val #())) {{ RET #(); Q m }})))) $$
     [$Hbe $Hlg $HB] as %tx ⟨%l, %t, %Htx, #Htxf, #Hlgf, #HL, #HRR, #HU, #HC⟩
   subst Htx
   (try wp_auto)
-  wp_apply (hL l t R iprop(∃ m : backend.BktData, ⌜schema.rolesWf m⌝ ∗ Lk m)) $$ [$Htxf $HR $HL]
+  wp_apply (hL l t R iprop(∃ m : backend.BktData, ⌜schema.rolesDec m (dR m)⌝ ∗ Lk m)) $$ [$Htxf $HR $HL]
     as ⟨%m, %Hwf, HLk⟩
   ihave #HRm := HRR $$ %m
-  wp_apply (hR l t lg (Lk m) m Hwf) $$ [$Htxf $Hlgf $HRm $HLk] as %s ⟨HLk, Hs⟩
+  wp_apply (hR l t lg (Lk m) m (dR m) Hwf) $$ [$Htxf $Hlgf $HRm $HLk] as %s ⟨HLk, Hs⟩
   (try wp_auto)
   wp_bind (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.ty @!! go!"Unlock")) (Val #()))
   iapply (hU l t (Lk m) (C m) (Q m)) $$ [Hpkg Htxf HLk]

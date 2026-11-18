@@ -46,8 +46,8 @@ theorem backend.batchTxBuffered.Commit.wp_proof
   wp_apply (hlock γ P W Pk b t qo.half) $$ [$Ho] as ⟨%st, Hl, %Hfo, ⟨HWv, HWR⟩, Ho⟩
   · iframe #
   ihave Hl := batchLocked_W γ P b st $$ Hl
-  ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True)
-  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True)) $$ [$Hl $HWR Htok $HX] as ⟨HY, -, HWR, -, Hpost⟩
+  ihave #Hacc0 := rbAcc_nil (hG := hG) γ (fun n _ v => v = bktOf st.S n) iprop(True) ⊤
+  wp_apply (hC γ P W Pk b t rt st false false 0 0 X Y (vData P (st.C, st.R)) false [] iprop(True) ⊤ CoPset.subseteq_top) $$ [$Hl $HWR Htok $HX] as ⟨HY, -, HWR, -, Hpost⟩
   · iframe #
     isplitr
     · ipureintro

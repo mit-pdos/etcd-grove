@@ -33,7 +33,7 @@ theorem schema.authBackend.GetRole.wp_proof
     (hG_ : schema.authReadTx.UnsafeGetRole.spec (GF := GF) (hG := hG))
     (hRU : schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG)) :
     schema.authBackend.GetRole.spec (GF := GF) (hG := hG) := by
-  intro abe bi lg R Held ι L i Φp name
+  intro abe bi lg R Held ι L i Φp dR name hdR
   wp_start as ⟨#Hbe, #Hlg, %Hlgnn, #HBE, HR, HL, #HΦp⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -44,8 +44,8 @@ theorem schema.authBackend.GetRole.wp_proof
   wp_apply (hRL l rt R Held L i) $$ [$Htxf $Hrtx $HR $HL] as ⟨%x, %D, %Hwf, HD, HL, #HrdD⟩
   icases HΦp $$ %x %D HD with ⟨HD, %HΦD⟩
   (try wp_auto)
-  wp_apply (hG_ l rt lg name (Held x D) D Hlgnn Hwf.2.1) $$ [$Htxf $Hlgf $HrdD $HD] as %u ⟨HD, Hu⟩
-  imod (schema.roleOutDX_persist _ _ _) $$ Hu with Hu
+  wp_apply (hG_ l rt lg name (Held x D) D (dR D) Hlgnn (hdR D Hwf HΦD)) $$ [$Htxf $Hlgf $HrdD $HD] as %u ⟨HD, Hu⟩
+  imod (schema.roleOutDX_persist _ _ _ _) $$ Hu with Hu
   (try wp_auto)
   wp_bind (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
   -- `iapply`, not `wp_apply`: a Lean spec applied at the deferred call leaves a stray goal

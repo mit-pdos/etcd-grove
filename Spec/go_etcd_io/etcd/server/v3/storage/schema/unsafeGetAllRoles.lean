@@ -24,14 +24,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- The reader `r` whose range of the roles bucket `m` under `H` is `authRolesRange`'s (a batch
-transaction), its values role encodings: returns the records of the range's entries
+transaction), its values the encodings of the records `dR` names: returns the records of the range's entries
 (`rolesRangeEnts m`), one fresh message each, in order (`rolesOutD`; nil if there is none). The panic
-(a value that does not decode) is not reached (`rolesWf`). -/
+(a value that does not decode) is not reached (`rolesDec`). -/
 abbrev schema.unsafeGetAllRoles.spec : Prop :=
-  ∀ (lg : Loc) (r : GoInterfaceOk) (H : IProp GF) (m : backend.BktData), schema.rolesWf m →
+  ∀ (lg : Loc) (r : GoInterfaceOk) (H : IProp GF) (m : backend.BktData) (dR : GoString → auth.RoleRec), schema.rolesDec m dR →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ □ schema.authRolesRange r H m ∗ H }}
     (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllRoles)) (Val #lg)) (Val #(GoInterface.ok r)))
-  {{ (s : GoSlice), RET #s; H ∗ schema.rolesOutD s (schema.rolesRangeEnts m) }}
+  {{ (s : GoSlice), RET #s; H ∗ schema.rolesOutD s (schema.rolesRangeEnts m) dR }}
 
 end spec
 

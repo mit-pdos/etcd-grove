@@ -59,7 +59,8 @@ spec, A1.8): the session is in the claimed mode (`batchLocked … true`; a clien
 part `rbPartR γ Sc rc` handed in. Go writes the session's puts back into the read buffer under `readTx.Lock()` and,
 when a delete is pending, commits under it again (`batch_tx.go`, `Unlock` and `commit`): at each, readers'
 contents of the claimed buckets move, which needs the client's halves (`rbRd`): the client hands in its accessor
-(`rbAcc`, with its resource `Rr`), which `Unlock` runs at the write-back and at the commit; the client may count on
+(`rbAcc`, with its resource `Rr`, atomic around any mask `E ⊇ ↑rbClaimN`: auth-schema-srv A6's F-acc, so the client
+may keep its own invariant open across the window), which `Unlock` runs at the write-back and at the commit; the client may count on
 each claimed bucket moving as `unlockOk P st` allows (the writer's contents; untouched or only deleted from: kept;
 put into and deleted from, at the write-back: the write-back's intermediate contents). The claimed part comes back
 idle (`rbOwnInR`), and `Rr`. With no claimed bucket (`Sc = []`, `Rr = True`) this is the client-facing statement,
@@ -70,12 +71,13 @@ a Draft `specC` had the deleting branch beside it. Until A1.8 the claimed statem
 abbrev backend.batchTxBuffered.Unlock.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (Q : IProp GF)
     (S : GoString → Prop) (r : GMap GoString BktData) (Sc : List GoString) (rc : GMap GoString BktData)
-    (Rr : IProp GF),
+    (Rr : IProp GF) (E : CoPset),
+  ↑rbClaimN ⊆ E →
   st.cnt.hw = false → sint.Z st.pend + P.hookMax < 2 ^ 58 → Sc.Nodup →
   (∀ n, st.cw n = true → n ∈ Sc) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st true ∗ wbTok γ ∗ rbPart γ S r ∗
-      rbPartR γ (fun n => n ∈ Sc) rc ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr ∗
+      rbPartR γ (fun n => n ∈ Sc) rc ∗ Rr ∗ rbAcc γ Sc (unlockOk P st) Rr E ∗
       ((thinV γ (sData P st.S) (vData P (st.C, st.R)) ∗
          ⌜∀ n i, P.BT.lookup n = some i → P.HB n = false → bkOf st.W.bks i = []⌝ ∗ W ∗ Pk ∗ Q) ∨
        (∃ vd : VData, ⌜sbKept P st⌝ ∗ bView γ 1 vd ∗ Pk ∗ (bView γ 1 (relog P vd st) -∗ W ∗ Q))) }}

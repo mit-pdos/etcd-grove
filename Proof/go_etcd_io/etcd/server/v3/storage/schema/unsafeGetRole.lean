@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 theorem schema.unsafeGetRole.wp_proof
     (hUnm : proto.UnmarshalRole.spec (GF := GF) (hG := hG)) :
     schema.unsafeGetRole.spec (GF := GF) (hG := hG) := by
-  intro lg r name H D hlg hwf
+  intro lg r name H D dR hlg hwf
   wp_start as ⟨#Hrd, HH⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -63,15 +63,12 @@ theorem schema.unsafeGetRole.wp_proof
     · iframe Hvs; ipureintro; rfl
     (try wp_auto)
     icases Hacc $$ HH with ⟨%dq, Hs, HHback⟩
-    obtain ⟨x, rfl⟩ := hwf name v hl
-    wp_apply (hUnm s x _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
+    have hx := hwf name v hl; subst hx
+    wp_apply (hUnm s (dR name) _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
     ihave HH := HHback $$ Hs
     (try wp_auto)
     iapply HΦ
-    iframe HH
-    iexists x
-    iframe Hu
-    ipureintro; rfl
+    iframe HH Hu
 
 end proof
 

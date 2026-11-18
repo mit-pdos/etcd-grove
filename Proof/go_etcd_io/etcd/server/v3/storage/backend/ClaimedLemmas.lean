@@ -71,37 +71,57 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 open Classical
 
 /-- **A claiming client's accessor of its readers' halves of the buckets `Sc`** (A1.5, D5), with its
-resource `Rr`: from `Rr`, the halves at their current contents `old`, and back to `Rr` given the halves
-at any contents `v` that move each bucket as `ok` allows. Persistent: `Unlock` runs it at the write-back
-and again at the commit, at mask `⊤` (no backend invariant open). -/
+resource `Rr`, atomic around the mask `E` (auth-schema-srv A6, F-acc, decided by etcd-grove-03; until then
+two updates at `⊤`, `E = ⊤`): from `Rr`, the halves at their current contents `old` with the mask `⊤`
+narrowed to `E`, and back to `Rr` and `⊤` given the halves at any contents `v` that move each bucket as
+`ok` allows. Persistent: `Unlock` runs it at the write-back and again at the commit, with no backend
+invariant open; inside the window (at `E`) it runs only `rbrSide_stepR`, which opens the claim invariant
+(`↑rbClaimN ⊆ E`, the specs' premise). So a client may keep an invariant of its own open across the
+window and hold the halves there with no "lent" state.
+
+**Soundness of the window** (checked when F-acc was decided): (1) the window adds no law: inside it the
+client gets the halves `rbRd ½` it gave and must give back halves at contents `ok` allows, as before; the
+backend does exactly the step it did at `⊤`. None of the four forbidden laws (soundness note §6,
+`bStopView`/`rbOwnInR`'s docstrings: (i) an exclusivity law between a claimed resource and an `rbk` share,
+(ii) a reader law taking `rbOwnIn` without `bOpen` or a held read lock, (iii) a re-opening of a closed
+backend under the same names, (iv) an update of a bucket's `γ.rbk` element from client-shaped shares
+plus the invariant or a token without `rbSide`) is stated or derivable from it: the accessor's type is
+unchanged but for the masks. (2) No invariant in `rbClaimN` is open in the client's hands inside the
+window: the window's mask `E` contains `↑rbClaimN`, so every invariant under `rbClaimN` is closed when
+the client's first half returns, and the client's second half starts from `E`; the claim invariant
+(`rbClaimInv`, `inv rbClaimN`, allocated only by `New`) is opened inside the window only by the
+backend's step. -/
 def rbAcc (γ : BNames) (Sc : List GoString) (ok : GoString → BktData → BktData → Prop)
-    (Rr : IProp GF) : IProp GF :=
-  iprop(□ (Rr -∗ |={⊤}=> ∃ old : GoString → BktData,
+    (Rr : IProp GF) (E : CoPset) : IProp GF :=
+  iprop(□ (Rr -∗ |={⊤, E}=> ∃ old : GoString → BktData,
     ([∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (old n)) ∗
     ∀ v : GoString → BktData, ⌜∀ n, n ∈ Sc → ok n (old n) (v n)⌝ -∗
-      ([∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (v n)) -∗ |={⊤}=> Rr))
+      ([∗list] n ∈ Sc, rbRd γ n (1 : Qp).half (v n)) -∗ |={E, ⊤}=> Rr))
 
 instance rbAcc_persistent (γ : BNames) (Sc : List GoString) (ok : GoString → BktData → BktData → Prop)
-    (Rr : IProp GF) : Persistent (rbAcc γ Sc ok Rr) := by
+    (Rr : IProp GF) (E : CoPset) : Persistent (rbAcc γ Sc ok Rr E) := by
   unfold rbAcc; infer_instance
 
-/-- The accessor of no bucket (a caller that claimed none). -/
-theorem rbAcc_nil (γ : BNames) (ok : GoString → BktData → BktData → Prop) (Rr : IProp GF) :
-    ⊢ rbAcc γ [] ok Rr := by
+/-- The accessor of no bucket (a caller that claimed none), around any mask. -/
+theorem rbAcc_nil (γ : BNames) (ok : GoString → BktData → BktData → Prop) (Rr : IProp GF)
+    (E : CoPset) :
+    ⊢ rbAcc γ [] ok Rr E := by
   unfold rbAcc
   iintro !> HR
+  imod (fupd_mask_subseteq (PROP := IProp GF) (E1 := ⊤) (E2 := E) CoPset.subseteq_top) with Hcl
   imodintro
   iexists (fun _ => (∅ : BktData))
   isplitr
   · exact BigSepL.bigSepL_nil_intro
   · iintro %v %_ -
+    imod Hcl
     imodintro
     iexact HR
 
 /-- An accessor for the moves `ok` is one for fewer moves `ok'`. -/
 theorem rbAcc_mono (γ : BNames) (Sc : List GoString) (ok ok' : GoString → BktData → BktData → Prop)
-    (Rr : IProp GF) (h : ∀ n o v, n ∈ Sc → ok' n o v → ok n o v) :
-    rbAcc γ Sc ok Rr ⊢ rbAcc γ Sc ok' Rr := by
+    (Rr : IProp GF) (E : CoPset) (h : ∀ n o v, n ∈ Sc → ok' n o v → ok n o v) :
+    rbAcc γ Sc ok Rr E ⊢ rbAcc γ Sc ok' Rr E := by
   unfold rbAcc
   iintro #H !> HR
   imod H $$ HR with ⟨%old, Hh, Hk⟩
@@ -386,7 +406,8 @@ resource `Rr` and its accessor for the buckets `Sc` (holding every claimed write
 readers' halves at `rv` move to `rv'`, the batch lock's halves to `st'` (mode `c'`), and `Rr` comes back
 (the accessor run once, each bucket of `Sc` moved as `ok` allows, `hok`). -/
 theorem trkSide_updR (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RView) (c c' : Bool)
-    (Sc : List GoString) (ok : GoString → BktData → BktData → Prop) (Rr : IProp GF) (hnd : Sc.Nodup)
+    (Sc : List GoString) (ok : GoString → BktData → BktData → Prop) (Rr : IProp GF) (E : CoPset)
+    (hE : ↑rbClaimN ⊆ E) (hnd : Sc.Nodup)
     (hrv : rv = (st.C, st.R)) (hrv' : rv' = (st'.C, st'.R)) (hS : st'.S = st.S)
     (hk : ∀ n, P.RB n = true → st.tk n = .idle → st.cw n = false →
       st'.tk n = .idle ∧ rvBkt P rv n = rvBkt P rv' n)
@@ -394,14 +415,14 @@ theorem trkSide_updR (γ : BNames) (P : BParams) (st st' : BSess) (rv rv' : RVie
     (hkI : ∀ n, P.RB n = true → st.tk n = .idle → st'.tk n = .idle)
     (hcwS : ∀ n, st.cw n = true → n ∈ Sc) (hmode : cwOk c' st')
     (hok : ∀ n, n ∈ Sc → P.RB n = true → ok n (rvBkt P rv n) (rvBkt P rv' n)) :
-    iprop(trkSide (GF := GF) γ P st c ∗ Rr ∗ rbAcc γ Sc ok Rr) ⊢
+    iprop(trkSide (GF := GF) γ P st c ∗ Rr ∗ rbAcc γ Sc ok Rr E) ⊢
       (rbrHalves γ P 1 rv -∗ |={⊤}=> rbrHalves γ P 1 rv' ∗ (trkSide γ P st' c' ∗ Rr)) := by
   unfold trkSide trkHalf
   iintro ⟨⟨⟨Hh, Hs⟩, Hr⟩, HR, #Hacc⟩ Hhv
   iunfold rbAcc at Hacc
   imod Hacc $$ HR with ⟨%old, Hc, Hk⟩
   icases rbRdL_map γ old (1 : Qp).half Sc hnd $$ Hc with ⟨%Hscd, Hc⟩
-  imod rbrSide_stepR γ P st st' rv rv' c c' Sc old hrv hrv' hk hcwS hmode ⊤ (by solve_ndisj)
+  imod rbrSide_stepR γ P st st' rv rv' c c' Sc old hrv hrv' hk hcwS hmode E hE
     $$ [Hs Hr Hhv Hc] with ⟨Hs, Hr, Hhv, Hc, %Hold, %HRB⟩
   · iframe
   ihave Hc := rbRdL_of_map γ (fun n => rvBkt P rv' n) (1 : Qp).half Sc hnd Hscd $$ Hc

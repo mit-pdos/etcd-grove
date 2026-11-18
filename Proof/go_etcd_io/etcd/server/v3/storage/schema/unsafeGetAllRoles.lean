@@ -65,7 +65,7 @@ private theorem set_fill' {α : Type} (us : List α) (z u : α) (L : Nat) (h : u
 theorem schema.unsafeGetAllRoles.wp_proof
     (hUnm : proto.UnmarshalRole.spec (GF := GF) (hG := hG)) :
     schema.unsafeGetAllRoles.spec (GF := GF) (hG := hG) := by
-  intro lg r H m hwf
+  intro lg r H m dR hwf
   wp_start as ⟨#HRR, HH⟩
   ihave Hsi : (schema.schemaInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -116,8 +116,7 @@ theorem schema.unsafeGetAllRoles.wp_proof
       "Husl" ∷ usl ↦* (us ++ List.replicate (sint.nat sl.len - us.length) (zero_val Loc)) ∗
       "HH" ∷ H ∗ "Hvs" ∷ vs_ptr ↦ sl ∗ "Hsl" ∷ sl ↦* ss ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z sl.len ∧ us.length = sint.nat n⌝ ∗
-      "Hus" ∷ [∗list] x ∈ us.zip es, ∃ ur : auth.RoleRec, ⌜x.2.2 = auth.roleEncode ur⌝ ∗
-        auth.ownRole x.1 ur) $$ [i gi roles Husl HH Hvs Hsl]
+      "Hus" ∷ [∗list] x ∈ us.zip es, auth.ownRole x.1 (dR x.2.1)) $$ [i gi roles Husl HH Hvs Hsl]
   · iexists (W64 0), (W64 0), []
     iframe
     isplitl []
@@ -137,7 +136,7 @@ theorem schema.unsafeGetAllRoles.wp_proof
     have Hz : (ss.zip es)[(sint.Z n).toNat]? = some (sv, e) := by
       rw [List.getElem?_zip_eq_some]; exact ⟨Hsv, He⟩
     ihave #Hrc := BigSepL.bigSepL_lookup (Φ := fun _ x => schema.rdCap H x.1 x.2.2) Hz $$ Hss
-    obtain ⟨ur, Hur⟩ := hwf e.1 e.2
+    have Hur := hwf e.1 e.2
       (bktEnts_lookup' (rolesRangeEnts_mem (by rw [hes]; exact List.mem_of_getElem? He)))
     simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len from ⟨Hn.1, Hif⟩]
     wp_apply wp_load_slice_index sl (sint.Z n) ss (DFrac.own 1) sv Hn.1 $$ [Hsl] as Hsl
@@ -145,7 +144,7 @@ theorem schema.unsafeGetAllRoles.wp_proof
     iunfold schema.rdCap at Hrc
     icases Hrc $$ HH with ⟨%dq, Hs, Hback⟩
     rw [Hur]
-    wp_apply (hUnm sv ur _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
+    wp_apply (hUnm sv (dR e.1) _ _ dq) $$ [$Hs $«$r0»] as ⟨Hs, Hu⟩
     ihave HH := Hback $$ Hs
     imod (auth.ownRoleX_persist _ _ _) $$ Hu with Hu
     ihave %Husll := ownSlice_len $$ Husl
@@ -168,10 +167,7 @@ theorem schema.unsafeGetAllRoles.wp_proof
     rw [Hnu] at He
     rw [zip_snoc' us es _ e He]
     iapply BigSepL.bigSepL_snoc.2
-    iframe Hus
-    iexists ur
-    iframe Hu
-    ipureintro; exact Hur
+    iframe Hus Hu
   · have Hul : us.length = es.length := by rw [← Hlen, Hsll.1]; word
     rw [show sint.nat sl.len - us.length = 0 by word, List.replicate_zero, List.append_nil]
     (try wp_auto)

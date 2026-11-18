@@ -83,57 +83,95 @@ def revisionOf (D : AuthData) : w64 :=
   | some v => beToU64 v
   | none => W64 0
 
+/-- **`dU` names the record of each user of the users bucket `m`**: the value at a name `n` is the
+encoding of `dU n` (auth-schema-srv A6, F-enc, decided by etcd-grove-03: the encodings are opaque and
+not known injective, so a read returns the record its caller names, never one recovered from the bytes;
+no injectivity of `auth.userEncode` is assumed, ever). Implies `usersWf`, and follows from it by choice
+(`usersWf_dec`). -/
+def usersDec (m : backend.BktData) (dU : GoString → auth.UserRec) : Prop :=
+  ∀ n v, m.lookup n = some v → v = auth.userEncode (dU n)
+
+/-- **`dR` names the record of each role of the roles bucket `m`** (as `usersDec`). -/
+def rolesDec (m : backend.BktData) (dR : GoString → auth.RoleRec) : Prop :=
+  ∀ n v, m.lookup n = some v → v = auth.roleEncode (dR n)
+
+theorem usersDec_wf {m : backend.BktData} {dU : GoString → auth.UserRec} (h : usersDec m dU) :
+    usersWf m := fun n v hl => ⟨dU n, h n v hl⟩
+
+theorem rolesDec_wf {m : backend.BktData} {dR : GoString → auth.RoleRec} (h : rolesDec m dR) :
+    rolesWf m := fun n v hl => ⟨dR n, h n v hl⟩
+
+theorem usersWf_dec {m : backend.BktData} (h : usersWf m) : ∃ d, usersDec m d := by
+  have H : ∀ n, ∃ x : auth.UserRec, ∀ v, m.lookup n = some v → v = auth.userEncode x := by
+    intro n
+    cases hl : m.lookup n with
+    | none => exact ⟨default, fun v hv => by cases hv⟩
+    | some v0 =>
+      obtain ⟨x, hx⟩ := h n v0 hl
+      exact ⟨x, fun v hv => by cases hv; exact hx⟩
+  exact ⟨fun n => Classical.choose (H n), fun n v hl => Classical.choose_spec (H n) v hl⟩
+
+theorem rolesWf_dec {m : backend.BktData} (h : rolesWf m) : ∃ d, rolesDec m d := by
+  have H : ∀ n, ∃ x : auth.RoleRec, ∀ v, m.lookup n = some v → v = auth.roleEncode x := by
+    intro n
+    cases hl : m.lookup n with
+    | none => exact ⟨default, fun v hv => by cases hv⟩
+    | some v0 =>
+      obtain ⟨x, hx⟩ := h n v0 hl
+      exact ⟨x, fun v hv => by cases hv; exact hx⟩
+  exact ⟨fun n => Classical.choose (H n), fun n v hl => Classical.choose_spec (H n) v hl⟩
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- What `unsafeGetUser(name)` returns of the users bucket `m`: nil if `m` has no such key, else
-a message holding the record its value encodes. -/
-def userOutD (u : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
+/-- What `unsafeGetUser(name)` returns of the users bucket `m` whose records `dU` names
+(`usersDec`): nil if `m` has no such key, else a message holding the record `dU name`. -/
+def userOutD (u : Loc) (m : backend.BktData) (name : GoString) (dU : GoString → auth.UserRec) :
+    IProp GF :=
   match m.lookup name with
   | none => iprop(⌜u = null⌝)
-  | some v => iprop(∃ ur : auth.UserRec, ⌜v = auth.userEncode ur⌝ ∗ auth.ownUser u ur)
+  | some _ => iprop(auth.ownUser u (dU name))
 
-/-- What `unsafeGetRole(name)` returns of the roles bucket `m`. -/
-def roleOutD (r : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
+/-- What `unsafeGetRole(name)` returns of the roles bucket `m` whose records `dR` names. -/
+def roleOutD (r : Loc) (m : backend.BktData) (name : GoString) (dR : GoString → auth.RoleRec) :
+    IProp GF :=
   match m.lookup name with
   | none => iprop(⌜r = null⌝)
-  | some v => iprop(∃ rr : auth.RoleRec, ⌜v = auth.roleEncode rr⌝ ∗ auth.ownRole r rr)
+  | some _ => iprop(auth.ownRole r (dR name))
 
 /-- `userOutD` with the message as `proto.Unmarshal` returns it (`auth.ownUserX`; the auth plan's
 S4c): what schema's `unsafeGetUser` returns. -/
-def userOutDX (u : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
+def userOutDX (u : Loc) (m : backend.BktData) (name : GoString) (dU : GoString → auth.UserRec) :
+    IProp GF :=
   match m.lookup name with
   | none => iprop(⌜u = null⌝)
-  | some v => iprop(∃ ur : auth.UserRec, ⌜v = auth.userEncode ur⌝ ∗ auth.ownUserX u ur)
+  | some _ => iprop(auth.ownUserX u (dU name))
 
 /-- `roleOutD` with the message as `proto.Unmarshal` returns it (`auth.ownRoleX`). -/
-def roleOutDX (r : Loc) (m : backend.BktData) (name : GoString) : IProp GF :=
+def roleOutDX (r : Loc) (m : backend.BktData) (name : GoString) (dR : GoString → auth.RoleRec) :
+    IProp GF :=
   match m.lookup name with
   | none => iprop(⌜r = null⌝)
-  | some v => iprop(∃ rr : auth.RoleRec, ⌜v = auth.roleEncode rr⌝ ∗ auth.ownRoleX r rr)
+  | some _ => iprop(auth.ownRoleX r (dR name))
 
-theorem userOutDX_persist (u : Loc) (m : backend.BktData) (name : GoString) :
-    userOutDX (GF := GF) u m name ⊢ |==> userOutD u m name := by
+theorem userOutDX_persist (u : Loc) (m : backend.BktData) (name : GoString)
+    (dU : GoString → auth.UserRec) :
+    userOutDX (GF := GF) u m name dU ⊢ |==> userOutD u m name dU := by
   unfold userOutDX userOutD
   cases m.lookup name with
   | none => iintro H; imodintro; iexact H
-  | some v =>
-    iintro ⟨%ur, %H, Hu⟩
-    imod auth.ownUserX_persist u ur $$ Hu with Hu
-    imodintro; iexists ur; iframe Hu; ipureintro; exact H
+  | some v => iintro Hu; iapply auth.ownUserX_persist u (dU name) $$ Hu
 
-theorem roleOutDX_persist (E : CoPset) (r : Loc) (m : backend.BktData) (name : GoString) :
-    roleOutDX (GF := GF) r m name ⊢ |={E}=> roleOutD r m name := by
+theorem roleOutDX_persist (E : CoPset) (r : Loc) (m : backend.BktData) (name : GoString)
+    (dR : GoString → auth.RoleRec) :
+    roleOutDX (GF := GF) r m name dR ⊢ |={E}=> roleOutD r m name dR := by
   unfold roleOutDX roleOutD
   cases m.lookup name with
   | none => iintro H; imodintro; iexact H
-  | some v =>
-    iintro ⟨%rr, %H, Hr⟩
-    imod auth.ownRoleX_persist E r rr $$ Hr with Hr
-    imodintro; iexists rr; iframe Hr; ipureintro; exact H
+  | some v => iintro Hr; iapply auth.ownRoleX_persist E r (dR name) $$ Hr
 
 /-! ## The buckets hold the state -/
 
@@ -151,44 +189,126 @@ def authBucketsAre (st : auth.AuthState) (D : AuthData) : Prop :=
   (∀ n v, D.roles.lookup n = some v → ∃ rr : auth.RoleRec, v = auth.roleEncode rr ∧
     rr.name = n ∧ st.roles.lookup n = some rr.toRole)
 
-/-- A bucket's read of a user is the state's (`auth.userOut`). The encodings are opaque, so the
-record read is the one the predicate names only up to `userEncode`: both records encode to the
-same bytes, and the one the predicate names has the state's roles. -/
-theorem userOutD_are (st : auth.AuthState) (D : AuthData) (u : Loc) (name : GoString)
-    (h : authBucketsAre st D) (hinj : ∀ a b, auth.userEncode a = auth.userEncode b → a = b) :
-    userOutD (GF := GF) u D.users name ⊢ auth.userOut u st name := by
+/-- **The users bucket `m` holds the state `st`'s users with the records `dU`** (F-enc): a name
+is in `m` iff a user of `st`; its value is `dU n`'s encoding, a record of that name whose roles are
+the state's, sorted. -/
+def usersAt (st : auth.AuthState) (m : backend.BktData) (dU : GoString → auth.UserRec) : Prop :=
+  (∀ n, (m.lookup n).isSome ↔ (st.users.lookup n).isSome) ∧
+  ∀ n v, m.lookup n = some v → v = auth.userEncode (dU n) ∧ (dU n).name = n ∧
+    st.users.lookup n = some (dU n).roles ∧ (dU n).roles.Pairwise go.GoStringLt
+
+/-- **The roles bucket `m` holds the state `st`'s roles with the records `dR`** (F-enc). -/
+def rolesAt (st : auth.AuthState) (m : backend.BktData) (dR : GoString → auth.RoleRec) : Prop :=
+  (∀ n, (m.lookup n).isSome ↔ (st.roles.lookup n).isSome) ∧
+  ∀ n v, m.lookup n = some v → v = auth.roleEncode (dR n) ∧ (dR n).name = n ∧
+    st.roles.lookup n = some (dR n).toRole
+
+theorem usersAt_dec {st : auth.AuthState} {m : backend.BktData} {dU : GoString → auth.UserRec}
+    (h : usersAt st m dU) : usersDec m dU := fun n v hl => (h.2 n v hl).1
+
+theorem rolesAt_dec {st : auth.AuthState} {m : backend.BktData} {dR : GoString → auth.RoleRec}
+    (h : rolesAt st m dR) : rolesDec m dR := fun n v hl => (h.2 n v hl).1
+
+/-- The records `authBucketsAre` says exist, named (by choice: no injectivity of the encoding). -/
+theorem authBucketsAre_usersAt {st : auth.AuthState} {D : AuthData} (h : authBucketsAre st D) :
+    ∃ dU, usersAt st D.users dU := by
   obtain ⟨-, -, -, hu1, hu2, -, -⟩ := h
+  have H : ∀ n, ∃ x : auth.UserRec, ∀ v, D.users.lookup n = some v →
+      v = auth.userEncode x ∧ x.name = n ∧ st.users.lookup n = some x.roles ∧ x.roles.Pairwise go.GoStringLt := by
+    intro n
+    cases hl : D.users.lookup n with
+    | none => exact ⟨default, fun v hv => by cases hv⟩
+    | some v0 =>
+      obtain ⟨x, hx⟩ := hu2 n v0 hl
+      exact ⟨x, fun v hv => by cases hv; exact hx⟩
+  exact ⟨fun n => Classical.choose (H n), hu1, fun n v hl => Classical.choose_spec (H n) v hl⟩
+
+theorem authBucketsAre_rolesAt {st : auth.AuthState} {D : AuthData} (h : authBucketsAre st D) :
+    ∃ dR, rolesAt st D.roles dR := by
+  obtain ⟨-, -, -, -, -, hu1, hu2⟩ := h
+  have H : ∀ n, ∃ x : auth.RoleRec, ∀ v, D.roles.lookup n = some v →
+      v = auth.roleEncode x ∧ x.name = n ∧ st.roles.lookup n = some x.toRole := by
+    intro n
+    cases hl : D.roles.lookup n with
+    | none => exact ⟨default, fun v hv => by cases hv⟩
+    | some v0 =>
+      obtain ⟨x, hx⟩ := hu2 n v0 hl
+      exact ⟨x, fun v hv => by cases hv; exact hx⟩
+  exact ⟨fun n => Classical.choose (H n), hu1, fun n v hl => Classical.choose_spec (H n) v hl⟩
+
+/-- A bucket's read of a user is the state's (`auth.userOut`): the record read is the one `dU`
+names (F-enc; until then the record was recovered from the bytes, which needed `userEncode`'s
+injectivity). -/
+theorem userOutD_are (st : auth.AuthState) (m : backend.BktData) (u : Loc) (name : GoString)
+    (dU : GoString → auth.UserRec) (h : usersAt st m dU) :
+    userOutD (GF := GF) u m name dU ⊢ auth.userOut u st name := by
+  obtain ⟨hu1, hu2⟩ := h
   unfold userOutD auth.userOut
-  cases hl : D.users.lookup name with
+  cases hl : m.lookup name with
   | none =>
     have : st.users.lookup name = none := by
       have := hu1 name; rw [hl] at this; simpa using this
     rw [this]
   | some v =>
-    obtain ⟨ur, rfl, hn, hs, hsort⟩ := hu2 name v hl
+    obtain ⟨-, hn, hs, hsort⟩ := hu2 name v hl
     rw [hs]
-    iintro ⟨%ur', %He, H⟩
-    have := hinj _ _ He; subst this
-    iexists ur
+    iintro H
+    iexists dU name
     iframe H
     ipureintro; exact ⟨hn, rfl, hsort⟩
 
-theorem roleOutD_are (st : auth.AuthState) (D : AuthData) (r : Loc) (name : GoString)
-    (h : authBucketsAre st D) (hinj : ∀ a b, auth.roleEncode a = auth.roleEncode b → a = b) :
-    roleOutD (GF := GF) r D.roles name ⊢ auth.roleOut r st name := by
-  obtain ⟨-, -, -, -, -, hr1, hr2⟩ := h
+/-- As `userOutD_are`, the message as `proto.Unmarshal` returns it (`auth.userOutX`). -/
+theorem userOutDX_are (st : auth.AuthState) (m : backend.BktData) (u : Loc) (name : GoString)
+    (dU : GoString → auth.UserRec) (h : usersAt st m dU) :
+    userOutDX (GF := GF) u m name dU ⊢ auth.userOutX u st name := by
+  obtain ⟨hu1, hu2⟩ := h
+  unfold userOutDX auth.userOutX
+  cases hl : m.lookup name with
+  | none =>
+    have : st.users.lookup name = none := by
+      have := hu1 name; rw [hl] at this; simpa using this
+    rw [this]
+  | some v =>
+    obtain ⟨-, hn, hs, hsort⟩ := hu2 name v hl
+    rw [hs]
+    iintro H
+    iexists dU name
+    iframe H
+    ipureintro; exact ⟨hn, rfl, hsort⟩
+
+theorem roleOutD_are (st : auth.AuthState) (m : backend.BktData) (r : Loc) (name : GoString)
+    (dR : GoString → auth.RoleRec) (h : rolesAt st m dR) :
+    roleOutD (GF := GF) r m name dR ⊢ auth.roleOut r st name := by
+  obtain ⟨hr1, hr2⟩ := h
   unfold roleOutD auth.roleOut
-  cases hl : D.roles.lookup name with
+  cases hl : m.lookup name with
   | none =>
     have : st.roles.lookup name = none := by
       have := hr1 name; rw [hl] at this; simpa using this
     rw [this]
   | some v =>
-    obtain ⟨rr, rfl, hn, hs⟩ := hr2 name v hl
+    obtain ⟨-, hn, hs⟩ := hr2 name v hl
     rw [hs]
-    iintro ⟨%rr', %He, H⟩
-    have := hinj _ _ He; subst this
-    iexists rr
+    iintro H
+    iexists dR name
+    iframe H
+    ipureintro; exact ⟨hn, List.Perm.refl _⟩
+
+theorem roleOutDX_are (st : auth.AuthState) (m : backend.BktData) (r : Loc) (name : GoString)
+    (dR : GoString → auth.RoleRec) (h : rolesAt st m dR) :
+    roleOutDX (GF := GF) r m name dR ⊢ auth.roleOutX r st name := by
+  obtain ⟨hr1, hr2⟩ := h
+  unfold roleOutDX auth.roleOutX
+  cases hl : m.lookup name with
+  | none =>
+    have : st.roles.lookup name = none := by
+      have := hr1 name; rw [hl] at this; simpa using this
+    rw [this]
+  | some v =>
+    obtain ⟨-, hn, hs⟩ := hr2 name v hl
+    rw [hs]
+    iintro H
+    iexists dR name
     iframe H
     ipureintro; exact ⟨hn, List.Perm.refl _⟩
 
@@ -308,21 +428,21 @@ def authRolesRange (r : GoInterfaceOk) (H : IProp GF) (m : backend.BktData) : IP
         ∃ ss : List GoSlice, vs ↦* ss ∗ ⌜ss.length = (rolesRangeEnts m).length⌝ ∗
           [∗list] x ∈ ss.zip (rolesRangeEnts m), rdCap H x.1 x.2.2 }})
 
-/-- **What `unsafeGetAllUsers` returns of the users bucket `m`** (auth-schema-srv A5): a slice of
-messages, one per entry of `m` in some order (`es`, a permutation of `bktEnts m`), each holding the
-record its value encodes (`ownUser`, persisted from what `proto.Unmarshal` returns); nil when `m` is
-empty. -/
-def usersOutD (s : GoSlice) (m : backend.BktData) : IProp GF :=
+/-- **What `unsafeGetAllUsers` returns of the users bucket `m` whose records `dU` names**
+(auth-schema-srv A5; F-enc): a slice of messages, one per entry of `m` in some order (`es`, a
+permutation of `bktEnts m`), each holding the record `dU` names for its key (`ownUser`, persisted from
+what `proto.Unmarshal` returns); nil when `m` is empty. -/
+def usersOutD (s : GoSlice) (m : backend.BktData) (dU : GoString → auth.UserRec) : IProp GF :=
   iprop(∃ (us : List Loc) (es : List backend.Ent), s ↦* us ∗
     ⌜es.Perm (backend.bktEnts m) ∧ us.length = es.length⌝ ∗
-    [∗list] x ∈ us.zip es, ∃ ur : auth.UserRec, ⌜x.2.2 = auth.userEncode ur⌝ ∗ auth.ownUser x.1 ur)
+    [∗list] x ∈ us.zip es, auth.ownUser x.1 (dU x.2.1))
 
 /-- **What `unsafeGetAllRoles` returns of the entries `es`** (auth-schema-srv A5; `rolesRangeEnts`
-of the roles bucket): a slice of messages, one per entry, in order, each holding the record its
-value encodes (`ownRole`); nil when there is none. -/
-def rolesOutD (s : GoSlice) (es : List backend.Ent) : IProp GF :=
+of the roles bucket; F-enc): a slice of messages, one per entry, in order, each holding the record
+`dR` names for its key (`ownRole`); nil when there is none. -/
+def rolesOutD (s : GoSlice) (es : List backend.Ent) (dR : GoString → auth.RoleRec) : IProp GF :=
   iprop(∃ rs : List Loc, s ↦* rs ∗ ⌜rs.length = es.length⌝ ∗
-    [∗list] x ∈ rs.zip es, ∃ rr : auth.RoleRec, ⌜x.2.2 = auth.roleEncode rr⌝ ∗ auth.ownRole x.1 rr)
+    [∗list] x ∈ rs.zip es, auth.ownRole x.1 (dR x.2.1))
 
 end defs
 

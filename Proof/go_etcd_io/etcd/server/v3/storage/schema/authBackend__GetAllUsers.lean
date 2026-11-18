@@ -33,7 +33,7 @@ theorem schema.authBackend.GetAllUsers.wp_proof
     (hGA : schema.authReadTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
     (hRU : schema.authReadTx.RUnlock.spec (GF := GF) (hG := hG)) :
     schema.authBackend.GetAllUsers.spec (GF := GF) (hG := hG) := by
-  intro abe bi lg R Held ι L i Φp
+  intro abe bi lg R Held ι L i Φp dU hdU
   wp_start as ⟨#Hbe, #Hlg, #HBE, HR, HL, #HΦp⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
@@ -44,7 +44,7 @@ theorem schema.authBackend.GetAllUsers.wp_proof
   wp_apply (hRL l rt R Held L i) $$ [$Htxf $Hrtx $HR $HL] as ⟨%x, %D, %Hwf, HD, HL, #HrdD⟩
   icases HΦp $$ %x %D HD with ⟨HD, %HΦD⟩
   (try wp_auto)
-  wp_apply (hGA l rt lg (Held x D) D Hwf.1) $$ [$Htxf $Hlgf $HrdD $HD] as %s ⟨HD, Hs⟩
+  wp_apply (hGA l rt lg (Held x D) D (dU D) (hdU D Hwf HΦD)) $$ [$Htxf $Hlgf $HrdD $HD] as %s ⟨HD, Hs⟩
   (try wp_auto)
   wp_bind (App (Val (l @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authReadTx.ty @!! go!"RUnlock")) (Val #()))
   -- `iapply`, not `wp_apply`: a Lean spec applied at the deferred call leaves a stray goal
