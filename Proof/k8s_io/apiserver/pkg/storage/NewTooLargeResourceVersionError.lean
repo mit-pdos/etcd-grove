@@ -82,7 +82,7 @@ theorem storage.NewTooLargeResourceVersionError.wp_proof
       exact ⟨hst.2.1, by simp⟩
   · iexists p, st, _
     iframe Hp Hd
-    ipureintro; exact ⟨rfl, hst.1, hst.2.1, hr⟩
+    ipureintro; exact ⟨rfl, hst.1, hst.2.1, hst.2.2, hr⟩
 
 end proof
 

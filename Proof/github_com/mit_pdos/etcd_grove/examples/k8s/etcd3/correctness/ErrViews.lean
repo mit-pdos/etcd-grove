@@ -267,7 +267,7 @@ theorem errRep_delay (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (h
     ihave %Hr := Hq $$ Hp
     ipureintro; simp [delayE, Hr.2]
   · simp only [errRep, apierrors.tooLargeErrIs, apierrors.apiErrAt]
-    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, -⟩, %l', %st', %dv, ⟨%h', %hd⟩, #Hl', #Hdv⟩, #Hq⟩
+    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, -⟩, %l', %st', %dv, ⟨%h', -, %hd⟩, #Hl', #Hdv⟩, #Hq⟩
     rw [h] at h'
     have hll : l = l' := by
       simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h'
@@ -332,6 +332,39 @@ theorem wp_DeepEqual_resp (wp_DE : reflect.DeepEqual.spec_k8s (GF := GF) (hG := 
     · exact hoe.elim
   · exact hee.elim
   · exact hee.elim
+
+/-- **`IsTooManyRequests` answers `false` on a flat error** (its post, on the error's view: `.plain`
+for a deep error; the too-large error's status, reason `Timeout` and code 504). -/
+theorem errRep_notTooMany (wp_Unwrap : storage.StorageError.Unwrap.spec (GF := GF) (hG := hG))
+    (x : GoInterface) (e : RErr) (hf : flatE e) (b : Bool) :
+    errRep (GF := GF) x e ∗ (□ ∀ w, apierrors.apiErrAt x w -∗ ⌜b = match w with
+      | .status st _ => decide (st.Reason' = go!"TooManyRequests") || decide (st.Code' = W32 429)
+      | .plain => false⌝) ⊢ ⌜b = false⌝ := by
+  rcases e with d | dl | _
+  · iintro ⟨#H, #Hq⟩
+    simp only [errRep]
+    ihave #Hp := deepRO_plain wp_Unwrap x d hf $$ H
+    ihave %Hr := Hq $$ Hp
+    ipureintro; exact Hr
+  · simp only [errRep, apierrors.tooLargeErrIs, apierrors.apiErrAt]
+    iintro ⟨⟨⟨%st, %cs, ⟨%l, %h, #Hl, #Hds⟩, %hst⟩, %l', %st', %dv, ⟨%h', %hc, -⟩, #Hl', -⟩, #Hq⟩
+    rw [h] at h'
+    have hll : l = l' := by
+      simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at h'
+      exact GoGlobalContext.intoVal_inj_loc h'
+    subst hll
+    icombine Hl Hl' gives %Hst
+    simp only [k8s_io.apimachinery.pkg.api.errors.StatusError.mk.injEq] at Hst
+    subst Hst
+    ihave %Hr := Hq $$ %(.status st cs) [Hds]
+    · iexists l
+      iframe Hl Hds
+      ipureintro; exact h
+    ipureintro
+    rw [Hr]
+    simp only [hst.1, hc]
+    rfl
+  · exact hf.elim
 
 end views
 

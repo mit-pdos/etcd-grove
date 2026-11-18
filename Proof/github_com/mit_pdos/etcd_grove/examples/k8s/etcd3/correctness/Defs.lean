@@ -145,8 +145,8 @@ theorem modelOwn_freeze (mp : Loc) (m : RM) : modelOwn (GF := GF) mp m ⊢ |==> 
 /-! ## Responses -/
 
 /-- **A `Response.Err` with the view `e`** (persistent): a deep value read-only; storage's
-too-large error (`apierrors.tooLargeErrIs`) whose details, held read-only, give `delay` as
-`SuggestsClientDelay`'s answer (`apierrors.delayV`); for `other`, only that it is not `nil`
+too-large error (`apierrors.tooLargeErrIs`), of code 504 (`IsTooManyRequests` answers `false`),
+whose details, held read-only, give `delay` as `SuggestsClientDelay`'s answer (`apierrors.delayV`); for `other`, only that it is not `nil`
 (`errNonNil`). -/
 def errRep (x : GoInterface) : RErr → IProp GF
   | .deep d => deepRO x d
@@ -154,7 +154,7 @@ def errRep (x : GoInterface) : RErr → IProp GF
       ∃ (l : Loc) (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
         (dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails),
       ⌜x = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ∧
-        (apierrors.delayV st dv).2 = delay⌝ ∗
+        st.Code' = W32 504 ∧ (apierrors.delayV st dv).2 = delay⌝ ∗
       l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗ st.Details' ↦□ dv)
   | .other => iprop(⌜x ≠ GoInterface.nil⌝)
 
@@ -167,7 +167,7 @@ theorem errRep_tooLarge_of (x : GoInterface) (l : Loc)
     (st : k8s_io.apimachinery.pkg.apis.«meta».v1.Status)
     (dv : k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails)
     (h : x = interface.mkOk (go.GoType.PointerType k8s_io.apimachinery.pkg.api.errors.StatusError.ty) #l ∧
-      st.Status' = go!"Failure" ∧ st.Reason' = go!"Timeout" ∧
+      st.Status' = go!"Failure" ∧ st.Reason' = go!"Timeout" ∧ st.Code' = W32 504 ∧
       dv.RetryAfterSeconds' = W32 (sint.Z (W64 0))) :
     (apierrors.tooLargeErrIs x ∗ l ↦□ k8s_io.apimachinery.pkg.api.errors.StatusError.mk st ∗
       st.Details' ↦□ dv : IProp GF) ⊢ errRep x (.tooLarge false) := by
@@ -178,8 +178,8 @@ theorem errRep_tooLarge_of (x : GoInterface) (l : Loc)
   iexists l, st, dv
   iframe Hl Hd
   ipureintro
-  refine ⟨h.1, ?_⟩
-  obtain ⟨-, -, hr, hd⟩ := h
+  refine ⟨h.1, h.2.2.2.1, ?_⟩
+  obtain ⟨-, -, hr, -, hd⟩ := h
   unfold apierrors.delayV
   rw [hr, hd]
   simp
