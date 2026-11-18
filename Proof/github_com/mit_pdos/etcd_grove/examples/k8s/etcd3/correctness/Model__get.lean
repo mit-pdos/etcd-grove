@@ -59,7 +59,7 @@ theorem Model.get.wp_proof
     rw [this]
     unfold respRep errRep deepRO deepRep
     simp only
-    ipureintro; trivial
+    ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
   have he : err = GoInterface.nil := Herr.2 hk
   subst he
   wp_auto
@@ -78,7 +78,7 @@ theorem Model.get.wp_proof
     rw [this]
     unfold respRep errRep deepRO deepRep
     simp only
-    ipureintro; trivial
+    ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
   | some rv =>
     icases Hpr with %Hpr
     obtain ⟨rfl, rfl⟩ := Hpr
@@ -129,7 +129,7 @@ theorem Model.get.wp_proof
           · rw [show k8s_etcd3.zObj = k8s_etcd3.dzero.toObj 0 by
               simp [k8s_etcd3.zObj, k8s_etcd3.dzero]]
             iexact Hp
-        · ipureintro; trivial
+        · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
       | false =>
         wp_auto
         wp_apply +noauto (wp_NotFound (m.pfx ++ k8s_etcd3.storeKeyL x.Key') _) as %l Hl

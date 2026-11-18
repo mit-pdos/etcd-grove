@@ -121,7 +121,7 @@ theorem Model.list.wp_proof
     rw [this]
     unfold respRep errRep deepRO deepRep
     simp only
-    ipureintro; trivial
+    ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
   | some prepared =>
     rw [hk] at Hpk
     obtain ⟨rfl, rfl⟩ := Hpk
@@ -142,7 +142,7 @@ theorem Model.list.wp_proof
       rw [this]
       unfold respRep errRep deepRO deepRep
       simp only
-      ipureintro; trivial
+      ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
     | some cr =>
       obtain ⟨c0, r0⟩ := cr
       obtain ⟨rfl, rfl, rfl, rfl⟩ := Hc
@@ -464,7 +464,7 @@ theorem Model.list.wp_proof
           rw [hr]
           unfold respRep errRep deepRO deepRep
           simp only
-          ipureintro; trivial
+          ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
         obtain ⟨rfl, hr⟩ := Hcase
         wp_auto
         wp_apply +noauto wp_newObjList as %pl Hpl
@@ -511,7 +511,7 @@ theorem Model.list.wp_proof
         · iexists pl, sl', r
           iframe Hlist Hsl'' Hr'
           ipureintro; exact ⟨rfl, Hsl'⟩
-        · ipureintro; trivial
+        · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
 
 end proof
 

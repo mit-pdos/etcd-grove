@@ -145,11 +145,12 @@ theorem modelOwn_freeze (mp : Loc) (m : RM) : modelOwn (GF := GF) mp m ⊢ |==> 
 
 /-- **A `Response.Err` with the view `e`** (persistent): a deep value read-only; storage's
 too-large error (`apierrors.tooLargeErrIs`; its `delay` bit is read by `SuggestsClientDelay`,
-whose spec is pending the soundness fix, `notes/k8s-7g-trust.md` §2); nothing for `other`. -/
+whose spec is pending the soundness fix, `notes/k8s-7g-trust.md` §2); for `other`, only that it
+is not `nil` (`errNonNil`). -/
 def errRep (x : GoInterface) : RErr → IProp GF
   | .deep d => deepRO x d
   | .tooLarge _ => apierrors.tooLargeErrIs x
-  | .other => iprop(True)
+  | .other => iprop(⌜x ≠ GoInterface.nil⌝)
 
 instance errRep_persistent (x : GoInterface) (e : RErr) : Persistent (errRep (GF := GF) x e) := by
   cases e <;> unfold errRep <;> infer_instance

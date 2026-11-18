@@ -68,8 +68,8 @@ theorem Model.create.wp_proof
       iframe
       iexact Hit
     isplitr
-    · ipureintro; trivial
-    · ipureintro; trivial
+    · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
+    · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
   have he : err = GoInterface.nil := Herr.2 hk
   subst he
   wp_auto
@@ -101,7 +101,7 @@ theorem Model.create.wp_proof
       iexact Hit
     isplitl
     · isplitr
-      · ipureintro; trivial
+      · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
       · rw [show (0 : w64) = W64 0 from rfl]
         iexists l, GoInterface.nil
         iframe Hl
@@ -109,7 +109,7 @@ theorem Model.create.wp_proof
         · ipureintro; rfl
         · iunfold deepRep
           ipureintro; rfl
-    · ipureintro; trivial
+    · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
   | none =>
     have hnin : ¬ k8s_etcd3.storeKeyL x.Key' ∈ m.items := by
       intro h
@@ -160,7 +160,7 @@ theorem Model.create.wp_proof
       · iexists c
         iframe Hc
         ipureintro; rfl
-      · ipureintro; trivial
+      · ipureintro; first | trivial | simp | exact ⟨rfl, nofun⟩ | exact nofun
     · iexists _, _
       iframe «$r1»
       isplitl
