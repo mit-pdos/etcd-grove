@@ -40,3 +40,18 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   close's `nil` and made `Create` return `(nil, nil)` with no cleanup
   (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`). No regression test (an fsync EIO on a directory
   is not injectable in the package's tests).
+- `0007` (wal-link, 2026-11-18, approved by the user via etcd-grove-03; **local, not pushed**: branch
+  `goose-lean-walfs3` in `/shared/tmp/wal-fork/etcd`, head `f01ae14c9b95338efae4e2ac2d62703bc873d178`, on
+  `8c28a4296`): `WAL.SaveSnapshot` checks the tail's offset after its record and cuts once it passes
+  `SegmentSizeBytes`, as `Save` does (`cut` syncs the old tail first); before, it only synced. Why: the server
+  saves a snapshot record from the apply thread once per applied batch past `SnapshotCount`, and raft hands a
+  commit backlog out over `Ready`s with an empty hard state and no entries (whose `Save` writes nothing, so
+  no cut), so the snapshot records between two entry-writing `Save`s grew one tail file without bound, up to
+  ext4's `s_maxbytes` (`EFBIG`, the apply thread's `lg.Panic`); the proof could not bound them (layer 1's room
+  budget, `nonissues/etcd-wal-savesnapshot-tail-efbig.md`). Test `TestSaveSnapshotCuts`
+  (`server/storage/wal/savesnapshot_cut_test.go`): 64 snapshot records with no `Save` between them under a
+  2 KiB segment size cut the tail (more than one file, the tail below the segment size) and the WAL opens at
+  the last snapshot; it fails without the change (one file). `etc/goose.py` pins it (project `etcd`,
+  translated with `--src etcd=/shared/tmp/wal-fork/etcd`); **the user pushes `goose-lean-walfs3`, then the
+  examples' `go.mod`/`go.sum` move to its pseudo-version** (until then `etc/goose.py --check` fails on the
+  examples' replace lines and on the unfetchable revision).

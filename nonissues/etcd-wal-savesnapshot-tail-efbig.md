@@ -29,3 +29,12 @@ writing `Save`), which the server's invariants were to discharge (L3); the serve
 of such records only by the commit backlog, which raft does not bound (`notes/wal-link-handoff.md`, START
 HERE 2026-11-18 g). Either the fork's `SaveSnapshot` cuts as `Save` does (a fork fix), or the closed theorems
 need a premise excluding the run.
+
+## Fix
+
+Fixed on the goosed fork (2026-11-18, the user's approval via etcd-grove-03): fork fix 0007
+(`notes/wal-fsext-fork/README.md`; upamanyus/etcd branch `goose-lean-walfs3`, `f01ae14c9`, pending the
+user's push): `SaveSnapshot` cuts once the tail passes `SegmentSizeBytes`, as `Save` does, with the test
+`TestSaveSnapshotCuts` (fails before, passes after). The proof then needs no room budget for snapshot
+records (wal-link L1a's `walUsed`/`walSnapBudget` go); it does need `walCutPos` to admit a cut right after a
+snapshot record (`notes/wal-link-handoff.md`).

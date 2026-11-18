@@ -312,12 +312,15 @@ PROJECTS = [
         # `WAL.Sync` takes `w.mu`, issues/etcd-wal-sync-releaselockto-race.md, the reproduced data
         # race with `ReleaseLockTo`), first on 2eaeb872b (3df9b265f, e115818f5), rebased (2026-11-16,
         # wal-lean session 6) onto 6e8f0c004 with each commit's author, committer and dates kept:
-        # 8c28a4296.
+        # 8c28a4296. Then (wal-link, 2026-11-18, approved by the user via etcd-grove-03) fix 0007
+        # on it, branch `goose-lean-walfs3`: `SaveSnapshot` cuts once the tail passes
+        # `SegmentSizeBytes`, as `Save` does (nonissues/etcd-wal-savesnapshot-tail-efbig.md):
+        # f01ae14c9.
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="8c28a4296f1699c699bc4d59459c691bcff995f0",
+        rev="f01ae14c9b95338efae4e2ac2d62703bc873d178",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

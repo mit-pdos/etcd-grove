@@ -1,6 +1,39 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 g, per-area WalGS done; L3 STOPPED at a blocker: the snapshot room budget)
+## START HERE (2026-11-18 h, fork fix 0007 made and translated; STOPPED before re-proving: walCutPos must widen)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
+- **Approved by the user (2026-11-18, via etcd-grove-03):** fork fix 0007, `SaveSnapshot` cuts as `Save` does.
+- **Done (this commit):** fork commit `f01ae14c9` (branch `goose-lean-walfs3` in `/shared/tmp/wal-fork/etcd`, on
+  `8c28a4296`; NOT PUSHED: **the user must push it before landing**, then the examples' `go.mod`/`go.sum`
+  (examples/, examples/k8s/{etcd3,compactor}, examples/axiomcx/incomingof-real) move to its pseudo-version;
+  until then `etc/goose.py --check` fails); `TestSaveSnapshotCuts` fails before, passes after; WAL suite
+  (GOWORK=off, go1.27.3) as recorded in notes/wal-fsext-fork/README.md 0007. `etc/goose.py` pins it; retranslated
+  (`--project etcd --src etcd=/shared/tmp/wal-fork/etcd`): only `Code/.../storage/wal.lean`'s `SaveSnapshot`.
+  **The branch does not build** at `WAL__SaveSnapshot.lean` (its code changed) until step 3.
+- **STOP (for etcd-grove-03): `walCutPos` must admit a cut right after a snapshot record.** The cut's spec
+  takes `walCutPos (H.map toM) |H|` (a file starts only at 0 or after a writing `Save`); after the fix a file
+  can start right after a snapshot record. `walCutPos` (storage/WalDisk.lean) is the vocabulary of
+  `walNameBound` → `walOpenPos`/`walReleasePos`, i.e. of `Open.spec`, `ReleaseLockTo.spec`, `ReadAll.spec`
+  (wal-fsext exported results), and the tester's Go oracle mirrors it (`examples/etcd/wal/ref.go` `cutPos`,
+  `tCutPos_abs`). Proposed: `walCutPos H b := b = 0 ∨ (∃ h es, H[b-1]? = save h es ∧ ¬ empty) ∨ ∃ m, H[b-1]? =
+  snap m`; `ref.go`'s `cutPos` returns `o.snap || …`; retranslate `etcd-wal`. Meaning: Open/ReleaseLockTo's
+  "locked from" positions may move later only past a cut after a snapshot record of index below the target
+  (what the code now does; the name bound still holds: the record raised `snapi`). Cost ~100-200 lines
+  (pass-through uses; `walCutPos_of_take`, `walCutPos_le/snoc`, `tCutPos_abs` destruct it).
+- **Next after the decision (step 3):** SaveSnapshot's shared arm: Seek + `sync`/`cut` as Save's tail
+  (`walCov_cut`, `save_off_toInt`, `save_hif`, `save_pc_bound`); the pre arm (Create's call): its writer is
+  generic (`io.writerStream`), so it needs a Seek law on the writer (offset = `|out|`) and the offset below
+  `SegmentSizeBytes` (Create's segment is far below it; `lim < 2^47` is not enough), plus the global's `↦□`;
+  then remove `walUsed`/`walSnapBudget`/`walSaveRoom`/`snapRoom`/`walUsedAfterSave`/`WalShN.γu` (walHdl =
+  walHdlF's form), Save's room premise over `walFreshRoom`, the AU transformers, storage Save/SaveSnap specs,
+  WalTester member__save/saveSnap; then L3 (scope §3.5).
+- **Check/Build:** as in History g.
+
+## History
+
+### START HERE (2026-11-18 g, per-area WalGS done; L3 STOPPED at a blocker: the snapshot room budget)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 merged; pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
@@ -25,8 +58,6 @@
   (`--fast` can hide errors: re-check without it, or build). **Build:**
   `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]`.
 - **Pitfalls:** previous START HERE (History, f).
-
-## History
 
 ### START HERE (2026-11-18 f, step B: option (C) done; WAL + WalTester + durable build; lean merged; full build)
 
