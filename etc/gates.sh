@@ -282,11 +282,23 @@ fail=0
 # 8b. the checked-in interfaces (`interface/`) are what the build exports, with no new layout
 # violation: CI's "Check the packages' interfaces" loop, verbatim (reads the build; `$LAKE_OPTS`
 # carries `--packages`). Added 2026-11-13: CI failed on it since a1e57a9676 while land.sh passed.
+# The packages at once (each about 30s, mostly its own parallel pretty-printing; one after another
+# they were 200s of the gate, 2026-11-18).
 iface=ok
+pids=()
 for c in etc/api/*.txt; do
   case "$c" in *-layout.txt) continue ;; esac
-  if ! python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.log" 2>&1; then
-    echo "interface $c: FAILED"; tail -20 "$tmp/iface.log"; iface=FAILED
+  b=$(basename "$c" .txt)
+  ( python3 etc/gen-interface.py "$c" --check --layout > "$tmp/iface.$b.log" 2>&1
+    echo $? > "$tmp/iface.$b.status" ) &
+  pids+=($!)
+done
+wait "${pids[@]}"
+for c in etc/api/*.txt; do
+  case "$c" in *-layout.txt) continue ;; esac
+  b=$(basename "$c" .txt)
+  if [ "$(cat "$tmp/iface.$b.status" 2>/dev/null)" != 0 ]; then
+    echo "interface $c: FAILED"; tail -20 "$tmp/iface.$b.log"; iface=FAILED
   fi
 done
 echo "interfaces: $iface"; [ "$iface" = ok ] || fail=1
