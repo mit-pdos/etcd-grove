@@ -1,6 +1,33 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6: P1' and the write side's forms applied; (c) next)
+## START HERE (2026-11-18, A6 (c) the write side done but GetAllRoles: STOP 4, F-roles)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere (`.lake/package-overrides.json` = that manifest). lean 1b298c1e70 merged.
+- Done before: A1-A5, A6.1-A6.2, fix (A), F-enc/F-acc, pool, L-rev/P2, read side, reserved reads, lifecycle, P1' (ACCEPTED).
+- **Done now, (c)** (`etcdserver/AuthRealWr.lean`, commits e1ef4bdf53 .. HEAD; forms in questions.md "A6 (c) forms"):
+  backend: `Unlock`'s confirmation window `rbConf` (Rr → Rr'), commit's post keeps `rbData`, `UnsafeRange` in either mode,
+  new `batchTxBuffered.UnsafeForEach` (spec/proof/link/importable), `batchLocked_rbPartR_agree`; `schema.rolesAt` up to
+  order; session token `bkSw` (`γw`) in `bkIdle`. Realization: batch reader (`bt_reader`, `bt_rolesRange`), windows
+  (`real_acc`, `real_conf`), borrow/return (`real_borrow`, `real_return`, `real_unborrow`), the lock token (`LkOk`, `lkR`,
+  `lkT`), `lk_lock`/`lk_put`/`lk_putA`/`lk_del`/`lk_unlock`/`lk_commit`/`lk_reads`, `real_batchTxLkR` (T ⊣⊢ authWTok ∗ Hk),
+  `real_forceCommit`, `real_wbackendOkR` (GetAllRoles as the premise `garClause`). lean-check clean (whole file, no sorry).
+- **STOP 4 (questions.md "A6 STOP 4")**: F-roles: `rolesOut` lists every role but the range caps at `2^63 - 1` entries and
+  nothing bounds a state's roles; recommended (R-c) weaken `rolesOut`/RoleList. Waiting for the decision.
+- Next, after it: GetAllRoles (schema `authBackend.GetAllRoles.spec`: Lk m pins the batch's `tx` by a one-shot
+  `dghostVar` set at Lock, `Lk m := ∃ bs st, ⌜bktOf bs.S roles = m⌝ ∗ pin(bs.tx) ∗ batchLocked … ∗ lkR … ∗ bkSw ½ init ∗
+  authOwnF hs ∗ Wb ∗ Wb`; `dR m` by choice (as `dRL`); a `rolesOutD_at` from `rolesAt` via `cursorRange_window`/
+  `mem_window`), then `authWAtHook` (T = authWTok, Hk = emp, `plHookRO f'`), the boot contract (Hk = plHook nil, f = nil,
+  P = Pk); (d) `authBkLend`, `CreateAuthBuckets`; (e) creation, `⊢ authSchemaSrv`, `authSchemaSnap`; A6-end report; A7.
+- Builds: `/shared/tmp/auth-schema-srv/c-build2.log` (backend Link, AuthRealWr, server Link). Interfaces of backend and
+  etcdserver APIs not regenerated yet (`etc/gen-interface.py etc/api/backend.txt` after a build).
+- Pitfalls: (0)-(31) as before (History); (32) after `wp_apply` the goal is the post: `iapply wp_fupd` first to `imod`
+  after it; (33) a spec's state projection gets reduced (`(bs.put …).S` shows as `<[…]>bs.S`): pass `_` or `rw` a `rfl`
+  equation (`hS`) before framing; (34) `(authD bs.S).users` vs the reduced bucket: `simp only [authD, mvcc.authUsersBI, …]
+  at Hv` before using its parts; (35) a pattern variable over `▷` needs `Inhabited` (`inhAuthSess`).
+
+## History (START HERE of 2026-11-18, A6: P1' and the write side's forms applied; (c) next, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean 1b298c1e70 merged (c6546c5303): pin
   6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
