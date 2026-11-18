@@ -226,6 +226,60 @@ theorem pool_release (E : CoPset) (γm γh : GName) (Rs : Nat → IProp GF) (dep
     iexfalso
     iapply hZ v $$ [$Hd $HZ]
 
+/-! ### The two counters -/
+
+/-- `a + b` tokens out are at most the discarded authority's count (as `auth.toks_bound`). -/
+theorem toks_bound' (γ : GName) (K a b : Nat) :
+    ⊢ ownTokAuthDfrac (GF := GF) γ DFrac.discard K -∗ ownToks γ a -∗ ownToks γ b -∗
+      ⌜a + b ≤ K⌝ ∗ ownToks γ a ∗ ownToks γ b := by
+  iintro #Ha H1 H2
+  ihave H := ownToks_add_2 b a γ $$ [H1 H2]
+  · iframe H1 H2
+  icombine Ha H gives %h
+  icases ownToks_add_1 b a γ $$ H with ⟨H1, H2⟩
+  iframe H1 H2
+  ipureintro; exact h
+
+/-- **The tickets deposited** (the ticket pool's `Rs`): `a` tickets of the global names `γt`, with their
+discarded authority of `K` (`authRdN - 1`, allocated once at boot). -/
+def ticketsIn (γt : GName) (K a : Nat) : IProp GF :=
+  iprop(ownTokAuthDfrac γt DFrac.discard K ∗ ownToks γt a)
+
+theorem ticketsIn_dep (γt : GName) (K a : Nat) :
+    ticketsIn (GF := GF) γt K a ∗ ownToks γt 1 ⊢ ticketsIn γt K (a + 1) ∗ ⌜a + 1 ≤ K⌝ := by
+  unfold ticketsIn
+  iintro ⟨⟨#Ha, H⟩, H1⟩
+  icases toks_bound' γt K a 1 $$ Ha H H1 with ⟨%hb, H, H1⟩
+  iframe Ha
+  isplitl [H H1]
+  · iapply ownToks_add_2 1 a γt $$ [$H1 $H]
+  · ipureintro; exact hb
+
+theorem ticketsIn_wd (γt : GName) (K a : Nat) :
+    ticketsIn (GF := GF) γt K (a + 1) ⊢ ticketsIn γt K a ∗ ownToks γt 1 := by
+  unfold ticketsIn
+  iintro ⟨#Ha, H⟩
+  icases ownToks_add_1 1 a γt $$ H with ⟨H1, H⟩
+  iframe Ha H H1
+
+/-- **The write token deposited** (the reserved pool's `Rs`, one slot): none or the token. -/
+def tokIn (T : IProp GF) : Nat → IProp GF
+  | 0 => iprop(True)
+  | 1 => T
+  | _ => iprop(False)
+
+theorem tokIn_dep (T : IProp GF) (hT : T ∗ T ⊢ False) (a : Nat) :
+    tokIn T a ∗ T ⊢ tokIn T (a + 1) ∗ ⌜a + 1 ≤ 1⌝ := by
+  match a with
+  | 0 => simp only [tokIn]; iintro ⟨-, H⟩; iframe H; ipureintro; omega
+  | 1 => simp only [tokIn]; iintro H; iexfalso; iapply hT $$ H
+  | n + 2 => simp only [tokIn]; iintro ⟨H, -⟩; iexfalso; iexact H
+
+theorem tokIn_wd (T : IProp GF) (a : Nat) : tokIn T (a + 1) ⊢ tokIn T a ∗ T := by
+  match a with
+  | 0 => simp only [tokIn]; iintro H; iframe H
+  | n + 1 => simp only [tokIn]; iintro H; iexfalso; iexact H
+
 end pool
 
 end authReal
