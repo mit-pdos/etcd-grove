@@ -2,6 +2,9 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem backend.rbClaimToks_set (γ : backend.BNames) (P : backend.BParams) (S S' : GoString → Prop)
+    (h : ∀ (n : GoString), S n ↔ S' n) : backend.rbClaimToks γ P S ⊣⊢ backend.rbClaimToks γ P S'
+
 theorem backend.rbPartR_RB (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c :
     Bool) (S : GoString → Prop) (r : GMap GoString backend.BktData) : backend.trkSide γ P st c ∗
     backend.rbPartR γ S r ⊢ backend.trkSide γ P st c ∗ backend.rbPartR γ S r ∗ ⌜∀ (n : GoString), S
@@ -20,12 +23,18 @@ def backend.BSess.clrCw (st : backend.BSess) : backend.BSess :=
 
 theorem backend.rbRdL_map (γ : backend.BNames) (f : GoString → backend.BktData) (q : Qp) (Sc : List
     GoString) (hnd : Sc.Nodup) : ([∗list] n ∈ Sc, backend.rbRd γ n q (f n)) ⊢ ⌜∀ (n : GoString), n ∈
-    Sc → γ.rbD !! n ≠ none⌝ ∗ [∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#q} f n else
+    Sc → γ.rbD !! n ≠ none⌝ ∗ [∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#q.half} f n else
     iprop(True)
 
 theorem backend.rbPartRF_congr (γ : backend.BNames) (S : GoString → Prop) (r r' : GMap GoString
     backend.BktData) (F F' : GoString → Bool) (hr : ∀ (n : GoString), S n → r !! n = r' !! n) (hF :
     ∀ (n : GoString), S n → F n = F' n) : backend.rbPartRF γ S r F ⊢ backend.rbPartRF γ S r' F'
+
+theorem backend.rbOwnIn_claim1 (γ : backend.BNames) (P : backend.BParams) (n : GoString) (r : GMap
+    GoString backend.BktData) (hBT : ∃ i, P.BT !! n = some i) (hRB : P.RB n = true) (E : CoPset) (hE
+    : ↑backend.rbClaimN ⊆ E) : (backend.rbOwnIn γ (fun k => k = n) r ∗ backend.rbClaimToks γ P fun k
+    => k = n) ⊢ |={E}=> backend.rbOwnInR γ (fun k => k = n) r ∗ backend.rbRd γ n (Qp.half 1)
+    (backend.bktOf r n)
 
 theorem backend.trkSide_updR (γ : backend.BNames) (P : backend.BParams) (st st' : backend.BSess) (rv
     rv' : backend.RView) (c c' : Bool) (Sc : List GoString) (ok : GoString → backend.BktData →
@@ -50,6 +59,9 @@ theorem backend.rbAcc_persistent (γ : backend.BNames) (Sc : List GoString) (ok 
     backend.BktData → backend.BktData → Prop) (Rr : IProp GF) : Persistent (backend.rbAcc γ Sc ok
     Rr)
 
+theorem backend.rbClaimToks_sub (γ : backend.BNames) (P : backend.BParams) (S S' : GoString → Prop)
+    (h : ∀ (n : GoString), S' n → S n) : backend.rbClaimToks γ P S ⊢ backend.rbClaimToks γ P S'
+
 theorem backend.batchGhostAt_clr (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (fr
     c : Bool) (hT : ∀ (n : GoString), P.RB n = true → st.tk n = backend.RbK.idle) :
     backend.batchGhostAt γ P st fr c ⊢ backend.batchGhostAt γ P st.clrCw fr
@@ -73,28 +85,26 @@ theorem backend.rbOwnInR_split (γ : backend.BNames) (S S' : GoString → Prop) 
 theorem backend.trkSide_mode_win (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c
     c' : Bool) (hw : st.cnt.hw = true) : backend.trkSide γ P st c ⊢ backend.trkSide γ P st c'
 
-theorem backend.batchLocked_claim (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :
-    backend.BSess) (c : Bool) (Sc : List GoString) (r : GMap GoString backend.BktData) (hnd :
-    Sc.Nodup) (hS : ∀ (n : GoString), n ∈ Sc → (∃ i, P.BT !! n = some i) ∧ P.RB n = true) :
-    backend.batchLocked γ P b st c ∗ backend.rbOwnIn γ (fun k => k ∈ Sc) r ⊢ |==>
-    (backend.batchLocked γ P b st c ∗ backend.rbOwnInR γ (fun k => k ∈ Sc) r ∗ [∗list] n ∈ Sc,
-    backend.rbRd γ n (Qp.half 1) (backend.bktOf r n))
+theorem backend.rbClaimToks_split (γ : backend.BNames) (P : backend.BParams) (S S' : GoString →
+    Prop) (hd : ∀ (n : GoString), S n → S' n → False) : (backend.rbClaimToks γ P fun n => S n ∨ S'
+    n) ⊣⊢ backend.rbClaimToks γ P S ∗ backend.rbClaimToks γ P S'
 
 theorem backend.rbOwnInR_nil (γ : backend.BNames) (r : GMap GoString backend.BktData) : ⊢
     backend.rbOwnInR γ (fun n => n ∈ []) r
 
 theorem backend.rbrSide_stepR (γ : backend.BNames) (P : backend.BParams) (st st' : backend.BSess)
     (rv rv' : backend.RView) (c c' : Bool) (Sc : List GoString) (old : GoString → backend.BktData)
-    (hrv : rv = (st.C, st.R)) (hrv' : rv' = (st'.C, st'.R)) (hS : backend.rbData P st'.S =
-    backend.rbData P st.S) (hk : ∀ (n : GoString), P.RB n = true → st.tk n = backend.RbK.idle →
-    st.cw n = false → st'.tk n = backend.RbK.idle ∧ backend.rvBkt P rv n = backend.rvBkt P rv' n)
-    (hcl : ∀ (n : GoString), st.cw n = true → st'.tk n = backend.RbK.idle ∨ st'.cw n = true) (hcwS :
-    ∀ (n : GoString), st.cw n = true → n ∈ Sc) (hmode : backend.cwOk c' st') : (backend.rbrSide γ P
-    st c ∗ backend.rbrHalves γ P 1 rv ∗ [∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#Qp.half 1}
-    old n else iprop(True)) ⊢ |==> (backend.rbrSide γ P st' c' ∗ backend.rbrHalves γ P 1 rv' ∗
-    ([∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#Qp.half 1} backend.rvBkt P rv' n else
-    iprop(True)) ∗ ⌜∀ (n : GoString), γ.rbD !! n ≠ none → n ∈ Sc → old n = backend.rvBkt P rv n⌝ ∗
-    ⌜∀ (n : GoString), γ.rbD !! n ≠ none → P.RB n = true⌝)
+    (hrv : rv = (st.C, st.R)) (hrv' : rv' = (st'.C, st'.R)) (hk : ∀ (n : GoString), P.RB n = true →
+    st.tk n = backend.RbK.idle → st.cw n = false → st'.tk n = backend.RbK.idle ∧ backend.rvBkt P rv
+    n = backend.rvBkt P rv' n) (hcwS : ∀ (n : GoString), st.cw n = true → n ∈ Sc) (hmode :
+    backend.cwOk c' st') (E : CoPset) (hE : ↑backend.rbClaimN ⊆ E) : (backend.rbSide γ P
+    (backend.rbData P st.S) (backend.tkI P st) ∗ backend.rbrSide γ P st c ∗ backend.rbrHalves γ P 1
+    rv ∗ [∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#(Qp.half 1).half} old n else iprop(True))
+    ⊢ |={E}=> backend.rbSide γ P (backend.rbData P st.S) (backend.tkI P st) ∗ backend.rbrSide γ P
+    st' c' ∗ backend.rbrHalves γ P 1 rv' ∗ ([∗map] n ↦ _u ∈ γ.rbD, if n ∈ Sc then n
+    ↪[γ.rbr]{#(Qp.half 1).half} backend.rvBkt P rv' n else iprop(True)) ∗ ⌜∀ (n : GoString), γ.rbD
+    !! n ≠ none → n ∈ Sc → old n = backend.rvBkt P rv n⌝ ∗ ⌜∀ (n : GoString), γ.rbD !! n ≠ none →
+    P.RB n = true⌝
 
 theorem backend.rbAcc_nil (γ : backend.BNames) (ok : GoString → backend.BktData → backend.BktData →
     Prop) (Rr : IProp GF) : ⊢ backend.rbAcc γ [] ok Rr
@@ -124,14 +134,8 @@ theorem backend.batchLocked_cwOk (γ : backend.BNames) (P : backend.BParams) (b 
 
 theorem backend.rbRdL_of_map (γ : backend.BNames) (f : GoString → backend.BktData) (q : Qp) (Sc :
     List GoString) (hnd : Sc.Nodup) (hd : ∀ (n : GoString), n ∈ Sc → γ.rbD !! n ≠ none) : ([∗map] n
-    ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#q} f n else iprop(True)) ⊢ [∗list] n ∈ Sc, backend.rbRd
-    γ n q (f n)
-
-theorem backend.trkSide_claim1 (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c :
-    Bool) (n : GoString) (r : GMap GoString backend.BktData) (hok : backend.trkOk P st st.tk) (hBT :
-    ∃ i, P.BT !! n = some i) (hRB : P.RB n = true) : backend.trkSide γ P st c ∗ backend.rbOwnIn γ
-    (fun k => k = n) r ⊢ |==> (backend.trkSide γ P st c ∗ backend.rbOwnInR γ (fun k => k = n) r ∗
-    backend.rbRd γ n (Qp.half 1) (backend.bktOf r n))
+    ↦ _u ∈ γ.rbD, if n ∈ Sc then n ↪[γ.rbr]{#q.half} f n else iprop(True)) ⊢ [∗list] n ∈ Sc,
+    backend.rbRd γ n q (f n)
 
 theorem backend.trkSide_clr (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c :
     Bool) (hT : ∀ (n : GoString), P.RB n = true → st.tk n = backend.RbK.idle) : backend.trkSide γ P
@@ -146,13 +150,6 @@ theorem backend.batchLocked_rbPartR_RB (γ : backend.BNames) (P : backend.BParam
     backend.batchLocked γ P b st c ∗ backend.rbPartR γ S r ⊢ backend.batchLocked γ P b st c ∗
     backend.rbPartR γ S r ∗ ⌜∀ (n : GoString), S n → P.RB n = true⌝
 
-theorem backend.trkSide_claim (γ : backend.BNames) (P : backend.BParams) (st : backend.BSess) (c :
-    Bool) (r : GMap GoString backend.BktData) (hok : backend.trkOk P st st.tk) (Sc : List GoString)
-    : Sc.Nodup → (∀ (n : GoString), n ∈ Sc → (∃ i, P.BT !! n = some i) ∧ P.RB n = true) →
-    backend.trkSide γ P st c ∗ backend.rbOwnIn γ (fun k => k ∈ Sc) r ⊢ |==> (backend.trkSide γ P st
-    c ∗ backend.rbOwnInR γ (fun k => k ∈ Sc) r ∗ [∗list] n ∈ Sc, backend.rbRd γ n (Qp.half 1)
-    (backend.bktOf r n))
-
 theorem backend.rbOwnInR_set (γ : backend.BNames) (S S' : GoString → Prop) (r : GMap GoString
     backend.BktData) (h : ∀ (n : GoString), S n ↔ S' n) : backend.rbOwnInR γ S r ⊣⊢ backend.rbOwnInR
     γ S' r
@@ -162,6 +159,12 @@ def backend.unlockOk (P : backend.BParams) (st : backend.BSess) (n : GoString) (
   new = backend.bktOf st.S n ∨
     (st.tk n = backend.RbK.idle ∨ st.tk n = backend.RbK.del) ∧ new = old ∨
       st.tk n = backend.RbK.mix ∧ new = backend.rvBkt P (st.C, backend.writebackR st.W st.R) n
+
+theorem backend.rbOwnIn_claim (γ : backend.BNames) (P : backend.BParams) (r : GMap GoString
+    backend.BktData) (E : CoPset) (hE : ↑backend.rbClaimN ⊆ E) (Sc : List GoString) : Sc.Nodup → (∀
+    (n : GoString), n ∈ Sc → (∃ i, P.BT !! n = some i) ∧ P.RB n = true) → (backend.rbOwnIn γ (fun k
+    => k ∈ Sc) r ∗ backend.rbClaimToks γ P fun k => k ∈ Sc) ⊢ |={E}=> backend.rbOwnInR γ (fun k => k
+    ∈ Sc) r ∗ [∗list] n ∈ Sc, backend.rbRd γ n (Qp.half 1) (backend.bktOf r n)
 
 theorem backend.rbOwnInR_part (γ : backend.BNames) (S : GoString → Prop) (r : GMap GoString
     backend.BktData) : backend.rbOwnInR γ S r ⊢ backend.rbPartR γ S r

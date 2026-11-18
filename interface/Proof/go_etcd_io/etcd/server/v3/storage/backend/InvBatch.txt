@@ -114,7 +114,7 @@ theorem backend.batchGhost_step_put (γ : backend.BNames) (P : backend.BParams) 
     st.tk m) (kc c : Bool) (hOc : ∀ (m : GoString), m ≠ n → st'.cw m = st.cw m) (hcw : kc = false →
     st'.cw n = st.cw n) (hcwT : kc = true → st.tk n = backend.RbK.idle ∨ st.cw n = true → st'.tk n =
     backend.RbK.idle ∨ st'.cw n = true) (hkc : kc = true → c = true) : ⊢ backend.batchGhost γ P st c
-    -∗ backend.hkPut γ P n k st.S -∗ backend.rbPut γ P n st.S kc -∗ backend.fkPut γ n k ==∗
+    -∗ backend.hkPut γ P n k st.S -∗ backend.rbPut γ P n st.S kc -∗ backend.fkPut γ n k ={⊤}=∗
     backend.batchGhost γ P st' c ∗ backend.hkPut γ P n k st'.S ∗ backend.rbPut γ P n st'.S kc ∗
     backend.fkPut γ n k
 
@@ -135,7 +135,7 @@ theorem backend.batchGhost_step_rb (γ : backend.BNames) (P : backend.BParams) {
     GoString), m ≠ n → st'.tk m = st.tk m) (k c : Bool) (hOc : ∀ (m : GoString), m ≠ n → st'.cw m =
     st.cw m) (hcw : k = false → st'.cw n = st.cw n) (hcwT : k = true → st.tk n = backend.RbK.idle ∨
     st.cw n = true → st'.tk n = backend.RbK.idle ∨ st'.cw n = true) (hkc : k = true → c = true) : ⊢
-    backend.batchGhost γ P st c -∗ backend.rbPut γ P n st.S k ==∗ backend.batchGhost γ P st' c ∗
+    backend.batchGhost γ P st c -∗ backend.rbPut γ P n st.S k ={⊤}=∗ backend.batchGhost γ P st' c ∗
     backend.rbPut γ P n st'.S k
 
 theorem backend.rdB_acc (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) : backend.rdB tx s v ∗
@@ -158,7 +158,7 @@ theorem backend.batchGhost_step_dl (γ : backend.BNames) (P : backend.BParams) {
     GoString), m ≠ n → st'.tk m = st.tk m) (k c : Bool) (hOc : ∀ (m : GoString), m ≠ n → st'.cw m =
     st.cw m) (hcw : k = false → st'.cw n = st.cw n) (hcwT : k = true → st.tk n = backend.RbK.idle ∨
     st.cw n = true → st'.tk n = backend.RbK.idle ∨ st'.cw n = true) (hkc : k = true → c = true) : ⊢
-    backend.batchGhost γ P st c -∗ backend.rbPut γ P n st.S k -∗ backend.dlPut γ P n ==∗
+    backend.batchGhost γ P st c -∗ backend.rbPut γ P n st.S k -∗ backend.dlPut γ P n ={⊤}=∗
     backend.batchGhost γ P st' c ∗ backend.rbPut γ P n st'.S k ∗ backend.dlPut γ P n
 
 theorem backend.batchLocked_fkd (γ : backend.BNames) (P : backend.BParams) (b : Loc) (st :

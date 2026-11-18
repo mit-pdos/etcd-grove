@@ -66,6 +66,7 @@ importable Spec.go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx__Unsa
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
+importable Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Size
 importable Spec.go_etcd_io.etcd.server.v3.storage.backend.snapshot__WriteTo
