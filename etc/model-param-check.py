@@ -318,29 +318,46 @@ def run(json_path, cache_dir=None):
             ctx = KeyContext(env)
         except NoCache as e:
             print(f"model-param: not using the cache: {e}", file=sys.stderr)
+    # the keys first (one after another: the hasher's memo), then the runs the cache lacks, in
+    # parallel lanes (proof_roots.run_groups: independent runs), written in the jobs' order
+    keyed = []
+    for mods, st in jobs:
+        argv = [*proof_roots.lean_args(), *(["--selftest"] if st else []), *mods]
+        key = n = None
+        if ctx is not None:
+            try:
+                key, n = ctx.key(argv, mods)
+            except NoCache as e:
+                print(f"model-param: not using the cache for a run of {len(mods)} modules: {e}",
+                      file=sys.stderr)
+        body = cache_get(cache_dir, key) if key else None
+        keyed.append((mods, st, argv, key, n, body))
+    script = proof_roots.lean_script("etc/ModelParamCheck.lean", env)
+
+    def one(job):
+        mods, st, argv, key, n, body = job
+        if body is not None:
+            return body
+        t0 = time.time()
+        r = subprocess.run(proof_roots.lake("env", *script, *argv),
+                           cwd=ROOT, stdout=subprocess.PIPE, env=env, check=False)
+        if r.returncode != 0:
+            return r.returncode
+        return (r.stdout, t0)
+
+    results = proof_roots.run_groups(one, keyed, size=lambda j: 0 if j[5] is not None else len(j[0]))
     hits = 0
     with open(json_path + ".tmp", "wb") as f:
-        for mods, st in jobs:
-            argv = [*proof_roots.lean_args(), *(["--selftest"] if st else []), *mods]
-            key = None
-            if ctx is not None:
-                try:
-                    key, n = ctx.key(argv, mods)
-                except NoCache as e:
-                    print(f"model-param: not using the cache for a run of {len(mods)} modules: {e}",
-                          file=sys.stderr)
-            body = cache_get(cache_dir, key) if key else None
+        for (mods, st, argv, key, n, body), res in zip(keyed, results):
             if body is not None:
                 hits += 1
                 f.write(body)
                 continue
-            t0 = time.time()
-            r = subprocess.run(proof_roots.lake("env", "lean", "--run", "etc/ModelParamCheck.lean", *argv),
-                               cwd=ROOT, stdout=subprocess.PIPE, env=env, check=False)
-            if r.returncode != 0:
-                sys.exit(f"model-param: FAILED: etc/ModelParamCheck.lean exited {r.returncode} on "
+            if isinstance(res, int):
+                sys.exit(f"model-param: FAILED: etc/ModelParamCheck.lean exited {res} on "
                          f"{len(mods)} modules")
-            f.write(r.stdout)
+            out, t0 = res
+            f.write(out)
             if key:
                 # the closure must still be what was keyed: nothing rebuilt during the run
                 try:
@@ -348,7 +365,7 @@ def run(json_path, cache_dir=None):
                 except NoCache:
                     same = False
                 if same:
-                    cache_put(cache_dir, key, r.stdout, {
+                    cache_put(cache_dir, key, out, {
                         "modules": len(mods), "closure": n, "selftest": st,
                         "head": proof_roots.git_head(), "root": ROOT,
                         "seconds": round(time.time() - t0), "date": time.strftime("%F %T")})
