@@ -20,6 +20,9 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ClientLaws
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 
 @[expose] public section
 
@@ -74,6 +77,11 @@ def authCreated (r : GMap GoString BktData) : GMap GoString BktData :=
   ((r.insert mvcc.authBI.name ((r.lookup mvcc.authBI.name).getD ∅)).insert
     mvcc.authUsersBI.name ((r.lookup mvcc.authUsersBI.name).getD ∅)).insert
     mvcc.authRolesBI.name ((r.lookup mvcc.authRolesBI.name).getD ∅)
+
+/-- **The auth buckets of the tracked buckets `r`** (each `∅` if absent). -/
+def authDataR (r : GMap GoString BktData) : AuthData :=
+  ⟨(r.lookup mvcc.authBI.name).getD ∅, (r.lookup mvcc.authUsersBI.name).getD ∅,
+    (r.lookup mvcc.authRolesBI.name).getD ∅⟩
 
 section buckets
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -256,6 +264,131 @@ theorem wp_create_tracked (hCB : backend.batchTxBuffered.UnsafeCreateBucket.spec
     subst hn; rw [rbData_lookup, hRB, GMap.lookup_insert]; exact hS1)).1 $$ Hrb
 
 end batch
+
+section read
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
+
+/-- **A point read of the held shared read transaction** of the bucket `bi` whose readers' view is
+`m`: `m`'s entry, under the held read (its slices bbolt's, readable while it is held:
+`rtHeldF_read'`). -/
+theorem read_authPoint (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView) (bv : GoString)
+    (bi : BucketInfo) (m : BktData) (hhas : P.has bi) (hag : ∀ k, vOf P rv bi.name k = m.lookup k) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗
+      (□ ∀ b0 : GoInterface, globalAddr bv ↦□ b0 -∗ isBucket b0 bi) ⊢
+      authPointSpec ⟨go.GoType.PointerType readTx.ty, #rt⟩ bv (rtHeld γ P b rtx rv) m := by
+  iintro ⟨#Hpkgb, #HB, #Hrt, #Hbk⟩
+  iunfold authPointSpec
+  iintro %b0 %key %kb %dq %Φ !> ⟨#Hg, Hl, Hk⟩ HΦ
+  ihave #Hb0 := Hbk $$ %b0 Hg
+  ihave Hnil : (slice.nil ↦*{DFrac.discard} ([] : GoString)) $$ []
+  · iapply ownSlice_nil
+  icases rtHeld_wf γ P b rtx rv $$ Hl with ⟨Hl, %Hwf⟩
+  ihave Hl : rtHeldF γ P b rtx rv sync.rfrac.half $$ [Hl]
+  · rw [← rtHeld_eq]; iexact Hl
+  iapply wp_fupd
+  wp_apply (hUR γ P W Pk b rt rtx rv sync.rfrac.half b0 bi key slice.nil kb [] dq DFrac.discard (W64 0)
+      (by simp) (Or.inl (by decide)) hhas) $$ [$Hpkgb $HB $Hrt $Hl $Hb0 $Hk $Hnil]
+    as %ks %vs ⟨Hl, Hk, -, Hout⟩
+  irevert Hout
+  rw [rtRange_single P rv bi kb (W64 0) hhas Hwf, hag]
+  iintro Hout
+  cases hl : m.lookup kb with
+  | none =>
+    imod kvsOutRd_nil ⊤ rtx ks vs $$ Hout with ⟨-, #Hvs⟩
+    imodintro
+    iapply HΦ
+    unfold pointValsA
+    iframe Hk Hvs
+    rw [rtHeld_eq]; iexact Hl
+  | some v =>
+    imod kvsOutRd_single ⊤ rtx ks vs kb v $$ Hout with ⟨%ksl, %vsl, -, -, #Hvs, #Hrv⟩
+    imodintro
+    iapply HΦ
+    unfold pointValsA
+    iframe Hk
+    isplitl [Hl]
+    · rw [rtHeld_eq]; iexact Hl
+    iexists vsl
+    iframe Hvs
+    iintro !> Hl
+    rw [rtHeld_eq]
+    iapply rtHeldF_read' γ P b rtx rv sync.rfrac.half vsl v $$ [$Hl $Hrv]
+
+/-- **The held shared read transaction reads the auth buckets of `r`** (`authReader`, the token
+the held read), its readers' view on the three buckets `r`'s. -/
+theorem read_authReader (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView)
+    (r : GMap GoString BktData)
+    (hhas : P.has mvcc.authBI ∧ P.has mvcc.authUsersBI ∧ P.has mvcc.authRolesBI)
+    (hag : ∀ n, (n = mvcc.authBI.name ∨ n = mvcc.authUsersBI.name ∨ n = mvcc.authRolesBI.name) →
+      ∀ k, vOf P rv n k = ((r.lookup n).getD ∅).lookup k) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ⊢
+      authReader ⟨go.GoType.PointerType readTx.ty, #rt⟩ (rtHeld γ P b rtx rv) (authDataR r) := by
+  iintro ⟨#Hspkg, #Hpkgb, #HB, #Hrt⟩
+  iunfold authReader
+  isplitl []
+  · iintro !>
+    rw [show (authDataR r).auth = (r.lookup mvcc.authBI.name).getD ∅ from rfl]
+    iapply (read_authPoint hUR γ P W Pk b rt rtx rv go_etcd_io.etcd.server.v3.storage.schema.Auth
+      mvcc.authBI _ hhas.1 (hag _ (Or.inl rfl)))
+    iframe Hpkgb HB Hrt
+    iintro !> %b0 #Hg
+    iapply auth_isBucket hID hName hSafe b0 $$ [$Hspkg $Hg]
+  isplitl []
+  · iintro !>
+    rw [show (authDataR r).users = (r.lookup mvcc.authUsersBI.name).getD ∅ from rfl]
+    iapply (read_authPoint hUR γ P W Pk b rt rtx rv go_etcd_io.etcd.server.v3.storage.schema.AuthUsers
+      mvcc.authUsersBI _ hhas.2.1 (hag _ (Or.inr (Or.inl rfl))))
+    iframe Hpkgb HB Hrt
+    iintro !> %b0 #Hg
+    iapply authUsers_isBucket hID hName hSafe b0 $$ [$Hspkg $Hg]
+  · iintro !>
+    rw [show (authDataR r).roles = (r.lookup mvcc.authRolesBI.name).getD ∅ from rfl]
+    iapply (read_authPoint hUR γ P W Pk b rt rtx rv go_etcd_io.etcd.server.v3.storage.schema.AuthRoles
+      mvcc.authRolesBI _ hhas.2.2 (hag _ (Or.inr (Or.inr rfl))))
+    iframe Hpkgb HB Hrt
+    iintro !> %b0 #Hg
+    iapply authRoles_isBucket hID hName hSafe b0 $$ [$Hspkg $Hg]
+
+/-- **The held shared read transaction with no user**: its readers' view of the users' bucket empty,
+its `UnsafeForEach` over it calls nothing (`readTx.UnsafeForEach.spec`). -/
+theorem read_forEachUsersEmpty (hFE : backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b rt rtx : Loc) (rv : RView)
+    (hhas : P.has mvcc.authUsersBI) (hnone : ∀ k, vOf P rv mvcc.authUsersBI.name k = none) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ⊢
+      forEachUsersEmpty ⟨go.GoType.PointerType readTx.ty, #rt⟩ (rtHeld γ P b rtx rv) := by
+  iintro ⟨#Hspkg, #Hpkgb, #HB, #Hrt⟩
+  iunfold forEachUsersEmpty
+  iintro !> %bk %vis %Φ !> ⟨Hl, #Hg⟩ HΦ
+  ihave #Hbk := authUsers_isBucket hID hName hSafe bk $$ [$Hspkg $Hg]
+  ihave Hl : rtHeldF γ P b rtx rv sync.rfrac.half $$ [Hl]
+  · rw [← rtHeld_eq]; iexact Hl
+  iapply (hFE γ P W Pk b rt rtx rv sync.rfrac.half bk mvcc.authUsersBI vis hhas hnone)
+    $$ [$Hpkgb $HB $Hrt $Hl $Hbk]
+  iintro !> %err ⟨%Herr, Hl⟩
+  iapply HΦ
+  isplitr
+  · ipureintro; exact Herr
+  rw [rtHeld_eq]; iexact Hl
+
+end read
 
 end schema
 end EtcdGrove
