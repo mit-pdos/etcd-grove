@@ -16,6 +16,9 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Un
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
 
 @[expose] public section
 
@@ -1255,6 +1258,127 @@ theorem lk_del (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG 
   iunfold bkSw
   iframe Hsw0
   ipureintro; exact hstep bs x k Hok hpend
+
+/-- **`Lock()`** (`LockInsideApply` under the critical-section contract at the hook `f` with the hooks' resource
+`Pk`, the write token and the hook's share `Hk`): the write token deposited in the invariant (the batch branch), the
+hook run, the batch lock taken in the claimed mode with the claimed part of the auth buckets (idle, at the writer's
+contents: the agreement law), half the batch token and the session token, the rest of the open share, `W ∗ Pk`, the
+contract's `Post`, no receipt; the client gets the lock's share of the history, at the buckets' state. -/
+theorem lk_lock (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF) (hG := hG))
+    (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (W Pk Hk : IProp GF) (t : Loc) (dq : DFrac) (f : GoFunc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ∗ realInv γ d s0 q0 ∗
+      □ (Hk -∗ plHookAt d.γB dq f ∗ (plHookAt d.γB dq f -∗ Hk)) ⊢
+      ∀ (Pre Q Post : IProp GF),
+        {{ srvApi.csContractA Pk f Pre Q Post ∗ auth.authWTok γ.γc ∗ Hk }}
+          (App (Val #(methods (btIface t).ty go!"LockInsideApply" (btIface t).v)) (Val #()))
+        {{ RET #(); ∃ st : auth.AuthState, lkT γ d q0 W Pk Hk st Post ∗
+            bkSw γ (1 : Qp).half auth.AuthSess.init ∗ auth.authLockI (.on γ.γa) st }} := by
+  iintro ⟨#Hpkg, #Hb, #Ht, #Hinv, #Hhk⟩ %Pre %Q %Post !> %Φ ⟨Hcs, HT, HHk⟩ HΦ
+  iunfold srvApi.csContractA at Hcs
+  icases Hcs with ⟨Hpre, Hhr, Hfin⟩
+  imod real_borrow γ d s0 q0 $$ [$Hinv $HT] with ⟨%cs, %hs, %rc, %w, %st, Hlq, Hro, Hbt, Hsw, Hq, %Hbr⟩
+  icases Hhk $$ HHk with ⟨Hpl, Hplb⟩
+  -- the continuation, after the hook: the claim, the token
+  have hcont : ∀ bs : BSess, freeOk d.P bs →
+      (batchLocked (GF := GF) d.γB d.P d.be bs ∗ W ∗ Pk ∗ Post ∗ bOpen d.γB q0 ∗ Hk ∗
+        auth.authLockQ γ.γa hs ∗ rbOwnInR d.γB (fun n => n ∈ authBktL) rc ∗ bkTok γ (1 : Qp).half (csT cs) ∗
+        bkSw γ 1 w ⊢ |={⊤}=> ∃ st : auth.AuthState, lkT γ d q0 W Pk Hk st Post ∗
+          bkSw γ (1 : Qp).half auth.AuthSess.init ∗ auth.authLockI (.on γ.γa) st) := by
+    intro bs Hfree
+    iintro ⟨Hl, HW, HPk, HPost, Hq, HHk, Hlq, Hro, Hbt, Hsw⟩
+    icases batchLocked_cwOk d.γB d.P d.be bs false $$ Hl with ⟨Hl, %Hcw⟩
+    ihave Hl := batchLocked_claimed d.γB d.P d.be bs $$ Hl
+    ihave Hrp := rbOwnInR_part d.γB _ rc $$ Hro
+    imod batchLocked_rbPartR_agree d.γB d.P d.be bs true _ rc go!"auth" (by simp [authBktL]) ⊤
+      CoPset.subseteq_top $$ [$Hl $Hrp] with ⟨Hl, Hrp, %ha⟩
+    imod batchLocked_rbPartR_agree d.γB d.P d.be bs true _ rc go!"authUsers" (by simp [authBktL]) ⊤
+      CoPset.subseteq_top $$ [$Hl $Hrp] with ⟨Hl, Hrp, %hu⟩
+    imod batchLocked_rbPartR_agree d.γB d.P d.be bs true _ rc go!"authRoles" (by simp [authBktL]) ⊤
+      CoPset.subseteq_top $$ [$Hl $Hrp] with ⟨Hl, Hrp, %hr⟩
+    have hlk : ∀ n, n ∈ authBktL → rc.lookup n = (rbData d.P bs.S).lookup n := by
+      intro n hn
+      simp only [authBktL, List.mem_cons, List.not_mem_nil, or_false] at hn
+      rcases hn with rfl | rfl | rfl
+      · exact ha
+      · exact hu
+      · exact hr
+    ihave Hrp := rbPartR_congr d.γB _ rc (rbData d.P bs.S) hlk $$ Hrp
+    have hcs : ∀ n, n ∈ authBktL → bktOf bs.S n = cs n := by
+      intro n hn
+      rw [← bktOf_rbData d.P bs.S n (rb_auth d n hn), ← Hbr.2.2 n hn]
+      unfold bktOf; rw [hlk n hn]
+    imod receipt_zero (GF := GF) with Hr0
+    iunfold bkSw at Hsw
+    imod ghostVar_update (encW auth.AuthSess.init.users, encW auth.AuthSess.init.roles) $$ Hsw with Hsw
+    icases (ghostVar_split_half γ.γw 1 _).1 $$ Hsw with ⟨Hs1, Hs2⟩
+    imodintro
+    iexists st
+    isplitl [Hl Hrp Hbt Hs1 Hq HW HPk HHk HPost Hr0]
+    · iunfold lkT
+      iexists bs
+      iframe Hl
+      iunfold lkR
+      iexists csT cs, auth.AuthSess.init, 0
+      iframe Hrp Hbt Hq HW HPk HHk HPost Hr0
+      iunfold bkSw
+      iframe Hs1
+      ipureintro
+      have hidle : ∀ n, n ∈ authBktL → bs.tk n = .idle := fun n hn => Hfree.2.2.2.2.2 n (rb_auth d n hn)
+      have hca := hcs go!"auth" (by simp [authBktL])
+      have hcu := hcs go!"authUsers" (by simp [authBktL])
+      have hcr := hcs go!"authRoles" (by simp [authBktL])
+      exact {
+        hw := Hfree.2.2.2.2.1
+        vs := ⟨vData_free d.P bs Hfree.1 Hfree.2.2.1 Hfree.2.2.2.1, Hfree.2.2.2.1⟩
+        cw := fun n hn => by rw [Hcw rfl Hfree.2.2.2.2.1 n] at hn; cases hn
+        pend := by have := Hfree.2.1; push_cast; omega
+        ka := Or.inl (hidle _ (by simp [authBktL]))
+        ku := by rw [hidle _ (by simp [authBktL])]; rfl
+        kr := by rw [hidle _ (by simp [authBktL])]; rfl
+        ia := fun _ => hca
+        iu := fun _ => hcu
+        ir := fun _ => hcr
+        view := by
+          rw [authD_eq, hca, hcu, hcr]
+          exact Hbr.2.1 }
+    iunfold bkSw
+    iframe Hs2
+    simp only [auth.authLockI, auth.authLockShare, auth.histLast]
+    iexists hs
+    iframe Hlq
+    ipureintro; exact Hbr.1
+  by_cases hf : f = func.nil
+  · subst hf
+    simp only [mvcc.api.hookRun, ↓reduceIte]
+    iapply wp_fupd
+    wp_apply (hLI d.γB d.P W Pk d.be t q0 dq func.nil Pre iprop(|={⊤}=> Q))
+      $$ [$Hb $Ht $Hq $Hpl $Hpre Hhr] as ⟨%bs, Hl, %Hfree, HW, HQ, Hq, Hpl⟩
+    · ileft
+      isplitr
+      · ipureintro; rfl
+      iexact Hhr
+    imod HQ with HQ
+    imod Hfin $$ HQ with ⟨HPk, HPost⟩
+    ihave HHk := Hplb $$ Hpl
+    imod hcont bs Hfree $$ [$Hl $HW $HPk $HPost $Hq $HHk $Hlq $Hro $Hbt $Hsw] with H
+    imodintro
+    iapply HΦ
+    iexact H
+  · simp only [mvcc.api.hookRun, hf, ↓reduceIte]
+    iapply wp_fupd
+    wp_apply (hLI d.γB d.P W Pk d.be t q0 dq f Pre Q)
+      $$ [$Hb $Ht $Hq $Hpl $Hpre Hhr] as ⟨%bs, Hl, %Hfree, HW, HQ, Hq, Hpl⟩
+    · iright
+      isplitr
+      · ipureintro; exact hf
+      iexact Hhr
+    imod Hfin $$ HQ with ⟨HPk, HPost⟩
+    ihave HHk := Hplb $$ Hpl
+    imod hcont bs Hfree $$ [$Hl $HW $HPk $HPost $Hq $HHk $Hlq $Hro $Hbt $Hsw] with H
+    imodintro
+    iapply HΦ
+    iexact H
 
 end wr
 
