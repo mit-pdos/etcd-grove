@@ -10,8 +10,10 @@
   dir key = area root key via `osPathS_callKey` (Open, openAtIndex, Repair, openLast, VSE, cleanupWAL, renameWAL, Create);
   `storage.Close.spec` keyed; WalTester `tPerm` (forms list: questions.md 2026-11-18 "option (C) and the rest").
   `lake build` of the WAL Link + WalTester wal/durable Links green (b5.log) before the merge.
-- **Running:** full default build after the merge (`/shared/tmp/wallink/full3.log`).
-- **Next, in order:** fix what the full build shows (server/examples importing the changed WAL/os specs); then the
+- **Verified:** full default build green after the merge (21789 jobs, `/shared/tmp/wallink/full4.log`, with
+  RenameAbsentSrc fixed); `etc/tcb-report.py --check` matches the baseline (891 axioms, 4 sorries); the six
+  `etc/api` interfaces unchanged (`gen-interface.py --check`).
+- **Next, in order:** the
   per-area ghost instances (one `WalGS` per area; `walUnlockedTok` per area); then L3 (scope §3.5: server-statement
   stop with old → new incl. Save's `hardStateAt` → `hsOptC` and F2; then the examples' Go to absolute dirs +
   `--wal-dir`; STOP with the exact old → new closed statements for the user).
