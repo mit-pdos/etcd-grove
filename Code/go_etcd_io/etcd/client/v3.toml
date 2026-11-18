@@ -274,6 +274,10 @@ translate = [
   "lessor.recvKeepAlive", "lessor.deadlineLoop", "lessor.sendKeepAliveLoop", "keepAlive.close",
   "RetryLeaseClient", "retryLeaseClient", "retryLeaseClient.LeaseGrant",
   "retryLeaseClient.LeaseRevoke", "retryLeaseClient.LeaseKeepAlive", "canceledByCaller",
+  # (axiom-triage, 2026-11-18) the client's Cluster and Maintenance APIs' constructors (cluster.go's
+  # `NewCluster`, maintenance.go's `NewMaintenance`, retry.go's `RetryClusterClient`,
+  # `RetryMaintenanceClient`): allocations, which were trust-boundary axioms
+  "NewCluster", "NewMaintenance", "RetryClusterClient", "RetryMaintenanceClient",
   # the auth plan's E2h (2026-10-26): the client's Auth API for the admin calls
   # `examples/etcd/auth`'s `SetUp` makes (auth.go's `NewAuth` and `authClient`'s `UserAdd`,
   # `UserGrantRole`, `RoleAdd`, `RoleGrantPermission`, `AuthEnable`, the permission types;

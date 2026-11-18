@@ -116,6 +116,9 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   # the client lease (item 1, branch `lease-client`): the generated Lease stub (client side) and
   # handlers (server side), the method names, the keep-alive messages and the getters the
   # client reads
+  # (axiom-triage, 2026-11-18) the Cluster and Maintenance stubs' constructors (the client's
+  # `NewCluster`/`NewMaintenance` build them; they were trust-boundary axioms)
+  "NewClusterClient", "NewMaintenanceClient",
   "NewLeaseClient", "LeaseClient", "leaseClient", "leaseClient.LeaseGrant",
   "leaseClient.LeaseRevoke", "leaseClient.LeaseKeepAlive", "Lease_LeaseGrant_FullMethodName",
   "Lease_LeaseRevoke_FullMethodName", "Lease_LeaseKeepAlive_FullMethodName",

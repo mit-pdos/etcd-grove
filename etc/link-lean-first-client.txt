@@ -251,8 +251,8 @@ NewLeaseFromLeaseClient: WithRequireLeader Client__GetLogger
 # `dialWithBalancer` from its trusted body, `autoSync`). Trust boundary: grpc's dial
 # (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
 # names-only `internal/resolver` (`New`, `SetEndpoints`, `Close`) and `internal/endpoint`
-# (`RequiresCredentials`), `streamClientInterceptor`, `roundRobinQuorumBackoff` (floats), the API
-# constructors `NewCluster`/`NewMaintenance` (`NewLease` proved since item 1, `NewAuth` since E2h), `strings.SplitN`,
+# (`RequiresCredentials`), `streamClientInterceptor`, `roundRobinQuorumBackoff` (floats) (the API constructors
+# `NewCluster`/`NewMaintenance` proved since 2026-11-18, `NewLease` since item 1, `NewAuth` since E2h), `strings.SplitN`,
 # `context.WithCancel(TODO())`, `fmt.Sprintf` with a `*Client`.
 grpc_NewClient:
 grpc_WithUnaryInterceptor:
@@ -277,10 +277,15 @@ context_TODO:
 context_WithCancelTodo:
 Client__streamClientInterceptor:
 Client__roundRobinQuorumBackoff:
-v3_NewCluster:
+# (axiom-triage, 2026-11-18) the Cluster and Maintenance constructors, translated and proved
+NewClusterClient:
+RetryClusterClient: NewClusterClient
+v3_NewCluster: RetryClusterClient
 v3_NewLease: RetryLeaseClient NewLeaseFromLeaseClient
 v3_NewAuth: RetryAuthClient
-v3_NewMaintenance:
+NewMaintenanceClient:
+RetryMaintenanceClient: NewMaintenanceClient
+v3_NewMaintenance: Client__GetLogger RetryMaintenanceClient
 Client__SetEndpoints: resolver_EtcdManualResolver__SetEndpoints
 Client__credentialsForEndpoint: endpoint_RequiresCredentials
 authority: strings_SplitN
