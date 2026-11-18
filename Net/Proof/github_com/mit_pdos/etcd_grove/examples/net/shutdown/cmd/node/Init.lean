@@ -7,9 +7,9 @@ variable).
 -/
 module
 
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.cmd.node.Base
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Init
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.cmd.node.Base
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.Init
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

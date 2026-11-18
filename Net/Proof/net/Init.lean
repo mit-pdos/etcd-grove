@@ -10,15 +10,15 @@ trusted initializers of its other variables (models in `TrustedCode/` that do no
 -/
 module
 
-public import NetTcp.Proof.net.Base
+public import Net.Proof.net.Base
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.time.Link
-public import NetTcp.Proof.internal.poll.Init
-public import NetTcp.Proof.os.Init
-public import NetTcp.Proof.syscall.Init
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.internal.poll.Init
+public import Net.Proof.os.Init
+public import Net.Proof.syscall.Init
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

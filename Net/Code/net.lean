@@ -9,7 +9,7 @@ public import Perennial.Code.time
 public import Perennial.Code.io
 public import Code.internal.poll
 public import Perennial.Golang.Defn
-public import NetTcp.TrustedCode.net
+public import Net.TrustedCode.net
 
 @[expose] public section
 

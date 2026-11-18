@@ -17,7 +17,7 @@ public import Perennial.Proof.time.Link
 public import Perennial.Proof.internal.oserror.Link
 public import Perennial.Proof.errors.NewVar
 public import Proof.errors.ErrorStringOk
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

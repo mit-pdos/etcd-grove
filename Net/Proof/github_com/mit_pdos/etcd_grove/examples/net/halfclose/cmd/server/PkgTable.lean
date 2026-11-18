@@ -8,7 +8,7 @@ do not edit.
 -/
 module
 
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server.Init
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.halfclose.cmd.server.Init
 
 @[expose] public section
 

@@ -14,7 +14,7 @@ public import Proof.syscall.PkgInit
 public import Perennial.Proof.sync.Link
 public import Proof.syscall.Models
 public import Perennial.Proof.sync.Link
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

@@ -11,7 +11,7 @@ then it also keeps every package initialized before initialized (`ownInitLb g σ
 axiom: Perennial's theorems returned an arbitrary map.) The `ExternalInit` premise is not needed
 by the proof; it stays so that the statement is unchanged.
 -/
--- The copy for the part `NetTcp/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):
+-- The copy for the part `Net/` of `Proof/runtime/PkgInitExt.lean` (`etc/gen-init.py`):
 -- the same, without raft, protobuf and the B-tree (which the part does not import).
 module
 

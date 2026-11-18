@@ -7,9 +7,9 @@ variable).
 -/
 module
 
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.client.Base
-public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.Init
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.client.Base
+public import Net.Proof.github_com.mit_pdos.etcd_grove.examples.net.preface.Init
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

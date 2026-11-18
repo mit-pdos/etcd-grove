@@ -2,7 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import NetTcp.ManualProof.net
+public import Net.ManualProof.net
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
 public import GeneratedProof.internal.poll
@@ -11,7 +11,7 @@ public import GeneratedProof.os
 public import GeneratedProof.syscall
 public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
-public import NetTcp.Code.net
+public import Net.Code.net
 
 @[expose] public section
 

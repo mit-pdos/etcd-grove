@@ -12,11 +12,11 @@ module
 public import Proof.internal.poll.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.sync.Link
-public import NetTcp.Proof.internal.syscall.unix.Init
-public import NetTcp.Proof.syscall.Init
+public import Net.Proof.internal.syscall.unix.Init
+public import Net.Proof.syscall.Init
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.errors.NewVar
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

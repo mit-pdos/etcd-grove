@@ -2,9 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
-public import NetTcp.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.preface
+public import Net.GeneratedProof.github_com.mit_pdos.etcd_grove.examples.net.preface
 public import Perennial.Golang.Theory
-public import NetTcp.Code.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk
+public import Net.Code.github_com.mit_pdos.etcd_grove.examples.net.preface.cmd.junk
 
 @[expose] public section
 

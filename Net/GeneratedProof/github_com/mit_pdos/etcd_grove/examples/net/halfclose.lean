@@ -3,9 +3,9 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.io
-public import NetTcp.GeneratedProof.net
+public import Net.GeneratedProof.net
 public import Perennial.Golang.Theory
-public import NetTcp.Code.github_com.mit_pdos.etcd_grove.examples.net.halfclose
+public import Net.Code.github_com.mit_pdos.etcd_grove.examples.net.halfclose
 
 @[expose] public section
 

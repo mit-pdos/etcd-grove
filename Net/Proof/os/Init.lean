@@ -20,13 +20,13 @@ public import Proof.os.PkgInit
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.io.Link
 public import Perennial.Proof.sync.Link
-public import NetTcp.Proof.internal.poll.Init
-public import NetTcp.Proof.io.fs.Init
-public import NetTcp.Proof.syscall.Init
+public import Net.Proof.internal.poll.Init
+public import Net.Proof.io.fs.Init
+public import Net.Proof.syscall.Init
 public import Proof.os.Models
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.errors.NewVar
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 

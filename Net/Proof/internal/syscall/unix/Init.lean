@@ -8,8 +8,8 @@ variable).
 module
 
 public import Proof.internal.syscall.unix.PkgInit
-public import NetTcp.Proof.syscall.Init
-public import NetTcp.Proof.runtime.PkgInitExt
+public import Net.Proof.syscall.Init
+public import Net.Proof.runtime.PkgInitExt
 
 @[expose] public section
 
