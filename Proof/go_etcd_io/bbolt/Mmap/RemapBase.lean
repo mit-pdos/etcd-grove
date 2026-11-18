@@ -25,6 +25,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 
 section wslots
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- The slots in `[2, k)` that are no store slot of `C`/`fl`, without repeats. -/
 def wSlots (k : Nat) (C : CommitSt) (fl : FLPg) : List Nat :=

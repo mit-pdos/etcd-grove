@@ -26,6 +26,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 theorem cm_write_pre' (fr : Bool) (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat)
     (hpre : cmPubPre D X w) (hok : wdbOK' fr w) (hms : w.ms = some (b, l))
@@ -52,7 +54,7 @@ theorem cm_pub_ok' (fr : Bool) (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat)
     (hm' : w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
       ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
         (wb' s).length = 4096)
-    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps) (hsz63 : m'.size < 2 ^ 62)
+    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps) (hsz63 : wdbSz m' w.ms)
     (hin : ∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size)
     (hch : ∀ id pg, X.t.bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
       wb' (id.toNat + j) = pageChunk pg j)
@@ -81,7 +83,7 @@ theorem wbUpd3_pend (fr : Bool) (w : WDb) (h : wdbOK' fr w) (SB T : List Nat) (P
 /-- **`wdbOK_written` over the flagged writer side.** -/
 theorem wdbOK_written' (fr : Bool) (w : WDb) (m : OsMeta) (SBT : List Nat) (wb' : Nat → List w8)
     (hok : wdbOK' fr w) (hep : flExtPend w) (hsub : ∀ s ∈ SBT, s ∈ w.W) (hsz1 : w.m.size ≤ m.size)
-    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : m.size < 2 ^ 62)
+    (hsz2 : m.size ≤ max w.m.size (mapLen w.ms)) (hsz63 : wdbSz m w.ms)
     (hmaps : m.maps = w.m.maps)
     (hlen : ∀ s ∈ SBT, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
     (hold : ∀ s ∈ w.W, s ∉ SBT → 4096 * (s + 1) ≤ w.m.size)
@@ -97,7 +99,7 @@ theorem wdbOK_written' (fr : Bool) (w : WDb) (m : OsMeta) (SBT : List Nat) (wb' 
 theorem cm_unpub_ok' (fr : Bool) (w : WDb) (m : OsMeta) (SB T : List Nat) (P : Nat → Bool)
     (wb' : Nat → List w8) (hok : wdbOK' fr w) (hep : flExtPend w) (hsub : ∀ s ∈ SB ++ T, s ∈ w.W)
     (hsz1 : w.m.size ≤ m.size) (hsz2 : m.size ≤ max w.m.size (mapLen w.ms))
-    (hsz63 : m.size < 2 ^ 62) (hmaps : m.maps = w.m.maps)
+    (hsz63 : wdbSz m w.ms) (hmaps : m.maps = w.m.maps)
     (hlen : ∀ s ∈ SB ++ T, 4096 * (s + 1) ≤ m.size → (wb' s).length = 4096)
     (hold : ∀ s ∈ w.W, s ∉ SB ++ T → 4096 * (s + 1) ≤ w.m.size)
     (hpart : ∀ s, 4096 * s < m.size → m.size < 4096 * (s + 1) →

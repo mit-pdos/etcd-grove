@@ -5,8 +5,9 @@ an earlier `Close_own` (`closedR` holds `bq`, which the caller's `boltState` exc
 the file system can fail (`¬ FsNoErr`) `close` runs as in `DB.Close`; otherwise with no error
 (`DB.close.spec_ownedNoErrM`), the `OsMeta` back without the mapping, the store slots' bytes taken
 (`store_close`), and with the metas and the writer side's `W` slots the file's bytes
-(`close_file_bytes`), an image of the committed state (`closeBytes_fileOK`); unless a mapping
-leaked (the junk clause's `nf`, `boltNoFile`).
+(`close_file_bytes`), an image of the committed state (`closeBytes_fileOK`), whole pages and at
+most `maxMapSize` (`wdbSz`, session S3g: `fileHoldsM`); a leaked mapping (the junk clause) recorded
+`¬ FsNoErr`, refuted here.
 -/
 module
 
@@ -262,7 +263,7 @@ theorem DB.Close.wp_proof
       iframe
     try wp_auto
     iapply HΦ
-    iright; ileft; ipureintro; exact hne
+    iright; ipureintro; exact hne
   -- no error: `close` gives the `OsMeta` back
   obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
   haveI := hs1
@@ -296,24 +297,10 @@ theorem DB.Close.wp_proof
   · -- a mapping leaked: excluded, the leak recorded a failure the premises refute (session S3f)
     ihave %hfs := junkRes_some_fs (bnsOf γ.gs) (some (jb, jl)) jb jl rfl $$ Hjk
     exact absurd ⟨Sio, hSio, hs1, hs2, hsp⟩ hfs
-  by_cases hal : w.m.size % 4096 = 0
-  rotate_left
-  · -- not whole pages (a commit's write failed part way past the end): the file given up
-    imod junkRes_shut ⊤ (bnsOf γ.gs) none $$ Hjk with #Hnf
-    wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
-      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
-    · iunfold rwR; iright; iunfold closedR
-      iframe Hcls Hclo
-      iexists w.C, w.fl, none
-      iframe
-    try wp_auto
-    iapply HΦ
-    iright
-    iright
-    isplitr
-    · ipureintro; rfl
-    unfold boltNoFile
-    iexact Hnf
+  -- whole pages and mappable (`wdbSz`, session S3g: under the premises a failed write ends at
+  -- `maxBytes`, page-aligned; the mapping lies below `maxAddr`)
+  have hszw : wdbSz w.m w.ms := Hwok.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hal : w.m.size % 4096 = 0 := hszw.2.2 ⟨Sio, hSio, hs1, hs2, hsp⟩
   -- the file given back; the caller's validity token kept by the closed database
   wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
     Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
@@ -332,7 +319,7 @@ theorem DB.Close.wp_proof
   simp only [Bool.false_eq_true, ↓reduceIte]
   icases metaOsBytes_slots p w.C hmo.1 hmo.2.1 $$ [Hmob Hob] with ⟨H0, H1⟩
   · iframe
-  have hsz : w.m.size < 2 ^ 62 ∧ w.m.size % 4096 = 0 := ⟨Hwok.2.2.2.2.2.2.2.2.2.2.2.2.1, hal⟩
+  have hsz : w.m.size < 2 ^ 62 ∧ w.m.size % 4096 = 0 := ⟨hszw.lt, hal⟩
   have hroot := treeOK_root' w.C htree
   have h2 : 2 ≤ w.m.size / 4096 := by
     have h3 := Hwok.2.2.1
@@ -356,13 +343,15 @@ theorem DB.Close.wp_proof
     (fun s hs => Hwok.2.2.2.2.2.2.2.2.2.2.1 s (Or.inr hs)) Hwok.2.2.2.2.2.1
   have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
   rw [hsz4] at hfok
-  unfold fileHolds fileHoldsDef
+  unfold fileHoldsM fileHoldsMDef
   iexists m, xs
   iframe Hm Hxs
   isplitr
   · ipureintro
     refine ⟨hm.1, by rw [hm.2]; exact hxs.2, by rw [hm.2]; exact hsz, ?_⟩
     rw [hm.2, hxs.1]; exact hfok
+  isplitr
+  · ipureintro; rw [hm.2]; exact hszw.1
   rw [hxs.1]
   iapply fileRcpt_intro _ w.C himg hmo $$ Hrcm
 

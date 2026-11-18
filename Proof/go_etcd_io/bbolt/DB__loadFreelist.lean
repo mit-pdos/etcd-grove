@@ -59,7 +59,7 @@ def lfOK (N : Namespace) (db : Loc) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMe
     (xs : List ByteG) : Prop :=
   fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧ flFileOK (xs.map Prod.fst) C ∧
     C.hwm * 4096 ≤ xs.length ∧ 8192 ≤ xs.length ∧ xs.length = m.size ∧ m.size ≤ L ∧
-    m.size < 2 ^ 62 ∧ m.maps = GMap.singleton b L ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
+    wdbSz m (some (b, L)) ∧ m.maps = GMap.singleton b L ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
     (↑N : CoPset) ## ↑osN ∧ db ≠ null
 
 /-- **What `loadFreelist` takes at `Open`**: `open_core`'s inputs, the mapping's client halves
@@ -271,7 +271,8 @@ theorem DB.loadFreelist.wp_proof_open
     isplitl [Hpre db]
     · iframe db; iunfold lfPre; iframe Hpkg Hpre
     iintro !> %Φ' ⟨db, Hpre⟩ HΦ'
-    obtain ⟨himg, hmeta, htree, hflf, hhwm, h8, hxm, hL, hsz, hmaps, htx1, htx2, hN, hdb⟩ := hok
+    obtain ⟨himg, hmeta, htree, hflf, hhwm, h8, hxm, hL, hszw, hmaps, htx1, htx2, hN, hdb⟩ := hok
+    have hsz := hszw.lt
     iunfold lfPre at Hpre
     icases Hpre with ⟨-, #Hos, #Hfix, Hbqv, Hml, Hmm, Hsl, Hop, Hfli, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
       Hosm, Hfo, Hfd, Hps, Hxs, Hb, %vf, Hc⟩
@@ -389,7 +390,7 @@ theorem DB.loadFreelist.wp_proof_open
       have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) := by
         unfold lfW openWb
         refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
-          (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
+          (by rw [hysl]; exact hxm) hL hszw htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
         · intro x hx; exact freeIdsOf_bounds C (by omega) x ((mem_sortPgids_lf _ x).1 hx)
         · intro g' hg'; rw [hfp] at hg'; cases hg'
       ihave Hw : wdbCore B db p (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) $$ [Hw]
@@ -510,7 +511,7 @@ theorem DB.loadFreelist.wp_proof_open
     have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (flIds pg)) fli) := by
       unfold lfW openWb
       refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
-        (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
+        (by rw [hysl]; exact hxm) hL hszw htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
       · intro x hx; rw [hpg] at hx; exact flIds_facts _ C g hfp hflf x hx
       · intro g' hg'; rw [hfp] at hg'; cases hg'
         rw [extentBytes_filePage, ← hpg]

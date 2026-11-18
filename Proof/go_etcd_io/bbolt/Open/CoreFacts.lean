@@ -24,6 +24,8 @@ open Spill Read
 
 section facts
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- A page's header is in its first 16 bytes. -/
 theorem pageOverflow_take (pg : List w8) (n : Nat) (h : 16 ≤ n) :
@@ -164,7 +166,7 @@ file `xs` (`m`'s bytes), registered in `m`. -/
 theorem wdbOK_open (xs : List w8) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (f : Loc)
     (fd : w64) (fl : FLPg) (fli : GoInterface)
     (htree : treeOK C) (hhwm : C.hwm * 4096 ≤ xs.length) (hxs : xs.length = m.size)
-    (hL : m.size ≤ L) (hsz : m.size < 2 ^ 62) (htx : C.txid < 2 ^ 62)
+    (hL : m.size ≤ L) (hsz : wdbSz m (some (b, L))) (htx : C.txid < 2 ^ 62)
     (hmaps : m.maps = GMap.singleton b L)
     (hpend : fl.pending = ∅)
     (hfree : ∀ x ∈ fl.free, x.toNat < C.hwm ∧ x.toNat ∉ treeSlots C)

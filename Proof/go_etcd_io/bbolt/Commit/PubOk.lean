@@ -28,6 +28,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 theorem po_W64_toNat (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s := by
   simp only [W64, BitVec.toNat_ofInt]; omega
@@ -217,7 +219,7 @@ theorem cm_pub_ok (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (Pg : Pages)
     (hm' : w.m.size ≤ m'.size ∧ m'.size ≤ max w.m.size l ∧ m'.maps = w.m.maps ∧
       ∀ s ∈ bufSlots X.t.bufs ++ cmTail w (bufSlots X.t.bufs) l, 4096 * (s + 1) ≤ m'.size →
         (wb' s).length = 4096)
-    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps) (hsz63 : m'.size < 2 ^ 62)
+    (hm'' : m''.size = m'.size ∧ m''.maps = m'.maps) (hsz63 : wdbSz m' w.ms)
     (hin : ∀ s ∈ bufSlots X.t.bufs, 4096 * (s + 1) ≤ m'.size)
     (hch : ∀ id pg, X.t.bufs !! id = some pg → ∀ j < 1 + pageOverflow pg,
       wb' (id.toNat + j) = pageChunk pg j)
@@ -237,7 +239,7 @@ theorem cm_pub_ok (D : Data) (X : WX) (w : WDb) (b : Loc) (l : Nat) (Pg : Pages)
     · exact hsub s h
     · exact ((mem_cmTail _ _ _ s).1 h).2.1
   have hall := cm_unpub_ok w m'' (bufSlots X.t.bufs) (cmTail w (bufSlots X.t.bufs) l)
-    (pubP w X Pg) wb' hok hsubT (by omega) (by rw [hml]; omega) (by omega)
+    (pubP w X Pg) wb' hok hsubT (by omega) (by rw [hml]; omega) (hsz63.congr hm''.1 rfl)
     (by rw [hm''.2, hm'.2.2.1]) (fun s hs hz => hm'.2.2.2 s hs (by omega))
     (cm_rest w _ l hinW) hflpg (fun s h1 h2 => ?_)
   rotate_left

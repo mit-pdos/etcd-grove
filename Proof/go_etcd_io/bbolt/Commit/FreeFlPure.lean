@@ -28,6 +28,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **The writer side after the free of the synced freelist page `f`** (`n` slots): the run
 pending for the writer, its slots out of `W`. -/

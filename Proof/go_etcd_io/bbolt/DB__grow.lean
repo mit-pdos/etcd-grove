@@ -154,7 +154,7 @@ theorem DB.grow.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       w.m.size ≤ (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ∧
       (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat % 4096 = 0 ∧
       (mapLen w.ms ≤ 0x1000000 → (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ≤ mapLen w.ms) ∧
-      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat < 2 ^ 62 := by
+      (growSizeOf (W64 (mapLen w.ms : Int)) sz).toNat ≤ 0xFFFFFFFFFFFF := by
     have hLz : sint.Z (W64 (mapLen w.ms : Int)) = (mapLen w.ms : Int) := by word
     unfold growSizeOf
     rw [hLz]

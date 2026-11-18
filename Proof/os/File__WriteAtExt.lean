@@ -12,6 +12,7 @@ module
 public import Proof.os.File__WriteAt
 public import Proof.os.WriteChunks
 public import Proof.os.WriteLongStep
+public import GooseLang.Ext.Fs.NoErrSpecsOpen
 
 @[expose] public section
 
@@ -196,13 +197,13 @@ set_option maxHeartbeats 4000000 in
 an errno `e ≠ 0` with `Pe e`, over a semantics whose `pwrite` ends at an offset below `B` return an
 errno with `Pe` (`hpost`), for a write ending by `B`. `specExt` (any errno, `B = 2 ^ 63`) and
 `specExtNoErr` (errno 0 below `maxBytes`: no failure) are its instances. -/
-theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : w64 → Prop)
+theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : Nat → w64 → Prop)
     (hpost : ∀ (t : Nat) (p : Ino) (o : Nat) (dt : List w8) (m : OsMeta) (xs : List ByteG) (n : Nat)
       (Φ : val → IProp GF), o < B →
       ⊢ pwTokG (GF := GF) t p o dt m xs n -∗
         (pwTokG (GF := GF) t p o dt m xs n -∗
           WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t)))
-            {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → Pe e⌝ -∗ Φ r }}) -∗
+            {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → Pe o e⌝ -∗ Φ r }}) -∗
         WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) {{ Φ }})
     (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
     (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
@@ -223,7 +224,8 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : w64 → Prop)
           ys.map Prod.fst = pwValsG m.size off.toNat data j xs ∧
           os.WaCut off.toNat data.length j ∧
           ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
-           (n = W64 0 ∧ err ≠ interface.nil ∧ ∃ e : w64, Pe e ∧ e ≠ W64 0))⌝ ∗
+           (n = W64 0 ∧ err ≠ interface.nil ∧
+             ∃ (o : Nat) (e : w64), o ≤ off.toNat + j ∧ Pe o e ∧ e ≠ W64 0))⌝ ∗
         osMeta d.ino (DFrac.own 1) (os.pwPostE m off.toNat a j E) ∗
         osBytes d.ino (min off.toNat m.size) (DFrac.own 1) ys ∗
         mcellsAny m.maps (min off.toNat m.size) (off.toNat + data.length) ∗
@@ -235,7 +237,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : w64 → Prop)
           ⌜k ≤ dt.length ∧ ((k = dt.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
             zs.length = pwSize m.size o k - m.size ∧
             ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
-          ⌜PwCut o dt.length k⌝ -∗ ⌜Pe e⌝ -∗
+          ⌜PwCut o dt.length k⌝ -∗ ⌜Pe o e⌝ -∗
           osMeta (GF := GF) p (DFrac.own 1) (pwPost m o dt.length k) -∗
           osBytes (GF := GF) p (min o m.size) (DFrac.own 1) (pwBytesG m.size o dt k n xs zs) -∗
           mcells (GF := GF) m.maps (min o m.size) (o + dt.length) (pwCellG m.size o dt k xs) -∗
@@ -532,7 +534,7 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : w64 → Prop)
         · isplitl [] <;> iassumption
         · ipureintro
           exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj',
-            .inr ⟨rfl, (by intro h; cases h), e, hPe, he0'⟩⟩
+            .inr ⟨rfl, (by intro h; cases h), oc.toNat, e, by omega, hPe, he0'⟩⟩
       · rw [decide_eq_false hkl]
         wp_auto
         simp only [decide_eq_false he0', Bool.not_false]
@@ -546,17 +548,33 @@ theorem os.File.WriteAt.wp_proofExtQ (B : Nat) (Pe : w64 → Prop)
         · isplitl [] <;> iassumption
         · ipureintro
           exact ⟨hA.1, hA.2.1, hA.2.2.1, hE'.1, hE'.2, hys', hcj',
-            .inr ⟨rfl, (by intro h; cases h), e, hPe, he0'⟩⟩
+            .inr ⟨rfl, (by intro h; cases h), oc.toNat, e, by omega, hPe, he0'⟩⟩
 
 theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := hG) := by
   intro f fd name dqf sl data dqs off dq d m xs hwr hoff hbig hn hxl
   iintro %Φ Hpre HΦ
-  iapply os.File.WriteAt.wp_proofExtQ (2 ^ 63) (fun _ => True)
-    (fun _ _ _ _ _ _ _ _ _ => by
-      iintro Ht H
-      iapply wp_wand $$ [Ht H]
-      · iapply H $$ Ht
-      iintro %r H; iapply H; ipureintro; intros; trivial)
+  -- a failed `pwrite` started at or past `maxBytes`, or the premises do not hold (`NoIoErr`: below
+  -- `maxBytes` an error-free step exists, `wp_pwFinish_postNE`)
+  iapply os.File.WriteAt.wp_proofExtQ (2 ^ 63) (fun o e => e = 0 ∨ ¬ FsNoErr ∨ maxBytes ≤ o)
+    (fun t p o dt m xs n Φ _ => by
+      by_cases hne : FsNoErr ∧ o < maxBytes
+      · obtain ⟨⟨Sio, hSio, hs1, -, -⟩, ho⟩ := hne
+        haveI := hs1
+        iintro Ht H
+        iapply wp_pwFinish_postNE hSio t o dt ho _ (pwTokG_inflight t p o dt m xs n) Φ $$ Ht
+        iintro Ht
+        iapply wp_wand $$ [Ht H]
+        · iapply H $$ Ht
+        iintro %r H %hr
+        iapply H; ipureintro; intro r0 e he; exact Or.inl (hr r0 e he)
+      · iintro Ht H
+        iapply wp_wand $$ [Ht H]
+        · iapply H $$ Ht
+        iintro %r H; iapply H; ipureintro; intro r0 e _
+        right
+        by_cases h : FsNoErr
+        · right; exact Nat.le_of_not_lt (fun h' => hne ⟨h, h'⟩)
+        · left; exact h)
     f fd name dqf sl data dqs off dq d m xs hwr hoff hbig hn hxl (by omega) $$ Hpre
   inext
   iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %a, %E, %ys, %h, Hm, Hbs, Hc, Hok⟩
@@ -566,7 +584,12 @@ theorem os.File.WriteAt.wp_proofExt : os.File.WriteAt.specExt (GF := GF) (hG := 
   iframe Hm Hbs Hc
   ipureintro
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩ := h
-  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8.imp id (fun h => ⟨h.1, h.2.1⟩)⟩
+  refine ⟨h1, h2, h3, h4, h5, h6, h7, h8.imp id (fun h => ⟨h.1, h.2.1, ?_⟩)⟩
+  obtain ⟨o, e, ho, hP, he⟩ := h.2.2
+  rcases hP with hP | hP | hP
+  · exact absurd hP he
+  · exact Or.inl hP
+  · exact Or.inr (by omega)
 
 end proof
 

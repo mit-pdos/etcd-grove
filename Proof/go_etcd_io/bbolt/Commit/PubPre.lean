@@ -30,6 +30,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 theorem pp_mem_pendSlots (fl : FLPg) (s : Nat) :
     s ∈ pendSlots fl ↔ ∃ t pd x, fl.pending !! t = some pd ∧ x ∈ pd.ids ∧ x.toNat = s := by

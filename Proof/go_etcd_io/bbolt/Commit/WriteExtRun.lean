@@ -351,16 +351,17 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         "%Hw" ∷ ⌜w < c.2.2.length ∧ ysd.map Prod.fst = c.2.2.take w ∧ om2.maps = om.maps ∧
           om'.size ≤ om2.size ∧ om2.size ≤ max om.size (4096 * (l / 4096)) ∧
           (0 < w → 4096 * c.1.toNat + w ≤ om2.size) ∧
-          (om2.size = om'.size ∨ om2.size = 4096 * c.1.toNat + w)⌝ : IProp GF)
+          (om2.size = om'.size ∨ om2.size = 4096 * c.1.toNat + w) ∧
+          (0 < w → 4096 * c.1.toNat + w ≤ maxBytes)⌝ : IProp GF)
       $$ [rem offset written Hst Hm Hd1 Hd2 Hro Hrc Hpool]
     · iexists 0, [], om'
       simp only [named, Nat.sub_zero, Nat.add_zero]
       iframe
       ipureintro
       exact ⟨by omega, by simp, Hjm, Nat.le_refl _, Hjs2, fun h => absurd h (Nat.lt_irrefl 0),
-        Or.inl trivial⟩
+        Or.inl trivial, fun h => absurd h (Nat.lt_irrefl 0)⟩
     wp_for IH2
-    obtain ⟨Hwlt, Hysd, Hom2m, Hom2a, Hom2b, Hom2w, Hom2z⟩ := Hw
+    obtain ⟨Hwlt, Hysd, Hom2m, Hom2a, Hom2b, Hom2w, Hom2z, Hom2mb⟩ := Hw
     obtain ⟨cs, Hcs⟩ : ∃ cs : Nat, cs = min (c.2.2.length - w) 2147483646 := ⟨_, rfl⟩
     have Hcs0 : 0 < cs := by omega
     have hcin' : 4096 * c.1.toNat + c.2.2.length ≤ l := by
@@ -463,7 +464,8 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
       · iframe #
         rw [htn, ← fileOwn_eq]
         iframe
-      obtain ⟨hjja, hale, -, -, -, hysp, -, hres⟩ := Hjj
+      obtain ⟨hjja, hale, -, -, -, hysp, hcut, hres⟩ := Hjj
+      rw [htn] at hcut hres
       have hjjle : jj ≤ (bytesAt c.2.2 w cs).length := Nat.le_trans hjja hale
       rw [htn] at hysp ⊢
       rw [hcl] at hjjle
@@ -574,8 +576,20 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iframe Hm
         isplitr
         · ipureintro
-          exact ⟨by omega, by omega, hm3.2.trans Hom2m, Hwb1, Hwb2,
-            fun s hs _ h2 => by rw [Hwb3 s hs]; omega⟩
+          refine ⟨by omega, by omega, hm3.2.trans Hom2m, Hwb1, Hwb2,
+            fun s hs _ h2 => by rw [Hwb3 s hs]; omega, fun hfs => ?_⟩
+          -- under the premises the failed `pwrite` started at `maxBytes` (page-aligned): the file
+          -- ends there, or where it ended (session S3g)
+          have hmb : maxBytes ≤ 4096 * c.1.toNat + w + jj := by
+            rcases hres with ⟨-, -, h⟩ | ⟨-, -, h | h⟩
+            · exact absurd h (fun h => nomatch h)
+            · exact absurd hfs h
+            · exact h
+          have hc2 := hcut.2
+          have hmbv : maxBytes = 0xffffffff000 := rfl
+          rw [hmbv] at hmb hc2 Hom2mb
+          rw [← Hsz3]; unfold pwSize
+          split <;> omega
         iright
         isplitr
         · ipureintro; exact fun h => nomatch h
@@ -584,7 +598,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iexact Hwr
       | nil =>
         have hjj : jj = (bytesAt c.2.2 w cs).length := by
-          rcases hres with ⟨h1, -, -⟩ | ⟨-, h2⟩
+          rcases hres with ⟨h1, -, -⟩ | ⟨-, h2, -⟩
           · exact h1
           · exact absurd rfl h2
         subst hjj
@@ -696,7 +710,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
           rw [hm3.1]
           iframe
           ipureintro
-          exact ⟨hnend, hfst, hm3.2.trans Hom2m, by omega, by omega, fun _ => by omega, by omega⟩
+          have hc2 := hcut.2
+          exact ⟨hnend, hfst, hm3.2.trans Hom2m, by omega, by omega, fun _ => by omega, by omega,
+            fun _ => by rw [hcl] at hc2; omega⟩
   · have Hjl : sint.nat j = L'.length := by have := Hsll.1; word
     obtain ⟨-, -, Hom'm, Hom's1, Hom's2, Hjd, Hjz⟩ := Hj
     rw [Hjl, List.take_length, List.drop_length] at *
@@ -759,7 +775,7 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         isplitr
         · ipureintro
           exact ⟨by omega, by omega, Hm'.2.trans Hom'm, Hwb1, Hwb2,
-            fun s hs _ h2 => by rw [Hwb3 s hs]; omega⟩
+            fun s hs _ h2 => by rw [Hwb3 s hs]; omega, fun _ => by rw [Hm'.1]; exact Hjz⟩
         iright
         isplitr
         · ipureintro; exact fun h => nomatch h
@@ -943,7 +959,9 @@ theorem Tx.write_ext_gen (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iframe Hm
         rw [Hom''.1]
         isplitr
-        · ipureintro; exact ⟨Hom's1, Hom's2, Hom''.2, HA, HB, fun s hs _ h2 => by rw [HD s hs]; omega⟩
+        · ipureintro
+          exact ⟨Hom's1, Hom's2, Hom''.2, HA, HB, fun s hs _ h2 => by rw [HD s hs]; omega,
+            fun _ => Hjz⟩
         ileft
         isplitr
         · ipureintro; rfl

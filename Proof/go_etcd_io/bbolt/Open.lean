@@ -959,7 +959,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     ipureintro; exact Hlgty
   -- the freelist, the core and the writer phase (`DB.loadFreelist.spec_open`)
   wp_apply hLoad γbq N dbl sp f fd p C base L _ xs'
-    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HN Hdbnn) hfd0 $$
+    (openOK_lfOK N dbl C D m' xs' base L hC hxl' hsz' HL.2.1 HL.2.2.2.2 HN Hdbnn) hfd0 $$
     [metalock mmaplock statlock opened freelist writeAt rwtx file path datasz Hmf Hfm Hf Hfdo Hps
       Hxs Hbp Hcells freelistLoad Hbq HrcC] as Hlf
   · unfold lfPre
