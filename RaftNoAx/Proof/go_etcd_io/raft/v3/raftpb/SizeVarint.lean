@@ -31,12 +31,12 @@ theorem varintSize_ge128 (n : Nat) (h : 128 ≤ n) : varintSize n = 1 + varintSi
   simp only [show ¬ n < 128 by omega, ↓reduceDIte, List.length_cons]
   omega
 
-theorem varintSize_pos (n : Nat) : 1 ≤ varintSize n := by
+theorem nx_varintSize_pos (n : Nat) : 1 ≤ varintSize n := by
   by_cases h : n < 128
   · rw [varintSize_lt128 n h]; omega
   · rw [varintSize_ge128 n (by omega)]; omega
 
-theorem varintSize_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) → varintSize n ≤ k + 1
+theorem nx_varintSize_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) → varintSize n ≤ k + 1
   | 0, n, h => by rw [varintSize_lt128 n (by simpa using h)]; omega
   | k + 1, n, h => by
     by_cases h0 : n < 128
@@ -47,11 +47,11 @@ theorem varintSize_le_of_lt : ∀ (k n : Nat), n < 2 ^ (7 * (k + 1)) → varintS
       rw [e] at h
       have h1 : n / 128 < 2 ^ (7 * (k + 1)) := by
         rw [Nat.div_lt_iff_lt_mul (by decide)]; exact h
-      have := varintSize_le_of_lt k (n / 128) h1
+      have := nx_varintSize_le_of_lt k (n / 128) h1
       omega
 
 theorem varintSize_le_10 (n : Nat) (h : n < 2 ^ 64) : varintSize n ≤ 10 :=
-  varintSize_le_of_lt 9 n (by omega)
+  nx_varintSize_le_of_lt 9 n (by omega)
 
 end pure
 
@@ -83,7 +83,7 @@ theorem wp_sizeVarint (v : w64) :
   · wp_for_post
     have hx : 128 ≤ (uint.Z x).toNat := by word
     have e := varintSize_ge128 _ hx
-    have hpos := varintSize_pos ((uint.Z x).toNat / 128)
+    have hpos := nx_varintSize_pos ((uint.Z x).toNat / 128)
     iframe
     iexists n + W64 1, x >>> W64 7
     iframe

@@ -239,3 +239,8 @@ unexported helpers):
 
 Left in the part (`etc/tcb-collections/raft-noax.txt`): the conf-change codec (`MarshalConfChangeV1/V2`,
 `UnmarshalConfChangeV1/V2`'s sorries, `ccDecodeV2_nil`), another track.
+
+Checked (2026-11-18): `lake build RaftNoAx.Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Results`
+(3832 jobs), `etc/copy-part.py --check` (0 differ); `#print axioms` of the four `wp_proof`s: Lean's
+three and Goose's type axioms only, no `sorryAx`; `AxPath2` on `raft_kvdurable_porcupine_safe` reaches
+`sorryAx` only through the codec (`MarshalConfChangeV1.wp_proof`, ...).

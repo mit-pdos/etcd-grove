@@ -38,7 +38,7 @@ theorem optCell_null {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Lo
     ihave %Hn := typedPointsto_not_null $$ H
     ipureintro; simp [Hn]
 
-theorem cellRO_optCell {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
+theorem nx_cellRO_optCell {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v : V) :
     cellRO (GF := GF) p v ⊢ ∃ o : Option V, optCell p o ∗ ⌜v = o.getD (zero_val V)⌝ := by
   iunfold cellRO
   iintro (%H | #H)
@@ -51,7 +51,7 @@ theorem cellRO_optCell {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : 
     iframe H
     ipureintro; rfl
 
-theorem optCell_cellRO {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (o : Option V) :
+theorem nx_optCell_cellRO {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (o : Option V) :
     optCell (GF := GF) p o ⊢ cellRO p (o.getD (zero_val V)) := by
   iunfold cellRO
   cases o with

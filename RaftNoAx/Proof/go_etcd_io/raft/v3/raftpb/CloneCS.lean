@@ -60,7 +60,7 @@ theorem wp_CloneConfState_al (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool)
   wp_start as Hc
   iapply wp_fupd
   iNamed Hc
-  icases cellRO_optCell _ _ $$ cA with ⟨%oa, #Hoa, %Hoa⟩
+  icases nx_cellRO_optCell _ _ $$ cA with ⟨%oa, #Hoa, %Hoa⟩
   ihave %Hpa := optCell_null _ _ $$ Hoa
   icases pbMsg_uf _ _ _ $$ Hpb with ⟨%us, #Hus, #Hub⟩
   wp_auto
@@ -74,7 +74,7 @@ theorem wp_CloneConfState_al (p : Loc) (dq : DFrac) (c : ConfStateM) (al : Bool)
   wp_apply wp_cloneUnknown us [] $$ [$Hub] as %us' Hus'
   ihave %Hpa' := optCell_null _ _ $$ Hoa'
   ihave #cA' : cellRO pa' c.AutoLeave' $$ []
-  · rw [Hoa]; iapply optCell_cellRO; iexact Hoa'
+  · rw [Hoa]; iapply nx_optCell_cellRO; iexact Hoa'
   have Hal' : al = true → pa' ≠ null := fun h hn => Hal h (Hpa.2 (Hpa'.1 hn))
   have hv := csPts_of_struct_uf (GF := GF) «$r0_ptr» { (zero_val raftpb.ConfState) with
     Voters' := sv', Learners' := sl', VotersOutgoing' := so', LearnersNext' := sn',

@@ -34,7 +34,7 @@ theorem wp_cloneUint64_RO (p : Loc) (v : w64) :
       (App (Val #(functions raftpb.cloneUint64 [])) (Val #p))
     {{ (p' : Loc), RET #p'; cellRO p' v ∗ ⌜p ≠ null → p' ≠ null⌝ }} := by
   iintro %Φ ⟨#Hi, #Hc⟩ HΦ
-  icases cellRO_optCell _ _ $$ Hc with ⟨%o, #Ho, %Hv⟩
+  icases nx_cellRO_optCell _ _ $$ Hc with ⟨%o, #Ho, %Hv⟩
   ihave %Hn := optCell_null _ _ $$ Ho
   iapply wp_cloneUint64 p o $$ [$Hi $Ho]
   iintro %p'
@@ -43,7 +43,7 @@ theorem wp_cloneUint64_RO (p : Loc) (v : w64) :
   ihave %Hn' := optCell_null _ _ $$ Ho'
   iapply HΦ
   isplitl
-  · rw [Hv]; iapply optCell_cellRO; iexact Ho'
+  · rw [Hv]; iapply nx_optCell_cellRO; iexact Ho'
   · ipureintro; intro h h'; exact h (Hn.2 (Hn'.1 h'))
 
 /-- **`cloneSnapshotMetadata` of a non-`nil` metadata**, by its fields; the conf state's clone a
