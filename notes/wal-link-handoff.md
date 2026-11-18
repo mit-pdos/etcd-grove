@@ -1,6 +1,41 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 d, stage 2 step B: per-key permission in the fs library; os clients WIP; STOP for a decision)
+## START HERE (2026-11-18 e, step B: option (b) done; os + fileutil converted; WAL started; STOP for the handle-roots form)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 49bd7924e6 merged; pin 6d365ee1a,
+  `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** step B forms ACCEPTED; option (b) with a SEPARATE invariant.
+- **Done (4ec0ae0ea9, this commit):** `osAboveInv := inv osAbN (∃ q, osCallPerm [] q)` (TreeSharedRes; docstring: no proof
+  needs the whole of key `[]`); `wp_osShare` gives it beside `osCallPerms R` (now every root's key, `delete [] permMap`);
+  `osAboveInv_take`, `osSharedInv_rootsOk`, `wp_osCallBeginAboveS` (TreeShared), `rootsAbove_not_under`, `callKey_above`
+  (TreeSharedOut). Above-root specs: `os.Stat.specAboveRoot` no permission (no call), `os.OpenFile/Open.wp_aboveS`,
+  `fileutil.OpenDir/syncDir.specAboveRoot` take `osAboveInv` (no share back); `wp_statAnc`/`wp_syncDirAnc` keyed by the
+  root (`callKey R (joinPath [] rcs)`, `callKey_joinPath`); TouchDirAll(.specDir)/CreateDirAll(.specTmp) take `osAboveInv`.
+  Proof/os RemoveAllDir, RenameS (d' key via `callKey_of_sameRoot`) fixed. lean-check 0 errors: Fs TreeShared(+Switch),
+  Proof/os StatS/RemoveAllDir/RenameS/NsAbove/StatAbove, fileutil CheckDirPermission/ReadDir/OpenDir/syncDir/IsDirWriteable(File)/
+  ReadDirAbsent/OpenDirOk/Exist/FsyncS/TouchLemmas. Not yet checked: fileutil TouchDirAll/TouchDirAllDir/CreateDirAllTmp
+  (pass `#Hab` to wp_syncDirAnc), the other Proof/os files since step B's script (os-check1.log said 0 errors).
+- **WAL (started):** `WalGS.roots` (Ghost; `walGhost_init R` gives `⌜W.roots = R⌝`); `walInv := ⌜W.roots = R⌝ ∗ inv ...`
+  (`walInv_roots`, `walPerm_toW/ofW` in Inv; `walInv_alloc` takes `hWR`; `walStart_boot0`/`walInv_crash` give it;
+  `walBootCrash` takes `hWR`); `walAreaOk_roots`. Keys by `/shared/tmp/wallink/scripts/walkey.py` (first `osPathS R D` ->
+  `callKey R D`; else R+dir, R+r; sealed defs without R: `callKey W.roots dir`); keyed helpers (`walhelpers.py`).
+  Checked: Ghost..Inv..Crash, Boot0, BootCrash, Pipe, PipeLemmas, ReadAllFail. **Failing:** WAL__CloseOpening (merge of the
+  pipeline's quarter `callKey Rp dir` with the client's `callKey R dir`), WAL__CloseU, the rest unchecked.
+- **STOP: the handle's roots.** The handle predicates quantify their own roots (`walDirH`'s `∃ R` with `osSharedInv R`,
+  `walPipeH`'s `∃ R` (`pp` default True), `CloseLeft`'s `∃ R`, `walOpenWFU`'s `Rp`); at Close the quarters must merge under one
+  key, so `R_h = R` is needed and nothing gives it. Options in the report (questions.md 2026-11-18, OPEN).
+- **Next after the decision:** the WAL's 55 files (lean-check in `/shared/tmp/wallink/walorder.txt` order), WalTester (TBoot gets
+  `osAboveInv` + the root's key; `walBootCrash`'s `hWR` from `walInv_crash`), walfs, merge lean, full build, per-area WalGS, L3.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -q -a
+  --fast FILE`. **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build` (slots were busy
+  all session).
+- **Pitfalls:** `osCallPerm_split` now takes the key first; `wp_osCallBeginS R _ q` unifies `p` with the held key's path:
+  convert first (`osCallPerm_child`/`_unchild`, `osCallPerm_congr q h`); `walPerm_toW hWR d q` converts R-keys to W.roots-keys;
+  a `rw [hWR]` on the IPM goal fails when W.roots only appears after an `iapply`.
+
+## History
+
+### START HERE (2026-11-18 d, stage 2 step B: per-key permission in the fs library; os clients WIP; STOP for a decision)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 49bd7924e6 merged (9d28ebb29f); pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
@@ -48,7 +83,6 @@
   `wp_logStepS`), the `[Hq]` subgoal needs `rw [← hkd b, ← hR]` (`osPathS_callKey` at the start);
   `obtain ⟨hR, rfl⟩ := hVs` gives `hR : st.fs.roots = R` (Out substs it).
 
-## History
 
 ### START HERE (2026-11-18 c, stage 2 step A done: per-key call coherence under the global permission)
 
