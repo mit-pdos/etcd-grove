@@ -973,3 +973,10 @@ the opaque `pathOwn`; `snapFreeAll`, new), from the abstract `dataDirFresh`; `bo
 `srvDiskImageAt` (no `pathOwn`), `snapDirInv` (`fileAt`, `snapFree`). **No closed theorem's statement
 text changed**; the meaning of their premises `bootstrapContract`/`bootstrapRestartContract` did, as
 listed.
+
+**Checks** (2026-11-18, after merging `origin/bbolt-integrate` `d511fb36b2`, S6): full build (20348 jobs)
+and `etc/gates.sh` pass; trust base: `os.Rename.wp_proof` gone (`etc/tcb-baseline.txt` and 25
+collections updated), no axiom or `sorry` added; interfaces regenerated (backend, bbolt's new
+`ApiIno`); `etc/reader-slot-check.py`'s floor 186 (one axiom fewer). Per S6's rule (one spec per
+function) the error-free rename is a private lemma of `os.Rename`'s proof (`rename_fileNE`), not a
+spec.
