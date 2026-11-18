@@ -156,7 +156,7 @@ theorem Main.wp_proof
   iunfold srvLessorRd at Hslr
   icases Hslr with ⟨%lpl, -, #Hlinv⟩
   iunfold lease.lessorInv at Hlinv
-  icases Hlinv with ⟨-, -, -, #HrdInv⟩
+  icases Hlinv with ⟨-, -, -, #HrdInv, -⟩
   ihave #Hrow2 := leaseTTLRow_intro srv id (mvcc.api.mvccLeases E.γ) $$ [Hrow Hfirst]
   · iframe #
   -- `go holdToken()`: the forked goroutine never returns (its token, which the gRPC runs needed

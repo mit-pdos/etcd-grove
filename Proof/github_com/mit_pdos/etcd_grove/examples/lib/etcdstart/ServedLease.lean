@@ -203,7 +203,7 @@ private theorem kv_lease_served_core (s : Loc) (E : apply.AEnv GF) (ρ : ReqName
   · iunfold srvLessorRd at Hlrd
     icases Hlrd with ⟨%lp, -, #Hinv⟩
     iunfold lease.lessorInv at Hinv
-    icases Hinv with ⟨-, -, -, #H⟩
+    icases Hinv with ⟨-, -, -, #H, -⟩
     iexact H
   imod (lease.lessorLb_get (mvcc.api.mvccLeases E.γ) ⊤ (fun _ _ => CoPset.mem_full)) $$ HRI with ⟨%m0, #Hlb⟩
   ihave #Hlb0 := lease.lessorLb_le (mvcc.api.mvccLeases E.γ) 0 (Nat.zero_le _) $$ Hlb

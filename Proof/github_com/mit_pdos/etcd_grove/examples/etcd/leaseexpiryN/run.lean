@@ -163,7 +163,7 @@ theorem run.wp_proof
     iunfold srvLessorRd at Hslr
     icases Hslr with ⟨%lpl, -, #Hlinv⟩
     iunfold lease.lessorInv at Hlinv
-    icases Hlinv with ⟨-, -, -, #HrdInv⟩
+    icases Hlinv with ⟨-, -, -, #HrdInv, -⟩
     -- `Serve(srvs[j], m.Client)`, with the live grant and the listing registered at the address
     haveI := Hms
     ihave ⟨%HsvOff, #HreqM, #HrdM, #Hlb⟩ := etcdstart.serveViews_off sj E { xj.2.ρ with wait := γw }
