@@ -44,6 +44,11 @@ Go test: `examples/k8s/etcd3/trustspecs_test.go` `TestDeepEqualTooLarge` (20000 
 `*StatusError`; the second object independent, mutated, or the same pointer; `false` in both orders, no
 panic): PASS.
 
+**2026-11-18, clause 4 attack passed** (`/shared/tmp/k8s7g-attack2/report.md`; decided by etcd-grove-03):
+clause 4 SURVIVES (11 attacks, Go under `-race`) and is ACCEPTED. m2 applied (the spec's header: no
+`DeepV` being a `*StatusError` is what makes clause 4 true; a constructor for one must revisit it). m1
+recorded: one orientation only (model's response first), which every use is.
+
 ## 1. New trust-boundary specs (files written)
 
 | Spec | File | Axiom to come | Go tests |

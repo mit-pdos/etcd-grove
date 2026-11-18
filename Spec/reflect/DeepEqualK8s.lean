@@ -60,6 +60,9 @@ typed nil `*StatusError`: `DeepEqual` is `false` in both argument orders, and ne
 Not covered (no claim): a typed nil pointer in an interface (no `DeepV` holds one), any other
 dynamic type (`*apierrors.StatusError` except as clause 4's second error, `*fmt.wrapError`,
 `*metav1.Status`), maps of other types.
+That no `DeepV` is a `*apierrors.StatusError` is what makes clause 4 true: two equal
+StatusErrors, or two typed-nil ones, are DeepEqual-true in Go; a `DeepV` constructor for
+`*StatusError` (or a type embedding one) must revisit clause 4 (attack 2, m2, 2026-11-18).
 Lean-first.
 -/
 module
