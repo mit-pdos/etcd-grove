@@ -7,9 +7,12 @@ proved over a prophecy of its random choice that a **prophecy patch** adds to th
 (`etc/proph-patches/prophkv/01-getany-choice.patch`, applied before translation; the spec does not
 mention it).
 
-`goose_prophkv_safe`: the closed theorem about the program (the package's initialization, then `Test()`)
-**as translated from the patched code**: in every real execution from a fresh state with one
-thread, the result is `"a"` or `"b"`, no thread is stuck and none has an unrecovered panic. It
+`goose_prophkv_safe`: the closed theorem about the program (the package's initialization, then
+`Main()`, which runs `Test` and panics unless `GetAny`'s answer is `"a"` or `"b"`; until 2026-11-18
+the program was `Test()` and the theorem stated its result) **as translated from the patched
+code**: in every real execution from a fresh state with one thread, no thread is stuck and none
+has an unrecovered panic, so the answer is `"a"` or `"b"`. `goose_prophkv_robust` is the same as
+an instance of the generic robustness statement (`Robustness/Statement.lean`). It
 follows from Perennial's `goose_adequacy` alone: the program runs its prophecy operations like any
 other step, so no erasure theorem and no premise about the Go model are needed. That it covers
 the Go code without the patch is the patch's argument, checked by `etc/prophcheck` (the patch
@@ -77,13 +80,11 @@ instance prophkvGF_gooseGpreS : GooseGpreS prophkvGF where
 section program
 variable [go_gctx : GoGlobalContext]
 
-/-- The program: initialize the package, then call `Test` (as goose calls a function). -/
+/-- The program: initialize the package, then call `Main` (as goose calls a function), which runs
+`Test` and panics unless its answer is `"a"` or `"b"`. -/
 def prog : Expr :=
   Seq (App (Val initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve Test []))) (Val #())) (Val #()))
-
-/-- What the program returns: `"a"` or `"b"`. -/
-def resultOk (v : val) : Prop := v = #go!"a" ∨ v = #go!"b"
+    (App (App (Val (GoInstruction (FuncResolve Main []))) (Val #())) (Val #()))
 
 /-- The `get_is_pkg_init` of the program: the package and `primitive`. -/
 def getIsPkgInit {GF : BundledGFunctors} [HeapGS .hasLC GF] (p : GoString) : IProp GF :=
@@ -115,17 +116,17 @@ theorem wp_initialize'_direct (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   is_pkg_init_finish
 
-/-- **The program**: its result is `"a"` or `"b"`. -/
+/-- **The program**: it returns (`Main`'s check of `Test`'s answer never panics). -/
 theorem wp_prog (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove.examples.goose.prophkv
       get_is_pkg_init) :
-    ownInitializing get_is_pkg_init ⊢ WP prog {{ v, ⌜resultOk v⌝ }} := by
+    ownInitializing get_is_pkg_init ⊢ WP prog {{ v, ⌜v = #()⌝ }} := by
   iintro Hown
   unfold prog
   wp_apply wp_initialize'_direct _ Hinit $$ Hown as ⟨_, #Hpkg⟩
-  wp_apply wp_Test as %r %Hg
+  wp_apply wp_Main
   ipureintro
-  rcases Hg with h | h <;> subst h <;> simp [resultOk]
+  rfl
 
 end wp
 
@@ -141,7 +142,8 @@ theorem realThreadsBelow_single {n : Nat} {ρ : List Expr × CfgState}
 /-- **The program's safety**: in every real execution of `prog` (translated from the
 prophecy-patched code), from a state whose Go context satisfies the Go semantics and the
 package's assumptions, with no package initialized and the main thread only, the program's result
-is `"a"` or `"b"`, no thread is stuck and none has an unrecovered panic. -/
+is `#()`, no thread is stuck and none has an unrecovered panic: `Main` panics unless `GetAny`'s
+answer is `"a"` or `"b"`, the two values written, so it always is. -/
 theorem goose_prophkv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions]
     (σ : state) (g : GlobalState)
@@ -149,14 +151,14 @@ theorem goose_prophkv_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hthreads : σ.threads = 1)
     (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([prog], ((σ, g) : CfgState)) κs (t2, σ2)) :
-    (∀ v t2', t2 = Val v :: t2' → resultOk v) ∧
+    (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
       (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy (GF := prophkvGF) (n + 1) (n + 2) prog σ g resultOk ?_
+  refine goose_adequacy (GF := prophkvGF) (n + 1) (n + 2) prog σ g (fun v => v = #()) ?_
     ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ ?_ n κs t2 σ2 Hsteps (by omega) Hthreads
     (realThreadsBelow_single Hthreads)
   · intro p h
-    rcases h with h | h <;> exact intoVal_ne_PanicV _ p h.symm
+    exact intoVal_ne_PanicV () p h.symm
   · intro hG _ _ Hlctx'
     rw [Hlctx] at Hlctx'
     obtain ⟨G, ⟨Lexts, Llctx, Lheap, Lgs, Lthr, Lcr⟩⟩ := hG
@@ -185,7 +187,8 @@ theorem goose_prophkv_safe [lctx : GoLocalContext] [sem : go.Semantics]
 /-- **`goose_prophkv_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
 a fresh Go process (`Robust`'s premise), under `goose_prophkv_safe`'s other hypotheses: in every
-execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
+execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic, so
+`GetAny`'s answer is `"a"` or `"b"` (`Main` panics otherwise). -/
 theorem goose_prophkv_robust
     [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Assumptions] (σ : state)
