@@ -22,6 +22,10 @@ export GOTOOLCHAIN=${GOTOOLCHAIN:-go1.27.1}
 # check's `lake build --no-build` agree on what is up to date. Off with LAKE_ARTIFACT_CACHE=false.
 export LAKE_ARTIFACT_CACHE=${LAKE_ARTIFACT_CACHE:-true}
 export LAKE_RESTORE_ARTIFACTS=${LAKE_RESTORE_ARTIFACTS:-true}
+# tcb-report's Lean runs cached across worktrees as model-param's are (etc/lean_cache.py: keyed by
+# the run's whole import closure, proofs included): a group none of whose imports changed is read
+# from the cache. TCB_CACHE= (empty) runs every group.
+export TCB_CACHE=${TCB_CACHE-/shared/tmp/tcb-report-cache}
 pk=()
 if [ -n "${LAKE_PACKAGES:-}" ]; then pk=(--packages="$LAKE_PACKAGES"); export LAKE_OPTS="--packages=$LAKE_PACKAGES"; fi
 fail=0

@@ -28,6 +28,11 @@ usage: etc/tcb-report.py [-o REPORT.md] [--defs] [--json TCB.json] [--reuse]
            FILEs are checked in one run, each as on its own (exit 1 if any differs;
            `tcb: collection FILE: FAILED` names it), the JSON loaded once
 
+The Lean runs (one per group of root modules) run in two lanes, natively
+(etc/proof_roots.py: `run_groups`, `lean_script`); with `$TCB_CACHE` a directory, each
+run's output is cached there under a key of everything it can read (etc/lean_cache.py: its
+whole import closure's `.olean`s, proofs included), as etc/gates.sh does.
+
 Needs an up-to-date build of the root modules: it never builds, and exits saying so
 if `lake build --no-build` finds them out of date (`$LAKE_OPTS` is passed to lake, e.g.
 `--packages=<file>` when the build used it).  For a Goose verification project laid out as

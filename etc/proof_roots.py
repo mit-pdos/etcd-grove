@@ -319,6 +319,11 @@ def run_groups(fn, groups, size=len):
     return out
 
 
+TCB_CACHE_VERSION = "tcb-report-cache 1"
+TCB_CACHE_SCRIPTS = ("tcb-report.lean", "proof_roots.py", "goose.py", "lean_cache.py")
+TCB_CACHE_MAX_BYTES = 40 << 30  # the largest group's entry is 560 MB
+
+
 def run(json_path, prog):
     """Run `etc/tcb-report.lean` on every root module into `json_path` (replaced only
     when every run succeeds), if their build is up to date.  The groups' runs are
@@ -332,15 +337,53 @@ def run(json_path, prog):
     outs = [f"{tmp}.{i}" for i in range(len(runs))]
     script = lean_script("etc/tcb-report.lean", env)
 
+    # a group's output from the cache (etc/lean_cache.py: keyed by everything the run can read,
+    # its whole import closure's `.olean`s with their proofs, `.olean.private`, among it), when
+    # the cache is on (`$TCB_CACHE` a directory; `etc/gates.sh` sets it, nothing else does)
+    cache_dir = os.environ.get("TCB_CACHE") or None
+    ctx, keys, hits = None, [None] * len(runs), 0
+    if cache_dir:
+        import lean_cache
+        try:
+            ctx = lean_cache.KeyContext(env, TCB_CACHE_VERSION, TCB_CACHE_SCRIPTS, ("TCB_",),
+                                        os.path.join(ROOT, ".lake", "tcb-report-hashes.json"))
+            for i, mods in enumerate(runs):
+                keys[i] = ctx.key([*lean_args(), *mods], mods)[0]
+        except lean_cache.NoCache as e:
+            print(f"{prog}: not using the cache: {e}", file=sys.stderr)
+            ctx = None
+
     def one(i):
+        if ctx is not None:
+            body = lean_cache.cache_get(cache_dir, keys[i], "tcb-report")
+            if body is not None:
+                with open(outs[i], "wb") as f:
+                    f.write(body)
+                return "hit"
         with open(outs[i], "w") as f:
-            return subprocess.run(
+            rc = subprocess.run(
                 lake("env", *script, *lean_args(), *runs[i]),
                 cwd=ROOT, stdout=f, env=env, check=False,
             ).returncode
+        if rc == 0 and ctx is not None:
+            try:
+                same = ctx.key([*lean_args(), *runs[i]], runs[i])[0] == keys[i]
+            except lean_cache.NoCache:
+                same = False
+            if same:  # nothing rebuilt during the run
+                with open(outs[i], "rb") as f:
+                    lean_cache.cache_put(cache_dir, keys[i], f.read(), {
+                        "modules": len(runs[i]), "head": git_head(), "root": ROOT}, "tcb-report")
+        return rc
 
     try:
         codes = run_groups(one, list(range(len(runs))), size=lambda i: len(runs[i]))
+        hits = codes.count("hit")
+        codes = [0 if c == "hit" else c for c in codes]
+        if ctx is not None:
+            ctx.hasher.save()
+            lean_cache.prune(cache_dir, TCB_CACHE_MAX_BYTES)
+            print(f"{prog}: {hits} of {len(runs)} Lean runs from the cache", file=sys.stderr)
         for mods, rc in zip(runs, codes):
             if rc != 0:
                 sys.exit(f"{prog}: etc/tcb-report.lean {' '.join(mods)} failed (exit {rc})")
