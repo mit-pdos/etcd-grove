@@ -4,7 +4,7 @@
 
 Of the disabled store's invariant (`auth.offInv`, `auth/OffInv.lean`): its `Recover` on a later
 backend (`authRecoverOk`), over schema's auth backend on the real backend: the read transaction
-begun with the idle part of the new backend's auth buckets reads them (`backend.readTx.RLock.specIdle`),
+begun with the idle part of the new backend's auth buckets reads them (`backend.readTx.RLock_idle.spec`),
 the `auth` bucket at `authBoot` (no `authEnabled` key: `false`; the revision `1`), the users' empty
 (`backend.readTx.UnsafeForEach.spec`: no user, so no record decoded).
 -/
@@ -64,7 +64,7 @@ theorem authBoot_revWf : schema.revWf (authBoot : backend.BktData) := by
 /-- **The disabled store's `Recover`** (`authRecoverOk`). -/
 theorem authRecoverOk_off
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hRL : backend.readTx.RLock.specIdle (GF := GF) (hG := hG))
+    (hRL : backend.readTx.RLock_idle.spec (GF := GF) (hG := hG))
     (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     (hFE : backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG))

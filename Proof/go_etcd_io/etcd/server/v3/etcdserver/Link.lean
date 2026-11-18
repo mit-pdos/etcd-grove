@@ -481,11 +481,21 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeDeleteLease
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeReadConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndex
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.UnsafeUpdateConsistentIndexForce
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__BatchTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__CreateAuthBuckets
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ForceCommit
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetRole
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__GetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBackend__ReadTx
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__Lock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__Unlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetAllUsers
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthEnabled
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthRevision
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeSaveAuthRevision
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RLock
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__RUnlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetAllUsers
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetRole
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeGetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeReadAuthEnabled
@@ -493,6 +503,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.schema.authReadTx__UnsafeR
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustDeleteMemberFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustReadMembersFromBackend
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.membershipBackend__MustSaveMemberToBackend
+public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetAllUsers
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetRole
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeGetUser
 public import Proof.go_etcd_io.etcd.server.v3.storage.schema.unsafeReadAuthEnabled
@@ -1304,6 +1315,74 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem auth.authStore.wp_setupMetricsReporter :
+    auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG) :=
+  auth.authStore.setupMetricsReporter.wp_proof
+
+theorem schema.authBackend.wp_CreateAuthBuckets :
+    schema.authBackend.CreateAuthBuckets.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.CreateAuthBuckets.wp_proof backend.backend.wp_BatchTx backend.batchTxBuffered.wp_LockOutsideApply backend.batchTxBuffered.wp_UnsafeCreateBucket backend.batchTxBuffered.wp_Unlock schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.authBackend.wp_BatchTx :
+    schema.authBackend.BatchTx.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.BatchTx.wp_proof backend.backend.wp_BatchTx
+
+theorem schema.authBackend.wp_ForceCommit :
+    schema.authBackend.ForceCommit.spec (GF := GF) (hG := hG) :=
+  schema.authBackend.ForceCommit.wp_proof backend.backend.wp_ForceCommit
+
+theorem schema.authBatchTx.wp_Lock :
+    schema.authBatchTx.Lock.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.Lock.wp_proof backend.batchTxBuffered.wp_LockInsideApply
+
+theorem schema.authBatchTx.wp_Unlock :
+    schema.authBatchTx.Unlock.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.Unlock.wp_proof backend.batchTxBuffered.wp_Unlock backend.batchTxBuffered.wp_Commit
+
+theorem schema.wp_unsafeReadAuthEnabled :
+    schema.unsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.unsafeReadAuthEnabled.wp_proof
+
+theorem schema.authBatchTx.wp_UnsafeReadAuthEnabled :
+    schema.authBatchTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
+
+theorem schema.wp_unsafeReadAuthRevision :
+    schema.unsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.unsafeReadAuthRevision.wp_proof binary.bigEndian.wp_Uint64
+
+theorem schema.authBatchTx.wp_UnsafeReadAuthRevision :
+    schema.authBatchTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
+
+theorem schema.authBatchTx.wp_UnsafeSaveAuthRevision :
+    schema.authBatchTx.UnsafeSaveAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeSaveAuthRevision.wp_proof binary.bigEndian.wp_PutUint64 backend.batchTxBuffered.wp_UnsafePut schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket
+
+theorem schema.wp_unsafeGetAllUsers :
+    schema.unsafeGetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.unsafeGetAllUsers.wp_proof
+
+theorem schema.authBatchTx.wp_UnsafeGetAllUsers :
+    schema.authBatchTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.authBatchTx.UnsafeGetAllUsers.wp_proof schema.wp_unsafeGetAllUsers
+
+theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
+    schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
+
+theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
+    schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
+
+theorem schema.authReadTx.wp_UnsafeGetAllUsers :
+    schema.authReadTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG) :=
+  schema.authReadTx.UnsafeGetAllUsers.wp_proof schema.wp_unsafeGetAllUsers
+
+theorem auth.authStore.wp_AuthInfoFromTLS :
+    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromTLS.wp_proof
+
 theorem auth.wp_decomposeOpts :
     auth.decomposeOpts.spec (GF := GF) (hG := hG) :=
   auth.decomposeOpts.wp_proof zap.Logger.wp_Error zap.wp_String
@@ -1343,10 +1422,6 @@ theorem auth.wp_redactToken :
 theorem auth.authStore.wp_AuthInfoFromCtx :
     auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
   auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
-
-theorem auth.authStore.wp_AuthInfoFromTLS :
-    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromTLS.wp_proof
 
 theorem zap.Logger.wp_Check :
     zap.Logger.Check.spec (GF := GF) (hG := hG) :=
@@ -1427,10 +1502,6 @@ theorem auth.wp_isValidPermissionRange :
 theorem auth.authStore.wp_selectPassword :
     auth.authStore.selectPassword.spec (GF := GF) (hG := hG) :=
   auth.authStore.selectPassword.wp_proof
-
-theorem auth.authStore.wp_setupMetricsReporter :
-    auth.authStore.setupMetricsReporter.spec (GF := GF) (hG := hG) :=
-  auth.authStore.setupMetricsReporter.wp_proof
 
 theorem auth.tokenSimple.wp_genTokenPrefix :
     auth.tokenSimple.genTokenPrefix.spec (GF := GF) (hG := hG) :=
@@ -1519,22 +1590,6 @@ theorem schema.authReadTx.wp_UnsafeGetUser :
 theorem schema.authBackend.wp_GetUser :
     schema.authBackend.GetUser.spec (GF := GF) (hG := hG) :=
   schema.authBackend.GetUser.wp_proof schema.authBackend.wp_ReadTx schema.authReadTx.wp_RLock schema.authReadTx.wp_UnsafeGetUser schema.authReadTx.wp_RUnlock
-
-theorem schema.wp_unsafeReadAuthEnabled :
-    schema.unsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
-  schema.unsafeReadAuthEnabled.wp_proof
-
-theorem schema.authReadTx.wp_UnsafeReadAuthEnabled :
-    schema.authReadTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG) :=
-  schema.authReadTx.UnsafeReadAuthEnabled.wp_proof schema.wp_unsafeReadAuthEnabled
-
-theorem schema.wp_unsafeReadAuthRevision :
-    schema.unsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
-  schema.unsafeReadAuthRevision.wp_proof binary.bigEndian.wp_Uint64
-
-theorem schema.authReadTx.wp_UnsafeReadAuthRevision :
-    schema.authReadTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG) :=
-  schema.authReadTx.UnsafeReadAuthRevision.wp_proof schema.wp_unsafeReadAuthRevision
 
 theorem storage.wp_NewBackendHooks :
     storage.NewBackendHooks.spec (GF := GF) (hG := hG) :=
@@ -2669,7 +2724,7 @@ theorem wp_addFeatureGateMetrics :
 
 theorem auth.wp_NewAuthStore :
     auth.NewAuthStore.spec (GF := GF) (hG := hG) :=
-  auth.NewAuthStore.wp_proof
+  auth.NewAuthStore.wp_proof zap.Logger.wp_Warn zap.wp_Int' zap.Logger.wp_Debug auth.authStore.wp_setupMetricsReporter schema.authBackend.wp_CreateAuthBuckets schema.authBackend.wp_BatchTx schema.authBackend.wp_ForceCommit schema.authBatchTx.wp_Lock schema.authBatchTx.wp_Unlock schema.authBatchTx.wp_UnsafeReadAuthEnabled schema.authBatchTx.wp_UnsafeReadAuthRevision schema.authBatchTx.wp_UnsafeSaveAuthRevision schema.authBatchTx.wp_UnsafeGetAllUsers backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeForEach schema.bucket.wp_ID schema.bucket.wp_Name schema.bucket.wp_IsSafeRangeBucket backend.backend.wp_ReadTx backend.readTx.wp_RLock_idle backend.readTx.wp_RUnlock backend.readTx.wp_UnsafeRange backend.readTx.wp_UnsafeForEach schema.authReadTx.wp_UnsafeReadAuthEnabled schema.authReadTx.wp_UnsafeReadAuthRevision schema.authReadTx.wp_UnsafeGetAllUsers auth.authStore.wp_AuthInfoFromTLS
 
 theorem auth.wp_newTokenProviderSimple :
     auth.newTokenProviderSimple.spec (GF := GF) (hG := hG) :=

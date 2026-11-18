@@ -29,7 +29,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 
 - **Spec.** New: `Spec/go_etcd_io/etcd/server/v3/storage/backend/batchTxBuffered__UnsafeForEach.lean`
   (`backend.batchTxBuffered.UnsafeForEach.spec`), `readTx__UnsafeForEach.lean`
-  (`backend.readTx.UnsafeForEach.spec`), `readTx__RLock_idle.lean` (`backend.readTx.RLock.specIdle`, a
+  (`backend.readTx.UnsafeForEach.spec`), `readTx__RLock_idle.lean` (`backend.readTx.RLock_idle.spec`, a
   second triple of the proved `readTx.RLock`), each an axiom (`Proof/.../storage/backend/` files of the
   same names). The spec plan's counterparts: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/
   batchTxBuffered__UnsafeForEach.lean`, `readTx__UnsafeForEach.lean` (the general visitor; these are
@@ -47,7 +47,7 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   its constructor, request side, apply contract, `Recover`, `Close`): each a backend fact with its Go
   basis in its docstring. `batchTxBuffered.UnsafeForEach` and `readTx.UnsafeForEach` should become
   theorems once real bbolt is the backend's (branch `bbolt-integrate`, which proves the key-value
-  contract from bbolt's code, `Cursor.First` included); `readTx.RLock.specIdle` once the read model
+  contract from bbolt's code, `Cursor.First` included); `readTx.RLock_idle.spec` once the read model
   carries the idle part (the auth-schema-srv plan's A1). Review with the `axiom` skill before landing.
 - **Decision.** Pending (the user's: trust-boundary specs).
 

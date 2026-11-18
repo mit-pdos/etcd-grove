@@ -32,6 +32,19 @@ schema_authReadTx__RUnlock:
 schema_authBackend__ReadTx:
 schema_authBackend__GetUser: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetUser schema_authReadTx__RUnlock
 schema_authBackend__GetRole: schema_authBackend__ReadTx schema_authReadTx__RLock schema_authReadTx__UnsafeGetRole schema_authReadTx__RUnlock
+# schema's auth backend, the batch side over the real backend, and the users' list of an empty bucket
+# (the authstore-noax stage, 2026-11-18: what `NewAuthStore` and the disabled store's `Recover` call)
+schema_unsafeGetAllUsers:
+schema_authBatchTx__UnsafeGetAllUsers: schema_unsafeGetAllUsers
+schema_authReadTx__UnsafeGetAllUsers: schema_unsafeGetAllUsers
+schema_authBackend__BatchTx: backend__BatchTx
+schema_authBackend__ForceCommit: backend__ForceCommit
+schema_authBatchTx__Lock: batchTxBuffered__LockInsideApply
+schema_authBatchTx__Unlock: batchTxBuffered__Unlock batchTxBuffered__Commit
+schema_authBatchTx__UnsafeReadAuthEnabled: schema_unsafeReadAuthEnabled
+schema_authBatchTx__UnsafeReadAuthRevision: schema_unsafeReadAuthRevision
+schema_authBatchTx__UnsafeSaveAuthRevision: binary_bigEndian__PutUint64 batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+schema_authBackend__CreateAuthBuckets: backend__BatchTx batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeCreateBucket batchTxBuffered__Unlock schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
 # The consistent index (server/etcdserver/cindex/cindex.go), see InvCindex.lean.
 NewConsistentIndex:
 consistentIndex__SetConsistentIndex:
@@ -73,6 +86,10 @@ batchTxBuffered__Unlock: @
 batchTxBuffered__UnsafeRange: @
 batchTxBuffered__UnsafeCreateBucket: @
 batchTxBuffered__UnsafeDelete: @
+batchTxBuffered__Commit: @
+batchTxBuffered__UnsafeForEach: @
+readTx__UnsafeForEach: @
+readTx__RLock_idle: @
 # The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
 # lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
 # (lease/LessorContract.lean).
@@ -659,7 +676,7 @@ auth_newTokenProviderSimple: zap_NewNop
 auth_newTokenProviderJWT:
 auth_newTokenProviderNop:
 auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTokenProviderJWT auth_newTokenProviderNop zap_Logger__Warn zap_String zap_Error
-auth_NewAuthStore:
+auth_NewAuthStore: zap_Logger__Warn zap_Int zap_Logger__Debug auth_authStore__setupMetricsReporter schema_authBackend__CreateAuthBuckets schema_authBackend__BatchTx schema_authBackend__ForceCommit schema_authBatchTx__Lock schema_authBatchTx__Unlock schema_authBatchTx__UnsafeReadAuthEnabled schema_authBatchTx__UnsafeReadAuthRevision schema_authBatchTx__UnsafeSaveAuthRevision schema_authBatchTx__UnsafeGetAllUsers batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeForEach schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket backend__ReadTx readTx__RLock_idle readTx__RUnlock readTx__UnsafeRange readTx__UnsafeForEach schema_authReadTx__UnsafeReadAuthEnabled schema_authReadTx__UnsafeReadAuthRevision schema_authReadTx__UnsafeGetAllUsers auth_authStore__AuthInfoFromTLS
 # (the spec-first pilot, phase 1, 2026-10-27: notes/compactor-pilot-plan.md) the auto-compactor with
 # its bodies, specified; `New`, `newPeriodic`, `newRevision` and the getters are phase 1's glue
 # (`sorry` until written), `Run` phase 3's and the rest phase 4's. The clock is the trust boundary.

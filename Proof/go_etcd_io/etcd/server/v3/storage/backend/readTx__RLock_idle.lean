@@ -25,7 +25,7 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
-axiom backend.readTx.RLock.wp_idle : backend.readTx.RLock.specIdle (GF := GF) (hG := hG)
+axiom backend.readTx.RLock_idle.wp_proof : backend.readTx.RLock_idle.spec (GF := GF) (hG := hG)
 
 end proof
 

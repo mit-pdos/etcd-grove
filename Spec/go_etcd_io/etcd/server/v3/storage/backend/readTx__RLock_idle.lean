@@ -47,7 +47,7 @@ Later write-backs and commits (other sessions', the `run` goroutine's periodic c
 which excludes the holders of `readTx.mu`'s read lock, so the state `RLock` acquires is fixed until
 `RUnlock`. The same reasoning as the trusted readers that take an idle part
 (`membershipBackend.MustReadMembersFromBackend.spec`, `TestBksNewAuthStoreIdle`). -/
-abbrev backend.readTx.RLock.specIdle : Prop :=
+abbrev backend.readTx.RLock_idle.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (rt : Loc) (qo : Qp)
     (S : GoString → Prop) (r : GMap GoString BktData),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗

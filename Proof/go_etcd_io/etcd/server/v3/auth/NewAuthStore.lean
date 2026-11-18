@@ -67,7 +67,7 @@ theorem auth.NewAuthStore.wp_proof
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
-    (hRL : backend.readTx.RLock.specIdle (GF := GF) (hG := hG))
+    (hRL : backend.readTx.RLock_idle.spec (GF := GF) (hG := hG))
     (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (hURr : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG))
     (hFEr : backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG))
@@ -251,7 +251,7 @@ theorem auth.NewAuthStore.wp_proof
         (go.GoType.PointerType storage.schema.authBatchTx.ty) #atl : GoInterface) ∗
       as_ptr ↦ «$r0_ptr» ∗ auth.aF go!"revision" «$r0_ptr» ↦ W64 1 ∗
       backend.batchLocked d.γB d.P d.be st' ∗ backend.rbPut d.γB d.P mvcc.authBI.name st'.S ∗
-      ⌜backend.bktOf st'.S mvcc.authBI.name = authBoot ∧
+      ⌜st'.S.lookup mvcc.authBI.name = some authBoot ∧
         (∀ n, n ≠ mvcc.authBI.name → st'.S.lookup n = st.S.lookup n) ∧ st'.cnt = st.cnt ∧
         backend.viewSame d.P st' ∧ sint.Z st'.pend ≤ sint.Z st.pend + 1⌝)
     with [tx «as» revision Hl HrbA] as ⟨%st', tx, «as», revision, Hl, HrbA, %Hst'⟩
@@ -291,10 +291,9 @@ theorem auth.NewAuthStore.wp_proof
     · iExactEq HrbA; rfl
     ipureintro
     refine ⟨?_, ?_, rfl, mvcc.viewSame_putHB HPw hHBa hA hvs0, ?_⟩
-    · show backend.bktOf (st.S.insert mvcc.authBI.name _) mvcc.authBI.name = _
-      unfold backend.bktOf
+    · show (st.S.insert mvcc.authBI.name _).lookup mvcc.authBI.name = _
       rw [GMap.lookup_insert]
-      show (backend.bktOf st.S mvcc.authBI.name).insert _ _ = _
+      show some ((backend.bktOf st.S mvcc.authBI.name).insert _ _) = _
       rw [hbA, hemp]; rfl
     · intro n hn
       show (st.S.insert mvcc.authBI.name _).lookup n = _
@@ -320,8 +319,107 @@ theorem auth.NewAuthStore.wp_proof
     isplitl [revision]
     · rw [hx1]; iexact revision
     ipureintro
-    exact ⟨by rw [hbA, hboot], fun _ _ => rfl, rfl, hvs0, by omega⟩
-  sorry
+    exact ⟨by rw [hbkt _ hSa hRBa, schema.authCreated_auth, hboot], fun _ _ => rfl, rfl, hvs0,
+      by omega⟩
+  obtain ⟨hlk', hoth', hcnt', hvs', hpend'⟩ := Hst'
+  -- `setupMetricsReporter()`
+  wp_apply (h_metrics «$r0_ptr») $$ [$Hpkg]
+  (try wp_auto)
+  -- the disabled store's invariant: the revision's atomic, the three locks
+  imod inv_alloc (nroot.@"authRev") ⊤ (∃ rv : w64, auth.aF go!"revision" «$r0_ptr» ↦ rv)
+    $$ [revision] with #Hrev
+  · inext; iexists _; iexact revision
+  ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
+  imod (sync.init_RWMutex (auth.offBeP «$r0_ptr») (auth.aF go!"beMu" «$r0_ptr») (E := ⊤))
+    $$ [Hbe1] beMu with HbeS
+  · inext; iunfold auth.offBeP; iexists _; iexact Hbe1
+  imod (sync.init_RWMutex (auth.offEnP «$r0_ptr») (auth.aF go!"enabledMu" «$r0_ptr») (E := ⊤))
+    $$ [enabled] enabledMu with HenS
+  · inext; iunfold auth.offEnP; iexact enabled
+  imod (sync.init_RWMutex (auth.offCaP «$r0_ptr») (auth.aF go!"rangePermCacheMu" «$r0_ptr»)
+    (E := ⊤)) $$ [rangePermCache] rangePermCacheMu with HcaS
+  · inext; iunfold auth.offCaP; iexists mp; iexact rangePermCache
+  ihave ⟨-, #Gbe⟩ := sync.ownRWMutex_slots_guard _ _ $$ HbeS
+  ihave ⟨HenS, #Gen⟩ := sync.ownRWMutex_slots_guard _ _ $$ HenS
+  ihave ⟨-, #Gca⟩ := sync.ownRWMutex_slots_guard _ _ $$ HcaS
+  ipersist lg
+  ihave #Hinv : auth.offInv «$r0_ptr» $$ []
+  · iunfold auth.offInv
+    iframe Hrev Gbe Gen Gca
+    isplitr
+    · ipureintro; exact Hstnn
+    iexists lg; iframe lg Hlgz
+  -- `refreshRangePermCache(tx)`: no user
+  have hbU' : backend.bktOf st'.S mvcc.authUsersBI.name = ∅ := by
+    unfold backend.bktOf; rw [hoth' _ (by decide)]; exact hbU
+  ihave #HFE := schema.batch_forEachUsersEmpty hFEb hID hName hSafe d.γB d.P W Pk d.be t st' hU hbU'
+    $$ [$Hspkg $Hbpkg $HB $Ht]
+  ihave #HGA : auth.getAllUsersNone ⟨go.GoType.PointerType storage.schema.authBatchTx.ty, #atl⟩
+      (backend.batchLocked d.γB d.P d.be st') $$ []
+  · iunfold auth.getAllUsersNone
+    iintro !> %Φ' !> HH HΦ'
+    iapply (hGAU atl lg ⟨go.GoType.PointerType storage.backend.batchTxBuffered.ty, #t⟩
+      (backend.batchLocked d.γB d.P d.be st')) $$ [$Hspkg $Htxf $Htlg $HH $HFE]
+    iexact HΦ'
+  wp_apply (auth.refreshRangePermCache_off h_Debug «$r0_ptr»
+      ⟨go.GoType.PointerType storage.schema.authBatchTx.ty, #atl⟩ (backend.batchLocked d.γB d.P d.be st'))
+    $$ [$Hpkg $Hinv $Hl $HGA] as Hl
+  (try wp_auto)
+  -- `tx.Unlock()`: the auth buckets' part idle, at `authBoot`
+  have hfin : ∀ n, n = mvcc.authBI.name →
+      (backend.rbData d.P st'.S).lookup n = ((schema.authCreated r).insert mvcc.authBI.name authBoot).lookup n := by
+    rintro n rfl
+    rw [backend.rbData_lookup, hRBa, GMap.lookup_insert]
+    simpa using hlk'
+  ihave HrbA : backend.rbPart d.γB (· = mvcc.authBI.name)
+      ((schema.authCreated r).insert mvcc.authBI.name authBoot) $$ [HrbA]
+  · unfold backend.rbPut; rw [hRBa]; simp only [↓reduceIte]
+    iapply (backend.rbPart_congr d.γB _ _ _ hfin).1 $$ HrbA
+  ihave HrbO := (backend.rbPart_congr d.γB _ (schema.authCreated r)
+    ((schema.authCreated r).insert mvcc.authBI.name authBoot)
+    (fun n hn => by rw [GMap.lookup_insert_ne _ _ (Ne.symm hn.2)])).1 $$ HrbO
+  ihave Hrb := (backend.rbPart_split d.γB (· = mvcc.authBI.name) (fun n => S n ∧ n ≠ mvcc.authBI.name) _
+    (fun n h1 h2 => h2.2 h1)).2 $$ [$HrbA $HrbO]
+  ihave Hrb := (backend.rbPart_set d.γB S _ _ hsplit).2 $$ Hrb
+  ihave ⟨#Hth, %Hnw⟩ := backend.viewSame_thin d.γB d.P _ hvs'
+  ihave #Hcr := backend.commitReq_true (GF := GF) d.γB d.P Pk d.be
+  have hhw : st'.cnt.hw = false := by rw [hcnt']; exact Hfree.2.2.2.2
+  have hroom : sint.Z st'.pend + d.P.hookMax < 2 ^ 58 := by
+    have := HPw.2.2.2.1; omega
+  wp_apply (hUnlock atl d.γB d.P W Pk d.be t st' iprop(True) S
+      ((schema.authCreated r).insert mvcc.authBI.name authBoot) qo iprop(True) iprop(True) hhw hroom)
+    $$ [$Hspkg $Htxf $HB $Ht $Hl $Hwb2 $Hrb HW HPk $Hwb3 $Ho $Hcr] as ⟨-, Hrb, Ho, -⟩
+  · ileft; iframe HW HPk Hth; ipureintro; exact Hnw
+  (try wp_auto)
+  -- `be.ForceCommit()`
+  wp_apply (hFCm abl d.γB d.P W Pk d.be qo iprop(True) iprop(True)) $$ [$Hspkg $Habbe $HB $Ho $Hwb4 $Hcr]
+    as ⟨Ho, -⟩
+  (try wp_auto)
+  iapply HΦ
+  iframe Ho Hh
+  isplitl [Hrb]
+  · iapply (backend.rbOwnIn_congr d.γB S
+      ((schema.authCreated r).insert go_etcd_io.etcd.server.v3.storage.schema.authName authBoot)
+      (((r.insert go!"auth" authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅)
+      (fun n _ => by exact schema.authCreated_final r authBoot Hr.2.1 Hr.2.2 n)).1 $$ Hrb
+  iexists (auth.offRd «$r0_ptr»), «$r0_ptr»
+  isplitr
+  · ipureintro; rfl
+  isplitl [Hbe2]
+  · iunfold authBeOn
+    iexists abl, lg
+    iframe Hbe2 Habbe Hablg
+    ipureintro; exact Hlg
+  isplitl [HenS]
+  · iunfold auth.offRd; iexact HenS
+  isplitl []
+  · iapply (isReqAuth_off hTLS «$r0_ptr») $$ [$Hpkg $Hinv]
+  isplitl []
+  · iapply (authApplyOk_off «$r0_ptr») $$ [$Hpkg $Hinv]
+  isplitl []
+  · iapply (authRecoverOk_off hRT hRL hRU hURr hFEr hID hName hSafe hEnR hRevR hGAR h_Debug «$r0_ptr»)
+      $$ [$Hpkg $Hspkg $Hinv]
+  iapply (authCloseOk_off «$r0_ptr») $$ Hinv
 
 end proof
 

@@ -41,6 +41,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__U
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDelete
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeDeleteBucket
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafePut
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeSeqPut
@@ -100,8 +101,10 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBoltLoggerZap
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.newBucketBuffer
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Lock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock_idle
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__Unlock
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.readTx__reset
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.snapshot__Close
@@ -507,6 +510,10 @@ theorem batchTxBuffered.wp_UnsafeDeleteBucket :
     EtcdGrove.backend.batchTxBuffered.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof batchTx.wp_UnsafeDeleteBucket
 
+theorem batchTxBuffered.wp_UnsafeForEach :
+    EtcdGrove.backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.batchTxBuffered.UnsafeForEach.wp_proof
+
 theorem bbolt.Bucket.wp_Put_kv :
     EtcdGrove.bbolt.Bucket.Put_kv.spec (GF := GF) (hG := hG) :=
   EtcdGrove.bbolt.Bucket.Put_kv.wp_proof
@@ -591,9 +598,17 @@ theorem readTx.wp_RLock :
     EtcdGrove.backend.readTx.RLock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.RLock.wp_proof
 
+theorem readTx.wp_RLock_idle :
+    EtcdGrove.backend.readTx.RLock_idle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.readTx.RLock_idle.wp_proof
+
 theorem readTx.wp_RUnlock :
     EtcdGrove.backend.readTx.RUnlock.spec (GF := GF) (hG := hG) :=
   EtcdGrove.backend.readTx.RUnlock.wp_proof
+
+theorem readTx.wp_UnsafeForEach :
+    EtcdGrove.backend.readTx.UnsafeForEach.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.backend.readTx.UnsafeForEach.wp_proof
 
 theorem readTx.wp_UnsafeRange :
     EtcdGrove.backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG) :=

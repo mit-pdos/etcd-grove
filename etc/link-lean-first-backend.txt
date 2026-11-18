@@ -113,6 +113,12 @@ readTx__RLock:
 readTx__RUnlock: 
 readTx__Unlock: 
 readTx__UnsafeRange: baseReadTx__UnsafeRange
+# (the authstore-noax stage, 2026-11-18) the trust boundary: `UnsafeForEach` on an empty bucket (bbolt's
+# `ForEach` calls `Cursor.First`, which the key-value contract lacks) and a read begun with an idle part
+# of the tracked buckets (the read model does not relate a hook bucket's view to the writer's contents)
+batchTxBuffered__UnsafeForEach:
+readTx__UnsafeForEach:
+readTx__RLock_idle:
 readTx__reset: txReadBuffer__reset
 txBuffer__reset: 
 txReadBuffer__ForEach: bucketBuffer__ForEach

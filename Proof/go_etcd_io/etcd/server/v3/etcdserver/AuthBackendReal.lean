@@ -107,6 +107,28 @@ theorem authCreated_other (r : GMap GoString BktData) (n : GoString) (h1 : n ≠
   rw [GMap.lookup_insert_ne _ _ (Ne.symm h3), GMap.lookup_insert_ne _ _ (Ne.symm h2),
     GMap.lookup_insert_ne _ _ (Ne.symm h1)]
 
+/-- **The tracked buckets after `NewAuthStore`** on a part whose users' and roles' buckets are empty
+or absent: the auth bucket at `b`, the other two `∅`. -/
+theorem authCreated_final (r : GMap GoString BktData) (b : BktData)
+    (hu : (r.lookup mvcc.authUsersBI.name).getD ∅ = ∅) (hr : (r.lookup mvcc.authRolesBI.name).getD ∅ = ∅)
+    (n : GoString) :
+    ((authCreated r).insert mvcc.authBI.name b).lookup n =
+      (((r.insert mvcc.authBI.name b).insert mvcc.authUsersBI.name ∅).insert
+        mvcc.authRolesBI.name ∅).lookup n := by
+  by_cases e1 : n = mvcc.authBI.name
+  · subst e1
+    rw [GMap.lookup_insert, GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide),
+      GMap.lookup_insert]
+  rw [GMap.lookup_insert_ne _ _ (Ne.symm e1)]
+  by_cases e2 : n = mvcc.authUsersBI.name
+  · subst e2
+    rw [authCreated_users, GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert, hu]
+  by_cases e3 : n = mvcc.authRolesBI.name
+  · subst e3
+    rw [authCreated_roles, GMap.lookup_insert, hr]
+  rw [authCreated_other r n e1 e2 e3, GMap.lookup_insert_ne _ _ (Ne.symm e3),
+    GMap.lookup_insert_ne _ _ (Ne.symm e2), GMap.lookup_insert_ne _ _ (Ne.symm e1)]
+
 section buckets
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
