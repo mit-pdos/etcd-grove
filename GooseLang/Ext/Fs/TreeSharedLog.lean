@@ -165,23 +165,6 @@ theorem touched_writes (o : MetaOp) (j : Ino) (b : GoString) (h : b ∈ o.touche
       · simp at h; subst h; rename_i hj; subst hj; simp [MetaOp.slots]
       · simp at h
 
-/-- A directory of a tree stays one after any operation. -/
-theorem mem_apply_of_mem (o : MetaOp) (m : Tree) (x : Ino) (h : x ∈ m) : x ∈ o.apply m := by
-  cases o with
-  | create j b i => simp only [MetaOp.apply]; rw [mem_upd]; exact .inr h
-  | mkdir j b J =>
-    simp only [MetaOp.apply]
-    rw [GMap.mem_iff]
-    by_cases hx : J = x
-    · subst hx; simp
-    · rw [GMap.lookup_insert_ne _ _ hx, ← GMap.mem_iff, mem_upd]; exact .inr h
-  | remove j b n => simp only [MetaOp.apply]; rw [mem_upd]; exact .inr h
-  | rename j b j' b' n old =>
-    simp only [MetaOp.apply]
-    split
-    · rw [mem_upd, mem_upd]; exact .inr (.inr h)
-    · exact h
-
 /-- The directories an operation makes. -/
 def MetaOp.newDirs : MetaOp → List Ino
   | .mkdir _ _ J => [J]
@@ -264,6 +247,76 @@ theorem phOkS_note {st st' : OsState} {j : Ino} {x : DirPhS} {df : OsDirFd} {o :
         · rw [hp, ← hs]; simp [hna]
         · rw [← hr']; simp [hnt]
 
+/-- A directory with an entry is one of the tree. -/
+theorem mem_of_entry {m : Tree} {j : Ino} {b : GoString} {n : Node} (h : m.entry j b = some n) :
+    j ∈ m := by
+  cases hj : m !! j with
+  | none => simp [Tree.entry, hj] at h
+  | some _ => rw [GMap.mem_iff, hj]; rfl
+
+/-- An operation writes its directory. -/
+theorem writes_dir (o : MetaOp) : ∃ b, o.Writes o.dir b := by
+  cases o with
+  | create j b i => exact ⟨b, .inl (by simp [MetaOp.slots, MetaOp.dir])⟩
+  | mkdir j b J => exact ⟨b, .inl (by simp [MetaOp.slots, MetaOp.dir])⟩
+  | remove j b n => exact ⟨b, .inl (by simp [MetaOp.slots, MetaOp.dir])⟩
+  | rename j b j' b' n old => exact ⟨b, .inl (by simp [MetaOp.slots, MetaOp.dir])⟩
+
+/-- The directories of an earlier tree of the run are directories of a later one. -/
+theorem prefTree_mono_mem (T0 : Tree) (log : List LogEntry) {t : Nat} :
+    ∀ u, t ≤ u → u ≤ log.length → ∀ x, x ∈ prefTree T0 log t → x ∈ prefTree T0 log u
+  | 0, h, _, x, hx => by rwa [show t = 0 by omega] at hx
+  | u + 1, h, hu, x, hx => by
+    rcases Nat.lt_or_ge u t with h' | h'
+    · rwa [show t = u + 1 by omega] at hx
+    obtain ⟨e, he⟩ : ∃ e, log[u]? = some e := ⟨_, List.getElem?_eq_getElem (by omega)⟩
+    rw [prefTree_succ T0 log he]
+    exact mem_apply_of_mem _ _ _ (prefTree_mono_mem T0 log u h' (by omega) x hx)
+
+/-- An operation whose written directories are all of one root keeps a tree's entries naming
+directories in their parents' roots. -/
+theorem ents_apply {ρ : Ino → GoString} {m : Tree} (o : MetaOp)
+    (hm : ∀ j b J, m.entry j b = some (.dir J) → ρ J = ρ j)
+    (htag : ∀ j b, o.Writes j b → ρ j = ρ o.dir) :
+    ∀ j b J, (o.apply m).entry j b = some (.dir J) → ρ J = ρ j := by
+  intro j b J h
+  cases o with
+  | create j0 b0 i =>
+    rw [entry_create] at h
+    split at h
+    · simp at h
+    · exact hm j b J h
+  | mkdir j0 b0 J0 =>
+    rw [entry_mkdir] at h
+    split at h
+    · simp at h
+    split at h
+    · rename_i hjb
+      obtain ⟨rfl, rfl⟩ := hjb
+      cases h
+      rw [htag J b0 (.inr ⟨j0, b0, rfl⟩), htag j0 b0 (.inl (by simp [MetaOp.slots]))]
+    · exact hm j b J h
+  | remove j0 b0 n =>
+    rw [entry_remove] at h
+    split at h
+    · simp at h
+    · exact hm j b J h
+  | rename j0 b0 j1 b1 n old =>
+    rw [entry_rename] at h
+    cases hs : m.entry j0 b0 with
+    | none => rw [hs] at h; exact hm j b J h
+    | some n' =>
+      rw [hs] at h; simp only at h
+      split at h
+      · rename_i hjb
+        obtain ⟨rfl, rfl⟩ := hjb
+        cases h
+        rw [hm j0 b0 J hs, htag j0 b0 (.inl (by simp [MetaOp.slots])),
+          htag j1 b1 (.inl (by simp [MetaOp.slots]))]
+      · split at h
+        · simp at h
+        · exact hm j b J h
+
 /-- **The shared coherence after a step that logged `o`** for the call `k` (begun at `s0`, holding
 `q` of the permission). -/
 theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirPhS)}
@@ -282,7 +335,10 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
       x.2.val + q.val + g.2.val ≤ 1)
     (hok : ¬ o.IsDirOp → OpOk st.tree o ∧ ∀ j b i, o = .create j b i → ∀ t,
       t ≤ st.fs.metaLog.length → ¬ Named (prefTree st.fs.treeDur st.fs.metaLog t) i)
-    (hadd : ∀ j b, b ∈ o.adds j → NameOk b) :
+    (hadd : ∀ j b, b ∈ o.adds j → NameOk b)
+    (hw : FsTreeWf st) (hroots : st'.fs.roots = st.fs.roots)
+    (hρ : ∀ ρ, RootCoh st s1 ρ → ∃ ρ' : Ino → GoString, (∀ j, j ∈ st.tree → ρ' j = ρ j) ∧
+      (∀ j b, o.Writes j b → ρ' j = ρ' o.dir) ∧ ∀ j b, o.Writes j b → j ∈ o.apply st.tree) :
     TreeCohS st' s1 Γdf (GMap.delete k Γc) Γg := by
   have hle : s0 ≤ st.fs.metaLog.length := hc.callsLe k _ hk
   refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
@@ -300,24 +356,90 @@ theorem treeCohS_log {st st' : OsState} {s1 : Nat} {Γdf : GMap w64 (Ino × DirP
     · rcases getElem?_snoc_cases hy with ⟨-, hy⟩ | ⟨rfl, -⟩
       · exact hpss y ey hy hsl
       · omega
-  · intro x ex hx hd
-    rw [hlog] at hx
-    rcases getElem?_snoc_cases hx with ⟨hxl, hx⟩ | ⟨rfl, rfl⟩
-    · obtain ⟨h1, h2⟩ := hc.dox x ex hx hd
-      refine ⟨h1, fun z ez hxz hz => ?_⟩
-      rw [hlog] at hz
-      rcases getElem?_snoc_cases hz with ⟨-, hz⟩ | ⟨rfl, rfl⟩
-      · exact h2 z ez hxz hz
-      · exact hc.after k _ hk x ex hx hd
-    · have hdo : o.IsDirOp := by
-        rcases hd with hd | hd
-        · exact hd
-        · have := hc.s0le; omega
-      have hs : s0 = st.fs.metaLog.length := hdirS hdo
-      refine ⟨hs, fun z ez hxz hz => ?_⟩
-      rw [hlog] at hz
-      have := (List.getElem?_eq_some_iff.1 hz).1
-      simp at this; omega
+  · obtain ⟨ρ, hrc⟩ := hc.rc
+    obtain ⟨ρ', hag, htag, hwk⟩ := hρ ρ hrc
+    have hpt : prefTree st.fs.treeDur st.fs.metaLog st.fs.metaLog.length = st.tree := (tree_prefTree st).symm
+    have htrees : ∀ t, t ≤ st.fs.metaLog.length → ∀ x, x ∈ prefTree st.fs.treeDur st.fs.metaLog t →
+        x ∈ st.tree := fun t ht x hx => hpt ▸ prefTree_mono_mem _ _ _ ht (Nat.le_refl _) x hx
+    have htg : ∀ x (e : LogEntry), s1 ≤ x → st.fs.metaLog[x]? = some e → tagOf ρ' e = tagOf ρ e :=
+      fun x e hx he => by
+        obtain ⟨b, hb⟩ := writes_dir e.op
+        exact hag _ (hrc.wkeys x e hx he _ b hb)
+    have hs1 := hc.s0le
+    -- the legacy entries and the old directory operations took effect before the new entry's call
+    have haft : ∀ y (ey : LogEntry), st.fs.metaLog[y]? = some ey → (ey.op.IsDirOp ∨ y < s1) → y < s0 :=
+      fun y ey hy hd => hc.after k _ hk y ey hy hd
+    refine ⟨ρ', ⟨⟨fun r j hr => ?_, fun t ht1 ht2 j b J he => ?_, fun x e hx he j b hwr => ?_⟩,
+      fun x ex hx => ?_, fun x e hx he j b hwr => ?_⟩⟩
+    · rw [hroots] at hr
+      have hj0 : j ∈ prefTree st.fs.treeDur st.fs.metaLog st.fs.metaLog.length :=
+        (hw.hist st.fs.metaLog.length (Nat.le_refl _)).1.1 j (.root r j hr)
+      have hjt : j ∈ st.tree := by rw [hpt] at hj0; exact hj0
+      rw [hag j hjt]; exact hrc.tags.roots r j hr
+    · rw [hlog, hdur] at he
+      rw [hlog] at ht2
+      simp only [List.length_append, List.length_singleton] at ht2
+      rcases Nat.lt_or_ge t (st.fs.metaLog.length + 1) with h | h
+      · rw [prefTree_snoc_le _ _ _ (by omega)] at he
+        have hwt := (hw.hist t (by omega)).1
+        have hJ : J ∈ prefTree st.fs.treeDur st.fs.metaLog t :=
+          (hwt.2.2.1 j b (.dir J) he).2 J (by simp [Node.dirIno])
+        rw [hag J (htrees t (by omega) J hJ), hag j (htrees t (by omega) j (mem_of_entry he))]
+        exact hrc.tags.ents t ht1 (by omega) j b J he
+      · have he' : (st.fs.metaLog ++ [(⟨o, s0⟩ : LogEntry)])[st.fs.metaLog.length]? = some ⟨o, s0⟩ := by simp
+        rw [show t = st.fs.metaLog.length + 1 by omega, prefTree_succ _ _ he',
+          prefTree_snoc_le _ _ _ (Nat.le_refl _), hpt] at he
+        have hcur : ∀ j b J, st.tree.entry j b = some (.dir J) → ρ' J = ρ' j := by
+          intro j b J he
+          have hwt := (hw.hist st.fs.metaLog.length (Nat.le_refl _)).1
+          rw [← hpt] at he
+          have hJ := (hwt.2.2.1 j b (.dir J) he).2 J (by simp [Node.dirIno])
+          rw [hag J (htrees _ (Nat.le_refl _) J hJ), hag j (htrees _ (Nat.le_refl _) j (mem_of_entry he))]
+          exact hrc.tags.ents _ hs1 (Nat.le_refl _) j b J he
+        exact ents_apply o hcur htag j b J he
+    · rw [hlog] at he
+      rcases getElem?_snoc_cases he with ⟨-, he⟩ | ⟨rfl, rfl⟩
+      · rw [htg x e hx he, hag j (hrc.wkeys x e hx he j b hwr)]
+        exact hrc.tags.ops x e hx he j b hwr
+      · exact htag j b hwr
+    · rw [hlog] at hx
+      rcases getElem?_snoc_cases hx with ⟨hxl, hx⟩ | ⟨rfl, rfl⟩
+      · obtain ⟨hl1, hl2⟩ := hrc.dox x ex hx
+        refine ⟨fun hxs => ⟨(hl1 hxs).1, fun z ez hxz hz => ?_⟩, fun hd => ?_⟩
+        · rw [hlog] at hz
+          rcases getElem?_snoc_cases hz with ⟨-, hz⟩ | ⟨rfl, rfl⟩
+          · exact (hl1 hxs).2 z ez hxz hz
+          · exact haft x ex hx (.inr hxs)
+        · rcases Nat.lt_or_ge x s1 with hxs | hxs
+          · refine ⟨fun y ey h1 h2 _ => absurd h1 (by rw [(hl1 hxs).1]; omega), fun z ez hxz hz _ => ?_⟩
+            rw [hlog] at hz
+            rcases getElem?_snoc_cases hz with ⟨-, hz⟩ | ⟨rfl, rfl⟩
+            · exact (hl1 hxs).2 z ez hxz hz
+            · exact haft x ex hx (.inr hxs)
+          · obtain ⟨hA, hB⟩ := hl2 hd
+            refine ⟨fun y ey h1 h2 hy => ?_, fun z ez hxz hz hzt => ?_⟩
+            · rw [hlog] at hy
+              rcases getElem?_snoc_cases hy with ⟨-, hy⟩ | ⟨rfl, -⟩
+              · rcases Nat.lt_or_ge y s1 with hys | hys
+                · exact absurd h1 (Nat.not_le.2 (((hrc.dox y ey hy).1 hys).2 x ex h2 hx))
+                · rw [htg y ey hys hy, htg x ex hxs hx]; exact hA y ey h1 h2 hy
+              · omega
+            · rw [hlog] at hz
+              rcases getElem?_snoc_cases hz with ⟨hzl, hz⟩ | ⟨rfl, rfl⟩
+              · have hzs : s1 ≤ z := by omega
+                rw [htg z ez hzs hz, htg x ex hxs hx] at hzt
+                exact hB z ez hxz hz hzt
+              · exact haft x ex hx (.inl hd)
+      · refine ⟨fun hxs => absurd hxs (by omega), fun hd => ⟨fun y ey h1 h2 _ => by
+          have hs := hdirS hd; simp only at h1; omega, fun z ez hxz hz _ => ?_⟩⟩
+        rw [hlog] at hz
+        have := (List.getElem?_eq_some_iff.1 hz).1
+        simp at this; omega
+    · rw [hlog] at he
+      rw [htree]
+      rcases getElem?_snoc_cases he with ⟨-, he⟩ | ⟨rfl, rfl⟩
+      · exact mem_apply_of_mem _ _ _ (hrc.wkeys x e hx he j b hwr)
+      · exact hwk j b hwr
   · intro x e hx hnd
     rw [hdur]
     rw [hlog] at hx
@@ -1059,7 +1181,7 @@ theorem wp_logStepSWG (op : String) (v : val) (hv : v.isPanic = false) (R : Root
       rw [hend.roots, hend.dur, hend.log]
       iframe
       ipureintro
-      exact ⟨hwf', (treeCohS_metaEnd hc k hk).congr hend.dur hend.log hend.dfds hend.calls⟩
+      exact ⟨hwf', (treeCohS_metaEnd hc k hk).congr hend.dur hend.log hend.dfds hend.calls hend.roots⟩
     iapply wp_value'
     iapply HΦ $$ %w [Hq] Hgd HF
     · unfold osCallPerm; iexact Hq

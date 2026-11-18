@@ -1,6 +1,44 @@
 # WAL link: handoff
 
-## START HERE (2026-11-17, L4 phase A: calls carry their paths; STOP at the per-root cost delta)
+## START HERE (2026-11-18, per-root crash theorem: pure part done; fs library NOT building at this head)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
+  (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands; not landed on 2026-11-18).
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** phase A accepted; the per-root crash-theorem rework approved
+  (part of L4). `closed_cut`/`machineCrash_initS` checked internal (Fs extension only; no interface, Results or tcb root).
+- **Done (this commit, WIP):** `TreeCut.lean`: `MetaOp.dir`, `tagOf ρ`, `ReachFrom`, `RootTags ρ R T0 log s0` (roots,
+  ents for t >= s0, ops for x >= s0), `DirOpExcl ρ log s0` per root (legacy clause global; a dir op excludes only its
+  root's entries). `TreeCutProof.lean` (968 -> ~1060 lines): `closed_cut` restated IN PLACE (takes `hρ : RootTags`; 4th
+  conclusion now "each kept directory is in some prefix tree"), reproved per root (`cut_base_r`, `run_dirs_r`,
+  `kept_slot_r`, `kept_keys_below`/`_r`, `kept_inj` from s0, `treeWf_merge`, `reach_restrict`; case "nothing kept past
+  s0" = a prefix); `rootTags_exists` (a tree's tags, for the switch). Checked with the kernel (lean-check, no --fast).
+  `Ghost.lean`: `RootCoh st s0 ρ` (tags, dox, wkeys: written dirs are dirs of the tree now); `TreeCohS.dox` replaced IN
+  PLACE by `rc : ∃ ρ, RootCoh st s0 ρ` (no new TreeCohS parameter: no icases pattern changes); `TreeCohS.congr` takes
+  `hr` (roots). `CrashFiles.machineCrash_initS` over the new `closed_cut` (checked). `TreeSharedSwitch.cohS_switch` takes
+  `FsTreeWf` and builds ρ by `rootTags_exists`. `TreeSharedLog.treeCohS_log` keeps `rc` (proved) given three new
+  premises: `hw : FsTreeWf st`, `hroots`, and `hρ : ∀ ρ, RootCoh st s1 ρ → ∃ ρ', ρ' = ρ on st.tree ∧ every dir o
+  writes has ρ' = ρ' o.dir ∧ every dir o writes is a dir of o.apply st.tree`. Helpers there: `mem_of_entry`,
+  `writes_dir`, `prefTree_mono_mem`, `ents_apply`; `mem_apply_of_mem` moved to TreeCutProof.
+- **Next, in order:** (1) the one failing site, `TreeSharedLog.lean` ~l.1211 (`wp_logStepSWG`'s call of
+  `treeCohS_log`): add to its `htree` premise the clause `∃ rj ∈ R, IsUnder rj.1 pc ∧ ∀ c ∈ cl, ReachFrom st.tree rj.2
+  c.1`, build ρ' := `fun j => if j ∈ o.newDirs then ρ o.dir else ρ j` (newDirs ∉ st.tree by htree), get `ρ c.1 = rj.1`
+  by `rho_of_reachFrom` (roots + ents at the current tree), slot dirs ∈ claims (`hslots`), `o.dir` a slot dir; thread
+  the clause through the 5 wrappers (`wp_logStepSW/SN/S/SNG/SG`) and the 12 client sites (TreeSharedCreate 2,
+  CreateN 1, Meta 6, RenameAny 2, `Proof/os/UnlinkN` 1) with a lemma `reachFrom_of_lookup : st.lookup d = some (.dir j)
+  → ∃ rj ∈ roots, IsUnder rj.1 d ∧ ReachFrom st.tree rj.2 j` (from `lookup_some` + a `walk` induction as
+  `reach_of_walk`) and `IsUnder r d → IsUnder r (child d b)`; cross-directory renames: the two lookups' roots agree by
+  `hsr : SameRootR` and root uniqueness of a path (RootsOk: no root under another). (2) full fs build; (3) stage 2: the
+  per-key permission (`callKey`, `osCallPerm r q`, `whole`/`after`/`pair` per key inside `RootCoh`, tag = callKey pc
+  from the clause above), then the ~145 client files, one WalGS per area, L3.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-c6b.json etc/lean-check.py --max-open 2 -q -a
+  --fast FILE`. **Build:** `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-c6b.json build`.
+- **Pitfalls:** a state built by `callBegin`/`delDfd`/`setDfd`/`metaEnd` is not syntactically `st` in `RootCoh`:
+  pass `hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩)`, not `hc.rc`; `writer_tag`/`Writes` from `.inl hsl` needs
+  `(j := sl.1) (b := sl.2)`; a `let` bound by `Classical.choose` is opaque to `omega` (ascribe the fact to the let).
+
+## History
+
+### START HERE (2026-11-17, L4 phase A: calls carry their paths; STOP at the per-root cost delta)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; `.lake/package-overrides.json` = `/shared/tmp/manifest-c6b.json`
   (switch both to `manifest-6d3.json` after merging lean once the 6d365ee1a pin bump lands). Coordinator: etcd-grove-03.
@@ -37,7 +75,6 @@
   unification find it; `calls_start` now compares pairs (`have hse := calls_start …; simp only [Prod.mk.injEq] at hse`);
   `Rename`'s inversion has one more conjunct (`SameRoot`); `Roots` is not in scope in TreeLemmas (use `List (GoString × Ino)`).
 
-## History
 
 ### START HERE (2026-11-17, L4 text applied; fs library NOT yet rebuilt)
 

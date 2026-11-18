@@ -624,7 +624,7 @@ theorem wp_osOpenFileS' (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       iframe
       ipureintro
       exact ⟨fsTreeWf_addFd (fsTreeWf_metaEnd hw k) hdfn,
-        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl⟩
+        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn
     · unfold osCallPerm; iexact Hq

@@ -115,8 +115,9 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
       (∀ y, st.fs.committed y → S y) ∧
       ∀ j b, st'.fs.treeDur.entry j b = slotAfter st.fs.treeDur st.fs.metaLog S j b := by
   obtain ⟨hp, hr, hlog, hcom, hino, -, ⟨S, hSlt, hSc, hcl, htr⟩, hfiles⟩ := hc
-  obtain ⟨hwf, hslot, hnamed, ⟨t, ht, hkeys⟩⟩ := closed_cut (R := st.fs.roots) htc.starts htc.pss
-    htc.dox htc.valid (fun t ht => (htw.hist t ht).1) hSlt hcl
+  obtain ⟨ρ, hrc⟩ := htc.rc
+  obtain ⟨hwf, hslot, hnamed, hkeys⟩ := closed_cut htc.starts htc.pss
+    hrc.dox hrc.tags htc.valid (fun t ht => (htw.hist t ht).1) hSlt hcl
   refine ⟨⟨hp, hlog, hcom, by rw [hr]; exact htw.roots, by rw [hr, htr]; exact hwf, ?_, ?_, ?_, ?_⟩,
     S, hSlt, hcl, hSc, fun j b => by rw [htr]; exact hslot j b⟩
   · intro i hi
@@ -137,7 +138,9 @@ theorem machineCrash_initS {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS)} (htw : F
     obtain ⟨t', ht', hnt⟩ := hnamed i hn'
     obtain ⟨f, hf⟩ := (htw.hist t' ht').2.1 i hnt
     exact htw.files_lt i (by rw [GMap.mem_iff, hf]; rfl)
-  · intro j hj; rw [hino]; rw [htr] at hj; exact (htw.hist t ht).2.2 j ((hkeys j).1 hj)
+  · intro j hj; rw [hino]; rw [htr] at hj
+    obtain ⟨t, ht, hjt⟩ := hkeys j hj
+    exact (htw.hist t ht).2.2 j hjt
 
 /-- **What a crash keeps of the tree, in the shared mode**: the new state is one a program may
 start in, on the same roots, every file it names is there, and the crash kept a closed set of the

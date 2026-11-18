@@ -113,18 +113,29 @@ theorem namesCoh_init (V : Hist) (hs : Starts V.2) :
 /-- The shared coherence of a state whose log is sequential, with no directory fd and no call: the
 shared mode begun at the log's length. -/
 theorem cohS_switch {st : OsState} {V : Hist} {Γdf : GMap w64 (Ino × DirPh)}
-    {Γc : GMap Nat CallV} (hc : TreeCoh st V Γdf Γc) (hdf : Γdf = ∅) (hcl : Γc = ∅) :
+    {Γc : GMap Nat CallV} (hw : FsTreeWf st) (hc : TreeCoh st V Γdf Γc) (hdf : Γdf = ∅) (hcl : Γc = ∅) :
     TreeCohS st st.fs.metaLog.length ∅ ∅ ∅ := by
   have hseq := hc.seq
+  have htw : TreeWf st.fs.roots st.tree := by
+    have := (hw.hist st.fs.metaLog.length (Nat.le_refl _)).1
+    rwa [List.take_of_length_le (by simp)] at this
+  obtain ⟨ρ, hroots, hents⟩ := rootTags_exists hw.roots.2.1 htw
   have hlt : ∀ x (e : LogEntry), st.fs.metaLog[x]? = some e → x < st.fs.metaLog.length := by
     intro x e h
     exact (List.getElem?_eq_some_iff.1 h).1
   refine ⟨fun x e h => Nat.le_of_eq (hseq x e h), fun x y ex ey hyx hx _ _ => by rw [hseq x ex hx]; exact hyx,
-    fun x ex hx _ => ⟨hseq x ex hx, fun z ez hz hez => by rw [hseq z ez hez]; exact hz⟩,
+    ⟨ρ, ⟨⟨hroots, fun t ht1 ht2 => ?_, fun x e hx he => absurd (hlt x e he) (by omega)⟩,
+      fun x ex hx => ⟨fun _ => ⟨hseq x ex hx, fun z ez hz hez => by rw [hseq z ez hez]; exact hz⟩,
+        fun _ => ⟨fun y ey h1 h2 => absurd h2 (by rw [hseq x ex hx] at h1; omega),
+          fun z ez hz hez _ => by rw [hseq z ez hez]; exact hz⟩⟩,
+      fun x e hx he => absurd (hlt x e he) (by omega)⟩⟩,
     fun x e hx hn => absurd (Or.inr (hlt x e hx)) hn, Nat.le_refl _, fun fd => ?_,
     fun fd x df hx => by simp at hx, fun t x hx => by simp at hx, fun t x hx => by simp at hx,
     fun t x hx => by simp at hx, fun t x hx => by simp at hx, fun t x hx => by simp at hx,
     fun t x hx => by simp at hx, fun t s hs => ?_, fun c x t g hx => by simp at hx⟩
+  · have hpt : prefTree st.fs.treeDur st.fs.metaLog st.fs.metaLog.length = st.tree := by
+      simp [prefTree, OsState.tree]
+    rw [show t = st.fs.metaLog.length by omega, hpt]; exact hents
   · have := hc.fds fd; rw [hdf] at this; simpa using this
   · have := hc.calls t; rw [hcl, hs] at this; simp at this
 
@@ -150,7 +161,7 @@ theorem treeCohS_begin {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirPhS
     (ht : st.proc.calls !! t = none) :
     TreeCohS (st.callBegin t p) s0 Γdf (<[t := (((st.fs.metaLog.length, p), q) : CallV)]> Γc) Γg := by
   obtain ⟨hct, hgt⟩ := hc.fresh ht
-  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
     fun t0 x hx => ?_, fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_, fun t0 x hx => ?_,
     fun t0 x hx => ?_, fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
   · show (<[t := (st.fs.metaLog.length, p)]> st.proc.calls) !! t0 = _
@@ -188,7 +199,7 @@ theorem treeCohS_beginGuard {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × D
     (ht : st.proc.calls !! t = none) :
     TreeCohS (st.callBegin t p) s0 Γdf Γc (<[t := (((st.fs.metaLog.length, p), g) : CallV)]> Γg) := by
   obtain ⟨hct, hgt⟩ := hc.fresh ht
-  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds, hc.ph, fun t0 x hx => ?_,
     hc.callsLe, hc.whole, hc.after, fun t0 x hx => ?_,
     fun t0 x hx => ?_, fun t0 s hs => ?_, fun c x t0 g' hx hg hq hle => ?_⟩
   · show (<[t := (st.fs.metaLog.length, p)]> st.proc.calls) !! t0 = _
@@ -293,7 +304,7 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
   obtain ⟨rfl, rfl⟩ := Heq
   icases whole_alone _ _ Γdf Γc $$ Hh Hrd Hcr with ⟨%Hal, Hh, -, -⟩
   obtain ⟨hdf, hcl⟩ := Hal
-  have hcohS := cohS_switch hns.2 hdf hcl
+  have hcohS := cohS_switch hns.1 hns.2 hdf hcl
   have hV : V = (σ.fs.treeDur, σ.fs.metaLog) := hns.2.hist
   subst hdf hcl
   imod gAuth_insert _ _ _ () (σ.fs.roots, V) (by rfl) $$ Has with ⟨Has, Hs⟩

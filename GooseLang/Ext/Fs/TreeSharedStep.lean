@@ -24,7 +24,7 @@ theorem treeCohS_metaEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × DirP
     {Γc Γg : GMap Nat CallV} (hc : TreeCohS st s0 Γdf Γc Γg) (k : Nat) {xk : CallV}
     (hk : Γc !! k = some xk) :
     TreeCohS (st.metaEnd k) s0 Γdf (GMap.delete k Γc) Γg := by
-  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds,
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
     fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, fun t0 x hx => ?_,
     fun t0 x hx hq => ?_, fun t0 x hx y ey hy hd => ?_, fun t0 x hx => ?_, fun t0 x hx => ?_,
     fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩
@@ -62,7 +62,7 @@ theorem treeCohS_guardEnd {st : OsState} {s0 : Nat} {Γdf : GMap w64 (Ino × Dir
     (ht : Γg !! t = some xt) :
     TreeCohS (st.metaEnd t) s0 Γdf Γc (GMap.delete t Γg) := by
   have htc := hc.gdisj t xt ht
-  refine ⟨hc.starts, hc.pss, hc.dox, hc.valid, hc.s0le, hc.fds,
+  refine ⟨hc.starts, hc.pss, hc.rc.elim (fun ρ h => ⟨ρ, h.congr rfl rfl rfl⟩), hc.valid, hc.s0le, hc.fds,
     fun fd x df hx hdf => (hc.ph fd x df hx hdf).congr rfl rfl, fun t0 x hx => ?_, hc.callsLe,
     hc.whole, hc.after, fun t0 x hx => ?_, fun t0 x hx => ?_,
     fun t0 s hs => ?_, fun c x t0 g hx hg hq hle => ?_⟩

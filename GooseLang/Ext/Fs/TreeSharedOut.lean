@@ -378,7 +378,7 @@ theorem wp_osOpenAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (k s0 :
       iframe
       ipureintro
       exact ⟨⟨hw.roots, hw.hist, hw.dfds, hw.disj, hw.files_lt⟩,
-        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl⟩
+        (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl⟩
     isplitl [Ha]
     · isplitr
       · ipureintro; exact hd'

@@ -1152,8 +1152,26 @@ def PhOkS (st : OsState) (j : Ino) : DirPhS → OsDirRead → Prop
       ∀ b, N.Mem b → u b = present st j b ∧ s b = present st j b ∧ r b = decide (b ∈ rs))
   | _, _ => False
 
+/-- The roots' part of the shared coherence, under the ghost map `ρ` from directories to roots:
+`RootTags` and the per-root `DirOpExcl` (`TreeCut.lean`), and every directory an entry from `s0` on
+writes is one of the tree now (so a new directory's root can be set without changing an entry's
+tag). -/
+structure RootCoh (st : OsState) (s0 : Nat) (ρ : Ino → GoString) : Prop where
+  tags : RootTags ρ st.fs.roots st.fs.treeDur st.fs.metaLog s0
+  dox : DirOpExcl ρ st.fs.metaLog s0
+  wkeys : ∀ x (e : LogEntry), s0 ≤ x → st.fs.metaLog[x]? = some e → ∀ j b, e.op.Writes j b → j ∈ st.tree
+
+theorem RootCoh.congr {st st' : OsState} {s0 : Nat} {ρ : Ino → GoString} (h : RootCoh st s0 ρ)
+    (hr : st'.fs.roots = st.fs.roots) (hd : st'.fs.treeDur = st.fs.treeDur)
+    (hl : st'.fs.metaLog = st.fs.metaLog) : RootCoh st' s0 ρ := by
+  have ht : st'.tree = st.tree := by simp [OsState.tree, hd, hl]
+  obtain ⟨⟨h1, h2, h3⟩, h4, h5⟩ := h
+  exact ⟨⟨hr ▸ h1, by rw [hd, hl]; exact h2, by rw [hl]; exact h3⟩, hl ▸ h4,
+    by rw [hl, ht]; exact h5⟩
+
 /-- The tree's ghost state, in the shared mode, mirrors its state (the design's `TreeCohS`): the
-log's disciplines (`TreeCut.lean`; the legacy prefix below `s0` exempt), a ghost entry for every
+log's disciplines (`TreeCut.lean`; the legacy prefix below `s0` exempt; the per-root ones under some
+map `ρ` of directories to roots, `RootCoh`), a ghost entry for every
 directory fd, and for every call on a path in flight one in the logging calls `Γc` or in the guard
 calls `Γg` (never both); a call began no later than now, a call holding the whole permission began
 now, and every logging call began after every directory operation and every entry of the legacy
@@ -1163,7 +1181,7 @@ structure TreeCohS (st : OsState) (s0 : Nat) (Γdf : GMap w64 (Ino × DirPhS))
     (Γc Γg : GMap Nat CallV) : Prop where
   starts : Starts st.fs.metaLog
   pss : PerSlotSeq st.fs.metaLog
-  dox : DirOpExcl st.fs.metaLog s0
+  rc : ∃ ρ, RootCoh st s0 ρ
   valid : LogValid st.fs.treeDur st.fs.metaLog s0
   s0le : s0 ≤ st.fs.metaLog.length
   fds : ∀ fd, (Γdf !! fd).map (·.1) = (st.proc.dfds !! fd).map (·.ino)
@@ -1216,13 +1234,14 @@ theorem PhOkS.congr {st st' : OsState} {j : Ino} {x : DirPhS} {r : OsDirRead} (h
   simp only [hp]
   exact h.2.2 (fun x e hx he => hn x e hx (hl ▸ he)) b hb
 
-/-- `TreeCohS` depends on the durable tree, the log, the directory fds and the calls only. -/
+/-- `TreeCohS` depends on the roots, the durable tree, the log, the directory fds and the calls only. -/
 theorem TreeCohS.congr {st st' : OsState} {s0 Γdf Γc Γg} (h : TreeCohS st s0 Γdf Γc Γg)
     (hd : st'.fs.treeDur = st.fs.treeDur) (hl : st'.fs.metaLog = st.fs.metaLog)
-    (hf : st'.proc.dfds = st.proc.dfds) (hc : st'.proc.calls = st.proc.calls) :
+    (hf : st'.proc.dfds = st.proc.dfds) (hc : st'.proc.calls = st.proc.calls)
+    (hr : st'.fs.roots = st.fs.roots) :
     TreeCohS st' s0 Γdf Γc Γg := by
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, h11, h12, h13, h14, h15⟩ := h
-  refine ⟨hl ▸ h1, hl ▸ h2, hl ▸ h3, by rw [hd, hl]; exact h4, hl ▸ h5, ?_, ?_, ?_, ?_, ?_, ?_,
+  refine ⟨hl ▸ h1, hl ▸ h2, h3.elim fun ρ h => ⟨ρ, h.congr hr hd hl⟩, by rw [hd, hl]; exact h4, hl ▸ h5, ?_, ?_, ?_, ?_, ?_, ?_,
     ?_, h13, ?_, ?_⟩
   · intro fd; rw [hf]; exact h6 fd
   · intro fd x df hx hdf; rw [hf] at hdf; exact (h7 fd x df hx hdf).congr hd hl
@@ -1253,7 +1272,7 @@ theorem treeCtx_frame (hL : OsGS GF) {st st' : OsState} (h : TreeFrame st st') :
       rw [h.roots, h.treeDur, h.metaLog]
       iframe Had Hd Haf Hac Has Hadf Hacs Hcr HAg Hgr
       ipureintro
-      exact ⟨h.wf hw.1, hw.2.congr h.treeDur h.metaLog h.dfds h.calls⟩
+      exact ⟨h.wf hw.1, hw.2.congr h.treeDur h.metaLog h.dfds h.calls h.roots⟩
   · iapply commitRes_grow hL (commitGrows_of_eq h.committed) $$ Hcm
 
 /-- The start resources of the tree: its history, whole (nothing logged on the tree it starts

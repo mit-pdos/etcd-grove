@@ -427,7 +427,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
     treeFrame_stampFile _ i _ f hf0
   have hw1 : FsTreeWf (truncSt (st.metaEnd k) i f) := hframe.wf (fsTreeWf_metaEnd hw k)
   have hc1 : TreeCohS (truncSt (st.metaEnd k) i f) s1 Γdf (GMap.delete k Γc) Γg :=
-    (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl
+    (treeCohS_metaEnd hc k hk).congr rfl rfl rfl rfl rfl
   obtain ⟨-, hres⟩ := hres
   rcases hres with ⟨st1, tgt, fd, heff, hfree, hst, rfl⟩ | ⟨e, he, -, rfl, hst⟩
   · unfold OpenEffect at heff
@@ -464,7 +464,7 @@ theorem wp_osOpenTruncS (R : Roots) (d b : GoString) (j i : Ino) (N : NameSet) (
       iexists V0, s1, Γdf, GMap.delete k Γc, Γg
       iframe
       ipureintro
-      exact ⟨fsTreeWf_addFd hw1 hdfn, hc1.congr rfl rfl rfl rfl⟩
+      exact ⟨fsTreeWf_addFd hw1 hdfn, hc1.congr rfl rfl rfl rfl rfl⟩
     iapply wp_value'
     iapply HΦ $$ %fd %0 %(.inl ⟨rfl, hfd0⟩) [Hq] Hp Hn [Hrs]
     · unfold osCallPerm; iexact Hq
