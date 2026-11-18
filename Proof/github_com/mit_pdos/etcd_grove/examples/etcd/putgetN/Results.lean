@@ -94,33 +94,6 @@ theorem etcd_putgetN_safe [lctx : GoLocalContext] [sem : go.Semantics]
   etcd_putgetN_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
     HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **`etcd_putgetN_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_putgetN_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_putgetN_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetNGF, ContextReadErrs (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetNGF, ContextErrsClient (GF := putgetNGF) (hG := heapAtN hG lctx))
-    (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000) (ids : List w64) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
-    (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit)
-    (Hdbo : storage.diskOk) (HNs : prometheus.namesUnclaimed (putgetNProgram k) putgetNNames)
-    (HAs : addrsUnclaimed (putgetNProgram k) (etcd_putgetN.putgetNAddrs k))
-    (HDs : dataDirsAbsent (putgetNProgram k) (etcd_putgetN.putgetNDirs k))
-    (HEnv : verifyEnvOff (putgetNProgram k))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetNGF,
-      ⊢ etcd_putgetN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(putgetNProgram k, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_putgetN_safe
-      Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n
-      (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
-
 end adequacy
 
 #print axioms putgetN_Main

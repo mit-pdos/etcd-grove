@@ -98,36 +98,6 @@ theorem etcd_cache_safe [lctx : GoLocalContext] [sem : go.Semantics]
   etcd_cache_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul
     HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **`etcd_cache_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_cache_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_cache_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.cache.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget.BootFacts id ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk) (nw nops : w64)
-    (H0 : 0 ≤ sint.Z nw) (H31 : sint.Z nw < 2 ^ 31) (Hops : 0 ≤ sint.Z nops)
-    (Hmul : sint.Z nw * sint.Z nops < 2 ^ 62)
-    (HNs : prometheus.namesUnclaimed (cachekvProgram nw nops) cachekvNames)
-    (HAs : addrsUnclaimed (cachekvProgram nw nops) [go!"127.0.0.1:23873"])
-    (HDs : dataDirsAbsent (cachekvProgram nw nops) [go!"cachekv.etcd"])
-    (HEnv : verifyEnvOff (cachekvProgram nw nops))
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcd_cache.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(cachekvProgram nw nops, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_cache_safe
-      Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo nw nops H0 H31 Hops Hmul HNs HAs HDs HEnv n
-      (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
-
 end adequacy
 
 #print axioms cachekv_Main

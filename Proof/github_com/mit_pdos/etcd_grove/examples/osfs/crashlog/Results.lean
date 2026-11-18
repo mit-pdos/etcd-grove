@@ -262,28 +262,6 @@ theorem crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [package_sem :
   crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir Hnd
     Hlog n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
 
-/-- **`crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that may crash at any step and restart,
-a fresh Go process (`Robust`'s premise), under `crash_safety`'s other hypotheses: in every
-execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
-theorem crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions]
-    [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
-      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
-        (App (Val initialize') (Val #()))
-      {{ RET #(); True }})
-    (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
-    (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
-    (Hnd : ∀ J, (extLocal fsExt σ.world).lookup (child dir logB) ≠ some (.dir J))
-    (Hlog : ∀ k, (extLocal fsExt σ.world).lookup (child dir logB) = some (.file k) →
-      Good ((extLocal fsExt σ.world).fs.files !! k))
-    (bound : Nat) :
-    Robustness.Robust [(boot dir, σ)] [] g bound :=
-  Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
-    (crash_safety
-      Hinit_wp σ g dir hf.1 hf.2.1 Hinit Hdir Hnd Hlog hf.2.2 n κs t2 σ2 b Hsteps).2
-
 end adequacy
 
 #print axioms crash_safety

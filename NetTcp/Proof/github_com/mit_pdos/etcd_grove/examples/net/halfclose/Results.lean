@@ -324,27 +324,6 @@ theorem halfclose_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 0, hi => cases hi; exact Hs.threads
       | 1, hi => cases hi; exact Hc.threads))
 
-/-- **`halfclose_crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `halfclose_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
-theorem halfclose_crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [field_sem : net.FieldAssumptions] [go.BasicIntoValInj]
-    (σs σc : state) (g : GlobalState) (h : GoString) (Hhost : (extLocal tcpExt σs.world).host = h)
-    (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
-    (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅) (bound : Nat) :
-    Robustness.Robust (system σs σc) [] g bound := by
-  refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
-  have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
-    ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
-  exact (halfclose_crash_safety
-      σs σc g h (hfresh σs ⟨boot_server, by simp [system]⟩)
-      (hfresh σc ⟨boot_client, by simp [system]⟩) Hhost Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
-
 end adequacy
 
 /-- The plan of halfclose's deployment is well formed (D20). -/

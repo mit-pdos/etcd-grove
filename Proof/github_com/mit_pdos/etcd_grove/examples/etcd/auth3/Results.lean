@@ -119,35 +119,6 @@ theorem etcd_auth3_safe [lctx : GoLocalContext] [sem : go.Semantics]
   etcd_auth3_adequate Hctx Hcec hD22 id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
     HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **`etcd_auth3_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_auth3_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_auth3_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
-    [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed auth3Program auth3Names)
-    (HAs : addrsUnclaimed auth3Program auth3Addrs)
-    (HDs : dataDirsAbsent auth3Program [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")])
-    (HEnv : verifyEnvOff auth3Program)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ etcd_auth3.premises (GF := putgetGF) (hG := heapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(auth3Program, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_auth3_safe
-      Hctx Hcec hD22 id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n
-      (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
-
 end adequacy
 
 #print axioms auth3_Main

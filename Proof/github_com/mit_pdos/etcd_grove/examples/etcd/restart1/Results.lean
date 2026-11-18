@@ -148,30 +148,6 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
   etcd_restart1_adequate Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n Hprem σ g Hfs Hlctx Hinit
     Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **`etcd_restart1_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_restart1_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_restart1_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.restart1.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC restart1GF, ContextReadErrs (GF := restart1GF) (hG := heapAtR1 hG lctx))
-    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : etcd_restart1.BootFacts id ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
-    (HNs : prometheus.namesUnclaimed restart1Program restart1Names)
-    (HDs : dataDirsAbsent restart1Program [go!"restart1.etcd"])
-    (HEnv : verifyEnvOff restart1Program)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restart1GF,
-      ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(restart1Program, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_restart1_safe
-      Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1
-      hf.2.2 κs t2 σ2 Hsteps (by omega)).2
-
 end adequacy
 
 #print axioms restart1_Main

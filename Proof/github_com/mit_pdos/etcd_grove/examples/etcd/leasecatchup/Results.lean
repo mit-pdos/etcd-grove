@@ -94,37 +94,6 @@ theorem etcd_leasecatchup_safe [lctx : GoLocalContext] [sem : go.Semantics]
   etcd_leasecatchup_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne
     HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
-/-- **`etcd_leasecatchup_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `etcd_leasecatchup_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem etcd_leasecatchup_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Assumptions]
-    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
-    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
-    (Hctx : ∀ hG : HeapGS .hasLC leasecatchupGF,
-      ContextReadErrs (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
-    (Hcec : ∀ hG : HeapGS .hasLC leasecatchupGF,
-      ContextErrsClient (GF := leasecatchupGF) (hG := heapAtLcu hG lctx))
-    (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (Hbf : cluster3.BootFacts id₁ id₂ id₃ ps ctxs boot) (Haf : authRecordsFit)
-    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
-    (Hlp : leasePeersOk) (Hlne : lease.leasesNoExpiry)
-    (HNs : prometheus.namesUnclaimed leasecatchupProgram leasecatchupNames)
-    (HAs : addrsUnclaimed leasecatchupProgram leasecatchupAddrs)
-    (HDs : dataDirsAbsent leasecatchupProgram leasecatchupDataDirs)
-    (HEnv : verifyEnvOff leasecatchupProgram)
-    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC leasecatchupGF,
-      ⊢ cluster3.premises (GF := leasecatchupGF) (hG := heapAtLcu hG lctx)
-          etcd_leasecatchup.clusterCfg n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
-    Robustness.Robust [] [(leasecatchupProgram, σ)] g (2 ^ 28 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (etcd_leasecatchup_safe
-      Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo Hlp Hlne HNs HAs HDs HEnv n
-      (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
-
 end adequacy
 
 #print axioms leasecatchup_Main

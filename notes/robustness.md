@@ -58,8 +58,19 @@ panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness doe
 
 ## Every closed example is an instance (2026-11-18)
 
-Each closed theorem of the examples has a restatement `…_robust` next to it (same file, same
-hypotheses but the generic ones `Robust` states itself), proved from it:
+Each closed theorem of the examples has a restatement `…_robust` (the same hypotheses but the
+generic ones `Robust` states itself), in two files named `TopLevelRobustness.lean` per example
+directory (2026-11-18, the user's: easy to find, and a statement to audit apart from its proof):
+
+- `Spec/<example>/TopLevelRobustness.lean` only **states** the results, one
+  `def <name>.spec : Prop` each (every hypothesis, then `Robustness.Robust …`);
+- `Proof/<example>/TopLevelRobustness.lean` only **proves** them, `theorem <name> : <name>.spec`,
+  from the example's closed theorem (in its `Results.lean`, or `Adequacy.lean` for lintest's and
+  `mvccrand`).
+
+(The parts have theirs under `NetTcp/`, `RaftWitness/`, `RaftTla/` and, as copies, `RaftNoAx/`.
+`etc/proof_roots.py` counts the proof files as results files, so the trust-base report covers
+them. `find . -name TopLevelRobustness.lean` lists them all.)
 
 | shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
 |---|---|---|---|
@@ -91,7 +102,7 @@ hypotheses but the generic ones `Robust` states itself), proved from it:
   program is now `Main()`, which panics unless `Test`'s answer is `"a"` or `"b"`
   (`examples/goose/prophkv/prophkv.go`, `Main.spec`, `goose_prophkv_safe` with the result `#()`).
 - Generated once by a script (not kept: the theorems are ordinary text now); `RaftNoAx/`'s copies
-  by `etc/copy-part.py`.
+  by `etc/copy-part.py` (kvdurable's `TopLevelRobustness` is one of its roots).
 
 **History.** Version 1 (2026-11-15) had a semantics of its own (`Run.lean`: `World`, `Who`, `Timed`,
 `RunStep`/`Run`), a `Deployment`, an abstract network class `StreamNet`, arbitrary environment nodes

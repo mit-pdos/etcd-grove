@@ -326,31 +326,6 @@ theorem bootCrashSafety [lctx : GoLocalContext] [sem : go.Semantics]
   exact bootCrashSafety_bounded (GF := fsGF) Hinit_wp (n + 1) (2 ^ 30) (Nat.le_refl _)
     σ g dir Hlctx Hpkgs Hinit Hdir Hnone n κs t2 σ2 b Hsteps (by omega) Hthreads Hlive
 
-/-- **`bootCrashSafety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`), under P1's semantics: the program alone on one machine that may
-crash at any step and restart, a fresh Go process (`Robust`'s premise), its files as on disk, its
-directory a root with no `db` in it: in every execution of fewer than `2 ^ 30 - 1` steps no thread
-is stuck and none has an unrecovered panic. `BootCrashSafety`'s thread bound (fewer than `2 ^ 30`
-live threads) follows from the step bound: an execution of `n` steps from one thread has fewer
-than `n + 2`. -/
-theorem bootCrashRobust [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : Assumptions] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions]
-    (dir : GoString)
-    (Hinit_wp : P1Ctx fun [_] [_] [_] [_] =>
-      ∀ hG : HeapGS .hasLC fsGF, initialize'.spec (GF := fsGF) (hG := heapAt hG lctx)) :
-    letI := fsExtsSemanticsWithS AnyStep P1
-    letI := fsExtsWithS_hasFs AnyStep P1
-    ∀ (σ : state) (g : GlobalState),
-      FsInit (extLocal fsExt σ.world) →
-      (∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots) →
-      (extLocal fsExt σ.world).lookup (dir ++ go!"/db") = none →
-      Robustness.Robust [(boot dir, σ)] [] g (2 ^ 30 - 1) := by
-  intro σ g Hinit Hdir Hnone
-  refine Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b hn Hsteps => ?_
-  exact bootCrashSafety dir Hinit_wp σ g hf.1 hf.2.1 Hinit Hdir Hnone hf.2.2 n κs t2 σ2 b Hsteps
-    (fun k κs' ρ' b' hk hs => Nat.lt_of_lt_of_le
-      (RealCrashThreadsBelow.of_single hf.2.2 k κs' ρ' b' hk hs) (by omega))
-
 end adequacy
 
 #print axioms bootCrashSafety

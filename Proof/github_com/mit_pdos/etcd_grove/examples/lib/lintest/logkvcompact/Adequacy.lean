@@ -151,19 +151,6 @@ theorem logkvcompact_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ipureintro
   rfl
 
-/-- **`logkvcompact_adequate` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `logkvcompact_adequate`'s other hypotheses: in every
-execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
-theorem logkvcompact_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.Assumptions]
-    (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(logkvcompactProgram, σ)] g (2 ^ 63) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (logkvcompact_adequate
-      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
-
 end adequacy
 
 end logkvcompact

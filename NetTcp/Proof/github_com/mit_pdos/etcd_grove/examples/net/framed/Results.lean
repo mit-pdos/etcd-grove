@@ -334,29 +334,6 @@ theorem framed_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       | 1, hi => cases hi; exact Hc.threads
       | 2, hi => cases hi; exact Hj.threads))
 
-/-- **`framed_crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `framed_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
-theorem framed_crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [server_sem : cmd.server.Assumptions]
-    [client_sem : cmd.client.Assumptions] [junk_sem : cmd.junk.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σs σc σj : state) (g : GlobalState)
-    (h : GoString) (Hhost : (extLocal tcpExt σs.world).host = h)
-    (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup srvAddr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
-    (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅) (bound : Nat) :
-    Robustness.Robust (system σs σc σj) [] g bound := by
-  refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
-  have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σs σc σj) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
-    ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
-  exact (framed_crash_safety
-      σs σc σj g h (hfresh σs ⟨boot_server, by simp [system]⟩)
-      (hfresh σc ⟨boot_client, by simp [system]⟩) (hfresh σj ⟨boot_junk, by simp [system]⟩) Hhost
-      Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
-
 end adequacy
 
 /-- The plan of the theorems' deployment is well formed (D20). -/
