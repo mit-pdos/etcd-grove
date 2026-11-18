@@ -8,10 +8,11 @@
   `Writer` drops `newPostK`'s tokens). Delta review SOUND, deviations ACCEPTED (questions.md "A6.2 C1-C5"; review
   `/shared/tmp/auth-schema-srv/a6-claim-review3.md`); MINOR 1 folded: forbidden law (iv) in `bStopView`/`rbOwnInR`
   docstrings and soundness §6.
-- C5: backend + bbolt interfaces regenerated, api-check green after making A2's `Bucket__ForEach_kvr/_kvw` and
-  A6.1a's `readTx__UnsafeForEach` importable (165634bbd4). Full build after the merge:
-  `/shared/tmp/auth-schema-srv/c5-full2.log`; then `etc/tcb-report.py --check` (expect no change), backend `--layout
-  --check` (needs `RtHeldDls` built).
+- C5 gates green: full build on pin 6d365ee1a (`/shared/tmp/auth-schema-srv/c5-full2.log`, 20543 jobs);
+  `etc/tcb-report.py --check` matches the baseline (896 axioms, 4 sorries: no change); backend/bbolt interfaces
+  regenerated and `--check` clean; api-check 0 errors after making A2's `Bucket__ForEach_kvr/_kvw` and A6.1a's
+  `readTx__UnsafeForEach` importable (165634bbd4); backend `--layout` baseline +4 for `readTx__UnsafeForEach`
+  (8443232b3a, the same pattern as its `readTx` siblings).
 - Next: A6 proper (decided by etcd-grove-03): the per-backend realization invariant using `rbOwnIn_claim` (sketch:
   History "A6.1b STOP"), instantiating `authBE_real`'s `Racq`/`Robs`/`Rrel`; the write side from A5's callee triples
   (claimed `rbOwnInR`/`rbRd`, `Unlock.spec`'s accessor at ⊤); the auth-level read contract (`authBackendOk`); then
