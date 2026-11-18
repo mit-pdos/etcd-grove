@@ -26,7 +26,11 @@ Bytes are `w8`: `%` is 37, `#` 35, `+` 43, `-` 45, `0` 48, space 32, `.` 46, `*`
 digits 48 to 57, `v` 118, `s` 115, `x` 120, `X` 88, `q` 113, `w` 119. -/
 
 /-- One directive of a format string that consumes an argument: its verb and whether it is `%#v`
-(Go syntax: `GoString()` if the argument has one, else reflection; premise fixes 6, D). -/
+or `%#w` (Go syntax: `GoString()` if the argument has one, else reflection; premise fixes 6, D;
+`%#w` since fmt-soundness, 2026-11-18, `notes/fmt-sharpw.md`: Go's `doPrintf` has `case 'w'` fall
+through to `case 'v'`, which sets `sharpV` from `#`, so `Errorf`'s `%#w` of an error calls its
+`GoString()` or reflects; under `Printf`/`Sprintf` `%#w` is a bad verb and calls no method, so
+counting it as `sharpV` only excludes more). -/
 structure fmt.Directive where
   verb : w8
   sharpV : Bool
@@ -63,7 +67,8 @@ def fmt.fmtDirectivesAux : Option (Bool × fmt.DirPhase) → GoString → Option
     let verb : Option (List fmt.Directive) :=
       if b = W8 42 ∨ b = W8 91 then none
       else if b = W8 37 then fmt.fmtDirectivesAux none bs
-      else (⟨b, sharp && decide (b = W8 118)⟩ :: ·) <$> fmt.fmtDirectivesAux none bs
+      else (⟨b, sharp && (decide (b = W8 118) || decide (b = W8 119))⟩ :: ·) <$>
+        fmt.fmtDirectivesAux none bs
     let digit : Prop := 48 ≤ b.toNat ∧ b.toNat ≤ 57
     match ph with
     | .flags =>
@@ -102,6 +107,8 @@ example : fmt.fmtDirectives go!"%%d %5.2f %#v" = some [⟨W8 102, false⟩, ⟨W
 example : fmt.fmtDirectives go!"%#x %+v %-08.3s %.q % d" =
     some [⟨W8 120, false⟩, ⟨W8 118, false⟩, ⟨W8 115, false⟩, ⟨W8 113, false⟩,
       ⟨W8 100, false⟩] := by decide
+example : fmt.fmtDirectives go!"%#w %w %+w" =
+    some [⟨W8 119, true⟩, ⟨W8 119, false⟩, ⟨W8 119, false⟩] := by decide
 example : fmt.fmtDirectives go!"%*d" = none := by decide
 example : fmt.fmtDirectives go!"%5.*d" = none := by decide
 example : fmt.fmtDirectives go!"%[1]d" = none := by decide
@@ -153,7 +160,7 @@ when the type has one, and `Error()` in place of `String()` for an `error`: prem
 `examples/premisefix/fmtarg`; until then the disjuncts did not exclude `Format` and `Error`; a
 panic in the method would be recovered by `fmt`, but the method's effects are what the spec rules
 out). What `fmt` needs of an argument under a method verb (`v s x X q`, and `w` in `Errorf`) other
-than `%#v`; `fmt.argOkAt` asks it only there (premise fixes 6, D). -/
+than `%#v`/`%#w`; `fmt.argOkAt` asks it only there (premise fixes 6, D). -/
 def fmt.argOk : GoInterface → IProp GF
   | .nil => iprop(True)
   | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
@@ -165,7 +172,7 @@ def fmt.argOk : GoInterface → IProp GF
 under any directive; under a verb that is not a method verb, also a value of a type whose
 underlying type is an integer type and that has no `Format` method (Go prints it as an integer by
 reflection, calling no method: `%d` of raft's `ConfChangeType`, which has `String()`); and
-`fmt.argOk` (its `Error()`/`String()` disjuncts) only under a method verb that is not `%#v`. -/
+`fmt.argOk` (its `Error()`/`String()` disjuncts) only under a method verb that is not `%#v`/`%#w` (`d.sharpV`). -/
 def fmt.argOkAt (mv : List w8) (d : fmt.Directive) : GoInterface → IProp GF
   | .nil => iprop(True)
   | .ok ii => iprop(⌜_root_.Perennial.fmt.ArgWf ii⌝ ∨
@@ -197,7 +204,7 @@ theorem fmt.argsOk_intro {mv : List w8} {format : GoString} {ds : List fmt.Direc
   · ipureintro; exact h
   · iexact H
 
-/-- An argument that is `fmt.argOk` is `fmt.argOkAt` a method-verb directive other than `%#v`
+/-- An argument that is `fmt.argOk` is `fmt.argOkAt` a method-verb directive other than `%#v`/`%#w`
 (premise fixes 6, D). -/
 theorem fmt.argOkAt_of_argOk {mv : List w8} {d : fmt.Directive} {a : GoInterface} :
     ⌜d.verb ∈ mv ∧ d.sharpV = false⌝ ∗ fmt.argOk (GF := GF) a ⊢ fmt.argOkAt mv d a := by
@@ -279,7 +286,7 @@ macro "fmt_args_intro" : tactic => `(tactic| (
   iapply Perennial.EtcdGrove.fmt.argsOk_intro (by rfl)
   try simp only [Perennial.EtcdGrove.fmt.argsOkAt]))
 
-/-- Turns a goal `fmt.argOkAt mv d a`, `d` a method verb of `mv` other than `%#v`, into
+/-- Turns a goal `fmt.argOkAt mv d a`, `d` a method verb of `mv` other than `%#v`/`%#w`, into
 `fmt.argOk a`, or the same goal with `fmt.argOkAt` unfolded into its `fmt.argOk` disjunct
 (premise fixes 6, D). -/
 macro "fmt_arg_method" : tactic => `(tactic| (
@@ -291,7 +298,7 @@ macro "fmt_arg_method" : tactic => `(tactic| (
 `wp_slice_literal` builds it): the format's directives by evaluation (premise fixes 6, D), then
 each argument: `nil`, a `string` or an `int`/`int64`/`uint64` by `fmt.ArgWf`; under a verb that is
 not a method verb, an integer of a named type without `Format` (its underlying type from a
-`go.IsUnderlying` instance); under a method verb other than `%#v`, any other argument by a
+`go.IsUnderlying` instance); under a method verb other than `%#v`/`%#w`, any other argument by a
 hypothesis in the context giving its `Error()` or `String()` method's `fmt.stringMethodSpec`, and
 a pure one its method facts (no `Format`; for `String()`, no `Error` either; premise-fixes-4), or
 by a hypothesis `fmt.argOk a`. -/

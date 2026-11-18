@@ -58,8 +58,9 @@ def fmt.errArgsAt (errs : List GoInterfaceOk) : List fmt.Directive → List GoIn
 
 /-- **The arguments `args` of `format`, with the error arguments `errs`**: the format has no `#` at all
 (byte 35: Go's `doPrintf` sets `sharpV` for `%#w` as for `%#v`, `case 'w'` falling through to `case 'v'`,
-and then calls `GoString()` or reflects, which `fmt.Directive.sharpV` does not record for `w`: the second
-attack's `%#w`, 2026-11-18, `/shared/tmp/fmtfix-attack2/sharpw`); its directives parse
+and then calls `GoString()` or reflects: the second attack's `%#w`, 2026-11-18,
+`/shared/tmp/fmtfix-attack2/sharpw`, `notes/fmt-sharpw.md`; `fmt.Directive.sharpV` records `%#w` too since
+then, and the byte check is kept as the plain statement of what the WAL's formats are); its directives parse
 (`fmt.fmtDirectives`: no `*`, no `[n]`, digit runs Go accepts) and each argument is `fmt.errArgAt` its
 directive. -/
 def fmt.errArgsWf (errs : List GoInterfaceOk) (format : GoString) (args : List GoInterface) : Prop :=
