@@ -1,6 +1,35 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-18, A6.2 C1-C5 green and ACCEPTED; C5 gates on pin 6d365ee1a; A6 proper next)
+## START HERE (2026-11-18, A6 STOP: the boot write contract outlives the unset hook)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean b0bb9df7c3 merged (75f8363b83): Perennial pin
+  6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+  lean is moving (Hctx Part B, origin's zap.Logger.Panic fix): merge lean before the next full build.
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5 (all ACCEPTED; C5 gates green, tcb 896/4; questions.md "C5 gates reviewed").
+- **STOP (questions.md "A6 STOP")**: `authSchemaSrv`'s boot write contract (C3 at the unset hook, persistent) cannot be
+  realized: schema's `Lock` is `LockInsideApply`, which needs `plHookAt … f`; the realization must hand `plHook nil`
+  back whole through C9's plain wand, after which the server sets the hook. Recommended (A): the boot contract and
+  `CreateAuthBuckets` at `T_b := authWTok γc ∗ plHook d.γB func.nil`, C9's wand `Post -∗ bOpen qo`; the server splits
+  the returned `T` (AuthSrv.lean ~497-570). Trusted text (hypothesis) for the A7 report. No Lean written for A6 yet.
+- Next, after the decision: apply (A) (or the decision); then A6 proper in this order: (1) the per-backend realization
+  invariant (design in questions.md "A6 STOP", "Unaffected"): tickets `R` (global `ownToks` + authority `authRdN - 1`),
+  per-backend slots (free/acquiring/held) with the `bOpen` loans, the claimed `rbRd` halves with recorded indices
+  (`j_u, j_r ≤ j_a`, `≥` published), `T`/idle branch with `authLockQ`, retired/released; (2) `authBackendOk` from
+  `authBE_real` (+ a second `authBE` at `R := True` for `authBackendReads`' `T`-reads, the reserved slot); (3) the write
+  side (`Lk`, claimed writes, `Unlock`'s accessor `rbAcc`, receipts); (4) `authBkLend` (new internal backend agreement
+  law `rbOwn` vs claimed part, through the claim invariant), `authBkLife`, `authWAtHook`, `CreateAuthBuckets` (claimed
+  creates, `Sc = authBkts` at `Unlock`); (5) `⊢ authSchemaSrv`, `authSchemaSnap` from one per-backend lemma. Report at
+  A6's end; A7 HARD STOP (trusted texts: `rbPartF`'s fraction, `newPostK`'s tokens, `authRdSlots`' tokens,
+  `authSchemaSrv`'s ticket count, and (A) if applied).
+- Pitfalls: (0)-(13) as before (History "A6.1b STOP" and "A6.2 C1-C5"); (14) an `icases` pattern's last name absorbs
+  the rest of a `∗` chain: name every conjunct (`…, Hsr, -⟩`); (15) only one agent per worktree; (16) questions.md is
+  untracked (gitignored): decisions live there, not in commits; (17) soundness §6's "A6 creates no claimed bucket" is
+  stale (the claim precedes `CreateAuthBuckets`): restate when A6 lands.
+
+## History
+
+### A6.2 C1-C5 green, C5 gates (2026-11-18, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean b0bb9df7c3 merged (75f8363b83): Perennial pin
   6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
@@ -23,7 +52,6 @@
   name absorbs the rest of a `∗` chain: name every conjunct (`…, Hsr, -⟩`); (15) only one agent per worktree (a resumed
   older agent edited here concurrently on 2026-11-18).
 
-## History
 
 ### A6.2 C1-C5 written (2026-11-17, superseded)
 
