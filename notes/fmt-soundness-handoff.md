@@ -57,6 +57,12 @@
    parser against Go (`/shared/tmp/fmtfix-diff/`), mismatch counts before/after, each mismatch fixed or shown
    harmless (parser `none` or stricter).
 
+8. (etcd-grove-03, 2026-11-18, after the R2/R3 cost stop) option (b): land R1 and the earlier work on this
+   branch; R2/R3 on a follow-up branch `fmt-soundness-2` right after (brief `notes/fmt-soundness-2.md`); an
+   audit row now marks `fmt.Errorf.spec` refuted by R2/R3 (`/shared/tmp/fmtfix-attack3/`), with a mechanical
+   check that no caller's format/argument hits them. Then attack round 4 (with the differential test as
+   context) and the pipeline to the land stop.
+
 ## Specs touched (for the wal-link merge)
 - `Spec/fmt/ErrorfWrap.lean`: premise `fmtErrorOk (ok inner)`; `fmt.wrapErrIs` + `Format = none ∧ Error = noArgStringSig`.
 - `Proof/os/NsS.lean` `os.File.Close.wp_dirS`: post `emp` → `fmtErrorOkOrNil err`.
