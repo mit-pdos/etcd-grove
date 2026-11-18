@@ -470,7 +470,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.sync.wp_proofC [os.file.FieldA
     isplitr
     · ipureintro; exact H0
     unfold walDirH
-    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
+    icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, -, -, -, -, -, -, -, Hnmd, -, -, Hnf, -⟩
     iframe Hnf
     isplitl [Hopen]
     · iapply walOpenW_lockedTok $$ Hopen

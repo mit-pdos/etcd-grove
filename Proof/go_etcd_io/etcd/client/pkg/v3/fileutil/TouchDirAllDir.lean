@@ -127,6 +127,7 @@ theorem wp_touchProbe
             ⌜FilesOnly hJ'.cur ∧ hJ'.cur !! go!".touch" = none⌝ ∗
             osNames jp (.only [name]) (DFrac.own 1) h ∗ osNames J (.except []) (DFrac.own 1) hJ')) }} := by
   iintro %Φ ⟨#Hpkg, #Hinv, #Hsi, Hp, Hperm, Hn, HJ, HT⟩ HΦ
+  icases osCallPerm_child R parent name _ jp 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
   icases osPathS_child_borrow R parent name jp J qp 1 h hname hcur $$ [Hp Hn] with ⟨%ε, Hpc, Hback⟩
   · iframe
   imod osNames_split R J (.except []) [go!".touch"] hJ CoPset.subseteq_top $$ Hsi HJ with ⟨Ht, Hrest⟩
@@ -140,6 +141,7 @@ theorem wp_touchProbe
     $$ [Hpc Hperm Ht HT] as %err ⟨Hpc, Hperm, %hT, HT, Hd, %hTn⟩
   · iframe; iframe #
   icases Hback $$ Hpc with ⟨Hp, Hn⟩
+  icases osCallPerm_unchild R parent name _ jp 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
   icases touchOut_tmpEnt _ $$ Hd with ⟨%hTd, Hd⟩
   imod osNames_merge R J (.only [go!".touch"]) (.except [go!".touch"]) (.except []) hT _
     (by intro b; simp only [NameSet.Mem]; by_cases hb : b = go!".touch" <;> simp [hb])
@@ -193,16 +195,16 @@ theorem wp_existAncDir (wp_Exist : go_etcd_io.etcd.client.pkg.v3.fileutil.Exist.
     (hm : (joinPath [] rcs, j0) ∈ R) (hrcs : rcs ≠ []) (hcs : ∀ c ∈ cs, NameOk c) (hname : NameOk name)
     (hcur : h.cur !! name = some (.dir J)) (hk : k ≤ full.length) :
     {{ osInv (GF := GF) ∗ osSharedInv R ∗ osSpine j0 cs (DFrac.own qp) jp ∗
-        osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm 1 }}
+        osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm (callKey R (joinPath [] rcs)) 1 }}
       (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.Exist)) (Val #(os.ancPath (full.take k))))
     {{ (b : Bool), RET #b; osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗
-        osCallPerm 1 }} := by
+        osCallPerm (callKey R (joinPath [] rcs)) 1 }} := by
   iintro %Φ ⟨#Hinv, #Hsi, Hs, Hn, Hperm⟩ HΦ
   by_cases hkn : k = full.length
   · subst hkn
     have hdir : os.ancPath (full.take full.length) = child (joinPath (joinPath [] rcs) cs) name := by
       rw [List.take_length, ancPath_ne (by subst hfull; simp), hfull, joinPath_snoc, joinPath_joinPath]
-    rw [hdir]
+    rw [hdir, ← callKey_joinPath hR hm cs]
     ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
     wp_apply wp_Exist (child (joinPath (joinPath [] rcs) cs) name) _ _
       (wp_statChildDir_err _ name R jp J qp 1 h 1 hname hcur) $$ [Hp Hn Hperm]
@@ -249,7 +251,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
     (wp_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     fileutil.TouchDirAll.specDir (GF := GF) := by
   intro lg R jp d parent name qp h J hd hname hlen hcur
-  wp_start as ⟨#Hlg, #Hinv, #Hsi, Hp, Hperm, Ht⟩
+  wp_start as ⟨#Hlg, #Hinv, #Hsi, #Hab, Hp, Hperm, Ht⟩
   iunfold tmpDirH at Ht
   icases Ht with ⟨Hn, Hs⟩
   rw [hcur]
@@ -270,11 +272,13 @@ theorem fileutil.TouchDirAll.wp_proofDir
   · -- `Exist` found it: `CheckDirPermission` (logged), `syncDir(parent)`, the probe
     rw [decide_eq_true he]
     wp_auto
+    icases osCallPerm_child R parent name _ jp 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases osPathS_child_borrow R parent name jp J qp 1 h hname hcur $$ [Hp Hn] with ⟨%ε, Hpc, Hback⟩
     · iframe
     wp_apply wp_Check (child parent name) _ R J (DFrac.own ε) 1 $$ [Hpc Hperm] as %e ⟨Hpc, Hperm⟩
     · iframe; iframe #
     icases Hback $$ Hpc with ⟨Hp, Hn⟩
+    icases osCallPerm_unchild R parent name _ jp 1 $$ Hp Hperm with ⟨Hp, Hperm⟩
     rcases e with _ | ie <;> wp_auto
     -- the error logged (the first goal: `ok`)
     wp_apply wp_Error as %f1 -
@@ -330,6 +334,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
     obtain ⟨hR, hm, hcs, hpar⟩ := hpp
     obtain ⟨rcs, hrcs, hrcsok, hr⟩ := (hR.2.2 _ hm).1
     subst hr hpar
+    rw [callKey_joinPath hR hm cs]
     wp_auto
     obtain ⟨full, hfull⟩ : ∃ full, full = (rcs ++ cs) ++ [name] := ⟨_, rfl⟩
     have hfok : ∀ c ∈ full, NameOk c := by
@@ -346,7 +351,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
     ihave IH : iprop(∃ (k : Nat) (sl : GoSlice),
         "d" ∷ d_ptr ↦ os.ancPath (full.take k) ∗ "created" ∷ created_ptr ↦ sl ∗
         "Hsl" ∷ sl ↦* touchC full (k + 1) ∗ "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗
-        "Hn" ∷ osNames jp (.only [name]) (DFrac.own 1) h ∗ "Hperm" ∷ osCallPerm (callKey at Hp) 1 ∗
+        "Hn" ∷ osNames jp (.only [name]) (DFrac.own 1) h ∗ "Hperm" ∷ osCallPerm (callKey R (joinPath [] rcs)) 1 ∗
         "%hk" ∷ ⌜k ≤ full.length⌝) $$ [d created Hs Hn Hperm]
     · iexists full.length, slice.nil
       rw [hdir, touchC_end]
@@ -355,7 +360,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
       · iapply ownSlice_nil
       ipureintro; exact Nat.le_refl _
     wp_join iprop(∃ (j : Nat) (sl : GoSlice), created_ptr ↦ sl ∗ sl ↦* touchC full j ∗
-        osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm (callKey at Hp) 1 ∗
+        osSpine j0 cs (DFrac.own qp) jp ∗ osNames jp (.only [name]) (DFrac.own 1) h ∗ osCallPerm (callKey R (joinPath [] rcs)) 1 ∗
         ⌜j ≤ full.length + 1⌝)
       at (App (App (App (Val doFor) _) _) _) with [IH] as ⟨%j, %sl, created, Hsl, Hs, Hn, Hperm, %hj⟩
     · wp_for IH
@@ -415,7 +420,8 @@ theorem fileutil.TouchDirAll.wp_proofDir
     ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
     wp_apply wp_MkdirAll (joinPath (joinPath [] rcs) cs) name (W32 448) R jp J qp 1 h 1 hname hcur
       $$ [Hp Hperm Hn] as %err ⟨Hp, Hperm, Hn⟩
-    · iframe; isplitl [] <;> iassumption
+    · rw [← callKey_joinPath hR hm cs]; iframe; isplitl [] <;> iassumption
+    rw [callKey_joinPath hR hm cs]
     cases err with
     | ok e =>
       wp_auto
@@ -434,7 +440,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
     wp_auto
     ihave IH : iprop(∃ (i : w64) (dv : GoString),
         "i" ∷ i_ptr ↦ i ∗ "d" ∷ d_ptr ↦ dv ∗ "err" ∷ err_ptr ↦ GoInterface.nil ∗
-        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm (callKey at Hp) 1 ∗
+        "Hs" ∷ osSpine j0 cs (DFrac.own qp) jp ∗ "Hperm" ∷ osCallPerm (callKey R (joinPath [] rcs)) 1 ∗
         "%Hi" ∷ ⌜0 ≤ sint.Z i ∧ sint.nat i ≤ (touchC full j).length⌝) $$ [i d err Hs Hperm]
     · iexists W64 0, _
       iframe
@@ -461,8 +467,7 @@ theorem fileutil.TouchDirAll.wp_proofDir
         rw [hfull, List.take_append_of_le_length hk']]
       wp_apply wp_syncDirAnc hSync hSyncAbove R rcs cs j0 jp (DFrac.own qp) 1 0 (j + sint.nat i - 1)
         hR hm hrcs hcs hk' $$ [Hs Hperm] as %e ⟨Hs, Hperm, -⟩
-      · iframe; isplitl [] <;> try iassumption
-        isplitl [] <;> iassumption
+      · iframe; iframe #
       cases e with
       | ok e =>
         wp_auto
@@ -489,7 +494,8 @@ theorem fileutil.TouchDirAll.wp_proofDir
     · ihave Hp := (os.osPathS_joinPath R (joinPath [] rcs) j0 cs (DFrac.own qp) jp hR hm hcs).2 $$ Hs
       wp_apply wp_touchProbe wpA wpF R _ name jp J qp h hJ hname hlen hcur hfo
         $$ [Hp Hperm Hn HJ HT] as %e3 H
-      · iframe; iframe #
+      · rw [← callKey_joinPath hR hm cs]; iframe; iframe #
+      rw [callKey_joinPath hR hm cs]
       try wp_auto
       iapply HΦ $$ H
 

@@ -164,7 +164,7 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
           walOutFrag (W := W) ⟨[ino], [(j, .except X)], [dir]⟩ -∗ walDirLks (W := W) dir hj' nm0 lfs cuts -∗
           walDirH (W := W) dir j dfd ino name k lfs cuts nmd nf := by
   unfold walDirH
-  iintro ⟨%R, %q, %X, %hj, %nm0, %ph, #Hkey, Hn, Hp, #Hsh, Hc, Hfd, Hnmd, Ho, Hlk, Hnf, %hf⟩
+  iintro ⟨%R, %q, %X, %hj, %nm0, %ph, #Hkey, Hn, Hp, #Hsh, %hRW, Hc, Hfd, Hnmd, Ho, Hlk, Hnf, %hf⟩
   obtain ⟨hw0, hc0, hpd, htmp, hX, hsq, hmax⟩ := hf
   iexists R, q, X, hj, nm0
   iframe Hkey Hn Hp Hsh Hc Ho Hlk
@@ -173,6 +173,8 @@ theorem walDirH_lend (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name : 
   iintro %hj' %hs Hn Hp - Hc Ho Hlk
   iexists R, q, X, hj', nm0, ph
   iframe Hkey Hn Hp Hsh Hc Hfd Hnmd Ho Hlk Hnf
+  isplitr
+  · ipureintro; exact hRW
   ipureintro
   refine ⟨hw0, ?_, hpd, htmp, hX, hsq, fun b n hb hw => ?_⟩
   · rcases hs nm0 hw0 with e | ⟨hne, -⟩

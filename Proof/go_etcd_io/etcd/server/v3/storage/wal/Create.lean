@@ -1193,12 +1193,13 @@ theorem wal.Create.wp_proof (P : WalPbIn GF) (Mr : WalMarshal) (hnil : WalPbIn.N
           · assumption
           · cases hb
         · rw [restrictN_lookup_not _ _ _ hm] at hb; cases hb
+      icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
       ihave HhIn := create_handleIn P Mr hMr wl lg r nm mp md enc lf f fd
         (child (child r (tmpName nm)) (walFileName 0 0)) (child r (tmpName nm))
         (⟨i, false, true, lo, lk⟩ : OsFd) _ (createSeg i mS ysS) jr J
         (hJ'.restrict J ((NameSet.except []).diff walTmps)) R d dfd df (child r nm) null func.nil fp γ R
         (DFrac.own d) sz rfl hwr hoffE hmp rfl htmS hL hszS hj0 hj1 hfpn
-        hfi.1 rfl rfl $$ [Hpre Henc Hf Hfd Hlks Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
+        hfi.1 rfl rfl hWR $$ [Hpre Henc Hf Hfd Hlks Hoff Htr Hm Hb HJx Hsd Hperm Hdfd Ho Hnf Hdff Hdf state decoder readClose
           Hfpf Hpipe Hmain Ht1 Hopen]
       · iframe; iframe #
       icases HhIn with ⟨%γt, HhIn⟩

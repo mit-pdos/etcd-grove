@@ -79,6 +79,10 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   wp_start as ⟨#Hos, #Hsi, Hp, Hperm, Hn, Hau⟩
   icases (os.osPathS_unfold R d _ j).1 $$ Hp with ⟨%r0, %j0, %cs, %hp, Hs⟩
   obtain ⟨hR, hm, hcs, rfl⟩ := hp
+  have hkr : callKey R (joinPath r0 cs) = callKey R r0 := callKey_joinPath hR hm cs
+  have hkb : callKey R (child (joinPath r0 cs) b) = callKey R r0 := by
+    rw [← joinPath_snoc]; exact callKey_joinPath hR hm _
+  rw [hkr]
   have hcsb : ∀ x ∈ cs ++ [b], NameOk x := by
     intro x hx; simp only [List.mem_append, List.mem_singleton] at hx
     rcases hx with hx | rfl
@@ -95,7 +99,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
   wp_apply os.Stat.wp_absentS (joinPath r0 cs) b R j (.only [b]) _ (DFrac.own q) h 1 hb hbN hn
     $$ [Hp Hn Hperm] as %fi %err ⟨Hp, Hn, Hperm, %herr⟩
-  · iframe; iframe #
+  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+  (try rw [hkr]); (try rw [hkb])
   cases err with
   | nil => exact absurd rfl herr
   | ok ie =>
@@ -114,7 +119,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   wp_auto
   ihave Hs := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).1 $$ Hp
   wp_apply os.MkdirAll.wp_spineS r0 j0 perm R _ 1 hR hm cs j hcs $$ [Hs Hperm] as %e ⟨Hs, Hperm⟩
-  · iframe; iframe #
+  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+  (try rw [hkr]); (try rw [hkb])
   ihave Hp := (os.osPathS_joinPath R r0 j0 cs _ j hR hm hcs).2 $$ Hs
   cases e with
   | ok ie2 =>
@@ -131,7 +137,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   rw [show (go!"os.Mkdir" : GoString) = os.Mkdir from rfl]
   wp_apply os.Mkdir.wp_proofS (joinPath r0 cs) b perm R j (DFrac.own qd) h q r Q hb hn hq
     $$ [Hp Hperm Hn Hau] as %e ⟨Hp, Hperm, %o, %ho, HQ, Hout, Hnew⟩
-  · iframe; iframe #
+  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+  (try rw [hkr]); (try rw [hkb])
   cases e with
   | nil =>
     wp_auto
@@ -147,7 +154,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
     isimp only [mkOut] at Hout
     wp_apply os.Lstat.wp_absentS (joinPath r0 cs) b R j (.only [b]) _ (DFrac.own q) h 1 hb hbN hn
       $$ [Hp Hout Hperm] as %fi %err ⟨Hp, Hout, Hperm, %herr2⟩
-    · iframe; iframe #
+    · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+    (try rw [hkr]); (try rw [hkb])
     cases err with
     | nil => exact absurd rfl herr2
     | ok ie4 =>
@@ -172,7 +180,8 @@ theorem os.MkdirAll.wp_proofS : os.MkdirAll.specS (GF := GF) (hG := hG) := by
   ihave Hpc := osPathS_child R _ b (DFrac.own ε) j J h' hb hJ $$ Hpe Hne
   wp_apply os.Lstat.wp_dirS (child (joinPath r0 cs) b) R J (DFrac.own ε) 1 $$ [Hpc Hperm]
     as %fi %err ⟨Hpc, Hperm, Hres⟩
-  · iframe; iframe #
+  · (try rw [hkr]); (try rw [hkb]); iframe; iframe #
+  (try rw [hkr]); (try rw [hkb])
   icases os.osPathS_unchild R (joinPath r0 cs) b j J ε a' hb $$ [Hpc Hpa] with ⟨%h'', Hp, Hne, %-⟩
   · iframe
   icases osNames_agree j (.only [b]) _ _ h'' h' $$ Hne Hnb with %he

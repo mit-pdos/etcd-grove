@@ -199,7 +199,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
     (hL : (createStream Mr md).length ≤ g.om.size) (hsz : g.om.size ≤ 0xffffffff000)
     (hj0 : hj.cur !! walFileName 0 0 = some (.file g.ino))
     (hj1 : ∀ b n, hj.cur !! b = some n → b = walFileName 0 0) (hfp : fp ≠ null) (hfd0 : 0 ≤ fd.toInt)
-    (hRp : Rp = R) (hdqp : dqp = DFrac.own q) :
+    (hRp : Rp = R) (hdqp : dqp = DFrac.own q) (hWR : W.roots = R) :
     walPreIn w lg (child r nm) mds md e lt f (W64 0) (W64 0) ∗
       ownEncoder e (wal.fileWi f) (hash.crc32.crc32c (hash.crc32.crc32c (hash.crc32.crc32c 0#32 []) md)
         (Mr.encSnap snapC0.model)) [] ∗
@@ -271,6 +271,8 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
       WalOut.empty.create g.ino J walTmps (child r nm) from rfl]
     iframe Hk Hn Hp Hsi Hperm Hdfd Ho Hnf
     isplitr
+    · ipureintro; exact hWR.symm
+    isplitr
     · ipureintro; exact ⟨rfl, rfl, rfl⟩
     isplitl [Htf]
     · unfold walDirLks
@@ -291,7 +293,7 @@ theorem create_handleIn (P : WalPbIn GF) (Mr : WalMarshal) (hMr : WalMarshalCrea
   · unfold walPipeH
     iexists γp, Rp, dqp, szp, 0
     iframe Hpipe Hmain Htc
-    ipureintro; exact ⟨⟨Nat.le_refl _, hRp, hdqp⟩, hfp⟩
+    ipureintro; exact ⟨⟨Nat.le_refl _, hRp, hdqp⟩, hfp, hRp.trans hWR.symm⟩
   ipureintro
   refine ⟨createHS_split Mr md g.ino γ g.om.size, hfd0, by simpa using hL, hsz, ⟨fun _ => ?_, ?_⟩, ?_⟩
   · simp [walLastIdx]

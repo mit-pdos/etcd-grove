@@ -146,7 +146,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   (try wp_auto)
   -- the pipeline's `Close`
   iunfold walPipeH at Hpipe
-  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
+  icases Hpipe with ⟨%γp, %Rp, %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
   simp only [decide_eq_false hfpn]
   (try wp_auto)
   wp_apply wp_fpClose fp γp Rp dir dqp j szp $$ [Hmain] as %perr Hleft
@@ -177,6 +177,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_opening [os.file.Fiel
   iunfold pipeLeft at Hleft
   iunfold pipeRes at Hleft
   icases Hleft with ⟨⟨Hperm2, -⟩, %b, %hb, Htb⟩
+  subst hRpW
+  ihave Hperm2 := walPerm_ofW hWR dir _ $$ Hperm2
   ihave Htmps := tmpClaims_walTmpsRes (L := hG.goose_localGS) j b (pipeTmp (np + 1)) hb
     (pipeTmp_mem_walTmps _) $$ [Htb Hpc]
   · iframe

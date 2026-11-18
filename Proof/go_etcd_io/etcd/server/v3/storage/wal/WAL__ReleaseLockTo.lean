@@ -79,7 +79,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
   iunfold walTailW at Htw
   icases Htw with ⟨Hf, Hfdo, Hoff, Htk, %m, %bs, Hm, Hbs, %hmb, Hv⟩
   iunfold walDirH at Hdh
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, #Hnmd, Hout, Hdl,
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, #HRdW, Hperm, Hdfd, #Hnmd, Hout, Hdl,
     Hnf, %hdh⟩
   iunfold walDirLks at Hdl
   icases Hdl with ⟨%γt, %b, %lsI, Htf, HlksI, %hlkr⟩
@@ -281,7 +281,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
       isplitl [Hcl Hpd Hperm Hdfd Hout Hnf Htf HlksI]
       · iunfold walDirH
         iexists Rd, qd, X, hj, nm0, ph
-        iframe Hdk Hcl Hpd Hsid Hperm Hdfd Hnmd Hout Hnf
+        iframe Hdk Hcl Hpd Hsid HRdW Hperm Hdfd Hnmd Hout Hnf
         isplitl [Htf HlksI]
         · iunfold walDirLks
           iexists γt, b', lsI
@@ -420,7 +420,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.wp_proof
     isplitl [Hcl Hpd Hperm Hdfd Hout Hnf Htf HlksI]
     · iunfold walDirH
       iexists Rd, qd, X, hj, nm0, ph
-      iframe Hdk Hcl Hpd Hsid Hperm Hdfd Hnmd Hout Hnf
+      iframe Hdk Hcl Hpd Hsid HRdW Hperm Hdfd Hnmd Hout Hnf
       isplitl [Htf HlksI]
       · iunfold walDirLks
         iexists γt, b', lsI.drop (sint.nat sm')

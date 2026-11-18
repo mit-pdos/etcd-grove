@@ -265,6 +265,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
   ihave #Hok' := Hok
   iunfold WalFs.walAreaOk at Hok'
   icases Hok' with ⟨#Hinv, #Hosi, #Hsi, %hrb⟩
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   icases walAreaRes_open jr $$ Hres with ⟨%N, %h, %cl, %Wn, HN, Hsf, %hok, Hcl⟩
   have hnm := hin.1
   ihave %hlgn := zapLoggerOk_ne_null lg $$ Hzap
@@ -638,7 +639,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.wp_proof (Mr : WalMars
       iframe #
       isplitr
       · ipureintro; exact ⟨Nat.le_refl 0, trivial⟩
-      · ipureintro; exact hfpn
+      · ipureintro; exact ⟨hfpn, hWR.symm⟩
 
 end proof
 

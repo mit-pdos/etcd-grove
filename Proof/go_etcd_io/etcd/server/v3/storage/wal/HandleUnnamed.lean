@@ -65,11 +65,11 @@ theorem walDirH_split (dir : GoString) (j : Ino) (dfd : w64) (ino : Ino) (name :
         (∀ R q, A R q -∗ B R q) -∗ walDirH (W := W) dir j dfd ino name k lfs cuts B nf' := by
   iintro Hd
   unfold walDirH
-  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩
+  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hrw, Hperm, Hdfd, Ha, Ho, Ht, Hnf, Hrest⟩
   iframe Hnf
   iintro %nf' Hnf' Hw
   iexists R, q, X, hj, nm0, ph
-  iframe Hk Hn Hp Hsi Hperm Hdfd Ho Ht Hnf' Hrest
+  iframe Hk Hn Hp Hsi Hrw Hperm Hdfd Ho Ht Hnf' Hrest
   iapply Hw $$ Ha
 
 /-- **The pipeline's pin weakened.** -/
@@ -163,15 +163,17 @@ theorem walOpenWFU_permAcc (P : WalPbIn GF) (Mr : WalMarshal) (w : Loc) (dir : G
   icases Hh with ⟨%lg, %df, %sp, %e, %fp, %lt, %f, %mds, %locks, %lfs, %fd, %dfd, %name, %dnm, %j, %rc,
     H1, H2, H3, H4, H5, H6, H7, H8, H9, H10, H11, H12, H13, H14, H15, H16, H17, H18, H19, Hd, Hh⟩
   unfold walDirH
-  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, Hperm, Hd⟩
+  icases Hd with ⟨%R, %q, %X, %hj, %nm0, %ph, Hk, Hn, Hp, Hsi, %hRW, Hperm, Hd⟩
+  subst hRW
   iframe Hperm
   iintro Hperm
   iexists h
   iframe Hr
   iexists lg, df, sp, e, fp, lt, f, mds, locks, lfs, fd, dfd, name, dnm, j, rc
   iframe H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 H11 H12 H13 H14 H15 H16 H17 H18 H19 Hh
-  iexists R, q, X, hj, nm0, ph
+  iexists W.roots, q, X, hj, nm0, ph
   iframe Hk Hn Hp Hsi Hperm Hd
+  try (ipureintro; rfl)
 
 /-- **The fresh WAL's lower bounds** (`Create.spec`'s success post): its empty history written and
 synced, from the purge right's handle name and a past state with the fresh WAL. -/

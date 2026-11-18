@@ -88,6 +88,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   ihave #Harea2 := Harea
   iunfold WalFs.walAreaOk at Harea2
   icases Harea2 with ⟨#Hinv, #Hosinv, -⟩
+  icases walInv_roots _ _ _ _ _ $$ Hinv with %hWR
   ihave #Hzpk : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   wp_auto
@@ -97,9 +98,10 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   (try wp_auto)
   -- the pipeline's `Close`
   iunfold walPipeH at Hpipe
-  icases Hpipe with ⟨%γp, %Rp', %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn⟩
+  icases Hpipe with ⟨%γp, %Rp', %dqp, %szp, %np, #Hisfp, Hmain, Hpc, %hnp, %hfpn, %hRpW⟩
   obtain ⟨-, hRp, rfl⟩ := hnp
   subst Rp'
+  subst hRp
   simp only [decide_eq_false hfpn]
   (try wp_auto)
   wp_apply wp_fpClose fp γp _ dir _ j szp $$ [Hmain] as %perr Hleft
@@ -114,7 +116,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   ihave %hltn := typedPointsto_not_null lt _ _ $$ Hlt0
   simp only [decide_eq_false hltn]
   (try wp_auto)
-  wp_apply (wp_syncC R jr r w dir j h (fun f R q => iprop(⌜f = tf ∧ R = Rp ∧ q = qp⌝)) (some dir) hD.1) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
+  wp_apply (wp_syncC R jr r w dir j h (fun f R q => iprop(⌜f = tf ∧ R = W.roots ∧ q = qp⌝)) (some dir) hD.1) $$ [Hlg Hdir Hdf Hdff Hmd Hsp Hdec Hrc Hns Henti Hsnapi He
       Henc Htw Hdh Hlocks Hls Hcap Hlks Hfp Hopen] as %err Hpost
   · iframe Harea
     iunfold walHandleC
@@ -150,7 +152,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   unfold walTailW
   icases Htw with ⟨Hf2, ⟨%rd2, %lo2, %lk2, Hfd2, Hlkt2⟩, Hoff2, Hk2, %m2, %bs2, Hm2, Hb2, %hp2, Hv2⟩
   unfold walDirH walDirLks
-  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, Hperm, Hdfd, %hpin, Hout,
+  icases Hdh with ⟨%Rd, %qd, %X, %hj, %nm0, %ph, #Hdk, Hcl, Hpd, #Hsid, %hRdW, Hperm, Hdfd, %hpin, Hout,
     ⟨%γt, %bL, %lsI, Htf, HlksI, %hlkr⟩, Hnf, %hdh⟩
   ihave Hlks := walLocksHI_H _ _ $$ HlksI
   ihave Hlkt2 := fdLocksW_locks _ _ $$ Hlkt2
@@ -349,7 +351,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.Close.wp_unnamed [os.file.Fiel
   ileft
   iframe Hunl Hdir Hnf
   isplitl [Hperm Hperm2]
-  · iapply osCallPerm_joinU _
+  · iapply walPerm_ofW hWR dir
+    iapply osCallPerm_joinU _
     iframe
   isplitl [Hpd Hpp]
   · iexists j
