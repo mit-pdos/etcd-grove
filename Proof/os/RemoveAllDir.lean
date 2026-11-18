@@ -338,12 +338,14 @@ theorem os.model.wp_openLoop_dirSt (d b : GoString) (j J : Ino) (R : Roots) (qd 
   icases Hst with ⟨%h', %hJ', Hb, HJ, %hsub, Hor⟩
   icases Hor with (%hh | ⟨%x, %s, Hlog, %hlog⟩)
   · subst hh
+    icases osCallPerm_child R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
     icases os.osPathS_borrow R d b j J qd h' hb hJ $$ [Hp Hb] with ⟨%ε, Hpc, Hback⟩
     · iframe
     wp_apply os.model.wp_openLoop_spine (child d b) R J (DFrac.own ε) qc $$ [Hpc Hperm]
       as %fd %e ⟨Hpc, Hperm, Ho⟩
     · iframe; iframe #
     icases Hback $$ Hpc with ⟨Hp, Hb⟩
+    icases osCallPerm_unchild R d b _ _ _ $$ Hp Hperm with ⟨Hp, Hperm⟩
     iapply HΦ
     iframe
     icases Ho with (%he | ⟨%he, Hfd⟩)

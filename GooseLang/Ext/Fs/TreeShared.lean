@@ -84,12 +84,35 @@ theorem osCallPerm_valid (r : GoString) (q : Qp) : osCallPerm (L := L) r q ⊢ �
 other keys' stay. -/
 theorem osCallPerms_root (R : Roots) (r : GoString) (j0 : Ino) (hR : RootsOk R) (hr : (r, j0) ∈ R) :
     osCallPerms (L := L) R ⊢ osCallPerm (L := L) (callKey R r) 1 ∗
-      [∗map] r' ↦ _u ∈ GMap.delete r (permMap R), osCallPerm (L := L) r' 1 := by
+      [∗map] r' ↦ _u ∈ GMap.delete r (GMap.delete [] (permMap R)), osCallPerm (L := L) r' 1 := by
   rw [callKey_eq hR hr (.inl rfl)]
   unfold osCallPerms
+  have hne : ([] : GoString) ≠ r := by
+    obtain ⟨cs, hcs, -, hrc⟩ := (hR.2.2 _ hr).1
+    intro h0
+    rw [← h0] at hrc
+    cases cs with
+    | nil => exact hcs rfl
+    | cons c cs => simp [joinPath] at hrc
+  have hl : GMap.delete [] (permMap R) !! r = some () := by
+    rw [GMap.lookup_delete_ne _ hne]
+    exact permMap_lookup R r (.inr ⟨j0, hr⟩)
   exact (BigSepM.bigSepM_delete (M := GMap GoString)
-    (Φ := fun (r' : GoString) (_u : Unit) => osCallPerm (L := L) r' 1)
-    (permMap_lookup R r (.inr ⟨j0, hr⟩))).1
+    (Φ := fun (r' : GoString) (_u : Unit) => osCallPerm (L := L) r' 1) (x := ()) hl).1
+
+/-- A share of key `[]`, from its dispenser (`osAboveInv`): half of what it holds. -/
+theorem osAboveInv_take (hE : ↑osAbN ⊆ E) :
+    osAboveInv (L := L) ={E}=∗ ∃ q, osCallPerm (L := L) [] q := by
+  unfold osAboveInv
+  iintro #Hi
+  imod inv_acc hE $$ Hi with ⟨Ho, Hclose⟩
+  icases Ho with >Ho
+  icases Ho with ⟨%q, Hq⟩
+  rw [← Qp.half_add_half q]
+  icases (osCallPerm_split [] q.half q.half).1 $$ Hq with ⟨Hq1, Hq2⟩
+  imod Hclose $$ [Hq1] with -
+  · inext; iexists q.half; iexact Hq1
+  imodintro; iexists q.half; iexact Hq2
 
 /-- Splitting a claim along a finite set of names `M`. -/
 theorem osNames_split (R : Roots) (j : Ino) (N : NameSet) (M : List GoString) (h : NamesH)
@@ -184,11 +207,13 @@ variable {s : Stuckness} {E : CoPset}
 
 /-- **The mode switch**, at any step of the extension: the whole legacy history `V` (no legacy call
 or directory fd) for the shared mode's resources: its invariant, the whole call permission, the
-log's length, a claim on all names of every directory of the tree. Irreversible. -/
+log's length, a claim on all names of every directory of the tree; key `[]`'s whole permission goes into
+its dispenser (`osAboveInv`). Irreversible. -/
 theorem wp_osShare (R : Roots) (V : Hist) (op : String) (v : val) (hv : v.isPanic = false)
     (hE : ↑osN ⊆ E) (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osCallPerms (L := L) R -∗ osLogLb (L := L) V.2.length -∗
+      (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
+        osLogLb (L := L) V.2.length -∗
         ([∗list] j ∈ (GMap.toList V.now).map (·.1),
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
         WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
@@ -205,6 +230,37 @@ theorem wp_osCallBeginS (R : Roots) (p : GoString) (q : Qp) (n : Nat) (hE : ↑o
         Φ (osTokV t)) -∗
       WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} :=
   wp_osCallBeginS' R p q n hE hE' Φ
+
+/-- The shared invariant's roots are well-formed. -/
+theorem osSharedInv_rootsOk (R : Roots) (hE : ↑osShN ⊆ E) :
+    osSharedInv (L := L) R ={E}=∗ ⌜RootsOk R⌝ := by
+  unfold osSharedInv
+  iintro #Hsi
+  imod inv_acc hE $$ Hsi with ⟨Hi, Hclose⟩
+  icases Hi with >Hi
+  icases Hi with ⟨%Vs, %Γn, Hs, HAn, %hcoh, Halen, HAlog⟩
+  imod Hclose $$ [Hs HAn Halen HAlog] with -
+  · inext; iexists Vs, Γn; iframe; ipureintro; exact hcoh
+  imodintro; ipureintro; exact hcoh.1
+
+/-- **`CallBegin(p)` above the roots** (`p` a strict ancestor of a root) in the shared mode: no share of
+the caller's, the call takes one from key `[]`'s dispenser (`osAboveInv`); what its step gives back
+(`osCallPerm (callKey R p) q`) the caller may drop. -/
+theorem wp_osCallBeginAboveS (R : Roots) (p : GoString) (hp : RootsAbove R p) (n : Nat)
+    (hE : ↑osN ⊆ E) (hE' : ↑osShN ⊆ E) (hE'' : ↑osAbN ⊆ E) (Φ : val → IProp GF) :
+    ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osLogLb (L := L) n -∗
+      (∀ (t s0 : Nat) (q : Qp), ⌜n ≤ s0⌝ -∗ osCallS (L := L) t s0 p q -∗ osLogLb (L := L) s0 -∗
+        Φ (osTokV t)) -∗
+      WP (ExternalOp fsExt.name "CallBegin" (Val (#p))) @ s; E {{ Φ }} := by
+  iintro #Hinv #Hsi #Hab #Hlb HΦ
+  iapply fupd_wp
+  imod osSharedInv_rootsOk R hE' $$ Hsi with %hR
+  imod osAboveInv_take hE'' $$ Hab with ⟨%q, Hq⟩
+  rw [← callKey_above hR hp]
+  imodintro
+  iapply wp_osCallBeginS R p q n hE hE' $$ Hinv Hsi Hq Hlb
+  iintro %t %s0 %hn Hk Hls
+  iapply HΦ $$ %t %s0 %q %hn Hk Hls
 
 /-- **`CallBegin(p)` of a guard** in the shared mode, with a fraction `g` of the call permission: a
 guard call on `p` in flight holding it, begun at a log length `s0` at least any the caller knew. -/

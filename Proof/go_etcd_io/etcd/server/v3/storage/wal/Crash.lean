@@ -137,7 +137,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
       crashRest Q (gooseOsGS (L := L)) (gooseOsGS (L := L')) D false V' ={E}=∗
       ∃ (W' : WalGS GF) (s' : AbsDiskState) (D' : List Ino),
         walCrashWal W W' ∗
-        ⌜s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now ∧
+        ⌜W'.roots = R ∧ s'.area = r ∧ DirsAvoid R jr s' ∧ WalsBounded s' ∧ DirsRoots R s' ∧ TreeWf R V'.now ∧
           ∀ i ∈ D', InAreaDir V'.now jr i⌝ ∗
         walStart L' W' C Mr R jr r s' V'.now ∗
         walPast (W := W') s' ∗ walUnlockedTok (W := W') ∗ walCrashTok (W := W') ∗
@@ -276,8 +276,8 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     exact ⟨lay.j, g.name, nm, he, hj⟩
   -- the new generation's ghost state
   ihave #Hst' := walStepsLb_mono s s' (fun _ hn => walsStepped_crash hcrash hn) $$ Hst
-  imod walGhost_init hPre s' hk' $$ Hst' with
-    ⟨%W', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo', Hnm', Hnw', Hnwf', Hlt'⟩
+  imod walGhost_init hPre R s' hk' $$ Hst' with
+    ⟨%W', %hWR', Hg', HM', #Hp', Hu', Hc', Hcr', Ht', Hpk', Hdk', Hcp', Hpo', Hnm', Hnw', Hnwf', Hlt'⟩
   imodintro
   iexists W', s', (((bootFiles V'.now jr).filter (fun i => decide (i ∉ segT))) ++ segT)
   rw [List.append_assoc]
@@ -289,7 +289,7 @@ theorem walInv_crash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (Q : Fs.OsStat
     ipureintro; exact hcrash
   isplitr
   · ipureintro
-    refine ⟨by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
+    refine ⟨hWR', by rw [harea', Har], fun dd hdd => Han.2 dd ?_, walsBounded_crash hcrash Hbd.1,
       dirsRoots_crash hcrash Hbd.2, hwf, fun i hi => ?_⟩
     · rw [← hcrash.2.1]; exact hdd
     · rcases List.mem_append.1 hi with h | h

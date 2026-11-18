@@ -397,7 +397,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
     (hV : V.2 = []) (hR : RootsOk R) (hr : (r, jr) ∈ R) (hwf : TreeWf R V.now)
     (hbd : WalsBounded s) (hdr : DirsRoots R s) (hfo : BootFo V.now jr)
     (hrb : ReceiptBoundLe GF (2 ^ 62)) (henc : ∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32)
-    (E : CoPset) (hE : ↑osShN ⊆ E) :
+    (hWR : W.roots = R) (E : CoPset) (hE : ↑osShN ⊆ E) :
     ⊢ osInv (L := L) -∗ osSharedInv (L := L) R -∗ walStart L W C Mr R jr r s V.now -∗
       ([∗list] i ∈ bootFiles V.now jr, trFile (hG := ⟨G, L⟩) i False) -∗
       ([∗list] j ∈ (GMap.toList V.now).map (·.1),
@@ -523,7 +523,7 @@ theorem walBootCrash (C : WalCodec) (hC : C.Ok) (Mr : WalMarshal) (L : GooseLoca
   isplitr
   · unfold walAreaOk
     iframe Hinv Hos Hsh
-    ipureintro; exact ⟨hrb, henc⟩
+    ipureintro; exact ⟨hrb, henc, hWR⟩
   unfold walAreaRes
   iexists bootN V.now jr, namesOf V jr (bootN V.now jr), bootCls V jr,
     nameClaimsOf jr Ls ((jr, bootN V.now jr, namesOf V jr (bootN V.now jr)) ::

@@ -39,11 +39,11 @@ variable [os.Assumptions]
 
 /-- See the file header. -/
 abbrev os.Stat.specAboveRoot : Prop :=
-  ∀ (p : GoString) (R : Roots) (qc : Qp),
+  ∀ (p : GoString) (R : Roots),
   os.AboveRoot R p →
-  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R p) qc }}
+  {{ osInv (GF := GF) ∗ osSharedInv R }}
     (App (Val (@! os.Stat)) (Val #p))
-  {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); osCallPerm (callKey R p) qc }}
+  {{ (fi : GoInterface) (err : GoInterface), RET (PairV #fi #err); True }}
 
 end spec
 

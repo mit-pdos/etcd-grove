@@ -43,11 +43,11 @@ pending the user's review), whose `Sync` claims nothing. A hypothesis of `TouchD
 final loop syncs the parent of every directory its `Exist` loop found missing, the root's parent
 included when `Stat` of the root failed. Proved: `syncDir.wp_proofAboveRoot`. -/
 abbrev go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir.specAboveRoot : Prop :=
-  ∀ (p : GoString) (R : Roots) (qc : Qp),
+  ∀ (p : GoString) (R : Roots),
   os.AboveRoot R p →
-  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osCallPerm (GF := GF) (callKey R p) qc }}
+  {{ osInv (GF := GF) ∗ osSharedInv (GF := GF) R ∗ osAboveInv (GF := GF) }}
     (App (Val (@! go_etcd_io.etcd.client.pkg.v3.fileutil.syncDir)) (Val #p))
-  {{ (err : GoInterface), RET #err; osCallPerm (callKey R p) qc }}
+  {{ (err : GoInterface), RET #err; True }}
 
 end spec
 

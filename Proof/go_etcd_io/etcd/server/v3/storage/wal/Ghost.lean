@@ -134,6 +134,11 @@ class WalGS (GF : BundledGFunctors) where
   (`LksOk`), the authority in `walGhost`, each element (exclusive) the handle's: every `.wal` name of
   the directory whose segment the handle does not keep locked ends at or before `b`. -/
   γlk : GName
+  /-- The generation's roots (the shared invariant's, `osSharedInv R`; `walAreaOk` says they are its `R`):
+  the call permission a WAL handle holds is of its directory's key, `osCallPerm (callKey W.roots dir) q`
+  (the key of the area's root, which holds the WAL directories), so that a sealed handle predicate,
+  which names no roots, names its key. -/
+  roots : Fs.Roots
 
 /-! ## The WALs' step bound (`notes/bounds-plan.md`, "The WAL's segment sequence") -/
 
@@ -1446,8 +1451,8 @@ variable {GF : BundledGFunctors} {hlc : HasLC} [GooseExts] [GooseInterp] [G : Go
 /-- **A new generation's ghost state** at the real state `s` (every WAL key in the area): the
 invariant's part, the program's map at `s.wal`, `s`'s fact, the lock token and the crash token; the
 WALs' step bound carried over (`walStepsLb`: a crash keeps a prefix of each history). -/
-theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysInArea s) :
-    ⊢@{IProp GF} walStepsLb s -∗ |==> ∃ W : WalGS GF, walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
+theorem walGhost_init (hPre : AbsDiskGpreS GF) (R : Fs.Roots) (s : AbsDiskState) (hk : walKeysInArea s) :
+    ⊢@{IProp GF} walStepsLb s -∗ |==> ∃ W : WalGS GF, ⌜W.roots = R⌝ ∗ walGhost (W := W) s ∗ walOwn (W := W) s.wal ∗
       walPast (W := W) s ∗ walUnlockedTok (W := W) ∗ walCrashTok (W := W) ∗
       walCreatingAuth (W := W) ∅ ∗ walTailsAuth (W := W) ∅ ∗ walParkAuth (W := W) true ∗
       walDirKeysAuth (W := W) ∅ ∗ walCutAuth (W := W) none ∗ walOutAuth (W := W) WalOut.empty ∗
@@ -1472,7 +1477,7 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
   imod (ghostVar_alloc (GF := GF) ([] : List GoString)) with ⟨%γnw, Hnw⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := GoString) (V := GName × Nat × Bool)) with ⟨%γl, Hl⟩
   imod (ghostVar_alloc (GF := GF) (∅ : GMap GoString Nat)) with ⟨%γlk, Hlk⟩
-  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw, γl, γlk⟩
+  iexists ⟨hA, γh, γhd, γhp, γc, γcr, γt, γpk, γdk, γcp, γpo, γnm, γnw, γl, γlk, R⟩
   icases (ghostVar_split_half (GF := GF) γlk 1 (∅ : GMap GoString Nat)).1 $$ Hlk with ⟨Hlk1, Hlk2⟩
   icases (ghostVar_split_half (GF := GF) γnm 1 (none : Option GoString)).1 $$ Hnm with ⟨Hnm1, Hnm2⟩
   icases (ghostVar_split_half (GF := GF) γnw 1 ([] : List GoString)).1 $$ Hnw with ⟨Hnw1, Hnw2⟩
@@ -1489,6 +1494,8 @@ theorem walGhost_init (hPre : AbsDiskGpreS GF) (s : AbsDiskState) (hk : walKeysI
     walParkFrag walParkAuth walDirKeysAuth walCutFrag walCutAuth walOutFrag walOutAuth walTailsFrag
     walNamesFrag walNamesAuth walSplitFrag walSplitAuth walLentAuth walLksAuth walAllG
   iframe Hs HP HM Hp Hu Hc Hcr Ht1 Ht2 Hpk1 Hpk2 Hdk Hcp1 Hcp2 Hpo1 Hpo2 Hnm1 Hnm2 Hnw1 Hnw2 Hl Hlk1 Hlk2
+  isplitr
+  · ipureintro; rfl
   isplitl [Hh Hhd Hhp]
   · isplitl [Hh Hhd Hhp]
     · isplitl [Hh Hhd Hhp]

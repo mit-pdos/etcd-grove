@@ -125,10 +125,12 @@ pipeline has handed over since `Open`/`Create`: `pc + 1 < 2 ^ 62`, what `cut`'s 
 signed `count % 2` need). And a law of the marshaller parameter `Mr` (ledger 2026-11-14): every hard
 state's encoding is below `2 ^ 32` bytes (raft's `HardState` is three varints, at most 33 bytes;
 discharged at C6 from raftpb's encoder), so that `cut`'s header records fit (`cut.spec`'s `2 ^ 42`,
-with the metadata's bound the open handle carries, `walOpenWF`). -/
+with the metadata's bound the open handle carries, `walOpenWF`). And the generation's ghost names are of
+the roots `R` (`W.roots`, the key of a handle's call permission). -/
 def walAreaOk (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) : IProp GF :=
   iprop(walInv (L := L) (W := W) C Mr R jr r ∗ osInv (L := L) ∗ osSharedInv (L := L) R ∗
-    ⌜ReceiptBoundLe GF (2 ^ 62)⌝ ∗ ⌜∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32⌝)
+    ⌜ReceiptBoundLe GF (2 ^ 62)⌝ ∗ ⌜∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32⌝ ∗
+    ⌜W.roots = R⌝)
 
 instance walAreaOk_persistent (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
     Persistent (walAreaOk (L := L) (W := W) C Mr R jr r) := by
@@ -139,7 +141,14 @@ theorem walAreaOk_encState (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : In
     ⊢@{IProp GF} walAreaOk (L := L) (W := W) C Mr R jr r -∗
       ⌜∀ hs : HardStateM, (Mr.encState hs).length < 2 ^ 32⌝ := by
   unfold walAreaOk
-  iintro ⟨-, -, -, -, %h⟩
+  iintro ⟨-, -, -, -, %h, -⟩
+  ipureintro; exact h
+
+/-- The ghost names' roots are the area's (`walAreaOk`'s). -/
+theorem walAreaOk_roots (C : WalCodec) (Mr : WalMarshal) (R : Roots) (jr : Ino) (r : GoString) :
+    ⊢@{IProp GF} walAreaOk (L := L) (W := W) C Mr R jr r -∗ ⌜W.roots = R⌝ := by
+  unfold walAreaOk
+  iintro ⟨-, -, -, -, -, %h⟩
   ipureintro; exact h
 
 /-- The claims of a list tagged with the name `b` (the program's claims under `b`, `walAreaRes`). -/

@@ -114,24 +114,23 @@ theorem os.model.wp_stat_aboveS (op p : GoString) (R : Roots) (hp : RootsAbove R
 
 variable [os.file.FieldAssumptions] in
 /-- `os.OpenFile(p, O_RDONLY, perm)` of a strict ancestor of a root: an outside fd, or an error. -/
-theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : RootsAbove R p)
-    (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R p) qc }}
+theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : RootsAbove R p) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
       (App (App (App (Val (@! os.OpenFile)) (Val #p)) (Val #(W64 0))) (Val #perm))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R p) qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
-  wp_start as ⟨#Hos, #Hsi, Hperm⟩
+  wp_start as ⟨#Hos, #Hsi, #Hab⟩
   imod osLogLb_0 with #Hlb
-  iloeb as IH generalizing Hperm HΦ
-  wp_apply wp_osCallBeginS R _ qc 0 CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iloeb as IH generalizing HΦ
+  wp_apply wp_osCallBeginAboveS R _ hp 0 CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hab Hlb as %t %s0 %qc %hs Hk Hls
   iclear Hls
   rw [os.file_ty_eq, os.File_ty_eq]
   rw [show (W64 0 ||| W64 524288) = flRO from by decide]
   (try wp_auto)
   wp_apply wp_osOpenAboveS R p hp t s0 qc CoPset.subseteq_top CoPset.subseteq_top
-    $$ Hos Hsi Hk as %fd %e %hres Hperm Hfd
+    $$ Hos Hsi Hk as %fd %e %hres - Hfd
   by_cases he0 : e = W64 0
   · subst he0
     ihave Hfd := Hfd $$ %rfl
@@ -162,7 +161,7 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
       wp_auto
       try rw [os.file_ty_eq]
       try rw [os.File_ty_eq]
-      iapply IH $$ Hperm HΦ
+      iapply IH $$ HΦ
     · rw [decide_eq_false he4]
       wp_auto
       unfold os.model.pathError
@@ -174,16 +173,17 @@ theorem os.OpenFile.wp_aboveS (p : GoString) (perm : w32) (R : Roots) (hp : Root
 
 variable [os.file.FieldAssumptions] in
 /-- `os.Open(p)` of a strict ancestor of a root: `OpenFile(p, O_RDONLY, 0)`. -/
-theorem os.Open.wp_aboveS (p : GoString) (R : Roots) (hp : RootsAbove R p) (qc : Qp) :
-    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osCallPerm (callKey R p) qc }}
+theorem os.Open.wp_aboveS (p : GoString) (R : Roots) (hp : RootsAbove R p) :
+    {{ osInv (GF := GF) ∗ osSharedInv R ∗ osAboveInv }}
       (App (Val (@! os.Open)) (Val #p))
-    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err); osCallPerm (callKey R p) qc ∗
+    {{ (f : Loc) (err : GoInterface), RET (PairV #f #err);
         ((∃ fd : w64, ⌜err = interface.nil⌝ ∗ os.ownFile f fd p (DFrac.own 1) ∗ osOutFd fd) ∨
          ⌜err ≠ interface.nil ∧ f = null⌝) }} := by
-  wp_start as ⟨#Hinv, #Hsi, Hperm⟩
+  wp_start as ⟨#Hinv, #Hsi, #Hab⟩
   wp_auto
-  wp_apply os.OpenFile.wp_aboveS p (W32 0) R hp qc $$ [Hinv Hsi Hperm] as %f %err Hr
-  · iframe; isplitl [] <;> iassumption
+  wp_apply os.OpenFile.wp_aboveS p (W32 0) R hp $$ [] as %f %err Hr
+  · isplitl [] <;> try isplitl []
+    all_goals iassumption
   iapply HΦ
   iexact Hr
 

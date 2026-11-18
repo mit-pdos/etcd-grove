@@ -311,7 +311,8 @@ theorem histMap_insert_empty (RV : Roots × Hist) :
 theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN ⊆ E)
     (Φ : val → IProp GF) :
     ⊢ osInv (L := L) -∗ osTree (L := L) (DFrac.own 1) R V -∗
-      (osSharedInv (L := L) R -∗ osCallPerms (L := L) R -∗ osLogLb (L := L) V.2.length -∗
+      (osSharedInv (L := L) R -∗ osAboveInv (L := L) -∗ osCallPerms (L := L) R -∗
+        osLogLb (L := L) V.2.length -∗
         ([∗list] j ∈ (GMap.toList V.now).map (·.1),
           osNames (L := L) j (.except []) (DFrac.own 1) (namesOf V j (.except []))) -∗
         WP (ExternalOp fsExt.name op (Val v)) @ s; E {{ Φ }}) -∗
@@ -340,6 +341,11 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     with ⟨Halen, #Hlb⟩
   imod log_alloc _ V.2 $$ Halog with Halog
   imod perm_alloc _ σ.fs.roots $$ Hperm with Hperm
+  icases (BigSepM.bigSepM_delete (M := GMap GoString)
+    (Φ := fun (r' : GoString) (u : Unit) => gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm r'
+      (DFrac.own 1) u) (permMap_lookup σ.fs.roots [] (.inl rfl))).1 $$ Hperm with ⟨Hp0, Hperm⟩
+  imod inv_alloc osAbN E iprop(∃ q, osCallPerm (L := L) [] q) $$ [Hp0] with #Hab
+  · inext; iexists 1; unfold osCallPerm; iexact Hp0
   imod claims_alloc _ V _ (GMap.toList_keys_nodup _) $$ Han with ⟨Han, Hcl⟩
   imod inv_alloc osShN E iprop(∃ (Vs : Hist) (Γn : GMap (Ino × NameSet) NamesH),
     gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γs () (DFrac.own 1) (σ.fs.roots, Vs) ∗
@@ -370,8 +376,10 @@ theorem wp_osShare' (R : Roots) (V : Hist) (op : String) (v : val) (hE : ↑osN 
     · iapply BigSepM.bigSepM_empty.2; itrivial
   iframe Hg
   simp only [osNames_except]
+  ihave Hab' : osAboveInv (L := L) $$ [Hab]
+  · unfold osAboveInv; iexact Hab
   unfold osSharedInv osCallPerms osCallPerm osLogLb
-  iapply HΦ $$ Hsi Hperm Hlb Hcl
+  iapply HΦ $$ Hsi Hab' Hperm Hlb Hcl
 
 instance osSharedBody_timeless (R : Roots) : Timeless (PROP := IProp GF)
     iprop(∃ (Vs : Hist) (Γn : GMap (Ino × NameSet) NamesH),

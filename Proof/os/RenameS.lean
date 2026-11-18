@@ -51,12 +51,18 @@ theorem os.Rename.wp_proofFileSnc : os.Rename.specFileSnc (GF := GF) (hG := hG) 
   ihave #Hlb := osLogLb_max h.next h'.next $$ [Hlb1 Hlb2]
   · iframe #
   iclear Hlb1 Hlb2
-  icases osCallPerm_child R d' bt _ _ _ $$ Hp' Hperm with ⟨Hp', Hperm⟩
+  imod osSharedInv_rootsOk R CoPset.subseteq_top $$ Hsi with %hRo
+  icases osPathS_callKey R d _ _ $$ Hp with ⟨Hp, %hkd⟩
+  icases osPathS_callKey R d' _ _ $$ Hp' with ⟨Hp', %hkd'⟩
+  have hk : callKey R (child d' bt) = callKey R d := by
+    rw [callKey_of_sameRoot hRo hsr, hkd]
+  ihave Hperm := osCallPerm_congr qc hk.symm $$ Hperm
   wp_apply wp_osCallBeginS R _ qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
     $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
   iclear Hls
   wp_apply wp_osLstatDirS_mem R d' bt j' N' dq' (DFrac.own q2) h' t s0 qc hbt hN'
     CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp' Hn2 Hk as %isDir %e %hd Hperm Hp' Hn2
+  ihave Hperm := osCallPerm_congr qc ((hkd' bt).symm.trans hk) $$ Hperm
   have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
   rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
   wp_auto

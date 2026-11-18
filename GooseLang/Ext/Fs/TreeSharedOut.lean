@@ -40,19 +40,12 @@ theorem prefix_joinPath_cons (r c : GoString) (cs : List GoString) :
     (r ++ [slashB]).IsPrefix (joinPath r (c :: cs)) :=
   ⟨c ++ cs.flatMap (fun c => slashB :: c), by simp [joinPath]⟩
 
-/-- **A strict ancestor of a root is no path of the roots' trees** (well-formed roots). -/
-theorem rootsAbove_not_treePath {st : OsState} {p : GoString} (hR : RootsOk st.fs.roots)
-    (h : RootsAbove st.fs.roots p) : ¬ st.TreePath p := by
-  have hlen : ∀ rj ∈ st.fs.roots, 2 ≤ rj.1.length := fun rj hm => rootForm_len (hR.2.2 rj hm).1
-  -- `r ++ "/"` is a prefix of `p` for a root `r` of which `p` is the root or below
-  have hpre : st.TreePath p → ∃ rj ∈ st.fs.roots, rj.1 = p ∨ (rj.1 ++ [slashB]).IsPrefix p := by
-    rintro (⟨rj, hm, rfl⟩ | ⟨rj, hm, cs, hne, -, rfl⟩)
-    · exact ⟨rj, hm, .inl rfl⟩
-    · rcases cs with _ | ⟨c, cs⟩
-      · exact absurd rfl hne
-      · exact ⟨rj, hm, .inr (prefix_joinPath_cons _ _ _)⟩
-  intro htp
-  obtain ⟨r2, hm2, h2⟩ := hpre htp
+/-- **A strict ancestor of a root is under no root** (well-formed roots). -/
+theorem rootsAbove_not_under {R : Roots} {p : GoString} (hR : RootsOk R)
+    (h : RootsAbove R p) : ¬ ∃ rj ∈ R, rj.1 = p ∨ (rj.1 ++ [slashB]).IsPrefix p := by
+  have hlen : ∀ rj ∈ R, 2 ≤ rj.1.length := fun rj hm => rootForm_len (hR.2.2 rj hm).1
+  intro hex
+  obtain ⟨r2, hm2, h2⟩ := hex
   rcases h with rfl | ⟨hne, r1, hm1, h1⟩
   · -- `/` is shorter than any root, and than anything below one
     have hl2 := hlen r2 hm2
@@ -68,6 +61,27 @@ theorem rootsAbove_not_treePath {st : OsState} {p : GoString} (hR : RootsOk st.f
     by_cases heq : r2.1 = r1.1
     · have := h21.length_le; rw [heq] at this; simp at this; omega
     · exact (hR.2.2 r2 hm2).2 r1 hm1 heq (.inr h21)
+
+/-- **A strict ancestor of a root is no path of the roots' trees** (well-formed roots). -/
+theorem rootsAbove_not_treePath {st : OsState} {p : GoString} (hR : RootsOk st.fs.roots)
+    (h : RootsAbove st.fs.roots p) : ¬ st.TreePath p := by
+  rintro (⟨rj, hm, rfl⟩ | ⟨rj, hm, cs, hne, -, rfl⟩)
+  · exact rootsAbove_not_under hR h ⟨rj, hm, .inl rfl⟩
+  · rcases cs with _ | ⟨c, cs⟩
+    · exact absurd rfl hne
+    · exact rootsAbove_not_under hR h ⟨rj, hm, .inr (prefix_joinPath_cons _ _ _)⟩
+
+/-- **The key of a strict ancestor of a root is `[]`** (well-formed roots). -/
+theorem callKey_above {R : Roots} {p : GoString} (hR : RootsOk R) (h : RootsAbove R p) :
+    callKey R p = [] := by
+  unfold callKey
+  rw [dif_neg]
+  rintro ⟨rj, hm, hu⟩
+  refine rootsAbove_not_under hR h ⟨rj, hm, ?_⟩
+  unfold IsUnder at hu
+  rcases hu with hu | hu
+  · exact .inl hu.symm
+  · exact .inr hu
 
 /-! ## Outside fds -/
 

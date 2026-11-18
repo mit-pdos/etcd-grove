@@ -119,7 +119,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   -- the WAL's start and the area's path
   have hnone : ∀ nm, walNameOk nm → V.now.entry jr nm = none :=
     fun nm h => hslots nm (areaSlot_of_walName h)
-  imod walStart_boot0 hPre L C Mr R jr r V.now hR hr hnone with ⟨%W, Hst, #Hp, Hu, Hc, Hown⟩
+  imod walStart_boot0 hPre L C Mr R jr r V.now hR hr hnone with ⟨%W, %hWR, Hst, #Hp, Hu, Hc, Hown⟩
   imod osPathS_root R r jr (DFrac.own 1) hr hE $$ Hsh with Hsp
   -- the invariant's claims: the area's names holding no entry
   let N : NameSet := .except (areaOthers V.now jr)
@@ -172,7 +172,7 @@ theorem walBoot0 (hPre : AbsDiskGpreS GF) (C : WalCodec) (hC : C.Ok) (Mr : WalMa
   isplitr
   · unfold walAreaOk
     iframe Hinv Hos Hsh
-    ipureintro; exact ⟨hrb, henc⟩
+    ipureintro; exact ⟨hrb, henc, hWR⟩
   unfold walAreaRes
   iexists N, namesOf V jr N, [], []
   iframe Hcl Hnw

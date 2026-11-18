@@ -163,9 +163,27 @@ takes its key's, `callKey R p`). -/
 def osCallPerm (r : GoString) (q : Qp) : IProp GF :=
   gElem (gooseOsGS (L := L)) (gooseOsGS (L := L)).γperm r (DFrac.own q) ()
 
-/-- The whole call permission of every key: what the mode switch gives (`wp_osShare`). -/
+/-- The whole call permission of every root's key: what the mode switch gives (`wp_osShare`). The
+key `[]` (the paths under no root) goes to `osAboveInv`. -/
 def osCallPerms (R : Roots) : IProp GF :=
-  iprop([∗map] r ↦ _u ∈ permMap R, osCallPerm r 1)
+  iprop([∗map] r ↦ _u ∈ GMap.delete [] (permMap R), osCallPerm r 1)
+
+/-- The namespace of the dispenser of key `[]` (disjoint from `osN` and `osShN`). -/
+def osAbN : Namespace := nroot .@ "osfsAbove"
+
+/-- **The dispenser of key `[]`**, the call permission of the paths under no root (the strict
+ancestors of the roots, which the environment keeps existing directories): it holds some fraction of
+key `[]` and hands out half of what it holds on each take (`osAboveInv_take`), so a call above the
+roots needs no share of its own (`CallBegin` above a root, then `Stat`, `OpenDir`, `Fsync` of the
+directory: `os.Stat.specAboveRoot`, `fileutil.OpenDir.specAboveRoot`, `fileutil.syncDir.specAboveRoot`).
+Allocated by the mode switch (`wp_osShare`) from key `[]`'s whole permission, which no one gets back:
+**no proof needs the whole of key `[]`**. The whole permission of a key is what a directory operation
+(mkdir, rmdir, rename, unlink of a directory) on a path of that key needs (its `WholeG`/sole
+clauses); no client mutates a directory above a root (the os specs exist only for read-only calls
+there, and a mutation above a root is outside every client's paths), so the dispenser loses nothing a
+proof could need. -/
+def osAboveInv : IProp GF :=
+  inv osAbN iprop(∃ q, osCallPerm [] q)
 
 /-- The shared call `t` is in flight, begun on the path `p` when the log had `s` entries, holding `q`
 of the call permission (in the state interpretation), which its step gives back. -/
@@ -216,6 +234,8 @@ def osSharedInv (R : Roots) : IProp GF :=
 
 instance osSharedInv_persistent (R : Roots) : Persistent (osSharedInv (L := L) R) := by
   unfold osSharedInv; infer_instance
+instance osAboveInv_persistent : Persistent (osAboveInv (L := L)) := by
+  unfold osAboveInv; infer_instance
 instance osLogLb_persistent (n : Nat) : Persistent (osLogLb (L := L) n) := by
   unfold osLogLb; letI := (gooseOsGS (L := L)).osAllG; infer_instance
 instance osLogEnt_persistent (x : Nat) (e : LogEntry) : Persistent (osLogEnt (L := L) x e) := by
