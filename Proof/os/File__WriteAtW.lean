@@ -30,7 +30,7 @@ theorem os.File.WriteAt.wp_proofW
   intro f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs
   iintro %Φ Hpre HΦ
   by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2⟩ := hne
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
     haveI := hs1
     iapply hNE Sio hSio f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs
       $$ Hpre

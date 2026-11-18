@@ -266,7 +266,7 @@ theorem DB.Close_own.wp_proof
     iframe Hs1 Hbq
     ileft; ipureintro; exact hne
   -- no error: `close` gives the `OsMeta` back
-  obtain ⟨Sio, hSio, hs1, hs2⟩ := hne
+  obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
   haveI := hs1
   haveI := hs2
   wp_apply hOwnedM Sio hSio db lg DFrac.discard w.fli _ p.path w.ms p w.m w.f w.fd p.path _ Ht0.2.1
@@ -297,7 +297,7 @@ theorem DB.Close_own.wp_proof
   rotate_left
   · -- a mapping leaked: excluded, the leak recorded a failure the premises refute (session S3f)
     ihave %hfs := junkRes_some_fs (bnsOf γ.gs) (some (jb, jl)) jb jl rfl $$ Hjk
-    exact absurd ⟨Sio, hSio, hs1, hs2⟩ hfs
+    exact absurd ⟨Sio, hSio, hs1, hs2, hsp⟩ hfs
   by_cases hal : w.m.size % 4096 = 0
   rotate_left
   · -- not whole pages (a commit's write failed part way past the end): the file given up

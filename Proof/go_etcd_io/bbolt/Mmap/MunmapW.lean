@@ -52,7 +52,7 @@ theorem DB.munmap.wp_proofW (hS : DB.munmap.spec (GF := GF) (hG := hG))
   intro db base l lg p m vf hdb hl hmap
   iintro %Φ Hpre HΦ
   by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2⟩ := hne
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
     haveI := hs2
     iapply hNE Sio hSio db base l lg p m vf hdb hl hmap $$ Hpre
     inext

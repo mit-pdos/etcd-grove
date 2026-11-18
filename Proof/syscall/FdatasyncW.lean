@@ -30,7 +30,7 @@ theorem syscall.Fdatasync.wp_proofBW
   intro fd dq d m
   iintro %Φ Hpre HΦ
   by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2⟩ := hne
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
     haveI := hs1
     iapply hNE Sio hSio fd dq d m $$ Hpre
     inext

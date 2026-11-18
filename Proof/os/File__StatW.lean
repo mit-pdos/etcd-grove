@@ -31,7 +31,7 @@ theorem os.File.Stat.wp_proofW
   intro f fd name dqf dq dqm d m
   iintro %Φ Hpre HΦ
   by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2⟩ := hne
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
     haveI := hs1
     iapply hNE Sio hSio f fd name dqf dq dqm d m $$ Hpre
     inext

@@ -17,9 +17,18 @@ noncomputable section
 namespace Perennial
 namespace Fs
 
-/-- The steps of the semantics satisfy `NoIoErr` and `NoMapLockErr` on every file. -/
+/-- The steps of the semantics satisfy `NoIoErr` and `NoMapLockErr` on every file and every path
+(session S3f: the paths too, for `open`'s clause of `NoMapLockErr`). -/
 def FsNoErr [ExtSemantics fsExt] : Prop :=
-  ∃ Sio : IoSet, (∀ st i, Sio.ino st i) ∧ FsStepSat (NoIoErr Sio) ∧ FsStepSat (NoMapLockErr Sio)
+  ∃ Sio : IoSet, (∀ st i, Sio.ino st i) ∧ FsStepSat (NoIoErr Sio) ∧ FsStepSat (NoMapLockErr Sio) ∧
+    (∀ p, Sio.path p)
+
+/-- **The premises refute a witness `¬ FsNoErr`** (session S3f): what a client of a spec whose error
+arm carries `⌜¬ FsNoErr⌝` (bbolt's `Open.spec`, `DB.Close.spec`) uses to rule the error out. -/
+theorem fsNoErr_of [ExtSemantics fsExt] (Sio : IoSet) [h1 : FsStepSat (NoIoErr Sio)]
+    [h2 : FsStepSat (NoMapLockErr Sio)] (hi : ∀ st i, Sio.ino st i) (hp : ∀ p, Sio.path p) :
+    FsNoErr :=
+  ⟨Sio, hi, h1, h2, hp⟩
 
 end Fs
 end Perennial

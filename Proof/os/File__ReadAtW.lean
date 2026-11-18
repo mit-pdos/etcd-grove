@@ -31,7 +31,7 @@ theorem os.File.ReadAt.wp_proofRacyLtW
   intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
   iintro %Φ Hpre HΦ
   by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2⟩ := hne
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
     haveI := hs1
     iapply hNE Sio hSio f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend $$ Hpre
     inext
