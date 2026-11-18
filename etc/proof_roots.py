@@ -310,7 +310,7 @@ def run_groups(fn, groups, size=len):
     examples' group (107 roots, 18.5 GiB, 8 of a run's 11 minutes, 2026-11-17) in one lane, the
     others one after another in the other (none above 7 GiB), so the peak memory is about the
     largest two groups' and the wall time the largest group's."""
-    jobs = max(1, int(os.environ.get("TCB_JOBS", "0") or 2))
+    jobs = max(1, int(os.environ.get("TCB_JOBS") or 2))
     order = sorted(range(len(groups)), key=lambda i: -size(groups[i]))
     out = [None] * len(groups)
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
