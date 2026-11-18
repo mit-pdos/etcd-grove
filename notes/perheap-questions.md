@@ -19,3 +19,9 @@
   until 1b; `k8sCtxOk_of_nil` taking `libCtxOk`; `chanCtx_libCtxOk` with `[context.Assumptions]`. The six more
   exported text changes (`authEnable`/`roleAdd`/`userGrantRole`/`roleGrantPermission`/`userAdd_end_to_end_on`,
   `authWrapOut_userAdd_nn`) are added to the Q9 list for the user at the land stop.
+- **Decided by etcd-grove-03, 2026-11-18 (at the C1a mid-point):** the C1a forms ACCEPTED (`auth.ctxToken (ctx :
+  GoInterface)`; `tokRefusedFrom` keeps its unused `M n`; internal check specs gate on `E.authMode.isOn`);
+  `metadata.FromIncomingContext.spec`'s restatement moved from 1b into C1a ACCEPTED (independent attack SOUND,
+  `/shared/tmp/perheap/c1a/attack-fic.md`); the store's `AuthInfoFromCtx` proof using `IsAuthEnabled.wp_lb`
+  directly ACCEPTED; `auth_ctx_lb` (`etcdserver/Results.lean`, its type `.specLb` → `.spec`) added to the Q9
+  list for the user. The C1a/1b seam: targeted builds for C1a, the full build at C1.
