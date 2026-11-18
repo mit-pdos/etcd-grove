@@ -346,7 +346,7 @@ macro "fmt_verb_ok" : tactic => `(tactic| (
   refine ⟨by decide, by decide, ?_⟩
   first
     | (intro hw; exact absurd hw (by decide))
-    | (intro _; first | assumption | exact (‹_ ∧ _›).2 | fmt_method_facts)))
+    | (intro _; first | assumption | (apply And.right; assumption) | fmt_method_facts)))
 
 /-- Turns a goal `fmt.argsOk mv format xs` of a literal format into `fmt.argsOkAt` its directives,
 unfolded over the argument list: one `fmt.argOkAt mv d a` per argument (premise fixes 6, D). -/

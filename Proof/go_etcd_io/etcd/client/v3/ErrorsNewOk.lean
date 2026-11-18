@@ -137,7 +137,7 @@ theorem errorsNewOk_of
   · ipureintro; exact ErrorStringLeaf.leaf _
   isplitr
   rotate_left
-  · ipureintro; exact ErrorStringLeaf.noFormat
+  · ipureintro; exact ⟨ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
   unfold grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -154,7 +154,8 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
     (hty : e.ty ≠ go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (hT : e.ty ∈ clientErrTys)
-    (hF : methodSet e.ty !! go!"Format" = none) :
+    (hF : methodSet e.ty !! go!"Format" = none)
+    (hE : methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig) :
     EtcdGrove.errMsgOk (GF := GF) e ⊢ ⌜clientErr (GoInterface.ok e)⌝ ∗ statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   isplitl
@@ -177,7 +178,7 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact hF
+  · ipureintro; exact ⟨hF, hE⟩
   unfold grpcErrMethodsOk
   isplitl
   · iintro %h
@@ -205,7 +206,8 @@ theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
       go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty := by
     unfold go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty; nofun
   ihave ⟨%Hc, #Hs⟩ := clientErr_statusErrOk_of_leaf _ hl.2.1 hl.2.2
-    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat $$ Hm
+    ErrorStringNoGRPCStatus.noGRPCStatus hty hAs (by simp [clientErrTys]) ErrorStringLeaf.noFormat
+    EtcdGrove.errorString_errorSig $$ Hm
   unfold eofOk
   iintro !> %err #He
   iunfold eofIs at He
@@ -289,8 +291,17 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
   have hTd : ed.ty ∈ clientErrTys := by
     cases ed; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyD
     simp [clientErrTys, HtyD.1]
-  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc Hlc.2.2.2.2 $$ Hmc
-  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd Hld.2.2.2.2.2 $$ Hmd
+  have hEc : methodSet ec.ty !! go!"Error" = some EtcdGrove.noArgStringSig := by
+    cases ec; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyC
+    rw [HtyC.1]; exact EtcdGrove.errorString_errorSig
+  have hEd : methodSet ed.ty !! go!"Error" = some EtcdGrove.noArgStringSig := by
+    cases ed; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyD
+    rw [HtyD.1]
+    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Error"
+    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+    exact h
+  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc Hlc.2.2.2.2 hEc $$ Hmc
+  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd Hld.2.2.2.2.2 hEd $$ Hmd
   unfold ctxErrClientAllW
   iintro !> %ctx %cs #Hctx
   unfold ctxErrClient

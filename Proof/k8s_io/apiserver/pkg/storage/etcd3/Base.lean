@@ -420,7 +420,7 @@ variable [sem : go.Semantics]
 2026-11-10): a `*errorString` is a leaf without `Is` or `GRPCStatus` (`EtcdGrove.ErrorStringLeaf`,
 of the method set goose emits), and its `Error()` returns its message. `metricsInit`'s
 `ErrTransactionConflict`, which `txnError` returns. -/
-theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoString) :
+theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
       WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
         go!"Error" #x)) (Val #())) {{ Φ }}) ⊢
@@ -439,7 +439,7 @@ theorem errorString_statusErrOk [EtcdGrove.ErrorStringLeaf] (x : Loc) (msg : GoS
   · ipureintro; exact hl
   isplitr
   rotate_left
-  · ipureintro; exact EtcdGrove.ErrorStringLeaf.noFormat
+  · ipureintro; exact ⟨EtcdGrove.ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
   unfold go_etcd_io.etcd.cache.v3.grpcErrMethodsOk
   isplitl
   · iintro %h

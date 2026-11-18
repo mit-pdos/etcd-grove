@@ -189,7 +189,7 @@ theorem errorString_errStrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (ms
   have hl := errorString_leaf x
   isplitl
   rotate_left
-  · ipureintro; exact ErrorStringLeaf.noFormat
+  · ipureintro; exact ⟨ErrorStringLeaf.noFormat, EtcdGrove.errorString_errorSig⟩
   unfold http.errTreeOk
   iintro !> %target %Ht
   iexists (· = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x),

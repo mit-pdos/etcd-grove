@@ -423,12 +423,15 @@ instance grpc_status_get_is_pkg_init_wf_inst :
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`), as far as
 grpc's and Go's `errors` functions look (Go's typing, which the model lacks: method sets are
 uninterpreted): no `As` or `Unwrap` method (a leaf error), no `GRPCStatus` and no `Is` method
-(unit P3a), and no `Format` method (premise-fixes-4: `fmt` prints it with its `Error`). -/
+(unit P3a), and no `Format` method (premise-fixes-4: `fmt` prints it with its `Error`), and its
+`Error` is `Error() string` (fmt soundness 2). -/
 def rpctypesEtcdErrorTy : Prop :=
   (∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩) ∧
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none ∧
   methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none ∧
-  methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none
+  methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Format" = none ∧
+  methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Error" =
+    some EtcdGrove.noArgStringSig
 
 /-- `rpctypes`' package facts: the two errors the store returns (`EtcdError` values, k8s etcd3 7e-2's
 D1, `examples/k8s7e2attack`'s `TestRpctypesErrTypes`); `ErrCompacted.Error()`
@@ -728,7 +731,8 @@ abbrev cacheInit : IProp GF :=
     (∃ e : GoInterfaceOk, globalAddr ErrCacheTimeout ↦□ GoInterface.ok e) ∗
     □ (∀ e : GoInterfaceOk, globalAddr ErrKeyRangeInvalid ↦□ GoInterface.ok e -∗ errorStringSpec e) ∗
     □ (∀ e : GoInterfaceOk, globalAddr ErrUnsupportedRequest ↦□ GoInterface.ok e -∗
-      errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝))
+      errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none ∧
+        methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.cache.v3 :=
   define_is_pkg_init cacheInit

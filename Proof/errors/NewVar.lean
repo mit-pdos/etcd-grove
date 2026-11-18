@@ -82,6 +82,17 @@ instance errorStringLeaf_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hIs hG hF
   exact ⟨fun _ => by simp [_root_.Perennial.errors.isLeafError, hAs, hU], by simp [hIs], hG, hF⟩
 
+/-- `*errors.errorString`'s `Error` is `Error() string` (goose's `ptr_method_set`; fmt soundness 2,
+2026-11-18: what `fmt.argOk` asks of an error argument). -/
+theorem errorString_errorSig [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+    [_root_.Perennial.errors.Assumptions] :
+    methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !! go!"Error" =
+      some (go.signature.Signature [] false [go.string]) := by
+  have hE := go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+    go!"Error"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hE
+  exact hE
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
