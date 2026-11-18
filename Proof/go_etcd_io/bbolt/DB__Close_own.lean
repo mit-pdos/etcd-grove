@@ -121,7 +121,8 @@ theorem DB.Close_own.wp_proof
       DB.close.spec_ownedNoErrM (GF := GF) (hG := hG)) :
     DB.Close_own.spec (GF := GF) (hG := hG) := by
   intro _ _ _ db γ i D
-  wp_start as ⟨#Hdb, #Hino, Hst⟩
+  wp_start as ⟨#Hdb, #Hino, Hst, Hclo⟩
+  iunfold boltCloser at Hclo
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
   -- the inode
@@ -155,48 +156,16 @@ theorem DB.Close_own.wp_proof
   icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa,
     Hrof, #Hrcm, %Hok, %HF⟩
   iunfold rwR at HW
-  icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo)
+  icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo')
   rotate_left
-  · -- closed already: given up, or given back (excluded by the caller's validity token)
-    iunfold closedR at Hclo
-    icases Hclo with ⟨Hcls, Hnfb, %C2, %fl2, %ms2, Hcur2, Hst2, Hfl2, Hmap2, Hmf2, Hout2, Hwv2, Hop2,
-      Hfli2, Hwa2⟩
-    icombine Hcls Hcls' gives % ⟨_, hcl⟩
-    subst hcl
-    icases Hnfb with (#Hnf | Hbq)
-    rotate_left
-    · unfold boltState boltStateDef
-      icases Hst with ⟨-, Hbq'⟩
-      icombine Hbq Hbq' gives %h
-      exfalso
-      have h1 := h.1
-      rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
-      grind
-    simp only [Bool.not_true]
-    wp_apply DB.close.wp_proof_closed db _ $$ Hop' as Hop'
-    try wp_auto
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml HP]
-    · iexact HP
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (metaR (bnsOf γ.gs) db p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-      Hfl' Hwa' Hob Hmlk Hfa Hrof]
-    · iunfold metaR; iexists C, F, true, fli, wa
-      iframe Hrcm
-      simp only [Bool.not_true, ↓reduceIte]
-      iframe; ipureintro; exact ⟨Hok, HF⟩
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur2
-      Hst2 Hfl2 Hmap2 Hmf2 Hout2 Hwv2 Hop2 Hfli2 Hwa2]
-    · iunfold rwR; iright; iunfold closedR; iframe; ileft; iexact Hnf
-    try wp_auto
-    iapply HΦ
-    iright
-    iframe Hst
-    iright
-    isplitr
-    · ipureintro; rfl
-    unfold boltNoFile
-    iexact Hnf
+  · -- closed already: excluded by the caller's closer token (`closedR` holds the deposited one)
+    iunfold closedR at Hclo'
+    icases Hclo' with ⟨-, Hclo2, -⟩
+    icombine Hclo Hclo2 gives %h
+    exfalso
+    have h1 := h.1
+    rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+    grind
   -- open: the writer side idle
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
@@ -286,11 +255,9 @@ theorem DB.Close_own.wp_proof
       exact ⟨by simp, by simp, HF⟩
     try wp_auto
     wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
-      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa]
+      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
     · iunfold rwR; iright; iunfold closedR
-      iframe Hcls
-      isplitr
-      · ileft; iexact Hnf
+      iframe Hcls Hclo
       iexists w.C, w.fl, none
       iframe
     try wp_auto
@@ -328,35 +295,17 @@ theorem DB.Close_own.wp_proof
   · unfold junkRes; iexact Hjk
   rcases hj : w.junk with _ | ⟨jb, jl⟩
   rotate_left
-  · -- a mapping leaked: the file given up
-    ihave #Hnf := junkRes_some_nf (bnsOf γ.gs) (some (jb, jl)) jb jl rfl $$ Hjk
-    wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
-      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa]
-    · iunfold rwR; iright; iunfold closedR
-      iframe Hcls
-      isplitr
-      · ileft; iexact Hnf
-      iexists w.C, w.fl, none
-      iframe
-    try wp_auto
-    iapply HΦ
-    iright
-    iframe Hs1 Hbq
-    iright
-    isplitr
-    · ipureintro; rfl
-    unfold boltNoFile
-    iexact Hnf
+  · -- a mapping leaked: excluded, the leak recorded a failure the premises refute (session S3f)
+    ihave %hfs := junkRes_some_fs (bnsOf γ.gs) (some (jb, jl)) jb jl rfl $$ Hjk
+    exact absurd ⟨Sio, hSio, hs1, hs2⟩ hfs
   by_cases hal : w.m.size % 4096 = 0
   rotate_left
   · -- not whole pages (a commit's write failed part way past the end): the file given up
     imod junkRes_shut ⊤ (bnsOf γ.gs) none $$ Hjk with #Hnf
     wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
-      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa]
+      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
     · iunfold rwR; iright; iunfold closedR
-      iframe Hcls
-      isplitr
-      · ileft; iexact Hnf
+      iframe Hcls Hclo
       iexists w.C, w.fl, none
       iframe
     try wp_auto
@@ -370,11 +319,9 @@ theorem DB.Close_own.wp_proof
     iexact Hnf
   -- the file given back; the caller's validity token kept by the closed database
   wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
-    Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hbq]
+    Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
   · iunfold rwR; iright; iunfold closedR
-    iframe Hcls
-    isplitl [Hbq]
-    · iright; iexact Hbq
+    iframe Hcls Hclo
     iexists w.C, w.fl, none
     iframe
   try wp_auto

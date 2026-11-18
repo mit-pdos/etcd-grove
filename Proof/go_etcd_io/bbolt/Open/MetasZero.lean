@@ -48,10 +48,10 @@ abbrev DB.metasZero.spec_own : Prop :=
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
       fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ (z = true ↔ ∀ b ∈ (xs.map Prod.fst).take 8192, b = W8 0)⌝) ∨
-       (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.metasZero.wp_proof_own
-    (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG)) :
+    (hRead : os.File.ReadAt.specRacyLtW (GF := GF) (hG := hG)) :
     DB.metasZero.spec_own (GF := GF) (hG := hG) := by
   intro db f fd p dqdb dqf dq dqb d xs hrd hp hx
   rcases p with ⟨pp, pi⟩; dsimp only at hp ⊢; subst hp
@@ -92,13 +92,13 @@ theorem DB.metasZero.wp_proof_own
     have hsn : sint.nat (W64 (N : Int)) = N := by word
     rw [hsn]
     try wp_auto
-    wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf sl (List.replicate N (W8 0)) (W64 0) dq dqb
+    wp_apply os.File.ReadAt.wp_heldW hRead f fd pp dqf sl (List.replicate N (W8 0)) (W64 0) dq dqb
       d xs _ hrd (by decide) (by rw [List.length_replicate]; omega)
       (by rw [List.length_replicate, show (W64 0).toNat = 0 from rfl]; omega) (by omega)
       $$ [Hfo Hsl Hfd Hb] as %n %err ⟨Hfo, Hfd, Hb, %vs', Hsl, %hr, #Hek⟩
     · iframe; iframe #; rw [← fileOwn_eq]; iexact Hfo
     rw [List.length_replicate, show (W64 0).toNat = 0 from rfl, List.drop_zero] at hr
-    rcases hr with ⟨rfl, rfl, rfl⟩ | ⟨pe, rfl⟩
+    rcases hr with ⟨rfl, rfl, rfl⟩ | ⟨pe, rfl, hne⟩
     · wp_auto
       have hBl : (List.take N (List.map Prod.fst xs)).length = N := by simp; omega
       generalize hB : List.take N (List.map Prod.fst xs) = B at hBl ⊢
@@ -170,7 +170,7 @@ theorem DB.metasZero.wp_proof_own
       iframe
       iright
       isplitr
-      · ipureintro; intro h; cases h
+      · ipureintro; exact ⟨(fun h => by cases h), hne⟩
       · iapply fmtErrorOkOrNil_ne (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)
           (by intro h; cases h) $$ Hek
 

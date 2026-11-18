@@ -31,7 +31,9 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- `db.Close()`: the database closed, from any goroutine, any number of times. It takes the
+/-- `db.Close()`: the database closed, by the holder of its closer token (session S3f: `Open` gives
+`boltCloser γ`, `Close` consumes it, so that no thread closes the database under another that
+owns it and expects it open; Go lets any goroutine close it, any number of times). It takes the
 three locks, so it waits for every live transaction (a goroutine that holds one and calls
 `Close` waits forever, which a WP allows), and every later `Begin` fails. An error is the
 environment's (unmapping, unlocking, closing the file): the post says nothing of it; the backend's
@@ -39,7 +41,7 @@ environment's (unmapping, unlocking, closing the file): the post says nothing of
 `boltState`'s. (Margin: the file is not given back, `notes/bbolt-spec-decisions.md`, D9.) -/
 abbrev DB.Close.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName),
-  {{ isBolt (GF := GF) db γ }}
+  {{ isBolt (GF := GF) db γ ∗ boltCloser γ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; True }}
 

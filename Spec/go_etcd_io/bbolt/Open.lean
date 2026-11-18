@@ -37,7 +37,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 - The options are read and given back (`Open` copies what it keeps); options under which the
   specs hold (`OptsM.ok`); a logger bbolt may call.
 - On success, the handle `isBolt db γ` and all of the committed data `boltState γ 1 D`: the
-  client decides where it lives (a lock, an invariant). The file is the database's until
+  client decides where it lives (a lock, an invariant); the file's inode (`boltIno`); and the
+  closer token `boltCloser γ` (session S3f), which `DB.Close` consumes. The file is the database's until
   `Close` (and not given back: `notes/bbolt-spec-decisions.md`, D9).
 - On an error, the file is lost to the caller (`init` may have written part of it).
 - The namespace `N` is the caller's (round 2): bbolt's invariants are allocated in it, and the
@@ -64,7 +65,8 @@ abbrev Open.spec : Prop :=
   {{ (db : Loc) (err : GoInterface), RET (PairV #db #err); optsAt opts dq o ∗
       (∃ V', osTree (DFrac.own 1) R V' ∗ ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
-            ⌜γ.ns = N ∧ lookupH R V' path = some (.file i)⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D) ∨
+            ⌜γ.ns = N ∧ lookupH R V' path = some (.file i)⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗
+            boltCloser γ) ∨
          ⌜err ≠ GoInterface.nil⌝)) }}
 
 end spec

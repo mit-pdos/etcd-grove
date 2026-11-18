@@ -30,6 +30,7 @@ importable Proof.go_etcd_io.bbolt.Options
 ## The specs (one per function)
 importable Spec.go_etcd_io.bbolt.Open
 importable Spec.go_etcd_io.bbolt.Open_shared
+importable Spec.go_etcd_io.bbolt.Open_sharedNoErr
 importable Spec.go_etcd_io.bbolt.DB__Close
 importable Spec.go_etcd_io.bbolt.DB__Close_noErr
 importable Spec.go_etcd_io.bbolt.DB__Close_own

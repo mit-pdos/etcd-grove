@@ -217,10 +217,11 @@ private theorem DB.close.spec_ownedQ_of (h : DB.close.spec_owned (GF := GF) (hG 
 database returns `nil`). -/
 private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.nil)
     (hOwned : DB.close.spec_ownedQ (GF := GF) (hG := hG) Q) (db : Loc) (γ : BoltName) :
-    {{ isBolt (GF := GF) db γ }}
+    {{ isBolt (GF := GF) db γ ∗ boltCloser γ }}
       (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
     {{ (err : GoInterface), RET #err; ⌜Q err⌝ }} := by
-  wp_start as #Hdb
+  wp_start as ⟨#Hdb, Hclo⟩
+  iunfold boltCloser at Hclo
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
   unfold isBoltCoreP
@@ -245,33 +246,16 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa,
     Hrof, #Hrcm, %Hok, %HF⟩
   iunfold rwR at HW
-  icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo)
+  icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo')
   rotate_left
-  · -- closed already
-    iunfold closedR at Hclo
-    icases Hclo with ⟨Hcls, Hnfb, %C2, %fl2, %ms2, Hcur2, Hst2, Hfl2, Hmap2, Hmf2, Hout2, Hwv2, Hop2,
-      Hfli2, Hwa2⟩
-    icombine Hcls Hcls' gives % ⟨_, hcl⟩
-    subst hcl
-    simp only [Bool.not_true]
-    wp_apply DB.close.wp_proof_closed db _ $$ Hop' as Hop'
-    try wp_auto
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml HP]
-    · iexact HP
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (metaR (bnsOf γ.gs) db p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-      Hfl' Hwa' Hob Hmlk Hfa Hrof]
-    · iunfold metaR; iexists C, F, true, fli, wa
-      iframe Hrcm
-      simp only [Bool.not_true, ↓reduceIte]
-      iframe; ipureintro; exact ⟨Hok, HF⟩
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hnfb Hcur2
-      Hst2 Hfl2 Hmap2 Hmf2 Hout2 Hwv2 Hop2 Hfli2 Hwa2]
-    · iunfold rwR; iright; iunfold closedR; iframe
-    try wp_auto
-    iapply HΦ
-    ipureintro; exact hQ
+  · -- closed already: excluded by the caller's closer token (`closedR` holds the deposited one)
+    iunfold closedR at Hclo'
+    icases Hclo' with ⟨-, Hclo2, -⟩
+    icombine Hclo Hclo2 gives %h
+    exfalso
+    have h1 := h.1
+    rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+    grind
   -- open: the writer side idle
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
@@ -282,10 +266,8 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
   iunfold wdbCoreG at Hcg
   icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, -, Hfile, Hpath,
     Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, -, Hwc, -, Hjk⟩
-  -- the file given up (`boltNoFile`, session bbolt-inv): `DB.Close` does not give it back
-  ihave Hjk : junkRes (GF := GF) (bnsOf γ.gs) w.junk $$ [Hjk]
-  · unfold junkRes; iexact Hjk
-  imod junkRes_shut ⊤ (bnsOf γ.gs) w.junk $$ Hjk with #Hnf
+  -- the file given up: `DB.Close` does not give it back
+  iclear Hjk
   icombine Hfli Hfl' gives %hfli
   subst hfli
   icombine Hwa Hwa' gives %hwa
@@ -343,11 +325,9 @@ private theorem DB.Close.wp_proofQ (Q : GoInterface → Prop) (hQ : Q interface.
     exact ⟨by simp, by simp, HF⟩
   try wp_auto
   wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur Hst
-    Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa]
+    Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
   · iunfold rwR; iright; iunfold closedR
-    iframe Hcls
-    isplitr
-    · ileft; iexact Hnf
+    iframe Hcls Hclo
     iexists w.C, w.fl, none
     iframe
   try wp_auto

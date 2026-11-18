@@ -39,7 +39,7 @@ abbrev DB.Close_noErr.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     (Sio : IoSet) [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)],
   (∀ st i, Sio.ino st i) → ∀ (db : Loc) (γ : BoltName),
-  {{ isBolt (GF := GF) db γ }}
+  {{ isBolt (GF := GF) db γ ∗ boltCloser γ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ }}
 

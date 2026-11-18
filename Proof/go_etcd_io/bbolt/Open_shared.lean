@@ -51,7 +51,7 @@ one, empty). -/
 private theorem nameHolds_opened (j : Ino) (h : NamesH) (b : GoString) (D : Data)
     (o : Option (Nat × Nat × Ino)) (i : Ino) (hcr : crIno b h o i) :
     nameHolds (GF := GF) h b D ∗ crOut j b h (DFrac.own 1) o ∗ crMeta o ⊢
-      crOut j b h (DFrac.own 1) o ∗ openedF i D := by
+      crOut j b h (DFrac.own 1) o ∗ openedF i D (fun _ => True) := by
   unfold nameHolds
   cases o with
   | none =>
@@ -74,7 +74,7 @@ private theorem nameHolds_opened (j : Ino) (h : NamesH) (b : GoString) (D : Data
       iframe Hl Hn
       isplitr
       · ipureintro; exact hh
-      iapply new_opened $$ Hm
+      iapply new_opened _ _ trivial $$ Hm
 
 /-- `O_RDWR|O_CREATE` with `O_CLOEXEC` is a valid create, without `O_TRUNC`. -/
 private theorem boltOpenFlag_create :
@@ -88,7 +88,7 @@ private theorem boltOpenFlag_create :
 private theorem openFileDb_shared (hCS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
     (D : Data) (hb : NameOk b) :
-    openFileDb.spec (GF := GF) (hG := hG)
+    openFileDb.spec (GF := GF) (hG := hG) True (fun _ => True)
       iprop(osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
         osNames j (.only [b]) (DFrac.own 1) h ∗ nameHolds h b D)
       (fun oc : Option (Nat × Nat × Ino) =>
@@ -126,7 +126,7 @@ private theorem openFileDb_shared (hCS : os.OpenFile.specCreateS (GF := GF) (hG 
       iexact Hfd
     · iapply fmtErrorOkOrNil_nil
   · iframe Hp Hperm Ho Hok
-    iright; ipureintro; exact herr
+    iright; ipureintro; exact ⟨herr.1, herr.2, trivial⟩
 
 set_option maxHeartbeats 4000000 in
 theorem Open_shared.wp_proof [sync.Assumptions]
@@ -134,7 +134,7 @@ theorem Open_shared.wp_proof [sync.Assumptions]
       os.OpenFile.specCreateS (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
     (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
-    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.spec (GF := GF) (hG := hG))
+    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.specW (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (hMZ : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.metasZero.spec_own (GF := GF) (hG := hG))
     (hInit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.init.spec (GF := GF) (hG := hG))
@@ -142,7 +142,7 @@ theorem Open_shared.wp_proof [sync.Assumptions]
     (hMmap : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.mmapUnlocked.spec_own (GF := GF) (hG := hG))
     (hLoad : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.loadFreelist.spec_open (GF := GF) (hG := hG))
     (hSync : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.hasSyncedFreelist.spec (GF := GF) (hG := hG))
-    (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.spec (GF := GF) (hG := hG))
+    (hFds : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], fdatasync.specW (GF := GF) (hG := hG))
     (hBegin : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.Begin_err.spec (GF := GF) (hG := hG))
     (hCommit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], Tx.Commit_err.spec (GF := GF) (hG := hG))
     (hClose : DB.Close.spec (GF := GF) (hG := hG))
@@ -154,16 +154,23 @@ theorem Open_shared.wp_proof [sync.Assumptions]
   intro _ _ _ _ _ N R d b dq j qc h mode opts dqo o D hb
   iintro %Φ ⟨#Hpkg, #Hos, %HN, #Hsi, Hp, Hperm, Hn, Hnh, Hopts, %Hok, Hlgr⟩ HΦ
   iapply Open.wp_proofG hName hFlock hStat hSize hMZ hInit hGPS hMmap hLoad hSync hFds hBegin
-    hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N (child d b) mode opts dqo o D
+    hCommit hClose hclose hLogger hOptStr hModeStr _ _ _ N (child d b) mode opts dqo o D True
+    (fun _ => True) emp (fun _ => trivial) (fun _ _ => Or.inl trivial)
+    (fun _ _ => by iintro -; ipureintro; exact Or.inl trivial)
+    (fun _ _ => by iintro -; ipureintro; exact Or.inl trivial)
+    (fun _ _ => by iintro -; ipureintro; exact Or.inl trivial)
     (openFileDb_shared hCS R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hopts Hlgr]
   · iframe; iframe #
-    ipureintro; exact ⟨HN, Hok⟩
+    ipureintro; first | exact ⟨HN, Hok⟩ | exact Hok
   inext
-  iintro %db %err ⟨Hopts, %oc, ⟨Hp, Hperm, Ho⟩, Hr⟩
+  iintro %db %err ⟨Hopts, -, %oc, ⟨Hp, Hperm, Ho⟩, Hr⟩
   iapply HΦ
   iframe Hopts Hp Hperm
   iexists oc
-  iframe Ho Hr
+  iframe Ho
+  icases Hr with (H | %h)
+  · ileft; iexact H
+  · iright; ipureintro; exact h.1
 
 end proof
 

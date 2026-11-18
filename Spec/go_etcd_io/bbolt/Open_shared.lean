@@ -37,7 +37,8 @@ whole claim on the name `b` (`osNames j (.only [b]) 1 h`) in place of the tree, 
 in place of `pathHolds`: a file holding `D` at `b`, or nothing (and `D = ∅`).
 - The path, the permission and the claim come back on every exit, the claim as the open left it
   (`crOut`, `Spec/os/OpenFileS.lean`: unchanged, or with the create of `b` logged, `o = some (x, s, i)`).
-- On success, the database at the file the open left at `b` (`crIno b h o i`) and all of its data. -/
+- On success, the database at the file the open left at `b` (`crIno b h o i`), all of its data and
+  the closer token (`boltCloser`, session S3f). -/
 abbrev Open_shared.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] [ThreadBoundLe GF (2 ^ 29)]
     [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino)
@@ -52,7 +53,8 @@ abbrev Open_shared.spec : Prop :=
       osPathS R d dq j ∗ osCallPerm qc ∗
       (∃ oc, crOut j b h (DFrac.own 1) oc ∗
         ((⌜err = GoInterface.nil⌝ ∗ ∃ (γ : BoltName) (i : Ino),
-            ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D) ∨
+            ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗
+            boltCloser γ) ∨
          ⌜err ≠ GoInterface.nil⌝)) }}
 
 end spec

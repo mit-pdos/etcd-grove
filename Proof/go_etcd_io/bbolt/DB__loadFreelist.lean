@@ -96,7 +96,7 @@ def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile)
     threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
     wdbCore B db p (lfW C b L m xs f fd fl fli) ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
     flPgOwn fli fl ∗ sparePair B db sp ∗ ghostVar B.cls (1 : Qp).half false ∗
-    boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
+    boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗ ghostVar B.clo 1 () ∗
     ⌜wdbOK (lfW C b L m xs f fd fl fli) ∧ B.bq = γbq⌝)
 
 /-- **`db.loadFreelist()` at `Open`**. -/
@@ -307,7 +307,7 @@ theorem DB.loadFreelist.wp_proof_open
         (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
         FLPg.empty interface.nil rfl hok' ⟨htx1, htx2⟩ hN hdb γbq $$
         [Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
-          HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn⟩
+          HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn, Hclo⟩
       · iframe Hpkg Hos Hrcm Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
         iframe
       ihave Hcore' := Hcore
@@ -504,7 +504,7 @@ theorem DB.loadFreelist.wp_proof_open
     imod open_core_fl ⊤ N db sp f fd p C b L m (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
       (FLPg.ofInit (flIds pg)) fli rfl hok' ⟨htx1, htx2⟩ hN hdb γbq $$
       [Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
-        HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn⟩
+        HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn, Hclo⟩
     · iframe Hpkg Hos Hrcm Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
       iframe
     have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (flIds pg)) fli) := by

@@ -17,6 +17,7 @@ public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.GooseLang.Receipts
 public import Proof.os.Base
 public import Perennial.Ghost.DGhostVar
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -317,7 +318,8 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
     wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
     (match w.junk with
-     | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true)
+     | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true ∗
+         ⌜¬ FsNoErr⌝)
      | none => iprop(dghostVar B.nf (DFrac.own 1) false)))
 
 /-- The idle writer side's core: no `rwtx`, no live writer. -/
@@ -345,12 +347,11 @@ def wdbOpen (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
     ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
 /-- **A closed database's writer side**: the other halves of the ghost state and of the fields
-`Close` wrote; and (session bbolt-inv) how the file went: given up (`DB.Close`, or a mapping
-leaked: `nf` discarded at `true`, `boltNoFile`), or given back (`DB.Close_own`, which took the
-client's validity token `bq`, so that no later `Close_own` of a `boltState` holder is closed). -/
+`Close` wrote, and the closer token (session S3f: every `Close` takes the client's `boltCloser`
+and deposits it here, so that its holder knows the database open). -/
 def closedR (B : BNs) (db : Loc) : IProp GF :=
   iprop(ghostVar B.cls (1 : Qp).half true ∗
-    (dghostVar B.nf DFrac.discard true ∨ ghostVar B.bq 1 ()) ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
+    ghostVar B.clo 1 () ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
     ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
     ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
     mapFields db (DFrac.own (1 : Qp).half) ms ∗

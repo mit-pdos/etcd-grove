@@ -29,17 +29,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- `db.Close()` by the owner of the committed data `D` (all of `boltState`, so no transaction is
-live: a read holds a fraction, a writer's commit takes it whole): the database closed as by
-`DB.Close.spec`, and the file of inode `i` (`Open`'s, `boltIno`) given back holding `D`, with `nil`;
-or the data's ownership back, and the file system can fail (`¬ FsNoErr`: an `munmap`, `flock` or
-`close` of the file may have failed, here or in an earlier remap) or the file was given up before
-(`boltNoFile`: an earlier `DB.Close`, which keeps the file, a mapping that bbolt leaked when
-`madvise` failed after a remap's `mmap`, or a partial last page a failed write left), and then
-`nil`. The data's validity token is kept by the
-closed database on success, so a database is given back once. -/
+live: a read holds a fraction, a writer's commit takes it whole) and of the closer token (so the
+database is open: session S3f): the database closed as by `DB.Close.spec`, and the file of inode `i`
+(`Open`'s, `boltIno`) given back holding `D`, with `nil`; or the data's ownership back, and the file
+system can fail (`¬ FsNoErr`: an `munmap`, `flock` or `close` of the file may have failed, here or in
+an earlier remap, or a mapping leaked) or the file is not whole pages (`boltNoFile`: a partial last
+page a failed write left), and then `nil`. -/
 abbrev DB.Close_own.spec : Prop :=
   ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) (i : Ino) (D : Data),
-  {{ isBolt (GF := GF) db γ ∗ boltIno γ i ∗ boltState γ 1 D }}
+  {{ isBolt (GF := GF) db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ fileHolds i D) ∨

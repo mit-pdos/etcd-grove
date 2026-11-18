@@ -107,6 +107,25 @@ points-to (2026-11-17: until then abstract). -/
 def optsAt (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
   iprop(∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o⌝)
 
+/-- **Options under which `Open` cannot fail but for the environment** (session S3f,
+`Open_sharedNoErr.spec`): no `Timeout` (a `flock` conflict is retried forever, not reported as
+`ErrTimeout`), `NoFreelistSync` (no write transaction at `Open` for a file without a synced
+freelist), and an `InitialMmapSize` that `mmapSize` accepts (at most `maxMapSize`). etcd's backend
+sets `NoFreelistSync` (`boltOpenOptions`, `config_linux.go`), `Timeout` from its config (`0` unless
+`WithTimeout`) and `InitialMmapSize` 10 GiB by default. -/
+def optsNoErr (v : go_etcd_io.bbolt.Options) : Prop :=
+  v.Timeout' = W64 0 ∧ v.NoFreelistSync' = true ∧ sint.Z v.InitialMmapSize' ≤ 0xFFFFFFFFFFFF
+
+/-- The `Options` at `l` has the fields `o` and is `optsNoErr` (session S3f). -/
+def optsAtNoErr (l : Loc) (dq : DFrac) (o : OptsM) : IProp GF :=
+  iprop(∃ v : go_etcd_io.bbolt.Options, l ↦{dq} v ∗ ⌜optsVal v o ∧ optsNoErr v⌝)
+
+theorem optsAtNoErr_optsAt (l : Loc) (dq : DFrac) (o : OptsM) :
+    optsAtNoErr (GF := GF) l dq o ⊢ optsAt l dq o := by
+  unfold optsAtNoErr optsAt
+  iintro ⟨%v, Hv, %h⟩
+  iexists v; iframe Hv; ipureintro; exact h.1
+
 instance optsAt_discard_persistent (l : Loc) (o : OptsM) :
     Persistent (optsAt (GF := GF) l DFrac.discard o) := by
   unfold optsAt; infer_instance

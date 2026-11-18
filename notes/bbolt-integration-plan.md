@@ -520,3 +520,41 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `runner.newVal.spec` (premise `0 ≤ MaxVal ≤ 2 ^ 20`, post `v.length ≤ etcdKeyMax`),
     `runner.genSubs.spec` (the keys' and `MaxVal`'s bounds), `runner.writeSub.spec`, `opValid`'s put
     clause and `subsOk`'s (key and value `≤ etcdKeyMax`); the model's `PVals`/`opPend_vals`.
+* 2026-11-18, **S3f** (branch `bbolt-noerr-final` off `bbolt-integrate` `3cd446e94d`): the closer token,
+  `Open_sharedNoErr.spec`, leaks witnessed. No new `axiom` or `sorry`; no closed theorem's statement
+  changed. Decisions D-F1..D-F5 (`notes/bbolt-spec-decisions.md`, "S3f").
+  - **Closer token** (D-F1). `boltCloser γ` (Api, sealed `ghostVar B.clo 1 ()`, timeless,
+    `boltCloser_excl`). Statement changes: `Open.spec`, `Open_shared.spec`: success adds `∗ boltCloser γ`;
+    `DB.Close.spec`, `DB.Close_noErr.spec`: pre `isBolt db γ ∗ boltCloser γ`; `DB.Close_own.spec`,
+    `DB.Close_ownNoErr.spec`: pre `isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗ boltCloser γ` (posts
+    unchanged). `closedR` holds the deposited token in place of `nf true ∨ bq 1`.
+  - **`Open_sharedNoErr.spec`** (`Spec/go_etcd_io/bbolt/Open_sharedNoErr.lean`, proof
+    `Proof/go_etcd_io/bbolt/Open_sharedNoErr.lean`):
+    `∀ [fs instances] [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (Sio : IoSet)
+    [FsStepSat (NoIoErr Sio)] [FsStepSat (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) → (∀ p, Sio.path p) →
+    ∀ N R d b dq j qc h mode opts dqo o D, NameOk b →
+    {{ isPkgInit ∗ osInv ∗ ⌜↑N ## ↑osN⌝ ∗ osSharedInv R ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+       osNames j (.only [b]) 1 h ∗ nameHoldsM h b D ∗ optsAtNoErr opts dqo o ∗ ⌜o.ok⌝ ∗
+       (⌜o.logger = nil⌝ ∨ boltLogger o.logger) }} Open(d/b, mode, opts)
+    {{ db err. ⌜err = nil⌝ ∗ optsAtNoErr opts dqo o ∗ osPathS R d dq j ∗ osCallPerm qc ∗
+       ∃ oc γ i, crOut j b h 1 oc ∗ ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗ isBolt db γ ∗ boltIno γ i ∗
+       boltState γ 1 D ∗ boltCloser γ }}`.
+    `optsAtNoErr` (Options.lean): `∃ v, opts ↦{dq} v ∗ ⌜optsVal v o ∧ optsNoErr v⌝`,
+    `optsNoErr v := v.Timeout' = 0 ∧ v.NoFreelistSync' = true ∧ sint.Z v.InitialMmapSize' ≤ 0xFFFFFFFFFFFF`.
+    `nameHoldsM` (ApiS): `nameHolds` over `fileHoldsM` (Api, sealed: `fileHolds` with
+    `size ≤ boltMaxMapSize = 0xFFFFFFFFFFFF`), D-F2: the bound is *not* in `fileHolds` (false of files
+    bbolt writes, `nonissues/bbolt-grow-past-max-map-size.md`).
+  - **The proof** (D-F4): leaf W specs (error arm `¬ FsNoErr`, by cases on `FsNoErr`) for `ReadAt`,
+    `Stat`, `WriteAt`, `Flock`, `Fdatasync`, `Mmap`, `Madvise`, bbolt's `fdatasync`, `DB.munmap`;
+    bbolt's internal `flock`, `metasZero`, `init`, `getPageSize`, `fileSize`, `mmapF`, `mmapUnlocked`
+    specs strengthened in place; `Open.wp_proofG` generic in the error witness `Ek`, the opened file's
+    size bound and the options' witness. `Open.spec`/`Open_shared.spec` unchanged in statement.
+  - **`Close_ownNoErr`** (D-F5): leaked mappings now record `¬ FsNoErr` (the junk clause), so its
+    `boltNoFile` escape has one source left, a partial last page (a chunked write failing past the file's
+    end; `EFBIG` past `maxBytes` makes this reachable under the premises for files past 16 TiB). Not
+    removed: the statement keeps `fileHolds i D ∨ (boltState γ 1 D ∗ boltNoFile γ)`.
+  - **For S3e** (the backend over these): `Open_kv` needs `optsAtNoErr` — the backend's `newBackend`
+    sets `NoFreelistSync` (`boltOpenOptions`), `Timeout := bcfg.Timeout` (0 unless `WithTimeout`),
+    `InitialMmapSize := bcfg.mmapSize()` (10 GiB default; a configured larger one must stay below
+    `maxMapSize`); the file must be `nameHoldsM` (fresh, or a snapshot image: `fileHoldsM_of_image`);
+    `Close_kv` passes the `boltCloser` its `Open_kv` got.

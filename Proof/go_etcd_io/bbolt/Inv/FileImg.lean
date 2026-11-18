@@ -153,7 +153,35 @@ def fileHoldsDef (i : Ino) (D : Data) : IProp GF :=
         fileOK (xs.map Prod.fst) m.size D⌝ ∗
       fileRcpt (xs.map Prod.fst))
 
+/-- **`fileHoldsDef` with the file mappable** (what `fileHoldsM` is sealed to; session S3f): the size
+at most `0xFFFFFFFFFFFF` (bbolt's `maxMapSize`), so that `Open`'s `mmapSize` of the file's size does
+not fail with "mmap too large". Not true of every file bbolt writes: `DB.grow` truncates to
+`growSize + AllocSize`, which passes `maxMapSize` once the high-water mark is near a mapping of
+`maxMapSize` (`nonissues/bbolt-grow-past-max-map-size.md`); a file from `init` (16 KiB) or from
+`Tx.WriteTo` (its high-water mark's pages, inside the mapping) is mappable. -/
+def fileHoldsMDef (i : Ino) (D : Data) : IProp GF :=
+  iprop(∃ (m : OsMeta) (xs : List ByteG), osMeta i (DFrac.own 1) m ∗
+      osBytes i 0 (DFrac.own 1) xs ∗
+      ⌜m.maps = ∅ ∧ xs.length = m.size ∧ (m.size < 2 ^ 62 ∧ m.size % 4096 = 0) ∧
+        fileOK (xs.map Prod.fst) m.size D⌝ ∗ ⌜m.size ≤ 0xFFFFFFFFFFFF⌝ ∗
+      fileRcpt (xs.map Prod.fst))
+
 /-! ## Lemma statements (U11) -/
+
+instance fileHoldsMDef_timeless (i : Ino) (D : Data) :
+    Timeless (fileHoldsMDef (GF := GF) i D) := by
+  have : ∀ off dq xs, Timeless (osBytes (GF := GF) i off dq xs) := fun _ _ _ => by
+    unfold osBytes bytesG; exact BigSepL.bigSepL_timeless (fun _ => inferInstance)
+  unfold fileHoldsMDef; infer_instance
+
+/-- A mappable file holds its data. -/
+theorem fileHoldsMDef_holds (i : Ino) (D : Data) :
+    fileHoldsMDef (GF := GF) i D ⊢ fileHoldsDef i D := by
+  unfold fileHoldsMDef fileHoldsDef
+  iintro ⟨%m, %xs, Hm, Hb, %h, -, #Hr⟩
+  iexists m, xs
+  iframe Hm Hb Hr
+  ipureintro; exact h
 
 instance fileHoldsDef_timeless (i : Ino) (D : Data) :
     Timeless (fileHoldsDef (GF := GF) i D) := by

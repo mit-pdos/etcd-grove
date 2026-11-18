@@ -48,6 +48,35 @@ theorem nameHolds_new [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (h : NamesH)
   · ipureintro; exact hb
   iapply fileHolds_new $$ H
 
+/-- **What `Open(d/b)` with no error needs at the name** (session S3f): `nameHolds` with a mappable
+file (`fileHoldsM`), or nothing (and `D = ∅`). -/
+def nameHoldsM [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (h : NamesH) (b : GoString)
+    (D : Data) : IProp GF :=
+  iprop((∃ i, ⌜h.cur !! b = some (.file i)⌝ ∗ fileHoldsM i D) ∨ ⌜h.cur !! b = none ∧ D = ∅⌝)
+
+/-- A mappable file at the name holds its data there. -/
+theorem nameHoldsM_nameHolds [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (h : NamesH)
+    (b : GoString) (D : Data) :
+    nameHoldsM (GF := GF) h b D ⊢ nameHolds h b D := by
+  unfold nameHoldsM nameHolds
+  iintro (⟨%i, %hi, H⟩ | %hn)
+  · ileft; iexists i; isplitr
+    · ipureintro; exact hi
+    · iapply fileHoldsM_fileHolds $$ H
+  · iright; ipureintro; exact hn
+
+/-- **A file just created holds the empty database, mappable, at the name**. -/
+theorem nameHoldsM_new [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (h : NamesH) (b : GoString)
+    (i : Ino) (hb : h.cur !! b = some (.file i)) :
+    osMeta (GF := GF) i (DFrac.own 1) newMeta ⊢ nameHoldsM h b ∅ := by
+  iintro H
+  unfold nameHoldsM
+  ileft
+  iexists i
+  isplitr
+  · ipureintro; exact hb
+  iapply fileHoldsM_new $$ H
+
 end vocab
 
 end bbolt

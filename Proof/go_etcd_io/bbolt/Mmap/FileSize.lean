@@ -7,7 +7,7 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.PkgInit
-public import Spec.os.File__Stat
+public import Spec.os.File__StatW
 public import Spec.os.fileStat__Size
 public import Spec.fmt.Errorf
 public import Spec.fmt.ErrorOk
@@ -66,9 +66,10 @@ abbrev DB.fileSize.spec : Prop :=
   {{ (r : w64) (err : GoInterface), RET (PairV #r #err);
       db.[DB, go!"file"] ↦{dqf} f ∗ fileOwn f fd p.path dqo ∗ osFd fd dqd d ∗ osMeta p.ino dqm m ∗
       ((⌜err = interface.nil ∧ r = W64 (m.size : Int) ∧ 8192 ≤ m.size⌝) ∨
-       (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err)) }}
+       (⌜err ≠ interface.nil ∧ errPtrTyped err ∧ (¬ FsNoErr ∨ m.size < 8192)⌝ ∗
+          fmtErrorOk err)) }}
 
-theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
+theorem DB.fileSize.wp_proof (hStat : os.File.Stat.specW (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG)) :
     DB.fileSize.spec (GF := GF) (hG := hG) := by
@@ -107,7 +108,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iframe
       iright
       isplitr
-      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr0⟩
+      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr0, Or.inr (by omega)⟩
       · iapply errorf_fmtErrorOk
         isplitl
         · iexact HeS0
@@ -119,7 +120,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       ileft
       ipureintro
       exact ⟨rfl, rfl, by omega⟩
-  · obtain ⟨hne, rfl⟩ := Hfs
+  · obtain ⟨hne, rfl, hfs⟩ := Hfs
     cases err with
     | nil => exact absurd rfl hne
     | ok ii =>
@@ -141,7 +142,7 @@ theorem DB.fileSize.wp_proof (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
       iframe
       iright
       isplitr
-      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr0⟩
+      · ipureintro; exact ⟨(fun h => nomatch h), errPtrTyped_of_ptr _ Hptr0, Or.inl hfs⟩
       · iapply errorf_fmtErrorOk
         isplitl
         · iexact HeS0
