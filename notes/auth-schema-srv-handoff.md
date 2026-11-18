@@ -1,6 +1,31 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-17, A6.2 C1-C5 written; targeted build pending/ see log)
+## START HERE (2026-11-18, A6.2 C1-C5 green and ACCEPTED; C5 gates on pin 6d365ee1a; A6 proper next)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; lean b0bb9df7c3 merged (75f8363b83): Perennial pin
+  6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json` everywhere (`.lake/package-overrides.json` = that manifest).
+- Done: A1-A5, A6.1a/b, (b), A6.2 C1-C5 (9c3a07c198, 448f9578a0, a9fe8620fc; build green 3a94a88689: mvccfull
+  `Writer` drops `newPostK`'s tokens). Delta review SOUND, deviations ACCEPTED (questions.md "A6.2 C1-C5"; review
+  `/shared/tmp/auth-schema-srv/a6-claim-review3.md`); MINOR 1 folded: forbidden law (iv) in `bStopView`/`rbOwnInR`
+  docstrings and soundness §6.
+- C5: backend + bbolt interfaces regenerated, api-check green after making A2's `Bucket__ForEach_kvr/_kvw` and
+  A6.1a's `readTx__UnsafeForEach` importable (165634bbd4). Full build after the merge:
+  `/shared/tmp/auth-schema-srv/c5-full2.log`; then `etc/tcb-report.py --check` (expect no change), backend `--layout
+  --check` (needs `RtHeldDls` built).
+- Next: A6 proper (decided by etcd-grove-03): the per-backend realization invariant using `rbOwnIn_claim` (sketch:
+  History "A6.1b STOP"), instantiating `authBE_real`'s `Racq`/`Robs`/`Rrel`; the write side from A5's callee triples
+  (claimed `rbOwnInR`/`rbRd`, `Unlock.spec`'s accessor at ⊤); the auth-level read contract (`authBackendOk`); then
+  `authWBackendOkR`, `authWAtHook`, `authBkLend`, `CreateAuthBuckets`, `authBkLife`, tickets, `authSchemaSnap`;
+  report at A6's end. A7 HARD STOP (trusted texts: `rbPartF`'s fraction, `newPostK`'s tokens, `authRdSlots`' tokens,
+  `authSchemaSrv`'s ticket count).
+- Pitfalls: (0)-(13) as before (History "A6.1b STOP" and the A6.2 START HERE below); (14) an `icases` pattern's last
+  name absorbs the rest of a `∗` chain: name every conjunct (`…, Hsr, -⟩`); (15) only one agent per worktree (a resumed
+  older agent edited here concurrently on 2026-11-18).
+
+## History
+
+### A6.2 C1-C5 written (2026-11-17, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin c6b39d4f8: `--packages=/shared/tmp/manifest-c6b.json`
   everywhere (`.lake/package-overrides.json` = that manifest). lean merged at f256fa496e (04b1fa5134).
@@ -21,7 +46,6 @@
   state helpers with a generic `S` (see `mapIf_one`) or `dsimp only` + explicit `@ite`; (12) after `cases hcl : Cl n`
   apply `rbClaimOne_U/C γ n _ rfl`, not `… (Cl n) hcl`; (13) build slots can be busy for >30 min.
 
-## History
 
 ### A6.2 Scope STOP (2026-11-17, superseded)
 
