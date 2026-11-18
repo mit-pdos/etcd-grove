@@ -13,7 +13,7 @@ module
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.go_opentelemetry_io.otel.trace.Defs
 public import Proof.context.LibKeys
 

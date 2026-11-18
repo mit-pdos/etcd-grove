@@ -8,7 +8,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.TxnRange
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.etcd.pkg.v3.traceutil.Defs
 public import Code.go_etcd_io.etcd.client.v3
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.context.LibKeys
 
 @[expose] public section
@@ -40,13 +40,13 @@ which needs `isContext`), a context (`context.isContext`) gives a context. Its t
 (`traceutil.ctxTraceIs`, unit P1b): `v`'s for the key `TraceKey{}` (`valueCtx.Value` returns `v`
 at an equal key), else its parent's (a key of another type is not equal to `TraceKey{}`, so
 `Value(TraceKey{})` asks the parent); the two descriptions at the same values (a descriptor's
-`Values` is read by no context predicate). Its incoming gRPC metadata (`metadata.incomingOf`,
-2026-10-28, the auth plan's E3zb) is its parent's: `metadata.FromIncomingContext` reads
-`Value(mdIncomingKey{})`, which none of the keys above equals (grpc's key is a type of its own),
-so the `valueCtx` asks the parent; likewise per heap (perheap step 0, 2026-11-18): every `md` that is the
-parent's incoming metadata (`metadata.ctxInMD`, over Perennial's chain) is `c'`'s, since `c'` is a
-`*valueCtx` over `parent` whose fields are never written, at a key of another type than grpc's, which
-`context.value` walks past to `parent`. Its `Value` method (C1's A2, 2026-10-28: the auth store's
+`Values` is read by no context predicate). Its incoming gRPC metadata (2026-10-28, the auth plan's
+E3zb) is its parent's: `metadata.FromIncomingContext` reads `Value(mdIncomingKey{})`, which none of
+the keys above equals (grpc's key is a type of its own), so the `valueCtx` asks the parent; stated per
+heap (perheap step 0 and 1b, 2026-11-18, in place of an equation on the pure `metadata.incomingOf`):
+every `md` that is the parent's incoming metadata (`metadata.ctxInMD`, over Perennial's chain) is
+`c'`'s, since `c'` is a `*valueCtx` over `parent` whose fields are never written, at a key of another
+type than grpc's, which `context.value` walks past to `parent`. Its `Value` method (C1's A2, 2026-10-28: the auth store's
 `assign` reads the index and prefix the backend's `Authenticate` stored): Go's `valueCtx.Value(k)`
 returns `v` when `k == key`, else `value(parent, k)`, which for the standard library's contexts
 returns what `parent.Value(k)` does; stated for any pure property `R` of the result, at the key itself or at
@@ -71,7 +71,6 @@ abbrev context.WithValue.spec : Prop :=
         ∃ (c' : GoInterfaceOk) (vs : GMap GoInterface GoInterface), ⌜c = GoInterface.ok c'⌝ ∗
           context.isContext c' { cd with Values := vs }) ∗
       ∃ (c' : GoInterfaceOk) (vs : GMap GoInterface GoInterface), ⌜c = GoInterface.ok c'⌝ ∗
-        ⌜metadata.incomingOf (GoInterface.ok c') = metadata.incomingOf (GoInterface.ok parent)⌝ ∗
         □ (∀ md, metadata.ctxInMD parent md -∗ metadata.ctxInMD c' md) ∗
         □ (∀ cd : context.ContextDesc (IProp GF), mvcc.txnCtx parent cd -∗
           mvcc.txnCtx c' { cd with Values := vs }) ∗

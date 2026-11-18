@@ -173,6 +173,20 @@ theorem v3rpc.ctxInMD_cc (l : Loc) (c : GoInterfaceOk) md :
   iframe #
   iapply v3rpc.valueAt_cc; iframe #
 
+/-- **etcd's stream wrapper over `WithCancel(ci)` has `ci`'s incoming metadata** (whatever it is):
+the `*cancellableContext` `l` whose field holds the `*cancelCtx` `c` whose field holds `ci`
+(`metadata.ctxInMD_cancel`, then `v3rpc.ctxInMD_cc`; perheap 1b, in place of the pure equation of
+the refuted axioms). -/
+theorem v3rpc.ctxInMD_wrapper (l c : Loc) (ci : GoInterfaceOk) :
+    isPkgInit (PROP := IProp GF) pkg_id.context ∗
+      (v3rpc.ccField l ↦□
+        (GoInterface.ok (interface.mk (go.GoType.PointerType _root_.Perennial.context.cancelCtx.ty) #c)) ∗
+      _root_.Perennial.context.ctxField c ↦□ (GoInterface.ok ci) : IProp GF) ⊢
+      □ ∀ md, metadata.ctxInMD ci md -∗ metadata.ctxInMD (v3rpc.ccCtx l) md := by
+  iintro ⟨#Hpkg, #Hl, #Hc⟩ !> %md #H
+  ihave #H1 := metadata.ctxInMD_cancel c ci md $$ [$Hc $H]
+  iapply v3rpc.ctxInMD_cc; iframe #
+
 /-- **The wrapper has its embedded context's library values** (`libCtxOk`, the WP form). -/
 theorem v3rpc.libCtxOk_cc (l : Loc) (c : GoInterfaceOk) :
     isPkgInit (PROP := IProp GF) pkg_id.context ∗

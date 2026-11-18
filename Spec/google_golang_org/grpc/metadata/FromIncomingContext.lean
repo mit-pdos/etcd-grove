@@ -6,7 +6,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.auth.Base
-public import Proof.google_golang_org.grpc.metadata.Incoming
+public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.context.LibKeys
 
 @[expose] public section

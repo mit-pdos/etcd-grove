@@ -138,7 +138,7 @@ attribute [instance] ProtoMsg.recv_persistent
 /-- **A gRPC method's spec** over the request's and reply's models (a predicate transformer). -/
 abbrev GrpcSpec (Req Rep : ProtoMsg GF) : Type := Req.M → (Rep.M → IProp GF) → IProp GF
 
-/-- **A call's metadata** (as `metadata.incomingOf` gives a context's: `none`, or each key's
+/-- **A call's metadata** (a context's incoming metadata, `metadata.ctxInMD`: `none`, or each key's
 values). -/
 abbrev GrpcMd : Type := Option (GoString → Option (List GoString))
 
@@ -182,6 +182,14 @@ abbrev GrpcSpecMd (Req Rep : ProtoMsg GF) : Type :=
 /-- A plain spec, at every metadata: its caller gives every error's continuation. -/
 abbrev GrpcSpec.md {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) : GrpcSpecMd Req Rep :=
   fun _ m Φ Ψ => iprop(Spec m Φ ∗ □ ∀ d, Ψ d)
+
+/-- **The request precondition of a run of context `ci`** at the metadata the context carries:
+`Spec md m Φ Ψe` for some `md` with `metadata.ctxInMD ci md` (perheap 1b, 2026-11-18: until then
+`Spec (metadata.incomingOf ci) m Φ Ψe`, a pure function of the context). The contracts' form of
+"`∀ md`, pre `ctxInMD ci md ∗ Spec md …`". -/
+def grpcSpecAt {Req Rep : ProtoMsg GF} (Spec : GrpcSpecMd Req Rep) (ci : GoInterfaceOk) (m : Req.M)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) : IProp GF :=
+  iprop(∃ md : GrpcMd, metadata.ctxInMD ci md ∗ Spec md m Φ Ψe)
 
 /-- **The prefix of etcd's Go package paths** (`go.etcd.io/etcd/`). -/
 def etcdPkgPrefix : GoString := go!"go.etcd.io/etcd/"
@@ -254,6 +262,63 @@ theorem libCtxOk_of_runCtx (ci : GoInterfaceOk) :
   icases H with ⟨-, -, #H, -, -⟩
   iexact H
 
+/-- **A plain spec's precondition at a run's context** (`grpcSpecAt` of `GrpcSpec.md`), at the
+metadata the context's library values give it (`libCtxOk`'s incoming part). -/
+theorem grpcSpecAt_md_intro {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (ci : GoInterfaceOk)
+    (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
+    grpcRunCtx (GF := GF) ci ∗ Spec m Φ ∗ □ (∀ d, Ψe d) ⊢ grpcSpecAt (GrpcSpec.md Spec) ci m Φ Ψe := by
+  iintro ⟨#Hrc, HS, #Hall⟩
+  ihave #Hl := libCtxOk_of_runCtx ci $$ Hrc
+  iunfold context.libCtxOk at Hl
+  icases Hl with ⟨#Hin, -⟩
+  iunfold metadata.incomingCtxOk at Hin
+  icases Hin with ⟨%md, #Hmd⟩
+  iunfold grpcSpecAt
+  iexists md
+  isplitr
+  · iexact Hmd
+  simp only [GrpcSpec.md]
+  iframe HS
+  iexact Hall
+
+/-- `grpcSpecAt` is monotone in the spec. -/
+theorem grpcSpecAt_mono {Req Rep : ProtoMsg GF} (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ Spec md m Φ Ψe) (ci : GoInterfaceOk) (m : Req.M)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
+    grpcSpecAt (GF := GF) Spec' ci m Φ Ψe ⊢ grpcSpecAt Spec ci m Φ Ψe := by
+  iintro H
+  iunfold grpcSpecAt at H
+  icases H with ⟨%md, #Hmd, H⟩
+  iunfold grpcSpecAt
+  iexists md
+  iframe Hmd
+  iapply (h md m Φ Ψe) $$ H
+
+/-- `grpcSpecAt` is monotone in the spec, up to an update. -/
+theorem grpcSpecAt_mono_upd {Req Rep : ProtoMsg GF} (Spec Spec' : GrpcSpecMd Req Rep)
+    (h : ∀ md m Φ Ψe, Spec' md m Φ Ψe ⊢ |==> Spec md m Φ Ψe) (ci : GoInterfaceOk) (m : Req.M)
+    (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
+    grpcSpecAt (GF := GF) Spec' ci m Φ Ψe ⊢ |==> grpcSpecAt Spec ci m Φ Ψe := by
+  iintro H
+  iunfold grpcSpecAt at H
+  icases H with ⟨%md, #Hmd, H⟩
+  ihave H := (h md m Φ Ψe) $$ H
+  imod H
+  imodintro
+  iunfold grpcSpecAt
+  iexists md
+  iframe Hmd H
+
+/-- **A plain spec's precondition at a run's context is the spec's** (`grpcSpecAt_md_intro`'s
+converse). -/
+theorem grpcSpecAt_md_elim {Req Rep : ProtoMsg GF} (Spec : GrpcSpec Req Rep) (ci : GoInterfaceOk)
+    (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) :
+    grpcSpecAt (GF := GF) (GrpcSpec.md Spec) ci m Φ Ψe ⊢ Spec m Φ ∗ □ (∀ d, Ψe d) := by
+  iintro H
+  iunfold grpcSpecAt at H
+  icases H with ⟨%md, -, H⟩
+  iexact H
+
 /-- **A run's context holds nothing at net/http's keys** (`grpcRunCtx`'s fourth part; T-h6). -/
 theorem netCtxOk_of_runCtx (ci : GoInterfaceOk) :
     grpcRunCtx (GF := GF) ci ⊢ http.netCtxOk ci := by
@@ -293,13 +358,13 @@ instance grpcHandlerOk_persistent {Req Rep : ProtoMsg GF} (h : val) (S : IProp G
 
 /-- **A service method `h` meets the metadata-indexed `Spec` with `S`** (persistent; the auth plan's
 E3zb): as `grpcHandlerOk`, the run's request precondition at its context's incoming metadata
-(`metadata.incomingOf`). A plain spec's is `grpcHandlerOk` (`grpcHandlerOk_md`). -/
+(`grpcSpecAt`). A plain spec's is `grpcHandlerOk` (`grpcHandlerOk_md`). -/
 def grpcHandlerOkMd {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF) (Spec : GrpcSpecMd Req Rep) :
     IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (r : Loc),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗
-        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+        grpcSpecAt Spec ci m Φ Ψe }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
@@ -315,7 +380,8 @@ theorem grpcHandlerOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
   constructor
   · iintro #Hh
     unfold grpcHandlerOkMd
-    iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, HSpec, #Hall⟩ HΨ
+    iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, HSpec⟩ HΨ
+    ihave ⟨HSpec, #Hall⟩ := grpcSpecAt_md_elim _ _ _ _ _ $$ HSpec
     iunfold grpcHandlerOk at Hh
     iapply Hh $$ %m %Φ %ci %cd %r [HS Hctx Hrc Hr HSpec]
     · iframe
@@ -332,8 +398,11 @@ theorem grpcHandlerOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, HSpec⟩ HΨ
     iunfold grpcHandlerOkMd at Hh
     iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %r [HS Hctx Hrc Hr HSpec]
-    · simp only [GrpcSpec.md]
+    · ihave #Hrc' := Hrc
       iframe
+      iframe #
+      iapply (grpcSpecAt_md_intro Spec ci m Φ (fun _ => iprop(True)))
+      iframe HSpec Hrc'
       imodintro
       iintro %_
       itrivial
@@ -367,7 +436,7 @@ def grpcHandlerOwnOkMd {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (r : Loc),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ Req.recv r m ∗ Req.recvOwn r m ∗
-        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+        grpcSpecAt Spec ci m Φ Ψe }}
       (App (App (Val h) (Val #(GoInterface.ok ci))) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         S ∗ (⌜err = GoInterface.nil⌝ -∗ ∃ m' : Rep.M, Rep.send resp m' ∗ Φ m') ∗
@@ -408,7 +477,8 @@ theorem grpcHandlerOwnOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
   constructor
   · iintro #Hh
     unfold grpcHandlerOwnOkMd
-    iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, Hown, HSpec, #Hall⟩ HΨ
+    iintro %m %Φ %Ψe %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, Hown, HSpec⟩ HΨ
+    ihave ⟨HSpec, #Hall⟩ := grpcSpecAt_md_elim _ _ _ _ _ $$ HSpec
     iunfold grpcHandlerOwnOk at Hh
     iapply Hh $$ %m %Φ %ci %cd %r [HS Hctx Hrc Hr Hown HSpec]
     · iframe
@@ -425,8 +495,11 @@ theorem grpcHandlerOwnOk_md {Req Rep : ProtoMsg GF} (h : val) (S : IProp GF)
     iintro %m %Φ %ci %cd %r !> %Ψ ⟨HS, Hctx, Hrc, Hr, Hown, HSpec⟩ HΨ
     iunfold grpcHandlerOwnOkMd at Hh
     iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %r [HS Hctx Hrc Hr Hown HSpec]
-    · simp only [GrpcSpec.md]
+    · ihave #Hrc' := Hrc
       iframe
+      iframe #
+      iapply (grpcSpecAt_md_intro Spec ci m Φ (fun _ => iprop(True)))
+      iframe HSpec Hrc'
       imodintro
       iintro %_
       itrivial
@@ -591,14 +664,14 @@ instance grpcMethodOk_persistent {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInt
 
 /-- **The method handler `mh` meets the metadata-indexed `Spec`** (persistent; the auth plan's
 E3zb): as `grpcMethodOk`, the run's request precondition at its context's incoming metadata
-(`metadata.incomingOf`): what grpc delivers of the attempt's metadata. A plain spec's is
+(`grpcSpecAt`): what grpc delivers of the attempt's metadata. A plain spec's is
 `grpcMethodOk` (`grpcMethodOk_md`). -/
 def grpcMethodOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : List GoFunc)
     (S : IProp GF) (Spec : GrpcSpecMd Req Rep) : IProp GF :=
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
     {{ S ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗ grpcSrvChain ics ui ∗
-        Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+        grpcSpecAt Spec ci m Φ Ψe }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); S ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -617,7 +690,8 @@ theorem grpcMethodOk_md {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (
   constructor
   · iintro #Hh
     unfold grpcMethodOkMd
-    iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec, #Hall⟩ HΨ
+    iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
+    ihave ⟨HSpec, #Hall⟩ := grpcSpecAt_md_elim _ _ _ _ _ $$ HSpec
     iunfold grpcMethodOk at Hh
     iapply Hh $$ %m %Φ %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
     · iframe
@@ -634,8 +708,11 @@ theorem grpcMethodOk_md {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (
     iintro %m %Φ %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
     iunfold grpcMethodOkMd at Hh
     iapply Hh $$ %m %Φ %(fun _ => iprop(True)) %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec]
-    · simp only [GrpcSpec.md]
+    · ihave #Hrc' := Hrc
       iframe
+      iframe #
+      iapply (grpcSpecAt_md_intro Spec ci m Φ (fun _ => iprop(True)))
+      iframe HSpec Hrc'
       imodintro
       iintro %_
       itrivial
@@ -983,7 +1060,7 @@ def grpcRunOkMd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface) (ics : Li
   iprop(∀ (m : Req.M) (Φ : Rep.M → IProp GF) (Ψe : GoString → IProp GF) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (dec ui : GoFunc),
     {{ threadTok ∗ £ 1 ∗ context.isContext ci cd ∗ grpcRunCtx ci ∗ grpcDecOk dec Req m ∗
-        grpcSrvChain ics ui ∗ Spec (metadata.incomingOf (GoInterface.ok ci)) m Φ Ψe }}
+        grpcSrvChain ics ui ∗ grpcSpecAt Spec ci m Φ Ψe }}
       (methodHandlerCall mh #srv #(GoInterface.ok ci) dec ui)
     {{ (resp err : GoInterface), RET (PairV #resp #err); threadTok ∗
         (⌜err = GoInterface.nil⌝ -∗ ∃ (l : Loc) (m' : Rep.M),
@@ -1006,7 +1083,7 @@ theorem grpcRunOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
   iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
   iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
   iframe
-  iapply (h _ m Φ Ψe) $$ HSpec
+  iapply (grpcSpecAt_mono Spec Spec' h ci m Φ Ψe) $$ HSpec
 
 /-- A run contract at a spec is one at a spec that gives it after an update. -/
 theorem grpcRunOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterface)
@@ -1016,7 +1093,7 @@ theorem grpcRunOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfa
   iintro #Hm
   unfold grpcRunOkMd
   iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HT, Hlc, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  ihave HSpec := (h _ m Φ Ψe) $$ HSpec
+  ihave HSpec := (grpcSpecAt_mono_upd Spec Spec' h ci m Φ Ψe) $$ HSpec
   imod HSpec
   iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HT Hlc Hctx Hrc Hd Hch HSpec] HΨ
   iframe
@@ -1208,7 +1285,7 @@ theorem grpcMethodOkMd_mono {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInterfac
   iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
   iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
   iframe
-  iapply (h _ m Φ Ψe) $$ HSpec
+  iapply (grpcSpecAt_mono Spec Spec' h ci m Φ Ψe) $$ HSpec
 
 /-- A registration with the metadata-indexed `Spec` is one with a stronger `Spec'`. -/
 theorem isGrpcRpcMd_mono {Req Rep : ProtoMsg GF} (addr name : GoString)
@@ -1250,7 +1327,7 @@ theorem grpcMethodOkMd_mono_upd {Req Rep : ProtoMsg GF} (mh : val) (srv : GoInte
   iintro #Hm
   unfold grpcMethodOkMd
   iintro %m %Φ %Ψe %ci %cd %dec %ui !> %Ψ ⟨HS, Hctx, Hrc, Hd, Hch, HSpec⟩ HΨ
-  ihave HSpec := (h _ m Φ Ψe) $$ HSpec
+  ihave HSpec := (grpcSpecAt_mono_upd Spec Spec' h ci m Φ Ψe) $$ HSpec
   imod HSpec
   iapply Hm $$ %m %Φ %Ψe %ci %cd %dec %ui [HS Hctx Hrc Hd Hch HSpec] HΨ
   iframe
