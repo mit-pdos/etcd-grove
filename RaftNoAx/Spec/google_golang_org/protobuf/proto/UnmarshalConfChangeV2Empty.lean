@@ -1,6 +1,6 @@
--- The copy for the part `RaftNoAx/` of `Spec/google_golang_org/protobuf/proto/UnmarshalConfChangeV2Empty.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
-The trust boundary for `proto.Unmarshal` of empty bytes into a raft v3.7 `*pb.ConfChangeV2`
+(raft-noax: the part's own; a theorem here, `ccDecodeV2` being the noax fork's decoder,
+`notes/raft-noax-codec.md`.) In the main tree, the trust boundary for `proto.Unmarshal` of empty bytes into a raft v3.7 `*pb.ConfChangeV2`
 (2026-10-28, the unified node API's stage U5, `notes/raft-unified-plan.md`; approved by the user the
 same day). `ccDecodeV2` (`Proof/go_etcd_io/raft/v3/CCModel.lean`) is opaque: nothing else says what
 it gives for a particular byte string. Raft's leader proposes its own automatic leave of a joint
@@ -28,8 +28,10 @@ def ConfChangeV2M.empty [GooseExts] : ConfChangeV2M := ⟨W32 0, [], []⟩
 /-- `proto.Unmarshal` decodes the empty encoding to the message with every field unset (protobuf's
 wire format: a message is a sequence of fields, and the empty sequence sets none; protobuf-go
 v1.36.12 `proto/decode.go`, `unmarshal` resets the message and its loop over the input runs zero
-times). Unprovable here: `ccDecodeV2` is opaque. -/
-axiom ccDecodeV2_nil [GooseExts] : ccDecodeV2 [] = some ConfChangeV2M.empty
+times). (raft-noax) `UnmarshalConfChangeV2` of the empty input: no field's tag, no change, the end
+of the input. -/
+theorem ccDecodeV2_nil [GooseExts] : ccDecodeV2 [] = some ConfChangeV2M.empty := by
+  simp [ccDecodeV2, ccOptField, ccChangesLoop, ConfChangeV2M.empty]
 
 end EtcdGrove
 end Perennial

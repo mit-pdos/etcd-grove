@@ -1,9 +1,9 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/CCModel.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 The pure vocabulary of conf-change messages (moved here from `InvConfChangeMsg.lean` on
 2026-10-13, reconfiguration stage D, so that the protocol's ghost state can name it
 without importing `Base`; see `InvConfChangeMsg.lean` for what each means):
-`ConfChangeM`, `ConfChangeV2M`, the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `ConfChangeIM`; and (new)
+`ConfChangeM`, `ConfChangeV2M`, the decoders `ccDecodeV1`/`ccDecodeV2` (raft-noax: definitions
+mirroring the noax fork's Go decoders, `CCCodec.lean`; opaque in the main tree), `ConfChangeIM`; and (new)
 `IsConfEnt` (an entry of type `EntryConfChange` or `EntryConfChangeV2`), `CCDecodes` (a
 conf-change entry's bytes decode), `ccWantsLeave` (an empty `ConfChangeV2`: leave the joint
 configuration) and `PropRepl` (a proposal's batch after `stepLeader`'s conf-change loop:
@@ -13,6 +13,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import RaftNoAx.Proof.go_etcd_io.raft.v3.PbModel
+public import RaftNoAx.Proof.go_etcd_io.raft.v3.CCCodec
 
 @[expose] public section
 
@@ -40,17 +41,28 @@ structure ConfChangeV2M [GooseExts] where
   changes : List ConfChangeSingleM
   context : List w8
 
-/-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChange` (raft v3.7; until the
-retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content (the getters'
-values), or `none` where it returns an error. Opaque: the trust-boundary specs of
-`proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
-are what is known of it. -/
-opaque ccDecodeV1 [GooseExts] : List w8 → Option ConfChangeM
+/-- (raft-noax) What `UnmarshalConfChangeV1` (`raftpb/noax.go`, the noax fork) makes of `bs`: the
+decoded content (the getters' values: an unset field reads as zero, an unset `Context` as empty), or
+`none` where it returns an error. Statement by statement the Go decoder: the four fields, each at
+most once, in field-number order (`ccOptField`), then the end of the input. (In the main tree an
+`opaque` standing for `proto.Unmarshal`.) -/
+def ccDecodeV1 [GooseExts] (bs : List w8) : Option ConfChangeM :=
+  (ccOptField bs 0 (W8 8) ccVarintL).bind fun p1 =>
+  (ccOptField bs p1.2 (W8 16) ccEnumL).bind fun p2 =>
+  (ccOptField bs p2.2 (W8 24) ccVarintL).bind fun p3 =>
+  (ccOptField bs p3.2 (W8 34) ccFieldL).bind fun p4 =>
+  if p4.2 = bs.length then
+    some ⟨p2.1.getD (W32 0), p3.1.getD (W64 0), p4.1.getD [], p1.1.getD (W64 0)⟩
+  else none
 
-/-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
-retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
-Opaque, as `ccDecodeV1`. -/
-opaque ccDecodeV2 [GooseExts] : List w8 → Option ConfChangeV2M
+/-- (raft-noax) What `UnmarshalConfChangeV2` (`raftpb/noax.go`) makes of `bs`; `none` where it
+returns an error: the transition at most once, the changes (`ccChangesLoop`, with fuel enough for
+every iteration), the context at most once, then the end of the input. -/
+def ccDecodeV2 [GooseExts] (bs : List w8) : Option ConfChangeV2M :=
+  (ccOptField bs 0 (W8 8) ccEnumL).bind fun p1 =>
+  (ccChangesLoop bs (bs.length + 1) p1.2 []).bind fun p2 =>
+  (ccOptField bs p2.2 (W8 26) ccFieldL).bind fun p3 =>
+  if p3.2 = bs.length then some ⟨p1.1.getD (W32 0), p2.1, p3.1.getD []⟩ else none
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
 inductive ConfChangeIM [GooseExts] where
