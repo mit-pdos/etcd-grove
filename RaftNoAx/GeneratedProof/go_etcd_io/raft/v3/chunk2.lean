@@ -12,7 +12,6 @@ public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.confchange
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.quorum
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.tracker
-public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math

@@ -1,4 +1,3 @@
--- The copy for the part `RaftNoAx/` of `Proof/go_etcd_io/raft/v3/Base.lean` (etc/copy-part.py; rerun it, do not edit).
 /-
 Port of etcd-grove's `new/proof/go_etcd_io/raft/v3_proof/base.v`: package
 initialization instances for `go.etcd.io/raft/v3` and the packages it imports.
@@ -20,6 +19,9 @@ public import Proof.reflect.PkgInit
 public import RaftNoAx.Code.go_etcd_io.raft.v3
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.raftpb
+-- (raft-noax) raft no longer imports `proto`; kvdurable does (`proto.Equal`), and the proto specs
+-- name its package
+public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.Code.reflect
 public import Perennial.Proof.ProofPrelude
 public import Perennial.Proof.context

@@ -1,5 +1,5 @@
-# The Raft proof of the part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md): for now
-# link-lean-first-raft.txt as it is (the part a renamed copy of the main tree).
+# The Raft proof of the part RaftNoAx (raft without hand-written axioms, notes/raft-noax-part.md):
+# link-lean-first-raft.txt with the noax fork's callees (raftpb Clone*, EntrySize, the conf change codecs).
 # `etc/gen-link.py --raft-noax > RaftNoAx/Proof/go_etcd_io/raft/v3/Link.lean`.
 # The raft proofs (raft v3.7 plus the read-index fix; `Code/go_etcd_io/raft/`), one line per
 # function, `<fn>: <callee> ...`, the callees in the order of each wp_proof's hypotheses (as
@@ -69,7 +69,7 @@ raftpb_ConfChange__GetContext:
 raftpb_ConfChange__GetId:
 raftpb_ConfChange__GetNodeId:
 raftpb_ConfChange__GetType:
-raftpb_ConfState__Equivalent: proto_CloneConfState slices_Sort raftpb_ConfState__GetAutoLeave raftpb_confStatesEqual
+raftpb_ConfState__Equivalent: raftpb_CloneConfState slices_Sort raftpb_ConfState__GetAutoLeave raftpb_confStatesEqual
 raftpb_confStatesEqual: raftpb_idsEqual raftpb_boolOf
 raftpb_idsEqual:
 raftpb_boolOf:
@@ -89,7 +89,7 @@ raftpb_Entry__GetType:
 raftpb_HardState__GetCommit:
 raftpb_HardState__GetTerm:
 raftpb_HardState__GetVote:
-raftpb_MarshalConfChange: raftpb_ConfChange__AsV1 raftpb_ConfChangeV2__AsV1 raftpb_ConfChangeV2__AsV2 proto_MarshalConfChange proto_MarshalConfChangeV2
+raftpb_MarshalConfChange: raftpb_ConfChange__AsV1 raftpb_ConfChangeV2__AsV1 raftpb_ConfChangeV2__AsV2 raftpb_MarshalConfChangeV1 raftpb_MarshalConfChangeV2
 raftpb_MessageType__Enum:
 raftpb_Message__GetCommit:
 raftpb_Message__GetContext:
@@ -110,14 +110,14 @@ raftpb_SnapshotMetadata__GetIndex:
 raftpb_SnapshotMetadata__GetTerm:
 raftpb_Snapshot__GetData:
 raftpb_Snapshot__GetMetadata:
-proto_CloneConfState:
-proto_ClonePb:
-proto_CloneSnapshot:
-proto_MarshalConfChange:
-proto_MarshalConfChangeV2:
-proto_SizePb:
-proto_UnmarshalConfChange:
-proto_UnmarshalConfChangeV2:
+raftpb_CloneConfState:
+raftpb_CloneEntry:
+raftpb_CloneSnapshot:
+raftpb_MarshalConfChangeV1:
+raftpb_MarshalConfChangeV2:
+raftpb_EntrySize:
+raftpb_UnmarshalConfChangeV1:
+raftpb_UnmarshalConfChangeV2:
 
 # Stage R2: confchange (the old proof's 22 functions, `ccs ...*pb.ConfChangeSingle` read through
 # the getters, `toConfChangeSingle`/`Restore` on a `*pb.ConfState`), with etcd-grove's
@@ -138,8 +138,7 @@ confchange_Changer__initProgress: confchange_incoming tracker_NewInflights confc
 confchange_Changer__remove: confchange_incoming confchange_outgoing confchange_nilAwareDelete
 confchange_Changer__makeVoter: confchange_Changer__initProgress confchange_incoming confchange_nilAwareDelete
 confchange_Changer__makeLearner: confchange_Changer__initProgress confchange_Changer__remove confchange_outgoing confchange_nilAwareAdd
-confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming fmt_Errorf raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
-fmt_Errorf: @
+confchange_Changer__apply: confchange_Changer__makeVoter confchange_Changer__makeLearner confchange_Changer__remove confchange_incoming raftpb_ConfChangeSingle__GetNodeId raftpb_ConfChangeSingle__GetType
 # A done context's `Err()` is `Canceled` or `DeadlineExceeded` (etcd-grove's trust boundary of
 # `context`, `Proof/context/Link.lean`; stage R7c): `node.stepWithWaitOption`'s `return ctx.Err()`.
 context_ErrDone: @
@@ -153,18 +152,18 @@ confchange_Restore: confchange_toConfChangeSingle confchange_Changer__Simple con
 pbEntryID: raftpb_Entry__GetTerm raftpb_Entry__GetIndex
 payloadSize: raftpb_Entry__GetData
 payloadsSize: payloadSize
-entsSize: proto_SizePb
-limitSize: proto_SizePb
+entsSize: raftpb_EntrySize
+limitSize: raftpb_EntrySize
 extend:
 unstable__maybeFirstIndex: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 unstable__maybeLastIndex: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 unstable__maybeTerm: unstable__maybeLastIndex raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetTerm raftpb_Entry__GetTerm
 unstable__nextEntries:
-unstable__nextSnapshot: proto_CloneSnapshot
+unstable__nextSnapshot: raftpb_CloneSnapshot
 unstable__acceptInProgress: raftpb_Entry__GetIndex
 unstable__stableTo: unstable__maybeTerm unstable__shrinkEntriesArray
 unstable__shrinkEntriesArray:
-unstable__restore: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex proto_CloneSnapshot
+unstable__restore: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_CloneSnapshot
 unstable__stableSnapTo: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex
 unstable__truncateAndAppend: unstable__slice raftpb_Entry__GetIndex
 unstable__slice: unstable__mustCheckOutOfBounds
@@ -179,7 +178,7 @@ raftLog__maybeCommit: raftLog__matchTerm raftLog__commitTo
 raftLog__mustCheckOutOfBounds: raftLog__firstIndex raftLog__lastIndex
 raftLog__slice: raftLog__mustCheckOutOfBounds unstable__slice limitSize entsSize extend
 raftLog__entries: raftLog__lastIndex raftLog__slice
-raftLog__snapshot: proto_CloneSnapshot
+raftLog__snapshot: raftpb_CloneSnapshot
 raftLog__appliedTo:
 raftLog__scan: raftLog__slice
 raftLog__zeroTermOnOutOfBounds:
@@ -211,11 +210,11 @@ MemoryStorage__Term: raftpb_Entry__GetIndex raftpb_Entry__GetTerm
 MemoryStorage__Entries: raftpb_Entry__GetIndex MemoryStorage__lastIndex limitSize
 MemoryStorage__SetHardState:
 MemoryStorage__InitialState: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetConfState raftpb_EnsureConfState
-MemoryStorage__Snapshot: raftpb_EnsureSnapshot proto_CloneSnapshot
+MemoryStorage__Snapshot: raftpb_EnsureSnapshot raftpb_CloneSnapshot
 NewMemoryStorage: raftpb_EnsureSnapshot
-MemoryStorage__ApplySnapshot: raftpb_EnsureSnapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetTerm proto_CloneSnapshot
+MemoryStorage__ApplySnapshot: raftpb_EnsureSnapshot raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_SnapshotMetadata__GetTerm raftpb_CloneSnapshot
 MemoryStorage__Compact: raftpb_Entry__GetIndex MemoryStorage__lastIndex raftpb_Entry__GetTerm
-MemoryStorage__CreateSnapshot: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_Entry__GetIndex MemoryStorage__lastIndex raftpb_EnsureSnapshot raftpb_Entry__GetTerm proto_CloneConfState proto_CloneSnapshot
+MemoryStorage__CreateSnapshot: raftpb_Snapshot__GetMetadata raftpb_SnapshotMetadata__GetIndex raftpb_Entry__GetIndex MemoryStorage__lastIndex raftpb_EnsureSnapshot raftpb_Entry__GetTerm raftpb_CloneConfState raftpb_CloneSnapshot
 MemoryStorage__Append: MemoryStorage__firstIndex raftpb_Entry__GetIndex
 big_NewInt:
 big_Int__Int64:
@@ -309,17 +308,14 @@ raft__maybeSendAppend: tracker_Progress__IsPaused tracker_Progress__SentEntries 
 raft__campaign: raft__becomeCandidate raft__becomePreCandidate raft__poll raft__send voteRespMsgType raft__promotable quorum_JointConfig__IDs raftLog__lastEntryID slices_Sort raftpb_MessageType__Enum
 raft__handleAppendEntries: logSliceFromMsgApp raftLog__maybeAppend raftLog__term raftLog__zeroTermOnOutOfBounds raftLog__lastIndex raftLog__findConflictByTerm raft__send raftpb_Message__GetCommit raftpb_Message__GetIndex raftpb_Message__GetLogTerm raftpb_Message__GetFrom raftpb_MessageType__Enum
 raft__Step: raft__hup raft__becomeFollower voteRespMsgType raft__send stepCandidate stepFollower stepLeader traceReceiveMessage raftLog__lastEntryID raftLog__isUpToDate raftLog__stableTo raft__appliedTo raft__appliedSnap raft__reduceUncommittedSize entsSize payloadsSize raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__GetFrom raftpb_Message__GetTo raftpb_Message__GetLogTerm raftpb_Message__GetIndex raftpb_Message__GetCommit raftpb_Message__GetReject raftpb_Message__GetEntries raftpb_Message__GetSnapshot raftpb_Message__GetContext raftpb_Entry__GetIndex raftpb_MessageType__Enum
-raft__appendEntry: raftLog__lastIndex raft__increaseUncommittedSize traceReplicate raftLog__append raft__send proto_ClonePb raftpb_MessageType__Enum
+raft__appendEntry: raftLog__lastIndex raft__increaseUncommittedSize traceReplicate raftLog__append raft__send raftpb_CloneEntry raftpb_MessageType__Enum
 raft__restore: raftLog__matchTerm raftLog__lastEntryID raftLog__commitTo raftLog__restore raftpb_EnsureConfState
-# Stage R4 (G3): stepLeader, with fmt.Sprintf (the Raft37 copy of the old proof) and
-# DescribeConfChange (a trust-boundary axiom: the refusal's log string)
-fmt_Sprintf:
-DescribeConfChange:
-stepLeader: raft__bcastHeartbeat raft__sendAppend raft__maybeSendAppend raft__bcastAppend raft__appendEntry raft__maybeCommit releasePendingReadIndexMessages tracker_Progress__MaybeUpdate tracker_Progress__MaybeDecrTo tracker_Progress__BecomeProbe tracker_Progress__BecomeReplicate tracker_Progress__CanBumpCommit tracker_Inflights__FreeLE raftLog__findConflictByTerm raftLog__lastIndex raftLog__firstIndex raft__committedEntryInCurrentTerm sendMsgReadIndexResponse readOnly__recvAck readOnly__maybeAdvance raft__responseToReadIndexReq raft__send raft__sendTimeoutNow raft__abortLeaderTransfer proto_UnmarshalConfChange proto_UnmarshalConfChangeV2 raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 fmt_Sprintf traceChangeConfEvent raftpb_Message__GetType raftpb_Message__GetFrom raftpb_Message__GetReject raftpb_Message__GetIndex raftpb_Message__GetRejectHint raftpb_Message__GetLogTerm raftpb_Message__GetContext raftpb_Message__GetTo raftpb_Entry__GetType raftpb_Entry__GetData raftpb_EntryType__Enum DescribeConfChange tracker_ProgressTracker__QuorumActive tracker_ProgressTracker__Visit raft__becomeFollower
+# Stage R4 (G3): stepLeader (raft-noax: no fmt.Sprintf, no DescribeConfChange: the refusal logs
+# lazily, `lazySprintf` and `describedConfChange`)
+stepLeader: raft__bcastHeartbeat raft__sendAppend raft__maybeSendAppend raft__bcastAppend raft__appendEntry raft__maybeCommit releasePendingReadIndexMessages tracker_Progress__MaybeUpdate tracker_Progress__MaybeDecrTo tracker_Progress__BecomeProbe tracker_Progress__BecomeReplicate tracker_Progress__CanBumpCommit tracker_Inflights__FreeLE raftLog__findConflictByTerm raftLog__lastIndex raftLog__firstIndex raft__committedEntryInCurrentTerm sendMsgReadIndexResponse readOnly__recvAck readOnly__maybeAdvance raft__responseToReadIndexReq raft__send raft__sendTimeoutNow raft__abortLeaderTransfer raftpb_UnmarshalConfChangeV1 raftpb_UnmarshalConfChangeV2 raftpb_ConfChange__AsV2 raftpb_ConfChangeV2__AsV2 traceChangeConfEvent raftpb_Message__GetType raftpb_Message__GetFrom raftpb_Message__GetReject raftpb_Message__GetIndex raftpb_Message__GetRejectHint raftpb_Message__GetLogTerm raftpb_Message__GetContext raftpb_Message__GetTo raftpb_Entry__GetType raftpb_Entry__GetData raftpb_EntryType__Enum tracker_ProgressTracker__QuorumActive tracker_ProgressTracker__Visit raft__becomeFollower
 # Stage R4 (phase 3b): newRaft, over D7's InitialState (the conf state frozen, the storage given
-# back at once), with strings.Join (the Raft37 copy of the old proof)
-strings_Join:
-newRaft: Config__validate newLogWithSize raftLog__lastEntryID tracker_MakeProgressTracker newReadOnly traceInitState confchange_Restore traceConfChangeEvent tracker_ProgressTracker__ConfState assertConfStatesEquivalent IsEmptyHardState raftpb_HardState__GetCommit raftpb_HardState__GetTerm raftpb_HardState__GetVote raft__becomeFollower tracker_ProgressTracker__VoterNodes fmt_Sprintf strings_Join
+# back at once) (raft-noax: no strings.Join, no fmt.Sprintf: the peers logged lazily, `hexIDs`)
+newRaft: Config__validate newLogWithSize raftLog__lastEntryID tracker_MakeProgressTracker newReadOnly traceInitState confchange_Restore traceConfChangeEvent tracker_ProgressTracker__ConfState assertConfStatesEquivalent IsEmptyHardState raftpb_HardState__GetCommit raftpb_HardState__GetTerm raftpb_HardState__GetVote raft__becomeFollower tracker_ProgressTracker__VoterNodes
 confChangeToMsg: raftpb_MarshalConfChange raftpb_MessageType__Enum raftpb_EntryType__Enum
 # Stage R5 (phase 3, G3): the node API
 newNode:

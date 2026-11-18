@@ -12,7 +12,6 @@ public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.confchange
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.quorum
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import RaftNoAx.GeneratedProof.go_etcd_io.raft.v3.tracker
-public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log
 public import Perennial.GeneratedProof.math
@@ -1041,6 +1040,103 @@ noncomputable instance entryID_access_store_index (l : Loc) (v : go_etcd_io.raft
 
 end def_
 end entryID
+
+namespace lazySprintf
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+
+noncomputable instance lazySprintf_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.lazySprintf where
+  typedPointstoDef l v dq := iprop(
+    "format" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' dq ∗
+    "args" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance lazySprintf_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.lazySprintf go_etcd_io.raft.v3.lazySprintf.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance lazySprintf_access_load_format (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazySprintf_access_store_format (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (format' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) v.format' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"format" l) format' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with format' := format' } : go_etcd_io.raft.v3.lazySprintf) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazySprintf_access_load_args (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance lazySprintf_access_store_args (l : Loc) (v : go_etcd_io.raft.v3.lazySprintf) (args' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) v.args' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.lazySprintf go!"args" l) args' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with args' := args' } : go_etcd_io.raft.v3.lazySprintf) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end lazySprintf
+
+namespace describedConfChange
+section def_
+
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.raft.v3.Assumptions]
+
+noncomputable instance describedConfChange_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.raft.v3.describedConfChange where
+  typedPointstoDef l v dq := iprop(
+    "cc" ∷ typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance describedConfChange_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.raft.v3.describedConfChange go_etcd_io.raft.v3.describedConfChange.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance describedConfChange_access_load_cc (l : Loc) (v : go_etcd_io.raft.v3.describedConfChange) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' dq)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance describedConfChange_access_store_cc (l : Loc) (v : go_etcd_io.raft.v3.describedConfChange) (cc' : go_etcd_io.raft.v3.raftpb.ConfChangeI) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) v.cc' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.raft.v3.describedConfChange go!"cc" l) cc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with cc' := cc' } : go_etcd_io.raft.v3.describedConfChange) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end describedConfChange
 
 end go_etcd_io.raft.v3
 end

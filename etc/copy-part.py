@@ -155,7 +155,8 @@ def compute():
                     os.path.join(dp, x) for dp, _, fs in os.walk(base) for x in fs if x.endswith(".lean")]:
                 part.add(os.path.relpath(f, ROOT)[:-len(".lean")].replace(os.sep, "."))
     gen_init = load("gen_init", "gen-init.py")
-    by_gen_init = {p[:-len(".lean")].replace("/", ".") for p in gen_init.part_paths(gen_init.PARTS[PART][0])}
+    by_gen_init = {p[:-len(".lean")].replace("/", ".")
+                   for p in sorted(gen_init.part_paths(gen_init.PARTS[PART][0])) + gen_init.NOAX_MAIN_PATHS}
     why, files = {}, {}
     for m in sorted(part):
         if m.split(".")[0] in ("Code", "GeneratedProof"):
