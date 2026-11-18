@@ -2127,3 +2127,30 @@ decisions after S3d (D-N4, D-N5), implemented; deviations marked.
     `DB.Begin_err.spec` is now an internal helper (in its proof file), `DB.Begin.wp_proof` its instance.
   - The leaf W specs (`os.File.Stat.specW`, ...) are second specs of stdlib/`os` functions, not of
     bbolt's; they stay (outside the rule's scope as stated; report).
+
+## S3g: `Close` gives back what `Open` takes (2026-11-18)
+
+Session `bbolt-close-bound` (`notes/bbolt-integration-plan.md`, Log, "S3g"). Supersedes D-F2's "the
+bound is not in what `Close` gives back" and D-F5 (the partial-page escape).
+
+- **D-G1. The file's size bound in the invariant, from the model's address space.** In the model a
+  mapping's cells are heap cells, each below `maxAddr = 2 ^ 47` (Perennial's `heapPointsto`), so a
+  successful `mmap` is at most `2 ^ 47` bytes; `Commit` grows the file to `(pgid + 1)·4096`, at most
+  the mapping plus a page, and `DB.grow` adds at most `AllocSize`. So the file never exceeds
+  `2 ^ 47 + 2 ^ 12 + 2 ^ 24 < maxMapSize`, and `DB.Close.spec` gives `fileHoldsM`. On real hardware
+  `nonissues/bbolt-grow-past-max-map-size.md` still holds (it needs a mapping near 256 TiB, which the
+  model's address space excludes); the nonissue stays as the record of the real behavior. The bound is
+  `wdbOK`'s clause `wdbSz` (one clause, replacing `size < 2 ^ 62`), with the mapping's bound beside it
+  (taken from the cells when `Open` and the remap map), not in `mapFields` (fewer proofs touched).
+- **D-G2. Whole pages under the premises.** `wdbSz` carries `FsNoErr → size % 4096 = 0`. The only
+  partial last page bbolt can leave is from a chunked write that fails part way past the end; under
+  `NoIoErr` a `pwrite` fails only when it starts at or past `maxBytes` (page-aligned, every earlier
+  chunk ended at or below it), so the file ends at its old size or at `maxBytes`. The fact lives in
+  `os.File.WriteAt.specExt`'s failure arm (strengthened in place rather than a new spec), proved from
+  `wp_pwFinish_postNE`.
+- **D-G3. `boltNoFile` deleted.** With leaks witnessing `¬ FsNoErr` (D-F5) and the partial page
+  refuted (D-G2), `DB.Close.spec`'s post is `(⌜err = nil⌝ ∗ fileHoldsM i D) ∨ ⌜¬ FsNoErr⌝`; the
+  internal ghost name `nf` stays (the junk clause and `closedR`).
+- **D-G4. `wdbSz` mentions `FsNoErr`, which takes `[ExtSemantics fsExt]`.** Every section that states
+  `wdbOK`/`wdbOK'` now has that instance (and `FsSemOk`) as a variable: a section without it would
+  silently elaborate `wdbOK` at the global `fs_semantics` instance and mismatch its users.

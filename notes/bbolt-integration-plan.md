@@ -578,3 +578,31 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     (`_r`, `_w`), `Bucket.Cursor` (and `_i`), `Bucket.ForEachBucket` (`_r`, `_rP`, `_w`),
     `Tx.Bucket` (and the backend's `_kvr`/`_kvw`), `Tx.Commit` (and `Tx.Commit_err`, `Open`'s internal
     use, as `Begin_err` was), `Tx.Rollback` (and `_r`), and the backend's `_kv` layer (S3e deletes it).
+* 2026-11-18, **S3g** (branch `bbolt-close-bound` off `bbolt-integrate` `905771d763`): three gaps in
+  `Open`/`Close` that blocked the backend's close-and-reopen. No new `axiom` or `sorry`; no change to
+  Perennial, the forks or the trusted semantics/premises. Decisions D-G1..D-G4
+  (`notes/bbolt-spec-decisions.md`, "S3g").
+  - **`DB.Close.spec`** (final): pre unchanged (`isBolt db γ ∗ boltIno γ i ∗ boltState γ 1 D ∗
+    boltCloser γ`), post `(⌜err = nil⌝ ∗ fileHoldsM i D) ∨ ⌜¬ FsNoErr⌝`: what `Open.spec` takes comes
+    back, and the `boltNoFile` case is gone (`boltNoFile` deleted from the API). `Open.spec` unchanged.
+  - **Gap 1, the size bound** (D-G1): the coordinator's argument holds. Every heap cell is below
+    `maxAddr = 2 ^ 47` (`heapPointsto`), so a mapping is at most `2 ^ 47` (`Mmap/Cells.cellsR_maxAddr`,
+    used where `Open` (`DB.mmapUnlocked.spec_own`: `L ≤ 2 ^ 47`) and the remap (`RemapBody`) map);
+    `Commit` grows to `(pgid + 1)·4096 ≤ mapping + 4096`, `DB.grow` truncates to at most that plus
+    `AllocSize`; writes stay below `max size mapping`. `wdbOK`'s size clause is `wdbSz w.m w.ms`
+    (`Inv/Locks.lean`): `size ≤ 0xFFFFFFFFFFFF ∧ mapLen ≤ 2 ^ 47 ∧ (FsNoErr → size % 4096 = 0)`.
+    `DB.grow.spec`'s premise is now `sz + AllocSize ≤ maxMapSize` (was `< 2 ^ 62`).
+  - **Gap 2, whole pages** (D-G2): under `NoIoErr` a `pwrite` starting below `maxBytes` has an
+    error-free step (`k = min len (maxBytes - off)`, a page cut), so it does not fail; one at or past
+    `maxBytes` lands nothing. `os.File.WriteAt.specExt` (strengthened in place) says so in its failure
+    arm: `¬ FsNoErr ∨ maxBytes ≤ off + j` (`wp_proofExtQ` is generic in an offset-aware `Pe`).
+    `Tx.write_ext.spec` (and `cm_write_step`) give `FsNoErr → size' = size ∨ size' % 4096 = 0` on
+    every exit (the chunk loop tracks `0 < w → offset ≤ maxBytes`).
+  - **Gap 3, `fs.FileMode.String`** (sub-branch `bbolt-filemode-string`, merged): translated
+    (`Code/io/fs.toml`), its spec moved to `Spec/io/fs/FileMode__String.lean` and proved
+    (`Proof/io/fs/FileMode__String.lean`); the linked `wp_Open` takes no pending hypothesis.
+  - **Statement changes** beyond `DB.Close.spec`: `os.File.WriteAt.specExt` (failure arm),
+    `Tx.write_ext.spec` (new pure conjunct), `DB.grow.spec` (premise), internal
+    `DB.mmapUnlocked.spec_own` (`L ≤ 2 ^ 47`), `lfOK` (`wdbSz`), `cm_wdbW'_mapLen` (`≤ 2 ^ 47`).
+  - **For S3e**: `Close_kv` gets `fileHoldsM` back, which `Open_kv` takes: the backend's
+    `applySnapshot` close-and-reopen needs no size argument of its own.
