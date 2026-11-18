@@ -1,6 +1,6 @@
 # perheap handoff
 
-## START HERE (2026-11-18, step 0 implemented; full build pending; C0 next)
+## START HERE (2026-11-18, step 0 done (C0): `be6b6ca8c6`, lean merged `cd350b3c75`)
 
 - Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), off `lean` `49bd7924e6`. Pin 6d365ee1a:
   `--packages=/shared/tmp/manifest-6d3.json`, `.lake/package-overrides.json` its copy. Builds only via
@@ -16,7 +16,9 @@
   accepted); Go test `examples/axiomcx/perheap` (passes).
 - Still there until 1b (by design): `incomingOf`, its two axioms, `FromIncomingContext`'s `incomingOf` post,
   `WithValue`'s `incomingOf` equation. `auth.ctxToken` and `ctxBound` by token: C1a (moved from step 0).
-- Next: full build green → C0 report; then C1a (Scope §4.2 incl. the second ring, §1 list), then 1b.
+- Verified at `be6b6ca8c6`: full build green (20480 jobs), all `etc/api` interfaces unchanged, `tcb-report --check`
+  matches (892 axioms, 4 sorries). Post-merge full build (`cd350b3c75`): log `/shared/tmp/perheap/s/full-m1.log`.
+- Next: C1a (Scope §4.2 incl. the second ring, §1 list; ~90 files, ~53k lines touched: several sessions), then 1b.
 - Pitfalls: `ctxValue_other` needs `context.Assumptions`; `keyEqOk_of_ty_ne` is defined mid-`LibKeysChain`;
   WithValue's post patterns gained one slot after the `incomingOf` one (`#Hmd`).
 - Scans: `/shared/tmp/perheap/closure2.py` (transitive closure; output `closure2.txt`), `scan4.py`,
