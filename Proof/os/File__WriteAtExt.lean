@@ -9,7 +9,7 @@ restated as specLong's post).
 -/
 module
 
-public import Proof.os.File__WriteAt
+public import Proof.os.File__WriteAtLemmas
 public import Proof.os.WriteChunks
 public import Proof.os.WriteLongStep
 

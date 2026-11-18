@@ -11,8 +11,9 @@ permission, which comes back. Lean-first (no Rocq counterpart); the legacy count
 -/
 module
 
-public import Proof.os.OpenFile
-public import Proof.os.File__Close
+public import Proof.os.OpenFileLemmas
+public import Spec.os.File__Close
+public import Proof.os.ErrorOk
 public import Proof.os.SharedExt
 public import Proof.os.ErrorOk
 public import Proof.os.Off

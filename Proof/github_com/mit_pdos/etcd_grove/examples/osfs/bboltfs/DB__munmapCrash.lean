@@ -3,7 +3,8 @@
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__munmapCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__munmap
+public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__munmap
+public import Spec.golang_org.x.sys.unix.Munmap
 
 @[expose] public section
 

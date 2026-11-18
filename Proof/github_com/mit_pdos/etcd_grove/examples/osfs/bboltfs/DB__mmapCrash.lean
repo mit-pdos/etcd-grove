@@ -5,7 +5,7 @@ idle state (`csOwn_idle`, `writer_thrBytes`) for the new mapping's cells. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmapCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmap
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmapLemmas
 public import Proof.os.CrashStSpec
 
 @[expose] public section

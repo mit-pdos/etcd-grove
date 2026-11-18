@@ -15,7 +15,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitCrash
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmapCrash
-public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__commitLemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmapCrash
 public import Proof.os.CrashStSpec
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.CrashKc
