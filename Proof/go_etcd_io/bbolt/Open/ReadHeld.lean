@@ -13,7 +13,7 @@ returns `io.EOF` only when a `pread` reads nothing with `len(b) > 0`, so `n < le
 -/
 module
 
-public import Spec.os.File__ReadAt
+public import Proof.os.ReadAtOwn
 public import Proof.os.Base
 
 @[expose] public section
@@ -56,8 +56,8 @@ theorem os.File.ReadAt.wp_heldW (hRead : os.File.ReadAt.specRacyLt (GF := GF) (h
               ¬ FsNoErr)⌝ ∗
         fmtErrorOkOrNil err }} := by
   iintro %Φ ⟨#Hinv, Hfo, Hsl, Hfd, Hb, #Heof⟩ HΦ
-  iapply hRead f fd name dqf sl vs off dq d [(0, dqb, xs)] eof hrd hoff hn (by omega)
-    $$ [Hfo Hsl Hfd Hb]
+  iapply os.File.ReadAt.wp_racyLtOwn hRead f fd name dqf sl vs off dq d [(0, dqb, xs)] eof hrd
+    hoff hn (by omega) $$ [Hfo Hsl Hfd Hb]
   · iframe; iframe #
     iapply BigSepL.bigSepL_nil.2; iempintro
   inext

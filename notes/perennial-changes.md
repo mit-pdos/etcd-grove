@@ -17,6 +17,29 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `io.NewSectionReader`, `io.CopyN` without bodies (2026-11-18, S4, branch `s4-io`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only for `NewSectionReader`, `CopyN`,
+  `Copy`, `copyBuffer`, `LimitReader`, `(*LimitedReader).Read` and `(*SectionReader).Read`
+  (`Perennial/Code/io.lean`), so none can be stepped. bbolt's `Tx.WriteTo` (tx.go) copies its data
+  pages with `io.CopyN(w, io.NewSectionReader(tx.db.file, dataOffset, dataSize), dataSize)`.
+- **Workaround here.** Two trust-boundary axioms: `io.NewSectionReader.wp_proof`
+  (`Spec/io/NewSectionReader.lean`) and `io.CopyN.wp_proof` (`Spec/io/CopyN.lean`), over the
+  vocabulary of `Proof/io/SectionReader.lean` (`io.secReader`, opaque; the `io.ReaderAt` contract
+  `io.readerAtOk`; `io.writerPlain`: no `ReadFrom`, which `copyBuffer` would call instead) and the
+  backend's writer contract `backend.writerOk`. An `*os.File` meets `readerAtOk` from its racing
+  read (`os.File.readerAtOk`, `Proof/os/ReaderAt.lean`). Not a part-local translation, for the reason
+  of `io.ReadFull`'s entry below (`io` is imported by Perennial's other packages).
+- **Proposed.** `io.toml`: translate the seven with bodies (`SectionReader`'s struct and its other
+  methods may stay names-only; `EOF`, `ErrShortWrite` and `errInvalidWrite` are package variables
+  already), and prove in `Perennial/Proof/io/` the two specs over a `ReaderAt` contract and a `Writer`
+  contract (the latter moved from etcd-grove's backend to Perennial with `writerPlain`):
+  `NewSectionReader` an allocation, `CopyN` a Löb induction over `copyBuffer`'s loop with the
+  invariant "`written` bytes appended, the section and limited readers at `off + written`, `n -
+  written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
+  `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
+  become theorems with the same statements. Not yet proposed.
+
 ### `internal/stringslite.HasPrefix`/`HasSuffix` and `strings.HasSuffix` without bodies (2026-11-14, branch `wal-leaf6`)
 
 - **Missing.** Perennial's `internal/stringslite.toml` translates nothing but `Clone` (trusted), and
