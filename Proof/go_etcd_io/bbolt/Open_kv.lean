@@ -81,7 +81,7 @@ theorem bbolt.Open_kv.wp_proof :
         iexact Hl
     wp_apply (h Sio hino hpath (dbNs (child d b)) R d b dqp j qc hn mode opts dq (o.toBolt false f) D hb)
       $$ [$Hpkg $Hinv $Hsh $Hpath $Hcp $Hnm $Hnh $Hbo $Hlog']
-      as %db %err ⟨Hbo, Hpath, Hcp, %He, %oc, %γ, %i, Hcr, %hnc, #Hdb, #Hino, Hst⟩
+      as %db %err ⟨Hbo, Hpath, Hcp, %He, %oc, %γ, %i, Hcr, %hnc, #Hdb, #Hino, Hst, Hcl⟩
     · iframe %Hok'
       ipureintro; exact dbNs_osN _
     obtain ⟨hns, hci⟩ := hnc
@@ -93,10 +93,10 @@ theorem bbolt.Open_kv.wp_proof :
     · ipureintro; exact He
     iexists γ
     iframe Hdb Hst
-    isplitl [Hpath Hcp Hnm]
+    isplitl [Hpath Hcp Hnm Hcl]
     · unfold dbRestF
       iexists R, d, b, dqp, j, qc, h', i
-      iframe Hinv Hsh Hpath Hcp Hnm Hino
+      iframe Hinv Hsh Hpath Hcp Hnm Hino Hcl
       ipureintro; exact ⟨hns, hb, hh'⟩
     unfold wrTok dbFile
     isplitr

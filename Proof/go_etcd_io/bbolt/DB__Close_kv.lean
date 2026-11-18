@@ -44,11 +44,11 @@ theorem bbolt.DB.Close_kv.wp_proof :
     iunfold dbFile at Hpath
     icases Hpath with %Hpath
     unfold dbRestF
-    icases Hrest with ⟨%R, %d, %b, %dq, %j, %qc, %hn, %i, %hr, #Hinv, #Hsh, Hp, Hcp, Hnm, #Hino⟩
+    icases Hrest with ⟨%R, %d, %b, %dq, %j, %qc, %hn, %i, %hr, #Hinv, #Hsh, Hp, Hcp, Hnm, #Hino, Hcl⟩
     obtain ⟨hns, hb, hi⟩ := hr
     have hpath : path = child d b := dbNs_inj (Hpath.symm.trans hns)
     subst hpath
-    wp_apply (h Sio hino db γ i D) $$ [$Hdb $Hino $Hst] as %err ⟨%He, Hf⟩
+    wp_apply (h Sio hino db γ i D) $$ [$Hdb $Hino $Hst $Hcl] as %err ⟨%He, Hf⟩
     iapply HΦ
     isplitr
     · ipureintro; exact He

@@ -266,7 +266,7 @@ theorem mainConfig_okAt [GooseExts] [GoGlobalContext] (pfx : GoString) (mx : Mix
     unfold cblOf; exact if_pos (show (0 : Int) < sint.Z (W64 2) by decide)
   have hdep : (normalizeM (mainConfigM pfx mx)).Depth' = W64 4 := by
     unfold normalizeM mainConfigM; rfl
-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
   · unfold readMixOk; refine ⟨by decide, ⟨0, by decide, by decide⟩, by decide⟩
   · show (0 : Int) ≤ sint.Z (W64 12000); decide
   · show sint.Z (W64 12000) < 2 ^ 38; decide
@@ -274,6 +274,9 @@ theorem mainConfig_okAt [GooseExts] [GoGlobalContext] (pfx : GoString) (mx : Mix
   · rw [hlim]; decide
   · rw [hcbl]; unfold mvcc.batchLimitOk; decide
   · rw [hdep, show sint.nat (W64 4) = 4 by decide, hk]; decide
+  · show sint.Z (mainConfigM pfx mx).MaxVal' ≤ 2 ^ 20
+    rw [show (mainConfigM pfx mx).MaxVal' = W64 5000 from rfl]; decide
+  · rw [hdep]; decide
 
 end mvccfull
 

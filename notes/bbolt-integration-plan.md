@@ -525,7 +525,7 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
 
 D-I5's backend side. `bbolt.Open_kv` and `bbolt.DB.Close_kv` are theorems; `backend.fileHolds` and
 `backend.dbFile` are definitions over the tree's shared mode. **S3d had not landed** when this was
-done: the two error-free specs it is adding (`Open_sharedNoErr.spec`; `DB.Close_ownNoErr.spec`
+begun (see "After S3d" below for the shapes now stated): the two error-free specs it is adding (`Open_sharedNoErr.spec`; `DB.Close_ownNoErr.spec`
 strengthened to `⌜err = nil⌝ ∗ fileHolds i D`) are stated in `Spec/go_etcd_io/bbolt/Open_sharedNoErrH.lean`
 as S3d's task states them, and stand as two **interim axioms** `bbolt.Open_sharedNoErrH.pendingS3d`,
 `bbolt.DB.Close_ownNoErrH.pendingS3d` (never to land on `lean`: on merging S3d, `Open_kv.wp_proof`
@@ -645,5 +645,19 @@ negation now. The mvcc closed theorems drop them; the specs that state them (the
 `storage.snapOpensOk`'s conjunct inside `storage.diskOk`) are unchanged, their premise trivial, their
 error case `False`: deleting them is a mechanical cleanup (72 places in the mvcc examples).
 
-**Left.** S3d's merge (the two interim axioms, `FileMode.String`); `storage.OpenBackend` (item 5,
-the server's file world on the shared mode); the cleanup of the trivial `dbOpenOk`/`dbCloseOk`.
+**After S3d** (merged, `origin/bbolt-integrate` `3cd446e94d`; the coordinator's update): S3d found the
+briefed `Open_sharedNoErr.spec` false and `DB.Close_ownNoErr`'s escape unremovable as stated; S3f
+(`bbolt-noerr-final`) proves the decided shapes. The interim statements follow them where they can
+be stated today: `Open`'s success gives an exclusive close token (`boltCloserH γ`, an interim opaque
+standing for S3f's `boltCloser`), `DB.Close_ownNoErr` requires it, and `dbRestF` keeps it. Not yet
+stated: `Open`'s option constraints (`Timeout = 0`, `NoFreelistSync = true`, `InitialMmapSize ≤ 2 ^ 48 -
+1`) are on bbolt's options record, which S3f extends with those fields; then the backend's `optsAt`
+(a corollary of bbolt's) fixes them as `newBackend` sets them: `Timeout` and `InitialMmapSize` from
+the configuration (`backend.New`/`newBackend` gain `cfg.Timeout' = 0` and `cfg.mmapSize ≤ 2 ^ 48 - 1`
+beside `cfg.Mlock' = false`, which mvcc's `DefaultBackendConfig` meets: `Timeout` 0, `MmapSize` 10 GiB),
+`NoFreelistSync` from `boltOpenOptions` (`config_linux.go`: `true`; `boltOpenOptionsOk` must then say
+the variable is not nil, as `boltOpenOptions_init` can).
+
+**Left.** S3f's merge (the two interim axioms and `boltCloserH`, the option constraints above,
+`FileMode.String`); `storage.OpenBackend` (item 5, its own unit next, per the coordinator); the cleanup
+of the trivial `dbOpenOk`/`dbCloseOk`.
