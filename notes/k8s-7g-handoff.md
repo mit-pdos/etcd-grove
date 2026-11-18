@@ -2,6 +2,35 @@
 
 ## START HERE
 
+**2026-11-19 (night 8; for etcd-grove-03). STOP: blocker on `call`/`Apply`'s Raw (lintest's commit fixes the
+returned value; the store's error is allocated after the linearization point). Floor work done; questions.md
+"Step 5 night 7 decided" recorded.**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`). Commits: `11b0a7ba6a` (RealRun
+  checked: update's object by `NoOp` cases, `itemOk_rv`), `66c5987877` (the floor: `floored` spec+proof, `minRVL`
+  with the floor, `FloorOk`/`flooredL` moved to KModel, `genList`/`genFrom`/`genWatchFrom`/`genWatch` post
+  `FloorOk f x` (premise `uint.Z f < 2^62`), `cacheFloor tbl f` (`newWCache` gives it, `newCache` gives
+  `cacheFloor tbl 0`), `Gen` takes it and posts `FloorOk`; InvSteps' `step_box` reads `plainOut`
+  (`kStep_plain`, `lOut_plain`, `otherL_plain`); WatchQ commits `plainOut y`).
+- Verified: lean-check `-a` of RealRun, RealB4, RealValidate, InvSteps, WatchQ, floored, minRV, genList, genFrom,
+  genWatchFrom, genWatch, newWCache, newCache, Gen (0 errors). No slot build this session (queued one cancelled:
+  slots held for hours by full builds).
+- BLOCKER (report of night 8): `lintest.applySpec` commits `∃∃ s' o` at the linearization point and then must
+  `RET #o` (the same value). With `Output.Raw`, `call`'s answer holds the store's `err` (`NewKeyNotFoundError`,
+  `NewKeyExistsError`, `NewInvalidObjError`, too-large), allocated after the store's read/txn, so the value to commit
+  is unknown at the linearization point (objects and lists are fine: `out`/`l` are allocated before the call; the
+  rejection sentinels are globals). Prophecy patches can only resolve u64/bool. Options in the report.
+- Next after the decision: call's post (`plainOut y = callOut …` + `rawOk x y`), Apply, runWatch; then replay.go
+  (8) and watch.go (15) specs/proofs; realcheck.go; Check (also needs `cacheFloor` from `newWCache` with
+  `f = s0.rv`, `uint.Z < 2^62` from `g0.st.rv ≤ |hist| < 2^60`, and `Gen`'s post now `GenInA x ∧ FloorOk f x`).
+- Pitfalls (new): `(try trivial)` and `exact hf` (a `2 ^ 62` bound) can hit "maximum recursion depth", which
+  `try`/`first` do NOT catch: use `try rfl`, pass such hypotheses as explicit arguments (`wp_apply wp_genList _ _ c
+  hasC f hf`); `rw [show W64 0 = …]` rewrites every `W64 0`: rewrite the other way; a zero-valued field is `↦□ 0`
+  (`OfNat`), not `W64 0`: state specs with `0`; in a `wp_join`, a pointer the cases read must be persistent
+  (`ipersist floor`) or listed.
+
+### Superseded (night 7)
+
 **2026-11-18 (night 7; for etcd-grove-03). Step 5 started after 03's go (questions.md "Step 4 DONE, step 5 go").**
 
 - Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`). Commits this session: `2dee37288a`
