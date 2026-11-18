@@ -21,99 +21,99 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.features
 
-axiom APIResponseCompression [GooseExts] [GoGlobalContext] : val
+opaque APIResponseCompression [GooseExts] [GoGlobalContext] : val
 
-axiom APIServerIdentity [GooseExts] [GoGlobalContext] : val
+opaque APIServerIdentity [GooseExts] [GoGlobalContext] : val
 
-axiom APIServerWebhookAuthenticationToken [GooseExts] [GoGlobalContext] : val
+opaque APIServerWebhookAuthenticationToken [GooseExts] [GoGlobalContext] : val
 
-axiom APIServingWithRoutine [GooseExts] [GoGlobalContext] : val
+opaque APIServingWithRoutine [GooseExts] [GoGlobalContext] : val
 
-axiom AllocatorPoolBufferCap [GooseExts] [GoGlobalContext] : val
+opaque AllocatorPoolBufferCap [GooseExts] [GoGlobalContext] : val
 
-axiom AllowParsingUserUIDFromCertAuth [GooseExts] [GoGlobalContext] : val
+opaque AllowParsingUserUIDFromCertAuth [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def AllowUnsafeMalformedObjectDeletion [GooseExts] [GoGlobalContext] : val :=
   #(go!"AllowUnsafeMalformedObjectDeletion")
 
-axiom CBORServingAndStorage [GooseExts] [GoGlobalContext] : val
+opaque CBORServingAndStorage [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ConcurrentWatchObjectDecode [GooseExts] [GoGlobalContext] : val :=
   #(go!"ConcurrentWatchObjectDecode")
 
-axiom ConditionalAuthorization [GooseExts] [GoGlobalContext] : val
+opaque ConditionalAuthorization [GooseExts] [GoGlobalContext] : val
 
-axiom ConsistentListFromCacheSkipTimeoutFallback [GooseExts] [GoGlobalContext] : val
+opaque ConsistentListFromCacheSkipTimeoutFallback [GooseExts] [GoGlobalContext] : val
 
-axiom ConstrainedImpersonation [GooseExts] [GoGlobalContext] : val
+opaque ConstrainedImpersonation [GooseExts] [GoGlobalContext] : val
 
-axiom CoordinatedLeaderElection [GooseExts] [GoGlobalContext] : val
+opaque CoordinatedLeaderElection [GooseExts] [GoGlobalContext] : val
 
-axiom DeclarativeValidation [GooseExts] [GoGlobalContext] : val
+opaque DeclarativeValidation [GooseExts] [GoGlobalContext] : val
 
-axiom DeclarativeValidationBeta [GooseExts] [GoGlobalContext] : val
+opaque DeclarativeValidationBeta [GooseExts] [GoGlobalContext] : val
 
-axiom DeclarativeValidationTakeover [GooseExts] [GoGlobalContext] : val
+opaque DeclarativeValidationTakeover [GooseExts] [GoGlobalContext] : val
 
-axiom DetectCacheInconsistency [GooseExts] [GoGlobalContext] : val
+opaque DetectCacheInconsistency [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def EtcdRangeStream [GooseExts] [GoGlobalContext] : val :=
   #(go!"EtcdRangeStream")
 
-axiom ExcludeAdmissionWebhookVirtualResources [GooseExts] [GoGlobalContext] : val
+opaque ExcludeAdmissionWebhookVirtualResources [GooseExts] [GoGlobalContext] : val
 
-axiom KMSv1 [GooseExts] [GoGlobalContext] : val
+opaque KMSv1 [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ListFromCacheSnapshot [GooseExts] [GoGlobalContext] : val :=
   #(go!"ListFromCacheSnapshot")
 
-axiom ManagedFieldsOptOut [GooseExts] [GoGlobalContext] : val
+opaque ManagedFieldsOptOut [GooseExts] [GoGlobalContext] : val
 
-axiom ManifestBasedAdmissionControlConfig [GooseExts] [GoGlobalContext] : val
+opaque ManifestBasedAdmissionControlConfig [GooseExts] [GoGlobalContext] : val
 
-axiom MutatingAdmissionPolicy [GooseExts] [GoGlobalContext] : val
+opaque MutatingAdmissionPolicy [GooseExts] [GoGlobalContext] : val
 
-axiom OpenAPIEnums [GooseExts] [GoGlobalContext] : val
+opaque OpenAPIEnums [GooseExts] [GoGlobalContext] : val
 
-axiom OpenAPIV2LazyBuild [GooseExts] [GoGlobalContext] : val
+opaque OpenAPIV2LazyBuild [GooseExts] [GoGlobalContext] : val
 
-axiom RemoteRequestHeaderUID [GooseExts] [GoGlobalContext] : val
+opaque RemoteRequestHeaderUID [GooseExts] [GoGlobalContext] : val
 
-axiom RequestCostAggregation [GooseExts] [GoGlobalContext] : val
+opaque RequestCostAggregation [GooseExts] [GoGlobalContext] : val
 
-axiom SeparateCacheWatchRPC [GooseExts] [GoGlobalContext] : val
+opaque SeparateCacheWatchRPC [GooseExts] [GoGlobalContext] : val
 
-axiom ShardedListAndWatch [GooseExts] [GoGlobalContext] : val
+opaque ShardedListAndWatch [GooseExts] [GoGlobalContext] : val
 
-axiom SizeBasedListCostEstimate [GooseExts] [GoGlobalContext] : val
+opaque SizeBasedListCostEstimate [GooseExts] [GoGlobalContext] : val
 
-axiom StorageVersionAPI [GooseExts] [GoGlobalContext] : val
+opaque StorageVersionAPI [GooseExts] [GoGlobalContext] : val
 
-axiom StorageVersionHash [GooseExts] [GoGlobalContext] : val
+opaque StorageVersionHash [GooseExts] [GoGlobalContext] : val
 
-axiom StructuredAuthenticationConfigurationEgressSelector [GooseExts] [GoGlobalContext] : val
+opaque StructuredAuthenticationConfigurationEgressSelector [GooseExts] [GoGlobalContext] : val
 
-axiom StructuredAuthenticationConfigurationJWKSMetrics [GooseExts] [GoGlobalContext] : val
+opaque StructuredAuthenticationConfigurationJWKSMetrics [GooseExts] [GoGlobalContext] : val
 
-axiom TokenRequestServiceAccountUIDValidation [GooseExts] [GoGlobalContext] : val
+opaque TokenRequestServiceAccountUIDValidation [GooseExts] [GoGlobalContext] : val
 
-axiom UnauthenticatedHTTP2DOSMitigation [GooseExts] [GoGlobalContext] : val
+opaque UnauthenticatedHTTP2DOSMitigation [GooseExts] [GoGlobalContext] : val
 
-axiom UnknownVersionInteroperabilityProxy [GooseExts] [GoGlobalContext] : val
+opaque UnknownVersionInteroperabilityProxy [GooseExts] [GoGlobalContext] : val
 
-axiom WatchCacheInitializationPostStartHook [GooseExts] [GoGlobalContext] : val
+opaque WatchCacheInitializationPostStartHook [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def WatchList [GooseExts] [GoGlobalContext] : val :=
   #(go!"WatchList")
 
-axiom WatchListCompression [GooseExts] [GoGlobalContext] : val
+opaque WatchListCompression [GooseExts] [GoGlobalContext] : val
 
-axiom WebhookRoundTripLoadBalancing [GooseExts] [GoGlobalContext] : val
+opaque WebhookRoundTripLoadBalancing [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/features.defaultVersionedKubernetesFeatureGates"
 
-axiom defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
+opaque defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/features.init.0"
@@ -121,7 +121,7 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.features where
   pkgImportedPkgs := [pkg_id.k8s_io.apiserver.pkg.util.feature]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

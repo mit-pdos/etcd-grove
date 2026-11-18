@@ -14,6 +14,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.concurrentOrderedEventProc
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watchChan__transform
 public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Done
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

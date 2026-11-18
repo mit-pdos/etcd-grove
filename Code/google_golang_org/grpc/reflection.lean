@@ -51,15 +51,15 @@ noncomputable def ServerOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] ServerOptions.ty
 
-axiom v1AlphaServerImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque v1AlphaServerImpl.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom v1AlphaServerStreamAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque v1AlphaServerStreamAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GRPCServer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GRPCServer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def asV1Alpha [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/reflection.asV1Alpha"
@@ -79,7 +79,7 @@ noncomputable def NewServerV1 [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.reflection where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -91,8 +91,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.initialize') (Val #()))))))))
 
-axiom v1AlphaServerImpl : Type
-axiom v1AlphaServerImpl.zero_val : ZeroVal v1AlphaServerImpl
+opaque v1AlphaServerImpl.nonempty_type : NonemptyType.{0}
+def v1AlphaServerImpl : Type := v1AlphaServerImpl.nonempty_type.type
+instance v1AlphaServerImpl.nonempty : Nonempty v1AlphaServerImpl := v1AlphaServerImpl.nonempty_type.property
+opaque v1AlphaServerImpl.zero_val : ZeroVal v1AlphaServerImpl := ⟨Classical.ofNonempty⟩
 attribute [instance] v1AlphaServerImpl.zero_val
 
 class v1AlphaServerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -108,8 +110,10 @@ attribute [instance] v1AlphaServerImpl.TypeAssumptions.type_repr
   v1AlphaServerImpl.TypeAssumptions.method_set
   v1AlphaServerImpl.TypeAssumptions.ptr_method_set
 
-axiom v1AlphaServerStreamAdapter : Type
-axiom v1AlphaServerStreamAdapter.zero_val : ZeroVal v1AlphaServerStreamAdapter
+opaque v1AlphaServerStreamAdapter.nonempty_type : NonemptyType.{0}
+def v1AlphaServerStreamAdapter : Type := v1AlphaServerStreamAdapter.nonempty_type.type
+instance v1AlphaServerStreamAdapter.nonempty : Nonempty v1AlphaServerStreamAdapter := v1AlphaServerStreamAdapter.nonempty_type.property
+opaque v1AlphaServerStreamAdapter.zero_val : ZeroVal v1AlphaServerStreamAdapter := ⟨Classical.ofNonempty⟩
 attribute [instance] v1AlphaServerStreamAdapter.zero_val
 
 class v1AlphaServerStreamAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -125,8 +129,10 @@ attribute [instance] v1AlphaServerStreamAdapter.TypeAssumptions.type_repr
   v1AlphaServerStreamAdapter.TypeAssumptions.method_set
   v1AlphaServerStreamAdapter.TypeAssumptions.ptr_method_set
 
-axiom GRPCServer : Type
-axiom GRPCServer.zero_val : ZeroVal GRPCServer
+opaque GRPCServer.nonempty_type : NonemptyType.{0}
+def GRPCServer : Type := GRPCServer.nonempty_type.type
+instance GRPCServer.nonempty : Nonempty GRPCServer := GRPCServer.nonempty_type.property
+opaque GRPCServer.zero_val : ZeroVal GRPCServer := ⟨Classical.ofNonempty⟩
 attribute [instance] GRPCServer.zero_val
 
 class GRPCServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -156,8 +162,10 @@ attribute [instance] ServiceInfoProvider.TypeAssumptions.underlying
   ServiceInfoProvider.TypeAssumptions.method_set
   ServiceInfoProvider.TypeAssumptions.ptr_method_set
 
-axiom ExtensionResolver : Type
-axiom ExtensionResolver.zero_val : ZeroVal ExtensionResolver
+opaque ExtensionResolver.nonempty_type : NonemptyType.{0}
+def ExtensionResolver : Type := ExtensionResolver.nonempty_type.type
+instance ExtensionResolver.nonempty : Nonempty ExtensionResolver := ExtensionResolver.nonempty_type.property
+opaque ExtensionResolver.zero_val : ZeroVal ExtensionResolver := ⟨Classical.ofNonempty⟩
 attribute [instance] ExtensionResolver.zero_val
 
 class ExtensionResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -173,8 +181,10 @@ attribute [instance] ExtensionResolver.TypeAssumptions.type_repr
   ExtensionResolver.TypeAssumptions.method_set
   ExtensionResolver.TypeAssumptions.ptr_method_set
 
-axiom ServerOptions : Type
-axiom ServerOptions.zero_val : ZeroVal ServerOptions
+opaque ServerOptions.nonempty_type : NonemptyType.{0}
+def ServerOptions : Type := ServerOptions.nonempty_type.type
+instance ServerOptions.nonempty : Nonempty ServerOptions := ServerOptions.nonempty_type.property
+opaque ServerOptions.zero_val : ZeroVal ServerOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerOptions.zero_val
 
 class ServerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

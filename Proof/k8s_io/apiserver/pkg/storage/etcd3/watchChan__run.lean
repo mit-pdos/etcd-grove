@@ -14,6 +14,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watchChan__processEvents
 public import Perennial.Spec.sync.WaitGroup__Add
 public import Perennial.Spec.sync.WaitGroup__Done
 public import Perennial.Spec.sync.WaitGroup__Wait
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

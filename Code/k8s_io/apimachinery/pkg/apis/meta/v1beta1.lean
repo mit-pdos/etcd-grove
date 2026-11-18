@@ -25,66 +25,66 @@ noncomputable def PartialObjectMetadataList.ty [GooseExts] [GoGlobalContext] : g
 
 attribute [irreducible] PartialObjectMetadataList.ty
 
-axiom Table [GooseExts] [GoGlobalContext] : go.GoType
+opaque Table [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableColumnDefinition [GooseExts] [GoGlobalContext] : go.GoType
+opaque TableColumnDefinition [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableRow [GooseExts] [GoGlobalContext] : go.GoType
+opaque TableRow [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableRowCondition [GooseExts] [GoGlobalContext] : go.GoType
+opaque TableRowCondition [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RowConditionType [GooseExts] [GoGlobalContext] : go.GoType
+opaque RowConditionType [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ConditionStatus [GooseExts] [GoGlobalContext] : go.GoType
+opaque ConditionStatus [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IncludeObjectPolicy [GooseExts] [GoGlobalContext] : go.GoType
+opaque IncludeObjectPolicy [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TableOptions [GooseExts] [GoGlobalContext] : go.GoType
+opaque TableOptions [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PartialObjectMetadata [GooseExts] [GoGlobalContext] : go.GoType
+opaque PartialObjectMetadata [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PartialObjectMetadataList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PartialObjectMetadataList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom RowCompleted [GooseExts] [GoGlobalContext] : val
+opaque RowCompleted [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionTrue [GooseExts] [GoGlobalContext] : val
+opaque ConditionTrue [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionFalse [GooseExts] [GoGlobalContext] : val
+opaque ConditionFalse [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionUnknown [GooseExts] [GoGlobalContext] : val
+opaque ConditionUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeNone [GooseExts] [GoGlobalContext] : val
+opaque IncludeNone [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeMetadata [GooseExts] [GoGlobalContext] : val
+opaque IncludeMetadata [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeObject [GooseExts] [GoGlobalContext] : val
+opaque IncludeObject [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.map_PartialObjectMetadataList"
 
-axiom map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Convert_Slice_string_To_v1beta1_IncludeObjectPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1beta1.Convert_Slice_string_To_v1beta1_IncludeObjectPolicy"
@@ -125,7 +125,7 @@ noncomputable def RegisterDefaults [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -146,8 +146,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
 
-axiom PartialObjectMetadataList : Type
-axiom PartialObjectMetadataList.zero_val : ZeroVal PartialObjectMetadataList
+opaque PartialObjectMetadataList.nonempty_type : NonemptyType.{0}
+def PartialObjectMetadataList : Type := PartialObjectMetadataList.nonempty_type.type
+instance PartialObjectMetadataList.nonempty : Nonempty PartialObjectMetadataList := PartialObjectMetadataList.nonempty_type.property
+opaque PartialObjectMetadataList.zero_val : ZeroVal PartialObjectMetadataList := ⟨Classical.ofNonempty⟩
 attribute [instance] PartialObjectMetadataList.zero_val
 
 class PartialObjectMetadataList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

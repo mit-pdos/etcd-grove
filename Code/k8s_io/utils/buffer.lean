@@ -56,7 +56,7 @@ attribute [irreducible] Ring.ty
 noncomputable def ErrInvalidSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.ErrInvalidSize"
 
-axiom ErrInvalidSize.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewTypedRingFixed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/buffer.NewTypedRingFixed"

@@ -70,25 +70,25 @@ noncomputable def PolicyV1beta1Client.ty [GooseExts] [GoGlobalContext] : go.GoTy
 
 attribute [irreducible] PolicyV1beta1Client.ty
 
-axiom EvictionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom evictions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque evictions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudgetExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudgetsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudgetInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podDisruptionBudgets.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque podDisruptionBudgets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PolicyV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PolicyV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PolicyV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PolicyV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newEvictions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/policy/v1beta1.newEvictions"
@@ -114,7 +114,7 @@ noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.policy.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -123,8 +123,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom EvictionsGetter : Type
-axiom EvictionsGetter.zero_val : ZeroVal EvictionsGetter
+opaque EvictionsGetter.nonempty_type : NonemptyType.{0}
+def EvictionsGetter : Type := EvictionsGetter.nonempty_type.type
+instance EvictionsGetter.nonempty : Nonempty EvictionsGetter := EvictionsGetter.nonempty_type.property
+opaque EvictionsGetter.zero_val : ZeroVal EvictionsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionsGetter.zero_val
 
 class EvictionsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -140,8 +142,10 @@ attribute [instance] EvictionsGetter.TypeAssumptions.type_repr
   EvictionsGetter.TypeAssumptions.method_set
   EvictionsGetter.TypeAssumptions.ptr_method_set
 
-axiom EvictionInterface : Type
-axiom EvictionInterface.zero_val : ZeroVal EvictionInterface
+opaque EvictionInterface.nonempty_type : NonemptyType.{0}
+def EvictionInterface : Type := EvictionInterface.nonempty_type.type
+instance EvictionInterface.nonempty : Nonempty EvictionInterface := EvictionInterface.nonempty_type.property
+opaque EvictionInterface.zero_val : ZeroVal EvictionInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionInterface.zero_val
 
 class EvictionInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -157,8 +161,10 @@ attribute [instance] EvictionInterface.TypeAssumptions.type_repr
   EvictionInterface.TypeAssumptions.method_set
   EvictionInterface.TypeAssumptions.ptr_method_set
 
-axiom evictions : Type
-axiom evictions.zero_val : ZeroVal evictions
+opaque evictions.nonempty_type : NonemptyType.{0}
+def evictions : Type := evictions.nonempty_type.type
+instance evictions.nonempty : Nonempty evictions := evictions.nonempty_type.property
+opaque evictions.zero_val : ZeroVal evictions := ⟨Classical.ofNonempty⟩
 attribute [instance] evictions.zero_val
 
 class evictions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,8 +180,10 @@ attribute [instance] evictions.TypeAssumptions.type_repr
   evictions.TypeAssumptions.method_set
   evictions.TypeAssumptions.ptr_method_set
 
-axiom EvictionExpansion : Type
-axiom EvictionExpansion.zero_val : ZeroVal EvictionExpansion
+opaque EvictionExpansion.nonempty_type : NonemptyType.{0}
+def EvictionExpansion : Type := EvictionExpansion.nonempty_type.type
+instance EvictionExpansion.nonempty : Nonempty EvictionExpansion := EvictionExpansion.nonempty_type.property
+opaque EvictionExpansion.zero_val : ZeroVal EvictionExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionExpansion.zero_val
 
 class EvictionExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -191,8 +199,10 @@ attribute [instance] EvictionExpansion.TypeAssumptions.type_repr
   EvictionExpansion.TypeAssumptions.method_set
   EvictionExpansion.TypeAssumptions.ptr_method_set
 
-axiom PodDisruptionBudgetExpansion : Type
-axiom PodDisruptionBudgetExpansion.zero_val : ZeroVal PodDisruptionBudgetExpansion
+opaque PodDisruptionBudgetExpansion.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudgetExpansion : Type := PodDisruptionBudgetExpansion.nonempty_type.type
+instance PodDisruptionBudgetExpansion.nonempty : Nonempty PodDisruptionBudgetExpansion := PodDisruptionBudgetExpansion.nonempty_type.property
+opaque PodDisruptionBudgetExpansion.zero_val : ZeroVal PodDisruptionBudgetExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudgetExpansion.zero_val
 
 class PodDisruptionBudgetExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -208,8 +218,10 @@ attribute [instance] PodDisruptionBudgetExpansion.TypeAssumptions.type_repr
   PodDisruptionBudgetExpansion.TypeAssumptions.method_set
   PodDisruptionBudgetExpansion.TypeAssumptions.ptr_method_set
 
-axiom PodDisruptionBudgetsGetter : Type
-axiom PodDisruptionBudgetsGetter.zero_val : ZeroVal PodDisruptionBudgetsGetter
+opaque PodDisruptionBudgetsGetter.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudgetsGetter : Type := PodDisruptionBudgetsGetter.nonempty_type.type
+instance PodDisruptionBudgetsGetter.nonempty : Nonempty PodDisruptionBudgetsGetter := PodDisruptionBudgetsGetter.nonempty_type.property
+opaque PodDisruptionBudgetsGetter.zero_val : ZeroVal PodDisruptionBudgetsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudgetsGetter.zero_val
 
 class PodDisruptionBudgetsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,8 +237,10 @@ attribute [instance] PodDisruptionBudgetsGetter.TypeAssumptions.type_repr
   PodDisruptionBudgetsGetter.TypeAssumptions.method_set
   PodDisruptionBudgetsGetter.TypeAssumptions.ptr_method_set
 
-axiom PodDisruptionBudgetInterface : Type
-axiom PodDisruptionBudgetInterface.zero_val : ZeroVal PodDisruptionBudgetInterface
+opaque PodDisruptionBudgetInterface.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudgetInterface : Type := PodDisruptionBudgetInterface.nonempty_type.type
+instance PodDisruptionBudgetInterface.nonempty : Nonempty PodDisruptionBudgetInterface := PodDisruptionBudgetInterface.nonempty_type.property
+opaque PodDisruptionBudgetInterface.zero_val : ZeroVal PodDisruptionBudgetInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudgetInterface.zero_val
 
 class PodDisruptionBudgetInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -242,8 +256,10 @@ attribute [instance] PodDisruptionBudgetInterface.TypeAssumptions.type_repr
   PodDisruptionBudgetInterface.TypeAssumptions.method_set
   PodDisruptionBudgetInterface.TypeAssumptions.ptr_method_set
 
-axiom podDisruptionBudgets : Type
-axiom podDisruptionBudgets.zero_val : ZeroVal podDisruptionBudgets
+opaque podDisruptionBudgets.nonempty_type : NonemptyType.{0}
+def podDisruptionBudgets : Type := podDisruptionBudgets.nonempty_type.type
+instance podDisruptionBudgets.nonempty : Nonempty podDisruptionBudgets := podDisruptionBudgets.nonempty_type.property
+opaque podDisruptionBudgets.zero_val : ZeroVal podDisruptionBudgets := ⟨Classical.ofNonempty⟩
 attribute [instance] podDisruptionBudgets.zero_val
 
 class podDisruptionBudgets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -259,8 +275,10 @@ attribute [instance] podDisruptionBudgets.TypeAssumptions.type_repr
   podDisruptionBudgets.TypeAssumptions.method_set
   podDisruptionBudgets.TypeAssumptions.ptr_method_set
 
-axiom PolicyV1beta1Interface : Type
-axiom PolicyV1beta1Interface.zero_val : ZeroVal PolicyV1beta1Interface
+opaque PolicyV1beta1Interface.nonempty_type : NonemptyType.{0}
+def PolicyV1beta1Interface : Type := PolicyV1beta1Interface.nonempty_type.type
+instance PolicyV1beta1Interface.nonempty : Nonempty PolicyV1beta1Interface := PolicyV1beta1Interface.nonempty_type.property
+opaque PolicyV1beta1Interface.zero_val : ZeroVal PolicyV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] PolicyV1beta1Interface.zero_val
 
 class PolicyV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -276,8 +294,10 @@ attribute [instance] PolicyV1beta1Interface.TypeAssumptions.type_repr
   PolicyV1beta1Interface.TypeAssumptions.method_set
   PolicyV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom PolicyV1beta1Client : Type
-axiom PolicyV1beta1Client.zero_val : ZeroVal PolicyV1beta1Client
+opaque PolicyV1beta1Client.nonempty_type : NonemptyType.{0}
+def PolicyV1beta1Client : Type := PolicyV1beta1Client.nonempty_type.type
+instance PolicyV1beta1Client.nonempty : Nonempty PolicyV1beta1Client := PolicyV1beta1Client.nonempty_type.property
+opaque PolicyV1beta1Client.zero_val : ZeroVal PolicyV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] PolicyV1beta1Client.zero_val
 
 class PolicyV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

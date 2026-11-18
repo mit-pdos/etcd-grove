@@ -123,17 +123,17 @@ attribute [irreducible] featureGatesWrapper.ty
 noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/features.internalPackages"
 
-axiom internalPackages.init [GooseExts] [GoGlobalContext] : val
+opaque internalPackages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def featureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/features.featureGates"
 
-axiom featureGates.init [GooseExts] [GoGlobalContext] : val
+opaque featureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/features.defaultVersionedKubernetesFeatureGates"
 
-axiom defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
+opaque defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newEnvVarFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/features.newEnvVarFeatureGates"
@@ -901,7 +901,7 @@ noncomputable def unversionedFeatureGates.impl [GooseExts] [GoGlobalContext] : v
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.features where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.os, pkg_id.strconv, pkg_id.sync, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.util.naming, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.klog.v2, pkg_id.context, pkg_id.k8s_io.apimachinery.pkg.util.version]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

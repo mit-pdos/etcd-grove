@@ -7,6 +7,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.leasecatchup.Main
 public import Spec.go_uber_org.zap.NewNop
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

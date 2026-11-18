@@ -66,7 +66,7 @@ noncomputable def URLsMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] URLsMap.ty
 
-axiom tsafeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tsafeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def IDFromString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/types.IDFromString"
@@ -111,7 +111,7 @@ noncomputable def URLs.Len.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.types where
   pkgImportedPkgs := [pkg_id.net.url]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -217,8 +217,10 @@ attribute [instance] unsafeSet.TypeAssumptions.type_repr
   unsafeSet.TypeAssumptions.method_set
   unsafeSet.TypeAssumptions.ptr_method_set
 
-axiom tsafeSet : Type
-axiom tsafeSet.zero_val : ZeroVal tsafeSet
+opaque tsafeSet.nonempty_type : NonemptyType.{0}
+def tsafeSet : Type := tsafeSet.nonempty_type.type
+instance tsafeSet.nonempty : Nonempty tsafeSet := tsafeSet.nonempty_type.property
+opaque tsafeSet.zero_val : ZeroVal tsafeSet := ⟨Classical.ofNonempty⟩
 attribute [instance] tsafeSet.zero_val
 
 class tsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

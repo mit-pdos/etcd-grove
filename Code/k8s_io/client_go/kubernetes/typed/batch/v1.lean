@@ -70,25 +70,25 @@ noncomputable def jobs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] jobs.ty
 
-axiom BatchV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BatchV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BatchV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BatchV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CronJobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CronJobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cronJobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cronJobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CronJobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom JobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque JobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom JobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque JobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom JobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque JobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque jobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1.NewForConfig"
@@ -114,7 +114,7 @@ noncomputable def newJobs [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.batch.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -123,8 +123,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom BatchV1Interface : Type
-axiom BatchV1Interface.zero_val : ZeroVal BatchV1Interface
+opaque BatchV1Interface.nonempty_type : NonemptyType.{0}
+def BatchV1Interface : Type := BatchV1Interface.nonempty_type.type
+instance BatchV1Interface.nonempty : Nonempty BatchV1Interface := BatchV1Interface.nonempty_type.property
+opaque BatchV1Interface.zero_val : ZeroVal BatchV1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] BatchV1Interface.zero_val
 
 class BatchV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -140,8 +142,10 @@ attribute [instance] BatchV1Interface.TypeAssumptions.type_repr
   BatchV1Interface.TypeAssumptions.method_set
   BatchV1Interface.TypeAssumptions.ptr_method_set
 
-axiom BatchV1Client : Type
-axiom BatchV1Client.zero_val : ZeroVal BatchV1Client
+opaque BatchV1Client.nonempty_type : NonemptyType.{0}
+def BatchV1Client : Type := BatchV1Client.nonempty_type.type
+instance BatchV1Client.nonempty : Nonempty BatchV1Client := BatchV1Client.nonempty_type.property
+opaque BatchV1Client.zero_val : ZeroVal BatchV1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] BatchV1Client.zero_val
 
 class BatchV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -157,8 +161,10 @@ attribute [instance] BatchV1Client.TypeAssumptions.type_repr
   BatchV1Client.TypeAssumptions.method_set
   BatchV1Client.TypeAssumptions.ptr_method_set
 
-axiom CronJobsGetter : Type
-axiom CronJobsGetter.zero_val : ZeroVal CronJobsGetter
+opaque CronJobsGetter.nonempty_type : NonemptyType.{0}
+def CronJobsGetter : Type := CronJobsGetter.nonempty_type.type
+instance CronJobsGetter.nonempty : Nonempty CronJobsGetter := CronJobsGetter.nonempty_type.property
+opaque CronJobsGetter.zero_val : ZeroVal CronJobsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CronJobsGetter.zero_val
 
 class CronJobsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,8 +180,10 @@ attribute [instance] CronJobsGetter.TypeAssumptions.type_repr
   CronJobsGetter.TypeAssumptions.method_set
   CronJobsGetter.TypeAssumptions.ptr_method_set
 
-axiom CronJobInterface : Type
-axiom CronJobInterface.zero_val : ZeroVal CronJobInterface
+opaque CronJobInterface.nonempty_type : NonemptyType.{0}
+def CronJobInterface : Type := CronJobInterface.nonempty_type.type
+instance CronJobInterface.nonempty : Nonempty CronJobInterface := CronJobInterface.nonempty_type.property
+opaque CronJobInterface.zero_val : ZeroVal CronJobInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CronJobInterface.zero_val
 
 class CronJobInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -191,8 +199,10 @@ attribute [instance] CronJobInterface.TypeAssumptions.type_repr
   CronJobInterface.TypeAssumptions.method_set
   CronJobInterface.TypeAssumptions.ptr_method_set
 
-axiom cronJobs : Type
-axiom cronJobs.zero_val : ZeroVal cronJobs
+opaque cronJobs.nonempty_type : NonemptyType.{0}
+def cronJobs : Type := cronJobs.nonempty_type.type
+instance cronJobs.nonempty : Nonempty cronJobs := cronJobs.nonempty_type.property
+opaque cronJobs.zero_val : ZeroVal cronJobs := ⟨Classical.ofNonempty⟩
 attribute [instance] cronJobs.zero_val
 
 class cronJobs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -208,8 +218,10 @@ attribute [instance] cronJobs.TypeAssumptions.type_repr
   cronJobs.TypeAssumptions.method_set
   cronJobs.TypeAssumptions.ptr_method_set
 
-axiom CronJobExpansion : Type
-axiom CronJobExpansion.zero_val : ZeroVal CronJobExpansion
+opaque CronJobExpansion.nonempty_type : NonemptyType.{0}
+def CronJobExpansion : Type := CronJobExpansion.nonempty_type.type
+instance CronJobExpansion.nonempty : Nonempty CronJobExpansion := CronJobExpansion.nonempty_type.property
+opaque CronJobExpansion.zero_val : ZeroVal CronJobExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CronJobExpansion.zero_val
 
 class CronJobExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,8 +237,10 @@ attribute [instance] CronJobExpansion.TypeAssumptions.type_repr
   CronJobExpansion.TypeAssumptions.method_set
   CronJobExpansion.TypeAssumptions.ptr_method_set
 
-axiom JobExpansion : Type
-axiom JobExpansion.zero_val : ZeroVal JobExpansion
+opaque JobExpansion.nonempty_type : NonemptyType.{0}
+def JobExpansion : Type := JobExpansion.nonempty_type.type
+instance JobExpansion.nonempty : Nonempty JobExpansion := JobExpansion.nonempty_type.property
+opaque JobExpansion.zero_val : ZeroVal JobExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] JobExpansion.zero_val
 
 class JobExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -242,8 +256,10 @@ attribute [instance] JobExpansion.TypeAssumptions.type_repr
   JobExpansion.TypeAssumptions.method_set
   JobExpansion.TypeAssumptions.ptr_method_set
 
-axiom JobsGetter : Type
-axiom JobsGetter.zero_val : ZeroVal JobsGetter
+opaque JobsGetter.nonempty_type : NonemptyType.{0}
+def JobsGetter : Type := JobsGetter.nonempty_type.type
+instance JobsGetter.nonempty : Nonempty JobsGetter := JobsGetter.nonempty_type.property
+opaque JobsGetter.zero_val : ZeroVal JobsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] JobsGetter.zero_val
 
 class JobsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -259,8 +275,10 @@ attribute [instance] JobsGetter.TypeAssumptions.type_repr
   JobsGetter.TypeAssumptions.method_set
   JobsGetter.TypeAssumptions.ptr_method_set
 
-axiom JobInterface : Type
-axiom JobInterface.zero_val : ZeroVal JobInterface
+opaque JobInterface.nonempty_type : NonemptyType.{0}
+def JobInterface : Type := JobInterface.nonempty_type.type
+instance JobInterface.nonempty : Nonempty JobInterface := JobInterface.nonempty_type.property
+opaque JobInterface.zero_val : ZeroVal JobInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] JobInterface.zero_val
 
 class JobInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -276,8 +294,10 @@ attribute [instance] JobInterface.TypeAssumptions.type_repr
   JobInterface.TypeAssumptions.method_set
   JobInterface.TypeAssumptions.ptr_method_set
 
-axiom jobs : Type
-axiom jobs.zero_val : ZeroVal jobs
+opaque jobs.nonempty_type : NonemptyType.{0}
+def jobs : Type := jobs.nonempty_type.type
+instance jobs.nonempty : Nonempty jobs := jobs.nonempty_type.property
+opaque jobs.zero_val : ZeroVal jobs := ⟨Classical.ofNonempty⟩
 attribute [instance] jobs.zero_val
 
 class jobs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -420,46 +420,46 @@ noncomputable def ProtobufReverseMarshaller.ty [GooseExts] [GoGlobalContext] : g
 
 attribute [irreducible] ProtobufReverseMarshaller.ty
 
-axiom fieldsCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque fieldsCache.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ParameterCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ParameterCodec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom equivalentResourceRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque equivalentResourceRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Scheme.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Scheme.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom noopEncoderIdentifier [GooseExts] [GoGlobalContext] : val
+opaque noopEncoderIdentifier [GooseExts] [GoGlobalContext] : val
 
-axiom internalGroupVersionerIdentifier [GooseExts] [GoGlobalContext] : val
+opaque internalGroupVersionerIdentifier [GooseExts] [GoGlobalContext] : val
 
-axiom disabledGroupVersionerIdentifier [GooseExts] [GoGlobalContext] : val
+opaque disabledGroupVersionerIdentifier [GooseExts] [GoGlobalContext] : val
 
-axiom APIVersionInternal [GooseExts] [GoGlobalContext] : val
+opaque APIVersionInternal [GooseExts] [GoGlobalContext] : val
 
-axiom ContentTypeJSON [GooseExts] [GoGlobalContext] : val
+opaque ContentTypeJSON [GooseExts] [GoGlobalContext] : val
 
-axiom ContentTypeYAML [GooseExts] [GoGlobalContext] : val
+opaque ContentTypeYAML [GooseExts] [GoGlobalContext] : val
 
-axiom ContentTypeProtobuf [GooseExts] [GoGlobalContext] : val
+opaque ContentTypeProtobuf [GooseExts] [GoGlobalContext] : val
 
-axiom ContentTypeCBOR [GooseExts] [GoGlobalContext] : val
+opaque ContentTypeCBOR [GooseExts] [GoGlobalContext] : val
 
-axiom ContentTypeCBORSequence [GooseExts] [GoGlobalContext] : val
+opaque ContentTypeCBORSequence [GooseExts] [GoGlobalContext] : val
 
-axiom typeMetaTag [GooseExts] [GoGlobalContext] : val
+opaque typeMetaTag [GooseExts] [GoGlobalContext] : val
 
-axiom rawTag [GooseExts] [GoGlobalContext] : val
+opaque rawTag [GooseExts] [GoGlobalContext] : val
 
-axiom contentEncodingTag [GooseExts] [GoGlobalContext] : val
+opaque contentEncodingTag [GooseExts] [GoGlobalContext] : val
 
-axiom contentTypeTag [GooseExts] [GoGlobalContext] : val
+opaque contentTypeTag [GooseExts] [GoGlobalContext] : val
 
-axiom maxUint64VarIntLength [GooseExts] [GoGlobalContext] : val
+opaque maxUint64VarIntLength [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AllocatorPool [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.AllocatorPool"
 
-axiom AllocatorPool.init [GooseExts] [GoGlobalContext] : val
+opaque AllocatorPool.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxPooledBufferCapacity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.maxPooledBufferCapacity"
@@ -467,67 +467,67 @@ noncomputable def maxPooledBufferCapacity [GooseExts] [GoGlobalContext] : GoStri
 noncomputable def InternalGroupVersioner [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.InternalGroupVersioner"
 
-axiom InternalGroupVersioner.init [GooseExts] [GoGlobalContext] : val
+opaque InternalGroupVersioner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DisabledGroupVersioner [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.DisabledGroupVersioner"
 
-axiom DisabledGroupVersioner.init [GooseExts] [GoGlobalContext] : val
+opaque DisabledGroupVersioner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def mapStringInterfaceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.mapStringInterfaceType"
 
-axiom mapStringInterfaceType.init [GooseExts] [GoGlobalContext] : val
+opaque mapStringInterfaceType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def stringType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.stringType"
 
-axiom stringType.init [GooseExts] [GoGlobalContext] : val
+opaque stringType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fieldCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.fieldCache"
 
-axiom fieldCache.init [GooseExts] [GoGlobalContext] : val
+opaque fieldCache.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultUnstructuredConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.DefaultUnstructuredConverter"
 
-axiom DefaultUnstructuredConverter.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultUnstructuredConverter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cborNull [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.cborNull"
 
-axiom cborNull.init [GooseExts] [GoGlobalContext] : val
+opaque cborNull.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cborSelfDescribed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.cborSelfDescribed"
 
-axiom cborSelfDescribed.init [GooseExts] [GoGlobalContext] : val
+opaque cborSelfDescribed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultFramer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.DefaultFramer"
 
-axiom DefaultFramer.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultFramer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.internalPackages"
 
-axiom internalPackages.init [GooseExts] [GoGlobalContext] : val
+opaque internalPackages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SetMaxPooledBufferCapacity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime.SetMaxPooledBufferCapacity"
@@ -988,7 +988,7 @@ noncomputable def SetZeroValue.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.runtime where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.io, pkg_id.reflect, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.conversion]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1693,8 +1693,10 @@ attribute [instance] fieldsCacheMap.TypeAssumptions.underlying
   fieldsCacheMap.TypeAssumptions.method_set
   fieldsCacheMap.TypeAssumptions.ptr_method_set
 
-axiom fieldsCache : Type
-axiom fieldsCache.zero_val : ZeroVal fieldsCache
+opaque fieldsCache.nonempty_type : NonemptyType.{0}
+def fieldsCache : Type := fieldsCache.nonempty_type.type
+instance fieldsCache.nonempty : Nonempty fieldsCache := fieldsCache.nonempty_type.property
+opaque fieldsCache.zero_val : ZeroVal fieldsCache := ⟨Classical.ofNonempty⟩
 attribute [instance] fieldsCache.zero_val
 
 class fieldsCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2356,8 +2358,10 @@ attribute [instance] Codec.TypeAssumptions.underlying
   Codec.TypeAssumptions.method_set
   Codec.TypeAssumptions.ptr_method_set
 
-axiom ParameterCodec : Type
-axiom ParameterCodec.zero_val : ZeroVal ParameterCodec
+opaque ParameterCodec.nonempty_type : NonemptyType.{0}
+def ParameterCodec : Type := ParameterCodec.nonempty_type.type
+instance ParameterCodec.nonempty : Nonempty ParameterCodec := ParameterCodec.nonempty_type.property
+opaque ParameterCodec.zero_val : ZeroVal ParameterCodec := ⟨Classical.ofNonempty⟩
 attribute [instance] ParameterCodec.zero_val
 
 class ParameterCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2693,8 +2697,10 @@ attribute [instance] ApplyConfiguration.TypeAssumptions.underlying
   ApplyConfiguration.TypeAssumptions.method_set
   ApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom equivalentResourceRegistry : Type
-axiom equivalentResourceRegistry.zero_val : ZeroVal equivalentResourceRegistry
+opaque equivalentResourceRegistry.nonempty_type : NonemptyType.{0}
+def equivalentResourceRegistry : Type := equivalentResourceRegistry.nonempty_type.type
+instance equivalentResourceRegistry.nonempty : Nonempty equivalentResourceRegistry := equivalentResourceRegistry.nonempty_type.property
+opaque equivalentResourceRegistry.zero_val : ZeroVal equivalentResourceRegistry := ⟨Classical.ofNonempty⟩
 attribute [instance] equivalentResourceRegistry.zero_val
 
 class equivalentResourceRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2833,8 +2839,10 @@ attribute [instance] simpleNegotiatedSerializer.TypeAssumptions.type_repr
   simpleNegotiatedSerializer.TypeAssumptions.method_set
   simpleNegotiatedSerializer.TypeAssumptions.ptr_method_set
 
-axiom Scheme : Type
-axiom Scheme.zero_val : ZeroVal Scheme
+opaque Scheme.nonempty_type : NonemptyType.{0}
+def Scheme : Type := Scheme.nonempty_type.type
+instance Scheme.nonempty : Nonempty Scheme := Scheme.nonempty_type.property
+opaque Scheme.zero_val : ZeroVal Scheme := ⟨Classical.ofNonempty⟩
 attribute [instance] Scheme.zero_val
 
 class Scheme.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

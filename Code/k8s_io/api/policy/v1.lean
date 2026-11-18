@@ -50,93 +50,93 @@ noncomputable def Eviction.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Eviction.ty
 
-axiom PodDisruptionBudgetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudgetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnhealthyPodEvictionPolicyType.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnhealthyPodEvictionPolicyType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudgetStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudget.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudget.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodDisruptionBudgetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodDisruptionBudgetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Eviction.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Eviction.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom DisruptionBudgetCause [GooseExts] [GoGlobalContext] : val
+opaque DisruptionBudgetCause [GooseExts] [GoGlobalContext] : val
 
-axiom IfHealthyBudget [GooseExts] [GoGlobalContext] : val
+opaque IfHealthyBudget [GooseExts] [GoGlobalContext] : val
 
-axiom AlwaysAllow [GooseExts] [GoGlobalContext] : val
+opaque AlwaysAllow [GooseExts] [GoGlobalContext] : val
 
-axiom DisruptionAllowedCondition [GooseExts] [GoGlobalContext] : val
+opaque DisruptionAllowedCondition [GooseExts] [GoGlobalContext] : val
 
-axiom SyncFailedReason [GooseExts] [GoGlobalContext] : val
+opaque SyncFailedReason [GooseExts] [GoGlobalContext] : val
 
-axiom SufficientPodsReason [GooseExts] [GoGlobalContext] : val
+opaque SufficientPodsReason [GooseExts] [GoGlobalContext] : val
 
-axiom InsufficientPodsReason [GooseExts] [GoGlobalContext] : val
+opaque InsufficientPodsReason [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Eviction [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_Eviction"
 
-axiom map_Eviction.init [GooseExts] [GoGlobalContext] : val
+opaque map_Eviction.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodDisruptionBudget [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudget"
 
-axiom map_PodDisruptionBudget.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodDisruptionBudget.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodDisruptionBudgetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudgetList"
 
-axiom map_PodDisruptionBudgetList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodDisruptionBudgetList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodDisruptionBudgetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudgetSpec"
 
-axiom map_PodDisruptionBudgetSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodDisruptionBudgetSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PodDisruptionBudgetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.map_PodDisruptionBudgetStatus"
 
-axiom map_PodDisruptionBudgetStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_PodDisruptionBudgetStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/policy/v1.encodeVarintGenerated"
@@ -162,7 +162,7 @@ noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.policy.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -204,8 +204,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
 
-axiom PodDisruptionBudgetSpec : Type
-axiom PodDisruptionBudgetSpec.zero_val : ZeroVal PodDisruptionBudgetSpec
+opaque PodDisruptionBudgetSpec.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudgetSpec : Type := PodDisruptionBudgetSpec.nonempty_type.type
+instance PodDisruptionBudgetSpec.nonempty : Nonempty PodDisruptionBudgetSpec := PodDisruptionBudgetSpec.nonempty_type.property
+opaque PodDisruptionBudgetSpec.zero_val : ZeroVal PodDisruptionBudgetSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudgetSpec.zero_val
 
 class PodDisruptionBudgetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -221,8 +223,10 @@ attribute [instance] PodDisruptionBudgetSpec.TypeAssumptions.type_repr
   PodDisruptionBudgetSpec.TypeAssumptions.method_set
   PodDisruptionBudgetSpec.TypeAssumptions.ptr_method_set
 
-axiom UnhealthyPodEvictionPolicyType : Type
-axiom UnhealthyPodEvictionPolicyType.zero_val : ZeroVal UnhealthyPodEvictionPolicyType
+opaque UnhealthyPodEvictionPolicyType.nonempty_type : NonemptyType.{0}
+def UnhealthyPodEvictionPolicyType : Type := UnhealthyPodEvictionPolicyType.nonempty_type.type
+instance UnhealthyPodEvictionPolicyType.nonempty : Nonempty UnhealthyPodEvictionPolicyType := UnhealthyPodEvictionPolicyType.nonempty_type.property
+opaque UnhealthyPodEvictionPolicyType.zero_val : ZeroVal UnhealthyPodEvictionPolicyType := ⟨Classical.ofNonempty⟩
 attribute [instance] UnhealthyPodEvictionPolicyType.zero_val
 
 class UnhealthyPodEvictionPolicyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -238,8 +242,10 @@ attribute [instance] UnhealthyPodEvictionPolicyType.TypeAssumptions.type_repr
   UnhealthyPodEvictionPolicyType.TypeAssumptions.method_set
   UnhealthyPodEvictionPolicyType.TypeAssumptions.ptr_method_set
 
-axiom PodDisruptionBudgetStatus : Type
-axiom PodDisruptionBudgetStatus.zero_val : ZeroVal PodDisruptionBudgetStatus
+opaque PodDisruptionBudgetStatus.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudgetStatus : Type := PodDisruptionBudgetStatus.nonempty_type.type
+instance PodDisruptionBudgetStatus.nonempty : Nonempty PodDisruptionBudgetStatus := PodDisruptionBudgetStatus.nonempty_type.property
+opaque PodDisruptionBudgetStatus.zero_val : ZeroVal PodDisruptionBudgetStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudgetStatus.zero_val
 
 class PodDisruptionBudgetStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -255,8 +261,10 @@ attribute [instance] PodDisruptionBudgetStatus.TypeAssumptions.type_repr
   PodDisruptionBudgetStatus.TypeAssumptions.method_set
   PodDisruptionBudgetStatus.TypeAssumptions.ptr_method_set
 
-axiom PodDisruptionBudget : Type
-axiom PodDisruptionBudget.zero_val : ZeroVal PodDisruptionBudget
+opaque PodDisruptionBudget.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudget : Type := PodDisruptionBudget.nonempty_type.type
+instance PodDisruptionBudget.nonempty : Nonempty PodDisruptionBudget := PodDisruptionBudget.nonempty_type.property
+opaque PodDisruptionBudget.zero_val : ZeroVal PodDisruptionBudget := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudget.zero_val
 
 class PodDisruptionBudget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -272,8 +280,10 @@ attribute [instance] PodDisruptionBudget.TypeAssumptions.type_repr
   PodDisruptionBudget.TypeAssumptions.method_set
   PodDisruptionBudget.TypeAssumptions.ptr_method_set
 
-axiom PodDisruptionBudgetList : Type
-axiom PodDisruptionBudgetList.zero_val : ZeroVal PodDisruptionBudgetList
+opaque PodDisruptionBudgetList.nonempty_type : NonemptyType.{0}
+def PodDisruptionBudgetList : Type := PodDisruptionBudgetList.nonempty_type.type
+instance PodDisruptionBudgetList.nonempty : Nonempty PodDisruptionBudgetList := PodDisruptionBudgetList.nonempty_type.property
+opaque PodDisruptionBudgetList.zero_val : ZeroVal PodDisruptionBudgetList := ⟨Classical.ofNonempty⟩
 attribute [instance] PodDisruptionBudgetList.zero_val
 
 class PodDisruptionBudgetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -289,8 +299,10 @@ attribute [instance] PodDisruptionBudgetList.TypeAssumptions.type_repr
   PodDisruptionBudgetList.TypeAssumptions.method_set
   PodDisruptionBudgetList.TypeAssumptions.ptr_method_set
 
-axiom Eviction : Type
-axiom Eviction.zero_val : ZeroVal Eviction
+opaque Eviction.nonempty_type : NonemptyType.{0}
+def Eviction : Type := Eviction.nonempty_type.type
+instance Eviction.nonempty : Nonempty Eviction := Eviction.nonempty_type.property
+opaque Eviction.zero_val : ZeroVal Eviction := ⟨Classical.ofNonempty⟩
 attribute [instance] Eviction.zero_val
 
 class Eviction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -40,7 +40,7 @@ noncomputable def UID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] UID.ty
 
-axiom Separator [GooseExts] [GoGlobalContext] : val
+opaque Separator [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def JSONPatchType [GooseExts] [GoGlobalContext] : val :=
   #(go!"application/json-patch+json")
@@ -63,7 +63,7 @@ axiom Separator [GooseExts] [GoGlobalContext] : val
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.types where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

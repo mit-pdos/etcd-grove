@@ -25,215 +25,215 @@ noncomputable def RelTimeMagnitude.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] RelTimeMagnitude.ty
 
-axiom RelTimeMagnitude.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RelTimeMagnitude.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Byte [GooseExts] [GoGlobalContext] : val
+opaque Byte [GooseExts] [GoGlobalContext] : val
 
-axiom KiByte [GooseExts] [GoGlobalContext] : val
+opaque KiByte [GooseExts] [GoGlobalContext] : val
 
-axiom MiByte [GooseExts] [GoGlobalContext] : val
+opaque MiByte [GooseExts] [GoGlobalContext] : val
 
-axiom GiByte [GooseExts] [GoGlobalContext] : val
+opaque GiByte [GooseExts] [GoGlobalContext] : val
 
-axiom TiByte [GooseExts] [GoGlobalContext] : val
+opaque TiByte [GooseExts] [GoGlobalContext] : val
 
-axiom PiByte [GooseExts] [GoGlobalContext] : val
+opaque PiByte [GooseExts] [GoGlobalContext] : val
 
-axiom EiByte [GooseExts] [GoGlobalContext] : val
+opaque EiByte [GooseExts] [GoGlobalContext] : val
 
-axiom IByte [GooseExts] [GoGlobalContext] : val
+opaque IByte [GooseExts] [GoGlobalContext] : val
 
-axiom KByte [GooseExts] [GoGlobalContext] : val
+opaque KByte [GooseExts] [GoGlobalContext] : val
 
-axiom MByte [GooseExts] [GoGlobalContext] : val
+opaque MByte [GooseExts] [GoGlobalContext] : val
 
-axiom GByte [GooseExts] [GoGlobalContext] : val
+opaque GByte [GooseExts] [GoGlobalContext] : val
 
-axiom TByte [GooseExts] [GoGlobalContext] : val
+opaque TByte [GooseExts] [GoGlobalContext] : val
 
-axiom PByte [GooseExts] [GoGlobalContext] : val
+opaque PByte [GooseExts] [GoGlobalContext] : val
 
-axiom EByte [GooseExts] [GoGlobalContext] : val
+opaque EByte [GooseExts] [GoGlobalContext] : val
 
-axiom Day [GooseExts] [GoGlobalContext] : val
+opaque Day [GooseExts] [GoGlobalContext] : val
 
-axiom Week [GooseExts] [GoGlobalContext] : val
+opaque Week [GooseExts] [GoGlobalContext] : val
 
-axiom Month [GooseExts] [GoGlobalContext] : val
+opaque Month [GooseExts] [GoGlobalContext] : val
 
-axiom Year [GooseExts] [GoGlobalContext] : val
+opaque Year [GooseExts] [GoGlobalContext] : val
 
-axiom LongTime [GooseExts] [GoGlobalContext] : val
+opaque LongTime [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigIECExp [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bigIECExp"
 
-axiom bigIECExp.init [GooseExts] [GoGlobalContext] : val
+opaque bigIECExp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigByte"
 
-axiom BigByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigKiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigKiByte"
 
-axiom BigKiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigKiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigMiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigMiByte"
 
-axiom BigMiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigMiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigGiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigGiByte"
 
-axiom BigGiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigGiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigTiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigTiByte"
 
-axiom BigTiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigTiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigPiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigPiByte"
 
-axiom BigPiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigPiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigEiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigEiByte"
 
-axiom BigEiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigEiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigZiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigZiByte"
 
-axiom BigZiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigZiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigYiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigYiByte"
 
-axiom BigYiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigYiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigRiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigRiByte"
 
-axiom BigRiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigRiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigQiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigQiByte"
 
-axiom BigQiByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigQiByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigSIExp [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bigSIExp"
 
-axiom bigSIExp.init [GooseExts] [GoGlobalContext] : val
+opaque bigSIExp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigSIByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigSIByte"
 
-axiom BigSIByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigSIByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigKByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigKByte"
 
-axiom BigKByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigKByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigMByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigMByte"
 
-axiom BigMByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigMByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigGByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigGByte"
 
-axiom BigGByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigGByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigTByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigTByte"
 
-axiom BigTByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigTByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigPByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigPByte"
 
-axiom BigPByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigPByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigEByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigEByte"
 
-axiom BigEByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigEByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigZByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigZByte"
 
-axiom BigZByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigZByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigYByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigYByte"
 
-axiom BigYByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigYByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigRByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigRByte"
 
-axiom BigRByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigRByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BigQByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigQByte"
 
-axiom BigQByte.init [GooseExts] [GoGlobalContext] : val
+opaque BigQByte.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bigBytesSizeTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bigBytesSizeTable"
 
-axiom bigBytesSizeTable.init [GooseExts] [GoGlobalContext] : val
+opaque bigBytesSizeTable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ten [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ten"
 
-axiom ten.init [GooseExts] [GoGlobalContext] : val
+opaque ten.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bytesSizeTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bytesSizeTable"
 
-axiom bytesSizeTable.init [GooseExts] [GoGlobalContext] : val
+opaque bytesSizeTable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def renderFloatPrecisionMultipliers [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.renderFloatPrecisionMultipliers"
 
-axiom renderFloatPrecisionMultipliers.init [GooseExts] [GoGlobalContext] : val
+opaque renderFloatPrecisionMultipliers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def renderFloatPrecisionRounders [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.renderFloatPrecisionRounders"
 
-axiom renderFloatPrecisionRounders.init [GooseExts] [GoGlobalContext] : val
+opaque renderFloatPrecisionRounders.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def siPrefixTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.siPrefixTable"
 
-axiom siPrefixTable.init [GooseExts] [GoGlobalContext] : val
+opaque siPrefixTable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def revSIPrefixTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.revSIPrefixTable"
 
-axiom revSIPrefixTable.init [GooseExts] [GoGlobalContext] : val
+opaque revSIPrefixTable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def minSIExponent [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.minSIExponent"
 
-axiom minSIExponent.init [GooseExts] [GoGlobalContext] : val
+opaque minSIExponent.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxSIExponent [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.maxSIExponent"
 
-axiom maxSIExponent.init [GooseExts] [GoGlobalContext] : val
+opaque maxSIExponent.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def siParseAliases [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.siParseAliases"
 
-axiom siParseAliases.init [GooseExts] [GoGlobalContext] : val
+opaque siParseAliases.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def riParseRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.riParseRegex"
@@ -241,12 +241,12 @@ noncomputable def riParseRegex [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def errInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.errInvalid"
 
-axiom errInvalid.init [GooseExts] [GoGlobalContext] : val
+opaque errInvalid.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultMagnitudes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.defaultMagnitudes"
 
-axiom defaultMagnitudes.init [GooseExts] [GoGlobalContext] : val
+opaque defaultMagnitudes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def oomm [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.oomm"
@@ -362,7 +362,7 @@ noncomputable def CustomRelTime [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.dustin.go_humanize where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -476,8 +476,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val bigIECExp.init) (Val #()))))))))
 
-axiom RelTimeMagnitude : Type
-axiom RelTimeMagnitude.zero_val : ZeroVal RelTimeMagnitude
+opaque RelTimeMagnitude.nonempty_type : NonemptyType.{0}
+def RelTimeMagnitude : Type := RelTimeMagnitude.nonempty_type.type
+instance RelTimeMagnitude.nonempty : Nonempty RelTimeMagnitude := RelTimeMagnitude.nonempty_type.property
+opaque RelTimeMagnitude.zero_val : ZeroVal RelTimeMagnitude := ⟨Classical.ofNonempty⟩
 attribute [instance] RelTimeMagnitude.zero_val
 
 class RelTimeMagnitude.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
