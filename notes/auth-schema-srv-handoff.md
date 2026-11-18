@@ -11,7 +11,7 @@
 - **Read side** (forms: questions.md "A6 read side"): later credits on schema's read contract; `AuthRealInv.lean`
   (the invariant `realSt`/`realInv`, the ticket pool's steps `real_acq`/`real_obs`/`real_rel`, the views
   `real_view`/`real_viewIdle`, `usersOutD_at`); `AuthRealRd.lean` (`real_BE`, `real_readTxOk`, `real_backendOk`).
-  lean-check clean; targeted build `/shared/tmp/auth-schema-srv/rd-build1.log` (35 leaves of the changes).
+  targeted build green: `/shared/tmp/auth-schema-srv/rd-build2.log` (32 leaves of the changes, 9992 jobs).
 - Next, in order: (a) the reserved pool's reads (`authBackendReads`' `GetUser`/`GetRole`/`GetAllUsers` at `R := T`:
   a second `authBE_real`, steps like the ticket pool's on `γm'`/`γh'`, view = idle via `real_viewIdle`'s argument);
   (b) the life (`authBkLife`): retire/publish need no credit (touch timeless parts only: destructure `▷ realSt` with
