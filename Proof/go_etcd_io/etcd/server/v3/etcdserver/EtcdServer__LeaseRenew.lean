@@ -460,7 +460,9 @@ theorem EtcdServer.LeaseRenew.wp_proof
   ihave #Hlib1 := Hlibw $$ Hlib
   ihave #Hnet1 := Hnetw $$ Hnet
   ihave #Hcause1 := Hcausew $$ Hcause
-  ihave #HtokA := auth.ctxToken_transfer_gate E.authMode.isOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+  · iintro !> %h; iapply HtokE; ipureintro; exact h
   iunfold trace.isSpan at Hsp
   icases Hsp with ⟨%si, %Hsi, #HEnd, -, -⟩
   subst Hsi

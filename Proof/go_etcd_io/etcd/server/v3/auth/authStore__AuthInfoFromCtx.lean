@@ -304,8 +304,6 @@ theorem auth.authStore.AuthInfoFromCtx.wp_proof
       · iintro %Hne; exact absurd rfl Hne
       · iintro %Hnn; exact absurd rfl Hnn
 
-/-- **The weaker form is a corollary** (no twin proof): the floor `0`. -/
-
 end proof
 
 end EtcdGrove

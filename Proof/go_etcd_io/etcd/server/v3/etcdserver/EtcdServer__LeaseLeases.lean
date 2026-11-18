@@ -48,6 +48,8 @@ theorem EtcdServer.LeaseLeases.wp_proof
     EtcdServer.LeaseLeases.spec (GF := GF) (hG := hG) := by
   intro s E γr γl ctx cd tok r mid cid n m
   wp_start as ⟨#Hsr, #Hhf, Hst, Hrk, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #HtokC, HRD, #Hpool, %Hb1, %Hb2⟩
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+  · iintro !> %h; iapply HtokC; ipureintro; exact h
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   ihave #Hlr' := Hlr

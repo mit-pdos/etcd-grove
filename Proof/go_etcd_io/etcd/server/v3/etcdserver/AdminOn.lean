@@ -267,7 +267,7 @@ theorem authRaftOk_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
   icases HP with ⟨#Hpkg, #Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #HtokC, #Hspc, #Hst, #HF, #Hhh⟩
   ihave %hon := isServerReqM_authOn true s E ρ $$ Hsrv
   ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
-  · iintro !> -; iapply HtokC; ipureintro; exact hon
+  · iintro !> -; iapply HtokC; ipureintro; first | rfl | exact hon
   have hRR := hRR s E ρ
   rw [hon] at hRR
   ihave Hperm : reqPropOkM true ρ.raft ρ.kv (hdrBoundM true s E tok) rq

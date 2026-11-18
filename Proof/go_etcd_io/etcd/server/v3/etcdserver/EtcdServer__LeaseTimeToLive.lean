@@ -43,6 +43,8 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
   intro Hpeers s E ρ γr γl ctx cd tok r dq v n m
   wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #HtokC, #Hnet, #Hcause, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+  · iintro !> %h; iapply HtokC; ipureintro; exact h
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, -, -, -⟩

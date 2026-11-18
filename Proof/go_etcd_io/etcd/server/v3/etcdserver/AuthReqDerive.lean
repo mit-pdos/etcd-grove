@@ -129,7 +129,7 @@ theorem isReqAuth_of_authInv
     icases Hinc with ⟨%md, #Hmd⟩
     iunfold auth.authRd at Hrd
     icases Hrd with ⟨Hen, Hca, HR⟩
-    imod (auth.authPubLbM_zero (GF := GF) M) with #Hlb0
+    imod (authPubLbM_zero (GF := GF) M) with #Hlb0
     iapply (hCtx st R M 0 ctx (auth.mdTokenOf md)) $$ [Hen]
     · iframe; iframe #
       iintro !> %_
@@ -298,6 +298,7 @@ theorem isReqAuth_ctxMLb (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) 
     iintro !> %ctx %tok %Φ !> ⟨#Hda, #Hlib, #Htok, Hrd⟩ HΦ
     iapply H $$ %n %ctx %tok [Hrd]
     · iframe; iframe #
+      iintro !> -; iapply Htok; ipureintro; rfl
     iintro !> %a %err ⟨HRD, Hai, #Herr, #Hbd, #Hz, #Hne, #Hnn⟩
     iapply HΦ
     iframe HRD Hai

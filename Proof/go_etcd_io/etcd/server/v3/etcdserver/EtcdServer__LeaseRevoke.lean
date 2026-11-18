@@ -91,7 +91,9 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   subst Hsi
   (try wp_auto)
   -- `requireAuthInfo`: `nil` with auth off; with auth on, its error is returned
-  ihave #HtokA := auth.ctxToken_transfer_gate E.authMode.isOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokE := auth.ctxToken_transfer_gate E.authOn ctx ctx1 tok $$ [$Hmd1 $HtokC]
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
+  · iintro !> %h; iapply HtokE; ipureintro; exact h
   wp_apply hAuth s E ctx1 _ tok $$ [Hrd] as %aerr ⟨Hrd, #Hae, -⟩
   · iframe #; iframe Hrd
   (try wp_auto)
@@ -254,7 +256,7 @@ theorem EtcdServer.LeaseRevoke.wp_proof
   · -- auth on (auth-lease S3b)
     rw [hon] at hRR
     ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx1) tok) $$ []
-    · iintro !> -; iapply HtokA; ipureintro; exact hon
+    · iintro !> -; iapply HtokA; ipureintro; first | rfl | exact hon
     -- (auth-lease S3b) the client's update, fired at the commit when granted
     imod kvResTok_alloc (GF := GF) with ⟨%γc, Htok⟩
     imod Hcred with Hc

@@ -1128,7 +1128,7 @@ theorem EtcdServer.Txn.wp_proof
         iintro !> -
         iapply auth.ctxToken_transfer ctx2 c3' tok
         iframe Hmd3
-        iapply HtokC2; ipureintro; exact hon
+        iapply HtokC2; ipureintro; first | rfl | exact hon
       (try wp_auto)
       ihave ⟨Hirr, %Hirrn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
       iStructNamed Hirr
@@ -1419,7 +1419,7 @@ theorem EtcdServer.Txn.wp_proof
       have hDS := hDS s E ρ γr
       rw [hon] at hDS
       ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
-      · iintro !> -; iapply HtokC2; ipureintro; exact hon
+      · iintro !> -; iapply HtokC2; ipureintro; first | rfl | exact hon
       have hCTA := hLb
       (try isimp only [↓reduceIte] at Hnp)
       icases Hnp with ⟨#HaLb, #Hpub, Hnp⟩

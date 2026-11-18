@@ -1388,7 +1388,7 @@ variable [sem : go.Semantics]
 some `md` (`metadata.ctxInMD`) whose token (`mdTokenOf`: the first value of `token`, else of
 `authorization`, a `"Bearer "` prefix trimmed) is `o`. -/
 def ctxToken (ctx : GoInterface) (o : Option GoString) : IProp GF :=
-  iprop(∃ (c : GoInterfaceOk) md, ⌜ctx = GoInterface.ok c⌝ ∗ metadata.ctxInMD c md ∗
+  iprop(∃ (c : GoInterfaceOk) (md : Option (GoString → Option (List GoString))), ⌜ctx = GoInterface.ok c⌝ ∗ metadata.ctxInMD c md ∗
     ⌜mdTokenOf md = o⌝)
 
 instance ctxToken_persistent (ctx : GoInterface) (o : Option GoString) :

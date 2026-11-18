@@ -1025,7 +1025,7 @@ theorem EtcdServer.Range.wp_proof
     have hDS := hDS s E ρ γr
     rw [hon] at hDS
     ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
-    · iintro !> -; iapply HtokC2; ipureintro; exact hon
+    · iintro !> -; iapply HtokC2; ipureintro; first | rfl | exact hon
     -- (E3s) the store's range check at the reader's lower bound `n`
     ihave #HaLbS := HaLb
     iunfold srvAuthLb at HaLb

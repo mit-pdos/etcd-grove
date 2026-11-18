@@ -235,7 +235,7 @@ theorem EtcdServer.DeleteRange.wp_proof
     · iintro !> -
       iapply auth.ctxToken_transfer ctx ctx1 tok
       iframe Hmd1
-      iapply HtokC; ipureintro; exact hon
+      iapply HtokC; ipureintro; first | rfl | exact hon
     have hRR := hRR s E ρ
     rw [hon] at hRR
     ihave ⟨%Hnz0, Hnp⟩ := deletePermitOn_nz ρ.raft ρ.kv _ op Q $$ Hnp

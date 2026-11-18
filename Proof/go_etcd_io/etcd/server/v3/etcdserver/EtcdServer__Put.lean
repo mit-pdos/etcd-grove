@@ -267,7 +267,7 @@ theorem EtcdServer.Put.wp_proof
       · exact absurd rfl Hne
   · -- auth on
     ihave #Htok2' : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx2) tok) $$ []
-    · iintro !> -; iapply Htok2; ipureintro; exact hon
+    · iintro !> -; iapply Htok2; ipureintro; first | rfl | exact hon
     have hRR := hRR s E ρ
     rw [hon] at hRR
     wp_apply hRR ctx2 _ tok «$a1_ptr» (irrPut op)

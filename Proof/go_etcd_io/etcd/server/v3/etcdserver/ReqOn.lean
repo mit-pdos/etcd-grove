@@ -885,7 +885,7 @@ theorem EtcdServer.AuthInfoFromCtx.wpM (on : Bool)
   {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); E.RD ∗ authInfoOpt a ∗ authApplyErrIs err ∗
       □ (⌜on = true⌝ → ctxBoundOrTLS s E.authMode tok a) }} := by
   iintro %Φ ⟨#Hpkg, #Hst, #Hauth, #Hbd, #Hcca, #Hctx, #Hlib, #Htok, Hrd⟩ HΦ
-  imod (auth.authPubLbM_zero (GF := GF) E.authMode) with #Hn
+  imod (authPubLbM_zero (GF := GF) E.authMode) with #Hn
   iapply (EtcdServer.AuthInfoFromCtx.wpMLb on hAuth s E st cca ctx cd 0 tok) $$ [Hrd] [HΦ]
   · iframe Hrd; iframe #
   · iintro !> %a %err ⟨Hrd, Ha, #Herr, #Hb, -⟩
