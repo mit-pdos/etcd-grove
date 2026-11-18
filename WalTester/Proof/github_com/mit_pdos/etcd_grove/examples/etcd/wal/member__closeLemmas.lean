@@ -11,6 +11,7 @@ public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.me
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.storeOracle
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Sync
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SnapPure
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__syncLemmas
 
 @[expose] public section
 

@@ -27,7 +27,9 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.TxnHandle
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ReadApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WriteApi
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore__Write
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Write
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ReaderSpecs
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.watchableStoreTxnWrite__End
 
 @[expose] public section

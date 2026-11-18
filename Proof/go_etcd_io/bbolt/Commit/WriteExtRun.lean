@@ -11,7 +11,7 @@ the end of what the page's chunks wrote), which gives the success post's last tw
 module
 
 public import Proof.go_etcd_io.bbolt.Commit.WriteExtDefs
-public import Proof.go_etcd_io.bbolt.Tx__write
+public import Proof.go_etcd_io.bbolt.Tx__writeSpec
 public import Spec.go_etcd_io.bbolt.Tx__write_ext
 public import Proof.github_com.mit_pdos.etcd_grove.OmegaOnly
 

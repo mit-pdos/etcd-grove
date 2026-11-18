@@ -12,7 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__read
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__init
 public import Spec.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmap
 public import Spec.os.OpenFile
-public import Proof.os.OpenFile
+public import Proof.os.OpenFileLemmas
 public import Spec.os.File__Name
 public import Spec.os.File__Close
 public import Spec.os.File__Stat

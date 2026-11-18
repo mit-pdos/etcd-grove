@@ -6,7 +6,7 @@ mapped (`DB.munmap.spec_none`: `munmap(db)` returns at once, `invalidate` clears
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Mmap.Munmap
+public import Proof.go_etcd_io.bbolt.Mmap.MunmapSpec
 public import Spec.os.File__Close
 public import Spec.os.File__Fd
 public import Spec.syscall.Flock

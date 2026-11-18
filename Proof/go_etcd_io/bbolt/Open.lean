@@ -24,7 +24,7 @@ public import Spec.go_etcd_io.bbolt.Tx__Commit_err
 public import Spec.go_etcd_io.bbolt.DB__Close
 public import Spec.go_etcd_io.bbolt.fdatasync
 public import Spec.os.OpenFile
-public import Proof.os.OpenFile
+public import Proof.os.OpenFileLemmas
 public import Spec.os.File__Name
 public import Proof.go_etcd_io.bbolt.Options
 public import Proof.go_etcd_io.bbolt.DB__loadFreelist

@@ -8,7 +8,7 @@ module
 
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__close
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__sync
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__syncLemmas
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__closeLemmas
 
 @[expose] public section

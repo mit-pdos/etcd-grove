@@ -17,7 +17,7 @@ public import Spec.golang_org.x.sys.unix.Mmap
 public import Spec.golang_org.x.sys.unix.Madvise
 public import Spec.os.File__Fd
 public import Spec.fmt.Errorf
-public import Proof.golang_org.x.sys.unix.Munmap
+public import Proof.golang_org.x.sys.unix.MunmapLemmas
 
 @[expose] public section
 

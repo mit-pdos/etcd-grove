@@ -17,7 +17,7 @@ public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureStart
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureFree
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPurePut
 public import Proof.go_etcd_io.bbolt.Spill.BktLoopPureSpilled
-public import Proof.go_etcd_io.bbolt.Spill.Inlineable
+public import Proof.go_etcd_io.bbolt.Spill.InlineableDefs
 public import Proof.go_etcd_io.bbolt.Spill.PageBuf
 public import Proof.go_etcd_io.bbolt.Spill.BktValKey
 public import Proof.go_etcd_io.bbolt.Spill.BktPm

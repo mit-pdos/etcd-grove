@@ -8,7 +8,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__Close
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__CloseLemmas
 public import Proof.os.CloseNE
 
 @[expose] public section
