@@ -17,11 +17,30 @@ root=$(cd "$(dirname "$0")/.." && pwd)
 cd "$root"
 export PATH=/usr/local/go/bin:$HOME/go/bin:$HOME/.elan/bin:$PATH
 export GOTOOLCHAIN=${GOTOOLCHAIN:-go1.27.1}
+# Lake's artifact cache (shared by the worktrees, keyed by the build traces' input hashes), restored
+# into .lake/build (which tcb-report and the other checks read), so that this build and every
+# check's `lake build --no-build` agree on what is up to date. Off with LAKE_ARTIFACT_CACHE=false.
+export LAKE_ARTIFACT_CACHE=${LAKE_ARTIFACT_CACHE:-true}
+export LAKE_RESTORE_ARTIFACTS=${LAKE_RESTORE_ARTIFACTS:-true}
+# tcb-report's Lean runs cached across worktrees as model-param's are (etc/lean_cache.py: keyed by
+# the run's whole import closure, proofs included): a group none of whose imports changed is read
+# from the cache. TCB_CACHE= (empty) runs every group.
+export TCB_CACHE=${TCB_CACHE-/shared/tmp/tcb-report-cache}
 pk=()
 if [ -n "${LAKE_PACKAGES:-}" ]; then pk=(--packages="$LAKE_PACKAGES"); export LAKE_OPTS="--packages=$LAKE_PACKAGES"; fi
 fail=0
 pids=()
-tmp=$(mktemp -d)
+# The work directory, and the temporary directory of everything the gates run (TMPDIR: the Go
+# tests' data directories, go's build directories, the race tests' logs), on the worktree's disk,
+# not /tmp: /tmp is a tmpfs of 7.9G shared by every session (3-4G in use), and each etcd member a
+# Go test starts preallocates a 64MB WAL there, so under the premise-fix and k8s tests' clusters it
+# filled: premisefix/zaplogger's cluster3.StartCluster panicked in etcdserver.NewServer ("failed to
+# create WAL", reproduced on a 100MB tmpfs; 2026-11-17). GATES_TMPDIR overrides the parent.
+gtmp=${GATES_TMPDIR:-$root/.lake}
+mkdir -p "$gtmp"
+tmp=$(mktemp -d "$gtmp/gates.XXXXXX")
+mkdir -p "$tmp/tmpdir"
+export TMPDIR="$tmp/tmpdir"
 trap 'rm -rf "$tmp"; unlink_perennial' EXIT
 
 linked=0
@@ -35,8 +54,9 @@ unlink_perennial() {
 }
 
 # 1. the full build
+bstart=$(date +%s)
 if lake "${pk[@]}" build > "$tmp/build.log" 2>&1; then
-  echo "build: ok ($(grep -o 'Build completed successfully ([0-9]* jobs)' "$tmp/build.log"))"
+  echo "build: ok ($(grep -o 'Build completed successfully ([0-9]* jobs)' "$tmp/build.log"), $(( $(date +%s) - bstart ))s)"
 else
   echo "build: FAILED"; grep -E "error:|error: build failed" "$tmp/build.log" | head -20; fail=1
 fi
@@ -78,38 +98,71 @@ return $fail
 
 sec_tcb() {
 fail=0
+# its own memory cap for the axiom-tok gate (systemd-run, where there is one; only where it works: a
+# session without a login's polkit rights gets "Access denied", 2026-11-15)
+cap=()
+if command -v systemd-run > /dev/null 2>&1 && systemd-run --scope -q -p MemoryMax=24G true > /dev/null 2>&1; then
+  cap=(systemd-run --scope -q -p MemoryMax=24G)
+fi
+# 3b's Lean runs, started beside 3's: the axiom-tok gate walks the axioms of .lake/tcb.json, which
+# the trust-base check below rewrites; they are run now on the axioms of the .lake/tcb.json already
+# here (a previous run's), and used only if the new one lists exactly the same axioms in the same
+# order (the same input, so the same output); otherwise run again after it. One lane (TCB_JOBS=1):
+# its peak beside 3's Lean runs stays one group's, under 10 GiB.
+spec=0
+if [ -f .lake/tcb.json ] && python3 etc/axiom-tok-check.py --dump-names > "$tmp/names.spec" 2> /dev/null \
+    && [ -s "$tmp/names.spec" ]; then
+  ( TCB_JOBS=1 "${cap[@]}" python3 etc/axiom-tok-check.py --lean-only --names "$tmp/names.spec" \
+      --raw "$tmp/atok.spec.jsonl" > "$tmp/atok.spec.log" 2>&1; echo $? > "$tmp/atok.spec.status" ) &
+  spec_pid=$!; spec=1
+fi
 # 3. the trust base and every collection (only after a successful build: tcb-report refuses otherwise)
 if python3 etc/tcb-report.py --check > "$tmp/tcb.log" 2>&1; then
   echo "tcb: $(grep 'trust base matches' "$tmp/tcb.log" | tail -1 | sed 's/^tcb: //')"
 else
   echo "tcb: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/tcb.log" | tail -20; fail=1
 fi
-coll_ok=0; coll_bad=0
-for c in etc/tcb-collections/*.txt; do
-  if python3 etc/tcb-report.py --reuse --collection "$c" --check > "$tmp/c.log" 2>&1; then
-    coll_ok=$((coll_ok+1))
-  else
-    coll_bad=$((coll_bad+1)); echo "collection $c: FAILED"; grep -v "root theorems\|distinct trust bases" "$tmp/c.log" | tail -10
-  fi
-done
-echo "collections: $coll_ok match, $coll_bad differ"; [ "$coll_bad" = 0 ] || fail=1
+# the collections, in one run (the JSON loaded once; each collection checked as on its own: 68
+# runs of 5.6s each, nearly all of it parsing the JSON, took six minutes), beside the axiom-tok gate
+# below: both only read the .lake/tcb.json the check above wrote
+ncoll=$(ls etc/tcb-collections/*.txt | wc -l)
+( python3 etc/tcb-report.py --reuse --collection etc/tcb-collections/*.txt --check > "$tmp/c.log" 2>&1
+  echo $? > "$tmp/c.status" ) &
+coll_pid=$!
 # 3b. the axiom-tok gate (per-type stage B, Scope r5 §5.1): no trusted statement lets its user
 # obtain tokens or resources it chose beyond what it gives, but for the entries of
 # etc/axiom-tok-allow.txt; reads the .lake/tcb.json the trust-base check above wrote (so after it,
-# in this section). A full run: about 6 minutes, 9 GiB peak (2026-11-11); its own memory cap
-# (systemd-run, where there is one).
-cap=()
-# (only where it works: a session without a login's polkit rights gets "Access denied", 2026-11-15)
-if command -v systemd-run > /dev/null 2>&1 && systemd-run --scope -q -p MemoryMax=24G true > /dev/null 2>&1; then
-  cap=(systemd-run --scope -q -p MemoryMax=24G)
+# in this section; its Lean runs from above when they walked the same axioms). A full run: about
+# 6 minutes interpreted, 75s native (2026-11-17), 9 GiB peak per group.
+atok=(--raw "$tmp/atok.jsonl")
+atok_from="run after the trust-base check"
+if [ "$spec" = 1 ]; then
+  wait "$spec_pid"
+  python3 etc/axiom-tok-check.py --dump-names > "$tmp/names.now" 2> /dev/null
+  if [ "$(cat "$tmp/atok.spec.status" 2>/dev/null)" = 0 ] && [ -s "$tmp/names.now" ] \
+      && cmp -s "$tmp/names.spec" "$tmp/names.now"; then
+    cp "$tmp/atok.spec.jsonl" "$tmp/atok.jsonl"
+    atok=(--reuse-raw "$tmp/atok.jsonl"); atok_from="Lean runs beside the trust-base check"
+  else
+    atok_from="run after the trust-base check: its axioms changed"
+  fi
 fi
-if "${cap[@]}" python3 etc/axiom-tok-check.py --check --raw "$tmp/atok.jsonl" > "$tmp/atok.log" 2>&1; then
-  echo "axiom-tok: $(tail -1 "$tmp/atok.log" | sed 's/^axiom-tok: //')"
+if "${cap[@]}" python3 etc/axiom-tok-check.py --check "${atok[@]}" > "$tmp/atok.log" 2>&1; then
+  echo "axiom-tok: $(tail -1 "$tmp/atok.log" | sed 's/^axiom-tok: //') ($atok_from)"
 else
-  echo "axiom-tok: FAILED"; grep -A40 "need an entry (rule 8)\|^Unknown\|^Truncations\|^Entry keys\|^Stale\|FAILED\|Error\|error" "$tmp/atok.log" | head -40; fail=1
+  echo "axiom-tok: FAILED ($atok_from)"; grep -A40 "need an entry (rule 8)\|^Unknown\|^Truncations\|^Entry keys\|^Stale\|FAILED\|Error\|error" "$tmp/atok.log" | head -40; fail=1
 fi
 # its selftests, and the real axioms they name (`real-pass`) in the run above
 "${cap[@]}" python3 etc/axiom-tok-check.py --selftest --reuse-raw "$tmp/atok.jsonl" > "$tmp/atoks.log" 2>&1 || { echo "axiom-tok selftest: FAILED"; grep "FAIL\|error" "$tmp/atoks.log" | head -20; fail=1; }
+wait "$coll_pid"
+coll_ok=$(grep -c "^tcb: trust base matches" "$tmp/c.log")
+coll_bad=$((ncoll - coll_ok))
+if [ "$(cat "$tmp/c.status" 2>/dev/null)" != 0 ] || [ "$coll_bad" != 0 ]; then
+  [ "$coll_bad" != 0 ] || coll_bad="?"
+  grep "^tcb: collection .*: FAILED" "$tmp/c.log" | sed 's/^tcb: //'
+  grep -v "root theorems\|distinct trust bases\|^tcb: trust base matches" "$tmp/c.log" | tail -20; fail=1
+fi
+echo "collections: $coll_ok match, $coll_bad differ"
 return $fail
 }
 
@@ -346,15 +399,17 @@ secs=(links tcb goose models issues bounds mode api iface premisefix k8s7e)
 start=$(date +%s)
 for s in "${secs[@]}"; do
   mkdir -p "$tmp/sec.$s"
-  ( tmp="$tmp/sec.$s"; "sec_$s" ) > "$tmp/out.$s" 2>&1 &
+  ( tmp="$tmp/sec.$s"; t0=$(date +%s); "sec_$s"; st=$?; echo $(( $(date +%s) - t0 )) > "$tmp/time"; exit $st ) > "$tmp/out.$s" 2>&1 &
   pids+=("$!")
 done
+times=
 for i in "${!secs[@]}"; do
   wait "${pids[$i]}" || fail=1
   cat "$tmp/out.${secs[$i]}"
+  times="$times ${secs[$i]} $(cat "$tmp/sec.${secs[$i]}/time" 2>/dev/null)s"
 done
 unlink_perennial
-echo "checks after the build: $(( $(date +%s) - start ))s (in parallel)"
+echo "checks after the build: $(( $(date +%s) - start ))s (in parallel; per section:$times)"
 
 [ "$fail" = 0 ] && echo "gates: all passed" || echo "gates: FAILED"
 exit $fail
