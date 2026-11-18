@@ -40,8 +40,8 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   close's `nil` and made `Create` return `(nil, nil)` with no cleanup
   (`nonissues/etcd-wal-create-parent-fsync-nil-nil.md`). No regression test (an fsync EIO on a directory
   is not injectable in the package's tests).
-- `0007` (wal-link, 2026-11-18, approved by the user via etcd-grove-03; **local, not pushed**: branch
-  `goose-lean-walfs3` in `/shared/tmp/wal-fork/etcd`, head `f01ae14c9b95338efae4e2ac2d62703bc873d178`, on
+- `0007` (wal-link, 2026-11-18, approved by the user via etcd-grove-03; pushed within `goose-lean-walfs3-fp` (the branch
+  `goose-lean-walfs3` of the clone `/shared/tmp/wal-fork/etcd` was not pushed), head `f01ae14c9b95338efae4e2ac2d62703bc873d178`, on
   `8c28a4296`): `WAL.SaveSnapshot` checks the tail's offset after its record and cuts once it passes
   `SegmentSizeBytes`, as `Save` does (`cut` syncs the old tail first); before, it only synced. Why: the server
   saves a snapshot record from the apply thread once per applied batch past `SnapshotCount`, and raft hands a
@@ -56,7 +56,7 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   translated with `--src etcd=/shared/tmp/wal-fork/etcd`); **the user pushes `goose-lean-walfs3`, then the
   examples' `go.mod`/`go.sum` move to its pseudo-version** (until then `etc/goose.py --check` fails on the
   examples' replace lines and on the unfetchable revision).
-- `0008` (wal-link, 2026-11-18; **local, not pushed**: branch `goose-lean-walfs3-fp` in `/shared/tmp/wal-fork/etcd`,
+- `0008` (wal-link, 2026-11-18; **pushed by the user 2026-11-18** as upamanyus/etcd branch `goose-lean-walfs3-fp`,
   head `34dea163a76cc68a02e9a6ae1e86df0cec069be7`, on `f01ae14c9`): `SaveSnapshot` does not cut while `w.fp` is
   nil, i.e. in `Create`'s own call (before the file pipeline exists). Found while re-proving `SaveSnapshot`'s
   `Create` case: 0007 alone made a `Create` whose first segment (metadata and the empty snapshot) passes
@@ -64,6 +64,5 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   `TestCreateLargeMetadata`: 1 MiB under a 2 KiB segment size), where `8c28a4296` succeeded. The condition is
   `curOff < SegmentSizeBytes || w.fp == nil` (sync), else `cut`. `TestCreateLargeMetadata` fails at `f01ae14c9`
   (nil pointer) and passes at `34dea163a`; the WAL suite but the byte-mix tests passes (GOWORK=off, go1.27.3).
-  `etc/goose.py` pins `34dea163a`. **The user pushes `goose-lean-walfs3-fp` (it contains 0007)**; then
-  `notes/wal-fsext-fork/bump-go-mod.sh` moves the examples' `go.mod`/`go.sum` to its pseudo-version
-  (`v3.0.0-20261118203246-34dea163a76c`).
+  `etc/goose.py` pins `34dea163a`; the examples' `go.mod`/`go.sum` are at its pseudo-version
+  `v3.0.0-20261118203246-34dea163a76c` (`notes/wal-fsext-fork/bump-go-mod.sh`); `etc/goose.py --check` passes.
