@@ -664,6 +664,48 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     pre-existing multiple specs of `os`, `syscall`, `fileutil`, the WAL, the server, raft and the
     examples are listed in S6's report (not changed).
 
+### S4 (branch `bbolt-snapshot`, off `bbolt-integrate` `d511fb36b2`, 2026-11-18): bbolt's `Tx.WriteTo`
+
+D-I6's bbolt side done; the backend side not (below). Decisions D-W1..D-W7 (`notes/bbolt-spec-decisions.md`, "S4").
+
+- **`Tx.WriteTo.spec`** (`Spec/go_etcd_io/bbolt/Tx__WriteTo.lean`, proved `Proof/go_etcd_io/bbolt/Tx__WriteTo.lean`,
+  linked): `io.writerPlain w → {{ boltTx tx γ q (TxView.ro D) ∗ io.writerOk w Wr ∗ Wr c bs₀ }} tx.WriteTo(w)
+  {{ n err. ∃ bs, boltTx tx γ q (ro D) ∗ Wr true (bs₀ ++ bs) ∗ ((⌜err = nil ∧ boltImage bs D⌝ ∗ boltImageRcpt bs) ∨
+  ⌜err ≠ nil⌝) }}`. Callees: `Meta.Pgid`, `Page.SetFlags/Meta/SetId`, `Meta.Txid/DecTxid/Sum64/SetChecksum`,
+  `fmt.Errorf`, `io.NewSectionReader`, `io.CopyN`, `os.File.ReadAt.specRacyLt`.
+- **S4a's blockers, solved in the invariant** (all bbolt files re-proved, no `sorry`, no axiom):
+  1. the file handle: `wdbCoreG` holds half of `db.file`/`fileOwn`/`osFd`, `Pm q` the other half at `q/2`
+     (`pmFile`, with the inode by `B.t0`'s fragment); a reader keeps its share (`rdxFile`), `close` gathers.
+  2. the synced freelist page: the store holds half of its page-cache bytes while it is the committed state's
+     and not freed (`slotsOs`'s `X = flxS C fl bytes`, `Model/StoreFl.lean`), the writer the other half
+     (`wBytesX`); `flxOK` (pagesInv's new pure part) keeps it valid (`flPgOK`) and every registered reader's
+     recorded page (`RdInfo.fx`, `rdFlOK`: in the half or pending and spared by the release, mvcc rule);
+     `isBolt` records `NoFreelistSync = true` (`dbFixed`; `Open.spec`'s options), so `Commit` never writes a
+     new freelist page (the `commitFreelist` branch is dead and removed from the proof) and publishes
+     `flpg = none`.
+  3. `pread` of store slots: `os.File.ReadAt.specRacyLt` now takes the held bytes behind an accessor
+     (`os.heldAcc`, statement changed in place, old form `wp_racyLtOwn`); `store_rd_acc` opens `pagesInv`.
+  4. the reader's committed state: `rdx`'s `rdxC` (`C` well formed, `mv` its meta, `v` its view, `fxOK C fx`,
+     `⧖ C.txid`); `metaR` bounds `C.hwm * 4096 ≤ maxMapSize`.
+  5. `WriteFlag`: `rtxFrac` holds it at `W64 0`.
+  6. stdlib: trust-boundary axioms `io.NewSectionReader.wp_proof`, `io.CopyN.wp_proof` (`Proof/io/`, over
+     `io.secReader`, `io.readerAtOk`, `io.writerPlain`; entry in `notes/perennial-changes.md`).
+- **The image**: `Inv/WriteToImage.lean` (pure: the two metas `wtMetas`, `writeTo_fileOK`), `Read/WriteTo.lean`.
+- **Statement changes**: `Tx.Size.spec` (post `⌜T.rw = false → 0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝`),
+  `os.File.ReadAt.specRacyLt` (accessor), `io.writerOk` (new home `Proof/io/SectionReader.lean`,
+  `backend.writerOk` its abbrev; post adds `fmtErrorOkOrNil err`: so `io.Pipe`'s axiom now also claims a pipe
+  writer's error is formattable, true since its reader end is only `Close`d), `backend.boltImage` (opaque →
+  bbolt's `boltImage`), internal `Tx.write_ext.spec`/`Tx.writeMeta.spec` (file at a fraction).
+- **Left (the backend, D-I6's other half)**: `backend.backend.Snapshot`, `snapshot.WriteTo`, `snapshot.Size`,
+  `snapshot.Close` stay axioms. `backend.Snapshot`, `snapshot.WriteTo`, `snapshot.Size` are names-only in the
+  translation (`Code/go_etcd_io/etcd/server/v3/storage/backend.toml`); translating them is possible, but
+  `Snapshot`'s goroutine calls `snapshotTransferSec.Observe`, whose initializer is covered only by
+  `opaqueInitsOk` ("returns", no histogram): proving it needs a `snapshotTransferSec_init` axiom like
+  `commitSec_init` (not added: no new axiom). `snapshot.WriteTo` would also need the writer's
+  `io.writerPlain` (true of the merged snapshot's `*io.PipeWriter`: `io.writerPlain_pipeWriter`). The receive
+  side (`SaveDBFrom`) now takes bbolt's `boltImage`; a file it saves needs `boltImageRcpt` too for
+  `fileHolds_of_image`.
+
 ### S3e (branch `bbolt-files-backend`, off `bbolt-integrate` `4511e2dcd1`, 2026-11-17): the backend's database files over the file model
 
 D-I5's backend side. `bbolt.Open_kv` and `bbolt.DB.Close_kv` are theorems; `backend.fileHolds` and

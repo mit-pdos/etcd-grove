@@ -58,7 +58,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 /-- **The bytes `bs` are a bbolt database file holding `D`** (see the file header; session S4: bbolt's
 `boltImage`, what bbolt's proved `Tx.WriteTo` writes, until then opaque). -/
-def boltImage (bs : List w8) (D : Data) : Prop := bbolt.boltImage bs D
+def boltImage [GooseExts] (bs : List w8) (D : Data) : Prop := bbolt.boltImage bs D
 
 section preds
 variable [GooseExts] [GooseSemantics] [GooseInterp]

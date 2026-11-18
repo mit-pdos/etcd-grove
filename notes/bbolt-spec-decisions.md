@@ -2154,3 +2154,24 @@ bound is not in what `Close` gives back" and D-F5 (the partial-page escape).
 - **D-G4. `wdbSz` mentions `FsNoErr`, which takes `[ExtSemantics fsExt]`.** Every section that states
   `wdbOK`/`wdbOK'` now has that instance (and `FsSemOk`) as a variable: a section without it would
   silently elaborate `wdbOK` at the global `fs_semantics` instance and mismatch its users.
+
+## S4: `Tx.WriteTo` (2026-11-18)
+
+Session `bbolt-snapshot` (`notes/bbolt-integration-plan.md`, "S4").
+
+- **D-W1. The synced freelist page is half the store's.** Etcd's `NoFreelistSync` (now recorded by
+  `isBolt`) means a committed state names a synced freelist page only when it is the opened file's; making
+  it a full store slot would need the writer to borrow its cells for `Free`, so the store holds half its
+  page-cache bytes (`flxS`) and the writer half (`wBytesX`, cells whole): the writer cannot write it, a
+  reader reads it through `store_rd_acc`, `Free` agrees the halves (`wrSlotsH_agree`).
+- **D-W2. A reader records its page** (`RdInfo.fx`, `rdFlOK`) so that the release spares it as `mvccView`
+  spares a view's pages; `rdFlOK` needed four facts the first design lacked (freed only by the live writer,
+  allocating transactions bounded, never free, pending in the writer's entry only while current).
+- **D-W3. The file handle in halves**, `mmaplock`'s half shared by readers (`pmFile`, `rdxFile`).
+- **D-W4. `specRacyLt` over an accessor** (in place; the held-bytes form is `wp_racyLtOwn`).
+- **D-W5. `io.CopyN`/`io.NewSectionReader` as trust-boundary axioms**, generic in a `ReadAt` contract
+  (`io.readerAtOk`, a per-byte relation) and the writer's (`io.writerOk`), requiring no `ReadFrom`
+  (`io.writerPlain`); `err = nil ↔` all `n` bytes written.
+- **D-W6. The writer's errors are formattable** (`io.writerOk`'s post): `WriteTo` wraps a meta write's error
+  with `fmt.Errorf("%s")`, whose spec asks it.
+- **D-W7. `Tx.Size.spec`** gains the reader's bound (`snapshot.Size`'s promise); the writer case stays open.

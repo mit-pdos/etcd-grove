@@ -54,7 +54,7 @@ private theorem bbolt.kvGlue_Tx__Size_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.Fs
     iintro %Φ ⟨-, Hl⟩ HΦ
     have h' := h tx γ q T
     try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
-    wp_apply h' $$ [$Hl] as %n Hl
+    wp_apply h' $$ [$Hl] as %n ⟨Hl, -⟩
     iapply HΦ; iframe
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
