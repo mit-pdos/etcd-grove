@@ -11,7 +11,8 @@ session. Report at step 4's end sent (discharge list below). Decisions of 03 rec
   (`RealB4.realReplay_ok`: any `lin2`, `NewReplay` ok, `Validate` accepts all).
 - Forms decided (report): `RawRel`'s list items `itemOk`; `CfgOk`, `HistCfgOk`, `RunOk`, `OpOk`, `FloorOk`; `ROp`,
   `kM h0` (`pM (kSpec h0)` with `ansOf`), `realS`, `unaryOf`; B2/B4 take "kstepL keeps CfgOk/RunOk" as premises.
-- Verified: all new files by lean-check (full `-a` re-checks); targeted build of the optC list + `RealB4`:
+- Verified: all new files by lean-check (full `-a` re-checks) and the targeted build (optC list + `RealB4`, rc 1 only on
+  `outEqual` = the known `decide (a = b)` breakage to restate in step 5; every other target up to date):
   `/shared/tmp/k8s7g/build-optC.sh` (log `build-optC.log`).
 - Next (step 5, after 03's go): the discharge list (report of night 6 / below); one cheap B4 extension first:
   `drive`/`realReplay_ok` should also return, per watch, a configuration `hv` with `ReplayAt s0 R hv`, `RunOk hv`,
