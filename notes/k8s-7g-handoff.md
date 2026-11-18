@@ -2,46 +2,50 @@
 
 ## START HERE
 
-**2026-11-18 (later). Step 3 DONE (decided). Step 4: B3 and B5's STATEMENTS written (proofs `sorry`),
-STOP for their review: `RealReplay.lean` (B3a `replayL_perm`, B3b `simR_init`/`simR_step`/`replayAt_prefix`,
-vocabulary `rmWf`, `HistSorted`, `chgListL`, `ReplayAt`, `SimR`), `RealWatch.lean` (B5
-`validateWatchL_of_watchOkL`; `toWEvL`, `realEventsL`, `WatchFromL`). After the go: prove them, then B1,
-B2, B4 (scope §5). lean unchanged since fb68edfec8 (fmt-soundness not landed yet).**
-
-(Previous: step 3 done through `Step`.)
+**2026-11-18 (night 2; for etcd-grove-03). Step 4 in progress: B3b proved; B3a and B5 left (`sorry`), then
+B1, B2, B4 (scope §5). Statements accepted (questions.md "Step 4 statements decided").**
 
 - Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`;
-  `.lake/package-overrides.json` = that manifest. Scope `notes/k8s-7g-scope.md`; decisions `questions.md`
-  (untracked; last three sections); trust `notes/k8s-7g-trust.md` (clause 4 accepted).
-- Done this round (commits `6c09889608`..HEAD): clause 4 accepted + m2 header; `itemsFitL` kept by every step,
-  non-nil closures (`tryUpdateFor`/`validateFor`); the too-large error's delay and code pinned
-  (`NewTimeoutError`/`NewTooLargeResourceVersionError` posts, `errRep .tooLarge`); `storage.isErrCode`,
-  `IsNotFound`, `StorageError.Unwrap` specs; `correctness/ErrViews.lean`; `equalListResponse` takes a flat
-  output error; `Model.validateGet`, `Model.validateList`, `Model.Step` proved. Forms: questions.md "(late)".
-  Targeted build `/shared/tmp/k8s7g/build3c.sh` (output `/shared/tmp/k8s7g/build-s3d.out`).
-- Premises still to discharge (step 5): `Step`'s `(rexecL x m).1.err ≠ .other`, `flatE out.err`, the output
-  object shapes, `inFits`/`crFits` and the list premises from `realRequest`/`InOk`; `reqRep` from `realRequest`.
-- Known breakage, pre-existing since step 0 (step 5): `call`, `consume`, `Check`, `Gen`, `genList`,
-  `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`, `runWatch`, `watchEvents`,
-  driver `Link`/`Results`. `etc/tcb-baseline.txt` and collections not updated for 7g axioms (step 6).
-  Link lists (step 6) need the new specs: `Model.validateGet/validateList/Step`, `storage.isErrCode/IsNotFound/
-  StorageError.Unwrap`.
-- Pitfalls (new):
-  - Paths that converge with different Lean contexts: `wp_join (v := #b) at (if: (if: #(d) then _ else
-    #false) then _ else #false) with [ptrs]` for a condition; for whole branches, `set_option hygiene false
-    in local macro` (Model__validateGet). In a macro `$H` is an antiquotation: write `$$ [H]` then `· iexact H`.
-  - A predicate defined by `match` (`errRep`, `deepRep`, `apiErrAt`, `errCodeAt`): `simp only [errRep, …]`
-    before `iintro`; `unfold` leaves the match.
-  - `ihave %h : ⌜P⌝ $$ []` + `· iapply lemma; iframe A B` to apply a lemma whose premise is a `∗`.
-  - `wp_apply` already runs `wp_auto`: a following `wp_auto` fails "no progress". `wp_if_destruct` too.
-  - `obtain ⟨rfl, rfl⟩` on `n = m` eliminates the variable you still need: `obtain ⟨rfl, h⟩; subst n`.
-  - builtin `max`: `have hmax : #(functions go.max [go.uint64, go.uint64]) = max.impl go.uint64 2 :=
-    FuncUnfold.func_unfold (f := go.max) (type_args := List.replicate 2 go.uint64)`, `simp only [hmax]`.
-  - `simp_all` on large contexts hits max recursion: prove pure facts in separate lemmas (`getL_*`, `listL_*`).
+  `.lake/package-overrides.json` = that manifest. lean 1b298c1e70 (fmt-soundness) merged (`741bc81066`, clean, no
+  repair needed: every step-3 target rebuilt, rc 0 but for the WIP RealReplay at the time).
+- Done: statements `edee4c6d0f`; B3b `0c6a267190`..HEAD: `simR_init`, `simR_step`, `replayAt_prefix` and helpers
+  (`chgListL_filter`/`_snoc`, `rstepL_true`, `rexecL_bump`, `ofList_items`/`_rewrites`, `fI_eq_of_absR`,
+  `kstepL_hist`). Forms (to report): `SimR` gains `s0 ≤ rv` and `rmWf acc.1` (so `simR_init` takes
+  `rmWf (absR h0.st)`, already an accepted step-5 discharge); B5 gains `hreq` (MinRV parses below `2^63`,
+  from `InOk`): without it B5 is FALSE (`watchRangeL`'s `req+1` wraps at `2^64-1`, the driver's Nat range does not).
+  RealReplay now imports `KWatchBridge` (for `changeAtL_one`, `fI`, `SortedI`).
+- Next, in order:
+  1. **B5** (`RealWatch.lean`). Plan: `fromW` (inverse of `toWEvL` on `t < 5`; `raw = all.map fromW` since
+     `watchOkL` rejects `t ≥ 5`); the cut `C` of `realEventsL` is a prefix of `all` with an error only last;
+     `lastErrOkL` from that; `bookmarksOkR (C.map fromW)` ↔ `bookmarksOkL (nonErr C)` (state map `uint.nat`,
+     exact: `wmax`/comparisons are by `uint.nat`), prefix of `nonErr all`; reliable part: `E := tail.filter (t≠3)
+     = eventsInL x hs lo hiF` (driver), RVs strictly increasing (`HistWf`: `evAtL` at `r` has RV `r`), later
+     events of the full list have RV `≥ hiT` (events increase; a non-bookmark after a bookmark `b` is `> b`,
+     `bmStepL`'s `lb`), so `eventsInL lo' hiT = T'`; `lo'`/`lo` window lemma (all `T'` RVs `≥ f(loT)`);
+     revisions `≤ s0` give no event (`WatchFromL`); then `eventsForRVsL R x lo hi = (eventsInL x hs lo hi).map
+     fromW` for `s0 < lo`, `hi ≤ rv+1` from `ReplayAt.2` (`chgListL`; `evAtL` needs `2 ≤ r`: `1 ≤ s0`).
+     Watch-list: initial events = `listItemsL x WKey (absR (histN brv))` (sorted keys: `sortedKeysL_unique`,
+     `storeKeyL` keeps the order) and `ReplayAt.1` at `brv` (`s0 ≤ brv` by `WatchFromL`). Existing lemmas:
+     KWatchStream `eventsInL_split`/`_one`/`_eq_nil`, `evRangeL_cons`, `bmStepL_none_foldl`.
+  2. **B3a** `replayL_perm`. Plan: by strong induction on revisions `r` from `init.rv`: the bump at `r` in `l1`
+     (op A) and in `l2`: same op → same state (deterministic from equal states); else A is a no-op update in
+     `l2` returning the stored object at A's key with RV `r` (`rmWf`: init objects `≤ init.rv`; invariant: an
+     object stored at `k` with RV `> init.rv` was written by the bump at that RV at `k`), so the `l2` bump at
+     `r` wrote the same object at the same key; states and changes equal (`rewrites ⊆ items` for create vs
+     update). Number of bumps equal by symmetry. `rexecL_bump` gives the shape of a bump.
+  3. B1, B2, B4 (scope §2.3), statements as forms of the scope's prose; then report at step 4's end.
+- Premises still to discharge (step 5): Step's output premises; `WatchFromL`, `HistSorted`, length = revision,
+  `rmWf (absR st0)`, B5's `hreq`; `inFits`/`crFits`; `reqRep` from `realRequest`. Pre-existing breakage and
+  step-6 link-list entries as below (History, 2026-11-18 late).
+- Pitfalls (new): no Mathlib (`by_contra`, `le_trans` absent: `Classical.byContradiction`, `Nat.le_trans`);
+  `split at h` on a `match` may rewrite the goal too (`try rw [hs]`); `cases e` does not touch hypotheses
+  (`generalize … at h ⊢` first); `GMap.ofList` unfolds to `<[k := v]>` via `show`.
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
-  (LEAN_NUM_THREADS=4); check: `/shared/tmp/k8s7g/lc.sh -a FILE` (full output `/shared/tmp/k8s7g/lc.out`).
+  (LEAN_NUM_THREADS=4; `/shared/tmp/k8s7g/build3c.sh EXTRA…`); check: `/shared/tmp/k8s7g/lc.sh -a FILE`.
 
 ## History
+
+- 2026-11-18 late START HERE (superseded): step 3 done through `Step`; pitfalls there kept below.
 
 - 2026-11-18 night START HERE (superseded): step 3 update/delete/execute (`af26175d28`, `de06cdaa56`);
   pitfalls kept: `iexists l; iexists _; isplitr; …; iexact Hl` for struct points-to; `have h : … := rfl`

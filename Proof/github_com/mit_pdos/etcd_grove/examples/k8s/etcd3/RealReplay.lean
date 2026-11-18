@@ -27,6 +27,7 @@ stores of the history keep their items in strictly increasing key order, as the 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.RReplay
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KWatchBridge
 
 @[expose] public section
 
@@ -156,6 +157,39 @@ theorem chgListL_filter (s0 : Nat) (l t : List GSt) (hb : (l ++ t).length < 2 ^ 
       simp only [Option.map_some, Option.filter_some, decide_eq_true_eq]
       rw [W64_nat r (by omega)]; simp; omega
 
+/-- The changes of a history one store longer: the last revision's change appended. -/
+theorem chgListL_snoc (s0 : Nat) (l : List GSt) (st : GSt) (hs : s0 ≤ l.length) :
+    chgListL s0 (l ++ [st]) = chgListL s0 l ++
+      ((changeAtL (histN l l.length).items st.items (l.length + 1)).map fun ch =>
+        (⟨storeKeyL ch.key, W64 ((l.length + 1 : Nat) : Int), ch.cur, ch.prev⟩ : RChange)).toList := by
+  unfold chgListL
+  have hr : List.range' (s0 + 1) ((l ++ [st]).length - s0) =
+      List.range' (s0 + 1) (l.length - s0) ++ [l.length + 1] := by
+    rw [show [l.length + 1] = List.range' (s0 + 1 + 1 * (l.length - s0)) 1 by
+      simp only [List.range'_one]; congr 1; omega, List.range'_append]
+    congr 1; simp; omega
+  rw [hr, List.filterMap_append]
+  congr 1
+  · apply filterMap_congr'
+    intro r hr
+    rw [List.mem_range'_1] at hr
+    rw [histN_append_le l [st] r (by omega), histN_append_le l [st] (r - 1) (by omega)]
+  · have h1 : histN (l ++ [st]) (l.length + 1) = st := by
+      have := histN_last (l ++ [st]) st (by simp)
+      simpa using this
+    simp only [List.filterMap_cons, List.filterMap_nil, Nat.add_sub_cancel, h1,
+      histN_append_le l [st] l.length (Nat.le_refl _)]
+    cases changeAtL (histN l l.length).items st.items (l.length + 1) <;> rfl
+
+theorem kstepL_hist (x : Input) (h : HSt) :
+    (kstepL x h).1.hist =
+      if (kstepL x h).1.st.rv = h.st.rv then h.hist else h.hist ++ [(kstepL x h).1.st] := by
+  unfold kstepL
+  split
+  · simp
+  · unfold advanceL
+    split <;> simp_all
+
 /-! ## One model step -/
 
 /-- An accepted `Step` moves to `execute`'s state with its change (a read: the state itself). -/
@@ -186,6 +220,9 @@ theorem rexecL_bump (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 
       (rexecL x m).2.1.items !! storeKeyL x.Key', m.items !! storeKeyL x.Key'⟩ ∧
     (rexecL x m).2.1.items !! storeKeyL x.Key' ≠ m.items !! storeKeyL x.Key' ∧
     (rexecL x m).2.1.pfx = m.pfx ∧
+    (∀ o, (rexecL x m).2.1.items !! storeKeyL x.Key' = some o →
+      o.ResourceVersion' = (rexecL x m).2.1.rv) ∧
+    (rexecL x m).2.1.rewrites !! storeKeyL x.Key' = none ∧
     ∀ k, k ≠ storeKeyL x.Key' →
       (rexecL x m).2.1.items !! k = m.items !! k ∧ (rexecL x m).2.1.rewrites !! k = m.rewrites !! k := by
   have hrv : ∀ o : Obj, m.items !! storeKeyL x.Key' = some o → o.ResourceVersion' ≠ m.rv + W64 1 := by
@@ -213,9 +250,13 @@ theorem rexecL_bump (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 
     rw [if_neg h1, if_neg h2]
     have hn : m.items !! storeKeyL x.Key' = none := by
       rw [GMap.mem_iff] at h2; simpa using h2
-    refine ⟨rfl, ?_, ?_, rfl, ?_⟩
+    refine ⟨rfl, ?_, ?_, rfl, ?_, ?_, ?_⟩
     · simp [hn]
     · simp [hn]
+    · intro o ho; simp only [GMap.lookup_insert, Option.some.injEq] at ho; rw [← ho]
+    · cases e : m.rewrites !! storeKeyL x.Key' with
+      | none => rfl
+      | some _ => have := hwf.2 _ (by rw [e]; rfl); rw [hn] at this; simp at this
     · intro k' hk'; exact ⟨GMap.lookup_insert_ne _ _ (Ne.symm hk'), rfl⟩
   · have k0 : x.Kind' ≠ W64 0 := by rw [k]; decide
     rw [if_neg k0, if_pos k] at hne ⊢
@@ -239,8 +280,10 @@ theorem rexecL_bump (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 
     · simp at hne
     next hr =>
     rw [if_neg hr]
-    refine ⟨rfl, ?_, ?_, rfl, ?_⟩
+    refine ⟨rfl, ?_, ?_, rfl, ?_, ?_, ?_⟩
     · simp
+    · simp
+    · intro o ho; simp at ho
     · simp
     · intro k' hk'
       exact ⟨GMap.lookup_delete_ne _ (Ne.symm hk'), GMap.lookup_delete_ne _ (Ne.symm hk')⟩
@@ -256,12 +299,15 @@ theorem rexecL_bump (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 
         (updWriteL m (storeKeyL x.Key') st u).2.1.items !! storeKeyL x.Key' ≠
           m.items !! storeKeyL x.Key' ∧
         (updWriteL m (storeKeyL x.Key') st u).2.1.pfx = m.pfx ∧
+        (∀ o, (updWriteL m (storeKeyL x.Key') st u).2.1.items !! storeKeyL x.Key' = some o →
+          o.ResourceVersion' = (updWriteL m (storeKeyL x.Key') st u).2.1.rv) ∧
+        (updWriteL m (storeKeyL x.Key') st u).2.1.rewrites !! storeKeyL x.Key' = none ∧
         ∀ k, k ≠ storeKeyL x.Key' →
           (updWriteL m (storeKeyL x.Key') st u).2.1.items !! k = m.items !! k ∧
           (updWriteL m (storeKeyL x.Key') st u).2.1.rewrites !! k = m.rewrites !! k := by
       intro st u hst
       unfold updWriteL
-      refine ⟨rfl, ?_, ?_, rfl, ?_⟩
+      refine ⟨rfl, ?_, ?_, rfl, ?_, ?_, ?_⟩
       · simp [hst]
       · simp only [GMap.lookup_insert]
         intro e
@@ -270,6 +316,8 @@ theorem rexecL_bump (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 
         | some o =>
           rw [ho] at e
           exact hrv o ho (by simp only [Option.some.injEq] at e; rw [← e])
+      · intro o ho; simp only [GMap.lookup_insert, Option.some.injEq] at ho; rw [← ho]
+      · exact GMap.lookup_delete _ _
       · intro k' hk'
         exact ⟨GMap.lookup_insert_ne _ _ (Ne.symm hk'), GMap.lookup_delete_ne _ (Ne.symm hk')⟩
     unfold rupdateL failR at hne ⊢
@@ -306,6 +354,83 @@ theorem rexecL_bump (x : Input) (m : RM) (hwf : rmWf m) (hb : uint.nat m.rv + 1 
       try rw [hs]
       have H := hw _ (updGo x ((none : Option Obj).getD zObj)) hs
       rw [hs] at H; exact H
+
+/-! ## The abstraction of a store -/
+
+theorem ofList_items (its : List item) (n : GoString) :
+    (GMap.ofList (its.map fun it => (storeKeyL it.key', it.obj'))) !! storeKeyL n =
+      (fI its n).map (·.obj') := by
+  induction its with
+  | nil => rfl
+  | cons a t ih =>
+    rw [List.map_cons, fI_cons]
+    show (<[storeKeyL a.key' := a.obj']> (GMap.ofList (t.map fun it => (storeKeyL it.key', it.obj'))))
+      !! storeKeyL n = _
+    rw [GMap.lookup_insert_eq_iff]
+    by_cases h : a.key' = n
+    · simp [h]
+    · have : storeKeyL a.key' ≠ storeKeyL n := fun e => h (storeKeyL_inj e)
+      simp only [this, h, if_false, ih]
+
+/-- The rewrite flags of a sorted store: a non-canonical item's key. -/
+def rwOf : Option item → Option Bool
+  | some it => if it.canon' then none else some true
+  | none => none
+
+theorem ofList_rewrites (its : List item) (hs : SortedI its) (n : GoString) :
+    (GMap.ofList ((its.filter fun it => !it.canon').map fun it => (storeKeyL it.key', true))) !!
+      storeKeyL n = rwOf (fI its n) := by
+  induction its with
+  | nil => rfl
+  | cons a t ih =>
+    obtain ⟨hs', hlt⟩ := sortedI_cons' hs
+    rw [fI_cons]
+    by_cases h : a.key' = n
+    · subst h
+      rw [if_pos rfl]
+      have hnone : (GMap.ofList ((t.filter fun it => !it.canon').map
+          fun it => (storeKeyL it.key', true))) !! storeKeyL a.key' = none := by
+        rw [ih hs', fI_none_of_lt t a.key' hlt]; rfl
+      by_cases hc : a.canon' = true
+      · simp only [List.filter_cons, hc, Bool.not_true, Bool.false_eq_true, if_false]
+        rw [hnone]; simp [rwOf, hc]
+      · simp only [List.filter_cons, hc, Bool.not_false, if_true, List.map_cons]
+        show (<[storeKeyL a.key' := true]> _) !! storeKeyL a.key' = _
+        rw [GMap.lookup_insert]; simp [rwOf, hc]
+    · rw [if_neg h, ← ih hs']
+      have : storeKeyL a.key' ≠ storeKeyL n := fun e => h (storeKeyL_inj e)
+      by_cases hc : a.canon' = true
+      · simp only [List.filter_cons, hc, Bool.not_true, Bool.false_eq_true, if_false]
+      · simp only [List.filter_cons, hc, Bool.not_false, if_true, List.map_cons]
+        show (<[storeKeyL a.key' := true]> _) !! storeKeyL n = _
+        rw [GMap.lookup_insert_ne _ _ this]
+
+/-- Two sorted stores whose abstractions agree at the key of `n` have the same item there. -/
+theorem fI_eq_of_absR (p q : GSt) (hp : SortedI p.items) (hq : SortedI q.items) (n : GoString)
+    (hi : (absR p).items !! storeKeyL n = (absR q).items !! storeKeyL n)
+    (hr : (absR p).rewrites !! storeKeyL n = (absR q).rewrites !! storeKeyL n) :
+    fI p.items n = fI q.items n := by
+  have hi' := hi; have hr' := hr
+  simp only [absR] at hi' hr'
+  rw [ofList_items, ofList_items] at hi'
+  rw [ofList_rewrites _ hp, ofList_rewrites _ hq] at hr'
+  cases ea : fI p.items n with
+  | none =>
+    cases eb : fI q.items n with
+    | none => rfl
+    | some b => rw [ea, eb] at hi'; simp at hi'
+  | some a =>
+    cases eb : fI q.items n with
+    | none => rw [ea, eb] at hi'; simp at hi'
+    | some b =>
+      rw [ea, eb] at hi' hr'
+      have hka := fI_key ea; have hkb := fI_key eb
+      simp only [Option.map_some, Option.some.injEq] at hi'
+      have hc : a.canon' = b.canon' := by
+        unfold rwOf at hr'
+        cases ha : a.canon' <;> cases hb : b.canon' <;> simp_all
+      cases a; cases b
+      simp_all
 
 /-! ## B3a: any two linearizations that replay give the same replay -/
 
@@ -357,7 +482,125 @@ theorem simR_step (s0 : w64) (acc : RM × GMap w64 RM × List RChange) (h : HSt)
     (hstep : replayStepL (some acc) (x, resp) = some acc')
     (habs : acc'.1 = absR (kstepL x h).1.st) :
     SimR s0 acc' (kstepL x h).1 := by
-  sorry
+  obtain ⟨m, ss, cs⟩ := acc
+  obtain ⟨hm, hs0, hwf, hdom, hcs, hst, hch⟩ := hsim
+  simp only at hm hdom hcs hst hch hwf
+  simp only [replayStepL] at hstep
+  have hT : (rstepL x m resp).1 = true := by
+    apply Classical.byContradiction; intro hT; rw [if_neg hT] at hstep; simp at hstep
+  rw [if_pos hT, Option.some.injEq] at hstep
+  subst hstep
+  have h2 := rstepL_true x m resp hT
+  simp only [h2] at habs ⊢
+  have hH := kstepL_hist x h
+  generalize (kstepL x h).1 = h' at habs hH hsort hlen' hrv ⊢
+  have hmrv : m.rv = h.st.rv := by rw [hm]; rfl
+  have hm'rv : (rexecL x m).2.1.rv = h'.st.rv := by rw [habs]; rfl
+  by_cases hr : (rexecL x m).2.1.rv = m.rv
+  · have hrv' : h'.st.rv = h.st.rv := by rw [← hmrv, ← hr, hm'rv]
+    have hH' : h'.hist = h.hist := by rw [hH, if_pos hrv']
+    have e := rexecL_rv_same x m hr
+    rw [e] at habs ⊢
+    simp only [Option.toList_none, List.append_nil] at habs ⊢
+    refine ⟨habs, by rw [hrv']; exact hs0, hwf, ?_, ?_, ?_, ?_⟩
+    · intro r
+      rw [GMap.lookup_insert_eq_iff, hrv']
+      by_cases e2 : m.rv = r
+      · subst e2; simp only [if_true, Option.isSome_some, true_iff]; rw [hmrv]; omega
+      · rw [if_neg e2]; exact hdom r
+    · intro c hc; rw [hrv']; exact hcs c hc
+    · intro r h1 h3
+      rw [hrv'] at h3
+      rw [hH', GMap.lookup_insert_eq_iff]
+      by_cases e2 : m.rv = r
+      · subst e2; rw [if_pos rfl, hmrv, histAtL_last _ _ _ hlen hlast, hm]
+      · rw [if_neg e2]; exact hst r h1 h3
+    · show cs.filter _ = _
+      rw [hH', hrv']; exact hch
+  · have hrv' : h'.st.rv ≠ h.st.rv := by rw [← hm'rv, ← hmrv]; exact hr
+    have hH' : h'.hist = h.hist ++ [h'.st] := by rw [hH, if_neg hrv']
+    have hnat : uint.nat h'.st.rv = uint.nat h.st.rv + 1 := by
+      rw [← hlen', hH', List.length_append, hlen]; rfl
+    obtain ⟨_, hb2, hb3, _, hb5, hb6, hb7⟩ :=
+      rexecL_bump x m hwf (by rw [hmrv]; omega) hr
+    have hsortH : SortedI h.st.items := by
+      have := hsort h.hist.length (by rw [hH']; simp)
+      rw [hH', histN_append_le _ _ _ (Nat.le_refl _), histN_last _ _ hlast] at this
+      exact this
+    have hsortH' : SortedI h'.st.items := by
+      have := hsort h'.hist.length (Nat.le_refl _)
+      rw [histN_last _ h'.st (by rw [hH']; simp)] at this
+      exact this
+    rw [hb2]
+    have hm'nat : uint.nat (rexecL x m).2.1.rv = uint.nat h'.st.rv := by rw [hm'rv]
+    refine ⟨habs, by omega, ?_, ?_, ?_, ?_, ?_⟩
+    · constructor
+      · intro k o ho
+        by_cases ek : k = storeKeyL x.Key'
+        · subst ek; rw [hb5 o ho]; exact Nat.le_refl _
+        · rw [(hb7 k ek).1] at ho
+          have := hwf.1 k o ho
+          rw [hm'nat, hnat, ← hmrv]; omega
+      · intro k hk
+        by_cases ek : k = storeKeyL x.Key'
+        · subst ek; rw [hb6] at hk; simp at hk
+        · rw [(hb7 k ek).2] at hk; rw [(hb7 k ek).1]; exact hwf.2 k hk
+    · intro r
+      rw [GMap.lookup_insert_eq_iff]
+      by_cases e2 : (rexecL x m).2.1.rv = r
+      · subst e2; simp only [if_true, Option.isSome_some, true_iff]; omega
+      · rw [if_neg e2, hdom r]
+        have hne : uint.nat r ≠ uint.nat h'.st.rv := by
+          intro e3; apply e2; rw [hm'rv]; exact (BitVec.eq_of_toNat_eq e3).symm
+        omega
+    · intro c hc
+      rcases List.mem_append.1 hc with hc | hc
+      · have := hcs c hc; omega
+      · simp only [Option.toList_some, List.mem_singleton] at hc
+        subst hc; exact Nat.le_of_eq hm'nat
+    · intro r h1 h3
+      rw [GMap.lookup_insert_eq_iff]
+      by_cases e2 : (rexecL x m).2.1.rv = r
+      · subst e2
+        rw [if_pos rfl, hH', histAtL_snoc_gt _ _ _ (by rw [hlen]; omega), habs]
+      · rw [if_neg e2]
+        have hne : uint.nat r ≠ uint.nat h'.st.rv := by
+          intro e3; apply e2; rw [hm'rv]; exact (BitVec.eq_of_toNat_eq e3).symm
+        rw [hH', histAtL_snoc_le _ _ _ (by omega)]
+        exact hst r h1 (by omega)
+    · show (cs ++ _).filter _ = _
+      rw [List.filter_append, hH', chgListL_snoc _ _ _ (by omega), ← hch]
+      congr 1
+      · rw [List.filter_eq_self.2 (fun c hc => by have := hcs c hc; simp; omega),
+          List.filter_eq_self.2 (fun c hc => by have := hcs c hc; simp; omega)]
+      · rw [Option.toList_some, List.filter_cons, if_pos (by simp; omega), List.filter_nil]
+        rw [histN_last _ _ hlast]
+        rw [changeAtL_one (x.Key') _ _ _ hsortH hsortH' (fun k hk =>
+          fI_eq_of_absR _ _ hsortH hsortH' k
+            (by rw [← hm, ← habs]; exact ((hb7 _ (fun e => hk (storeKeyL_inj e))).1).symm)
+            (by rw [← hm, ← habs]; exact ((hb7 _ (fun e => hk (storeKeyL_inj e))).2).symm))]
+        have hi : (rexecL x m).2.1.items !! storeKeyL x.Key' =
+            (fI h'.st.items x.Key').map (·.obj') := by rw [habs]; exact ofList_items _ _
+        have hi0 : m.items !! storeKeyL x.Key' = (fI h.st.items x.Key').map (·.obj') := by
+          rw [hm]; exact ofList_items _ _
+        have hW : (rexecL x m).2.1.rv = W64 ((h.hist.length + 1 : Nat) : Int) := by
+          apply BitVec.eq_of_toNat_eq
+          rw [show (W64 ((h.hist.length + 1 : Nat) : Int)).toNat = h.hist.length + 1 from
+            W64_nat _ (by rw [hlen]; omega)]
+          show uint.nat _ = _
+          omega
+        rw [hi, hi0] at hb3 ⊢
+        rw [hW]
+        unfold chgL
+        generalize fI h.st.items x.Key' = a at hb3 ⊢
+        generalize fI h'.st.items x.Key' = b at hb3 ⊢
+        cases a <;> cases b
+        · simp at hb3
+        · simp
+        · simp
+        · rename_i p q
+          have hpq : p ≠ q := fun e => hb3 (by rw [e])
+          simp [hpq]
 
 /-- **B3b, earlier configurations**: the final replay agrees with every configuration whose
 history is a prefix of the final one's. -/

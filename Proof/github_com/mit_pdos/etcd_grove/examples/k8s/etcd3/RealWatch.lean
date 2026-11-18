@@ -13,6 +13,8 @@ The received events are the store's `watch.Event`s (`REv`); the driver's own che
 beyond `watchOkL`:
 
 - the history's facts (`HistWf`, `HistSorted`, its length the revision, `1 ≤ s0 ≤` its revision);
+- the requested resource version below `2^63` (`InOk`'s; without it, `watchRangeL`'s `req + 1`
+  wraps at `2^64 - 1` where the driver's natural-number range does not, and B5 is false);
 - **`WatchFromL s0 x all`**: the events after the initial ones (a watch-list's from its first
   bookmark; any other watch's all of them) mark revisions after `s0`: the replay knows the changes
   from `s0` on only. The store's watch starts at or after the revision it had when the watch was
@@ -87,6 +89,7 @@ theorem validateWatchL_of_watchOkL (s0 : w64) (R : RReplay) (h : HSt) (x : Input
     (hlen : h.hist.length = uint.nat h.st.rv) (hwf : HistWf x h.hist) (hsort : HistSorted h.hist)
     (hs0 : 1 ≤ uint.nat s0) (hs0h : uint.nat s0 ≤ uint.nat h.st.rv)
     (hR : ReplayAt s0 R h)
+    (hreq : ∀ n, parseRVD x.MinRV' = some n → uint.nat n < 2 ^ 63)
     (hskip : x.Skip' = false) (hfail : y.WFailed' = false)
     (hdec : decWEventsL y.WEvents' = some (raw.map toWEvL))
     (hfrom : WatchFromL s0 x (raw.map toWEvL))
