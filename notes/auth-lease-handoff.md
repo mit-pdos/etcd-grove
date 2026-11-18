@@ -1,6 +1,44 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-18, item 9: D-k's texts written and built; STOPPED at D-k's stop)
+## START HERE (S4, 2026-11-18, item 9: D-k ACCEPTED, lean 49bd7924e6 merged; driver IN PROGRESS)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
+  everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
+- **Done:** 7b (accepted, 2026-11-18; record in STATUS at the land stop). D-k `e7d56912d6` (accepted by etcd-grove-03,
+  texts 1–3 and `server_cluster_alloc_on` mirrored; build of its 29 leaves green, tcb 892/4). Merge of lean 49bd7924e6
+  `e180852712` (Hctx Part B, incomingof; no textual conflict); its full build: see the next commit/section.
+- **Driver files so far** (`Proof|Spec/github_com/mit_pdos/etcd_grove/examples/etcd/authlease/`): `Defs`, `Dir`
+  (authN's at the token and ports 16000/17000), `reqCtx`, `refused` (authkv's), `newUserClient` (authN's),
+  `barrier` (authN's + the caller's read update `Q` and the floor `srvApi.kvLogLb E.γs log` with `□ Q (kvStateOf log
+  lt)` from `rangeReplyOk`; `isServerReadM E.authOn`, no literal mode). State: see the commit that adds them.
+- **Driver plan (what is left, in order):**
+  1. `Served.lean`: authN's `serve_member`/`srvdAt`/`Wit` (authN `run.lean`) plus the lease registrations at the member
+     (`etcd_lease_auth_served_on`: LeaseGrant/LeaseRevoke at `etcdLeaseGrantSpecOn`/`etcdLeaseRevokeSpecOn`;
+     `etcd_lease_read_served`: TimeToLive/Leases at `etcdLeaseTTLSpecMd`/`etcdLeaseLeasesSpecMd`), from `memberUpOn … .revocable`
+     (`srvLeaseRd`) and `grpcUpOn`'s `grpcLeaseUp`.
+  2. `Cell.lean`: the driver's invariant over the client half `etcdKV γk σ` (Freeze §8.3): phases after the set-up
+     (`a/x`, `z/lease`, `a/lease`, `a/txn` absent), after root's put (`leaseKeptIn σ rz Lz z/lease`), after u's puts (`…
+     Lu a/lease`, `… Lu a/txn`), after u's revocation (`a/lease`, `a/txn` absent); `a/x` absent throughout. Every update
+     handed out keeps it: the refused ones (u's `Put(a/x, Lz)`, its txn, `Revoke(Lz)`; v's `Revoke(Lu)`) are refuted at
+     their grant (`grantedAt` → `leaseOk` at `setupSt` needs u/v to write `z/lease`/`a/lease`: false; `akAuthFixed_write`);
+     re-delivered puts/grants keep the pairs; u's `Revoke(Lu)` moves to the last phase (its step deletes the attached keys).
+     Open design point: the phase's ghost state (the updates fire at commit, so they must be able to advance it: a
+     monotone phase in the invariant with persistent witnesses for the main thread, not a split ghost var).
+  3. `barriers` (loop over the served members: `barrier` at each, `akAuthFixed` and the floor with `Q`), `grantPut`
+     (`client_lease_grant_on` + `client_put_on` with `WithLease`, `hl` by `ρ.kv.lm = .revocable`), `noAuth` (checks 1:
+     the token-less/invalid-token refusals: `leaseCheckT`/`authedFrom` at no token or `badToken`, D-h), `foreign`
+     (checks 3–5: Revoke refuted by its update; TimeToLive/Leases by `lessor_keys_of_read` at barrier 2's floor + the
+     per-index `leaseKeysVerdict_refused` of `Scratch/S4Probe.lean`), `absent` (root's `client_range_on` with a read update
+     from the cell).
+  4. `run`, then `Main` (authN's `Main.lean` with `allocNOnM … .revocable hrun hnx hap (ns := true)`, `memberBootOn … lm`,
+     `StartMembersAuth … .revocable`). STOP at `Main.wp_proof` (present Draft §2's closed text vs what linking needs).
+- **Pitfalls:** no literal modes in the package (mode gate: a new package line is a raise): `isServerReadM E.authOn` with
+  `hon` from `E.authMode = .on γa`. `etc/gen-link.py --bbolt`/`--walfs` and `gen-specs-pkginit --check` differ in a
+  worktree without `.lake/packages/perennial` (environmental): do not commit those regenerations. Monitor filters:
+  anchor `^Terminated`. `questions.md` is untracked (gitignored): decisions live only in the worktree file.
+
+## Previous START HERE (S4, 2026-11-18, item 9 D-k stop)
+
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
   everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
