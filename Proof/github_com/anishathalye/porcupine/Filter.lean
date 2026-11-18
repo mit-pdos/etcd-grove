@@ -247,6 +247,63 @@ theorem isLinearization_filter (M : SeqModel σ α) (M' : SeqModel σ' β) (f : 
     cases h1; cases h2
     exact ⟨o', o, ho', ho, hlt⟩
 
+/-- The kept operations' values, in the order of `l`'s kept indices. -/
+theorem vals_fmapH (f : α → Option β) (h : List (Op α)) :
+    ∀ l : List Nat, vals (fmapH f h) (l.filterMap (fidx f h)) = (vals h l).filterMap f
+  | [] => rfl
+  | k :: l => by
+    have ih := vals_fmapH f h l
+    cases ho : h[k]? with
+    | none =>
+      have hf : fidx f h k = none := by simp [fidx, ho]
+      rw [List.filterMap_cons, hf]
+      simpa [vals, ho] using ih
+    | some o =>
+      cases hfo : f o.val with
+      | none =>
+        have hf : fidx f h k = none := by simp [fidx, ho, hfo]
+        rw [List.filterMap_cons, hf]
+        simpa [vals, ho, hfo] using ih
+      | some b =>
+        have hfi : fidx f h k = some (fmapH f (h.take k)).length := by simp [fidx, ho, hfo]
+        obtain ⟨o2, b2, ho2, hb2, hg⟩ := fidx_get f h k _ hfi
+        rw [ho] at ho2; cases ho2
+        rw [hfo] at hb2; cases hb2
+        rw [List.filterMap_cons, hfi]
+        have e1 : vals (fmapH f h) ((fmapH f (h.take k)).length :: l.filterMap (fidx f h)) =
+            b :: vals (fmapH f h) (l.filterMap (fidx f h)) := by simp [vals, hg]
+        have e2 : vals h (k :: l) = o.val :: vals h l := by simp [vals, ho]
+        rw [e1, e2, List.filterMap_cons, hfo, ih]
+
+theorem vals_range (h : List (Op α)) : vals h (List.range h.length) = h.map Op.val := by
+  induction h with
+  | nil => rfl
+  | cons a t ih =>
+    unfold vals at ih ⊢
+    rw [List.length_cons, List.range_succ_eq_map, List.filterMap_cons, List.filterMap_map]
+    simp only [List.getElem?_cons_zero, Option.map_some, List.map_cons]
+    congr 1
+
+/-- A linearization's values are a permutation of the history's. -/
+theorem isLinearization_perm {M : SeqModel σ α} {h : List (Op α)} {π : List Nat}
+    (hπ : IsLinearization M h π) : (vals h π).Perm (h.map Op.val) := by
+  obtain ⟨hnd, hmem, -, -⟩ := hπ
+  have hp : π.Perm (List.range h.length) := by
+    rw [List.perm_ext_iff_of_nodup hnd List.nodup_range]
+    intro k
+    rw [hmem k, List.mem_range]
+    exact ⟨fun e => e.1, fun e => ⟨e, fun x => x⟩⟩
+  rw [← vals_range h]
+  exact hp.filterMap _
+
+theorem fmapH_map_val (f : α → Option β) (h : List (Op α)) :
+    (fmapH f h).map Op.val = (h.map Op.val).filterMap f := by
+  induction h with
+  | nil => rfl
+  | cons a t ih =>
+    rw [fmapH_cons, List.map_append, ih, List.map_cons, List.filterMap_cons]
+    cases f a.val <;> rfl
+
 end Theory
 end github_com.anishathalye.porcupine
 end Perennial
