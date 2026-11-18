@@ -71,12 +71,9 @@ end defs
 /-- **The tracked buckets after `CreateAuthBuckets`**: each auth bucket present (`∅` if it was
 absent), the rest as they were. -/
 def authCreated (r : GMap GoString BktData) : GMap GoString BktData :=
-  ((r.insert go_etcd_io.etcd.server.v3.storage.schema.authName
-      ((r.lookup go_etcd_io.etcd.server.v3.storage.schema.authName).getD ∅)).insert
-    go_etcd_io.etcd.server.v3.storage.schema.authUsersName
-      ((r.lookup go_etcd_io.etcd.server.v3.storage.schema.authUsersName).getD ∅)).insert
-    go_etcd_io.etcd.server.v3.storage.schema.authRolesName
-      ((r.lookup go_etcd_io.etcd.server.v3.storage.schema.authRolesName).getD ∅)
+  ((r.insert mvcc.authBI.name ((r.lookup mvcc.authBI.name).getD ∅)).insert
+    mvcc.authUsersBI.name ((r.lookup mvcc.authUsersBI.name).getD ∅)).insert
+    mvcc.authRolesBI.name ((r.lookup mvcc.authRolesBI.name).getD ∅)
 
 section buckets
 variable [GooseExts] [GooseSemantics] [GooseInterp]
