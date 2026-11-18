@@ -431,6 +431,66 @@ theorem rstepL_write (x : Input) (st : GSt) (r : RResp)
   rw [key.1, hd, respEqL_deep]
   exact ⟨rfl, key.2⟩
 
+/-! ## B1: a get -/
+
+/-- **B1, a get.** A get's real answer, when it is what the driver's answer at the current store encodes, is
+accepted by the maintainers' `Step` (`validateGet` against `execute`'s answer on the same state), which leaves
+the state. Premises: the key is accepted, the store sorted and its objects not `Annotated` (`StOk`), its
+objects no newer than it (`rmWf`), and its revision positive (the seeded store's). -/
+theorem rstepL_get (x : Input) (st : GSt) (r : RResp)
+    (hg : ¬ (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2)) (h4 : x.Kind' ≠ W64 4)
+    (hk : keyOkL (storeKeyL x.Key') = true) (hst : StOk st) (hwf : rmWf (absR st))
+    (hpos : 0 < uint.nat st.rv) (hrel : RawRel x (mgetL x st) r) :
+    (rstepL x (absR st) r).1 = true ∧ (rstepL x (absR st) r).2.1 = absR st := by
+  unfold rstepL
+  rw [if_neg h4, if_neg hg]
+  refine ⟨?_, rfl⟩
+  have hex : (rexecL x (absR st)).1 = rgetL x (absR st) := by
+    unfold rexecL
+    simp only [not_or] at hg
+    rw [if_neg h4, if_neg hg.1, if_neg hg.2.1, if_neg hg.2.2]
+  rw [hex]
+  unfold mgetL at hrel
+  unfold rgetL
+  simp only [hk, Bool.not_true, Bool.false_eq_true, ↓reduceIte]
+  cases hp : parseRVD x.MinRV' with
+  | none =>
+    simp only [hp] at hrel
+    simp [RawRel, otherL, errOutL] at hrel
+  | some req =>
+    simp only [hp] at hrel ⊢
+    have hrv : (absR st).rv = st.rv := rfl
+    rw [hrv]
+    by_cases hlt : uint.nat st.rv < uint.nat req
+    · simp only [hlt, if_true] at hrel ⊢
+      simp [RawRel, tooLargeL, errOutL] at hrel
+      subst hrel
+      simp [rvalidateGetL, tooLargeE, isTooLargeE]
+    simp only [hlt, if_false] at hrel ⊢
+    rw [absR_items]
+    by_cases hf : (lookupL st.items x.Key').2 = true
+    · have ha := lookupL_ann st hst x.Key' hf
+      have hle := hwf.1 (storeKeyL x.Key') (lookupL st.items x.Key').1.obj'
+        (by rw [absR_items, if_pos hf])
+      simp only [hf, Bool.not_true, Bool.false_eq_true, ↓reduceIte] at hrel ⊢
+      simp only [RawRel, objOutL, h4, if_true, if_false] at hrel
+      subst hrel
+      have e := objOfL_objOutL _ ha; simp only [objOutL] at e; rw [e]
+      unfold rvalidateGetL; by_cases hm : x.MinRV' = [] <;> simp [hm, isTooLargeE, errNonNil, respEqL, delayE, hle]
+    · have hf' : (lookupL st.items x.Key').2 = false := by simpa using hf
+      simp only [hf', Bool.not_false, ↓reduceIte] at hrel ⊢
+      cases hig : x.IgnoreNotFound'
+      · simp only [hig, Bool.false_eq_true, ↓reduceIte] at hrel ⊢
+        simp [RawRel, notFoundL, errOutL] at hrel
+        subst hrel
+        have hreq := Nat.le_of_not_lt hlt; unfold rvalidateGetL; by_cases hm : x.MinRV' = [] <;> simp [hm, hp, isTooLargeE, errNonNil, isNotFoundE, respEqL, delayE, notFoundE, hpos, hreq, hrv]
+        all_goals rfl
+      · simp only [hig, ↓reduceIte] at hrel ⊢
+        simp only [RawRel, zeroOutL, errOutL, h4, ↓reduceIte, if_true, if_false] at hrel
+        subst hrel
+        unfold rvalidateGetL; by_cases hm : x.MinRV' = [] <;> simp [hm, isTooLargeE, errNonNil, respEqL, delayE, objOfL]
+        all_goals rfl
+
 end go
 
 end k8s_correctness
