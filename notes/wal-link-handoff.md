@@ -12,7 +12,8 @@
   `osPathS_sameRoot` (TreeShared); cross-directory rename specs take `hsr : SameRootR R (child d bs) (child d' bt)`
   (fs legacy + shared, `os.Rename.specFileS(nc)`); the dir-rename clause from the global sole (`Or.inl`). Checked:
   every `GooseLang/Ext/Fs` file, 34 `Proof/os`+`Spec/os` files, walfs `DSTree`/`Boot`/`DirSwap`/`SegLogOps`, `WAL__cut`,
-  WalTester `tryWrite` by `lean-check --fast`; the full build was queued at the commit (`/shared/tmp/wallink/full1.log`).
+  WalTester `tryWrite` by `lean-check --fast`; then the full default build green (20488 jobs, c6b manifest, 2026-11-18;
+  only `InvOpenTest`'s toy rename needed `hsr`). No axiom, `sorry` or trusted text changed by phase A.
 - **STOP (cost delta, for etcd-grove-03):** the per-root permission breaks `TreeCohS.dox` (`DirOpExcl`, TreeCut.lean),
   which `closed_cut` (TreeCutProof.lean, 661 lines; the crash theorem `machineCrash_initS`) needs **globally**; today
   it is kept by the whole global permission (`wholeG_facts`: no other logging call in flight at a directory op). With
