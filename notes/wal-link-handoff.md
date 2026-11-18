@@ -1,6 +1,32 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 e, step B: option (b) done; os + fileutil converted; WAL started; STOP for the handle-roots form)
+## START HERE (2026-11-18 f, step B: option (C) done; WAL + WalTester + durable build; lean merged; full build)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean fb68edfec8 (origin's big merge) merged (898bd6d54d);
+  pin still 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
+- **Decided (etcd-grove-03, questions.md 2026-11-18):** option (b) and the key forms ACCEPTED; option (C) for handle roots.
+- **Done (d68da68c02..9242b35b18):** (C): `walPipeH`/`walDirH`/`walCloseLeft` carry `⌜R = W.roots⌝`; `walAreaOk` carries
+  `osAboveInv`; fileutil TouchDirAll/TouchDirAllDir/CreateDirAllTmp, os MkdirAll(Dir)/RemoveAll*/RemoveAllFrom keyed; WAL
+  dir key = area root key via `osPathS_callKey` (Open, openAtIndex, Repair, openLast, VSE, cleanupWAL, renameWAL, Create);
+  `storage.Close.spec` keyed; WalTester `tPerm` (forms list: questions.md 2026-11-18 "option (C) and the rest").
+  `lake build` of the WAL Link + WalTester wal/durable Links green (b5.log) before the merge.
+- **Running:** full default build after the merge (`/shared/tmp/wallink/full3.log`).
+- **Next, in order:** fix what the full build shows (server/examples importing the changed WAL/os specs); then the
+  per-area ghost instances (one `WalGS` per area; `walUnlockedTok` per area); then L3 (scope §3.5: server-statement
+  stop with old → new incl. Save's `hardStateAt` → `hsOptC` and F2; then the examples' Go to absolute dirs +
+  `--wal-dir`; STOP with the exact old → new closed statements for the user).
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a FILE`
+  (`--fast` can report 0 errors on an incremental re-check that a build then rejects: re-check without it, or build).
+  **Build:** `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]`.
+  `/shared/tmp/wallink/scripts/chkloop.sh LIST OUT` lean-checks a list of files in order (summary OUT, errors OUT.err).
+- **Pitfalls:** key mismatch dir vs root: get `hkc` from `osPathS_callKey R r _ jr $$ Hp`, then `rw [← hkd]` on the goal
+  and `rw [hkd]` in an r-keyed callee's framing subgoal; `osCallPerm_child`/`_unchild` around a call on `child d b`;
+  sealed W.roots keys: `walPerm_toW/ofW hWR`; `subst Rp'` may pick the wrong equation (use `subst hRp` by name);
+  `e.orFile.d` vs `e.orDir` is defeq but not reducible: `osCallPerm_congr qc (show … from rfl)`.
+
+## History
+
+### START HERE (2026-11-18 e, step B: option (b) done; os + fileutil converted; WAL started; STOP for the handle-roots form)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 49bd7924e6 merged; pin 6d365ee1a,
   `/shared/tmp/manifest-6d3.json` everywhere, `.lake/package-overrides.json` = a copy of it.
@@ -33,7 +59,6 @@
   convert first (`osCallPerm_child`/`_unchild`, `osCallPerm_congr q h`); `walPerm_toW hWR d q` converts R-keys to W.roots-keys;
   a `rw [hWR]` on the IPM goal fails when W.roots only appears after an `iapply`.
 
-## History
 
 ### START HERE (2026-11-18 d, stage 2 step B: per-key permission in the fs library; os clients WIP; STOP for a decision)
 
