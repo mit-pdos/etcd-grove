@@ -24,7 +24,12 @@
   `isWatchPermitted.spec` still names the deleted `principalBoundI`: make it `v3rpc.infoBoundT … tok` with `swsIs`
   taking `tok`), AuthService (`hdrBoundM_tok s E (ok ci)`), InvLease*/LeaseServer grant/revoke handlers, Results;
   these consume the handler contracts, so they go with 1b (grpcAccepted supplies `ctxToken ci (mdTokenOf md)`).
-- **Next, in order:** check build 2's failures; the watch chain + AuthService + lease handlers; 1b (§4.1); client
+- Build 2 (`/shared/tmp/perheap/s/c1a-t2-1.log`): etcdserver `Results` BUILT (the four auth-off theorems), ServerKVOn,
+  InvAuthAdmin, the maintenance guards, kvServer.Compact built; failures fixed after it (renewAns/raftLeaseRenew by
+  token, lessorGrantOkGM_mono, AuthService's adminOutOn_reply/authWrapOut_admin) except `isWatchPermitted.spec`
+  (watch chain). The restart examples wait on the v3rpc modules they import.
+- **Next, in order:** rebuild build 2's targets; the watch chain (`swsIs` by `tok`, `isWatchPermitted`, recvLoop,
+  sendLoop, `watchServer.Watch`) + AuthService handlers + the lease grant/revoke/keepalive handlers; 1b (§4.1); client
   Results; examples auth (§4.3); full build at C1; tcb `--check --update`; interfaces; attack of new trusted text
   (Tracer.Start's restatement: agent report `/shared/tmp/perheap/attack-tracer.md`).
 - Forms decided this session (report at C1a's end): `hdrBoundM`/`infoBoundM` kept as the mode-gated wrappers,
