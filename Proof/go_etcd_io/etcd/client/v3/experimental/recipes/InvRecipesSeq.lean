@@ -356,7 +356,7 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `Sprintf("%s/%016d", x, n)` for a string `x` and an `int` `n` (of any sign) is `x/` then
 `decimalPad 16 n` (`SprintfOut.str_slash_016d_int` for `n ≥ 0`). -/
-theorem sprintf_slash_016d [go.IntoValInj GoString] [go.IntoValInj w64]
+theorem sprintf_slash_016d [go.IntoValInj GoString] [go.IntoValInj w64] [go.string ↓u go.string]
     (x : GoString) (n : w64) (out : GoString)
     (h : _root_.Perennial.fmt.SprintfOut go!"%s/%016d"
       [interface.mkOk go.string #x, interface.mkOk go.int #n] out) :

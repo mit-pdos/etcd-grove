@@ -55,7 +55,7 @@ theorem daemonSetClient.Get.wp_proof
   iunfold getRet at Hret
   icases Hret with (⟨⟨%hm, %hx⟩, #He⟩ | Hr)
   · iunfold errIs at He
-    icases He with ⟨%p, %st, %herr, #Hp, %hst⟩
+    icases He with ⟨%p, %st, %herr, #Hp, #Hd, %hst⟩
     subst herr hx
     wp_auto
     iapply HK
@@ -71,7 +71,7 @@ theorem daemonSetClient.Get.wp_proof
     | none =>
       icases Hr with ⟨%hx, #He⟩
       iunfold errIs at He
-      icases He with ⟨%p, %st, %herr, #Hp, %hst⟩
+      icases He with ⟨%p, %st, %herr, #Hp, #Hd, %hst⟩
       subst herr hx
       wp_auto
       iapply HK
