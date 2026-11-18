@@ -11,15 +11,22 @@
   gated on `on`), LeaseCheck (`leaseCheckFrom` by token, v3rpc `leaseCheckT`/`principalBoundT` merged in), the checks,
   doSerialize, processInternalRaftRequestOnce, raftRequest, ModeSpecs (admin `specOn` texts by token, `spec_off`s at
   `tok := none`), Put, DeleteRange, Range, Txn, LeaseGrant/Revoke/Renew/TimeToLive/Leases, RemoveMember, MemberList,
-  revokeExpiredLeases, Compact, AdminOn (`adminPreOn` + tok and gate; `adminHistAu`/`adminOutOn` by tok), AuthnOn
-  (token from `libCtxOk`), Authenticate, traceutil (`Tracer.Start` post = the ctxInMD transfer, moved from 1b;
-  StartLaws, EnsureTrace). Drafted, not yet checked: etcdserver Link/Results, restart examples (`tok := none`), v3rpc
-  `ServerKVOn` (call contracts carry the gated `ctxToken`), `LeaseOn` (`lessorGrantOkGM`/`lessorRevokeOkM` + tok), the
-  server lease proofs.
-- **Next, in order:** etcdserver `Link`/`Results`; restart examples; the rest of etcdserver's importers
-  (`etc/importers.py`); then v3rpc (ServerKVOn, LeaseOn, ServerLease*, AuthService, InvLease*, InvWatch, isWatchPermitted,
-  recvLoop, sendLoop, AuthAdmin__*, Results) and 1b (grpcAccepted supplies `ctxToken`; remove `incomingOf`, the two
-  axioms, `WithValue`'s old equation, `ctxTokenOf`); client Results; examples auth (§4.3); full build at C1.
+  revokeExpiredLeases, Compact, AdminOn, AuthnOn (token from `libCtxOk`), Authenticate, traceutil (`Tracer.Start` post =
+  the ctxInMD transfer, moved from 1b; StartLaws, EnsureTrace), etcdserver `Link.lean` (632 s). Targeted build 1
+  (`/shared/tmp/perheap/s/c1a-t1-1.log`): three of the four auth-off theorems built; the fourth (txn_applied's premise
+  form) and InvAuthAdmin/ServerKVOn/InvLeaseRead fixed after it. Targeted build 2 (`c1a-t2-*.log`, targets
+  `/shared/tmp/perheap/s/t2-targets.txt`): etcdserver Results, restart examples, the v3rpc modules drafted (guards,
+  ServerKVOn, LeaseOn, ServerLease*, InvLeaseRead, LeaseServer TTL/Leases).
+- **v3rpc state:** AuthAdmin/authMaintenanceServer/kvServer.Compact specs and proofs take `tok` + the gate
+  (`E.authMode.isOn`); `srvKVAnsOn/M` call carries `□ (⌜on⌝ → ctxToken ctx tok)`; `lessorGrantOkGM`/`lessorRevokeOkM`/
+  `lessorTTLOk`/`lessorLeasesOk` gain `∀ tok` + the gate; `ttlAns`/`leasesAns`/`leaseTTLOut`/`leaseLeasesOut`/
+  `leaseGrantResM`/`leaseRevokeResM` by token. Not yet: the watch chain (`swsIs` uses `auth.ctxTokenOf (ok ci)`;
+  `isWatchPermitted.spec` still names the deleted `principalBoundI`: make it `v3rpc.infoBoundT … tok` with `swsIs`
+  taking `tok`), AuthService (`hdrBoundM_tok s E (ok ci)`), InvLease*/LeaseServer grant/revoke handlers, Results;
+  these consume the handler contracts, so they go with 1b (grpcAccepted supplies `ctxToken ci (mdTokenOf md)`).
+- **Next, in order:** check build 2's failures; the watch chain + AuthService + lease handlers; 1b (§4.1); client
+  Results; examples auth (§4.3); full build at C1; tcb `--check --update`; interfaces; attack of new trusted text
+  (Tracer.Start's restatement: agent report `/shared/tmp/perheap/attack-tracer.md`).
 - Forms decided this session (report at C1a's end): `hdrBoundM`/`infoBoundM` kept as the mode-gated wrappers,
   re-indexed by token (not renamed to `hdrBoundT`: less churn; their `*_ctx` transfer lemmas deleted); `wpM`/`wpMLb`
   gate the token premise on their `on`; `RemoveMember`/`MemberList`/`checkLease*`/`checkMembership` gate on

@@ -100,12 +100,12 @@ instance kaStreamSpec_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (γ
 
 /-! ## The contract -/
 
-/-- **The server's `LeaseRenew` answer** at the context `ctx`, with the lower bounds `n`, `m`, for
+/-- **The server's `LeaseRenew` answer** for a caller with the token `tok`, with the lower bounds `n`, `m`, for
 the lease `id`: `nil` and the key check's verdict (`.write`), or a non-nil `applyErrIs` error
 (`EtcdServer.LeaseRenew.spec`'s). -/
-def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (n m : Nat)
+def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (tok : Option GoString) (n m : Nat)
     (id : w64) (err : GoInterface) : IProp GF :=
-  iprop((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E (GoInterface.ok ctx) n
+  iprop((⌜err = GoInterface.nil⌝ ∗ leaseCheckFrom s E tok n
       (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .write)) ∨
     (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err))
 
@@ -114,12 +114,14 @@ def renewAns (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk) (
 returned) whose causes are context errors or etcd's no-leader error (`v3rpc.ctxCauseOk`), as
 `EtcdServer.LeaseRenew.spec`. -/
 def raftLeaseRenew (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) : IProp GF :=
-  iprop(∀ (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
-    {{ S' ∗ srvCtxWeak ci cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ci ∗ http.netCtxOkC ci ∗
+  iprop(∀ (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (id : w64)
+      (n m : Nat),
+    {{ S' ∗ srvCtxWeak ci cd ∗ levelTok v3rpc.ctxErrLvl ∗ context.libCtxOk ci ∗
+        □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ http.netCtxOkC ci ∗
         v3rpc.ctxCauseOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
       (App (App (Val (srvM s go!"LeaseRenew")) (Val #(GoInterface.ok ci))) (Val #id))
     {{ (ttl : w64) (err : GoInterface), RET (PairV #ttl #err); S' ∗ levelTok v3rpc.ctxErrLvl ∗
-        renewAns s E γl ci n m id err }})
+        renewAns s E γl tok n m id err }})
 
 instance raftLeaseRenew_persistent (s : Loc) (E : apply.AEnv GF) (γl : GName) (S' : IProp GF) :
     Persistent (raftLeaseRenew s E γl S') := by

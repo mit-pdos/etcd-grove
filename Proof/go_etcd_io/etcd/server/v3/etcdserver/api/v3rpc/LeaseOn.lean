@@ -247,9 +247,9 @@ theorem lessorGrantOkGM_mono (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : Req
       lessorGrantOkGM on s E ρ S G' R' := by
   iintro ⟨#HGG, #HL⟩
   unfold lessorGrantOkGM
-  iintro %ci %cd %r %m %Q !> %Φ ⟨HS0, Hctx, Hrc, Hreq, Hid, %HR', Hp⟩ HΦ
-  wp_apply HL $$ %ci %cd %r %m %Q [HS0 Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
-  · iframe; ipureintro; exact hR m HR'
+  iintro %ci %tok %cd %r %m %Q !> %Φ ⟨HS0, Hctx, Hrc, #Htk, Hreq, Hid, %HR', Hp⟩ HΦ
+  wp_apply HL $$ %ci %tok %cd %r %m %Q [HS0 Hctx Hrc Hreq Hid Hp] as %resp %err ⟨HSr, Hans, Hg⟩
+  · iframe; iframe #; ipureintro; exact hR m HR'
   iapply HΦ
   iframe HSr Hans
   icases Hg with (%Hne | ⟨%id, #Hid, Hg, Hres⟩)

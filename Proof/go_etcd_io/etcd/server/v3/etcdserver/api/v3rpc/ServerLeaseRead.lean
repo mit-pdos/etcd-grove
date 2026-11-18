@@ -123,9 +123,9 @@ theorem raftLeaseRenew_of_server (hRn : EtcdServer.LeaseRenew.spec (GF := GF) (h
         iprop(E.RD ∗ levelTok 0 ∗ srvLgReader s ∗ srvReadReader s γr) := by
   iintro ⟨#Hpkg, #Hq, #Hrd, #Hat, #Hal, #Hlr, #Hpool, #Hpr⟩
   iunfold raftLeaseRenew
-  iintro %ci %cd %id %n %m !> %Φ ⟨⟨HRD, Htok, Hlg, Hrr⟩, #Hctx, Hetok, #Hlib, #Hnet, #Hcause, #Hpub,
+  iintro %ci %tok %cd %id %n %m !> %Φ ⟨⟨HRD, Htok, Hlg, Hrr⟩, #Hctx, Hetok, #Hlib, #HtokC, #Hnet, #Hcause, #Hpub,
     #Hllb⟩ HΦ
-  wp_apply (hRn s E ρ γr γl ci cd id n m) $$ [HRD Htok Hlg Hrr Hetok]
+  wp_apply (hRn s E ρ γr γl ci cd tok id n m) $$ [HRD Htok Hlg Hrr Hetok]
     as %ttl %err ⟨HRD, Htok, Hetok, Hlg, Hrr, Hans⟩
   · iframe; iframe #; ipureintro; exact hT
   iapply HΦ
