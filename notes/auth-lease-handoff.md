@@ -5,13 +5,13 @@
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a**: `--packages=/shared/tmp/manifest-6d3.json`
   everywhere, `.lake/package-overrides.json` = its copy, `PERENNIAL_DIR=/shared/perennial-6d365ee1a` for `etc/gen-init.py`.
 - **Done:** 7b (accepted by etcd-grove-03, 2026-11-18; record in STATUS at the land stop). Item 9 step 1, **D-k**
-  (commit after this section's): `(ns : Bool := false)` appended after `hgps` in `srvClusterBoot_alloc`
+  (`e7d56912d6`): `(ns : Bool := false)` appended after `hgps` in `srvClusterBoot_alloc`
   (NewServerAlloc), `srvClusterBootOn_alloc` (NewServerAllocOn) and its export `server_cluster_alloc_on` (server
   Results), after `hap` in `allocNOnM` (etcdstart AllocNOn); posts `⌜clusterNoSnap γ.cl ↔ ns = true⌝` (the off
   allocation's `⌜¬ clusterNoSnap γ.cl⌝` replaced: its `ns = false` instance); both allocations call
   `cluster_alloc_ns … ns (fun _ => hbne)`. Callers: Alloc/Alloc3/AllocN derive `¬ clusterNoSnap` from the iff,
   Alloc3On/auth MainAlloc skip the conjunct, `allocNOn` (statement unchanged) by a short Iris proof. Built: the
-  29 importer leaves of the change (`/shared/tmp/auth-lease-s4/dk-build.log`).
+  29 importer leaves of the change (`/shared/tmp/auth-lease-s4/dk-build.log`, 9509 jobs); `tcb-report --check` 892/4 matches; etcdstart interface regenerated.
   Boot path at `ns = true`: `memberBootOn` has no `¬ clusterNoSnap` (only `memberBoot`, the auth-off bundle, does);
   `StartMember(s)Auth.spec` is generic in the cluster with `clusterNoSnap → 2^48 ≤ catchUp` (NoSnapCatchUp); the
   remaining `¬ clusterNoSnap` premises in the server are restart/snapshot-only (`srvMem_restartStorage`,
@@ -23,7 +23,7 @@
   `Scratch/S4Probe.lean`'s `leaseKeysVerdict_refused`; client calls via `client_put_on`/`client_txn_on`/
   `client_range_on`/`client_lease_grant_on`/`client_lease_revoke_on` (client/v3 `ResultsOn`) and
   `etcd_lease_read_auth_served_on`. STOP at `Main.wp_proof` (present the closed statement, Draft §2). Then item 10.
-  Merge lean again first if it moved (Hctx Part B and origin's zap.Logger.Panic merge were landing 2026-11-18).
+  Merge lean first: it moved to 49bd7924e6 after D-k was built (not merged yet).
 - **Pitfalls:** `etc/gen-link.py --bbolt`/`--walfs` and `gen-specs-pkginit --check` differ in a worktree without
   `.lake/packages/perennial` (environmental): do not commit those regenerations. Monitor filters: "Terminated" matches
   k8s type names; anchor `^Terminated`. A Perennial pin bump rebuilds everything (~20k jobs, ~3.5 h in a slot).
