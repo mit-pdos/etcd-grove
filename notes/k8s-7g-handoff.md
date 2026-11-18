@@ -2,47 +2,48 @@
 
 ## START HERE
 
-**2026-11-18 (evening; for etcd-grove-03). Step 3 in progress: listResponseRV and equalListResponse
-proved; checkpoint report sent (large context).**
+**2026-11-18 (night; for etcd-grove-03). Step 3: update/delete/execute proved; STOP for the
+independent attack on `reflect.DeepEqual.spec_k8s` clause 4 (new trusted text) before
+`validateGet`/`validateList`/`Step`.**
 
-- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`); lean fb68edfec8 merged (`4efa3c4d43`, pin
-  6d365ee1a). `--packages=/shared/tmp/manifest-6d3.json`; `.lake/package-overrides.json` = that manifest.
-  Scope: `notes/k8s-7g-scope.md`. Decisions: `questions.md` (local, untracked).
-- Done: steps 0-2; step 3 so far: `keyInScope`, `checkKey`, `Get/ListReadConsistency`, `NewEmptyModel`,
-  `Model.Clone/Equal/get/create/listItems/validCacherContinue/list` (to `897279346e`), and
-  **`Model.listResponseRV`, `Model.equalListResponse`** with driver `ObjList.GetResourceVersion/
-  GetContinue/SetContinue/DeepCopyObject` (`284724cd7a`). All build in a slot or check clean (`-a`).
-- Next, in order: `update`/`delete`/`execute`, then `validateGet`/`validateList`/`Step`, then step 4.
-  - `update`/`delete` need (forms, proved specs): `storage.NewInvalidObjError.spec`'s post to name the
-    inner error (`errors.New(msg)`: `Proof/errors/NewVarCell.lean` has the cell), and
-    `storage.Preconditions.Check.spec`'s invalid case to give the message (`SprintfOut.v_str`), since
-    `invalidE` is a deep view with the message; a premise that the model's items fit `DObj`
-    (`tryUpdateD` takes `objAtD`) and `inFits x`.
-  - OPEN (asked in the report): `reflect.DeepEqual.spec_k8s` clause 2 needs deep views of both
-    errors, but `Step`'s write branch, `validateGet` (MinRV "") and `validateList`'s consistent branch
-    (`equalListResponse`) compare an output that may hold a too-large error. Either a premise on
-    `Step`'s output, or a clause "a too-large `*StatusError` vs a deep error: false" (trusted).
-- Known breakage, pre-existing since step 0 (step 5 re-proofs): `call`, `consume`, `Check`, `Gen`,
-  `genList`, `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`, `runWatch`,
-  `watchEvents`, and the driver's `Link`/`Results`.
-- `etc/tcb-baseline.txt` and the collections do not list the 7g axioms yet (step 6).
+- Branch `k8s-7g` (worktree `/shared/etcd-grove-k8s7g`), pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`;
+  `.lake/package-overrides.json` = that manifest. Scope `notes/k8s-7g-scope.md`; decisions `questions.md`
+  (untracked; last two sections); trust `notes/k8s-7g-trust.md` (top: clause 4).
+- Done this round: clause 4 + Go test `TestDeepEqualTooLarge` (`54eee2867d`, PENDING attack); Check /
+  NewInvalidObjError posts name the message, driver `errVarOk` holds the errorString, `Model.delete`
+  (`70a127d5d3`); `Model.update`, `rvStr_inj` → Codec (`7b9ccdeba2`); `Model.execute` + `reqRep`
+  (`af26175d28`); Calls fix (next commit). Targeted build `/shared/tmp/k8s7g/build3b.sh` (all of the
+  above + Model__update/execute, Init, Calls, store GuaranteedUpdate/conditionalDelete): rc 0
+  (`/shared/tmp/k8s7g/build-s3c.out`, 8086 jobs). `etc/gen-init.py --check` clean.
+- Next, in order (after the attack): `validateGet`, `validateList`, `Step` (clause 4 for the output's
+  too-large error; a premise excluding `.other` expected errors); then step 4.
+- Premises to discharge in this branch (questions.md, night forms): `itemsFitL` invariant, closures
+  non-nil (strengthen `tryUpdateFor`/`validateFor` posts), `reqRep` from `realRequest`.
+- Known breakage, pre-existing since step 0 (step 5): `call`, `consume`, `Check`, `Gen`, `genList`,
+  `genFrom`, `genWatch`, `genWatchFrom`, `minRV`, `newWCache`, `outEqual`, `runWatch`, `watchEvents`,
+  driver `Link`/`Results`. `etc/tcb-baseline.txt` and collections not updated for 7g axioms (step 6).
 - Pitfalls (new):
-  - Interface method calls through `meta.List` (`accessor.GetResourceVersion()`): add
-    `[meta_sem : …api.«meta».Assumptions] [metav1_sem : …apis.«meta».v1.Assumptions]` and the
-    `haveI : List'.ty ≤u InterfaceType _ := ⟨hle2.underlying_unfold.trans hle1.underlying_eq⟩` of
-    `Model__listResponseRV.lean` (notes/perennial-changes.md, 2026-11-18).
-  - `x == nil` on an interface becomes a `match x, nil`: `rcases iface_cases x` then `rw` (or
-    `deepRep_nil_iff`/`errRep_nil_iff`, Defs.lean). Unfold deep views in the context with
-    `iunfold deepRep at H` (plain `unfold` leaves proof mode).
-  - `wp_start` runs `wp_func_call`; for a lemma about `append` itself use `wp_start_folded`.
-  - `ihave … : P $$ [H]` gives P as a goal with H, not a wand: state such facts as lemmas.
-- Older pitfalls: see History (2026-11-18 morning START HERE).
+  - `iexists l, _` then `iframe Hl` can fail on a struct points-to: `iexists l; iexists _; isplitr; …; iexact Hl`.
+  - `iexact` does not unfold `rvStr (W64 0)` / `DObj.ofObj … .uid`: state facts with `have h : … := rfl`
+    and `isimp only [h] at H`, or give the model's equation in the reduced form.
+  - A tryUpdate/validate closure: `ihave #H' := H; iunfold k8s_etcd3.tryUpdateD at H'`, then
+    `rw [show (0 : w64) = W64 0 from rfl]` (TTL) before `iapply H' $$ %x %o %r %_ [Ho]`.
+  - simp on `decide ({o with RV := 0} = {u with RV := 0})` expands `Obj.mk.injEq`: pass
+    `-…etcd3.Obj.mk.injEq` and close the leftover implication with `simpa`.
+  - `ipersist` of a fresh points-to after `wp_apply` finished the program: `iapply wp_fupd` first,
+    `imodintro` before `iapply HΦ`. Spatial leftovers before `ipureintro`: `iclear «$res0» …`.
+  - `section meta` is a parse error (keyword); `etc/gen-init.py` needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`.
+- Older pitfalls: History.
 - Build: `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build MODULE...`
-  (both slots are often busy for an hour); check: `/shared/tmp/k8s7g/lc.sh -a FILE` (lean-check with a
-  filtered view; full output in `/shared/tmp/k8s7g/lc.out`).
+  (LEAN_NUM_THREADS=4); check: `/shared/tmp/k8s7g/lc.sh -a FILE` (full output `/shared/tmp/k8s7g/lc.out`).
 
 ## History
 
+- 2026-11-18 evening START HERE (superseded): step 3 to listResponseRV/equalListResponse
+  (`284724cd7a`); pitfalls kept: interface calls through `meta.List` need the `haveI : List'.ty ≤u
+  InterfaceType _` workaround (perennial-changes.md); `x == nil` on an interface is a `match`
+  (`deepRep_nil_iff`/`errRep_nil_iff`); `iunfold deepRep at H`; `wp_start_folded` for `append`
+  itself; `ihave … : P $$ [H]` gives P as a goal.
 - 2026-11-18 morning START HERE (superseded): pitfalls kept here:
   - `wp_for` takes the whole spatial context: drop every `"_" ∷ True` leftover.
   - A case split whose branches converge before any allocation: `refine ?k` / `rotate_left` /

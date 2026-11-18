@@ -143,10 +143,13 @@ theorem drvInit_sents :
   iunfold github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errVarOk at HU
   icases HD with ⟨%lD, HD, -, #CD⟩
   icases HU with ⟨%lU, HU, -, #CU⟩
-  ihave #CD := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lD _ $$ CD
-  ihave #CU := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lU _ $$ CU
+  ihave #CD' := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lD _ $$ CD
+  ihave #CU' := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errStrCell_of_struct lU _ $$ CU
   iexists lD, lU
-  iframe
+  iframe HD HU
+  isplitr
+  · iexact CD'
+  · iexact CU'
 
 /-- A client error is no too-large one (`clientErrPlain`, and `clientErr`'s leaf). -/
 theorem clientErr_notTooLarge (err : GoInterface)
