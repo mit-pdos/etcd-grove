@@ -393,11 +393,13 @@ status/FromError.lean`), `status.Code`, `errors.Is` (`Spec/errors/IsStatusErr.le
 them `rpctypes.Error` and the client's retry interceptor, need. No `Format` method
 (premise-fixes-4, 2026-11-10): `fmt` prints it with its `Error` (`fmt.argOk`); grpc's
 `*status.Error`, `rpctypes.EtcdError` and the context errors have none (`examples/premisefix/
-fmtarg`). -/
+fmtarg`). Its `Error` is `Error() string` (`noArgStringSig`; fmt soundness 2, 2026-11-18: what
+`fmt.argOk` asks since; true of every non-nil Go `error` value's dynamic type). -/
 def statusErrOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
     (∃ m : GoString, errorMsgIs e m) ∗ ⌜errors.isLeafError e⌝ ∗ grpcErrMethodsOk e ∗
-    ⌜methodSet e.ty !! go!"Format" = none⌝)
+    ⌜methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝)
 
 instance statusErrOk_persistent (err : GoInterface) : Persistent (statusErrOk (GF := GF) err) := by
   unfold statusErrOk; infer_instance
@@ -742,11 +744,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
 /-- A non-nil error `err`'s `Error()` returns some string (`errorStringSpec`; persistent), and it
-has no `Format` method (premise-fixes-4, 2026-11-10: else `fmt` calls `Format`): what `fmt`'s
-`%v`/`%w` of it needs (`fmt.argsOk`). -/
+has no `Format` method (premise-fixes-4, 2026-11-10: else `fmt` calls `Format`) and its `Error` is
+`Error() string` (`noArgStringSig`; fmt soundness 2, 2026-11-18; true of every non-nil Go `error`
+value's dynamic type): what `fmt`'s `%v`/`%w` of it needs (`fmt.argsOk`). -/
 def errStrOk (err : GoInterface) : IProp GF :=
   iprop(□ ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
-    errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none⌝)
+    errorStringSpec e ∗ ⌜methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝)
 
 instance errStrOk_persistent (err : GoInterface) : Persistent (errStrOk (GF := GF) err) := by
   unfold errStrOk; infer_instance
@@ -756,7 +760,9 @@ theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
   iintro !> %e %h
   cases h
 
-theorem errStrOk_ok (e : GoInterfaceOk) (hF : methodSet e.ty !! go!"Format" = none) :
+theorem errStrOk_ok (e : GoInterfaceOk)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig) :
     errorStringSpec (GF := GF) e ⊢ errStrOk (GoInterface.ok e) := by
   unfold errStrOk
   iintro #H !> %e' %h
@@ -778,6 +784,15 @@ theorem errStrOk_noFormat (e : GoInterfaceOk) :
   unfold errStrOk
   iintro #H
   ihave ⟨-, %hF⟩ := H $$ %e %rfl
+  ipureintro; exact hF.1
+
+/-- `errStrOk` of `ok e`: `e` has no `Format` method and its `Error` is `Error() string`. -/
+theorem errStrOk_methods (e : GoInterfaceOk) :
+    errStrOk (GF := GF) (GoInterface.ok e) ⊢ ⌜methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some EtcdGrove.noArgStringSig⌝ := by
+  unfold errStrOk
+  iintro #H
+  ihave ⟨-, %hF⟩ := H $$ %e %rfl
   ipureintro; exact hF
 
 /-- **`errors.New(msg)`'s error is an `errStrOk`** (premise-fixes-4): Perennial's model allocates an
@@ -792,7 +807,9 @@ theorem wp_New_errStrOk [_root_.Perennial.errors.Assumptions] (msg : GoString) :
         errStrOk (GoInterface.ok err) }} := by
   have hF := go.method_set_is
     (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
-  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF
+  have hE := go.method_set_is
+    (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF hE
   wp_start
   wp_auto
   wp_alloc x as Hx
@@ -810,7 +827,7 @@ theorem wp_New_errStrOk [_root_.Perennial.errors.Assumptions] (msg : GoString) :
     iexact HΦ
   isplitr
   · iexact HM
-  iapply errStrOk_ok _ hF
+  iapply errStrOk_ok _ ⟨hF, hE⟩
   unfold errorStringSpec
   iintro !> %Φ HΦ
   iapply HM
