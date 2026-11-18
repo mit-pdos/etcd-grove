@@ -58,7 +58,8 @@ theorem kv.Get.wp_generic
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse0
+    wp_apply wp_ContextError ci cd GoInterface.nil mC $$ [$Hse0 $HmC] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
@@ -71,24 +72,60 @@ theorem kv.Get.wp_generic
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, %Hd'⟩
-    · iframe #; ipureintro; exact fun _ => Hce'
-    ihave #Hcl' := Hclw $$ Hcl
-    iapply HΦ
-    isplitl [Heo]
-    · iintro %h
-      rcases Hd' Hne with hd | hctx
-      · ileft
-        iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
-        iapply Heo
-        ipureintro; exact ⟨Ht, Hne, h.2⟩
-      · iright; ipureintro; exact hctx
-    iframe HR
-    unfold rangeCallOut
-    iright
-    iframe #
-    ipureintro
-    exact ⟨(Herr'.2 Hne).1, (Herr'.2 Hne).2, Hnull⟩
+    icases Heo with (#Hci | Heo)
+    · -- (incomingof Part B) `kv.Do`'s error is the context's: `ContextError` at its message keeps it a
+      -- context error, or gives it a context message as its description (no handler's)
+      iunfold go_etcd_io.etcd.cache.v3.ctxErrIs at Hci
+      icases Hci with ⟨%e0, %m0, %H0, #Hm0⟩
+      ihave #HmC : iprop(∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ →
+          go_etcd_io.etcd.cache.v3.errorMsgIs e m0) $$ []
+      · iintro %e %he
+        rw [H0.1] at he; cases he
+        iexact Hm0
+      wp_apply wp_ContextError ci cd err m0 $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -, #Hback⟩
+      · iframe #; ipureintro; exact fun _ => Hce'
+      ihave #Hcl' := Hclw $$ Hcl
+      iapply HΦ
+      isplitr
+      · iintro %h
+        icases Hback with (%hn | #hctx | %hm)
+        · exact absurd ⟨e0, H0.1, H0.2.1, H0.2.2⟩ hn
+        · iright
+          iunfold go_etcd_io.etcd.cache.v3.ctxErrIs at hctx
+          icases hctx with ⟨%e', %m', %H', -⟩
+          ipureintro; exact ⟨e', H'.1, H'.2.2⟩
+        · ileft
+          iapply (ifcErrOut_notin _ _ _ _ (Or.inr (ctxErrMsg_not_handler hm)) h.1)
+      iframe HR
+      unfold rangeCallOut
+      iright
+      iframe #
+      ipureintro
+      exact ⟨(Herr'.2 Hne).1, (Herr'.2 Hne).2, Hnull⟩
+    · ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+      wp_apply wp_ContextError ci cd err mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, #Hd', -⟩
+      · iframe #; ipureintro; exact fun _ => Hce'
+      ihave #Hcl' := Hclw $$ Hcl
+      iapply HΦ
+      isplitl [Heo]
+      · iintro %h
+        icases Hd' with (%hd | #hctx)
+        · rcases hd with hd | hd
+          · exact absurd hd Hne
+          ileft
+          iapply (ifcErrOut_desc _ _ _ _ _ (Or.inl hd))
+          iapply Heo
+          ipureintro; exact ⟨Ht, Hne, h.2⟩
+        · iright
+          iunfold go_etcd_io.etcd.cache.v3.ctxErrIs at hctx
+          icases hctx with ⟨%e', %m', %H', -⟩
+          ipureintro; exact ⟨e', H'.1, H'.2.2⟩
+      iframe HR
+      unfold rangeCallOut
+      iright
+      iframe #
+      ipureintro
+      exact ⟨(Herr'.2 Hne).1, (Herr'.2 Hne).2, Hnull⟩
 
 
 /-- `kv.Get` on a `*kv` of the members (`kv.Get.specM`, D44): `kv.Get.wp_generic` at the members'
@@ -165,7 +202,8 @@ theorem kv.Get.wp_proof
   icases Hout' with (⟨%Herr, Hm⟩ | ⟨%Herr, #Hse, #Hcl⟩)
   · subst Herr
     ihave #Hse0 := go_etcd_io.etcd.cache.v3.statusErrOk_nil (GF := GF)
-    wp_apply wp_ContextError ci cd GoInterface.nil $$ [$Hse0] as %err' ⟨%Herr', -, -⟩
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse0
+    wp_apply wp_ContextError ci cd GoInterface.nil mC $$ [$Hse0 $HmC] as %err' ⟨%Herr', -, -⟩
     · iframe #; ipureintro; exact fun h => (h rfl).elim
     obtain ⟨H1, -⟩ := Herr'
     rw [H1 rfl]
@@ -177,7 +215,8 @@ theorem kv.Get.wp_proof
     iframe
     ipureintro; rfl
   · obtain ⟨Hne, Hce', Hnull⟩ := Herr
-    wp_apply wp_ContextError ci cd err $$ [$Hse] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
+    ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+    wp_apply wp_ContextError ci cd err mC $$ [$Hse $HmC] as %err' ⟨%Herr', #Hse', #Hclw, -⟩
     · iframe #; ipureintro; exact fun _ => Hce'
     ihave #Hcl' := Hclw $$ Hcl
     iapply HΦ

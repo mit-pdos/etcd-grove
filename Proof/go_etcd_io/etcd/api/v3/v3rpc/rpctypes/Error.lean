@@ -82,8 +82,8 @@ theorem rpctypes.Error.wp_proof
     (wp_FromError : EtcdGrove.status.FromError.spec (GF := GF) (hG := hG))
     (wp_EErr : rpctypes.EtcdError.Error.spec (GF := GF) (hG := hG)) :
     rpctypes.Error.spec (GF := GF) (hG := hG) := by
-  intro err
-  wp_start as ⟨%Hne, #Hok⟩
+  intro err m
+  wp_start as ⟨%Hne, #Hok, #Hm⟩
   ihave #Hrpc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes $$ []
   · iPkgInit
   ihave #Hst : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.status $$ []
@@ -96,7 +96,7 @@ theorem rpctypes.Error.wp_proof
     | nil => exact absurd rfl Hne
     | ok e => exact ⟨e, rfl⟩
   wp_auto
-  wp_apply wp_ErrorDesc (GoInterface.ok e) $$ [$Hok] as %d %Hd
+  wp_apply wp_ErrorDesc (GoInterface.ok e) m $$ [$Hok $Hm] as %d ⟨%Hd, %Hdm⟩
   wp_apply wp_map_lookup2 $$ [$Hm] as -
   cases hk : m !! d with
   | none =>
@@ -112,12 +112,15 @@ theorem rpctypes.Error.wp_proof
     · ipureintro; rfl
     isplitl
     · iintro !> #H; iexact H
+    isplitl
     · ipureintro; exact id
+    · ipureintro; exact fun _ _ _ => Or.inl rfl
   | some v =>
     simp only [Option.getD_some, Option.isSome_some]
     wp_auto
     ihave #Hv := Hmv $$ %d %v %hk
-    wp_apply wp_FromError v $$ [$Hst $Hv] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
+    ihave ⟨%mF, #HmF⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hv
+    wp_apply wp_FromError v mF $$ [$Hst $Hv $HmF] as %ev %ok ⟨%Hnil, #HCode, #HMsg, #HErr, -⟩
     cases ok
     · obtain ⟨ve, rfl⟩ : ∃ ve, v = GoInterface.ok ve := by
         cases v with
@@ -142,8 +145,11 @@ theorem rpctypes.Error.wp_proof
       · iintro !> -
         iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
         simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
+      isplitl
       · ipureintro; intro _
         exact errPtrOk_of_ty _ (by simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty])
+      · ipureintro; intro e' he' hng
+        right; rw [rpctypes.errDesc_etcdError, Hmd d _ hk]; exact Hdm e' he' hng
     · wp_auto
       wp_apply HMsg
       wp_apply HCode
@@ -160,8 +166,11 @@ theorem rpctypes.Error.wp_proof
       · iintro !> -
         iapply go_etcd_io.etcd.cache.v3.errCellOk_of_ty
         simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty]
+      isplitl
       · ipureintro; intro _
         exact errPtrOk_of_ty _ (by simp [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty])
+      · ipureintro; intro e' he' hng
+        right; rw [rpctypes.errDesc_etcdError, Hmd d _ hk]; exact Hdm e' he' hng
 
 end proof
 

@@ -87,14 +87,16 @@ theorem watchGRPCStream.close.wp_proof
             icases Heof $$ %e He with ⟨%Hc, -⟩
             ipureintro; exact Hc.2
         wp_auto
-        wp_apply wp_ContextError G.ctx G.cd e $$ [] as %err' ⟨-, #Hse', -, -⟩
+        ihave ⟨%mC, #HmC⟩ := go_etcd_io.etcd.cache.v3.statusErrOk_msg _ $$ Hse
+        wp_apply wp_ContextError G.ctx G.cd e mC $$ [] as %err' ⟨-, #Hse', -, -⟩
         · iframe #
           ipureintro; intro _; exact Hce
         iapply HΦ; iexact Hse'
       · itrivial
     · iapply BigAndL.bigAndL_nil.2; itrivial
   · wp_auto
-    wp_apply wp_ContextError G.ctx G.cd GoInterface.nil $$ [] as %err' ⟨-, #Hse', -, -⟩
+    ihave #HmC := go_etcd_io.etcd.cache.v3.errMsgAt_nil (GF := GF) go!""
+    wp_apply wp_ContextError G.ctx G.cd GoInterface.nil go!"" $$ [] as %err' ⟨-, #Hse', -, -⟩
     · iframe #
       isplitr
       · ipureintro; intro h; exact absurd rfl h

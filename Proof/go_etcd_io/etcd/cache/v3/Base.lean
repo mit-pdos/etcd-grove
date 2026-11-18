@@ -342,6 +342,16 @@ instance errorMsgIs_persistent (e : GoInterfaceOk) (m : GoString) :
     Persistent (errorMsgIs (GF := GF) e m) := by
   unfold errorMsgIs; infer_instance
 
+/-- **`err` is a context error** (persistent; incomingof Part B, 2026-11-18): of a context error's shape
+(`ctxErrShape`), and its `Error()` stably returns one of Go's two context messages (`ctxErrMsg`), as
+`ctxErrsErr` gives of `ctx.Err()`. What `ContextError` keeps (`ContextError.spec`). -/
+def ctxErrIs (err : GoInterface) : IProp GF :=
+  iprop(∃ (e : GoInterfaceOk) (m : GoString),
+    ⌜err = GoInterface.ok e ∧ ctxErrMsg m ∧ ctxErrShape e⌝ ∗ errorMsgIs e m)
+
+instance ctxErrIs_persistent (err : GoInterface) : Persistent (ctxErrIs (GF := GF) err) := by
+  unfold ctxErrIs; infer_instance
+
 /-- **The methods grpc's `status` and Go's `errors.Is` call on the error `e` return**
 (persistent; unit P3a), if `e`'s type has them (both are called through a type assertion):
 `GRPCStatus() *Status` (`status.FromError`/`Code`/`Convert`) and `Is(error) bool`
@@ -366,6 +376,12 @@ def grpcErrMethodsOk (e : GoInterfaceOk) : IProp GF :=
     □ ∀ (target : GoInterface) (Φ : val → IProp GF),
       ▷ (∀ b : Bool, ⌜b = true → errDesc (GoInterface.ok e) = errDesc target⌝ -∗ Φ #b) -∗
       WP (App (Val #(methods e.ty go!"Is" e.v)) (Val #target)) {{ Φ }}))
+
+/-- **The type `t` has no grpc `GRPCStatus() *Status` method** (incomingof T8): `status.FromError`
+of a leaf error of such a type is no status error (`ok = false`). -/
+def noGRPCStatus (t : go.GoType) : Prop :=
+  methodSet t !! go!"GRPCStatus" ≠
+    some (go.Signature [] false [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
 
 /-- **An error grpc's `status` functions accept** (persistent; unit P3a): `nil`, or a leaf error
 (`errors.isLeafError`: no `Unwrap` or `As` method, so `status.FromError`'s and `errors.Is`'s walks
@@ -819,6 +835,31 @@ theorem statusErrOk_nil : ⊢ statusErrOk (GF := GF) GoInterface.nil := by
   unfold statusErrOk
   iintro !> %e %h
   cases h
+
+/-- The message clause of a call's precondition, for a `nil` error: vacuous, at any `m`. -/
+theorem errMsgAt_nil (m : GoString) :
+    ⊢ ∀ e : GoInterfaceOk, ⌜GoInterface.nil = GoInterface.ok e⌝ → errorMsgIs (GF := GF) e m := by
+  iintro %e %h
+  cases h
+
+/-- **The message an error grpc's `status` accepts stably returns, fixed at a call** (fromerror-wand,
+2026-11-18): what `status.FromError.spec`'s (and its callers') message parameter `m` is taken from. -/
+theorem statusErrOk_msg (err : GoInterface) :
+    statusErrOk (GF := GF) err ⊢
+      ∃ m : GoString, ∀ e : GoInterfaceOk, ⌜err = GoInterface.ok e⌝ → errorMsgIs e m := by
+  iintro #H
+  cases err with
+  | nil =>
+    iexists go!""
+    iintro %e %h
+    cases h
+  | ok e0 =>
+    unfold statusErrOk
+    icases H $$ %e0 %rfl with ⟨⟨%m, #Hm⟩, -⟩
+    iexists m
+    iintro %e %h
+    cases h
+    iexact Hm
 
 /-- **A context error wrapped by `%w`** (one or more levels; errorf-wrap, 2026-11-06; persistent):
 `rangeKeys`' `fmt.Errorf("rangeKeys: context cancelled: %w", ctx.Err())` (`kvstore_txn.go:121`) and

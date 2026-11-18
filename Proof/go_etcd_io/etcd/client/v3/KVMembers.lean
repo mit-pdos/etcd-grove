@@ -182,7 +182,9 @@ def doRunGen (api conn : Loc) (addr : List GoString) (ctx : GoInterface) (o : Op
 /-- **`kv.Do(ctx, op)` for any specs registered at the connection** (`doRunGen`, the transport's
 terms; the auth plan's E3zc: what the members' calls in either auth mode instantiate,
 `kv.Do.wp_members` at the plain specs): `doOut`, and a failed range with a valid sort option the
-caller's error outcome (`ifcErrOut`; k8s 7e-1). The request fits a gRPC message (`opSizeOk`;
+caller's error outcome (`ifcErrOut`; k8s 7e-1), unless the error is the context's (`ctxErrIs`;
+incomingof Part B, 2026-11-18: stated outside the condition, so that `kv.Get` can fix the context
+message at its own `ContextError` call). The request fits a gRPC message (`opSizeOk`;
 2026-10-30, `grpcInvokerOk`). -/
 abbrev kv.Do.specG : Prop :=
     ∀ (api conn : Loc) (addr : List GoString) (ci : GoInterfaceOk)
@@ -198,9 +200,9 @@ abbrev kv.Do.specG : Prop :=
       (App (App (Val (api @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty @!! go!"Do"))
         (Val #(GoInterface.ok ci))) (Val #opv))
     {{ (r : go_etcd_io.etcd.client.v3.OpResponse) (err : GoInterface), RET (PairV #r #err);
-        (⌜o.t = W64 1 ∧ err ≠ GoInterface.nil ∧ sortValid o = true⌝ -∗
-          (ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err ∨
-            ⌜∃ e : GoInterfaceOk, err = GoInterface.ok e ∧ go_etcd_io.etcd.cache.v3.ctxErrShape e⌝)) ∗
+        (go_etcd_io.etcd.cache.v3.ctxErrIs err ∨
+          (⌜o.t = W64 1 ∧ err ≠ GoInterface.nil ∧ sortValid o = true⌝ -∗
+            ifcErrOut go!"/etcdserverpb.KV/Range" addr Ψr err)) ∗
         doOut o Qp Qr Qd r err }}
 
 /-- **`kv.Put(ctx, key, val, opts...)` for any spec registered for `Put` at the connection** (the
