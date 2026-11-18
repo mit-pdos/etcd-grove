@@ -1,7 +1,9 @@
 # Scope: the per-heap redesign — pointer-keyed pure functions become per-run Iris relations
 
-**Status: SCOPE, revision 3 (after independent review 2, `/shared/tmp/perheap/review-2.md`), for a short
-independent check, then implementation (hard stop). No Lean changed in the tree.** Branch `perheap-scope`
+**Status: SCOPE, revision 4 (review 3 folded in: `/shared/tmp/perheap/review-3.md`, GO for step 0 and for the
+incoming part with its MAJOR 1 folded in; §13 maps its items). Approved by the user 2026-11-18 (step 0 + the
+incoming part); Q2, Q3, Q13, Q14, Q15, Q17 decided by etcd-grove-03 (§11); Q9 is the user's at the land stop.
+Implementation under way.** Revision 3: `a822edbc16`. Branch `perheap-scope`
 off `lean` `49bd7924e6` (worktree `/shared/etcd-grove-incomingof`), the perheap agent of etcd-grove-03.
 Revision 1: `dda8f5f7d8`; revision 2: `3b10ff2b93` (its full inventory and old→new tables for the errors and
 outgoing parts stand as the outline of Part II). Background: `notes/axiom-review/ctx-descs.md`,
@@ -99,6 +101,37 @@ specs with two proofs of one Go function; likewise `EtcdServer.AuthInfoFromCtx.s
 (`Spec/…/etcdserver/EtcdServer__AuthInfoFromCtx.lean:46, 65`; proofs `wp_proof`/`wp_proofLb` in
 `Proof/…/EtcdServer__AuthInfoFromCtx.lean:29, 91`). Both merge in this part (§4.2).
 
+**Second ring (review 3, MAJOR 1) and the transitive scan (revision 4).** Revision 3's definition list
+(`inc-defs.txt`) was one level deep. Revision 4 computes the transitive closure over definitions
+(`/shared/tmp/perheap/closure2.py`; output `closure2.txt`, files `closure2-files.txt`): seeds the
+context-indexed names above; a definition joins when its body (comments stripped) names a member; propagation
+stops at definitions whose *signature* does not change (the grpc contracts, `grpcAccepted`, `GrpcSpec`,
+`isReqAuthBound`, and every `.spec`: their text changes inside, their users name them without the context).
+**60 names, 157 files** (65 not in revision 3's 122). Beyond revision 3's list, these take a context and pass it
+to the auth chain, so each moves to the token:
+
+- `leaseCheckFrom` (`etcdserver/LeaseCheck.lean:105`; the token form `leaseCheckT` exists,
+  `v3rpc/InvLeaseKeepAlive.lean:76`: they merge);
+- `adminOutB`, `authedOutB` (`AuthBound.lean:73, 100`), `authedOutC`, `adminOutC` (`AuthWhy.lean:147, 156`);
+- the `*Why` family: `reqSideWhy`, `authedWhy`, `adminWhy`, `permWhy`, `infoWhy`, `oldRevWhy`, `serialWhy`
+  (`AuthWhy.lean`), `rangeWhy(Out)`, `txnWhy(Out)` (`ReadWhy.lean`), `alarmWhy` (`v3rpc/InvAuthAdmin.lean:152`);
+- the admin family (through `hdrBoundM`): `adminPreOn`, `adminHistAu`, `adminOutOn` (`AdminOn.lean:136-170`),
+  `adminPropRes` (`ProposeOn.lean:321`), `userAddOutOn`, `userAddHistAu` (`Spec/…/EtcdServer__UserAdd.lean:75,
+  84`), `userAddAnsOn` (`v3rpc/Results.lean:780`);
+- `leaseGrantResM`, `leaseRevokeResM` (`LeaseReqOn.lean:182, 194`), `leaseGrantResT` (`v3rpc/LeaseOn.lean:43`),
+  `txnErrOkM` (`ReqOn.lean:491`);
+- the lease contracts: `renewAns`, `raftLeaseRenew` (`v3rpc/InvLeaseKeepAlive.lean:137, 147`), `ttlAns`,
+  `leasesAns`, `leaseTTLOut`, `leaseLeasesOut`, `lessorTTLOk`, `lessorLeasesOk`, `raftLeaseRead`
+  (`v3rpc/InvLeaseRead.lean`), `lessorGrantOkM`, `raftLessorM` (`LeaseOn.lean`);
+- `grpcUpOn`, `grpcUpM` (`examples/lib/etcdstart/Defs.lean:597, 624`; through `srvKVAnsOn/M`, signature kept).
+
+Files beyond revision 3's inventory (review 3's list, confirmed by the scan): specs `EtcdServer__{LeaseRenew,
+LeaseTimeToLive, LeaseLeases, checkLeaseRenew, checkLeaseTimeToLive, checkLeaseLeases, RemoveMember,
+checkMembershipOperationPermission, UserAdd}`, `v3rpc/authMaintenanceServer__{Defragment, Downgrade, Hash, HashKV,
+MoveLeader, Snapshot}`, `v3rpc/kvServer__Compact`; proofs `EtcdServer__{LeaseGrant, LeaseLeases, LeaseRevoke}`,
+`v3rpc/{InvAuthAdmin, InvLeaseRead, ServerLeaseRead, LeaseServer__LeaseLeases, LeaseServer__LeaseTimeToLive,
+LeaseServer__leaseKeepAlive}`, `AdminOn`, `ProposeOn`, `LeaseReqOn`, `etcdstart/Defs`.
+
 ## 2. The vocabulary (step 0)
 
 In `Proof/context/LibKeys.lean` / `LibKeysChain.lean` (SpecPlan's names, §2.0 of revision 2):
@@ -130,6 +163,14 @@ def auth.ctxBound (M : AuthMode) (tok : Option GoString) (a : Loc) : IProp GF :=
   (§6). `libCtxOk`'s producers (`libCtxOk_of_ctxValueNil`, `_background`, `_todo`, `_bgFrom`,
   `_of_valueWand`, `_of_nil`) give `incomingCtxOk` through these; `_of_nil` (6 users) from a `valueAt` at a
   foreign context type, through `ctxChain`'s foreign root (`Perennial/Proof/context/CtxValue.lean:79-82`).
+- **Producers' signatures (review 3, m1).** `libCtxOk_of_valueWand` (`LibKeys.lean:398-421`) builds
+  `valueAt` for `c'` from `WithValue`'s `Value` wand; `c'`'s type is abstract, so it cannot give `ctxValue c'`.
+  It **takes `WithValue`'s new transfer `□ ∀ md, ctxInMD parent md -∗ ctxInMD c' md` as a premise** (its 4
+  users, `EtcdServer__Put.lean:122`, `EtcdServer__Txn.lean:900, 1099`, `traceutil/EnsureTrace.lean:72`, have the
+  post at hand). `libCtxOk_of_nil` has **2** direct users, not 6 (`audit/CtxKeys.lean:193`, inside
+  `k8sCtxOk_of_nil`, used only by `k8sCtxOk_of_ctxValueNil`, which has `ctxValue`; `client/v3/ChanCtx.lean:83`,
+  `channelContext`, a foreign type): `_of_nil` takes a `ctx.ty ∉ valueSpecialTypes` premise (or both route
+  through `_of_ctxValueNil`, whichever is shorter). R2 closed.
 - **`HasLC.hasLC` (form).** `ctxValue` is stated at `HasLC.hasLC`; `ctxInMD`, hence `incomingCtxOk` and
   `libCtxOk`, move from `{hlc}` to `HasLC.hasLC`, with the ~12 `{hlc}`-generic files that take them
   (`FromIncomingContext`, the auth store's `AuthInfoFromCtx`/`AuthInfoFromTLS` and its proof files, the grpc
@@ -197,28 +238,46 @@ it (§4.1).
   ctxDoneRecv ctx ∗ authPubLbM M n`; post `… ∗ ctxBound M tok a ∗ (a = null ∧ err = nil → noPrincipalFrom M n
   tok) ∗ (err ≠ nil → … ∗ tokRefusedFrom tok) ∗ (a ≠ null → enabledVerdictFrom M n true)`. **Proved in the
   probe** (§6), the whole proof (both the `token` and `authorization` branches).
-  Today's `.spec` (no lower bound) becomes **the corollary** `AuthInfoFromCtx.spec_w : spec → specW` (floor
-  `0`, `authPubLbM_zero`: proved in the probe); `wp_proof` of the old `.spec` (~250 lines) is deleted. Callers
-  that took `.spec` (`AuthApplyOn.lean:63`, `AuthBound.lean:216`, `AuthSrv.lean:428, 668`,
-  `AuthReqDerive.lean:114, 152`, `Link.lean:1344`) take `specW` (a corollary) or the spec.
+  Today's `.spec` (no lower bound) and its `wp_proof` (~250 lines) are **deleted, with no `specW`** (review 3,
+  m2a: a spec file may expose only `<F>.spec`, and with no variant there is nothing to place): the callers that
+  took `.spec` (`AuthApplyOn.lean:63`, `AuthBound.lean:216`, `AuthSrv.lean:428, 668`,
+  `AuthReqDerive.lean:114, 152`, `Link.lean:1344`) instantiate `n := 0` with `authPubLbM_zero` (the probe's
+  `spec_w` shows the step is two lines).
 - **`EtcdServer.AuthInfoFromCtx.spec` — one spec** (today's `specLb`), by token: pre adds
   `□ (⌜M.isOn = true⌝ → auth.ctxToken ctx tok)` (the store's read) and keeps `context.libCtxOk ctx` (the TLS
   fallback's read, §3); post `□ (⌜M.isOn⌝ → ctxBoundOrTLS s M tok a)` and the `specLb` rows at `tok`. Today's
   `.spec` a corollary (`spec_w`); `wp_proof` (one of the two proofs) deleted. Callers: `checkLeaseTimeToLive`,
   `checkLeaseRenew`, `processInternalRaftRequestOnce`, `ReqOn.lean:830` (`.spec`); `requireAuthInfo`,
   `checkMembershipOperationPermission`, `doSerialize`, `AuthAdmin.isPermitted`, `isWatchPermitted`,
-  `ReqOn.lean:867` (`.specLb`).
-- **`isReqAuthBound`** (`InvRequest.lean:2842`, a definition, not trusted): its `AuthInfoFromCtx` triples take
-  `tok` and `□ (⌜M.isOn⌝ → ctxToken ctx tok)`, post `ctxBound M tok a`. **`isReqAuth`**: unchanged (the
+  `ReqOn.lean:867` (`.specLb`). Old `.spec` callers instantiate `n := 0` (no `spec_w` kept, as above).
+- **`isReqAuthBound`** (`InvRequest.lean:2842`, a definition, not trusted): **only the `Lb` row is kept**
+  (review 3, m2b: today it has the row without `n`, `:2858-2862`, and with it, `:2866-2875`; the first follows
+  at `n := 0`); it takes `tok` and `□ (⌜M.isOn⌝ → ctxToken ctx tok)`, post `ctxBound M tok a`. **`isReqAuth`**: unchanged (the
   unbound side; its real-store proof takes `tok := mdTokenOf md` from `libCtxOk`'s `md`).
 - **Merges** (the context-indexed predicate becomes the existing token-indexed one): `principalBound s M ctx`
   → `principalBoundT s M tok` (and `principalBoundI`), `hdrBoundM on s E ctx` → `hdrBoundT s E.authMode tok`
   gated by `on` (as `hdrBoundM` is), `infoBoundM` → `v3rpc.infoBoundT`, `ctxBoundOrTLS s M ctx` →
   `… tok`, `noPrincipalFrom M n ctx` → `… tok`, `tokRefusedFrom M n ctx` → `tokRefusedFrom tok`.
+- **The second ring merges too** (§1, revision 4): `leaseCheckFrom s E ctx` → `leaseCheckT s E tok`;
+  `adminOutB`/`authedOutB`/`adminOutC`/`authedOutC` and the `*Why` family (`reqSideWhy`, `authedWhy`, `adminWhy`,
+  `permWhy`, `infoWhy`, `oldRevWhy`, `serialWhy`, `rangeWhy`, `txnWhy`, `alarmWhy`) take `tok` in place of
+  `ctx`; the lease contracts `renewAns`, `ttlAns`, `leasesAns`, `leaseTTLOut`, `leaseLeasesOut` take `tok`, and
+  `raftLeaseRenew`, `lessorTTLOk`, `lessorLeasesOk` (each `∀ ci …` inside) gain `∀ tok` with pre
+  `□ (⌜E.authOn = true⌝ → auth.ctxToken ci tok)`; the admin family (`adminPreOn` gains `tok` and the gated
+  premise; `adminHistAu`, `adminOutOn`, `adminPropRes`, `userAddOutOn`, `userAddHistAu`, `userAddAnsOn` take
+  `tok` where they passed `ctx` to `hdrBoundM`); `leaseGrantResM`/`leaseRevokeResM`/`leaseGrantResT`/`txnErrOkM`
+  by `tok`; `lessorGrantOkGM`/`lessorRevokeOkM` (`∀ ci` inside) gain `∀ tok` and the gated premise in place of
+  `auth.ctxTokenOf (ok ci)`.
 - **The request specs take the token:** `EtcdServer.{Put, DeleteRange, Txn, Range, LeaseGrant, LeaseRevoke,
   raftRequest, processInternalRaftRequestOnce}.spec` (7 `Spec/` files name `hdrBoundM … (ok ctx)`): `∀ … tok`,
   pre `□ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok)`, `hdrBoundT … tok` in place of `hdrBoundM … ctx`. The
   auth-off theorems instantiate `tok := none` (premise vacuous: `E.authOn = false`), so their text is unchanged.
+  **Likewise (review 3, MAJOR 1)** the lease, membership and maintenance-guard specs: `EtcdServer.{LeaseRenew,
+  LeaseTimeToLive, LeaseLeases, checkLeaseRenew, checkLeaseTimeToLive, checkLeaseLeases, RemoveMember,
+  checkMembershipOperationPermission, UserAdd, requireAuthInfo, doSerialize}.spec` and
+  `v3rpc.authMaintenanceServer.{Defragment, Downgrade, Hash, HashKV, MoveLeader, Snapshot}.spec`,
+  `v3rpc.kvServer.Compact.spec` (posts like `adminWhy s E.authMode n (ok ctx)`, `Defragment:49`): `∀ tok`, the
+  gated premise, the post at `tok`.
 - **v3rpc:** `srvKVAnsOn`/`srvKVAnsM`'s `⌜on = true → auth.ctxTokenOf ctx = tok⌝` → `□ (⌜on = true⌝ →
   auth.ctxToken ctx tok)` (the tree already indexes the answers by `tok`); `lessorGrantOkGM`/`lessorRevokeOkM`,
   `ctrlP`, `swsIs`, `ctrlMid`, `userAddAnsOn` & co. take `tok`; `ReadWhy`'s `rangeWhy`/`txnWhy` by `tok`, and
@@ -237,6 +296,8 @@ part, later, makes the last conjunct `outMD c md`), and `userAttemptOk γa u tok
 `token` values are `[badToken]`, has no principal bound to the token it carries. **Said plainly for Q9:** its
 logical content is "a bad token binds no auth info"; the `c`/`h` premises carry the link for the reader, not
 for the proof (as today: the old statement also followed from the token alone, through `ctxTokenOf_bad`).
+It keeps `outgoingOf`, an (I1) pure function of a pointer, until Part II (review 3, m5); Q9 offers dropping the
+decorative `deliversOutgoing` hypothesis instead.
 
 ## 5. Why none of it transfers across heaps (incoming), and agreement
 
@@ -299,6 +360,7 @@ linkv3p, linkvtxn, m2, putget, putget3, putgetN, txnlinfaultsN, v3rpc, watch, wa
 |---|---|---|
 | `put_end_to_endM`, `deleteRange_end_to_endM`, `range_end_to_endM`, `txn_end_to_endM` | `v3rpc/Results.lean:392, 442, 492, 552` | `auth.ctxTokenOf ctx` (in `srvKVAnsM …`, `kvDepOwnM …`, `writeGrantOn …`) → a new binder `(tok : Option GoString)`, and a new premise `□ (⌜E.authOn = true⌝ → auth.ctxToken ctx tok)`. Dischargeable and not vacuous: their users `etcd_putHandlerM` & co. (`client/v3/Results.lean:1194, 1375, 1543, 1880`) receive `ctxInMD ci md` from the handler contract (`tok := mdTokenOf md`); with auth off it is vacuous and `tok` is free (off, the answers' token rows are gated by `on`) |
 | `authWrapOut_userAdd` | `v3rpc/Results.lean:856` | `userAddReplied … (auth.ctxTokenOf (ok ctx)) …` → the answer's token parameter: `authWrapOut (userAddAnsOn s E ρ ctx cd F tok name false Qa) resp err ⊢ authSlot s E ∗ (⌜err = nil⌝ -∗ userAddReplied s E ρ tok name Qa)` (no new premise: the token is the answer's) |
+| `authEnable_end_to_end_on`, `roleAdd_end_to_end_on`, `userGrantRole_end_to_end_on`, `roleGrantPermission_end_to_end_on`, `userAdd_end_to_end_on`, `authWrapOut_userAdd_nn` (**new in revision 4**: the transitive scan; review 3's scan missed them, `adminHistAu`/`adminOutOn` reach `hdrBoundM` one level further) | `v3rpc/Results.lean:662, 692, 722, 752, 794, 897` | `adminPreOn s E ρ ctx cd F (adminHistAu s E ρ ctx …)` / `adminOutOn s E ρ ctx …` / `userAddAnsOn … ctx …` → a new binder `(tok : Option GoString)`, `adminPreOn s E ρ ctx tok cd F (adminHistAu s E ρ tok …)` (its new conjunct `□ (⌜E.authOn = true⌝ → auth.ctxToken (ok ctx) tok)`), `adminOutOn s E ρ tok …`. Dischargeable: their users (`etcd_*HandlerOk`, `v3rpc/Results.lean:927–1125`) receive `ctxInMD ci md` from the handler contract (`tok := mdTokenOf md`) |
 | `authkv_bad_unbound` | examples auth `Results.lean:123` | `(hd : deliversOutgoing c h) (ht : mdVals (outgoingOf c) "token" = [badToken]) : ctxBound (.on γa) h a ⊢ ⌜a = null⌝` → `(md : GrpcMd) (ht : mdVals md "token" = [badToken]) : deliversOutgoing c h md ∗ ctxBound (.on γa) (mdTokenOf md) a ⊢ ⌜a = null⌝` (§4.3) |
 
 **Exported statements whose text is kept and meaning changes** (through redefined definitions; none gains a
@@ -320,6 +382,23 @@ conjunct a caller must newly discharge):
   (1350), `watch_streamHandlerOk` (1745), `etcd_watchMethodOk` (1779), `etcd_watch_served(_chain)` (1865, 1964),
   `lessorGrantOkLiveM_server`, `lessorRevokeOkM_server` (2135, 2146).
 - `watch_registered_authorized` (`v3rpc/Results.lean:1700`): already by token (`infoBoundT … tok`); unchanged.
+- **Added in revision 4 (review 3, MAJOR 1; the transitive scan, `/shared/tmp/perheap/scan-meaning.txt`)**,
+  meaning only, premise-side or closed, none needing a new discharge by an external client:
+  `raftLeaseRenew_server` (`v3rpc/Results.lean:2187`, `raftLeaseRenew` → `renewAns` → `leaseCheckT`),
+  `raftLeaseRead_server` (`:2083`), `lessorGrantOkL_server`, `lessorGrantOkLive_server`, `lessorRevokeOk_server`,
+  `srvHeaderFacts_server`, `etcd_auth_served`; `srv_auth_bound_of_inv` (`etcdserver/Results.lean:2064`,
+  `srvAuthBound` holds `isReqAuthBound`); every statement naming `isServerReqM`/`isServerReadM`/`srvAuthAt`/
+  `srvAuthLb`/`srvReadFieldsAt(M)` (they hold `isReqAuthBound` rows, `ServerOnDefs.lean:238`, `InvRead.lean:119`,
+  `ReadOn.lean:85`, `AuthGuard.lean:184`): `srvKVInvs_of_readM_off`, `envWitOk_of_readM`, `server_uber_kvl`,
+  `server_uber_kvl_on`, `server_uber_auth_steps_on` (etcdserver), `etcd_compactMethodM`, `etcd_kv_servedM_with`
+  (client), and those already listed above.
+- **Trusted texts whose meaning changes, not restated (review 3, m3, m4)**, each in C1's per-text note:
+  `WithRequireLeader.spec` (post `context.libCtxOk ctx'`, `Spec/…/client/v3/WithRequireLeader.lean:111`) and
+  `context.WithTimeoutBackgroundMd.spec` (`Spec/context/WithTimeoutBackgroundMd.lean:51`) now promise the chain
+  form of the incoming part (true in Go for these `Background`-rooted chains); `AuthInfoFromTLS` is
+  **meaning-only and not (I1)-clean after Part I**: its pre still rests on `peer.transportPeer`
+  (`LibKeys.lean:73`, an opaque pure predicate of a `*Peer`) through `peerCtxOk` (peer part pending Part II's
+  step 4 / Q7).
 
 ## 8. Go evidence (incoming)
 
@@ -341,22 +420,22 @@ pairs merge).
 | step | what | files (text edits) | lines (est., changed) | agent-days |
 |---|---|---|---|---|
 | 0 | Vocabulary (§2: leaf with `hG`, `incomingHeld`, `ctxInMD`, `incomingCtxOk` redefined, `auth.ctxToken`, `ctxBound` by token); the laws (the probe's two theorems in the tree, `_timer`, `_valueCtx`, `_from`, `_background`, `ctxInMD_valueAt`); the `HasLC.hasLC` move (~12 files, form); `libCtxOk`'s producers re-proved (incl. the 6 `_of_nil` users); Go test; ledger entry 1 decided | ~20 | 400 | 3–4 |
-| 1a | **C1a, first**: the auth chain by token (§4.2): store and server `AuthInfoFromCtx` merged (the probe's proof in the tree), `isReqAuthBound`, the predicate merges, `ReqOn`/`AuthBound`/`AuthReqDerive`/`AuthSrv`/`AuthApplyOn`/`ReadWhy`, the checks (`requireAuthInfo`, `checkLease*`, `doSerialize`, `processInternalRaftRequestOnce`, `checkMembershipOperationPermission`), the 7 request specs with `tok`, the four auth-off theorems' proofs (`tok := none`) | ~66 | 1300 (−350 deleted twin proofs) | 7–9 |
+| 1a | **C1a, first**: the auth chain by token (§4.2, with review 3's second ring: ~24 more files): store and server `AuthInfoFromCtx` merged (the probe's proof in the tree), `isReqAuthBound`, the predicate merges, `ReqOn`/`AuthBound`/`AuthReqDerive`/`AuthSrv`/`AuthApplyOn`/`ReadWhy`, the checks (`requireAuthInfo`, `checkLease*`, `doSerialize`, `processInternalRaftRequestOnce`, `checkMembershipOperationPermission`), the 7 request specs with `tok`, the four auth-off theorems' proofs (`tok := none`); the second ring (lease contracts, the `*Why` family, the admin family, the lease/membership/maintenance specs) | ~90 | 1700 (−350 deleted twin proofs) | 10–13 |
 | — | **C1a checkpoint**: the chain and the auth-off theorems `lean-check`ed; report (forms decided, measured cost) | | | |
 | 1b | the rest (§4.1): delete `incomingOf` and the axioms; `FromIncomingContext`/`WithValue`/`Tracer.Start`/`EnsureTrace`; `grpcAccepted` and the contracts; `newStreamInterceptor` with the passed `md`; the 21 handler specs + 4 `LeaseServer` + `watchServer.Watch` and their proofs; v3rpc (`ServerKVOn`, `LeaseOn`, `InvWatch`, `sendLoop`, `SrvCtxWeakLaws`, Results); client Results (the handler theorems pass `ctxInMD`); examples auth (§4.3); otel/`net/http` stragglers | ~50 | 1300 | 6–8 |
 | — | **C1**: full build; `tcb-report --check --update` (the two axioms gone from 22 collections; restated texts); interfaces regenerated (`etc/gen-interface.py` for raft, cache, server APIs touched); `notes/axiom-review/perheap-incoming.md` (each new trusted text against (a)/(b)/(c), I4', the P-i test); audit rows; stop, land | | | |
 | all | merges of `lean`, two full builds (~12.8k modules, 45G slot, retries), collection baselines, interfaces, handoffs | | | 3–4 |
 
-**Total: ~120 files, ~3000 lines changed, 19–25 agent-days: 4–5 weeks** (target 3–4: not met honestly; the auth
-chain is 66 files, not revision 2's 38). 3.5 weeks is reachable only if C1a finds the request-spec changes
+**Total (revision 4, review 3's estimate): ~150 files, ~3400 lines changed, 22–30 agent-days: 4.5–6 weeks**
+(revision 3's 19–25 days missed the second ring; the auth chain is ~90 files). 3.5 weeks is reachable only if C1a finds the request-spec changes
 mechanical (one binder and one premise per spec, most proofs unchanged after a `tok := mdTokenOf md`).
 
 ## 10. Risks (incoming)
 
 - **R1. A proof needs agreement after all** (two `ctxInMD` of one context, no call between, and the two `md`s
   must be equal). Stop: an agreement law needs its own review (§5). Mitigation: C1a covers the known consumers.
-- **R2. `libCtxOk` producers without a chain.** `libCtxOk_of_nil` at one of `context`'s own types (not foreign)
-  cannot give `ctxInMD`; each of its 6 users is checked in step 0 (expected: foreign types or `ctxValue` forms).
+- **R2. `libCtxOk` producers without a chain.** Closed (review 3, m1): `_of_nil` has 2 users, both with a foreign
+  type or a `ctxValue` form (§2).
 - **R3. The `HasLC.hasLC` move** hits a `{hlc}`-generic user that is instantiated elsewhere. None known (every
   caller is at `HasLC.hasLC`); found in step 0's build.
 - **R4. Build cost and memory**: two full builds; `[∗list]`/`List.replicate` contexts framed explicitly.
@@ -365,7 +444,10 @@ mechanical (one binder and one premise per spec, most proofs unchanged after a `
   needs revision 2's §2.3a opaque realization (two trusted transfer entailments, a model argument): +3–5 days
   and a separate review.
 
-## 11. Open questions (incoming), each with a recommendation
+## 11. Questions (incoming): decisions
+
+**Decided by etcd-grove-03 (2026-11-18), as recommended below: Q2, Q3, Q13, Q14, Q15, Q17. Q9 is the user's, at
+the land stop (the exact old → new texts presented then).** Recorded also in `notes/perheap-questions.md`.
 
 - **Q2. Agreement law.** Recommend **none**; delete `ctxInMD_agree.spec` from `SpecPlan/` (ledger entry 1:
   unprovable from the definitions, false in the intended model, consistent as an axiom, used nowhere).
@@ -440,3 +522,17 @@ assume it has landed (`errDesc`'s only allocated-value conjunct is then a theore
 | (4) `grpcAccepted` single source | §3 (single source of the `md` a spec is about), §4.1 |
 | (6) §4 completeness | §7 (scan of every exported statement, with the definitions that mention the vocabulary) |
 | (7) twins, estimate | §1, §4.2; §9 (4–5 weeks for Part I) |
+
+## 13. Review 3, item by item (revision 4)
+
+| item | answer |
+|---|---|
+| MAJOR 1 (second ring) | §1 (transitive scan, the list, the files), §4.2 (merges, lease/membership/maintenance specs), §7 (meaning list; **plus six admin-family text changes the transitive scan found**, for Q9), §9 (22–30 days) |
+| m1 (producers) | §2: `_of_valueWand` takes `WithValue`'s transfer; `_of_nil` 2 users, R2 closed |
+| m2a (`specW` placement) | §4.2: no `specW`; callers `n := 0` |
+| m2b (`isReqAuthBound` twin row) | §4.2: only the `Lb` row |
+| m2 (`weakSpec`) | deleted (§2, no user) |
+| m3 (`WithRequireLeader`, `WithTimeoutBackgroundMd`) | §7, C1's per-text note |
+| m4 (`AuthInfoFromTLS`, `transportPeer`) | §7 (meaning-only, not (I1)-clean until Part II) |
+| m5 (`authkv_bad_unbound`'s `outgoingOf`) | §4.3; Q9 offers dropping `deliversOutgoing` |
+| m6 (R3 low, `gen-link.py` places links) | noted; R3 stands as low |

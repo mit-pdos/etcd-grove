@@ -52,7 +52,8 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
 - **Proposed change.** Delete `ctxInMD_agree.spec` (both halves) from `SpecPlan/`; keep `ctxInMD_persistent`,
   `rpcCtx_inMD`, `ctxInMD_background`; specs that would use agreement take the metadata (or the token) as a
   parameter.
-- **Decision.** Pending: the user's (a SpecPlan law), with the perheap Scope's Q2.
+- **Decision.** Accepted (decided by etcd-grove-03, 2026-11-18, the perheap Scope's Q2): both halves deleted from
+  `SpecPlan/` in the perheap step 0 commit.
 
 ## 2026-11-18: `SpecPlan/Spec/google_golang_org/grpc/Api.lean` `errView` -- no case for an error wrapping a status error; no message-only view
 
