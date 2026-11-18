@@ -50,17 +50,17 @@ noncomputable def SchedulingV1Client.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] SchedulingV1Client.ty
 
-axiom PriorityClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom priorityClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque priorityClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SchedulingV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SchedulingV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SchedulingV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SchedulingV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newPriorityClasses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/scheduling/v1.newPriorityClasses"
@@ -83,7 +83,7 @@ noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.scheduling.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom PriorityClassExpansion : Type
-axiom PriorityClassExpansion.zero_val : ZeroVal PriorityClassExpansion
+opaque PriorityClassExpansion.nonempty_type : NonemptyType.{0}
+def PriorityClassExpansion : Type := PriorityClassExpansion.nonempty_type.type
+instance PriorityClassExpansion.nonempty : Nonempty PriorityClassExpansion := PriorityClassExpansion.nonempty_type.property
+opaque PriorityClassExpansion.zero_val : ZeroVal PriorityClassExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityClassExpansion.zero_val
 
 class PriorityClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] PriorityClassExpansion.TypeAssumptions.type_repr
   PriorityClassExpansion.TypeAssumptions.method_set
   PriorityClassExpansion.TypeAssumptions.ptr_method_set
 
-axiom PriorityClassesGetter : Type
-axiom PriorityClassesGetter.zero_val : ZeroVal PriorityClassesGetter
+opaque PriorityClassesGetter.nonempty_type : NonemptyType.{0}
+def PriorityClassesGetter : Type := PriorityClassesGetter.nonempty_type.type
+instance PriorityClassesGetter.nonempty : Nonempty PriorityClassesGetter := PriorityClassesGetter.nonempty_type.property
+opaque PriorityClassesGetter.zero_val : ZeroVal PriorityClassesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityClassesGetter.zero_val
 
 class PriorityClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] PriorityClassesGetter.TypeAssumptions.type_repr
   PriorityClassesGetter.TypeAssumptions.method_set
   PriorityClassesGetter.TypeAssumptions.ptr_method_set
 
-axiom PriorityClassInterface : Type
-axiom PriorityClassInterface.zero_val : ZeroVal PriorityClassInterface
+opaque PriorityClassInterface.nonempty_type : NonemptyType.{0}
+def PriorityClassInterface : Type := PriorityClassInterface.nonempty_type.type
+instance PriorityClassInterface.nonempty : Nonempty PriorityClassInterface := PriorityClassInterface.nonempty_type.property
+opaque PriorityClassInterface.zero_val : ZeroVal PriorityClassInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityClassInterface.zero_val
 
 class PriorityClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] PriorityClassInterface.TypeAssumptions.type_repr
   PriorityClassInterface.TypeAssumptions.method_set
   PriorityClassInterface.TypeAssumptions.ptr_method_set
 
-axiom priorityClasses : Type
-axiom priorityClasses.zero_val : ZeroVal priorityClasses
+opaque priorityClasses.nonempty_type : NonemptyType.{0}
+def priorityClasses : Type := priorityClasses.nonempty_type.type
+instance priorityClasses.nonempty : Nonempty priorityClasses := priorityClasses.nonempty_type.property
+opaque priorityClasses.zero_val : ZeroVal priorityClasses := ⟨Classical.ofNonempty⟩
 attribute [instance] priorityClasses.zero_val
 
 class priorityClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] priorityClasses.TypeAssumptions.type_repr
   priorityClasses.TypeAssumptions.method_set
   priorityClasses.TypeAssumptions.ptr_method_set
 
-axiom SchedulingV1Interface : Type
-axiom SchedulingV1Interface.zero_val : ZeroVal SchedulingV1Interface
+opaque SchedulingV1Interface.nonempty_type : NonemptyType.{0}
+def SchedulingV1Interface : Type := SchedulingV1Interface.nonempty_type.type
+instance SchedulingV1Interface.nonempty : Nonempty SchedulingV1Interface := SchedulingV1Interface.nonempty_type.property
+opaque SchedulingV1Interface.zero_val : ZeroVal SchedulingV1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] SchedulingV1Interface.zero_val
 
 class SchedulingV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] SchedulingV1Interface.TypeAssumptions.type_repr
   SchedulingV1Interface.TypeAssumptions.method_set
   SchedulingV1Interface.TypeAssumptions.ptr_method_set
 
-axiom SchedulingV1Client : Type
-axiom SchedulingV1Client.zero_val : ZeroVal SchedulingV1Client
+opaque SchedulingV1Client.nonempty_type : NonemptyType.{0}
+def SchedulingV1Client : Type := SchedulingV1Client.nonempty_type.type
+instance SchedulingV1Client.nonempty : Nonempty SchedulingV1Client := SchedulingV1Client.nonempty_type.property
+opaque SchedulingV1Client.zero_val : ZeroVal SchedulingV1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] SchedulingV1Client.zero_val
 
 class SchedulingV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

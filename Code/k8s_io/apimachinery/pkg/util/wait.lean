@@ -112,37 +112,37 @@ attribute [irreducible] waitWithContextFunc.ty
 noncomputable def ErrWaitTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ErrWaitTimeout"
 
-axiom ErrWaitTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ErrWaitTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errWaitTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.errWaitTimeout"
 
-axiom errWaitTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque errWaitTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RealTimer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.RealTimer"
 
-axiom RealTimer.init [GooseExts] [GoGlobalContext] : val
+opaque RealTimer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def internalClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.internalClock"
 
-axiom internalClock.init [GooseExts] [GoGlobalContext] : val
+opaque internalClock.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ForeverTestTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ForeverTestTimeout"
 
-axiom ForeverTestTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ForeverTestTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NeverStop [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.NeverStop"
 
-axiom NeverStop.init [GooseExts] [GoGlobalContext] : val
+opaque NeverStop.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def jitterRand [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.jitterRand"
 
-axiom jitterRand.init [GooseExts] [GoGlobalContext] : val
+opaque jitterRand.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def delay [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.delay"
@@ -423,7 +423,7 @@ noncomputable def channelContext.Value.impl [GooseExts] [GoGlobalContext] : val 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

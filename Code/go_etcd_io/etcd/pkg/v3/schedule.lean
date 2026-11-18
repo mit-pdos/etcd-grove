@@ -378,7 +378,7 @@ noncomputable def fifo.executeJob.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.schedule where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

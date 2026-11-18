@@ -45,16 +45,16 @@ noncomputable def ContextTraceKey.ty [GooseExts] [GoGlobalContext] : go.GoType :
 
 attribute [irreducible] ContextTraceKey.ty
 
-axiom traceItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque traceItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom traceStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque traceStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Trace.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Trace.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def klogV [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.klogV"
 
-axiom klogV.init [GooseExts] [GoGlobalContext] : val
+opaque klogV.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def writeFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/utils/trace.writeFields"
@@ -77,7 +77,7 @@ noncomputable def ContextWithTrace [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.trace where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -127,8 +127,10 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.method_set
   Field.TypeAssumptions.ptr_method_set
 
-axiom traceItem : Type
-axiom traceItem.zero_val : ZeroVal traceItem
+opaque traceItem.nonempty_type : NonemptyType.{0}
+def traceItem : Type := traceItem.nonempty_type.type
+instance traceItem.nonempty : Nonempty traceItem := traceItem.nonempty_type.property
+opaque traceItem.zero_val : ZeroVal traceItem := ⟨Classical.ofNonempty⟩
 attribute [instance] traceItem.zero_val
 
 class traceItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -144,8 +146,10 @@ attribute [instance] traceItem.TypeAssumptions.type_repr
   traceItem.TypeAssumptions.method_set
   traceItem.TypeAssumptions.ptr_method_set
 
-axiom traceStep : Type
-axiom traceStep.zero_val : ZeroVal traceStep
+opaque traceStep.nonempty_type : NonemptyType.{0}
+def traceStep : Type := traceStep.nonempty_type.type
+instance traceStep.nonempty : Nonempty traceStep := traceStep.nonempty_type.property
+opaque traceStep.zero_val : ZeroVal traceStep := ⟨Classical.ofNonempty⟩
 attribute [instance] traceStep.zero_val
 
 class traceStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -161,8 +165,10 @@ attribute [instance] traceStep.TypeAssumptions.type_repr
   traceStep.TypeAssumptions.method_set
   traceStep.TypeAssumptions.ptr_method_set
 
-axiom Trace : Type
-axiom Trace.zero_val : ZeroVal Trace
+opaque Trace.nonempty_type : NonemptyType.{0}
+def Trace : Type := Trace.nonempty_type.type
+instance Trace.nonempty : Nonempty Trace := Trace.nonempty_type.property
+opaque Trace.zero_val : ZeroVal Trace := ⟨Classical.ofNonempty⟩
 attribute [instance] Trace.zero_val
 
 class Trace.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

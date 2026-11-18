@@ -23,7 +23,7 @@ namespace k8s_io.apimachinery.pkg.util.naming
 noncomputable def stackCreator [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.stackCreator"
 
-axiom stackCreator.init [GooseExts] [GoGlobalContext] : val
+opaque stackCreator.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def GetNameFromCallsite [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/naming.GetNameFromCallsite"
@@ -40,7 +40,7 @@ noncomputable def extractStackCreator [GooseExts] [GoGlobalContext] : GoString :
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.naming where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

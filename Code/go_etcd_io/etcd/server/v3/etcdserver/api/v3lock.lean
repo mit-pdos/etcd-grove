@@ -191,7 +191,7 @@ noncomputable def lockServer.Unlock.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.concurrency, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

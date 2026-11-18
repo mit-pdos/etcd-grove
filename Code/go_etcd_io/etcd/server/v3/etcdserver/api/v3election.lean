@@ -587,7 +587,7 @@ noncomputable def electionServer.session.impl [GooseExts] [GoGlobalContext] : va
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.client.v3.concurrency, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

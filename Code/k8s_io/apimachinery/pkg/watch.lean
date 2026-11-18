@@ -116,29 +116,29 @@ noncomputable def MockWatcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] MockWatcher.ty
 
-axiom Recorder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Recorder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Broadcaster.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Broadcaster.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom broadcasterWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque broadcasterWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StreamWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StreamWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FakeWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FakeWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FakeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FakeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RaceFreeFakeWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RaceFreeFakeWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ProxyWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ProxyWatcher.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WaitIfChannelFull [GooseExts] [GoGlobalContext] : val
+opaque WaitIfChannelFull [GooseExts] [GoGlobalContext] : val
 
-axiom DropIfChannelFull [GooseExts] [GoGlobalContext] : val
+opaque DropIfChannelFull [GooseExts] [GoGlobalContext] : val
 
-axiom incomingQueueLength [GooseExts] [GoGlobalContext] : val
+opaque incomingQueueLength [GooseExts] [GoGlobalContext] : val
 
-axiom internalRunFunctionMarker [GooseExts] [GoGlobalContext] : val
+opaque internalRunFunctionMarker [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def Added [GooseExts] [GoGlobalContext] : val :=
   #(go!"ADDED")
@@ -158,7 +158,7 @@ axiom internalRunFunctionMarker [GooseExts] [GoGlobalContext] : val
 noncomputable def DefaultChanSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/watch.DefaultChanSize"
 
-axiom DefaultChanSize.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultChanSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Filter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/watch.Filter"
@@ -202,7 +202,7 @@ noncomputable def NewProxyWatcher [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.watch where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -304,8 +304,10 @@ attribute [instance] filteredWatch.TypeAssumptions.type_repr
   filteredWatch.TypeAssumptions.method_set
   filteredWatch.TypeAssumptions.ptr_method_set
 
-axiom Recorder : Type
-axiom Recorder.zero_val : ZeroVal Recorder
+opaque Recorder.nonempty_type : NonemptyType.{0}
+def Recorder : Type := Recorder.nonempty_type.type
+instance Recorder.nonempty : Nonempty Recorder := Recorder.nonempty_type.property
+opaque Recorder.zero_val : ZeroVal Recorder := ⟨Classical.ofNonempty⟩
 attribute [instance] Recorder.zero_val
 
 class Recorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -335,8 +337,10 @@ attribute [instance] FullChannelBehavior.TypeAssumptions.underlying
   FullChannelBehavior.TypeAssumptions.method_set
   FullChannelBehavior.TypeAssumptions.ptr_method_set
 
-axiom Broadcaster : Type
-axiom Broadcaster.zero_val : ZeroVal Broadcaster
+opaque Broadcaster.nonempty_type : NonemptyType.{0}
+def Broadcaster : Type := Broadcaster.nonempty_type.type
+instance Broadcaster.nonempty : Nonempty Broadcaster := Broadcaster.nonempty_type.property
+opaque Broadcaster.zero_val : ZeroVal Broadcaster := ⟨Classical.ofNonempty⟩
 attribute [instance] Broadcaster.zero_val
 
 class Broadcaster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -366,8 +370,10 @@ attribute [instance] functionFakeRuntimeObject.TypeAssumptions.underlying
   functionFakeRuntimeObject.TypeAssumptions.method_set
   functionFakeRuntimeObject.TypeAssumptions.ptr_method_set
 
-axiom broadcasterWatcher : Type
-axiom broadcasterWatcher.zero_val : ZeroVal broadcasterWatcher
+opaque broadcasterWatcher.nonempty_type : NonemptyType.{0}
+def broadcasterWatcher : Type := broadcasterWatcher.nonempty_type.type
+instance broadcasterWatcher.nonempty : Nonempty broadcasterWatcher := broadcasterWatcher.nonempty_type.property
+opaque broadcasterWatcher.zero_val : ZeroVal broadcasterWatcher := ⟨Classical.ofNonempty⟩
 attribute [instance] broadcasterWatcher.zero_val
 
 class broadcasterWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -411,8 +417,10 @@ attribute [instance] Reporter.TypeAssumptions.underlying
   Reporter.TypeAssumptions.method_set
   Reporter.TypeAssumptions.ptr_method_set
 
-axiom StreamWatcher : Type
-axiom StreamWatcher.zero_val : ZeroVal StreamWatcher
+opaque StreamWatcher.nonempty_type : NonemptyType.{0}
+def StreamWatcher : Type := StreamWatcher.nonempty_type.type
+instance StreamWatcher.nonempty : Nonempty StreamWatcher := StreamWatcher.nonempty_type.property
+opaque StreamWatcher.zero_val : ZeroVal StreamWatcher := ⟨Classical.ofNonempty⟩
 attribute [instance] StreamWatcher.zero_val
 
 class StreamWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -497,8 +505,10 @@ attribute [instance] emptyWatch.TypeAssumptions.underlying
   emptyWatch.TypeAssumptions.method_set
   emptyWatch.TypeAssumptions.ptr_method_set
 
-axiom FakeWatcher : Type
-axiom FakeWatcher.zero_val : ZeroVal FakeWatcher
+opaque FakeWatcher.nonempty_type : NonemptyType.{0}
+def FakeWatcher : Type := FakeWatcher.nonempty_type.type
+instance FakeWatcher.nonempty : Nonempty FakeWatcher := FakeWatcher.nonempty_type.property
+opaque FakeWatcher.zero_val : ZeroVal FakeWatcher := ⟨Classical.ofNonempty⟩
 attribute [instance] FakeWatcher.zero_val
 
 class FakeWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -514,8 +524,10 @@ attribute [instance] FakeWatcher.TypeAssumptions.type_repr
   FakeWatcher.TypeAssumptions.method_set
   FakeWatcher.TypeAssumptions.ptr_method_set
 
-axiom FakeOptions : Type
-axiom FakeOptions.zero_val : ZeroVal FakeOptions
+opaque FakeOptions.nonempty_type : NonemptyType.{0}
+def FakeOptions : Type := FakeOptions.nonempty_type.type
+instance FakeOptions.nonempty : Nonempty FakeOptions := FakeOptions.nonempty_type.property
+opaque FakeOptions.zero_val : ZeroVal FakeOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] FakeOptions.zero_val
 
 class FakeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -531,8 +543,10 @@ attribute [instance] FakeOptions.TypeAssumptions.type_repr
   FakeOptions.TypeAssumptions.method_set
   FakeOptions.TypeAssumptions.ptr_method_set
 
-axiom RaceFreeFakeWatcher : Type
-axiom RaceFreeFakeWatcher.zero_val : ZeroVal RaceFreeFakeWatcher
+opaque RaceFreeFakeWatcher.nonempty_type : NonemptyType.{0}
+def RaceFreeFakeWatcher : Type := RaceFreeFakeWatcher.nonempty_type.type
+instance RaceFreeFakeWatcher.nonempty : Nonempty RaceFreeFakeWatcher := RaceFreeFakeWatcher.nonempty_type.property
+opaque RaceFreeFakeWatcher.zero_val : ZeroVal RaceFreeFakeWatcher := ⟨Classical.ofNonempty⟩
 attribute [instance] RaceFreeFakeWatcher.zero_val
 
 class RaceFreeFakeWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -548,8 +562,10 @@ attribute [instance] RaceFreeFakeWatcher.TypeAssumptions.type_repr
   RaceFreeFakeWatcher.TypeAssumptions.method_set
   RaceFreeFakeWatcher.TypeAssumptions.ptr_method_set
 
-axiom ProxyWatcher : Type
-axiom ProxyWatcher.zero_val : ZeroVal ProxyWatcher
+opaque ProxyWatcher.nonempty_type : NonemptyType.{0}
+def ProxyWatcher : Type := ProxyWatcher.nonempty_type.type
+instance ProxyWatcher.nonempty : Nonempty ProxyWatcher := ProxyWatcher.nonempty_type.property
+opaque ProxyWatcher.zero_val : ZeroVal ProxyWatcher := ⟨Classical.ofNonempty⟩
 attribute [instance] ProxyWatcher.zero_val
 
 class ProxyWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

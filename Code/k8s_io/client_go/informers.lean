@@ -59,11 +59,11 @@ noncomputable def genericInformer.ty [GooseExts] [GoGlobalContext] : go.GoType :
 
 attribute [irreducible] genericInformer.ty
 
-axiom SharedInformerFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SharedInformerFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GenericInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque GenericInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom genericInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque genericInformer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def WithCustomResyncConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/informers.WithCustomResyncConfig"
@@ -799,7 +799,7 @@ noncomputable def sharedInformerFactory.Core.impl [GooseExts] [GoGlobalContext] 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.informers where
   pkgImportedPkgs := [pkg_id.context, pkg_id.reflect, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.sharding, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.client_go.informers.apps, pkg_id.k8s_io.client_go.informers.core, pkg_id.k8s_io.client_go.informers.internalinterfaces, pkg_id.k8s_io.client_go.kubernetes, pkg_id.k8s_io.client_go.tools.cache]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -986,8 +986,10 @@ attribute [instance] sharedInformerFactory.TypeAssumptions.type_repr
   sharedInformerFactory.TypeAssumptions.ptr_WaitForCacheSync_unfold
   sharedInformerFactory.TypeAssumptions.ptr_WaitForCacheSyncWithContext_unfold
 
-axiom SharedInformerFactory : Type
-axiom SharedInformerFactory.zero_val : ZeroVal SharedInformerFactory
+opaque SharedInformerFactory.nonempty_type : NonemptyType.{0}
+def SharedInformerFactory : Type := SharedInformerFactory.nonempty_type.type
+instance SharedInformerFactory.nonempty : Nonempty SharedInformerFactory := SharedInformerFactory.nonempty_type.property
+opaque SharedInformerFactory.zero_val : ZeroVal SharedInformerFactory := ⟨Classical.ofNonempty⟩
 attribute [instance] SharedInformerFactory.zero_val
 
 class SharedInformerFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1003,8 +1005,10 @@ attribute [instance] SharedInformerFactory.TypeAssumptions.type_repr
   SharedInformerFactory.TypeAssumptions.method_set
   SharedInformerFactory.TypeAssumptions.ptr_method_set
 
-axiom GenericInformer : Type
-axiom GenericInformer.zero_val : ZeroVal GenericInformer
+opaque GenericInformer.nonempty_type : NonemptyType.{0}
+def GenericInformer : Type := GenericInformer.nonempty_type.type
+instance GenericInformer.nonempty : Nonempty GenericInformer := GenericInformer.nonempty_type.property
+opaque GenericInformer.zero_val : ZeroVal GenericInformer := ⟨Classical.ofNonempty⟩
 attribute [instance] GenericInformer.zero_val
 
 class GenericInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1020,8 +1024,10 @@ attribute [instance] GenericInformer.TypeAssumptions.type_repr
   GenericInformer.TypeAssumptions.method_set
   GenericInformer.TypeAssumptions.ptr_method_set
 
-axiom genericInformer : Type
-axiom genericInformer.zero_val : ZeroVal genericInformer
+opaque genericInformer.nonempty_type : NonemptyType.{0}
+def genericInformer : Type := genericInformer.nonempty_type.type
+instance genericInformer.nonempty : Nonempty genericInformer := genericInformer.nonempty_type.property
+opaque genericInformer.zero_val : ZeroVal genericInformer := ⟨Classical.ofNonempty⟩
 attribute [instance] genericInformer.zero_val
 
 class genericInformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

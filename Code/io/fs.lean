@@ -108,31 +108,31 @@ attribute [irreducible] WalkDirFunc.ty
 @[reducible] noncomputable def ModeDir [GooseExts] [GoGlobalContext] : val :=
   #(W32 2147483648)
 
-axiom ModeAppend [GooseExts] [GoGlobalContext] : val
+opaque ModeAppend [GooseExts] [GoGlobalContext] : val
 
-axiom ModeExclusive [GooseExts] [GoGlobalContext] : val
+opaque ModeExclusive [GooseExts] [GoGlobalContext] : val
 
-axiom ModeTemporary [GooseExts] [GoGlobalContext] : val
+opaque ModeTemporary [GooseExts] [GoGlobalContext] : val
 
-axiom ModeSymlink [GooseExts] [GoGlobalContext] : val
+opaque ModeSymlink [GooseExts] [GoGlobalContext] : val
 
-axiom ModeDevice [GooseExts] [GoGlobalContext] : val
+opaque ModeDevice [GooseExts] [GoGlobalContext] : val
 
-axiom ModeNamedPipe [GooseExts] [GoGlobalContext] : val
+opaque ModeNamedPipe [GooseExts] [GoGlobalContext] : val
 
-axiom ModeSocket [GooseExts] [GoGlobalContext] : val
+opaque ModeSocket [GooseExts] [GoGlobalContext] : val
 
-axiom ModeSetuid [GooseExts] [GoGlobalContext] : val
+opaque ModeSetuid [GooseExts] [GoGlobalContext] : val
 
-axiom ModeSetgid [GooseExts] [GoGlobalContext] : val
+opaque ModeSetgid [GooseExts] [GoGlobalContext] : val
 
-axiom ModeCharDevice [GooseExts] [GoGlobalContext] : val
+opaque ModeCharDevice [GooseExts] [GoGlobalContext] : val
 
-axiom ModeSticky [GooseExts] [GoGlobalContext] : val
+opaque ModeSticky [GooseExts] [GoGlobalContext] : val
 
-axiom ModeIrregular [GooseExts] [GoGlobalContext] : val
+opaque ModeIrregular [GooseExts] [GoGlobalContext] : val
 
-axiom ModeType [GooseExts] [GoGlobalContext] : val
+opaque ModeType [GooseExts] [GoGlobalContext] : val
 
 /-- Unix permission bits -/
 @[reducible] noncomputable def ModePerm [GooseExts] [GoGlobalContext] : val :=

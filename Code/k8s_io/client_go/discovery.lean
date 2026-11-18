@@ -180,95 +180,95 @@ noncomputable def SupportsAllVerbs.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] SupportsAllVerbs.ty
 
-axiom StaleGroupVersionError.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StaleGroupVersionError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryInterfaces.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DiscoveryInterfaces.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom discoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque discoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AggregatedDiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AggregatedDiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AggregatedDiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AggregatedDiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aggregatedDiscoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque aggregatedDiscoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CachedDiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CachedDiscoveryInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CachedDiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CachedDiscoveryInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cachedDiscoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cachedDiscoveryInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerGroupsInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerGroupsInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerGroupsInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerGroupsInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverGroupsInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serverGroupsInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerResourcesInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerResourcesInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerResourcesInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerResourcesInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverResourcesInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serverResourcesInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerVersionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerVersionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerVersionInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerVersionInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverVersionInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque serverVersionInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPISchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OpenAPISchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPISchemaInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OpenAPISchemaInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom openAPISchemaInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque openAPISchemaInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPIV3SchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OpenAPIV3SchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OpenAPIV3SchemaInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OpenAPIV3SchemaInterfaceWithContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom openAPIV3SchemaInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque openAPIV3SchemaInterfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom openAPIClientWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque openAPIClientWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DiscoveryClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DiscoveryClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ErrGroupDiscoveryFailed.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ErrGroupDiscoveryFailed.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePredicate.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourcePredicate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourcePredicateFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourcePredicateFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SupportsAllVerbs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SupportsAllVerbs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom defaultRetries [GooseExts] [GoGlobalContext] : val
+opaque defaultRetries [GooseExts] [GoGlobalContext] : val
 
-axiom openAPIV2mimePb [GooseExts] [GoGlobalContext] : val
+opaque openAPIV2mimePb [GooseExts] [GoGlobalContext] : val
 
-axiom defaultTimeout [GooseExts] [GoGlobalContext] : val
+opaque defaultTimeout [GooseExts] [GoGlobalContext] : val
 
-axiom defaultBurst [GooseExts] [GoGlobalContext] : val
+opaque defaultBurst [GooseExts] [GoGlobalContext] : val
 
-axiom AcceptV1 [GooseExts] [GoGlobalContext] : val
+opaque AcceptV1 [GooseExts] [GoGlobalContext] : val
 
-axiom AcceptV2 [GooseExts] [GoGlobalContext] : val
+opaque AcceptV2 [GooseExts] [GoGlobalContext] : val
 
-axiom AcceptV2NoPeer [GooseExts] [GoGlobalContext] : val
+opaque AcceptV2NoPeer [GooseExts] [GoGlobalContext] : val
 
-axiom acceptDiscoveryFormats [GooseExts] [GoGlobalContext] : val
+opaque acceptDiscoveryFormats [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptyKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.emptyKind"
 
-axiom emptyKind.init [GooseExts] [GoGlobalContext] : val
+opaque emptyKind.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def v2GVK [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.v2GVK"
 
-axiom v2GVK.init [GooseExts] [GoGlobalContext] : val
+opaque v2GVK.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SplitGroupsAndResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/discovery.SplitGroupsAndResources"
@@ -381,7 +381,7 @@ noncomputable def FilteredBy [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.discovery where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -396,8 +396,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val emptyKind.init) (Val #()))))))))
 
-axiom StaleGroupVersionError : Type
-axiom StaleGroupVersionError.zero_val : ZeroVal StaleGroupVersionError
+opaque StaleGroupVersionError.nonempty_type : NonemptyType.{0}
+def StaleGroupVersionError : Type := StaleGroupVersionError.nonempty_type.type
+instance StaleGroupVersionError.nonempty : Nonempty StaleGroupVersionError := StaleGroupVersionError.nonempty_type.property
+opaque StaleGroupVersionError.zero_val : ZeroVal StaleGroupVersionError := ⟨Classical.ofNonempty⟩
 attribute [instance] StaleGroupVersionError.zero_val
 
 class StaleGroupVersionError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -413,8 +415,10 @@ attribute [instance] StaleGroupVersionError.TypeAssumptions.type_repr
   StaleGroupVersionError.TypeAssumptions.method_set
   StaleGroupVersionError.TypeAssumptions.ptr_method_set
 
-axiom DiscoveryInterface : Type
-axiom DiscoveryInterface.zero_val : ZeroVal DiscoveryInterface
+opaque DiscoveryInterface.nonempty_type : NonemptyType.{0}
+def DiscoveryInterface : Type := DiscoveryInterface.nonempty_type.type
+instance DiscoveryInterface.nonempty : Nonempty DiscoveryInterface := DiscoveryInterface.nonempty_type.property
+opaque DiscoveryInterface.zero_val : ZeroVal DiscoveryInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] DiscoveryInterface.zero_val
 
 class DiscoveryInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -430,8 +434,10 @@ attribute [instance] DiscoveryInterface.TypeAssumptions.type_repr
   DiscoveryInterface.TypeAssumptions.method_set
   DiscoveryInterface.TypeAssumptions.ptr_method_set
 
-axiom DiscoveryInterfaceWithContext : Type
-axiom DiscoveryInterfaceWithContext.zero_val : ZeroVal DiscoveryInterfaceWithContext
+opaque DiscoveryInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def DiscoveryInterfaceWithContext : Type := DiscoveryInterfaceWithContext.nonempty_type.type
+instance DiscoveryInterfaceWithContext.nonempty : Nonempty DiscoveryInterfaceWithContext := DiscoveryInterfaceWithContext.nonempty_type.property
+opaque DiscoveryInterfaceWithContext.zero_val : ZeroVal DiscoveryInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] DiscoveryInterfaceWithContext.zero_val
 
 class DiscoveryInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -447,8 +453,10 @@ attribute [instance] DiscoveryInterfaceWithContext.TypeAssumptions.type_repr
   DiscoveryInterfaceWithContext.TypeAssumptions.method_set
   DiscoveryInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom DiscoveryInterfaces : Type
-axiom DiscoveryInterfaces.zero_val : ZeroVal DiscoveryInterfaces
+opaque DiscoveryInterfaces.nonempty_type : NonemptyType.{0}
+def DiscoveryInterfaces : Type := DiscoveryInterfaces.nonempty_type.type
+instance DiscoveryInterfaces.nonempty : Nonempty DiscoveryInterfaces := DiscoveryInterfaces.nonempty_type.property
+opaque DiscoveryInterfaces.zero_val : ZeroVal DiscoveryInterfaces := ⟨Classical.ofNonempty⟩
 attribute [instance] DiscoveryInterfaces.zero_val
 
 class DiscoveryInterfaces.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -464,8 +472,10 @@ attribute [instance] DiscoveryInterfaces.TypeAssumptions.type_repr
   DiscoveryInterfaces.TypeAssumptions.method_set
   DiscoveryInterfaces.TypeAssumptions.ptr_method_set
 
-axiom discoveryInterfaceWrapper : Type
-axiom discoveryInterfaceWrapper.zero_val : ZeroVal discoveryInterfaceWrapper
+opaque discoveryInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def discoveryInterfaceWrapper : Type := discoveryInterfaceWrapper.nonempty_type.type
+instance discoveryInterfaceWrapper.nonempty : Nonempty discoveryInterfaceWrapper := discoveryInterfaceWrapper.nonempty_type.property
+opaque discoveryInterfaceWrapper.zero_val : ZeroVal discoveryInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] discoveryInterfaceWrapper.zero_val
 
 class discoveryInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -481,8 +491,10 @@ attribute [instance] discoveryInterfaceWrapper.TypeAssumptions.type_repr
   discoveryInterfaceWrapper.TypeAssumptions.method_set
   discoveryInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom AggregatedDiscoveryInterface : Type
-axiom AggregatedDiscoveryInterface.zero_val : ZeroVal AggregatedDiscoveryInterface
+opaque AggregatedDiscoveryInterface.nonempty_type : NonemptyType.{0}
+def AggregatedDiscoveryInterface : Type := AggregatedDiscoveryInterface.nonempty_type.type
+instance AggregatedDiscoveryInterface.nonempty : Nonempty AggregatedDiscoveryInterface := AggregatedDiscoveryInterface.nonempty_type.property
+opaque AggregatedDiscoveryInterface.zero_val : ZeroVal AggregatedDiscoveryInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] AggregatedDiscoveryInterface.zero_val
 
 class AggregatedDiscoveryInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -498,8 +510,10 @@ attribute [instance] AggregatedDiscoveryInterface.TypeAssumptions.type_repr
   AggregatedDiscoveryInterface.TypeAssumptions.method_set
   AggregatedDiscoveryInterface.TypeAssumptions.ptr_method_set
 
-axiom AggregatedDiscoveryInterfaceWithContext : Type
-axiom AggregatedDiscoveryInterfaceWithContext.zero_val : ZeroVal AggregatedDiscoveryInterfaceWithContext
+opaque AggregatedDiscoveryInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def AggregatedDiscoveryInterfaceWithContext : Type := AggregatedDiscoveryInterfaceWithContext.nonempty_type.type
+instance AggregatedDiscoveryInterfaceWithContext.nonempty : Nonempty AggregatedDiscoveryInterfaceWithContext := AggregatedDiscoveryInterfaceWithContext.nonempty_type.property
+opaque AggregatedDiscoveryInterfaceWithContext.zero_val : ZeroVal AggregatedDiscoveryInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] AggregatedDiscoveryInterfaceWithContext.zero_val
 
 class AggregatedDiscoveryInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -515,8 +529,10 @@ attribute [instance] AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.typ
   AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.method_set
   AggregatedDiscoveryInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom aggregatedDiscoveryInterfaceWrapper : Type
-axiom aggregatedDiscoveryInterfaceWrapper.zero_val : ZeroVal aggregatedDiscoveryInterfaceWrapper
+opaque aggregatedDiscoveryInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def aggregatedDiscoveryInterfaceWrapper : Type := aggregatedDiscoveryInterfaceWrapper.nonempty_type.type
+instance aggregatedDiscoveryInterfaceWrapper.nonempty : Nonempty aggregatedDiscoveryInterfaceWrapper := aggregatedDiscoveryInterfaceWrapper.nonempty_type.property
+opaque aggregatedDiscoveryInterfaceWrapper.zero_val : ZeroVal aggregatedDiscoveryInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] aggregatedDiscoveryInterfaceWrapper.zero_val
 
 class aggregatedDiscoveryInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -532,8 +548,10 @@ attribute [instance] aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.type_re
   aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.method_set
   aggregatedDiscoveryInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom CachedDiscoveryInterface : Type
-axiom CachedDiscoveryInterface.zero_val : ZeroVal CachedDiscoveryInterface
+opaque CachedDiscoveryInterface.nonempty_type : NonemptyType.{0}
+def CachedDiscoveryInterface : Type := CachedDiscoveryInterface.nonempty_type.type
+instance CachedDiscoveryInterface.nonempty : Nonempty CachedDiscoveryInterface := CachedDiscoveryInterface.nonempty_type.property
+opaque CachedDiscoveryInterface.zero_val : ZeroVal CachedDiscoveryInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CachedDiscoveryInterface.zero_val
 
 class CachedDiscoveryInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -549,8 +567,10 @@ attribute [instance] CachedDiscoveryInterface.TypeAssumptions.type_repr
   CachedDiscoveryInterface.TypeAssumptions.method_set
   CachedDiscoveryInterface.TypeAssumptions.ptr_method_set
 
-axiom CachedDiscoveryInterfaceWithContext : Type
-axiom CachedDiscoveryInterfaceWithContext.zero_val : ZeroVal CachedDiscoveryInterfaceWithContext
+opaque CachedDiscoveryInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def CachedDiscoveryInterfaceWithContext : Type := CachedDiscoveryInterfaceWithContext.nonempty_type.type
+instance CachedDiscoveryInterfaceWithContext.nonempty : Nonempty CachedDiscoveryInterfaceWithContext := CachedDiscoveryInterfaceWithContext.nonempty_type.property
+opaque CachedDiscoveryInterfaceWithContext.zero_val : ZeroVal CachedDiscoveryInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] CachedDiscoveryInterfaceWithContext.zero_val
 
 class CachedDiscoveryInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -566,8 +586,10 @@ attribute [instance] CachedDiscoveryInterfaceWithContext.TypeAssumptions.type_re
   CachedDiscoveryInterfaceWithContext.TypeAssumptions.method_set
   CachedDiscoveryInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom cachedDiscoveryInterfaceWrapper : Type
-axiom cachedDiscoveryInterfaceWrapper.zero_val : ZeroVal cachedDiscoveryInterfaceWrapper
+opaque cachedDiscoveryInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def cachedDiscoveryInterfaceWrapper : Type := cachedDiscoveryInterfaceWrapper.nonempty_type.type
+instance cachedDiscoveryInterfaceWrapper.nonempty : Nonempty cachedDiscoveryInterfaceWrapper := cachedDiscoveryInterfaceWrapper.nonempty_type.property
+opaque cachedDiscoveryInterfaceWrapper.zero_val : ZeroVal cachedDiscoveryInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] cachedDiscoveryInterfaceWrapper.zero_val
 
 class cachedDiscoveryInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -583,8 +605,10 @@ attribute [instance] cachedDiscoveryInterfaceWrapper.TypeAssumptions.type_repr
   cachedDiscoveryInterfaceWrapper.TypeAssumptions.method_set
   cachedDiscoveryInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom ServerGroupsInterface : Type
-axiom ServerGroupsInterface.zero_val : ZeroVal ServerGroupsInterface
+opaque ServerGroupsInterface.nonempty_type : NonemptyType.{0}
+def ServerGroupsInterface : Type := ServerGroupsInterface.nonempty_type.type
+instance ServerGroupsInterface.nonempty : Nonempty ServerGroupsInterface := ServerGroupsInterface.nonempty_type.property
+opaque ServerGroupsInterface.zero_val : ZeroVal ServerGroupsInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerGroupsInterface.zero_val
 
 class ServerGroupsInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -600,8 +624,10 @@ attribute [instance] ServerGroupsInterface.TypeAssumptions.type_repr
   ServerGroupsInterface.TypeAssumptions.method_set
   ServerGroupsInterface.TypeAssumptions.ptr_method_set
 
-axiom ServerGroupsInterfaceWithContext : Type
-axiom ServerGroupsInterfaceWithContext.zero_val : ZeroVal ServerGroupsInterfaceWithContext
+opaque ServerGroupsInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def ServerGroupsInterfaceWithContext : Type := ServerGroupsInterfaceWithContext.nonempty_type.type
+instance ServerGroupsInterfaceWithContext.nonempty : Nonempty ServerGroupsInterfaceWithContext := ServerGroupsInterfaceWithContext.nonempty_type.property
+opaque ServerGroupsInterfaceWithContext.zero_val : ZeroVal ServerGroupsInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerGroupsInterfaceWithContext.zero_val
 
 class ServerGroupsInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -617,8 +643,10 @@ attribute [instance] ServerGroupsInterfaceWithContext.TypeAssumptions.type_repr
   ServerGroupsInterfaceWithContext.TypeAssumptions.method_set
   ServerGroupsInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom serverGroupsInterfaceWrapper : Type
-axiom serverGroupsInterfaceWrapper.zero_val : ZeroVal serverGroupsInterfaceWrapper
+opaque serverGroupsInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def serverGroupsInterfaceWrapper : Type := serverGroupsInterfaceWrapper.nonempty_type.type
+instance serverGroupsInterfaceWrapper.nonempty : Nonempty serverGroupsInterfaceWrapper := serverGroupsInterfaceWrapper.nonempty_type.property
+opaque serverGroupsInterfaceWrapper.zero_val : ZeroVal serverGroupsInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] serverGroupsInterfaceWrapper.zero_val
 
 class serverGroupsInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -634,8 +662,10 @@ attribute [instance] serverGroupsInterfaceWrapper.TypeAssumptions.type_repr
   serverGroupsInterfaceWrapper.TypeAssumptions.method_set
   serverGroupsInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom ServerResourcesInterface : Type
-axiom ServerResourcesInterface.zero_val : ZeroVal ServerResourcesInterface
+opaque ServerResourcesInterface.nonempty_type : NonemptyType.{0}
+def ServerResourcesInterface : Type := ServerResourcesInterface.nonempty_type.type
+instance ServerResourcesInterface.nonempty : Nonempty ServerResourcesInterface := ServerResourcesInterface.nonempty_type.property
+opaque ServerResourcesInterface.zero_val : ZeroVal ServerResourcesInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerResourcesInterface.zero_val
 
 class ServerResourcesInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -651,8 +681,10 @@ attribute [instance] ServerResourcesInterface.TypeAssumptions.type_repr
   ServerResourcesInterface.TypeAssumptions.method_set
   ServerResourcesInterface.TypeAssumptions.ptr_method_set
 
-axiom ServerResourcesInterfaceWithContext : Type
-axiom ServerResourcesInterfaceWithContext.zero_val : ZeroVal ServerResourcesInterfaceWithContext
+opaque ServerResourcesInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def ServerResourcesInterfaceWithContext : Type := ServerResourcesInterfaceWithContext.nonempty_type.type
+instance ServerResourcesInterfaceWithContext.nonempty : Nonempty ServerResourcesInterfaceWithContext := ServerResourcesInterfaceWithContext.nonempty_type.property
+opaque ServerResourcesInterfaceWithContext.zero_val : ZeroVal ServerResourcesInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerResourcesInterfaceWithContext.zero_val
 
 class ServerResourcesInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -668,8 +700,10 @@ attribute [instance] ServerResourcesInterfaceWithContext.TypeAssumptions.type_re
   ServerResourcesInterfaceWithContext.TypeAssumptions.method_set
   ServerResourcesInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom serverResourcesInterfaceWrapper : Type
-axiom serverResourcesInterfaceWrapper.zero_val : ZeroVal serverResourcesInterfaceWrapper
+opaque serverResourcesInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def serverResourcesInterfaceWrapper : Type := serverResourcesInterfaceWrapper.nonempty_type.type
+instance serverResourcesInterfaceWrapper.nonempty : Nonempty serverResourcesInterfaceWrapper := serverResourcesInterfaceWrapper.nonempty_type.property
+opaque serverResourcesInterfaceWrapper.zero_val : ZeroVal serverResourcesInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] serverResourcesInterfaceWrapper.zero_val
 
 class serverResourcesInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -685,8 +719,10 @@ attribute [instance] serverResourcesInterfaceWrapper.TypeAssumptions.type_repr
   serverResourcesInterfaceWrapper.TypeAssumptions.method_set
   serverResourcesInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom ServerVersionInterface : Type
-axiom ServerVersionInterface.zero_val : ZeroVal ServerVersionInterface
+opaque ServerVersionInterface.nonempty_type : NonemptyType.{0}
+def ServerVersionInterface : Type := ServerVersionInterface.nonempty_type.type
+instance ServerVersionInterface.nonempty : Nonempty ServerVersionInterface := ServerVersionInterface.nonempty_type.property
+opaque ServerVersionInterface.zero_val : ZeroVal ServerVersionInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerVersionInterface.zero_val
 
 class ServerVersionInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -702,8 +738,10 @@ attribute [instance] ServerVersionInterface.TypeAssumptions.type_repr
   ServerVersionInterface.TypeAssumptions.method_set
   ServerVersionInterface.TypeAssumptions.ptr_method_set
 
-axiom ServerVersionInterfaceWithContext : Type
-axiom ServerVersionInterfaceWithContext.zero_val : ZeroVal ServerVersionInterfaceWithContext
+opaque ServerVersionInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def ServerVersionInterfaceWithContext : Type := ServerVersionInterfaceWithContext.nonempty_type.type
+instance ServerVersionInterfaceWithContext.nonempty : Nonempty ServerVersionInterfaceWithContext := ServerVersionInterfaceWithContext.nonempty_type.property
+opaque ServerVersionInterfaceWithContext.zero_val : ZeroVal ServerVersionInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerVersionInterfaceWithContext.zero_val
 
 class ServerVersionInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -719,8 +757,10 @@ attribute [instance] ServerVersionInterfaceWithContext.TypeAssumptions.type_repr
   ServerVersionInterfaceWithContext.TypeAssumptions.method_set
   ServerVersionInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom serverVersionInterfaceWrapper : Type
-axiom serverVersionInterfaceWrapper.zero_val : ZeroVal serverVersionInterfaceWrapper
+opaque serverVersionInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def serverVersionInterfaceWrapper : Type := serverVersionInterfaceWrapper.nonempty_type.type
+instance serverVersionInterfaceWrapper.nonempty : Nonempty serverVersionInterfaceWrapper := serverVersionInterfaceWrapper.nonempty_type.property
+opaque serverVersionInterfaceWrapper.zero_val : ZeroVal serverVersionInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] serverVersionInterfaceWrapper.zero_val
 
 class serverVersionInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -736,8 +776,10 @@ attribute [instance] serverVersionInterfaceWrapper.TypeAssumptions.type_repr
   serverVersionInterfaceWrapper.TypeAssumptions.method_set
   serverVersionInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom OpenAPISchemaInterface : Type
-axiom OpenAPISchemaInterface.zero_val : ZeroVal OpenAPISchemaInterface
+opaque OpenAPISchemaInterface.nonempty_type : NonemptyType.{0}
+def OpenAPISchemaInterface : Type := OpenAPISchemaInterface.nonempty_type.type
+instance OpenAPISchemaInterface.nonempty : Nonempty OpenAPISchemaInterface := OpenAPISchemaInterface.nonempty_type.property
+opaque OpenAPISchemaInterface.zero_val : ZeroVal OpenAPISchemaInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] OpenAPISchemaInterface.zero_val
 
 class OpenAPISchemaInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -753,8 +795,10 @@ attribute [instance] OpenAPISchemaInterface.TypeAssumptions.type_repr
   OpenAPISchemaInterface.TypeAssumptions.method_set
   OpenAPISchemaInterface.TypeAssumptions.ptr_method_set
 
-axiom OpenAPISchemaInterfaceWithContext : Type
-axiom OpenAPISchemaInterfaceWithContext.zero_val : ZeroVal OpenAPISchemaInterfaceWithContext
+opaque OpenAPISchemaInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def OpenAPISchemaInterfaceWithContext : Type := OpenAPISchemaInterfaceWithContext.nonempty_type.type
+instance OpenAPISchemaInterfaceWithContext.nonempty : Nonempty OpenAPISchemaInterfaceWithContext := OpenAPISchemaInterfaceWithContext.nonempty_type.property
+opaque OpenAPISchemaInterfaceWithContext.zero_val : ZeroVal OpenAPISchemaInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] OpenAPISchemaInterfaceWithContext.zero_val
 
 class OpenAPISchemaInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -770,8 +814,10 @@ attribute [instance] OpenAPISchemaInterfaceWithContext.TypeAssumptions.type_repr
   OpenAPISchemaInterfaceWithContext.TypeAssumptions.method_set
   OpenAPISchemaInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom openAPISchemaInterfaceWrapper : Type
-axiom openAPISchemaInterfaceWrapper.zero_val : ZeroVal openAPISchemaInterfaceWrapper
+opaque openAPISchemaInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def openAPISchemaInterfaceWrapper : Type := openAPISchemaInterfaceWrapper.nonempty_type.type
+instance openAPISchemaInterfaceWrapper.nonempty : Nonempty openAPISchemaInterfaceWrapper := openAPISchemaInterfaceWrapper.nonempty_type.property
+opaque openAPISchemaInterfaceWrapper.zero_val : ZeroVal openAPISchemaInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] openAPISchemaInterfaceWrapper.zero_val
 
 class openAPISchemaInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -787,8 +833,10 @@ attribute [instance] openAPISchemaInterfaceWrapper.TypeAssumptions.type_repr
   openAPISchemaInterfaceWrapper.TypeAssumptions.method_set
   openAPISchemaInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom OpenAPIV3SchemaInterface : Type
-axiom OpenAPIV3SchemaInterface.zero_val : ZeroVal OpenAPIV3SchemaInterface
+opaque OpenAPIV3SchemaInterface.nonempty_type : NonemptyType.{0}
+def OpenAPIV3SchemaInterface : Type := OpenAPIV3SchemaInterface.nonempty_type.type
+instance OpenAPIV3SchemaInterface.nonempty : Nonempty OpenAPIV3SchemaInterface := OpenAPIV3SchemaInterface.nonempty_type.property
+opaque OpenAPIV3SchemaInterface.zero_val : ZeroVal OpenAPIV3SchemaInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] OpenAPIV3SchemaInterface.zero_val
 
 class OpenAPIV3SchemaInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -804,8 +852,10 @@ attribute [instance] OpenAPIV3SchemaInterface.TypeAssumptions.type_repr
   OpenAPIV3SchemaInterface.TypeAssumptions.method_set
   OpenAPIV3SchemaInterface.TypeAssumptions.ptr_method_set
 
-axiom OpenAPIV3SchemaInterfaceWithContext : Type
-axiom OpenAPIV3SchemaInterfaceWithContext.zero_val : ZeroVal OpenAPIV3SchemaInterfaceWithContext
+opaque OpenAPIV3SchemaInterfaceWithContext.nonempty_type : NonemptyType.{0}
+def OpenAPIV3SchemaInterfaceWithContext : Type := OpenAPIV3SchemaInterfaceWithContext.nonempty_type.type
+instance OpenAPIV3SchemaInterfaceWithContext.nonempty : Nonempty OpenAPIV3SchemaInterfaceWithContext := OpenAPIV3SchemaInterfaceWithContext.nonempty_type.property
+opaque OpenAPIV3SchemaInterfaceWithContext.zero_val : ZeroVal OpenAPIV3SchemaInterfaceWithContext := ⟨Classical.ofNonempty⟩
 attribute [instance] OpenAPIV3SchemaInterfaceWithContext.zero_val
 
 class OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -821,8 +871,10 @@ attribute [instance] OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.type_re
   OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.method_set
   OpenAPIV3SchemaInterfaceWithContext.TypeAssumptions.ptr_method_set
 
-axiom openAPIV3SchemaInterfaceWrapper : Type
-axiom openAPIV3SchemaInterfaceWrapper.zero_val : ZeroVal openAPIV3SchemaInterfaceWrapper
+opaque openAPIV3SchemaInterfaceWrapper.nonempty_type : NonemptyType.{0}
+def openAPIV3SchemaInterfaceWrapper : Type := openAPIV3SchemaInterfaceWrapper.nonempty_type.type
+instance openAPIV3SchemaInterfaceWrapper.nonempty : Nonempty openAPIV3SchemaInterfaceWrapper := openAPIV3SchemaInterfaceWrapper.nonempty_type.property
+opaque openAPIV3SchemaInterfaceWrapper.zero_val : ZeroVal openAPIV3SchemaInterfaceWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] openAPIV3SchemaInterfaceWrapper.zero_val
 
 class openAPIV3SchemaInterfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -838,8 +890,10 @@ attribute [instance] openAPIV3SchemaInterfaceWrapper.TypeAssumptions.type_repr
   openAPIV3SchemaInterfaceWrapper.TypeAssumptions.method_set
   openAPIV3SchemaInterfaceWrapper.TypeAssumptions.ptr_method_set
 
-axiom openAPIClientWrapper : Type
-axiom openAPIClientWrapper.zero_val : ZeroVal openAPIClientWrapper
+opaque openAPIClientWrapper.nonempty_type : NonemptyType.{0}
+def openAPIClientWrapper : Type := openAPIClientWrapper.nonempty_type.type
+instance openAPIClientWrapper.nonempty : Nonempty openAPIClientWrapper := openAPIClientWrapper.nonempty_type.property
+opaque openAPIClientWrapper.zero_val : ZeroVal openAPIClientWrapper := ⟨Classical.ofNonempty⟩
 attribute [instance] openAPIClientWrapper.zero_val
 
 class openAPIClientWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -855,8 +909,10 @@ attribute [instance] openAPIClientWrapper.TypeAssumptions.type_repr
   openAPIClientWrapper.TypeAssumptions.method_set
   openAPIClientWrapper.TypeAssumptions.ptr_method_set
 
-axiom DiscoveryClient : Type
-axiom DiscoveryClient.zero_val : ZeroVal DiscoveryClient
+opaque DiscoveryClient.nonempty_type : NonemptyType.{0}
+def DiscoveryClient : Type := DiscoveryClient.nonempty_type.type
+instance DiscoveryClient.nonempty : Nonempty DiscoveryClient := DiscoveryClient.nonempty_type.property
+opaque DiscoveryClient.zero_val : ZeroVal DiscoveryClient := ⟨Classical.ofNonempty⟩
 attribute [instance] DiscoveryClient.zero_val
 
 class DiscoveryClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -872,8 +928,10 @@ attribute [instance] DiscoveryClient.TypeAssumptions.type_repr
   DiscoveryClient.TypeAssumptions.method_set
   DiscoveryClient.TypeAssumptions.ptr_method_set
 
-axiom ErrGroupDiscoveryFailed : Type
-axiom ErrGroupDiscoveryFailed.zero_val : ZeroVal ErrGroupDiscoveryFailed
+opaque ErrGroupDiscoveryFailed.nonempty_type : NonemptyType.{0}
+def ErrGroupDiscoveryFailed : Type := ErrGroupDiscoveryFailed.nonempty_type.type
+instance ErrGroupDiscoveryFailed.nonempty : Nonempty ErrGroupDiscoveryFailed := ErrGroupDiscoveryFailed.nonempty_type.property
+opaque ErrGroupDiscoveryFailed.zero_val : ZeroVal ErrGroupDiscoveryFailed := ⟨Classical.ofNonempty⟩
 attribute [instance] ErrGroupDiscoveryFailed.zero_val
 
 class ErrGroupDiscoveryFailed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -889,8 +947,10 @@ attribute [instance] ErrGroupDiscoveryFailed.TypeAssumptions.type_repr
   ErrGroupDiscoveryFailed.TypeAssumptions.method_set
   ErrGroupDiscoveryFailed.TypeAssumptions.ptr_method_set
 
-axiom ResourcePredicate : Type
-axiom ResourcePredicate.zero_val : ZeroVal ResourcePredicate
+opaque ResourcePredicate.nonempty_type : NonemptyType.{0}
+def ResourcePredicate : Type := ResourcePredicate.nonempty_type.type
+instance ResourcePredicate.nonempty : Nonempty ResourcePredicate := ResourcePredicate.nonempty_type.property
+opaque ResourcePredicate.zero_val : ZeroVal ResourcePredicate := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourcePredicate.zero_val
 
 class ResourcePredicate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -906,8 +966,10 @@ attribute [instance] ResourcePredicate.TypeAssumptions.type_repr
   ResourcePredicate.TypeAssumptions.method_set
   ResourcePredicate.TypeAssumptions.ptr_method_set
 
-axiom ResourcePredicateFunc : Type
-axiom ResourcePredicateFunc.zero_val : ZeroVal ResourcePredicateFunc
+opaque ResourcePredicateFunc.nonempty_type : NonemptyType.{0}
+def ResourcePredicateFunc : Type := ResourcePredicateFunc.nonempty_type.type
+instance ResourcePredicateFunc.nonempty : Nonempty ResourcePredicateFunc := ResourcePredicateFunc.nonempty_type.property
+opaque ResourcePredicateFunc.zero_val : ZeroVal ResourcePredicateFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourcePredicateFunc.zero_val
 
 class ResourcePredicateFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -923,8 +985,10 @@ attribute [instance] ResourcePredicateFunc.TypeAssumptions.type_repr
   ResourcePredicateFunc.TypeAssumptions.method_set
   ResourcePredicateFunc.TypeAssumptions.ptr_method_set
 
-axiom SupportsAllVerbs : Type
-axiom SupportsAllVerbs.zero_val : ZeroVal SupportsAllVerbs
+opaque SupportsAllVerbs.nonempty_type : NonemptyType.{0}
+def SupportsAllVerbs : Type := SupportsAllVerbs.nonempty_type.type
+instance SupportsAllVerbs.nonempty : Nonempty SupportsAllVerbs := SupportsAllVerbs.nonempty_type.property
+opaque SupportsAllVerbs.zero_val : ZeroVal SupportsAllVerbs := ⟨Classical.ofNonempty⟩
 attribute [instance] SupportsAllVerbs.zero_val
 
 class SupportsAllVerbs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

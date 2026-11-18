@@ -80,42 +80,42 @@ noncomputable def traceMultiplexer.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] traceMultiplexer.ty
 
-axiom FlightRecorder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlightRecorder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlightRecorderConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlightRecorderConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom traceMultiplexer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque traceMultiplexer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom regionStartCode [GooseExts] [GoGlobalContext] : val
+opaque regionStartCode [GooseExts] [GoGlobalContext] : val
 
-axiom regionEndCode [GooseExts] [GoGlobalContext] : val
+opaque regionEndCode [GooseExts] [GoGlobalContext] : val
 
-axiom maxVarintLen64 [GooseExts] [GoGlobalContext] : val
+opaque maxVarintLen64 [GooseExts] [GoGlobalContext] : val
 
 noncomputable def lastTaskID [GooseExts] [GoGlobalContext] : GoString :=
   go!"runtime/trace.lastTaskID"
 
-axiom lastTaskID.init [GooseExts] [GoGlobalContext] : val
+opaque lastTaskID.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bgTask [GooseExts] [GoGlobalContext] : GoString :=
   go!"runtime/trace.bgTask"
 
-axiom bgTask.init [GooseExts] [GoGlobalContext] : val
+opaque bgTask.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noopRegion [GooseExts] [GoGlobalContext] : GoString :=
   go!"runtime/trace.noopRegion"
 
-axiom noopRegion.init [GooseExts] [GoGlobalContext] : val
+opaque noopRegion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errOverflow [GooseExts] [GoGlobalContext] : GoString :=
   go!"runtime/trace.errOverflow"
 
-axiom errOverflow.init [GooseExts] [GoGlobalContext] : val
+opaque errOverflow.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errEOB [GooseExts] [GoGlobalContext] : GoString :=
   go!"runtime/trace.errEOB"
 
-axiom errEOB.init [GooseExts] [GoGlobalContext] : val
+opaque errEOB.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tracing [GooseExts] [GoGlobalContext] : GoString :=
   go!"runtime/trace.tracing"
@@ -189,7 +189,7 @@ noncomputable def Stop [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.runtime.trace where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -377,8 +377,10 @@ attribute [instance] batch.TypeAssumptions.type_repr
   batch.TypeAssumptions.method_set
   batch.TypeAssumptions.ptr_method_set
 
-axiom FlightRecorder : Type
-axiom FlightRecorder.zero_val : ZeroVal FlightRecorder
+opaque FlightRecorder.nonempty_type : NonemptyType.{0}
+def FlightRecorder : Type := FlightRecorder.nonempty_type.type
+instance FlightRecorder.nonempty : Nonempty FlightRecorder := FlightRecorder.nonempty_type.property
+opaque FlightRecorder.zero_val : ZeroVal FlightRecorder := ⟨Classical.ofNonempty⟩
 attribute [instance] FlightRecorder.zero_val
 
 class FlightRecorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -394,8 +396,10 @@ attribute [instance] FlightRecorder.TypeAssumptions.type_repr
   FlightRecorder.TypeAssumptions.method_set
   FlightRecorder.TypeAssumptions.ptr_method_set
 
-axiom FlightRecorderConfig : Type
-axiom FlightRecorderConfig.zero_val : ZeroVal FlightRecorderConfig
+opaque FlightRecorderConfig.nonempty_type : NonemptyType.{0}
+def FlightRecorderConfig : Type := FlightRecorderConfig.nonempty_type.type
+instance FlightRecorderConfig.nonempty : Nonempty FlightRecorderConfig := FlightRecorderConfig.nonempty_type.property
+opaque FlightRecorderConfig.zero_val : ZeroVal FlightRecorderConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] FlightRecorderConfig.zero_val
 
 class FlightRecorderConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -533,8 +537,10 @@ attribute [instance] frequency.TypeAssumptions.underlying
   frequency.TypeAssumptions.method_set
   frequency.TypeAssumptions.ptr_method_set
 
-axiom traceMultiplexer : Type
-axiom traceMultiplexer.zero_val : ZeroVal traceMultiplexer
+opaque traceMultiplexer.nonempty_type : NonemptyType.{0}
+def traceMultiplexer : Type := traceMultiplexer.nonempty_type.type
+instance traceMultiplexer.nonempty : Nonempty traceMultiplexer := traceMultiplexer.nonempty_type.property
+opaque traceMultiplexer.zero_val : ZeroVal traceMultiplexer := ⟨Classical.ofNonempty⟩
 attribute [instance] traceMultiplexer.zero_val
 
 class traceMultiplexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

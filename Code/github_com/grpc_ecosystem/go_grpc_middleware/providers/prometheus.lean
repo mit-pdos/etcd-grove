@@ -112,33 +112,33 @@ noncomputable def ServerMetricsOption.ty [GooseExts] [GoGlobalContext] : go.GoTy
 
 attribute [irreducible] ServerMetricsOption.ty
 
-axiom ClientMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientMetricsConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clientMetricsConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CounterOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CounterOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HistogramOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HistogramOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom reporter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque reporter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ServerMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ServerMetrics.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exemplarFromCtxFn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque exemplarFromCtxFn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom labelsFromCtxFn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque labelsFromCtxFn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Unary [GooseExts] [GoGlobalContext] : val
+opaque Unary [GooseExts] [GoGlobalContext] : val
 
-axiom ClientStream [GooseExts] [GoGlobalContext] : val
+opaque ClientStream [GooseExts] [GoGlobalContext] : val
 
-axiom ServerStream [GooseExts] [GoGlobalContext] : val
+opaque ServerStream [GooseExts] [GoGlobalContext] : val
 
-axiom BidiStream [GooseExts] [GoGlobalContext] : val
+opaque BidiStream [GooseExts] [GoGlobalContext] : val
 
-axiom KindClient [GooseExts] [GoGlobalContext] : val
+opaque KindClient [GooseExts] [GoGlobalContext] : val
 
-axiom KindServer [GooseExts] [GoGlobalContext] : val
+opaque KindServer [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewClientMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.NewClientMetrics"
@@ -206,7 +206,7 @@ noncomputable def WithContextLabels [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.reflection]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -218,8 +218,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.reflection.initialize') (Val #()))))))))
 
-axiom ClientMetrics : Type
-axiom ClientMetrics.zero_val : ZeroVal ClientMetrics
+opaque ClientMetrics.nonempty_type : NonemptyType.{0}
+def ClientMetrics : Type := ClientMetrics.nonempty_type.type
+instance ClientMetrics.nonempty : Nonempty ClientMetrics := ClientMetrics.nonempty_type.property
+opaque ClientMetrics.zero_val : ZeroVal ClientMetrics := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientMetrics.zero_val
 
 class ClientMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -235,8 +237,10 @@ attribute [instance] ClientMetrics.TypeAssumptions.type_repr
   ClientMetrics.TypeAssumptions.method_set
   ClientMetrics.TypeAssumptions.ptr_method_set
 
-axiom clientMetricsConfig : Type
-axiom clientMetricsConfig.zero_val : ZeroVal clientMetricsConfig
+opaque clientMetricsConfig.nonempty_type : NonemptyType.{0}
+def clientMetricsConfig : Type := clientMetricsConfig.nonempty_type.type
+instance clientMetricsConfig.nonempty : Nonempty clientMetricsConfig := clientMetricsConfig.nonempty_type.property
+opaque clientMetricsConfig.zero_val : ZeroVal clientMetricsConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] clientMetricsConfig.zero_val
 
 class clientMetricsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -294,8 +298,10 @@ attribute [instance] Kind.TypeAssumptions.underlying
   Kind.TypeAssumptions.method_set
   Kind.TypeAssumptions.ptr_method_set
 
-axiom CounterOption : Type
-axiom CounterOption.zero_val : ZeroVal CounterOption
+opaque CounterOption.nonempty_type : NonemptyType.{0}
+def CounterOption : Type := CounterOption.nonempty_type.type
+instance CounterOption.nonempty : Nonempty CounterOption := CounterOption.nonempty_type.property
+opaque CounterOption.zero_val : ZeroVal CounterOption := ⟨Classical.ofNonempty⟩
 attribute [instance] CounterOption.zero_val
 
 class CounterOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -325,8 +331,10 @@ attribute [instance] counterOptions.TypeAssumptions.underlying
   counterOptions.TypeAssumptions.method_set
   counterOptions.TypeAssumptions.ptr_method_set
 
-axiom HistogramOption : Type
-axiom HistogramOption.zero_val : ZeroVal HistogramOption
+opaque HistogramOption.nonempty_type : NonemptyType.{0}
+def HistogramOption : Type := HistogramOption.nonempty_type.type
+instance HistogramOption.nonempty : Nonempty HistogramOption := HistogramOption.nonempty_type.property
+opaque HistogramOption.zero_val : ZeroVal HistogramOption := ⟨Classical.ofNonempty⟩
 attribute [instance] HistogramOption.zero_val
 
 class HistogramOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -370,8 +378,10 @@ attribute [instance] Option.TypeAssumptions.underlying
   Option.TypeAssumptions.method_set
   Option.TypeAssumptions.ptr_method_set
 
-axiom exemplarFromCtxFn : Type
-axiom exemplarFromCtxFn.zero_val : ZeroVal exemplarFromCtxFn
+opaque exemplarFromCtxFn.nonempty_type : NonemptyType.{0}
+def exemplarFromCtxFn : Type := exemplarFromCtxFn.nonempty_type.type
+instance exemplarFromCtxFn.nonempty : Nonempty exemplarFromCtxFn := exemplarFromCtxFn.nonempty_type.property
+opaque exemplarFromCtxFn.zero_val : ZeroVal exemplarFromCtxFn := ⟨Classical.ofNonempty⟩
 attribute [instance] exemplarFromCtxFn.zero_val
 
 class exemplarFromCtxFn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -387,8 +397,10 @@ attribute [instance] exemplarFromCtxFn.TypeAssumptions.type_repr
   exemplarFromCtxFn.TypeAssumptions.method_set
   exemplarFromCtxFn.TypeAssumptions.ptr_method_set
 
-axiom labelsFromCtxFn : Type
-axiom labelsFromCtxFn.zero_val : ZeroVal labelsFromCtxFn
+opaque labelsFromCtxFn.nonempty_type : NonemptyType.{0}
+def labelsFromCtxFn : Type := labelsFromCtxFn.nonempty_type.type
+instance labelsFromCtxFn.nonempty : Nonempty labelsFromCtxFn := labelsFromCtxFn.nonempty_type.property
+opaque labelsFromCtxFn.zero_val : ZeroVal labelsFromCtxFn := ⟨Classical.ofNonempty⟩
 attribute [instance] labelsFromCtxFn.zero_val
 
 class labelsFromCtxFn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -445,8 +457,10 @@ attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.method_set
   config.TypeAssumptions.ptr_method_set
 
-axiom reporter : Type
-axiom reporter.zero_val : ZeroVal reporter
+opaque reporter.nonempty_type : NonemptyType.{0}
+def reporter : Type := reporter.nonempty_type.type
+instance reporter.nonempty : Nonempty reporter := reporter.nonempty_type.property
+opaque reporter.zero_val : ZeroVal reporter := ⟨Classical.ofNonempty⟩
 attribute [instance] reporter.zero_val
 
 class reporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -509,8 +523,10 @@ attribute [instance] reportable.TypeAssumptions.type_repr
   reportable.TypeAssumptions.method_set
   reportable.TypeAssumptions.ptr_method_set
 
-axiom ServerMetrics : Type
-axiom ServerMetrics.zero_val : ZeroVal ServerMetrics
+opaque ServerMetrics.nonempty_type : NonemptyType.{0}
+def ServerMetrics : Type := ServerMetrics.nonempty_type.type
+instance ServerMetrics.nonempty : Nonempty ServerMetrics := ServerMetrics.nonempty_type.property
+opaque ServerMetrics.zero_val : ZeroVal ServerMetrics := ⟨Classical.ofNonempty⟩
 attribute [instance] ServerMetrics.zero_val
 
 class ServerMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

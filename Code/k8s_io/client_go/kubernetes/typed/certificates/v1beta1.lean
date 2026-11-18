@@ -90,33 +90,33 @@ noncomputable def podCertificateRequests.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] podCertificateRequests.ty
 
-axiom CertificatesV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificatesV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificatesV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificatesV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificateSigningRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificateSigningRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificateSigningRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificateSigningRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom certificateSigningRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque certificateSigningRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CertificateSigningRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CertificateSigningRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundlesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundlesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundleInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clusterTrustBundles.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque clusterTrustBundles.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClusterTrustBundleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClusterTrustBundleExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodCertificateRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodCertificateRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodCertificateRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodCertificateRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PodCertificateRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PodCertificateRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom podCertificateRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque podCertificateRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/certificates/v1beta1.NewForConfig"
@@ -145,7 +145,7 @@ noncomputable def newPodCertificateRequests [GooseExts] [GoGlobalContext] : GoSt
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.certificates.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -154,8 +154,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom CertificatesV1beta1Interface : Type
-axiom CertificatesV1beta1Interface.zero_val : ZeroVal CertificatesV1beta1Interface
+opaque CertificatesV1beta1Interface.nonempty_type : NonemptyType.{0}
+def CertificatesV1beta1Interface : Type := CertificatesV1beta1Interface.nonempty_type.type
+instance CertificatesV1beta1Interface.nonempty : Nonempty CertificatesV1beta1Interface := CertificatesV1beta1Interface.nonempty_type.property
+opaque CertificatesV1beta1Interface.zero_val : ZeroVal CertificatesV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificatesV1beta1Interface.zero_val
 
 class CertificatesV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -171,8 +173,10 @@ attribute [instance] CertificatesV1beta1Interface.TypeAssumptions.type_repr
   CertificatesV1beta1Interface.TypeAssumptions.method_set
   CertificatesV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom CertificatesV1beta1Client : Type
-axiom CertificatesV1beta1Client.zero_val : ZeroVal CertificatesV1beta1Client
+opaque CertificatesV1beta1Client.nonempty_type : NonemptyType.{0}
+def CertificatesV1beta1Client : Type := CertificatesV1beta1Client.nonempty_type.type
+instance CertificatesV1beta1Client.nonempty : Nonempty CertificatesV1beta1Client := CertificatesV1beta1Client.nonempty_type.property
+opaque CertificatesV1beta1Client.zero_val : ZeroVal CertificatesV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificatesV1beta1Client.zero_val
 
 class CertificatesV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -188,8 +192,10 @@ attribute [instance] CertificatesV1beta1Client.TypeAssumptions.type_repr
   CertificatesV1beta1Client.TypeAssumptions.method_set
   CertificatesV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom CertificateSigningRequestsGetter : Type
-axiom CertificateSigningRequestsGetter.zero_val : ZeroVal CertificateSigningRequestsGetter
+opaque CertificateSigningRequestsGetter.nonempty_type : NonemptyType.{0}
+def CertificateSigningRequestsGetter : Type := CertificateSigningRequestsGetter.nonempty_type.type
+instance CertificateSigningRequestsGetter.nonempty : Nonempty CertificateSigningRequestsGetter := CertificateSigningRequestsGetter.nonempty_type.property
+opaque CertificateSigningRequestsGetter.zero_val : ZeroVal CertificateSigningRequestsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificateSigningRequestsGetter.zero_val
 
 class CertificateSigningRequestsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -205,8 +211,10 @@ attribute [instance] CertificateSigningRequestsGetter.TypeAssumptions.type_repr
   CertificateSigningRequestsGetter.TypeAssumptions.method_set
   CertificateSigningRequestsGetter.TypeAssumptions.ptr_method_set
 
-axiom CertificateSigningRequestInterface : Type
-axiom CertificateSigningRequestInterface.zero_val : ZeroVal CertificateSigningRequestInterface
+opaque CertificateSigningRequestInterface.nonempty_type : NonemptyType.{0}
+def CertificateSigningRequestInterface : Type := CertificateSigningRequestInterface.nonempty_type.type
+instance CertificateSigningRequestInterface.nonempty : Nonempty CertificateSigningRequestInterface := CertificateSigningRequestInterface.nonempty_type.property
+opaque CertificateSigningRequestInterface.zero_val : ZeroVal CertificateSigningRequestInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificateSigningRequestInterface.zero_val
 
 class CertificateSigningRequestInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -222,8 +230,10 @@ attribute [instance] CertificateSigningRequestInterface.TypeAssumptions.type_rep
   CertificateSigningRequestInterface.TypeAssumptions.method_set
   CertificateSigningRequestInterface.TypeAssumptions.ptr_method_set
 
-axiom certificateSigningRequests : Type
-axiom certificateSigningRequests.zero_val : ZeroVal certificateSigningRequests
+opaque certificateSigningRequests.nonempty_type : NonemptyType.{0}
+def certificateSigningRequests : Type := certificateSigningRequests.nonempty_type.type
+instance certificateSigningRequests.nonempty : Nonempty certificateSigningRequests := certificateSigningRequests.nonempty_type.property
+opaque certificateSigningRequests.zero_val : ZeroVal certificateSigningRequests := ⟨Classical.ofNonempty⟩
 attribute [instance] certificateSigningRequests.zero_val
 
 class certificateSigningRequests.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -239,8 +249,10 @@ attribute [instance] certificateSigningRequests.TypeAssumptions.type_repr
   certificateSigningRequests.TypeAssumptions.method_set
   certificateSigningRequests.TypeAssumptions.ptr_method_set
 
-axiom CertificateSigningRequestExpansion : Type
-axiom CertificateSigningRequestExpansion.zero_val : ZeroVal CertificateSigningRequestExpansion
+opaque CertificateSigningRequestExpansion.nonempty_type : NonemptyType.{0}
+def CertificateSigningRequestExpansion : Type := CertificateSigningRequestExpansion.nonempty_type.type
+instance CertificateSigningRequestExpansion.nonempty : Nonempty CertificateSigningRequestExpansion := CertificateSigningRequestExpansion.nonempty_type.property
+opaque CertificateSigningRequestExpansion.zero_val : ZeroVal CertificateSigningRequestExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CertificateSigningRequestExpansion.zero_val
 
 class CertificateSigningRequestExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -256,8 +268,10 @@ attribute [instance] CertificateSigningRequestExpansion.TypeAssumptions.type_rep
   CertificateSigningRequestExpansion.TypeAssumptions.method_set
   CertificateSigningRequestExpansion.TypeAssumptions.ptr_method_set
 
-axiom ClusterTrustBundlesGetter : Type
-axiom ClusterTrustBundlesGetter.zero_val : ZeroVal ClusterTrustBundlesGetter
+opaque ClusterTrustBundlesGetter.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundlesGetter : Type := ClusterTrustBundlesGetter.nonempty_type.type
+instance ClusterTrustBundlesGetter.nonempty : Nonempty ClusterTrustBundlesGetter := ClusterTrustBundlesGetter.nonempty_type.property
+opaque ClusterTrustBundlesGetter.zero_val : ZeroVal ClusterTrustBundlesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundlesGetter.zero_val
 
 class ClusterTrustBundlesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -273,8 +287,10 @@ attribute [instance] ClusterTrustBundlesGetter.TypeAssumptions.type_repr
   ClusterTrustBundlesGetter.TypeAssumptions.method_set
   ClusterTrustBundlesGetter.TypeAssumptions.ptr_method_set
 
-axiom ClusterTrustBundleInterface : Type
-axiom ClusterTrustBundleInterface.zero_val : ZeroVal ClusterTrustBundleInterface
+opaque ClusterTrustBundleInterface.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundleInterface : Type := ClusterTrustBundleInterface.nonempty_type.type
+instance ClusterTrustBundleInterface.nonempty : Nonempty ClusterTrustBundleInterface := ClusterTrustBundleInterface.nonempty_type.property
+opaque ClusterTrustBundleInterface.zero_val : ZeroVal ClusterTrustBundleInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundleInterface.zero_val
 
 class ClusterTrustBundleInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -290,8 +306,10 @@ attribute [instance] ClusterTrustBundleInterface.TypeAssumptions.type_repr
   ClusterTrustBundleInterface.TypeAssumptions.method_set
   ClusterTrustBundleInterface.TypeAssumptions.ptr_method_set
 
-axiom clusterTrustBundles : Type
-axiom clusterTrustBundles.zero_val : ZeroVal clusterTrustBundles
+opaque clusterTrustBundles.nonempty_type : NonemptyType.{0}
+def clusterTrustBundles : Type := clusterTrustBundles.nonempty_type.type
+instance clusterTrustBundles.nonempty : Nonempty clusterTrustBundles := clusterTrustBundles.nonempty_type.property
+opaque clusterTrustBundles.zero_val : ZeroVal clusterTrustBundles := ⟨Classical.ofNonempty⟩
 attribute [instance] clusterTrustBundles.zero_val
 
 class clusterTrustBundles.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -307,8 +325,10 @@ attribute [instance] clusterTrustBundles.TypeAssumptions.type_repr
   clusterTrustBundles.TypeAssumptions.method_set
   clusterTrustBundles.TypeAssumptions.ptr_method_set
 
-axiom ClusterTrustBundleExpansion : Type
-axiom ClusterTrustBundleExpansion.zero_val : ZeroVal ClusterTrustBundleExpansion
+opaque ClusterTrustBundleExpansion.nonempty_type : NonemptyType.{0}
+def ClusterTrustBundleExpansion : Type := ClusterTrustBundleExpansion.nonempty_type.type
+instance ClusterTrustBundleExpansion.nonempty : Nonempty ClusterTrustBundleExpansion := ClusterTrustBundleExpansion.nonempty_type.property
+opaque ClusterTrustBundleExpansion.zero_val : ZeroVal ClusterTrustBundleExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ClusterTrustBundleExpansion.zero_val
 
 class ClusterTrustBundleExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -324,8 +344,10 @@ attribute [instance] ClusterTrustBundleExpansion.TypeAssumptions.type_repr
   ClusterTrustBundleExpansion.TypeAssumptions.method_set
   ClusterTrustBundleExpansion.TypeAssumptions.ptr_method_set
 
-axiom PodCertificateRequestExpansion : Type
-axiom PodCertificateRequestExpansion.zero_val : ZeroVal PodCertificateRequestExpansion
+opaque PodCertificateRequestExpansion.nonempty_type : NonemptyType.{0}
+def PodCertificateRequestExpansion : Type := PodCertificateRequestExpansion.nonempty_type.type
+instance PodCertificateRequestExpansion.nonempty : Nonempty PodCertificateRequestExpansion := PodCertificateRequestExpansion.nonempty_type.property
+opaque PodCertificateRequestExpansion.zero_val : ZeroVal PodCertificateRequestExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] PodCertificateRequestExpansion.zero_val
 
 class PodCertificateRequestExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -341,8 +363,10 @@ attribute [instance] PodCertificateRequestExpansion.TypeAssumptions.type_repr
   PodCertificateRequestExpansion.TypeAssumptions.method_set
   PodCertificateRequestExpansion.TypeAssumptions.ptr_method_set
 
-axiom PodCertificateRequestsGetter : Type
-axiom PodCertificateRequestsGetter.zero_val : ZeroVal PodCertificateRequestsGetter
+opaque PodCertificateRequestsGetter.nonempty_type : NonemptyType.{0}
+def PodCertificateRequestsGetter : Type := PodCertificateRequestsGetter.nonempty_type.type
+instance PodCertificateRequestsGetter.nonempty : Nonempty PodCertificateRequestsGetter := PodCertificateRequestsGetter.nonempty_type.property
+opaque PodCertificateRequestsGetter.zero_val : ZeroVal PodCertificateRequestsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] PodCertificateRequestsGetter.zero_val
 
 class PodCertificateRequestsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -358,8 +382,10 @@ attribute [instance] PodCertificateRequestsGetter.TypeAssumptions.type_repr
   PodCertificateRequestsGetter.TypeAssumptions.method_set
   PodCertificateRequestsGetter.TypeAssumptions.ptr_method_set
 
-axiom PodCertificateRequestInterface : Type
-axiom PodCertificateRequestInterface.zero_val : ZeroVal PodCertificateRequestInterface
+opaque PodCertificateRequestInterface.nonempty_type : NonemptyType.{0}
+def PodCertificateRequestInterface : Type := PodCertificateRequestInterface.nonempty_type.type
+instance PodCertificateRequestInterface.nonempty : Nonempty PodCertificateRequestInterface := PodCertificateRequestInterface.nonempty_type.property
+opaque PodCertificateRequestInterface.zero_val : ZeroVal PodCertificateRequestInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] PodCertificateRequestInterface.zero_val
 
 class PodCertificateRequestInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -375,8 +401,10 @@ attribute [instance] PodCertificateRequestInterface.TypeAssumptions.type_repr
   PodCertificateRequestInterface.TypeAssumptions.method_set
   PodCertificateRequestInterface.TypeAssumptions.ptr_method_set
 
-axiom podCertificateRequests : Type
-axiom podCertificateRequests.zero_val : ZeroVal podCertificateRequests
+opaque podCertificateRequests.nonempty_type : NonemptyType.{0}
+def podCertificateRequests : Type := podCertificateRequests.nonempty_type.type
+instance podCertificateRequests.nonempty : Nonempty podCertificateRequests := podCertificateRequests.nonempty_type.property
+opaque podCertificateRequests.zero_val : ZeroVal podCertificateRequests := ⟨Classical.ofNonempty⟩
 attribute [instance] podCertificateRequests.zero_val
 
 class podCertificateRequests.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

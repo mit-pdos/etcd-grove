@@ -80,24 +80,24 @@ noncomputable def slogSink.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] slogSink.ty
 
-axiom slogHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque slogHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SlogSink.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SlogSink.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Underlier.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Underlier.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom slogSink.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque slogSink.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom groupSeparator [GooseExts] [GoGlobalContext] : val
+opaque groupSeparator [GooseExts] [GoGlobalContext] : val
 
-axiom nameKey [GooseExts] [GoGlobalContext] : val
+opaque nameKey [GooseExts] [GoGlobalContext] : val
 
-axiom errKey [GooseExts] [GoGlobalContext] : val
+opaque errKey [GooseExts] [GoGlobalContext] : val
 
 noncomputable def runtimeInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-logr/logr.runtimeInfo"
 
-axiom runtimeInfo.init [GooseExts] [GoGlobalContext] : val
+opaque runtimeInfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def FromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/go-logr/logr.FromContext"
@@ -138,7 +138,7 @@ noncomputable def kvListToAttrs [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.go_logr.logr where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -351,8 +351,10 @@ attribute [instance] Marshaler.TypeAssumptions.underlying
   Marshaler.TypeAssumptions.method_set
   Marshaler.TypeAssumptions.ptr_method_set
 
-axiom slogHandler : Type
-axiom slogHandler.zero_val : ZeroVal slogHandler
+opaque slogHandler.nonempty_type : NonemptyType.{0}
+def slogHandler : Type := slogHandler.nonempty_type.type
+instance slogHandler.nonempty : Nonempty slogHandler := slogHandler.nonempty_type.property
+opaque slogHandler.zero_val : ZeroVal slogHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] slogHandler.zero_val
 
 class slogHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -368,8 +370,10 @@ attribute [instance] slogHandler.TypeAssumptions.type_repr
   slogHandler.TypeAssumptions.method_set
   slogHandler.TypeAssumptions.ptr_method_set
 
-axiom SlogSink : Type
-axiom SlogSink.zero_val : ZeroVal SlogSink
+opaque SlogSink.nonempty_type : NonemptyType.{0}
+def SlogSink : Type := SlogSink.nonempty_type.type
+instance SlogSink.nonempty : Nonempty SlogSink := SlogSink.nonempty_type.property
+opaque SlogSink.zero_val : ZeroVal SlogSink := ⟨Classical.ofNonempty⟩
 attribute [instance] SlogSink.zero_val
 
 class SlogSink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -385,8 +389,10 @@ attribute [instance] SlogSink.TypeAssumptions.type_repr
   SlogSink.TypeAssumptions.method_set
   SlogSink.TypeAssumptions.ptr_method_set
 
-axiom Underlier : Type
-axiom Underlier.zero_val : ZeroVal Underlier
+opaque Underlier.nonempty_type : NonemptyType.{0}
+def Underlier : Type := Underlier.nonempty_type.type
+instance Underlier.nonempty : Nonempty Underlier := Underlier.nonempty_type.property
+opaque Underlier.zero_val : ZeroVal Underlier := ⟨Classical.ofNonempty⟩
 attribute [instance] Underlier.zero_val
 
 class Underlier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -402,8 +408,10 @@ attribute [instance] Underlier.TypeAssumptions.type_repr
   Underlier.TypeAssumptions.method_set
   Underlier.TypeAssumptions.ptr_method_set
 
-axiom slogSink : Type
-axiom slogSink.zero_val : ZeroVal slogSink
+opaque slogSink.nonempty_type : NonemptyType.{0}
+def slogSink : Type := slogSink.nonempty_type.type
+instance slogSink.nonempty : Nonempty slogSink := slogSink.nonempty_type.property
+opaque slogSink.zero_val : ZeroVal slogSink := ⟨Classical.ofNonempty⟩
 attribute [instance] slogSink.zero_val
 
 class slogSink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
