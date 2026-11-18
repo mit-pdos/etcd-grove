@@ -693,8 +693,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
         rw [Ho]; simp only [txn.rangeOpOf.proj_base]; exact apply.authEndOf_rangeEndOf esl e Hel.1
       ihave #HsW1 := rangeWhy_of_serialWhy s E.authMode n nA HnA _ o e he (GoInterface.ok sei)
         (by intro h; cases h) $$ HsW
-      ihave #HsW2 := rangeWhy_ctx s E.authMode n _ (GoInterface.ok ctx) o (GoInterface.ok sei)
-        (by rw [Hinc2, Hinc1]) $$ HsW1
+      ihave #HsW2 := HsW1  -- by token (perheap C1a): was `rangeWhy_ctx`
       ihave #HsW : rangeWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) o (GoInterface.ok sei) $$ []
       · unfold rangeWhyOut; ileft; iexact HsW2
       icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |

@@ -1466,13 +1466,12 @@ theorem auth_admin_permitted_lb : auth.authStore.IsAdminPermitted.specLb (GF := 
   auth.authStore.IsAdminPermitted.wp_lb auth_enabled_lb auth_locked_read_tx_lb auth.wp_hasRootRole
 
 /-- **The guards' store calls no older than a reader's lower bound** (auth-guard-completeness G1,
-`auth/FreshCtx.lean`, `auth/FreshAdmin.lean`): `AuthInfoFromCtx` with why it gave no principal
+`auth/FreshAdmin.lean`; since perheap C1a the one `AuthInfoFromCtx.spec`): `AuthInfoFromCtx` with why it gave no principal
 (no token, or auth disabled at a state no older than the bound) or an error (a token the context
 carries), and `IsAdminPermitted` of a `nil` auth info or not with its refusal half, every callee
 linked. -/
-theorem auth_ctx_lb : auth.authStore.AuthInfoFromCtx.specLb (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromCtx.wp_lb auth_enabled_lb metadata.wp_FromIncomingContext
-    auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+theorem auth_ctx_lb : auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.wp_AuthInfoFromCtx
 
 theorem auth_op_permitted_lbR : auth.authStore.isOpPermitted.specLbR (GF := GF) :=
   auth.authStore.isOpPermitted.wp_lbR auth_enabled_lb auth_revision_lb zap.wp_Uint64
@@ -2066,7 +2065,7 @@ theorem srv_auth_bound_of_inv (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
       structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
       auth.authInv stp R E.authMode ∗ auth.tpReady E.authMode ⊢ srvAuthBound s E :=
-  srvAuthBound_of_authInv auth.authStore.wp_AuthInfoFromCtx auth_enabled_lb auth_ctx_lb auth_admin_permitted_lbO s stp R E hRD
+  srvAuthBound_of_authInv auth_enabled_lb auth.authStore.wp_AuthInfoFromCtx auth_admin_permitted_lbO s stp R E hRD
 
 end tokens
 
@@ -2099,7 +2098,7 @@ theorem srv_auth_tp_on
     auth.tokenSimple.wp_genTokenPrefix
     zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
     auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
-    auth.authStore.wp_AuthInfoFromCtx auth_ctx_lb auth_admin_permitted_lbO
+    auth.authStore.wp_AuthInfoFromCtx auth_admin_permitted_lbO
     auth.authStore.wp_AuthInfoFromTLS auth.authStore.wp_IsPutPermitted auth.authStore.wp_IsRangePermitted
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest

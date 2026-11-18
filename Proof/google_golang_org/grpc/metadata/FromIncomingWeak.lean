@@ -38,8 +38,10 @@ theorem metadata.FromIncomingContext.weaken
     (h : metadata.FromIncomingContext.spec (GF := GF) (hG := hG)) :
     metadata.FromIncomingContext.weakSpec (GF := GF) (hG := hG) := by
   intro ctx
-  iintro %Φ Hpre HΦ
-  iapply h ctx $$ Hpre
+  iintro %Φ ⟨#Hpkg, #Hinc⟩ HΦ
+  iunfold metadata.incomingCtxOk at Hinc
+  icases Hinc with ⟨%md, #Hmd⟩
+  iapply h ctx md $$ [$Hpkg $Hmd]
   inext
   iintro %md %ok Hpost
   iapply HΦ

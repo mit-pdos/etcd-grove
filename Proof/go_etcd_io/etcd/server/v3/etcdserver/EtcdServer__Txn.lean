@@ -650,8 +650,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         · iapply authApplyErrIs_apply _ $$ HsE
         ihave #HsW1 := txnWhy_of_serialWhy s E.authMode γa hM n nA HnA _ t tw Htw (GoInterface.ok sei)
           (by intro h; cases h) $$ HsW
-        ihave #HsW2 := txnWhy_ctx s E.authMode n _ (GoInterface.ok ctx) t (GoInterface.ok sei)
-          (by rw [Hinc2, Hinc1]) $$ HsW1
+        ihave #HsW2 := HsW1  -- by token (perheap C1a): was `txnWhy_ctx`
         ihave #HeW : txnWhyOut (GF := GF) s E.authMode n (GoInterface.ok ctx) t (GoInterface.ok sei) $$ []
         · unfold txnWhyOut; ileft; iexact HsW2
         icases Hg with (⟨⟨resp, err, Hsr, Hlr⟩, Hown0⟩ |

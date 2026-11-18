@@ -266,7 +266,9 @@ theorem v3rpc.newStreamInterceptor.wp_proof
   · iunfold context.libCtxOk at Hlib
     icases Hlib with ⟨#H, -⟩
     iexact H
-  wp_apply wp_FromIncomingContext ci $$ [] as %md %ok Hmd
+  iunfold metadata.incomingCtxOk at Hinc
+  icases Hinc with ⟨%mdx, #Hmdx⟩
+  wp_apply wp_FromIncomingContext ci mdx $$ [] as %md %ok Hmd
   · iframe #
   icases Hmd with (%Hok | ⟨%md0, %m, %Hok, Hm, Hsls⟩)
   · obtain ⟨rfl, -⟩ := Hok

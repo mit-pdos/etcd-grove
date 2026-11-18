@@ -24,29 +24,25 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- `metadata.FromIncomingContext(ctx)`: `(md, ok)`; `ok` exactly when the context has incoming
-metadata (`metadata.incomingOf ctx`, the auth plan's E2c, 2026-10-25), and then `md` is a fresh map
-(grpc copies the context's metadata: `out[key] = copyOf(v)`) with that metadata's keys, each value
-a fresh slice of that key's strings, **at least one**. For a context whose `Value(mdIncomingKey{})`
-returns one value on every call, not an `MD` or the transport's (`metadata.incomingCtxOk`,
-premise-fixes-8 S2; since perheap step 0, `∃ md, metadata.ctxInMD ctx md`, over Perennial's chain and
-the transport's leaf `metadata.transportMDRaw`): the metadata is a function of the context
-(`incomingOf`; restated over `ctxInMD` in the perheap incoming part), and a transport `MD` has
-lower-case keys, each with at least one value, so `vs ≠ []` holds. A context
-built with `metadata.NewIncomingContext(ctx, MD{k: {}})` (on which etcd's `AuthInfoFromCtx` panics,
-`ts[0]`; `nonissues/etcd-auth-token-md-empty.md`) or whose `Value` panics is excluded by the premise
-(`examples/premisefix/ctxvalue`). -/
+/-- `metadata.FromIncomingContext(ctx)`: `(md, ok)`, for a context whose incoming metadata is `md`
+(`metadata.ctxInMD ctx md`: `ctx.Value(mdIncomingKey{})` returns one value `v` on every call, Perennial's
+chain, and `v` is not an `MD` (`md = none`) or an `MD` grpc's transport made holding `md = some f`, the
+leaf `metadata.transportMDRaw`). `ok` exactly when `md` is `some md0`, and then the result is a fresh map
+(grpc copies the context's metadata: `out[key] = copyOf(v)`, `metadata/metadata.go:268-282`) with `md0`'s
+keys (Go lower-cases each key, `metadata.go:278`, a no-op on a transport `MD`, whose keys are lower case),
+each value a fresh slice of that key's strings, at least one (a transport `MD` has at least one value per
+key; independent attack, `/shared/tmp/perheap/c1a/attack-fic.md`). Every pure fact is about the parameter `md` and the returned values (perheap, (I3)). A context
+built with `metadata.NewIncomingContext(ctx, MD{k: {}})` (on which etcd's `AuthInfoFromCtx` panics, `ts[0]`;
+`nonissues/etcd-auth-token-md-empty.md`) or whose `Value` panics has no `ctxInMD` (`examples/premisefix/ctxvalue`). -/
 abbrev metadata.FromIncomingContext.spec : Prop :=
-  ∀ (ctx : GoInterfaceOk),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗
-      metadata.incomingCtxOk ctx }}
+  ∀ (ctx : GoInterfaceOk) (md : Option (GoString → Option (List GoString))),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.grpc.metadata ∗ metadata.ctxInMD ctx md }}
     (App (Val (@! google_golang_org.grpc.metadata.FromIncomingContext)) (Val #(GoInterface.ok ctx)))
-  {{ (md : GoMap) (ok : Bool), RET (PairV #md #ok);
-      ⌜ok = false ∧ metadata.incomingOf (GoInterface.ok ctx) = none⌝ ∨
+  {{ (mp : GoMap) (ok : Bool), RET (PairV #mp #ok);
+      ⌜ok = false ∧ md = none⌝ ∨
       ∃ (md0 : GoString → Option (List GoString)) (m : GMap GoString GoSlice),
-        ⌜ok = true ∧ metadata.incomingOf (GoInterface.ok ctx) = some md0 ∧
-          ∀ k, m !! k = none ↔ md0 k = none⌝ ∗
-        md ↦$ m ∗
+        ⌜ok = true ∧ md = some md0 ∧ ∀ k, m !! k = none ↔ md0 k = none⌝ ∗
+        mp ↦$ m ∗
         [∗map] k ↦ sl ∈ m, ∃ vs : List GoString, sl ↦* vs ∗ ⌜vs ≠ []⌝ ∗ ⌜md0 k = some vs⌝ }}
 
 end spec

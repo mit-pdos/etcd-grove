@@ -192,9 +192,11 @@ key per header field name, lower case (HTTP/2 header names are), each key with a
 (Likewise grpc's `ServeHTTP` transport, which etcd also serves through: `internal/transport/
 handler_server.go:116-135, 413` builds the map with `metadata.Pairs`, lower-casing each key, each with at
 least one value. Independent attack, `/shared/tmp/perheap/attack-step0.md`.)
-Nothing writes the map after: only grpc's `metadata` package reads or stores under the unexported key,
-and etcd's server installs no `InTapHandle` (the only code handed the map after
-`NewIncomingContext`; `examples/axiomcx/perheap`). An `IProp` of the heap whose names it takes
+Nothing writes the map after: grpc hands it only to an `InTapHandle` (etcd's server installs none;
+`examples/axiomcx/perheap`) and stores it under its unexported key; a program's own context type can be
+handed that key by `Value` and reach the map (the attack's stash test,
+`/shared/tmp/perheap/c1a/attack-fic.md`), but nothing hands verified code ownership of the map, so the leaf
+reads as persistent facts no verified code can invalidate. An `IProp` of the heap whose names it takes
 (`hG`): its producers are the posts of grpc's model (`grpcAccepted`, `srvRawStreamIs`'s `libCtxOk`),
 never code with Lean semantics; no law relates two of them. -/
 opaque metadata.transportMDRaw [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext]
