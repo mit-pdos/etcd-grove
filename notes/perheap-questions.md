@@ -14,3 +14,8 @@
   - Q17: the mode gate `□ (⌜M.isOn = true⌝ → auth.ctxToken ctx tok)`.
 - **The user's, at the land stop:** Q9 (exported text changes, the exact old → new; Scope §7, including the six
   admin-family statements revision 4 found).
+- **Decided by etcd-grove-03, 2026-11-18 (at C0):** C0 ACCEPTED. Forms ACCEPTED: `auth.ctxToken` and the
+  token-indexed `ctxBound` moved to C1a; `WithValue`'s transfer in step 0 beside the old `incomingOf` equation
+  until 1b; `k8sCtxOk_of_nil` taking `libCtxOk`; `chanCtx_libCtxOk` with `[context.Assumptions]`. The six more
+  exported text changes (`authEnable`/`roleAdd`/`userGrantRole`/`roleGrantPermission`/`userAdd_end_to_end_on`,
+  `authWrapOut_userAdd_nn`) are added to the Q9 list for the user at the land stop.

@@ -1,30 +1,40 @@
 # perheap handoff
 
-## START HERE (2026-11-18, step 0 done (C0): `be6b6ca8c6`, lean merged `cd350b3c75`)
+## START HERE (2026-11-18, C1a in progress: draft `bf4de1328e` on branch `perheap-c1a-wip`, UNCOMPILED)
 
-- Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), off `lean` `49bd7924e6`. Pin 6d365ee1a:
-  `--packages=/shared/tmp/manifest-6d3.json`, `.lake/package-overrides.json` its copy. Builds only via
-  `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`); lean-check `--max-open 2`, `--stop` before builds.
-- Done: Scope revision 4 `43fe1dd94d` (review 3 folded in; decisions in `notes/perheap-questions.md`);
-  **step 0** (this commit series): `metadata.transportMDRaw` (leaf, `hG`), `incomingHeld`, `ctxInMD`,
-  `incomingCtxOk := ∃ md, ctxInMD`, `libCtxOk`/`libCtxOkC` at `HasLC.hasLC` (`Proof/context/LibKeys*.lean`);
-  laws proved (`ctxInMD_{background,todo,from,cancel,timer,valueCtx,raw,valueAt}`, `v3rpc.ctxInMD_cc` in
-  `SrvCtxWeakLaws.lean`); producers re-proved (`_of_nil` takes `hty`, `_of_valueWand` takes WithValue's
-  transfer); `WithValue.spec` post gained the transfer (trusted text: independent attack
-  `/shared/tmp/perheap/attack-step0.md`); `{hlc}`→`HasLC.hasLC` for FromIncomingContext, AuthInfoFromCtx/TLS,
-  FreshCtx, FromIncomingWeak (Link files regenerated); SpecPlan `ctxInMD_agree` deleted (ledger entry 1
-  accepted); Go test `examples/axiomcx/perheap` (passes).
-- Still there until 1b (by design): `incomingOf`, its two axioms, `FromIncomingContext`'s `incomingOf` post,
-  `WithValue`'s `incomingOf` equation. `auth.ctxToken` and `ctxBound` by token: C1a (moved from step 0).
-- Verified at `be6b6ca8c6`: full build green (20480 jobs), all `etc/api` interfaces unchanged, `tcb-report --check`
-  matches (892 axioms, 4 sorries). Post-merge full build (`cd350b3c75`): log `/shared/tmp/perheap/s/full-m1.log`.
-- Next: C1a (Scope §4.2 incl. the second ring, §1 list; ~90 files, ~53k lines touched: several sessions), then 1b.
-- Pitfalls: `ctxValue_other` needs `context.Assumptions`; `keyEqOk_of_ty_ne` is defined mid-`LibKeysChain`;
-  WithValue's post patterns gained one slot after the `incomingOf` one (`#Hmd`).
-- Scans: `/shared/tmp/perheap/closure2.py` (transitive closure; output `closure2.txt`), `scan4.py`,
-  `scan-text.txt`/`scan-meaning.txt` (exported statements).
+- Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), head `a1adfde31e` + this note. Pin 6d365ee1a:
+  `--packages=/shared/tmp/manifest-6d3.json`. Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`).
+- **First:** the post-merge full build of `cd350b3c75` (log `/shared/tmp/perheap/s/full-m1.log`; launched 2026-11-18,
+  waited for a slot the whole session). If it is not green, fix on `perheap-scope` before bringing C1a over.
+- **C1a draft** (written in the detached scratch worktree `/shared/tmp/perheap/c1a/wt`, no `.lake`, so never compiled):
+  bring it over with `git -C /shared/etcd-grove-incomingof cherry-pick bf4de1328e` (or merge the branch), then compile
+  bottom-up: LibKeys → InvAuth → WhyDefs → `Spec/…/auth/authStore__AuthInfoFromCtx` → its proof → InvRequest →
+  AuthReqDerive → AuthBound → AuthWhy → ReadWhy → `EtcdServer__AuthInfoFromCtx` → `requireAuthInfo` (targeted builds).
+  Done in the draft: `FromIncomingContext.spec` restated (`∀ ctx md`, pre `ctxInMD ctx md`; attacked SOUND,
+  `/shared/tmp/perheap/c1a/attack-fic.md`, its two docstring fixes applied; moved here from 1b, its only users the
+  store and the two interceptors, which take `libCtxOk`'s `md`); `auth.ctxToken` (+`ctxToken_of_ctxInMD`, InvAuth);
+  `ctxBound`/`noPrincipalFrom`/`tokRefusedFrom` by token; store `AuthInfoFromCtx.spec` = the probe's (FreshCtx.lean
+  deleted; `IsAuthEnabled.wp_lb` used outright, so the link list drops that callee); server `AuthInfoFromCtx.spec` =
+  old `specLb` + `tok` + gated premise (old `wp_proof` deleted; `+Lb` link entries renamed); `isReqAuthBound` one row
+  (`∀ n ctx tok`); `isReqAuthBound_ctx`, `isReqAuth_ctxM` deleted; `principalBound`, `adminOutB`, `authedOutB`,
+  `ctxBoundOrTLS`, the `*Why` family, `rangeWhy(Out)`, `txnWhy(Out)` by token; `principalBoundI` deleted (its users
+  take `v3rpc.infoBoundT`, same body); `rangeWhy_ctx`/`txnWhy_ctx` deleted; `requireAuthInfo.spec(C)` with `tok`.
+- **Next, in order** (Scope §4.2): users of the above (`grep -rn "principalBoundI\|specLb\|ctxTokenOf" Proof Spec`):
+  `checkMembershipOperationPermission`, `doSerialize`, `checkLease*`, `processInternalRaftRequestOnce`, `ReqOn`
+  (830, 867), `LeaseCheck` (`leaseCheckFrom` by token; v3rpc's `leaseCheckT`/`principalBoundT` then merge into it),
+  `AdminOn`/`ProposeOn`/`LeaseReqOn`, `hdrBoundM`→`hdrBoundT`, `infoBoundM`→`infoBoundT`, the request specs with `tok`
+  (Range/Txn: the inner contexts get `ctxToken` by `WithValue`'s transfer and `ctxInMD_cancel`), v3rpc (§4.2), the
+  auth-off theorems (`tok := none`). File list: `/shared/tmp/perheap/c1a/files.txt` (152 files naming the chain).
+- Forms decided (report at C1a's end): `auth.ctxToken (ctx : GoInterface)` as the Scope; `tokRefusedFrom` keeps its
+  unused `M n` (less churn); gates written `E.authMode.isOn` in internal check specs (`E.authOn` unfolds to it);
+  `auth_ctx_lb` (etcdserver `Results.lean`) kept, its type `.specLb` → `.spec` (to add to Q9's list).
+- Pitfalls: `iframe #` may not match `E.authOn` against `E.authMode.isOn` syntactically; `authPubLbM_zero` is a `|==>`.
+- Scans: `/shared/tmp/perheap/closure2.py` (`closure2.txt`), `scan4.py`, `scan-text.txt`/`scan-meaning.txt`.
 
 ## History
+
+- C0 START HERE (2026-11-18, `a1adfde31e`): step 0 done `be6b6ca8c6` (full build green, interfaces unchanged,
+  tcb 892/4); lean merged `cd350b3c75`.
 
 - Scope revision 3 (2026-11-18, `a822edbc16`), START HERE then: probes `/shared/tmp/perheap/Probe.lean`,
   `ProbeAuth.lean` (the auth chain by token, proved), `ProbeErr.lean`.
