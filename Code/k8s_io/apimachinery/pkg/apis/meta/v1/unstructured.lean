@@ -40,14 +40,14 @@ noncomputable def UnstructuredList.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] UnstructuredList.ty
 
-axiom jsonFallbackEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque jsonFallbackEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unstructuredJSONSchemeIdentifier [GooseExts] [GoGlobalContext] : val
+opaque unstructuredJSONSchemeIdentifier [GooseExts] [GoGlobalContext] : val
 
 noncomputable def UnstructuredJSONScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredJSONScheme"
 
-axiom UnstructuredJSONScheme.init [GooseExts] [GoGlobalContext] : val
+opaque UnstructuredJSONScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NestedFieldCopy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedFieldCopy"
@@ -127,7 +127,7 @@ noncomputable def NewJSONFallbackEncoder [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -184,8 +184,10 @@ attribute [instance] unstructuredJSONScheme.TypeAssumptions.type_repr
   unstructuredJSONScheme.TypeAssumptions.method_set
   unstructuredJSONScheme.TypeAssumptions.ptr_method_set
 
-axiom jsonFallbackEncoder : Type
-axiom jsonFallbackEncoder.zero_val : ZeroVal jsonFallbackEncoder
+opaque jsonFallbackEncoder.nonempty_type : NonemptyType.{0}
+def jsonFallbackEncoder : Type := jsonFallbackEncoder.nonempty_type.type
+instance jsonFallbackEncoder.nonempty : Nonempty jsonFallbackEncoder := jsonFallbackEncoder.nonempty_type.property
+opaque jsonFallbackEncoder.zero_val : ZeroVal jsonFallbackEncoder := ⟨Classical.ofNonempty⟩
 attribute [instance] jsonFallbackEncoder.zero_val
 
 class jsonFallbackEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

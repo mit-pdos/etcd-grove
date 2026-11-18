@@ -40,14 +40,14 @@ noncomputable def byUID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] byUID.ty
 
-axiom ListFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
+opaque ListFunc.underlying [GooseExts] [GoGlobalContext] : ∀ (T : go.GoType), go.GoType
 
-axiom byUID.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque byUID.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def dataConsistencyDetectionForWatchListEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.dataConsistencyDetectionForWatchListEnabled"
 
-axiom dataConsistencyDetectionForWatchListEnabled.init [GooseExts] [GoGlobalContext] : val
+opaque dataConsistencyDetectionForWatchListEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/consistencydetector.init.0"
@@ -73,7 +73,7 @@ noncomputable def toMetaObjectSliceOrDie [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.consistencydetector where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -99,8 +99,10 @@ attribute [instance] RetrieveItemsFunc.TypeAssumptions.underlying
   RetrieveItemsFunc.TypeAssumptions.method_set
   RetrieveItemsFunc.TypeAssumptions.ptr_method_set
 
-axiom ListFunc : ∀ (T : Type), Type
-axiom ListFunc.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (ListFunc T)
+opaque ListFunc.nonempty_type (T : Type) : NonemptyType.{0}
+def ListFunc (T : Type) : Type := (ListFunc.nonempty_type T).type
+instance ListFunc.nonempty {T : Type} : Nonempty (ListFunc T) := (ListFunc.nonempty_type T).property
+opaque ListFunc.zero_val {T : Type} [ZeroVal T] : ZeroVal (ListFunc T) := ⟨Classical.ofNonempty⟩
 attribute [instance] ListFunc.zero_val
 
 class ListFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -130,8 +132,10 @@ attribute [instance] TransformFunc.TypeAssumptions.underlying
   TransformFunc.TypeAssumptions.method_set
   TransformFunc.TypeAssumptions.ptr_method_set
 
-axiom byUID : Type
-axiom byUID.zero_val : ZeroVal byUID
+opaque byUID.nonempty_type : NonemptyType.{0}
+def byUID : Type := byUID.nonempty_type.type
+instance byUID.nonempty : Nonempty byUID := byUID.nonempty_type.property
+opaque byUID.zero_val : ZeroVal byUID := ⟨Classical.ofNonempty⟩
 attribute [instance] byUID.zero_val
 
 class byUID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -40,7 +40,7 @@ noncomputable def hashed.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] hashed.ty
 
-axiom alphabet [GooseExts] [GoGlobalContext] : val
+opaque alphabet [GooseExts] [GoGlobalContext] : val
 
 /-- the minimum allowable cost as passed in to GenerateFromPassword -/
 @[reducible] noncomputable def MinCost [GooseExts] [GoGlobalContext] : val :=
@@ -54,44 +54,44 @@ axiom alphabet [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def DefaultCost [GooseExts] [GoGlobalContext] : val :=
   #(W64 10)
 
-axiom majorVersion [GooseExts] [GoGlobalContext] : val
+opaque majorVersion [GooseExts] [GoGlobalContext] : val
 
-axiom minorVersion [GooseExts] [GoGlobalContext] : val
+opaque minorVersion [GooseExts] [GoGlobalContext] : val
 
-axiom maxSaltSize [GooseExts] [GoGlobalContext] : val
+opaque maxSaltSize [GooseExts] [GoGlobalContext] : val
 
-axiom maxCryptedHashSize [GooseExts] [GoGlobalContext] : val
+opaque maxCryptedHashSize [GooseExts] [GoGlobalContext] : val
 
-axiom encodedSaltSize [GooseExts] [GoGlobalContext] : val
+opaque encodedSaltSize [GooseExts] [GoGlobalContext] : val
 
-axiom encodedHashSize [GooseExts] [GoGlobalContext] : val
+opaque encodedHashSize [GooseExts] [GoGlobalContext] : val
 
-axiom minHashSize [GooseExts] [GoGlobalContext] : val
+opaque minHashSize [GooseExts] [GoGlobalContext] : val
 
 noncomputable def bcEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.bcEncoding"
 
-axiom bcEncoding.init [GooseExts] [GoGlobalContext] : val
+opaque bcEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMismatchedHashAndPassword [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.ErrMismatchedHashAndPassword"
 
-axiom ErrMismatchedHashAndPassword.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMismatchedHashAndPassword.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrHashTooShort [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.ErrHashTooShort"
 
-axiom ErrHashTooShort.init [GooseExts] [GoGlobalContext] : val
+opaque ErrHashTooShort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def magicCipherData [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.magicCipherData"
 
-axiom magicCipherData.init [GooseExts] [GoGlobalContext] : val
+opaque magicCipherData.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrPasswordTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.ErrPasswordTooLong"
 
-axiom ErrPasswordTooLong.init [GooseExts] [GoGlobalContext] : val
+opaque ErrPasswordTooLong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def base64Encode [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.base64Encode"
@@ -126,7 +126,7 @@ noncomputable def checkCost [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.crypto.bcrypt where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

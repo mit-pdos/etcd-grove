@@ -27,9 +27,9 @@ namespace go_etcd_io.etcd.server.v3.features
 @[reducible] noncomputable def TxnModeWriteWithSharedBuffer [GooseExts] [GoGlobalContext] : val :=
   #(go!"TxnModeWriteWithSharedBuffer")
 
-axiom InitialCorruptCheck [GooseExts] [GoGlobalContext] : val
+opaque InitialCorruptCheck [GooseExts] [GoGlobalContext] : val
 
-axiom CompactHashCheck [GooseExts] [GoGlobalContext] : val
+opaque CompactHashCheck [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def LeaseCheckpoint [GooseExts] [GoGlobalContext] : val :=
   #(go!"LeaseCheckpoint")
@@ -37,7 +37,7 @@ axiom CompactHashCheck [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def LeaseCheckpointPersist [GooseExts] [GoGlobalContext] : val :=
   #(go!"LeaseCheckpointPersist")
 
-axiom SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
+opaque SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def FastLeaseKeepAlive [GooseExts] [GoGlobalContext] : val :=
   #(go!"FastLeaseKeepAlive")
@@ -45,12 +45,12 @@ axiom SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def PriorityRequest [GooseExts] [GoGlobalContext] : val :=
   #(go!"PriorityRequest")
 
-axiom NonBlockingDefrag [GooseExts] [GoGlobalContext] : val
+opaque NonBlockingDefrag [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultEtcdServerFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.DefaultEtcdServerFeatureGates"
 
-axiom DefaultEtcdServerFeatureGates.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultEtcdServerFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewDefaultServerFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.NewDefaultServerFeatureGate"
@@ -58,7 +58,7 @@ noncomputable def NewDefaultServerFeatureGate [GooseExts] [GoGlobalContext] : Go
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.features where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.pkg.v3.featuregate]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -120,7 +120,7 @@ attribute [irreducible] uberApplier.ty
 noncomputable def alarms [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.alarms"
 
-axiom alarms.init [GooseExts] [GoGlobalContext] : val
+opaque alarms.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/apply.Apply"

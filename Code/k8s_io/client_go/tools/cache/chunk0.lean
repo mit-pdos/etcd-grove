@@ -825,7 +825,7 @@ noncomputable def UndeltaStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] UndeltaStore.ty
 
-axiom Object.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Object.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def StoreOption.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType cache.ty)] false []))
@@ -890,17 +890,17 @@ axiom Object.underlying [GooseExts] [GoGlobalContext] : go.GoType
 noncomputable def ErrZeroLengthDeltasObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ErrZeroLengthDeltasObject"
 
-axiom ErrZeroLengthDeltasObject.init [GooseExts] [GoGlobalContext] : val
+opaque ErrZeroLengthDeltasObject.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrFIFOClosed [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.ErrFIFOClosed"
 
-axiom ErrFIFOClosed.init [GooseExts] [GoGlobalContext] : val
+opaque ErrFIFOClosed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def informerNameRegistry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.informerNameRegistry"
 
-axiom informerNameRegistry.init [GooseExts] [GoGlobalContext] : val
+opaque informerNameRegistry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def globalInformerMetricsProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.globalInformerMetricsProvider"
@@ -911,62 +911,62 @@ noncomputable def setInformerMetricsProviderOnce [GooseExts] [GoGlobalContext] :
 noncomputable def mutationDetectionEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.mutationDetectionEnabled"
 
-axiom mutationDetectionEnabled.init [GooseExts] [GoGlobalContext] : val
+opaque mutationDetectionEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultMinWatchTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultMinWatchTimeout"
 
-axiom defaultMinWatchTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque defaultMinWatchTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultMaxWatchTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultMaxWatchTimeout"
 
-axiom defaultMaxWatchTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxWatchTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffInit [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffInit"
 
-axiom defaultBackoffInit.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffInit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffMax [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffMax"
 
-axiom defaultBackoffMax.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffMax.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffReset [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffReset"
 
-axiom defaultBackoffReset.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffReset.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffFactor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffFactor"
 
-axiom defaultBackoffFactor.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffFactor.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultBackoffJitter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.defaultBackoffJitter"
 
-axiom defaultBackoffJitter.init [GooseExts] [GoGlobalContext] : val
+opaque defaultBackoffJitter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.internalPackages"
 
-axiom internalPackages.init [GooseExts] [GoGlobalContext] : val
+opaque internalPackages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errorStopRequested [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.errorStopRequested"
 
-axiom errorStopRequested.init [GooseExts] [GoGlobalContext] : val
+opaque errorStopRequested.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def unsupportedTableGVK [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.unsupportedTableGVK"
 
-axiom unsupportedTableGVK.init [GooseExts] [GoGlobalContext] : val
+opaque unsupportedTableGVK.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def metricsFactory [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.metricsFactory"
 
-axiom metricsFactory.init [GooseExts] [GoGlobalContext] : val
+opaque metricsFactory.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sharedProcessorRunHook [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.sharedProcessorRunHook"
@@ -974,7 +974,7 @@ noncomputable def sharedProcessorRunHook [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def batchable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.batchable"
 
-axiom batchable.init [GooseExts] [GoGlobalContext] : val
+opaque batchable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/tools/cache.New"
@@ -24122,7 +24122,7 @@ noncomputable def NewUndeltaStore.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.tools.cache where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.fmt, pkg_id.strings, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.client_go.features, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock, pkg_id.k8s_io.apimachinery.pkg.util.sets, pkg_id.k8s_io.utils.trace, pkg_id.reflect, pkg_id.container.heap, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.sharding, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.client_go.rest, pkg_id.k8s_io.client_go.util.watchlist, pkg_id.strconv, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.util.cache, pkg_id.os, pkg_id.k8s_io.apimachinery.pkg.util.diff, pkg_id.io, pkg_id.math, pkg_id.math.rand, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1beta1, pkg_id.k8s_io.apimachinery.pkg.util.naming, pkg_id.k8s_io.apimachinery.pkg.util.net, pkg_id.k8s_io.client_go.tools.pager, pkg_id.k8s_io.utils.ptr, pkg_id.k8s_io.client_go.util.consistencydetector, pkg_id.slices, pkg_id.k8s_io.client_go.tools.cache.synctrack, pkg_id.k8s_io.utils.buffer]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -24509,8 +24509,10 @@ abbrev ResourceEventHandler [GooseExts] : Type := GoInterface
 @[reducible] noncomputable def ResourceEventHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"OnAdd" (go.signature.Signature [(go.GoType.InterfaceType []), go.bool] false [])), (go.InterfaceElem.MethodElem go!"OnDelete" (go.signature.Signature [(go.GoType.InterfaceType [])] false [])), (go.InterfaceElem.MethodElem go!"OnUpdate" (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false []))])
 
-axiom Object : Type
-axiom Object.zero_val : ZeroVal Object
+opaque Object.nonempty_type : NonemptyType.{0}
+def Object : Type := Object.nonempty_type.type
+instance Object.nonempty : Nonempty Object := Object.nonempty_type.property
+opaque Object.zero_val : ZeroVal Object := ⟨Classical.ofNonempty⟩
 attribute [instance] Object.zero_val
 
 abbrev TypedResourceEventHandler [GooseExts] (T : Type) : Type := GoInterface

@@ -20,133 +20,133 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.validation
 
-axiom httpPathFmt [GooseExts] [GoGlobalContext] : val
+opaque httpPathFmt [GooseExts] [GoGlobalContext] : val
 
-axiom LabelValueMaxLength [GooseExts] [GoGlobalContext] : val
+opaque LabelValueMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123LabelFmt [GooseExts] [GoGlobalContext] : val
+opaque dns1123LabelFmt [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123LabelFmtWithUnderscore [GooseExts] [GoGlobalContext] : val
+opaque dns1123LabelFmtWithUnderscore [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123LabelErrMsg [GooseExts] [GoGlobalContext] : val
+opaque dns1123LabelErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom DNS1123LabelMaxLength [GooseExts] [GoGlobalContext] : val
+opaque DNS1123LabelMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainFmt [GooseExts] [GoGlobalContext] : val
+opaque dns1123SubdomainFmt [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainErrorMsg [GooseExts] [GoGlobalContext] : val
+opaque dns1123SubdomainErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainFmtWithUnderscore [GooseExts] [GoGlobalContext] : val
+opaque dns1123SubdomainFmtWithUnderscore [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainErrorMsgFG [GooseExts] [GoGlobalContext] : val
+opaque dns1123SubdomainErrorMsgFG [GooseExts] [GoGlobalContext] : val
 
-axiom DNS1123SubdomainMaxLength [GooseExts] [GoGlobalContext] : val
+opaque DNS1123SubdomainMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom dns1035LabelFmt [GooseExts] [GoGlobalContext] : val
+opaque dns1035LabelFmt [GooseExts] [GoGlobalContext] : val
 
-axiom dns1035LabelErrMsg [GooseExts] [GoGlobalContext] : val
+opaque dns1035LabelErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom DNS1035LabelMaxLength [GooseExts] [GoGlobalContext] : val
+opaque DNS1035LabelMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom wildcardDNS1123SubdomainFmt [GooseExts] [GoGlobalContext] : val
+opaque wildcardDNS1123SubdomainFmt [GooseExts] [GoGlobalContext] : val
 
-axiom wildcardDNS1123SubdomainErrMsg [GooseExts] [GoGlobalContext] : val
+opaque wildcardDNS1123SubdomainErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom minUserID [GooseExts] [GoGlobalContext] : val
+opaque minUserID [GooseExts] [GoGlobalContext] : val
 
-axiom maxUserID [GooseExts] [GoGlobalContext] : val
+opaque maxUserID [GooseExts] [GoGlobalContext] : val
 
-axiom minGroupID [GooseExts] [GoGlobalContext] : val
+opaque minGroupID [GooseExts] [GoGlobalContext] : val
 
-axiom maxGroupID [GooseExts] [GoGlobalContext] : val
+opaque maxGroupID [GooseExts] [GoGlobalContext] : val
 
-axiom percentFmt [GooseExts] [GoGlobalContext] : val
+opaque percentFmt [GooseExts] [GoGlobalContext] : val
 
-axiom percentErrMsg [GooseExts] [GoGlobalContext] : val
+opaque percentErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom httpHeaderNameFmt [GooseExts] [GoGlobalContext] : val
+opaque httpHeaderNameFmt [GooseExts] [GoGlobalContext] : val
 
-axiom httpHeaderNameErrMsg [GooseExts] [GoGlobalContext] : val
+opaque httpHeaderNameErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom envVarNameFmt [GooseExts] [GoGlobalContext] : val
+opaque envVarNameFmt [GooseExts] [GoGlobalContext] : val
 
-axiom envVarNameFmtErrMsg [GooseExts] [GoGlobalContext] : val
+opaque envVarNameFmtErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom relaxedEnvVarNameFmtErrMsg [GooseExts] [GoGlobalContext] : val
+opaque relaxedEnvVarNameFmtErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom configMapKeyFmt [GooseExts] [GoGlobalContext] : val
+opaque configMapKeyFmt [GooseExts] [GoGlobalContext] : val
 
-axiom configMapKeyErrMsg [GooseExts] [GoGlobalContext] : val
+opaque configMapKeyErrMsg [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IsQualifiedName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.IsQualifiedName"
 
-axiom IsQualifiedName.init [GooseExts] [GoGlobalContext] : val
+opaque IsQualifiedName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpPathRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.httpPathRegexp"
 
-axiom httpPathRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque httpPathRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IsValidLabelValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.IsValidLabelValue"
 
-axiom IsValidLabelValue.init [GooseExts] [GoGlobalContext] : val
+opaque IsValidLabelValue.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dns1123LabelRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.dns1123LabelRegexp"
 
-axiom dns1123LabelRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque dns1123LabelRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dns1123SubdomainRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.dns1123SubdomainRegexp"
 
-axiom dns1123SubdomainRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque dns1123SubdomainRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dns1123SubdomainRegexpWithUnderscore [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.dns1123SubdomainRegexpWithUnderscore"
 
-axiom dns1123SubdomainRegexpWithUnderscore.init [GooseExts] [GoGlobalContext] : val
+opaque dns1123SubdomainRegexpWithUnderscore.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dns1035LabelRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.dns1035LabelRegexp"
 
-axiom dns1035LabelRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque dns1035LabelRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IsCIdentifier [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.IsCIdentifier"
 
-axiom IsCIdentifier.init [GooseExts] [GoGlobalContext] : val
+opaque IsCIdentifier.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def portNameCharsetRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.portNameCharsetRegex"
 
-axiom portNameCharsetRegex.init [GooseExts] [GoGlobalContext] : val
+opaque portNameCharsetRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def portNameOneLetterRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.portNameOneLetterRegexp"
 
-axiom portNameOneLetterRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque portNameOneLetterRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def percentRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.percentRegexp"
 
-axiom percentRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque percentRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def httpHeaderNameRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.httpHeaderNameRegexp"
 
-axiom httpHeaderNameRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque httpHeaderNameRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def envVarNameRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.envVarNameRegexp"
 
-axiom envVarNameRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque envVarNameRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def configMapKeyRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.configMapKeyRegexp"
 
-axiom configMapKeyRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque configMapKeyRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def parseIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/validation.parseIP"
@@ -250,7 +250,7 @@ noncomputable def hasChDirPrefix [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.validation where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -23,27 +23,27 @@ namespace k8s_io.client_go.kubernetes.scheme
 noncomputable def Scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.Scheme"
 
-axiom Scheme.init [GooseExts] [GoGlobalContext] : val
+opaque Scheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Codecs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.Codecs"
 
-axiom Codecs.init [GooseExts] [GoGlobalContext] : val
+opaque Codecs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ParameterCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.ParameterCodec"
 
-axiom ParameterCodec.init [GooseExts] [GoGlobalContext] : val
+opaque ParameterCodec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/scheme.init.0"
@@ -51,7 +51,7 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.scheme where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

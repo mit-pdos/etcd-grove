@@ -70,17 +70,17 @@ attribute [irreducible] kvSortByValue.ty
 noncomputable def slowApplies [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.slowApplies"
 
-axiom slowApplies.init [GooseExts] [GoGlobalContext] : val
+opaque slowApplies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def applySec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.applySec"
 
-axiom applySec.init [GooseExts] [GoGlobalContext] : val
+opaque applySec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rangeSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.rangeSec"
 
-axiom rangeSec.init [GooseExts] [GoGlobalContext] : val
+opaque rangeSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DeleteRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.DeleteRange"
@@ -3266,7 +3266,7 @@ noncomputable def isNil.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

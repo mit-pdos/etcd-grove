@@ -104,14 +104,14 @@ noncomputable def migrationStep.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] migrationStep.ty
 
-axiom migrationStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque migrationStep.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def revBytesLen [GooseExts] [GoGlobalContext] : val :=
   #(8 : Int)
 
-axiom MemberAttributesSuffix [GooseExts] [GoGlobalContext] : val
+opaque MemberAttributesSuffix [GooseExts] [GoGlobalContext] : val
 
-axiom MemberRaftAttributesSuffix [GooseExts] [GoGlobalContext] : val
+opaque MemberRaftAttributesSuffix [GooseExts] [GoGlobalContext] : val
 
 noncomputable def authEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authEnabled"
@@ -131,22 +131,22 @@ noncomputable def leaseBucketName [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def alarmBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.alarmBucketName"
 
-axiom alarmBucketName.init [GooseExts] [GoGlobalContext] : val
+opaque alarmBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def clusterBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.clusterBucketName"
 
-axiom clusterBucketName.init [GooseExts] [GoGlobalContext] : val
+opaque clusterBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def membersBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.membersBucketName"
 
-axiom membersBucketName.init [GooseExts] [GoGlobalContext] : val
+opaque membersBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def membersRemovedBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.membersRemovedBucketName"
 
-axiom membersRemovedBucketName.init [GooseExts] [GoGlobalContext] : val
+opaque membersRemovedBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def authBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authBucketName"
@@ -160,7 +160,7 @@ noncomputable def authRolesBucketName [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def testBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.testBucketName"
 
-axiom testBucketName.init [GooseExts] [GoGlobalContext] : val
+opaque testBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Key [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Key"
@@ -174,22 +174,22 @@ noncomputable def Lease [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Alarm [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Alarm"
 
-axiom Alarm.init [GooseExts] [GoGlobalContext] : val
+opaque Alarm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Cluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Cluster"
 
-axiom Cluster.init [GooseExts] [GoGlobalContext] : val
+opaque Cluster.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Members [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Members"
 
-axiom Members.init [GooseExts] [GoGlobalContext] : val
+opaque Members.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MembersRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MembersRemoved"
 
-axiom MembersRemoved.init [GooseExts] [GoGlobalContext] : val
+opaque MembersRemoved.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Auth [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Auth"
@@ -203,22 +203,22 @@ noncomputable def AuthRoles [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Test [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Test"
 
-axiom Test.init [GooseExts] [GoGlobalContext] : val
+opaque Test.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AllBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AllBuckets"
 
-axiom AllBuckets.init [GooseExts] [GoGlobalContext] : val
+opaque AllBuckets.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ScheduledCompactKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ScheduledCompactKeyName"
 
-axiom ScheduledCompactKeyName.init [GooseExts] [GoGlobalContext] : val
+opaque ScheduledCompactKeyName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def FinishedCompactKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.FinishedCompactKeyName"
 
-axiom FinishedCompactKeyName.init [GooseExts] [GoGlobalContext] : val
+opaque FinishedCompactKeyName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetaConsistentIndexKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConsistentIndexKeyName"
@@ -235,32 +235,32 @@ noncomputable def MetaTermKeyName [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MetaConfStateName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConfStateName"
 
-axiom MetaConfStateName.init [GooseExts] [GoGlobalContext] : val
+opaque MetaConfStateName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ClusterClusterVersionKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ClusterClusterVersionKeyName"
 
-axiom ClusterClusterVersionKeyName.init [GooseExts] [GoGlobalContext] : val
+opaque ClusterClusterVersionKeyName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ClusterDowngradeKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ClusterDowngradeKeyName"
 
-axiom ClusterDowngradeKeyName.init [GooseExts] [GoGlobalContext] : val
+opaque ClusterDowngradeKeyName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetaStorageVersionName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaStorageVersionName"
 
-axiom MetaStorageVersionName.init [GooseExts] [GoGlobalContext] : val
+opaque MetaStorageVersionName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def schemaChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChanges"
 
-axiom schemaChanges.init [GooseExts] [GoGlobalContext] : val
+opaque schemaChanges.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptyStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.emptyStorageVersion"
 
-axiom emptyStorageVersion.init [GooseExts] [GoGlobalContext] : val
+opaque emptyStorageVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def restoreFieldValueAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.restoreFieldValueAction"
@@ -1840,7 +1840,7 @@ noncomputable def NewMembershipBackend.impl [GooseExts] [GoGlobalContext] : val 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.schema where
   pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -2619,8 +2619,10 @@ attribute [instance] migrationPlan.TypeAssumptions.underlying
   migrationPlan.TypeAssumptions.method_set
   migrationPlan.TypeAssumptions.ptr_method_set
 
-axiom migrationStep : Type
-axiom migrationStep.zero_val : ZeroVal migrationStep
+opaque migrationStep.nonempty_type : NonemptyType.{0}
+def migrationStep : Type := migrationStep.nonempty_type.type
+instance migrationStep.nonempty : Nonempty migrationStep := migrationStep.nonempty_type.property
+opaque migrationStep.zero_val : ZeroVal migrationStep := ⟨Classical.ofNonempty⟩
 attribute [instance] migrationStep.zero_val
 
 class migrationStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

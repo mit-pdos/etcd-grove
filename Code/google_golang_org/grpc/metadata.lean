@@ -43,7 +43,7 @@ attribute [irreducible] rawMD.ty
 noncomputable def loggableMetadataKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/metadata.loggableMetadataKeys"
 
-axiom loggableMetadataKeys.init [GooseExts] [GoGlobalContext] : val
+opaque loggableMetadataKeys.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/metadata.init.0"
@@ -87,7 +87,7 @@ noncomputable def FromOutgoingContext [GooseExts] [GoGlobalContext] : GoString :
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.metadata where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

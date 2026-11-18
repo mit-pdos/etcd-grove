@@ -41,44 +41,44 @@ noncomputable def discovery.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] discovery.ty
 
-axiom discovery.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque discovery.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom discoveryPrefix [GooseExts] [GoGlobalContext] : val
+opaque discoveryPrefix [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidURL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.ErrInvalidURL"
 
-axiom ErrInvalidURL.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidURL.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrBadSizeKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.ErrBadSizeKey"
 
-axiom ErrBadSizeKey.init [GooseExts] [GoGlobalContext] : val
+opaque ErrBadSizeKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrSizeNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.ErrSizeNotFound"
 
-axiom ErrSizeNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrSizeNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrFullCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.ErrFullCluster"
 
-axiom ErrFullCluster.init [GooseExts] [GoGlobalContext] : val
+opaque ErrFullCluster.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.ErrTooManyRetries"
 
-axiom ErrTooManyRetries.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyRetries.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.nRetries"
 
-axiom nRetries.init [GooseExts] [GoGlobalContext] : val
+opaque nRetries.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxExponentialRetries [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.maxExponentialRetries"
 
-axiom maxExponentialRetries.init [GooseExts] [GoGlobalContext] : val
+opaque maxExponentialRetries.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def getClusterKeyPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3discovery.getClusterKeyPrefix"
@@ -104,7 +104,7 @@ noncomputable def newDiscovery [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.client.v3]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -263,8 +263,10 @@ attribute [instance] clusterInfo.TypeAssumptions.type_repr
   clusterInfo.TypeAssumptions.method_set
   clusterInfo.TypeAssumptions.ptr_method_set
 
-axiom discovery : Type
-axiom discovery.zero_val : ZeroVal discovery
+opaque discovery.nonempty_type : NonemptyType.{0}
+def discovery : Type := discovery.nonempty_type.type
+instance discovery.nonempty : Nonempty discovery := discovery.nonempty_type.property
+opaque discovery.zero_val : ZeroVal discovery := ⟨Classical.ofNonempty⟩
 attribute [instance] discovery.zero_val
 
 class discovery.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

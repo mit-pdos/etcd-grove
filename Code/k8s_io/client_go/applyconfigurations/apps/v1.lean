@@ -145,55 +145,55 @@ noncomputable def StatefulSetUpdateStrategyApplyConfiguration.ty [GooseExts] [Go
 
 attribute [irreducible] StatefulSetUpdateStrategyApplyConfiguration.ty
 
-axiom ControllerRevisionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ControllerRevisionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetUpdateStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetUpdateStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateDaemonSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RollingUpdateDaemonSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateDeploymentApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RollingUpdateDeploymentApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateStatefulSetStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RollingUpdateStatefulSetStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetConditionApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetOrdinalsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetOrdinalsApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetUpdateStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetUpdateStrategyApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ControllerRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/apps/v1.ControllerRevision"
@@ -324,7 +324,7 @@ noncomputable def StatefulSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoSt
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.applyconfigurations.apps.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -333,8 +333,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom ControllerRevisionApplyConfiguration : Type
-axiom ControllerRevisionApplyConfiguration.zero_val : ZeroVal ControllerRevisionApplyConfiguration
+opaque ControllerRevisionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ControllerRevisionApplyConfiguration : Type := ControllerRevisionApplyConfiguration.nonempty_type.type
+instance ControllerRevisionApplyConfiguration.nonempty : Nonempty ControllerRevisionApplyConfiguration := ControllerRevisionApplyConfiguration.nonempty_type.property
+opaque ControllerRevisionApplyConfiguration.zero_val : ZeroVal ControllerRevisionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ControllerRevisionApplyConfiguration.zero_val
 
 class ControllerRevisionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -350,8 +352,10 @@ attribute [instance] ControllerRevisionApplyConfiguration.TypeAssumptions.type_r
   ControllerRevisionApplyConfiguration.TypeAssumptions.method_set
   ControllerRevisionApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetApplyConfiguration : Type
-axiom DaemonSetApplyConfiguration.zero_val : ZeroVal DaemonSetApplyConfiguration
+opaque DaemonSetApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DaemonSetApplyConfiguration : Type := DaemonSetApplyConfiguration.nonempty_type.type
+instance DaemonSetApplyConfiguration.nonempty : Nonempty DaemonSetApplyConfiguration := DaemonSetApplyConfiguration.nonempty_type.property
+opaque DaemonSetApplyConfiguration.zero_val : ZeroVal DaemonSetApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetApplyConfiguration.zero_val
 
 class DaemonSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -367,8 +371,10 @@ attribute [instance] DaemonSetApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetApplyConfiguration.TypeAssumptions.method_set
   DaemonSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetConditionApplyConfiguration : Type
-axiom DaemonSetConditionApplyConfiguration.zero_val : ZeroVal DaemonSetConditionApplyConfiguration
+opaque DaemonSetConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DaemonSetConditionApplyConfiguration : Type := DaemonSetConditionApplyConfiguration.nonempty_type.type
+instance DaemonSetConditionApplyConfiguration.nonempty : Nonempty DaemonSetConditionApplyConfiguration := DaemonSetConditionApplyConfiguration.nonempty_type.property
+opaque DaemonSetConditionApplyConfiguration.zero_val : ZeroVal DaemonSetConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetConditionApplyConfiguration.zero_val
 
 class DaemonSetConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -384,8 +390,10 @@ attribute [instance] DaemonSetConditionApplyConfiguration.TypeAssumptions.type_r
   DaemonSetConditionApplyConfiguration.TypeAssumptions.method_set
   DaemonSetConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetSpecApplyConfiguration : Type
-axiom DaemonSetSpecApplyConfiguration.zero_val : ZeroVal DaemonSetSpecApplyConfiguration
+opaque DaemonSetSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DaemonSetSpecApplyConfiguration : Type := DaemonSetSpecApplyConfiguration.nonempty_type.type
+instance DaemonSetSpecApplyConfiguration.nonempty : Nonempty DaemonSetSpecApplyConfiguration := DaemonSetSpecApplyConfiguration.nonempty_type.property
+opaque DaemonSetSpecApplyConfiguration.zero_val : ZeroVal DaemonSetSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetSpecApplyConfiguration.zero_val
 
 class DaemonSetSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -401,8 +409,10 @@ attribute [instance] DaemonSetSpecApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetSpecApplyConfiguration.TypeAssumptions.method_set
   DaemonSetSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetStatusApplyConfiguration : Type
-axiom DaemonSetStatusApplyConfiguration.zero_val : ZeroVal DaemonSetStatusApplyConfiguration
+opaque DaemonSetStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DaemonSetStatusApplyConfiguration : Type := DaemonSetStatusApplyConfiguration.nonempty_type.type
+instance DaemonSetStatusApplyConfiguration.nonempty : Nonempty DaemonSetStatusApplyConfiguration := DaemonSetStatusApplyConfiguration.nonempty_type.property
+opaque DaemonSetStatusApplyConfiguration.zero_val : ZeroVal DaemonSetStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetStatusApplyConfiguration.zero_val
 
 class DaemonSetStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -418,8 +428,10 @@ attribute [instance] DaemonSetStatusApplyConfiguration.TypeAssumptions.type_repr
   DaemonSetStatusApplyConfiguration.TypeAssumptions.method_set
   DaemonSetStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetUpdateStrategyApplyConfiguration : Type
-axiom DaemonSetUpdateStrategyApplyConfiguration.zero_val : ZeroVal DaemonSetUpdateStrategyApplyConfiguration
+opaque DaemonSetUpdateStrategyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DaemonSetUpdateStrategyApplyConfiguration : Type := DaemonSetUpdateStrategyApplyConfiguration.nonempty_type.type
+instance DaemonSetUpdateStrategyApplyConfiguration.nonempty : Nonempty DaemonSetUpdateStrategyApplyConfiguration := DaemonSetUpdateStrategyApplyConfiguration.nonempty_type.property
+opaque DaemonSetUpdateStrategyApplyConfiguration.zero_val : ZeroVal DaemonSetUpdateStrategyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetUpdateStrategyApplyConfiguration.zero_val
 
 class DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -435,8 +447,10 @@ attribute [instance] DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.t
   DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.method_set
   DaemonSetUpdateStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DeploymentApplyConfiguration : Type
-axiom DeploymentApplyConfiguration.zero_val : ZeroVal DeploymentApplyConfiguration
+opaque DeploymentApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DeploymentApplyConfiguration : Type := DeploymentApplyConfiguration.nonempty_type.type
+instance DeploymentApplyConfiguration.nonempty : Nonempty DeploymentApplyConfiguration := DeploymentApplyConfiguration.nonempty_type.property
+opaque DeploymentApplyConfiguration.zero_val : ZeroVal DeploymentApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentApplyConfiguration.zero_val
 
 class DeploymentApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -452,8 +466,10 @@ attribute [instance] DeploymentApplyConfiguration.TypeAssumptions.type_repr
   DeploymentApplyConfiguration.TypeAssumptions.method_set
   DeploymentApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DeploymentConditionApplyConfiguration : Type
-axiom DeploymentConditionApplyConfiguration.zero_val : ZeroVal DeploymentConditionApplyConfiguration
+opaque DeploymentConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DeploymentConditionApplyConfiguration : Type := DeploymentConditionApplyConfiguration.nonempty_type.type
+instance DeploymentConditionApplyConfiguration.nonempty : Nonempty DeploymentConditionApplyConfiguration := DeploymentConditionApplyConfiguration.nonempty_type.property
+opaque DeploymentConditionApplyConfiguration.zero_val : ZeroVal DeploymentConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentConditionApplyConfiguration.zero_val
 
 class DeploymentConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -469,8 +485,10 @@ attribute [instance] DeploymentConditionApplyConfiguration.TypeAssumptions.type_
   DeploymentConditionApplyConfiguration.TypeAssumptions.method_set
   DeploymentConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DeploymentSpecApplyConfiguration : Type
-axiom DeploymentSpecApplyConfiguration.zero_val : ZeroVal DeploymentSpecApplyConfiguration
+opaque DeploymentSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DeploymentSpecApplyConfiguration : Type := DeploymentSpecApplyConfiguration.nonempty_type.type
+instance DeploymentSpecApplyConfiguration.nonempty : Nonempty DeploymentSpecApplyConfiguration := DeploymentSpecApplyConfiguration.nonempty_type.property
+opaque DeploymentSpecApplyConfiguration.zero_val : ZeroVal DeploymentSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentSpecApplyConfiguration.zero_val
 
 class DeploymentSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -486,8 +504,10 @@ attribute [instance] DeploymentSpecApplyConfiguration.TypeAssumptions.type_repr
   DeploymentSpecApplyConfiguration.TypeAssumptions.method_set
   DeploymentSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DeploymentStatusApplyConfiguration : Type
-axiom DeploymentStatusApplyConfiguration.zero_val : ZeroVal DeploymentStatusApplyConfiguration
+opaque DeploymentStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DeploymentStatusApplyConfiguration : Type := DeploymentStatusApplyConfiguration.nonempty_type.type
+instance DeploymentStatusApplyConfiguration.nonempty : Nonempty DeploymentStatusApplyConfiguration := DeploymentStatusApplyConfiguration.nonempty_type.property
+opaque DeploymentStatusApplyConfiguration.zero_val : ZeroVal DeploymentStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentStatusApplyConfiguration.zero_val
 
 class DeploymentStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -503,8 +523,10 @@ attribute [instance] DeploymentStatusApplyConfiguration.TypeAssumptions.type_rep
   DeploymentStatusApplyConfiguration.TypeAssumptions.method_set
   DeploymentStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom DeploymentStrategyApplyConfiguration : Type
-axiom DeploymentStrategyApplyConfiguration.zero_val : ZeroVal DeploymentStrategyApplyConfiguration
+opaque DeploymentStrategyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def DeploymentStrategyApplyConfiguration : Type := DeploymentStrategyApplyConfiguration.nonempty_type.type
+instance DeploymentStrategyApplyConfiguration.nonempty : Nonempty DeploymentStrategyApplyConfiguration := DeploymentStrategyApplyConfiguration.nonempty_type.property
+opaque DeploymentStrategyApplyConfiguration.zero_val : ZeroVal DeploymentStrategyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentStrategyApplyConfiguration.zero_val
 
 class DeploymentStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -520,8 +542,10 @@ attribute [instance] DeploymentStrategyApplyConfiguration.TypeAssumptions.type_r
   DeploymentStrategyApplyConfiguration.TypeAssumptions.method_set
   DeploymentStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetApplyConfiguration : Type
-axiom ReplicaSetApplyConfiguration.zero_val : ZeroVal ReplicaSetApplyConfiguration
+opaque ReplicaSetApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicaSetApplyConfiguration : Type := ReplicaSetApplyConfiguration.nonempty_type.type
+instance ReplicaSetApplyConfiguration.nonempty : Nonempty ReplicaSetApplyConfiguration := ReplicaSetApplyConfiguration.nonempty_type.property
+opaque ReplicaSetApplyConfiguration.zero_val : ZeroVal ReplicaSetApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetApplyConfiguration.zero_val
 
 class ReplicaSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -537,8 +561,10 @@ attribute [instance] ReplicaSetApplyConfiguration.TypeAssumptions.type_repr
   ReplicaSetApplyConfiguration.TypeAssumptions.method_set
   ReplicaSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetConditionApplyConfiguration : Type
-axiom ReplicaSetConditionApplyConfiguration.zero_val : ZeroVal ReplicaSetConditionApplyConfiguration
+opaque ReplicaSetConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicaSetConditionApplyConfiguration : Type := ReplicaSetConditionApplyConfiguration.nonempty_type.type
+instance ReplicaSetConditionApplyConfiguration.nonempty : Nonempty ReplicaSetConditionApplyConfiguration := ReplicaSetConditionApplyConfiguration.nonempty_type.property
+opaque ReplicaSetConditionApplyConfiguration.zero_val : ZeroVal ReplicaSetConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetConditionApplyConfiguration.zero_val
 
 class ReplicaSetConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -554,8 +580,10 @@ attribute [instance] ReplicaSetConditionApplyConfiguration.TypeAssumptions.type_
   ReplicaSetConditionApplyConfiguration.TypeAssumptions.method_set
   ReplicaSetConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetSpecApplyConfiguration : Type
-axiom ReplicaSetSpecApplyConfiguration.zero_val : ZeroVal ReplicaSetSpecApplyConfiguration
+opaque ReplicaSetSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicaSetSpecApplyConfiguration : Type := ReplicaSetSpecApplyConfiguration.nonempty_type.type
+instance ReplicaSetSpecApplyConfiguration.nonempty : Nonempty ReplicaSetSpecApplyConfiguration := ReplicaSetSpecApplyConfiguration.nonempty_type.property
+opaque ReplicaSetSpecApplyConfiguration.zero_val : ZeroVal ReplicaSetSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetSpecApplyConfiguration.zero_val
 
 class ReplicaSetSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -571,8 +599,10 @@ attribute [instance] ReplicaSetSpecApplyConfiguration.TypeAssumptions.type_repr
   ReplicaSetSpecApplyConfiguration.TypeAssumptions.method_set
   ReplicaSetSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetStatusApplyConfiguration : Type
-axiom ReplicaSetStatusApplyConfiguration.zero_val : ZeroVal ReplicaSetStatusApplyConfiguration
+opaque ReplicaSetStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ReplicaSetStatusApplyConfiguration : Type := ReplicaSetStatusApplyConfiguration.nonempty_type.type
+instance ReplicaSetStatusApplyConfiguration.nonempty : Nonempty ReplicaSetStatusApplyConfiguration := ReplicaSetStatusApplyConfiguration.nonempty_type.property
+opaque ReplicaSetStatusApplyConfiguration.zero_val : ZeroVal ReplicaSetStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetStatusApplyConfiguration.zero_val
 
 class ReplicaSetStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -588,8 +618,10 @@ attribute [instance] ReplicaSetStatusApplyConfiguration.TypeAssumptions.type_rep
   ReplicaSetStatusApplyConfiguration.TypeAssumptions.method_set
   ReplicaSetStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom RollingUpdateDaemonSetApplyConfiguration : Type
-axiom RollingUpdateDaemonSetApplyConfiguration.zero_val : ZeroVal RollingUpdateDaemonSetApplyConfiguration
+opaque RollingUpdateDaemonSetApplyConfiguration.nonempty_type : NonemptyType.{0}
+def RollingUpdateDaemonSetApplyConfiguration : Type := RollingUpdateDaemonSetApplyConfiguration.nonempty_type.type
+instance RollingUpdateDaemonSetApplyConfiguration.nonempty : Nonempty RollingUpdateDaemonSetApplyConfiguration := RollingUpdateDaemonSetApplyConfiguration.nonempty_type.property
+opaque RollingUpdateDaemonSetApplyConfiguration.zero_val : ZeroVal RollingUpdateDaemonSetApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] RollingUpdateDaemonSetApplyConfiguration.zero_val
 
 class RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -605,8 +637,10 @@ attribute [instance] RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.ty
   RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.method_set
   RollingUpdateDaemonSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom RollingUpdateDeploymentApplyConfiguration : Type
-axiom RollingUpdateDeploymentApplyConfiguration.zero_val : ZeroVal RollingUpdateDeploymentApplyConfiguration
+opaque RollingUpdateDeploymentApplyConfiguration.nonempty_type : NonemptyType.{0}
+def RollingUpdateDeploymentApplyConfiguration : Type := RollingUpdateDeploymentApplyConfiguration.nonempty_type.type
+instance RollingUpdateDeploymentApplyConfiguration.nonempty : Nonempty RollingUpdateDeploymentApplyConfiguration := RollingUpdateDeploymentApplyConfiguration.nonempty_type.property
+opaque RollingUpdateDeploymentApplyConfiguration.zero_val : ZeroVal RollingUpdateDeploymentApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] RollingUpdateDeploymentApplyConfiguration.zero_val
 
 class RollingUpdateDeploymentApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -622,8 +656,10 @@ attribute [instance] RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.t
   RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.method_set
   RollingUpdateDeploymentApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom RollingUpdateStatefulSetStrategyApplyConfiguration : Type
-axiom RollingUpdateStatefulSetStrategyApplyConfiguration.zero_val : ZeroVal RollingUpdateStatefulSetStrategyApplyConfiguration
+opaque RollingUpdateStatefulSetStrategyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def RollingUpdateStatefulSetStrategyApplyConfiguration : Type := RollingUpdateStatefulSetStrategyApplyConfiguration.nonempty_type.type
+instance RollingUpdateStatefulSetStrategyApplyConfiguration.nonempty : Nonempty RollingUpdateStatefulSetStrategyApplyConfiguration := RollingUpdateStatefulSetStrategyApplyConfiguration.nonempty_type.property
+opaque RollingUpdateStatefulSetStrategyApplyConfiguration.zero_val : ZeroVal RollingUpdateStatefulSetStrategyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] RollingUpdateStatefulSetStrategyApplyConfiguration.zero_val
 
 class RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -639,8 +675,10 @@ attribute [instance] RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssu
   RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.method_set
   RollingUpdateStatefulSetStrategyApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetApplyConfiguration : Type
-axiom StatefulSetApplyConfiguration.zero_val : ZeroVal StatefulSetApplyConfiguration
+opaque StatefulSetApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetApplyConfiguration : Type := StatefulSetApplyConfiguration.nonempty_type.type
+instance StatefulSetApplyConfiguration.nonempty : Nonempty StatefulSetApplyConfiguration := StatefulSetApplyConfiguration.nonempty_type.property
+opaque StatefulSetApplyConfiguration.zero_val : ZeroVal StatefulSetApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetApplyConfiguration.zero_val
 
 class StatefulSetApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -656,8 +694,10 @@ attribute [instance] StatefulSetApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetApplyConfiguration.TypeAssumptions.method_set
   StatefulSetApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetConditionApplyConfiguration : Type
-axiom StatefulSetConditionApplyConfiguration.zero_val : ZeroVal StatefulSetConditionApplyConfiguration
+opaque StatefulSetConditionApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetConditionApplyConfiguration : Type := StatefulSetConditionApplyConfiguration.nonempty_type.type
+instance StatefulSetConditionApplyConfiguration.nonempty : Nonempty StatefulSetConditionApplyConfiguration := StatefulSetConditionApplyConfiguration.nonempty_type.property
+opaque StatefulSetConditionApplyConfiguration.zero_val : ZeroVal StatefulSetConditionApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetConditionApplyConfiguration.zero_val
 
 class StatefulSetConditionApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -673,8 +713,10 @@ attribute [instance] StatefulSetConditionApplyConfiguration.TypeAssumptions.type
   StatefulSetConditionApplyConfiguration.TypeAssumptions.method_set
   StatefulSetConditionApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetOrdinalsApplyConfiguration : Type
-axiom StatefulSetOrdinalsApplyConfiguration.zero_val : ZeroVal StatefulSetOrdinalsApplyConfiguration
+opaque StatefulSetOrdinalsApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetOrdinalsApplyConfiguration : Type := StatefulSetOrdinalsApplyConfiguration.nonempty_type.type
+instance StatefulSetOrdinalsApplyConfiguration.nonempty : Nonempty StatefulSetOrdinalsApplyConfiguration := StatefulSetOrdinalsApplyConfiguration.nonempty_type.property
+opaque StatefulSetOrdinalsApplyConfiguration.zero_val : ZeroVal StatefulSetOrdinalsApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetOrdinalsApplyConfiguration.zero_val
 
 class StatefulSetOrdinalsApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -690,8 +732,10 @@ attribute [instance] StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.type_
   StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.method_set
   StatefulSetOrdinalsApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration : Type
-axiom StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.zero_val : ZeroVal StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration
+opaque StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration : Type := StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.nonempty_type.type
+instance StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.nonempty : Nonempty StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration := StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.nonempty_type.property
+opaque StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.zero_val : ZeroVal StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.zero_val
 
 class StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -707,8 +751,10 @@ attribute [instance] StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfigu
   StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.method_set
   StatefulSetPersistentVolumeClaimRetentionPolicyApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetSpecApplyConfiguration : Type
-axiom StatefulSetSpecApplyConfiguration.zero_val : ZeroVal StatefulSetSpecApplyConfiguration
+opaque StatefulSetSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetSpecApplyConfiguration : Type := StatefulSetSpecApplyConfiguration.nonempty_type.type
+instance StatefulSetSpecApplyConfiguration.nonempty : Nonempty StatefulSetSpecApplyConfiguration := StatefulSetSpecApplyConfiguration.nonempty_type.property
+opaque StatefulSetSpecApplyConfiguration.zero_val : ZeroVal StatefulSetSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetSpecApplyConfiguration.zero_val
 
 class StatefulSetSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -724,8 +770,10 @@ attribute [instance] StatefulSetSpecApplyConfiguration.TypeAssumptions.type_repr
   StatefulSetSpecApplyConfiguration.TypeAssumptions.method_set
   StatefulSetSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetStatusApplyConfiguration : Type
-axiom StatefulSetStatusApplyConfiguration.zero_val : ZeroVal StatefulSetStatusApplyConfiguration
+opaque StatefulSetStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetStatusApplyConfiguration : Type := StatefulSetStatusApplyConfiguration.nonempty_type.type
+instance StatefulSetStatusApplyConfiguration.nonempty : Nonempty StatefulSetStatusApplyConfiguration := StatefulSetStatusApplyConfiguration.nonempty_type.property
+opaque StatefulSetStatusApplyConfiguration.zero_val : ZeroVal StatefulSetStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetStatusApplyConfiguration.zero_val
 
 class StatefulSetStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -741,8 +789,10 @@ attribute [instance] StatefulSetStatusApplyConfiguration.TypeAssumptions.type_re
   StatefulSetStatusApplyConfiguration.TypeAssumptions.method_set
   StatefulSetStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetUpdateStrategyApplyConfiguration : Type
-axiom StatefulSetUpdateStrategyApplyConfiguration.zero_val : ZeroVal StatefulSetUpdateStrategyApplyConfiguration
+opaque StatefulSetUpdateStrategyApplyConfiguration.nonempty_type : NonemptyType.{0}
+def StatefulSetUpdateStrategyApplyConfiguration : Type := StatefulSetUpdateStrategyApplyConfiguration.nonempty_type.type
+instance StatefulSetUpdateStrategyApplyConfiguration.nonempty : Nonempty StatefulSetUpdateStrategyApplyConfiguration := StatefulSetUpdateStrategyApplyConfiguration.nonempty_type.property
+opaque StatefulSetUpdateStrategyApplyConfiguration.zero_val : ZeroVal StatefulSetUpdateStrategyApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetUpdateStrategyApplyConfiguration.zero_val
 
 class StatefulSetUpdateStrategyApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

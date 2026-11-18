@@ -55,455 +55,455 @@ noncomputable def PodValidationOptions.ty [GooseExts] [GoGlobalContext] : go.GoT
 
 attribute [irreducible] PodValidationOptions.ty
 
-axiom ValidateNameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidateNameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidateNameFuncWithErrors [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidateNameFuncWithErrors [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom commonHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque commonHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReportingInstanceLengthLimit [GooseExts] [GoGlobalContext] : val
+opaque ReportingInstanceLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom ActionLengthLimit [GooseExts] [GoGlobalContext] : val
+opaque ActionLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom ReasonLengthLimit [GooseExts] [GoGlobalContext] : val
+opaque ReasonLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom NoteLengthLimit [GooseExts] [GoGlobalContext] : val
+opaque NoteLengthLimit [GooseExts] [GoGlobalContext] : val
 
-axiom isNegativeErrorMsg [GooseExts] [GoGlobalContext] : val
+opaque isNegativeErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom isInvalidQuotaResource [GooseExts] [GoGlobalContext] : val
+opaque isInvalidQuotaResource [GooseExts] [GoGlobalContext] : val
 
-axiom fieldImmutableErrorMsg [GooseExts] [GoGlobalContext] : val
+opaque fieldImmutableErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom isNotIntegerErrorMsg [GooseExts] [GoGlobalContext] : val
+opaque isNotIntegerErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom isNotPositiveErrorMsg [GooseExts] [GoGlobalContext] : val
+opaque isNotPositiveErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom resourceStatusClaimPrefix [GooseExts] [GoGlobalContext] : val
+opaque resourceStatusClaimPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom MaxPodEvictionResponders [GooseExts] [GoGlobalContext] : val
+opaque MaxPodEvictionResponders [GooseExts] [GoGlobalContext] : val
 
-axiom RequiredCovered [GooseExts] [GoGlobalContext] : val
+opaque RequiredCovered [GooseExts] [GoGlobalContext] : val
 
-axiom SizeCovered [GooseExts] [GoGlobalContext] : val
+opaque SizeCovered [GooseExts] [GoGlobalContext] : val
 
-axiom FormatCovered [GooseExts] [GoGlobalContext] : val
+opaque FormatCovered [GooseExts] [GoGlobalContext] : val
 
-axiom hugepagesRequestsPrefixDownwardAPI [GooseExts] [GoGlobalContext] : val
+opaque hugepagesRequestsPrefixDownwardAPI [GooseExts] [GoGlobalContext] : val
 
-axiom hugepagesLimitsPrefixDownwardAPI [GooseExts] [GoGlobalContext] : val
+opaque hugepagesLimitsPrefixDownwardAPI [GooseExts] [GoGlobalContext] : val
 
-axiom MaxDNSNameservers [GooseExts] [GoGlobalContext] : val
+opaque MaxDNSNameservers [GooseExts] [GoGlobalContext] : val
 
-axiom MaxDNSSearchPaths [GooseExts] [GoGlobalContext] : val
+opaque MaxDNSSearchPaths [GooseExts] [GoGlobalContext] : val
 
-axiom MaxDNSSearchListChars [GooseExts] [GoGlobalContext] : val
+opaque MaxDNSSearchListChars [GooseExts] [GoGlobalContext] : val
 
-axiom KeyFormatCovered [GooseExts] [GoGlobalContext] : val
+opaque KeyFormatCovered [GooseExts] [GoGlobalContext] : val
 
-axiom SysctlSegmentFmt [GooseExts] [GoGlobalContext] : val
+opaque SysctlSegmentFmt [GooseExts] [GoGlobalContext] : val
 
-axiom SysctlContainSlashFmt [GooseExts] [GoGlobalContext] : val
+opaque SysctlContainSlashFmt [GooseExts] [GoGlobalContext] : val
 
-axiom SysctlMaxLength [GooseExts] [GoGlobalContext] : val
+opaque SysctlMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxGMSACredentialSpecLengthInKiB [GooseExts] [GoGlobalContext] : val
+opaque maxGMSACredentialSpecLengthInKiB [GooseExts] [GoGlobalContext] : val
 
-axiom maxGMSACredentialSpecLength [GooseExts] [GoGlobalContext] : val
+opaque maxGMSACredentialSpecLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxRunAsUserNameDomainLength [GooseExts] [GoGlobalContext] : val
+opaque maxRunAsUserNameDomainLength [GooseExts] [GoGlobalContext] : val
 
-axiom maxRunAsUserNameUserLength [GooseExts] [GoGlobalContext] : val
+opaque maxRunAsUserNameUserLength [GooseExts] [GoGlobalContext] : val
 
 noncomputable def pdPartitionErrorMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.pdPartitionErrorMsg"
 
-axiom pdPartitionErrorMsg.init [GooseExts] [GoGlobalContext] : val
+opaque pdPartitionErrorMsg.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def fileModeErrorMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.fileModeErrorMsg"
 
-axiom fileModeErrorMsg.init [GooseExts] [GoGlobalContext] : val
+opaque fileModeErrorMsg.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptyDirModeErrorMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.emptyDirModeErrorMsg"
 
-axiom emptyDirModeErrorMsg.init [GooseExts] [GoGlobalContext] : val
+opaque emptyDirModeErrorMsg.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def BannedOwners [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.BannedOwners"
 
-axiom BannedOwners.init [GooseExts] [GoGlobalContext] : val
+opaque BannedOwners.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nodeDeclaredFeatureRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.nodeDeclaredFeatureRegexp"
 
-axiom nodeDeclaredFeatureRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque nodeDeclaredFeatureRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def iscsiInitiatorIqnRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.iscsiInitiatorIqnRegex"
 
-axiom iscsiInitiatorIqnRegex.init [GooseExts] [GoGlobalContext] : val
+opaque iscsiInitiatorIqnRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def iscsiInitiatorEuiRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.iscsiInitiatorEuiRegex"
 
-axiom iscsiInitiatorEuiRegex.init [GooseExts] [GoGlobalContext] : val
+opaque iscsiInitiatorEuiRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def iscsiInitiatorNaaRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.iscsiInitiatorNaaRegex"
 
-axiom iscsiInitiatorNaaRegex.init [GooseExts] [GoGlobalContext] : val
+opaque iscsiInitiatorNaaRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedEphemeralContainerFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.allowedEphemeralContainerFields"
 
-axiom allowedEphemeralContainerFields.init [GooseExts] [GoGlobalContext] : val
+opaque allowedEphemeralContainerFields.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validOS [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validOS"
 
-axiom validOS.init [GooseExts] [GoGlobalContext] : val
+opaque validOS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidatePodName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodName"
 
-axiom ValidatePodName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidatePodName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateServiceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceName"
 
-axiom ValidateServiceName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateServiceName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateNodeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNodeName"
 
-axiom ValidateNodeName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateNodeName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateNamespaceName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateNamespaceName"
 
-axiom ValidateNamespaceName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateNamespaceName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateLimitRangeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateLimitRangeName"
 
-axiom ValidateLimitRangeName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateLimitRangeName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateResourceQuotaName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceQuotaName"
 
-axiom ValidateResourceQuotaName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateResourceQuotaName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateSecretName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateSecretName"
 
-axiom ValidateSecretName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateSecretName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateServiceAccountName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateServiceAccountName"
 
-axiom ValidateServiceAccountName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateServiceAccountName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateEndpointsName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEndpointsName"
 
-axiom ValidateEndpointsName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateEndpointsName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateClassName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateClassName"
 
-axiom ValidateClassName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateClassName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidatePriorityClassName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePriorityClassName"
 
-axiom ValidatePriorityClassName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidatePriorityClassName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateResourceClaimName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceClaimName"
 
-axiom ValidateResourceClaimName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateResourceClaimName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateResourceClaimTemplateName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateResourceClaimTemplateName"
 
-axiom ValidateResourceClaimTemplateName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateResourceClaimTemplateName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidatePodGroupName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePodGroupName"
 
-axiom ValidatePodGroupName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidatePodGroupName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validVolumeDownwardAPIFieldPathExpressions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validVolumeDownwardAPIFieldPathExpressions"
 
-axiom validVolumeDownwardAPIFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
+opaque validVolumeDownwardAPIFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedHostPathTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedHostPathTypes"
 
-axiom supportedHostPathTypes.init [GooseExts] [GoGlobalContext] : val
+opaque supportedHostPathTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def allowedTemplateObjectMetaFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.allowedTemplateObjectMetaFields"
 
-axiom allowedTemplateObjectMetaFields.init [GooseExts] [GoGlobalContext] : val
+opaque allowedTemplateObjectMetaFields.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidatePersistentVolumeName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidatePersistentVolumeName"
 
-axiom ValidatePersistentVolumeName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidatePersistentVolumeName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedAccessModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedAccessModes"
 
-axiom supportedAccessModes.init [GooseExts] [GoGlobalContext] : val
+opaque supportedAccessModes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedReclaimPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedReclaimPolicy"
 
-axiom supportedReclaimPolicy.init [GooseExts] [GoGlobalContext] : val
+opaque supportedReclaimPolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedVolumeModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedVolumeModes"
 
-axiom supportedVolumeModes.init [GooseExts] [GoGlobalContext] : val
+opaque supportedVolumeModes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resizeStatusSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.resizeStatusSet"
 
-axiom resizeStatusSet.init [GooseExts] [GoGlobalContext] : val
+opaque resizeStatusSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedPortProtocols [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedPortProtocols"
 
-axiom supportedPortProtocols.init [GooseExts] [GoGlobalContext] : val
+opaque supportedPortProtocols.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validEnvDownwardAPIFieldPathExpressions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validEnvDownwardAPIFieldPathExpressions"
 
-axiom validEnvDownwardAPIFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
+opaque validEnvDownwardAPIFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validContainerResourceFieldPathExpressions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceFieldPathExpressions"
 
-axiom validContainerResourceFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
+opaque validContainerResourceFieldPathExpressions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages"
 
-axiom validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages.init [GooseExts] [GoGlobalContext] : val
+opaque validContainerResourceFieldPathPrefixesWithDownwardAPIHugePages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validContainerResourceDivisorForCPU [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForCPU"
 
-axiom validContainerResourceDivisorForCPU.init [GooseExts] [GoGlobalContext] : val
+opaque validContainerResourceDivisorForCPU.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validContainerResourceDivisorForMemory [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForMemory"
 
-axiom validContainerResourceDivisorForMemory.init [GooseExts] [GoGlobalContext] : val
+opaque validContainerResourceDivisorForMemory.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validContainerResourceDivisorForHugePages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForHugePages"
 
-axiom validContainerResourceDivisorForHugePages.init [GooseExts] [GoGlobalContext] : val
+opaque validContainerResourceDivisorForHugePages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validContainerResourceDivisorForEphemeralStorage [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validContainerResourceDivisorForEphemeralStorage"
 
-axiom validContainerResourceDivisorForEphemeralStorage.init [GooseExts] [GoGlobalContext] : val
+opaque validContainerResourceDivisorForEphemeralStorage.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedBindMountOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedBindMountOptions"
 
-axiom supportedBindMountOptions.init [GooseExts] [GoGlobalContext] : val
+opaque supportedBindMountOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedHTTPSchemes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedHTTPSchemes"
 
-axiom supportedHTTPSchemes.init [GooseExts] [GoGlobalContext] : val
+opaque supportedHTTPSchemes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedHTTPProtocols [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedHTTPProtocols"
 
-axiom supportedHTTPProtocols.init [GooseExts] [GoGlobalContext] : val
+opaque supportedHTTPProtocols.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedGRPCProbeModes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedGRPCProbeModes"
 
-axiom supportedGRPCProbeModes.init [GooseExts] [GoGlobalContext] : val
+opaque supportedGRPCProbeModes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedStopSignalsLinux [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedStopSignalsLinux"
 
-axiom supportedStopSignalsLinux.init [GooseExts] [GoGlobalContext] : val
+opaque supportedStopSignalsLinux.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedStopSignalsWindows [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedStopSignalsWindows"
 
-axiom supportedStopSignalsWindows.init [GooseExts] [GoGlobalContext] : val
+opaque supportedStopSignalsWindows.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedPullPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedPullPolicies"
 
-axiom supportedPullPolicies.init [GooseExts] [GoGlobalContext] : val
+opaque supportedPullPolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedResizeResources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedResizeResources"
 
-axiom supportedResizeResources.init [GooseExts] [GoGlobalContext] : val
+opaque supportedResizeResources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedResizePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedResizePolicies"
 
-axiom supportedResizePolicies.init [GooseExts] [GoGlobalContext] : val
+opaque supportedResizePolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedContainerRestartPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartPolicies"
 
-axiom supportedContainerRestartPolicies.init [GooseExts] [GoGlobalContext] : val
+opaque supportedContainerRestartPolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedContainerRestartPolicyOperators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartPolicyOperators"
 
-axiom supportedContainerRestartPolicyOperators.init [GooseExts] [GoGlobalContext] : val
+opaque supportedContainerRestartPolicyOperators.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedContainerRestartRuleActions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartRuleActions"
 
-axiom supportedContainerRestartRuleActions.init [GooseExts] [GoGlobalContext] : val
+opaque supportedContainerRestartRuleActions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedContainerRestartRuleActionsWithRestartAllContainers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedContainerRestartRuleActionsWithRestartAllContainers"
 
-axiom supportedContainerRestartRuleActionsWithRestartAllContainers.init [GooseExts] [GoGlobalContext] : val
+opaque supportedContainerRestartRuleActionsWithRestartAllContainers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validFSGroupChangePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validFSGroupChangePolicies"
 
-axiom validFSGroupChangePolicies.init [GooseExts] [GoGlobalContext] : val
+opaque validFSGroupChangePolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nodeFieldSelectorValidators [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.nodeFieldSelectorValidators"
 
-axiom nodeFieldSelectorValidators.init [GooseExts] [GoGlobalContext] : val
+opaque nodeFieldSelectorValidators.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sysctlContainSlashRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.sysctlContainSlashRegexp"
 
-axiom sysctlContainSlashRegexp.init [GooseExts] [GoGlobalContext] : val
+opaque sysctlContainSlashRegexp.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validSELinuxChangePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validSELinuxChangePolicies"
 
-axiom validSELinuxChangePolicies.init [GooseExts] [GoGlobalContext] : val
+opaque validSELinuxChangePolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def updatablePodSpecFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.updatablePodSpecFields"
 
-axiom updatablePodSpecFields.init [GooseExts] [GoGlobalContext] : val
+opaque updatablePodSpecFields.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedSessionAffinityType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedSessionAffinityType"
 
-axiom supportedSessionAffinityType.init [GooseExts] [GoGlobalContext] : val
+opaque supportedSessionAffinityType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedServiceType [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceType"
 
-axiom supportedServiceType.init [GooseExts] [GoGlobalContext] : val
+opaque supportedServiceType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedServiceInternalTrafficPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceInternalTrafficPolicy"
 
-axiom supportedServiceInternalTrafficPolicy.init [GooseExts] [GoGlobalContext] : val
+opaque supportedServiceInternalTrafficPolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedServiceIPFamily [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceIPFamily"
 
-axiom supportedServiceIPFamily.init [GooseExts] [GoGlobalContext] : val
+opaque supportedServiceIPFamily.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedServiceIPFamilyPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedServiceIPFamilyPolicy"
 
-axiom supportedServiceIPFamilyPolicy.init [GooseExts] [GoGlobalContext] : val
+opaque supportedServiceIPFamilyPolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validExternalTrafficPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validExternalTrafficPolicies"
 
-axiom validExternalTrafficPolicies.init [GooseExts] [GoGlobalContext] : val
+opaque validExternalTrafficPolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedTrafficDistribution [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedTrafficDistribution"
 
-axiom supportedTrafficDistribution.init [GooseExts] [GoGlobalContext] : val
+opaque supportedTrafficDistribution.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateConfigMapName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateConfigMapName"
 
-axiom ValidateConfigMapName.init [GooseExts] [GoGlobalContext] : val
+opaque ValidateConfigMapName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ctrlRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ctrlRegex"
 
-axiom ctrlRegex.init [GooseExts] [GoGlobalContext] : val
+opaque ctrlRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validNetBiosRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validNetBiosRegex"
 
-axiom validNetBiosRegex.init [GooseExts] [GoGlobalContext] : val
+opaque validNetBiosRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dnsLabelFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dnsLabelFormat"
 
-axiom dnsLabelFormat.init [GooseExts] [GoGlobalContext] : val
+opaque dnsLabelFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dnsSubdomainFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.dnsSubdomainFormat"
 
-axiom dnsSubdomainFormat.init [GooseExts] [GoGlobalContext] : val
+opaque dnsSubdomainFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validWindowsUserDomainDNSRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validWindowsUserDomainDNSRegex"
 
-axiom validWindowsUserDomainDNSRegex.init [GooseExts] [GoGlobalContext] : val
+opaque validWindowsUserDomainDNSRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def invalidUserNameCharsRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.invalidUserNameCharsRegex"
 
-axiom invalidUserNameCharsRegex.init [GooseExts] [GoGlobalContext] : val
+opaque invalidUserNameCharsRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def invalidUserNameDotsSpacesRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.invalidUserNameDotsSpacesRegex"
 
-axiom invalidUserNameDotsSpacesRegex.init [GooseExts] [GoGlobalContext] : val
+opaque invalidUserNameDotsSpacesRegex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def validLogStreams [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validLogStreams"
 
-axiom validLogStreams.init [GooseExts] [GoGlobalContext] : val
+opaque validLogStreams.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedLoadBalancerIPMode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedLoadBalancerIPMode"
 
-axiom supportedLoadBalancerIPMode.init [GooseExts] [GoGlobalContext] : val
+opaque supportedLoadBalancerIPMode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedScheduleActions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedScheduleActions"
 
-axiom supportedScheduleActions.init [GooseExts] [GoGlobalContext] : val
+opaque supportedScheduleActions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedPodTopologySpreadNodePolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.supportedPodTopologySpreadNodePolicies"
 
-axiom supportedPodTopologySpreadNodePolicies.init [GooseExts] [GoGlobalContext] : val
+opaque supportedPodTopologySpreadNodePolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def betaToGALabel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.betaToGALabel"
 
-axiom betaToGALabel.init [GooseExts] [GoGlobalContext] : val
+opaque betaToGALabel.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maskNodeSelectorLabelChangeEqualities [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.maskNodeSelectorLabelChangeEqualities"
@@ -514,7 +514,7 @@ noncomputable def initMaskNodeSelectorLabelChangeEqualities [GooseExts] [GoGloba
 noncomputable def validSupplementalGroupsPolicies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.validSupplementalGroupsPolicies"
 
-axiom validSupplementalGroupsPolicies.init [GooseExts] [GoGlobalContext] : val
+opaque validSupplementalGroupsPolicies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ValidateEventCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/apis/core/validation.ValidateEventCreate"
@@ -1635,7 +1635,7 @@ noncomputable def validateVolumeStatus [GooseExts] [GoGlobalContext] : GoString 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.apis.core.validation where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1878,8 +1878,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val pdPartitionErrorMsg.init) (Val #()))))))))
 
-axiom ValidateNameFunc : Type
-axiom ValidateNameFunc.zero_val : ZeroVal ValidateNameFunc
+opaque ValidateNameFunc.nonempty_type : NonemptyType.{0}
+def ValidateNameFunc : Type := ValidateNameFunc.nonempty_type.type
+instance ValidateNameFunc.nonempty : Nonempty ValidateNameFunc := ValidateNameFunc.nonempty_type.property
+opaque ValidateNameFunc.zero_val : ZeroVal ValidateNameFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidateNameFunc.zero_val
 
 class ValidateNameFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2003,8 +2005,10 @@ attribute [instance] PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.method_set
   PersistentVolumeClaimSpecValidationOptions.TypeAssumptions.ptr_method_set
 
-axiom commonHandler : Type
-axiom commonHandler.zero_val : ZeroVal commonHandler
+opaque commonHandler.nonempty_type : NonemptyType.{0}
+def commonHandler : Type := commonHandler.nonempty_type.type
+instance commonHandler.nonempty : Nonempty commonHandler := commonHandler.nonempty_type.property
+opaque commonHandler.zero_val : ZeroVal commonHandler := ⟨Classical.ofNonempty⟩
 attribute [instance] commonHandler.zero_val
 
 class commonHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

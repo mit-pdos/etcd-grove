@@ -50,17 +50,17 @@ noncomputable def CronJobExpansion.ty [GooseExts] [GoGlobalContext] : go.GoType 
 
 attribute [irreducible] CronJobExpansion.ty
 
-axiom BatchV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BatchV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BatchV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BatchV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CronJobsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CronJobInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom cronJobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque cronJobs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom CronJobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CronJobExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/batch/v1beta1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newCronJobs [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.batch.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom BatchV1beta1Interface : Type
-axiom BatchV1beta1Interface.zero_val : ZeroVal BatchV1beta1Interface
+opaque BatchV1beta1Interface.nonempty_type : NonemptyType.{0}
+def BatchV1beta1Interface : Type := BatchV1beta1Interface.nonempty_type.type
+instance BatchV1beta1Interface.nonempty : Nonempty BatchV1beta1Interface := BatchV1beta1Interface.nonempty_type.property
+opaque BatchV1beta1Interface.zero_val : ZeroVal BatchV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] BatchV1beta1Interface.zero_val
 
 class BatchV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] BatchV1beta1Interface.TypeAssumptions.type_repr
   BatchV1beta1Interface.TypeAssumptions.method_set
   BatchV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom BatchV1beta1Client : Type
-axiom BatchV1beta1Client.zero_val : ZeroVal BatchV1beta1Client
+opaque BatchV1beta1Client.nonempty_type : NonemptyType.{0}
+def BatchV1beta1Client : Type := BatchV1beta1Client.nonempty_type.type
+instance BatchV1beta1Client.nonempty : Nonempty BatchV1beta1Client := BatchV1beta1Client.nonempty_type.property
+opaque BatchV1beta1Client.zero_val : ZeroVal BatchV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] BatchV1beta1Client.zero_val
 
 class BatchV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] BatchV1beta1Client.TypeAssumptions.type_repr
   BatchV1beta1Client.TypeAssumptions.method_set
   BatchV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom CronJobsGetter : Type
-axiom CronJobsGetter.zero_val : ZeroVal CronJobsGetter
+opaque CronJobsGetter.nonempty_type : NonemptyType.{0}
+def CronJobsGetter : Type := CronJobsGetter.nonempty_type.type
+instance CronJobsGetter.nonempty : Nonempty CronJobsGetter := CronJobsGetter.nonempty_type.property
+opaque CronJobsGetter.zero_val : ZeroVal CronJobsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] CronJobsGetter.zero_val
 
 class CronJobsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] CronJobsGetter.TypeAssumptions.type_repr
   CronJobsGetter.TypeAssumptions.method_set
   CronJobsGetter.TypeAssumptions.ptr_method_set
 
-axiom CronJobInterface : Type
-axiom CronJobInterface.zero_val : ZeroVal CronJobInterface
+opaque CronJobInterface.nonempty_type : NonemptyType.{0}
+def CronJobInterface : Type := CronJobInterface.nonempty_type.type
+instance CronJobInterface.nonempty : Nonempty CronJobInterface := CronJobInterface.nonempty_type.property
+opaque CronJobInterface.zero_val : ZeroVal CronJobInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] CronJobInterface.zero_val
 
 class CronJobInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] CronJobInterface.TypeAssumptions.type_repr
   CronJobInterface.TypeAssumptions.method_set
   CronJobInterface.TypeAssumptions.ptr_method_set
 
-axiom cronJobs : Type
-axiom cronJobs.zero_val : ZeroVal cronJobs
+opaque cronJobs.nonempty_type : NonemptyType.{0}
+def cronJobs : Type := cronJobs.nonempty_type.type
+instance cronJobs.nonempty : Nonempty cronJobs := cronJobs.nonempty_type.property
+opaque cronJobs.zero_val : ZeroVal cronJobs := ⟨Classical.ofNonempty⟩
 attribute [instance] cronJobs.zero_val
 
 class cronJobs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] cronJobs.TypeAssumptions.type_repr
   cronJobs.TypeAssumptions.method_set
   cronJobs.TypeAssumptions.ptr_method_set
 
-axiom CronJobExpansion : Type
-axiom CronJobExpansion.zero_val : ZeroVal CronJobExpansion
+opaque CronJobExpansion.nonempty_type : NonemptyType.{0}
+def CronJobExpansion : Type := CronJobExpansion.nonempty_type.type
+instance CronJobExpansion.nonempty : Nonempty CronJobExpansion := CronJobExpansion.nonempty_type.property
+opaque CronJobExpansion.zero_val : ZeroVal CronJobExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] CronJobExpansion.zero_val
 
 class CronJobExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

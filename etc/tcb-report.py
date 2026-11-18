@@ -246,7 +246,7 @@ def selection_report(sel, pats, n_roots, sel_ax, sel_sr, axioms, sorries, users,
         w(f"  {a.ljust(wa)}  {l.ljust(wb)}  {f'reached by {k}' if l else ''}".rstrip())
     w("")
     n_fw = len({a for r in sel for a in r["axioms"] if a in fw_ax})
-    w(f"Perennial's axioms (Go types Goose does not translate): {n_fw}.")
+    w(f"Perennial's axioms (its hand-written ones: Goose's untranslated declarations are `opaque`): {n_fw}.")
     w("")
     listed = sel if per_root else [r for r in sel if r["sorries"]]
     if listed:
@@ -450,7 +450,7 @@ def main():
         f"{len(roots)} roots."
     )
     w(f"- This repository's axioms (trust boundary): **{len(proj_ax)}**.")
-    w(f"- Perennial's axioms (Go types Goose does not translate): {len(fw_ax)}.")
+    w(f"- Perennial's axioms (its hand-written ones: Goose's untranslated declarations are `opaque`): {len(fw_ax)}.")
     w(f"- Lean's axioms: {', '.join(f'`{a}`' for a in lean_ax)}.")
     w(
         f"- Results (exported statements): **{len(exported)}**, written in terms of "

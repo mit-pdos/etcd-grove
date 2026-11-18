@@ -25,7 +25,7 @@ noncomputable def EtcdManualResolver.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] EtcdManualResolver.ty
 
-axiom EtcdManualResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EtcdManualResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def Schema [GooseExts] [GoGlobalContext] : val :=
   #(go!"etcd-endpoints")
@@ -39,7 +39,7 @@ noncomputable def getCC [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.resolver where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -48,8 +48,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom EtcdManualResolver : Type
-axiom EtcdManualResolver.zero_val : ZeroVal EtcdManualResolver
+opaque EtcdManualResolver.nonempty_type : NonemptyType.{0}
+def EtcdManualResolver : Type := EtcdManualResolver.nonempty_type.type
+instance EtcdManualResolver.nonempty : Nonempty EtcdManualResolver := EtcdManualResolver.nonempty_type.property
+opaque EtcdManualResolver.zero_val : ZeroVal EtcdManualResolver := ⟨Classical.ofNonempty⟩
 attribute [instance] EtcdManualResolver.zero_val
 
 class EtcdManualResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

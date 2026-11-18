@@ -33,7 +33,7 @@ noncomputable def Cluster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Cluster.ty
 
-axiom AuthCapability [GooseExts] [GoGlobalContext] : val
+opaque AuthCapability [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def V3rpcCapability [GooseExts] [GoGlobalContext] : val :=
   #(go!"v3rpc")
@@ -41,7 +41,7 @@ axiom AuthCapability [GooseExts] [GoGlobalContext] : val
 noncomputable def capabilityMaps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.capabilityMaps"
 
-axiom capabilityMaps.init [GooseExts] [GoGlobalContext] : val
+opaque capabilityMaps.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def enableMapMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.enableMapMu"
@@ -67,7 +67,7 @@ noncomputable def EnableCapability [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api where
   pkgImportedPkgs := [pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

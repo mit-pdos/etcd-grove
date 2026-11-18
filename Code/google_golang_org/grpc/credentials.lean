@@ -107,38 +107,38 @@ noncomputable def TLSChannelzSecurityValue.ty [GooseExts] [GoGlobalContext] : go
 
 attribute [irreducible] TLSChannelzSecurityValue.ty
 
-axiom ClientHandshakeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientHandshakeInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OtherChannelzSecurityValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OtherChannelzSecurityValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TLSInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TLSInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tlsCreds.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tlsCreds.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InvalidSecurityLevel [GooseExts] [GoGlobalContext] : val
+opaque InvalidSecurityLevel [GooseExts] [GoGlobalContext] : val
 
-axiom NoSecurity [GooseExts] [GoGlobalContext] : val
+opaque NoSecurity [GooseExts] [GoGlobalContext] : val
 
-axiom IntegrityOnly [GooseExts] [GoGlobalContext] : val
+opaque IntegrityOnly [GooseExts] [GoGlobalContext] : val
 
-axiom PrivacyAndIntegrity [GooseExts] [GoGlobalContext] : val
+opaque PrivacyAndIntegrity [GooseExts] [GoGlobalContext] : val
 
-axiom alpnFailureHelpMessage [GooseExts] [GoGlobalContext] : val
+opaque alpnFailureHelpMessage [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrConnDispatched [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.ErrConnDispatched"
 
-axiom ErrConnDispatched.init [GooseExts] [GoGlobalContext] : val
+opaque ErrConnDispatched.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.logger"
 
-axiom logger.init [GooseExts] [GoGlobalContext] : val
+opaque logger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tls12ForbiddenCipherSuites [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.tls12ForbiddenCipherSuites"
 
-axiom tls12ForbiddenCipherSuites.init [GooseExts] [GoGlobalContext] : val
+opaque tls12ForbiddenCipherSuites.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RequestInfoFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials.RequestInfoFromContext"
@@ -176,7 +176,7 @@ noncomputable def NewServerTLSFromFile [GooseExts] [GoGlobalContext] : GoString 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials where
   pkgImportedPkgs := [pkg_id.context, pkg_id.net]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -440,8 +440,10 @@ attribute [instance] requestInfoKey.TypeAssumptions.type_repr
   requestInfoKey.TypeAssumptions.method_set
   requestInfoKey.TypeAssumptions.ptr_method_set
 
-axiom ClientHandshakeInfo : Type
-axiom ClientHandshakeInfo.zero_val : ZeroVal ClientHandshakeInfo
+opaque ClientHandshakeInfo.nonempty_type : NonemptyType.{0}
+def ClientHandshakeInfo : Type := ClientHandshakeInfo.nonempty_type.type
+instance ClientHandshakeInfo.nonempty : Nonempty ClientHandshakeInfo := ClientHandshakeInfo.nonempty_type.property
+opaque ClientHandshakeInfo.zero_val : ZeroVal ClientHandshakeInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientHandshakeInfo.zero_val
 
 class ClientHandshakeInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -485,8 +487,10 @@ attribute [instance] ChannelzSecurityValue.TypeAssumptions.underlying
   ChannelzSecurityValue.TypeAssumptions.method_set
   ChannelzSecurityValue.TypeAssumptions.ptr_method_set
 
-axiom OtherChannelzSecurityValue : Type
-axiom OtherChannelzSecurityValue.zero_val : ZeroVal OtherChannelzSecurityValue
+opaque OtherChannelzSecurityValue.nonempty_type : NonemptyType.{0}
+def OtherChannelzSecurityValue : Type := OtherChannelzSecurityValue.nonempty_type.type
+instance OtherChannelzSecurityValue.nonempty : Nonempty OtherChannelzSecurityValue := OtherChannelzSecurityValue.nonempty_type.property
+opaque OtherChannelzSecurityValue.zero_val : ZeroVal OtherChannelzSecurityValue := ⟨Classical.ofNonempty⟩
 attribute [instance] OtherChannelzSecurityValue.zero_val
 
 class OtherChannelzSecurityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -502,8 +506,10 @@ attribute [instance] OtherChannelzSecurityValue.TypeAssumptions.type_repr
   OtherChannelzSecurityValue.TypeAssumptions.method_set
   OtherChannelzSecurityValue.TypeAssumptions.ptr_method_set
 
-axiom TLSInfo : Type
-axiom TLSInfo.zero_val : ZeroVal TLSInfo
+opaque TLSInfo.nonempty_type : NonemptyType.{0}
+def TLSInfo : Type := TLSInfo.nonempty_type.type
+instance TLSInfo.nonempty : Nonempty TLSInfo := TLSInfo.nonempty_type.property
+opaque TLSInfo.zero_val : ZeroVal TLSInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] TLSInfo.zero_val
 
 class TLSInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -519,8 +525,10 @@ attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.method_set
   TLSInfo.TypeAssumptions.ptr_method_set
 
-axiom tlsCreds : Type
-axiom tlsCreds.zero_val : ZeroVal tlsCreds
+opaque tlsCreds.nonempty_type : NonemptyType.{0}
+def tlsCreds : Type := tlsCreds.nonempty_type.type
+instance tlsCreds.nonempty : Nonempty tlsCreds := tlsCreds.nonempty_type.property
+opaque tlsCreds.zero_val : ZeroVal tlsCreds := ⟨Classical.ofNonempty⟩
 attribute [instance] tlsCreds.zero_val
 
 class tlsCreds.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

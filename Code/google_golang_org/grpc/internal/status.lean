@@ -30,9 +30,9 @@ noncomputable def Error.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Error.ty
 
-axiom Status.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Status.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Error.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Error.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewWithProto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.NewWithProto"
@@ -61,7 +61,7 @@ noncomputable def RawStatusProto [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.internal.status where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -70,8 +70,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom Status : Type
-axiom Status.zero_val : ZeroVal Status
+opaque Status.nonempty_type : NonemptyType.{0}
+def Status : Type := Status.nonempty_type.type
+instance Status.nonempty : Nonempty Status := Status.nonempty_type.property
+opaque Status.zero_val : ZeroVal Status := ⟨Classical.ofNonempty⟩
 attribute [instance] Status.zero_val
 
 class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -87,8 +89,10 @@ attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.method_set
   Status.TypeAssumptions.ptr_method_set
 
-axiom Error : Type
-axiom Error.zero_val : ZeroVal Error
+opaque Error.nonempty_type : NonemptyType.{0}
+def Error : Type := Error.nonempty_type.type
+instance Error.nonempty : Nonempty Error := Error.nonempty_type.property
+opaque Error.zero_val : ZeroVal Error := ⟨Classical.ofNonempty⟩
 attribute [instance] Error.zero_val
 
 class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

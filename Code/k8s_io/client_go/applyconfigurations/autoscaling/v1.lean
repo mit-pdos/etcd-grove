@@ -55,19 +55,19 @@ noncomputable def ScaleStatusApplyConfiguration.ty [GooseExts] [GoGlobalContext]
 
 attribute [irreducible] ScaleStatusApplyConfiguration.ty
 
-axiom CrossVersionObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque CrossVersionObjectReferenceApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom HorizontalPodAutoscalerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque HorizontalPodAutoscalerStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleSpecApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScaleStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ScaleStatusApplyConfiguration.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def CrossVersionObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/applyconfigurations/autoscaling/v1.CrossVersionObjectReference"
@@ -102,7 +102,7 @@ noncomputable def ScaleStatus [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.applyconfigurations.autoscaling.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -111,8 +111,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom CrossVersionObjectReferenceApplyConfiguration : Type
-axiom CrossVersionObjectReferenceApplyConfiguration.zero_val : ZeroVal CrossVersionObjectReferenceApplyConfiguration
+opaque CrossVersionObjectReferenceApplyConfiguration.nonempty_type : NonemptyType.{0}
+def CrossVersionObjectReferenceApplyConfiguration : Type := CrossVersionObjectReferenceApplyConfiguration.nonempty_type.type
+instance CrossVersionObjectReferenceApplyConfiguration.nonempty : Nonempty CrossVersionObjectReferenceApplyConfiguration := CrossVersionObjectReferenceApplyConfiguration.nonempty_type.property
+opaque CrossVersionObjectReferenceApplyConfiguration.zero_val : ZeroVal CrossVersionObjectReferenceApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] CrossVersionObjectReferenceApplyConfiguration.zero_val
 
 class CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -128,8 +130,10 @@ attribute [instance] CrossVersionObjectReferenceApplyConfiguration.TypeAssumptio
   CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.method_set
   CrossVersionObjectReferenceApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerApplyConfiguration : Type
-axiom HorizontalPodAutoscalerApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerApplyConfiguration
+opaque HorizontalPodAutoscalerApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerApplyConfiguration : Type := HorizontalPodAutoscalerApplyConfiguration.nonempty_type.type
+instance HorizontalPodAutoscalerApplyConfiguration.nonempty : Nonempty HorizontalPodAutoscalerApplyConfiguration := HorizontalPodAutoscalerApplyConfiguration.nonempty_type.property
+opaque HorizontalPodAutoscalerApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerApplyConfiguration.zero_val
 
 class HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -145,8 +149,10 @@ attribute [instance] HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.t
   HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.method_set
   HorizontalPodAutoscalerApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerSpecApplyConfiguration : Type
-axiom HorizontalPodAutoscalerSpecApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerSpecApplyConfiguration
+opaque HorizontalPodAutoscalerSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerSpecApplyConfiguration : Type := HorizontalPodAutoscalerSpecApplyConfiguration.nonempty_type.type
+instance HorizontalPodAutoscalerSpecApplyConfiguration.nonempty : Nonempty HorizontalPodAutoscalerSpecApplyConfiguration := HorizontalPodAutoscalerSpecApplyConfiguration.nonempty_type.property
+opaque HorizontalPodAutoscalerSpecApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerSpecApplyConfiguration.zero_val
 
 class HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -162,8 +168,10 @@ attribute [instance] HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptio
   HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.method_set
   HorizontalPodAutoscalerSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom HorizontalPodAutoscalerStatusApplyConfiguration : Type
-axiom HorizontalPodAutoscalerStatusApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerStatusApplyConfiguration
+opaque HorizontalPodAutoscalerStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def HorizontalPodAutoscalerStatusApplyConfiguration : Type := HorizontalPodAutoscalerStatusApplyConfiguration.nonempty_type.type
+instance HorizontalPodAutoscalerStatusApplyConfiguration.nonempty : Nonempty HorizontalPodAutoscalerStatusApplyConfiguration := HorizontalPodAutoscalerStatusApplyConfiguration.nonempty_type.property
+opaque HorizontalPodAutoscalerStatusApplyConfiguration.zero_val : ZeroVal HorizontalPodAutoscalerStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] HorizontalPodAutoscalerStatusApplyConfiguration.zero_val
 
 class HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -179,8 +187,10 @@ attribute [instance] HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumpt
   HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.method_set
   HorizontalPodAutoscalerStatusApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ScaleApplyConfiguration : Type
-axiom ScaleApplyConfiguration.zero_val : ZeroVal ScaleApplyConfiguration
+opaque ScaleApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScaleApplyConfiguration : Type := ScaleApplyConfiguration.nonempty_type.type
+instance ScaleApplyConfiguration.nonempty : Nonempty ScaleApplyConfiguration := ScaleApplyConfiguration.nonempty_type.property
+opaque ScaleApplyConfiguration.zero_val : ZeroVal ScaleApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleApplyConfiguration.zero_val
 
 class ScaleApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -196,8 +206,10 @@ attribute [instance] ScaleApplyConfiguration.TypeAssumptions.type_repr
   ScaleApplyConfiguration.TypeAssumptions.method_set
   ScaleApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ScaleSpecApplyConfiguration : Type
-axiom ScaleSpecApplyConfiguration.zero_val : ZeroVal ScaleSpecApplyConfiguration
+opaque ScaleSpecApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScaleSpecApplyConfiguration : Type := ScaleSpecApplyConfiguration.nonempty_type.type
+instance ScaleSpecApplyConfiguration.nonempty : Nonempty ScaleSpecApplyConfiguration := ScaleSpecApplyConfiguration.nonempty_type.property
+opaque ScaleSpecApplyConfiguration.zero_val : ZeroVal ScaleSpecApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleSpecApplyConfiguration.zero_val
 
 class ScaleSpecApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -213,8 +225,10 @@ attribute [instance] ScaleSpecApplyConfiguration.TypeAssumptions.type_repr
   ScaleSpecApplyConfiguration.TypeAssumptions.method_set
   ScaleSpecApplyConfiguration.TypeAssumptions.ptr_method_set
 
-axiom ScaleStatusApplyConfiguration : Type
-axiom ScaleStatusApplyConfiguration.zero_val : ZeroVal ScaleStatusApplyConfiguration
+opaque ScaleStatusApplyConfiguration.nonempty_type : NonemptyType.{0}
+def ScaleStatusApplyConfiguration : Type := ScaleStatusApplyConfiguration.nonempty_type.type
+instance ScaleStatusApplyConfiguration.nonempty : Nonempty ScaleStatusApplyConfiguration := ScaleStatusApplyConfiguration.nonempty_type.property
+opaque ScaleStatusApplyConfiguration.zero_val : ZeroVal ScaleStatusApplyConfiguration := ⟨Classical.ofNonempty⟩
 attribute [instance] ScaleStatusApplyConfiguration.zero_val
 
 class ScaleStatusApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

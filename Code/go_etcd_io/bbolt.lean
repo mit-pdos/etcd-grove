@@ -170,7 +170,7 @@ noncomputable def hexKvStringer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] hexKvStringer.ty
 
-axiom Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Options.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def MaxKeySize [GooseExts] [GoGlobalContext] : val :=
   #(32768 : Int)
@@ -205,7 +205,7 @@ noncomputable def trySolo [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def DefaultOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt.DefaultOptions"
 
-axiom DefaultOptions.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDatabaseNotOpen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt.ErrDatabaseNotOpen"
@@ -16136,8 +16136,10 @@ attribute [instance] panicked.TypeAssumptions.type_repr
   panicked.TypeAssumptions.Error_unfold
   panicked.TypeAssumptions.ptr_Error_unfold
 
-axiom Options : Type
-axiom Options.zero_val : ZeroVal Options
+opaque Options.nonempty_type : NonemptyType.{0}
+def Options : Type := Options.nonempty_type.type
+instance Options.nonempty : Nonempty Options := Options.nonempty_type.property
+opaque Options.zero_val : ZeroVal Options := ⟨Classical.ofNonempty⟩
 attribute [instance] Options.zero_val
 
 class Options.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

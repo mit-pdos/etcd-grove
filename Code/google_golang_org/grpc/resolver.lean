@@ -103,27 +103,27 @@ attribute [irreducible] AuthorityOverrider.ty
 @[reducible] noncomputable def AddressMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (AddressMapV2.ty go.any)
 
-axiom Address.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Address.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BuildOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BuildOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Endpoint.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Endpoint.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom State.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque State.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Target.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Target.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def m [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.m"
 
-axiom m.init [GooseExts] [GoGlobalContext] : val
+opaque m.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.defaultScheme"
 
-axiom defaultScheme.init [GooseExts] [GoGlobalContext] : val
+opaque defaultScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def toMapKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.toMapKey"
@@ -158,7 +158,7 @@ noncomputable def ValidateEndpoints [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.resolver where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -170,8 +170,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val m.init) (Val #()))))))))
 
-axiom Address : Type
-axiom Address.zero_val : ZeroVal Address
+opaque Address.nonempty_type : NonemptyType.{0}
+def Address : Type := Address.nonempty_type.type
+instance Address.nonempty : Nonempty Address := Address.nonempty_type.property
+opaque Address.zero_val : ZeroVal Address := ⟨Classical.ofNonempty⟩
 attribute [instance] Address.zero_val
 
 class Address.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -326,8 +328,10 @@ attribute [instance] EndpointMap.TypeAssumptions.type_repr
   EndpointMap.TypeAssumptions.method_set
   EndpointMap.TypeAssumptions.ptr_method_set
 
-axiom Endpoint : Type
-axiom Endpoint.zero_val : ZeroVal Endpoint
+opaque Endpoint.nonempty_type : NonemptyType.{0}
+def Endpoint : Type := Endpoint.nonempty_type.type
+instance Endpoint.nonempty : Nonempty Endpoint := Endpoint.nonempty_type.property
+opaque Endpoint.zero_val : ZeroVal Endpoint := ⟨Classical.ofNonempty⟩
 attribute [instance] Endpoint.zero_val
 
 class Endpoint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -384,8 +388,10 @@ attribute [instance] endpointData.TypeAssumptions.type_repr
   endpointData.TypeAssumptions.method_set
   endpointData.TypeAssumptions.ptr_method_set
 
-axiom BuildOptions : Type
-axiom BuildOptions.zero_val : ZeroVal BuildOptions
+opaque BuildOptions.nonempty_type : NonemptyType.{0}
+def BuildOptions : Type := BuildOptions.nonempty_type.type
+instance BuildOptions.nonempty : Nonempty BuildOptions := BuildOptions.nonempty_type.property
+opaque BuildOptions.zero_val : ZeroVal BuildOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] BuildOptions.zero_val
 
 class BuildOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -401,8 +407,10 @@ attribute [instance] BuildOptions.TypeAssumptions.type_repr
   BuildOptions.TypeAssumptions.method_set
   BuildOptions.TypeAssumptions.ptr_method_set
 
-axiom State : Type
-axiom State.zero_val : ZeroVal State
+opaque State.nonempty_type : NonemptyType.{0}
+def State : Type := State.nonempty_type.type
+instance State.nonempty : Nonempty State := State.nonempty_type.property
+opaque State.zero_val : ZeroVal State := ⟨Classical.ofNonempty⟩
 attribute [instance] State.zero_val
 
 class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -418,8 +426,10 @@ attribute [instance] State.TypeAssumptions.type_repr
   State.TypeAssumptions.method_set
   State.TypeAssumptions.ptr_method_set
 
-axiom ClientConn : Type
-axiom ClientConn.zero_val : ZeroVal ClientConn
+opaque ClientConn.nonempty_type : NonemptyType.{0}
+def ClientConn : Type := ClientConn.nonempty_type.type
+instance ClientConn.nonempty : Nonempty ClientConn := ClientConn.nonempty_type.property
+opaque ClientConn.zero_val : ZeroVal ClientConn := ⟨Classical.ofNonempty⟩
 attribute [instance] ClientConn.zero_val
 
 class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -435,8 +445,10 @@ attribute [instance] ClientConn.TypeAssumptions.type_repr
   ClientConn.TypeAssumptions.method_set
   ClientConn.TypeAssumptions.ptr_method_set
 
-axiom Target : Type
-axiom Target.zero_val : ZeroVal Target
+opaque Target.nonempty_type : NonemptyType.{0}
+def Target : Type := Target.nonempty_type.type
+instance Target.nonempty : Nonempty Target := Target.nonempty_type.property
+opaque Target.zero_val : ZeroVal Target := ⟨Classical.ofNonempty⟩
 attribute [instance] Target.zero_val
 
 class Target.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
