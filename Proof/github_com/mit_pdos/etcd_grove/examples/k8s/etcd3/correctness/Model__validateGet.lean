@@ -40,21 +40,6 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions]
 variable [storage_sem : k8s_io.apiserver.pkg.storage.Assumptions]
 variable [apierrors_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions]
 
-theorem errNonNil_false (e : RErr) (h : errNonNil e = false) : e = .deep .nil := by
-  rcases e with d | _ | _ <;> simp [errNonNil] at h
-  cases d <;> simp at h ⊢
-
-theorem notFound_nonNil (e : RErr) (h : isNotFoundE e = true) : errNonNil e = true := by
-  rcases e with d | _ | _ <;> simp [isNotFoundE] at h
-  cases d <;> simp at h ⊢
-  rfl
-
-theorem notFound_shape (e : RErr) (h : isNotFoundE e = true) :
-    ∃ k r i, e = .deep (.storageErr (W64 1) k r i) := by
-  rcases e with d | _ | _ <;> simp [isNotFoundE] at h
-  cases d <;> simp at h ⊢
-  exact h
-
 /-! `rvalidateGetL`'s value on each path of `validateGet`. -/
 
 section getL

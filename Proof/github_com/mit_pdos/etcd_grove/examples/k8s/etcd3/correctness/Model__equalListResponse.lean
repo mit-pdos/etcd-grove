@@ -67,8 +67,39 @@ theorem Model.equalListResponse.wp_proof
   | other => exact hde.elim
   | deep d1 =>
   cases oe with
-  | tooLarge _ => exact hdo.elim
   | other => exact hdo.elim
+  | tooLarge dl =>
+    simp only at hloe hloo
+    wp_start as ⟨#Hm, #Hre, #Hro⟩
+    iunfold respRep at Hre
+    iunfold respRep at Hro
+    icases Hre with ⟨#Ho1, #He1⟩
+    icases Hro with ⟨#Ho2, #He2⟩
+    ihave #He2' := He2
+    iunfold errRep at He2'
+    icases He2' with ⟨#Ht, -⟩
+    ihave %Hpe := apierrors.tooLargeErrIs_ptr _ $$ Ht
+    obtain ⟨l, rfl⟩ := Hpe
+    unfold modelAt modelRep modelVal
+    icases Hm with ⟨#Hinit, %il, %rl, %M, #Hp, -, -, -⟩
+    iStructNamed Hp
+    wp_auto
+    wp_apply (wp_DeepEqual_resp wp_DE _ _ _ _ eo oo (.deep d1) (.tooLarge dl) trivial trivial) $$ []
+    · iframe Ho1 He1 Ho2 He2
+    rw [show respEqL ⟨eo, .deep d1⟩ ⟨oo, .tooLarge dl⟩ = false from rfl]
+    have hF : equalListRespL x m ⟨eo, .deep d1⟩ ⟨oo, .tooLarge dl⟩ = false := by
+      unfold equalListRespL respEqL; simp [errNonNil]
+    rw [hF]
+    wp_auto
+    by_cases hl : sint.Z x.Limit' ≤ sint.Z (W64 0)
+    · rw [decide_eq_true hl]
+      wp_auto
+      iapply HΦ; itrivial
+    rw [decide_eq_false hl]
+    wp_auto
+    cases e1 with
+    | ok ii => wp_auto; iapply HΦ; itrivial
+    | nil => wp_auto; iapply HΦ; itrivial
   | deep d2 =>
   simp only at hloe hloo
   wp_start as ⟨#Hm, #Hre, #Hro⟩

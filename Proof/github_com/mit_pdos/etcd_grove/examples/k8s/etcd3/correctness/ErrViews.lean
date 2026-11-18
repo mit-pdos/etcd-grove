@@ -75,6 +75,21 @@ theorem isNotFoundE_codeE (e : RErr) : isNotFoundE e = decide (codeE e = some (W
   · simp
   · simp
 
+theorem errNonNil_false (e : RErr) (h : errNonNil e = false) : e = .deep .nil := by
+  rcases e with d | _ | _ <;> simp [errNonNil] at h
+  cases d <;> simp at h ⊢
+
+theorem notFound_nonNil (e : RErr) (h : isNotFoundE e = true) : errNonNil e = true := by
+  rcases e with d | _ | _ <;> simp [isNotFoundE] at h
+  cases d <;> simp at h ⊢
+  rfl
+
+theorem notFound_shape (e : RErr) (h : isNotFoundE e = true) :
+    ∃ k r i, e = .deep (.storageErr (W64 1) k r i) := by
+  rcases e with d | _ | _ <;> simp [isNotFoundE] at h
+  cases d <;> simp at h ⊢
+  exact h
+
 end pure
 
 section views
