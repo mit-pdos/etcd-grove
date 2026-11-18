@@ -22,6 +22,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Un
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeCreateBucket
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeRange
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__UnsafeForEach
+public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__UnsafeForEach
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
 
 @[expose] public section
@@ -82,6 +83,29 @@ def authCreated (r : GMap GoString BktData) : GMap GoString BktData :=
 def authDataR (r : GMap GoString BktData) : AuthData :=
   ⟨(r.lookup mvcc.authBI.name).getD ∅, (r.lookup mvcc.authUsersBI.name).getD ∅,
     (r.lookup mvcc.authRolesBI.name).getD ∅⟩
+
+theorem authCreated_auth (r : GMap GoString BktData) :
+    (authCreated r).lookup mvcc.authBI.name = some ((r.lookup mvcc.authBI.name).getD ∅) := by
+  unfold authCreated
+  rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert_ne _ _ (by decide),
+    GMap.lookup_insert]
+
+theorem authCreated_users (r : GMap GoString BktData) :
+    (authCreated r).lookup mvcc.authUsersBI.name = some ((r.lookup mvcc.authUsersBI.name).getD ∅) := by
+  unfold authCreated
+  rw [GMap.lookup_insert_ne _ _ (by decide), GMap.lookup_insert]
+
+theorem authCreated_roles (r : GMap GoString BktData) :
+    (authCreated r).lookup mvcc.authRolesBI.name = some ((r.lookup mvcc.authRolesBI.name).getD ∅) := by
+  unfold authCreated
+  rw [GMap.lookup_insert]
+
+theorem authCreated_other (r : GMap GoString BktData) (n : GoString) (h1 : n ≠ mvcc.authBI.name)
+    (h2 : n ≠ mvcc.authUsersBI.name) (h3 : n ≠ mvcc.authRolesBI.name) :
+    (authCreated r).lookup n = r.lookup n := by
+  unfold authCreated
+  rw [GMap.lookup_insert_ne _ _ (Ne.symm h3), GMap.lookup_insert_ne _ _ (Ne.symm h2),
+    GMap.lookup_insert_ne _ _ (Ne.symm h1)]
 
 section buckets
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -387,6 +411,25 @@ theorem read_forEachUsersEmpty (hFE : backend.readTx.UnsafeForEach.spec (GF := G
   isplitr
   · ipureintro; exact Herr
   rw [rtHeld_eq]; iexact Hl
+
+/-- **The locked batch transaction with no user**: the writer's users' bucket empty, its
+`UnsafeForEach` over it calls nothing (`batchTxBuffered.UnsafeForEach.spec`). -/
+theorem batch_forEachUsersEmpty (hFE : backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) (st : BSess)
+    (hhas : P.has mvcc.authUsersBI) (hnone : bktOf st.S mvcc.authUsersBI.name = ∅) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
+      forEachUsersEmpty ⟨go.GoType.PointerType batchTxBuffered.ty, #t⟩ (batchLocked γ P b st) := by
+  iintro ⟨#Hspkg, #Hpkgb, #HB, #Ht⟩
+  iunfold forEachUsersEmpty
+  iintro !> %bk %vis %Φ !> ⟨Hl, #Hg⟩ HΦ
+  ihave #Hbk := authUsers_isBucket hID hName hSafe bk $$ [$Hspkg $Hg]
+  iapply (hFE γ P W Pk b t st bk mvcc.authUsersBI vis hhas hnone) $$ [$Hpkgb $HB $Ht $Hl $Hbk]
+  iexact HΦ
 
 end read
 

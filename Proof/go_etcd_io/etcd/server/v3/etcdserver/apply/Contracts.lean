@@ -134,17 +134,23 @@ def bkRT (B : mvcc.KBReal) : IProp GF :=
 /-! ## The auth store -/
 
 /-- **Whether the auth store's admin requests are admitted** in the mode `M` (the auth plan's E2i,
-2026-10-26): in the mode `off`; in the modes `on γa` and `any` not yet. `isAuthStore`'s admin
+2026-10-26): in no mode yet (the authstore-noax stage, 2026-11-18, `notes/specs-only/ledger.md`,
+"`apply.isAuthStore`'s admin clauses in the mode `off`": until then in the mode `off`, whose clauses
+only `NewAuthStore`'s axiom stated and no closed theorem used; with auth off they need schema's
+write side over the backend's tracked buckets, unproved; in the modes `on γa` and `any` not yet). `isAuthStore`'s admin
 clauses (`HasRole`, `AuthEnable`, `AuthDisable`, `Authenticate`, the user and role requests) take
 it: in the mode `on` they need the admin side's authority `auth.authOwn` and the step premises
 `auth.stepOk` (`apply/AuthSteps.lean`), which the request's admission will carry once the server's
 workload admits an auth request (`rqOk` admits none: `notes/decisions.md`, "E2i of the auth plan").
 In the mode `on` the clauses are then vacuous, and the real store meets them
 (`isAuthStoreAdmin_on`). -/
-def adminAdmitted (M : auth.AuthMode) : Prop := M.isOn = false
+def adminAdmitted (_M : auth.AuthMode) : Prop := False
 
 theorem adminAdmitted_on (γa : auth.AuthNames) : ¬ adminAdmitted (.on γa) := by
-  simp [adminAdmitted, auth.AuthMode.isOn]
+  simp [adminAdmitted]
+
+theorem adminAdmitted_none (M : auth.AuthMode) : ¬ adminAdmitted M := by
+  simp [adminAdmitted]
 
 /-- An auth-store method taking a request `r` and returning `(resp, err)` with `resp` of type
 `T`: a `csContract` (a write under the batch lock, or none), with the write right `RW` of the

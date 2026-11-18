@@ -25,6 +25,65 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: three new backend trust-boundary specs, in place of `auth.NewAuthStore.wp_proof` (authstore-noax)
+
+- **Spec.** New: `Spec/go_etcd_io/etcd/server/v3/storage/backend/batchTxBuffered__UnsafeForEach.lean`
+  (`backend.batchTxBuffered.UnsafeForEach.spec`), `readTx__UnsafeForEach.lean`
+  (`backend.readTx.UnsafeForEach.spec`), `readTx__RLock_idle.lean` (`backend.readTx.RLock.specIdle`, a
+  second triple of the proved `readTx.RLock`), each an axiom (`Proof/.../storage/backend/` files of the
+  same names). The spec plan's counterparts: `SpecPlan/Spec/go_etcd_io/etcd/server/v3/storage/backend/
+  batchTxBuffered__UnsafeForEach.lean`, `readTx__UnsafeForEach.lean` (the general visitor; these are
+  their empty-bucket cases, weaker); none for the idle-part read (the plan's readers state their views
+  per bucket over the backend's image, `beRd`).
+- **Defect.** Not a defect: what `NewAuthStore`'s proof needs of the backend that the backend's proved
+  specs do not give: `UnsafeForEach` has no spec (bbolt's `Bucket.ForEach` calls `Cursor.First`, which
+  the backend's bbolt key-value contract lacks: the auth-schema-srv Scope's G2), and the read model does
+  not relate a hook bucket's readers' view to the writer's contents (G1: `rbOwnIn`'s idle flag is a
+  ghost fact about the sessions, "argued in the docstring of each trusted reader that takes it").
+- **Evidence.** `Proof/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean` (the constructor's
+  `refreshRangePermCache` over the batch), `etcdserver/AuthOff.lean` (`Recover`'s reads of the new
+  backend).
+- **Proposed change.** The three axioms replace `auth.NewAuthStore.wp_proof` (the whole disabled store,
+  its constructor, request side, apply contract, `Recover`, `Close`): each a backend fact with its Go
+  basis in its docstring. `batchTxBuffered.UnsafeForEach` and `readTx.UnsafeForEach` should become
+  theorems once real bbolt is the backend's (branch `bbolt-integrate`, which proves the key-value
+  contract from bbolt's code, `Cursor.First` included); `readTx.RLock.specIdle` once the read model
+  carries the idle part (the auth-schema-srv plan's A1). Review with the `axiom` skill before landing.
+- **Decision.** Pending (the user's: trust-boundary specs).
+
+## 2026-11-18: `auth.NewAuthStore.spec` (trust boundary) -- a nil logger allowed, schema's package facts not given
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`, `auth.NewAuthStore.spec`.
+- **Defect.** Unprovable as stated, two ways (true of every call the server makes). (1) The pre takes
+  `zapLoggerOrNil lg` and the schema backend's logger field at the same `lg`, but the post's
+  `authBeOn stl d.be` needs that field non-nil (`⌜lg ≠ null⌝`): with `lg = nil`, `NewAuthStore` uses
+  `zap.NewNop()` for itself and leaves the backend's field nil, and `authBeOn` is false. (2) The
+  constructor calls schema's methods (`CreateAuthBuckets`, `BatchTx`, the batch's reads and puts),
+  whose proofs read `schema`'s package facts (the `Auth`/`AuthUsers`/`AuthRoles` buckets and key
+  names, `schemaInit`); the pre gives only `auth`'s, and `auth` does not import `schema` (the other
+  way round), so they cannot be derived.
+- **Evidence.** The proof attempt (branch `authstore-noax`): `authRecoverOk_off`
+  (`etcdserver/AuthOff.lean`) and schema's `authBackend.CreateAuthBuckets.wp_proof` need
+  `isPkgInit schema`; the post's `authBeOn` needs `lg ≠ null`.
+- **Proposed change.** The pre takes `zapLoggerOk lg` (its only user, `authStoreKit`, already has it and
+  weakened it, `zapLoggerOk_orNil`) and `isPkgInit schema` (`authStoreKit`'s pre takes it too;
+  `NewServer` has it, `schema` being one of the server's packages).
+- **Decision.** Pending (the user's: a trust-boundary spec, now proved on branch `authstore-noax`).
+
+## 2026-11-18: `auth.authStore.AuthInfoFromTLS.spec` (trust boundary) -- only of a store with `authInv`
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/auth/authStore__AuthInfoFromTLS.lean` (the axiom
+  `auth.authStore.AuthInfoFromTLS.wp_proof`).
+- **Defect.** Too strong a pre for its users: it takes `authInv st R M`, which the disabled store with
+  auth off (`auth.offInv`, branch `authstore-noax`: the store's locks and its revision's atomic, no read
+  or token-provider contract) does not have; `AuthInfoFromTLS` reads the store only through
+  `as.Revision()` (an atomic) and `as.lg`.
+- **Evidence.** `isReqAuth` of the disabled store (`NewAuthStore.spec`'s post) needs the triple.
+- **Proposed change.** The pre takes `authInv st R M ∨ offInv st`. The claim covers one more kind of
+  store, with the same Go basis (the method's own code: the peer, the metadata, `Revision()`, the
+  logger); the only user (`isReqAuth_of_authInv`) passes the left disjunct.
+- **Decision.** Pending (the user's: a trust-boundary spec).
+
 ## 2026-11-18: `auth.NewAuthStore.spec` (trust boundary) -- two write-back tokens, where the backend's proved specs charge four
 
 - **Spec.** `Spec/go_etcd_io/etcd/server/v3/auth/NewAuthStore.lean`, `auth.NewAuthStore.spec` (the axiom

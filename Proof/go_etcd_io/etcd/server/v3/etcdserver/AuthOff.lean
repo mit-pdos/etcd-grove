@@ -13,6 +13,8 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthBackendReal
 public import Proof.go_etcd_io.etcd.server.v3.auth.OffInv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthReqDerive
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthInfoFromTLS
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RLock_idle
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.readTx__RUnlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__ReadTx
@@ -197,6 +199,166 @@ theorem authRecoverOk_off
     ipureintro; exact Hlg
   iunfold backend.bkRPool
   iframe Hrp Hrs
+
+/-- **The disabled store's request side** (`isReqAuth`) at the reader resource `offRd`. -/
+theorem isReqAuth_off (hTLS : auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG))
+    (stl : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.offInv stl ⊢
+      isReqAuth (auth.authIface stl) (auth.offRd stl) := by
+  iintro ⟨#Hpkg, #Hinv⟩
+  iunfold isReqAuth
+  iexists ⟨go.GoType.PointerType auth.authStore.ty, #stl⟩
+  isplitr
+  · ipureintro; rfl
+  isplitl []
+  · iintro !> %ctx %Φ !> ⟨-, -, Hrd⟩ HΦ
+    iapply (auth.authInfoFromCtx_off stl (GoInterface.ok ctx)) $$ [$Hpkg $Hinv $Hrd]
+    iintro !> %a %err ⟨Hrd, %Hae⟩
+    obtain ⟨rfl, rfl⟩ := Hae
+    iapply HΦ
+    iframe Hrd
+    isplitr
+    · iunfold authInfoOpt; ileft; ipureintro; first | rfl | trivial
+    iapply authApplyErrIs_nil
+  · iintro !> %ctx %Φ !> ⟨#Hlib, -⟩ HΦ
+    iunfold context.libCtxOk at Hlib
+    icases Hlib with ⟨#Hinc, -, #Hpeer, -⟩
+    iapply (hTLS stl iprop(True) .off ctx) $$ []
+    · iframe #
+    iintro !> %a #Ha
+    iapply HΦ
+    iapply authInfoRO_authInfoOpt a $$ Ha
+
+/-- **The disabled store's apply contract** (`authApplyOk`) at the reader resource `offRd`: its
+checks pass (`nil`), its flag `false`; its admin clauses vacuous (`apply.adminAdmitted`). -/
+theorem authApplyOk_off (stl : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.offInv stl ⊢
+      authApplyOk stl (auth.offRd stl) := by
+  iintro ⟨#Hpkg, #Hinv⟩
+  iunfold authApplyOk
+  iintro !> %d %W %Pk %f %RW - - %_ -
+  iunfold apply.isAuthStore
+  iexists ⟨go.GoType.PointerType auth.authStore.ty, #stl⟩
+  isplitr
+  · ipureintro; rfl
+  isplitl []
+  · iunfold apply.permCheck2
+    iintro !> %a %info %dq %key %k %dk %Φ !> ⟨Ha, Hk, Hrd, -⟩ HΦ
+    iapply (auth.isPutPermitted_off stl a info dq key) $$ [$Hpkg $Hinv $Hrd $Ha]
+    iintro !> %err ⟨Hrd, Ha, %Herr⟩
+    subst Herr
+    iapply HΦ
+    iframe
+    isplitl []
+    · iapply authApplyErrIs_nil
+    isplitl []
+    · ipureintro; intro; rfl
+    simp only [auth.permVerdict]; ipureintro; first | rfl | trivial
+  isplitl []
+  · iunfold apply.permCheck3
+    iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, -⟩ HΦ
+    iapply (auth.isRangePermitted_off stl a info dq key re) $$ [$Hpkg $Hinv $Hrd $Ha]
+    iintro !> %err ⟨Hrd, Ha, %Herr⟩
+    subst Herr
+    iapply HΦ
+    iframe
+    isplitl []
+    · iapply authApplyErrIs_nil
+    isplitl []
+    · ipureintro; intro; rfl
+    simp only [auth.permVerdict]; ipureintro; first | rfl | trivial
+  isplitl []
+  · iunfold apply.permCheck3
+    iintro !> %a %info %dq %key %re %k %e %dk %de %Φ !> ⟨Ha, Hk, He, Hrd, -⟩ HΦ
+    iapply (auth.isDeleteRangePermitted_off stl a info dq key re) $$ [$Hpkg $Hinv $Hrd $Ha]
+    iintro !> %err ⟨Hrd, Ha, %Herr⟩
+    subst Herr
+    iapply HΦ
+    iframe
+    isplitl []
+    · iapply authApplyErrIs_nil
+    isplitl []
+    · ipureintro; intro; rfl
+    simp only [auth.permVerdict]; ipureintro; first | rfl | trivial
+  isplitl []
+  · iintro !> %a %info %dq %Φ !> ⟨Ha, Hrd⟩ HΦ
+    iapply (auth.isAdminPermitted_off stl a) $$ [$Hpkg $Hinv $Hrd]
+    iintro !> %err ⟨Hrd, %Herr⟩
+    subst Herr
+    iapply HΦ
+    iframe
+    isplitl []
+    · iapply applyErrIs_nil
+    isplitl []
+    · ipureintro; intro; rfl
+    simp only [auth.adminVerdict]; ipureintro; first | rfl | trivial
+  isplitl []
+  · iintro !> %u %r %Φ !> %h
+    exact absurd h (EtcdGrove.apply.adminAdmitted_none _)
+  isplitl []
+  · iintro !> %Φ !> Hrd HΦ
+    iapply (auth.isAuthEnabled_off stl) $$ [$Hpkg $Hinv $Hrd]
+    iintro !> %b ⟨Hrd, %Hb⟩
+    iapply HΦ
+    iframe Hrd
+    simp only [auth.enabledVerdict]; ipureintro; exact Hb
+  isplitl []
+  · iintro !> %Φ !> - HΦ
+    iapply (auth.revision_off stl) $$ [$Hpkg $Hinv]
+    iintro !> %x -
+    iapply HΦ
+    simp only [auth.revisionVerdict]; itrivial
+  isplitl []
+  · iintro !> %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+    exact absurd h (EtcdGrove.apply.adminAdmitted_none _)
+  isplitl []
+  · iintro !> %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+    exact absurd h (EtcdGrove.apply.adminAdmitted_none _)
+  isplitl []
+  · iintro !> %ctx %name %pw %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+    exact absurd h (EtcdGrove.apply.adminAdmitted_none _)
+  isplitl []
+  · iunfold apply.authReqContractN
+    iintro !> %r %n %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+    exact absurd h (EtcdGrove.apply.adminAdmitted_none _)
+  iterate 5 (
+    isplitl []
+    · iunfold apply.authReqContract
+      iintro !> %r %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+      exact absurd h (EtcdGrove.apply.adminAdmitted_none _))
+  isplitl []
+  · iunfold apply.authReqContractN
+    iintro !> %r %n %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+    exact absurd h (EtcdGrove.apply.adminAdmitted_none _)
+  iterate 6 (
+    isplitl []
+    · iunfold apply.authReqContract
+      iintro !> %r %B %Pre %Q %Post %Φ !> ⟨%h, -⟩
+      exact absurd h (EtcdGrove.apply.adminAdmitted_none _))
+  iintro !> %Φ !> Hrd HΦ
+  iapply (auth.isAdminPermitted_off stl null) $$ [$Hpkg $Hinv $Hrd]
+  iintro !> %err ⟨Hrd, %Herr⟩
+  subst Herr
+  iapply HΦ
+  iframe
+  isplitl []
+  · iapply applyErrIs_nil
+  isplitl []
+  · ipureintro; intro; rfl
+  simp only [auth.adminVerdict]; ipureintro; first | rfl | trivial
+
+/-- **The disabled store's `Close`** (`authCloseOk`). -/
+theorem authCloseOk_off (stl : Loc) :
+    auth.offInv (GF := GF) stl ⊢ authCloseOk stl := by
+  iintro #Hinv
+  iunfold authCloseOk
+  iunfold authCloser
+  iintro !> %Φ !> ⟨#Hpkg, -⟩ HΦ
+  iapply (auth.close_off stl) $$ [$Hpkg $Hinv]
+  iintro !> %err %Herr
+  iapply HΦ
+  iframe
+  ipureintro; exact ⟨Herr, trivial⟩
 
 end proof
 
