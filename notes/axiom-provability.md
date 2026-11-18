@@ -94,10 +94,10 @@ Every one is in all 23 trust bases unless "uses" says otherwise.
 |---|---|---|---|---|
 | `types.ID.String_ptr` | [29] | `client/pkg/v3/types.toml`: `ID.String`, imports `strconv` | 10 (given `ID.String`) | no |
 | `types.ID.String` | [18] | same | 50, mostly the pure lemma `fmtUint id 16 = idStr id` | no; it rests on the existing `strconv.FormatUint` axiom |
-| `verify.Verify` | [7] | `client/pkg/v3/verify.toml`: `Verify`, `IsVerificationEnabled`, `getEnvVerify`, `verifier`, the `envVerify*` constants; imports `os`, `strings` | 40 | no (`os.Getenv`'s axiom, in 1 trust base, is then reached by 22) |
+| `verify.Verify` | [7] | `client/pkg/v3/verify.toml`: `Verify`, `IsVerificationEnabled`, `getEnvVerify`, `verifier`, the `envVerify*` constants; imports `os`, `strings` | 40 | no; but `os.Getenv`'s and `strings.ToLower`'s axioms, in 1 trust base today, would then be reached by 22: a swap, not a gain, until they are proved |
 | `backend.VerifyBackendConsistency` | [3] | `backend.toml` | 15 | no, but it needs an "env off" spec of `verify.IsVerificationEnabled` (below) |
 | `backend.ValidateCalledInsideApply`, `ValidateCalledOutSideApply` | [2] each | `backend.toml`: these, `verifyLockEnabled`, `insideApply`, `EnvVerifyValueLock` | 15 each | no; with one shared trust spec "`IsVerificationEnabled(_)` returns false under `verifyEnvOff`", which replaces 4 axioms by 1 (`os.Getenv`'s spec says only "some string", so it cannot be derived) |
-| `transport.IsClosedConnError` | [2] | `client/pkg/v3/transport.toml`: `IsClosedConnError`, imports `strings` | 20 | no |
+| `transport.IsClosedConnError` | [2] | `client/pkg/v3/transport.toml`: `IsClosedConnError`, imports `strings` | 20 | no; but over `strings.Contains`'s axiom, which only 1 of the 23 trust bases has: no net gain until `strings.Contains` is proved (it was translated and reverted on this branch for that reason) |
 | `version.LessThan` | [2] | `api/v3/version.toml`: `LessThan`, imports semver | 15 | no (over the existing `semver.Version.LessThan` axiom) |
 | `NewCluster` (client) | [2], 19 uses | `client/v3.toml`: `NewCluster`, `RetryClusterClient`; `etcdserverpb.toml`: `NewClusterClient`, `clusterClient` | 25 | no |
 | `NewMaintenance` (client) | [2], 19 uses | `client/v3.toml`: `NewMaintenance`, `RetryMaintenanceClient`; `etcdserverpb.toml`: `NewMaintenanceClient`, `maintenanceClient` | 30 | no |
@@ -336,6 +336,27 @@ every opaque initializer of the package is translated. In practice they hold pro
 `file_*_init` registrations (B-protobuf), prometheus `MustRegister` calls in `init()` (B), and
 expvar/capability registrations (`api`'s `init` writes `enabledMap`: needed for
 `IsCapabilityEnabled`, A\*). None goes away before the B gaps of its package are closed.
+
+## Done on this branch (Part 2, 2026-11-18)
+
+Ten axioms are gone: eight in every one of the 22 server collections, and the two client
+constructors in the 19 that build a client.
+
+| axiom | how |
+|---|---|
+| `types.ID.String` | translated; over `strconv.FormatUint`'s (existing) spec and `types.idStr_fmtUint` (`IDStr.lean`) |
+| `types.ID.String_ptr` | translated (the wrapper); over `ID.String` |
+| `version.LessThan` | translated; over semver's `Version.LessThan` (existing) |
+| `config.ServerConfig.PeerDialTimeout` | translated (as `ElectionTimeout`) |
+| `newCorruptionChecker` | translated (a struct literal) |
+| `membership.RaftCluster.SetVersionChangedNotifier` | translated (a field store) |
+| `rafthttp.waitSchedule` | translated; over Perennial's `runtime.Gosched`; the spec's precondition gained `isPkgInit rafthttp` (ledger, 2026-11-18) |
+| `apply.memberKey_inj` | `memberKey` defined as `types.idStr` (what `BackendMemberKey` computes), so injectivity is `types.idStr_inj` |
+| `NewCluster`, `NewMaintenance` (client) | translated with `RetryClusterClient`/`RetryMaintenanceClient` and the stubs' `New*Client`: four new specs, all proved |
+
+Tried and reverted: `transport.IsClosedConnError`, which would rest on `strings.Contains`'s axiom (a
+swap). Left: `monitorKVHash` (A), whose body needs `schema` imported into etcdserver; that changes
+the package's initializer and its fact.
 
 ## Order of work (Part 2)
 

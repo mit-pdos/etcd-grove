@@ -2465,8 +2465,10 @@ def exec_order(p):
         if m.group(1):
             items.append(('import', m.group(1)))
         elif m.group(2):
-            # an axiom of the translation, or a trusted variable's model (in `TrustedCode/`)
-            kind = 'opaque' if f'axiom {m.group(2)}.init ' in t else 'trusted'
+            # an opaque of the translation (`axiom` before Perennial f551a1b46), or a trusted
+            # variable's model (in `TrustedCode/`)
+            kind = ('opaque' if f'axiom {m.group(2)}.init ' in t or f'opaque {m.group(2)}.init ' in t
+                    else 'trusted')
             items.append((kind, m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))
