@@ -482,6 +482,59 @@ theorem real_viewIdle (γ : RNames) (d : mvcc.KBReal) (s0 q0 : Qp) (Y : RView �
     iexfalso
     iapply token_exclusive $$ HT HT'
 
+/-! ## The users' walk at a state -/
+
+/-- The walk's messages, each a user of the state (`userOutD_are` per entry). -/
+theorem zip_userOut (st : auth.AuthState) (m : BktData) (dU : GoString → auth.UserRec)
+    (h : schema.usersAt st m dU) :
+    ∀ (us : List Loc) (es : List Ent), (∀ e ∈ es, m.lookup e.1 = some e.2) →
+      ([∗list] x ∈ us.zip es, auth.ownUser (GF := GF) x.1 (dU x.2.1)) ⊢
+        [∗list] x ∈ us.zip (es.map Prod.fst), auth.userOut x.1 st x.2
+  | [], es, _ => by
+    simp only [List.zip_nil_left]
+    iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
+  | u :: us, [], _ => by
+    simp only [List.map_nil, List.zip_nil_right]
+    iintro -; iapply BigSepL.bigSepL_nil.2; iempintro
+  | u :: us, e :: es, he => by
+    simp only [List.zip_cons_cons, List.map_cons]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    isplitl [H1]
+    · have hl : m.lookup e.1 = some e.2 := he e (List.mem_cons_self ..)
+      iapply schema.userOutD_are st m u e.1 dU h
+      unfold schema.userOutD
+      rw [hl]
+      iexact H1
+    · iapply zip_userOut st m dU h us es (fun e' he' => he e' (List.mem_cons_of_mem _ he')) $$ H
+
+/-- **The users' walk at a state** (`unsafeGetAllUsers` of a users bucket holding `st` with the records
+`dU`): the state's users (`auth.usersOut`). -/
+theorem usersOutD_at (st : auth.AuthState) (m : BktData) (dU : GoString → auth.UserRec) (s : GoSlice)
+    (h : schema.usersAt st m dU) :
+    schema.usersOutD (GF := GF) s m dU ⊢ auth.usersOut s st := by
+  iintro H
+  iunfold schema.usersOutD at H
+  icases H with ⟨%us, %es, Hs, %Hp, Hl⟩
+  have hmem : ∀ e ∈ es, m.lookup e.1 = some e.2 := fun e he =>
+    (schema.mem_bktEnts_iff m e.1 e.2).1 (Hp.1.mem_iff.1 he)
+  iunfold auth.usersOut
+  iexists us, es.map Prod.fst
+  iframe Hs
+  isplitr
+  · ipureintro
+    refine ⟨by rw [List.length_map]; exact Hp.2, ?_, ?_⟩
+    · exact (Hp.1.map Prod.fst).nodup_iff.2 (schema.sorted_keys_nodup (bktEnts_sorted m))
+    · intro n
+      rw [← h.1 n, List.mem_map]
+      constructor
+      · rintro ⟨e, he, rfl⟩; rw [hmem e he]; rfl
+      · intro hs
+        obtain ⟨v, hv⟩ := Option.isSome_iff_exists.1 hs
+        exact ⟨(n, v), Hp.1.mem_iff.2 ((schema.mem_bktEnts_iff m n v).2 hv), rfl⟩
+  iapply zip_userOut st m dU h us es hmem $$ Hl
+
 end defs
 
 end authReal
