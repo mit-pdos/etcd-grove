@@ -19,6 +19,19 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Un
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__LockInsideApply
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Unlock
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered__Commit
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__Lock
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__Unlock
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafePutUser
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeDeleteUser
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafePutRole
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeDeleteRole
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeSaveAuthEnabled
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeSaveAuthRevision
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetUser
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetRole
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthEnabled
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeReadAuthRevision
+public import Spec.go_etcd_io.etcd.server.v3.storage.schema.authBatchTx__UnsafeGetAllUsers
 
 @[expose] public section
 
@@ -1204,6 +1217,53 @@ theorem lk_put (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := h
   iframe Hsw0
   ipureintro; exact hstep bs x k Hok hpend
 
+/-- **A claimed put into the `auth` bucket** (as `lk_put`, the session's writes unchanged: no session token). -/
+theorem lk_putA (hUP : backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
+    (hRB : receiptBound GF ≤ 2 ^ 48)
+    (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (t : Loc) (hPw : d.P.Wf)
+    (bi : BucketInfo) (hbi : bi.name ∈ authBktL) (hhas : d.P.has bi) (kb vb : GoString)
+    (hk0 : 0 < kb.length) (hk1 : kb.length ≤ maxKeySize)
+    (st st' : auth.AuthState) (X : IProp GF)
+    (hstep : ∀ bs x w k, LkOk d bs st x w k → sint.Z bs.pend + 1 < 2 ^ 58 →
+      LkOk d (bs.put bi kb vb false true) st' x w (k + 1)) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ⊢
+      ∀ (bk : GoInterface) (key val : GoSlice),
+        {{ isBucket bk bi ∗ key ↦*□ kb ∗ val ↦*□ vb ∗ lkT γ d q0 W Pk Hk st X ∗ ⧗ 1 }}
+          (App (App (App (Val #(methods (btIface t).ty go!"UnsafePut" (btIface t).v)) (Val #bk)) (Val #key))
+            (Val #val))
+        {{ RET #(); lkT γ d q0 W Pk Hk st' X }} := by
+  iintro ⟨#Hpkg, #Hb, #Ht⟩ %bk %key %val !> %Φ ⟨#Hbk, #Hkey, #Hval, Hlk, Hr1⟩ HΦ
+  iunfold lkT at Hlk
+  icases Hlk with ⟨%bs, Hl, HR⟩
+  iunfold lkR at HR
+  icases HR with ⟨%x, %w0, %k, Hrp, Hx, Hsw0, Hq, HW, HPk, HHk, HX, Hrk, %Hok⟩
+  imod lk_receipt hRB d hPw bs st x w0 k Hok $$ [$Hrk $Hr1] with ⟨Hrk, %hpend⟩
+  icases (rbPartR_pick d.γB bi.name hbi _).1 $$ Hrp with ⟨Hn, Hrest⟩
+  ihave Hrbp := (rbPut_true d.γB d.P bi.name bs.S).2 $$ [Hn]
+  · iframe Hn; ipureintro; exact rb_auth d _ hbi
+  ihave Hhk := hkPut_of_not_HK (hG := hG) d.γB d.P bi.name kb bs.S (hk_auth d _ kb hbi)
+  ihave Hfk := fkPut_other (hG := hG) d.γB bi.name kb (fk_auth _ kb hbi)
+  wp_apply (@hUP d.γB d.P W Pk d.be t bs bk bi key val kb vb hhas hk0 hk1 hpend
+      (fun h => absurd h (by rw [sb_auth d _ hbi]; decide)) (fun h => absurd h (fk_auth _ kb hbi))
+      true true (by decide))
+    $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval $Hhk $Hrbp $Hfk] as ⟨Hl, -, Hrbp, -⟩
+  have hS : (bs.put bi kb vb false true).S = bs.S.insert bi.name ((bktOf bs.S bi.name).insert kb vb) := rfl
+  icases (rbPut_true d.γB d.P bi.name _).1 $$ Hrbp with ⟨-, Hn⟩
+  ihave Hrest := rbPartR_congr d.γB _ (rbData d.P bs.S)
+    (rbData d.P (bs.S.insert bi.name ((bktOf bs.S bi.name).insert kb vb)))
+    (fun m hm => (rbData_ins_ne d.P bs.S bi.name m _ (fun e => hm.2 e.symm)).symm) $$ Hrest
+  ihave Hrp := (rbPartR_pick d.γB bi.name hbi _).2 $$ [$Hn $Hrest]
+  iapply HΦ
+  iunfold lkT
+  iexists bs.put bi kb vb false true
+  iframe Hl
+  iunfold lkR
+  iexists x, w0, k + 1
+  rw [hS]
+  iframe Hrp Hx Hsw0 Hq HW HPk HHk HX Hrk
+  ipureintro; exact hstep bs x w0 k Hok hpend
+
 /-- **A claimed delete from an auth bucket** under the lock token (as `lk_put`). -/
 theorem lk_del (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG := hG))
     (hRB : receiptBound GF ≤ 2 ^ 48)
@@ -1471,6 +1531,168 @@ theorem lk_commit (hCm : backend.batchTxBuffered.Commit.spec (GF := GF) (hG := h
   imodintro
   iapply HΦ
   iframe HX HT HHk
+
+section iface
+variable [GooseExts] [GoGlobalContext]
+
+/-- A schema auth batch transaction `l` as an interface. -/
+abbrev abtIface (l : Loc) : GoInterfaceOk :=
+  ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBatchTx.ty, #l⟩
+
+end iface
+
+theorem lkR_view (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (bs : BSess)
+    (st : auth.AuthState) (X : IProp GF) :
+    lkR γ d q0 W Pk Hk bs st X ⊢ lkR γ d q0 W Pk Hk bs st X ∗ ⌜viewAt (auth.BkView.uni st) (authD bs.S)⌝ := by
+  iunfold lkR
+  iintro ⟨%x, %w, %k, H1, H2, H3, H4, H5, H6, H7, H8, H9, %Hok⟩
+  isplitl
+  · iexists x, w, k; iframe; ipureintro; exact Hok
+  · ipureintro; exact Hok.view
+
+/-- **The batch transaction's reads under the lock token** (the write contract's reader and its two `X` reads). -/
+theorem lk_reads (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG))
+    (hFE : backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) (hG := hG))
+    (hID : schema.bucket.ID.spec (GF := GF) (hG := hG))
+    (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
+    (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
+    (hGU : schema.authBatchTx.UnsafeGetUser.spec (GF := GF) (hG := hG))
+    (hGR : schema.authBatchTx.UnsafeGetRole.spec (GF := GF) (hG := hG))
+    (hEn : schema.authBatchTx.UnsafeReadAuthEnabled.spec (GF := GF) (hG := hG))
+    (hRev : schema.authBatchTx.UnsafeReadAuthRevision.spec (GF := GF) (hG := hG))
+    (hGA : schema.authBatchTx.UnsafeGetAllUsers.spec (GF := GF) (hG := hG))
+    (γ : RNames) (d : mvcc.KBReal) (q0 : Qp) (W Pk Hk : IProp GF) (l t lg : Loc) (hlg : lg ≠ null) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
+      isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
+      isBackend d.γB d.P W Pk d.be ∗ bF go!"batchTx" d.be ↦□ t ∗
+      schema.abtF go!"tx" l ↦□ (GoInterface.ok (btIface t) : GoInterface) ∗ schema.abtF go!"lg" l ↦□ lg ⊢
+      (□ ∀ X : IProp GF, auth.authReaderOk (abtIface l) (fun st => lkT γ d q0 W Pk Hk st X)) ∗
+      □ (∀ (st : auth.AuthState) (X : IProp GF) (name : GoString),
+        {{ lkT γ d q0 W Pk Hk st X }} (App (Val #(methods (abtIface l).ty go!"UnsafeGetUser" (abtIface l).v)) (Val #name))
+        {{ (u : Loc), RET #u; lkT γ d q0 W Pk Hk st X ∗ auth.userOutX u st name }}) ∗
+      □ (∀ (st : auth.AuthState) (X : IProp GF) (name : GoString),
+        {{ lkT γ d q0 W Pk Hk st X }} (App (Val #(methods (abtIface l).ty go!"UnsafeGetRole" (abtIface l).v)) (Val #name))
+        {{ (r : Loc), RET #r; lkT γ d q0 W Pk Hk st X ∗ auth.roleOutX r st name }}) := by
+  iintro ⟨#Hp1, #Hp2, #Hb, #Ht, #Htx, #Hlg⟩
+  isplitr
+  · iintro !> %X
+    iunfold auth.authReaderOk
+    isplitr
+    · iintro !> %st %name !> %Φ Hlk HΦ
+      iunfold lkT at Hlk
+      icases Hlk with ⟨%bs, Hl, HR⟩
+      icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+      ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+        (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+      simp only [authD, mvcc.authBI, mvcc.authUsersBI, mvcc.authRolesBI, auth.BkView.uni] at Hv
+      obtain ⟨-, ⟨dU, hu⟩, -⟩ := Hv
+      iapply wp_fupd
+      wp_apply (hGU l (btIface t) lg name (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S) dU hlg (schema.usersAt_dec hu))
+        $$ [$Hp2 $Htx $Hlg $Hrd Hl HR] as %u ⟨⟨Hl, HR⟩, Hu⟩
+      · iframe Hl HR
+      imod schema.userOutDX_persist u _ name dU $$ Hu with Hu
+      imodintro
+      iapply HΦ
+      isplitl [Hl HR]
+      · iunfold lkT; iexists bs; iframe Hl HR
+      iapply schema.userOutD_are st _ u name dU hu $$ Hu
+    isplitr
+    · iintro !> %st %name !> %Φ Hlk HΦ
+      iunfold lkT at Hlk
+      icases Hlk with ⟨%bs, Hl, HR⟩
+      icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+      ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+        (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+      simp only [authD, mvcc.authBI, mvcc.authUsersBI, mvcc.authRolesBI, auth.BkView.uni] at Hv
+      obtain ⟨-, -, ⟨dR, hr⟩⟩ := Hv
+      iapply wp_fupd
+      wp_apply (hGR l (btIface t) lg name (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S) dR hlg (schema.rolesAt_dec hr))
+        $$ [$Hp2 $Htx $Hlg $Hrd Hl HR] as %u ⟨⟨Hl, HR⟩, Hu⟩
+      · iframe Hl HR
+      imod schema.roleOutDX_persist ⊤ u _ name dR $$ Hu with Hu
+      imodintro
+      iapply HΦ
+      isplitl [Hl HR]
+      · iunfold lkT; iexists bs; iframe Hl HR
+      iapply schema.roleOutD_are st _ u name dR hr $$ Hu
+    isplitr
+    · iintro !> %st !> %Φ Hlk HΦ
+      iunfold lkT at Hlk
+      icases Hlk with ⟨%bs, Hl, HR⟩
+      icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+      ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+        (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+      wp_apply (hEn l (btIface t) (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S)) $$ [$Hp2 $Htx $Hrd Hl HR] as %b ⟨⟨Hl, HR⟩, %Hb'⟩
+      · iframe Hl HR
+      iapply HΦ
+      isplitl [Hl HR]
+      · iunfold lkT; iexists bs; iframe Hl HR
+      ipureintro
+      rw [Hb', enabledOf_auth]; exact Hv.1.1
+    isplitr
+    · iintro !> %st !> %Φ Hlk HΦ
+      iunfold lkT at Hlk
+      icases Hlk with ⟨%bs, Hl, HR⟩
+      icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+      ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+        (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+      wp_apply (hRev l (btIface t) (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S) Hv.1.2.2) $$ [$Hp2 $Htx $Hrd Hl HR] as %r ⟨⟨Hl, HR⟩, %Hr⟩
+      · iframe Hl HR
+      iapply HΦ
+      isplitl [Hl HR]
+      · iunfold lkT; iexists bs; iframe Hl HR
+      ipureintro
+      rw [Hr, revisionOf_auth]; exact Hv.1.2.1
+    · iintro !> %st !> %Φ Hlk HΦ
+      iunfold lkT at Hlk
+      icases Hlk with ⟨%bs, Hl, HR⟩
+      icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+      ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+        (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+      simp only [authD, mvcc.authBI, mvcc.authUsersBI, mvcc.authRolesBI, auth.BkView.uni] at Hv
+      obtain ⟨-, ⟨dU, hu⟩, -⟩ := Hv
+      wp_apply (hGA l (btIface t) lg (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S) dU (schema.usersAt_dec hu))
+        $$ [$Hp2 $Htx $Hlg $Hrd Hl HR] as %s ⟨⟨Hl, HR⟩, Hs⟩
+      · iframe Hl HR
+      ihave Hs := usersOutD_at st _ dU s hu $$ Hs
+      iunfold auth.usersOut at Hs
+      icases Hs with ⟨%us, %names, Hs, %Hn, Hl'⟩
+      iapply HΦ
+      iframe Hs Hl'
+      isplitl [Hl HR]
+      · iunfold lkT; iexists bs; iframe Hl HR
+      ipureintro; exact Hn
+  isplitr
+  · iintro !> %st %X %name !> %Φ Hlk HΦ
+    iunfold lkT at Hlk
+    icases Hlk with ⟨%bs, Hl, HR⟩
+    icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+    ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+      (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+    simp only [authD, mvcc.authBI, mvcc.authUsersBI, mvcc.authRolesBI, auth.BkView.uni] at Hv
+    obtain ⟨-, ⟨dU, hu⟩, -⟩ := Hv
+    wp_apply (hGU l (btIface t) lg name (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S) dU hlg (schema.usersAt_dec hu))
+      $$ [$Hp2 $Htx $Hlg $Hrd Hl HR] as %u ⟨⟨Hl, HR⟩, Hu⟩
+    · iframe Hl HR
+    iapply HΦ
+    isplitl [Hl HR]
+    · iunfold lkT; iexists bs; iframe Hl HR
+    iapply schema.userOutDX_are st _ u name dU hu $$ Hu
+  · iintro !> %st %X %name !> %Φ Hlk HΦ
+    iunfold lkT at Hlk
+    icases Hlk with ⟨%bs, Hl, HR⟩
+    icases lkR_view γ d q0 W Pk Hk bs st X $$ HR with ⟨HR, %Hv⟩
+    ihave #Hrd := bt_reader hUR hFE hID hName hSafe d.γB d.P W Pk d.be t bs true
+      (lkR γ d q0 W Pk Hk bs st X) $$ [$Hp1 $Hp2 $Hb $Ht]
+    simp only [authD, mvcc.authBI, mvcc.authUsersBI, mvcc.authRolesBI, auth.BkView.uni] at Hv
+    obtain ⟨-, -, ⟨dR, hr⟩⟩ := Hv
+    wp_apply (hGR l (btIface t) lg name (iprop(batchLocked d.γB d.P d.be bs true ∗ lkR γ d q0 W Pk Hk bs st X)) (authD bs.S) dR hlg (schema.rolesAt_dec hr))
+      $$ [$Hp2 $Htx $Hlg $Hrd Hl HR] as %u ⟨⟨Hl, HR⟩, Hu⟩
+    · iframe Hl HR
+    iapply HΦ
+    isplitl [Hl HR]
+    · iunfold lkT; iexists bs; iframe Hl HR
+    iapply schema.roleOutDX_are st _ u name dR hr $$ Hu
 
 end wr
 
