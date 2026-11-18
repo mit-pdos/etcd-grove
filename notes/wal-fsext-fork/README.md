@@ -51,7 +51,8 @@ etcd=<checkout>`), and `goose.py --check` of etcd fails on these branches.
   budget, `nonissues/etcd-wal-savesnapshot-tail-efbig.md`). Test `TestSaveSnapshotCuts`
   (`server/storage/wal/savesnapshot_cut_test.go`): 64 snapshot records with no `Save` between them under a
   2 KiB segment size cut the tail (more than one file, the tail below the segment size) and the WAL opens at
-  the last snapshot; it fails without the change (one file). `etc/goose.py` pins it (project `etcd`,
+  the last snapshot; it fails without the change (one file). `go test ./storage/wal/...` (GOWORK=off, go1.27.3, 32 min) passes but for
+  `TestWALByteMix`, failing by design as at 0006 (the synthetic byte mixes, see above). `etc/goose.py` pins it (project `etcd`,
   translated with `--src etcd=/shared/tmp/wal-fork/etcd`); **the user pushes `goose-lean-walfs3`, then the
   examples' `go.mod`/`go.sum` move to its pseudo-version** (until then `etc/goose.py --check` fails on the
   examples' replace lines and on the unfetchable revision).

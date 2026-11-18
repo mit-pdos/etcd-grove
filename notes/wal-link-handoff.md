@@ -8,8 +8,8 @@
 - **Done (this commit):** fork commit `f01ae14c9` (branch `goose-lean-walfs3` in `/shared/tmp/wal-fork/etcd`, on
   `8c28a4296`; NOT PUSHED: **the user must push it before landing**, then the examples' `go.mod`/`go.sum`
   (examples/, examples/k8s/{etcd3,compactor}, examples/axiomcx/incomingof-real) move to its pseudo-version;
-  until then `etc/goose.py --check` fails); `TestSaveSnapshotCuts` fails before, passes after; WAL suite
-  (GOWORK=off, go1.27.3) as recorded in notes/wal-fsext-fork/README.md 0007. `etc/goose.py` pins it; retranslated
+  until then `etc/goose.py --check` fails); `TestSaveSnapshotCuts` fails before, passes after; the WAL suite
+  (GOWORK=off, go1.27.3) passes but for `TestWALByteMix` (fails by design, as before 0007). `etc/goose.py` pins it; retranslated
   (`--project etcd --src etcd=/shared/tmp/wal-fork/etcd`): only `Code/.../storage/wal.lean`'s `SaveSnapshot`.
   **The branch does not build** at `WAL__SaveSnapshot.lean` (its code changed) until step 3.
 - **STOP (for etcd-grove-03): `walCutPos` must admit a cut right after a snapshot record.** The cut's spec
