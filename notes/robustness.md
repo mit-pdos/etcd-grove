@@ -82,12 +82,15 @@ hypotheses but the generic ones `Robust` states itself), proved from it:
   examples' wrappers (`init_adequate`, `etcd_adequate…`, `init_adequate_start`,
   `durable_init_adequate`) weakened it (`adequate_of_unrecovered`, no longer used). Strengthened in
   place, statements and wrappers; no proof changed otherwise.
-- **What `Robust` does not say**: the main thread's result. For most examples it is `#()` and the
-  check is a panic, so nothing is lost. For those whose program *returns* its verdict instead of
-  panicking, the old theorem stays the stronger one: `etcd/txnlin`, `etcd/txnlinfaultsN`,
-  `etcd/partition` and `k8s/etcd3` (the result is `"Ok"` or `"Unknown"`, never `"Illegal"`),
-  `etcd/auth`, `auth3`, `authN`, `cache`, `watch` (the result is `0`), `goose/prophkv`
-  (`resultOk`). To make `Robust` carry it, the program must panic on a bad verdict (a Go change).
+- **What `Robust` does not say**: the main thread's result. Nothing is lost for the examples
+  whose check is a panic, which is all but one: the etcd and k8s examples panic on a bad verdict
+  (`Main` panics when porcupine answers `Illegal`; the auth, cache and watch checks are panics),
+  and the result their old theorems state (`"Ok"` or `"Unknown"`; a status code `0`, `1`, `2`, ...)
+  only lists how far the run got (a failed start, a porcupine timeout). The exception is
+  `goose/prophkv`, which has no panic: its guarantee is its result (`resultOk`: one of the two
+  values written), so its old theorem stays the stronger one. (Corrected 2026-11-18: an earlier
+  version of this note said ten examples return their verdict instead of panicking; that was read
+  off the theorems' result conjuncts, not the Go code.)
 - Generated once by a script (not kept: the theorems are ordinary text now); `RaftNoAx/`'s copies
   by `etc/copy-part.py`.
 
