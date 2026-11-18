@@ -9,6 +9,7 @@ public import Spec.go_etcd_io.etcd.api.v3.mvccpb.Event__IsCreate
 public import Spec.go_etcd_io.etcd.api.v3.mvccpb.Event_EventType__StringPtr
 public import Perennial.Proof.time.Link
 public import Spec.fmt.ErrorfPlain
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

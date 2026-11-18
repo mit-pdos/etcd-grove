@@ -27,6 +27,7 @@ public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Spec.context.ErrAny
 public import Spec.google_golang_org.grpc.metadata.AppendToOutgoingContext
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked
 
 @[expose] public section
 

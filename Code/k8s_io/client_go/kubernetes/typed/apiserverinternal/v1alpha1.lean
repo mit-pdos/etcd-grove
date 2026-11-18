@@ -50,17 +50,17 @@ noncomputable def storageVersions.ty [GooseExts] [GoGlobalContext] : go.GoType :
 
 attribute [irreducible] storageVersions.ty
 
-axiom InternalV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque InternalV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InternalV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque InternalV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageVersionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageVersionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageVersionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageVersionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageVersionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageVersionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom storageVersions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque storageVersions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/apiserverinternal/v1alpha1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newStorageVersions [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom InternalV1alpha1Interface : Type
-axiom InternalV1alpha1Interface.zero_val : ZeroVal InternalV1alpha1Interface
+opaque InternalV1alpha1Interface.nonempty_type : NonemptyType.{0}
+def InternalV1alpha1Interface : Type := InternalV1alpha1Interface.nonempty_type.type
+instance InternalV1alpha1Interface.nonempty : Nonempty InternalV1alpha1Interface := InternalV1alpha1Interface.nonempty_type.property
+opaque InternalV1alpha1Interface.zero_val : ZeroVal InternalV1alpha1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] InternalV1alpha1Interface.zero_val
 
 class InternalV1alpha1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] InternalV1alpha1Interface.TypeAssumptions.type_repr
   InternalV1alpha1Interface.TypeAssumptions.method_set
   InternalV1alpha1Interface.TypeAssumptions.ptr_method_set
 
-axiom InternalV1alpha1Client : Type
-axiom InternalV1alpha1Client.zero_val : ZeroVal InternalV1alpha1Client
+opaque InternalV1alpha1Client.nonempty_type : NonemptyType.{0}
+def InternalV1alpha1Client : Type := InternalV1alpha1Client.nonempty_type.type
+instance InternalV1alpha1Client.nonempty : Nonempty InternalV1alpha1Client := InternalV1alpha1Client.nonempty_type.property
+opaque InternalV1alpha1Client.zero_val : ZeroVal InternalV1alpha1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] InternalV1alpha1Client.zero_val
 
 class InternalV1alpha1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] InternalV1alpha1Client.TypeAssumptions.type_repr
   InternalV1alpha1Client.TypeAssumptions.method_set
   InternalV1alpha1Client.TypeAssumptions.ptr_method_set
 
-axiom StorageVersionExpansion : Type
-axiom StorageVersionExpansion.zero_val : ZeroVal StorageVersionExpansion
+opaque StorageVersionExpansion.nonempty_type : NonemptyType.{0}
+def StorageVersionExpansion : Type := StorageVersionExpansion.nonempty_type.type
+instance StorageVersionExpansion.nonempty : Nonempty StorageVersionExpansion := StorageVersionExpansion.nonempty_type.property
+opaque StorageVersionExpansion.zero_val : ZeroVal StorageVersionExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageVersionExpansion.zero_val
 
 class StorageVersionExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] StorageVersionExpansion.TypeAssumptions.type_repr
   StorageVersionExpansion.TypeAssumptions.method_set
   StorageVersionExpansion.TypeAssumptions.ptr_method_set
 
-axiom StorageVersionsGetter : Type
-axiom StorageVersionsGetter.zero_val : ZeroVal StorageVersionsGetter
+opaque StorageVersionsGetter.nonempty_type : NonemptyType.{0}
+def StorageVersionsGetter : Type := StorageVersionsGetter.nonempty_type.type
+instance StorageVersionsGetter.nonempty : Nonempty StorageVersionsGetter := StorageVersionsGetter.nonempty_type.property
+opaque StorageVersionsGetter.zero_val : ZeroVal StorageVersionsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageVersionsGetter.zero_val
 
 class StorageVersionsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] StorageVersionsGetter.TypeAssumptions.type_repr
   StorageVersionsGetter.TypeAssumptions.method_set
   StorageVersionsGetter.TypeAssumptions.ptr_method_set
 
-axiom StorageVersionInterface : Type
-axiom StorageVersionInterface.zero_val : ZeroVal StorageVersionInterface
+opaque StorageVersionInterface.nonempty_type : NonemptyType.{0}
+def StorageVersionInterface : Type := StorageVersionInterface.nonempty_type.type
+instance StorageVersionInterface.nonempty : Nonempty StorageVersionInterface := StorageVersionInterface.nonempty_type.property
+opaque StorageVersionInterface.zero_val : ZeroVal StorageVersionInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageVersionInterface.zero_val
 
 class StorageVersionInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] StorageVersionInterface.TypeAssumptions.type_repr
   StorageVersionInterface.TypeAssumptions.method_set
   StorageVersionInterface.TypeAssumptions.ptr_method_set
 
-axiom storageVersions : Type
-axiom storageVersions.zero_val : ZeroVal storageVersions
+opaque storageVersions.nonempty_type : NonemptyType.{0}
+def storageVersions : Type := storageVersions.nonempty_type.type
+instance storageVersions.nonempty : Nonempty storageVersions := storageVersions.nonempty_type.property
+opaque storageVersions.zero_val : ZeroVal storageVersions := ⟨Classical.ofNonempty⟩
 attribute [instance] storageVersions.zero_val
 
 class storageVersions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

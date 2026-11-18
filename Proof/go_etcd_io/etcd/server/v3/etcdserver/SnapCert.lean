@@ -11,6 +11,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
+public import Proof.go_etcd_io.raft.v3.ConfchangeApi
 
 @[expose] public section
 

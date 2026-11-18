@@ -24,7 +24,10 @@ adapter's model (`isEtcdWatcher_of_km`), so its responses are etcd's watch contr
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchLog
-public import Proof.go_etcd_io.etcd.client.v3.KMWatch
+public import Proof.go_etcd_io.etcd.client.v3.EtcdModelKV
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
+public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

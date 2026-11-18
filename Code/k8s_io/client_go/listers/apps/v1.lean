@@ -177,41 +177,41 @@ noncomputable def StatefulSetNamespaceListerExpansion.ty [GooseExts] [GoGlobalCo
 
 attribute [irreducible] StatefulSetNamespaceListerExpansion.ty
 
-axiom DeploymentLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deploymentLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque deploymentLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deploymentNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque deploymentNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicaSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque replicaSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicaSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque replicaSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom statefulSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque statefulSetLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom statefulSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque statefulSetNamespaceLister.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StatefulSetNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StatefulSetNamespaceListerExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewControllerRevisionLister [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/listers/apps/v1.NewControllerRevisionLister"
@@ -592,7 +592,7 @@ noncomputable def daemonSetLister.GetHistoryDaemonSets.impl [GooseExts] [GoGloba
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.listers.apps.v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.api.apps.v1, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.client_go.listers, pkg_id.k8s_io.client_go.tools.cache, pkg_id.fmt, pkg_id.k8s_io.api.core.v1, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -899,8 +899,10 @@ attribute [instance] DaemonSetNamespaceListerExpansion.TypeAssumptions.underlyin
   DaemonSetNamespaceListerExpansion.TypeAssumptions.method_set
   DaemonSetNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom DeploymentLister : Type
-axiom DeploymentLister.zero_val : ZeroVal DeploymentLister
+opaque DeploymentLister.nonempty_type : NonemptyType.{0}
+def DeploymentLister : Type := DeploymentLister.nonempty_type.type
+instance DeploymentLister.nonempty : Nonempty DeploymentLister := DeploymentLister.nonempty_type.property
+opaque DeploymentLister.zero_val : ZeroVal DeploymentLister := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentLister.zero_val
 
 class DeploymentLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -916,8 +918,10 @@ attribute [instance] DeploymentLister.TypeAssumptions.type_repr
   DeploymentLister.TypeAssumptions.method_set
   DeploymentLister.TypeAssumptions.ptr_method_set
 
-axiom deploymentLister : Type
-axiom deploymentLister.zero_val : ZeroVal deploymentLister
+opaque deploymentLister.nonempty_type : NonemptyType.{0}
+def deploymentLister : Type := deploymentLister.nonempty_type.type
+instance deploymentLister.nonempty : Nonempty deploymentLister := deploymentLister.nonempty_type.property
+opaque deploymentLister.zero_val : ZeroVal deploymentLister := ⟨Classical.ofNonempty⟩
 attribute [instance] deploymentLister.zero_val
 
 class deploymentLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -933,8 +937,10 @@ attribute [instance] deploymentLister.TypeAssumptions.type_repr
   deploymentLister.TypeAssumptions.method_set
   deploymentLister.TypeAssumptions.ptr_method_set
 
-axiom DeploymentNamespaceLister : Type
-axiom DeploymentNamespaceLister.zero_val : ZeroVal DeploymentNamespaceLister
+opaque DeploymentNamespaceLister.nonempty_type : NonemptyType.{0}
+def DeploymentNamespaceLister : Type := DeploymentNamespaceLister.nonempty_type.type
+instance DeploymentNamespaceLister.nonempty : Nonempty DeploymentNamespaceLister := DeploymentNamespaceLister.nonempty_type.property
+opaque DeploymentNamespaceLister.zero_val : ZeroVal DeploymentNamespaceLister := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentNamespaceLister.zero_val
 
 class DeploymentNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -950,8 +956,10 @@ attribute [instance] DeploymentNamespaceLister.TypeAssumptions.type_repr
   DeploymentNamespaceLister.TypeAssumptions.method_set
   DeploymentNamespaceLister.TypeAssumptions.ptr_method_set
 
-axiom deploymentNamespaceLister : Type
-axiom deploymentNamespaceLister.zero_val : ZeroVal deploymentNamespaceLister
+opaque deploymentNamespaceLister.nonempty_type : NonemptyType.{0}
+def deploymentNamespaceLister : Type := deploymentNamespaceLister.nonempty_type.type
+instance deploymentNamespaceLister.nonempty : Nonempty deploymentNamespaceLister := deploymentNamespaceLister.nonempty_type.property
+opaque deploymentNamespaceLister.zero_val : ZeroVal deploymentNamespaceLister := ⟨Classical.ofNonempty⟩
 attribute [instance] deploymentNamespaceLister.zero_val
 
 class deploymentNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -995,8 +1003,10 @@ attribute [instance] ControllerRevisionNamespaceListerExpansion.TypeAssumptions.
   ControllerRevisionNamespaceListerExpansion.TypeAssumptions.method_set
   ControllerRevisionNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom DeploymentListerExpansion : Type
-axiom DeploymentListerExpansion.zero_val : ZeroVal DeploymentListerExpansion
+opaque DeploymentListerExpansion.nonempty_type : NonemptyType.{0}
+def DeploymentListerExpansion : Type := DeploymentListerExpansion.nonempty_type.type
+instance DeploymentListerExpansion.nonempty : Nonempty DeploymentListerExpansion := DeploymentListerExpansion.nonempty_type.property
+opaque DeploymentListerExpansion.zero_val : ZeroVal DeploymentListerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentListerExpansion.zero_val
 
 class DeploymentListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1012,8 +1022,10 @@ attribute [instance] DeploymentListerExpansion.TypeAssumptions.type_repr
   DeploymentListerExpansion.TypeAssumptions.method_set
   DeploymentListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom DeploymentNamespaceListerExpansion : Type
-axiom DeploymentNamespaceListerExpansion.zero_val : ZeroVal DeploymentNamespaceListerExpansion
+opaque DeploymentNamespaceListerExpansion.nonempty_type : NonemptyType.{0}
+def DeploymentNamespaceListerExpansion : Type := DeploymentNamespaceListerExpansion.nonempty_type.type
+instance DeploymentNamespaceListerExpansion.nonempty : Nonempty DeploymentNamespaceListerExpansion := DeploymentNamespaceListerExpansion.nonempty_type.property
+opaque DeploymentNamespaceListerExpansion.zero_val : ZeroVal DeploymentNamespaceListerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentNamespaceListerExpansion.zero_val
 
 class DeploymentNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1029,8 +1041,10 @@ attribute [instance] DeploymentNamespaceListerExpansion.TypeAssumptions.type_rep
   DeploymentNamespaceListerExpansion.TypeAssumptions.method_set
   DeploymentNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetLister : Type
-axiom ReplicaSetLister.zero_val : ZeroVal ReplicaSetLister
+opaque ReplicaSetLister.nonempty_type : NonemptyType.{0}
+def ReplicaSetLister : Type := ReplicaSetLister.nonempty_type.type
+instance ReplicaSetLister.nonempty : Nonempty ReplicaSetLister := ReplicaSetLister.nonempty_type.property
+opaque ReplicaSetLister.zero_val : ZeroVal ReplicaSetLister := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetLister.zero_val
 
 class ReplicaSetLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1046,8 +1060,10 @@ attribute [instance] ReplicaSetLister.TypeAssumptions.type_repr
   ReplicaSetLister.TypeAssumptions.method_set
   ReplicaSetLister.TypeAssumptions.ptr_method_set
 
-axiom replicaSetLister : Type
-axiom replicaSetLister.zero_val : ZeroVal replicaSetLister
+opaque replicaSetLister.nonempty_type : NonemptyType.{0}
+def replicaSetLister : Type := replicaSetLister.nonempty_type.type
+instance replicaSetLister.nonempty : Nonempty replicaSetLister := replicaSetLister.nonempty_type.property
+opaque replicaSetLister.zero_val : ZeroVal replicaSetLister := ⟨Classical.ofNonempty⟩
 attribute [instance] replicaSetLister.zero_val
 
 class replicaSetLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1063,8 +1079,10 @@ attribute [instance] replicaSetLister.TypeAssumptions.type_repr
   replicaSetLister.TypeAssumptions.method_set
   replicaSetLister.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetNamespaceLister : Type
-axiom ReplicaSetNamespaceLister.zero_val : ZeroVal ReplicaSetNamespaceLister
+opaque ReplicaSetNamespaceLister.nonempty_type : NonemptyType.{0}
+def ReplicaSetNamespaceLister : Type := ReplicaSetNamespaceLister.nonempty_type.type
+instance ReplicaSetNamespaceLister.nonempty : Nonempty ReplicaSetNamespaceLister := ReplicaSetNamespaceLister.nonempty_type.property
+opaque ReplicaSetNamespaceLister.zero_val : ZeroVal ReplicaSetNamespaceLister := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetNamespaceLister.zero_val
 
 class ReplicaSetNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1080,8 +1098,10 @@ attribute [instance] ReplicaSetNamespaceLister.TypeAssumptions.type_repr
   ReplicaSetNamespaceLister.TypeAssumptions.method_set
   ReplicaSetNamespaceLister.TypeAssumptions.ptr_method_set
 
-axiom replicaSetNamespaceLister : Type
-axiom replicaSetNamespaceLister.zero_val : ZeroVal replicaSetNamespaceLister
+opaque replicaSetNamespaceLister.nonempty_type : NonemptyType.{0}
+def replicaSetNamespaceLister : Type := replicaSetNamespaceLister.nonempty_type.type
+instance replicaSetNamespaceLister.nonempty : Nonempty replicaSetNamespaceLister := replicaSetNamespaceLister.nonempty_type.property
+opaque replicaSetNamespaceLister.zero_val : ZeroVal replicaSetNamespaceLister := ⟨Classical.ofNonempty⟩
 attribute [instance] replicaSetNamespaceLister.zero_val
 
 class replicaSetNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1097,8 +1117,10 @@ attribute [instance] replicaSetNamespaceLister.TypeAssumptions.type_repr
   replicaSetNamespaceLister.TypeAssumptions.method_set
   replicaSetNamespaceLister.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetListerExpansion : Type
-axiom ReplicaSetListerExpansion.zero_val : ZeroVal ReplicaSetListerExpansion
+opaque ReplicaSetListerExpansion.nonempty_type : NonemptyType.{0}
+def ReplicaSetListerExpansion : Type := ReplicaSetListerExpansion.nonempty_type.type
+instance ReplicaSetListerExpansion.nonempty : Nonempty ReplicaSetListerExpansion := ReplicaSetListerExpansion.nonempty_type.property
+opaque ReplicaSetListerExpansion.zero_val : ZeroVal ReplicaSetListerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetListerExpansion.zero_val
 
 class ReplicaSetListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1114,8 +1136,10 @@ attribute [instance] ReplicaSetListerExpansion.TypeAssumptions.type_repr
   ReplicaSetListerExpansion.TypeAssumptions.method_set
   ReplicaSetListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetNamespaceListerExpansion : Type
-axiom ReplicaSetNamespaceListerExpansion.zero_val : ZeroVal ReplicaSetNamespaceListerExpansion
+opaque ReplicaSetNamespaceListerExpansion.nonempty_type : NonemptyType.{0}
+def ReplicaSetNamespaceListerExpansion : Type := ReplicaSetNamespaceListerExpansion.nonempty_type.type
+instance ReplicaSetNamespaceListerExpansion.nonempty : Nonempty ReplicaSetNamespaceListerExpansion := ReplicaSetNamespaceListerExpansion.nonempty_type.property
+opaque ReplicaSetNamespaceListerExpansion.zero_val : ZeroVal ReplicaSetNamespaceListerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetNamespaceListerExpansion.zero_val
 
 class ReplicaSetNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1131,8 +1155,10 @@ attribute [instance] ReplicaSetNamespaceListerExpansion.TypeAssumptions.type_rep
   ReplicaSetNamespaceListerExpansion.TypeAssumptions.method_set
   ReplicaSetNamespaceListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetLister : Type
-axiom StatefulSetLister.zero_val : ZeroVal StatefulSetLister
+opaque StatefulSetLister.nonempty_type : NonemptyType.{0}
+def StatefulSetLister : Type := StatefulSetLister.nonempty_type.type
+instance StatefulSetLister.nonempty : Nonempty StatefulSetLister := StatefulSetLister.nonempty_type.property
+opaque StatefulSetLister.zero_val : ZeroVal StatefulSetLister := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetLister.zero_val
 
 class StatefulSetLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1148,8 +1174,10 @@ attribute [instance] StatefulSetLister.TypeAssumptions.type_repr
   StatefulSetLister.TypeAssumptions.method_set
   StatefulSetLister.TypeAssumptions.ptr_method_set
 
-axiom statefulSetLister : Type
-axiom statefulSetLister.zero_val : ZeroVal statefulSetLister
+opaque statefulSetLister.nonempty_type : NonemptyType.{0}
+def statefulSetLister : Type := statefulSetLister.nonempty_type.type
+instance statefulSetLister.nonempty : Nonempty statefulSetLister := statefulSetLister.nonempty_type.property
+opaque statefulSetLister.zero_val : ZeroVal statefulSetLister := ⟨Classical.ofNonempty⟩
 attribute [instance] statefulSetLister.zero_val
 
 class statefulSetLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1165,8 +1193,10 @@ attribute [instance] statefulSetLister.TypeAssumptions.type_repr
   statefulSetLister.TypeAssumptions.method_set
   statefulSetLister.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetNamespaceLister : Type
-axiom StatefulSetNamespaceLister.zero_val : ZeroVal StatefulSetNamespaceLister
+opaque StatefulSetNamespaceLister.nonempty_type : NonemptyType.{0}
+def StatefulSetNamespaceLister : Type := StatefulSetNamespaceLister.nonempty_type.type
+instance StatefulSetNamespaceLister.nonempty : Nonempty StatefulSetNamespaceLister := StatefulSetNamespaceLister.nonempty_type.property
+opaque StatefulSetNamespaceLister.zero_val : ZeroVal StatefulSetNamespaceLister := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetNamespaceLister.zero_val
 
 class StatefulSetNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1182,8 +1212,10 @@ attribute [instance] StatefulSetNamespaceLister.TypeAssumptions.type_repr
   StatefulSetNamespaceLister.TypeAssumptions.method_set
   StatefulSetNamespaceLister.TypeAssumptions.ptr_method_set
 
-axiom statefulSetNamespaceLister : Type
-axiom statefulSetNamespaceLister.zero_val : ZeroVal statefulSetNamespaceLister
+opaque statefulSetNamespaceLister.nonempty_type : NonemptyType.{0}
+def statefulSetNamespaceLister : Type := statefulSetNamespaceLister.nonempty_type.type
+instance statefulSetNamespaceLister.nonempty : Nonempty statefulSetNamespaceLister := statefulSetNamespaceLister.nonempty_type.property
+opaque statefulSetNamespaceLister.zero_val : ZeroVal statefulSetNamespaceLister := ⟨Classical.ofNonempty⟩
 attribute [instance] statefulSetNamespaceLister.zero_val
 
 class statefulSetNamespaceLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1199,8 +1231,10 @@ attribute [instance] statefulSetNamespaceLister.TypeAssumptions.type_repr
   statefulSetNamespaceLister.TypeAssumptions.method_set
   statefulSetNamespaceLister.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetListerExpansion : Type
-axiom StatefulSetListerExpansion.zero_val : ZeroVal StatefulSetListerExpansion
+opaque StatefulSetListerExpansion.nonempty_type : NonemptyType.{0}
+def StatefulSetListerExpansion : Type := StatefulSetListerExpansion.nonempty_type.type
+instance StatefulSetListerExpansion.nonempty : Nonempty StatefulSetListerExpansion := StatefulSetListerExpansion.nonempty_type.property
+opaque StatefulSetListerExpansion.zero_val : ZeroVal StatefulSetListerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetListerExpansion.zero_val
 
 class StatefulSetListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1216,8 +1250,10 @@ attribute [instance] StatefulSetListerExpansion.TypeAssumptions.type_repr
   StatefulSetListerExpansion.TypeAssumptions.method_set
   StatefulSetListerExpansion.TypeAssumptions.ptr_method_set
 
-axiom StatefulSetNamespaceListerExpansion : Type
-axiom StatefulSetNamespaceListerExpansion.zero_val : ZeroVal StatefulSetNamespaceListerExpansion
+opaque StatefulSetNamespaceListerExpansion.nonempty_type : NonemptyType.{0}
+def StatefulSetNamespaceListerExpansion : Type := StatefulSetNamespaceListerExpansion.nonempty_type.type
+instance StatefulSetNamespaceListerExpansion.nonempty : Nonempty StatefulSetNamespaceListerExpansion := StatefulSetNamespaceListerExpansion.nonempty_type.property
+opaque StatefulSetNamespaceListerExpansion.zero_val : ZeroVal StatefulSetNamespaceListerExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] StatefulSetNamespaceListerExpansion.zero_val
 
 class StatefulSetNamespaceListerExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

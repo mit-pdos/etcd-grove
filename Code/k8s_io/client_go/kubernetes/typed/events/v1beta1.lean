@@ -50,17 +50,17 @@ noncomputable def EventsV1beta1Client.ty [GooseExts] [GoGlobalContext] : go.GoTy
 
 attribute [irreducible] EventsV1beta1Client.ty
 
-axiom EventsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom events.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque events.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventsV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventsV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventsV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventsV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/events/v1beta1.newEvents"
@@ -83,7 +83,7 @@ noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.events.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom EventsGetter : Type
-axiom EventsGetter.zero_val : ZeroVal EventsGetter
+opaque EventsGetter.nonempty_type : NonemptyType.{0}
+def EventsGetter : Type := EventsGetter.nonempty_type.type
+instance EventsGetter.nonempty : Nonempty EventsGetter := EventsGetter.nonempty_type.property
+opaque EventsGetter.zero_val : ZeroVal EventsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] EventsGetter.zero_val
 
 class EventsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] EventsGetter.TypeAssumptions.type_repr
   EventsGetter.TypeAssumptions.method_set
   EventsGetter.TypeAssumptions.ptr_method_set
 
-axiom EventInterface : Type
-axiom EventInterface.zero_val : ZeroVal EventInterface
+opaque EventInterface.nonempty_type : NonemptyType.{0}
+def EventInterface : Type := EventInterface.nonempty_type.type
+instance EventInterface.nonempty : Nonempty EventInterface := EventInterface.nonempty_type.property
+opaque EventInterface.zero_val : ZeroVal EventInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] EventInterface.zero_val
 
 class EventInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] EventInterface.TypeAssumptions.type_repr
   EventInterface.TypeAssumptions.method_set
   EventInterface.TypeAssumptions.ptr_method_set
 
-axiom events : Type
-axiom events.zero_val : ZeroVal events
+opaque events.nonempty_type : NonemptyType.{0}
+def events : Type := events.nonempty_type.type
+instance events.nonempty : Nonempty events := events.nonempty_type.property
+opaque events.zero_val : ZeroVal events := ⟨Classical.ofNonempty⟩
 attribute [instance] events.zero_val
 
 class events.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] events.TypeAssumptions.type_repr
   events.TypeAssumptions.method_set
   events.TypeAssumptions.ptr_method_set
 
-axiom EventExpansion : Type
-axiom EventExpansion.zero_val : ZeroVal EventExpansion
+opaque EventExpansion.nonempty_type : NonemptyType.{0}
+def EventExpansion : Type := EventExpansion.nonempty_type.type
+instance EventExpansion.nonempty : Nonempty EventExpansion := EventExpansion.nonempty_type.property
+opaque EventExpansion.zero_val : ZeroVal EventExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] EventExpansion.zero_val
 
 class EventExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] EventExpansion.TypeAssumptions.type_repr
   EventExpansion.TypeAssumptions.method_set
   EventExpansion.TypeAssumptions.ptr_method_set
 
-axiom EventsV1beta1Interface : Type
-axiom EventsV1beta1Interface.zero_val : ZeroVal EventsV1beta1Interface
+opaque EventsV1beta1Interface.nonempty_type : NonemptyType.{0}
+def EventsV1beta1Interface : Type := EventsV1beta1Interface.nonempty_type.type
+instance EventsV1beta1Interface.nonempty : Nonempty EventsV1beta1Interface := EventsV1beta1Interface.nonempty_type.property
+opaque EventsV1beta1Interface.zero_val : ZeroVal EventsV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] EventsV1beta1Interface.zero_val
 
 class EventsV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] EventsV1beta1Interface.TypeAssumptions.type_repr
   EventsV1beta1Interface.TypeAssumptions.method_set
   EventsV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom EventsV1beta1Client : Type
-axiom EventsV1beta1Client.zero_val : ZeroVal EventsV1beta1Client
+opaque EventsV1beta1Client.nonempty_type : NonemptyType.{0}
+def EventsV1beta1Client : Type := EventsV1beta1Client.nonempty_type.type
+instance EventsV1beta1Client.nonempty : Nonempty EventsV1beta1Client := EventsV1beta1Client.nonempty_type.property
+opaque EventsV1beta1Client.zero_val : ZeroVal EventsV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] EventsV1beta1Client.zero_val
 
 class EventsV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

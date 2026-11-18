@@ -31,11 +31,11 @@ noncomputable def VerifyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] VerifyFunc.ty
 
-axiom envVerify [GooseExts] [GoGlobalContext] : val
+opaque envVerify [GooseExts] [GoGlobalContext] : val
 
-axiom envVerifyValueAll [GooseExts] [GoGlobalContext] : val
+opaque envVerifyValueAll [GooseExts] [GoGlobalContext] : val
 
-axiom envVerifyValueAssert [GooseExts] [GoGlobalContext] : val
+opaque envVerifyValueAssert [GooseExts] [GoGlobalContext] : val
 
 noncomputable def getEnvVerify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.getEnvVerify"
@@ -85,7 +85,7 @@ noncomputable def Assert.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.verify where
   pkgImportedPkgs := [pkg_id.fmt]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

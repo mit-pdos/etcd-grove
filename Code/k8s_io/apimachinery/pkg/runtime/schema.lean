@@ -63,7 +63,7 @@ attribute [irreducible] emptyObjectKind.ty
 noncomputable def EmptyObjectKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.EmptyObjectKind"
 
-axiom EmptyObjectKind.init [GooseExts] [GoGlobalContext] : val
+opaque EmptyObjectKind.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ParseResourceArg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/runtime/schema.ParseResourceArg"
@@ -89,7 +89,7 @@ noncomputable def FromAPIVersionAndKind [GooseExts] [GoGlobalContext] : GoString
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.runtime.schema where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

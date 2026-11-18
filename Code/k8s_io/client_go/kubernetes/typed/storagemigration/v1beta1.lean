@@ -50,17 +50,17 @@ noncomputable def storageVersionMigrations.ty [GooseExts] [GoGlobalContext] : go
 
 attribute [irreducible] storageVersionMigrations.ty
 
-axiom StorageVersionMigrationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageVersionMigrationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StoragemigrationV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StoragemigrationV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StoragemigrationV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StoragemigrationV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageVersionMigrationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageVersionMigrationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StorageVersionMigrationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque StorageVersionMigrationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom storageVersionMigrations.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque storageVersionMigrations.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/storagemigration/v1beta1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newStorageVersionMigrations [GooseExts] [GoGlobalContext] : Go
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom StorageVersionMigrationExpansion : Type
-axiom StorageVersionMigrationExpansion.zero_val : ZeroVal StorageVersionMigrationExpansion
+opaque StorageVersionMigrationExpansion.nonempty_type : NonemptyType.{0}
+def StorageVersionMigrationExpansion : Type := StorageVersionMigrationExpansion.nonempty_type.type
+instance StorageVersionMigrationExpansion.nonempty : Nonempty StorageVersionMigrationExpansion := StorageVersionMigrationExpansion.nonempty_type.property
+opaque StorageVersionMigrationExpansion.zero_val : ZeroVal StorageVersionMigrationExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageVersionMigrationExpansion.zero_val
 
 class StorageVersionMigrationExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] StorageVersionMigrationExpansion.TypeAssumptions.type_repr
   StorageVersionMigrationExpansion.TypeAssumptions.method_set
   StorageVersionMigrationExpansion.TypeAssumptions.ptr_method_set
 
-axiom StoragemigrationV1beta1Interface : Type
-axiom StoragemigrationV1beta1Interface.zero_val : ZeroVal StoragemigrationV1beta1Interface
+opaque StoragemigrationV1beta1Interface.nonempty_type : NonemptyType.{0}
+def StoragemigrationV1beta1Interface : Type := StoragemigrationV1beta1Interface.nonempty_type.type
+instance StoragemigrationV1beta1Interface.nonempty : Nonempty StoragemigrationV1beta1Interface := StoragemigrationV1beta1Interface.nonempty_type.property
+opaque StoragemigrationV1beta1Interface.zero_val : ZeroVal StoragemigrationV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] StoragemigrationV1beta1Interface.zero_val
 
 class StoragemigrationV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] StoragemigrationV1beta1Interface.TypeAssumptions.type_repr
   StoragemigrationV1beta1Interface.TypeAssumptions.method_set
   StoragemigrationV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom StoragemigrationV1beta1Client : Type
-axiom StoragemigrationV1beta1Client.zero_val : ZeroVal StoragemigrationV1beta1Client
+opaque StoragemigrationV1beta1Client.nonempty_type : NonemptyType.{0}
+def StoragemigrationV1beta1Client : Type := StoragemigrationV1beta1Client.nonempty_type.type
+instance StoragemigrationV1beta1Client.nonempty : Nonempty StoragemigrationV1beta1Client := StoragemigrationV1beta1Client.nonempty_type.property
+opaque StoragemigrationV1beta1Client.zero_val : ZeroVal StoragemigrationV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] StoragemigrationV1beta1Client.zero_val
 
 class StoragemigrationV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] StoragemigrationV1beta1Client.TypeAssumptions.type_repr
   StoragemigrationV1beta1Client.TypeAssumptions.method_set
   StoragemigrationV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom StorageVersionMigrationsGetter : Type
-axiom StorageVersionMigrationsGetter.zero_val : ZeroVal StorageVersionMigrationsGetter
+opaque StorageVersionMigrationsGetter.nonempty_type : NonemptyType.{0}
+def StorageVersionMigrationsGetter : Type := StorageVersionMigrationsGetter.nonempty_type.type
+instance StorageVersionMigrationsGetter.nonempty : Nonempty StorageVersionMigrationsGetter := StorageVersionMigrationsGetter.nonempty_type.property
+opaque StorageVersionMigrationsGetter.zero_val : ZeroVal StorageVersionMigrationsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageVersionMigrationsGetter.zero_val
 
 class StorageVersionMigrationsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] StorageVersionMigrationsGetter.TypeAssumptions.type_repr
   StorageVersionMigrationsGetter.TypeAssumptions.method_set
   StorageVersionMigrationsGetter.TypeAssumptions.ptr_method_set
 
-axiom StorageVersionMigrationInterface : Type
-axiom StorageVersionMigrationInterface.zero_val : ZeroVal StorageVersionMigrationInterface
+opaque StorageVersionMigrationInterface.nonempty_type : NonemptyType.{0}
+def StorageVersionMigrationInterface : Type := StorageVersionMigrationInterface.nonempty_type.type
+instance StorageVersionMigrationInterface.nonempty : Nonempty StorageVersionMigrationInterface := StorageVersionMigrationInterface.nonempty_type.property
+opaque StorageVersionMigrationInterface.zero_val : ZeroVal StorageVersionMigrationInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] StorageVersionMigrationInterface.zero_val
 
 class StorageVersionMigrationInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] StorageVersionMigrationInterface.TypeAssumptions.type_repr
   StorageVersionMigrationInterface.TypeAssumptions.method_set
   StorageVersionMigrationInterface.TypeAssumptions.ptr_method_set
 
-axiom storageVersionMigrations : Type
-axiom storageVersionMigrations.zero_val : ZeroVal storageVersionMigrations
+opaque storageVersionMigrations.nonempty_type : NonemptyType.{0}
+def storageVersionMigrations : Type := storageVersionMigrations.nonempty_type.type
+instance storageVersionMigrations.nonempty : Nonempty storageVersionMigrations := storageVersionMigrations.nonempty_type.property
+opaque storageVersionMigrations.zero_val : ZeroVal storageVersionMigrations := ⟨Classical.ofNonempty⟩
 attribute [instance] storageVersionMigrations.zero_val
 
 class storageVersionMigrations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

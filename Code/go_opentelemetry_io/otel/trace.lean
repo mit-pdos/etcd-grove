@@ -219,91 +219,91 @@ noncomputable def TraceState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] TraceState.ty
 
-axiom autoSpan.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque autoSpan.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SpanConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SpanConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EventConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EventConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timestampOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timestampOption.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom currentSpanKey [GooseExts] [GoGlobalContext] : val
+opaque currentSpanKey [GooseExts] [GoGlobalContext] : val
 
-axiom hexLU [GooseExts] [GoGlobalContext] : val
+opaque hexLU [GooseExts] [GoGlobalContext] : val
 
-axiom hexRev [GooseExts] [GoGlobalContext] : val
+opaque hexRev [GooseExts] [GoGlobalContext] : val
 
-axiom SpanKindUnspecified [GooseExts] [GoGlobalContext] : val
+opaque SpanKindUnspecified [GooseExts] [GoGlobalContext] : val
 
-axiom SpanKindInternal [GooseExts] [GoGlobalContext] : val
+opaque SpanKindInternal [GooseExts] [GoGlobalContext] : val
 
-axiom SpanKindServer [GooseExts] [GoGlobalContext] : val
+opaque SpanKindServer [GooseExts] [GoGlobalContext] : val
 
-axiom SpanKindClient [GooseExts] [GoGlobalContext] : val
+opaque SpanKindClient [GooseExts] [GoGlobalContext] : val
 
-axiom SpanKindProducer [GooseExts] [GoGlobalContext] : val
+opaque SpanKindProducer [GooseExts] [GoGlobalContext] : val
 
-axiom SpanKindConsumer [GooseExts] [GoGlobalContext] : val
+opaque SpanKindConsumer [GooseExts] [GoGlobalContext] : val
 
-axiom FlagsSampled [GooseExts] [GoGlobalContext] : val
+opaque FlagsSampled [GooseExts] [GoGlobalContext] : val
 
-axiom FlagsRandom [GooseExts] [GoGlobalContext] : val
+opaque FlagsRandom [GooseExts] [GoGlobalContext] : val
 
-axiom errInvalidHexID [GooseExts] [GoGlobalContext] : val
+opaque errInvalidHexID [GooseExts] [GoGlobalContext] : val
 
-axiom errInvalidTraceIDLength [GooseExts] [GoGlobalContext] : val
+opaque errInvalidTraceIDLength [GooseExts] [GoGlobalContext] : val
 
-axiom errNilTraceID [GooseExts] [GoGlobalContext] : val
+opaque errNilTraceID [GooseExts] [GoGlobalContext] : val
 
-axiom errInvalidSpanIDLength [GooseExts] [GoGlobalContext] : val
+opaque errInvalidSpanIDLength [GooseExts] [GoGlobalContext] : val
 
-axiom errNilSpanID [GooseExts] [GoGlobalContext] : val
+opaque errNilSpanID [GooseExts] [GoGlobalContext] : val
 
-axiom maxListMembers [GooseExts] [GoGlobalContext] : val
+opaque maxListMembers [GooseExts] [GoGlobalContext] : val
 
-axiom listDelimiters [GooseExts] [GoGlobalContext] : val
+opaque listDelimiters [GooseExts] [GoGlobalContext] : val
 
-axiom memberDelimiter [GooseExts] [GoGlobalContext] : val
+opaque memberDelimiter [GooseExts] [GoGlobalContext] : val
 
-axiom errInvalidKey [GooseExts] [GoGlobalContext] : val
+opaque errInvalidKey [GooseExts] [GoGlobalContext] : val
 
-axiom errInvalidValue [GooseExts] [GoGlobalContext] : val
+opaque errInvalidValue [GooseExts] [GoGlobalContext] : val
 
-axiom errInvalidMember [GooseExts] [GoGlobalContext] : val
+opaque errInvalidMember [GooseExts] [GoGlobalContext] : val
 
-axiom errMemberNumber [GooseExts] [GoGlobalContext] : val
+opaque errMemberNumber [GooseExts] [GoGlobalContext] : val
 
-axiom errDuplicate [GooseExts] [GoGlobalContext] : val
+opaque errDuplicate [GooseExts] [GoGlobalContext] : val
 
 noncomputable def tracerProviderInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.tracerProviderInstance"
 
-axiom tracerProviderInstance.init [GooseExts] [GoGlobalContext] : val
+opaque tracerProviderInstance.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def start [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.start"
 
-axiom start.init [GooseExts] [GoGlobalContext] : val
+opaque start.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ended [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.ended"
 
-axiom ended.init [GooseExts] [GoGlobalContext] : val
+opaque ended.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxSpan [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.maxSpan"
 
-axiom maxSpan.init [GooseExts] [GoGlobalContext] : val
+opaque maxSpan.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def noopSpanInstance [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.noopSpanInstance"
 
-axiom noopSpanInstance.init [GooseExts] [GoGlobalContext] : val
+opaque noopSpanInstance.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def autoInstEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.autoInstEnabled"
 
-axiom autoInstEnabled.init [GooseExts] [GoGlobalContext] : val
+opaque autoInstEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nilTraceID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/trace.nilTraceID"
@@ -458,7 +458,7 @@ noncomputable def ParseTraceState [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.codes, pkg_id.go_opentelemetry_io.otel.trace.embedded]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -612,8 +612,10 @@ attribute [instance] autoTracer.TypeAssumptions.type_repr
   autoTracer.TypeAssumptions.method_set
   autoTracer.TypeAssumptions.ptr_method_set
 
-axiom autoSpan : Type
-axiom autoSpan.zero_val : ZeroVal autoSpan
+opaque autoSpan.nonempty_type : NonemptyType.{0}
+def autoSpan : Type := autoSpan.nonempty_type.type
+instance autoSpan.nonempty : Nonempty autoSpan := autoSpan.nonempty_type.property
+opaque autoSpan.zero_val : ZeroVal autoSpan := ⟨Classical.ofNonempty⟩
 attribute [instance] autoSpan.zero_val
 
 class autoSpan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -783,8 +785,10 @@ attribute [instance] tracerOptionFunc.TypeAssumptions.underlying
   tracerOptionFunc.TypeAssumptions.method_set
   tracerOptionFunc.TypeAssumptions.ptr_method_set
 
-axiom SpanConfig : Type
-axiom SpanConfig.zero_val : ZeroVal SpanConfig
+opaque SpanConfig.nonempty_type : NonemptyType.{0}
+def SpanConfig : Type := SpanConfig.nonempty_type.type
+instance SpanConfig.nonempty : Nonempty SpanConfig := SpanConfig.nonempty_type.property
+opaque SpanConfig.zero_val : ZeroVal SpanConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] SpanConfig.zero_val
 
 class SpanConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -842,8 +846,10 @@ attribute [instance] SpanEndOption.TypeAssumptions.underlying
   SpanEndOption.TypeAssumptions.method_set
   SpanEndOption.TypeAssumptions.ptr_method_set
 
-axiom EventConfig : Type
-axiom EventConfig.zero_val : ZeroVal EventConfig
+opaque EventConfig.nonempty_type : NonemptyType.{0}
+def EventConfig : Type := EventConfig.nonempty_type.type
+instance EventConfig.nonempty : Nonempty EventConfig := EventConfig.nonempty_type.property
+opaque EventConfig.zero_val : ZeroVal EventConfig := ⟨Classical.ofNonempty⟩
 attribute [instance] EventConfig.zero_val
 
 class EventConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -943,8 +949,10 @@ attribute [instance] SpanEventOption.TypeAssumptions.underlying
   SpanEventOption.TypeAssumptions.method_set
   SpanEventOption.TypeAssumptions.ptr_method_set
 
-axiom timestampOption : Type
-axiom timestampOption.zero_val : ZeroVal timestampOption
+opaque timestampOption.nonempty_type : NonemptyType.{0}
+def timestampOption : Type := timestampOption.nonempty_type.type
+instance timestampOption.nonempty : Nonempty timestampOption := timestampOption.nonempty_type.property
+opaque timestampOption.zero_val : ZeroVal timestampOption := ⟨Classical.ofNonempty⟩
 attribute [instance] timestampOption.zero_val
 
 class timestampOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

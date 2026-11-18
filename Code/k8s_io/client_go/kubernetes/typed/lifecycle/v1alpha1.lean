@@ -70,25 +70,25 @@ noncomputable def LifecycleV1alpha1Client.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] LifecycleV1alpha1Client.ty
 
-axiom EvictionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom evictions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque evictions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionRequestsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionRequestInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom evictionRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque evictionRequests.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EvictionRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EvictionRequestExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LifecycleV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LifecycleV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LifecycleV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LifecycleV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newEvictions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/lifecycle/v1alpha1.newEvictions"
@@ -114,7 +114,7 @@ noncomputable def setConfigDefaults [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -123,8 +123,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom EvictionsGetter : Type
-axiom EvictionsGetter.zero_val : ZeroVal EvictionsGetter
+opaque EvictionsGetter.nonempty_type : NonemptyType.{0}
+def EvictionsGetter : Type := EvictionsGetter.nonempty_type.type
+instance EvictionsGetter.nonempty : Nonempty EvictionsGetter := EvictionsGetter.nonempty_type.property
+opaque EvictionsGetter.zero_val : ZeroVal EvictionsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionsGetter.zero_val
 
 class EvictionsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -140,8 +142,10 @@ attribute [instance] EvictionsGetter.TypeAssumptions.type_repr
   EvictionsGetter.TypeAssumptions.method_set
   EvictionsGetter.TypeAssumptions.ptr_method_set
 
-axiom EvictionInterface : Type
-axiom EvictionInterface.zero_val : ZeroVal EvictionInterface
+opaque EvictionInterface.nonempty_type : NonemptyType.{0}
+def EvictionInterface : Type := EvictionInterface.nonempty_type.type
+instance EvictionInterface.nonempty : Nonempty EvictionInterface := EvictionInterface.nonempty_type.property
+opaque EvictionInterface.zero_val : ZeroVal EvictionInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionInterface.zero_val
 
 class EvictionInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -157,8 +161,10 @@ attribute [instance] EvictionInterface.TypeAssumptions.type_repr
   EvictionInterface.TypeAssumptions.method_set
   EvictionInterface.TypeAssumptions.ptr_method_set
 
-axiom evictions : Type
-axiom evictions.zero_val : ZeroVal evictions
+opaque evictions.nonempty_type : NonemptyType.{0}
+def evictions : Type := evictions.nonempty_type.type
+instance evictions.nonempty : Nonempty evictions := evictions.nonempty_type.property
+opaque evictions.zero_val : ZeroVal evictions := ⟨Classical.ofNonempty⟩
 attribute [instance] evictions.zero_val
 
 class evictions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,8 +180,10 @@ attribute [instance] evictions.TypeAssumptions.type_repr
   evictions.TypeAssumptions.method_set
   evictions.TypeAssumptions.ptr_method_set
 
-axiom EvictionRequestsGetter : Type
-axiom EvictionRequestsGetter.zero_val : ZeroVal EvictionRequestsGetter
+opaque EvictionRequestsGetter.nonempty_type : NonemptyType.{0}
+def EvictionRequestsGetter : Type := EvictionRequestsGetter.nonempty_type.type
+instance EvictionRequestsGetter.nonempty : Nonempty EvictionRequestsGetter := EvictionRequestsGetter.nonempty_type.property
+opaque EvictionRequestsGetter.zero_val : ZeroVal EvictionRequestsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionRequestsGetter.zero_val
 
 class EvictionRequestsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -191,8 +199,10 @@ attribute [instance] EvictionRequestsGetter.TypeAssumptions.type_repr
   EvictionRequestsGetter.TypeAssumptions.method_set
   EvictionRequestsGetter.TypeAssumptions.ptr_method_set
 
-axiom EvictionRequestInterface : Type
-axiom EvictionRequestInterface.zero_val : ZeroVal EvictionRequestInterface
+opaque EvictionRequestInterface.nonempty_type : NonemptyType.{0}
+def EvictionRequestInterface : Type := EvictionRequestInterface.nonempty_type.type
+instance EvictionRequestInterface.nonempty : Nonempty EvictionRequestInterface := EvictionRequestInterface.nonempty_type.property
+opaque EvictionRequestInterface.zero_val : ZeroVal EvictionRequestInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionRequestInterface.zero_val
 
 class EvictionRequestInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -208,8 +218,10 @@ attribute [instance] EvictionRequestInterface.TypeAssumptions.type_repr
   EvictionRequestInterface.TypeAssumptions.method_set
   EvictionRequestInterface.TypeAssumptions.ptr_method_set
 
-axiom evictionRequests : Type
-axiom evictionRequests.zero_val : ZeroVal evictionRequests
+opaque evictionRequests.nonempty_type : NonemptyType.{0}
+def evictionRequests : Type := evictionRequests.nonempty_type.type
+instance evictionRequests.nonempty : Nonempty evictionRequests := evictionRequests.nonempty_type.property
+opaque evictionRequests.zero_val : ZeroVal evictionRequests := ⟨Classical.ofNonempty⟩
 attribute [instance] evictionRequests.zero_val
 
 class evictionRequests.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,8 +237,10 @@ attribute [instance] evictionRequests.TypeAssumptions.type_repr
   evictionRequests.TypeAssumptions.method_set
   evictionRequests.TypeAssumptions.ptr_method_set
 
-axiom EvictionExpansion : Type
-axiom EvictionExpansion.zero_val : ZeroVal EvictionExpansion
+opaque EvictionExpansion.nonempty_type : NonemptyType.{0}
+def EvictionExpansion : Type := EvictionExpansion.nonempty_type.type
+instance EvictionExpansion.nonempty : Nonempty EvictionExpansion := EvictionExpansion.nonempty_type.property
+opaque EvictionExpansion.zero_val : ZeroVal EvictionExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionExpansion.zero_val
 
 class EvictionExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -242,8 +256,10 @@ attribute [instance] EvictionExpansion.TypeAssumptions.type_repr
   EvictionExpansion.TypeAssumptions.method_set
   EvictionExpansion.TypeAssumptions.ptr_method_set
 
-axiom EvictionRequestExpansion : Type
-axiom EvictionRequestExpansion.zero_val : ZeroVal EvictionRequestExpansion
+opaque EvictionRequestExpansion.nonempty_type : NonemptyType.{0}
+def EvictionRequestExpansion : Type := EvictionRequestExpansion.nonempty_type.type
+instance EvictionRequestExpansion.nonempty : Nonempty EvictionRequestExpansion := EvictionRequestExpansion.nonempty_type.property
+opaque EvictionRequestExpansion.zero_val : ZeroVal EvictionRequestExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] EvictionRequestExpansion.zero_val
 
 class EvictionRequestExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -259,8 +275,10 @@ attribute [instance] EvictionRequestExpansion.TypeAssumptions.type_repr
   EvictionRequestExpansion.TypeAssumptions.method_set
   EvictionRequestExpansion.TypeAssumptions.ptr_method_set
 
-axiom LifecycleV1alpha1Interface : Type
-axiom LifecycleV1alpha1Interface.zero_val : ZeroVal LifecycleV1alpha1Interface
+opaque LifecycleV1alpha1Interface.nonempty_type : NonemptyType.{0}
+def LifecycleV1alpha1Interface : Type := LifecycleV1alpha1Interface.nonempty_type.type
+instance LifecycleV1alpha1Interface.nonempty : Nonempty LifecycleV1alpha1Interface := LifecycleV1alpha1Interface.nonempty_type.property
+opaque LifecycleV1alpha1Interface.zero_val : ZeroVal LifecycleV1alpha1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] LifecycleV1alpha1Interface.zero_val
 
 class LifecycleV1alpha1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -276,8 +294,10 @@ attribute [instance] LifecycleV1alpha1Interface.TypeAssumptions.type_repr
   LifecycleV1alpha1Interface.TypeAssumptions.method_set
   LifecycleV1alpha1Interface.TypeAssumptions.ptr_method_set
 
-axiom LifecycleV1alpha1Client : Type
-axiom LifecycleV1alpha1Client.zero_val : ZeroVal LifecycleV1alpha1Client
+opaque LifecycleV1alpha1Client.nonempty_type : NonemptyType.{0}
+def LifecycleV1alpha1Client : Type := LifecycleV1alpha1Client.nonempty_type.type
+instance LifecycleV1alpha1Client.nonempty : Nonempty LifecycleV1alpha1Client := LifecycleV1alpha1Client.nonempty_type.property
+opaque LifecycleV1alpha1Client.zero_val : ZeroVal LifecycleV1alpha1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] LifecycleV1alpha1Client.zero_val
 
 class LifecycleV1alpha1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

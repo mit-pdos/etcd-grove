@@ -100,14 +100,14 @@ noncomputable instance «equals_unfold_struct#69fc66c6» [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def «struct#69fc66c6».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType «struct#69fc66c6».fields)
 
-axiom UnmarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UnmarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def Message.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.ProtoMessage.ty
 
-axiom speculativeLength [GooseExts] [GoGlobalContext] : val
+opaque speculativeLength [GooseExts] [GoGlobalContext] : val
 
-axiom hasProtoMethods [GooseExts] [GoGlobalContext] : val
+opaque hasProtoMethods [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errUnknown [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/proto.errUnknown"
@@ -235,7 +235,7 @@ noncomputable def String [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.proto where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.internal.pragma]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -262,8 +262,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.internal.pragma.initialize') (Val #()))))))))
 
-axiom UnmarshalOptions : Type
-axiom UnmarshalOptions.zero_val : ZeroVal UnmarshalOptions
+opaque UnmarshalOptions.nonempty_type : NonemptyType.{0}
+def UnmarshalOptions : Type := UnmarshalOptions.nonempty_type.type
+instance UnmarshalOptions.nonempty : Nonempty UnmarshalOptions := UnmarshalOptions.nonempty_type.property
+opaque UnmarshalOptions.zero_val : ZeroVal UnmarshalOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] UnmarshalOptions.zero_val
 
 class UnmarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -362,8 +364,10 @@ attribute [instance] mergeOptions.TypeAssumptions.type_repr
   mergeOptions.TypeAssumptions.method_set
   mergeOptions.TypeAssumptions.ptr_method_set
 
-axiom «struct#b984c7d3» : Type
-axiom «struct#b984c7d3».zero_val : ZeroVal «struct#b984c7d3»
+opaque «struct#b984c7d3».nonempty_type : NonemptyType.{0}
+def «struct#b984c7d3» : Type := «struct#b984c7d3».nonempty_type.type
+instance «struct#b984c7d3».nonempty : Nonempty «struct#b984c7d3» := «struct#b984c7d3».nonempty_type.property
+opaque «struct#b984c7d3».zero_val : ZeroVal «struct#b984c7d3» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#b984c7d3».zero_val
 
 class «struct#b984c7d3».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -371,8 +375,10 @@ class «struct#b984c7d3».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#b984c7d3».TypeAssumptions.type_repr
 
-axiom «struct#f9d6c4b8» : Type
-axiom «struct#f9d6c4b8».zero_val : ZeroVal «struct#f9d6c4b8»
+opaque «struct#f9d6c4b8».nonempty_type : NonemptyType.{0}
+def «struct#f9d6c4b8» : Type := «struct#f9d6c4b8».nonempty_type.type
+instance «struct#f9d6c4b8».nonempty : Nonempty «struct#f9d6c4b8» := «struct#f9d6c4b8».nonempty_type.property
+opaque «struct#f9d6c4b8».zero_val : ZeroVal «struct#f9d6c4b8» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#f9d6c4b8».zero_val
 
 class «struct#f9d6c4b8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -380,8 +386,10 @@ class «struct#f9d6c4b8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#f9d6c4b8».TypeAssumptions.type_repr
 
-axiom «struct#8d354e5a» : Type
-axiom «struct#8d354e5a».zero_val : ZeroVal «struct#8d354e5a»
+opaque «struct#8d354e5a».nonempty_type : NonemptyType.{0}
+def «struct#8d354e5a» : Type := «struct#8d354e5a».nonempty_type.type
+instance «struct#8d354e5a».nonempty : Nonempty «struct#8d354e5a» := «struct#8d354e5a».nonempty_type.property
+opaque «struct#8d354e5a».zero_val : ZeroVal «struct#8d354e5a» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#8d354e5a».zero_val
 
 class «struct#8d354e5a».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

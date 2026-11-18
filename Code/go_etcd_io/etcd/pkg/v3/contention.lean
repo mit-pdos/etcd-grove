@@ -25,7 +25,7 @@ noncomputable def TimeoutDetector.ty [GooseExts] [GoGlobalContext] : go.GoType :
 
 attribute [irreducible] TimeoutDetector.ty
 
-axiom TimeoutDetector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TimeoutDetector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewTimeoutDetector [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/contention.NewTimeoutDetector"
@@ -33,7 +33,7 @@ noncomputable def NewTimeoutDetector [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.contention where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -42,8 +42,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom TimeoutDetector : Type
-axiom TimeoutDetector.zero_val : ZeroVal TimeoutDetector
+opaque TimeoutDetector.nonempty_type : NonemptyType.{0}
+def TimeoutDetector : Type := TimeoutDetector.nonempty_type.type
+instance TimeoutDetector.nonempty : Nonempty TimeoutDetector := TimeoutDetector.nonempty_type.property
+opaque TimeoutDetector.zero_val : ZeroVal TimeoutDetector := ⟨Classical.ofNonempty⟩
 attribute [instance] TimeoutDetector.zero_val
 
 class TimeoutDetector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

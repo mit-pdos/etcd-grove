@@ -140,17 +140,17 @@ noncomputable def statefulSets.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] statefulSets.ty
 
-axiom AppsV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AppsV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom controllerRevisions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque controllerRevisions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom daemonSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque daemonSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deployments.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque deployments.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom replicaSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque replicaSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom statefulSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque statefulSets.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/apps/v1.NewForConfig"
@@ -185,7 +185,7 @@ noncomputable def newStatefulSets [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.apps.v1 where
   pkgImportedPkgs := [pkg_id.net.http, pkg_id.k8s_io.api.apps.v1, pkg_id.k8s_io.client_go.rest, pkg_id.context, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.client_go.applyconfigurations.apps.v1, pkg_id.k8s_io.api.autoscaling.v1, pkg_id.k8s_io.client_go.applyconfigurations.autoscaling.v1]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -235,8 +235,10 @@ attribute [instance] AppsV1Interface.TypeAssumptions.underlying
   AppsV1Interface.TypeAssumptions.method_set
   AppsV1Interface.TypeAssumptions.ptr_method_set
 
-axiom AppsV1Client : Type
-axiom AppsV1Client.zero_val : ZeroVal AppsV1Client
+opaque AppsV1Client.nonempty_type : NonemptyType.{0}
+def AppsV1Client : Type := AppsV1Client.nonempty_type.type
+instance AppsV1Client.nonempty : Nonempty AppsV1Client := AppsV1Client.nonempty_type.property
+opaque AppsV1Client.zero_val : ZeroVal AppsV1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] AppsV1Client.zero_val
 
 class AppsV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -280,8 +282,10 @@ attribute [instance] ControllerRevisionInterface.TypeAssumptions.underlying
   ControllerRevisionInterface.TypeAssumptions.method_set
   ControllerRevisionInterface.TypeAssumptions.ptr_method_set
 
-axiom controllerRevisions : Type
-axiom controllerRevisions.zero_val : ZeroVal controllerRevisions
+opaque controllerRevisions.nonempty_type : NonemptyType.{0}
+def controllerRevisions : Type := controllerRevisions.nonempty_type.type
+instance controllerRevisions.nonempty : Nonempty controllerRevisions := controllerRevisions.nonempty_type.property
+opaque controllerRevisions.zero_val : ZeroVal controllerRevisions := ⟨Classical.ofNonempty⟩
 attribute [instance] controllerRevisions.zero_val
 
 class controllerRevisions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -325,8 +329,10 @@ attribute [instance] DaemonSetInterface.TypeAssumptions.underlying
   DaemonSetInterface.TypeAssumptions.method_set
   DaemonSetInterface.TypeAssumptions.ptr_method_set
 
-axiom daemonSets : Type
-axiom daemonSets.zero_val : ZeroVal daemonSets
+opaque daemonSets.nonempty_type : NonemptyType.{0}
+def daemonSets : Type := daemonSets.nonempty_type.type
+instance daemonSets.nonempty : Nonempty daemonSets := daemonSets.nonempty_type.property
+opaque daemonSets.zero_val : ZeroVal daemonSets := ⟨Classical.ofNonempty⟩
 attribute [instance] daemonSets.zero_val
 
 class daemonSets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -370,8 +376,10 @@ attribute [instance] DeploymentInterface.TypeAssumptions.underlying
   DeploymentInterface.TypeAssumptions.method_set
   DeploymentInterface.TypeAssumptions.ptr_method_set
 
-axiom deployments : Type
-axiom deployments.zero_val : ZeroVal deployments
+opaque deployments.nonempty_type : NonemptyType.{0}
+def deployments : Type := deployments.nonempty_type.type
+instance deployments.nonempty : Nonempty deployments := deployments.nonempty_type.property
+opaque deployments.zero_val : ZeroVal deployments := ⟨Classical.ofNonempty⟩
 attribute [instance] deployments.zero_val
 
 class deployments.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -485,8 +493,10 @@ attribute [instance] ReplicaSetInterface.TypeAssumptions.underlying
   ReplicaSetInterface.TypeAssumptions.method_set
   ReplicaSetInterface.TypeAssumptions.ptr_method_set
 
-axiom replicaSets : Type
-axiom replicaSets.zero_val : ZeroVal replicaSets
+opaque replicaSets.nonempty_type : NonemptyType.{0}
+def replicaSets : Type := replicaSets.nonempty_type.type
+instance replicaSets.nonempty : Nonempty replicaSets := replicaSets.nonempty_type.property
+opaque replicaSets.zero_val : ZeroVal replicaSets := ⟨Classical.ofNonempty⟩
 attribute [instance] replicaSets.zero_val
 
 class replicaSets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -530,8 +540,10 @@ attribute [instance] StatefulSetInterface.TypeAssumptions.underlying
   StatefulSetInterface.TypeAssumptions.method_set
   StatefulSetInterface.TypeAssumptions.ptr_method_set
 
-axiom statefulSets : Type
-axiom statefulSets.zero_val : ZeroVal statefulSets
+opaque statefulSets.nonempty_type : NonemptyType.{0}
+def statefulSets : Type := statefulSets.nonempty_type.type
+instance statefulSets.nonempty : Nonempty statefulSets := statefulSets.nonempty_type.property
+opaque statefulSets.zero_val : ZeroVal statefulSets := ⟨Classical.ofNonempty⟩
 attribute [instance] statefulSets.zero_val
 
 class statefulSets.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

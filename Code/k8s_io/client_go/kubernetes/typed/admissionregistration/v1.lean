@@ -150,57 +150,57 @@ noncomputable def validatingWebhookConfigurations.ty [GooseExts] [GoGlobalContex
 
 attribute [irreducible] validatingWebhookConfigurations.ty
 
-axiom AdmissionregistrationV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AdmissionregistrationV1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AdmissionregistrationV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AdmissionregistrationV1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingAdmissionPolicyExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingAdmissionPolicyExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingAdmissionPolicyBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingAdmissionPolicyBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingWebhookConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingWebhookConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingAdmissionPolicyExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingAdmissionPolicyExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingAdmissionPolicyBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingAdmissionPolicyBindingExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingWebhookConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingWebhookConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingAdmissionPoliciesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingAdmissionPoliciesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingAdmissionPolicyInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingAdmissionPolicyInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mutatingAdmissionPolicies.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mutatingAdmissionPolicies.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingAdmissionPolicyBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingAdmissionPolicyBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingAdmissionPolicyBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingAdmissionPolicyBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mutatingAdmissionPolicyBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mutatingAdmissionPolicyBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingWebhookConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingWebhookConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutatingWebhookConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutatingWebhookConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mutatingWebhookConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque mutatingWebhookConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingAdmissionPoliciesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingAdmissionPoliciesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingAdmissionPolicyInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingAdmissionPolicyInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validatingAdmissionPolicies.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque validatingAdmissionPolicies.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingAdmissionPolicyBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingAdmissionPolicyBindingsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingAdmissionPolicyBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingAdmissionPolicyBindingInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validatingAdmissionPolicyBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque validatingAdmissionPolicyBindings.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingWebhookConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingWebhookConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidatingWebhookConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ValidatingWebhookConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validatingWebhookConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque validatingWebhookConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/admissionregistration/v1.NewForConfig"
@@ -238,7 +238,7 @@ noncomputable def newValidatingWebhookConfigurations [GooseExts] [GoGlobalContex
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.admissionregistration.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -247,8 +247,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom AdmissionregistrationV1Interface : Type
-axiom AdmissionregistrationV1Interface.zero_val : ZeroVal AdmissionregistrationV1Interface
+opaque AdmissionregistrationV1Interface.nonempty_type : NonemptyType.{0}
+def AdmissionregistrationV1Interface : Type := AdmissionregistrationV1Interface.nonempty_type.type
+instance AdmissionregistrationV1Interface.nonempty : Nonempty AdmissionregistrationV1Interface := AdmissionregistrationV1Interface.nonempty_type.property
+opaque AdmissionregistrationV1Interface.zero_val : ZeroVal AdmissionregistrationV1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] AdmissionregistrationV1Interface.zero_val
 
 class AdmissionregistrationV1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -264,8 +266,10 @@ attribute [instance] AdmissionregistrationV1Interface.TypeAssumptions.type_repr
   AdmissionregistrationV1Interface.TypeAssumptions.method_set
   AdmissionregistrationV1Interface.TypeAssumptions.ptr_method_set
 
-axiom AdmissionregistrationV1Client : Type
-axiom AdmissionregistrationV1Client.zero_val : ZeroVal AdmissionregistrationV1Client
+opaque AdmissionregistrationV1Client.nonempty_type : NonemptyType.{0}
+def AdmissionregistrationV1Client : Type := AdmissionregistrationV1Client.nonempty_type.type
+instance AdmissionregistrationV1Client.nonempty : Nonempty AdmissionregistrationV1Client := AdmissionregistrationV1Client.nonempty_type.property
+opaque AdmissionregistrationV1Client.zero_val : ZeroVal AdmissionregistrationV1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] AdmissionregistrationV1Client.zero_val
 
 class AdmissionregistrationV1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -281,8 +285,10 @@ attribute [instance] AdmissionregistrationV1Client.TypeAssumptions.type_repr
   AdmissionregistrationV1Client.TypeAssumptions.method_set
   AdmissionregistrationV1Client.TypeAssumptions.ptr_method_set
 
-axiom MutatingAdmissionPolicyExpansion : Type
-axiom MutatingAdmissionPolicyExpansion.zero_val : ZeroVal MutatingAdmissionPolicyExpansion
+opaque MutatingAdmissionPolicyExpansion.nonempty_type : NonemptyType.{0}
+def MutatingAdmissionPolicyExpansion : Type := MutatingAdmissionPolicyExpansion.nonempty_type.type
+instance MutatingAdmissionPolicyExpansion.nonempty : Nonempty MutatingAdmissionPolicyExpansion := MutatingAdmissionPolicyExpansion.nonempty_type.property
+opaque MutatingAdmissionPolicyExpansion.zero_val : ZeroVal MutatingAdmissionPolicyExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingAdmissionPolicyExpansion.zero_val
 
 class MutatingAdmissionPolicyExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -298,8 +304,10 @@ attribute [instance] MutatingAdmissionPolicyExpansion.TypeAssumptions.type_repr
   MutatingAdmissionPolicyExpansion.TypeAssumptions.method_set
   MutatingAdmissionPolicyExpansion.TypeAssumptions.ptr_method_set
 
-axiom MutatingAdmissionPolicyBindingExpansion : Type
-axiom MutatingAdmissionPolicyBindingExpansion.zero_val : ZeroVal MutatingAdmissionPolicyBindingExpansion
+opaque MutatingAdmissionPolicyBindingExpansion.nonempty_type : NonemptyType.{0}
+def MutatingAdmissionPolicyBindingExpansion : Type := MutatingAdmissionPolicyBindingExpansion.nonempty_type.type
+instance MutatingAdmissionPolicyBindingExpansion.nonempty : Nonempty MutatingAdmissionPolicyBindingExpansion := MutatingAdmissionPolicyBindingExpansion.nonempty_type.property
+opaque MutatingAdmissionPolicyBindingExpansion.zero_val : ZeroVal MutatingAdmissionPolicyBindingExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingAdmissionPolicyBindingExpansion.zero_val
 
 class MutatingAdmissionPolicyBindingExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -315,8 +323,10 @@ attribute [instance] MutatingAdmissionPolicyBindingExpansion.TypeAssumptions.typ
   MutatingAdmissionPolicyBindingExpansion.TypeAssumptions.method_set
   MutatingAdmissionPolicyBindingExpansion.TypeAssumptions.ptr_method_set
 
-axiom MutatingWebhookConfigurationExpansion : Type
-axiom MutatingWebhookConfigurationExpansion.zero_val : ZeroVal MutatingWebhookConfigurationExpansion
+opaque MutatingWebhookConfigurationExpansion.nonempty_type : NonemptyType.{0}
+def MutatingWebhookConfigurationExpansion : Type := MutatingWebhookConfigurationExpansion.nonempty_type.type
+instance MutatingWebhookConfigurationExpansion.nonempty : Nonempty MutatingWebhookConfigurationExpansion := MutatingWebhookConfigurationExpansion.nonempty_type.property
+opaque MutatingWebhookConfigurationExpansion.zero_val : ZeroVal MutatingWebhookConfigurationExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingWebhookConfigurationExpansion.zero_val
 
 class MutatingWebhookConfigurationExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -332,8 +342,10 @@ attribute [instance] MutatingWebhookConfigurationExpansion.TypeAssumptions.type_
   MutatingWebhookConfigurationExpansion.TypeAssumptions.method_set
   MutatingWebhookConfigurationExpansion.TypeAssumptions.ptr_method_set
 
-axiom ValidatingAdmissionPolicyExpansion : Type
-axiom ValidatingAdmissionPolicyExpansion.zero_val : ZeroVal ValidatingAdmissionPolicyExpansion
+opaque ValidatingAdmissionPolicyExpansion.nonempty_type : NonemptyType.{0}
+def ValidatingAdmissionPolicyExpansion : Type := ValidatingAdmissionPolicyExpansion.nonempty_type.type
+instance ValidatingAdmissionPolicyExpansion.nonempty : Nonempty ValidatingAdmissionPolicyExpansion := ValidatingAdmissionPolicyExpansion.nonempty_type.property
+opaque ValidatingAdmissionPolicyExpansion.zero_val : ZeroVal ValidatingAdmissionPolicyExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingAdmissionPolicyExpansion.zero_val
 
 class ValidatingAdmissionPolicyExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -349,8 +361,10 @@ attribute [instance] ValidatingAdmissionPolicyExpansion.TypeAssumptions.type_rep
   ValidatingAdmissionPolicyExpansion.TypeAssumptions.method_set
   ValidatingAdmissionPolicyExpansion.TypeAssumptions.ptr_method_set
 
-axiom ValidatingAdmissionPolicyBindingExpansion : Type
-axiom ValidatingAdmissionPolicyBindingExpansion.zero_val : ZeroVal ValidatingAdmissionPolicyBindingExpansion
+opaque ValidatingAdmissionPolicyBindingExpansion.nonempty_type : NonemptyType.{0}
+def ValidatingAdmissionPolicyBindingExpansion : Type := ValidatingAdmissionPolicyBindingExpansion.nonempty_type.type
+instance ValidatingAdmissionPolicyBindingExpansion.nonempty : Nonempty ValidatingAdmissionPolicyBindingExpansion := ValidatingAdmissionPolicyBindingExpansion.nonempty_type.property
+opaque ValidatingAdmissionPolicyBindingExpansion.zero_val : ZeroVal ValidatingAdmissionPolicyBindingExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingAdmissionPolicyBindingExpansion.zero_val
 
 class ValidatingAdmissionPolicyBindingExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -366,8 +380,10 @@ attribute [instance] ValidatingAdmissionPolicyBindingExpansion.TypeAssumptions.t
   ValidatingAdmissionPolicyBindingExpansion.TypeAssumptions.method_set
   ValidatingAdmissionPolicyBindingExpansion.TypeAssumptions.ptr_method_set
 
-axiom ValidatingWebhookConfigurationExpansion : Type
-axiom ValidatingWebhookConfigurationExpansion.zero_val : ZeroVal ValidatingWebhookConfigurationExpansion
+opaque ValidatingWebhookConfigurationExpansion.nonempty_type : NonemptyType.{0}
+def ValidatingWebhookConfigurationExpansion : Type := ValidatingWebhookConfigurationExpansion.nonempty_type.type
+instance ValidatingWebhookConfigurationExpansion.nonempty : Nonempty ValidatingWebhookConfigurationExpansion := ValidatingWebhookConfigurationExpansion.nonempty_type.property
+opaque ValidatingWebhookConfigurationExpansion.zero_val : ZeroVal ValidatingWebhookConfigurationExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingWebhookConfigurationExpansion.zero_val
 
 class ValidatingWebhookConfigurationExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -383,8 +399,10 @@ attribute [instance] ValidatingWebhookConfigurationExpansion.TypeAssumptions.typ
   ValidatingWebhookConfigurationExpansion.TypeAssumptions.method_set
   ValidatingWebhookConfigurationExpansion.TypeAssumptions.ptr_method_set
 
-axiom MutatingAdmissionPoliciesGetter : Type
-axiom MutatingAdmissionPoliciesGetter.zero_val : ZeroVal MutatingAdmissionPoliciesGetter
+opaque MutatingAdmissionPoliciesGetter.nonempty_type : NonemptyType.{0}
+def MutatingAdmissionPoliciesGetter : Type := MutatingAdmissionPoliciesGetter.nonempty_type.type
+instance MutatingAdmissionPoliciesGetter.nonempty : Nonempty MutatingAdmissionPoliciesGetter := MutatingAdmissionPoliciesGetter.nonempty_type.property
+opaque MutatingAdmissionPoliciesGetter.zero_val : ZeroVal MutatingAdmissionPoliciesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingAdmissionPoliciesGetter.zero_val
 
 class MutatingAdmissionPoliciesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -400,8 +418,10 @@ attribute [instance] MutatingAdmissionPoliciesGetter.TypeAssumptions.type_repr
   MutatingAdmissionPoliciesGetter.TypeAssumptions.method_set
   MutatingAdmissionPoliciesGetter.TypeAssumptions.ptr_method_set
 
-axiom MutatingAdmissionPolicyInterface : Type
-axiom MutatingAdmissionPolicyInterface.zero_val : ZeroVal MutatingAdmissionPolicyInterface
+opaque MutatingAdmissionPolicyInterface.nonempty_type : NonemptyType.{0}
+def MutatingAdmissionPolicyInterface : Type := MutatingAdmissionPolicyInterface.nonempty_type.type
+instance MutatingAdmissionPolicyInterface.nonempty : Nonempty MutatingAdmissionPolicyInterface := MutatingAdmissionPolicyInterface.nonempty_type.property
+opaque MutatingAdmissionPolicyInterface.zero_val : ZeroVal MutatingAdmissionPolicyInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingAdmissionPolicyInterface.zero_val
 
 class MutatingAdmissionPolicyInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -417,8 +437,10 @@ attribute [instance] MutatingAdmissionPolicyInterface.TypeAssumptions.type_repr
   MutatingAdmissionPolicyInterface.TypeAssumptions.method_set
   MutatingAdmissionPolicyInterface.TypeAssumptions.ptr_method_set
 
-axiom mutatingAdmissionPolicies : Type
-axiom mutatingAdmissionPolicies.zero_val : ZeroVal mutatingAdmissionPolicies
+opaque mutatingAdmissionPolicies.nonempty_type : NonemptyType.{0}
+def mutatingAdmissionPolicies : Type := mutatingAdmissionPolicies.nonempty_type.type
+instance mutatingAdmissionPolicies.nonempty : Nonempty mutatingAdmissionPolicies := mutatingAdmissionPolicies.nonempty_type.property
+opaque mutatingAdmissionPolicies.zero_val : ZeroVal mutatingAdmissionPolicies := ⟨Classical.ofNonempty⟩
 attribute [instance] mutatingAdmissionPolicies.zero_val
 
 class mutatingAdmissionPolicies.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -434,8 +456,10 @@ attribute [instance] mutatingAdmissionPolicies.TypeAssumptions.type_repr
   mutatingAdmissionPolicies.TypeAssumptions.method_set
   mutatingAdmissionPolicies.TypeAssumptions.ptr_method_set
 
-axiom MutatingAdmissionPolicyBindingsGetter : Type
-axiom MutatingAdmissionPolicyBindingsGetter.zero_val : ZeroVal MutatingAdmissionPolicyBindingsGetter
+opaque MutatingAdmissionPolicyBindingsGetter.nonempty_type : NonemptyType.{0}
+def MutatingAdmissionPolicyBindingsGetter : Type := MutatingAdmissionPolicyBindingsGetter.nonempty_type.type
+instance MutatingAdmissionPolicyBindingsGetter.nonempty : Nonempty MutatingAdmissionPolicyBindingsGetter := MutatingAdmissionPolicyBindingsGetter.nonempty_type.property
+opaque MutatingAdmissionPolicyBindingsGetter.zero_val : ZeroVal MutatingAdmissionPolicyBindingsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingAdmissionPolicyBindingsGetter.zero_val
 
 class MutatingAdmissionPolicyBindingsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -451,8 +475,10 @@ attribute [instance] MutatingAdmissionPolicyBindingsGetter.TypeAssumptions.type_
   MutatingAdmissionPolicyBindingsGetter.TypeAssumptions.method_set
   MutatingAdmissionPolicyBindingsGetter.TypeAssumptions.ptr_method_set
 
-axiom MutatingAdmissionPolicyBindingInterface : Type
-axiom MutatingAdmissionPolicyBindingInterface.zero_val : ZeroVal MutatingAdmissionPolicyBindingInterface
+opaque MutatingAdmissionPolicyBindingInterface.nonempty_type : NonemptyType.{0}
+def MutatingAdmissionPolicyBindingInterface : Type := MutatingAdmissionPolicyBindingInterface.nonempty_type.type
+instance MutatingAdmissionPolicyBindingInterface.nonempty : Nonempty MutatingAdmissionPolicyBindingInterface := MutatingAdmissionPolicyBindingInterface.nonempty_type.property
+opaque MutatingAdmissionPolicyBindingInterface.zero_val : ZeroVal MutatingAdmissionPolicyBindingInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingAdmissionPolicyBindingInterface.zero_val
 
 class MutatingAdmissionPolicyBindingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -468,8 +494,10 @@ attribute [instance] MutatingAdmissionPolicyBindingInterface.TypeAssumptions.typ
   MutatingAdmissionPolicyBindingInterface.TypeAssumptions.method_set
   MutatingAdmissionPolicyBindingInterface.TypeAssumptions.ptr_method_set
 
-axiom mutatingAdmissionPolicyBindings : Type
-axiom mutatingAdmissionPolicyBindings.zero_val : ZeroVal mutatingAdmissionPolicyBindings
+opaque mutatingAdmissionPolicyBindings.nonempty_type : NonemptyType.{0}
+def mutatingAdmissionPolicyBindings : Type := mutatingAdmissionPolicyBindings.nonempty_type.type
+instance mutatingAdmissionPolicyBindings.nonempty : Nonempty mutatingAdmissionPolicyBindings := mutatingAdmissionPolicyBindings.nonempty_type.property
+opaque mutatingAdmissionPolicyBindings.zero_val : ZeroVal mutatingAdmissionPolicyBindings := ⟨Classical.ofNonempty⟩
 attribute [instance] mutatingAdmissionPolicyBindings.zero_val
 
 class mutatingAdmissionPolicyBindings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -485,8 +513,10 @@ attribute [instance] mutatingAdmissionPolicyBindings.TypeAssumptions.type_repr
   mutatingAdmissionPolicyBindings.TypeAssumptions.method_set
   mutatingAdmissionPolicyBindings.TypeAssumptions.ptr_method_set
 
-axiom MutatingWebhookConfigurationsGetter : Type
-axiom MutatingWebhookConfigurationsGetter.zero_val : ZeroVal MutatingWebhookConfigurationsGetter
+opaque MutatingWebhookConfigurationsGetter.nonempty_type : NonemptyType.{0}
+def MutatingWebhookConfigurationsGetter : Type := MutatingWebhookConfigurationsGetter.nonempty_type.type
+instance MutatingWebhookConfigurationsGetter.nonempty : Nonempty MutatingWebhookConfigurationsGetter := MutatingWebhookConfigurationsGetter.nonempty_type.property
+opaque MutatingWebhookConfigurationsGetter.zero_val : ZeroVal MutatingWebhookConfigurationsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingWebhookConfigurationsGetter.zero_val
 
 class MutatingWebhookConfigurationsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -502,8 +532,10 @@ attribute [instance] MutatingWebhookConfigurationsGetter.TypeAssumptions.type_re
   MutatingWebhookConfigurationsGetter.TypeAssumptions.method_set
   MutatingWebhookConfigurationsGetter.TypeAssumptions.ptr_method_set
 
-axiom MutatingWebhookConfigurationInterface : Type
-axiom MutatingWebhookConfigurationInterface.zero_val : ZeroVal MutatingWebhookConfigurationInterface
+opaque MutatingWebhookConfigurationInterface.nonempty_type : NonemptyType.{0}
+def MutatingWebhookConfigurationInterface : Type := MutatingWebhookConfigurationInterface.nonempty_type.type
+instance MutatingWebhookConfigurationInterface.nonempty : Nonempty MutatingWebhookConfigurationInterface := MutatingWebhookConfigurationInterface.nonempty_type.property
+opaque MutatingWebhookConfigurationInterface.zero_val : ZeroVal MutatingWebhookConfigurationInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] MutatingWebhookConfigurationInterface.zero_val
 
 class MutatingWebhookConfigurationInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -519,8 +551,10 @@ attribute [instance] MutatingWebhookConfigurationInterface.TypeAssumptions.type_
   MutatingWebhookConfigurationInterface.TypeAssumptions.method_set
   MutatingWebhookConfigurationInterface.TypeAssumptions.ptr_method_set
 
-axiom mutatingWebhookConfigurations : Type
-axiom mutatingWebhookConfigurations.zero_val : ZeroVal mutatingWebhookConfigurations
+opaque mutatingWebhookConfigurations.nonempty_type : NonemptyType.{0}
+def mutatingWebhookConfigurations : Type := mutatingWebhookConfigurations.nonempty_type.type
+instance mutatingWebhookConfigurations.nonempty : Nonempty mutatingWebhookConfigurations := mutatingWebhookConfigurations.nonempty_type.property
+opaque mutatingWebhookConfigurations.zero_val : ZeroVal mutatingWebhookConfigurations := ⟨Classical.ofNonempty⟩
 attribute [instance] mutatingWebhookConfigurations.zero_val
 
 class mutatingWebhookConfigurations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -536,8 +570,10 @@ attribute [instance] mutatingWebhookConfigurations.TypeAssumptions.type_repr
   mutatingWebhookConfigurations.TypeAssumptions.method_set
   mutatingWebhookConfigurations.TypeAssumptions.ptr_method_set
 
-axiom ValidatingAdmissionPoliciesGetter : Type
-axiom ValidatingAdmissionPoliciesGetter.zero_val : ZeroVal ValidatingAdmissionPoliciesGetter
+opaque ValidatingAdmissionPoliciesGetter.nonempty_type : NonemptyType.{0}
+def ValidatingAdmissionPoliciesGetter : Type := ValidatingAdmissionPoliciesGetter.nonempty_type.type
+instance ValidatingAdmissionPoliciesGetter.nonempty : Nonempty ValidatingAdmissionPoliciesGetter := ValidatingAdmissionPoliciesGetter.nonempty_type.property
+opaque ValidatingAdmissionPoliciesGetter.zero_val : ZeroVal ValidatingAdmissionPoliciesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingAdmissionPoliciesGetter.zero_val
 
 class ValidatingAdmissionPoliciesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -553,8 +589,10 @@ attribute [instance] ValidatingAdmissionPoliciesGetter.TypeAssumptions.type_repr
   ValidatingAdmissionPoliciesGetter.TypeAssumptions.method_set
   ValidatingAdmissionPoliciesGetter.TypeAssumptions.ptr_method_set
 
-axiom ValidatingAdmissionPolicyInterface : Type
-axiom ValidatingAdmissionPolicyInterface.zero_val : ZeroVal ValidatingAdmissionPolicyInterface
+opaque ValidatingAdmissionPolicyInterface.nonempty_type : NonemptyType.{0}
+def ValidatingAdmissionPolicyInterface : Type := ValidatingAdmissionPolicyInterface.nonempty_type.type
+instance ValidatingAdmissionPolicyInterface.nonempty : Nonempty ValidatingAdmissionPolicyInterface := ValidatingAdmissionPolicyInterface.nonempty_type.property
+opaque ValidatingAdmissionPolicyInterface.zero_val : ZeroVal ValidatingAdmissionPolicyInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingAdmissionPolicyInterface.zero_val
 
 class ValidatingAdmissionPolicyInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -570,8 +608,10 @@ attribute [instance] ValidatingAdmissionPolicyInterface.TypeAssumptions.type_rep
   ValidatingAdmissionPolicyInterface.TypeAssumptions.method_set
   ValidatingAdmissionPolicyInterface.TypeAssumptions.ptr_method_set
 
-axiom validatingAdmissionPolicies : Type
-axiom validatingAdmissionPolicies.zero_val : ZeroVal validatingAdmissionPolicies
+opaque validatingAdmissionPolicies.nonempty_type : NonemptyType.{0}
+def validatingAdmissionPolicies : Type := validatingAdmissionPolicies.nonempty_type.type
+instance validatingAdmissionPolicies.nonempty : Nonempty validatingAdmissionPolicies := validatingAdmissionPolicies.nonempty_type.property
+opaque validatingAdmissionPolicies.zero_val : ZeroVal validatingAdmissionPolicies := ⟨Classical.ofNonempty⟩
 attribute [instance] validatingAdmissionPolicies.zero_val
 
 class validatingAdmissionPolicies.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -587,8 +627,10 @@ attribute [instance] validatingAdmissionPolicies.TypeAssumptions.type_repr
   validatingAdmissionPolicies.TypeAssumptions.method_set
   validatingAdmissionPolicies.TypeAssumptions.ptr_method_set
 
-axiom ValidatingAdmissionPolicyBindingsGetter : Type
-axiom ValidatingAdmissionPolicyBindingsGetter.zero_val : ZeroVal ValidatingAdmissionPolicyBindingsGetter
+opaque ValidatingAdmissionPolicyBindingsGetter.nonempty_type : NonemptyType.{0}
+def ValidatingAdmissionPolicyBindingsGetter : Type := ValidatingAdmissionPolicyBindingsGetter.nonempty_type.type
+instance ValidatingAdmissionPolicyBindingsGetter.nonempty : Nonempty ValidatingAdmissionPolicyBindingsGetter := ValidatingAdmissionPolicyBindingsGetter.nonempty_type.property
+opaque ValidatingAdmissionPolicyBindingsGetter.zero_val : ZeroVal ValidatingAdmissionPolicyBindingsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingAdmissionPolicyBindingsGetter.zero_val
 
 class ValidatingAdmissionPolicyBindingsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -604,8 +646,10 @@ attribute [instance] ValidatingAdmissionPolicyBindingsGetter.TypeAssumptions.typ
   ValidatingAdmissionPolicyBindingsGetter.TypeAssumptions.method_set
   ValidatingAdmissionPolicyBindingsGetter.TypeAssumptions.ptr_method_set
 
-axiom ValidatingAdmissionPolicyBindingInterface : Type
-axiom ValidatingAdmissionPolicyBindingInterface.zero_val : ZeroVal ValidatingAdmissionPolicyBindingInterface
+opaque ValidatingAdmissionPolicyBindingInterface.nonempty_type : NonemptyType.{0}
+def ValidatingAdmissionPolicyBindingInterface : Type := ValidatingAdmissionPolicyBindingInterface.nonempty_type.type
+instance ValidatingAdmissionPolicyBindingInterface.nonempty : Nonempty ValidatingAdmissionPolicyBindingInterface := ValidatingAdmissionPolicyBindingInterface.nonempty_type.property
+opaque ValidatingAdmissionPolicyBindingInterface.zero_val : ZeroVal ValidatingAdmissionPolicyBindingInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingAdmissionPolicyBindingInterface.zero_val
 
 class ValidatingAdmissionPolicyBindingInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -621,8 +665,10 @@ attribute [instance] ValidatingAdmissionPolicyBindingInterface.TypeAssumptions.t
   ValidatingAdmissionPolicyBindingInterface.TypeAssumptions.method_set
   ValidatingAdmissionPolicyBindingInterface.TypeAssumptions.ptr_method_set
 
-axiom validatingAdmissionPolicyBindings : Type
-axiom validatingAdmissionPolicyBindings.zero_val : ZeroVal validatingAdmissionPolicyBindings
+opaque validatingAdmissionPolicyBindings.nonempty_type : NonemptyType.{0}
+def validatingAdmissionPolicyBindings : Type := validatingAdmissionPolicyBindings.nonempty_type.type
+instance validatingAdmissionPolicyBindings.nonempty : Nonempty validatingAdmissionPolicyBindings := validatingAdmissionPolicyBindings.nonempty_type.property
+opaque validatingAdmissionPolicyBindings.zero_val : ZeroVal validatingAdmissionPolicyBindings := ⟨Classical.ofNonempty⟩
 attribute [instance] validatingAdmissionPolicyBindings.zero_val
 
 class validatingAdmissionPolicyBindings.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -638,8 +684,10 @@ attribute [instance] validatingAdmissionPolicyBindings.TypeAssumptions.type_repr
   validatingAdmissionPolicyBindings.TypeAssumptions.method_set
   validatingAdmissionPolicyBindings.TypeAssumptions.ptr_method_set
 
-axiom ValidatingWebhookConfigurationsGetter : Type
-axiom ValidatingWebhookConfigurationsGetter.zero_val : ZeroVal ValidatingWebhookConfigurationsGetter
+opaque ValidatingWebhookConfigurationsGetter.nonempty_type : NonemptyType.{0}
+def ValidatingWebhookConfigurationsGetter : Type := ValidatingWebhookConfigurationsGetter.nonempty_type.type
+instance ValidatingWebhookConfigurationsGetter.nonempty : Nonempty ValidatingWebhookConfigurationsGetter := ValidatingWebhookConfigurationsGetter.nonempty_type.property
+opaque ValidatingWebhookConfigurationsGetter.zero_val : ZeroVal ValidatingWebhookConfigurationsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingWebhookConfigurationsGetter.zero_val
 
 class ValidatingWebhookConfigurationsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -655,8 +703,10 @@ attribute [instance] ValidatingWebhookConfigurationsGetter.TypeAssumptions.type_
   ValidatingWebhookConfigurationsGetter.TypeAssumptions.method_set
   ValidatingWebhookConfigurationsGetter.TypeAssumptions.ptr_method_set
 
-axiom ValidatingWebhookConfigurationInterface : Type
-axiom ValidatingWebhookConfigurationInterface.zero_val : ZeroVal ValidatingWebhookConfigurationInterface
+opaque ValidatingWebhookConfigurationInterface.nonempty_type : NonemptyType.{0}
+def ValidatingWebhookConfigurationInterface : Type := ValidatingWebhookConfigurationInterface.nonempty_type.type
+instance ValidatingWebhookConfigurationInterface.nonempty : Nonempty ValidatingWebhookConfigurationInterface := ValidatingWebhookConfigurationInterface.nonempty_type.property
+opaque ValidatingWebhookConfigurationInterface.zero_val : ZeroVal ValidatingWebhookConfigurationInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ValidatingWebhookConfigurationInterface.zero_val
 
 class ValidatingWebhookConfigurationInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -672,8 +722,10 @@ attribute [instance] ValidatingWebhookConfigurationInterface.TypeAssumptions.typ
   ValidatingWebhookConfigurationInterface.TypeAssumptions.method_set
   ValidatingWebhookConfigurationInterface.TypeAssumptions.ptr_method_set
 
-axiom validatingWebhookConfigurations : Type
-axiom validatingWebhookConfigurations.zero_val : ZeroVal validatingWebhookConfigurations
+opaque validatingWebhookConfigurations.nonempty_type : NonemptyType.{0}
+def validatingWebhookConfigurations : Type := validatingWebhookConfigurations.nonempty_type.type
+instance validatingWebhookConfigurations.nonempty : Nonempty validatingWebhookConfigurations := validatingWebhookConfigurations.nonempty_type.property
+opaque validatingWebhookConfigurations.zero_val : ZeroVal validatingWebhookConfigurations := ⟨Classical.ofNonempty⟩
 attribute [instance] validatingWebhookConfigurations.zero_val
 
 class validatingWebhookConfigurations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

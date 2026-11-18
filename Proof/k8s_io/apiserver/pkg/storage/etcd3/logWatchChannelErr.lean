@@ -8,6 +8,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.isCancelError
 public import Spec.strings.Contains
 public import Spec.k8s_io.klog.v2.Warningf
 public import Spec.k8s_io.klog.v2.Errorf
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

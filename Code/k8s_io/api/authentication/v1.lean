@@ -80,126 +80,126 @@ noncomputable def SelfSubjectReviewStatus.ty [GooseExts] [GoGlobalContext] : go.
 
 attribute [irreducible] SelfSubjectReviewStatus.ty
 
-axiom TokenReview.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TokenReview.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenReviewSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TokenReviewSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenReviewStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TokenReviewStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UserInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque UserInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtraValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtraValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AttestationValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AttestationValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TokenRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenRequestSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TokenRequestSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TokenRequestStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque TokenRequestStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BoundObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque BoundObjectReference.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReview.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SelfSubjectReview.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SelfSubjectReviewStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom ImpersonateUserHeader [GooseExts] [GoGlobalContext] : val
+opaque ImpersonateUserHeader [GooseExts] [GoGlobalContext] : val
 
-axiom ImpersonateGroupHeader [GooseExts] [GoGlobalContext] : val
+opaque ImpersonateGroupHeader [GooseExts] [GoGlobalContext] : val
 
-axiom ImpersonateUIDHeader [GooseExts] [GoGlobalContext] : val
+opaque ImpersonateUIDHeader [GooseExts] [GoGlobalContext] : val
 
-axiom ImpersonateUserExtraHeaderPrefix [GooseExts] [GoGlobalContext] : val
+opaque ImpersonateUserExtraHeaderPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom AttestationAdmissionReviewAPIGroups [GooseExts] [GoGlobalContext] : val
+opaque AttestationAdmissionReviewAPIGroups [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.SchemeBuilder"
 
-axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_BoundObjectReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_BoundObjectReference"
 
-axiom map_BoundObjectReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_BoundObjectReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SelfSubjectReview [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_SelfSubjectReview"
 
-axiom map_SelfSubjectReview.init [GooseExts] [GoGlobalContext] : val
+opaque map_SelfSubjectReview.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_SelfSubjectReviewStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_SelfSubjectReviewStatus"
 
-axiom map_SelfSubjectReviewStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_SelfSubjectReviewStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TokenRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_TokenRequest"
 
-axiom map_TokenRequest.init [GooseExts] [GoGlobalContext] : val
+opaque map_TokenRequest.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TokenRequestSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_TokenRequestSpec"
 
-axiom map_TokenRequestSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_TokenRequestSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TokenRequestStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_TokenRequestStatus"
 
-axiom map_TokenRequestStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_TokenRequestStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TokenReview [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_TokenReview"
 
-axiom map_TokenReview.init [GooseExts] [GoGlobalContext] : val
+opaque map_TokenReview.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TokenReviewSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_TokenReviewSpec"
 
-axiom map_TokenReviewSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_TokenReviewSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TokenReviewStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_TokenReviewStatus"
 
-axiom map_TokenReviewStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_TokenReviewStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_UserInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.map_UserInfo"
 
-axiom map_UserInfo.init [GooseExts] [GoGlobalContext] : val
+opaque map_UserInfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/authentication/v1.encodeVarintGenerated"
@@ -225,7 +225,7 @@ noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.authentication.v1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -282,8 +282,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrInvalidLengthGenerated.init) (Val #()))))))))
 
-axiom TokenReview : Type
-axiom TokenReview.zero_val : ZeroVal TokenReview
+opaque TokenReview.nonempty_type : NonemptyType.{0}
+def TokenReview : Type := TokenReview.nonempty_type.type
+instance TokenReview.nonempty : Nonempty TokenReview := TokenReview.nonempty_type.property
+opaque TokenReview.zero_val : ZeroVal TokenReview := ⟨Classical.ofNonempty⟩
 attribute [instance] TokenReview.zero_val
 
 class TokenReview.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -299,8 +301,10 @@ attribute [instance] TokenReview.TypeAssumptions.type_repr
   TokenReview.TypeAssumptions.method_set
   TokenReview.TypeAssumptions.ptr_method_set
 
-axiom TokenReviewSpec : Type
-axiom TokenReviewSpec.zero_val : ZeroVal TokenReviewSpec
+opaque TokenReviewSpec.nonempty_type : NonemptyType.{0}
+def TokenReviewSpec : Type := TokenReviewSpec.nonempty_type.type
+instance TokenReviewSpec.nonempty : Nonempty TokenReviewSpec := TokenReviewSpec.nonempty_type.property
+opaque TokenReviewSpec.zero_val : ZeroVal TokenReviewSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] TokenReviewSpec.zero_val
 
 class TokenReviewSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -316,8 +320,10 @@ attribute [instance] TokenReviewSpec.TypeAssumptions.type_repr
   TokenReviewSpec.TypeAssumptions.method_set
   TokenReviewSpec.TypeAssumptions.ptr_method_set
 
-axiom TokenReviewStatus : Type
-axiom TokenReviewStatus.zero_val : ZeroVal TokenReviewStatus
+opaque TokenReviewStatus.nonempty_type : NonemptyType.{0}
+def TokenReviewStatus : Type := TokenReviewStatus.nonempty_type.type
+instance TokenReviewStatus.nonempty : Nonempty TokenReviewStatus := TokenReviewStatus.nonempty_type.property
+opaque TokenReviewStatus.zero_val : ZeroVal TokenReviewStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] TokenReviewStatus.zero_val
 
 class TokenReviewStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -333,8 +339,10 @@ attribute [instance] TokenReviewStatus.TypeAssumptions.type_repr
   TokenReviewStatus.TypeAssumptions.method_set
   TokenReviewStatus.TypeAssumptions.ptr_method_set
 
-axiom UserInfo : Type
-axiom UserInfo.zero_val : ZeroVal UserInfo
+opaque UserInfo.nonempty_type : NonemptyType.{0}
+def UserInfo : Type := UserInfo.nonempty_type.type
+instance UserInfo.nonempty : Nonempty UserInfo := UserInfo.nonempty_type.property
+opaque UserInfo.zero_val : ZeroVal UserInfo := ⟨Classical.ofNonempty⟩
 attribute [instance] UserInfo.zero_val
 
 class UserInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -350,8 +358,10 @@ attribute [instance] UserInfo.TypeAssumptions.type_repr
   UserInfo.TypeAssumptions.method_set
   UserInfo.TypeAssumptions.ptr_method_set
 
-axiom ExtraValue : Type
-axiom ExtraValue.zero_val : ZeroVal ExtraValue
+opaque ExtraValue.nonempty_type : NonemptyType.{0}
+def ExtraValue : Type := ExtraValue.nonempty_type.type
+instance ExtraValue.nonempty : Nonempty ExtraValue := ExtraValue.nonempty_type.property
+opaque ExtraValue.zero_val : ZeroVal ExtraValue := ⟨Classical.ofNonempty⟩
 attribute [instance] ExtraValue.zero_val
 
 class ExtraValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -367,8 +377,10 @@ attribute [instance] ExtraValue.TypeAssumptions.type_repr
   ExtraValue.TypeAssumptions.method_set
   ExtraValue.TypeAssumptions.ptr_method_set
 
-axiom AttestationValue : Type
-axiom AttestationValue.zero_val : ZeroVal AttestationValue
+opaque AttestationValue.nonempty_type : NonemptyType.{0}
+def AttestationValue : Type := AttestationValue.nonempty_type.type
+instance AttestationValue.nonempty : Nonempty AttestationValue := AttestationValue.nonempty_type.property
+opaque AttestationValue.zero_val : ZeroVal AttestationValue := ⟨Classical.ofNonempty⟩
 attribute [instance] AttestationValue.zero_val
 
 class AttestationValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -384,8 +396,10 @@ attribute [instance] AttestationValue.TypeAssumptions.type_repr
   AttestationValue.TypeAssumptions.method_set
   AttestationValue.TypeAssumptions.ptr_method_set
 
-axiom TokenRequest : Type
-axiom TokenRequest.zero_val : ZeroVal TokenRequest
+opaque TokenRequest.nonempty_type : NonemptyType.{0}
+def TokenRequest : Type := TokenRequest.nonempty_type.type
+instance TokenRequest.nonempty : Nonempty TokenRequest := TokenRequest.nonempty_type.property
+opaque TokenRequest.zero_val : ZeroVal TokenRequest := ⟨Classical.ofNonempty⟩
 attribute [instance] TokenRequest.zero_val
 
 class TokenRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -401,8 +415,10 @@ attribute [instance] TokenRequest.TypeAssumptions.type_repr
   TokenRequest.TypeAssumptions.method_set
   TokenRequest.TypeAssumptions.ptr_method_set
 
-axiom TokenRequestSpec : Type
-axiom TokenRequestSpec.zero_val : ZeroVal TokenRequestSpec
+opaque TokenRequestSpec.nonempty_type : NonemptyType.{0}
+def TokenRequestSpec : Type := TokenRequestSpec.nonempty_type.type
+instance TokenRequestSpec.nonempty : Nonempty TokenRequestSpec := TokenRequestSpec.nonempty_type.property
+opaque TokenRequestSpec.zero_val : ZeroVal TokenRequestSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] TokenRequestSpec.zero_val
 
 class TokenRequestSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -418,8 +434,10 @@ attribute [instance] TokenRequestSpec.TypeAssumptions.type_repr
   TokenRequestSpec.TypeAssumptions.method_set
   TokenRequestSpec.TypeAssumptions.ptr_method_set
 
-axiom TokenRequestStatus : Type
-axiom TokenRequestStatus.zero_val : ZeroVal TokenRequestStatus
+opaque TokenRequestStatus.nonempty_type : NonemptyType.{0}
+def TokenRequestStatus : Type := TokenRequestStatus.nonempty_type.type
+instance TokenRequestStatus.nonempty : Nonempty TokenRequestStatus := TokenRequestStatus.nonempty_type.property
+opaque TokenRequestStatus.zero_val : ZeroVal TokenRequestStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] TokenRequestStatus.zero_val
 
 class TokenRequestStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -435,8 +453,10 @@ attribute [instance] TokenRequestStatus.TypeAssumptions.type_repr
   TokenRequestStatus.TypeAssumptions.method_set
   TokenRequestStatus.TypeAssumptions.ptr_method_set
 
-axiom BoundObjectReference : Type
-axiom BoundObjectReference.zero_val : ZeroVal BoundObjectReference
+opaque BoundObjectReference.nonempty_type : NonemptyType.{0}
+def BoundObjectReference : Type := BoundObjectReference.nonempty_type.type
+instance BoundObjectReference.nonempty : Nonempty BoundObjectReference := BoundObjectReference.nonempty_type.property
+opaque BoundObjectReference.zero_val : ZeroVal BoundObjectReference := ⟨Classical.ofNonempty⟩
 attribute [instance] BoundObjectReference.zero_val
 
 class BoundObjectReference.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -452,8 +472,10 @@ attribute [instance] BoundObjectReference.TypeAssumptions.type_repr
   BoundObjectReference.TypeAssumptions.method_set
   BoundObjectReference.TypeAssumptions.ptr_method_set
 
-axiom SelfSubjectReview : Type
-axiom SelfSubjectReview.zero_val : ZeroVal SelfSubjectReview
+opaque SelfSubjectReview.nonempty_type : NonemptyType.{0}
+def SelfSubjectReview : Type := SelfSubjectReview.nonempty_type.type
+instance SelfSubjectReview.nonempty : Nonempty SelfSubjectReview := SelfSubjectReview.nonempty_type.property
+opaque SelfSubjectReview.zero_val : ZeroVal SelfSubjectReview := ⟨Classical.ofNonempty⟩
 attribute [instance] SelfSubjectReview.zero_val
 
 class SelfSubjectReview.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -469,8 +491,10 @@ attribute [instance] SelfSubjectReview.TypeAssumptions.type_repr
   SelfSubjectReview.TypeAssumptions.method_set
   SelfSubjectReview.TypeAssumptions.ptr_method_set
 
-axiom SelfSubjectReviewStatus : Type
-axiom SelfSubjectReviewStatus.zero_val : ZeroVal SelfSubjectReviewStatus
+opaque SelfSubjectReviewStatus.nonempty_type : NonemptyType.{0}
+def SelfSubjectReviewStatus : Type := SelfSubjectReviewStatus.nonempty_type.type
+instance SelfSubjectReviewStatus.nonempty : Nonempty SelfSubjectReviewStatus := SelfSubjectReviewStatus.nonempty_type.property
+opaque SelfSubjectReviewStatus.zero_val : ZeroVal SelfSubjectReviewStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] SelfSubjectReviewStatus.zero_val
 
 class SelfSubjectReviewStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

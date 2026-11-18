@@ -587,12 +587,12 @@ attribute [irreducible] clientAdapter.ty
 noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/features.defaultVersionedKubernetesFeatureGates"
 
-axiom defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
+opaque defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultKubernetesFeatureGateDependencies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/features.defaultKubernetesFeatureGateDependencies"
 
-axiom defaultKubernetesFeatureGateDependencies.init [GooseExts] [GoGlobalContext] : val
+opaque defaultKubernetesFeatureGateDependencies.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/kubernetes/pkg/features.init.0"
@@ -832,7 +832,7 @@ noncomputable def clientAdapter.Set.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.kubernetes.pkg.features where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.k8s_io.client_go.features, pkg_id.k8s_io.component_base.featuregate, pkg_id.k8s_io.apiextensions_apiserver.pkg.features, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.version, pkg_id.k8s_io.apiserver.pkg.features, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.k8s_io.component_base.zpages.features, pkg_id.k8s_io.controller_manager.pkg.features]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

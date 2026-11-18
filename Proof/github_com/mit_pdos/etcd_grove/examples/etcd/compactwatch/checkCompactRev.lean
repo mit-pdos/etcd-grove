@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Perennial.Spec.context.Background
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls
 
 @[expose] public section
 

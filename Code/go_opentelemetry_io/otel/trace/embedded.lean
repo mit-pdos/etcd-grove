@@ -38,7 +38,7 @@ attribute [irreducible] Span.ty
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.trace.embedded where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

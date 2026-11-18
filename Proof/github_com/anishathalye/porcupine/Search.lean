@@ -28,7 +28,7 @@ refusal keeps.
 module
 
 public import Proof.github_com.anishathalye.porcupine.Cache
-public import Proof.github_com.anishathalye.porcupine.Linked
+public import Proof.github_com.anishathalye.porcupine.LinkedList
 
 @[expose] public section
 

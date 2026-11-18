@@ -25,10 +25,9 @@ they are conditional on it through the token, which their statements do not show
 module
 
 public import Proof.context.ReqKeys
-public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.Results
 public import Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed
+public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
 
 @[expose] public section
 
@@ -53,14 +52,6 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
-
-/-- **etcd's spec of `Auth.Authenticate` with auth on, at the member's names `γa`**: a reply's
-token is issued to the user named in the request (`auth.tokIssued`). The password and the
-request's size ask nothing of the client: a wrong password, or a request too large, is an error. -/
-def etcdAuthenticateSpec (γa : auth.AuthNames) :
-    GrpcSpec (GF := GF) pbAuthenticateRequest pbAuthenticateResponse :=
-  fun (m : GoString × GoString) (Φ : GoString → IProp GF) =>
-    iprop(∀ t, auth.tokIssued γa t m.1 -∗ Φ t)
 
 /-- `New`'s registration (`authTokReg`) for the user `u`, at the tokens issued to `u`, from the
 member's `Authenticate` with auth on. -/

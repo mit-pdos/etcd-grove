@@ -78,42 +78,42 @@ noncomputable def featureGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] featureGate.ty
 
-axiom MutableFeatureGateWithLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutableFeatureGateWithLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutableVersionedFeatureGateWithLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutableVersionedFeatureGateWithLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom featureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque featureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom flagName [GooseExts] [GoGlobalContext] : val
+opaque flagName [GooseExts] [GoGlobalContext] : val
 
-axiom allAlphaGate [GooseExts] [GoGlobalContext] : val
+opaque allAlphaGate [GooseExts] [GoGlobalContext] : val
 
-axiom allBetaGate [GooseExts] [GoGlobalContext] : val
+opaque allBetaGate [GooseExts] [GoGlobalContext] : val
 
-axiom PreAlpha [GooseExts] [GoGlobalContext] : val
+opaque PreAlpha [GooseExts] [GoGlobalContext] : val
 
-axiom Alpha [GooseExts] [GoGlobalContext] : val
+opaque Alpha [GooseExts] [GoGlobalContext] : val
 
-axiom Beta [GooseExts] [GoGlobalContext] : val
+opaque Beta [GooseExts] [GoGlobalContext] : val
 
-axiom GA [GooseExts] [GoGlobalContext] : val
+opaque GA [GooseExts] [GoGlobalContext] : val
 
-axiom Deprecated [GooseExts] [GoGlobalContext] : val
+opaque Deprecated [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.defaultFeatures"
 
-axiom defaultFeatures.init [GooseExts] [GoGlobalContext] : val
+opaque defaultFeatures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def specialFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.specialFeatures"
 
-axiom specialFeatures.init [GooseExts] [GoGlobalContext] : val
+opaque specialFeatures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.internalPackages"
 
-axiom internalPackages.init [GooseExts] [GoGlobalContext] : val
+opaque internalPackages.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def setUnsetAlphaGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.setUnsetAlphaGates"
@@ -142,7 +142,7 @@ noncomputable def featureSpecAtEmulationAndMinCompatVersion [GooseExts] [GoGloba
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.featuregate where
   pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.spf13.pflag, pkg_id.k8s_io.apimachinery.pkg.util.version]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -318,8 +318,10 @@ attribute [instance] MutableFeatureGate.TypeAssumptions.underlying
   MutableFeatureGate.TypeAssumptions.method_set
   MutableFeatureGate.TypeAssumptions.ptr_method_set
 
-axiom MutableFeatureGateWithLogger : Type
-axiom MutableFeatureGateWithLogger.zero_val : ZeroVal MutableFeatureGateWithLogger
+opaque MutableFeatureGateWithLogger.nonempty_type : NonemptyType.{0}
+def MutableFeatureGateWithLogger : Type := MutableFeatureGateWithLogger.nonempty_type.type
+instance MutableFeatureGateWithLogger.nonempty : Nonempty MutableFeatureGateWithLogger := MutableFeatureGateWithLogger.nonempty_type.property
+opaque MutableFeatureGateWithLogger.zero_val : ZeroVal MutableFeatureGateWithLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] MutableFeatureGateWithLogger.zero_val
 
 class MutableFeatureGateWithLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -349,8 +351,10 @@ attribute [instance] MutableVersionedFeatureGate.TypeAssumptions.underlying
   MutableVersionedFeatureGate.TypeAssumptions.method_set
   MutableVersionedFeatureGate.TypeAssumptions.ptr_method_set
 
-axiom MutableVersionedFeatureGateWithLogger : Type
-axiom MutableVersionedFeatureGateWithLogger.zero_val : ZeroVal MutableVersionedFeatureGateWithLogger
+opaque MutableVersionedFeatureGateWithLogger.nonempty_type : NonemptyType.{0}
+def MutableVersionedFeatureGateWithLogger : Type := MutableVersionedFeatureGateWithLogger.nonempty_type.type
+instance MutableVersionedFeatureGateWithLogger.nonempty : Nonempty MutableVersionedFeatureGateWithLogger := MutableVersionedFeatureGateWithLogger.nonempty_type.property
+opaque MutableVersionedFeatureGateWithLogger.zero_val : ZeroVal MutableVersionedFeatureGateWithLogger := ⟨Classical.ofNonempty⟩
 attribute [instance] MutableVersionedFeatureGateWithLogger.zero_val
 
 class MutableVersionedFeatureGateWithLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -366,8 +370,10 @@ attribute [instance] MutableVersionedFeatureGateWithLogger.TypeAssumptions.type_
   MutableVersionedFeatureGateWithLogger.TypeAssumptions.method_set
   MutableVersionedFeatureGateWithLogger.TypeAssumptions.ptr_method_set
 
-axiom featureGate : Type
-axiom featureGate.zero_val : ZeroVal featureGate
+opaque featureGate.nonempty_type : NonemptyType.{0}
+def featureGate : Type := featureGate.nonempty_type.type
+instance featureGate.nonempty : Nonempty featureGate := featureGate.nonempty_type.property
+opaque featureGate.zero_val : ZeroVal featureGate := ⟨Classical.ofNonempty⟩
 attribute [instance] featureGate.zero_val
 
 class featureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -50,17 +50,17 @@ noncomputable def selfSubjectReviews.ty [GooseExts] [GoGlobalContext] : go.GoTyp
 
 attribute [irreducible] selfSubjectReviews.ty
 
-axiom AuthenticationV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthenticationV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthenticationV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthenticationV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SelfSubjectReviewExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SelfSubjectReviewsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SelfSubjectReviewInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque SelfSubjectReviewInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom selfSubjectReviews.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque selfSubjectReviews.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authentication/v1alpha1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newSelfSubjectReviews [GooseExts] [GoGlobalContext] : GoString
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.authentication.v1alpha1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom AuthenticationV1alpha1Interface : Type
-axiom AuthenticationV1alpha1Interface.zero_val : ZeroVal AuthenticationV1alpha1Interface
+opaque AuthenticationV1alpha1Interface.nonempty_type : NonemptyType.{0}
+def AuthenticationV1alpha1Interface : Type := AuthenticationV1alpha1Interface.nonempty_type.type
+instance AuthenticationV1alpha1Interface.nonempty : Nonempty AuthenticationV1alpha1Interface := AuthenticationV1alpha1Interface.nonempty_type.property
+opaque AuthenticationV1alpha1Interface.zero_val : ZeroVal AuthenticationV1alpha1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthenticationV1alpha1Interface.zero_val
 
 class AuthenticationV1alpha1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] AuthenticationV1alpha1Interface.TypeAssumptions.type_repr
   AuthenticationV1alpha1Interface.TypeAssumptions.method_set
   AuthenticationV1alpha1Interface.TypeAssumptions.ptr_method_set
 
-axiom AuthenticationV1alpha1Client : Type
-axiom AuthenticationV1alpha1Client.zero_val : ZeroVal AuthenticationV1alpha1Client
+opaque AuthenticationV1alpha1Client.nonempty_type : NonemptyType.{0}
+def AuthenticationV1alpha1Client : Type := AuthenticationV1alpha1Client.nonempty_type.type
+instance AuthenticationV1alpha1Client.nonempty : Nonempty AuthenticationV1alpha1Client := AuthenticationV1alpha1Client.nonempty_type.property
+opaque AuthenticationV1alpha1Client.zero_val : ZeroVal AuthenticationV1alpha1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthenticationV1alpha1Client.zero_val
 
 class AuthenticationV1alpha1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] AuthenticationV1alpha1Client.TypeAssumptions.type_repr
   AuthenticationV1alpha1Client.TypeAssumptions.method_set
   AuthenticationV1alpha1Client.TypeAssumptions.ptr_method_set
 
-axiom SelfSubjectReviewExpansion : Type
-axiom SelfSubjectReviewExpansion.zero_val : ZeroVal SelfSubjectReviewExpansion
+opaque SelfSubjectReviewExpansion.nonempty_type : NonemptyType.{0}
+def SelfSubjectReviewExpansion : Type := SelfSubjectReviewExpansion.nonempty_type.type
+instance SelfSubjectReviewExpansion.nonempty : Nonempty SelfSubjectReviewExpansion := SelfSubjectReviewExpansion.nonempty_type.property
+opaque SelfSubjectReviewExpansion.zero_val : ZeroVal SelfSubjectReviewExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] SelfSubjectReviewExpansion.zero_val
 
 class SelfSubjectReviewExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] SelfSubjectReviewExpansion.TypeAssumptions.type_repr
   SelfSubjectReviewExpansion.TypeAssumptions.method_set
   SelfSubjectReviewExpansion.TypeAssumptions.ptr_method_set
 
-axiom SelfSubjectReviewsGetter : Type
-axiom SelfSubjectReviewsGetter.zero_val : ZeroVal SelfSubjectReviewsGetter
+opaque SelfSubjectReviewsGetter.nonempty_type : NonemptyType.{0}
+def SelfSubjectReviewsGetter : Type := SelfSubjectReviewsGetter.nonempty_type.type
+instance SelfSubjectReviewsGetter.nonempty : Nonempty SelfSubjectReviewsGetter := SelfSubjectReviewsGetter.nonempty_type.property
+opaque SelfSubjectReviewsGetter.zero_val : ZeroVal SelfSubjectReviewsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] SelfSubjectReviewsGetter.zero_val
 
 class SelfSubjectReviewsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] SelfSubjectReviewsGetter.TypeAssumptions.type_repr
   SelfSubjectReviewsGetter.TypeAssumptions.method_set
   SelfSubjectReviewsGetter.TypeAssumptions.ptr_method_set
 
-axiom SelfSubjectReviewInterface : Type
-axiom SelfSubjectReviewInterface.zero_val : ZeroVal SelfSubjectReviewInterface
+opaque SelfSubjectReviewInterface.nonempty_type : NonemptyType.{0}
+def SelfSubjectReviewInterface : Type := SelfSubjectReviewInterface.nonempty_type.type
+instance SelfSubjectReviewInterface.nonempty : Nonempty SelfSubjectReviewInterface := SelfSubjectReviewInterface.nonempty_type.property
+opaque SelfSubjectReviewInterface.zero_val : ZeroVal SelfSubjectReviewInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] SelfSubjectReviewInterface.zero_val
 
 class SelfSubjectReviewInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] SelfSubjectReviewInterface.TypeAssumptions.type_repr
   SelfSubjectReviewInterface.TypeAssumptions.method_set
   SelfSubjectReviewInterface.TypeAssumptions.ptr_method_set
 
-axiom selfSubjectReviews : Type
-axiom selfSubjectReviews.zero_val : ZeroVal selfSubjectReviews
+opaque selfSubjectReviews.nonempty_type : NonemptyType.{0}
+def selfSubjectReviews : Type := selfSubjectReviews.nonempty_type.type
+instance selfSubjectReviews.nonempty : Nonempty selfSubjectReviews := selfSubjectReviews.nonempty_type.property
+opaque selfSubjectReviews.zero_val : ZeroVal selfSubjectReviews := ⟨Classical.ofNonempty⟩
 attribute [instance] selfSubjectReviews.zero_val
 
 class selfSubjectReviews.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

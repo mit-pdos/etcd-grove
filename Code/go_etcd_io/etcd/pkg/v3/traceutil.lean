@@ -48,12 +48,12 @@ noncomputable def step.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] step.ty
 
-axiom instrumentationScope [GooseExts] [GoGlobalContext] : val
+opaque instrumentationScope [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Tracer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Tracer"
 
-axiom Tracer.init [GooseExts] [GoGlobalContext] : val
+opaque Tracer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/traceutil.Init"
@@ -519,7 +519,7 @@ noncomputable def Trace.enableStep.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.traceutil where
   pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.go_uber_org.zap]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
