@@ -533,7 +533,7 @@ theorem backend.wp_run :
 
 theorem wp_newBackend :
     EtcdGrove.backend.newBackend.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.newBackend.wp_proof wp_newBoltLoggerZap BackendConfig.wp_mmapSize zap.wp_NewNop zap.wp_String zap.wp_Error zap.Logger.wp_Panic wp_newBatchTxBuffered backend.wp_run
+  EtcdGrove.backend.newBackend.wp_proof wp_newBoltLoggerZap BackendConfig.wp_mmapSize zap.wp_NewNop zap.wp_String zap.wp_Error zap.Logger.wp_Panic wp_newBatchTxBuffered backend.wp_run bbolt.wp_Open
 
 theorem wp_New :
     EtcdGrove.backend.New.spec (GF := GF) (hG := hG) :=
@@ -541,7 +541,7 @@ theorem wp_New :
 
 theorem backend.wp_Close :
     EtcdGrove.backend.backend.Close.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.backend.backend.Close.wp_proof
+  EtcdGrove.backend.backend.Close.wp_proof bbolt.DB.wp_Close
 
 end links_hasLC
 

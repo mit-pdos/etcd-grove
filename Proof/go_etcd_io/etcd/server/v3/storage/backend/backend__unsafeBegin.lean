@@ -56,7 +56,7 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
       simp only [Bool.false_eq_true, ↓reduceIte] at h'
       iapply wp_fupd
       wp_apply h' $$ [$Hdb $Htok $Hau] as %tx %err Hr
-      icases Hr with (⟨%He, #Htd, %D', Htx, Hs, %HD⟩ | ⟨%He, Htok, Hau⟩)
+      icases Hr with (⟨%He, #Htd, %D', Htx, Hs, %HD⟩ | ⟨%He, -, Htok, Hau⟩)
       · subst HD
         imodintro
         iapply HΦ; iframe Hs Hdb Hrest
@@ -65,11 +65,11 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
       · imod (backend.boltState_au_back γ D) $$ Hau with Hs
         imodintro
         iapply HΦ; iframe Hs Hdb Hrest
-        ileft; iframe Htok; ipureintro; exact He
+        ileft; iframe Htok; ipureintro; exact He.1
     · have h' := h db γ true (fun _ => iprop(emp))
       simp only [↓reduceIte] at h'
       wp_apply h' $$ [$Hdb] as %tx %err Hr
-      icases Hr with (⟨%He, #Htd, %D', Htx⟩ | ⟨%He, -⟩)
+      icases Hr with (⟨%He, #Htd, %D', Htx⟩ | ⟨%He, -, -⟩)
       · icases persistent_entails_right (bbolt.boltTx_base tx γ 1 1 (TxView.wr D') D) $$ [Htx Hs]
           with ⟨%Hb, Htx, Hs⟩
         · iframe Htx Hs
@@ -82,7 +82,7 @@ private theorem bbolt.kvGlue_DB__Begin_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.F
         rw [← wView_wr]
         iexact Htx
       · iapply HΦ; iframe Hs Hdb Hrest
-        ileft; unfold wrTok; isplitr; · ipureintro; exact He
+        ileft; unfold wrTok; isplitr; · ipureintro; exact He.1
         itrivial
 
 theorem backend.backend.unsafeBegin.wp_proof
