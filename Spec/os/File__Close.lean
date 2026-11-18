@@ -4,13 +4,16 @@ the tokens of its description's exclusive locks (`lockToks fd d`: `emp` for an u
 every open gives, `lockToks_unlocked`; 2026-11-15, the lock semantics) and the whole of the
 `*File`'s fd field: the model (`TrustedCode/os.lean`) sets the field to -1 and calls the extension's
 `Close` (`wp_osClose`), which frees the fd and releases its locks whatever the errno. The result is
-any error; the `*File` keeps its name (`Name` still works). Proved in
+any error, which witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises
+`FsNoErr` names, `close` returns 0; session S6 folded the former `specNoErr` into this spec,
+`notes/bbolt-integration-plan.md`); the `*File` keeps its name (`Name` still works). Proved in
 `Proof/os/File__Close.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.os.Base
 public import Spec.fmt.ErrorOk
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -35,7 +38,8 @@ abbrev os.File.Close.spec : Prop :=
   {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
       osFd (GF := GF) fd (DFrac.own 1) d ∗ lockToks (GF := GF) fd d }}
     (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
-  {{ (err : GoInterface), RET #err; os.ownFile f (-1 : w64) name (DFrac.own 1) ∗
+  {{ (err : GoInterface), RET #err;
+      os.ownFile f (-1 : w64) name (DFrac.own 1) ∗ ⌜err = interface.nil ∨ ¬ FsNoErr⌝ ∗
       fmtErrorOkOrNil err }}
 
 end spec

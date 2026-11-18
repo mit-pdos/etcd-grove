@@ -9,6 +9,7 @@ module
 
 public import Proof.os.ErrorOk
 public import Spec.os.File__ReadAt
+public import GooseLang.Ext.Fs.NoErrSpecsOpen
 
 @[expose] public section
 
@@ -306,7 +307,7 @@ theorem os.File.ReadAt.wp_proof : os.File.ReadAt.spec (GF := GF) (hG := hG) := b
 /-- **The racing read, generic in its `pread`s' errnos** (`specRacyLt` with a `*PathError` only
 of an errno `e ≠ 0` with `Pe e`): over a semantics whose `pread` steps return an errno with `Pe`
 (`hpost`, a strengthening of their weakest preconditions as `wp_ext_post` gives). `specRacyLt`
-(any errno) and `specRacyLtNoErr` (errno 0: no error) are its instances. -/
+(at `Pe e := FsNoErr → e = 0`) is its instance. -/
 theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
     (hpost : ∀ (fd o n : w64) (Φ : val → IProp GF),
       WP (ExternalOp fsExt.name "PRead" (Val (PairV (#fd) (PairV (#o) (#n)))))
@@ -596,11 +597,30 @@ theorem os.File.ReadAt.wp_proofRacyLtQ (Pe : w64 → Prop)
           · ipureintro; exact ⟨hl, by omega, hx⟩
           iright; iexists pe; iframe Hok; ipureintro; exact ⟨rfl, e, hPe, he0'⟩
 
+/-- **`specRacyLt`**: `wp_proofRacyLtQ` at `Pe e := FsNoErr → e = 0` (when `FsNoErr` holds, a
+`pread` returns errno 0, `pread_noErr` through `wp_ext_post`), so a `*PathError`, of an errno
+`e ≠ 0`, witnesses `¬ FsNoErr`. -/
 theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG) := by
   intro f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend
   iintro %Φ Hpre HΦ
-  iapply os.File.ReadAt.wp_proofRacyLtQ (fun _ => True)
-    (fun _ _ _ _ => wp_mono (fun _ => by iintro H; iapply H; ipureintro; intros; trivial))
+  iapply os.File.ReadAt.wp_proofRacyLtQ (fun e => FsNoErr → e = W64 0)
+    (fun fd o n Φ => by
+      by_cases hne : FsNoErr
+      · obtain ⟨Sio, hS, hs1, -, -⟩ := hne
+        haveI := hs1
+        iintro H
+        iapply wp_ext_post "PRead" _ (by simp [val.isPanic])
+          (fun r => ∃ r0, r = PairV r0 (#(0 : w64))) (pread_noErr hS fd o n) Φ
+        iapply wp_wand $$ H
+        iintro %r H %hr
+        iapply H
+        ipureintro
+        intro r0 e he _
+        obtain ⟨r1, hr1⟩ := hr
+        rw [hr1] at he
+        exact (go.intoVal_inj (val.PairV.inj he).2).symm
+      · exact wp_mono (fun _ => by
+          iintro H; iapply H; ipureintro; intro _ _ _ h; exact absurd h hne))
     f fd name dqf sl vs off dq d rs eof hrd hoff hn2 hend $$ Hpre
   inext
   iintro %n %err ⟨Hfo, Hfd, Hbs, %vs', Hsl, %h, Hr⟩
@@ -610,7 +630,9 @@ theorem os.File.ReadAt.wp_proofRacyLt : os.File.ReadAt.specRacyLt (GF := GF) (hG
   · ipureintro; exact h
   icases Hr with (%h4 | ⟨%pe, %hpe, Hok⟩)
   · ileft; ipureintro; exact h4
-  · iright; iexists pe; iframe Hok; ipureintro; exact hpe.1
+  · obtain ⟨hpe1, e, he, hne0⟩ := hpe
+    iright; iexists pe; iframe Hok
+    ipureintro; exact ⟨hpe1, fun h => hne0 (he h)⟩
 
 /-- **The racing read** (`specRacy`): `specRacyLt`'s post, weakened. -/
 theorem os.File.ReadAt.wp_proofRacy : os.File.ReadAt.specRacy (GF := GF) (hG := hG) := by

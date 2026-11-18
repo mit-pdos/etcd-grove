@@ -1,14 +1,14 @@
 /-
 `fdatasync(db)` whose error witnesses that **the file system can fail** (session S3f of
 `notes/bbolt-integration-plan.md`): `fdatasync.spec` with `⌜¬ FsNoErr⌝` in its error arm, over
-`syscall.Fdatasync.specBW`. An internal spec of `Open`'s (its sync after `loadFreelist`, and
+`syscall.Fdatasync.specB` (its error arm carries the witness). An internal spec of `Open`'s (its sync after `loadFreelist`, and
 `DB.init`'s), so that `Open`'s proof, generic in the environment's errors, refutes the error under
 the premises (`Open_sharedNoErr`).
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.fdatasync
-public import Spec.syscall.FdatasyncW
+public import Spec.syscall.Fdatasync
 public import Spec.os.File__Fd
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
 
@@ -45,7 +45,7 @@ abbrev fdatasync.specW : Prop :=
       (⌜err = interface.nil⌝ ∨ ⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err) }}
 
 theorem fdatasync.wp_proofW (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hSync : syscall.Fdatasync.specBW (GF := GF) (hG := hG))
+    (hSync : syscall.Fdatasync.specB (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     fdatasync.specW (GF := GF) (hG := hG) := by
   intro db f fd p i m dqf dq

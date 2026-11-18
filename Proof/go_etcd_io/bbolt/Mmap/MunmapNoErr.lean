@@ -1,13 +1,13 @@
 /-
-`munmap(db)` and `DB.munmap` with no error of the environment (`FsStepSat (NoMapLockErr Sio)`, pending
-the user's review; every inode covered): `unix.Munmap` returns `nil`, so `munmap(db)` does, and
+`munmap(db)` and `DB.munmap` with no error of the environment (`FsNoErr`, which refutes
+`unix.Munmap`'s error arms): `unix.Munmap` returns `nil`, so `munmap(db)` does, and
 `DB.munmap` logs and wraps nothing; the mapping is gone from the `OsMeta`. What `DB.Close_noErr.spec`
 rests on (`Open/CloseNoErr.lean`).
 -/
 module
 
 public import Proof.go_etcd_io.bbolt.Mmap.Munmap
-public import Spec.golang_org.x.sys.unix.MunmapNoErr
+public import Spec.golang_org.x.sys.unix.Munmap
 
 @[expose] public section
 
@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`munmap(db)` with no error** (`munmapM.spec`'s success arm). -/
 abbrev munmapM.specNoErr : Prop :=
-  ∀ (Sio : IoSet) [FsStepSat (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) →
+  FsNoErr →
   ∀ (db base : Loc) (len : w64) (data : Loc) (dsz : w64) (p : BFile) (m : OsMeta)
     (vf : Nat → val),
   0 < len.toInt → m.maps !! base = some len.toNat →
@@ -45,17 +45,21 @@ abbrev munmapM.specNoErr : Prop :=
       osMeta p.ino (DFrac.own 1) { m with maps := GMap.delete base m.maps } }}
 
 theorem munmapM.wp_proofNoErr
-    (hMunmap : golang_org.x.sys.unix.Munmap.specNoErr (GF := GF) (hG := hG)) :
+    (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF) (hG := hG)) :
     munmapM.specNoErr (GF := GF) (hG := hG) := by
-  intro Sio _ hS db base len data dsz p m vf hlen hmap
+  intro hfs db base len data dsz p m vf hlen hmap
   wp_start as ⟨#Hos, Hdr, Hd, Hsz, Hm, Hc⟩
   wp_auto
   have hne : (⟨base, len, len⟩ : GoSlice) ≠ slice.nil := by
     intro h; have := congrArg GoSlice.len h; simp [slice.nil] at this; subst this; simp at hlen
   rw [decide_eq_false hne]
   wp_auto
-  wp_apply hMunmap Sio hS base len p.ino m vf hlen hmap $$ [Hm Hc] as Hm
+  wp_apply hMunmap base len p.ino m vf hlen hmap $$ [Hm Hc] as %e Hr
   · iframe; iframe #
+  icases Hr with (⟨%he, Hm⟩ | ⟨%he, -⟩)
+  rotate_left
+  · exact absurd hfs he.2
+  subst he
   try wp_auto
   iapply HΦ
   iframe
@@ -63,7 +67,7 @@ theorem munmapM.wp_proofNoErr
 /-- **`db.munmap()` of the mapping `base`/`l` with no error** (`DB.munmap.spec`'s success arm):
 `nil`, the fields cleared, the mapping gone from OsFs. -/
 abbrev DB.munmap.specNoErr : Prop :=
-  ∀ (Sio : IoSet) [FsStepSat (NoMapLockErr Sio)], (∀ st i, Sio.ino st i) →
+  FsNoErr →
   ∀ (db base : Loc) (l : Nat) (lg : GoInterface) (p : BFile) (m : OsMeta) (vf : Nat → val),
   db ≠ null → 0 < l → m.maps !! base = some l →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv (GF := GF) ∗
@@ -77,7 +81,7 @@ abbrev DB.munmap.specNoErr : Prop :=
 
 theorem DB.munmap.wp_proofNoErr (hM : munmapM.specNoErr (GF := GF) (hG := hG)) :
     DB.munmap.specNoErr (GF := GF) (hG := hG) := by
-  intro Sio _ hS db base l lg p m vf hdb hl hmap
+  intro hfs db base l lg p m vf hdb hl hmap
   wp_start as ⟨#Hos, #Hlg, #Hlgok, Hmf, Hsz, Hm, Hc⟩
   simp only [mapFields]
   icases Hmf with ⟨Hdr, Hd, Hm0, Hm1, %hb⟩
@@ -87,7 +91,7 @@ theorem DB.munmap.wp_proofNoErr (hM : munmapM.specNoErr (GF := GF) (hG := hG)) :
   wp_bind (App (Val wrapDefer) _)
   wp_apply wp_with_defer as %defer defer
   try wp_auto
-  wp_apply hM Sio hS db base (W64 (l : Int)) base (W64 (l : Int)) p m vf hlen'
+  wp_apply hM hfs db base (W64 (l : Int)) base (W64 (l : Int)) p m vf hlen'
     (by rw [hlen]; exact hmap) $$ [Hdr Hd Hsz Hm Hc] as ⟨Hdr, Hd, Hsz, Hm⟩
   · rw [hlen]; iframe; iframe #
   try simp only [errnoErr, ↓reduceIte]

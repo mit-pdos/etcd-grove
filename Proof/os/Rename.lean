@@ -1,9 +1,7 @@
 /-
 Proof of `Spec/os/Rename.lean` (S5, 2026-11-18; until then an axiom, D22 S-f, 2026-10-19):
 `os.Rename` of a file `fileAt src D` onto the name of an open database's file (`bPath γ dst`), from
-the model's error-free rename in the tree's shared mode (`os.Rename.specFileSNE`, the same function's
-spec in the shared mode, proved in `Proof/os/RenameSNE.lean`: a derivation, so its proof is used
-directly, not taken as a callee's hypothesis), at `theFs` (whose
+the model's error-free rename in the tree's shared mode (`rename_fileNE`, below), at `theFs` (whose
 `FsNoErrAll` covers every path). The two claims come with their own shared invariants; the two
 agree on the roots at the call's first step (`Fs.wp_osSharedAgree`), and are of distinct keys, being
 both whole (`osNames`' validity).
@@ -11,7 +9,8 @@ both whole (`osNames`' validity).
 module
 
 public import Spec.os.Rename
-public import Proof.os.RenameSNE
+public import Spec.os.RenameS
+public import GooseLang.Ext.Fs.NoErrSpecsRename
 public import GooseLang.Ext.Fs.TreeSharedRoots
 
 @[expose] public section
@@ -28,6 +27,62 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+
+section noerr
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [go.BasicIntoValInj] [os.Assumptions]
+open Fs
+
+/-- **The model's rename of a file onto a non-directory, with no error** (S5): under `NoIoErr`
+covering every path, the model's `LstatDir` of a target that is no directory, then one `CallBegin`
+and `rename(2)`, which has a success, so returns 0 (`wp_osRenameFileSNE`): `nil`, the two claims
+(whole, distinct keys) after the rename. A lemma of this proof, not a spec (one spec per function:
+`os.Rename`'s are `Spec/os/RenameS.lean`'s and this file's). -/
+private theorem rename_fileNE :
+  ∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)], (∀ p, Sio.path p) →
+  ∀ (d bs d' bt : GoString) (j j' i : Ino) (N N' : NameSet) (R : Roots) (dq dq' : DFrac)
+    (h h' : NamesH) (qc : Qp),
+  NameOk bs → NameOk bt → N.Mem bs → N'.Mem bt → (j, N) ≠ (j', N') →
+  h.cur !! bs = some (.file i) → (∀ J, h'.cur !! bt ≠ some (.dir J)) →
+  {{ osInv (GF := GF) ∗ osSharedInv R ∗ osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+      osNames j N (DFrac.own 1) h ∗ osNames j' N' (DFrac.own 1) h' }}
+    (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d' bt)))
+  {{ RET #interface.nil; osPathS R d dq j ∗ osPathS R d' dq' j' ∗ osCallPerm qc ∗
+      ∃ h1 h2 : NamesH, ⌜h1.cur = GMap.delete bs h.cur ∧ h2.cur = <[bt := .file i]> h'.cur⌝ ∗
+        osNames j N (DFrac.own 1) h1 ∗ osNames j' N' (DFrac.own 1) h2 }}
+ := by
+  intro Sio _ hS d bs d' bt j j' i N N' R dq dq' h h' qc hbs hbt hN hN' hkey hsrc htgt
+  wp_start as ⟨#Hos, #Hsi, Hp, Hp', Hperm, Hn1, Hn2⟩
+  imod osNames_next R j N _ h CoPset.subseteq_top $$ Hsi Hn1 with ⟨Hn1, #Hlb1⟩
+  imod osNames_next R j' N' _ h' CoPset.subseteq_top $$ Hsi Hn2 with ⟨Hn2, #Hlb2⟩
+  ihave #Hlb := osLogLb_max h.next h'.next $$ [Hlb1 Hlb2]
+  · iframe #
+  iclear Hlb1 Hlb2
+  wp_apply wp_osCallBeginS R qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t %s0 %hs Hk Hls
+  iclear Hls
+  wp_apply wp_osLstatDirS_mem R d' bt j' N' dq' (DFrac.own 1) h' t s0 qc hbt hN'
+    CoPset.subseteq_top CoPset.subseteq_top $$ Hos Hsi Hp' Hn2 Hk as %isDir %e %hd Hperm Hp' Hn2
+  have hd1 : isDir ≠ 1 := fun h1 => by obtain ⟨⟨J, hJ⟩, -⟩ := hd h1; exact htgt J hJ
+  rw [decide_eq_false (show isDir ≠ W64 1 from hd1)]
+  wp_auto
+  wp_apply +noauto wp_osCallBeginS R qc (max h.next h'.next) CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hperm Hlb as %t2 %s1 %hs1 Hk Hls
+  iclear Hls
+  wp_auto
+  wp_bind (ExternalOp _ _ _)
+  iapply wp_osRenameFileSNE Sio hS R d bs d' bt j j' i N N' dq dq' h h' t2 s1 qc hbs hbt hN hN'
+    hkey hsrc htgt (Nat.le_trans (Nat.le_max_left _ _) hs1)
+    (Nat.le_trans (Nat.le_max_right _ _) hs1) CoPset.subseteq_top CoPset.subseteq_top
+    $$ Hos Hsi Hp Hp' Hn1 Hn2 Hk
+  iintro Hperm Hp Hp' ⟨%x, -, Hn1, Hn2⟩
+  wp_auto
+  iapply HΦ
+  iframe Hp Hp' Hperm
+  iexists _, _
+  iframe Hn1 Hn2
+  ipureintro; exact ⟨rfl, rfl⟩
+
+end noerr
 
 open Fs in
 /-- Two whole claims are of distinct keys. -/
@@ -58,7 +113,7 @@ theorem os.Rename.wp_proof [os.Assumptions] :
   · simp only [backend.fileAt, onFs_none hfs]
     iintro %Φ ⟨H, -⟩ HΦ
     iexfalso; iexact H
-  · have h' := @os.Rename.wp_proofFileSNE _ _ _ Sx okx hasx _ _ _ GF hG _ _
+  · have h' := @rename_fileNE _ _ _ _ _ GF hG _ Sx okx hasx _ _
     simp only [backend.fileAt, backend.bPath, backend.fileFree, onFs_some hfs, fileAtF, nameAtF,
       fileFreeF]
     obtain ⟨Sio, -, hpath, hs1, -⟩ := nex.ok

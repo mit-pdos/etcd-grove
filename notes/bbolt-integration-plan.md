@@ -606,6 +606,63 @@ name, `os.OpenFile.specCreateS`), `Close` giving the file back (`fileHolds i D`)
     `DB.mmapUnlocked.spec_own` (`L ≤ 2 ^ 47`), `lfOK` (`wdbSz`), `cm_wdbW'_mapLen` (`≤ 2 ^ 47`).
   - **For S3e**: `Close_kv` gets `fileHoldsM` back, which `Open_kv` takes: the backend's
     `applySnapshot` close-and-reopen needs no size argument of its own.
+* 2026-11-18, **S6, one canonical spec per function** (branch `one-spec` off `bbolt-integrate`
+  `413fd1e22a`; the user's rule "a single canonical spec for each function"). No new `axiom` or
+  `sorry`; no closed theorem's statement changed; no change to Perennial, the forks or the trusted
+  semantics/premises.
+  - **The error-free variants folded into the canonical spec** (as S3f did for `Open`): the error arm
+    of the one spec carries `⌜¬ FsNoErr⌝`, so a caller under the premises refutes it
+    (`Fs.fsNoErr_of`) and a caller without them is unaffected. Each canonical proof is by cases on
+    `FsNoErr`, over the former two proofs kept as private lemmas of its file (`wp_old`/`wp_NE` of
+    private `tripleOld`/`tripleNE`: not specs, not linked, not exported):
+    - `syscall.Flock.spec` ← `specNoErr`, `specW`: post `⌜(req = none ∨ nb = true) → e = 0 ∨
+      (req ≠ none ∧ e = EAGAIN) ∨ ¬ FsNoErr⌝ ∗ lockOut …` (the guard: a blocking lock may still wait,
+      which the extension's error-free `flock` does not cover).
+    - `syscall.Fdatasync.specB` ← `specBNoErr`, `specBW`: error arm `e ≠ 0 ∧ e ≠ EINTR ∧ ¬ FsNoErr`.
+    - `unix.Mmap.spec` ← `specNoErr`, `specW`; `unix.Munmap.spec` ← `specNoErr` (both error arms).
+    - `unix.Madvise.spec` ← `specNoErr`, `specW`: the one spec takes an optional mapping
+      `M : Option (Ino × DFrac × OsMeta)` (pre `osInv ∗ match M …`, its pure premise that `b` starts
+      a mapping of `m` and is non-empty); post `match M … ∗ ⌜M = none ∨ e = 0 ∨ ¬ FsNoErr⌝`. minibolt
+      passes `none`, bbolt's `mmapF` its mapping.
+    - `os.File.ReadAt.specRacyLt` ← `specRacyLtNoErr`, `specRacyLtW`: proved directly from
+      `wp_proofRacyLtQ` at `Pe e := FsNoErr → e = 0`; `specRacy` stays its corollary.
+    - `os.File.WriteAt.spec` ← `specNoErr`, `specW` (premise `< 2 ^ 63` kept): failure arm
+      `¬ FsNoErr ∨ maxBytes < off + len` (`specW` had required `off + len ≤ maxBytes`; `DB.init`
+      refutes the second disjunct with it). `specExtNoErr` deleted (unused).
+    - `os.File.Stat.spec` ← `specNoErr`, `specW`: `⌜err ≠ nil ∧ fi = nil ∧ ¬ FsNoErr⌝`.
+    - `os.File.Sync.specB` ← `specBNoErr` (unused): `⌜err ≠ nil ∧ ¬ FsNoErr⌝`.
+    - `os.File.Close.spec` ← `specNoErr`: post `os.ownFile f (-1) name 1 ∗ ⌜err = nil ∨ ¬ FsNoErr⌝ ∗
+      fmtErrorOkOrNil err`.
+    - `os.OpenFile.specCreateS` ← `specCreateSNoErr`: `⌜err ≠ nil ∧ f = null ∧ ¬ FsNoErr⌝` (the
+      error-free case needs `d/b` among `FsNoErr`'s paths, which it covers).
+    Callers moved to the one spec: bbolt (`Open/{Flock,PageSize,MetasZero,ReadHeld,FdatasyncW,Close,
+    CloseFile}`, `Mmap/{Map,Unmap,MunmapNoErr,MunmapW}`, `DB__init`, `DB__Close`, `Open`), the WAL
+    (`Close`'s pattern, ~14 sites), `fileutil.{LockFile,TryLockFile}`, minibolt (`flock`, `DB.close`,
+    `DB.closeCrash`, `DB.mmap`, `DB.mmapCrash`), `os/Off`. `Open`'s `openFileDb_shared` no longer
+    cases on `FsNoErr` (one `specCreateS`). Dead code removed: `Open/CloseNoErr.lean`
+    (`DB.close.spec_ownedNoErr`, superseded by `CloseFile`'s `spec_ownedNoErrM`) and `ReadHeld`'s
+    `wp_held`. bbolt's internal `munmapM.specNoErr`, `DB.munmap.specNoErr`,
+    `DB.munmap.wp_closeResNoErrM` and `DB.close.spec_ownedNoErrM` take `FsNoErr` in place of
+    `(Sio) [NoIoErr Sio] [NoMapLockErr Sio] (coverage)` (internal statements).
+  - **bbolt's public functions' internal variants out of `Spec/`** (as S3f did for `DB.Begin_err`):
+    `Bucket.Bucket_r`/`_w`, `Bucket.Cursor_i`, `Bucket.ForEachBucket_r`/`_rP`, `Tx.Commit_err`,
+    `Tx.Rollback_r` are stated in their proof files (`Proof/go_etcd_io/bbolt/<X>.lean`),
+    `Bucket.ForEachBucket_w` in `Read/WFeb.lean` (its proof's home: `Bucket__ForEachBucket_w` imports
+    it). They are helpers over the internal vocabulary (`rdTxK`, `wtxW`, `K.core`, the carrier `P`
+    of `Commit_err` that `Open` needs), used across bbolt's own proofs, not in `etc/api/bbolt.txt`.
+    `Tx.Bucket` has one spec (the backend's `_kvr`/`_kvw` went with S3e's `_kv` layer).
+    `Bucket.Bucket` and `Bucket.ForEachBucket` have no public spec (no API vocabulary for nested
+    buckets): only the internal ones.
+  - **Left (for the coordinator)**: the internal functions' reader/writer pairs in `Spec/`
+    (`Cursor.first/last/next/prev/seek/search/keyValue/nsearch/goToFirstElementOnTheStack` `_r`/`_w`
+    and their `specQ`, `Bucket.openBucket`/`pageNode`, `Tx.close`/`page`/`allocate`,
+    `Bucket.free`/`free_dead`, `DB.beginTx_s`) and the Proof-internal variants (`DB.munmap`
+    `spec`/`specNoErr`/`specW`/`spec_none`, `munmapM`, `fdatasync.specW`, `DB.close`
+    `spec_owned`/`spec_closed`/`spec_ownedNoErrM`/`specTok`, `DB.mmapUnlocked.spec_own`,
+    `DB.pageInBuffer.spec_own`, `Bucket.rebalance.spec'`, `Bucket.spill.specC`, `Tx.rollback_f`): the
+    reader/writer split is the proof's architecture (two vocabularies), a merge a re-proof. The
+    pre-existing multiple specs of `os`, `syscall`, `fileutil`, the WAL, the server, raft and the
+    examples are listed in S6's report (not changed).
 
 ### S3e (branch `bbolt-files-backend`, off `bbolt-integrate` `4511e2dcd1`, 2026-11-17): the backend's database files over the file model
 
@@ -862,7 +919,7 @@ path while the old backend is open). So 2, 3, 4 land together.
   right on the backend path (`srvFiles`' file has the claim).
 - Item 2: **`os.Rename` is a theorem** (`Proof/os/Rename.lean`; the axiom `os.Rename.wp_proof` gone):
   `{{ fileAt src D ∗ bPath γ dst }} os.Rename src dst {{ err, ⌜err = nil⌝ ∗ fileAt dst D ∗ fileFree src }}`.
-  From `os.Rename.specFileSNE` (`Spec/os/RenameSNE.lean`, proved in `Proof/os/RenameSNE.lean`: the
+  From the private lemma `rename_fileNE` (not a spec: one spec per function, S6; the
   model's `LstatDir`, one `CallBegin` and `rename(2)` with no error, `GooseLang/Ext/Fs/NoErrSpecsRename.lean`:
   `renameFile_succ`, a file renamed onto a non-directory has a success step, so `NoIoErr` covering every
   path gives errno 0; `wp_logStepSQ`, `wp_osRenameFileSNE`). The two claims' shared invariants agree on

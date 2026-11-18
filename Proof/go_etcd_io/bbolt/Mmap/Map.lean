@@ -13,8 +13,8 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.ErrPtr
 public import Proof.go_etcd_io.bbolt.Inv.Ctx
 public import Proof.go_etcd_io.bbolt.Mmap.Infra
-public import Spec.golang_org.x.sys.unix.MmapW
-public import Spec.golang_org.x.sys.unix.MadviseW
+public import Spec.golang_org.x.sys.unix.Mmap
+public import Spec.golang_org.x.sys.unix.Madvise
 public import Spec.os.File__Fd
 public import Spec.fmt.Errorf
 public import Proof.golang_org.x.sys.unix.Munmap
@@ -75,8 +75,8 @@ abbrev mmapF.spec : Prop :=
             mapCells base sz m)))) }}
 
 theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
-    (hMmap : golang_org.x.sys.unix.Mmap.specW (GF := GF) (hG := hG))
-    (hMadvise : golang_org.x.sys.unix.Madvise.specW (GF := GF) (hG := hG))
+    (hMmap : golang_org.x.sys.unix.Mmap.spec (GF := GF) (hG := hG))
+    (hMadvise : golang_org.x.sys.unix.Madvise.spec (GF := GF) (hG := hG))
     (hErrorf : fmt.Errorf.spec (GF := GF) (hG := hG))
     (hErr : errnoErrOk (GF := GF) (hG := hG)) :
     mmapF.spec (GF := GF) (hG := hG) := by
@@ -99,9 +99,13 @@ theorem mmapF.wp_proof (hFd : os.File.Fd.spec (GF := GF) (hG := hG))
     wp_auto
     have hszn : 0 < sz.toNat := by have := hsz; simp [BitVec.toInt] at this; omega
     icases cellsR_pos _ _ _ hszn $$ Hc with ⟨Hc, %Hpos⟩
-    wp_apply hMadvise base sz sz (W64 1) p.ino (DFrac.own 1) ({ m with maps := <[base := sz.toNat]> m.maps }) sz.toNat (by decide) Hpos hsz
-      (GMap.lookup_insert _ _ _) $$ [Hm] as %e2 ⟨Hm, %he2⟩
+    wp_apply hMadvise ⟨base, sz, sz⟩ (W64 1)
+      (some (p.ino, DFrac.own 1, { m with maps := <[base := sz.toNat]> m.maps })) (by decide)
+      (Int.le_of_lt hsz) (fun _ _ _ h => by
+        cases h; exact ⟨Hpos, hsz, sz.toNat, GMap.lookup_insert _ _ _⟩)
+      $$ [Hm] as %e2 ⟨Hm, %he2'⟩
     · iframe; iframe #
+    have he2 : e2 = 0 ∨ ¬ FsNoErr := he2'.resolve_left (fun h => nomatch h)
     try wp_auto
     ihave Hfo : fileOwn f fd p.path dqo $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo

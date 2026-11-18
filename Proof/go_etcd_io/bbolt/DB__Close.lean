@@ -265,10 +265,7 @@ theorem DB.Close.wp_proof
     iapply HΦ
     iright; ipureintro; exact hne
   -- no error: `close` gives the `OsMeta` back
-  obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
-  haveI := hs1
-  haveI := hs2
-  wp_apply hOwnedM Sio hSio db lg DFrac.discard w.fli _ p.path w.ms p w.m w.f w.fd p.path _ Ht0.2.1
+  wp_apply hOwnedM hne db lg DFrac.discard w.fli _ p.path w.ms p w.m w.f w.fd p.path _ Ht0.2.1
     hfnn $$ [Hop Hfli Hwa Hpath Hmf Hdsz Hres Hfile Hfo Hfd Htok]
     as ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile, Hback⟩
   · iframe; iframe #
@@ -296,11 +293,11 @@ theorem DB.Close.wp_proof
   rotate_left
   · -- a mapping leaked: excluded, the leak recorded a failure the premises refute (session S3f)
     ihave %hfs := junkRes_some_fs (bnsOf γ.gs) (some (jb, jl)) jb jl rfl $$ Hjk
-    exact absurd ⟨Sio, hSio, hs1, hs2, hsp⟩ hfs
+    exact absurd hne hfs
   -- whole pages and mappable (`wdbSz`, session S3g: under the premises a failed write ends at
   -- `maxBytes`, page-aligned; the mapping lies below `maxAddr`)
   have hszw : wdbSz w.m w.ms := Hwok.2.2.2.2.2.2.2.2.2.2.2.2.1
-  have hal : w.m.size % 4096 = 0 := hszw.2.2 ⟨Sio, hSio, hs1, hs2, hsp⟩
+  have hal : w.m.size % 4096 = 0 := hszw.2.2 hne
   -- the file given back; the caller's validity token kept by the closed database
   wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
     Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]

@@ -10,7 +10,7 @@ public import Proof.go_etcd_io.bbolt.Open.ReadHeld
 public import Proof.go_etcd_io.bbolt.Inv.Locks
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGaps
 public import Proof.go_etcd_io.bbolt.Mmap.AllocPage
-public import Spec.os.File__StatW
+public import Spec.os.File__Stat
 public import Spec.os.fileStat__Size
 public import Spec.go_etcd_io.bbolt.internal.common.Page__Meta
 public import Spec.go_etcd_io.bbolt.internal.common.Meta__Validate
@@ -160,7 +160,7 @@ abbrev DB.getPageSizeFromFirstMeta.spec_own : Prop :=
           ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.getPageSizeFromFirstMeta.wp_proof_own
-    (hRead : os.File.ReadAt.specRacyLtW (GF := GF) (hG := hG))
+    (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
     (hValidate : internal.common.Meta.Validate.spec (GF := GF) (hG := hG))
     (hPageSize : internal.common.Meta.PageSize.spec (GF := GF) (hG := hG)) :
@@ -282,8 +282,8 @@ abbrev DB.getPageSizeFromSecondMeta.spec_own : Prop :=
        (⌜err ≠ interface.nil ∧ errPtrTyped err ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.getPageSizeFromSecondMeta.wp_proof_own
-    (hRead : os.File.ReadAt.specRacyLtW (GF := GF) (hG := hG))
-    (hStat : os.File.Stat.specW (GF := GF) (hG := hG))
+    (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
+    (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (hMeta : internal.common.Page.Meta.spec (GF := GF) (hG := hG))
     (hValidate : internal.common.Meta.Validate.spec (GF := GF) (hG := hG))

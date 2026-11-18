@@ -32,7 +32,7 @@ variable [sem : go.Semantics]
 /-- `os.Rename(src, dst)` of the file at `src` holding `D` onto `dst`, the name of an open
 database's file (S5, 2026-11-18): `nil`, the file at `dst` and the name `src` free. Over the tree's
 shared mode (`fileAt`, `bPath`, `fileFree`: the claims on the two names), from the model
-(`os.Rename.specFileSNE`): no error, the semantics having no I/O error where a success exists
+(`Proof/os/Rename.lean`'s `rename_fileNE`, a lemma, not a spec): no error, the semantics having no I/O error where a success exists
 (`theFs`'s `FsNoErrAll`). The file at `dst` it replaces is the open database's, which keeps its
 inode (`bClosed` after its `Close`). Until S5 an axiom over the abstract `srvFileHolds` and
 `pathOwn`, with an error case `¬ renameOk src dst`. -/

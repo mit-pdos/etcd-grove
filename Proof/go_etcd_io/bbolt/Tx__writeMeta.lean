@@ -340,7 +340,7 @@ theorem Tx.writeMeta.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
     have hj : j = 4096 := by
       rcases hres with ⟨h1, -, -⟩ | ⟨-, h2⟩
       · rw [metaBuf_length] at h1; exact h1
-      · exact absurd rfl h2
+      · exact absurd rfl h2.1
     ihave Hfo : fileOwn f fd K.p.path (DFrac.own 1) $$ [Hfo]
     · rw [fileOwn_eq]; iexact Hfo
     -- the sync (unless `NoSync`), then the statistics

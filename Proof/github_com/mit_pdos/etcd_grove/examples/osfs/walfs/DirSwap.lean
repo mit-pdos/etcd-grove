@@ -1024,10 +1024,10 @@ theorem wp_Create (wp_Close : os.File.Close.spec (GF := GF) (hG := hG))
       (by decide) (by decide) (by decide) $$ [Hos Hf Hsl Hfd Hm Hb0 Hmc]
     as %n %err ⟨Hf, Hsl, Hfd, %j', %ys, %Hres, Hm, Hys, -⟩
   · iframe; iexact Hos
-  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne⟩⟩ := Hres
+  obtain ⟨hj, hys, -, ⟨rfl, rfl, rfl⟩ | ⟨rfl, hne, -⟩⟩ := Hres
   rotate_left
   · cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl (by first | exact hne | exact hne.1)
     | ok ie =>
     (try wp_auto)
     wp_apply wp_Close f fd (child (child dir wtB) segB) ⟨i, true, true, none, none⟩ $$ [Hos Hf Hfd] as %e -

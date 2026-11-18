@@ -5,7 +5,7 @@ whose authority is in the state interpretation (`treeShared`: at the state's roo
 empty). At the step of any expression that is not a value (`wp_ext_acc`), each of two invariants,
 opened in turn, finds its roots the state's, so the two agree (`wp_osSharedAgree`). What lets a
 client combine two claims made with different witnesses of the roots (a file's and a target name's,
-for a rename, `os.Rename.specFileSNE`). Untrusted.
+for a rename, `Proof/os/Rename.lean`). Untrusted.
 -/
 module
 

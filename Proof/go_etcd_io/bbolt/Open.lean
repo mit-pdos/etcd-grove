@@ -20,13 +20,12 @@ module
 public import Spec.go_etcd_io.bbolt.Open
 public import Spec.go_etcd_io.bbolt.Options__String
 public import Spec.go_etcd_io.bbolt.DB__Begin
-public import Spec.go_etcd_io.bbolt.Tx__Commit_err
+public import Proof.go_etcd_io.bbolt.Tx__Commit_err
 public import Proof.go_etcd_io.bbolt.Open.CloseTok
 public import Spec.go_etcd_io.bbolt.fdatasync
 public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
-public import Spec.os.File__StatW
+public import Spec.os.File__Stat
 public import Spec.os.OpenFileS
-public import Spec.os.OpenFileSNoErr
 public import Proof.os.WriteFile
 public import Spec.os.File__Name
 public import Proof.go_etcd_io.bbolt.Options
@@ -338,7 +337,7 @@ private theorem Open.wp_proofG [sync.Assumptions] [ExtSemantics fsExt] [FsSemOk]
     [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)]
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
     (hFlock : flock.spec (GF := GF) (hG := hG))
-    (hStat : os.File.Stat.specW (GF := GF) (hG := hG))
+    (hStat : os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (hMZ : DB.metasZero.spec_own (GF := GF) (hG := hG))
     (hInit : DB.init.spec (GF := GF) (hG := hG))
@@ -1186,13 +1185,11 @@ private theorem boltOpenFd (i : Ino) :
   have h1 : (W64 0x42 ||| W64 0x80000).toNat % 4 = 2 := by decide
   simp only [openFd, h1, O_WRONLY, O_RDONLY]; rfl
 
-/-- **The shared mode's open of the database file** as `openFileDb.spec` at `Ek := ¬ FsNoErr`: by
-cases on `FsNoErr`, `os.OpenFile.specCreateSNoErr` (no error) or `os.OpenFile.specCreateS` (an error
-carries the case's `¬ FsNoErr`); the claim's halves, the trivial update, the outcome's claim back
+/-- **The shared mode's open of the database file** as `openFileDb.spec` at `Ek := ¬ FsNoErr`:
+`os.OpenFile.specCreateS` (an error carries `¬ FsNoErr`); the claim's halves, the trivial update, the outcome's claim back
 whole; the file the open left at the name, mappable. -/
 private theorem openFileDb_shared
     (hCS : os.OpenFile.specCreateS (GF := GF) (hG := hG))
-    (hCSN : os.OpenFile.specCreateSNoErr (GF := GF) (hG := hG))
     (R : Roots) (d b : GoString) (dq : DFrac) (j : Ino) (qc : Qp) (h : NamesH) (perm : w32)
     (D : Data) (hb : NameOk b) :
     openFileDb.spec (GF := GF) (hG := hG) (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF)
@@ -1208,19 +1205,16 @@ private theorem openFileDb_shared
   ihave Hau := os.osAU_triv (A := Option (Nat × Nat × Ino))
     (osNames (GF := GF) j (.only [b]) (DFrac.own (1 : Qp).half) h)
     (crOut j b h (DFrac.own (1 : Qp).half)) $$ Hr
-  by_cases hne : FsNoErr
-  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
-    haveI := hs1
-    haveI := hs2
-    wp_apply hCSN Sio d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
-      (crOut j b h (DFrac.own (1 : Qp).half)) (hsp _) hfl hcr htr hb hnd (Qp.half_add_half 1)
-      $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
-      as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, %fd, %i, %hres, Hf, -, Hfd⟩
-    ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
-    iapply HΦ
-    iexists oc
-    dsimp only
-    obtain ⟨rfl, hfd, hi⟩ := hres
+  wp_apply hCS d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
+    (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd (Qp.half_add_half 1)
+    $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
+    as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, Hr⟩
+  ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
+  iapply HΦ
+  iexists oc
+  dsimp only
+  icases Hr with (⟨%fd, %i, %hres, Hf, -, Hfd⟩ | ⟨%herr, #Hok⟩)
+  · obtain ⟨rfl, hfd, hi⟩ := hres
     icases nameHolds_opened j h b D oc i hi $$ [$Hnh $Ho $Hm] with ⟨Ho, Hop⟩
     iframe Hp Hperm Ho
     isplitl [Hf Hfd Hop]
@@ -1232,29 +1226,8 @@ private theorem openFileDb_shared
       rw [boltOpenFd] at *
       iexact Hfd
     · iapply fmtErrorOkOrNil_nil
-  · wp_apply hCS d b (W64 0x42) perm R j dq h (1 : Qp).half (1 : Qp).half qc
-      (crOut j b h (DFrac.own (1 : Qp).half)) hfl hcr htr hb hnd (Qp.half_add_half 1)
-      $$ [$Hos $Hsi $Hp $Hperm $Hn $Hau]
-      as %f %err ⟨Hp, Hperm, %oc, Ho1, Ho2, Hm, Hr⟩
-    ihave Ho := os.crOut_join j b h oc $$ [$Ho1 $Ho2]
-    iapply HΦ
-    iexists oc
-    dsimp only
-    icases Hr with (⟨%fd, %i, %hres, Hf, -, Hfd⟩ | ⟨%herr, #Hok⟩)
-    · obtain ⟨rfl, hfd, hi⟩ := hres
-      icases nameHolds_opened j h b D oc i hi $$ [$Hnh $Ho $Hm] with ⟨Ho, Hop⟩
-      iframe Hp Hperm Ho
-      isplitl [Hf Hfd Hop]
-      · ileft
-        iexists fd, i
-        iframe Hf Hop
-        isplitr
-        · ipureintro; exact ⟨rfl, hfd, hi⟩
-        rw [boltOpenFd] at *
-        iexact Hfd
-      · iapply fmtErrorOkOrNil_nil
-    · iframe Hp Hperm Ho Hok
-      iright; ipureintro; exact ⟨herr.1, herr.2, hne⟩
+  · iframe Hp Hperm Ho Hok
+    iright; ipureintro; exact herr
 
 /-- Half of a discardable fraction (`dfHalf dq • dfHalf dq = dq`). -/
 private def dfHalf : DFrac → DFrac
@@ -1331,11 +1304,9 @@ the file mappable (`nameHolds`), the options' witness half of `optsAtNoErr`'s po
 theorem Open.wp_proof [sync.Assumptions]
     (hCS : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
       os.OpenFile.specCreateS (GF := GF) (hG := hG))
-    (hCSN : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
-      os.OpenFile.specCreateSNoErr (GF := GF) (hG := hG))
     (hName : os.File.Name.spec (GF := GF) (hG := hG))
     (hFlock : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], flock.spec (GF := GF) (hG := hG))
-    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.specW (GF := GF) (hG := hG))
+    (hStat : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], os.File.Stat.spec (GF := GF) (hG := hG))
     (hSize : os.fileStat.Size.spec (GF := GF) (hG := hG))
     (hMZ : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.metasZero.spec_own (GF := GF) (hG := hG))
     (hInit : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.init.spec (GF := GF) (hG := hG))
@@ -1361,7 +1332,7 @@ theorem Open.wp_proof [sync.Assumptions]
     (¬ FsNoErr) (· ≤ 0xFFFFFFFFFFFF) (opts ↦{dfHalf dqo} v) id (fun _ hn => Or.inr hn)
     (optsW_timeout _ opts (dfHalf dqo) v hv.2) (optsW_nfs _ opts (dfHalf dqo) v hv.2)
     (optsW_mmap _ opts (dfHalf dqo) v hv.2)
-    (openFileDb_shared hCS hCSN R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hv1 Hv2 Hlgr]
+    (openFileDb_shared hCS R d b dq j qc h mode D hb) $$ [Hp Hperm Hn Hnh Hv1 Hv2 Hlgr]
   · iframe; iframe #
     isplitr
     · ipureintro; exact HN

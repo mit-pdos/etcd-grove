@@ -1,10 +1,9 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/Bucket__ForEachBucket_w.lean`: `Read/WFeb`'s
+The proof of the internal `Bucket.ForEachBucket_w.spec` (stated in `Read/WFeb.lean`): `Read/WFeb`'s
 `Bucket.ForEachBucket_w.wp_proof'`, over the specs of `Bucket.Cursor` and the writer cursor moves.
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.Bucket__ForEachBucket_w
 public import Proof.go_etcd_io.bbolt.Read.WFeb
 
 @[expose] public section
