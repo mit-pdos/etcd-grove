@@ -31,7 +31,6 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
-axiom clock.RealClock.Now.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom conversion.EnforcePtr.wp_proof

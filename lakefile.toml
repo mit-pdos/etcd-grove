@@ -100,11 +100,10 @@ name = "WalTester"
 globs = ["WalTester.+"]
 
 # Robustness theorems (notes/robustness.md): the statement of a deployed system's robustness --
-# every run of its nodes (the real programs) with crashes, the network's faults and any clients,
-# under assumptions on the environment's events only, leaves the nodes fine and satisfies a
-# guarantee on the observed trace (e.g. linearizability) -- generic over the programs, the
-# extensions and the network. Used by the examples' statements (raft/kvnet); its Go counterpart is
-# the test harness examples/lib/robust.
+# in every execution (Perennial's DistCrashNsteps) of programs on machines that crash and restart
+# and programs on machines that never crash, with whatever extensions are plugged in, no thread is
+# stuck or has a top-level panic. Used by the examples' statements (raft/kvnet); its Go counterpart
+# is the test harness examples/lib/robust.
 [[lean_lib]]
 name = "Robustness"
 globs = ["Robustness.+"]

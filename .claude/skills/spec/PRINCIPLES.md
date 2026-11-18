@@ -303,6 +303,20 @@ A spec that breaks one of these is wrong, whatever else it does well, and is not
   proof convenience. It should be easy to audit, and as a general principle, operational semantics
   and specs should avoid unobservable state (e.g., the past operations are unobservable)";
   `notes/net-tcp.md`.)
+- **A top-level theorem says "these programs never panic", over the semantics' own step relation.**
+  Its statement holds the programs, the machines' start states and the existing transition relation
+  (`RealNsteps`, `DistCrashNsteps`), for whatever extensions are plugged in, and concludes that no
+  thread is stuck or has a top-level panic. No semantics of its own (a "world", labelled steps, a
+  re-declared run), and no property defined in Lean over what the run shows (linearizability of a
+  trace, events read off the network's bytes, a wire format decoded a second time): each is a
+  trusted definition to audit. A property is checked by a program of the deployment that panics
+  when it fails (a client that records its history and runs porcupine), on a machine that does not
+  crash if it must keep state. (The robustness statement, 2026-11-15 and 2026-11-17: version 1 had
+  `World`/`Run`/`Deployment`/`StreamNet`, version 2 `Assume`/`Guarantee` over a trace with
+  `LinearizableTrace`; the user: "introduces a bunch of new concepts like 'world' that are
+  unnecessary. There should already be a transition relation defined for gooselang", then "I
+  don't want linearizability to be mentioned by the top-level theorem (e.g., no reading bytes off
+  the network)"; `notes/robustness.md`.)
 - **No redundancy in a formal state: two states no program can tell apart should be one state.**
   The test is not "can a transition read it" but "is there another state with the same observable
   future". A field the transitions carefully keep unreadable is still a defect: names chosen by the

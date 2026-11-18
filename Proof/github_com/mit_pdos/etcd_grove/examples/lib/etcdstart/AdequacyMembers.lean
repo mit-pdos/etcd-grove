@@ -65,7 +65,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext]
         iprop(([∗list] m ∈ ms, etcdstart.memberStartRes m.1 m.2) ∗ [∗list] b ∈ Bs, netAddrFree b)
         init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs HDs HEnv
     n κs t2 σ2 Hsteps fun hG HN HT =>
       progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
@@ -97,7 +97,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
           iprop((([∗list] m ∈ ms, etcdstart.memberStartRes m.1 m.2) ∗
             [∗list] b ∈ Bs, netAddrFree b) ∗ T x) init body φ) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_adequate_alloc init body φ hφ As hAs hAsLit Ds hDs σ g Hinitg Hinitw Hlctx Hinit Hthreads HNs HAs
     HDs HEnv n κs t2 σ2 Hsteps fun hG HN HT => by
       obtain ⟨X, T, Halloc, Hp⟩ := Hprog hG HN HT

@@ -35,6 +35,9 @@ noncomputable def GetAny [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Test [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/goose/prophkv.Test"
 
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
+  go!"github.com/mit-pdos/etcd-grove/examples/goose/prophkv.Main"
+
 /-- go: prophkv.go:23:6 -/
 noncomputable def NewKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -189,6 +192,25 @@ noncomputable def Test.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType KV.ty)))) (Pair (Var "kv") (Var "$r0"))))))))
   (App (Val (GoInstruction (GoLoad go.string))) (Var "$res0")))))
 
+/-- Main runs Test and panics unless GetAny's answer is one of the two values written.
+
+    go: prophkv.go:66:6 -/
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve Test []))) (Val #())) (Val #()))
+  (Let "r" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "r")) (Val #(go!"a"))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "r")) (Val #(go!"b"))))) (Val #false)))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (Convert go.string (go.GoType.InterfaceType [])))) (Val #(go!"prophkv: GetAny answered a value that was never written")))
+  (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "r") (Var "$r0"))))))))
+  (Val #())))
+
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.goose.prophkv where
   pkgImportedPkgs := [pkg_id.github_com.goose_lang.primitive]
 
@@ -249,12 +271,14 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   NewKV_unfold : FuncUnfold NewKV [] NewKV.impl
   GetAny_unfold : FuncUnfold GetAny [] GetAny.impl
   Test_unfold : FuncUnfold Test [] Test.impl
+  Main_unfold : FuncUnfold Main [] Main.impl
   import_primitive_Assumption : _root_.Perennial.github_com.goose_lang.primitive.Assumptions
 
 attribute [instance] Assumptions.KV_instance
   Assumptions.NewKV_unfold
   Assumptions.GetAny_unfold
   Assumptions.Test_unfold
+  Assumptions.Main_unfold
   Assumptions.import_primitive_Assumption
 
 end github_com.mit_pdos.etcd_grove.examples.goose.prophkv

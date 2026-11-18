@@ -27,6 +27,7 @@ public import Proof.os.File__WriteAt
 public import Proof.os.File__Close
 public import Proof.os.File__Sync
 public import GooseLang.Ext.Fs.Adequacy
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -237,6 +238,28 @@ theorem dirswap_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [packa
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   dirswap_crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir j Hlctx Hpkgs Hinit
     Hdir Hsafe n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
+
+/-- **`dirswap_crash_safety` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that may crash at any step and restart,
+a fresh Go process (`Robust`'s premise), under `dirswap_crash_safety`'s other hypotheses: in every
+execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
+theorem dirswap_crash_robust
+    [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions] [os.Assumptions]
+    [os.file.FieldAssumptions]
+    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
+      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
+        (App (Val initialize') (Val #()))
+      {{ RET #(); True }})
+    (σ : state) (g : GlobalState) (dir : GoString) (j : Ino)
+    (Hinit : FsInit (extLocal fsExt σ.world)) (Hdir : (dir, j) ∈ (extLocal fsExt σ.world).fs.roots)
+    (Hsafe : SafeT j none (extLocal fsExt σ.world).fs.treeDur ∨
+      ∃ k, SafeT j (some k) (extLocal fsExt σ.world).fs.treeDur ∧
+        ∃ f, (extLocal fsExt σ.world).fs.files !! k = some f ∧ DataGood (some f))
+    (bound : Nat) :
+    Robustness.Robust [(bootDS dir, σ)] [] g bound :=
+  Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
+    (dirswap_crash_safety
+      Hinit_wp σ g dir j hf.1 hf.2.1 Hinit Hdir Hsafe hf.2.2 n κs t2 σ2 b Hsteps).2
 
 end adequacy
 

@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
+
+`k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
+literal and takes 147s, in many sub-second steps (no unification of a second or more). The struct
+automation's cost seems superlinear in the number of fields; every proof building a large Go struct
+pays it (`NewServer`/`NewServerR` build the server's). To investigate in Perennial with a reproduction
+(a struct of n fields, n = 4, 8, 16, 32), not worked around here.
+
+### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
+
+Perennial `cb8e7bc67` (on `lean`): `pkgInitChain` remembers the packages whose dependencies were searched
+without reaching the target (the same proof found). `EtcdServer.LeaseRenew` 220s to 175s (14 calls, 3.5s
+each); it runs in nearly every proof's `wp_apply`/`wp_auto`. Take it with the next pin bump (a bump
+rebuilds everything; no bump of its own).
+
+
 ### The thread-token `WaitGroup` joins have no `Add` by a member, during a `Wait` (2026-11-16, k8s 7f-5b)
 
 - **Missing.** `sync.tokJoin` and `sync.tokJoinL` (`Perennial/Proof/sync/WaitGroupTokJoin{,L}.lean`)
