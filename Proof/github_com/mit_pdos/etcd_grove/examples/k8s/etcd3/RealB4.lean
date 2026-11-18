@@ -74,10 +74,12 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
       run (kM h0) S l = some T →
       ∃ hF accF, (l.filterMap unaryOf).foldl replayStepL (some acc) = some accF ∧
         SimR h0.st.rv accF hF ∧ RunOk hF ∧ h.hist <+: hF.hist ∧
-        ∀ v ∈ l, v.1.Kind' ≠ W64 5 → ∃ hv, RunOk hv ∧ hv.hist <+: hF.hist ∧
-          uint.nat h0.st.rv ≤ uint.nat hv.st.rv ∧ v.2.1 = (kstepL v.1 hv).2
+        (∀ v ∈ l, v.1.Kind' ≠ W64 5 → ∃ hv, RunOk hv ∧ hv.hist <+: hF.hist ∧
+          uint.nat h0.st.rv ≤ uint.nat hv.st.rv ∧ v.2.1 = (kstepL v.1 hv).2) ∧
+        (∀ v ∈ l, v.1.Kind' = W64 5 → ∃ hv, RunOk hv ∧ hv.hist <+: hF.hist ∧
+          uint.nat h0.st.rv ≤ uint.nat hv.st.rv ∧ watchOkL v.1 v.2.1 hv = true)
   | [], _, _, h, acc, _, _, hrun, hsim, _ =>
-    ⟨h, acc, rfl, hsim, hrun, List.prefix_refl _, by simp⟩
+    ⟨h, acc, rfl, hsim, hrun, List.prefix_refl _, by simp, by simp⟩
   | v :: l, hl, S, h, acc, T, hS, hrun, hsim, hr => by
     obtain ⟨o, ho, hov⟩ := hl v List.mem_cons_self
     have hl' : ∀ w ∈ l, ∃ o ∈ H, o.val = w := fun w hw => hl w (List.mem_cons_of_mem _ hw)
@@ -91,15 +93,19 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
       rw [hov] at hop
       have hstep := kM_step h0 h S hS v.1 v.2.1 v.2.2 hop.1 S1 hst
       by_cases hk5 : v.1.Kind' = W64 5
-      · obtain ⟨-, hS1⟩ := hstep.1 hk5
-        obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts⟩ :=
+      · obtain ⟨hwok, hS1⟩ := hstep.1 hk5
+        obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts, hwts⟩ :=
           drive h0 H hops hpres l hl' S1 h acc T hS1 hrun hsim hr
-        refine ⟨hF, accF, ?_, hsimF, hrunF, hpre, ?_⟩
+        refine ⟨hF, accF, ?_, hsimF, hrunF, hpre, ?_, ?_⟩
         · rw [List.filterMap_cons]; simp only [unaryOf, hk5, ↓reduceIte]; exact hfold
         · intro w hw hw5
           rcases List.mem_cons.1 hw with rfl | hw
           · exact absurd hk5 hw5
           · exact hpts w hw hw5
+        · intro w hw hw5
+          rcases List.mem_cons.1 hw with rfl | hw
+          · exact ⟨h, hrun, hpre, hsim.2.1, hwok⟩
+          · exact hwts w hw hw5
       · obtain ⟨hy, hS1⟩ := hstep.2 hk5
         have hrun' := hpres o ho h hrun (by rw [hov]; exact hk5)
         rw [hov] at hrun'
@@ -115,14 +121,14 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
           simp only [replayStepL, hok, ↓reduceIte]
         have hsim' := simR_step h0.st.rv _ h v.1 v.2.2 _ hsim hhc.1 hhc.2.1 hrun'.2.2.1 hrun'.2.1.1
           hrun'.2.2.2 hrs hmv
-        obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts⟩ :=
+        obtain ⟨hF, accF, hfold, hsimF, hrunF, hpre, hpts, hwts⟩ :=
           drive h0 H hops hpres l hl' S1 _ _ T hS1 hrun' hsim' hr
         have hpre0 : h.hist <+: (kstepL v.1 h).1.hist := by
           rw [kstepL_hist]
           split
           · exact List.prefix_refl _
           · exact List.prefix_append _ _
-        refine ⟨hF, accF, ?_, hsimF, hrunF, hpre0.trans hpre, ?_⟩
+        refine ⟨hF, accF, ?_, hsimF, hrunF, hpre0.trans hpre, ?_, ?_⟩
         · rw [List.filterMap_cons]
           simp only [unaryOf, hk5, ↓reduceIte, List.foldl_cons]
           rw [hrs]; exact hfold
@@ -130,11 +136,16 @@ theorem drive (h0 : HSt) (H : List (Op ROp)) (hops : ∀ o ∈ H, OpOk o.val)
           rcases List.mem_cons.1 hw with rfl | hw
           · exact ⟨h, ⟨hcfg, hhc, hsort, hrvb⟩, hpre0.trans hpre, hsim.2.1, hy⟩
           · exact hpts w hw hw5
+        · intro w hw hw5
+          rcases List.mem_cons.1 hw with rfl | hw
+          · exact absurd hw5 hk5
+          · exact hwts w hw hw5
 
 /-- **B4: the replay's checks pass along any linearization.** On a recorded history as in B2, linearized by
 `π` for the driver's model from the seeded configuration `h0`, for **any** linearization `lin2` of its unary
 operations for `realS` from `h0`'s abstraction, `NewReplay` along `lin2` succeeds and `Replay.Validate`
-accepts every operation. Premises beyond B2's: the configurations' histories (`RunOk`, kept by every unary
+accepts every operation; and each watch was allowed (`watchOkL`) at a configuration the replay agrees with
+(`ReplayAt`), which B5 takes. Premises beyond B2's: the configurations' histories (`RunOk`, kept by every unary
 step), the floor (`FloorOk`), and a history short enough that the revisions do not wrap. -/
 theorem realReplay_ok (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
     (hπ : IsLinearization (kM h0) H π) (hops : ∀ o ∈ H, OpOk o.val) (hrun0 : RunOk h0)
@@ -142,7 +153,9 @@ theorem realReplay_ok (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
     (hfl : ∀ o ∈ H, FloorOk h0.st.rv o.val.1) (hn : uint.nat h0.st.rv + H.length < 2 ^ 64)
     (lin2 : List Nat) (h2 : IsLinearization (realS (absR h0.st)) (fmapH unaryOf H) lin2) :
     ∃ R, replayL (absR h0.st) (vals (fmapH unaryOf H) lin2) = some R ∧
-      ∀ op ∈ vals (fmapH unaryOf H) lin2, rvalidateL R op.1 op.2 = true := by
+      (∀ op ∈ vals (fmapH unaryOf H) lin2, rvalidateL R op.1 op.2 = true) ∧
+      ∀ o ∈ H, o.val.1.Kind' = W64 5 → ∃ hv, ReplayAt h0.st.rv R hv ∧ RunOk hv ∧
+        uint.nat h0.st.rv ≤ uint.nat hv.st.rv ∧ watchOkL o.val.1 o.val.2.1 hv = true := by
   have hmemH : ∀ v ∈ vals H π, ∃ o ∈ H, o.val = v := by
     intro v hv
     obtain ⟨k, -, hk⟩ := List.mem_filterMap.1 hv
@@ -150,7 +163,7 @@ theorem realReplay_ok (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
     exact ⟨o, List.mem_of_getElem? ho, rfl⟩
   obtain ⟨T, hT⟩ := Option.isSome_iff_exists.1 hπ.2.2.1
   have hsim0 := simR_init h0 hrun0.2.1.1 hrun0.2.1.2.1 hrun0.1.2.2.1
-  obtain ⟨hF, accF, hfold, hsimF, hrunF, -, hpts⟩ := drive h0 H hops hpres (vals H π) hmemH
+  obtain ⟨hF, accF, hfold, hsimF, hrunF, -, hpts, hwts⟩ := drive h0 H hops hpres (vals H π) hmemH
     (kM h0).init h0 _ T (fun c => Iff.rfl) hrun0 hsim0 hT
   have hR1 : replayL (absR h0.st) ((vals H π).filterMap unaryOf) = some ⟨accF.2.1, accF.2.2⟩ := by
     unfold replayL; erw [hfold]; rfl
@@ -166,7 +179,13 @@ theorem realReplay_ok (h0 : HSt) (H : List (Op ROp)) (π : List Nat)
     rw [(hperm.trans (isLinearization_perm h2)).length_eq, List.length_map]
     unfold fmapH; exact List.length_filterMap_le _ _
   have heq := replayL_perm (absR h0.st) _ _ _ _ hrun0.1.2.2.1 (by rw [absR_rv]; omega) hperm hR1 hR2
-  refine ⟨_, hR2, ?_⟩
+  refine ⟨_, hR2, ?_, ?_⟩
+  rotate_left
+  · rw [← heq]
+    intro o ho hk5
+    have hv : o.val ∈ vals H π := (isLinearization_perm hπ).mem_iff.2 (List.mem_map_of_mem ho)
+    obtain ⟨hv', hrv, hpre, hs0, hw⟩ := hwts o.val hv hk5
+    exact ⟨hv', replayAt_prefix _ _ hv' hF hsimF.2.2.2.2.2 hpre hrv.2.1.1 hrunF.2.1.1, hrv, hs0, hw⟩
   rw [← heq]
   intro op hop
   obtain ⟨v, hv, hvu⟩ := List.mem_filterMap.1 (hperm.mem_iff.2 hop)
