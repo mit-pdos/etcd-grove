@@ -511,7 +511,8 @@ theorem EtcdServer.applyAll.wp_proofBatch
             -- (S2's `mergedCreate_window`) the commit's and the snapshot's contracts
             icases srvApplyKVC_coreA C s E ρ.wait x' sa' $$ HKV with ⟨%ua, HKVc, HAr, HKVk⟩
             -- the component lends its buckets to the window (none off)
-            ihave HL := acRes_lend C s E ua sa' hM $$ HAr
+            icases kvAppliedM_rev C.isOn γr (A ++ unapplied ai ms) x' sa' $$ Hka with ⟨Hka, %hrevC⟩
+            ihave HL := acRes_lend C s E ua sa' hM hrevC $$ HAr
             icases Hkv with ⟨%kv, #Hkvf, #Hkvi, -⟩
             -- the apply goroutine's tokens (`apply.applyTok`), lent to the commit
             ihave HthT : apply.applyTok (GF := GF) E $$ [Hmr]

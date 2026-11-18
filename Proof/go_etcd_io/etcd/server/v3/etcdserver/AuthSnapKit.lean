@@ -66,11 +66,14 @@ auth backend `abl` over it meets, for fresh names `γc`, the guarded read contra
 contract at its hook and at every schema auth backend on it (`authWAtHook`), with the write token,
 the whole currency and the lifecycle (`authBkLife`, its realization keeping the open share until
 the release, and the slots for good). The readers' copies of `R` (tickets, the boot premise's) work on it
-unchanged. The client keeps the other tracked buckets. -/
+unchanged. The client keeps the other tracked buckets. **The state's permission keys valid**
+(`auth.permKeysOk st`; auth-schema-srv A6's P2, approved by etcd-grove-03, 2026-11-18): the read contract's views
+are recorded states (`authStateAt`, which carries it), and nothing else the clause takes gives it (the role
+encoding is opaque); every state of the history has it (`SnapAuthRecover.histWf`). -/
 def authSchemaSnap (γa : auth.AuthNames) (R : IProp GF) : IProp GF :=
   iprop(□ ∀ (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc)
       (r : GMap GoString backend.BktData) (st : auth.AuthState),
-    ⌜lg ≠ null⌝ -∗ ⌜authBucketsAt st r⌝ -∗ ablOn abl d.be lg -∗
+    ⌜lg ≠ null⌝ -∗ ⌜authBucketsAt st r⌝ -∗ ⌜auth.permKeysOk st⌝ -∗ ablOn abl d.be lg -∗
     -- (review R1's F5) the auth buckets in the backend's table, as `NewAuthStore.spec` takes them
     ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗

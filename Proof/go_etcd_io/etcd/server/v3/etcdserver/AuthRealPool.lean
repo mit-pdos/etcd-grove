@@ -79,9 +79,9 @@ def poolSt (γm γh : GName) (Rs : Nat → IProp GF) (dep : Option Qp → IProp 
     ⌜kh + m.size ≤ N ∧ ∀ k, (m.lookup k).isSome → k < nx⌝)
 
 /-- **The pool after its release**: only the held slots' receipts and resources (their shares were
-collected), for the readers still holding a slot. -/
-def poolRel (γh : GName) (Rs : Nat → IProp GF) : IProp GF :=
-  iprop(∃ kh : Nat, Rs kh ∗ ownTokAuth γh kh)
+collected), for the readers still holding a slot, and the deposits' map, empty (a receipt refutes itself). -/
+def poolRel (γm γh : GName) (Rs : Nat → IProp GF) : IProp GF :=
+  iprop(∃ (m : GMap Nat (Option Qp)) (kh : Nat), ghostMapAuth γm 1 m ∗ ⌜m.size = 0⌝ ∗ Rs kh ∗ ownTokAuth γh kh)
 
 /-- A fresh pool: every slot free, nothing deposited. -/
 theorem pool_alloc (E : CoPset) (Rs : Nat → IProp GF) (dep : Option Qp → IProp GF) (tok sh : IProp GF) (N : Nat) :
@@ -200,12 +200,13 @@ theorem pool_rel (E : CoPset) (γm γh : GName) (Rs : Nat → IProp GF) (dep : O
   ipureintro
   exact ⟨by omega, Hb.2⟩
 
-/-- **Release the pool**: with a resource `Z` that refutes every deposit, no slot is acquiring; every slot's
+/-- **Release the pool**: with a resource `Z` that refutes every deposit with a deposited resource (the ticket pool
+refutes by `dep`, the reserved pool by `Rs`), no slot is acquiring; every slot's
 share comes back (`N` of them), and the pool keeps only the held slots' receipts (`poolRel`). -/
 theorem pool_release (E : CoPset) (γm γh : GName) (Rs : Nat → IProp GF) (dep : Option Qp → IProp GF) (tok sh Z : IProp GF)
-    (N : Nat) (hZ : ∀ d, dep d ∗ Z ⊢ False) :
+    (N : Nat) (hZ : ∀ d a, dep d ∗ Rs (a + 1) ∗ Z ⊢ False) :
     poolSt γm γh Rs dep tok sh N ∗ Z ⊢
-      |={E}=> poolRel γh Rs ∗ Z ∗ ([∗list] _x ∈ List.replicate N (), sh) := by
+      |={E}=> poolRel γm γh Rs ∗ Z ∗ ([∗list] _x ∈ List.replicate N (), sh) := by
   iintro ⟨Hp, HZ⟩
   iunfold poolSt at Hp
   icases Hp with ⟨%m, %nx, %kh, Hm, Hds, HRs, Hh, Hsh, Hf, %Hb⟩
@@ -214,8 +215,8 @@ theorem pool_release (E : CoPset) (γm γh : GName) (Rs : Nat → IProp GF) (dep
     simp only [Nat.add_zero]
     imodintro
     iframe HZ
-    isplitl [HRs Hh]
-    · iunfold poolRel; iexists kh; iframe HRs Hh
+    isplitl [Hm HRs Hh]
+    · iunfold poolRel; iexists m, kh; iframe Hm HRs Hh; ipureintro; exact h0
     -- the free slots' shares and the held ones'
     ihave Hf := rep_snd tok sh _ $$ Hf
     ihave H := rep_add sh kh (N - kh) $$ [$Hsh $Hf]
@@ -224,7 +225,36 @@ theorem pool_release (E : CoPset) (γm γh : GName) (Rs : Nat → IProp GF) (dep
   · obtain ⟨k, v, hk⟩ := (map_size_ne_0_lookup m).mp h0
     icases (BigSepM.bigSepM_delete (Φ := fun (_ : Nat) (d : Option Qp) => dep d) hk).1 $$ Hds with ⟨Hd, -⟩
     iexfalso
-    iapply hZ v $$ [$Hd $HZ]
+    rw [show kh + m.size = (kh + m.size - 1) + 1 by omega]
+    iapply hZ v (kh + m.size - 1) $$ [$Hd $HRs $HZ]
+
+/-- **Release a slot after the pool's release**: the held slot's receipt back, a resource `R` out (the slot's
+token is dropped: the backend is closed with the shares, not the tokens). -/
+theorem poolRel_rel (E : CoPset) (γm γh : GName) (Rs : Nat → IProp GF) (R : IProp GF)
+    (hRs : ∀ a, Rs (a + 1) ⊢ Rs a ∗ R) :
+    poolRel γm γh Rs ∗ ownToks γh 1 ⊢ |={E}=> poolRel γm γh Rs ∗ R := by
+  iintro ⟨Hp, Hr⟩
+  iunfold poolRel at Hp
+  icases Hp with ⟨%m, %kh, Hm, %Hm0, HRs, Hh⟩
+  icombine Hh Hr gives %Hkh
+  obtain ⟨kh', rfl⟩ : ∃ kh', kh = kh' + 1 := ⟨kh - 1, by omega⟩
+  imod ownTokAuth_delete_S γh kh' $$ Hh Hr with Hh
+  icases hRs kh' $$ HRs with ⟨HRs, HR⟩
+  imodintro
+  iframe HR
+  iunfold poolRel
+  iexists m, kh'
+  iframe Hm HRs Hh
+  ipureintro; exact Hm0
+
+/-- **No receipt of a deposit after the pool's release.** -/
+theorem poolRel_noRcpt (γm γh : GName) (Rs : Nat → IProp GF) (k : Nat) (d : Option Qp) :
+    poolRel γm γh Rs ∗ ghostMapElem γm k (DFrac.own 1) d ⊢ False := by
+  iintro ⟨Hp, Hk⟩
+  iunfold poolRel at Hp
+  icases Hp with ⟨%m, %kh, Hm, %Hm0, -, -⟩
+  ihave %Hl := ghost_map_lookup $$ Hm Hk
+  exact absurd Hm0 (map_size_ne_0_lookup_2 m Hl)
 
 /-! ### The two counters -/
 

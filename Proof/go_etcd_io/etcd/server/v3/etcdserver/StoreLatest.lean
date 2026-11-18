@@ -628,10 +628,10 @@ theorem ownFuT_lendC (stl bel : Loc) (γa : auth.AuthNames) (P : IProp GF) (f : 
   iframe Hbe Hok HT Hon
 
 /-- **The apply thread's auth row lends the auth buckets** (#7-on): in the mode `on`, its write
-token and its half of the history, at the latest state `st`, borrow the auth buckets' part
-(`authInstallPre`'s `authBkLend`), which hold `st`. -/
+token and its half of the history, at the latest state `st` (of revision at least 1, as the lend takes),
+borrow the auth buckets' part (`authInstallPre`'s `authBkLend`), which hold `st`. -/
 theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState)
-    (γa : auth.AuthNames) (hM : E.authMode = .on γa) :
+    (γa : auth.AuthNames) (hM : E.authMode = .on γa) (hrev : 1 ≤ st.revision) :
     srvAuthApplyResB (GF := GF) s E st ⊢
       bkLendW E authBkts (authBucketsAt st) (srvAuthApplyResB s E st) := by
   iintro H
@@ -655,7 +655,7 @@ theorem srvAuthApplyResB_lend (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState
   iunfold auth.authWHeld at Hwh
   icases Hwh with ⟨Hwt, Hbc⟩
   iunfold authBkLend at Hlend
-  imod Hlend $$ %hs %st %Hl Hwt Hhh with ⟨%RL, HRL, #Hlaw, Hback⟩
+  imod Hlend $$ %hs %st %Hl %hrev Hwt Hhh with ⟨%RL, HRL, #Hlaw, Hback⟩
   imodintro
   iexists RL
   iframe HRL
