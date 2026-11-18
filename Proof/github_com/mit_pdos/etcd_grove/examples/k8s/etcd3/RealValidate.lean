@@ -42,9 +42,7 @@ def HistCfgOk (h : HSt) : Prop :=
     ∀ q : w64, 0 < uint.nat q → uint.nat q ≤ uint.nat h.st.rv →
       StOk (histAtL h.hist q) ∧ ∀ it ∈ (histAtL h.hist q).items, itemOk it.obj'
 
-/-- **The floor** (departure D7g-1): a requested resource version is `0` or at least the seed's. -/
-def FloorOk (s0 : w64) (x : Input) : Prop :=
-  ∀ q, parseRVD x.MinRV' = some q → q = 0 ∨ uint.nat s0 ≤ uint.nat q
+-- The floor `FloorOk` (departure D7g-1) is the driver's (`Calls.lean`), as `Gen` states it.
 
 /-- The checker's list on a store's abstraction is the real answer the driver's list there encodes. -/
 theorem rlistL_eq_rawRel (x : Input) (st : GSt) (p : GoString) (c : RCons) (rq : w64) (r : RResp)

@@ -501,18 +501,20 @@ def withPreL (x : Input) (uid rv : Bool) (c : Obj) (hasC : Bool) : Input :=
              HasPreRV' := rv, PreRV' := if rv then rvStr c.ResourceVersion' else x.PreRV' }
   else x
 
-/-- `minRV(m, d, c, hasC)`: a `Get`'s minimum resource version for the draw `m` and the offset
-`d` (the comparisons unsigned, as Go's on `uint64`). Empty when the cached object's resource
-version is at least `2 ^ 62` (the driver's bound, so that every string parses below `2 ^ 63`). -/
-def minRVL (m d : w64) (c : Obj) (hasC : Bool) : GoString :=
+/-- `minRV(m, d, c, hasC, floor)`: a `Get`'s minimum resource version for the draw `m` and the
+offset `d` (the comparisons unsigned, as Go's on `uint64`), a non-zero one raised to `floor`
+(`flooredL`). Empty when the cached object's resource version is at least `2 ^ 62` (the driver's
+bound, so that every string parses below `2 ^ 63`). -/
+def minRVL (m d : w64) (c : Obj) (hasC : Bool) (f : w64) : GoString :=
   if m < 30 then []
   else if m < 45 then rvBytes 0
-  else if m < 55 then rvBytes 1
+  else if m < 55 then rvBytes (flooredL 1 f)
   else if !hasC then []
   else if W64 (2 ^ 62) ≤ c.ResourceVersion' then []
-  else if m < 84 then rvBytes c.ResourceVersion'
-  else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes 1 else rvBytes (c.ResourceVersion' - d))
-  else rvBytes (c.ResourceVersion' + d)
+  else if m < 84 then rvBytes (flooredL c.ResourceVersion' f)
+  else if m < 98 then (if c.ResourceVersion' ≤ d then rvBytes (flooredL 1 f)
+    else rvBytes (flooredL (c.ResourceVersion' - d) f))
+  else rvBytes (flooredL (c.ResourceVersion' + d) f)
 
 theorem parseRVD_rvBytes (n : w64) : parseRVD (rvBytes n) = some n := by
   have hb := bytesBE_rvBytes n
@@ -520,14 +522,40 @@ theorem parseRVD_rvBytes (n : w64) : parseRVD (rvBytes n) = some n := by
   simp [parseRVD, hb]
 
 /-- **Every string `minRV` returns parses below `2 ^ 63`** (`InOk`'s bound, from the driver's
-`2 ^ 62` cut), for an offset `d` below `2 ^ 61` (the generator's are at most 200). -/
-theorem minRVL_ok (m d : w64) (c : Obj) (hasC : Bool) (hd : uint.Z d ≤ 2 ^ 61) :
-    ∃ k, parseRVD (minRVL m d c hasC) = some k ∧ uint.Z k < 2 ^ 63 := by
+`2 ^ 62` cut), for an offset `d` below `2 ^ 61` (the generator's are at most 200) and a floor below
+`2 ^ 62`. -/
+theorem minRVL_ok (m d : w64) (c : Obj) (hasC : Bool) (f : w64) (hd : uint.Z d ≤ 2 ^ 61)
+    (hf : uint.Z f < 2 ^ 62) :
+    ∃ k, parseRVD (minRVL m d c hasC f) = some k ∧ uint.Z k < 2 ^ 63 := by
+  have hfl : ∀ r : w64, uint.Z r < 2 ^ 63 → uint.Z (flooredL r f) < 2 ^ 63 := fun r hr => by
+    rcases flooredL_floor r f with h | ⟨-, h⟩
+    · rw [h]; decide
+    · have : uint.nat (flooredL r f) < 2 ^ 63 := by
+        have : uint.nat r < 2 ^ 63 := by word
+        have : uint.nat f < 2 ^ 62 := by word
+        omega
+      word
   unfold minRVL
   repeat' split
   all_goals first
     | exact ⟨0, rfl, by decide⟩
-    | (refine ⟨_, parseRVD_rvBytes _, ?_⟩; word)
+    | (refine ⟨_, parseRVD_rvBytes _, hfl _ ?_⟩; word)
+
+/-- **Every string `minRV` returns is floored** (`FloorOk`: `0`, or at least the floor). -/
+theorem minRVL_floor (m d : w64) (c : Obj) (hasC : Bool) (f : w64) (q : w64)
+    (h : parseRVD (minRVL m d c hasC f) = some q) : q = 0 ∨ uint.nat f ≤ uint.nat q := by
+  have hfl : ∀ r : w64, parseRVD (rvBytes (flooredL r f)) = some q → q = 0 ∨ uint.nat f ≤ uint.nat q :=
+    fun r hr => by
+      rw [parseRVD_rvBytes] at hr; cases hr
+      rcases flooredL_floor r f with h | ⟨h, -⟩
+      · left; exact h
+      · right; exact h
+  unfold minRVL at h
+  repeat' split at h
+  all_goals first
+    | (left; cases h; rfl)
+    | exact hfl _ h
+    | (rw [parseRVD_rvBytes] at h; cases h; left; rfl)
 
 /-- **The cached object's scope premise** (D1 of stage 7b, `notes/k8s-etcd3-plan.md`;
 `issues/k8s-etcd3-cached-noop-skips-preconditions.md`): an update with a cached object carries no

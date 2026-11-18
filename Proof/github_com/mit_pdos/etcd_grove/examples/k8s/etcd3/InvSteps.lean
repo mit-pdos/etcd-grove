@@ -58,11 +58,29 @@ variable [go_etcd_io.etcd.client.v3.Assumptions]
 variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 /-- The model's step of a boxed input and output is the pending model's of the input and the
-output's answer. -/
+answer of the output's plain value (stage 7g: `Raw` is not the model's). -/
 theorem step_box (g0 : HSt) (S : linkv.PSet HSt Input) (x : Input) (y : Output) :
     (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut y) =
-      (linkv.pSeq (kSpec g0)).step S (x, ansOf y) :=
+      (linkv.pSeq (kSpec g0)).step S (x, ansOf (plainOut y)) :=
   linkv.pM_step _ _ _ _ _ _ (decOp_box (sem := sem) (package_sem := package_sem) x y)
+
+/-- The driver's output of a store answer has no `Raw`. -/
+theorem outOf_plain {E : Type} (r : KResp DObj E) : plainOut (outOf r) = outOf r := by
+  apply plainOut_of_raw
+  unfold outOf
+  repeat' split
+  all_goals (try simp only [apply_ite (f := Output.Raw'), ite_self])
+  all_goals (repeat' split)
+  all_goals rfl
+
+/-- The store's model's output has no `Raw`. -/
+theorem kStep_plain (eD eU : GoInterface) (x : Input) (ks : KSt DObj) :
+    plainOut (kStep eD eU x ks).2 = (kStep eD eU x ks).2 := by
+  unfold kStep
+  repeat' split
+  all_goals exact outOf_plain _
+
+theorem otherL_plain : plainOut otherL = otherL := rfl
 
 theorem run_snoc (g0 : HSt) (h : List OpV) (S S' : linkv.PSet HSt Input) (a : OpV)
     (h1 : run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S)
@@ -599,7 +617,7 @@ theorem create_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) 
     · iframe Hseen Hone Hseen' Hone' Hrs
     have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) =
         some S' := by
-      rw [step_box, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx (by rw [hk]; decide)]; exact HS'
+      rw [step_box, kStep_plain, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx (by rw [hk]; decide)]; exact HS'
     imod (fupd_mask_subseteq HE) with Hclose3
     imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
     · iframe
@@ -691,7 +709,7 @@ theorem rw_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt) (γk
       · iframe Hseen Hone Hseen' Hone' Hrs
       have Hst : (k8setcd3S (GF := GF) g0).M.step S
           (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-        rw [step_box, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx
+        rw [step_box, kStep_plain, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx
           (by intro e; rw [e] at hk; simp at hk)]; exact HS'
       unfold rwCall
       iinv Hc with Hci Hclosec
@@ -876,7 +894,7 @@ theorem write_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : 
   obtain ⟨Hr, Hok⟩ := Hok
   obtain ⟨S', HS', Hok'⟩ := kOk_errW Hok x hw hx
   have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut otherL) = some S' := by
-    rw [step_box, ansOf_otherL]; exact HS'
+    rw [step_box, otherL_plain, ansOf_otherL]; exact HS'
   imod (fupd_mask_subseteq HE) with Hclose3
   imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
   · iframe
@@ -907,7 +925,7 @@ theorem read_err_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : K
   obtain ⟨Hr, Hok⟩ := Hok
   obtain ⟨S', HS', Hok'⟩ := kOk_errR Hok x hw h5
   have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut otherL) = some S' := by
-    rw [step_box, ansOf_otherL]; exact HS'
+    rw [step_box, otherL_plain, ansOf_otherL]; exact HS'
   imod (fupd_mask_subseteq HE) with Hclose3
   imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
   · iframe
@@ -1029,7 +1047,7 @@ theorem get_read_au (γ : KNames) (c : StoreCfg GF DObj) (hc : CfgD c) (g0 : HSt
           (k8s.keysIn_refl _ _) (kvRoom_two hroom)
         have Hst : (k8setcd3S (GF := GF) g0).M.step S
             (boxIn x, boxOut (kStep eD eU x (c.abs σ)).2) = some S' := by
-          rw [step_box, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx hk4]; exact HS'
+          rw [step_box, kStep_plain, kStep_ans hc Hok (kvRoom_two hroom) eD eU x hx hk4]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe
@@ -1190,6 +1208,15 @@ theorem listOutDriver_err (x : Input) (R : w64) (a : ListModel.LState w8 (DObj �
   unfold listOutDriver
   split <;> rfl
 
+/-- A list's answer has no `Raw`. -/
+theorem lOut_plain (x : Input) (σ : KVState) : plainOut (lOut x σ) = lOut x σ := by
+  apply plainOut_of_raw
+  unfold lOut listOutDriver
+  repeat' split
+  all_goals (try simp only [apply_ite (f := Output.Raw'), ite_self])
+  all_goals (repeat' split)
+  all_goals rfl
+
 /-- A list never answers `EOther`. -/
 theorem lOut_ans (x : Input) (σ : KVState) (hx : InOk x) (hk4 : x.Kind' = W64 4) :
     ansOf (lOut x σ) = .ok (lOut x σ) := by
@@ -1342,7 +1369,7 @@ theorem list_read_au (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
         imod lc_fupd_elim_later $$ Hlc HU with HU
         obtain ⟨S', HS', Hok'⟩ := kOk_list Hok x hx hk4
         have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut (lOut x σ)) = some S' := by
-          rw [step_box, lOut_ans x σ hx hk4]; exact HS'
+          rw [step_box, lOut_plain, lOut_ans x σ hx hk4]; exact HS'
         imod (fupd_mask_subseteq HE) with Hclose3
         imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩
         · iframe

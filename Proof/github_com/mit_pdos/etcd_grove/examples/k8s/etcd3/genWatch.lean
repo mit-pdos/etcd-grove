@@ -30,12 +30,12 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 theorem genWatch.wp_proof (wp_genWatchFrom : genWatchFrom.spec (GF := GF) (hG := hG)) :
     genWatch.spec (GF := GF) (hG := hG) := by
-  intro id c hasC
+  intro id c hasC f hf
   wp_start
   wp_auto
   wp_apply github_com.goose_lang.primitive.wp_RandomUint64 as %n _
   (try wp_auto)
-  wp_apply wp_genWatchFrom n id c hasC as %x %Hx
+  wp_apply wp_genWatchFrom n id c hasC f hf as %x %Hx
   (try wp_auto)
   iapply HΦ
   ipureintro; exact Hx

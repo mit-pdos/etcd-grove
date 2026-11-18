@@ -68,7 +68,7 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     (wp_minRV : minRV.spec (GF := GF) (hG := hG))
     (wp_genList : genList.spec (GF := GF) (hG := hG)) :
     genFrom.spec (GF := GF) (hG := hG) := by
-  intro n id c hasC
+  intro n id c hasC f hf
   wp_start
   wp_auto
   wp_apply wp_workloadKeys as %ksl ⟨Hk, -⟩
@@ -122,7 +122,7 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     (try wp_auto)
     iapply HΦ; ipureintro
     refine ⟨⟨⟨hgk, by simp [uidOfL], wndD_len _ hnd, wapD_len _ hap, ⟨0, rfl, by decide⟩,
-      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, wvsD_len _ hv, by simp [CachedNoRV]⟩, by simp⟩
+      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, wvsD_len _ hv, by simp [CachedNoRV]⟩, by simp, floorOk_nil _ _ rfl⟩
   wp_if_destruct
   · -- delete
     wp_apply wp_pick _ (W64 4) (by decide)
@@ -145,7 +145,7 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
       simp only [withPreL, Bool.false_eq_true, ↓reduceIte]
       refine ⟨⟨⟨hgk, by simp, by simp, by simp, ⟨0, rfl, by decide⟩,
         by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, by simp,
-        by simp [CachedNoRV]⟩, by simp⟩)
+        by simp [CachedNoRV]⟩, by simp, floorOk_nil _ _ rfl⟩)
   wp_if_destruct
   · -- get
     wp_apply wp_pick _ (W64 2) (by decide)
@@ -157,18 +157,20 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     wp_apply wp_minRV
     (try wp_auto)
     obtain ⟨k', hk1, hk2⟩ := minRVL_ok (n / W64 100 / W64 4 / W64 2 % W64 100)
-      (n / W64 100 / W64 4 / W64 2 / W64 100 % W64 200 + W64 1) c hasC (by word)
+      (n / W64 100 / W64 4 / W64 2 / W64 100 % W64 200 + W64 1) c hasC f (by word) hf
     iapply HΦ; ipureintro
     refine ⟨⟨⟨hgk, by simp, by simp, by simp, ⟨k', hk1, hk2⟩,
       by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, by simp,
-      by simp [CachedNoRV]⟩, by simp⟩
+      by simp [CachedNoRV]⟩, by simp, fun q hq => minRVL_floor _ _ c hasC f q (by simp only [] at hq; exact hq)⟩
   wp_if_destruct
   · -- list
-    wp_apply wp_genList as %y %Hy
+    wp_apply wp_genList _ _ c hasC f hf as %y %Hy
     all_goals first
+      | exact hgk
+      | (simp only []; decide)
       | (ipureintro; first | exact hgk | (simp only []; decide))
       | (iapply HΦ; ipureintro
-         exact ⟨Hy.1, fun h => by rw [Hy.2] at h; simp at h⟩)
+         exact ⟨Hy.1, fun h => by rw [Hy.2.1] at h; simp at h, Hy.2.2⟩)
   -- update
   rw [hvl]
   wp_apply wp_pick _ (W64 3) (by decide)
@@ -207,7 +209,7 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     simp only [withPreL, Bool.false_eq_true, ↓reduceIte]
     refine ⟨⟨⟨hgk, by simp, wndD_len _ hnd, wapD_len _ hap, ⟨0, rfl, by decide⟩,
       by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, wvsD_len _ hv,
-      by simp [CachedNoRV]⟩, by simp⟩)
+      by simp [CachedNoRV]⟩, by simp, floorOk_nil _ _ rfl⟩)
 
 end proof
 

@@ -267,11 +267,12 @@ theorem watch_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
   ihave ⟨Hrv, %Hpre⟩ := revOwn_lb γ σ l $$ [Hrv Hl]
   · iframe Hrv Hl
   imod revOwn_hist γ σ $$ Hrv with ⟨Hrv, %Hkh, -⟩
-  obtain ⟨S', HS', Hok'⟩ := kOk_obs Hok x y hk5
+  obtain ⟨S', HS', Hok'⟩ := kOk_obs Hok x (plainOut y) hk5
     (fun cf _ hst hlen => hw σ cf Hpre Hkh Hok.hwf hst hlen)
   have Hst : (k8setcd3S (GF := GF) g0).M.step S (boxIn x, boxOut y) = some S' := by
     rw [step_box]
-    have e : ansOf y = .ok y := by unfold ansOf; rw [if_neg hE]
+    have e : ansOf (plainOut y) = .ok (plainOut y) := by
+      unfold ansOf; rw [if_neg (show ¬ (plainOut y).Err' = W64 4 from hE)]
     rw [e]; exact HS'
   imod (fupd_mask_subseteq HE) with Hclose3
   imod (linU_commit γ g0 x _ Φ h S S' Hr Hst) $$ [Hh HU] with ⟨Hh, HΦ⟩

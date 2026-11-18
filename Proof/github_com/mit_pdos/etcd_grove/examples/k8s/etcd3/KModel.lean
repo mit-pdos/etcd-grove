@@ -273,6 +273,38 @@ def mstepL (x : Input) (st : GSt) : GSt × Output :=
 def isWriteL (x : Input) : Bool :=
   (decide (x.Kind' = W64 0)).or ((decide (x.Kind' = W64 1)).or (decide (x.Kind' = W64 2)))
 
+/-- `floored(r, floor)` (k8s 7g, D7g-1): a non-zero resource version below `floor` raised to it. -/
+def flooredL (r f : w64) : w64 := if r ≠ W64 0 ∧ r < f then f else r
+
+/-- **The floor** (departure D7g-1): a requested resource version is `0` or at least the floor `s0` (the
+seeded store's revision). -/
+def FloorOk (s0 : w64) (x : Input) : Prop :=
+  ∀ q, parseRVD x.MinRV' = some q → q = 0 ∨ uint.nat s0 ≤ uint.nat q
+
+theorem flooredL_floor (r f : w64) : flooredL r f = 0 ∨ uint.nat f ≤ uint.nat (flooredL r f) ∧
+    uint.nat (flooredL r f) ≤ max (uint.nat r) (uint.nat f) := by
+  unfold flooredL
+  by_cases h : r ≠ W64 0 ∧ r < f
+  · rw [if_pos h]; right; constructor <;> word
+  · rw [if_neg h]
+    by_cases h0 : r = W64 0
+    · left; exact h0
+    · right; have : ¬ r < f := fun h' => h ⟨h0, h'⟩
+      constructor <;> word
+
+theorem flooredL_ok (r f : w64) : flooredL r f = 0 ∨ uint.nat f ≤ uint.nat (flooredL r f) := by
+  rcases flooredL_floor r f with h | ⟨h, -⟩
+  · exact Or.inl h
+  · exact Or.inr h
+
+theorem flooredL_lt (r f : w64) (B : Int) (hr : uint.Z r < B) (hf : uint.Z f < B) :
+    uint.Z (flooredL r f) < B := by
+  unfold flooredL; split <;> assumption
+
+/-- An input with no minimum resource version is floored. -/
+theorem floorOk_nil (f : w64) (x : Input) (h : x.MinRV' = []) : FloorOk f x := fun q hq => by
+  rw [h] at hq; simp [parseRVD] at hq; exact Or.inl hq.symm
+
 /-- A call's answer: an output whose error is `EOther` is a failed call (its effect unknown). -/
 def ansOf (y : Output) : linkv.Ans Output := if y.Err' = W64 4 then .err else .ok y
 

@@ -30,14 +30,14 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 
 /-- See the file header. -/
 abbrev genList.spec : Prop :=
-  ∀ (n : w64) (x : Input) (c : Obj) (hasC : Bool),
+  ∀ (n : w64) (x : Input) (c : Obj) (hasC : Bool) (f : w64), uint.Z f < 2 ^ 62 →
   x.Key' ∈ wkKeysL → x.UID'.length < 256 → x.Node'.length < 256 → x.App'.length < 256 →
   x.Val'.length ≤ 2 ^ 20 → (x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) →
   0 ≤ sint.Z x.Limit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
-    (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList))
-      (Val #n)) (Val #x)) (Val #c)) (Val #hasC))
-  {{ (y : Input), RET #y; ⌜GenIn y ∧ y.UseCached' = x.UseCached'⌝ }}
+    (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList))
+      (Val #n)) (Val #x)) (Val #c)) (Val #hasC)) (Val #f))
+  {{ (y : Input), RET #y; ⌜GenIn y ∧ y.UseCached' = x.UseCached' ∧ FloorOk f y⌝ }}
 
 end spec
 

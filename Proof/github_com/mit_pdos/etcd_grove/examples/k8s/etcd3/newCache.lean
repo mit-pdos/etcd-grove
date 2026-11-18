@@ -59,11 +59,14 @@ theorem newCache.wp_proof :
   ipersist watch
   ipersist unary
   ipersist total
+  ipersist floor
+  have h0 : uint.Z (0 : w64) < 2 ^ 62 := by word
   imodintro
   iapply HΦ
-  unfold isCache
+  unfold isCache cacheFloor
   iframe #
   (try (iexists _, _, _; iframe #))
+  (try (ipureintro; exact h0))
 
 end proof
 
