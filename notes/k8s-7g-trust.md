@@ -190,3 +190,6 @@ For the joint independent attack of all 7g trust texts before the step-6 Freeze:
 - **The store's spec vocabulary carries the message** (consequence, proved, not trusted): `KErr.invalidObj key
   msg`, `KPreF` (`ok`, `msg`), `ObjCodec.preF`, `respIs`'s `invalidErrMsg` case; the specs of
   `GuaranteedUpdate`, `Delete`, `conditionalDelete` take `c.S.preF pr`. A stronger post: no premise added.
+  **Accepted by etcd-grove-03 (2026-11-18)** as a change to vocabulary frozen at 7e; for review at the 7g Freeze.
+- **`outEqual.spec` restated as equality of the plain fields** (step 5, decided by etcd-grove-03, 2026-11-18): its
+  `decide (a = b)` over the whole `Output` is false once `Raw` differs, which Go's `outEqual` ignores.

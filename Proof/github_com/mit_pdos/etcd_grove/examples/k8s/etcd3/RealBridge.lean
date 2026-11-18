@@ -13,6 +13,8 @@ encode (`RawRel`; stage 7g option (C): a failed precondition's message is a plai
 - `absR_items`, `absR_rewrites`, `absR_other`: the abstraction read through `lookupL`.
 - `rstepL_write` (B1, writes): `Step` of a write's answer on `absR st` is accepted and moves to
   `absR (mstepL x st).1`.
+- `rstepL_get` (B1, gets) and `rstepL_list` (B1, lists: consistent, `Exact`, `NotOlderThan`): `Step` of a
+  read's answer, when it is what the driver's answer encodes, is accepted and leaves the state.
 -/
 module
 
@@ -38,14 +40,15 @@ variable [GooseExts]
 /-! ## The plain-field relation -/
 
 /-- **The store's answer `r` is what the output `y`'s plain fields encode** for the unary input `x`: an
-object (its plain fields; the driver's objects are never `Annotated`), a list (its encoded items, never a nil
-slice, its resource version, continue token and remaining count), or an error: "not found", "key exists" (key
+object (its plain fields; the driver's objects are never `Annotated`), a list (its encoded items, objects
+`encodeItems` is injective on (`itemOk`), never a nil slice; its resource version, continue token and remaining
+count), or an error: "not found", "key exists" (key
 and resource version), a callback's rejection (the delete's or the update's sentinel), "invalid object" (key
 and `Check`'s message, stage 7g option (C)), too large. A client error (`EOther`) has no encoding. -/
 def RawRel (x : Input) (y : Output) (r : RResp) : Prop :=
   if y.Err' = W64 0 then
     if x.Kind' = W64 4 then
-      ∃ its, y.Items' = encItemsL its ∧ r = ⟨.list (some its) y.ListRV' y.Continue'
+      ∃ its, (∀ o ∈ its, itemOk o) ∧ y.Items' = encItemsL its ∧ r = ⟨.list (some its) y.ListRV' y.Continue'
         (if y.HasRemaining' then some y.Remaining' else none), .none⟩
     else r = ⟨.obj (objOfL y), .none⟩
   else if y.Err' = W64 1 then r = ⟨.nil, .deep (.storageErr (W64 1) y.ErrKey' y.ErrRV' .nil)⟩
@@ -490,6 +493,377 @@ theorem rstepL_get (x : Input) (st : GSt) (r : RResp)
         subst hrel
         unfold rvalidateGetL; by_cases hm : x.MinRV' = [] <;> simp [hm, isTooLargeE, errNonNil, respEqL, delayE, objOfL]
         all_goals rfl
+
+/-! ## B1: a list -/
+
+/-- `PrepareKey`'s answer: the key, made a directory if recursive, with the resource prefix. -/
+theorem prepareKeyM_some {rp key p : GoString} {r : Bool} (h : k8s.prepareKeyM rp key r = some p) :
+    key ≠ [] ∧ p = (if r = true ∧ ¬ go!"/" <:+ key then key ++ go!"/" else key) ∧ rp <+: p := by
+  unfold k8s.prepareKeyM at h
+  by_cases h1 : k8s.dotDot key = true
+  · rw [if_pos h1] at h; cases h
+  rw [if_neg h1] at h
+  by_cases h2 : k8s.dotSeg key = true
+  · rw [if_pos h2] at h; cases h
+  rw [if_neg h2] at h
+  by_cases h3 : key = [] ∨ key = go!"/"
+  · rw [if_pos h3] at h; cases h
+  rw [if_neg h3] at h
+  simp only at h
+  by_cases h4 : rp <+: (if r = true ∧ ¬ go!"/" <:+ key then key ++ go!"/" else key)
+  · rw [if_pos h4] at h; cases h
+    exact ⟨fun e => h3 (.inl e), rfl, h4⟩
+  · rw [if_neg h4] at h; cases h
+
+/-- `PrepareKey` with the resource prefix accepts what it accepts without one. -/
+theorem prepareKeyM_nil {rp key p : GoString} {r : Bool} (h : k8s.prepareKeyM rp key r = some p) :
+    k8s.prepareKeyM [] key r = some p := by
+  unfold k8s.prepareKeyM at h ⊢
+  by_cases h1 : k8s.dotDot key = true
+  · rw [if_pos h1] at h; cases h
+  rw [if_neg h1] at h ⊢
+  by_cases h2 : k8s.dotSeg key = true
+  · rw [if_pos h2] at h; cases h
+  rw [if_neg h2] at h ⊢
+  by_cases h3 : key = [] ∨ key = go!"/"
+  · rw [if_pos h3] at h; cases h
+  rw [if_neg h3] at h ⊢
+  simp only at h ⊢
+  by_cases h4 : rp <+: (if r = true ∧ ¬ go!"/" <:+ key then key ++ go!"/" else key)
+  · rw [if_pos h4] at h; rw [if_pos (List.nil_prefix)]; exact h
+  · rw [if_neg h4] at h; cases h
+
+theorem trimSufL_append (s suf : GoString) (h : suf <:+ s) : trimSufL s suf ++ suf = s := by
+  unfold trimSufL; rw [if_pos h]
+  obtain ⟨t, rfl⟩ := h
+  simp
+
+/-- The prepared key is a prefix of every key in the list's scope. -/
+theorem prepared_scope {rp key p k : GoString} {r : Bool} (hp : k8s.prepareKeyM rp key r = some p)
+    (hk : keyInScopeL key r k = true) : p <+: k := by
+  obtain ⟨-, rfl, -⟩ := prepareKeyM_some hp
+  unfold keyInScopeL at hk
+  cases r with
+  | false =>
+    simp only [Bool.false_eq_true, ↓reduceIte, decide_eq_true_eq] at hk
+    subst hk
+    simp only [Bool.false_eq_true, false_and, ↓reduceIte]
+    exact List.prefix_refl _
+  | true =>
+    simp only [↓reduceIte, decide_eq_true_eq] at hk
+    by_cases hs : go!"/" <:+ key
+    · rw [trimSufL_append _ _ hs] at hk
+      simp only [hs, not_true_eq_false, and_false, ↓reduceIte]
+      exact hk
+    · unfold trimSufL at hk
+      rw [if_neg hs] at hk
+      simp only [hs, not_false_eq_true, and_self, ↓reduceIte]
+      exact hk
+
+/-- The prepared key is not empty. -/
+theorem prepared_ne {rp key p : GoString} {r : Bool} (hp : k8s.prepareKeyM rp key r = some p) :
+    p ≠ [] := by
+  obtain ⟨hk, rfl, -⟩ := prepareKeyM_some hp
+  split <;> simp_all
+
+/-- What `mlist`'s loop keeps: `hasMore` only past a match, a last key once a match is taken, every
+key and item from the items in scope. -/
+def LastInv {α O : Type} (P : List α → Prop) (Q : O → Prop) (s : ListModel.LState α O) : Prop :=
+  (s.more = true → s.items ≠ []) ∧ (s.items ≠ [] → s.last.isSome) ∧ (∀ k, s.last = some k → P k) ∧
+    ∀ o ∈ s.items, Q o
+
+theorem lastInv_foldl {α O : Type} (sel : O → Bool) (limit : Nat) (P : List α → Prop) (Q : O → Prop) :
+    ∀ (sc : List (List α × O)) (s : ListModel.LState α O), (∀ ko ∈ sc, P ko.1 ∧ Q ko.2) →
+      LastInv P Q s → LastInv P Q (sc.foldl (ListModel.lstep sel limit) s)
+  | [], _, _, h => h
+  | ko :: sc, s, hP, ⟨h1, h2, h3, h4⟩ => by
+    rw [List.foldl_cons]
+    apply lastInv_foldl sel limit P Q sc _ (fun k hk => hP k (List.mem_cons_of_mem _ hk))
+    have hko := hP ko List.mem_cons_self
+    unfold ListModel.lstep
+    simp only
+    split
+    · rename_i hlim
+      refine ⟨fun _ he => ?_, h2, h3, h4⟩
+      rw [he] at hlim; simp at hlim; omega
+    · split
+      · refine ⟨fun _ => by simp, fun _ => by simp, ?_, ?_⟩
+        · intro k hk; simp only [Option.some.injEq] at hk; subst hk; exact hko.1
+        · intro o ho
+          rcases List.mem_cons.1 ho with rfl | ho
+          · exact hko.2
+          · exact h4 o ho
+      · exact ⟨h1, h2, h3, h4⟩
+
+theorem lastInv_loop {α O : Type} (sel : O → Bool) (limit : Nat) (P : List α → Prop) (Q : O → Prop)
+    (sc : List (List α × O)) (hP : ∀ ko ∈ sc, P ko.1 ∧ Q ko.2) :
+    LastInv P Q (ListModel.loop sel limit sc) :=
+  lastInv_foldl sel limit P Q sc _ hP ⟨by simp, by simp, by simp, by simp⟩
+
+/-- The driver's loop on a store: its continue token is defined when it has more, its items are the
+store's. -/
+theorem listLoopL_inv (x : Input) (its : List item) (p : GoString) (rp : GoString)
+    (hp : k8s.prepareKeyM rp x.ListKey' x.Recursive' = some p) :
+    LastInv (fun k => p <+: k) (fun o => ∃ it ∈ its, it.obj' = o) (listLoopL x its) := by
+  apply lastInv_loop
+  intro ko hko
+  unfold scopeL at hko
+  rw [List.mem_filter, List.mem_map] at hko
+  obtain ⟨⟨it, hit, rfl⟩, hsc⟩ := hko
+  exact ⟨prepared_scope hp hsc, it, hit, rfl⟩
+
+theorem encOkL_loop (x : Input) (its : List item) (p rp : GoString)
+    (hp : k8s.prepareKeyM rp x.ListKey' x.Recursive' = some p) (hm : (listLoopL x its).more = true) :
+    encOkL ((listLoopL x its).last.getD [] ++ [W8 0]) p = true := by
+  obtain ⟨h1, h2, h3, -⟩ := listLoopL_inv x its p rp hp
+  obtain ⟨k, hk⟩ := Option.isSome_iff_exists.1 (h2 (h1 hm))
+  rw [hk]
+  unfold encOkL
+  simp only [Option.getD_some, decide_eq_true_eq]
+  exact ⟨prepared_ne hp, (h3 k hk).trans (List.prefix_append _ _)⟩
+
+/-- The model's and the driver's continue tokens: the store's prefix `/registry` on both sides. -/
+theorem encOkL_reg (a b : GoString) (hb : b ≠ []) :
+    encOkL (go!"/registry" ++ a) (go!"/registry" ++ b) = encOkL a b := by
+  unfold encOkL; simp [hb]
+
+theorem encL_reg (a b : GoString) (rv : w64) :
+    encL (go!"/registry" ++ a) (go!"/registry" ++ b) rv = encL a b rv := by
+  unfold encL
+  rw [List.length_append, List.drop_append, List.drop_eq_nil_of_le (Nat.le_add_right _ _),
+    List.nil_append, Nat.add_sub_cancel_left]
+
+theorem scopeR_absR (x : Input) (st : GSt) (hs : SortedI st.items) :
+    scopeR x.ListKey' x.Recursive' (absR st) = scopeL x st.items := by
+  unfold scopeR scopeL; rw [itemsL_absR st hs]
+
+theorem absR_rv (st : GSt) : (absR st).rv = st.rv := rfl
+
+theorem parseRVD_nil : parseRVD [] = some 0 := by simp [parseRVD]
+
+/-- `ListReadConsistency`'s resource version is the one `parseRV` reads. -/
+theorem listConsL_parse (x : Input) (c : RCons) (rq : w64) (h : listConsL x = some (c, rq)) :
+    parseRVD x.MinRV' = some rq := by
+  unfold listConsL at h
+  by_cases hm : x.MinRV' = []
+  · rw [if_pos hm] at h; rw [hm, parseRVD_nil]
+    split at h
+    · cases h
+    · cases h; rfl
+  · rw [if_neg hm] at h
+    cases hp : parseRVD x.MinRV' with
+    | none => rw [hp] at h; cases h
+    | some rv =>
+      rw [hp] at h; simp only at h
+      (repeat' split at h) <;> simp_all
+
+theorem w64_z : (W64 0 : w64) = 0 := rfl
+theorem w64_ne_01 : (W64 0 : w64) ≠ W64 1 := by decide
+theorem w64_ne_02 : (W64 0 : w64) ≠ W64 2 := by decide
+theorem w64_ne_12 : (W64 1 : w64) ≠ W64 2 := by decide
+
+/-- **The driver reads a past store exactly when the checker's read is `Exact`** (for the matches the
+driver draws, `0`, `1`, `2`), and then at a positive resource version. -/
+theorem listConsL_past (x : Input) (c : RCons) (rq : w64)
+    (hm : x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) (h : listConsL x = some (c, rq)) :
+    (pastReadL x rq = true ↔ c = .exact) ∧ (c = .exact → rq ≠ 0) := by
+  unfold listConsL at h
+  unfold pastReadL
+  by_cases hmv : x.MinRV' = []
+  · rw [if_pos hmv] at h
+    split at h
+    · cases h
+    · cases h; simp [hmv]
+  · rw [if_neg hmv] at h
+    cases hp : parseRVD x.MinRV' with
+    | none => rw [hp] at h; cases h
+    | some rv =>
+      rw [hp] at h; simp only at h
+      rcases hm with e | e | e
+      · rw [e, if_neg w64_ne_01, if_neg w64_ne_02] at h
+        rw [e]
+        split at h
+        · rename_i hc
+          cases h
+          simp only [Bool.and_eq_true, decide_eq_true_eq] at hc
+          rw [if_neg (fun hh => hh.elim hmv (fun e => hc.2 e))]
+          exact ⟨by simp [hc.1.1, hc.1.2], fun _ => hc.2⟩
+        · rename_i hc
+          cases h
+          simp only [Bool.and_eq_true, decide_eq_true_eq, not_and] at hc
+          by_cases h0 : rq = 0
+          · subst h0; simp [w64_z]
+          · rw [if_neg (fun hh => hh.elim hmv (fun e => h0 e))]
+            refine ⟨?_, by simp⟩
+            simp only [w64_ne_02, decide_false, Bool.false_or, decide_true, Bool.true_and,
+              reduceCtorEq, iff_false, Bool.and_eq_true, decide_eq_true_eq]
+            exact fun hh => hc hh h0
+      · rw [e, if_pos rfl] at h
+        cases h
+        rw [e]
+        simp [hmv, w64_ne_12.symm, w64_ne_01.symm]
+      · rw [e, if_neg w64_ne_12.symm, if_pos rfl] at h
+        split at h
+        · cases h
+        · rename_i h0
+          cases h
+          rw [e, if_neg (fun hh => hh.elim hmv (fun e => h0 e))]
+          exact ⟨by simp, fun _ => h0⟩
+
+/-- **The checker's list on the current store's abstraction** (no error): the driver's loop on the
+store, its items, revision, and its continue token and remaining count if it has more. -/
+theorem rlistL_cur (x : Input) (st : GSt) (p : GoString) (c : RCons) (rq : w64)
+    (hp : k8s.prepareKeyM [] x.ListKey' x.Recursive' = some p) (hc : listConsL x = some (c, rq))
+    (hle : ¬ uint.nat st.rv < uint.nat rq) (hs : SortedI st.items) :
+    rlistL x (absR st) =
+      if (listLoopL x st.items).more then
+        ⟨.list (some (listLoopL x st.items).items.reverse) st.rv
+          (encL ((listLoopL x st.items).last.getD [] ++ [W8 0]) p st.rv)
+          (if predEmptyL x then some (W64 ((listLoopL x st.items).total : Int) - x.Limit') else none),
+          .none⟩
+      else ⟨.list (some (listLoopL x st.items).items.reverse) st.rv [] none, .none⟩ := by
+  unfold rlistL
+  simp only [hp, hc]
+  rw [if_neg (show ¬ uint.nat (absR st).rv < uint.nat rq from hle), scopeR_absR x st hs,
+    show ListModel.loop (selOkL x) (limitN x) (scopeL x st.items) = listLoopL x st.items from rfl]
+  by_cases hm : (listLoopL x st.items).more = true
+  · simp only [hm, ↓reduceIte, encOkL_loop x st.items p [] hp hm]; rfl
+  · have hm' : (listLoopL x st.items).more = false := by simpa using hm
+    simp only [hm', Bool.false_eq_true, ↓reduceIte]; rfl
+
+/-- **What the driver's list answer encodes**: a list of objects with the answer's items, at the store's
+revision, with the continue token and remaining count it has. -/
+theorem rawRel_listOutL (x : Input) (st : GSt) (p : GoString) (r : RResp) (h4 : x.Kind' = W64 4)
+    (hrel : RawRel x (listOutL x st (listLoopL x st.items) p) r) :
+    ∃ its, (∀ o ∈ its, itemOk o) ∧ encItemsL its = encItemsL (listLoopL x st.items).items.reverse ∧
+      r = if (listLoopL x st.items).more then
+        ⟨.list (some its) st.rv
+          (encL ((listLoopL x st.items).last.getD [] ++ [W8 0]) p st.rv)
+          (if predEmptyL x then some (W64 ((listLoopL x st.items).total : Int) - x.Limit') else none),
+          .none⟩
+      else ⟨.list (some its) st.rv [] none, .none⟩ := by
+  unfold listOutL at hrel
+  simp only at hrel
+  by_cases hm : (listLoopL x st.items).more = true
+  · rw [if_pos hm] at hrel
+    simp only [hm, ↓reduceIte]
+    by_cases he : encOkL (go!"/registry" ++ (listLoopL x st.items).last.getD [] ++ [W8 0])
+        (go!"/registry" ++ p) = true
+    · rw [if_pos he] at hrel
+      simp only [RawRel, h4, ↓reduceIte] at hrel
+      obtain ⟨its, hio, hits, hr⟩ := hrel
+      refine ⟨its, hio, hits.symm, ?_⟩
+      rw [hr]
+      simp only [List.append_assoc, encL_reg]
+      by_cases hpe : predEmptyL x = true <;> simp [hpe]
+    · rw [if_neg he] at hrel
+      simp [RawRel, otherL, errOutL] at hrel
+  · rw [if_neg hm] at hrel
+    have hm' : (listLoopL x st.items).more = false := by simpa using hm
+    simp only [hm', Bool.false_eq_true, ↓reduceIte]
+    simp only [RawRel, h4, ↓reduceIte] at hrel
+    obtain ⟨its, hio, hits, hr⟩ := hrel
+    exact ⟨its, hio, hits.symm, by rw [hr]; simp⟩
+
+/-- **B1, a list.** A list's real answer, when it is what the driver's answer (`mlistL`, at the store it
+reads: the current one, or the history's at the requested revision for an `Exact` read) encodes, is accepted
+by the maintainers' `Step` (`validateList` against `execute`'s answer on the current state), which leaves the
+state: a too-large error for both; a consistent read the same list (the store's key order is the checker's);
+an `Exact` read a list at the requested revision (the history's store there has that revision); a
+`NotOlderThan` read a list at the current revision. Premises: the match is one the driver draws and
+`ListReadConsistency` accepts the options, `PrepareKey` accepts the key, the store is sorted, its objects not
+`Annotated` (`StOk`) and ones `encodeItems` is injective on (`itemOk`), its revision positive, and the
+history's store at each revision up to the current one has that revision. -/
+theorem rstepL_list (x : Input) (h : HSt) (r : RResp) (h4 : x.Kind' = W64 4)
+    (hm : x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) (hcons : (listConsL x).isSome)
+    (hkey : (k8s.prepareKeyM [] x.ListKey' x.Recursive').isSome)
+    (hst : StOk h.st) (hio : ∀ it ∈ h.st.items, itemOk it.obj') (hpos : 0 < uint.nat h.st.rv)
+    (hhist : ∀ q : w64, 0 < uint.nat q → uint.nat q ≤ uint.nat h.st.rv → (histAtL h.hist q).rv = q)
+    (hrel : RawRel x (mlistL x h) r) :
+    (rstepL x (absR h.st) r).1 = true ∧ (rstepL x (absR h.st) r).2.1 = absR h.st := by
+  unfold rstepL
+  rw [if_pos h4]
+  refine ⟨?_, rfl⟩
+  have hex : (rexecL x (absR h.st)).1 = rlistL x (absR h.st) := by unfold rexecL; rw [if_pos h4]
+  rw [hex]
+  obtain ⟨⟨c, rq⟩, hc⟩ := Option.isSome_iff_exists.1 hcons
+  obtain ⟨p, hp⟩ := Option.isSome_iff_exists.1 hkey
+  have hparse := listConsL_parse x c rq hc
+  obtain ⟨hpast, hex0⟩ := listConsL_past x c rq hm hc
+  unfold mlistL at hrel
+  rw [hparse] at hrel
+  simp only at hrel
+  by_cases hlt : uint.nat h.st.rv < uint.nat rq
+  · rw [if_pos hlt] at hrel
+    simp [RawRel, tooLargeL, errOutL] at hrel
+    subst hrel
+    have e : rlistL x (absR h.st) = ⟨.nil, tooLargeE⟩ := by
+      unfold rlistL; simp only [hp, hc]; rw [if_pos (show uint.nat (absR h.st).rv < uint.nat rq from hlt)]
+    rw [e]; simp [rvalidateListL, tooLargeE, isTooLargeE]
+  rw [if_neg hlt] at hrel
+  cases hpo : k8s.prepareKeyM go!"/objs" x.ListKey' x.Recursive' with
+  | none => rw [hpo] at hrel; simp [RawRel, otherL, errOutL] at hrel
+  | some p' =>
+    rw [hpo] at hrel; simp only at hrel
+    have hpp : p = p' := by
+      have e := prepareKeyM_nil hpo; rw [hp] at e; exact Option.some.inj e
+    subst hpp
+    have hE : (rlistL x (absR h.st)).err = .none := by
+      rw [rlistL_cur x h.st p c rq hp hc hlt hst.1]; split <;> rfl
+    unfold rvalidateListL
+    rw [if_neg (by rw [hE]; simp [isTooLargeE]), if_neg (by rw [hE]; simp [errNonNil]), hc]
+    simp only
+    cases c with
+    | exact =>
+      have hrq0 := hex0 rfl
+      have hpr : pastReadL x rq = true := hpast.2 rfl
+      unfold listStL at hrel
+      rw [if_pos hpr] at hrel
+      have hrv : (histAtL h.hist rq).rv = rq := hhist rq
+        (by rcases Nat.eq_zero_or_pos (uint.nat rq) with e | e
+            · exact absurd (by apply BitVec.eq_of_toNat_eq; simpa using e) hrq0
+            · exact e)
+        (Nat.le_of_not_lt hlt)
+      obtain ⟨its, -, -, hr⟩ := rawRel_listOutL x _ p r h4 hrel
+      have hlr : listRespRVL r = some rq := by
+        rw [hr]; split <;> simp [listRespRVL, errNonNil, hrv] <;> exact hrq0
+      rw [hlr]
+      have hd : delayE r.err = false := by rw [hr]; split <;> rfl
+      simp [hd]
+    | notOlderThan =>
+      have hpr : pastReadL x rq = false := by
+        cases e : pastReadL x rq
+        · rfl
+        · cases hpast.1 e
+      unfold listStL at hrel
+      rw [if_neg (by simp [hpr])] at hrel
+      have hne : h.st.rv ≠ 0 := by intro e; rw [e] at hpos; simp at hpos
+      obtain ⟨its, -, -, hr⟩ := rawRel_listOutL x _ p r h4 hrel
+      have hlr : listRespRVL r = some h.st.rv := by
+        rw [hr]; split <;> simp [listRespRVL, errNonNil] <;> exact hne
+      rw [hlr]
+      have hd : delayE r.err = false := by rw [hr]; split <;> rfl
+      simp [hd, absR_rv, Nat.le_of_not_lt hlt]
+    | consistent =>
+      have hpr : pastReadL x rq = false := by
+        cases e : pastReadL x rq
+        · rfl
+        · cases hpast.1 e
+      unfold listStL at hrel
+      rw [if_neg (by simp [hpr])] at hrel
+      obtain ⟨its, hio', hits, hr⟩ := rawRel_listOutL x _ p r h4 hrel
+      have hii : its = (listLoopL x h.st.items).items.reverse := by
+        apply encItemsL_inj _ _ hio' _ hits
+        intro o ho
+        obtain ⟨-, -, -, h4'⟩ := listLoopL_inv x h.st.items p [] hp
+        obtain ⟨it, hit, rfl⟩ := h4' o (List.mem_reverse.1 ho)
+        exact hio it hit
+      subst hii
+      have hd : delayE r.err = false := by rw [hr]; split <;> rfl
+      simp only [hd, Bool.false_and, Bool.false_eq_true, ↓reduceIte]
+      unfold equalListRespL
+      rw [rlistL_cur x h.st p .consistent rq hp hc hlt hst.1, hr]
+      split <;> simp [respEqL]
 
 end go
 
