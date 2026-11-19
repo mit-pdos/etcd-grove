@@ -950,3 +950,7 @@ the Prove phase's. To do before the walkers' proofs.
   typed's `handleAtom`/`resolveSchema` nil-map branch.
 - `typed` package fact is `typedPoolsAt` (the pools at the translation's own closures; the frozen
   `typedPools`' existential `New` admitted nil) (D1).
+- `schema` `mapRep` (sealed) now carries `⌜m ≠ null⌝` (the old body had only field points-tos, so
+  `isMapRep_nonnull` was not derivable); `freshAtom_map.law` takes `a.Map' ≠ null` (only caller: the
+  driver's `newSchema`, discharged from the literal's points-to). Makes `Atom.Equals`/`Map.Equals`
+  provable (agent A, d6005ea076).
