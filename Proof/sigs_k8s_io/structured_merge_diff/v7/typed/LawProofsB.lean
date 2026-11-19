@@ -386,7 +386,7 @@ theorem cmpO_below_resolved (S : Schema) (t : TypeRef) (p : Path) (l r : Option 
           simp only [Bool.or_eq_false_iff, decide_eq_false_iff_not, Bool.and_eq_false_iff]
           refine ⟨fun h1 => h (Or.inl h1), ?_⟩
           cases h1 : (listItems l).isEmpty <;> cases h2 : (listItems r).isEmpty <;> simp_all
-        rw [if_neg h, h']
+        rw [h']; simp only [h, ↓reduceIte]
         rfl
     | map fs e rel =>
       simp only [cmpF, hf, leafAt]
@@ -397,7 +397,37 @@ theorem cmpO_below_resolved (S : Schema) (t : TypeRef) (p : Path) (l r : Option 
           simp only [Bool.or_eq_false_iff, decide_eq_false_iff_not, Bool.and_eq_false_iff]
           refine ⟨fun h1 => h (Or.inl h1), ?_⟩
           cases h1 : (mapItems l).isEmpty <;> cases h2 : (mapItems r).isEmpty <;> simp_all
-        rw [if_neg h, h']
+        rw [h']; simp only [h, ↓reduceIte]
         rfl
+
+namespace LawB
+
+theorem fset_map_append_nil (s : PathSet) : s.map (fun q => ([] : Path) ++ q) = s := by
+  induction s using Quotient.inductionOn with | h l =>
+  exact Quotient.sound (fun x => by simp)
+
+theorem fset_isEmpty_eq {α : Type} (s : FSet α) (h : s.isEmpty = true) : s = FSet.empty := by
+  induction s using Quotient.inductionOn with | h l =>
+  cases l with
+  | nil => rfl
+  | cons a l => simp [FSet.isEmpty, FSet.any] at h
+
+theorem filter_none (s : PathSet) :
+    s.filter (fun q => !(FSet.empty : PathSet).any (fun p => p.isPrefixOf q)) = s := by
+  induction s using Quotient.inductionOn with | h l =>
+  exact congrArg (Quotient.mk _) (List.filter_eq_self.2 (fun _ _ => rfl))
+
+theorem ins_nil : ins ([] : Path) = PathSet.empty := rfl
+
+end LawB
+
+theorem reconOut_reconcile_law_holds : reconOut_reconcile.law := by
+  intro S t s _
+  unfold reconOut reconcile
+  cases ht : reconTouch S t false s <;> cases hn : (atomicNodes S t s).isEmpty <;>
+    simp only [hn, Bool.or_true, Bool.or_false, Bool.not_true, Bool.not_false, ite_true,
+      ite_false, Bool.false_eq_true, ins_nil, empty, PathSet.union, PathSet.empty,
+      fset_empty_union, fset_map_append_nil]
+  rw [fset_isEmpty_eq _ hn, filter_none, fset_union_empty]
 
 #print axioms mergeO_leaf_law_holds
