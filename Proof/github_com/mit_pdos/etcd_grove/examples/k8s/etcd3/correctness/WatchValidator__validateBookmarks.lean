@@ -88,8 +88,13 @@ theorem bmStepR_some {lb le : w64} {f : Bool} {r : REv} {acc : w64 × w64 × Boo
 
 theorem WatchValidator.validateBookmarks.wp_proof
     (wp_objectRV : objectRV.spec (GF := GF) (hG := hG))
-    (wp_annot : annotObj.spec (GF := GF) (hG := hG)) :
+    [storage_sem : k8s_io.apiserver.pkg.storage.Assumptions]
+    [meta_sem : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions]
+    [runtime_sem : k8s_io.apimachinery.pkg.runtime.Assumptions]
+    (wp_HI : storage.HasInitialEventsEndBookmarkAnnotation.spec (GF := GF) (hG := hG))
+    (wp_GA : k8s_etcd3.Obj.GetAnnotations.spec (GF := GF) (hG := hG)) :
     WatchValidator.validateBookmarks.spec (GF := GF) (hG := hG) := by
+  have wp_annot := annotObj.wp_ok wp_HI wp_GA
   intro rp sl rs hok
   wp_start as #Hs
   iunfold evsRO at Hs

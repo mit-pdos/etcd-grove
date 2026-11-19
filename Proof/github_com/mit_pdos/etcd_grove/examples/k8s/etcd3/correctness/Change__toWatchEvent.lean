@@ -57,10 +57,16 @@ local macro "twe_obj" : tactic => `(tactic| (
   iexact Ho0))
 
 theorem Change.toWatchEvent.wp_proof
-    (wp_Matches : mlistMatchesW.spec (GF := GF) (hG := hG))
+    (wp_SM : storage.SelectionPredicate.Matches.spec (GF := GF) (hG := hG))
+    (wp_LM : labelSel.Matches.spec (GF := GF) (hG := hG))
+    (wp_LE : labelSel.Empty.spec (GF := GF) (hG := hG))
+    (wp_FM : fieldSel.Matches.spec (GF := GF) (hG := hG))
+    (wp_FE : fieldSel.Empty.spec (GF := GF) (hG := hG))
+    (wp_GA : getAttrs.spec (GF := GF) (hG := hG))
     (wp_DC : k8s_etcd3.Obj.DeepCopyObject.spec (GF := GF) (hG := hG))
     (wp_UO : k8s_etcd3.versioner.UpdateObject.spec (GF := GF) (hG := hG)) :
     Change.toWatchEvent.spec (GF := GF) (hG := hG) := by
+  have wp_Matches := mlistMatchesW.wp_ok wp_SM wp_LM wp_LE wp_FM wp_FE wp_GA
   intro cv c x hc
   have hpw : predWV x x.Bookmarks' = { predV x with AllowWatchBookmarks' := x.Bookmarks' } := rfl
   wp_start as #Hc
