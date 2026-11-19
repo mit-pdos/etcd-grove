@@ -94,7 +94,7 @@ theorem absent.wp_proof
     simp at hl
     word
   (try wp_auto)
-  simp only [Hz, ↓reduceIte]
+  simp only [Hz]
   (try wp_auto)
   iapply HΦ; itrivial
 
