@@ -43,21 +43,14 @@ theorem state.apply.wp_proof
   unfold ownState
   icases Hst with ⟨%u, %lv, %mfm, Hs, Hsc, #Hu, #Hlv, #Hmf⟩
   wp_auto
-  wp_apply (wp_typedObj s sc st m kvs hval) $$ [Hs Hsc] as %cp ⟨Hst, #Hcp⟩
-  · unfold ownState
-    isplitl
-    · iexists u, lv, mfm
-      iframe
-      iframe #
-    · iexact Hm
-  unfold ownState
-  icases Hst with ⟨%u', %lv', %mfm', Hs, Hsc, #Hu', #Hlv', #Hmf'⟩
-  wp_auto
+  wp_apply (wp_typedObj s sc u lv mfm m kvs hval) $$ [Hs Hsc] as %cp ⟨Hs, Hsc, #Hcp⟩
+  · iframe
+    iexact Hm
   have hnp : (match apply false k8s_smd.sc st.live ⟨some (.map kvs), rootRef⟩ version st.mf mgr false with
       | .panic => False | _ => True) := by
     cases ha : apply false k8s_smd.sc st.live ⟨some (.map kvs), rootRef⟩ version st.mf mgr false <;>
       simp_all [stApply, stTyped, asTyped]
-  wp_apply (wp_Apply u' false sc k8s_smd.sc lv cp st.live ⟨some (.map kvs), rootRef⟩ version mfm' st.mf mgr
+  wp_apply (wp_Apply u false sc k8s_smd.sc lv cp st.live ⟨some (.map kvs), rootRef⟩ version mfm st.mf mgr
     false hok'.1 hok'.2 (by decide +kernel) hnp) $$ [Hsc] as %op %mfm2 %err ⟨Hsc, Hpost⟩
   · iframe
     iframe #
@@ -77,7 +70,7 @@ theorem state.apply.wp_proof
       obtain ⟨rfl, rfl⟩ := h
       wp_auto
       iapply HΦ
-      iexists u', lv', mfm2
+      iexists u, lv, mfm2
       iframe
       iframe #
     | some o =>
@@ -94,7 +87,7 @@ theorem state.apply.wp_proof
       simp only [hop, decide_false]
       wp_auto
       iapply HΦ
-      iexists u', op, mfm2
+      iexists u, op, mfm2
       iframe
       iframe #
   | conflicts cs => simp [stApply, stTyped, asTyped, hval, ha] at h

@@ -131,77 +131,95 @@ theorem eq_some_of_check (r : Option (St × Bool)) (b : Bool)
 
 /-! ## The steps -/
 
-def obj0 : UVal := mkObj []
+def obj0L : List (GoString × UVal) := []
+def obj0 : UVal := mkObj obj0L
 def S0 : St := ⟨⟨some obj0, rootRef⟩, []⟩
 
-def selector1 : UVal := mkObj [(go!"k", str go!"v1"), (go!"m", str go!"x")]
-def cfg1 : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def selector1L : List (GoString × UVal) := [(go!"k", str go!"v1"), (go!"m", str go!"x")]
+def selector1 : UVal := mkObj selector1L
+def cfg1L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 1), (go!"containers", .list [container go!"a1" go!"x"]),
   (go!"labels", mkObj [(go!"app", str go!"web")]), (go!"selector", selector1)]
+def cfg1 : UVal := mkObj cfg1L
 def aPaths1 : List Path := [field go!"name", field go!"image", field go!"replicas",
   mapKey go!"labels" go!"app", field go!"selector"] ++ containerPaths go!"a1"
 def mf1 : MF := mkMF [(go!"A", applied aPaths1)]
 
-def cfg2 : UVal := mkObj [(go!"labels", mkObj [(go!"team", str go!"t")])]
-def labels2 : UVal := mkObj [(go!"app", str go!"web"), (go!"team", str go!"t")]
-def obj2 : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def cfg2L : List (GoString × UVal) := [(go!"labels", mkObj [(go!"team", str go!"t")])]
+def cfg2 : UVal := mkObj cfg2L
+def labels2L : List (GoString × UVal) := [(go!"app", str go!"web"), (go!"team", str go!"t")]
+def labels2 : UVal := mkObj labels2L
+def obj2L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 1), (go!"containers", .list [container go!"a1" go!"x"]),
   (go!"labels", labels2), (go!"selector", selector1)]
+def obj2 : UVal := mkObj obj2L
 def mf2 : MF := mkMF [(go!"A", applied aPaths1), (go!"B", applied [mapKey go!"labels" go!"team"])]
 
-def cfg3 : UVal := mkObj [(go!"image", str go!"img1"), (go!"labels", mkObj [(go!"team", str go!"t")])]
+def cfg3L : List (GoString × UVal) := [(go!"image", str go!"img1"), (go!"labels", mkObj [(go!"team", str go!"t")])]
+def cfg3 : UVal := mkObj cfg3L
 def mf3 : MF := mkMF [(go!"A", applied aPaths1),
   (go!"B", applied [field go!"image", mapKey go!"labels" go!"team"])]
 
-def cfg4 : UVal := mkObj [(go!"image", str go!"img1"), (go!"replicas", .int 2),
+def cfg4L : List (GoString × UVal) := [(go!"image", str go!"img1"), (go!"replicas", .int 2),
   (go!"labels", mkObj [(go!"team", str go!"t")])]
+def cfg4 : UVal := mkObj cfg4L
 def conflicts4 : List Conflict := [⟨go!"A", field go!"replicas"⟩]
 
-def obj5 : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def obj5L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 2), (go!"containers", .list [container go!"a1" go!"x"]),
   (go!"labels", labels2), (go!"selector", selector1)]
+def obj5 : UVal := mkObj obj5L
 def aPaths5 : List Path := [field go!"name", field go!"image", mapKey go!"labels" go!"app",
   field go!"selector"] ++ containerPaths go!"a1"
 def bPaths5 : List Path := [field go!"image", field go!"replicas", mapKey go!"labels" go!"team"]
 def mf5 : MF := mkMF [(go!"A", applied aPaths5), (go!"B", applied bPaths5)]
 
-def cfg6 : UVal := mkObj [(go!"name", str go!"obj"), (go!"containers", .list [container go!"a1" go!"x"]),
+def cfg6L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"containers", .list [container go!"a1" go!"x"]),
   (go!"selector", selector1)]
-def obj6 : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def cfg6 : UVal := mkObj cfg6L
+def obj6L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 2), (go!"containers", .list [container go!"a1" go!"x"]),
   (go!"labels", mkObj [(go!"team", str go!"t")]), (go!"selector", selector1)]
+def obj6 : UVal := mkObj obj6L
 def aPaths6 : List Path := [field go!"name", field go!"selector"] ++ containerPaths go!"a1"
 def mf6 : MF := mkMF [(go!"A", applied aPaths6), (go!"B", applied bPaths5)]
 
-def cfg7a : UVal := mkObj [(go!"image", str go!"img1"), (go!"replicas", .int 2),
+def cfg7aL : List (GoString × UVal) := [(go!"image", str go!"img1"), (go!"replicas", .int 2),
   (go!"containers", .list [container go!"b1" go!"y"]), (go!"labels", mkObj [(go!"team", str go!"t")])]
+def cfg7a : UVal := mkObj cfg7aL
 def bPaths7 : List Path := bPaths5 ++ containerPaths go!"b1"
-def obj7a : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def obj7aL : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 2), (go!"containers", .list [container go!"a1" go!"x", container go!"b1" go!"y"]),
   (go!"labels", mkObj [(go!"team", str go!"t")]), (go!"selector", selector1)]
+def obj7a : UVal := mkObj obj7aL
 def mf7a : MF := mkMF [(go!"A", applied aPaths6), (go!"B", applied bPaths7)]
 
-def cfg7b : UVal := mkObj [(go!"name", str go!"obj"), (go!"containers", .list [container go!"a2" go!"z"]),
+def cfg7bL : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"containers", .list [container go!"a2" go!"z"]),
   (go!"selector", selector1)]
+def cfg7b : UVal := mkObj cfg7bL
 def aPaths7 : List Path := [field go!"name", field go!"selector"] ++ containerPaths go!"a2"
-def obj7b : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def obj7bL : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 2), (go!"containers", .list [container go!"b1" go!"y", container go!"a2" go!"z"]),
   (go!"labels", mkObj [(go!"team", str go!"t")]), (go!"selector", selector1)]
+def obj7b : UVal := mkObj obj7bL
 def mf7b : MF := mkMF [(go!"A", applied aPaths7), (go!"B", applied bPaths7)]
 
-def obj8 : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def obj8L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 3), (go!"containers", .list [container go!"b1" go!"y", container go!"a2" go!"z"]),
   (go!"labels", mkObj [(go!"team", str go!"t"), (go!"env", str go!"prod")]), (go!"selector", selector1)]
+def obj8 : UVal := mkObj obj8L
 def bPaths8 : List Path := [field go!"image", mapKey go!"labels" go!"team"] ++ containerPaths go!"b1"
 def mf8 : MF := mkMF [(go!"A", applied aPaths7), (go!"B", applied bPaths8),
   (go!"C", updated [field go!"replicas", mapKey go!"labels" go!"env"])]
 
-def cfg9 : UVal := mkObj [(go!"name", str go!"obj"), (go!"containers", .list [container go!"a2" go!"z"]),
+def cfg9L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"containers", .list [container go!"a2" go!"z"]),
   (go!"selector", mkObj [(go!"k", str go!"v2")])]
-def obj9 : UVal := mkObj [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
+def cfg9 : UVal := mkObj cfg9L
+def obj9L : List (GoString × UVal) := [(go!"name", str go!"obj"), (go!"image", str go!"img1"),
   (go!"replicas", .int 3), (go!"containers", .list [container go!"b1" go!"y", container go!"a2" go!"z"]),
   (go!"labels", mkObj [(go!"team", str go!"t"), (go!"env", str go!"prod")]),
   (go!"selector", mkObj [(go!"k", str go!"v2")])]
+def obj9 : UVal := mkObj obj9L
 
 /-- Steps 1-3 (`state.apply`). -/
 def r1 : Option (St × Bool) := stApply S0 cfg1 go!"A"

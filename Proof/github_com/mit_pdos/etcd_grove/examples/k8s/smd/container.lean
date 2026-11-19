@@ -34,7 +34,8 @@ theorem container.wp_proof : container.spec (GF := GF) := fun n i => by
   wp_apply wp_mapInsert $$ Hm as Hm
   wp_apply wp_mapInsert $$ Hm as Hm
   imod (ownUMap_lit m [(go!"name", interface.mkOk go.string #n, .str n),
-      (go!"image", interface.mkOk go.string #i, .str i)] (by simp only [List.map]; decide) (by rfl))
+      (go!"image", interface.mkOk go.string #i, .str i)] [(go!"name", str n), (go!"image", str i)] rfl
+      (by simp only [List.map]; decide) (by rfl))
       $$ [Hm] with #Hm
   · isplitl
     · simp only [litMap, List.map_cons, List.map_nil, List.foldl_cons, List.foldl_nil]
@@ -44,9 +45,7 @@ theorem container.wp_proof : container.spec (GF := GF) := fun n i => by
       rcases he with rfl | rfl <;> iapply ownU_str
   imodintro
   iapply HΦ
-  rw [show containerKVs n i = mkKVs (List.map (fun e => (e.1, e.2.2))
-    [(go!"name", interface.mkOk go.string #n, UVal.str n),
-      (go!"image", interface.mkOk go.string #i, UVal.str i)]) from rfl]
+  unfold containerKVs
   iexact Hm
 
 end proof

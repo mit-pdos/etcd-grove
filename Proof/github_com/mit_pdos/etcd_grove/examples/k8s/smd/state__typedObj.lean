@@ -32,10 +32,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumpti
 theorem state.typedObj.wp_proof
     (wp_NewValueInterface : smd.value.NewValueInterface.spec (GF := GF))
     (wp_AsTyped : smd.typed.AsTyped.spec (GF := GF)) :
-    state.typedObj.spec (GF := GF) := fun s sc st m kvs hval => by
-  wp_start as ⟨Hst, #Hm⟩
-  unfold ownState
-  icases Hst with ⟨%u, %lv, %mfm, Hs, Hsc, #Hu, #Hlv, #Hmf⟩
+    state.typedObj.spec (GF := GF) := fun s sc u lv mfm m kvs hval => by
+  wp_start as ⟨Hs, Hsc, #Hm⟩
   wp_auto
   ihave #HmU := ownU_map m kvs $$ Hm
   wp_apply (wp_NewValueInterface (interface.mkOk mapStrIfaceTy #m) (.map kvs)) as %v #Hv
@@ -57,9 +55,7 @@ theorem state.typedObj.wp_proof
   wp_auto
   iapply HΦ
   iframe Hp
-  iexists u, lv, mfm
   iframe
-  iframe #
 
 end proof
 

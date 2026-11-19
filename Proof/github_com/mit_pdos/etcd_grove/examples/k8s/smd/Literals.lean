@@ -6,6 +6,7 @@ entries' insertions build) is an `ownUMap` of its sorted entries (`mkKVs`), and 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Defs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.OwnLaws
 
 @[expose] public section
 
@@ -161,10 +162,12 @@ theorem ownUM_of (M : GMap GoString GoInterface) (es : List (GoString × GoInter
 /-- A `map[string]interface{}` literal: the map of its entries' insertions, each value owned
 as its model, is (made persistent) an `ownUMap` of the sorted entries. -/
 theorem ownUMap_lit (m : GoMap) (es : List (GoString × GoInterface × UVal))
-    (hnd : (es.map (·.1)).Nodup)
-    (hs : keysSorted (mkKVs (es.map fun e => (e.1, e.2.2))) = true) :
+    (kvs : List (GoString × UVal)) (hk : es.map (fun e => (e.1, e.2.2)) = kvs)
+    (hnd : (kvs.map (·.1)).Nodup) (hs : keysSorted (mkKVs kvs) = true) :
     iprop(m ↦$ litMap (es.map fun e => (e.1, e.2.1)) ∅ ∗ □ (∀ e, ⌜e ∈ es⌝ -∗ ownU (GF := GF) e.2.1 e.2.2)) ⊢
-      |==> □ ownUMap m (mkKVs (es.map fun e => (e.1, e.2.2))) := by
+      |==> □ ownUMap m (mkKVs kvs) := by
+  subst hk
+  replace hnd : (es.map (·.1)).Nodup := by simpa [List.map_map, Function.comp_def] using hnd
   iintro ⟨Hm, #Hes⟩
   imod ownMap_persist _ _ _ $$ Hm with #Hm
   imodintro
@@ -210,10 +213,12 @@ theorem ownMFL_of (M : GMap GoString GoInterface) (es : List (GoString × GoInte
 
 /-- A `fieldpath.ManagedFields` literal: as `ownUMap_lit`, an `ownMF` of the sorted entries. -/
 theorem ownMF_lit (m : GoMap) (es : List (GoString × GoInterface × VSet))
-    (hnd : (es.map (·.1)).Nodup)
-    (hs : keysSorted (mkMF (es.map fun e => (e.1, e.2.2))) = true) :
+    (ms : List (GoString × VSet)) (hk : es.map (fun e => (e.1, e.2.2)) = ms)
+    (hnd : (ms.map (·.1)).Nodup) (hs : keysSorted (mkMF ms) = true) :
     iprop(m ↦$ litMap (es.map fun e => (e.1, e.2.1)) ∅ ∗ □ (∀ e, ⌜e ∈ es⌝ -∗ ownVSet (GF := GF) e.2.1 e.2.2)) ⊢
-      |==> □ ownMF m (mkMF (es.map fun e => (e.1, e.2.2))) := by
+      |==> □ ownMF m (mkMF ms) := by
+  subst hk
+  replace hnd : (es.map (·.1)).Nodup := by simpa [List.map_map, Function.comp_def] using hnd
   iintro ⟨Hm, #Hes⟩
   imod ownMap_persist _ _ _ $$ Hm with #Hm
   imodintro
@@ -269,6 +274,50 @@ theorem ownTypeRef_named (p : Loc) (n : GoString) :
   isplitr
   · ipureintro; rfl
   · ipureintro; rfl
+
+/-- A literal's entries, each value owned as its model. -/
+def ownEntries : List (GoString × GoInterface × UVal) → IProp GF
+  | [] => iprop(True)
+  | e :: es => iprop(ownU e.2.1 e.2.2 ∗ ownEntries es)
+
+instance ownEntries_persistent (es : List (GoString × GoInterface × UVal)) :
+    Persistent (ownEntries (GF := GF) es) := by
+  induction es with
+  | nil => simp only [ownEntries]; infer_instance
+  | cons e es ih => have := ih; simp only [ownEntries]; infer_instance
+
+theorem ownEntries_mem (es : List (GoString × GoInterface × UVal)) :
+    ownEntries (GF := GF) es ⊢ iprop(□ (∀ e, ⌜e ∈ es⌝ -∗ ownU (GF := GF) e.2.1 e.2.2)) := by
+  induction es with
+  | nil => iintro _ !> %e %he; simp at he
+  | cons e es ih =>
+    simp only [ownEntries]
+    iintro #⟨He, Hes⟩ !> %e' %he'
+    rcases List.mem_cons.1 he' with rfl | h
+    · iexact He
+    · ihave #Hes' := ih $$ Hes
+      iapply Hes' $$ %e' %h
+
+/-- `ownUMap_lit` with the entries' ownership as a separating conjunction. -/
+theorem ownUMap_lit' (m : GoMap) (es : List (GoString × GoInterface × UVal))
+    (kvs : List (GoString × UVal)) (hk : es.map (fun e => (e.1, e.2.2)) = kvs)
+    (hnd : (kvs.map (·.1)).Nodup) (hs : keysSorted (mkKVs kvs) = true) :
+    iprop(m ↦$ litMap (es.map fun e => (e.1, e.2.1)) ∅ ∗ ownEntries (GF := GF) es) ⊢
+      |==> □ ownUMap m (mkKVs kvs) := by
+  iintro ⟨Hm, #Hes⟩
+  ihave #Hes' := ownEntries_mem es $$ Hes
+  iapply ownUMap_lit m es kvs hk hnd hs
+  iframe Hm
+  iexact Hes'
+
+theorem ownU_list (sl : GoSlice) (xs : List GoInterface) (vs : List UVal) :
+    iprop(sl ↦*{DFrac.discard} xs ∗ ownUL (GF := GF) xs vs) ⊢
+      ownU (interface.mkOk sliceIfaceTy #sl) (.list vs) := by
+  iintro ⟨Hs, Hl⟩
+  simp only [ownU]
+  iexists sl, xs
+  iframe
+  ipureintro; rfl
 
 end own
 
