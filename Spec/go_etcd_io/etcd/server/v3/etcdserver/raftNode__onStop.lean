@@ -28,8 +28,8 @@ stops the node, the ticker and the transport, closes the WAL (which succeeds, th
 escrowed (`rnDoneEsc`: the id vacant, the durable state, the WAL's files holding it). -/
 abbrev raftNode.onStop.spec : Prop :=
   ∀ (E : RNEnv GF) (γ : RNNames GF) (r : Loc),
-  -- (2026-10-31, `notes/axiom-review/savesnap.md`) `Close` not failing (I/O)
-  storage.walCloseOk →
+  -- (wal-link L3, 2026-11-19: until then the premise `storage.walCloseOk`, `Close` not failing, which the
+  -- run's no-I/O-error semantics now gives: `isWalStorage`'s `Close` law)
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isRaftNode E γ r ∗ rnDoneTok γ r ∗
       E.ST ∗
       -- (2026-10-30, the repair) the node's whole running token (the loop's half and the apply
@@ -39,7 +39,7 @@ abbrev raftNode.onStop.spec : Prop :=
       -- `Close` takes; (2026-11-03, R2b-1 stage 6) the records, which `Close` also takes, from the
       -- durability invariant (`rnDur_take`): the stop's claim, the apply thread's token, the loop's
       -- view at no pending snapshot; and the metadata and the purge's right
-      rnWalTok r 1 ∗ token γ.wal.stop ∗ token γ.wal.app ∗
+      rnWalTok γ r 1 ∗ token γ.wal.stop ∗ token γ.wal.app ∗
       -- (2026-11-03, R2b-3b) the node's durable state `S`, the loop's view at it (no pending
       -- snapshot, the handed log `L`), and `applyc`'s producer token with `cum` at its count, for
       -- the stop's escrow (`rnDoneEsc`); (S1, 2026-11-11) the restart point's backend log at or
@@ -50,7 +50,7 @@ abbrev raftNode.onStop.spec : Prop :=
         sspscProducer γ.ap sent ∗ monoListIdxOwn γ.cum sent.length L ∗
         ⌜γ.a0.length ≤ uint.nat p.Commit'⌝ ∗ isCommittedLogLb γ.node.cl (srvLE γ.srv L)) ∗
       (∃ (st : GoInterface) (cid : w64), rnStorageAddr r ↦□ st ∗
-        walMetaIs (storage.walOf st) γ.id cid ∗ walPurgeRight (walDirOf (storage.walOf st))) }}
+        walMetaIs γ.wal.h γ.id cid ∗ walPurgeRight γ.wal.h) }}
     (App (Val (r @!! go.GoType.PointerType raftNode.ty @!! go!"onStop")) (Val #()))
   {{ RET #(); True }}
 

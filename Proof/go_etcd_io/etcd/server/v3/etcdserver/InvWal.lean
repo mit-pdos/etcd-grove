@@ -958,6 +958,70 @@ theorem rnDur_ownSnap_au (cl : Cluster) (ν : WalNames GF) (w : WalH GF) (md : S
     imodintro
     iframe Ha Hblb
 
+/-- (wal-link L3, 2026-11-19) **The loop's view describes some records** (`ViewOk`): with the loop's view half and
+its token (which rules out the stop's taken state), read off the invariant. -/
+theorem rnDur_viewOk (cl : Cluster) (ν : WalNames GF) (w : WalH GF) (v : WalView) :
+    rnDurInv (GF := GF) cl ν w -∗ ghostVar ν.view (1 : Qp).half v -∗ token ν.ok ={⊤}=∗
+      ghostVar ν.view (1 : Qp).half v ∗ token ν.ok ∗ ⌜∃ σ, ViewOk v σ⌝ := by
+  iintro #Hinv Hv Hok
+  iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with >Hi Hclose
+  icases Hi with (⟨%v0, Hv0, Hcm, Hw⟩ | ⟨-, -, Hok'⟩)
+  rotate_left
+  · iexfalso; iapply token_exclusive $$ Hok Hok'
+  icombine Hv Hv0 gives %Hag
+  have Hvv : v = v0 := Hag.2
+  subst Hvv
+  iunfold walAsViewed at Hw
+  icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
+  imod Hclose $$ [Hv0 Hcm Hr] with -
+  · inext; ileft; iexists v; iframe Hv0 Hcm; iunfold walAsViewed; iexists σ; iframe Hr Hc
+    ipureintro; exact Hok0
+  imodintro
+  iframe Hv Hok
+  ipureintro; exact ⟨σ, Hok0⟩
+
+/-- (wal-link L3, 2026-11-19) **A read of the records, as the WAL contract's atomic update** (`walRelease_spec`):
+with the apply thread's token (`ν.app`, which rules out the stop's taken state), the records read and left
+unchanged. -/
+theorem rnDur_read_au (cl : Cluster) (ν : WalNames GF) (w : WalH GF) :
+    rnDurInv (GF := GF) cl ν w -∗ token ν.app -∗
+      AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs w σ s }> @ WalFs.walAuMask, ∅
+        <{ walRecs w σ s, COMM token ν.app }> := by
+  iintro #Hinv Ha
+  iauintro
+  unfold atomic_acc
+  iunfold rnDurInv at Hinv
+  icases Hinv with ⟨-, #Hinv⟩
+  iinv Hinv with >Hi Hclose
+  all_goals first | exact rnDurN_sub_walAuMask | skip
+  icases Hi with (⟨%v, Hv, Hcm, Hw⟩ | ⟨-, Ha', -⟩)
+  rotate_left
+  · iexfalso; iapply token_exclusive $$ Ha Ha'
+  iunfold walAsViewed at Hw
+  icases Hw with ⟨%σ, Hr, %Hok0, #Hc⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists recsOf v σ, true
+  iframe Hr
+  isplit
+  · iintro Hr
+    imod Hmask with -
+    imod Hclose $$ [Hv Hcm Hr] with -
+    · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ; iframe Hr Hc
+      ipureintro; exact Hok0
+    imodintro
+    iframe Ha
+  · iintro Hr
+    imod Hmask with -
+    imod Hclose $$ [Hv Hcm Hr] with -
+    · inext; ileft; iexists v; iframe Hv Hcm; iunfold walAsViewed; iexists σ; iframe Hr Hc
+      ipureintro; exact Hok0
+    imodintro
+    iframe Ha
+
 /-- (2026-11-03, R2b-1 stage 6; the draft's `rnDurTake_stmt`, round 4) **The stop takes the records
 out** (`onStop`, the loop idle, its view at no pending snapshot): with the stop's claim, the apply
 thread's token (which `stopped` brings), the loop's view half and its token, the records holding the

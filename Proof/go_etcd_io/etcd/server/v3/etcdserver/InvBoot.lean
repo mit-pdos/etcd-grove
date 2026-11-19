@@ -506,8 +506,9 @@ which no update can), an error, or the record with `bootOk` (at the write-back b
 does otherwise) and a budget `bootstrap`'s own write-backs leave (`N + 7 + bootWB ≤ wbInit`).
 (2026-11-03, the final whole-`bootOk` review's M1) On a disk that cooperates with `bootstrap`'s own
 I/O, where it would otherwise panic: bbolt opens the backend file (`storage.dbOpensOk`,
-`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) and the WAL is created
-(`storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`); its other I/O failures return an error or
+`newBackend`'s `lg.Panic` on `OpenBackend`'s goroutine) (wal-link L3, 2026-11-19: until then also the WAL
+created, `storage.walCreateOk`, `bootstrapNewWAL`'s `lg.Panic`, which the run's no-I/O-error semantics over
+the real WAL now gives); its other I/O failures return an error or
 call `lg.Fatal`, which does not return (`zap.Logger.Fatal.spec`). (Sweep repairs 1, R1-2, L4,
 2026-11-07) With a zap logger (`zapLoggerOk cfg.Logger'`): `bootstrap` logs through it from its first
 line (`bootstrap.go:64`, `:92`), and on a zero `&zap.Logger{}` panics; until then the contract
@@ -525,7 +526,7 @@ def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U :
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
   iprop(□ ({{ ⌜bootCfgOk cfg ∧ bootCfgFresh cfg U ∧ N + 7 + bootWB ≤ backend.wbInit ∧
-          storage.dbOpensOk ∧ storage.walCreateOk⌝ ∗
+          storage.dbOpensOk⌝ ∗
         -- (sweep repairs 1, L4) a zap logger
         zapLoggerOk cfg.Logger' ∗
         -- (premise fixes 1) the feature gate `nil` or one that answers `NonBlockingDefrag`

@@ -94,7 +94,9 @@ closed them (`rnWalClosedW`). Every member of the cluster ran under the same bou
 data directory written by an etcd with a larger
 `--max-request-bytes`, or by any other program, is outside what these files describe. -/
 def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
-  iprop((∃ cid : w64, walFiles (config.walDirOf dd "") id cid σ true) ∗
+  -- (wal-link L3, 2026-11-19: until then the trusted `walFiles (config.walDirOf dd "") id cid σ true`) the WAL's
+  -- files over the real file system (`walFiles`, a definition over layer 1's disk state, `WalA`)
+  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = config.walDirOf dd ""⌝ ∗ walFiles a id cid σ true) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
 /-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
@@ -665,10 +667,8 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
       storage.dbOpensOk ∧
-      -- (out_size C3, MAJ-1, 2026-11-12) no WAL `Save` failed: the sized files (`srvFiles`) speak
-      -- of the records successful `Save`s wrote (`walFiles`' `sized`), which `bootOkR`'s `Hγsz`
-      -- rests on
-      storage.walSaveOk ∧
+      -- (out_size C3, MAJ-1, 2026-11-12, to wal-link L3, 2026-11-19: `storage.walSaveOk`, no WAL `Save`
+      -- failed, for the sized files; `walFiles`' `sized` is now a fact of the files, `walEntsSized`)
       N + 7 + bootWB ≤ backend.wbInit ∧
       (∀ f, ((restModel (W64 0) γ.boot L).mem.lookup f).map apply.MemberM.peerURLs =
         ((memBoot γ.boot).lookup f).map apply.MemberM.peerURLs) ∧

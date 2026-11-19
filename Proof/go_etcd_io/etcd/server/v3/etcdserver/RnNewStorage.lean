@@ -391,7 +391,8 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
   · iapply (isWalStorage_intro
       iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
         storage.storageOver p h.w ss ∗ snap.isSnapshotter ss)
-      _ h ss (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) rfl
+      _ h ss (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) rfl p rfl
+      (by iintro ⟨-, #H2, -⟩; iunfold storage.storageOver at H2; icases H2 with ⟨#Hs, -⟩; iexact Hs)
       (fun sized q hp hs sl esL cs Q => by
         iintro ⟨#H1, #H2, -⟩
         iapply (walSave_law h (hS h) p ss sized q hp hs sl esL cs Q)

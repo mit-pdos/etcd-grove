@@ -46,11 +46,9 @@ abbrev EtcdServer.snapshotIfNeededAndCompactRaftLog.specBatch : Prop :=
   loopOk γ st ai →
   -- (2026-10-30, the repair: snapshots allowed) what `snapshot` takes (its spec, lean's
   -- `specFull`): the consistent index past `ai`, `Release` not failing
-  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.snapOpensOk →
   -- (2026-10-31, the snapshot track: what certifying the snapshot takes) fewer than `2^61` voters
   GMap.size γr.raft.raft.cfg < 2 ^ 61 →
-  -- (2026-10-31, `notes/axiom-review/savesnap.md`) what the WAL's `SaveSnap` takes (`snapshot`'s)
-  storage.walSaveOk →
   -- (2026-11-03, R2b-1 stage 5) the raft wrapper's names the server's raft's, at a fresh start
   -- (`snapshot`'s)
   γn.node = γr.raft.raft → γr.raft.pre = [] →

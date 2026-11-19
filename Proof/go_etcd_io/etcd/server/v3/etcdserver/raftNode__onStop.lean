@@ -25,7 +25,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem raftNode.onStop.wp_proof :
     raftNode.onStop.spec (GF := GF) (hG := hG) := by
-  intro E γ r Hwco
+  intro E γ r
   wp_start as ⟨#Hr, Hdone, HST, Hrun, Hwt, Hwst, Hwap, ⟨%S, %p, %L, %sent, HrS, Hwvo, Hprod, #Hidx, %Ha0, #HcL⟩,
     ⟨%stm, %cid, #Hstm, Hmeta, Hpurge⟩⟩
   iunfold isRaftNode at Hr
@@ -51,7 +51,7 @@ theorem raftNode.onStop.wp_proof :
   iunfold rnWalView at Hwvo
   icases Hwvo with ⟨Hwv, Hwok⟩
   -- (R2b-1 stage 6) the records, taken out of the durability invariant (`rnDur_take`)
-  imod rnDur_take γ.node.cl γ.wal (storage.walOf stm) _ rfl $$ Hdur Hwst Hwap Hwv Hwok
+  imod rnDur_take γ.node.cl γ.wal γ.wal.h _ rfl $$ Hdur Hwst Hwap Hwv Hwok
     with ⟨%σ, Hrecs, %Hσ, #Hσc⟩
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', %st2, #Hdnc', #Hst2, Hbc⟩
@@ -70,17 +70,14 @@ theorem raftNode.onStop.wp_proof :
   wp_apply HStop $$ [$Hrun] as ⟨-, Hvac⟩
   wp_apply HtkStop
   wp_apply HTrStop $$ [$HST]
-  ihave #HClose := walClose_spec stm si Hsieq σ γ.id cid true $$ Hsti
+  ihave #HClose := walClose_spec stm γ.wal.h γ.ss si Hsieq σ γ.id cid true $$ Hsti
   subst Hsieq
-  wp_apply HClose $$ [$Hwo $Hrecs $Hmeta $Hpurge] as %cerr Hcerr
+  wp_apply HClose $$ [$Hwo $Hrecs $Hmeta $Hpurge] as %cerr ⟨%hcerr, Hfiles⟩
   · ipureintro; omega
-  icases Hcerr with (⟨%hcerr, Hfiles⟩ | %Hcerr)
-  rotate_left
-  · exact absurd Hwco Hcerr
   subst hcerr
   (try wp_auto)
   -- (R2b-3b) the stop's escrow, with the image: the id vacant, the durable state, the files
-  imod inv_alloc rnStopN ⊤ iprop(rnStopImage γ (storage.walOf (GoInterface.ok si)) ∨ token γ.sc)
+  imod inv_alloc rnStopN ⊤ iprop(rnStopImage γ ∨ token γ.sc)
     $$ [Hvac HrS Hfiles Hprod] with #Hesc
   · inext
     ileft
@@ -104,7 +101,7 @@ theorem raftNode.onStop.wp_proof :
     iexists (srvLE γ.srv L)
     iframe HcL
     ipureintro; exact ⟨Hb, Hag⟩
-  wp_apply wp_broadcast_chan_close dnc γ.done (rnDoneEsc γ (storage.walOf (GoInterface.ok si)))
+  wp_apply wp_broadcast_chan_close dnc γ.done (rnDoneEsc γ)
     $$ [$Hbc]
   · imodintro; iunfold rnDoneEsc; iexact Hesc
   iintro -

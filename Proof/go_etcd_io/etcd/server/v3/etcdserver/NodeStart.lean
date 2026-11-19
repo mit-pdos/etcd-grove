@@ -127,15 +127,14 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames GF) (a : Loc) (rv : r
       isRaftNodeIfc E γ rv.raftNodeConfig'.Node' ∗
       isRNIDRemoved rv.raftNodeConfig'.isIDRemoved' ∗
       ⌜rv.raftNodeConfig'.raftStorage' = γ.ms⌝ ∗ isRNMemStor γ γ.ms ∗
-      isWalStorage rv.raftNodeConfig'.storage' ∗
+      isWalStorage rv.raftNodeConfig'.storage' γ.wal.h γ.ss ∗
       -- (2026-11-03, R2b-1 stage 3c) the WAL's durability invariant
-      rnDurInv γ.node.cl γ.wal (storage.walOf rv.raftNodeConfig'.storage') ∗
+      rnDurInv γ.node.cl γ.wal γ.wal.h ∗
       isRNTransport E rv.raftNodeConfig'.transport' ∗
       rnParts E γ rv ∗
       rnFixed a rv ∗ rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' ∗
       rnLatestTickTsAddr a ↦ rv.latestTickTs' ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
-      ownBroadcastChan rv.done' γ.done (rnDoneEsc γ (storage.walOf rv.raftNodeConfig'.storage'))
-        .Pending ⊢
+      ownBroadcastChan rv.done' γ.done (rnDoneEsc γ) .Pending ⊢
       |={⊤}=> isRaftNode E γ a ∗ rnDoneTok γ a ∗
         rnNodeAddr a ↦□ rv.raftNodeConfig'.Node' ∗
         rnTransportAddr a ↦□ rv.raftNodeConfig'.transport' := by
@@ -689,7 +688,7 @@ to (which takes the server's names and raft invariant in `rnEnvOk`). -/
 abbrev NodeStartSpec : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (ν : WalNames)
+    (ν : WalNames GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
@@ -705,7 +704,7 @@ abbrev NodeStartSpec : Prop :=
         -- `rnEnvOk` ties the names.)
         "%Hraft" ∷ ⌜rnStartCfg bv cv lok pv ps ∧ 0 < sint.Z bv.heartbeat' ∧
           ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧ γr.vs = ps ∧
-          storage.walReady wal ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
+          wal = ν.h.w ∧ receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧
           -- (2026-11-09, Q8 stage 0) the cluster untraced (`srvClusterOk`'s)
           Cluster.trace γr.cl = none⌝ ∗
         -- (premise-fixes-6) the wrapper's logger a zap logger (`newRaftNode` logs through it)
@@ -735,24 +734,26 @@ abbrev NodeStartSpec : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
+        -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
+        "#Hssi" ∷ snap.isSnapshotter ss ∗
         -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
         -- loop's view at the start and its token
-        "#Hdur" ∷ rnDurInv γr.cl ν wal ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
+        "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
         "Hwok" ∷ token ν.ok }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.a0 = [] ∧
+            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = [] ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
-            rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
-            -- (D22 J1a) the storage a `*storage` over the snapshotter `ss`
-            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
-            -- (2026-10-31) over the WAL `wal` (whose open token `bootstrap`'s contract gives)
-            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
+            rv.raftNodeConfig'.Node' = rnNodeIface γw⌝ ∗
+          -- (wal-link L3: until then the pure `rnStorageOf … ss ∧ storage.walOf … = wal`) the storage over the
+          -- open WAL `ν.h` and the snapshotter `ss`, with its two reader tokens (the loop's, the apply thread's)
+          isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss ∗
+          walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗ walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           -- (D21 M2) the node's inbound methods (`Process`'s), from the start
@@ -852,12 +853,12 @@ theorem raftNode_of_StartNode
     isplitl [Hvac]
     · iExactEq Hvac; rfl
     iExactEq HrS; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti,
-    %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+    Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨#Hsfresh, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
@@ -897,9 +898,15 @@ theorem raftNode_of_StartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
-    all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    all_goals first | rfl | simp only [rnNodeIface, Hwnl]
+  ihave #Hsti' : isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss $$ []
+  · rw [Hrvcfg]; iexact Hsti
+  ihave Hrd1' : walStorRd rv.raftNodeConfig'.storage' γw.wal.h $$ [Hrd1]
+  · rw [Hrvcfg]; iexact Hrd1
+  ihave Hrd2' : walStorRd rv.raftNodeConfig'.storage' γw.wal.h $$ [Hrd2]
+  · rw [Hrvcfg]; iexact Hrd2
+  iframe Hsti' Hrd1' Hrd2' Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node) (by rw [Hwnode]; exact HtrC)
@@ -943,19 +950,13 @@ theorem raftNode_of_StartNode
     isplitr
     · ipureintro; exact Hwms.symm
     isplitr
-    · rw [Hwwal, Hstss.2, Hwnode]; iexact Hdur
+    · rw [Hwwal, Hwnode]; iexact Hdur
     -- the components are the same (`transport` is no component)
     iunfold rnParts at Hparts
     iunfold rnParts
     iNamed Hparts
     simp only [named]
     iframe #
-    -- (2026-10-31) `stopped`'s bag at the storage's WAL; (R2b-3b) `done`'s escrow at it
-    isplitr
-    · iExactEq Hstci
-      first | rfl | simp [Hrvcfg]
-    iExactEq Hdnci
-    first | rfl | simp [Hrvcfg]
   imodintro
   iframe Hrn Hdone Htrf Hprop
   have hn : rnNodeIface γw =
@@ -979,7 +980,7 @@ installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNod
 abbrev NodeStartSpecR : Prop :=
   ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (ν : WalNames) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
+    (ν : WalNames GF) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
     (σ : StorContents) (cs : ConfStateM) (S : RaftState) (m : Membership) (A₀ : List EntryModel),
     letI : MemStorReg GF := ⟨γr.reg⟩
     letI := srvStor (GF := GF) γr
@@ -989,7 +990,7 @@ abbrev NodeStartSpecR : Prop :=
         -- `srvCfgOk`), the backend's consistent index between the records' base and commit, the
         -- bootstrap log within the commit, the records holding `S`, the snapshot record's term the
         -- base's, the backend's conf state the voters' (D4, S6's) within raft's bounds
-        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ storage.walReady wal ∧
+        "%Hraft" ∷ ⌜rnRestartCfg bv cv lok pv ∧ 0 < sint.Z bv.heartbeat' ∧ wal = ν.h.w ∧
           receiptBound GF + γr.boot.length ≤ 2 ^ 61 ∧ W64 0 ∉ γr.cfg ∧ GMap.size γr.cfg < 2 ^ 62 ∧
           σ.b ≤ A₀.length ∧ A₀.length ≤ σ.commit ∧ γr.cl.bootLen ≤ σ.commit ∧ StorageHolds S σ ∧
           (∀ m' : SnapshotMetadataM, σ.snap = some (SnapshotM.mk [] m') → m'.Term' = σ.base.term') ∧
@@ -1017,8 +1018,10 @@ abbrev NodeStartSpecR : Prop :=
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
+        -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
+        "#Hssi" ∷ snap.isSnapshotter ss ∗
         -- the WAL's durability at the restart's view (`rnDur_alloc_view`)
-        "#Hdur" ∷ rnDurInv γr.cl ν wal ∗
+        "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗
         "Hwview" ∷ ghostVar ν.view (1 : Qp).half
           (⟨S, σ.hs, none, srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⟩ : WalView) ∗
         "Hwok" ∷ token ν.ok }}
@@ -1027,14 +1030,14 @@ abbrev NodeStartSpecR : Prop :=
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames GF) (rv : raftNode),
           ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
-            γw.wal = ν ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
+            γw.wal = ν ∧ γw.ss = ss ∧ γw.a0 = A₀ ∧ γw.t0 = σ.hs.Term' ∧ γw.commit0 = σ.commit ∧
             γw.snap0 = σ.b ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
-            rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
-            rnStorageOf rv.raftNodeConfig'.storage' ss ∧
-            storage.walOf rv.raftNodeConfig'.storage' = wal⌝ ∗
+            rv.raftNodeConfig'.Node' = rnNodeIface γw⌝ ∗
+          isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss ∗
+          walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗ walStorRd rv.raftNodeConfig'.storage' γw.wal.h ∗
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           rnStepIfc γw (rnNodeIface γw) ∗
           -- the tokens at `P` (Q34 (a))
@@ -1150,12 +1153,12 @@ theorem raftNode_of_RestartNode
     isplitl [HrS]
     · iExactEq HrS; rfl
     iExactEq Hconf; rfl
-  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti,
-    %Hstss, Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hrun, Hbpost, #Hidri, #Hsti, Hrd1, Hrd2,
+    Hbuilt, Hb, Hpeers, ⟨#Hminv, Hmeta, Hsnone⟩⟩
   simp only [rnBootPost, RNBoot.P]
   icases Hbpost with ⟨%l, #Hl, %Hll, Hdrv, HrS, Hncfg⟩
   simp only [RNBoot.a0, RNBoot.t0, RNBoot.commit0, RNBoot.snap0] at Hnames
-  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0⟩ := Hnames
   -- the driver's delivered log is the backend's up to the base (committed logs agree)
   ihave %Hleq : ⌜l = srvLE ⟨γr, [], W64 0⟩ (A₀.take σ.b)⌝ $$ []
   · iunfold srvRLogLb at HA0
@@ -1217,10 +1220,16 @@ theorem raftNode_of_RestartNode
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwa0, Hwt0, Hwc0, Hws0, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;>
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hwwal, Hwss, Hwa0, Hwt0, Hwc0, Hws0, Hrvlg, ?_, ?_, ?_, ?_⟩ <;>
       rw [Hrvcfg]
-    all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsnone Hsc
+    all_goals first | rfl | simp only [rnNodeIface, Hwnl]
+  ihave #Hsti' : isWalStorage rv.raftNodeConfig'.storage' γw.wal.h γw.ss $$ []
+  · rw [Hrvcfg]; iexact Hsti
+  ihave Hrd1' : walStorRd rv.raftNodeConfig'.storage' γw.wal.h $$ [Hrd1]
+  · rw [Hrvcfg]; iexact Hrd1
+  ihave Hrd2' : walStorRd rv.raftNodeConfig'.storage' γw.wal.h $$ [Hrd2]
+  · rw [Hrvcfg]; iexact Hrd2
+  iframe Hsti' Hrd1' Hrd2' Hr Hmu Hloop Happly Hb Hpeers Hminv Hmeta Hsnone Hsc
   isplitr
   · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
       (wp_ReportSnapshot γw.node) (by rw [Hwnode]; exact HtrC)
@@ -1265,17 +1274,12 @@ theorem raftNode_of_RestartNode
     isplitr
     · ipureintro; exact Hwms.symm
     isplitr
-    · rw [Hwwal, Hstss.2, Hwnode]; iexact Hdur
+    · rw [Hwwal, Hwnode]; iexact Hdur
     iunfold rnParts at Hparts
     iunfold rnParts
     iNamed Hparts
     simp only [named]
     iframe #
-    isplitr
-    · iExactEq Hstci
-      first | rfl | simp [Hrvcfg]
-    iExactEq Hdnci
-    first | rfl | simp [Hrvcfg]
   imodintro
   iframe Hrn Hdone Htrf Hprop
   have hn : rnNodeIface γw =

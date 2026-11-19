@@ -465,6 +465,97 @@ theorem srv_ownSnapS_meta (p : Loc) (dq : DFrac) (s : SnapshotM) :
   · ipureintro; exact Hnn
   iframe HC HI HT cI cT Hpb Hc
 
+/-- (wal-link L3, 2026-11-19) A conf state with its `AutoLeave` set, frozen (`csPts … true` at `discard`), is the
+canonical wire content of its model: every list, `AutoLeave` set, no unknown fields. -/
+theorem srv_csPts_csRoC_set (p : Loc) (c : ConfStateM) :
+    csPts (GF := GF) p DFrac.discard c true ⊢
+      csRoC p ⟨c.Voters', c.Learners', c.VotersOutgoing', c.LearnersNext', some c.AutoLeave', []⟩ := by
+  iunfold csPts
+  iintro ⟨%sv, %sl, %so, %sn, %pa, %Hnn, #HV, #Hv, #HL, #Hl, #HO, #Ho, #HN, #Hn, #HA, #cA, %Hal, #Hpb⟩
+  unfold csRoC
+  iexists sv, sl, so, sn, pa
+  iframe HV Hv HL Hl HO Ho HN Hn HA Hpb
+  isplitr
+  · ipureintro; exact Hnn
+  iunfold cellRO at cA
+  icases cA with (%H | #H)
+  · exact absurd H.1 (Hal rfl)
+  · simp only [optCell]; iexact H
+
+/-- (wal-link L3, 2026-11-19) **The canonical wire content of a snapshot metadata `md`** with the unknown fields
+`uf`: every pointer set, the conf state canonical (`srv_csPts_csRoC_set`). -/
+def srvSnapMetaC (md : SnapshotMetadataM) (uf : List w8) : SnapMetaC :=
+  ⟨some ⟨md.ConfState'.Voters', md.ConfState'.Learners', md.ConfState'.VotersOutgoing',
+    md.ConfState'.LearnersNext', some md.ConfState'.AutoLeave', []⟩, some md.Index', some md.Term', uf⟩
+
+theorem srvSnapMetaC_model (md : SnapshotMetadataM) (uf : List w8) : (srvSnapMetaC md uf).model = md := by
+  obtain ⟨⟨a, b, c, d, e⟩, i, t⟩ := md
+  rfl
+
+/-- Its record bytes are the canonical ones (`walSnapCanon`) when the conf state is not the zero one. -/
+theorem srvSnapMetaC_canon (md : SnapshotMetadataM) (uf : List w8) (hz : md.ConfState' ≠ walCsZero) :
+    storage.metaWalC (srvSnapMetaC md uf) = walSnapCanon md := by
+  unfold storage.metaWalC walSnapCanon srvSnapMetaC
+  simp only [Option.map_some, if_neg hz]
+  rfl
+
+/-- (wal-link L3, 2026-11-19) **A `Ready`'s snapshot's metadata as the WAL's `SaveSnap` takes it** (F2): frozen
+(`metaRoC`) at its canonical content (`srvSnapMetaC`). -/
+theorem srv_ownSnapS_metaC (p : Loc) (s : SnapshotM) :
+    ownSnapS (GF := GF) p DFrac.discard s ⊢
+      ∃ (pm : Loc) (uf : List w8), p.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{DFrac.discard} pm ∗
+        metaRoC pm (srvSnapMetaC s.Metadata' uf) := by
+  iintro H
+  iNamed H
+  iclear Hpb
+  iNamed Hm
+  iexists pm, uf
+  iframe HM
+  unfold metaRoC srvSnapMetaC
+  iexists pc, pi, pt
+  iframe HC HI HT Hpb
+  isplitr
+  · ipureintro; exact Hnn.1
+  isplitl [Hc]
+  · simp only [csOptC]
+    iunfold csSet at Hc
+    icases Hc with (#Hc | #Hc) <;> iapply srv_csPts_csRoC_set $$ Hc
+  isplitr
+  · iunfold cellRO at cI
+    icases cI with (%H | #H)
+    · exact absurd H.1 Hnn.2.2.1
+    · simp only [optCell]; iexact H
+  · iunfold cellRO at cT
+    icases cT with (%H | #H)
+    · exact absurd H.1 Hnn.2.2.2
+    · simp only [optCell]; iexact H
+
+/-- (wal-link L3, 2026-11-19) **`SaveSnap` of a canonical metadata** (`walSaveSnap_spec` at `srvSnapMetaC md uf`):
+the conf state not the zero one, the index below the largest, the record below layer 1's bound. -/
+theorem walSaveSnapC_spec [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
+    (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq : DFrac) (md : SnapshotMetadataM) (uf : List w8)
+    (Q : IProp GF) (sized : Bool) (hz : md.ConfState' ≠ walCsZero) (hidx : uint.nat md.Index' < 2 ^ 64 - 1)
+    (henc : (walSrvMr.encSnap md).length < 2 ^ 40) :
+    isWalStorage st h ss ⊢
+      {{ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ metaRoC mp (srvSnapMetaC md uf) ∗
+          AU <{ ∃∃ (σ : StorContents), walRecs h σ sized ∗
+                ⌜uint.nat md.Index' = σ.b → md.Term' = σ.base.term'⌝ }>
+            @ WalFs.walAuMask, ∅ <{ walRecs h (walSaveSnap σ md) sized, COMM Q }> }}
+        (App (Val #(methods si.ty go!"SaveSnap" si.v)) (Val #sn))
+      {{ (err : GoInterface), RET #err; ⌜err = GoInterface.nil⌝ ∗ storage.walOpen h q ∗ walStorRd st h ∗
+          sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ Q ∗
+          ∃ i : Nat, walSnapRec h i md }} := by
+  have HS := walSaveSnap_spec st h ss si hst q sn mp dq (srvSnapMetaC md uf) Q sized
+  simp only [srvSnapMetaC_model] at HS
+  iintro #Hw
+  ihave #HS := HS $$ Hw
+  iintro !> %Φ ⟨Ho, Hr, Hsn, #Hm, HAU⟩ HΦ
+  iapply HS $$ [Ho Hr Hsn HAU] HΦ
+  iframe Ho Hr Hsn Hm HAU
+  ipureintro
+  refine ⟨⟨rfl, rfl, srvSnapMetaC_canon md uf hz⟩, Or.inr rfl, hidx, henc⟩
+
 end ghost
 
 end EtcdGrove

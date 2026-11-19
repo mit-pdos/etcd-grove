@@ -1,6 +1,38 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 o, 0009 proved through the server's Save law; InvRaftNode done; clients next)
+## START HERE (2026-11-19 p, clients in progress: raft-loop side done, snapshot/apply/boot side next)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere
+  (lean had not moved to f551 at this stop). Full builds: `/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>`.
+- **Done this session (lean-check 0 errors each unless noted):** specs+proofs `newRaftNode` (`ss` param, `γ.ss = ss`),
+  `bootstrappedRaft.newRaftNode` (`wal = ν.h.w`, `isSnapshotter ss`, post `isWalStorage st γw.wal.h γw.ss ∗ walStorRd ∗
+  walStorRd`), `raftNode.onStop` (premise `walCloseOk` gone), `raftNode.stop`, `raftNode.start` (premises gone; both
+  `Save` sites: entries via `rnDur_viewOk` + `rnEntsSized_walSave`, `hsOptC` from `rnReadyData`/`rnReadySnap`, refused
+  batch → `lg.Fatal`; `SaveSnap` via `walSaveSnapC_spec`); `InvWal` (`rnDur_viewOk`, `rnDur_read_au`); `WalApi`
+  (`isWalStorage` carries the storage's `s ↦□ ss`, `isWalStorage_ss_agree`; `walSaveEntOk_of`, `rnEntsSized_walSave`);
+  `InvRaftNode` (`rnWalTokA` carries `isWalStorage`; `rnReadyData`/`rnReadySnap` carry `hsOptC`); `RaftLoopFreeze`
+  (`srvSnapMetaC`, `srv_ownSnapS_metaC`, `walSaveSnapC_spec`); `SnapTake` (`srvSnapDisk` without the contract,
+  `srvSnapDir` with `∃ h, isWalStorage st h ss`), `SnapRO` (same, last conjunct). Edited, NOT yet checked:
+  `NodeStart` (both specs), `EtcdServer__snapshot` spec+proof (Release via `walRelease_spec`+`rnDur_read_au`;
+  `storage.releaseOk` → `storage.snapOpensOk`), `snapshotIfNeeded` spec, `InvBoot` (`walCreateOk` dropped from
+  `bootstrapContract`, approved §5), `InvRestart` (`srvFiles` over `∃ a : WalA`, `walSaveOk` dropped), `applyAll` spec
+  and `InvRaftLoop` payloads (`walSnapRec`).
+- **F2 sorries (OPEN, temporary, marked `F2`):** `raftNode__start` SaveSnap: `ConfState ≠ walCsZero`, `encSnap < 2^40`;
+  `EtcdServer__snapshot`: the metadata's `metaRoC (srvSnapMetaC …)` (raft's `ConfState()` content for `ep.confState`),
+  `ConfState ≠ walCsZero`, `encSnap < 2^40`, `ai < 2^64-1`. The received snapshot's content is already canonical
+  (`ownSnapS`'s `csSet … true`, `pbMsg ConfState []`); what is left is a non-zero conf state and a size bound.
+- **Next, in order:** check NodeStart, EtcdServer__snapshot (+ applySnapshot spec: add `rnWalTokA γw (srvRAddr s) q`,
+  payload `walSnapRec γw.wal.h`, drop `hstp`), then the rest of
+  `grep -rlE "rnWalTok|walOf|walBaseLb|isWalStorage|storageSnap|rnStorageOf|walReady|walSaveOk|walCloseOk|walCreateOk|releaseOk|WalNames\b|walFiles|srvFiles" Proof Spec`
+  in import order (ApplyAllSnap, SnapApplyWalk, InvRun, InvRestart users, NewServer(R), StopShutdown, EtcdServer__run,
+  AuthCompRows, examples' Defs/StartRes/OneMember); then F2, P2, merge, build, tcb, collections, interfaces, Links.
+- **Pitfalls:** never two lean-check files needing rebuilds at once (the two `lake setup-file`s race: "no such file");
+  `--split` gave a spurious kernel error (`_proof_1_34`) on raftNode__start: check it without `--split` (0 errors, 142 s); `rnWalTok_open γ r q $$ Hwt`
+  (no storage argument now).
+
+## History
+
+### START HERE (2026-11-19 o, 0009 proved through the server's Save law; InvRaftNode done; clients next)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere.
   Merge the origin merge (pin f551a1b46, manifest-f55) when it lands on lean. Full builds:
@@ -27,8 +59,6 @@
 - **Pitfalls:** a names-only callee (proto.Size): `wp_start_folded`; a ▷ in a Hoare-triple continuation:
   `iintro %err !> H`; an `iprop(False)` hypothesis: `icases H with %h; exact h.elim`; `simp only [hb, and_self,
   decide_true, ↓reduceIte]` after slice-index tests; gen-init needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`.
-
-## History
 
 ### START HERE (2026-11-19 n, fix 0009 in; InvRaftNode's definitions moved; clients next)
 

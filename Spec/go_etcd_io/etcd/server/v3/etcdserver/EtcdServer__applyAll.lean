@@ -225,7 +225,7 @@ abbrev EtcdServer.applyAll.specSnapM : Prop :=
       -- (sweep repairs 1, W2) the first send's payload: the WAL's records at or above the
       -- snapshot's index (`rnApSnap`'s)
       taNotifycAddr ap ↦□ nc ∗
-      isNotify2 γnc nc (walBaseLb γn.wal.loc (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+      isNotify2 γnc nc iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γn.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
       notifyRcvN γnc 0 ∗
       taRaftAdvancedCAddr ap ↦□ rac ∗
       rnAdvChan rac (letI := srvStor (GF := GF) ρ.raft.raft

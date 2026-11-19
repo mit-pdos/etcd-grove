@@ -400,7 +400,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
   iprop(□ ∃ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (ss hk lgh stp : Loc) (γd : GName)
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
       (d : mvcc.KBReal),
-    ⌜E.BkTie = srvBkTie d ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
+    ⌜E.BkTie = srvBkTie d ∧ storage.dbOpensOk ∧
       storage.openMmapOk cfg ∧
       apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps) ∧
@@ -474,7 +474,11 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
         go_etcd_io.etcd.server.v3.config.ServerConfig)) ∗
     -- (premise-fixes-6) the cluster's logger, a zap logger (`bootOk`'s `Hclg`): what
     -- `RaftCluster.Recover` logs through
-    (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc))
+    (∃ lgc : Loc, membership.rcLgAddr cl ↦□ lgc ∗ zapLoggerOk lgc) ∗
+    -- (wal-link L3, 2026-11-19: until then `storage.storageSnap stp ss` in the pure part) the storage over
+    -- the snapshotter `ss`, as the WAL contract's
+    (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss))
 
 instance srvSnapRO_persistent (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     Persistent (srvSnapRO (GF := GF) s ci E γr γm) := by
@@ -504,13 +508,13 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iunfold srvSnapRO at H
   icases H with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al0, %ast0, %lp0, %cl0, %ps, %dir, %d0,
     %Hp, #H1, #Hzl, #H2, #H3, #H4, #Hvo, #H5, #H6, #H7, #H8, #H9, #H10, #H11, #H12, #H13, #H14, #H15, #H16, #H17,
-    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33⟩
+    #H18, #H19, #H20, #H21, #H22, #H23, #H24, #H25, #H26, #H27, #H28, #H29, #H30, #H31, #H32, #H33, #H34⟩
   icombine Hal H14 gives %e1
   icombine Hau H15 gives %e2
   icombine Hle H16 gives %e3
   icombine Hcl H17 gives %e4
   simp only [auth.authIface, lease.lessorIface, interface_mkOk_inj] at e2 e3
-  obtain ⟨hkb0, hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
+  obtain ⟨hkb0, hdbo, hmm, hbuq, hsl, hdir, hsop, hbr, hci, hhk, hwf, hlim, hlp, halbi,
     -, hrb, hsp⟩ := Hp
   rw [hkb] at hkb0
   obtain rfl := srvBkTie_inj d d0 hkb0
@@ -524,7 +528,7 @@ theorem srvSnapRO_succ {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (s ci : Loc)
   iexists cfg, ss, hk, lgh, stp, γd, idm, al, ast, lp, cl, ps, dir, d'
   isplitr
   · ipureintro
-    refine ⟨hkb', hstp, hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
+    refine ⟨hkb', hdbo, hmm, hbuq, hsl, hdir, hsop, ?_, ?_, ?_, ?_, ?_, ?_, ?_,
       hRO, hrb, hsp⟩ <;> rw [hP] <;> assumption
   have e5 : (E.onBe b P f c RO RW).authMode = E.authMode := rfl
   have e6 : (E.onBe b P f c RO RW).RD = E.RD := rfl

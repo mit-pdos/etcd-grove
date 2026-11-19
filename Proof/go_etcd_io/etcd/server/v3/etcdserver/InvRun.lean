@@ -41,13 +41,9 @@ theorem srvSnapDisk_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γ
   iunfold srvSnapRO at Hro
   icases Hro with ⟨%cfg, %ss, %hk, %lgh, %stp, %γd, %idm, %al, %ast, %lp, %cl, %ps, %dir, %d, %Hp,
     #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, -⟩
-  iunfold isRaftNode at Hrn
-  iNamed Hrn
-  icombine HSt Hst gives %Heq
   iunfold srvSnapDisk
   iexists stp
   iframe HSt
-  rw [Heq]; iexact Hsti
 
 end snapDisk
 

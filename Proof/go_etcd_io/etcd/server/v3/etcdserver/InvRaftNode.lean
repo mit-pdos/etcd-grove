@@ -408,6 +408,8 @@ def rnReadyData (E : RNEnv GF) (γ : RNNames GF) (rd : Ready) (d ce es : List En
     rd.Messages' ↦*□ msL ∗ ⌜msL = ms.map QMsg.loc⌝ ∗ rnRawMsgs γ ms r' ∗
     -- the soft state, and the role after it (`r'`, from the driver's `r`)
     (∃ ss, softStateIs rd.SoftState' ss ∗ ⌜r' = roleAfter r ss⌝) ∗ hardStateAt rd.HardState' hs ∗
+    -- (wal-link L3) canonical when not `nil` (`hsOptC`, the node API's): what the WAL's `Save` takes
+    hsOptC rd.HardState' hs.toM ∗
     ⌜p' = phsNext p hs.toM⌝ ∗
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗ [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs) ∗
     ⌜rd.Snapshot' = null⌝ ∗
@@ -766,7 +768,7 @@ def rnReadySnap (E : RNEnv GF) (γ : RNNames GF) (rd : Ready) (d es A' : List En
     rd.Entries' ↦*□ esL ∗ entriesAt esL es ∗ rnEntsSized esL es ∗
     rd.Messages' ↦*□ msL ∗ ⌜msL = ms.map QMsg.loc⌝ ∗ rnRawMsgs γ ms r' ∗
     (∃ ss, softStateIs rd.SoftState' ss ∗ ⌜r' = roleAfter r ss⌝) ∗
-    hardStateAt rd.HardState' hs ∗ ⌜p' = phsNext p hs.toM⌝ ∗
+    hardStateAt rd.HardState' hs ∗ hsOptC rd.HardState' hs.toM ∗ ⌜p' = phsNext p hs.toM⌝ ∗
     (∃ rsL : List ReadState, rd.ReadStates' ↦*□ rsL ∗
       [∗list] rs ∈ rsL, srvReadStateOk E.γr.raft E.RQ rs))
 
@@ -1331,6 +1333,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         rw [HardStateModel.toM_ofM]
         iapply hsOptC_hsOpt; iexact Hhs
       isplitr
+      · rw [HardStateModel.toM_ofM]; iexact Hhs
+      isplitr
       · rw [HardStateModel.toM_ofM]; ipureintro; rfl
       iunfold readStatesPts at Hrs
       icases Hrs with ⟨%vs, #Hvs, #Hrs2⟩
@@ -1468,6 +1472,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       rw [HardStateModel.toM_ofM]
       iapply hsOptC_hsOpt; iexact Hhs
     isplitr
+    · rw [HardStateModel.toM_ofM]; iexact Hhs
+    isplitr
     · rw [HardStateModel.toM_ofM]; ipureintro; rfl
     isplitr
     · iunfold readStatesPts at Hrs
@@ -1582,10 +1588,12 @@ theorem rnWalTok_split (γ : RNNames GF) (r : Loc) :
 (its disk snapshot's `SaveSnap`): the open token's share, the apply thread's token `ν.app` (which
 rules out the stop's taken state), and the durability invariant; `run` gives it to the loop with
 `raftNode.stop` (`rnStopBag`). (wal-link L3) With the apply thread's reader token of the storage's lock
-(`walStorRd`, `NewStorage`'s second), which its `SaveSnap` and `Release` take. -/
+(`walStorRd`, `NewStorage`'s second), which its `SaveSnap` and `Release` take, and the storage's contract
+(`isRaftNode`'s, which the apply thread's snapshot path does not otherwise hold). -/
 def rnWalTokA (γ : RNNames GF) (r : Loc) (q : Qp) : IProp GF :=
   iprop(∃ st : GoInterface, rnStorageAddr r ↦□ st ∗ storage.walOpen γ.wal.h q ∗
-    token γ.wal.app ∗ rnDurInv γ.node.cl γ.wal γ.wal.h ∗ walStorRd st γ.wal.h)
+    token γ.wal.app ∗ rnDurInv γ.node.cl γ.wal γ.wal.h ∗ walStorRd st γ.wal.h ∗
+    isWalStorage st γ.wal.h γ.ss)
 
 /-- (2026-11-03, R2b-1 stage 6) **The loop's share of the WAL**: half the open token, the stop's
 claim (`ν.stop`) and what `Close` takes besides the records (the member's metadata, the purge's
