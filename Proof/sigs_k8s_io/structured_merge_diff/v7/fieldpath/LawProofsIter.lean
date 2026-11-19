@@ -188,6 +188,70 @@ theorem not_mem_take_of_nodup {α : Type} {l : List α} {k : Nat} {x : α} (hnd 
   rw [← List.take_append_drop k l, List.nodup_append] at hnd
   exact hnd.2.2 x hx x hd rfl
 
+/-! ## `iteratePrefix`'s paths done, child by child -/
+
+/-- The paths done after the children of keys `keys.take k`. -/
+def DoneK (pre : Path) (D : PathSet) (keys : List PE) (k : Nat) (ds : List Path) : Prop :=
+  ds.Nodup ∧ ∀ x, x ∈ ds ↔ ∃ q, x = pre ++ q ∧ q ∈ D ∧ ∃ e, e ∈ keys.take k ∧ q.head? = some e
+
+theorem doneK_zero (pre : Path) (D : PathSet) (keys : List PE) : DoneK pre D keys 0 [] := by
+  refine ⟨List.nodup_nil, fun x => ?_⟩
+  simp
+
+theorem doneK_not_mem {pre : Path} {D : PathSet} {keys : List PE} {k : Nat} {ds : List Path}
+    (h : DoneK pre D keys k ds) {e : PE} (hnd : keys.Nodup) (hkx : keys[k]? = some e) (r : Path) :
+    pre ++ e :: r ∉ ds := by
+  intro hx
+  obtain ⟨q, hq, -, e', he', hh⟩ := (h.2 _).1 hx
+  have := List.append_cancel_left hq
+  subst this
+  simp at hh; subst hh
+  exact not_mem_take_of_nodup hnd hkx he'
+
+theorem doneK_step {pre : Path} {D : PathSet} {keys : List PE} {k : Nat} {dsk dsc : List Path}
+    {e : PE} (hnd : keys.Nodup) (hkx : keys[k]? = some e)
+    (hD : ∀ q ∈ D, ∃ e r, q = e :: r ∧ r ≠ [])
+    (h : DoneK pre D keys k dsk)
+    (hc : dsc.Nodup ∧ FSet.ofList dsc = PathSet.prepend (pre ++ [e]) (D.under e)) :
+    DoneK pre D keys (k + 1) (dsk ++ dsc) := by
+  have hmc : ∀ x, x ∈ dsc ↔ ∃ r, r ≠ [] ∧ e :: r ∈ D ∧ x = pre ++ e :: r := by
+    intro x
+    have hu : ∀ (S : PathSet) e q, q ∈ S.under e ↔ q ≠ [] ∧ (e :: q) ∈ S :=
+      PathSet_mem_under_law_holds
+    rw [← FSet.mem_ofList', hc.2, PathSet_mem_prepend_law_holds]
+    simp only [hu, List.append_assoc, List.singleton_append]
+    constructor
+    · rintro ⟨r, ⟨h1, h2⟩, h3⟩; exact ⟨r, h1, h2, h3⟩
+    · rintro ⟨r, h1, h2, h3⟩; exact ⟨r, ⟨h1, h2⟩, h3⟩
+  refine ⟨?_, fun x => ?_⟩
+  · rw [List.nodup_append]
+    refine ⟨h.1, hc.1, fun a ha b hb hab => ?_⟩
+    subst hab
+    obtain ⟨r, -, -, rfl⟩ := (hmc a).1 hb
+    exact doneK_not_mem h hnd hkx r ha
+  · rw [List.mem_append, h.2, hmc, take_succ_of hkx]
+    constructor
+    · rintro (⟨q, h1, h2, e', h3, h4⟩ | ⟨r, -, h2, h3⟩)
+      · exact ⟨q, h1, h2, e', List.mem_append_left _ h3, h4⟩
+      · exact ⟨e :: r, h3, h2, e, by simp, rfl⟩
+    · rintro ⟨q, h1, h2, e', h3, h4⟩
+      rcases List.mem_append.1 h3 with h3 | h3
+      · exact Or.inl ⟨q, h1, h2, e', h3, h4⟩
+      · simp at h3; subst h3
+        obtain ⟨e'', r, rfl, hr⟩ := hD q h2
+        simp at h4; subst h4
+        exact Or.inr ⟨r, hr, h2, h1⟩
+
+theorem doneK_all {pre : Path} {D : PathSet} {keys : List PE} {ds : List Path}
+    (hD : ∀ q ∈ D, ∃ e, e ∈ keys ∧ q.head? = some e)
+    (h : DoneK pre D keys keys.length ds) :
+    ds.Nodup ∧ FSet.ofList ds = PathSet.prepend pre D := by
+  refine ⟨h.1, FSet.ext' (fun x => ?_)⟩
+  rw [FSet.mem_ofList', h.2, PathSet_mem_prepend_law_holds, List.take_length]
+  constructor
+  · rintro ⟨q, h1, h2, -⟩; exact ⟨q, h2, h1⟩
+  · rintro ⟨q, h2, h1⟩; exact ⟨q, h1, h2, hD q h2⟩
+
 /-! ## A set's children (`SetNodeMap`) -/
 
 theorem paths_ne : ∀ (t : Trie) (q : Path), Trie.paths t q → q ≠ []
@@ -258,6 +322,11 @@ theorem sorted_nodup (xs : List PE) (hw : ∀ x ∈ xs, x.wf = true) (hs : PE.So
     subst e
     have := (PE_compare_eq_zero_law_holds a a (hw a ha) (hw a ha)).2 rfl
     unfold PE.lt at hab; omega) hs
+
+theorem nodes_mem (cs : List (PE × Trie)) (D : PathSet) (hD : ∀ q, Trie.pathsC cs q ↔ q ∈ D)
+    (q : Path) (hq : q ∈ D) : ∃ e t r, (e, t) ∈ cs ∧ q = e :: r ∧ r ≠ [] ∧ Trie.paths t r := by
+  obtain ⟨e, t, r, hm, rfl, h⟩ := (pathsC_iff cs q).1 ((hD q).2 hq)
+  exact ⟨e, t, r, hm, rfl, paths_ne t r h, h⟩
 
 /-- A child's paths are the paths below its key (keys distinct). -/
 theorem under_iff (cs : List (PE × Trie)) (D : PathSet)
