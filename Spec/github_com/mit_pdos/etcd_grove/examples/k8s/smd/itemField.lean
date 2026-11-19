@@ -1,7 +1,7 @@
 /-
-`itemField(key, name)`: the path `.containers[name=key].name`.
+`itemField(key, name)`: the path of a field of the container named `key`.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +30,7 @@ abbrev itemField.spec : Prop :=
   ∀ (k n : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.itemField)) (Val #k)) (Val #n))
-  {{ (s : GoSlice), RET #s; ownPath s (itemField k n) }}
+  {{ (s : GoSlice), RET #s; isPath s (itemField k n) }}
 
 end spec
 

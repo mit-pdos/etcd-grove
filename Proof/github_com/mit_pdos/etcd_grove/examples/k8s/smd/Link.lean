@@ -8,11 +8,42 @@ hand.
 -/
 module
 
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.KeyElement
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder__BuildUpdater
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Apply
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Update
 public import Proof.reflect.DeepEqualNil
 public import Proof.slices.BinarySearchFunc
 public import Proof.slices.Insert
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.applied
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.concat
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.container
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.containerPaths
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.field
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.identityConverter__Convert
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.identityConverter__IsMissingVersionError
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.item
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.itemField
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.mapKey
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.newSchema
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__apply
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__check
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__typedObj
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.updated
 public import Proof.sort.SliceStable
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue__AsValue_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
 
 @[expose] public section
 
@@ -58,9 +89,133 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
+theorem smd.fieldpath.wp_FieldNameElement :
+    EtcdGrove.smd.fieldpath.FieldNameElement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.FieldNameElement.wp_proof
+
+theorem smd.fieldpath.wp_KeyElement :
+    EtcdGrove.smd.fieldpath.KeyElement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.KeyElement.wp_proof
+
+theorem smd.fieldpath.ManagedFields.wp_Equals :
+    EtcdGrove.smd.fieldpath.ManagedFields.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.ManagedFields.Equals.wp_proof
+
+theorem smd.fieldpath.ManagedFields.wp_Equals_ptr :
+    EtcdGrove.smd.fieldpath.ManagedFields.Equals_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.ManagedFields.Equals_ptr.wp_proof
+
+theorem smd.fieldpath.wp_NewSet :
+    EtcdGrove.smd.fieldpath.NewSet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.NewSet.wp_proof
+
+theorem smd.fieldpath.wp_NewVersionedSet :
+    EtcdGrove.smd.fieldpath.NewVersionedSet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.fieldpath.NewVersionedSet.wp_proof
+
+theorem smd.merge.Conflicts.wp_Equals :
+    EtcdGrove.smd.merge.Conflicts.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Conflicts.Equals.wp_proof
+
+theorem smd.merge.Conflicts.wp_Equals_ptr :
+    EtcdGrove.smd.merge.Conflicts.Equals_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Conflicts.Equals_ptr.wp_proof
+
+theorem smd.merge.UpdaterBuilder.wp_BuildUpdater :
+    EtcdGrove.smd.merge.UpdaterBuilder.BuildUpdater.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.UpdaterBuilder.BuildUpdater.wp_proof
+
+theorem smd.merge.Updater.wp_Apply :
+    EtcdGrove.smd.merge.Updater.Apply.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.Apply.wp_proof
+
+theorem smd.merge.Updater.wp_Update :
+    EtcdGrove.smd.merge.Updater.Update.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.merge.Updater.Update.wp_proof
+
+theorem wp_newSchema :
+    EtcdGrove.k8s_smd.newSchema.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.newSchema.wp_proof
+
+theorem identityConverter.wp_Convert :
+    EtcdGrove.k8s_smd.identityConverter.Convert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.identityConverter.Convert.wp_proof
+
+theorem identityConverter.wp_IsMissingVersionError :
+    EtcdGrove.k8s_smd.identityConverter.IsMissingVersionError.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.identityConverter.IsMissingVersionError.wp_proof
+
+theorem smd.value.wp_NewValueInterface :
+    EtcdGrove.smd.value.NewValueInterface.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.NewValueInterface.wp_proof
+
+theorem smd.typed.wp_AsTyped :
+    EtcdGrove.smd.typed.AsTyped.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.AsTyped.wp_proof
+
+theorem state.wp_typedObj :
+    EtcdGrove.k8s_smd.state.typedObj.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.state.typedObj.wp_proof smd.value.wp_NewValueInterface smd.typed.wp_AsTyped
+
+theorem state.wp_apply :
+    EtcdGrove.k8s_smd.state.apply.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.state.apply.wp_proof state.wp_typedObj smd.merge.Updater.wp_Apply
+
+theorem smd.typed.TypedValue.wp_AsValue_ptr :
+    EtcdGrove.smd.typed.TypedValue.AsValue_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.AsValue_ptr.wp_proof
+
+theorem smd.value.wp_Equals :
+    EtcdGrove.smd.value.Equals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.value.Equals.wp_proof
+
+theorem state.wp_check :
+    EtcdGrove.k8s_smd.state.check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.state.check.wp_proof smd.typed.TypedValue.wp_AsValue_ptr smd.value.wp_NewValueInterface smd.value.wp_Equals smd.fieldpath.ManagedFields.wp_Equals_ptr
+
+theorem wp_field :
+    EtcdGrove.k8s_smd.field.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.field.wp_proof smd.fieldpath.wp_FieldNameElement
+
+theorem wp_mapKey :
+    EtcdGrove.k8s_smd.mapKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.mapKey.wp_proof smd.fieldpath.wp_FieldNameElement
+
+theorem wp_item :
+    EtcdGrove.k8s_smd.item.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.item.wp_proof smd.fieldpath.wp_FieldNameElement smd.value.wp_NewValueInterface smd.fieldpath.wp_KeyElement
+
+theorem wp_itemField :
+    EtcdGrove.k8s_smd.itemField.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.itemField.wp_proof smd.fieldpath.wp_FieldNameElement smd.value.wp_NewValueInterface smd.fieldpath.wp_KeyElement
+
+theorem wp_containerPaths :
+    EtcdGrove.k8s_smd.containerPaths.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.containerPaths.wp_proof wp_item wp_itemField
+
+theorem wp_concat :
+    EtcdGrove.k8s_smd.concat.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.concat.wp_proof
+
+theorem wp_applied :
+    EtcdGrove.k8s_smd.applied.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.applied.wp_proof smd.fieldpath.wp_NewSet smd.fieldpath.wp_NewVersionedSet
+
+theorem wp_updated :
+    EtcdGrove.k8s_smd.updated.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.updated.wp_proof smd.fieldpath.wp_NewSet smd.fieldpath.wp_NewVersionedSet
+
+theorem wp_container :
+    EtcdGrove.k8s_smd.container.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_smd.container.wp_proof
+
 theorem wp_Main :
     EtcdGrove.k8s_smd.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_smd.Main.wp_proof
+  EtcdGrove.k8s_smd.Main.wp_proof wp_newSchema identityConverter.wp_Convert identityConverter.wp_IsMissingVersionError smd.merge.UpdaterBuilder.wp_BuildUpdater state.wp_typedObj state.wp_apply state.wp_check wp_field wp_mapKey wp_containerPaths wp_concat wp_applied wp_updated wp_container smd.merge.Updater.wp_Apply smd.merge.Updater.wp_Update smd.merge.Conflicts.wp_Equals_ptr
+
+theorem smd.typed.TypedValue.wp_AsValue :
+    EtcdGrove.smd.typed.TypedValue.AsValue.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.smd.typed.TypedValue.AsValue.wp_proof
 
 end links_hasLC
 

@@ -1,7 +1,7 @@
 /-
-`containerPaths(key)`: a new slice of the three paths a container's apply owns.
+`containerPaths(key)`: the paths a container's apply owns.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +30,7 @@ abbrev containerPaths.spec : Prop :=
   ∀ (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.containerPaths)) (Val #k))
-  {{ (s : GoSlice), RET #s; ∃ ss : List GoSlice, s ↦* ss ∗ ownPaths ss (containerPaths k) }}
+  {{ (s : GoSlice), RET #s; ∃ ss : List GoSlice, s ↦* ss ∗ isPaths ss (containerPaths k) }}
 
 end spec
 

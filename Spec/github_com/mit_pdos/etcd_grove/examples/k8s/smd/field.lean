@@ -1,7 +1,7 @@
 /-
-`field(name)`: the path `.name`.
+`field(name)`: the path of a field of the root.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +30,7 @@ abbrev field.spec : Prop :=
   ∀ (n : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.field)) (Val #n))
-  {{ (s : GoSlice), RET #s; ownPath s (field n) }}
+  {{ (s : GoSlice), RET #s; isPath s (field n) }}
 
 end spec
 

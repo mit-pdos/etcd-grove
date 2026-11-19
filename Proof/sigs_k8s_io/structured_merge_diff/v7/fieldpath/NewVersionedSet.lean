@@ -1,5 +1,6 @@
 /-
-`fieldpath.NewVersionedSet`: builds the struct and converts it. Lean-first (2026-11-19, notes/smd-robustness.md).
+`fieldpath.NewVersionedSet`: not proved yet (`sorry`): the stage's Prove step, after the freeze
+(notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module
 
@@ -25,11 +26,8 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : merge.Assumptions]
 
-theorem fieldpath.NewVersionedSet.wp_proof : fieldpath.NewVersionedSet.spec (GF := GF) := fun p ver b => by
-  wp_start as #Hpkg
-  wp_auto
-  iapply HΦ
-  itrivial
+theorem fieldpath.NewVersionedSet.wp_proof : fieldpath.NewVersionedSet.spec (GF := GF) := by
+  sorry
 
 end proof
 

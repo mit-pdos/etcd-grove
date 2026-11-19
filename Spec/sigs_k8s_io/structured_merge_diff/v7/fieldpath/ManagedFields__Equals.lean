@@ -1,13 +1,13 @@
 /-
-`ManagedFields.Equals(rhs)` (value receiver): the model's `mfEquals` (same managers, and for each
-the same API version, `applied` flag and set, the sets compared structurally by `Set.Equals`).
+`ManagedFields.Equals(rhs)`: whether both have the same managers, each with the same set,
+API version and applied flag.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -30,9 +30,9 @@ variable [package_sem : merge.Assumptions]
 /-- See the file header. -/
 abbrev fieldpath.ManagedFields.Equals.spec : Prop :=
   ∀ (m1 m2 : fieldpath.ManagedFields) (a b : MF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ ownMF m1 a ∗ ownMF m2 b }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ isMF m1 a ∗ isMF m2 b }}
     (App (Val (m1 @!! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields.ty @!! go!"Equals")) (Val #m2))
-  {{ RET #(mfEquals a b); True }}
+  {{ (r : Bool), RET #r; ⌜r = true ↔ a = b⌝ }}
 
 end spec
 

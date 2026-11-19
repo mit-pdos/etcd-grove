@@ -1,11 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
-`Main()` (`examples/k8s/smd/smd.go`): not proved yet (`sorry`). The proof needs specs of
-structured-merge-diff's API the driver calls (`typed.AsTyped`, `value.NewValueInterface`,
-`merge.UpdaterBuilder.BuildUpdater`, `merge.Updater.Apply`/`Update`, `TypedValue.AsValue`,
-`value.Equals`, `fieldpath.ManagedFields.Equals`, `fieldpath.NewSet`/`NewVersionedSet`,
-`merge.Conflicts.Equals`, ...), taken as callee hypotheses here once they are stated
-(notes/smd-robustness.md, "What remains").
+`Main()` (`examples/k8s/smd/smd.go`): not proved yet (`sorry`): the glue over the specs of the
+driver's functions and of structured-merge-diff's API it calls, taken as callee hypotheses; the
+derivation of each step's result from those specs is `notes/smd-plan.md`, "Sanity checks".
+Proved after the specs are frozen (the earlier proof was over the old model's specs).
 -/
 module
 
@@ -27,8 +25,6 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder__Bu
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Apply
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Update
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts__Equals_ptr
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Literals
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.OwnLaws
 
 @[expose] public section
 
@@ -69,59 +65,6 @@ theorem Main.wp_proof
     (wp_Update : smd.merge.Updater.Update.spec (GF := GF))
     (wp_ConflictsEquals : smd.merge.Conflicts.Equals_ptr.spec (GF := GF)) :
     Main.spec (GF := GF) := by
-  wp_start as #Hpkg
-  wp_apply wp_newSchema as %sc Hsc
-  wp_apply (IntoValTyped.wp_alloc (t := sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder.ty) (_ : sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder)) as %b Hb
-  wp_apply (wp_BuildUpdater b (DFrac.own 1) _) $$ [Hb] as %u ⟨Hb, Hu⟩
-  · iexact Hb
-  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mf0 Hmf0
-  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %m0 Hm0
-  imod (ownUMap_lit m0 [] [] rfl (by decide) (by decide)) $$ [Hm0] with #Hm0
-  · iframe
-    iintro !> %e %he
-    simp at he
-  wp_apply (wp_typedObj «$r0_ptr» sc u null mf0 m0 (mkKVs []) (by decide +kernel)) $$ [«$r0» Hsc] as %lv0 ⟨Hs, Hsc, #Hlv0⟩
-  · iframe
-    iexact Hm0
-  -- the state `S0`
-  ipersist Hu
-  ihave #Hupd : ownUpdater u false $$ []
-  · unfold ownUpdater isIdentityConverter
-    iexists _
-    iframe Hu
-    iexists _, _
-    isplitr
-    · ipureintro; rfl
-    isplitr
-    · iintro !> %p %ver %Φ' HΦ'
-      iapply (wp_Convert _ p ver)
-      iframe #
-      inext
-      iintro _
-      iexact HΦ'
-    · iintro !> %e %Φ' HΦ'
-      iapply (wp_IsMissing _ e)
-      iframe #
-      inext
-      iintro _
-      iexact HΦ'
-  imod ownMap_persist _ _ _ $$ Hmf0 with #Hmf0
-  ihave Hst : ownState «$r0_ptr» sc S0 $$ [Hs Hsc]
-  · unfold ownState
-    iexists u, lv0, mf0
-    iframe
-    isplitr
-    · iexact Hupd
-    isplitr
-    · rw [show S0.live = ⟨some (.map (mkKVs [])), rootRef⟩ from rfl]
-      iexact Hlv0
-    · unfold ownMF
-      iexists ∅
-      iframe Hmf0
-      isplitr
-      · ipureintro; simp [keysSorted, lookupKV, S0]
-      · simp only [S0, ownMFL]; itrivial
-  trace_state
   sorry
 
 end proof

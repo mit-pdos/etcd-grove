@@ -1,13 +1,13 @@
 /-
-`value.Equals(lhs, rhs)` of two values holding unstructured data: the model's `UVal.equals`
-(`EqualsUsing` with `HeapAllocator`: deep equality, a map's entries regardless of order).
+`value.Equals(lhs, rhs)`: whether the two values are equal (maps by their entries, lists in
+order; no floats in scope, so equality is exact).
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
 
 @[expose] public section
 
@@ -30,9 +30,9 @@ variable [package_sem : merge.Assumptions]
 /-- See the file header. -/
 abbrev value.Equals.spec : Prop :=
   ∀ (a b : value.Value) (x y : UVal),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ ownValue a x ∗ ownValue b y }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isVal a x ∗ isVal b y }}
     (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.value.Equals)) (Val #a)) (Val #b))
-  {{ RET #(UVal.equals x y); True }}
+  {{ (r : Bool), RET #r; ⌜r = true ↔ x = y⌝ }}
 
 end spec
 

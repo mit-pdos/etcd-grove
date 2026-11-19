@@ -1,7 +1,7 @@
 /-
-`container(name, image)`: a new `map[string]interface{}` of the two, made persistent.
+`container(name, image)`: a new container map.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +30,7 @@ abbrev container.spec : Prop :=
   ∀ (n i : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.container)) (Val #n)) (Val #i))
-  {{ (m : GoMap), RET #m; ownUMap m (containerKVs n i) }}
+  {{ (m : GoMap), RET #m; isUMap m (containerKVs n i) }}
 
 end spec
 

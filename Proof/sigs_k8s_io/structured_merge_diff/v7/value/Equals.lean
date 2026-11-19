@@ -1,6 +1,6 @@
 /-
-`value.Equals`: not proved yet (`sorry`): the next stage proves it, over the specs of its callees
-(notes/smd-robustness.md, "What is left"). Lean-first (2026-11-19).
+`value.Equals`: not proved yet (`sorry`): the stage's Prove step, after the freeze
+(notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module
 

@@ -1,7 +1,7 @@
 /-
-`item(key)`: the path `.containers[name=key]`.
+`item(key)`: the path of the container named `key`.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +30,7 @@ abbrev item.spec : Prop :=
   ∀ (k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.item)) (Val #k))
-  {{ (s : GoSlice), RET #s; ownPath s (item k) }}
+  {{ (s : GoSlice), RET #s; isPath s (item k) }}
 
 end spec
 

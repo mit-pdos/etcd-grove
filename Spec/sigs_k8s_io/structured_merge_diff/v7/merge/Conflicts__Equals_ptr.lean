@@ -1,13 +1,13 @@
 /-
-`(*Conflicts).Equals(c2)`, called through a pointer to a `Conflicts` variable
-(`conflicts.Equals(...)`): as `Conflicts.Equals` on the variable's slice.
+`Conflicts.Equals(c2)` called through a pointer to the receiver (as the driver's
+`conflicts.Equals(...)` on a local variable): as `Conflicts.Equals`.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
 
 @[expose] public section
 
@@ -29,10 +29,10 @@ variable [package_sem : merge.Assumptions]
 
 /-- See the file header. -/
 abbrev merge.Conflicts.Equals_ptr.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (s1 s2 : merge.Conflicts) (a b : List Conflict),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ p ↦{dq} s1 ∗ ownConflicts s1 a ∗ ownConflicts s2 b }}
+  ∀ (p : Loc) (dq : DFrac) (s1 s2 : merge.Conflicts) (a b : List (GoString × Path)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ p ↦{dq} s1 ∗ isConflicts s1 a ∗ isConflicts s2 b }}
     (App (Val (p @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts.ty @!! go!"Equals")) (Val #s2))
-  {{ RET #(conflictsEquals a b); p ↦{dq} s1 }}
+  {{ (r : Bool), RET #r; ⌜r = true ↔ a = b⌝ ∗ p ↦{dq} s1 }}
 
 end spec
 

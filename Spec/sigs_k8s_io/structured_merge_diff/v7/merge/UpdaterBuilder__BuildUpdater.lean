@@ -1,13 +1,13 @@
 /-
-`(*UpdaterBuilder).BuildUpdater()`: a new `Updater` with the builder's converter, ignored fields,
+`(*UpdaterBuilder).BuildUpdater()`: an updater with the builder's converter, ignored fields,
 ignore filter and `ReturnInputOnNoop`.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
 
 @[expose] public section
 
@@ -33,7 +33,7 @@ abbrev merge.UpdaterBuilder.BuildUpdater.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ b ↦{dq} ub }}
     (App (Val (b @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.UpdaterBuilder.ty @!! go!"BuildUpdater")) (Val #()))
   {{ (u : Loc), RET #u; b ↦{dq} ub ∗
-      u ↦ merge.Updater.mk ub.Converter' ub.IgnoredFields' ub.IgnoreFilter' ub.ReturnInputOnNoop' }}
+      isUpdater u ub.Converter' ub.IgnoredFields' ub.IgnoreFilter' ub.ReturnInputOnNoop' }}
 
 end spec
 

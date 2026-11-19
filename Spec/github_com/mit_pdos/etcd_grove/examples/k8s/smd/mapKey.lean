@@ -1,7 +1,7 @@
 /-
-`mapKey(name, key)`: the path `.name.key`.
+`mapKey(name, key)`: the path of a key of a map field of the root.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +30,7 @@ abbrev mapKey.spec : Prop :=
   ∀ (n k : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.mapKey)) (Val #n)) (Val #k))
-  {{ (s : GoSlice), RET #s; ownPath s (mapKey n k) }}
+  {{ (s : GoSlice), RET #s; isPath s (mapKey n k) }}
 
 end spec
 

@@ -1,8 +1,7 @@
 /-
-`updated(paths...)`: the updated (not applied) versioned set of the paths at the scenario's
-version.
+`updated(paths...)`: the updated (not applied) versioned set of the paths.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -29,9 +28,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumpti
 /-- See the file header. -/
 abbrev updated.spec : Prop :=
   ∀ (s : GoSlice) (dq : DFrac) (ss : List GoSlice) (ps : List Path),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd ∗ s ↦*{dq} ss ∗ ownPaths ss ps }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd ∗ s ↦*{dq} ss ∗ isPaths ss ps }}
     (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.updated)) (Val #s))
-  {{ (v : GoInterface), RET #v; s ↦*{dq} ss ∗ ownVSet v (updated ps) }}
+  {{ (v : GoInterface), RET #v; s ↦*{dq} ss ∗ isVSet v (updated ps) }}
 
 end spec
 

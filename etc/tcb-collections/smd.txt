@@ -2,8 +2,9 @@
 # of Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/{Link,Results,TopLevelRobustness}.lean:
 # `wp_Main`, the standard library's trust boundary as SMD calls it (`reflect.DeepEqual` on two nil
 # interfaces, `slices.BinarySearchFunc`, `slices.Insert`, `sort.SliceStable`: axioms), the closed
-# theorem `smd_driver_safe` and its robustness form `smd_driver_robust`. `Main.wp_proof` is a
-# `sorry` until the SMD specs are written and Main is proved.
+# theorem `smd_driver_safe` and its robustness form `smd_driver_robust`. The SMD API's proofs and
+# the driver's are `sorry` until the specs are frozen and proved (notes/smd-plan.md); the `sorry`
+# lines below were added by hand (`--check --update` needs the whole repository built).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/smd.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/smd.txt --check    against the lines below
@@ -18,3 +19,29 @@ axiom slices.BinarySearchFunc.wp_proof
 axiom slices.Insert.wp_proof
 axiom sort.SliceStable.wp_proof
 sorry k8s_smd.Main.wp_proof
+sorry k8s_smd.applied.wp_proof
+sorry k8s_smd.container.wp_proof
+sorry k8s_smd.containerPaths.wp_proof
+sorry k8s_smd.field.wp_proof
+sorry k8s_smd.item.wp_proof
+sorry k8s_smd.itemField.wp_proof
+sorry k8s_smd.mapKey.wp_proof
+sorry k8s_smd.newSchema.wp_proof
+sorry k8s_smd.state.apply.wp_proof
+sorry k8s_smd.state.check.wp_proof
+sorry k8s_smd.state.typedObj.wp_proof
+sorry k8s_smd.updated.wp_proof
+sorry smd.fieldpath.KeyElement.wp_proof
+sorry smd.fieldpath.ManagedFields.Equals.wp_proof
+sorry smd.fieldpath.ManagedFields.Equals_ptr.wp_proof
+sorry smd.fieldpath.NewSet.wp_proof
+sorry smd.fieldpath.NewVersionedSet.wp_proof
+sorry smd.merge.Conflicts.Equals.wp_proof
+sorry smd.merge.Conflicts.Equals_ptr.wp_proof
+sorry smd.merge.Updater.Apply.wp_proof
+sorry smd.merge.Updater.Update.wp_proof
+sorry smd.merge.UpdaterBuilder.BuildUpdater.wp_proof
+sorry smd.typed.AsTyped.wp_proof
+sorry smd.typed.TypedValue.AsValue_ptr.wp_proof
+sorry smd.value.Equals.wp_proof
+sorry smd.value.NewValueInterface.wp_proof

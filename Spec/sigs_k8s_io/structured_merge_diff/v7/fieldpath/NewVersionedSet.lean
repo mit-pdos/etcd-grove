@@ -1,13 +1,12 @@
 /-
-`fieldpath.NewVersionedSet(set, apiVersion, applied)`: the `versionedSet` of its arguments, as a
-`VersionedSet`.
+`fieldpath.NewVersionedSet(set, apiVersion, applied)`: the versioned set.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -29,10 +28,10 @@ variable [package_sem : merge.Assumptions]
 
 /-- See the file header. -/
 abbrev fieldpath.NewVersionedSet.spec : Prop :=
-  ∀ (p : Loc) (ver : GoString) (b : Bool),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath }}
+  ∀ (p : Loc) (S : PathSet) (ver : GoString) (b : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ isSet p S }}
     (App (App (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet)) (Val #p)) (Val #ver)) (Val #b))
-  {{ RET #(interface.mkOk _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet.ty #(_root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.versionedSet.mk p ver b)); True }}
+  {{ (i : fieldpath.VersionedSet), RET #i; isVSet i ⟨S, ver, b⟩ }}
 
 end spec
 

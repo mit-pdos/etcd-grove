@@ -1,8 +1,7 @@
 /-
-`newSchema()`: a new schema holding the scenario's (`k8s_smd.sc`), its lazy indexes not built
-yet.
+`newSchema()`: the scenario's schema (`sc0`), its lazy indexes under their onces.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,7 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumpti
 abbrev newSchema.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd }}
     (App (Val (@! _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.newSchema)) (Val #()))
-  {{ (sc : Loc), RET #sc; ownSchema sc k8s_smd.sc }}
+  {{ (sc : Loc), RET #sc; isSchema sc sc0 }}
 
 end spec
 

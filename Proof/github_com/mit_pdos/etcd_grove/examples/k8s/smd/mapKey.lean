@@ -1,5 +1,6 @@
 /-
-`mapKey` (`examples/k8s/smd/smd.go`). Lean-first (2026-11-19, notes/smd-robustness.md).
+`mapKey`: its earlier proof was over the old model's predicates; not re-proved yet (`sorry`)
+until the specs are frozen (notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module
 
@@ -28,30 +29,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumpti
 
 theorem mapKey.wp_proof
     (wp_FieldNameElement : smd.fieldpath.FieldNameElement.spec (GF := GF)) :
-    mapKey.spec (GF := GF) := fun n k => by
-  wp_start
-  iapply wp_fupd
-  wp_auto
-  wp_apply wp_FieldNameElement as %e1 He1
-  wp_apply wp_FieldNameElement as %e2 He2
-  wp_apply (wp_slice_literal (l := [e1, e2]))
-  isplitr
-  · ipureintro; rfl
-  iintro %sp ⟨Hs, -⟩
-  wp_auto
-  imod ownSlice_persist $$ Hs with #Hs
-  imodintro
-  iapply HΦ
-  unfold ownPath
-  iexists [e1, e2]
-  isplitr
-  · iexact Hs
-  simp only [k8s_smd.mapKey, ownPEL]
-  isplitl [He1]
-  · iexact He1
-  isplitl [He2]
-  · iexact He2
-  itrivial
+    mapKey.spec (GF := GF) := by
+  sorry
 
 end proof
 

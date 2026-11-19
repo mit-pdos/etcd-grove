@@ -1,29 +1,32 @@
 /-
 `(*Updater).Apply(liveObject, configObject, version, managers, manager, force)`: server-side
-apply. Returns what the model `apply` computes (`applyPost`): the merged object, pruned of what
-`manager` applied last time and no longer applies unless another manager owns it (`nil` when the
-object is unchanged and the updater was built without `ReturnInputOnNoop`), with `manager`
-owning exactly the configuration's fields (applied) and every other manager losing what changed;
-or, without `force`, a `Conflicts` error listing every other manager's owned fields that the
-configuration changes (the managers in some order: `ConflictsFromManagers` ranges over a map),
-with a `nil` object and an empty `ManagedFields`; or another error (a schema error, an object
-that does not merge). The schema's lazy indexes are threaded through; the inputs are only read.
+apply of `configObject` by `manager`. The outcome is `applyResult` (`merge/Defs.lean`): either the
+new object (`nil` when it equals the live one and the updater does not return the input on a
+no-op) and the new managers (`manager` owning exactly the configuration's fields, applied; every
+other manager losing what changed and what was removed), or, without `force`, a `Conflicts` error
+listing exactly each other manager's fields that the apply changes (each pair once, in an order
+not stated: Go ranges over a map of managers), with a `nil` object and an empty `ManagedFields`.
+There is no other outcome in the scope. The inputs are only read.
 
-Premises (what the model covers, `Model/Merge.lean`'s header): the updater's converter is the
-identity on one API version, it has no ignored fields or filter (`ownUpdater`); every manager's
-set is at the request's version `version`; the objects' type is a named type (whose map types'
-indexes `ownSchema` owns) and the schema's associative lists have distinct key names
-(`Schema.keysNodup`); the live and new objects are of the schema `sc` (one pointer: `Compare`
-and `merge` check it) and of one type (else the model's error); and the model does not panic on
-these inputs (it panics exactly where Go does, on a nil `value.Value`, which `merge` returns when
-its walker's output is nil: never for a live object that is a non-empty map).
+Premises (`notes/smd-plan.md`, "Scope"; each checkable on what the caller holds):
+- the updater: an identity converter, no ignored fields or filter (scope restriction);
+- the schema in scope (`Schema.WF`); both objects of the schema at `sc` and of the type `t`
+  (`isTV`: `typed.AsTyped`'s post, which includes conformance);
+- every manager's set at `version` (scope restriction: with another version `addBackOwnedItems`
+  adds back per version, in map order), and each set keeps list items with their key fields
+  (`keysWithItems`: every set SMD computes does; a pruned item that kept its path but lost a key
+  field would make `Compare` fail).
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Faithful, not repaired (`merge/Defs.lean`): a list item goes as a whole when its path is pruned,
+even if another manager owns a field inside it (SSA-03); a container emptied by the pruning becomes
+`null` (SSA-01/02).
+
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
 
 @[expose] public section
 
@@ -45,16 +48,25 @@ variable [package_sem : merge.Assumptions]
 
 /-- See the file header. -/
 abbrev merge.Updater.Apply.spec : Prop :=
-  ∀ (u : Loc) (rion : Bool) (sc : Loc) (S : Schema) (lp cp : Loc) (live config : TV)
-    (ver : GoString) (mfm : GoMap) (mf : MF) (manager : GoString) (force : Bool),
-  (∀ e ∈ mf, e.2.version = ver) → live.typeRef.namedType.isSome = true → S.keysNodup = true →
-  (match apply rion S live config ver mf manager force with | .panic => False | _ => True) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗ ownUpdater u rion ∗ ownSchema sc S ∗ ownTV lp sc live ∗ ownTV cp sc config ∗
-      ownMF mfm mf }}
+  ∀ (u : Loc) (cv : merge.Converter) (rion : Bool) (sc : Loc) (S : Schema) (t : TypeRef)
+    (lp cp : Loc) (live config : UVal) (ver : GoString) (mfm : GoMap) (mf : MF) (mgr : GoString)
+    (force : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.merge ∗
+      isUpdater u cv (zero_val GoMap) (zero_val GoMap) rion ∗ isIdentityConverter cv ∗
+      isSchema sc S ∗ isTV lp sc S t live ∗ isTV cp sc S t config ∗ isMF mfm mf ∗
+      ⌜S.WF⌝ ∗ ⌜∀ m e, mf m = some e → e.version = ver ∧ keysWithItems S t e.set⌝ }}
     (App (App (App (App (App (App (Val (u @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Updater.ty @!! go!"Apply"))
-      (Val #lp)) (Val #cp)) (Val #ver)) (Val #mfm)) (Val #manager)) (Val #force))
+      (Val #lp)) (Val #cp)) (Val #ver)) (Val #mfm)) (Val #mgr)) (Val #force))
   {{ (op : Loc) (mfm' : GoMap) (err : GoInterface), RET (PairV (PairV #op #mfm') #err);
-      ownSchema sc S ∗ applyPost (apply rion S live config ver mf manager force) sc op mfm' err }}
+      match applyResult S t rion live config ver mf mgr force with
+      | .ok obj mf' => iprop(⌜err = interface.nil⌝ ∗ isMF mfm' mf' ∗
+          match obj with
+          | none => iprop(⌜op = null⌝)
+          | some x => isTV op sc S t x)
+      | .conflicts cs => iprop(⌜op = null⌝ ∗ isMF mfm' MF.none ∗
+          ∃ (s : merge.Conflicts) (l : List (GoString × Path)),
+            ⌜err = interface.mkOk _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.merge.Conflicts.ty #s ∧ l.Nodup ∧
+              ∀ m p, (m, p) ∈ l ↔ cs m p⌝ ∗ isConflicts s l) }}
 
 end spec
 

@@ -1,5 +1,6 @@
 /-
-`field` (`examples/k8s/smd/smd.go`). Lean-first (2026-11-19, notes/smd-robustness.md).
+`field`: its earlier proof was over the old model's predicates; not re-proved yet (`sorry`)
+until the specs are frozen (notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module
 
@@ -27,27 +28,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumptions]
 
 theorem field.wp_proof (wp_FieldNameElement : smd.fieldpath.FieldNameElement.spec (GF := GF)) :
-    field.spec (GF := GF) := fun n => by
-  wp_start
-  iapply wp_fupd
-  wp_auto
-  wp_apply wp_FieldNameElement as %e He
-  wp_apply wp_slice_literal
-  isplitr
-  · ipureintro; rfl
-  iintro %sp ⟨Hs, -⟩
-  wp_auto
-  imod ownSlice_persist $$ Hs with #Hs
-  imodintro
-  iapply HΦ
-  unfold ownPath
-  iexists [e]
-  isplitr
-  · iexact Hs
-  simp only [k8s_smd.field, ownPEL]
-  isplitl [He]
-  · iexact He
-  itrivial
+    field.spec (GF := GF) := by
+  sorry
 
 end proof
 

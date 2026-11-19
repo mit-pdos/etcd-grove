@@ -1,12 +1,13 @@
 /-
-`TypedValue.AsValue()` (value receiver): its `value` field.
+`TypedValue.AsValue()` (value receiver): its `value` field (a getter; clients holding an
+`isTV` use `TypedValue.AsValue_ptr`).
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
 
 @[expose] public section
 

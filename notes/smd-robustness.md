@@ -99,6 +99,13 @@ needs the whole repository built; the collection's was run on the driver's roots
 
 ## Stage 2: a model of SMD, the specs of its API, `Main` over them (2026-11-19)
 
+**Superseded (2026-11-19, `notes/smd-plan.md`)**: the model below transcribed SMD's algorithm and
+the API specs returned "what the model computes" under a premise "the model does not panic" (an
+implementation's spec, a premise no caller can check). They were replaced by abstract specs over a
+new vocabulary (`Proof/sigs_k8s_io/structured_merge_diff/v7/<pkg>/Defs.lean`); `Model/`, `Own.lean`,
+`OwnLaws.lean` and the driver's `Literals.lean` were deleted, the driver's proofs reset to `sorry`.
+The section is kept as the record of that attempt.
+
 `Main.wp_proof` is proved over specs of the SMD functions it calls; those specs are stated over a
 pure model of SMD, and their proofs are the next stage's (`sorry`, below).
 

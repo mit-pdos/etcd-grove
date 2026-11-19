@@ -1,13 +1,13 @@
 /-
-`(*TypedValue).AsValue()`, called through the pointer (`s.live.AsValue()`): the value the typed
-value holds (`nil` for none).
+`TypedValue.AsValue()` called through a `*TypedValue` (as the driver's `s.live.AsValue()`): the
+value it holds.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
 
 @[expose] public section
 
@@ -29,10 +29,10 @@ variable [package_sem : merge.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.TypedValue.AsValue_ptr.spec : Prop :=
-  ∀ (p sc : Loc) (t : TV),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ ownTV p sc t }}
+  ∀ (p sc : Loc) (S : Schema) (t : TypeRef) (x : UVal),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ∗ isTV p sc S t x }}
     (App (Val (p @!! go.GoType.PointerType _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.typed.TypedValue.ty @!! go!"AsValue")) (Val #()))
-  {{ (v : value.Value), RET #v; ownValueOpt v t.value }}
+  {{ (v : value.Value), RET #v; isVal v x }}
 
 end spec
 

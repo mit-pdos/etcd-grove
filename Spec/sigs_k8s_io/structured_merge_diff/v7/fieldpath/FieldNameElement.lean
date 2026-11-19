@@ -1,12 +1,12 @@
 /-
-`fieldpath.FieldNameElement(name)`: a path element of that field name (a fresh pointer to it).
+`fieldpath.FieldNameElement(name)`: the path element of a field name.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -31,7 +31,7 @@ abbrev fieldpath.FieldNameElement.spec : Prop :=
   ∀ (n : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath }}
     (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameElement)) (Val #n))
-  {{ (e : fieldpath.PathElement), RET #e; ownPE e (.field n) }}
+  {{ (e : fieldpath.PathElement), RET #e; isPE e (.field n) }}
 
 end spec
 

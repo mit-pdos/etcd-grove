@@ -1,13 +1,12 @@
 /-
-`fieldpath.NewSet(paths...)`: a new set holding the paths, inserted in order (`PSet.ofPaths`;
-`Set.Insert` of each: the trie's structure is the model's).
+`fieldpath.NewSet(paths...)`: the set of the non-empty paths among `paths`.
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -30,9 +29,9 @@ variable [package_sem : merge.Assumptions]
 /-- See the file header. -/
 abbrev fieldpath.NewSet.spec : Prop :=
   ∀ (s : GoSlice) (dq : DFrac) (ss : List GoSlice) (ps : List Path),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ s ↦*{dq} ss ∗ ownPaths ss ps }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ s ↦*{dq} ss ∗ isPaths ss ps }}
     (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet)) (Val #s))
-  {{ (p : Loc), RET #p; s ↦*{dq} ss ∗ ownSet p (PSet.ofPaths ps) }}
+  {{ (p : Loc), RET #p; s ↦*{dq} ss ∗ isSet p (PathSet.ofList ps) }}
 
 end spec
 

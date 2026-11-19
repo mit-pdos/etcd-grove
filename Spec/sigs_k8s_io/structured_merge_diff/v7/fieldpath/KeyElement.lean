@@ -1,14 +1,13 @@
 /-
-`fieldpath.KeyElement(fields...)`: a key path element of those fields, in the order given (the
-`FieldList` is the variadic slice itself, behind a fresh pointer: its ownership is given up,
-persistent).
+`fieldpath.KeyElement(fields...)`: the path element of an associative list item's key, the
+fields in the order given (SMD's own keys are sorted by name: `typed/Defs.lean`, `keyOf`).
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.Own
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -31,9 +30,9 @@ variable [package_sem : merge.Assumptions]
 /-- See the file header. -/
 abbrev fieldpath.KeyElement.spec : Prop :=
   ∀ (s : GoSlice) (fl : FieldList),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ ownFieldList s fl }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.fieldpath ∗ isFieldList s fl }}
     (App (Val (@! _root_.Perennial.sigs_k8s_io.structured_merge_diff.v7.fieldpath.KeyElement)) (Val #s))
-  {{ (e : fieldpath.PathElement), RET #e; ownPE e (.key fl) }}
+  {{ (e : fieldpath.PathElement), RET #e; isPE e (.key fl) }}
 
 end spec
 

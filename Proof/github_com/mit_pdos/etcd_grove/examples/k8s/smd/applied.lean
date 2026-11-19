@@ -1,5 +1,6 @@
 /-
-`applied` (`examples/k8s/smd/smd.go`). Lean-first (2026-11-19, notes/smd-robustness.md).
+`applied`: its earlier proof was over the old model's predicates; not re-proved yet (`sorry`)
+until the specs are frozen (notes/smd-plan.md). Lean-first (2026-11-19).
 -/
 module
 
@@ -30,19 +31,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumpti
 theorem applied.wp_proof
     (wp_NewSet : smd.fieldpath.NewSet.spec (GF := GF))
     (wp_NewVersionedSet : smd.fieldpath.NewVersionedSet.spec (GF := GF)) :
-    applied.spec (GF := GF) := fun s dq ss ps => by
-  wp_start as ⟨Hs, Hps⟩
-  wp_auto
-  wp_apply wp_NewSet $$ [$Hs $Hps] as %p ⟨Hs, Hp⟩
-  wp_apply wp_NewVersionedSet
-  iapply HΦ
-  iframe Hs
-  unfold ownVSet
-  iexists p
-  isplitr
-  · ipureintro; rfl
-  simp only [k8s_smd.applied]
-  iexact Hp
+    applied.spec (GF := GF) := by
+  sorry
 
 end proof
 

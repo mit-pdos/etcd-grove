@@ -26,6 +26,7 @@ schema change) reaches the dropped error. `go vet`'s shadow analyzer flags the l
 
 ## Proof
 
-no: the model transcribes the behaviour (`Proof/sigs_k8s_io/structured_merge_diff/v7/Model/Typed.lean`,
-`mergeW`'s list case: the item's error flag is dropped), so `Updater.Apply`'s spec states what Go
-does; the driver's scenario never raises such an error.
+no: the SMD API's specs (notes/smd-plan.md) state `merge` (`typed/Defs.lean`) on values that
+conform to a schema in scope (`Schema.WF`: every list atomic or associative with keys), where an
+item's merge raises no error, so the dropped errors never arise in what the specs cover; the
+driver's scenario never raises one.

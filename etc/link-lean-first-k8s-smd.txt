@@ -10,9 +10,9 @@ reflect_DeepEqual+Nil:
 slices_BinarySearchFunc:
 slices_Insert:
 sort_SliceStable:
-# Structured-merge-diff's API the driver calls (2026-11-19, notes/smd-robustness.md): specified
-# over the pure model (Proof/sigs_k8s_io/structured_merge_diff/v7/Model/, Own.lean); proofs `sorry`
-# but FieldNameElement, NewVersionedSet and TypedValue.AsValue (the next stage's worklist)
+# Structured-merge-diff's API the driver calls (2026-11-19, notes/smd-plan.md): specified over the
+# abstract vocabulary (Proof/sigs_k8s_io/structured_merge_diff/v7/<pkg>/Defs.lean); proofs `sorry`
+# but FieldNameElement and TypedValue.AsValue until the specs are frozen
 value_NewValueInterface:
 value_Equals:
 typed_AsTyped:

@@ -1,8 +1,7 @@
 /-
-`(*state).check(obj, managers, msg)`: returns (does not panic) when the model's `stCheck` holds:
-the stored object equals `obj` and the managed fields equal `managers`.
+`(*state).check(obj, managers, msg)`: returns when the state is `obj` and `managers` (else panics).
 
-Lean-first (2026-11-19, notes/smd-robustness.md).
+Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
@@ -30,8 +29,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.smd.Assumpti
 abbrev state.check.spec : Prop :=
   ∀ (s sc : Loc) (st : St) (m : GoMap) (kvs : List (GoString × UVal)) (mfm : GoMap) (mf : MF)
     (msg : GoString),
-  stCheck st (.map kvs) mf = true →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd ∗ ownState s sc st ∗ ownUMap m kvs ∗ ownMF mfm mf }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.smd ∗ ownState s sc st ∗ isUMap m kvs ∗ isMF mfm mf ∗ ⌜st.live = .map kvs ∧ st.mf = mf⌝ }}
     (App (App (App (Val (s @!! go.GoType.PointerType _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state.ty @!! go!"check")) (Val #m)) (Val #mfm))
       (Val #msg))
   {{ RET #(); ownState s sc st }}

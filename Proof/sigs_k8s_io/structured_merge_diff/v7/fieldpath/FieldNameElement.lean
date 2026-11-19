@@ -33,7 +33,7 @@ theorem fieldpath.FieldNameElement.wp_proof : fieldpath.FieldNameElement.spec (G
   ipersist name
   imodintro
   iapply HΦ
-  unfold ownPE
+  unfold isPE
   iexact name
 
 end proof
