@@ -4,9 +4,9 @@
 
 **2026-11-19 (night 15; for etcd-grove-03). `Replay.validateGet` specified+proved, `Replay.Validate` proved
 (`a63f96f8ff`); `keyFunc` specified+proved; watch.go's spec FIXED (two panics were reachable: forms below);
-watch.go: 12 of 17 functions specified+proved (`89b5f62aef`, a sub-agent; each `-a` checked); the other 7
-(splitInitialEvents, validateInitialEvents, Change.toWatchEvent, Replay.EventsForRVs, validateReliable,
-checkWatch, ValidateWatch) with a second sub-agent.**
+watch.go DONE: all 17 functions specified+proved, `ValidateWatch.wp_proof` against its accepted spec
+(`89b5f62aef`, `efdd13f285`, two sub-agents; each file fully lean-checked); targeted build `build-n15`
+(`/shared/tmp/k8s7g/build-n15.log`, targets `targets-n15.txt`). Not yet in Link.**
 
 - Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`). lean not yet moved to 3afd77e35
   (origin/lean has it): merge when local `lean` gets it, then a timed full build.
@@ -14,7 +14,7 @@ checkWatch, ValidateWatch) with a second sub-agent.**
   `replayAt` carries each state's own rv (`replayL_rv`) and `chgOk` of every change (`replayL_chgOk`);
   `wInPre` gains `x.Limit' = 0` (checkWatch panics on a limit; genWatchFrom never sets one: `GenInW` must
   gain it and flow to realCheck). Model.listItems.spec generalized in place (initialEvents' options).
-- Next, in order: finish watch.go (ValidateWatch.wp_proof); realcheck.go; Check; the discharge list.
+- Next, in order: realCheck's design decision (below); realcheck.go; Check; the discharge list; gen-link.
 - realCheck DESIGN (not started; decide first): porcupine runs over boxed `Request`/`Response` VALUES (OpV),
   whose views (reqRep/respRep) need the heap. Plan: a ModelSpec for toPorcupineModel with `M := realS`
   lifted through `decR : OpV → Option (Input × RResp)` = the view of the FIRST pOp with those values
