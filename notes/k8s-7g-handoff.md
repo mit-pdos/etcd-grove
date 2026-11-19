@@ -2,6 +2,29 @@
 
 ## START HERE
 
+**2026-11-19 (night 14; for etcd-grove-03). Night 13's drafts all lean-checked and fixed (`efa0a5d726`);
+etcd-grove-03 accepted night 13's forms (questions.md "Step 5 night 13: decided by etcd-grove-03"),
+including porcupine's exactly-one `partLins` (its proof went through: `checkParallel.lean` ~l.661).
+Targeted build `/shared/tmp/k8s7g/build-n14.sh` (log `build-n14.log`).**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`); lean is about to move
+  (merge-origin4, manifest-3af): merge it when it lands, mechanical repairs only.
+- lean-check (`/shared/tmp/k8s7g/lc.sh [-a] [--fast] FILE...`): 0 errors on EvRep, RealWatchFrom, RawOk, MDefs,
+  Calls, toWEvent, consume, watchEvents, runWatch, WatchQ, Apply, Model, porcupine Defs/checkParallel,
+  CheckOperationsVerbose, RunLin2, ReplayRep, WatchRep, NewReplay/Replay.Validate/ValidateWatch specs.
+  `Check` still fails (needs realCheck), as expected. Model's l.328/377 errors were gone on re-check.
+- Next, in order: proofs of NewReplay (started: `correctness/NewReplay.lean`, skeleton with `sorry`),
+  Replay.Validate (validateGet/validateList), ValidateWatch (watch.go's 15), realcheck.go (failureFree,
+  realRequest, realEvents, keyFunc, newObjList, initialModel, toPorcupineModel's closures, orderByLinearization,
+  realCheck), Check, the discharge list (night 6); report at step 5's end; step 6 prep, STOP for the Freeze.
+- realCheck's proof must never use a rejecting validator run: each rejecting branch is shown unreachable
+  from B4/B5 (etcd-grove-03's condition).
+- Pitfalls (new): `lean-check` sometimes reports a stale error after an edit; `-a` re-check settles it.
+  `iframe #` splits a `[∗list]` over `l ++ [x]` (`bigSepL_append`) and leaves the tail: give it with
+  `BigSepL.bigSepL_append.1`. `RealWatchFrom` lives in `k8s_etcd3` but its vocabulary is `k8s_correctness`'s.
+
+### Superseded (night 13)
+
 **2026-11-19 (night 13; for etcd-grove-03). lean merged (pin f551a1b46); full timed build
 `20261119-042933-2307866` rc 1; step 5's watch side, the replay/validator specs and porcupine's
 exactly-one linearization DRAFTED, UNCHECKED, merged into `k8s-7g` (`cf8fbe534e`, `c959e16097`).**
