@@ -749,6 +749,320 @@ theorem merge_conforms_law_holds : merge_conforms.law := by
     simp only [ha]
     cases a <;> simp [scalarOk]
 
+/-! ## The size of a comparison -/
+
+/-- The three sets' sizes together. -/
+def cardAll (c : Cmp) : Nat := c.removed.card + c.modified.card + c.added.card
+
+theorem cardAll_union (a b : Cmp) : cardAll (a.union b) ≤ cardAll a + cardAll b := by
+  unfold cardAll Cmp.union
+  have h1 := LawA.card_union a.removed b.removed
+  have h2 := LawA.card_union a.modified b.modified
+  have h3 := LawA.card_union a.added b.added
+  simp only [union] at h1 h2 h3
+  dsimp only
+  omega
+
+theorem cardAll_unionAll : ∀ cs : List Cmp, cardAll (Cmp.unionAll cs) ≤ (cs.map cardAll).sum
+  | [] => by simp [Cmp.unionAll, Cmp.none, cardAll]; rfl
+  | c :: cs => by
+    have := cardAll_union c (Cmp.unionAll cs)
+    have ih := cardAll_unionAll cs
+    simp only [List.map_cons, List.sum_cons]
+    exact Nat.le_trans this (by omega)
+
+theorem cardAll_unionAll_le {α : Type} (F : α → Cmp) (g : α → Nat) : ∀ L : List α,
+    (∀ x ∈ L, cardAll (F x) ≤ g x) → cardAll (Cmp.unionAll (L.map F)) ≤ (L.map g).sum
+  | [], _ => by simp [Cmp.unionAll, Cmp.none, cardAll]; rfl
+  | x :: L, h => by
+    have := cardAll_union (F x) (Cmp.unionAll (L.map F))
+    have ih := cardAll_unionAll_le F g L (fun y hy => h y (List.mem_cons_of_mem _ hy))
+    have hx := h x (List.mem_cons_self ..)
+    simp only [List.map_cons, List.sum_cons]
+    exact Nat.le_trans this (by omega)
+
+theorem mem_unionAll (x : Path) : ∀ cs : List Cmp,
+    (x ∈ (Cmp.unionAll cs).removed ↔ ∃ c ∈ cs, x ∈ c.removed) ∧
+    (x ∈ (Cmp.unionAll cs).modified ↔ ∃ c ∈ cs, x ∈ c.modified) ∧
+    (x ∈ (Cmp.unionAll cs).added ↔ ∃ c ∈ cs, x ∈ c.added)
+  | [] => by
+    simp only [Cmp.unionAll, List.foldr_nil, Cmp.none, List.not_mem_nil, false_and, exists_false,
+      iff_false]
+    exact ⟨FSet.mem_empty x, FSet.mem_empty x, FSet.mem_empty x⟩
+  | c :: cs => by
+    obtain ⟨h1, h2, h3⟩ := mem_unionAll x cs
+    have e : Cmp.unionAll (c :: cs) = c.union (Cmp.unionAll cs) := rfl
+    rw [e]
+    simp only [Cmp.union, List.mem_cons, exists_eq_or_imp]
+    refine ⟨?_, ?_, ?_⟩
+    · rw [← h1]; exact FSet.mem_union' _ _ x
+    · rw [← h2]; exact FSet.mem_union' _ _ x
+    · rw [← h3]; exact FSet.mem_union' _ _ x
+
+theorem cardAll_unionAll_dedup {α : Type} [DecidableEq α] (f : α → Cmp) (L : List α) :
+    cardAll (Cmp.unionAll (L.map f)) ≤ cardAll (Cmp.unionAll ((FSet.dedupL L).map f)) := by
+  have sub : ∀ c, c ∈ L.map f → c ∈ (FSet.dedupL L).map f := by
+    intro c hc
+    obtain ⟨a, ha, rfl⟩ := List.mem_map.1 hc
+    exact List.mem_map.2 ⟨a, (FSet.mem_dedupL L a).2 ha, rfl⟩
+  unfold cardAll
+  have h1 : (Cmp.unionAll (L.map f)).removed.card ≤
+      (Cmp.unionAll ((FSet.dedupL L).map f)).removed.card :=
+    FSet.card_le_of_subset _ _ (fun x hx => by
+      obtain ⟨c, hc, hx⟩ := ((mem_unionAll x _).1).1 hx
+      exact ((mem_unionAll x _).1).2 ⟨c, sub c hc, hx⟩)
+  have h2 : (Cmp.unionAll (L.map f)).modified.card ≤
+      (Cmp.unionAll ((FSet.dedupL L).map f)).modified.card :=
+    FSet.card_le_of_subset _ _ (fun x hx => by
+      obtain ⟨c, hc, hx⟩ := ((mem_unionAll x _).2.1).1 hx
+      exact ((mem_unionAll x _).2.1).2 ⟨c, sub c hc, hx⟩)
+  have h3 : (Cmp.unionAll (L.map f)).added.card ≤
+      (Cmp.unionAll ((FSet.dedupL L).map f)).added.card :=
+    FSet.card_le_of_subset _ _ (fun x hx => by
+      obtain ⟨c, hc, hx⟩ := ((mem_unionAll x _).2.2).1 hx
+      exact ((mem_unionAll x _).2.2).2 ⟨c, sub c hc, hx⟩)
+  omega
+
+theorem cardAll_leafC (p : Path) (l r : Option UVal) : cardAll (leafC p l r) ≤ 1 := by
+  have := LawA.card_ins p
+  unfold leafC cardAll
+  rcases l with _ | a <;> rcases r with _ | b <;> simp only [LawA.card_empty] <;>
+    try omega
+  split <;> simp only [LawA.card_empty, Cmp.none] <;> omega
+
+theorem sum_le_sum {α : Type} (f g : α → Nat) : ∀ L : List α, (∀ x ∈ L, f x ≤ g x) →
+    (L.map f).sum ≤ (L.map g).sum
+  | [], _ => by simp
+  | x :: L, h => by
+    simp only [List.map_cons, List.sum_cons]
+    have := sum_le_sum f g L (fun y hy => h y (List.mem_cons_of_mem _ hy))
+    have := h x (List.mem_cons_self ..)
+    omega
+
+theorem find_eraseP {α : Type} (p q : α → Bool) (h : ∀ x, p x = true → q x = false) :
+    ∀ l : List α, (l.eraseP p).find? q = l.find? q
+  | [] => rfl
+  | x :: l => by
+    rw [List.eraseP_cons]
+    cases hp : p x
+    · simp only [Bool.false_eq_true, ite_false, List.find?_cons]
+      rw [find_eraseP p q h l]
+    · simp only [ite_true, List.find?_cons, h x hp]
+
+theorem size_eraseP (p : UVal → Bool) : ∀ l : List UVal,
+    sizeO (l.find? p) + UVal.sizeL (l.eraseP p) = UVal.sizeL l
+  | [] => rfl
+  | x :: l => by
+    rw [List.eraseP_cons, List.find?_cons]
+    cases hp : p x
+    · have := size_eraseP p l
+      simp only [Bool.false_eq_true, ite_false, UVal.sizeL]
+      omega
+    · simp only [ite_true, UVal.sizeL, sizeO]
+
+/-- Distinct keys pick distinct items. -/
+theorem itemOf_sum (ks : List GoString) : ∀ (D : List PE) (vs : List UVal), D.Nodup →
+    (D.map (fun pe => sizeO (itemOf ks vs pe))).sum ≤ UVal.sizeL vs
+  | [], _, _ => by simp
+  | pe :: D, vs, hD => by
+    obtain ⟨hpe, hD'⟩ := List.nodup_cons.1 hD
+    simp only [List.map_cons, List.sum_cons]
+    have e : D.map (fun pe' => sizeO (itemOf ks vs pe')) =
+        D.map (fun pe' => sizeO (itemOf ks (vs.eraseP (fun v => decide (keyOf ks v = some pe)))
+          pe')) := by
+      apply List.map_congr_left
+      intro pe' hpe'
+      unfold itemOf
+      rw [find_eraseP]
+      intro x hx
+      simp only [decide_eq_true_eq] at hx
+      simp only [hx, Option.some.injEq, decide_eq_false_iff_not]
+      intro h; subst h; exact hpe hpe'
+    rw [e]
+    have ih := itemOf_sum ks D (vs.eraseP (fun v => decide (keyOf ks v = some pe))) hD'
+    have := size_eraseP (fun v => decide (keyOf ks v = some pe)) vs
+    unfold itemOf at ih ⊢
+    omega
+
+theorem zip_sum : ∀ (f : Nat) (xs ys : List (GoString × UVal)),
+    ((zipLexical f xs ys).map (fun z => sizeO z.2.1 + sizeO z.2.2)).sum ≤
+      UVal.sizeM xs + UVal.sizeM ys
+  | 0, _, _ => by simp [zipLexical]
+  | f + 1, [], [] => by simp [zipLexical]
+  | f + 1, (k, a) :: xs, [] => by
+    have : ∀ xs : List (GoString × UVal),
+        ((xs.map (fun (k, a) => (k, (some a : Option UVal), (none : Option UVal)))).map
+          (fun z => sizeO z.2.1 + sizeO z.2.2)).sum = UVal.sizeM xs := by
+      intro xs; induction xs with
+      | nil => rfl
+      | cons kv xs ih =>
+        obtain ⟨k, a⟩ := kv
+        simp only [List.map_cons, List.sum_cons, UVal.sizeM, sizeO] at ih ⊢
+        omega
+    have e : zipLexical (f + 1) ((k, a) :: xs) [] =
+      ((k, a) :: xs).map (fun (k, a) => (k, (some a : Option UVal), (none : Option UVal))) := rfl
+    rw [e, this ((k, a) :: xs)]
+    exact Nat.le_add_right _ _
+  | f + 1, [], (k, b) :: ys => by
+    have : ∀ ys : List (GoString × UVal),
+        ((ys.map (fun (k, b) => (k, (none : Option UVal), (some b : Option UVal)))).map
+          (fun z => sizeO z.2.1 + sizeO z.2.2)).sum = UVal.sizeM ys := by
+      intro ys; induction ys with
+      | nil => rfl
+      | cons kv ys ih =>
+        obtain ⟨k, b⟩ := kv
+        simp only [List.map_cons, List.sum_cons, UVal.sizeM, sizeO] at ih ⊢
+        omega
+    have e : zipLexical (f + 1) [] ((k, b) :: ys) =
+      ((k, b) :: ys).map (fun (k, b) => (k, (none : Option UVal), (some b : Option UVal))) := rfl
+    rw [e, this ((k, b) :: ys)]
+    exact Nat.le_add_left _ _
+  | f + 1, (k, a) :: xs, (k', b) :: ys => by
+    simp only [zipLexical]
+    split
+    · have := zip_sum f xs ys
+      simp only [List.map_cons, List.sum_cons, UVal.sizeM, sizeO] at this ⊢
+      omega
+    · split
+      · have := zip_sum f xs ((k', b) :: ys)
+        simp only [List.map_cons, List.sum_cons, UVal.sizeM, sizeO] at this ⊢
+        omega
+      · have := zip_sum f ((k, a) :: xs) ys
+        simp only [List.map_cons, List.sum_cons, UVal.sizeM, sizeO] at this ⊢
+        omega
+
+theorem cardAll_nodeC (p : Path) (l r : Option UVal) : cardAll (nodeC p l r) ≤ 1 ∧
+    (l.isSome → r.isSome → cardAll (nodeC p l r) = 0) := by
+  have := LawA.card_ins p
+  unfold nodeC cardAll
+  rcases l with _ | a <;> rcases r with _ | b <;>
+    simp only [LawA.card_empty, Cmp.none, Option.isSome_none, Option.isSome_some,
+      Bool.false_eq_true, false_implies, true_implies, and_true] <;> omega
+
+/-- **A comparison has at most as many paths as its sides have nodes** (one at least). -/
+theorem cmpF_card (S : Schema) : ∀ (n : Nat) (t : TypeRef) (p : Path) (l r : Option UVal),
+    fuelO l r ≤ n → cardAll (cmpF n S t p l r) ≤ max 1 (sizeO l + sizeO r)
+  | 0, t, p, l, r, h => by unfold fuelO at h; omega
+  | n + 1, t, p, l, r, hn => by
+    have hn' : sizeO l + sizeO r ≤ n := by unfold fuelO at hn; omega
+    have leaf := cardAll_leafC p l r
+    simp only [cmpF]
+    split
+    · omega
+    · rename_i e rel ks hfind
+      by_cases hc : rel = .atomic ∨ ((listItems l).isEmpty ∧ (listItems r).isEmpty)
+      · rw [ite_eq_left hc]; omega
+      rw [ite_eq_right hc]
+      have hne' : ¬((listItems l).isEmpty = true ∧ (listItems r).isEmpty = true) :=
+        fun h => hc (Or.inr h)
+      generalize hpes : keysOf ks (listItems l) ++ (keysOf ks (listItems r)).filter
+        (fun x => decide (x ∉ keysOf ks (listItems l))) = pes
+      have hu := cardAll_union (Cmp.unionAll (pes.map (fun pe =>
+        cmpF n S e (p ++ [pe]) (itemOf ks (listItems l) pe) (itemOf ks (listItems r) pe))))
+        (nodeC p l r)
+      have hd := cardAll_unionAll_dedup (fun pe =>
+        cmpF n S e (p ++ [pe]) (itemOf ks (listItems l) pe) (itemOf ks (listItems r) pe)) pes
+      have hch := cardAll_unionAll_le (fun pe =>
+        cmpF n S e (p ++ [pe]) (itemOf ks (listItems l) pe) (itemOf ks (listItems r) pe))
+          (fun pe => sizeO (itemOf ks (listItems l) pe) +
+          sizeO (itemOf ks (listItems r) pe)) (FSet.dedupL pes) (by
+        intro pe hpe
+        have hpe' := (FSet.mem_dedupL pes pe).1 hpe
+        rw [← hpes] at hpe'
+        have hsome : (itemOf ks (listItems l) pe).isSome ∨ (itemOf ks (listItems r) pe).isSome := by
+          rcases List.mem_append.1 hpe' with h | h
+          · exact Or.inl (itemOf_of_keys _ _ _ h)
+          · exact Or.inr (itemOf_of_keys _ _ _ (List.mem_filter.1 h).1)
+        have hfu := (list_child_fuel ks l r pe hne').1
+        have ih := cmpF_card S n e (p ++ [pe]) (itemOf ks (listItems l) pe)
+          (itemOf ks (listItems r) pe) (by omega)
+        have : 1 ≤ sizeO (itemOf ks (listItems l) pe) + sizeO (itemOf ks (listItems r) pe) := by
+          rcases hsome with h | h
+          · obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 h
+            rw [hx]; have := size_pos x; simp only [sizeO]; omega
+          · obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 h
+            rw [hx]; have := size_pos x; simp only [sizeO]; omega
+        omega)
+      have hsplit : ((FSet.dedupL pes).map (fun pe => sizeO (itemOf ks (listItems l) pe) +
+          sizeO (itemOf ks (listItems r) pe))).sum =
+          ((FSet.dedupL pes).map (fun pe => sizeO (itemOf ks (listItems l) pe))).sum +
+          ((FSet.dedupL pes).map (fun pe => sizeO (itemOf ks (listItems r) pe))).sum := by
+        induction FSet.dedupL pes with
+        | nil => rfl
+        | cons x xs ih => simp only [List.map_cons, List.sum_cons]; omega
+      have hl := itemOf_sum ks (FSet.dedupL pes) (listItems l) (FSet.nodup_dedupL pes)
+      have hr := itemOf_sum ks (FSet.dedupL pes) (listItems r) (FSet.nodup_dedupL pes)
+      have hnode := cardAll_nodeC p l r
+      -- the node: present on one side only, that side's items are counted with the node
+      have hfin : UVal.sizeL (listItems l) + UVal.sizeL (listItems r) + cardAll (nodeC p l r) ≤
+          sizeO l + sizeO r := by
+        have b1 := listItems_size l
+        have b2 := listItems_size r
+        rcases l with _ | x <;> rcases r with _ | y
+        · simp [listItems] at hne'
+        · have := listItems_size_ne (some y) (by simpa [listItems] using hne')
+          simp only [listItems, UVal.sizeL] at this ⊢; omega
+        · have := listItems_size_ne (some x) (by simpa [listItems] using hne')
+          simp only [listItems, UVal.sizeL] at this ⊢; omega
+        · have := hnode.2 rfl rfl; omega
+      omega
+    · rename_i fs em rel hfind
+      by_cases hc : rel = .atomic ∨ ((mapItems l).isEmpty ∧ (mapItems r).isEmpty)
+      · rw [ite_eq_left hc]; omega
+      rw [ite_eq_right hc]
+      have hne' : ¬((mapItems l).isEmpty = true ∧ (mapItems r).isEmpty = true) :=
+        fun h => hc (Or.inr h)
+      have hu := cardAll_union (Cmp.unionAll ((zipLexical ((mapItems l).length +
+        (mapItems r).length + 1) (mapItems l) (mapItems r)).map (fun (k, a, b) =>
+          match fieldType fs em k with
+          | some t' => cmpF n S t' (p ++ [.field k]) a b
+          | none => Cmp.none))) (nodeC p l r)
+      have hch := cardAll_unionAll_le (fun (k, a, b) =>
+          match fieldType fs em k with
+          | some t' => cmpF n S t' (p ++ [.field k]) a b
+          | none => Cmp.none) (fun z => sizeO z.2.1 + sizeO z.2.2) (zipLexical
+          ((mapItems l).length + (mapItems r).length + 1) (mapItems l) (mapItems r)) (by
+        rintro ⟨k, a, b⟩ hz
+        have hfu := (map_child_fuel l r _ hz hne').1
+        have hsome := zipLexical_some _ _ _ _ hz
+        simp only at hfu hsome ⊢
+        have : 1 ≤ sizeO a + sizeO b := by
+          rcases hsome with h | h
+          · obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 h
+            rw [hx]; have := size_pos x; simp only [sizeO]; omega
+          · obtain ⟨x, hx⟩ := Option.isSome_iff_exists.1 h
+            rw [hx]; have := size_pos x; simp only [sizeO]; omega
+        split
+        · next t' _ =>
+          have ih := cmpF_card S n t' (p ++ [.field k]) a b (by omega)
+          omega
+        · simp only [cardAll, Cmp.none, LawA.card_empty]; omega)
+      have hz := zip_sum ((mapItems l).length + (mapItems r).length + 1) (mapItems l) (mapItems r)
+      have hnode := cardAll_nodeC p l r
+      have hfin : UVal.sizeM (mapItems l) + UVal.sizeM (mapItems r) + cardAll (nodeC p l r) ≤
+          sizeO l + sizeO r := by
+        have b1 := mapItems_size l
+        have b2 := mapItems_size r
+        rcases l with _ | x <;> rcases r with _ | y
+        · simp [mapItems] at hne'
+        · have := mapItems_size_ne (some y) (by simpa [mapItems] using hne')
+          simp only [mapItems, UVal.sizeM] at this ⊢; omega
+        · have := mapItems_size_ne (some x) (by simpa [mapItems] using hne')
+          simp only [mapItems, UVal.sizeM] at this ⊢; omega
+        · have := hnode.2 rfl rfl; omega
+      refine Nat.le_trans hu ?_
+      omega
+    · simp only [cardAll, Cmp.none, LawA.card_empty]; omega
+
+theorem cmpO_card_law_holds : cmpO_card.law := by
+  intro S t p l r hl hr
+  have h := cmpF_card S _ t p l r (Nat.le_refl _)
+  unfold cmpO
+  unfold cardAll at h
+  simp only [smdSizeMax] at hl hr
+  unfold FSet.CardLt
+  refine ⟨?_, ?_, ?_⟩ <;> omega
+
 end LawB
 
 end smd
