@@ -66,22 +66,16 @@ theorem store.finalizeList.wp_proof
   cases b
   · wp_auto
     wp_bind
-    iapply HUpd $$ %pl %os %rv0 %rev %cont0 %cont %rem %remV %rem0 [Hp Hit Hmeta] Hrem
-    · iunfold ListSpec.listAtItems
-      isplitr
-      · ipureintro; exact hpl
-      iexists s
-      iframe
+    iapply HUpd $$ %pl %rv0 %rev %cont0 %cont %rem %remV %rem0 Hmeta Hrem
     inext
-    iintro %err ⟨%he, Hl⟩
+    iintro %err ⟨%he, Hmeta⟩
     subst he
     wp_auto
     wp_apply (wp_SetShard pred_ptr _ pred _ hsel.1) $$ [$pred] as -
     iapply HΦ
-    iunfold ListSpec.listAt
-    iexists pl
+    iexists pl, s
     iframe
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, hpl, hb.2 rfl⟩
   · icases persistent_entails_left (L.itemsAt_len s os) $$ Hit with ⟨Hit, %Hlen⟩
     have hos : os = [] := List.eq_nil_of_length_eq_zero (by rw [← Hlen]; have := hb.1 rfl; word)
     subst hos
@@ -99,22 +93,16 @@ theorem store.finalizeList.wp_proof
     · ipureintro; exact ⟨hv, Or.inr ⟨c.S.objTy, s', rfl, hw, HEq.rfl⟩⟩
     (try wp_auto)
     wp_bind
-    iapply HUpd $$ %pl %([] : List (Obj × GoString)) %rv0 %rev %cont0 %cont %rem %remV %rem0 [Hp Hit' Hmeta] Hrem
-    · iunfold ListSpec.listAtItems
-      isplitr
-      · ipureintro; exact hpl
-      iexists s'
-      iframe
+    iapply HUpd $$ %pl %rv0 %rev %cont0 %cont %rem %remV %rem0 Hmeta Hrem
     inext
-    iintro %err ⟨%he, Hl⟩
+    iintro %err ⟨%he, Hmeta⟩
     subst he
     wp_auto
     wp_apply (wp_SetShard pred_ptr _ pred _ hsel.1) $$ [$pred] as -
     iapply HΦ
-    iunfold ListSpec.listAt
-    iexists pl
+    iexists pl, s'
     iframe
-    ipureintro; rfl
+    ipureintro; exact ⟨rfl, hpl, hnn⟩
 
 end proof
 

@@ -356,8 +356,7 @@ theorem store.GetList.wp_proof
         unfold ListSpec.listAtItems
         iframe
         ipureintro; exact Hpl
-      unfold ListSpec.listAt ListSpec.listAtItems
-      icases Hlx with ⟨%pl', %Hpl', -, %sl', Hip, Hits, Hmeta⟩
+      icases Hlx with ⟨%pl', %sl', %Hpl', -, %Hsnn, Hip, Hits, Hmeta⟩
       have hpl : pl' = pl := by
         have h := ((interface_mkOk_inj _ _ _ _).1 Hpl').2
         exact (go.intoVal_inj h).symm
@@ -415,21 +414,21 @@ theorem store.GetList.wp_proof
           show σ.store = σ.at (uint.nat R) by rw [hR, hσr]; rfl]
         isplitr
         · ipureintro; rfl
-        unfold listIs ListSpec.listAt ListSpec.listAtItems
+        unfold listIs
         rw [hcont', hrem', hits']
-        iexists pl'
+        iexists pl', sl'
         iframe
-        ipureintro; exact ⟨rfl, Hpl⟩
+        ipureintro; exact ⟨rfl, Hpl, Hsnn⟩
       · rw [if_neg h0] at hR
         have hle : ¬ σ.rev < uint.nat R0 := by rw [← hR]; omega
         rw [if_neg h0, if_neg hle, ← hR]
         isplitr
         · ipureintro; rfl
-        unfold listIs ListSpec.listAt ListSpec.listAtItems
+        unfold listIs
         rw [hcont', hrem', hits']
-        iexists pl'
+        iexists pl', sl'
         iframe
-        ipureintro; exact ⟨rfl, Hpl⟩
+        ipureintro; exact ⟨rfl, Hpl, Hsnn⟩
     · iintro %e %nfch %nev %sl %os «$res0» numFetched numEvald v Hip Hits Htt %Hnn Herr
       rw [hK]
       simp only

@@ -49,6 +49,14 @@ clause 4 SURVIVES (11 attacks, Go under `-race`) and is ACCEPTED. m2 applied (th
 `DeepV` being a `*StatusError` is what makes clause 4 true; a constructor for one must revisit it). m1
 recorded: one orientation only (model's response first), which every use is.
 
+**2026-11-19 (night 10b): IsNil attack passed** (`/shared/tmp/isnil-attack/report.md`; decided by etcd-grove-03):
+`b = false → s ≠ slice.nil` SURVIVES and is ACCEPTED. Minor 1 applied (header: `slice.nil` is the only REACHABLE
+slice with a nil `Data`; the model has other null-pointer slices, `⟨null, 0, c⟩` from slicing a nil array pointer,
+so "ptr null → `slice.nil`" is never a law). Minor 2 recorded: on reachable states `b = decide (s = slice.nil)`
+would hold; the post leaves `b` open for non-nil empty slices (a harmless weakening; no change). Also accepted
+(Freeze list): `listIs` (GetList's success post) and `finalizeList`'s post strengthened in place to
+`∃ pl s, … ⌜s ≠ slice.nil⌝ …`; `listAt` unchanged.
+
 **2026-11-19 (night 10): MakeSlice attack passed** (`/shared/tmp/makeslice-attack/report.md`; decided by
 etcd-grove-03): `s ≠ slice.nil` SURVIVES and is ACCEPTED. Minor 2 applied (header: implied by `s.cap = m` for
 `m > 0`; amounts to `s.ptr ≠ null`; only `[]Obj`). Minor 1 recorded: cap-0 results share `&zerobase`, so no
