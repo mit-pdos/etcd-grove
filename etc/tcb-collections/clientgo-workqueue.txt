@@ -15,5 +15,4 @@ axiom math.Pow.wp_proof
 axiom rate.Limiter.Reserve.wp_proof
 axiom rate.NewLimiter.wp_proof
 axiom rate.Reservation.Delay.wp_proof
-axiom time.Duration.Nanoseconds_ptr.wp_proof
 axiom utilruntime.HandleCrashWithLogger.wp_proof

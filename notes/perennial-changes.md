@@ -17,7 +17,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Adequacy's thread bound is about every execution, so it caps the step count (2026-11-19, the closed theorems' step bounds)
+### Adequacy's thread bound is about every execution, so it caps the step count: landed, in the pin since `c44b74871` (2026-11-19, the closed theorems' step bounds)
 
 - **Limitation.** `goose_adequacy` (`Perennial/GooseLang/Adequacy.lean`) takes the thread bound as
   `RealThreadsBelow T n`: *every* execution of at most `n` steps keeps fewer than `T` threads. A
@@ -28,7 +28,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   step count at it. That is why the etcd, k8s and mvccfull closed theorems have `n + 2 ≤ 2^28` and
   the trace check had `n + 2 ≤ 2^31`. The same holds for the crash and distributed variants
   (`RealCrashThreadsBelow`, `DistCrashThreadsBelow`), hence `Robust`'s bounds.
-- **Proposed change** (branch `adequacy-along` of Perennial, `3b4acdf9a` on `3afd77e35`, not landed):
+- **The change** (Perennial `3b4acdf9a`, docs `c44b74871`, on `lean` 2026-11-19; reviewed with Perennial's
+  `review-trusted`: OK, its one gap the README/reference docs (R6), fixed):
   `Perennial/GooseLang/AdequacyAlong.lean`, `RealNstepsBelow T n ρ κs ρ'` (an execution every
   configuration of which has fewer than `T` threads) and `goose_adequacy_below`/`goose_invariance_below`,
   which conclude about every such execution of fewer than `N` steps. The proof of `goose_adequacy`
@@ -40,6 +41,28 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   here, restated over `RealNstepsBelow`; their step count is then capped by `Main.spec`'s write-back
   budget `n + 11 ≤ backend.wbInit = 2^40 - 1`), and the crash and distributed variants with a thread
   parameter in `Robust`.
+
+### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
+
+- **Limitation.** `go_method_resolve_step` needs `[go.NotInterface tunder]`, and Perennial's
+  instances (`Golang/Theory/PostLifting.lean`) are per type constructor (`notInterface_Named`, ...):
+  none matches `go.int64` (`def int64 := go.Named go!"int64" []`, not reducible) or the other
+  predeclared types. So a value method of a named type over a predeclared one, called through
+  goose's pointer wrapper (`(*time.Duration).Nanoseconds`), has no step.
+- **Workaround here.** `Proof/time/Duration__Nanoseconds_ptr.lean`: a local
+  `haveI : go.NotInterface go.int64 := ⟨by simp [go.int64]⟩` (a proof, no axiom).
+- **Proposed change.** `NotInterface` instances for the predeclared types (or make them
+  reducible), next to `notInterface_Named`.
+- **Also (the stdlib group of trust-boundary axioms).** Of `strings.{Contains,HasSuffix,SplitN,
+  ToLower,TrimSuffix}`, `strconv.{FormatBool,FormatInt,FormatUint,Itoa,ParseBool,ParseInt}`,
+  `binary.{ReadInt64LE,ReadUint64,WriteUint64,WriteUint8}` (`binary.Read`/`Write`, through
+  `reflect`), `errors.Join`, `io.{ReadFull,CopyN}` and `time.Duration.{Seconds,String}` (floats,
+  formatting), the pinned Perennial (`3afd77e35`) translates none of the bodies (names only), so
+  each stays an axiom here until Perennial's `*.toml` translates it (`Seconds`: never, a float).
+  The cheap ones to translate: `strings.HasSuffix`/`TrimSuffix`/`Contains` (over
+  `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
+- **Status.** Open.
+
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
 

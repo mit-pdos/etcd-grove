@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized.
-translate = ["!*"]
-imports = ["!*"]
+# (2026-11-19) `ErrLength`, so that its initializer (`errors.New`) is translated (`etc/gen-init.py`).
+translate = ["!*", "ErrLength"]
+imports = ["!*", "errors"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
