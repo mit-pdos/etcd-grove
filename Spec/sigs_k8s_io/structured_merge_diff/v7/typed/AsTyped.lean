@@ -4,13 +4,19 @@ if `v` conforms to it (`TypedValue.Validate`), else an error.
 
 Premises: the schema is in the scope (`Schema.WF`); no validation option (`AllowDuplicates`: a
 scope restriction, `notes/smd-plan.md`). Every value `NewValueInterface` admits (`isIface`) is
-either accepted or rejected: there is no third outcome.
+either accepted or rejected: there is no third outcome. The typed value carries the schema
+(`isTV`: `isSchema sc S`, `S.WF`).
+
+Margin (`notes/smd-plan.md`, "Margins"): the error branch formats the value (`errorf("...%#v")`,
+`%T`, `PathElement.String`), so its proof will rest on `fmt`'s trust-boundary axioms for arbitrary
+interface values; and validation recurses once per level of the value (Go's stack, not
+GooseLang's, bounds the depth).
 
 Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
 
 @[expose] public section
@@ -29,7 +35,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : merge.Assumptions]
+variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.AsTyped.spec : Prop :=

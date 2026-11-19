@@ -4,15 +4,28 @@ SMD API specs (`notes/smd-plan.md`, "The vocabulary").
 
 `UVal` is an unstructured value as SMD sees it through `value.NewValueInterface`: `null`, a `bool`,
 an `int64`, a `string`, a list, a map from strings. A map is kept **canonical**: its entries sorted
-by key (bytewise, `strings.Compare`), no key twice (`UVal.Canonical`), so that two maps with the
+by key (bytewise, `strings.Compare`), no key twice (`keysSorted`; `UVal.ofMap` sorts a literal's entries), so that two maps with the
 same entries are the same `UVal` and `value.Equals` is `=`. Out of scope (the representation
 predicate `isIface` admits none): floats (SMD compares an `int64` with a `float64` by converting:
 SSA-05), the other integer types, `map[interface{}]interface{}`, reflection-backed values.
 
-The representation predicates are persistent: SMD never writes a value it was given or returned,
-and a caller gives up its literals for reading (discarded fractions).
+The pure vocabulary is **computable** (review round 1, P1): `UVal` has a hand-written `DecidableEq`
+(Lean's deriving handler fails on the nested `List (GoString × UVal)`), so a client decides an
+equality of literals by `decide` (the kernel's, structural recursion only).
 
-Lean-first (2026-11-19, notes/smd-plan.md).
+`isValF v dq x` is a `value.Value` wrapper at fraction `dq` (SMD's own recursion lends wrappers it
+rewrites: `reuse`, the freelist allocator); `isVal v x`, its instance at `DFrac.discard`, is what
+the API hands out and takes (persistent: SMD never writes a value it was given or returned). The
+representation's internals (`isIface`'s list and map parts) are sealed (`@[no_expose]`); clients
+use the laws (`Laws.lean`).
+
+Scope restrictions of the representation (`notes/smd-plan.md`, "Scope", (R)): a map is a non-nil
+`map[string]interface{}` (Go's typed-nil map, which SMD reads as `{}`, is not admitted); recursion
+depth: SMD recurses once per level of a value, and Go's 1 GB stack bounds the depth where
+GooseLang's semantics has no bound (the margin of every post over a value: `notes/smd-plan.md`,
+"Margins").
+
+Lean-first (2026-11-19, notes/smd-plan.md); round 1's repairs 2026-11-19.
 -/
 module
 
@@ -52,6 +65,54 @@ inductive UVal where
   | map (kvs : List (GoString × UVal))
   deriving Inhabited
 
+mutual
+/-- Equality of values, decided (by structural recursion, so that the kernel evaluates it). -/
+def UVal.decEq : (a b : UVal) → Decidable (a = b)
+  | .null, .null => isTrue rfl
+  | .bool a, .bool b =>
+    if h : a = b then isTrue (h ▸ rfl) else isFalse (fun e => by cases e; exact h rfl)
+  | .int a, .int b =>
+    if h : a = b then isTrue (h ▸ rfl) else isFalse (fun e => by cases e; exact h rfl)
+  | .str a, .str b =>
+    if h : a = b then isTrue (h ▸ rfl) else isFalse (fun e => by cases e; exact h rfl)
+  | .list a, .list b => match UVal.decEqL a b with
+    | isTrue h => isTrue (h ▸ rfl)
+    | isFalse h => isFalse (fun e => by cases e; exact h rfl)
+  | .map a, .map b => match UVal.decEqM a b with
+    | isTrue h => isTrue (h ▸ rfl)
+    | isFalse h => isFalse (fun e => by cases e; exact h rfl)
+  | .null, .bool _ | .null, .int _ | .null, .str _ | .null, .list _ | .null, .map _
+  | .bool _, .null | .bool _, .int _ | .bool _, .str _ | .bool _, .list _ | .bool _, .map _
+  | .int _, .null | .int _, .bool _ | .int _, .str _ | .int _, .list _ | .int _, .map _
+  | .str _, .null | .str _, .bool _ | .str _, .int _ | .str _, .list _ | .str _, .map _
+  | .list _, .null | .list _, .bool _ | .list _, .int _ | .list _, .str _ | .list _, .map _
+  | .map _, .null | .map _, .bool _ | .map _, .int _ | .map _, .str _ | .map _, .list _ =>
+    isFalse (fun e => by cases e)
+/-- Lists of values. -/
+def UVal.decEqL : (a b : List UVal) → Decidable (a = b)
+  | [], [] => isTrue rfl
+  | [], _ :: _ => isFalse (fun e => by cases e)
+  | _ :: _, [] => isFalse (fun e => by cases e)
+  | x :: xs, y :: ys => match UVal.decEq x y, UVal.decEqL xs ys with
+    | isTrue h1, isTrue h2 => isTrue (h1 ▸ h2 ▸ rfl)
+    | isFalse h1, _ => isFalse (fun e => by cases e; exact h1 rfl)
+    | _, isFalse h2 => isFalse (fun e => by cases e; exact h2 rfl)
+/-- Maps' entries. -/
+def UVal.decEqM : (a b : List (GoString × UVal)) → Decidable (a = b)
+  | [], [] => isTrue rfl
+  | [], _ :: _ => isFalse (fun e => by cases e)
+  | _ :: _, [] => isFalse (fun e => by cases e)
+  | (k, x) :: xs, (k', y) :: ys =>
+    if hk : k = k' then
+      match UVal.decEq x y, UVal.decEqM xs ys with
+      | isTrue h1, isTrue h2 => isTrue (hk ▸ h1 ▸ h2 ▸ rfl)
+      | isFalse h1, _ => isFalse (fun e => by cases e; exact h1 rfl)
+      | _, isFalse h2 => isFalse (fun e => by cases e; exact h2 rfl)
+    else isFalse (fun e => by cases e; exact hk rfl)
+end
+
+instance : DecidableEq UVal := UVal.decEq
+
 /-- The value of key `k` in an association list. -/
 def lookupKV {α : Type} (k : GoString) : List (GoString × α) → Option α
   | [] => none
@@ -63,19 +124,23 @@ def keysSorted {α : Type} : List (GoString × α) → Bool
   | [_] => true
   | (k, _) :: (k', v') :: rest => gsLt k k' && keysSorted ((k', v') :: rest)
 
-mutual
-/-- Every map in the value is canonical (`keysSorted`). -/
-def UVal.Canonical : UVal → Prop
-  | .list vs => UVal.CanonicalL vs
-  | .map kvs => keysSorted kvs = true ∧ UVal.CanonicalM kvs
-  | _ => True
-def UVal.CanonicalL : List UVal → Prop
-  | [] => True
-  | v :: vs => UVal.Canonical v ∧ UVal.CanonicalL vs
-def UVal.CanonicalM : List (GoString × UVal) → Prop
-  | [] => True
-  | (_, v) :: kvs => UVal.Canonical v ∧ UVal.CanonicalM kvs
-end
+/-- `m[k] = v` on a map kept sorted by key (`gsLt`): replaces `k`'s entry, else inserts it in
+order. -/
+def insertKV {α : Type} (k : GoString) (v : α) : List (GoString × α) → List (GoString × α)
+  | [] => [(k, v)]
+  | (k', v') :: rest =>
+    if k' = k then (k, v) :: rest
+    else if gsLt k k' then (k, v) :: (k', v') :: rest
+    else (k', v') :: insertKV k v rest
+
+/-- **A Go map literal's entries**, sorted, the last assignment of a key winning (`map[K]V{...}`
+written in any order; the canonical association list `isIface`'s maps and `MF` use). -/
+def kvsOf {α : Type} (kvs : List (GoString × α)) : List (GoString × α) :=
+  kvs.foldl (fun m (k, v) => insertKV k v m) []
+
+/-- **`UVal.ofMap kvs`**: the map value of a `map[string]interface{}` literal with the entries
+`kvs` (any order; sorted here). -/
+def UVal.ofMap (kvs : List (GoString × UVal)) : UVal := .map (kvsOf kvs)
 
 mutual
 /-- The size of a value (a measure for the fuelled definitions of `typed/Defs.lean`). -/
@@ -173,8 +238,8 @@ abbrev sliceIfaceTy : go.GoType := go.GoType.SliceType ifaceTy
 mutual
 /-- **`isIface i x`**: the `interface{}` `i` holds the unstructured value `x` (persistent): `nil`, a
 `bool`, an `int64`, a `string`, a `[]interface{}` or a non-nil `map[string]interface{}` (whose
-keys are exactly `x`'s, `x` canonical). -/
-def isIface (i : GoInterface) : UVal → IProp GF
+keys are exactly `x`'s, `x`'s entries sorted). Sealed: clients use the laws. -/
+@[no_expose] def isIface (i : GoInterface) : UVal → IProp GF
   | .null => iprop(⌜i = interface.nil⌝)
   | .bool b => iprop(⌜i = interface.mkOk go.bool #b⌝)
   | .int n => iprop(⌜i = interface.mkOk go.int64 #n⌝)
@@ -185,25 +250,31 @@ def isIface (i : GoInterface) : UVal → IProp GF
       ⌜i = interface.mkOk mapStrIfaceTy #m⌝ ∗ m ↦$□ M ∗
       ⌜keysSorted kvs = true ∧ ∀ k, (M !! k).isSome = (lookupKV k kvs).isSome⌝ ∗ isIfaceM M kvs)
   termination_by structural x => x
-/-- A list's items. -/
-def isIfaceL : List GoInterface → List UVal → IProp GF
+/-- A list's items (internal). -/
+@[no_expose] def isIfaceL : List GoInterface → List UVal → IProp GF
   | [], [] => iprop(True)
   | x :: xs, v :: vs => iprop(isIface x v ∗ isIfaceL xs vs)
   | _, _ => iprop(False)
   termination_by structural _ vs => vs
-/-- A map's entries. -/
-def isIfaceM (M : GMap GoString GoInterface) : List (GoString × UVal) → IProp GF
+/-- A map's entries (internal). -/
+@[no_expose] def isIfaceM (M : GMap GoString GoInterface) : List (GoString × UVal) → IProp GF
   | [] => iprop(True)
   | (k, v) :: kvs => iprop(∃ x, ⌜M !! k = some x⌝ ∗ isIface x v ∗ isIfaceM M kvs)
   termination_by structural kvs => kvs
 end
 
-/-- **`isVal v x`**: the `value.Value` `v` is a value built by `NewValueInterface` (a
-`*valueUnstructured`) over an interface holding `x` (persistent). -/
-def isVal (v : value.Value) (x : UVal) : IProp GF :=
+/-- **`isValF v dq x`**: the `value.Value` `v` is a value built by `NewValueInterface` (a
+`*valueUnstructured`), its wrapper owned at fraction `dq`, over an interface holding `x`. A
+fraction (or the whole wrapper) is what SMD's own recursion lends: `EqualsUsing`'s map case
+rewrites one wrapper per entry (`reuse`), the freelist allocator frees and reuses them. Sealed. -/
+@[no_expose] def isValF (v : value.Value) (dq : DFrac) (x : UVal) : IProp GF :=
   iprop(∃ (p : Loc) (i : GoInterface),
     ⌜v = interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #p⌝ ∗
-    p ↦□ (value.valueUnstructured.mk i) ∗ isIface i x)
+    p ↦{dq} (value.valueUnstructured.mk i) ∗ isIface i x)
+
+/-- **`isVal v x`**: `isValF` at the discarded fraction: a value the API takes or hands out
+(persistent: SMD never writes a value it was given or returned). -/
+abbrev isVal (v : value.Value) (x : UVal) : IProp GF := isValF v DFrac.discard x
 
 end own
 

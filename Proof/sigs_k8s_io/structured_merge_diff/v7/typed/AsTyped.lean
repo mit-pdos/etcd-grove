@@ -24,7 +24,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : merge.Assumptions]
+variable [package_sem : typed.Assumptions]
 
 theorem typed.AsTyped.wp_proof : typed.AsTyped.spec (GF := GF) := by
   sorry

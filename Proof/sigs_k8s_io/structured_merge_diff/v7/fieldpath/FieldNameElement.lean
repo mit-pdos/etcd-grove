@@ -5,6 +5,7 @@ persistent. Lean-first (2026-11-19, notes/smd-robustness.md).
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameElement
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -24,7 +25,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : merge.Assumptions]
+variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.FieldNameElement.wp_proof : fieldpath.FieldNameElement.spec (GF := GF) := fun n => by
   wp_start as #Hpkg

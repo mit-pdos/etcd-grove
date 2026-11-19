@@ -6,12 +6,21 @@ driver `examples/k8s/smd`'s `Main` never panics) over specs of structured-merge-
 The user's instruction: "write per-function specs that are enough to prove the top-level result.
 First write all the specs, informally review them, then write invariants, then write proofs."
 
-**Where it stands: Draft, first step** (commit on `worktree-smd-robustness`): the scope, the abstract
-vocabulary (written in full), the specs of every SMD function the driver calls (proofs `sorry`), the
-driver's own specs restated over them (proofs `sorry`), the laws clients need (stated), the call
-DAG below them with an intended spec per function, and the sanity checks. No proof was written; no
-glue is listed for this step. Next: Review (fresh `spec-reviewer` rounds on this plan and the
-candidate), then the per-package drafting of the DAG's specs, Test, Freeze, Prove.
+**Where it stands: Draft, repaired after review round 1** (commits on `worktree-smd-robustness`):
+the scope, the abstract vocabulary (written in full, now **computable**), the specs of every SMD
+function the driver calls (proofs `sorry`), the driver's own specs restated over them (proofs
+`sorry`), the laws clients need (stated), the call DAG below them with an intended spec per
+function, and the sanity checks, of which the driver's nine steps are now **proved by `decide`**
+(`Proof/.../k8s/smd/Steps.lean`). No function proof was written. Next: review round 2 (fresh
+`spec-reviewer`s on the repaired candidate), the user's decisions below, then the per-package
+drafting of the DAG's specs, Test, Freeze, Prove.
+
+**Round 1** (2026-11-19; reports `review-r1-merge.md`, `review-r1-vocab.md` in the coordinator's
+scratch): one unsound statement, fixed (`Apply`'s premise admitted managed fields with a path below
+a list item's key field: SMD then fails with a non-conflict error, reports a spurious conflict, or,
+forced, returns duplicate keys); the vocabulary was incomplete (no lent wrapper, no set under
+construction, missing laws) and not computable. What changed, finding by finding, is "Round 1's
+repairs" at the end.
 
 What it replaces: the earlier attempt (`notes/smd-robustness.md`, "Stage 2") stated the API as
 "returns what a transcription of SMD's code computes", with the premise "the model does not panic":
@@ -31,7 +40,15 @@ restriction (generality left out because it would cost much), with why.
 
 **Values** (`isIface`, `value/Defs.lean`): SMD's unstructured values built by
 `value.NewValueInterface`: `nil`, `bool`, `int64`, `string`, `[]interface{}`,
-`map[string]interface{}` (`UVal`, maps canonical: sorted keys).
+`map[string]interface{}` (`UVal`, maps canonical: sorted keys; `UVal.ofMap` sorts a literal's).
+- (R) a map is a non-nil `map[string]interface{}`: Go's typed-nil map, which SMD reads as `{}`,
+  is not admitted (the driver passes none); likewise a nil `ManagedFields` (`isMF`), which SMD
+  treats as empty.
+- (R, a margin) recursion depth: `value.Equals`, `AsTyped` and every walker recurse once per level
+  of a value; Go's 1 GB stack bounds the depth (a fatal error, not a panic), GooseLang's semantics
+  does not. A recursive schema admits conforming values deep enough to exhaust it, so the proved
+  posts claim more than real Go gives at extreme depth (the `irr-depth.md` lesson); the driver's
+  values have depth at most 3. Not a premise yet: decision D3.
 - (R) No floats: SMD compares `int64` with `float64` by converting (SSA-05, kubernetes#143942:
   `Equals(MaxInt64, 2^63)` is true, equality is not transitive); with floats `value.Equals` is not
   `=`. No other integer types, no `map[interface{}]interface{}`, no reflection-backed values
@@ -50,27 +67,44 @@ restriction (generality left out because it would cost much), with why.
   `PE.value` path elements), keys with defaults;
 - maps: declared fields and an optional element type, atomic or granular (separable/unset);
 - (R) no unions, no field defaults (`StructField.Equals` compares `Default` with
-  `reflect.DeepEqual`, whose trust-boundary spec covers two nils only).
+  `reflect.DeepEqual`, whose trust-boundary spec covers two nils only); a map type's `Unions` is the
+  nil slice (an empty non-nil `Unions` is excluded, though SMD treats it alike).
 
 **Objects**: `typed.AsTyped` without options (R: `AllowDuplicates` changes validation), so every
 `TypedValue` the API takes conforms (`isTV` carries `conforms`); both objects of an `Apply`/
 `Update` of one schema pointer and one type (else `Compare`/`merge` fail: the specs take one `sc`
 and one `t`).
 
-**The updater**: (R) an identity converter (`isIdentityConverter`), no `IgnoredFields`, no
-`IgnoreFilter` (`Apply`/`Update` take `isUpdater u cv nil nil rion`). `ReturnInputOnNoop` either
-way. One API version: (R) for `Apply`, every manager's entry at the request's version (with others
-`addBackOwnedItems` adds back per version in map order; very likely the same result, unproved);
-`Update` needs none (with an identity converter every version compares alike: Go-checked,
-`TestUpdateVersions` below).
+**The updater**: (R) an identity converter (`isIdentityConverter`), no `IgnoredFields` (required:
+a non-nil map without an entry at the request's version makes `Apply` and `Update` panic,
+`issues/smd-ignoredfields-missing-version-panic.md`), no `IgnoreFilter` (R: an empty non-nil map
+behaves the same; nil kept as the simpler statement) (`Apply`/`Update` take
+`isUpdater u cv nil nil rion`). `ReturnInputOnNoop` either way. One API version for `Apply`, every
+manager's entry at the request's version: **required**, not a saving (round 1, finding 2). With
+managers at several versions SMD prunes per version (`addBackOwnedItems`, one pass per version in
+Go's map order, each from the previous pass's output) and removes a field owned at the applier's
+own version (`issues/smd-apply-multiversion-prunes-owned.md`, Go-reproduced); with three or more
+versions the result depends on the map's order. `Update` needs none (with an identity converter
+every version compares alike: Go-checked, `TestUpdateVersions` below; 26 000 updates with mixed
+versions in round 1).
 
 **Managed fields**: any `ManagedFields` whose sets are canonical tries (every set SMD builds is;
 `isSet`), reconciled with the schema by the specs themselves (`reconcile`, the identity on sets
-written at this schema), and, for `Apply`, **`keysWithItems`** on every set: a set with an item's
-key field has the item, and a set with a granular item has its key fields. Every set SMD computes
-has it (Go: 3000 random apply/update sequences); without it, `Apply` can fail with an error that is
-not a conflict (`nonissues/smd-apply-keyless-item-compare-error.md`, Go-reproduced): the one
-non-conflict error the scope would otherwise contain.
+written at this schema), and, for `Apply`, **`keysWithItems`** on every set: (1) a set with an
+item's key field has the item, (2) a set with a granular item has its key fields, and (3) **no
+path of the set extends a key field's path** (round 1). Every set SMD computes has it (`fieldSet`
+and `compare` never produce a path below a scalar, `afterUpdate` only removes paths; Go: 10 000
+random sequences, about 60 000 steps); `Apply` and `Update` keep it (`applyResult_premise`,
+`updateResult_premise`). Without (1) or (3) the pruning can strip a key field off an item it keeps
+(`ensureNamed` makes the key field a member when a path below it is), and `Apply` fails with an
+error that is not a conflict, or leaves two items with one key and reports a spurious conflict, or,
+forced, returns that non-conforming object with no error
+(`nonissues/smd-apply-keyless-item-compare-error.md`, Go-reproduced). Round 0's form had only (1)
+and (2) and admitted those inputs, so its "no other outcome" was false. The reviewer's alternative,
+"(1) for paths at or below a key field" (`keysWithItems S t (ensureNamed S t s)`), also removed
+every failure but is not kept by `Update` (an update removing item `k` takes `c[k]` and `c[k].name`
+from another manager but leaves its `c[k].name.x`), so the chaining laws would be false with it.
+Decided on a literal by `keysWithItemsB` (`keysWithItemsB_iff`).
 
 **Known SMD defects, stated faithfully, not repaired**:
 - an emptied container becomes `null`; `RemoveItems` turns every empty list or map it visits into
@@ -79,6 +113,14 @@ non-conflict error the scope would otherwise contain.
   (SSA-03, kubernetes#134902) — `prune`, `removeL`;
 - list items' merge errors are dropped (`nonissues/smd-merge-list-item-errors-dropped.md`) —
   unreachable in scope (conforming values, lists atomic or keyed);
+- re-applying a struct deletes it when its remaining content is an unowned field and an empty list
+  (`issues/smd-apply-deletes-own-struct.md`, round 1's G3) — `prune`'s third pass;
+- with managers at several versions a field owned at the applier's version is pruned
+  (`issues/smd-apply-multiversion-prunes-owned.md`, G2) — excluded by the one-version premise;
+- a non-nil `IgnoredFields` without an entry at the version panics
+  (`issues/smd-ignoredfields-missing-version-panic.md`, G4) — excluded by `IgnoredFields` nil;
+- managed fields splitting an item from its key field, or below a key field (G1,
+  `nonissues/smd-apply-keyless-item-compare-error.md`) — excluded by `keysWithItems`;
 - SSA-04 (CRD status strategy) is the API server's; SSA-06 (FieldsV1 decoding rounds integer keys)
   is serialization, names only in the translation, out of scope.
 
@@ -89,44 +131,52 @@ was a `Conflicts`).
 
 ## The vocabulary (written in full: `Proof/sigs_k8s_io/structured_merge_diff/v7/<pkg>/Defs.lean`)
 
-Pure (no Iris):
+Pure (no Iris), **computable** (round 1, P1): every definition branches on decidable conditions
+only and recurses structurally (no well-founded recursion), so `decide` (the kernel's) evaluates it
+on literals; the driver's nine steps are proved that way (`Steps.lean`, below).
 
 | Name | Module | Meaning |
 |---|---|---|
-| `UVal` | value | an unstructured value; `UVal.Canonical` (maps sorted), `UVal.compare` (`value.Compare`, the order of sets' slices only) |
-| `PE`, `Path`, `FieldList` | fieldpath | path elements (field, key, value, index) and paths |
-| `PathSet` | fieldpath | a set of paths, `Path → Prop`; `union`/`inter`/`diff`/`IsEmpty`/`under`/`ofList`/`single` |
-| `VSet`, `MF` | fieldpath | a versioned set (set, version, applied); managed fields `GoString → Option VSet` |
+| `UVal` | value | an unstructured value, hand-written `DecidableEq` (`UVal.decEq`: the deriving handler fails on the nested `List (GoString × UVal)`); `UVal.ofMap` (a map literal, sorted), `kvsOf`/`insertKV`, `UVal.compare` (`value.Compare`, the order of sets' slices only) |
+| `PE`, `Path`, `FieldList` | fieldpath | path elements (field, key, value, index) and paths (`DecidableEq` derived) |
+| `FSet α` | fieldpath | a finite set: lists up to having the same members (a quotient); `mem`, `any`, `all`, `isEmpty`, `filter`, `bind`, `map`, `union`, `inter`, `diff`; equality decidable (both inclusions) and extensional |
+| `PathSet` | fieldpath | `FSet Path`; `ofList` (non-empty paths), `single`, `under`, `IsEmpty` |
+| `VSet`, `MF` | fieldpath | a versioned set (set, version, applied; `DecidableEq` by hand: the derived one transports along a set equality, stuck for the kernel); managed fields, an association list **sorted by manager** (`MF.get`, `MF.set`, `MF.ofList` for a literal, `MF.none`) so that equal managed fields are equal lists |
 | `Trie`, `Trie.paths`, `Trie.Canonical` | fieldpath | the representation's trie (sorted, no empty child); clients never see it |
-| `Scalar`, `ElemRel`, `TypeRef`, `Atom`, `Schema` | schema | a flat named-type schema; `Schema.find`, `fieldType`, `Schema.WF` (the scope) |
-| `conforms S t x` | typed | `x` validates against `t` (`TypedValue.Validate`) |
+| `Scalar`, `ElemRel`, `TypeRef`, `Atom`, `Schema` | schema | a flat named-type schema; `Schema.find`, `fieldType`, `Schema.WF` (the scope, a `Bool` computation: `decide` proves it of a literal) |
+| `conforms S t x` | typed | `x` validates against `t` (`TypedValue.Validate`): `conformsB … = true` |
 | `keyOf ks x` | typed | an associative list item's key (its key fields, sorted by name) |
 | `fieldSet S t x` | typed | `ToFieldSet`: scalars, atomic values, list items, map entries that are `null`/`{}`/undeclared |
 | `removeItems S t x R` | typed | `RemoveItems`: `x` without `R`, emptied containers `null` |
 | `merge S t l r`, `mergeKeys` | typed | `Merge` (`r` wins at leaves; per key; list items in `mergeKeys` order) |
 | `compare S t l r : Cmp` | typed | `Compare`: removed, modified, added paths |
-| `ensureNamed S t s` | typed | `EnsureNamedFieldsAreMembers`: `s` plus declared fields with paths below |
-| `reconcile S t s`, `schemaConsistent` | typed | `ReconcileFieldSetWithSchema`: subtrees under atomic nodes collapsed |
-| `reconcileMF`, `prune`, `afterUpdate`, `conflictsOf` | merge | the steps of SSA, over the typed operations |
-| `applyResult … : ApplyOutcome` | merge | `ok obj mf'` or `conflicts cs` |
+| `ensureNamed S t s` | typed | `EnsureNamedFieldsAreMembers`: `s` plus declared fields with paths below (computed by `namedAlong`; declaratively `ensureNamed_mem`) |
+| `atomicNodes`, `reconcile S t s`, `schemaConsistent` | typed | `ReconcileFieldSetWithSchema`: subtrees under atomic nodes collapsed (`atomicNodes_mem`, `reconcile_mem`) |
+| `reconcileMF`, `prune`, `afterUpdate`, `conflictsOf` | merge | the steps of SSA, over the typed operations; conflicts are a set of (manager, path) pairs |
+| `applyResult … : ApplyOutcome` | merge | `ok obj mf'` or `conflicts cs` (`DecidableEq` by hand) |
 | `updateResult … : MF` | merge | the managers after `Update` |
-| `keysWithItems S t s` | merge | `Apply`'s premise on each managed set |
+| `keysWithItems S t s`, `keysWithItemsB` | merge | `Apply`'s premise on each managed set (three clauses), and its decision procedure |
 
-Representation predicates (all **persistent** but `freshSchema`; SMD never writes what it was given
-or returned):
+Representation predicates (all **persistent** but `freshSchema`, `freshAtom`, `ownSet` and
+`isValF` below the discarded fraction; SMD never writes what it was given or returned). All are
+**sealed** (`@[no_expose]`, round 1, P3): a client uses the laws; the package's own proofs
+`import all` the `Defs` they unfold (`FieldNameElement`'s does). The importable modules are
+`etc/api/smd.txt`; their interfaces `interface/{Spec,Proof}/sigs_k8s_io/`.
 
 | Predicate | Meaning |
 |---|---|
 | `isIface i x` | an `interface{}` holding `x` (read-only slices and maps, discarded fractions) |
-| `isVal v x` | a `value.Value` (`*valueUnstructured`) over an interface holding `x` |
+| `isValF v dq x` | a `value.Value` (`*valueUnstructured`), its wrapper at fraction `dq`, over an interface holding `x`: what SMD's recursion lends (`EqualsUsing` rewrites one wrapper per entry, `reuse`; the freelist allocator frees and reuses them) |
+| `isVal v x` | `isValF v DFrac.discard x` (an abbreviation): what the API takes and hands out |
 | `isFieldList s fl`, `isPE e pe`, `isPath s p`, `isPaths` | the `fieldpath` path types |
-| `isSet p S` | a `*fieldpath.Set` whose trie is canonical with paths `S` |
+| `isSet p S` | a `*fieldpath.Set` whose trie is canonical with paths `S` (persistent) |
+| `ownSet p S` | the same, **owned**: a set under construction (`NewSet`'s, the walkers' `Comparison` and field sets), which `Set.Insert` updates; `ownSet_persist` hands it out as `isSet` |
 | `isVSet i e` | a `VersionedSet` (`versionedSet`) holding `e` |
-| `isMF m mf` | a non-nil `ManagedFields` map holding `mf` |
+| `isMF m mf` | a non-nil `ManagedFields` map holding `mf` (sorted) |
 | `isTypeRef tr t` | a named `schema.TypeRef` |
-| `isSchema sc S` | a `*schema.Schema` holding `S`, its lazy indexes (`FindNamedType`'s, each `FindField`'s: `sync.Once` + `atomic.Pointer`) under `sync.isOnce`: **persistent**, so concurrent readers are covered (the API server shares schemas); `freshSchema sc S` is a literal with zero indexes, made an `isSchema` by a ghost update (`isSchema_intro`) |
-| `isTV p sc S t x` | a `*typed.TypedValue` of schema `sc`, type `t`, value `x`, and `conforms S t x` |
-| `isUpdater u cv igf igfl rion` | a `*merge.Updater` (read-only) |
+| `isSchema sc S` | a `*schema.Schema` holding `S`, its lazy indexes (`FindNamedType`'s, each `FindField`'s: `sync.Once` + `atomic.Pointer`) under `sync.isOnce`: **persistent**, so concurrent readers are covered (the API server shares schemas); `freshSchema sc S` is a literal with zero indexes (built from `freshAtom`s by `freshSchema_intro`), made an `isSchema` by a ghost update (`isSchema_intro`) |
+| `isTV p sc S t x` | a `*typed.TypedValue` of schema `sc`, type `t`, value `x`; **carries** `isSchema sc S`, `S.WF` and `conforms S t x` (round 1, P2: every typed operation drops those two premises) |
+| `isUpdater u cv igf igfl rion` | a `*merge.Updater` (read-only), from `BuildUpdater` or a literal (`isUpdater_intro`: Kubernetes builds one directly) |
 | `isIdentityConverter cv` | a `Converter` whose methods are the identity / `false` (Hoare triples on its dynamic type) |
 | `isConflicts s cs` | a `merge.Conflicts` slice holding `(manager, path)` pairs |
 
@@ -135,11 +185,23 @@ sets were the trie itself (`PSet`, structure-equal); `PathSet` is the set, the t
 representation, so `Set.Equals` is `=`.
 
 **Laws** (`Proof/sigs_k8s_io/structured_merge_diff/v7/Laws.lean`, stated as `def <name>.law : Prop`,
-proved after the freeze): persistence of every predicate; `isSchema_intro` (fresh → shared, a
-fancy update); literal introduction for `isIface` (scalars, lists, maps), `isMF`, `isConflicts`;
-`isTV_conforms`; `reconcile_id` (consistent sets are their own reconciliation);
-`applyResult_premise`/`updateResult_premise` (the results keep `Apply`'s premise and are
-schema-consistent: chaining); `mergeF_none` (merging nothing is the identity).
+proved after the freeze; all are the next phase's invariant work, none is proved yet):
+- persistence of every persistent predicate (`isIface`, `isVal`, `isFieldList`, `isPE`, `isPath`,
+  `isPaths`, `isSet`, `isVSet`, `isMF`, `isSchema`, `isTypeRef`, `isTV`, `isConflicts`,
+  `isIdentityConverter`, `isUpdater`);
+- fractions and ownership: `isValF_split` (fractional), `isValF_persist`, `ownSet_persist`,
+  `ownSet_empty` (`&Set{}`);
+- agreement: `isIface_agree`, `isValF_agree`, `isSet_agree`, `isMF_agree`, `isSchema_agree`;
+- introduction (a client's literals): `isIface_scalar`, `isIface_list`, `isIface_ofMap` (a map
+  literal's entries in any order, no sortedness premise), `isFieldList_intro`, `isPath_intro`,
+  `isPaths_nil`/`_cons`/`_app`/`_length`, `isMF_intro` (over `MF.ofList`), `isConflicts_intro`,
+  `isUpdater_intro`, `isTypeRef_intro`, `freshAtom_scalar`/`_list`/`_map`, `freshSchema_intro`,
+  `isSchema_intro` (fresh → shared, a fancy update);
+- elimination: `isTV_conforms`, `isTV_schema`;
+- pure: `PathSet_ext`, `MF_ext` (sorted), `ensureNamed_mem`, `atomicNodes_mem`, `reconcile_mem`
+  (the computable definitions' declarative readings), `reconcile_id`, `keysWithItemsB_iff`,
+  `applyResult_premise`/`updateResult_premise` (the results keep `Apply`'s three-clause premise, are
+  sorted and schema-consistent: chaining), `mergeF_none`.
 
 ## The API specs (`Spec/sigs_k8s_io/structured_merge_diff/v7/<pkg>/<F>.lean`)
 
@@ -148,14 +210,14 @@ takes `isPkgInit` of its package.
 
 | Function | Pre | Post |
 |---|---|---|
-| `value.NewValueInterface(i)` | `isIface i x` | `isVal v x` |
-| `value.Equals(a, b)` | `isVal a x ∗ isVal b y` | `r = true ↔ x = y` |
+| `value.NewValueInterface(i)` | `isIface i x` | `isValF v (DFrac.own 1) x` (the fresh wrapper, whole) |
+| `value.Equals(a, b)` | `isValF a dq1 x ∗ isValF b dq2 y` | both back, `r = true ↔ x = y` |
 | `fieldpath.FieldNameElement(n)` | — | `isPE e (.field n)` (proof kept) |
 | `fieldpath.KeyElement(fields...)` | `isFieldList s fl` | `isPE e (.key fl)` |
 | `fieldpath.NewSet(paths...)` | `s ↦*{dq} ss ∗ isPaths ss ps` | `isSet p (PathSet.ofList ps)` |
 | `fieldpath.NewVersionedSet(set, v, b)` | `isSet p S` | `isVSet i ⟨S, v, b⟩` |
 | `ManagedFields.Equals` (and `_ptr`) | `isMF m1 a ∗ isMF m2 b` | `r = true ↔ a = b` |
-| `typed.AsTyped(v, sc, tr)` | `isVal v x ∗ isSchema sc S ∗ isTypeRef tr t ∗ ⌜S.WF⌝` | `conforms S t x ∧ err = nil ∗ isTV p sc S t x`, or `¬ conforms S t x ∧ p = nil ∧ err ≠ nil` |
+| `typed.AsTyped(v, sc, tr)` | `isVal v x ∗ isSchema sc S ∗ isTypeRef tr t ∗ ⌜S.WF⌝` | `conforms S t x ∧ err = nil ∗ isTV p sc S t x` (which carries the schema), or `¬ conforms S t x ∧ p = nil ∧ err ≠ nil` |
 | `TypedValue.AsValue` (value receiver) | — | its `value` field (proof kept) |
 | `TypedValue.AsValue` (`_ptr`) | `isTV p sc S t x` | `isVal v x` |
 | `UpdaterBuilder.BuildUpdater` | `b ↦{dq} ub` | `isUpdater u ub.Converter ub.IgnoredFields ub.IgnoreFilter ub.ReturnInputOnNoop` |
@@ -166,23 +228,23 @@ takes `isPkgInit` of its package.
 `Updater.Apply(lp, cp, ver, mfm, mgr, force)`:
 
     {{ isPkgInit merge ∗ isUpdater u cv nil nil rion ∗ isIdentityConverter cv ∗
-       isSchema sc S ∗ isTV lp sc S t live ∗ isTV cp sc S t config ∗ isMF mfm mf ∗
-       ⌜S.WF⌝ ∗ ⌜∀ m e, mf m = some e → e.version = ver ∧ keysWithItems S t e.set⌝ }}
+       isTV lp sc S t live ∗ isTV cp sc S t config ∗ isMF mfm mf ∗
+       ⌜∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set⌝ }}
       u.Apply(lp, cp, ver, mfm, mgr, force)
     {{ (op, mfm', err).
        match applyResult S t rion live config ver mf mgr force with
        | ok obj mf' => err = nil ∗ isMF mfm' mf' ∗ (obj = none → op = nil) ∗ (obj = some x → isTV op sc S t x)
-       | conflicts cs => op = nil ∗ isMF mfm' (no managers) ∗ ∃ s l, err = Conflicts(s) ∧ l.Nodup ∧
-                         (∀ m p, (m, p) ∈ l ↔ cs m p) ∗ isConflicts s l }}
+       | conflicts cs => op = nil ∗ isMF mfm' MF.none ∗ ∃ s l, err = Conflicts(s) ∧ l.Nodup ∧
+                         FSet.ofList l = cs ∗ isConflicts s l }}
 
     applyResult S t rion live config ver mf mgr force :=
       mf0    := reconcileMF S t mf
       merged := merge S t live config
-      mf1    := mf0 with mgr ↦ ⟨fieldSet S t config, ver, applied⟩
-      new    := prune S t merged mf1 (mf0 mgr)
+      mf1    := mf0.set mgr ⟨fieldSet S t config, ver, applied⟩
+      new    := prune S t merged mf1 (mf0.get mgr)
       c      := compare S t live new
-      confl  := conflictsOf mf1 mgr c          -- m ≠ mgr: mf1 m ∩ (c.modified ∪ c.added)
-      if ¬force ∧ some confl m ≠ ∅ then conflicts confl
+      confl  := conflictsOf mf1 mgr c          -- {(m, p) | m ≠ mgr, p ∈ mf1 m ∩ (c.modified ∪ c.added)}
+      if ¬force ∧ confl ≠ ∅ then conflicts confl
       else ok (if ¬rion ∧ new = live then none else some new) (afterUpdate mf1 mgr confl c.removed)
 
     prune S t merged mf last :=                 -- none or empty last: merged
@@ -194,7 +256,7 @@ takes `isPkgInit` of its package.
 `Updater.Update(lp, np, ver, mfm, mgr)`:
 
     {{ isPkgInit merge ∗ isUpdater u cv nil nil rion ∗ isIdentityConverter cv ∗
-       isSchema sc S ∗ isTV lp sc S t live ∗ isTV np sc S t new ∗ isMF mfm mf ∗ ⌜S.WF⌝ }}
+       isTV lp sc S t live ∗ isTV np sc S t new ∗ isMF mfm mf }}
       u.Update(lp, np, ver, mfm, mgr)
     {{ (op, mfm', err). op = np ∧ err = nil ∗ isMF mfm' (updateResult S t live new ver mf mgr) }}
 
@@ -207,9 +269,15 @@ takes `isPkgInit` of its package.
 **Why `Apply`'s post is a composition of the typed operations, not a declarative "what SSA
 means".** There is no simpler faithful statement: the documented reading ("a field is removed iff
 the manager applied it last time, did not apply it now, and no other applier claims it") is false of
-SMD in places the driver does not reach but a client can (SSA-03: an item is removed even though
-another manager owns a field inside it; `ensureNamed` makes a struct field with children a member,
-so the first pass removes whole fields and the second adds back what is owned). The operations
+SMD in places the driver does not reach but a client can, even on managed fields SMD computed
+itself (round 1, finding 3): SSA-03 (an item is removed even though another manager owns a field
+inside it); G3 (A applied `{spec: {}}` and owns `.spec`; the live `spec` also holds an unowned
+`a` and an empty list `l: []`; A applies `{spec: {}}` again and SMD returns the object **without**
+`spec`: the second pass drops `a`, the third sees no field path left under `spec` and removes it
+as dangling, `issues/smd-apply-deletes-own-struct.md`). The reviewer tried the natural declarative
+candidate (`removeItems merged ((ens L ∩ ens(fieldSet merged)) \ ens(mfUnion mf))`): it differs
+from `prune` in 243 of 20 000 crafted cases, so D1 stands. `prune`'s header no longer gives a
+"read as a whole" description; it lists these exceptions. The operations
 composed are SMD's public `typed` and `fieldpath` API (`Merge`, `ToFieldSet`, `RemoveItems`,
 `Compare`, `EnsureNamedFieldsAreMembers`, `ReconcileFieldSetWithSchema`, `Set` algebra), each
 defined over values and paths, not over SMD's walkers; another implementation of the same API
@@ -217,7 +285,11 @@ defined over values and paths, not over SMD's walkers; another implementation of
 
 **Margins** (what the code guarantees beyond the post): the conflicts' order (managers in Go's map
 order, each manager's paths in the trie's preorder: stated only as "each pair once"); the error
-messages; that the returned object is fresh (not the live one).
+messages; that the returned object is fresh (not the live one). Where the post claims **more**
+than real Go (round 1, P8): recursion depth (Go's stack, above); and `AsTyped`'s error branch
+formats values (`errorf("...%#v")`, `%T`, `PathElement.String`), so its proof will rest on `fmt`'s
+trust-boundary axioms for arbitrary interface values (to check with `etc/tcb-report.py --roots`
+when proved).
 
 ## The driver's specs, restated (`Spec/github_com/mit_pdos/etcd_grove/examples/k8s/smd/`)
 
@@ -233,8 +305,8 @@ struct, `isSchema sc sc0`, an updater without `ReturnInputOnNoop` with an identi
   `container` → `isUMap m (containerKVs n i)`; `concat`, the converter's methods: unchanged;
 - `state.typedObj(m)`: `isUMap m kvs ∗ ⌜conforms sc0 rootRef (.map kvs)⌝` → `isTV p sc sc0 rootRef (.map kvs)`;
 - `state.apply(m, mgr)`: `ownState s sc st ∗ isUMap m kvs ∗ ⌜conforms …⌝ ∗ ⌜st.mf`'s sets at
-  `version`, `keysWithItems`⌝ `∗ ⌜applyResult sc0 rootRef false st.live (.map kvs) version st.mf mgr
-  false = ok obj mf'⌝` → `RET obj.isSome; ownState s sc ⟨obj.getD st.live, mf'⟩`;
+  `version`, `keysWithItems` (three clauses)⌝ `∗ ⌜applyResult sc0 rootRef false st.live (.map kvs)
+  version st.mf mgr false = ok obj mf'⌝` → `RET obj.isSome; ownState s sc ⟨obj.getD st.live, mf'⟩`;
 - `state.check(m, mfm)`: `ownState s sc st ∗ isUMap m kvs ∗ isMF mfm mf ∗ ⌜st.live = .map kvs ∧
   st.mf = mf⌝` → `ownState s sc st`.
 
@@ -275,7 +347,7 @@ path once").
 | `MakePathElementSet` | fieldpath/element.go:232 | empty `PathElementSet` (sorted list `[]`) | 0 |
 | `MakePathElementValueMap` | fieldpath/pathelementmap.go:34 | empty `PathElementValueMap` | 1 |
 | `NewExcludeSetFilter` | fieldpath/set.go:771 | out of scope (ignored fields nil): only reached under `IgnoredFields != nil` | 0 |
-| `NewSet` | fieldpath/set.go:44 | API. `isPaths ss ps` → `isSet p (ofList ps)` | 1 |
+| `NewSet` | fieldpath/set.go:44 | API. `isPaths ss ps` → `isSet p (ofList ps)` (internally `ownSet` from `&Set{}`, then `ownSet_persist`) | 1 |
 | `NewVersionedSet` | fieldpath/managers.go:37 | API. `isSet p S` → `isVSet i ⟨S, ver, b⟩` | 0 |
 | `ManagedFields.Equals` | fieldpath/managers.go:63 | API. `isMF`s → `r ↔ a = b` | 4 |
 | `Path.Copy` | fieldpath/path.go:75 | `isPath s p` → `isPath s' p` (fresh) | 0 |
@@ -303,7 +375,7 @@ path once").
 | `Set.EnsureNamedFieldsAreMembers` | fieldpath/set.go:133 | `isSet p S ∗ isSchema` → `isSet r (ensureNamed S t s)` | 5 |
 | `Set.Equals` | fieldpath/set.go:380 | `r ↔ A = B` (canonical tries) | 2 |
 | `Set.Has` | fieldpath/set.go:361 | `r ↔ S p` | 2 |
-| `Set.Insert` | fieldpath/set.go:63 | exclusive trie: `S ↦ S ∪ {p}` (only on sets under construction: `NewSet`, walkers' sets) | 2 |
+| `Set.Insert` | fieldpath/set.go:63 | `ownSet p S` → `ownSet p (S ∪ {p})` (only on sets under construction: `NewSet`, walkers' sets) | 2 |
 | `Set.Intersection` | fieldpath/set.go:90 | `isSet r (A.inter B)` | 2 |
 | `Set.Iterate` | fieldpath/set.go:396 | calls `f` once per path of `S` (preorder; the order is the trie's, stated as "each path once") | 1 |
 | `Set.RecursiveDifference` | fieldpath/set.go:122 | `isSet r {q ∈ A | no prefix of q (incl. q) in B}` | 2 |
@@ -470,7 +542,7 @@ path once").
 | `Compare` | value/value.go:232 | `isVal`s → `UVal.compare x y` (the order of `PE.compare`) | 1 |
 | `CompareUsing` | value/value.go:240 | as `Compare`, any allocator | 19 |
 | `Equals` | value/value.go:105 | API. `isVal a x ∗ isVal b y` → `r ↔ x = y` | 1 |
-| `EqualsUsing` | value/value.go:110 | `isVal`s (any allocator) → `r ↔ x = y` (no floats: the float branch is dead) | 18 |
+| `EqualsUsing` | value/value.go:110 | `isValF a dq1 x ∗ isValF b dq2 y` (any allocator), both back → `r ↔ x = y` (no floats: the float branch is dead) | 18 |
 | `FloatCompare` | value/scalar.go:21 | unreachable in scope (no floats); trivial spec (pure Go float compare) | 0 |
 | `IntCompare` | value/scalar.go:32 | `intCompare` | 0 |
 | `ListCompareUsing` | value/list.go:111 | lexicographic `UVal.compareF` on items | 7 |
@@ -536,10 +608,23 @@ path once").
 | `valueUnstructured.IsNull` | value/valueunstructured.go:172 | `r ↔ x is a null` (`isIface`; Float: always false in scope) | 0 |
 | `valueUnstructured.IsString` | value/valueunstructured.go:148 | `r ↔ x is a string` (`isIface`; Float: always false in scope) | 0 |
 | `valueUnstructured.Unstructured` | value/valueunstructured.go:176 | its interface (`isIface i x`) | 0 |
-| `valueUnstructured.reuse` | value/valueunstructured.go:36 | sets the wrapped interface | 0 |
+| `valueUnstructured.reuse` | value/valueunstructured.go:36 | `isValF v (DFrac.own 1) _` → `isValF v (DFrac.own 1) x` (sets the wrapped interface) | 0 |
 
 
 ## Sanity checks
+
+### The driver's nine steps, proved by `decide` (round 1)
+
+`Proof/github_com/mit_pdos/etcd_grove/examples/k8s/smd/Steps.lean` states each step's outcome on
+the driver's literals and proves it by `decide +kernel` (no `native_decide`; axioms `propext`,
+`Quot.sound`, `Classical.choice` from the decidable-equality instances' proofs): `step1` …
+`step9` (`step7a`, `step7b`: ten calls, nine checks plus the conflict check of step 4) give
+`applyResult … = .ok (some obj_i) mf_i` (step 3: `.ok none mf3`; step 4: `.conflicts {(A,
+[replicas])}`) and `updateResult … = mf8`; and the specs' premises at each step: `sc0_wf`,
+`conforms_all` (every object the driver types), `kwi_all` (every managed set before an `Apply`,
+by `keysWithItemsB`). The whole file checks in about 6 s (`lake env lean`, 3 s of it loading the
+imports); the reviewer's Go transcription of the definitions (`driver_test.go`) gives the same
+results as Go. The derivation by hand below is kept as the explanation.
 
 ### The driver's nine steps from the specs (informal derivation)
 
@@ -605,40 +690,121 @@ candidate file), all passing:
   `TestAsTypedRejects` (duplicates, undeclared fields, `null` items, keyless items, wrong scalar
   kinds, non-scalar keys rejected; `null` fields and `null` key values accepted).
 
-Not yet checked against Go: `merge`, `compare`, `fieldSet`, `removeItems`, `ensureNamed`,
-`reconcile` as functions on random inputs (the Test step: evaluating them needs computable
-versions; `PathSet` is a `Prop` set).
+Round 1's reviewers checked the definitions against Go through a hand transcription
+(`review-go/lean_test.go`, `diff_test.go`): on SMD-computed managed fields (10 000 random 6-step
+sequences, about 60 000 steps) and on crafted sets meeting the three-clause premise (10 000), the
+object (list order, `null` versus absent), `nil` on a no-op, the managed fields and the conflict
+sets matched exactly; 50 000 random updates matched `updateResult`. Now that the definitions are
+computable, the Test step can evaluate them in Lean directly (`decide`, or `#eval`).
 
 ## Decisions for the user
 
-- **D1. `Apply`'s post as SSA's composition of the typed operations** (above), rather than a
-  declarative characterization (cleaner to read, but a theorem about SMD that is false in corners:
-  SSA-03). Each operation is defined declaratively over values; the list-merge order alone follows
-  SMD's loop (`mergeOrderF`), there being no simpler description.
-- **D2. The new premise `keysWithItems` on `Apply`'s managed fields** (a spec with a client: the
-  driver; checkable, decidable on a literal; every SMD-computed set has it; without it `Apply` has a
-  non-conflict error outcome, Go-reproduced). Alternative: no premise, and an `error` outcome
-  defined by when `compare` meets a keyless item (the abstract functions would then have to model
-  SMD's invalid path elements).
-- **D3. The scope restrictions marked (R)** above, in particular one API version for `Apply`, an
-  identity converter, no ignored fields, no floats, no sets, named types only.
+Each in plain terms first (PRINCIPLES, "Explain a finding in plain terms before asking for a
+decision").
+
+- **D1. How `Apply`'s result is described.** SMD decides what to delete from an object by running
+  three passes over it (delete what the manager applied last time, put back what any manager owns,
+  put back what the manager never applied). The spec says exactly that, in terms of SMD's public
+  operations on values and field sets, rather than a one-line rule such as "a field goes when its
+  last applier drops it and nobody else owns it", because that rule is false of SMD: SSA-03, and the
+  case found in round 1 where re-applying `spec: {}` deletes `spec` (G3). Cost: the statement is
+  longer and a client reasons about it by computing (which `decide` now does on literals).
+  Alternative: the one-line rule as the spec, which would be unsound. Recommended: keep.
+- **D2. What `Apply` requires of the managed fields it is given** (a premise on a spec with a
+  client, the driver; changed in round 1). Old: an item's key field never without the item, and a
+  granular item never without its key fields. New, added: **no field path goes below a list item's
+  key field** (`containers[name=a].name.x`). Why: with such a path SMD's pruning strips the key off
+  an item it keeps; then `Apply` returns an error that is not a conflict, or a conflict that is not
+  real, or, forced, an object with two items under one key and no error. Every set SMD itself
+  computes meets the new premise, and `Apply`/`Update` preserve it, so a caller that only feeds back
+  SMD's outputs (the driver, the API server for its own writes) discharges it by a law; a set a
+  client wrote by hand (Kubernetes accepts client-written `managedFields`) may not, and SMD offers no
+  check. Alternatives: (a) the reviewer's weaker form ("an item keeps its key field also when only a
+  path below the key field is there"): also excludes every failure found, but `Update` does not
+  preserve it, so chaining breaks; (b) no premise, and an error outcome in the spec (Kubernetes
+  handles every error `Apply` returns): the abstract functions would then have to model SMD's
+  invalid keys and duplicate items, and the forced case returns a non-conforming object, so `isTV`
+  could not be the post. Recommended: the new premise (the third clause).
+- **D3. The scope restrictions marked (R)**, in particular what keeps Kubernetes' own caller
+  (`apimachinery/.../managedfields/internal/structuredmerge.go`) outside the specs. The reviewer
+  found it fails six premises; what widening each would cost:
+  1. *Its converter is not the identity* (it round-trips through the API's conversion even at one
+     version). Cost: small for a converter that returns a typed value with the same value, schema
+     and type (a generalized `isIdentityConverter`); a real conversion between versions is a
+     different spec (values change), large.
+  2. *It sets `IgnoreFilter`* (reset fields of status subresources). Cost: moderate: the applier's
+     new set and `Update`'s set become `filter(set)`, with `Filter` an abstract function on sets;
+     an empty or missing entry is already the same as nil.
+  3. *Managers at several API versions* are normal in stored managed fields. Cost: large, and the
+     premise is required by SMD's behavior, not by convenience (G2): the spec would need a
+     per-version `prune` with Go's map order as nondeterminism, or the issue fixed upstream.
+  4. *It types objects with `AllowDuplicates`*. Cost: moderate: a second conformance (`conforms`
+     without the no-duplicate-keys check) and a variant of `isTV`; `merge`/`compare` on lists with
+     duplicate keys follow SMD's handling of duplicates, to be specified.
+  5. *Its values are reflection-backed* (`FromStructured`) or unstructured with `float64`. Cost:
+     large: the reflection value implementation is a second representation of every value
+     operation (about 60 more functions), and floats break `value.Equals = =` (SSA-05).
+  6. *Its schemas* use inlined types, element-relationship overrides, sets (`listType=set`), key
+     defaults and `__untyped_deduced_`. Cost: large: a non-flat `Schema` (atoms inside atoms),
+     `Resolve`'s lock and cache owned, `PE.value` paths, defaults in `keyOf`.
+  Plus, not a premise yet: recursion depth (a value deeper than Go's stack allows makes Go fail
+  where the proved post says it returns); adding a depth premise costs every caller a depth fact.
+  Recommended: keep the scope for the driver now; the cheapest steps toward Kubernetes are (1) and
+  (4).
 - **D4. `isSchema` persistent** (sync.Once-guarded lazy indexes) instead of the old exclusive
   `ownSchema`: concurrent readers covered; costs the `isSchema_intro` ghost update once per schema
   literal. `BuildUpdater` gives a persistent `isUpdater` (the updater's deprecated public fields can
-  no longer be written by a client after it).
+  no longer be written by a client after it); a literal `Updater` gets one by `isUpdater_intro`.
 - **D5. Proofs reset**: the driver's helper proofs (proved over the old vocabulary, `newSchema` 280
   lines) and the partial `Main` are `sorry`; of SMD's, `FieldNameElement` and the value-receiver
   `AsValue` keep their proofs; `NewVersionedSet` (proved before) now has an abstract post
   (`isVSet`), its proof `sorry`.
-- **No new axiom.** The trust base gains only `sorry`s (27, listed in
-  `etc/tcb-collections/smd.txt` and `etc/tcb-baseline.txt`, by hand: `--check --update` needs the
-  whole repository built). The stdlib axioms SMD's proofs will use are the existing four
-  (`reflect.DeepEqual(nil, nil)`, `slices.BinarySearchFunc`, `slices.Insert`, `sort.SliceStable`).
+- **D6. Sets and managed fields as computable data** (round 1, P1). A set of paths is now a finite
+  set (a list, order and repetitions forgotten), so two sets with the same paths are equal and a
+  machine can check it; managed fields are a list sorted by manager name. This is what lets the
+  driver's nine expected results be checked by evaluation instead of by hand. Cost: `MF`'s "equal
+  as lists" means "equal" only for sorted lists, which every value the specs produce and `isMF`
+  admits is (`MF_ext`); the specs read `mf.get m` instead of `mf m`. Alternative: keep sets as
+  predicates (`Path → Prop`), and prove each driver step by rewriting by hand (the plan's former
+  "costliest part"). Recommended: keep.
+- **D7. A typed value carries its schema** (round 1, P2): `isTV` now includes `isSchema sc S` and
+  `S.WF`, so `Apply`/`Update` (and the ~90 typed specs to come) lose two premises each. Cost: none
+  found; `isTV_schema` gives the schema back to a caller that needs it.
+- **D8. Stronger value specs** (round 1, F1): `NewValueInterface` returns the whole fresh wrapper
+  (`isValF v (DFrac.own 1) x`, persisted by `isValF_persist`) and `value.Equals` takes any shares
+  of its two wrappers and gives them back; both old specs are instances. Cost: a client holding the
+  result of `NewValueInterface` persists it once (one law) before passing it on.
+- **No new axiom.** The trust base gains no `sorry` in round 1 (the same 27, listed in
+  `etc/tcb-collections/smd.txt` and `etc/tcb-baseline.txt`; `--check --update` needs the whole
+  repository built). `Steps.lean` and the definitions use no `sorry`; the laws are statements
+  (`def … .law : Prop`). The stdlib axioms SMD's proofs will use are the existing four
+  (`reflect.DeepEqual(nil, nil)`, `slices.BinarySearchFunc`, `slices.Insert`, `sort.SliceStable`),
+  plus `fmt`'s for `AsTyped`'s error branch (P8).
+
+## Round 1's repairs (2026-11-19)
+
+| Finding | What changed |
+|---|---|
+| merge F1 (unsound: `keysWithItems`) | third clause (no path below a key field); `applyResult_premise`/`updateResult_premise` over it; `state.apply`'s premise; `keysWithItemsB` + `keysWithItemsB_iff`; the nonissue corrected and widened (G1) |
+| merge F2 (one version "very likely the same") | justification: required (G2, `issues/smd-apply-multiversion-prunes-owned.md`) |
+| merge F3 (`prune` prose) | header rewritten with the G3 counterexample (`issues/smd-apply-deletes-own-struct.md`) |
+| merge F4 (laws) | `isUpdater_persistent`, `isUpdater_intro`, chaining laws restated |
+| merge F5 (`isUpdater … nil nil`) | `IgnoredFields` nil documented as required (G4, `issues/smd-ignoredfields-missing-version-panic.md`); `IgnoreFilter` kept nil (an empty map is the same; the simpler statement), said so |
+| merge F6 / D3 | the six costs above |
+| vocab F1 (lent wrappers) | `isValF v dq x`, `isVal` its instance; `isValF_split`/`_persist`/`_agree`; `value.Equals` over fractions; `NewValueInterface` gives the whole wrapper |
+| vocab F2 (sets under construction) | `ownSet`, `ownSet_persist`, `ownSet_empty` |
+| vocab F3 (missing laws) | persistence of `isFieldList`, `isPaths`, `isUpdater`; intro laws for `isFieldList`, `isPath`, `isPaths` (nil, cons, append, length), the schema literal (`isTypeRef_intro`, `freshAtom_*`, `freshSchema_intro`), `isUpdater_intro`, `isIface_ofMap`, `isMF_intro` over `MF.ofList` |
+| vocab P1 (not computable) | `UVal.decEq`; `FSet`/`PathSet`; sorted `MF`; `conformsB`, `Schema.WF`, `keysWithItemsB`, `atomicNodes`, computed `ensureNamed`/`reconcile`; no classical branching, no well-founded recursion; hand-written `DecidableEq` for `VSet`, `Cmp`, `ApplyOutcome`; the nine steps by `decide` (`Steps.lean`) |
+| vocab P2 | `isTV` carries `isSchema`, `S.WF`; `isTV_schema` |
+| vocab P3 | every representation predicate and internal sealed (`@[no_expose]`); `etc/api/smd.txt` (no `root`: the specs' names `smd.<pkg>.<F>` do not follow the path; checked by hand that each spec/proof file exposes only its spec/proof); `interface/` generated |
+| vocab P4 | `UVal.ofMap`, `kvsOf`, `MF.ofList` exported (the driver's `mkKVs`/`mkMF`/`insertKV` removed); `UVal.Canonical` dropped |
+| vocab P5 | agreement laws stated |
+| vocab P6 | `[merge.Assumptions]` did not enter the statements (`#check`), but each spec and proof file of `value`/`fieldpath`/`typed` now imports its own package's `Base` and declares its own `Assumptions` (a later proof of `value.Equals` would otherwise have carried `merge`'s) |
+| vocab P7/P8 | nil maps and nil `ManagedFields`, nil `Unions` marked (R); recursion depth and `AsTyped`'s `fmt` reliance recorded as margins |
 
 ## Glue
 
 None proved in this step. After the freeze, the glue (callers that only pass state between
 callees): `state.apply`, `state.check`, `state.typedObj`, `applied`, `updated`, `field`, `mapKey`,
-`item`, `itemField`, `containerPaths`, `Main` (whose steps need the derivation above as Lean
-lemmas about `applyResult`/`updateResult` on the scenario's values: the costliest part of the
-driver's proof).
+`item`, `itemField`, `containerPaths`, `Main` (whose steps' facts about `applyResult`/
+`updateResult` on the scenario's values are now proved by `decide`: `Steps.lean`).

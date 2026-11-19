@@ -1,0 +1,36 @@
+# structured-merge-diff v7.0.0's importable modules (review round 1 of the SMD API specs,
+# 2026-11-19, notes/smd-plan.md): what proofs outside SMD's tree may import
+# (`etc/api-check.py etc/api/smd.txt --check`). Every other module of the tree is internal. What
+# each importable module exposes, as a client sees it, is `etc/gen-interface.py`'s output under
+# `interface/`. Adding a module here is an API change: review its interface.
+#
+# The vocabulary modules (`Proof/.../v7/<pkg>/Defs.lean`) seal the representation predicates and
+# their internals (`@[no_expose]`: `isIface`, `isValF`, `isSet`, `ownSet`, `isMF`, `isSchema`,
+# `isTV`, `isUpdater`, ...); the pure vocabulary (values, paths, sets, schemas, the typed
+# operations, `applyResult`/`updateResult`) stays exposed, so that `decide` evaluates it. The
+# package's own proofs `import all` the Defs they unfold.
+
+inside Proof/sigs_k8s_io/structured_merge_diff/
+inside Spec/sigs_k8s_io/structured_merge_diff/
+exempt (^|/)(Link|Results|Init|InitLinked|PkgInit)\.lean$
+# No `root`: the specs are named `smd.<pkg>.<F>.spec` (namespace `EtcdGrove.smd`, as the driver
+# and the earlier SMD work name them), the files `Spec/sigs_k8s_io/structured_merge_diff/v7/<pkg>/
+# <F>.lean`, so no module path gives the name and `etc/gen-interface.py --layout` skips the
+# package's files (each spec file still declares only its `<F>.spec`, each proof file only its
+# `<F>.wp_proof`: checked by hand, 2026-11-19).
+
+## The vocabulary (pure data and the sealed predicates), the packages' facts, and the laws
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.value.Base
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Base
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Base
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.schema.Defs
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Defs
+importable Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+
+## The specs (one per function)
+importable Spec.sigs_k8s_io.structured_merge_diff.v7.*

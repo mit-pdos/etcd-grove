@@ -4,7 +4,7 @@
 
 The bugs with a valid failing Go test (format: [README.md](README.md)); the findings without one are in [../nonissues/](../nonissues/INDEX.md).
 
-## Not reported (73)
+## Not reported (76)
 
 | Issue | Blocks proof | Upstream links |
 |---|---|---|
@@ -80,6 +80,9 @@ The bugs with a valid failing Go test (format: [README.md](README.md)); the find
 | [raft: a crash after a `Ready`'s entries are written but before its `HardState` lets two nodes commit different entries at one index](raft-commit-lost-with-entries-kept.md) | no | etcd-io/raft#300 pr closed; etcd-io/raft#234 issue closed |
 | [raft: `Status()` reports `AutoLeave: false` in a joint configuration entered with auto-leave](raft-config-clone-autoleave.md) | no |  |
 | [raft: `MaxSizePerMsg: 0` panics on the first committed entry](raft-zero-max-size-per-msg.md) | no |  |
+| [merge: re-applying a struct deletes it when it holds an unowned field and an empty list](smd-apply-deletes-own-struct.md) | no |  |
+| [merge: Apply removes a field another manager owns when the managers are at different API versions](smd-apply-multiversion-prunes-owned.md) | no | kubernetes-sigs/structured-merge-diff#335 issue open |
+| [merge: Apply and Update panic when IgnoredFields has no entry for the request's version](smd-ignoredfields-missing-version-panic.md) | no |  |
 | [concurrency: a retried Serializable STM attempt reads keys from two revisions](stm-serializable-snapshot.md) | no |  |
 
 ## Reported by us (7)

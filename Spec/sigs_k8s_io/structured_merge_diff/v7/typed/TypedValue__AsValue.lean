@@ -6,7 +6,7 @@ Lean-first (2026-11-19, notes/smd-plan.md).
 -/
 module
 
-public import Proof.sigs_k8s_io.structured_merge_diff.v7.merge.Base
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Base
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Defs
 
 @[expose] public section
@@ -25,7 +25,7 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : merge.Assumptions]
+variable [package_sem : typed.Assumptions]
 
 /-- See the file header. -/
 abbrev typed.TypedValue.AsValue.spec : Prop :=

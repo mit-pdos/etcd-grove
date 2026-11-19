@@ -3,7 +3,8 @@ The structured-merge-diff driver's scenario (`examples/k8s/smd/smd.go`) in the S
 vocabulary (`Proof/sigs_k8s_io/structured_merge_diff/v7/{value,fieldpath,schema,typed,merge}/
 Defs.lean`): the schema `newSchema` builds, the type of its objects, the paths and versioned sets
 the driver writes out, and its `state` as a pair of an object and managed fields. The nine steps'
-expected results, and why the API specs give them, are in `notes/smd-plan.md`, "Sanity checks".
+expected results are computed from the API's vocabulary by `decide` in `Steps.lean`; why the API
+specs give them is `notes/smd-plan.md`, "Sanity checks".
 
 Lean-first (2026-11-19, notes/smd-plan.md).
 -/
@@ -64,24 +65,12 @@ def applied (ps : List Path) : VSet := ⟨PathSet.ofList ps, version, true⟩
 /-- `updated(paths...)`. -/
 def updated (ps : List Path) : VSet := ⟨PathSet.ofList ps, version, false⟩
 
-/-- A `ManagedFields` literal. -/
-def mkMF (ms : List (GoString × VSet)) : MF := fun m => lookupKV m ms
-
-/-- Insert into a map kept sorted by key (a Go map assignment `m[k] = v`). -/
-def insertKV {α : Type} (k : GoString) (v : α) : List (GoString × α) → List (GoString × α)
-  | [] => [(k, v)]
-  | (k', v') :: rest =>
-    if k' = k then (k, v) :: rest
-    else if gsLt k k' then (k, v) :: (k', v') :: rest
-    else (k', v') :: insertKV k v rest
-
-/-- A map literal's entries, canonical (sorted). -/
-def mkKVs (kvs : List (GoString × UVal)) : List (GoString × UVal) :=
-  kvs.foldl (fun m (k, v) => insertKV k v m) []
-
-/-- `container(name, image)`'s entries. -/
+/-- `container(name, image)`'s entries (sorted: `kvsOf`). -/
 def containerKVs (n i : GoString) : List (GoString × UVal) :=
-  mkKVs [(go!"name", str n), (go!"image", str i)]
+  kvsOf [(go!"name", str n), (go!"image", str i)]
+
+/-- `container(name, image)`. -/
+def container (n i : GoString) : UVal := .map (containerKVs n i)
 
 /-! ## The driver's `state` -/
 

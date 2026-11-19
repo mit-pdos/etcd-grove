@@ -16,7 +16,12 @@ a `sync.Once` and an `atomic.Pointer`) are `sync.isOnce` resources whose one-tim
 index. A schema literal (`freshSchema`, its indexes zero) becomes one by a ghost update
 (`Laws.lean`, `isSchema_intro`).
 
-Lean-first (2026-11-19, notes/smd-plan.md).
+Scope restrictions of the representation (`notes/smd-plan.md`, "Scope", (R)): a map type's
+`Unions` is the nil slice (an empty non-nil `Unions` is excluded, though SMD treats it alike).
+The representation's internals (`schemaRep`, `isAtom`, `lazyIndex`, ...) are sealed
+(`@[no_expose]`): `newSchema`-style literals become `freshSchema` by `freshSchema_intro`.
+
+Lean-first (2026-11-19, notes/smd-plan.md); round 1's repairs 2026-11-19.
 -/
 module
 
@@ -72,7 +77,7 @@ structure Schema where
 def Schema.find (S : Schema) (n : GoString) : Option Atom := lookupKV n S.types
 
 /-- A reference resolves. -/
-def Schema.resolves (S : Schema) (t : TypeRef) : Prop := (S.find t.name).isSome
+def Schema.resolves (S : Schema) (t : TypeRef) : Bool := (S.find t.name).isSome
 
 /-- The type of key `k` in a map type: its declared field's, else the element type
 (`Map.FindField`, then `ElementType`). -/
@@ -82,22 +87,37 @@ def fieldType (fs : List (GoString × TypeRef)) (elem : Option TypeRef) (k : GoS
   | some t => some t
   | none => elem
 
-/-- An atom in the plan's scope. -/
-def Atom.WF (S : Schema) : Atom → Prop
-  | .scalar _ => True
-  | .list e rel ks => S.resolves e ∧
-      (rel = .atomic ∨
-       (rel = .associative ∧ ks ≠ [] ∧ ks.Nodup ∧
-        ∃ fs el r, S.find e.name = some (.map fs el r) ∧
-          ∀ k ∈ ks, ∃ kt s, lookupKV k fs = some kt ∧ S.find kt.name = some (.scalar s)))
-  | .map fs e _ => (fs.map (·.1)).Nodup ∧ (∀ f ∈ fs, S.resolves f.2) ∧ (∀ t, e = some t → S.resolves t)
+/-- A list's key field `k` is a declared scalar field of the element map type's fields `fs`. -/
+def keyFieldOk (S : Schema) (fs : List (GoString × TypeRef)) (k : GoString) : Bool :=
+  match lookupKV k fs with
+  | some kt => match S.find kt.name with
+    | some (.scalar _) => true
+    | _ => false
+  | none => false
+
+/-- An atom in the plan's scope: a list atomic, or associative with distinct keys, each a declared
+scalar field of the element map type; a map's field names distinct; every reference resolves. -/
+def Atom.wf (S : Schema) : Atom → Bool
+  | .scalar _ => true
+  | .list e rel ks => S.resolves e &&
+      (decide (rel = .atomic) ||
+       (decide (rel = .associative) && !ks.isEmpty && decide ks.Nodup &&
+        match S.find e.name with
+        | some (.map fs _ _) => ks.all (keyFieldOk S fs)
+        | _ => false))
+  | .map fs e _ => decide (fs.map (·.1)).Nodup && fs.all (fun f => S.resolves f.2) &&
+      (match e with
+       | some t => S.resolves t
+       | none => true)
 
 /-- **The scope's schemas** (`notes/smd-plan.md`, "Scope"): distinct type names, none the
-reserved `__untyped_deduced_` (reconciliation skips it), every atom in scope. Decidable on a
-literal. -/
+reserved `__untyped_deduced_` (reconciliation skips it), every atom in scope (`Atom.wf`).
+Computable: `decide` proves it of a literal. -/
 def Schema.WF (S : Schema) : Prop :=
-  (S.types.map (·.1)).Nodup ∧ go!"__untyped_deduced_" ∉ S.types.map (·.1) ∧
-  ∀ n a, (n, a) ∈ S.types → a.WF S
+  (decide (S.types.map (·.1)).Nodup && !(S.types.map (·.1)).contains go!"__untyped_deduced_" &&
+    S.types.all (fun na => na.2.wf S)) = true
+
+instance (S : Schema) : Decidable S.WF := inferInstanceAs (Decidable (_ = true))
 
 /-! ## Representation predicates -/
 
@@ -109,7 +129,7 @@ variable [sem : go.Semantics]
 
 /-- The last element of a list with that name (a Go map built by assigning in order: the lazy
 indexes). -/
-def lastNamed {α : Type} (name : α → GoString) (n : GoString) (xs : List α) : Option α :=
+@[no_expose] def lastNamed {α : Type} (name : α → GoString) (n : GoString) (xs : List α) : Option α :=
   xs.foldl (fun acc x => if name x = n then some x else acc) none
 
 /-- `schema.Scalar`'s string. -/
@@ -123,16 +143,16 @@ def ElemRel.goName : ElemRel → GoString
   | .unset => go!""
 
 /-- An atom with no pointer set (`schema.Atom{}`). -/
-def atomZero (a : schema.Atom) : Prop := a.Scalar' = null ∧ a.List' = null ∧ a.Map' = null
+@[no_expose] def atomZero (a : schema.Atom) : Prop := a.Scalar' = null ∧ a.List' = null ∧ a.Map' = null
 
 /-- **`isTypeRef tr t`**: the `schema.TypeRef` `tr` names `t.name` (no inlined atom, no
 override), nullable as `t` (persistent). -/
-def isTypeRef (tr : schema.TypeRef) (t : TypeRef) : IProp GF :=
+@[no_expose] def isTypeRef (tr : schema.TypeRef) (t : TypeRef) : IProp GF :=
   iprop(tr.NamedType' ↦□ t.name ∗
     ⌜atomZero tr.Inlined' ∧ tr.ElementRelationship' = null ∧ tr.Nullable' = t.nullable⌝)
 
 /-- A map type's element type: `none` is the empty `schema.TypeRef{}`. -/
-def isTypeRefOpt (tr : schema.TypeRef) : Option TypeRef → IProp GF
+@[no_expose] def isTypeRefOpt (tr : schema.TypeRef) : Option TypeRef → IProp GF
   | none => iprop(⌜tr.NamedType' = null ∧ atomZero tr.Inlined' ∧ tr.ElementRelationship' = null ∧
       tr.Nullable' = false⌝)
   | some t => isTypeRef tr t
@@ -141,7 +161,7 @@ def isTypeRefOpt (tr : schema.TypeRef) : Option TypeRef → IProp GF
 the `atomic.Pointer[map[string]T]` at `u`. `fresh`: both still zero (a literal's). Otherwise the
 once's resource: its one-time action owns the pointer and leaves it pointing (for good, read-only)
 to an index `M` with `ok M`. -/
-def lazyIndex {T : Type} [ZeroVal T] (fresh : Bool) (o u : Loc) (ok : GMap GoString T → Prop) :
+@[no_expose] def lazyIndex {T : Type} [ZeroVal T] (fresh : Bool) (o u : Loc) (ok : GMap GoString T → Prop) :
     IProp GF :=
   if fresh then iprop(o ↦ (zero_val sync.Once) ∗ u ↦ (zero_val (sync.atomic.Pointer GoMap)))
   else sync.isOnce o iprop(u ↦ (zero_val (sync.atomic.Pointer GoMap)))
@@ -150,14 +170,14 @@ def lazyIndex {T : Type} [ZeroVal T] (fresh : Bool) (o u : Loc) (ok : GMap GoStr
         mp ↦□ mm ∗ mm ↦$□ M ∗ ⌜ok M⌝)
 
 /-- A map type's `schema.StructField`s (no default). -/
-def isFields : List schema.StructField → List (GoString × TypeRef) → IProp GF
+@[no_expose] def isFields : List schema.StructField → List (GoString × TypeRef) → IProp GF
   | [], [] => iprop(True)
   | f :: fs, (n, t) :: rest => iprop(⌜f.Name' = n ∧ f.Default' = interface.nil⌝ ∗
       isTypeRef f.Type' t ∗ isFields fs rest)
   | _, _ => iprop(False)
 
 /-- The `schema.Atom` `a` of a named type holding `A`, with its map's `FindField` index. -/
-def isAtom (fresh : Bool) (a : schema.Atom) : Atom → IProp GF
+@[no_expose] def isAtom (fresh : Bool) (a : schema.Atom) : Atom → IProp GF
   | .scalar s => iprop(a.Scalar' ↦□ s.goName ∗ ⌜a.List' = null ∧ a.Map' = null⌝)
   | .list e rel ks => iprop(⌜a.Scalar' = null ∧ a.Map' = null⌝ ∗
       ∃ (v : schema.List') (ksl : GoSlice), a.List' ↦□ v ∗ ⌜v.ElementRelationship' = rel.goName ∧
@@ -171,8 +191,12 @@ def isAtom (fresh : Bool) (a : schema.Atom) : Atom → IProp GF
       lazyIndex (T := schema.StructField) fresh a.Map'.[schema.Map, go!"once"]
         a.Map'.[schema.Map, go!"m"] (fun M => ∀ n, M !! n = lastNamed (·.Name') n sfs))
 
+/-- **`freshAtom a A`**: a schema literal's atom holding `A`, its `FindField` index still zero
+(the piece of a `freshSchema` its intro law takes: `freshAtom_*`, `freshSchema_intro`). -/
+@[no_expose] def freshAtom (a : schema.Atom) (A : Atom) : IProp GF := isAtom true a A
+
 /-- A schema's `schema.TypeDef`s. -/
-def isTypeDefs (fresh : Bool) : List schema.TypeDef → List (GoString × Atom) → IProp GF
+@[no_expose] def isTypeDefs (fresh : Bool) : List schema.TypeDef → List (GoString × Atom) → IProp GF
   | [], [] => iprop(True)
   | td :: tds, (n, a) :: rest => iprop(⌜td.Name' = n⌝ ∗ isAtom fresh td.Atom' a ∗
       isTypeDefs fresh tds rest)
@@ -181,18 +205,18 @@ def isTypeDefs (fresh : Bool) : List schema.TypeDef → List (GoString × Atom) 
 /-- A `*schema.Schema` holding `S`, its lazy indexes `fresh` or under their onces. Its `lock` and
 `resolvedTypes` are not owned: `Resolve` takes them only for a reference with an
 element-relationship override, which the scope has none of. -/
-def schemaRep (fresh : Bool) (sc : Loc) (S : Schema) : IProp GF :=
+@[no_expose] def schemaRep (fresh : Bool) (sc : Loc) (S : Schema) : IProp GF :=
   iprop(∃ (tys : GoSlice) (tds : List schema.TypeDef),
     sc.[schema.Schema, go!"Types"] ↦□ tys ∗ tys ↦*{DFrac.discard} tds ∗ isTypeDefs fresh tds S.types ∗
     lazyIndex (T := schema.TypeDef) fresh sc.[schema.Schema, go!"once"] sc.[schema.Schema, go!"m"]
       (fun M => ∀ n, M !! n = lastNamed (·.Name') n tds))
 
 /-- **`isSchema sc S`**: the `*schema.Schema` at `sc` holds `S` (persistent; see the header). -/
-def isSchema (sc : Loc) (S : Schema) : IProp GF := schemaRep false sc S
+@[no_expose] def isSchema (sc : Loc) (S : Schema) : IProp GF := schemaRep false sc S
 
 /-- **`freshSchema sc S`**: a schema literal (`&schema.Schema{Types: ...}`), its lazy indexes still
 zero, owned; `isSchema_intro` makes it an `isSchema`. -/
-def freshSchema (sc : Loc) (S : Schema) : IProp GF := schemaRep true sc S
+@[no_expose] def freshSchema (sc : Loc) (S : Schema) : IProp GF := schemaRep true sc S
 
 end own
 

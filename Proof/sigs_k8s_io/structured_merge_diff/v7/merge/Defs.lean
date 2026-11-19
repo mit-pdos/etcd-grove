@@ -12,12 +12,23 @@ object with the new one: a manager loses what changed (a conflict unless forced)
 removed.
 
 `prune` states SMD's three passes (`Updater.prune`, `addBackOwnedItems`, `addBackDanglingItems`)
-over the typed operations; read as a whole: a field the manager applied last time and does not
-apply now is removed, unless a manager's set (any manager's, this configuration's included) has it
-(`addBackOwnedItems`), and nothing the manager did not apply last time is removed
-(`addBackDanglingItems`). A list item is removed as a whole when its own path goes, even if another
-manager owns a field inside it (SSA-03, kubernetes/kubernetes#134902), and a container emptied
-on the way becomes `null` (SSA-01/02): faithful, not repaired.
+over the typed operations. **It has no simpler reading**: the documented one ("a field the
+manager applied last time and does not apply now is removed, unless a manager's set has it, and
+nothing else is removed") is false of SMD, even on managed fields SMD computed itself (review
+round 1, finding 3; Go-reproduced, `issues/smd-apply-deletes-own-struct.md`):
+- A applied `{spec: {}}`, so A owns `{.spec}`; the live object is `{name: o, spec: {a: "a",
+  l: []}}` (`spec.a` unowned, as a field the API server defaulted; `l: []` has no field path).
+  A applies `{spec: {}}` again: SMD returns `{name: o}`. The field A applies now is deleted: the
+  second pass drops the unowned `a`, and the third sees no field path left under `spec` (`l: []`
+  contributes none) and removes `spec` as dangling. Without `l: []` the apply is a no-op.
+- A list item is removed as a whole when its own path goes, even if another manager owns a field
+  inside it (SSA-03, kubernetes/kubernetes#134902).
+- A container emptied on the way becomes `null` (SSA-01/02).
+All faithful, not repaired. (A path below an item's key field, the third known exception, is
+excluded by `Apply`'s premise `keysWithItems`.)
+
+The pure definitions are computable (review round 1, P1): `decide` evaluates `applyResult` and
+`updateResult` on literals.
 
 Lean-first (2026-11-19, notes/smd-plan.md).
 -/
@@ -37,8 +48,6 @@ namespace smd
 open Iris Iris.BI
 open sigs_k8s_io.structured_merge_diff.v7
 
-attribute [local instance] Classical.propDecidable
-
 open PathSet
 
 /-! ## The algorithm, abstractly -/
@@ -46,10 +55,10 @@ open PathSet
 /-- Every manager's set reconciled with the schema (`reconcileManagedFieldsWithSchemaChanges`,
 with an identity converter). -/
 def reconcileMF (S : Schema) (t : TypeRef) (mf : MF) : MF :=
-  fun m => (mf m).map fun e => { e with set := reconcile S t e.set }
+  mf.map fun (m, e) => (m, { e with set := reconcile S t e.set })
 
 /-- The union of every manager's set. -/
-def mfUnion (mf : MF) : PathSet := fun q => ∃ m e, mf m = some e ∧ e.set q
+def mfUnion (mf : MF) : PathSet := mf.foldr (fun me acc => PathSet.union me.2.set acc) PathSet.empty
 
 /-- **`prune S t merged mf last`**: the merged object pruned for the applying manager, whose
 previous entry is `last` and whose new one is in `mf` (`Updater.prune`; see the file header). -/
@@ -63,35 +72,46 @@ def prune (S : Schema) (t : TypeRef) (merged : UVal) (mf : MF) (last : Option VS
     -- remove what the manager applied last time
     let p0 := removeItems S t merged (ens L.set)
     -- put back what a manager owns (`addBackOwnedItems`)
-    let p1 := removeItems S t merged ((fieldsOf merged).diff ((fieldsOf p0).union (ens (mfUnion mf))))
+    let p1 := removeItems S t merged
+      ((fieldsOf merged).diff ((fieldsOf p0).union (ens (mfUnion mf))))
     -- put back what the manager did not apply last time (`addBackDanglingItems`)
     removeItems S t merged (((fieldsOf merged).diff (fieldsOf p1)).inter (ens L.set))
 
-/-- The managers after `Updater.update` (forced, or without conflicts): every manager but `mgr`
-loses its conflicting paths `confl` and the removed paths; a manager with no path left goes
-(`mgr` too). -/
-def afterUpdate (mf : MF) (mgr : GoString) (confl : GoString → PathSet) (removed : PathSet) : MF :=
-  fun m => match mf m with
-    | none => none
-    | some e =>
-      let s := if m = mgr then e.set else (e.set.diff (confl m)).diff removed
-      if s.IsEmpty then none else some { e with set := s }
+/-- Manager `m`'s paths in a set of (manager, path) pairs. -/
+def conflictsOfMgr (cs : FSet (GoString × Path)) (m : GoString) : PathSet :=
+  cs.bind (fun mp => if mp.1 = m then [mp.2] else [])
 
-/-- Each other manager's paths that a change from `live` to `new` (`c`) modifies or adds. -/
-def conflictsOf (mf : MF) (mgr : GoString) (c : Cmp) : GoString → PathSet := fun m =>
-  if m = mgr then empty else
-  match mf m with
-  | some e => e.set.inter (c.modified.union c.added)
-  | none => empty
+/-- The managers after `Updater.update` (forced, or without conflicts): every manager but `mgr`
+loses its conflicting paths (`confl`'s pairs for it) and the removed paths; a manager with no path
+left goes (`mgr` too). -/
+def afterUpdate (mf : MF) (mgr : GoString) (confl : FSet (GoString × Path)) (removed : PathSet) :
+    MF :=
+  mf.filterMap fun (m, e) =>
+    let s := if m = mgr then e.set else (e.set.diff (conflictsOfMgr confl m)).diff removed
+    if s.IsEmpty then none else some (m, { e with set := s })
+
+/-- Each other manager's paths that a change from `live` to `new` (`c`) modifies or adds, as
+(manager, path) pairs. -/
+def conflictsOf (mf : MF) (mgr : GoString) (c : Cmp) : FSet (GoString × Path) :=
+  mf.foldr (fun me acc =>
+    if me.1 = mgr then acc
+    else FSet.union ((me.2.set.inter (c.modified.union c.added)).map (fun p => (me.1, p))) acc)
+    FSet.empty
 
 /-- The outcome of `Updater.Apply`. -/
 inductive ApplyOutcome where
   /-- The new object (`none`: unchanged, and the updater does not return the input on a no-op)
   and managers. -/
   | ok (obj : Option UVal) (mf : MF)
-  /-- A conflict, not forced: each other manager's conflicting paths (empty for a manager with
-  none). -/
-  | conflicts (cs : GoString → PathSet)
+  /-- A conflict, not forced: the other managers' conflicting (manager, path) pairs. -/
+  | conflicts (cs : FSet (GoString × Path))
+
+/-- Equality of outcomes, decided (by hand: see `VSet`'s instance). -/
+instance : DecidableEq ApplyOutcome
+  | .ok o m, .ok o' m' => decidable_of_iff (o = o' ∧ m = m') (by simp only [ApplyOutcome.ok.injEq])
+  | .conflicts c, .conflicts c' => decidable_of_iff (c = c') (by simp only [ApplyOutcome.conflicts.injEq])
+  | .ok _ _, .conflicts _ => isFalse (fun h => by cases h)
+  | .conflicts _, .ok _ _ => isFalse (fun h => by cases h)
 
 /-- **`applyResult S t rion live config ver mf mgr force`**: what `Updater.Apply` computes (see
 the file header); `rion`: the updater returns the input on a no-op (`ReturnInputOnNoop`). -/
@@ -99,12 +119,13 @@ def applyResult (S : Schema) (t : TypeRef) (rion : Bool) (live config : UVal) (v
     (mf : MF) (mgr : GoString) (force : Bool) : ApplyOutcome :=
   let mf0 := reconcileMF S t mf
   let merged := merge S t live config
-  let mf1 : MF := fun m => if m = mgr then some ⟨fieldSet S t config, ver, true⟩ else mf0 m
-  let new := prune S t merged mf1 (mf0 mgr)
+  let mf1 : MF := mf0.set mgr ⟨fieldSet S t config, ver, true⟩
+  let new := prune S t merged mf1 (mf0.get mgr)
   let c := compare S t live new
   let confl := conflictsOf mf1 mgr c
-  if ¬ force ∧ ∃ m, ¬ (confl m).IsEmpty then .conflicts confl
-  else .ok (if ¬ rion ∧ new = live then none else some new) (afterUpdate mf1 mgr confl c.removed)
+  if !force && !confl.isEmpty then .conflicts confl
+  else .ok (if !rion && decide (new = live) then none else some new)
+    (afterUpdate mf1 mgr confl c.removed)
 
 /-- **`updateResult S t live new ver mf mgr`**: the managers after `Updater.Update` (the object
 is `new` itself): every other manager loses what changed or was removed; `mgr` owns (not applied)
@@ -114,23 +135,55 @@ def updateResult (S : Schema) (t : TypeRef) (live new : UVal) (ver : GoString) (
   let mf0 := reconcileMF S t mf
   let c := compare S t live new
   let mf2 := afterUpdate mf0 mgr (conflictsOf mf0 mgr c) c.removed
-  let base := match mf2 mgr with
+  let base := match mf2.get mgr with
     | some e => e.set
-    | none => empty
+    | none => PathSet.empty
   let s := ((base.diff c.removed).union c.modified).union c.added
-  fun m => if m = mgr then (if s.IsEmpty then none else some ⟨s, ver, false⟩) else mf2 m
+  if s.IsEmpty then mf2.filter (fun me => me.1 != mgr) else mf2.set mgr ⟨s, ver, false⟩
 
-/-- **A field set's list items and their key fields go together** (`Updater.Apply`'s premise on
-the managed fields, `notes/smd-plan.md`, "Scope"): a set with a key field of an item has the item,
-and a set with an item of a granular map type has its key fields. Every set SMD computes has it;
-it rules out a pruned item that keeps its path but loses a key field (whose key SMD then cannot
-compute: `Compare` fails). -/
+/-- **A field set's list items and their key fields go together, and nothing is below a key
+field** (`Updater.Apply`'s premise on the managed fields, `notes/smd-plan.md`, "Scope"), for every
+associative-list item path `p ++ [.key fl]`:
+1. a set with a key field of the item (`p ++ [.key fl, .field n]`, `n` a key field) has the item;
+2. a set with the item, of a granular map type, has its key fields;
+3. no path of the set extends a key field's path (`p ++ [.key fl, .field n] ++ r`, `r ≠ []`).
+Every set SMD computes has it (`fieldSet` and `compare` never produce a path below a scalar, and
+`afterUpdate` only removes paths), and `Apply` and `Update` keep it (`applyResult_premise`,
+`updateResult_premise`). Without (1) or (3) SMD's pruning (`ensureNamed` makes the key field a
+member when a path below it is; the third pass then removes the key field from an item it keeps)
+can leave an item without its key: `Apply` then fails with an error that is not a conflict, or
+leaves two items with one key and reports (or, forced, applies) a spurious conflict (review round
+1, finding 1; `nonissues/smd-apply-keyless-item-compare-error.md`). The weaker form "(1) for paths
+at or below a key field" is not kept by `Update` and is not used. Decided by `keysWithItemsB`
+(`keysWithItemsB_iff`). -/
 def keysWithItems (S : Schema) (t : TypeRef) (s : PathSet) : Prop :=
-  ∀ p fl, ((∃ n v, (n, v) ∈ fl ∧ s (p ++ [.key fl, .field n])) → s (p ++ [.key fl])) ∧
-    (s (p ++ [.key fl]) →
+  ∀ p fl, ((∃ n v, (n, v) ∈ fl ∧ (p ++ [.key fl, .field n]) ∈ s) → (p ++ [.key fl]) ∈ s) ∧
+    ((p ++ [.key fl]) ∈ s →
       (∃ fs e rel, (typeAlong S (some t) (p ++ [.key fl])).bind (fun t => S.find t.name) =
         some (.map fs e rel) ∧ rel ≠ .atomic) →
-      ∀ n v, (n, v) ∈ fl → s (p ++ [.key fl, .field n]))
+      ∀ n v, (n, v) ∈ fl → (p ++ [.key fl, .field n]) ∈ s) ∧
+    (∀ n v r, (n, v) ∈ fl → r ≠ [] → (p ++ [.key fl, .field n] ++ r) ∉ s)
+
+/-- `keysWithItems` at the paths of `s` below `acc` (`acc ++ q ∈ s`), computed. -/
+def kwiAt (S : Schema) (t : TypeRef) (s : PathSet) : Path → Path → Bool
+  | _, [] => true
+  | acc, pe :: rest =>
+    (match pe with
+      | .key fl =>
+        let it := acc ++ [pe]
+        match rest with
+        | [] =>
+          match (typeAlong S (some t) it).bind (fun t => S.find t.name) with
+          | some (.map _ _ rel) =>
+            decide (rel = .atomic) || fl.all (fun nv => decide ((it ++ [.field nv.1]) ∈ s))
+          | _ => true
+        | .field n :: r =>
+          if fl.any (fun nv => decide (nv.1 = n)) then decide (it ∈ s) && r.isEmpty else true
+        | _ => true
+      | _ => true) && kwiAt S t s (acc ++ [pe]) rest
+
+/-- **`keysWithItems`, decided**: every path of `s` passes `kwiAt` (`keysWithItemsB_iff`). -/
+def keysWithItemsB (S : Schema) (t : TypeRef) (s : PathSet) : Bool := s.all (kwiAt S t s [])
 
 /-! ## Representation predicates -/
 
@@ -143,7 +196,7 @@ variable [sem : go.Semantics]
 /-- **`isIdentityConverter cv`**: the `merge.Converter` `cv` is the identity on every version:
 `Convert(obj, v)` returns `(obj, nil)` and `IsMissingVersionError(err)` returns `false` (Hoare
 triples on its dynamic type's methods; persistent). -/
-def isIdentityConverter (cv : merge.Converter) : IProp GF :=
+@[no_expose] def isIdentityConverter (cv : merge.Converter) : IProp GF :=
   iprop(∃ (T : go.GoType) (v : val), ⌜cv = interface.mkOk T v⌝ ∗
     □ (∀ (p : Loc) (ver : fieldpath.APIVersion) (Φ : val → IProp GF),
         ▷ Φ (PairV #p #(interface.nil : GoInterface)) -∗
@@ -153,19 +206,20 @@ def isIdentityConverter (cv : merge.Converter) : IProp GF :=
 
 /-- **`isUpdater u cv igf igfl rion`**: the `*merge.Updater` at `u` with converter `cv`, ignored
 fields `igf`, ignore filter `igfl` and `ReturnInputOnNoop` `rion` (persistent: SMD never writes
-it). -/
-def isUpdater (u : Loc) (cv : merge.Converter) (igf igfl : GoMap) (rion : Bool) : IProp GF :=
+it). Built by `BuildUpdater`, or a client's literal (`isUpdater_intro`: Kubernetes builds
+`merge.Updater{...}` directly). -/
+@[no_expose] def isUpdater (u : Loc) (cv : merge.Converter) (igf igfl : GoMap) (rion : Bool) : IProp GF :=
   iprop(u ↦□ (merge.Updater.mk cv igf igfl rion))
 
-/-- A `merge.Conflicts` slice's conflicts. -/
-def isConflictL : List merge.Conflict → List (GoString × Path) → IProp GF
+/-- A `merge.Conflicts` slice's conflicts (internal). -/
+@[no_expose] def isConflictL : List merge.Conflict → List (GoString × Path) → IProp GF
   | [], [] => iprop(True)
   | x :: xs, (m, p) :: cs => iprop(⌜x.Manager' = m⌝ ∗ isPath x.Path' p ∗ isConflictL xs cs)
   | _, _ => iprop(False)
 
 /-- **`isConflicts s cs`**: the `merge.Conflicts` slice `s` holds the conflicts `cs`, each a
 manager and a path, in order (persistent). -/
-def isConflicts (s : merge.Conflicts) (cs : List (GoString × Path)) : IProp GF :=
+@[no_expose] def isConflicts (s : merge.Conflicts) (cs : List (GoString × Path)) : IProp GF :=
   iprop(∃ xs : List merge.Conflict, s ↦*{DFrac.discard} xs ∗ isConflictL xs cs)
 
 end own
