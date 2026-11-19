@@ -118,6 +118,18 @@ theorem evalCondOk_elim (ev : GoFunc) (cond : GoInterface) :
   iintro #H
   iexact H
 
+/-- The conditions of the three lists of a conditions map, split. -/
+theorem conds_app (l₁ l₂ : List GoInterface) :
+    ([∗list] c ∈ l₁ ++ l₂, isCondition (GF := GF) c) ⊢
+      ([∗list] c ∈ l₁, isCondition (GF := GF) c) ∗ ([∗list] c ∈ l₂, isCondition (GF := GF) c) :=
+  BigSepL.bigSepL_append.1
+
+/-- The two lists' conditions, joined. -/
+theorem conds_app_intro (l₁ l₂ : List GoInterface) :
+    ([∗list] c ∈ l₁, isCondition (GF := GF) c) ∗ ([∗list] c ∈ l₂, isCondition (GF := GF) c) ⊢
+      ([∗list] c ∈ l₁ ++ l₂, isCondition (GF := GF) c) :=
+  BigSepL.bigSepL_append.2
+
 end wps
 
 end authorizer
