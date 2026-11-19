@@ -6,6 +6,9 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewFreelistAllocator
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsFreelist
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
 
 @[expose] public section
 
@@ -29,7 +32,56 @@ variable [package_sem : value.Assumptions]
 
 theorem value.NewFreelistAllocator.wp_proof :
     value.NewFreelistAllocator.spec (GF := GF) := by
-  sorry
+  wp_start
+  repeat (first | wp_auto | wp_func_lits)
+  wp_alloc fa as Hfa
+  ipersist Hfa
+  wp_auto
+  iapply HΦ
+  iapply isAlloc_fl_intro
+  isplitr
+  · iexact Hfa
+  isplitl [«$v0»]
+  · iunfold freelistOwn
+    iexists _
+    iframe
+    isplitr
+    · iexists []
+      isplitr
+      · iapply ownSlice_nil
+      isplitr
+      · iapply ownSliceCap_nil
+      · simp only [valueSepL, List.foldr_nil]; itrivial
+    · iintro !> %Φ _ HΦ
+      rw [← recv_eq_func_mk]
+      wp_call
+      wp_auto
+      iapply HΦ
+      iunfold wrapperOwn
+      iexists _
+      iexact «$r0»
+  · iunfold freelistOwn
+    iexists _
+    iframe
+    isplitr
+    · iexists []
+      isplitr
+      · iapply ownSlice_nil
+      isplitr
+      · iapply ownSliceCap_nil
+      · simp only [valueSepL, List.foldr_nil]; itrivial
+    · iintro !> %Φ _ HΦ
+      rw [← recv_eq_func_mk]
+      wp_call
+      wp_auto
+      iapply HΦ
+      iunfold rangeOwn
+      iexists _
+      isplitl [«$r0»]
+      · iexact «$r0»
+      · iunfold wrapperOwn
+        iexists _
+        iexact «$v0»
 
 end proof
 
