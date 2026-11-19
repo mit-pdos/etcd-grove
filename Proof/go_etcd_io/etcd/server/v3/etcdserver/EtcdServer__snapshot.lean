@@ -32,6 +32,7 @@ public import Spec.go_uber_org.zap.Bool
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapCert
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyKVCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvBuild
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RaftLoopFreeze
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.EtcdBackend
 
 @[expose] public section
@@ -368,7 +369,9 @@ theorem EtcdServer.snapshot.wp_proof
         first | exact Hsteq.symm | exact Hsteq.2.symm
       subst Hsteq'
       -- the directory's snapshotter the storage's (`isWalStorage_ss_agree`)
-      ihave %Hss := isWalStorage_ss_agree _ _ _ _ _ $$ [$Hsws $Hsave]
+      ihave %Hss := isWalStorage_ss_agree (interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) hd γn.wal.h ss γn.ss $$ [Hsws Hsave]
+      · iframe Hsws Hsave
       subst Hss
       ihave %Hsok := isWalStorage_ok _ _ _ $$ Hsave
       obtain ⟨si, Hsieq⟩ := Hsok

@@ -12,17 +12,18 @@
   (`isWalStorage` carries the storage's `s ↦□ ss`, `isWalStorage_ss_agree`; `walSaveEntOk_of`, `rnEntsSized_walSave`);
   `InvRaftNode` (`rnWalTokA` carries `isWalStorage`; `rnReadyData`/`rnReadySnap` carry `hsOptC`); `RaftLoopFreeze`
   (`srvSnapMetaC`, `srv_ownSnapS_metaC`, `walSaveSnapC_spec`); `SnapTake` (`srvSnapDisk` without the contract,
-  `srvSnapDir` with `∃ h, isWalStorage st h ss`), `SnapRO` (same, last conjunct). Edited, NOT yet checked:
-  `NodeStart` (both specs), `EtcdServer__snapshot` spec+proof (Release via `walRelease_spec`+`rnDur_read_au`;
-  `storage.releaseOk` → `storage.snapOpensOk`), `snapshotIfNeeded` spec, `InvBoot` (`walCreateOk` dropped from
+  `srvSnapDir` with `∃ h, isWalStorage st h ss`), `SnapRO` (same, last conjunct). `NodeStart` (both specs),
+  `EtcdServer__snapshot` spec+proof (Release via `walRelease_spec`+`rnDur_read_au`; `storage.releaseOk` →
+  `storage.snapOpensOk`; imports RaftLoopFreeze), `InvRun` (`srvSnapDisk_of_RO` simplified). Edited, NOT yet
+  checked: `snapshotIfNeeded` spec, `InvBoot` (`walCreateOk` dropped from
   `bootstrapContract`, approved §5), `InvRestart` (`srvFiles` over `∃ a : WalA`, `walSaveOk` dropped), `applyAll` spec
   and `InvRaftLoop` payloads (`walSnapRec`).
 - **F2 sorries (OPEN, temporary, marked `F2`):** `raftNode__start` SaveSnap: `ConfState ≠ walCsZero`, `encSnap < 2^40`;
   `EtcdServer__snapshot`: the metadata's `metaRoC (srvSnapMetaC …)` (raft's `ConfState()` content for `ep.confState`),
   `ConfState ≠ walCsZero`, `encSnap < 2^40`, `ai < 2^64-1`. The received snapshot's content is already canonical
   (`ownSnapS`'s `csSet … true`, `pbMsg ConfState []`); what is left is a non-zero conf state and a size bound.
-- **Next, in order:** check NodeStart, EtcdServer__snapshot (+ applySnapshot spec: add `rnWalTokA γw (srvRAddr s) q`,
-  payload `walSnapRec γw.wal.h`, drop `hstp`), then the rest of
+- **Next, in order:** applySnapshot spec ( add `rnWalTokA γw (srvRAddr s) q` in and out,
+  payload `walSnapRec γw.wal.h`, `hstp` → the premise `∃ h, isWalStorage (mkOk stp) h ss`, its proof in SnapApplyWalk), then the rest of
   `grep -rlE "rnWalTok|walOf|walBaseLb|isWalStorage|storageSnap|rnStorageOf|walReady|walSaveOk|walCloseOk|walCreateOk|releaseOk|WalNames\b|walFiles|srvFiles" Proof Spec`
   in import order (ApplyAllSnap, SnapApplyWalk, InvRun, InvRestart users, NewServer(R), StopShutdown, EtcdServer__run,
   AuthCompRows, examples' Defs/StartRes/OneMember); then F2, P2, merge, build, tcb, collections, interfaces, Links.
