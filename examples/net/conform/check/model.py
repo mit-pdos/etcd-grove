@@ -1,5 +1,5 @@
 """A literal transcription of the net extension's semantics, `GooseLang/Ext/Net/Impl.lean` (v3,
-D1-D22, v3.2), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
+D1-D25, v3.3), and of `Deploy.lean`'s `PlanWellFormed` (D20). NOT PROVED to agree with the Lean: each
 definition names the Lean definition it transcribes (`[Lean: Name]`), keeps its case order and its
 conjuncts, and says where it departs from a word-for-word reading. Read it side by side with
 Impl.lean; the README's table maps every Lean name to its function here.
@@ -48,13 +48,17 @@ END_FRESH = NetEnd(False, False, False)  # [Lean: NetEnd.fresh]
 
 class NetConn(NamedTuple):
     """[Lean: NetConn] addr, accepted, dEnd (side False = 0, the dialer's), aEnd (side True = 1),
-    up (from the dialer to the acceptor), down (from the acceptor to the dialer)."""
+    up (from the dialer to the acceptor), down (from the acceptor to the dialer), and (v3.3, D25)
+    each end's write lock (dLock, aLock: held by a Write of that end between its first step and
+    its last)."""
     addr: bytes
     accepted: bool
     dEnd: NetEnd
     aEnd: NetEnd
     up: NetDir
     down: NetDir
+    dLock: bool = False
+    aLock: bool = False
 
 
 def conn_fresh(a):
@@ -86,6 +90,16 @@ def set_end(c, s, st):
 def set_out(c, s, d):
     """[Lean: NetConn.setOut]"""
     return c._replace(down=d) if s else c._replace(up=d)
+
+
+def lock(c, s):
+    """[Lean: NetConn.lock] D25."""
+    return c.aLock if s else c.dLock
+
+
+def set_lock(c, s, b):
+    """[Lean: NetConn.setLock] D25."""
+    return c._replace(aLock=b) if s else c._replace(dLock=b)
 
 
 class NetGlobal(NamedTuple):
@@ -251,6 +265,42 @@ def deadline_outcome(st, kind, set_, res, st2):
                                               wdl=st.wdl if kind == 1 else set_)
 
 
+def keep_idle_valid(d):
+    """[Lean: keepIdleValid d] D24: Go's setKeepAliveIdle (tcpsockopt_unix.go) of the
+    time.Duration `d` (an int64, as a w64): None for d < 0 (no system call); else TCP_KEEPIDLE of
+    int32((d' + 1s - 1) / 1s), d' = 15 s for d = 0, valid iff in 1..32767 (Linux's
+    MAX_TCP_KEEPIDLE). Go's int64 arithmetic wraps, its division truncates toward zero."""
+    def s64(x):
+        x %= W64
+        return x - W64 if x >= W64 // 2 else x
+    di = s64(d)
+    if di < 0:
+        return None
+    if di == 0:
+        di = 15 * 10 ** 9
+    t = s64(di + 10 ** 9 - 1)
+    q = abs(t) // 10 ** 9 * (1 if t >= 0 else -1)
+    n = q % (1 << 32)
+    n = n - (1 << 32) if n >= 1 << 31 else n
+    return 1 <= n <= 32767
+
+
+def sock_opt_valid(kind, x):
+    """[Lean: sockOptValid kind x] D24: kind 1 is TCP_KEEPIDLE of the duration x
+    (keep_idle_valid), any other kind an option Linux never refuses (True)."""
+    return keep_idle_valid(x) if kind == 1 else True
+
+
+def sock_opt_outcome(st, valid, res):
+    """[Lean: SockOptOutcome st valid res] D24: no system call (None): success; else `closed` on a
+    closed end, success for a valid value, `sys` (EINVAL) for another."""
+    if valid is None:
+        return res is None
+    if st.closed:
+        return res == CLOSED
+    return res is None if valid else res == SYS
+
+
 def time_is_zero(wall, ext):
     """[Lean: timeIsZero] Go's Time.IsZero of a time.Time's two words."""
     return wall == 0 and ext == 0
@@ -325,15 +375,24 @@ def read_step(c, s, n, g, r, g2, keep=None):
             g2 == g.set_conn(c, set_out(cn, not s, d2)))
 
 
-def write_step(c, s, bs, g, k, res, g2):
-    """[Lean: WriteStep c s bs g e' g'] e' = (k, errCode res)."""
+def write_last(rs, k, res):
+    """[Lean: writeLast rs k res] D25: the step ends its Write's loop (it fails, or it writes
+    every byte left)."""
+    return res is not None or k == len(rs)
+
+
+def write_step(c, s, bs, first, g, k, res, g2):
+    """[Lean: WriteStep c s bs first g e' g'] e' = (k, errCode res). D25: a Write's first step
+    (`first`) takes the end's write lock, which must be free (else the step waits: a stutter, no
+    outcome), a later one holds it; the lock is held after the step unless it is the loop's last."""
     cn = g.conns.get(c)
     cn2 = g2.conns.get(c)
     if cn is None or cn2 is None:
         return False
     d2 = out(cn2, s)
-    return (0 <= k < W64 and write_outcome(end_st(cn, s), out(cn, s), bs, k, res, d2) and
-            g2 == g.set_conn(c, set_out(cn, s, d2)))
+    return (lock(cn, s) == (not first) and 0 <= k < W64 and
+            write_outcome(end_st(cn, s), out(cn, s), bs, k, res, d2) and
+            g2 == g.set_conn(c, set_lock(set_out(cn, s, d2), s, not write_last(bs, k, res))))
 
 
 def close_step(c, s, g, res, g2):
@@ -441,7 +500,7 @@ def net_step(op, v, L, g, e2, L2, g2, keep=None):
     """[Lean: NetStep op v h L g e' h' L' g', its outcome rules on valid arguments: IsNetStep's
     steps, not the stutter nor the panics, D22] (the heap, unchanged, left out; `v` the argument as
     a Python value: Listen, Dial an address; Accept, LisClose a listener id; Read (e, n); Write
-    (e, bs); Close, CloseWrite e; SetDeadline (e, kind, wall, ext)). The operations "AnyBool",
+    (e, bs, first); Close, CloseWrite e; SetDeadline (e, kind, wall, ext); SetSockopt (e, kind, x)). The operations "AnyBool",
     "AnyString", "AnyW64", "AnyErrno" are not steps of a trace (they are the trusted models'
     choices of the parts of a Go value the model does not explain) and are not transcribed."""
     if op == "Listen":
@@ -468,11 +527,18 @@ def net_step(op, v, L, g, e2, L2, g2, keep=None):
         c, s = decode_end(e)
         return is_end(e, c, s) and read_step(c, s, n, g, e2, g2, keep) and L2 == L
     if op == "Write":
-        e, bs = v
+        e, bs, first = v
         c, s = decode_end(e)
         k, code = e2
         res = None if code == 0 else CODE_ERR.get(code, "?")
-        return is_end(e, c, s) and write_step(c, s, bs, g, k, res, g2) and L2 == L
+        return is_end(e, c, s) and write_step(c, s, bs, first, g, k, res, g2) and L2 == L
+    if op == "SetSockopt":
+        e, kind, x = v
+        c, s = decode_end(e)
+        cn = g.conns.get(c)
+        res = None if e2 == 0 else CODE_ERR.get(e2, "?")
+        return (is_end(e, c, s) and cn is not None and g2 == g and L2 == L and
+                sock_opt_outcome(end_st(cn, s), sock_opt_valid(kind, x), res))
     if op in ("Close", "CloseWrite"):
         c, s = decode_end(v)
         res = None if e2 == 0 else CODE_ERR.get(e2, "?")

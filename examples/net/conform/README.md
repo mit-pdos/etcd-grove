@@ -286,6 +286,7 @@ notes any mismatch).
 | `emptywrite` | empty `Write`s on a live end (both ends), past an expired deadline, after `CloseWrite`, after `Close`, after a reset (twice); empty `Read`s; `LocalAddr`, `RemoteAddr`, the listener's `Addr` |
 | `dialthenlisten` | `Dial` and `DialTimeout` with no listener; `Listen`; a second `Listen` of the address; `Dial`, `Accept`, a byte, `Close`, EOF; a `Dial` never accepted, the listener's `Close`, a `Read` of that connection; `Accept` and `Close` after `Close`; `Dial` after it |
 | `dialtimeout` | 2000 `DialTimeout`s with timeouts of 1-300 µs, each success writing a byte and closing; the listener accepts every connection and reads it to its end |
+| `concwrite` | two goroutines `Write` 1 MiB each of distinct bytes to one end at once, the reader slow (64 KiB, 1 ms pauses); the reader checks each `Write`'s bytes are contiguous (v3.3, D25: Go's write lock); its sample (`testdata/probe-concwrite.tar.gz`, 256 KiB each) written by `TestSampleMode` (`NET_CONFORM_SAMPLE_MODE=concwrite`) |
 
 The probe always exits 0 (1 if its own `Listen` fails): the checker judges the run.
 

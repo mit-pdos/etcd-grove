@@ -26,6 +26,13 @@ v3.2 (D22): `read_avail`'s wait and `accept_step`'s are gone (a wait is a stutte
 witness step: the search already listed none), and `write_outcome`'s non-failing step counts at
 least one byte unless none remain (the search already never made a zero step of a non-empty
 `rs`); the stutter and the panics of invalid uses are not transcribed (no traced call is one).
+v3.3 (D23-D25): the write lock (`NetConn.dLock`/`aLock`, `WriteStep`'s `first`, `writeLast`) in
+`model.py` and `replay.py`; in the search (`lazy.py`) a `Write` in flight holds its end's lock, so
+another `Write` of the end takes no step until it ends (the "split" of overlapping `Write`s went);
+`SetSockopt` (D24) transcribed, never traced (the tracer does not record socket options: their
+calls are out of scope); `"tcp4"` (D23) stays out of the checker's scope, as every network but
+`"tcp"` was (no traced program uses it; the checker and the Lean replay would have to follow each
+socket's network into its errors' `Net`).
 
 | file | what |
 |---|---|
@@ -177,12 +184,10 @@ Lazily (`lazy.write`), the progress is one step (all that is left of `n`), at an
 before its failing step. That dominates splitting it: a step's only effect is to append (or
 discard) bytes, which the peer's Reads can only see more of, a later cut keeps any prefix of, and
 the writer's other operations (Close, CloseWrite, SetDeadline) do not read; the order of the bytes
-is the only thing a split changes, and only another Write of the same end can put bytes between two
-of its steps. So when another Write of the same end overlaps the call in time (`split`), every split
-is tried (progress `1..` what is left), exactly, for a remainder of at most `SPLIT_MAX` (64) bytes; a
-component that fails with a longer one overlapping is inconclusive (Go's `fdMutex` serializes the
-Writes of one fd, so real runs do not interleave them; none of the collection's components needed a
-split).
+is the only thing a split changes, and only another Write of the same end could put bytes between
+two of its steps, which the write lock (v3.3, D25: Go's `fdMutex`) excludes: a Write in flight
+(between its first step and its last) holds its end's lock, and another Write of the end takes no
+step meanwhile (`lazy.lock_holder`; before v3.3 the search tried every split of overlapping Writes).
 
 ## Lazy cuts and prefixes: why the lazy search is exact
 

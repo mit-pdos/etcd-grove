@@ -23,7 +23,7 @@ var examples = []string{"echo", "framed", "acceptloop", "duplex", "halfclose", "
 
 // The probe's modes (probe/main.go).
 var probeModes = []string{"writeclose", "writeclosewrite", "resetwrite", "killwrite", "deadlinewrite",
-	"emptywrite", "dialthenlisten", "dialtimeout"}
+	"emptywrite", "dialthenlisten", "dialtimeout", "concwrite"}
 
 // TestOverlay checks that the tracer's renames, call patches and re-implemented bodies match
 // the installed Go's net sources exactly (overlay.Make fails otherwise). It skips on a Go
@@ -208,6 +208,33 @@ func check(t *testing.T, root string) *tracecheck.Stats {
 	return st
 }
 
+// sampleArgs are the probe's arguments for the sample, by mode (with "-iters 1").
+var sampleArgs = map[string][]string{"dialtimeout": {"-dials", "300"}, "concwrite": {"-size", "262144"}}
+
+// TestSampleMode, with NET_CONFORM_SAMPLE_MODE=M, rewrites only testdata/probe-M.tar.gz: the
+// probe built with the tracer, run in mode M once as for the sample (a new mode's sample, without
+// rewriting the others).
+func TestSampleMode(t *testing.T) {
+	m := os.Getenv("NET_CONFORM_SAMPLE_MODE")
+	if m == "" {
+		t.Skip("NET_CONFORM_SAMPLE_MODE=M rewrites testdata/probe-M.tar.gz")
+	}
+	out := t.TempDir()
+	ov, err := overlay.Make(filepath.Join(out, "overlay"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	modRoot, _ := filepath.Abs("../..")
+	probe := filepath.Join(out, "bin", "probe")
+	if o, err := runCmd(t, modRoot, nil, 5*time.Minute, "go", "build", "-overlay", ov, "-o", probe, "./net/conform/probe"); err != nil {
+		t.Fatalf("go build the probe: %v\n%s", err, o)
+	}
+	dir := filepath.Join(out, "sample", "probe", m)
+	runProbe(t, probe, dir, m, append([]string{"-iters", "1"}, sampleArgs[m]...)...)
+	writeTarGz(t, filepath.Join("testdata", "probe-"+m+".tar.gz"), dir, "probe/"+m)
+	check(t, filepath.Join(out, "sample"))
+}
+
 // writeSample rewrites testdata/: some of the examples' runs, and the probe's modes run small
 // (one iteration each), each directory a .tar.gz.
 func writeSample(t *testing.T, out, probe, traces string) {
@@ -222,7 +249,7 @@ func writeSample(t *testing.T, out, probe, traces string) {
 		writeTarGz(t, filepath.Join("testdata", strings.ReplaceAll(ex, "/", "-")+".tar.gz"), filepath.Join(traces, ex), ex)
 	}
 	small := filepath.Join(out, "sample")
-	args := map[string][]string{"dialtimeout": {"-dials", "300"}}
+	args := sampleArgs
 	for _, m := range probeModes {
 		dir := filepath.Join(small, "probe", m)
 		runProbe(t, probe, dir, m, append([]string{"-iters", "1"}, args[m]...)...)

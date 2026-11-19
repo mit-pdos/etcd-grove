@@ -17,6 +17,9 @@ resources are the extension's state, piece by piece, and nothing else (no histor
   - `netDir c s d`: the direction from the end `s` to the other end: its unread bytes and its
     status (`NetDir`). A half of a ghost variable, and a token that makes it exclusive.
   - `netConnAt c a` (persistent): `c` was dialed to `a`.
+  - `netWLock c s` (exclusive): the write lock of the end `s` is held (D25), which a `Write`'s first
+    step takes from the network and its last gives back (the network holds the token while the lock
+    is free); the proof of `net`'s `Write` keeps it between the two.
   A connection's ghost names are in a ghost map from connection numbers (persistent entries).
 
 **The node's resources** (local): `netLis l a o`, the listener `l` at `a`, open if `o`
@@ -48,7 +51,8 @@ open Iris Iris.BI Iris.Std ProofMode
 /-! ## Ghost names -/
 
 /-- The ghost names of a connection, and its address. `v s`: the state of the end `s`; `q s`: the
-direction from the end `s`; `tk s`: the token of that direction. -/
+direction from the end `s`; `tk s`: the token of that direction; `wl s`: the token of the end's
+write lock (D25). -/
 structure ConnNames where
   addr : GoString
   v0 : GName
@@ -57,16 +61,18 @@ structure ConnNames where
   q1 : GName
   tk0 : GName
   tk1 : GName
+  wl0 : GName
+  wl1 : GName
 deriving DecidableEq
 
 def ConnNames.enc (γ : ConnNames) :=
-  (γ.addr, γ.v0, γ.v1, γ.q0, γ.q1, γ.tk0, γ.tk1)
+  (γ.addr, γ.v0, γ.v1, γ.q0, γ.q1, γ.tk0, γ.tk1, γ.wl0, γ.wl1)
 
 instance ConnNames.countable : Pos.Countable ConnNames :=
   .ofInjective (fun γ => Pos.Countable.encode γ.enc) (fun a b h => by
     have h' := Pos.encode_inj h
     cases a; cases b; simp only [ConnNames.enc, Prod.mk.injEq] at h'
-    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
+    obtain ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl⟩ := h'; rfl)
 
 def ConnNames.v (γ : ConnNames) : Bool → GName
   | false => γ.v0
@@ -79,6 +85,10 @@ def ConnNames.q (γ : ConnNames) : Bool → GName
 def ConnNames.tk (γ : ConnNames) : Bool → GName
   | false => γ.tk0
   | true => γ.tk1
+
+def ConnNames.wl (γ : ConnNames) : Bool → GName
+  | false => γ.wl0
+  | true => γ.wl1
 
 def NetStatus.toNat : NetStatus → Nat
   | .open => 0
@@ -132,14 +142,19 @@ variable {GF : BundledGFunctors}
 
 /-! ## The network's interpretation -/
 
+/-- The network's part of a write lock (D25): its token while it is free. -/
+def lockCtx [AllG GF] (γ : GName) (held : Bool) : IProp GF :=
+  if held then iprop(True) else token γ
+
 /-- The network's part of the connection `cn`, with names `γ`: the other halves of its ends' and
-directions' ghost variables. -/
+directions' ghost variables, and the tokens of its free write locks. -/
 def connCtx [AllG GF] (γ : ConnNames) (cn : NetConn) : IProp GF :=
   iprop(⌜γ.addr = cn.addr⌝ ∗
     ghostVar (γ.v false) (1 : Qp).half (cn.endSt false) ∗
     ghostVar (γ.v true) (1 : Qp).half (cn.endSt true) ∗
     ghostVar (γ.q false) (1 : Qp).half (cn.out false) ∗
-    ghostVar (γ.q true) (1 : Qp).half (cn.out true))
+    ghostVar (γ.q true) (1 : Qp).half (cn.out true) ∗
+    lockCtx (γ.wl false) (cn.lock false) ∗ lockCtx (γ.wl true) (cn.lock true))
 
 /-- The pending sets agree with the network: `pm` has the plan's addresses, each with the
 connections dialed to it and not yet accepted; and every connection was dialed to a plan address. -/
@@ -185,6 +200,11 @@ def netDir (hG : NetGS GF) (c : Nat) (s : Bool) (d : NetDir) : IProp GF :=
   letI := hG.allG
   iprop(∃ γ, netNames hG c γ ∗ ghostVar (γ.q s) (1 : Qp).half d ∗ token (γ.tk s))
 
+/-- D25. The write lock of the end `s` of `c` is held, by whoever has this (exclusive). -/
+def netWLock (hG : NetGS GF) (c : Nat) (s : Bool) : IProp GF :=
+  letI := hG.allG
+  iprop(∃ γ, netNames hG c γ ∗ token (γ.wl s))
+
 /-- `c` was dialed to `a` (and its ends' ids are in range, and not `0`). -/
 def netConnAt (hG : NetGS GF) (c : Nat) (a : GoString) : IProp GF :=
   letI := hG.allG
@@ -218,6 +238,8 @@ instance netEnd_timeless (hG : NetGS GF) c s st : Timeless (netEnd hG c s st) :=
   unfold netEnd netNames; letI := hG.allG; infer_instance
 instance netDir_timeless (hG : NetGS GF) c s d : Timeless (netDir hG c s d) := by
   unfold netDir netNames; letI := hG.allG; infer_instance
+instance netWLock_timeless (hG : NetGS GF) c s : Timeless (netWLock hG c s) := by
+  unfold netWLock netNames; letI := hG.allG; infer_instance
 instance netConnAt_timeless (hG : NetGS GF) c a : Timeless (netConnAt hG c a) := by
   unfold netConnAt netNames; letI := hG.allG; infer_instance
 instance netPend_timeless (hG : NetGS GF) a S : Timeless (netPend hG a S) := by

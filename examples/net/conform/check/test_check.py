@@ -313,6 +313,11 @@ def eager_admits(ops, init):
             if op[0] == "W":
                 branches = {}
                 for c, pr in states:
+                    # D25: no step while another Write of the end is between its first step
+                    # and its last (it holds the end's write lock)
+                    if any(j != i and not done >> j & 1 and ops[j][0][0] == "W" and
+                           ops[j][0][1] == op[1] and pr[j] > 0 for j in range(n)):
+                        continue
                     for label, fin, np_, cs in eager_write_moves(c, op[1], op[2], pr[i], r):
                         pr2 = pr[:i] + (np_,) + pr[i + 1:]
                         b = branches.setdefault((label, fin), set())
@@ -353,15 +358,12 @@ def lazy_admits(ops, init_lazy):
         elif kind == "W":
             w = len(W)
             W.append(op[2])
-            hi = ret if ret is not None else float("inf")
-            split = any(j != i and o[0][0] == "W" and o[0][1] == s and o[2] <= hi and
-                        (o[3] if o[3] is not None else float("inf")) >= call for j, o in enumerate(ops))
             if r is PENDING:
-                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]), sp=split:
-                        Z.write_pending(st, s, j, w, L, sp))
+                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]):
+                        Z.write_pending(st, s, j, w, L, dn))
             else:
-                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]), r=r, sp=split:
-                        Z.write(st, s, j, w, L, r[0], r[1], sp))
+                step = (lambda st, dn, s=s, j=i, w=w, L=len(op[2]), r=r:
+                        Z.write(st, s, j, w, L, r[0], r[1], dn))
         elif kind == "C":
             step = (lambda st, dn, s=s: Z.close_pending(st, s)) if r is PENDING else \
                 (lambda st, dn, s=s, r=r: Z.close(st, s, r))
@@ -629,14 +631,27 @@ class Positive(Base):
         self.assertEqual([(x["res"]["k"], x["res"]["code"]) for x in parts], [(3, 0), (0, 2)])
         self.assertEqual(parts[1]["data"], b"defgh".hex())
 
+    def test_overlapping_writes_contiguous(self):
+        # two Writes of one end overlapping in time: each one's bytes contiguous, in either order
+        # (D25, Go's write lock); their steps never interleave
+        for got in (b"AAAABB", b"BBAAAA"):
+            with self.subTest(got=got):
+                self.tr = Trace()
+                d, a = setup_conn(self.tr)
+                d.write(10, 30, "c1", b"AAAA", g=1)
+                d.write(11, 29, "c1", b"BB", g=2)
+                a.read(31, 32, "c1", 10, got)
+                self.admitted()
+
     def test_overlapping_writes_interleaved(self):
-        # two Writes of one end overlapping in time: the model lets their steps interleave
-        # (Go's fdMutex does not, but the model is what is checked)
+        # the same, interleaved: excluded since v3.3 (D25: a Write holds its end's write lock from
+        # its first step to its last, as Go's poll.FD.Write holds fdMutex's write lock)
         d, a = setup_conn(self.tr)
         d.write(10, 30, "c1", b"AAAA", g=1)
         d.write(11, 29, "c1", b"BB", g=2)
         a.read(31, 32, "c1", 10, b"AABBAA")
-        self.admitted()
+        r = self.check()
+        self.assertEqual(r["verdict"], "NOT ADMITTED", checker.report(r, verbose=True))
 
     def test_dialtimeout_abandoned(self):
         # D16: a DialTimeout fails (either timeout shape), and the listener accepts its connection,
@@ -1092,7 +1107,7 @@ class Sample(unittest.TestCase):
                 self.assertEqual(r["verdict"], "ADMITTED", checker.report(r, verbose=True))
                 self.assertIsNotNone(r["witness"])
                 n += 1
-        self.assertEqual(n, 14)
+        self.assertEqual(n, 15)
 
     def test_sample_mutants_rejected(self):
         files = sorted(glob.glob(os.path.join(TESTDATA, "*.tar.gz")))

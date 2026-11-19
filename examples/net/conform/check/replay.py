@@ -313,8 +313,13 @@ def _replay(ck, ents, token_of, used, marks):
                         marks.add(y)
                         raise _Restart()
                     fail(x, f"Write step ({k}, {res})")
-                cn2 = M.set_out(cn, s, d2)
-                if not M.net_step("Write", (e, rs), L, one(cnum, cn), (k, M.err_code(res)), L, one(cnum, cn2)):
+                first = wpart.get((id(cp), i), 0) == 0
+                if M.lock(cn, s) == first:
+                    fail(x, "Write step: the end's write lock is " +
+                         ("held by another Write (D25)" if first else "not held by this Write"))
+                cn2 = M.set_lock(M.set_out(cn, s, d2), s, not M.write_last(rs, k, res))
+                if not M.net_step("Write", (e, rs, first), L, one(cnum, cn), (k, M.err_code(res)), L,
+                                  one(cnum, cn2)):
                     fail(x, f"Write step ({k}, {res})")
                 conns[cnum] = cn2
                 wprog[(id(cp), i)] = p + k

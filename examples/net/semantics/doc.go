@@ -4,7 +4,7 @@
 // AcceptStep, DialStep, LisClose and the node crash; each operation's outcome
 // is a relation there: ReadOutcome, WriteOutcome, CloseOutcome,
 // CloseWriteOutcome, DeadlineOutcome, LisCloseOutcome, ListenAt), and of the
-// trusted net models (Net/TrustedCode/net.lean), numbered D1-D22 as in
+// trusted net models (Net/TrustedCode/net.lean), numbered D1-D25 as in
 // Impl.lean's header:
 //
 //	D1  ReadStep         D8   DialStep              D15 a Write is a loop of steps (WriteOutcome)

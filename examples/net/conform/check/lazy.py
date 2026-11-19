@@ -118,9 +118,10 @@ def _after_read(d, segs, n):
 # ---------------------------------------------------------------------------------------------
 # A connection: (dEnd, aEnd, up, down, inflight), ends as model.NetEnd; side 0 the dialer, 1 the
 # acceptor. Impl: NetConn without `addr` and `accepted` (the address component's). `inflight`: the
-# Write calls that have taken steps and not finished, as (op index, progress so far): a Go Write is
-# a loop of the extension's steps (poll.FD.Write), each at its own point in the call's interval;
-# not model state, the search's record of where each call is in its loop.
+# Write calls that have taken steps and not finished, as (op index, progress so far, side): a Go
+# Write is a loop of the extension's steps (poll.FD.Write), each at its own point in the call's
+# interval; the search's record of where each call is in its loop, and (v3.3, D25) the model's
+# write locks: an end's lock is held exactly while a Write of that end is in flight.
 
 END_FRESH = M.END_FRESH
 CONN_FRESH = (END_FRESH, END_FRESH, DIR_FRESH, DIR_FRESH, frozenset())
@@ -136,18 +137,28 @@ def set_end(c, s, e):
 
 
 def progress(c, j):
-    for x, p in c[4]:
+    for x, p, _ in c[4]:
         if x == j:
             return p
     return 0
 
 
-def set_progress(c, j, p):
-    """p None: the call is done (removed)."""
+def set_progress(c, j, p, s=None):
+    """p None: the call is done (removed); else its progress, the call a Write of the end s."""
     fl = frozenset(x for x in c[4] if x[0] != j)
     if p is not None:
-        fl = fl | {(j, p)}
+        fl = fl | {(j, p, s)}
     return (c[0], c[1], c[2], c[3], fl)
+
+
+def lock_holder(c, s, j, dn):
+    """Impl: NetConn.lock (D25). The other Write of the end s in flight (holding its write lock),
+    if any; `dn(i)` says whether operation i is done (a dropped unfinished call: its process
+    ended)."""
+    for x, _, xs in c[4]:
+        if x != j and xs == s and not dn(x):
+            return x
+    return None
 
 
 def _none(why):
@@ -206,9 +217,6 @@ def read(c, s, n, r, W):
     return _none(f"no ReadOutcome gives {r}")
 
 
-SPLIT_MAX = 64  # the longest remainder whose every split is tried (see write())
-
-
 def write_step(c, s, w, lo, L, k, res):
     """Impl: WriteOutcome, ONE step of a Write (the writer's end s, the direction from it): the
     remaining bytes are the component's write w from lo to L; progress k (res None) or a failure
@@ -254,16 +262,20 @@ def write_step(c, s, w, lo, L, k, res):
     return set_dir(c, s, (seg_take(segs, ln - a), ln - a, CUT, None)), None
 
 
-def write(c, s, j, w, L, n, res, split):
+def write(c, s, j, w, L, n, res, dn):
     """The steps of a Write call (the component's op j, write w, L bytes long) that returned
     (n, res): progress steps summing to n, then, for a failure, a failing step (Impl's `poll.FD.Write`
     loop: the count is the progress's sum, the error the last step's). A step's successor is
-    partial (the call goes on) unless it is the call's last.
+    partial (the call goes on) unless it is the call's last. No step while another Write of the end
+    is in flight (D25, its write lock; `dn` as lock_holder's).
 
-    The progress is taken in one step (all that is left of n): that dominates splitting it, unless
-    another Write of the same end overlaps this one in time (`split`), whose steps could come
-    between (README.md, "A Write is a loop of steps"); then every split is tried, for a remainder up
-    to SPLIT_MAX bytes (the checker marks a longer one's failure inconclusive)."""
+    The progress is taken in one step (all that is left of n): that dominates splitting it, since
+    with the write lock no other Write's bytes can come between two of its steps (README.md, "A
+    Write is a loop of steps")."""
+    h = lock_holder(c, s, j, dn)
+    if h is not None:
+        return _none(f"the end's write lock is held by the Write {h} in flight (D25: Writes of one end "
+                     "do not interleave)")
     if res is None and n != L:
         return _none(f"a successful Write returned {n} of {L} bytes (it loops until all are written)")
     if res is not None and not (n < L or n == 0):
@@ -271,18 +283,12 @@ def write(c, s, j, w, L, n, res, split):
     p = progress(c, j)
     if p < n:
         need = n - p
-        ks = [need] + (list(range(1, need)) if split and need <= SPLIT_MAX else [])
-        out = []
-        why = None
-        for k in ks:
-            nc, why = write_step(c, s, w, p, L, k, None)
-            if nc is None:
-                continue
-            if res is None and p + k == L:
-                out.append((set_progress(nc, j, None), {"k": k}))
-            else:
-                out.append((set_progress(nc, j, p + k), {"k": k}, True))
-        return out, why
+        nc, why = write_step(c, s, w, p, L, need, None)
+        if nc is None:
+            return [], why
+        if res is None and p + need == L:
+            return [(set_progress(nc, j, None), {"k": need})], None
+        return [(set_progress(nc, j, p + need, s), {"k": need}, True)], None
     if res is None:  # L == 0: the one step, of nothing, finishes
         nc, why = write_step(c, s, w, 0, 0, 0, None)
         return ([(set_progress(nc, j, None), {"k": 0})], None) if nc is not None else ([], why)
@@ -292,14 +298,15 @@ def write(c, s, j, w, L, n, res, split):
     return [(set_progress(nc, j, None), {"fail": M.ERR_CODE[res]})], None
 
 
-def write_pending(c, s, j, w, L, split):
+def write_pending(c, s, j, w, L, dn):
     """A Write that never returned: any steps, then the process ended (the search may also drop
     it at any point: lincheck's optional operations, which ends it where its steps left it).
     Successors ending the call: every remaining byte written (it finished); all but the last
-    written and a sys failure (a cut keeping them). If `split` (another Write of the same end
-    overlaps it), also each partial step (the call goes on), so that their steps may interleave
-    and it may stop after any count. From a FIN or CUT direction or a closed end its steps change
-    nothing (gamma covers the cut members of FIN)."""
+    written and a sys failure (a cut keeping them). From a FIN or CUT direction or a closed end its
+    steps change nothing (gamma covers the cut members of FIN). No step while another Write of the
+    end is in flight (D25)."""
+    if lock_holder(c, s, j, dn) is not None:
+        return _none("the end's write lock is held by another Write in flight (D25)")
     p = progress(c, j)
     rl = L - p
     st = c[s]
@@ -312,11 +319,6 @@ def write_pending(c, s, j, w, L, split):
     km = rl - 1 if rl > 0 else 0
     out.append((set_dir(done, s, (seg_append_range(segs, w, p, p + km), ln + km, CUT, None)),
                 {"steps": ([{"k": km}] if km else []) + [{"fail": M.ERR_CODE[SYS]}]}))
-    if split and rl <= SPLIT_MAX:
-        for k in range(1, rl):
-            out.append((set_progress(set_dir(c, s, (seg_append_range(segs, w, p, p + k), ln + k, OPEN,
-                                                    None if a is None else a + k)), j, p + k),
-                        {"steps": [{"k": k}]}, True))
     return out, None
 
 

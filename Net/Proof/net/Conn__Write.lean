@@ -3,7 +3,8 @@ The proof of `Net/Spec/net/Conn__Write.lean`: the interface call resolves to
 `conn.Write.impl` (`*TCPConn`'s promoted `Write`), Go's loop (`model.writeLoop`); each iteration
 reads the bytes of `b[nn:]` and makes the extension's `Write` of them, taking the caller's accessor
 (`Net.wp_net_Write`). The loop's invariant (Löb induction): `nn` bytes written, `P (bs.take nn)
-none`, and `nn = 0` or fewer than all.
+none`, and `nn = 0` or fewer than all; and (D25) after the first step, the end's write lock
+(`netWLock`), which the first step took and the last gives back (`writeLast`).
 -/
 module
 
@@ -51,8 +52,12 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   ihave HP := (show P [] none ⊢ P (bs.take nn.toNat) none by subst hnn; exact .rfl) $$ HP
   have hle : nn.toNat ≤ bs.length := by subst hnn; exact Nat.zero_le _
   have hst : nn.toNat = 0 ∨ nn.toNat < bs.length := by subst hnn; exact .inl rfl
+  -- D25: after the first step the loop holds the end's write lock
+  ihave Hlk : iprop(if decide (nn = W64 0) then iprop(True) else
+      netWLock (extGlobalGS netExt (G := hG.goose_globalGS)) cn s) $$ []
+  · subst hnn; simp only [decide_true, ↓reduceIte]; itrivial
   clear hnn
-  iloeb as IH generalizing %nn %hle %hst HP Hsl HΦ
+  iloeb as IH generalizing %nn %hle %hst HP Hsl HΦ Hlk
   unfold model.writeLoop model.connId model.connErr
   wp_auto
   have hslz : sint.Z b.len = bs.length := by
@@ -76,7 +81,7 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   · rw [hnnn]; iframe
   -- the step
   wp_bind (ExternalOp _ _ _)
-  iapply wp_net_Write cn s a (bs.drop nn.toNat) $$ Hat
+  iapply wp_net_Write cn s a (bs.drop nn.toNat) (decide (nn = W64 0)) $$ Hat Hlk
   imod Hacc $$ %(bs.take nn.toNat) %(bs.drop nn.toNat) %(List.take_append_drop _ _) HP
     with ⟨%st, %d, Hend, Hdir, Hk⟩
   imodintro
@@ -85,6 +90,7 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   iintro %k %res %d' %Hw Hend Hdir
   imod Hk $$ %k %res %d' %Hw Hend Hdir with HP
   imodintro
+  iintro Hlk
   have hkle := writeOutcome_le Hw
   simp only [List.length_drop] at hkle
   have hWk : (BitVec.ofNat 64 k).toNat = k := by
@@ -119,10 +125,20 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
         have : nn.toNat + k ≠ bs.length := by
           intro hc; apply hfull; apply BitVec.eq_of_toNat_eq; rw [hnk, h2]; exact hc
         omega
+      have hk1 : 1 ≤ k := writeOutcome_none_pos Hw (by
+        intro h; have := congrArg List.length h; simp at this; omega)
+      have hwl : writeLast (bs.drop nn.toNat) k none = false := by
+        simp only [writeLast, Option.isSome_none, Bool.false_or, decide_eq_false_iff_not,
+          List.length_drop]; omega
+      have hnz : decide (nn + BitVec.ofNat 64 k = W64 0) = false := by
+        rw [decide_eq_false_iff_not]; intro h0
+        have := congrArg BitVec.toNat h0; rw [hnk] at this; simp at this; omega
+      rw [hwl] at *
       rw [htk] at *
       iapply IH $$ %(nn + BitVec.ofNat 64 k) %(by rw [hnk]; omega) %(.inr (by rw [hnk]; exact hlt))
-        [HP] Hsl HΦ
-      rw [hnk]; iexact HP
+        [HP] Hsl HΦ [Hlk]
+      · rw [hnk]; iexact HP
+      · rw [hnz]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hlk
   · -- a failure: nothing counted
     obtain rfl := writeOutcome_fail Hw
     wp_auto

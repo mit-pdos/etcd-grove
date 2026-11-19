@@ -8,7 +8,7 @@ example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
 (`notes/net-tcp-v3-plan.md` for v3, D14-D21).
 
-**Version v3.2** (2026-11-15). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
+**Version v3.3** (2026-11-19). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
 v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write
 nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14-D21), v3.1 (a
 `Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
@@ -24,7 +24,8 @@ end to the other) is the bytes written and not yet read, oldest first, and its s
 writer may write more), `fin` (the writer shut its write side, by `Close` or `CloseWrite`) or
 `cut` (the connection broke: a reset, a kernel timeout, the death of the peer's process or
 machine). An end (`NetEnd`) is whether `Close` was called on it, and whether a read deadline and a
-write deadline are set. A node's local state (`NetLocal`) is its host and its listeners (each an
+write deadline are set; and each end has a write lock (`NetConn.lock`, D25), held by a `Write` of
+that end between its first step and its last, which a program sees in the order of the bytes. A node's local state (`NetLocal`) is its host and its listeners (each an
 address and whether it is open). Nothing records past operations.
 
 **Handles.** A connection end is named by a 64-bit id, `2 c + s` for the connection `c` and the
@@ -40,7 +41,7 @@ which names nothing (no connection is numbered 0 and no listener has id 0: `Dial
 **Each operation's outcome is a pure relation** on one end's state and one direction
 (`ReadOutcome`, `WriteOutcome`, `CloseOutcome`, `CloseWriteOutcome`, `DeadlineOutcome`); the step
 (`NetStep`) looks the connection up, takes an outcome, and writes it back; or it stutters (D22).
-A `Write` is several steps (D2, D15), the others one. Results are pairs, as goose returns a Go
+A `Write` is several steps (D2, D15, D25), the others one. Results are pairs, as goose returns a Go
 function's results.
 
 **Errors (D14).** Every failure has a kind (`NetErr`), which the trusted models turn into Go's error
@@ -81,7 +82,9 @@ call's error (an `*os.SyscallError` around a `syscall.Errno`: `ECONNRESET`, `EPI
   `Write` returns `(nn, nil)` once its steps counted `nn = len(b)` with no failure, and `(nn, err)`
   at its first failing step: fewer bytes than asked only with an error. An empty `b` takes one step
   (Go makes the system call for an empty buffer too, after the deadline check: `TestEmptyWrite`),
-  which may fail. A step with no write deadline set does not time out.
+  which may fail. A step with no write deadline set does not time out. D25: the model passes each
+  step whether it is its `Write`'s first (`nn = 0`); the first takes the end's write lock and the
+  last (`writeLast`: a failure, or every byte written) releases it.
 * D3 `"Close"` of an end (`CloseOutcome`): `closed` if it is closed already; otherwise (D17) the
   end is closed and its direction, if open, becomes `fin`, with success: `poll.FD.Close` fails only
   when the fd is closing already (`increfAndClose`), and the system call's error is that of
@@ -132,7 +135,11 @@ so that a `Dial` with no listener cannot connect to itself, and no two plan stri
 (`TestAddressAliases`); `Listen` and `Dial` compare strings, as the kernel then does. *A closed
 world* (stated in prose only): no process outside the system's nodes listens at, or dials, the
 plan's addresses (an outside listener at a server's address would accept its clients:
-`examples/axiomcx/tcp-squat`). *The target configuration*: Linux 7.0 with its default sysctls,
+`examples/axiomcx/tcp-squat`). *Fewer than 2^20 concurrent calls on one socket* (stated in prose
+only; the v3.3 review's F1): Go's `fdMutex` (`internal/poll/fd_mutex.go`) panics ("too many
+concurrent operations on a single file or socket") when more than 1048575 calls wait for one fd's
+write lock (D25) or read lock, or hold references to it; the model lets them wait (a stutter), so
+every theorem assumes no process gets there. *The target configuration*: Linux 7.0 with its default sysctls,
 Go 1.27.3 (its listeners' default, MPTCP when available, behaves as TCP for every decision here),
 measured in `examples/net/semantics/`.
 
@@ -173,7 +180,8 @@ modeled (the methods are not modeled either, so a program calling them is stuck:
   the outcome is `Panic` (GooseLang's builtin panic, stuck and not recoverable, `wp_PanicOp`; not
   `go.panic`'s, which `recover` catches), so a proof must show that the program never makes the
   call. Every state, by operation (`Tests.lean`'s `isNetStep_total`: every operation in every state
-  has an outcome that is not a stutter):
+  has an outcome that is not a stutter, but a `Write`'s first step while another holds the lock,
+  D25):
 
   | operation | argument, state | outcomes besides the stutter |
   |---|---|---|
@@ -237,7 +245,8 @@ deriving DecidableEq, Inhabited
 def NetEnd.fresh : NetEnd := ⟨false, false, false⟩
 
 /-- A connection: its address, whether it was accepted, its two ends (`false` the dialer, `true`
-the acceptor) and its two directions. -/
+the acceptor), its two directions, and each end's write lock (D25: held by a `Write` of the end
+from its first step to its last). -/
 structure NetConn where
   addr : GoString
   accepted : Bool
@@ -247,16 +256,21 @@ structure NetConn where
   up : NetDir
   /-- From the acceptor to the dialer. -/
   down : NetDir
+  /-- D25. The dialer's end's write lock is held. -/
+  dLock : Bool
+  /-- D25. The acceptor's end's write lock is held. -/
+  aLock : Bool
 deriving Inhabited
 
 /-- A new connection to `a`. -/
 def NetConn.fresh (a : GoString) : NetConn :=
-  ⟨a, false, NetEnd.fresh, NetEnd.fresh, NetDir.fresh, NetDir.fresh⟩
+  ⟨a, false, NetEnd.fresh, NetEnd.fresh, NetDir.fresh, NetDir.fresh, false, false⟩
 
 /-- D16. The connection a failed dial of `a` may leave: pending, its dialer's end closed and its
 direction from it shut and empty. -/
 def NetConn.abandoned (a : GoString) : NetConn :=
-  ⟨a, false, { NetEnd.fresh with closed := true }, NetEnd.fresh, ⟨[], .fin⟩, NetDir.fresh⟩
+  ⟨a, false, { NetEnd.fresh with closed := true }, NetEnd.fresh, ⟨[], .fin⟩, NetDir.fresh, false,
+    false⟩
 
 /-- The state of the end `s` of `c`. -/
 def NetConn.endSt (c : NetConn) : Bool → NetEnd
@@ -277,6 +291,16 @@ def NetConn.setEnd (c : NetConn) : Bool → NetEnd → NetConn
 def NetConn.setOut (c : NetConn) : Bool → NetDir → NetConn
   | false, d => { c with up := d }
   | true, d => { c with down := d }
+
+/-- D25. The write lock of the end `s` of `c` is held. -/
+def NetConn.lock (c : NetConn) : Bool → Bool
+  | false => c.dLock
+  | true => c.aLock
+
+/-- `c` with the write lock of its end `s` set to `b`. -/
+def NetConn.setLock (c : NetConn) : Bool → Bool → NetConn
+  | false, b => { c with dLock := b }
+  | true, b => { c with aLock := b }
 
 /-- The network. -/
 structure NetGlobal where

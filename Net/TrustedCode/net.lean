@@ -96,7 +96,8 @@ structure conn [GooseExts] where
   laddr' : GoInterface
   raddr' : GoInterface
 
-instance conn.zero_val [GooseExts] : ZeroVal conn := ⟨conn.mk zeroValDef zeroValDef zeroValDef⟩
+instance conn.zero_val [GooseExts] : ZeroVal conn :=
+  ⟨conn.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
 /-- `TCPConn` (`struct{ conn }`, as Go's). -/
 structure TCPConn [GooseExts] where
@@ -112,7 +113,8 @@ structure TCPListener [GooseExts] where
   id' : w64
   addr' : GoInterface
 
-instance TCPListener.zero_val [GooseExts] : ZeroVal TCPListener := ⟨TCPListener.mk zeroValDef zeroValDef⟩
+instance TCPListener.zero_val [GooseExts] : ZeroVal TCPListener :=
+  ⟨TCPListener.mk zeroValDef zeroValDef zeroValDef⟩
 
 section code
 variable [GooseExts] [GoGlobalContext]
@@ -205,9 +207,11 @@ class FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
 attribute [instance] FieldAssumptions.conn_get_id FieldAssumptions.conn_set_id
   FieldAssumptions.conn_get_laddr FieldAssumptions.conn_set_laddr
   FieldAssumptions.conn_get_raddr FieldAssumptions.conn_set_raddr
+  FieldAssumptions.conn_get_net FieldAssumptions.conn_set_net
   FieldAssumptions.net_get_conn FieldAssumptions.net_set_conn
   FieldAssumptions.lis_get_id FieldAssumptions.lis_set_id
   FieldAssumptions.lis_get_addr FieldAssumptions.lis_set_addr
+  FieldAssumptions.lis_get_net FieldAssumptions.lis_set_net
 
 /-! The types as goose names them (their `.ty` is in `Code.net`, which imports this file), and
 helpers of the models (not Go functions). -/
@@ -225,10 +229,10 @@ helpers of the models (not Go functions). -/
 
 /-- `&OpError{Op: op, Net: "tcp", Source: src, Addr: addr, Err: err}` as an `error`. -/
 noncomputable def model.opError : val :=
-  λ: "op" "src" "addr" "err",
+  λ: "op" "nw" "src" "addr" "err",
     let: "pe" := GoAlloc model.OpError (GoZeroVal model.OpError #()) in
     StructFieldRef model.OpError go!"Op" "pe" <-[go.string] "op" ;;
-    StructFieldRef model.OpError go!"Net" "pe" <-[go.string] #(go!"tcp") ;;
+    StructFieldRef model.OpError go!"Net" "pe" <-[go.string] "nw" ;;
     StructFieldRef model.OpError go!"Source" "pe" <-[model.Addr] "src" ;;
     StructFieldRef model.OpError go!"Addr" "pe" <-[model.Addr] "addr" ;;
     StructFieldRef model.OpError go!"Err" "pe" <-[go.error] "err" ;;
@@ -291,7 +295,7 @@ noncomputable def model.connErr : val :=
 
 /-- A new `*TCPConn` for the connection end `id`, with new addresses, as a `Conn`. -/
 noncomputable def model.newConn : val :=
-  λ: "id",
+  λ: "id" "nw",
     let: "t" := GoAlloc model.TCPConn (GoZeroVal model.TCPConn #()) in
     StructFieldRef model.conn go!"id" (StructFieldRef model.TCPConn go!"conn" "t") <-[go.uint64]
       "id" ;;
@@ -420,13 +424,17 @@ of those bytes (one step: the count it adds and its result's code), until a step
 `len(b)`: `(nn, nil)` then, else `(nn, err)` with `err` the `&OpError{Op: "write", ...}` of the
 failing step's kind. (Go tests `nn == len(p)` before the error, returning `nn, err` there: `err` is
 nil but for an empty `b`, whose one step's error both return.) `b`'s bytes are read at each step,
-as `write(2)` reads them; Go's `maxRW` chunks (1 GiB) are among a step's outcomes (any prefix). -/
+as `write(2)` reads them; Go's `maxRW` chunks (1 GiB) are among a step's outcomes (any prefix).
+D25: each step says whether it is the `Write`'s first (`nn = 0`: a later step has counted at least
+one byte, since a step that does not fail and does not end the loop counts one), which takes the
+end's write lock (Go's `fd.writeLock()` before the loop), released by the loop's last step (its
+`defer fd.writeUnlock()`). -/
 noncomputable def model.writeLoop : val :=
   rec: "write" "c" "b" "nn" :=
     let: "len" := (FuncResolve go.len [go.GoType.SliceType go.byte]) #() "b" in
     let: "r" := ExternalOp Net.netExt.name "Write" (model.connId "c",
-      Convert (go.GoType.SliceType go.byte) go.string
-        (Slice (go.GoType.SliceType go.byte) ("b", "nn", "len"))) in
+      (Convert (go.GoType.SliceType go.byte) go.string
+        (Slice (go.GoType.SliceType go.byte) ("b", "nn", "len")), "nn" =⟨go.int⟩ #(W64 0))) in
     let: "nn" := "nn" +⟨go.int⟩ Fst "r" in
     if: Snd "r" ≠⟨go.uint64⟩ #(W64 0) then
       ("nn", model.connErr #(go!"write") "c" (Snd "r") #(go!"write"))

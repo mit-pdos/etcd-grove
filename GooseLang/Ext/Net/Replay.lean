@@ -234,7 +234,8 @@ inductive WOp where
   /-- `conn`: the connection made (on success), or left (D16, on failure). -/
   | dial (a : GoString) (code : Nat) (conn : Option Nat) (endv : Nat)
   | read (conn : Nat) (side : Bool) (endv n code : Nat) (data : String) (keep : Option Nat)
-  | write (conn : Nat) (side : Bool) (endv : Nat) (data : String) (k code : Nat)
+  /-- `first`: the step is its `Write`'s first (D25: it takes the end's write lock). -/
+  | write (conn : Nat) (side : Bool) (endv : Nat) (data : String) (k code : Nat) (first : Bool)
   | close (conn : Nat) (side : Bool) (endv code : Nat)
   | closeWrite (conn : Nat) (side : Bool) (endv code : Nat)
   | setDeadline (conn : Nat) (side : Bool) (endv kind wall ext code : Nat)
@@ -257,8 +258,8 @@ def WOp.toEv (node : String) : WOp → Ev
   | .read _ _ endv n code data _ =>
     .step node "Read" (PairV (#(bv endv)) (#(bv n)))
       (Val (readResOf code (hexBytes data)).toVal)
-  | .write _ _ endv data k code =>
-    .step node "Write" (PairV (#(bv endv)) (#(hexBytes data)))
+  | .write _ _ endv data k code first =>
+    .step node "Write" (PairV (#(bv endv)) (PairV (#(hexBytes data)) (#first)))
       (Val (PairV (#(bv k)) (#(errCode (errOf code)))))
   | .close _ _ endv code => .step node "Close" (#(bv endv)) (Val (#(errCode (errOf code))))
   | .closeWrite _ _ endv code =>
@@ -397,7 +398,7 @@ def step (w : World) (node : String) : WOp → Except String World
           if readOutcomeB st d (bv n).toNat r d' then .ok (w.setConn conn (cn.setOut (!side) d'))
           else .error s!"Read: not ReadOutcome (code {code}, {bs.length} bytes, cut {keep})"
         else .error s!"Read: code {code}"
-  | .write conn side endv data k code =>
+  | .write conn side endv data k code first =>
     withConn w node conn side endv fun cn =>
       match hexDecode data with
       | none => .error "Write: data is not hex"
@@ -405,9 +406,12 @@ def step (w : World) (node : String) : WOp → Except String World
         let st := cn.endSt side
         let d := cn.out side
         let d' := writeAfter st d rs k (errOf code)
-        if okCode code ∧ writeOutcomeB st d rs k (errOf code) d' then
-          .ok (w.setConn conn (cn.setOut side d'))
-        else .error s!"Write: not WriteOutcome (k {k}, code {code}, of {rs.length} bytes left)"
+        if cn.lock side = !first then
+          if okCode code ∧ writeOutcomeB st d rs k (errOf code) d' then
+            .ok (w.setConn conn ((cn.setOut side d').setLock side (!writeLast rs k (errOf code))))
+          else .error s!"Write: not WriteOutcome (k {k}, code {code}, of {rs.length} bytes left)"
+        else .error (if first then "Write: the end's write lock is held by another Write (D25)"
+          else "Write: a later step of a Write without the end's write lock (D25)")
   | .close conn side endv code =>
     withConn w node conn side endv fun cn =>
       let st := cn.endSt side
@@ -646,7 +650,7 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     refine mstep_same hL (Or.inl ⟨bv endv, bv n, conn, side, rfl, hE, ⟨cn, _, _,
       lookup_conns hcn, readOutcomeB_iff.mp ho, ?_, World.global_setConn _ _ _⟩, rfl⟩)
     simp only [hexBytes_of hbs]
-  | write conn side endv data k code =>
+  | write conn side endv data k code first =>
     simp only [step] at h
     obtain ⟨L, cn, hL, hcn, hE, h⟩ := withConn_ok h
     split at h
@@ -654,10 +658,14 @@ theorem step_sound {w w' : World} {node : String} {op : WOp} (h : step w node op
     rename_i rs hrs
     split at h
     case isFalse => cases h
+    rename_i hlk
+    split at h
+    case isFalse => cases h
     rename_i hok
     cases h
-    refine mstep_same hL (Or.inl ⟨bv endv, rs, conn, side, ?_, hE, ⟨cn, k, errOf code, _,
-      lookup_conns hcn, writeOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩, rfl⟩)
+    refine mstep_same hL (Or.inl ⟨bv endv, rs, first, conn, side, ?_, hE, ⟨cn, k, errOf code, _,
+      lookup_conns hcn, hlk, writeOutcomeB_iff.mp (by simp_all), rfl, World.global_setConn _ _ _⟩,
+      rfl⟩)
     simp only [hexBytes_of hrs]
   | close conn side endv code =>
     simp only [step] at h
@@ -844,9 +852,9 @@ def parseStep (j : Json) : Except String WStep := do
       (← jNat res "code") (jStrD res "data") keep
     pure { base with op := o, rk := jNat? res "k" }
   | "Write" =>
-    let o := WOp.write (← jNat j "conn") (← jSide j) (← jNat j "end") (← jStr j "data")
-      (← jNat res "k") (← jNat res "code")
     let part ← jNat j "part"
+    let o := WOp.write (← jNat j "conn") (← jSide j) (← jNat j "end") (← jStr j "data")
+      (← jNat res "k") (← jNat res "code") (part == 0)
     pure { base with op := o, part, last := jBool j "last" }
   | "Close" =>
     let o := WOp.close (← jNat j "conn") (← jSide j) (← jNat j "end") (← jNat res "code")
@@ -1185,7 +1193,7 @@ def checkStep (x : Ctx) (cs : CState) (s : WStep) : Except String CState := do
     if let some x := ex then
       if code == 0 then chk (data == x.data) s!"{c.where_}: the step read other bytes than the call returned"
     return one cs
-  | .write conn side _ data k code =>
+  | .write conn side _ data k code _ =>
     sockOf cs c conn side
     let full := jStrD c.b "data"
     chk (full.utf8ByteSize % 2 == 0 && jNatD c.b "n" 0 == full.utf8ByteSize / 2) s!"{c.where_}: the call's data is not its n bytes"

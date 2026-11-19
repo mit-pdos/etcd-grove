@@ -356,10 +356,18 @@ private theorem orInvalid_total {valid : Prop} {step : Expr → NetLocal → Net
     exact ⟨e', L', g', .inl hs⟩
   · exact ⟨_, _, _, .inr ⟨hv, rfl, rfl, rfl⟩⟩
 
+/-- D25: the one state with no outcome rule besides the stutter: a `Write`'s first step at an end
+whose write lock another `Write` holds (it waits for the lock, as Go's `fd.writeLock()` does; the
+holder's own steps have outcomes, `isNetStep_total`). -/
+def WriteWaits (op : String) (v : val) (g : NetGlobal) : Prop :=
+  op = "Write" ∧ ∃ (e : w64) (bs : List w8) (c : Nat) (s : Bool) (cn : NetConn),
+    v = PairV (#e) (PairV (#bs) (#true)) ∧ IsEnd e c s ∧ g.conns !! c = some cn ∧ cn.lock s = true
+
 /-- D22: every operation, in every state and on every argument, has an outcome rule (besides the
-stutter): a step, or a panic. -/
-theorem isNetStep_total (op : String) (v : val) (L : NetLocal) (g : NetGlobal) :
-    ∃ e' L' g', IsNetStep op v L g e' L' g' := by
+stutter): a step, or a panic; but a `Write`'s first step waiting for the write lock (D25,
+`WriteWaits`). -/
+theorem isNetStep_total (op : String) (v : val) (L : NetLocal) (g : NetGlobal)
+    (hw : ¬ WriteWaits op v g) : ∃ e' L' g', IsNetStep op v L g e' L' g' := by
   unfold IsNetStep
   split
   · apply orInvalid_total
@@ -383,7 +391,18 @@ theorem isNetStep_total (op : String) (v : val) (L : NetLocal) (g : NetGlobal) :
     obtain ⟨r, d', hr⟩ := readOutcome_total (cn.endSt s) (cn.out (!s)) n.toNat
     exact ⟨_, _, _, e, n, c, s, rfl, hE, ⟨cn, r, d', hcn, hr, rfl, rfl⟩, rfl⟩
   · apply orInvalid_total
-    rintro ⟨e, bs, c, s, rfl, hE, hc⟩
+    rintro ⟨e, bs, first, c, s, rfl, ⟨hE, hc⟩, hfl⟩
+    obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
+    have hl : cn.lock s = !first := by
+      cases first
+      · simpa [hcn] using hfl
+      · cases h : cn.lock s
+        · rfl
+        · exact absurd ⟨rfl, e, bs, c, s, cn, rfl, hE, hcn, h⟩ hw
+    obtain ⟨k, res, d', hwo⟩ := writeOutcome_total (cn.endSt s) (cn.out s) bs
+    exact ⟨_, _, _, e, bs, first, c, s, rfl, hE, ⟨cn, k, res, d', hcn, hl, hwo, rfl, rfl⟩, rfl⟩
+  · apply orInvalid_total
+    rintro ⟨e, kind, x, c, s, rfl, hE, hc⟩
     obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
     obtain ⟨k, res, d', hw⟩ := writeOutcome_total (cn.endSt s) (cn.out s) bs
     exact ⟨_, _, _, e, bs, c, s, rfl, hE, ⟨cn, k, res, d', hcn, hw, rfl, rfl⟩, rfl⟩
@@ -447,7 +466,9 @@ theorem isNetStep_result {op : String} {v : val} {L L' : NetLocal} {g g' : NetGl
   · refine orInvalid_result ?_ h
     rintro ⟨e, n, c, s, -, -, ⟨cn, r, d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
   · refine orInvalid_result ?_ h
-    rintro ⟨e, bs, c, s, -, -, ⟨cn, k, res, d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+    rintro ⟨e, bs, first, c, s, -, -, ⟨cn, k, res, d', -, -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
+  · refine orInvalid_result ?_ h
+    rintro ⟨e, kind, x, c, s, -, -, ⟨cn, res, -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
   · refine orInvalid_result ?_ h
     rintro ⟨e, c, s, -, -, ⟨cn, res, st', d', -, -, rfl, -⟩, -⟩; exact ⟨_, rfl⟩
   · refine orInvalid_result ?_ h
@@ -542,12 +563,41 @@ outcome; an empty one finishes with `0`. -/
 example (h0 : GMap Loc (NonAtomic val)) (cn : NetConn) (hd : cn.up = ⟨[], .open⟩)
     (he : cn.dEnd = st0) :
     let g : NetGlobal := ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩
-    NetStep "Write" (PairV (#(endId 1 false)) (#b3)) h0 LA g
-        (ExternalOp netExt.name "Write" (Val (PairV (#(endId 1 false)) (#b3)))) h0 LA g ∧
+    NetStep "Write" (PairV (#(endId 1 false)) (PairV (#b3) (#true))) h0 LA g
+        (ExternalOp netExt.name "Write" (Val (PairV (#(endId 1 false)) (PairV (#b3) (#true))))) h0
+        LA g ∧
       ¬ WriteOutcome (cn.endSt false) (cn.out false) b3 0 none (cn.out false) ∧
       WriteOutcome (cn.endSt false) (cn.out false) [] 0 none (cn.out false) := by
   refine ⟨⟨rfl, .inl ⟨rfl, rfl, rfl⟩⟩, ?_, ?_⟩ <;>
     simp only [NetConn.endSt, NetConn.out, hd, he] <;> unfold WriteOutcome <;> decide
+
+/-- `TestWriteLock` (D25): a `Write`'s first step that does not end it (one byte of three) takes
+the end's write lock; while it is held, another `Write`'s first step has no outcome (it waits), so
+the bytes of two `Write`s of one end never interleave. -/
+example (cn : NetConn) (hl : cn.lock false = false) (hd : cn.up = ⟨[], .open⟩)
+    (he : cn.dEnd = st0) :
+    let g : NetGlobal := ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩
+    WriteStep 1 false b3 true g (Val (PairV (#(BitVec.ofNat 64 1)) (#(errCode none))))
+      (g.setConn 1 ((cn.setOut false ⟨[97], .open⟩).setLock false true)) := by
+  refine ⟨cn, 1, none, ⟨[97], .open⟩, GMap.lookup_insert _ _ _, by simp [hl], ?_, rfl, ?_⟩
+  · simp only [NetConn.endSt, NetConn.out, hd, he]; unfold WriteOutcome; decide
+  · simp [writeLast, b3]
+example (cn : NetConn) (hl : cn.lock false = true) (bs : List w8) (e' : Expr) (g' : NetGlobal) :
+    ¬ WriteStep 1 false bs true ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩ e' g' := by
+  rintro ⟨cn', k, res, d', hcn, hl', -⟩
+  simp only [GMap.lookup_insert, Option.some.injEq] at hcn
+  subst hcn
+  simp_all
+/-- ... the holder's later steps need the lock (a later step without it is an invalid use), and
+its last step (every byte written, or a failure) frees it. -/
+example : writeLast b3 1 none = false ∧ writeLast [98, 99] 2 none = true ∧
+    writeLast [98, 99] 0 (some .closed) = true ∧ writeLast [] 0 none = true := by decide
+example (cn : NetConn) (hl : cn.lock false = false) (bs : List w8) (e' : Expr) (g' : NetGlobal) :
+    ¬ WriteStep 1 false bs false ⟨planA, (∅ : GMap Nat NetConn).insert 1 cn⟩ e' g' := by
+  rintro ⟨cn', k, res, d', hcn, hl', -⟩
+  simp only [GMap.lookup_insert, Option.some.injEq] at hcn
+  subst hcn
+  simp_all
 
 end steps
 

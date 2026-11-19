@@ -62,6 +62,21 @@ section algebra
 @[simp] theorem accepted_setOut (cn : NetConn) (s : Bool) (d : NetDir) :
     (cn.setOut s d).accepted = cn.accepted := by cases s <;> rfl
 
+@[simp] theorem lock_setEnd (cn : NetConn) (s t : Bool) (st : NetEnd) :
+    (cn.setEnd s st).lock t = cn.lock t := by cases s <;> cases t <;> rfl
+@[simp] theorem lock_setOut (cn : NetConn) (s t : Bool) (d : NetDir) :
+    (cn.setOut s d).lock t = cn.lock t := by cases s <;> cases t <;> rfl
+@[simp] theorem lock_setLock (cn : NetConn) (s t b : Bool) :
+    (cn.setLock s b).lock t = if s = t then b else cn.lock t := by cases s <;> cases t <;> rfl
+@[simp] theorem endSt_setLock (cn : NetConn) (s t b : Bool) :
+    (cn.setLock s b).endSt t = cn.endSt t := by cases s <;> cases t <;> rfl
+@[simp] theorem out_setLock (cn : NetConn) (s t b : Bool) :
+    (cn.setLock s b).out t = cn.out t := by cases s <;> cases t <;> rfl
+@[simp] theorem addr_setLock (cn : NetConn) (s b : Bool) :
+    (cn.setLock s b).addr = cn.addr := by cases s <;> rfl
+@[simp] theorem accepted_setLock (cn : NetConn) (s b : Bool) :
+    (cn.setLock s b).accepted = cn.accepted := by cases s <;> rfl
+
 theorem setEnd_endSt_self (cn : NetConn) (s : Bool) : cn.setEnd s (cn.endSt s) = cn := by
   cases s <;> rfl
 
@@ -211,6 +226,26 @@ theorem writeOutcome_fail {st : NetEnd} {d d' : NetDir} {rs : List w8} {k : Nat}
       · exact h
       · exact h
 
+/-- A step of a `Write` that does not fail counts at least one byte of a non-empty remainder (one
+that would count none is a wait, a stutter, D22). -/
+theorem writeOutcome_none_pos {st : NetEnd} {d d' : NetDir} {rs : List w8} {k : Nat}
+    (h : WriteOutcome st d rs k none d') (hrs : rs ≠ []) : 1 ≤ k := by
+  unfold WriteOutcome at h
+  split at h
+  · cases h.2.1
+  · split at h
+    · rcases h.2.2 with h | ⟨-, h⟩ <;> cases h
+    · rcases h.2 with ⟨-, h1 | h1, -⟩ | ⟨-, h | ⟨-, h⟩⟩
+      · exact h1
+      · exact absurd h1 hrs
+      · cases h
+      · cases h
+    · rcases h with ⟨-, h1 | h1, -⟩ | ⟨-, h, -⟩ | ⟨-, -, h, -⟩
+      · exact h1
+      · exact absurd h1 hrs
+      · cases h
+      · cases h
+
 end outcomes
 
 
@@ -296,35 +331,62 @@ theorem connCtx_acc [AllG GF] (γ : ConnNames) (cn : NetConn) (s t : Bool) :
       ∀ st' d', ghostVar (γ.v s) (1 : Qp).half st' -∗ ghostVar (γ.q t) (1 : Qp).half d' -∗
         connCtx γ ((cn.setEnd s st').setOut t d') := by
   unfold connCtx
-  iintro ⟨%Ha, Hv0, Hv1, Hq0, Hq1⟩
+  iintro ⟨%Ha, Hv0, Hv1, Hq0, Hq1, Hl0, Hl1⟩
   cases s <;> cases t
   · iframe Hv0 Hq0
     isplitr; · ipureintro; exact Ha
     iintro %st' %d' Hv Hq
     simp only [endSt_setOut, endSt_setEnd, out_setOut, out_setEnd, addr_setOut, addr_setEnd,
-      ↓reduceIte, Bool.false_eq_true]
-    iframe Hv Hq Hv1 Hq1
+      lock_setOut, lock_setEnd, ↓reduceIte, Bool.false_eq_true]
+    iframe Hv Hq Hv1 Hq1 Hl0 Hl1
     ipureintro; exact Ha
   · iframe Hv0 Hq1
     isplitr; · ipureintro; exact Ha
     iintro %st' %d' Hv Hq
     simp only [endSt_setOut, endSt_setEnd, out_setOut, out_setEnd, addr_setOut, addr_setEnd,
-      ↓reduceIte, Bool.false_eq_true, Bool.true_eq_false]
-    iframe Hv Hq Hv1 Hq0
+      lock_setOut, lock_setEnd, ↓reduceIte, Bool.false_eq_true, Bool.true_eq_false]
+    iframe Hv Hq Hv1 Hq0 Hl0 Hl1
     ipureintro; exact Ha
   · iframe Hv1 Hq0
     isplitr; · ipureintro; exact Ha
     iintro %st' %d' Hv Hq
     simp only [endSt_setOut, endSt_setEnd, out_setOut, out_setEnd, addr_setOut, addr_setEnd,
-      ↓reduceIte, Bool.false_eq_true, Bool.true_eq_false]
-    iframe Hv Hq Hv0 Hq1
+      lock_setOut, lock_setEnd, ↓reduceIte, Bool.false_eq_true, Bool.true_eq_false]
+    iframe Hv Hq Hv0 Hq1 Hl0 Hl1
     ipureintro; exact Ha
   · iframe Hv1 Hq1
     isplitr; · ipureintro; exact Ha
     iintro %st' %d' Hv Hq
     simp only [endSt_setOut, endSt_setEnd, out_setOut, out_setEnd, addr_setOut, addr_setEnd,
-      ↓reduceIte, Bool.true_eq_false]
-    iframe Hv Hq Hv0 Hq0
+      lock_setOut, lock_setEnd, ↓reduceIte, Bool.true_eq_false]
+    iframe Hv Hq Hv0 Hq0 Hl0 Hl1
+    ipureintro; exact Ha
+
+/-- The connection's part of the context, by the end `s` (its state, the direction from it and its
+write lock, D25): their ghost variables and the lock's part, and the context back for any new state
+of them. -/
+theorem connCtx_accW [AllG GF] (γ : ConnNames) (cn : NetConn) (s : Bool) :
+    connCtx (GF := GF) γ cn ⊢ ⌜γ.addr = cn.addr⌝ ∗
+      ghostVar (γ.v s) (1 : Qp).half (cn.endSt s) ∗ ghostVar (γ.q s) (1 : Qp).half (cn.out s) ∗
+      lockCtx (γ.wl s) (cn.lock s) ∗
+      ∀ d' b, ghostVar (γ.v s) (1 : Qp).half (cn.endSt s) -∗ ghostVar (γ.q s) (1 : Qp).half d' -∗
+        lockCtx (γ.wl s) b -∗ connCtx γ ((cn.setOut s d').setLock s b) := by
+  unfold connCtx
+  iintro ⟨%Ha, Hv0, Hv1, Hq0, Hq1, Hl0, Hl1⟩
+  cases s
+  · iframe Hv0 Hq0 Hl0
+    isplitr; · ipureintro; exact Ha
+    iintro %d' %b Hv Hq Hl
+    simp only [endSt_setOut, endSt_setLock, out_setOut, out_setLock, addr_setOut, addr_setLock,
+      lock_setOut, lock_setLock, ↓reduceIte, Bool.false_eq_true]
+    iframe Hv Hq Hv1 Hq1 Hl Hl1
+    ipureintro; exact Ha
+  · iframe Hv1 Hq1 Hl1
+    isplitr; · ipureintro; exact Ha
+    iintro %d' %b Hv Hq Hl
+    simp only [endSt_setOut, endSt_setLock, out_setOut, out_setLock, addr_setOut, addr_setLock,
+      lock_setOut, lock_setLock, ↓reduceIte, Bool.true_eq_false]
+    iframe Hv Hq Hv0 Hq0 Hl0 Hl
     ipureintro; exact Ha
 
 theorem ghostVar_alloc_halves {A : Type} [Pos.Countable A] [AllG GF] (a : A) :
@@ -580,11 +642,22 @@ theorem wp_net_Write (c : Nat) (s : Bool) (a : GoString) (bs : List w8) (Φ : va
     · exact absurd ⟨endId c s, bs, c, s, rfl, ⟨hb, rfl⟩, by simp [hcn0]⟩ hnv
   · imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
     imodintro
-    iexists st, d
-    iframe Hend Hdir
-    iintro %w %st' %d' %Hout Hend Hdir
-    obtain ⟨rfl, k, res, Hw, rfl⟩ := Hout
-    iapply Hk $$ %k %res %d' %Hw Hend Hdir
+    iframe Hl
+    isplitr [HΦ Hmine]
+    · iapply Hgclose $$ %_ %(And.intro (by simp) (by simp))
+      iapply Hcclose $$ Hv Hq Hlc
+    iapply wp_value'
+    iapply HΦ $$ Hmine
+  · -- an invalid use: excluded (the end exists; a later step holds the lock)
+    by_cases h : first = true ∨ cn.lock s = true
+    · exact absurd (hvalid h) hnv
+    · have hf : first = false := by cases first <;> simp_all
+      have hl : cn.lock s = false := by cases hcl : cn.lock s <;> simp_all
+      subst hf
+      rw [hl]
+      simp only [Bool.false_eq_true, ↓reduceIte]
+      iexfalso
+      iapply netWLock_lockCtx_free _ c s γ $$ Hγ Hlk Hlc
 
 /-- D3. `Close` of the end `s` of `c` (`CloseOutcome`). -/
 theorem wp_net_Close (c : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) :
@@ -885,7 +958,8 @@ def netFresh (hG : NetGS GF) (c : Nat) (s : Bool) : IProp GF :=
 pending at `a`, and its ends' and directions' resources. -/
 theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (cn : NetConn)
     (S : GSet Nat) (ha : g.plan !! a = some h) (hc : g.conns !! c = none) (h0 : c ≠ 0)
-    (hb : 2 * c + 1 < 2 ^ 64) (hca : cn.addr = a) (hacc : cn.accepted = false) :
+    (hb : 2 * c + 1 < 2 ^ 64) (hca : cn.addr = a) (hacc : cn.accepted = false)
+    (hl0 : cn.lock false = false) (hl1 : cn.lock true = false) :
     netCtx hG g -∗ netPend hG a S ==∗
       ⌜c ∉ S⌝ ∗ netCtx hG (g.setConn c cn) ∗ netPend hG a (S ∪ {[c]}) ∗ netConnAt hG c a ∗
       netEnd hG c false (cn.endSt false) ∗ netDir hG c false (cn.out false) ∗
@@ -909,13 +983,15 @@ theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (
   imod ghostVar_alloc_halves (cn.out true) with ⟨%γq1, Hq1, Hq1'⟩
   imod token_alloc (GF := GF) with ⟨%γt0, Ht0⟩
   imod token_alloc (GF := GF) with ⟨%γt1, Ht1⟩
-  let γ : ConnNames := ⟨a, γv0, γv1, γq0, γq1, γt0, γt1⟩
+  imod token_alloc (GF := GF) with ⟨%γw0, Hw0⟩
+  imod token_alloc (GF := GF) with ⟨%γw1, Hw1⟩
+  let γ : ConnNames := ⟨a, γv0, γv1, γq0, γq1, γt0, γt1, γw0, γw1⟩
   imod ghost_map_insert_persist c γ hnm $$ Hn with ⟨Hn, #Hγ⟩
   imod ghost_map_update (S ∪ {[c]}) $$ Hpm Hpend with ⟨Hpm, Hpend⟩
   imodintro
   isplitr; · ipureintro; exact hcS
   iframe Hpend
-  isplitl [Hn Hpm Hpl Hconns Hv0' Hv1' Hq0' Hq1']
+  isplitl [Hn Hpm Hpl Hconns Hv0' Hv1' Hq0' Hq1' Hw0 Hw1]
   · iexists nm.insert c γ, pm.insert a (S ∪ {[c]})
     rw [setConn_plan, setConn_conns]
     iframe Hn Hpm Hpl
@@ -932,9 +1008,10 @@ theorem netCtx_dial (hG : NetGS GF) (g : NetGlobal) (a h : GoString) (c : Nat) (
       iframe Hγ
       isplitr
       · ipureintro; simp [GMap.lookup_insert_eq_iff]
-      unfold connCtx
-      simp only [γ, ConnNames.v, ConnNames.q]
-      iframe Hv0' Hv1' Hq0' Hq1'
+      unfold connCtx lockCtx
+      simp only [γ, ConnNames.v, ConnNames.q, ConnNames.wl, hl0, hl1, Bool.false_eq_true,
+        ↓reduceIte]
+      iframe Hv0' Hv1' Hq0' Hq1' Hw0 Hw1
       ipureintro; exact hca.symm
     iapply BigSepM.bigSepM_impl $$ Hconns
     iintro !> %k %cn' %Hk ⟨%γ', %Hγ', #Hn', Hcc⟩
@@ -985,7 +1062,7 @@ theorem wp_net_Dial (a h : GoString) (Φ : val → IProp GF) :
   · -- a new connection `c`
     icases HΦ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
-    imod netCtx_dial _ g a _ c (NetConn.fresh a) S Hpa hc hc0 hb rfl rfl $$ Hg Hpend
+    imod netCtx_dial _ g a _ c (NetConn.fresh a) S Hpa hc hc0 hb rfl rfl rfl rfl $$ Hg Hpend
       with ⟨%HcS, Hg, Hpend, #Hat, He0, Hd0, He1, Hd1⟩
     simp only [NetConn.fresh, NetConn.endSt, NetConn.out]
     icases Hk $$ %c %HcS Hpend Hat [He1 Hd1] with Hk
@@ -1000,7 +1077,7 @@ theorem wp_net_Dial (a h : GoString) (Φ : val → IProp GF) :
   · -- a failure that leaves the connection `c`, abandoned
     icases HΦ with ⟨-, HAU⟩
     imod HAU with ⟨%S, Hpend, Hk⟩
-    imod netCtx_dial _ g a _ c (NetConn.abandoned a) S Hpa hc hc0 hb rfl rfl $$ Hg Hpend
+    imod netCtx_dial _ g a _ c (NetConn.abandoned a) S Hpa hc hc0 hb rfl rfl rfl rfl $$ Hg Hpend
       with ⟨%HcS, Hg, Hpend, #Hat, He0, Hd0, He1, Hd1⟩
     simp only [NetConn.abandoned, NetConn.endSt, NetConn.out]
     icases Hk $$ %c %HcS Hpend Hat [He1 Hd1] with Hk
@@ -1018,7 +1095,7 @@ theorem connCtx_accepted [AllG GF] (γ : ConnNames) (cn : NetConn) (b : Bool) :
 theorem connCtx_addr [AllG GF] (γ : ConnNames) (cn : NetConn) :
     connCtx (GF := GF) γ cn -∗ ⌜γ.addr = cn.addr⌝ := by
   unfold connCtx
-  iintro ⟨%H, -, -⟩
+  iintro ⟨%H, -⟩
   ipureintro; exact H
 
 
