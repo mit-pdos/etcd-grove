@@ -7,7 +7,11 @@ form `lintest`'s `applySpec` takes for the closure `Check` passes,
 
   `{{ kInOk i ∗ threadTok }} <<{ ∀∀ S, kState γ g0 S }>> Apply(s, i) @@ drvE
      <<{ ∃∃ S' o, kState γ g0 S' ∗ ⌜(k8setcd3S g0).M.step S (i, o) = some S'⌝ }>>
-     {{ RET #o; ioOk i o ∗ threadTok }}`
+     {{ o', RET #o'; ⌜∀ s, step s (i, o') = step s (i, o)⌝ ∗ ioOk i o' ∗ threadTok }}`
+
+It returns an answer `o'` the model cannot tell from the committed `o` (`plainOut o' = plainOut o`:
+the answer's `Raw` holds the store's error, allocated after the linearization point; 2026-11-19,
+option A of `notes/k8s-7g-handoff.md`).
 
 over the library's state `kState γ g0 S` (the history's ghost variable, whose other half is in the
 instance's invariant `kInv γ c g0 γr.kv` at each member: `Proof/.../k8setcd3/Inv.lean`). The input
@@ -70,7 +74,9 @@ abbrev Apply.spec : Prop :=
           (Val #(interface.mkOk (go.GoType.PointerType
             k8s_io.apiserver.pkg.storage.etcd3.store.ty) #sp))) (Val #tbl)) (Val #i)) @@ drvE
       <<{ ∃∃ S' o, kState γ g0 S' ∗ ⌜(k8setcd3S (GF := GF) g0).M.step S (i, o) = some S'⌝ }>>
-      {{ RET #o; (k8setcd3S (GF := GF) g0).ioOk i o ∗ threadTok }})
+      {{ (o' : GoInterface), RET #o';
+        ⌜∀ s, (k8setcd3S (GF := GF) g0).M.step s (i, o') = (k8setcd3S (GF := GF) g0).M.step s (i, o)⌝ ∗
+        (k8setcd3S (GF := GF) g0).ioOk i o' ∗ threadTok }})
 
 end spec
 

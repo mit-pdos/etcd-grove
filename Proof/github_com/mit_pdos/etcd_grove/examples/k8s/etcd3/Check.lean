@@ -102,8 +102,8 @@ theorem Check.wp_proof
       iintro %S' %o Hb
       imod Hc $$ Hb with HQ
       imodintro
-      iintro Hio
-      ihave HQ := HQ $$ Hio
+      iintro %o' Hio
+      ihave HQ := HQ $$ %o' Hio
       wp_auto
       iexact HQ
     isplitr

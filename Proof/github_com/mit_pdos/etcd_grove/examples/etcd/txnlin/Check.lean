@@ -112,7 +112,10 @@ theorem Check.wp_proof
       imod Hc $$ Hb with HQ
       imodintro
       iintro Hio
-      ihave HQ := HQ $$ [$Hio $Htt]
+      ihave HQ := HQ $$ %o [Hio Htt]
+      · iframe
+        ipureintro
+        exact fun _ => rfl
       wp_auto
       iexact HQ
     isplitr

@@ -240,7 +240,7 @@ theorem Run.wp_proof
         try wp_auto
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨⟨x, rfl⟩, [], rfl⟩
+        ipureintro; exact ⟨fun _ => trivial, ⟨x, rfl⟩, [], rfl⟩
       replace Hnp : ¬ x.Kind' = opPutB := Hif
       wp_if_destruct
       · -- Get
@@ -256,7 +256,7 @@ theorem Run.wp_proof
         try wp_auto
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
+        ipureintro; exact ⟨fun _ => trivial, ⟨x, rfl⟩, v, rfl⟩
       · -- Read
         replace Hng : ¬ x.Kind' = opGetB := Hif
         ihave HAU' := kdAu_of_run γr γd x (fun s => s) (fun s => s x.Key')
@@ -270,7 +270,7 @@ theorem Run.wp_proof
         try wp_auto
         iapply HΨ
         iframe Htt
-        ipureintro; exact ⟨⟨x, rfl⟩, v, rfl⟩
+        ipureintro; exact ⟨fun _ => trivial, ⟨x, rfl⟩, v, rfl⟩
     isplitr
     · -- `gen`
       unfold lintest.genSpec

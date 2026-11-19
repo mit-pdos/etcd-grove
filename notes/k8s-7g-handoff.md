@@ -2,6 +2,27 @@
 
 ## START HERE
 
+**2026-11-19 (night 9; for etcd-grove-03). Option A done (lintest's applySpec generalized in place); STOP:
+blocker on the list's Raw (an empty list's `Items` slice: nil-ness not provable over the store's contract).**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`). Commit: option A (see git log):
+  `lintest.applySpec` returns `o'` with `⌜∀ s, S.M.step s (i, o') = S.M.step s (i, o)⌝`; `wp_apply_commit` takes
+  `£ 1 ∗ £ 1`, reopens the invariant at return and swaps the record (`InvOk.swap`, `swapRec`, `run_map_congr`);
+  runClient's clock read before the call makes 2 credits; the libraries (counter, logkv*, txnlin, partition, raft
+  kv/kvreconf/kvdurable/kvdurablenoax/kvwitness) give `o' = o`; `k8s_etcd3.Apply.spec` returns `o'`
+  (`Check`'s closure passes it). Links regenerated with LAKE_OPTS: all identical. Build: `/shared/tmp/k8s7g/
+  build-optA.sh` (targets `optA-targets.txt`, log `build-optA.log`).
+- BLOCKER (report of night 9): `RawRel` (step 4) needs a list's raw object `.list (some its)` (the real model's
+  list is never nil, and `reflect.DeepEqual` tells nil from empty), but for an empty list `GetList`'s `Items` is
+  the `reflect.MakeSlice(t, 0, 0)` of `finalizeList`, and neither the trusted `reflect.MakeSlice.spec` nor the
+  store's `listContractOk'`/`GetList.spec` says it is non-nil. Go evidence that it is:
+  `/shared/tmp/k8s7g/makeslice/main_test.go` (pass).
+- Next after the decision: `RawOk.lean` (`RawRel` moved from RealBridge below MDefs, `rawOk x y`, `ioOk` with
+  it), `listOut` gives back `listAtItems`, call's post (`plainOut y = …` + `rawOk`), Apply, runWatch (events
+  rep, with watch.go's specs); then replay.go (8), watch.go (15), realcheck.go; Check; discharge list.
+
+### Superseded (night 8)
+
 **2026-11-19 (night 8; for etcd-grove-03). STOP: blocker on `call`/`Apply`'s Raw (lintest's commit fixes the
 returned value; the store's error is allocated after the linearization point). Floor work done; questions.md
 "Step 5 night 7 decided" recorded.**
