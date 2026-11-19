@@ -293,7 +293,7 @@ pl hosts`, the lab's over `netExts`, `PlanWellFormed pl` in place of `NetConfig.
 `i` on `hosts[i]`, over `goose_dist_adequacy` (Q4); bridges `safeDist_of_bootAt` (from every plan
 address `addrUnset` and the ghost state's plan) and `safeDist_of_proto` (the library's names made
 first). Not vacuous: `echo_safeDist`
-(`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/SafeDist.lean`) is the three-node echo
+(`Net/Proof/github_com/mit_pdos/etcd_grove/examples/net/echo/SafeDistLinked.lean`) is the three-node echo
 system as a `SafeDist` (plan `[(SrvAddr, "h")]`, every node on `"h"`), closed, `#print axioms`:
 `propext`, `Classical.choice`, `Quot.sound`; its proof keeps echo's own protocol (`echoInvs`), so the
 bridge serves a program that does not use the library too.
