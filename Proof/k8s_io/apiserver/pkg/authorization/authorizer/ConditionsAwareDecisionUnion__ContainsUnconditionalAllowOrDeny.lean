@@ -29,7 +29,14 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.wp_proof :
     ConditionsAwareDecisionUnion.ContainsUnconditionalAllowOrDeny.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro p dq u
+  wp_start as Hp
+  icases (ConditionsAwareDecisionUnion.ConditionsAwareDecisionUnion_access_load_containsUnconditionalAllowOrDeny
+    p u dq).access_strict $$ Hp with ⟨Hf, Hclose⟩
+  wp_auto
+  iapply HΦ
+  iapply Hclose
+  iexact Hf
 
 end proof
 
