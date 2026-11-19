@@ -39,6 +39,7 @@ section go
 variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
+variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
 /-- One operation's ghost value in `realCheck`'s proof: its input, output, unary answer (`rawOk`'s) and
@@ -491,6 +492,309 @@ def wRep (vs : List GOp) (w : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.
 
 instance wRep_persistent (vs : List GOp) (w : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation) :
     Iris.BI.Persistent (wRep (GF := GF) vs w) := by unfold wRep; infer_instance
+
+theorem Lof_getElem? (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) (k : Nat) (e : github_com.anishathalye.porcupine.OpV × (Input × RResp))
+    (he : (Lof os U)[k]? = some e) :
+    ∃ c u, os[k]? = some c ∧ U[k]? = some u ∧ e = ((boxReq c.Request', boxResp c.Response'), u.val) := by
+  unfold Lof at he
+  rw [List.getElem?_zipWith] at he
+  cases h1 : os[k]? with
+  | none => rw [h1] at he; cases he
+  | some c =>
+    cases h2 : U[k]? with
+    | none => rw [h1, h2] at he; cases he
+    | some u => rw [h1, h2] at he; cases he; exact ⟨c, u, rfl, rfl, rfl⟩
+
+theorem histOf_boxH_getElem? (ps : List github_com.anishathalye.porcupine.Operation)
+    (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) (hps : github_com.anishathalye.porcupine.histOf ps = boxH (Lof os U) U)
+    (k : Nat) (p : github_com.anishathalye.porcupine.Operation) (hp : ps[k]? = some p) :
+    ∃ c u, os[k]? = some c ∧ U[k]? = some u ∧ p.Input' = boxReq c.Request' ∧ p.Output' = boxResp c.Response' ∧
+      sint.Z p.Call' = u.call ∧ sint.Z p.Return' = u.ret := by
+  have h1 : (github_com.anishathalye.porcupine.histOf ps)[k]? = some (github_com.anishathalye.porcupine.opOf p) := by
+    unfold github_com.anishathalye.porcupine.histOf; rw [List.getElem?_map, hp]; rfl
+  rw [hps] at h1
+  unfold boxH at h1
+  rw [List.getElem?_zipWith] at h1
+  cases hL : (Lof os U)[k]? with
+  | none => rw [hL] at h1; cases h1
+  | some e =>
+    obtain ⟨c, u, hc, hu, rfl⟩ := Lof_getElem? os U k e hL
+    rw [hL, hu] at h1
+    simp only [Option.map_some, Option.bind_some, Option.some.injEq,
+      github_com.anishathalye.porcupine.opOf, Op.mk.injEq, Prod.mk.injEq] at h1
+    exact ⟨c, u, hc, hu, h1.1.1.symm, h1.1.2.symm, h1.2.1.symm, h1.2.2.symm⟩
+
+theorem mem_fmapH_time {α β : Type} (f : α → Option β) (h : List (Op α)) (u : Op β)
+    (hu : u ∈ github_com.anishathalye.porcupine.Theory.fmapH f h) : ∃ o ∈ h, o.call = u.call ∧ o.ret = u.ret := by
+  unfold github_com.anishathalye.porcupine.Theory.fmapH at hu
+  obtain ⟨o, ho, he⟩ := List.mem_filterMap.1 hu
+  cases e : f o.val with
+  | none => rw [e] at he; cases he
+  | some b => rw [e] at he; cases he; exact ⟨o, ho, rfl, rfl⟩
+
+theorem boxH_length (L : List (github_com.anishathalye.porcupine.OpV × (Input × RResp)))
+    (U : List (Op (Input × RResp))) (h : L.length = U.length) : (boxH L U).length = U.length := by
+  unfold boxH; rw [List.length_zipWith, h, Nat.min_self]
+
+/-- **The unary checker operations satisfy `CheckOperationsVerbose`'s premise** (`HistOk`). -/
+theorem histOk_ps (lops : List github_com.anishathalye.porcupine.Operation) (vs : List GOp)
+    (hvs : vs.length = lops.length) (hh : github_com.anishathalye.porcupine.HistOk lops)
+    (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (ps : List github_com.anishathalye.porcupine.Operation) (hos : os.length = (fmapH unaryOf (histR lops vs)).length)
+    (hps : github_com.anishathalye.porcupine.histOf ps =
+      boxH (Lof os (fmapH unaryOf (histR lops vs))) (fmapH unaryOf (histR lops vs))) :
+    github_com.anishathalye.porcupine.HistOk ps ∧ ps.length = (fmapH unaryOf (histR lops vs)).length := by
+  have hlen : ps.length = (fmapH unaryOf (histR lops vs)).length := by
+    have := congrArg List.length hps
+    unfold github_com.anishathalye.porcupine.histOf at this
+    rw [List.length_map, boxH_length _ _ (Lof_length os _ hos)] at this
+    exact this
+  have hle : (fmapH unaryOf (histR lops vs)).length ≤ lops.length := by
+    unfold fmapH; rw [← histR_length lops vs hvs]; exact List.length_filterMap_le _ _
+  refine ⟨⟨by have := hh.1; omega, fun p hp => ?_⟩, hlen⟩
+  obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 hp
+  obtain ⟨c, u, -, hu, -, -, hc, hr⟩ := histOf_boxH_getElem? ps os _ hps k p hk
+  obtain ⟨o, ho, hoc, hor⟩ := mem_fmapH_time unaryOf _ u (List.mem_of_getElem? hu)
+  obtain ⟨k', op, v, hl, -, rfl⟩ := mem_histR lops vs hvs o ho
+  rw [hc, hr, ← hoc, ← hor]
+  exact hh.2 op (List.mem_of_getElem? hl)
+
+/-! ## The checker's requests and responses are determined by their values -/
+
+include sem package_sem in
+theorem getOptions_intoVal_inj : Function.Injective (intoVal (V := k8s_io.apiserver.pkg.storage.GetOptions)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_IgnoreNotFound x) (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_IgnoreNotFound y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_ResourceVersion x) (k8s_io.apiserver.pkg.storage.GetOptions.TypeAssumptions.get_ResourceVersion y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem selPred_intoVal_inj : Function.Injective (intoVal (V := k8s_io.apiserver.pkg.storage.SelectionPredicate)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Label x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Label y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Field x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Field y) h))
+  have := intoVal_inj_func (hG := hG) (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_GetAttrs x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_GetAttrs y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexLabels x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexLabels y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexFields x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_IndexFields y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Limit x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Limit y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Continue x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_Continue y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_AllowWatchBookmarks x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_AllowWatchBookmarks y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_ShardSelector x) (k8s_io.apiserver.pkg.storage.SelectionPredicate.TypeAssumptions.get_ShardSelector y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem listOptions_intoVal_inj : Function.Injective (intoVal (V := k8s_io.apiserver.pkg.storage.ListOptions)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersion x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersion y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersionMatch x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ResourceVersionMatch y) h))
+  have := selPred_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Predicate x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Predicate y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Recursive x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_Recursive y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ProgressNotify x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_ProgressNotify y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_SendInitialEvents x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_SendInitialEvents y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_RecordTimestamps x) (k8s_io.apiserver.pkg.storage.ListOptions.TypeAssumptions.get_RecordTimestamps y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem createReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.TypeAssumptions.get_Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CreateRequest.TypeAssumptions.get_Object y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem getReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := getOptions_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.TypeAssumptions.get_Options x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.GetRequest.TypeAssumptions.get_Options y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem listReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := listOptions_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.TypeAssumptions.get_Options x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.ListRequest.TypeAssumptions.get_Options y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem deleteReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_Preconditions x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_Preconditions y) h))
+  have := intoVal_inj_func (hG := hG) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_ValidateDeletion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_ValidateDeletion y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_CachedExistingObject x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.DeleteRequest.TypeAssumptions.get_CachedExistingObject y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem updateReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := intoVal_inj_func (hG := hG) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_UpdateFunc x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_UpdateFunc y) h))
+  have := GoGlobalContext.intoVal_inj_bool (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_IgnoreNotFound x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_IgnoreNotFound y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_Preconditions x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_Preconditions y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_CachedExistingObject x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.UpdateRequest.TypeAssumptions.get_CachedExistingObject y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem compactReq_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.TypeAssumptions.get_ResourceVersion x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.CompactRequest.TypeAssumptions.get_ResourceVersion y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem request_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Op x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Op y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Key x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Key y) h))
+  have := createReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Create x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Create y) h))
+  have := getReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Get x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Get y) h))
+  have := listReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_List x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_List y) h))
+  have := deleteReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Delete x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Delete y) h))
+  have := updateReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Update x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Update y) h))
+  have := compactReq_intoVal_inj (sem := sem) (package_sem := package_sem) (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Compact x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request.TypeAssumptions.get_Compact y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem response_intoVal_inj : Function.Injective (intoVal (V := github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response)) := by
+  intro x y h
+  have h : (#x : val) = #y := h
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Object x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Object y) h))
+  have := go.intoVal_inj (Expr.Val.inj (proj_eq
+    (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Err x) (github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response.TypeAssumptions.get_Err y) h))
+  cases x; cases y; simp_all
+
+include sem package_sem in
+theorem boxReq_inj {a b : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Request}
+    (h : boxReq a = boxReq b) : a = b :=
+  request_intoVal_inj (sem := sem) (package_sem := package_sem) (GoInterfaceOk.mk.inj (GoInterface.ok.inj h)).2
+
+include sem package_sem in
+theorem boxResp_inj {a b : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Response}
+    (h : boxResp a = boxResp b) : a = b :=
+  response_intoVal_inj (sem := sem) (package_sem := package_sem) (GoInterfaceOk.mk.inj (GoInterface.ok.inj h)).2
+
+open Iris.BI Iris.ProofMode in
+/-- **`CheckOperationsVerbose`'s `opsIoOk` of the unary checker operations**, from their reps. -/
+theorem realMS_opsIoOk (init : RM)
+    (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) (ps : List github_com.anishathalye.porcupine.Operation)
+    (hps : github_com.anishathalye.porcupine.histOf ps = boxH (Lof os U) U)
+    (hst : ∀ op ∈ U.map Op.val, stepIn op.1 op.2) :
+    (□ [∗list] c;u ∈ os;U, opRep (GF := GF) c u.val ∗ reqPin c.Request' u.val.1) ⊢
+      github_com.anishathalye.porcupine.opsIoOk (realMS (Lof os U) init) ps := by
+  unfold github_com.anishathalye.porcupine.opsIoOk
+  refine BigSepL.bigSepL_intro fun k p hp => ?_
+  obtain ⟨c, u, hc, hu, hi, ho, -, -⟩ := histOf_boxH_getElem? ps os U hps k p hp
+  iintro #H
+  ihave %hlen := BigSepL2.bigSepL2_length $$ H
+  have he : (((boxReq c.Request', boxResp c.Response'), u.val) : github_com.anishathalye.porcupine.OpV ×
+      (Input × RResp)) ∈ Lof os U := by
+    have : (Lof os U)[k]? = some ((boxReq c.Request', boxResp c.Response'), u.val) := by
+      unfold Lof; rw [List.getElem?_zipWith, hc, hu]
+    exact List.mem_of_getElem? this
+  obtain ⟨e', he', he1, hdec⟩ := decR_mem _ _ he
+  obtain ⟨k', hk'⟩ := List.mem_iff_getElem?.1 he'
+  obtain ⟨c', u', hc', hu', rfl⟩ := Lof_getElem? os U k' e' hk'
+  ihave #H' := BigSepL2.bigSepL2_lookup (Φ := fun _ c u => iprop(opRep (GF := GF) c u.val ∗
+    reqPin c.Request' u.val.1)) hc' hu' $$ H
+  icases H' with ⟨Hop, -⟩
+  iunfold opRep at Hop
+  icases Hop with ⟨#Hrq, #Hrs⟩
+  simp only [realMS]
+  iexists c'.Request', c'.Response', u'.val.1, u'.val.2
+  isplitr
+  · ipureintro
+    simp only [Prod.mk.injEq] at he1
+    refine ⟨hi.trans he1.1.symm, ho.trans he1.2.symm, ?_, hst _ (List.mem_map_of_mem (List.mem_of_getElem? hu'))⟩
+    rw [hi, ho]; exact hdec
+  isplitl
+  · iexact Hrq
+  · iexact Hrs
+
+open Iris.BI Iris.ProofMode in
+/-- **The checker's model's entries step alike** (`StepAgree`), from their reps. -/
+theorem stepAgree_of (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) (hst : ∀ op ∈ U.map Op.val, stepIn op.1 op.2) :
+    (□ [∗list] c;u ∈ os;U, opRep (GF := GF) c u.val ∗ reqPin c.Request' u.val.1) ⊢ ⌜StepAgree (Lof os U)⌝ := by
+  iintro #H
+  ihave %hall : ⌜∀ (k k' : Nat) (c c' : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+      (u u' : Op (Input × RResp)), os[k]? = some c → U[k]? = some u → os[k']? = some c' → U[k']? = some u' →
+      boxReq c.Request' = boxReq c'.Request' → boxResp c.Response' = boxResp c'.Response' →
+      ∀ (init m : RM), (realS init).step m u.val = (realS init).step m u'.val⌝ $$ [H]
+  · iintro %k %k' %c %c' %u %u' %hc %hu %hc' %hu' %hq %hr
+    have eq := boxReq_inj (sem := sem) (package_sem := package_sem) hq
+    have er := boxResp_inj (sem := sem) (package_sem := package_sem) hr
+    have hs1 := hst _ (List.mem_map_of_mem (List.mem_of_getElem? hu))
+    have hs2 := hst _ (List.mem_map_of_mem (List.mem_of_getElem? hu'))
+    have hne : ∀ r : RResp, flatE r.err → r.err ≠ .other := fun r hf h => by rw [h] at hf; exact hf
+    ihave #H1 := BigSepL2.bigSepL2_lookup (Φ := fun _ c u => iprop(opRep (GF := GF) c u.val ∗
+      reqPin c.Request' u.val.1)) hc hu $$ H
+    ihave #H2 := BigSepL2.bigSepL2_lookup (Φ := fun _ c u => iprop(opRep (GF := GF) c u.val ∗
+      reqPin c.Request' u.val.1)) hc' hu' $$ H
+    icases H1 with ⟨Hop1, #Hp1⟩
+    icases H2 with ⟨Hop2, #Hp2⟩
+    iunfold opRep at Hop1 Hop2
+    icases Hop1 with ⟨#Hq1, #Hr1⟩
+    icases Hop2 with ⟨#Hq2, #Hr2⟩
+    rw [← eq, ← er]
+    ihave %hx := reqRep_agree c.Request' u.val.1 u'.val.1 $$ [$Hq1 $Hp1 $Hq2 $Hp2]
+    ihave %hr' := respRep_agree c.Response' u.val.2 u'.val.2 (hne _ hs1.1.2.2.2.1) (hne _ hs2.1.2.2.2.1)
+      $$ [$Hr1 $Hr2]
+    ipureintro
+    intro init m
+    simp only [realS, hx, hr']
+  ipureintro
+  intro e he e' he' heq init m
+  obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 he
+  obtain ⟨k', hk'⟩ := List.mem_iff_getElem?.1 he'
+  obtain ⟨c, u, hc, hu, rfl⟩ := Lof_getElem? os U k e hk
+  obtain ⟨c', u', hc', hu', rfl⟩ := Lof_getElem? os U k' e' hk'
+  simp only [Prod.mk.injEq] at heq
+  exact hall k k' c c' u u' hc hu hc' hu' heq.1 heq.2 init m
 
 open Iris.BI Iris.ProofMode in
 /-- **Picking entries of two related lists by the same indices** keeps them related (persistent relation). -/
