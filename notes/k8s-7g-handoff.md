@@ -2,6 +2,42 @@
 
 ## START HERE
 
+**2026-11-19 (night 13; for etcd-grove-03). lean merged (pin f551a1b46); full timed build run (see the
+report); step 5's watch side and the replay/validator specs DRAFTED, UNCHECKED, on branch `k8s-7g-wip`.**
+
+- Branch `k8s-7g` (head: the merge `f70d5b72be` + goose `a6e935f277` + notes), pin f551a1b46:
+  `--packages=/shared/tmp/manifest-f55.json`, `.lake/package-overrides.json` = its copy; gen-init with
+  `PERENNIAL_DIR=/shared/perennial-f551a1b46`. Merge forms: questions.md "Merge of lean df37bd5157".
+- Full timed build: `/shared/tmp/k8s7g/build-f55.sh` (log `build-f55.log`; id: `etc/build-report.py --list`).
+  It built the clean merge (the WIP was moved off the tree while it ran).
+- **`k8s-7g-wip`** (worktree `/shared/tmp/k8s7g/wip`, no `.lake`): written blind while the build held the
+  tree, NEVER elaborated. Merge it into `k8s-7g` (`git merge k8s-7g-wip`), then lean-check file by file
+  (order: correctness/EvRep, RealWatchFrom, RawOk, MDefs, Calls, toWEvent spec+proof, consume spec+proof,
+  watchEvents, runWatch, WatchQ, Apply spec+proof, Check (still needs realCheck), correctness/ReplayRep,
+  WatchRep, the three new specs). Contents: `993112a24a` (watch raw events: `evRep`/`evsRO`; toWEvent →
+  consume → watchEvents → runWatch return the received events, `wEventsRawOut`; `ioOk` gains `FloorOk
+  g0.st.rv x` and `wrawOk` (raw events, decoded records, `WatchFromL`); `kInOk c f`; Apply.spec premise
+  `uint.nat g0.st.rv ≤ g0.hist.length`; Apply's watch read updates are `watchQ γ c (max lb s0n)`, fired
+  past the seeds via `kInv_lb_seed` (`run_hist_ge`, `RealWatchFrom.run_inv`); `watch_commit` returns a pure
+  `P` (here `WatchFromL`, `watchFromL_of_kStreamOk`)), `c3ac0264cc` (`ReplayRep`, `WatchRep`; specs
+  `NewReplay`, `Replay.Validate`, `WatchValidator.ValidateWatch`, accepting runs only).
+- Next, in order: check the WIP; proofs of NewReplay/Validate/ValidateWatch and their internal functions
+  (replay.go: validateGet/validateList/InitialEvents/EventsForRVs; watch.go's 15; `Replay.Watch` and
+  `ResourceVersion` are not reached from realCheck: no spec needed, say so at the Freeze); realcheck.go
+  (failureFree, realRequest, realEvents, keyFunc, newObjList, initialModel, toPorcupineModel's closures as
+  an `isModel` of `realS`, orderByLinearization, realCheck); Check; the discharge list (night 6).
+- FOUND (plan gap, decide in step 5): `realCheck` answers Illegal unless `len(PartialLinearizations()) == 1
+  && len(...[0]) == 1`, but porcupine's `partLins` promises only "at least one". Porcupine really gives
+  exactly one on Ok (`checkSingle` sets every `longest[i]` to the same `&seq`; the set dedups by pointer).
+  Plan: strengthen `porcupine.partLins` in place (`h ≠ [] → lsls.length = 1`; proof in
+  `checkParallel.lean` near l.620, where `ps = replicate _ p0` is already shown) — a stronger post on a
+  proved spec (form). Fallback: the glue's check to `len(...[0]) == 0` (trusted glue text: STOP).
+- Pitfalls (new): never edit Lean files in the build tree while a build is queued or running (lean-check
+  cannot run then either): draft in a scratch worktree. `etc/tier-check.py --check`: a `<F>.wp_proof` name
+  makes a module a proof module (PredOk's derived lemmas renamed `.wp_ok`).
+
+### Superseded (night 12)
+
 **2026-11-19 (night 12; for etcd-grove-03). (b1) applied and verified; call.lean and Apply.lean proved against the
 new specs (lean-check `-a --fast`, 0 errors); targeted build `/shared/tmp/k8s7g/build-n12.sh` (log `build-n12.log`).**
 
