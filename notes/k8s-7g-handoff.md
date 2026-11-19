@@ -2,6 +2,42 @@
 
 ## START HERE
 
+**2026-11-19 (night 18; for etcd-grove-03). 03's night-17 decisions recorded (questions.md). Done, each file
+lean-checked `-a` without `--fast` (all 7 touched proof files, 0 errors): gap 2 + the ReplayPre lemma
+(`7b8a12f143`), `realRequest` + `realEvents` specs+proofs (`da5687eeaf`), GMap.ofList docstring in
+perennial-changes (`9438517238`). Build of targets-n17 queued all night behind full builds (never got a slot);
+next build: `targets-n18.txt` (n17's + realRequest/realEvents/genList/genFrom/Apply/Model).**
+
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`); lean not merged (still f551 at
+  23d3bae205; switch to manifest-3af when lean moves). Build (tree lock shared with lean-check, see pitfalls):
+  `/shared/tmp/build-slot.sh flock /shared/tmp/k8s7g/tree.lock lake --packages=/shared/tmp/manifest-f55.json build $(cat /shared/tmp/k8s7g/targets-n18.txt)`.
+- Forms this night (questions.md "night 18"): `ListOptOk` (GenIn's 5th conjunct; the "MinRV ≠ \"0\"" fact is derived,
+  not added: parseRVD refuses "0"); genList premise `Match = 0`; GenIn/GenInW/GenInA/CachedNoRV/InOk/wkKeysL moved
+  to MDefs; ioOk carries `GenInA x`. RealMS: `genIn_stepIn`, `genIn_listConsL`, `replayPre_of`.
+- NEXT, in order:
+  1. `realCheck` spec + proof. Premises (from Check after RunLin2 Ok + failureFree): `lsl ↦* lops`, `opsIoOk
+     (k8setcd3S g0) lops`, `IsLinearization (pM (kSpec g0) decOp) (histOf lops) (range n)`, `HistOk lops`,
+     `∀ o, okOut`, `storeOwn s0 g0.st` + Model's g0 facts. Post `r ≠ Illegal ∧ (dur ≤ 0 → r = Ok)`.
+     Proof: loop 1 builds `operations`/`pOps`/`watches` (per op: ioOk gives x, y, GenInA, rawOk; realRequest(x)
+     with inFits from GenIn; respRep of Raw from rawOk); `L` = the entries (OpV, (x, r)); StepAgree L from
+     `reqRep_agree`/`respRep_agree`; initialModel (distinct keys from `StOk g0.st`); toPorcupineModel(L);
+     CheckOperationsVerbose: Illegal refuted by `realS_isLinearization` (H := the ROp history of lops) +
+     `isLinearization_map` + `realM_step`; `partLins` exactly one; orderByLinearization; NewReplay with
+     `replayPre_of` (stepIn via `genIn_stepIn`) and B4 `realReplay_ok` (any lin2); Validate per op; NewWatchValidator;
+     ValidateWatch per watch with B5 (RealWatch ~l.871) and `realEvents`.
+  2. `Check`: failureFree + realCheck calls; gen-link (`LAKE_OPTS` needed); timed full build (report the id).
+  3. Report at step 5's end; then step 6 prep and STOP for the Freeze.
+- Pitfalls (new): a lean-check import rebuild and a lake build on one tree must not overlap: run builds as
+  `build-slot.sh flock /shared/tmp/k8s7g/tree.lock lake ...` and lean-check as `flock -n /shared/tmp/k8s7g/tree.lock
+  env LAKE_OPTS=... etc/lean-check.py ...` (fails fast while the build holds it). In a `local macro` with
+  `set_option hygiene false`, `decide_true` is ambiguous (`BI.decide_true`): write `_root_.decide_true` (the
+  failure shows up as an un-cleaned `#(decide ..) = #true` loop condition). `wp_for HL` fails with a hyp named
+  `in` (iNamed can't parse it): `irename «in» => Hin` first. A `wp_for` with `break` continues the rest twice
+  (break and exhaustion): share it as a local macro (realEvents' `re_tail`). `ipersist` needs an update: `iapply
+  wp_fupd` before the code (realRequest's create branch). `prepareKeyM_nil` exists in RealBridge (`= some p` form).
+
+### Superseded (night 17)
+
 **2026-11-19 (night 17; for etcd-grove-03). 03's night-16 decisions recorded (questions.md). Done, each file
 lean-checked `-a` (not `--fast`): `realMS` + `toPorcupineModel` (`b32da0e0a4`), gap 1 (RunLin2's post exports
 `HistOk lops`, same commit), `failureFree` + `orderByLinearization` (`89d6640bf7`), `initialModel` (`01b4e563ac`).
