@@ -89,7 +89,7 @@ the mono-list `cum` of the log forwarded after each payload; the broadcast chann
 (2026-11-01, durability layer 4) the key raft named the storage by at the attach (`StartNode`'s
 post, `restartStorage`'s continuation), which the node's storage bounds (`nodeAppliedLb`,
 `nodeCommitLb`) and the storage's invariant (`memStorInv`) are keyed by. -/
-structure RNNames [GooseExts] (GF : BundledGFunctors) where
+structure RNNames [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] (GF : BundledGFunctors) where
   node : SrvRaft
   id : w64
   nl : Loc
@@ -123,18 +123,18 @@ structure RNNames [GooseExts] (GF : BundledGFunctors) where
   snap0 : Nat
 
 /-- The `MemoryStorage` registry's name: the cluster's (2026-10-27; until then a field). -/
-abbrev RNNames.reg [GooseExts] {GF : BundledGFunctors} (γ : RNNames GF) : GName := γ.node.reg
+abbrev RNNames.reg [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors} (γ : RNNames GF) : GName := γ.node.reg
 
 /-- The cluster's names at the wrapper's start log (for `srvLE`/`srvCfgView`, which read only the
 cluster and the start log). -/
-abbrev RNNames.srv [GooseExts] {GF : BundledGFunctors} (γ : RNNames GF) : ServerRaftNames := ⟨γ.node, γ.pre, W64 0⟩
+abbrev RNNames.srv [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors} (γ : RNNames GF) : ServerRaftNames := ⟨γ.node, γ.pre, W64 0⟩
 
 /-- Raft's full committed log holding the server's `L` after its start (`srvLogOf`, by the
 wrapper's names). -/
-def rnLogOf [GooseExts] {GF : BundledGFunctors} (γ : RNNames GF) (L : List EntryModel) : List EntryM :=
+def rnLogOf [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors} (γ : RNNames GF) (L : List EntryModel) : List EntryM :=
   (γ.pre ++ L).map EntryModel.toM
 
-theorem rnLogOf_append [GooseExts] {GF : BundledGFunctors} (γ : RNNames GF) (A B : List EntryModel) :
+theorem rnLogOf_append [GooseExts] [GooseSemantics] [GooseInterp] [GoGlobalContext] {GF : BundledGFunctors} (γ : RNNames GF) (A B : List EntryModel) :
     rnLogOf γ (A ++ B) = rnLogOf γ A ++ B.map EntryModel.toM := by
   simp [rnLogOf]
 
@@ -1935,7 +1935,7 @@ def rnApSnap (E : RNEnv GF) (γ : RNNames GF) (i : Int) (ap : toApply) : IProp G
     -- W2) the first send after the snapshot's `SaveSnap` (raft.go:257), with the WAL's records
     -- starting at or above the snapshot's index (what `applySnapshot`'s `Release` takes)
     (∃ γnc : NotifyNames, isNotify2 γnc ap.notifyc'
-      (∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝)
+      iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γ.wal.h j m ∗ ⌜m.Index' = sv.Metadata'.Index'⌝)
       iprop(True) ∗ notifyRcvN γnc 0) ∗
     -- closed once `Advance` returned: the node's applied index at the snapshot
     rnAdvChan ap.raftAdvancedC' iprop(nodeAppliedLb γ.node.cl γ.key (γ.pre ++ A').length ∗ nodeCommitLb γ.node.cl γ.key (γ.pre ++ A').length ∗
