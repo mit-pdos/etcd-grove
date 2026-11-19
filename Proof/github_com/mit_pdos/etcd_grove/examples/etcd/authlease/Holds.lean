@@ -142,7 +142,7 @@ through the cell): the principal is denied reading `k`. -/
 theorem holds_refutes_keys (γc : CellNames) (γl : GName) (m : Nat) (id : w64) (k : GoString)
     (M : auth.AuthMode) (n : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
     holdsFrom (GF := GF) γc γl m id k ∗
-      □ (auth.permVerdictFrom M n info k [] .read GoInterface.nil -∗ False) ∗
+      □ (auth.permVerdictFrom M n info k [] .read GoInterface.nil ={⊤}=∗ False) ∗
       leaseKeysVerdictFrom M n info γl m id .read ∗ monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False := by
   iintro ⟨#Hh, #Hd, Hv, Ham⟩
   iunfold leaseKeysVerdictFrom at Hv
@@ -161,7 +161,6 @@ theorem holds_refutes_keys (γc : CellNames) (γl : GName) (m : Nat) (id : w64) 
     imod Hh $$ %i %σ %hσ.1 Ha Ham with ⟨-, %hh⟩
     have hk : k ∈ ks := (hσ.2.2.1 k).2 hh.2
     ihave Hk := BigSepL.bigSepL_mem hk $$ Hall
-    iexfalso
     iapply Hd $$ Hk
 
 /-- **A passed listing at an index from `m` on lists the held lease**, so its keys verdict is passed. -/

@@ -681,6 +681,49 @@ theorem cellOk_revokeLu_done {σ : KVState} {ids : List w64} {ps : List Nat} {gs
     (h : CellOk σ ids ps gs 1) : kvOpStep (.leaseRevoke (luOf ids)) σ = σ :=
   cellOk0_revokeLu_done h.1
 
+/-! ### A put of another key, without a lease (`SetUp`'s puts) -/
+
+/-- **A put without a lease of the key `k`**: the other keys kept, the table kept. -/
+theorem step_put0 (k v : GoString) (σ : KVState) :
+    (∀ k', k' ≠ k → mvcc.findKey k' (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ).kvs =
+        mvcc.findKey k' σ.kvs) ∧
+      (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ).leases = σ.leases := by
+  have hl : ¬ σ.leaseMissing (0#64) := fun hm => hm.1 rfl
+  have hk : (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ).kvs =
+      putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs := by
+    simp [kvOpStep, hl, KVState.commit_kvs, txn.needsPrev, mvcc.applyChanges, mvcc.applyChange,
+      txn.putChangeOf, txn.putValOf, txn.putLeaseOf, txn.putOpOf]
+  refine ⟨fun k' hne => ?_, ?_⟩
+  · rw [hk]; exact findKey_putKv_ne σ.kvs_sorted _ _ _ _ _ (Ne.symm hne)
+  · simp [kvOpStep, hl, KVState.commit]; split <;> rfl
+
+/-- **A put without a lease of a key other than the cell's four keeps the cell** (nothing recorded). -/
+theorem cellOk0_put0 {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk0 σ ids ps gs d) (k v : GoString) (hx : k ≠ xK) (hz : k ≠ zK) (ha : k ≠ aK) (ht : k ≠ tK) :
+    CellOk0 (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ) ids ps gs d := by
+  obtain ⟨hoth, hls⟩ := step_put0 k v σ
+  have hle := kvOpStep_rev_le (.put (txn.putOpOf k v (W64 0) false false false)) σ
+  have hat : ∀ r ≤ σ.rev, (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ).at r = σ.at r :=
+    fun r hr => kvOpStep_at _ σ r hr
+  generalize kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ = σ' at hoth hls hle hat ⊢
+  have lz : leaseOf zK σ'.kvs = leaseOf zK σ.kvs := leaseOf_eq_of_findKey (hoth zK (Ne.symm hz))
+  have la : leaseOf aK σ'.kvs = leaseOf aK σ.kvs := leaseOf_eq_of_findKey (hoth aK (Ne.symm ha))
+  have lt : leaseOf tK σ'.kvs = leaseOf tK σ.kvs := leaseOf_eq_of_findKey (hoth tK (Ne.symm ht))
+  refine ⟨by rw [hoth xK (Ne.symm hx)]; exact h.x_none, h.ids_len, h.ps_len, h.ps_ids, h.lz_ne, h.lu_ne,
+    h.lu_lz, h.d_le, h.d_len, fun h1 => lz ▸ h.z_at h1, fun h2 hd => la ▸ h.a_at h2 hd,
+    fun h3 hd => lt ▸ h.t_at h3 hd, fun ru hru => ?_, fun h2 hd => hls ▸ h.lu_live h2 hd, fun hd => ?_,
+    fun hd => hls ▸ h.lu_dead hd, fun g hg hg0 => hls ▸ h.live g hg hg0⟩
+  · obtain ⟨hr, hl⟩ := h.hist ru hru
+    exact ⟨by omega, by rw [hat ru hr]; exact hl⟩
+  · obtain ⟨g1, g2⟩ := h.gone hd
+    exact ⟨by rw [hoth aK (Ne.symm ha)]; exact g1, by rw [hoth tK (Ne.symm ht)]; exact g2⟩
+
+theorem cellOk_put0 {σ : KVState} {ids : List w64} {ps : List Nat} {gs : List w64} {d : Nat}
+    (h : CellOk σ ids ps gs d) (k v : GoString) (hx : k ≠ xK) (hz : k ≠ zK) (ha : k ≠ aK) (ht : k ≠ tK) :
+    CellOk (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ) ids ps gs d :=
+  ⟨cellOk0_put0 h.1 k v hx hz ha ht,
+    cellHist_step _ (cellOk0_put0 h.1 k v hx hz ha ht) h.2 (List.prefix_refl _) hnew_same _root_.id⟩
+
 /-! ### The lease checks at the set-up's auth state -/
 
 /-- A key with a nonzero lease is in the state's lease items. -/

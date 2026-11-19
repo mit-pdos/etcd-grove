@@ -673,6 +673,50 @@ theorem leaseGranted_revoke (r : Nat) (I : GMap go_etcd_io.etcd.server.v3.lease.
   rw [dispatchKind_withHeader, irrLeaseRevoke_kind] at h
   exact h id rfl
 
+/-! ### The set-up's puts, other members' names, masks -/
+
+/-- `SetUp`'s keys are none of the cell's four. -/
+theorem setupKeys_other (k : GoString) (hk : k ∈ etcd_auth.setupKeys) :
+    k ≠ xK ∧ k ≠ zK ∧ k ≠ aK ∧ k ≠ tK := by
+  simp only [etcd_auth.setupKeys, etcd_auth.principals, etcd_auth.keyParts, etcd_auth.keyOfK,
+    List.flatMap_cons, List.flatMap_nil, List.map_cons, List.map_nil, List.cons_append,
+    List.nil_append, List.append_nil, List.mem_cons, List.not_mem_nil, or_false] at hk
+  rcases hk with rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl <;> decide
+
+/-- **A set-up put under the cell** (`SetUp`'s, from any state): it keeps the cell, told nothing. -/
+theorem cell_setupAu (γk : KVNames) (γc : CellNames) (k : GoString) (hk : k ∈ etcd_auth.setupKeys) :
+    cellInv (GF := GF) γk γc ⊢
+      □ kvOpAu1 γk (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True)) := by
+  obtain ⟨hx, hz, ha, ht⟩ := setupKeys_other k hk
+  iintro #Hinv
+  ihave #Hau := cell_writeAu γk γc (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True))
+    (fun _ => iprop(True)) $$ [Hinv]
+  · isplitl []
+    · iexact Hinv
+    iintro !> %σ %ids %ps %gs %d %HS Hids Ha -
+    imodintro
+    iexists ps, gs, d
+    iframe Hids Ha
+    ipureintro; exact cellOk_put0 HS k go!"setup" hx hz ha ht
+  imodintro
+  unfold kvOpAu1
+  iapply etcd_auth.kvAu1G_true
+  iexact Hau
+
+/-- **The cell at another member's KV names** (the same client half: `etcdKV` reads only `st`). -/
+theorem cellInv_same (γk γk' : KVNames) (γc : CellNames) (h : γk'.st = γk.st) :
+    cellInv (GF := GF) γk γc ⊢ cellInv γk' γc := by
+  unfold cellInv etcdKV
+  rw [h]
+
+/-- The auth history's namespace is inside an update's step mask, the cell opened. -/
+theorem authHistN_cellM : (↑authHistN : CoPset) ⊆ cellM := by
+  intro p hp
+  rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff]
+  exact ⟨⟨⟨CoPset.mem_full, fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩,
+    fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩,
+    fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩
+
 end defs
 
 end etcd_authlease
