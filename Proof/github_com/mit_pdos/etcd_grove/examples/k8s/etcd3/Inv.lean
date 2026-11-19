@@ -1045,11 +1045,14 @@ triple's update, its `▷` stripped. -/
 def linU (γ : KNames) (g0 : HSt) (i : GoInterface) (Φ : val → IProp GF) : IProp GF :=
   iprop(|={⊤ \ drvE, ∅}=> ∃ S, kState γ g0 S ∗ ∀ S' o,
     (kState γ g0 S' ∗ ⌜(k8setcd3S (GF := GF) g0).M.step S (i, o) = some S'⌝) -∗
-      |={∅, ⊤ \ drvE}=> ((k8setcd3S (GF := GF) g0).ioOk i o -∗ Φ #o))
+      |={∅, ⊤ \ drvE}=> (∀ o', ⌜∀ s, (k8setcd3S (GF := GF) g0).M.step s (i, o') =
+        (k8setcd3S (GF := GF) g0).M.step s (i, o)⌝ -∗ (k8setcd3S (GF := GF) g0).ioOk i o' -∗ Φ #o'))
 
-/-- The continuation at the output `y`. -/
+/-- The continuation at the output `y`: at any output of `y`'s plain value (k8s 7g step 5: the Go
+answer carries the store's `Raw`, which the model ignores). -/
 abbrev contAt (g0 : HSt) (x : Input) (y : Output) (Φ : val → IProp GF) : IProp GF :=
-  iprop((k8setcd3S (GF := GF) g0).ioOk (boxIn x) (boxOut y) -∗ Φ #(boxOut y))
+  iprop(∀ y' : Output, ⌜plainOut y' = plainOut y⌝ -∗
+    (k8setcd3S (GF := GF) g0).ioOk (boxIn x) (boxOut y') -∗ Φ #(boxOut y'))
 
 /-- **A write's call invariant** (`Delete`, `GuaranteedUpdate`; see the file header): `lintest`'s
 update with a later credit, until the store hands the token `γt` back at its linearization

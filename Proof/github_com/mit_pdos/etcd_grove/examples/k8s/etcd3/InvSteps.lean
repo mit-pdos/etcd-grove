@@ -332,7 +332,11 @@ theorem linU_commit (γ : KNames) (g0 : HSt) (x : Input) (y : Output) (Φ : val 
       ipureintro; exact Hr'
     · ipureintro; exact hst
   imodintro
-  iframe Hh HΦ
+  iframe Hh
+  iintro %y' %hpl Hio
+  ihave HΦ' := HΦ $$ %(boxOut y') %(fun s => by rw [step_box, step_box, hpl])
+  iapply HΦ'
+  iexact Hio
 
 /-- Two copies of a call's token: impossible. -/
 theorem tok_excl (γt : GName) :

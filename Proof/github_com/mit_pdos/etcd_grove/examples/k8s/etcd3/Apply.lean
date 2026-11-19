@@ -58,6 +58,20 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
+/-- An output of the plain value `z` is `z` with some `Raw`. -/
+private theorem setRaw_of_plain {y z : Output} (h : plainOut y = z) : ∃ r, y = { z with Raw' := r } :=
+  ⟨y.Raw', by rw [← h]⟩
+
+/-- The continuation at an output is the continuation at any output of its plain value. -/
+private theorem contAt_plain (g0 : HSt) (x : Input) (y z : Output) (Φ : val → IProp GF)
+    (h : plainOut y = plainOut z) : contAt g0 x z Φ ⊢ contAt g0 x y Φ := by
+  iintro HΦ %y' %hy' Hio
+  ihave H := HΦ $$ %y' %(hy'.trans h) Hio
+  iexact H
+
+/-- `ansOk` reads the plain fields only. -/
+private theorem ansOk_plain (c : StoreCfg GF DObj) (y : Output) : ansOk c y = ansOk c (plainOut y) := rfl
+
 set_option hygiene false in
 /-- `Apply`'s three `ResolveU64`s, the first with the output's error kind (`Hxs`). -/
 local macro "resolve3" : tactic => `(tactic| (
@@ -85,6 +99,7 @@ local macro "done_add" : tactic => `(tactic| (
   wp_apply_core sync.atomic.Int64.wp_Add _ (W64 1) $$ [] [-]
   · iPkgInit
   iinv Hd with ⟨%v, >Hv⟩ Hclose
+  all_goals (try (exact fun _ _ => CoPset.mem_full))
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ ⊤ \ ↑cacheDoneN from Std.LawfulSet.empty_subset)
   iintro Hclose2
   inext
@@ -110,6 +125,7 @@ local macro "cache_tail" : tactic => `(tactic| (
       done_add
       iapply (hfin y)
       iframe HΦc Htt
+      iright; iexact Hraw
     · simp only [decide_eq_false hN, Bool.not_false]
       wp_auto
       iunfold ansOk at Hans
@@ -122,11 +138,13 @@ local macro "cache_tail" : tactic => `(tactic| (
       done_add
       iapply (hfin y)
       iframe HΦc Htt
+      iright; iexact Hraw
   · rw [decide_eq_false hE]
     wp_auto
     done_add
     iapply (hfin y)
-    iframe HΦc Htt))
+    iframe HΦc Htt
+    iright; iexact Hraw))
 
 
 set_option hygiene false in
@@ -140,11 +158,13 @@ local macro "list_tail" : tactic => `(tactic| (
     done_add
     iapply (hfin y)
     iframe HΦc Htt
+    iright; iexact Hraw
   · rw [decide_eq_false hE]
     wp_auto
     done_add
     iapply (hfin y)
-    iframe HΦc Htt))
+    iframe HΦc Htt
+    iright; iexact Hraw))
 
 set_option maxHeartbeats 3200000 in
 theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
@@ -183,17 +203,23 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         rw [hn0] at hn; cases hn; word
       · rw [hw.2.2.1 hs] at hn; cases hn; decide
   have hioOk : ∀ y : Output, (x.Kind' = W64 5 → y.Err' ≠ W64 4) →
-      ⊢ (k8setcd3S (GF := GF) g0).ioOk (boxIn x) (boxOut y) :=
+      (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y : IProp GF) ⊢
+        (k8setcd3S (GF := GF) g0).ioOk (boxIn x) (boxOut y) :=
     fun y hy => by
-      simp only [k8setcd3S]; ipureintro
-      exact ⟨x, y, rfl, rfl, fun h => ⟨hy h, hrv5 h⟩⟩
+      simp only [k8setcd3S]
+      iintro Hr
+      iexists x, y
+      iframe Hr
+      ipureintro
+      exact ⟨rfl, rfl, fun h => ⟨hy h, hrv5 h⟩⟩
   have hfinW : ∀ y : Output, (x.Kind' = W64 5 → y.Err' ≠ W64 4) →
-      contAt g0 x y Φt ∗ threadTok ⊢ Φ #(boxOut y) := by
+      contAt g0 x y Φt ∗ threadTok ∗
+        (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ⊢ Φ #(boxOut y) := by
     intro y hy
     subst hΦt
-    iintro ⟨HΦc, Htt⟩
-    ihave HΦc := HΦc $$ []
-    · iapply hioOk y hy
+    iintro ⟨HΦc, Htt, Hr⟩
+    ihave HΦc := HΦc $$ %y %rfl [Hr]
+    · iapply hioOk y hy $$ Hr
     iapply HΦc
     iexact Htt
   wp_func_call
@@ -210,9 +236,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
     imod Hcl $$ [Hst] with Hk
     · iexact Hst
     imodintro
-    iintro Hio Htt
+    iintro %o' %heq Hio Htt
     iapply Hk
     iframe
+    try (ipureintro; exact heq)
   wp_if_destruct
   · -- (stage E of 7f-6) a watcher's watch: `runWatch`, committed as the model's observation at
     -- the state at the commit (`watch_commit`), its last object the watcher's
@@ -276,6 +303,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       (try wp_auto)
       iapply (hfinW _ (fun _ => hE))
       iframe HΦc Htt
+      ileft; ipureintro; exact Or.inl hk5
     · obtain ⟨hsk, rfl, hlo, hws, hlen⟩ := Hy
       have hE : (wEventsOut (encWEventsL wes)).Err' ≠ W64 4 := by
         unfold wEventsOut; rw [show (zero_val Output).Err' = W64 0 from rfl]; decide
@@ -310,7 +338,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         all_goals (try (wp_apply (wp_putW c tbl x.Client' o)))
         all_goals (try (iexact Htbl))
         all_goals (try wp_auto)
-        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt)
+        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; ileft; ipureintro; exact Or.inl hk5)
       · -- a stream from the start firing's state, received at the read firing's
         iunfold watchQ at HQ HQ0
         icases HQ with ⟨%Hq, #Hlb⟩
@@ -341,12 +369,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         all_goals (try (wp_apply (wp_putW c tbl x.Client' o)))
         all_goals (try (iexact Htbl))
         all_goals (try wp_auto)
-        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt)
+        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; ileft; ipureintro; exact Or.inl hk5)
   -- a unary client's operation
   have hk5 : ¬ x.Kind' = W64 5 := Hif
   have Hgen : GenIn x := HgenA.resolve_right (fun h => hk5 h.1)
-  have hfin : ∀ y : Output, contAt g0 x y Φt ∗ threadTok ⊢ Φ #(boxOut y) :=
-    fun y => hfinW y (fun h => absurd h hk5)
+  have hfin : ∀ y : Output, contAt g0 x y Φt ∗ threadTok ∗
+      (⌜plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ⊢ Φ #(boxOut y) := by
+    intro y
+    iintro ⟨H1, H2, H3⟩
+    iapply hfinW y (fun h => absurd h hk5)
+    iframe H1 H2
+    icases H3 with (%h | #h)
+    · ileft; ipureintro; exact Or.inr h
+    · iright; iexact h
   obtain ⟨hx, hkey, hpp⟩ := genIn_ok x Hgen
   have hkey' : prepareKeyM c.resourcePrefix (storeKeyL x.Key') false = some (storeKeyL x.Key') := by
     rw [hrp]; exact hkey
@@ -388,14 +423,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_pos h0]
         iexact Hau
-      icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, -, %Hy, -⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         done_add
+        have hconv : contAt (GF := GF) g0 x otherL Φt ⊢
+            contAt g0 x ⟨W64 4, [], 0, [], [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, r⟩ Φt :=
+          contAt_plain g0 x _ otherL Φt rfl
+        ihave HΦc := hconv $$ HΦc
         iapply (hfin _)
         iframe HΦc Htt
+        ileft; ipureintro; rfl
       · rw [callOut, if_neg h4k] at Hy
-        subst Hy
+        obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
@@ -421,14 +461,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]
         iframe Htok Haus
-      icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, -, %Hy, -⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         done_add
+        have hconv : contAt (GF := GF) g0 x otherL Φt ⊢
+            contAt g0 x ⟨W64 4, [], 0, [], [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, r⟩ Φt :=
+          contAt_plain g0 x _ otherL Φt rfl
+        ihave HΦc := hconv $$ HΦc
         iapply (hfin _)
         iframe HΦc Htt
+        ileft; ipureintro; rfl
       · rw [callOut, if_neg h4k] at Hy
-        subst Hy
+        obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
@@ -454,14 +499,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]
         iframe Htok Haus
-      icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, -, %Hy, -⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         done_add
+        have hconv : contAt (GF := GF) g0 x otherL Φt ⊢
+            contAt g0 x ⟨W64 4, [], 0, [], [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, r⟩ Φt :=
+          contAt_plain g0 x _ otherL Φt rfl
+        ihave HΦc := hconv $$ HΦc
         iapply (hfin _)
         iframe HΦc Htt
+        ileft; ipureintro; rfl
       · rw [callOut, if_neg h4k] at Hy
-        subst Hy
+        obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
@@ -489,14 +539,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_neg hk0, if_neg hk1, if_neg hk2]
         iexact Hmk
-      icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, -, %Hy, -⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         done_add
+        have hconv : contAt (GF := GF) g0 x otherL Φt ⊢
+            contAt g0 x ⟨W64 4, [], 0, [], [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, r⟩ Φt :=
+          contAt_plain g0 x _ otherL Φt rfl
+        ihave HΦc := hconv $$ HΦc
         iapply (hfin _)
         iframe HΦc Htt
+        ileft; ipureintro; rfl
       · rw [callOut, if_neg h4k] at Hy
-        subst Hy
+        obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
@@ -520,14 +575,19 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos h4]
         iunfold listPre
         iframe HmkQ HmkP
-      icases Hy with (%Hy | ⟨%σ, -, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, -, %Hy, -⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         done_add
+        have hconv : contAt (GF := GF) g0 x otherL Φt ⊢
+            contAt g0 x ⟨W64 4, [], 0, [], [], [], [], [], [], [], 0, [], 0, [], false, 0, [], false, r⟩ Φt :=
+          contAt_plain g0 x _ otherL Φt rfl
+        ihave HΦc := hconv $$ HΦc
         iapply (hfin _)
         iframe HΦc Htt
+        ileft; ipureintro; rfl
       · rw [callOut, if_pos h4] at Hy
-        subst Hy
+        obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         rw [Hxs] at Hok
         simp only [List.head?_cons, Option.some.injEq] at Hok
@@ -558,8 +618,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_pos h0]
         iexact Hau
-      icases Hy with (%Hy | ⟨%σ, HΦc, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, HΦc, %Hy, #Hraw⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         exact absurd (by rw [Hxs]; rfl) Hok
       · isimp only [if_neg h4k] at HΦc
@@ -567,8 +627,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos (Or.inl h0)] at HΦc
         rw [callOut, if_neg h4k] at Hy
         resolve3
-        rw [← Hy]
         icases HΦc with ⟨HΦc, #Hans⟩
+        ihave HΦc := contAt_plain g0 x y _ Φt (by rw [Hy, kStep_plain]) $$ HΦc
+        ihave #Hans : ansOk c y $$ [Hans]
+        · rw [ansOk_plain c y, Hy]; iexact Hans
         cache_tail
     · -- a `Delete`: committed where the store hands the call's token
       have h4k : ¬ x.Kind' = W64 4 := by rw [h1]; decide
@@ -600,8 +662,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h1]; decide), if_pos h1]
         iframe Htok Haus
-      icases Hy with (%Hy | ⟨%σ, HΦc, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, HΦc, %Hy, #Hraw⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         exact absurd (by rw [Hxs]; rfl) Hok
       · isimp only [if_neg h4k] at HΦc
@@ -609,8 +671,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos (Or.inr (Or.inl h1))] at HΦc
         rw [callOut, if_neg h4k] at Hy
         resolve3
-        rw [← Hy]
         icases HΦc with ⟨HΦc, #Hans⟩
+        ihave HΦc := contAt_plain g0 x y _ Φt (by rw [Hy, kStep_plain]) $$ HΦc
+        ihave #Hans : ansOk c y $$ [Hans]
+        · rw [ansOk_plain c y, Hy]; iexact Hans
         cache_tail
     · -- a `GuaranteedUpdate`: committed where the store hands the call's token
       have h4k : ¬ x.Kind' = W64 4 := by rw [h2]; decide
@@ -642,8 +706,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_neg (show ¬ x.Kind' = W64 0 by rw [h2]; decide), if_neg (show ¬ x.Kind' = W64 1 by rw [h2]; decide), if_pos h2]
         iframe Htok Haus
-      icases Hy with (%Hy | ⟨%σ, HΦc, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, HΦc, %Hy, #Hraw⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         exact absurd (by rw [Hxs]; rfl) Hok
       · isimp only [if_neg h4k] at HΦc
@@ -651,8 +715,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos (Or.inr (Or.inr h2))] at HΦc
         rw [callOut, if_neg h4k] at Hy
         resolve3
-        rw [← Hy]
         icases HΦc with ⟨HΦc, #Hans⟩
+        ihave HΦc := contAt_plain g0 x y _ Φt (by rw [Hy, kStep_plain]) $$ HΦc
+        ihave #Hans : ansOk c y $$ [Hans]
+        · rw [ansOk_plain c y, Hy]; iexact Hans
         cache_tail
     · -- a `Get`: committed at the first firing at the prophesied revision
       have hk : ¬(x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2) := by
@@ -693,8 +759,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iunfold callPre
         isimp only [if_neg hk0, if_neg hk1, if_neg hk2]
         iexact Hmk
-      icases Hy with (%Hy | ⟨%σ, HQc, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, HQc, %Hy, #Hraw⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         exact absurd (by rw [Hxs]; rfl) Hok
       · isimp only [if_neg h4k] at HQc
@@ -714,8 +780,10 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         imod (getCall_take γ c g0 (sentV lD) (sentV lU) γc γt γp x Φt σ) $$ [Htok Hlc2] with HΦc
         · iframe Hc Hv Htok Hlc2
         imodintro
-        rw [← Hy]
         icases HΦc with ⟨HΦc, #Hans⟩
+        ihave HΦc := contAt_plain g0 x y _ Φt (by rw [Hy, kStep_plain]) $$ HΦc
+        ihave #Hans : ansOk c y $$ [Hans]
+        · rw [ansOk_plain c y, Hy]; iexact Hans
         cache_tail
     · -- a list: committed at its first page's first firing where it may (`listCommitOk`: an
       -- `ETooLarge` answer if the prophecy says so, else the prophesied revision)
@@ -748,8 +816,8 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         isimp only [if_pos h4]
         iunfold listPre
         iframe HmkQ HmkP
-      icases Hy with (%Hy | ⟨%σ, HQc, %Hy⟩)
-      · subst Hy
+      icases Hy with (%Hy | ⟨%σ, HQc, %Hy, #Hraw⟩)
+      · obtain ⟨r, rfl⟩ := setRaw_of_plain Hy
         resolve3
         exact absurd (by rw [Hxs]; rfl) Hok
       · isimp only [if_pos h4] at HQc
@@ -761,19 +829,22 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
           simp only [W64, uint.nat, BitVec.toNat_ofInt]
           omega
         rw [callOut, if_pos h4] at Hy
-        have hN : y.Name' = [] := by rw [Hy]; exact lOut_name x σ
+        have hN : y.Name' = [] := by
+          rw [show y.Name' = (plainOut y).Name' from rfl, Hy]; exact lOut_name x σ
         resolve3
         have hcm : listCommitOk x tl R σ := by
           subst htl
           unfold listCommitOk
           by_cases h6 : xs.head? = some (W64 6)
-          · simp only [h6, decide_true, ↓reduceIte]
+          · simp only [h6, _root_.decide_true, ↓reduceIte]
             rw [Hxs] at h6
             simp only [List.head?_cons, Option.some.injEq] at h6
             exact lOut_tooLarge x σ hx h4 (by rw [← Hy]; exact h6)
           · simp only [h6, decide_false, Bool.false_eq_true, ↓reduceIte]
             rcases HRy with h | h
-            · exact absurd (by rw [Hxs, h]; rfl) h6
+            · exact absurd (by
+                rw [Hxs]; simp only [List.head?_cons]
+                rw [show y.Err' = (plainOut y).Err' from rfl, h]; rfl) h6
             · rw [h]; exact hrev
         ihave ⟨%σ0, #Hv, %Hs0⟩ := Hbit $$ %hcm
         iapply fupd_wp
@@ -781,7 +852,9 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         · iframe Hc Hv Htok Hlc2
         imodintro
         ihave HΦc : contAt g0 x y Φt $$ [HΦc]
-        · rw [Hy, ← Hs0]; iexact HΦc
+        · iapply (contAt_plain g0 x y (lOut x σ0) Φt
+            (by rw [lOut_plain, Hy]; first | rw [Hs0] | rw [← Hs0]))
+          iexact HΦc
         list_tail
 
 end proof

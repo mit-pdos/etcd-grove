@@ -20,7 +20,8 @@ As linkvtxn's `Defs.lean`:
   `pM (kSpec h0) decOp`, `rep k` = `stRepB h0 (k + h0.st.items.length + h0.hist.length + 1)` (a
   value made by `k` steps), and `ioOk i o` (a boxed `Input` and a boxed `Output`: what `Step`'s
   type assertions need; a watch's output not an error and its resource version, parsed, below
-  `2^63`, stage E of 7f-6).
+  `2^63`, stage E of 7f-6; a unary output's `Raw` what its plain fields encode, `rawOk`, unless it
+  is `EOther`'s, k8s 7g step 5).
 
 `Input_intoVal_inj`/`Output_intoVal_inj`: a struct's `intoVal` is injective, from the
 translation's field projections (`proj_eq`, as linkvtxn's).
@@ -30,6 +31,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.KSteps
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Base
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.RawOk
 
 @[expose] public section
 
@@ -328,15 +330,25 @@ instance stRepB_persistent (g0 : HSt) (n : Nat) (v : GoInterface) (S : linkv.PSe
     Persistent (stRepB (GF := GF) g0 n v S) := by
   unfold stRepB; infer_instance
 
+end defs
+
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
+
 /-- **The model's specification** (see the file header). -/
 def k8setcd3S (g0 : HSt) : github_com.anishathalye.porcupine.ModelSpec GF (linkv.PSet HSt Input) where
   M := linkv.pM (kSpec g0) decOp
   rep k := stRepB g0 (k + g0.st.items.length + g0.hist.length + 1)
-  ioOk i o := iprop(⌜∃ x y, i = boxIn x ∧ o = boxOut y ∧
-    (x.Kind' = W64 5 → y.Err' ≠ W64 4 ∧ ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63)⌝)
+  ioOk i o := iprop(∃ x y, ⌜i = boxIn x ∧ o = boxOut y ∧
+    (x.Kind' = W64 5 → y.Err' ≠ W64 4 ∧ ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63)⌝ ∗
+    (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y))
   ioOk_pers _ _ := by infer_instance
 
-end defs
+end spec
 
 end k8s_etcd3
 end EtcdGrove
