@@ -9,6 +9,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__Resolve
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.schema.Schema__resolveNoOverrides
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.schema.LawProofs
 
 @[expose] public section
 
@@ -33,7 +34,17 @@ variable [package_sem : schema.Assumptions]
 theorem schema.Schema.Resolve.wp_proof
     (h_Schema_resolveNoOverrides : schema.Schema.resolveNoOverrides.spec (GF := GF)) :
     schema.Schema.Resolve.spec (GF := GF) := by
-  sorry
+  intro sc S tr ot
+  wp_start as ⟨#HS, #Htr, %Hnd⟩
+  wp_auto
+  ihave %Her := LawProofs.isTypeRefOpt_er tr ot $$ Htr
+  wp_apply wp_with_defer as %defer Hdefer
+  wp_if_destruct
+  all_goals try (exfalso; exact Hif Her)
+  wp_apply h_Schema_resolveNoOverrides sc S tr ot $$ [] as %a %ok Hr
+  · iframe #; ipureintro; exact Hnd
+  iapply HΦ
+  iexact Hr
 
 end proof
 

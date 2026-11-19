@@ -125,6 +125,13 @@ theorem isMapRep_elim_law_holds : isMapRep_elim.law (GF := GF) := fun m fs e rel
   iframe #
   ipureintro; exact hl
 
+/-- A reference of the scope has no element-relationship override. -/
+theorem LawProofs.isTypeRefOpt_er (tr : schema.TypeRef) (ot : Option TypeRef) :
+    isTypeRefOpt (GF := GF) tr ot ⊢ ⌜tr.ElementRelationship' = null⌝ := by
+  cases ot with
+  | none => unfold isTypeRefOpt; iintro %h; ipureintro; exact h.2.2.1
+  | some t => unfold isTypeRefOpt isTypeRef; iintro ⟨_, %h⟩; ipureintro; exact h.2.1
+
 theorem isStructField_elim_law_holds : isStructField_elim.law (GF := GF) := fun sf f => by
   unfold isStructField; exact .rfl
 
