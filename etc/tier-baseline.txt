@@ -19,6 +19,15 @@ Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__initCrash Proof.g
 Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmapCrash Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__mmap  # defs->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__munmapCrash Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.DB__munmap  # defs->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.osfs.bboltfs.Open Proof.os.OpenFile  # proof->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults Proof.os.File__Close  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults Proof.os.File__ReadAt  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults Proof.os.File__Sync  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.DirSwapResults Proof.os.File__WriteAt  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLog Proof.os.File__Truncate  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults Proof.os.File__Close  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults Proof.os.File__Fd  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults Proof.os.File__WriteAt  # defs->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.osfs.walfs.SegLogResults Proof.syscall.Fdatasync  # defs->proof
 Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.MainN Proof.github_com.mit_pdos.etcd_grove.examples.raft.kvdurable.Main  # proof->proof
 Proof.go_etcd_io.bbolt.Bucket__Bucket_r Proof.go_etcd_io.bbolt.Bucket__Cursor_i  # proof->proof
 Proof.go_etcd_io.bbolt.Bucket__Bucket_w Proof.go_etcd_io.bbolt.Bucket__Cursor_i  # proof->proof
