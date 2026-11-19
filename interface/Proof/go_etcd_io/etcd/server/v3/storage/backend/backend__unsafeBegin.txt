@@ -2,9 +2,13 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem backend.dbRestF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    backend.DBNames) (e_γ : γ = γ✝) : backend.dbRestF γ = backend.dbRestF γ✝
+
 theorem backend.backend.unsafeBegin.wp_proof [go_etcd_io.bbolt.Assumptions]
-    [go_uber_org.zap.Assumptions] (hBegin : bbolt.DB.Begin_kv.spec) (hError : zap.Error.spec)
-    (hFatal : zap.Logger.Fatal.spec) : backend.backend.unsafeBegin.spec
+    [go_uber_org.zap.Assumptions] (hBegin : ∀ [inst : ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt
+    Fs.fsExt] [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions], bbolt.DB.Begin.spec)
+    (hError : zap.Error.spec) (hFatal : zap.Logger.Fatal.spec) : backend.backend.unsafeBegin.spec
   -- `Perennial.EtcdGrove.backend.backend.unsafeBegin.spec`, unfolded:
   ∀ (γd : backend.DBNames) (b db : Loc) (q : Qp) (D : backend.Data) (w : Bool),
     ⊢
@@ -17,10 +21,9 @@ theorem backend.backend.unsafeBegin.wp_proof [go_etcd_io.bbolt.Assumptions]
               ∀ tx,
                 (typedPointsto (backend.bF go!"db" b) db (DFrac.own q) ∗
                     backend.ownDB db γd D ∗
-                      backend.isDB db ∗
-                        backend.txDB tx db ∗
-                          if w = true then backend.ownWTx tx γd D D
-                          else backend.txLive tx 1 ∗ backend.rtxSnap tx D ∗ backend.rtxStats tx) -∗
+                      backend.isDB db γd ∗
+                        backend.txDB tx γd db ∗
+                          if w = true then backend.ownWTx tx γd D D else backend.txLive tx γd 1 (bbolt.TxView.ro D)) -∗
                   Φ (intoVal tx)) -∗
             WP
               ((intoVal

@@ -11,7 +11,6 @@ answer is a page (`rangeReply_state_at`, `srvRangeOk_page`); the reply's `Kvs` s
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.go_etcd_io.etcd.client.v3.kubernetes.ListPage
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__List
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
@@ -20,6 +19,8 @@ public import Spec.go_etcd_io.etcd.client.v3.WithRange
 public import Spec.go_etcd_io.etcd.client.v3.GetPrefixRangeEnd
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -64,7 +65,8 @@ theorem sepL2_of_kvsIs (ps : List Loc) (kvs : List EtcdKv) :
 theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG))
     (wp_WithRange : WithRange.spec (GF := GF) (hG := hG))
-    (wp_GetPrefixRangeEnd : GetPrefixRangeEnd.spec (GF := GF) (hG := hG)) :
+    (wp_GetPrefixRangeEnd : GetPrefixRangeEnd.spec (GF := GF) (hG := hG))
+    (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
     Client.List.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd pfx opts Q0 hpl hcl hrev hlim hcont
   wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
@@ -140,7 +142,7 @@ theorem Client.List.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       omega
     wp_auto
     iapply wp_fupd
-    wp_apply (client.client_range_any api ms (W64 0) ci cd start optsSl
+    wp_apply (h_range_any api ms (W64 0) ci cd start optsSl
         [withRangeM (prefixRangeEnd pfx), withLimitM opts.Limit', withRevM opts.Revision']
         iprop(True) Q []
         (opSizeOk_opGetModel (K := 2 ^ 27) (E := 2 ^ 27) (V := 0)

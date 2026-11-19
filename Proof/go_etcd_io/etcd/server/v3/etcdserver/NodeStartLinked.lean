@@ -9,6 +9,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridgeLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
 
 @[expose] public section
 
@@ -205,6 +206,9 @@ theorem raftNode_of_StartNode
     simp only [Hrvcfg, rnNodeIface, Hwnl]
   rw [hn]
   iexact Hnodef
+
+theorem raftNode_of_StartNode_law_holds : raftNode_of_StartNode.law (GF := GF) (hG := hG) :=
+  raftNode_of_StartNode
 
 
 set_option maxHeartbeats 0 in

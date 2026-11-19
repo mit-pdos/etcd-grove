@@ -96,6 +96,7 @@ abbrev EtcdServer.apply.specAt (P : auth.AuthMode → Prop) : Prop :=
     (sa : auth.AuthState),
   P E.authMode → receiptBound GF ≤ 2 ^ 48 →
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShapeM E.authOn E.lm ms →
+  logPutsOk ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) (g + 1) ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerM E.authOn s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗

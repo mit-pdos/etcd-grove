@@ -191,7 +191,7 @@ theorem Open.wp_proof (wp_OpenFile : os.OpenFile.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
   rotate_left
-  · obtain ⟨Herr2, rfl⟩ := Hfi
+  · obtain ⟨Herr2, rfl, -⟩ := Hfi
     cases err2 with
     | nil => exact absurd rfl Herr2
     | ok ie =>

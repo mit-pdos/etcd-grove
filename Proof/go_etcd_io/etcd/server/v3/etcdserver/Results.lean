@@ -2203,7 +2203,7 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     backend.batchTxBuffered.wp_UnsafeDelete 
     
     lease.lessor.wp_Revoke v3alarm.AlarmStore.wp_Get
-    bootstrappedServer.wp_Close
+    bootstrappedServer.wp_Close raftNode_of_StartNode_law_holds
 
 end serverAuth
 

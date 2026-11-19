@@ -41,7 +41,7 @@ theorem wp_lockedClose (wp_Close : os.File.Close.spec (GF := GF) (hG := hG)) (lf
   wp_method_call
   wp_call
   (try wp_auto)
-  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, #Herr⟩
+  wp_apply wp_Close f fd name d $$ [Hinv Hf Hfd Hlt] as %err ⟨-, -, #Herr⟩
   · iframe; iexact Hinv
   iapply HΦ $$ Herr
 

@@ -54,6 +54,7 @@ public import NetTcp.Proof.net.Listener__Close
 public import GooseLang.Ext.Tcp.Adequacy
 public import GooseLang.Ext.Tcp.Deploy
 public import Robustness.Statement
+public import NetTcp.Proof.github_com.mit_pdos.etcd_grove.examples.net.shutdown.TopLevelDefs
 
 @[expose] public section
 
@@ -74,16 +75,6 @@ attribute [local instance] tcpExts tcpExtsSemantics tcpExtsInterp tcpExts_hasTcp
 /- The global setup of `goose_dist_crash_adequacy` is under the global ghost state alone, whose
 invariants are those of the fancy updates. -/
 attribute [local instance] GooseGlobalGS.gooseInvGS
-
-/-- The program of the node's command `cmd/node`: initialize the command's package (and so its
-imports), then call its `main` (as goose calls a function: resolve it, then apply it). -/
-def boot_node [GoGlobalContext] : Expr :=
-  Seq (App (Val cmd.node.initialize') (Val #()))
-    (App (App (Val (GoInstruction (FuncResolve cmd.node.main []))) (Val #())) (Val #()))
-
-/-- The system: the one node, running its command's program, from the local state `σ`. -/
-def system [GoGlobalContext] (σ : state) : List (Expr × state) :=
-  [(boot_node, σ)]
 
 /-- A node's initial local state: its Go context is `lctx`, no package is initialized and it has
 its main thread only. -/
@@ -275,26 +266,6 @@ theorem shutdown_crash_safety [lctx : GoLocalContext] [sem : go.Semantics]
       simp only [distInit, system, List.map_cons, List.map_nil] at hi
       match i, hi with
       | 0, hi => cases hi; exact H0.threads))
-
-/-- **`shutdown_crash_safety` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the system's machines, each of which may crash at any step and
-restart, each a fresh Go process (`Robust`'s premise), under `shutdown_crash_safety`'s other
-hypotheses: in every execution, of any length, no thread of any machine is stuck and none has an
-unrecovered panic. -/
-theorem shutdown_crash_robust
-    [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : cmd.node.Assumptions]
-    [field_sem : net.FieldAssumptions] [go.BasicIntoValInj] (σ0 : state) (g : GlobalState)
-    (h : GoString) (Hhost : (extLocal tcpExt σ0.world).host = h)
-    (Hplan : (extGlobal tcpExt g.globalWorld).plan.lookup addr = some h)
-    (pl : List (GoString × GoString)) (Hwf : PlanWellFormed pl)
-    (Hpl : (extGlobal tcpExt g.globalWorld).plan = GMap.ofList pl)
-    (Hconns : (extGlobal tcpExt g.globalWorld).conns = ∅) (bound : Nat) :
-    Robustness.Robust (system σ0) [] g bound := by
-  refine Robustness.Robust.of_all fun hf n κs c Hsteps _ i tp σ hi => ?_
-  have hfresh : ∀ σ', (∃ e, (e, σ') ∈ system σ0) → NodeStart lctx σ' := fun σ' ⟨e, he⟩ =>
-    ⟨(hf (e, σ') he).1, (hf (e, σ') he).2.1, (hf (e, σ') he).2.2⟩
-  exact (shutdown_crash_safety
-      σ0 g h (hfresh σ0 ⟨boot_node, by simp [system]⟩) Hhost Hplan pl Hwf Hpl Hconns n κs c Hsteps i tp σ hi).2
 
 end adequacy
 

@@ -18,11 +18,13 @@ def bbolt.DB.Begin.spec : Prop :=
                         ∃ D,
                           if w = true then bbolt.boltTx tx γ 1 (bbolt.TxView.wr D)
                           else bbolt.boltTx tx γ 1 (bbolt.TxView.ro D) ∗ Q D) ∨
-                    ⌜err ≠ GoInterface.nil⌝ ∗
-                      if w = true then emp
-                      else
-                        threadTok ∗
-                          AU <{ ∃∃ q D, bbolt.boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅ <{ bbolt.boltState γ q D, COMM Q D }>) -∗
+                    ⌜err ≠ GoInterface.nil ∧ tx = null⌝ ∗
+                      fmtErrorOk err ∗
+                        if w = true then emp
+                        else
+                          threadTok ∗
+                            AU <{ ∃∃ q D, bbolt.boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅ <{ bbolt.boltState γ q D, COMM
+                                Q D }>) -∗
                   Φ (intoVal tx, intoVal err)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.DB.ty.PointerType go!"Begin" (intoVal db)))

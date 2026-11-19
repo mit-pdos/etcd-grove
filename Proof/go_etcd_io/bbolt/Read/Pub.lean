@@ -38,7 +38,7 @@ theorem rdTxK_cur_acc (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) 
       ⌜r.rw = false⌝ ∗ statsTok r true q ∗ (statsTok r true q -∗ rdTxK K tx src q T v) := by
   unfold rdTxK rtxFrac
   iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex,
-    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, %Hf⟩, Hpool⟩
+    ⟨%t, Hw, Hm, Hmeta, Hroot, Hfill, Hpages, Hch, Hwf, Hdb, Hmv, Hcells, Hmap, #Hvo, Hrdx, %Hf⟩, Hpool⟩
   iexists r
   iframe Hcore Hreg Hvo
   isplitr

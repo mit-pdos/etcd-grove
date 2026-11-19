@@ -1,5 +1,6 @@
 # Names only, types axiomatized: the metric types the watch cache's metrics are of (`CounterVec`,
 # `HistogramVec`, ...; project k8s-apiserver, notes/kep-6404-plan.md). Not `translate_types`: they
-# wrap prometheus' collectors, which are not translated.
-translate = ["!*"]
+# wrap prometheus' collectors, which are not translated. The interfaces `ObserverMetric` and
+# `CounterMetric` are translated (2026-11-18: the field types of etcd3's `OperationLatencyTracker`).
+translate = ["!*", "ObserverMetric", "CounterMetric"]
 imports = ["!*"]

@@ -21,6 +21,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 theorem cmPubPre_commitFl' (fr : Bool) (D : Data) (X1 X2 X3 X4 : WX) (w2 w4 : WDb) (fl1 : FLPg)
     (txid0 : w64) (p4 : Loc) (id4 : w64)

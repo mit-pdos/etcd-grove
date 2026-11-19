@@ -11,7 +11,7 @@ children are the pieces; nothing else touched.
 module
 
 public import Proof.go_etcd_io.bbolt.Spill.NodeSpillPiecesKill
-public import Proof.go_etcd_io.bbolt.Spill.Split
+public import Proof.go_etcd_io.bbolt.Spill.SplitDefs
 public import Proof.go_etcd_io.bbolt.Spill.UTree
 
 @[expose] public section

@@ -38,9 +38,3 @@ theorem bbolt.Tx.CreateBucket.wp_proof (hBw : ∀ [inst : ExtSemantics Fs.fsExt]
                     go!"CreateBucket" (intoVal tx)))
                 (intoVal name))
               {{ Φ }}
-
-theorem bbolt.Bucket.Cursor_i.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
-    bbolt.Bucket.Cursor_i.spec = bbolt.Bucket.Cursor_i.spec
-
-theorem bbolt.Cursor.seek_w.spec.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] :
-    bbolt.Cursor.seek_w.spec = bbolt.Cursor.seek_w.spec

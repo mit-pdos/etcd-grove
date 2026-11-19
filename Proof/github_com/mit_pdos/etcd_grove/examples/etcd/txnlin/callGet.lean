@@ -10,7 +10,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.vrOf
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -37,7 +37,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assu
 
 theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :
+    (wp_vrOf : vrOf.spec (GF := GF) (hG := hG))
+    (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     callGet.spec (GF := GF) (hG := hG) := by
   intro _ CRE CEC cl ms V hAs key Q hkl
   wp_start as ⟨#Hcl, #Hregs, #Hau⟩
@@ -52,7 +53,7 @@ theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   ihave #Hnil := optsAt_nil (GF := GF)
   (try wp_auto)
   ihave #Hrr := client.kvRegs_range ms $$ Hregs
-  wp_apply (client.client_Get_st cl ms V cctx ccd key slice.nil Q
+  wp_apply (h_client_Get_st cl ms V cctx ccd key slice.nil Q
       (opSizeOk_opGetModel (K := inMax) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide))) $$ []
     as %resp %err Hout
   · iframe #

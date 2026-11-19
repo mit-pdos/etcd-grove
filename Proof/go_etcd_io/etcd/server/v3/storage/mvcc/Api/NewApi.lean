@@ -18,7 +18,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.Retire2
 import all Spec.go_etcd_io.etcd.server.v3.storage.mvcc.Api
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.New
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApi
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.NewStoreApiLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.RdSupply
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.WatchTxnApi
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.ImageBridge

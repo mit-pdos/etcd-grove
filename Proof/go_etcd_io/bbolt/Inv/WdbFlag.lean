@@ -29,6 +29,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.comm
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **`flCurOK` with its slot clause relaxed** for the writer `wtx` (maintainer 13: the clause
 of the page freed by `Commit`): a slot of the synced page's extent is not covered, is pending, and
@@ -73,7 +75,7 @@ def wdbOK' (fr : Bool) (w : WDb) : Prop :=
   (∀ b l, w.ms = some (b, l) → l ≤ 0x1000000 → w.m.size ≤ l) ∧
   (∀ s, s ∈ treeSlots w.C ∨ s ∈ pendSlots w.fl → s < w.C.hwm) ∧
   (∀ x ∈ w.fl.free, x.toNat < w.C.hwm) ∧
-  w.m.size < 2 ^ 63 ∧
+  wdbSz w.m w.ms ∧
   (∀ b l, w.ms = some (b, l) → w.m.size ≤ l ∨ w.m.size % 4096 = 0) ∧
   (∀ s ∈ w.W, 4096 * (s + 1) ≤ w.m.size → (w.wb s).length = 4096) ∧
   (∀ s, 4096 * s < w.m.size → w.m.size < 4096 * (s + 1) → w.m.size - 4096 * s ≤ (w.wb s).length) ∧

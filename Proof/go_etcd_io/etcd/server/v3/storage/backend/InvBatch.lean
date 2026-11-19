@@ -48,7 +48,7 @@ theorem isBackend_bt (γ : BNames) (P : BParams) (W Pk : IProp GF) (b t : Loc) :
     isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ⊢
       ∃ (db lg : Loc) (h : GoInterface), beOf t ↦□ b ∗ bF go!"lg" b ↦□ lg ∗ zapLoggerOk lg ∗
         bF go!"batchLimit" b ↦□ P.limit ∗ bF go!"hooks" b ↦□ h ∗ hooksSpec γ P Pk b t h ∗
-        sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗ isDB db ∗ ⌜P.Wf⌝ := by
+        sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗ isDB db γ.db ∗ ⌜P.Wf⌝ := by
   iintro ⟨#Hb, #Ht⟩
   unfold isBackend
   icases Hb with ⟨%t', %rt, %tm, %db, %lg, %h, #Ht', #-, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #-,
@@ -66,7 +66,7 @@ theorem isBackend_dbFile (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc)
     isBackend γ P W Pk b ⊢
       ∃ (db : Loc) (path : GoString),
         sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-        isDB db ∗ bDBAt γ db path ∗ dbFile db path := by
+        isDB db γ.db ∗ bDBAt γ db path ∗ dbFile db γ.db path := by
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hmu,
@@ -83,7 +83,7 @@ theorem isBackend_b (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) :
         sync.isMutex (muOf t) (batchFree γ P W Pk b t) ∗
         sync.isRWMutexGuard (rmuOf (baseOf rt)) (rtRes γ P rt) ∗
         sync.isRWMutexGuard (bF go!"mu" b) (fun q => bF go!"db" b ↦{DFrac.own q} db) ∗
-        isDB db ∗ cacheInv γ ∗ ⌜P.Wf⌝ := by
+        isDB db γ.db ∗ cacheInv γ ∗ ⌜P.Wf⌝ := by
   iintro #Hb
   unfold isBackend
   icases Hb with ⟨%t, %rt, %tm, %db, %lg, %h, #Ht, #Hrt, #Hl, #Hlg, #Hlgn, #Hh, #Hbe, #-,
@@ -642,7 +642,7 @@ theorem batchGhostAt_take (γ : BNames) (P : BParams) (st : BSess) :
 write transaction (`UnsafeRange`'s capability). -/
 theorem batchLocked_rdB (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess) (s : GoSlice)
     (v : GoString) :
-    rdB st.tx s v ∗ batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢
+    rdB γ.db st.tx s v ∗ batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢
       ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked (GF := GF) γ P b st') := by
   iintro ⟨Hr, Hl, %Htx⟩
   unfold rdB
@@ -655,8 +655,8 @@ theorem batchLocked_rdB (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess) (
     icases Hl with ⟨%t, %db, #Ht, Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩,
       Hg, %Hwf⟩
     rw [Htx]
-    icases ownWTx_live st.tx γ.db st'.C st'.S $$ Hwtx with ⟨Hlive, Hback⟩
-    icases txBytes_acc st.tx s v 1 $$ [Hs Hlive] with ⟨%dq, Hsv, Hclose⟩
+    icases ownWTx_live st.tx γ.db st'.C st'.S $$ Hwtx with ⟨%T, Hlive, Hback⟩
+    icases txBytes_acc st.tx γ.db s v 1 T $$ [Hs Hlive] with ⟨%dq, Hsv, Hclose⟩
     · iframe Hlive
       iexact Hs
     iexists dq
@@ -671,9 +671,10 @@ theorem batchLocked_rdB (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess) (
     exact Hwf
 
 /-- A slice a transaction's read returned, read while a share `q` of the transaction is held. -/
-theorem rdB_acc (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) :
-    rdB tx s v ∗ txLive tx q ⊢
-      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ txLive (GF := GF) tx q) := by
+theorem rdB_acc (γd : DBNames) (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp)
+    (T : bbolt.TxView) :
+    rdB γd tx s v ∗ txLive tx γd q T ⊢
+      ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ txLive (GF := GF) tx γd q T) := by
   iintro ⟨Hr, Hl⟩
   unfold rdB
   icases Hr with (#Hs | #Hs)
@@ -681,7 +682,7 @@ theorem rdB_acc (tx : Loc) (s : GoSlice) (v : GoString) (q : Qp) :
     iframe Hs
     iintro -
     iexact Hl
-  · iapply txBytes_acc tx s v q
+  · iapply txBytes_acc tx γd s v q T
     iframe Hl
     iexact Hs
 
@@ -690,7 +691,7 @@ with the same write transaction (the backend-compaction stage: the compaction jo
 its value together, mvcc's `rdCap2`): each read with half of bbolt's transaction. -/
 theorem batchLocked_rdB2 (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess)
     (s1 s2 : GoSlice) (v1 v2 : GoString) :
-    rdB st.tx s1 v1 ∗ rdB st.tx s2 v2 ∗ batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢
+    rdB γ.db st.tx s1 v1 ∗ rdB γ.db st.tx s2 v2 ∗ batchLocked γ P b st' ∗ ⌜st'.tx = st.tx⌝ ⊢
       ∃ dq1 dq2 : DFrac, s1 ↦*{dq1} v1 ∗ s2 ↦*{dq2} v2 ∗
         (s1 ↦*{dq1} v1 -∗ s2 ↦*{dq2} v2 -∗ batchLocked (GF := GF) γ P b st') := by
   iintro ⟨Hr1, Hr2, Hl, %Htx⟩
@@ -698,12 +699,12 @@ theorem batchLocked_rdB2 (γ : BNames) (P : BParams) (b : Loc) (st st' : BSess)
   icases Hl with ⟨%t, %db, #Ht, Hown, ⟨%hk, Htxf, Hpend, Hdel, HW, Hhkf, Hhk, Hdb, Hwtx, #Htxdb, Hmu⟩,
     Hg, %Hwf⟩
   rw [Htx]
-  icases ownWTx_live st.tx γ.db st'.C st'.S $$ Hwtx with ⟨Hlive, Hback⟩
-  have hf := (txLive_fractional (GF := GF) st.tx).fractional (1 : Qp).half (1 : Qp).half
+  icases ownWTx_live st.tx γ.db st'.C st'.S $$ Hwtx with ⟨%T, Hlive, Hback⟩
+  have hf := (txLive_fractional (GF := GF) st.tx γ.db T).fractional (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at hf
   icases hf.1 $$ Hlive with ⟨Hl1, Hl2⟩
-  icases rdB_acc st.tx s1 v1 _ $$ [$Hr1 $Hl1] with ⟨%dq1, Hs1, Hc1⟩
-  icases rdB_acc st.tx s2 v2 _ $$ [$Hr2 $Hl2] with ⟨%dq2, Hs2, Hc2⟩
+  icases rdB_acc γ.db st.tx s1 v1 _ T $$ [$Hr1 $Hl1] with ⟨%dq1, Hs1, Hc1⟩
+  icases rdB_acc γ.db st.tx s2 v2 _ T $$ [$Hr2 $Hl2] with ⟨%dq2, Hs2, Hc2⟩
   iexists dq1, dq2
   iframe Hs1 Hs2
   iintro Hs1 Hs2

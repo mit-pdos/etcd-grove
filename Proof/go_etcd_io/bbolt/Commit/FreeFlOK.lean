@@ -26,6 +26,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **The synced freelist page's `allocs` entry is not the writer's txid** (`Free`'s `canFree`
 premise at `Commit`'s free: the page was allocated at a committed txid, if known). -/

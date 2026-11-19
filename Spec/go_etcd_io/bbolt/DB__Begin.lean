@@ -6,6 +6,7 @@
 module
 
 public import Spec.go_etcd_io.bbolt.Api
+public import Spec.fmt.ErrorOk
 
 @[expose] public section
 
@@ -40,7 +41,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 - **Write**: blocks until no other write transaction is live (`rwlock`), then begins at the
   committed `D`; no update is needed, since the committed data stays `D` while the transaction
   is live (`boltTx_base`: the client learns `D` from its `boltState`).
-- **Error** (the database closed, or its mapping lost after a failed remap): no transaction;
+- **Error** (the database closed, or its mapping lost after a failed remap): no transaction (`tx`
+  nil), an error `fmt` formats (an `errors.New` one: session S3f folded `DB.Begin_err.spec` in);
   the token and the update come back.
 The transaction is a fresh `*Tx` of `db` (`txDB`). -/
 abbrev DB.Begin.spec : Prop :=
@@ -53,7 +55,7 @@ abbrev DB.Begin.spec : Prop :=
   {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
       (⌜err = GoInterface.nil⌝ ∗ txDB tx γ db ∗ ∃ D : Data,
         (if w then boltTx tx γ 1 (TxView.wr D) else iprop(boltTx tx γ 1 (TxView.ro D) ∗ Q D))) ∨
-      (⌜err ≠ GoInterface.nil⌝ ∗
+      (⌜err ≠ GoInterface.nil ∧ tx = null⌝ ∗ fmtErrorOk err ∗
         (if w then emp else iprop(threadTok ∗
           AU <{ ∃∃ (q : Qp) (D : Data), boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅
             <{ boltState γ q D, COMM Q D }>))) }}

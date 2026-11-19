@@ -17,15 +17,81 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
+### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
 
-`k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
-literal and takes 147s, in many sub-second steps (no unification of a second or more). The struct
-automation's cost seems superlinear in the number of fields; every proof building a large Go struct
-pays it (`NewServer`/`NewServerR` build the server's). To investigate in Perennial with a reproduction
-(a struct of n fields, n = 4, 8, 16, 32), not worked around here.
+- **Limitation.** `modelcheck.Assign` (`docs/design/unsafe-memory.md`, R4) reports every copy of a
+  pointer-free struct between two memory places whose bases differ. deepcopy-gen writes two such
+  copies that cannot partially overlap: `*out = new(T); **out = **in` (the destination is the
+  allocation of the line before: `LifecycleHandler.Sleep`, a `*SleepAction`), and
+  `out.F = in.F` with `in`, `out` two `*S` of a struct `S` that holds pointers (`NodeStatus`'s
+  `out.DaemonEndpoints = in.DaemonEndpoints`): R3 makes every `unsafe` view of a non-plain type
+  stuck, so two `S` objects are the same or disjoint, and so are their fields at the same path.
+- **Needed by.** The deep copies of `Pod` and `DaemonSet` (`LifecycleHandler.DeepCopyInto`) and of
+  `Node` (`NodeStatus.DeepCopyInto`), `etc/gen-k8s-deep.py`; their `DeepCopyObject.wp_proof` stay
+  trust-boundary axioms (`Proof/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`).
+- **Workaround here.** None: the two functions are not translated (Goose's `trusted` does not apply
+  to methods), so their callers' copies are not proved.
+- **Proposed change.** Two exemptions in `modelcheck.Assign`, each a syntactic argument like the
+  existing ones: (1) a dereference whose base was assigned a fresh allocation by the statement just
+  before in the same block (`*out = new(T)` then `**out = ...`); (2) the same field path on both
+  sides from two bases of the same pointer type `*S`, `S` not pointer-free.
+- **Status.** Not started.
 
-### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
+### A range-loop spec for slices (2026-11-18, k8s deep copies)
+
+- **Missing.** Perennial has `wp_string_for_range` and `wp_map_for_range`, but no spec of
+  `slice.forRange` (only its unfolding, `pure_wp_slice_for_range`, to a counter loop).
+- **Workaround here.** `wp_slice_for_range` in `Proof/k8s_io/api/DeepCopyBase.lean` (a loop that
+  only reads the slice, an invariant `P i`, a body that ends normally); the generated modules
+  remove the instance `pure_wp_slice_for_range` locally so that `wp_auto` stops at the
+  `slice.forRange` the spec is about.
+- **Proposed change.** A general `wp_slice_for_range` in `Theory/Slice.lean` (with
+  `forRangePostcondition`, as the string one), and a way to apply it after `wp_auto`.
+- **Status.** Not started.
+
+### `io.NewSectionReader`, `io.CopyN` without bodies (2026-11-18, S4, branch `s4-io`)
+
+- **Missing.** Perennial's `io.toml` translates `io` names-only for `NewSectionReader`, `CopyN`,
+  `Copy`, `copyBuffer`, `LimitReader`, `(*LimitedReader).Read` and `(*SectionReader).Read`
+  (`Perennial/Code/io.lean`), so none can be stepped. bbolt's `Tx.WriteTo` (tx.go) copies its data
+  pages with `io.CopyN(w, io.NewSectionReader(tx.db.file, dataOffset, dataSize), dataSize)`.
+- **Workaround here.** Two trust-boundary axioms: `io.NewSectionReader.wp_proof`
+  (`Spec/io/NewSectionReader.lean`) and `io.CopyN.wp_proof` (`Spec/io/CopyN.lean`), over the
+  vocabulary of `Proof/io/SectionReader.lean` (`io.secReader`, opaque; the `io.ReaderAt` contract
+  `io.readerAtOk`; `io.writerPlain`: no `ReadFrom`, which `copyBuffer` would call instead) and the
+  backend's writer contract `backend.writerOk`. An `*os.File` meets `readerAtOk` from its racing
+  read (`os.File.readerAtOk`, `Proof/os/ReaderAt.lean`). Not a part-local translation, for the reason
+  of `io.ReadFull`'s entry below (`io` is imported by Perennial's other packages).
+- **Proposed.** `io.toml`: translate the seven with bodies (`SectionReader`'s struct and its other
+  methods may stay names-only; `EOF`, `ErrShortWrite` and `errInvalidWrite` are package variables
+  already), and prove in `Perennial/Proof/io/` the two specs over a `ReaderAt` contract and a `Writer`
+  contract (the latter moved from etcd-grove's backend to Perennial with `writerPlain`):
+  `NewSectionReader` an allocation, `CopyN` a Löb induction over `copyBuffer`'s loop with the
+  invariant "`written` bytes appended, the section and limited readers at `off + written`, `n -
+  written` left", the type assertions `src.(WriterTo)` (a `*LimitedReader` has none) and
+  `dst.(ReaderFrom)` (excluded by `writerPlain`) by the method sets goose emits. The axioms then
+  become theorems with the same statements. Not yet proposed.
+
+### `wp_auto`'s free-variable checks were exponential on struct values: landed, in the pin since `3afd77e35` (2026-11-18, perf2; pin bump 2026-11-19)
+
+`k8s.etcd3.genFrom` (326s on CI): after `wp_apply wp_uidOf`, one `wp_auto` took 147s (202s profiled
+under load), in no step of a second or more. Cause (gdb stack samples: 22 of 26 in
+`Expr.containsFVar`): `unusedPointsto`, which `wp_auto` runs at its end for every local points-to and
+every hypothesis, used `Expr.containsFVar`/`hasAnyFVar`, which walk an expression as a tree. A struct
+value updated field by field (`in.Kind = ...; in.Val = ...; ...`) is `mk (p₁ v) … x … (pₙ v)` around
+`v` once per update: a DAG of linear size but a tree of `n ^ k` nodes; for 34 fields and 5 updates one
+`containsFVar` takes 580ms (reproduction: `n` = 4, 8, 16, 34 fields, `k` = 1..5 updates; 16 fields and
+5 updates 18ms, 34 and 4 18ms, 34 and 5 580ms; `Expr.findExt?`, which visits each shared subterm once,
+0ms for all). `wp_if_subst_closed` and the `PureWp` cache's scope check had the same pattern. Not
+superlinear in the struct automation itself: the cost is in the number of field updates.
+
+Perennial `cbc377b20` (landed on `lean` as `721050938`): `exprHasAnyFVar`/`exprContainsFVar`
+(`Golang/Theory/ProofMode.lean`) through `Expr.findExt?`, used in those three places. Measured here
+against the pin `6d365ee1a` with the two changed modules' `.olean`s overlaid (`lake env lean`, run beside
+the base): `genFrom` 211s to 124s CPU (227s to 134s wall); `NewServer` (389s) and `NewServerR` (458s)
+unchanged: their slow `wp_auto` steps are not this. Take it with the next pin bump.
+
+### `solve_pkg_init` searched the package DAG without memoization: landed, in the pin since `3afd77e35` (2026-11-18; pin bump 2026-11-19)
 
 Perennial `cb8e7bc67` (on `lean`): `pkgInitChain` remembers the packages whose dependencies were searched
 without reaching the target (the same proof found). `EtcdServer.LeaseRenew` 220s to 175s (14 calls, 3.5s
@@ -970,9 +1036,16 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   the same name as a field (`intstr.IntOrString`'s field `Type` of type `Type`) resolves to the
   field's projection (`(y : Type')` is `IntOrString.Type'`).
 - **Needed by.** `k8s.io/apimachinery/pkg/util/intstr.IntOrString` (the DaemonSet's rolling-update
-  fields).
+  fields). Since 2026-11-18 also the deep copies of `Pod` and `DaemonSet` (`etc/gen-k8s-deep.py`):
+  `ProbeHandler`/`LifecycleHandler` copy an `*HTTPGetAction`/`*TCPSocketAction` (an `IntOrString`
+  inline) and `RollingUpdateDaemonSet` its `*IntOrString`s, which are never owned while the type is
+  axiomatized; their `DeepCopyObject.wp_proof` stay axioms. Still there at the pin `f551a1b46`
+  (2026-11-18: dropping `translate_types_except_structs` gives `set_Type : ∀ (x : IntOrString)
+  (y : Type')`, which fails to elaborate: "type expected, got (Type' : IntOrString → intstr.Type')").
 - **Workaround here.** `intstr`'s structs axiomatized (`translate_types_except_structs`).
-- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`).
+- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`);
+  the binder is written in `structFieldAssumptions` (`goose/lean_types.go`, `set_<field>`), from
+  `toLeanTypeP`, which names a type of the package unqualified.
 - **Status.** Not started.
 
 ### Goose: range over a string (2026-10-26, client-go survey C1)
@@ -2795,3 +2868,49 @@ parameter.
   (2) later, model `%w` (a `*fmt.wrapError` with `Unwrap`, its message the formatted string) and the
   arguments' formatting-method calls, with a spec taking the methods' specs (`fmt.argOk`-like).
 - **Status.** Recorded only.
+
+## 2026-11-17: `Sprintf`'s `%p` (bbolt's `(*Options).String`, S2 of `notes/bbolt-integration-plan.md`)
+
+- **Missing.** No spec of `fmt.Sprintf` (Perennial's `wp_Sprintf` over `ArgsWf`, this repository's
+  `Spec/fmt/Sprintf*.lean` over `fmt.argOkAt`) admits `%p` of a func or of a pointer: `ArgWf` takes predeclared basic
+  types and named integers only, and `argOkAt` asks the same under a verb that is not a method verb. Go's `%p` prints
+  the pointer's address (`fmt/print.go`, `fmtPointer`), calling no method and reading no memory. bbolt's
+  `(*Options).String` formats its `OpenFile` and `Logger` with `%p`.
+- **Workaround here.** `bbolt.Options.String.wp_proof` stays a trust-boundary axiom (now over the translated
+  `Options`' points-to); no new axiom.
+- **Proposed.** `ArgWf` (or a verb-indexed variant) admitting a func, pointer, map, channel or unsafe-pointer value
+  under `%p`, with the model's output arbitrary (`other`); a `%s` of a `Stringer` (`time.Duration`) then needs
+  `fmt.argOkAt`'s method-verb disjunct only.
+
+## 2026-11-18: no bound on the iterations of a range loop over a string (`fs.FileMode.String`, S3g)
+
+- **Missing.** `go.runes s` (`goose/model/strings/Base.lean`) has no length lemma: a proof whose loop
+  body indexes a buffer by the iteration count (`FileMode.String`'s `buf[w]`, `w` at most the runes
+  seen) needs `(go.runes s).length ≤ s.length`.
+- **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
+  `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
+- **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.
+
+## 2026-11-18: `translate_types` refuses a struct with a field of a cross-package generic alias (grpc's `health.Server`)
+
+- **Missing.** grpc's `health.Server` stays axiomatized (`sorry -- axiomatized type`) because the type of
+  one of its fields, `grpc_health_v1.Health_WatchServer`, is a generic type alias of another package
+  (`= grpc.ServerStreamingServer[HealthCheckResponse]`), which Goose's `translate_types` does not
+  translate. So `health.Server.SetServingStatus` and the `testEmbeddedByValue` check of
+  `grpc_health_v1.RegisterHealthServer` cannot be stepped through.
+- **Workaround here.** The health server's methods stay trust-boundary axioms over `grpcHealthSrv`.
+- **Proposed change.** Goose: translate a field whose type is a (cross-package) alias of an
+  instantiated generic type, as the instantiated type. Status: not proposed.
+
+## 2026-11-18: `errors.As`'s spec does not constrain its result (apimachinery's `IsTimeout`/`HasStatusCause`)
+
+- **Missing.** Perennial's `errors.As.spec` (`Perennial/Spec/errors/As.lean`) returns any boolean and
+  says nothing of the target it writes, so a caller's result that depends on it cannot be proved from
+  the real code: k8s apimachinery's `apierrors.IsTimeout`/`HasStatusCause` (`errors.As(err, &status)`
+  then a field of the status) stay axioms. (See also "`errors.Is`/`errors.As` at non-pointer targets
+  and for leaves" above.)
+- **Workaround here.** Their specs stay trust-boundary axioms.
+- **Proposed change.** An `errors.As` spec that, for a leaf error (no `Unwrap`, no `As`), returns `true`
+  exactly when the error's dynamic type is the target's element type (or implements it, for an
+  interface target), and then stores the error's value into the target. Status: not proposed (found by
+  the refimpl session, 2026-11-18).

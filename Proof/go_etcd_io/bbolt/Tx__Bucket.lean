@@ -15,7 +15,7 @@ public import Proof.go_etcd_io.bbolt.Bucket__Bucket_r
 public import Proof.go_etcd_io.bbolt.Read.Pub
 public import Proof.go_etcd_io.bbolt.Read.GetFacts
 public import Proof.go_etcd_io.bbolt.Commit.CheckSplit
-public import Spec.go_etcd_io.bbolt.Bucket__Bucket_w
+public import Proof.go_etcd_io.bbolt.Bucket__Bucket_w
 public import Proof.go_etcd_io.bbolt.Read.PubWBktFl
 public import Proof.go_etcd_io.bbolt.Write.Retarget
 public import Proof.go_etcd_io.bbolt.Inv.ShapeOpsOpen

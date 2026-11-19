@@ -3,6 +3,8 @@ module
 
 public import GeneratedProof.google_golang_org.grpc.health
 public import SpecPlan.Spec.PkgInit.Base
+public import SpecPlan.Spec.PkgInit.google_golang_org.grpc.health.grpc_health_v1
+public import Perennial.Proof.sync.Base
 
 @[expose] public section
 noncomputable section

@@ -1,9 +1,9 @@
 /-
 `Close` (the backend's `snapshot`, `backend.go`; translated). `s.Close()`: the warning goroutine
 stopped (`close(s.stopc)`, `<-s.donec`) and the read transaction rolled back
-(`s.Tx.Rollback()`). The trust boundary (D22 S-h, 2026-10-20; an axiom in
-`Proof/go_etcd_io/etcd/server/v3/storage/backend/snapshot__Close.lean`: `snapOpen` is opaque, so
-the translated body has nothing to be proved over). Lean-first (no Rocq counterpart); the
+(`s.Tx.Rollback()`). Until S4b (2026-11-18) the trust boundary (D22 S-h, 2026-10-20, an axiom:
+`snapOpen` was opaque); now proved over bbolt's `Tx.Rollback` and the snapshot's channels
+(`InvSnapshot.lean`, `snapAt`). Lean-first (no Rocq counterpart); the
 vocabulary is `InvSnapshot.lean`.
 
 (2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q1/Q3) The post
@@ -28,7 +28,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 

@@ -20,8 +20,8 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.compactor__Stop
 public import Spec.strconv.ParseInt
 public import Perennial.Spec.context.Background
 public import Perennial.Proof.time.Link
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Aus
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -94,7 +94,8 @@ theorem check.wp_proof
     (wp_ParseInt : EtcdGrove.strconv.ParseInt.spec (GF := GF) (hG := hG))
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (h_client_Get_st : client.client_Get_st.law (GF := GF) (hG := hG)) :
     check.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ cl ms V γr γk γ c cl' γc hsame
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hst, #Hko, #Hinv, #Hkvi, #Hc, #H0⟩
@@ -180,7 +181,7 @@ theorem check.wp_proof
     (try wp_auto)
     ihave #Haus := readAus_check ms γk hsame γ (sint.Z r).toNat $$ [Hinv Hrlb]
     · iframe #
-    wp_apply (client.client_Get_st cl ms V ctx cd k8s.compactRevKey slice.nil
+    wp_apply (h_client_Get_st cl ms V ctx cd k8s.compactRevKey slice.nil
         (checkQ γk (sint.Z r).toNat)
         (opSizeOk_opGetModel (K := 15) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)
           (by decide))) $$ [] as %resp %err Hout
@@ -262,7 +263,7 @@ theorem check.wp_proof
       (try wp_auto)
       ihave #Haus2 := readAus_check ms γk hsame γ (sint.Z v).toNat $$ [Hinv Hclb]
       · iframe #
-      wp_apply (client.client_Get_st cl ms V ctx2 cd2 k8s.compactRevKey slice.nil
+      wp_apply (h_client_Get_st cl ms V ctx2 cd2 k8s.compactRevKey slice.nil
           (checkQ γk (sint.Z v).toNat)
           (opSizeOk_opGetModel (K := 15) (E := 0) (V := 0) (optsKeep_nil _ _ _) (by decide)
             (by decide))) $$ [] as %resp2 %err3 Hout2

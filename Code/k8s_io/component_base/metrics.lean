@@ -380,15 +380,11 @@ opaque Collector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque Metric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-opaque CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
 opaque CounterVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque GaugeMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque GaugeVecMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
-
-opaque ObserverMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 opaque PromRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
@@ -1644,22 +1640,17 @@ attribute [instance] Metric.TypeAssumptions.type_repr
   Metric.TypeAssumptions.method_set
   Metric.TypeAssumptions.ptr_method_set
 
-opaque CounterMetric.nonempty_type : NonemptyType.{0}
-def CounterMetric : Type := CounterMetric.nonempty_type.type
-instance CounterMetric.nonempty : Nonempty CounterMetric := CounterMetric.nonempty_type.property
-opaque CounterMetric.zero_val : ZeroVal CounterMetric := ⟨Classical.ofNonempty⟩
-attribute [instance] CounterMetric.zero_val
+abbrev CounterMetric [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def CounterMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"Inc" (go.signature.Signature [] false []))])
 
 class CounterMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying CounterMetric.underlying CounterMetric
   underlying : go.UnderlyingDirectedEq CounterMetric.ty CounterMetric.underlying
-  isUnderlying : go.IsUnderlying CounterMetric.underlying CounterMetric.underlying
   method_set : go.MethodSetIs CounterMetric.ty [(go!"Add", (some (go.signature.Signature [go.float64] false []))), (go!"Inc", (some (go.signature.Signature [] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterMetric.ty) []
 
-attribute [instance] CounterMetric.TypeAssumptions.type_repr
-  CounterMetric.TypeAssumptions.underlying
-  CounterMetric.TypeAssumptions.isUnderlying
+attribute [instance] CounterMetric.TypeAssumptions.underlying
   CounterMetric.TypeAssumptions.method_set
   CounterMetric.TypeAssumptions.ptr_method_set
 
@@ -1720,22 +1711,17 @@ attribute [instance] GaugeVecMetric.TypeAssumptions.type_repr
   GaugeVecMetric.TypeAssumptions.method_set
   GaugeVecMetric.TypeAssumptions.ptr_method_set
 
-opaque ObserverMetric.nonempty_type : NonemptyType.{0}
-def ObserverMetric : Type := ObserverMetric.nonempty_type.type
-instance ObserverMetric.nonempty : Nonempty ObserverMetric := ObserverMetric.nonempty_type.property
-opaque ObserverMetric.zero_val : ZeroVal ObserverMetric := ⟨Classical.ofNonempty⟩
-attribute [instance] ObserverMetric.zero_val
+abbrev ObserverMetric [GooseExts] : Type := GoInterface
+
+@[reducible] noncomputable def ObserverMetric.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [go.float64] false []))])
 
 class ObserverMetric.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ObserverMetric.underlying ObserverMetric
   underlying : go.UnderlyingDirectedEq ObserverMetric.ty ObserverMetric.underlying
-  isUnderlying : go.IsUnderlying ObserverMetric.underlying ObserverMetric.underlying
   method_set : go.MethodSetIs ObserverMetric.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObserverMetric.ty) []
 
-attribute [instance] ObserverMetric.TypeAssumptions.type_repr
-  ObserverMetric.TypeAssumptions.underlying
-  ObserverMetric.TypeAssumptions.isUnderlying
+attribute [instance] ObserverMetric.TypeAssumptions.underlying
   ObserverMetric.TypeAssumptions.method_set
   ObserverMetric.TypeAssumptions.ptr_method_set
 

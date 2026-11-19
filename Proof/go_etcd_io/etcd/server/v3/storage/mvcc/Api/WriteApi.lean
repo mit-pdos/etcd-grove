@@ -179,7 +179,7 @@ theorem store.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG := hG)) :
   iexists mw, s, p, (W64 0), (W64 0), (W64 0)
   iframe Htx Hback Hfree'
   isplitr
-  · ipureintro; exact ⟨hpn, hre⟩
+  · ipureintro; exact ⟨hpn, hre, ChPutsLe.nil _⟩
   iunfold wrWrap; ileft; ipureintro; exact ⟨rfl, by simpa using Hwq⟩
 
 end proof

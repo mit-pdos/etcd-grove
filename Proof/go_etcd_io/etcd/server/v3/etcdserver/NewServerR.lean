@@ -266,7 +266,7 @@ theorem NewServer.wp_proofRG
   -- the stopped member's image
   iunfold srvDiskImageAt at Himg
   icases Himg with ⟨Hvac, HrS, %Himr, #HA, %Himp, ⟨%u, #Hmvi⟩, %Hbl, #Hconf, %Hcsm, Hwsi, Hrauth,
-    Hfiles, Hpath, Hsdimg⟩
+    Hfiles, Hsdimg⟩
   rw [Hρo] at Himp
   ihave #HA0 : srvRLogLb ⟨γ, [], W64 0⟩ A $$ []
   · rw [← Hρo]; iexact HA
@@ -294,7 +294,7 @@ theorem NewServer.wp_proofRG
   · iexists ρo.rd.kv, A, u
     iframe Hmvi
     ipureintro; exact ⟨Himr.2, Himg, Hist⟩
-  wp_apply Hbc $$ [Hrauth Hfiles Hpath] as %b %err Hb
+  wp_apply Hbc $$ [Hrauth Hfiles] as %b %err Hb
   · iframe; iframe Hcfgro Hzlg Hvoff
     iright; iexact Hfg
   icases Hb with (%Herr | ⟨%Herr, Hb⟩)
@@ -400,6 +400,8 @@ theorem NewServer.wp_proofRG
     unfold SrvRaft.cfg at h0; rw [Hrvs] at h0; exact (GMap.elem_of_list_to_set _ _).1 h0)
   have Hcfgsz : GMap.size γ.cfg < 2 ^ 62 := by
     unfold SrvRaft.cfg; rw [Hrvs, GMap.size_list_to_set ps Hrnodup]; omega
+  have Hcfg20 : GMap.size γ.cfg ≤ 2 ^ 20 := by
+    unfold SrvRaft.cfg; rw [Hrvs, GMap.size_list_to_set ps Hrnodup]; exact Hdirps.2
   have Hcsv : confStateIs cs (Membership.simple γ.cfg) := by rw [← Hmb]; exact Hcsm cs Hcs
   ihave #Hclu : isCluster γ.cl srvClusterN $$ []
   · iunfold srvRaftLogInv at Hsrl0
@@ -1528,7 +1530,8 @@ theorem NewServer.wp_proofRG
   ihave %HlastT := restart_lastTerm γ A σ (by omega) (walReadFacts_F3 σ Hwrf) $$ [HA0 Hcert]
   · iframe HA0 Hcert
   ihave ⟨%msR, #HmsR, HsnapR⟩ := restart_snapOnceR h85 _ γrn (srvRAddr s) bv.storage' γs σ cs
-      ρ.rd.raft A Hrn7 (by omega) (by rw [HρRaft]; exact Hcsv) $$ Hpkg Hrn [] Hmsnone
+      ρ.rd.raft A Hrn7 (by omega) (by rw [HρRaft]; exact Hcsv) (by rw [HρRaft]; exact Hcfg20)
+      $$ Hpkg Hrn [] Hmsnone
   · rw [Hrn1]; iexact Hminv
   ihave #Hrn' := Hrn
   iunfold isRaftNode at Hrn'

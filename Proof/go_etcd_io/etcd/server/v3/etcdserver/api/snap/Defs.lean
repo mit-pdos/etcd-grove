@@ -61,7 +61,7 @@ and `s.dir` is written only by `New` (`snapshotter.go:34-40`). `filepath.Join` i
 equation is about strings; that equal path strings name the same file (no change of working
 directory between incarnations under a relative `DataDir`, no symbolic link or other alias of the
 directory, and a restart under the same `DataDir` string) is the file-system model's assumption that a
-path string names one file, as for `config.backendPathOf` and `backend.pathOwn`. No law: only the
+path string names one file, as for `config.backendPathOf` and `backend.bPath`. No law: only the
 equation of the contracts relates it to `snapDBPath`. -/
 opaque snapDBPathOf [GooseExts] (dd : GoString) (i : w64) : GoString
 

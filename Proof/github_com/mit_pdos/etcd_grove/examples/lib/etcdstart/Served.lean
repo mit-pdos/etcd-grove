@@ -37,7 +37,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnapLemmas
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunAdapt
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass

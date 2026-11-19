@@ -8,7 +8,7 @@ def bbolt.Tx.Size.spec : Prop :=
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ q T -∗
-          (▷ ∀ n, bbolt.boltTx tx γ q T -∗ Φ (intoVal n)) -∗
+          (▷ ∀ n, bbolt.boltTx tx γ q T ∗ ⌜T.rw = false → 0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ -∗ Φ (intoVal n)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Size" (intoVal tx)))
                 (intoVal ()))

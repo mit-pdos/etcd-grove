@@ -46,10 +46,11 @@ abbrev backend.backend.Close.spec : Prop :=
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"Close")) (Val #()))
   {{ (err : GoInterface), RET #err;
       -- (2026-11-04, R2b-3c) the data `D` the stop's commit left: the stopped lock's resources and
-      -- ghost shares at it (part 2), and the backend's file holding it
+      -- ghost shares at it (part 2), and the backend's file holding it (S5, 2026-11-18: its inode,
+      -- `bClosed`, which the claim `New` gave, `bPath`, joins into the file at its name,
+      -- `bPath_join`; until then the file at its name, the claim kept by the open database)
       Y ∗ ∃ D : Data, bStopView γ P W Pk D ∗
-        ((⌜err = GoInterface.nil⌝ ∗ ∃ path : GoString, bFile γ path ∗ fileHolds path D) ∨
-          ⌜¬ dbCloseOk⌝) }}
+        ((⌜err = GoInterface.nil⌝ ∗ bClosed γ.db D) ∨ ⌜¬ dbCloseOk⌝) }}
 
 end spec
 

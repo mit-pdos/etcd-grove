@@ -14,7 +14,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Server
 public import Spec.google_golang_org.grpc.KeepaliveEnforcementPolicy
 public import Spec.net.Listen
-public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
+public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 
 @[expose] public section
 
@@ -41,7 +41,9 @@ theorem Serve.wp_proof
     (wp_KEP : grpc.KeepaliveEnforcementPolicy.spec (GF := GF) (hG := hG))
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
-    (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
+    (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG))
+    (h_grpcCfgOk_of_startedM : client.grpcCfgOk_of_startedM.law (GF := GF) (hG := hG))
+    (h_raftKV_serverM : v3rpc.raftKV_serverM.law (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
   intro CS s addr E ρ γr cfg Q
   wp_start as ⟨#Hzlg, %Hpure, Haddr, #Hreq, #Hrd, #Hlb, #Hsf, HWR, Hlg3, Hbemu, Hgo, HG⟩
@@ -59,9 +61,9 @@ theorem Serve.wp_proof
   (try wp_auto)
   -- `v3rpc.Server(s, nil, nil, opt)`: its configuration from `NewServer`'s and `Start`'s, at the
   -- KV answers in the server's mode
-  ihave #Hkv := v3rpc.raftKV_serverM s E ρ γr (W64 0) [] .none 0 none $$ []
+  ihave #Hkv := h_raftKV_serverM s E ρ γr (W64 0) [] .none 0 none $$ []
   · iframe #; ipureintro; exact Hany
-  imod (client.grpcCfgOk_of_startedM s E ρ γr cfg [] E.authOn
+  imod (h_grpcCfgOk_of_startedM s E ρ γr cfg [] E.authOn
       (v3rpc.srvKVAnsM E.authOn s E ρ γr (W64 0) [] .none 0 none)) $$ [HWR]
     with ⟨%C, #Hgc, %HC⟩
   · iframe; iframe #

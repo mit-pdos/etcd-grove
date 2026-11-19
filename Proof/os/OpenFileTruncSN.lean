@@ -5,7 +5,7 @@ The proof of `Spec/os/OpenFileTruncSN.lean`: `Proof/os/OpenFileTruncS.lean`'s pr
 -/
 module
 
-public import Proof.os.OpenFileTruncS
+public import Proof.os.OpenFileTruncLemmas
 public import Spec.os.OpenFileTruncSN
 public import GooseLang.Ext.Fs.TreeSharedCreateN
 

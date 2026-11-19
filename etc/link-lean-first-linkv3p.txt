@@ -36,7 +36,8 @@ etcdstart_Collect: @
 etcdstart_Check: @
 context_WithTimeoutBackground:
 context_ErrAny: @
-partition_writer: context_WithTimeoutBackground context_ErrAny
+# (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
+partition_writer: context_WithTimeoutBackground context_ErrAny =client_Put_km_law_holds
 getPrefix:
 WithPrefix: getPrefix
 WithRev:

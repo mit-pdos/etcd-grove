@@ -8,7 +8,7 @@ appended one, `tSaveO1`: `save` stored it before the call) to the new state is t
 module
 
 public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.SavePure
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__close
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.member__closeLemmas
 
 @[expose] public section
 

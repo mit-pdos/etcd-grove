@@ -47,7 +47,17 @@ not locked by another process). (2026-11-06, branch `begin-tok`, `notes/begin-to
 Under `[ThreadBoundLe GF (2 ^ 29)]`, which `New`'s spec takes (bbolt's `Open_kv`: each read
 transaction holds a thread's token): `New` now also takes a `threadTok` and gives it back on
 success, and the goroutine `OpenBackend` starts (`server/storage/backend.go:79`) pays it with its
-own fork token, so the caller's triple is unchanged. -/
+own fork token, so the caller's triple is unchanged. **Sound in the strict sense** (S5, 2026-11-18; until then
+not: from the abstract `srvFileHolds` it gave a backend over concrete file-extension state, which
+no exclusive resource it consumed backed, S3e's item 5): its pre is the concrete `fileHolds` of
+the backend path (the claim on the name in the tree's shared mode, with the file), exactly what
+`backend.New`'s spec (proved, over bbolt's proved `Open`) takes, and its post exactly what `New`
+gives for it (`newPostK`, `hooksAt`, `bFile`, and the claim on the name, `bPath γ.db`, `ownDB`
+keeping the inode), so it creates no file-extension resource: everything concrete in its post is
+`New`'s proved post of what it consumed. What it adds to `New` is only the goroutine and the
+`select` (no resource), and the absence of `newBackend`'s panic, which `dbOpensOk` and
+`openMmapOk cfg` exclude (`¬ dbOpenOk` is `False` since S3e: bbolt's `Open` has no error under
+`theFs`'s `FsNoErrAll`). -/
 axiom storage.OpenBackend.wp_proof : storage.OpenBackend.spec (GF := GF) (hG := hG)
 
 end proof

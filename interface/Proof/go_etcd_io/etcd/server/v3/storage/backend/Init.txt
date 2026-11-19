@@ -2,13 +2,6 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
-theorem Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize' [errors.Assumptions]
-    (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
-    pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) : ⊢ ∀ Φ, ownInitializing
-    get_is_pkg_init -∗ ▷ (ownInitializing get_is_pkg_init ∗ isPkgInit
-    pkg_id.go_etcd_io.etcd.server.v3.storage.backend -∗ Φ (intoVal ())) -∗ WP
-    (go_etcd_io.etcd.server.v3.storage.backend.initialize' (intoVal ())) {{ Φ }}
-
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.opaqueInitsOk (v : val) : v ∈
     [go_etcd_io.etcd.server.v3.storage.backend.defragSec.init,
     go_etcd_io.etcd.server.v3.storage.backend.defragBlockingSec.init,
@@ -41,14 +34,8 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.rebalanceSec_init : �
     (intoVal ())) -∗ WP (go_etcd_io.etcd.server.v3.storage.backend.rebalanceSec.init (intoVal ()))
     {{ Φ }}
 
-theorem Perennial.go_etcd_io.etcd.server.v3.storage.backend.wp_initialize'_lb [errors.Assumptions]
-    (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp
-    pkg_id.go_etcd_io.etcd.server.v3.storage.backend get_is_pkg_init) (σ0 : GMap GoString Bool) : ⊢
-    ∀ Φ, ownInitLb get_is_pkg_init σ0 -∗ ▷ (ownInitLb get_is_pkg_init σ0 ∗ isPkgInit
-    pkg_id.go_etcd_io.etcd.server.v3.storage.backend -∗ Φ (intoVal ())) -∗ WP
-    (go_etcd_io.etcd.server.v3.storage.backend.initialize' (intoVal ())) {{ Φ }}
-
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions_init : ⊢ ∀ Φ, True -∗ ▷
     ((∃ p, typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions) p
-    (DFrac.own 1) ∗ (⌜p = null⌝ ∨ ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)) -∗ Φ (intoVal
-    ())) -∗ WP (go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions.init (intoVal ())) {{ Φ }}
+    (DFrac.own 1) ∗ ∃ o, backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧
+    o.timeout = W64 0⌝) -∗ Φ (intoVal ())) -∗ WP
+    (go_etcd_io.etcd.server.v3.storage.backend.boltOpenOptions.init (intoVal ())) {{ Φ }}

@@ -143,7 +143,24 @@ theorem isFsStep_commitGrows {o : String} {v : val} {st st' : OsState} {e' : Exp
 /-- **Every step keeps the committed entries committed** (`FsStep`). -/
 theorem fsStep_commitGrows {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st st' : OsState}
     {e' : Expr} {h' : GMap Loc (NonAtomic val)} (hs : FsStep o v h st () e' h' st' ()) :
-    CommitGrows st st' := isFsStep_commitGrows hs.1
+    CommitGrows st st' := by
+  rcases hs with hs | ⟨-, -, -, -, -, rfl⟩
+  · exact isFsStep_commitGrows hs.1
+  · exact commitGrows_refl _
+
+/-- A step is an `IsFsStep`, or `mmap`'s step to itself, which changes nothing (`MmapStall`). -/
+theorem fsStep_cases {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st st' : OsState}
+    {e' : Expr} {h' : GMap Loc (NonAtomic val)} (hs : FsStep o v h st () e' h' st' ()) :
+    IsFsStep o v st e' st' ∨ st' = st := by
+  rcases hs with hs | ⟨-, -, -, -, -, rfl⟩
+  · exact .inl hs.1
+  · exact .inr rfl
+
+/-- A step of an operation other than `mmap` returns (`FsStepV`). -/
+theorem fsStepV_of_ne {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st st' : OsState}
+    {e' : Expr} {h' : GMap Loc (NonAtomic val)} (hM : o ≠ "Mmap")
+    (hs : FsStep o v h st () e' h' st' ()) : FsStepV o v h st () e' h' st' () :=
+  hs.resolve_right (fun hm => hM hm.1)
 
 end
 
@@ -265,6 +282,14 @@ theorem isFsStep_lockFrame {o : String} {v : val} {st st' : OsState} {e' : Expr}
        grind [OsState.setProc, OsState.setFile, OsState.stampFile, OsState.takeIno,
         OsState.metaEnd, OsState.metaDo, OsState.doneInflight, OsState.addInflight,
         OsState.commitAll, OsState.delOfd, OsState.addOfd])
+
+/-- `isFsStep_lockFrame` for any step (`mmap`'s step to itself changes nothing). -/
+theorem fsStep_lockFrame {o : String} {v : val} {h : GMap Loc (NonAtomic val)} {st st' : OsState}
+    {e' : Expr} {h' : GMap Loc (NonAtomic val)} (hs : FsStep o v h st () e' h' st' ())
+    (ho : ¬ LockOp o) : LockFrame st st' := by
+  rcases fsStep_cases hs with hs | rfl
+  · exact isFsStep_lockFrame hs ho
+  · exact fun _ => .inl rfl
 
 end
 

@@ -219,6 +219,23 @@ theorem mapCells_gather (base : Loc) (len : Nat) (m0 m1 : List w8) (S ws : List 
   iapply cellsR_join base 0 (4096 * q) r
   iframe Hall; rw [Nat.zero_add]; iexact Hp
 
+omit hos in
+/-- **A non-empty range of cells from `base` ends by `maxAddr`** (session S3g: every cell is a heap
+cell, `heapPointsto`'s `l.addr < maxAddr`), so a mapping is at most `2 ^ 47` bytes. -/
+theorem cellsR_maxAddr (base : Loc) (n : Nat) (vf : Nat → val) (h : 0 < n) :
+    cellsR (GF := GF) base 0 n vf ⊢ cellsR (GF := GF) base 0 n vf ∗ ⌜base.addr + n ≤ maxAddr⌝ := by
+  refine persistent_entails_left ?_
+  obtain ⟨k, rfl⟩ : ∃ k, n = k + 1 := ⟨n - 1, by omega⟩
+  refine (cellsR_append base 0 k 1 vf).1.trans (sep_elim_right.trans ?_)
+  unfold cellsR heapPointsto
+  rw [List.range'_one]
+  iintro H
+  icases BigSepL.bigSepL_cons.1 $$ H with ⟨⟨%Hl, -⟩, -⟩
+  ipureintro
+  simp only [Loc.add] at Hl
+  push_cast at Hl ⊢
+  omega
+
 end cells
 
 end bbolt

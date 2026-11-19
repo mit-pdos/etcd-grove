@@ -30,7 +30,10 @@ compares as the `uintptr` `2^63`, so a leaf of `N` entries is split only into `N
   `Run panicked: inode overflow: 69997 (pgid=4)` (0.14 s, deterministic).
 - Translation: project `axiomcx-bboltnan` of `etc/goose.py`,
   `Code/.../examples/axiomcx/bboltnan.lean`.
-- Proof: `Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/bboltnan/Run.lean`.
+- Proof: `Proof/github_com/mit_pdos/etcd_grove/examples/axiomcx/bboltnan/Run.lean`, deleted at stage S1
+  of `notes/bbolt-integration-plan.md` (2026-11-17): over the proved bbolt `ownWTxG_fill` refuses a
+  NaN (`boltTx_fill`), so the proof no longer goes through (the point); the Go program and its
+  translation stay.
   `Run.wp_proof` proves `{{ isPkgInit bboltnan ∗ fileHolds path ∅ }} Run #path {{ RET #(); True }}`
   from the five specs it calls (`Open_kv`, `DB.Begin_kv`, `Tx.CreateBucketIfNotExists_kv`,
   `Bucket.Put_kv`, `Tx.Commit_kv`, as hypotheses); `Run.wp_axioms` instantiates them with the

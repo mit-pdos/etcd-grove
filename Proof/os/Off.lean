@@ -262,7 +262,7 @@ theorem os.File.Write.wp_spec (wp_WriteAt : os.File.WriteAt.spec (GF := GF) (hG 
       iframe
       ipureintro
       obtain ⟨h1, h2, -, h5⟩ := Hres
-      exact ⟨h1, h2, h5.imp_right (fun h => h.2)⟩
+      exact ⟨h1, h2, h5.imp_right (fun h => h.2.1)⟩
     ileft
     isplitr
     · ipureintro; rfl

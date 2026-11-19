@@ -102,6 +102,26 @@ theorem mmapSizeOf_big (size : Nat) (h : 2 ^ 30 < size) :
     omega
   rw [this]
 
+/-- `mmapSize` fails only above `maxMapSize` (session S3f). -/
+theorem mmapSizeOf_none_gt (size : Nat) (h : mmapSizeOf size = none) : 0xFFFFFFFFFFFF < size := by
+  by_cases h30 : 2 ^ 30 < size
+  · rw [mmapSizeOf_big size h30] at h
+    split at h
+    · omega
+    · cases h
+  · exfalso
+    unfold mmapSizeOf at h
+    have : (List.range 16).find? (fun i => decide (size ≤ 2 ^ (15 + i))) ≠ none := by
+      rw [ne_eq, List.find?_eq_none]
+      intro hn
+      have := hn 15 (by simp)
+      simp at this
+      omega
+    revert h this
+    cases (List.range 16).find? (fun i => decide (size ≤ 2 ^ (15 + i))) with
+    | none => intro _ h; exact h rfl
+    | some i => intro h; cases h
+
 section msz
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]

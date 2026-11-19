@@ -712,6 +712,8 @@ theorem DB.allocate.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
   iframe Hw
   simp only [WDb.withFl]
   unfold WDb.wtxid
+  rw [show flxS w.C (w.fl.alloc (W64 ((w.C.txid + 1 : Nat) : Int)) rid (sint.nat count)) w.wb =
+    flxS w.C w.fl w.wb from rfl]
   isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt Htok]
   · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest Hflo Hrd Hrcpt]
     · isplitl [Hcur Hgfl Hgmap Hgout Hgwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hrest]

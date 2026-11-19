@@ -232,10 +232,11 @@ open go_etcd_io.etcd.server.v3.etcdserver
 /-- **The size clauses of `rq`'s premise** at the log `log` (see the file header). -/
 def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
   match apply.dispatchKind rq with
-  | .put => apply.putOk log
+  | .put => apply.putOk log ∧
+      ∀ o, rq.put = some o → o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax
   | .deleteRange => ∀ o, rq.deleteRange = some o → apply.delOk log o
   | .range => ∀ o, rq.range = some o → log.length + 3 ≤ 2 ^ 63
-  | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t
+  | .txn => ∀ t, rq.txn = some t → txn.txnSmall log t ∧ t.putsLe etcdKeyMax
   -- (the lease-expiry plan's X6, 2026-11-04) a revocation commits its deletions at one revision;
   -- (the `lean` merge, R6, 2026-11-07) and the lessor's sort of the keys it deletes takes the state's
   -- size (`apply.rqOk`'s revocation arm, R2's `revokeSize`)
@@ -246,7 +247,8 @@ def rqSmall (log : mvcc.Log) (rq : apply.IRRModel) : Prop :=
 per change past its first two (`txn.soleWriter`) and fewer than `2 ^ 48` changes (the time
 receipts' bound, `mvcc.idxCert`, under the store's `receiptBound GF ≤ 2 ^ 48`). -/
 theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
-    (hl : log.length ≤ txn.logChanges log + 2) (hc : txn.logChanges log < 2 ^ 48) :
+    (hl : log.length ≤ txn.logChanges log + 2) (hc : txn.logChanges log < 2 ^ 48)
+    (hk : apply.irrPutsLe etcdKeyMax rq) :
     rqSmall log rq := by
   have hls : txn.LogSmall log := by unfold txn.LogSmall; omega
   have h4 : log.length + 4 ≤ 2 ^ 63 := by omega
@@ -254,10 +256,10 @@ theorem rqSmall_of_small (log : mvcc.Log) (rq : apply.IRRModel)
   split
   all_goals first
     | exact trivial
-    | (unfold apply.putOk; omega)
+    | (exact ⟨by unfold apply.putOk; omega, hk.1⟩)
     | (intro o _; unfold apply.delOk; omega)
     | (intro o _; omega)
-    | (intro t _; exact ⟨h4, hls⟩)
+    | (intro t ht; exact ⟨⟨h4, hls⟩, hk.2 t ht⟩)
     | (exact ⟨by unfold apply.putOk; omega,
         by have := (txn.stateBound_stateAfter log (by omega) (by omega)).1; omega⟩)
 
@@ -341,7 +343,7 @@ theorem rqShape_of_txn (rq : apply.IRRModel) (h : plainCover rq)
   unfold apply.rqOk
   rw [hk] at hs ⊢
   intro t ht'
-  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht'), (hs t ht').1⟩
+  exact ⟨txn.TxnPre_of log t (ht t ht') (hs t ht').1, (hs t ht').1.1, (hs t ht').2⟩
 
 end EtcdGrove
 end Perennial

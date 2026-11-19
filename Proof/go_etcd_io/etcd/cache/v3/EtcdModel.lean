@@ -40,15 +40,17 @@ open Iris Iris.BI
 
 /-! ## The pure vocabulary -/
 
-/-- **The longest key etcd's state holds** (`2 ^ 27` bytes, 128 MiB; 2026-10-30; also the longest
-value, 2026-10-31, `notes/vallen.md`;
+/-- **The longest key etcd's state holds** (`2 ^ 27 - 2 ^ 19` bytes, 127.5 MiB; 2026-10-30; also the
+longest value, 2026-10-31, `notes/vallen.md`; until 2026-11-17 `2 ^ 27`, lowered by stage S1b of
+`notes/bbolt-integration-plan.md` to the bound the request check gives, `etcdMaxRequestBytesOk`'s
+`MaxRequestBytes + 2 ^ 19 < 2 ^ 27`, so that a key and a value, encoded, fit a bbolt entry, `2 ^ 28`;
 `notes/keylen.md`): etcd's server proposes no request whose encoding is longer than its
 configuration's `MaxRequestBytes` (`processInternalRaftRequestOnce`, `ErrRequestTooLarge`), a key
 is part of the request that writes it, and the server's configuration keeps `MaxRequestBytes`
 below this (`NewServer`'s premise, `v3rpc.etcdMaxRequestBytesOk`; etcd's default is 1.5 MiB).
 Chosen so that a few keys and prefixes fit a request's `2 ^ 30`-byte payload bound (`opSizeOk`,
 `watchSizeOk`). -/
-def etcdKeyMax : Nat := 2 ^ 27
+def etcdKeyMax : Nat := 2 ^ 27 - 2 ^ 19
 
 /-- A key-value as etcd stores it (`mvccpb.KeyValue`'s fields). -/
 structure EtcdKv where

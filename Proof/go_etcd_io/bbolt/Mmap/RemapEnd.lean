@@ -8,6 +8,7 @@ module
 public import Proof.go_etcd_io.bbolt.Mmap.RemapLost
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGaps
 public import Proof.go_etcd_io.bbolt.Mmap.RemapGather
+public import Proof.go_etcd_io.bbolt.Inv.PmFile
 
 @[expose] public section
 
@@ -25,9 +26,9 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt
 def WDb.remap [GooseExts] (w : WDb) (b : Loc) (L' : Nat) (m' : OsMeta) : WDb :=
   { w with ms := some (b, L'), m := m', W := wSlots (max L' w.m.size / 4096) w.C w.fl }
 
-theorem wdbOK'_remap [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L' : Nat)
+theorem wdbOK'_remap [GooseExts] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L' : Nat)
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = GMap.singleton b L')
-    (hfile : w.m.size ≤ L') : wdbOK' fr (w.remap b L' m') := by
+    (hfile : w.m.size ≤ L') (hL47 : L' ≤ 0x800000000000) : wdbOK' fr (w.remap b L' m') := by
   have hc := flClause_congr fr w (w.remap b L' m') rfl rfl rfl (wdbOK'_flClause fr w hok)
   obtain ⟨_, _, hk3, hk4, hk5, -, hk7, hk8, _, _, hk11, hk12, hk13, -, hk15, hk16, hk17⟩ := hok
   refine ⟨?_, ?_, ?_, ?_, hk5, hc, hk7, hk8, ?_, ?_, hk11, hk12, ?_, ?_, ?_,
@@ -49,7 +50,11 @@ theorem wdbOK'_remap [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : 
     simp only [WDb.remap, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
     simp only [WDb.remap]; omega
-  · simp only [WDb.remap]; rw [hsz]; exact hk13
+  · obtain ⟨h1, -, h3⟩ := hk13
+    refine ⟨?_, ?_, ?_⟩ <;> simp only [WDb.remap, mapLen, hsz]
+    · exact h1
+    · exact hL47
+    · exact h3
   · intro b' l' h
     simp only [WDb.remap, Option.some.injEq, Prod.mk.injEq] at h
     obtain ⟨rfl, rfl⟩ := h
@@ -62,7 +67,7 @@ theorem wdbOK'_remap [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : 
     have : s < w.m.size / 4096 := by omega
     omega
 
-theorem wdbRemap_remap' [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L' : Nat)
+theorem wdbRemap_remap' [GooseExts] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b : Loc) (L' : Nat)
     (m' : OsMeta) (hsz : m'.size = w.m.size) (hL : mapLen w.ms ≤ L') :
     wdbRemap w (w.remap b L' m') := by
   refine ⟨rfl, rfl, rfl, rfl, rfl, hsz, fun s hs => ⟨?_, rfl⟩⟩
@@ -102,7 +107,8 @@ theorem remap_W_file' (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (b0 : Loc) (L L'
 `fbTok`). -/
 theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok : wdbOK' fr w)
     (v0 : View) (F : GMap Nat (List w8)) (hF : fbRel w F) (b : Loc) (L' : Nat) (m' : OsMeta) (hsz : m'.size = w.m.size) (hmaps : m'.maps = GMap.singleton b L')
-    (hfile : w.m.size ≤ L') (hsub : ∀ s ∈ (w.remap b L' m').W, 4096 * s < w.m.size → s ∈ w.W)
+    (hfile : w.m.size ≤ L') (hL47 : L' ≤ 0x800000000000)
+    (hsub : ∀ s ∈ (w.remap b L' m').W, 4096 * s < w.m.size → s ∈ w.W)
     (hv : v = View.ofC b w.C) :
     ⊢ ghostVar (GF := GF) K.B.cur (1 : Qp).half.half w.C -∗ ghostVar K.B.fl (1 : Qp).half w.fl -∗
       ghostVar K.B.map (1 : Qp).half (some (b, L') : MapSt) -∗ ghostVar K.B.out (1 : Qp).half false -∗
@@ -111,22 +117,24 @@ theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ dbPathLk K.db K.p w.fd -∗
+      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
+      dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 (L' : Int) -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (some (b, L') : MapSt) -∗
-      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-      osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗
+      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
       metaCellsQ (1 : Qp).half.half (some (b, L')) w.C -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
-      wCells (some (b, L')) (w.remap b L' m').W -∗ wBytes K.p w.W w.wb w.m.size -∗
-      junkRes w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
+      wCells (some (b, L')) (w.remap b L' m').W -∗
+      wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
+      junkRes K.B w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       fbTok K.B w.C w.fl (wLive v0 w.C) F -∗
       wdbW' fr K tx v (w.remap b L' m') := by
   iintro Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmc Hmob Hwc
     Hwb Hj Hflo Hrd Hrc Htok
   ihave Htok := fbTok_ws K.B w.C w.fl (wLive v0 w.C) (wLive v w.C) F rfl rfl $$ Htok
   unfold wdbW' wdbLive wdbCoreG
-  ihave Hwb := wBytes_restrict K.p w.W (w.remap b L' m').W w.wb w.m.size (wSlots_nodup _ _ _)
+  ihave Hwb := wBytesX_restrict K.p w.W (w.remap b L' m').W _ w.wb w.m.size (wSlots_nodup _ _ _)
     hsub $$ Hwb
   isplitl [Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmc Hmob Hwc
     Hwb Hj Hflo Hrd Hrc]
@@ -135,7 +143,7 @@ theorem wdbW'_remap_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (
     rcases hj : w.junk with _ | ⟨jb, jl⟩ <;> simp only [junkRes, hj] <;> iexact Hj
   isplitr
   · ipureintro
-    refine ⟨wdbOK'_remap fr w hok b L' m' hsz hmaps hfile, ?_, ?_⟩
+    refine ⟨wdbOK'_remap fr w hok b L' m' hsz hmaps hfile hL47, ?_, ?_⟩
     · subst hv; rfl
     · subst hv; rfl
   iexists F
@@ -151,12 +159,13 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
     (hok : wdbOK' fr w) (F : GMap Nat (List w8)) (hF : fbRel w F) (b0 base : Loc) (l L' : Nat) (m2 : OsMeta) (hcov : derefOK Xd)
     (hXd : Xd.v = X.v) (hv : X.v = View.ofC X.v.base w.C) (hrdb : r.db = K.db)
     (hms : w.ms = some (b0, l)) (hll : l ≤ L') (hal : l % 4096 = 0 ∨ l = 0xFFFFFFFFFFFF)
-    (hL'max : L' ≤ 0xFFFFFFFFFFFF) (hsz : m2.size = w.m.size)
+    (hL'max : L' ≤ 0xFFFFFFFFFFFF) (hL47 : L' ≤ 0x800000000000) (hsz : m2.size = w.m.size)
     (hmaps : m2.maps = GMap.singleton base L') (hfile : w.m.size ≤ L')
     (hpb : ∀ id pg, X.v.pages !! id = some pg → (id + 1) * 4096 ≤ l) :
     ⊢ wtxCore (GF := GF) K tx r m Xd -∗ viewCells wq { X.v with base := base } -∗
       mapFields K.db (DFrac.own 1) (some (base, L') : MapSt) -∗
       ghostVar K.B.map (1 : Qp).half.half (some (base, L') : MapSt) -∗ ghostVar K.B.mtok 1 () -∗
+      (∃ ms0 : MapSt, pmFile K.B K.db (DFrac.own (1 : Qp).half) ms0) -∗
       ghostVar K.B.cur (1 : Qp).half.half w.C -∗ ghostVar K.B.fl (1 : Qp).half w.fl -∗
       ghostVar K.B.map (1 : Qp).half (some (base, L') : MapSt) -∗
       ghostVar K.B.out (1 : Qp).half false -∗
@@ -166,20 +175,24 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ dbPathLk K.db K.p w.fd -∗
+      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
+      dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 (L' : Int) -∗
-      osMeta K.p.ino (DFrac.own 1) m2 -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-      osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗
+      osMeta K.p.ino (DFrac.own 1) m2 -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
       metaCellsQ (1 : Qp).half.half (some (base, L')) w.C -∗
       metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
       wCells (some (base, L')) (wSlots (max L' w.m.size / 4096) w.C w.fl) -∗
-      wBytes K.p w.W w.wb w.m.size -∗
-      junkRes w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
+      wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
+      junkRes K.B w.junk -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       fbTok K.B w.C w.fl (wLive X.v w.C) F -∗
       |={⊤}=> Pm K.B K.db 1 ∗ wtxW K tx r m (Xd.rebase base) ∗
         wdbW' fr K tx (Xd.rebase base).v (w.remap base L' m2) := by
-  iintro Hwc Hvc Hmf Hpmap Hptok Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hosm
-    Hfo Hfd Hmc Hmob Hwc' Hwb Hj Hflo Hrd Hrc Htok
+  iintro Hwc Hvc Hmf Hpmap Hptok ⟨%ms0, Hpf⟩ Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath
+    Hdsz Hosm Hfo Hfd Hmc Hmob Hwc' Hwb Hj Hflo Hrd Hrc Htok
+  icases pmFile_remap K.B K.db w.f w.fd K.p.path _ _ _ ms0 (some (base, L')) $$ [Hfile Hfo Hpf]
+    with ⟨Hfile, Hfo, Hpf⟩
+  · iframe
   icases (mapFields_join K.db (some (base, L') : MapSt)).2 $$ Hmf with ⟨Hm1, Hm2, Hm3⟩
   ihave %Hbpos : ⌜0 < base.addr⌝ $$ [Hm1]
   · iunfold mapFields at Hm1; icases Hm1 with ⟨-, -, -, -, %H⟩; ipureintro; exact H.2.1
@@ -193,13 +206,14 @@ theorem remap_post' (fr : Bool) (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X Xd
   have hvc : (Xd.rebase base).v = View.ofC base w.C := by
     rw [hv', hv]; rfl
   ihave Hwd := wdbW'_remap_intro fr K tx (Xd.rebase base).v w hok X.v F hF base L' m2 hsz hmaps hfile
+    hL47
     (remap_W_file' fr w hok b0 l L' hms hll hal hL'max) hvc
     $$ Hcur Hfl Hmap Hout [Hwv] Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hm2 Hosm Hfo Hfd Hmc Hmob [Hwc']
       Hwb Hj Hflo Hrd Hrc Htok
   · simp only [wLive]; rw [hv']; iexact Hwv
   · simp only [WDb.remap]; iexact Hwc'
   imodintro
-  isplitl [Hpmap Hm3 Hptok]
+  isplitl [Hpmap Hm3 Hptok Hpf]
   · unfold Pm; iexists (some (base, L')); iframe
   iframe Hwd
   unfold wtxW
