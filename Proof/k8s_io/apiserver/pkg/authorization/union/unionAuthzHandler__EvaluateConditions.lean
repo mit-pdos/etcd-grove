@@ -25,6 +25,7 @@ public import Perennial.Spec.fmt.Sprintf
 public import Perennial.Spec.strings.Join
 public import Spec.k8s_io.apimachinery.pkg.util.errors.NewAggregate
 public import Proof.k8s_io.apiserver.pkg.authorization.union.B5Lemmas
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B1Lemmas
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ForRange
 
@@ -246,10 +247,10 @@ theorem unionAuthzHandler.EvaluateConditions.wp_proof
             · iexact Hv
             (try wp_auto)
             wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of wp_ConditionsAwareDecision_PossibleDecisions)
-              $$ [$unevaluatedSubDecision] as %s2 ⟨⟨%S2, HS2, -⟩, unevaluatedSubDecision⟩
+              $$ [$unevaluatedSubDecision] as %s2 ⟨⟨%S2, HS2, %HSm2⟩, unevaluatedSubDecision⟩
             · iexact Hv
             (try wp_auto)
-            wp_apply (wp_List s2 (DFrac.own 1) S2) $$ [$HS2] as %sl %dws ⟨HS2, Hsl, -⟩
+            wp_apply (wp_List s2 (DFrac.own 1) S2 (EtcdGrove.authorizer.setIs_size_le_b1 HSm2)) $$ [$HS2] as %sl %dws ⟨HS2, Hsl, -⟩
             (try wp_auto)
             wp_apply wp_slice_literal
             isplitr

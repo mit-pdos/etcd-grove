@@ -18,6 +18,7 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.Decision__Strin
 public import Spec.fmt.SprintfDecisions
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B1Lemmas
 
 @[expose] public section
 
@@ -94,7 +95,7 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
   wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of wp_ConditionsAwareDecision_PossibleDecisions
     d_ptr (DFrac.own 1) d m) $$ [$Hdp] as %s ⟨⟨%S, HS, %HSm⟩, Hdp⟩
   · iexact Hd
-  wp_apply (wp_List s (DFrac.own 1) S) $$ [$HS] as %sl %ks ⟨HS, Hsl, %Hks⟩
+  wp_apply (wp_List s (DFrac.own 1) S (setIs_size_le_b1 HSm)) $$ [$HS] as %sl %ks ⟨HS, Hsl, %Hks⟩
   wp_apply (Decision.wp_ptr_String_of wp_Decision_String failureDecision_ptr (DFrac.own 1) _)
     $$ [$failureDecision] as %str Hfd
   wp_apply wp_slice_literal (V := GoInterface)

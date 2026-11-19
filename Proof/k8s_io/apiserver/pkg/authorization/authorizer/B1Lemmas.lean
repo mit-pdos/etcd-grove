@@ -123,6 +123,22 @@ theorem len_pos_iff {V : Type} (vs : List V) (len : w64) (h1 : vs.length = sint.
   | nil => simp at h1; simp; omega
   | cons v vs => simp at h1; simp; omega
 
+/-- A set of decisions has at most three items (Deny, Allow, NoOpinion), well within
+`sets.List'.specW`'s bound (`slices.Sort`'s `2^62`). -/
+theorem setIs_size_le_b1 {s : GMap w64 Elem} {p : PD} (h : setIs s p) : GMap.size s ≤ 2 ^ 62 := by
+  have hnd : ([W64 0, W64 1, W64 2].filter (fun k => p.has k)).Nodup :=
+    List.Pairwise.sublist (List.filter_sublist) (by decide)
+  rw [GMap.size_eq_length s _ hnd (fun k => by
+    rw [h k, List.mem_filter]
+    constructor
+    · exact fun h' => h'.2
+    · intro h'
+      refine ⟨?_, h'⟩
+      rcases PD.has_valid p k h' with rfl | rfl | rfl <;> simp)]
+  have := List.length_filter_le (fun k => p.has k) [W64 0, W64 1, W64 2]
+  simp only [List.length_cons, List.length_nil] at this
+  omega
+
 end pure
 
 section defs
