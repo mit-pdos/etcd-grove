@@ -714,6 +714,178 @@ theorem fresh2 {l1 l2 : NL} {i j : Nat} (h2 : NLok l2)
   · exact fpC.lt_irrefl _ hw (proc_lt2 hf hj _ (Or.inl hm))
   · exact fpC.lt_irrefl _ hw (hlt _ hm)
 
+/-- A key left in `l1` once `l2` is consumed is not a key of `l2`. -/
+theorem notin_other1 {l1 l2 : NL} {i : Nat} (h1 : NLok l1)
+    (hf : Front (keys l1) (keys l2) i l2.length) {k : PE} {S : PathSet} (hm : (k, S) ∈ l1.drop i) :
+    k ∉ keys l2 := by
+  intro hk
+  have hw : k.wf = true := (h1.2 k S (List.mem_of_mem_drop hm)).1
+  have hk' : k ∈ (keys l2).take l2.length := by rw [List.take_of_length_le (by simp [keys])]; exact hk
+  have hd : k ∈ (keys l1).drop i := by
+    simp only [keys, ← List.map_drop]; exact List.mem_map_of_mem (f := (·.1)) hm
+  exact lt_irrefl k hw (hf k (List.mem_append.2 (Or.inr hk')) k (List.mem_append.2 (Or.inl hd)))
+
+theorem notin_other2 {l1 l2 : NL} {j : Nat} (h2 : NLok l2)
+    (hf : Front (keys l1) (keys l2) l1.length j) {k : PE} {S : PathSet} (hm : (k, S) ∈ l2.drop j) :
+    k ∉ keys l1 := by
+  intro hk
+  have hw : k.wf = true := (h2.2 k S (List.mem_of_mem_drop hm)).1
+  have hk' : k ∈ (keys l1).take l1.length := by rw [List.take_of_length_le (by simp [keys])]; exact hk
+  have hd : k ∈ (keys l2).drop j := by
+    simp only [keys, ← List.map_drop]; exact List.mem_map_of_mem (f := (·.1)) hm
+  exact lt_irrefl k hw (hf k (List.mem_append.2 (Or.inl hk')) k (List.mem_append.2 (Or.inr hd)))
+
+theorem nlok_sorted {l : NL} (h : NLok l) : PE.Sorted (keys l) := h.1
+
+theorem getElem_mem_drop {l : NL} {i : Nat} (hi : i < l.length) : l[i] ∈ l.drop i := by
+  rw [drop_cons' l i hi]; exact List.mem_cons_self ..
+
+/-- **`l1`'s rest appended** once `l2` is consumed. -/
+theorem oinv_tail1 {l1 l2 : NL} {R : Path → Prop} (h1 : NLok l1) :
+    ∀ (n i : Nat) (lo : NL), n = l1.length - i → i ≤ l1.length →
+    OInv l1 l2 i l2.length lo R → Front (keys l1) (keys l2) i l2.length →
+    (∀ k S r, (k, S) ∈ l1.drop i → (R (k :: r) ↔ r ∈ S)) →
+    OInv l1 l2 l1.length l2.length (lo ++ l1.drop i) R
+  | 0, i, lo, hn, hi, ho, _, _ => by
+    have : i = l1.length := by omega
+    subst this; simp only [List.drop_length, List.append_nil]; exact ho
+  | n + 1, i, lo, hn, hi, ho, hf, hcol => by
+    have hi' : i < l1.length := by omega
+    have hk : (keys l1)[i]'(by simp [hi']) = l1[i].1 := by simp [keys]
+    have hm := getElem_mem_drop hi'
+    obtain ⟨hw, hne, hnil⟩ := h1.2 l1[i].1 l1[i].2 (List.mem_of_mem_drop hm)
+    have ho' := oinv_add (k := l1[i].1) (S := l1[i].2) ho (proc_succ1 hi')
+      (proc_lt1 hf hi') hw hne hnil (fun r => hcol _ _ r hm)
+    have hf' : Front (keys l1) (keys l2) (i + 1) l2.length :=
+      front_step_x (nlok_sorted h1) hf (by simp [hi']) (fun b hb => by
+        rw [List.drop_of_length_le (by simp [keys])] at hb; simp at hb)
+    have := oinv_tail1 h1 n (i + 1) (lo ++ [(l1[i].1, l1[i].2)]) (by omega) hi' ho' hf'
+      (fun k S r h => hcol k S r (mem_drop_of_succ hi' h))
+    rw [List.append_assoc, List.singleton_append, ← drop_cons' l1 i hi'] at this
+    exact this
+
+/-- `l2`'s rest appended once `l1` is consumed. -/
+theorem oinv_tail2 {l1 l2 : NL} {R : Path → Prop} (h2 : NLok l2) :
+    ∀ (n j : Nat) (lo : NL), n = l2.length - j → j ≤ l2.length →
+    OInv l1 l2 l1.length j lo R → Front (keys l1) (keys l2) l1.length j →
+    (∀ k S r, (k, S) ∈ l2.drop j → (R (k :: r) ↔ r ∈ S)) →
+    OInv l1 l2 l1.length l2.length (lo ++ l2.drop j) R
+  | 0, j, lo, hn, hj, ho, _, _ => by
+    have : j = l2.length := by omega
+    subst this; simp only [List.drop_length, List.append_nil]; exact ho
+  | n + 1, j, lo, hn, hj, ho, hf, hcol => by
+    have hj' : j < l2.length := by omega
+    have hm := getElem_mem_drop hj'
+    obtain ⟨hw, hne, hnil⟩ := h2.2 l2[j].1 l2[j].2 (List.mem_of_mem_drop hm)
+    have ho' := oinv_add (k := l2[j].1) (S := l2[j].2) ho (proc_succ2 hj')
+      (proc_lt2 hf hj') hw hne hnil (fun r => hcol _ _ r hm)
+    have hf' : Front (keys l1) (keys l2) l1.length (j + 1) :=
+      front_step_y (nlok_sorted h2) hf (by simp [hj']) (fun b hb => by
+        rw [List.drop_of_length_le (by simp [keys])] at hb; simp at hb)
+    have := oinv_tail2 h2 n (j + 1) (lo ++ [(l2[j].1, l2[j].2)]) (by omega) hj' ho' hf'
+      (fun k S r h => hcol k S r (mem_drop_of_succ hj' h))
+    rw [List.append_assoc, List.singleton_append, ← drop_cons' l2 j hj'] at this
+    exact this
+
+/-! ## `SetNodeMap.Union`'s steps -/
+
+/-- The union of two node lists' paths. -/
+abbrev RU (l1 l2 : NL) : Path → Prop := fun q => q ∈ nlPaths l1 ∨ q ∈ nlPaths l2
+
+theorem lt_rest_nl {l : NL} (h : NLok l) {j : Nat} (hj : j < l.length) {x : PE} (hx : x.wf = true)
+    (hlt : PE.lt x l[j].1) : ∀ b ∈ (keys l).drop j, PE.lt x b :=
+  lt_rest (nlok_wf h) (nlok_sorted h) j (by simp [hj]) x hx (by simpa [keys] using hlt)
+
+theorem nl_mem_get {l : NL} {i : Nat} (hi : i < l.length) : l[i] ∈ l := List.getElem_mem hi
+
+theorem nl_col' {l : NL} (hl : NLok l) {p : PE × PathSet} (h : p ∈ l) (r : Path) :
+    p.1 :: r ∈ nlPaths l ↔ r ∈ p.2 := nl_col hl (k := p.1) (S := p.2) h r
+
+theorem union_step1 {l1 l2 : NL} {i j : Nat} {lo : NL} (h1 : NLok l1) (h2 : NLok l2)
+    (hf : Front (keys l1) (keys l2) i j) (ho : OInv l1 l2 i j lo (RU l1 l2))
+    (hi : i < l1.length) (hj : j < l2.length) (hlt : PE.lt l1[i].1 l2[j].1) :
+    Front (keys l1) (keys l2) (i + 1) j ∧ OInv l1 l2 (i + 1) j (lo ++ [l1[i]]) (RU l1 l2) := by
+  obtain ⟨hw, hne, hnil⟩ := h1.2 l1[i].1 l1[i].2 (nl_mem_get hi)
+  have hr := lt_rest_nl h2 hj hw hlt
+  refine ⟨front_step_x (nlok_sorted h1) hf (by simp [hi]) (by simpa [keys] using hr), ?_⟩
+  have := oinv_add (k := l1[i].1) (S := l1[i].2) ho (proc_succ1 hi) (proc_lt1 hf hi) hw hne hnil
+    (fun r => by
+      simp only [RU]
+      rw [nl_col' h1 (nl_mem_get hi) r]
+      have := nl_nokey (fresh1 h1 hf hi hr) r
+      constructor
+      · rintro (h | h)
+        · exact h
+        · exact absurd h this
+      · exact Or.inl)
+  simpa using this
+
+theorem union_step2 {l1 l2 : NL} {i j : Nat} {lo : NL} (h1 : NLok l1) (h2 : NLok l2)
+    (hf : Front (keys l1) (keys l2) i j) (ho : OInv l1 l2 i j lo (RU l1 l2))
+    (hi : i < l1.length) (hj : j < l2.length) (hlt : PE.lt l2[j].1 l1[i].1) :
+    Front (keys l1) (keys l2) i (j + 1) ∧ OInv l1 l2 i (j + 1) (lo ++ [l2[j]]) (RU l1 l2) := by
+  obtain ⟨hw, hne, hnil⟩ := h2.2 l2[j].1 l2[j].2 (nl_mem_get hj)
+  have hr := lt_rest_nl h1 hi hw hlt
+  refine ⟨front_step_y (nlok_sorted h2) hf (by simp [hj]) (by simpa [keys] using hr), ?_⟩
+  have := oinv_add (k := l2[j].1) (S := l2[j].2) ho (proc_succ2 hj) (proc_lt2 hf hj) hw hne hnil
+    (fun r => by
+      simp only [RU]
+      rw [nl_col' h2 (nl_mem_get hj) r]
+      have := nl_nokey (fresh2 h2 hf hj hr) r
+      constructor
+      · rintro (h | h)
+        · exact absurd h this
+        · exact h
+      · exact Or.inr)
+  simpa using this
+
+theorem union_step12 {l1 l2 : NL} {i j : Nat} {lo : NL} (h1 : NLok l1) (h2 : NLok l2)
+    (hf : Front (keys l1) (keys l2) i j) (ho : OInv l1 l2 i j lo (RU l1 l2))
+    (hi : i < l1.length) (hj : j < l2.length) (he : l1[i].1 = l2[j].1) :
+    Front (keys l1) (keys l2) (i + 1) (j + 1) ∧
+      OInv l1 l2 (i + 1) (j + 1) (lo ++ [(l1[i].1, PathSet.union l1[i].2 l2[j].2)]) (RU l1 l2) := by
+  obtain ⟨hw, hne, hnil⟩ := h1.2 l1[i].1 l1[i].2 (nl_mem_get hi)
+  obtain ⟨-, -, hnil2⟩ := h2.2 l2[j].1 l2[j].2 (nl_mem_get hj)
+  refine ⟨front_step_eq (nlok_sorted h1) (nlok_sorted h2) hf (by simp [hi]) (by simp [hj])
+    (by simpa [keys] using he), ?_⟩
+  obtain ⟨q, hq⟩ := hne
+  refine oinv_add ho (proc_succ12 hi hj he) (proc_lt1 hf hi) hw ⟨q, (mem_punion _ _ q).2 (Or.inl hq)⟩
+    (fun h => by
+      rcases (mem_punion _ _ _).1 h with h | h
+      · exact hnil h
+      · exact hnil2 h) (fun r => ?_)
+  simp only [RU]
+  rw [mem_punion, nl_col' h1 (nl_mem_get hi) r]
+  have : l1[i].1 = l2[j].1 := he
+  rw [this, nl_col' h2 (nl_mem_get hj) r]
+
+theorem union_final {l1 l2 : NL} {lo : NL} (ho : OInv l1 l2 l1.length l2.length lo (RU l1 l2))
+    (D1 D2 : PathSet) (hD1 : ∀ q, q ∈ D1 ↔ q ∈ nlPaths l1) (hD2 : ∀ q, q ∈ D2 ↔ q ∈ nlPaths l2) :
+    ∀ q, q ∈ PathSet.union D1 D2 ↔ q ∈ nlPaths lo := by
+  intro q
+  rw [oinv_final ho (fun q hq => by
+    rcases hq with h | h
+    · obtain ⟨k, r, rfl, hk⟩ := nl_heads q h; exact ⟨k, r, rfl, Or.inl hk⟩
+    · obtain ⟨k, r, rfl, hk⟩ := nl_heads q h; exact ⟨k, r, rfl, Or.inr hk⟩), mem_punion, hD1, hD2]
+
+theorem union_tail1 {l1 l2 : NL} {i : Nat} {lo : NL} (h1 : NLok l1) (hi : i ≤ l1.length)
+    (hf : Front (keys l1) (keys l2) i l2.length) (ho : OInv l1 l2 i l2.length lo (RU l1 l2)) :
+    OInv l1 l2 l1.length l2.length (lo ++ l1.drop i) (RU l1 l2) :=
+  oinv_tail1 h1 _ i lo rfl hi ho hf (fun k S r hm => by
+    simp only [RU]
+    rw [nl_col h1 (List.mem_of_mem_drop hm) r]
+    have := nl_nokey (notin_other1 h1 hf hm) r
+    exact ⟨fun h => h.elim id (fun h' => absurd h' this), Or.inl⟩)
+
+theorem union_tail2 {l1 l2 : NL} {j : Nat} {lo : NL} (h2 : NLok l2) (hj : j ≤ l2.length)
+    (hf : Front (keys l1) (keys l2) l1.length j) (ho : OInv l1 l2 l1.length j lo (RU l1 l2)) :
+    OInv l1 l2 l1.length l2.length (lo ++ l2.drop j) (RU l1 l2) :=
+  oinv_tail2 h2 _ j lo rfl hj ho hf (fun k S r hm => by
+    simp only [RU]
+    rw [nl_col h2 (List.mem_of_mem_drop hm) r]
+    have := nl_nokey (notin_other2 h2 hf hm) r
+    exact ⟨fun h => h.elim (fun h' => absurd h' this) id, Or.inr⟩)
+
 end fpC
 
 /-! ## The representation, viewed as members and node lists -/
@@ -865,6 +1037,33 @@ theorem nodesL_trieRepC : ∀ (ns : List fieldpath.setNode) (l : NL),
     rw [e]
     simp only [nlOf] at hc
     rw [hc.2]
+
+theorem nodesL_append (ns ns' : List fieldpath.setNode) (l l' : NL) :
+    nodesL (GF := GF) ns l ∗ nodesL ns' l' ⊢ nodesL (ns ++ ns') (l ++ l') := by
+  iintro ⟨H1, H2⟩
+  ihave %h := nodesL_length ns l $$ H1
+  iapply (nodesL_app ns ns' l l' h).2
+  iframe
+
+theorem nodesL_snoc (ns : List fieldpath.setNode) (l : NL) (n : fieldpath.setNode) (k : PE)
+    (S : PathSet) :
+    nodesL (GF := GF) ns l ∗ isPE n.pathElement' k ∗ isSet n.set' S ⊢
+      nodesL (ns ++ [n]) (l ++ [(k, S)]) := by
+  iintro ⟨H1, He, Hs⟩
+  iapply nodesL_append
+  iframe
+  rw [nodesL_cons_eq, nodesL_nil_eq]
+  iframe
+
+theorem nodesL_drop (ns : List fieldpath.setNode) (l : NL) (k : Nat) :
+    nodesL (GF := GF) ns l ⊢ nodesL (ns.drop k) (l.drop k) := by
+  iintro H
+  ihave %hl := nodesL_length ns l $$ H
+  have e := (nodesL_app (GF := GF) (ns.take k) (ns.drop k) (l.take k) (l.drop k)
+    (by simp [hl])).1
+  rw [List.take_append_drop, List.take_append_drop] at e
+  icases e $$ H with ⟨-, H⟩
+  iexact H
 
 /-- **A node of a `SetNodeMap`'s slice**: its fields' persistent points-tos, its element and set. -/
 theorem node_at (sl : GoSlice) (ns : List fieldpath.setNode) (nl : NL) (k : Int) (n : fieldpath.setNode)
