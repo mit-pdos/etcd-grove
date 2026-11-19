@@ -36,6 +36,7 @@ theorem backend.batchTx.UnsafeSeqPut.wp_proof
   · iframe #
   iapply HΦ
   iframe
+  try (ipureintro; exact Hkv)
 
 end proof
 

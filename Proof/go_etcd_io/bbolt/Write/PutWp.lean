@@ -368,9 +368,12 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     have hkle : kb.length ≤ 32768 := by unfold maxKeySize at hkL; omega
     simp only [sint.nat, sint.Z] at h1 h2 ⊢
     word
+  have hc2 : sint.Z (W64 268435456 - key.len) < sint.Z value.len ↔
+      bboltEntryMax < kb.length + vb.length := by
+    rw [hsub, hvZeq]; clear hsub hvZeq hmv hv1; unfold bboltEntryMax; omega
+  clear hsub hvZeq hmv hv1
   by_cases hbig : bboltEntryMax < kb.length + vb.length
-  · rw [decide_eq_true (show sint.Z (W64 268435456 - key.len) < sint.Z value.len by
-      rw [hsub, hvZeq]; unfold bboltEntryMax at hbig; omega)]
+  · rw [decide_eq_true (hc2.2 hbig)]
     icases bboltErrVar_get _ $$ EVL with ⟨%e, #He, %Hne, #Hfe⟩
     wp_auto
     wp_bind (App (Val #f) (Val #()))
@@ -390,9 +393,10 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
     iexists K, r, c, X
     iframe; iframe #
     ipureintro; exact ⟨⟨hKB, hKN, hTc⟩, hok, hcur', hbase, hgens, hwr, hwc⟩
-  have hbnd : kb.length + vb.length ≤ bboltEntryMax := by omega
-  rw [decide_eq_false (show ¬ sint.Z (W64 268435456 - key.len) < sint.Z value.len by
-    rw [hsub, hvZeq]; unfold bboltEntryMax at hbnd; omega)]
+  rw [decide_eq_false (fun h => hbig (hc2.1 h))]
+  clear hc2
+  have hbnd : kb.length + vb.length ≤ bboltEntryMax := Nat.le_of_not_lt hbig
+  clear hbig
   wp_auto
   wp_apply hclone key kb dk $$ [Hkey] as %nk ⟨Hnk, Hnkc, Hkey⟩
   · iframe #; iexact Hkey
@@ -541,7 +545,12 @@ theorem Bucket.Put.wp_writer [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt]
   wp_auto
   iapply HΦ
   iframe Hkey
-  rw [if_neg (by intro h; rcases h with h | h | h <;> first | contradiction | omega)]
+  rw [if_neg (by
+    intro h
+    rcases h with h | h | h
+    · exact hk0 h
+    · exact hkL h
+    · exact Nat.not_lt_of_le hbnd h)]
   isplitr
   · ipureintro; rfl
   rw [hKB, hKN]
