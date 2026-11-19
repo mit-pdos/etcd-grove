@@ -1,21 +1,32 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 k, route (d'): full timed build 4 running)
+## START HERE (2026-11-19 l, route (d') coded; build 5 next — agent handed off at 400k context)
 
-- Branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35 (manifest-3af); lean 5f94c44bee
-  merged (f3278f12b4). `auth-schema-srv` still cc85342beb (fast-forward at checkpoint B).
-- The user chose route (d') (questions.md, ledger 2026-11-19 "the auth records' size"): bbolt fork fix 3f8520bd
-  (`Put` refuses key+value > 2^28; local clone `/shared/tmp/auth-schema-srv/bbolt-fork`, branch `goose-lean-entrymax`,
-  NOT pushed: the user pushes); `etc/goose.py` pin; bbolt translation regenerated with `--src
-  bbolt=/shared/tmp/auth-schema-srv/bbolt-fork`. Done: aba2aa4634 + next commit: `Bucket.Put.spec` in place, PutWp's
-  branches (fresh lean-check clean), backend Put specs drop the premise (`unsafePut`'s post: entry within the bound),
-  8 direct callers, issue/nonissue files.
-- Pushed by the user (3f8520b); examples/go.mod bumped (goose.py --check --project bbolt passes without --src).
-- Next: build 4 (`/shared/tmp/auth-schema-srv/build-full4.log`) green → bbolt + backend interfaces, tcb `--check
-  --update`, collections, tier-check, gen-link all modes, checkpoint B; C: `stmtdiff2.py lean` (only hD22).
-- Pitfalls: (46) duplicate `Countable Qp` (`attribute [-instance] Perennial.Fs.Qp.countable`); (47) in PutWp, facts
-  about `sint.Z (W64 268435456 - key.len)` left in context make later `omega`s hit kernel deep recursion: derive
-  an iff, then `clear` them; avoid `contradiction` on goals with `bboltEntryMax`.
+- Branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), head = this commit; pin 3afd77e35
+  (`--packages=/shared/tmp/manifest-3af.json`, `.lake/package-overrides.json` = it, `PERENNIAL_DIR=/shared/perennial-3afd77e35`).
+  lean 5f94c44bee merged (f3278f12b4); merge lean again if it moved (grpc-stats origin merge expected). `auth-schema-srv`
+  still cc85342beb: fast-forward it to `auth-schema-port` at checkpoint B.
+- Route (d') (user, 2026-11-19; questions.md, ledger "the auth records' size"): bbolt fork 3f8520b (pushed by the user,
+  branch `goose-lean-entrymax`), `etc/goose.py` pin, examples/go.mod bumped; `etc/goose.py --check` passes (all projects).
+  Coded: `Bucket.Put.spec` in place + PutWp (fresh lean-check clean); backend `unsafePut`/`UnsafePut`/`UnsafeSeqPut`
+  (premise dropped, post: entry ≤ 2^28, Fatal arm) and `batchTxBuffered.UnsafePut/SeqPut`; 8 direct callers; issue files.
+- **Build 4** (`20261119-205653-1967841`): the only failure was `backend.batchTx__unsafePut` (Fatal arm: `wp_auto` on
+  `match err`), fixed in 8f5882ebfa (fresh lean-check of unsafePut + UnsafePut clean); its dependents were not built.
+- **Next, in order**: (1) full timed build 5: `/shared/tmp/build-slot.sh etc/timed-build.py --packages=/shared/tmp/manifest-3af.json`
+  (expect breaks only downstream of the Put specs: batchTxBuffered Put proofs, callers listed in
+  `/shared/tmp/auth-schema-srv/putcalls.txt`, AuthRealWr's `lk_put`/`lk_putA`); report its id.
+  (2) gen-link all modes (loop: `/shared/tmp/auth-schema-srv/links/map.txt`, `LAKE_OPTS=--packages=...`), interfaces
+  (`etc/gen-interface.py etc/api/<pkg>.txt` for bbolt, backend, others that differ: `--check` first), tier-check,
+  gen-init `--check`, gen-raft-tla `--check`. (3) tcb `--check --update` (expected: −2 ForEach axioms vs 794/2 baseline,
+  plus any delta) and every collection (`--collection … --check --update`). (4) checkpoint B report (soundness §8 +
+  independent check done: notes/auth-schema-srv-a1-soundness.md §8). (5) C: `python3 /shared/tmp/auth-schema-srv/stmtdiff2.py lean`
+  (20 statements incl. the three `*_robust.spec`: only hD22 removed), trust-base delta, stays/leaves list; land stop.
+- Pitfalls: (46) duplicate `Countable Qp`: `attribute [-instance] Perennial.Fs.Qp.countable` in the realization files;
+  (47) PutWp: clear facts on `sint.Z (W64 268435456 - key.len)` before `omega` (kernel deep recursion); no `contradiction`
+  near `bboltEntryMax`; (48) a Go-interface `err` from a spec post: destruct it (`err = ok eo`) before `wp_auto` on
+  `err != nil`; (49) lean-check `-a` after a stopped incremental run says "unchanged": `--stop` and recheck fresh.
+
+## History (START HERE of 2026-11-19 k, superseded)
 
 ## History (START HERE of 2026-11-19 i, superseded: stop on option (1))
 
