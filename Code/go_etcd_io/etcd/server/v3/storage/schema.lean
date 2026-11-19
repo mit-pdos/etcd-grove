@@ -131,22 +131,14 @@ noncomputable def leaseBucketName [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def alarmBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.alarmBucketName"
 
-opaque alarmBucketName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def clusterBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.clusterBucketName"
-
-opaque clusterBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def membersBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.membersBucketName"
 
-opaque membersBucketName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def membersRemovedBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.membersRemovedBucketName"
-
-opaque membersRemovedBucketName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def authBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.authBucketName"
@@ -160,8 +152,6 @@ noncomputable def authRolesBucketName [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def testBucketName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.testBucketName"
 
-opaque testBucketName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Key [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Key"
 
@@ -174,22 +164,14 @@ noncomputable def Lease [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Alarm [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Alarm"
 
-opaque Alarm.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def Cluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Cluster"
-
-opaque Cluster.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Members [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Members"
 
-opaque Members.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def MembersRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MembersRemoved"
-
-opaque MembersRemoved.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Auth [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Auth"
@@ -203,22 +185,14 @@ noncomputable def AuthRoles [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Test [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Test"
 
-opaque Test.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def AllBuckets [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.AllBuckets"
-
-opaque AllBuckets.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ScheduledCompactKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ScheduledCompactKeyName"
 
-opaque ScheduledCompactKeyName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def FinishedCompactKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.FinishedCompactKeyName"
-
-opaque FinishedCompactKeyName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetaConsistentIndexKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConsistentIndexKeyName"
@@ -235,22 +209,14 @@ noncomputable def MetaTermKeyName [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def MetaConfStateName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaConfStateName"
 
-opaque MetaConfStateName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def ClusterClusterVersionKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ClusterClusterVersionKeyName"
-
-opaque ClusterClusterVersionKeyName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ClusterDowngradeKeyName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.ClusterDowngradeKeyName"
 
-opaque ClusterDowngradeKeyName.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def MetaStorageVersionName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.MetaStorageVersionName"
-
-opaque MetaStorageVersionName.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def schemaChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.schemaChanges"
@@ -259,8 +225,6 @@ opaque schemaChanges.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def emptyStorageVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.emptyStorageVersion"
-
-opaque emptyStorageVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def restoreFieldValueAction [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.restoreFieldValueAction"
@@ -1873,6 +1837,24 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W8 1))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1888,9 +1870,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"lease")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"alarm")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"cluster")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"members")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"members_removed")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"auth")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1898,6 +1884,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"authRoles")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"test")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 1))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr keyBucketName))) (Val #())))
@@ -1914,9 +1901,25 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (Val #false)
   (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 4))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr alarmBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 5))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr clusterBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 10))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr membersBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 11))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr membersRemovedBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 20))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr authBucketName))) (Val #())))
@@ -1933,9 +1936,26 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (Let "$v2" (Val #false)
   (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 100))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr testBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Key))) (Val #())))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Lease))) (Val #())))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Alarm))) (Val #())))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Cluster))) (Val #())))
+  (Let "$v5" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Members))) (Val #())))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr MembersRemoved))) (Val #())))
+  (Let "$v7" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Auth))) (Val #())))
+  (Let "$v8" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthUsers))) (Val #())))
+  (Let "$v9" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr AuthRoles))) (Val #())))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v4"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v5"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v6"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v7"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v8"))), (KeyedElement none (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty (Var "$v9")))]))))))))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"scheduledCompactRev")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"finishedCompactRev")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"consistent_index")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1945,10 +1965,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"term")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"confState")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"clusterVersion")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"downgrade")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"storageVersion")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -1956,15 +1981,15 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val schemaChanges.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val emptyStorageVersion.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr emptyStorageVersion))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetaStorageVersionName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetaStorageVersionName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ClusterDowngradeKeyName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ClusterDowngradeKeyName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ClusterClusterVersionKeyName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ClusterClusterVersionKeyName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MetaConfStateName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetaConfStateName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetaTermKeyName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1974,13 +1999,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr MetaConsistentIndexKeyName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val FinishedCompactKeyName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr FinishedCompactKeyName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val ScheduledCompactKeyName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr ScheduledCompactKeyName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val AllBuckets.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr AllBuckets))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Test.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Test))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr AuthRoles))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1988,13 +2013,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Auth))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val MembersRemoved.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr MembersRemoved))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Members.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Members))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Cluster.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Cluster))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val Alarm.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Alarm))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Lease))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2002,7 +2027,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Key))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val testBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr testBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr authRolesBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2010,13 +2035,13 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr authBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val membersRemovedBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr membersRemovedBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val membersBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr membersBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val clusterBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr clusterBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val alarmBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr alarmBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -2062,11 +2087,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc leaseBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc alarmBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc clusterBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc membersBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc membersRemovedBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc authBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc authUsersBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc authRolesBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc testBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Key _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
@@ -2074,11 +2109,27 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Lease _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Alarm _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Cluster _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Members _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MembersRemoved _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc Auth _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc AuthUsers _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc AuthRoles _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Test _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc AllBuckets (go.GoType.SliceType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ScheduledCompactKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc FinishedCompactKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc MetaConsistentIndexKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
@@ -2086,7 +2137,17 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc AuthRevisionKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (go.GlobalAlloc MetaTermKeyName (go.GoType.SliceType go.byte))) (Val #()))))))))
+  (App (Val (go.GlobalAlloc MetaTermKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetaConfStateName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ClusterClusterVersionKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc ClusterDowngradeKeyName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc MetaStorageVersionName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc emptyStorageVersion (go.GoType.SliceType go.byte))) (Val #()))))))))
 
 abbrev action [GooseExts] : Type := GoInterface
 
