@@ -54,6 +54,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget.InitLinked
 
 @[expose] public section
 

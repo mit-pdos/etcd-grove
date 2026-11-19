@@ -8,7 +8,7 @@ module
 public import Spec.os.WriteFileTrunc
 public import Spec.os.File__Close
 public import Proof.os.OffLong
-public import Proof.os.OpenFileTruncS
+public import Proof.os.OpenFileTruncLemmas
 
 @[expose] public section
 

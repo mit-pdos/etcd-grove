@@ -4,7 +4,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.DB__loadFreelist
+public import Proof.go_etcd_io.bbolt.DB__loadFreelistSpec
 public import Proof.go_etcd_io.bbolt.Open.InitImage
 
 @[expose] public section

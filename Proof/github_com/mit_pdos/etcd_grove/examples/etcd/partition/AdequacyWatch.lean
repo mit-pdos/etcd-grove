@@ -40,6 +40,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Adequa
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.InitLinked
 
 @[expose] public section
 

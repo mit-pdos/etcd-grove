@@ -2486,6 +2486,67 @@ def exec_order(p):
     items.reverse()
     return items
 
+def _tier_mod():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'tier_check', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'tier-check.py'))
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
+_TIER = None
+_PROOFISH = {}
+
+
+def proofish(m):
+    """Whether the module `m` of this repository is a proof or linking module
+    (`etc/tier-check.py`): an import only a linking module may have."""
+    global _TIER
+    if m not in _PROOFISH:
+        f = m.replace('.', '/') + '.lean'
+        if m.endswith('.InitLinked'):
+            _PROOFISH[m] = True
+        elif not os.path.exists(f):
+            _PROOFISH[m] = False
+        else:
+            if _TIER is None:
+                _TIER = _tier_mod()
+            _PROOFISH[m] = _TIER.tier(m, open(f).read(), _TIER.linking_list()) in ('proof', 'linking')
+    return _PROOFISH[m]
+
+
+_SPLIT = {}
+# the configurations of the tree being generated, over `SPECIAL` (a part's: `WT_SPECIAL`, ...)
+CFG_OVERRIDE = {}
+
+
+def split(p):
+    """Whether `p`'s `Init.lean` is split into its facts (`Init`, defs tier) and its
+    `wp_initialize'` (`InitLinked`, linking; import tiers, 2026-11-19): when the proof applies a
+    proof or linking module's theorem, its own imports' or (through an import's `InitLinked`) one
+    below. A key of `inv` at the time of the call (the parts' trees replace `inv`)."""
+    key = (p, id(inv), id(CFG_OVERRIDE))
+    if key not in _SPLIT:
+        _SPLIT[key] = False
+        cfg = CFG_OVERRIDE.get(p) or SPECIAL.get(p) or {}
+        imps = [x for (kind, x) in exec_order(p) if kind == 'import']
+        _SPLIT[key] = (any(proofish(m) for m in cfg.get('imports', []))
+                       or any(q not in ASSUMED and (proofish(init_module(q))
+                                                     or (not external(q) and split(q)))
+                              for q in imps))
+    return _SPLIT[key]
+
+
+def linked_module(q):
+    """The module of `q`'s `wp_initialize'`."""
+    if q in ASSUMED:
+        return ASSUMED[q][0]
+    if not external(q) and split(q):
+        return 'Proof.' + plain(q) + '.InitLinked'
+    return init_module(q)
+
+
 def gen(p, cfg=None):
     cfg = cfg or {}
     newvars = cfg.get('newvars', {})
@@ -2508,6 +2569,17 @@ def gen(p, cfg=None):
     mods = [inst_mod] + sorted({ASSUMED[q][0] if q in ASSUMED else init_module(q) for q in imps}) + cfg.get('imports', [])
     if newvars: mods.append('Proof.errors.NewVarCell')
     mods.append('Proof.runtime.PkgInitExt')
+    sp = split(p)
+    if sp:
+        # (import tiers, 2026-11-19) the facts module imports no proof or linking module: the
+        # imports' facts (`Init`), not their `InitLinked`; the proofs the `wp_initialize'` applies
+        # go to the linking module
+        facts_mods = [inst_mod] + sorted({init_module(q) for q in imps
+                                          if not proofish(init_module(q))}) + \
+            [m for m in cfg.get('imports', []) if not proofish(m)]
+        if newvars: facts_mods.append('Proof.errors.NewVarCell')
+        linked_mods = [f'Proof.{plain(p)}.Init'] + sorted({linked_module(q) for q in imps}) + \
+            [m for m in cfg.get('imports', []) if proofish(m)] + ['Proof.runtime.PkgInitExt']
     lines = []
     A = lines.append
     A('/-')
@@ -2538,8 +2610,10 @@ def gen(p, cfg=None):
     A('-/')
     A('module')
     A('')
+    i_imports = len(lines)
     for m in mods:
         A(f'public import {m}')
+    j_imports = len(lines)
     A('')
     A('@[expose] public section')
     A('')
@@ -2617,6 +2691,7 @@ def gen(p, cfg=None):
         A('')
     for l in cfg.get('pre', []):
         A(l)
+    i_init = len(lines)
     A('section init')
     A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
     A('variable [go_gctx : GoGlobalContext]')
@@ -2765,7 +2840,31 @@ def gen(p, cfg=None):
     A('')
     A('end Perennial')
     path = f'Proof/{dirof(p)}/Init.lean'
-    return path, '\n'.join(lines) + '\n'
+    if not sp:
+        return [(path, '\n'.join(lines) + '\n')]
+    # (import tiers, 2026-11-19) split: `Init` (defs tier) keeps the facts and the trust-boundary
+    # axioms, `InitLinked` (linking) the `wp_initialize'` proof, which applies other packages'
+    # `wp_initialize'` and functions' `wp_proof`s (CLAUDE.md, "Import tiers")
+    head = lines[:i_imports]
+    prelude = lines[j_imports:]
+    k = prelude.index('open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode') + 2
+    body_start = i_init - j_imports
+    assert head[1:3] == [f'Package initialization of `{p}`', '(item 8, 2026-10-17): its `wp_initialize\'`.'] \
+        and head[-3:] == ['-/', 'module', ''], head
+    facts = (head[:2] + ['(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize\'` is in',
+                         '`InitLinked.lean` (2026-11-19: the proof applies other packages\' `wp_initialize\'` and',
+                         'functions\' proofs, so it is a linking module, CLAUDE.md "Import tiers").']
+             + head[3:-3] + ['-/', 'module', '']
+             + [f'public import {m}' for m in facts_mods]
+             + prelude[:body_start] + ['end Perennial'])
+    linked = (['/-', f'Package initialization of `{p}`: its `wp_initialize\'` (item 8, 2026-10-17;',
+               'split from its facts and trust-boundary axioms, `Init.lean`, 2026-11-19: this proof',
+               'applies other packages\' `wp_initialize\'` and functions\' proofs, so it is a linking',
+               'module, CLAUDE.md "Import tiers"). Generated by `etc/gen-init.py`.', '-/', 'module', '']
+              + [f'public import {m}' for m in linked_mods]
+              + prelude[:k] + prelude[body_start:])
+    return [(path, '\n'.join(facts) + '\n'),
+            (f'Proof/{dirof(p)}/InitLinked.lean', '\n'.join(linked) + '\n')]
 
 
 
@@ -3009,7 +3108,9 @@ PART_INITS = ['github_com.anishathalye.porcupine', 'github_com.mit_pdos.etcd_gro
 
 
 def part_paths(inits):
-    return {f'Proof/{dirof(p)}/Init.lean' for p in inits} | {'Proof/runtime/PkgInitExt.lean'}
+    return ({f'Proof/{dirof(p)}/Init.lean' for p in inits}
+            | {f'Proof/{dirof(p)}/InitLinked.lean' for p in inits if split(p)}
+            | {'Proof/runtime/PkgInitExt.lean'})
 
 
 # Every such part: its packages, and the module prefixes (besides its copies of these files) whose
@@ -3214,17 +3315,20 @@ def dag_closures():
 
 
 def dag_init():
-    """The part's `Init.lean`, generated as the main tree's from the part's files."""
-    global inv, inst
-    saved = inv, inst
+    """The part's `Init.lean` (and `InitLinked.lean`, if split), generated as the main tree's from
+    the part's files."""
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     try:
         inv = inventory(f'{DAG_ROOT}/Code')
         inst = instances(f'{DAG_ROOT}/Proof/')
-        path, txt = gen(DAG_PKG, DAG_SPECIAL)
+        CFG_OVERRIDE = {DAG_PKG: DAG_SPECIAL}
+        raw = gen(DAG_PKG, DAG_SPECIAL)
     finally:
-        inv, inst = saved
-    txt = re.sub(r'(?m)^(public import )(Proof\.' + re.escape(plain(DAG_PKG)) + r'\.)', r'\1' + DAG_ROOT + r'.\2', txt)
-    return f'{DAG_ROOT}/{path}', txt
+        inv, inst, CFG_OVERRIDE = saved
+    return [(f'{DAG_ROOT}/{path}',
+             re.sub(r'(?m)^(public import )(Proof\.' + re.escape(plain(DAG_PKG)) + r'\.)', r'\1' + DAG_ROOT + r'.\2', txt))
+            for path, txt in raw]
 
 
 
@@ -3252,7 +3356,7 @@ def tla_outs():
         inv.update({q: d for q, d in inventory(f'{TLA_ROOT}/Code').items() if not d['perennial']})
         inst = dict(inst)
         inst.update(instances(f'{TLA_ROOT}/Proof/'))
-        outs = [gen(TLA_PROGRAM, SPECIAL.get(TLA_PROGRAM)),
+        outs = gen(TLA_PROGRAM, SPECIAL.get(TLA_PROGRAM)) + [
                 gen_table(TLA_PROGRAM, f'Proof/{dirof(TLA_PROGRAM)}/PkgTable.lean')]
     finally:
         inv, inst = saved
@@ -3283,17 +3387,18 @@ def wt_inventory():
 
 def wt_inits():
     """The part's `Init.lean` files."""
-    global inv, inst
-    saved = inv, inst
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     raw = []
     try:
         inv = wt_inventory()
         inst = {**inst, **{k: [(f'{WT_ROOT}/Proof/' + f, fact) for f, fact in v]
                            for k, v in instances(f'{WT_ROOT}/Proof/').items()}}
+        CFG_OVERRIDE = WT_SPECIAL
         for p in WT_PKGS:
-            raw.append(gen(p, WT_SPECIAL.get(p, SPECIAL.get(p))))
+            raw += gen(p, WT_SPECIAL.get(p, SPECIAL.get(p)))
     finally:
-        inv, inst = saved
+        inv, inst, CFG_OVERRIDE = saved
     part_mods = {path[:-len('.lean')].replace('/', '.') for path, _ in raw}
 
     def imp(m):
@@ -3323,18 +3428,19 @@ NOAX_MAIN_PATHS = [f'Proof/{dirof(NOAX_MAIN_PKG)}/Init.lean', f'Proof/{dirof(NOA
 
 def noax_inits():
     """The part's kvdurable's `Init.lean` and `PkgTable.lean`."""
-    global inv, inst
-    saved = inv, inst
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     try:
         inv = dict(inv)
         for q, d in inventory(f'{NOAX_ROOT}/Code').items():
             if not d['perennial']:
                 inv[q] = d
         inst = {**inst, **instances(f'{NOAX_ROOT}/Proof/')}
-        raw = [gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))),
+        CFG_OVERRIDE = {NOAX_PKG: SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))}
+        raw = gen(NOAX_PKG, SPECIAL.get(NOAX_PKG, SPECIAL.get(NOAX_MAIN_PKG))) + [
                gen_table(NOAX_PKG, f'Proof/{dirof(NOAX_PKG)}/PkgTable.lean')]
     finally:
-        inv, inst = saved
+        inv, inst, CFG_OVERRIDE = saved
     made = {path for path, _ in raw}
 
     def imp(m):
@@ -3387,10 +3493,11 @@ def nt_prefix(txt, made=()):
 
 def nt_inits(ext_txt):
     """The part's `Init.lean` files and `PkgInitExt.lean`."""
-    global inv, inst
-    saved = inv, inst
+    global inv, inst, CFG_OVERRIDE
+    saved = inv, inst, CFG_OVERRIDE
     outs = []
     try:
+        CFG_OVERRIDE = NT_SPECIAL
         inv = inventory(f'{NT_ROOT}/Code')
         inst = instances(f'{NT_ROOT}/Proof/')
         # (v3, 2026-11-14) the main tree's `os` and the packages it imports, which `net` imports
@@ -3400,20 +3507,20 @@ def nt_inits(ext_txt):
             inst[p] = saved[1][p]
         # their `Init.lean` copied into the part, over the part's `PkgInitExt` (the main tree's
         # imports raft's translation, and declares the same names)
-        nt_main = [(f'{NT_ROOT}/{path}', txt) for path, txt in
-                   (gen(p, SPECIAL.get(p)) for p in NT_MAIN)]
+        nt_main = [(f'{NT_ROOT}/{path}', txt) for p in NT_MAIN for path, txt in gen(p, SPECIAL.get(p))]
         made = {path for path, _ in nt_main}
         outs += [(path, nt_prefix(txt, made)) for path, txt in nt_main]
-        for p in NT_PKGS:
-            if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean'):
-                path, txt = gen(p, NT_SPECIAL.get(p, SPECIAL.get(p)))
-                outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
+        raw = [(f'{NT_ROOT}/{path}', txt) for p in NT_PKGS
+               if os.path.exists(f'{NT_ROOT}/Code/{dirof(p)}.lean')
+               for path, txt in gen(p, NT_SPECIAL.get(p, SPECIAL.get(p)))]
+        made = made | {path for path, _ in raw}
+        outs += [(path, nt_prefix(txt, made)) for path, txt in raw]
         made = {path for path, _ in outs}
         for p, path in NT_PROGRAMS.items():
             path, txt = gen_table(p, path)
             outs.append((f'{NT_ROOT}/{path}', nt_prefix(txt, made)))
     finally:
-        inv, inst = saved
+        inv, inst, CFG_OVERRIDE = saved
     drop = ('go_etcd_io.raft', 'go_etcd_io_raft', 'google_golang_org', 'k8s_io')
     ext = '\n'.join(l for l in ext_txt.split('\n') if not any(d in l for d in drop))
     i = ext.index('\nmodule\n') + 1
@@ -3427,14 +3534,14 @@ def main(argv):
     check = '--check' in argv
     pkgs = [a for a in argv if not a.startswith('--')] or packages()
     bad = []
-    outs = [gen(p, SPECIAL.get(p)) for p in pkgs]
+    outs = [o for p in pkgs for o in gen(p, SPECIAL.get(p))]
     if not [a for a in argv if not a.startswith('--')]:
         outs.append(gen_ext())
         outs += [gen_table(p, path) for p, path in PROGRAMS.items()]
     outs += [part_copy(path, txt, root) for root, (inits, _) in PARTS.items()
              for path, txt in outs if path in part_paths(inits)]
     if not [a for a in argv if not a.startswith('--')]:
-        outs += [dag_closures(), dag_init(),
+        outs += [dag_closures()] + dag_init() + [
                  gen_closures('', TC_PKG, TC_CLOSURES, 'etcdraftInit', 'TC_CLOSURES')]
         outs += tla_outs()
         outs += wt_inits()

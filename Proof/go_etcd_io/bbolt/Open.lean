@@ -26,7 +26,7 @@ public import Spec.go_etcd_io.bbolt.fdatasync
 public import Proof.go_etcd_io.bbolt.Open.FdatasyncW
 public import Spec.os.File__Stat
 public import Spec.os.OpenFileS
-public import Proof.os.WriteFile
+public import Proof.os.WriteFileLemmas
 public import Spec.os.File__Name
 public import Proof.go_etcd_io.bbolt.Options
 public import Proof.go_etcd_io.bbolt.DB__loadFreelist

@@ -11,7 +11,8 @@ import specs:
     spec     a module under a `Spec` root
     defs     a module under a `Proof` root that is neither a proof file nor a linking module:
              shared definitions, invariants, lemmas (`Defs`, `Inv*`, `Base`, `SpecResults`, ...)
-    proof    a `Proof` module declaring `theorem`/`axiom <F>.wp_proof` (one function's proof)
+    proof    a `Proof` module declaring `theorem`/`axiom <F>.wp_proof` or a variant of it
+             (`<F>.wp_proofSnapM`, `<F>.wp_proof_crash`: one function's proof)
     linking  a `Proof` module named `Link`, `Results`, `TopLevelRobustness`, `*Linked` (`Linked`, `MainLinked`,
              `TracedLinked`, ...) or `Adequacy*`, or listed in `etc/tier-linking.txt` (a module
              that composes linked results under another name)
@@ -59,7 +60,7 @@ LINKING_NAMES = {"Link", "Results", "TopLevelRobustness"}
 IMPORT = re.compile(r"^\s*(?:public\s+)?(?:meta\s+)?import\s+(?:all\s+)?(\S+)", re.M)
 WP_PROOF = re.compile(
     r"^\s*(?:@\[[^\]]*\]\s*)?(?:(?:private|protected|noncomputable)\s+)*(?:theorem|axiom)\s+"
-    r"\S*\bwp_proof\b", re.M)
+    r"\S*\bwp_proof\w*", re.M)
 COMMENT = re.compile(r"/-.*?-/|--[^\n]*", re.S)
 
 

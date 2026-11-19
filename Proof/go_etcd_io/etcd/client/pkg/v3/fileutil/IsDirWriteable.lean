@@ -5,7 +5,6 @@ The proof of `Spec/go_etcd_io/etcd/client/pkg/v3/fileutil/IsDirWriteable.lean`, 
 module
 
 public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteable
-public import Proof.os.WriteFile
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.PipeLemmas
 public import Spec.path.filepath.Join
 public import Spec.path.filepath.Abs

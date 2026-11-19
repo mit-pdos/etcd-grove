@@ -1,6 +1,8 @@
 /-
 Package initialization of `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`
-(item 8, 2026-10-17): its `wp_initialize'`.
+(item 8, 2026-10-17): its facts and trust-boundary axioms; its `wp_initialize'` is in
+`InitLinked.lean` (2026-11-19: the proof applies other packages' `wp_initialize'` and
+functions' proofs, so it is a linking module, CLAUDE.md "Import tiers").
 
 Its fact (`rafthttpInit`, `etcdserver/BaseApply.lean`): `ErrExceedSizeLimit` holds a non-nil
 error, `linkHeartbeatMessage` a heartbeat message without unknown fields, read-only for good. Its
@@ -44,15 +46,9 @@ public import Proof.net.Init
 public import Proof.net.http.Init
 public import Proof.net.url.Init
 public import Proof.path.Init
-public import Proof.path.Join
-public import Proof.path.Clean
-public import Proof.path.lazybuf__index
-public import Proof.path.lazybuf__append
-public import Proof.path.lazybuf__string
 public import Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.MsgAppV2
 public import Proof.errors.NewVarCell
-public import Proof.runtime.PkgInitExt
 
 @[expose] public section
 
@@ -221,221 +217,5 @@ axiom errMemberNotFound_init :
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
-
-section init
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [_root_.Perennial.log.NewModel]
-
-namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-
-set_option maxHeartbeats 8000000 in
-theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp get_is_pkg_init) (σ0 : GMap GoString Bool) :
-    {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); EtcdGrove.ownInitLb get_is_pkg_init σ0 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }} := by
-  wp_start as Hown
-  iapply EtcdGrove.wp_package_init_lb (heq := Hinit.1) $$ [Hown] HΦ
-  iframe Hown
-  iintro Hown
-  wp_auto
-  iapply wp_fupd
-  wp_apply wp_GlobalAlloc (V := _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message) linkHeartbeatMessage _ as HlinkHeartbeatMessage
-  wp_apply wp_GlobalAlloc (V := w64) ConnReadTimeout _ as HConnReadTimeout
-  wp_apply wp_GlobalAlloc (V := w64) readBytesLimit _ as HreadBytesLimit
-  wp_apply wp_GlobalAlloc (V := GoString) RaftSnapshotPrefix _ as HRaftSnapshotPrefix
-  wp_apply wp_GlobalAlloc (V := GoString) RaftStreamPrefix _ as HRaftStreamPrefix
-  wp_apply wp_GlobalAlloc (V := GoString) ProbingPrefix _ as HProbingPrefix
-  wp_apply wp_GlobalAlloc (V := GoString) RaftPrefix _ as HRaftPrefix
-  wp_apply (_root_.Perennial.net.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd30⟩
-  wp_apply (_root_.Perennial.net.url.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd29⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.transport.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd28⟩
-  wp_apply (_root_.Perennial.github_com.Masterminds.semver.v3.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd27⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.httputil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd26⟩
-  wp_apply (_root_.Perennial.github_com.xiang90.probing.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd25⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.bytes _root_.Perennial.bytes.initialize'
-      EtcdGrove.ExternalInit.bytes _root_.Perennial.bytes.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd24⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3 _root_.Perennial.go_etcd_io.raft.v3.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3 _root_.Perennial.go_etcd_io.raft.v3.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd23⟩
-  wp_apply (_root_.Perennial.golang_org.x.time.rate.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd22⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
-      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd21⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd20⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.pbutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd19⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.encoding.binary _root_.Perennial.encoding.binary.initialize'
-      EtcdGrove.ExternalInit.encoding_binary _root_.Perennial.encoding.binary.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd18⟩
-  wp_apply (_root_.Perennial.github_com.prometheus.client_golang.prometheus.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.pkg.v3.ioutil.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
-  wp_apply (_root_.Perennial.go_etcd_io.etcd.api.v3.version.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.google_golang_org.protobuf.proto _root_.Perennial.google_golang_org.protobuf.proto.initialize'
-      EtcdGrove.ExternalInit.google_golang_org_protobuf_proto _root_.Perennial.google_golang_org.protobuf.proto.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
-  wp_apply (_root_.Perennial.go_uber_org.zap.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
-  wp_apply (_root_.Perennial.github_com.dustin.go_humanize.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
-      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
-      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
-  wp_apply (_root_.Perennial.path.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
-  wp_apply (_root_.Perennial.net.http.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.io _root_.Perennial.io.initialize'
-      EtcdGrove.ExternalInit.io _root_.Perennial.io.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
-      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
-      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
-      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
-  wp_apply (EtcdGrove.initLb_of_spec pkg_id.go_etcd_io.raft.v3.raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize'
-      EtcdGrove.ExternalInit.go_etcd_io_raft_v3_raftpb _root_.Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
-  -- translated initializer of RaftPrefix))
-  -- translated initializer of ProbingPrefix))
-  try wp_auto
-  wp_apply (wp_slice_literal (l := [go!"/raft", go!"probing"])); isplitr; (· ipureintro; rfl); iintro %pjP ⟨SjP, -⟩
-  try wp_auto
-  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/raft", go!"probing"] _ (by decide) $$ [$SjP] as %rjP ⟨%HjP, -⟩
-  subst HjP
-  rw [show EtcdGrove.path.joinModel [go!"/raft", go!"probing"] = go!"/raft/probing" from by decide]
-  try wp_auto
-  -- translated initializer of RaftStreamPrefix))
-  try wp_auto
-  wp_apply (wp_slice_literal (l := [go!"/raft", go!"stream"])); isplitr; (· ipureintro; rfl); iintro %pjS ⟨SjS, -⟩
-  try wp_auto
-  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/raft", go!"stream"] _ (by decide) $$ [$SjS] as %rjS ⟨%HjS, -⟩
-  subst HjS
-  rw [show EtcdGrove.path.joinModel [go!"/raft", go!"stream"] = go!"/raft/stream" from by decide]
-  try wp_auto
-  -- translated initializer of RaftSnapshotPrefix))
-  try wp_auto
-  wp_apply (wp_slice_literal (l := [go!"/raft", go!"snapshot"])); isplitr; (· ipureintro; rfl); iintro %pjN ⟨SjN, -⟩
-  try wp_auto
-  wp_apply (EtcdGrove.path.Join.wp_proof (EtcdGrove.path.Clean.wp_proof EtcdGrove.path.lazybuf.index.wp_proof EtcdGrove.path.lazybuf.append.wp_proof EtcdGrove.path.lazybuf.string.wp_proof)) _ [go!"/raft", go!"snapshot"] _ (by decide) $$ [$SjN] as %rjN ⟨%HjN, -⟩
-  subst HjN
-  rw [show EtcdGrove.path.joinModel [go!"/raft", go!"snapshot"] = go!"/raft/snapshot" from by decide]
-  try wp_auto
-  wp_apply (errorsNewVarsInit errIncompatibleVersion.init errIncompatibleVersion go!"incompatible version" (by mem_tac))
-    as ⟨%xerrIncompatibleVersion, HerrIncompatibleVersion, #MerrIncompatibleVersion, #CerrIncompatibleVersion⟩
-  wp_apply (errorsNewVarsInit ErrClusterIDMismatch.init ErrClusterIDMismatch go!"cluster ID mismatch" (by mem_tac))
-    as ⟨%xErrClusterIDMismatch, HErrClusterIDMismatch, #MErrClusterIDMismatch, #CErrClusterIDMismatch⟩
-  wp_apply activePeers_init as ⟨%vactivePeers, HactivePeers, #LactivePeers⟩
-  wp_apply disconnectedPeers_init as ⟨%vdisconnectedPeers, HdisconnectedPeers, #LdisconnectedPeers⟩
-  wp_apply sentBytes_init as ⟨%vsentBytes, HsentBytes, #LsentBytes⟩
-  wp_apply receivedBytes_init as ⟨%vreceivedBytes, HreceivedBytes, #LreceivedBytes⟩
-  wp_apply sentFailures_init as ⟨%vsentFailures, HsentFailures, #LsentFailures⟩
-  wp_apply recvFailures_init as ⟨%vrecvFailures, HrecvFailures, #LrecvFailures⟩
-  wp_apply snapshotSend_init as ⟨%vsnapshotSend, HsnapshotSend, #LsnapshotSend⟩
-  wp_apply snapshotSendInflights_init as ⟨%vsnapshotSendInflights, HsnapshotSendInflights, #LsnapshotSendInflights⟩
-  wp_apply snapshotSendFailures_init as ⟨%vsnapshotSendFailures, HsnapshotSendFailures, #LsnapshotSendFailures⟩
-  wp_apply snapshotSendSeconds_init as ⟨%vsnapshotSendSeconds, HsnapshotSendSeconds, #LsnapshotSendSeconds⟩
-  wp_apply snapshotReceive_init as ⟨%vsnapshotReceive, HsnapshotReceive, #LsnapshotReceive⟩
-  wp_apply snapshotReceiveInflights_init as ⟨%vsnapshotReceiveInflights, HsnapshotReceiveInflights, #LsnapshotReceiveInflights⟩
-  wp_apply snapshotReceiveFailures_init as ⟨%vsnapshotReceiveFailures, HsnapshotReceiveFailures, #LsnapshotReceiveFailures⟩
-  wp_apply snapshotReceiveSeconds_init as ⟨%vsnapshotReceiveSeconds, HsnapshotReceiveSeconds, #LsnapshotReceiveSeconds⟩
-  wp_apply rttSec_init as ⟨%vrttSec, HrttSec⟩
-  -- translated initializer of readBytesLimit))
-  wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
-    as ⟨%xErrExceedSizeLimit, HErrExceedSizeLimit, #MErrExceedSizeLimit, #CErrExceedSizeLimit⟩
-  -- translated initializer of ConnReadTimeout))
-  simp only [DefaultConnReadTimeout]
-  try wp_auto
-  wp_apply (opaqueInitsOk ConnWriteTimeout.init (by mem_tac))
-  wp_apply (errorsNewVarsInit errStopped.init errStopped go!"stopped" (by mem_tac))
-    as ⟨%xerrStopped, HerrStopped, #MerrStopped, #CerrStopped⟩
-  wp_apply (opaqueInitsOk proberInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk statusMonitoringInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk statusErrorInterval.init (by mem_tac))
-  wp_apply snapResponseReadTimeout_init as ⟨%dsnapResponseReadTimeout, HsnapResponseReadTimeout⟩
-  wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
-    as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
-  wp_apply supportedStream_init as ⟨%msupportedStream, %MsupportedStream, HsupportedStream, #MMsupportedStream, #MEsupportedStream⟩
-  -- translated initializer of linkHeartbeatMessage))
-  try wp_auto
-  haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩
-  wp_apply (show EtcdGrove.raftpb.MessageType.Enum.spec (GF := GF) (hG := hG) from by intro x; wp_start; wp_auto; iapply HΦ; iframe) (W32 8) as %phb Hphb
-  try wp_auto
-  imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage
-  · iframe HlinkHeartbeatMessage Hphb
-  wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
-  wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
-    as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
-  wp_apply errMemberNotFound_init as ⟨%eerrMemberNotFound, HerrMemberNotFound⟩
-  wp_apply (initFuncsOk init.«0» (by mem_tac))
-  -- translated initializer of RaftPrefix))
-  -- translated initializer of RaftPrefix))
-  -- translated initializer of RaftPrefix))
-  ipersist HerrMemberNotFound
-  ipersist HsnapResponseReadTimeout
-  ipersist HsnapshotSend
-  ipersist HsnapshotSendInflights
-  ipersist HsnapshotSendFailures
-  ipersist HsnapshotSendSeconds
-  ipersist HsnapshotReceive
-  ipersist HsnapshotReceiveInflights
-  ipersist HsnapshotReceiveFailures
-  ipersist HsnapshotReceiveSeconds
-  ipersist HreceivedBytes
-  ipersist HrecvFailures
-  ipersist HsentBytes
-  ipersist HsentFailures
-  ipersist HactivePeers
-  ipersist HdisconnectedPeers
-  ipersist HrttSec
-  ipersist HErrExceedSizeLimit
-  ipersist HerrIncompatibleVersion
-  ipersist HErrClusterIDMismatch
-  ipersist HerrStopped
-  ipersist HerrMemberRemoved
-  ipersist HRaftPrefix
-  ipersist HProbingPrefix
-  ipersist HRaftStreamPrefix
-  ipersist HRaftSnapshotPrefix
-  ipersist HConnReadTimeout
-  ipersist HlinkHeartbeatSize
-  ipersist HreadBytesLimit
-  ipersist HerrUnsupportedStreamType
-  ipersist HsupportedStream
-  iframe Hown
-  imodintro
-  isplitr
-  · ipureintro
-    exact isPanic_intoVal _
-  is_pkg_init_finish
-  try (isplitl []; · (imodintro; itrivial))
-  imodintro
-  isplitr
-  · simp only [EtcdGrove.errorsNewVar]; iframe #
-  isplitr
-  · iexact HlinkHeartbeatMessage
-  isplitr
-  · iexact HRaftPrefix
-  isplitr
-  · iexact HProbingPrefix
-  isplitr
-  · iexact HRaftStreamPrefix
-  isplitr
-  · iexact HRaftSnapshotPrefix
-  simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]
-  iframe #
-  try (ipureintro; exact BlinkHeartbeatSize)
-
-/-- Perennial's form, from `wp_initialize'_lb`. -/
-theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
-    (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp get_is_pkg_init) :
-    {{ ownInitializing get_is_pkg_init }}
-      (App (Val initialize') (Val #()))
-    {{ RET #(); ownInitializing get_is_pkg_init ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp }} :=
-  EtcdGrove.wp_init_of_lb _ _ _ (wp_initialize'_lb get_is_pkg_init Hinit)
-
-
-end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
-
-end init
 
 end Perennial

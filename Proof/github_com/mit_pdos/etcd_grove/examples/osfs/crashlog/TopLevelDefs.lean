@@ -10,7 +10,7 @@ module
 
 public import GooseLang.Ext.Fs.Adequacy
 public import Proof.github_com.mit_pdos.etcd_grove.examples.osfs.crashlog.Boot
-public import Proof.os.Crash
+public import Spec.os.Crash
 public import Robustness.Statement
 
 @[expose] public section

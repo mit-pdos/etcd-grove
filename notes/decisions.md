@@ -40811,3 +40811,40 @@ auth `TokenKeeperRun`, `SnapRecvFacts`), which only a statement change fixes.
 **Checked:** every exported result (`Link`/`Results`/`MainLinked` root) has the same statement; every
 declaration reachable from the roots has the same type and value hash except the changed `wp_proof`s
 (and helpers) and the new laws; `etc/tcb-report.py --check` and every collection unchanged.
+
+## Import tiers: the package initializers split; variant proofs are proofs (2026-11-19 · the coordinator's request · branch `tiers4/2026-11-19`)
+
+**The generated `Init.lean`s.** `etc/gen-init.py` splits a package's `Init.lean` when its
+`wp_initialize'` applies a proof or linking module's theorem (a `SPECIAL` import such as
+`prometheus.NewCounter`, the B-tree's `initialize`), directly or through an import's split
+initializer (`split`, `proofish` reads `etc/tier-check.py`'s classification): `Init.lean` keeps the
+facts (the trust-boundary axioms `opaqueInitsOk`/`initFuncsOk`/`<X>_init`, the `pre` declarations such
+as `ContextReadErrs`) and imports only its imports' facts; `InitLinked.lean` (linking, by its name)
+holds `wp_initialize'_lb`/`_res` and `wp_initialize'`, importing the facts, its imports' initializers
+(`InitLinked` where split) and the proofs. 61 packages split (the 18 Init violations and every package
+above them); the others, below them (raft's hand-written `Init` imports `os`'s, protobuf's), keep one
+module: their `wp_initialize'` applies only defs-tier facts. The examples' `Adequacy` (linking) import
+their program's `InitLinked`. Axioms stay with the facts: they state the translation's initializers,
+read by the trust-base tools by name, not by module. Rejected: a uniform split of every `Init`
+(raft's hand-written one would have to split too, for no tier gained), and hypotheses on
+`wp_initialize'` (they propagate to every package above).
+
+**`wp_proofX` files are proofs.** `etc/tier-check.py` counted a module as a proof only if it declared
+exactly `<F>.wp_proof`; 89 modules declare only variants (`wp_proofSnapM`, `wp_proof_crash`,
+`wp_proofCreateTruncS`) and counted as defs. Widened to `wp_proof\w*`: 27 defs->proof and spec->proof
+edges became visible and are fixed by moving declarations, unchanged, out of the proof files:
+`etcdserver/ApplyAllSnapLemmas` (the four lemmas before `applyAll.wp_proofSnapM`; nine example defs
+and three specs imported the proof for its imports), bbolt `DB__loadFreelistSpec` (`lfOK`, ...,
+`spec_open`) and `Open/CloseMapDefs` (`closeKeep` and its two siblings), `os/OpenFileTruncLemmas`
+(`trFile_*`, `wp_truncS`), `os/WriteFileLemmas` (`osAU_triv`, `crTr_false`, `crOut_join`),
+the bboltfs and crashlog `TopLevelDefs` imported crash proofs they
+did not use; the WAL's `InvOpenTest` (a test nothing imports) takes `os.Rename.specFileSnc` as a
+hypothesis. Moving the lemmas also removed five proof->proof edges (os `WriteFile`, `WriteFileTrunc`,
+`OpenFileTruncSN`, fileutil `IsDirWriteable`, bbolt `Open`). Tried and dropped: `os/RenameS`'s
+`wp_linkError` to a defs module (two more edges, `RenameAny`, `RenameAbsentSrc`): `etc/link_walfs.py`
+collects a Link's section instances from the linked proofs' modules' `variable` lines, and the move
+took `[syscall.Assumptions]` out of `durable`'s Link, changing 29 root statements (an instance
+argument fewer). The 34 proof->proof
+edges the widening revealed that apply another variant's proof (`MkdirAllDir` -> `MkdirAll`,
+bbolt's `Open` family, wal `SaveSnapshotPre` -> `cutPre`, ...) join the baseline: each is a variant
+derived from another variant's proof, which only a hypothesis (or a Link-level composition) removes.

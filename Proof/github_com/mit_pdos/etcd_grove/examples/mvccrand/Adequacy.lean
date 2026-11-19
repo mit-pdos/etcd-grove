@@ -61,6 +61,7 @@ public import Proof.runtime.StartFiles
 public import Proof.runtime.Threads
 public import Robustness.Statement
 public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.mvccrand.InitLinked
 
 @[expose] public section
 
