@@ -25,6 +25,47 @@ One entry per defect, newest first, in this format:
 A change that needs the user's approval (a spec's statement at the client boundary, new
 client-visible ghost state, a trust-boundary spec) says so in **Decision** and waits for it.
 
+## 2026-11-18: k8s `trace.Trace.LogIfLong.spec`/`Step.spec` -- false on a nil receiver
+
+- **Spec.** `Spec/k8s_io/utils/trace/Trace__LogIfLong.lean` (the axiom `trace.Trace.LogIfLong.wp_proof`),
+  `Trace__Step.lean` (a named hypothesis of the reflector's `list`), and `New.lean` (the axiom
+  `trace.New.wp_proof`). No SpecPlan counterpart.
+- **Defect.** Unprovable: both took any `t : Loc` with precondition `True`, but both lock `t.lock`
+  first (k8s.io/utils `trace/trace.go:161-169,207-212`), so a nil `t` panics (nil dereference).
+- **Evidence.** The Go code; a closed program `(*trace.Trace)(nil).LogIfLong(0)` panics, yet the axiom
+  gave it a triple.
+- **Proposed change.** A pure opaque fact `trace.fromNew t` (`Proof/k8s_io/utils/trace/Defs.lean`),
+  which `New`'s post gives and `Step`/`LogIfLong` require. Opaque, not `t ≠ null`, so that a reference
+  model of `New` returning `nil` still meets the spec, reading it as `True`. The callers
+  (`RealFIFO.Pop`, `Reflector.list`, `processorListener.run`) get it from their `New` call. The same two
+  axioms, restated.
+- **Decision.** Accepted (the coordinator's list, 2026-11-18); applied on branch `axthm/2026-11-18`.
+
+## 2026-11-18: grpc health `SetServingStatus.spec`/`ServingStatus.String.spec` -- a `val` argument admits a panic value
+
+- **Spec.** `Spec/google_golang_org/grpc/health/Server__SetServingStatus.lean`,
+  `Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`
+  (both axioms). No SpecPlan counterpart.
+- **Defect.** Unsound: the status was any `val`, a panic value included; applying a function to it
+  unwinds to that panic, so the post can never hold, and `String`'s axiom (precondition `True`) gives a
+  triple no execution meets.
+- **Evidence.** The semantics of application to a panic value (Perennial's panic propagation).
+- **Proposed change.** The status a `w32` (`HealthCheckResponse_ServingStatus` is `int32`), passed as
+  `#status`/`#st`. The one caller (`healthNotifier.startServe`) passes the translated constant
+  `HealthCheckResponse_SERVING`.
+- **Decision.** Accepted (the coordinator's list, 2026-11-18); applied on branch `axthm/2026-11-18`.
+
+## 2026-11-18: `prometheus.observerSpec` -- `Observe`'s argument any `val`
+
+- **Spec.** `Spec/github_com/prometheus/client_golang/prometheus/HistogramVec__WithLabelValues.lean`
+  (`prometheus.observerSpec`, the post of the axiom `HistogramVec.WithLabelValues.wp_proof`).
+- **Defect.** Unsound, as the health specs above: `∀ f : val` includes a panic value.
+- **Evidence.** As above; `gaugeSpec` and the mvcc/backend/WAL observers already take `x : w64`.
+- **Proposed change.** `∀ f : w64`, `(Val #f)`. The five users (`EtcdServer.Range`/`Txn`/
+  `processInternalRaftRequestOnce`, rafthttp's `snapshotSender.send`/`snapshotHandler.ServeHTTP`) pass
+  `time.Duration.Seconds`'s `w64`.
+- **Decision.** Accepted (the coordinator's list, 2026-11-18); applied on branch `axthm/2026-11-18`.
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`

@@ -2822,3 +2822,27 @@ parameter.
 - **Workaround here.** Private `runesFrom_length_le`/`runes_length_le` in
   `Proof/io/fs/FileMode__String.lean` (an induction on the fuel).
 - **Proposed change.** Those two lemmas beside `runesFrom_cons` in Perennial. Status: not proposed.
+
+## 2026-11-18: `translate_types` refuses a struct with a field of a cross-package generic alias (grpc's `health.Server`)
+
+- **Missing.** grpc's `health.Server` stays axiomatized (`sorry -- axiomatized type`) because the type of
+  one of its fields, `grpc_health_v1.Health_WatchServer`, is a generic type alias of another package
+  (`= grpc.ServerStreamingServer[HealthCheckResponse]`), which Goose's `translate_types` does not
+  translate. So `health.Server.SetServingStatus` and the `testEmbeddedByValue` check of
+  `grpc_health_v1.RegisterHealthServer` cannot be stepped through.
+- **Workaround here.** The health server's methods stay trust-boundary axioms over `grpcHealthSrv`.
+- **Proposed change.** Goose: translate a field whose type is a (cross-package) alias of an
+  instantiated generic type, as the instantiated type. Status: not proposed.
+
+## 2026-11-18: `errors.As`'s spec does not constrain its result (apimachinery's `IsTimeout`/`HasStatusCause`)
+
+- **Missing.** Perennial's `errors.As.spec` (`Perennial/Spec/errors/As.lean`) returns any boolean and
+  says nothing of the target it writes, so a caller's result that depends on it cannot be proved from
+  the real code: k8s apimachinery's `apierrors.IsTimeout`/`HasStatusCause` (`errors.As(err, &status)`
+  then a field of the status) stay axioms. (See also "`errors.Is`/`errors.As` at non-pointer targets
+  and for leaves" above.)
+- **Workaround here.** Their specs stay trust-boundary axioms.
+- **Proposed change.** An `errors.As` spec that, for a leaf error (no `Unwrap`, no `As`), returns `true`
+  exactly when the error's dynamic type is the target's element type (or implements it, for an
+  interface target), and then stores the error's value into the target. Status: not proposed (found by
+  the refimpl session, 2026-11-18).
