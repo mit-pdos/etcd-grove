@@ -1,6 +1,26 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 d, A6 done; A7 HARD STOP for the user)
+## START HERE (2026-11-19 e, A7 linked; LAND STOP)
+
+- Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin f551a1b46: `--packages=/shared/tmp/manifest-f55.json`
+  everywhere (`.lake/package-overrides.json` = that manifest); gen-init with `PERENNIAL_DIR=/shared/perennial-f551a1b46`.
+- A7 approved by the user 2026-11-19 (questions.md "A7 approved"); forms in questions.md "A7 link forms".
+- **Done**: lean df37bd5157 merged (a719190cf9; Scratch/ moved to `/shared/tmp/auth-schema-srv/scratch-moved`, it broke
+  tier-check); the link (2add4c3ae2): `authSchemaSrv` moved to `AuthSnapKit.lean`, `authStoreKit_on` uses
+  `authReal.real_srv` (47 specs; the kit's pre carries `isPkgInit backend/schema` and `receiptBound GF ≤ 2^48`, discharged
+  in `NewServer`/`NewServerR`), `authSrvTP_on` takes the specs, `srv_auth_tp_on` links them; `hD22` gone from the three
+  closed theorems, their `*_robust` and chains (statement diff: `/shared/tmp/auth-schema-srv/stmtdiff.py`, all OK).
+  Full timed build green (`20261119-113918-3123454`, 1h31m); tcb `--check` matches the baseline (888 axioms, 4 sorries);
+  collections authkv/auth3/authN +6 axioms, server +2 (committed); interfaces `--check` clean (all six); gen-link
+  --server/--authkv/--backend/--mvcc: no change. Then lean (per-heap, 1e4cb38613) merged again (e6993af3bb): rebuild,
+  re-check tcb and the collections, then the land stop.
+- Land: `LAKE_PACKAGES=/shared/tmp/manifest-f55.json PERENNIAL_CHECKOUT=/shared/perennial-f551a1b46
+  PERENNIAL_DIR=/shared/perennial-f551a1b46 etc/land.sh` (GOWORK unset), only when the coordinator says go.
+- Pitfalls: (0)-(42) as before (History); (43) the TCB tool's statement scan must skip `:=` inside parentheses
+  (`(GF := GF)`).
+
+## History (START HERE of 2026-11-19 d, superseded)
+
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin 6d365ee1a, `--packages=/shared/tmp/manifest-6d3.json`
   everywhere (`.lake/package-overrides.json` = that manifest). When lean has "Merge origin/lean (d52bb9be66)": merge,
