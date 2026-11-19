@@ -14,8 +14,11 @@
   `wp_walAreas`), `AdequacyMembers.progOk_walAreas`, `memberStartRes`/`memberFreshRes` carry `walAreaFresh`; D7 Go
   (`etcdstart.WALBase`, `DedicatedWALDir` in common.go/auth.go/auth3.go/authkv.go; tests reset areas with
   `examples/lib/walarea`); D8 every closed theorem gains `HWal` (script `/shared/tmp/wallink/p2/d8.py`).
-- **Next:** the caller's full timed build; tcb `--check --update` (opaque `config.walDirOf` gone); interfaces; Go tests of
-  the remaining examples (putget, putget3, restart1 passed); STATUS.
+- **Checked:** targeted builds GREEN: every `examples/{etcd,k8s}/*/Results` + `partition/AdequacyWatch` (log
+  `/shared/tmp/wallink/p2/b-sweep2.log`); `etc/goose.py --check` rc 0; Go tests of the examples (gotest1-3 logs in
+  `/shared/tmp/wallink/p2/`): all closed examples pass but txnlin (not run: needs go.work) and restartN (flaky back to
+  back, passes alone); grpcruns T6, sweeprepairs W5, k8s etcd3 TestMainWatch fail for reasons unrelated to the WAL.
+- **Next:** the caller's full timed build; tcb `--check --update` (opaque `config.walDirOf` gone); interfaces; STATUS.
 - **Pitfalls:** `WalA` literals inside `iexists` do not parse (commas): use the `abbrev etcdWalArea`; `memberStartRes`
   now depends on the heap instance: pass `(hG := heapWith hG lctx)` where a fun-bound `hG` is in scope.
 
