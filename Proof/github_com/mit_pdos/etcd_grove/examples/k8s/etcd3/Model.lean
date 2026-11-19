@@ -124,12 +124,13 @@ theorem Model.wp_proof (wp_step : step.spec (GF := GF) (hG := hG))
     (try unfold stepPost)
     simp only [k8setcd3S]
     iintro %k %v %S %i %o
-    iintro !> %Φ' ⟨%Hk, #Hrep, %Hio⟩ HΦ'
+    iintro !> %Φ' ⟨%Hk, #Hrep, #Hio⟩ HΦ'
     have Hn : k + g0.st.items.length + g0.hist.length + 1 + 1 < 2 ^ 63 := by omega
     generalize hn : k + g0.st.items.length + g0.hist.length + 1 = n at Hn ⊢
     ihave #Hrep0 := Hrep
     iunfold stRepB at Hrep
-    obtain ⟨x, y, rfl, rfl, Hxk⟩ := Hio
+    icases Hio with ⟨%x, %y, %Hxy, -, -⟩
+    obtain ⟨rfl, rfl, Hxk, -⟩ := Hxy
     icases Hrep with ⟨%sl, %cs, %gs, ⟨%hv, %hok, %hbd⟩, #Hs, #Hcs⟩
     subst hv
     ihave %Hl := ownSlice_len $$ Hs
