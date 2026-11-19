@@ -118,7 +118,7 @@ theorem bucketsAre_viewAt {st : auth.AuthState} {D : schema.AuthData} (h : schem
     have hn : ∃ v, D.users.lookup n = some v := ⟨v, hl⟩
     simp only [dif_pos hn]
     have hc := Classical.choose_spec (hu2 n _ hn.choose_spec)
-    have hv : hn.choose = v := by have := hn.choose_spec; rw [hl] at this; exact (Option.some.inj this).symm
+    have hv : hn.choose = v := Option.some.inj (hn.choose_spec.symm.trans hl)
     rw [← hv]
     exact hc
   · refine ⟨fun n => if hn : ∃ v, D.roles.lookup n = some v then Classical.choose (hr2 n _ hn.choose_spec)
@@ -126,7 +126,7 @@ theorem bucketsAre_viewAt {st : auth.AuthState} {D : schema.AuthData} (h : schem
     have hn : ∃ v, D.roles.lookup n = some v := ⟨v, hl⟩
     simp only [dif_pos hn]
     have hc := Classical.choose_spec (hr2 n _ hn.choose_spec)
-    have hv : hn.choose = v := by have := hn.choose_spec; rw [hl] at this; exact (Option.some.inj this).symm
+    have hv : hn.choose = v := Option.some.inj (hn.choose_spec.symm.trans hl)
     rw [← hv]
     exact hc
 
@@ -255,17 +255,27 @@ theorem real_create (γa : auth.AuthNames) (γt γv : GName) (d : mvcc.KBReal) (
     · iunfold bkCommon
       iframe Ha Hu Hr Hst
       ipureintro
-      exact ⟨hv, le_refl _, le_refl _, by omega, by omega⟩
+      exact ⟨hv, Nat.le_refl _, Nat.le_refl _, by omega, by omega⟩
     ileft
     isplitl [Hpq Hlv]
     · iunfold liveP; iframe Hpq Hlv
-    iframe HR
+    isplitl [HR]
+    · iunfold auth.authRetired; iexact HR
     isplitl [Hp1 Hp2]
-    · iunfold pools; iframe Hp1 Hp2
+    · iunfold pools
+      iframe Hp2
+      iapply (show poolSt γm γh (ticketsIn γt ticketN)
+          (depT ⟨γa, (γ1, γ2, γ3), γt, γt, γt, γt, γt, γk, γw, γv⟩) (rdTok d.γB d.P d.be) (bOpen d.γB s0) ticketN ⊢
+        poolSt γm γh (ticketsIn γt ticketN)
+          (depT ⟨γa, (γ1, γ2, γ3), γt, γm, γh, γm', γh', γk, γw, γv⟩) (rdTok d.γB d.P d.be) (bOpen d.γB s0) ticketN
+        from .rfl) $$ Hp1
     ileft
     iunfold bkIdle
     iexists hs, r, auth.AuthSess.init
-    iframe Hlq Hro Hq
+    iframe Hlq Hq
+    isplitl [Hro]
+    · iapply (show rbOwnInR (GF := GF) d.γB (fun k => k ∈ [go!"auth", go!"authUsers", go!"authRoles"]) r ⊢
+        rbOwnInR d.γB (fun n => n ∈ authBktL) r from .rfl) $$ Hro
     isplitl [Hbt]
     · iunfold bkTok; iexact Hbt
     isplitl [Hsw]
@@ -276,9 +286,11 @@ theorem real_create (γa : auth.AuthNames) (γt γv : GName) (d : mvcc.KBReal) (
   iexists ⟨γa, (γ1, γ2, γ3), γt, γm, γh, γm', γh', γk, γw, γv⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl⟩
-  iframe HT Hcur
   iunfold realInv
-  iexact Hinv
+  iframe Hinv
+  isplitl [HT]
+  · iapply (show token (GF := GF) γ1 ⊢ auth.authWTok (γ1, γ2, γ3) from .rfl) $$ HT
+  · iapply (show ghostVar (GF := GF) γ2 1 () ⊢ auth.authCur (γ1, γ2, γ3) 1 from .rfl) $$ Hcur
 
 end create
 
