@@ -1,6 +1,25 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 f, PORT SCOPE STOP)
+## START HERE (2026-11-19 g, PORT CHECKPOINT A)
+
+- Port Scope ACCEPTED by etcd-grove-03 (questions.md "Port Scope ACCEPTED"): staging branch `auth-schema-port`
+  (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35: `--packages=/shared/tmp/manifest-3af.json` everywhere,
+  `.lake/package-overrides.json` = that manifest, `PERENNIAL_DIR=/shared/perennial-3afd77e35`. `auth-schema-srv` stays
+  at cc85342beb until checkpoint B (fast-forward then).
+- **Done**: b0a40c1277 merge of lean e95ce79ce9 (Scope §2.A resolutions; not compiled; interfaces/tcb/collections/
+  backend Link taken from lean, to regenerate). 7940a3e03b P2: `Spec/go_etcd_io/bbolt/Bucket__ForEach.lean` +
+  proof (public Cursor/First/Next), bbolt Link/Results regenerated, `etc/api/bbolt.txt`, A2's `_kv` ForEach axioms
+  deleted. Next commit: `unsafeForEach` over `Tx.Bucket` + `Bucket.ForEach` (spec: `txLive tx γd q T`,
+  `T.rw → q = 1`, entries `bktOf T.cur`); `FeSide`/`feOwn` deleted from `InvBackend`. Both lean-checked clean.
+- **Next (P3)**: the backend's callers of `unsafeForEach` (`baseReadTx`/`readTx`/`batchTx`/`batchTxBuffered`
+  `.UnsafeForEach`: visitor gets the walk's `txLive` at its view, batch `∀ G` + `wView st.C st.S G` at 1, read
+  `ro rv.1` at q), then Scope §2.C compile-fix, backend Link (`LAKE_OPTS=... etc/gen-link.py --backend`), P4
+  realization, P5 full timed build via build-slot (`etc/timed-build.py`), P6.
+- Pitfalls: (44) a backend glue lemma's statement needs `txLive (GF := GF)` (else `TypedPointsto w8` stuck) and
+  no `open go_etcd_io.bbolt ... in` around backend names (`txBytes` resolves to bbolt's: `HasExt` missing).
+  (45) lean-check `-a` after a stopped incremental run says "unchanged": `--stop` and re-check fresh to trust it.
+
+## History (START HERE of 2026-11-19 f, PORT SCOPE STOP, superseded)
 
 - Decided by etcd-grove-03 (questions.md "BLOCKER ... decided"): port this branch's backend onto lean's (bbolt-integrate),
   prove bbolt's `Bucket.ForEach` (canonical, no twin; A2's two `_kv` axioms leave), A7's statement change after the port.
