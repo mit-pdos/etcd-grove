@@ -226,7 +226,7 @@ theorem ConditionsAwareDecisionUnion.Add.wp_proof
     iexists sets.insertAll S ps
     iframe
     ipureintro
-    exact setIs_insertAll S P ks m ps hS HPm Hps.1
+    exact setIs_insertAll_b3 S P ks m ps hS HPm Hps.1
   · wp_auto
     iapply HΦ
     simp only [↓reduceIte]

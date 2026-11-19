@@ -26,7 +26,7 @@ section pure
 variable [GooseExts]
 
 /-- Membership in `insertAll s ks`: in `s` or among `ks`. -/
-theorem insertAll_isSome {K : Type} [DecidableEq K] (s : GMap K sets.Elem) (ks : List K) (k : K) :
+theorem insertAll_isSome_b3 {K : Type} [DecidableEq K] (s : GMap K sets.Elem) (ks : List K) (k : K) :
     ((sets.insertAll s ks) !! k).isSome = Bool.or ((s !! k).isSome) (decide (k ∈ ks)) := by
   induction ks generalizing s with
   | nil => simp
@@ -37,7 +37,7 @@ theorem insertAll_isSome {K : Type} [DecidableEq K] (s : GMap K sets.Elem) (ks :
     · subst h; simp
     · simp [h, Ne.symm h]
 
-theorem PD.has_or (p q : PD) (k : w64) : (PD.or p q).has k = Bool.or (p.has k) (q.has k) := by
+theorem PD.has_or_b3 (p q : PD) (k : w64) : (PD.or p q).has k = Bool.or (p.has k) (q.has k) := by
   unfold PD.or PD.has
   generalize decide (k = W64 0) = a
   generalize decide (k = W64 1) = b
@@ -51,9 +51,9 @@ theorem PD.has_empty (k : w64) : PD.empty.has k = false := by
 theorem Dec.subL_append_has (ks : List Dec) (m : Dec) (k : w64) :
     (Dec.subL (ks ++ [m])).has k = Bool.or ((Dec.subL ks).has k) ((Dec.pd m).has k) := by
   induction ks with
-  | nil => simp [Dec.subL, PD.has_or, PD.has_empty]
+  | nil => simp [Dec.subL, PD.has_or_b3, PD.has_empty]
   | cons k' ks ih =>
-    simp only [List.cons_append, Dec.subL, PD.has_or, ih]
+    simp only [List.cons_append, Dec.subL, PD.has_or_b3, ih]
     cases (Dec.pd k').has k <;> cases (Dec.subL ks).has k <;> cases (Dec.pd m).has k <;> rfl
 
 theorem Dec.cuadL_append (ks : List Dec) (m : Dec) :
@@ -71,11 +71,11 @@ theorem Dec.WFL_append (ks : List Dec) (m : Dec) (h : Dec.WFL ks) (hm : m.WF) :
   | cons k ks ih => exact ⟨h.1, ih h.2⟩
 
 /-- `Add`'s set: the children's possible decisions with the new child's. -/
-theorem setIs_insertAll (S P : GMap w64 sets.Elem) (ks : List Dec) (m : Dec) (ps : List w64)
+theorem setIs_insertAll_b3 (S P : GMap w64 sets.Elem) (ks : List Dec) (m : Dec) (ps : List w64)
     (hS : setIs S (Dec.subL ks)) (hP : setIs P m.pd) (hps : ∀ k, k ∈ ps ↔ (P !! k).isSome) :
     setIs (sets.insertAll S ps) (Dec.subL (ks ++ [m])) := by
   intro k
-  rw [insertAll_isSome, Dec.subL_append_has, hS k, ← hP k]
+  rw [insertAll_isSome_b3, Dec.subL_append_has, hS k, ← hP k]
   congr 1
   by_cases h : (P !! k).isSome = true
   · rw [h]; exact decide_eq_true ((hps k).2 h)
