@@ -101,7 +101,7 @@ theorem StartMemberAuth.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, HU, hvs, hrule, hboot⟩
-      unfold cfgOkOn cfgOk; simp
+      unfold cfgOkOn cfgOk; simp [memberDataDir]
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl
