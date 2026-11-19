@@ -5,6 +5,7 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__doScalar
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
 
 @[expose] public section
 
@@ -27,8 +28,13 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.doScalar.wp_proof :
-    typed.reconcileWithSchemaWalker.doScalar.spec (GF := GF) := by
-  sorry
+    typed.reconcileWithSchemaWalker.doScalar.spec (GF := GF) :=
+    fun w sc S st F R A tp => by
+  wp_start as Hown
+  wp_auto
+  iapply HΦ
+  iframe Hown
+  iapply noErrs_nil
 
 end proof
 

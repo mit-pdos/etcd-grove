@@ -5,6 +5,7 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.reconcileWithSchemaWalker__finished
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 public import Perennial.Spec.sync.Pool__Put
 
 @[expose] public section
@@ -29,8 +30,29 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.reconcileWithSchemaWalker.finished.wp_proof
     (h_sync_Pool_Put : _root_.Perennial.sync.Pool.Put.spec (GF := GF)) :
-    typed.reconcileWithSchemaWalker.finished.spec (GF := GF) := by
-  sorry
+    typed.reconcileWithSchemaWalker.finished.spec (GF := GF) :=
+    fun w sc S st ps fs tv rem add sp => by
+  wp_start as ⟨Hcore, Hsp, %Hat⟩
+  ihave #HP := typedPkgInit_poolsAt $$ Hpkg
+  unfold typedPoolsAt
+  icases HP with ⟨-, -, -, -, -, -, #Pv⟩
+  unfold rwCore
+  icases Hcore with ⟨%tr, Hw, -, -, -⟩
+  wp_auto
+  wp_apply h_sync_Pool_Put (globalAddr typed.fmPool) typed.rwNewV iprop(True)
+    (pooledAs typed.reconcileWithSchemaWalker.ty rwPooled) $$ [Hw Hsp]
+  · iframe #
+    unfold pooledAs rwPooled
+    iexists w
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hw
+    isplitr
+    · ipureintro; simp [Hat]
+    iexact Hsp
+  iapply HΦ
+  itrivial
 
 end proof
 
