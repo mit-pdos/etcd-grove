@@ -56,31 +56,39 @@ theorem typed.deduceAtom.wp_proof
       icases (isAtomOpt_map_law_holds a fs e rel).1 $$ Ha with ⟨%Hn, -⟩
       ipureintro; right; right; exact ⟨a.Map', by cases a; simp_all⟩
   iclear Ha
-  obtain ⟨s, rfl⟩ | ⟨l, rfl⟩ | ⟨m, rfl⟩ := hA
-  all_goals
-    cases o with
-    | none =>
-      iunfold isValO at Hv
-      icases Hv with %Hv
-      subst Hv
-      wp_auto
-      iapply HΦ
-      iunfold isValO; ipureintro; rfl
-    | some x =>
-      iunfold isValO at Hv
-      ihave %Hc := isValF_concrete_law_holds v dq x $$ Hv
-      obtain ⟨p, rfl⟩ := Hc
-      wp_auto
-      cases x
-      all_goals repeat (first
-        | (wp_apply h_valueUnstructured_IsBool_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
-        | (wp_apply h_valueUnstructured_IsString_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
-        | (wp_apply h_valueUnstructured_IsInt_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
-        | (wp_apply h_valueUnstructured_IsFloat_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
-        | (wp_apply h_valueUnstructured_IsList_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
-        | (wp_apply h_valueUnstructured_IsMap_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
-        | (simp only [UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB, UVal.isFloatB]; wp_auto)
-        | wp_auto)
+  have hS : a.Scalar' ≠ null → a = ⟨a.Scalar', null, null⟩ := by
+    rcases hA with ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ <;> simp
+  have hL : a.List' ≠ null → a = ⟨null, a.List', null⟩ := by
+    rcases hA with ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ <;> simp
+  have hM : a.Map' ≠ null → a = ⟨null, null, a.Map'⟩ := by
+    rcases hA with ⟨_, rfl⟩ | ⟨_, rfl⟩ | ⟨_, rfl⟩ <;> simp
+  clear hA
+  cases o with
+  | none =>
+    iunfold isValO at Hv
+    icases Hv with %Hv
+    subst Hv
+    wp_auto
+    iapply HΦ
+    iunfold isValO; ipureintro; rfl
+  | some x =>
+    iunfold isValO at Hv
+    ihave %Hc := isValF_concrete_law_holds v dq x $$ Hv
+    obtain ⟨p, rfl⟩ := Hc
+    wp_auto
+    cases x
+    all_goals repeat (first
+      | (wp_apply h_valueUnstructured_IsBool_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
+      | (wp_apply h_valueUnstructured_IsString_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
+      | (wp_apply h_valueUnstructured_IsInt_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
+      | (wp_apply h_valueUnstructured_IsFloat_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
+      | (wp_apply h_valueUnstructured_IsList_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
+      | (wp_apply h_valueUnstructured_IsMap_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩; try iexact Hv)
+      | (simp only [UVal.isIntB, UVal.isStrB, UVal.isBoolB, UVal.isListB, UVal.isMapB]; wp_auto)
+      | wp_if_destruct
+      | wp_auto)
+    all_goals (try rw [← hS Hif]); all_goals (try rw [← hL Hif]); all_goals (try rw [← hM Hif])
+    all_goals (iapply HΦ; iunfold isValO; iexact Hv)
 
 end proof
 
