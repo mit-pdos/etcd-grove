@@ -122,11 +122,12 @@ lease_lessor__Demote:
 # Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
 # the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
 # deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
-# (`schema.UnsafeDeleteLease`, names-only: the trust boundary). Reached from NewServer since the
+# (`schema.UnsafeDeleteLease`, proved since 2026-11-19 over `leaseIDToBytes`). Reached from NewServer since the
 # lease-revoke plan (2026-10-31): the apply thread's `Revoke` clause is derived of it.
 lease_Lease__Keys:
 sort_StringSlice__Sort:
-schema_UnsafeDeleteLease:
+schema_leaseIDToBytes: binary_bigEndian__PutUint64
+schema_UnsafeDeleteLease: schema_leaseIDToBytes
 mvcc_metricsTxnWrite__DeleteRange: @
 mvcc_watchableStoreTxnWrite__End: @
 lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease backend__BatchTx =mvcc.api.mvccApi_shapes_law =mvcc.api.mvccApi_mvccBackend_isBackend_law_holds =mvcc.api.mvccApi_mvccTxn_leaseDelete_law_holds
