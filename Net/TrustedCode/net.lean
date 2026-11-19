@@ -496,6 +496,59 @@ noncomputable def conn.SetReadDeadline.impl : val := model.setDeadline (W64 1)
 /-- `(*conn).SetWriteDeadline(t time.Time) error`: the write deadline only. -/
 noncomputable def conn.SetWriteDeadline.impl : val := model.setDeadline (W64 2)
 
+/-- D24. A socket option of the kind `kind` (`Net.sockOptValid`: `1` `TCP_KEEPIDLE`, `0` the
+others) with the value `x`, set on the end of the `*conn` `c`: the extension's `SetSockopt`; an error
+is `&OpError{Op: "set", Net: <c's network>, Source, Addr, ...}`, `Source` and `Addr` `c`'s `laddr` and
+`raddr` for `TCPConn`'s methods (`tcpsock.go`, `errf` = `model.sockOptErrTCP`), `nil` and `laddr`
+for `conn`'s (`net.go`'s `SetReadBuffer`, `SetWriteBuffer`: `model.sockOptErrConn`), `Err` `ErrNetClosing` or an `*os.SyscallError{"setsockopt"}`
+(`wrapSyscallError`). A zero `TCPConn`: `syscall.EINVAL`, before anything else. -/
+noncomputable def model.sockOpt (errf : val) (kind : w64) : val :=
+  λ: "c" "x",
+    if: model.connId "c" =⟨go.uint64⟩ #(W64 0) then model.einval #() else
+    let: "r" := ExternalOp Net.netExt.name "SetSockopt" (model.connId "c", (#kind, "x")) in
+    if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
+    else errf "c" "r"
+
+/-- D24. The error of a socket option of `TCPConn`'s, of code `code`, on the `*conn` `c`. -/
+noncomputable def model.sockOptErrTCP : val :=
+  λ: "c" "code", model.connErr #(go!"set") "c" "code" #(go!"setsockopt")
+
+/-- D24. The error of a socket option of `conn`'s (`Source` nil, `Addr` `laddr`). -/
+noncomputable def model.sockOptErrConn : val :=
+  λ: "c" "code",
+    model.opError #(go!"set") (model.connNet "c") #GoInterface.nil
+      (![model.Addr] (StructFieldRef model.conn go!"laddr" "c"))
+      (model.kindErr "code" #(go!"setsockopt"))
+
+/-- D24. `(*TCPConn).SetKeepAlive(keepalive bool) error` (`tcpsock.go`): `SO_KEEPALIVE`
+(`sockopt_posix.go`'s `setKeepAlive`), whatever the value. -/
+noncomputable def TCPConn.SetKeepAlive.impl : val :=
+  λ: "c" "b", model.sockOpt model.sockOptErrTCP (W64 0) (StructFieldRef model.TCPConn go!"conn" "c") #(W64 0)
+
+/-- D24. `(*TCPConn).SetKeepAlivePeriod(d time.Duration) error` (`tcpsock.go`): `setKeepAliveIdle`
+(`tcpsockopt_unix.go`) of `d`, whose arithmetic (`d = 0` the default, `d < 0` no system call, the
+count of seconds) the extension's `keepIdleValid` transcribes. -/
+noncomputable def TCPConn.SetKeepAlivePeriod.impl : val :=
+  λ: "c" "d", model.sockOpt model.sockOptErrTCP (W64 1) (StructFieldRef model.TCPConn go!"conn" "c") "d"
+
+/-- D24. `(*TCPConn).SetNoDelay(noDelay bool) error` (`tcpsock.go`): `TCP_NODELAY`. -/
+noncomputable def TCPConn.SetNoDelay.impl : val :=
+  λ: "c" "b", model.sockOpt model.sockOptErrTCP (W64 0) (StructFieldRef model.TCPConn go!"conn" "c") #(W64 0)
+
+/-- D24. `(*TCPConn).SetLinger(sec int) error` (`tcpsock.go`): `SO_LINGER`, whatever the value
+(what a linger changes, a `Close` that resets, is a cut: D1). -/
+noncomputable def TCPConn.SetLinger.impl : val :=
+  λ: "c" "sec", model.sockOpt model.sockOptErrTCP (W64 0) (StructFieldRef model.TCPConn go!"conn" "c") #(W64 0)
+
+/-- D24. `(*conn).SetReadBuffer(bytes int) error` (`net.go`): `SO_RCVBUF`, whatever the value
+(Linux clamps it). -/
+noncomputable def conn.SetReadBuffer.impl : val :=
+  λ: "c" "n", model.sockOpt model.sockOptErrConn (W64 0) "c" #(W64 0)
+
+/-- D24. `(*conn).SetWriteBuffer(bytes int) error` (`net.go`): `SO_SNDBUF`, as `SetReadBuffer`. -/
+noncomputable def conn.SetWriteBuffer.impl : val :=
+  λ: "c" "n", model.sockOpt model.sockOptErrConn (W64 0) "c" #(W64 0)
+
 /-- D18. `(*conn).LocalAddr() Addr` (`net.go`): `c.fd.laddr`, the stored address (`nil` for a zero
 `TCPConn`, as Go's `c.ok()` check gives). -/
 noncomputable def conn.LocalAddr.impl : val :=

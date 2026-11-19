@@ -14,7 +14,8 @@ nothing; id 0 names nothing; the deployment, D13), v3 (Go's error values and D14
 `Write` is Go's loop of steps, D2/D15: v3's one-step `Write` could time out only with a deadline set
 at its start; the v3 review's R1, `notes/axiom-review/tcp-semantics.md`), v3.2 (every operation may
 stutter, which is how waiting is modeled, and an invalid use panics: D22, the convention of
-Perennial's Grove extension).
+Perennial's Grove extension), v3.3 (the network `"tcp4"`, D23; socket options, D24; Go's write
+lock, D25: before it two `Write`s of one end could interleave their steps, which Go excludes).
 
 **State: only what a program can observe.** The global state (`NetGlobal`) is the deployment's
 plan (each address the program may use, and the host that may listen at it) and the connections.
@@ -147,8 +148,9 @@ measured in `examples/net/semantics/`.
 live connection that is not a cut, and the bare `Errno` of a failed `epoll_ctl` registration in
 `Accept` or `Dial`), as the file extensions' allocation failures. Addresses are the plan's strings
 and the wildcards of D21, compared as strings; `Listen` or `Dial` of any other string panics (D22).
-Port `0`, TLS, UDP, Unix sockets, the deadlines' values, keepalives, the listeners' deadlines: not
-modeled (the methods are not modeled either, so a program calling them is stuck: no model, no proof).
+Port `0`, TLS, UDP, Unix sockets, the deadlines' values, the keepalive probes' timing (D24: their
+failure is a cut), the listeners' deadlines and socket options: not modeled (the methods are not
+modeled either, so a program calling them is stuck: no model, no proof).
 
 * D14 the error kinds (above).
 * D15 a `Write` is a loop of steps (D2): a `Close` of its end, or a deadline set, by another
@@ -167,6 +169,32 @@ modeled (the methods are not modeled either, so a program calling them is stuck:
   addresses) listen at the plan address with the port `p`, which must be at this node's host and
   the plan's only address with that port (a panic otherwise, D22): on one machine a wildcard
   listener takes every local address with its port (`TestAddressAliases`, `TestWildcardListen`).
+* D23 the network `"tcp4"` (`Net/TrustedCode/net.lean`): `Listen`, `Dial`, `DialTimeout` of
+  `"tcp4"` are those of `"tcp"` (the extension sees only the address: the plan's IPv4 addresses
+  and D21's wildcards, which with `"tcp4"` take every IPv4 address too, `"[::]:p"` included); the
+  network is kept in the `TCPConn` and the `TCPListener` (Go's `netFD.net`; an accepted connection
+  gets its listener's) and is the `Net` of their `*OpError`s (`TestTcp4`). Any other network: a
+  panic of the model (not modeled).
+* D24 socket options (`SockOptOutcome`, `sockOptValid`, `keepIdleValid`): `SetKeepAlive`,
+  `SetKeepAlivePeriod`, `SetNoDelay`, `SetLinger`, `SetReadBuffer`, `SetWriteBuffer` are one
+  `setsockopt(2)` each, the extension's `"SetSockopt"` of an option kind and a value, which changes
+  no state: `closed` on a closed end, else success, except `TCP_KEEPIDLE` of a count of seconds
+  Linux refuses (`sys`); `SetKeepAlivePeriod` of a negative duration makes no system call (success,
+  even on a closed end). What the options change in the kernel is not observable beyond what the
+  relations already allow: keepalive probes that fail cut the connection (D1, D2), and buffer
+  sizes only decide when a step waits (a stutter) and how much it counts (any count)
+  (`TestSockOpts`).
+* D25 the write lock (`WriteStep`, `NetConn.lock`, `writeLast`): Go's `(*poll.FD).Write` takes the
+  fd's write lock (`fd.writeLock()`, `fdMutex`) before its loop and releases it after, so two
+  `Write`s of one end never interleave their bytes (`TestWriteLock`). A `Write`'s first step takes
+  the end's lock, which must be free: while another `Write` holds it the step has no outcome (it
+  waits, the stutter: the only state with no outcome rule besides the stutter, and the holder's
+  own steps always have one, so the wait ends as Go's does); the lock stays held to the loop's last
+  step. A later step without the lock is invalid (a panic: the models never make one). `Close`
+  does not take the lock (Go's `increfAndClose`): the holder's next step fails `closed` (D15) and
+  releases it, and a waiting `Write` then takes it and fails `closed` too, as Go's waiter does
+  (woken by the close, `fdMutex.rwlock` fails: `ErrNetClosing`). A crash leaves the lock as it is:
+  the end's handles died with the process.
 * D22 **Steps: every operation may stutter, which is how waiting is modeled; invalid uses panic**
   (`NetStep`, `IsNetStep`). The convention of Perennial's Grove extension (`Perennial/GooseLang/
   Ext/Grove/Impl.lean`, `GroveStep`): any call of the extension may take a step that changes nothing
@@ -193,10 +221,14 @@ modeled (the methods are not modeled either, so a program calling them is stuck:
   | `LisClose` | `#l`, a listener of this node | D9: `LisCloseOutcome` (success if open, `closed` if not) |
   | `Accept`, `LisClose` | `#l`, no listener `l` of this node (`0` among them) | `Panic` (unreachable: the models check for `0`, and ids are unforgeable) |
   | `Read` | `(#e, #n)`, `e` an end of a connection | D1: `ReadOutcome`, never empty (`closed`; `n = 0`; else a cut, then bytes or EOF) |
-  | `Write` | `(#e, #bs)`, `e` an end of a connection | D2: `WriteOutcome`, never empty (`closed`; `sys` into `fin` or `cut`; a cut of an open direction) |
+  | `Write` | `(#e, (#bs, #true))`, `e` an end of a connection whose write lock is free | D2, D25: `WriteOutcome`, never empty (`closed`; `sys` into `fin` or `cut`; a cut of an open direction); the lock taken unless the step is the last |
+  | `Write` | `(#e, (#bs, #true))`, the end's write lock held | none (D25: the step waits for the lock, a stutter; the holder's steps have outcomes) |
+  | `Write` | `(#e, (#bs, #false))`, the end's write lock held | D2, D25: `WriteOutcome`, never empty; the lock released if the step is the last |
+  | `Write` | `(#e, (#bs, #false))`, the lock free | `Panic` (unreachable: only the holder makes a later step) |
+  | `SetSockopt` | `(#e, (#kind, #x))`, `e` an end of a connection | D24: `SockOptOutcome` (one) |
   | `Close`, `CloseWrite` | `#e`, `e` an end of a connection | D3, D4: `CloseOutcome` (one outcome), `CloseWriteOutcome` (on an open end: success or `sys`) |
   | `SetDeadline` | `(#e, (#kind, (#wall, #ext)))`, `e` an end of a connection | D5: `DeadlineOutcome` (one) |
-  | `Read` ... `SetDeadline` | `e` names no end of a connection (`0` among them) | `Panic` (unreachable: as `Accept`'s) |
+  | `Read` ... `SetSockopt` | `e` names no end of a connection (`0` among them) | `Panic` (unreachable: as `Accept`'s) |
   | `AnyBool`, `AnyString`, `AnyW64`, `AnyErrno` | `#()` | a value |
   | each of the above | an argument of another shape | `Panic` (unreachable: the models pass these shapes) |
   | any other name | any | `Panic` (unreachable: the models call only these) |
@@ -415,6 +447,43 @@ def WriteOutcome (st : NetEnd) (d : NetDir) (rs : List w8) (k : Nat) (res : Opti
     -- a timeout
     (st.wdl = true ∧ k = 0 ∧ res = some .timeout ∧ d' = d)
 
+/-- D25. A step of a `Write`, of the bytes `rs` not yet written, that counts `k` with the result
+`res` ends the `Write`'s loop (`model.writeLoop`): it fails, or it wrote every byte left. -/
+def writeLast (rs : List w8) (k : Nat) (res : Option NetErr) : Bool :=
+  res.isSome || decide (k = rs.length)
+
+/-- D24. Go's `setKeepAliveIdle(fd, d)` (`tcpsockopt_unix.go`) of the `time.Duration` `d` (an
+`int64`): `none` for `d < 0`, which returns `nil` before any system call; else whether Linux
+accepts its `setsockopt(TCP_KEEPIDLE)` of `int32(roundDurationUp(d', time.Second))`, `d'` Go's
+default 15 s for `d = 0`: the count of seconds in `1..32767` (`MAX_TCP_KEEPIDLE`, Linux's
+`do_tcp_setsockopt`, else `EINVAL`). Go's `int64` arithmetic wraps (`(d' + 1s - 1) / 1s`, the
+division truncating toward zero: `BitVec.sdiv`), and `syscall.SetsockoptInt` passes the `int` as
+an `int32` (`TestSockOpts`: `(2^32 + 10) s` is accepted as 10 s). -/
+def keepIdleValid (d : w64) : Option Bool :=
+  if d.toInt < 0 then none
+  else
+    let d' : w64 := if d = 0 then BitVec.ofInt 64 15000000000 else d
+    let secs : w64 := (d' + BitVec.ofInt 64 999999999).sdiv (BitVec.ofInt 64 1000000000)
+    let n : Int := (secs.truncate 32).toInt
+    some (decide (1 ≤ n ∧ n ≤ 32767))
+
+/-- D24. The socket option `kind` with the value `x` (`1`: `TCP_KEEPIDLE` of the duration `x`,
+`keepIdleValid`; any other: an option Linux accepts at every value on a TCP socket in every
+state, `SO_KEEPALIVE`, `TCP_NODELAY`, `SO_LINGER`, `SO_RCVBUF`, `SO_SNDBUF`): `none` if Go makes
+no system call, else whether the value is valid. -/
+def sockOptValid (kind x : w64) : Option Bool :=
+  if kind = W64 1 then keepIdleValid x else some true
+
+/-- D24. Setting a socket option on an end in state `st`, `valid` as `sockOptValid` gives it: the
+result (no state changes). No system call: success; else `closed` on a closed end (`poll.FD`'s
+`incref`), success for a valid value, `sys` (`EINVAL`) for another. -/
+def SockOptOutcome (st : NetEnd) (valid : Option Bool) (res : Option NetErr) : Prop :=
+  match valid with
+  | none => res = none
+  | some ok =>
+    if st.closed then res = some .closed
+    else if ok then res = none else res = some .sys
+
 /-- `d` shut by its writer, if it is open. -/
 def NetDir.shut (d : NetDir) : NetDir :=
   if d.status = .open then { d with status := .fin } else d
@@ -493,11 +562,23 @@ def ReadStep (c : Nat) (s : Bool) (n : w64) (g : NetGlobal) (e' : Expr) (g' : Ne
     e' = Val r.toVal ∧ g' = g.setConn c (cn.setOut (!s) d')
 
 /-- `"Write"` of `bs` at the end `s` of `c`: one step of a `Write` (D2), `bs` the bytes it has not
-written yet. -/
-def WriteStep (c : Nat) (s : Bool) (bs : List w8) (g : NetGlobal) (e' : Expr) (g' : NetGlobal) :
-    Prop :=
-  ∃ cn k res d', g.conns !! c = some cn ∧ WriteOutcome (cn.endSt s) (cn.out s) bs k res d' ∧
-    e' = Val (PairV (#(BitVec.ofNat 64 k)) (#(errCode res))) ∧ g' = g.setConn c (cn.setOut s d')
+written yet, `first` whether it is the `Write`'s first step. D25: a first step takes the end's write
+lock, which must be free (while another `Write` holds it, the step has no outcome: it waits, a
+stutter); a later step is the holder's; the lock is held after the step unless it ended the loop
+(`writeLast`). -/
+def WriteStep (c : Nat) (s : Bool) (bs : List w8) (first : Bool) (g : NetGlobal) (e' : Expr)
+    (g' : NetGlobal) : Prop :=
+  ∃ cn k res d', g.conns !! c = some cn ∧ cn.lock s = !first ∧
+    WriteOutcome (cn.endSt s) (cn.out s) bs k res d' ∧
+    e' = Val (PairV (#(BitVec.ofNat 64 k)) (#(errCode res))) ∧
+    g' = g.setConn c ((cn.setOut s d').setLock s (!writeLast bs k res))
+
+/-- D24. `"SetSockopt"` of the option `kind` with the value `x` at the end `s` of `c`: the result,
+nothing changed. -/
+def SetSockoptStep (c : Nat) (s : Bool) (kind x : w64) (g : NetGlobal) (e' : Expr)
+    (g' : NetGlobal) : Prop :=
+  ∃ cn res, g.conns !! c = some cn ∧ SockOptOutcome (cn.endSt s) (sockOptValid kind x) res ∧
+    e' = Val (#(errCode res)) ∧ g' = g
 
 /-- `"Close"` of the end `s` of `c`. -/
 def CloseStep (c : Nat) (s : Bool) (g : NetGlobal) (e' : Expr) (g' : NetGlobal) : Prop :=
@@ -588,9 +669,17 @@ def IsNetStep (op : String) (v : val) (L : NetLocal) (g : NetGlobal) (e' : Expr)
       (∃ (e n : w64) (c : Nat) (s : Bool), v = PairV (#e) (#n) ∧ IsEnd e c s ∧
         ReadStep c s n g e' g' ∧ L' = L) L g e' L' g'
   | "Write" => OrInvalid
-      (∃ (e : w64) (bs : List w8) (c : Nat) (s : Bool), v = PairV (#e) (#bs) ∧ EndOf g e c s)
-      (∃ (e : w64) (bs : List w8) (c : Nat) (s : Bool), v = PairV (#e) (#bs) ∧
-        IsEnd e c s ∧ WriteStep c s bs g e' g' ∧ L' = L) L g e' L' g'
+      (∃ (e : w64) (bs : List w8) (first : Bool) (c : Nat) (s : Bool),
+        v = PairV (#e) (PairV (#bs) (#first)) ∧ EndOf g e c s ∧
+        (first = true ∨ (g.conns !! c).any (·.lock s)))
+      (∃ (e : w64) (bs : List w8) (first : Bool) (c : Nat) (s : Bool),
+        v = PairV (#e) (PairV (#bs) (#first)) ∧
+        IsEnd e c s ∧ WriteStep c s bs first g e' g' ∧ L' = L) L g e' L' g'
+  | "SetSockopt" => OrInvalid
+      (∃ (e kind x : w64) (c : Nat) (s : Bool), v = PairV (#e) (PairV (#kind) (#x)) ∧
+        EndOf g e c s)
+      (∃ (e kind x : w64) (c : Nat) (s : Bool), v = PairV (#e) (PairV (#kind) (#x)) ∧
+        IsEnd e c s ∧ SetSockoptStep c s kind x g e' g' ∧ L' = L) L g e' L' g'
   | "Close" => OrInvalid (∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ EndOf g e c s)
       (∃ (e : w64) (c : Nat) (s : Bool), v = #e ∧ IsEnd e c s ∧ CloseStep c s g e' g' ∧
         L' = L) L g e' L' g'

@@ -5,8 +5,10 @@ exclude) the outcome the row's Go test measured (or the source it cites document
 assumes); the comment names the Go test. Excluded outcomes are tested as well: a timeout without a
 deadline, a short successful write, data after the end's own close, a read past what was written.
 And D22 (v3.2): every operation may stutter in every state, every state has an outcome that is not a
-stutter (`isNetStep_total`, `isNetStep_result`), invalid uses panic, and the waits v3.1's relations
-had (a blocked `Read`, `Accept`, a `Write` step counting nothing) are stutters.
+stutter (`isNetStep_total`, `isNetStep_result`; v3.3: but a `Write`'s first step while another
+`Write` of the end holds its write lock, D25), invalid uses panic, and the waits v3.1's relations
+had (a blocked `Read`, `Accept`, a `Write` step counting nothing) are stutters. v3.3: socket options
+(D24), the write lock (D25).
 -/
 module
 
@@ -404,8 +406,15 @@ theorem isNetStep_total (op : String) (v : val) (L : NetLocal) (g : NetGlobal)
   · apply orInvalid_total
     rintro ⟨e, kind, x, c, s, rfl, hE, hc⟩
     obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
-    obtain ⟨k, res, d', hw⟩ := writeOutcome_total (cn.endSt s) (cn.out s) bs
-    exact ⟨_, _, _, e, bs, c, s, rfl, hE, ⟨cn, k, res, d', hcn, hw, rfl, rfl⟩, rfl⟩
+    have : ∃ res, SockOptOutcome (cn.endSt s) (sockOptValid kind x) res := by
+      unfold SockOptOutcome
+      split
+      · exact ⟨_, rfl⟩
+      · split
+        · exact ⟨_, rfl⟩
+        · split <;> exact ⟨_, rfl⟩
+    obtain ⟨res, hr⟩ := this
+    exact ⟨_, _, _, e, kind, x, c, s, rfl, hE, ⟨cn, res, hcn, hr, rfl, rfl⟩, rfl⟩
   · apply orInvalid_total
     rintro ⟨e, c, s, rfl, hE, hc⟩
     obtain ⟨cn, hcn⟩ := Option.isSome_iff_exists.mp hc
@@ -600,6 +609,34 @@ example (cn : NetConn) (hl : cn.lock false = false) (bs : List w8) (e' : Expr) (
   simp_all
 
 end steps
+
+/-! ## Socket options (D24) -/
+
+/-- `TestSockOpts`: an option succeeds on an end not closed, fails `closed` on a closed one, and
+changes nothing (`SockOptOutcome` has no state after). -/
+private theorem sockOptValid_0 : sockOptValid 0 0 = some true := by decide
+example : SockOptOutcome st0 (sockOptValid 0 0) none := by
+  rw [sockOptValid_0]; simp [SockOptOutcome, st0, NetEnd.fresh]
+example : SockOptOutcome stC (sockOptValid 0 0) (some .closed) := by
+  rw [sockOptValid_0]; simp [SockOptOutcome, stC, NetEnd.fresh]
+example : ¬ SockOptOutcome stC (sockOptValid 0 0) none := by
+  rw [sockOptValid_0]; simp [SockOptOutcome, stC, NetEnd.fresh]
+example : ¬ SockOptOutcome st0 (sockOptValid 0 0) (some .sys) := by
+  rw [sockOptValid_0]; simp [SockOptOutcome, st0, NetEnd.fresh]
+/-- ... `SetKeepAlivePeriod`: 32767 s accepted, 32768 s refused (`EINVAL`), `(2^32 + 10) s`
+accepted (`int32`), `0` (Go's 15 s) accepted, a negative duration no system call (success even on a
+closed end). -/
+example : keepIdleValid (BitVec.ofInt 64 32767000000000) = some true ∧
+    keepIdleValid (BitVec.ofInt 64 32768000000000) = some false ∧
+    keepIdleValid (BitVec.ofInt 64 32767000000001) = some false ∧
+    keepIdleValid (BitVec.ofInt 64 ((2 ^ 32 + 10) * 1000000000)) = some true ∧
+    keepIdleValid 0 = some true ∧ keepIdleValid (BitVec.ofInt 64 (-1000000000)) = none ∧
+    keepIdleValid (BitVec.ofInt 64 9223372036854775807) = some false := by decide
+example : SockOptOutcome stC (sockOptValid 1 (BitVec.ofInt 64 (-1))) none := by
+  rw [show sockOptValid 1 (BitVec.ofInt 64 (-1)) = none by decide]; rfl
+example : SockOptOutcome st0 (sockOptValid 1 (BitVec.ofInt 64 32768000000000)) (some .sys) := by
+  rw [show sockOptValid 1 (BitVec.ofInt 64 32768000000000) = some false by decide]
+  simp [SockOptOutcome, st0, NetEnd.fresh]
 
 /-! ## The deployment (D13, D20): `Deploy.lean`'s examples. -/
 

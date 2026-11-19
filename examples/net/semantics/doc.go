@@ -19,6 +19,9 @@
 //	                                             D21 wildcard Listen (ListenAt)
 //	                                             D22 steps: every operation may stutter
 //	                                                 (waiting); invalid uses panic (NetStep)
+//	                                             D23 the network "tcp4" (TrustedCode/net.lean)
+//	                                             D24 socket options (SetSockoptStep, SockOptOutcome)
+//	                                             D25 the write lock (WriteStep, NetConn.lock)
 //
 // Each test is one behavior: its doc comment says the decision it supports or
 // refutes, what Linux and Go do, and why (the kernel or Go code path). Every
@@ -158,6 +161,35 @@
 //	                                  Impl.lean, GroveStep); no Go behavior of its own: a stutter is
 //	                                  never a call's last step
 //
+// v3.3 (tcp4_test.go, sockopt_test.go, writelock_test.go; notes/dsverify-net-port-plan.md, phase 2):
+//
+//	TestTcp4                     D23  "tcp4" as "tcp" on IPv4 plan addresses (Listen, Dial, DialTimeout,  measured   model.netOk, conn's and TCPListener's
+//	                                  the wildcards ":P", "0.0.0.0:P", "[::]:P" every IPv4 address);                net field, model.opError's network
+//	                                  every *OpError's Net the network string: Dial's and Listen's
+//	                                  the call's, a connection's its Dial's or its listener's (Read,
+//	                                  Write, Close, SetDeadline, CloseWrite, SetKeepAlive, Accept,
+//	                                  the listener's Close); "tcp" and "tcp4" ends interoperate
+//	TestSockOpts                 D24  SetKeepAlive, SetKeepAlivePeriod, SetReadBuffer, SetWriteBuffer,     measured   SockOptOutcome, sockOptValid,
+//	                                  SetNoDelay, SetLinger: nil on an end not closed, in any state                  keepIdleValid, model.sockOpt
+//	                                  (fresh, after FIN, CloseWrite, a reset; dialer's and acceptor's
+//	                                  from an MPTCP listener); ErrClosed in an *OpError "set" on a
+//	                                  closed end (TCPConn's: Source laddr, Addr raddr; conn's buffer
+//	                                  sizes: Source nil, Addr laddr); EINVAL (setsockopt) for a
+//	                                  keepalive period over 32767 s (int32 of the rounded-up seconds:
+//	                                  (2^32+10) s is 10 s); a negative period: nil, no system call,
+//	                                  even closed; the zero value: bare EINVAL
+//	(2^20 waiters)               D13,D25 fewer than 2^20 calls wait on one socket's lock: Go's fdMutex assumed    (prose: Impl.lean D13; the
+//	                                  panics past 1048575 (fd_mutex.go), the model waits (review F1)                v3.3 review)
+//	(no other state)             D24  the options change nothing a Read or Write result shows beyond     assumed    (no state: SockOptOutcome)
+//	                                  what the relations already allow (keepalive's effect is a cut;
+//	                                  buffer sizes only change when a step blocks: a stutter)
+//	TestWriteLock                D25  four concurrent 4 MiB Writes on one end to a slow reader: each      measured   WriteStep (first, NetConn.lock),
+//	                                  Write's bytes contiguous in the stream, every Write complete; a                writeLast; Tests.lean: the
+//	                                  Write waiting for the lock when the end is Closed: (0, ErrClosed)              interleaving excluded
+//	                                  after the holder's (internal/poll/fd_unix.go: FD.Write holds
+//	                                  fd.writeLock() over its whole loop; fdMutex.rwlock fails once
+//	                                  closing)
+//
 // Network faults, in network namespaces (netns_test.go; NET_NETNS=1, re-run as root by sudo -n;
 // client, router and server namespaces, the faults in the router's FORWARD chain):
 //
@@ -248,6 +280,13 @@
 // address refused a new Listen (EADDRINUSE) and completed a Dial that was
 // then reset. All allowed (D6, D8: failure always; D9: pending stays
 // pending). The tests that need a Close to take effect at once exclude forks.
+//
+// v3.3 (2026-11-19, phase 2 of notes/dsverify-net-port-plan.md): the network
+// "tcp4" (D23), the socket options (D24), and Go's write lock (D25): before
+// v3.3 two concurrent Writes of one end could interleave their steps in the
+// model, which Go's fdMutex excludes (TestWriteLock); a Write's first step now
+// takes the end's write lock and its last releases it, a first step waiting
+// (a stutter, its only outcome) while another Write holds it.
 //
 // Not measured here: D12 (ENOMEM, ENOBUFS), unreachable addresses. What a
 // peer sees of a machine that dies silently (nothing, then its kernel's

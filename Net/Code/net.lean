@@ -3154,7 +3154,9 @@ class conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"Read" conn.Read.impl
   ptr_RemoteAddr_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"RemoteAddr" conn.RemoteAddr.impl
   ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetDeadline" conn.SetDeadline.impl
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetReadBuffer" conn.SetReadBuffer.impl
   ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetReadDeadline" conn.SetReadDeadline.impl
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetWriteBuffer" conn.SetWriteBuffer.impl
   ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"SetWriteDeadline" conn.SetWriteDeadline.impl
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType conn.ty) go!"Write" conn.Write.impl
 
@@ -3167,7 +3169,9 @@ attribute [instance] conn.TypeAssumptions.type_repr
   conn.TypeAssumptions.ptr_Read_unfold
   conn.TypeAssumptions.ptr_RemoteAddr_unfold
   conn.TypeAssumptions.ptr_SetDeadline_unfold
+  conn.TypeAssumptions.ptr_SetReadBuffer_unfold
   conn.TypeAssumptions.ptr_SetReadDeadline_unfold
+  conn.TypeAssumptions.ptr_SetWriteBuffer_unfold
   conn.TypeAssumptions.ptr_SetWriteDeadline_unfold
   conn.TypeAssumptions.ptr_Write_unfold
 
@@ -3922,8 +3926,16 @@ class TCPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"RemoteAddr"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
   ptr_SetDeadline_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetKeepAlive_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlive" TCPConn.SetKeepAlive.impl
+  ptr_SetKeepAlivePeriod_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetKeepAlivePeriod" TCPConn.SetKeepAlivePeriod.impl
+  ptr_SetLinger_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetLinger" TCPConn.SetLinger.impl
+  ptr_SetNoDelay_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetNoDelay" TCPConn.SetNoDelay.impl
+  ptr_SetReadBuffer_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetReadBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadBuffer"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
   ptr_SetReadDeadline_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetReadDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetReadDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
+  ptr_SetWriteBuffer_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetWriteBuffer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteBuffer"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
   ptr_SetWriteDeadline_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"SetWriteDeadline" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType conn.ty) go!"SetWriteDeadline"))) (App (Val (GoInstruction (StructFieldRef TCPConn.ty go!"conn"))) (Var "$r"))))
   ptr_Write_unfold : MethodUnfold (go.GoType.PointerType TCPConn.ty) go!"Write" (LamV "$r"
@@ -3939,7 +3951,13 @@ attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.ptr_Read_unfold
   TCPConn.TypeAssumptions.ptr_RemoteAddr_unfold
   TCPConn.TypeAssumptions.ptr_SetDeadline_unfold
+  TCPConn.TypeAssumptions.ptr_SetKeepAlive_unfold
+  TCPConn.TypeAssumptions.ptr_SetKeepAlivePeriod_unfold
+  TCPConn.TypeAssumptions.ptr_SetLinger_unfold
+  TCPConn.TypeAssumptions.ptr_SetNoDelay_unfold
+  TCPConn.TypeAssumptions.ptr_SetReadBuffer_unfold
   TCPConn.TypeAssumptions.ptr_SetReadDeadline_unfold
+  TCPConn.TypeAssumptions.ptr_SetWriteBuffer_unfold
   TCPConn.TypeAssumptions.ptr_SetWriteDeadline_unfold
   TCPConn.TypeAssumptions.ptr_Write_unfold
 

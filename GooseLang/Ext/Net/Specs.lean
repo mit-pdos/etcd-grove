@@ -766,6 +766,56 @@ theorem wp_net_SetDeadline (c : Nat) (s : Bool) (a : GoString) (kind wall ext : 
   iapply wp_value'
   iexact HΦ
 
+/-- D24. `SetSockopt` of the option `kind` with the value `x` at the end `s` of `c`
+(`SockOptOutcome`, `sockOptValid`): nothing changes; the caller's update reads the end's state. -/
+theorem wp_net_SetSockopt (c : Nat) (s : Bool) (a : GoString) (kind x : w64)
+    (Φ : val → IProp GF) :
+    netConnAt netG c a -∗
+    (|={E,∅}=> ∃ st, netEnd netG c s st ∗
+      ∀ res, ⌜SockOptOutcome st (sockOptValid kind x) res⌝ -∗ netEnd netG c s st
+        ={∅,E}=∗ Φ (#(errCode res))) -∗
+    WP (ExternalOp netExt.name "SetSockopt"
+      (Val (PairV (#(endId c s)) (PairV (#kind) (#x))))) @ sk; E {{ Φ }} := by
+  letI := (netG (G := G)).allG
+  iintro #Hat HAU
+  ihave #Hat' := Hat
+  unfold netConnAt
+  icases Hat' with ⟨%γ, #Hγ, %Hγa⟩
+  iapply wp_net_op "SetSockopt" _ (by simp) Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  icases netCtx_lookup _ g c γ $$ Hg Hγ with ⟨%Hcn, Hg⟩
+  obtain ⟨cn0, hcn0⟩ := Hcn
+  obtain ⟨e0, kind0, x0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, res, hcn, hout, rfl, hgg⟩, rfl⟩ :=
+    Hst.resolve_right fun ⟨hnv, _⟩ =>
+      hnv ⟨endId c s, kind, x, c, s, rfl, ⟨Hγa.2.2, rfl⟩, by simp [hcn0]⟩
+  obtain ⟨h1, h2⟩ := val.PairV.inj hv
+  obtain ⟨h2, h3⟩ := val.PairV.inj h2
+  have he : endId c s = e0 := go.intoVal_inj h1
+  obtain rfl : kind = kind0 := go.intoVal_inj h2
+  obtain rfl : x = x0 := go.intoVal_inj h3
+  obtain ⟨rfl, rfl⟩ := endId_inj Hγa.2.2 hb0 (he.trans he0)
+  subst g'
+  imod HAU with ⟨%st, Hend, Hk⟩
+  icases netCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn1, %hcn1, Hcc, Hgclose⟩
+  rw [hcn] at hcn1
+  cases hcn1
+  icases connCtx_acc γ cn s s $$ Hcc with ⟨%Haddr, Hv, Hq, Hcclose⟩
+  icases netEnd_open _ c s st γ $$ Hγ Hend with Hv'
+  icases ghostVar_agree $$ Hv' Hv with %Hst
+  subst Hst
+  imod Hk $$ %res %hout [Hv'] with HΦ
+  · iapply netEnd_intro $$ Hγ Hv'
+  imodintro
+  iframe Hl
+  isplitr [HΦ]
+  · ihave Hcc := Hcclose $$ Hv Hq
+    rw [setEnd_endSt_self, setOut_out_self]
+    iapply (netCtx_of_eq _ (setConn_self hcn))
+    iapply Hgclose $$ %_ %(And.intro rfl rfl) Hcc
+  iapply wp_value'
+  iexact HΦ
+
 /-- `AnyBool`: an arbitrary boolean. -/
 theorem wp_net_AnyBool (Φ : val → IProp GF) :
     (∀ b : Bool, Φ (#b)) -∗ WP (ExternalOp netExt.name "AnyBool" (Val (#()))) @ sk; E {{ Φ }} := by
