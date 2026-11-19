@@ -25,13 +25,16 @@ Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.barrier Proof.github_co
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.barrier Proof.go_etcd_io.etcd.client.v3.AuthnServedOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.MainServe  # proof->linking
-Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.go_etcd_io.etcd.client.v3.ServeFromStart  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOnLinked  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run Proof.go_etcd_io.etcd.client.v3.ServeFromStart  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.absent Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barrier Proof.go_etcd_io.etcd.client.v3.AuthnServedOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut Proof.go_etcd_io.etcd.client.v3.ResultsOn  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run  # proof->proof
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run Proof.go_etcd_io.etcd.client.v3.ResultsOn  # proof->linking
+Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run Proof.go_etcd_io.etcd.client.v3.TxnPlain  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.Served  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main Proof.go_etcd_io.etcd.client.v3.KMClient  # proof->linking
 Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.Main Proof.go_etcd_io.etcd.client.v3.ServeFromStart  # proof->linking

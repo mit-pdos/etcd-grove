@@ -1,6 +1,42 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19 night, item 9: run's prerequisites done; run itself next)
+## START HERE (S4, 2026-11-19 late night, item 9: run.wp_proof half done)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`,
+  `.lake/package-overrides.json` its copy); 3afd77e35 arrives with the next lean merge (switch then). lean not moved.
+- **Done:** `88592aac04` authN's `serve_member`/`srvdAt`/`srvdW` generalized in place over the lease mode `m`
+  (`leaseSrvd`, `leaseSrvd_intro`; moved to authN run's `served` section, over the etcdserver/v3rpc/client
+  Assumptions); authN's run instantiates `.none` (its statements unchanged; lean-check 0 errors); authlease
+  `Served.lean` deleted. Txn refusal: `opChecksLease` (+ `_put`, `_txn`), `leaseGranted_txn`; `refused_update`
+  takes `hop : opChecksLease s E ρ op L`. `run.lean` (wip commits up to `65c50fcdca`): `leaseTxn_ok`,
+  `txnOpOf_leasePut`, `bArg`, `barrierPre_all`; run.wp_proof through: cell alloc, serve loop, SetUp
+  (`cell_setupAu`), barriers 1 (`bArg … (fun _ => True)`), the four clients (u, v with `P := akTokP`), grantPut
+  root (`cell_fix`+`cell_putZAu`; R' carries `lz ≠ 0`), grantPut u (`cell_putAAu`, `Lu ≠ Lz` by
+  `grantG_refuted`), u's txn (`client_txn_on`, `cell_txnTAu`; `ps3`, `3 ≤ ps3.length`), barriers 2
+  (`cellSeen γc ps3 0`), `cell_holds` → `Hhz` (u's member, Lz/zK, `mz`) and `Hhu` (v's member, Lu/aK, `mu`).
+  All `lean-check --fast -a`: 0 errors, one `sorry` (the tail). Not in a `lake build` yet.
+- **Next, in order** (each after the `sorry` at the end of run.wp_proof): noAuth(cli,"anon",lu) at member 0
+  and noAuth(bcli,"bad",lu) at member 1%k (`noAuth_refutes`; `akTokP γa "anon"/"bad"` = NewClient's `fun _ => False`
+  by `if_neg`; `etcdLeaseServedOn` re-folded from `HLG₁…HLL₁`; needs a `lease.lessorLb … ml` at member 0/1%k:
+  find a lemma, e.g. from the lessor names or `cell_holds`; Qg via `cell_grantAu`, Qr via `revokeLu_update`);
+  u's put(xK, Lz) and txn: `refused_update … (opChecksLease_put …)/(opChecksLease_txn xK lz)`, hcell from
+  `CellOk` (z/lease holds Lz once `ps` ≥ 1), then `wp_refused`; absent(root, xK); foreign(u, lz) (R :=
+  `monoNatAuthOwn γc.a ½ 0` = `Ha`, `foreign_reads_refuted` with `Hhz`), foreign(v, lu) (Qr := revoked,
+  `cell_not_revoked`, `Hhu`); root's Get z/lease (`client_Get_on`, read update `cell_readAu` → z/lease on Lz);
+  `cell_permit`, u's Revoke(lu) (`client_lease_revoke_on`, `cell_revokeUAu`); absent ×2 (`revoked` +
+  `cellSeen` d ≥ 1). Then Main (`allocNOnM … .revocable … (ns := true)`; boot state has no a/x: a lemma),
+  STOP at Main.wp_proof/linking. Then a timed full build and `tcb-report --check`.
+- **Tier edges added** (etc/tier-baseline.txt, decided as debt by etcd-grove-03 except the first, for decision):
+  authlease.run → authN.run (proof->proof: serve_member/srvdW/akV live in authN's proof module; alternative: move
+  authN run's `served` section to a defs module), authlease.run → client ResultsOn, TxnPlain; authN.run →
+  etcdstart.ServedLeaseOnLinked.
+- **Pitfalls:** `rw [BigSepL.bigSepL_map]` rewrites the first match anywhere in the IPM context: `iclear` older
+  big-seps or pass the function explicitly. Names: `client.clientOpAuOn/clientGrant/txnReplied/txnUpdAtOn/
+  client_txn_on/v3.txn.wp_Then_plain`, but `clientTokAt`, `WithLease.spec`, `OpPut.spec` at `EtcdGrove` level;
+  `etcd_authN.leaseSrvd`. run's failure post is `right; rfl` (two results). After an imod whose R' is a lambda,
+  `isplitl` sees the beta-reduced conjunction.
+
+## Previous START HERE (S4, 2026-11-19 night, item 9: run's prerequisites done; run itself next)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
   everywhere, `.lake/package-overrides.json` its copy. lean has not moved since df37bd5157 (no merge needed yet).
