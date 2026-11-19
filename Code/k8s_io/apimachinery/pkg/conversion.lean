@@ -65,16 +65,16 @@ noncomputable def Equalities.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Equalities.ty
 
-axiom typePair.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque typePair.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NameFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Equalities.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Equalities.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def DefaultNameFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.DefaultNameFunc"
 
-axiom DefaultNameFunc.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultNameFunc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/conversion.NewConverter"
@@ -94,7 +94,7 @@ noncomputable def EnforcePtr [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.conversion where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -103,8 +103,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val DefaultNameFunc.init) (Val #())))))))
 
-axiom typePair : Type
-axiom typePair.zero_val : ZeroVal typePair
+opaque typePair.nonempty_type : NonemptyType.{0}
+def typePair : Type := typePair.nonempty_type.type
+instance typePair.nonempty : Nonempty typePair := typePair.nonempty_type.property
+opaque typePair.zero_val : ZeroVal typePair := ⟨Classical.ofNonempty⟩
 attribute [instance] typePair.zero_val
 
 class typePair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -120,8 +122,10 @@ attribute [instance] typePair.TypeAssumptions.type_repr
   typePair.TypeAssumptions.method_set
   typePair.TypeAssumptions.ptr_method_set
 
-axiom NameFunc : Type
-axiom NameFunc.zero_val : ZeroVal NameFunc
+opaque NameFunc.nonempty_type : NonemptyType.{0}
+def NameFunc : Type := NameFunc.nonempty_type.type
+instance NameFunc.nonempty : Nonempty NameFunc := NameFunc.nonempty_type.property
+opaque NameFunc.zero_val : ZeroVal NameFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] NameFunc.zero_val
 
 class NameFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -323,8 +327,10 @@ attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.method_set
   scope.TypeAssumptions.ptr_method_set
 
-axiom Equalities : Type
-axiom Equalities.zero_val : ZeroVal Equalities
+opaque Equalities.nonempty_type : NonemptyType.{0}
+def Equalities : Type := Equalities.nonempty_type.type
+instance Equalities.nonempty : Nonempty Equalities := Equalities.nonempty_type.property
+opaque Equalities.zero_val : ZeroVal Equalities := ⟨Classical.ofNonempty⟩
 attribute [instance] Equalities.zero_val
 
 class Equalities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

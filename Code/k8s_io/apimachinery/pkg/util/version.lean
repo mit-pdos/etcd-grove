@@ -28,12 +28,12 @@ attribute [irreducible] Version.ty
 noncomputable def versionMatchRE [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/version.versionMatchRE"
 
-axiom versionMatchRE.init [GooseExts] [GoGlobalContext] : val
+opaque versionMatchRE.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def extraMatchRE [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/version.extraMatchRE"
 
-axiom extraMatchRE.init [GooseExts] [GoGlobalContext] : val
+opaque extraMatchRE.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def parse [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/version.parse"
@@ -77,7 +77,7 @@ noncomputable def Itoa [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.version where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

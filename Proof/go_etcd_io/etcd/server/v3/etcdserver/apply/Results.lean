@@ -625,25 +625,6 @@ theorem apply_rejected_no_write (rq : IRRModel) (v3 : Bool) (x x' : ApplyKV) (ou
   · rw [h.2]
   · rw [h.2.2.1]; rfl
 
-/-- **Without `v3`, nothing changes** (a replayed entry): the KV's log, the chain and the
-compaction revision as they were. -/
-theorem apply_no_v3_no_write (rq : IRRModel) (x x' : ApplyKV) (out : ApplyOut)
-    (h : applyStep rq false x x' out) : x' = x := by
-  cases out with
-  | skipped => exact h.2
-  | rejected => exact h.2
-  | dispatched o sk =>
-    obtain ⟨-, hd, hl, hch, hcr⟩ := h
-    have ho : o = .applied x.log false := by
-      unfold dispatchStep at hd; simpa using hd
-    have hc : x'.chain = x.chain := by
-      rcases hch with h | ⟨h, -⟩
-      · exact h
-      · cases h
-    rw [dispatchCrev_noV3] at hcr
-    cases x; cases x'
-    simp_all [Outcome.logAfter]
-
 #print axioms Perennial.EtcdGrove.apply.wp_Apply
 #print axioms Perennial.EtcdGrove.apply.wp_NewUberApplier
 #print axioms Perennial.EtcdGrove.apply.uberApplier.wp_dispatch

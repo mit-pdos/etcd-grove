@@ -12,9 +12,11 @@ revision counter) and the KV invariant (`kvInv`): it returns (it does not panic)
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.Rounds
+public import Proof.go_etcd_io.etcd.client.v3.ReadUpds
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

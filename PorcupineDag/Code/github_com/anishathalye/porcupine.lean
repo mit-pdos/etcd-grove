@@ -3484,7 +3484,7 @@ noncomputable def CheckOperationsVerbose.impl [GooseExts] [GoGlobalContext] : va
 noncomputable instance info' : PkgInfo pkg_id.github_com.anishathalye.porcupine where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sort, pkg_id.time, pkg_id.errors, pkg_id.fmt, pkg_id.strings]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

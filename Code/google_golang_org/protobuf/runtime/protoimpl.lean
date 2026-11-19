@@ -26,15 +26,15 @@ noncomputable def EnforceVersion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] EnforceVersion.ty
 
-axiom DescBuilder [GooseExts] [GoGlobalContext] : go.GoType
+opaque DescBuilder [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom TypeBuilder [GooseExts] [GoGlobalContext] : go.GoType
+opaque TypeBuilder [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnumInfo [GooseExts] [GoGlobalContext] : go.GoType
+opaque EnumInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MessageInfo [GooseExts] [GoGlobalContext] : go.GoType
+opaque MessageInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionInfo [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionInfo [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def MessageState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState.ty
@@ -42,30 +42,30 @@ axiom ExtensionInfo [GooseExts] [GoGlobalContext] : go.GoType
 @[reducible] noncomputable def SizeCache.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-axiom WeakFields [GooseExts] [GoGlobalContext] : go.GoType
+opaque WeakFields [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def UnknownFields.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
-axiom ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionFieldV1 [GooseExts] [GoGlobalContext] : go.GoType
+opaque ExtensionFieldV1 [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Pointer [GooseExts] [GoGlobalContext] : go.GoType
+opaque Pointer [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LazyUnmarshalInfo [GooseExts] [GoGlobalContext] : go.GoType
+opaque LazyUnmarshalInfo [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RaceDetectHookData [GooseExts] [GoGlobalContext] : go.GoType
+opaque RaceDetectHookData [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnforceVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque EnforceVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnsafeEnabled [GooseExts] [GoGlobalContext] : val
+opaque UnsafeEnabled [GooseExts] [GoGlobalContext] : val
 
-axiom MaxVersion [GooseExts] [GoGlobalContext] : val
+opaque MaxVersion [GooseExts] [GoGlobalContext] : val
 
-axiom GenVersion [GooseExts] [GoGlobalContext] : val
+opaque GenVersion [GooseExts] [GoGlobalContext] : val
 
-axiom MinVersion [GooseExts] [GoGlobalContext] : val
+opaque MinVersion [GooseExts] [GoGlobalContext] : val
 
 noncomputable def X [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/runtime/protoimpl.X"
@@ -73,7 +73,7 @@ noncomputable def X [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.runtime.protoimpl where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.internal.impl]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -82,8 +82,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.internal.impl.initialize') (Val #())))))))
 
-axiom EnforceVersion : Type
-axiom EnforceVersion.zero_val : ZeroVal EnforceVersion
+opaque EnforceVersion.nonempty_type : NonemptyType.{0}
+def EnforceVersion : Type := EnforceVersion.nonempty_type.type
+instance EnforceVersion.nonempty : Nonempty EnforceVersion := EnforceVersion.nonempty_type.property
+opaque EnforceVersion.zero_val : ZeroVal EnforceVersion := ⟨Classical.ofNonempty⟩
 attribute [instance] EnforceVersion.zero_val
 
 class EnforceVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

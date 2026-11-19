@@ -33,6 +33,8 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.PutThenGet
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.client.v3.ReplyValues
+public import Proof.go_etcd_io.etcd.client.v3.ReadUpds
+public import Proof.go_etcd_io.etcd.client.v3.Results
 
 @[expose] public section
 
@@ -249,15 +251,6 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   · simp only [kvRevFits, kvStateOf_rev, kvStateOf_kvs]
     omega
   · exact mvcc.stateAfter_vals Hlk
-
-/-- **The members' read updates, persistent** (each is: a read update, or none). -/
-theorem readUpds_box (ms : List (SrvAt GF)) (Q : KVState → IProp GF) :
-    ([∧list] x ∈ ms, iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu (GF := GF) x.γr.kv Q)) ⊢
-      □ ([∧list] x ∈ ms, iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q)) := by
-  haveI : Persistent ([∧list] x ∈ ms,
-      iprop(⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu (GF := GF) x.γr.kv Q)) :=
-    BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
-  exact intuitionistic_alias
 
 /-- `cli.Get(ctx, key)` by `New`'s client of the members `ms`, with a read update or none (see
 the file header). -/

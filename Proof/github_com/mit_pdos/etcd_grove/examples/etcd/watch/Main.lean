@@ -33,7 +33,6 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Collec
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.watch.StateResp
 public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
-public import Proof.go_etcd_io.etcd.client.v3.Link
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.StartServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve

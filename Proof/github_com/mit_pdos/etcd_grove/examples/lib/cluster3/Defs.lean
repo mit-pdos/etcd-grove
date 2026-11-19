@@ -40,14 +40,14 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putget3.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Base
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftHandler
 public import Proof.github_com.mit_pdos.etcd_grove.third_party.bridge.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.HistoryModel
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLease
+public import Proof.go_etcd_io.etcd.client.v3.ReadUpds
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

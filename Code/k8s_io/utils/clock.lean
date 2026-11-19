@@ -71,10 +71,123 @@ noncomputable def realTicker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] realTicker.ty
 
+/-- Now returns the current time.
+
+    go: clock.go:88:18 -/
+noncomputable def RealClock.Now.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.time.Time.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (Var "$res0"))))))
+
+/-- NewTimer is the same as time.NewTimer(d)
+
+    go: clock.go:105:18 -/
+noncomputable def RealClock.NewTimer.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "d"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Timer.ty))) (App (Val (GoInstruction (GoZeroVal Timer.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType realTimer.ty) Timer.ty))) (App (Val (GoInstruction (GoAlloc realTimer.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.NewTimer []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral realTimer.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"timer")) (ElementExpression (go.GoType.PointerType _root_.Perennial.time.Timer.ty) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Timer.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Timer.ty))) (Var "$res0"))))))
+
+/-- NewTicker returns a new Ticker.
+
+    go: clock.go:126:18 -/
+noncomputable def RealClock.NewTicker.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (Lam "d"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Ticker.ty))) (App (Val (GoInstruction (GoZeroVal Ticker.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "d" (App (Val (GoInstruction (GoAlloc _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType realTicker.ty) Ticker.ty))) (App (Val (GoInstruction (GoAlloc realTicker.ty))) (Let "$v0" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Duration.ty))) (Var "d"))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.NewTicker []))) (Val #())) (Var "$a0")))
+  (App (Val (GoInstruction (CompositeLiteral realTicker.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ticker")) (ElementExpression (go.GoType.PointerType _root_.Perennial.time.Ticker.ty) (Var "$v0")))])))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Ticker.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Ticker.ty))) (Var "$res0"))))))
+
+/-- C returns the underlying timer's channel.
+
+    go: clock.go:154:21 -/
+noncomputable def realTimer.C.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType realTimer.ty)))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.time.Timer.ty go!"C"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (App (Val (GoInstruction (StructFieldRef realTimer.ty go!"timer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType realTimer.ty)))) (Var "r"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Var "$res0"))))))
+
+/-- Stop calls Stop() on the underlying timer.
+
+    go: clock.go:159:21 -/
+noncomputable def realTimer.Stop.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType realTimer.ty)))) (Var "r"))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Timer.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Timer.ty)))) (App (Val (GoInstruction (StructFieldRef realTimer.ty go!"timer"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType realTimer.ty)))) (Var "r"))))) (Val #()))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
+
+/-- go: clock.go:172:22 -/
+noncomputable def realTicker.C.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType realTicker.ty)))) (Var "r"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.time.Ticker.ty go!"C"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (App (Val (GoInstruction (StructFieldRef realTicker.ty go!"ticker"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType realTicker.ty)))) (Var "r"))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)))) (Var "$res0"))))))
+
+/-- go: clock.go:176:22 -/
+noncomputable def realTicker.Stop.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "r"
+  (Lam BAnon
+  (Seq (App (Val exceptionDo)
+  (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType realTicker.ty)))) (Var "r"))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Ticker.ty) go!"Stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (App (Val (GoInstruction (StructFieldRef realTicker.ty go!"ticker"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType realTicker.ty)))) (Var "r"))))) (Val #())))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.clock where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -197,11 +310,26 @@ class RealClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq RealClock.ty RealClock.underlying
   method_set : go.MethodSetIs RealClock.ty [(go!"After", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"AfterFunc", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty]))), (go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty]))), (go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Since", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sleep", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Tick", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType RealClock.ty) [(go!"After", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"AfterFunc", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty]))), (go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty]))), (go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Since", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))), (go!"Sleep", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"Tick", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])))]
+  NewTicker_unfold : MethodUnfold RealClock.ty go!"NewTicker" RealClock.NewTicker.impl
+  NewTimer_unfold : MethodUnfold RealClock.ty go!"NewTimer" RealClock.NewTimer.impl
+  Now_unfold : MethodUnfold RealClock.ty go!"Now" RealClock.Now.impl
+  ptr_NewTicker_unfold : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"NewTicker" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve RealClock.ty go!"NewTicker"))) (App (Val (GoInstruction (GoLoad RealClock.ty))) (Var "$r"))))
+  ptr_NewTimer_unfold : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"NewTimer" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve RealClock.ty go!"NewTimer"))) (App (Val (GoInstruction (GoLoad RealClock.ty))) (Var "$r"))))
+  ptr_Now_unfold : MethodUnfold (go.GoType.PointerType RealClock.ty) go!"Now" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve RealClock.ty go!"Now"))) (App (Val (GoInstruction (GoLoad RealClock.ty))) (Var "$r"))))
 
 attribute [instance] RealClock.TypeAssumptions.type_repr
   RealClock.TypeAssumptions.underlying
   RealClock.TypeAssumptions.method_set
   RealClock.TypeAssumptions.ptr_method_set
+  RealClock.TypeAssumptions.NewTicker_unfold
+  RealClock.TypeAssumptions.NewTimer_unfold
+  RealClock.TypeAssumptions.Now_unfold
+  RealClock.TypeAssumptions.ptr_NewTicker_unfold
+  RealClock.TypeAssumptions.ptr_NewTimer_unfold
+  RealClock.TypeAssumptions.ptr_Now_unfold
 
 abbrev Timer [GooseExts] : Type := GoInterface
 
@@ -244,6 +372,8 @@ class realTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_timer : ∀ (x : realTimer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTimer.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : realTimer)))
   method_set : go.MethodSetIs realTimer.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Reset", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool]))), (go!"Stop", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_C_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"C" realTimer.C.impl
+  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType realTimer.ty) go!"Stop" realTimer.Stop.impl
 
 attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.underlying
@@ -251,6 +381,8 @@ attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.set_timer
   realTimer.TypeAssumptions.method_set
   realTimer.TypeAssumptions.ptr_method_set
+  realTimer.TypeAssumptions.ptr_C_unfold
+  realTimer.TypeAssumptions.ptr_Stop_unfold
 
 structure realTicker [GooseExts] where
   mk ::
@@ -279,6 +411,8 @@ class realTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_ticker : ∀ (x : realTicker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet realTicker.underlying go!"ticker") (PairV #x #y) (Val #(({ x with ticker' := y } : realTicker)))
   method_set : go.MethodSetIs realTicker.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType realTicker.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_C_unfold : MethodUnfold (go.GoType.PointerType realTicker.ty) go!"C" realTicker.C.impl
+  ptr_Stop_unfold : MethodUnfold (go.GoType.PointerType realTicker.ty) go!"Stop" realTicker.Stop.impl
 
 attribute [instance] realTicker.TypeAssumptions.type_repr
   realTicker.TypeAssumptions.underlying
@@ -286,6 +420,8 @@ attribute [instance] realTicker.TypeAssumptions.type_repr
   realTicker.TypeAssumptions.set_ticker
   realTicker.TypeAssumptions.method_set
   realTicker.TypeAssumptions.ptr_method_set
+  realTicker.TypeAssumptions.ptr_C_unfold
+  realTicker.TypeAssumptions.ptr_Stop_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PassiveClock_instance : PassiveClock.TypeAssumptions

@@ -87,7 +87,7 @@ noncomputable def Clientset.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Clientset.ty
 
-axiom Clientset.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Clientset.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes.NewForConfig"
@@ -104,7 +104,7 @@ noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes where
   pkgImportedPkgs := [pkg_id.k8s_io.client_go.discovery, pkg_id.k8s_io.client_go.kubernetes.typed.admissionregistration.v1, pkg_id.k8s_io.client_go.kubernetes.typed.admissionregistration.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.admissionregistration.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.apps.v1, pkg_id.k8s_io.client_go.kubernetes.typed.apps.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.apps.v1beta2, pkg_id.k8s_io.client_go.kubernetes.typed.authentication.v1, pkg_id.k8s_io.client_go.kubernetes.typed.authentication.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.authentication.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.authorization.v1, pkg_id.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.authorization.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.autoscaling.v1, pkg_id.k8s_io.client_go.kubernetes.typed.autoscaling.v2, pkg_id.k8s_io.client_go.kubernetes.typed.batch.v1, pkg_id.k8s_io.client_go.kubernetes.typed.batch.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.certificates.v1, pkg_id.k8s_io.client_go.kubernetes.typed.certificates.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.certificates.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.coordination.v1, pkg_id.k8s_io.client_go.kubernetes.typed.coordination.v1alpha2, pkg_id.k8s_io.client_go.kubernetes.typed.coordination.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.core.v1, pkg_id.k8s_io.client_go.kubernetes.typed.discovery.v1, pkg_id.k8s_io.client_go.kubernetes.typed.discovery.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.events.v1, pkg_id.k8s_io.client_go.kubernetes.typed.events.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.extensions.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1, pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2, pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta3, pkg_id.k8s_io.client_go.kubernetes.typed.lifecycle.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.networking.v1, pkg_id.k8s_io.client_go.kubernetes.typed.networking.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.node.v1, pkg_id.k8s_io.client_go.kubernetes.typed.node.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.node.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.policy.v1, pkg_id.k8s_io.client_go.kubernetes.typed.policy.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.rbac.v1, pkg_id.k8s_io.client_go.kubernetes.typed.rbac.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.rbac.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1, pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1alpha3, pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1beta2, pkg_id.k8s_io.client_go.kubernetes.typed.scheduling.v1, pkg_id.k8s_io.client_go.kubernetes.typed.scheduling.v1alpha3, pkg_id.k8s_io.client_go.kubernetes.typed.scheduling.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.storage.v1, pkg_id.k8s_io.client_go.kubernetes.typed.storage.v1alpha1, pkg_id.k8s_io.client_go.kubernetes.typed.storage.v1beta1, pkg_id.k8s_io.client_go.kubernetes.typed.storagemigration.v1, pkg_id.k8s_io.client_go.kubernetes.typed.storagemigration.v1beta1]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -295,8 +295,10 @@ attribute [instance] Interface.TypeAssumptions.underlying
   Interface.TypeAssumptions.method_set
   Interface.TypeAssumptions.ptr_method_set
 
-axiom Clientset : Type
-axiom Clientset.zero_val : ZeroVal Clientset
+opaque Clientset.nonempty_type : NonemptyType.{0}
+def Clientset : Type := Clientset.nonempty_type.type
+instance Clientset.nonempty : Nonempty Clientset := Clientset.nonempty_type.property
+opaque Clientset.zero_val : ZeroVal Clientset := ⟨Classical.ofNonempty⟩
 attribute [instance] Clientset.zero_val
 
 class Clientset.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

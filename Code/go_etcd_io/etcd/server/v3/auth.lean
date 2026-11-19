@@ -132,21 +132,21 @@ noncomputable def permSlice.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] permSlice.ty
 
-axiom tokenJWT.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tokenJWT.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom jwtOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque jwtOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom optSignMethod [GooseExts] [GoGlobalContext] : val
+opaque optSignMethod [GooseExts] [GoGlobalContext] : val
 
-axiom optPublicKey [GooseExts] [GoGlobalContext] : val
+opaque optPublicKey [GooseExts] [GoGlobalContext] : val
 
-axiom optPrivateKey [GooseExts] [GoGlobalContext] : val
+opaque optPrivateKey [GooseExts] [GoGlobalContext] : val
 
-axiom optTTL [GooseExts] [GoGlobalContext] : val
+opaque optTTL [GooseExts] [GoGlobalContext] : val
 
-axiom letters [GooseExts] [GoGlobalContext] : val
+opaque letters [GooseExts] [GoGlobalContext] : val
 
-axiom defaultSimpleTokenLength [GooseExts] [GoGlobalContext] : val
+opaque defaultSimpleTokenLength [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def rootUser [GooseExts] [GoGlobalContext] : val :=
   #(go!"root")
@@ -163,7 +163,7 @@ axiom defaultSimpleTokenLength [GooseExts] [GoGlobalContext] : val
 noncomputable def currentAuthRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.currentAuthRevision"
 
-axiom currentAuthRevision.init [GooseExts] [GoGlobalContext] : val
+opaque currentAuthRevision.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def reportCurrentAuthRevMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.reportCurrentAuthRevMu"
@@ -174,12 +174,12 @@ noncomputable def reportCurrentAuthRev [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def knownOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.knownOptions"
 
-axiom knownOptions.init [GooseExts] [GoGlobalContext] : val
+opaque knownOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultTTL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.DefaultTTL"
 
-axiom DefaultTTL.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultTTL.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def simpleTokenTTLDefault [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.simpleTokenTTLDefault"
@@ -190,7 +190,7 @@ noncomputable def simpleTokenTTLResolution [GooseExts] [GoGlobalContext] : GoStr
 noncomputable def rootPerm [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.rootPerm"
 
-axiom rootPerm.init [GooseExts] [GoGlobalContext] : val
+opaque rootPerm.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrRootUserNotExist"
@@ -252,22 +252,22 @@ noncomputable def ErrInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrInvalidAuthMethod [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrInvalidAuthMethod"
 
-axiom ErrInvalidAuthMethod.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidAuthMethod.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMissingKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrMissingKey"
 
-axiom ErrMissingKey.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMissingKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrKeyMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrKeyMismatch"
 
-axiom ErrKeyMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrKeyMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrVerifyOnly [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.ErrVerifyOnly"
 
-axiom ErrVerifyOnly.init [GooseExts] [GoGlobalContext] : val
+opaque ErrVerifyOnly.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newTokenProviderJWT [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/auth.newTokenProviderJWT"
@@ -4803,7 +4803,7 @@ noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalConte
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.auth where
   pkgImportedPkgs := [pkg_id.context, pkg_id.errors, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.sync, pkg_id.fmt, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.strconv, pkg_id.strings, pkg_id.bytes, pkg_id.sort, pkg_id.sync.atomic, pkg_id.golang_org.x.crypto.bcrypt, pkg_id.google_golang_org.grpc.metadata, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -5075,8 +5075,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ErrInvalidAuthMgmt go.error)) (Val #()))))))))
 
-axiom tokenJWT : Type
-axiom tokenJWT.zero_val : ZeroVal tokenJWT
+opaque tokenJWT.nonempty_type : NonemptyType.{0}
+def tokenJWT : Type := tokenJWT.nonempty_type.type
+instance tokenJWT.nonempty : Nonempty tokenJWT := tokenJWT.nonempty_type.property
+opaque tokenJWT.zero_val : ZeroVal tokenJWT := ⟨Classical.ofNonempty⟩
 attribute [instance] tokenJWT.zero_val
 
 class tokenJWT.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -5134,8 +5136,10 @@ attribute [instance] tokenNop.TypeAssumptions.type_repr
   tokenNop.TypeAssumptions.ptr_info_unfold
   tokenNop.TypeAssumptions.ptr_invalidateUser_unfold
 
-axiom jwtOptions : Type
-axiom jwtOptions.zero_val : ZeroVal jwtOptions
+opaque jwtOptions.nonempty_type : NonemptyType.{0}
+def jwtOptions : Type := jwtOptions.nonempty_type.type
+instance jwtOptions.nonempty : Nonempty jwtOptions := jwtOptions.nonempty_type.property
+opaque jwtOptions.zero_val : ZeroVal jwtOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] jwtOptions.zero_val
 
 class jwtOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

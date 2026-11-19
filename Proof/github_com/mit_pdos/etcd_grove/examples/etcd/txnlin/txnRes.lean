@@ -11,6 +11,7 @@ public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseRa
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseOp__GetResponseDeleteRange
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.vrOf
 public import Perennial.Proof.context.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

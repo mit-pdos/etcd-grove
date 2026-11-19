@@ -36,6 +36,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 sys.dont_write_bytecode = True  # no etc/__pycache__
@@ -309,7 +310,7 @@ def run_groups(fn, groups, size=len):
     examples' group (107 roots, 18.5 GiB, 8 of a run's 11 minutes, 2026-11-17) in one lane, the
     others one after another in the other (none above 7 GiB), so the peak memory is about the
     largest two groups' and the wall time the largest group's."""
-    jobs = max(1, int(os.environ.get("TCB_JOBS", "0") or 2))
+    jobs = max(1, int(os.environ.get("TCB_JOBS") or 2))
     order = sorted(range(len(groups)), key=lambda i: -size(groups[i]))
     out = [None] * len(groups)
     with concurrent.futures.ThreadPoolExecutor(max_workers=jobs) as ex:
@@ -319,7 +320,7 @@ def run_groups(fn, groups, size=len):
     return out
 
 
-TCB_CACHE_VERSION = "tcb-report-cache 1"
+TCB_CACHE_VERSION = "tcb-report-cache 2"
 TCB_CACHE_SCRIPTS = ("tcb-report.lean", "proof_roots.py", "goose.py", "lean_cache.py")
 TCB_CACHE_MAX_BYTES = 40 << 30  # the largest group's entry is 560 MB
 
@@ -360,11 +361,14 @@ def run(json_path, prog):
                 with open(outs[i], "wb") as f:
                     f.write(body)
                 return "hit"
+        t0 = time.monotonic()
         with open(outs[i], "w") as f:
             rc = subprocess.run(
                 lake("env", *script, *lean_args(), *runs[i]),
                 cwd=ROOT, stdout=f, env=env, check=False,
             ).returncode
+        print(f"{prog}: Lean run of {len(runs[i])} root modules ({runs[i][0]}, ...): "
+              f"{time.monotonic() - t0:.0f}s", file=sys.stderr)
         if rc == 0 and ctx is not None:
             try:
                 same = ctx.key([*lean_args(), *runs[i]], runs[i])[0] == keys[i]
@@ -404,6 +408,33 @@ def run(json_path, prog):
                 os.remove(o)
 
 
+def _names(objs):
+    """`objs` with each root's `axioms` and `defs` by name: `etc/tcb-report.lean` writes them as
+    the indices (`i`) of its run's axiom and def lines (each run starting with a `group` line)."""
+    out, group = [], []
+
+    def flush():
+        ax = {o["i"]: o["name"] for o in group if o["t"] == "axiom"}
+        df = {o["i"]: o["name"] for o in group if o["t"] == "def"}
+        for o in group:
+            if o["t"] == "root":
+                o["axioms"] = [ax[i] if isinstance(i, int) else i for i in o["axioms"]]
+                o["defs"] = [df[i] if isinstance(i, int) else i for i in o["defs"]]
+            if o["t"] in ("axiom", "def"):
+                o.pop("i", None)
+            out.append(o)
+        group.clear()
+    for o in objs:
+        if o["t"] == "group":
+            flush()
+        elif o["t"] == "meta":
+            out.append(o)
+        else:
+            group.append(o)
+    flush()
+    return out
+
+
 def load(json_path, prog, reuse):
     """The objects of `json_path`, after (re)computing it unless `reuse` and it is of the
     current root modules."""
@@ -412,6 +443,7 @@ def load(json_path, prog, reuse):
     with open(json_path, encoding="utf-8") as f:
         objs = [json.loads(line) for line in f if line.strip()]
     meta = objs[0] if objs and objs[0]["t"] == "meta" else None
+    objs = _names(objs)
     want = root_modules()
     if meta is None:
         sys.exit(f"{prog}: {shown(json_path)} is empty or of an older etc/tcb-report.py "

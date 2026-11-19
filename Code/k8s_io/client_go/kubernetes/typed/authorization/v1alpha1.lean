@@ -50,17 +50,17 @@ noncomputable def AuthorizationConditionsReviewExpansion.ty [GooseExts] [GoGloba
 
 attribute [irreducible] AuthorizationConditionsReviewExpansion.ty
 
-axiom AuthorizationV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthorizationV1alpha1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthorizationV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthorizationV1alpha1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthorizationConditionsReviewsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthorizationConditionsReviewsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthorizationConditionsReviewInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthorizationConditionsReviewInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom authorizationConditionsReviews.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque authorizationConditionsReviews.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom AuthorizationConditionsReviewExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque AuthorizationConditionsReviewExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/authorization/v1alpha1.NewForConfig"
@@ -83,7 +83,7 @@ noncomputable def newAuthorizationConditionsReviews [GooseExts] [GoGlobalContext
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.authorization.v1alpha1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -92,8 +92,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom AuthorizationV1alpha1Interface : Type
-axiom AuthorizationV1alpha1Interface.zero_val : ZeroVal AuthorizationV1alpha1Interface
+opaque AuthorizationV1alpha1Interface.nonempty_type : NonemptyType.{0}
+def AuthorizationV1alpha1Interface : Type := AuthorizationV1alpha1Interface.nonempty_type.type
+instance AuthorizationV1alpha1Interface.nonempty : Nonempty AuthorizationV1alpha1Interface := AuthorizationV1alpha1Interface.nonempty_type.property
+opaque AuthorizationV1alpha1Interface.zero_val : ZeroVal AuthorizationV1alpha1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthorizationV1alpha1Interface.zero_val
 
 class AuthorizationV1alpha1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -109,8 +111,10 @@ attribute [instance] AuthorizationV1alpha1Interface.TypeAssumptions.type_repr
   AuthorizationV1alpha1Interface.TypeAssumptions.method_set
   AuthorizationV1alpha1Interface.TypeAssumptions.ptr_method_set
 
-axiom AuthorizationV1alpha1Client : Type
-axiom AuthorizationV1alpha1Client.zero_val : ZeroVal AuthorizationV1alpha1Client
+opaque AuthorizationV1alpha1Client.nonempty_type : NonemptyType.{0}
+def AuthorizationV1alpha1Client : Type := AuthorizationV1alpha1Client.nonempty_type.type
+instance AuthorizationV1alpha1Client.nonempty : Nonempty AuthorizationV1alpha1Client := AuthorizationV1alpha1Client.nonempty_type.property
+opaque AuthorizationV1alpha1Client.zero_val : ZeroVal AuthorizationV1alpha1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthorizationV1alpha1Client.zero_val
 
 class AuthorizationV1alpha1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -126,8 +130,10 @@ attribute [instance] AuthorizationV1alpha1Client.TypeAssumptions.type_repr
   AuthorizationV1alpha1Client.TypeAssumptions.method_set
   AuthorizationV1alpha1Client.TypeAssumptions.ptr_method_set
 
-axiom AuthorizationConditionsReviewsGetter : Type
-axiom AuthorizationConditionsReviewsGetter.zero_val : ZeroVal AuthorizationConditionsReviewsGetter
+opaque AuthorizationConditionsReviewsGetter.nonempty_type : NonemptyType.{0}
+def AuthorizationConditionsReviewsGetter : Type := AuthorizationConditionsReviewsGetter.nonempty_type.type
+instance AuthorizationConditionsReviewsGetter.nonempty : Nonempty AuthorizationConditionsReviewsGetter := AuthorizationConditionsReviewsGetter.nonempty_type.property
+opaque AuthorizationConditionsReviewsGetter.zero_val : ZeroVal AuthorizationConditionsReviewsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthorizationConditionsReviewsGetter.zero_val
 
 class AuthorizationConditionsReviewsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -143,8 +149,10 @@ attribute [instance] AuthorizationConditionsReviewsGetter.TypeAssumptions.type_r
   AuthorizationConditionsReviewsGetter.TypeAssumptions.method_set
   AuthorizationConditionsReviewsGetter.TypeAssumptions.ptr_method_set
 
-axiom AuthorizationConditionsReviewInterface : Type
-axiom AuthorizationConditionsReviewInterface.zero_val : ZeroVal AuthorizationConditionsReviewInterface
+opaque AuthorizationConditionsReviewInterface.nonempty_type : NonemptyType.{0}
+def AuthorizationConditionsReviewInterface : Type := AuthorizationConditionsReviewInterface.nonempty_type.type
+instance AuthorizationConditionsReviewInterface.nonempty : Nonempty AuthorizationConditionsReviewInterface := AuthorizationConditionsReviewInterface.nonempty_type.property
+opaque AuthorizationConditionsReviewInterface.zero_val : ZeroVal AuthorizationConditionsReviewInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthorizationConditionsReviewInterface.zero_val
 
 class AuthorizationConditionsReviewInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -160,8 +168,10 @@ attribute [instance] AuthorizationConditionsReviewInterface.TypeAssumptions.type
   AuthorizationConditionsReviewInterface.TypeAssumptions.method_set
   AuthorizationConditionsReviewInterface.TypeAssumptions.ptr_method_set
 
-axiom authorizationConditionsReviews : Type
-axiom authorizationConditionsReviews.zero_val : ZeroVal authorizationConditionsReviews
+opaque authorizationConditionsReviews.nonempty_type : NonemptyType.{0}
+def authorizationConditionsReviews : Type := authorizationConditionsReviews.nonempty_type.type
+instance authorizationConditionsReviews.nonempty : Nonempty authorizationConditionsReviews := authorizationConditionsReviews.nonempty_type.property
+opaque authorizationConditionsReviews.zero_val : ZeroVal authorizationConditionsReviews := ⟨Classical.ofNonempty⟩
 attribute [instance] authorizationConditionsReviews.zero_val
 
 class authorizationConditionsReviews.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -177,8 +187,10 @@ attribute [instance] authorizationConditionsReviews.TypeAssumptions.type_repr
   authorizationConditionsReviews.TypeAssumptions.method_set
   authorizationConditionsReviews.TypeAssumptions.ptr_method_set
 
-axiom AuthorizationConditionsReviewExpansion : Type
-axiom AuthorizationConditionsReviewExpansion.zero_val : ZeroVal AuthorizationConditionsReviewExpansion
+opaque AuthorizationConditionsReviewExpansion.nonempty_type : NonemptyType.{0}
+def AuthorizationConditionsReviewExpansion : Type := AuthorizationConditionsReviewExpansion.nonempty_type.type
+instance AuthorizationConditionsReviewExpansion.nonempty : Nonempty AuthorizationConditionsReviewExpansion := AuthorizationConditionsReviewExpansion.nonempty_type.property
+opaque AuthorizationConditionsReviewExpansion.zero_val : ZeroVal AuthorizationConditionsReviewExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] AuthorizationConditionsReviewExpansion.zero_val
 
 class AuthorizationConditionsReviewExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

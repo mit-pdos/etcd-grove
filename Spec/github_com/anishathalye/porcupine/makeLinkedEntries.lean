@@ -6,7 +6,7 @@ first one's `prev` `nil`), each call's `match` its return's node; it returns the
 -/
 module
 
-public import Proof.github_com.anishathalye.porcupine.Linked
+public import Proof.github_com.anishathalye.porcupine.LinkedList
 
 @[expose] public section
 

@@ -420,13 +420,6 @@ axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom clock.RealClock.NewTicker.wp_proof
-axiom clock.RealClock.NewTimer.wp_proof
-axiom clock.RealClock.Now.wp_proof
-axiom clock.realTicker.C.wp_proof
-axiom clock.realTicker.Stop.wp_proof
-axiom clock.realTimer.C.wp_proof
-axiom clock.realTimer.Stop.wp_proof
 axiom clockwork.NewRealClock.wp_proof
 axiom clockwork.clockLb
 axiom clockwork.clockLb_init

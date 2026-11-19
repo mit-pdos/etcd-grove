@@ -28,7 +28,7 @@ attribute [irreducible] unSupportedWatchListSemantics.ty
 noncomputable def scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.scheme"
 
-axiom scheme.init [GooseExts] [GoGlobalContext] : val
+opaque scheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.init.0"
@@ -42,7 +42,7 @@ noncomputable def DoesClientNotSupportWatchListSemantics [GooseExts] [GoGlobalCo
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.watchlist where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

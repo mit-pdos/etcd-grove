@@ -12,6 +12,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.PeerStep
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MemberID
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__CutPeer
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.EtcdServer__MendPeer
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

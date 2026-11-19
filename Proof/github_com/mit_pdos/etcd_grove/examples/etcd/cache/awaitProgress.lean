@@ -7,6 +7,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.cache.awaitProgress
 public import Spec.go_etcd_io.etcd.client.v3.WatchResponse__IsProgressNotify
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.cache.collect
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

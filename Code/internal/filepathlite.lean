@@ -31,7 +31,7 @@ attribute [irreducible] lazybuf.ty
 @[reducible] noncomputable def Separator [GooseExts] [GoGlobalContext] : val :=
   #(47 : Int)
 
-axiom ListSeparator [GooseExts] [GoGlobalContext] : val
+opaque ListSeparator [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errInvalidPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"internal/filepathlite.errInvalidPath"
@@ -649,7 +649,7 @@ noncomputable def volumeNameLen.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.internal.filepathlite where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.internal.stringslite]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

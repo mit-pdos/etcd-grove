@@ -11,6 +11,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV__Get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.KV__Put
 public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.GetAny
+public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.NewKV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.goose.prophkv.Test
 
@@ -61,6 +62,10 @@ theorem wp_NewKV :
 theorem wp_Test :
     EtcdGrove.goose_prophkv.Test.spec (GF := GF) (hG := hG) :=
   EtcdGrove.goose_prophkv.Test.wp_proof wp_NewKV wp_KV__Put wp_GetAny
+
+theorem wp_Main :
+    EtcdGrove.goose_prophkv.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.goose_prophkv.Main.wp_proof wp_Test
 
 end links_hasLC
 

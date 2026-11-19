@@ -29,7 +29,7 @@ attribute [irreducible] lazybuf.ty
 noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.ErrBadPattern"
 
-axiom ErrBadPattern.init [GooseExts] [GoGlobalContext] : val
+opaque ErrBadPattern.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Match [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Match"
@@ -546,7 +546,7 @@ noncomputable def Dir.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.path where
   pkgImportedPkgs := [pkg_id.internal.bytealg]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -45,31 +45,31 @@ noncomputable def Version.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Version.ty
 
-axiom MaxConstraintLen [GooseExts] [GoGlobalContext] : val
+opaque MaxConstraintLen [GooseExts] [GoGlobalContext] : val
 
-axiom MaxConstraintGroups [GooseExts] [GoGlobalContext] : val
+opaque MaxConstraintGroups [GooseExts] [GoGlobalContext] : val
 
-axiom cvRegex [GooseExts] [GoGlobalContext] : val
+opaque cvRegex [GooseExts] [GoGlobalContext] : val
 
-axiom MaxVersionLen [GooseExts] [GoGlobalContext] : val
+opaque MaxVersionLen [GooseExts] [GoGlobalContext] : val
 
-axiom semVerRegex [GooseExts] [GoGlobalContext] : val
+opaque semVerRegex [GooseExts] [GoGlobalContext] : val
 
-axiom looseSemVerRegex [GooseExts] [GoGlobalContext] : val
+opaque looseSemVerRegex [GooseExts] [GoGlobalContext] : val
 
-axiom num [GooseExts] [GoGlobalContext] : val
+opaque num [GooseExts] [GoGlobalContext] : val
 
-axiom allowed [GooseExts] [GoGlobalContext] : val
+opaque allowed [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrConstraintTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrConstraintTooLong"
 
-axiom ErrConstraintTooLong.init [GooseExts] [GoGlobalContext] : val
+opaque ErrConstraintTooLong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyConstraintGroups [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrTooManyConstraintGroups"
 
-axiom ErrTooManyConstraintGroups.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyConstraintGroups.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def constraintOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintOps"
@@ -95,47 +95,47 @@ noncomputable def looseVersionRegex [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def CoerceNewVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.CoerceNewVersion"
 
-axiom CoerceNewVersion.init [GooseExts] [GoGlobalContext] : val
+opaque CoerceNewVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DetailedNewVersionErrors [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.DetailedNewVersionErrors"
 
-axiom DetailedNewVersionErrors.init [GooseExts] [GoGlobalContext] : val
+opaque DetailedNewVersionErrors.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidSemVer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidSemVer"
 
-axiom ErrInvalidSemVer.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidSemVer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrEmptyString [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrEmptyString"
 
-axiom ErrEmptyString.init [GooseExts] [GoGlobalContext] : val
+opaque ErrEmptyString.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidCharacters [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidCharacters"
 
-axiom ErrInvalidCharacters.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidCharacters.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrSegmentStartsZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrSegmentStartsZero"
 
-axiom ErrSegmentStartsZero.init [GooseExts] [GoGlobalContext] : val
+opaque ErrSegmentStartsZero.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidMetadata"
 
-axiom ErrInvalidMetadata.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidMetadata.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidPrerelease [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidPrerelease"
 
-axiom ErrInvalidPrerelease.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidPrerelease.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrVersionTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrVersionTooLong"
 
-axiom ErrVersionTooLong.init [GooseExts] [GoGlobalContext] : val
+opaque ErrVersionTooLong.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewConstraint [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.NewConstraint"
@@ -218,7 +218,7 @@ noncomputable def validateVersion [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.Masterminds.semver.v3 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

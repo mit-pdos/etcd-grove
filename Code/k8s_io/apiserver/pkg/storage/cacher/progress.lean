@@ -45,7 +45,7 @@ noncomputable def ConditionalProgressRequester.ty [GooseExts] [GoGlobalContext] 
 
 attribute [irreducible] ConditionalProgressRequester.ty
 
-axiom progressRequestPeriod [GooseExts] [GoGlobalContext] : val
+opaque progressRequestPeriod [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewConditionalProgressRequester [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/progress.NewConditionalProgressRequester"
@@ -98,7 +98,7 @@ noncomputable def ConditionalProgressRequester.Remove.impl [GooseExts] [GoGlobal
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.progress where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.google_golang_org.grpc.metadata, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.apimachinery.pkg.util.wait, pkg_id.k8s_io.apiserver.pkg.storage, pkg_id.k8s_io.apiserver.pkg.storage.feature, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

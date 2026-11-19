@@ -70,25 +70,25 @@ noncomputable def priorityLevelConfigurations.ty [GooseExts] [GoGlobalContext] :
 
 attribute [irreducible] priorityLevelConfigurations.ty
 
-axiom FlowcontrolV1beta2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlowcontrolV1beta2Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowcontrolV1beta2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlowcontrolV1beta2Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowSchemasGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlowSchemasGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowSchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlowSchemaInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom flowSchemas.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque flowSchemas.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FlowSchemaExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FlowSchemaExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityLevelConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityLevelConfigurationExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityLevelConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityLevelConfigurationsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PriorityLevelConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PriorityLevelConfigurationInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom priorityLevelConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque priorityLevelConfigurations.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewForConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/flowcontrol/v1beta2.NewForConfig"
@@ -114,7 +114,7 @@ noncomputable def newPriorityLevelConfigurations [GooseExts] [GoGlobalContext] :
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.flowcontrol.v1beta2 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -123,8 +123,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom FlowcontrolV1beta2Interface : Type
-axiom FlowcontrolV1beta2Interface.zero_val : ZeroVal FlowcontrolV1beta2Interface
+opaque FlowcontrolV1beta2Interface.nonempty_type : NonemptyType.{0}
+def FlowcontrolV1beta2Interface : Type := FlowcontrolV1beta2Interface.nonempty_type.type
+instance FlowcontrolV1beta2Interface.nonempty : Nonempty FlowcontrolV1beta2Interface := FlowcontrolV1beta2Interface.nonempty_type.property
+opaque FlowcontrolV1beta2Interface.zero_val : ZeroVal FlowcontrolV1beta2Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] FlowcontrolV1beta2Interface.zero_val
 
 class FlowcontrolV1beta2Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -140,8 +142,10 @@ attribute [instance] FlowcontrolV1beta2Interface.TypeAssumptions.type_repr
   FlowcontrolV1beta2Interface.TypeAssumptions.method_set
   FlowcontrolV1beta2Interface.TypeAssumptions.ptr_method_set
 
-axiom FlowcontrolV1beta2Client : Type
-axiom FlowcontrolV1beta2Client.zero_val : ZeroVal FlowcontrolV1beta2Client
+opaque FlowcontrolV1beta2Client.nonempty_type : NonemptyType.{0}
+def FlowcontrolV1beta2Client : Type := FlowcontrolV1beta2Client.nonempty_type.type
+instance FlowcontrolV1beta2Client.nonempty : Nonempty FlowcontrolV1beta2Client := FlowcontrolV1beta2Client.nonempty_type.property
+opaque FlowcontrolV1beta2Client.zero_val : ZeroVal FlowcontrolV1beta2Client := ⟨Classical.ofNonempty⟩
 attribute [instance] FlowcontrolV1beta2Client.zero_val
 
 class FlowcontrolV1beta2Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -157,8 +161,10 @@ attribute [instance] FlowcontrolV1beta2Client.TypeAssumptions.type_repr
   FlowcontrolV1beta2Client.TypeAssumptions.method_set
   FlowcontrolV1beta2Client.TypeAssumptions.ptr_method_set
 
-axiom FlowSchemasGetter : Type
-axiom FlowSchemasGetter.zero_val : ZeroVal FlowSchemasGetter
+opaque FlowSchemasGetter.nonempty_type : NonemptyType.{0}
+def FlowSchemasGetter : Type := FlowSchemasGetter.nonempty_type.type
+instance FlowSchemasGetter.nonempty : Nonempty FlowSchemasGetter := FlowSchemasGetter.nonempty_type.property
+opaque FlowSchemasGetter.zero_val : ZeroVal FlowSchemasGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] FlowSchemasGetter.zero_val
 
 class FlowSchemasGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -174,8 +180,10 @@ attribute [instance] FlowSchemasGetter.TypeAssumptions.type_repr
   FlowSchemasGetter.TypeAssumptions.method_set
   FlowSchemasGetter.TypeAssumptions.ptr_method_set
 
-axiom FlowSchemaInterface : Type
-axiom FlowSchemaInterface.zero_val : ZeroVal FlowSchemaInterface
+opaque FlowSchemaInterface.nonempty_type : NonemptyType.{0}
+def FlowSchemaInterface : Type := FlowSchemaInterface.nonempty_type.type
+instance FlowSchemaInterface.nonempty : Nonempty FlowSchemaInterface := FlowSchemaInterface.nonempty_type.property
+opaque FlowSchemaInterface.zero_val : ZeroVal FlowSchemaInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] FlowSchemaInterface.zero_val
 
 class FlowSchemaInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -191,8 +199,10 @@ attribute [instance] FlowSchemaInterface.TypeAssumptions.type_repr
   FlowSchemaInterface.TypeAssumptions.method_set
   FlowSchemaInterface.TypeAssumptions.ptr_method_set
 
-axiom flowSchemas : Type
-axiom flowSchemas.zero_val : ZeroVal flowSchemas
+opaque flowSchemas.nonempty_type : NonemptyType.{0}
+def flowSchemas : Type := flowSchemas.nonempty_type.type
+instance flowSchemas.nonempty : Nonempty flowSchemas := flowSchemas.nonempty_type.property
+opaque flowSchemas.zero_val : ZeroVal flowSchemas := ⟨Classical.ofNonempty⟩
 attribute [instance] flowSchemas.zero_val
 
 class flowSchemas.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -208,8 +218,10 @@ attribute [instance] flowSchemas.TypeAssumptions.type_repr
   flowSchemas.TypeAssumptions.method_set
   flowSchemas.TypeAssumptions.ptr_method_set
 
-axiom FlowSchemaExpansion : Type
-axiom FlowSchemaExpansion.zero_val : ZeroVal FlowSchemaExpansion
+opaque FlowSchemaExpansion.nonempty_type : NonemptyType.{0}
+def FlowSchemaExpansion : Type := FlowSchemaExpansion.nonempty_type.type
+instance FlowSchemaExpansion.nonempty : Nonempty FlowSchemaExpansion := FlowSchemaExpansion.nonempty_type.property
+opaque FlowSchemaExpansion.zero_val : ZeroVal FlowSchemaExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] FlowSchemaExpansion.zero_val
 
 class FlowSchemaExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -225,8 +237,10 @@ attribute [instance] FlowSchemaExpansion.TypeAssumptions.type_repr
   FlowSchemaExpansion.TypeAssumptions.method_set
   FlowSchemaExpansion.TypeAssumptions.ptr_method_set
 
-axiom PriorityLevelConfigurationExpansion : Type
-axiom PriorityLevelConfigurationExpansion.zero_val : ZeroVal PriorityLevelConfigurationExpansion
+opaque PriorityLevelConfigurationExpansion.nonempty_type : NonemptyType.{0}
+def PriorityLevelConfigurationExpansion : Type := PriorityLevelConfigurationExpansion.nonempty_type.type
+instance PriorityLevelConfigurationExpansion.nonempty : Nonempty PriorityLevelConfigurationExpansion := PriorityLevelConfigurationExpansion.nonempty_type.property
+opaque PriorityLevelConfigurationExpansion.zero_val : ZeroVal PriorityLevelConfigurationExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityLevelConfigurationExpansion.zero_val
 
 class PriorityLevelConfigurationExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -242,8 +256,10 @@ attribute [instance] PriorityLevelConfigurationExpansion.TypeAssumptions.type_re
   PriorityLevelConfigurationExpansion.TypeAssumptions.method_set
   PriorityLevelConfigurationExpansion.TypeAssumptions.ptr_method_set
 
-axiom PriorityLevelConfigurationsGetter : Type
-axiom PriorityLevelConfigurationsGetter.zero_val : ZeroVal PriorityLevelConfigurationsGetter
+opaque PriorityLevelConfigurationsGetter.nonempty_type : NonemptyType.{0}
+def PriorityLevelConfigurationsGetter : Type := PriorityLevelConfigurationsGetter.nonempty_type.type
+instance PriorityLevelConfigurationsGetter.nonempty : Nonempty PriorityLevelConfigurationsGetter := PriorityLevelConfigurationsGetter.nonempty_type.property
+opaque PriorityLevelConfigurationsGetter.zero_val : ZeroVal PriorityLevelConfigurationsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityLevelConfigurationsGetter.zero_val
 
 class PriorityLevelConfigurationsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -259,8 +275,10 @@ attribute [instance] PriorityLevelConfigurationsGetter.TypeAssumptions.type_repr
   PriorityLevelConfigurationsGetter.TypeAssumptions.method_set
   PriorityLevelConfigurationsGetter.TypeAssumptions.ptr_method_set
 
-axiom PriorityLevelConfigurationInterface : Type
-axiom PriorityLevelConfigurationInterface.zero_val : ZeroVal PriorityLevelConfigurationInterface
+opaque PriorityLevelConfigurationInterface.nonempty_type : NonemptyType.{0}
+def PriorityLevelConfigurationInterface : Type := PriorityLevelConfigurationInterface.nonempty_type.type
+instance PriorityLevelConfigurationInterface.nonempty : Nonempty PriorityLevelConfigurationInterface := PriorityLevelConfigurationInterface.nonempty_type.property
+opaque PriorityLevelConfigurationInterface.zero_val : ZeroVal PriorityLevelConfigurationInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] PriorityLevelConfigurationInterface.zero_val
 
 class PriorityLevelConfigurationInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -276,8 +294,10 @@ attribute [instance] PriorityLevelConfigurationInterface.TypeAssumptions.type_re
   PriorityLevelConfigurationInterface.TypeAssumptions.method_set
   PriorityLevelConfigurationInterface.TypeAssumptions.ptr_method_set
 
-axiom priorityLevelConfigurations : Type
-axiom priorityLevelConfigurations.zero_val : ZeroVal priorityLevelConfigurations
+opaque priorityLevelConfigurations.nonempty_type : NonemptyType.{0}
+def priorityLevelConfigurations : Type := priorityLevelConfigurations.nonempty_type.type
+instance priorityLevelConfigurations.nonempty : Nonempty priorityLevelConfigurations := priorityLevelConfigurations.nonempty_type.property
+opaque priorityLevelConfigurations.zero_val : ZeroVal priorityLevelConfigurations := ⟨Classical.ofNonempty⟩
 attribute [instance] priorityLevelConfigurations.zero_val
 
 class priorityLevelConfigurations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

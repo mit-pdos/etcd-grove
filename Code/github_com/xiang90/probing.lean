@@ -51,24 +51,24 @@ noncomputable def status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] status.ty
 
-axiom prober.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque prober.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom status.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque status.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ErrNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.ErrNotFound"
 
-axiom ErrNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.ErrExist"
 
-axiom ErrExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def «α» [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.α"
 
-axiom «α».init [GooseExts] [GoGlobalContext] : val
+opaque «α».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewProber [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/xiang90/probing.NewProber"
@@ -79,7 +79,7 @@ noncomputable def NewHandler [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.xiang90.probing where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -111,8 +111,10 @@ attribute [instance] Prober.TypeAssumptions.underlying
   Prober.TypeAssumptions.method_set
   Prober.TypeAssumptions.ptr_method_set
 
-axiom prober : Type
-axiom prober.zero_val : ZeroVal prober
+opaque prober.nonempty_type : NonemptyType.{0}
+def prober : Type := prober.nonempty_type.type
+instance prober.nonempty : Nonempty prober := prober.nonempty_type.property
+opaque prober.zero_val : ZeroVal prober := ⟨Classical.ofNonempty⟩
 attribute [instance] prober.zero_val
 
 class prober.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -213,8 +215,10 @@ attribute [instance] Status.TypeAssumptions.underlying
   Status.TypeAssumptions.method_set
   Status.TypeAssumptions.ptr_method_set
 
-axiom status : Type
-axiom status.zero_val : ZeroVal status
+opaque status.nonempty_type : NonemptyType.{0}
+def status : Type := status.nonempty_type.type
+instance status.nonempty : Nonempty status := status.nonempty_type.property
+opaque status.zero_val : ZeroVal status := ⟨Classical.ofNonempty⟩
 attribute [instance] status.zero_val
 
 class status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
