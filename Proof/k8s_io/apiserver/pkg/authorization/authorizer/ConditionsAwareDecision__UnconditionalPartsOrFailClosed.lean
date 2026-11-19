@@ -16,6 +16,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apimachinery.pkg.util.sets.ListW
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.Decision__String
 public import Spec.fmt.SprintfDecisions
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
 
 @[expose] public section
 
@@ -49,7 +51,62 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrFailClosed.wp_proof
     (wp_Decision_String : EtcdGrove.authorizer.Decision.String.spec (GF := GF) (hG := hG))
     (wp_fmt_SprintfDecisions : EtcdGrove.fmt.SprintfDecisions.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.UnconditionalPartsOrFailClosed.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d m
+  wp_start as #Hd
+  simp only [DecisionDeny, DecisionNoOpinion, DecisionAllow]
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsDeny_of wp_ConditionsAwareDecision_IsDeny d_ptr
+    (DFrac.own 1) d) $$ [$d] as Hdp
+  cases h0 : decide (d.decisionType' = W64 0)
+  rotate_left
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    iapply HΦ; itrivial
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion d_ptr
+    (DFrac.own 1) d) $$ [$Hdp] as Hdp
+  cases h12 : decide (d.decisionType' = W64 12)
+  rotate_left
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    iapply HΦ; itrivial
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow d_ptr
+    (DFrac.own 1) d) $$ [$Hdp] as Hdp
+  cases h11 : decide (d.decisionType' = W64 11)
+  rotate_left
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    iapply HΦ; itrivial
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision
+    d_ptr (DFrac.own 1) d m) $$ [$Hdp] as Hdp
+  · iexact Hd
+  wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of wp_ConditionsAwareDecision_PossibleDecisions
+    d_ptr (DFrac.own 1) d m) $$ [$Hdp] as %s ⟨⟨%S, HS, %HSm⟩, Hdp⟩
+  · iexact Hd
+  wp_apply (wp_List s (DFrac.own 1) S) $$ [$HS] as %sl %ks ⟨HS, Hsl, %Hks⟩
+  wp_apply (Decision.wp_ptr_String_of wp_Decision_String failureDecision_ptr (DFrac.own 1) _)
+    $$ [$failureDecision] as %str Hfd
+  wp_apply wp_slice_literal (V := GoInterface)
+    [interface.mkOk (go.GoType.SliceType Decision.ty) #sl, interface.mkOk go.string #str]
+  isplitr
+  · ipureintro; rfl
+  iintro %asl ⟨Hasl, -⟩
+  try wp_auto
+  wp_apply (wp_fmt_SprintfDecisions _ _ (DFrac.own 1) sl ks (DFrac.own 1) str) $$ [Hasl Hsl]
+    as %r ⟨Hasl, Hsl⟩
+  · iframe
+  iapply HΦ; itrivial
 
 end proof
 

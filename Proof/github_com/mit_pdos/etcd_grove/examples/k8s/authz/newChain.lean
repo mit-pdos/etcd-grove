@@ -41,7 +41,80 @@ theorem newChain.wp_proof
     (wp_AuthorizerFunc_EvaluateConditions : EtcdGrove.authorizer.AuthorizerFunc.EvaluateConditions.spec (GF := GF) (hG := hG))
     (wp_legacyAuthorize : EtcdGrove.k8s_authz.legacyAuthorize.spec (GF := GF) (hG := hG)) :
     newChain.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  ihave #Harb : (∀ z : arbAuthorizer, isAuthorizer (interface.mkOk arbAuthorizer.ty #z) : IProp GF) $$ []
+  · iintro %z
+    iunfold isAuthorizer
+    iexists ⟨arbAuthorizer.ty, #z⟩
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iintro %ctx %attrs
+      iunfold caaOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_arbAuthorizer_ConditionsAwareAuthorize z ctx attrs) as %d #Hd
+      iapply HΨ
+      iexact Hd
+    · iintro %ctx %d %data
+      iunfold ecOk
+      iintro !> %Ψ #Hwf HΨ
+      wp_apply (wp_arbAuthorizer_EvaluateConditions z ctx d data) as %dec %r %e _
+      · iexact Hwf
+      iapply HΨ
+      itrivial
+  ihave #Hleg : (isAuthorizer (interface.mkOk AuthorizerFunc.ty #(functions legacyAuthorize []))
+      : IProp GF) $$ []
+  · iunfold isAuthorizer
+    iexists ⟨AuthorizerFunc.ty, #(functions legacyAuthorize [])⟩
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · iintro %ctx %attrs
+      iunfold caaOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_AuthorizerFunc_ConditionsAwareAuthorize (functions legacyAuthorize []) ctx attrs)
+        as %d #Hd
+      · iunfold authzFnOk
+        iintro %c %a
+        iunfold authzCallOk
+        iintro !> %Ψ' _ HΨ'
+        wp_apply (wp_legacyAuthorize c a) as %dec %r %e _
+        iapply HΨ'
+        itrivial
+      iapply HΨ
+      iexact Hd
+    · iintro %ctx %d %data
+      iunfold ecOk
+      iintro !> %Ψ _ HΨ
+      wp_apply (wp_AuthorizerFunc_EvaluateConditions (functions legacyAuthorize []) ctx d data)
+        as %e _
+      iapply HΨ
+      itrivial
+  wp_auto
+  wp_apply (wp_slice_literal (l := [
+      ({ AuthorizerName' := go!"a",
+         Authorizer' := interface.mkOk arbAuthorizer.ty #({ depth' := W64 2 } : arbAuthorizer) }
+        : NamedAuthorizer),
+      { AuthorizerName' := go!"legacy",
+        Authorizer' := interface.mkOk AuthorizerFunc.ty #(functions legacyAuthorize []) },
+      { AuthorizerName' := go!"b",
+        Authorizer' := interface.mkOk arbAuthorizer.ty #({ depth' := W64 2 } : arbAuthorizer) }]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sp ⟨Hs, -⟩
+  ipersist Hs
+  (try wp_auto)
+  wp_apply (wp_New _ _) as %a %err Hres
+  · iframe #
+    isplitr
+    · iapply Harb
+    isplitr
+    · iapply Harb
+    iapply BigSepL.bigSepL_nil.2
+    itrivial
+  (try wp_auto)
+  iapply HΦ
+  iexact Hres
 
 end proof
 

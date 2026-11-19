@@ -31,7 +31,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 theorem arbMaybeEval.wp_proof
     (wp_arbResult : EtcdGrove.k8s_authz.arbResult.spec (GF := GF) (hG := hG)) :
     arbMaybeEval.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro ctx cond data
+  wp_start
+  wp_auto
+  wp_apply wp_arbResult as %r _
+  (try wp_auto)
+  iapply HΦ
+  itrivial
 
 end proof
 

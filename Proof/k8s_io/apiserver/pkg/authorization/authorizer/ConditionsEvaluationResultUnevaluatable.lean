@@ -28,7 +28,10 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem ConditionsEvaluationResultUnevaluatable.wp_proof :
     ConditionsEvaluationResultUnevaluatable.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

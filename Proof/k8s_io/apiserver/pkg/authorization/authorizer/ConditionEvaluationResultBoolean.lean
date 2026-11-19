@@ -29,7 +29,9 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem ConditionEvaluationResultBoolean.wp_proof :
     ConditionEvaluationResultBoolean.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro b
+  wp_start
+  cases b <;> simp only [ite_true, Bool.false_eq_true, ite_false] <;> wp_auto <;> iapply HΦ <;> itrivial
 
 end proof
 

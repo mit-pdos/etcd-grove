@@ -8,6 +8,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsAllow
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsDeny
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__IsNoOpinion
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
 
 @[expose] public section
 
@@ -34,7 +36,32 @@ theorem ConditionsAwareDecision.IsUnconditional.wp_proof
     (wp_ConditionsAwareDecision_IsDeny : EtcdGrove.authorizer.ConditionsAwareDecision.IsDeny.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecision_IsNoOpinion : EtcdGrove.authorizer.ConditionsAwareDecision.IsNoOpinion.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.IsUnconditional.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d
+  wp_start
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow
+    d_ptr (DFrac.own 1) d) $$ [$d] as Hd
+  rw [Bool.decide_or, Bool.decide_or]
+  cases h11 : decide (d.decisionType' = W64 11)
+  · simp only [Bool.false_or]
+    wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsDeny_of wp_ConditionsAwareDecision_IsDeny
+      d_ptr (DFrac.own 1) d) $$ [$Hd] as Hd
+    cases h0 : decide (d.decisionType' = W64 0)
+    · simp only [Bool.false_or]
+      wp_auto
+      wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion
+        d_ptr (DFrac.own 1) d) $$ [$Hd] as Hd
+      iapply HΦ
+      itrivial
+    · simp only [Bool.true_or]
+      wp_auto
+      iapply HΦ
+      itrivial
+  · simp only [Bool.true_or]
+    wp_auto
+    iapply HΦ
+    itrivial
 
 end proof
 

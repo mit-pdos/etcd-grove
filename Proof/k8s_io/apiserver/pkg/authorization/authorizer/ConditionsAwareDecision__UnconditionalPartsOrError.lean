@@ -13,6 +13,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__Error
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__FailureDecision
 public import Spec.fmt.ErrorfAny
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
 
 @[expose] public section
 
@@ -43,7 +45,49 @@ theorem ConditionsAwareDecision.UnconditionalPartsOrError.wp_proof
     (wp_ConditionsAwareDecision_FailureDecision : EtcdGrove.authorizer.ConditionsAwareDecision.FailureDecision.spec (GF := GF) (hG := hG))
     (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.UnconditionalPartsOrError.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d m
+  wp_start as #Hd
+  simp only [DecisionDeny, DecisionNoOpinion, DecisionAllow]
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsDeny_of wp_ConditionsAwareDecision_IsDeny d_ptr
+    (DFrac.own 1) d) $$ [$d] as Hdp
+  cases h0 : decide (d.decisionType' = W64 0)
+  rotate_left
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    iapply HΦ; itrivial
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion d_ptr
+    (DFrac.own 1) d) $$ [$Hdp] as Hdp
+  cases h12 : decide (d.decisionType' = W64 12)
+  rotate_left
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    iapply HΦ; itrivial
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow d_ptr
+    (DFrac.own 1) d) $$ [$Hdp] as Hdp
+  cases h11 : decide (d.decisionType' = W64 11)
+  rotate_left
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_Reason_of wp_ConditionsAwareDecision_Reason d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    wp_apply (ConditionsAwareDecision.wp_ptr_Error_of wp_ConditionsAwareDecision_Error d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    iapply HΦ; itrivial
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of wp_ConditionsAwareDecision_FailureDecision
+    d_ptr (DFrac.own 1) d m) $$ [$Hdp] as Hdp
+  · iexact Hd
+  wp_apply (wp_ErrorfAny _ slice.nil ([] : List GoAny) (DFrac.own 1)) as %e -
+  · iapply ownSlice_nil
+  iapply HΦ; itrivial
 
 end proof
 

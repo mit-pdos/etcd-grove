@@ -31,7 +31,13 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 theorem arbBool.wp_proof
     (wp_Int63n : EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG)) :
     arbBool.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  wp_auto
+  wp_apply wp_Int63n as %x %Hx
+  · ipureintro; decide
+  (try wp_auto)
+  iapply HΦ
+  itrivial
 
 end proof
 

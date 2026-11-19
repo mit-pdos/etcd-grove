@@ -31,7 +31,19 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 theorem ConditionEvaluationResultError.wp_proof
     (wp_errors_New : _root_.Perennial.errors.New.spec (GF := GF) (hG := hG)) :
     ConditionEvaluationResultError.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro e
+  wp_start
+  wp_auto
+  cases e with
+  | ok ei =>
+    wp_auto
+    iapply HΦ
+    itrivial
+  | nil =>
+    wp_auto
+    wp_apply (wp_errors_New _) as %er -
+    iapply HΦ
+    itrivial
 
 end proof
 

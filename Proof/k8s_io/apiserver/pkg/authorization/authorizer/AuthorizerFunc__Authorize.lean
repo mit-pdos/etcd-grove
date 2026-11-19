@@ -29,7 +29,13 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem AuthorizerFunc.Authorize.wp_proof :
     AuthorizerFunc.Authorize.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro f ctx a
+  wp_start as #Hf
+  wp_auto
+  unfold authzFnOk authzCallOk
+  wp_apply Hf as %dec %r %e -
+  iapply HΦ
+  itrivial
 
 end proof
 
