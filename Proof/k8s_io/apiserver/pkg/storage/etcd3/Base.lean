@@ -336,6 +336,15 @@ instance k8s_io_apimachinery_pkg_util_runtime_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.runtime :=
   build_get_is_pkg_init_wf
 
+-- (2026-11-18) component-base's `metrics` (names only; no initializer fact), which etcd3's
+-- `metrics` imports since `OperationLatencyTracker` is a struct (moved here from the cacher's Base)
+instance k8s_io_component_base_metrics_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.component_base.metrics :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_component_base_metrics_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.component_base.metrics :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_apiserver_pkg_storage_etcd3_metrics_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics :=
   define_is_pkg_init metricsInit

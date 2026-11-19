@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
+# notes/k8s-etcd3-goose.md). `schema` and component-base's `metrics` imported (2026-11-18) so that
+# `OperationLatencyTracker` translates as a struct (for a reference implementation of
+# `NewEtcdMetricsTracker`).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["!*", "k8s.io/apimachinery/pkg/runtime/schema", "k8s.io/component-base/metrics"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
