@@ -377,7 +377,10 @@ theorem Reflector.list.wp_proof
           · simp only [fmt.argOkAt]
             ileft; ipureintro; apply fmt.argWf_of_argsWf; exact .cons_string _ _ .nil
           isplitl [Hae]
-          · fmt_arg_method; iexact Hae
+          · iapply fmt.argOkAt_of_fmtErrorOkOrNil
+            isplitr
+            · ipureintro; decide
+            · iexact Hae
           itrivial
         (try wp_auto)
         wp_apply (wp_LogIfLong tr _)

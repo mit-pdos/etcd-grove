@@ -52,8 +52,10 @@ theorem codec.Decode.wp_proof (wp_decodeObj : decodeObj.spec (GF := GF) (hG := h
     · iexact HsD
     · have hF := go.method_set_is
         (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Format"
-      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF
-      ipureintro; exact hF
+      have hE := go.method_set_is
+        (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty) go!"Error"
+      simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hF hE
+      ipureintro; exact ⟨hF, hE⟩
   | some w' =>
     rw [hdec] at Hd
     obtain ⟨rfl, rfl⟩ := Hd

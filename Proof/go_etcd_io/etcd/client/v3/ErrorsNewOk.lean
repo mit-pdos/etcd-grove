@@ -291,17 +291,8 @@ theorem ctxErrClientAllW_of [_root_.Perennial.context.Assumptions]
   have hTd : ed.ty ∈ clientErrTys := by
     cases ed; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyD
     simp [clientErrTys, HtyD.1]
-  have hEc : methodSet ec.ty !! go!"Error" = some EtcdGrove.noArgStringSig := by
-    cases ec; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyC
-    rw [HtyC.1]; exact EtcdGrove.errorString_errorSig
-  have hEd : methodSet ed.ty !! go!"Error" = some EtcdGrove.noArgStringSig := by
-    cases ed; simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq] at HtyD
-    rw [HtyD.1]
-    have h := go.method_set_is (t := _root_.Perennial.context.deadlineExceededError.ty) go!"Error"
-    simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
-    exact h
-  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc Hlc.2.2.2.2 hEc $$ Hmc
-  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd Hld.2.2.2.2.2 hEd $$ Hmd
+  ihave ⟨%Hcc, #Hsc⟩ := clientErr_statusErrOk_of_leaf ec Hlc.2.1 Hlc.2.2.1 Htc.1 Htc.2 hAs hTc Hlc.2.2.2.2.1 Hlc.2.2.2.2.2 $$ Hmc
+  ihave ⟨%Hcd, #Hsd⟩ := clientErr_statusErrOk_of_leaf ed Hld.1 Hld.2.1 Htd.1 Htd.2 hAs hTd Hld.2.2.2.2.2.1 Hld.2.2.2.2.2.2 $$ Hmd
   unfold ctxErrClientAllW
   iintro !> %ctx %cs #Hctx
   unfold ctxErrClient

@@ -9,7 +9,7 @@ received snapshot onto the backend's path).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvSnapshot
-public import Spec.fmt.Errorf
+public import Spec.fmt.ErrorOk
 public import Code.os
 
 @[expose] public section
@@ -35,14 +35,17 @@ then the entry `src` the program's instead, dubious, since the snapshot director
 transport, may create a file at `src` again; nothing in the program needs `src` after the rename,
 and the program's right to `dst`, which nothing else renames onto or removes, is unchanged by it); on an error (an error `fmt` can format)
 nothing moved, the environment failing it (`¬ renameOk src dst`: D22 receiver epochs, S8d,
-2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). -/
+2026-10-24; the program holds `src` and owns `dst`, so an error is the environment's). The error is
+`fmtErrorOk` (fmt soundness 2, 2026-11-18: until then `fmt.argOk`, which no longer says it has
+`Error() string`, what `Errorf`'s `%w` of it needs; Go's `*os.LinkError` has it, `Error() string` with
+no `Format`). -/
 abbrev os.Rename.spec : Prop :=
   ∀ (src dst : GoString) (D : Data),
   {{ fileHolds (GF := GF) src D ∗ pathOwn dst }}
     (App (App (Val (@! _root_.Perennial.os.Rename)) (Val #src)) (Val #dst))
   {{ (err : GoInterface), RET #err;
       (⌜err = GoInterface.nil⌝ ∗ fileHolds dst D ∗ pathOwn dst) ∨
-      (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmt.argOk err ∗ fileHolds src D ∗
+      (⌜err ≠ GoInterface.nil ∧ ¬ renameOk src dst⌝ ∗ fmtErrorOk err ∗ fileHolds src D ∗
         pathOwn dst) }}
 
 end spec
