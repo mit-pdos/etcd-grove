@@ -31,7 +31,37 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 theorem Decision.String.wp_proof
     (wp_Sprintf : _root_.Perennial.fmt.Sprintf.spec (GF := GF) (hG := hG)) :
     Decision.String.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro k
+  wp_start
+  wp_auto
+  by_cases h0 : k = W64 0
+  · rw [decide_eq_true h0]
+    wp_auto
+    iapply HΦ; itrivial
+  rw [decide_eq_false h0]
+  wp_auto
+  by_cases h1 : k = W64 1
+  · rw [decide_eq_true h1]
+    wp_auto
+    iapply HΦ; itrivial
+  rw [decide_eq_false h1]
+  wp_auto
+  by_cases h2 : k = W64 2
+  · rw [decide_eq_true h2]
+    wp_auto
+    iapply HΦ; itrivial
+  rw [decide_eq_false h2]
+  wp_auto
+  wp_apply wp_slice_literal (V := GoInterface) [interface.mkOk go.int #k]
+  isplitr
+  · ipureintro; rfl
+  iintro %asl ⟨Hasl, -⟩
+  try wp_auto
+  wp_apply (wp_Sprintf _ _ [interface.mkOk go.int #k] (DFrac.own 1)
+    (_root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (_root_.Perennial.fmt.IntArgValue.int k)
+      _root_.Perennial.fmt.ArgsWf.nil)) $$ [Hasl] as %str -
+  · iexact Hasl
+  iapply HΦ; itrivial
 
 end proof
 

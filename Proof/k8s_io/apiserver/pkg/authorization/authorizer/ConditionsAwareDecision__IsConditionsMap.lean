@@ -28,7 +28,11 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem ConditionsAwareDecision.IsConditionsMap.wp_proof :
     ConditionsAwareDecision.IsConditionsMap.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 

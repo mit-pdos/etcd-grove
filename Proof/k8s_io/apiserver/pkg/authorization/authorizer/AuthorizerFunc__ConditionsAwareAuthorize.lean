@@ -32,7 +32,30 @@ theorem AuthorizerFunc.ConditionsAwareAuthorize.wp_proof
     (wp_AuthorizerFunc_Authorize : EtcdGrove.authorizer.AuthorizerFunc.Authorize.spec (GF := GF) (hG := hG))
     (wp_ConditionsAwareDecisionFromParts : EtcdGrove.authorizer.ConditionsAwareDecisionFromParts.spec (GF := GF) (hG := hG)) :
     AuthorizerFunc.ConditionsAwareAuthorize.spec (GF := GF) (hG := hG) := by
-  sorry
+  have wp_ptr_Authorize : ∀ (l : Loc) (f : GoFunc) (ctx a : GoInterface),
+      {{ l ↦ f ∗ authzFnOk (GF := GF) f }}
+        (App (App (Val (l @!! go.GoType.PointerType AuthorizerFunc.ty @!! go!"Authorize"))
+          (Val #ctx)) (Val #a))
+      {{ (dec : w64) (r : GoString) (e : GoInterface), RET (PairV (PairV #dec #r) #e); l ↦ f }} := by
+    intro l f ctx a
+    wp_start as ⟨Hl, #Hf⟩
+    wp_auto
+    wp_apply (wp_AuthorizerFunc_Authorize f ctx a) as %dec %r %e -
+    · iexact Hf
+    iapply HΦ
+    iframe
+  intro f ctx a
+  wp_start as #Hf
+  wp_auto
+  wp_apply (wp_ptr_Authorize f_ptr f ctx a) $$ [$f] as %dec %r %e Hfp
+  · iexact Hf
+  wp_apply (wp_ConditionsAwareDecisionFromParts dec r e) as %d #Hd
+  iapply HΦ
+  unfold isWFDecision
+  iexists _
+  iframe Hd
+  ipureintro
+  exact Dec.ofWord_WF dec
 
 end proof
 

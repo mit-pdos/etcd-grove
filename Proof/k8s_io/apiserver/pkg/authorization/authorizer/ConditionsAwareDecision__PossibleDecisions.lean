@@ -14,6 +14,9 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsMap__PossibleDecisions
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecisionUnion__PossibleDecisions
 public import Spec.k8s_io.apimachinery.pkg.util.sets.New
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethodsB1
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B1Lemmas
 
 @[expose] public section
 
@@ -26,7 +29,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace authorizer
 
-open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8s_io.apiserver.pkg.authorization.authorizer
+open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8s_io.apiserver.pkg.authorization.authorizer sets
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -45,7 +48,113 @@ theorem ConditionsAwareDecision.PossibleDecisions.wp_proof
     (wp_ConditionsAwareDecisionUnion_PossibleDecisions : EtcdGrove.authorizer.ConditionsAwareDecisionUnion.PossibleDecisions.spec (GF := GF) (hG := hG))
     (wp_sets_New : EtcdGrove.sets.New.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecision.PossibleDecisions.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d m
+  wp_start as #Hd
+  icases isDecision_tag d m $$ Hd with %Htag
+  simp only [DecisionAllow, DecisionNoOpinion, DecisionDeny]
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow d_ptr
+    (DFrac.own 1) d) $$ [$d] as Hdp
+  rw [Htag]
+  cases m with
+  | allow =>
+    wp_auto
+    wp_apply wp_slice_literal (V := w64) [W64 1]
+    isplitr
+    · ipureintro; rfl
+    iintro %nsl ⟨Hnsl, -⟩
+    try wp_auto
+    wp_apply (wp_sets_New (K := w64) (T := Decision.ty) _ _ [W64 1]) $$ [Hnsl] as %ns ⟨Hns, -⟩
+    · iexact Hnsl
+    try wp_auto
+    iapply HΦ
+    iexists _; iframe Hns; ipureintro
+    exact setIs_congr (setIs_new [W64 1] (by simp)) (by simp [PD.ofList, Dec.pd])
+  | deny =>
+    wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsConditionsMap_of wp_ConditionsAwareDecision_IsConditionsMap d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsUnion_of wp_ConditionsAwareDecision_IsUnion d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply wp_slice_literal (V := w64) [W64 0]
+    isplitr
+    · ipureintro; rfl
+    iintro %nsl ⟨Hnsl, -⟩
+    try wp_auto
+    wp_apply (wp_sets_New (K := w64) (T := Decision.ty) _ _ [W64 0]) $$ [Hnsl] as %ns ⟨Hns, -⟩
+    · iexact Hnsl
+    try wp_auto
+    iapply HΦ
+    iexists _; iframe Hns; ipureintro
+    exact setIs_congr (setIs_new [W64 0] (by simp)) (by simp [PD.ofList, Dec.pd])
+  | noOpinion =>
+    wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply wp_slice_literal (V := w64) [W64 2]
+    isplitr
+    · ipureintro; rfl
+    iintro %nsl ⟨Hnsl, -⟩
+    try wp_auto
+    wp_apply (wp_sets_New (K := w64) (T := Decision.ty) _ _ [W64 2]) $$ [Hnsl] as %ns ⟨Hns, -⟩
+    · iexact Hnsl
+    try wp_auto
+    iapply HΦ
+    iexists _; iframe Hns; ipureintro
+    exact setIs_congr (setIs_new [W64 2] (by simp)) (by simp [PD.ofList, Dec.pd])
+  | cmap dn no al =>
+    simp only [Dec.tag] at Htag ⊢
+    wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsConditionsMap_of wp_ConditionsAwareDecision_IsConditionsMap d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_ConditionsMap_of wp_ConditionsAwareDecision_ConditionsMap
+      d_ptr (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    icases isDecision_cmap_slices d dn no al $$ Hd with ⟨#Hdn, #Hal⟩
+    wp_apply (wp_ConditionsMap_PossibleDecisions d.conditionsMap' DFrac.discard DFrac.discard dn al)
+      $$ [$Hdn $Hal] as %s ⟨⟨%S, HS, %HSm⟩, -⟩
+    iapply HΦ
+    iexists _; iframe HS; ipureintro
+    exact HSm
+  | union ks =>
+    simp only [Dec.tag] at Htag ⊢
+    wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsNoOpinion_of wp_ConditionsAwareDecision_IsNoOpinion d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsConditionsMap_of wp_ConditionsAwareDecision_IsConditionsMap d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_IsUnion_of wp_ConditionsAwareDecision_IsUnion d_ptr
+      (DFrac.own 1) d) $$ [$Hdp] as Hdp
+    rw [Htag]
+    try wp_auto
+    icases (ConditionsAwareDecision.ConditionsAwareDecision_access_load_union d_ptr d
+      (DFrac.own 1)).access_strict $$ Hdp with ⟨Hu, Hclose⟩
+    ihave #Hsub := isDecision_union_subOk d ks $$ Hd
+    wp_apply (wp_ConditionsAwareDecisionUnion_PossibleDecisions _ (DFrac.own 1) d.union' DFrac.discard ks)
+      $$ [$Hu $Hsub] as %s ⟨⟨%S, HS, %HSm⟩, Hu, -⟩
+    iapply HΦ
+    iexists _; iframe HS; ipureintro
+    exact HSm
+
 
 end proof
 

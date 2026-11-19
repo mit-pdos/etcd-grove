@@ -29,7 +29,11 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 theorem ConditionsAwareDecision.IsUnion.wp_proof :
     ConditionsAwareDecision.IsUnion.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro d
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
 
 end proof
 
