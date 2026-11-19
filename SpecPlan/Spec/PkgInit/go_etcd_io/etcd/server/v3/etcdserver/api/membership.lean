@@ -12,6 +12,7 @@ public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.client.pkg.v3.types
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.pkg.v3.notify
 public import SpecPlan.Spec.PkgInit.go_etcd_io.etcd.server.v3.etcdserver.version
 public import SpecPlan.Spec.PkgInit.go_etcd_io.raft.v3.raftpb
+public import Perennial.Proof.errors.Base
 
 @[expose] public section
 noncomputable section
