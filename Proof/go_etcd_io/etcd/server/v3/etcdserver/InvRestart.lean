@@ -95,8 +95,9 @@ data directory written by an etcd with a larger
 `--max-request-bytes`, or by any other program, is outside what these files describe. -/
 def srvFiles (dd : GoString) (id : w64) (σ : StorContents) (D : backend.Data) : IProp GF :=
   -- (wal-link L3, 2026-11-19: until then the trusted `walFiles (config.walDirOf dd "") id cid σ true`) the WAL's
-  -- files over the real file system (`walFiles`, a definition over layer 1's disk state, `WalA`)
-  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = config.walDirOf dd ""⌝ ∗ walFiles a id cid σ true) ∗
+  -- files over the real file system (`walFiles`, a definition over layer 1's disk state, `WalA`), (wal-link P2)
+  -- in the member's dedicated WAL directory (`srvWalDirOf dd`; until then `config.walDirOf dd ""`)
+  iprop((∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗ walFiles a id cid σ true) ∗
     backend.fileHolds (config.backendPathOf dd) D)
 
 /-- **`cs` is a conf state `buildConfStateFromV3store` builds from the `members` bucket of `D`**
@@ -203,16 +204,17 @@ theorem srvDiskImage_raft (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoStri
   iintro ⟨%S, %σ, %i, %A, %D, %m, %M, -, -, %Hρ, -⟩
   ipureintro; exact Hρ.1
 
-/-- **The server `s`'s data directory is `dd`, its WAL in it** (persistent; R2b-2): the
-configuration's `DataDir` field is `dd` and its `DedicatedWALDir` field empty, so that the WAL is
-`<dd>/member/wal` (`ServerConfig.WALDir`), as `srvFiles` says. Per field (as the snapshot path's
+/-- **The server `s`'s data directory is `dd`, its WAL in `dd`'s dedicated WAL directory**
+(persistent; R2b-2): the configuration's `DataDir` field is `dd` and its `DedicatedWALDir` field
+`srvWalDirOf dd`, so that the WAL is there (`ServerConfig.WALDir`), as `srvFiles` says (wal-link P2,
+2026-11-19: until then the field empty and the WAL `<dd>/member/wal`). Per field (as the snapshot path's
 `srvSnapRes`): `start` writes other fields of `Cfg` (`SnapshotCount`, ...), whose whole struct is
 read-only only after it (R2b-2 review F1: a read-only points-to of the whole `Cfg` contradicted
 `memberBuilt`'s ownership of those fields). `NewServer` gives it, and `Start`'s stop right names
 `dd` (R2c review F2). -/
 def srvDataDir (s : Loc) (dd : GoString) : IProp GF :=
   iprop(srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗
-    srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ (go!"" : GoString))
+    srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ srvWalDirOf dd)
 
 instance srvDataDir_persistent (s : Loc) (dd : GoString) :
     Persistent (srvDataDir (GF := GF) s dd) := by
@@ -616,9 +618,9 @@ entry `pathOwn`) of an image (`imageAt` at `L`, the index `i` between the WAL's 
 commit, the bootstrap log applied), `bootstrap` returns an error, or the record of a restart
 (`bootOkR`). (2026-11-03, the whole-`bootOk` review) For the configurations it covers (`bootCfgOk`,
 not forcing a new cluster, `bootstrapWALFromSnapshot`'s `ForceNewCluster` rewriting the WAL's log,
-`bootstrap.go:628-650`; the WAL in the data directory, `DedicatedWALDir` empty: `cfg.WALDir()`,
-`config.go:302-307`, is the dedicated directory when set, while `srvFiles` places the WAL at
-`<dd>/member/wal`), a write budget `bootstrap`'s own sessions leave (`N + 7 + bootWB ≤ wbInit`),
+`bootstrap.go:628-650`; (wal-link P2) the WAL in the data directory's dedicated WAL directory,
+`DedicatedWALDir = srvWalDirOf dd`: `cfg.WALDir()`, `config.go:302-307`, is the dedicated directory
+when set, where `srvFiles` places the WAL), a write budget `bootstrap`'s own sessions leave (`N + 7 + bootWB ≤ wbInit`),
 and (G, a scope restriction: the restart plan's static cluster) the image's members the boot log's,
 at the same peer URLs (what `Members()`, `Hmembers`, reports through `memberDirIs dir`; their names
 and client URLs may differ, `publishV3`, `server.go:1828`, updating them once a member has
@@ -663,7 +665,7 @@ def bootstrapRestartContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfi
   iprop(□ ∀ (σ : StorContents) (i : w64) (L : List EntryModel) (D : backend.Data)
       (M : GMap Loc MemStorNamesRec),
     ⌜σ.b ≤ uint.nat i ∧ uint.nat i ≤ σ.commit ∧ γ.cl.bootLen ≤ uint.nat i ∧
-      bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = (go!"" : GoString) ∧
+      bootCfgOk cfg ∧ cfg.ForceNewCluster' = false ∧ cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir' ∧
       -- (2026-11-03, the final whole-`bootOk` review's M1) bbolt opens the backend file (else
       -- `newBackend`'s `lg.Panic`)
       storage.dbOpensOk ∧

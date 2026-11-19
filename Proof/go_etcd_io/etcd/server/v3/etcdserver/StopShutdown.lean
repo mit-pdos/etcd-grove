@@ -702,8 +702,8 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold rnWalClosedW at Hw
   icombine Hst' Hst2 gives %hsteq
   subst hsteq
-  -- (wal-link L3) the WAL's files at its directory, the data directory's (`srvFiles`' form)
-  ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = config.walDirOf dd ""⌝ ∗
+  -- (wal-link L3) the WAL's files at its directory, (P2) the data directory's dedicated one (`srvFiles`' form)
+  ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = srvWalDirOf dd⌝ ∗
       walFiles a C.rn.id cid σ true) $$ [Hw]
   · icases Hw with ⟨%cidw, Hw⟩
     iexists C.rn.wal.h.toWalA, cidw

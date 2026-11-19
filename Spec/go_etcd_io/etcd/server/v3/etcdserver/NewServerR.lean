@@ -37,8 +37,8 @@ the storage registry `M`), in the stop's scope: auth off, no compaction mode (`s
   `γd` (the snapshot directory's invariant is the first start's, in the image);
 * pure premises: `restartNames ρo ρ` (the restarted names agree with the stopped ones where the cluster
   sees them: raft's names, the KV invariant's fields, the claims); `bootCfgFresh` dropped (not a new
-  cluster), `cfg.ForceNewCluster' = false` and `cfg.DedicatedWALDir' = ""` (what the restart contract
-  covers; a first start's `wal.bootRes` holds the latter); the modes' premises at `on = cmp = false`;
+  cluster), `cfg.ForceNewCluster' = false` and `cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'` (what the
+  restart contract covers; a first start's `wal.bootRes` holds the latter; wal-link P2, until then `""`); the modes' premises at `on = cmp = false`;
 * the boot rows: `bootstrap`'s restart contract (`bootstrapRestartContract`) in place of the first
   start's; the image (`srvDiskImageAt`) in place of the fresh data directory (`wal.bootRes`), the node's
   boot token, durable state and vacant id (`Hnboot`: the image holds `raftState γ.cl id S` and
@@ -86,8 +86,9 @@ abbrev NewServer.specR : Prop :=
   peerURLsDir dir id U.peer →
   raftNode.bootCfg cfg → rafthttp.bootCfg dir γ.vs →
   lease.bootCfg (GF := GF) ρ.rd.kv.lm m false →
-  -- what the restart contract covers: no forced new cluster, the WAL in the data directory
-  bootCfgOk cfg → cfg.ForceNewCluster' = false → cfg.DedicatedWALDir' = (go!"" : GoString) →
+  -- what the restart contract covers: no forced new cluster, the WAL in the data directory's
+  -- dedicated WAL directory (wal-link P2)
+  bootCfgOk cfg → cfg.ForceNewCluster' = false → cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir' →
   N + 7 + bootWB ≤ backend.wbInit →
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗

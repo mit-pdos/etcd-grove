@@ -521,7 +521,11 @@ was false of Go there (the premise attack; `examples/premisefix/bootfg`, `featur
 gate panics in `bootstrap`). The other configuration fields `bootstrap` reads and no precondition
 fixes (`MaxLearners`, `BackendBatchInterval`, `BackendFreelistType`, `UnsafeNoFsync`,
 `MaxRequestBytes`, `PreVote`, `PeerTLSInfo`, `BootstrapTimeout`) make it return an error or do
-what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. -/
+what `bootOk` says, and `MemoryMlock`'s failure is `storage.dbOpensOk`'s. (wal-link P2, 2026-11-19)
+The WAL's slot `wal.bootRes`: the data directory fresh, the configuration's dedicated WAL directory
+the member's (`srvWalDirOf`, under its own `fsExt` root) and that WAL area fresh (`walAreaFresh`:
+what `wal.Create` takes of it), over layer 1's resources; until then the data directory alone, no
+dedicated WAL directory. -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
     (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=

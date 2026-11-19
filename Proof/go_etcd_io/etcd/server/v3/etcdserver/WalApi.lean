@@ -14,7 +14,7 @@ NOT YET IN USE: R2b-1's next stage puts `isWalStorage` in place of today's `isRN
 (`InvWal.lean`), as the user approved (2026-11-03): (1) `NewStorage`'s contract gives this one;
 (2) `bootstrap`'s first start takes `dataDirFresh` (`wal.bootRes`) and gives `walOpened … walFresh` and
 `walPurgeRight`, the restart takes `walFiles` and gives `walOpened … σ` and `walPurgeRight` (scope:
-`ForceNewCluster` off); (3) `srvFiles` is `∃ cid, walFiles (config.walDirOf dd "") id cid σ ∗` the
+`ForceNewCluster` off); (3) `srvFiles` is `∃ cid, walFiles` of the WAL directory (since wal-link P2 the dedicated `srvWalDirOf dd`) `∗` the
 backend file; (4) `storage.Release` takes `walBaseLb`; (5) `purgeFile` takes and returns
 `walPurgeRight`; (6) the examples' members start with their WAL directories fresh.
 
@@ -29,6 +29,7 @@ check), `wal.Repair` (a torn write, never left by `Close`), `UnsafeNoFsync` (one
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.WalRecs
+public import Proof.go_etcd_io.etcd.server.v3.storage.WalAreaFresh
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftMsg
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.raft.v3.InvPbSnapSet
@@ -512,19 +513,23 @@ the hub's text. No `wal.bootCfg` (the WAL places no condition on the configurati
 and `wal.srvInv` come with the raft loop's durability invariant (R2b-1 stages 3c/4). -/
 
 /-- **What a caller of `bootstrap` (through `NewServer`) hands the WAL and the backend**: the
-configuration's data directory fresh, a first start's (no WAL, no backend file; from program
-start, `startRights`), with no dedicated WAL directory: the scope in which the data directory holds
-the WAL, every starter's configuration. (Sweep repairs 1, W3/W4, 2026-11-07: until then the WAL
-directory's `walDirFresh`, which said nothing of the backend file a first start opens.) -/
+configuration's data directory fresh, a first start's (no backend file; from program start,
+`startRights`), its dedicated WAL directory the member's (`srvWalDirOf`, under the member's `fsExt`
+root `walAreaOf`), and that WAL area fresh (`walAreaFresh`: what `wal.Create` takes of it, no WAL in
+the directory; allocated at adequacy, `lib/etcdstart/WalAreas.lean`). (Sweep repairs 1, W3/W4,
+2026-11-07: until then the WAL directory's `walDirFresh`, which said nothing of the backend file a
+first start opens; wal-link P2, 2026-11-19: until then no dedicated WAL directory, the WAL in the data
+directory, `dataDirFresh` alone for it.) -/
 @[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
-  iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = go!""⌝)
+  iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
+    walAreaFresh (srvWalDirOf cfg.DataDir'))
 
-/-- `wal.bootRes`'s intro: a configuration whose data directory is `d`, with no dedicated WAL
-directory, takes `d`'s token. -/
+/-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and whose dedicated WAL
+directory is `d`'s takes `d`'s token and the fresh WAL area. -/
 theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d : GoString)
-    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = go!"") :
-    dataDirFresh (GF := GF) d ⊢ wal.bootRes cfg := by
-  unfold wal.bootRes; subst hd; iintro H; iframe H; ipureintro; exact hw
+    (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = srvWalDirOf d) :
+    dataDirFresh (GF := GF) d ∗ walAreaFresh (srvWalDirOf d) ⊢ wal.bootRes cfg := by
+  unfold wal.bootRes; subst hd; iintro ⟨H, Ha⟩; iframe H Ha; ipureintro; exact hw
 
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
 configuration's WAL directory with the member's metadata and no records (`walOpened … walFresh`),
@@ -534,7 +539,7 @@ entry record, so every entry record (none) is of a content of bounded size. -/
 @[no_expose] def wal.bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) : IProp GF :=
   iprop(∃ h : WalH GF, ⌜h.w = w⌝ ∗
-    walOpened h (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid walFresh true ∗ walPurgeRight h)
+    walOpened h cfg.DedicatedWALDir' id cid walFresh true ∗ walPurgeRight h)
 
 /-- **What the server takes from `wal.bootOk`** (narrow: the slot convention's elimination laws
 give what their consumers take, never the slot's body; R2b-1 stage 3c, 2026-11-03, replacing
@@ -550,7 +555,7 @@ theorem wal.bootOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν [] ∗
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗
         -- (2026-11-04, R2b-3d) the WAL's directory, the configuration's (the stop image's `srvFiles`)
-        ⌜h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝ := by
+        ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.bootOk
   iintro ⟨%h, %Hw, Hwo, Hp⟩
   icases walOpened_elim _ _ _ _ _ _ $$ Hwo with ⟨Ho, Hr, Hm, %Hd⟩
@@ -655,7 +660,7 @@ the server's history invariant) and re-proves the two laws. -/
 @[no_expose] def wal.restartOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (id cid : w64)
     (w : Loc) (σ : StorContents) : IProp GF :=
   iprop((∃ h : WalH GF, ⌜h.w = w⌝ ∗
-      walOpened h (config.walDirOf cfg.DataDir' cfg.DedicatedWALDir') id cid σ true ∗ walPurgeRight h) ∗
+      walOpened h cfg.DedicatedWALDir' id cid σ true ∗ walPurgeRight h) ∗
     ⌜walReadFacts σ⌝)
 
 /-- **The read's pure facts** (I1-I4; the slot kept). -/
@@ -682,7 +687,7 @@ theorem wal.restartOk_start (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
         token ν.ok ∗ token ν.stop ∗ token ν.app ∗ walCommitLb ν l₀ ∗
         wal.stopImage cl S σ i ∗
         storage.walOpen h 1 ∗ walMetaIs h id cid ∗ walPurgeRight h ∗
-        ⌜h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝ := by
+        ⌜h.dir = cfg.DedicatedWALDir'⌝ := by
   unfold wal.restartOk
   iintro ⟨⟨⟨%h, %Hw, Hwo, Hp⟩, %Hf⟩, Hsi, #Hl0⟩
   icases wal.stopImage_elim cl S σ i $$ Hsi with ⟨%Hs, #Hcert, ⟨%l', #Hl', %Hl'b, %Hag⟩⟩

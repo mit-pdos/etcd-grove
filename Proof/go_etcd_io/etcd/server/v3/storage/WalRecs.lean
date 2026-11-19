@@ -67,10 +67,9 @@ def WalSaveOk (σ : StorContents) (es : List EntryM) : Prop :=
 
 end model
 
-/-- **The WAL directory of the configuration with data directory `dataDir` and dedicated WAL
-directory `dedicated`** (opaque, as `config.backendPathOf`): `ServerConfig.WALDir()`, the dedicated
-directory if set, else `datadir.ToWALDir(dataDir)` (`filepath.Join(dataDir, "member", "wal")`). -/
-opaque config.walDirOf [GooseExts] (dataDir dedicated : GoString) : GoString
+-- (wal-link P2, 2026-11-19) the opaque `config.walDirOf dataDir dedicated` (`ServerConfig.WALDir()`) is
+-- gone: every configuration the contracts cover has the dedicated WAL directory `srvWalDirOf dataDir`
+-- (`WalLayout.lean`), which `WALDir()` returns.
 
 instance storContents_countable_api [GooseExts] : Pos.Countable StorContents :=
   .ofInjective (fun σ => Pos.Countable.encode (σ.hs, σ.snap, σ.base, σ.ents))
