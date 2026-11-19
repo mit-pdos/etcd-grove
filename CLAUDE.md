@@ -178,6 +178,13 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
   `examples/lib/robust` its Go test harness (machines as network namespaces, faults made by the
   kernel and the harness, never by the program): `notes/robustness.md`. A program's statement lives
   with its proofs (`Proof/.../examples/raft/kvnet/Robust.lean`).
+- `models/`: our trusted models of real libraries (executable stand-ins: verified where they are code,
+  trusted only in their claim to behave like the library), the Go module `models.lab` (a path naming no
+  project, as the part `Net/` is exported to dsverify-lab), each with its evidence (`models/README.md`):
+  the codec helpers `pbcodec`, `jsoncodec` (translated into `Net/`, project `models`, proofs in
+  `Net/Proof/models_lab/`) and the generators of the codecs that call them, `models/protobuf/pbgen.py`
+  (trusted as a program: its core `pbgen_core.py`; inputs derived from the real descriptors by
+  `models/pbdesc`) and `models/json/jsongen.py` (`notes/dsverify-net-port-plan.md`, phase 5).
 - `old/<name>/`: old proofs kept for reference, not built (no `lean_lib` glob or `etc/` script
   reaches them), under their original paths: `old/bbolt/` (branch `bbolt`'s, `old/bbolt/README.md`), `old/dsverify/` (dsverify-lab's network
   harness at `348a866`, the reference for `notes/dsverify-net-port-plan.md`).
