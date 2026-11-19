@@ -359,7 +359,7 @@ theorem rupdateL_absR (x : Input) (st : GSt) (r : RResp) (hx : x.Kind' = W64 2)
     · rw [absR_set st hst.1 _ rfl]; rfl
 
 /-- A write's answer never has a too-large or an unknown error (its key accepted). -/
-theorem rexecL_write_deep (x : Input) (m : RM)
+theorem rexecL_write_deepV (x : Input) (m : RM)
     (hw : x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2)
     (hk : keyOkL (storeKeyL x.Key') = true) : ∃ o d, (rexecL x m).1 = ⟨o, .deep d⟩ := by
   have hne4 : x.Kind' ≠ W64 4 := by rcases hw with h | h | h <;> rw [h] <;> decide
@@ -406,7 +406,7 @@ theorem rstepL_write (x : Input) (st : GSt) (r : RResp)
       rw [if_neg h0, if_neg h1, if_pos h] at hrel
       rw [if_neg hne4, if_neg h0, if_neg h1, if_pos h, if_neg h0, if_neg h1, if_pos h]
       exact rupdateL_absR x st r h hk hst hrel
-  obtain ⟨o, d, hd⟩ := rexecL_write_deep x (absR st) hw hk
+  obtain ⟨o, d, hd⟩ := rexecL_write_deepV x (absR st) hw hk
   unfold rstepL
   simp only [hne4, hw, ↓reduceIte, if_true]
   rw [key.1] at hd

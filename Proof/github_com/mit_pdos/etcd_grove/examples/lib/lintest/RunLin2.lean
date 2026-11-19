@@ -330,7 +330,7 @@ theorem RunLin2.wp_proof
           isplitr
           · unfold opsIoOk; iapply BigSepL.bigSepL_nil.2; iempintro
           ipureintro
-          refine ⟨?_, isLinearization_nil S.M⟩
+          refine ⟨?_, isLinearization_nil S.M, by simp [HistOk]⟩
           rw [← Hflen, hh0]
         · obtain ⟨lsl0, lrest, rfl⟩ : ∃ a t, lsls = a :: t := by
             cases lsls with
@@ -365,7 +365,9 @@ theorem RunLin2.wp_proof
               exact List.mem_of_getElem? hx)
             iexact Hio
           ipureintro
-          refine ⟨?_, hlin⟩
+          refine ⟨?_, hlin, ⟨by rw [hlen]; exact HhistOk.1, fun o ho => HhistOk.2 o (by
+            obtain ⟨x, -, hx⟩ := List.mem_filterMap.1 ho
+            exact List.mem_of_getElem? hx)⟩⟩
           rw [hlen, Hflen]
       · iapply HΦ
         isplitr
