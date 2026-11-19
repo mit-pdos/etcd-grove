@@ -2,6 +2,14 @@
 
 ## START HERE
 
+**2026-11-19 (night 12; for etcd-grove-03). Night 11 decisions recorded (option (b) for too large). STOP: (b)'s
+producer check fails: `NewTooLargeResourceVersionError` is also called with retry 1 (cacher `waitUntilFreshLocked`)
+and retry `Jitter(1s,3.0).Seconds()` (`watchChan.startWatching`), so its proved spec's post must change
+(questions.md "Night 12 STOP": b1 recommended = post's first conjunct `⌜retry = 0⌝ → tooLargeErrIs err`).**
+Nothing else changed since night 11 (below); after the decision: (b), then call.lean, Apply, build-optA rerun, step 5.
+
+### Superseded (night 11)
+
 **2026-11-19 (night 11; for etcd-grove-03). IsNil attack accepted, threading done; step 5 started (RawOk, listOut,
 valsOk invariant). STOP: `rawOk` of a too-large answer needs facts the store's `tooLargeErrIs` lacks (questions.md
 "Step 5 night 11").**

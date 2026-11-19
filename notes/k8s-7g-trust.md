@@ -229,3 +229,11 @@ For the joint independent attack of all 7g trust texts before the step-6 Freeze:
   **Accepted by etcd-grove-03 (2026-11-18)** as a change to vocabulary frozen at 7e; for review at the 7g Freeze.
 - **`outEqual.spec` restated as equality of the plain fields** (step 5, decided by etcd-grove-03, 2026-11-18): its
   `decide (a = b)` over the whole `Output` is false once `Raw` differs, which Go's `outEqual` ignores.
+
+**2026-11-19 (night 11 decided by etcd-grove-03):** the IsNil threading, `listContractOk`'s `UpdateList` clause on
+`metaAt` only (Freeze list: a premise of the 7e-frozen `GetList.spec`), `RawOk.lean`, `listOut`'s spec, `valsOk`,
+the InvSteps `hval` premises and `call.spec`'s new post ACCEPTED. Too large: option (b), strengthen
+`apierrors.tooLargeErrIs` with `Code = 504 ∧ RetryAfterSeconds = 0` if every producer is
+`NewTooLargeResourceVersionError(_, _, 0)`. **Night 12 STOP:** it is not: `watchChan.startWatching` (retry
+`Jitter(1s, 3.0).Seconds()`) and cacher `waitUntilFreshLocked` (retry 1) call it too, so
+`NewTooLargeResourceVersionError.spec`'s post would have to change (questions.md "Night 12 STOP", options b1/b2).
