@@ -27,8 +27,10 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
-  intro a a0
+  intro nw hnw a a0
   wp_start as %Hla
+  wp_apply wp_netOk nw hnw
+  (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_net_Listen a a0 $$ %Hla
   isplit
@@ -42,7 +44,7 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     (try wp_auto)
     wp_apply wp_anyTCPAddr as %x #Hx
     (try wp_auto)
-    wp_apply wp_opError as %err #Herr
+    wp_apply wp_opError $$ %hnw as %err #Herr
     (try wp_auto)
     iapply HΦ
     iright
@@ -70,8 +72,11 @@ theorem Listen.wp_proof : Listen.spec (GF := GF) (hG := hG) := by
     unfold isListener lisAt
     iexists _, x
     dsimp only
+    isplitr
+    · ipureintro; rfl
+    iexists nw
     iframe l Hx
-    ipureintro; exact ⟨rfl, hl0⟩
+    ipureintro; exact ⟨hnw, hl0⟩
 
 end proof
 

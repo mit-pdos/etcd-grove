@@ -30,7 +30,7 @@ variable [go.BasicIntoValInj]
 theorem Listener.Close.wp_proof : Listener.Close.spec (GF := GF) (hG := hG) := by
   intro t l x a Q
   unfold lisAt
-  wp_start as ⟨⟨#Ht, #Hx, %hl0⟩, #Hla, HAU⟩
+  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩, #Hla, HAU⟩
   (try wp_method_call)
   (try unfold TCPListener.Close.impl)
   rw [TCPListener_ty_eq]
@@ -62,7 +62,7 @@ theorem Listener.Close.wp_proof : Listener.Close.spec (GF := GF) (hG := hG) := b
     wp_auto
     wp_apply wp_kindErr .closed none go!"close" (· = go!"close") rfl rfl $$ [] as %e #He
     (try wp_auto)
-    wp_apply wp_opError as %err #Herr
+    wp_apply wp_opError $$ %Hnw as %err #Herr
     iapply HΦ
     iexists some .closed
     iframe HQ

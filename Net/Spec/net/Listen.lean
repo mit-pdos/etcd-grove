@@ -7,6 +7,9 @@ address, `listenAt_self`), through `Listen.impl` (`Net/TrustedCode/net.lean`): t
 `netLis l a0 true`, and `netLisAt l a0`, persistent, which `Accept` and `Close` need), or the
 `*OpError{Op: "listen", Source: nil, Addr: x}`, `x` a `*TCPAddr`, whose `Err` is an
 `*os.SyscallError` (`resErr`, D14). Proved in `Net/Proof/net/Listen.lean`.
+
+The network `nw` is `"tcp"` or `"tcp4"` (`tcpNet`, D23): the same on the plan's IPv4
+addresses, the network kept in the connection or listener and put in its errors.
 -/
 module
 
@@ -30,9 +33,9 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 
 /-- See the file header. -/
 abbrev Listen.spec : Prop :=
-  ∀ (a a0 : GoString),
+  ∀ (nw : GoString), tcpNet nw → ∀ (a a0 : GoString),
   {{ ⌜ListenAt (extGlobalGS netExt (G := hG.goose_globalGS)).plan (extLocalGS netExt (L := hG.goose_localGS)).host a a0⌝ }}
-    (App (App (Val (@! net.Listen)) (Val #(go!"tcp"))) (Val #a))
+    (App (App (Val (@! net.Listen)) (Val #nw)) (Val #a))
   {{ (li : GoInterface) (err : GoInterface), RET (PairV #li #err);
       (⌜err = interface.nil⌝ ∗ ∃ l, isListener li l ∗ netLis (extLocalGS netExt (L := hG.goose_localGS)) l a0 true ∗
         netLisAt (extLocalGS netExt (L := hG.goose_localGS)) l a0) ∨

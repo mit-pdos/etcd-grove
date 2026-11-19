@@ -90,7 +90,8 @@ theorem errors_Is_deadline (Is_spec : errors.Is.spec (GF := GF) (hG := hG))
     unfold kindErr
     icases Hk with %He
     unfold opErr
-    icases Ho with ⟨%pe, %Herr, #Hpe⟩
+    icases Ho with ⟨%pe, %nw, %Herr, #Hpe⟩
+    obtain ⟨Herr, -⟩ := Herr
     subst Herr
     let ed : GoInterface :=
       interface.mkOk (go.GoType.PointerType internal.poll.DeadlineExceededError.ty) #ld
@@ -160,7 +161,8 @@ theorem errors_Is_deadline (Is_spec : errors.Is.spec (GF := GF) (hG := hG))
     unfold kindErr
     icases Hk with %He
     unfold opErr
-    icases Ho with ⟨%pe, %Herr, #Hpe⟩
+    icases Ho with ⟨%pe, %nw, %Herr, #Hpe⟩
+    obtain ⟨Herr, -⟩ := Herr
     subst Herr
     let ed : GoInterface :=
       interface.mkOk (go.GoType.PointerType internal.poll.DeadlineExceededError.ty) #ld

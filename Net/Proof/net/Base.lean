@@ -5,8 +5,9 @@ net's `net`, over the net extension `GooseLang/Ext/Net`): `net`'s package fact (
 and the vocabulary of the specs:
 
 * `connAt t cn s a la ra` (persistent): the `*TCPConn` `t`'s `conn` holds the id of the end `s` of
-  the connection `cn`, dialed to `a` (`netConnAt`), and its addresses `la`, `ra` (`netAddr`: a
-  non-nil `*TCPAddr`, read-only); `isConn c cn s a`: the `Conn` `c` is such a `t`.
+  the connection `cn`, dialed to `a` (`netConnAt`), its addresses `la`, `ra` (`netAddr`: a
+  non-nil `*TCPAddr`, read-only) and its network (`tcpNet`, D23); `isConn c cn s a`: the `Conn` `c`
+  is such a `t`.
 * `lisAt t l x`, `isListener li l` (persistent): the `*TCPListener` `t` (the `Listener` `li`) holds
   the listener id `l` and its address `x` (its state is the node's `netLis l a o`, which its owner
   keeps).
@@ -77,6 +78,14 @@ theorem Addr_ty_eq' : model.Addr = Addr.ty := by unfold Addr.ty; rfl
 theorem Errno_ty_eq : model.Errno = syscall.Errno.ty := by unfold syscall.Errno.ty; rfl
 theorem timeoutError_ty_eq : model.timeoutError = timeoutError.ty := by unfold timeoutError.ty; rfl
 
+/-! ### Networks (D23) -/
+
+/-- The networks the models accept: `"tcp"` and `"tcp4"` (`model.netOk`). -/
+def tcpNet (nw : GoString) : Prop := nw = go!"tcp" ∨ nw = go!"tcp4"
+
+theorem tcpNet_tcp : tcpNet go!"tcp" := .inl rfl
+theorem tcpNet_tcp4 : tcpNet go!"tcp4" := .inr rfl
+
 /-! ### Addresses (D18) -/
 
 /-- `x` is a non-nil `*TCPAddr` (as an `Addr`), read-only for good. -/
@@ -90,10 +99,10 @@ instance netAddr_persistent (x : GoInterface) : Persistent (netAddr (GF := GF) x
 /-! ### Connections and listeners -/
 
 /-- The `*TCPConn` `t` is the end `s` of the connection `cn`, dialed to `a`, with the addresses `la`
-(`LocalAddr`) and `ra` (`RemoteAddr`). -/
+(`LocalAddr`) and `ra` (`RemoteAddr`), on a network `"tcp"` or `"tcp4"` (D23). -/
 def connAt (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) : IProp GF :=
-  iprop(t ↦□ (TCPConn.mk (conn.mk (endId cn s) la ra)) ∗ netAddr la ∗ netAddr ra ∗
-    netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a)
+  iprop(∃ nw, ⌜tcpNet nw⌝ ∗ t ↦□ (TCPConn.mk (conn.mk (endId cn s) la ra nw)) ∗ netAddr la ∗
+    netAddr ra ∗ netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a)
 
 instance connAt_persistent (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
     Persistent (connAt (GF := GF) t cn s a la ra) := by
@@ -102,7 +111,7 @@ instance connAt_persistent (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra
 theorem connAt_conn (t : Loc) (cn : Nat) (s : Bool) (a : GoString) (la ra : GoInterface) :
     connAt (GF := GF) t cn s a la ra ⊢
       netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a := by
-  unfold connAt; iintro ⟨-, -, -, H⟩; iexact H
+  unfold connAt; iintro ⟨%nw, -, -, -, -, H⟩; iexact H
 
 /-- The `Conn` `c` is the end `s` of the connection `cn`, dialed to `a`: a `*TCPConn` `t` with
 `connAt t cn s a la ra`. A method call on `c` resolves (`wp_auto`, once `c` is destructed) to the
@@ -115,9 +124,10 @@ instance isConn_persistent (c : GoInterface) (cn : Nat) (s : Bool) (a : GoString
     Persistent (isConn (GF := GF) c cn s a) := by
   unfold isConn; infer_instance
 
-/-- The `*TCPListener` `t` is this node's listener `l`, with the address `x` (`Addr`). -/
+/-- The `*TCPListener` `t` is this node's listener `l`, with the address `x` (`Addr`), on a
+network `"tcp"` or `"tcp4"` (D23). -/
 def lisAt (t : Loc) (l : w64) (x : GoInterface) : IProp GF :=
-  iprop(t ↦□ (TCPListener.mk l x) ∗ netAddr x ∗ ⌜l ≠ 0⌝)
+  iprop(∃ nw, ⌜tcpNet nw⌝ ∗ t ↦□ (TCPListener.mk l x nw) ∗ netAddr x ∗ ⌜l ≠ 0⌝)
 
 instance lisAt_persistent (t : Loc) (l : w64) (x : GoInterface) :
     Persistent (lisAt (GF := GF) t l x) := by
@@ -161,11 +171,13 @@ instance kindErr_persistent (k : NetErr) (ed : Option GoInterface) (nm : GoStrin
     (e : GoInterface) : Persistent (kindErr (GF := GF) k ed nm e) := by
   cases k <;> cases ed <;> unfold kindErr <;> infer_instance
 
-/-- `err` is a new `*OpError` (as an `error`, read-only for good) of the operation `op` on the
-network `"tcp"`, with `Source` `src`, `Addr` `addr` and `Err` `e`. -/
+/-- `err` is a new `*OpError` (as an `error`, read-only for good) of the operation `op` on a
+network `"tcp"` or `"tcp4"` (D23: the call's, connection's or listener's), with `Source` `src`,
+`Addr` `addr` and `Err` `e`. -/
 def opErr (op : GoString) (src addr e err : GoInterface) : IProp GF :=
-  iprop(∃ pe : Loc, ⌜err = interface.mkOk (go.GoType.PointerType OpError.ty) #pe⌝ ∗
-    pe ↦□ (OpError.mk op go!"tcp" src addr e))
+  iprop(∃ (pe : Loc) (nw : GoString),
+    ⌜err = interface.mkOk (go.GoType.PointerType OpError.ty) #pe ∧ tcpNet nw⌝ ∗
+    pe ↦□ (OpError.mk op nw src addr e))
 
 instance opErr_persistent (op : GoString) (src addr e err : GoInterface) :
     Persistent (opErr (GF := GF) op src addr e err) := by
@@ -204,7 +216,7 @@ theorem netErr_ne_nil {err : GoInterface} (h : netErr err) : err ≠ interface.n
 /-- An `*OpError` is a failure's error. -/
 theorem opErr_netErr (op : GoString) (src addr e err : GoInterface) :
     opErr (GF := GF) op src addr e err ⊢ ⌜netErr err⌝ := by
-  unfold opErr; iintro ⟨%pe, %h, -⟩; ipureintro; exact ⟨pe, h⟩
+  unfold opErr; iintro ⟨%pe, %nw, %h, -⟩; ipureintro; exact ⟨pe, h.1⟩
 
 /-- A failure's `resErr` is a failure's error; a success's is `nil`. -/
 theorem resErr_netErr (res : Option NetErr) (op : GoString) (src addr : GoInterface)
@@ -213,8 +225,8 @@ theorem resErr_netErr (res : Option NetErr) (op : GoString) (src addr : GoInterf
       ⌜(res = none → err = interface.nil) ∧ (res ≠ none → netErr err)⌝ := by
   cases res
   · unfold resErr; iintro %h; ipureintro; exact ⟨fun _ => h, fun h => absurd rfl h⟩
-  · unfold resErr opErr; iintro ⟨%e, ⟨%pe, %h, -⟩, -⟩
-    ipureintro; exact ⟨fun h => (by cases h), fun _ => ⟨pe, h⟩⟩
+  · unfold resErr opErr; iintro ⟨%e, ⟨%pe, %nw, %h, -⟩, -⟩
+    ipureintro; exact ⟨fun h => (by cases h), fun _ => ⟨pe, h.1⟩⟩
 
 end def_
 

@@ -27,8 +27,10 @@ variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
 theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
-  intro a h Qfail Qok
+  intro nw hnw a h Qfail Qok
   wp_start as ⟨#Hp, HQ⟩
+  wp_apply wp_netOk nw hnw
+  (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_net_Dial a h $$ Hp
   isplit
@@ -43,7 +45,7 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
     (try wp_auto)
     wp_apply wp_anyTCPAddr as %x #Hx
     (try wp_auto)
-    wp_apply wp_opError as %err #Herr
+    wp_apply wp_opError $$ %hnw as %err #Herr
     (try wp_auto)
     iapply HΦ
     iright
@@ -67,7 +69,7 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
       imod Hk $$ Hd with HQ
       imodintro
       wp_auto
-      wp_apply wp_newConn cn false a $$ Hat as %c #Hc
+      wp_apply wp_newConn cn false a nw $$ %hnw Hat as %c #Hc
       iapply HΦ
       ileft
       isplitr
@@ -88,7 +90,7 @@ theorem Dial.wp_proof : Dial.spec (GF := GF) (hG := hG) := by
       (try wp_auto)
       wp_apply wp_anyTCPAddr as %x #Hx
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      wp_apply wp_opError $$ %hnw as %err #Herr
       (try wp_auto)
       iapply HΦ
       iright

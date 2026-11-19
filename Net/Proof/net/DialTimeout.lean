@@ -34,7 +34,7 @@ local macro "dt_tail" : tactic => `(tactic| (
     (try wp_auto)
     wp_apply wp_anyTCPAddr as %x #Hx
     (try wp_auto)
-    wp_apply wp_opError as %err #Herr
+    wp_apply wp_opError $$ %hnw as %err #Herr
     (try wp_auto)
     iapply HΦ
     iright
@@ -78,8 +78,10 @@ local macro "dt_fail" : tactic => `(tactic| (
       dt_tail))
 
 theorem DialTimeout.wp_proof : DialTimeout.spec (GF := GF) (hG := hG) := by
-  intro a h dur et ed Qfail Qok
+  intro nw hnw a h dur et ed Qfail Qok
   wp_start as ⟨#Hp, #Het, #Hed, HQ⟩
+  wp_apply wp_netOk nw hnw
+  (try wp_auto)
   wp_bind (ExternalOp _ _ _)
   iapply wp_net_Dial a h $$ Hp
   isplit
@@ -100,7 +102,7 @@ theorem DialTimeout.wp_proof : DialTimeout.spec (GF := GF) (hG := hG) := by
       imod Hk $$ Hd with HQ
       imodintro
       wp_auto
-      wp_apply wp_newConn cn false a $$ Hat as %c #Hc
+      wp_apply wp_newConn cn false a nw $$ %hnw Hat as %c #Hc
       iapply HΦ
       ileft
       isplitr

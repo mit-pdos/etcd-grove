@@ -149,7 +149,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hpl, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr srvAddr $$ []
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
   · ipureintro; exact listenAt_self Hpl
   · -- listening: the accept loop
@@ -219,7 +219,7 @@ theorem wp_Call
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Dial srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
+  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
   · iframe Hplan
     isplit
@@ -332,7 +332,7 @@ theorem wp_SendJunk
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Dial srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
+  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #Herr⟩)
   · iframe Hplan
     isplit

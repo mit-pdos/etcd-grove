@@ -30,7 +30,7 @@ variable [go.BasicIntoValInj]
 theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) := by
   intro t l x a Qfail Qok
   unfold lisAt
-  wp_start as ⟨⟨#Ht, #Hx, %hl0⟩, #Hla, HQ⟩
+  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hx, %hl0⟩, #Hla, HQ⟩
   (try wp_method_call)
   (try unfold TCPListener.Accept.impl)
   rw [TCPListener_ty_eq]
@@ -55,7 +55,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     cases o
     · wp_apply wp_kindErr (c := NetErr.closed.code) .closed none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       (try wp_auto)
       iapply HΦ
       iright
@@ -67,7 +67,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
       iframe Herr He
     · wp_apply wp_kindErr (c := NetErr.sys.code) .sys none go!"accept4" (· = go!"accept4") rfl rfl $$ [] as %e #He
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       (try wp_auto)
       iapply HΦ
       iright
@@ -83,7 +83,7 @@ theorem Listener.Accept.wp_proof : Listener.Accept.spec (GF := GF) (hG := hG) :=
     imod Hk $$ %ho %cn %HcS Hl Hpend Hat with HQ
     imodintro
     wp_auto
-    wp_apply wp_newConn cn true a $$ Hat as %c #Hc
+    wp_apply wp_newConn cn true a nw $$ %Hnw Hat as %c #Hc
     iapply HΦ
     ileft
     isplitr

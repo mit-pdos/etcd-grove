@@ -30,7 +30,7 @@ variable [go.BasicIntoValInj]
 theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, HAU⟩
+  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, HAU⟩
   wp_method_call
   (try unfold conn.Close.impl)
   (try unfold model.connId)
@@ -66,7 +66,9 @@ theorem Conn.Close.wp_proof : Conn.Close.spec (GF := GF) (hG := hG) := by
     wp_auto
     wp_apply wp_kindErr .closed none go!"close" (· = go!"close") rfl rfl $$ [] as %e #He
     (try wp_auto)
-    wp_apply wp_opError as %err #Herr
+    (try unfold model.connNet)
+    (try wp_auto)
+    wp_apply wp_opError $$ %Hnw as %err #Herr
     iapply HΦ
     iexists some .closed
     iframe HQ

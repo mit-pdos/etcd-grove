@@ -30,7 +30,7 @@ variable [go.BasicIntoValInj]
 theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra Q
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, HAU⟩
+  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, HAU⟩
   (try wp_method_call)
   (try unfold TCPConn.CloseWrite.impl)
   (try unfold model.connId)
@@ -67,7 +67,9 @@ theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := 
     cases k
     · wp_apply wp_kindErr .closed none go!"shutdown" (· = go!"shutdown") rfl rfl $$ [] as %e #He
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      (try unfold model.connNet)
+      (try wp_auto)
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       iapply HΦ
       iexists some .closed
       iframe HQ
@@ -77,7 +79,9 @@ theorem TCPConn.CloseWrite.wp_proof : TCPConn.CloseWrite.spec (GF := GF) (hG := 
     · exact absurd rfl hk
     · wp_apply wp_kindErr .sys none go!"shutdown" (· = go!"shutdown") rfl rfl $$ [] as %e #He
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      (try unfold model.connNet)
+      (try wp_auto)
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       iapply HΦ
       iexists some .sys
       iframe HQ

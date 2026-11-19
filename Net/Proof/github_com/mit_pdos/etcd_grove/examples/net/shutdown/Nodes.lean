@@ -242,7 +242,7 @@ theorem wp_Run
     {{ RET #(); True }} := by
   wp_start as ⟨#Ha, #Hdown, #Hplan, %Hpl, #Heof, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Listen addr addr $$ []
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp addr addr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #Herr⟩)
   · ipureintro; exact listenAt_self Hpl
   · -- listening
@@ -261,7 +261,7 @@ theorem wp_Run
         ipureintro; rfl
       itrivial
     (try wp_auto)
-    wp_apply wp_Dial addr _ iprop(True)
+    wp_apply wp_Dial go!"tcp" net.tcpNet_tcp addr _ iprop(True)
         (fun cn => iprop(netFresh G cn false ∗ downReg G γm cn)) $$ []
       as %c %err (⟨%Herr, %cn, #Hc, ⟨Hd, #Hreg⟩⟩ | ⟨-, %x', -, #Herr⟩)
     · iframe Hplan

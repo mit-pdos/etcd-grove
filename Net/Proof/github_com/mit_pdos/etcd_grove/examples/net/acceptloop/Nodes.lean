@@ -163,7 +163,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hla0, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr srvAddr as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%x, -, #HE⟩)
   · ipureintro; exact Hla0
   · -- listening: the accept loop
     subst Herr
@@ -219,7 +219,7 @@ theorem wp_CallOne
   wp_start as ⟨#Hinvs, #Hplan, #Heof, #Hed⟩
   icases echoInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HechoInv⟩
   (try wp_auto)
-  wp_apply wp_Dial srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
+  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr h iprop(True) (fun cn => dialerOwn γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hown⟩ | ⟨-, %x, -, #HE⟩)
   · iframe Hplan
     isplit

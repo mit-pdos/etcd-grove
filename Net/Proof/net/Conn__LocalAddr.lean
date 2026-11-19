@@ -28,7 +28,7 @@ variable [go.BasicIntoValInj]
 theorem Conn.LocalAddr.wp_proof : Conn.LocalAddr.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra
   unfold connAt
-  wp_start as ⟨#Ht, #Hla, #Hra, #Hat⟩
+  wp_start as ⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩
   (try wp_method_call)
   (try unfold conn.LocalAddr.impl)
   (try rw [conn_ty_eq'])

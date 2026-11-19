@@ -6,7 +6,8 @@ functions and methods (`Net/TrustedCode/net.lean`) call them. Each decision belo
 example measured on Linux in `examples/net/semantics/` (its `doc.go` indexes them by the numbers
 `D1`...), and an `example` of `GooseLang/Ext/Net/Tests.lean` (outside the trust base) that the
 relations allow or exclude what the Go example shows; `notes/net-tcp.md` gives the reasons
-(`notes/net-tcp-v3-plan.md` for v3, D14-D21).
+(`notes/net-tcp-v3-plan.md` for v3, D14-D21; `notes/dsverify-net-port-plan.md`, phase 2, for v3.3,
+D23-D25).
 
 **Version v3.3** (2026-11-19). History: v1 (2026-11-12, every byte ever sent and a `broken` flag),
 v2 (observable state only: the unread bytes and a status), v2.1 (a failing `Write` may write

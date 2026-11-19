@@ -45,6 +45,7 @@ instance conn_typed_pointsto : TypedPointsto (GF := GF) conn where
     "id" ∷ typedPointsto (structFieldRef conn go!"id" l) v.id' dq ∗
     "laddr" ∷ typedPointsto (structFieldRef conn go!"laddr" l) v.laddr' dq ∗
     "raddr" ∷ typedPointsto (structFieldRef conn go!"raddr" l) v.raddr' dq ∗
+    "net" ∷ typedPointsto (structFieldRef conn go!"net" l) v.net' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -94,6 +95,21 @@ instance conn_access_store_raddr (l : Loc) (v : conn) (raddr' : GoInterface) :
       (typedPointsto l ({ v with raddr' := raddr' } : conn) (DFrac.own 1)) := by
   solve_pointsto_access_struct
 
+instance conn_access_load_net (l : Loc) (v : conn) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef conn go!"net" l) v.net' dq)
+      (typedPointsto (structFieldRef conn go!"net" l) v.net' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance conn_access_store_net (l : Loc) (v : conn) (net' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef conn go!"net" l) v.net' (DFrac.own 1))
+      (typedPointsto (structFieldRef conn go!"net" l) net' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with net' := net' } : conn) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
 instance conn_into_val_typed : IntoValTypedUnderlying (GF := GF) conn conn.underlying := by
   solve_into_val_typed_struct
 
@@ -139,6 +155,7 @@ instance TCPListener_typed_pointsto : TypedPointsto (GF := GF) TCPListener where
   typedPointstoDef l v dq := iprop(
     "lid" ∷ typedPointsto (structFieldRef TCPListener go!"lid" l) v.id' dq ∗
     "addr" ∷ typedPointsto (structFieldRef TCPListener go!"addr" l) v.addr' dq ∗
+    "net" ∷ typedPointsto (structFieldRef TCPListener go!"net" l) v.net' dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -172,6 +189,21 @@ instance TCPListener_access_store_addr (l : Loc) (v : TCPListener) (addr' : GoIn
       (typedPointsto (structFieldRef TCPListener go!"addr" l) addr' (DFrac.own 1))
       (typedPointsto l v (DFrac.own 1))
       (typedPointsto l ({ v with addr' := addr' } : TCPListener) (DFrac.own 1)) := by
+  solve_pointsto_access_struct
+
+instance TCPListener_access_load_net (l : Loc) (v : TCPListener) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef TCPListener go!"net" l) v.net' dq)
+      (typedPointsto (structFieldRef TCPListener go!"net" l) v.net' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) := by
+  solve_pointsto_access_struct
+
+instance TCPListener_access_store_net (l : Loc) (v : TCPListener) (net' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef TCPListener go!"net" l) v.net' (DFrac.own 1))
+      (typedPointsto (structFieldRef TCPListener go!"net" l) net' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1))
+      (typedPointsto l ({ v with net' := net' } : TCPListener) (DFrac.own 1)) := by
   solve_pointsto_access_struct
 
 instance TCPListener_into_val_typed :

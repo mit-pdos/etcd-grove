@@ -8,10 +8,11 @@ same import closure. The design is `notes/net-tcp.md` (v3: `notes/net-tcp-v3-pla
 
 **Connections.** Go's `TCPConn` is `struct{ conn }` (`tcpsock.go`), translated as it is, so that
 `*TCPConn`'s method set is Go's (`conn`'s methods promoted); `conn` (`net.go`) holds `fd *netFD`,
-the socket. `conn` is trusted, with the layout `struct{ id uint64; laddr Addr; raddr Addr }`
-(`conn.underlying`): `id` is the extension's id of the connection end the socket is, `laddr` and
-`raddr` its `netFD`'s addresses (`fd.laddr`, `fd.raddr`). The other fields of Go's `netFD` (the
-network name, the poller) are not observable to code outside `net`. A `*TCPConn` is made only by
+the socket. `conn` is trusted, with the layout `struct{ id uint64; laddr Addr; raddr Addr; net
+string }` (`conn.underlying`): `id` is the extension's id of the connection end the socket is,
+`laddr` and `raddr` its `netFD`'s addresses (`fd.laddr`, `fd.raddr`), `net` its network (`fd.net`:
+`"tcp"` or `"tcp4"`, D23, the `Net` of its errors). The other fields of Go's `netFD` (the poller)
+are not observable to code outside `net`. A `*TCPConn` is made only by
 `Dial.impl`, `DialTimeout.impl` and `TCPListener.Accept.impl`, so its `id` is an id the extension
 returned, except in a zero-value `TCPConn` (`var c net.TCPConn`, which Go code outside `net` can
 make): its `id` is 0, which names no connection end (`Impl.lean`, "Handles"), and each method checks
@@ -20,8 +21,9 @@ does: the bare `syscall.EINVAL` (`model.einval`; `TestZeroValues`), or `nil` for
 `RemoteAddr`.
 
 **Listeners.** `TCPListener` (`struct{ fd *netFD; lc ListenConfig }` in Go) is trusted, with the
-layout `struct{ lid uint64; addr Addr }`, the extension's id of the listener on this node and its
-`netFD`'s `laddr`. A zero-value `TCPListener`'s `lid` is 0, which names no listener: `Accept` and
+layout `struct{ lid uint64; addr Addr; net string }`, the extension's id of the listener on this
+node, its `netFD`'s `laddr` and its network (`fd.net`, which the connections it accepts get: Go's
+`netFD.accept`, `newFD(..., fd.net)`). A zero-value `TCPListener`'s `lid` is 0, which names no listener: `Accept` and
 `Close` check for it, as Go's `l.ok()`, and return `syscall.EINVAL` (`TestZeroValues`); `Addr`
 panics, as Go's (a nil dereference).
 
@@ -41,7 +43,8 @@ is arbitrary too (`AnyString`).
 operation (`net.go`, `tcpsock.go`, `dial.go`: the end's `laddr` and `raddr` for `Read`, `Write`,
 `Close`, `CloseWrite`; `nil` and `laddr` for the deadlines; `nil` and the listener's `laddr` for
 `Accept` and the listener's `Close`; `nil` and the resolved address, a `*TCPAddr` the model makes
-arbitrary, for `Dial` and `Listen`); `Net` is `"tcp"`. `Err` is the extension's kind's
+arbitrary, for `Dial` and `Listen`); `Net` is the network (D23: the call's for `Dial` and `Listen`,
+the connection's or listener's `net` otherwise). `Err` is the extension's kind's
 (`model.kindErr`): `closed` gives `poll.ErrNetClosing` (`errNetClosing{}`, an empty struct, so its
 value is that of its only value: `model.closedErr`), which `poll.FD` returns for an operation on a
 closing fd (`errClosing`) and `net.ErrClosed` is (`errClosed = poll.ErrNetClosing`); `timeout`
@@ -67,7 +70,7 @@ over `read(2)` (`poll.FD`, `EINTR` and `EAGAIN` handled by the poller) and retur
 byte has arrived, as the extension's `Read` does; Go's `Write` loops over `write(2)` until every
 byte is in the kernel or an error, and so does its model (`conn.Write.impl`, `model.writeLoop`),
 each `write(2)` with its wait one step of the extension (D2). Less defined than Go (a panic, or
-stuck, which a proof must rule out): a network other than `"tcp"`; a nil receiver (stuck: a nil
+stuck, which a proof must rule out): a network other than `"tcp"` and `"tcp4"` (D23); a nil receiver (stuck: a nil
 dereference; Go panics too for a nil `*TCPConn`, and returns `EINVAL` for a nil `*TCPListener`:
 v3.2 review, N1); a call of the extension with an argument it cannot use
 (`Impl.lean`, D22: a `Listen` or `Dial` of an address outside the plan, D13).
@@ -89,12 +92,14 @@ namespace Perennial
 
 namespace net
 
-/-- The model's `conn` (`conn.underlying`): the id of the connection end, and its addresses. -/
+/-- The model's `conn` (`conn.underlying`): the id of the connection end, its addresses, and its
+network (D23). -/
 structure conn [GooseExts] where
   mk ::
   id' : w64
   laddr' : GoInterface
   raddr' : GoInterface
+  net' : GoString
 
 instance conn.zero_val [GooseExts] : ZeroVal conn :=
   ⟨conn.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
@@ -106,12 +111,13 @@ structure TCPConn [GooseExts] where
 
 instance TCPConn.zero_val [GooseExts] : ZeroVal TCPConn := ⟨TCPConn.mk zeroValDef⟩
 
-/-- The model's `TCPListener` (`TCPListener.underlying`): the id of the listener, and its
-address. -/
+/-- The model's `TCPListener` (`TCPListener.underlying`): the id of the listener, its address, and
+its network (D23). -/
 structure TCPListener [GooseExts] where
   mk ::
   id' : w64
   addr' : GoInterface
+  net' : GoString
 
 instance TCPListener.zero_val [GooseExts] : ZeroVal TCPListener :=
   ⟨TCPListener.mk zeroValDef zeroValDef zeroValDef⟩
@@ -121,11 +127,11 @@ variable [GooseExts] [GoGlobalContext]
 
 @[reducible] def model.Addr : go.GoType := go.GoType.Named go!"net.Addr" []
 
-/-- `conn` (`net.go`): the id of the socket's connection end and its addresses, in place of
-`fd *netFD` (the module docstring says why the other fields of `netFD` are not needed). -/
+/-- `conn` (`net.go`): the id of the socket's connection end, its addresses and its network, in
+place of `fd *netFD` (the module docstring says why the other fields of `netFD` are not needed). -/
 @[reducible] def conn.fieldsUnsealed : List go.field_decl :=
   [go.field_decl.FieldDecl go!"id" go.uint64, go.field_decl.FieldDecl go!"laddr" model.Addr,
-    go.field_decl.FieldDecl go!"raddr" model.Addr]
+    go.field_decl.FieldDecl go!"raddr" model.Addr, go.field_decl.FieldDecl go!"net" go.string]
 
 /-- The fields, sealed (as goose seals a translated struct's), unfolded by `conn.equals_unfold`
 in the struct semantics. -/
@@ -153,11 +159,12 @@ instance TCPConn.equals_unfold : EqualsUnfold TCPConn.fields TCPConn.fieldsUnsea
 @[reducible] def TCPConn.underlying : go.GoType :=
   go.GoType.StructType TCPConn.fields
 
-/-- `TCPListener` (`tcpsock.go`): the id of the listener and its address, in place of
+/-- `TCPListener` (`tcpsock.go`): the id of the listener, its address and its network, in place of
 `fd *netFD` and `lc` (the field named `lid`, not `id`: a layout like `conn.underlying` would make
 the two structs' type representations ambiguous). -/
 @[reducible] def TCPListener.fieldsUnsealed : List go.field_decl :=
-  [go.field_decl.FieldDecl go!"lid" go.uint64, go.field_decl.FieldDecl go!"addr" model.Addr]
+  [go.field_decl.FieldDecl go!"lid" go.uint64, go.field_decl.FieldDecl go!"addr" model.Addr,
+    go.field_decl.FieldDecl go!"net" go.string]
 
 /-- The fields, sealed (as goose seals a translated struct's), unfolded by `TCPListener.equals_unfold`
 in the struct semantics. -/
@@ -188,6 +195,11 @@ class FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
   conn_set_raddr : ∀ (x : conn) (y : GoInterface), go.IsGoStepPureDetTagged Tag.under
     (StructFieldSet conn.underlying go!"raddr") (PairV #x #y)
     (Val #(({ x with raddr' := y } : conn)))
+  conn_get_net : ∀ (x : conn), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet conn.underlying go!"net") #x (Val #(x.net'))
+  conn_set_net : ∀ (x : conn) (y : GoString), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet conn.underlying go!"net") (PairV #x #y)
+    (Val #(({ x with net' := y } : conn)))
   net_get_conn : ∀ (x : TCPConn), go.IsGoStepPureDetTagged Tag.under
     (StructFieldGet TCPConn.underlying go!"conn") #x (Val #(x.conn'))
   net_set_conn : ∀ (x : TCPConn) (y : conn), go.IsGoStepPureDetTagged Tag.under
@@ -203,6 +215,11 @@ class FieldAssumptions [GoLocalContext] [GoSemanticsFunctions] : Prop where
   lis_set_addr : ∀ (x : TCPListener) (y : GoInterface), go.IsGoStepPureDetTagged Tag.under
     (StructFieldSet TCPListener.underlying go!"addr") (PairV #x #y)
     (Val #(({ x with addr' := y } : TCPListener)))
+  lis_get_net : ∀ (x : TCPListener), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldGet TCPListener.underlying go!"net") #x (Val #(x.net'))
+  lis_set_net : ∀ (x : TCPListener) (y : GoString), go.IsGoStepPureDetTagged Tag.under
+    (StructFieldSet TCPListener.underlying go!"net") (PairV #x #y)
+    (Val #(({ x with net' := y } : TCPListener)))
 
 attribute [instance] FieldAssumptions.conn_get_id FieldAssumptions.conn_set_id
   FieldAssumptions.conn_get_laddr FieldAssumptions.conn_set_laddr
@@ -227,7 +244,8 @@ helpers of the models (not Go functions). -/
 @[reducible] def model.timeoutError : go.GoType := go.GoType.Named go!"net.timeoutError" []
 @[reducible] def model.Errno : go.GoType := go.GoType.Named go!"syscall.Errno" []
 
-/-- `&OpError{Op: op, Net: "tcp", Source: src, Addr: addr, Err: err}` as an `error`. -/
+/-- `&OpError{Op: op, Net: nw, Source: src, Addr: addr, Err: err}` as an `error` (D23: `nw` the
+call's, connection's or listener's network). -/
 noncomputable def model.opError : val :=
   λ: "op" "nw" "src" "addr" "err",
     let: "pe" := GoAlloc model.OpError (GoZeroVal model.OpError #()) in
@@ -286,59 +304,74 @@ noncomputable def model.anyTCPAddr : val :=
 noncomputable def model.connId : val :=
   λ: "c", ![go.uint64] (StructFieldRef model.conn go!"id" "c")
 
-/-- The `*OpError` of the operation `op` on the `*conn` `c` (`Source` its `laddr`, `Addr` its
-`raddr`), for a failure of code `code`, `name` the system call's. -/
+/-- The network of the `*conn` `c` (D23). -/
+noncomputable def model.connNet : val :=
+  λ: "c", ![go.string] (StructFieldRef model.conn go!"net" "c")
+
+/-- The `*OpError` of the operation `op` on the `*conn` `c` (its network; `Source` its `laddr`,
+`Addr` its `raddr`), for a failure of code `code`, `name` the system call's. -/
 noncomputable def model.connErr : val :=
   λ: "op" "c" "code" "name",
-    model.opError "op" (![model.Addr] (StructFieldRef model.conn go!"laddr" "c"))
+    model.opError "op" (model.connNet "c") (![model.Addr] (StructFieldRef model.conn go!"laddr" "c"))
       (![model.Addr] (StructFieldRef model.conn go!"raddr" "c")) (model.kindErr "code" "name")
 
-/-- A new `*TCPConn` for the connection end `id`, with new addresses, as a `Conn`. -/
+/-- A new `*TCPConn` for the connection end `id` on the network `nw`, with new addresses, as a
+`Conn`. -/
 noncomputable def model.newConn : val :=
   λ: "id" "nw",
     let: "t" := GoAlloc model.TCPConn (GoZeroVal model.TCPConn #()) in
     StructFieldRef model.conn go!"id" (StructFieldRef model.TCPConn go!"conn" "t") <-[go.uint64]
       "id" ;;
+    StructFieldRef model.conn go!"net" (StructFieldRef model.TCPConn go!"conn" "t") <-[go.string]
+      "nw" ;;
     StructFieldRef model.conn go!"laddr" (StructFieldRef model.TCPConn go!"conn" "t") <-[model.Addr]
       model.anyTCPAddr #() ;;
     StructFieldRef model.conn go!"raddr" (StructFieldRef model.TCPConn go!"conn" "t") <-[model.Addr]
       model.anyTCPAddr #() ;;
     Convert (go.PointerType model.TCPConn) model.Conn "t"
 
+/-- D23. The networks modeled: `"tcp"` and `"tcp4"` (the plan's addresses are IPv4: `"tcp4"`
+behaves as `"tcp"` on them, `TestTcp4`). -/
+noncomputable def model.netOk : val :=
+  λ: "nw", if: "nw" =⟨go.string⟩ #(go!"tcp") then #true else "nw" =⟨go.string⟩ #(go!"tcp4")
+
 /-- `Listen(network, address string) (Listener, error)` (`dial.go`): `ListenConfig.Listen` with
 the zero `ListenConfig`, which for `"tcp"` resolves the address, then `socket(2)`, `setsockopt`
 (`SO_REUSEADDR`), `bind(2)` and `listen(2)`: the extension's `Listen` of the address (stuck unless it
 is one of the plan's at this node's host, or a wildcard of D21: the model's resolution). A
-`*TCPListener` with a new address as a `Listener`; an error is
-`&OpError{Op: "listen", Addr: <the resolved address>, ...}` with a nil `Listener`. -/
+`*TCPListener` with a new address and the network (`"tcp"` or `"tcp4"`, D23) as a `Listener`; an
+error is `&OpError{Op: "listen", Net: network, Addr: <the resolved address>, ...}` with a nil
+`Listener`. -/
 noncomputable def Listen.impl : val :=
   λ: "network" "address",
-    if: "network" ≠⟨go.string⟩ #(go!"tcp") then Panic "net: Listen of a network but tcp not modelled"
-    else
+    if: model.netOk "network" then
       let: "r" := ExternalOp Net.netExt.name "Listen" "address" in
       if: Snd "r" =⟨go.uint64⟩ #(W64 0) then
         let: "l" := GoAlloc model.TCPListener (GoZeroVal model.TCPListener #()) in
         StructFieldRef model.TCPListener go!"lid" "l" <-[go.uint64] Fst "r" ;;
         StructFieldRef model.TCPListener go!"addr" "l" <-[model.Addr] model.anyTCPAddr #() ;;
+        StructFieldRef model.TCPListener go!"net" "l" <-[go.string] "network" ;;
         (Convert (go.PointerType model.TCPListener) model.Listener "l", #GoInterface.nil)
-      else (GoZeroVal model.Listener #(), model.opError #(go!"listen") #GoInterface.nil
+      else (GoZeroVal model.Listener #(), model.opError #(go!"listen") "network" #GoInterface.nil
         (model.anyTCPAddr #())
         (model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())))
+    else Panic "net: Listen of a network but tcp and tcp4 not modelled"
 
 /-- `Dial(network, address string) (Conn, error)` (`dial.go`): `Dialer.Dial` with the zero
 `Dialer`, which for `"tcp"` resolves the address, then `socket(2)` and `connect(2)` (waiting for
 the handshake): the extension's `Dial` (stuck unless the address is one of the plan's). A `*TCPConn`
-with new addresses as a `Conn`; an error is `&OpError{Op: "dial", Addr: <the resolved address>,
-...}` (`dialSingle`) with a nil `Conn`. -/
+with new addresses and the network (`"tcp"` or `"tcp4"`, D23) as a `Conn`; an error is
+`&OpError{Op: "dial", Net: network, Addr: <the resolved address>, ...}` (`dialSingle`) with a nil
+`Conn`. -/
 noncomputable def Dial.impl : val :=
   λ: "network" "address",
-    if: "network" ≠⟨go.string⟩ #(go!"tcp") then Panic "net: Dial of a network but tcp not modelled"
-    else
+    if: model.netOk "network" then
       let: "r" := ExternalOp Net.netExt.name "Dial" "address" in
-      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r"), #GoInterface.nil)
-      else (GoZeroVal model.Conn #(), model.opError #(go!"dial") #GoInterface.nil
+      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r") "network", #GoInterface.nil)
+      else (GoZeroVal model.Conn #(), model.opError #(go!"dial") "network" #GoInterface.nil
         (model.anyTCPAddr #())
         (model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())))
+    else Panic "net: Dial of a network but tcp and tcp4 not modelled"
 
 /-- D19. `DialTimeout(network, address string, timeout time.Duration) (Conn, error)` (`dial.go`):
 `Dialer{Timeout: timeout}.Dial`, the extension's `Dial` as `Dial.impl`; a failure's `Err` is the
@@ -349,18 +382,17 @@ as it is when the context's timer has not fired yet). The timeout's value is not
 timeout may expire, as the deadlines of D5); the dial's connection may be left, abandoned (D16). -/
 noncomputable def DialTimeout.impl : val :=
   λ: "network" "address" "timeout",
-    if: "network" ≠⟨go.string⟩ #(go!"tcp") then
-      Panic "net: DialTimeout of a network but tcp not modelled"
-    else
+    if: model.netOk "network" then
       let: "r" := ExternalOp Net.netExt.name "Dial" "address" in
-      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r"), #GoInterface.nil)
-      else (GoZeroVal model.Conn #(), model.opError #(go!"dial") #GoInterface.nil
+      if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r") "network", #GoInterface.nil)
+      else (GoZeroVal model.Conn #(), model.opError #(go!"dial") "network" #GoInterface.nil
         (model.anyTCPAddr #())
         (if: ExternalOp Net.netExt.name "AnyBool" #() then
           model.kindErr (Snd "r") (ExternalOp Net.netExt.name "AnyString" #())
          else if: ExternalOp Net.netExt.name "AnyBool" #() then
           ![go.error] (GlobalVarAddr go!"net.errTimeout" #())
          else model.deadlineErr #()))
+    else Panic "net: DialTimeout of a network but tcp and tcp4 not modelled"
 
 /-- `(*TCPListener).Accept() (Conn, error)` (`tcpsock.go`, `tcpsock_posix.go`'s `accept`):
 `accept4(2)` through the poller (waiting for a connection; `ECONNABORTED` retried): the extension's
@@ -374,8 +406,11 @@ noncomputable def TCPListener.Accept.impl : val :=
     else
     let: "r" := ExternalOp Net.netExt.name "Accept"
       (![go.uint64] (StructFieldRef model.TCPListener go!"lid" "l")) in
-    if: Snd "r" =⟨go.uint64⟩ #(W64 0) then (model.newConn (Fst "r"), #GoInterface.nil)
-    else (GoZeroVal model.Conn #(), model.opError #(go!"accept") #GoInterface.nil
+    if: Snd "r" =⟨go.uint64⟩ #(W64 0) then
+      (model.newConn (Fst "r") (![go.string] (StructFieldRef model.TCPListener go!"net" "l")),
+        #GoInterface.nil)
+    else (GoZeroVal model.Conn #(), model.opError #(go!"accept")
+      (![go.string] (StructFieldRef model.TCPListener go!"net" "l")) #GoInterface.nil
       (![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l"))
       (model.kindErr (Snd "r") #(go!"accept4")))
 
@@ -390,8 +425,8 @@ noncomputable def TCPListener.Close.impl : val :=
     let: "r" := ExternalOp Net.netExt.name "LisClose"
       (![go.uint64] (StructFieldRef model.TCPListener go!"lid" "l")) in
     if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
-    else model.opError #(go!"close") #GoInterface.nil
-      (![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l"))
+    else model.opError #(go!"close") (![go.string] (StructFieldRef model.TCPListener go!"net" "l"))
+      #GoInterface.nil (![model.Addr] (StructFieldRef model.TCPListener go!"addr" "l"))
       (model.kindErr "r" #(go!"close"))
 
 /-- `(*TCPListener).Addr() Addr` (`tcpsock.go`): `l.fd.laddr`, the stored address; a panic for a
@@ -482,7 +517,7 @@ noncomputable def model.setDeadline (kind : w64) : val :=
         (model.connId "c", (#kind, (![go.uint64] (StructFieldRef time.Time.ty go!"wall" "tp"),
           ![go.int64] (StructFieldRef time.Time.ty go!"ext" "tp")))) in
     if: "r" =⟨go.uint64⟩ #(W64 0) then #GoInterface.nil
-    else model.opError #(go!"set") #GoInterface.nil
+    else model.opError #(go!"set") (model.connNet "c") #GoInterface.nil
       (![model.Addr] (StructFieldRef model.conn go!"laddr" "c")) (model.kindErr "r" #(go!"set"))
 
 /-- `(*conn).SetDeadline(t time.Time) error` (`net.go`, `poll.FD.SetDeadline`): sets the read and

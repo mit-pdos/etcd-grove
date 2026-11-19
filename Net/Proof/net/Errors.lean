@@ -27,11 +27,11 @@ variable [sem : go.Semantics]
 variable [package_sem' : net.Assumptions] [field_sem : net.FieldAssumptions]
 variable [go.BasicIntoValInj]
 
-theorem wp_opError (op : GoString) (src addr e : GoInterface) (Φ : val → IProp GF) :
-    (∀ err, opErr (GF := GF) op src addr e err -∗ Φ #err) -∗
-    WP (App (App (App (App (Val model.opError) (Val #op)) (Val #src)) (Val #addr)) (Val #e))
-      {{ Φ }} := by
-  iintro HΦ
+theorem wp_opError (op nw : GoString) (src addr e : GoInterface) (Φ : val → IProp GF) :
+    ⌜tcpNet nw⌝ -∗ (∀ err, opErr (GF := GF) op src addr e err -∗ Φ #err) -∗
+    WP (App (App (App (App (App (Val model.opError) (Val #op)) (Val #nw)) (Val #src)) (Val #addr))
+      (Val #e)) {{ Φ }} := by
+  iintro %hnw HΦ
   unfold model.opError
   rw [OpError_ty_eq, Addr_ty_eq']
   iapply wp_fupd
@@ -40,9 +40,9 @@ theorem wp_opError (op : GoString) (src addr e : GoInterface) (Φ : val → IPro
   imodintro
   iapply HΦ
   unfold opErr
-  iexists pe_ptr
+  iexists pe_ptr, nw
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, hnw⟩
   iexact pe
 
 theorem wp_sysErr (name : GoString) (nm : GoString → Prop) (hnm : nm name) (Φ : val → IProp GF) :
@@ -132,12 +132,21 @@ theorem wp_anyTCPAddr (Φ : val → IProp GF) :
   · ipureintro; rfl
   iexact p
 
-/-- A new `*TCPConn` for the end `s` of `cn`, with new addresses. -/
-theorem wp_newConn (cn : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) :
-    netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗
+/-- D23. The networks the models accept (`model.netOk`): `true` for `"tcp"` and `"tcp4"`. -/
+theorem wp_netOk (nw : GoString) (hnw : tcpNet nw) (Φ : val → IProp GF) :
+    Φ #true -∗ WP (App (Val model.netOk) (Val #nw)) {{ Φ }} := by
+  iintro HΦ
+  unfold model.netOk
+  rcases hnw with rfl | rfl
+  · wp_auto; iexact HΦ
+  · wp_auto; iexact HΦ
+
+/-- A new `*TCPConn` for the end `s` of `cn` on the network `nw`, with new addresses. -/
+theorem wp_newConn (cn : Nat) (s : Bool) (a nw : GoString) (Φ : val → IProp GF) :
+    ⌜tcpNet nw⌝ -∗ netConnAt (extGlobalGS netExt (G := hG.goose_globalGS)) cn a -∗
     (∀ c, isConn (GF := GF) c cn s a -∗ Φ #c) -∗
-    WP (App (Val model.newConn) (Val #(endId cn s))) {{ Φ }} := by
-  iintro #Hat HΦ
+    WP (App (App (Val model.newConn) (Val #(endId cn s))) (Val #nw)) {{ Φ }} := by
+  iintro %hnw #Hat HΦ
   unfold model.newConn
   rw [TCPConn_ty_eq, conn_ty_eq', Conn_ty_eq, Addr_ty_eq']
   iapply wp_fupd
@@ -152,8 +161,11 @@ theorem wp_newConn (cn : Nat) (s : Bool) (a : GoString) (Φ : val → IProp GF) 
   unfold isConn connAt
   iexists t_ptr, la, ra
   dsimp only
+  isplitr
+  · ipureintro; rfl
+  iexists nw
   iframe t Hat Hla Hra
-  ipureintro; rfl
+  ipureintro; exact hnw
 
 end proof
 

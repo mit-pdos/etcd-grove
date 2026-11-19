@@ -397,7 +397,7 @@ theorem wp_Serve
   wp_start as ⟨#Hinvs, %Hplan, #Heof⟩
   icases hcInvs_elim γm $$ Hinvs with ⟨#HaddrInv, #HhcInv⟩
   (try wp_auto)
-  wp_apply wp_Listen srvAddr srvAddr $$ []
+  wp_apply wp_Listen go!"tcp" net.tcpNet_tcp srvAddr srvAddr $$ []
     as %li %err (⟨%Herr, %l, #Hli, Hlis, #Hla⟩ | ⟨%xa, #Hxa, HE⟩)
   · ipureintro; exact listenAt_self Hplan
   · -- listening: the accept loop
@@ -454,7 +454,7 @@ theorem wp_Call
   · iPkgInit
   icases wire.ed_of_poll $$ Hpoll with ⟨%ed, #Hed⟩
   (try wp_auto)
-  wp_apply wp_Dial srvAddr h iprop(True) (fun cn => clientProto γm cn) $$ []
+  wp_apply wp_Dial go!"tcp" net.tcpNet_tcp srvAddr h iprop(True) (fun cn => clientProto γm cn) $$ []
     as %c %err (⟨%Herr, %cn, #Hc, Hcp⟩ | ⟨-, %xa, #Hxa, HE⟩)
   · iframe Hplan
     isplit

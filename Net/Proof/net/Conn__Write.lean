@@ -33,7 +33,7 @@ variable [go.BasicIntoValInj]
 theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
   intro t cn s a la ra b bs dq ed P
   unfold connAt
-  wp_start as ⟨⟨#Ht, #Hla, #Hra, #Hat⟩, Hsl, #Hed, HP, #Hacc⟩
+  wp_start as ⟨⟨%nw, %Hnw, #Ht, #Hla, #Hra, #Hat⟩, Hsl, #Hed, HP, #Hacc⟩
   wp_method_call
   (try unfold conn.Write.impl)
   (try unfold model.connId)
@@ -158,7 +158,9 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
     cases e
     · wp_apply wp_kindErr .closed (some ed) go!"write" (· = go!"write") rfl rfl $$ [] as %e #He
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      (try unfold model.connNet)
+      (try wp_auto)
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       iapply HΦ
       iexists bs.take nn.toNat, some .closed
       iframe HP Hsl
@@ -169,7 +171,9 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
     · wp_apply wp_kindErr .timeout (some ed) go!"write" (· = go!"write") rfl rfl $$ [Hed] as %e #He
       · iexact Hed
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      (try unfold model.connNet)
+      (try wp_auto)
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       iapply HΦ
       iexists bs.take nn.toNat, some .timeout
       iframe HP Hsl
@@ -179,7 +183,9 @@ theorem Conn.Write.wp_proof : Conn.Write.spec (GF := GF) (hG := hG) := by
       iframe Herr He
     · wp_apply wp_kindErr .sys (some ed) go!"write" (· = go!"write") rfl rfl $$ [] as %e #He
       (try wp_auto)
-      wp_apply wp_opError as %err #Herr
+      (try unfold model.connNet)
+      (try wp_auto)
+      wp_apply wp_opError $$ %Hnw as %err #Herr
       iapply HΦ
       iexists bs.take nn.toNat, some .sys
       iframe HP Hsl

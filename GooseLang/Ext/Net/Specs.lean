@@ -617,30 +617,98 @@ theorem wp_net_Read (c : Nat) (s : Bool) (a : GoString) (n : w64) (Φ : val → 
     obtain ⟨rfl, r, Hr, rfl⟩ := Hout
     iapply Hk $$ %r %d' %Hr Hend Hdir
 
-/-- D2. One step of a `Write`, of the bytes `bs` not yet written, at the end `s` of `c`, into the
-direction from it (`WriteOutcome`). -/
-theorem wp_net_Write (c : Nat) (s : Bool) (a : GoString) (bs : List w8) (Φ : val → IProp GF) :
-    netConnAt netG c a -∗
+/-- D25. Our write-lock token and the network's part of a free lock: impossible. -/
+theorem netWLock_lockCtx_free (hG : NetGS GF) (c : Nat) (s : Bool) (γ : ConnNames) :
+    netNames hG c γ -∗ netWLock hG c s -∗ @lockCtx GF hG.allG (γ.wl s) false -∗ False := by
+  letI := hG.allG
+  unfold netWLock lockCtx
+  iintro #Hγ ⟨%γ', #Hγ', Htk⟩ Htk'
+  icases netNames_agree hG c γ γ' $$ Hγ Hγ' with %Heq
+  subst Heq
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  iapply token_exclusive $$ Htk Htk'
+
+/-- D2, D25. One step of a `Write`, of the bytes `bs` not yet written, at the end `s` of `c`, into
+the direction from it (`WriteOutcome`), `first` whether it is its `Write`'s first step. A first step
+takes the end's write lock (it waits, a stutter, while another `Write` holds it); a later one needs
+it (`netWLock`). After a step that does not end the loop (`writeLast`) the caller has the lock; the
+last gives it back. The caller's update sees only the end's state and the direction, as before
+D25. -/
+theorem wp_net_Write (c : Nat) (s : Bool) (a : GoString) (bs : List w8) (first : Bool)
+    (Φ : val → IProp GF) :
+    netConnAt netG c a -∗ (if first then iprop(True) else netWLock netG c s) -∗
     (|={E,∅}=> ∃ st d, netEnd netG c s st ∗ netDir netG c s d ∗
       ∀ k res d', ⌜WriteOutcome st d bs k res d'⌝ -∗ netEnd netG c s st -∗
-        netDir netG c s d' ={∅,E}=∗ Φ (PairV (#(BitVec.ofNat 64 k)) (#(errCode res)))) -∗
-    WP (ExternalOp netExt.name "Write" (Val (PairV (#(endId c s)) (#bs)))) @ sk; E {{ Φ }} := by
-  iintro #Hat HAU
-  iapply wp_net_endOp "Write" (PairV (#(endId c s)) (#bs)) (by simp) c s s
-    (fun st d w st' d' => st' = st ∧ ∃ k res, WriteOutcome st d bs k res d' ∧
-      w = PairV (#(BitVec.ofNat 64 k)) (#(errCode res)))
-    ?_ a Φ $$ Hat
-  · intro σ g e' σ' g' cn0 hb hcn0 hst
-    rcases hst with ⟨e0, bs0, c0, s0, hv, ⟨hb0, he0⟩, ⟨cn, k, res, d', hcn, hout, rfl, rfl⟩, rfl⟩ |
-      ⟨hnv, -⟩
-    · obtain ⟨h1, h2⟩ := val.PairV.inj hv
-      have he : endId c s = e0 := go.intoVal_inj h1
-      obtain rfl : bs = bs0 := go.intoVal_inj h2
-      obtain ⟨rfl, rfl⟩ := endId_inj hb hb0 (he.trans he0)
-      exact ⟨rfl, cn, cn.endSt s, d', _, hcn, ⟨rfl, k, res, hout, rfl⟩, rfl,
-        by rw [setEnd_endSt_self]⟩
-    · exact absurd ⟨endId c s, bs, c, s, rfl, ⟨hb, rfl⟩, by simp [hcn0]⟩ hnv
-  · imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
+        netDir netG c s d' ={∅,E}=∗
+        ((if writeLast bs k res then iprop(True) else netWLock netG c s) -∗
+          Φ (PairV (#(BitVec.ofNat 64 k)) (#(errCode res))))) -∗
+    WP (ExternalOp netExt.name "Write" (Val (PairV (#(endId c s)) (PairV (#bs) (#first)))))
+      @ sk; E {{ Φ }} := by
+  letI := (netG (G := G)).allG
+  iintro #Hat Hlk HAU
+  ihave #Hat' := Hat
+  unfold netConnAt
+  icases Hat' with ⟨%γ, #Hγ, %Hγa⟩
+  iapply wp_net_op "Write" _ (by simp) Φ
+  inext
+  iintro %σ %g %e' %σ' %g' %Hst Hl Hg
+  icases netCtx_acc _ g c γ $$ Hg Hγ with ⟨%cn, %hcn, Hcc, Hgclose⟩
+  icases connCtx_accW γ cn s $$ Hcc with ⟨%Haddr, Hv, Hq, Hlc, Hcclose⟩
+  have hvalid : first = true ∨ cn.lock s = true → (∃ (e0 : w64) (bs0 : List w8) (first0 : Bool)
+      (c0 : Nat) (s0 : Bool), PairV (#(endId c s)) (PairV (#bs) (#first)) =
+        PairV (#e0) (PairV (#bs0) (#first0)) ∧ EndOf g e0 c0 s0 ∧
+        (first0 = true ∨ (g.conns !! c0).any (·.lock s0))) := fun h =>
+    ⟨endId c s, bs, first, c, s, rfl, ⟨⟨Hγa.2.2, rfl⟩, by simp [hcn]⟩,
+      h.imp_right fun h => by simp [hcn, h]⟩
+  rcases Hst with ⟨e0, bs0, first0, c0, s0, hv, ⟨hb0, he0⟩,
+      ⟨cn', k, res, d', hcn', hlock, hout, rfl, rfl⟩, rfl⟩ | ⟨hnv, rfl, rfl, rfl⟩
+  · obtain ⟨h1, h2⟩ := val.PairV.inj hv
+    obtain ⟨h2, h3⟩ := val.PairV.inj h2
+    have he : endId c s = e0 := go.intoVal_inj h1
+    obtain rfl : bs = bs0 := go.intoVal_inj h2
+    obtain rfl : first = first0 := go.intoVal_inj h3
+    obtain ⟨rfl, rfl⟩ := endId_inj Hγa.2.2 hb0 (he.trans he0)
+    rw [hcn] at hcn'
+    cases hcn'
+    imod HAU with ⟨%st, %d, Hend, Hdir, Hk⟩
+    icases netEnd_open _ c s st γ $$ Hγ Hend with Hv'
+    icases netDir_open _ c s d γ $$ Hγ Hdir with ⟨Hq', Htk⟩
+    icases ghostVar_agree $$ Hv' Hv with %Hst
+    icases ghostVar_agree $$ Hq' Hq with %Hd
+    subst Hst Hd
+    imod ghostVar_update_halves d' $$ Hq' Hq with ⟨Hq', Hq⟩
+    imod Hk $$ %k %res %d' %hout [Hv'] [Hq' Htk] with HΦ
+    · iapply netEnd_intro $$ Hγ Hv'
+    · iapply netDir_intro $$ Hγ Hq' Htk
+    -- the lock: the network's part after, and the caller's
+    ihave Hlm : iprop(lockCtx (γ.wl s) (!writeLast bs k res) ∗
+        (if writeLast bs k res then iprop(True) else netWLock netG c s)) $$ [Hlk Hlc]
+    · cases first <;> cases hw : writeLast bs k res <;>
+        simp only [Bool.not_true, Bool.not_false] at hlock <;> unfold lockCtx <;>
+        simp only [hlock, Bool.not_true, Bool.not_false, Bool.false_eq_true, ↓reduceIte]
+      · -- a later step, not the last: the lock stays held, ours
+        isplitr [Hlk]
+        · itrivial
+        · iexact Hlk
+      · -- a later step, the last: the token back to the network
+        unfold netWLock
+        icases Hlk with ⟨%γ', #Hγ', Htk⟩
+        icases netNames_agree _ c γ γ' $$ Hγ Hγ' with %Heq
+        subst Heq
+        isplitl [Htk]
+        · iexact Htk
+        · itrivial
+      · -- a first step, not the last: the token from the network, ours
+        isplitr [Hlc]
+        · itrivial
+        · unfold netWLock
+          iexists γ
+          iframe Hγ Hlc
+      · -- a first step, the last: the lock stays free
+        isplitl [Hlc]
+        · iexact Hlc
+        · itrivial
+    icases Hlm with ⟨Hlc, Hmine⟩
     imodintro
     iframe Hl
     isplitr [HΦ Hmine]
