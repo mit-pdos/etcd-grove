@@ -1,5 +1,5 @@
 /-
-`fieldpath.EmptyRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.EmptyRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.EmptyRec.wp_proof
     (h_Set_Empty_body : fieldpath.Set.Empty.specBody (GF := GF))
     (h_SetNodeMap_Empty_body : fieldpath.SetNodeMap.Empty.specBody (GF := GF)) :
     fieldpath.EmptyRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.EmptyRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_Empty_body $$ IH
+    ihave H2 := h_SetNodeMap_Empty_body $$ IH
+    unfold fieldpath.EmptyRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.EmptyRec.specI fieldpath.Set.Empty.specI fieldpath.SetNodeMap.Empty.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

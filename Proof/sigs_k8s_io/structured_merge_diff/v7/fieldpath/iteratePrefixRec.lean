@@ -1,5 +1,5 @@
 /-
-`fieldpath.iteratePrefixRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.iteratePrefixRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.iteratePrefixRec.wp_proof
     (h_Set_iteratePrefix_body : fieldpath.Set.iteratePrefix.specBody (GF := GF))
     (h_SetNodeMap_iteratePrefix_body : fieldpath.SetNodeMap.iteratePrefix.specBody (GF := GF)) :
     fieldpath.iteratePrefixRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.iteratePrefixRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_iteratePrefix_body $$ IH
+    ihave H2 := h_SetNodeMap_iteratePrefix_body $$ IH
+    unfold fieldpath.iteratePrefixRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.iteratePrefixRec.specI fieldpath.Set.iteratePrefix.specI fieldpath.SetNodeMap.iteratePrefix.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5 a6 a7 a8
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

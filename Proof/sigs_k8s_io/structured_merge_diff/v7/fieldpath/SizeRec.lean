@@ -1,5 +1,5 @@
 /-
-`fieldpath.SizeRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.SizeRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.SizeRec.wp_proof
     (h_Set_Size_body : fieldpath.Set.Size.specBody (GF := GF))
     (h_SetNodeMap_Size_body : fieldpath.SetNodeMap.Size.specBody (GF := GF)) :
     fieldpath.SizeRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.SizeRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_Size_body $$ IH
+    ihave H2 := h_SetNodeMap_Size_body $$ IH
+    unfold fieldpath.SizeRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.SizeRec.specI fieldpath.Set.Size.specI fieldpath.SetNodeMap.Size.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

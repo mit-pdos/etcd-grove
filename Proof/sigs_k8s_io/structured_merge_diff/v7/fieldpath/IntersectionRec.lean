@@ -1,5 +1,5 @@
 /-
-`fieldpath.IntersectionRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.IntersectionRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.IntersectionRec.wp_proof
     (h_Set_Intersection_body : fieldpath.Set.Intersection.specBody (GF := GF))
     (h_SetNodeMap_Intersection_body : fieldpath.SetNodeMap.Intersection.specBody (GF := GF)) :
     fieldpath.IntersectionRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.IntersectionRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_Intersection_body $$ IH
+    ihave H2 := h_SetNodeMap_Intersection_body $$ IH
+    unfold fieldpath.IntersectionRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.IntersectionRec.specI fieldpath.Set.Intersection.specI fieldpath.SetNodeMap.Intersection.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1 a2 a3
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

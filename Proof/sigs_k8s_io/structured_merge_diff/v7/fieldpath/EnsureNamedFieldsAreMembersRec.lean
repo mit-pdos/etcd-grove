@@ -1,5 +1,5 @@
 /-
-`fieldpath.EnsureNamedFieldsAreMembersRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.EnsureNamedFieldsAreMembersRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.EnsureNamedFieldsAreMembersRec.wp_proof
     (h_Set_EnsureNamedFieldsAreMembers_body : fieldpath.Set.EnsureNamedFieldsAreMembers.specBody (GF := GF))
     (h_SetNodeMap_EnsureNamedFieldsAreMembers_body : fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.specBody (GF := GF)) :
     fieldpath.EnsureNamedFieldsAreMembersRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.EnsureNamedFieldsAreMembersRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_EnsureNamedFieldsAreMembers_body $$ IH
+    ihave H2 := h_SetNodeMap_EnsureNamedFieldsAreMembers_body $$ IH
+    unfold fieldpath.EnsureNamedFieldsAreMembersRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.EnsureNamedFieldsAreMembersRec.specI fieldpath.Set.EnsureNamedFieldsAreMembers.specI fieldpath.SetNodeMap.EnsureNamedFieldsAreMembers.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1 a2 a3 a4 a5
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3 a4 a5
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

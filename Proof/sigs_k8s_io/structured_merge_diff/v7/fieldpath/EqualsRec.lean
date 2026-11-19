@@ -1,5 +1,5 @@
 /-
-`fieldpath.EqualsRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.EqualsRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.EqualsRec.wp_proof
     (h_Set_Equals_body : fieldpath.Set.Equals.specBody (GF := GF))
     (h_SetNodeMap_Equals_body : fieldpath.SetNodeMap.Equals.specBody (GF := GF)) :
     fieldpath.EqualsRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.EqualsRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_Equals_body $$ IH
+    ihave H2 := h_SetNodeMap_Equals_body $$ IH
+    unfold fieldpath.EqualsRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.EqualsRec.specI fieldpath.Set.Equals.specI fieldpath.SetNodeMap.Equals.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1 a2 a3
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 

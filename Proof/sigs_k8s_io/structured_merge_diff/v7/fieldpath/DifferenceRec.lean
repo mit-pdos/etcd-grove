@@ -1,5 +1,5 @@
 /-
-`fieldpath.DifferenceRec`: the cluster's Löb induction (Draft: `sorry`).
+`fieldpath.DifferenceRec`: the cluster's Löb induction.
 -/
 module
 
@@ -33,7 +33,24 @@ theorem fieldpath.DifferenceRec.wp_proof
     (h_Set_Difference_body : fieldpath.Set.Difference.specBody (GF := GF))
     (h_SetNodeMap_Difference_body : fieldpath.SetNodeMap.Difference.specBody (GF := GF)) :
     fieldpath.DifferenceRec.spec (GF := GF) := by
-  sorry
+  have H : ⊢ fieldpath.DifferenceRec.specI (GF := GF) := by
+    iloeb as IH
+    ihave H1 := h_Set_Difference_body $$ IH
+    ihave H2 := h_SetNodeMap_Difference_body $$ IH
+    unfold fieldpath.DifferenceRec.specI
+    isplit
+    · iexact H1
+    · iexact H2
+  unfold fieldpath.DifferenceRec.specI fieldpath.Set.Difference.specI fieldpath.SetNodeMap.Difference.specI at H
+  refine ⟨?_, ?_⟩
+  · intro a0 a1 a2 a3
+    iintro %Φ HP HΦ
+    ihave ⟨HH, -⟩ := H
+    iapply HH $$ HP HΦ
+  · intro a0 a1 a2 a3
+    iintro %Φ HP HΦ
+    ihave ⟨-, HH⟩ := H
+    iapply HH $$ HP HΦ
 
 end proof
 
