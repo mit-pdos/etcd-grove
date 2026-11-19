@@ -35,6 +35,30 @@ theorem mf_premise (hkwi : keysWithItemsB_iff.law) (mf : MF)
   have hm := lookupKV_mem m mf e h
   exact ⟨hv _ hm, (hkwi _ _ _).1 (hk _ hm)⟩
 
+theorem isSome_insert {V : Type} (M : GMap GoString V) (k' k : GoString) (v : V) :
+    ((<[k' := v]> M) !! k).isSome = ((M !! k).isSome || decide (k' = k)) := by
+  simp only [GMap.lookup_insert_eq_iff]; split <;> simp_all
+
+theorem lookupKV_isSome_cons {α : Type} (k k' : GoString) (v : α) (l : List (GoString × α)) :
+    (lookupKV k ((k', v) :: l)).isSome = (decide (k' = k) || (lookupKV k l).isSome) := by
+  simp only [lookupKV]; split <;> simp_all
+
+/-- The keys of a map literal's inserts are its entries' (both sides as disjunctions). -/
+theorem lookupKV_isSome_nil {α : Type} (k : GoString) :
+    (lookupKV k ([] : List (GoString × α))).isSome = false := rfl
+
+theorem isSome_empty {V : Type} (k : GoString) : ((∅ : GMap GoString V) !! k).isSome = false := rfl
+
+/-- A literal's inserts (in the entries' order) have the entries' keys: both sides the same
+disjunction once reassociated. -/
+macro "lit_keys" : tactic =>
+  `(tactic| (intro k; (repeat rw [isSome_insert]); rw [isSome_empty]; simp only [lookupKV_isSome_cons, lookupKV_isSome_nil, Option.isSome_none, Bool.or_false, Bool.false_or, Bool.or_assoc, A, B, C]))
+
+/-- A map value's entries (`kvsU (UVal.ofMap kvs)` reduces to `kvsOf kvs`). -/
+def kvsU : UVal → List (GoString × UVal)
+  | .map kvs => kvs
+  | _ => []
+
 /-- A duplicate-free list with the members of a singleton set is that singleton. -/
 theorem nodup_ofList_singleton {α : Type} (l : List α) (x : α) (hnd : l.Nodup)
     (h : FSet.ofList l = FSet.ofList [x]) : l = [x] := by

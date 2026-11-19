@@ -33,7 +33,7 @@ def C : GoString := go!"C"
 
 def labels (kvs : List (GoString × UVal)) : UVal := UVal.ofMap kvs
 def sel (kvs : List (GoString × UVal)) : UVal := UVal.ofMap kvs
-def i64 (n : Nat) : UVal := .int (BitVec.ofNat 64 n)
+def i64 (n : Nat) : UVal := .int (W64 n)
 
 def obj1 : UVal := UVal.ofMap [
   (go!"name", str go!"obj"), (go!"image", str go!"img1"), (go!"replicas", i64 1),
