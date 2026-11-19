@@ -136,13 +136,13 @@ theorem serve_member_lease [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumpt
             watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag (.on γa) ∗
             etcdstart.etcdLeaseServedOn addr s E { ρ with wait := γw }) }} := by
   iintro %Φ ⟨#Pst, #Psrv, #Pv3, #Ppb, #Heo, #Hlgz, Haddr, Hup⟩ HΦ
-  wp_apply +noauto (serve_member wp_Serve wp_BcryptCost hP hR s lg addr ρ E₀ γn id γa .revocable
+  iapply wp_fupd
+  wp_apply (serve_member wp_Serve wp_BcryptCost hP hR s lg addr ρ E₀ γn id γa .revocable
       Htb HLv Hrb48 Hbuq Hrf Hms hlog) $$ [Haddr Hup] as %err Hs
   · iframe; iframe #
   icases Hs with (%Herr | ⟨%Herr, Htok, %E, %γw, %cid, %mid, %R, %HR, #Hrd, #Htls,
     #HKV, #HSA, #HAu, #HWF, #Htag, #HLR⟩)
-  · (try wp_auto)
-    iapply HΦ; ileft; ipureintro; exact Herr
+  · imodintro; iapply HΦ; ileft; ipureintro; exact Herr
   iunfold leaseReady at HLR
   icases HLR with ⟨%A, %il, %im, %iu, %regs, %γ, %HA, #Hreq, #Hrd', #Hlb, #Hlr, #Hlu, #Hil, #Him,
     #Hiu, #Hat, #Hb, #Hrp⟩
@@ -153,7 +153,7 @@ theorem serve_member_lease [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumpt
     imodintro
     iunfold idCred
     ipureintro; exact Hrb48
-  (try wp_auto)
+  imodintro
   iapply HΦ
   iright
   iframe Htok
