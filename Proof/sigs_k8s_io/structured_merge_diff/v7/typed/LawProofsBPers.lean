@@ -6,6 +6,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Persist
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
 
 @[expose] public section
 
@@ -32,6 +33,34 @@ instance ruleKeepRHSOk_pers (f : GoFunc) : Persistent (ruleKeepRHSOk (GF := GF) 
 instance outRep_pers (o : Loc) : (x : Option UVal) → Persistent (outRep (GF := GF) o x)
   | none => by unfold outRep; infer_instance
   | some _ => by unfold outRep; infer_instance
+
+/-- A side is nil exactly when absent. -/
+theorem isValO_nil (v : value.Value) (dq : DFrac) (o : Option UVal) :
+    isValO (GF := GF) v dq o ⊢ isValO v dq o ∗ ⌜v = interface.nil ↔ o = none⌝ := by
+  cases o with
+  | none =>
+    unfold isValO
+    iintro %H
+    isplitl; · ipureintro; exact H
+    ipureintro; simp [H]
+  | some x =>
+    unfold isValO isValF
+    iintro ⟨%p, %i, %Hv, Hp, Hi⟩
+    isplitl
+    · iexists p, i; iframe; ipureintro; exact Hv
+    ipureintro
+    subst Hv
+    simp only [reduceCtorEq]
+
+/-- A present side is a `*valueUnstructured`. -/
+theorem isValO_some (v : value.Value) (dq : DFrac) (x : UVal) :
+    isValO (GF := GF) v dq (some x) ⊢ isValO v dq (some x) ∗
+      ⌜∃ p : Loc, v = interface.mkOk (go.GoType.PointerType value.valueUnstructured.ty) #p⌝ := by
+  unfold isValO isValF
+  iintro ⟨%p, %i, %Hv, Hp, Hi⟩
+  isplitl
+  · iexists p, i; iframe; ipureintro; exact Hv
+  ipureintro; exact ⟨p, Hv⟩
 
 /-- Calling `ruleKeepRHS`'s closure (the persistent spec read at one call). -/
 theorem ruleKeepRHSOk_call (f : GoFunc) (w : Loc) (v : typed.mergingWalker) (dql dqr : DFrac)

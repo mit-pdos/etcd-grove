@@ -6,6 +6,7 @@
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofs
 
 @[expose] public section
 
@@ -33,6 +34,18 @@ theorem fset_union_idem {α : Type} (a b : FSet α) :
   induction a using Quotient.inductionOn with | h la =>
   induction b using Quotient.inductionOn with | h lb =>
   exact Quotient.sound (fun x => by simp only [List.mem_append, ← or_assoc, or_self])
+
+theorem ps_union_empty (a : PathSet) : PathSet.union a PathSet.empty = a := by
+  induction a using Quotient.inductionOn with | h la =>
+  exact congrArg (Quotient.mk _) (List.append_nil la)
+
+theorem cardLt_union_left (a b : PathSet) (n : Nat) (h : (PathSet.union a b).CardLt n) :
+    a.CardLt n :=
+  Nat.lt_of_le_of_lt (FSet.card_le_of_subset _ _ (fun x hx => (FSet.mem_union' a b x).2 (Or.inl hx))) h
+
+theorem cardLt_union_right (a b : PathSet) (n : Nat) (h : (PathSet.union a b).CardLt n) :
+    b.CardLt n :=
+  Nat.lt_of_le_of_lt (FSet.card_le_of_subset _ _ (fun x hx => (FSet.mem_union' a b x).2 (Or.inr hx))) h
 
 theorem fset_union_self {α : Type} (a : FSet α) : FSet.union a a = a := by
   induction a using Quotient.inductionOn with | h la =>
@@ -430,4 +443,3 @@ theorem reconOut_reconcile_law_holds : reconOut_reconcile.law := by
       fset_empty_union, fset_map_append_nil]
   rw [fset_isEmpty_eq _ hn, filter_none, fset_union_empty]
 
-#print axioms mergeO_leaf_law_holds
