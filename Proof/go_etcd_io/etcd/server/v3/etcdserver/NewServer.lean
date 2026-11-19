@@ -116,6 +116,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
 public import Proof.ReceiptTactics
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerShared
 
 @[expose] public section
 
@@ -134,79 +135,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- A blank struct field's conjunct (`"_" ∷ True`, which `iNamed` leaves anonymous) renamed to be
-cleared (`"-"`): `wp_for` names every hypothesis of the context. -/
-theorem named_blank_clear {A : Type _} (P : A) : Perennial.named "_" P = Perennial.named "-" P := rfl
-
-/-- `leadTimeMu`'s resource is fractional (for `sync.init_RWMutex`). -/
-instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) := by
-  unfold leadTimeP
-  exact fractional_exists_agree
-    (fun (t : time.Time) q => iprop(structFieldRef EtcdServer go!"leadElectedTime" s ↦{DFrac.own q} t))
-    (fun t => fractional_of_dfractional
-      (fun dq => typedPointsto (structFieldRef EtcdServer go!"leadElectedTime" s) t dq))
-    (fun x y q1 q2 => by
-      iintro ⟨H1, H2⟩
-      icombine H1 H2 gives %H
-      ipureintro; exact H)
-
-/-- `bemu`'s resource is fractional (for `sync.init_RWMutex`); (D22 receiver epochs, S7b) the
-witnesses agree by the current backend's ghost variable. -/
-instance bemuP_fractional (s : Loc) (γbe : GName) : Fractional (bemuP (GF := GF) s γbe) where
-  fractional p q := by
-    -- (R6, 2026-11-07) the ghost variable records the backend's key `bkKey d`, so two parts'
-    -- witnesses agree on `d.be` (all the points-to reads), and the first's is kept
-    have hpt : ∀ (be : Loc) (r1 r2 : Qp),
-        (srvBeAddr s ↦{DFrac.own (r1 + r2).half} srvBeIface be : IProp GF) ⊣⊢
-          srvBeAddr s ↦{DFrac.own r1.half} srvBeIface be ∗
-            srvBeAddr s ↦{DFrac.own r2.half} srvBeIface be := fun be r1 r2 => by
-      rw [show (r1 + r2).half = r1.half + r2.half from Subtype.ext (by grind)]
-      exact (fractional_of_dfractional
-        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) (srvBeIface be) dq)).fractional
-          r1.half r2.half
-    have hgv : ∀ (k : backend.BNames × Loc) (r1 r2 : Qp),
-        (dghostVar γbe (DFrac.own (r1 + r2).half) k : IProp GF) ⊣⊢
-          dghostVar γbe (DFrac.own r1.half) k ∗ dghostVar γbe (DFrac.own r2.half) k :=
-      fun k r1 r2 => by
-        rw [show (r1 + r2).half = r1.half + r2.half from Subtype.ext (by grind)]
-        exact (dghostVar_fractional (GF := GF) γbe k).fractional r1.half r2.half
-    unfold bemuP
-    constructor
-    · iintro ⟨%d, Hp, Hg, #Hro⟩
-      icases (hpt d.be p q).1 $$ Hp with ⟨Hp1, Hp2⟩
-      icases (hgv (bkKey d) p q).1 $$ Hg with ⟨Hg1, Hg2⟩
-      isplitl [Hp1 Hg1]
-      · iexists d; iframe Hp1 Hg1 Hro
-      · iexists d; iframe Hp2 Hg2 Hro
-    · iintro ⟨⟨%d, Hp1, Hg1, #Hro⟩, ⟨%d', Hp2, Hg2, -⟩⟩
-      ihave %Hk := dghostVar_agree γbe (bkKey d) _ (bkKey d') _ $$ Hg1 Hg2
-      have hbe : d'.be = d.be := (congrArg Prod.snd Hk).symm
-      rw [← Hk] at *
-      rw [hbe]
-      iexists d
-      iframe Hro
-      isplitl [Hp1 Hp2]
-      · iapply (hpt d.be p q).2; iframe Hp1 Hp2
-      · iapply (hgv (bkKey d) p q).2; iframe Hg1 Hg2
-
-/-- **The auth history's tie to the log, allocated** (H5): the auth store's cap at its two boot
-states, and the log's empty lower bound, give the tie at the empty log (`srvHist []`). -/
-theorem authHistTie_alloc (E : apply.AEnv GF) (γr : ReadNames) (stl : Loc) (Eu : CoPset) :
-    ⊢ authCapM E.authMode stl -∗ srvRLogLb γr.raft [] ={Eu}=∗ authHistTie E γr srvAuthSt0 := by
-  unfold authCapM authHistTie
-  generalize E.authMode = M
-  cases M with
-  | on γa =>
-    iintro ⟨Hcap, %R, #Hinv⟩ #Hlb
-    imod inv_alloc authTieN Eu (iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
-      auth.capAuth γa (auth.bootState :: admStates γr.kv srvAuthSt0 A))) $$ [Hcap] with #Ht
-    · inext; iexists []; iframe Hlb; rw [admStates_nil]; simp only [srvAuthSt0]; iexact Hcap
-    imodintro
-    isplitl []
-    · iexists stl, R; iexact Hinv
-    iexact Ht
-  | _ => iintro - -; imodintro; itrivial
 
 /-- (R2c-2) The compactor's disjunct, its pure part read without consuming it. -/
 private theorem newServer_cmp_peek {a b : Prop} {Q : IProp GF} :

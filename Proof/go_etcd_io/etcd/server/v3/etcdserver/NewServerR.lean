@@ -14,7 +14,7 @@ Follow-up: factor the shared tail of the two proofs.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerShared
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuiltRestart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerRFacts
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
