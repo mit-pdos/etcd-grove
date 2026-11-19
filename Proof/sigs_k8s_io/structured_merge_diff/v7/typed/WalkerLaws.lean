@@ -62,9 +62,10 @@ def mergeO_map.law : Prop :=
   ∀ S t fs e rel l r, S.find t.name = some (.map fs e rel) → leafAt S t l r = false →
     mergeO S t l r = mergeMapOut (fuelM (mapItems l) (mapItems r)) S fs e (mapItems l) (mapItems r)
 
-/-- `compare` adds the node itself after `doList`/`doMap` when the node is not a leaf. -/
+/-- `compare` adds the node itself after `doList`/`doMap` when the node is not a leaf (its type
+resolving: otherwise Go's `compare` errors before adding anything; the Prove phase's fix). -/
 def cmpO_below.law : Prop :=
-  ∀ S t p l r, cmpO S t p l r =
+  ∀ S t p l r, (S.find t.name).isSome → cmpO S t p l r =
     if leafAt S t l r then cmpBelow S t p l r else (cmpBelow S t p l r).union (nodeC p l r)
 
 /-- The merge of conforming sides, one present, is present (the top `merge` never returns a nil

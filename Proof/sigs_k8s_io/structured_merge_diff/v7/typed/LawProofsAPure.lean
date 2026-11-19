@@ -9,6 +9,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsB
 
 @[expose] public section
 
@@ -159,9 +160,13 @@ theorem fieldSet_card_law_holds : fieldSet_card.law := by
   simp only [smdSizeMax] at hx
   omega
 
+/-- `cmpO_below.law` (with its premise that the type resolves): D2's `cmpO_below_resolved`. -/
+theorem cmpO_below_law_holds : cmpO_below.law := fun S t p l r h =>
+  cmpO_below_resolved S t p l r h
+
 end LawA
 
-export LawA (fieldSet_fieldsAt_law_holds removeAt_scalar_law_holds conforms_item_law_holds
+export LawA (cmpO_below_law_holds fieldSet_fieldsAt_law_holds removeAt_scalar_law_holds conforms_item_law_holds
   conforms_entry_law_holds fieldSet_card_law_holds)
 
 end smd
