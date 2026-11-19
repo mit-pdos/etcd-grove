@@ -1,6 +1,13 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 h, P3-P5 BLOCKER: UnsafePut's entry-size premise)
+## START HERE (2026-11-19 i, STOP: the concrete form of option (1))
+
+- Lean 5f94c44bee merged (f3278f12b4, same pin; not yet built). The user chose option (1) for the blocker below
+  (questions.md, ledger 2026-11-19 "the auth records' size"); STOP on its concrete form (questions.md "Option (1):
+  concrete form"): a parameterless `authRecordsFit` that implies the bound for every step is false (vacuity in the 49
+  `Haf` places). Nothing coded for it yet.
+
+## History (START HERE of 2026-11-19 h, P3-P5 BLOCKER: UnsafePut's entry-size premise)
 
 - Staging branch `auth-schema-port` (worktree `/shared/etcd-grove-authschema`), pin 3afd77e35:
   `--packages=/shared/tmp/manifest-3af.json`, `.lake/package-overrides.json` = that manifest. `auth-schema-srv` still at
