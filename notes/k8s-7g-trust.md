@@ -290,3 +290,25 @@ apierrors-fix; Go test `TestIsTooManyRequests`). Callers: `Model.Step` (IsTooMan
 `Model.listResponseRV`, `Replay.validateList` (ListAccessor), hence `NewReplay`, `Replay.Validate`, `realCheck`,
 `Check`, `Main*`. Without a decision the Link puts `wp_Check`/`wp_Main` in `links_pending`, and the closed theorems
 would take the two specs as hypotheses.
+
+## 11. The two named hypotheses: both axioms, option A (night 22; under etcd-grove-03's rule of 2026-11-19)
+
+03's rule: prefer a proof; an axiom (A) for any that costs more than about a day. Both went to A (questions.md,
+"Night 22"):
+
+- **`apierrors.IsTooManyRequests.wp_proof`** (`Proof/k8s_io/apimachinery/pkg/api/errors/IsTooManyRequests.lean`; spec
+  unchanged since apierrors-fix). A proof from the body would not remove trust: `reasonAndCodeForError`
+  (`errors.go:817-822`) falls back to `errors.As(err, &status)` on every `.plain` view, and Perennial's
+  `errors.As.spec` (an axiom: reflection) allows any result, so it would need two new `errors.As` axioms (on `nil`,
+  on a one-level wrapper of a leaf). Go: `TestIsTooManyRequests`, `TestStatusChecksPlain`, `TestPlainWrapperTypedNil`.
+- **`apimeta.ListAccessor.wp_proof`** (`Proof/k8s_io/apimachinery/pkg/api/meta/ListAccessor.lean`; spec unchanged since
+  STOP 2b). The translation with bodies works (patch `/shared/tmp/k8s7g/goose-la.patch`: `ListAccessor`,
+  `ListMeta.GetResourceVersion`/`GetContinue`, the four typed lists' promoted methods; `goose.py --check` passed), but
+  the first row (the typed lists' `listAccOk`) is about `k8s.io/api/{core,apps}/v1` code whose `Assumptions` neither
+  the driver's nor the cache's Link reaches (adding them changes the closed statements' instance list). Follow-up
+  (B'), recommended after the Freeze: restate the spec as `Accessor.spec`'s shape (any value in `List`'s type set:
+  itself and `nil`; provable with meta's assumptions only), `go_type_set` at the three 7g callers, and the typed
+  lists' facts as a pending hypothesis of the reflector's `ListPager.list`/`Reflector.list`. Go: `TestListAccessorObjList`.
+
+Both lists (`etc/link-lean-first-k8setcd3.txt`, `-k8scache.txt`) drop the `?`: the 7g Link has no `links_pending`
+any more; client-go's cache results lose the two hypotheses `h_errors_IsTooManyRequests`, `h_meta_ListAccessor`.

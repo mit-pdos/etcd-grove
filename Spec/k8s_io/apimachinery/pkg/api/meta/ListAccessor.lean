@@ -1,8 +1,8 @@
 /-
 `meta.ListAccessor(obj)` (`k8s.io/apimachinery/pkg/api/meta/meta.go`, names-only): the list's
-metadata accessor. **A named hypothesis, boundary pending approval** (one of the reflector's `list`
-callees, through the pager; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round): `?` in
-`etc/link-lean-first-k8scache.txt`.
+metadata accessor. **A trust-boundary axiom** (`Proof/k8s_io/apimachinery/pkg/api/meta/ListAccessor.lean`;
+k8s 7g, decided by etcd-grove-03 2026-11-19, option A; before, a named hypothesis of the reflector's
+`list`, through the pager, phase 4 of `notes/k8s-daemonset-plan.md`, fifth round).
 
 What the code does, for a typed list of the model (`*v1.PodList`, ...): the type switch's first case
 (`List`, `metav1.ListInterface`, which the list implements through its embedded `ListMeta`) returns

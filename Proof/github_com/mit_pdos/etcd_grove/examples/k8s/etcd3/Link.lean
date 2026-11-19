@@ -96,6 +96,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeWith
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.errOut
+public import Proof.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Apply
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Gen
@@ -145,6 +146,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mcreate
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mdelete
 public import Proof.k8s_io.apimachinery.pkg.api.meta.Accessor
 public import Proof.k8s_io.apimachinery.pkg.api.meta.GetItemsPtr
+public import Proof.k8s_io.apimachinery.pkg.api.meta.ListAccessor
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mget
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.minRV
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.mlist
@@ -229,8 +231,6 @@ public import Proof.maps.Equal
 public import Proof.github_com.google.go_cmp.cmp.Diff
 public import Proof.k8s_io.apimachinery.pkg.api.meta.SetList
 public import Perennial.Proof.strconv.Link
-public import Spec.k8s_io.apimachinery.pkg.api.errors.IsTooManyRequests
-public import Spec.k8s_io.apimachinery.pkg.api.meta.ListAccessor
 public import Proof.context.Link
 public import Proof.fmt.Link
 public import Proof.github_com.anishathalye.porcupine.Link
@@ -708,6 +708,10 @@ theorem k8s_correctness.Model.wp_validateGet :
     EtcdGrove.k8s_correctness.Model.validateGet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.Model.validateGet.wp_proof reflect.DeepEqual.wp_proof_k8s versioner.wp_ParseResourceVersion versioner.wp_ObjectResourceVersion k8s_correctness.wp_GetReadConsistency storage.wp_IsNotFound k8s.storage.wp_IsTooLargeResourceVersion apierrors.wp_SuggestsClientDelay storage.StorageError.wp_Unwrap
 
+theorem apimeta.wp_ListAccessor :
+    EtcdGrove.apimeta.ListAccessor.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimeta.ListAccessor.wp_proof
+
 theorem k8s_correctness.Model.wp_listItems :
     EtcdGrove.k8s_correctness.Model.listItems.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.Model.listItems.wp_proof k8s_correctness.wp_keyInScope Obj.wp_DeepCopyObject maps.Keys.wp_proof_objMap k8s.storage.SelectionPredicate.wp_Matches labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
@@ -716,6 +720,26 @@ theorem k8s_correctness.Model.wp_validCacherContinue :
     EtcdGrove.k8s_correctness.Model.validCacherContinue.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.Model.validCacherContinue.wp_proof k8s_correctness.Model.wp_listItems k8s.storage.SelectionPredicate.wp_Matches k8s.storage.SelectionPredicate.wp_Empty labelSel.wp_Matches labelSel.wp_Empty fieldSel.wp_Matches fieldSel.wp_Empty wp_getAttrs
 
+theorem k8s_correctness.Model.wp_equalListResponse :
+    EtcdGrove.k8s_correctness.Model.equalListResponse.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.equalListResponse.wp_proof reflect.DeepEqual.wp_proof_k8s apimeta.wp_ListAccessor ObjList.wp_GetContinue ObjList.wp_SetContinue ObjList.wp_DeepCopyObject k8s_correctness.Model.wp_validCacherContinue
+
+theorem k8s_correctness.Model.wp_listResponseRV :
+    EtcdGrove.k8s_correctness.Model.listResponseRV.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.listResponseRV.wp_proof apimeta.wp_ListAccessor ObjList.wp_GetResourceVersion versioner.wp_ParseResourceVersion
+
+theorem k8s_correctness.Model.wp_validateList :
+    EtcdGrove.k8s_correctness.Model.validateList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.validateList.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.wp_ListReadConsistency k8s_correctness.Model.wp_equalListResponse k8s_correctness.Model.wp_listResponseRV k8s.storage.wp_IsTooLargeResourceVersion apierrors.wp_SuggestsClientDelay storage.StorageError.wp_Unwrap
+
+theorem apierrors.wp_IsTooManyRequests :
+    EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.IsTooManyRequests.wp_proof
+
+theorem k8s_correctness.Model.wp_Step :
+    EtcdGrove.k8s_correctness.Model.Step.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Model.Step.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.Model.wp_execute k8s_correctness.Model.wp_validateGet k8s_correctness.Model.wp_validateList apierrors.wp_IsTooManyRequests storage.StorageError.wp_Unwrap
+
 theorem k8s_correctness.Model.wp_initialEvents :
     EtcdGrove.k8s_correctness.Model.initialEvents.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.Model.initialEvents.wp_proof k8s_correctness.Model.wp_listItems
@@ -723,6 +747,10 @@ theorem k8s_correctness.Model.wp_initialEvents :
 theorem k8s_correctness.wp_NewEmptyModel :
     EtcdGrove.k8s_correctness.NewEmptyModel.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.NewEmptyModel.wp_proof
+
+theorem k8s_correctness.wp_NewReplay :
+    EtcdGrove.k8s_correctness.NewReplay.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.NewReplay.wp_proof k8s_correctness.Model.wp_Clone k8s_correctness.Model.wp_Step
 
 theorem k8s_correctness.wp_NewWatchValidator :
     EtcdGrove.k8s_correctness.NewWatchValidator.spec (GF := GF) (hG := hG) :=
@@ -739,6 +767,14 @@ theorem k8s_correctness.Replay.wp_InitialEvents :
 theorem k8s_correctness.Replay.wp_validateGet :
     EtcdGrove.k8s_correctness.Replay.validateGet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_correctness.Replay.validateGet.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.wp_GetReadConsistency k8s_correctness.Model.wp_get versioner.wp_ParseResourceVersion k8s.storage.wp_IsTooLargeResourceVersion storage.StorageError.wp_Unwrap
+
+theorem k8s_correctness.Replay.wp_validateList :
+    EtcdGrove.k8s_correctness.Replay.validateList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.validateList.wp_proof k8s_correctness.wp_ListReadConsistency k8s_correctness.Model.wp_list k8s_correctness.Model.wp_equalListResponse apimeta.wp_ListAccessor ObjList.wp_GetResourceVersion versioner.wp_ParseResourceVersion
+
+theorem k8s_correctness.Replay.wp_Validate :
+    EtcdGrove.k8s_correctness.Replay.Validate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_correctness.Replay.Validate.wp_proof k8s_correctness.Replay.wp_validateGet k8s_correctness.Replay.wp_validateList
 
 theorem k8s_correctness.WatchValidator.wp_checkWatch :
     EtcdGrove.k8s_correctness.WatchValidator.checkWatch.spec (GF := GF) (hG := hG) :=
@@ -1040,9 +1076,21 @@ theorem wp_initialModel :
     EtcdGrove.k8s_etcd3.initialModel.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.initialModel.wp_proof k8s_correctness.wp_NewEmptyModel wp_storeKey
 
+theorem wp_toPorcupineModel :
+    EtcdGrove.k8s_etcd3.toPorcupineModel.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.toPorcupineModel.wp_proof k8s_correctness.Model.wp_Clone k8s_correctness.Model.wp_Step k8s_correctness.Model.wp_Equal
+
 theorem wp_orderByLinearization :
     EtcdGrove.k8s_etcd3.orderByLinearization.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.orderByLinearization.wp_proof
+
+theorem wp_realCheck :
+    EtcdGrove.k8s_etcd3.realCheck.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.realCheck.wp_proof wp_realRequest wp_realEvents wp_watchOptions wp_initialModel wp_toPorcupineModel wp_orderByLinearization porcupine.wp_CheckOperationsVerbose porcupine.LinearizationInfo.wp_PartialLinearizations k8s_correctness.wp_NewReplay k8s_correctness.Replay.wp_Validate k8s_correctness.wp_NewWatchValidator k8s_correctness.WatchValidator.wp_ValidateWatch
+
+theorem wp_Check :
+    EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_RunLin2 lintest.wp_CounterClock wp_Model wp_newWCache wp_Gen wp_Apply wp_failureFree wp_realCheck
 
 theorem wp_seedOne :
     EtcdGrove.k8s_etcd3.seedOne.spec (GF := GF) (hG := hG) :=
@@ -1064,6 +1112,10 @@ theorem wp_newStore :
     EtcdGrove.k8s_etcd3.newStore.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.newStore.wp_proof wp_seed wp_noStreaming wp_watchList k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue Obj.wp_GetUID Obj.wp_GetResourceVersion runtime.wp_Decode codec.wp_Decode storage.wp_AnnotateInitialEventsEndBookmark Obj.wp_GetAnnotations Obj.wp_SetAnnotations
 
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
+    EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_newStore context.wp_ErrAny wp_Check mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
+
 theorem fieldSel.wp_RequiresExactMatch :
     EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s_etcd3.fieldSel.RequiresExactMatch.wp_proof
@@ -1077,67 +1129,6 @@ theorem wp_newCache :
   EtcdGrove.k8s_etcd3.newCache.wp_proof
 
 end links_hasLC
-
-/-! The results that reach a function specified but not proved yet (a later unit's):
-its spec is a hypothesis (`h_<fn>`) of each of them. -/
-section links_pending
-variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
-variable [NaInvG GF]
-variable [reg : EtcdGrove.k8s.CompactorRegistry]
-variable [ctxDescs : EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-variable (h_errors_IsTooManyRequests : EtcdGrove.apierrors.IsTooManyRequests.spec (GF := GF) (hG := hG))
-variable (h_meta_ListAccessor : EtcdGrove.apimeta.ListAccessor.spec (GF := GF) (hG := hG))
-include h_errors_IsTooManyRequests h_meta_ListAccessor
-
-theorem k8s_correctness.Model.wp_equalListResponse :
-    EtcdGrove.k8s_correctness.Model.equalListResponse.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.Model.equalListResponse.wp_proof reflect.DeepEqual.wp_proof_k8s h_meta_ListAccessor ObjList.wp_GetContinue ObjList.wp_SetContinue ObjList.wp_DeepCopyObject k8s_correctness.Model.wp_validCacherContinue
-
-theorem k8s_correctness.Model.wp_listResponseRV :
-    EtcdGrove.k8s_correctness.Model.listResponseRV.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.Model.listResponseRV.wp_proof h_meta_ListAccessor ObjList.wp_GetResourceVersion versioner.wp_ParseResourceVersion
-
-theorem k8s_correctness.Model.wp_validateList :
-    EtcdGrove.k8s_correctness.Model.validateList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.Model.validateList.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.wp_ListReadConsistency (k8s_correctness.Model.wp_equalListResponse h_errors_IsTooManyRequests h_meta_ListAccessor) (k8s_correctness.Model.wp_listResponseRV h_errors_IsTooManyRequests h_meta_ListAccessor) k8s.storage.wp_IsTooLargeResourceVersion apierrors.wp_SuggestsClientDelay storage.StorageError.wp_Unwrap
-
-theorem k8s_correctness.Model.wp_Step :
-    EtcdGrove.k8s_correctness.Model.Step.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.Model.Step.wp_proof reflect.DeepEqual.wp_proof_k8s k8s_correctness.Model.wp_execute k8s_correctness.Model.wp_validateGet (k8s_correctness.Model.wp_validateList h_errors_IsTooManyRequests h_meta_ListAccessor) h_errors_IsTooManyRequests storage.StorageError.wp_Unwrap
-
-theorem k8s_correctness.wp_NewReplay :
-    EtcdGrove.k8s_correctness.NewReplay.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.NewReplay.wp_proof k8s_correctness.Model.wp_Clone (k8s_correctness.Model.wp_Step h_errors_IsTooManyRequests h_meta_ListAccessor)
-
-theorem k8s_correctness.Replay.wp_validateList :
-    EtcdGrove.k8s_correctness.Replay.validateList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.Replay.validateList.wp_proof k8s_correctness.wp_ListReadConsistency k8s_correctness.Model.wp_list (k8s_correctness.Model.wp_equalListResponse h_errors_IsTooManyRequests h_meta_ListAccessor) h_meta_ListAccessor ObjList.wp_GetResourceVersion versioner.wp_ParseResourceVersion
-
-theorem k8s_correctness.Replay.wp_Validate :
-    EtcdGrove.k8s_correctness.Replay.Validate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_correctness.Replay.Validate.wp_proof k8s_correctness.Replay.wp_validateGet (k8s_correctness.Replay.wp_validateList h_errors_IsTooManyRequests h_meta_ListAccessor)
-
-theorem wp_toPorcupineModel :
-    EtcdGrove.k8s_etcd3.toPorcupineModel.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.toPorcupineModel.wp_proof k8s_correctness.Model.wp_Clone (k8s_correctness.Model.wp_Step h_errors_IsTooManyRequests h_meta_ListAccessor) k8s_correctness.Model.wp_Equal
-
-theorem wp_realCheck :
-    EtcdGrove.k8s_etcd3.realCheck.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.realCheck.wp_proof wp_realRequest wp_realEvents wp_watchOptions wp_initialModel (wp_toPorcupineModel h_errors_IsTooManyRequests h_meta_ListAccessor) wp_orderByLinearization porcupine.wp_CheckOperationsVerbose porcupine.LinearizationInfo.wp_PartialLinearizations (k8s_correctness.wp_NewReplay h_errors_IsTooManyRequests h_meta_ListAccessor) (k8s_correctness.Replay.wp_Validate h_errors_IsTooManyRequests h_meta_ListAccessor) k8s_correctness.wp_NewWatchValidator k8s_correctness.WatchValidator.wp_ValidateWatch
-
-theorem wp_Check :
-    EtcdGrove.k8s_etcd3.Check.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Check.wp_proof lintest.wp_RunLin2 lintest.wp_CounterClock wp_Model wp_newWCache wp_Gen wp_Apply wp_failureFree (wp_realCheck h_errors_IsTooManyRequests h_meta_ListAccessor)
-
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
-    EtcdGrove.k8s_etcd3.Main.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s_etcd3.Main.wp_proof zap.wp_NewNop etcdstart.wp_StartServer etcdstart.wp_Serve kubernetes.wp_New wp_newStore context.wp_ErrAny (wp_Check h_errors_IsTooManyRequests h_meta_ListAccessor) mvcc.api.mvccApi_names_nonempty_law_holds mvcc.api.mvccApi_persistent_law_holds mvcc.api.mvccApi_mvccState_reachable_law_holds
-
-end links_pending
 
 end k8s_etcd3
 end EtcdGrove

@@ -203,7 +203,8 @@ runWatch: watchEvents lastObj encodeWEvents =_root_.Perennial.time.wp_Now =_root
 # (k8s 7g) the maintainers' checker (`correctness`, `examples/k8s/etcd3/correctness`) and `realCheck`
 # (`realcheck.go`), which `Check` runs on a failure-free `Ok` history; the storage and apimachinery
 # functions it calls (`@`: the k8s etcd3 store's Link), its trust-boundary specs (`=`: the axioms of
-# `notes/k8s-7g-trust.md` §1) and the two named hypotheses it reaches (`?`)
+# `notes/k8s-7g-trust.md` §1) and the two axioms decided at night 21 (`meta.ListAccessor`,
+# `apierrors.IsTooManyRequests`: option A, etcd-grove-03 2026-11-19)
 keyFunc: storeKey
 newObjList:
 Obj__DeepCopyObject:
@@ -223,8 +224,8 @@ IsNotFound: isErrCode
 StorageError__Unwrap:
 HasInitialEventsEndBookmarkAnnotation: meta_Accessor
 SuggestsClientDelay:
-meta_ListAccessor: ?
-errors_IsTooManyRequests: ?
+meta_ListAccessor:
+errors_IsTooManyRequests:
 CheckOperationsVerbose: @
 LinearizationInfo__PartialLinearizations: @
 correctness_checkKey: PrepareKey
