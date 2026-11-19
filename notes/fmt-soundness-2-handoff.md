@@ -1,6 +1,6 @@
 # fmt soundness 2: handoff
 
-## START HERE (2026-11-19, the land stop: gates PASSED at ed7fd54098, only this note after it (/shared/tmp/fmtfix2/gates.log); awaiting etcd-grove-03)
+## START HERE (2026-11-19, lean df37bd5157 merged at 140f619665 (Perennial pin f551a1b46; conflicts notes only): full timed build green 1st try (build 20261119-034100-1413852, 21791 jobs), gen-init/gen-raft-tla/goose --check ok, all 59 gen-link modes + btree identical, tier-check ok, tcb --check 884/4 = lean baseline, 69 collections, api/interfaces/import-all, errorf gate ok; manifest now /shared/tmp/manifest-f55.json (PERENNIAL_DIR=/shared/perennial-f551a1b46). Before that: the land stop: gates PASSED at ed7fd54098, only this note after it (/shared/tmp/fmtfix2/gates.log); awaiting etcd-grove-03)
 - Branch `fmt-soundness-2` (worktree /shared/etcd-grove-fmtfix), off lean 1b298c1e70. Brief:
   `notes/fmt-soundness-2.md` (R2/R3 of `notes/fmt-third-attack.md`).
 - Done: the fix in place (below); independent attack round 5 (axiom skill, fresh agent): no refutation; full build
