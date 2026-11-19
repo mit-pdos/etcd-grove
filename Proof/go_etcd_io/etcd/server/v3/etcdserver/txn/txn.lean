@@ -41,7 +41,7 @@ theorem txn.txn.wp_proof
     txn.txn.spec (GF := GF) (hG := hG) := by
   intro ctx cd nd lg γ trace te tw ro σ rt t pl skip L k chs
   wp_start as ⟨Htw, Htrc, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, #Hleases, #Hknown, Hown, %Hpre, #Hlgo⟩
-  obtain ⟨hreach, hpend, hops, hro, hndro⟩ := Hpre
+  obtain ⟨hreach, hpend, hops, hro, hndro, hfit⟩ := Hpre
   have hkst : k.state = σ := by cases ro <;> rfl
   have hkr : txn.MTxn.isRead k = ro := by cases ro <;> rfl
   have hkm : txn.mstate k = mvcc.stateAfter σ.log := by cases ro <;> rfl
@@ -71,7 +71,7 @@ theorem txn.txn.wp_proof
   wp_apply hE $$ [$Htw $Htrc $Hctx $Hct $Hnd $Hrt $Hpl' $Hresps $Hleases $Hknown0 $Hown0]
     as %n2 %err Hres
   · ipureintro
-    refine ⟨hreach, hops, ?_, fun h => by rw [hkr]; exact hndro h⟩
+    refine ⟨hreach, hops, ?_, fun h => by rw [hkr]; exact hndro h, hfit⟩
     intro hr op hop
     rw [hkr] at hr
     exact readonly_branch t (hro hr) _ op hop

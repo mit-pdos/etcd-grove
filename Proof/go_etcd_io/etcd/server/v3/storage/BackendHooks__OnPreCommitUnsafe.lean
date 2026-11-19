@@ -45,14 +45,14 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
   · ipureintro; exact Hpre
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HR⟩
   iunfold csInv at HR
-  icases HR with ⟨%cs, %d, Hcs, Hd⟩
+  icases HR with ⟨%cs, %d, Hcs, Hd, #Hcok⟩
   icases isBackend_b γ P W Pk b $$ Hb with ⟨%t', %rt, %db, %lg', -, -, -, -, -, -, -, -, -, -, -,
     %HPw⟩
   cases d
   · -- not dirty: nothing saved
     wp_auto
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hcs Hd]
-    · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd
+    · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd Hcok
     iapply HΦ
     iexists st1
     iframe Hl HPk HY Hpay
@@ -73,14 +73,18 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
     have hhk : P.hk mvcc.metaBI.name schema.confStateKeyBytes = false := by
       unfold BParams.hk; rw [hP.2.2.1]; simp
     wp_apply (hCS lg ⟨go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ cs
+        go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩ cs csIdMax
         (batchLocked γ P b st1)
         iprop(∃ st2 : BSess, batchLocked γ P b st2 ∗ ⌜hookStep P st st2⌝)) $$ [$Hl]
       as ⟨%st2, Hl, %Hs2⟩
-    · iintro !> %bk %key %val %vb %Φ' !> ⟨#HM, #Hkey, #Hval, Hl⟩ HΦ'
+    · iframe Hcok
+      iintro !> %bk %key %val %vb %Φ' !> ⟨#HM, #Hkey, #Hval, %Hvb, Hl⟩ HΦ'
+      have hkv : schema.confStateKeyBytes.length + vb.length ≤ bbolt.bboltEntryMax := by
+        have : schema.confStateKeyBytes.length = 9 := by decide
+        unfold csIdMax at Hvb; unfold bbolt.bboltEntryMax; omega
       ihave #Hbk := mvcc.meta_isBucket hID hName hSafe bk $$ [$Hpkg3 $HM]
       wp_apply (hPut γ P W Pk b t st1 bk mvcc.metaBI key val schema.confStateKeyBytes vb hP.1
-          (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
+          (by decide) (by decide) hkv hpend hSB (fun h => absurd h (by decide)) false false)
         $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval] as ⟨Hl, -, -, -⟩
       · iframe #
         rw [fkPut_eq γ _ _ (by decide)]
@@ -91,7 +95,7 @@ theorem storage.BackendHooks.OnPreCommitUnsafe.wp_proof
       iframe Hl
       ipureintro; exact hookStep_save_put HPw hP Hpre Hs1
     wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hcs Hd]
-    · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd
+    · inext; iunfold csInv; iexists cs, false; iframe Hcs Hd Hcok
     iapply HΦ
     iexists st2
     iframe Hl HPk HY Hpay

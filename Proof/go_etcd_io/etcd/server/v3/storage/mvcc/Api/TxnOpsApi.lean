@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 theorem reach_ne {σ : MvccState} (h : MvccReachable σ) : σ.log ≠ [] := by
   induction h with
   | start => simp [mvccStart]
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     simp only [MvccState.commitPending, commitLog]
     split <;> simp_all
@@ -89,7 +89,7 @@ theorem metricsTxnWrite.Rev.wp_api (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := 
   | write σ pend =>
     simp only [mvccTxnI, MTxn.state]
     icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
-    obtain ⟨Hpn, hre⟩ := Hk0
+    obtain ⟨Hpn, hre, hpl⟩ := Hk0
     ihave %Hw := wrWrap_pm t0 _ s mw σ.log $$ Hwrap
     obtain ⟨hm, Hwq⟩ := Hw
     subst hm
@@ -110,7 +110,7 @@ theorem metricsTxnWrite.Rev.wp_api (hRev : mvcc.metricsTxnWrite.Rev.spec (GF := 
     simp only [isTxnT]
     iframe Htx Hback Hfree
     isplitr
-    · ipureintro; exact ⟨Hpn, hre⟩
+    · ipureintro; exact ⟨Hpn, hre, hpl⟩
     iunfold wrWrap; ileft; ipureintro; exact ⟨rfl, Hwq⟩
 
 /-- A write transaction's key-values back into it, after `Changes` (`storeTxnWriteIs_join`). -/

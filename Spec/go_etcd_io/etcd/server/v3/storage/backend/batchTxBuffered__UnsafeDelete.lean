@@ -51,11 +51,11 @@ abbrev backend.batchTxBuffered.UnsafeDelete.spec : Prop :=
   ∀ (c k : Bool) {_hkc : k ≤ c},
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗
       bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st c ∗ isBucket bk bi ∗
-      (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗
+      (if own then key ↦*{dk} kb else txBytes st.tx γ.db key kb) ∗
       rbPut γ P bi.name st.S k ∗ dlPut γ P bi.name }}
     (App (App (Val (t @!! go.GoType.PointerType batchTxBuffered.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
   {{ RET #(); batchLocked γ P b (st.del bi kb k) c ∗
-      (if own then key ↦*{dk} kb else txBytes st.tx key kb) ∗ rbPut γ P bi.name (st.del bi kb k).S k ∗
+      (if own then key ↦*{dk} kb else txBytes st.tx γ.db key kb) ∗ rbPut γ P bi.name (st.del bi kb k).S k ∗
       dlPut γ P bi.name }}
 
 end spec

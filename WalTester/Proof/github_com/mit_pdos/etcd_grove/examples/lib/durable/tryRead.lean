@@ -113,7 +113,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
         · iframe; iframe #
         icases Hfi with (⟨%fs, %Hfi, Hfs⟩ | %Hfi)
         rotate_left
-        · obtain ⟨Herr, rfl⟩ := Hfi
+        · obtain ⟨Herr, rfl, -⟩ := Hfi
           cases err2 with
           | nil => exact absurd rfl Herr
           | ok ie =>
@@ -153,7 +153,7 @@ theorem github_com.mit_pdos.etcd_grove.examples.lib.durable.tryRead.wp_proof
         obtain ⟨-, ⟨rfl, rfl, hvs'⟩ | hne⟩ := Hres
         rotate_left
         · cases err3 with
-          | nil => exact absurd rfl hne
+          | nil => exact absurd rfl (by first | exact hne | exact hne.1)
           | ok ie =>
           (try wp_auto)
           wp_apply wp_Close fl fd (child f.d f.b) (openFd c.i flRO) $$ [Hinv Hf Hfd] as %e3 -

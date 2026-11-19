@@ -28,7 +28,8 @@ public import Perennial.Proof.time.Link
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.ErrOk
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.SyncPages
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.OptsOwn
-public import Proof.go_etcd_io.etcd.client.v3.Results
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -82,6 +83,7 @@ members: `nil` and the reply `m` (its key-values' slice owned) at a state `σ` t
 `m` the server's answer at `σ`; or a client error (`kClientErr`). -/
 theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
     [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] {Obj : Type}
+    (h_range_any : client.client_range_any.law (GF := GF) (hG := hG))
     (c : StoreCfg GF Obj) (γk : KVNames) (api : Loc) (ctx : GoInterfaceOk)
     (cdw : context.ContextDesc (IProp GF)) (pk : GoString) (osl : GoSlice)
     (gs : List (OpFull → OpFull)) (Qr : KVState → IProp GF)
@@ -105,7 +107,7 @@ theorem wp_syncGet [go_etcd_io.etcd.cache.v3.Assumptions]
   ihave #Hopts' := optsAt_res osl gs iprop(True) $$ Hopts
   ihave #Hst' := client.srvStart_both c.ms $$ Hst
   ihave #Hau := readAus_members c γk Qr (rangeWireOf (opGetModel pk gs)) hser $$ Hra
-  wp_apply (client.client_range_any api c.ms (W64 0) ctx cdw pk osl gs iprop(True) Qr [] hsz) $$ []
+  wp_apply (h_range_any api c.ms (W64 0) ctx cdw pk osl gs iprop(True) Qr [] hsz) $$ []
     as %resp %err ⟨-, Hout, -⟩
   · iframe #
     isplitl []
@@ -145,7 +147,8 @@ theorem watchChan.syncPaginated.wp_proof
     (wp_ErrorfPlain : fmt.ErrorfPlain.spec (GF := GF) (hG := hG))
     (wp_interpretListError : interpretListError.spec (GF := GF) (hG := hG))
     (wp_parseKV : parseKV.spec (GF := GF) (hG := hG))
-    (wp_queueEvent : watchChan.queueEvent.spec (GF := GF) (hG := hG)) :
+    (wp_queueEvent : watchChan.queueEvent.spec (GF := GF) (hG := hG))
+    (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
     watchChan.syncPaginated.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ _ wc sp c W γk γ cd sel emp inS m Q procd alive ctx kp recur r0 lbf q
     hQ hH hR hf hle
@@ -330,7 +333,7 @@ theorem watchChan.syncPaginated.wp_proof
   have hss : (opGetModel pk (syncGsOf kp recur wr)).base.sortSet = false := by
     unfold syncGsOf syncGs
     split <;> (try cases recur) <;> rfl
-  wp_apply (wp_syncGet c γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
+  wp_apply (wp_syncGet h_range_any c γk api ctx (kCdw γ cd) pk osl (syncGsOf kp recur wr) (Q lbq) hsz hg hser hss)
     $$ [] as %resp %gerr Hget
   · iframe #
   (try wp_auto)

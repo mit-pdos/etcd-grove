@@ -36,7 +36,7 @@ compacting variant `specC` folded in); not a hook's own key (`P.hk`), nor in a t
 part, no claimed write). -/
 abbrev backend.batchTxBuffered.UnsafeSeqPut.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
-  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
+  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize → kb.length + vb.length ≤ bbolt.bboltEntryMax →
   (∀ e ∈ bkOf st.W.bks bi.id, strLt e.1 kb) → sint.Z st.pend + 1 < 2 ^ 58 → P.hk bi.name kb = false → P.RB bi.name = false → ¬ fkKey bi.name kb →
   (P.SB bi.name = true → (∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) ∧
     st.dl.lookup (bi.name, kb) = none) →

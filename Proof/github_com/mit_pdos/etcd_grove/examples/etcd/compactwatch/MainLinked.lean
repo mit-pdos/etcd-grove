@@ -24,6 +24,7 @@ public import Proof.context.Link
 public import Proof.context.WithTimeoutBackground
 public import Proof.go_etcd_io.etcd.client.v3.WithRev
 public import Proof.go_etcd_io.etcd.client.v3.Link
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls
 
 @[expose] public section
 
@@ -52,6 +53,7 @@ theorem etcd_compactwatch.wp_checkCompactRev [go_etcd_io.etcd.client.v3.DialWith
     etcd_compactwatch.checkCompactRev.spec (GF := GF) (hG := hG) :=
   etcd_compactwatch.checkCompactRev.wp_proof context.wp_Background context.WithTimeoutBackground.wp_proof
     context.wp_ErrAny WithRev.wp_proof client.v3.watcher.wp_Watch etcdstart.wp_CompactRev
+    etcd_compactwatch.client_Get_rev_law_holds
 
 /-- **The adequacy example's `Main` does not panic** (see the file header;
 `Spec/github_com/mit_pdos/etcd_grove/examples/etcd/compactwatch/Main.lean`), under the semantic premise of

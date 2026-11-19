@@ -180,6 +180,7 @@ theorem Bucket.free_dead.wp_proof (hpnd : Bucket.pageNode_d.spec (GF := GF) (hG 
     iexists w0.withFl (w0.fl.freePages w0.wtxid pid (1 + pageOverflow pg))
     simp only [WDb.withFl]
     rw [htxid, ← hwt0]
+    rw [flxS_free_tree w0 _ pid _ pg Hwok.1 (by rw [hCpg]; exact hpg) rfl hcan0.2.1]
     iframe; iframe #
     isplitr
     · ipureintro; exact ⟨⟨trivial, Hr.2.1, Hr.2.2.1, Hr.2.2.2.1, Hr.2.2.2.2⟩, Hok'⟩

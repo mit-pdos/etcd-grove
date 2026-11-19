@@ -10,6 +10,8 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untrans
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
+public import Perennial.Proof.sync.Link
+public import Proof.google_golang_org.grpc.health.grpc_health_v1.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -78,6 +80,9 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (_root_.Perennial.google_golang_org.grpc.health.grpc_health_v1.wp_initialize'_lb _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk backoffStrategy.init (by mem_tac))
   wp_apply (opaqueInitsOk backoffFunc.init (by mem_tac))
   wp_apply (opaqueInitsOk logger.init (by mem_tac))

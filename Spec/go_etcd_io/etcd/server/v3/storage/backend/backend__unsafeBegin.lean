@@ -28,8 +28,8 @@ abbrev backend.backend.unsafeBegin.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ beginCtx b ∗ bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γd D ∗
       (if w then wrTok γd else threadTok) }}
     (App (Val (b @!! go.GoType.PointerType backend.ty @!! go!"unsafeBegin")) (Val #w))
-  {{ (tx : Loc), RET #tx; bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γd D ∗ isDB db ∗ txDB tx db ∗
-      (if w then ownWTx tx γd D D else iprop(txLive tx 1 ∗ rtxSnap tx D ∗ rtxStats tx)) }}
+  {{ (tx : Loc), RET #tx; bF go!"db" b ↦{DFrac.own q} db ∗ ownDB db γd D ∗ isDB db γd ∗ txDB tx γd db ∗
+      (if w then ownWTx tx γd D D else txLive tx γd 1 (bbolt.TxView.ro D)) }}
 
 end spec
 

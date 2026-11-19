@@ -7,7 +7,7 @@ handle's registration and the transaction's view (a writer's `wtxFrac`, a reader
 module
 
 public import Spec.go_etcd_io.bbolt.Bucket__Cursor
-public import Spec.go_etcd_io.bbolt.Bucket__Cursor_i
+public import Proof.go_etcd_io.bbolt.Bucket__Cursor_i
 public import Proof.go_etcd_io.bbolt.Read.Pub
 import all Spec.go_etcd_io.bbolt.Api
 

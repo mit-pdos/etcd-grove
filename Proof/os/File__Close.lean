@@ -5,6 +5,7 @@ module
 
 public import Spec.os.File__Close
 public import Proof.os.ErrorOk
+public import GooseLang.Ext.Fs.NoMapLockErrSpecs
 
 @[expose] public section
 
@@ -23,7 +24,25 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [os.Assumptions]
 
-theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
+/-- `os.File.Close.spec` without the error witness (session S6: a helper of the proof below). -/
+private abbrev os.File.Close.tripleOld : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (d : OsFd),
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
+      osFd (GF := GF) fd (DFrac.own 1) d ∗ lockToks (GF := GF) fd d }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
+  {{ (err : GoInterface), RET #err; os.ownFile f (-1 : w64) name (DFrac.own 1) ∗
+      fmtErrorOkOrNil err }}
+
+/-- `os.File.Close.spec` over a semantics with no errors (the former `os.File.Close.specNoErr`). -/
+private abbrev os.File.Close.tripleNE : Prop :=
+  ∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)], (∀ st i, Sio.ino st i) →
+  ∀ (f : Loc) (fd : w64) (name : GoString) (d : OsFd),
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗
+      osFd (GF := GF) fd (DFrac.own 1) d ∗ lockToks (GF := GF) fd d }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
+  {{ RET #(interface.nil : GoInterface); os.ownFile f (-1 : w64) name (DFrac.own 1) }}
+
+private theorem os.File.Close.wp_old : os.File.Close.tripleOld (GF := GF) (hG := hG) := by
   intro f fd name d
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hlt⟩
@@ -58,6 +77,51 @@ theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
     iexists inner
     iframe
     isplitl [] <;> iassumption
+
+private theorem os.File.Close.wp_NE : os.File.Close.tripleNE (GF := GF) (hG := hG) := by
+  intro Sio _ hS f fd name d
+  unfold os.ownFile
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hlt⟩
+  unfold os.model.inner
+  rw [os.file_ty_eq, os.File_ty_eq]
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  ihave %hnn := typedPointsto_not_null _ _ _ $$ Hf
+  rw [decide_eq_false hnn]
+  wp_auto
+  ihave %hfd0 := osFd_nonneg _ _ _ $$ Hosfd
+  rw [decide_eq_false (by rintro rfl; exact absurd hfd0 (by decide))]
+  wp_auto
+  wp_apply wp_osFdKind fd (DFrac.own 1) d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  wp_apply wp_osCloseNE hS fd d CoPset.subseteq_top $$ [Hinv Hosfd Hlt]
+  · iframe; iexact Hinv
+  iapply HΦ
+  iexists inner
+  iframe
+  isplitl [] <;> iassumption
+
+/-- **`Close.spec`**: by cases on `FsNoErr`, the error-free triple (`nil`) or the one without the
+witness. -/
+theorem os.File.Close.wp_proof : os.File.Close.spec (GF := GF) (hG := hG) := by
+  intro f fd name d
+  iintro %Φ Hpre HΦ
+  by_cases hne : FsNoErr
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
+    haveI := hs1
+    iapply os.File.Close.wp_NE Sio hSio f fd name d $$ Hpre
+    inext
+    iintro Hfo
+    iapply HΦ
+    iframe Hfo
+    isplitl []
+    · ipureintro; left; rfl
+    iapply EtcdGrove.fmtErrorOkOrNil_nil
+  · iapply os.File.Close.wp_old f fd name d $$ Hpre
+    inext
+    iintro %err ⟨Hfo, #Hok⟩
+    iapply HΦ
+    iframe Hfo Hok
+    ipureintro; right; exact hne
 
 end proof
 

@@ -95,7 +95,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   simp only [srvRunH_applyAll_specBatch]
   wp_start as ⟨%hP, #HsrvC, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs, #Hcv,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hmr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR, Hrun, #Hsd, #Hkv, #Hmsi, HwalT, #Hrtf, #Hrt, Hso, HtokR⟩
-  obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA⟩ := hP
+  obtain ⟨hM, hRB, Hms, Hai1, Hok, hEok, hEpk, hdv, hAL, hAT, Hdisk, hciA, hcia, hg0, hγn, hpre, hnA⟩ := hP
   have hon : E.authOn = C.isOn := by rw [apply.AEnv.authOn_eq, hM, AuthC.mode_isOn]
   -- (the auth component's stage 2c) the slot's rows at the mode's
   ihave #Hsrv := (isServerM_C C s γ ci TM E ρ γr).2 $$ HsrvC
@@ -141,7 +141,7 @@ theorem EtcdServer.applyAll.wp_proofBatch
   have hAE1 := hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr rp A γp dv w g sa
     (by rw [hM]; cases C <;> simp [AuthC.mode])
     hRB Hms Hai1 Hok
-    (by rw [hon]; exact hEok) hdv hg0
+    (by rw [hon]; exact hEok) hEpk hdv hg0
   rw [hon] at hAE1
   simp only [srvRunH_applyEntries_spec] at hAE1
   wp_apply hAE1

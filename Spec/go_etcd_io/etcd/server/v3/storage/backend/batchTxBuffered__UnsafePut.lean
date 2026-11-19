@@ -44,7 +44,7 @@ session's), with the part of either kind (`k`: the claimed part `rbPutR`, only i
 write recorded as the bucket's claimed write `st.cw`); `c = k = false` is the statement until A1.4. -/
 abbrev backend.batchTxBuffered.UnsafePut.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key value : GoSlice) (kb vb : GoString),
-  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize →
+  P.has bi → 0 < kb.length → kb.length ≤ maxKeySize → kb.length + vb.length ≤ bbolt.bboltEntryMax →
   sint.Z st.pend + 1 < 2 ^ 58 →
   (P.SB bi.name = true → (∀ kc vc, (bktOf st.C bi.name).lookup kc = some vc → strLt kc kb) ∧
     st.dl.lookup (bi.name, kb) = none) →

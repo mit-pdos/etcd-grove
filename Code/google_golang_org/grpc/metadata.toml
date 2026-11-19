@@ -1,8 +1,9 @@
 # Types and names only: the incoming metadata's type `MD` (`map[string][]string`), whose
 # entries the auth store's `AuthInfoFromCtx` reads (`FromIncomingContext` is names only: an
-# axiom, `Spec/google_golang_org/grpc/metadata/FromIncomingContext.lean`; unit P2).
-translate = ["!*"]
-imports = ["!*"]
+# axiom, `Spec/google_golang_org/grpc/metadata/FromIncomingContext.lean`; unit P2). `MD.Get` has
+# its body (its `wp_proof` a theorem over `strings.ToLower`'s spec, 2026-11-18).
+translate = ["!*", "MD.Get"]
+imports = ["!*", "strings"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

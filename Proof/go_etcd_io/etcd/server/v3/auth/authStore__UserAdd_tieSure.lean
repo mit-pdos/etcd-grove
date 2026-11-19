@@ -8,7 +8,15 @@ in the post. The proof is `UserAdd.wp_tie`'s with `wp_sure`'s `selectPassword` c
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
+public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
+public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__selectPassword
+public import Spec.go_uber_org.zap.String
+public import Spec.go_uber_org.zap.Logger__Info
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.ReceiptTactics
 

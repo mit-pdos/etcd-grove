@@ -46,7 +46,7 @@ theorem fsync_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, Sio.
     ∀ h st g e' h' st' g', S.step "Fsync" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
   obtain ⟨hst, -, -⟩ := hf
   simp only [IsFsStep] at hst
   obtain ⟨fd', d, f, hv, hfd, hfl, -⟩ := hst
@@ -62,7 +62,7 @@ theorem dirClose_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, S
     ∀ h st g e' h' st' g', S.step "DirClose" (#fd) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ r = #(0 : w64) := by
   intro h st g e' h' st' g' hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
   obtain ⟨hst, -, -⟩ := hf
   simp only [IsFsStep] at hst
   obtain ⟨fd', e, df, hv, hdf, hst', -⟩ := hst
@@ -81,7 +81,7 @@ theorem pwFinish_noErr {Sio : IoSet} [FsStepSat (NoIoErr Sio)] (hS : ∀ st i, S
       S.step "PWriteFinish" (osTokV t) h st g e' h' st' g' →
       ∃ r, e' = Val r ∧ ∃ r0, r = PairV r0 (#(0 : w64)) := by
   intro h st g e' h' st' g' ⟨hc0, hk0⟩ hs
-  have hf := FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs
+  have hf := fsStepV_of_ne (by decide) (FsSemOk.step_sub _ _ _ _ _ _ _ _ _ hs)
   obtain ⟨hst, -, -⟩ := hf
   simp only [IsFsStep] at hst
   obtain ⟨t', c, off', data', f, k, e, hv, hc, hk, hfl, -, -, -, -, -, -⟩ := hst

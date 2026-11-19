@@ -7,7 +7,7 @@ callees; phase 4 of `notes/k8s-daemonset-plan.md`, fifth round): `?` in
 -/
 module
 
-public import GeneratedProof.k8s_io.utils.trace
+public import Proof.k8s_io.utils.trace.Defs
 
 @[expose] public section
 
@@ -27,10 +27,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.utils.trace.Assumptions]
 
-/-- `t.Step(msg, fields)`: returns. -/
+/-- `t.Step(msg, fields)`, on a trace `New` returned (`trace.fromNew`: a nil `t` panics), returns. -/
 abbrev trace.Trace.Step.spec : Prop :=
   ∀ (t : Loc) (msg : GoString) (fields : GoSlice),
-  {{ (True : IProp GF) }}
+  {{ (⌜trace.fromNew t⌝ : IProp GF) }}
     (App (App (Val (t @!! go.GoType.PointerType k8s_io.utils.trace.Trace.ty @!! go!"Step"))
       (Val #msg)) (Val #fields))
   {{ RET #(); True }}

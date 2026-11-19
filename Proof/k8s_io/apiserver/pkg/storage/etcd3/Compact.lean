@@ -16,9 +16,6 @@ The client's `Compact` goes through `kv.Compact.spec`, at the client's KV handle
 module
 
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.Compact
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
-public import Proof.go_etcd_io.etcd.client.v3.LinkMembers
 public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.Version
 public import Spec.go_etcd_io.etcd.client.v3.OpPut
@@ -29,6 +26,11 @@ public import Spec.strconv.FormatInt
 public import Spec.strconv.ParseInt
 public import Spec.k8s_io.klog.v2.V
 public import Spec.k8s_io.klog.v2.Verbose__Infof
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
+public import Proof.go_etcd_io.etcd.client.v3.KVMembers
+public import Spec.go_etcd_io.etcd.client.v3.kv__Txn
+public import Spec.go_etcd_io.etcd.client.v3.txn__If
 
 @[expose] public section
 
@@ -88,7 +90,8 @@ update fired at most once at each member (as linkvtxn's `txn_Commit_st`'s writin
 `txn.Commit.specM`, which keeps the reply's revision reached, `txnRevLb`): the reply's verdict and
 responses the server's run at the state `σ` the update fired at, its revision `σ`'s after it,
 positive and reached. -/
-theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ms : List (client.SrvAt GF))
+theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions]
+    (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG)) (tp : Loc) (ms : List (client.SrvAt GF))
     (γk : KVNames) (hsame : ∀ x ∈ ms, kvSame x.γr.kv γk) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (ev rev : w64)
     (Q : KVState → IProp GF) (hb : b.model = casClientTxn ev rev) :
@@ -128,7 +131,7 @@ theorem cas_commit [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc) (ms : List 
       rw [hw]
       iexact H
   ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-  iapply (client.v3.txn.wp_CommitM tp ms ci cd b (W64 0) [] Q) $$ [Hobj Hau' Hone]
+  iapply (wp_CommitM tp ms ci cd b (W64 0) [] Q) $$ [Hobj Hau' Hone]
   · iframe Hobj
     iframe #
     isplitl []
@@ -210,7 +213,13 @@ theorem Compact.wp_proof
     (wp_GetResponseRange : EtcdGrove.ResponseOp.GetResponseRange.spec (GF := GF) (hG := hG))
     (wp_Endpoints : EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG))
     (wp_V : EtcdGrove.klog.V.spec (GF := GF) (hG := hG))
-    (wp_Infof : EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG)) :
+    (wp_Infof : EtcdGrove.klog.Verbose.Infof.spec (GF := GF) (hG := hG))
+    (wp_Txn : EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG))
+    (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
+    (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
+    (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
+    (wp_CommitM : EtcdGrove.txn.Commit.specM (GF := GF) (hG := hG))
+    (h_client_Compact_kv : client.client_Compact_kv.law (GF := GF) (hG := hG)) :
     Compact.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γk ci cd Seen recorded _ _ ev rev hsame hcmp hcret
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hko, #Hctx, #Hce, #Hcas, #Hev, #Hrev⟩
@@ -295,7 +304,7 @@ theorem Compact.wp_proof
   ihave #Hwo := client.clientWriteOnce_api cl api _ $$ [Hkvf Hone]
   · iframe #
   wp_auto
-  wp_apply (client.v3.kv.wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
+  wp_apply (wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
   · iframe #
   subst Ht
   ihave Htwo : client.txnWriteOnce tp (ms.map client.SrvAt.addr) $$ []
@@ -303,20 +312,20 @@ theorem Compact.wp_proof
     iunfold client.writeOnce at Hwo
     iexact Hwo
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty csl
+  wp_apply (wp_If tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty csl
       [compareM (cmpKeyM .version compactRevKey) .eq (.num ev)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply ((EtcdGrove.txn.Then.spec_plain wp_Then) tp (ms.map client.SrvAt.addr) ci cd _ tsl
       [opPutModel compactRevKey (fmtInt rev (W64 10)) []]
       [.put compactRevKey (fmtInt rev (W64 10)) (W64 0)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; exact ⟨rfl, rfl, rfl⟩
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) ci cd _ esl
+  wp_apply ((EtcdGrove.txn.Else.spec_plain wp_Else) tp (ms.map client.SrvAt.addr) ci cd _ esl
       [opGetModel compactRevKey []] [.get (opGetModel compactRevKey [])]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -330,7 +339,7 @@ theorem Compact.wp_proof
   ihave #Hcas' := Hcas
   iunfold casOk at Hcas'
   ihave Hau := Hcas' $$ %ev %rev Hev Hrev
-  wp_apply (cas_commit tp ms γk hsame ci cd ⟨casClientTxn ev rev, true, true, true⟩ ev rev
+  wp_apply (cas_commit wp_CommitM tp ms γk hsame ci cd ⟨casClientTxn ev rev, true, true, true⟩ ev rev
       (casPost γk Seen recorded ev rev) rfl) $$ [Hobj Hau Htwo]
     as %resp %err Hout
   · iframe #
@@ -474,7 +483,7 @@ theorem Compact.wp_proof
     ihave #Hko' := Hko
     iunfold clientKvOk at Hko'
     icases Hko' with ⟨%api', %dup, #Hkvf', #HkvOk⟩
-    wp_apply (client.client_Compact_kv cl api' γk dup ci cd rev (by word) hcmp) $$ []
+    wp_apply (h_client_Compact_kv cl api' γk dup ci cd rev (by word) hcmp) $$ []
       as %cresp %cerr Hcout
     · iframe #
       rw [hcret]

@@ -316,12 +316,6 @@ def Perennial.go_opentelemetry_io.otel.trace.embedded.get_isPkgInit_wf_inst : Ge
 theorem Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec_persistent (c : GoInterfaceOk)
     : Persistent (go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec c)
 
-def Perennial.github_com.dustin.go_humanize.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
-    pkg_id.github_com.dustin.go_humanize :=
-  {
-    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
-      get_is_pkg_init pkg_id.github_com.dustin.go_humanize = isPkgInit pkg_id.github_com.dustin.go_humanize ∧ True }
-
 def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.counterSpec (c : GoInterfaceOk) : IProp GF :=
   iprop((□
         □
@@ -379,10 +373,6 @@ def Perennial.go_etcd_io.etcd.pkg.v3.schedule.isPkgInit_inst : IsPkgInit (IProp 
           isPkgInit pkg_id.sync ∗
             isPkgInit pkg_id.go_uber_org.zap ∗ isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗ True),
     isPkgInitDef := iprop(True) }
-
-def Perennial.github_com.dustin.go_humanize.isPkgInit_inst : IsPkgInit (IProp GF)
-    pkg_id.github_com.dustin.go_humanize :=
-  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec (g : GoInterfaceOk) : IProp GF :=
   iprop((□

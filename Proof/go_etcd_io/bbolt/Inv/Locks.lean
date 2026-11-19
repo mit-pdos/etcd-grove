@@ -12,11 +12,12 @@ sealed predicates cannot.)
 module
 
 public import Proof.go_etcd_io.bbolt.Inv.Freelist
-public import Proof.go_etcd_io.bbolt.Model.Store
+public import Proof.go_etcd_io.bbolt.Model.StoreFl
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.GooseLang.Receipts
 public import Proof.os.Base
 public import Perennial.Ghost.DGhostVar
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -29,6 +30,34 @@ namespace bbolt
 open Fs
 
 open Iris Iris.BI go_etcd_io.bbolt
+
+section size
+variable [GooseExts] [ExtSemantics fsExt]
+
+/-- **The file's size bounds** (session S3g; `wdbOK`'s clause): at most `maxMapSize`, the mapping
+inside the model's address space (`maxAddr = 2 ^ 47`), and, unless the file model failed in a way
+the premises exclude, whole pages. -/
+def wdbSz (m : OsMeta) (ms : MapSt) : Prop :=
+  m.size ≤ 0xFFFFFFFFFFFF ∧ mapLen ms ≤ 0x800000000000 ∧ (FsNoErr → m.size % 4096 = 0)
+
+theorem wdbSz.lt {m : OsMeta} {ms : MapSt} (h : wdbSz m ms) : m.size < 2 ^ 62 := by
+  have := h.1; omega
+
+theorem wdbSz.written {m m' : OsMeta} {ms : MapSt} (h : wdbSz m ms)
+    (h2 : m'.size ≤ max m.size (mapLen ms)) (hal : FsNoErr → m'.size = m.size ∨ m'.size % 4096 = 0) :
+    wdbSz m' ms := by
+  obtain ⟨h1, hl, h3⟩ := h
+  refine ⟨by omega, hl, fun hf => ?_⟩
+  rcases hal hf with e | e
+  · rw [e]; exact h3 hf
+  · exact e
+
+theorem wdbSz.congr {m m' : OsMeta} {ms ms' : MapSt} (h : wdbSz m ms) (hs : m'.size = m.size)
+    (hl : mapLen ms' = mapLen ms) : wdbSz m' ms' := by
+  obtain ⟨h1, h2, h3⟩ := h
+  exact ⟨by omega, by omega, fun hf => by rw [hs]; exact h3 hf⟩
+
+end size
 
 section locks
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -162,31 +191,50 @@ def spareTok (B : BNs) : IProp GF := iprop(ghostVar B.spr (1 : Qp).half (none : 
 /-- **`metalock`'s resource**: half of the committed state and a quarter of the data, the
 closed flag, halves of `opened`/`freelist`/`ops.writeAt`, half of the meta slots' page-cache
 bytes (while open), the meta-borrow token `mlk`, the readers' txids `F` with the freelist's
-reader part, and, while open, the committed state's well-formedness; the txids are at least 1
+reader part, the persistent time receipt of the committed txid (session bbolt-inv: at least that
+many counted steps were taken, so the txid is below `receiptBound GF ≤ 2 ^ 62`, what `fileHolds`
+and `boltImage` ask of a file's txid when `Close` and `Tx.WriteTo` give one out; `Commit`'s meta
+write raises it), and, while open, the committed state's well-formedness (session S4: with the
+high-water mark's pages inside `maxMapSize`, what a reader's `Tx.WriteTo` image asks); the txids are at least 1
 (U3 finding 6: `ReleasePendingPages` computes `t - 1` of each, which wraps at 0). -/
 def metaR (B : BNs) (db : Loc) (p : BFile) : IProp GF :=
   iprop(∃ (C : CommitSt) (F : GMap Nat w64) (cl : Bool) (fli : GoInterface) (wa : GoFunc),
     ghostVar B.cur (1 : Qp).half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
-    ghostVar B.cls (1 : Qp).half cl ∗
+    ghostVar B.cls (1 : Qp).half.half cl ∗
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} (!cl) ∗
     db.[DB, go!"freelist"] ↦{DFrac.own (1 : Qp).half} fli ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half} wa ∗
     (if cl then iprop(emp) else metaOsBytes p (DFrac.own (1 : Qp).half) C) ∗
-    ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗
-    ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
+    ghostVar B.mlk 1 () ∗ fltxAuth B F ∗ flRoOpt fli F ∗ ⧖ C.txid ∗
+    ⌜cl = false → C.metaOk ∧ treeOK C ∧ 1 ≤ C.txid ∧ C.hwm * 4096 ≤ 0xFFFFFFFFFFFF⌝ ∗ ⌜∀ k t, F !! k = some t → 1 ≤ t.toNat ∧ t.toNat ≤ C.txid⌝)
 
 /-! ## `mmaplock` and `statlock` -/
 
+/-- **A share of the database's file handle** (session S4, for `Tx.WriteTo`'s reads of the file
+through `db.file`, S4a's blocker 1): `db.file` is `f` (not nil while mapped), the inode `i` the
+receipts' base records (`B.t0`'s discarded fragment, `t0At`, so that a holder knows the inode is
+the database's) and, unless `f` is nil (a closed database), the `*os.File` `f` open on `fd`, named
+`nm`, its descriptor the database's (`dbFd i`). `mmaplock`'s resource holds `q / 2` of it (`Pm q`),
+the writer side the other half (`wdbCoreG`); `close` (all three locks) gathers it. Each
+existential is determined by its resources (for `Pm_fractional`). -/
+def pmFile (B : BNs) (db : Loc) (dq : DFrac) (ms : MapSt) : IProp GF :=
+  iprop(∃ f : Loc, db.[DB, go!"file"] ↦{dq} f ∗ ⌜ms ≠ none → f ≠ null⌝ ∗
+    ∃ ti : Nat × Ino, ghostMapElem B.t0 () DFrac.discard ti ∗
+    if f = null then iprop(emp)
+    else iprop(∃ fn : w64 × GoString, fileOwn f fn.1 fn.2 dq ∗ osFd fn.1 dq (dbFd ti.2)))
+
 /-- **`mmaplock`'s guarded resource** at fraction `q` (`RLock` gives `Pm rfrac`, `Lock` gives
-`Pm 1`): a share of the mapping's state and fields, and `q` of the token `mtok`. -/
+`Pm 1`): a share of the mapping's state and fields, and `q` of the token `mtok`, and (session S4)
+`q / 2` of the file handle (`pmFile`; mapped implies open: a nil `db.file` only unmapped). -/
 def Pm (B : BNs) (db : Loc) (q : Qp) : IProp GF :=
   iprop(∃ ms : MapSt, ghostVar B.map q.half.half ms ∗ mapFields db (DFrac.own q.half) ms ∗
-    ghostVar B.mtok q ())
+    ghostVar B.mtok q () ∗ pmFile B db (DFrac.own q.half) ms)
 
 /-- `mmaplock`'s resource without the token (what a registered reader keeps: its `mtok rfrac`
 is deposited in `pagesInv`). -/
 def PmNoTok (B : BNs) (db : Loc) (q : Qp) : IProp GF :=
-  iprop(∃ ms : MapSt, ghostVar B.map q.half.half ms ∗ mapFields db (DFrac.own q.half) ms)
+  iprop(∃ ms : MapSt, ghostVar B.map q.half.half ms ∗ mapFields db (DFrac.own q.half) ms ∗
+    pmFile B db (DFrac.own q.half) ms)
 
 /-- **`statlock`'s guarded resource**: the database's statistics (none if `db.stats` is nil). -/
 def Ps (sp : Loc) (q : Qp) : IProp GF :=
@@ -218,9 +266,7 @@ structure WDb where
   f : Loc
   fd : w64
 
-/-- The bytes of the extent starting at slot `f`, read from the slots' bytes `wb`. -/
-def extentBytes (wb : Nat → List w8) (f : Nat) : List w8 :=
-  (List.range' f (1 + pageOverflow (wb f))).flatMap wb
+-- `extentBytes`: `Model/StoreFl.lean` (session S4).
 
 /-- The writer's cells of the `W` slots inside the mapping (batch 24: after `DB.grow` the file
 may extend past the mapping; a slot past it has only its page-cache bytes, `wBytes`, until a
@@ -244,6 +290,18 @@ def wBytes (p : BFile) (W : List Nat) (wb : Nat → List w8) (size : Nat) : IPro
       iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own 1) xs ∗
         ⌜xs.map Prod.fst = (wb s).take (size - 4096 * s)⌝)
     else iprop(emp))
+
+/-- Half of the page-cache bytes of slot `s` of the file `p`, holding `bs` (session S4: the synced
+freelist page's, which the store holds the other half of while the page is the committed state's
+and not freed, `flxS`). -/
+def osSlotH (p : BFile) (s : Nat) (bs : List w8) : IProp GF :=
+  iprop(∃ xs : List ByteG, osBytes p.ino (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
+    ⌜xs.map Prod.fst = bs⌝)
+
+/-- The `W` slots `W` but `X` (as `wBytes`), and half of the slots `X`' bytes (session S4: `X` the
+synced freelist page's extent while it is the store's half, `flxS`; the writer never writes it). -/
+def wBytesX (p : BFile) (W X : List Nat) (wb : Nat → List w8) (size : Nat) : IProp GF :=
+  iprop(wBytes p (W.filter (fun s => decide (s ∉ X))) wb size ∗ [∗list] s ∈ X, osSlotH p s (wb s))
 
 /-- **The writer side's facts** (design §3.5). -/
 def wdbOK (w : WDb) : Prop :=
@@ -275,8 +333,14 @@ def wdbOK (w : WDb) : Prop :=
   -- allocated pages are then below `tx.meta.Pgid()`, its panic check)
   (∀ x ∈ w.fl.free, x.toNat < w.C.hwm) ∧
   -- batch 37 (U4d): the file's size is an `int64` (`DB.fileSize`'s `Stat`; `Open` reads it,
-  -- `DB.grow` truncates to an `int64`)
-  w.m.size < 2 ^ 63 ∧
+  -- `DB.grow` truncates to an `int64`); session S3g: at most `maxMapSize`, as `fileHoldsM` asks, so
+  -- that `Close` gives back a file `Open` can reopen: `Open`'s file is; a mapping fits the model's
+  -- address space (`maxAddr = 2 ^ 47`: every mapped cell is a heap cell below it), `DB.grow` truncates
+  -- to at most the mapping plus a page plus `AllocSize` (`2 ^ 47 + 2 ^ 12 + 2 ^ 24`), a write ends
+  -- inside the mapping or the file; and, unless the file model failed in a way the premises exclude,
+  -- whole pages (`fileHolds` asks it: `Open`'s file is, `DB.grow` truncates to whole pages, a
+  -- commit's write lands whole pages, or fails at `maxBytes`, page-aligned)
+  wdbSz w.m w.ms ∧
   -- batch 37 (U4d): a file past the mapping ends on a page (its partial last page would have no
   -- owner; bbolt never makes such a file: `Open` maps at least the file, `DB.grow` above
   -- `AllocSize` truncates to whole pages)
@@ -305,16 +369,18 @@ def wdbCoreG (B : BNs) (db : Loc) (p : BFile) (rw : Loc) (ws : WSt) (mq : Qp) (w
     db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true ∗
     (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
       methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f ∗
-    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦ w.f ∗ dbPathLk db p w.fd ∗
+    db.[DB, go!"rwtx"] ↦ rw ∗ db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f ∗
+    dbPathLk db p w.fd ∗
     db.[DB, go!"datasz"] ↦ W64 (mapLen w.ms : Int) ∗
     mapFields db (DFrac.own mq) w.ms ∗
-    osMeta p.ino (DFrac.own 1) w.m ∗ fileOwn w.f w.fd p.path (DFrac.own 1) ∗
-    osFd w.fd (DFrac.own 1) (dbFd p.ino) ∗
+    osMeta p.ino (DFrac.own 1) w.m ∗ fileOwn w.f w.fd p.path (DFrac.own (1 : Qp).half) ∗
+    osFd w.fd (DFrac.own (1 : Qp).half) (dbFd p.ino) ∗
     metaCellsQ (1 : Qp).half.half w.ms w.C ∗ metaOsBytes p (DFrac.own (1 : Qp).half) w.C ∗
-    wCells w.ms w.W ∗ wBytes p w.W w.wb w.m.size ∗
+    wCells w.ms w.W ∗ wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size ∗
     (match w.junk with
-     | some (jb, jl) => iprop(∃ vf, cellsR jb 0 jl vf)
-     | none => iprop(emp)))
+     | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true ∗
+         ⌜¬ FsNoErr⌝)
+     | none => iprop(dghostVar B.nf (DFrac.own 1) false)))
 
 /-- The idle writer side's core: no `rwtx`, no live writer. -/
 def wdbCore (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
@@ -341,9 +407,11 @@ def wdbOpen (B : BNs) (db : Loc) (p : BFile) (w : WDb) : IProp GF :=
     ⌜w.fl = FLPg.empty ∧ w.fli = interface.nil⌝)
 
 /-- **A closed database's writer side**: the other halves of the ghost state and of the fields
-`Close` wrote. -/
+`Close` wrote, and the closer token (session S3f: every `Close` takes the client's `boltCloser`
+and deposits it here, so that its holder knows the database open). -/
 def closedR (B : BNs) (db : Loc) : IProp GF :=
-  iprop(ghostVar B.cls (1 : Qp).half true ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
+  iprop(ghostVar B.cls (1 : Qp).half true ∗
+    ghostVar B.clo 1 () ∗ ∃ (C : CommitSt) (fl : FLPg) (ms : MapSt),
     ghostVar B.cur (1 : Qp).half.half C ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
     ghostVar B.fl (1 : Qp).half fl ∗ ghostVar B.map (1 : Qp).half ms ∗
     mapFields db (DFrac.own (1 : Qp).half) ms ∗
@@ -358,6 +426,98 @@ def rwR (B : BNs) (db : Loc) (p : BFile) (sp : Loc) (t0 : Nat) : IProp GF :=
     closedR B db)
 
 /-! ## Lemma statements (U3, U4, U5) -/
+
+/-- An existential whose witness its resources determine is fractional. -/
+theorem fracEx {X : Type} (Φ : X → Qp → IProp GF) (hfrac : ∀ x, Fractional (Φ x))
+    (hagree : ∀ x y q1 q2, Φ x q1 ∗ Φ y q2 ⊢ ⌜x = y⌝) :
+    Fractional (fun q => iprop(∃ x, Φ x q)) := by
+  refine ⟨fun p q => ⟨?_, ?_⟩⟩
+  · iintro ⟨%x, H⟩
+    icases ((hfrac x).fractional p q).1 $$ H with ⟨H1, H2⟩
+    isplitl [H1]
+    · iexists x; iexact H1
+    · iexists x; iexact H2
+  · refine (sep_exists_right.1).trans (exists_elim fun x => ?_)
+    refine (sep_exists_left.1).trans (exists_elim fun y => ?_)
+    refine (and_intro (hagree x y p q) .rfl).trans (pure_elim_left fun h => ?_)
+    subst h
+    exact ((hfrac x).fractional p q).2.trans (exists_intro (Ψ := fun x => Φ x (p + q)) x)
+
+theorem fileOwn_fractional (f : Loc) (fd : w64) (nm : GoString) :
+    Fractional (fun q : Qp => fileOwn (GF := GF) f fd nm (DFrac.own q)) where
+  fractional q1 q2 := by
+    have hfr : ∀ inner : Loc, Fractional (fun q : Qp =>
+        (structFieldRef os.file go!"fd" inner ↦{DFrac.own q} fd : IProp GF)) := fun inner =>
+      fractional_of_dfractional (fun dq => (structFieldRef os.file go!"fd" inner ↦{dq} fd : IProp GF))
+    refine ⟨?_, ?_⟩
+    · unfold fileOwn
+      iintro ⟨%inner, #Hf, Hfd, #Hn⟩
+      icases ((hfr inner).fractional q1 q2).1 $$ Hfd with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists inner; iframe; iframe #
+      · iexists inner; iframe; iframe #
+    · unfold fileOwn
+      iintro ⟨⟨%inner, #Hf, Hfd1, #Hn⟩, ⟨%inner2, #Hf2, Hfd2, #Hn2⟩⟩
+      icombine Hf Hf2 gives %Heq
+      cases Heq
+      iexists inner
+      iframe #
+      iapply ((hfr inner).fractional q1 q2).2
+      iframe
+
+/-- Two shares of the file handle agree on the descriptor and the name. -/
+theorem fileOwn_agree (f : Loc) (fd fd' : w64) (nm nm' : GoString) (dq1 dq2 : DFrac) :
+    fileOwn (GF := GF) f fd nm dq1 ∗ fileOwn f fd' nm' dq2 ⊢ ⌜fd = fd' ∧ nm = nm'⌝ := by
+  unfold fileOwn
+  iintro ⟨⟨%i1, #Hf1, Hd1, #Hn1⟩, ⟨%i2, #Hf2, Hd2, #Hn2⟩⟩
+  icombine Hf1 Hf2 gives %Heq
+  cases Heq
+  icombine Hd1 Hd2 gives %h1
+  icombine Hn1 Hn2 gives %h2
+  ipureintro
+  exact ⟨by first | exact h1.2 | exact h1, by first | exact h2.2 | exact h2⟩
+
+/-- Two shares of a descriptor agree on its description. -/
+theorem osFd_agree' (fd : w64) (dq1 dq2 : DFrac) (d1 d2 : OsFd) :
+    osFd (GF := GF) fd dq1 d1 ∗ osFd fd dq2 d2 ⊢ ⌜d1 = d2⌝ := by
+  unfold osFd
+  iintro ⟨H1, H2⟩
+  ihave %h := gFdElem_valid_2 _ _ _ _ _ _ $$ H1 H2
+  ipureintro; exact h.2
+
+theorem pmFile_fractional (B : BNs) (db : Loc) (ms : MapSt) :
+    Fractional (fun q => pmFile (GF := GF) B db (DFrac.own q) ms) := by
+  unfold pmFile
+  refine fracEx _ (fun f => ?_) (fun x y q1 q2 => ?_)
+  · have h1 : Fractional (fun q : Qp => (db.[DB, go!"file"] ↦{DFrac.own q} f : IProp GF)) :=
+      fractional_of_dfractional (fun dq => (db.[DB, go!"file"] ↦{dq} f : IProp GF))
+    have h2 : Fractional (fun q : Qp => iprop(∃ ti : Nat × Ino,
+        ghostMapElem (GF := GF) B.t0 () DFrac.discard ti ∗
+        if f = null then iprop(emp)
+        else iprop(∃ fn : w64 × GoString, fileOwn f fn.1 fn.2 (DFrac.own q) ∗
+          osFd fn.1 (DFrac.own q) (dbFd ti.2)))) := by
+      refine fracEx _ (fun ti => ?_) (fun a b q1 q2 => ?_)
+      · by_cases hf : f = null
+        · simp only [hf, ↓reduceIte]; infer_instance
+        · simp only [hf, ↓reduceIte]
+          have : Fractional (fun q : Qp => iprop(∃ fn : w64 × GoString,
+              fileOwn (GF := GF) f fn.1 fn.2 (DFrac.own q) ∗ osFd fn.1 (DFrac.own q) (dbFd ti.2))) := by
+            refine fracEx _ (fun fn => ?_) (fun a b q1 q2 => ?_)
+            · have := fileOwn_fractional (GF := GF) f fn.1 fn.2
+              have := osFd_fractional (GF := GF) fn.1 (dbFd ti.2)
+              infer_instance
+            · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+              ihave %h := fileOwn_agree f a.1 b.1 a.2 b.2 _ _ $$ [H1 H2]
+              · iframe
+              ipureintro; exact Prod.ext h.1 h.2
+          infer_instance
+      · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+        icombine H1 H2 gives %h
+        ipureintro; exact h.2
+    infer_instance
+  · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
+    icombine H1 H2 gives %h
+    ipureintro; exact (by first | exact h.2 | exact h)
 
 theorem Pm_fractional (B : BNs) (db : Loc) : Fractional (Pm (GF := GF) B db) := by
   have fea : ∀ {X : Type} (Φ : X → Qp → IProp GF), (∀ x, Fractional (Φ x)) →
@@ -388,6 +548,8 @@ theorem Pm_fractional (B : BNs) (db : Loc) : Fractional (Pm (GF := GF) B db) := 
           p.half q.half⟩
     have h3 : Fractional (fun q : Qp => ghostVar (GF := GF) B.mtok q ()) :=
       ghostVar_fractional _ _
+    have h4 : Fractional (fun q : Qp => pmFile (GF := GF) B db (DFrac.own q.half) ms) :=
+      ⟨fun p q => by rw [Qp_half_add]; exact (pmFile_fractional B db ms).fractional _ _⟩
     infer_instance
   · iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
     icombine H1 H2 gives %H

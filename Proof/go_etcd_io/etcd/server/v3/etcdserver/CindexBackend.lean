@@ -301,7 +301,7 @@ theorem hookTM_put_ci (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF) 
   have hhk : P.hk mvcc.metaBI.name schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   have hhk' : P.hk schema.metaName schema.ciKeyBytes = true := ciKeys_hk hP (Or.inl rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.ciKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
+      (by decide) (by decide) (by rw [u64Be_length]; decide) hpend hSB (fun h => absurd h (by decide)) false false)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
     rw [fkPut_eq γ _ _ (by decide)]
@@ -368,7 +368,7 @@ theorem hookTM_put_term (hPut : backend.batchTxBuffered.UnsafePut.spec (GF := GF
   have hhk : P.hk mvcc.metaBI.name schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   have hhk' : P.hk schema.metaName schema.termKeyBytes = true := ciKeys_hk hP (Or.inr rfl)
   wp_apply (hPut γ P W Pk b t st bk mvcc.metaBI key val schema.termKeyBytes (u64Be x) hP.1
-      (by decide) (by decide) hpend hSB (fun h => absurd h (by decide)) false false)
+      (by decide) (by decide) (by rw [u64Be_length]; decide) hpend hSB (fun h => absurd h (by decide)) false false)
     $$ [$Hb $Ht $Hl $Hbk $Hkey $Hval Hhk] as ⟨Hl, Hhk, -, -⟩
   · iframe #
     rw [fkPut_eq γ _ _ (by decide)]
@@ -445,7 +445,7 @@ theorem hookTM_range (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) 
   irevert Hout
   rw [cursorRange_single _ _ _ (bktEnts_sorted _), lastVal_bktEnts]
   iintro Hout
-  imod mvcc.kvsOutRd_keyVals st.tx ks vs _ kn $$ Hout with #Hkv
+  imod mvcc.kvsOutRd_keyVals γ.db st.tx ks vs _ kn $$ Hout with #Hkv
   have hv : (bktOf st.S schema.metaName).lookup kn = encMeta (sel m) := by
     rw [← dget_eq_bktOf]; exact hsel st.S m hm
   ihave #Hkv2 := keyVals_enc hv $$ Hkv

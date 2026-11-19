@@ -28,10 +28,11 @@ theorem mvcc.storeTxnWrite.DeleteRange.wp_proof
     (hdel : mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.DeleteRange.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key endk k e L crev Z
-  wp_start as ⟨Htw, #Hkey, #Hend, Hown⟩
+  wp_start as ⟨Htw, #Hkey, #Hend, Hown, %Hfit⟩
   (try wp_auto)
   wp_apply (hdel trace tw s γ ilog pend key endk k e L crev Z) $$ [$Htw $Hkey $Hend $Hown]
     as ⟨Htw, Hown⟩
+  · ipureintro; exact Hfit
   (try wp_auto)
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

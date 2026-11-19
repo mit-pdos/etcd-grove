@@ -5,6 +5,23 @@
 def backend.viewAt (γ : backend.BNames) (vd : backend.VData) : IProp GF :=
   iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L)
 
+theorem backend.txLive_split_half (tx : Loc) (γd : backend.DBNames) (q : Qp) (T : bbolt.TxView) :
+    backend.txLive tx γd q T ⊣⊢ backend.txLive tx γd q.half T ∗ backend.txLive tx γd q.half T
+
+def backend.snapAt (sp : Loc) (γ : GName) (tx : Loc) (γd : backend.DBNames) : IProp GF :=
+  iprop(∃ sc dc γsc γdc,
+      typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"Tx" sp) tx
+          DFrac.discard ∗
+        typedPointsto
+            (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"stopc" sp) sc
+            DFrac.discard ∗
+          typedPointsto
+              (structFieldRef go_etcd_io.etcd.server.v3.storage.backend.snapshot go!"donec" sp) dc
+              DFrac.discard ∗
+            ownBroadcastChan sc γsc iprop(True) Broadcast.Unknown ∗
+              ownBroadcastChan dc γdc iprop(True) Broadcast.Unknown ∗
+                inv backend.snapN iprop(ownBroadcastChan sc γsc iprop(True) Broadcast.Pending ∨ ghostVar γ 1 (tx, γd)))
+
 def backend.viewAtD (γ : backend.BNames) (P : backend.BParams) (vd X : backend.VData) : IProp GF :=
   iprop(∃ L, backend.viewQ γ (Qp.half 1).half vd L ∗ ⌜backend.dlVd P vd L X⌝)
 
@@ -16,36 +33,24 @@ theorem backend.viewAtD_viewAt (γ : backend.BNames) (P : backend.BParams) (vd X
     backend.viewAtD γ P vd X ⊢ backend.viewAt γ vd
 
 def backend.snapOpenQ (sp : Loc) (D : backend.Data) (γ : GName) (q : Qp) : IProp GF :=
-  iprop(□ backend.snapRO sp D γ ∗ ghostVar γ q ())
+  iprop(∃ tx γd, backend.snapAt sp γ tx γd ∗ ghostVar γ q (tx, γd) ∗ backend.txLive tx γd q (bbolt.TxView.ro D))
+
+theorem backend.snapAt_persistent (sp : Loc) (γ : GName) (tx : Loc) (γd : backend.DBNames) :
+    Persistent (backend.snapAt sp γ tx γd)
 
 def (sealed) backend.readerStreams (r : GoInterface) (Φ : List w8 → Prop) : IProp GF
-
-def (sealed) backend.pathOwn (p : GoString) : IProp GF
 
 def backend.snapOpen (sp : Loc) (D : backend.Data) : IProp GF :=
   iprop(∃ γ, backend.snapOpenQ sp D γ 1)
 
-theorem backend.writerOk_persistent (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) :
-    Persistent (backend.writerOk w Wr)
-
-def (sealed) backend.boltImage (bs : List w8) (D : backend.Data) : Prop
-
-def (sealed) backend.snapRO (sp : Loc) (D : backend.Data) (γ : GName) : IProp GF
+def backend.boltImage (bs : List w8) (D : backend.Data) : Prop :=
+  bbolt.boltImage bs D
 
 def backend.writerOk (w : GoInterfaceOk) (Wr : Bool → List w8 → IProp GF) : IProp GF :=
-  iprop(□
-      ∀ p dq chunk bs c,
-        □
-          ∀ Φ,
-            ownSlice p chunk dq ∗ Wr c bs -∗
-              (▷
-                  ∀ n err,
-                    (∃ k,
-                        ownSlice p chunk dq ∗
-                          Wr true (bs ++ List.take k chunk) ∗
-                            ⌜sint.Z n = ↑k ∧ k ≤ chunk.length ∧ (err = GoInterface.nil → k = chunk.length)⌝) -∗
-                      Φ (intoVal n, intoVal err)) -∗
-                WP ((intoVal (methods w.ty go!"Write" w.v)) (intoVal p)) {{ Φ }})
+  io.writerOk w Wr
+
+def backend.snapN : Namespace :=
+  backend.bN.@"snap"
 
 theorem backend.snapOpenQ_half (sp : Loc) (D : backend.Data) (γ : GName) (q : Qp) :
     backend.snapOpenQ sp D γ q ⊣⊢ backend.snapOpenQ sp D γ q.half ∗ backend.snapOpenQ sp D γ q.half

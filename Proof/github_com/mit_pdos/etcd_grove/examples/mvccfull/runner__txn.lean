@@ -76,7 +76,7 @@ theorem runner.txn.wp_proof
   · ihave #Hc3 := Hctx
     iunfold writerCtx at Hc3
     icases Hc3 with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, %H⟩
-    ipureintro; exact H.2.2
+    ipureintro; exact H.2.2.1
   iunfold rnCtx at Hrn
   icases Hrn with ⟨#Hpkg, #Hpm, #Hkeys, %Hkne, #HrH, -⟩
   ihave #HrH2 := HrH

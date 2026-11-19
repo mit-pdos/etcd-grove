@@ -115,7 +115,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
 public import Proof.ReceiptTactics
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerShared
 
 @[expose] public section
 
@@ -134,79 +135,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- A blank struct field's conjunct (`"_" ∷ True`, which `iNamed` leaves anonymous) renamed to be
-cleared (`"-"`): `wp_for` names every hypothesis of the context. -/
-theorem named_blank_clear {A : Type _} (P : A) : Perennial.named "_" P = Perennial.named "-" P := rfl
-
-/-- `leadTimeMu`'s resource is fractional (for `sync.init_RWMutex`). -/
-instance leadTimeP_fractional (s : Loc) : Fractional (leadTimeP (GF := GF) s) := by
-  unfold leadTimeP
-  exact fractional_exists_agree
-    (fun (t : time.Time) q => iprop(structFieldRef EtcdServer go!"leadElectedTime" s ↦{DFrac.own q} t))
-    (fun t => fractional_of_dfractional
-      (fun dq => typedPointsto (structFieldRef EtcdServer go!"leadElectedTime" s) t dq))
-    (fun x y q1 q2 => by
-      iintro ⟨H1, H2⟩
-      icombine H1 H2 gives %H
-      ipureintro; exact H)
-
-/-- `bemu`'s resource is fractional (for `sync.init_RWMutex`); (D22 receiver epochs, S7b) the
-witnesses agree by the current backend's ghost variable. -/
-instance bemuP_fractional (s : Loc) (γbe : GName) : Fractional (bemuP (GF := GF) s γbe) where
-  fractional p q := by
-    -- (R6, 2026-11-07) the ghost variable records the backend's key `bkKey d`, so two parts'
-    -- witnesses agree on `d.be` (all the points-to reads), and the first's is kept
-    have hpt : ∀ (be : Loc) (r1 r2 : Qp),
-        (srvBeAddr s ↦{DFrac.own (r1 + r2).half} srvBeIface be : IProp GF) ⊣⊢
-          srvBeAddr s ↦{DFrac.own r1.half} srvBeIface be ∗
-            srvBeAddr s ↦{DFrac.own r2.half} srvBeIface be := fun be r1 r2 => by
-      rw [show (r1 + r2).half = r1.half + r2.half from Subtype.ext (by grind)]
-      exact (fractional_of_dfractional
-        (fun dq => typedPointsto (GF := GF) (srvBeAddr s) (srvBeIface be) dq)).fractional
-          r1.half r2.half
-    have hgv : ∀ (k : backend.BNames × Loc) (r1 r2 : Qp),
-        (dghostVar γbe (DFrac.own (r1 + r2).half) k : IProp GF) ⊣⊢
-          dghostVar γbe (DFrac.own r1.half) k ∗ dghostVar γbe (DFrac.own r2.half) k :=
-      fun k r1 r2 => by
-        rw [show (r1 + r2).half = r1.half + r2.half from Subtype.ext (by grind)]
-        exact (dghostVar_fractional (GF := GF) γbe k).fractional r1.half r2.half
-    unfold bemuP
-    constructor
-    · iintro ⟨%d, Hp, Hg, #Hro⟩
-      icases (hpt d.be p q).1 $$ Hp with ⟨Hp1, Hp2⟩
-      icases (hgv (bkKey d) p q).1 $$ Hg with ⟨Hg1, Hg2⟩
-      isplitl [Hp1 Hg1]
-      · iexists d; iframe Hp1 Hg1 Hro
-      · iexists d; iframe Hp2 Hg2 Hro
-    · iintro ⟨⟨%d, Hp1, Hg1, #Hro⟩, ⟨%d', Hp2, Hg2, -⟩⟩
-      ihave %Hk := dghostVar_agree γbe (bkKey d) _ (bkKey d') _ $$ Hg1 Hg2
-      have hbe : d'.be = d.be := (congrArg Prod.snd Hk).symm
-      rw [← Hk] at *
-      rw [hbe]
-      iexists d
-      iframe Hro
-      isplitl [Hp1 Hp2]
-      · iapply (hpt d.be p q).2; iframe Hp1 Hp2
-      · iapply (hgv (bkKey d) p q).2; iframe Hg1 Hg2
-
-/-- **The auth history's tie to the log, allocated** (H5): the auth store's cap at its two boot
-states, and the log's empty lower bound, give the tie at the empty log (`srvHist []`). -/
-theorem authHistTie_alloc (E : apply.AEnv GF) (γr : ReadNames) (stl : Loc) (Eu : CoPset) :
-    ⊢ authCapM E.authMode stl -∗ srvRLogLb γr.raft [] ={Eu}=∗ authHistTie E γr srvAuthSt0 := by
-  unfold authCapM authHistTie
-  generalize E.authMode = M
-  cases M with
-  | on γa =>
-    iintro ⟨Hcap, %R, #Hinv⟩ #Hlb
-    imod inv_alloc authTieN Eu (iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
-      auth.capAuth γa (auth.bootState :: admStates γr.kv srvAuthSt0 A))) $$ [Hcap] with #Ht
-    · inext; iexists []; iframe Hlb; rw [admStates_nil]; simp only [srvAuthSt0]; iexact Hcap
-    imodintro
-    isplitl []
-    · iexists stl, R; iexact Hinv
-    iexact Ht
-  | _ => iintro - -; imodintro; itrivial
 
 /-- (R2c-2) The compactor's disjunct, its pure part read without consuming it. -/
 private theorem newServer_cmp_peek {a b : Prop} {Q : IProp GF} :
@@ -413,7 +341,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hLSR : cmp = true → backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : cmp = true → backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUP : cmp = true → backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
-    (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
+    (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   haveI := Hp.1
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0
@@ -512,7 +442,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   (try wp_auto)
   -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
-  have hNS := raftNode_of_StartNode (GF := GF) h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
+  have hNS := hNodeStart h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
     h89 h78 h86
   obtain ⟨Hrcfg, Hrhb, Hrlg, Hrid, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (premise-fixes-6) the wrapper's logger the configuration's (`bootOk`'s `Hraft`), a zap logger
@@ -1246,7 +1176,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `srvSnapRm` until then), over the member's removal counter `γt`, allocated here at `0`
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γt, Hγt, -⟩
   -- (restart S6a, M1) its ghost map named by the directory's right (`bootOk`'s `Hsdo`)
-  imod (snapDir_init bs.ss' cfg.DataDir' Hssp γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsdir
+  imod (snapDir_init bs.ss' cfg.DataDir' Hssp γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsfree Hsdir
     with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
@@ -2808,7 +2738,9 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
-    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
+    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
+    -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on :=
   -- `specG` at `cmp = false`: the compaction mode's specs are not asked for
   NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18
@@ -2816,7 +2748,7 @@ theorem NewServer.wp_proofM (on : Bool)
     h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70
     h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88
     h89 h90 h91 h92 h93 h94 h95 hAG hBSC
-    (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
+    (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) hNodeStart
 
 theorem NewServer.wp_proof
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
@@ -2951,7 +2883,9 @@ theorem NewServer.wp_proof
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
-    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
+    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
+    -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := fun cmp =>
   -- `specG` at auth off, in the caller's compaction mode
   NewServer.wp_proofG false cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
@@ -2959,7 +2893,7 @@ theorem NewServer.wp_proof
     h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hBSC
-    (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hCmpS)
+    (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hCmpS) hNodeStart
 
 
 end proof

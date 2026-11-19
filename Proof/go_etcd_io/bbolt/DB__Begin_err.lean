@@ -1,12 +1,13 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/DB__Begin_err.lean` (U5, `notes/bbolt-proof-plan.md`; design
+The internal spec `DB.Begin_err.spec` and its proof (U5, `notes/bbolt-proof-plan.md`; design
 §3.13): the logger (`dbFixed`'s), compared with `discardLogger`; if it is not, a debug line and a
 deferred line of the outcome (`%v` of the error: `beginErr_fmtErrorOk`); then `beginRWTx` or the
 pool-loan `beginTx`.
 -/
 module
 
-public import Spec.go_etcd_io.bbolt.DB__Begin_err
+public import Spec.go_etcd_io.bbolt.Api
+public import Spec.fmt.ErrorOk
 public import Proof.go_etcd_io.bbolt.DB__beginTx
 public import Proof.go_etcd_io.bbolt.DB__beginRWTx
 public import Proof.go_etcd_io.bbolt.Mmap.Logger
@@ -24,6 +25,39 @@ open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 open _root_.Perennial.fmt
+
+/- `DB.Begin_err.spec`: an internal helper spec (session S3f moved it out of `Spec/`): `DB.Begin.spec`
+without the file extension's instance binder (a section variable here); `DB.Begin.wp_proof` is this
+proof's instance. -/
+section spec
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.bbolt.Assumptions]
+
+/-- **The internal `DB.Begin`** (design §3.13, B1): `DB.Begin.spec`'s statement with
+`fmtErrorOk err` in its error branch (every error it returns is an `errors.New` one:
+`ErrDatabaseNotOpen`, `ErrInvalidMapping`, `ErrDatabaseReadOnly`), what `Open` needs to log a
+failed `Begin` with `%v`; and (maintainer 12, item 6) `tx = nil` on an error (`beginTx` and
+`beginRWTx` return `nil, err`; `Open` calls `tx.Commit()` only if `tx != nil`). The frozen `DB.Begin.spec` is its weakening. -/
+abbrev DB.Begin_err.spec : Prop :=
+  ∀ (db : Loc) (γ : BoltName) (w : Bool) (Q : Data → IProp GF),
+  {{ isBolt (GF := GF) db γ ∗
+      (if w then emp else iprop(threadTok ∗
+        AU <{ ∃∃ (q : Qp) (D : Data), boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅
+          <{ boltState γ q D, COMM Q D }>)) }}
+    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Begin")) (Val #w))
+  {{ (tx : Loc) (err : GoInterface), RET (PairV #tx #err);
+      (⌜err = GoInterface.nil⌝ ∗ txDB tx γ db ∗ ∃ D : Data,
+        (if w then boltTx tx γ 1 (TxView.wr D) else iprop(boltTx tx γ 1 (TxView.ro D) ∗ Q D))) ∨
+      (⌜err ≠ GoInterface.nil ∧ tx = null⌝ ∗ fmtErrorOk err ∗
+        (if w then emp else iprop(threadTok ∗
+          AU <{ ∃∃ (q : Qp) (D : Data), boltState γ q D }> @ ⊤ \ ↑γ.ns, ∅
+            <{ boltState γ q D, COMM Q D }>))) }}
+
+end spec
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]

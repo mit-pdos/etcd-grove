@@ -58,8 +58,12 @@ theorem munmapM.wp_proof (hMunmap : golang_org.x.sys.unix.Munmap.spec (GF := GF)
   wp_apply hMunmap base len p.ino m vf hlen hmap $$ [Hm Hc] as %e Hr
   · iframe; iframe #
   try wp_auto
-  iapply HΦ
-  iframe
+  icases Hr with (Hr | ⟨%he, Hr⟩)
+  · iapply HΦ
+    iframe
+  · iapply HΦ
+    iframe
+    iright; iframe Hr; ipureintro; exact he.1
 
 end unmap
 

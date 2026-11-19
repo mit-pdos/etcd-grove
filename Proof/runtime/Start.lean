@@ -50,15 +50,11 @@ the premise is `goose_adequacy`'s premise and the conclusion its conclusion.
 its environment that the model cannot state, hypotheses of a closed theorem: pure, D19a); the
 adequacy example's are checked from the Go source (`notes/decisions.md`, D19d).
 
-(2026-11-08, mvccrand's closed theorem, the user's decision) It also receives `fileHolds f ∅`, the
-backend's database file at `f` holding nothing, for each path of `Fs` (`goose_adequacy_start_files`;
-`goose_adequacy_start` is the case `Fs = []`), for a program of which `dbFilesAbsent e Fs` holds: the
-paths name one file each for the run, absent at start, touched only through the backend's and
-bbolt's operations with trust-boundary specs. So each is opened fresh by the verified code at most
-once in a run, which `backend.New`'s `fileHolds path ∅` premise needs (bbolt's `Open` creates the
-file and writes an empty database). Once only, as the other rights: `fileHolds` of an absent file
-is handed out only here (the backend's other producers of `fileHolds` give back a file the program
-opened, `backend.Close`, or one it wrote, the snapshot's), once per path, to the one WP proof.
+(2026-11-08 to 2026-11-17) It also received `fileHolds f ∅` for fresh database files
+(`goose_adequacy_start_files`, with the premise `dbFilesAbsent`): removed in S3e, when the backend's
+`fileHolds` became concrete file-extension ghost state (the claim on the file's name in the tree's
+shared mode), which an axiom must not hand out beside the tree `extsLocalStart` gives; the fresh files
+are derived from the tree (`Proof/runtime/StartFiles.lean`, `goose_adequacy_start_files`, a theorem).
 
 A design choice D19d leaves to the user: the alternative is an extension whose initial world holds
 the free addresses and the empty registry (`extsGlobalStart` the rights, `nameFree`/`netAddrFree` its
@@ -176,25 +172,6 @@ evidence: `examples/sweeprepairs/wal` (`TestW3Counterexample`, `TestW4StaleBacke
 def dataDirsAbsent [GooseExts] (e : Expr) (Ds : List GoString) : Prop :=
   (∀ d ∈ Ds, dataDirAbsent e d) ∧ Ds.Pairwise dataDirsApart
 
-/-- **The path `f` is a fresh database file of the program** (a fact of the environment a run of `e`
-is in, and of `e`'s unverified code; 2026-11-08, the user's decision for mvccrand's closed theorem),
-as `dataDirsAbsent`'s clauses for a file:
-1. the string `f` names, from when that file exists, one and the same file for the rest of the run.
-   The working directory does not change. The program reaches the file only by the path `f` (no
-   symbolic link, alias spelling, `/proc` link, hard link or bind mount reaches it), and the
-   directory holding it exists;
-2. when `e` starts, no file is at `f`;
-3. no other process, and no code of `e` beyond the backend's and bbolt's operations with
-   trust-boundary specs here (`backend.New`'s `bolt.Open`, the backend's commits, `Close`), opens,
-   writes, truncates, locks, links, renames, removes or changes the mode of the file at `f`, by any
-   path;
-4. `f` is inside no data directory of the run's (`dataDirsAbsent`), and the paths of `Fs` are
-   distinct files (`dbFilesAbsent`, with `Fs.Nodup`). -/
-axiom dbFileAbsent [GooseExts] (e : Expr) (f : GoString) : Prop
-
-/-- **The paths `Fs` are fresh database files of the program** (`dbFileAbsent` of each). -/
-def dbFilesAbsent [GooseExts] (e : Expr) (Fs : List GoString) : Prop := ∀ f ∈ Fs, dbFileAbsent e f
-
 /-- The rights program start gives: the right to register each name of `Ns` and to listen on
 each address of `As`, and (D39a, 2026-10-23) to fix each address's HTTP protocol
 (`httpProtoFree`); and (2026-11-03; sweep repairs 1, W3/W4) each data directory of `Ds` fresh
@@ -211,37 +188,13 @@ variable [GooseExts] [GooseInterp]
 variable [GooseSemantics] [GoGlobalContext]
 variable {GF : BundledGFunctors}
 
-/-- **The trust boundary: program start owns the free names, addresses and fresh files, once**
-(see the file header). `goose_adequacy`, with the WP proof also given `startRights Ns As Ds` and
-(2026-11-08) `fileHolds f ∅` for each fresh database file `f` of `Fs`. -/
-axiom goose_adequacy_start_files [hPre : GooseGpreS GF] (N T : Nat)
-    (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
-    (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
-    (Ns As Ds Fs : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
-    (hFs : Fs.Nodup)
-    (hAsLit : ∀ a ∈ As, netAddrLit a = true)
-    (hNsFree : prometheus.namesUnclaimed e Ns) (hAsFree : addrsUnclaimed e As)
-    (hDsFree : dataDirsAbsent e Ds) (hFsFree : dbFilesAbsent e Fs) (hEnv : verifyEnvOff e)
-    (Hwp : ∀ [hG : HeapGS .hasLC GF],
-      receiptBound GF = N →
-      threadBound GF = T →
-      hG.goose_localGS.goose_go_local_context = σ.goState.goLctx →
-      ⊢ extsGlobalStart (GF := GF) g.globalWorld -∗
-        extsLocalStart (GF := GF) σ.world -∗
-        ownGoState σ.goState.packageState -∗ threadTok -∗ startRights (GF := GF) Ns As Ds -∗
-        ([∗list] f ∈ Fs, backend.fileHolds (GF := GF) f ∅) ={⊤}=∗
-        WP e @ Stuckness.NotStuck; ⊤ {{ v, ⌜φ v⌝ }})
-    (n : Nat) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
-    (Hsteps : RealNsteps n ([e], ((σ, g) : CfgState)) κs (t2, σ2))
-    (Hbound : n < N) (Hthreads : σ.threads = 1)
-    (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
-    (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
-
-/-- **Program start owns the free names and addresses, once** (`goose_adequacy_start_files` with
-no fresh file; until 2026-11-08 the axiom itself): `goose_adequacy`, with the WP proof also given
-`startRights Ns As Ds`. -/
-theorem goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
+/-- **The trust boundary: program start owns the free names and addresses, once** (see the file
+header). `goose_adequacy`, with the WP proof also given `startRights Ns As Ds`. (S3e, 2026-11-17:
+the axiom again; from 2026-11-08 a corollary of `goose_adequacy_start_files`, which also handed out
+`fileHolds f ∅` for fresh database files: since `fileHolds` is the concrete claim on a name in the
+tree's shared mode, an axiom handing it out beside `extsLocalStart`'s tree could contradict the
+tree's ownership; the files are now derived from the tree, `Proof/runtime/StartFiles.lean`.) -/
+axiom goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (e : Expr) (σ : state) (g : GlobalState) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (Hinitg : extsInitgP g.globalWorld) (Hinit : extsInitP σ.world g.globalWorld)
     (Ns As Ds : List GoString) (hNs : Ns.Nodup) (hAs : As.Nodup) (hDs : Ds.Nodup)
@@ -261,13 +214,7 @@ theorem goose_adequacy_start [hPre : GooseGpreS GF] (N T : Nat)
     (Hbound : n < N) (Hthreads : σ.threads = 1)
     (Hlive : RealThreadsBelow T n ([e], ((σ, g) : CfgState))) :
     (∀ v t2', t2 = Val v :: t2' → φ v) ∧ (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine goose_adequacy_start_files (GF := GF) N T e σ g φ hφ Hinitg Hinit Ns As Ds [] hNs hAs hDs
-    List.nodup_nil hAsLit hNsFree hAsFree hDsFree (fun _ h => absurd h List.not_mem_nil) hEnv
-    ?_ n κs t2 σ2 Hsteps Hbound Hthreads Hlive
-  intro hG HN HT HL
-  iintro Hg Hl Hgs Htok Hr -
-  iapply (Hwp HN HT HL) $$ Hg Hl Hgs Htok Hr
+      (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2)
 
 end adequacy
 

@@ -8,7 +8,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callPut
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -34,7 +34,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Assumptions]
 
 theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
-    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
+    (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
+    (h_client_Put_st : client.client_Put_st.law (GF := GF) (hG := hG)) :
     callPut.spec (GF := GF) (hG := hG) := by
   intro _ CRE CEC cl ms V hAs key val Q hkl hvl
   wp_start as ⟨#Hcl, #Hone, #Hregs, Hau⟩
@@ -50,7 +51,7 @@ theorem callPut.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (h
   (try wp_auto)
   ihave #Hrr := client.kvRegs_put ms $$ Hregs
   ihave #Hst' := client.srvStart_idx ms $$ Hst
-  wp_apply (client.client_Put_st cl ms V cctx ccd key val slice.nil Q
+  wp_apply (h_client_Put_st cl ms V cctx ccd key val slice.nil Q
       (opSizeOk_opPutModel (K := inMax) (E := 0) (V := inMax) (optsKeep_nil _ _ _) hkl hvl (by decide))) $$ [Hau]
     as %resp %err Hout
   · iframe #

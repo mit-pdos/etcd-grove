@@ -28,6 +28,7 @@ importable Proof.go_etcd_io.etcd.server.v3.storage.backend.CommitLemmas
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.DelKeys
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.HooksLoeb
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.Init
+importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InitLinked
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBatch
 importable Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt

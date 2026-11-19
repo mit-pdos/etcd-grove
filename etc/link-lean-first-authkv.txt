@@ -32,7 +32,8 @@ v3_authClient__UserGrantRole: @
 v3_authClient__RoleAdd: @
 v3_authClient__RoleGrantPermission: @
 v3_authClient__AuthEnable: @
-auth_SetUp: context_WithTimeoutBackgroundMd context_ErrAny auth_Principals auth_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
+# (the import tiers, 2026-11-18) the laws of linked lemmas the proof takes as hypotheses (`=`)
+auth_SetUp: context_WithTimeoutBackgroundMd context_ErrAny auth_Principals auth_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable =client_Put_on_law_holds
 # the skeleton's stubs (notes/authkv-main-plan.md, 2026-10-29: S3, S2; `sorry`s)
 client_v3_New: @
 auth_newUserClient: client_v3_New
@@ -59,7 +60,12 @@ WithPrefix: getPrefix
 WithRev:
 v3_watcher__Watch: @
 etcdstart_Collect: @
-auth_Work: auth_keyOf auth_reqCtx auth_refused auth_checkKVs auth_checkTxnReads auth_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev v3_watcher__Watch
+# (the import tiers, 2026-11-18) the builder's methods (`@`) and the laws of the linked calls (`=`)
+# the proof takes as hypotheses
+txn__If: @
+txn__Then: @
+txn__Else: @
+auth_Work: auth_keyOf auth_reqCtx auth_refused auth_checkKVs auth_checkTxnReads auth_Permitted context_WithTimeoutBackgroundMd context_ErrAny metadata_AppendToOutgoingContext OpPut OpGet OpTxn v3_Compare Value WithRange WithPrefix WithRev v3_watcher__Watch =client_Txn_on_law_holds txn__If txn__Then txn__Else =work_put_law_holds =work_delete_law_holds =work_get_law_holds =work_commit_law_holds =then_commit_nested_refused_law_holds
 # `Main`'s start (2026-10-30): the logger, the member with auth on (`startServer`, pending here:
 # its proof takes the named premise `authSchemaSrv` (until auth-schema-fix S1 also the false `auth.ValidSpec`), `Results.lean`'s
 # `auth_startServer`), `Serve` (its one spec, at the server's mode since the auth component's stage 5), the

@@ -72,6 +72,47 @@ client-visible ghost state, a trust-boundary spec) says so in **Decision** and w
   value pin (`∀ y : EtcdError, err = mkOk #y → m = y.desc`), and `descIs_of_errView`; `errView` unchanged.
 - **Decision.** Pending: with the perheap Scope's Q4 (the user).
 
+## 2026-11-18: k8s `trace.Trace.LogIfLong.spec`/`Step.spec` -- false on a nil receiver
+
+- **Spec.** `Spec/k8s_io/utils/trace/Trace__LogIfLong.lean` (the axiom `trace.Trace.LogIfLong.wp_proof`),
+  `Trace__Step.lean` (a named hypothesis of the reflector's `list`), and `New.lean` (the axiom
+  `trace.New.wp_proof`). No SpecPlan counterpart.
+- **Defect.** Unprovable: both took any `t : Loc` with precondition `True`, but both lock `t.lock`
+  first (k8s.io/utils `trace/trace.go:161-169,207-212`), so a nil `t` panics (nil dereference).
+- **Evidence.** The Go code; a closed program `(*trace.Trace)(nil).LogIfLong(0)` panics, yet the axiom
+  gave it a triple.
+- **Proposed change.** A pure opaque fact `trace.fromNew t` (`Proof/k8s_io/utils/trace/Defs.lean`),
+  which `New`'s post gives and `Step`/`LogIfLong` require. Opaque, not `t ≠ null`, so that a reference
+  model of `New` returning `nil` still meets the spec, reading it as `True`. The callers
+  (`RealFIFO.Pop`, `Reflector.list`, `processorListener.run`) get it from their `New` call. The same two
+  axioms, restated.
+- **Decision.** Accepted (the coordinator's list, 2026-11-18); applied on branch `axthm/2026-11-18`.
+
+## 2026-11-18: grpc health `SetServingStatus.spec`/`ServingStatus.String.spec` -- a `val` argument admits a panic value
+
+- **Spec.** `Spec/google_golang_org/grpc/health/Server__SetServingStatus.lean`,
+  `Spec/google_golang_org/grpc/health/grpc_health_v1/HealthCheckResponse_ServingStatus__String.lean`
+  (both axioms). No SpecPlan counterpart.
+- **Defect.** Unsound: the status was any `val`, a panic value included; applying a function to it
+  unwinds to that panic, so the post can never hold, and `String`'s axiom (precondition `True`) gives a
+  triple no execution meets.
+- **Evidence.** The semantics of application to a panic value (Perennial's panic propagation).
+- **Proposed change.** The status a `w32` (`HealthCheckResponse_ServingStatus` is `int32`), passed as
+  `#status`/`#st`. The one caller (`healthNotifier.startServe`) passes the translated constant
+  `HealthCheckResponse_SERVING`.
+- **Decision.** Accepted (the coordinator's list, 2026-11-18); applied on branch `axthm/2026-11-18`.
+
+## 2026-11-18: `prometheus.observerSpec` -- `Observe`'s argument any `val`
+
+- **Spec.** `Spec/github_com/prometheus/client_golang/prometheus/HistogramVec__WithLabelValues.lean`
+  (`prometheus.observerSpec`, the post of the axiom `HistogramVec.WithLabelValues.wp_proof`).
+- **Defect.** Unsound, as the health specs above: `∀ f : val` includes a panic value.
+- **Evidence.** As above; `gaugeSpec` and the mvcc/backend/WAL observers already take `x : w64`.
+- **Proposed change.** `∀ f : w64`, `(Val #f)`. The five users (`EtcdServer.Range`/`Txn`/
+  `processInternalRaftRequestOnce`, rafthttp's `snapshotSender.send`/`snapshotHandler.ServeHTTP`) pass
+  `time.Duration.Seconds`'s `w64`.
+- **Decision.** Accepted (the coordinator's list, 2026-11-18); applied on branch `axthm/2026-11-18`.
+
 ## 2026-11-15: real bbolt's `flock.spec`, `DB.close.spec_owned` and writer invariant -- the descriptor's `flock` lock unaccounted
 
 - **Spec.** `Proof/go_etcd_io/bbolt/Open/Flock.lean` (`flock.spec`, internal), `Open/Close.lean`
@@ -2896,6 +2937,42 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `⌜auth.permKeysOk st⌝` after `⌜authBucketsAt st r⌝`; its caller discharges it from `SnapAuthRecover.histWf`. Both
   ask less of the realization (weaker hypotheses).
 - **Decision.** (L-rev) and (P2) approved by etcd-grove-03 (2026-11-18); for the A7 trusted-text list with fix (A).
+
+## 2026-11-17: `proto.Marshal.spec` (KeyValue) -- the encoding's length unstated (S1b)
+
+- **Spec.** `Spec/google_golang_org/protobuf/proto/Marshal.lean` (`proto.Marshal.spec`, a trust-boundary axiom).
+- **Defect.** `mvcc.kvEncode` is opaque and the spec said nothing of its length, so no proof could show an
+  entry mvcc writes (`revBytes`, `kvEncode kv`) within bbolt's `bboltEntryMax`, which the proved
+  `Bucket.Put` takes (stage S1b of `notes/bbolt-integration-plan.md`).
+- **Evidence.** `storeTxnWrite.put`/`delete`'s `UnsafeSeqPut` (`keyPutOk`'s new entry bound).
+- **Change.** The post gains `⌜(mvcc.kvEncode kv).length ≤ kv.key.length + kv.value.length + 128⌝`: protobuf's
+  wire format, six fields each a one-byte tag and a varint of at most 10 bytes (66 bytes of framing).
+- **Decision.** Approved by the coordinator (2026-11-17, a true length fact); applied on `bbolt-putbound`.
+
+## 2026-11-17: `schema.MustUnsafeSaveConfStateToBackend.spec` -- the JSON's length unstated (S1b)
+
+- **Spec.** `Spec/go_etcd_io/etcd/server/v3/storage/schema/MustUnsafeSaveConfStateToBackend.lean` (axiom).
+- **Defect.** Its callback took any bytes, so the hook's put of the conf state could not be shown within
+  `bboltEntryMax`.
+- **Evidence.** `BackendHooks.OnPreCommitUnsafe`'s put (`batchTxBuffered.UnsafePut`'s new entry bound).
+- **Change.** Premise `storage.csOkN n cs` (nil, or read-only with at most `n` ids); the callback gets
+  `⌜vb.length ≤ 25 * n + 128⌝` (JSON of a `ConfState`: `null`, or four `omitempty` id lists and `auto_leave`,
+  at most 86 bytes of names and punctuation, each id at most 20 digits and a comma). The hooks keep the
+  bound (`csInv`: `csOkN csIdMax`, `csIdMax = 2 ^ 20`, the server's voters' bound `srvMemOk`).
+- **Decision.** Approved by the coordinator (2026-11-17); applied on `bbolt-putbound`.
+
+## 2026-11-17: `etcdKeyMax` -- `2 ^ 27` let a key and a value pass a bbolt entry (S1b)
+
+- **Spec.** `Proof/go_etcd_io/etcd/cache/v3/EtcdModel.lean` (`etcdKeyMax`, in the statements of the client
+  model's laws `etcdState_keys`/`etcdState_vals` and of k8s's and the client's specs).
+- **Defect.** A key and a value of `2 ^ 27` bytes each, encoded, pass `bboltEntryMax = 2 ^ 28`.
+- **Evidence.** mvcc's put (`storeTxnWrite.put`'s entry bound).
+- **Change.** `2 ^ 27 - 2 ^ 19`, the bound the request check gives (`etcdMaxRequestBytesOk`:
+  `MaxRequestBytes + 2 ^ 19 < 2 ^ 27`). Stronger client-side facts, the same proofs; the coordinator had
+  proposed sum bounds (`k + v ≤ n`) in `ChPutsLe`/`irrPutsLe`/`TxnOp.putsLe` and `MarshalIRR`'s statement,
+  which this replaces: no axiom statement and no definition but this constant changes.
+- **Decision.** Applied on `bbolt-putbound` (2026-11-17); for the coordinator's review.
+
 ## 2026-11-17: `zap.Logger.Panic.spec` (and the mvcc `keyIndex` panics) -- a panic value no Go program raises
 
 - **Spec.** `Spec/go_uber_org/zap/Logger__Panic.lean` (`zap.Logger.Panic.spec`, the axiom

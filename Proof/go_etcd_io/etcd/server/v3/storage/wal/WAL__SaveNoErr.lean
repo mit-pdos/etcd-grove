@@ -13,7 +13,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__cutNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveEntryNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__saveStateNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__Save
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveLemmas
 
 @[expose] public section
 

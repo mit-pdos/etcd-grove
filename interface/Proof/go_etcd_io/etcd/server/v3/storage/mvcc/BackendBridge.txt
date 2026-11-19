@@ -41,7 +41,7 @@ theorem mvcc.rt_rangeRead [schema_sem : go_etcd_io.etcd.server.v3.storage.schema
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ mvcc.keySized γ P b ⊢ mvcc.keyRangeReadSpec { ty
     := go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv qo)
 
 theorem mvcc.rtRange_safe {P : backend.BParams} (hP : mvcc.bridgeParams P) {rv : backend.RView} (hR
     : rv.snd.Wf) (hs : mvcc.keySafe rv) {m : mvcc.Bucket} (hv : mvcc.keyView (backend.vData P rv) m)
@@ -86,12 +86,13 @@ theorem mvcc.cursorRange_window (es : List backend.Ent) (klo khi : GoString) (li
     ≠ []) : backend.cursorRange es klo khi lim = List.take (if sint.Z lim ≤ 0 then 2 ^ 63 - 1 else
     (sint.Z lim).toNat) (mvcc.window es klo khi)
 
-theorem mvcc.kvsOutRd_pairVals (rtx : Loc) (keys vals : GoSlice) (res : List backend.Ent) :
-    backend.kvsOutRd rtx keys vals res ⊢ |==> mvcc.pairVals (backend.rdB rtx) keys vals res
+theorem mvcc.kvsOutRd_pairVals (γd : backend.DBNames) (rtx : Loc) (keys vals : GoSlice) (res : List
+    backend.Ent) : backend.kvsOutRd γd rtx keys vals res ⊢ |==> mvcc.pairVals (backend.rdB γd rtx)
+    keys vals res
 
-theorem mvcc.kvsOutRd_keyVals (rtx : Loc) (keys vals : GoSlice) (m : mvcc.Bucket) (k : GoString) :
-    backend.kvsOutRd rtx keys vals (match m !! k with | some v => [(k, v)] | none => []) ⊢ |==>
-    mvcc.keyVals (backend.rdB rtx) keys vals m k
+theorem mvcc.kvsOutRd_keyVals (γd : backend.DBNames) (rtx : Loc) (keys vals : GoSlice) (m :
+    mvcc.Bucket) (k : GoString) : backend.kvsOutRd γd rtx keys vals (match m !! k with | some v =>
+    [(k, v)] | none => []) ⊢ |==> mvcc.keyVals (backend.rdB γd rtx) keys vals m k
 
 theorem mvcc.viewSame_del {P : backend.BParams} {st : backend.BSess} {bi : backend.BucketInfo} {k :
     GoString} {cl : Bool} (hb : P.HB bi.name = true) (h : backend.viewSame P st) : backend.viewSame
@@ -196,7 +197,7 @@ theorem mvcc.rt_metaNone [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ mvcc.bkNoCmpF γ ⊢
     mvcc.bkNoCmpF γ ∗ mvcc.metaReadSpec { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } true
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv qo)
 
 theorem mvcc.rt_metaWf [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hUR :
     backend.readTx.UnsafeRange.spec) (hID : schema.bucket.ID.spec) (hName : schema.bucket.Name.spec)
@@ -207,7 +208,7 @@ theorem mvcc.rt_metaWf [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ backend.fkV γ true ⊢
     mvcc.metaReadSpec { ty := go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v :=
-    intoVal rt } false (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
+    intoVal rt } false (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv qo)
 
 def mvcc.bkLockedO (γ : backend.BNames) (P : backend.BParams) (b : Loc) (n : Nat) : IProp GF :=
   iprop(∃ st,
@@ -453,7 +454,7 @@ theorem mvcc.rt_keyRange [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
     (backend.bF go!"readTx" b) rt DFrac.discard ⊢ mvcc.keyRangeSpec { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv qo)
 
 theorem mvcc.sessPuts_free {P : backend.BParams} (hP : mvcc.bridgeParams P) {st : backend.BSess} (h
     : backend.freeOk P st) : mvcc.sessPuts P st []
@@ -572,7 +573,7 @@ theorem mvcc.rt_rangeLimF [schema_sem : go_etcd_io.etcd.server.v3.storage.schema
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗ typedPointsto
     (backend.bF go!"readTx" b) rt DFrac.discard ⊢ mvcc.keyRangeLimSpec { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
-    (backend.rdB rtx) iprop(backend.rtHeldF γ P b rtx rv p ∗ backend.bOpen γ qo) cl
+    (backend.rdB γ.db rtx) iprop(backend.rtHeldF γ P b rtx rv p ∗ backend.bOpen γ qo) cl
 
 def mvcc.bkRTx (γ : backend.BNames) (P : backend.BParams) (b : Loc) : IProp GF :=
   iprop(backend.rdTok γ P b ∗ backend.bOpen γ backend.rdOpen)
@@ -595,7 +596,7 @@ theorem mvcc.rt_rangeLim [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗ backend.isBackend γ P W Pk b ∗
     typedPointsto (backend.bF go!"readTx" b) rt DFrac.discard ∗ mvcc.keySized γ P b ⊢
     mvcc.keyRangeLimSpec { ty := go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v
-    := intoVal rt } m (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo) cl
+    := intoVal rt } m (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv qo) cl
 
 theorem mvcc.bk_size [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hSz :
     backend.backend.Size.spec) (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b :
@@ -688,11 +689,11 @@ def mvcc.keysKept (m' : mvcc.Bucket) (st : backend.BSess) : Prop :=
     (m' !! k).isSome = true →
       (backend.bktOf st.S mvcc.keyName !! k).isSome = true ∨ (st.dl !! (mvcc.keyName, k)).isSome = true
 
-theorem mvcc.zip_pairs (rtx : Loc) (l : List backend.Ent) (ks vs : List GoSlice) : ks.length =
-    l.length → vs.length = l.length → (([∗list] x ∈ ks.zip (List.map Prod.fst l), backend.rdB rtx
-    x.fst x.snd) ∗ [∗list] x ∈ vs.zip (List.map Prod.snd l), backend.rdB rtx x.fst x.snd) ⊢ [∗list]
-    i ↦ p ∈ l, iprop(∃ ksl vsl, ⌜ks[i]? = some ksl ∧ vs[i]? = some vsl⌝ ∗ □ backend.rdB rtx ksl
-    p.fst ∗ □ backend.rdB rtx vsl p.snd)
+theorem mvcc.zip_pairs (γd : backend.DBNames) (rtx : Loc) (l : List backend.Ent) (ks vs : List
+    GoSlice) : ks.length = l.length → vs.length = l.length → (([∗list] x ∈ ks.zip (List.map Prod.fst
+    l), backend.rdB γd rtx x.fst x.snd) ∗ [∗list] x ∈ vs.zip (List.map Prod.snd l), backend.rdB γd
+    rtx x.fst x.snd) ⊢ [∗list] i ↦ p ∈ l, iprop(∃ ksl vsl, ⌜ks[i]? = some ksl ∧ vs[i]? = some vsl⌝ ∗
+    □ backend.rdB γd rtx ksl p.fst ∗ □ backend.rdB γd rtx vsl p.snd)
 
 theorem mvcc.bt_seqPut [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (hSP :
     backend.batchTxBuffered.UnsafeSeqPut.spec) (hID : schema.bucket.ID.spec) (hName :
@@ -728,8 +729,8 @@ theorem mvcc.rtUR_held [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     typedPointsto (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.rtHeld γ P b rtx rv ∗
     backend.bOpen γ qo ∗ backend.isBucket bk bi ∗ ownSlice key kb dk ∗ ownSlice endKey eb de -∗ (▷ ∀
     keys vals, backend.rtHeld γ P b rtx rv ∗ backend.bOpen γ qo ∗ ownSlice key kb dk ∗ ownSlice
-    endKey eb de ∗ backend.kvsOutRd rtx keys vals (backend.rtRange rv bi kb eb limit) -∗ Φ (intoVal
-    keys, intoVal vals)) -∗ WP (((((intoVal (methods
+    endKey eb de ∗ backend.kvsOutRd γ.db rtx keys vals (backend.rtRange rv bi kb eb limit) -∗ Φ
+    (intoVal keys, intoVal vals)) -∗ WP (((((intoVal (methods
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType go!"UnsafeRange" (intoVal rt)))
     (intoVal bk)) (intoVal key)) (intoVal endKey)) (intoVal limit)) {{ Φ }}
 
@@ -767,8 +768,8 @@ theorem mvcc.isKeyBackendG_of_backend [schema_sem :
 
 theorem mvcc.rtHeld_returnQ [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ :
     backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv : backend.RView) : backend.rtHeldF γ P b
-    rtx rv sync.rfrac.half.half ∗ backend.txLive rtx sync.rfrac.half.half ⊢ backend.rtHeld γ P b rtx
-    rv
+    rtx rv sync.rfrac.half.half ∗ backend.txLive rtx γ.db sync.rfrac.half.half (bbolt.TxView.ro
+    rv.fst) ⊢ backend.rtHeld γ P b rtx rv
 
 def mvcc.bkLocked (γ : backend.BNames) (P : backend.BParams) (b : Loc) (l : mvcc.Puts) : IProp GF :=
   iprop(∃ st, mvcc.bkLockedAt γ P b st l)
@@ -842,7 +843,7 @@ theorem mvcc.crt_keyRange [schema_sem : go_etcd_io.etcd.server.v3.storage.schema
     isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢ mvcc.keyRangeSpec { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty.PointerType, v := intoVal crt } m
-    (backend.rdB rtx) (mvcc.crtTok γ P b crt rtx rv qo)
+    (backend.rdB γ.db rtx) (mvcc.crtTok γ P b crt rtx rv qo)
 
 def mvcc.bkDel (γ : backend.BNames) (k : GoString) : IProp GF :=
   backend.dlIs γ (go!"key", k)
@@ -877,7 +878,8 @@ theorem mvcc.vOf_key {P : backend.BParams} (hP : mvcc.bridgeParams P) {rv : back
 theorem mvcc.rtHeld_lendQ [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions] (γ :
     backend.BNames) (P : backend.BParams) (b rtx : Loc) (rv : backend.RView) (qo : Qp) :
     backend.rtHeld γ P b rtx rv ∗ backend.bOpen γ qo ⊢ backend.rtHeldF γ P b rtx rv
-    sync.rfrac.half.half ∗ backend.bOpen γ qo ∗ backend.txLive rtx sync.rfrac.half.half
+    sync.rfrac.half.half ∗ backend.bOpen γ qo ∗ backend.txLive rtx γ.db sync.rfrac.half.half
+    (bbolt.TxView.ro rv.fst)
 
 theorem mvcc.nonHB_key {P : backend.BParams} (hP : mvcc.bridgeParams P) {n : GoString} {i : w64} (hn
     : P.BT !! n = some i) (hb : P.HB n = false) : i = W64 1
@@ -891,7 +893,7 @@ theorem mvcc.crt_locked [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isPkgInit
     pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢ mvcc.keyReadLocked (mvcc.bkRTx γ P b) NC false
     { ty := go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty.PointerType, v := intoVal
-    crt } m (backend.rdB rtx) (mvcc.crtTok γ P b crt rtx rv backend.rdOpen)
+    crt } m (backend.rdB γ.db rtx) (mvcc.crtTok γ P b crt rtx rv backend.rdOpen)
 
 theorem mvcc.lease_not_fk (k : GoString) : ¬backend.fkKey mvcc.leaseBI.name k
 
@@ -906,7 +908,10 @@ theorem mvcc.rt_locked [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.As
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ mvcc.keySized γ P b ∗ backend.fkRd γ P rv ⊢
     mvcc.keyReadLocked (mvcc.bkRTx γ P b) (mvcc.bkNoCmpF γ) true { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) cl
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) cl
+
+theorem mvcc.meta_entry_fits {k v : GoString} (hk : mvcc.metaCompactKey k) (hv : mvcc.metaRevVal v)
+    : List.length k + List.length v ≤ bbolt.bboltEntryMax
 
 theorem mvcc.lastVal_sorted {es : List backend.Ent} (hs : backend.entsSorted es) (k v : GoString) :
     backend.lastVal es k = some v ↔ (k, v) ∈ es

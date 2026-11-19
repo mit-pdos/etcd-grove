@@ -31,7 +31,7 @@ theorem backend.batchTxBuffered.UnsafeRange.wp_proof
     backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG := hG) := by
   intro γ P W Pk b t st bk bi key endKey kb eb dk de limit Hend c
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hkey, HendKey⟩
-  ihave #Hacc : (□ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB st.tx s v -∗
+  ihave #Hacc : (□ (∀ (s : GoSlice) (v : GoString) (st' : BSess), rdB γ.db st.tx s v -∗
       batchLocked γ P b st' c -∗ ⌜st'.tx = st.tx⌝ -∗
       ∃ dq : DFrac, s ↦*{dq} v ∗ (s ↦*{dq} v -∗ batchLocked γ P b st' c)) : IProp GF) $$ []
   · iintro !> %s %v %st' Hr Hl %Htx

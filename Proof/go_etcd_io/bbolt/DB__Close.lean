@@ -1,19 +1,22 @@
 /-
-The proof of `Spec/go_etcd_io/bbolt/DB__Close.lean` (U11d, `notes/bbolt-proof-plan.md`): `rwlock`,
-`metalock` and `mmaplock` (through its guard, `Pm 1`), deferred unlocks, then `db.close()`. Closed
-already (`rwR`'s `closedR`): `close` sees `opened` false (`DB.close.spec_closed`). Open: the writer
-side idle (`wdbOwn`), `metaR`'s and `Pm 1`'s halves join the fields, the mapping's cells are
-gathered from the store (`store_gather`), the metas' quarters, the `W` slots and the partial last
-slot (as `Mmap/RemapGather.remap_gather`, with the writer idle), and `close` runs over owned fields
-(`DB.close.spec_owned`, `ms` the mapping); then `metaR` and `rwR` are closed (`cls` set), `Pm 1`
-holds the cleared fields.
+The proof of `Spec/go_etcd_io/bbolt/DB__Close.lean` (session bbolt-inv's `Close_own`, canonical since S3f): `DB.Close`'s proof
+(`DB__Close.lean`) with the file kept. Closed already: given up (`closedR`'s `nf`), or given back by
+an earlier `Close_own` (`closedR` holds `bq`, which the caller's `boltState` excludes). Open: when
+the file system can fail (`¬ FsNoErr`) `close` runs as in `DB.Close`; otherwise with no error
+(`DB.close.spec_ownedNoErrM`), the `OsMeta` back without the mapping, the store slots' bytes taken
+(`store_close`), and with the metas and the writer side's `W` slots the file's bytes
+(`close_file_bytes`), an image of the committed state (`closeBytes_fileOK`), whole pages and at
+most `maxMapSize` (`wdbSz`, session S3g: `fileHoldsM`); a leaked mapping (the junk clause) recorded
+`¬ FsNoErr`, refuted here.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.DB__Close
-public import Proof.go_etcd_io.bbolt.Open.Close
-public import Proof.go_etcd_io.bbolt.Mmap.RemapGather
-public import Perennial.Proof.sync.Results
+public import Proof.go_etcd_io.bbolt.Open.CloseTok
+public import Proof.go_etcd_io.bbolt.Open.CloseFile
+public import Proof.go_etcd_io.bbolt.Open.Congr
+public import Proof.go_etcd_io.bbolt.Open.CloseFlx
+public import Proof.go_etcd_io.bbolt.Inv.PmFile
 import all Spec.go_etcd_io.bbolt.Api
 
 @[expose] public section
@@ -37,101 +40,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
-/-- The root page of a well-formed committed state lies in `[2, hwm)` (as `Txn/WInit.treeOK_root`). -/
-theorem treeOK_root' [GooseExts] (C : CommitSt) (htree : treeOK C) : 2 ≤ C.root ∧ C.root < C.hwm := by
-  obtain ⟨⟨hwf, -⟩, -⟩ := htree
-  cases hwf with
-  | page _ _ h2 hlt _ _ _ _ => exact ⟨h2, hlt⟩
-
-/-- Two halves of a points-to, as the whole. -/
-theorem pt_join {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
-    typedPointsto (GF := GF) l v (DFrac.own (1 : Qp).half) ∗
-      typedPointsto l v (DFrac.own (1 : Qp).half) ⊢ typedPointsto l v (DFrac.own 1) := by
-  refine ((typedPointsto_dfractional (GF := GF) l v).dfractional
-    (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).2.trans ?_
-  rw [DFrac.op_own, Qp.half_add_half]
-
-/-- A whole points-to as two halves. -/
-theorem pt_split {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
-    typedPointsto (GF := GF) l v (DFrac.own 1) ⊢
-      typedPointsto l v (DFrac.own (1 : Qp).half) ∗ typedPointsto l v (DFrac.own (1 : Qp).half) := by
-  refine Entails.trans ?_ ((typedPointsto_dfractional (GF := GF) l v).dfractional
-    (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)).1
-  rw [DFrac.op_own, Qp.half_add_half]
-
 variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 
-/-- Two halves of the mapping fields, as the whole. -/
-theorem mapFields_join2 (db : Loc) (ms : MapSt) :
-    mapFields (GF := GF) db (DFrac.own (1 : Qp).half) ms ∗
-      mapFields (GF := GF) db (DFrac.own (1 : Qp).half) ms ⊣⊢ mapFields (GF := GF) db (DFrac.own 1) ms := by
-  have h := (mapFields_dfractional (GF := GF) db ms).dfractional (DFrac.own (1 : Qp).half)
-    (DFrac.own (1 : Qp).half)
-  rw [DFrac.op_own, Qp.half_add_half] at h
-  exact h.symm
-
-/-- **The idle writer's gather** (`Close`, with `Pm 1`'s `map` quarter and `mtok`, the writer
-side's `map` half and meta quarter): the mapping's cells, the store's slots out. -/
-theorem close_gather (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (b : Loc) (L : Nat)
-    (hok : wdbOK w) (hms : w.ms = some (b, L)) (hL : 8192 ≤ L) :
-    ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
-      ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
-      ghostVar B.map (1 : Qp).half (some (b, L) : MapSt) -∗
-      ghostVar B.map (1 : Qp).half.half (some (b, L) : MapSt) -∗ ghostVar B.mtok 1 () -∗
-      ghostVar B.wv (1 : Qp).half wIdle -∗ ghostVar B.out (1 : Qp).half false -∗
-      metaCellsQ (GF := GF) (1 : Qp).half.half (some (b, L)) w.C -∗
-      wCells (GF := GF) (some (b, L)) w.W -∗
-    |={⊤}=> (∃ vf, cellsR (GF := GF) b 0 L vf) ∗
-      ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
-      ghostVar B.map (1 : Qp).half (none : MapSt) ∗
-      ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗ ghostVar B.mtok 1 () ∗
-      ghostVar B.wv (1 : Qp).half wIdle ∗ ghostVar B.out (1 : Qp).half false := by
-  iintro #Hinv Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc
-  imod store_gather B N p ⊤ CoPset.subseteq_top w.C w.fl b L wIdle rfl
-    $$ [Hinv Hcur Hfl Hmap Hmapq Htok Hwv Hout]
-    with ⟨%bs, %W, Hcur, Hfl, Hmap, Hmapq, Htok, Hwv, Hout, -, %hW, %hfacts, HS, Hml⟩
-  · isplitr
-    · iexact Hinv
-    isplitl [Hcur]
-    · iexact Hcur
-    isplitl [Hfl]
-    · iexact Hfl
-    isplitl [Hmap]
-    · iexact Hmap
-    isplitl [Hmapq]
-    · iexact Hmapq
-    isplitl [Htok]
-    · iexact Htok
-    isplitl [Hwv]
-    · iexact Hwv
-    · iexact Hout
-  obtain ⟨hmo, hsl⟩ := hfacts
-  ihave Hc : ∃ vf, cellsR (GF := GF) b 0 L vf $$ [Hmc Hml HS Hwc]
-  · unfold metaCellsQ
-    icases Hmc with ⟨H0, H1⟩
-    icases Hml with ⟨H0', H1'⟩
-    ihave H0 := (bytes_quarters b w.C.m0).1 $$ [H0 H0']
-    · iframe
-    ihave H1 := (bytes_quarters _ w.C.m1).1 $$ [H1 H1']
-    · iframe
-    icases wCells_gather w hok b L hms $$ Hwc with ⟨Hws, Hp⟩
-    have hP := slots_partition (L / 4096) (slotsOf w.C w.fl) (wSlots (L / 4096) w.C w.fl)
-      (by omega) (slotsOf_nodup _ _) (wSlots_nodup _ _ _)
-      (fun s hs => ⟨(hsl s hs).1, (hsl s hs).2.1⟩)
-      (fun s => by rw [mem_wSlots])
-    iapply mapCells_gather b L w.C.m0 w.C.m1 _ _ bs hmo.1 hmo.2.1 (fun s hs => (hsl s hs).2.2) hP
-    iframe
-  imodintro
-  iframe Hc Hcur Hfl
-  isplitl [Hmap]
-  · iexact Hmap
-  isplitl [Hmapq]
-  · iexact Hmapq
-  iframe
-
-/-- **What `Close` unmaps, gathered** (the idle writer side's resources and `Pm 1`'s): the
-mapping's `closeMapRes`, the mapping's ghost state cleared. -/
-theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
+/-- `close_res` with the file's `OsMeta` named (`closeMapResM`; nothing mapped: kept). -/
+private theorem close_resM (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w)
     (hL : ∀ b l, w.ms = some (b, l) → 8192 ≤ l) :
     ⊢ inv (pagesN N) (pagesInv (GF := GF) B p) -∗
       ghostVar B.cur (1 : Qp).half.half w.C -∗ ghostVar B.fl (1 : Qp).half w.fl -∗
@@ -140,15 +52,19 @@ theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w
       ghostVar B.wv (1 : Qp).half wIdle -∗ ghostVar B.out (1 : Qp).half false -∗
       metaCellsQ (GF := GF) (1 : Qp).half.half w.ms w.C -∗
       wCells (GF := GF) w.ms w.W -∗ osMeta p.ino (DFrac.own 1) w.m -∗
-    |={⊤}=> closeMapRes (GF := GF) p w.ms ∗
+    |={⊤}=> closeMapResM (GF := GF) p w.m w.ms ∗ closeKeep (GF := GF) p w.m w.ms ∗
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half (none : MapSt) ∗
       ghostVar B.map (1 : Qp).half.half (none : MapSt) ∗ ghostVar B.mtok 1 () ∗
       ghostVar B.wv (1 : Qp).half wIdle ∗ ghostVar B.out (1 : Qp).half false := by
   iintro #Hinv Hcur Hfl Hmap Hmapq Htok Hwv Hout Hmc Hwc Hosm
   rcases hms : w.ms with _ | ⟨b, l⟩
-  · unfold closeMapRes
+  · simp only [closeMapResM, closeKeep]
     imodintro
+    isplitr
+    · iempintro
+    isplitl [Hosm]
+    · iexact Hosm
     iframe Hcur Hfl
     isplitl [Hmap]
     · iexact Hmap
@@ -158,13 +74,17 @@ theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w
   · imod close_gather B N p w b l hok hms (hL b l hms) $$ Hinv Hcur Hfl Hmap Hmapq Htok Hwv Hout
       Hmc Hwc with ⟨⟨%vf, Hc⟩, Hcur, Hfl, Hmap, Hmapq, Htok, Hwv, Hout⟩
     imodintro
-    unfold closeMapRes
+    simp only [closeMapResM, closeKeep]
     isplitl [Hosm Hc]
-    · iexists w.m, vf
-      iframe
-      ipureintro
-      refine ⟨by have := hL b l hms; omega, ?_⟩
-      rw [hok.1 b l hms]; exact GMap.lookup_singleton _ _
+    · isplitr
+      · ipureintro
+        refine ⟨by have := hL b l hms; omega, ?_⟩
+        rw [hok.1 b l hms]; exact GMap.lookup_singleton _ _
+      isplitl [Hosm]
+      · iexact Hosm
+      · iexists vf; iexact Hc
+    isplitr
+    · iempintro
     iframe Hcur Hfl
     isplitl [Hmap]
     · iexact Hmap
@@ -172,21 +92,53 @@ theorem close_res (B : BNs) (N : Namespace) (p : BFile) (w : WDb) (hok : wdbOK w
     · iexact Hmapq
     iframe
 
-instance Pm_timeless' (B : BNs) (db : Loc) (q : Qp) : Timeless (Pm (GF := GF) B db q) := by
-  have : ∀ ms : MapSt, Timeless (mapFields (GF := GF) db (DFrac.own q.half) ms) := by
-    intro ms; rcases ms with _ | ⟨b, l⟩ <;> simp only [mapFields] <;> infer_instance
-  unfold Pm; infer_instance
+/-- The file's `OsMeta` after `close`: no mapping (the idle writer side's, `wdbOK`, with no leaked
+mapping), the size kept. -/
+private theorem close_meta (p : BFile) (w : WDb) (hok : wdbOK w) (hj : w.junk = none) :
+    closeMapBack (GF := GF) p w.m w.ms ∗ closeKeep (GF := GF) p w.m w.ms ⊢
+    ∃ m : OsMeta, osMeta p.ino (DFrac.own 1) m ∗ ⌜m.maps = ∅ ∧ m.size = w.m.size⌝ := by
+  rcases hms : w.ms with _ | ⟨b, l⟩
+  · simp only [closeMapBack, closeKeep]
+    iintro ⟨-, Hm⟩
+    iexists w.m
+    iframe Hm
+    ipureintro
+    refine ⟨?_, rfl⟩
+    rcases hok.2.1 hms with h | ⟨jb, jl, hj', -⟩
+    · exact h
+    · rw [hj] at hj'; cases hj'
+  · simp only [closeMapBack, closeKeep]
+    iintro ⟨Hm, -⟩
+    iexists _
+    iframe Hm
+    ipureintro
+    refine ⟨?_, rfl⟩
+    show GMap.delete b w.m.maps = ∅
+    rw [hok.1 b l hms]; exact GMap.delete_singleton _ _
 
 omit [ExtSemantics fsExt] [FsSemOk] hos in
 theorem DB.Close.wp_proof
-    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt], DB.close.spec_owned (GF := GF) (hG := hG)) :
+    (hOwned : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      DB.close.spec_owned (GF := GF) (hG := hG))
+    (hOwnedM : ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt],
+      DB.close.spec_ownedNoErrM (GF := GF) (hG := hG)) :
     DB.Close.spec (GF := GF) (hG := hG) := by
-  intro _ _ _ db γ
-  wp_start as #Hdb
+  intro _ _ _ db γ i D
+  wp_start as ⟨#Hdb, #Hino, Hst, Hclo⟩
+  iunfold boltCloser at Hclo
   unfold isBolt isBoltDef isBoltP
   icases Hdb with ⟨%p, %sp, %t0, #Hcore, #Hrw, -⟩
+  -- the inode
+  ihave %hi : ⌜p.ino = i⌝ $$ []
+  · unfold boltIno
+    icases Hino with ⟨%t0', #Ht⟩
+    iapply isBoltCoreP_ino _ _ _ _ _ _ _ _ $$ [Hcore Ht]
+    iframe #
+  subst hi
+  ihave %Hrb := isBoltCoreP_receipts _ _ _ _ _ _ $$ Hcore
+  ihave #Hcore2 := Hcore
   unfold isBoltCoreP
-  icases Hcore with ⟨-, -, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
+  icases Hcore with ⟨-, #Ht0a, %Ht0, #Hpkg, #Hos, #Hfix, #Hml, #Hmm, -, #Hpi, -⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hfix' := Hfix
@@ -205,56 +157,48 @@ theorem DB.Close.wp_proof
   try wp_auto
   iunfold metaR at HR
   icases HR with ⟨%C, %F, %cl, %fli, %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk, Hfa,
-    Hrof, %Hok, %HF⟩
+    Hrof, #Hrcm, %Hok, %HF⟩
   iunfold rwR at HW
-  icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo)
+  icases HW with (⟨%w, Hwo, %Hwok, Hcls⟩ | Hclo')
   rotate_left
-  · -- closed already
-    iunfold closedR at Hclo
-    icases Hclo with ⟨Hcls, %C2, %fl2, %ms2, Hcur2, Hst2, Hfl2, Hmap2, Hmf2, Hout2, Hwv2, Hop2,
-      Hfli2, Hwa2⟩
-    icombine Hcls Hcls' gives % ⟨_, hcl⟩
-    subst hcl
-    simp only [Bool.not_true]
-    wp_apply DB.close.wp_proof_closed db _ $$ Hop' as Hop'
-    try wp_auto
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml HP]
-    · iexact HP
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (metaR (bnsOf γ.gs) db p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls' Hop'
-      Hfl' Hwa' Hob Hmlk Hfa Hrof]
-    · iunfold metaR; iexists C, F, true, fli, wa
-      simp only [Bool.not_true, ↓reduceIte]
-      iframe; ipureintro; exact ⟨Hok, HF⟩
-    try wp_auto
-    wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur2 Hst2
-      Hfl2 Hmap2 Hmf2 Hout2 Hwv2 Hop2 Hfli2 Hwa2]
-    · iunfold rwR; iright; iunfold closedR; iframe
-    try wp_auto
-    iapply HΦ
-    itrivial
+  · -- closed already: excluded by the caller's closer token (`closedR` holds the deposited one)
+    iunfold closedR at Hclo'
+    icases Hclo' with ⟨-, Hclo2, -⟩
+    icombine Hclo Hclo2 gives %h
+    exfalso
+    have h1 := h.1
+    rw [Qp.le_iff, Qp.val_add, Qp.val_one] at h1
+    grind
   -- open: the writer side idle
   icombine Hcls Hcls' gives % ⟨_, hcl⟩
   subst hcl
-  obtain ⟨hmo, htree, htx1⟩ := Hok rfl
+  obtain ⟨hmo, htree, htx1, -⟩ := Hok rfl
   iunfold wdbOwn at Hwo
-  icases Hwo with ⟨Hcg, Hst, -, -, -⟩
+  icases Hwo with ⟨Hcg, Hstw, -, -, -⟩
   iunfold wdbCore at Hcg
   iunfold wdbCoreG at Hcg
   icases Hcg with ⟨Hcur, Hgfl, Hgmap, Hgout, Hgwv, Hfli, Hop, Hwa, -, Hfile, Hpath,
-    Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, -, Hwc, -, -⟩
+    Hdsz, Hmf, Hosm, Hfo, Hfd, Hmc, Hmob, Hwc, Hwb, Hjk⟩
   icombine Hfli Hfl' gives %hfli
   subst hfli
   icombine Hwa Hwa' gives %hwa
   subst hwa
   icombine Hcur Hcur' gives % ⟨_, hC⟩
   subst hC
+  -- the committed data is the caller's
+  unfold boltState boltStateDef
+  icases Hst with ⟨Hs1, Hbq⟩
+  icombine Hs1 Hst' gives % ⟨_, hD⟩
+  subst hD
   iunfold Pm at HP
-  icases HP with ⟨%ms, Hpmap, Hpmf, Hptok⟩
+  icases HP with ⟨%ms, Hpmap, Hpmf, Hptok, Hpf⟩
   icombine Hgmap Hpmap gives % ⟨_, hmsE⟩
   subst hmsE
   ihave Hmf := (mapFields_join2 db w.ms).1 $$ [Hmf Hpmf]
   · iframe
+  icases pmFile_join (bnsOf γ.gs) db w.f w.fd p.path p.ino t0 w.ms $$ [Hfile Hfo Hfd Hpf] with
+    ⟨Hfile, Hfo, Hfd⟩
+  · iframe; iunfold t0At at Ht0a; iexact Ht0a
   simp only [Bool.not_false]
   ihave Hop := pt_join _ _ $$ [Hop Hop']
   · iframe
@@ -268,43 +212,194 @@ theorem DB.Close.wp_proof
     have h2 := treeOK_root' w.C htree
     have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
     omega
-  imod close_res _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
-    with ⟨Hres, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
-  -- the `flock` token (`dbPathLk`), for `close`'s `funlock` and `File.Close`
+  imod close_resM _ γ.ns p w Hwok hL $$ Hpi Hcur Hgfl Hgmap Hpmap Hptok Hgwv Hgout Hmc Hwc Hosm
+    with ⟨Hres, Hosm0, Hcur, Hgfl, Hgmap, Hpmap, Hptok, Hgwv, Hgout⟩
+  -- the store slots' bytes, `cls` set
+  imod store_close _ γ.ns p ⊤ CoPset.subseteq_top w.C w.fl $$ [Hpi Hcur Hgfl Hgwv Hcls Hcls' Hgmap]
+    with ⟨%bs, Hcur, Hgfl, Hgwv, Hcls, Hcls', Hgmap, HS, HX, %hS⟩
+  · iframe; iframe #
   iunfold dbPathLk at Hpath
   icases Hpath with ⟨Hpath, Htok⟩
-  wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf Hdsz
-    Hres Hfile Hfo Hfd Htok]
-    as %err ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
+  iunfold fileOwn at Hfo
+  icases Hfo with ⟨%inner, #Hfi, Hfdf, #Hfnm⟩
+  icases typedPointsto_not_null_dup _ _ _ $$ Hfi with ⟨-, %hfnn⟩
+  ihave Hfo : fileOwn (GF := GF) w.f w.fd p.path (DFrac.own 1) $$ [Hfdf]
+  · iunfold fileOwn; iexists inner; iframe; iframe #
+  by_cases hne : FsNoErr
+  rotate_left
+  · -- the file system can fail: `close` as in `DB.Close`; the file given up
+    iclear HS
+    iclear HX
+    iclear Hwb
+    iclear Hob
+    iclear Hmob
+    iclear Hosm0
+    ihave Hjk : junkRes (GF := GF) (bnsOf γ.gs) w.junk $$ [Hjk]
+    · unfold junkRes; iexact Hjk
+    imod junkRes_shut ⊤ (bnsOf γ.gs) w.junk $$ Hjk with #Hnf
+    wp_apply hOwned db lg DFrac.discard w.fli _ p.path w.ms p w.f Ht0.2.1 $$ [Hop Hfli Hwa Hpath Hmf
+      Hdsz Hres Hfile Hfo Hfd Htok]
+      as %err ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile⟩
+    · iframe; iframe #
+      isplitl [Hres]
+      · iapply closeMapResM_res $$ Hres
+      iright; iexists w.fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
+    try wp_auto
+    icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩
+    icases pt_split _ _ $$ Hfile with ⟨Hfile, -⟩
+    ihave Hpf := pmFile_null (bnsOf γ.gs) db (DFrac.own (1 : Qp).half) (t0, p.ino) none rfl
+      $$ [Hfile]
+    · iframe; iunfold t0At at Ht0a; iexact Ht0a
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok Hpf]
+    · iunfold Pm; iexists none; iframe
+    try wp_auto
+    icases pt_split _ _ $$ Hop with ⟨Hop, Hop'⟩
+    icases pt_split _ _ $$ Hfli with ⟨Hfli, Hfl'⟩
+    icases pt_split _ _ $$ Hwa with ⟨Hwa, Hwa'⟩
+    wp_apply sync.Mutex.wp_Unlock _ (metaR (bnsOf γ.gs) db p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls'
+        Hop' Hfl' Hwa' Hmlk Hfa]
+    · iunfold metaR; iexists w.C, F, true, interface.nil, func.nil
+      iframe Hrcm
+      simp only [Bool.not_true, ↓reduceIte, flRoOpt]
+      iframe
+      ipureintro
+      exact ⟨by simp, by simp, HF⟩
+    try wp_auto
+    wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
+      Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
+    · iunfold rwR; iright; iunfold closedR
+      iframe Hcls Hclo
+      iexists w.C, w.fl, none
+      iframe
+    try wp_auto
+    iapply HΦ
+    iright; ipureintro; exact hne
+  -- no error: `close` gives the `OsMeta` back
+  wp_apply hOwnedM hne db lg DFrac.discard w.fli _ p.path w.ms p w.m w.f w.fd p.path _ Ht0.2.1
+    hfnn $$ [Hop Hfli Hwa Hpath Hmf Hdsz Hres Hfile Hfo Hfd Htok]
+    as ⟨-, Hop, Hfli, Hwa, Hpath, Hmf, Hdsz, Hfile, Hback⟩
   · iframe; iframe #
-    iright; iexists w.fd, p.path, _; iframe; iapply dbFd_lockToks $$ Htok
+    iapply dbFd_lockToks $$ Htok
   try wp_auto
-  -- the deferred unlocks
   icases (mapFields_join2 db (none : MapSt)).2 $$ Hmf with ⟨Hmf1, Hmf2⟩
-  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok]
+  icases pt_split _ _ $$ Hfile with ⟨Hfile, -⟩
+  ihave Hpf := pmFile_null (bnsOf γ.gs) db (DFrac.own (1 : Qp).half) (t0, p.ino) none rfl
+    $$ [Hfile]
+  · iframe; iunfold t0At at Ht0a; iexact Ht0a
+  wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hmml Hpmap Hmf1 Hptok Hpf]
   · iunfold Pm; iexists none; iframe
   try wp_auto
-  imod ghostVar_update_halves true _ false false $$ Hcls Hcls' with ⟨Hcls, Hcls'⟩
   icases pt_split _ _ $$ Hop with ⟨Hop, Hop'⟩
   icases pt_split _ _ $$ Hfli with ⟨Hfli, Hfl'⟩
   icases pt_split _ _ $$ Hwa with ⟨Hwa, Hwa'⟩
   wp_apply sync.Mutex.wp_Unlock _ (metaR (bnsOf γ.gs) db p) $$ [$Hsync $Hml $Hlk Hcur' Hst' Hcls'
       Hop' Hfl' Hwa' Hmlk Hfa]
   · iunfold metaR; iexists w.C, F, true, interface.nil, func.nil
+    iframe Hrcm
     simp only [Bool.not_true, ↓reduceIte, flRoOpt]
     iframe
     ipureintro
     exact ⟨by simp, by simp, HF⟩
   try wp_auto
-  wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur Hst
-    Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa]
+  ihave Hjk : junkRes (GF := GF) (bnsOf γ.gs) w.junk $$ [Hjk]
+  · unfold junkRes; iexact Hjk
+  rcases hj : w.junk with _ | ⟨jb, jl⟩
+  rotate_left
+  · -- a mapping leaked: excluded, the leak recorded a failure the premises refute (session S3f)
+    ihave %hfs := junkRes_some_fs (bnsOf γ.gs) (some (jb, jl)) jb jl rfl $$ Hjk
+    exact absurd hne hfs
+  -- whole pages and mappable (`wdbSz`, session S3g: under the premises a failed write ends at
+  -- `maxBytes`, page-aligned; the mapping lies below `maxAddr`)
+  have hszw : wdbSz w.m w.ms := Hwok.2.2.2.2.2.2.2.2.2.2.2.2.1
+  have hal : w.m.size % 4096 = 0 := hszw.2.2 hne
+  -- the file given back; the caller's validity token kept by the closed database
+  wp_apply sync.Mutex.wp_Unlock _ (rwR (bnsOf γ.gs) db p sp t0) $$ [$Hsync $Hrw $Hrwl Hcls Hcur
+    Hstw Hgfl Hgmap Hmf2 Hgout Hgwv Hop Hfli Hwa Hclo]
   · iunfold rwR; iright; iunfold closedR
-    iframe Hcls
+    iframe Hcls Hclo
     iexists w.C, w.fl, none
     iframe
   try wp_auto
   iapply HΦ
-  itrivial
+  ileft
+  isplitr
+  · ipureintro; rfl
+  -- the file: its `OsMeta`, its bytes, an image of the committed state
+  icases close_meta p w Hwok hj $$ [Hback Hosm0] with ⟨%m, Hm, %hm⟩
+  · iframe
+  simp only [Bool.false_eq_true, ↓reduceIte]
+  icases metaOsBytes_slots p w.C hmo.1 hmo.2.1 $$ [Hmob Hob] with ⟨H0, H1⟩
+  · iframe
+  have hsz : w.m.size < 2 ^ 62 ∧ w.m.size % 4096 = 0 := ⟨hszw.lt, hal⟩
+  have hroot := treeOK_root' w.C htree
+  have h2 : 2 ≤ w.m.size / 4096 := by
+    have h3 := Hwok.2.2.1
+    have : 3 * 4096 ≤ w.C.hwm * 4096 := Nat.mul_le_mul_right _ (by omega : 3 ≤ w.C.hwm)
+    omega
+  -- the synced freelist page's halves joined (session S4)
+  have hwx := wdbOK_flxS w Hwok
+  iunfold wBytesX at Hwb
+  icases Hwb with ⟨Hwb0, Hwbx⟩
+  icases flxS_agree_same p w.C w.fl bs w.wb (fun f hf _ => (hS.2.2.2 f hf).2)
+    (fun f hf hp s hs => by
+      have : s ∈ flxS w.C w.fl w.wb := by unfold flxS; rw [hf]; simp only [hp, ↓reduceIte]; exact hs
+      exact (hwx s this).2.2) $$ [HX Hwbx] with ⟨HX, Hwbx, %hag⟩
+  · iframe
+  have hXe : flxS w.C w.fl bs = flxS w.C w.fl w.wb := by
+    unfold flxS
+    rcases hf : w.C.flpg with _ | f
+    · rfl
+    · by_cases hp : f ∈ pendSlots w.fl
+      · simp only [hp, ↓reduceIte]
+      · simp only [hp, ↓reduceIte]; exact ((hag f hf hp).1).symm
+  rw [hXe] at *
+  ihave Hwb := (show wBytes (GF := GF) p (w.W.filter (fun s => decide (s ∉ flxS w.C w.fl w.wb)))
+      w.wb w.m.size ∗ ([∗list] s ∈ flxS w.C w.fl w.wb, osSlotH p s (w.wb s)) ⊢
+      wBytesX p w.W (flxS w.C w.fl w.wb) w.wb w.m.size from by unfold wBytesX; exact .rfl) $$ [Hwb0 Hwbx]
+  · iframe
+  icases wBytes_joinX p w.W (flxS w.C w.fl w.wb) w.wb bs w.m.size
+    (fun s hs => (hwx s hs).2.1)
+    (fun s hs => by
+      rw [(hwx s hs).2.2]
+      rcases hf : w.C.flpg with _ | f
+      · unfold flxS at hs; rw [hf] at hs; cases hs
+      · exact ((hS.2.2.2 f hf).2 s (by
+          unfold flxS at hs; rw [hf] at hs
+          by_cases hp : f ∈ pendSlots w.fl
+          · simp only [hp, ↓reduceIte] at hs; cases hs
+          · simp only [hp, ↓reduceIte] at hs; rw [← (hag f hf hp).1]; exact hs)).symm)
+    $$ [Hwb HX] with ⟨Hwb, -⟩
+  · iframe
+  icases close_file_bytes p w Hwok bs hmo.1 hmo.2.1 hS.2.1 h2 hal _
+    (fun s hs => mem_filter_append _ _ s hs) $$ [H0 H1 HS Hwb] with
+    ⟨%xs, Hxs, %hxs⟩
+  · iframe
+  ihave %htxb := preceipt_lt _ $$ Hrcm
+  have hn : w.C.hwm ≤ w.m.size / 4096 := by
+    have h3 := Hwok.2.2.1
+    exact (Nat.le_div_iff_mul_le (by decide)).2 (by omega)
+  have hwbl : ∀ s, 2 ≤ s → s < w.m.size / 4096 → s ∉ slotsOf w.C w.fl → (w.wb s).length = 4096 := by
+    intro s h1 h2' h3
+    refine Hwok.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1 s ((wdbOK_mem_W w Hwok s).2 ⟨h1, ?_, h3⟩) (by omega)
+    have := Nat.le_max_right (mapLen w.ms) w.m.size
+    have : w.m.size / 4096 ≤ max (mapLen w.ms) w.m.size / 4096 := Nat.div_le_div_right this
+    omega
+  obtain ⟨hfok, hlen, himg⟩ := closeBytes_fileOK w.C w.fl bs w.wb (w.m.size / 4096) hmo htree htx1
+    (by omega) hn hS.1 hS.2.1 hwbl hS.2.2.1
+    (fun s hs => Hwok.2.2.2.2.2.2.2.2.2.2.1 s (Or.inr hs)) Hwok.2.2.2.2.2.1
+  have hsz4 : 4096 * (w.m.size / 4096) = w.m.size := by omega
+  rw [hsz4] at hfok
+  unfold fileHoldsM fileHoldsMDef
+  iexists m, xs
+  iframe Hm Hxs
+  isplitr
+  · ipureintro
+    refine ⟨hm.1, by rw [hm.2]; exact hxs.2, by rw [hm.2]; exact hsz, ?_⟩
+    rw [hm.2, hxs.1]; exact hfok
+  isplitr
+  · ipureintro; rw [hm.2]; exact hszw.1
+  rw [hxs.1]
+  iapply fileRcpt_intro _ w.C himg hmo $$ Hrcm
 
 end proof
 

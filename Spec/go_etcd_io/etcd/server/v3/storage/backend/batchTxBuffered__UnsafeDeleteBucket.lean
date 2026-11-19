@@ -33,7 +33,8 @@ session's), with the part of either kind (`k`: the claimed part `rbPutR`, only i
 write recorded as the bucket's claimed write `st.cw`); `c = k = false` is the statement until A1.4. -/
 abbrev backend.batchTxBuffered.UnsafeDeleteBucket.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo),
-  P.has bi → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false → (∀ k, P.hk bi.name k = false) →
+  P.has bi → bi.name ≠ [] → sint.Z st.pend + 1 < 2 ^ 58 → P.SB bi.name = false →
+  (∀ k, P.hk bi.name k = false) →
   (∀ k, ¬ fkKey bi.name k) →
   ∀ (c kc : Bool) {_hkc : kc ≤ c},
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ batchLocked γ P b st c ∗ isBucket bk bi ∗ rbPut γ P bi.name st.S kc }}

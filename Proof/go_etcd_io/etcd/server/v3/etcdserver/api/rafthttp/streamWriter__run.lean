@@ -48,8 +48,8 @@ set_option hygiene false in
 call. -/
 local macro "zap_log" : tactic => `(tactic| (
   repeat' (first_callee
-    | "String" => (wp_apply hTString _ _ _ $$ [t] as %_ t; iframe)
-    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "*streamType.String" => (wp_apply hTString _ _ _ $$ [t] as %_ t; iframe)
+    | "*ID.String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
     | "zap.String" => (wp_apply hZString as %_ -)
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)

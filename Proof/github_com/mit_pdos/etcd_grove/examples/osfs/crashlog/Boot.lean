@@ -541,7 +541,7 @@ theorem wp_run (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
   · iframe; iframe #
   icases Hfi with ⟨(⟨%fs, %Hfi, Hfs⟩ | %Hfi), -, -⟩
   rotate_left
-  · obtain ⟨Herr, rfl⟩ := Hfi
+  · obtain ⟨Herr, rfl, -⟩ := Hfi
     cases err with
     | nil => exact absurd rfl Herr
     | ok ie =>

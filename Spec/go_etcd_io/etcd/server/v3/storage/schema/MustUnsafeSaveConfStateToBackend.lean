@@ -27,16 +27,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 (`json.Marshal`, which reads the struct and cannot fail on a `ConfState`: so the `lg.Panic`
 branch is not taken) and puts it into `Meta` under the key `confState`
 (`tx.UnsafePut(Meta, MetaConfStateName, bytes)`, its one call of `tx`): given that put's triple
-from `R` to `Q`, for any bytes (a fresh slice, which the function does not touch again), it goes
-from `R` to `Q`. The struct `*confState` is read without a resource: its one caller
-(`BackendHooks.OnPreCommitUnsafe`) passes `SetConfState`'s clone, which no one writes after it is
-made (and `ConfState`, a protobuf-go v2 message, is an axiomatized type here). -/
+from `R` to `Q`, for any bytes of at most `25 * n + 128` (a fresh slice, which the function does
+not touch again), it goes from `R` to `Q`. The struct `*confState` is nil or read-only for good,
+with at most `n` ids (`csOkN n`: its one caller, `BackendHooks.OnPreCommitUnsafe`, passes
+`SetConfState`'s clone). **The length bound** (stage S1b of `notes/bbolt-integration-plan.md`,
+2026-11-17, the ledger's entry of that date; a statement about `encoding/json`'s output, true): the
+JSON of a `ConfState` is `null` for nil, or an object of the four id lists and `auto_leave`
+(`raft.pb.go`'s tags `voters`, `learners`, `voters_outgoing`, `learners_next`, `auto_leave`, all
+`omitempty`: at most 86 bytes of names and punctuation), each id a decimal `uint64` of at most 20
+digits and a comma. -/
 abbrev schema.MustUnsafeSaveConfStateToBackend.spec : Prop :=
-  ∀ (lg : Loc) (tx : GoInterfaceOk) (cs : Loc) (R Q : IProp GF),
+  ∀ (lg : Loc) (tx : GoInterfaceOk) (cs : Loc) (n : Nat) (R Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
-      R ∗
+      storage.csOkN n cs ∗ R ∗
       □ (∀ (b : GoInterface) (key val : GoSlice) (vb : GoString),
-        {{ globalAddr schema.Meta ↦□ b ∗ key ↦*□ schema.confStateKeyBytes ∗ val ↦*□ vb ∗ R }}
+        {{ globalAddr schema.Meta ↦□ b ∗ key ↦*□ schema.confStateKeyBytes ∗ val ↦*□ vb ∗
+            ⌜vb.length ≤ 25 * n + 128⌝ ∗ R }}
           (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #b)) (Val #key))
             (Val #val))
         {{ RET #(); Q }}) }}

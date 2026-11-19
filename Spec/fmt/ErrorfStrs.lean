@@ -3,7 +3,8 @@
 what `fileutil.CheckDirPermission` (`%q` of the directory, of its mode and of the expected one) and
 `fileutil.CreateDirAll` (`%q` of the directory and of the names it found) pass. Perennial's
 `fmt.Errorf.spec` admits only basic arguments (`fmt.ArgsWf`) and arguments whose `Error()`/`String()`
-has a spec; a `[]string` is neither, and `FileMode.String` is not translated (`Code/io/fs.toml`).
+has a spec; a `[]string` is neither (`FileMode.String` has one since 2026-11-18,
+`Spec/io/fs/FileMode__String.lean`, which this spec, older, does not use).
 
 Proved in `Proof/fmt/ErrorfStrs.lean` over Perennial's model of `Errorf` (`errors.New(format)`,
 the arguments ignored), as `fmt.ErrorfErrs.wp_proof` is. Why the model may be used for these

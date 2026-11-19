@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
+public import Perennial.GeneratedProof.sync
 public import Perennial.Golang.Theory
 public import Code.google_golang_org.grpc.health
 
@@ -25,12 +27,16 @@ variable [sem : go.Semantics]
 variable [package_sem' : google_golang_org.grpc.health.Assumptions]
 
 noncomputable instance producerBuilder_typed_pointsto :
-    TypedPointsto (GF := GF) google_golang_org.grpc.health.producerBuilder :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) google_golang_org.grpc.health.producerBuilder where
+  typedPointstoDef l v dq := iprop(
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance producerBuilder_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.producerBuilder google_golang_org.grpc.health.producerBuilder.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) google_golang_org.grpc.health.producerBuilder google_golang_org.grpc.health.producerBuilder.underlying := by
+  solve_into_val_typed_struct
 
 end def_
 end producerBuilder

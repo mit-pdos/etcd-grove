@@ -25,12 +25,13 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- `bh.SetConfState(cs)` of the server's hooks (`isBackendHooks`), with `cs` nil or a read-only
-`*pb.ConfState`: it returns (under `confStateLock`, `confState` set to a fresh clone of `cs`, a nil
+`*pb.ConfState` of at most `csIdMax` ids (`csOkN`; S1b, 2026-11-17: the hooks keep the bound, which
+bounds what their save puts): it returns (under `confStateLock`, `confState` set to a fresh clone of `cs`, a nil
 one for nil, and `confStateDirty` to `true`: what `csInv` guards). -/
 abbrev storage.BackendHooks.SetConfState.spec : Prop :=
   ∀ (bh : Loc) (ix : GoInterfaceOk) (lg cs : Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-      storage.isBackendHooks bh ix lg ∗ (⌜cs = null⌝ ∨ ∃ c, ownCSM cs DFrac.discard c) }}
+      storage.isBackendHooks bh ix lg ∗ storage.csOkN storage.csIdMax cs }}
     (App (Val (bh @!! go.GoType.PointerType BackendHooks.ty @!! go!"SetConfState")) (Val #cs))
   {{ RET #(); True }}
 

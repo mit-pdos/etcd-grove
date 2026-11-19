@@ -7,9 +7,10 @@ theorem bbolt.boltTxDef_size_acc [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs
     ∃ m mv db dq dq', typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" tx) m dq ∗
     typedPointsto m mv dq ∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" tx) db dq' ∗
     typedPointsto (structFieldRef go_etcd_io.bbolt.DB go!"pageSize" db) (W64 4096) DFrac.discard ∗
-    isPkgInit pkg_id.go_etcd_io.bbolt ∗ (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta"
-    tx) m dq -∗ typedPointsto m mv dq -∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db"
-    tx) db dq' -∗ bbolt.boltTxDef B N tx q T)
+    isPkgInit pkg_id.go_etcd_io.bbolt ∗ ⌜T.rw = false → BitVec.toNat mv.pgid' * 4096 ≤
+    281474976710655⌝ ∗ (typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"meta" tx) m dq -∗
+    typedPointsto m mv dq -∗ typedPointsto (structFieldRef go_etcd_io.bbolt.Tx go!"db" tx) db dq' -∗
+    bbolt.boltTxDef B N tx q T)
 
 theorem bbolt.Tx.Size.wp_proof (wp_Pgid : bbolt.internal.common.Meta.Pgid.spec) : bbolt.Tx.Size.spec
   -- `Perennial.EtcdGrove.bbolt.Tx.Size.spec`, unfolded:
@@ -18,7 +19,7 @@ theorem bbolt.Tx.Size.wp_proof (wp_Pgid : bbolt.internal.common.Meta.Pgid.spec) 
     ⊢
       ∀ Φ,
         bbolt.boltTx tx γ q T -∗
-          (▷ ∀ n, bbolt.boltTx tx γ q T -∗ Φ (intoVal n)) -∗
+          (▷ ∀ n, bbolt.boltTx tx γ q T ∗ ⌜T.rw = false → 0 ≤ sint.Z n ∧ sint.Z n < 2 ^ 62⌝ -∗ Φ (intoVal n)) -∗
             WP
               ((intoVal (methods go_etcd_io.bbolt.Tx.ty.PointerType go!"Size" (intoVal tx)))
                 (intoVal ()))

@@ -171,19 +171,19 @@ theorem sData_lookup (P : BParams) (S : Data) (nk : GoString × GoString) :
 /-! ## A read's output -/
 
 /-- **A slice a read returned** (`rdB`): read-only for good, or bytes of the read transaction. -/
-theorem rdB_iff (rtx : Loc) (s : GoSlice) (b : GoString) :
-    rdB (GF := GF) rtx s b ⊣⊢ s ↦*□ b ∨ txBytes rtx s b := by
+theorem rdB_iff (γd : DBNames) (rtx : Loc) (s : GoSlice) (b : GoString) :
+    rdB (GF := GF) γd rtx s b ⊣⊢ s ↦*□ b ∨ txBytes rtx γd s b := by
   unfold rdB; exact .rfl
 
 /-- **An empty read's output slices** (`kvsOutRd` of no entry): both empty, made read-only. -/
-theorem kvsOutRd_nil (E : CoPset) (rtx : Loc) (keys vals : GoSlice) :
-    kvsOutRd (GF := GF) rtx keys vals [] ⊢
+theorem kvsOutRd_nil (E : CoPset) (γd : DBNames) (rtx : Loc) (keys vals : GoSlice) :
+    kvsOutRd (GF := GF) γd rtx keys vals [] ⊢
       |={E}=> keys ↦*□ ([] : List GoSlice) ∗ vals ↦*□ ([] : List GoSlice) := by
   iintro Hout
   iunfold kvsOutRd at Hout
   icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
-  ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
-  ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
+  ihave %Hlk := rdSlices_length γd rtx ks' _ $$ Hrk
+  ihave %Hlv := rdSlices_length γd rtx vs' _ $$ Hrv
   simp only [List.map_nil, List.length_nil, List.length_eq_zero_iff] at Hlk Hlv
   subst Hlk Hlv
   imod ownSlice_persist $$ Hk with #Hk
@@ -193,14 +193,14 @@ theorem kvsOutRd_nil (E : CoPset) (rtx : Loc) (keys vals : GoSlice) :
 
 /-- **A one-entry read's output slices** (`kvsOutRd` of `(k, v)`): one slice each, made read-only,
 read as `k` and `v` (`rdB`). -/
-theorem kvsOutRd_single (E : CoPset) (rtx : Loc) (keys vals : GoSlice) (k v : GoString) :
-    kvsOutRd (GF := GF) rtx keys vals [(k, v)] ⊢
-      |={E}=> ∃ ksl vsl : GoSlice, keys ↦*□ [ksl] ∗ rdB rtx ksl k ∗ vals ↦*□ [vsl] ∗ rdB rtx vsl v := by
+theorem kvsOutRd_single (E : CoPset) (γd : DBNames) (rtx : Loc) (keys vals : GoSlice) (k v : GoString) :
+    kvsOutRd (GF := GF) γd rtx keys vals [(k, v)] ⊢
+      |={E}=> ∃ ksl vsl : GoSlice, keys ↦*□ [ksl] ∗ rdB γd rtx ksl k ∗ vals ↦*□ [vsl] ∗ rdB γd rtx vsl v := by
   iintro Hout
   iunfold kvsOutRd at Hout
   icases Hout with ⟨%ks', %vs', Hk, -, Hv, -, #Hrk, #Hrv⟩
-  ihave %Hlk := rdSlices_length rtx ks' _ $$ Hrk
-  ihave %Hlv := rdSlices_length rtx vs' _ $$ Hrv
+  ihave %Hlk := rdSlices_length γd rtx ks' _ $$ Hrk
+  ihave %Hlv := rdSlices_length γd rtx vs' _ $$ Hrv
   simp only [List.map_cons, List.map_nil, List.length_cons, List.length_nil] at Hlk Hlv
   obtain ⟨ksl, rfl⟩ := List.length_eq_one_iff.1 Hlk
   obtain ⟨vsl, rfl⟩ := List.length_eq_one_iff.1 Hlv

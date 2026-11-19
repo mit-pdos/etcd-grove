@@ -1,8 +1,17 @@
 /-
 The trust boundary: `Spec/go_etcd_io/etcd/server/v3/storage/backend/backend__Snapshot.lean`
-(`backend.Snapshot` is names only: its body begins a bbolt read transaction outside the batch
-lock, which the backend's model of bbolt, whose `ownDB` the batch lock holds, does not cover, and
-starts a ticker goroutine). D22 S-f, 2026-10-19; `notes/decisions.md`, "D22 S-f carried out".
+(its body begins a bbolt read transaction outside the batch lock, which the backend's model of
+bbolt, whose `ownDB` the batch lock holds, does not cover, and starts a ticker goroutine). D22 S-f,
+2026-10-19; `notes/decisions.md`, "D22 S-f carried out". (S4b, 2026-11-18) Translated with its
+body (and its goroutine) since S4b, but still assumed: proving it needs (1) a reader slot of `b.mu`
+outside the batch lock (the backend's slots of `b.mu` other than the batch lock's are not kept
+anywhere: a pool of them, as `RdPool`'s for `readTx.mu`, in `isBackend` or the constructor's post)
+and (2) the observation `Q` at `DB.Begin(false)`'s linearization point, which no thread can apply
+there: the caller holds `R`, the batch lock (or its holder) `W ∗ Pk` and the ghost shares, so the
+commits would have to help (each commit applying every registered snapshotter's observation, with
+the batch lock's ghost shares moved to the commit's linearization point inside bbolt's
+`Tx.Commit`), with `boltState` shared between the batch lock and an invariant
+(`notes/bbolt-integration-plan.md`, "S4b").
 -/
 module
 
@@ -22,7 +31,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
@@ -85,7 +94,15 @@ thread's token, as `bbolt.DB.Begin_kv` charges a read transaction; the bound kee
 `sync.RWMutex`'s `2 ^ 30` readers (`bbolt.Open_kv`'s count). The goroutine it starts
 (`backend.go:393`, living until `Close`'s `<-s.donec`, `:1131`) is a live thread paid by its own
 fork's fuel; the caller's token pays the reader slot: net one token per open snapshot until `Close`
-(reviewed with the `axiom` skill, survives: `notes/axiom-review/begin-tok-restated.md`). -/
+(reviewed with the `axiom` skill, survives: `notes/axiom-review/begin-tok-restated.md`).
+(S4b, 2026-11-18) `snapOpen` is a definition now (`InvSnapshot.lean`, `snapAt`), so the post claims
+what the body makes: the `*snapshot` `sp` with persistent fields `Tx`, `stopc`, `donec` (the composite
+literal `&snapshot{tx, stopc, donec}`, written once), the read transaction `tx` of `γ.db` whole
+(`txLive tx γ.db 1 (ro D)`: `Begin(false)`'s, the token above its reader slot), and the two fresh
+channels `make(chan struct{})` as broadcast channels with `stopc`'s close right in the invariant
+`snapN` (nobody but `Close` closes `stopc`; the goroutine only receives from it, and closes `donec`
+once, by its `defer`, when it has received; `Close` only receives from `donec`), the ghost variable
+`γ` fresh. -/
 axiom backend.backend.Snapshot.wp_proof : backend.backend.Snapshot.spec (GF := GF) (hG := hG)
 
 end proof

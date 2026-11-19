@@ -49,6 +49,8 @@ public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.Compare
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCallsLinked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.auth.startServer
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
@@ -208,7 +210,7 @@ theorem context.wp_WithTimeoutBackgroundMd :
 
 theorem wp_SetUp :
     EtcdGrove.etcd_auth.SetUp.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_auth.SetUp.wp_proof context.wp_WithTimeoutBackgroundMd context.wp_ErrAny wp_Principals wp_keyOf client.v3.authClient.wp_UserAdd client.v3.authClient.wp_UserGrantRole client.v3.authClient.wp_RoleAdd client.v3.authClient.wp_RoleGrantPermission client.v3.authClient.wp_AuthEnable
+  EtcdGrove.etcd_auth.SetUp.wp_proof context.wp_WithTimeoutBackgroundMd context.wp_ErrAny wp_Principals wp_keyOf client.v3.authClient.wp_UserAdd client.v3.authClient.wp_UserGrantRole client.v3.authClient.wp_RoleAdd client.v3.authClient.wp_RoleGrantPermission client.v3.authClient.wp_AuthEnable client_Put_on_law_holds
 
 theorem wp_newUserClient [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.etcd_auth.newUserClient.spec (GF := GF) (hG := hG) :=
@@ -228,7 +230,7 @@ theorem wp_checkTxnReads :
 
 theorem wp_Work :
     EtcdGrove.etcd_auth.Work.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_auth.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted context.wp_WithTimeoutBackgroundMd context.wp_ErrAny metadata.wp_AppendToOutgoingContext v3.wp_OpPut v3.wp_OpGet v3.wp_OpTxn v3.wp_Compare v3.wp_Value v3.wp_WithRange v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_Watch
+  EtcdGrove.etcd_auth.Work.wp_proof wp_keyOf wp_reqCtx wp_refused wp_checkKVs wp_checkTxnReads wp_Permitted context.wp_WithTimeoutBackgroundMd context.wp_ErrAny metadata.wp_AppendToOutgoingContext v3.wp_OpPut v3.wp_OpGet v3.wp_OpTxn v3.wp_Compare v3.wp_Value v3.wp_WithRange v3.wp_WithPrefix v3.wp_WithRev client.v3.watcher.wp_Watch client_Txn_on_law_holds client.v3.txn.wp_If client.v3.txn.wp_Then client.v3.txn.wp_Else work_put_law_holds work_delete_law_holds work_get_law_holds work_commit_law_holds then_commit_nested_refused_law_holds
 
 theorem context.wp_WithTimeoutBackground :
     EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=

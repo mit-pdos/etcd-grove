@@ -37,6 +37,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.TopLevelDefs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.InitLinked
 
 @[expose] public section
 
@@ -52,20 +54,12 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `leaseN`'s initialization, then `Main(k)`. -/
-def leaseNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main) #(W64 (k : Int))
-
-/-- The read package's two metric names (putgetN's). -/
-def leaseNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **leaseN is safe** (see the file header): for every member count `1 ≤ k ≤ 1000`, every real
 execution of `leaseNProgram k` from a fresh state with one thread, of `n` steps: if the main thread

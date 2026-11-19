@@ -46,6 +46,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsna
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.TopLevelDefs
 
 @[expose] public section
 
@@ -103,11 +104,6 @@ instance logkvsnapGF_naInvG : NaInvG logkvsnapGF := ⟨⟨11, rfl⟩⟩
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
-/-- The register's program: the package's initialization, then `Main()`. -/
-def logkvsnapProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Main) #()
-
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvsnapProgram` (the logkvsnap package's initialization, then `Main()`) from a fresh state --
 no package initialized (`IsInit`), one live thread -- of `n < 2^63` steps: if the main thread
@@ -150,19 +146,6 @@ theorem logkvsnap_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe #
   ipureintro
   rfl
-
-/-- **`logkvsnap_adequate` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `logkvsnap_adequate`'s other hypotheses: in every
-execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
-theorem logkvsnap_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvsnap.Assumptions]
-    (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(logkvsnapProgram, σ)] g (2 ^ 63) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (logkvsnap_adequate
-      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end adequacy
 

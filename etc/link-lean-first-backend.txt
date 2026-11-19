@@ -1,7 +1,10 @@
 # etcd's backend (all Lean-first: no Rocq counterpart), read by `etc/gen-link.py --backend`:
 # `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
-# The trust boundary: bbolt's key-value contract (Spec/go_etcd_io/bbolt/*_kv*.lean, axioms over
-# InvBbolt's axiomatized predicates); `sort.Stable` (Perennial translates it, proves only
+# bbolt (S3e, 2026-11-18, the user's direction: one canonical spec per function): the backend's proofs
+# take bbolt's canonical specs (`@` callees, linked in Proof/go_etcd_io/bbolt/Link.lean), converted to
+# the backend's vocabulary (InvBbolt.lean, at `theFs`) by private lemmas in each proof file; the `_kv`
+# specs are gone. `Open` and `DB.Close` are S3f's (interim axioms until it lands). The
+# trust boundary: those two; `sort.Stable` (Perennial translates it, proves only
 # `sort.Sort`); `verify.Assert`/`Verify` and verify.go's lock checks `ValidateCalled*` (names-only:
 # they read ETCD_VERIFY and the call stack; stated as returning: the lock checks off); zap's field
 # constructors and `Logger.Fatal`; `time.Duration.Seconds`. `sort.Sort` is Perennial's.
@@ -14,28 +17,26 @@
 ValidateCalledInsideApply:
 ValidateCalledInsideUnittest:
 ValidateCalledOutSideApply:
-bbolt_Bucket__Cursor_kvr:
-bbolt_Bucket__Cursor_kvw:
-bbolt_Bucket__Delete_kv:
-bbolt_Bucket__ForEach_kvr:
-bbolt_Bucket__ForEach_kvw:
-bbolt_Bucket__Put_kv:
-bbolt_Cursor__Next_kv:
-bbolt_Cursor__Seek_kv:
-bbolt_DB__Begin_kv:
-bbolt_DB__Close_kv:
-bbolt_DB__Info_kv:
-bbolt_DB__Stats_kv:
-bbolt_Open_kv:
-bbolt_Tx__Bucket_kvr:
-bbolt_Tx__Bucket_kvw:
-bbolt_Tx__Commit_kv:
-bbolt_Tx__CreateBucketIfNotExists_kv:
-bbolt_Tx__DB_kv:
-bbolt_Tx__DeleteBucket_kv:
-bbolt_Tx__Rollback_kv:
-bbolt_Tx__Size_kv:
-bbolt_Tx__Stats_kv:
+bbolt_Bucket__Cursor: @
+bbolt_Bucket__ForEach: @
+bbolt_DB__Close: @
+bbolt_Open: @
+bbolt_Bucket__Delete: @
+bbolt_Bucket__Put: @
+bbolt_Cursor__Next: @
+bbolt_Cursor__Seek: @
+bbolt_DB__Begin: @
+bbolt_DB__Info: @
+bbolt_DB__Stats: @
+bbolt_Tx__Bucket: @
+bbolt_Tx__Commit: @
+bbolt_Tx__CreateBucketIfNotExists: @
+bbolt_Tx__DB: @
+bbolt_Tx__DeleteBucket: @
+bbolt_Tx__Rollback: @
+bbolt_Tx__Size: @
+bbolt_Tx__WriteTo: @
+bbolt_Tx__Stats: @
 sort_Stable:
 time_Duration__Seconds:
 verify_Assert:
@@ -51,7 +52,7 @@ BackendConfig__mmapSize:
 backend_New: backend_newBackend
 NewHooks: hooks__OnPreCommitUnsafe
 backend__BatchTx: 
-backend__Close: bbolt_DB__Close_kv
+backend__Close: bbolt_DB__Close
 backend__Commits: 
 backend__ConcurrentReadTx: txReadBuffer__unsafeCopy
 backend__ForceCommit: batchTxBuffered__Commit
@@ -62,11 +63,11 @@ backend__SetTxPostLockInsideApplyHook: batchTx__lock batchTxBuffered__Unlock
 backend__Size: 
 backend__SizeInUse: 
 backend__UnlockForSafeRangeDelete: 
-backend__begin: backend__unsafeBegin bbolt_Tx__Size_kv bbolt_Tx__DB_kv bbolt_DB__Stats_kv bbolt_DB__Info_kv
+backend__begin: backend__unsafeBegin bbolt_Tx__Size bbolt_Tx__DB bbolt_DB__Stats bbolt_DB__Info
 backend__run: batchTx__safePending batchTx__lock batchTxBuffered__commit batchTx__Unlock batchTxBuffered__CommitAndStop
-backend__unsafeBegin: bbolt_DB__Begin_kv zap_Error zap_Logger__Fatal
+backend__unsafeBegin: bbolt_DB__Begin zap_Error zap_Logger__Fatal
 baseReadTx__UnsafeForEach: txReadBuffer__ForEach unsafeForEach
-baseReadTx__UnsafeRange: txReadBuffer__Range bbolt_Tx__Bucket_kvr bbolt_Bucket__Cursor_kvr unsafeRange
+baseReadTx__UnsafeRange: txReadBuffer__Range bbolt_Tx__Bucket bbolt_Bucket__Cursor unsafeRange
 batchTxBuffered__Commit: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__CommitAndStop: batchTx__lock batchTxBuffered__commit batchTx__Unlock
 batchTxBuffered__Lock: batchTx__Lock
@@ -81,22 +82,22 @@ batchTxBuffered__UnsafeForEach: batchTx__UnsafeForEach
 batchTxBuffered__UnsafeRange: batchTx__UnsafeRange
 batchTxBuffered__UnsafeSeqPut: batchTx__UnsafeSeqPut txWriteBuffer__putSeq
 batchTxBuffered__commit: readTx__Lock batchTxBuffered__unsafeCommit readTx__Unlock
-batchTxBuffered__unsafeCommit: bbolt_Tx__Rollback_kv readTx__reset batchTx__commit backend__begin
+batchTxBuffered__unsafeCommit: bbolt_Tx__Rollback readTx__reset batchTx__commit backend__begin
 batchTx__Lock: ValidateCalledInsideUnittest batchTx__lock
 batchTx__LockInsideApply: batchTx__lock ValidateCalledInsideApply
 batchTx__LockOutsideApply: ValidateCalledOutSideApply batchTx__lock
 batchTx__Unlock: 
-batchTx__UnsafeCreateBucket: bbolt_Tx__CreateBucketIfNotExists_kv zap_Stringer zap_Error zap_Logger__Fatal
-batchTx__UnsafeDelete: bbolt_Tx__Bucket_kvw zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Delete_kv zap_Error
-batchTx__UnsafeDeleteBucket: bbolt_Tx__DeleteBucket_kv zap_Stringer zap_Error zap_Logger__Fatal
+batchTx__UnsafeCreateBucket: bbolt_Tx__CreateBucketIfNotExists zap_Stringer zap_Error zap_Logger__Fatal
+batchTx__UnsafeDelete: bbolt_Tx__Bucket zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Delete zap_Error
+batchTx__UnsafeDeleteBucket: bbolt_Tx__DeleteBucket zap_Stringer zap_Error zap_Logger__Fatal
 batchTx__UnsafeForEach: unsafeForEach
 batchTx__UnsafePut: batchTx__unsafePut
-batchTx__UnsafeRange: bbolt_Tx__Bucket_kvw zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Cursor_kvw unsafeRange
+batchTx__UnsafeRange: bbolt_Tx__Bucket zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Cursor unsafeRange
 batchTx__UnsafeSeqPut: batchTx__unsafePut
-batchTx__commit: bbolt_Tx__Commit_kv bbolt_Tx__Stats_kv time_Duration__Seconds zap_Error zap_Logger__Fatal backend__begin
+batchTx__commit: bbolt_Tx__Commit bbolt_Tx__Stats time_Duration__Seconds zap_Error zap_Logger__Fatal backend__begin
 batchTx__lock: 
 batchTx__safePending: 
-batchTx__unsafePut: bbolt_Tx__Bucket_kvw zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Put_kv zap_Error
+batchTx__unsafePut: bbolt_Tx__Bucket zap_Stringer zap_Stack zap_Logger__Fatal bbolt_Bucket__Put zap_Error
 bucketBuffer__CopyUsed: verify_Assert
 bucketBuffer__ForEach: 
 bucketBuffer__Len: 
@@ -130,17 +131,17 @@ txWriteBuffer__putInternal: newBucketBuffer bucketBuffer__add
 txWriteBuffer__putSeq: verify_Verify txWriteBuffer__putInternal
 txWriteBuffer__reset: txBuffer__reset
 txWriteBuffer__writeback: bucketBuffer__dedupe bucketBuffer__merge txWriteBuffer__reset
-unsafeForEach: bbolt_Tx__Bucket_kvr bbolt_Tx__Bucket_kvw bbolt_Bucket__ForEach_kvr bbolt_Bucket__ForEach_kvw
-unsafeRange: bbolt_Cursor__Seek_kv bbolt_Cursor__Next_kv
-backend_newBackend: bbolt_Open_kv newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run
+unsafeForEach: bbolt_Tx__Bucket bbolt_Bucket__ForEach
+unsafeRange: bbolt_Cursor__Seek bbolt_Cursor__Next
+backend_newBackend: newBoltLoggerZap BackendConfig__mmapSize zap_NewNop zap_String zap_Error zap_Logger__Panic newBatchTxBuffered backend__run bbolt_Open
 newBatchTxBuffered: backend__begin
 newBoltLoggerZap:
 # (D22 S-f, 2026-10-19) the snapshot path's backend boundary (InvSnapshot.lean): `backend.Snapshot`
-# (a read transaction begun outside the batch lock) and the snapshot's `WriteTo` (bbolt's
-# `Tx.WriteTo`), names only, axioms. Linked for the sender (D22 S-h).
+# (a read transaction begun outside the batch lock), an axiom (translated since S4b, 2026-11-18, not
+# proved: `notes/bbolt-integration-plan.md`, "S4b"). Linked for the sender (D22 S-h).
 backend__Snapshot:
-snapshot__WriteTo:
-# (D22 S-h, 2026-10-20) the snapshot's `Size` (bbolt's `Tx.Size`, promoted) and `Close` (translated,
-# over the opaque `snapRO`): axioms, linked for the sender.
-snapshot__Size:
-snapshot__Close:
+# (S4b, 2026-11-18; axioms until then, D22 S-f/S-h) the snapshot's `WriteTo` and `Size` (bbolt's
+# `Tx.WriteTo`/`Tx.Size`, promoted) and `Close` (its channels, bbolt's `Tx.Rollback`), proved
+snapshot__WriteTo: bbolt_Tx__WriteTo
+snapshot__Size: bbolt_Tx__Size
+snapshot__Close: bbolt_Tx__Rollback
