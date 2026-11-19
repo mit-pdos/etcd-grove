@@ -115,7 +115,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BootStore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreLaws
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApplyOptsLemmas
 public import Proof.ReceiptTactics
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLinked
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeStartLaws
 
 @[expose] public section
 
@@ -413,7 +413,9 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     (hLSR : cmp = true → backend.backend.LockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUSR : cmp = true → backend.backend.UnlockForSafeRangeDelete.spec (GF := GF) (hG := hG))
     (hUP : cmp = true → backend.batchTxBuffered.UnsafePut.spec (GF := GF) (hG := hG))
-    (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG)) :
+    (hCmpS : cmp = true → EtcdServer.Compact.spec (GF := GF) (hG := hG))
+    -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG)) :
     NewServer.specG (GF := GF) (hG := hG) on cmp := by
   haveI := Hp.1
   intro cfg U γ id ctxs ρ E₀ N Φs γn dir γd m HρRaft Hrule Hc0 Hch0 Hlog0 Hkcmp Hcbl Hmrb Hmto Hcb Hcon Hcmp0 HNx0
@@ -512,7 +514,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   (try wp_auto)
   -- `b.raft.newRaftNode(b.ss, b.storage.wal.w, b.cluster.cl)`: raft's node started
   -- (`NodeStartSpec`, `raftNode_of_StartNode`)
-  have hNS := raftNode_of_StartNode (GF := GF) h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
+  have hNS := hNodeStart h8 h86d h85 h86e h86f h86g h86h h9 h10 h11 h10d h12 h87 h88
     h89 h78 h86
   obtain ⟨Hrcfg, Hrhb, Hrlg, Hrid, Hrnodup, Hr0, Hrmem, Hrvs, Hrbok⟩ := Hraft
   -- (premise-fixes-6) the wrapper's logger the configuration's (`bootOk`'s `Hraft`), a zap logger
@@ -2800,7 +2802,9 @@ theorem NewServer.wp_proofM (on : Bool)
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
-    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
+    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
+    -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG)) :
     NewServer.specM (GF := GF) (hG := hG) on :=
   -- `specG` at `cmp = false`: the compaction mode's specs are not asked for
   NewServer.wp_proofG on false h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16 h17 h18
@@ -2808,7 +2812,7 @@ theorem NewServer.wp_proofM (on : Bool)
     h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63 h64 h65 h66 h67 h68 h69 h70
     h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86 h86d h86e h86f h86g h86h h87 h88
     h89 h90 h91 h92 h93 h94 h95 hAG hBSC
-    (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h)
+    (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) (fun h => nomatch h) hNodeStart
 
 theorem NewServer.wp_proof
     (h0 : zap.Logger.Error.spec (GF := GF) (hG := hG))
@@ -2943,7 +2947,9 @@ theorem NewServer.wp_proof
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, for the uber-applier's construction
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (R-D1, 2026-11-04) the error paths' `b.Close()` (until then `bootOk`'s `#Hclose`)
-    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG)) :
+    (hBSC : bootstrappedServer.Close.spec (GF := GF) (hG := hG))
+    -- (the import tiers, 2026-11-18) the node's start composed over raft's linked results
+    (hNodeStart : raftNode_of_StartNode.law (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := fun cmp =>
   -- `specG` at auth off, in the caller's compaction mode
   NewServer.wp_proofG false cmp h0 h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h10d h11 h12 h13 h14 h15 h16
@@ -2951,7 +2957,7 @@ theorem NewServer.wp_proof
     h36 h37 h38 h39 h41 hPeerStop hRemoteStop h42 h46 h47 h48 h49 h50 h51 h52 h53 h54 h55 h56 h57 h58 h59 h60 h61 h62 h63
     h64 h65 h66 h67 h68 h69 h70 h71 h72 h73 h74 h75 h76 h77 h78 h79 h80 h81 h82 h83 h84 h85 h86
     h86d h86e h86f h86g h86h h87 h88 h89 h90 h91 h92 h93 h94 h95 hAG hBSC
-    (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hCmpS)
+    (fun _ => hLSR) (fun _ => hUSR) (fun _ => hUP) (fun _ => hCmpS) hNodeStart
 
 
 end proof

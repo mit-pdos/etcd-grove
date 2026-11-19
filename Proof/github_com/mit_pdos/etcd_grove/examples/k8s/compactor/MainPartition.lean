@@ -35,7 +35,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvServerKV
 public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Perennial.Proof.sync.Results
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.NoDup
-public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.OneMember
 
 @[expose] public section
 

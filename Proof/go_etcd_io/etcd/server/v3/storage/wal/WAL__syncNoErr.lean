@@ -8,7 +8,7 @@ error arms gone. Lean-first.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__sync
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncLemmas
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailWriterWNE
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.TailFdatasyncNE
 

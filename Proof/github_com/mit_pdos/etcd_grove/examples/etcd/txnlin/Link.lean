@@ -85,9 +85,12 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.workloadKeys
 public import Proof.go_uber_org.zap.NewNop
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ApiResults
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
 public import Proof.context.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.Link
+public import Proof.go_etcd_io.etcd.client.v3.Link
 
 @[expose] public section
 
@@ -377,7 +380,7 @@ theorem context.wp_WithTimeoutBackground :
 
 theorem wp_callGet :
     EtcdGrove.etcd_txnlin.callGet.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.callGet.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_vrOf
+  EtcdGrove.etcd_txnlin.callGet.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_vrOf client.client_Get_st_law_holds
 
 theorem wp_kvsFrom :
     EtcdGrove.etcd_txnlin.kvsFrom.spec (GF := GF) (hG := hG) :=
@@ -385,15 +388,15 @@ theorem wp_kvsFrom :
 
 theorem wp_callList :
     EtcdGrove.etcd_txnlin.callList.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.callList.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_kvsFrom wp_withKVs v3.wp_WithRange
+  EtcdGrove.etcd_txnlin.callList.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_kvsFrom wp_withKVs v3.wp_WithRange client_List_st_law_holds
 
 theorem wp_callPut :
     EtcdGrove.etcd_txnlin.callPut.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.callPut.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
+  EtcdGrove.etcd_txnlin.callPut.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny client.client_Put_st_law_holds
 
 theorem wp_callDel :
     EtcdGrove.etcd_txnlin.callDel.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.callDel.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny
+  EtcdGrove.etcd_txnlin.callDel.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny client.client_Delete_st_law_holds
 
 theorem wp_txnRes :
     EtcdGrove.etcd_txnlin.txnRes.spec (GF := GF) (hG := hG) :=
@@ -401,7 +404,7 @@ theorem wp_txnRes :
 
 theorem wp_callTxn :
     EtcdGrove.etcd_txnlin.callTxn.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.etcd_txnlin.callTxn.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes
+  EtcdGrove.etcd_txnlin.callTxn.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny wp_cmpsFor wp_opsOf wp_thenOf wp_elseOf wp_txnRes wp_withRes client.client_Txn_st_law_holds client.v3.txn.wp_If client.v3.txn.wp_Then client.v3.txn.wp_Else txn_Commit_st_law_holds
 
 theorem wp_call :
     EtcdGrove.etcd_txnlin.call.spec (GF := GF) (hG := hG) :=

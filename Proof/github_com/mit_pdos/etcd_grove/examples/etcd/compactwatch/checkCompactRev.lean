@@ -17,8 +17,7 @@ public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.watcher__Watch
 public import Perennial.Spec.context.Background
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundCalls
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compactwatch.RoundLaws
 
 @[expose] public section
 
@@ -48,7 +47,8 @@ theorem checkCompactRev.wp_proof
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
     (wp_Watch : watcher.Watch.spec (GF := GF) (hG := hG))
-    (wp_CompactRev : etcdstart.CompactRev.spec (GF := GF) (hG := hG)) :
+    (wp_CompactRev : etcdstart.CompactRev.spec (GF := GF) (hG := hG))
+    (h_client_Get_rev : client_Get_rev.law (GF := GF) (hG := hG)) :
     checkCompactRev.spec (GF := GF) (hG := hG) := by
   intro CS CRE CEC cl key R E γr cid mid γf γl γv keys val hkl hcr hAs
   wp_start as ⟨#Hnc, #HWF, #Hregs, #H00, #Hinv, #Hkvi⟩
@@ -170,7 +170,7 @@ theorem checkCompactRev.wp_proof
     iintro !> %i %f %g %Hf
     simp at Hf
   imod monoNatLbOwn_0 (GF := GF) γr.committed with #Hc0
-  wp_apply (client_Get_rev cl go!"127.0.0.1:23794" _ E γr γf γl γv keys val key
+  wp_apply (h_client_Get_rev cl go!"127.0.0.1:23794" _ E γr γf γl γv keys val key
       (sint.Z crev + γr.kv.cret).toNat (W64 0) cid mid lctx lcd slice.nil []
       (opSizeOk_opGetModel (K := 2) (E := 0) (V := 0) (optsKeep_nil _ _ _) hkl (by decide)))
       as %lresp %lerr Hget

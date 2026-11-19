@@ -4,7 +4,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.fromRaft
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.entData
 public import Proof.go_etcd_io.etcd.server.v3.storage.wal.RaftModel.Getters
-public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.entData
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.entDataLemmas
 
 @[expose] public section
 

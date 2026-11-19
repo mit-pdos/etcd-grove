@@ -27,14 +27,21 @@ getPrefix:
 GetPrefixRangeEnd: getPrefix
 v3_WithLease:
 ResponseOp__GetResponseRange:
+# (the import tiers, 2026-11-18) the `*kv`'s `Txn` and the builder's methods the optimistic calls
+# take as hypotheses, from the client's `Link.lean`; `kv.Get` through `client_range_any`'s and
+# `Commit` through linkvtxn's `txn_Commit_st`'s laws (`=`, `ClientPutGet.lean`, `CallsLinked.lean`)
+kv__Txn: @
+txn__If: @
+txn__Then: @
+txn__Else: @
 #
 # client/v3/kubernetes (`client.go`)
 kvFromTxnResponse: ResponseOp__GetResponseRange
-Client__Get: WithRev WithLimit
+Client__Get: WithRev WithLimit =client.client_range_any_law_holds
 # (k8s 7e-1) List: a hypothesis until 7e-1
-Client__List: WithRev WithLimit WithRange GetPrefixRangeEnd
-Client__OptimisticPut: v3_WithLease OpPut OpGet ModRevision v3_Compare kvFromTxnResponse
-Client__OptimisticDelete: OpDelete OpGet ModRevision v3_Compare kvFromTxnResponse
+Client__List: WithRev WithLimit WithRange GetPrefixRangeEnd =client.client_range_any_law_holds
+Client__OptimisticPut: v3_WithLease OpPut OpGet ModRevision v3_Compare kvFromTxnResponse kv__Txn txn__If txn__Then txn__Else =etcd_txnlin.txn_Commit_st_law_holds
+Client__OptimisticDelete: OpDelete OpGet ModRevision v3_Compare kvFromTxnResponse kv__Txn txn__If txn__Then txn__Else =etcd_txnlin.txn_Commit_st_law_holds
 # the constructor (stage 6e): `New(cfg)`, over the client's (`@`)
 client_v3_New: @
 kubernetes_New: client_v3_New

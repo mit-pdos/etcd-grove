@@ -4,6 +4,7 @@ module
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOps
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putHS
 public import WalTester.Spec.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putU64
+public import WalTester.Proof.github_com.mit_pdos.etcd_grove.examples.etcd.wal.putOpsLemmas
 
 @[expose] public section
 
@@ -18,21 +19,6 @@ namespace etcd_wal
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.mit_pdos.etcd_grove.examples.etcd.wal
-
-/-- One more element of a `flatMap` over a prefix. -/
-theorem flatMap_take_succ {α β : Type} (l : List α) (f : α → List β) (i : Nat) (x : α)
-    (h : l[i]? = some x) : (l.take (i + 1)).flatMap f = (l.take i).flatMap f ++ f x := by
-  rw [List.take_add_one, h]; simp
-
-/-- A `flatMap` over the whole list. -/
-theorem flatMap_take_length {α β : Type} (l : List α) (f : α → List β) (i : Nat)
-    (h : i = l.length) : (l.take i).flatMap f = l.flatMap f := by
-  rw [h, List.take_length]
-
-/-- A slice's length as a word. -/
-theorem w64_of_length {α : Type} (l : List α) (n : w64) (h : l.length = sint.nat n ∧ 0 ≤ sint.Z n) :
-    W64 l.length = n := by
-  rw [h.1]; word
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
