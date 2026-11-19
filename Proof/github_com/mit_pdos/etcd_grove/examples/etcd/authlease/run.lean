@@ -1,7 +1,8 @@
 /-
 `run(srvs, ms, lg)` (`examples/etcd/authlease/authlease.go`; auth-lease S4, item 9): **proved**, over
 its callees' specs. Lean-first (no Rocq counterpart). authN's `run.wp_proof` (`authN/run.lean`) for the
-serve loop (authN's `serve_member` in the revocable lease mode), the set-up and the clients, with:
+serve loop (`serve_member_lease`: authN's `serve_member` in the revocable lease mode, then
+`etcdstart.lease_served_on`), the set-up and the clients, with:
 
 - the driver's cell (`Cell.lean`) allocated over member `0`'s KV state before the set-up, the set-up's
   puts through it (`cell_setupAu`);
@@ -15,6 +16,7 @@ serve loop (authN's `serve_member` in the revocable lease mode), the set-up and 
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authN.run
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseOnLinked
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.run
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.barriers
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.grantPut
@@ -43,7 +45,7 @@ namespace EtcdGrove
 namespace etcd_authlease
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver etcd_auth etcdstart
-open etcd_authN (Wit akV mod_len_sint srvdW srvdAt serve_member)
+open etcd_authN (Wit akV mod_len_sint srvdW srvdAt serve_member leaseReady)
 open etcd_auth3 (admStates_same srvAuthAtLog_same srvRLogLb_same srvReqLogLb_same authHistFrozen_same)
 
 section pure
@@ -86,6 +88,83 @@ theorem txnOpOf_leasePut (k : GoString) (L : w64) :
 
 end pure
 
+section served
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
+variable [go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **A served member with its Lease service** (the serve loop's accumulated fact): authN's `srvdW`
+and the member's Lease service with auth on (`etcdstart.etcdLeaseServedOn`). -/
+def srvdWL (s : Loc) (x : GMember × MemberG GF) (w : Wit GF) : IProp GF :=
+  iprop(srvdW s x w ∗ etcdstart.etcdLeaseServedOn x.1.Client' s w.E { x.2.ρ with wait := w.γw })
+
+instance srvdWL_persistent (s : Loc) (x : GMember × MemberG GF) (w : Wit GF) :
+    Persistent (srvdWL s x w) := by
+  unfold srvdWL; infer_instance
+
+/-- **A member served with its Lease service** (`Run`'s `Serve` step, for a member in the revocable
+lease mode): authN's `serve_member`, then `etcdstart.lease_served_on` from its `leaseReady`; on
+success, `serve_member`'s served facts and the member's Lease service with auth on. -/
+theorem serve_member_lease [HasExt idIssueExt] [go_etcd_io.etcd.cache.v3.Assumptions]
+    (wp_Serve : etcdstart.Serve.spec (GF := GF) (hG := hG))
+    (wp_BcryptCost : auth.authStore.BcryptCost.spec (GF := GF) (hG := hG))
+    (hP : mvcc.api.persistent.law (GF := GF))
+    (hR : mvcc.api.mvccState_reachable.law (GF := GF))
+    (s lg : Loc) (addr : GoString) (ρ : ReqNames) (E₀ : apply.AEnv GF) (γn : NetNames GF)
+    (id : w64) (γa : auth.AuthNames)
+    (Htb : threadBound GF ≤ 2 ^ 28) (HLv : srvLevels (GF := GF)) (Hrb48 : receiptBound GF ≤ 2 ^ 48)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hms : v3rpc.ServerMethodSets)
+    (hlog : ρ.rd.kv.log0 = [[], []]) (hlm : ρ.rd.kv.lm = .revocable) (hLp : leasePeersOk) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗ client.eofOk ∗
+        zapLoggerOk lg ∗ netAddrFree addr ∗ etcdstart.memberUpOn s ρ E₀ lg γn id γa .revocable }}
+      (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Serve)) (Val #s))
+        (Val #addr))
+    {{ (err : GoInterface), RET #err; ⌜err ≠ GoInterface.nil⌝ ∨
+        (⌜err = GoInterface.nil⌝ ∗ threadTok ∗
+          ∃ (E : apply.AEnv GF) (γw : GName) (cid mid : w64) (R : v3rpc.WSrv GF),
+            ⌜E.authMode = .on γa ∧ R.E = E ∧ R.s = s⌝ ∗ isServerReadM true s E ρ.rd ∗
+            □ (srvTLSId s -∗ False) ∗ akKVOn addr s E { ρ with wait := γw } cid mid ∗
+            setupAuthServed addr s E { ρ with wait := γw } ∗
+            isGrpcRpc addr authnMethod (client.etcdAuthenticateSpec γa) ∗
+            watchAddrFacts (akV addr ρ R) ∗ auth.modeTag R.tag (.on γa) ∗
+            etcdstart.etcdLeaseServedOn addr s E { ρ with wait := γw }) }} := by
+  iintro %Φ ⟨#Pst, #Psrv, #Pv3, #Ppb, #Heo, #Hlgz, Haddr, Hup⟩ HΦ
+  wp_apply +noauto (serve_member wp_Serve wp_BcryptCost hP hR s lg addr ρ E₀ γn id γa .revocable
+      Htb HLv Hrb48 Hbuq Hrf Hms hlog) $$ [Haddr Hup] as %err Hs
+  · iframe; iframe #
+  icases Hs with (%Herr | ⟨%Herr, Htok, %E, %γw, %cid, %mid, %R, %HR, #Hrd, #Htls,
+    #HKV, #HSA, #HAu, #HWF, #Htag, #HLR⟩)
+  · (try wp_auto)
+    iapply HΦ; ileft; ipureintro; exact Herr
+  iunfold leaseReady at HLR
+  icases HLR with ⟨%A, %il, %im, %iu, %regs, %γ, %HA, #Hreq, #Hrd', #Hlb, #Hlr, #Hlu, #Hil, #Him,
+    #Hiu, #Hat, #Hb, #Hrp⟩
+  imod (etcdstart.lease_served_on addr s E { ρ with wait := γw } A il im iu regs γ γa HR.1 hlm HA
+      (by omega) (by omega) hLp HLv) $$ [] with #HLS
+  · iframe #
+    iintro !>
+    imodintro
+    iunfold idCred
+    ipureintro; exact Hrb48
+  (try wp_auto)
+  iapply HΦ
+  iright
+  iframe Htok
+  isplitl []
+  · ipureintro; exact Herr
+  iexists E, γw, cid, mid, R
+  iframe #
+  ipureintro; exact HR
+
+end served
+
 section barriers
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -113,7 +192,7 @@ theorem barrierPre_all (x0 : GMember × MemberG GF) (w0 : Wit GF) (γz : GName) 
     (hadm : admStates { x0.2.ρ with wait := w0.γw }.kv srvAuthSt0 Lset = hs ∧
       srvAuthAtLog { x0.2.ρ with wait := w0.γw }.kv srvAuthSt0 Lset = setupSt r)
     (hlc : srvAuthAtLog { x0.2.ρ with wait := w0.γw }.kv srvAuthSt0 Lc = setupSt r) :
-    ([∗list] q ∈ l, srvdW q.1.1 q.1.2 q.2 .revocable) ∗
+    ([∗list] q ∈ l, srvdWL q.1.1 q.1.2 q.2) ∗
       authHistFrozen { x0.2.ρ with wait := w0.γw }.kv γz hs ∗
       srvReqLogLb { x0.2.ρ with wait := w0.γw }.raft Lset ∗
       srvRLogLb { x0.2.ρ with wait := w0.γw }.raft Lc ∗
@@ -129,9 +208,10 @@ theorem barrierPre_all (x0 : GMember × MemberG GF) (w0 : Wit GF) (γz : GName) 
     iapply BigSepL.bigSepL_cons.2
     obtain ⟨hsc, hpe⟩ := hl q List.mem_cons_self
     isplitr [Hs]
-    · iunfold srvdW at Hq
+    · iunfold srvdWL at Hq
+      iunfold srvdW at Hq
       iunfold srvdAt at Hq
-      icases Hq with ⟨%HR, #Hrd, -, #HKV, -, #HAu, -, -, -⟩
+      icases Hq with ⟨⟨%HR, #Hrd, -, #HKV, -, #HAu, -, -⟩, -⟩
       have hon : q.2.E.authOn = true := by unfold apply.AEnv.authOn; rw [HR.1]; rfl
       iunfold barrierPre
       isplitl []
@@ -324,7 +404,7 @@ theorem run.wp_proof
       "Hups" ∷ ([∗list] s; x ∈ ss.drop (sint.nat n); xs.drop (sint.nat n),
         (threadTok -∗ ∃ γa : auth.AuthNames, etcdstart.memberUpOn s x.2.ρ x.2.E lg γn x.2.id γa .revocable)) ∗
       "Hcfree" ∷ ([∗list] x ∈ xs.drop (sint.nat n), netAddrFree (GF := GF) x.1.Client') ∗
-      "#Hsv" ∷ ([∗list] q ∈ ((ss.zip xs).take (sint.nat n)).zip ws, srvdW q.1.1 q.1.2 q.2 .revocable) ∗
+      "#Hsv" ∷ ([∗list] q ∈ ((ss.zip xs).take (sint.nat n)).zip ws, srvdWL q.1.1 q.1.2 q.2) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.nat n ≤ xs.length ∧ ws.length = sint.nat n⌝ : IProp GF)
       $$ [i j m Htok Hups Hcfree]
   · iexists W64 0, _, _, []
@@ -360,8 +440,8 @@ theorem run.wp_proof
     ihave Hcfree := BigSepL.bigSepL_cons.1 $$ Hcfree
     icases Hcfree with ⟨Hcj, Hcfree⟩
     have hxj : xj ∈ xs := List.mem_of_getElem? Hxj_lookup
-    wp_apply (serve_member wp_Serve wp_BcryptCost hP hR sj lg xj.1.Client' xj.2.ρ xj.2.E γn xj.2.id γa
-        .revocable Htb HLv Hrb48 Hbuq Hrf Hms (hlogx xj hxj) (fun _ => ⟨hlm xj hxj, hLp⟩)) $$ [Hcj Hupj] as %serr Hs
+    wp_apply (serve_member_lease wp_Serve wp_BcryptCost hP hR sj lg xj.1.Client' xj.2.ρ xj.2.E γn xj.2.id γa
+        Htb HLv Hrb48 Hbuq Hrf Hms (hlogx xj hxj) (hlm xj hxj) hLp) $$ [Hcj Hupj] as %serr Hs
     · iframe; iframe #
     icases Hs with (%Hserr | ⟨%Hserr, Htok, %E, %γw, %cid, %mid, %R, %HR, #Hrd, #Htls,
       #HKV, #HSA, #HAu, #HWF, #Htag, #HLS⟩)
@@ -381,9 +461,11 @@ theorem run.wp_proof
         ((ss.zip xs).take (sint.nat n)).zip ws ++ [((sj, xj), ⟨γa, E, γw, cid, mid, R⟩)] := by
       rw [List.take_add_one, hzj, Option.toList_some, List.zip_append htl]; rfl
     ihave #Hsv' : [∗list] q ∈ ((ss.zip xs).take (sint.nat n + 1)).zip (ws ++ [⟨γa, E, γw, cid, mid, R⟩]),
-        srvdW q.1.1 q.1.2 q.2 .revocable $$ []
+        srvdWL q.1.1 q.1.2 q.2 $$ []
     · rw [hzz]
       iapply BigSepL.bigSepL_snoc.2
+      iframe #
+      iunfold srvdWL
       iframe #
       iunfold srvdW
       iunfold srvdAt
@@ -401,7 +483,7 @@ theorem run.wp_proof
   -- every member served
   have hnk : sint.nat n = xs.length := by have := Hmsll.1; simp at this; word
   have hwl : ws.length = xs.length := by rw [Hn.2.2, hnk]
-  ihave #Hsv : [∗list] q ∈ (ss.zip xs).zip ws, srvdW q.1.1 q.1.2 q.2 .revocable $$ []
+  ihave #Hsv : [∗list] q ∈ (ss.zip xs).zip ws, srvdWL q.1.1 q.1.2 q.2 $$ []
   · iExactEq Hsv; rw [hnk, List.take_of_length_le (by simp [Hupl])]
   iclear Hups Hcfree
   -- `a0 := ms[0].Client`, `au := ms[1%k].Client`, `av := ms[2%k].Client`
@@ -437,12 +519,13 @@ theorem run.wp_proof
   obtain ⟨su, wu, hyu⟩ := hgz _ xu hxu
   obtain ⟨sv, wv, hyv⟩ := hgz _ xv hxv
   ihave #H0' := BigSepL.bigSepL_lookup hy0 $$ Hsv
-  ihave #H0 : srvdW s0 x0 w0 .revocable $$ []
+  ihave #H0 : srvdWL s0 x0 w0 $$ []
   · iexact H0'
   iclear H0'
+  iunfold srvdWL at H0
   iunfold srvdW at H0
   iunfold srvdAt at H0
-  icases H0 with ⟨%HR₁, #Hrd₁, #Htls₁, #HKV₁, #HSA₁, #HAu₁, #HWF₁, #Htag₁, #HLS₁⟩
+  icases H0 with ⟨⟨%HR₁, #Hrd₁, #Htls₁, #HKV₁, #HSA₁, #HAu₁, #HWF₁, #Htag₁⟩, #HLS₁⟩
   -- `NewClient(a1, lg)`: the client with no user name, at member 0
   wp_apply (wp_NewClient x0.1.Client' lg (akV x0.1.Client' x0.2.ρ w0.R) (Hpe x0 hx0m) Htb31) as %cl %cerr Hcl
   · iframe #
@@ -515,22 +598,24 @@ theorem run.wp_proof
   iunfold barrierPost at F0
   icases F0 with ⟨⟨%i₁, #Hfix₁⟩, %F₁, %lt₁, #HF₁, -⟩
   ihave #Hu' := BigSepL.bigSepL_lookup hyu $$ Hsv
-  ihave #Hu : srvdW su xu wu .revocable $$ []
+  ihave #Hu : srvdWL su xu wu $$ []
   · iexact Hu'
   iclear Hu'
+  iunfold srvdWL at Hu
   iunfold srvdW at Hu
   iunfold srvdAt at Hu
-  icases Hu with ⟨%HR₂, #Hrd₂, #Htls₂, #HKV₂, -, #HAu₂, #HWF₂, #Htag₂, #HLS₂⟩
+  icases Hu with ⟨⟨%HR₂, #Hrd₂, #Htls₂, #HKV₂, -, #HAu₂, #HWF₂, #Htag₂⟩, #HLS₂⟩
   ihave #Fu := BigSepL.bigSepL_lookup hyu $$ Hbq1'
   iunfold barrierPost at Fu
   icases Fu with ⟨⟨%i₂, #Hfix₂⟩, %F₂, %lt₂, #HF₂, -⟩
   ihave #Hv' := BigSepL.bigSepL_lookup hyv $$ Hsv
-  ihave #Hv : srvdW sv xv wv .revocable $$ []
+  ihave #Hv : srvdWL sv xv wv $$ []
   · iexact Hv'
   iclear Hv'
+  iunfold srvdWL at Hv
   iunfold srvdW at Hv
   iunfold srvdAt at Hv
-  icases Hv with ⟨%HR₃, #Hrd₃, #Htls₃, #HKV₃, -, #HAu₃, #HWF₃, #Htag₃, #HLS₃⟩
+  icases Hv with ⟨⟨%HR₃, #Hrd₃, #Htls₃, #HKV₃, -, #HAu₃, #HWF₃, #Htag₃⟩, #HLS₃⟩
   ihave #Fv := BigSepL.bigSepL_lookup hyv $$ Hbq1'
   iunfold barrierPost at Fv
   icases Fv with ⟨⟨%i₃, #Hfix₃⟩, -⟩
@@ -616,7 +701,6 @@ theorem run.wp_proof
     intro k id hk
     simp [opSizeOk, opPutModel, opFold, withLeaseM, OpFull.putInit, OpFull.newOp, OpModel.zero]
     omega
-  iunfold etcd_authN.leaseSrvd at HLS₁
   iunfold etcdstart.etcdLeaseServedOn at HLS₁
   icases HLS₁ with ⟨#HLG₁, #HLR₁, #HLT₁, #HLL₁⟩
   ihave #Hput₁ : isGrpcRpcMd x0.1.Client' go!"/etcdserverpb.KV/Put"
@@ -679,7 +763,6 @@ theorem run.wp_proof
   have hsu := hsc xu hxum
   have hon₂ : wu.E.authOn = true := by unfold apply.AEnv.authOn; rw [HR₂.1]; rfl
   ihave #Hinvu := cellInv_same x0.2.ρ.rd.kv xu.2.ρ.rd.kv γc hsu.1 $$ Hinv
-  iunfold etcd_authN.leaseSrvd at HLS₂
   iunfold etcdstart.etcdLeaseServedOn at HLS₂
   icases HLS₂ with ⟨#HLG₂, #HLR₂, #HLT₂, #HLL₂⟩
   ihave #Hput₂ : isGrpcRpcMd xu.1.Client' go!"/etcdserverpb.KV/Put"
@@ -1127,7 +1210,6 @@ theorem run.wp_proof
     icases Hfix₃ with ⟨#H, -⟩
     iunfold auth.authPubLbM
     iexact H
-  iunfold etcd_authN.leaseSrvd at HLS₃
   iunfold etcdstart.etcdLeaseServedOn at HLS₃
   icases HLS₃ with ⟨#HLG₃, #HLR₃, #HLT₃, #HLL₃⟩
   ihave #HLSv : etcdstart.etcdLeaseServedOn xv.1.Client' sv wv.E { xv.2.ρ with wait := wv.γw } $$ []
