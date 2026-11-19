@@ -7,10 +7,10 @@ Perennial has no WP rule for `func.forRange` (`Perennial/Golang/Defn/Loop.lean`)
 local ones, after `Proof/k8s_io/apiserver/pkg/storage/etcd3/ForRange.lean`'s `wp_forRange2`, with a
 later in the yield function's premise (the yield function takes a step before running the body):
 
-- `wp_forRange1`, `wp_forRange2'`: the raw rules for one and two iteration values: the caller
+- `wp_forRange1_b2`, `wp_forRange2_b2`: the raw rules for one and two iteration values: the caller
   proves `f`'s WP for an abstract yield function `y` holding the token `Tok`; see `ForRange.lean`'s
   header for `Tok`, `Done` and `forRangePost`;
-- `wp_forRange_seqOk`, `wp_forRange_seq2Ok`: the rules a client uses, for an iterator given by the
+- `wp_forRange_seqOk_b2`, `wp_forRange_seq2Ok_b2`: the rules a client uses, for an iterator given by the
   authorizer vocabulary's `seqOk f xs` / `seq2Ok f xs` (`Defs.lean`): a loop invariant `P i` (before
   element `i`); the body, from `P i` on element `i`, ends normally or with `continue` in `P (i+1)`,
   or with `break`/`return` in `R bv`; the loop ends in `P xs.length` or `R bv`.
@@ -43,7 +43,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `for x := range f` (see the file header). -/
-theorem wp_forRange1 (f body : val) (Φ : val → IProp GF) (hf : f.isPanic = false)
+theorem wp_forRange1_b2 (f body : val) (Φ : val → IProp GF) (hf : f.isPanic = false)
     (hb : body.isPanic = false) :
     (∀ (y : GoFunc) (Tok : IProp GF) (Done : val → IProp GF), Tok -∗
       □ (∀ (k : val) (Ψ : val → IProp GF), ⌜k.isPanic = false⌝ -∗ Tok -∗
@@ -136,7 +136,7 @@ theorem wp_forRange1 (f body : val) (Φ : val → IProp GF) (hf : f.isPanic = fa
     iexact HΦ
 
 /-- `for k, v := range f` (see the file header). -/
-theorem wp_forRange2' (f body : val) (Φ : val → IProp GF) (hf : f.isPanic = false)
+theorem wp_forRange2_b2 (f body : val) (Φ : val → IProp GF) (hf : f.isPanic = false)
     (hb : body.isPanic = false) :
     (∀ (y : GoFunc) (Tok : IProp GF) (Done : val → IProp GF), Tok -∗
       □ (∀ (k v : val) (Ψ : val → IProp GF), ⌜k.isPanic = false ∧ v.isPanic = false⌝ -∗ Tok -∗
@@ -231,27 +231,27 @@ theorem wp_forRange2' (f body : val) (Φ : val → IProp GF) (hf : f.isPanic = f
 
 /-- The outcome of a loop body run on element `i` (see the file header): `P (i+1)` on a normal end
 or `continue`, `R bv` on a `break` or `return`. -/
-def iterBodyPost (P : Nat → IProp GF) (R : val → IProp GF) (i : Nat) (bv : val) : IProp GF :=
+def iterBodyPost_b2 (P : Nat → IProp GF) (R : val → IProp GF) (i : Nat) (bv : val) : IProp GF :=
   iprop((⌜bv = executeVal ∨ bv = continueVal⌝ ∗ P (i + 1)) ∨
     (⌜bv = breakVal ∨ ∃ w, bv = returnVal w ∧ w.isPanic = false⌝ ∗ R bv))
 
 /-- How a range loop's outcome gives `Φ`: from `P n` at the end, from `R` after a `break` or a
 `return`. -/
-def iterExit (P : Nat → IProp GF) (R : val → IProp GF) (n : Nat) (Φ : val → IProp GF) :
+def iterExit_b2 (P : Nat → IProp GF) (R : val → IProp GF) (n : Nat) (Φ : val → IProp GF) :
     IProp GF :=
   iprop((P n -∗ Φ executeVal) ∧ (R breakVal -∗ Φ executeVal) ∧
     (∀ w, ⌜w.isPanic = false⌝ -∗ R (returnVal w) -∗ Φ (returnVal w)))
 
 /-- **`for x := range f`** over an iterator `seqOk f xs` (see the file header). -/
-theorem wp_forRange_seqOk {V : Type} (f : GoFunc) (xs : List V) (body : val)
+theorem wp_forRange_seqOk_b2 {V : Type} (f : GoFunc) (xs : List V) (body : val)
     (hb : body.isPanic = false) (P : Nat → IProp GF) (R : val → IProp GF) (Φ : val → IProp GF) :
     seqOk f xs -∗ P 0 -∗
     (□ ∀ (i : Nat) (x : V), ⌜xs[i]? = some x⌝ -∗ P i -∗
-        WP (App (Val body) (Val #x)) {{ iterBodyPost P R i }}) -∗
-    iterExit P R xs.length Φ -∗
+        WP (App (Val body) (Val #x)) {{ iterBodyPost_b2 P R i }}) -∗
+    iterExit_b2 P R xs.length Φ -∗
     WP (App (App (Val (func.forRange 1)) (Val #f)) (Val body)) {{ Φ }} := by
   iintro #Hf HP #Hbody Hexit
-  iapply wp_forRange1 #f body Φ (by rw [go.intoVal_unfold GoFunc]; rfl) hb
+  iapply wp_forRange1_b2 #f body Φ (by rw [go.intoVal_unfold GoFunc]; rfl) hb
   iintro %y %Tok %Done HTok #Hy
   unfold seqOk iterRunOk yield1Ok
   ispecialize Hf $$ %y %(fun i => iprop(Tok ∗ P i))
@@ -263,7 +263,7 @@ theorem wp_forRange_seqOk {V : Type} (f : GoFunc) (xs : List V) (body : val)
     iapply wp_wand $$ [HP]
     · iapply Hbody $$ %i %x %hx HP
     iintro %bv Hpost
-    unfold iterBodyPost forRangePost
+    unfold iterBodyPost_b2 forRangePost
     icases Hpost with (⟨%Hbv, HP⟩ | ⟨%Hbv, HR⟩)
     · ileft
       isplitr
@@ -287,7 +287,7 @@ theorem wp_forRange_seqOk {V : Type} (f : GoFunc) (xs : List V) (body : val)
   iintro !> Hend
   isplitr
   · ipureintro; exact isPanic_intoVal _
-  unfold iterExit
+  unfold iterExit_b2
   icases Hend with (⟨HTok, HP⟩ | ⟨%bv, HDone, HR, %Hbv⟩)
   · ileft
     iframe
@@ -308,15 +308,15 @@ theorem wp_forRange_seqOk {V : Type} (f : GoFunc) (xs : List V) (body : val)
       iexact HR
 
 /-- **`for k, v := range f`** over an iterator `seq2Ok f xs` (see the file header). -/
-theorem wp_forRange_seq2Ok {K V : Type} (f : GoFunc) (xs : List (K × V)) (body : val)
+theorem wp_forRange_seq2Ok_b2 {K V : Type} (f : GoFunc) (xs : List (K × V)) (body : val)
     (hb : body.isPanic = false) (P : Nat → IProp GF) (R : val → IProp GF) (Φ : val → IProp GF) :
     seq2Ok f xs -∗ P 0 -∗
     (□ ∀ (i : Nat) (k : K) (v : V), ⌜xs[i]? = some (k, v)⌝ -∗ P i -∗
-        WP (App (App (Val body) (Val #k)) (Val #v)) {{ iterBodyPost P R i }}) -∗
-    iterExit P R xs.length Φ -∗
+        WP (App (App (Val body) (Val #k)) (Val #v)) {{ iterBodyPost_b2 P R i }}) -∗
+    iterExit_b2 P R xs.length Φ -∗
     WP (App (App (Val (func.forRange 2)) (Val #f)) (Val body)) {{ Φ }} := by
   iintro #Hf HP #Hbody Hexit
-  iapply wp_forRange2' #f body Φ (by rw [go.intoVal_unfold GoFunc]; rfl) hb
+  iapply wp_forRange2_b2 #f body Φ (by rw [go.intoVal_unfold GoFunc]; rfl) hb
   iintro %y %Tok %Done HTok #Hy
   unfold seq2Ok iterRunOk yield2Ok
   ispecialize Hf $$ %y %(fun i => iprop(Tok ∗ P i))
@@ -328,7 +328,7 @@ theorem wp_forRange_seq2Ok {K V : Type} (f : GoFunc) (xs : List (K × V)) (body 
     iapply wp_wand $$ [HP]
     · iapply Hbody $$ %i %k %v %hx HP
     iintro %bv Hpost
-    unfold iterBodyPost forRangePost
+    unfold iterBodyPost_b2 forRangePost
     icases Hpost with (⟨%Hbv, HP⟩ | ⟨%Hbv, HR⟩)
     · ileft
       isplitr
@@ -352,7 +352,7 @@ theorem wp_forRange_seq2Ok {K V : Type} (f : GoFunc) (xs : List (K × V)) (body 
   iintro !> Hend
   isplitr
   · ipureintro; exact isPanic_intoVal _
-  unfold iterExit
+  unfold iterExit_b2
   icases Hend with (⟨HTok, HP⟩ | ⟨%bv, HDone, HR, %Hbv⟩)
   · ileft
     iframe

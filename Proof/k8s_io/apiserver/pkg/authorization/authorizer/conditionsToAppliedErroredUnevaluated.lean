@@ -88,21 +88,21 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
     · iexists _; iexact cond
     iframe
   wp_bind (App (App (Val (func.forRange 1)) _) _)
-  iapply (wp_forRange_seqOk it cs _ (by rfl) (fun _ => Own) (fun _ => Own)) $$ Hit HOwn [] [HΦ]
+  iapply (wp_forRange_seqOk_b2 it cs _ (by rfl) (fun _ => Own) (fun _ => Own)) $$ Hit HOwn [] [HΦ]
   · iintro !> %i %x %hx HOwn
     icases HOwn with ⟨⟨%r, %e, %u, Hr0, Hr1, Hr2, He, Hu⟩, ⟨%es, %el, Herrs, Hes, Hescap⟩,
       ⟨%us, %ul, Hunev, Hus, Huscap, #Hul⟩, ⟨%cv, cond⟩, evalCond, effect, appliedDescription⟩
     ihave #Hx := BigSepL.bigSepL_lookup hx $$ Hcs
-    icases isCondition_elim x $$ Hx with ⟨%ci, %Hci, #HgetID, #HgetType, #HgetCond, #HgetDesc, -⟩
+    icases isCondition_elim_b2 x $$ Hx with ⟨%ci, %Hci, #HgetID, #HgetType, #HgetCond, #HgetDesc, -⟩
     subst Hci
-    ihave #HgetID' := strMethodOk_elim ci _ $$ HgetID
-    ihave #HgetDesc' := strMethodOk_elim ci _ $$ HgetDesc
-    ihave #Hev' := evalCondOk_elim ev (GoInterface.ok ci) $$ Hev
+    ihave #HgetID' := strMethodOk_elim_b2 ci _ $$ HgetID
+    ihave #HgetDesc' := strMethodOk_elim_b2 ci _ $$ HgetDesc
+    ihave #Hev' := evalCondOk_elim_b2 ev (GoInterface.ok ci) $$ Hev
     wp_auto
     wp_apply HgetID' as %idv -
     wp_apply Hev' as %res -
     · iexact Hx
-    wp_apply (ConditionEvaluationResult.wp_ptr_IsTrue_of wp_ConditionEvaluationResult_IsTrue
+    wp_apply (ConditionEvaluationResult.wp_ptr_IsTrue_of_b2 wp_ConditionEvaluationResult_IsTrue
       evalResult_ptr (DFrac.own 1) res) $$ [$evalResult] as evalResult
     by_cases hT : res.resultType' = W64 1
     · simp only [hT, _root_.decide_true]
@@ -119,7 +119,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
       by_cases hd : W64 dv.length = W64 0
       · simp only [hd, _root_.decide_true, Bool.not_true]
         wp_auto
-        unfold iterBodyPost
+        unfold iterBodyPost_b2
         iright
         isplitr
         · ipureintro; exact Or.inr ⟨_, rfl, isPanic_intoVal _⟩
@@ -147,7 +147,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
         (try wp_auto)
         wp_apply wp_Sprintf _ _ _ _ ?wf2 $$ [$Hargs2] as %rs2 -
         case wf2 => exact .cons_string _ _ .nil
-        unfold iterBodyPost
+        unfold iterBodyPost_b2
         iright
         isplitr
         · ipureintro; exact Or.inr ⟨_, rfl, isPanic_intoVal _⟩
@@ -169,12 +169,12 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
         iframe
     · simp only [hT, _root_.decide_false]
       wp_auto
-      wp_apply (ConditionEvaluationResult.wp_ptr_IsFalse_of wp_ConditionEvaluationResult_IsFalse
+      wp_apply (ConditionEvaluationResult.wp_ptr_IsFalse_of_b2 wp_ConditionEvaluationResult_IsFalse
         evalResult_ptr (DFrac.own 1) res) $$ [$evalResult] as evalResult
       by_cases hF : res.resultType' = W64 2
       · simp only [hF, _root_.decide_true]
         wp_auto
-        unfold iterBodyPost
+        unfold iterBodyPost_b2
         ileft
         isplitr
         · ipureintro; exact Or.inr rfl
@@ -190,7 +190,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
         iframe
       · simp only [hF, _root_.decide_false]
         wp_auto
-        wp_apply (ConditionEvaluationResult.wp_ptr_IsUnevaluatable_of
+        wp_apply (ConditionEvaluationResult.wp_ptr_IsUnevaluatable_of_b2
           wp_ConditionEvaluationResult_IsUnevaluatable evalResult_ptr (DFrac.own 1) res)
           $$ [$evalResult] as evalResult
         by_cases hU : res.resultType' = W64 0
@@ -201,7 +201,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
           iintro %sl1 ⟨Hsl1, -⟩
           (try wp_auto)
           wp_apply wp_slice_append $$ [$Hus $Huscap $Hsl1] as %us' ⟨Hus', Huscap', -⟩
-          unfold iterBodyPost
+          unfold iterBodyPost_b2
           ileft
           isplitr
           · ipureintro; exact Or.inr rfl
@@ -221,13 +221,13 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
           iframe
         · simp only [hU, _root_.decide_false]
           wp_auto
-          wp_apply (ConditionEvaluationResult.wp_ptr_IsError_of
+          wp_apply (ConditionEvaluationResult.wp_ptr_IsError_of_b2
             wp_ConditionEvaluationResult_IsError evalResult_ptr (DFrac.own 1) res)
             $$ [$evalResult] as evalResult
           by_cases hE : res.resultType' = W64 3
           · simp only [hE, _root_.decide_true]
             wp_auto
-            wp_apply (ConditionEvaluationResult.wp_ptr_Error_of
+            wp_apply (ConditionEvaluationResult.wp_ptr_Error_of_b2
               wp_ConditionEvaluationResult_Error evalResult_ptr (DFrac.own 1) res)
               $$ [$evalResult] as evalResult
             (try wp_auto)
@@ -243,7 +243,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
             iintro %sle ⟨Hsle, -⟩
             (try wp_auto)
             wp_apply wp_slice_append $$ [$Hes $Hescap $Hsle] as %es' ⟨Hes', Hescap', -⟩
-            unfold iterBodyPost
+            unfold iterBodyPost_b2
             ileft
             isplitr
             · ipureintro; exact Or.inr rfl
@@ -271,7 +271,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
             iintro %sle ⟨Hsle, -⟩
             (try wp_auto)
             wp_apply wp_slice_append $$ [$Hes $Hescap $Hsle] as %es' ⟨Hes', Hescap', -⟩
-            unfold iterBodyPost
+            unfold iterBodyPost_b2
             ileft
             isplitr
             · ipureintro; exact Or.inr rfl
@@ -285,7 +285,7 @@ theorem conditionsToAppliedErroredUnevaluated.wp_proof
             isplitl [cond]
             · iexists _; iexact cond
             iframe
-  · unfold iterExit
+  · unfold iterExit_b2
     simp only [Own]
     isplit
     · iintro ⟨⟨%r, %e, %u, Hr0, Hr1, Hr2, -, -⟩, ⟨%es, %el, Herrs, Hes, -⟩,

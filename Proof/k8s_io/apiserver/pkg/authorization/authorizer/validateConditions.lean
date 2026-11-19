@@ -66,12 +66,12 @@ theorem validateConditions.wp_proof
     wp_apply (wp_load_slice_index s (sint.Z j) cs _ v Hj.1) $$ [$Hs] as Hs
     · ipureintro; simpa [sint.nat] using hv
     ihave #Hx := BigSepL.bigSepL_lookup hv $$ Hcs
-    icases isCondition_elim v $$ Hx with ⟨%ci, %Hci, #HgetID, #HgetType, #HgetCond, #HgetDesc, -⟩
+    icases isCondition_elim_b2 v $$ Hx with ⟨%ci, %Hci, #HgetID, #HgetType, #HgetCond, #HgetDesc, -⟩
     subst Hci
-    ihave #HgetID' := strMethodOk_elim ci _ $$ HgetID
-    ihave #HgetType' := strMethodOk_elim ci _ $$ HgetType
-    ihave #HgetCond' := strMethodOk_elim ci _ $$ HgetCond
-    ihave #HgetDesc' := strMethodOk_elim ci _ $$ HgetDesc
+    ihave #HgetID' := strMethodOk_elim_b2 ci _ $$ HgetID
+    ihave #HgetType' := strMethodOk_elim_b2 ci _ $$ HgetType
+    ihave #HgetCond' := strMethodOk_elim_b2 ci _ $$ HgetCond
+    ihave #HgetDesc' := strMethodOk_elim_b2 ci _ $$ HgetDesc
     (try wp_auto)
     wp_apply HgetID' as %idv -
     wp_apply (sets.Set.wp_ptr_Has_of wp_Set__Has seenIDs_ptr (DFrac.own 1) seen (DFrac.own 1) S' idv)

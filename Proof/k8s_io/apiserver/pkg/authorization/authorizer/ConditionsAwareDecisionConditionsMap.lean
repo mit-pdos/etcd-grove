@@ -115,8 +115,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
     wp_auto
     have hWF : dn ≠ [] ∨ al ≠ [] := by
       right; intro h; subst h; apply haz; simp at Hla; word
-    icases conds_app (dn ++ no) al $$ Hcs with ⟨#Hrest, #Hal⟩
-    icases conds_app dn no $$ Hrest with ⟨#Hdn, #Hno⟩
+    icases conds_app_b2 (dn ++ no) al $$ Hcs with ⟨#Hrest, #Hal⟩
+    icases conds_app_b2 dn no $$ Hrest with ⟨#Hdn, #Hno⟩
     wp_apply (wp_sets_New (K := GoString) (T := go.string) slice.nil (DFrac.own 1) []) as %seen ⟨Hseen, -⟩
     · iapply ownSlice_nil
     (try wp_auto)
@@ -188,8 +188,8 @@ theorem ConditionsAwareDecisionConditionsMap.wp_proof
   wp_auto
   have hWF : dn ≠ [] ∨ al ≠ [] := by
     left; intro h; subst h; apply hdz; simp at Hld; word
-  icases conds_app (dn ++ no) al $$ Hcs with ⟨#Hrest, #Hal⟩
-  icases conds_app dn no $$ Hrest with ⟨#Hdn, #Hno⟩
+  icases conds_app_b2 (dn ++ no) al $$ Hcs with ⟨#Hrest, #Hal⟩
+  icases conds_app_b2 dn no $$ Hrest with ⟨#Hdn, #Hno⟩
   wp_apply (wp_sets_New (K := GoString) (T := go.string) slice.nil (DFrac.own 1) []) as %seen ⟨Hseen, -⟩
   · iapply ownSlice_nil
   (try wp_auto)
