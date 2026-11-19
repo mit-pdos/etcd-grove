@@ -215,20 +215,28 @@ if (cd examples && GOWORK=off gotest ./entsize/ > "$tmp/entsize.log" 2>&1); then
 else
   echo "entsize: FAILED"; tail -10 "$tmp/entsize.log"; fail=1
 fi
-# the network models' shared Go code (netmodels/, notes/dsverify-net-port-plan.md phase 5): the
-# generated codecs current (etc/pbgen.py, etc/jsongen.py --check), the codec helpers against
-# protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
-# encoding/json, and pbgen's codec of etcd's messages (examples/netmodels)
+# the library models (models/, models/README.md; notes/dsverify-net-port-plan.md phase 5): every
+# generated codec is exactly its generator's output for its derived input (pbgen: the roots'
+# descriptors; --check), every protobuf.toml in the tree (but old/) is one of them, the codec helpers
+# against protowire, unicode/utf8 and encoding/json, the generated codecs against protobuf-go and
+# encoding/json, pbgen's random-schema differential test and refusals (models/internal/pbgenrand),
+# and pbgen's codec of etcd's messages (examples/models)
 nm=0
-python3 etc/pbgen.py netmodels/internal/pbdifftest/protobuf.toml netmodels/internal/pbdifftest/codec \
-  --pkg codec --check > "$tmp/nm.log" 2>&1 || nm=1
-python3 etc/jsongen.py netmodels/internal/jsondifftest/json.toml netmodels/internal/jsondifftest/codec \
+: > "$tmp/nm.log"
+pbinputs="models/internal/pbdifftest/protobuf.toml:models/internal/pbdifftest/codec:codec
+examples/models/pbetcd/protobuf.toml:examples/models/pbetcd:pbetcd"
+for x in $pbinputs; do
+  IFS=: read -r t o p <<< "$x"
+  python3 models/protobuf/pbgen.py "$t" "$o" --pkg "$p" --check >> "$tmp/nm.log" 2>&1 || nm=1
+done
+for t in $(git ls-files '*protobuf.toml' ':!old/'); do  # old/: reference copies, not built
+  grep -q "^$t:" <<< "$pbinputs" || { echo "models: $t is not checked by the gates (add it)" >> "$tmp/nm.log"; nm=1; }
+done
+python3 models/json/jsongen.py models/internal/jsondifftest/json.toml models/internal/jsondifftest/codec \
   --pkg codec --check >> "$tmp/nm.log" 2>&1 || nm=1
-python3 etc/pbgen.py examples/netmodels/pbetcd/protobuf.toml examples/netmodels/pbetcd --pkg pbetcd \
-  --check >> "$tmp/nm.log" 2>&1 || nm=1
-(cd netmodels && GOWORK=off go vet ./... && GOWORK=off gotest ./...) >> "$tmp/nm.log" 2>&1 || nm=1
-(cd examples && GOWORK=off gotest ./netmodels/...) >> "$tmp/nm.log" 2>&1 || nm=1
-if [ $nm = 0 ]; then echo "netmodels: ok"; else echo "netmodels: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
+(cd models && GOWORK=off go vet ./... && GOWORK=off gotest ./...) >> "$tmp/nm.log" 2>&1 || nm=1
+(cd examples && GOWORK=off gotest ./models/...) >> "$tmp/nm.log" 2>&1 || nm=1
+if [ $nm = 0 ]; then echo "models: ok"; else echo "models: FAILED"; tail -20 "$tmp/nm.log"; fail=1; fi
 # the per-type stage's joint landing: stage A's restated swMsgBound_phys is gone (raft-entsize
 # deleted it); etc/joint-landing-check.py refuses it in the baselines (reads them only), with its
 # selftest

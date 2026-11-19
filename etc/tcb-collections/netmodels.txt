@@ -1,9 +1,0 @@
-# The network models' shared Go code (`netmodels/`, Go module `netmodels.lab`, project netmodels, in
-# the part Net/; notes/dsverify-net-port-plan.md, phase 5): the proofs of the codec helpers
-# (`pbcodec`, `jsoncodec`) in Net/Proof/netmodels_lab/Results.lean. No axiom of this repository:
-# the translation (no trusted function) and Lean's.
-#
-#   etc/tcb-report.py --collection etc/tcb-collections/netmodels.txt            what it rests on
-#   etc/tcb-report.py --collection etc/tcb-collections/netmodels.txt --check    against the lines below
-#   etc/tcb-report.py --collection etc/tcb-collections/netmodels.txt --check --update
-roots ^Net/Proof/netmodels_lab/
