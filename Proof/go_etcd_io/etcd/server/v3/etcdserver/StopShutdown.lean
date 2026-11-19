@@ -281,7 +281,7 @@ theorem stop_imageConf (γ : ServerRaftNames) (γk : KVNames) (A : List EntryMod
   ihave #Hinv' := Hinv
   iunfold srvRaftLogInv at Hinv'
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
-  have hvs := Hvs0.2
+  have hvs : _ ∧ _ := ⟨Hvs0.2.1, Hvs0.2.2.1⟩
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]
@@ -702,6 +702,13 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold rnWalClosedW at Hw
   icombine Hst' Hst2 gives %hsteq
   subst hsteq
+  -- (wal-link L3) the WAL's files at its directory, the data directory's (`srvFiles`' form)
+  ihave Hw : iprop(∃ (a : WalA GF) (cid : w64), ⌜a.dir = config.walDirOf dd ""⌝ ∗
+      walFiles a C.rn.id cid σ true) $$ [Hw]
+  · icases Hw with ⟨%cidw, Hw⟩
+    iexists C.rn.wal.h.toWalA, cidw
+    iframe Hw
+    ipureintro; exact hwd
   -- the backend's file
   iunfold srvDataDir at Hdd
   icases Hdd with ⟨#Hdd1, -⟩
@@ -721,7 +728,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   iunfold srvDiskImageAt
   rw [hρ] at *
   iunfold srvFiles
-  rw [← hwd, ← hγ]
+  rw [← hγ]
   have h1 := hp.2.2.2.2.2.1
   have h2 := hσ.2.1
   have h3 := hσ.2.2

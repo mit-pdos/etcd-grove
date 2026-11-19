@@ -203,6 +203,60 @@ theorem walHsCanon_enc_len (h : HardStateM) : (hsEnc (walHsCanon h)).length ≤ 
   have := optVarintField_len 3 (walHsCanon h).commit (by omega)
   omega
 
+private theorem repVarintField_len (num : Nat) (hn : num < 16) (vs : List w64) :
+    (repVarintField num vs).length ≤ 11 * vs.length := by
+  induction vs with
+  | nil => simp [repVarintField]
+  | cons v vs ih =>
+    unfold repVarintField at ih ⊢
+    simp only [List.flatMap_cons, List.length_append, List.length_cons]
+    have h1 := varintEnc_length_le 1 (num * 8) (by omega) (by omega)
+    have h2 := varintEnc_length_w64 (uint.nat v) (by have := v.isLt; simp [uint.nat]; omega)
+    omega
+
+/-- (wal-link L3, F2, 2026-11-19) **The canonical snapshot's encoding's bound**: with fewer than `2^32` ids in
+its conf state, below `2^40` bytes (layer 1's record bound). -/
+theorem walSnapCanon_enc_len (m : SnapshotMetadataM)
+    (h : m.ConfState'.Voters'.length + m.ConfState'.Learners'.length +
+      m.ConfState'.VotersOutgoing'.length + m.ConfState'.LearnersNext'.length < 2 ^ 32) :
+    (snapEnc (walSnapCanon m)).length < 2 ^ 40 := by
+  have hi := optVarintField_len 1 (some m.Index') (by omega)
+  have ht := optVarintField_len 2 (some m.Term') (by omega)
+  have hc : ∀ o : Option WalCsC, (∀ c, o = some c → (csEnc c).length ≤ 11 * 2 ^ 32 + 2) →
+      (optBytesField 3 (o.map csEnc)).length ≤ 11 * 2 ^ 32 + 13 := by
+    intro o ho
+    rcases o with _ | c
+    · simp [optBytesField]
+    · have hc := ho c rfl
+      simp only [Option.map_some, optBytesField, List.length_append]
+      have h1 := varintEnc_length_le 1 (3 * 8 + 2) (by omega) (by omega)
+      have h2 := varintEnc_length_w64 (csEnc c).length (by omega)
+      omega
+  have hcs : ∀ c, (walSnapCanon m).confState = some c → (csEnc c).length ≤ 11 * 2 ^ 32 + 2 := by
+    intro c hc
+    unfold walSnapCanon at hc
+    split at hc
+    · cases hc
+    · cases hc
+      unfold csEnc walCsCanon
+      simp only [Option.map_some, optVarintField, List.length_append, List.length_nil]
+      have r1 := repVarintField_len 1 (by omega) m.ConfState'.Voters'
+      have r2 := repVarintField_len 2 (by omega) m.ConfState'.Learners'
+      have r3 := repVarintField_len 3 (by omega) m.ConfState'.VotersOutgoing'
+      have r4 := repVarintField_len 4 (by omega) m.ConfState'.LearnersNext'
+      have a1 := varintEnc_length_le 1 (5 * 8) (by omega) (by omega)
+      have a2 := varintEnc_length_le 1 (if m.ConfState'.AutoLeave' = true then 1 else 0) (by omega)
+        (by split <;> omega)
+      omega
+  have hb := hc _ hcs
+  unfold snapEnc
+  have hu : (walSnapCanon m).uf = [] := by unfold walSnapCanon; rfl
+  have hix : (walSnapCanon m).index = some m.Index' := rfl
+  have htx : (walSnapCanon m).term = some m.Term' := rfl
+  rw [hu, hix, htx]
+  simp only [List.length_append, List.length_nil]
+  omega
+
 end codec
 
 end EtcdGrove

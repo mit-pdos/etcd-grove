@@ -204,7 +204,7 @@ theorem restart_peerURLs (γ : ServerRaftNames) (γk : KVNames) (A : List EntryM
   ihave #Hinv' := Hinv
   iunfold srvRaftLogInv at Hinv'
   icases Hinv' with ⟨-, #Hcl, -, -, -, #Hb, %Hvs0⟩
-  have hvs := Hvs0.2
+  have hvs : _ ∧ _ := ⟨Hvs0.2.1, Hvs0.2.2.1⟩
   iunfold srvClusterOk at Hcl
   icases Hcl with ⟨-, -, -, -, -, -, -, -, -, %Hurl, -⟩
   ihave %Hpfx := srvRLogLb_prefix γ _ A $$ [Hb HA]

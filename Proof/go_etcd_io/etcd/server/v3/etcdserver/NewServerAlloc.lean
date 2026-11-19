@@ -277,8 +277,8 @@ theorem srvClusterBoot_alloc (ps : List w64) (ctxs : List (List w8)) (boot : Lis
         rw [he]; simp only [hcl]; iexact Hbl0c
       · ipureintro; rw [hbt]; exact hidx
     ipureintro
-    show γ.vs ≠ [] ∧ γ.vs.Nodup ∧ srvBootLogOk γ.vs γ.boot
-    rw [hvs, hbt]; exact ⟨Hne, Hnd, hboot⟩
+    show γ.vs ≠ [] ∧ γ.vs.Nodup ∧ srvBootLogOk γ.vs γ.boot ∧ γ.vs.length < 2 ^ 16
+    rw [hvs, hbt]; exact ⟨Hne, Hnd, hboot, by omega⟩
   -- the KV invariant at the bootstrap log
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain false false false, [[], []], 0, 0,
     ⟨issued, cnt, 0, gp, wn, 0, fs, 0⟩, 0, cmp, γ.log, cret, lm, gps⟩

@@ -556,6 +556,71 @@ theorem walSaveSnapC_spec [go_etcd_io.etcd.server.v3.etcdserver.Assumptions] (st
   ipureintro
   refine ⟨⟨rfl, rfl, srvSnapMetaC_canon md uf hz⟩, Or.inr rfl, hidx, henc⟩
 
+/-! ## F2 (wal-link L3, 2026-11-19): a snapshot's conf state at the server's static membership -/
+
+/-- **The voters' conf state, as the WAL's `SaveSnap` takes it**: a conf state of the voters' simple
+membership, of a non-empty set of fewer than `2^16` voters, is not the zero one, and a metadata at it encodes
+below layer 1's record bound (`walSnapCanon_enc_len`). -/
+theorem srv_csF2 (cs : ConfStateM) (vs : GSet w64) (h : confStateIs cs (Membership.simple vs))
+    (hne : vs ≠ ∅) (hsz : GMap.size vs < 2 ^ 16) (md : SnapshotMetadataM) (hmd : md.ConfState' = cs) :
+    md.ConfState' ≠ walCsZero ∧ (walSrvMr.encSnap md).length < 2 ^ 40 := by
+  subst hmd
+  obtain ⟨hv, hvo, hl, hln, -⟩ := h
+  have e1 := hv.length_eq
+  have e2 := hvo.length_eq
+  have e3 := hl.length_eq
+  have e4 := hln.length_eq
+  simp only [GMap.length_elements, Membership.simple, GMap.size_empty] at e1 e2 e3 e4
+  have hpos : 0 < GMap.size vs := by
+    rcases Nat.eq_zero_or_pos (GMap.size vs) with h0 | h0
+    · exact absurd ((GMap.size_empty_iff vs).1 h0) hne
+    · exact h0
+  refine ⟨?_, ?_⟩
+  · intro hz
+    rw [hz] at e1
+    simp only [walCsZero, List.length_nil] at e1
+    omega
+  · show (WalEnc.snapEnc (walSnapCanon md)).length < 2 ^ 40
+    exact walSnapCanon_enc_len md (by omega)
+
+/-- **The server's cluster: a non-empty set of fewer than `2^16` voters** (`srvRaftLogInv`'s). -/
+theorem srvRaftLogInv_cfg (γ : ServerRaftNames) :
+    srvRaftLogInv (GF := GF) γ ⊢ ⌜γ.raft.cfg ≠ ∅ ∧ GMap.size γ.raft.cfg < 2 ^ 16⌝ := by
+  iintro #H
+  iunfold srvRaftLogInv at H
+  icases H with ⟨-, -, -, -, -, -, %Hv⟩
+  obtain ⟨hne, hnd, -, hlen⟩ := Hv
+  ipureintro
+  unfold SrvRaft.cfg
+  refine ⟨?_, by rw [GMap.size_list_to_set _ hnd]; exact hlen⟩
+  intro h
+  obtain ⟨p, ps', hp⟩ := List.exists_cons_of_ne_nil hne
+  have : p ∈ GMap.listToSet γ.raft.vs :=
+    (GMap.elem_of_list_to_set p _).2 (by rw [hp]; exact List.mem_cons_self ..)
+  rw [h] at this
+  exact (GMap.not_elem_of_empty p) this
+
+/-- **A valid snapshot's metadata, as the WAL's `SaveSnap` takes it** (F2): at the server's cluster its conf
+state is the voters' (`srv_confAt_simple`): not the zero one, its record below layer 1's bound. -/
+theorem srv_snapshotValid_F2 (γ : ServerRaftNames) (cl : Cluster) (hcl : γ.raft.cl = cl) (sv : SnapshotM) :
+    letI := srvStor (GF := GF) γ.raft
+    srvRaftLogInv (GF := GF) γ ∗ snapshotValid cl sv ⊢
+      |={⊤}=> ⌜sv.Metadata'.ConfState' ≠ walCsZero ∧ (walSrvMr.encSnap sv.Metadata').length < 2 ^ 40⌝ := by
+  letI := srvStor (GF := GF) γ.raft
+  subst hcl
+  iintro ⟨#Hinv, #Hv⟩
+  ihave %Hcfg := srvRaftLogInv_cfg γ $$ Hinv
+  iunfold snapshotValid at Hv
+  icases Hv with ⟨%l, %m, #Hlb, #Hm, -, %Hf⟩
+  imod srv_confAt_simple γ l l.length (Nat.le_refl _) ⊤ (fun _ _ => CoPset.mem_full)
+    (fun _ _ => CoPset.mem_full) $$ [Hinv Hlb] with #Hs
+  · iframe Hinv Hlb
+  ihave %Heq := confAt_agree γ.raft.cl l.length m (Membership.simple γ.raft.cfg) $$ [Hm Hs]
+  · iframe Hm Hs
+  subst Heq
+  imodintro; ipureintro
+  exact srv_csF2 _ _ Hf.2.2.2.1 Hcfg.1 Hcfg.2 sv.Metadata' rfl
+
 end ghost
 
 end EtcdGrove

@@ -236,6 +236,14 @@ theorem isWalStorage_ok (st : GoInterface) (h : WalH GF) (ss : Loc) :
   iintro ⟨-, %si, %Heq, -⟩
   ipureintro; exact ⟨si, Heq⟩
 
+/-- (wal-link L3) **The storage is a `*storage`** (what `rnStorageOf` said until then). -/
+theorem isWalStorage_ptr (st : GoInterface) (h : WalH GF) (ss : Loc) :
+    isWalStorage (GF := GF) st h ss ⊢
+      ⌜∃ p : Loc, st = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p⌝ := by
+  unfold isWalStorage
+  iintro ⟨⟨%p, %Heq, -⟩, -⟩
+  ipureintro; exact ⟨p, Heq⟩
+
 /-- **The snapshotter is the storage's** (wal-link L3): two contracts of one storage name one snapshotter. -/
 theorem isWalStorage_ss_agree (st : GoInterface) (h h' : WalH GF) (ss ss' : Loc) :
     isWalStorage (GF := GF) st h ss ∗ isWalStorage st h' ss' ⊢ ⌜ss = ss'⌝ := by

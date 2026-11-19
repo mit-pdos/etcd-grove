@@ -186,8 +186,8 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
         rw [he]; simp only [hcl]; iexact Hbl0c
       · ipureintro; rw [hbt]; exact hidx
     ipureintro
-    show γ.vs ≠ [] ∧ γ.vs.Nodup ∧ srvBootLogOk γ.vs γ.boot
-    rw [hvs, hbt]; exact ⟨Hne, Hnd, hboot⟩
+    show γ.vs ≠ [] ∧ γ.vs.Nodup ∧ srvBootLogOk γ.vs γ.boot ∧ γ.vs.length < 2 ^ 16
+    rw [hvs, hbt]; exact ⟨Hne, Hnd, hboot, by omega⟩
   -- the mode-`on` KV invariant at the bootstrap log
   imod (mono_list_own_alloc (GF := GF) [srvAuthSt0]) with ⟨%γh, Hh, -⟩
   let γk0 : KVNames := ⟨0, W64 0, apply.alarmChain true false false, [[], []], 0, 0,

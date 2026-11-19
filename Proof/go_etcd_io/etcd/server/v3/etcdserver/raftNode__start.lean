@@ -622,10 +622,10 @@ theorem raftNode.start.wp_proof
             with #HsvW
           ihave HAU := rnDur_saveSnap_au γ.node.cl γ.wal _ _ _ HwSteps.1 $$ Hdur Hwv Hwok HsvW
           -- (R2b-1 stage 4) the received snapshot's `SaveSnap` (`rnDur_saveSnap_au`)
-          -- (wal-link L3, F2) the received snapshot's metadata canonical: OPEN (its conf state not the zero one,
-          -- its record below layer 1's bound)
-          have HF2z : l.snap.Metadata'.ConfState' ≠ walCsZero := sorry
-          have HF2e : (walSrvMr.encSnap l.snap.Metadata').length < 2 ^ 40 := sorry
+          -- (wal-link L3, F2) the received snapshot's metadata canonical: its conf state the voters'
+          -- (`srv_snapshotValid_F2`: not the zero one, its record below layer 1's bound)
+          imod srv_snapshotValid_F2 E.γr.raft γ.node.cl (by rw [HEnR]) l.snap $$ [$HRL $HsvV]
+            with ⟨%HF2z, %HF2e⟩
           have HF2i : uint.nat l.snap.Metadata'.Index' < 2 ^ 64 - 1 := by
             have h := Hb61
             have := uint_nat_eq l.snap.Metadata'.Index'

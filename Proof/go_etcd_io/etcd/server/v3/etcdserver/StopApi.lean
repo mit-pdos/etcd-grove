@@ -66,14 +66,15 @@ merge, 2026-11-06: reader tokens of mvcc's API, `mvccReaders`, in place of mvcc'
         ⌜cp ≠ GoInterface.nil ∧ E.cmp = true⌝)))
 
 /-- The image's part (sealed): the storage registry's authority, the configuration's data and WAL
-directories, read-only, and the raft wrapper's storage writing the WAL in the latter. -/
+directories, read-only, and the raft wrapper's storage, its WAL (`γrn.wal.h`, wal-link L3: until then
+`walDirOf (storage.walOf st)`) in the latter. -/
 @[no_expose] def srvStop.imagePart (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
     (γrn : RNNames GF) : IProp GF :=
   iprop((letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
     srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
     srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' ∗
     (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
-      ⌜walDirOf (storage.walOf st) = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝))
+      ⌜γrn.wal.h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝))
 
 /-- **What `NewServer` keeps for the server's stop** (sealed; see the file header). -/
 @[no_expose] def srvStop.keep (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
@@ -95,7 +96,7 @@ theorem srvStop.keep_intro (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.Ser
       srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗
       srvCfgFieldAddr s go!"DedicatedWALDir" ↦□ cfg.DedicatedWALDir' ∗
       (∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
-        ⌜walDirOf (storage.walOf st) = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝) ⊢
+        ⌜γrn.wal.h.dir = config.walDirOf cfg.DataDir' cfg.DedicatedWALDir'⌝) ⊢
     srvStop.keep (GF := GF) s cfg E γrn γk := by
   iintro ⟨Hc, Hk, Hl, Ha, Hr, Hcp, Hreg, Hdd, Hwd, Hst⟩
   unfold srvStop.keep srvStop.raftPart srvStop.cleanupPart srvStop.censusPart srvStop.imagePart
@@ -165,7 +166,7 @@ theorem srvStop.image_inputs (s : Loc) (cfg : go_etcd_io.etcd.server.v3.config.S
     srvStop.imagePart (GF := GF) s cfg γrn ∗ srvDataDir s dd ⊢
       (letI : MemStorReg GF := ⟨γrn.node.reg⟩; ∃ M : GMap Loc MemStorNamesRec, memStorRegAuth M) ∗
       ∃ st : GoInterface, rnStorageAddr (srvRAddr s) ↦□ st ∗
-        ⌜walDirOf (storage.walOf st) = config.walDirOf dd ""⌝ := by
+        ⌜γrn.wal.h.dir = config.walDirOf dd ""⌝ := by
   unfold srvStop.imagePart
   iintro ⟨⟨Hreg, #Hdd, #Hwd, %st, #Hst, %Hw⟩, #Hdir⟩
   iunfold srvDataDir at Hdir

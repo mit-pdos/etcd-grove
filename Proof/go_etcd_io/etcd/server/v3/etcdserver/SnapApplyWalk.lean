@@ -105,9 +105,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hSTP : backend.backend.SetTxPostLockInsideApplyHook.spec (GF := GF) (hG := hG))
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (γp : WTNames) (hrbw : receiptBound GF ≤ backend.wbInit - 6)
-    (hRel : storage.storage.Release.spec (GF := GF) (hG := hG))
     (stp : Loc) (γd γt : GName) (img : w64 → backend.Data → IProp GF) (nt : Nat)
-    (hstp : storage.storageSnap stp ss) (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
+    (hnt : nt ≤ uint.nat sv.Metadata'.Index' + 1)
     (hNAB : schema.NewAlarmBackend.spec (GF := GF) (hG := hG))
     (hAR : v3alarm.AlarmStore.Recover.spec (GF := GF) (hG := hG))
     (halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅)
@@ -142,6 +141,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (hNUA : EtcdServer.NewUberApplier.spec (GF := GF) (hG := hG))
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
     (hbuq : apply.backendUnderQuota) (γnc : NotifyNames)
+    -- (wal-link L3, 2026-11-19) the raft node's names and the apply thread's share of the WAL (`Release`'s)
+    (γw : RNNames GF) (q : Qp)
     -- (2026-11-01, J8a-5) the alarm store's `Get` with no alarm, after its `Recover`
     (hAG : v3alarm.AlarmStore.Get.spec (GF := GF) (hG := hG))
     -- (the lease-expiry plan's step 2) the range deleter's argument (the mvcc merge, 2026-11-06:
@@ -152,8 +153,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        isServerM E.authOn s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗
        taNotifycAddr ap ↦□ nc ∗ isNotify2 γnc nc
-         (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
-         go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index')) iprop(True) ∗
+         iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γw.wal.h j m ∗
+           ⌜m.Index' = sv.Metadata'.Index'⌝) iprop(True) ∗
+       rnWalTokA γw (srvRAddr s) q ∗
        notifyRcvN γnc 0 ∗
        epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epDiskSnapAddr ep ↦ dsi ∗
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
@@ -189,6 +191,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        □ (∀ (γB : backend.BNames) (b : Loc), mvcc.keySized γB d.P b) ∗ srvWTPool E γp ∗
        rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
+       (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
+         go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
        inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
@@ -225,8 +229,8 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
         (Val #ap))
     {{ RET #(); snapWalkPost s ep sv γ ci E ρ γr d D A A' x ss (config.backendPathOf cfg.DataDir') hk γt γn t c rs idm lp al ast cl memI
-        quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok }} := by
-  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
+        quota wad Lr recs U reqOf ∗ notifyRcvN γnc 1 ∗ threadTok ∗ rnWalTokA γw (srvRAddr s) q }} := by
+  wp_start as ⟨#Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, HwT, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, HL0, HEv0, #HRqs, #HGrs, #Hlinv, #Hlpf, #Hlrev, #Hlcfg, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsws, #Hsdinv, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HthT, HauR, #HA', #HmetaB⟩
   ihave #Hsrv' := Hsrv
   iunfold isServerM at Hsrv'
   icases Hsrv' with ⟨-, -, ⟨%sfv, #Hfl⟩, #Hatm, -⟩
@@ -287,9 +291,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   (try wp_auto)
   -- `<-toApply.notifyc`: raft persisted the snapshot
   wp_apply wp_notify2_receive1 γnc nc
-      (walBaseLb (storage.walOf (interface.mkOk (go.GoType.PointerType
-        go_etcd_io.etcd.server.v3.storage.storage.ty) #stp)) (uint.nat sv.Metadata'.Index'))
-      iprop(True) $$ [Hrcv] as ⟨Hrcv, #Hwblb⟩
+      iprop(∃ (j : Nat) (m : SnapshotMetadataM), walSnapRec γw.wal.h j m ∗
+        ⌜m.Index' = sv.Metadata'.Index'⌝)
+      iprop(True) $$ [Hrcv] as ⟨Hrcv, %iw, %mw, #Hwrec, %Hmw⟩
   · iframe #; iexact Hrcv
   (try wp_auto)
   -- `s.bemu.Lock()`: `bemu`'s whole lock invariant
@@ -728,17 +732,40 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   -- `s.r.storage.Release(snapshot)`: the snapshot's index taken, the older files released
   -- (restart S6a) the removal counter at the index plus one (`snapRmM`)
   imod (mono_nat_own_update (uint.nat sv.Metadata'.Index' + 1) (by word)) $$ Hγt with ⟨Hγt, #Htk⟩
-  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (snapRmM γt) hstp
-    $$ [] as %rerr ⟨-, -, %Hrerr⟩
-  · iframe #
+  -- (wal-link L3) the WAL contract's `Release` law, at the apply thread's share (`rnWalTokA`): the
+  -- records read (`rnDur_read_au`), the snapshot's record from `notifyc`'s first receive
+  iunfold rnWalTokA at HwT
+  icases HwT with ⟨%st0, #Hst0, Hwo, Hwap, #Hdur, Hrdw, #Hsave⟩
+  icombine Hstpf Hst0 gives %Hsteq
+  have Hsteq' : st0 = interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp := by
+    first | exact Hsteq.symm | exact Hsteq.2.symm
+  subst Hsteq'
+  icases Hsws with ⟨%hd, #Hsws'⟩
+  ihave %Hss := isWalStorage_ss_agree (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) hd γw.wal.h ss γw.ss $$ [Hsws' Hsave]
+  · iframe Hsws' Hsave
+  subst Hss
+  ihave %Hsok := isWalStorage_ok _ _ _ $$ Hsave
+  obtain ⟨si, Hsieq⟩ := Hsok
+  ihave HRAU := rnDur_read_au γw.node.cl γw.wal γw.wal.h $$ Hdur Hwap
+  ihave #HRel := walRelease_spec _ γw.wal.h γw.ss _ Hsieq q sn smp DFrac.discard DFrac.discard
+      sv.Metadata' γd img (snapRmM γt) iw mw (token γw.wal.app) Hmw $$ Hsave
+  have Hsieq0 := Hsieq
+  simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
+  subst Hsieq
+  wp_apply HRel $$ [Hwo Hrdw HRAU] as %rerr ⟨Hwo, Hrdw, -, -, Hwap, %Hrerr⟩
+  · iframe Hwo Hrdw HRAU Hwrec; iframe #
     iintro !> %j %hj
     iunfold snapRmM
     iapply monoNatLbOwn_le (uint.nat j + 1) (by word) $$ Htk
   have hrerr : rerr = GoInterface.nil := by
     rcases Hrerr with h | h
     · exact h
-    · exact absurd hsop.2.2.1 h
+    · exact absurd (hsop.1 γw.ss) h
   subst hrerr
+  ihave HwT : rnWalTokA γw (srvRAddr s) q $$ [Hwo Hwap Hrdw]
+  · iunfold rnWalTokA; iexists _; iframe Hst0 Hwo Hwap Hdur Hrdw Hsave
   (try wp_auto)
   -- `s.alarmStore.Recover(schema.NewAlarmBackend(lg, newbe))`: the alarm store on the new backend
   wp_apply hInfo $$ []

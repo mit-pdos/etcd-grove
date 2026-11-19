@@ -376,12 +376,21 @@ theorem EtcdServer.snapshot.wp_proof
       ihave %Hsok := isWalStorage_ok _ _ _ $$ Hsave
       obtain ⟨si, Hsieq⟩ := Hsok
       -- (wal-link L3, F2) the snapshot's metadata canonical: OPEN (raft's `ConfState()` facts for the
-      -- apply thread's `ep.confState`; the record's bound; the index's)
+      -- apply thread's `ep.confState`: its `AutoLeave` set)
       ihave #Hm1 : metaRoC pm (srvSnapMetaC (memSnapMade ai at' c []).Metadata' uf) $$ []
       · sorry
-      have HF2z : (memSnapMade ai at' c []).Metadata'.ConfState' ≠ walCsZero := sorry
-      have HF2e : (walSrvMr.encSnap (memSnapMade ai at' c []).Metadata').length < 2 ^ 40 := sorry
-      have HF2i : uint.nat (memSnapMade ai at' c []).Metadata'.Index' < 2 ^ 64 - 1 := sorry
+      -- (F2) the conf state the voters' (`Hcsc`): not the zero one, the record below layer 1's bound
+      -- (`srv_csF2`, the cluster's voters `srvRaftLogInv_cfg`); the index below `2^61` (the snapshot valid)
+      ihave %Hcfg := srvRaftLogInv_cfg γr.raft $$ Hrli
+      obtain ⟨HF2z, HF2e⟩ := srv_csF2 c γr.raft.raft.cfg Hcsc Hcfg.1 Hcfg.2
+        (memSnapMade ai at' c []).Metadata' rfl
+      ihave #HsvS2 := HsvS
+      iunfold snapshotValid at HsvS2
+      icases HsvS2 with ⟨%lv, %mv, -, -, -, %Hfv⟩
+      have HF2i : uint.nat (memSnapMade ai at' c []).Metadata'.Index' < 2 ^ 64 - 1 := by
+        have h1 := Hfv.1
+        have h2 := Hfv.2.2.2.2.1
+        omega
       ihave #HSaveSnap := walSaveSnapC_spec _ γn.wal.h γn.ss si Hsieq q snap' pm DFrac.discard
         (memSnapMade ai at' c []).Metadata' uf
         iprop(token γn.wal.app ∗ walBaseLb γn.wal.h (uint.nat (memSnapMade ai at' c []).Metadata'.Index'))
