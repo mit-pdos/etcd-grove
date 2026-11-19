@@ -87,4 +87,4 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 )
 
-replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261111214215-ea4cab526797
+replace go.etcd.io/bbolt => github.com/upamanyus/bbolt v0.0.0-20261119194012-3f8520bd7298
