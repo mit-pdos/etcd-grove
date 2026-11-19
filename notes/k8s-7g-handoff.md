@@ -2,6 +2,23 @@
 
 ## START HERE
 
+**2026-11-19 (night 10; for etcd-grove-03). Option A ACCEPTED; empty-list blocker: option 1 (questions.md
+"Step 5 night 9 decided"). `reflect.MakeSlice.spec` gains `s ≠ slice.nil`: STOP for its independent attack.**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`; switch to manifest-f55 when lean's
+  f551a1b46 merge comes in). Trusted text: `Spec/reflect/MakeSlice.lean` post `s ≠ slice.nil` (header "Never nil"),
+  Go `examples/k8s/etcd3/trustspecs_test.go` `TestMakeSliceZeroNonNil` (PASS), `notes/k8s-7g-trust.md` top entry.
+  No proof uses it yet (ListContract reads only `Hs.1`; lean-check of the spec: 0 errors).
+- Build `/shared/tmp/k8s7g/build-optA.sh` (log `build-optA.log`): queued for a slot (both held by full builds).
+  Read it first; fix what it reports.
+- After the attack: thread the fact through `listContractOk'`'s MakeSlice-0 clause, `finalizeList`, `GetList.spec`'s
+  post (non-nil-items `listAt` form; Freeze list). Then step 5 in order: `RawOk.lean` (`RawRel` moved from
+  RealBridge below MDefs, `rawOk x y`, `ioOk` with it), `listOut` gives back `listAtItems`, call's post
+  (`plainOut y = …` + `rawOk`), Apply, runWatch (watch.go specs), replay.go (8), watch.go (15), realcheck.go, Check,
+  discharge list; report at step 5's end; step 6 prep, STOP for the Freeze.
+
+### Superseded (night 9)
+
 **2026-11-19 (night 9; for etcd-grove-03). Option A done (lintest's applySpec generalized in place); STOP:
 blocker on the list's Raw (an empty list's `Items` slice: nil-ness not provable over the store's contract).**
 

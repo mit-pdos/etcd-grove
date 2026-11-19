@@ -49,6 +49,18 @@ clause 4 SURVIVES (11 attacks, Go under `-race`) and is ACCEPTED. m2 applied (th
 `DeepV` being a `*StatusError` is what makes clause 4 true; a constructor for one must revisit it). m1
 recorded: one orientation only (model's response first), which every use is.
 
+**2026-11-19 (night 9): `reflect.MakeSlice.spec` gains `s ≠ slice.nil` in its post, PENDING the independent
+attack** (hard stop; option 1, decided by etcd-grove-03; no proof uses the new conjunct yet; the one existing
+user, `ListContract.lean`, reads only `Hs.1`). `Spec/reflect/MakeSlice.lean` (header: "Never nil"); the axiom
+`Proof/reflect/MakeSlice.lean` is unchanged. Why: the real model's list is never nil and `reflect.DeepEqual`
+tells a nil `Items` from an empty one, so `RawRel` needs `GetList`'s `Items` non-nil for an empty list, which is
+`finalizeList`'s `reflect.MakeSlice(t, 0, 0)`. Faithful: `MakeSlice` sets `Data: unsafe_NewArray(elem, cap)`,
+and `mallocgc` of zero bytes returns `&zerobase`, never nil (`reflect/value.go`, `runtime/malloc.go`, go1.27).
+Go test: `examples/k8s/etcd3/trustspecs_test.go` `TestMakeSliceZeroNonNil` (length 0, capacities 0, 1, 5:
+`IsNil` false, `!= nil`, len/cap, not `DeepEqual` to a nil `[]Obj`): PASS. To use it after the attack:
+`listContractOk'`'s MakeSlice-0 clause, `finalizeList`, `GetList.spec`'s post (strengthened 7e store posts, for
+the Freeze list).
+
 ## 1. New trust-boundary specs (files written)
 
 | Spec | File | Axiom to come | Go tests |
@@ -59,6 +71,7 @@ recorded: one orientation only (model's response first), which every use is.
 | `maps.Clone.spec_strBool` | `Spec/maps/Clone.lean` | `maps.Clone.wp_proof_strBool` | `TestMapsCloneEqual` |
 | `maps.Equal.spec_strBool` | `Spec/maps/Equal.lean` | `maps.Equal.wp_proof_strBool` | `TestMapsCloneEqual` |
 | `meta.SetList.spec_objList` (`Items` := fresh non-nil slice of the objects' structs, `nil` error) | `Spec/k8s_io/apimachinery/pkg/api/meta/SetList.lean` | `meta.SetList.wp_proof_objList` | `TestSetListObjList` |
+| `reflect.MakeSlice.spec` (existing, 7e-2): `s ≠ slice.nil` added to the post (2026-11-19) | `Spec/reflect/MakeSlice.lean` | `reflect.MakeSlice.wp_proof` (exists) | `TestMakeSliceZeroNonNil` (and 7e-2's `examples/k8s7e2attack` `TestMakeSlice*`) |
 | `apierrors.SuggestsClientDelay.spec` (over `apiErrAt` views; `delayV`) | `Spec/k8s_io/apimachinery/pkg/api/errors/SuggestsClientDelay.lean` | `apierrors.SuggestsClientDelay.wp_proof` | `TestSuggestsClientDelay`, `TestStorageErrorNotAPIStatus` |
 
 `slices.Sorted` has no spec of its own: `maps.Keys.spec_objMap` states what it returns on `Keys`'s

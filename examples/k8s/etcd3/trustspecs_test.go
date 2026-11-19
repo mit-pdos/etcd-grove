@@ -688,3 +688,27 @@ func TestListAccessorObjList(t *testing.T) {
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------------------------
+// reflect.MakeSlice (Spec/reflect/MakeSlice.lean, reflect.MakeSlice.spec: `s ≠ slice.nil`)
+
+// reflect.MakeSlice of the driver's []Obj with length 0 (any capacity, 0 included) is never a nil
+// slice: unsafe_NewArray returns &zerobase for a zero-byte allocation (2026-11-19, stage 7g).
+func TestMakeSliceZeroNonNil(t *testing.T) {
+	for _, c := range []int{0, 1, 5} {
+		v := reflect.MakeSlice(reflect.TypeOf([]Obj{}), 0, c)
+		if v.IsNil() {
+			t.Fatalf("MakeSlice(0,%d) is nil", c)
+		}
+		s := v.Interface().([]Obj)
+		if s == nil {
+			t.Fatalf("MakeSlice(0,%d) == nil", c)
+		}
+		if len(s) != 0 || cap(s) != c {
+			t.Fatalf("MakeSlice(0,%d): len %d cap %d", c, len(s), cap(s))
+		}
+		if reflect.DeepEqual(s, []Obj(nil)) {
+			t.Fatalf("MakeSlice(0,%d) DeepEqual to a nil []Obj", c)
+		}
+	}
+}
