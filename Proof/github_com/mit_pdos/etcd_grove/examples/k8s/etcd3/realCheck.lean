@@ -38,6 +38,138 @@ variable [sem : go.Semantics]
 variable [reg : EtcdGrove.k8s.CompactorRegistry]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assumptions]
 
+/-- **The checker operations at a linearization's indices** are the driver's operations along it
+(`orderByLinearization`'s result against `vals`). -/
+theorem opReps_pick (os : List github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation)
+    (U : List (Op (Input × RResp))) : ∀ xs : List w64,
+    ([∗list] c;u ∈ os;U, opRep (GF := GF) c u.val ∗ reqPin c.Request' u.val.1) ⊢
+      [∗list] c;op ∈ xs.filterMap (fun x => os[(sint.Z x).toNat]?);
+        vals U (xs.map fun x => (sint.Z x).toNat), opRep (GF := GF) c op
+  | [] => by
+    iintro -
+    simp only [List.filterMap_nil, List.map_nil, vals]
+    iapply BigSepL2.bigSepL2_nil.2
+    itrivial
+  | x :: xs => by
+    iintro #H
+    ihave %hlen := BigSepL2.bigSepL2_length $$ H
+    ihave #Hr := opReps_pick os U xs $$ H
+    simp only [List.filterMap_cons, List.map_cons, vals]
+    cases h1 : os[(sint.Z x).toNat]? with
+    | none =>
+      have h2 : U[(sint.Z x).toNat]? = none := by
+        rw [List.getElem?_eq_none_iff] at h1 ⊢; omega
+      simp only [h2, Option.map_none]
+      iexact Hr
+    | some c =>
+      obtain ⟨u, h2⟩ : ∃ u, U[(sint.Z x).toNat]? = some u := by
+        have : (sint.Z x).toNat < U.length := by rw [← hlen]; exact (List.getElem?_eq_some_iff.1 h1).1
+        exact ⟨_, List.getElem?_eq_getElem this⟩
+      simp only [h2, Option.map_some]
+      ihave #Hab := BigSepL2.bigSepL2_lookup (Φ := fun _ c u => iprop(opRep (GF := GF) c u.val ∗
+        reqPin c.Request' u.val.1)) h1 h2 $$ H
+      icases Hab with ⟨#Hab, -⟩
+      iapply BigSepL2.bigSepL2_cons.2
+      isplitl
+      · iexact Hab
+      · iexact Hr
+
+set_option hygiene false in
+/-- `realCheck` after its porcupine block (`linearizedOps ↦ lo`, `Hlo : lo ↦*□ os2`, `Hrep2`: `os2` against
+`vals U lin2`, `hlin2 : IsLinearization (realS init) U lin2`): `NewReplay`, the `Validate` loop,
+`NewWatchValidator`, the `ValidateWatch` loop, `Ok`. -/
+local macro "rc_tail" os2:term:max lin2:term:max : tactic => `(tactic| (
+  obtain ⟨R, hR, hval, hw⟩ := hrep $lin2 hlin2
+  have hpre := replayPre_of (absR g0.st)
+    (vals (fmapH unaryOf (histR lops vs)) $lin2) hfit (fun op hop => by
+    obtain ⟨u, hu, rfl⟩ := mem_vals _ _ op hop
+    exact hstepU _ (List.mem_map_of_mem hu))
+  wp_apply wp_NewReplay mp (absR g0.st) lo _ _ R hpre hR $$ [Hm Hlo Hrep2] as %rp %err ⟨%herr, #Hrp⟩
+  · iframe Hm Hlo Hrep2
+  subst herr
+  wp_auto
+  ihave %Hlol := ownSlice_len $$ Hlo
+  ihave %Hr2l := BigSepL2.bigSepL2_length $$ Hrep2
+  ihave HV : (∃ (j : w64) (opv : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.Operation),
+      "i" ∷ i_ptr ↦ j ∗ "op" ∷ op_ptr ↦ opv ∗
+      "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z lo.len⌝ : IProp GF) $$ [i op]
+  · iexists W64 0, _
+    iframe
+    ipureintro; refine ⟨by word, by word⟩
+  wp_for HV
+  wp_if_destruct
+  · have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z lo.len := ⟨Hj.1, by first | exact Hif | exact dec_true Hif⟩
+    list_elem $os2 (sint.nat j) as c
+    simp only [Hb', _root_.and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index lo (sint.Z j) _ DFrac.discard c Hj.1 $$ [Hlo]
+    · iframe Hlo; ipureintro; exact Hc_lookup
+    iintro -
+    obtain ⟨op, hop⟩ : ∃ op, (vals (fmapH unaryOf (histR lops vs)) $lin2)[sint.nat j]? = some op := by
+      have := (List.getElem?_eq_some_iff.1 Hc_lookup).1
+      exact ⟨_, List.getElem?_eq_getElem (by rw [← Hr2l]; exact this)⟩
+    ihave #Hcop := BigSepL2.bigSepL2_lookup (Φ := fun _ c op => opRep (GF := GF) c op) Hc_lookup hop $$ Hrep2
+    iunfold opRep at Hcop
+    icases Hcop with ⟨#Hrq, #Hrs⟩
+    have hmem := List.mem_of_getElem? hop
+    have hst : k8s_correctness.stepIn op.1 op.2 := by
+      obtain ⟨u, hu, rfl⟩ := mem_vals _ _ op hmem
+      exact hstepU _ (List.mem_map_of_mem hu)
+    wp_auto
+    wp_apply wp_Validate rp R c.Request' c.Response' op.1 op.2 hst.1 (hval op hmem).2 hst.2.2.1
+      (hval op hmem).1 $$ [Hrp Hrq Hrs] as %err %herr
+    · iframe Hrp Hrq Hrs
+    subst herr
+    wp_auto
+    wp_for_post
+    iframe
+    iexists j + W64 1, c
+    iframe
+    ipureintro
+    have := Hb'.2; have := Hlol.2
+    refine ⟨by word, by word⟩
+  · -- the loop's end
+    wp_apply wp_NewWatchValidator rp
+    ihave %Hwsl := ownSlice_len $$ Hws
+    ihave HW : (∃ (j : w64) (wv : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchOperation),
+        "i" ∷ i_ptr ↦ j ∗ "w" ∷ w_ptr ↦ wv ∗ "validator" ∷ validator_ptr ↦ validatorV rp ∗
+        "Hws" ∷ wsl ↦* ws ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z wsl.len⌝ : IProp GF) $$ [i w validator Hws]
+    · iexists W64 0, _
+      iframe
+      ipureintro; refine ⟨by word, by word⟩
+    wp_for HW
+    wp_if_destruct
+    · have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z wsl.len := ⟨Hj.1, by first | exact Hif | exact dec_true Hif⟩
+      list_elem ws (sint.nat j) as w
+      simp only [Hb', _root_.and_self, ↓reduceIte]
+      wp_apply wp_load_slice_index wsl (sint.Z j) ws _ w Hj.1 $$ [Hws] as Hws
+      · iframe; ipureintro; exact Hw_lookup
+      ihave #Hw := BigSepL.bigSepL_lookup (Φ := fun _ w => wRep (GF := GF) vs w) Hw_lookup $$ Hwr
+      iunfold wRep at Hw
+      icases Hw with ⟨%k, %v, %hkv, #Hwq, #Hev⟩
+      obtain ⟨hwin, hwv⟩ := hw k v hkv.1 hkv.2.1 hkv.2.2.1
+      have hresp : w.Response' = ⟨w.Response'.Events', GoInterface.nil⟩ := by
+        rw [← hkv.2.2.2]
+      rw [hresp]
+      wp_method_call
+      wp_auto
+      wp_apply wp_ValidateWatch rp R v.1 w.Request' w.Response'.Events' _ hwin hwv $$ [Hrp Hwq Hev]
+        as %err %herr
+      · iframe Hrp Hwq Hev
+      subst herr
+      wp_auto
+      wp_for_post
+      iframe
+      iexists j + W64 1, w
+      iframe
+      ipureintro
+      have := Hb'.2; have := Hwsl.2
+      refine ⟨by word, by word⟩
+    · iapply HΦ
+      ipureintro
+      exact ⟨by decide, fun _ => rfl⟩))
+
+set_option maxHeartbeats 1000000 in
 theorem realCheck.wp_proof
     (wp_realRequest : realRequest.spec (GF := GF) (hG := hG))
     (wp_realEvents : realEvents.spec (GF := GF) (hG := hG))
@@ -245,6 +377,7 @@ theorem realCheck.wp_proof
     ihave %Hpsl := ownSlice_len $$ Hps
     wp_if_destruct
     · -- some unary operations: porcupine
+      have hpos : sint.Z (W64 0) < sint.Z psl.len := by first | exact Hif | exact dec_true Hif
       wp_apply wp_toPorcupineModel mp (absR g0.st) (Lof os (fmapH unaryOf (histR lops vs))) hfit $$ [$Hm] as %m #Hmodel
       ihave #Hio2 := realMS_opsIoOk (sem := sem) (package_sem := package_sem) (absR g0.st) os _ ps Hj.2.2
         hstepU $$ Hor
@@ -260,7 +393,81 @@ theorem realCheck.wp_proof
         wp_if_destruct
         rotate_left
         · exact absurd rfl Hif
-        sorry
+        iunfold github_com.anishathalye.porcupine.linInfoOk at Hli
+        icases Hli with ⟨%psls, #Hpsls, %hpsls, #Hpl⟩
+        obtain ⟨psl0, rfl⟩ : ∃ psl0, psls = [psl0] := by
+          match psls, hpsls with
+          | [a], _ => exact ⟨a, rfl⟩
+        ihave #Hp0 := BigSepL.bigSepL_lookup (Φ := fun i psl => github_com.anishathalye.porcupine.partLins
+          (realM (Lof os (fmapH unaryOf (histR lops vs))) (absR g0.st))
+          ([github_com.anishathalye.porcupine.histOf ps].getD i []) psl) (i := 0) rfl $$ Hpl
+        iunfold github_com.anishathalye.porcupine.partLins at Hp0
+        icases Hp0 with ⟨%lsls, #Hlsls, %hlsls, #Hll⟩
+        have hpne : github_com.anishathalye.porcupine.histOf ps ≠ [] := by
+          intro h
+          have := congrArg List.length h
+          simp only [github_com.anishathalye.porcupine.histOf, List.length_map, List.length_nil] at this
+          have := Hpsl.1; have := hpos
+          word
+        obtain ⟨lsl0, rfl⟩ : ∃ lsl0, lsls = [lsl0] := by
+          match lsls, hlsls hpne with
+          | [a], _ => exact ⟨a, rfl⟩
+        ihave #Hl0 := BigSepL.bigSepL_lookup (Φ := fun _ lsl => github_com.anishathalye.porcupine.linSlice
+          (realM (Lof os (fmapH unaryOf (histR lops vs))) (absR g0.st))
+          ([github_com.anishathalye.porcupine.histOf ps].getD 0 []) lsl) (l := [lsl0]) (i := 0) (x := lsl0) rfl $$ Hll
+        iunfold github_com.anishathalye.porcupine.linSlice at Hl0
+        icases Hl0 with ⟨%xs, #Hxs, %hxs⟩
+        wp_apply wp_PartialLinearizations info_ptr $$ [$info]
+        iintro info
+        ihave %Hpl0 := ownSlice_len $$ Hpsls
+        ihave %Hll0 := ownSlice_len $$ Hlsls
+        ihave %Hxl := ownSlice_len $$ Hxs
+        simp only [List.length_singleton] at Hpl0 Hll0
+        have hl1 : info.partialLinearizations'.len = W64 1 := by have := Hpl0.1; have := Hpl0.2; word
+        have hl2 : psl0.len = W64 1 := by have := Hll0.1; have := Hll0.2; word
+        wp_auto
+        rw [hl1]
+        simp only [decide_true]
+        wp_auto
+        have hb0 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z info.partialLinearizations'.len := by
+          rw [hl1]; decide
+        simp only [hb0, _root_.and_self, ↓reduceIte]
+        wp_apply wp_load_slice_index info.partialLinearizations' (sint.Z (W64 0)) [psl0] DFrac.discard psl0
+          (by decide) $$ [$Hpsls]
+        · ipureintro; rfl
+        iintro -
+        wp_auto
+        rw [hl2]
+        simp only [decide_true, Bool.not_true]
+        wp_auto
+        (try simp only [hb0, _root_.and_self, ↓reduceIte, true_and, show sint.Z (W64 0) < sint.Z info.partialLinearizations'.len from hb0.2])
+        wp_apply wp_load_slice_index info.partialLinearizations' (sint.Z (W64 0)) [psl0] DFrac.discard psl0
+          (by decide) $$ [$Hpsls]
+        · ipureintro; rfl
+        iintro -
+        (try wp_auto)
+        have hb1 : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z psl0.len := by rw [hl2]; decide
+        (try simp only [hb1, _root_.and_self, ↓reduceIte, true_and, show sint.Z (W64 0) < sint.Z psl0.len from hb1.2])
+        wp_apply wp_load_slice_index psl0 (sint.Z (W64 0)) [lsl0] DFrac.discard lsl0
+          (by decide) $$ [$Hlsls]
+        · ipureintro; rfl
+        iintro -
+        (try wp_auto)
+        have hxs2 := hxs.2
+        simp only [List.getD_cons_zero] at hxs2
+        rw [Hj.2.2] at hxs2
+        have hlin2 := (realM_lin_iff _ _ _ hag hLlen hLval _).2 hxs2
+        have hrange : ∀ x ∈ xs, 0 ≤ sint.Z x ∧ (sint.Z x).toNat < os.length := by
+          intro x hx
+          refine ⟨hxs.1 x hx, ?_⟩
+          have := (hlin2.2.1 (sint.Z x).toNat).1 (List.mem_map_of_mem hx)
+          rw [Holen]; exact this.1
+        wp_apply wp_orderByLinearization osl lsl0 os xs (DFrac.own 1) DFrac.discard hrange $$ [$Hos $Hxs]
+          as %lo ⟨Hlo, Hos, -⟩
+        imod ownSlice_persist _ _ _ $$ Hlo with #Hlo
+        ihave #Hrep2 := opReps_pick os _ xs $$ Hor
+        (try wp_auto)
+        rc_tail (xs.filterMap fun x => os[(sint.Z x).toNat]?) (xs.map fun x => (sint.Z x).toNat)
       · exact absurd hlinM hnL
       · -- Unknown: porcupine's verdict
         wp_if_destruct
@@ -268,7 +475,27 @@ theorem realCheck.wp_proof
         · (try wp_auto)
           iapply HΦ; ipureintro
           exact ⟨by decide, fun h => by omega⟩
-    · sorry
+    · -- no unary operation: nothing to order
+      have hU0 : (fmapH unaryOf (histR lops vs)).length = 0 := by
+        have : ¬ sint.Z (W64 0) < sint.Z psl.len := by first | exact Hif | exact dec_false Hif
+        have := Hpsl.1; have := Hpsl.2
+        rw [← hpsl]; word
+      have hU : fmapH unaryOf (histR lops vs) = [] := List.eq_nil_of_length_eq_zero hU0
+      have hos : os = [] := List.eq_nil_of_length_eq_zero (by rw [Holen, hU0])
+      have hlin2 := hπ2
+      imod ownSlice_persist _ _ _ $$ Hos with #Hlo
+      ihave #Hrep2 : [∗list] c;op ∈ os;vals (fmapH unaryOf (histR lops vs)) π2, opRep (GF := GF) c op $$ []
+      · rw [hos, hU]
+        have h0 : ∀ l : List Nat, l.filterMap (fun _ => (none : Option (Input × RResp))) = [] := by
+          intro l; induction l <;> simp_all [List.filterMap_cons]
+        simp only [vals, List.getElem?_nil, Option.map_none, h0]
+        iapply BigSepL2.bigSepL2_nil.2
+        itrivial
+      obtain ⟨lo, hlo⟩ : ∃ lo, lo = osl := ⟨_, rfl⟩
+      subst hlo
+      clear hU0 hU hos
+      (try wp_auto)
+      rc_tail os π2
 
 end proof
 
