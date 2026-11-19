@@ -1,6 +1,25 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 z3, snapshotter-directory fix WRITTEN; STOPPED: new soundness finding, relative data dirs)
+## START HERE (2026-11-19 z4, data-directory fix WRITTEN; building)
+
+- **Branch** `wal-link` 72750d037d, pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`. 03 (user approval,
+  2026-11-19): the snapdir fix c8c710970a and its forms ACCEPTED; the data-directory fix APPROVED (done here).
+- **Done:** `memberDataDir n = /tmp/etcd-grove-data/<n>.etcd` (`storage/WalLayout.lean`, StartRes' relative abbrev
+  gone), `walAreaOf dd := walBase ++ dd.drop dataBase.length` (+ `walAreaOf_memberDataDir`, `srvWalDirOf_lit` over
+  `memberDataDir`, injectivity/`walAreaOf_ne_memberDataDir`); `dataAreaFresh d`/`memberAreasFresh d`
+  (`WalAreaFresh.lean`), in `wal.bootRes`, `memberStartRes`/`memberFreshRes`; `etcdWalAreasInit` (HWal) adds
+  `d = memberDataDir n` and `d` an empty root; `walAreasFresh_boot`/`wp_walAreas` allocate both; every example's
+  `.etcd` literal/`name ++ ".etcd"` → absolute/`memberDataDir` (script in the commit, 82 files); Go `DataBase` in
+  `etcdstart/common.go`, `auth.go`, `auth3.go`, `authkv.go`, `walarea.Reset/ResetFamily` reset data dirs; goose
+  regenerated (`common`, `authkv`, `auth3`).
+- **Checked:** lean-check 0 errors: WalLayout, WalAreaFresh, WalAreas, StartRes, WalApi, the snapdir files (z3);
+  Go tests pass: putget, putget3, auth, auth3. Targeted build `/shared/tmp/wallink/run-b3.sh` (log `sd-b3.log`,
+  targets `sd-b3.targets`: server cone + etcdstart + putget3/putget/restartN/auth Results) queued at commit.
+- **Next:** fix what sd-b3 breaks (expect `Dir.lean` `rw [show ... memberDataDir ∘ ...]`, `hD` Perm proofs, cfgOk
+  `rfl`s); then re-attack (brief `/shared/tmp/wallink/attack-sd-brief.md`, extend to the data dirs); merge lean;
+  the land list below (full timed build, tcb, collections, interfaces, gen-link modes, tier, Go suite, STATUS).
+
+### START HERE (2026-11-19 z3, snapshotter-directory fix WRITTEN; STOPPED: new soundness finding, relative data dirs)
 
 - **Branch** `wal-link` (this commit), pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`.
 - **Done (this commit):** the user-approved fix of the cross-world finding (`notes/snapdir-crossworld.md`):
