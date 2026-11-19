@@ -1,6 +1,48 @@
 # WAL link: handoff
 
-## START HERE (2026-11-18 k, L3 started: vocabulary + Release in place; STOP: server-statement stop)
+## START HERE (2026-11-19 l, L3 applying the approved statements; stopped for context)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 1b298c1e70 merged (lean had not moved on 2026-11-19);
+  pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere. Merge the origin merge (pin f551a1b46, manifest-f55) when it lands.
+- **Approved (user 2026-11-19 via etcd-grove-03; questions.md):** l3-statements §1-§5, §6, §7 (890 → 888), F2 (a)
+  (STOP if F2 needs trusted text or a network assumption beyond "every member runs this code"); §1 forms ACCEPTED.
+- **Done (d4a9911718 + this commit; each file lean-check 0 errors):** `WalRecs` (walRecs/walFiles carry `d.sized = true`;
+  `storage.walOpen` carries `walLenLb h.w h.dir 0` for Sync; its section takes `wal.Assumptions`, the package
+  variable dropped); `InvWal` (`WalNames GF` with `h : WalH GF` for `loc`; `rnDurInv cl ν (w : WalH GF)`; AUs at
+  `WalFs.walAuMask`, `rnDurN_sub_walAuMask`; after `iinv` in an AU: `all_goals first | exact rnDurN_sub_walAuMask | skip`);
+  `WalApi` (`isWalStorage st h ss`: Save/SaveSnap/Sync/Release/Close laws; `walStorRd st h` reader token;
+  `walSaveEntOk`; helper specs `walSaveSized_spec`/`walSaveRn_spec`/`walSaveSnap_spec`/`walSync_spec`/`walRelease_spec`/
+  `walClose_spec`; `walOpened h …`; slots `wal.bootOk`/`wal.restartOk` = `∃ h, ⌜h.w = w⌝ ∗ walOpened h … ∗ walPurgeRight h`,
+  their `_start` laws give `∃ h ν, ⌜h.w = w⌝ ∗ rnDurInv cl ν h ∗ …`; `rnNewStorageOk` moved here from InvNodeStart,
+  over `h`, post `isWalStorage st h ss ∗ walStorRd st h ∗ walStorRd st h`); `InvOpen` (opaques walReady/walSaveOk/
+  walCloseOk/walOf/walCreateOk/storageSnap/releaseOk gone; `diskOk := dbOpensOk ∧ snapOpensOk`); `rnStorageOf` gone
+  (its snapshotter is `isWalStorage`'s `ss`); new `etcdserver/RnNewStorage.lean`: `walStorSpecs h`, `walSync_law` proved.
+- **Forms decided (to report at the checkpoint):** `isWalStorage` takes `ss` (folds `rnStorageOf`/`storageSnap`);
+  reader tokens `walStorRd` in Save/SaveSnap/Sync/Release laws (NewStorage gives two; `storageRd` cannot be in a
+  persistent contract); `walSaveEntOk` spells `walEntWOk (walEntW c)` as walEntInW's facts (ufWire, 0 < size < 2^48);
+  Release's index fact as `⌜m.Index' = md.Index'⌝ -∗`; `d.sized = true` in walRecs/walFiles; `walLenLb … 0` in walOpen;
+  `WalNames`/(next) `RNNames` take `GF`; slots existential in `h` with `h.w = w`; rnNewStorageOk in WalApi.
+- **Next, in order:** (1) `RnNewStorage.lean`: the Save, SaveSnap, Release, Close laws (each: AU over `walRecs h` →
+  layer 1's AU over `walDiskAt h.dir`: `iauintro; unfold atomic_acc; ihave Hacc := aupd_aacc $$ Hau; imod Hacc` as in
+  `WalTester/.../wal/SnapAu.lean` and `durable/Inv.lean:durInv_readAU`; update `monoListAuthOwn h.γh` in the commit;
+  SaveSnap's `walSnapRec` from layer 2's `walSyncedLb` + the lb; Close: `walRead_of_fold` for `walFiles`), then
+  `rnNewStorageOk_holds (wpNew) (hS : ∀ h, walStorSpecs h) : isPkgInit storage ⊢ rnNewStorageOk` (NewStorage gives
+  `storageOver`, two `storageRd`; `p @!! T @!! m` is `#(methods T m #p)`; `interface_mkOk_inj` + `go.intoVal_inj`);
+  how the examples get it (Link/Adequacy instantiation) is open. (2) `InvRaftNode`: `RNNames GF` (field types reach
+  `WalNames GF`), `storage.walOf st` → `γ.wal.h`; rnWalTok/rnWalTokA/rnWalTokL carry `walStorRd` (loop: in rnWalTokL;
+  apply: in rnWalTokA); `rnApSnap`'s payload `walBaseLb γ.wal.loc i` → `∃ j m, walSnapRec γ.wal.h j m ∗ ⌜m.Index' = …⌝`.
+  (3) clients in import order (`etc/importers.py`): InvNodeStart, NodeStart, newRaftNode, raftNode__start/onStop/stop,
+  StopApi, EtcdServer__snapshot (Release via `walRelease_spec`, AU from rnDurInv with `ν.app`), applySnapshot,
+  SnapApplyWalk/SnapRO/SnapTake (`storageSnap` hypotheses → `isWalStorage`), InvRestart, examples' Defs.
+  (4) F2 discharge (raft ConfState() canonical; MsgSnap metadata canonical). (5) P2 slots/area, examples' Go, builds,
+  tcb/collections/interfaces, closed-statement STOP.
+- **Check:** `TMPDIR=/shared/tmp LAKE_OPTS=--packages=/shared/tmp/manifest-6d3.json etc/lean-check.py --max-open 2 -a -q FILE`.
+- **Pitfalls:** `iinv` leaves an unsolved mask side goal first when the mask is `walAuMask`; `WalH` needs the instances
+  `letI := h.ext; h.semOk; h.has; h.W; h.inj; haveI := h.sat` before a layer-1/2 spec; questions.md is gitignored (local).
+
+## History
+
+### START HERE (2026-11-18 k, L3 started: vocabulary + Release in place; STOP: server-statement stop)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean 1b298c1e70 (fmt soundness) merged (61f263bef2: Close's
   unnamed arm gained `fmtErrorOk`/`fmtErrorOkOrNil`, cleanupWAL/RenameAny resolved); pin 6d365ee1a,
@@ -25,8 +67,6 @@
   `LEAN_NUM_THREADS=4 /shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-6d3.json build [TARGET]` with
   run_in_background (slots were busy for hours on 2026-11-18).
 - **Pitfalls:** History i; `ihave #H := lemma $$ Ha` keeps `Ha` when the result is persistent (monoList lb).
-
-## History
 
 ### START HERE (2026-11-18 j, step 3 done, full build green; L3 next (not started); stopped for context)
 

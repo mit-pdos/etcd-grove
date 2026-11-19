@@ -139,13 +139,14 @@ structure WalH (GF : BundledGFunctors) extends WalA GF where
 section walOpen
 variable [wal_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
-/-- **A share `q` of the open WAL `h`** (persistent area facts, the shared handle's share): every share
+/-- **A share `q` of the open WAL `h`** (persistent area facts, the shared handle's share, the handle's
+persistent length bound at `0`, which layer 1's `Sync` takes): every share
 lets the storages over `h.w` write it (`Save`, `SaveSnap`, `Sync`, `Release`), the whole closes it
 (`Close`). Until L3 a ghost variable over the opaque `walGName w`. -/
 def storage.walOpen (h : WalH GF) (q : Qp) : IProp GF :=
   letI := h.ext; letI := h.semOk; letI := h.has; letI := h.W; letI := h.inj
   iprop(WalFs.walOpenWS h.Sio walSrvP walSrvMr h.w h.dir h.γ q ∗
-    WalFs.walAreaOk walCodec walSrvMr h.R h.jr h.r)
+    WalFs.walAreaOk walCodec walSrvMr h.R h.jr h.r ∗ WalFs.walLenLb h.w h.dir 0)
 
 /-- The shares of an open WAL are fractional. -/
 instance storage.walOpen_fractional (h : WalH GF) :
@@ -155,13 +156,13 @@ instance storage.walOpen_fractional (h : WalH GF) :
     unfold storage.walOpen
     have hs := WalFs.walOpenWS_split (GF := GF) (hG := hG) h.Sio walSrvP walSrvMr h.w h.dir h.γ q1 q2
     constructor
-    · iintro ⟨H, #Ha⟩
+    · iintro ⟨H, #Ha, #Hl⟩
       icases hs.1 $$ H with ⟨H1, H2⟩
-      iframe H1 H2 Ha
-    · iintro ⟨⟨H1, #Ha⟩, ⟨H2, -⟩⟩
+      iframe H1 H2 Ha Hl
+    · iintro ⟨⟨H1, #Ha, #Hl⟩, ⟨H2, -, -⟩⟩
       ihave H := hs.2 $$ [H1 H2]
       · iframe H1 H2
-      iframe H Ha
+      iframe H Ha Hl
 
 instance storage.walOpen_as_fractional (h : WalH GF) (q : Qp) :
     AsFractional (storage.walOpen (GF := GF) h q) ioΦ (fun q => storage.walOpen h q) ioq q where
@@ -172,14 +173,15 @@ end walOpen
 
 /-- **The WAL `h`'s records are `σ`** (sealed; exclusive, timeless): the WAL's durable state `d`
 (`WalFs.walDiskAt`), whose history folds, unwrapped, to `σ` (`walFoldChkFrom walFresh`, the eager model
-`walSave`/`walSaveSnap` step by step), its metadata `h.md`, its name durable (`walNamed`), with the
+`walSave`/`walSaveSnap` step by step), its metadata `h.md`, layer 1's flag `d.sized` set (no step
+clears it, `walDurFresh` sets it: what layer 1's `Save`/`SaveSnapshot` updates read), its name durable (`walNamed`), with the
 authority over the history's prefixes (`walSnapRec`, `walBaseLb`). Once `σ.b ≤ σ.commit`, what a restart
 reads (`walRead_of_fold`). **`sized`**: every entry record is the wrap of a content `c` with
 `entSizeOk c` (`walEntsSized`); `false` claims nothing more. -/
 @[no_expose] def walRecs (h : WalH GF) (σ : StorContents) (sized : Bool := false) : IProp GF :=
   letI := h.W
   iprop(∃ d : WalDur, WalFs.walDiskAt h.dir d ∗ monoListAuthOwn h.γh 1 d.H ∗ WalFs.walNamed h.dir ∗
-    ⌜walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ d.metadata = h.md ∧
+    ⌜walFoldChkFrom walFresh (walSrvHist d.H) = some σ ∧ d.metadata = h.md ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H)⌝)
 
 /-- **The WAL `h`'s records' base is at least `i`** (persistent): a prefix of the history folds to records
@@ -205,7 +207,7 @@ root back (what `WAL.Close` returns), what a restart reads from it `σ` (`walRea
   letI := a.ext; letI := a.semOk; letI := a.has; letI := a.W
   iprop(∃ d : WalDur, WalFs.walDiskAt a.dir d ∗ WalFs.walSyncedLb a.dir d.H.length ∗ WalFs.walNamed a.dir ∗
     WalFs.walUnlockedTok ∗ Fs.osCallPerm (Fs.callKey a.R a.dir) (1 : Qp).half ∗
-    ⌜walRead (walSrvHist d.H) = some σ ∧ d.metadata = walMetaEnc id cid ∧
+    ⌜walRead (walSrvHist d.H) = some σ ∧ d.metadata = walMetaEnc id cid ∧ d.sized = true ∧
       (sized = true → walEntsSized d.H)⌝)
 
 /-- **The right to close the WAL `h` with its files kept** (exclusive): layer 1's purge right
@@ -247,7 +249,7 @@ theorem walRecs_unsize (h : WalH GF) (σ : StorContents) (sized : Bool) :
   imodintro
   iexists d
   iframe Hd Ha Hn
-  ipureintro; exact ⟨hf.1, hf.2.1, fun h => by cases h⟩
+  ipureintro; exact ⟨hf.1, hf.2.1, hf.2.2.1, fun h => by cases h⟩
 
 /-- Two records of one WAL exclude each other. -/
 theorem walRecs_excl (h : WalH GF) (σ σ' : StorContents) (s : Bool := false) (s' : Bool := false) :

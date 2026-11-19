@@ -285,7 +285,7 @@ loop's and the apply thread's). (wal-link L3, 2026-11-19: proved, `rnNewStorageO
 and the storage methods' specs over the real WAL; until then a premise of every closed theorem, over a WAL
 location with the opaque `walReady w` and `walOf st = w`, and the snapshotter's opaque `storageSnap`.) -/
 def rnNewStorageOk : IProp GF :=
-  iprop(□ ∀ (lg ss : Loc) (h : WalH GF), {{ isSnapshotter ss }}
+  iprop(□ ∀ (lg ss : Loc) (h : WalH GF), {{ snap.isSnapshotter ss }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #h.w))
       (Val #ss))
     {{ (st : GoInterface), RET #st; isWalStorage st h ss ∗ walStorRd st h ∗ walStorRd st h }})
