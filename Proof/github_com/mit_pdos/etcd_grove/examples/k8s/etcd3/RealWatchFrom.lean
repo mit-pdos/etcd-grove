@@ -30,7 +30,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8s_etcd3
 
-open k8s
+open k8s k8s_correctness
 open github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 (Input Output Obj item)
 
 section go
@@ -133,9 +133,9 @@ theorem watchFromL_of_kStreamOk (s0 : w64) (x : Input) (h : HSt) (σ σ0 : KVSta
       · show uint.nat s0 < evLo (kToWEv ⟨3, z, st, true⟩)
         unfold evLo kToWEv
         simp only [↓reduceIte]
-        have : uint.nat (W64 (st : Int)) = st := W64_nat_lt st (by have := hrel.1; omega)
-        rw [show ({ z.toObj (W64 (st : Int)) with Annotated' := true } : Obj).ResourceVersion' =
-          W64 (st : Int) from rfl, this]
+        have : uint.nat (W64 (st : Int)) = st :=
+          W64_nat_lt st (by have := hrel.1; have := hstle hfi; omega)
+        rw [this]
         omega
       · have := tailOk_lo hwf (tailOk_prefix hT _ (hpF.map _)) e he
         omega
@@ -163,8 +163,8 @@ theorem pReach_inv {St I O : Type} [DecidableEq I] {P : linkv.PendSpec St I O} (
   | step hs _ ih =>
     apply ih
     cases hs with
-    | apply c i _ => exact hstep i c.st hc
-    | perm c p _ => exact hc
+    | apply i _ => exact hstep i _ hc
+    | perm p _ => exact hc
 
 theorem pStep_inv {St I O : Type} [DecidableEq I] {P : linkv.PendSpec St I O} (Inv : St → Prop)
     (hstep : ∀ i s, Inv s → Inv (P.step i s).1) {c c1 : linkv.PCfg St I} {i : I}

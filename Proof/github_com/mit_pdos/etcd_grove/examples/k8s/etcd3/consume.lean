@@ -255,6 +255,8 @@ theorem consume.wp_proof
         try (ipureintro; rfl)
     · iexists hD'
       iframe
+      ileft
+      iframe
   iintro ⟨%hD', hiccupDone, evs, Hsl, Hin, timer, raw, Hr⟩
   icases Hr with (⟨%Hv, «$res0», «$res1»⟩ | ⟨%Hv, «$res0», «$res1»⟩) <;> subst Hv
   rotate_left
@@ -346,7 +348,7 @@ theorem consume.wp_proof
   iclear Hseen
   rw [hS] at *
   wp_auto
-  wp_apply wp_toWEvent $$ [$Hwev] as %we %r ⟨%Hwe, #Hr⟩
+  wp_apply wp_toWEvent $$ [$Hwev] as %we ⟨%r, %Hwe, #Hr⟩
   wp_apply wp_slice_literal (V := WEvent) [we]
   isplitr
   · ipureintro; rfl
@@ -363,7 +365,7 @@ theorem consume.wp_proof
       (kes ++ [e]).length = (recv ++ [v]).length ∧
       (ws ++ [we]).map wevOf = (rs ++ [r]).map k8s_correctness.toWEvL := by
     refine ⟨?_, by simp [Hrel.2.1], by simp [List.map_append, Hrel.2.2, Hwe.2]⟩
-    rw [List.map_append, ← Hwe.2]; exact consume_forall₂_snoc Hrel.1 Hwe.1
+    rw [List.map_append, List.map_singleton, ← Hwe.2]; exact consume_forall₂_snoc Hrel.1 Hwe.1
   wp_join iprop(∃ iD' : Bool, initialDone_ptr ↦ iD') with [initialDone] as ⟨%iD', initialDone⟩
   all_goals (try (iexists _; iframe; done))
   wp_if_destruct
@@ -391,7 +393,8 @@ theorem consume.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hrel'
-    iexact Hidx'
+    ihave ⟨-, #Hl⟩ := BigSepL.bigSepL_append.1 $$ Hidx'
+    iexact Hl
 
 end proof
 

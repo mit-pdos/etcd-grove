@@ -658,7 +658,7 @@ theorem checkParallel.wp_proof
               have hb := h b (by simp)
               subst ha hb
               simp at hn
-          rw [hk1] at Hxl
+          rw [← Hklen, hk1] at Hxl
           omega
         · iright; iexact HD
       wp_auto

@@ -278,7 +278,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         iintro H
         ihave %h := watchQ_pure γ c _ σ $$ H
         ipureintro
-        exact ⟨le_trans (Nat.le_max_left _ _) h.1, h.2⟩)
+        exact ⟨Nat.le_trans (Nat.le_max_left _ _) h.1, h.2⟩)
       (fun lb lb' σ σ' => watchQ_same γ c _ _ σ σ') hnr htb hok) $$ [] as %y %o %ok Hy
     · iframe #
       isplitr
@@ -293,7 +293,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       have hrev : σ.rev ≤ σ.changes.length := by
         unfold KVState.rev; rw [Hq.2.2.2.2.2.2.1]; simp
       have hmax : max σ.rev s0n = σ.rev :=
-        Nat.max_eq_left (le_trans (Nat.le_max_right lb s0n) Hq.1)
+        Nat.max_eq_left (Nat.le_trans (Nat.le_max_right lb s0n) Hq.1)
       rw [hmax]
       iapply watch_readAus γ c g0 γk σ.changes σ.rev hrev
       iframe #
@@ -324,7 +324,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
       iframe HΦc Htt
       isplitr
       · ileft; ipureintro; exact Or.inl hk5
-      · iright; ileft; ipureintro; exact Or.inr rfl
+      · iright; iunfold k8s_correctness.wrawOk; ileft; ipureintro; exact Or.inr rfl
     · obtain ⟨hsk, rfl, hwr, hlo, hws, hlen⟩ := Hy
       have hE : (wEventsRawOut (encWEventsL wes) rsl).Err' ≠ W64 4 := by
         unfold wEventsRawOut wEventsOut; rw [show (zero_val Output).Err' = W64 0 from rfl]; decide
@@ -366,10 +366,16 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         all_goals (try (wp_apply (wp_putW c tbl x.Client' o)))
         all_goals (try (iexact Htbl))
         all_goals (try wp_auto)
-        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; isplitr;
-          · (ileft; ipureintro; exact Or.inl hk5)
-          iright; iright; iexists rs; iframe Hrs; ipureintro
-          exact ⟨by rw [← hwr]; exact hdec, by rw [← hwr]; exact hfromE⟩)
+        all_goals
+          iapply (hfinW _ (fun _ => hE))
+          iframe HΦc Htt
+          isplitr
+          · ileft; ipureintro; exact Or.inl hk5
+          iright; iunfold k8s_correctness.wrawOk; iright; iexists rs
+          isplitr
+          · iExactEq Hrs; rfl
+          ipureintro
+          exact ⟨by rw [← hwr]; exact hdec, by rw [← hwr]; exact hfromE⟩
       · -- a stream from the start firing's state, received at the read firing's
         iunfold watchQ at HQ HQ0
         icases HQ with ⟨%Hq, #Hlb⟩
@@ -388,7 +394,7 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
             unfold kScopeOf; rw [hpfx]
           rw [← e1, ← e2]; exact hs
         have hst : uint.nat g0.st.rv ≤ st := by
-          have h0r : uint.nat g0.st.rv ≤ σ0.rev := hs0n ▸ le_trans (Nat.le_max_right _ s0n) Hq0.1
+          have h0r : uint.nat g0.st.rv ≤ σ0.rev := hs0n ▸ Nat.le_trans (Nat.le_max_right _ s0n) Hq0.1
           have hreq : (kModeOf (sieOfL x) x.Bookmarks' n).req = uint.nat n := rfl
           unfold kStartOk at hstart
           rw [hreq] at hstart
@@ -422,10 +428,16 @@ theorem Apply.wp_proof (wp_call : call.spec (GF := GF) (hG := hG))
         all_goals (try (wp_apply (wp_putW c tbl x.Client' o)))
         all_goals (try (iexact Htbl))
         all_goals (try wp_auto)
-        all_goals (iapply (hfinW _ (fun _ => hE)); iframe HΦc Htt; isplitr;
-          · (ileft; ipureintro; exact Or.inl hk5)
-          iright; iright; iexists rs; iframe Hrs; ipureintro
-          exact ⟨by rw [← hwr]; exact hdec, by rw [← hwr]; exact hfromE⟩)
+        all_goals
+          iapply (hfinW _ (fun _ => hE))
+          iframe HΦc Htt
+          isplitr
+          · ileft; ipureintro; exact Or.inl hk5
+          iright; iunfold k8s_correctness.wrawOk; iright; iexists rs
+          isplitr
+          · iExactEq Hrs; rfl
+          ipureintro
+          exact ⟨by rw [← hwr]; exact hdec, by rw [← hwr]; exact hfromE⟩
   -- a unary client's operation
   have hk5 : ¬ x.Kind' = W64 5 := Hif
   have Hgen : GenIn x := HgenA.resolve_right (fun h => hk5 h.1)

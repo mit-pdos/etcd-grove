@@ -301,17 +301,21 @@ theorem watch_commit (γ : KNames) (c : StoreCfg GF DObj) (g0 : HSt) (γk : KVNa
   ipureintro; exact HPp
 
 /-- **The configurations the model reaches have histories at least the seeded one's** (a step keeps
-the history or appends to it, `kstepL_hist`). -/
-theorem run_hist_ge (g0 : HSt) (h : List OpV) (S : linkv.PSet HSt Input)
-    (hr : run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S)
+the history or appends to it). -/
+theorem run_hist_ge (g0 : HSt) (h : List github_com.anishathalye.porcupine.OpV)
+    (S : linkv.PSet HSt Input)
+    (hr : github_com.anishathalye.porcupine.Theory.run (k8setcd3S (GF := GF) g0).M (linkv.pInit (kSpec g0)) h = some S)
     (cf : linkv.PCfg HSt Input) (hc : S cf) : g0.hist.length ≤ cf.st.hist.length := by
   refine run_inv (kSpec g0) decOp (fun st => g0.hist.length ≤ st.hist.length) ?_ h _ S ?_ hr cf hc
   · intro i st hst
     show g0.hist.length ≤ (kstepL i st).1.hist.length
-    rw [kstepL_hist]
-    split
-    · exact hst
-    · simp only [List.length_append, List.length_singleton]; omega
+    have : st.hist.length ≤ (kstepL i st).1.hist.length := by
+      unfold kstepL
+      split
+      · simp
+      · unfold advanceL
+        split <;> simp_all
+    omega
   · intro c' hc'
     simp only [linkv.pInit] at hc'
     subst hc'

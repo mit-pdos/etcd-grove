@@ -65,7 +65,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 /-- **The checker's request of the driver's watch `x`** (see the file header; persistent). -/
 def wreqRep (req : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest)
     (x : Input) : IProp GF :=
-  iprop(∃ p : Loc, ⌜req = ⟨x.WKey', watchOptsV x p⟩⌝ ∗ sendInitIs p (sieOfL x))
+  iprop(∃ p : Loc, ⌜req = ⟨x.WKey', watchOptsV x p⟩⌝ ∗ k8s.sendInitIs p (sieOfL x))
 
 instance wreqRep_persistent
     (req : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.correctness.WatchRequest) (x : Input) :
