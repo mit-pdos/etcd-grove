@@ -7,6 +7,8 @@ module
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.toFieldSetWalker__finished
 public import Perennial.Spec.sync.Pool__Put
 
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
+
 @[expose] public section
 
 set_option linter.iris.style.nameCheck false
@@ -29,8 +31,26 @@ variable [package_sem : typed.Assumptions]
 
 theorem typed.toFieldSetWalker.finished.wp_proof
     (h_sync_Pool_Put : _root_.Perennial.sync.Pool.Put.spec (GF := GF)) :
-    typed.toFieldSetWalker.finished.spec (GF := GF) := by
-  sorry
+    typed.toFieldSetWalker.finished.spec (GF := GF) := fun w sc S st ps s sp a => by
+  wp_start as ⟨Hcore, Hsp⟩
+  ihave #HP := typedPkgInit_poolsAt $$ Hpkg
+  unfold typedPoolsAt
+  icases HP with ⟨-, -, -, -, #Pt, -, -⟩
+  unfold twCore
+  icases Hcore with ⟨%tr, Hw, -, -, -⟩
+  wp_auto
+  wp_apply h_sync_Pool_Put (globalAddr typed.tPool) typed.twNewV iprop(True)
+    (pooledAs typed.toFieldSetWalker.ty twPooled) $$ [Hw Hsp]
+  · iframe #
+    unfold pooledAs twPooled
+    iexists w
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hw Hsp
+    ipureintro; rfl
+  iapply HΦ
+  itrivial
 
 end proof
 
