@@ -2036,6 +2036,86 @@ noncomputable def _C_res_nclose [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def _C_res_nsearch [GooseExts] [GoGlobalContext] : GoString :=
   go!"net._C_res_nsearch"
 
+/-- Is p all zeros?
+
+    go: ip.go:206:6 -/
+noncomputable def isZeros.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "p"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "p" (App (Val (GoInstruction (GoAlloc IP.ty))) (Var "p"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (Let "$r0" (Val #(W64 0))
+  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Let "$a0" (App (Val (GoInstruction (GoLoad IP.ty))) (Var "p"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [IP.ty]))) (Val #())) (Var "$a0"))))))) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef IP.ty))) (Pair (App (Val (GoInstruction (GoLoad IP.ty))) (Var "p")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (Val #(W8 0))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (Lam BAnon
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "i")) (Val #(W64 1)))))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+
+/-- To4 converts the IPv4 address ip to a 4-byte representation.
+    If ip is not an IPv4 address, To4 returns nil.
+
+    go: ip.go:217:14 -/
+noncomputable def IP.To4.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ip"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc IP.ty))) (App (Val (GoInstruction (GoZeroVal IP.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "ip" (App (Val (GoInstruction (GoAlloc IP.ty))) (Var "ip"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil IP.ty))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore IP.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (If (If (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [IP.ty]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val IPv6len)))) (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip"))
+  (App (Val (GoInstruction (Slice IP.ty))) (Pair (Pair (Var "$s") (Val #(W64 0))) (Val #(W64 10)))))
+  (App (App (Val (GoInstruction (FuncResolve isZeros []))) (Val #())) (Var "$a0"))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef IP.ty))) (Pair (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip")) (Val #(W64 10))))) (Val #(W8 255)))) (Val #false)) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef IP.ty))) (Pair (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip")) (Val #(W64 11))))) (Val #(W8 255)))) (Val #false))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip"))
+  (App (Val (GoInstruction (Slice IP.ty))) (Pair (Pair (Var "$s") (Val #(W64 12))) (Val #(W64 16)))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore IP.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [IP.ty]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val IPv4len)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad IP.ty))) (Var "ip"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore IP.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad IP.ty))) (Var "$res0"))))))
+
 /-- go: net.go:499:19 -/
 noncomputable def OpError.Unwrap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
@@ -2940,10 +3020,15 @@ class IP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   underlying : go.UnderlyingDirectedEq IP.ty IP.underlying
   method_set : go.MethodSetIs IP.ty [(go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DefaultMask", (some (go.signature.Signature [] false [IPMask.ty]))), (go!"Equal", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"IsGlobalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsInterfaceLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLoopback", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrivate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnspecified", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mask", (some (go.signature.Signature [IPMask.ty] false [IP.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"To16", (some (go.signature.Signature [] false [IP.ty]))), (go!"To4", (some (go.signature.Signature [] false [IP.ty]))), (go!"net.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"net.matchAddrFamily", (some (go.signature.Signature [IP.ty] false [go.bool])))]
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType IP.ty) [(go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DefaultMask", (some (go.signature.Signature [] false [IPMask.ty]))), (go!"Equal", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"IsGlobalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsInterfaceLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLoopback", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrivate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnspecified", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mask", (some (go.signature.Signature [IPMask.ty] false [IP.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"To16", (some (go.signature.Signature [] false [IP.ty]))), (go!"To4", (some (go.signature.Signature [] false [IP.ty]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"net.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"net.matchAddrFamily", (some (go.signature.Signature [IP.ty] false [go.bool])))]
+  To4_unfold : MethodUnfold IP.ty go!"To4" IP.To4.impl
+  ptr_To4_unfold : MethodUnfold (go.GoType.PointerType IP.ty) go!"To4" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve IP.ty go!"To4"))) (App (Val (GoInstruction (GoLoad IP.ty))) (Var "$r"))))
 
 attribute [instance] IP.TypeAssumptions.underlying
   IP.TypeAssumptions.method_set
   IP.TypeAssumptions.ptr_method_set
+  IP.TypeAssumptions.To4_unfold
+  IP.TypeAssumptions.ptr_To4_unfold
 
 opaque IPMask.nonempty_type : NonemptyType.{0}
 def IPMask : Type := IPMask.nonempty_type.type
@@ -4429,6 +4514,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Dial_unfold : FuncUnfold Dial [] Dial.impl
   DialTimeout_unfold : FuncUnfold DialTimeout [] DialTimeout.impl
   Listen_unfold : FuncUnfold Listen [] Listen.impl
+  isZeros_unfold : FuncUnfold isZeros [] isZeros.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
   import_errors_Assumption : _root_.Perennial.errors.Assumptions
   import_syscall_Assumption : _root_.Perennial.syscall.Assumptions
@@ -4536,6 +4622,7 @@ attribute [instance] Assumptions.ipAttr_instance
   Assumptions.Dial_unfold
   Assumptions.DialTimeout_unfold
   Assumptions.Listen_unfold
+  Assumptions.isZeros_unfold
   Assumptions.import_context_Assumption
   Assumptions.import_errors_Assumption
   Assumptions.import_syscall_Assumption
