@@ -110,7 +110,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics_init
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
@@ -401,7 +400,6 @@ axiom lease.lessorStopTok
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
-axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
