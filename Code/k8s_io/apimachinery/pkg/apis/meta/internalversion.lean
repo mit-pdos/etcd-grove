@@ -30,11 +30,11 @@ noncomputable def List'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] List'.ty
 
-axiom ListOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ListOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom List'.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque List'.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.SchemeBuilder"
@@ -42,17 +42,17 @@ noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Convert_v1_ListOptions_To_internalversion_ListOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/internalversion.Convert_v1_ListOptions_To_internalversion_ListOptions"
@@ -99,7 +99,7 @@ noncomputable def autoConvert_v1_ListOptions_To_internalversion_ListOptions [Goo
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».internalversion where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -120,8 +120,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val localSchemeBuilder.init) (Val #()))))))))
 
-axiom ListOptions : Type
-axiom ListOptions.zero_val : ZeroVal ListOptions
+opaque ListOptions.nonempty_type : NonemptyType.{0}
+def ListOptions : Type := ListOptions.nonempty_type.type
+instance ListOptions.nonempty : Nonempty ListOptions := ListOptions.nonempty_type.property
+opaque ListOptions.zero_val : ZeroVal ListOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] ListOptions.zero_val
 
 class ListOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -137,8 +139,10 @@ attribute [instance] ListOptions.TypeAssumptions.type_repr
   ListOptions.TypeAssumptions.method_set
   ListOptions.TypeAssumptions.ptr_method_set
 
-axiom List' : Type
-axiom List'.zero_val : ZeroVal List'
+opaque List'.nonempty_type : NonemptyType.{0}
+def List' : Type := List'.nonempty_type.type
+instance List'.nonempty : Nonempty List' := List'.nonempty_type.property
+opaque List'.zero_val : ZeroVal List' := ⟨Classical.ofNonempty⟩
 attribute [instance] List'.zero_val
 
 class List.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

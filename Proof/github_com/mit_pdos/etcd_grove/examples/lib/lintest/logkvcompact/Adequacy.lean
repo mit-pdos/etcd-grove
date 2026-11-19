@@ -45,6 +45,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcom
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.PkgTable
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -132,7 +133,7 @@ theorem logkvcompact_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([logkvcompactProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := logkvcompactGF) github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
@@ -149,6 +150,19 @@ theorem logkvcompact_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe #
   ipureintro
   rfl
+
+/-- **`logkvcompact_adequate` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `logkvcompact_adequate`'s other hypotheses: in every
+execution of fewer than `2 ^ 63` steps no thread is stuck and none has an unrecovered panic. -/
+theorem logkvcompact_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvcompact.Assumptions]
+    (σ : state) (g : GlobalState) :
+    Robustness.Robust [] [(logkvcompactProgram, σ)] g (2 ^ 63) :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    (logkvcompact_adequate
+      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end adequacy
 

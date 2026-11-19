@@ -9,62 +9,117 @@ establishes about exactly those runs. First user: `examples/raft/kvnet`. Branch 
 
 | | Go (test) | Lean (statement) |
 |---|---|---|
-| where | `examples/lib/robust` | lean_lib `Robustness` (`Robustness/*.lean`) |
-| the system's nodes | the program's unchanged binary, a process per machine (`Machine.Start`) | `Deployment.sys`: each node's boot program (its Goose translation) and initial local state |
-| clients, other hosts | goroutines dialing from client machines (`Machine.Dial`) | `Deployment.env`: **any** programs on other nodes; nothing proved of them |
-| crashes | `Proc.Kill` (SIGKILL) then `SyncFS`, or `Disk.PowerLoss` (dm-flakey) | `RunStep.crash`: any node, any step, restart with its boot program from a state the extensions' crash relations allow (the file extension's power loss; a kill plus sync is one by its "Restarts" assumption) |
-| network faults | the kernel, in a router namespace: iptables partitions (both ways or one way, drops or resets), tc netem (delay, jitter, loss, duplication, reordering); `NetNemesis` | the network semantics' nondeterminism (TCP: a direction cut at any read or write, any delay, a dial failing); `World.move` for a network whose semantics lacks a fault (none for TCP) |
-| scheduling | the OS | any interleaving (a node started late is one not scheduled before) |
-| what is checked | the driver's (kvnet: porcupine on the clients' history, convergence, the final whole-cluster crash) | `Robust`'s conclusion: every system node fine (`NodeOk`: no stuck thread, no unrecovered panic), and `Guarantee` of the observed trace |
+| where | `examples/lib/robust` | lean_lib `Robustness` (`Robustness/Statement.lean`) |
+| the system's nodes | the program's unchanged binary, a process per machine (`Machine.Start`) | `Robust`'s `crashing`: each machine's program (its Goose translation) and initial local state |
+| clients | goroutines dialing from client machines (`Machine.Dial`) | `Robust`'s `stable`: programs on machines that never crash (a client that records its history and checks it) |
+| crashes | `Proc.Kill` (SIGKILL) then `SyncFS`, or `Disk.PowerLoss` (dm-flakey) | `DistCrashStep.crash`: any machine of `crashing`, any step, restart with its program from a state the extensions' crash relations allow (the file extension's power loss; a kill plus sync is one by its "Restarts" assumption) |
+| network faults | the kernel, in a router namespace: iptables partitions (both ways or one way, drops or resets), tc netem (delay, jitter, loss, duplication, reordering); `NetNemesis` | the plugged-in extension's nondeterminism (TCP: a direction cut at any read or write, any delay, a dial failing) |
+| scheduling | the OS | any interleaving (a machine started late is one not scheduled before) |
+| what is checked | the driver's (kvnet: porcupine on the clients' history, convergence, the final whole-cluster crash) | no thread of any machine stuck or with a top-level panic; so whatever a program checks before panicking |
 
-## The Lean statement (`Robustness/`)
+## The Lean statement (`Robustness/Statement.lean`)
 
-- `Run.lean` (trusted): `RunStep` = a thread step of any node | a crash of any node | a world move;
-  `Run` collects the **trace**: for each step, the events `World.obs g g'` of its change of the shared
-  state, stamped with the step's index and who made it (`Timed`, `Who`). Events come from the change
-  of the shared state, not from a history kept in it: the network semantics of branch `net-tcp` keeps
-  only observable state (the user's principle), and a step's change is observable.
-- `Statement.lean` (trusted): `Robust W d bound Assume Guarantee`. **`Assume` sees only the
-  environment's events** (`Deployment.envEvents`: those of the environment's nodes and of world
-  moves, in order, without times), so it can constrain the clients and never what the system
-  answers: the premise cannot be made false by the system's behavior (no vacuity through it).
-- `Linearizability.lean` (trusted): `LinearizableTrace M h` for timed call/return events keyed by an
-  operation's identity: well formed (a return follows a call; one input and one output per key:
-  retries are one operation and its answers agree) and porcupine's `Theory.Linearizable` of the
-  history with each operation from its first call to its first return, plus a chosen subset of the
-  operations that never returned, open to the end (Herlihy and Wing's pending operations).
-- `Stream.lean` (trusted): `StreamEv` (bytes written into a connection, by which end, to which
-  address); the class `StreamNet` a network semantics instantiates (`obs`, `host`, `fresh`,
-  `freshNode`; the header says how the TCP extension of `net-tcp` would); `World.ofStream` (no world
-  moves); `ReqResp` and `opEvents`: a call when the dialer's bytes first decode as a complete request,
-  a return when the acceptor's bytes first decode as a complete answer.
+One trusted definition (2026-11-17, the user's: "if you run machines running code [e1, ..., en] on
+machines that never crash and [e1', ..., em'] on machines that crash and restart (and with whatever
+extensions you choose to plug in), then there will never be a top-level panic"; no linearizability
+in the top-level theorem, no reading bytes off the network):
+
+    Fresh lctx σ := σ.goState.goLctx = lctx ∧ σ.goState.packageState = ∅ ∧ σ.threads = 1
+
+    Robust crashing stable g bound :=
+      (∀ m ∈ crashing ++ stable, Fresh lctx m.2) →
+      ∀ n κs c, DistCrashNsteps (crashing.map Prod.fst) n (distInit (crashing ++ stable) g) κs c →
+        n < bound → ∀ i tp σ, c.nodes[i]? = some (tp, σ) →
+          ∀ e ∈ tp, RealNotStuck e (σ, c.global) ∧ ¬ UnrecoveredPanic e
+
+- **No semantics of its own.** The executions are Perennial's `DistCrashNsteps`
+  (`DistLang.lean`), the relation `goose_dist_crash_adequacy` is about; the extensions are the
+  instances `[GooseExts] [GooseSemantics]`.
+- **Every machine is a fresh Go process** (`Fresh`, a premise inside `Robust`; 2026-11-17, the
+  user's: the hypotheses `Hlctx` and `Hinit` of every closed theorem are generic, fold them in; the
+  agent added `Hthreads`, as generic): the Go context the theorem's `go.Semantics` is about (the
+  instance `[GoLocalContext]`, one for all machines, as echo's), no package initialized, one thread.
+  An instance states only what is its own (kvdurable: none of its files exists; kvnet: no listener,
+  the plan, the directories).
+- **A machine that never crashes is one with no boot program**: `DistCrashStep`'s crash needs
+  `boots[i]? = some e`, and the boot list is `crashing`'s, so the machines of `stable`, listed after
+  them, never crash (`distCrashStep_cases`, proved).
+- **Stuck as well as panicking** (the agent's, for review): the conclusion is the adequacy theorems',
+  not only "no top-level panic". An invalid operation is stuck in GooseLang (its builtin `Panic`,
+  which the TCP extension's invalid uses step to), so without `RealNotStuck` those would be allowed.
+- **The step bound stays** (the agent's): kv's and kvdurable's closed theorems hold below `2^61`
+  steps, and kvnet's proof reuses theirs.
+- Proved, not trusted: `Robust.of_all_crashing` (robust with every machine crashing implies robust
+  with only some: what `goose_dist_crash_adequacy` gives as it stands).
+
+A property of a system is a `Robust` statement about a deployment with a program that checks it
+and panics. Linearizability of a store: a client on a machine of `stable` records its history and
+panics unless porcupine accepts it, as `Main` of kv, kvdurable and kvwitness does in one process.
+
+## Every closed example is an instance (2026-11-18)
+
+Each closed theorem of the examples has a restatement `…_robust` next to it (same file, same
+hypotheses but the generic ones `Robust` states itself), proved from it:
+
+| shape | bridge (`Robustness/Statement.lean`) | `Robust` form | examples |
+|---|---|---|---|
+| one process, `RealNsteps` | `Robust.of_single` (`distCrashNsteps_single`) | `Robust [] [(prog, σ)] g bound` | the etcd-server examples (`etcd/*`, `k8s/*`, `mvccfull`, `mvccrand`), raft's (`kv`, `kvdurable`, `kvreconf` and their `N` forms; `RaftNoAx/`'s copy of kvdurable; `RaftWitness/`'s kvwitness; `RaftTla/`'s tracecheck), lintest's six, `goose/prophkv` |
+| one process with crashes, `RealCrashNsteps` | `Robust.of_single_crashing` (`distCrashNsteps_single_crashing`) | `Robust [(boot, σ)] [] g bound` | `osfs/crashlog`, `osfs/walfs` (three), `osfs/bboltfs` |
+| several machines, `DistCrashNsteps` | `Robust.of_all` | `Robust (system …) [] g bound` | the seven TCP examples (`NetTcp/…/net/*`) |
+
+- **The bound** is the example's own: `2^61` or `2^63` (raft's, lintest's), `2^28 - 1` (the
+  etcd-server examples: their proofs cap the thread bound, which is `n + 2`), `2^30 - 1`
+  (`logkvrw`, `bboltfs`), and any `bound` (a parameter) where the theorem had none (the TCP and
+  `osfs` examples, `prophkv`). `bboltfs`'s statement took a thread-bound hypothesis
+  (`RealCrashThreadsBelow … (2^30)`); its `Robust` form derives it from the step bound.
+- **A hypothesis that mentioned the execution's length** (`Hprem`: the etcd examples' boot
+  premises at `n`) is assumed at every `n` within the bound.
+- **`RealCrashNsteps` does not count a crash as a step**, `DistCrashNsteps` does: a run of `n`
+  steps of `Robust` is one of at most `n` steps there.
+- **The examples' theorems now conclude `¬ UnrecoveredPanic`** (no thread has a panic that nothing
+  recovers, finished or still unwinding) where they said "no thread has ended in a panic"
+  (`v.isPanic = false`): `Robust` needs the former, Perennial's adequacy theorems prove it, and the
+  examples' wrappers (`init_adequate`, `etcd_adequate…`, `init_adequate_start`,
+  `durable_init_adequate`) weakened it (`adequate_of_unrecovered`, no longer used). Strengthened in
+  place, statements and wrappers; no proof changed otherwise.
+- **What `Robust` does not say**: the main thread's result. Nothing is lost: every example's
+  check is a panic. The etcd and k8s examples panic on a bad verdict (`Main` panics when porcupine
+  answers `Illegal`; the auth, cache and watch checks are panics), and the result their old
+  theorems state (`"Ok"` or `"Unknown"`; a status code `0`, `1`, `2`, ...) only lists how far the
+  run got (a failed start, a porcupine timeout). `goose/prophkv` was the exception (its program
+  was `Test()`, its guarantee the result, `"a"` or `"b"`); fixed 2026-11-18 (the user's): the
+  program is now `Main()`, which panics unless `Test`'s answer is `"a"` or `"b"`
+  (`examples/goose/prophkv/prophkv.go`, `Main.spec`, `goose_prophkv_safe` with the result `#()`).
+- Generated once by a script (not kept: the theorems are ordinary text now); `RaftNoAx/`'s copies
+  by `etc/copy-part.py`.
+
+**History.** Version 1 (2026-11-15) had a semantics of its own (`Run.lean`: `World`, `Who`, `Timed`,
+`RunStep`/`Run`), a `Deployment`, an abstract network class `StreamNet`, arbitrary environment nodes
+under an `Assume` on their events and a `Guarantee` on the trace. Version 2 (2026-11-15, the user's:
+no world, use GooseLang's relation) put it over `DistCrashStep` but kept `Assume`/`Guarantee`, with
+the events read off the TCP extension's state (`Stream.lean`) and `Linearizability.lean`
+(`LinearizableTrace`). Version 3 (this one) deleted both files and everything but `Robust`: the
+trusted Lean went from about 430 lines of definitions (plus kvnet's wire decoders, model and
+`ClientsOk`) to one definition.
 
 ## kvnet's statement (`Proof/github_com/mit_pdos/etcd_grove/examples/raft/kvnet/Robust.lean`)
 
-`kvnetRobust prog : Prop`, a `def` (no proof, no `sorry`, no axiom): for every deployment of replica
-processes running `prog cfg` (fresh directories, a fresh network whose plan puts each replica's
-address at its host), with any environment nodes on other hosts, every run of fewer than `2^61` steps
-whose environment satisfies `ClientsOk` -- no client speaks the peer protocol to a replica
-(`NoPeerClaim`, the closed world: replicas do not authenticate raft messages) and no two read
-requests share a sequence number (`ReadSeqsFresh`: a replica matches read answers to waiters by it)
--- leaves every replica fine and has a linearizable client history (`kvModel`, `kvProto`).
+`kvnetRobust replica client : Prop`, a `def` (no proof, no `sorry`, no axiom): for every deployment
+of replica machines, which may crash, each running `replica cfg` (`ReplicaStart`: fresh directory,
+no listener, no package initialized), and one client machine, which never crashes, running
+`client addrs` on another host (`ClientStart`), on a fresh network (`FreshNet`: a well-formed plan,
+`Tcp.PlanWellFormed`, that puts each replica's address at its host, and no connection),
+`Robust … (2^61)`.
 
-Decisions (the agent's, for review):
-- **Proposals are identified by their whole payload**, which is what the replicas deduplicate on
-  (`Replica.applyOp`'s `applied[string(data)]`): so no premise on proposal ids is needed. A client
-  that sends one payload twice as two "different" operations gets one operation, answered alike.
-- **A `Put`'s answer must be its value** (the replica answers a proposal with the key's value once
-  applied). kvnet's Go model ignores a `Put`'s output; the statement is stronger.
-- **Times**: a call at the client's last request byte, a return at the server's last answer byte:
-  an interval inside what the client observes, so the guarantee is at least the client's.
-- **Status, configuration changes and disruptions** are allowed from any client at any time and are
-  not operations of the history (`ReqStatus` reads a replica's local state, stale by design).
-- **`prog` is a parameter**: kvnet is not translated (`net` is names-only at this pin; its semantics
-  is on branch `net-tcp`). The theorem to prove is `kvnetRobust (fun cfg => <the translation>)`. So is
-  the network: `[StreamNet]`; the files: `[HasExt Fs.fsExt]` (durable's reimplementation over `os`,
-  `notes/decisions.md`, "One file semantics, fsExt; power loss only").
-- **Replicas started later** (the driver's ids 4-9) are nodes of the deployment from the start that
-  the scheduler does not run before; **removed replicas** keep running, as in the test.
+- **Both programs are parameters**: kvnet is not translated, and the checking client does not exist
+  as a program of its own (the driver runs the clients inside the harness that kills processes and
+  partitions the network). The theorem to prove is `kvnetRobust` of the two translations.
+- **Gone with version 2**: the wire decoders in Lean (`frame`, `kvProto`, a second copy of kvnet's
+  codec to trust), `kvModel`, `OpKey`, and the environment's discipline `ClientsOk` (`NoPeerClaim`,
+  `ReadSeqsFresh`): the deployment is closed, every machine runs a given program, so nobody forges
+  peer messages and the client's own code picks its sequence numbers.
+- **Replicas started later** (the driver's ids 4-9) are machines of the deployment from the start
+  that the scheduler does not run before; **removed replicas** keep running, as in the test.
 
 ## The harness (`examples/lib/robust`)
 
@@ -90,12 +145,13 @@ machine, 27 by resets) and 47 link-fault episodes.
 
 ## Next
 
-- Instantiate `StreamNet` for the TCP extension when `net-tcp` lands, and check that `obs` gives one
-  event per `"Write"` step (a write's suffix), none for reads, cuts and dials.
-- A distributed adequacy theorem for `Run` (`goose_dist_crash_adequacy` plus world moves, plus an
-  observation-preserving invariant connecting the trace to ghost state), then `kvnetRobust`'s proof
-  from kvdurable's.
+- The checking client as a Go program (`examples/raft/kvnet/cmd/...`): the clients' traffic and
+  configuration changes, the history, porcupine, a panic unless `Ok`; no fault injection. Then
+  translate it and the replica (`net` through the TCP extension, `NetTcp/`).
+- Adequacy for machines that never crash: `goose_dist_crash_adequacy` lets every node crash, so
+  through `Robust.of_all_crashing` the client's proof would have to survive its own crash, losing
+  its history. A version with a boot list for some nodes only (no crash obligation for the others)
+  is a general Perennial change, to propose there on its own (`notes/perennial-changes.md`).
 - A mutation check that only the network finds (e.g. a `Read` served without a read index: a stale
   read from a partitioned old leader).
-- Other programs: the harness takes any binary; their statements reuse `Robust` with their own
-  protocol (`ReqResp`) and model.
+- Other programs: the harness takes any binary; their statements are `Robust` of their machines.

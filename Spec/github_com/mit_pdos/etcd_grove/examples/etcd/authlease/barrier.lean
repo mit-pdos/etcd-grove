@@ -13,7 +13,11 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth3.AuthFixed
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.authlease.Base
-public import Proof.go_etcd_io.etcd.client.v3.AuthnServedOn
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
+public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
+public import Proof.go_etcd_io.etcd.client.v3.InvLeaseGrant
+public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

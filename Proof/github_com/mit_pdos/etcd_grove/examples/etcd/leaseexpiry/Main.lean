@@ -36,6 +36,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorHist
 public import Proof.go_etcd_io.etcd.client.v3.LessorPlain
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.ServedLeaseLinked
 
 @[expose] public section
 

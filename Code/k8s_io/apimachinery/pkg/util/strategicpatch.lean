@@ -100,41 +100,41 @@ noncomputable def sliceItem.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] sliceItem.ty
 
-axiom PatchMetaFromStruct.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PatchMetaFromStruct.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PatchMetaFromOpenAPIV3.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PatchMetaFromOpenAPIV3.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PatchMetaFromOpenAPI.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque PatchMetaFromOpenAPI.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LookupPatchItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LookupPatchItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom kindItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque kindItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sliceItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque sliceItem.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom patchMergeKey [GooseExts] [GoGlobalContext] : val
+opaque patchMergeKey [GooseExts] [GoGlobalContext] : val
 
-axiom patchStrategy [GooseExts] [GoGlobalContext] : val
+opaque patchStrategy [GooseExts] [GoGlobalContext] : val
 
-axiom directiveMarker [GooseExts] [GoGlobalContext] : val
+opaque directiveMarker [GooseExts] [GoGlobalContext] : val
 
-axiom deleteDirective [GooseExts] [GoGlobalContext] : val
+opaque deleteDirective [GooseExts] [GoGlobalContext] : val
 
-axiom replaceDirective [GooseExts] [GoGlobalContext] : val
+opaque replaceDirective [GooseExts] [GoGlobalContext] : val
 
-axiom mergeDirective [GooseExts] [GoGlobalContext] : val
+opaque mergeDirective [GooseExts] [GoGlobalContext] : val
 
-axiom retainKeysStrategy [GooseExts] [GoGlobalContext] : val
+opaque retainKeysStrategy [GooseExts] [GoGlobalContext] : val
 
-axiom deleteFromPrimitiveListDirectivePrefix [GooseExts] [GoGlobalContext] : val
+opaque deleteFromPrimitiveListDirectivePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom retainKeysDirective [GooseExts] [GoGlobalContext] : val
+opaque retainKeysDirective [GooseExts] [GoGlobalContext] : val
 
-axiom setElementOrderDirectivePrefix [GooseExts] [GoGlobalContext] : val
+opaque setElementOrderDirectivePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom patchStrategyOpenapiextensionKey [GooseExts] [GoGlobalContext] : val
+opaque patchStrategyOpenapiextensionKey [GooseExts] [GoGlobalContext] : val
 
-axiom patchMergeKeyOpenapiextensionKey [GooseExts] [GoGlobalContext] : val
+opaque patchMergeKeyOpenapiextensionKey [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewPatchMetaFromStruct [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/strategicpatch.NewPatchMetaFromStruct"
@@ -385,7 +385,7 @@ noncomputable def parsePatchMetadata [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.strategicpatch where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -587,8 +587,10 @@ attribute [instance] LookupPatchMeta.TypeAssumptions.underlying
   LookupPatchMeta.TypeAssumptions.method_set
   LookupPatchMeta.TypeAssumptions.ptr_method_set
 
-axiom PatchMetaFromStruct : Type
-axiom PatchMetaFromStruct.zero_val : ZeroVal PatchMetaFromStruct
+opaque PatchMetaFromStruct.nonempty_type : NonemptyType.{0}
+def PatchMetaFromStruct : Type := PatchMetaFromStruct.nonempty_type.type
+instance PatchMetaFromStruct.nonempty : Nonempty PatchMetaFromStruct := PatchMetaFromStruct.nonempty_type.property
+opaque PatchMetaFromStruct.zero_val : ZeroVal PatchMetaFromStruct := ⟨Classical.ofNonempty⟩
 attribute [instance] PatchMetaFromStruct.zero_val
 
 class PatchMetaFromStruct.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -604,8 +606,10 @@ attribute [instance] PatchMetaFromStruct.TypeAssumptions.type_repr
   PatchMetaFromStruct.TypeAssumptions.method_set
   PatchMetaFromStruct.TypeAssumptions.ptr_method_set
 
-axiom PatchMetaFromOpenAPIV3 : Type
-axiom PatchMetaFromOpenAPIV3.zero_val : ZeroVal PatchMetaFromOpenAPIV3
+opaque PatchMetaFromOpenAPIV3.nonempty_type : NonemptyType.{0}
+def PatchMetaFromOpenAPIV3 : Type := PatchMetaFromOpenAPIV3.nonempty_type.type
+instance PatchMetaFromOpenAPIV3.nonempty : Nonempty PatchMetaFromOpenAPIV3 := PatchMetaFromOpenAPIV3.nonempty_type.property
+opaque PatchMetaFromOpenAPIV3.zero_val : ZeroVal PatchMetaFromOpenAPIV3 := ⟨Classical.ofNonempty⟩
 attribute [instance] PatchMetaFromOpenAPIV3.zero_val
 
 class PatchMetaFromOpenAPIV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -621,8 +625,10 @@ attribute [instance] PatchMetaFromOpenAPIV3.TypeAssumptions.type_repr
   PatchMetaFromOpenAPIV3.TypeAssumptions.method_set
   PatchMetaFromOpenAPIV3.TypeAssumptions.ptr_method_set
 
-axiom PatchMetaFromOpenAPI : Type
-axiom PatchMetaFromOpenAPI.zero_val : ZeroVal PatchMetaFromOpenAPI
+opaque PatchMetaFromOpenAPI.nonempty_type : NonemptyType.{0}
+def PatchMetaFromOpenAPI : Type := PatchMetaFromOpenAPI.nonempty_type.type
+instance PatchMetaFromOpenAPI.nonempty : Nonempty PatchMetaFromOpenAPI := PatchMetaFromOpenAPI.nonempty_type.property
+opaque PatchMetaFromOpenAPI.zero_val : ZeroVal PatchMetaFromOpenAPI := ⟨Classical.ofNonempty⟩
 attribute [instance] PatchMetaFromOpenAPI.zero_val
 
 class PatchMetaFromOpenAPI.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -822,8 +828,10 @@ attribute [instance] SortableSliceOfScalars.TypeAssumptions.type_repr
   SortableSliceOfScalars.TypeAssumptions.method_set
   SortableSliceOfScalars.TypeAssumptions.ptr_method_set
 
-axiom LookupPatchItem : Type
-axiom LookupPatchItem.zero_val : ZeroVal LookupPatchItem
+opaque LookupPatchItem.nonempty_type : NonemptyType.{0}
+def LookupPatchItem : Type := LookupPatchItem.nonempty_type.type
+instance LookupPatchItem.nonempty : Nonempty LookupPatchItem := LookupPatchItem.nonempty_type.property
+opaque LookupPatchItem.zero_val : ZeroVal LookupPatchItem := ⟨Classical.ofNonempty⟩
 attribute [instance] LookupPatchItem.zero_val
 
 class LookupPatchItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -839,8 +847,10 @@ attribute [instance] LookupPatchItem.TypeAssumptions.type_repr
   LookupPatchItem.TypeAssumptions.method_set
   LookupPatchItem.TypeAssumptions.ptr_method_set
 
-axiom kindItem : Type
-axiom kindItem.zero_val : ZeroVal kindItem
+opaque kindItem.nonempty_type : NonemptyType.{0}
+def kindItem : Type := kindItem.nonempty_type.type
+instance kindItem.nonempty : Nonempty kindItem := kindItem.nonempty_type.property
+opaque kindItem.zero_val : ZeroVal kindItem := ⟨Classical.ofNonempty⟩
 attribute [instance] kindItem.zero_val
 
 class kindItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -856,8 +866,10 @@ attribute [instance] kindItem.TypeAssumptions.type_repr
   kindItem.TypeAssumptions.method_set
   kindItem.TypeAssumptions.ptr_method_set
 
-axiom sliceItem : Type
-axiom sliceItem.zero_val : ZeroVal sliceItem
+opaque sliceItem.nonempty_type : NonemptyType.{0}
+def sliceItem : Type := sliceItem.nonempty_type.type
+instance sliceItem.nonempty : Nonempty sliceItem := sliceItem.nonempty_type.property
+opaque sliceItem.zero_val : ZeroVal sliceItem := ⟨Classical.ofNonempty⟩
 attribute [instance] sliceItem.zero_val
 
 class sliceItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

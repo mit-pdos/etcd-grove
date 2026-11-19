@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.InvLeaseRead
+public import Proof.go_etcd_io.etcd.client.v3.LeaseSpecs
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseTimeToLive_Handler
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb._Lease_LeaseLeases_Handler
 
@@ -66,47 +67,6 @@ theorem grpcHandlerOk_slot {Req Rep : ProtoMsg GF} (h : val) (S S' F : IProp GF)
   iframe
 
 end slot
-
-section specsMd
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-
-/-- (Auth-lease S4, Freeze §4.1, rev 2's R1/R2) **etcd's `LeaseTimeToLive` at the lessor `γl`, metadata-indexed**
-(new; the one spec of the handler, any auth mode): a reply's lease is the request's; its TTL row fact
-(`etcdLeaseTTLSpecLive`'s, kept so that this text subsumes `etcdLeaseTTLSpec`/`…Live`); the check passed
-at the token (`leaseCheckT`: auth off at `≥ n`, or a principal bound to the token that is an admin or,
-with keys, has read on every key the lease holds from `m` on; without keys, `True`: `requireAuthInfo`'s
-authentication alone, R1). An error carries nothing. -/
-def etcdLeaseTTLSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
-    GrpcSpecMd (GF := GF) pbLeaseTimeToLiveRequest pbLeaseTimeToLiveResponse :=
-  fun md (req : w64 × Bool) (Φ : LeaseTTLRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ∃ n m : Nat, auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
-      ∀ r : LeaseTTLRespM, ⌜r.id = req.1⌝ -∗
-        □ (leaseTTLRow s γl -∗
-            (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i r.id r.grantedTtl) ∨
-            lease.leaseAbsentFrom γl m r.id) -∗
-        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n
-          (fun info => if req.2 then leaseKeysVerdictFrom E.authMode n info γl m req.1 .read
-            else iprop(True)) -∗
-        Φ r)
-
-/-- (Auth-lease S4, Freeze §4.2, rev 2's R2) **etcd's `LeaseLeases` at the lessor `γl`, metadata-indexed** (new; the one spec,
-any auth mode): a listing at some lessor index `i ≥ m`, no duplicates, every listed lease's keys
-verdict at the token. Subsumes `etcdLeaseLeasesSpecLive` and `…Any`. -/
-def etcdLeaseLeasesSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
-    GrpcSpecMd (GF := GF) pbLeaseLeasesRequest pbLeaseLeasesResponse :=
-  fun md (_ : Unit) (Φ : LeaseLeasesRespM → IProp GF) (Ψe : GoString → IProp GF) =>
-    iprop((□ ∀ d, Ψe d) ∗ ∃ n m : Nat, auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
-      ∀ r : LeaseLeasesRespM, ⌜r.ids.Nodup⌝ -∗
-        (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseIdsAt γl i r.ids ∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n
-            (fun info => iprop([∗list] id ∈ r.ids, leaseKeysVerdictFrom E.authMode n info γl i id .read))) -∗
-        Φ r)
-
-end specsMd
 
 section served
 variable [GooseExts] [GooseSemantics] [GooseInterp] [HasExt idIssueExt]
@@ -506,15 +466,6 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
   iapply BigSepL.bigSepL_nil.2
   itrivial
 
-/-- **etcd's lease reads registered at `addr`** (persistent): what `examples/etcd/lease`'s client
-calls. -/
-def etcdLeaseReadAt (addr : GoString) : IProp GF :=
-  iprop(isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseTimeToLive" etcdLeaseTTLSpec ∗
-    isGrpcRpc addr go!"/etcdserverpb.Lease/LeaseLeases" etcdLeaseLeasesSpecAny)
-
-instance etcdLeaseReadAt_persistent (addr : GoString) :
-    Persistent (etcdLeaseReadAt (GF := GF) addr) := by
-  unfold etcdLeaseReadAt; infer_instance
 
 /-- **etcd's `LeaseTimeToLive` handler meets `etcdLeaseTTLSpecMd`** (`grpcHandlerOkMd`; auth-lease S4,
 Freeze §4.1, any auth mode), over the lease-read contract at the run resource `S` and the revision

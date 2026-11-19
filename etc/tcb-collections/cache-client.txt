@@ -71,7 +71,6 @@ axiom envVerifyOffTok
 axiom errors.IsCtxErr.wp_proof
 axiom errors.IsDeadlineExceeded.wp_proof
 axiom errors.IsStatusErr.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.Printf.wp_proof
 axiom go_humanize.Bytes.wp_proof
 axiom grpc.ClientConn.Invoke.wp_proof

@@ -33,7 +33,7 @@ attribute [irreducible] WalkFunc.ty
 @[reducible] noncomputable def Separator [GooseExts] [GoGlobalContext] : val :=
   #(47 : Int)
 
-axiom ListSeparator [GooseExts] [GoGlobalContext] : val
+opaque ListSeparator [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.ErrBadPattern"
@@ -41,17 +41,17 @@ noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def SkipDir [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.SkipDir"
 
-axiom SkipDir.init [GooseExts] [GoGlobalContext] : val
+opaque SkipDir.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SkipAll [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.SkipAll"
 
-axiom SkipAll.init [GooseExts] [GoGlobalContext] : val
+opaque SkipAll.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def lstat [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.lstat"
 
-axiom lstat.init [GooseExts] [GoGlobalContext] : val
+opaque lstat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Match [GooseExts] [GoGlobalContext] : GoString :=
   go!"path/filepath.Match"
@@ -479,7 +479,7 @@ noncomputable def join.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.path.filepath where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.internal.filepathlite, pkg_id.os, pkg_id.strings, pkg_id.io.fs]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

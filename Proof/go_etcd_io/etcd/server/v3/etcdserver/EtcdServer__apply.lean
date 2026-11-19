@@ -27,7 +27,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__GetId
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.raft.v3.FrameH
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Results
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyRDefs
 public import Proof.ReceiptTactics
 

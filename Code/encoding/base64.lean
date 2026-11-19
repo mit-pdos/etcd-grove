@@ -45,41 +45,41 @@ noncomputable def newlineFilteringReader.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] newlineFilteringReader.ty
 
-axiom Encoding.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Encoding.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom newlineFilteringReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque newlineFilteringReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StdPadding [GooseExts] [GoGlobalContext] : val
+opaque StdPadding [GooseExts] [GoGlobalContext] : val
 
-axiom NoPadding [GooseExts] [GoGlobalContext] : val
+opaque NoPadding [GooseExts] [GoGlobalContext] : val
 
-axiom decodeMapInitialize [GooseExts] [GoGlobalContext] : val
+opaque decodeMapInitialize [GooseExts] [GoGlobalContext] : val
 
-axiom invalidIndex [GooseExts] [GoGlobalContext] : val
+opaque invalidIndex [GooseExts] [GoGlobalContext] : val
 
 noncomputable def StdEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.StdEncoding"
 
-axiom StdEncoding.init [GooseExts] [GoGlobalContext] : val
+opaque StdEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def URLEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.URLEncoding"
 
-axiom URLEncoding.init [GooseExts] [GoGlobalContext] : val
+opaque URLEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RawStdEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.RawStdEncoding"
 
-axiom RawStdEncoding.init [GooseExts] [GoGlobalContext] : val
+opaque RawStdEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def RawURLEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.RawURLEncoding"
 
-axiom RawURLEncoding.init [GooseExts] [GoGlobalContext] : val
+opaque RawURLEncoding.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.NewEncoding"
@@ -102,7 +102,7 @@ noncomputable def decodedLen [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.encoding.base64 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -120,8 +120,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val StdEncoding.init) (Val #()))))))))
 
-axiom Encoding : Type
-axiom Encoding.zero_val : ZeroVal Encoding
+opaque Encoding.nonempty_type : NonemptyType.{0}
+def Encoding : Type := Encoding.nonempty_type.type
+instance Encoding.nonempty : Nonempty Encoding := Encoding.nonempty_type.property
+opaque Encoding.zero_val : ZeroVal Encoding := ⟨Classical.ofNonempty⟩
 attribute [instance] Encoding.zero_val
 
 class Encoding.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -137,8 +139,10 @@ attribute [instance] Encoding.TypeAssumptions.type_repr
   Encoding.TypeAssumptions.method_set
   Encoding.TypeAssumptions.ptr_method_set
 
-axiom encoder : Type
-axiom encoder.zero_val : ZeroVal encoder
+opaque encoder.nonempty_type : NonemptyType.{0}
+def encoder : Type := encoder.nonempty_type.type
+instance encoder.nonempty : Nonempty encoder := encoder.nonempty_type.property
+opaque encoder.zero_val : ZeroVal encoder := ⟨Classical.ofNonempty⟩
 attribute [instance] encoder.zero_val
 
 class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -168,8 +172,10 @@ attribute [instance] CorruptInputError.TypeAssumptions.underlying
   CorruptInputError.TypeAssumptions.method_set
   CorruptInputError.TypeAssumptions.ptr_method_set
 
-axiom decoder : Type
-axiom decoder.zero_val : ZeroVal decoder
+opaque decoder.nonempty_type : NonemptyType.{0}
+def decoder : Type := decoder.nonempty_type.type
+instance decoder.nonempty : Nonempty decoder := decoder.nonempty_type.property
+opaque decoder.zero_val : ZeroVal decoder := ⟨Classical.ofNonempty⟩
 attribute [instance] decoder.zero_val
 
 class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -185,8 +191,10 @@ attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.method_set
   decoder.TypeAssumptions.ptr_method_set
 
-axiom newlineFilteringReader : Type
-axiom newlineFilteringReader.zero_val : ZeroVal newlineFilteringReader
+opaque newlineFilteringReader.nonempty_type : NonemptyType.{0}
+def newlineFilteringReader : Type := newlineFilteringReader.nonempty_type.type
+instance newlineFilteringReader.nonempty : Nonempty newlineFilteringReader := newlineFilteringReader.nonempty_type.property
+opaque newlineFilteringReader.zero_val : ZeroVal newlineFilteringReader := ⟨Classical.ofNonempty⟩
 attribute [instance] newlineFilteringReader.zero_val
 
 class newlineFilteringReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

@@ -85,82 +85,82 @@ noncomputable def latencyTrackersKeyType.ty [GooseExts] [GoGlobalContext] : go.G
 
 attribute [irreducible] latencyTrackersKeyType.ty
 
-axiom LongRunningRequestCheck.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque LongRunningRequestCheck.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestInfoResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RequestInfoResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestInfoFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RequestInfoFactory.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DurationTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DurationTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom durationTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque durationTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom namespaceKey [GooseExts] [GoGlobalContext] : val
+opaque namespaceKey [GooseExts] [GoGlobalContext] : val
 
-axiom userKey [GooseExts] [GoGlobalContext] : val
+opaque userKey [GooseExts] [GoGlobalContext] : val
 
-axiom MethodApply [GooseExts] [GoGlobalContext] : val
+opaque MethodApply [GooseExts] [GoGlobalContext] : val
 
-axiom MethodConnect [GooseExts] [GoGlobalContext] : val
+opaque MethodConnect [GooseExts] [GoGlobalContext] : val
 
-axiom MethodCreate [GooseExts] [GoGlobalContext] : val
+opaque MethodCreate [GooseExts] [GoGlobalContext] : val
 
-axiom MethodDelete [GooseExts] [GoGlobalContext] : val
+opaque MethodDelete [GooseExts] [GoGlobalContext] : val
 
-axiom MethodDeleteCollection [GooseExts] [GoGlobalContext] : val
+opaque MethodDeleteCollection [GooseExts] [GoGlobalContext] : val
 
-axiom MethodGet [GooseExts] [GoGlobalContext] : val
+opaque MethodGet [GooseExts] [GoGlobalContext] : val
 
-axiom MethodHead [GooseExts] [GoGlobalContext] : val
+opaque MethodHead [GooseExts] [GoGlobalContext] : val
 
-axiom MethodList [GooseExts] [GoGlobalContext] : val
+opaque MethodList [GooseExts] [GoGlobalContext] : val
 
-axiom MethodPatch [GooseExts] [GoGlobalContext] : val
+opaque MethodPatch [GooseExts] [GoGlobalContext] : val
 
-axiom MethodPost [GooseExts] [GoGlobalContext] : val
+opaque MethodPost [GooseExts] [GoGlobalContext] : val
 
-axiom MethodProxy [GooseExts] [GoGlobalContext] : val
+opaque MethodProxy [GooseExts] [GoGlobalContext] : val
 
-axiom MethodPut [GooseExts] [GoGlobalContext] : val
+opaque MethodPut [GooseExts] [GoGlobalContext] : val
 
-axiom MethodUpdate [GooseExts] [GoGlobalContext] : val
+opaque MethodUpdate [GooseExts] [GoGlobalContext] : val
 
-axiom MethodWatch [GooseExts] [GoGlobalContext] : val
+opaque MethodWatch [GooseExts] [GoGlobalContext] : val
 
-axiom MethodWatchList [GooseExts] [GoGlobalContext] : val
+opaque MethodWatchList [GooseExts] [GoGlobalContext] : val
 
-axiom requestReceivedTimestampKey [GooseExts] [GoGlobalContext] : val
+opaque requestReceivedTimestampKey [GooseExts] [GoGlobalContext] : val
 
-axiom requestInfoKey [GooseExts] [GoGlobalContext] : val
+opaque requestInfoKey [GooseExts] [GoGlobalContext] : val
 
-axiom serverShutdownSignalKey [GooseExts] [GoGlobalContext] : val
+opaque serverShutdownSignalKey [GooseExts] [GoGlobalContext] : val
 
-axiom latencyTrackersKey [GooseExts] [GoGlobalContext] : val
+opaque latencyTrackersKey [GooseExts] [GoGlobalContext] : val
 
 noncomputable def specialVerbs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.specialVerbs"
 
-axiom specialVerbs.init [GooseExts] [GoGlobalContext] : val
+opaque specialVerbs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def specialVerbsNoSubresources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.specialVerbsNoSubresources"
 
-axiom specialVerbsNoSubresources.init [GooseExts] [GoGlobalContext] : val
+opaque specialVerbsNoSubresources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def namespaceSubresources [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.namespaceSubresources"
 
-axiom namespaceSubresources.init [GooseExts] [GoGlobalContext] : val
+opaque namespaceSubresources.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def verbsWithSelectors [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.verbsWithSelectors"
 
-axiom verbsWithSelectors.init [GooseExts] [GoGlobalContext] : val
+opaque verbsWithSelectors.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NamespaceSubResourcesForTest [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NamespaceSubResourcesForTest"
 
-axiom NamespaceSubResourcesForTest.init [GooseExts] [GoGlobalContext] : val
+opaque NamespaceSubResourcesForTest.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/endpoints/request.NewContext"
@@ -261,7 +261,7 @@ noncomputable def AuditAnnotationsFromLatencyTrackers [GooseExts] [GoGlobalConte
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.endpoints.request where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -310,8 +310,10 @@ attribute [instance] requestReceivedTimestampKeyType.TypeAssumptions.underlying
   requestReceivedTimestampKeyType.TypeAssumptions.method_set
   requestReceivedTimestampKeyType.TypeAssumptions.ptr_method_set
 
-axiom LongRunningRequestCheck : Type
-axiom LongRunningRequestCheck.zero_val : ZeroVal LongRunningRequestCheck
+opaque LongRunningRequestCheck.nonempty_type : NonemptyType.{0}
+def LongRunningRequestCheck : Type := LongRunningRequestCheck.nonempty_type.type
+instance LongRunningRequestCheck.nonempty : Nonempty LongRunningRequestCheck := LongRunningRequestCheck.nonempty_type.property
+opaque LongRunningRequestCheck.zero_val : ZeroVal LongRunningRequestCheck := ⟨Classical.ofNonempty⟩
 attribute [instance] LongRunningRequestCheck.zero_val
 
 class LongRunningRequestCheck.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -327,8 +329,10 @@ attribute [instance] LongRunningRequestCheck.TypeAssumptions.type_repr
   LongRunningRequestCheck.TypeAssumptions.method_set
   LongRunningRequestCheck.TypeAssumptions.ptr_method_set
 
-axiom RequestInfoResolver : Type
-axiom RequestInfoResolver.zero_val : ZeroVal RequestInfoResolver
+opaque RequestInfoResolver.nonempty_type : NonemptyType.{0}
+def RequestInfoResolver : Type := RequestInfoResolver.nonempty_type.type
+instance RequestInfoResolver.nonempty : Nonempty RequestInfoResolver := RequestInfoResolver.nonempty_type.property
+opaque RequestInfoResolver.zero_val : ZeroVal RequestInfoResolver := ⟨Classical.ofNonempty⟩
 attribute [instance] RequestInfoResolver.zero_val
 
 class RequestInfoResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -451,8 +455,10 @@ attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.method_set
   RequestInfo.TypeAssumptions.ptr_method_set
 
-axiom RequestInfoFactory : Type
-axiom RequestInfoFactory.zero_val : ZeroVal RequestInfoFactory
+opaque RequestInfoFactory.nonempty_type : NonemptyType.{0}
+def RequestInfoFactory : Type := RequestInfoFactory.nonempty_type.type
+instance RequestInfoFactory.nonempty : Nonempty RequestInfoFactory := RequestInfoFactory.nonempty_type.property
+opaque RequestInfoFactory.zero_val : ZeroVal RequestInfoFactory := ⟨Classical.ofNonempty⟩
 attribute [instance] RequestInfoFactory.zero_val
 
 class RequestInfoFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -510,8 +516,10 @@ attribute [instance] ServerShutdownSignal.TypeAssumptions.underlying
   ServerShutdownSignal.TypeAssumptions.method_set
   ServerShutdownSignal.TypeAssumptions.ptr_method_set
 
-axiom DurationTracker : Type
-axiom DurationTracker.zero_val : ZeroVal DurationTracker
+opaque DurationTracker.nonempty_type : NonemptyType.{0}
+def DurationTracker : Type := DurationTracker.nonempty_type.type
+instance DurationTracker.nonempty : Nonempty DurationTracker := DurationTracker.nonempty_type.property
+opaque DurationTracker.zero_val : ZeroVal DurationTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] DurationTracker.zero_val
 
 class DurationTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -527,8 +535,10 @@ attribute [instance] DurationTracker.TypeAssumptions.type_repr
   DurationTracker.TypeAssumptions.method_set
   DurationTracker.TypeAssumptions.ptr_method_set
 
-axiom durationTracker : Type
-axiom durationTracker.zero_val : ZeroVal durationTracker
+opaque durationTracker.nonempty_type : NonemptyType.{0}
+def durationTracker : Type := durationTracker.nonempty_type.type
+instance durationTracker.nonempty : Nonempty durationTracker := durationTracker.nonempty_type.property
+opaque durationTracker.zero_val : ZeroVal durationTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] durationTracker.zero_val
 
 class durationTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

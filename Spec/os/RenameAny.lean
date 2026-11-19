@@ -16,6 +16,7 @@ directory; onto a file or a non-empty directory the call fails with no effect). 
 module
 
 public import Spec.os.RenameS
+public import Spec.fmt.ErrorOk
 public import GooseLang.Ext.Fs.TreeSharedRenameAny
 
 @[expose] public section
@@ -58,6 +59,7 @@ abbrev os.Rename.specDirAnySnc : Prop :=
       osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q }}
     (App (App (Val (@! os.Rename)) (Val #(child d bs))) (Val #(child d bt)))
   {{ (err : GoInterface), RET #err; osPathS R d (DFrac.own qd) j ∗ osCallPerm 1 ∗
+      fmtErrorOkOrNil err ∗
       ((⌜err ≠ interface.nil ∧ os.renameErrOk err⌝ ∗ osNames j N (DFrac.own q) h ∗
           osAUnc (osNames j N (DFrac.own r) h) (renDirOutA j J N bs bt h (DFrac.own r) lb) Q) ∨
         ∃ o, ⌜(err = interface.nil → o.isSome) ∧ os.renameErrOk err⌝ ∗ Q o ∗

@@ -20,26 +20,26 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.logutil
 
-axiom JSONLogFormat [GooseExts] [GoGlobalContext] : val
+opaque JSONLogFormat [GooseExts] [GoGlobalContext] : val
 
-axiom ConsoleLogFormat [GooseExts] [GoGlobalContext] : val
+opaque ConsoleLogFormat [GooseExts] [GoGlobalContext] : val
 
-axiom JsonLogFormat [GooseExts] [GoGlobalContext] : val
+opaque JsonLogFormat [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultLogFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultLogFormat"
 
-axiom DefaultLogFormat.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultLogFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultLogLevel [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultLogLevel"
 
-axiom DefaultLogLevel.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultLogLevel.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def DefaultZapLoggerConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.DefaultZapLoggerConfig"
 
-axiom DefaultZapLoggerConfig.init [GooseExts] [GoGlobalContext] : val
+opaque DefaultZapLoggerConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ConvertToZapFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/logutil.ConvertToZapFormat"
@@ -59,7 +59,7 @@ noncomputable def mergePaths [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

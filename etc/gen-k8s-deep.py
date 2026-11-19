@@ -120,7 +120,8 @@ for ns, path in lean_files():
                          r"\[GoGlobalContext\] : go\.GoType :=\n  (.*)$", text, re.M):
         if not m.group(2).startswith("(go.GoType.StructType"):
             abbrevs[ns + "." + m.group(1)] = m.group(2).strip()
-    for m in re.finditer(r"^axiom (\w+) : Type$", text, re.M):
+    # an untranslated type: the carrier of an opaque nonempty type
+    for m in re.finditer(r"^def (\w+) : Type := \1\.nonempty_type\.type$", text, re.M):
         axioms.add(ns + "." + m.group(1))
 
 

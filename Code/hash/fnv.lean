@@ -51,41 +51,41 @@ noncomputable def sum128a.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] sum128a.ty
 
-axiom offset32 [GooseExts] [GoGlobalContext] : val
+opaque offset32 [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def offset64 [GooseExts] [GoGlobalContext] : val :=
   #(14695981039346656037 : Int)
 
-axiom offset128Lower [GooseExts] [GoGlobalContext] : val
+opaque offset128Lower [GooseExts] [GoGlobalContext] : val
 
-axiom offset128Higher [GooseExts] [GoGlobalContext] : val
+opaque offset128Higher [GooseExts] [GoGlobalContext] : val
 
-axiom prime32 [GooseExts] [GoGlobalContext] : val
+opaque prime32 [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def prime64 [GooseExts] [GoGlobalContext] : val :=
   #(1099511628211 : Int)
 
-axiom prime128Lower [GooseExts] [GoGlobalContext] : val
+opaque prime128Lower [GooseExts] [GoGlobalContext] : val
 
-axiom prime128Shift [GooseExts] [GoGlobalContext] : val
+opaque prime128Shift [GooseExts] [GoGlobalContext] : val
 
-axiom magic32 [GooseExts] [GoGlobalContext] : val
+opaque magic32 [GooseExts] [GoGlobalContext] : val
 
-axiom magic32a [GooseExts] [GoGlobalContext] : val
+opaque magic32a [GooseExts] [GoGlobalContext] : val
 
-axiom magic64 [GooseExts] [GoGlobalContext] : val
+opaque magic64 [GooseExts] [GoGlobalContext] : val
 
-axiom magic64a [GooseExts] [GoGlobalContext] : val
+opaque magic64a [GooseExts] [GoGlobalContext] : val
 
-axiom magic128 [GooseExts] [GoGlobalContext] : val
+opaque magic128 [GooseExts] [GoGlobalContext] : val
 
-axiom magic128a [GooseExts] [GoGlobalContext] : val
+opaque magic128a [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize32 [GooseExts] [GoGlobalContext] : val
+opaque marshaledSize32 [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize64 [GooseExts] [GoGlobalContext] : val
+opaque marshaledSize64 [GooseExts] [GoGlobalContext] : val
 
-axiom marshaledSize128 [GooseExts] [GoGlobalContext] : val
+opaque marshaledSize128 [GooseExts] [GoGlobalContext] : val
 
 noncomputable def New32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"hash/fnv.New32"
@@ -192,7 +192,7 @@ noncomputable def sum64a.Write.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.hash.fnv where
   pkgImportedPkgs := [pkg_id.hash]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -35,11 +35,11 @@ noncomputable def insecureBundle.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] insecureBundle.ty
 
-axiom insecureTC.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque insecureTC.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom info.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque info.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom insecureBundle.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque insecureBundle.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def NewCredentials [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials/insecure.NewCredentials"
@@ -50,7 +50,7 @@ noncomputable def NewBundle [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials.insecure where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -59,8 +59,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom insecureTC : Type
-axiom insecureTC.zero_val : ZeroVal insecureTC
+opaque insecureTC.nonempty_type : NonemptyType.{0}
+def insecureTC : Type := insecureTC.nonempty_type.type
+instance insecureTC.nonempty : Nonempty insecureTC := insecureTC.nonempty_type.property
+opaque insecureTC.zero_val : ZeroVal insecureTC := ⟨Classical.ofNonempty⟩
 attribute [instance] insecureTC.zero_val
 
 class insecureTC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -76,8 +78,10 @@ attribute [instance] insecureTC.TypeAssumptions.type_repr
   insecureTC.TypeAssumptions.method_set
   insecureTC.TypeAssumptions.ptr_method_set
 
-axiom info : Type
-axiom info.zero_val : ZeroVal info
+opaque info.nonempty_type : NonemptyType.{0}
+def info : Type := info.nonempty_type.type
+instance info.nonempty : Nonempty info := info.nonempty_type.property
+opaque info.zero_val : ZeroVal info := ⟨Classical.ofNonempty⟩
 attribute [instance] info.zero_val
 
 class info.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -93,8 +97,10 @@ attribute [instance] info.TypeAssumptions.type_repr
   info.TypeAssumptions.method_set
   info.TypeAssumptions.ptr_method_set
 
-axiom insecureBundle : Type
-axiom insecureBundle.zero_val : ZeroVal insecureBundle
+opaque insecureBundle.nonempty_type : NonemptyType.{0}
+def insecureBundle : Type := insecureBundle.nonempty_type.type
+instance insecureBundle.nonempty : Nonempty insecureBundle := insecureBundle.nonempty_type.property
+opaque insecureBundle.zero_val : ZeroVal insecureBundle := ⟨Classical.ofNonempty⟩
 attribute [instance] insecureBundle.zero_val
 
 class insecureBundle.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

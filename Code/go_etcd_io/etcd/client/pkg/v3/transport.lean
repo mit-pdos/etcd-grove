@@ -107,40 +107,40 @@ noncomputable def unixListener.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] unixListener.ty
 
-axiom keepaliveListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque keepaliveListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom keepAliveConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque keepAliveConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tlsKeepaliveListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tlsKeepaliveListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom limitListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque limitListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom limitListenerConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque limitListenerConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ListenerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ListenerOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tlsListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tlsListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tlsCheckFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque tlsCheckFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Controls.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Controls.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timeoutConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timeoutConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rwTimeoutDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque rwTimeoutDialer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rwTimeoutListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque rwTimeoutListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unixTransport.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unixTransport.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unixListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque unixListener.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom tlsHandshakeTimeout [GooseExts] [GoGlobalContext] : val
+opaque tlsHandshakeTimeout [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotTCP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.ErrNotTCP"
 
-axiom ErrNotTCP.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotTCP.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewKeepAliveListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/transport.NewKeepAliveListener"
@@ -238,7 +238,7 @@ noncomputable def NewUnixListener [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.transport where
   pkgImportedPkgs := [pkg_id.crypto.tls, pkg_id.go_uber_org.zap]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -253,8 +253,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_uber_org.zap.initialize') (Val #()))))))))
 
-axiom keepaliveListener : Type
-axiom keepaliveListener.zero_val : ZeroVal keepaliveListener
+opaque keepaliveListener.nonempty_type : NonemptyType.{0}
+def keepaliveListener : Type := keepaliveListener.nonempty_type.type
+instance keepaliveListener.nonempty : Nonempty keepaliveListener := keepaliveListener.nonempty_type.property
+opaque keepaliveListener.zero_val : ZeroVal keepaliveListener := ⟨Classical.ofNonempty⟩
 attribute [instance] keepaliveListener.zero_val
 
 class keepaliveListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -270,8 +272,10 @@ attribute [instance] keepaliveListener.TypeAssumptions.type_repr
   keepaliveListener.TypeAssumptions.method_set
   keepaliveListener.TypeAssumptions.ptr_method_set
 
-axiom keepAliveConn : Type
-axiom keepAliveConn.zero_val : ZeroVal keepAliveConn
+opaque keepAliveConn.nonempty_type : NonemptyType.{0}
+def keepAliveConn : Type := keepAliveConn.nonempty_type.type
+instance keepAliveConn.nonempty : Nonempty keepAliveConn := keepAliveConn.nonempty_type.property
+opaque keepAliveConn.zero_val : ZeroVal keepAliveConn := ⟨Classical.ofNonempty⟩
 attribute [instance] keepAliveConn.zero_val
 
 class keepAliveConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -287,8 +291,10 @@ attribute [instance] keepAliveConn.TypeAssumptions.type_repr
   keepAliveConn.TypeAssumptions.method_set
   keepAliveConn.TypeAssumptions.ptr_method_set
 
-axiom tlsKeepaliveListener : Type
-axiom tlsKeepaliveListener.zero_val : ZeroVal tlsKeepaliveListener
+opaque tlsKeepaliveListener.nonempty_type : NonemptyType.{0}
+def tlsKeepaliveListener : Type := tlsKeepaliveListener.nonempty_type.type
+instance tlsKeepaliveListener.nonempty : Nonempty tlsKeepaliveListener := tlsKeepaliveListener.nonempty_type.property
+opaque tlsKeepaliveListener.zero_val : ZeroVal tlsKeepaliveListener := ⟨Classical.ofNonempty⟩
 attribute [instance] tlsKeepaliveListener.zero_val
 
 class tlsKeepaliveListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -304,8 +310,10 @@ attribute [instance] tlsKeepaliveListener.TypeAssumptions.type_repr
   tlsKeepaliveListener.TypeAssumptions.method_set
   tlsKeepaliveListener.TypeAssumptions.ptr_method_set
 
-axiom limitListener : Type
-axiom limitListener.zero_val : ZeroVal limitListener
+opaque limitListener.nonempty_type : NonemptyType.{0}
+def limitListener : Type := limitListener.nonempty_type.type
+instance limitListener.nonempty : Nonempty limitListener := limitListener.nonempty_type.property
+opaque limitListener.zero_val : ZeroVal limitListener := ⟨Classical.ofNonempty⟩
 attribute [instance] limitListener.zero_val
 
 class limitListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -321,8 +329,10 @@ attribute [instance] limitListener.TypeAssumptions.type_repr
   limitListener.TypeAssumptions.method_set
   limitListener.TypeAssumptions.ptr_method_set
 
-axiom limitListenerConn : Type
-axiom limitListenerConn.zero_val : ZeroVal limitListenerConn
+opaque limitListenerConn.nonempty_type : NonemptyType.{0}
+def limitListenerConn : Type := limitListenerConn.nonempty_type.type
+instance limitListenerConn.nonempty : Nonempty limitListenerConn := limitListenerConn.nonempty_type.property
+opaque limitListenerConn.zero_val : ZeroVal limitListenerConn := ⟨Classical.ofNonempty⟩
 attribute [instance] limitListenerConn.zero_val
 
 class limitListenerConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -505,8 +515,10 @@ attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.method_set
   TLSInfo.TypeAssumptions.ptr_method_set
 
-axiom ListenerOptions : Type
-axiom ListenerOptions.zero_val : ZeroVal ListenerOptions
+opaque ListenerOptions.nonempty_type : NonemptyType.{0}
+def ListenerOptions : Type := ListenerOptions.nonempty_type.type
+instance ListenerOptions.nonempty : Nonempty ListenerOptions := ListenerOptions.nonempty_type.property
+opaque ListenerOptions.zero_val : ZeroVal ListenerOptions := ⟨Classical.ofNonempty⟩
 attribute [instance] ListenerOptions.zero_val
 
 class ListenerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -536,8 +548,10 @@ attribute [instance] ListenerOption.TypeAssumptions.underlying
   ListenerOption.TypeAssumptions.method_set
   ListenerOption.TypeAssumptions.ptr_method_set
 
-axiom tlsListener : Type
-axiom tlsListener.zero_val : ZeroVal tlsListener
+opaque tlsListener.nonempty_type : NonemptyType.{0}
+def tlsListener : Type := tlsListener.nonempty_type.type
+instance tlsListener.nonempty : Nonempty tlsListener := tlsListener.nonempty_type.property
+opaque tlsListener.zero_val : ZeroVal tlsListener := ⟨Classical.ofNonempty⟩
 attribute [instance] tlsListener.zero_val
 
 class tlsListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -553,8 +567,10 @@ attribute [instance] tlsListener.TypeAssumptions.type_repr
   tlsListener.TypeAssumptions.method_set
   tlsListener.TypeAssumptions.ptr_method_set
 
-axiom tlsCheckFunc : Type
-axiom tlsCheckFunc.zero_val : ZeroVal tlsCheckFunc
+opaque tlsCheckFunc.nonempty_type : NonemptyType.{0}
+def tlsCheckFunc : Type := tlsCheckFunc.nonempty_type.type
+instance tlsCheckFunc.nonempty : Nonempty tlsCheckFunc := tlsCheckFunc.nonempty_type.property
+opaque tlsCheckFunc.zero_val : ZeroVal tlsCheckFunc := ⟨Classical.ofNonempty⟩
 attribute [instance] tlsCheckFunc.zero_val
 
 class tlsCheckFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -570,8 +586,10 @@ attribute [instance] tlsCheckFunc.TypeAssumptions.type_repr
   tlsCheckFunc.TypeAssumptions.method_set
   tlsCheckFunc.TypeAssumptions.ptr_method_set
 
-axiom Controls : Type
-axiom Controls.zero_val : ZeroVal Controls
+opaque Controls.nonempty_type : NonemptyType.{0}
+def Controls : Type := Controls.nonempty_type.type
+instance Controls.nonempty : Nonempty Controls := Controls.nonempty_type.property
+opaque Controls.zero_val : ZeroVal Controls := ⟨Classical.ofNonempty⟩
 attribute [instance] Controls.zero_val
 
 class Controls.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -628,8 +646,10 @@ attribute [instance] SocketOpts.TypeAssumptions.type_repr
   SocketOpts.TypeAssumptions.method_set
   SocketOpts.TypeAssumptions.ptr_method_set
 
-axiom timeoutConn : Type
-axiom timeoutConn.zero_val : ZeroVal timeoutConn
+opaque timeoutConn.nonempty_type : NonemptyType.{0}
+def timeoutConn : Type := timeoutConn.nonempty_type.type
+instance timeoutConn.nonempty : Nonempty timeoutConn := timeoutConn.nonempty_type.property
+opaque timeoutConn.zero_val : ZeroVal timeoutConn := ⟨Classical.ofNonempty⟩
 attribute [instance] timeoutConn.zero_val
 
 class timeoutConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -645,8 +665,10 @@ attribute [instance] timeoutConn.TypeAssumptions.type_repr
   timeoutConn.TypeAssumptions.method_set
   timeoutConn.TypeAssumptions.ptr_method_set
 
-axiom rwTimeoutDialer : Type
-axiom rwTimeoutDialer.zero_val : ZeroVal rwTimeoutDialer
+opaque rwTimeoutDialer.nonempty_type : NonemptyType.{0}
+def rwTimeoutDialer : Type := rwTimeoutDialer.nonempty_type.type
+instance rwTimeoutDialer.nonempty : Nonempty rwTimeoutDialer := rwTimeoutDialer.nonempty_type.property
+opaque rwTimeoutDialer.zero_val : ZeroVal rwTimeoutDialer := ⟨Classical.ofNonempty⟩
 attribute [instance] rwTimeoutDialer.zero_val
 
 class rwTimeoutDialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -662,8 +684,10 @@ attribute [instance] rwTimeoutDialer.TypeAssumptions.type_repr
   rwTimeoutDialer.TypeAssumptions.method_set
   rwTimeoutDialer.TypeAssumptions.ptr_method_set
 
-axiom rwTimeoutListener : Type
-axiom rwTimeoutListener.zero_val : ZeroVal rwTimeoutListener
+opaque rwTimeoutListener.nonempty_type : NonemptyType.{0}
+def rwTimeoutListener : Type := rwTimeoutListener.nonempty_type.type
+instance rwTimeoutListener.nonempty : Nonempty rwTimeoutListener := rwTimeoutListener.nonempty_type.property
+opaque rwTimeoutListener.zero_val : ZeroVal rwTimeoutListener := ⟨Classical.ofNonempty⟩
 attribute [instance] rwTimeoutListener.zero_val
 
 class rwTimeoutListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -679,8 +703,10 @@ attribute [instance] rwTimeoutListener.TypeAssumptions.type_repr
   rwTimeoutListener.TypeAssumptions.method_set
   rwTimeoutListener.TypeAssumptions.ptr_method_set
 
-axiom unixTransport : Type
-axiom unixTransport.zero_val : ZeroVal unixTransport
+opaque unixTransport.nonempty_type : NonemptyType.{0}
+def unixTransport : Type := unixTransport.nonempty_type.type
+instance unixTransport.nonempty : Nonempty unixTransport := unixTransport.nonempty_type.property
+opaque unixTransport.zero_val : ZeroVal unixTransport := ⟨Classical.ofNonempty⟩
 attribute [instance] unixTransport.zero_val
 
 class unixTransport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -696,8 +722,10 @@ attribute [instance] unixTransport.TypeAssumptions.type_repr
   unixTransport.TypeAssumptions.method_set
   unixTransport.TypeAssumptions.ptr_method_set
 
-axiom unixListener : Type
-axiom unixListener.zero_val : ZeroVal unixListener
+opaque unixListener.nonempty_type : NonemptyType.{0}
+def unixListener : Type := unixListener.nonempty_type.type
+instance unixListener.nonempty : Nonempty unixListener := unixListener.nonempty_type.property
+opaque unixListener.zero_val : ZeroVal unixListener := ⟨Classical.ofNonempty⟩
 attribute [instance] unixListener.zero_val
 
 class unixListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

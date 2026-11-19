@@ -14,8 +14,41 @@ and `go gs.Serve(l)`, once, for `Serve`'s caller's ghost step (`Serve.spec`'s `G
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Defs
-public import Proof.go_etcd_io.etcd.client.v3.ServeFromStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NoRefusal
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeKVRest
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeLease
+public import Proof.go_etcd_io.etcd.client.v3.ServerWatcher
+public import Proof.go_etcd_io.etcd.client.v3.LeaseClient
+public import Proof.go_etcd_io.etcd.client.v3.PerTypeAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.PerTypeWatch
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerRFacts
+public import Spec.go_etcd_io.etcd.server.v3.etcdserver.NewServerR
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__SetHardState
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr
+public import Proof.sort.SortAnyLess
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadRaft
+public import Proof.go_etcd_io.etcd.pkg.v3.wait.TimeListIfc
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NewServerAllocOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyAllSnap
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunAdapt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchStep
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.WatchClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthService
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLemmas
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRead
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.ServerLeaseRevoke
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.QuotaLeaseLemmas
+public import Proof.go_etcd_io.etcd.client.v3.KVServiceOn
+public import Proof.go_etcd_io.etcd.client.v3.KeyOps
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
@@ -128,38 +161,6 @@ theorem kvServeStocks_pools (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Em 
   unfold kvServeStocks
   imod (srvRunPool_init s E γr Em) $$ H with ⟨#Hrp, #Hb⟩
   imodintro
-  iframe #
-
-/-- **etcd's KV calls registered at the address** (see the file header); under `grpcRepliesFit`
-(`grpc.start`'s). -/
-theorem kv_served (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
-    (γr : ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64)
-    (R : v3rpc.WSrv GF) (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr)
-    (HL : srvLevels (GF := GF)) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-        isServerReq s E ρ ∗ isServerRead s E γr ∗ kvServeStocks s E γr ∗
-        grpcUp s E ρ γr gs lis addr cid mid R ⊢
-      |={⊤}=> (∃ γ, grpcServeTok gs lis γ) ∗ etcdKVAt addr E ρ γr cid mid := by
-  iintro ⟨#Pv3, #Psrv, #Hreq, #Hrd, Hstk, Hup⟩
-  iunfold grpcUp at Hup
-  icases Hup with ⟨%C, %q, %p, %pw, %il, %im, %iu, %ims, %is, %svcs, %regs, %sregs, %HC,
-    #Hgc, Hgsn, #Hq, #Hkvs, #Hws, #Hil, #Him, #Hiu, #Hims, #His, -, -, -, Hlis, -⟩
-  obtain ⟨HCA, -, Hregs, -, -, -, -, -, Hnd⟩ := HC
-  imod (kvServeStocks_pools s E γr ⊤) $$ Hstk with ⟨#Hrp, #Hb⟩
-  ihave #Hkva := client.kvServerAt_of_is p s C.A cid mid C.n $$ Hkvs
-  rw [HCA]
-  imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid C.n il im iu ims is svcs regs
-      sregs Hregs Hrf Hnd hρ HL) $$ [Hgsn Hlis] with ⟨%γ, Hserv, -, #HPut, #HRange, #HDel, #HTxn, #HCmp⟩
-  · iframe; iframe #
-    iintro !>
-    imodintro
-    iunfold idCred
-    ipureintro; exact Hrb
-  imodintro
-  isplitl [Hserv]
-  · iexists γ; iexact Hserv
-  iunfold etcdKVAt
   iframe #
 
 end served

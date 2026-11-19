@@ -39,16 +39,6 @@ theorem etcdstart.etcdKVAt_regs [HasExt idIssueExt] [v3rpc_sem :
     ReadNames) (cid mid : w64) (hρ : ρ.rd = γr) : etcdstart.etcdKVAt addr E ρ γr cid mid ⊢
     client.kvRegsAt { addr := addr, E := E, γr := γr, cid := cid, mid := mid }
 
-theorem etcdstart.kv_served [HasExt idIssueExt] [v3rpc_sem :
-    go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [cache_sem :
-    go_etcd_io.etcd.cache.v3.Assumptions] (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr :
-    ReadNames) (gs : Loc) (lis : GoInterface) (addr : GoString) (cid mid : w64) (R : v3rpc.WSrv GF)
-    (Hrb : receiptBound GF ≤ 2 ^ 48) (Hrf : grpcRepliesFit) (hρ : ρ.rd = γr) (HL : srvLevels) :
-    isPkgInit pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗ isPkgInit
-    pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServerReq s E ρ ∗ isServerRead s E γr ∗
-    etcdstart.kvServeStocks s E γr ∗ etcdstart.grpcUp s E ρ γr gs lis addr cid mid R ⊢ |={⊤}=> (∃ γ,
-    grpcServeTok gs lis γ) ∗ etcdstart.etcdKVAt addr E ρ γr cid mid
-
 theorem etcdstart.memberUpOn_intro [v3rpc_sem :
     go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] (s : Loc) (ρ : ReqNames) (E₀ :
     apply.AEnv GF) (lg : Loc) (γn : NetNames GF) (id : w64) (γa : auth.AuthNames) (E : apply.AEnv

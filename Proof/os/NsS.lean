@@ -274,11 +274,12 @@ theorem os.Open.wp_dirS (p : GoString) (R : Roots) (j : Ino) (dq : DFrac) (qc : 
   iapply HΦ
   iexact Hr
 
-/-- `f.Close()` of a shared directory fd: any error; the fd gone. -/
+/-- `f.Close()` of a shared directory fd: any error, one `fmt` formats by its `Error()`
+(`fmtErrorOkOrNil`; fmt soundness, 2026-11-18); the fd gone. -/
 theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (ph : DirPhS) :
     {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name (DFrac.own 1) ∗ osDirFdS fd j ph }}
       (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Close")) (Val #()))
-    {{ (err : GoInterface), RET #err; emp }} := by
+    {{ (err : GoInterface), RET #err; EtcdGrove.fmtErrorOkOrNil err }} := by
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd⟩
   unfold os.model.inner
@@ -297,12 +298,13 @@ theorem os.File.Close.wp_dirS (f : Loc) (fd : w64) (name : GoString) (j : Ino) (
   · rw [decide_eq_true he]
     wp_auto
     iapply HΦ
-    iempintro
+    iapply EtcdGrove.fmtErrorOkOrNil_nil
   · rw [decide_eq_false he]
     wp_auto
-    wp_apply os.wp_wrapErrno _ inner name e $$ Hn as %pe
+    wp_apply os.wp_wrapErrno_ok _ inner name e he $$ Hn
+    iintro %pe #Hpe
     iapply HΦ
-    iempintro
+    iapply EtcdGrove.fmtErrorOkOrNil_of $$ Hpe
 
 /-- `f.Readdirnames(n)`, `n ≤ 0`, of a shared directory fd not yet read, with a fraction of a claim
 on names `N` of its directory: every name returned is valid; a name of `N` is returned iff it is

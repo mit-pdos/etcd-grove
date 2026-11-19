@@ -56,7 +56,7 @@ attribute [irreducible] Role.ty
 @[reducible] noncomputable def Permission_READWRITE [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom file_auth_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_auth_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def READ [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
@@ -85,22 +85,22 @@ noncomputable def file_auth_proto_rawDescData [GooseExts] [GoGlobalContext] : Go
 noncomputable def file_auth_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_enumTypes"
 
-axiom file_auth_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_auth_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_auth_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_msgTypes"
 
-axiom file_auth_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_auth_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_auth_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_goTypes"
 
-axiom file_auth_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_auth_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_auth_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_depIdxs"
 
-axiom file_auth_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_auth_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_auth_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/authpb.file_auth_proto_rawDescGZIP"

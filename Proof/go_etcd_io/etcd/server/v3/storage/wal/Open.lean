@@ -76,11 +76,7 @@ theorem walReadH_namesOut (write : Bool) (w : Loc) (dir : GoString) (s : w64 × 
 /-- A `fmtErrorOkOrNil` error is `errOk`. -/
 theorem walOpenDir_errOk (e : GoInterfaceOk) :
     fmtErrorOkOrNil (GF := GF) (GoInterface.ok e) ⊢ errOk e := by
-  unfold fmtErrorOkOrNil fmtErrorOk
-  iintro ⟨-, H⟩
-  unfold errOk
-  rw [fmt.stringMethodSpec_unfold]
-  iexact H
+  exact errOk_of_fmtErrorOkOrNil e
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     (wp_open : go_etcd_io.etcd.server.v3.storage.wal.openAtIndex.spec (W := W) Mr)
@@ -105,12 +101,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
     isplitr
     · ipureintro; rfl
     iintro %asl ⟨Hasl, -⟩
-    wp_apply wp_Errorf _ _ [interface.ok e] [e] (by
-        intro ii hii
-        right
-        simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-        cases hii
-        simp) $$ [Hasl] as %e1 #He1
+    wp_apply wp_Errorf _ _ [interface.ok e] [e] ?wf $$ [Hasl] as %e1 #He1
+    case wf => errargs_wf
     · iframe
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
       iexact He
@@ -187,12 +179,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.Open.wp_proof (Mr : WalMarshal)
       · ipureintro; rfl
       iintro %asl ⟨Hasl, -⟩
       ihave #He2' := walOpenDir_errOk e2 $$ He2
-      wp_apply wp_Errorf _ _ [interface.ok e2] [e2] (by
-          intro ii hii
-          right
-          simp only [List.mem_cons, List.not_mem_nil, or_false] at hii
-          cases hii
-          simp) $$ [Hasl] as %e1 #He1
+      wp_apply wp_Errorf _ _ [interface.ok e2] [e2] ?wf $$ [Hasl] as %e1 #He1
+      case wf => errargs_wf
       · iframe
         iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => errOk (GF := GF) e)).2
         iexact He2'

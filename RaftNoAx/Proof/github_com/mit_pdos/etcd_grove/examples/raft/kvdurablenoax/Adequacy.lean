@@ -110,7 +110,7 @@ theorem kvdurable_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvdurableProgram dir], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine durable_init_adequate (GF := durableGF)
     github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.Main) #dir)
@@ -159,7 +159,7 @@ theorem kvdurableN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvdurableProgramN dir k], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine durable_init_adequate (GF := durableGF)
     github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvdurablenoax.MainN) #dir #(W64 (k : Int)))

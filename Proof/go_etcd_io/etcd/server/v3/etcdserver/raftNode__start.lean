@@ -26,7 +26,6 @@ public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
 public import Spec.go_uber_org.zap.Duration
 public import Spec.go_uber_org.zap.Logger__Warn
-public import Proof.go_etcd_io.raft.v3.Linked
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NodeBridge
 
 @[expose] public section
@@ -38,7 +37,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 

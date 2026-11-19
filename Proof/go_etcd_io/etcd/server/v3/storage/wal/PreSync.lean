@@ -47,13 +47,13 @@ theorem io.writerStream_frame (wi : GoInterfaceOk) (lim : Nat) (W : List w8 → 
   iapply HΦ
   simp only []
   iframe Hp
-  icases Hr with (⟨%he, HW⟩ | ⟨%he, HB⟩)
+  icases Hr with (⟨%he, HW⟩ | ⟨%he, #Hek, HB⟩)
   · ileft; isplitr
     · ipureintro; exact he
     iframe; iframe #
   · iright; isplitr
     · ipureintro; exact he
-    iframe; iframe #
+    iframe Hek; iframe; iframe #
 
 end frame
 

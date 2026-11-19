@@ -25,28 +25,28 @@ noncomputable def Code.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Code.ty
 
-axiom Unset [GooseExts] [GoGlobalContext] : val
+opaque Unset [GooseExts] [GoGlobalContext] : val
 
-axiom Error [GooseExts] [GoGlobalContext] : val
+opaque Error [GooseExts] [GoGlobalContext] : val
 
-axiom Ok [GooseExts] [GoGlobalContext] : val
+opaque Ok [GooseExts] [GoGlobalContext] : val
 
-axiom maxCode [GooseExts] [GoGlobalContext] : val
+opaque maxCode [GooseExts] [GoGlobalContext] : val
 
 noncomputable def codeToStr [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/codes.codeToStr"
 
-axiom codeToStr.init [GooseExts] [GoGlobalContext] : val
+opaque codeToStr.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/codes.strToCode"
 
-axiom strToCode.init [GooseExts] [GoGlobalContext] : val
+opaque strToCode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.codes where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

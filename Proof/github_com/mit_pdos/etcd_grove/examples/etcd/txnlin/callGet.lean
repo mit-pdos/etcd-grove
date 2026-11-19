@@ -10,6 +10,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.callGet
 public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.vrOf
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 
 @[expose] public section
 

@@ -94,26 +94,26 @@ noncomputable def UnsafeElectionServer.ty [GooseExts] [GoGlobalContext] : go.GoT
 
 attribute [irreducible] UnsafeElectionServer.ty
 
-axiom ElectionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ElectionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom electionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque electionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Election_ObserveClient [GooseExts] [GoGlobalContext] : go.GoType
+opaque Election_ObserveClient [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def Election_ObserveServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty LeaderResponse.ty)
 
-axiom file_v3election_proto_rawDesc [GooseExts] [GoGlobalContext] : val
+opaque file_v3election_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Campaign_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Election_Campaign_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Proclaim_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Election_Proclaim_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Leader_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Election_Leader_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Observe_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Election_Observe_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Resign_FullMethodName [GooseExts] [GoGlobalContext] : val
+opaque Election_Resign_FullMethodName [GooseExts] [GoGlobalContext] : val
 
 noncomputable def File_v3election_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.File_v3election_proto"
@@ -127,22 +127,22 @@ noncomputable def file_v3election_proto_rawDescData [GooseExts] [GoGlobalContext
 noncomputable def file_v3election_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_msgTypes"
 
-axiom file_v3election_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_v3election_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_v3election_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_goTypes"
 
-axiom file_v3election_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
+opaque file_v3election_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_v3election_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_depIdxs"
 
-axiom file_v3election_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
+opaque file_v3election_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Election_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.Election_ServiceDesc"
 
-axiom Election_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
+opaque Election_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def file_v3election_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_rawDescGZIP"
@@ -1192,8 +1192,10 @@ attribute [instance] ProclaimResponse.TypeAssumptions.type_repr
   ProclaimResponse.TypeAssumptions.ptr_method_set
   ProclaimResponse.TypeAssumptions.ptr_GetHeader_unfold
 
-axiom ElectionClient : Type
-axiom ElectionClient.zero_val : ZeroVal ElectionClient
+opaque ElectionClient.nonempty_type : NonemptyType.{0}
+def ElectionClient : Type := ElectionClient.nonempty_type.type
+instance ElectionClient.nonempty : Nonempty ElectionClient := ElectionClient.nonempty_type.property
+opaque ElectionClient.zero_val : ZeroVal ElectionClient := ⟨Classical.ofNonempty⟩
 attribute [instance] ElectionClient.zero_val
 
 class ElectionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1209,8 +1211,10 @@ attribute [instance] ElectionClient.TypeAssumptions.type_repr
   ElectionClient.TypeAssumptions.method_set
   ElectionClient.TypeAssumptions.ptr_method_set
 
-axiom electionClient : Type
-axiom electionClient.zero_val : ZeroVal electionClient
+opaque electionClient.nonempty_type : NonemptyType.{0}
+def electionClient : Type := electionClient.nonempty_type.type
+instance electionClient.nonempty : Nonempty electionClient := electionClient.nonempty_type.property
+opaque electionClient.zero_val : ZeroVal electionClient := ⟨Classical.ofNonempty⟩
 attribute [instance] electionClient.zero_val
 
 class electionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

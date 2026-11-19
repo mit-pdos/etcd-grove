@@ -50,33 +50,33 @@ noncomputable def featureGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] featureGate.ty
 
-axiom MutableFeatureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque MutableFeatureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom featureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque featureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom defaultFlagName [GooseExts] [GoGlobalContext] : val
+opaque defaultFlagName [GooseExts] [GoGlobalContext] : val
 
-axiom allAlphaGate [GooseExts] [GoGlobalContext] : val
+opaque allAlphaGate [GooseExts] [GoGlobalContext] : val
 
-axiom allBetaGate [GooseExts] [GoGlobalContext] : val
+opaque allBetaGate [GooseExts] [GoGlobalContext] : val
 
-axiom Alpha [GooseExts] [GoGlobalContext] : val
+opaque Alpha [GooseExts] [GoGlobalContext] : val
 
-axiom Beta [GooseExts] [GoGlobalContext] : val
+opaque Beta [GooseExts] [GoGlobalContext] : val
 
-axiom GA [GooseExts] [GoGlobalContext] : val
+opaque GA [GooseExts] [GoGlobalContext] : val
 
-axiom Deprecated [GooseExts] [GoGlobalContext] : val
+opaque Deprecated [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/featuregate.defaultFeatures"
 
-axiom defaultFeatures.init [GooseExts] [GoGlobalContext] : val
+opaque defaultFeatures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def specialFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/featuregate.specialFeatures"
 
-axiom specialFeatures.init [GooseExts] [GoGlobalContext] : val
+opaque specialFeatures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def setUnsetAlphaGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/featuregate.setUnsetAlphaGates"
@@ -90,7 +90,7 @@ noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.featuregate where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -194,8 +194,10 @@ attribute [instance] FeatureGate.TypeAssumptions.underlying
   FeatureGate.TypeAssumptions.method_set
   FeatureGate.TypeAssumptions.ptr_method_set
 
-axiom MutableFeatureGate : Type
-axiom MutableFeatureGate.zero_val : ZeroVal MutableFeatureGate
+opaque MutableFeatureGate.nonempty_type : NonemptyType.{0}
+def MutableFeatureGate : Type := MutableFeatureGate.nonempty_type.type
+instance MutableFeatureGate.nonempty : Nonempty MutableFeatureGate := MutableFeatureGate.nonempty_type.property
+opaque MutableFeatureGate.zero_val : ZeroVal MutableFeatureGate := ⟨Classical.ofNonempty⟩
 attribute [instance] MutableFeatureGate.zero_val
 
 class MutableFeatureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -211,8 +213,10 @@ attribute [instance] MutableFeatureGate.TypeAssumptions.type_repr
   MutableFeatureGate.TypeAssumptions.method_set
   MutableFeatureGate.TypeAssumptions.ptr_method_set
 
-axiom featureGate : Type
-axiom featureGate.zero_val : ZeroVal featureGate
+opaque featureGate.nonempty_type : NonemptyType.{0}
+def featureGate : Type := featureGate.nonempty_type.type
+instance featureGate.nonempty : Nonempty featureGate := featureGate.nonempty_type.property
+opaque featureGate.zero_val : ZeroVal featureGate := ⟨Classical.ofNonempty⟩
 attribute [instance] featureGate.zero_val
 
 class featureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

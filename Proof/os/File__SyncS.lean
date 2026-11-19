@@ -66,6 +66,7 @@ theorem os.File.Sync.wp_proofDirS : os.File.Sync.specDirS (GF := GF) (hG := hG) 
     isplitl []
     · isplitl [] <;> iassumption
     ileft
+    iframe Hok
     ipureintro; intro h; cases h
 
 end proof

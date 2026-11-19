@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `wp_auto` on a large struct literal: 147s for a 34-field struct (2026-11-18, proof-perf)
+
+`k8s.etcd3.genFrom` (326s): after `wp_apply wp_uidOf`, one `wp_auto` builds the 34-field `Op` struct
+literal and takes 147s, in many sub-second steps (no unification of a second or more). The struct
+automation's cost seems superlinear in the number of fields; every proof building a large Go struct
+pays it (`NewServer`/`NewServerR` build the server's). To investigate in Perennial with a reproduction
+(a struct of n fields, n = 4, 8, 16, 32), not worked around here.
+
+### `solve_pkg_init` searched the package DAG without memoization: landed, awaiting a pin bump (2026-11-18)
+
+Perennial `cb8e7bc67` (on `lean`): `pkgInitChain` remembers the packages whose dependencies were searched
+without reaching the target (the same proof found). `EtcdServer.LeaseRenew` 220s to 175s (14 calls, 3.5s
+each); it runs in nearly every proof's `wp_apply`/`wp_auto`. Take it with the next pin bump (a bump
+rebuilds everything; no bump of its own).
+
+
 ### The thread-token `WaitGroup` joins have no `Add` by a member, during a `Wait` (2026-11-16, k8s 7f-5b)
 
 - **Missing.** `sync.tokJoin` and `sync.tokJoinL` (`Perennial/Proof/sync/WaitGroupTokJoin{,L}.lean`)
@@ -2761,3 +2777,21 @@ local copy of `spsc_send_au` whose token and element resource come from `X` at t
 `X ⊢ ∃ sent, spscProducer γ sent ∗ (spscProducer γ sent -∗ X)` to refute the closed states). General
 fix to propose on its own: that lemma in `Spsc.lean` (`spsc_send_au_inv`), or `isSpsc` with a namespace
 parameter.
+
+## 2026-11-18: `fmt.Errorf`'s unfolding is a field of `fmt.Assumptions` (fmt soundness, branch `fmt-soundness`)
+
+- **The gap.** `fmt.Assumptions` carries `Errorf_unfold : FuncUnfold Errorf [] Errorf.impl`, an
+  instance every proof with `[fmt.Assumptions]` in scope can use: `wp_start`/`wp_apply` on a call of
+  `@! fmt.Errorf` steps into `Errorf.impl = errors.New(format)`, which neither models `%w` (Go
+  returns a `*fmt.wrapError`) nor calls the arguments' `Error`/`String`/`Format`/`GoString` methods
+  (Go does, and they may change caller-owned memory or panic past `fmt`'s recovery). A proof that
+  steps into it is sound only if its statement says nothing the model and Go disagree on; nothing in
+  Perennial enforces that. Here the gate `etc/errorf-wrap-check.py` (over `etc/tcb-report.lean`'s
+  term walk) keeps a reviewed list of the modules whose proofs do (2026-11-18, replacing a text
+  search that missed three: `Proof/fmt/Errorf{Errs,Strs,Any}.lean`).
+- **Proposed (general; record only, nothing changed in Perennial).** (1) Make `Errorf_unfold` not a
+  field of `fmt.Assumptions` (a separate, explicitly imported instance, or none: `fmt.Errorf`
+  trusted with its spec only), so that only Perennial's own `fmt.Errorf.wp_proof` unfolds the model;
+  (2) later, model `%w` (a `*fmt.wrapError` with `Unwrap`, its message the formatted string) and the
+  arguments' formatting-method calls, with a spec taking the methods' specs (`fmt.argOk`-like).
+- **Status.** Recorded only.

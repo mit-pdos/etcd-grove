@@ -503,101 +503,101 @@ noncomputable instance «equals_unfold_struct#9f4eeae4» [GooseExts] [GoGlobalCo
 @[reducible] noncomputable def «struct#9f4eeae4».underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType «struct#9f4eeae4».fields)
 
-axiom methods [GooseExts] [GoGlobalContext] : go.GoType
+opaque methods [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def supportFlags.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-axiom sizeInput [GooseExts] [GoGlobalContext] : go.GoType
+opaque sizeInput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom sizeOutput [GooseExts] [GoGlobalContext] : go.GoType
+opaque sizeOutput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom marshalInput [GooseExts] [GoGlobalContext] : go.GoType
+opaque marshalInput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom marshalOutput [GooseExts] [GoGlobalContext] : go.GoType
+opaque marshalOutput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unmarshalInput [GooseExts] [GoGlobalContext] : go.GoType
+opaque unmarshalInput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unmarshalOutput [GooseExts] [GoGlobalContext] : go.GoType
+opaque unmarshalOutput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mergeInput [GooseExts] [GoGlobalContext] : go.GoType
+opaque mergeInput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mergeOutput [GooseExts] [GoGlobalContext] : go.GoType
+opaque mergeOutput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom checkInitializedInput [GooseExts] [GoGlobalContext] : go.GoType
+opaque checkInitializedInput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom checkInitializedOutput [GooseExts] [GoGlobalContext] : go.GoType
+opaque checkInitializedOutput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom equalInput [GooseExts] [GoGlobalContext] : go.GoType
+opaque equalInput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom equalOutput [GooseExts] [GoGlobalContext] : go.GoType
+opaque equalOutput [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom doNotImplement.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque doNotImplement.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FieldNumber [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldNumber [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FieldNumbers.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldNumbers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FieldRanges.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldRanges.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FieldDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FieldDescriptors.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldDescriptors.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 @[reducible] noncomputable def ExtensionDescriptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   FieldDescriptor.ty
 
-axiom Message.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Message.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom value.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque value.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Proto2 [GooseExts] [GoGlobalContext] : val
+opaque Proto2 [GooseExts] [GoGlobalContext] : val
 
-axiom Proto3 [GooseExts] [GoGlobalContext] : val
+opaque Proto3 [GooseExts] [GoGlobalContext] : val
 
-axiom Editions [GooseExts] [GoGlobalContext] : val
+opaque Editions [GooseExts] [GoGlobalContext] : val
 
-axiom Optional [GooseExts] [GoGlobalContext] : val
+opaque Optional [GooseExts] [GoGlobalContext] : val
 
-axiom Required [GooseExts] [GoGlobalContext] : val
+opaque Required [GooseExts] [GoGlobalContext] : val
 
-axiom Repeated [GooseExts] [GoGlobalContext] : val
+opaque Repeated [GooseExts] [GoGlobalContext] : val
 
-axiom BoolKind [GooseExts] [GoGlobalContext] : val
+opaque BoolKind [GooseExts] [GoGlobalContext] : val
 
-axiom EnumKind [GooseExts] [GoGlobalContext] : val
+opaque EnumKind [GooseExts] [GoGlobalContext] : val
 
-axiom Int32Kind [GooseExts] [GoGlobalContext] : val
+opaque Int32Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Sint32Kind [GooseExts] [GoGlobalContext] : val
+opaque Sint32Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Uint32Kind [GooseExts] [GoGlobalContext] : val
+opaque Uint32Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Int64Kind [GooseExts] [GoGlobalContext] : val
+opaque Int64Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Sint64Kind [GooseExts] [GoGlobalContext] : val
+opaque Sint64Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Uint64Kind [GooseExts] [GoGlobalContext] : val
+opaque Uint64Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Sfixed32Kind [GooseExts] [GoGlobalContext] : val
+opaque Sfixed32Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Fixed32Kind [GooseExts] [GoGlobalContext] : val
+opaque Fixed32Kind [GooseExts] [GoGlobalContext] : val
 
-axiom FloatKind [GooseExts] [GoGlobalContext] : val
+opaque FloatKind [GooseExts] [GoGlobalContext] : val
 
-axiom Sfixed64Kind [GooseExts] [GoGlobalContext] : val
+opaque Sfixed64Kind [GooseExts] [GoGlobalContext] : val
 
-axiom Fixed64Kind [GooseExts] [GoGlobalContext] : val
+opaque Fixed64Kind [GooseExts] [GoGlobalContext] : val
 
-axiom DoubleKind [GooseExts] [GoGlobalContext] : val
+opaque DoubleKind [GooseExts] [GoGlobalContext] : val
 
-axiom StringKind [GooseExts] [GoGlobalContext] : val
+opaque StringKind [GooseExts] [GoGlobalContext] : val
 
-axiom BytesKind [GooseExts] [GoGlobalContext] : val
+opaque BytesKind [GooseExts] [GoGlobalContext] : val
 
-axiom MessageKind [GooseExts] [GoGlobalContext] : val
+opaque MessageKind [GooseExts] [GoGlobalContext] : val
 
-axiom GroupKind [GooseExts] [GoGlobalContext] : val
+opaque GroupKind [GooseExts] [GoGlobalContext] : val
 
 noncomputable def nilType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/reflect/protoreflect.nilType"
@@ -716,7 +716,7 @@ noncomputable def valueOfIface [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.reflect.protoreflect where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -755,8 +755,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val nilType.init) (Val #()))))))))
 
-axiom doNotImplement : Type
-axiom doNotImplement.zero_val : ZeroVal doNotImplement
+opaque doNotImplement.nonempty_type : NonemptyType.{0}
+def doNotImplement : Type := doNotImplement.nonempty_type.type
+instance doNotImplement.nonempty : Nonempty doNotImplement := doNotImplement.nonempty_type.property
+opaque doNotImplement.zero_val : ZeroVal doNotImplement := ⟨Classical.ofNonempty⟩
 attribute [instance] doNotImplement.zero_val
 
 class doNotImplement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -870,8 +872,10 @@ attribute [instance] Kind.TypeAssumptions.underlying
   Kind.TypeAssumptions.method_set
   Kind.TypeAssumptions.ptr_method_set
 
-axiom FieldNumbers : Type
-axiom FieldNumbers.zero_val : ZeroVal FieldNumbers
+opaque FieldNumbers.nonempty_type : NonemptyType.{0}
+def FieldNumbers : Type := FieldNumbers.nonempty_type.type
+instance FieldNumbers.nonempty : Nonempty FieldNumbers := FieldNumbers.nonempty_type.property
+opaque FieldNumbers.zero_val : ZeroVal FieldNumbers := ⟨Classical.ofNonempty⟩
 attribute [instance] FieldNumbers.zero_val
 
 class FieldNumbers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -887,8 +891,10 @@ attribute [instance] FieldNumbers.TypeAssumptions.type_repr
   FieldNumbers.TypeAssumptions.method_set
   FieldNumbers.TypeAssumptions.ptr_method_set
 
-axiom FieldRanges : Type
-axiom FieldRanges.zero_val : ZeroVal FieldRanges
+opaque FieldRanges.nonempty_type : NonemptyType.{0}
+def FieldRanges : Type := FieldRanges.nonempty_type.type
+instance FieldRanges.nonempty : Nonempty FieldRanges := FieldRanges.nonempty_type.property
+opaque FieldRanges.zero_val : ZeroVal FieldRanges := ⟨Classical.ofNonempty⟩
 attribute [instance] FieldRanges.zero_val
 
 class FieldRanges.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1272,8 +1278,10 @@ attribute [instance] MessageDescriptors.TypeAssumptions.underlying
   MessageDescriptors.TypeAssumptions.method_set
   MessageDescriptors.TypeAssumptions.ptr_method_set
 
-axiom FieldDescriptor : Type
-axiom FieldDescriptor.zero_val : ZeroVal FieldDescriptor
+opaque FieldDescriptor.nonempty_type : NonemptyType.{0}
+def FieldDescriptor : Type := FieldDescriptor.nonempty_type.type
+instance FieldDescriptor.nonempty : Nonempty FieldDescriptor := FieldDescriptor.nonempty_type.property
+opaque FieldDescriptor.zero_val : ZeroVal FieldDescriptor := ⟨Classical.ofNonempty⟩
 attribute [instance] FieldDescriptor.zero_val
 
 class FieldDescriptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1303,8 +1311,10 @@ attribute [instance] isFieldDescriptor.TypeAssumptions.underlying
   isFieldDescriptor.TypeAssumptions.method_set
   isFieldDescriptor.TypeAssumptions.ptr_method_set
 
-axiom FieldDescriptors : Type
-axiom FieldDescriptors.zero_val : ZeroVal FieldDescriptors
+opaque FieldDescriptors.nonempty_type : NonemptyType.{0}
+def FieldDescriptors : Type := FieldDescriptors.nonempty_type.type
+instance FieldDescriptors.nonempty : Nonempty FieldDescriptors := FieldDescriptors.nonempty_type.property
+opaque FieldDescriptors.zero_val : ZeroVal FieldDescriptors := ⟨Classical.ofNonempty⟩
 attribute [instance] FieldDescriptors.zero_val
 
 class FieldDescriptors.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1600,8 +1610,10 @@ attribute [instance] Enum.TypeAssumptions.underlying
   Enum.TypeAssumptions.method_set
   Enum.TypeAssumptions.ptr_method_set
 
-axiom Message : Type
-axiom Message.zero_val : ZeroVal Message
+opaque Message.nonempty_type : NonemptyType.{0}
+def Message : Type := Message.nonempty_type.type
+instance Message.nonempty : Nonempty Message := Message.nonempty_type.property
+opaque Message.zero_val : ZeroVal Message := ⟨Classical.ofNonempty⟩
 attribute [instance] Message.zero_val
 
 class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1659,8 +1671,10 @@ attribute [instance] Map.TypeAssumptions.underlying
   Map.TypeAssumptions.method_set
   Map.TypeAssumptions.ptr_method_set
 
-axiom value : Type
-axiom value.zero_val : ZeroVal value
+opaque value.nonempty_type : NonemptyType.{0}
+def value : Type := value.nonempty_type.type
+instance value.nonempty : Nonempty value := value.nonempty_type.property
+opaque value.zero_val : ZeroVal value := ⟨Classical.ofNonempty⟩
 attribute [instance] value.zero_val
 
 class value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1751,8 +1765,10 @@ attribute [instance] ifaceHeader.TypeAssumptions.type_repr
   ifaceHeader.TypeAssumptions.method_set
   ifaceHeader.TypeAssumptions.ptr_method_set
 
-axiom «struct#39c24ac0» : Type
-axiom «struct#39c24ac0».zero_val : ZeroVal «struct#39c24ac0»
+opaque «struct#39c24ac0».nonempty_type : NonemptyType.{0}
+def «struct#39c24ac0» : Type := «struct#39c24ac0».nonempty_type.type
+instance «struct#39c24ac0».nonempty : Nonempty «struct#39c24ac0» := «struct#39c24ac0».nonempty_type.property
+opaque «struct#39c24ac0».zero_val : ZeroVal «struct#39c24ac0» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#39c24ac0».zero_val
 
 class «struct#39c24ac0».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1760,8 +1776,10 @@ class «struct#39c24ac0».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#39c24ac0».TypeAssumptions.type_repr
 
-axiom «struct#09ab9bd9» : Type
-axiom «struct#09ab9bd9».zero_val : ZeroVal «struct#09ab9bd9»
+opaque «struct#09ab9bd9».nonempty_type : NonemptyType.{0}
+def «struct#09ab9bd9» : Type := «struct#09ab9bd9».nonempty_type.type
+instance «struct#09ab9bd9».nonempty : Nonempty «struct#09ab9bd9» := «struct#09ab9bd9».nonempty_type.property
+opaque «struct#09ab9bd9».zero_val : ZeroVal «struct#09ab9bd9» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#09ab9bd9».zero_val
 
 class «struct#09ab9bd9».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1769,8 +1787,10 @@ class «struct#09ab9bd9».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#09ab9bd9».TypeAssumptions.type_repr
 
-axiom «struct#85bf90eb» : Type
-axiom «struct#85bf90eb».zero_val : ZeroVal «struct#85bf90eb»
+opaque «struct#85bf90eb».nonempty_type : NonemptyType.{0}
+def «struct#85bf90eb» : Type := «struct#85bf90eb».nonempty_type.type
+instance «struct#85bf90eb».nonempty : Nonempty «struct#85bf90eb» := «struct#85bf90eb».nonempty_type.property
+opaque «struct#85bf90eb».zero_val : ZeroVal «struct#85bf90eb» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#85bf90eb».zero_val
 
 class «struct#85bf90eb».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1778,8 +1798,10 @@ class «struct#85bf90eb».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#85bf90eb».TypeAssumptions.type_repr
 
-axiom «struct#69fc66c6» : Type
-axiom «struct#69fc66c6».zero_val : ZeroVal «struct#69fc66c6»
+opaque «struct#69fc66c6».nonempty_type : NonemptyType.{0}
+def «struct#69fc66c6» : Type := «struct#69fc66c6».nonempty_type.type
+instance «struct#69fc66c6».nonempty : Nonempty «struct#69fc66c6» := «struct#69fc66c6».nonempty_type.property
+opaque «struct#69fc66c6».zero_val : ZeroVal «struct#69fc66c6» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#69fc66c6».zero_val
 
 class «struct#69fc66c6».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1787,8 +1809,10 @@ class «struct#69fc66c6».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#69fc66c6».TypeAssumptions.type_repr
 
-axiom «struct#a47ca8a7» : Type
-axiom «struct#a47ca8a7».zero_val : ZeroVal «struct#a47ca8a7»
+opaque «struct#a47ca8a7».nonempty_type : NonemptyType.{0}
+def «struct#a47ca8a7» : Type := «struct#a47ca8a7».nonempty_type.type
+instance «struct#a47ca8a7».nonempty : Nonempty «struct#a47ca8a7» := «struct#a47ca8a7».nonempty_type.property
+opaque «struct#a47ca8a7».zero_val : ZeroVal «struct#a47ca8a7» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#a47ca8a7».zero_val
 
 class «struct#a47ca8a7».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1796,8 +1820,10 @@ class «struct#a47ca8a7».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#a47ca8a7».TypeAssumptions.type_repr
 
-axiom «struct#9d85598c» : Type
-axiom «struct#9d85598c».zero_val : ZeroVal «struct#9d85598c»
+opaque «struct#9d85598c».nonempty_type : NonemptyType.{0}
+def «struct#9d85598c» : Type := «struct#9d85598c».nonempty_type.type
+instance «struct#9d85598c».nonempty : Nonempty «struct#9d85598c» := «struct#9d85598c».nonempty_type.property
+opaque «struct#9d85598c».zero_val : ZeroVal «struct#9d85598c» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#9d85598c».zero_val
 
 class «struct#9d85598c».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1805,8 +1831,10 @@ class «struct#9d85598c».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#9d85598c».TypeAssumptions.type_repr
 
-axiom «struct#07f26e0d» : Type
-axiom «struct#07f26e0d».zero_val : ZeroVal «struct#07f26e0d»
+opaque «struct#07f26e0d».nonempty_type : NonemptyType.{0}
+def «struct#07f26e0d» : Type := «struct#07f26e0d».nonempty_type.type
+instance «struct#07f26e0d».nonempty : Nonempty «struct#07f26e0d» := «struct#07f26e0d».nonempty_type.property
+opaque «struct#07f26e0d».zero_val : ZeroVal «struct#07f26e0d» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#07f26e0d».zero_val
 
 class «struct#07f26e0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1814,8 +1842,10 @@ class «struct#07f26e0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#07f26e0d».TypeAssumptions.type_repr
 
-axiom «struct#dc47f379» : Type
-axiom «struct#dc47f379».zero_val : ZeroVal «struct#dc47f379»
+opaque «struct#dc47f379».nonempty_type : NonemptyType.{0}
+def «struct#dc47f379» : Type := «struct#dc47f379».nonempty_type.type
+instance «struct#dc47f379».nonempty : Nonempty «struct#dc47f379» := «struct#dc47f379».nonempty_type.property
+opaque «struct#dc47f379».zero_val : ZeroVal «struct#dc47f379» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#dc47f379».zero_val
 
 class «struct#dc47f379».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1823,8 +1853,10 @@ class «struct#dc47f379».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#dc47f379».TypeAssumptions.type_repr
 
-axiom «struct#26ca81e8» : Type
-axiom «struct#26ca81e8».zero_val : ZeroVal «struct#26ca81e8»
+opaque «struct#26ca81e8».nonempty_type : NonemptyType.{0}
+def «struct#26ca81e8» : Type := «struct#26ca81e8».nonempty_type.type
+instance «struct#26ca81e8».nonempty : Nonempty «struct#26ca81e8» := «struct#26ca81e8».nonempty_type.property
+opaque «struct#26ca81e8».zero_val : ZeroVal «struct#26ca81e8» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#26ca81e8».zero_val
 
 class «struct#26ca81e8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1832,8 +1864,10 @@ class «struct#26ca81e8».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#26ca81e8».TypeAssumptions.type_repr
 
-axiom «struct#9d8af3ce» : Type
-axiom «struct#9d8af3ce».zero_val : ZeroVal «struct#9d8af3ce»
+opaque «struct#9d8af3ce».nonempty_type : NonemptyType.{0}
+def «struct#9d8af3ce» : Type := «struct#9d8af3ce».nonempty_type.type
+instance «struct#9d8af3ce».nonempty : Nonempty «struct#9d8af3ce» := «struct#9d8af3ce».nonempty_type.property
+opaque «struct#9d8af3ce».zero_val : ZeroVal «struct#9d8af3ce» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#9d8af3ce».zero_val
 
 class «struct#9d8af3ce».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1841,8 +1875,10 @@ class «struct#9d8af3ce».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#9d8af3ce».TypeAssumptions.type_repr
 
-axiom «struct#f228ed0d» : Type
-axiom «struct#f228ed0d».zero_val : ZeroVal «struct#f228ed0d»
+opaque «struct#f228ed0d».nonempty_type : NonemptyType.{0}
+def «struct#f228ed0d» : Type := «struct#f228ed0d».nonempty_type.type
+instance «struct#f228ed0d».nonempty : Nonempty «struct#f228ed0d» := «struct#f228ed0d».nonempty_type.property
+opaque «struct#f228ed0d».zero_val : ZeroVal «struct#f228ed0d» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#f228ed0d».zero_val
 
 class «struct#f228ed0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1850,8 +1886,10 @@ class «struct#f228ed0d».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
 
 attribute [instance] «struct#f228ed0d».TypeAssumptions.type_repr
 
-axiom «struct#9f4eeae4» : Type
-axiom «struct#9f4eeae4».zero_val : ZeroVal «struct#9f4eeae4»
+opaque «struct#9f4eeae4».nonempty_type : NonemptyType.{0}
+def «struct#9f4eeae4» : Type := «struct#9f4eeae4».nonempty_type.type
+instance «struct#9f4eeae4».nonempty : Nonempty «struct#9f4eeae4» := «struct#9f4eeae4».nonempty_type.property
+opaque «struct#9f4eeae4».zero_val : ZeroVal «struct#9f4eeae4» := ⟨Classical.ofNonempty⟩
 attribute [instance] «struct#9f4eeae4».zero_val
 
 class «struct#9f4eeae4».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

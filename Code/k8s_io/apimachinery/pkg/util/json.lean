@@ -20,7 +20,7 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.util.json
 
-axiom maxDepth [GooseExts] [GoGlobalContext] : val
+opaque maxDepth [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/json.NewEncoder"
@@ -46,7 +46,7 @@ noncomputable def convertNumber [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.json where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

@@ -13,6 +13,7 @@ public import Spec.context.ErrAny
 public import Spec.context.WithTimeoutBackgroundMd
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.go_etcd_io.etcd.client.v3.ResultsOn
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section

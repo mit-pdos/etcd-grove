@@ -42,6 +42,8 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.context.Results
 public import Proof.go_etcd_io.etcd.cache.v3.Cache__watchEvents
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.WatchEnv
+public import Proof.go_etcd_io.etcd.client.v3.KMWatch
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

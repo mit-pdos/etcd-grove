@@ -280,73 +280,73 @@ noncomputable def NetworkPolicyList.ty [GooseExts] [GoGlobalContext] : go.GoType
 
 attribute [irreducible] NetworkPolicyList.ty
 
-axiom Scale.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Scale.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Deployment.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Deployment.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentRollback.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentRollback.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateDeployment.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RollingUpdateDeployment.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeploymentList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeploymentList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RollingUpdateDaemonSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque RollingUpdateDaemonSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DaemonSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DaemonSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Ingress.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Ingress.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressPortStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressPortStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom IngressBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque IngressBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSet.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ReplicaSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ReplicaSetCondition.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicySpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkPolicySpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicyPort.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkPolicyPort.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicyPeer.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkPolicyPeer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom NetworkPolicyList.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque NetworkPolicyList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultDeploymentUniqueLabelKey [GooseExts] [GoGlobalContext] : val
+opaque DefaultDeploymentUniqueLabelKey [GooseExts] [GoGlobalContext] : val
 
-axiom RecreateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RecreateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom RollingUpdateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RollingUpdateDeploymentStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentAvailable [GooseExts] [GoGlobalContext] : val
+opaque DeploymentAvailable [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentProgressing [GooseExts] [GoGlobalContext] : val
+opaque DeploymentProgressing [GooseExts] [GoGlobalContext] : val
 
-axiom DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
+opaque DeploymentReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-axiom RollingUpdateDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val
+opaque RollingUpdateDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val
 
-axiom OnDeleteDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val
+opaque OnDeleteDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def DaemonSetTemplateGenerationKey [GooseExts] [GoGlobalContext] : val :=
   #(go!"pod-template-generation")
@@ -354,277 +354,277 @@ axiom OnDeleteDaemonSetStrategyType [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def DefaultDaemonSetUniqueLabelKey [GooseExts] [GoGlobalContext] : val :=
   #(go!"controller-revision-hash")
 
-axiom PathTypeExact [GooseExts] [GoGlobalContext] : val
+opaque PathTypeExact [GooseExts] [GoGlobalContext] : val
 
-axiom PathTypePrefix [GooseExts] [GoGlobalContext] : val
+opaque PathTypePrefix [GooseExts] [GoGlobalContext] : val
 
-axiom PathTypeImplementationSpecific [GooseExts] [GoGlobalContext] : val
+opaque PathTypeImplementationSpecific [GooseExts] [GoGlobalContext] : val
 
-axiom ReplicaSetReplicaFailure [GooseExts] [GoGlobalContext] : val
+opaque ReplicaSetReplicaFailure [GooseExts] [GoGlobalContext] : val
 
-axiom PolicyTypeIngress [GooseExts] [GoGlobalContext] : val
+opaque PolicyTypeIngress [GooseExts] [GoGlobalContext] : val
 
-axiom PolicyTypeEgress [GooseExts] [GoGlobalContext] : val
+opaque PolicyTypeEgress [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.SchemeBuilder"
 
-axiom SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def AddToScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.AddToScheme"
 
-axiom AddToScheme.init [GooseExts] [GoGlobalContext] : val
+opaque AddToScheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DaemonSet"
 
-axiom map_DaemonSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DaemonSetCondition"
 
-axiom map_DaemonSetCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DaemonSetList"
 
-axiom map_DaemonSetList.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DaemonSetSpec"
 
-axiom map_DaemonSetSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DaemonSetStatus"
 
-axiom map_DaemonSetStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DaemonSetUpdateStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DaemonSetUpdateStrategy"
 
-axiom map_DaemonSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque map_DaemonSetUpdateStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Deployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_Deployment"
 
-axiom map_Deployment.init [GooseExts] [GoGlobalContext] : val
+opaque map_Deployment.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DeploymentCondition"
 
-axiom map_DeploymentCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DeploymentList"
 
-axiom map_DeploymentList.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentRollback [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DeploymentRollback"
 
-axiom map_DeploymentRollback.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentRollback.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DeploymentSpec"
 
-axiom map_DeploymentSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DeploymentStatus"
 
-axiom map_DeploymentStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeploymentStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_DeploymentStrategy"
 
-axiom map_DeploymentStrategy.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeploymentStrategy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HTTPIngressPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_HTTPIngressPath"
 
-axiom map_HTTPIngressPath.init [GooseExts] [GoGlobalContext] : val
+opaque map_HTTPIngressPath.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_HTTPIngressRuleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_HTTPIngressRuleValue"
 
-axiom map_HTTPIngressRuleValue.init [GooseExts] [GoGlobalContext] : val
+opaque map_HTTPIngressRuleValue.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IPBlock [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IPBlock"
 
-axiom map_IPBlock.init [GooseExts] [GoGlobalContext] : val
+opaque map_IPBlock.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Ingress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_Ingress"
 
-axiom map_Ingress.init [GooseExts] [GoGlobalContext] : val
+opaque map_Ingress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressBackend"
 
-axiom map_IngressBackend.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressBackend.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressList"
 
-axiom map_IngressList.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressLoadBalancerIngress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressLoadBalancerIngress"
 
-axiom map_IngressLoadBalancerIngress.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressLoadBalancerIngress.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressLoadBalancerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressLoadBalancerStatus"
 
-axiom map_IngressLoadBalancerStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressLoadBalancerStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressPortStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressPortStatus"
 
-axiom map_IngressPortStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressPortStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressRule [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressRule"
 
-axiom map_IngressRule.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressRule.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressRuleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressRuleValue"
 
-axiom map_IngressRuleValue.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressRuleValue.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressSpec"
 
-axiom map_IngressSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressStatus"
 
-axiom map_IngressStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_IngressTLS [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_IngressTLS"
 
-axiom map_IngressTLS.init [GooseExts] [GoGlobalContext] : val
+opaque map_IngressTLS.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicy"
 
-axiom map_NetworkPolicy.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicyEgressRule [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicyEgressRule"
 
-axiom map_NetworkPolicyEgressRule.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicyEgressRule.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicyIngressRule [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicyIngressRule"
 
-axiom map_NetworkPolicyIngressRule.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicyIngressRule.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicyList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicyList"
 
-axiom map_NetworkPolicyList.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicyList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicyPeer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicyPeer"
 
-axiom map_NetworkPolicyPeer.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicyPeer.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicyPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicyPort"
 
-axiom map_NetworkPolicyPort.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicyPort.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_NetworkPolicySpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_NetworkPolicySpec"
 
-axiom map_NetworkPolicySpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_NetworkPolicySpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ReplicaSet"
 
-axiom map_ReplicaSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ReplicaSetCondition"
 
-axiom map_ReplicaSetCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ReplicaSetList"
 
-axiom map_ReplicaSetList.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ReplicaSetSpec"
 
-axiom map_ReplicaSetSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ReplicaSetStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ReplicaSetStatus"
 
-axiom map_ReplicaSetStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ReplicaSetStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RollbackConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_RollbackConfig"
 
-axiom map_RollbackConfig.init [GooseExts] [GoGlobalContext] : val
+opaque map_RollbackConfig.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RollingUpdateDaemonSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_RollingUpdateDaemonSet"
 
-axiom map_RollingUpdateDaemonSet.init [GooseExts] [GoGlobalContext] : val
+opaque map_RollingUpdateDaemonSet.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RollingUpdateDeployment [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_RollingUpdateDeployment"
 
-axiom map_RollingUpdateDeployment.init [GooseExts] [GoGlobalContext] : val
+opaque map_RollingUpdateDeployment.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Scale [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_Scale"
 
-axiom map_Scale.init [GooseExts] [GoGlobalContext] : val
+opaque map_Scale.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScaleSpec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ScaleSpec"
 
-axiom map_ScaleSpec.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScaleSpec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ScaleStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.map_ScaleStatus"
 
-axiom map_ScaleStatus.init [GooseExts] [GoGlobalContext] : val
+opaque map_ScaleStatus.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def encodeVarintGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/api/extensions/v1beta1.encodeVarintGenerated"
@@ -650,7 +650,7 @@ noncomputable def addKnownTypes [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.api.extensions.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -894,8 +894,10 @@ attribute [instance] ScaleStatus.TypeAssumptions.type_repr
   ScaleStatus.TypeAssumptions.method_set
   ScaleStatus.TypeAssumptions.ptr_method_set
 
-axiom Scale : Type
-axiom Scale.zero_val : ZeroVal Scale
+opaque Scale.nonempty_type : NonemptyType.{0}
+def Scale : Type := Scale.nonempty_type.type
+instance Scale.nonempty : Nonempty Scale := Scale.nonempty_type.property
+opaque Scale.zero_val : ZeroVal Scale := ⟨Classical.ofNonempty⟩
 attribute [instance] Scale.zero_val
 
 class Scale.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -911,8 +913,10 @@ attribute [instance] Scale.TypeAssumptions.type_repr
   Scale.TypeAssumptions.method_set
   Scale.TypeAssumptions.ptr_method_set
 
-axiom Deployment : Type
-axiom Deployment.zero_val : ZeroVal Deployment
+opaque Deployment.nonempty_type : NonemptyType.{0}
+def Deployment : Type := Deployment.nonempty_type.type
+instance Deployment.nonempty : Nonempty Deployment := Deployment.nonempty_type.property
+opaque Deployment.zero_val : ZeroVal Deployment := ⟨Classical.ofNonempty⟩
 attribute [instance] Deployment.zero_val
 
 class Deployment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -928,8 +932,10 @@ attribute [instance] Deployment.TypeAssumptions.type_repr
   Deployment.TypeAssumptions.method_set
   Deployment.TypeAssumptions.ptr_method_set
 
-axiom DeploymentSpec : Type
-axiom DeploymentSpec.zero_val : ZeroVal DeploymentSpec
+opaque DeploymentSpec.nonempty_type : NonemptyType.{0}
+def DeploymentSpec : Type := DeploymentSpec.nonempty_type.type
+instance DeploymentSpec.nonempty : Nonempty DeploymentSpec := DeploymentSpec.nonempty_type.property
+opaque DeploymentSpec.zero_val : ZeroVal DeploymentSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentSpec.zero_val
 
 class DeploymentSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -945,8 +951,10 @@ attribute [instance] DeploymentSpec.TypeAssumptions.type_repr
   DeploymentSpec.TypeAssumptions.method_set
   DeploymentSpec.TypeAssumptions.ptr_method_set
 
-axiom DeploymentRollback : Type
-axiom DeploymentRollback.zero_val : ZeroVal DeploymentRollback
+opaque DeploymentRollback.nonempty_type : NonemptyType.{0}
+def DeploymentRollback : Type := DeploymentRollback.nonempty_type.type
+instance DeploymentRollback.nonempty : Nonempty DeploymentRollback := DeploymentRollback.nonempty_type.property
+opaque DeploymentRollback.zero_val : ZeroVal DeploymentRollback := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentRollback.zero_val
 
 class DeploymentRollback.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1052,8 +1060,10 @@ attribute [instance] DeploymentStrategy.TypeAssumptions.type_repr
   DeploymentStrategy.TypeAssumptions.method_set
   DeploymentStrategy.TypeAssumptions.ptr_method_set
 
-axiom RollingUpdateDeployment : Type
-axiom RollingUpdateDeployment.zero_val : ZeroVal RollingUpdateDeployment
+opaque RollingUpdateDeployment.nonempty_type : NonemptyType.{0}
+def RollingUpdateDeployment : Type := RollingUpdateDeployment.nonempty_type.type
+instance RollingUpdateDeployment.nonempty : Nonempty RollingUpdateDeployment := RollingUpdateDeployment.nonempty_type.property
+opaque RollingUpdateDeployment.zero_val : ZeroVal RollingUpdateDeployment := ⟨Classical.ofNonempty⟩
 attribute [instance] RollingUpdateDeployment.zero_val
 
 class RollingUpdateDeployment.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1166,8 +1176,10 @@ attribute [instance] DeploymentConditionType.TypeAssumptions.underlying
   DeploymentConditionType.TypeAssumptions.method_set
   DeploymentConditionType.TypeAssumptions.ptr_method_set
 
-axiom DeploymentCondition : Type
-axiom DeploymentCondition.zero_val : ZeroVal DeploymentCondition
+opaque DeploymentCondition.nonempty_type : NonemptyType.{0}
+def DeploymentCondition : Type := DeploymentCondition.nonempty_type.type
+instance DeploymentCondition.nonempty : Nonempty DeploymentCondition := DeploymentCondition.nonempty_type.property
+opaque DeploymentCondition.zero_val : ZeroVal DeploymentCondition := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentCondition.zero_val
 
 class DeploymentCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1183,8 +1195,10 @@ attribute [instance] DeploymentCondition.TypeAssumptions.type_repr
   DeploymentCondition.TypeAssumptions.method_set
   DeploymentCondition.TypeAssumptions.ptr_method_set
 
-axiom DeploymentList : Type
-axiom DeploymentList.zero_val : ZeroVal DeploymentList
+opaque DeploymentList.nonempty_type : NonemptyType.{0}
+def DeploymentList : Type := DeploymentList.nonempty_type.type
+instance DeploymentList.nonempty : Nonempty DeploymentList := DeploymentList.nonempty_type.property
+opaque DeploymentList.zero_val : ZeroVal DeploymentList := ⟨Classical.ofNonempty⟩
 attribute [instance] DeploymentList.zero_val
 
 class DeploymentList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1255,8 +1269,10 @@ attribute [instance] DaemonSetUpdateStrategy.TypeAssumptions.type_repr
   DaemonSetUpdateStrategy.TypeAssumptions.method_set
   DaemonSetUpdateStrategy.TypeAssumptions.ptr_method_set
 
-axiom RollingUpdateDaemonSet : Type
-axiom RollingUpdateDaemonSet.zero_val : ZeroVal RollingUpdateDaemonSet
+opaque RollingUpdateDaemonSet.nonempty_type : NonemptyType.{0}
+def RollingUpdateDaemonSet : Type := RollingUpdateDaemonSet.nonempty_type.type
+instance RollingUpdateDaemonSet.nonempty : Nonempty RollingUpdateDaemonSet := RollingUpdateDaemonSet.nonempty_type.property
+opaque RollingUpdateDaemonSet.zero_val : ZeroVal RollingUpdateDaemonSet := ⟨Classical.ofNonempty⟩
 attribute [instance] RollingUpdateDaemonSet.zero_val
 
 class RollingUpdateDaemonSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1272,8 +1288,10 @@ attribute [instance] RollingUpdateDaemonSet.TypeAssumptions.type_repr
   RollingUpdateDaemonSet.TypeAssumptions.method_set
   RollingUpdateDaemonSet.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetSpec : Type
-axiom DaemonSetSpec.zero_val : ZeroVal DaemonSetSpec
+opaque DaemonSetSpec.nonempty_type : NonemptyType.{0}
+def DaemonSetSpec : Type := DaemonSetSpec.nonempty_type.type
+instance DaemonSetSpec.nonempty : Nonempty DaemonSetSpec := DaemonSetSpec.nonempty_type.property
+opaque DaemonSetSpec.zero_val : ZeroVal DaemonSetSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetSpec.zero_val
 
 class DaemonSetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1392,8 +1410,10 @@ attribute [instance] DaemonSetConditionType.TypeAssumptions.underlying
   DaemonSetConditionType.TypeAssumptions.method_set
   DaemonSetConditionType.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetCondition : Type
-axiom DaemonSetCondition.zero_val : ZeroVal DaemonSetCondition
+opaque DaemonSetCondition.nonempty_type : NonemptyType.{0}
+def DaemonSetCondition : Type := DaemonSetCondition.nonempty_type.type
+instance DaemonSetCondition.nonempty : Nonempty DaemonSetCondition := DaemonSetCondition.nonempty_type.property
+opaque DaemonSetCondition.zero_val : ZeroVal DaemonSetCondition := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetCondition.zero_val
 
 class DaemonSetCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1409,8 +1429,10 @@ attribute [instance] DaemonSetCondition.TypeAssumptions.type_repr
   DaemonSetCondition.TypeAssumptions.method_set
   DaemonSetCondition.TypeAssumptions.ptr_method_set
 
-axiom DaemonSet : Type
-axiom DaemonSet.zero_val : ZeroVal DaemonSet
+opaque DaemonSet.nonempty_type : NonemptyType.{0}
+def DaemonSet : Type := DaemonSet.nonempty_type.type
+instance DaemonSet.nonempty : Nonempty DaemonSet := DaemonSet.nonempty_type.property
+opaque DaemonSet.zero_val : ZeroVal DaemonSet := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSet.zero_val
 
 class DaemonSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1426,8 +1448,10 @@ attribute [instance] DaemonSet.TypeAssumptions.type_repr
   DaemonSet.TypeAssumptions.method_set
   DaemonSet.TypeAssumptions.ptr_method_set
 
-axiom DaemonSetList : Type
-axiom DaemonSetList.zero_val : ZeroVal DaemonSetList
+opaque DaemonSetList.nonempty_type : NonemptyType.{0}
+def DaemonSetList : Type := DaemonSetList.nonempty_type.type
+instance DaemonSetList.nonempty : Nonempty DaemonSetList := DaemonSetList.nonempty_type.property
+opaque DaemonSetList.zero_val : ZeroVal DaemonSetList := ⟨Classical.ofNonempty⟩
 attribute [instance] DaemonSetList.zero_val
 
 class DaemonSetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1443,8 +1467,10 @@ attribute [instance] DaemonSetList.TypeAssumptions.type_repr
   DaemonSetList.TypeAssumptions.method_set
   DaemonSetList.TypeAssumptions.ptr_method_set
 
-axiom Ingress : Type
-axiom Ingress.zero_val : ZeroVal Ingress
+opaque Ingress.nonempty_type : NonemptyType.{0}
+def Ingress : Type := Ingress.nonempty_type.type
+instance Ingress.nonempty : Nonempty Ingress := Ingress.nonempty_type.property
+opaque Ingress.zero_val : ZeroVal Ingress := ⟨Classical.ofNonempty⟩
 attribute [instance] Ingress.zero_val
 
 class Ingress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1460,8 +1486,10 @@ attribute [instance] Ingress.TypeAssumptions.type_repr
   Ingress.TypeAssumptions.method_set
   Ingress.TypeAssumptions.ptr_method_set
 
-axiom IngressList : Type
-axiom IngressList.zero_val : ZeroVal IngressList
+opaque IngressList.nonempty_type : NonemptyType.{0}
+def IngressList : Type := IngressList.nonempty_type.type
+instance IngressList.nonempty : Nonempty IngressList := IngressList.nonempty_type.property
+opaque IngressList.zero_val : ZeroVal IngressList := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressList.zero_val
 
 class IngressList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1688,8 +1716,10 @@ attribute [instance] IngressLoadBalancerIngress.TypeAssumptions.type_repr
   IngressLoadBalancerIngress.TypeAssumptions.method_set
   IngressLoadBalancerIngress.TypeAssumptions.ptr_method_set
 
-axiom IngressPortStatus : Type
-axiom IngressPortStatus.zero_val : ZeroVal IngressPortStatus
+opaque IngressPortStatus.nonempty_type : NonemptyType.{0}
+def IngressPortStatus : Type := IngressPortStatus.nonempty_type.type
+instance IngressPortStatus.nonempty : Nonempty IngressPortStatus := IngressPortStatus.nonempty_type.property
+opaque IngressPortStatus.zero_val : ZeroVal IngressPortStatus := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressPortStatus.zero_val
 
 class IngressPortStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1830,8 +1860,10 @@ attribute [instance] PathType.TypeAssumptions.underlying
   PathType.TypeAssumptions.method_set
   PathType.TypeAssumptions.ptr_method_set
 
-axiom IngressBackend : Type
-axiom IngressBackend.zero_val : ZeroVal IngressBackend
+opaque IngressBackend.nonempty_type : NonemptyType.{0}
+def IngressBackend : Type := IngressBackend.nonempty_type.type
+instance IngressBackend.nonempty : Nonempty IngressBackend := IngressBackend.nonempty_type.property
+opaque IngressBackend.zero_val : ZeroVal IngressBackend := ⟨Classical.ofNonempty⟩
 attribute [instance] IngressBackend.zero_val
 
 class IngressBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1894,8 +1926,10 @@ attribute [instance] HTTPIngressPath.TypeAssumptions.type_repr
   HTTPIngressPath.TypeAssumptions.method_set
   HTTPIngressPath.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSet : Type
-axiom ReplicaSet.zero_val : ZeroVal ReplicaSet
+opaque ReplicaSet.nonempty_type : NonemptyType.{0}
+def ReplicaSet : Type := ReplicaSet.nonempty_type.type
+instance ReplicaSet.nonempty : Nonempty ReplicaSet := ReplicaSet.nonempty_type.property
+opaque ReplicaSet.zero_val : ZeroVal ReplicaSet := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSet.zero_val
 
 class ReplicaSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1911,8 +1945,10 @@ attribute [instance] ReplicaSet.TypeAssumptions.type_repr
   ReplicaSet.TypeAssumptions.method_set
   ReplicaSet.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetList : Type
-axiom ReplicaSetList.zero_val : ZeroVal ReplicaSetList
+opaque ReplicaSetList.nonempty_type : NonemptyType.{0}
+def ReplicaSetList : Type := ReplicaSetList.nonempty_type.type
+instance ReplicaSetList.nonempty : Nonempty ReplicaSetList := ReplicaSetList.nonempty_type.property
+opaque ReplicaSetList.zero_val : ZeroVal ReplicaSetList := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetList.zero_val
 
 class ReplicaSetList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1928,8 +1964,10 @@ attribute [instance] ReplicaSetList.TypeAssumptions.type_repr
   ReplicaSetList.TypeAssumptions.method_set
   ReplicaSetList.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetSpec : Type
-axiom ReplicaSetSpec.zero_val : ZeroVal ReplicaSetSpec
+opaque ReplicaSetSpec.nonempty_type : NonemptyType.{0}
+def ReplicaSetSpec : Type := ReplicaSetSpec.nonempty_type.type
+instance ReplicaSetSpec.nonempty : Nonempty ReplicaSetSpec := ReplicaSetSpec.nonempty_type.property
+opaque ReplicaSetSpec.zero_val : ZeroVal ReplicaSetSpec := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetSpec.zero_val
 
 class ReplicaSetSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2030,8 +2068,10 @@ attribute [instance] ReplicaSetConditionType.TypeAssumptions.underlying
   ReplicaSetConditionType.TypeAssumptions.method_set
   ReplicaSetConditionType.TypeAssumptions.ptr_method_set
 
-axiom ReplicaSetCondition : Type
-axiom ReplicaSetCondition.zero_val : ZeroVal ReplicaSetCondition
+opaque ReplicaSetCondition.nonempty_type : NonemptyType.{0}
+def ReplicaSetCondition : Type := ReplicaSetCondition.nonempty_type.type
+instance ReplicaSetCondition.nonempty : Nonempty ReplicaSetCondition := ReplicaSetCondition.nonempty_type.property
+opaque ReplicaSetCondition.zero_val : ZeroVal ReplicaSetCondition := ⟨Classical.ofNonempty⟩
 attribute [instance] ReplicaSetCondition.zero_val
 
 class ReplicaSetCondition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2047,8 +2087,10 @@ attribute [instance] ReplicaSetCondition.TypeAssumptions.type_repr
   ReplicaSetCondition.TypeAssumptions.method_set
   ReplicaSetCondition.TypeAssumptions.ptr_method_set
 
-axiom NetworkPolicy : Type
-axiom NetworkPolicy.zero_val : ZeroVal NetworkPolicy
+opaque NetworkPolicy.nonempty_type : NonemptyType.{0}
+def NetworkPolicy : Type := NetworkPolicy.nonempty_type.type
+instance NetworkPolicy.nonempty : Nonempty NetworkPolicy := NetworkPolicy.nonempty_type.property
+opaque NetworkPolicy.zero_val : ZeroVal NetworkPolicy := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkPolicy.zero_val
 
 class NetworkPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2078,8 +2120,10 @@ attribute [instance] PolicyType.TypeAssumptions.underlying
   PolicyType.TypeAssumptions.method_set
   PolicyType.TypeAssumptions.ptr_method_set
 
-axiom NetworkPolicySpec : Type
-axiom NetworkPolicySpec.zero_val : ZeroVal NetworkPolicySpec
+opaque NetworkPolicySpec.nonempty_type : NonemptyType.{0}
+def NetworkPolicySpec : Type := NetworkPolicySpec.nonempty_type.type
+instance NetworkPolicySpec.nonempty : Nonempty NetworkPolicySpec := NetworkPolicySpec.nonempty_type.property
+opaque NetworkPolicySpec.zero_val : ZeroVal NetworkPolicySpec := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkPolicySpec.zero_val
 
 class NetworkPolicySpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2177,8 +2221,10 @@ attribute [instance] NetworkPolicyEgressRule.TypeAssumptions.type_repr
   NetworkPolicyEgressRule.TypeAssumptions.method_set
   NetworkPolicyEgressRule.TypeAssumptions.ptr_method_set
 
-axiom NetworkPolicyPort : Type
-axiom NetworkPolicyPort.zero_val : ZeroVal NetworkPolicyPort
+opaque NetworkPolicyPort.nonempty_type : NonemptyType.{0}
+def NetworkPolicyPort : Type := NetworkPolicyPort.nonempty_type.type
+instance NetworkPolicyPort.nonempty : Nonempty NetworkPolicyPort := NetworkPolicyPort.nonempty_type.property
+opaque NetworkPolicyPort.zero_val : ZeroVal NetworkPolicyPort := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkPolicyPort.zero_val
 
 class NetworkPolicyPort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2235,8 +2281,10 @@ attribute [instance] IPBlock.TypeAssumptions.type_repr
   IPBlock.TypeAssumptions.method_set
   IPBlock.TypeAssumptions.ptr_method_set
 
-axiom NetworkPolicyPeer : Type
-axiom NetworkPolicyPeer.zero_val : ZeroVal NetworkPolicyPeer
+opaque NetworkPolicyPeer.nonempty_type : NonemptyType.{0}
+def NetworkPolicyPeer : Type := NetworkPolicyPeer.nonempty_type.type
+instance NetworkPolicyPeer.nonempty : Nonempty NetworkPolicyPeer := NetworkPolicyPeer.nonempty_type.property
+opaque NetworkPolicyPeer.zero_val : ZeroVal NetworkPolicyPeer := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkPolicyPeer.zero_val
 
 class NetworkPolicyPeer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -2252,8 +2300,10 @@ attribute [instance] NetworkPolicyPeer.TypeAssumptions.type_repr
   NetworkPolicyPeer.TypeAssumptions.method_set
   NetworkPolicyPeer.TypeAssumptions.ptr_method_set
 
-axiom NetworkPolicyList : Type
-axiom NetworkPolicyList.zero_val : ZeroVal NetworkPolicyList
+opaque NetworkPolicyList.nonempty_type : NonemptyType.{0}
+def NetworkPolicyList : Type := NetworkPolicyList.nonempty_type.type
+instance NetworkPolicyList.nonempty : Nonempty NetworkPolicyList := NetworkPolicyList.nonempty_type.property
+opaque NetworkPolicyList.zero_val : ZeroVal NetworkPolicyList := ⟨Classical.ofNonempty⟩
 attribute [instance] NetworkPolicyList.zero_val
 
 class NetworkPolicyList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

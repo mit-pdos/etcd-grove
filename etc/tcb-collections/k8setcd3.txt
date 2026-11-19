@@ -387,7 +387,6 @@ axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
 axiom ccDecodeV2_nil
-axiom clock.RealClock.Now.wp_proof
 axiom clockwork.NewRealClock.wp_proof
 axiom clockwork.clockLb
 axiom clockwork.clockLb_init
@@ -427,7 +426,6 @@ axiom features.NewDefaultServerFeatureGate.wp_proof
 axiom fields.Everything.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom fmt.ErrorfPlain.wp_proof
-axiom fmt.ErrorfWrap.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfClientPtr.wp_proof
 axiom fmt.SprintfID.wp_proof

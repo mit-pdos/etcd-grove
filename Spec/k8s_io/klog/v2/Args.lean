@@ -80,7 +80,7 @@ theorem klog.argOkAt_of_fmt {d : fmt.Directive} {a : GoInterface} :
   iexact H
 
 /-- A `fmt.argOk` argument (an error whose `Error()` returns, ...) is `klog.argOkAt` a method-verb
-directive other than `%#v` (`%v`, `%s`). -/
+directive other than `%#v`/`%#w` (`%v`, `%s`). -/
 theorem klog.argOkAt_of_argOk {d : fmt.Directive} {a : GoInterface} :
     ⌜d.verb ∈ fmt.methodVerbs ∧ d.sharpV = false⌝ ∗ fmt.argOk (GF := GF) a ⊢ klog.argOkAt d a := by
   cases a with

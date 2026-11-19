@@ -23,6 +23,7 @@ base of each printed in the build log (`#print axioms`). Lean-first (no Rocq cou
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Adequacy
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -88,9 +89,35 @@ theorem etcd_compacted_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hn : n + 2 ≤ 2 ^ 28) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) :=
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_compacted_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+
+/-- **`etcd_compacted_safe` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that never crashes,
+a fresh Go process (`Robust`'s premise), under `etcd_compacted_safe`'s other hypotheses: in every
+execution of fewer than `2 ^ 28 - 1` steps no thread is stuck and none has an unrecovered panic. -/
+theorem etcd_compacted_robust
+    [lctx : GoLocalContext] [sem : go.Semantics]
+    [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.compacted.Assumptions]
+    [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
+    [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
+    (Hctx : ∀ hG : HeapGS .hasLC putgetcGF, ContextReadErrs (GF := putgetcGF) (hG := heapAtC hG lctx))
+    (Hcec : ∀ hG : HeapGS .hasLC putgetcGF, ContextErrsClient (GF := putgetcGF) (hG := heapAtC hG lctx))
+    (id : w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (Hbf : etcd_compacted.BootFacts id ctxs boot) (Haf : authRecordsFit)
+    (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
+    (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
+    (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
+    (HDs : dataDirsAbsent putgetcProgram [go!"putgetc.etcd"]) (HEnv : verifyEnvOff putgetcProgram)
+    (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetcGF,
+      ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    Robustness.Robust [] [(putgetcProgram, σ)] g (2 ^ 28 - 1) :=
+  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
+    (etcd_compacted_safe
+      Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs
+      hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

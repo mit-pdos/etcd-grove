@@ -20,6 +20,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Served
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServed
 public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.WatchServedLinked
 
 @[expose] public section
 

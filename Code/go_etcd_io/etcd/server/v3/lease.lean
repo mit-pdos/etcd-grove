@@ -126,27 +126,27 @@ noncomputable def forever [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def defaultLeaseRevokeRate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.defaultLeaseRevokeRate"
 
-axiom defaultLeaseRevokeRate.init [GooseExts] [GoGlobalContext] : val
+opaque defaultLeaseRevokeRate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseCheckpointRate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseCheckpointRate"
 
-axiom leaseCheckpointRate.init [GooseExts] [GoGlobalContext] : val
+opaque leaseCheckpointRate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultLeaseCheckpointInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.defaultLeaseCheckpointInterval"
 
-axiom defaultLeaseCheckpointInterval.init [GooseExts] [GoGlobalContext] : val
+opaque defaultLeaseCheckpointInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def maxLeaseCheckpointBatchSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.maxLeaseCheckpointBatchSize"
 
-axiom maxLeaseCheckpointBatchSize.init [GooseExts] [GoGlobalContext] : val
+opaque maxLeaseCheckpointBatchSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def defaultExpiredleaseRetryInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.defaultExpiredleaseRetryInterval"
 
-axiom defaultExpiredleaseRetryInterval.init [GooseExts] [GoGlobalContext] : val
+opaque defaultExpiredleaseRetryInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotPrimary [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.ErrNotPrimary"
@@ -163,22 +163,22 @@ noncomputable def ErrLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def leaseGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseGranted"
 
-axiom leaseGranted.init [GooseExts] [GoGlobalContext] : val
+opaque leaseGranted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseRevoked [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseRevoked"
 
-axiom leaseRevoked.init [GooseExts] [GoGlobalContext] : val
+opaque leaseRevoked.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseRenewed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseRenewed"
 
-axiom leaseRenewed.init [GooseExts] [GoGlobalContext] : val
+opaque leaseRenewed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def leaseTotalTTLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.leaseTotalTTLs"
 
-axiom leaseTotalTTLs.init [GooseExts] [GoGlobalContext] : val
+opaque leaseTotalTTLs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def NewLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease.NewLease"
@@ -1590,7 +1590,7 @@ noncomputable def lessor.initAndRecover.impl [GooseExts] [GoGlobalContext] : val
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.container.heap, pkg_id.context, pkg_id.errors, pkg_id.sort, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.github_com.prometheus.client_golang.prometheus]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

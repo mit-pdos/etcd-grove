@@ -110,41 +110,41 @@ noncomputable def resourceSlices.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] resourceSlices.ty
 
-axiom DeviceClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeviceClassesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeviceClassInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom deviceClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque deviceClasses.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DeviceClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque DeviceClassExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimTemplateExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimTemplateExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceSliceExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceSliceExpansion.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceV1beta1Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceV1beta1Client.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimsGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceClaims.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resourceClaims.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimTemplatesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimTemplatesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceClaimTemplateInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceClaimTemplateInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceClaimTemplates.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resourceClaimTemplates.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceSlicesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceSlicesGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceSliceInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque ResourceSliceInterface.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resourceSlices.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque resourceSlices.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def newDeviceClasses [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/kubernetes/typed/resource/v1beta1.newDeviceClasses"
@@ -176,7 +176,7 @@ noncomputable def newResourceSlices [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.kubernetes.typed.resource.v1beta1 where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -185,8 +185,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #()))))))
 
-axiom DeviceClassesGetter : Type
-axiom DeviceClassesGetter.zero_val : ZeroVal DeviceClassesGetter
+opaque DeviceClassesGetter.nonempty_type : NonemptyType.{0}
+def DeviceClassesGetter : Type := DeviceClassesGetter.nonempty_type.type
+instance DeviceClassesGetter.nonempty : Nonempty DeviceClassesGetter := DeviceClassesGetter.nonempty_type.property
+opaque DeviceClassesGetter.zero_val : ZeroVal DeviceClassesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] DeviceClassesGetter.zero_val
 
 class DeviceClassesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -202,8 +204,10 @@ attribute [instance] DeviceClassesGetter.TypeAssumptions.type_repr
   DeviceClassesGetter.TypeAssumptions.method_set
   DeviceClassesGetter.TypeAssumptions.ptr_method_set
 
-axiom DeviceClassInterface : Type
-axiom DeviceClassInterface.zero_val : ZeroVal DeviceClassInterface
+opaque DeviceClassInterface.nonempty_type : NonemptyType.{0}
+def DeviceClassInterface : Type := DeviceClassInterface.nonempty_type.type
+instance DeviceClassInterface.nonempty : Nonempty DeviceClassInterface := DeviceClassInterface.nonempty_type.property
+opaque DeviceClassInterface.zero_val : ZeroVal DeviceClassInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] DeviceClassInterface.zero_val
 
 class DeviceClassInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -219,8 +223,10 @@ attribute [instance] DeviceClassInterface.TypeAssumptions.type_repr
   DeviceClassInterface.TypeAssumptions.method_set
   DeviceClassInterface.TypeAssumptions.ptr_method_set
 
-axiom deviceClasses : Type
-axiom deviceClasses.zero_val : ZeroVal deviceClasses
+opaque deviceClasses.nonempty_type : NonemptyType.{0}
+def deviceClasses : Type := deviceClasses.nonempty_type.type
+instance deviceClasses.nonempty : Nonempty deviceClasses := deviceClasses.nonempty_type.property
+opaque deviceClasses.zero_val : ZeroVal deviceClasses := ⟨Classical.ofNonempty⟩
 attribute [instance] deviceClasses.zero_val
 
 class deviceClasses.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -236,8 +242,10 @@ attribute [instance] deviceClasses.TypeAssumptions.type_repr
   deviceClasses.TypeAssumptions.method_set
   deviceClasses.TypeAssumptions.ptr_method_set
 
-axiom DeviceClassExpansion : Type
-axiom DeviceClassExpansion.zero_val : ZeroVal DeviceClassExpansion
+opaque DeviceClassExpansion.nonempty_type : NonemptyType.{0}
+def DeviceClassExpansion : Type := DeviceClassExpansion.nonempty_type.type
+instance DeviceClassExpansion.nonempty : Nonempty DeviceClassExpansion := DeviceClassExpansion.nonempty_type.property
+opaque DeviceClassExpansion.zero_val : ZeroVal DeviceClassExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] DeviceClassExpansion.zero_val
 
 class DeviceClassExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -253,8 +261,10 @@ attribute [instance] DeviceClassExpansion.TypeAssumptions.type_repr
   DeviceClassExpansion.TypeAssumptions.method_set
   DeviceClassExpansion.TypeAssumptions.ptr_method_set
 
-axiom ResourceClaimExpansion : Type
-axiom ResourceClaimExpansion.zero_val : ZeroVal ResourceClaimExpansion
+opaque ResourceClaimExpansion.nonempty_type : NonemptyType.{0}
+def ResourceClaimExpansion : Type := ResourceClaimExpansion.nonempty_type.type
+instance ResourceClaimExpansion.nonempty : Nonempty ResourceClaimExpansion := ResourceClaimExpansion.nonempty_type.property
+opaque ResourceClaimExpansion.zero_val : ZeroVal ResourceClaimExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimExpansion.zero_val
 
 class ResourceClaimExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -270,8 +280,10 @@ attribute [instance] ResourceClaimExpansion.TypeAssumptions.type_repr
   ResourceClaimExpansion.TypeAssumptions.method_set
   ResourceClaimExpansion.TypeAssumptions.ptr_method_set
 
-axiom ResourceClaimTemplateExpansion : Type
-axiom ResourceClaimTemplateExpansion.zero_val : ZeroVal ResourceClaimTemplateExpansion
+opaque ResourceClaimTemplateExpansion.nonempty_type : NonemptyType.{0}
+def ResourceClaimTemplateExpansion : Type := ResourceClaimTemplateExpansion.nonempty_type.type
+instance ResourceClaimTemplateExpansion.nonempty : Nonempty ResourceClaimTemplateExpansion := ResourceClaimTemplateExpansion.nonempty_type.property
+opaque ResourceClaimTemplateExpansion.zero_val : ZeroVal ResourceClaimTemplateExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimTemplateExpansion.zero_val
 
 class ResourceClaimTemplateExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -287,8 +299,10 @@ attribute [instance] ResourceClaimTemplateExpansion.TypeAssumptions.type_repr
   ResourceClaimTemplateExpansion.TypeAssumptions.method_set
   ResourceClaimTemplateExpansion.TypeAssumptions.ptr_method_set
 
-axiom ResourceSliceExpansion : Type
-axiom ResourceSliceExpansion.zero_val : ZeroVal ResourceSliceExpansion
+opaque ResourceSliceExpansion.nonempty_type : NonemptyType.{0}
+def ResourceSliceExpansion : Type := ResourceSliceExpansion.nonempty_type.type
+instance ResourceSliceExpansion.nonempty : Nonempty ResourceSliceExpansion := ResourceSliceExpansion.nonempty_type.property
+opaque ResourceSliceExpansion.zero_val : ZeroVal ResourceSliceExpansion := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceSliceExpansion.zero_val
 
 class ResourceSliceExpansion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -304,8 +318,10 @@ attribute [instance] ResourceSliceExpansion.TypeAssumptions.type_repr
   ResourceSliceExpansion.TypeAssumptions.method_set
   ResourceSliceExpansion.TypeAssumptions.ptr_method_set
 
-axiom ResourceV1beta1Interface : Type
-axiom ResourceV1beta1Interface.zero_val : ZeroVal ResourceV1beta1Interface
+opaque ResourceV1beta1Interface.nonempty_type : NonemptyType.{0}
+def ResourceV1beta1Interface : Type := ResourceV1beta1Interface.nonempty_type.type
+instance ResourceV1beta1Interface.nonempty : Nonempty ResourceV1beta1Interface := ResourceV1beta1Interface.nonempty_type.property
+opaque ResourceV1beta1Interface.zero_val : ZeroVal ResourceV1beta1Interface := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceV1beta1Interface.zero_val
 
 class ResourceV1beta1Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -321,8 +337,10 @@ attribute [instance] ResourceV1beta1Interface.TypeAssumptions.type_repr
   ResourceV1beta1Interface.TypeAssumptions.method_set
   ResourceV1beta1Interface.TypeAssumptions.ptr_method_set
 
-axiom ResourceV1beta1Client : Type
-axiom ResourceV1beta1Client.zero_val : ZeroVal ResourceV1beta1Client
+opaque ResourceV1beta1Client.nonempty_type : NonemptyType.{0}
+def ResourceV1beta1Client : Type := ResourceV1beta1Client.nonempty_type.type
+instance ResourceV1beta1Client.nonempty : Nonempty ResourceV1beta1Client := ResourceV1beta1Client.nonempty_type.property
+opaque ResourceV1beta1Client.zero_val : ZeroVal ResourceV1beta1Client := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceV1beta1Client.zero_val
 
 class ResourceV1beta1Client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -338,8 +356,10 @@ attribute [instance] ResourceV1beta1Client.TypeAssumptions.type_repr
   ResourceV1beta1Client.TypeAssumptions.method_set
   ResourceV1beta1Client.TypeAssumptions.ptr_method_set
 
-axiom ResourceClaimsGetter : Type
-axiom ResourceClaimsGetter.zero_val : ZeroVal ResourceClaimsGetter
+opaque ResourceClaimsGetter.nonempty_type : NonemptyType.{0}
+def ResourceClaimsGetter : Type := ResourceClaimsGetter.nonempty_type.type
+instance ResourceClaimsGetter.nonempty : Nonempty ResourceClaimsGetter := ResourceClaimsGetter.nonempty_type.property
+opaque ResourceClaimsGetter.zero_val : ZeroVal ResourceClaimsGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimsGetter.zero_val
 
 class ResourceClaimsGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -355,8 +375,10 @@ attribute [instance] ResourceClaimsGetter.TypeAssumptions.type_repr
   ResourceClaimsGetter.TypeAssumptions.method_set
   ResourceClaimsGetter.TypeAssumptions.ptr_method_set
 
-axiom ResourceClaimInterface : Type
-axiom ResourceClaimInterface.zero_val : ZeroVal ResourceClaimInterface
+opaque ResourceClaimInterface.nonempty_type : NonemptyType.{0}
+def ResourceClaimInterface : Type := ResourceClaimInterface.nonempty_type.type
+instance ResourceClaimInterface.nonempty : Nonempty ResourceClaimInterface := ResourceClaimInterface.nonempty_type.property
+opaque ResourceClaimInterface.zero_val : ZeroVal ResourceClaimInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimInterface.zero_val
 
 class ResourceClaimInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -372,8 +394,10 @@ attribute [instance] ResourceClaimInterface.TypeAssumptions.type_repr
   ResourceClaimInterface.TypeAssumptions.method_set
   ResourceClaimInterface.TypeAssumptions.ptr_method_set
 
-axiom resourceClaims : Type
-axiom resourceClaims.zero_val : ZeroVal resourceClaims
+opaque resourceClaims.nonempty_type : NonemptyType.{0}
+def resourceClaims : Type := resourceClaims.nonempty_type.type
+instance resourceClaims.nonempty : Nonempty resourceClaims := resourceClaims.nonempty_type.property
+opaque resourceClaims.zero_val : ZeroVal resourceClaims := ⟨Classical.ofNonempty⟩
 attribute [instance] resourceClaims.zero_val
 
 class resourceClaims.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -389,8 +413,10 @@ attribute [instance] resourceClaims.TypeAssumptions.type_repr
   resourceClaims.TypeAssumptions.method_set
   resourceClaims.TypeAssumptions.ptr_method_set
 
-axiom ResourceClaimTemplatesGetter : Type
-axiom ResourceClaimTemplatesGetter.zero_val : ZeroVal ResourceClaimTemplatesGetter
+opaque ResourceClaimTemplatesGetter.nonempty_type : NonemptyType.{0}
+def ResourceClaimTemplatesGetter : Type := ResourceClaimTemplatesGetter.nonempty_type.type
+instance ResourceClaimTemplatesGetter.nonempty : Nonempty ResourceClaimTemplatesGetter := ResourceClaimTemplatesGetter.nonempty_type.property
+opaque ResourceClaimTemplatesGetter.zero_val : ZeroVal ResourceClaimTemplatesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimTemplatesGetter.zero_val
 
 class ResourceClaimTemplatesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -406,8 +432,10 @@ attribute [instance] ResourceClaimTemplatesGetter.TypeAssumptions.type_repr
   ResourceClaimTemplatesGetter.TypeAssumptions.method_set
   ResourceClaimTemplatesGetter.TypeAssumptions.ptr_method_set
 
-axiom ResourceClaimTemplateInterface : Type
-axiom ResourceClaimTemplateInterface.zero_val : ZeroVal ResourceClaimTemplateInterface
+opaque ResourceClaimTemplateInterface.nonempty_type : NonemptyType.{0}
+def ResourceClaimTemplateInterface : Type := ResourceClaimTemplateInterface.nonempty_type.type
+instance ResourceClaimTemplateInterface.nonempty : Nonempty ResourceClaimTemplateInterface := ResourceClaimTemplateInterface.nonempty_type.property
+opaque ResourceClaimTemplateInterface.zero_val : ZeroVal ResourceClaimTemplateInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceClaimTemplateInterface.zero_val
 
 class ResourceClaimTemplateInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -423,8 +451,10 @@ attribute [instance] ResourceClaimTemplateInterface.TypeAssumptions.type_repr
   ResourceClaimTemplateInterface.TypeAssumptions.method_set
   ResourceClaimTemplateInterface.TypeAssumptions.ptr_method_set
 
-axiom resourceClaimTemplates : Type
-axiom resourceClaimTemplates.zero_val : ZeroVal resourceClaimTemplates
+opaque resourceClaimTemplates.nonempty_type : NonemptyType.{0}
+def resourceClaimTemplates : Type := resourceClaimTemplates.nonempty_type.type
+instance resourceClaimTemplates.nonempty : Nonempty resourceClaimTemplates := resourceClaimTemplates.nonempty_type.property
+opaque resourceClaimTemplates.zero_val : ZeroVal resourceClaimTemplates := ⟨Classical.ofNonempty⟩
 attribute [instance] resourceClaimTemplates.zero_val
 
 class resourceClaimTemplates.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -440,8 +470,10 @@ attribute [instance] resourceClaimTemplates.TypeAssumptions.type_repr
   resourceClaimTemplates.TypeAssumptions.method_set
   resourceClaimTemplates.TypeAssumptions.ptr_method_set
 
-axiom ResourceSlicesGetter : Type
-axiom ResourceSlicesGetter.zero_val : ZeroVal ResourceSlicesGetter
+opaque ResourceSlicesGetter.nonempty_type : NonemptyType.{0}
+def ResourceSlicesGetter : Type := ResourceSlicesGetter.nonempty_type.type
+instance ResourceSlicesGetter.nonempty : Nonempty ResourceSlicesGetter := ResourceSlicesGetter.nonempty_type.property
+opaque ResourceSlicesGetter.zero_val : ZeroVal ResourceSlicesGetter := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceSlicesGetter.zero_val
 
 class ResourceSlicesGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -457,8 +489,10 @@ attribute [instance] ResourceSlicesGetter.TypeAssumptions.type_repr
   ResourceSlicesGetter.TypeAssumptions.method_set
   ResourceSlicesGetter.TypeAssumptions.ptr_method_set
 
-axiom ResourceSliceInterface : Type
-axiom ResourceSliceInterface.zero_val : ZeroVal ResourceSliceInterface
+opaque ResourceSliceInterface.nonempty_type : NonemptyType.{0}
+def ResourceSliceInterface : Type := ResourceSliceInterface.nonempty_type.type
+instance ResourceSliceInterface.nonempty : Nonempty ResourceSliceInterface := ResourceSliceInterface.nonempty_type.property
+opaque ResourceSliceInterface.zero_val : ZeroVal ResourceSliceInterface := ⟨Classical.ofNonempty⟩
 attribute [instance] ResourceSliceInterface.zero_val
 
 class ResourceSliceInterface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -474,8 +508,10 @@ attribute [instance] ResourceSliceInterface.TypeAssumptions.type_repr
   ResourceSliceInterface.TypeAssumptions.method_set
   ResourceSliceInterface.TypeAssumptions.ptr_method_set
 
-axiom resourceSlices : Type
-axiom resourceSlices.zero_val : ZeroVal resourceSlices
+opaque resourceSlices.nonempty_type : NonemptyType.{0}
+def resourceSlices : Type := resourceSlices.nonempty_type.type
+instance resourceSlices.nonempty : Nonempty resourceSlices := resourceSlices.nonempty_type.property
+opaque resourceSlices.zero_val : ZeroVal resourceSlices := ⟨Classical.ofNonempty⟩
 attribute [instance] resourceSlices.zero_val
 
 class resourceSlices.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

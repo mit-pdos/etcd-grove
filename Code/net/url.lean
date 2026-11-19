@@ -55,40 +55,40 @@ noncomputable def Values.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] Values.ty
 
-axiom encodePath [GooseExts] [GoGlobalContext] : val
+opaque encodePath [GooseExts] [GoGlobalContext] : val
 
-axiom encodePathSegment [GooseExts] [GoGlobalContext] : val
+opaque encodePathSegment [GooseExts] [GoGlobalContext] : val
 
-axiom encodeHost [GooseExts] [GoGlobalContext] : val
+opaque encodeHost [GooseExts] [GoGlobalContext] : val
 
-axiom encodeZone [GooseExts] [GoGlobalContext] : val
+opaque encodeZone [GooseExts] [GoGlobalContext] : val
 
-axiom encodeUserPassword [GooseExts] [GoGlobalContext] : val
+opaque encodeUserPassword [GooseExts] [GoGlobalContext] : val
 
-axiom encodeQueryComponent [GooseExts] [GoGlobalContext] : val
+opaque encodeQueryComponent [GooseExts] [GoGlobalContext] : val
 
-axiom encodeFragment [GooseExts] [GoGlobalContext] : val
+opaque encodeFragment [GooseExts] [GoGlobalContext] : val
 
-axiom hexChar [GooseExts] [GoGlobalContext] : val
+opaque hexChar [GooseExts] [GoGlobalContext] : val
 
-axiom upperhex [GooseExts] [GoGlobalContext] : val
+opaque upperhex [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMaxParams [GooseExts] [GoGlobalContext] : val
+opaque defaultMaxParams [GooseExts] [GoGlobalContext] : val
 
 noncomputable def table [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.table"
 
-axiom table.init [GooseExts] [GoGlobalContext] : val
+opaque table.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def urlstrictcolons [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.urlstrictcolons"
 
-axiom urlstrictcolons.init [GooseExts] [GoGlobalContext] : val
+opaque urlstrictcolons.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def urlmaxqueryparams [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.urlmaxqueryparams"
 
-axiom urlmaxqueryparams.init [GooseExts] [GoGlobalContext] : val
+opaque urlmaxqueryparams.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ishex [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.ishex"
@@ -177,7 +177,7 @@ noncomputable def JoinPath [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable instance info' : PkgInfo pkg_id.net.url where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
