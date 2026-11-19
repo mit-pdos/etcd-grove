@@ -26,6 +26,12 @@ set_option linter.unusedSectionVars false
 
 noncomputable section
 
+/- The pin 3afd77e35's iris has its own `Pos.Countable Qp` (`instCountableQp`), which `AuthRealPool` (not
+importing the file extension) resolves to; the file extension's `Fs.Qp.countable` (a duplicate, imported here
+through the backend) would make this file's ghost maps over `Option Qp` (the pools' deposit receipts) a
+different instance. -/
+attribute [-instance] Perennial.Fs.Qp.countable
+
 namespace Perennial
 namespace EtcdGrove
 namespace authReal
