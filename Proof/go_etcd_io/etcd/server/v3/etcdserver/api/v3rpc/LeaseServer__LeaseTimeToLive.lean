@@ -43,8 +43,8 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG))
     (hFill : v3rpc.header.fill.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E γl S ci cd r dq v n m
-  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #Hnet, #Hcause, #Hpub, #Hllb, Hr⟩
+  intro p s A cid mid E γl S ci cd tok r dq v n m
+  wp_start as ⟨#Hls, #HL, HS, HR, #Hctx, #Hlib, #HtokC, #Hnet, #Hcause, #Hpub, #Hllb, Hr⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, -⟩
@@ -56,7 +56,7 @@ theorem v3rpc.LeaseServer.LeaseTimeToLive.wp_proof
   ihave ⟨%eNF, #HNF, #HNFe, %HNFl⟩ := v3rpc.leaseNotFoundErr $$ Hlp
   have hpt : ptrTarget (GoInterface.ok eNF) := fun tii h => by cases h; exact HNFl.1
   wp_auto
-  wp_apply HT $$ [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
+  wp_apply HT $$ %ci %tok %cd %r %dq %v %n %m [HS HR Hr] as %resp %err ⟨HS, HR, Hr, Hans⟩
   · iframe; iframe #
   iunfold v3rpc.ttlAns at Hans
   icases Hans with (⟨%He, ⟨%w, Hw, %Hh, %Hid, ⟨%hv, Hhv⟩, #Hf⟩, #Hauth, #Hchk⟩ | ⟨%Hn, #Hae, #Hnf⟩)

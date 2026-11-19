@@ -450,25 +450,25 @@ theorem v3rpc.sendRet_intro (r : v3rpc.WRun GF) (pendL : Loc) :
 /-- **After the control case's `if c.Created`** (the drain before a created response, unit W-K,
 or nothing): the send loop's state, the created response's watcher and its `createdAfter`, for
 the rest of the control case; or (a failed send in the drain) the return. -/
-def v3rpc.ctrlMid (r : v3rpc.WRun GF) (ci : GoInterfaceOk) (sws idsL pendL : Loc)
+def v3rpc.ctrlMid (r : v3rpc.WRun GF) (tok : Option GoString) (sws idsL pendL : Loc)
     (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) (v : val) : IProp GF :=
   iprop((⌜v = executeVal⌝ ∗ ∃ (rcv : List mvcc.api.WResp) (D : List v3rpc.WatchRespM),
       v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.api.wsRecv r.ι rcv ∗
       monoListAuthOwn r.γr 1 rcv ∗ v3rpc.sendTok r ∗ v3rpc.sendSt r idsL pendL rcv D ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk) ∗
-      v3rpc.ctrlWatcher r (auth.ctxTokenOf (GoInterface.ok ci)) req m ∗
+      v3rpc.ctrlWatcher r (tok) req m ∗
       v3rpc.createdAfter r D.length m) ∨
     (⌜v = returnVal #()⌝ ∗ v3rpc.retSt r pendL))
 
-theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (ci : GoInterfaceOk) (sws idsL pendL : Loc)
+theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (tok : Option GoString) (sws idsL pendL : Loc)
     (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) (rcv : List mvcc.api.WResp)
     (D : List v3rpc.WatchRespM) :
     v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs D ∗ mvcc.api.wsRecv r.ι rcv ∗
       monoListAuthOwn r.γr 1 rcv ∗ v3rpc.sendTok r ∗ v3rpc.sendSt r idsL pendL rcv D ∗
       sync.ownRWMutex (v3rpc.swsF sws go!"mu") (v3rpc.swsMu r.pm r.vm r.fm r.γpk) ∗
-      v3rpc.ctrlWatcher r (auth.ctxTokenOf (GoInterface.ok ci)) req m ∗
+      v3rpc.ctrlWatcher r (tok) req m ∗
       v3rpc.createdAfter r D.length m ⊢
-    v3rpc.ctrlMid r ci sws idsL pendL req m executeVal := by
+    v3rpc.ctrlMid r tok sws idsL pendL req m executeVal := by
   iintro H
   iunfold v3rpc.ctrlMid
   ileft
@@ -477,9 +477,9 @@ theorem v3rpc.ctrlMid_exec (r : v3rpc.WRun GF) (ci : GoInterfaceOk) (sws idsL pe
   iexists rcv, D
   iexact H
 
-theorem v3rpc.ctrlMid_ret (r : v3rpc.WRun GF) (ci : GoInterfaceOk) (sws idsL pendL : Loc)
+theorem v3rpc.ctrlMid_ret (r : v3rpc.WRun GF) (tok : Option GoString) (sws idsL pendL : Loc)
     (req : v3rpc.WatchReqM) (m : v3rpc.WatchRespM) :
-    v3rpc.retSt r pendL ⊢ v3rpc.ctrlMid r ci sws idsL pendL req m (returnVal #()) := by
+    v3rpc.retSt r pendL ⊢ v3rpc.ctrlMid r tok sws idsL pendL req m (returnVal #()) := by
   iintro H
   iunfold v3rpc.ctrlMid
   iright
@@ -1135,7 +1135,7 @@ local macro "watch_resp" : tactic => `(tactic| (
     isplitr
     · ipureintro; rw [He1, Hpsl]
     iexact Hpw
-  wp_apply hHdr sws r Up Dn st ci cd wv.Revision' as %hh ⟨%tt, %ll, #Hhdr⟩
+  wp_apply hHdr sws r Up Dn st ci tok cd wv.Revision' as %hh ⟨%tt, %ll, #Hhdr⟩
   · iframe #
   (try wp_auto)
   irename «$r0» => Hwr
@@ -1896,7 +1896,7 @@ set_option hygiene false in
 follows it, `ctrl_rest`). -/
 local macro "ctrl_mid_exec" : tactic => `(tactic| (
   (try wp_auto)
-  iapply (v3rpc.ctrlMid_exec r ci sws idsL pendL req m rcv D)
+  iapply (v3rpc.ctrlMid_exec r tok sws idsL pendL req m rcv D)
   iframe
   iexact Hord))
 
@@ -1935,7 +1935,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG))
     (hRER : mvcc.ReportEventReceived.spec (GF := GF) (hG := hG)) :
     v3rpc.serverWatchStream.sendLoop.spec (GF := GF) (hG := hG) := by
-  intro sws r Up Dn st ci cd
+  intro sws r Up Dn st ci tok cd
   have := v3rpc.swsIs_persistent (GF := GF) hP
   have hRangeW : ∀ wsl : Loc, mvcc.api.KV.Range.contract (GF := GF)
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl :=
@@ -1948,7 +1948,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
   ihave #Hsws' := Hsws
   iunfold v3rpc.swsIs at Hsws'
   icases Hsws' with ⟨%Hnn, #Hzl, #Flg, #Fcid, #Fmid, #Fmrb, #Fsg, #Fwa, #Fag, #Fst, #Fws, #Fctrl, #Fpm,
-    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #Hspec, #Haux, #Hup, #Hwstream, #Hinv, #HW, #Hspsc, #Hcc,
+    #Fvm, #Ffm, #Fcc, #Hsrv, #Hstream, #HtokC, #Hspec, #Haux, #Hup, #Hwstream, #Hinv, #HW, #Hspsc, #Hcc,
     #Hmug⟩
   iunfold v3rpc.wsInv at Hinv
   ihave %Hsh := hShapes.2.2.2 r.ws r.W.γm r.ι $$ Hwstream
@@ -2130,7 +2130,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     · ipureintro; rfl
     isplitr
     · unfold isSpsc; icases Hspsc with ⟨$, -⟩
-    iapply spsc_rcv_au r.γctrl r.ctrl (v3rpc.ctrlP r ci) (fun _ => iprop(True)) cs _ $$ Hspsc
+    iapply spsc_rcv_au r.γctrl r.ctrl (v3rpc.ctrlP r tok) (fun _ => iprop(True)) cs _ $$ Hspsc
       [$Hlc1 $Hlc2] Hcons
     inext
     iintro %cl %okc Hres
@@ -2152,7 +2152,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
     icases Hmsg0 with ⟨%Hln0, %hh0, %esl0, %eps0, -, -, -, #HfCr0, -, -, -, -, -, -, -, -⟩
     wp_auto
     wp_bind (If _ _ _)
-    iapply (wp_wand (Φ := v3rpc.ctrlMid r ci sws idsL pendL req m)) $$ [Hst Hwc HA Htt HS Hmu Hcw]
+    iapply (wp_wand (Φ := v3rpc.ctrlMid r tok sws idsL pendL req m)) $$ [Hst Hwc HA Htt HS Hmu Hcw]
     rotate_left
     · -- after the `if` (`ctrlMid`): the rest of the control case, or the drain's return
       iintro %v Hv
@@ -2178,7 +2178,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
       (try wp_auto)
       -- the stamp to drain to (unit W-K): the created response's watcher's, or `0`
       ihave ⟨Hcw, %k0, #Hk0, #Hreg0⟩ : iprop(
-          v3rpc.ctrlWatcher r (auth.ctxTokenOf (GoInterface.ok ci)) req m ∗
+          v3rpc.ctrlWatcher r (tok) req m ∗
           ∃ k0 : Nat, mvcc.api.wsSentLb r.ι k0 ∗
             (if m.canceled then iprop(True) else
               iprop(∃ i : v3rpc.RegInfo, v3rpc.regIs r.γreg m.watchId i ∗ ⌜i.k = k0⌝))) $$ [Hcw]
@@ -2189,7 +2189,7 @@ theorem v3rpc.serverWatchStream.sendLoop.wp_proof
             all_goals (unfold v3rpc.ctrlAnswers at Hans; simp_all)
           obtain ⟨c, hreq⟩ := hreq
           irevert Hcw; rw [hreq]; iintro Hcw
-          icases v3rpc.ctrlWatcher_reg hP r (auth.ctxTokenOf (GoInterface.ok ci)) c m hca0 $$ Hcw
+          icases v3rpc.ctrlWatcher_reg hP r (tok) c m hca0 $$ Hcw
             with ⟨Hcw, %i, #Hreg, #Hk⟩
           irevert Hcw; rw [← hreq]; iintro Hcw
           iframe Hcw

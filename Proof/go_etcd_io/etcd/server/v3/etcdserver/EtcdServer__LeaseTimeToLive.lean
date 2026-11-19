@@ -41,8 +41,10 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
     (hTTL : EtcdServer.leaseTimeToLive.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     EtcdServer.LeaseTimeToLive.spec (GF := GF) (hG := hG) := by
-  intro Hpeers s E ρ γr γl ctx cd r dq v n m
-  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #Hnet, #Hcause, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  intro Hpeers s E ρ γr γl ctx cd tok r dq v n m
+  wp_start as ⟨#Hq, #Hr, #Hau, #Hlb, #Hlr, #Hpub, #Hmlb, #Hctx, #Hlib, #HtokC, #Hnet, #Hcause, HRD, #Hpool, Htok, %Hbound, Hreq⟩
+  ihave #HtokA : □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+  · iintro !> %h; iapply HtokC; ipureintro; exact h
   ihave ⟨%st, %cca, #Has, #Hreqa, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, -, -, -⟩
@@ -66,7 +68,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   ihave #Htx : mvcc.txnCtx (GF := GF) ctx cd $$ []
   · iunfold mvcc.txnCtx; iright; iexact Hctx
   (try wp_auto)
-  wp_apply (hReq s E ctx cd) $$ [$HRD] as %err ⟨HRD, #Hout, #Hav⟩
+  wp_apply (hReq s E ctx cd tok) $$ [$HRD] as %err ⟨HRD, #Hout, #Hav⟩
   · iframe #
   ihave #Hout' := Hout
   iunfold authedOutB at Hout'
@@ -88,7 +90,7 @@ theorem EtcdServer.LeaseTimeToLive.wp_proof
   | true =>
     (try wp_auto)
     -- `rev, err = s.checkLeaseTimeToLive(ctx, lease.LeaseID(r.ID))`
-    wp_apply (hChk s E γl ctx cd v.ID' n m) $$ [$HRD $Htok] as %rev0 %err1
+    wp_apply (hChk s E γl ctx cd tok v.ID' n m) $$ [$HRD $Htok] as %rev0 %err1
         ⟨HRD, Htok, #He1, Hok⟩
     · iframe #; ipureintro; exact Hbound
     (try wp_auto)

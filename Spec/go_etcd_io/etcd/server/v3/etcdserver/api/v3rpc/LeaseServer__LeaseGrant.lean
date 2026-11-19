@@ -44,19 +44,19 @@ and the server's permit at the request context's token, handed through unchanged
 client's result `leaseGrantResT`; at `on = false` the auth-off contract, `lessorGrantOkGM_false`.) -/
 abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
-    (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk)
+    (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64 × w64) (Q : w64 → KVState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.lessorGrantOkGM on s E ρ S G R ∗ S ∗
-      context.isContext ci cd ∗ grpcRunCtx ci ∗ v3rpc.leaseGrantReqIs r m ∗
+      context.isContext ci cd ∗ grpcRunCtx ci ∗ □ (⌜on = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ v3rpc.leaseGrantReqIs r m ∗
       v3rpc.leaseGrantReqIdOwn r m.2 ∗ ⌜R m⌝ ∗
-      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.ctxTokenOf (GoInterface.ok ci))) m.1 Q }}
+      leaseGrantPermitM on ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode tok) m.1 Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseGrant"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseGrantOut E cid mid resp err ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
         structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
-        v3rpc.leaseGrantResT on s E ρ (auth.ctxTokenOf (GoInterface.ok ci)) m.1 id Q) ∗
+        v3rpc.leaseGrantResT on s E ρ tok m.1 id Q) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

@@ -2815,9 +2815,11 @@ instance isReqAuth_persistent (st : GoInterface) (RD : IProp GF) :
   unfold isReqAuth; infer_instance
 
 /-- **The request side with the token binding** (persistent; the auth plan's S5, 2026-10-24):
-`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the context's own token in
-the mode `M` (`auth.ctxBound`: the token `auth.ctxTokenOf ctx` its metadata carries, the auth plan's
-E2c; in `on γa`, its user is one the token was issued to). Stated beside
+`isReqAuth`'s `AuthInfoFromCtx`, whose auth info is moreover bound to the token `tok` the context
+carries in the mode `M` (`auth.ctxBound`; the context's metadata carries `tok`, `auth.ctxToken`, a
+premise gated by the mode; perheap C1a, 2026-11-18: until then the pure `auth.ctxTokenOf ctx`; in
+`on γa`, its user is one the token was issued to). One row, read with a lower bound `n` (perheap C1a:
+the row without a bound is its instance at `n := 0`). Stated beside
 `isReqAuth` (which the request path's and `NewAuthStore`'s statements name) rather than in it; with
 auth on, a row of the server's reader view (`srvReadFieldsAt`). Of the real store:
 `isReqAuthBound_of_authInv` (`AuthReqDerive.lean`). Its error is moreover `nil` or one of the auth
@@ -2841,22 +2843,18 @@ bound too, the latter only for a non-`nil` auth info and its passing half: the l
 which auth-on-leases owns (D5). -/
 def isReqAuthBound (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(∃ ai : GoInterfaceOk, ⌜st = GoInterface.ok ai⌝ ∗
-    □ (∀ ctx : GoInterfaceOk,
-      {{ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
-        (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
-      {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a }}) ∗
     □ (∀ n : Nat,
       {{ auth.authPubLbM M n ∗ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
       {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdictFrom M n b }}) ∗
-    □ (∀ (n : Nat) (ctx : GoInterfaceOk),
-      {{ auth.authPubLbM M n ∗ context.libCtxOk ctx ∗ auth.ctxDoneAny ctx ∗ RD }}
+    □ (∀ (n : Nat) (ctx : GoInterfaceOk) (tok : Option GoString),
+      {{ auth.authPubLbM M n ∗ context.libCtxOk ctx ∗
+          □ (⌜M.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ auth.ctxDoneAny ctx ∗ RD }}
         (App (Val #(methods ai.ty go!"AuthInfoFromCtx" ai.v)) (Val #(GoInterface.ok ctx)))
       {{ (a : Loc) (err : GoInterface), RET (PairV #a #err); RD ∗ authInfoOpt a ∗
-          authApplyErrIs err ∗ auth.ctxBound M (GoInterface.ok ctx) a ∗
-          (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n (GoInterface.ok ctx)) ∗
+          authApplyErrIs err ∗ auth.ctxBound M tok a ∗
+          (∀ _ : a = null ∧ err = GoInterface.nil, auth.noPrincipalFrom M n tok) ∗
           (∀ _ : err ≠ GoInterface.nil, auth.authErrOf .invalidAuthToken err ∗
-            auth.enabledVerdictFrom M n true ∗ auth.tokRefusedFrom M n (GoInterface.ok ctx)) ∗
+            auth.enabledVerdictFrom M n true ∗ auth.tokRefusedFrom M n tok) ∗
           (∀ _ : a ≠ null, auth.enabledVerdictFrom M n true) }}) ∗
     □ (∀ (n : Nat) (a : Loc) (oinfo : Option go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
       {{ auth.authPubLbM M n ∗ auth.authInfoAt a dq oinfo ∗ RD }}

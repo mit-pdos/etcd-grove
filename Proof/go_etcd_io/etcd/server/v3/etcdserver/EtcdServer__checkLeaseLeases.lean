@@ -35,8 +35,8 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG))
     (hK : lease.Lease.Keys.spec (GF := GF) (hG := hG)) :
     EtcdServer.checkLeaseLeases.spec (GF := GF) (hG := hG) := by
-  intro s E γl ctx cd sl ls dq n m
-  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, #Hlib, HRD, Htok, %Hbound, Hsl, #Hls⟩
+  intro s E γl ctx cd tok sl ls dq n m
+  wp_start as ⟨#Hau, #Hlb, #Hlr, #Hpub, #Hctx, #Hlib, #HtokC, HRD, Htok, %Hbound, Hsl, #Hls⟩
   ihave ⟨%st, %cca, #Has, #Hreq, #Hreqb, #Hcca, #HLb⟩ := leaseCheckSetup s E n $$ [$Hau $Hlb $Hpub]
   iunfold isAuthStoreLeaseLb at HLb
   icases HLb with ⟨%ai, %Hai, #HEn, #HRev, #HAdm, -, #HRng⟩
@@ -77,7 +77,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
   ihave %HaOn := enabledVerdictFrom_true_isOn E.authMode n $$ Hen
   (try wp_auto)
   -- `authInfo, err := s.AuthInfoFromCtx(ctx)`
-  wp_apply (hAI s _ E.RD E.authMode cca ctx cd) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
+  wp_apply (hAI s _ E.RD E.authMode cca ctx cd n tok) $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hb, -⟩
   · iframe #
   ihave #Herr := authApplyErrIs_apply _ $$ Herr0
   (try wp_auto)
@@ -100,7 +100,7 @@ theorem EtcdServer.checkLeaseLeases.wp_proof
     · ipureintro; intro h; rw [apply.AEnv.authOn_eq, HaOn] at h; cases h
     iintro %h; cases h
   ihave #Hp := authInfoIs_pointsto a user rev' $$ Hai0
-  ihave #Hib := principalBoundOn_of_ctxBound E.authOn s E _ a user rev' $$ [Hb Hai0]
+  ihave #Hib := principalBoundOn_of_ctxBound E.authOn s E tok a user rev' $$ [Hb Hai0]
   · iframe Hai0; iintro %h; iapply Hb $$ %h
   iunfold authInfoIs at Hai0
   icases Hai0 with ⟨%Hann, -, -⟩

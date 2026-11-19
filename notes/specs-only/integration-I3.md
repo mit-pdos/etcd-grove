@@ -62,7 +62,7 @@ v3lockpb/v3electionpb `Api.lean`s; snippets `examples/specreq/{v3rpc,grpc,v3rpcw
 - `google_golang_org/grpc/Api.lean`, for 3d's request:
   - New predicates **`ctxInMD ctx o`**, **`ctxPeerCN ctx c`** (both opaque, persistent) and
     **`ctxCertUser`** (transparent). They describe any context's incoming metadata and TLS peer.
-  - New laws: `ctxInMD_persistent`, `ctxInMD_agree`, `rpcCtx_inMD`, `ctxInMD_background`,
+  - New laws: `ctxInMD_persistent`, `ctxInMD_agree` (deleted 2026-11-18: `ledger.md`), `rpcCtx_inMD`, `ctxInMD_background`,
     `ctxInMD_child` and `ctxInMD_value`.
   - `grpcOver_inj`'s docstring now withdraws the `protoAt_agree` request (see below).
 - `grpc/metadata/FromIncomingContext.lean`: now stated for any context over `ctxInMD`.

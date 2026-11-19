@@ -37,15 +37,17 @@ refused for the reason `adminWhy`, for a caller holding a lower bound `n` of the
 index (auth-guard-completeness G3, 2026-11-14). -/
 abbrev v3rpc.authMaintenanceServer.Snapshot.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (sr : Loc) (srv : GoInterface) (Pin : IProp GF)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (sr : Loc) (srv : GoInterface) (Pin : IProp GF)
     (Q : GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗
       E.RD ∗ Pin ∗ v3rpc.streamCtxOk srv ctx ∗
       v3rpc.guardedSnapOk (adminRes E.authMode) Pin E.RD ms sr srv Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Snapshot"))
       (Val #sr)) (Val #srv))
-  {{ (err : GoInterface), RET #err; E.RD ∗ v3rpc.guardOut1C Pin Q (adminWhy s E.authMode n (GoInterface.ok ctx)) err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ v3rpc.guardOut1C Pin Q (adminWhy s E.authMode n tok) err }}
 
 end spec
 

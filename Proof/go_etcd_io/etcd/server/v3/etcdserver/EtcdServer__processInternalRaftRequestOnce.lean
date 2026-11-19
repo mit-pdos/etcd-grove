@@ -223,10 +223,10 @@ local macro "piro_tail" : tactic => `(tactic| (
       iexists ρ.wait, γh.takenName
       iframe Hwn Hregd
     -- (step 5) with auth on, the stamped header's binding, which the write's grant carries
-    ihave #Hgb : □ (⌜on = true⌝ → hdrBoundM true s E (GoInterface.ok ctx)
+    ihave #Hgb : □ (⌜on = true⌝ → hdrBoundM true s E tok
         ⟨id, hv.Username', hv.AuthRevision'⟩) $$ []
     · iintro !> %hon; subst hon; iexact Hhb
-    imod kv_prop_au_M on ρ.raft ρ.kv bs (hdrBoundM true s E (GoInterface.ok ctx)) rq rq'
+    imod kv_prop_au_M on ρ.raft ρ.kv bs (hdrBoundM true s E tok) rq rq'
       ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
       (Hbsne (by simp [apply.withHeader])) Hdec Hwire Hk id γf Hidrq ⊤
       CoPset.subseteq_top CoPset.subseteq_top CoPset.subseteq_top
@@ -286,7 +286,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           ((⌜e = GoInterface.nil⌝ ∗ ∃ hm rq',
               ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
               ∃ L, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗ pubAfterM on E ρ rq' L ∗
-                □ Qh hm L ∗ hdrBoundM on s E (GoInterface.ok ctx) hm) ∨
+                □ Qh hm L ∗ hdrBoundM on s E tok hm) ∨
             ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
         at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
       · ihave #Hcctx' := Hcctx
@@ -526,11 +526,11 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qh F Hid0 Hdpt
+  intro s E ρ ctx cd tok p rq Qh F Hid0 Hdpt
   -- the proof is over the mode as a variable `on` (it cases on it at the handoff's receipt)
   have hPE := hPE s E ρ
   generalize E.authOn = on at hPE ⊢
-  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Hspc, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
+  wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hlib, #Htok, #Hspc, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave ⟨⟨%v, #Hv⟩, #HsrvB⟩ := (isServerReqM_split _ _ _ _).1 $$ Hsrv
@@ -593,7 +593,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     wp_join (Q := fun v => iprop(
         (⌜v = executeVal⌝ ∗ ∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
           structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p ∗
-          E.RD ∗ hdrBoundM on s E (GoInterface.ok ctx) ⟨id, hv.Username', hv.AuthRevision'⟩ ∗
+          E.RD ∗ hdrBoundM on s E tok ⟨id, hv.Username', hv.AuthRevision'⟩ ∗
           «$res0_ptr» ↦ Loc.null ∗ «$res1_ptr» ↦ GoInterface.nil) ∨
         (∃ aei : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗ E.RD ∗
           applyErrIs (GoInterface.ok aei) ∗ «$res0_ptr» ↦ Loc.null ∗
@@ -616,7 +616,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
         have hla : la = null := Hlan.2 hau
         (try wp_auto)
         wp_if_destruct
-        · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth s E v.auth v.cca ctx cd $$ [Hard]
+        · wp_apply EtcdServer.AuthInfoFromCtx.wpM on hAuth s E v.auth v.cca ctx cd tok $$ [Hard]
             as %au %aerr ⟨Hard, Hau, #HaE0, #Hab⟩
           · iframe Hard; iframe #
             iunfold mvcc.txnCtx; iright; iexact Hctx
@@ -634,7 +634,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
             (try wp_auto)
             wp_join iprop(∃ hv : etcdserverpb.RequestHeader, «$r0_ptr» ↦ hv ∗ ⌜hv.ID' = id⌝ ∗
                 structFieldRef etcdserverpb.InternalRaftRequest go!"Header" p ↦ «$r0_ptr» ∗ r_ptr ↦ p ∗
-                hdrBoundM on s E (GoInterface.ok ctx) ⟨id, hv.Username', hv.AuthRevision'⟩)
+                hdrBoundM on s E tok ⟨id, hv.Username', hv.AuthRevision'⟩)
               with [«$r0» Hau authInfo Hhdr r] as ⟨%hv, Hhv, %Hhvid, Hhdr, r, #Hhb⟩
             · iexists _; iframe «$r0» Hhdr r
               isplitr
@@ -643,7 +643,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
             · iunfold authInfoOpt at Hau
               icases Hau with (%Hn | ⟨%user, %rev, #Hai⟩)
               · exfalso; simp_all
-              ihave #Hhb := hdrBoundM_of_ctxBound on s E (GoInterface.ok ctx) _ id user rev $$ [Hab Hai]
+              ihave #Hhb := hdrBoundM_of_ctxBound on s E tok _ id user rev $$ [Hab Hai]
               · iframe Hab Hai
               iunfold authInfoIs at Hai
               icases Hai with ⟨-, #HU, #HR⟩
