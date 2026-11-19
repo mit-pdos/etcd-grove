@@ -302,7 +302,6 @@ axiom apimeta.GetItemsPtr.wp_proof
 axiom apply.irrDecode_utf8
 axiom apply.memberEnc_id_learner
 axiom apply.memberKey_inj
-axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof

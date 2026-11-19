@@ -17,6 +17,38 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
+
+- **Limitation.** `modelcheck.Assign` (`docs/design/unsafe-memory.md`, R4) reports every copy of a
+  pointer-free struct between two memory places whose bases differ. deepcopy-gen writes two such
+  copies that cannot partially overlap: `*out = new(T); **out = **in` (the destination is the
+  allocation of the line before: `LifecycleHandler.Sleep`, a `*SleepAction`), and
+  `out.F = in.F` with `in`, `out` two `*S` of a struct `S` that holds pointers (`NodeStatus`'s
+  `out.DaemonEndpoints = in.DaemonEndpoints`): R3 makes every `unsafe` view of a non-plain type
+  stuck, so two `S` objects are the same or disjoint, and so are their fields at the same path.
+- **Needed by.** The deep copies of `Pod` and `DaemonSet` (`LifecycleHandler.DeepCopyInto`) and of
+  `Node` (`NodeStatus.DeepCopyInto`), `etc/gen-k8s-deep.py`; their `DeepCopyObject.wp_proof` stay
+  trust-boundary axioms (`Proof/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`).
+- **Workaround here.** None: the two functions are not translated (Goose's `trusted` does not apply
+  to methods), so their callers' copies are not proved.
+- **Proposed change.** Two exemptions in `modelcheck.Assign`, each a syntactic argument like the
+  existing ones: (1) a dereference whose base was assigned a fresh allocation by the statement just
+  before in the same block (`*out = new(T)` then `**out = ...`); (2) the same field path on both
+  sides from two bases of the same pointer type `*S`, `S` not pointer-free.
+- **Status.** Not started.
+
+### A range-loop spec for slices (2026-11-18, k8s deep copies)
+
+- **Missing.** Perennial has `wp_string_for_range` and `wp_map_for_range`, but no spec of
+  `slice.forRange` (only its unfolding, `pure_wp_slice_for_range`, to a counter loop).
+- **Workaround here.** `wp_slice_for_range` in `Proof/k8s_io/api/DeepCopyBase.lean` (a loop that
+  only reads the slice, an invariant `P i`, a body that ends normally); the generated modules
+  remove the instance `pure_wp_slice_for_range` locally so that `wp_auto` stops at the
+  `slice.forRange` the spec is about.
+- **Proposed change.** A general `wp_slice_for_range` in `Theory/Slice.lean` (with
+  `forRangePostcondition`, as the string one), and a way to apply it after `wp_auto`.
+- **Status.** Not started.
+
 ### `io.NewSectionReader`, `io.CopyN` without bodies (2026-11-18, S4, branch `s4-io`)
 
 - **Missing.** Perennial's `io.toml` translates `io` names-only for `NewSectionReader`, `CopyN`,
@@ -1004,9 +1036,16 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   the same name as a field (`intstr.IntOrString`'s field `Type` of type `Type`) resolves to the
   field's projection (`(y : Type')` is `IntOrString.Type'`).
 - **Needed by.** `k8s.io/apimachinery/pkg/util/intstr.IntOrString` (the DaemonSet's rolling-update
-  fields).
+  fields). Since 2026-11-18 also the deep copies of `Pod` and `DaemonSet` (`etc/gen-k8s-deep.py`):
+  `ProbeHandler`/`LifecycleHandler` copy an `*HTTPGetAction`/`*TCPSocketAction` (an `IntOrString`
+  inline) and `RollingUpdateDaemonSet` its `*IntOrString`s, which are never owned while the type is
+  axiomatized; their `DeepCopyObject.wp_proof` stay axioms. Still there at the pin `f551a1b46`
+  (2026-11-18: dropping `translate_types_except_structs` gives `set_Type : ∀ (x : IntOrString)
+  (y : Type')`, which fails to elaborate: "type expected, got (Type' : IntOrString → intstr.Type')").
 - **Workaround here.** `intstr`'s structs axiomatized (`translate_types_except_structs`).
-- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`).
+- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`);
+  the binder is written in `structFieldAssumptions` (`goose/lean_types.go`, `set_<field>`), from
+  `toLeanTypeP`, which names a type of the package unqualified.
 - **Status.** Not started.
 
 ### Goose: range over a string (2026-10-26, client-go survey C1)
