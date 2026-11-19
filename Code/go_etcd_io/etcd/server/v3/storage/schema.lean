@@ -10,6 +10,7 @@ public import Perennial.Code.encoding.binary
 public import Code.go_etcd_io.etcd.server.v3.auth
 public import Code.go_etcd_io.etcd.api.v3.authpb
 public import Code.go_etcd_io.etcd.client.pkg.v3.verify
+public import Code.go_etcd_io.etcd.server.v3.lease.leasepb
 public import Perennial.Golang.Defn
 
 @[expose] public section
@@ -1815,6 +1816,44 @@ noncomputable def UnsafeCreateLeaseBucket.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeCreateBucket"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0"))))))
   (Val #())))
 
+/-- go: lease.go:58:6 -/
+noncomputable def UnsafeDeleteLease.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "tx"
+  (Lam "lpb"
+  (Seq (App (Val exceptionDo)
+  (Let "lpb" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty)))) (Var "lpb"))
+  (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (App (Val (GoInstruction (GlobalVarAddr Lease))) (Val #())))
+  (Let "$a1" (Let "$a0" (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty go!"ID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Lease.ty)))) (Var "lpb"))))
+  (App (App (Val (GoInstruction (FuncResolve leaseIDToBytes []))) (Val #())) (Var "$a0")))
+  (App (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty go!"UnsafeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty))) (Var "tx"))) (Var "$a0")) (Var "$a1"))))))))
+  (Val #()))))
+
+/-- go: lease.go:75:6 -/
+noncomputable def leaseIDToBytes.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "n"))
+  (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (Val #(W64 8)))
+  (Let "bytes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType go.byte)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "bytes"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "bytes"))
+  (Let "$a1" (App (Val (GoInstruction (Convert go.int64 go.uint64))) (App (Val (GoInstruction (GoLoad go.int64))) (Var "n")))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "bytes") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "$res0")))))
+
 /-- NewMembershipBackend returns a new membership backend
     Refer to https://github.com/etcd-io/etcd/pull/19343#discussion_r1958056718
     revive:disable-next-line:unexported-return
@@ -1838,7 +1877,7 @@ noncomputable def NewMembershipBackend.impl [GooseExts] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoLoad (go.GoType.PointerType membershipBackend.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.schema where
-  pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
+  pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb]
 
 opaque «_».init [GooseExts] [GoGlobalContext] : val
 
@@ -1846,6 +1885,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.schema)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2051,6 +2091,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc authEnabled (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
@@ -2670,6 +2712,8 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnsafeUpdateConsistentIndex_unfold : FuncUnfold UnsafeUpdateConsistentIndex [] UnsafeUpdateConsistentIndex.impl
   unsafeUpdateConsistentIndex_unfold : FuncUnfold unsafeUpdateConsistentIndex [] unsafeUpdateConsistentIndex.impl
   UnsafeCreateLeaseBucket_unfold : FuncUnfold UnsafeCreateLeaseBucket [] UnsafeCreateLeaseBucket.impl
+  UnsafeDeleteLease_unfold : FuncUnfold UnsafeDeleteLease [] UnsafeDeleteLease.impl
+  leaseIDToBytes_unfold : FuncUnfold leaseIDToBytes [] leaseIDToBytes.impl
   NewMembershipBackend_unfold : FuncUnfold NewMembershipBackend [] NewMembershipBackend.impl
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
@@ -2680,6 +2724,7 @@ class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   import_auth_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.auth.Assumptions
   import_authpb_Assumption : _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Assumptions
   import_verify_Assumption : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.verify.Assumptions
+  import_leasepb_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.lease.leasepb.Assumptions
 
 attribute [instance] Assumptions.action_instance
   Assumptions.setKeyAction_instance
@@ -2712,6 +2757,8 @@ attribute [instance] Assumptions.action_instance
   Assumptions.UnsafeUpdateConsistentIndex_unfold
   Assumptions.unsafeUpdateConsistentIndex_unfold
   Assumptions.UnsafeCreateLeaseBucket_unfold
+  Assumptions.UnsafeDeleteLease_unfold
+  Assumptions.leaseIDToBytes_unfold
   Assumptions.NewMembershipBackend_unfold
   Assumptions.import_zap_Assumption
   Assumptions.import_backend_Assumption
@@ -2722,6 +2769,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.import_auth_Assumption
   Assumptions.import_authpb_Assumption
   Assumptions.import_verify_Assumption
+  Assumptions.import_leasepb_Assumption
 
 end go_etcd_io.etcd.server.v3.storage.schema
 

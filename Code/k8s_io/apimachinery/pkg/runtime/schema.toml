@@ -1,6 +1,7 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# notes/k8s-etcd3-goose.md); but (2026-11-19) `GroupResource.String` and
+# `GroupVersionResource.Empty`, with bodies.
+translate = ["!*", "GroupResource.String", "GroupVersionResource.Empty"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

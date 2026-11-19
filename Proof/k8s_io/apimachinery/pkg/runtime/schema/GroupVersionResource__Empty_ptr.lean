@@ -1,9 +1,11 @@
 /-
-The trust boundary: `Spec/k8s_io/apimachinery/pkg/runtime/schema/GroupVersionResource__Empty_ptr.lean` (the method compares three strings with `""`, total). Lean-first.
+Proof of `Spec/k8s_io/apimachinery/pkg/runtime/schema/GroupVersionResource__Empty_ptr.lean` (2026-11-19: the trust
+boundary until then, when `runtime/schema` was translated names only). Lean-first.
 -/
 module
 
 public import Spec.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
+public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 
 @[expose] public section
 
@@ -14,7 +16,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI
+open Iris Iris.BI Iris.ProofMode
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -23,8 +25,26 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
 
-axiom schema.GroupVersionResource.Empty_ptr.wp_proof :
-  schema.GroupVersionResource.Empty_ptr.spec (GF := GF) (hG := hG)
+theorem schema.GroupVersionResource.Empty_ptr.wp_proof :
+    schema.GroupVersionResource.Empty_ptr.spec (GF := GF) (hG := hG) := by
+  intro l dq v
+  wp_start as Hl
+  wp_auto
+  wp_method_call
+  wp_call
+  wp_auto
+  iStructNamedPrefix gvr "g"
+  wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+  wp_if_destruct
+  · wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+    wp_if_destruct
+    · wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %-
+      iapply HΦ
+      iexact Hl
+    · iapply HΦ
+      iexact Hl
+  · iapply HΦ
+    iexact Hl
 
 end proof
 
