@@ -1,10 +1,11 @@
 /-
-`typed.mergingWalker.finishDescent`: not proved yet (`sorry`): the stage's Prove step, after the freeze
-(notes/smd-plan.md). Draft (2026-11-19).
+`typed.mergingWalker.finishDescent`: proved (Prove phase, 2026-11-19): the parent's path is the
+child's less its last element (`ownPath_pop`), the child goes back to the spare list (`append`).
 -/
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.mergingWalker__finishDescent
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsBPers
 
 @[expose] public section
 
@@ -27,8 +28,46 @@ variable [sem : go.Semantics]
 variable [package_sem : typed.Assumptions]
 
 theorem typed.mergingWalker.finishDescent.wp_proof :
-    typed.mergingWalker.finishDescent.spec (GF := GF) := by
-  sorry
+    typed.mergingWalker.finishDescent.spec (GF := GF) :=
+    fun w w2 sc S st st2 ps ps2 sp a pe => by
+  wp_start as ⟨Hcore, Hcore2, Hps2, Hsp, %Hspnn⟩
+  unfold mwCore
+  icases Hcore with ⟨%tr0, %rule, %o, Hw, #Htr, #Hsc, %HWF, #Hrule, #Ho⟩
+  icases Hcore2 with ⟨%tr2, %rule2, %o2, Hw2, -⟩
+  unfold spareWalkers
+  icases Hsp with (%Hn | ⟨%sl, %ws, Hspp, Hws, Hwsc, Hwl⟩)
+  · exact absurd Hn Hspnn
+  ihave ⟨Hps2, %Hl2⟩ := ownPath_len _ _ $$ Hps2
+  ihave Hps' := ownPath_pop ps2 st.path pe $$ Hps2
+  wp_auto
+  have hb : 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) ≤ sint.Z (ps2.len - W64 1) ∧
+      sint.Z (ps2.len - W64 1) ≤ sint.Z ps2.cap := by
+    simp only [List.length_append, List.length_singleton] at Hl2
+    word
+  simp only [hb, and_self, ↓reduceIte]
+  wp_auto
+  wp_apply (wp_slice_literal (V := Loc) [w2])
+  isplitr
+  · ipureintro; rfl
+  iintro %sl2 ⟨Hsl2, -⟩
+  (try wp_auto)
+  wp_apply (wp_slice_append (V := Loc) sl ws _ [w2] (DFrac.own 1))
+    $$ [$Hws $Hwsc $Hsl2] as %sl' ⟨Hws, Hwsc, -⟩
+  iapply HΦ
+  iexists _
+  iframe
+  simp only
+  isplitr [Hw2 Hwl Hws Hwsc Hspp]
+  · isplitr; iexact Htr
+    isplitr; iexact Hsc
+    isplitr; ipureintro; exact HWF
+    isplitr; iexact Hrule
+    iexact Ho
+  iright
+  iexists sl', ws ++ [w2]
+  iframe
+  iapply (BigSepL.bigSepL_nil_intro (P := iprop(True)))
+  ipureintro; trivial
 
 end proof
 

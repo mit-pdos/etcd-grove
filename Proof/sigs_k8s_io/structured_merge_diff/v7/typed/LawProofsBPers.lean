@@ -6,6 +6,7 @@ module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Persist
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
 
 @[expose] public section
@@ -108,6 +109,40 @@ theorem ownSlice_pop {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (sl : G
   rw [h1, List.take_left, List.drop_left]
   iframe H1
   iapply ownSlice_slice_absorb_capacity sl [x] (W64 0) (sl.len - W64 1) hb
+  iframe
+
+/-- A walker's path slice: its length is the path's. -/
+theorem ownPath_len (s : fieldpath.Path) (p : Path) :
+    ownPath (GF := GF) s p ⊢ ownPath s p ∗
+      ⌜sint.nat s.len = p.length ∧ 0 ≤ sint.Z s.len ∧ sint.Z s.len ≤ sint.Z s.cap⌝ := by
+  unfold ownPath isPathF
+  iintro ⟨⟨%es, Hes, Hpes⟩, Hcap⟩
+  ihave %Hl := isPEs_length_law_holds _ _ $$ Hpes
+  ihave %Hlen := ownSlice_len _ _ _ $$ Hes
+  ihave %Hwf := ownSlice_wf _ _ _ $$ Hes
+  isplitl
+  · iframe
+  · ipureintro; exact ⟨by omega, Hwf.1, Hwf.2⟩
+
+/-- Truncating a walker's path by its last element (`finishDescent`'s `w2.path[:len(w2.path)-1]`). -/
+theorem ownPath_pop (s : fieldpath.Path) (p : Path) (pe : PE) :
+    ownPath (GF := GF) s (p ++ [pe]) ⊢
+      ownPath (slice.slice s fieldpath.PathElement (W64 0) (s.len - W64 1)) p := by
+  unfold ownPath isPathF
+  iintro ⟨⟨%es, Hes, Hpes⟩, Hcap⟩
+  ihave %Hl := isPEs_length_law_holds _ _ $$ Hpes
+  simp only [List.length_append, List.length_singleton] at Hl
+  have hes : es = es.take p.length ++ es.drop p.length := (List.take_append_drop _ _).symm
+  have hd : (es.drop p.length).length = 1 := by simp; omega
+  obtain ⟨e, he⟩ : ∃ e, es.drop p.length = [e] := by
+    match h : es.drop p.length, hd with
+    | [e], _ => exact ⟨e, rfl⟩
+  rw [he] at hes
+  rw [hes]
+  rw [hes] at Hl
+  icases (isPEs_app_law_holds (es.take p.length) [e] p [pe] (by simp at Hl ⊢; omega)).1 $$ Hpes
+    with ⟨Hp1, -⟩
+  icases ownSlice_pop s (es.take p.length) e $$ [$Hes $Hcap] with ⟨Hes, Hcap⟩
   iframe
 
 /-- Calling `ruleKeepRHS`'s closure (the persistent spec read at one call). -/
