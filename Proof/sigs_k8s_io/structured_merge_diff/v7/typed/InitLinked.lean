@@ -106,18 +106,10 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   is_pkg_init_finish
   try (isplitl []; · (imodintro; itrivial))
   imodintro
-  unfold EtcdGrove.smd.typedPools
+  unfold EtcdGrove.smd.typedPoolsAt
   isplitr
-  · iexists _; iframe HruleKeepRHS; iExactEq HR; unfold ruleKeepRHSV; rfl
-  isplitr
-  · iexists _; iexact PmwPool
-  isplitr
-  · iexists _; iexact PcmpwPool
-  isplitr
-  · iexists _; iexact PtPool
-  isplitr
-  · iexists _; iexact PvPool
-  iexists _; iexact PfmPool
+  · iExactEq HruleKeepRHS; unfold ruleKeepRHSV; rfl
+  iframe HR PmwPool PcmpwPool PtPool PvPool PfmPool
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

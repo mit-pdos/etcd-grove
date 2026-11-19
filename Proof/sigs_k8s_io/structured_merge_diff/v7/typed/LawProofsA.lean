@@ -35,10 +35,33 @@ variable [sem : go.Semantics]
 
 /-! ## The package fact -/
 
-theorem typedPkgInit_pools_law_holds : typedPkgInit_pools.law (GF := GF) := by
-  unfold typedPkgInit_pools.law
+/-- The package fact at the translation's closures. -/
+theorem typedPkgInit_poolsAt :
+    isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed ⊢
+      typedPoolsAt (GF := GF) := by
   have h := isPkgInit_access (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed
   with_unfolding_all exact h
+
+instance typedPoolsAt_pers : Persistent (typedPoolsAt (GF := GF)) := by
+  unfold typedPoolsAt ruleKeepRHSOk; infer_instance
+
+theorem typedPkgInit_pools_law_holds : typedPkgInit_pools.law (GF := GF) := by
+  unfold typedPkgInit_pools.law
+  iintro #H
+  ihave #H2 := typedPkgInit_poolsAt $$ H
+  unfold typedPoolsAt typedPools
+  icases H2 with ⟨#Hr, #Hok, #P1, #P2, #P3, #P4, #P5⟩
+  isplitr
+  · iexists _; iframe #
+  isplitr
+  · iexists _; iexact P1
+  isplitr
+  · iexists _; iexact P2
+  isplitr
+  · iexists _; iexact P3
+  isplitr
+  · iexists _; iexact P4
+  iexists _; iexact P5
 
 /-! ## Typed values -/
 

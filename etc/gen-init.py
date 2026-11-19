@@ -2442,7 +2442,7 @@ SMD_TYPED_CLOSURES = [
     ('vwNewV', 'vPool', '$v0', '`vPool.New`: `&validatingObjectWalker{}`.'),
     ('rwNewV', 'fmPool', '$v0', '`fmPool.New`: `&reconcileWithSchemaWalker{}`.')]
 SPECIAL[_SMD + 'typed'] = dict(
-    doc='''Its fact is `typedPools` (`Base.lean`, over `Walkers.lean`; the Prove phase, 2026-11-19):
+    doc='''Its fact is `typedPoolsAt` (`Base.lean`, `typedPools` of `Walkers.lean` at the closures; the Prove phase, 2026-11-19):
 `ruleKeepRHS` holds its closure, which meets `ruleKeepRHSOk`, and the five walker pools are
 `sync.isPool`s of pooled walkers, each `New` making a zero walker (`InitClosures.lean`, over the
 closures of `Closures.lean`). Its initializer allocates its translated variables, initializes its
@@ -2473,11 +2473,9 @@ initializers of `ssParser` and `DeducedParseableType`
                        f'$$ [H{pool}] with #P{pool}',
                        f'· iframe H{pool}; ipureintro; exact ⟨rfl, rfl⟩']] +
             FIN_PRE[:6] +
-            ['try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'unfold EtcdGrove.smd.typedPools',
-             'isplitr', '· iexists _; iframe HruleKeepRHS; iExactEq HR; unfold ruleKeepRHSV; rfl'] +
-            [l for pool in ['mwPool', 'cmpwPool', 'tPool', 'vPool']
-             for l in ['isplitr', f'· iexists _; iexact P{pool}']] +
-            ['iexists _; iexact PfmPool']),
+            ['try (isplitl []; · (imodintro; itrivial))', 'imodintro', 'unfold EtcdGrove.smd.typedPoolsAt',
+             'isplitr', '· iExactEq HruleKeepRHS; unfold ruleKeepRHSV; rfl',
+             'iframe HR PmwPool PcmpwPool PtPool PvPool PfmPool']),
 )
 SPECIAL[_SMD + 'merge'] = dict(
     doc='''Its fact is `True` (`Base.lean`). Its initializer initializes its imports and evaluates

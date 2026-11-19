@@ -1,9 +1,13 @@
 /-
 `typed` (structured-merge-diff v7.0.0, project `smd`; notes/smd-goose.md): its package fact.
 
-Its fact is `typedPools` (`Walkers.lean`; the Prove phase, 2026-11-19): `ruleKeepRHS` holds its
-closure (`ruleKeepRHSOk`) and the five walker pools `mwPool`, `cmpwPool`, `tPool`, `vPool`,
-`fmPool` are `sync.isPool`s of walkers with their pooled invariants (`*Pooled`). The fact is
+Its fact is `typedPoolsAt` (the Prove phase, 2026-11-19): `typedPools` (`Walkers.lean`) at the
+translation's closures (`Closures.lean`): `ruleKeepRHS` holds `ruleKeepRHSV`, which meets
+`ruleKeepRHSOk`, and the five walker pools `mwPool`, `cmpwPool`, `tPool`, `vPool`, `fmPool` are
+`sync.isPool`s of walkers with their pooled invariants (`*Pooled`) whose `New` is the literal's
+closure (`mwNewV`, ...): not nil, so a pool's `Get` returns a walker (`typedPools`' existential
+`New` could be nil). `typedPkgInit_pools.law` (`isPkgInit ⊢ typedPools`) follows
+(`LawProofsA.lean`), and `typedPkgInit_poolsAt` gives the concrete form. The fact is
 over the walkers' vocabulary, so this module comes after `Walkers` (`Defs` imports the package's
 dependencies itself) and every `typed` spec gets it with its `Base` import. Its initializer
 allocates and sets them and runs the trusted no-op models of `ssParser` and
@@ -12,12 +16,43 @@ allocates and sets them and runs the trusted no-op models of `ssParser` and
 module
 
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Walkers
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.Closures
 
 @[expose] public section
 
 noncomputable section
 
 namespace Perennial
+
+namespace EtcdGrove.smd
+
+open Iris Iris.BI Iris.ProgramLogic Iris.Std
+
+section fact
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+open sigs_k8s_io.structured_merge_diff.v7 in
+/-- **`typedPoolsAt`**: `typedPools` at the translation's closures (the package fact). -/
+def typedPoolsAt : IProp GF :=
+  iprop((globalAddr typed.ruleKeepRHS) ↦□ typed.ruleKeepRHSV ∗ ruleKeepRHSOk typed.ruleKeepRHSV ∗
+    sync.isPool (globalAddr typed.mwPool) typed.mwNewV iprop(True)
+      (pooledAs typed.mergingWalker.ty mwPooled) ∗
+    sync.isPool (globalAddr typed.cmpwPool) typed.cwNewV iprop(True)
+      (pooledAs typed.compareWalker.ty cwPooled) ∗
+    sync.isPool (globalAddr typed.tPool) typed.twNewV iprop(True)
+      (pooledAs typed.toFieldSetWalker.ty twPooled) ∗
+    sync.isPool (globalAddr typed.vPool) typed.vwNewV iprop(True)
+      (pooledAs typed.validatingObjectWalker.ty vwPooled) ∗
+    sync.isPool (globalAddr typed.fmPool) typed.rwNewV iprop(True)
+      (pooledAs typed.reconcileWithSchemaWalker.ty rwPooled))
+
+end fact
+
+end EtcdGrove.smd
+
 namespace sigs_k8s_io.structured_merge_diff.v7.typed
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std
@@ -30,7 +65,7 @@ variable [sem : go.Semantics]
 
 instance isPkgInit_inst :
     IsPkgInit (IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed :=
-  define_is_pkg_init EtcdGrove.smd.typedPools
+  define_is_pkg_init EtcdGrove.smd.typedPoolsAt
 instance get_isPkgInit_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.typed :=
   build_get_is_pkg_init_wf
