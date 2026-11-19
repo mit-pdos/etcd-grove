@@ -6,6 +6,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Equals
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.EqualsUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -29,8 +30,13 @@ variable [package_sem : value.Assumptions]
 
 theorem value.Equals.wp_proof
     (h_EqualsUsing : value.EqualsUsing.spec (GF := GF)) :
-    value.Equals.spec (GF := GF) := by
-  sorry
+    value.Equals.spec (GF := GF) := fun a b dq1 dq2 x y => by
+  wp_start as ⟨Hx, Hy⟩
+  icases valuePkg_globals $$ Hpkg with ⟨%ha, %er, #Hha, -⟩
+  wp_auto
+  wp_apply h_EqualsUsing _ a b dq1 dq2 x y $$ [Hx Hy] as %r ⟨-, Hx, Hy, %Hr⟩
+  · iframe; iapply isAlloc_heap_intro
+  wp_end
 
 end proof
 
