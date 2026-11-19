@@ -3,7 +3,7 @@ title: the examples' relative data directories make the bootstrap contract's fil
 found: 2026-11-19
 by: the snapdir re-attack (wal-link, fresh read-only agent, axiom skill), notes/axiom-review/snapdir.md §2
 blocks-proof: no
-status: open; reported to etcd-grove-03 at the wal-link stop (2026-11-19); no fix applied
+status: fixed on wal-link (2026-11-19, approved by the user via etcd-grove-03); lands with wal-link
 ---
 # Relative data directories against absolute file claims
 
@@ -29,7 +29,13 @@ taking it holds vacuously. Not derivable as `False` in Lean (`snapDirOf` is opaq
 (`storage/WalLayout.lean`, wal-link P2) gives `//` for an absolute `dd`, not a `RootForm`, so `HWal`
 (`etcdWalAreasInit`: `walAreaOf d` is a root) becomes false.
 
-**Proposed fix (not applied; needs the coordinator's decision, it changes closed statements and Go):** absolute data
-directories below an `fsExt` root (`cfgOk`: `DataDir = dataBase ++ "/" ++ name ++ ".etcd"`, the examples' Go and
-tests to match), and `walAreaOf` taken of the member's base name, not of `dd`; then `bootPremise`/`HWal` are
-dischargeable with the assignment in `notes/axiom-review/snapdir.md` §2.
+**Fix (wal-link, 2026-11-19, approved by the user via etcd-grove-03).** Each member's data directory is
+absolute and a root of its own: `memberDataDir n = /tmp/etcd-grove-data/<n>.etcd` (`storage/WalLayout.lean`;
+Go `etcdstart.DataBase + "/" + name + ".etcd"` in `common.go`, `auth.go`, `auth3.go`, `authkv.go`; the tests'
+`walarea.Reset`/`ResetFamily` reset it with the WAL area); `cfgOk` and every example's data-directory list
+over it; `walAreaOf dd := walBase ++ dd.drop dataBase.length`, the member's `<n>.etcd` under
+`/tmp/etcd-grove-wal` (the Go WAL paths unchanged). The closed theorems' premise `etcdWalAreasInit` also
+says each data directory is `memberDataDir n` and an empty root; the allocation at adequacy
+(`lib/etcdstart/WalAreas.lean`) hands each member `dataAreaFresh d` (its spine, its root's whole call
+permission and its whole name claim, no entry), which `wal.bootRes` (the bootstrap contract's pre) now takes
+in `memberAreasFresh`: what the contract's `Hpath`/`Hsfree` claims are made of.

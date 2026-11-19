@@ -59,13 +59,13 @@ def etcd_leaseexpiry_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk) (HNs : prometheus.namesUnclaimed leaseexpiryProgram leaseexpiryNames)
     (HAs : addrsUnclaimed leaseexpiryProgram [go!"127.0.0.1:23976"])
-    (HDs : dataDirsAbsent leaseexpiryProgram [go!"leaseexpiry.etcd"])
+    (HDs : dataDirsAbsent leaseexpiryProgram [go!"/tmp/etcd-grove-data/leaseexpiry.etcd"])
     (HEnv : verifyEnvOff leaseexpiryProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC leaseexpiryGF,
       ⊢ etcd_leaseexpiry.premises (GF := leaseexpiryGF) (hG := heapAtLex hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"leaseexpiry.etcd"]),
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/leaseexpiry.etcd"]),
     Robustness.Robust [] [(leaseexpiryProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

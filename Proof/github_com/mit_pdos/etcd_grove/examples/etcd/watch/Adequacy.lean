@@ -94,7 +94,7 @@ theorem etcd_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (watchkvProgram nw nops) watchkvNames)
     (HAs : addrsUnclaimed (watchkvProgram nw nops) [go!"127.0.0.1:23872"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (watchkvProgram nw nops) [go!"watchkv.etcd"])
+    (HDs : dataDirsAbsent (watchkvProgram nw nops) [go!"/tmp/etcd-grove-data/watchkv.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (watchkvProgram nw nops))
     (n : Nat)
@@ -103,7 +103,7 @@ theorem etcd_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"watchkv.etcd"])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/watchkv.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -116,7 +116,7 @@ theorem etcd_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.watch.Main) #nw #nops)
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23872"] (by decide) [go!"watchkv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
+        (fun h => intoVal_ne_PanicV _ p h.symm))) [go!"127.0.0.1:23872"] (by decide) [go!"/tmp/etcd-grove-data/watchkv.etcd"] (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩)
     -- (hub step 7) the one member's start bundle: its client address, its data directory
     [(go!"watchkv", ⟨none, some go!"127.0.0.1:23872"⟩)] [] (List.Perm.refl _) (List.Perm.refl _) σ g ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩ Hlctx Hinit Hthreads HNs HAs HDs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_

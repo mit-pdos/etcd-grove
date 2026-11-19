@@ -161,7 +161,7 @@ noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "peer" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(go!"authkv"))
-  (Let "$v1" (Val #(go!"authkv.etcd"))
+  (Let "$v1" (Val #(go!"/tmp/etcd-grove-data/authkv.etcd"))
   (Let "$v2" (Val #(go!"/tmp/etcd-grove-wal/authkv.etcd/wal"))
   (Let "$v3" (Let "$k0" (Val #(go!"authkv"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))

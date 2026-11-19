@@ -22,16 +22,22 @@ namespace EtcdGrove
 section premise
 variable [GooseExts]
 
-/-- **The members' WAL areas exist at start and hold no WAL** (a premise of the closed theorems on
-the file extension's initial state `st`, a world premise as `dataDirsAbsent`; wal-link P2): for each
-data directory `d` of `Ds`, the path `walAreaOf d` (`/tmp/etcd-grove-wal/<d>`) is one of the file
-extension's roots, a directory `j` with no entry at any name a WAL function may create, rename or
+/-- **The members' WAL areas and data directories exist at start, empty of what the members create** (a
+premise of the closed theorems on the file extension's initial state `st`, a world premise as
+`dataDirsAbsent`; wal-link P2; data directories 2026-11-19, approved by the user via etcd-grove-03:
+`notes/datadir-relative-unsat.md`): each data directory `d` of `Ds` is a member's, `memberDataDir n`
+(`/tmp/etcd-grove-data/<n>.etcd`); the path `walAreaOf d` (`/tmp/etcd-grove-wal/<n>.etcd`) is one of the
+file extension's roots, a directory `j` with no entry at any name a WAL function may create, rename or
 remove (`AreaSlot`: a WAL directory's name, no `.` or `/`, or such a name followed by `.` and anything;
-so no WAL is found there and `wal.Create` finds its names free). The examples' Go tests make the
-areas so (each removed, then created empty, before the program runs). -/
+so no WAL is found there and `wal.Create` finds its names free); and `d` itself is one of the roots, an
+empty directory (the backend's and the snapshots' files are made there, `dataAreaFresh`). The examples'
+Go tests make them so (each removed, then created empty, before the program runs: `walarea.Reset`).
+Until 2026-11-19 the data directories were relative (`<n>.etcd`) and not in the premise. -/
 def etcdWalAreasInit (st : Fs.OsState) (Ds : List GoString) : Prop :=
-  ∀ d ∈ Ds, ∃ j : Fs.Ino, (walAreaOf d, j) ∈ st.fs.roots ∧
-    ∀ b, WalFs.AreaSlot b → st.fs.treeDur.entry j b = none
+  ∀ d ∈ Ds, (∃ n, d = memberDataDir n) ∧
+    (∃ j : Fs.Ino, (walAreaOf d, j) ∈ st.fs.roots ∧
+      ∀ b, WalFs.AreaSlot b → st.fs.treeDur.entry j b = none) ∧
+    (∃ j : Fs.Ino, (d, j) ∈ st.fs.roots ∧ ∀ b, st.fs.treeDur.entry j b = none)
 
 end premise
 

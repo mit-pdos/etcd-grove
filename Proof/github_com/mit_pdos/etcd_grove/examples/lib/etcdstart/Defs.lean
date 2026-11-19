@@ -150,7 +150,7 @@ the logger, the feature gate, the URLs, read through `bootCfgRO` -- are the call
 member `name` of a new cluster with token `token`, data directory `name.etcd`, raft's clock `100`
 ms and `10` ticks. -/
 def cfgOk (token name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : Prop :=
-  cfg.Name' = name ∧ cfg.DataDir' = name ++ go!".etcd" ∧
+  cfg.Name' = name ∧ cfg.DataDir' = memberDataDir name ∧
     cfg.InitialClusterToken' = token ∧ cfg.NewCluster' = true ∧
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 

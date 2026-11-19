@@ -59,12 +59,12 @@ def etcd_lease_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (Hlp : leasePeersOk) (HNs : prometheus.namesUnclaimed leasekvProgram leasekvNames)
     (HAs : addrsUnclaimed leasekvProgram [go!"127.0.0.1:23936"])
-    (HDs : dataDirsAbsent leasekvProgram [go!"leasekv.etcd"]) (HEnv : verifyEnvOff leasekvProgram)
+    (HDs : dataDirsAbsent leasekvProgram [go!"/tmp/etcd-grove-data/leasekv.etcd"]) (HEnv : verifyEnvOff leasekvProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC leasekvGF,
       ⊢ etcd_lease.premises (GF := leasekvGF) (hG := heapAtLkv hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"leasekv.etcd"]),
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/leasekv.etcd"]),
     Robustness.Robust [] [(leasekvProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

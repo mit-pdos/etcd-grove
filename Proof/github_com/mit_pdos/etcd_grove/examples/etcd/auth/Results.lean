@@ -205,7 +205,7 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed authkvProgram authkvNames)
     (HAs : addrsUnclaimed authkvProgram [go!"127.0.0.1:23916"])
-    (HDs : dataDirsAbsent authkvProgram [go!"authkv.etcd"])
+    (HDs : dataDirsAbsent authkvProgram [go!"/tmp/etcd-grove-data/authkv.etcd"])
     (HEnv : verifyEnvOff authkvProgram)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
@@ -213,7 +213,7 @@ theorem etcd_auth_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"authkv.etcd"])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/authkv.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)

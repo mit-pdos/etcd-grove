@@ -66,7 +66,7 @@ theorem progOk_walAreas [hG : HeapGS .hasLC GF] [go.BasicIntoValInj] (hPre : Abs
     (R B : IProp GF) (init : val) (body : Expr) (φ : val → Prop) (hbody : toVal body = none)
     (σ : state) (hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (Ds : List GoString) (hDs : Ds.Nodup)
     (hW : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (hrb : receiptBound GF ≤ 2 ^ 62)
-    (h : progOk R iprop(B ∗ [∗list] d ∈ Ds, walAreaFresh (srvWalDirOf d)) init body φ) :
+    (h : progOk R iprop(B ∗ [∗list] d ∈ Ds, memberAreasFresh d) init body φ) :
     progOk R iprop(B ∗ extsLocalStart (L := hG.goose_localGS) σ.world) init body φ := by
   obtain ⟨getInit, I, Hinit, Hbody⟩ := h
   refine ⟨getInit, I, Hinit, ?_⟩
@@ -91,7 +91,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
     (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)
@@ -126,7 +126,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (Ds : List GoString) (hDs : Ds.Nodup)
     (ms : List (GoString × etcdstart.MemberAddrs)) (Bs : List GoString)
     (hA : (ms.flatMap (fun m => m.2.addrs) ++ Bs).Perm As)
-    (hD : (ms.map (fun m => etcdstart.memberDataDir m.1)).Perm Ds)
+    (hD : (ms.map (fun m => memberDataDir m.1)).Perm Ds)
     (σ : state) (g : GlobalState) (Hinitg : extsInitgP g.globalWorld)
     (Hinitw : extsInitP σ.world g.globalWorld)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ) (Hthreads : σ.threads = 1)

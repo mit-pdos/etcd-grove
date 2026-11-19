@@ -61,7 +61,7 @@ def k8s_compactor_robust.spec : Prop :=
     (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed k8scompactorProgram k8scompactorNames)
     (HAs : addrsUnclaimed k8scompactorProgram [go!"127.0.0.1:23976"])
-    (HDs : dataDirsAbsent k8scompactorProgram [go!"k8scompactor.etcd"])
+    (HDs : dataDirsAbsent k8scompactorProgram [go!"/tmp/etcd-grove-data/k8scompactor.etcd"])
     (HEnv : verifyEnvOff k8scompactorProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8scompactorGF,
       ⊢ etcdstart.premises (GF := k8scompactorGF) (hG := heapAtKc hG lctx) go!"k8scompactor"
@@ -70,7 +70,7 @@ def k8s_compactor_robust.spec : Prop :=
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8scompactor.etcd"]),
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8scompactor.etcd"]),
     Robustness.Robust [] [(k8scompactorProgram, σ)] g (2 ^ 28 - 1)
 
 /-- **`k8s_compactor_partition_safe` as a robustness statement** (`Robustness.Robust`,

@@ -14,6 +14,13 @@ directory's length, `dir.length < 2 ^ 59`, which holds of every path Linux accep
 the open WAL `wal.bootOk` gives. The closed
 theorems allocate it once per member, at adequacy (`lib/etcdstart/WalAreas.lean`), from the per-member
 `fsExt` root (`walAreaOf`) their premise `etcdWalAreasInit` says is present and holds no WAL name.
+
+`dataAreaFresh d` (2026-11-19, approved by the user via etcd-grove-03: `notes/datadir-relative-unsat.md`):
+the member's data directory `d`, a root of its own (absolute, `memberDataDir`), empty, with the whole of it in
+the tree's shared mode: its spine, the whole call permission of its root, and the whole claim on its names,
+none of which names an entry. What a faithful `bootstrap` makes the backend's and the snapshots' files of
+(`bootOk`'s `Hpath`, `Hsfree`: their claims are in this root's tree, `config.backendPathOf d`). Allocated with
+the WAL area (`etcdWalAreasInit`).
 -/
 module
 
@@ -41,6 +48,21 @@ def walAreaFresh (dir : GoString) : IProp GF :=
      iprop(WalFs.walAreaOk walCodec walSrvMr a.R a.jr a.r ∗ WalFs.dirDurable a.r ∗
       Fs.osPathS a.R a.r (DFrac.own 1) a.jr ∗ WalFs.walAreaRes a.jr ∗
       Fs.osCallPerm (Fs.callKey a.R a.r) 1 ∗ WalFs.walUnlockedTok ∗ WalFs.walAbsent a.dir)))
+
+/-- **A fresh data directory `d`, a root of its own, wholly the caller's** (see the file header), at some
+file-extension instances (the program's, `extsLocalStart`'s). -/
+def dataAreaFresh (d : GoString) : IProp GF :=
+  iprop(∃ (S : ExtSemantics Fs.fsExt) (ok : Fs.FsSemOk (S := S)) (has : HasExt Fs.fsExt) (R : Fs.Roots)
+      (j : Fs.Ino) (h : Fs.NamesH),
+    ⌜cleanAbsPath d ∧ ∀ b, h.cur !! b = none⌝ ∗
+    (letI := S; letI := ok; letI := has
+     iprop(Fs.osInv ∗ Fs.osSharedInv R ∗ Fs.osPathS R d (DFrac.own 1) j ∗
+      Fs.osCallPerm (Fs.callKey R d) 1 ∗ Fs.osNames j (.except []) (DFrac.own 1) h)))
+
+/-- **A member's fresh areas** (2026-11-19): its WAL area, whose WAL directory is `srvWalDirOf d`, and its
+data directory `d` (`dataAreaFresh`). -/
+def memberAreasFresh (d : GoString) : IProp GF :=
+  iprop(walAreaFresh (srvWalDirOf d) ∗ dataAreaFresh d)
 
 /-- The member's WAL directory is its area's `wal`. -/
 theorem srvWalDirOf_inArea (dd : GoString) : WalFs.InArea (walAreaOf dd) (srvWalDirOf dd) go!"wal" :=

@@ -101,7 +101,7 @@ theorem etcd_auth3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed auth3Program auth3Names)
     (HAs : addrsUnclaimed auth3Program auth3Addrs)
-    (HDs : dataDirsAbsent auth3Program [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent auth3Program [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
     (HEnv : verifyEnvOff auth3Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
@@ -109,7 +109,7 @@ theorem etcd_auth3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)

@@ -72,7 +72,7 @@ theorem etcd_leaseexpiry_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed leaseexpiryProgram leaseexpiryNames)
     (HAs : addrsUnclaimed leaseexpiryProgram [go!"127.0.0.1:23976"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent leaseexpiryProgram [go!"leaseexpiry.etcd"])
+    (HDs : dataDirsAbsent leaseexpiryProgram [go!"/tmp/etcd-grove-data/leaseexpiry.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff leaseexpiryProgram)
     (n : Nat)
@@ -81,7 +81,7 @@ theorem etcd_leaseexpiry_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"leaseexpiry.etcd"])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/leaseexpiry.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)

@@ -72,7 +72,7 @@ theorem member_port (k : Nat) (m : GMember) (hm : m ∈ members k) :
 def restartNAddrs (k : Nat) : List GoString := (members k).map (·.Peer')
 
 /-- **The program's data directories**: the members' `restartN-i.etcd`. -/
-def restartNDirs (k : Nat) : List GoString := (members k).map (fun m => m.Name' ++ go!".etcd")
+def restartNDirs (k : Nat) : List GoString := (members k).map (fun m => memberDataDir m.Name')
 
 /-- The program's start bundles, as `etcd_adequate_members` takes them: every member's name and peer
 address, no client address. -/
@@ -98,7 +98,7 @@ theorem restartNDirs_perm (k : Nat) :
 
 theorem restartNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (restartNDirs k).Nodup := by
   unfold restartNDirs
-  rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
+  rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
   exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
 

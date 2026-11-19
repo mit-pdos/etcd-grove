@@ -156,7 +156,7 @@ theorem newServerMode.wp_proof
   ihave #Httl' : leaseTTLRowR srv ps $$ []
   · rw [← hvs]; iexact Httl
   -- (R2c-5) the data directory, the slot's (the literal's fields)
-  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
+  icases srvStop.dataDir srv _ E γrn γk (memberDataDir name) rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
@@ -270,7 +270,7 @@ theorem newServerMode.wp_proofRestart
   ihave #Hlr : srvLeaseRd srv E .none $$ []
   · iapply srvLeaseRd_of_srvInvAt srv E false _ $$ Hlsrv
   -- the data directory, the slot's (the literal's fields)
-  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
+  icases srvStop.dataDir srv _ E γrn γk (memberDataDir name) rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl

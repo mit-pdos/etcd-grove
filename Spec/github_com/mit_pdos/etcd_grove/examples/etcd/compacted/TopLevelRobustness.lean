@@ -59,12 +59,12 @@ def etcd_compacted_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed putgetcProgram putgetcNames)
     (HAs : addrsUnclaimed putgetcProgram [go!"127.0.0.1:23791"])
-    (HDs : dataDirsAbsent putgetcProgram [go!"putgetc.etcd"]) (HEnv : verifyEnvOff putgetcProgram)
+    (HDs : dataDirsAbsent putgetcProgram [go!"/tmp/etcd-grove-data/putgetc.etcd"]) (HEnv : verifyEnvOff putgetcProgram)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetcGF,
       ⊢ etcd_compacted.premises (GF := putgetcGF) (hG := heapAtC hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"putgetc.etcd"]),
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/putgetc.etcd"]),
     Robustness.Robust [] [(putgetcProgram, σ)] g (2 ^ 28 - 1)
 
 end adequacy

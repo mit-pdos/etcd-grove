@@ -86,7 +86,7 @@ theorem etcd_auth3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed auth3Program auth3Names)
     (HAs : addrsUnclaimed auth3Program auth3Addrs)
     -- the members' data directories, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent auth3Program [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent auth3Program [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
     -- `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff auth3Program)
     (n : Nat)
@@ -95,7 +95,7 @@ theorem etcd_auth3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -109,7 +109,7 @@ theorem etcd_auth3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
         (fun h => intoVal_ne_PanicV _ p h.symm))) auth3Addrs (by decide)
-    [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")] (by decide)
+    [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)] (by decide)
     -- the members' start bundles: each member's peer and client addresses
     [(etcd_auth3.name₁, ⟨some etcd_auth3.peerAddr₁, some etcd_auth3.clientAddr₁⟩),
       (etcd_auth3.name₂, ⟨some etcd_auth3.peerAddr₂, some etcd_auth3.clientAddr₂⟩),

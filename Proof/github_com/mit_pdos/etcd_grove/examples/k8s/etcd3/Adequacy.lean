@@ -125,7 +125,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HNs : prometheus.namesUnclaimed (k8setcd3Program clients ops watchers wops) k8setcd3Names)
     (HAs : addrsUnclaimed (k8setcd3Program clients ops watchers wops) [go!"127.0.0.1:23896"])
     -- (2026-11-03, the WAL's API, change 6; sweep repairs 1, W3/W4) the member's data directory, fresh at start (`dataDirsAbsent`)
-    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"k8setcd3.etcd"])
+    (HDs : dataDirsAbsent (k8setcd3Program clients ops watchers wops) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     -- (sweep repairs 1, B4) `ETCD_VERIFY` off for the run
     (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
     (n : Nat)
@@ -134,7 +134,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8setcd3.etcd"])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/k8setcd3.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -147,7 +147,7 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown"))
     (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => intoVal_ne_PanicV _ p h.symm)) ⟨trivial, trivial, trivial⟩ ⟨trivial, Hfs, trivial⟩
-    k8setcd3Names [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (by decide) (by decide)
+    k8setcd3Names [go!"127.0.0.1:23896"] [go!"/tmp/etcd-grove-data/k8setcd3.etcd"] (by decide) (by decide)
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HNs HAs HDs ?_
     n κs t2 σ2 Hsteps (Nat.lt_succ_self n) Hthreads
     (realThreadsBelow_mono (Nat.le_max_left _ _) (realThreadsBelow_of_one Hthreads))
@@ -181,13 +181,13 @@ theorem k8s_etcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   -- (wal-link P2) the member's WAL area, allocated before the program's first step (`wp_walAreas`)
   imod etcdFs_start σ Hfs $$ Hl with ⟨#Hosi, -, Htree⟩
   imodintro
-  iapply wp_walAreas ⟨k8setcd3GF_allG⟩ etcdFsExts_sat _ Hfs [go!"k8setcd3.etcd"]
+  iapply wp_walAreas ⟨k8setcd3GF_allG⟩ etcdFsExts_sat _ Hfs [go!"/tmp/etcd-grove-data/k8setcd3.etcd"]
     (List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩) HWal ⟨by rw [HN]; omega⟩ _ rfl _
     $$ Hosi Htree
   iintro Hw
   -- (hub step 7) the one member's start bundle: its client address, its data directory
   ihave Hms := etcdstart.memberStartRes_intro [(go!"k8setcd3", ⟨none, some go!"127.0.0.1:23896"⟩)] []
-    [go!"127.0.0.1:23896"] [go!"k8setcd3.etcd"] (List.Perm.refl _)
+    [go!"127.0.0.1:23896"] [go!"/tmp/etcd-grove-data/k8setcd3.etcd"] (List.Perm.refl _)
     (List.Perm.refl _) $$ [Hrs Hw]
   · iframe
   simp only [k8setcd3Names, BigSepL.bigSepL_cons, BigSepL.bigSepL_nil]

@@ -56,7 +56,7 @@ func startMember(name string, peer types.URLs, peerAddr string, client string, c
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:                   name,
-		DataDir:                name + ".etcd",
+		DataDir:                etcdstart.DataBase + "/" + name + ".etcd",
 		DedicatedWALDir:        etcdstart.WALBase + "/" + name + ".etcd" + "/wal",
 		InitialPeerURLsMap:     cluster,
 		PeerURLs:               peer,

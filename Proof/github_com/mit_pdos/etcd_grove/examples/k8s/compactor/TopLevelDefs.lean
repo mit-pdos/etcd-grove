@@ -110,9 +110,9 @@ def k8scompactorPAddrs : List GoString :=
 
 /-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
 def k8scompactorPDataDirs : List GoString :=
-  [(k8s_compactor.clusterCfg.Name1' ++ go!".etcd"),
-    (k8s_compactor.clusterCfg.Name2' ++ go!".etcd"),
-    (k8s_compactor.clusterCfg.Name3' ++ go!".etcd")]
+  [(memberDataDir k8s_compactor.clusterCfg.Name1'),
+    (memberDataDir k8s_compactor.clusterCfg.Name2'),
+    (memberDataDir k8s_compactor.clusterCfg.Name3')]
 
 end adequacy
 end EtcdGrove

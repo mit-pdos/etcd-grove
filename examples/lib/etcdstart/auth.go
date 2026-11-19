@@ -23,7 +23,7 @@ func StartMemberAuth(name string, peer types.URLs, peerAddr string, client strin
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:                   name,
-		DataDir:                name + ".etcd",
+		DataDir:                DataBase + "/" + name + ".etcd",
 		DedicatedWALDir:        WALBase + "/" + name + ".etcd" + "/wal",
 		InitialPeerURLsMap:     cluster,
 		PeerURLs:               peer,

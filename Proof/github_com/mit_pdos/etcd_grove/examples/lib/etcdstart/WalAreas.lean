@@ -43,10 +43,24 @@ theorem cleanAbsPath_of_rootForm {r : GoString} (h : Fs.RootForm r) : cleanAbsPa
   · simp only [joinPath, List.nil_append, List.flatMap_def]
     congr 1
 
-/-- The areas of distinct data directories are distinct paths. -/
-theorem walAreaOf_inj {d d' : GoString} (h : walAreaOf d = walAreaOf d') : d = d' := by
-  unfold walAreaOf at h
-  exact List.append_cancel_left h
+/-- The areas of distinct members' data directories are distinct paths. -/
+theorem walAreaOf_inj {d d' : GoString} (hd : ∃ n, d = memberDataDir n) (hd' : ∃ n, d' = memberDataDir n)
+    (h : walAreaOf d = walAreaOf d') : d = d' := by
+  obtain ⟨n, rfl⟩ := hd; obtain ⟨n', rfl⟩ := hd'
+  rw [walAreaOf_memberDataDir_inj h]
+
+/-- No member's WAL area is a member's data directory. -/
+theorem walAreaOf_ne {d d' : GoString} (hd : ∃ n, d = memberDataDir n) (hd' : ∃ n, d' = memberDataDir n) :
+    walAreaOf d ≠ d' := by
+  obtain ⟨n, rfl⟩ := hd; obtain ⟨n', rfl⟩ := hd'
+  exact walAreaOf_ne_memberDataDir n n'
+
+/-- A claim on all the names of `j`, at the history's start, names what the tree has. -/
+theorem namesOf_except_cur (V : Fs.Hist) (j : Fs.Ino) (b : GoString) :
+    (Fs.namesOf V j (.except [])).cur !! b = V.now.entry j b := by
+  unfold Fs.namesOf
+  simp only
+  rw [Fs.restrictN_lookup _ _ _ (by simp [Fs.NameSet.Mem]), Fs.entsOf_lookup]
 
 /-- A root's directory names one root. -/
 theorem root_ino_inj {R : Fs.Roots} (hR : Fs.RootsOk R) {r r' : GoString} {j : Fs.Ino}
@@ -87,54 +101,87 @@ theorem walDirDurable_boot0 [W : WalFs.WalGS GF] (r : GoString) :
   ipureintro
   simp [WalFs.walBoot0St]
 
-/-- **The members' WAL areas, one ghost generation each** (`walBoot0` for each area in turn; see the
-file header): from the shared mode's resources, the whole claims of the directories `Js` (the areas'
-among them) and the whole call permissions of the keys of `M` (the areas' roots among them), each data
-directory `d` of `Ds` gives its `walAreaFresh (srvWalDirOf d)`. -/
+/-- **The members' WAL areas and data directories, one ghost generation each** (`walBoot0` for each area
+in turn; see the file header): from the shared mode's resources, the whole claims of the directories `Js`
+(the areas' and the data directories' among them) and the whole call permissions of the keys of `M` (their
+roots among them), each data directory `d` of `Ds` (a member's, `memberDataDir`) gives its
+`walAreaFresh (srvWalDirOf d)` and (2026-11-19) its `dataAreaFresh d`. -/
 theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (R : Fs.Roots) (V : Fs.Hist) (hV : V.2 = [])
     (hR : Fs.RootsOk R) (hrb : ReceiptBoundLe GF (2 ^ 62)) :
     ∀ (Ds : List GoString) (Js : List Fs.Ino) (M : GMap GoString Unit), Ds.Nodup →
+      (∀ d ∈ Ds, ∃ n, d = memberDataDir n) →
       (∀ d ∈ Ds, ∃ j, (walAreaOf d, j) ∈ R ∧ j ∈ Js ∧
         ∀ b, WalFs.AreaSlot b → V.now.entry j b = none) →
+      (∀ d ∈ Ds, ∃ j, (d, j) ∈ R ∧ j ∈ Js ∧ ∀ b, V.now.entry j b = none) →
       (∀ d ∈ Ds, M !! walAreaOf d = some ()) →
+      (∀ d ∈ Ds, M !! d = some ()) →
     ⊢ Fs.osInv (L := hG.goose_localGS) -∗ Fs.osSharedInv (L := hG.goose_localGS) R -∗
       Fs.osAboveInv (L := hG.goose_localGS) -∗
       ([∗list] j ∈ Js, Fs.osNames (L := hG.goose_localGS) j (.except []) (DFrac.own 1)
         (Fs.namesOf V j (.except []))) -∗
       ([∗map] r ↦ _u ∈ M, Fs.osCallPerm (L := hG.goose_localGS) r 1) ={⊤}=∗
-      [∗list] d ∈ Ds, walAreaFresh (GF := GF) (srvWalDirOf d) := by
+      [∗list] d ∈ Ds, memberAreasFresh (GF := GF) d := by
   intro Ds
   induction Ds with
   | nil =>
-    intro _ _ _ _ _
+    intro _ _ _ _ _ _ _ _
     iintro _ _ _ _ _
     imodintro
     iapply BigSepL.bigSepL_nil.2; iempintro
   | cons d Ds ih =>
-    intro Js M hnd hJ hM
+    intro Js M hnd hN hJ hJd hM hMd
     obtain ⟨j, hrj, hjJ, hsl⟩ := hJ d List.mem_cons_self
+    obtain ⟨jd, hrjd, hjdJ, hemp⟩ := hJd d List.mem_cons_self
     have hnd' := (List.nodup_cons.1 hnd)
-    have hJ' : ∀ d' ∈ Ds, ∃ j', (walAreaOf d', j') ∈ R ∧ j' ∈ Js.erase j ∧
+    have hNd := hN d List.mem_cons_self
+    have hN' : ∀ d' ∈ Ds, ∃ n, d' = memberDataDir n := fun d' h => hN d' (List.mem_cons_of_mem _ h)
+    -- the area's and the data directory's inodes differ
+    have hjd : jd ≠ j := by
+      rintro rfl
+      exact walAreaOf_ne hNd hNd (root_ino_inj hR hrj hrjd)
+    have hjd' : jd ∈ Js.erase j := (List.mem_erase_of_ne hjd).2 hjdJ
+    -- the others' inodes are neither
+    have hother : ∀ d' ∈ Ds, ∀ j', ((walAreaOf d', j') ∈ R ∨ (d', j') ∈ R) → j' ≠ j ∧ j' ≠ jd := by
+      intro d' hd' j' hr'
+      have hNd' := hN' d' hd'
+      have hne : d ≠ d' := fun h => hnd'.1 (h ▸ hd')
+      refine ⟨?_, ?_⟩ <;> rintro rfl
+      · rcases hr' with hr' | hr'
+        · exact hne (walAreaOf_inj hNd hNd' (root_ino_inj hR hrj hr'))
+        · exact walAreaOf_ne hNd hNd' (root_ino_inj hR hrj hr')
+      · rcases hr' with hr' | hr'
+        · exact walAreaOf_ne hNd' hNd (root_ino_inj hR hr' hrjd)
+        · exact hne (root_ino_inj hR hrjd hr')
+    have hJ' : ∀ d' ∈ Ds, ∃ j', (walAreaOf d', j') ∈ R ∧ j' ∈ (Js.erase j).erase jd ∧
         ∀ b, WalFs.AreaSlot b → V.now.entry j' b = none := by
       intro d' hd'
       obtain ⟨j', hrj', hj'J, hsl'⟩ := hJ d' (List.mem_cons_of_mem _ hd')
-      refine ⟨j', hrj', ?_, hsl'⟩
-      have hne : j' ≠ j := by
-        rintro rfl
-        have := walAreaOf_inj (root_ino_inj hR hrj' hrj)
-        subst this
-        exact hnd'.1 hd'
-      exact (List.mem_erase_of_ne hne).2 hj'J
-    have hM' : ∀ d' ∈ Ds, GMap.delete (walAreaOf d) M !! walAreaOf d' = some () := by
+      obtain ⟨h1, h2⟩ := hother d' hd' j' (.inl hrj')
+      exact ⟨j', hrj', (List.mem_erase_of_ne h2).2 ((List.mem_erase_of_ne h1).2 hj'J), hsl'⟩
+    have hJd' : ∀ d' ∈ Ds, ∃ j', (d', j') ∈ R ∧ j' ∈ (Js.erase j).erase jd ∧
+        ∀ b, V.now.entry j' b = none := by
       intro d' hd'
-      have hne : walAreaOf d ≠ walAreaOf d' := by
+      obtain ⟨j', hrj', hj'J, he'⟩ := hJd d' (List.mem_cons_of_mem _ hd')
+      obtain ⟨h1, h2⟩ := hother d' hd' j' (.inr hrj')
+      exact ⟨j', hrj', (List.mem_erase_of_ne h2).2 ((List.mem_erase_of_ne h1).2 hj'J), he'⟩
+    have hdw : walAreaOf d ≠ d := walAreaOf_ne hNd hNd
+    have hM' : ∀ d' ∈ Ds, GMap.delete d (GMap.delete (walAreaOf d) M) !! walAreaOf d' = some () := by
+      intro d' hd'
+      have hNd' := hN' d' hd'
+      have hne1 : walAreaOf d ≠ walAreaOf d' := by
         intro h
-        have := walAreaOf_inj h
-        subst this
-        exact hnd'.1 hd'
-      rw [GMap.lookup_delete_ne _ hne]
+        exact hnd'.1 ((walAreaOf_inj hNd hNd' h) ▸ hd')
+      have hne2 : d ≠ walAreaOf d' := fun h => walAreaOf_ne hNd' hNd h.symm
+      rw [GMap.lookup_delete_ne _ hne2, GMap.lookup_delete_ne _ hne1]
       exact hM d' (List.mem_cons_of_mem _ hd')
+    have hMd' : ∀ d' ∈ Ds, GMap.delete d (GMap.delete (walAreaOf d) M) !! d' = some () := by
+      intro d' hd'
+      have hNd' := hN' d' hd'
+      have hne1 : walAreaOf d ≠ d' := walAreaOf_ne hNd hNd'
+      have hne2 : d ≠ d' := fun h => hnd'.1 (h ▸ hd')
+      rw [GMap.lookup_delete_ne _ hne2, GMap.lookup_delete_ne _ hne1]
+      exact hMd d' (List.mem_cons_of_mem _ hd')
     iintro #Hos #Hsh #Hab Hall Hperms
     imod WalFs.walBoot0 hPre walCodec walCodec_ok walSrvMr hG.goose_localGS R j (walAreaOf d) V hV hR
       hrj Js hjJ hsl hrb walSrvMr_encState_lt ⊤ CoPset.subseteq_top $$ Hos Hsh Hab Hall
@@ -144,31 +191,53 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     icases (BigSepM.bigSepM_delete (M := GMap GoString)
       (Φ := fun (r' : GoString) (_u : Unit) => Fs.osCallPerm (L := hG.goose_localGS) r' 1)
       (hM d List.mem_cons_self)).1 $$ Hperms with ⟨Hpd, Hperms⟩
-    imod ih (Js.erase j) (GMap.delete (walAreaOf d) M) hnd'.2 hJ' hM' $$ Hos Hsh Hab Hrest Hperms with Hrest
+    -- (2026-11-19) the data directory: its spine, its root's call permission and its whole claim
+    imod Fs.osPathS_root (L := hG.goose_localGS) R d jd (DFrac.own 1) hrjd
+      CoPset.subseteq_top $$ Hsh with Hspd
+    icases (BigSepM.bigSepM_delete (M := GMap GoString)
+      (Φ := fun (r' : GoString) (_u : Unit) => Fs.osCallPerm (L := hG.goose_localGS) r' 1)
+      (show GMap.delete (walAreaOf d) M !! d = some () by
+        rw [GMap.lookup_delete_ne _ hdw]; exact hMd d List.mem_cons_self)).1 $$ Hperms
+      with ⟨Hpdd, Hperms⟩
+    ihave Hrest := (BigSepL.bigSepL_perm (Φ := fun j => Fs.osNames (L := hG.goose_localGS) j (.except [])
+      (DFrac.own 1) (Fs.namesOf V j (.except []))) (List.perm_cons_erase hjd')).1 $$ Hrest
+    icases Hrest with ⟨Hjd, Hrest⟩
+    imod ih ((Js.erase j).erase jd) (GMap.delete d (GMap.delete (walAreaOf d) M)) hnd'.2 hN' hJ' hJd'
+      hM' hMd' $$ Hos Hsh Hab Hrest Hperms with Hrest
     ihave #Hdd := walDirDurable_boot0 (W := W) (walAreaOf d) $$ Hp
     imodintro
     iapply BigSepL.bigSepL_cons.2
     iframe Hrest
-    unfold walAreaFresh
-    iexists etcdWalArea W hsat R j (walAreaOf d) (srvWalDirOf d)
-    isplitr
-    · ipureintro
-      exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1)⟩
-    dsimp only [etcdWalArea]
-    rw [Fs.callKey_eq hR hrj (.inl rfl)]
-    iframe Hok Hdd Hsp Hres Hpd Hu
-    unfold WalFs.walAbsent WalFs.walDirIs
-    iexists ∅
-    iframe Hown
-    ipureintro
-    show walOptLe none ((∅ : GMap GoString WalDur) !! srvWalDirOf d)
-    rw [GMap.lookup_empty]; trivial
+    unfold memberAreasFresh
+    isplitl [Hres Hu Hsp Hpd Hown]
+    · unfold walAreaFresh
+      iexists etcdWalArea W hsat R j (walAreaOf d) (srvWalDirOf d)
+      isplitr
+      · ipureintro
+        exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1)⟩
+      dsimp only [etcdWalArea]
+      rw [Fs.callKey_eq hR hrj (.inl rfl)]
+      iframe Hok Hdd Hsp Hres Hpd Hu
+      unfold WalFs.walAbsent WalFs.walDirIs
+      iexists ∅
+      iframe Hown
+      ipureintro
+      show walOptLe none ((∅ : GMap GoString WalDur) !! srvWalDirOf d)
+      rw [GMap.lookup_empty]; trivial
+    · unfold dataAreaFresh
+      iexists inferInstance, inferInstance, inferInstance, R, jd, Fs.namesOf V jd (.except [])
+      isplitr
+      · ipureintro
+        exact ⟨cleanAbsPath_of_rootForm ((hR.2.2 _ hrjd).1),
+          fun b => by rw [namesOf_except_cur]; exact hemp b⟩
+      rw [Fs.callKey_eq hR hrjd (.inl rfl)]
+      iframe Hos Hsh Hspd Hpdd Hjd
 
 /-- **The members' WAL areas, before the program's first step** (see the file header): over the file
 extension's initial state `st` (`FsInit`, no I/O error assumed: `hsat`) with the members' areas as
 `etcdWalAreasInit` says, the WP of a non-value `e` from the file extension's start resources (the
 invariant of the mapped cells and the tree's whole legacy history) follows from its WP given each data
-directory's `walAreaFresh`. -/
+directory's `walAreaFresh` and (2026-11-19) `dataAreaFresh`. -/
 theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (hsat : Fs.FsStepSat (Fs.NoIoErr allIo)) (st : Fs.OsState) (hfs : Fs.FsInit st)
     (Ds : List GoString) (hDs : Ds.Nodup) (hW : etcdWalAreasInit st Ds)
@@ -176,7 +245,7 @@ theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (e : Expr) (he : toVal e = none) (Φ : val → IProp GF) :
     ⊢ Fs.osInv (L := hG.goose_localGS) -∗
       Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) st.fs.roots (st.fs.treeDur, []) -∗
-      (([∗list] d ∈ Ds, walAreaFresh (GF := GF) (srvWalDirOf d)) -∗
+      (([∗list] d ∈ Ds, memberAreasFresh (GF := GF) d) -∗
         WP e @ Stuckness.NotStuck; ⊤ {{ Φ }}) -∗
       WP e @ Stuckness.NotStuck; ⊤ {{ Φ }} := by
   have hR : Fs.RootsOk st.fs.roots := hfs.2.2.2.1
@@ -186,27 +255,39 @@ theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     CoPset.subseteq_top Φ $$ Hinv Ht
   iintro #Hsh #Hab Hperms #- Hall
   unfold Fs.osCallPerms
+  have hmemJ : ∀ j : Fs.Ino, (∃ r, (r, j) ∈ st.fs.roots) →
+      j ∈ (GMap.toList (Fs.Hist.now (st.fs.treeDur, []))).map (·.1) := by
+    rintro j ⟨r, hrj⟩
+    have hj : j ∈ st.fs.treeDur := htw.1 j (Fs.Reach.root _ _ hrj)
+    cases hl : st.fs.treeDur !! j with
+    | none => have := (GMap.mem_iff _ _).1 hj; rw [hl] at this; cases this
+    | some x => exact List.mem_map.2 ⟨(j, x), (GMap.mem_toList _ _ _).2 hl, rfl⟩
+  have hmemM : ∀ r j, (r, j) ∈ st.fs.roots → GMap.delete [] (Fs.permMap st.fs.roots) !! r = some () := by
+    intro r j hrj
+    have hne : ([] : GoString) ≠ r := by
+      obtain ⟨cs, hcs, -, hrc⟩ := (hR.2.2 _ hrj).1
+      intro h0
+      rw [← h0] at hrc
+      cases cs with
+      | nil => exact hcs rfl
+      | cons c cs => simp [joinPath] at hrc
+    rw [GMap.lookup_delete_ne _ hne]
+    exact Fs.permMap_lookup st.fs.roots _ (.inr ⟨j, hrj⟩)
   imod walAreasFresh_boot hPre hsat st.fs.roots (st.fs.treeDur, []) rfl hR hrb Ds
     ((GMap.toList (Fs.Hist.now (st.fs.treeDur, []))).map (·.1)) (GMap.delete [] (Fs.permMap st.fs.roots))
-    hDs
+    hDs (fun d hd => (hW d hd).1)
     (fun d hd => by
-      obtain ⟨j, hrj, hsl⟩ := hW d hd
-      refine ⟨j, hrj, ?_, hsl⟩
-      have hj : j ∈ st.fs.treeDur := htw.1 j (Fs.Reach.root _ _ hrj)
-      cases hl : st.fs.treeDur !! j with
-      | none => have := (GMap.mem_iff _ _).1 hj; rw [hl] at this; cases this
-      | some x => exact List.mem_map.2 ⟨(j, x), (GMap.mem_toList _ _ _).2 hl, rfl⟩)
+      obtain ⟨j, hrj, hsl⟩ := (hW d hd).2.1
+      exact ⟨j, hrj, hmemJ j ⟨_, hrj⟩, hsl⟩)
     (fun d hd => by
-      obtain ⟨j, hrj, -⟩ := hW d hd
-      have hne : ([] : GoString) ≠ walAreaOf d := by
-        obtain ⟨cs, hcs, -, hrc⟩ := (hR.2.2 _ hrj).1
-        intro h0
-        rw [← h0] at hrc
-        cases cs with
-        | nil => exact hcs rfl
-        | cons c cs => simp [joinPath] at hrc
-      rw [GMap.lookup_delete_ne _ hne]
-      exact Fs.permMap_lookup st.fs.roots _ (.inr ⟨j, hrj⟩))
+      obtain ⟨j, hrj, he⟩ := (hW d hd).2.2
+      exact ⟨j, hrj, hmemJ j ⟨_, hrj⟩, he⟩)
+    (fun d hd => by
+      obtain ⟨j, hrj, -⟩ := (hW d hd).2.1
+      exact hmemM _ j hrj)
+    (fun d hd => by
+      obtain ⟨j, hrj, -⟩ := (hW d hd).2.2
+      exact hmemM _ j hrj)
     $$ Hinv Hsh Hab Hall Hperms with Hw
   iapply Hk $$ Hw
 

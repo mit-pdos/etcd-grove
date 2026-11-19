@@ -154,7 +154,7 @@ def stopCand (N : Nat) (m s : Loc) (γn : NetNames GF) (γ : SrvRaft) (ρ₁ : R
       urlsOk peerAddr client ⟨[etcdstart.httpURL peerAddr], [etcdstart.httpURL client], M, initURLs3⟩ ∧
       ρ.rd.kv.st = ρ₁.rd.kv.st ∧ srvStop.scope E⌝ ∗
     memberRec m γS γn name peerAddr client ∗ srvAppliedInv s E ρ.rd ∗
-    srvDataDir s (name ++ go!".etcd") ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
+    srvDataDir s (memberDataDir name) ∗ srvStopRight s E ρ.rd.raft.raft ρ id dd ∗ srvStopReaders E ∗
     netHttpOk γn id ∗
     etcdstart.bootPremiseR N ps (LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) token name
       (urlsOk peerAddr client) id ∗

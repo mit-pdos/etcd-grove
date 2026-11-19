@@ -61,13 +61,13 @@ def etcd_auth3_robust.spec : Prop :=
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed auth3Program auth3Names)
     (HAs : addrsUnclaimed auth3Program auth3Addrs)
-    (HDs : dataDirsAbsent auth3Program [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")])
+    (HDs : dataDirsAbsent auth3Program [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)])
     (HEnv : verifyEnvOff auth3Program)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ etcd_auth3.premises (GF := putgetGF) (hG := heapAt hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(etcd_auth3.name₁ ++ go!".etcd"), (etcd_auth3.name₂ ++ go!".etcd"), (etcd_auth3.name₃ ++ go!".etcd")]),
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(memberDataDir etcd_auth3.name₁), (memberDataDir etcd_auth3.name₂), (memberDataDir etcd_auth3.name₃)]),
     Robustness.Robust [] [(auth3Program, σ)] g (2 ^ 28 - 1)
 
 end adequacy

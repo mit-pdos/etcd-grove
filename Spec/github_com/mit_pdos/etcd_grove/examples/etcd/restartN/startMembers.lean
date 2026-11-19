@@ -45,7 +45,7 @@ def memberStarted (lg : Loc) (γn : NetNames GF) (z : Loc × Loc) (x : GMember �
     IProp GF :=
   iprop((threadTok -∗ memberUp z.1 x.2.ρ x.2.E lg γn x.2.id) ∗
     (∃ γS : SwNames, memberRec z.2 γS γn x.1.Name' x.1.Peer' x.1.Client') ∗
-    srvDataDir z.1 (x.1.Name' ++ go!".etcd"))
+    srvDataDir z.1 (memberDataDir x.1.Name'))
 
 /-- See the file header. -/
 abbrev startMembers.spec : Prop :=

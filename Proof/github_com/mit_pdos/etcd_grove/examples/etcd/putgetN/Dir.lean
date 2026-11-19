@@ -213,7 +213,7 @@ def putgetNAddrs (k : Nat) : List GoString :=
   (members k).map (·.Peer') ++ ((members k).take 1).map (·.Client')
 
 /-- **The program's data directories**: the members' `putgetN-i.etcd`. -/
-def putgetNDirs (k : Nat) : List GoString := (members k).map (fun m => m.Name' ++ go!".etcd")
+def putgetNDirs (k : Nat) : List GoString := (members k).map (fun m => memberDataDir m.Name')
 
 /-- The program's start bundles, as `etcd_adequate_members` takes them. -/
 def startAddrs (k : Nat) : List (GoString × MemberAddrs) :=
@@ -251,16 +251,16 @@ theorem putgetNDirs_perm (k : Nat) :
       (putgetNDirs k) := by
   unfold startAddrs putgetNDirs
   rw [List.map_map]
-  have := congrArg (List.map (fun n => n ++ go!".etcd")) (startOf_names (members k))
+  have := congrArg (List.map memberDataDir) (startOf_names (members k))
   simp only [List.map_map] at this
   rw [show ((fun m : GoString × MemberAddrs => memberDataDir m.1) ∘
       fun m : GoString × GoString × Option GoString => (m.1, (⟨some m.2.1, m.2.2⟩ : MemberAddrs))) =
-      (fun n => n ++ go!".etcd") ∘ (·.1) from rfl, this]
+      memberDataDir ∘ (·.1) from rfl, this]
   rfl
 
 theorem putgetNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (putgetNDirs k).Nodup := by
   unfold putgetNDirs
-  rw [show (fun m : GMember => m.Name' ++ go!".etcd") = (fun n => n ++ go!".etcd") ∘ (·.Name') from rfl,
+  rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
   exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
 

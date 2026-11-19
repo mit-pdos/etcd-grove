@@ -130,7 +130,7 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hbf : etcd_restart1.BootFacts id ctxs boot)
     (Haf : authRecordsFit) (Hbuq : apply.backendUnderQuota) (Hdbo : storage.diskOk)
     (HNs : prometheus.namesUnclaimed restart1Program restart1Names)
-    (HDs : dataDirsAbsent restart1Program [go!"restart1.etcd"])
+    (HDs : dataDirsAbsent restart1Program [go!"/tmp/etcd-grove-data/restart1.etcd"])
     (HEnv : verifyEnvOff restart1Program)
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC restart1GF,
@@ -138,7 +138,7 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
     -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
-    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"restart1.etcd"])
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"/tmp/etcd-grove-data/restart1.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)

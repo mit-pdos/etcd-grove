@@ -522,16 +522,19 @@ root `walAreaOf`), and that WAL area fresh (`walAreaFresh`: what `wal.Create` ta
 the directory; allocated at adequacy, `lib/etcdstart/WalAreas.lean`). (Sweep repairs 1, W3/W4,
 2026-11-07: until then the WAL directory's `walDirFresh`, which said nothing of the backend file a
 first start opens; wal-link P2, 2026-11-19: until then no dedicated WAL directory, the WAL in the data
-directory, `dataDirFresh` alone for it.) -/
+directory, `dataDirFresh` alone for it.) (2026-11-19, approved by the user via etcd-grove-03,
+`notes/datadir-relative-unsat.md`) And the data directory a root of its own, empty, wholly the caller's
+(`dataAreaFresh`, in `memberAreasFresh` with the WAL area): what the backend's and the snapshots' file claims
+`bootOk` gives are made of. -/
 @[no_expose] def wal.bootRes (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) : IProp GF :=
   iprop(dataDirFresh cfg.DataDir' ∗ ⌜cfg.DedicatedWALDir' = srvWalDirOf cfg.DataDir'⌝ ∗
-    walAreaFresh (srvWalDirOf cfg.DataDir'))
+    memberAreasFresh cfg.DataDir')
 
 /-- `wal.bootRes`'s intro: a configuration whose data directory is `d` and whose dedicated WAL
 directory is `d`'s takes `d`'s token and the fresh WAL area. -/
 theorem wal.bootRes_intro (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (d : GoString)
     (hd : cfg.DataDir' = d) (hw : cfg.DedicatedWALDir' = srvWalDirOf d) :
-    dataDirFresh (GF := GF) d ∗ walAreaFresh (srvWalDirOf d) ⊢ wal.bootRes cfg := by
+    dataDirFresh (GF := GF) d ∗ memberAreasFresh d ⊢ wal.bootRes cfg := by
   unfold wal.bootRes; subst hd; iintro ⟨H, Ha⟩; iframe H Ha; ipureintro; exact hw
 
 /-- **What `bootstrap` gives the WAL** (its contract's `bootOk`): the new WAL `w` opened in the
