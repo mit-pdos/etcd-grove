@@ -3042,3 +3042,19 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
 - **Proposed change.** (O-a) up to permutation: `∃ ps, st.roles.lookup n = some ps ∧ rr.toRole.Perm ps` (as `rolesAt`).
   (O-b, a sorting model) is not viable (Go's sort is unstable, equal keys); (O-c, a nondeterministic model order) is larger.
 - **Decision.** (O-a), decided by etcd-grove-03, 2026-11-19 (on the A7 list for the user); made on branch `auth-schema-srv`.
+
+## 2026-11-19: the auth records' size: the realization cannot meet `UnsafePut`'s entry bound (auth-schema-srv port, P5)
+
+- **Spec.** The schema write contract's `UnsafePutUser`/`UnsafePutRole` clauses (`auth.authBatchTxLk`, `auth.authBatchTxLkR`,
+  InvAuth.lean; inside `authSchemaSrv`'s text) and `authRecordsFit` (InvBoot.lean, opaque; a premise of
+  `NewAuthStore`'s axiom, `NewServer.spec`, `NewServerR.spec` and the closed theorems' `Haf`).
+- **Defect.** Since bbolt-integrate, `backend.batchTxBuffered.UnsafePut.spec` takes `kb.length + vb.length ≤
+  bbolt.bboltEntryMax` (2^28). The realization's `lk_put` (AuthRealWr) puts `userEncode ur`/`roleEncode rr`, whose size
+  neither the contract (key bounds only) nor `authSmall` (roles and permissions at most the revision, ≤ 2^61 + 2^48)
+  bounds; `authRecordsFit` is opaque (no law). Known runtime finding: `nonissues/etcd-auth-record-too-large-fatal.md`.
+- **Evidence.** Full timed build 20261119-190055-1577997 (`AuthRealWr.lean` l.1209, 1260); `questions.md` "BLOCKER
+  (2026-11-19 h)".
+- **Proposed change.** The user's option (1): the put clauses take `⌜name.length + enc.length ≤ bboltEntryMax⌝`;
+  `authRecordsFit` gets content as a bound on the auth state the store keeps (a size field in `authSmall`, kept by every
+  writer). Its concrete form: pending (questions.md "Option (1): concrete form").
+- **Decision.** Option (1) chosen by the user, 2026-11-19, via etcd-grove-03.
