@@ -1,6 +1,34 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 v, the WAL work SPLIT: L3 lands without new file-model text)
+## START HERE (2026-11-19 w, Hm1 DONE (route B); next: P2)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head 3aff0a96c5 (+ this handoff); pin f551a1b46,
+  `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). No full build since
+  `20261119-080329-2994864` (b5ba70baa2); targeted build GREEN at 3aff0a96c5: the WAL Link (`--walfs`), the WalTester
+  Link, `EtcdServer__snapshot`, `raftNode__start`, `RnNewStorage` (log `/shared/tmp/wallink/hm1-b14.log`).
+- **Done:** 15478a7cb5 `WalOpG` (+ the history's `Countable` instances) moved out of the trusted
+  `GooseLang/Ext/AbsDisk/Impl.lean` into `Proof/go_etcd_io/etcd/server/v3/storage/WalOps.lean` (pure move, names
+  kept; tier line `AbsDisk.Impl -> PbModel` retargeted to `-> storage.WalOps`). 3aff0a96c5 the presence bit:
+  `WalOpG.snap m al`; `walAlC al b` (`AutoLeave` set when `al || b`); `walSnapCanon m al`, `encSnap m al`,
+  `walSnapAt Mr sp md al cs`, `snapFrame … al`; the SaveSnapshot/SaveSnap/MustMarshalWalSnap/ValidateSnapshotForWrite
+  specs take `al`; ReleaseLockTo/`storage.Release` AU and `walSnapRec` (sealed) say `∃ al`; `isWalStorage`'s SaveSnap
+  law `∀ al`; `srvSnapMetaC md al uf`, `srv_csPts_csRoC`, `srv_smPtsV_metaC` (RaftLoopFreeze): **the sorry `Hm1` is
+  gone**. Create's and the tester's snapshots use `al = true`.
+- **Forms to report:** `walRead`/`walReadFrom`/`walKeep`/`walNewest` ([trusted meaning], WalHist.lean): match arms
+  `.snap m` → `.snap m _` only (mechanical, meaning unchanged). `isWalStorage` is restated (∀ al) — it reaches
+  `rnNewStorageOk`'s meaning (premise kept): report at the stop.
+- **Next, in order:** P2 (Scope §3.4: `DedicatedWALDir` under per-member `fsExt` roots, area allocated at adequacy by
+  `walInv_alloc`; contracts `cfg.DedicatedWALDir' = go!""` in `WalApi.lean:520-553`, `InvRestart.lean:207-215,666`,
+  `StopApi.lean:75-99,222`, `StartRes.lean:207`); merge lean (pin 3afd77e35 when it lands); full timed build
+  (`/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>`, report the id; the rest of the 2024-module
+  cone of `WalOps.lean` is unbuilt: expect mechanical `.snap m` → `.snap m al` breaks in closed examples / server
+  files); tcb `--check --update` (+ collections); interfaces (`etc/api/absdisk.txt`: `Impl.txt` loses WalOpG);
+  every gen-link mode (LAKE_OPTS); examples' Go; STOP with closed statements.
+- **Pitfalls:** fix tools used (`/shared/tmp/wallink/snapfix*.py`: regexes for `.snap` arms, `∀ m, WalOpG.snap m ∈`,
+  lambdas `fun m hm => h m`); `cases o with | snap m al`; walCutPos's third disjunct is `∃ m al` (rcases
+  `| ⟨m, al, hb⟩`). Others as in v below.
+
+### (2026-11-19 v, the WAL work SPLIT: L3 lands without new file-model text)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`
   (`.lake/package-overrides.json` its copy). Last green full build `20261119-080329-2994864` (b5ba70baa2).
