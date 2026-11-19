@@ -27,6 +27,9 @@
 //	env_restarts.go               restarts are machine crashes       OsCrash := MachineCrash
 //	env_journal_order.go          metadata in journal order          Follows, Closed, MachineCrash, DirSync
 //	env_roots_only.go             only the roots' trees              TreeName, TreePath, AtOrAboveRoot, CanonBelow, RootsOk
+//	env_no_close_during_lock.go   no close of an fd while a lock     Impl.lean header ("Environment", "Locks"),
+//	                              call on it is in flight            LockStep, Close; NoIoErr ("Fds and locks")
+//	                              (2026-11-19)
 //
 // File contents and sizes:
 //
@@ -120,4 +123,7 @@
 //	                              paths that do not fit (user,       PathFits
 //	                              2026-11-19; TestLocksProcReaderEagain,
 //	                              TestNoIoErrNameTooLong)
+//	                              + C's fd limits: no EMFILE/ENFILE  NoIoErr's docstring, Impl.lean's
+//	                              (assumed; contrast:                "Environment" (env_config.go)
+//	                              TestNoIoErrEmfile; user, 2026-11-19)
 package semantics

@@ -9,6 +9,7 @@ package semantics
 // them.
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -392,6 +393,10 @@ func TestNoIoErrProtectedSymlinks(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.Lchown(link, 65533, 65533); err != nil {
+		if errors.Is(err, syscall.EOVERFLOW) {
+			// an idmapped mount that does not map uid 65533 (this host's /shared): run it on C
+			t.Skipf("lchown: %v (idmapped mount; set SEMANTICS_C_DIR to a directory on C)", err)
+		}
 		t.Fatal(err)
 	}
 	if e := asNobody(t, "open", link); e != syscall.EACCES {
@@ -438,9 +443,12 @@ func TestNoIoErrProtectedRegular(t *testing.T) {
 }
 
 // Finding A1 of the attack on PathErrno (notes/wal-units/noioerr.md, session 5): the model bounds
-// neither a name's nor a path's length, Linux does: a component longer than NAME_MAX (255 bytes)
-// or a path of PATH_MAX (4096) bytes or more fails with ENAMETOOLONG, whatever the tree holds, for
-// mkdir, open with O_CREAT, unlink, rmdir and rename; 255 bytes and a 4095-byte path are fine.
+// neither a name's nor a path's length, Linux does: a component longer than NAME_MAX (255 bytes),
+// reached by the walk, or a path of PATH_MAX (4096) bytes or more fails with ENAMETOOLONG, for
+// mkdir, open with O_CREAT, unlink, rmdir and rename; 255 bytes and a 4095-byte path are fine. The
+// component's check is ext4_lookup's (finding F3' of the attack of session 7): a missing or
+// non-directory component before the long one gives ENOENT or ENOTDIR first, a long component
+// before a short one ENAMETOOLONG.
 func TestNoIoErrNameTooLong(t *testing.T) {
 	dir := extDir(t)
 	ok := dir + "/" + strings.Repeat("a", 255)
@@ -465,6 +473,16 @@ func TestNoIoErrNameTooLong(t *testing.T) {
 	}
 	if err := os.WriteFile(dir+"/f", nil, 0o600); err != nil {
 		t.Fatal(err)
+	}
+	name256 := strings.Repeat("b", 256)
+	if err := syscall.Mkdir(dir+"/missing/"+name256, 0o700); err != syscall.ENOENT {
+		t.Fatalf("mkdir of missing/<256 bytes>: %v, want ENOENT", err)
+	}
+	if err := syscall.Mkdir(dir+"/f/"+name256, 0o700); err != syscall.ENOTDIR {
+		t.Fatalf("mkdir of file/<256 bytes>: %v, want ENOTDIR", err)
+	}
+	if err := syscall.Mkdir(long+"/x", 0o700); err != syscall.ENAMETOOLONG {
+		t.Fatalf("mkdir of <256 bytes>/x: %v, want ENAMETOOLONG", err)
 	}
 	if err := syscall.Rename(dir+"/f", long); err != syscall.ENAMETOOLONG {
 		t.Fatalf("rename to a 256-byte name: %v, want ENAMETOOLONG", err)
@@ -491,4 +509,49 @@ func TestNoIoErrNameTooLong(t *testing.T) {
 	if err := syscall.Unlink(over); err != syscall.ENAMETOOLONG {
 		t.Fatalf("unlink of a 4096-byte path: %v, want ENAMETOOLONG", err)
 	}
+}
+
+// Finding F2' of the attack of session 7 (the environment's fd limits, Impl.lean's "Environment",
+// env_config.go): the model always has a free fd (FdFree is unbounded), so NoIoErr lets no covered
+// open fail; Linux fails it with EMFILE once the process holds RLIMIT_NOFILE fds. Measured as the
+// contrast: with the soft limit lowered to 64 for this test, an open of an existing file fails with
+// EMFILE after at most 64 fds; once they are closed, it succeeds. (ENFILE, fs.file-max: from the
+// kernel source, alloc_empty_file; not measured.)
+func TestNoIoErrEmfile(t *testing.T) {
+	name := extDir(t) + "/f"
+	if err := os.WriteFile(name, nil, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var rl syscall.Rlimit
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rl); err != nil {
+		t.Fatal(err)
+	}
+	low := syscall.Rlimit{Cur: 64, Max: rl.Max}
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &low); err != nil {
+		t.Fatal(err)
+	}
+	var fds []int
+	var err error
+	for len(fds) <= 64 {
+		var fd int
+		if fd, err = syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0); err != nil {
+			break
+		}
+		fds = append(fds, fd)
+	}
+	for _, fd := range fds {
+		syscall.Close(fd)
+	}
+	if e := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rl); e != nil {
+		t.Fatal(e)
+	}
+	if err != syscall.EMFILE {
+		t.Fatalf("open after %d fds with RLIMIT_NOFILE 64: %v, want EMFILE", len(fds), err)
+	}
+	t.Logf("open after %d more fds (soft limit 64): EMFILE", len(fds))
+	fd, err := syscall.Open(name, syscall.O_RDWR|syscall.O_CLOEXEC, 0)
+	if err != nil {
+		t.Fatalf("open once they are closed: %v", err)
+	}
+	syscall.Close(fd)
 }

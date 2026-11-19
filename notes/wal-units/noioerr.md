@@ -515,3 +515,23 @@ Programs and logs `/shared/tmp/walfsfix-attack4/`; target d1b49ad308 (read-only 
   failure arm), the blocking-only coverage, `PathFits` (exactly PATH_MAX/NAME_MAX for canonical absolute paths),
   the permission list (ETXTBSY gone on 7.0; leases/inotify only wait; others outside C), MapDesc; the new tests pass
   (but the noted skips).
+
+## Session 8 (2026-11-19 w): the user's decisions on the attack of session 7
+
+**Decided by the user (via etcd-grove-03)**, with a stopping rule (after one final attack, a corner the WAL's or
+bbolt's proofs do not reach is recorded as a known model gap, not fixed):
+- **F1'**: environment clause of configuration C, "no fd is closed while a lock call on it is in flight"
+  (`Impl.lean`'s "Environment", "Locks", `LockStep`, `Close`'s comment; `NoIoErr`'s docstring, "Fds and locks";
+  `env_config.go`). Go example of the excluded run `env_no_close_during_lock.go`; measured `TestLocksCloseDuringLock`
+  (4/4: OFD and flock, released by close or unlock: the call on the closed fd returns 0). The WAL (`LockFile`/
+  `TryLockFile` return the file only after the lock call) and bbolt (flock/funlock on the goroutine owning the file)
+  meet it.
+- **F2'**: environment clause "fewer fds than the `RLIMIT_NOFILE` soft limit, system below `fs.file-max`" (no
+  `EMFILE`/`ENFILE`); `NoIoErr`'s and `premise_no_io_err.go`'s false "does not exclude EMFILE" removed, the exclusion
+  stated. Measured as a contrast: `TestNoIoErrEmfile`.
+- **F3'**: `PathFits`'s and `premise_no_io_err.go`'s ENAMETOOLONG wording (when the walk reaches the long component;
+  ENOENT/ENOTDIR first); `TestNoIoErrNameTooLong` measures the order.
+- **Nits**: "short reference" → a moment for a /proc reader, indefinitely for a `pidfd_getfd`/ptrace copy (Impl.lean
+  header, `LockStep`, `Close`); "no other process locks or unlocks them, through any description";
+  `TestNoIoErrProtectedSymlinks` skips on `EOVERFLOW`; `TestLocksMmapKeepsDescription`'s control retries `EAGAIN`.
+No Lean definition changed (docstrings only).

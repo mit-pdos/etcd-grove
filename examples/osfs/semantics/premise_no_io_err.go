@@ -36,7 +36,9 @@ import (
 // fsync or close of a covered directory failing; open, rename, mkdir, unlink
 // or rmdir of a covered path that fits (shorter than 4096 bytes, no component
 // longer than 255: PathFits) failing where the call can succeed (the path
-// resolves as the call needs; a free fd for open). Since 2026-11-19 also: a
+// resolves as the call needs; the model always has a free fd for open, so
+// EMFILE and ENFILE are excluded too, which the environment's fd limits make
+// true: env_config.go, TestNoIoErrEmfile). Since 2026-11-19 also: a
 // blocking lock request on a covered file (flock LOCK_SH/LOCK_EX without
 // LOCK_NB, or fcntl F_OFD_SETLKW with F_RDLCK/F_WRLCK) failing although no
 // other description holds a conflicting lock (another fd's, or one a live
@@ -51,8 +53,7 @@ import (
 // meta_enoent.go, is no I/O error).
 //
 // Still allowed under the premise (the semantics has no success there): EFBIG
-// at or past maxBytes (data_maxbytes.go), EMFILE with no free fd, the failures
-// of a path call that cannot succeed in the state it is made in (ENOENT,
+// at or past maxBytes (data_maxbytes.go), the failures of a path call that cannot succeed in the state it is made in (ENOENT,
 // EEXIST, ENOTEMPTY, EISDIR, ...), a lock request that conflicts with a lock
 // another description holds (another fd's, or a mapping's: EAGAIN, or for a blocking request any
 // errno: locks_blocking.go), ENOENT from a read of a removed directory, and
@@ -61,7 +62,8 @@ import (
 // process holds a reference to a description the program closed
 // (locks_spurious_eagain.go: a /proc/<pid>/fdinfo reader; a blocking request
 // waits for it instead), a path call on a path that does not fit (ENAMETOOLONG
-// whatever the tree holds: TestNoIoErrNameTooLong), mmap/munmap, fallocate with
+// once the walk reaches the long component: TestNoIoErrNameTooLong),
+// mmap/munmap, fallocate with
 // KEEP_SIZE, lstat (LstatDir: its outcome does not tell a failed lstat of a
 // directory from a non-directory, so it has no success to name), the model's
 // queries PathKind and FdKind (one answer from each state: nothing to
@@ -79,13 +81,17 @@ import (
 // disk or a failing device violates it, and then etcd does panic). For the lock
 // requests and the reads, the further assumptions: the kernel has memory for a
 // lock record (fs/locks.c: posix_lock_inode and flock_lock_inode allocate it,
-// ENOLCK when that fails) and for a read's buffer, no other process locks the
-// covered files (the lock rule already takes the roots' files to be the
-// process's own, locks_ofd.go), and no fatal signal is pending (iterate_dir's
+// ENOLCK when that fails) and for a read's buffer, no other process locks or
+// unlocks the covered files, through any description (its own open, or a copy
+// of the program's: pidfd_getfd, SCM_RIGHTS; the lock rule already takes the
+// roots' files to be the process's own, locks_ofd.go), no fd is closed while a
+// lock call on it is in flight (env_no_close_during_lock.go), and no fatal
+// signal is pending (iterate_dir's
 // killable lock, EINTR). An uncontended request does not sleep, so no signal
 // can interrupt it (fs/locks.c: the wait is only on a conflict; a blocking
 // request that meets a description another process keeps alive past close
-// waits, uninterrupted, for its last reference). And configuration C's
+// waits, uninterrupted, for its last reference: a moment for a /proc reader,
+// as long as the other process keeps it for a pidfd_getfd copy). And configuration C's
 // permissions (Impl.lean's "Environment", 2026-11-19, the user's approvals
 // after the attack A2 on PathErrno and the attack on its fix): the process may
 // search every ancestor of a root, search and write every covered directory,
@@ -141,8 +147,10 @@ import (
 // permissions above: a permission check comes before the lookup's ENOENT,
 // EACCES/EPERM; no memory pressure, no I/O error on the directory's blocks).
 // A path that does not fit (a name longer than 255 bytes, or a path of 4096
-// bytes or more) fails with ENAMETOOLONG whatever the tree holds
-// (TestNoIoErrNameTooLong): such a path is not covered (PathFits; 2026-11-19,
+// bytes or more) fails with ENAMETOOLONG (TestNoIoErrNameTooLong: a path of
+// 4096 bytes always; a long name when the walk reaches it, ext4_lookup's check,
+// after ENOENT or ENOTDIR from an earlier missing or non-directory component):
+// such a path is not covered (PathFits; 2026-11-19,
 // the user's decision on the attack's finding A1), so neither PathErrno nor
 // the success clause speaks of it; the semantics, which bounds no length,
 // gives it a short path's outcomes, failures with any errno included.

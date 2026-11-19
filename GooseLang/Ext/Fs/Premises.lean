@@ -77,8 +77,9 @@ structure IoSet where
 
 /-- **A path Linux accepts by its length**: shorter than `PATH_MAX` (4096 bytes, the terminating NUL
 included: `getname` fails with `ENAMETOOLONG` at 4096), and no component longer than `NAME_MAX` (255
-bytes: every run of 256 bytes holds a `/`; the walk fails with `ENAMETOOLONG` on a longer component,
-whatever the tree holds). The semantics does not bound lengths (a longer path is given the outcomes of
+bytes: every run of 256 bytes holds a `/`; the walk fails with `ENAMETOOLONG` when it reaches a longer
+component, `ext4_lookup`'s check, unless an earlier component is missing or not a directory, `ENOENT`/
+`ENOTDIR` first). The semantics does not bound lengths (a longer path is given the outcomes of
 a short one, a success included, which Linux never takes: more behaviours, sound); `NoIoErr` covers
 only the paths that fit (2026-11-19, the user's decision on the attack's finding A1;
 `examples/osfs/semantics/premise_no_io_err.go`, measured: `TestNoIoErrNameTooLong`). -/
@@ -166,7 +167,8 @@ of at least one byte could land (its offset below `maxBytes`, or no data); a fai
 `fallocate` of a size up to `maxBytes`; a failing `fstat`, `pread` or `close` of a covered file, or
 `fsync`/`close` of a covered directory; and a failing `open`, `rename`, `mkdir`, `unlink` or `rmdir`
 on a covered path that fits (`PathFits`) where the call can succeed (the path resolves as the call
-needs, a free fd for `open`). Since 2026-11-19 also: a failing blocking lock request (`flock` without
+needs; the model always has a free fd for `open`, so `EMFILE`/`ENFILE` are excluded too, which the
+environment's fd limits make true: `Impl.lean`'s "Environment", `env_config.go`). Since 2026-11-19 also: a failing blocking lock request (`flock` without
 `LOCK_NB`, or `fcntl` with `F_OFD_SETLKW`) on a covered file that no other description conflicts with
 (`LockConflict`: another fd's, or one a live mapping holds after its fd's close, `MapDesc`; `ENOLCK`,
 `EINTR`, ...), and a failing blocking unlock (`LOCK_UN`, `F_OFD_SETLKW` with `F_UNLCK`); a directory
@@ -174,7 +176,7 @@ read (`getdents64`, a step of `Readdirnames`) of a covered directory ending with
 `ENOENT` (`EIO`, `EINTR`, ...) while the directory has a name to return or is at its end.
 
 What it does **not** exclude, because the semantics then has no success: `EFBIG` at `maxBytes`
-(ext4's `s_maxbytes`), `EMFILE` with no free fd, the failures of a path call that cannot succeed
+(ext4's `s_maxbytes`), the failures of a path call that cannot succeed
 in that state (`ENOENT`, `EEXIST`, `ENOTEMPTY`, `EISDIR`, ...), and the failure of a lock request
 that conflicts with a lock another description holds (another fd's, or one a live mapping keeps
 after its fd's close: `EAGAIN`, ...); `ENOENT` from a read of
@@ -188,7 +190,8 @@ non-empty directory (no I/O error, no lack of memory, no signal changes it into 
 
 An environment assumption, not a property of Linux (evidence: assumed): the device returns no I/O
 error, the filesystem has room for these files, the kernel has memory for their locks and reads, and
-no signal interrupts these calls; and no other process locks them (as the semantics' lock rule
+no signal interrupts these calls; and no other process locks or unlocks them, through any description
+(its own open, or a copy of the program's: `pidfd_getfd`, `SCM_RIGHTS`) (as the semantics' lock rule
 already takes the roots' files to be the process's own, `examples/osfs/semantics/locks_ofd.go`)
 (`examples/osfs/semantics/premise_no_io_err.go`). **Permissions** (configuration C's environment,
 `Impl.lean`'s "Environment"; 2026-11-19, the user's approvals via etcd-grove-03): the process may search
@@ -201,6 +204,11 @@ filter or fanotify permission event denies or fails a call on them (no `EPERM`/`
 `may_delete`, `may_create`, `inode_permission` or an LSM hook; no `SECCOMP_RET_ERRNO`; no `FAN_DENY`);
 measured as contrasts in `premise_no_io_err_test.go` (`TestNoIoErrPermissions`, `TestNoIoErrPermAncestor`,
 `TestNoIoErrPermFileWrite`, `TestNoIoErrProtectedSymlinks`, `TestNoIoErrProtectedRegular`).
+**Fds and locks** (configuration C's environment too; 2026-11-19, the user's decisions on the attack's
+findings F2' and F1'): at every `open` the process holds fewer fds than its `RLIMIT_NOFILE` soft limit
+and the system's open files are below `fs.file-max` (no `EMFILE`/`ENFILE`; measured as a contrast:
+`TestNoIoErrEmfile`); and no fd is closed while a lock call on it is in flight
+(`env_no_close_during_lock.go`).
 It is the condition under which etcd's server is shown not to panic where it calls `lg.Panic` on a
 WAL error (`Create`, `SaveSnapshot`, `ReleaseLockTo`, `Close`, ...): approved by the user
 2026-11-15 (`notes/decisions.md`, "fsExt: no I/O errors on chosen files"). It never leaves a state

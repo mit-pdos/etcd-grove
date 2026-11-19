@@ -39,6 +39,19 @@ import (
 //     (security_file_lock, called by flock(2) and fcntl's lock commands
 //     before any lock; 2026-11-19): a lock request that the lock rule lets
 //     succeed is refused only by an error NoIoErr names (premise_no_io_err.go).
+//   - no fd is closed while a lock call on it is in flight (2026-11-19, the
+//     user's decision on the attack's finding F1'): env_no_close_during_lock.go.
+//   - fds within the limits (2026-11-19, the user's decision on the attack's
+//     finding F2'): at every open(2) the process holds fewer fds than its
+//     RLIMIT_NOFILE soft limit (which Go's syscall init raises) and the
+//     system's open files are below fs.file-max, so open gives no EMFILE or
+//     ENFILE. The model always has a free fd (FdFree is unbounded), so
+//     NoIoErr lets no covered open fail on it (premise_no_io_err.go; the
+//     contrast measured: TestNoIoErrEmfile, EMFILE with the soft limit at 64;
+//     ENFILE from the kernel source, alloc_empty_file, not measured). etcd's
+//     own files are few (the WAL's locked segments, bbolt's db), but its
+//     sockets, one per client connection, count toward the same limit: the
+//     clause is the deployment's (a limit above what its clients need).
 //   - permissions (2026-11-19, the user's approvals via etcd-grove-03, after
 //     the attack A2 on PathErrno and the attack on its fix): the process may
 //     search every ancestor of every root, search and write every directory

@@ -29,7 +29,18 @@ effect; `PathKind`; the program never removes, renames or replaces one either, a
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
 tree at boot is their trees' entries. No Linux security module denies a file lock on them
 (`security_file_lock`, which `flock(2)` and `fcntl`'s lock commands call before any lock is taken;
-2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). **Permissions**: the process
+2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). **No fd is closed
+while a lock call on it is in flight**: the program never `close`s an fd while a `flock(2)` or `fcntl`
+lock command on that fd, made by another of its threads, has not returned (on Linux the call holds its
+own reference to the description, `fdget`, so it may take its lock, and succeed, after the `close`
+returned: a run the model's one-step `Flock`/`OfdLock`, which needs the fd open, excludes; the WAL and
+bbolt never close a file while locking it; 2026-11-19, the user's decision on the attack's finding F1';
+`examples/osfs/semantics/env_no_close_during_lock.go`). **Fds within the limits**: at every `open(2)`
+the process holds fewer fds than its `RLIMIT_NOFILE` soft limit (which Go raises at start, `syscall`'s
+`init`), and the system's open files are below `fs.file-max` (so `open` gives no `EMFILE`/`ENFILE`: the
+model always has a free fd, `FdFree`, so `NoIoErr` lets no covered `open` fail on it; 2026-11-19, the
+user's decision on the attack's finding F2'; `env_config.go`, measured: `TestNoIoErrEmfile`).
+**Permissions**: the process
 may search every ancestor of every root, search and write every directory of the roots' trees, and read
 and write every file in them (no `EACCES` from `inode_permission`, on the walk or on an `open` for
 writing); no directory's sticky bit denies a removal or a rename in it; no entry has the immutable or
@@ -131,12 +142,14 @@ holds at the `close`, lives until the last such mapping is unmapped (`MapDesc`; 
 user's approval via etcd-grove-03, after the attack F1 on `NoIoErr`). A request succeeds only with no
 conflicting lock on another description, an fd's or one a mapping keeps (a blocking one waits for
 that), and may fail with any errno and no change (`LockStep`), `EAGAIN` from a non-blocking one
-included **even with no conflict in the model**: another process may hold a short reference to a
-description the program has closed (a read of `/proc/<pid>/fd/N` or `/proc/<pid>/fdinfo/N`,
-`pidfd_getfd`, ptrace: `get_file` … `fput`), which keeps the description, and its locks, alive past
-the `close`, a fact of Linux the model does not track (2026-11-19, the user's decision, option (b) of the
-attack on F1's fix; `examples/osfs/semantics/locks_spurious_eagain.go`). A blocking request then only
-waits.
+included **even with no conflict in the model**: another process may hold a reference to a
+description the program has closed (briefly, a read of `/proc/<pid>/fd/N` or `/proc/<pid>/fdinfo/N`,
+`get_file` … `fput`; for as long as it keeps it, a copy made by `pidfd_getfd(2)` or through ptrace),
+which keeps the description, and its locks, alive past the `close`, a fact of Linux the model does not
+track (2026-11-19, the user's decision, option (b) of the attack on F1's fix;
+`examples/osfs/semantics/locks_spurious_eagain.go`). A blocking request then only waits (for as long as
+the other process keeps its reference, indefinitely for a copy it never closes). A lock call's fd is
+not closed while the call is in flight (the environment, above: `env_no_close_during_lock.go`).
 Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted models panic).
 
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
@@ -816,14 +829,19 @@ so that the calls name the request whole).
   stuck: Linux accepts it; etcd never does it): success (errno 0) only when there is no conflict
   (`LockConflict`), and the description holds the lock; or any nonzero errno and **no change**,
   `EAGAIN` from a non-blocking request included whether or not the model sees a conflict: a
-  description the program closed may still hold its locks while another process holds a short
-  reference to it (a read of `/proc/<pid>/fdinfo/N` or `/proc/<pid>/fd/N`, `pidfd_getfd`, ptrace;
+  description the program closed may still hold its locks while another process holds a reference
+  to it (briefly, a read of `/proc/<pid>/fdinfo/N` or `/proc/<pid>/fd/N`; for as long as it keeps
+  it, a `pidfd_getfd` or ptrace copy;
   measured on C: `examples/osfs/semantics/locks_spurious_eagain.go`, `locks_test.go`'s
   `TestLocksProcReaderEagain`; 2026-11-19, the user's decision, option (b)). A blocking request so
   takes no successful step while another description holds a conflicting lock: it waits, or fails (any
   errno, at any time: `ENOLCK`/`ENOMEM` from an allocation at its entry are not excluded).
 * An unlock: success, the description's lock of the kind gone (none before: no change); or any
   nonzero errno, the lock gone or kept.
+One step, which needs the fd open (`FdOpen`, in `IsFsStep`): on Linux the call holds its own
+reference to the description and may take its lock after another thread's `close` of the fd
+returned; the environment excludes that (the header: no fd is closed while a lock call on it is in
+flight; `examples/osfs/semantics/env_no_close_during_lock.go`).
 Measured on C (`examples/osfs/semantics/locks_ofd.go`, `locks_flock.go`, `locks_blocking.go`,
 `locks_test.go`); `fs/locks.c` (`posix_lock_inode`, `flock_lock_inode`: `-EAGAIN` only on a conflict
 with a lock some description holds, when the request may not sleep, the lock inserted only on success;
@@ -975,8 +993,10 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno; never stuck. A live
   mapping made through `fd` keeps its description, as it is now, locks included (`MapDesc.close`;
   `locks_mmap_close.go`); otherwise the description and its locks go from the model (on Linux another
-  process's short reference, a `/proc/<pid>/fdinfo` read, may keep them a moment longer: only a
-  non-blocking lock request can tell, and its `EAGAIN` is allowed at any time, `LockStep`). -/
+  process's reference may keep them longer: a moment for a `/proc/<pid>/fdinfo` read, as long as it
+  keeps it for a `pidfd_getfd` copy; only a lock request can tell, a non-blocking one's `EAGAIN` is
+  allowed at any time and a blocking one waits, `LockStep`). Never while a lock call on `fd` is in
+  flight (the environment, the header: `env_no_close_during_lock.go`). -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
       st' = st.setProc { st.proc with
         fds := GMap.delete fd st.proc.fds,
