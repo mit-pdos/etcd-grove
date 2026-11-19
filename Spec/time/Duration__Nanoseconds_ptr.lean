@@ -1,8 +1,8 @@
 /-
-`(*time.Duration).Nanoseconds()`: the trust boundary (Perennial translates `time` without
-`Duration`'s methods; `func (d Duration) Nanoseconds() int64 { return int64(d) }`, called through
-the pointer of an addressable `Duration`, as client-go's exponential limiter's `r.baseDelay`).
-Lean-first.
+`(*time.Duration).Nanoseconds()`: `func (d Duration) Nanoseconds() int64 { return int64(d) }`,
+called through the pointer of an addressable `Duration`, as client-go's exponential limiter's
+`r.baseDelay`. Proved (`Proof/time/Duration__Nanoseconds_ptr.lean`) over Perennial's proof of the
+value method. Lean-first.
 -/
 module
 

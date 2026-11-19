@@ -24,7 +24,6 @@ axiom Perennial.crypto.tls.opaqueInitsOk
 axiom Perennial.encoding.base64.RawURLEncoding_init
 axiom Perennial.encoding.base64.StdEncoding_init
 axiom Perennial.encoding.base64.opaqueInitsOk
-axiom Perennial.encoding.hex.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
 axiom Perennial.encoding.json.opaqueInitsOk
 axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
@@ -81,9 +80,7 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.version.MinClusterVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.V3_6_init
-axiom Perennial.go_etcd_io.etcd.api.v3.version.Version_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.version.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
@@ -104,7 +101,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.auth.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.auth.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics_init
-axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.errorsNewVarsInit
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.opaqueInitsOk
@@ -201,9 +197,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.txnCounter_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.watchStreamGauge_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGauge_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.AllBuckets_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.FinishedCompactKeyName_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.ScheduledCompactKeyName_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.wal.initFuncsOk
@@ -526,7 +519,6 @@ axiom math.Ceil.wp_proof
 axiom math.Pow.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
-axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom membership.clusterImageOk_restModel.wp_proof
@@ -727,7 +719,6 @@ axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.ToLower.wp_proof
 axiom strings.TrimSuffix.wp_proof
-axiom time.Duration.Nanoseconds_ptr.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof

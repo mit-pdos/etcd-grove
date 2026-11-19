@@ -17,6 +17,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### `go.NotInterface` of the predeclared named types; the standard-library axioms that only bodies would discharge (2026-11-19, branch `prove-stdlib/2026-11-19`)
+
+- **Limitation.** `go_method_resolve_step` needs `[go.NotInterface tunder]`, and Perennial's
+  instances (`Golang/Theory/PostLifting.lean`) are per type constructor (`notInterface_Named`, ...):
+  none matches `go.int64` (`def int64 := go.Named go!"int64" []`, not reducible) or the other
+  predeclared types. So a value method of a named type over a predeclared one, called through
+  goose's pointer wrapper (`(*time.Duration).Nanoseconds`), has no step.
+- **Workaround here.** `Proof/time/Duration__Nanoseconds_ptr.lean`: a local
+  `haveI : go.NotInterface go.int64 := ⟨by simp [go.int64]⟩` (a proof, no axiom).
+- **Proposed change.** `NotInterface` instances for the predeclared types (or make them
+  reducible), next to `notInterface_Named`.
+- **Also (the stdlib group of trust-boundary axioms).** Of `strings.{Contains,HasSuffix,SplitN,
+  ToLower,TrimSuffix}`, `strconv.{FormatBool,FormatInt,FormatUint,Itoa,ParseBool,ParseInt}`,
+  `binary.{ReadInt64LE,ReadUint64,WriteUint64,WriteUint8}` (`binary.Read`/`Write`, through
+  `reflect`), `errors.Join`, `io.{ReadFull,CopyN}` and `time.Duration.{Seconds,String}` (floats,
+  formatting), the pinned Perennial (`3afd77e35`) translates none of the bodies (names only), so
+  each stays an axiom here until Perennial's `*.toml` translates it (`Seconds`: never, a float).
+  The cheap ones to translate: `strings.HasSuffix`/`TrimSuffix`/`Contains` (over
+  `internal/stringslite`), `strconv.FormatBool`/`ParseBool`, `io.ReadFull`/`ReadAtLeast`.
+- **Status.** Open.
+
 ### `SprintfOut` of a literal prefix and of `pre%vmid%v` (2026-11-18, k8s 7g)
 
 - **Missing.** `fmt`'s inversions (`Perennial/Proof/fmt/Base.lean`) go one byte at a time
@@ -76,6 +97,7 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
      `Clone` (`m ↦$ M` fresh, or `nil` for `nil`).
 - **Status (2026-11-17).** Proposed only (no Perennial branch). To be designed and reviewed on a
   branch off Perennial's `lean` when the user wants it.
+
 
 ### Goose's guard R4 refuses deepcopy-gen's copies of pointer-free structs (2026-11-18, k8s deep copies)
 
