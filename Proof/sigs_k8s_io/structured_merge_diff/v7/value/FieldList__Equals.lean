@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.FieldList__Equals
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Equals
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,26 @@ variable [package_sem : value.Assumptions]
 
 theorem value.FieldList.Equals.wp_proof
     (h_Equals : value.Equals.spec (GF := GF)) :
-    value.FieldList.Equals.spec (GF := GF) := by
-  sorry
+    value.FieldList.Equals.spec (GF := GF) := fun f g fl gl => by
+  wp_start as ⟨#Hf, #Hg⟩
+  icases isFieldList_val $$ Hf with ⟨%fs, #Hfs, #HfL⟩
+  icases isFieldList_val $$ Hg with ⟨%gs, #Hgs, #HgL⟩
+  ihave %Hfl := isFieldsL_length $$ HfL
+  ihave %Hgl := isFieldsL_length $$ HgL
+  ihave %Hfsl := ownSlice_len $$ Hfs
+  ihave %Hgsl := ownSlice_len $$ Hgs
+  wp_auto
+  wp_if_destruct
+  · rename_i ik_ptr
+    ihave HI : (∃ (j : w64) (k : w64), "i" ∷ i_ptr ↦ j ∗ "ik" ∷ ik_ptr ↦ k ∗
+        "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z f.len ∧
+          fl.take (sint.nat j) = gl.take (sint.nat j)⌝ : IProp GF) $$ [-HΦ «$res0» f rhs]
+    · iexists _, _; iframe; ipureintro
+      refine ⟨by word, by word, ?_⟩
+      rw [show sint.nat (W64 0) = 0 from rfl]; rfl
+    wp_for HI
+    sorry
+  · sorry
 
 end proof
 
