@@ -1,92 +1,19 @@
 # etc/pbgen.py over etcd's own message types (notes/dsverify-net-port-plan.md, phase 5 item 1): the
 # proto3 messages of the KV, lease and watch requests and responses (etcdserverpb, mvccpb, at the
-# examples' etcd pin), drafted by `etc/pbgen.py --from-pb rpc.pb.go kv.pb.go`. The generated
-# test (codec/pb_gen_test.go) checks the listed fields against the messages' descriptors and the
-# codec against the real google.golang.org/protobuf. What the generator refuses of etcd's .proto
-# files (raftpb's proto2 fields, the oneofs of RequestOp, ResponseOp, Compare and WatchRequest) is
-# listed in the plan note. Generate from the repository root:
+# examples' etcd pin). Only the roots are named here: the codec covers them and every message
+# and enum they reach (ResponseHeader, mvccpb.KeyValue and Event, Member, the enums), with
+# fields derived from the registered descriptors (netmodels.lab/pbdesc). The generated test
+# (pb_gen_test.go) checks the codec against the real google.golang.org/protobuf. What the
+# generator refuses of etcd's .proto files (raftpb's proto2 fields, the oneofs of RequestOp,
+# ResponseOp, Compare and WatchRequest) is listed in the plan note. Generate from the repository
+# root:
 #     etc/pbgen.py examples/netmodels/pbetcd/protobuf.toml examples/netmodels/pbetcd --pkg pbetcd
 [protobuf]
 imports = { etcdserverpb = "go.etcd.io/etcd/api/v3/etcdserverpb", mvccpb = "go.etcd.io/etcd/api/v3/mvccpb" }
-enums = ["etcdserverpb.RangeRequest_SortOrder", "etcdserverpb.RangeRequest_SortTarget",
-         "etcdserverpb.WatchCreateRequest_FilterType", "mvccpb.Event_EventType"]
-[protobuf.messages]
-"etcdserverpb.ResponseHeader" = [["ClusterId", 1, "uint64"],
-    ["MemberId", 2, "uint64"],
-    ["Revision", 3, "int64"],
-    ["RaftTerm", 4, "uint64"],
-    ["LeaderId", 5, "uint64"]]
-"etcdserverpb.RangeRequest" = [["Key", 1, "bytes"],
-    ["RangeEnd", 2, "bytes"],
-    ["Limit", 3, "int64"],
-    ["Revision", 4, "int64"],
-    ["SortOrder", 5, "etcdserverpb.RangeRequest_SortOrder"],
-    ["SortTarget", 6, "etcdserverpb.RangeRequest_SortTarget"],
-    ["Serializable", 7, "bool"],
-    ["KeysOnly", 8, "bool"],
-    ["CountOnly", 9, "bool"],
-    ["MinModRevision", 10, "int64"],
-    ["MaxModRevision", 11, "int64"],
-    ["MinCreateRevision", 12, "int64"],
-    ["MaxCreateRevision", 13, "int64"]]
-"etcdserverpb.RangeResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["Kvs", 2, "[]mvccpb.KeyValue"],
-    ["More", 3, "bool"],
-    ["Count", 4, "int64"]]
-"etcdserverpb.PutRequest" = [["Key", 1, "bytes"],
-    ["Value", 2, "bytes"],
-    ["Lease", 3, "int64"],
-    ["PrevKv", 4, "bool"],
-    ["IgnoreValue", 5, "bool"],
-    ["IgnoreLease", 6, "bool"]]
-"etcdserverpb.PutResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["PrevKv", 2, "mvccpb.KeyValue"]]
-"etcdserverpb.DeleteRangeRequest" = [["Key", 1, "bytes"],
-    ["RangeEnd", 2, "bytes"],
-    ["PrevKv", 3, "bool"]]
-"etcdserverpb.DeleteRangeResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["Deleted", 2, "int64"],
-    ["PrevKvs", 3, "[]mvccpb.KeyValue"]]
-"etcdserverpb.LeaseGrantRequest" = [["TTL", 1, "int64"],
-    ["ID", 2, "int64"]]
-"etcdserverpb.LeaseGrantResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["ID", 2, "int64"],
-    ["TTL", 3, "int64"],
-    ["Error", 4, "string"]]
-"etcdserverpb.LeaseTimeToLiveResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["ID", 2, "int64"],
-    ["TTL", 3, "int64"],
-    ["GrantedTTL", 4, "int64"],
-    ["Keys", 5, "[]bytes"]]
-"etcdserverpb.WatchCreateRequest" = [["Key", 1, "bytes"],
-    ["RangeEnd", 2, "bytes"],
-    ["StartRevision", 3, "int64"],
-    ["ProgressNotify", 4, "bool"],
-    ["Filters", 5, "[]etcdserverpb.WatchCreateRequest_FilterType"],
-    ["PrevKv", 6, "bool"],
-    ["WatchId", 7, "int64"],
-    ["Fragment", 8, "bool"]]
-"etcdserverpb.WatchResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["WatchId", 2, "int64"],
-    ["Created", 3, "bool"],
-    ["Canceled", 4, "bool"],
-    ["CompactRevision", 5, "int64"],
-    ["CancelReason", 6, "string"],
-    ["Fragment", 7, "bool"],
-    ["Events", 11, "[]mvccpb.Event"]]
-"etcdserverpb.Member" = [["ID", 1, "uint64"],
-    ["Name", 2, "string"],
-    ["PeerURLs", 3, "[]string"],
-    ["ClientURLs", 4, "[]string"],
-    ["IsLearner", 5, "bool"]]
-"etcdserverpb.MemberListResponse" = [["Header", 1, "etcdserverpb.ResponseHeader"],
-    ["Members", 2, "[]etcdserverpb.Member"]]
-"mvccpb.KeyValue" = [["Key", 1, "bytes"],
-    ["CreateRevision", 2, "int64"],
-    ["ModRevision", 3, "int64"],
-    ["Version", 4, "int64"],
-    ["Value", 5, "bytes"],
-    ["Lease", 6, "int64"]]
-"mvccpb.Event" = [["Type", 1, "mvccpb.Event_EventType"],
-    ["Kv", 2, "mvccpb.KeyValue"],
-    ["PrevKv", 3, "mvccpb.KeyValue"]]
+roots = ["etcdserverpb.RangeRequest", "etcdserverpb.RangeResponse",
+         "etcdserverpb.PutRequest", "etcdserverpb.PutResponse",
+         "etcdserverpb.DeleteRangeRequest", "etcdserverpb.DeleteRangeResponse",
+         "etcdserverpb.LeaseGrantRequest", "etcdserverpb.LeaseGrantResponse",
+         "etcdserverpb.LeaseTimeToLiveResponse",
+         "etcdserverpb.WatchCreateRequest", "etcdserverpb.WatchResponse",
+         "etcdserverpb.MemberListResponse"]

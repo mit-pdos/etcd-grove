@@ -9,20 +9,21 @@ import (
 )
 
 // The protobuf codec (registered with a model of google.golang.org/protobuf, proto.SetCodec):
-// pbMarshal and pbUnmarshal for exactly the message types listed in [protobuf], over the wire
-// format of netmodels.lab/pbcodec. The trusted claim, tested against the real
-// google.golang.org/protobuf v1.36.12 by pb_gen_test.go (pbgen.py's doc):
+// pbMarshal and pbUnmarshal for exactly the message types below, derived by etc/pbgen.py from
+// their registered descriptors, over the wire format of netmodels.lab/pbcodec. The trusted claim
+// is the generator's (etc/pbgen_core.py's doc, field kind by field kind, against protobuf-go
+// v1.36.12):
 //
-//   - pbMarshal(m), m a *T of a listed type: real proto.Marshal(m)'s bytes (fields in number
+//   - pbMarshal(m), m a *T of a type below: real proto.Marshal(m)'s bytes (fields in number
 //     order, proto3's zero values omitted, a nil element of a repeated message field written as
 //     an empty message; nil for a nil *T, an empty non-nil slice for an empty message), or an
 //     error where the real one errs (a string field that is not UTF-8).
-//   - pbUnmarshal(b, m), m a non-nil *T of a listed type: resets *m and decodes b into it as
+//   - pbUnmarshal(b, m), m a non-nil *T of a type below: resets *m and decodes b into it as
 //     real proto.Unmarshal does (merging repeated occurrences), or an error where the real one
 //     errs (malformed input, a field number 0 or above 2^29-1, invalid UTF-8 in a string field,
 //     messages nested deeper than 10000). Unknown fields are checked and skipped (the real one
 //     keeps them in the message: the model does not). A nil *T panics, as the real one does.
-//   - Any other value (an unlisted type, a non-pointer, a nil interface) panics: outside the
+//   - Any other value (another type, a non-pointer, a nil interface) panics: outside the
 //     subset.
 //
 // Only error-or-not is modeled, not the error values.
@@ -30,51 +31,6 @@ import (
 // pbMarshal is the codec's Marshal.
 func pbMarshal(m interface{}) ([]byte, error) {
 	switch p := m.(type) {
-	case *etcdserverpb.ResponseHeader:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
-	case *etcdserverpb.RangeRequest:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_RangeRequest(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
-	case *etcdserverpb.RangeResponse:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_RangeResponse(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
-	case *etcdserverpb.PutRequest:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_PutRequest(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
-	case *etcdserverpb.PutResponse:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_PutResponse(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
 	case *etcdserverpb.DeleteRangeRequest:
 		if p == nil {
 			return nil, nil
@@ -120,24 +76,6 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
 		return b, nil
-	case *etcdserverpb.WatchCreateRequest:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_WatchCreateRequest(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
-	case *etcdserverpb.WatchResponse:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_etcdserverpb_WatchResponse(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
 	case *etcdserverpb.Member:
 		if p == nil {
 			return nil, nil
@@ -156,11 +94,65 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
 		return b, nil
-	case *mvccpb.KeyValue:
+	case *etcdserverpb.PutRequest:
 		if p == nil {
 			return nil, nil
 		}
-		b, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), p)
+		b, ok := pbenc_etcdserverpb_PutRequest(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *etcdserverpb.PutResponse:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_PutResponse(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *etcdserverpb.RangeRequest:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_RangeRequest(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *etcdserverpb.RangeResponse:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_RangeResponse(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *etcdserverpb.ResponseHeader:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *etcdserverpb.WatchCreateRequest:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_WatchCreateRequest(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *etcdserverpb.WatchResponse:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_etcdserverpb_WatchResponse(make([]byte, 0), p)
 		if !ok {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
@@ -174,58 +166,22 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
 		return b, nil
+	case *mvccpb.KeyValue:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
 	}
-	panic("protobuf model: marshaling a value of a type not listed in [protobuf]")
+	panic("protobuf model: marshaling a value of a type the codec was not generated for")
 }
 
 // pbUnmarshal is the codec's Unmarshal.
 func pbUnmarshal(b []byte, m interface{}) error {
 	switch p := m.(type) {
-	case *etcdserverpb.ResponseHeader:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.ResponseHeader{}
-		if !pbdec_etcdserverpb_ResponseHeader(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
-	case *etcdserverpb.RangeRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.RangeRequest{}
-		if !pbdec_etcdserverpb_RangeRequest(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
-	case *etcdserverpb.RangeResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.RangeResponse{}
-		if !pbdec_etcdserverpb_RangeResponse(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
-	case *etcdserverpb.PutRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.PutRequest{}
-		if !pbdec_etcdserverpb_PutRequest(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
-	case *etcdserverpb.PutResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.PutResponse{}
-		if !pbdec_etcdserverpb_PutResponse(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
 	case *etcdserverpb.DeleteRangeRequest:
 		if p == nil {
 			panic("protobuf model: Unmarshal into a nil message pointer")
@@ -271,24 +227,6 @@ func pbUnmarshal(b []byte, m interface{}) error {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
-	case *etcdserverpb.WatchCreateRequest:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.WatchCreateRequest{}
-		if !pbdec_etcdserverpb_WatchCreateRequest(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
-	case *etcdserverpb.WatchResponse:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = etcdserverpb.WatchResponse{}
-		if !pbdec_etcdserverpb_WatchResponse(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
 	case *etcdserverpb.Member:
 		if p == nil {
 			panic("protobuf model: Unmarshal into a nil message pointer")
@@ -307,12 +245,66 @@ func pbUnmarshal(b []byte, m interface{}) error {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
-	case *mvccpb.KeyValue:
+	case *etcdserverpb.PutRequest:
 		if p == nil {
 			panic("protobuf model: Unmarshal into a nil message pointer")
 		}
-		*p = mvccpb.KeyValue{}
-		if !pbdec_mvccpb_KeyValue(b, p, pbcodec.DefaultRecursionLimit) {
+		*p = etcdserverpb.PutRequest{}
+		if !pbdec_etcdserverpb_PutRequest(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *etcdserverpb.PutResponse:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.PutResponse{}
+		if !pbdec_etcdserverpb_PutResponse(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *etcdserverpb.RangeRequest:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.RangeRequest{}
+		if !pbdec_etcdserverpb_RangeRequest(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *etcdserverpb.RangeResponse:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.RangeResponse{}
+		if !pbdec_etcdserverpb_RangeResponse(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *etcdserverpb.ResponseHeader:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.ResponseHeader{}
+		if !pbdec_etcdserverpb_ResponseHeader(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *etcdserverpb.WatchCreateRequest:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.WatchCreateRequest{}
+		if !pbdec_etcdserverpb_WatchCreateRequest(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *etcdserverpb.WatchResponse:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = etcdserverpb.WatchResponse{}
+		if !pbdec_etcdserverpb_WatchResponse(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
@@ -325,613 +317,17 @@ func pbUnmarshal(b []byte, m interface{}) error {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
-	}
-	panic("protobuf model: unmarshaling into a value of a type not listed in [protobuf]")
-}
-
-// pbenc_etcdserverpb_ResponseHeader appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_ResponseHeader(b []byte, m *etcdserverpb.ResponseHeader) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if m.ClusterId != 0 {
-		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, m.ClusterId)
-	}
-	if m.MemberId != 0 {
-		b = pbcodec.AppendTag(b, 2, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, m.MemberId)
-	}
-	if m.Revision != 0 {
-		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.Revision))
-	}
-	if m.RaftTerm != 0 {
-		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, m.RaftTerm)
-	}
-	if m.LeaderId != 0 {
-		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, m.LeaderId)
-	}
-	return b, true
-}
-
-// pbdec_etcdserverpb_ResponseHeader decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_etcdserverpb_ResponseHeader(b []byte, m *etcdserverpb.ResponseHeader, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
+	case *mvccpb.KeyValue:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
 		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
+		*p = mvccpb.KeyValue{}
+		if !pbdec_mvccpb_KeyValue(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
-		k, ok2 := pbdecField_etcdserverpb_ResponseHeader(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
+		return nil
 	}
-	return true
-}
-
-// pbdecField_etcdserverpb_ResponseHeader decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_ResponseHeader(b []byte, num uint64, typ uint64, m *etcdserverpb.ResponseHeader, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.ClusterId = v
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.MemberId = v
-		return k, true
-	}
-	if num == 3 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Revision = int64(v)
-		return k, true
-	}
-	if num == 4 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.RaftTerm = v
-		return k, true
-	}
-	if num == 5 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.LeaderId = v
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_etcdserverpb_RangeRequest appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_RangeRequest(b []byte, m *etcdserverpb.RangeRequest) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if len(m.Key) > 0 {
-		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, m.Key)
-	}
-	if len(m.RangeEnd) > 0 {
-		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, m.RangeEnd)
-	}
-	if m.Limit != 0 {
-		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.Limit))
-	}
-	if m.Revision != 0 {
-		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.Revision))
-	}
-	if m.SortOrder != 0 {
-		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(int64(m.SortOrder)))
-	}
-	if m.SortTarget != 0 {
-		b = pbcodec.AppendTag(b, 6, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(int64(m.SortTarget)))
-	}
-	if m.Serializable {
-		b = pbcodec.AppendTag(b, 7, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.Serializable))
-	}
-	if m.KeysOnly {
-		b = pbcodec.AppendTag(b, 8, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.KeysOnly))
-	}
-	if m.CountOnly {
-		b = pbcodec.AppendTag(b, 9, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.CountOnly))
-	}
-	if m.MinModRevision != 0 {
-		b = pbcodec.AppendTag(b, 10, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.MinModRevision))
-	}
-	if m.MaxModRevision != 0 {
-		b = pbcodec.AppendTag(b, 11, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.MaxModRevision))
-	}
-	if m.MinCreateRevision != 0 {
-		b = pbcodec.AppendTag(b, 12, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.MinCreateRevision))
-	}
-	if m.MaxCreateRevision != 0 {
-		b = pbcodec.AppendTag(b, 13, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.MaxCreateRevision))
-	}
-	return b, true
-}
-
-// pbdec_etcdserverpb_RangeRequest decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_etcdserverpb_RangeRequest(b []byte, m *etcdserverpb.RangeRequest, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_etcdserverpb_RangeRequest(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_etcdserverpb_RangeRequest decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_RangeRequest(b []byte, num uint64, typ uint64, m *etcdserverpb.RangeRequest, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		m.Key = pbcodec.CopyBytesOrNil(v)
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		m.RangeEnd = pbcodec.CopyBytesOrNil(v)
-		return k, true
-	}
-	if num == 3 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Limit = int64(v)
-		return k, true
-	}
-	if num == 4 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Revision = int64(v)
-		return k, true
-	}
-	if num == 5 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.SortOrder = etcdserverpb.RangeRequest_SortOrder(int32(v))
-		return k, true
-	}
-	if num == 6 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.SortTarget = etcdserverpb.RangeRequest_SortTarget(int32(v))
-		return k, true
-	}
-	if num == 7 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Serializable = v != 0
-		return k, true
-	}
-	if num == 8 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.KeysOnly = v != 0
-		return k, true
-	}
-	if num == 9 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.CountOnly = v != 0
-		return k, true
-	}
-	if num == 10 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.MinModRevision = int64(v)
-		return k, true
-	}
-	if num == 11 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.MaxModRevision = int64(v)
-		return k, true
-	}
-	if num == 12 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.MinCreateRevision = int64(v)
-		return k, true
-	}
-	if num == 13 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.MaxCreateRevision = int64(v)
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_etcdserverpb_RangeResponse appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_RangeResponse(b []byte, m *etcdserverpb.RangeResponse) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if m.Header != nil {
-		sub, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), m.Header)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	for _, e := range m.Kvs {
-		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), e)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	if m.More {
-		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.More))
-	}
-	if m.Count != 0 {
-		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.Count))
-	}
-	return b, true
-}
-
-// pbdec_etcdserverpb_RangeResponse decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_etcdserverpb_RangeResponse(b []byte, m *etcdserverpb.RangeResponse, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_etcdserverpb_RangeResponse(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_etcdserverpb_RangeResponse decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_RangeResponse(b []byte, num uint64, typ uint64, m *etcdserverpb.RangeResponse, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if m.Header == nil {
-			m.Header = &etcdserverpb.ResponseHeader{}
-		}
-		if !pbdec_etcdserverpb_ResponseHeader(v, m.Header, depth-1) {
-			return 0, false
-		}
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		e := &mvccpb.KeyValue{}
-		if !pbdec_mvccpb_KeyValue(v, e, depth-1) {
-			return 0, false
-		}
-		m.Kvs = append(m.Kvs, e)
-		return k, true
-	}
-	if num == 3 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.More = v != 0
-		return k, true
-	}
-	if num == 4 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Count = int64(v)
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_etcdserverpb_PutRequest appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_PutRequest(b []byte, m *etcdserverpb.PutRequest) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if len(m.Key) > 0 {
-		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, m.Key)
-	}
-	if len(m.Value) > 0 {
-		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, m.Value)
-	}
-	if m.Lease != 0 {
-		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(m.Lease))
-	}
-	if m.PrevKv {
-		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.PrevKv))
-	}
-	if m.IgnoreValue {
-		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.IgnoreValue))
-	}
-	if m.IgnoreLease {
-		b = pbcodec.AppendTag(b, 6, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.IgnoreLease))
-	}
-	return b, true
-}
-
-// pbdec_etcdserverpb_PutRequest decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_etcdserverpb_PutRequest(b []byte, m *etcdserverpb.PutRequest, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_etcdserverpb_PutRequest(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_etcdserverpb_PutRequest decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_PutRequest(b []byte, num uint64, typ uint64, m *etcdserverpb.PutRequest, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		m.Key = pbcodec.CopyBytesOrNil(v)
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		m.Value = pbcodec.CopyBytesOrNil(v)
-		return k, true
-	}
-	if num == 3 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Lease = int64(v)
-		return k, true
-	}
-	if num == 4 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.PrevKv = v != 0
-		return k, true
-	}
-	if num == 5 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.IgnoreValue = v != 0
-		return k, true
-	}
-	if num == 6 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.IgnoreLease = v != 0
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_etcdserverpb_PutResponse appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_PutResponse(b []byte, m *etcdserverpb.PutResponse) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if m.Header != nil {
-		sub, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), m.Header)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	if m.PrevKv != nil {
-		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), m.PrevKv)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	return b, true
-}
-
-// pbdec_etcdserverpb_PutResponse decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_etcdserverpb_PutResponse(b []byte, m *etcdserverpb.PutResponse, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_etcdserverpb_PutResponse(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_etcdserverpb_PutResponse decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_PutResponse(b []byte, num uint64, typ uint64, m *etcdserverpb.PutResponse, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if m.Header == nil {
-			m.Header = &etcdserverpb.ResponseHeader{}
-		}
-		if !pbdec_etcdserverpb_ResponseHeader(v, m.Header, depth-1) {
-			return 0, false
-		}
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if m.PrevKv == nil {
-			m.PrevKv = &mvccpb.KeyValue{}
-		}
-		if !pbdec_mvccpb_KeyValue(v, m.PrevKv, depth-1) {
-			return 0, false
-		}
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
+	panic("protobuf model: unmarshaling into a value of a type the codec was not generated for")
 }
 
 // pbenc_etcdserverpb_DeleteRangeRequest appends the encoding of *m's fields (real proto.Marshal's, in field-number
@@ -1389,6 +785,814 @@ func pbdecField_etcdserverpb_LeaseTimeToLiveResponse(b []byte, num uint64, typ u
 	return pbcodec.SkipField(num, typ, b)
 }
 
+// pbenc_etcdserverpb_Member appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_Member(b []byte, m *etcdserverpb.Member) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.ID != 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, m.ID)
+	}
+	if len(m.Name) > 0 {
+		if !pbcodec.ValidString(m.Name) {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendString(b, m.Name)
+	}
+	for _, e := range m.PeerURLs {
+		if !pbcodec.ValidString(e) {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 3, pbcodec.BytesType)
+		b = pbcodec.AppendString(b, e)
+	}
+	for _, e := range m.ClientURLs {
+		if !pbcodec.ValidString(e) {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 4, pbcodec.BytesType)
+		b = pbcodec.AppendString(b, e)
+	}
+	if m.IsLearner {
+		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.IsLearner))
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_Member decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_Member(b []byte, m *etcdserverpb.Member, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_Member(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_Member decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_Member(b []byte, num uint64, typ uint64, m *etcdserverpb.Member, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.ID = v
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if !pbcodec.ValidUTF8(v) {
+			return 0, false
+		}
+		m.Name = string(v)
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if !pbcodec.ValidUTF8(v) {
+			return 0, false
+		}
+		m.PeerURLs = append(m.PeerURLs, string(v))
+		return k, true
+	}
+	if num == 4 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if !pbcodec.ValidUTF8(v) {
+			return 0, false
+		}
+		m.ClientURLs = append(m.ClientURLs, string(v))
+		return k, true
+	}
+	if num == 5 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.IsLearner = v != 0
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_etcdserverpb_MemberListResponse appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_MemberListResponse(b []byte, m *etcdserverpb.MemberListResponse) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.Header != nil {
+		sub, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), m.Header)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	for _, e := range m.Members {
+		sub, ok := pbenc_etcdserverpb_Member(make([]byte, 0), e)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_MemberListResponse decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_MemberListResponse(b []byte, m *etcdserverpb.MemberListResponse, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_MemberListResponse(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_MemberListResponse decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_MemberListResponse(b []byte, num uint64, typ uint64, m *etcdserverpb.MemberListResponse, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if m.Header == nil {
+			m.Header = &etcdserverpb.ResponseHeader{}
+		}
+		if !pbdec_etcdserverpb_ResponseHeader(v, m.Header, depth-1) {
+			return 0, false
+		}
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		e := &etcdserverpb.Member{}
+		if !pbdec_etcdserverpb_Member(v, e, depth-1) {
+			return 0, false
+		}
+		m.Members = append(m.Members, e)
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_etcdserverpb_PutRequest appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_PutRequest(b []byte, m *etcdserverpb.PutRequest) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if len(m.Key) > 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.Key)
+	}
+	if len(m.Value) > 0 {
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.Value)
+	}
+	if m.Lease != 0 {
+		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.Lease))
+	}
+	if m.PrevKv {
+		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.PrevKv))
+	}
+	if m.IgnoreValue {
+		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.IgnoreValue))
+	}
+	if m.IgnoreLease {
+		b = pbcodec.AppendTag(b, 6, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.IgnoreLease))
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_PutRequest decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_PutRequest(b []byte, m *etcdserverpb.PutRequest, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_PutRequest(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_PutRequest decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_PutRequest(b []byte, num uint64, typ uint64, m *etcdserverpb.PutRequest, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.Key = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.Value = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.Lease = int64(v)
+		return k, true
+	}
+	if num == 4 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.PrevKv = v != 0
+		return k, true
+	}
+	if num == 5 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.IgnoreValue = v != 0
+		return k, true
+	}
+	if num == 6 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.IgnoreLease = v != 0
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_etcdserverpb_PutResponse appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_PutResponse(b []byte, m *etcdserverpb.PutResponse) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.Header != nil {
+		sub, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), m.Header)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	if m.PrevKv != nil {
+		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), m.PrevKv)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_PutResponse decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_PutResponse(b []byte, m *etcdserverpb.PutResponse, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_PutResponse(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_PutResponse decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_PutResponse(b []byte, num uint64, typ uint64, m *etcdserverpb.PutResponse, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if m.Header == nil {
+			m.Header = &etcdserverpb.ResponseHeader{}
+		}
+		if !pbdec_etcdserverpb_ResponseHeader(v, m.Header, depth-1) {
+			return 0, false
+		}
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if m.PrevKv == nil {
+			m.PrevKv = &mvccpb.KeyValue{}
+		}
+		if !pbdec_mvccpb_KeyValue(v, m.PrevKv, depth-1) {
+			return 0, false
+		}
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_etcdserverpb_RangeRequest appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_RangeRequest(b []byte, m *etcdserverpb.RangeRequest) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if len(m.Key) > 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.Key)
+	}
+	if len(m.RangeEnd) > 0 {
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, m.RangeEnd)
+	}
+	if m.Limit != 0 {
+		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.Limit))
+	}
+	if m.Revision != 0 {
+		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.Revision))
+	}
+	if m.SortOrder != 0 {
+		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(int64(m.SortOrder)))
+	}
+	if m.SortTarget != 0 {
+		b = pbcodec.AppendTag(b, 6, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(int64(m.SortTarget)))
+	}
+	if m.Serializable {
+		b = pbcodec.AppendTag(b, 7, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.Serializable))
+	}
+	if m.KeysOnly {
+		b = pbcodec.AppendTag(b, 8, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.KeysOnly))
+	}
+	if m.CountOnly {
+		b = pbcodec.AppendTag(b, 9, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.CountOnly))
+	}
+	if m.MinModRevision != 0 {
+		b = pbcodec.AppendTag(b, 10, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.MinModRevision))
+	}
+	if m.MaxModRevision != 0 {
+		b = pbcodec.AppendTag(b, 11, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.MaxModRevision))
+	}
+	if m.MinCreateRevision != 0 {
+		b = pbcodec.AppendTag(b, 12, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.MinCreateRevision))
+	}
+	if m.MaxCreateRevision != 0 {
+		b = pbcodec.AppendTag(b, 13, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.MaxCreateRevision))
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_RangeRequest decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_RangeRequest(b []byte, m *etcdserverpb.RangeRequest, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_RangeRequest(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_RangeRequest decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_RangeRequest(b []byte, num uint64, typ uint64, m *etcdserverpb.RangeRequest, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.Key = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		m.RangeEnd = pbcodec.CopyBytesOrNil(v)
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.Limit = int64(v)
+		return k, true
+	}
+	if num == 4 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.Revision = int64(v)
+		return k, true
+	}
+	if num == 5 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.SortOrder = etcdserverpb.RangeRequest_SortOrder(int32(v))
+		return k, true
+	}
+	if num == 6 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.SortTarget = etcdserverpb.RangeRequest_SortTarget(int32(v))
+		return k, true
+	}
+	if num == 7 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.Serializable = v != 0
+		return k, true
+	}
+	if num == 8 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.KeysOnly = v != 0
+		return k, true
+	}
+	if num == 9 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.CountOnly = v != 0
+		return k, true
+	}
+	if num == 10 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.MinModRevision = int64(v)
+		return k, true
+	}
+	if num == 11 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.MaxModRevision = int64(v)
+		return k, true
+	}
+	if num == 12 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.MinCreateRevision = int64(v)
+		return k, true
+	}
+	if num == 13 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.MaxCreateRevision = int64(v)
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_etcdserverpb_RangeResponse appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_RangeResponse(b []byte, m *etcdserverpb.RangeResponse) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.Header != nil {
+		sub, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), m.Header)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	for _, e := range m.Kvs {
+		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), e)
+		if !ok {
+			return b, false
+		}
+		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
+		b = pbcodec.AppendBytes(b, sub)
+	}
+	if m.More {
+		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.More))
+	}
+	if m.Count != 0 {
+		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.Count))
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_RangeResponse decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_RangeResponse(b []byte, m *etcdserverpb.RangeResponse, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_RangeResponse(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_RangeResponse decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_RangeResponse(b []byte, num uint64, typ uint64, m *etcdserverpb.RangeResponse, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		if m.Header == nil {
+			m.Header = &etcdserverpb.ResponseHeader{}
+		}
+		if !pbdec_etcdserverpb_ResponseHeader(v, m.Header, depth-1) {
+			return 0, false
+		}
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.BytesType {
+		v, k, ok := pbcodec.ConsumeBytes(b)
+		if !ok {
+			return 0, false
+		}
+		e := &mvccpb.KeyValue{}
+		if !pbdec_mvccpb_KeyValue(v, e, depth-1) {
+			return 0, false
+		}
+		m.Kvs = append(m.Kvs, e)
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.More = v != 0
+		return k, true
+	}
+	if num == 4 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.Count = int64(v)
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
+// pbenc_etcdserverpb_ResponseHeader appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_etcdserverpb_ResponseHeader(b []byte, m *etcdserverpb.ResponseHeader) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	if m.ClusterId != 0 {
+		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, m.ClusterId)
+	}
+	if m.MemberId != 0 {
+		b = pbcodec.AppendTag(b, 2, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, m.MemberId)
+	}
+	if m.Revision != 0 {
+		b = pbcodec.AppendTag(b, 3, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, uint64(m.Revision))
+	}
+	if m.RaftTerm != 0 {
+		b = pbcodec.AppendTag(b, 4, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, m.RaftTerm)
+	}
+	if m.LeaderId != 0 {
+		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
+		b = pbcodec.AppendVarint(b, m.LeaderId)
+	}
+	return b, true
+}
+
+// pbdec_etcdserverpb_ResponseHeader decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_etcdserverpb_ResponseHeader(b []byte, m *etcdserverpb.ResponseHeader, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_etcdserverpb_ResponseHeader(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_etcdserverpb_ResponseHeader decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_etcdserverpb_ResponseHeader(b []byte, num uint64, typ uint64, m *etcdserverpb.ResponseHeader, depth uint64) (uint64, bool) {
+	if num == 1 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.ClusterId = v
+		return k, true
+	}
+	if num == 2 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.MemberId = v
+		return k, true
+	}
+	if num == 3 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.Revision = int64(v)
+		return k, true
+	}
+	if num == 4 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.RaftTerm = v
+		return k, true
+	}
+	if num == 5 && typ == pbcodec.VarintType {
+		v, k, ok := pbcodec.ConsumeVarint(b)
+		if !ok {
+			return 0, false
+		}
+		m.LeaderId = v
+		return k, true
+	}
+	return pbcodec.SkipField(num, typ, b)
+}
+
 // pbenc_etcdserverpb_WatchCreateRequest appends the encoding of *m's fields (real proto.Marshal's, in field-number
 // order); false if a string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_etcdserverpb_WatchCreateRequest(b []byte, m *etcdserverpb.WatchCreateRequest) ([]byte, bool) {
@@ -1708,48 +1912,39 @@ func pbdecField_etcdserverpb_WatchResponse(b []byte, num uint64, typ uint64, m *
 	return pbcodec.SkipField(num, typ, b)
 }
 
-// pbenc_etcdserverpb_Member appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// pbenc_mvccpb_Event appends the encoding of *m's fields (real proto.Marshal's, in field-number
 // order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_Member(b []byte, m *etcdserverpb.Member) ([]byte, bool) {
+func pbenc_mvccpb_Event(b []byte, m *mvccpb.Event) ([]byte, bool) {
 	if m == nil {
 		return b, true
 	}
-	if m.ID != 0 {
+	if m.Type != 0 {
 		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, m.ID)
+		b = pbcodec.AppendVarint(b, uint64(int64(m.Type)))
 	}
-	if len(m.Name) > 0 {
-		if !pbcodec.ValidString(m.Name) {
+	if m.Kv != nil {
+		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), m.Kv)
+		if !ok {
 			return b, false
 		}
 		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendString(b, m.Name)
+		b = pbcodec.AppendBytes(b, sub)
 	}
-	for _, e := range m.PeerURLs {
-		if !pbcodec.ValidString(e) {
+	if m.PrevKv != nil {
+		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), m.PrevKv)
+		if !ok {
 			return b, false
 		}
 		b = pbcodec.AppendTag(b, 3, pbcodec.BytesType)
-		b = pbcodec.AppendString(b, e)
-	}
-	for _, e := range m.ClientURLs {
-		if !pbcodec.ValidString(e) {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 4, pbcodec.BytesType)
-		b = pbcodec.AppendString(b, e)
-	}
-	if m.IsLearner {
-		b = pbcodec.AppendTag(b, 5, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, pbcodec.EncodeBool(m.IsLearner))
+		b = pbcodec.AppendBytes(b, sub)
 	}
 	return b, true
 }
 
-// pbdec_etcdserverpb_Member decodes b into *m, merging into what is there, as the real Unmarshal does;
+// pbdec_mvccpb_Event decodes b into *m, merging into what is there, as the real Unmarshal does;
 // depth is the nesting the real Unmarshal still allows (this message included); false
 // where the real Unmarshal errs.
-func pbdec_etcdserverpb_Member(b []byte, m *etcdserverpb.Member, depth uint64) bool {
+func pbdec_mvccpb_Event(b []byte, m *mvccpb.Event, depth uint64) bool {
 	if depth == 0 {
 		return false
 	}
@@ -1763,7 +1958,7 @@ func pbdec_etcdserverpb_Member(b []byte, m *etcdserverpb.Member, depth uint64) b
 		if typ == pbcodec.EndGroupType {
 			return false
 		}
-		k, ok2 := pbdecField_etcdserverpb_Member(b[i:], num, typ, m, depth)
+		k, ok2 := pbdecField_mvccpb_Event(b[i:], num, typ, m, depth)
 		if !ok2 {
 			return false
 		}
@@ -1772,16 +1967,16 @@ func pbdec_etcdserverpb_Member(b []byte, m *etcdserverpb.Member, depth uint64) b
 	return true
 }
 
-// pbdecField_etcdserverpb_Member decodes the value of field num (wire type typ) at the start of b into
+// pbdecField_mvccpb_Event decodes the value of field num (wire type typ) at the start of b into
 // *m: the length of the value, or false. A field *m does not have, or one with another
 // wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_Member(b []byte, num uint64, typ uint64, m *etcdserverpb.Member, depth uint64) (uint64, bool) {
+func pbdecField_mvccpb_Event(b []byte, num uint64, typ uint64, m *mvccpb.Event, depth uint64) (uint64, bool) {
 	if num == 1 && typ == pbcodec.VarintType {
 		v, k, ok := pbcodec.ConsumeVarint(b)
 		if !ok {
 			return 0, false
 		}
-		m.ID = v
+		m.Type = mvccpb.Event_EventType(int32(v))
 		return k, true
 	}
 	if num == 2 && typ == pbcodec.BytesType {
@@ -1789,10 +1984,12 @@ func pbdecField_etcdserverpb_Member(b []byte, num uint64, typ uint64, m *etcdser
 		if !ok {
 			return 0, false
 		}
-		if !pbcodec.ValidUTF8(v) {
+		if m.Kv == nil {
+			m.Kv = &mvccpb.KeyValue{}
+		}
+		if !pbdec_mvccpb_KeyValue(v, m.Kv, depth-1) {
 			return 0, false
 		}
-		m.Name = string(v)
 		return k, true
 	}
 	if num == 3 && typ == pbcodec.BytesType {
@@ -1800,112 +1997,12 @@ func pbdecField_etcdserverpb_Member(b []byte, num uint64, typ uint64, m *etcdser
 		if !ok {
 			return 0, false
 		}
-		if !pbcodec.ValidUTF8(v) {
+		if m.PrevKv == nil {
+			m.PrevKv = &mvccpb.KeyValue{}
+		}
+		if !pbdec_mvccpb_KeyValue(v, m.PrevKv, depth-1) {
 			return 0, false
 		}
-		m.PeerURLs = append(m.PeerURLs, string(v))
-		return k, true
-	}
-	if num == 4 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if !pbcodec.ValidUTF8(v) {
-			return 0, false
-		}
-		m.ClientURLs = append(m.ClientURLs, string(v))
-		return k, true
-	}
-	if num == 5 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.IsLearner = v != 0
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_etcdserverpb_MemberListResponse appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_etcdserverpb_MemberListResponse(b []byte, m *etcdserverpb.MemberListResponse) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if m.Header != nil {
-		sub, ok := pbenc_etcdserverpb_ResponseHeader(make([]byte, 0), m.Header)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 1, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	for _, e := range m.Members {
-		sub, ok := pbenc_etcdserverpb_Member(make([]byte, 0), e)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	return b, true
-}
-
-// pbdec_etcdserverpb_MemberListResponse decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_etcdserverpb_MemberListResponse(b []byte, m *etcdserverpb.MemberListResponse, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_etcdserverpb_MemberListResponse(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_etcdserverpb_MemberListResponse decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_etcdserverpb_MemberListResponse(b []byte, num uint64, typ uint64, m *etcdserverpb.MemberListResponse, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if m.Header == nil {
-			m.Header = &etcdserverpb.ResponseHeader{}
-		}
-		if !pbdec_etcdserverpb_ResponseHeader(v, m.Header, depth-1) {
-			return 0, false
-		}
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		e := &etcdserverpb.Member{}
-		if !pbdec_etcdserverpb_Member(v, e, depth-1) {
-			return 0, false
-		}
-		m.Members = append(m.Members, e)
 		return k, true
 	}
 	return pbcodec.SkipField(num, typ, b)
@@ -2020,102 +2117,6 @@ func pbdecField_mvccpb_KeyValue(b []byte, num uint64, typ uint64, m *mvccpb.KeyV
 			return 0, false
 		}
 		m.Lease = int64(v)
-		return k, true
-	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_mvccpb_Event appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_mvccpb_Event(b []byte, m *mvccpb.Event) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	if m.Type != 0 {
-		b = pbcodec.AppendTag(b, 1, pbcodec.VarintType)
-		b = pbcodec.AppendVarint(b, uint64(int64(m.Type)))
-	}
-	if m.Kv != nil {
-		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), m.Kv)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 2, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	if m.PrevKv != nil {
-		sub, ok := pbenc_mvccpb_KeyValue(make([]byte, 0), m.PrevKv)
-		if !ok {
-			return b, false
-		}
-		b = pbcodec.AppendTag(b, 3, pbcodec.BytesType)
-		b = pbcodec.AppendBytes(b, sub)
-	}
-	return b, true
-}
-
-// pbdec_mvccpb_Event decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_mvccpb_Event(b []byte, m *mvccpb.Event, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_mvccpb_Event(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_mvccpb_Event decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_mvccpb_Event(b []byte, num uint64, typ uint64, m *mvccpb.Event, depth uint64) (uint64, bool) {
-	if num == 1 && typ == pbcodec.VarintType {
-		v, k, ok := pbcodec.ConsumeVarint(b)
-		if !ok {
-			return 0, false
-		}
-		m.Type = mvccpb.Event_EventType(int32(v))
-		return k, true
-	}
-	if num == 2 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if m.Kv == nil {
-			m.Kv = &mvccpb.KeyValue{}
-		}
-		if !pbdec_mvccpb_KeyValue(v, m.Kv, depth-1) {
-			return 0, false
-		}
-		return k, true
-	}
-	if num == 3 && typ == pbcodec.BytesType {
-		v, k, ok := pbcodec.ConsumeBytes(b)
-		if !ok {
-			return 0, false
-		}
-		if m.PrevKv == nil {
-			m.PrevKv = &mvccpb.KeyValue{}
-		}
-		if !pbdec_mvccpb_KeyValue(v, m.PrevKv, depth-1) {
-			return 0, false
-		}
 		return k, true
 	}
 	return pbcodec.SkipField(num, typ, b)

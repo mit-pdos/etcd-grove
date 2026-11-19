@@ -9,20 +9,21 @@ import (
 )
 
 // The protobuf codec (registered with a model of google.golang.org/protobuf, proto.SetCodec):
-// pbMarshal and pbUnmarshal for exactly the message types listed in [protobuf], over the wire
-// format of netmodels.lab/pbcodec. The trusted claim, tested against the real
-// google.golang.org/protobuf v1.36.12 by pb_gen_test.go (pbgen.py's doc):
+// pbMarshal and pbUnmarshal for exactly the message types below, derived by etc/pbgen.py from
+// their registered descriptors, over the wire format of netmodels.lab/pbcodec. The trusted claim
+// is the generator's (etc/pbgen_core.py's doc, field kind by field kind, against protobuf-go
+// v1.36.12):
 //
-//   - pbMarshal(m), m a *T of a listed type: real proto.Marshal(m)'s bytes (fields in number
+//   - pbMarshal(m), m a *T of a type below: real proto.Marshal(m)'s bytes (fields in number
 //     order, proto3's zero values omitted, a nil element of a repeated message field written as
 //     an empty message; nil for a nil *T, an empty non-nil slice for an empty message), or an
 //     error where the real one errs (a string field that is not UTF-8).
-//   - pbUnmarshal(b, m), m a non-nil *T of a listed type: resets *m and decodes b into it as
+//   - pbUnmarshal(b, m), m a non-nil *T of a type below: resets *m and decodes b into it as
 //     real proto.Unmarshal does (merging repeated occurrences), or an error where the real one
 //     errs (malformed input, a field number 0 or above 2^29-1, invalid UTF-8 in a string field,
 //     messages nested deeper than 10000). Unknown fields are checked and skipped (the real one
 //     keeps them in the message: the model does not). A nil *T panics, as the real one does.
-//   - Any other value (an unlisted type, a non-pointer, a nil interface) panics: outside the
+//   - Any other value (another type, a non-pointer, a nil interface) panics: outside the
 //     subset.
 //
 // Only error-or-not is modeled, not the error values.
@@ -35,6 +36,15 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, nil
 		}
 		b, ok := pbenc_pb_Args(make([]byte, 0), p)
+		if !ok {
+			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
+		}
+		return b, nil
+	case *pb.Empty:
+		if p == nil {
+			return nil, nil
+		}
+		b, ok := pbenc_pb_Empty(make([]byte, 0), p)
 		if !ok {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
@@ -53,15 +63,6 @@ func pbMarshal(m interface{}) ([]byte, error) {
 			return nil, nil
 		}
 		b, ok := pbenc_pb_Reply(make([]byte, 0), p)
-		if !ok {
-			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
-		}
-		return b, nil
-	case *pb.Empty:
-		if p == nil {
-			return nil, nil
-		}
-		b, ok := pbenc_pb_Empty(make([]byte, 0), p)
 		if !ok {
 			return nil, &pbcodec.Error{Msg: "string field contains invalid UTF-8"}
 		}
@@ -85,7 +86,7 @@ func pbMarshal(m interface{}) ([]byte, error) {
 		}
 		return b, nil
 	}
-	panic("protobuf model: marshaling a value of a type not listed in [protobuf]")
+	panic("protobuf model: marshaling a value of a type the codec was not generated for")
 }
 
 // pbUnmarshal is the codec's Unmarshal.
@@ -97,6 +98,15 @@ func pbUnmarshal(b []byte, m interface{}) error {
 		}
 		*p = pb.Args{}
 		if !pbdec_pb_Args(b, p, pbcodec.DefaultRecursionLimit) {
+			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
+		}
+		return nil
+	case *pb.Empty:
+		if p == nil {
+			panic("protobuf model: Unmarshal into a nil message pointer")
+		}
+		*p = pb.Empty{}
+		if !pbdec_pb_Empty(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
@@ -115,15 +125,6 @@ func pbUnmarshal(b []byte, m interface{}) error {
 		}
 		*p = pb.Reply{}
 		if !pbdec_pb_Reply(b, p, pbcodec.DefaultRecursionLimit) {
-			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
-		}
-		return nil
-	case *pb.Empty:
-		if p == nil {
-			panic("protobuf model: Unmarshal into a nil message pointer")
-		}
-		*p = pb.Empty{}
-		if !pbdec_pb_Empty(b, p, pbcodec.DefaultRecursionLimit) {
 			return &pbcodec.Error{Msg: "cannot parse invalid wire-format data"}
 		}
 		return nil
@@ -146,7 +147,7 @@ func pbUnmarshal(b []byte, m interface{}) error {
 		}
 		return nil
 	}
-	panic("protobuf model: unmarshaling into a value of a type not listed in [protobuf]")
+	panic("protobuf model: unmarshaling into a value of a type the codec was not generated for")
 }
 
 // pbenc_pb_Args appends the encoding of *m's fields (real proto.Marshal's, in field-number
@@ -408,6 +409,48 @@ func pbdecField_pb_Args(b []byte, num uint64, typ uint64, m *pb.Args, depth uint
 	return pbcodec.SkipField(num, typ, b)
 }
 
+// pbenc_pb_Empty appends the encoding of *m's fields (real proto.Marshal's, in field-number
+// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
+func pbenc_pb_Empty(b []byte, m *pb.Empty) ([]byte, bool) {
+	if m == nil {
+		return b, true
+	}
+	return b, true
+}
+
+// pbdec_pb_Empty decodes b into *m, merging into what is there, as the real Unmarshal does;
+// depth is the nesting the real Unmarshal still allows (this message included); false
+// where the real Unmarshal errs.
+func pbdec_pb_Empty(b []byte, m *pb.Empty, depth uint64) bool {
+	if depth == 0 {
+		return false
+	}
+	i := uint64(0)
+	for i < uint64(len(b)) {
+		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
+		if !ok {
+			return false
+		}
+		i = i + n
+		if typ == pbcodec.EndGroupType {
+			return false
+		}
+		k, ok2 := pbdecField_pb_Empty(b[i:], num, typ, m, depth)
+		if !ok2 {
+			return false
+		}
+		i = i + k
+	}
+	return true
+}
+
+// pbdecField_pb_Empty decodes the value of field num (wire type typ) at the start of b into
+// *m: the length of the value, or false. A field *m does not have, or one with another
+// wire type than its own (or than packed, for a packed field), is skipped (unknown).
+func pbdecField_pb_Empty(b []byte, num uint64, typ uint64, m *pb.Empty, depth uint64) (uint64, bool) {
+	return pbcodec.SkipField(num, typ, b)
+}
+
 // pbenc_pb_Inner appends the encoding of *m's fields (real proto.Marshal's, in field-number
 // order); false if a string field is not UTF-8. A nil m encodes as an empty message.
 func pbenc_pb_Inner(b []byte, m *pb.Inner) ([]byte, bool) {
@@ -573,48 +616,6 @@ func pbdecField_pb_Reply(b []byte, num uint64, typ uint64, m *pb.Reply, depth ui
 		}
 		return k, true
 	}
-	return pbcodec.SkipField(num, typ, b)
-}
-
-// pbenc_pb_Empty appends the encoding of *m's fields (real proto.Marshal's, in field-number
-// order); false if a string field is not UTF-8. A nil m encodes as an empty message.
-func pbenc_pb_Empty(b []byte, m *pb.Empty) ([]byte, bool) {
-	if m == nil {
-		return b, true
-	}
-	return b, true
-}
-
-// pbdec_pb_Empty decodes b into *m, merging into what is there, as the real Unmarshal does;
-// depth is the nesting the real Unmarshal still allows (this message included); false
-// where the real Unmarshal errs.
-func pbdec_pb_Empty(b []byte, m *pb.Empty, depth uint64) bool {
-	if depth == 0 {
-		return false
-	}
-	i := uint64(0)
-	for i < uint64(len(b)) {
-		num, typ, n, ok := pbcodec.ConsumeFieldTag(b[i:])
-		if !ok {
-			return false
-		}
-		i = i + n
-		if typ == pbcodec.EndGroupType {
-			return false
-		}
-		k, ok2 := pbdecField_pb_Empty(b[i:], num, typ, m, depth)
-		if !ok2 {
-			return false
-		}
-		i = i + k
-	}
-	return true
-}
-
-// pbdecField_pb_Empty decodes the value of field num (wire type typ) at the start of b into
-// *m: the length of the value, or false. A field *m does not have, or one with another
-// wire type than its own (or than packed, for a packed field), is skipped (unknown).
-func pbdecField_pb_Empty(b []byte, num uint64, typ uint64, m *pb.Empty, depth uint64) (uint64, bool) {
 	return pbcodec.SkipField(num, typ, b)
 }
 

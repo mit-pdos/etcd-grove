@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"math"
 	"math/rand"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,16 +21,16 @@ import (
 	xpb "netmodels.lab/internal/pbdifftest/xpb"
 )
 
-// pbUnknownNum: a field number no listed message has.
+// pbUnknownNum: a field number no codec message has.
 const pbUnknownNum protowire.Number = 31
 
 // pbNums: the listed field numbers (and pbUnknownNum), for mutations.
 var pbNums = []protowire.Number{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 2047, 2048, 536870911}
 
-// pbHasStrings: some listed message has a string field.
+// pbHasStrings: some codec message has a string field.
 const pbHasStrings = true
 
-// pbTypes: the listed message types ([protobuf]).
+// pbTypes: the codec's message types.
 func pbTypes() []pbType {
 	return []pbType{
 		{name: "pb.Args", new: func() proto.Message { return &pb.Args{} },
@@ -50,6 +51,9 @@ func pbTypes() []pbType {
 				{"Big", 536870911, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
 			},
 		},
+		{name: "pb.Empty", new: func() proto.Message { return &pb.Empty{} },
+			fields: []pbField{},
+		},
 		{name: "pb.Inner", new: func() proto.Message { return &pb.Inner{} },
 			nest:     []string{"Sub"},
 			nestNums: []protowire.Number{3},
@@ -64,9 +68,6 @@ func pbTypes() []pbType {
 				{"C", 1, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
 				{"Echo", 2, protoreflect.MessageKind, false, false, pbFullName(&pb.Args{}), pbTypeOf[*pb.Args]()},
 			},
-		},
-		{name: "pb.Empty", new: func() proto.Message { return &pb.Empty{} },
-			fields: []pbField{},
 		},
 		{name: "xpb.Kinds", new: func() proto.Message { return &xpb.Kinds{} },
 			nest:     []string{"M", "Back"},
@@ -116,7 +117,7 @@ func pbTypes() []pbType {
 	}
 }
 
-// pbType: a listed message type, with its fields as [protobuf] lists them.
+// pbType: a message type of the codec, with its fields as the generator derived them.
 type pbType struct {
 	name   string
 	new    func() proto.Message
@@ -162,7 +163,7 @@ func pbTagNumber(tag string) protowire.Number {
 	return protowire.Number(n)
 }
 
-// TestProtoShapes: each listed message's fields are exactly the message's (its descriptor and
+// TestProtoShapes: each codec message's fields are exactly the message's (its descriptor and
 // its Go struct), and the message is in the codec's subset.
 func TestProtoShapes(t *testing.T) {
 	for _, tp := range pbTypes() {
@@ -179,7 +180,7 @@ func TestProtoShapes(t *testing.T) {
 			t.Errorf("%s: has oneofs or extension ranges (outside the codec)", tp.name)
 		}
 		if md.Fields().Len() != len(tp.fields) {
-			t.Errorf("%s: the message has %d fields, [protobuf] lists %d", tp.name, md.Fields().Len(), len(tp.fields))
+			t.Errorf("%s: the message has %d fields, the generator derived %d", tp.name, md.Fields().Len(), len(tp.fields))
 		}
 		st := reflect.TypeOf(m).Elem()
 		exported := 0
@@ -189,7 +190,7 @@ func TestProtoShapes(t *testing.T) {
 			}
 		}
 		if exported != len(tp.fields) {
-			t.Errorf("%s: the Go struct has %d exported fields, [protobuf] lists %d", tp.name, exported, len(tp.fields))
+			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d", tp.name, exported, len(tp.fields))
 		}
 		for _, f := range tp.fields {
 			fd := md.Fields().ByNumber(f.num)
@@ -198,7 +199,7 @@ func TestProtoShapes(t *testing.T) {
 				continue
 			}
 			if fd.Kind() != f.kind || fd.IsList() != f.rep || fd.IsMap() || fd.IsPacked() != f.packed {
-				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; [protobuf] says %v, %v, false, %v",
+				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; the generator says %v, %v, false, %v",
 					tp.name, f.goName, f.num, fd.Kind(), fd.IsList(), fd.IsMap(), fd.IsPacked(), f.kind, f.rep, f.packed)
 			}
 			if fd.ContainingOneof() != nil || fd.HasPresence() != (!f.rep && f.kind == protoreflect.MessageKind) {
@@ -211,15 +212,28 @@ func TestProtoShapes(t *testing.T) {
 				ref = string(fd.Enum().FullName())
 			}
 			if ref != f.ref {
-				t.Errorf("%s.%s: type %q, [protobuf] says %q", tp.name, f.goName, ref, f.ref)
+				t.Errorf("%s.%s: type %q, the generator says %q", tp.name, f.goName, ref, f.ref)
 			}
 			sf, ok := st.FieldByName(f.goName)
 			if !ok || sf.Type != f.goType || pbTagNumber(sf.Tag.Get("protobuf")) != f.num {
-				t.Errorf("%s.%s: Go field %v (tag %q), [protobuf] says %v number %d", tp.name, f.goName,
+				t.Errorf("%s.%s: Go field %v (tag %q), the generator says %v number %d", tp.name, f.goName,
 					sf.Type, sf.Tag.Get("protobuf"), f.goType, f.num)
 			}
 		}
 	}
+}
+
+// pbScaled: n scaled by the environment variable PBGEN_TEST_SCALE (a float; default 1), at
+// least 1.
+func pbScaled(n int) int {
+	f, err := strconv.ParseFloat(os.Getenv("PBGEN_TEST_SCALE"), 64)
+	if err != nil || f <= 0 {
+		return n
+	}
+	if k := int(float64(n) * f); k > 0 {
+		return k
+	}
+	return 1
 }
 
 // pbRndInt: an integer, often an edge value.
@@ -390,7 +404,7 @@ func pbCheckMarshal(t *testing.T, m proto.Message) {
 	}
 }
 
-// TestProtoMarshal: random values of every listed type (edge integers, nil and empty slices,
+// TestProtoMarshal: random values of every type of the codec (edge integers, nil and empty slices,
 // nil elements, nested nils, non-ASCII and invalid UTF-8), nil and empty messages, and deep
 // nesting.
 func TestProtoMarshal(t *testing.T) {
@@ -398,7 +412,7 @@ func TestProtoMarshal(t *testing.T) {
 	for _, tp := range pbTypes() {
 		pbCheckMarshal(t, pbNil(tp.new()))
 		pbCheckMarshal(t, tp.new())
-		for it := 0; it < 3000; it++ {
+		for it := 0; it < pbScaled(3000); it++ {
 			m := tp.new()
 			pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 			pbCheckMarshal(t, m)
@@ -415,7 +429,7 @@ func TestProtoMarshal(t *testing.T) {
 	t.Logf("%d encodings, %d errors", pbStats.marshalOK, pbStats.marshalErrs)
 }
 
-// pbSamples: real encodings of random values of every listed type.
+// pbSamples: real encodings of random values of every type of the codec.
 func pbSamples(r *rand.Rand, n int) [][]byte {
 	types := pbTypes()
 	var out [][]byte
@@ -479,7 +493,7 @@ func pbCheckUnmarshalFresh(t *testing.T, tp pbType, data []byte) bool {
 	return werr == nil
 }
 
-// TestProtoUnmarshal: real encodings of every listed type, decoded into every listed type.
+// TestProtoUnmarshal: real encodings of every type of the codec, decoded into every type of the codec.
 func TestProtoUnmarshal(t *testing.T) {
 	r := rand.New(rand.NewSource(2))
 	types := pbTypes()
@@ -731,13 +745,14 @@ func pbMutate(r *rand.Rand, b []byte, samples [][]byte, depth int) []byte {
 	return pbJoin(fs, rest)
 }
 
-// TestProtoMutations: mutated encodings decoded into every listed type.
+// TestProtoMutations: mutated encodings decoded into every type of the codec.
 func TestProtoMutations(t *testing.T) {
 	r := rand.New(rand.NewSource(3))
 	types := pbTypes()
 	samples := pbSamples(r, 300)
 	nOK, nErr := 0, 0
-	for it := 0; it < 40000; it++ {
+	iters := pbScaled(40000)
+	for it := 0; it < iters; it++ {
 		data := samples[r.Intn(len(samples))]
 		for m := 1 + r.Intn(3); m > 0; m-- {
 			data = pbMutate(r, data, samples, 0)
@@ -749,7 +764,7 @@ func TestProtoMutations(t *testing.T) {
 		}
 	}
 	t.Logf("%d decoded, %d errors", nOK, nErr)
-	if nOK < 4000 || nErr < 4000 {
+	if nOK < iters/10 || nErr < iters/10 {
 		t.Fatalf("too few of one outcome: %d decoded, %d errors", nOK, nErr)
 	}
 }
@@ -785,7 +800,7 @@ func pbPayloads(samples [][]byte) map[protowire.Type][][]byte {
 	return out
 }
 
-// TestProtoFields: every listed field number (and an unknown one) of every listed type, with
+// TestProtoFields: every listed field number (and an unknown one) of every type of the codec, with
 // values of every wire type (edge and malformed ones), once and twice (merging), into fresh and
 // pre-filled targets.
 func TestProtoFields(t *testing.T) {
@@ -915,7 +930,7 @@ func pbPanics(f func()) (p bool) {
 }
 
 // TestProtoPanics: Unmarshal into a nil *T panics, as the real one does; the codec panics on a
-// value outside the listed types.
+// value outside the codec types.
 func TestProtoPanics(t *testing.T) {
 	for _, tp := range pbTypes() {
 		for _, data := range [][]byte{nil, {8, 1}} {

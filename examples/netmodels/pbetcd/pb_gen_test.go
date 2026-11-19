@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"math"
 	"math/rand"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -20,68 +21,18 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-// pbUnknownNum: a field number no listed message has.
+// pbUnknownNum: a field number no codec message has.
 const pbUnknownNum protowire.Number = 14
 
 // pbNums: the listed field numbers (and pbUnknownNum), for mutations.
 var pbNums = []protowire.Number{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14}
 
-// pbHasStrings: some listed message has a string field.
+// pbHasStrings: some codec message has a string field.
 const pbHasStrings = true
 
-// pbTypes: the listed message types ([protobuf]).
+// pbTypes: the codec's message types.
 func pbTypes() []pbType {
 	return []pbType{
-		{name: "etcdserverpb.ResponseHeader", new: func() proto.Message { return &etcdserverpb.ResponseHeader{} },
-			fields: []pbField{
-				{"ClusterId", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"MemberId", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"Revision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"RaftTerm", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"LeaderId", 5, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-			},
-		},
-		{name: "etcdserverpb.RangeRequest", new: func() proto.Message { return &etcdserverpb.RangeRequest{} },
-			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Limit", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"Revision", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"SortOrder", 5, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortOrder(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortOrder]()},
-				{"SortTarget", 6, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortTarget(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortTarget]()},
-				{"Serializable", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"KeysOnly", 8, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"CountOnly", 9, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"MinModRevision", 10, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"MaxModRevision", 11, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"MinCreateRevision", 12, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"MaxCreateRevision", 13, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-			},
-		},
-		{name: "etcdserverpb.RangeResponse", new: func() proto.Message { return &etcdserverpb.RangeResponse{} },
-			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"Kvs", 2, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[[]*mvccpb.KeyValue]()},
-				{"More", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"Count", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-			},
-		},
-		{name: "etcdserverpb.PutRequest", new: func() proto.Message { return &etcdserverpb.PutRequest{} },
-			fields: []pbField{
-				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Value", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
-				{"Lease", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
-				{"PrevKv", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"IgnoreValue", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-				{"IgnoreLease", 6, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-			},
-		},
-		{name: "etcdserverpb.PutResponse", new: func() proto.Message { return &etcdserverpb.PutResponse{} },
-			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"PrevKv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
-			},
-		},
 		{name: "etcdserverpb.DeleteRangeRequest", new: func() proto.Message { return &etcdserverpb.DeleteRangeRequest{} },
 			fields: []pbField{
 				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
@@ -119,6 +70,71 @@ func pbTypes() []pbType {
 				{"Keys", 5, protoreflect.BytesKind, true, false, "", pbTypeOf[[][]byte]()},
 			},
 		},
+		{name: "etcdserverpb.Member", new: func() proto.Message { return &etcdserverpb.Member{} },
+			fields: []pbField{
+				{"ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
+				{"Name", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
+				{"PeerURLs", 3, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
+				{"ClientURLs", 4, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
+				{"IsLearner", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+			},
+		},
+		{name: "etcdserverpb.MemberListResponse", new: func() proto.Message { return &etcdserverpb.MemberListResponse{} },
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
+				{"Members", 2, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.Member{}), pbTypeOf[[]*etcdserverpb.Member]()},
+			},
+		},
+		{name: "etcdserverpb.PutRequest", new: func() proto.Message { return &etcdserverpb.PutRequest{} },
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
+				{"Value", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
+				{"Lease", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"PrevKv", 4, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"IgnoreValue", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"IgnoreLease", 6, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+			},
+		},
+		{name: "etcdserverpb.PutResponse", new: func() proto.Message { return &etcdserverpb.PutResponse{} },
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
+				{"PrevKv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
+			},
+		},
+		{name: "etcdserverpb.RangeRequest", new: func() proto.Message { return &etcdserverpb.RangeRequest{} },
+			fields: []pbField{
+				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
+				{"RangeEnd", 2, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
+				{"Limit", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"Revision", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"SortOrder", 5, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortOrder(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortOrder]()},
+				{"SortTarget", 6, protoreflect.EnumKind, false, false, string(etcdserverpb.RangeRequest_SortTarget(0).Descriptor().FullName()), pbTypeOf[etcdserverpb.RangeRequest_SortTarget]()},
+				{"Serializable", 7, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"KeysOnly", 8, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"CountOnly", 9, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"MinModRevision", 10, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"MaxModRevision", 11, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"MinCreateRevision", 12, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"MaxCreateRevision", 13, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+			},
+		},
+		{name: "etcdserverpb.RangeResponse", new: func() proto.Message { return &etcdserverpb.RangeResponse{} },
+			fields: []pbField{
+				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
+				{"Kvs", 2, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[[]*mvccpb.KeyValue]()},
+				{"More", 3, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
+				{"Count", 4, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+			},
+		},
+		{name: "etcdserverpb.ResponseHeader", new: func() proto.Message { return &etcdserverpb.ResponseHeader{} },
+			fields: []pbField{
+				{"ClusterId", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
+				{"MemberId", 2, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
+				{"Revision", 3, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
+				{"RaftTerm", 4, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
+				{"LeaderId", 5, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
+			},
+		},
 		{name: "etcdserverpb.WatchCreateRequest", new: func() proto.Message { return &etcdserverpb.WatchCreateRequest{} },
 			fields: []pbField{
 				{"Key", 1, protoreflect.BytesKind, false, false, "", pbTypeOf[[]byte]()},
@@ -143,19 +159,11 @@ func pbTypes() []pbType {
 				{"Events", 11, protoreflect.MessageKind, true, false, pbFullName(&mvccpb.Event{}), pbTypeOf[[]*mvccpb.Event]()},
 			},
 		},
-		{name: "etcdserverpb.Member", new: func() proto.Message { return &etcdserverpb.Member{} },
+		{name: "mvccpb.Event", new: func() proto.Message { return &mvccpb.Event{} },
 			fields: []pbField{
-				{"ID", 1, protoreflect.Uint64Kind, false, false, "", pbTypeOf[uint64]()},
-				{"Name", 2, protoreflect.StringKind, false, false, "", pbTypeOf[string]()},
-				{"PeerURLs", 3, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
-				{"ClientURLs", 4, protoreflect.StringKind, true, false, "", pbTypeOf[[]string]()},
-				{"IsLearner", 5, protoreflect.BoolKind, false, false, "", pbTypeOf[bool]()},
-			},
-		},
-		{name: "etcdserverpb.MemberListResponse", new: func() proto.Message { return &etcdserverpb.MemberListResponse{} },
-			fields: []pbField{
-				{"Header", 1, protoreflect.MessageKind, false, false, pbFullName(&etcdserverpb.ResponseHeader{}), pbTypeOf[*etcdserverpb.ResponseHeader]()},
-				{"Members", 2, protoreflect.MessageKind, true, false, pbFullName(&etcdserverpb.Member{}), pbTypeOf[[]*etcdserverpb.Member]()},
+				{"Type", 1, protoreflect.EnumKind, false, false, string(mvccpb.Event_EventType(0).Descriptor().FullName()), pbTypeOf[mvccpb.Event_EventType]()},
+				{"Kv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
+				{"PrevKv", 3, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
 			},
 		},
 		{name: "mvccpb.KeyValue", new: func() proto.Message { return &mvccpb.KeyValue{} },
@@ -168,17 +176,10 @@ func pbTypes() []pbType {
 				{"Lease", 6, protoreflect.Int64Kind, false, false, "", pbTypeOf[int64]()},
 			},
 		},
-		{name: "mvccpb.Event", new: func() proto.Message { return &mvccpb.Event{} },
-			fields: []pbField{
-				{"Type", 1, protoreflect.EnumKind, false, false, string(mvccpb.Event_EventType(0).Descriptor().FullName()), pbTypeOf[mvccpb.Event_EventType]()},
-				{"Kv", 2, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
-				{"PrevKv", 3, protoreflect.MessageKind, false, false, pbFullName(&mvccpb.KeyValue{}), pbTypeOf[*mvccpb.KeyValue]()},
-			},
-		},
 	}
 }
 
-// pbType: a listed message type, with its fields as [protobuf] lists them.
+// pbType: a message type of the codec, with its fields as the generator derived them.
 type pbType struct {
 	name   string
 	new    func() proto.Message
@@ -224,7 +225,7 @@ func pbTagNumber(tag string) protowire.Number {
 	return protowire.Number(n)
 }
 
-// TestProtoShapes: each listed message's fields are exactly the message's (its descriptor and
+// TestProtoShapes: each codec message's fields are exactly the message's (its descriptor and
 // its Go struct), and the message is in the codec's subset.
 func TestProtoShapes(t *testing.T) {
 	for _, tp := range pbTypes() {
@@ -241,7 +242,7 @@ func TestProtoShapes(t *testing.T) {
 			t.Errorf("%s: has oneofs or extension ranges (outside the codec)", tp.name)
 		}
 		if md.Fields().Len() != len(tp.fields) {
-			t.Errorf("%s: the message has %d fields, [protobuf] lists %d", tp.name, md.Fields().Len(), len(tp.fields))
+			t.Errorf("%s: the message has %d fields, the generator derived %d", tp.name, md.Fields().Len(), len(tp.fields))
 		}
 		st := reflect.TypeOf(m).Elem()
 		exported := 0
@@ -251,7 +252,7 @@ func TestProtoShapes(t *testing.T) {
 			}
 		}
 		if exported != len(tp.fields) {
-			t.Errorf("%s: the Go struct has %d exported fields, [protobuf] lists %d", tp.name, exported, len(tp.fields))
+			t.Errorf("%s: the Go struct has %d exported fields, the generator derived %d", tp.name, exported, len(tp.fields))
 		}
 		for _, f := range tp.fields {
 			fd := md.Fields().ByNumber(f.num)
@@ -260,7 +261,7 @@ func TestProtoShapes(t *testing.T) {
 				continue
 			}
 			if fd.Kind() != f.kind || fd.IsList() != f.rep || fd.IsMap() || fd.IsPacked() != f.packed {
-				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; [protobuf] says %v, %v, false, %v",
+				t.Errorf("%s.%s (%d): kind %v, list %v, map %v, packed %v; the generator says %v, %v, false, %v",
 					tp.name, f.goName, f.num, fd.Kind(), fd.IsList(), fd.IsMap(), fd.IsPacked(), f.kind, f.rep, f.packed)
 			}
 			if fd.ContainingOneof() != nil || fd.HasPresence() != (!f.rep && f.kind == protoreflect.MessageKind) {
@@ -273,15 +274,28 @@ func TestProtoShapes(t *testing.T) {
 				ref = string(fd.Enum().FullName())
 			}
 			if ref != f.ref {
-				t.Errorf("%s.%s: type %q, [protobuf] says %q", tp.name, f.goName, ref, f.ref)
+				t.Errorf("%s.%s: type %q, the generator says %q", tp.name, f.goName, ref, f.ref)
 			}
 			sf, ok := st.FieldByName(f.goName)
 			if !ok || sf.Type != f.goType || pbTagNumber(sf.Tag.Get("protobuf")) != f.num {
-				t.Errorf("%s.%s: Go field %v (tag %q), [protobuf] says %v number %d", tp.name, f.goName,
+				t.Errorf("%s.%s: Go field %v (tag %q), the generator says %v number %d", tp.name, f.goName,
 					sf.Type, sf.Tag.Get("protobuf"), f.goType, f.num)
 			}
 		}
 	}
+}
+
+// pbScaled: n scaled by the environment variable PBGEN_TEST_SCALE (a float; default 1), at
+// least 1.
+func pbScaled(n int) int {
+	f, err := strconv.ParseFloat(os.Getenv("PBGEN_TEST_SCALE"), 64)
+	if err != nil || f <= 0 {
+		return n
+	}
+	if k := int(float64(n) * f); k > 0 {
+		return k
+	}
+	return 1
 }
 
 // pbRndInt: an integer, often an edge value.
@@ -452,7 +466,7 @@ func pbCheckMarshal(t *testing.T, m proto.Message) {
 	}
 }
 
-// TestProtoMarshal: random values of every listed type (edge integers, nil and empty slices,
+// TestProtoMarshal: random values of every type of the codec (edge integers, nil and empty slices,
 // nil elements, nested nils, non-ASCII and invalid UTF-8), nil and empty messages, and deep
 // nesting.
 func TestProtoMarshal(t *testing.T) {
@@ -460,7 +474,7 @@ func TestProtoMarshal(t *testing.T) {
 	for _, tp := range pbTypes() {
 		pbCheckMarshal(t, pbNil(tp.new()))
 		pbCheckMarshal(t, tp.new())
-		for it := 0; it < 3000; it++ {
+		for it := 0; it < pbScaled(3000); it++ {
 			m := tp.new()
 			pbRandFill(r, reflect.ValueOf(m).Elem(), 0)
 			pbCheckMarshal(t, m)
@@ -477,7 +491,7 @@ func TestProtoMarshal(t *testing.T) {
 	t.Logf("%d encodings, %d errors", pbStats.marshalOK, pbStats.marshalErrs)
 }
 
-// pbSamples: real encodings of random values of every listed type.
+// pbSamples: real encodings of random values of every type of the codec.
 func pbSamples(r *rand.Rand, n int) [][]byte {
 	types := pbTypes()
 	var out [][]byte
@@ -541,7 +555,7 @@ func pbCheckUnmarshalFresh(t *testing.T, tp pbType, data []byte) bool {
 	return werr == nil
 }
 
-// TestProtoUnmarshal: real encodings of every listed type, decoded into every listed type.
+// TestProtoUnmarshal: real encodings of every type of the codec, decoded into every type of the codec.
 func TestProtoUnmarshal(t *testing.T) {
 	r := rand.New(rand.NewSource(2))
 	types := pbTypes()
@@ -793,13 +807,14 @@ func pbMutate(r *rand.Rand, b []byte, samples [][]byte, depth int) []byte {
 	return pbJoin(fs, rest)
 }
 
-// TestProtoMutations: mutated encodings decoded into every listed type.
+// TestProtoMutations: mutated encodings decoded into every type of the codec.
 func TestProtoMutations(t *testing.T) {
 	r := rand.New(rand.NewSource(3))
 	types := pbTypes()
 	samples := pbSamples(r, 300)
 	nOK, nErr := 0, 0
-	for it := 0; it < 40000; it++ {
+	iters := pbScaled(40000)
+	for it := 0; it < iters; it++ {
 		data := samples[r.Intn(len(samples))]
 		for m := 1 + r.Intn(3); m > 0; m-- {
 			data = pbMutate(r, data, samples, 0)
@@ -811,7 +826,7 @@ func TestProtoMutations(t *testing.T) {
 		}
 	}
 	t.Logf("%d decoded, %d errors", nOK, nErr)
-	if nOK < 4000 || nErr < 4000 {
+	if nOK < iters/10 || nErr < iters/10 {
 		t.Fatalf("too few of one outcome: %d decoded, %d errors", nOK, nErr)
 	}
 }
@@ -847,7 +862,7 @@ func pbPayloads(samples [][]byte) map[protowire.Type][][]byte {
 	return out
 }
 
-// TestProtoFields: every listed field number (and an unknown one) of every listed type, with
+// TestProtoFields: every listed field number (and an unknown one) of every type of the codec, with
 // values of every wire type (edge and malformed ones), once and twice (merging), into fresh and
 // pre-filled targets.
 func TestProtoFields(t *testing.T) {
@@ -977,7 +992,7 @@ func pbPanics(f func()) (p bool) {
 }
 
 // TestProtoPanics: Unmarshal into a nil *T panics, as the real one does; the codec panics on a
-// value outside the listed types.
+// value outside the codec types.
 func TestProtoPanics(t *testing.T) {
 	for _, tp := range pbTypes() {
 		for _, data := range [][]byte{nil, {8, 1}} {
