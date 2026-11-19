@@ -109,7 +109,7 @@ theorem etcd_authlease.wp_run [go_etcd_io.etcd.cache.v3.Assumptions]
     context.wp_ErrAny etcd_auth.wp_SetUp etcd_authlease.wp_newUserClient etcd_authlease.wp_barriers
     etcd_authlease.wp_grantPut etcd_authlease.wp_noAuth etcd_authlease.refused.wp_proof
     etcd_authlease.wp_absent etcd_authlease.wp_foreign etcd_auth.context.wp_WithTimeoutBackgroundMd
-    WithLease.wp_proof client.v3.v3.wp_OpPut mvcc.api.mvccApi_persistent_law_holds
+    WithLease.wp_proof client.v3.wp_OpPut mvcc.api.mvccApi_persistent_law_holds
     mvcc.api.mvccApi_mvccState_reachable_law_holds lessor_keys_of_read
 
 /-- **authlease's `Main(k)` does not panic** (see the file header;
