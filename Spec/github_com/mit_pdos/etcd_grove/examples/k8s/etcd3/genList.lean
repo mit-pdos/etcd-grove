@@ -2,7 +2,8 @@
 
 `genList(n, in, c, hasC)` (k8setcd3.go; stage 7e-4): the List `genFrom` draws on `in` (a workload
 key, fields that fit an object): an input `Gen` may return (`GenIn`), with `in`'s cached-object
-choice unchanged.
+choice unchanged. `in`'s match option is none (`genFrom`'s fresh input): `genList` sets it only
+with a minimum resource version (`ListOptOk`).
 -/
 module
 
@@ -32,7 +33,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 abbrev genList.spec : Prop :=
   ∀ (n : w64) (x : Input) (c : Obj) (hasC : Bool) (f : w64), uint.Z f < 2 ^ 62 →
   x.Key' ∈ wkKeysL → x.UID'.length < 256 → x.Node'.length < 256 → x.App'.length < 256 →
-  x.Val'.length ≤ 2 ^ 20 → (x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) →
+  x.Val'.length ≤ 2 ^ 20 → x.Match' = W64 0 →
   0 ≤ sint.Z x.Limit' →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3 }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.genList))

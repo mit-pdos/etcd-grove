@@ -122,7 +122,8 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     (try wp_auto)
     iapply HΦ; ipureintro
     refine ⟨⟨⟨hgk, by simp [uidOfL], wndD_len _ hnd, wapD_len _ hap, ⟨0, rfl, by decide⟩,
-      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, wvsD_len _ hv, by simp [CachedNoRV]⟩, by simp, floorOk_nil _ _ rfl⟩
+      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, wvsD_len _ hv, by simp [CachedNoRV],
+      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, floorOk_nil _ _ rfl⟩
   wp_if_destruct
   · -- delete
     wp_apply wp_pick _ (W64 4) (by decide)
@@ -145,7 +146,8 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
       simp only [withPreL, Bool.false_eq_true, ↓reduceIte]
       refine ⟨⟨⟨hgk, by simp, by simp, by simp, ⟨0, rfl, by decide⟩,
         by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, by simp,
-        by simp [CachedNoRV]⟩, by simp, floorOk_nil _ _ rfl⟩)
+        by simp [CachedNoRV],
+      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, floorOk_nil _ _ rfl⟩)
   wp_if_destruct
   · -- get
     wp_apply wp_pick _ (W64 2) (by decide)
@@ -161,7 +163,8 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     iapply HΦ; ipureintro
     refine ⟨⟨⟨hgk, by simp, by simp, by simp, ⟨k', hk1, hk2⟩,
       by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, by simp,
-      by simp [CachedNoRV]⟩, by simp, fun q hq => minRVL_floor _ _ c hasC f q (by simp only [] at hq; exact hq)⟩
+      by simp [CachedNoRV],
+      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, fun q hq => minRVL_floor _ _ c hasC f q (by simp only [] at hq; exact hq)⟩
   wp_if_destruct
   · -- list
     wp_apply wp_genList _ _ c hasC f hf as %y %Hy
@@ -209,7 +212,8 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
     simp only [withPreL, Bool.false_eq_true, ↓reduceIte]
     refine ⟨⟨⟨hgk, by simp, wndD_len _ hnd, wapD_len _ hap, ⟨0, rfl, by decide⟩,
       by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, wvsD_len _ hv,
-      by simp [CachedNoRV]⟩, by simp, floorOk_nil _ _ rfl⟩)
+      by simp [CachedNoRV],
+      by intro h; simp only [] at h; exact absurd h (by decide)⟩, by simp, floorOk_nil _ _ rfl⟩)
 
 end proof
 

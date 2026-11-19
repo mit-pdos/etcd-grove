@@ -574,41 +574,6 @@ theorem minRVL_floor (m d : w64) (c : Obj) (hasC : Bool) (f : w64) (q : w64)
     | exact hfl _ h
     | (rw [parseRVD_rvBytes] at h; cases h; left; rfl)
 
-/-- **The cached object's scope premise** (D1 of stage 7b, `notes/k8s-etcd3-plan.md`;
-`issues/k8s-etcd3-cached-noop-skips-preconditions.md`): an update with a cached object carries no
-resource version precondition. -/
-def CachedNoRV (x : Input) : Prop :=
-  x.UseCached' = true → x.Kind' = W64 2 → x.HasPreRV' = false
-
-/-- **An input `Gen` may return**, as far as `Apply` needs: its name one of the workload's keys
-(`workloadKeys`), its kind one of the four, its value at most `2 ^ 20` bytes (an object it creates
-or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4), its UID shorter than 256
-bytes (`uidOf`'s two), its minimum resource version one `parseRV` takes (`minRV`'s), and no
-resource version precondition on an update with a cached object (`CachedNoRV`). -/
-def GenIn (x : Input) : Prop :=
-  InOk x ∧ (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3 ∨ x.Kind' = W64 4) ∧
-    x.Val'.length ≤ 2 ^ 20 ∧ CachedNoRV x
-
-/-- **A watch `Gen` may return** (stage E of 7f-6: a watcher's `genWatchFrom`, or a skipped watch):
-kind 5, no cached object; unless skipped, its key under the driver's resource prefix and one
-`PrepareKey` takes, short, its resource version parsed below `2^62 + 201` (G1: a cached object at
-`2^62` or above counts as none), its match and initial-events options as the watch check reads
-them (`WatchInOk`), a watch-list asking for bookmarks, and any other watch from revision 0 asking
-for initial events (`kModeOk_of`'s premises); a skipped watch has no resource version. -/
-def GenInW (x : Input) : Prop :=
-  x.Kind' = W64 5 ∧ x.UseCached' = false ∧ (x.Skip' = true → x.MinRV' = []) ∧
-  (x.Skip' = false →
-    go!"/objs/" <+: x.WKey' ∧ (k8s.prepareKeyM go!"/objs" x.WKey' x.Recursive').isSome ∧
-    x.WKey'.length ≤ 2 ^ 20 ∧
-    ∃ n, parseRVD x.MinRV' = some n ∧ uint.nat n < 2 ^ 62 + 201 ∧ WatchInOk x (uint.nat n) ∧
-      (x.SendInit' = W64 2 → x.Bookmarks' = true) ∧
-      (x.SendInit' ≠ W64 2 → x.SendInit' = W64 1 ∨ 0 < uint.nat n))
-
-/-- **An input `Gen` may return** (stage E of 7f-6): a unary client's (`GenIn`) or a watcher's
-(`GenInW`). -/
-def GenInA (x : Input) : Prop := GenIn x ∨ GenInW x
-
-
 /-- `Apply`'s input (`lintest`'s `inOk`): a boxed `Input` `Gen` may return, its resource version
 floored at `f` (k8s 7g, D7g-1: `Gen`'s post), with its cached object one of the store `c`
 (`cachedIn`). -/

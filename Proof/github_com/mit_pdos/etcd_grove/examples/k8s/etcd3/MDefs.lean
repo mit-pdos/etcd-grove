@@ -333,6 +333,69 @@ instance stRepB_persistent (g0 : HSt) (n : Nat) (v : GoInterface) (S : linkv.PSe
 
 end defs
 
+/-! ## The inputs `Gen` may return (moved from `Inv`/`Calls`: the model's `ioOk` names them) -/
+
+section genIn
+variable [GooseExts]
+
+/-- The workload's keys (`workloadKeys`, 7e-0's: two levels, prefix boundaries). -/
+abbrev wkKeysL : List GoString :=
+  [go!"ns-1/pod-1", go!"ns-1/pod-11", go!"ns-2/pod-2", go!"ns-11/pod-1"]
+
+/-- **An input `Gen` may return**, as far as the model needs: its key one of the workload's, its
+UID, node and app fit an object's, its minimum resource version parses (stage 7b), below `2^63`;
+a list's match one of the three, its key under the resource prefix, its limit not negative (stage
+7e-4: `refine_list`'s and `GetList`'s premises), a key `PrepareKey` takes, short (a request's key). -/
+def InOk (x : Input) : Prop :=
+  x.Key' ∈ wkKeysL ∧ x.UID'.length < 256 ∧ x.Node'.length < 256 ∧ x.App'.length < 256 ∧
+    (∃ n, parseRVD x.MinRV' = some n ∧ uint.Z n < 2 ^ 63) ∧
+    (x.Kind' = W64 4 → (x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) ∧
+      go!"/objs/" <+: x.ListKey' ∧ 0 ≤ sint.Z x.Limit' ∧
+      (k8s.prepareKeyM go!"/objs" x.ListKey' x.Recursive').isSome ∧ x.ListKey'.length ≤ 2 ^ 20)
+
+/-- **The cached object's scope premise** (D1 of stage 7b, `notes/k8s-etcd3-plan.md`;
+`issues/k8s-etcd3-cached-noop-skips-preconditions.md`): an update with a cached object carries no
+resource version precondition. -/
+def CachedNoRV (x : Input) : Prop :=
+  x.UseCached' = true → x.Kind' = W64 2 → x.HasPreRV' = false
+
+/-- **A list's options as `genList` draws them** (k8s 7g, gap 2: what `listOptions` needs not to
+fail, `listConsL`): a match option only with a minimum resource version, and `Exact` only with a
+non-zero one. -/
+def ListOptOk (x : Input) : Prop :=
+  x.Kind' = W64 4 → (x.MinRV' = [] → x.Match' = W64 0) ∧ (x.Match' = W64 2 → parseRVD x.MinRV' ≠ some 0)
+
+/-- **An input `Gen` may return**, as far as `Apply` needs: its name one of the workload's keys
+(`workloadKeys`), its kind one of the four, its value at most `2 ^ 20` bytes (an object it creates
+or updates fits a request; 2026-10-31, `notes/invoke-size.md`, pass 4), its UID shorter than 256
+bytes (`uidOf`'s two), its minimum resource version one `parseRV` takes (`minRV`'s), and no
+resource version precondition on an update with a cached object (`CachedNoRV`), and a list's
+options `listOptions` takes (`ListOptOk`). -/
+def GenIn (x : Input) : Prop :=
+  InOk x ∧ (x.Kind' = W64 0 ∨ x.Kind' = W64 1 ∨ x.Kind' = W64 2 ∨ x.Kind' = W64 3 ∨ x.Kind' = W64 4) ∧
+    x.Val'.length ≤ 2 ^ 20 ∧ CachedNoRV x ∧ ListOptOk x
+
+/-- **A watch `Gen` may return** (stage E of 7f-6: a watcher's `genWatchFrom`, or a skipped watch):
+kind 5, no cached object; unless skipped, its key under the driver's resource prefix and one
+`PrepareKey` takes, short, its resource version parsed below `2^62 + 201` (G1: a cached object at
+`2^62` or above counts as none), its match and initial-events options as the watch check reads
+them (`WatchInOk`), a watch-list asking for bookmarks, and any other watch from revision 0 asking
+for initial events (`kModeOk_of`'s premises); a skipped watch has no resource version. -/
+def GenInW (x : Input) : Prop :=
+  x.Kind' = W64 5 ∧ x.UseCached' = false ∧ (x.Skip' = true → x.MinRV' = []) ∧
+  (x.Skip' = false →
+    go!"/objs/" <+: x.WKey' ∧ (k8s.prepareKeyM go!"/objs" x.WKey' x.Recursive').isSome ∧
+    x.WKey'.length ≤ 2 ^ 20 ∧
+    ∃ n, parseRVD x.MinRV' = some n ∧ uint.nat n < 2 ^ 62 + 201 ∧ WatchInOk x (uint.nat n) ∧
+      (x.SendInit' = W64 2 → x.Bookmarks' = true) ∧
+      (x.SendInit' ≠ W64 2 → x.SendInit' = W64 1 ∨ 0 < uint.nat n))
+
+/-- **An input `Gen` may return** (stage E of 7f-6): a unary client's (`GenIn`) or a watcher's
+(`GenInW`). -/
+def GenInA (x : Input) : Prop := GenIn x ∨ GenInW x
+
+end genIn
+
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -346,7 +409,7 @@ def k8setcd3S (g0 : HSt) : github_com.anishathalye.porcupine.ModelSpec GF (linkv
   rep k := stRepB g0 (k + g0.st.items.length + g0.hist.length + 1)
   ioOk i o := iprop(∃ x y, ⌜i = boxIn x ∧ o = boxOut y ∧
     (x.Kind' = W64 5 → y.Err' ≠ W64 4 ∧ ∀ n, parseRVD x.MinRV' = some n → uint.Z n < 2 ^ 63) ∧
-    FloorOk g0.st.rv x⌝ ∗
+    GenInA x ∧ FloorOk g0.st.rv x⌝ ∗
     (⌜x.Kind' = W64 5 ∨ plainOut y = otherL⌝ ∨ k8s_correctness.rawOk x y) ∗
     (⌜x.Kind' ≠ W64 5⌝ ∨ k8s_correctness.wrawOk g0.st.rv x y))
   ioOk_pers _ _ := by infer_instance

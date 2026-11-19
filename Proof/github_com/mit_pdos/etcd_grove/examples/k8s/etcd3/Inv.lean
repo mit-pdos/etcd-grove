@@ -87,21 +87,6 @@ instance KVState.inhabited : Inhabited KVState := ⟨{ compacted := 0, base := �
 section pure
 variable [GooseExts]
 
-/-- The workload's keys (`workloadKeys`, 7e-0's: two levels, prefix boundaries). -/
-abbrev wkKeysL : List GoString :=
-  [go!"ns-1/pod-1", go!"ns-1/pod-11", go!"ns-2/pod-2", go!"ns-11/pod-1"]
-
-/-- **An input `Gen` may return**, as far as the model needs: its key one of the workload's, its
-UID, node and app fit an object's, its minimum resource version parses (stage 7b), below `2^63`;
-a list's match one of the three, its key under the resource prefix, its limit not negative (stage
-7e-4: `refine_list`'s and `GetList`'s premises), a key `PrepareKey` takes, short (a request's key). -/
-def InOk (x : Input) : Prop :=
-  x.Key' ∈ wkKeysL ∧ x.UID'.length < 256 ∧ x.Node'.length < 256 ∧ x.App'.length < 256 ∧
-    (∃ n, parseRVD x.MinRV' = some n ∧ uint.Z n < 2 ^ 63) ∧
-    (x.Kind' = W64 4 → (x.Match' = W64 0 ∨ x.Match' = W64 1 ∨ x.Match' = W64 2) ∧
-      go!"/objs/" <+: x.ListKey' ∧ 0 ≤ sint.Z x.Limit' ∧
-      (k8s.prepareKeyM go!"/objs" x.ListKey' x.Recursive').isSome ∧ x.ListKey'.length ≤ 2 ^ 20)
-
 theorem wkKeysL_len (k : GoString) (h : k ∈ wkKeysL) : k.length ≤ 11 := by
   simp only [wkKeysL, List.mem_cons, List.not_mem_nil, or_false] at h
   rcases h with rfl | rfl | rfl | rfl <;> decide
