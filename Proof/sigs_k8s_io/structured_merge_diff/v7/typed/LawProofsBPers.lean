@@ -8,6 +8,7 @@ public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Persist
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
 
 @[expose] public section
 
@@ -34,6 +35,22 @@ instance ruleKeepRHSOk_pers (f : GoFunc) : Persistent (ruleKeepRHSOk (GF := GF) 
 instance outRep_pers (o : Loc) : (x : Option UVal) → Persistent (outRep (GF := GF) o x)
   | none => by unfold outRep; infer_instance
   | some _ => by unfold outRep; infer_instance
+
+instance isSetO_pers (p : Loc) : (o : Option PathSet) → Persistent (isSetO (GF := GF) p o)
+  | none => by unfold isSetO; infer_instance
+  | some _ => by unfold isSetO; infer_instance
+
+/-- A set's pointer is not nil (its struct is allocated). -/
+theorem trieRep_not_null (p : Loc) (t : Trie) : trieRep (GF := GF) p t ⊢ ⌜p ≠ null⌝ := by
+  rcases t with ⟨ms, cs⟩
+  unfold trieRep
+  iintro ⟨%v, %es, %ns, Hp, -⟩
+  iapply typedPointsto_not_null _ _ _ $$ Hp
+
+theorem isSet_not_null (p : Loc) (S : PathSet) : isSet (GF := GF) p S ⊢ ⌜p ≠ null⌝ := by
+  unfold isSet
+  iintro ⟨%t, -, Ht⟩
+  iapply trieRep_not_null $$ Ht
 
 /-- A side is nil exactly when absent. -/
 theorem isValO_nil (v : value.Value) (dq : DFrac) (o : Option UVal) :
