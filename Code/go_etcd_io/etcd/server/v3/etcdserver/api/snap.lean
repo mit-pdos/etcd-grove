@@ -76,6 +76,55 @@ noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.New"
 
+/-- CloseNotify returns a channel that receives a single value
+    when the message sent is finished. true indicates the sent
+    is successful.
+
+    go: message.go:53:19 -/
+noncomputable def Message.CloseNotify.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam BAnon
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly go.bool)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly go.bool)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Message.ty)))) (Var "m"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv go.bool) (go.GoType.ChannelType go.ChanDir.recvonly go.bool)))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.bool)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"closeC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "m")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly go.bool)))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly go.bool)))) (Var "$res0"))))))
+
+/-- go: message.go:57:19 -/
+noncomputable def Message.CloseWithError.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "m"
+  (Lam "err"
+  (Seq (App (Val exceptionDo)
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Message.ty)))) (Var "m"))
+  (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "err")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil)))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.bool)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"closeC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "m"))))
+  (Let "$v" (Val #true)
+  (App (App (Val (chan.send go.bool)) (Var "$chan")) (Var "$v")))))
+  (App (Val doExecute)
+  (Let "$chan" (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv go.bool)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"closeC"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "m"))))
+  (Let "$v" (Val #false)
+  (App (App (Val (chan.send go.bool)) (Var "$chan")) (Var "$v"))))))))
+  (Let "$r0" (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.ReadCloser.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.io.ReadCloser.ty))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"ReadCloser"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Message.ty)))) (Var "m"))))) (Val #()))
+  (Let "cerr" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.error))) (Pair (App (Val (GoInstruction (GoLoad go.error))) (Var "cerr")) (App (Val (GoInstruction (Convert go.untypedNil go.error))) (Val UntypedNil))))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.error))) (Var "cerr"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "cerr") (Var "$r0")))))))))))
+  (Val #()))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
   pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.raft.v3.raftpb]
 
@@ -153,6 +202,8 @@ class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) [(go!"CloseNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly go.bool)]))), (go!"CloseWithError", (some (go.signature.Signature [go.error] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))), (go!"GetSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   GetTo_unfold : MethodUnfold Message.ty go!"GetTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (StructFieldGet Message.ty go!"Message"))) (Var "$r"))))
+  ptr_CloseNotify_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"CloseNotify" Message.CloseNotify.impl
+  ptr_CloseWithError_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"CloseWithError" Message.CloseWithError.impl
   ptr_GetTo_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"Message"))) (Var "$r")))))
 
@@ -169,6 +220,8 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.method_set
   Message.TypeAssumptions.ptr_method_set
   Message.TypeAssumptions.GetTo_unfold
+  Message.TypeAssumptions.ptr_CloseNotify_unfold
+  Message.TypeAssumptions.ptr_CloseWithError_unfold
   Message.TypeAssumptions.ptr_GetTo_unfold
 
 opaque Snapshotter.nonempty_type : NonemptyType.{0}

@@ -10,7 +10,6 @@
 # the build of record not up to date when the collection was added.)
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/(Link|Results)\.lean$
 axiom Perennial.crypto.tls.opaqueInitsOk
-axiom Perennial.encoding.hex.opaqueInitsOk
 axiom Perennial.github_com.Masterminds.semver.v3.initFuncsOk
 axiom Perennial.github_com.Masterminds.semver.v3.opaqueInitsOk
 axiom Perennial.github_com.dustin.go_humanize.initFuncsOk
@@ -60,9 +59,7 @@ axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameGRPC_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.TokenFieldNameSwagger_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.errStringToError_init
 axiom Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.opaqueInitsOk
-axiom Perennial.go_etcd_io.etcd.api.v3.version.MinClusterVersion_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.V3_6_init
-axiom Perennial.go_etcd_io.etcd.api.v3.version.Version_init
 axiom Perennial.go_etcd_io.etcd.api.v3.version.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.api.v3.version.opaqueInitsOk
 axiom Perennial.go_etcd_io.etcd.client.pkg.v3.logutil.opaqueInitsOk
@@ -110,9 +107,6 @@ axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.totalPutSizeGauge_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.txnCounter_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.watchStreamGauge_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.watcherGauge_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.AllBuckets_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.FinishedCompactKeyName_init
-axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.ScheduledCompactKeyName_init
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.initFuncsOk
 axiom Perennial.go_etcd_io.etcd.server.v3.storage.schema.opaqueInitsOk
 axiom Perennial.go_opentelemetry_io.otel.attribute.opaqueInitsOk
