@@ -225,7 +225,10 @@ theorem EtcdServer.revokeExpiredLeases.wp_proof
           ihave ⟨Hr, %Hrnn⟩ := typedPointsto_not_null_dup _ _ _ $$ «$a1»
           iStructNamed Hr
           ipersist ID
-          wp_apply hLR s E ρ ctx cd _ id (fun _ => iprop(True)) $$ [Ilt IRD] as %resp %err ⟨Ilt, IRD, Hres⟩
+          ihave ⟨%tok, #Htk⟩ := auth.ctxToken_of_libCtxOk ctx $$ Hlib
+          ihave #HtokC : □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+          · iintro !> -; iexact Htk
+          wp_apply hLR s E ρ ctx cd tok _ id (fun _ => iprop(True)) $$ [Ilt IRD] as %resp %err ⟨Ilt, IRD, Hres⟩
           · rw [hoff, isServerReqM_false]
             iframe #; iframe Ilt IRD
             isplitr

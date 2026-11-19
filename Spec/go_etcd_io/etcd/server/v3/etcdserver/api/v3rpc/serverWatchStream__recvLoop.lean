@@ -50,10 +50,10 @@ the stream end's: `Watch` returns it, premise fixes 7). -/
 
 abbrev v3rpc.serverWatchStream.recvLoop.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
-    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF)) (L : List v3rpc.WatchReqM) (sent : List Loc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
+      v3rpc.swsIs sws r Up Dn st ci tok cd ∗ v3rpc.srvRecvTok (Req := v3rpc.pbWatchRequest) r.γs L ∗
       spscProducer r.γctrl sent ∗ v3rpc.ansPool r.γa L.length ∗ r.srv.E.RD ∗
       mvcc.api.mvccReaders r.W.γm 1 }}
     (App (Val (sws @!! go.GoType.PointerType v3rpc.serverWatchStream.ty @!! go!"recvLoop")) (Val #()))

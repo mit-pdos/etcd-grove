@@ -47,13 +47,15 @@ error with auth off" without new trust; decided by etcd-grove-81, 2026-11-14). `
 `srvAuthAt` gives it (`srvAdminNilOk_of_srvAuthAt`). -/
 abbrev EtcdServer.checkMembershipOperationPermission.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString)
     (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗
       E.RD }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!!
       go!"checkMembershipOperationPermission")) (Val #(GoInterface.ok ctx)))
-  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n (GoInterface.ok ctx) err }}
+  {{ (err : GoInterface), RET #err; E.RD ∗ adminOutC s E.authMode n tok err }}
 
 end spec
 

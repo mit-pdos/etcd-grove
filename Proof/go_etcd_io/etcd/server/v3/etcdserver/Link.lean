@@ -1323,14 +1323,6 @@ theorem auth.wp_hasRootRole :
     auth.hasRootRole.spec (GF := GF) (hG := hG) :=
   auth.hasRootRole.wp_proof
 
-theorem auth.authStore.wp_IsAuthEnabled :
-    auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
-  auth.authStore.IsAuthEnabled.wp_proof
-
-theorem metadata.wp_FromIncomingContext :
-    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
-  metadata.FromIncomingContext.wp_proof
-
 theorem auth.authStore.wp_authInfoFromToken :
     auth.authStore.authInfoFromToken.spec (GF := GF) (hG := hG) :=
   auth.authStore.authInfoFromToken.wp_proof auth.authStore.wp_Revision
@@ -1339,13 +1331,9 @@ theorem auth.wp_redactToken :
     auth.redactToken.spec (GF := GF) (hG := hG) :=
   auth.redactToken.wp_proof
 
-theorem auth.authStore.wp_AuthInfoFromCtx :
-    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromCtx.wp_proof auth.authStore.wp_IsAuthEnabled metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
-
-theorem auth.authStore.wp_AuthInfoFromTLS :
-    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
-  auth.authStore.AuthInfoFromTLS.wp_proof
+theorem auth.authStore.wp_IsAuthEnabled :
+    auth.authStore.IsAuthEnabled.spec (GF := GF) (hG := hG) :=
+  auth.authStore.IsAuthEnabled.wp_proof
 
 theorem zap.Logger.wp_Check :
     zap.Logger.Check.spec (GF := GF) (hG := hG) :=
@@ -1586,10 +1574,6 @@ theorem EtcdServer.wp_AuthInfoFromCtx :
     EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthInfoFromCtx.wp_proof EtcdServer.wp_AuthStore
 
-theorem EtcdServer.wp_AuthInfoFromCtxLb :
-    EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG) :=
-  EtcdServer.AuthInfoFromCtx.wp_proofLb EtcdServer.wp_AuthStore
-
 theorem EtcdServer.wp_AuthStatus :
     EtcdServer.AuthStatus.spec (GF := GF) (hG := hG) :=
   EtcdServer.AuthStatus.wp_proof
@@ -1760,7 +1744,7 @@ theorem EtcdServer.wp_LeaderChanged :
 
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtxLb
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_LeaseGrant :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
@@ -1840,7 +1824,7 @@ theorem EtcdServer.wp_LinearizableReadNotify :
 
 theorem EtcdServer.wp_requireAuthInfoC :
     EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtxLb
+  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_MemberList :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=
@@ -2116,7 +2100,7 @@ theorem EtcdServer.wp_RaftHandler :
 
 theorem EtcdServer.wp_doSerialize :
     EtcdServer.doSerialize.spec (GF := GF) (hG := hG) :=
-  EtcdServer.doSerialize.wp_proof traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtxLb traceutil.Trace.wp_Step
+  EtcdServer.doSerialize.wp_proof traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx traceutil.Trace.wp_Step
 
 theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
     EtcdServer.Range.spec (GF := GF) (hG := hG) :=
@@ -2124,7 +2108,7 @@ theorem EtcdServer.wp_Range [go_etcd_io.etcd.cache.v3.Assumptions] :
 
 theorem EtcdServer.wp_checkMembershipOperationPermission :
     EtcdServer.checkMembershipOperationPermission.spec (GF := GF) (hG := hG) :=
-  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtxLb EtcdServer.wp_AuthStore
+  EtcdServer.checkMembershipOperationPermission.wp_proof EtcdServer.wp_AuthInfoFromCtx EtcdServer.wp_AuthStore
 
 theorem EtcdServer.wp_RemoveMember :
     EtcdServer.RemoveMember.spec (GF := GF) (hG := hG) :=
@@ -2685,6 +2669,18 @@ theorem auth.authStore.wp_AuthDisable :
 theorem auth.authStore.wp_AuthEnable :
     auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) :=
   auth.authStore.AuthEnable.wp_proof auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info
+
+theorem metadata.wp_FromIncomingContext :
+    metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
+  metadata.FromIncomingContext.wp_proof
+
+theorem auth.authStore.wp_AuthInfoFromCtx :
+    auth.authStore.AuthInfoFromCtx.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromCtx.wp_proof metadata.wp_FromIncomingContext auth.authStore.wp_authInfoFromToken auth.wp_redactToken zap.wp_String zap.Logger.wp_Warn
+
+theorem auth.authStore.wp_AuthInfoFromTLS :
+    auth.authStore.AuthInfoFromTLS.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthInfoFromTLS.wp_proof
 
 theorem auth.authStore.wp_Authenticate :
     auth.authStore.Authenticate.spec (GF := GF) (hG := hG) :=

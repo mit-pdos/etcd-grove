@@ -101,7 +101,7 @@ private theorem ka_dn (s : Loc) (E : apply.AEnv GF) (γl : GName) (γs : StreamN
     (tok : Option GoString) (Dn : Nat → (w64 × w64) → IProp GF) (j : Nat) (q : KaReqM)
     (id ttl : w64) (hid : q.id = id) :
     v3rpc.kaStreamSpec s E γl γs tok Dn ∗ upAt (Req := pbLeaseKeepAliveRequest) γs j q ∗
-      (⌜ttl = W64 0⌝ ∨ v3rpc.leaseCheckT s E tok q.nb
+      (⌜ttl = W64 0⌝ ∨ leaseCheckFrom s E tok q.nb
         (fun info => leaseKeysVerdictFrom E.authMode q.nb info γl q.mb id .write)) ⊢
       Dn j (id, ttl) := by
   subst hid
@@ -158,8 +158,8 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hCV : prometheus.CounterVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
     v3rpc.LeaseServer.leaseKeepAlive.spec (GF := GF) (hG := hG) := by
-  intro p s A cid mid E γl S' st γs Up Dn ci cd
-  wp_start as ⟨#Hls, #HRn, #Hst, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE⟩
+  intro p s A cid mid E γl S' st γs Up Dn ci tok cd
+  wp_start as ⟨#Hls, #HRn, #Hst, #Htk, #Hspec, #HUp, Hrt, Hstt, HS, HR, HE⟩
   ihave #Hls' := Hls
   iunfold v3rpc.leaseServerAt at Hls'
   icases Hls' with ⟨%Hpn, #Hhdr, #Hle, %lg, #Hlg, #Hlgf⟩
@@ -242,7 +242,7 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
     ihave #HUq := HUp' $$ HUpq
     iunfold v3rpc.kaUp at HUq
     icases HUq with ⟨#Hnb, #Hmb⟩
-    ihave #HRn' := HRn $$ %ci %cd %v.ID' %q.nb %q.mb
+    ihave #HRn' := HRn $$ %ci %tok %cd %v.ID' %q.nb %q.mb
     wp_apply HRn' $$ [HS HE] as %ttl %rerr ⟨HS, HE, Hans⟩
     · iframe; iframe #
     (try wp_auto)
@@ -265,7 +265,6 @@ theorem v3rpc.LeaseServer.leaseKeepAlive.wp_proof
         iapply (ka_dn s E γl γs _ Dn L.length q v.ID' ttl Hqv)
         iframe #
         iright
-        iapply v3rpc.leaseCheckT_of_from
         iexact Hchk
       ka_send ttl
     · cases rerr with

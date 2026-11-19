@@ -40,14 +40,16 @@ filled and the server's listing with each lease's verdict (or the empty listing)
 `nil`. -/
 abbrev v3rpc.LeaseServer.LeaseLeases.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (E : apply.AEnv GF) (γl : GName)
-    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (n m : Nat),
+    (S : IProp GF) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
       v3rpc.leaseServerAt p s A cid mid ∗ v3rpc.raftLeaseRead s E γl S A.revR ∗ S ∗ A.revR ∗
-      context.isContext ci cd ∗ context.libCtxOk ci ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
+      context.isContext ci cd ∗ context.libCtxOk ci ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) tok) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.LeaseServer.ty @!! go!"LeaseLeases"))
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ A.revR ∗
-      v3rpc.leaseLeasesOut s E γl ci n m cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
+      v3rpc.leaseLeasesOut s E γl tok n m cid mid resp err ∗ go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec
 

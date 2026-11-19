@@ -37,16 +37,18 @@ answer, or `nil` and an error with `Pin` untouched, the guard's error `e0` given
 store's published index (auth-guard-completeness G3, 2026-11-14). -/
 abbrev v3rpc.authMaintenanceServer.Status.spec : Prop :=
   ∀ (p ms aa s : Loc) (E : apply.AEnv GF) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (r : Loc) (Pin : IProp GF)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (r : Loc) (Pin : IProp GF)
     (Q : Loc → GoInterface → IProp GF) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ Pin ∗
+      v3rpc.amsIs p ms aa ∗ v3rpc.authAdminIs aa s E ∗ □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗ Pin ∗
       v3rpc.guardedOk2 (authedRes E.authMode) Pin E.RD
         (go.GoType.PointerType v3rpc.maintenanceServer.ty) go!"Status" ms (GoInterface.ok ctx) r
         Q }}
     (App (App (Val (p @!! go.GoType.PointerType v3rpc.authMaintenanceServer.ty @!! go!"Status"))
       (Val #(GoInterface.ok ctx))) (Val #r))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOutC Pin Q (authedWhy E.authMode n (GoInterface.ok ctx)) resp err }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); E.RD ∗ v3rpc.guardOutC Pin Q (authedWhy E.authMode n tok) resp err }}
 
 end spec
 

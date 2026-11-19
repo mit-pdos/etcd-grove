@@ -76,15 +76,15 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       lessorGrantOkGM E.authOn s E ρ S (grantLiveG E) R := by
   iintro ⟨#Hpkg, #Hq, #Hau, #Hcred, #HS⟩
   unfold lessorGrantOkGM
-  iintro %ci %cd %r %m %Q !> %Φ ⟨HSr, #Hctx, #Hrun, #Hreq, Hid, %HRm, Hp⟩ HΦ
+  iintro %ci %tok %cd %r %m %Q !> %Φ ⟨HSr, #Hctx, #Hrun, #HtokC, #Hreq, Hid, %HRm, Hp⟩ HΦ
   ihave #Hspan := spanCtxOk_of_runCtx ci $$ Hrun
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrun
   ihave #Hst := startTimeOk_of_grpcRunCtx ci $$ Hrun
   ihave ⟨Hlt, HRD, Hback⟩ := HS $$ HSr
   -- the permit at the server's context form (`hdrBoundM_tok`)
-  ihave Hp := leaseGrantPermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E (GoInterface.ok ci)) m.1 Q
-    (fun hm => hdrBoundM_tok s E (GoInterface.ok ci) hm) $$ Hp
-  wp_apply (hLG s E ρ ci cd r m.1 m.2 Q) $$ [Hlt HRD Hid Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
+  ihave Hp := leaseGrantPermitM_mono E.authOn ρ.raft ρ.kv _ (hdrBoundM true s E tok) m.1 Q
+    (fun hm => hdrBoundM_tok s E tok hm) $$ Hp
+  wp_apply (hLG s E ρ ci cd tok r m.1 m.2 Q) $$ [Hlt HRD Hid Hp] as %resp %err ⟨Hlt, HRD, Hans⟩
   · iframe # Hlt HRD
     isplitr
     · ipureintro; exact ⟨h, hR m HRm⟩
@@ -139,7 +139,7 @@ theorem lessorGrantOkLive_of_server (hLG : EtcdServer.LeaseGrant.spec (GF := GF)
       iframe Hgl Hgreq
     cases hon : E.authOn
     · iapply leaseGrantResT_false
-    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ ci m.1 resp Q $$ Hres
+    · ihave ⟨%id', #Hid2, HT⟩ := leaseGrantResT_true s E ρ tok m.1 resp Q $$ Hres
       icombine Hid' Hid2 gives %Hii
       subst Hii
       iexact HT

@@ -122,11 +122,16 @@ theorem authnRaft_on (hRR : EtcdServer.raftRequest.spec (GF := GF) (hG := hG))
             rp ↦ v ∗ ⌜v.unknownFields' = slice.nil⌝ ∗ auth.tokIssued γa v.Token' name) ∨
          ⌜resp = GoInterface.nil ∧ err ≠ GoInterface.nil⌝) }} := by
   iintro %Φ ⟨#Hpkg, #Hsrv, Hlt, Hrd, Hid, #Hctx, #Hlib, #Hspc, #Hst, #Hirr, Hhdr, #HF⟩ HΦ
+  -- (perheap C1a) some token of the context (`libCtxOk`'s incoming part): `Authenticate` reads none
+  -- (`processInternalRaftRequestOnce` skips `AuthInfoFromCtx`), its header's user empty
+  ihave ⟨%tok, #Htk⟩ := auth.ctxToken_of_libCtxOk ctx $$ Hlib
+  ihave #HtokR : □ (⌜true = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) $$ []
+  · iintro !> -; iexact Htk
   have hRR := hRR s E ρ
   rw [show E.authOn = true by rw [apply.AEnv.authOn_eq, hγa]; rfl] at hRR
   ihave #Hperm := reqPropOkM_true_authn (GF := GF) ρ.raft ρ.kv
-    (hdrBoundM true s E (GoInterface.ok ctx)) name pre hpre
-  wp_apply hRR ctx cd p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt Hrd Hid Hhdr]
+    (hdrBoundM true s E tok) name pre hpre
+  wp_apply hRR ctx cd tok p (irrAuthenticate ⟨name, [], pre⟩) _ F rfl (apply.irrDepthOk_of_txnW_none rfl) $$ [Hlt Hrd Hid Hhdr]
     as %resp %err ⟨Hlt, Hrd, Hres⟩
   · iframe; iframe #
   icases Hres with (⟨%Herr, %hm, %rq', %L, %Hwire, -, Hok, -, -, -⟩ | ⟨%Hre, #HaE, -⟩)

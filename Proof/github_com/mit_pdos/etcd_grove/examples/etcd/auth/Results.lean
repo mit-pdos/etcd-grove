@@ -122,10 +122,11 @@ theorem authkv_SetUp : etcd_auth.SetUp.spec (GF := GF) (hG := hG) :=
 /-- **The bad principal's request has no principal** (`ClientAuth.lean`'s `badCtx_unbound`;
 E2f). -/
 theorem authkv_bad_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
-    (hd : etcd_auth.deliversOutgoing c h)
-    (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [etcd_auth.badToken]) :
-    auth.ctxBound (GF := GF) (.on γa) h a ⊢ ⌜a = null⌝ :=
-  etcd_auth.badCtx_unbound γa c h a hd ht
+    (md : Option (GoString → Option (List GoString)))
+    (ht : metadata.mdVals md go!"token" = [etcd_auth.badToken]) :
+    etcd_auth.deliversOutgoing (GF := GF) c h md ∗
+      auth.ctxBound (GF := GF) (.on γa) (auth.mdTokenOf md) a ⊢ ⌜a = null⌝ :=
+  etcd_auth.badCtx_unbound γa c h a md ht
 
 end results
 
