@@ -1,6 +1,6 @@
 /-
-`m.CloseNotify()` (`etcdserver/api/snap/message.go`; names only): the message's `closeC`. The
-trust boundary (D22 S-h, 2026-10-20; an axiom in `Proof/.../snap/Message__CloseNotify.lean`).
+`m.CloseNotify()` (`etcdserver/api/snap/message.go`): the message's `closeC`. D22 S-h, 2026-10-20;
+a trust-boundary axiom until 2026-11-19, now proved over the translated body.
 Lean-first (no Rocq counterpart); the vocabulary is `Proof/.../snap/Defs.lean`.
 -/
 module

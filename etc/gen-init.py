@@ -1079,11 +1079,11 @@ SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
     doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
 `tooLargeResourceVersionCauseMsg` hold strings, and `Everything` holds, for good, a predicate with no
 shard selector whose label and field selectors' `Empty()` is `true` (`everythingOk`, from the two
-axioms' posts; k8s 7f-5b H2).
+specs' posts; k8s 7f-5b H2).
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
-`SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
-trust-boundary axioms `labels.Everything.wp_proof` and `fields.Everything.wp_proof`), initializes
+`SelectionPredicate` of `labels.Everything()`, names-only, the trust-boundary axiom
+`labels.Everything.wp_proof`, and `fields.Everything()`, proved: `fields.Everything.wp_proof`), initializes
 its imports and runs the translated initializers.''',
     imports=['Perennial.Proof.context.NewErrorString', 'Perennial.Proof.errors.NewVar', 'Proof.k8s_io.apimachinery.pkg.labels.Everything',
              'Proof.k8s_io.apimachinery.pkg.fields.Everything'],
