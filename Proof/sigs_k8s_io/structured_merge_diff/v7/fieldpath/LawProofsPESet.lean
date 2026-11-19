@@ -384,6 +384,23 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
+/-- A `pathElementValue`'s two fields, and the way back with any new values. -/
+theorem pev_fields (l : Loc) (v : fieldpath.pathElementValue) (dq : DFrac) :
+    (l ↦{dq} v : IProp GF) ⊢
+      l.[fieldpath.pathElementValue, go!"PathElement"] ↦{dq} v.PathElement' ∗
+      l.[fieldpath.pathElementValue, go!"Value"] ↦{dq} v.Value' ∗
+      (∀ a b, l.[fieldpath.pathElementValue, go!"PathElement"] ↦{dq} a -∗
+        l.[fieldpath.pathElementValue, go!"Value"] ↦{dq} b -∗
+        l ↦{dq} ({ PathElement' := a, Value' := b } : fieldpath.pathElementValue)) := by
+  iintro Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %hn⟩
+  iStructNamed Hl
+  iframe PathElement Value
+  iintro %a %b Ha Hb
+  iapply typedPointsto_combine _ _ _ hn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe Ha Hb
+
 /-- A `PathElementMap`'s one field, and the way back with any new value. -/
 theorem pemap_members_upd (l : Loc) (v : fieldpath.PathElementMap) (dq : DFrac) :
     (l ↦{dq} v : IProp GF) ⊢ l.[fieldpath.PathElementMap, go!"members"] ↦{dq} v.members' ∗
