@@ -85,6 +85,7 @@ public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToA
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.NewPath
 public import Proof.fmt.ErrorfAny
+public import Proof.fmt.SprintfArgs
 public import Proof.fmt.SprintfDecisions
 public import Proof.math.rand.Int63n
 public import Proof.k8s_io.apimachinery.pkg.util.sets.ListW
@@ -130,6 +131,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.authz.Assump
 theorem fmt.wp_ErrorfAny :
     EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fmt.ErrorfAny.wp_proof _root_.Perennial.errors.wp_New
+
+theorem fmt.wp_SprintfArgs :
+    EtcdGrove.fmt.SprintfArgs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.fmt.SprintfArgs.wp_proof
 
 theorem rand.wp_Int63n :
     EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
@@ -228,7 +233,7 @@ theorem validation.wp_IsDomainPrefixedKey :
 
 theorem field.ErrorList.wp_ToAggregate :
     EtcdGrove.field.ErrorList.ToAggregate.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.field.ErrorList.ToAggregate.wp_proof
+  EtcdGrove.field.ErrorList.ToAggregate.wp_proof fmt.wp_SprintfArgs sets.wp_New sets.Set.wp_Has sets.Set.wp_Insert utilerrors.wp_NewAggregate
 
 theorem field.ErrorList.wp_ToAggregate_ptr :
     EtcdGrove.field.ErrorList.ToAggregate_ptr.spec (GF := GF) (hG := hG) :=

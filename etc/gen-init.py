@@ -328,6 +328,19 @@ its translated initializers: the interface assertions `var _ Condition = Generic
            ['imodintro', 'unfold authorizerInit',
             'iexists _; iexact HErrorConditionEvaluationNotSupported'],
 )
+# (2026-11-19) apimachinery's `util/validation/field` (names only but `NewPath`,
+# `ErrorList.ToAggregate` and `(*Error).Error`'s code, translated with bodies)
+SPECIAL['k8s_io.apimachinery.pkg.util.validation.field'] = dict(
+    doc='''Its fact (`fieldInit`, `storage/etcd3/Base.lean`): `omitValue`'s address is not `nil`
+(`(*Error).ErrorBody` loads it). Its initializer allocates it (the allocation gives its points-to,
+hence the address), initializes its imports, runs the untranslated initializer of `_`, which the
+trust-boundary axiom `opaqueInitsOk` says runs without panicking, and `omitValue`'s translated
+one (`OmitValueType{}`, `errors.go`).''',
+    alloc_types={'omitValue': 'k8s_io.apimachinery.pkg.util.validation.field.OmitValueType'},
+    before={'$end': ['try wp_auto']},
+    finish=['ihave %Hnn := typedPointsto_not_null _ _ _ $$ HomitValue'] + FIN_PRE[:6] +
+           ['try (imodintro; ipureintro; exact Hnn)'],
+)
 SPECIAL['k8s_io.apiserver.pkg.authorization.union'] = dict(
     doc='''Its fact is `True`. Its initializer initializes its imports and runs its translated
 initializer, the interface assertion `var _ = authorizer.Authorizer(unionAuthzHandler{})` (a

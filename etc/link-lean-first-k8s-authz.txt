@@ -7,6 +7,7 @@
 # the trust boundary (axioms) and the libraries
 rand_Int63n:
 fmt_ErrorfAny: =_root_.Perennial.errors.wp_New
+fmt_SprintfArgs:
 errors_NewAggregate:
 sets_Set__Has:
 sets_Set__Insert:
@@ -20,7 +21,7 @@ slices_Concat:
 validation_IsDomainPrefixedKey:
 validation_IsDNS1123Subdomain:
 field_NewPath:
-field_ErrorList__ToAggregate:
+field_ErrorList__ToAggregate: fmt_SprintfArgs sets_New sets_Set__Has sets_Set__Insert errors_NewAggregate
 field_ErrorList__ToAggregate_ptr: field_ErrorList__ToAggregate
 sets_Set__Clone:
 sets_List+W: sets_Set__UnsortedList =_root_.Perennial.slices.wp_Sort

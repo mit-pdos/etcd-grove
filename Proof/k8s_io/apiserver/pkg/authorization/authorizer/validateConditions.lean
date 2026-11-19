@@ -101,13 +101,14 @@ theorem validateConditions.wp_proof
     wp_apply wp_NewPath _ slice.nil (DFrac.own 1) ([] : List GoString) as %p1 -
     · iapply ownSlice_nil
     (try wp_auto)
-    wp_apply wp_IsDomainPrefixedKey as %el1 ⟨%errs1, Hel1⟩
+    wp_apply wp_IsDomainPrefixedKey as %el1 ⟨%errs1, Hel1, #Hok1⟩
     (try wp_auto)
     by_cases he1 : sint.Z (W64 0) < sint.Z el1.len
     · simp only [he1, _root_.decide_true]
       wp_auto
       wp_apply wp_ErrorList_ToAggregate_ptr errs_ptr (DFrac.own 1) el1 (DFrac.own 1) errs1
         $$ [$errs $Hel1] as %agg -
+      · iexact Hok1
       (try wp_auto)
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
@@ -171,13 +172,14 @@ theorem validateConditions.wp_proof
     wp_apply wp_NewPath _ slice.nil (DFrac.own 1) ([] : List GoString) as %p2 -
     · iapply ownSlice_nil
     (try wp_auto)
-    wp_apply wp_IsDomainPrefixedKey as %el2 ⟨%errs2, Hel2⟩
+    wp_apply wp_IsDomainPrefixedKey as %el2 ⟨%errs2, Hel2, #Hok2⟩
     (try wp_auto)
     by_cases he2 : sint.Z (W64 0) < sint.Z el2.len
     · simp only [he2, _root_.decide_true]
       wp_auto
       wp_apply wp_ErrorList_ToAggregate_ptr errs_ptr (DFrac.own 1) el2 (DFrac.own 1) errs2
         $$ [$errs $Hel2] as %agg -
+      · iexact Hok2
       (try wp_auto)
       wp_apply wp_slice_literal
       try (isplitr; (ipureintro; rfl))
