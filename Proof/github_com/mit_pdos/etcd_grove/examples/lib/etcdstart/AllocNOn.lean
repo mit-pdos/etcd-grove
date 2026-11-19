@@ -8,6 +8,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AllocN
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Alloc3On
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.MembersAuthDefs
 
 @[expose] public section
 
@@ -223,6 +224,91 @@ theorem allocNOn (hne : mvcc.api.names_nonempty.law) (ids ps : List w64) (hperm 
   isplitl [Hp]
   · iexact Hp
   iexact Hr
+
+
+/-- **Each member with its ghost names and its premises, with auth on, at the lease mode `m`**
+(`StartMembersAuth`'s precondition; putgetN's `memberPres_of` at `bootPremiseOn` and `memberBootOn`;
+authN's `Main`, moved here and generalized over `m` for authlease's, auth-lease S4). -/
+theorem memberPresOn_of (N : Nat) (tok : GoString) (ms0 : List GMember) (ps : List w64)
+    (bootLog : List EntryM) (ctxs : List (List w8)) (dir : w64 → List GoString)
+    (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF)
+    (ms : List GMember) (gs : List (MemberG GF)) (ids : List w64)
+    (hids : gs.map (·.id) = ids) (hlen : ms.length = gs.length) (m : lease.Mode := .none) :
+    ⊢ ([∗list] m; id ∈ ms; ids,
+        bootPremiseOn N ps bootLog ctxs dir tok m.Name' (urlsN ms0 m) id) -∗
+      (□ ∀ lid : w64, netHttpOk γn lid) -∗
+      ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false m) -∗
+      ([∗list] m ∈ ms, memberFreshRes m.Name' ⟨some m.Peer', none⟩ γn) -∗
+      [∗list] x ∈ ms.zip gs, memberPreOn N tok ms0 ps bootLog ctxs dir Φs γn x m := by
+  induction ms generalizing gs ids with
+  | nil =>
+    iintro _ _ _ _
+    simp only [List.zip_nil_left]
+    iempintro
+  | cons m' ms ih =>
+    cases gs with
+    | nil => simp at hlen
+    | cons g gs =>
+      subst hids
+      simp only [List.map_cons]
+      iintro Hbp #Hnet Hb Hf
+      ihave Hbp := BigSepL2.bigSepL2_cons.1 $$ Hbp
+      ihave Hb := BigSepL.bigSepL_cons.1 $$ Hb
+      ihave Hf := BigSepL.bigSepL_cons.1 $$ Hf
+      icases Hbp with ⟨Hbp1, Hbp⟩
+      icases Hb with ⟨Hb1, Hb⟩
+      icases Hf with ⟨Hf1, Hf⟩
+      rw [List.zip_cons_cons]
+      iapply BigSepL.bigSepL_cons.2
+      isplitl [Hbp1 Hb1 Hf1]
+      · iunfold memberPreOn
+        iframe
+        iapply Hnet
+      iapply (ih gs (gs.map (·.id)) rfl (by simpa using hlen)) $$ Hbp Hnet Hb Hf
+
+/-- **A member's KV names are at its boot bundle's lease mode, with auth on** (`memberBootOn`'s
+`lease.runCfg`). -/
+theorem memberBootsOn_lm (ctxs : List (List w8)) (Φs : w64 → w64 → List w8 → GName → IProp GF)
+    (lm : lease.Mode) (gs : List (MemberG GF)) :
+    ([∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm) ⊢
+      ⌜∀ g ∈ gs, g.ρ.rd.kv.lm = lm⌝ ∗ [∗list] g ∈ gs, memberBootOn g.γ ctxs g.ρ g.E Φs g.id false lm := by
+  induction gs with
+  | nil =>
+    iintro H
+    iframe
+    ipureintro; intro g hg; simp at hg
+  | cons g gs ih =>
+    iintro H
+    ihave H := BigSepL.bigSepL_cons.1 $$ H
+    icases H with ⟨H1, H⟩
+    ihave ⟨%Hr, H⟩ := ih $$ H
+    iunfold memberBootOn at H1
+    icases H1 with ⟨%Hp, H1⟩
+    isplitr
+    · ipureintro
+      intro g' hg'
+      rcases List.mem_cons.1 hg' with rfl | hg'
+      · exact lease.runCfg_lm Hp.2.2.2.2.2.2.2.2.2.1
+      · exact Hr g' hg'
+    iapply BigSepL.bigSepL_cons.2
+    iframe H
+    iunfold memberBootOn
+    iframe H1
+    ipureintro; exact Hp
+
+/-- The client's half of the KV state at the cluster's KV names is the one at a member's. -/
+theorem etcdKV_member (γ : SrvRaft) (γk : KVNames) (g : MemberG GF) (h : memberGOkOn γ γk g)
+    (σ : KVState) : etcdKV (GF := GF) γk σ ⊢ etcdKV g.ρ.rd.kv σ := by
+  obtain ⟨-, -, -, h1, -⟩ := h
+  unfold etcdKV
+  rw [h1]
+
+/-- The client's view of the auth history at the cluster's KV names is the one at a member's. -/
+theorem authHistView_member (γ : SrvRaft) (γk : KVNames) (g : MemberG GF) (h : memberGOkOn γ γk g)
+    (hs : List auth.AuthState) : authHistView (GF := GF) γk hs ⊢ authHistView g.ρ.rd.kv hs := by
+  obtain ⟨-, -, -, -, -, -, -, h5⟩ := h
+  unfold authHistView
+  rw [h5]
 
 end alloc
 
