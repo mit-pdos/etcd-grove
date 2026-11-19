@@ -371,3 +371,9 @@ recorded; m4 (suggested line in `etc/errorf-wrap-check.py`'s REVIEWED guidance: 
 give `deepRep (.errString _)` of the model's error outside the disjunction with Go's error) for the coordinator.
 
 **Follow-up after the Freeze**: (B') for `ListAccessor` (§11) would remove one axiom from the 7g closed theorems.
+
+**APPROVED by the user, 2026-11-19, via etcd-grove-03**: the 7g Freeze as above (the closed statements textually
+unchanged; `Main*` run Kubernetes' checker; the +10 axioms; the changed trusted texts in the table). Decided by
+etcd-grove-03 the same day: m4 applied (the guidance line in `etc/errorf-wrap-check.py`'s docstring, "Reviewing a
+step"); (B') for `ListAccessor` is a follow-up after landing, brief `notes/k8s-7g-listaccessor-bprime.md` (not
+started).
