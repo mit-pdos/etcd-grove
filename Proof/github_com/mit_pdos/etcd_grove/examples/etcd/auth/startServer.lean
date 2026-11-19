@@ -121,7 +121,7 @@ theorem startServer.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, ⟨rfl, rfl, ⟨_, rfl⟩, rfl⟩, hvs, hrule, hboot⟩
-      unfold cfgOk; simp
+      unfold cfgOk; simp [memberDataDir]
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl

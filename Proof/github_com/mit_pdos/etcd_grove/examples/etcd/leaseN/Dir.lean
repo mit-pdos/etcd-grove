@@ -108,7 +108,7 @@ theorem leaseNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (leaseNDirs k).Nodup := b
   unfold leaseNDirs
   rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
 
 /-- Every address of the program is `127.0.0.1:<p>` with `p` in one of the two ranges. -/
 theorem addr_port (k : Nat) (a : GoString) (ha : a ∈ leaseNAddrs k) :

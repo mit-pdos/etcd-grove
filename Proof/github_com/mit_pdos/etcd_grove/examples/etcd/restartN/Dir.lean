@@ -100,7 +100,7 @@ theorem restartNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (restartNDirs k).Nodup 
   unfold restartNDirs
   rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
 
 theorem restartNAddrs_lit (k : Nat) (hk : k ≤ 1000) : ∀ a ∈ restartNAddrs k, netAddrLit a = true := by
   intro a ha

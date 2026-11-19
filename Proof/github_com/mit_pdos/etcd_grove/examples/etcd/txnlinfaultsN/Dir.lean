@@ -154,7 +154,7 @@ theorem txnlinfaultsNDirs_nodup (k : Nat) (hk : k ≤ 1000) : (txnlinfaultsNDirs
   unfold txnlinfaultsNDirs
   rw [show (fun m : GMember => memberDataDir m.Name') = memberDataDir ∘ (·.Name') from rfl,
     ← List.map_map]
-  exact List.Pairwise.map _ (fun a b h e => h (List.append_cancel_right e)) (members_names_nodup k hk)
+  exact List.Pairwise.map _ (fun a b h e => h (memberDataDir_inj e)) (members_names_nodup k hk)
 
 /-- Every address of the program is `127.0.0.1:<p>` with `p` in one of the three ranges. -/
 theorem addr_port (k : Nat) (a : GoString) (ha : a ∈ txnlinfaultsNAddrs k) :

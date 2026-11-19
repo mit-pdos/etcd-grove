@@ -109,7 +109,7 @@ theorem startMember.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, HU, hvs, hrule, hboot⟩
-      unfold cfgOk; simp
+      unfold cfgOk; simp [memberDataDir]
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl

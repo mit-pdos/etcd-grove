@@ -112,7 +112,7 @@ theorem newServerMode.wp_proof
     · iapply Hboot
       ipureintro
       refine ⟨?_, HU, hvs, hrule, hboot⟩
-      unfold cfgOk; simp
+      unfold cfgOk; simp [memberDataDir]
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl
@@ -237,7 +237,7 @@ theorem newServerMode.wp_proofRestart
     · iapply Hboot
       ipureintro
       refine ⟨?_, HU, hvs, hrule, hboot⟩
-      unfold cfgOk; simp
+      unfold cfgOk; simp [memberDataDir]
     isplitr
     · iunfold bootCfgRO
       isplitr; · iExactEq Hpeer; rfl
