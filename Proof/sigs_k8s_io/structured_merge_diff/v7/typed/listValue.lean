@@ -11,6 +11,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.listValue
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__AsListUsing_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsList_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__IsNull_ptr
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -36,8 +37,38 @@ theorem typed.listValue.wp_proof
     (h_valueUnstructured_AsListUsing_ptr : value.valueUnstructured.AsListUsing_ptr.spec (GF := GF))
     (h_valueUnstructured_IsList_ptr : value.valueUnstructured.IsList_ptr.spec (GF := GF))
     (h_valueUnstructured_IsNull_ptr : value.valueUnstructured.IsNull_ptr.spec (GF := GF)) :
-    typed.listValue.spec (GF := GF) := by
-  sorry
+    typed.listValue.spec (GF := GF) := fun al v dq x => by
+  wp_start as ⟨Hv, %Hx⟩
+  ihave %Hc := isValF_concrete_law_holds v dq x $$ Hv
+  obtain ⟨p, rfl⟩ := Hc
+  wp_auto
+  rcases Hx with rfl | Hx
+  · wp_apply h_valueUnstructured_IsNull_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩
+    · iexact Hv
+    simp only [UVal.isNullB]
+    wp_auto
+    iapply HΦ
+    iframe Hv
+    isplitr
+    · unfold isListO listOfO; ipureintro; rfl
+    · ipureintro; simp
+  · obtain ⟨vs, rfl⟩ : ∃ vs, x = .list vs := by
+      cases x <;> simp [listOfO] at Hx ⊢
+    wp_apply h_valueUnstructured_IsNull_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩
+    · iexact Hv
+    simp only [UVal.isNullB]
+    wp_auto
+    wp_apply h_valueUnstructured_IsList_ptr p dq _ $$ [Hv] as %r ⟨Hv, %rfl⟩
+    · iexact Hv
+    simp only [UVal.isListB]
+    wp_auto
+    wp_apply h_valueUnstructured_AsListUsing_ptr p dq vs al $$ [Hv] as %lv ⟨Hv, Hl⟩
+    · iexact Hv
+    iapply HΦ
+    iframe Hv
+    isplitl [Hl]
+    · unfold isListO listOfO; iexact Hl
+    · ipureintro; simp [listOfO]
 
 end proof
 

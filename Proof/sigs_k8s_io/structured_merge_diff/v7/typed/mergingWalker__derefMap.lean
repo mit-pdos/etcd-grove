@@ -55,7 +55,7 @@ theorem typed.mergingWalker.derefMap.wp_proof
       · exact Or.inl h
       · exact Or.inr h
     wp_apply h_mapValue wv.allocator' _ dq (some x) $$ [Hv] as %m %err ⟨Hv, Hm, %Herr⟩
-    · iexact Hv
+    · iframe Hv; ipureintro; exact Hok
     rw [Herr.2 Hok]
     wp_auto
     iapply HΦ

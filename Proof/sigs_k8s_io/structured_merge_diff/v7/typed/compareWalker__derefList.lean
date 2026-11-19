@@ -60,7 +60,7 @@ theorem typed.compareWalker.derefList.wp_proof
       · exact Or.inr h
     simp only [isValO]
     wp_apply h_listValue wv.allocator' _ dq x $$ [Hv] as %m %err ⟨Hv, Hm, %Herr⟩
-    · iexact Hv
+    · iframe Hv; ipureintro; exact Hok'
     rw [Herr.2 Hok']
     wp_auto
     iapply HΦ
