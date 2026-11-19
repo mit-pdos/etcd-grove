@@ -10,12 +10,12 @@ with no proof and the premises on the model parameters (the client's protobuf la
 `h_U_Ok` (3), `h_U_SnapCoh` (3), `h_WalDecEnvSupply` (6), `h_WalHsOwn` (3), `h_WalPbIn_CloneHsLaw`
 (1), `h_WalPbIn_GetIndexLaw` (4), `h_WalPbIn_GetTermLaw` (1), `h_WalPbIn_IsEmptyLaw` (8),
 `h_WalPbIn_MarshalEntLaw` (3), `h_WalPbIn_MarshalHsLaw` (8), `h_WalPbIn_MustSyncLaw` (1),
-`h_WalPbIn_NilLaw` (2), `h_WalPbIn_UnmarshalEntLaw` (1), `h_WalPbIn_ZeroLaw` (1),
-`h_errors_AsLinkError` (3), `h_errors_IsErrno` (7), `h_errors_IsPathErrnoEof` (6),
-`h_errors_IsPathErrnoNotExist` (6), `h_errors_IsPathErrnoTerm` (21), `h_filepathlite_IsAbs` (10),
-`h_fmt_ErrorfErrsNot` (7), `h_fmt_ErrorfErrsTerm` (15), `h_fmt_SprintfBroken` (3), `h_io_CopyFiles`
-(1), `h_proto_UnmarshalWalRecordE` (6), `h_time_Time_FormatBroken` (3), `h_wal_WAL_cutNoErr` (2),
-`h_wal_WAL_renameWALUnlock` (3).
+`h_WalPbIn_NilLaw` (2), `h_WalPbIn_SizeLaw` (1), `h_WalPbIn_UnmarshalEntLaw` (1),
+`h_WalPbIn_ZeroLaw` (1), `h_errors_AsLinkError` (3), `h_errors_IsErrno` (7),
+`h_errors_IsPathErrnoEof` (6), `h_errors_IsPathErrnoNotExist` (6), `h_errors_IsPathErrnoTerm` (21),
+`h_filepathlite_IsAbs` (10), `h_fmt_ErrorfErrsNot` (7), `h_fmt_ErrorfErrsTerm` (15),
+`h_fmt_SprintfBroken` (3), `h_io_CopyFiles` (1), `h_proto_UnmarshalWalRecordE` (6),
+`h_time_Time_FormatBroken` (3), `h_wal_WAL_cutNoErr` (2), `h_wal_WAL_renameWALUnlock` (3).
 
 `#print axioms` on a result is its trust base (`etc/tcb-report.py`).
 -/
@@ -1682,8 +1682,8 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save
     (P : WalPbIn GF) (Mr : WalMarshal) (h_WalPbIn_GetIndexLaw : WalPbIn.GetIndexLaw P)
     (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw P) (h_WalPbIn_MarshalEntLaw :
     WalPbIn.MarshalEntLaw P Mr) (h_WalPbIn_MarshalHsLaw : WalPbIn.MarshalHsLaw P Mr)
-    (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw P) (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw P)
-    (h_wal_WAL_cutNoErr :
+    (h_WalPbIn_MustSyncLaw : WalPbIn.MustSyncLaw P) (h_WalPbIn_SizeLaw : WalPbIn.SizeLaw P Mr)
+    (h_WalPbIn_ZeroLaw : WalPbIn.ZeroLaw P) (h_wal_WAL_cutNoErr :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.cut.specNoErr (W := W)
     (Sio := Sio) P Mr) :
     _root_.Perennial.EtcdGrove.go_etcd_io.etcd.server.v3.storage.wal.WAL.Save.spec (W := W) (Sio := Sio) P Mr :=
@@ -1701,7 +1701,7 @@ theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_Save
     (_root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_cut P Mr
     h_WalPbIn_IsEmptyLaw h_WalPbIn_MarshalHsLaw) h_wal_WAL_cutNoErr
     _root_.Perennial.EtcdGrove.walfs.go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_tail
-    h_WalPbIn_IsEmptyLaw h_WalPbIn_MustSyncLaw h_WalPbIn_ZeroLaw
+    h_WalPbIn_IsEmptyLaw h_WalPbIn_MustSyncLaw h_WalPbIn_ZeroLaw h_WalPbIn_SizeLaw
 
 theorem go_etcd_io.etcd.server.v3.storage.wal.WAL.wp_SaveSnapshot
     (P : WalPbIn GF) (Mr : WalMarshal) (h_WalPbIn_IsEmptyLaw : WalPbIn.IsEmptyLaw P)

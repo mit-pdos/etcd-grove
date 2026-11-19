@@ -921,7 +921,7 @@ theorem srv_first_boot (γ : ServerRaftNames) (L : List EntryModel) (m : EntryMo
   ihave %Hp := srvRLogLb_prefix γ (γ.raft.boot.map EntryModel.ofM) L $$ [Hb HL]
   · iframe Hb HL
   ipureintro
-  obtain ⟨hps, -, hlen, -, hk⟩ := Hok
+  obtain ⟨hps, -, ⟨hlen, -, hk⟩, -⟩ := Hok
   have hpos : 0 < γ.raft.boot.length := by
     rw [hlen]; cases h : γ.raft.vs with
     | nil => exact absurd h hps
