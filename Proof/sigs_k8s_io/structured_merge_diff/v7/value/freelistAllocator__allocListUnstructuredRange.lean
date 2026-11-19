@@ -6,6 +6,7 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocListUnstructuredRange
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsFreelist
 
 @[expose] public section
 
@@ -28,8 +29,22 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.freelistAllocator.allocListUnstructuredRange.wp_proof :
-    value.freelistAllocator.allocListUnstructuredRange.spec (GF := GF) := by
-  sorry
+    value.freelistAllocator.allocListUnstructuredRange.spec (GF := GF) := fun p => by
+  wp_start as Ha
+  icases isAlloc_fl_elim $$ Ha with ⟨%fa, #Hp, H2, H1⟩
+  wp_auto
+  ihave Hp2 := Hp
+  ispatial Hp2
+  iStructNamed Hp2
+  wp_load
+  wp_auto
+  wp_apply wp_freelist_allocate $$ [H1] as %q ⟨H1, Hq⟩
+  · iexact H1
+  iapply HΦ
+  iframe
+  iapply isAlloc_fl_intro
+  iframe
+  iexact Hp
 
 end proof
 
