@@ -29,11 +29,11 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
 theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
-    (hAI : EtcdServer.AuthInfoFromCtx.specLb (GF := GF) (hG := hG))
+    (hAI : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
     (hAS : EtcdServer.AuthStore.spec (GF := GF) (hG := hG)) :
     v3rpc.AuthAdmin.requireAuthInfo.spec (GF := GF) (hG := hG) := by
-  intro aa s E ctx cd n
-  wp_start as ⟨#Haa, #Hlb, #Hctx, #Hlib, HRD⟩
+  intro aa s E ctx cd tok n
+  wp_start as ⟨#Haa, #Hlb, #Hctx, #Hlib, #HtokC, HRD⟩
   iunfold v3rpc.authAdminIs at Haa
   icases Haa with ⟨%Hann0, #Hag, #Hau⟩
   iunfold srvAuthAt at Hau
@@ -72,11 +72,11 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
   · (try wp_auto)
     ihave %Hon := enabledVerdict_true_isOn E.authMode $$ Hb
     ihave #HbLb' := HbLb $$ %Hon
-    wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n)
+    wp_apply (hAI s (GoInterface.ok ai) E.RD E.authMode cca ctx cd n tok)
       $$ [$HRD] as %a %err ⟨HRD, Ha, #Herr0, #Hbnd, #Hae, #Hz, #Hne, -⟩
     · iframe #
     ihave #Herr := authApplyErrIs_apply _ $$ Herr0
-    ihave #Hbnd : ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a $$ []
+    ihave #Hbnd : ctxBoundOrTLS s E.authMode tok a $$ []
     · iapply Hbnd; ipureintro; exact Hon
     ihave #Hz' := Hz $$ %Hon
     ihave #Hne' := Hne $$ %Hon
@@ -141,7 +141,7 @@ theorem v3rpc.AuthAdmin.requireAuthInfo.wp_proof
           isplitr
           · iunfold auth.authErrOf; iexists eUE; simp only [auth.AuthErr.var]; iframe HeUE
           · iapply Hz'; exact ⟨rfl, rfl⟩
-      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode (GoInterface.ok ctx) a user rev $$ [$Hbnd $Hau]
+      · ihave #Hpb := principalBound_of_ctxBoundOrTLS s E.authMode tok a user rev $$ [$Hbnd $Hau]
         iunfold authInfoIs at Hau
         icases Hau with ⟨%Hann, -, -⟩
         (try wp_auto)

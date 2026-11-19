@@ -3,7 +3,7 @@
 `KVService.lean`'s, for a member started with auth on): metadata-indexed gRPC specs
 (`GrpcSpecMd`), whose replies carry what the server's answers with auth on add
 (`v3rpc.srvKVAnsOn`) at the token of the metadata the handler sees (`auth.mdTokenOf`, what
-`AuthInfoFromCtx` reads of its context, `auth.ctxTokenOf`):
+`AuthInfoFromCtx` reads of its context, `auth.ctxToken`):
 - a write (`Put`, `DeleteRange`, a writing `Txn`): its grant (`v3rpc.writeGrantOn`: the request with
   the header the server stamped was granted at the committed log before its entry, the header's user
   the empty one or the one the token was issued to, and the entry committed);

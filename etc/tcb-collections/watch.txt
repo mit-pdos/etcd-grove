@@ -102,7 +102,6 @@ axiom grpcAddrIsRaw
 axiom grpcConn
 axiom grpcConn_persistent
 axiom grpcSrvCfgRaw
-axiom incomingOf_cancelCtx
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom mvcc.ReportEventReceived.wp_proof
@@ -128,7 +127,6 @@ axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom v3rpc.ctxCauseOk_cancellable
-axiom v3rpc.incomingOf_cancellableContext
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.pbWatchRequestT_reg
 axiom v3rpc.pbWatchResponseT_reg

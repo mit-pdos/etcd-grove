@@ -43,17 +43,19 @@ tells it apart from `lease.ErrLeaseNotFound`). The keys are the local lessor's: 
 returns comes from another lookup, possibly on the leader (`issues/etcd-lease-timetolive-keys-toctou.md`). -/
 abbrev EtcdServer.checkLeaseTimeToLive.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γl : GName) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (id : w64) (n m : Nat),
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (id : w64) (n m : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAuthAt s E ∗ srvAuthLeaseLb s E ∗ srvLessorRd s γl ∗ auth.authPubLbM E.authMode n ∗
-      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
+      lease.lessorLb γl m ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authMode.isOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗ E.RD ∗ lease.lessorRdPool γl ∗ levelTok lease.lessorLvl ∗
       ⌜threadBound GF ≤ 2 ^ 30 - 1⌝ }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"checkLeaseTimeToLive"))
       (Val #(GoInterface.ok ctx))) (Val #id))
   {{ (rev : w64) (err : GoInterface), RET (PairV #rev #err); E.RD ∗ levelTok lease.lessorLvl ∗
       authApplyErrIs err ∗
       (∀ _ : err = GoInterface.nil, auth.revisionVerdictFrom E.authMode n rev ∗
-        leaseCheckFrom s E (GoInterface.ok ctx) n
+        leaseCheckFrom s E tok n
           (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read)) }}
 
 end spec

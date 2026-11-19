@@ -34,8 +34,8 @@ theorem v3rpc.authMaintenanceServer.Snapshot.wp_proof
     (hP : v3rpc.authMaintenanceServer.isPermitted.spec (GF := GF) (hG := hG))
     (hTog : v3rpc.togRPCError.spec (GF := GF) (hG := hG)) :
     v3rpc.authMaintenanceServer.Snapshot.spec (GF := GF) (hG := hG) := by
-  intro p ms aa s E ctx cd sr srv Pin Q n
-  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, HRD, HPin, #Hsc, #Hin⟩
+  intro p ms aa s E ctx cd tok sr srv Pin Q n
+  wp_start as ⟨#Hams, #Haa, #Hlb, #Hctx, #Hlib, #HtokC, HRD, HPin, #Hsc, #Hin⟩
   ihave #Hams' := Hams
   iunfold v3rpc.amsIs at Hams'
   icases Hams' with ⟨%Hpn, #Hms, #Haaf⟩
@@ -46,7 +46,7 @@ theorem v3rpc.authMaintenanceServer.Snapshot.wp_proof
   wp_apply HCtx $$ [] as %c %Hc
   subst Hc
   (try wp_auto)
-  wp_apply (hP p ms aa s E ctx cd n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
+  wp_apply (hP p ms aa s E ctx cd tok n) $$ [$HRD] as %err ⟨HRD, #HoutC⟩
   · iframe #
   ihave #Hout := adminOut_of_C _ _ _ _ _ $$ HoutC
   iunfold adminOut at Hout

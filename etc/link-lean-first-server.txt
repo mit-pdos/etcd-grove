@@ -317,12 +317,11 @@ EtcdServer__FeatureEnabled:
 EtcdServer__AuthStore:
 EtcdServer__AuthInfoFromCtx: EtcdServer__AuthStore
 # auth-guard-completeness G1/G2 (2026-11-14): the request side's and the guards' reasons at a lower bound
-EtcdServer__AuthInfoFromCtx+Lb: EtcdServer__AuthStore
 # the auth plan's A2 (2026-10-23): the server's auth guards and the member operations they guard
 # (`AuthGuard.lean`; `mayRemoveMember` and `configure`, names only, are the spec's contracts)
-EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx+Lb
-EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx+Lb EtcdServer__AuthStore
-EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx+Lb
+EtcdServer__requireAuthInfo: EtcdServer__AuthInfoFromCtx
+EtcdServer__checkMembershipOperationPermission: EtcdServer__AuthInfoFromCtx EtcdServer__AuthStore
+EtcdServer__requireAuthInfo+C: EtcdServer__AuthInfoFromCtx
 EtcdServer__RemoveMember: EtcdServer__checkMembershipOperationPermission raftpb_ConfChangeType__Enum
 # the lease-keys plan's Part B (2026-10-31): the lease API's key checks (v3_server.go), a reader
 # of the auth store and of the lessor at lower bounds (`LeaseCheck.lean`); the entry points that
@@ -422,7 +421,7 @@ firstOpKey: RequestOp__GetRequest PutRequest__GetKey RangeRequest__GetKey Delete
 firstOpType: RequestOp__GetRequest
 firstOpLease: RequestOp__GetRequest PutRequest__GetLease
 # doSerialize, Range and Txn (both branches), unit 3b.
-EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx+Lb traceutil_Trace__Step
+EtcdServer__doSerialize: traceutil_Get EtcdServer__AuthInfoFromCtx traceutil_Trace__Step
 EtcdServer__Range: traceutil_Tracer__Start trace_WithAttributes attribute_String attribute_Int64 attribute_Bool RangeRequest__GetKey RangeRequest__GetRangeEnd RangeRequest__GetRevision RangeRequest__GetLimit RangeRequest__GetCountOnly RangeRequest__GetKeysOnly EtcdServer__Logger traceutil_EnsureTrace txn_WarnOfExpensiveReadOnlyRangeRequest traceutil_Trace__AddField traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues traceutil_Trace__Step EtcdServer__KV txn_Range =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer__doSerialize etcdserverpb_RangeRequest__String proto_Size
 EtcdServer__Txn: txn_IsTxnReadonly traceutil_Tracer__Start trace_WithAttributes TxnRequest__GetCompare firstCompareKey attribute_String TxnRequest__GetSuccess firstOpKey firstOpType firstOpLease attribute_Int64 attribute_Int TxnRequest__GetFailure attribute_Bool EtcdServer__Logger traceutil_EnsureTrace txn_IsTxnSerializable traceutil_Trace__Step apply_CheckTxnAuth txn_WarnOfExpensiveReadOnlyTxnRequest traceutil_Trace__LogIfLong strconv_FormatBool time_Duration__Seconds prometheus_HistogramVec__WithLabelValues EtcdServer__KV txn_Txn =mvcc.api.mvccApi_persistent_law_holds =mvcc.api.mvccApi_mvccState_reachable_law_holds EtcdServer__doSerialize context_WithValue EtcdServer__raftRequest proto_Size =apply.CheckTxnAuth.wp_lbW_linked
 # The read loop's `server` interface on *EtcdServer (interface.go, server.go; the request path's
@@ -595,7 +594,7 @@ auth_authStore__IsRangePermitted: auth_authStore__isOpPermitted
 auth_authStore__IsDeleteRangePermitted: auth_authStore__isOpPermitted
 auth_authStore__IsAdminPermitted: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx auth_hasRootRole
 auth_authStore__authInfoFromToken: auth_authStore__Revision
-auth_authStore__AuthInfoFromCtx: auth_authStore__IsAuthEnabled metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn
+auth_authStore__AuthInfoFromCtx: metadata_FromIncomingContext auth_authStore__authInfoFromToken auth_redactToken zap_String zap_Logger__Warn
 # The token binding (the auth plan's S5, 2026-10-24): `Authenticate`, over the token provider's
 # contract (`InvAuth.lean`, `tokenProviderOk`: an issued token's binding, `Tokens.lean`) and the
 # write side's `GetUser`. The trust boundary: zap's `Logger.Check` and zapcore's

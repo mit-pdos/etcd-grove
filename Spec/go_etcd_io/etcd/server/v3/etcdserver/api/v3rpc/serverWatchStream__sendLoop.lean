@@ -40,10 +40,10 @@ authority at `[]` in place of mvcc's `watchConsumer`; the thread bound stays, fo
 of the store (`mvccReaders r.W.γm 1`, which `RequestProgress` takes; `lean`'s store reader slot). -/
 abbrev v3rpc.serverWatchStream.sendLoop.spec : Prop :=
   ∀ (sws : Loc) (r : v3rpc.WRun GF) (Up : Nat → v3rpc.WatchReqM → IProp GF)
-    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk)
+    (Dn : Nat → v3rpc.WatchRespM → IProp GF) (st : GoInterface) (ci : GoInterfaceOk) (tok : Option GoString)
     (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
-      v3rpc.swsIs sws r Up Dn st ci cd ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
+      v3rpc.swsIs sws r Up Dn st ci tok cd ∗ v3rpc.srvSendTok (Rep := v3rpc.pbWatchResponse) r.γs [] ∗
       spscConsumer r.γctrl ([] : List Loc) ∗ mvcc.api.wsRecv r.ι [] ∗
       monoListAuthOwn r.γr 1 ([] : List mvcc.api.WResp) ∗
       ⌜threadBound GF ≤ Int.toNat sync.rwmutex.actualMaxReaders ∧ 5 ≤ threadBound GF⌝ ∗

@@ -56,12 +56,14 @@ not the info's); `serialWhy`. `R := fun _ _ => True` and `n = 0` give back the r
 and `□ auth.authPubLbM E.authMode 0` added (`specOff` discharges both with auth off). -/
 abbrev EtcdServer.doSerialize.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
+    (cd : context.ContextDesc (IProp GF))
+    (tok : Option GoString) (chk get : GoFunc) (G Q : IProp GF)
     (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF)
     (R : go_etcd_io.etcd.server.v3.auth.AuthInfo → GoInterface → IProp GF) (t : Loc) (e : Bool) (n : Nat),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM E.authOn s E ρ ∗ isServerReadM E.authOn s E γr ∗ srvAuthLb s E ∗
       □ auth.authPubLbM E.authMode n ∗ mvcc.txnCtx ctx cd ∗ context.libCtxOk ctx ∗
+      □ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ctx) tok) ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
         {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
@@ -72,8 +74,8 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
       (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
   {{ (err : GoInterface), RET #err; E.RD ∗
-      ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info ∗ infoBoundM E.authOn s E (GoInterface.ok ctx) info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err ∗
-        serialWhy s E.authMode n (GoInterface.ok ctx) err R ∗ ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
+      ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info ∗ infoBoundM E.authOn s E tok info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ authApplyErrIs err ∗
+        serialWhy s E.authMode n tok err R ∗ ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
 
 end spec
 
