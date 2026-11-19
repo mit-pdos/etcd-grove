@@ -5,6 +5,9 @@
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.KeyElement
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.Vocab
+import Proof.sigs_k8s_io.structured_merge_diff.v7.fieldpath.LawProofsRep
 
 @[expose] public section
 
@@ -27,8 +30,17 @@ variable [sem : go.Semantics]
 variable [package_sem : fieldpath.Assumptions]
 
 theorem fieldpath.KeyElement.wp_proof :
-    fieldpath.KeyElement.spec (GF := GF) := by
-  sorry
+    fieldpath.KeyElement.spec (GF := GF) := fun s fl => by
+  wp_start as #Hfl
+  iapply wp_fupd
+  wp_auto
+  ipersist l
+  imodintro
+  iapply HΦ
+  unfold isPE
+  isplit
+  · ipureintro; rfl
+  · iexists s; iframe l Hfl
 
 end proof
 
