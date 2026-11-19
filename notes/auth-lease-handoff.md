@@ -1,6 +1,21 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-19 evening: linked, full build green on f551a1b46; LAND STOP — second lean merge pending)
+## START HERE (S4, 2026-11-19 night: lean e95ce79ce9 merged, serve_member restructured; LAND STOP)
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **3afd77e35** (`--packages=/shared/tmp/manifest-3af.json`,
+  `.lake/package-overrides.json` its copy; scripts also `PERENNIAL_DIR=/shared/perennial-3afd77e35`).
+- **Done:** the user accepted `etcd_authlease_safe` as linked (2026-11-19). lean `e95ce79ce9` merged (`eed2b9e91f`: both
+  sides' conjuncts; repairs `006bf9bb5e`, `08882b3bc3`). `serve_member` restructured (`e100f3cd23`, `7d61516c2e`): authN's
+  back to its statement, post + `leaseReady`; authlease `serve_member_lease` = `serve_member` then `lease_served_on`;
+  `srvdWL`. Collections/interfaces/RaftNoAx/bounds (`1219f3e196`). authN.txt = lean e95's; authlease 624 axioms.
+  Full timed build green; tcb --check, collections, links, interfaces, tier, bounds, copy-part, gen-init, gen-raft-tla, errorf ok.
+- **Next:** land (coordinator's go; `LAKE_PACKAGES=/shared/tmp/manifest-3af.json PERENNIAL_CHECKOUT=/shared/perennial-3afd77e35
+  PERENNIAL_DIR=/shared/perennial-3afd77e35 etc/land.sh`, GOWORK unset). lean has moved again (`5f94c44bee`, merge-origin5):
+  merge it first (init axioms proved: expect collection lines to drop in authlease.txt as in authN.txt).
+- **Pitfalls:** gen-init/copy-part need `PERENNIAL_DIR`. `Scratch/` moved to `/shared/tmp/auth-lease-s4/Scratch-rs56`.
+  `questions.md` is untracked. RaftNoAx's own files (no copy-part marker) follow main by hand: port raft changes there.
+
+## Previous START HERE (S4, 2026-11-19 evening: linked, full build green on f551a1b46; LAND STOP — second lean merge pending)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin still **f551a1b46** (`--packages=/shared/tmp/manifest-f55.json`).
 - **Done:** lean `1e4cb38613` (perheap) merged (`5cc9b6da79`): frozen texts re-keyed ctx → tok, recorded in
