@@ -181,6 +181,44 @@ theorem isListRep_nonnull_law_holds : isListRep_nonnull.law (GF := GF) := fun l 
   iapply typedPointsto_not_null
   iexact Hl
 
+/-- Which of an atom's pointers are nil, by its kind. -/
+theorem LawProofs.isAtomOpt_ptrs (a : schema.Atom) (oA : Option Atom) :
+    isAtomOpt (GF := GF) a oA ⊢
+      ⌜a.Scalar' = null ↔ ∀ s, oA ≠ some (.scalar s)⌝ ∗
+      ⌜a.List' = null ↔ ∀ e rel ks, oA ≠ some (.list e rel ks)⌝ ∗
+      ⌜a.Map' = null ↔ ∀ fs e rel, oA ≠ some (.map fs e rel)⌝ := by
+  cases oA with
+  | none =>
+    unfold isAtomOpt atomZero
+    iintro %h
+    obtain ⟨h1, h2, h3⟩ := h
+    isplitr; · ipureintro; simp [h1]
+    isplitr; · ipureintro; simp [h2]
+    ipureintro; simp [h3]
+  | some A =>
+    cases A with
+    | scalar s =>
+      rw [isAtomOpt.eq_2, isAtom.eq_1]
+      iintro ⟨#Hs, %h⟩
+      ihave %hn := typedPointsto_not_null $$ Hs
+      isplitr; · ipureintro; simp [hn]
+      isplitr; · ipureintro; simp [h.1]
+      ipureintro; simp [h.2]
+    | list e rel ks =>
+      rw [isAtomOpt.eq_2, isAtom.eq_2]
+      iintro ⟨%h, #Hl⟩
+      ihave %hn := isListRep_nonnull_law_holds _ _ _ _ $$ Hl
+      isplitr; · ipureintro; simp [h.1]
+      isplitr; · ipureintro; simp [hn]
+      ipureintro; simp [h.2]
+    | map fs e rel =>
+      rw [isAtomOpt.eq_2, isAtom.eq_3]
+      unfold mapRep
+      iintro ⟨%h, %hn, -⟩
+      isplitr; · ipureintro; simp [h.1]
+      isplitr; · ipureintro; simp [h.2]
+      ipureintro; simp [hn]
+
 theorem isStructField_elim_law_holds : isStructField_elim.law (GF := GF) := fun sf f => by
   unfold isStructField; exact .rfl
 
