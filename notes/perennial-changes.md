@@ -2854,3 +2854,13 @@ parameter.
   (2) later, model `%w` (a `*fmt.wrapError` with `Unwrap`, its message the formatted string) and the
   arguments' formatting-method calls, with a spec taking the methods' specs (`fmt.argOk`-like).
 - **Status.** Recorded only.
+
+## 2026-11-19: `wp_slice_make3` does not say the slice is not `nil` (k8s 7g, `toEventReference`)
+
+- **The gap.** Perennial's `wp_slice_make3` gives the new slice's points-to and capacity but not
+  `sl ≠ slice.nil`, which Go guarantees for `make([]T, n, c)` (and which a caller comparing the result
+  with `nil`, here `reflect.DeepEqual` in the k8s checker, needs).
+- **Worked around locally.** `wp_slice_make3_nn` (`Proof/.../k8s/etcd3/correctness/WatchLemmas.lean`): a
+  copy of `wp_slice_make3`'s proof with the extra conjunct.
+- **Proposed (general).** Strengthen `wp_slice_make3`'s post with `⌜sl ≠ slice.nil⌝` (a stronger post,
+  no premise). **Status.** Recorded only.

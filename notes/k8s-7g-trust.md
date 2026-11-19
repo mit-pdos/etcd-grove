@@ -240,3 +240,15 @@ the InvSteps `hval` premises and `call.spec`'s new post ACCEPTED. Too large: opt
 **Night 12 STOP decided by etcd-grove-03: option (b1)** (`NewTooLargeResourceVersionError.spec`'s first conjunct
 `⌜retry = W64 0⌝ → tooLargeErrIs err`; `tooLargeErrIs` gains `Code = 504 ∧ RetryAfterSeconds = 0`, "the store's
 too-large error (retry 0)"). Both 7e-frozen texts: Freeze list.
+
+## 7. Findings in the maintainers' checker (step 5, night 15; accepted as forms by etcd-grove-03, 2026-11-19)
+
+Two panics of the checker were reachable under the specs as first accepted; both are excluded by premises the
+driver discharges, not by trusted text:
+
+- **`checkWatch` panics on a non-zero `Limit`** (watch.go). The accepted `wInPre` allowed one, so the accepted
+  `ValidateWatch.spec` was unprovable. Fix: `wInPre` gains `x.Limit' = 0`; the driver's `genWatchFrom` never sets
+  a limit, and `ioOk` carries it from Apply's `kInOk` (decision 2).
+- **`Change.toWatchEvent` panics on a change with neither object nor previous object.** Fix: `replayAt` carries
+  `chgOk c` (`c.obj.isSome ∨ c.prev.isSome`) of every change, proved by `NewReplay` from `replayL_chgOk`
+  (`rexecL_chgOk`/`rstepL_chgOk`): the replay never records such a change.
