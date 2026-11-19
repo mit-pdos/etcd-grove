@@ -2,11 +2,25 @@
 
 ## START HERE
 
-**2026-11-19 (night 12; for etcd-grove-03). Night 11 decisions recorded (option (b) for too large). STOP: (b)'s
-producer check fails: `NewTooLargeResourceVersionError` is also called with retry 1 (cacher `waitUntilFreshLocked`)
-and retry `Jitter(1s,3.0).Seconds()` (`watchChan.startWatching`), so its proved spec's post must change
-(questions.md "Night 12 STOP": b1 recommended = post's first conjunct `⌜retry = 0⌝ → tooLargeErrIs err`).**
-Nothing else changed since night 11 (below); after the decision: (b), then call.lean, Apply, build-optA rerun, step 5.
+**2026-11-19 (night 12; for etcd-grove-03). (b1) applied and verified; call.lean and Apply.lean proved against the
+new specs (lean-check `-a --fast`, 0 errors); targeted build `/shared/tmp/k8s7g/build-n12.sh` (log `build-n12.log`).**
+
+- Branch `k8s-7g`, pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`; switch to manifest-f55 on lean's
+  "Merge origin/lean (d52bb9be66)"). Commits: `43815f4447` (b1: `tooLargeErrIs` + Code/retry; NewTooLarge's post at
+  retry 0; callers; `errRep_tooLarge_of_is`), `4adfdf4efc` (call: rawOk of errors/objects/lists; `respIs_call` gives
+  the rejection's sentinel `eR` and a non-Annotated object; `ListModel.loop_items_mem`; call.spec's list post on
+  `plainOut`), `3b9071bcee` (Apply; `ioOk` carries `⌜Kind=5 ∨ plainOut y = otherL⌝ ∨ rawOk x y`; `linU`'s post at any
+  `o'` with the same step; `contAt` at any `y'` with the same `plainOut`). Forms: questions.md "Step 5 night 12".
+- Build: read `build-n12.log` first. Expected failures: `k8s.etcd3.Check` (realCheck not yet called) and what imports
+  it; anything else is new (call/Apply/InvSteps/WatchQ were only lean-checked with `--fast`).
+- Next, in order (step 5): runWatch + watch.go specs, replay.go (8), watch.go (15), realcheck.go, Check (runs
+  realCheck on the history; `uint.Z s0.rv' < 2^62` at istart; each op's Raw facts come from `RunLin2`'s `ioOk` list),
+  the discharge list (night 6 below); report at step 5's end; step 6 prep, STOP for the Freeze.
+- Freeze list additions this night: `apierrors.tooLargeErrIs` and `NewTooLargeResourceVersionError.spec` (b1).
+- Pitfalls (new): `contAt` is an `abbrev` (a wand): `iapply` of a lemma concluding `contAt …` tries to apply it; state
+  conversions with an explicit `have h : contAt … ⊢ contAt … := …` then `ihave H := h $$ HΦc`. `iunfold`/`unfold` of
+  a definition in an IPM goal with persistent hyps in scope can break `ipureintro` (istart error): `iclear` them first.
+  Named holes (`?hpl`) in a macro used twice clash: put pure facts as `⌜…⌝` premises of the lemma instead.
 
 ### Superseded (night 11)
 
