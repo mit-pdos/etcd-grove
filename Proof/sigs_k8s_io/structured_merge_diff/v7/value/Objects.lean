@@ -173,10 +173,11 @@ are out of scope (`False`). Sealed. -/
     else iprop(True)
 
 /-- **`ownRange r vs i`**: the `value.ListRange` `r` iterates over `vs`, its cursor at `i` (`-1`
-before the first `Next`): `EmptyRange` for an empty list, else a `*listUnstructuredRange` owned
-with its wrapper (internal to `value`). -/
+before the first `Next`): `EmptyRange` for an empty list (its cursor at least `-1`: its `Next`
+returns `false` whatever the cursor, which is `n + 1 < 0` only from `-1` on; Prove phase,
+2026-11-19), else a `*listUnstructuredRange` owned with its wrapper (internal to `value`). -/
 @[no_expose] def ownRange (r : value.ListRange) (vs : List UVal) (i : Int) : IProp GF :=
-  iprop((∃ q : Loc, ⌜r = interface.mkOk (go.GoType.PointerType value.emptyRange.ty) #q ∧ vs = []⌝) ∨
+  iprop((∃ q : Loc, ⌜r = interface.mkOk (go.GoType.PointerType value.emptyRange.ty) #q ∧ vs = [] ∧ -1 ≤ i⌝) ∨
     (∃ (q : Loc) (sl : GoSlice) (w : Loc) (iw : w64),
       ⌜r = interface.mkOk (go.GoType.PointerType value.listUnstructuredRange.ty) #q ∧
         iw.toInt = i⌝ ∗

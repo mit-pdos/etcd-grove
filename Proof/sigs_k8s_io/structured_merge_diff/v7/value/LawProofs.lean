@@ -63,6 +63,12 @@ end
 
 attribute [instance] isIface_pers isIfaceL_pers isIfaceM_pers
 
+/-! ## The package's named types are distinct -/
+
+theorem emptyRange_ne_listUnstructuredRange :
+    value.emptyRange.ty ≠ value.listUnstructuredRange.ty := by
+  simp [value.emptyRange.ty, value.listUnstructuredRange.ty]
+
 /-! ## The package's globals -/
 
 theorem valuePkg_globals :

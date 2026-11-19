@@ -6,6 +6,9 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocListUnstructuredRange
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
 
 @[expose] public section
 
@@ -28,8 +31,17 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.heapAllocator.allocListUnstructuredRange.wp_proof :
-    value.heapAllocator.allocListUnstructuredRange.spec (GF := GF) := by
-  sorry
+    value.heapAllocator.allocListUnstructuredRange.spec (GF := GF) := fun p => by
+  wp_start
+  wp_auto
+  iapply HΦ
+  iunfold rangeOwn
+  iexists _
+  isplitl [«$r0»]
+  · iexact «$r0»
+  · iunfold wrapperOwn
+    iexists _
+    iexact «$v0»
 
 end proof
 

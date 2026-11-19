@@ -6,6 +6,9 @@ hypotheses. Lean-first (2026-11-19), Draft.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.emptyRange__Item
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Defs
+import all Proof.sigs_k8s_io.structured_merge_diff.v7.value.Objects
 
 @[expose] public section
 
@@ -28,8 +31,13 @@ variable [sem : go.Semantics]
 variable [package_sem : value.Assumptions]
 
 theorem value.emptyRange.Item.wp_proof :
-    value.emptyRange.Item.spec (GF := GF) := by
-  sorry
+    value.emptyRange.Item.spec (GF := GF) := fun q vs n x => by
+  wp_start as ⟨Hr, %Hx⟩
+  iunfold ownRange at Hr
+  icases Hr with (⟨%q', %h⟩ | ⟨%q', %sl, %w, %iw, %h, -⟩)
+  · obtain ⟨-, rfl, -⟩ := h
+    simp at Hx
+  · exfalso; simp [emptyRange_ne_listUnstructuredRange] at h
 
 end proof
 
