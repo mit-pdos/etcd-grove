@@ -1,6 +1,27 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 s, Hm1 (A) written, STOPPED for the attack; two blockers found)
+## START HERE (2026-11-19 t, noioerr (a) written + attacked: REFUTATION F1 (pre-existing); STOPPED)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head after d9fd3d9ae6; pin f551a1b46,
+  `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). Last green full build
+  `20261119-080329-2994864` (b5ba70baa2; nothing built since but lean-checks of NoIoErr/NoIoErrSpecs).
+- **Done:** 7934a6240e Hm1 (A) reverted (CloneConfState conjunct, callers' .2.1, its Go test; RaftNoAx copies
+  stay regenerated); 3778c95957 `NoIoErr` (a): `IoCovers` + `Flock`/`OfdLock`/`DirReadNext`, `ErrnoZero
+  "DirReadNext"` keeps `ENOENT`, `noIoErr_keeps` extended (lean-check 0 errors), Go example + measurement
+  `premise_no_io_err_test.go` (passes here, not C); d9fd3d9ae6 noioerr.md session 4 (item 3 needed by Create).
+- **Attack** (noioerr.md, "The independent attack on (a)"): F1 refutation (lock outlives close under a live
+  mmap; pre-existing in `Impl.lean`, (a) makes any error excluded); F2 premise false of real runs (RemoveAll
+  chunking vs `Unlink` coverage; pre-existing). No proof uses (a).
+- **Blocked / decisions:** F1 fix (semantics) before (a) is used; item 3 (Create: `renameWAL`'s
+  `RemoveAll(w.dir)` of an absent dir, and a leftover `dir.tmp`); Hm1 (B) needs the presence bit in
+  `WalOpG.snap` (`GooseLang/Ext/AbsDisk/Impl.lean`, a [Trusted definitions!] file; ~35 files pattern-match it)
+  or the restart-contract text of option (i).
+- **Next after decisions:** cut.specNoErr (flag-parametrized proof, ~10 NE callee specs: Truncate, sync.specCut,
+  fp.Open, Rename, dir Fsync, Close, LockFile (needs conflict-freedom from the handle), Seek); Create.specNoErr;
+  rnNewStorageOk_holds; Hm1; P2; merge lean 1e4cb38613+; full timed build; tcb; collections; interfaces; Links.
+- **Pitfalls:** as in s below.
+
+### (2026-11-19 s, Hm1 (A) written, STOPPED for the attack; two blockers found)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`
   everywhere (`.lake/package-overrides.json` = its copy). Full build: `/shared/tmp/build-slot.sh etc/timed-build.py

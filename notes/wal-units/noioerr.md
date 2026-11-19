@@ -342,3 +342,29 @@ a covered path's `Unlink`/`Rmdir` that cannot succeed fails with Linux's errno: 
 entry (its parent a directory), `EISDIR` for `unlink` of a directory, `ENOTEMPTY` for `rmdir` of a
 non-empty directory (Linux may also give `EEXIST` there; Go treats both alike), `ENOTDIR` for `rmdir` of
 a file. **Stopped for the decision** (the coordinator's instruction).
+
+### The independent attack on (a) (2026-11-19, read-only subagent with the axiom skill): STOPPED
+
+- **F1, refutation (pre-existing in `Impl.lean`, made stronger by (a)):** a lock outlives its fd's `close`
+  while a mapping of the file is live (the mapping holds the `struct file`; OFD/flock locks go at the last
+  `__fput`, `locks_remove_file`). `f1` locks (`F_OFD_SETLK F_WRLCK`, or `flock LOCK_EX|LOCK_NB`), `mmap`s,
+  closes; `f2`'s same request returns `EAGAIN` until the `munmap` (measured on Linux 7.0 / ext4:
+  `/shared/tmp/wallink-attack/mmaplock/main.go`). The model's `Close` drops the fd and its locks (`OsMap` has
+  no description), so `LockConflict` is false: plain `fsSem` already excludes `EAGAIN` there (`LockStep`'s
+  `nb → EAGAIN → conflict`); under `NoIoErr` with (a) every error is excluded. False texts:
+  `locks_close_crash.go` ("a lock surviving its fd's close" excluded), `Impl.lean`'s header sentence,
+  `NoIoErr`'s "no other fd of the process conflicts". Fixes proposed: descriptions with identity kept alive
+  by mappings (locks released at the last `Munmap`), or `Close` stuck while the description holds a lock
+  and a mapping of it is live (bbolt's order munmap → funlock → close stays provable). Untested second
+  route: Go's `poll.FD` defers `close(2)` while another goroutine is in a syscall on the file.
+- **F2, premise false of real runs (pre-existing since 2026-11-15, kept by (a)):** `RemoveAll` of a
+  directory with > 1024 entries while another goroutine creates an entry: Go's chunked passes remove the new
+  entry while an original remains (30/30, `/shared/tmp/wallink-attack/rmall/main.go`); the model reproduces
+  that only by `Unlink` failing with `ENOENT` and no effect on an existing entry, which `NoIoErr` (`Unlink`
+  covered) excludes. The WAL's `RemoveAll`s (no concurrency) are unaffected. Fix proposed: model the 1024-name
+  chunking directly (a read that stops before its end) instead of spurious `ENOENT`.
+- Checked, no gap: lock errnos without a conflict (`ENOLCK`/memory; `EINTR`/`EDEADLK` need a conflict;
+  `EBADF`/`EINVAL` stuck in the model), `getdents64` on live and dead directories (`ENOENT` kept),
+  `noIoErr_keeps`, the excluded/allowed lists, not covering `LstatDir`/`PathKind`/`FdKind`. Nit: add "no LSM
+  denies a lock" (`security_file_lock`) to C's environment.
+- No proof uses (a) yet.
