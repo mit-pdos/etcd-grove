@@ -19,6 +19,12 @@
   report raft spec changes; STOP if trusted text); then rnNewStorageOk out of etcdstart.premises
   (`rnNewStorageOk_holds`, linked by hand, tcb-report must see it linked; storage.Release is now only RnNewStorage's
   callee); P2; tcb --check --update; collections; interfaces; Links; examples' Go; STOP with closed statements.
+- **STOPPED at Hm1 (trusted text):** `MemoryStorage.CreateSnapshot` copies `*cs` by `proto.Clone`, whose trust-boundary
+  spec `proto.CloneConfState.spec` (`Spec/google_golang_org/protobuf/proto/CloneConfState.lean`) maps `ownCSM` (=
+  `csPts … false`) to `ownCSM`: the clone's AutoLeave pointer being set is not derivable. Options for etcd-grove-03:
+  (A) a third conjunct in `CloneConfState.spec`, `csPts p dq c true → csPts p dq c true ∗ csPts p' 1 c true` (as
+  `CloneSnapshot.spec` already has for `ownSnapS`); (B) no trusted text: let the WAL's canonical metadata follow the
+  AutoLeave pointer's presence (`srvSnapMetaC md al uf`, `walSnapCanon` over `al`). Nothing edited for Hm1 yet.
 - **Pitfalls:** never two lean-check files needing rebuilds at once; `--split` spurious kernel error on raftNode__start;
   gen-link needs LAKE_OPTS and reads `etc/link-lean-first-*.txt`, not the proofs' binders.
 
