@@ -1,6 +1,6 @@
 /-
-`c.DenyConditions()` (`conditionsmap.go`): an iterator over `c.denyConditions`. Lean-first (no
-Rocq counterpart).
+`c.DenyConditions()` (`conditionsmap.go`): an iterator over `c.denyConditions` (read-only for
+good: the iterator reads it when called). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -27,10 +27,10 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 /-- See the file header. -/
 abbrev ConditionsMap.DenyConditions.spec : Prop :=
-  ∀ (c : ConditionsMap) (dq : DFrac) (cs : List GoInterface),
-  {{ (c.denyConditions' ↦*{dq} cs : IProp GF) }}
+  ∀ (c : ConditionsMap) (cs : List GoInterface),
+  {{ (c.denyConditions' ↦*□ cs : IProp GF) }}
     (App (Val (c @!! ConditionsMap.ty @!! go!"DenyConditions")) (Val #()))
-  {{ (f : GoFunc), RET #f; c.denyConditions' ↦*{dq} cs ∗ seqOk (GF := GF) f cs }}
+  {{ (f : GoFunc), RET #f; seqOk (GF := GF) f cs }}
 
 end spec
 

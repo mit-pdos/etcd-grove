@@ -1,6 +1,6 @@
 /-
-`c.NoOpinionConditions()` (`conditionsmap.go`): an iterator over `c.noOpinionConditions`.
-Lean-first (no Rocq counterpart).
+`c.NoOpinionConditions()` (`conditionsmap.go`): an iterator over `c.noOpinionConditions`
+(read-only for good: the iterator reads it when called). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -27,10 +27,10 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 /-- See the file header. -/
 abbrev ConditionsMap.NoOpinionConditions.spec : Prop :=
-  ∀ (c : ConditionsMap) (dq : DFrac) (cs : List GoInterface),
-  {{ (c.noOpinionConditions' ↦*{dq} cs : IProp GF) }}
+  ∀ (c : ConditionsMap) (cs : List GoInterface),
+  {{ (c.noOpinionConditions' ↦*□ cs : IProp GF) }}
     (App (Val (c @!! ConditionsMap.ty @!! go!"NoOpinionConditions")) (Val #()))
-  {{ (f : GoFunc), RET #f; c.noOpinionConditions' ↦*{dq} cs ∗ seqOk (GF := GF) f cs }}
+  {{ (f : GoFunc), RET #f; seqOk (GF := GF) f cs }}
 
 end spec
 

@@ -1,6 +1,6 @@
 /-
-`c.AllowConditions()` (`conditionsmap.go`): an iterator over `c.allowConditions`. Lean-first (no
-Rocq counterpart).
+`c.AllowConditions()` (`conditionsmap.go`): an iterator over `c.allowConditions` (read-only for
+good: the iterator reads it when called). Lean-first (no Rocq counterpart).
 -/
 module
 
@@ -27,10 +27,10 @@ variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumption
 
 /-- See the file header. -/
 abbrev ConditionsMap.AllowConditions.spec : Prop :=
-  ∀ (c : ConditionsMap) (dq : DFrac) (cs : List GoInterface),
-  {{ (c.allowConditions' ↦*{dq} cs : IProp GF) }}
+  ∀ (c : ConditionsMap) (cs : List GoInterface),
+  {{ (c.allowConditions' ↦*□ cs : IProp GF) }}
     (App (Val (c @!! ConditionsMap.ty @!! go!"AllowConditions")) (Val #()))
-  {{ (f : GoFunc), RET #f; c.allowConditions' ↦*{dq} cs ∗ seqOk (GF := GF) f cs }}
+  {{ (f : GoFunc), RET #f; seqOk (GF := GF) f cs }}
 
 end spec
 
