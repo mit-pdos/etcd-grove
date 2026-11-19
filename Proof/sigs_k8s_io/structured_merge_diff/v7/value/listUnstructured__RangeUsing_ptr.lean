@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,13 @@ variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructured.RangeUsing_ptr.wp_proof
     (h_listUnstructured_RangeUsing : value.listUnstructured.RangeUsing.spec (GF := GF)) :
-    value.listUnstructured.RangeUsing_ptr.spec (GF := GF) := by
-  sorry
+    value.listUnstructured.RangeUsing_ptr.spec (GF := GF) := fun p vs al => by
+  wp_start as ⟨Hl, Ha⟩
+  icases isListV_ptr $$ Hl with ⟨%sl, #Hp, Hl⟩
+  wp_auto
+  wp_apply h_listUnstructured_RangeUsing sl vs al $$ [Hl Ha] as %r Hr
+  · iframe
+  wp_end
 
 end proof
 

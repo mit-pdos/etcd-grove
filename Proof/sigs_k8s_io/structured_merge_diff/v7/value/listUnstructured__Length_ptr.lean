@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,13 @@ variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructured.Length_ptr.wp_proof
     (h_listUnstructured_Length : value.listUnstructured.Length.spec (GF := GF)) :
-    value.listUnstructured.Length_ptr.spec (GF := GF) := by
-  sorry
+    value.listUnstructured.Length_ptr.spec (GF := GF) := fun p vs => by
+  wp_start as Hl
+  icases isListV_ptr $$ Hl with ⟨%sl, #Hp, Hl⟩
+  wp_auto
+  wp_apply h_listUnstructured_Length sl vs $$ [Hl] as %r %Hr
+  · iexact Hl
+  wp_end
 
 end proof
 

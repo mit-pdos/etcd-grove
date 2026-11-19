@@ -9,6 +9,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocValueUnstructured
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocValueUnstructured
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__reuse
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -34,8 +35,35 @@ theorem value.listUnstructured.AtUsing.wp_proof
     (h_heapAllocator_allocValueUnstructured : value.heapAllocator.allocValueUnstructured.spec (GF := GF))
     (h_freelistAllocator_allocValueUnstructured : value.freelistAllocator.allocValueUnstructured.spec (GF := GF))
     (h_valueUnstructured_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
-    value.listUnstructured.AtUsing.spec (GF := GF) := by
-  sorry
+    value.listUnstructured.AtUsing.spec (GF := GF) := fun l vs al n x => by
+  wp_start as ⟨Hl, Ha, %Hx⟩
+  icases isListV_val $$ Hl with ⟨%xs, #Hs, HL⟩
+  ihave ⟨%i, %Hxi, Hi⟩ := isIfaceL_lookup xs vs _ x Hx.2 $$ HL
+  ihave %Hsl := ownSlice_len $$ Hs
+  have hlt : (BitVec.toInt n).toNat < xs.length := (List.getElem?_eq_some_iff.mp Hxi).1
+  have hb : 0 ≤ sint.Z n ∧ sint.Z n < sint.Z l.len := by constructor <;> word
+  icases isAlloc_concrete_law_holds al $$ Ha with ⟨Ha, (⟨%p, %rfl⟩ | ⟨%p, %rfl⟩)⟩
+  · wp_auto
+    simp only [hb, and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index l (sint.Z n) xs DFrac.discard i (by word) as -
+    · isplitr
+      · iexact Hs
+      · ipureintro; exact Hxi
+    wp_apply h_heapAllocator_allocValueUnstructured p as %q Hq
+    wp_apply h_valueUnstructured_reuse q i x $$ [Hq Hi] as %v ⟨%rfl, Hv⟩
+    · iframe
+    wp_end
+  · wp_auto
+    simp only [hb, and_self, ↓reduceIte]
+    wp_apply wp_load_slice_index l (sint.Z n) xs DFrac.discard i (by word) as -
+    · isplitr
+      · iexact Hs
+      · ipureintro; exact Hxi
+    wp_apply h_freelistAllocator_allocValueUnstructured p $$ [Ha] as %q ⟨Ha, Hq⟩
+    · iexact Ha
+    wp_apply h_valueUnstructured_reuse q i x $$ [Hq Hi] as %v ⟨%rfl, Hv⟩
+    · iframe
+    wp_end
 
 end proof
 

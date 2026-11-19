@@ -7,6 +7,7 @@ module
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocValueUnstructured
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.valueUnstructured__reuse
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -31,8 +32,14 @@ variable [package_sem : value.Assumptions]
 theorem value.NewValueInterface.wp_proof
     (h_heapAllocator_allocValueUnstructured : value.heapAllocator.allocValueUnstructured.spec (GF := GF))
     (h_valueUnstructured_reuse : value.valueUnstructured.reuse.spec (GF := GF)) :
-    value.NewValueInterface.spec (GF := GF) := by
-  sorry
+    value.NewValueInterface.spec (GF := GF) := fun i x => by
+  wp_start as Hi
+  icases valuePkg_globals $$ Hpkg with ⟨%ha, %er, #Hha, -⟩
+  wp_auto
+  wp_apply h_heapAllocator_allocValueUnstructured ha as %q Hq
+  wp_apply h_valueUnstructured_reuse q i x $$ [Hq Hi] as %v ⟨%rfl, Hv⟩
+  · iframe
+  wp_end
 
 end proof
 

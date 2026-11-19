@@ -63,6 +63,15 @@ end
 
 attribute [instance] isIface_pers isIfaceL_pers isIfaceM_pers
 
+instance isListV_pers (l : value.List') (vs : List UVal) : Persistent (isListV (GF := GF) l vs) := by
+  unfold isListV; infer_instance
+instance isMapV_pers (m : value.Map) (kvs : List (GoString × UVal)) :
+    Persistent (isMapV (GF := GF) m kvs) := by
+  unfold isMapV; infer_instance
+instance isMapO_pers (m : value.Map) (o : Option (List (GoString × UVal))) :
+    Persistent (isMapO (GF := GF) m o) := by
+  cases o <;> unfold isMapO <;> infer_instance
+
 /-! ## The package's named types are distinct -/
 
 theorem emptyRange_ne_listUnstructuredRange :
@@ -142,7 +151,138 @@ theorem isMapV_intro (gm : GoMap) (kvs : List (GoString × UVal)) :
   ipureintro
   rfl
 
+/-! ## Ranges -/
+
+theorem ownRange_intro (q : Loc) (sl : GoSlice) (w : Loc) (iw : w64) (vs : List UVal) (i : Int)
+    (hi : iw.toInt = i) :
+    q ↦ value.listUnstructuredRange.mk sl w iw ∗
+      isIface (GF := GF) (interface.mkOk sliceIfaceTy #sl) (.list vs) ∗ wrapperOwn (GF := GF) w ⊢
+      ownRange (GF := GF) (interface.mkOk (go.GoType.PointerType value.listUnstructuredRange.ty) #q) vs
+        i := by
+  iintro ⟨Hq, Hi, Hw⟩
+  iunfold ownRange
+  iright
+  iexists q, sl, w, iw
+  iframe
+  ipureintro
+  exact ⟨rfl, hi⟩
+
+/-! ## Lists -/
+
+theorem isIfaceL_length (xs : List GoInterface) (vs : List UVal) :
+    isIfaceL (GF := GF) xs vs ⊢ ⌜xs.length = vs.length⌝ := by
+  induction vs generalizing xs with
+  | nil => cases xs <;> simp [isIfaceL]
+  | cons v vs ih =>
+    cases xs with
+    | nil => simp [isIfaceL]
+    | cons x xs =>
+      iintro H
+      iunfold isIfaceL at H
+      icases H with ⟨-, H⟩
+      ihave %h := ih xs $$ H
+      ipureintro
+      simp [h]
+
+theorem isIfaceL_lookup (xs : List GoInterface) (vs : List UVal) (k : Nat) (x : UVal)
+    (hk : vs[k]? = some x) :
+    isIfaceL (GF := GF) xs vs ⊢ ∃ i, ⌜xs[k]? = some i⌝ ∗ isIface (GF := GF) i x := by
+  induction vs generalizing xs k with
+  | nil => simp at hk
+  | cons v vs ih =>
+    cases xs with
+    | nil => simp [isIfaceL]; exact false_elim
+    | cons y ys =>
+      iintro H
+      iunfold isIfaceL at H
+      icases H with ⟨Hy, H⟩
+      cases k with
+      | zero =>
+        simp at hk; subst hk
+        iexists y; iframe; ipureintro; rfl
+      | succ k =>
+        simp at hk
+        simp only [List.getElem?_cons_succ]
+        iapply ih ys k hk
+        iexact H
+
+theorem isListV_val (l : GoSlice) (vs : List UVal) :
+    isListV (GF := GF) (interface.mkOk value.listUnstructured.ty #l) vs ⊢
+      ∃ xs, l ↦*{DFrac.discard} xs ∗ isIfaceL (GF := GF) xs vs := by
+  iintro Hl
+  iunfold isListV at Hl
+  icases Hl with ⟨%sl, Hi, (%Heq | ⟨%p, %Heq, -⟩)⟩
+  · simp [intoVal_eq_iff] at Heq
+    subst Heq
+    iunfold isIface at Hi
+    icases Hi with ⟨%sl', %xs, %Heq, Hs, HL⟩
+    simp [intoVal_eq_iff] at Heq
+    subst Heq
+    iexists xs
+    iframe
+  · simp [value.listUnstructured.ty] at Heq
+
+theorem isListV_iface (l : GoSlice) (vs : List UVal) :
+    isListV (GF := GF) (interface.mkOk value.listUnstructured.ty #l) vs ⊢
+      isIface (GF := GF) (interface.mkOk sliceIfaceTy #l) (.list vs) := by
+  iintro Hl
+  iunfold isListV at Hl
+  icases Hl with ⟨%sl, Hi, (%Heq | ⟨%p, %Heq, -⟩)⟩
+  · simp [intoVal_eq_iff] at Heq
+    subst Heq
+    iexact Hi
+  · simp [value.listUnstructured.ty] at Heq
+
+theorem isListV_ptr (p : Loc) (vs : List UVal) :
+    isListV (GF := GF) (interface.mkOk (go.GoType.PointerType value.listUnstructured.ty) #p) vs ⊢
+      ∃ sl : GoSlice, p ↦□ sl ∗ isListV (GF := GF) (interface.mkOk value.listUnstructured.ty #sl) vs := by
+  iintro Hl
+  iunfold isListV at Hl
+  icases Hl with ⟨%sl, #Hi, (%Heq | ⟨%p', %Heq, #Hp⟩)⟩
+  · simp [value.listUnstructured.ty] at Heq
+  · simp [intoVal_eq_iff] at Heq
+    subst Heq
+    iexists sl
+    isplitr
+    · iexact Hp
+    iunfold isListV
+    iexists sl
+    isplitr
+    · iexact Hi
+    ileft
+    ipureintro
+    rfl
+
 end lemmas
+
+/-! ## The stated laws -/
+
+section laws
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+theorem isMapV_persistent_law_holds : isMapV_persistent.law (GF := GF) := fun _ _ => by
+  iintro #H; imodintro; iexact H
+theorem isListV_persistent_law_holds : isListV_persistent.law (GF := GF) := fun _ _ => by
+  iintro #H; imodintro; iexact H
+
+theorem isAlloc_concrete_law_holds : isAlloc_concrete.law (GF := GF) := by
+  intro a
+  iintro Ha
+  iunfold isAlloc at Ha
+  icases Ha with (⟨%p, %h⟩ | ⟨%p, %fa, %h, #Hp, H1, H2⟩)
+  · isplitl
+    · iunfold isAlloc; ileft; iexists p; ipureintro; exact h
+    · ileft; iexists p; ipureintro; exact h
+  · isplitl
+    · iunfold isAlloc; iright; iexists p, fa; iframe; isplitr
+      · ipureintro; exact h
+      · iexact Hp
+    · iright; iexists p; ipureintro; exact h
+
+end laws
 
 end smd
 end EtcdGrove

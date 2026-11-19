@@ -7,6 +7,7 @@ module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__At_ptr
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__At
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
 
 @[expose] public section
 
@@ -30,8 +31,13 @@ variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructured.At_ptr.wp_proof
     (h_listUnstructured_At : value.listUnstructured.At.spec (GF := GF)) :
-    value.listUnstructured.At_ptr.spec (GF := GF) := by
-  sorry
+    value.listUnstructured.At_ptr.spec (GF := GF) := fun p vs n x => by
+  wp_start as ⟨Hl, %Hx⟩
+  icases isListV_ptr $$ Hl with ⟨%sl, #Hp, Hl⟩
+  wp_auto
+  wp_apply h_listUnstructured_At sl vs n x $$ [Hl] as %v Hv
+  · iframe; ipureintro; exact Hx
+  wp_end
 
 end proof
 
