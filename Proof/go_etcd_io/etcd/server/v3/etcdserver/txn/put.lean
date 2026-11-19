@@ -74,7 +74,7 @@ local macro "put_reply" vsl:term:max v:term:max l:term:max : tactic => `(tactic|
         $(frameH `Hown)]
       as ⟨Htx, Htrc, Hown⟩
     · ipureintro
-      refine ⟨Hklen, Hob.1, by first | exact Hob.2 rfl | exact Hsv, ?_⟩
+      refine ⟨Hklen, ⟨Hob.1, by first | exact Hob.2 rfl | exact Hsv⟩, ?_⟩
       (try simp only [hf, Option.map_some, Option.getD_some, Option.map_none, Option.getD_none,
         Bool.or_false, Bool.false_or, Bool.or_true, Bool.true_or, Bool.false_eq_true, ↓reduceIte] at Hwin)
       exact Hwin
