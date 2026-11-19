@@ -40826,7 +40826,8 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
   While another `Write` holds the lock, a first step has no outcome: the one exception to D22's
   "every state has an outcome besides the stutter" (`Tests.lean`'s `isNetStep_total` now excludes
   `WriteWaits`); it is faithful, since Go's waiter waits too, and the holder's steps always have
-  outcomes. `Close` does not take the lock (`increfAndClose`): the holder's next step fails `closed`
+  outcomes. **Approved by the user (2026-11-19):** "stuttering is ok for Write because it's sound to
+  do so". `Close` does not take the lock (`increfAndClose`): the holder's next step fails `closed`
   and releases it, and the waiter then fails `closed`, as Go's (`(0, ErrClosed)`, measured).
   Ghost side: the network holds a token per end while its lock is free (`lockCtx`); the token,
   `netWLock c s`, goes to the caller of a first step that does not end the loop and back at the
