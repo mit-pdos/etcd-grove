@@ -43,6 +43,44 @@ theorem LawProofs.typeRef_zero_iff [GooseExts] (tr : schema.TypeRef) :
     · rintro ⟨rfl, rfl, rfl, rfl⟩; rfl
     · intro h; cases h; exact ⟨rfl, rfl, rfl, rfl⟩
 
+/-! ## The lazy indexes' contents (`lastNamed`) -/
+
+theorem LawProofs.lastNamed_foldl {α : Type} (name : α → GoString) (n : GoString) :
+    ∀ (xs : List α) (acc : Option α),
+    xs.foldl (fun acc x => if name x = n then some x else acc) acc =
+      (xs.foldl (fun acc x => if name x = n then some x else acc) none).or acc
+  | [], acc => by simp
+  | x :: xs, acc => by
+      simp only [List.foldl_cons]
+      rw [LawProofs.lastNamed_foldl name n xs, LawProofs.lastNamed_foldl name n xs
+        (if name x = n then some x else none)]
+      by_cases h : name x = n <;> simp [h]
+
+theorem LawProofs.lastNamed_nil {α : Type} (name : α → GoString) (n : GoString) :
+    lastNamed name n ([] : List α) = none := by unfold lastNamed; rfl
+
+theorem LawProofs.lastNamed_cons {α : Type} (name : α → GoString) (n : GoString) (x : α)
+    (xs : List α) :
+    lastNamed name n (x :: xs) = (lastNamed name n xs).or (if name x = n then some x else none) := by
+  unfold lastNamed
+  simp only [List.foldl_cons]
+  rw [LawProofs.lastNamed_foldl]
+
+theorem LawProofs.lastNamed_snoc {α : Type} (name : α → GoString) (n : GoString) (xs : List α)
+    (x : α) :
+    lastNamed name n (xs ++ [x]) = if name x = n then some x else lastNamed name n xs := by
+  unfold lastNamed
+  simp [List.foldl_append]
+
+theorem LawProofs.lookupKV_none_of_not_mem {α : Type} {n : GoString} :
+    ∀ {xs : List (GoString × α)}, n ∉ xs.map (·.1) → lookupKV n xs = none
+  | [], _ => rfl
+  | (k, v) :: rest, h => by
+      simp only [List.map_cons, List.mem_cons, not_or] at h
+      unfold lookupKV
+      simp only [Ne.symm h.1, ite_false]
+      exact LawProofs.lookupKV_none_of_not_mem h.2
+
 section laws
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -134,6 +172,127 @@ theorem LawProofs.isTypeRefOpt_er (tr : schema.TypeRef) (ot : Option TypeRef) :
 
 theorem isStructField_elim_law_holds : isStructField_elim.law (GF := GF) := fun sf f => by
   unfold isStructField; exact .rfl
+
+/-! ## Opening a schema's and a map type's lazy index (for `FindNamedType`, `Map.FindField`) -/
+
+theorem LawProofs.isTypeDefs_lookup (n : GoString) : ∀ (tds : List schema.TypeDef)
+    (ts : List (GoString × Atom)), (ts.map (·.1)).Nodup →
+    isTypeDefs (GF := GF) false tds ts ⊢
+      match lookupKV n ts with
+      | some A => ∃ td, ⌜lastNamed (·.Name') n tds = some td ∧ td.Name' = n⌝ ∗
+          isAtomOpt td.Atom' (some A)
+      | none => ⌜lastNamed (·.Name') n tds = none⌝
+  | [], [], _ => by
+      simp only [lookupKV]; iintro _; ipureintro; exact LawProofs.lastNamed_nil _ _
+  | [], _ :: _, _ => by unfold isTypeDefs; iintro %h; exact h.elim
+  | _ :: _, [], _ => by unfold isTypeDefs; iintro %h; exact h.elim
+  | td :: tds, (k, a) :: rest, hnd => by
+      simp only [List.map_cons, List.nodup_cons] at hnd
+      have ih := LawProofs.isTypeDefs_lookup n tds rest hnd.2
+      rw [isTypeDefs.eq_2]
+      iintro ⟨%hk, #Ha, Hr⟩
+      rw [LawProofs.lastNamed_cons]
+      unfold lookupKV
+      by_cases hkn : k = n
+      · subst hkn
+        have hnone := LawProofs.lookupKV_none_of_not_mem (n := k) hnd.1
+        rw [hnone] at ih
+        ihave %hl := ih $$ Hr
+        simp only [hl, hk, ite_true, Option.none_or]
+        iexists td
+        isplitr
+        · ipureintro; exact ⟨rfl, hk⟩
+        · unfold isAtomOpt; iexact Ha
+      · have hkn' : td.Name' ≠ n := by rw [hk]; exact hkn
+        simp only [hkn, hkn', ite_false, Option.or_none]
+        iapply ih
+        iexact Hr
+
+theorem LawProofs.isFields_lookup (n : GoString) : ∀ (sfs : List schema.StructField)
+    (fs : List (GoString × TypeRef)), (fs.map (·.1)).Nodup →
+    isFields (GF := GF) sfs fs ⊢
+      match lookupKV n fs with
+      | some t => ∃ sf, ⌜lastNamed (·.Name') n sfs = some sf⌝ ∗ isStructField sf (n, t)
+      | none => ⌜lastNamed (·.Name') n sfs = none⌝
+  | [], [], _ => by
+      simp only [lookupKV]; iintro _; ipureintro; exact LawProofs.lastNamed_nil _ _
+  | [], _ :: _, _ => by unfold isFields; iintro %h; exact h.elim
+  | _ :: _, [], _ => by unfold isFields; iintro %h; exact h.elim
+  | sf :: sfs, (k, t) :: rest, hnd => by
+      simp only [List.map_cons, List.nodup_cons] at hnd
+      have ih := LawProofs.isFields_lookup n sfs rest hnd.2
+      rw [isFields.eq_2]
+      iintro ⟨#Hf, Hr⟩
+      ihave #Hf2 := Hf
+      iunfold isStructField at Hf2
+      icases Hf2 with ⟨%hk0, -⟩
+      have hk : sf.Name' = k := hk0.1
+      rw [LawProofs.lastNamed_cons]
+      unfold lookupKV
+      by_cases hkn : k = n
+      · subst hkn
+        have hnone := LawProofs.lookupKV_none_of_not_mem (n := k) hnd.1
+        rw [hnone] at ih
+        ihave %hl := ih $$ Hr
+        simp only [hl, hk, ite_true, Option.none_or]
+        iexists sf
+        isplitr
+        · ipureintro; rfl
+        · iexact Hf
+      · have hkn' : sf.Name' ≠ n := by rw [hk]; exact hkn
+        simp only [hkn, hkn', ite_false, Option.or_none]
+        iapply ih
+        iexact Hr
+
+/-- **A shared schema, opened**: its type definitions and the once guarding its name index. -/
+theorem LawProofs.isSchema_open (sc : Loc) (S : Schema) :
+    isSchema (GF := GF) sc S ⊢
+      ∃ (tys : GoSlice) (tds : List schema.TypeDef),
+        sc.[schema.Schema, go!"Types"] ↦□ tys ∗ tys ↦*{DFrac.discard} tds ∗
+        (□ ∀ n, ⌜(S.types.map (·.1)).Nodup⌝ -∗
+          match S.find n with
+          | some A => ∃ td, ⌜lastNamed (·.Name') n tds = some td ∧ td.Name' = n⌝ ∗
+              isAtomOpt td.Atom' (some A)
+          | none => ⌜lastNamed (·.Name') n tds = none⌝) ∗
+        sync.isOnce sc.[schema.Schema, go!"once"]
+          iprop(sc.[schema.Schema, go!"m"] ↦ (zero_val (sync.atomic.Pointer GoMap)))
+          iprop(∃ (mp mm : Loc) (M : GMap GoString schema.TypeDef),
+            sync.atomic.ownPointer (T' := GoMap) sc.[schema.Schema, go!"m"] DFrac.discard mp ∗
+            mp ↦□ mm ∗ mm ↦$□ M ∗ ⌜∀ n, M !! n = lastNamed (·.Name') n tds⌝) := by
+  unfold isSchema schemaRep lazyIndex Schema.find
+  simp only [Bool.false_eq_true, ite_false]
+  iintro ⟨%tys, %tds, #Ht, #Hs, #Hd, #Ho⟩
+  iexists tys, tds
+  iframe #
+  imodintro
+  iintro %n %hnd
+  iapply LawProofs.isTypeDefs_lookup n tds S.types hnd
+  iexact Hd
+
+/-- **A map type, opened**: its fields and the once guarding its field index. -/
+theorem LawProofs.isMapRep_open (m : Loc) (fs : List (GoString × TypeRef)) (e : Option TypeRef)
+    (rel : ElemRel) :
+    isMapRep (GF := GF) m fs e rel ⊢
+      ∃ (fsl : GoSlice) (sfs : List schema.StructField),
+        m.[schema.Map, go!"Fields"] ↦□ fsl ∗ fsl ↦*{DFrac.discard} sfs ∗
+        (□ ∀ n, ⌜(fs.map (·.1)).Nodup⌝ -∗
+          match lookupKV n fs with
+          | some t => ∃ sf, ⌜lastNamed (·.Name') n sfs = some sf⌝ ∗ isStructField sf (n, t)
+          | none => ⌜lastNamed (·.Name') n sfs = none⌝) ∗
+        sync.isOnce m.[schema.Map, go!"once"]
+          iprop(m.[schema.Map, go!"m"] ↦ (zero_val (sync.atomic.Pointer GoMap)))
+          iprop(∃ (mp mm : Loc) (M : GMap GoString schema.StructField),
+            sync.atomic.ownPointer (T' := GoMap) m.[schema.Map, go!"m"] DFrac.discard mp ∗
+            mp ↦□ mm ∗ mm ↦$□ M ∗ ⌜∀ n, M !! n = lastNamed (·.Name') n sfs⌝) := by
+  unfold isMapRep mapRep lazyIndex
+  simp only [Bool.false_eq_true, ite_false]
+  iintro ⟨%fsl, %sfs, %us, %etv, #Hf, #Hs, #Hd, -, -, -, -, -, #Ho⟩
+  iexists fsl, sfs
+  iframe #
+  imodintro
+  iintro %n %hnd
+  iapply LawProofs.isFields_lookup n sfs fs hnd
+  iexact Hd
 
 end laws
 
