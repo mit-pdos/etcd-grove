@@ -535,3 +535,24 @@ bbolt's proofs do not reach is recorded as a known model gap, not fixed):
   header, `LockStep`, `Close`); "no other process locks or unlocks them, through any description";
   `TestNoIoErrProtectedSymlinks` skips on `EOVERFLOW`; `TestLocksMmapKeepsDescription`'s control retries `EAGAIN`.
 No Lean definition changed (docstrings only).
+
+### The final attack (2026-11-19 w, read-only subagent, axiom skill; target b65bc3e75c): no STOP
+
+Evidence `/shared/tmp/walfsfix-attack5/` (no loop devices in the container: measured on Linux 7.0 with `/shared`'s ext4
+and a tmpfs, kernel-wide behaviours). Today only the WAL uses `NoIoErr`, through `fsync_noErr`/`wp_osFsyncNE`,
+`wp_osPWriteFinishKNE` and `wp_osDirCloseSNE`; path coverage, lock coverage and `PathErrno` are used by no proof yet.
+By the stopping rule, recorded as **known model gaps** (`notes/audit.md`, "Found by the final attack on `wal-fsfix`"),
+not fixed:
+1. a leaked locked `*os.File`: Go's finalizer closes it and releases its locks, the model keeps them (refutes
+   `LockStep` for such a program; `TrustedCode/os.lean`'s "finalizer (D5) unrelated" is false since locks; the WAL and
+   bbolt never leak a file);
+2. read permission on directories missing from C's permissions (`EACCES` from `os.Open` of a `-wx` directory):
+   **becomes reachable once `Create.specNoErr` covers its `OpenDir`/`ReadDir`** — to fix (one wording) before that
+   proof relies on it;
+3. `ETXTBSY` for an open for writing of an executing file (real on 7.0; session 7's "gone on 7.0" was a flawed run);
+4. the idmapped mount must map the entries' owners too (`may_delete`'s `EOVERFLOW` before `PathErrno`'s cases);
+5. minor: "memory for their locks and reads" should be "memory for these calls".
+Holding (the attack's checks): no `ENOENT` from `open` racing `rename` replacing the name (1M opens); the Go models'
+1 GiB chunking; `File.Fd`/`poll.FD` deferred close (stuck in the model); locks (hidden descriptions only make blocking
+requests wait; no `EDEADLK`; flock/OFD independent; `MapDesc` with fd reuse); the remaining errnos of the covered fd
+calls are the environment's; `PathFits`; `PathErrno`'s order (but 4); `model.stat` consistent under `NoIoErr`.
