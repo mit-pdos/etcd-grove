@@ -1,6 +1,30 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 q, lean merged (pin f551); clients edited, NOT yet checked; first full build queued)
+## START HERE (2026-11-19 r, full build GREEN at b5ba70baa2; next: Hm1)
+
+- **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`
+  everywhere (`.lake/package-overrides.json` = its copy). Full build: `/shared/tmp/build-slot.sh etc/timed-build.py
+  --packages=/shared/tmp/manifest-f55.json`. Green build id `20261119-080329-2994864` (log `/shared/tmp/wallink/b-merge6.log`).
+- **Decided by etcd-grove-03 (questions.md):** merge resolution, tier line `RaftModel.Laws -> proto.SizePb` (a merge
+  consequence; let it shrink later), client edits, `isWalStorage_ptr`, `vs.length < 2^16` in `srvRaftLogInv`, F2 lemmas.
+- **Session r fixes** (fbc5a2f2f4, feb9c11273, d8eb3738d2, b5ba70baa2): projections after `storageSnap`/`walSaveOk`/
+  `walCloseOk`/`walCreateOk`/`releaseOk` left `srvSnapRO`/`diskOk`/`snapOpensOk`/bootstrap contracts; `srvSnapDir`
+  and `srvSnapRO`'s `∃ h, isWalStorage`; `rnWalTokL` stop token first; `rnDurInv` at `νw.h`; walk post and
+  `run_job_snapC`'s notify payload `walSnapRec`; WAL and WalTester Links regenerated (Save's `SizeLaw` a hypothesis
+  like the other WalPbIn laws); server Link: `storage_storage__Release` off `etc/link-lean-first-server.txt`;
+  `LawsHs.wp_isHardStateEqual` → `walRaft_isHardStateEqual` (clashed with raft's Link); AuthApplyOn qualifies
+  `Perennial.go_etcd_io.etcd.server.v3.auth.authStore.ty` (the wal PkgInit import opens EtcdGrove's `server.v3`).
+- **Next, in order:** Hm1 (the last sorry, EtcdServer__snapshot ~l.380: applyConfChange `csPts … true`, rnApSnap
+  carrying ownSnapS, raft's Snapshot spec keeping "set" after InitialState, CreateSnapshot through proto.Clone;
+  report raft spec changes; STOP if trusted text); then rnNewStorageOk out of etcdstart.premises
+  (`rnNewStorageOk_holds`, linked by hand, tcb-report must see it linked; storage.Release is now only RnNewStorage's
+  callee); P2; tcb --check --update; collections; interfaces; Links; examples' Go; STOP with closed statements.
+- **Pitfalls:** never two lean-check files needing rebuilds at once; `--split` spurious kernel error on raftNode__start;
+  gen-link needs LAKE_OPTS and reads `etc/link-lean-first-*.txt`, not the proofs' binders.
+
+## History
+
+### START HERE (2026-11-19 q, lean merged (pin f551); clients edited, NOT yet checked; first full build queued)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; lean df37bd5157 merged (9bdb9cc03f): pin f551a1b46,
   `--packages=/shared/tmp/manifest-f55.json` everywhere, `.lake/package-overrides.json` = its copy; gen-init
@@ -24,8 +48,6 @@
 - **Next:** build errors in order; examples (drop `rnNewStorageOk` from etcdstart.premises via
   `rnNewStorageOk_holds`, linked by hand), P2, tcb/collections/interfaces/Links, examples' Go, closed-statement STOP.
 - **Pitfalls:** never two lean-check files needing rebuilds at once; `--split` spurious kernel error on raftNode__start.
-
-## History
 
 ### START HERE (2026-11-19 p, clients in progress: raft-loop side done, snapshot/apply/boot side next)
 
