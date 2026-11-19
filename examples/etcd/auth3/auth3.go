@@ -57,6 +57,7 @@ func startMember(name string, peer types.URLs, peerAddr string, client string, c
 	cfg := config.ServerConfig{
 		Name:                   name,
 		DataDir:                name + ".etcd",
+		DedicatedWALDir:        etcdstart.WALBase + "/" + name + ".etcd" + "/wal",
 		InitialPeerURLsMap:     cluster,
 		PeerURLs:               peer,
 		ClientURLs:             types.URLs{{Scheme: "http", Host: client}},

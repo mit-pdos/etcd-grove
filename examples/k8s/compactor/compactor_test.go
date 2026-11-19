@@ -19,6 +19,7 @@ import (
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestCompactor runs Main once, in a fresh data directory (the member's DataDir is relative), then
@@ -26,6 +27,7 @@ import (
 // and a watch from revision 1 is compacted (some round compacted).
 func TestCompactor(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "k8scompactor") // the members' WAL areas (wal-link P2)
 	Main()
 
 	cli, err := clientv3.New(clientv3.Config{Endpoints: []string{clientAddr}, Logger: zap.NewNop()})
@@ -67,6 +69,7 @@ type keyPut struct {
 // off, and returns a client of it.
 func startMember(t *testing.T, name, peer, client string) *clientv3.Client {
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, name) // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	s, err := etcdstart.StartCompactingServer(name, peer, client, 0, lg)
 	if err != nil {
@@ -301,6 +304,7 @@ func TestShared(t *testing.T) {
 // compactors ran: compact_rev_key holds a positive revision.
 func TestMainPartition(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "k8scompactorp") // the members' WAL areas (wal-link P2)
 	cfg := clusterConfig()
 	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {

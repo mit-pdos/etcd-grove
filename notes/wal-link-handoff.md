@@ -1,6 +1,25 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 w, Hm1 DONE (route B); next: P2)
+## START HERE (2026-11-19 x, P2 written: D1-D8; see "P2 progress")
+
+### P2 progress (2026-11-19 x)
+
+- **Branch** `wal-link`, pin f551a1b46, `--packages=/shared/tmp/manifest-f55.json`. Brief `/shared/tmp/wallink/p2-brief.md`.
+- **Done (e48d9b9fdc + the next commit):** D1 `FsExts.lean` (`etcdIoAll`, `etcdFsSem := fsSemWithS (NoIoErr etcdIoAll)
+  (fun _ _ => True)`, `etcdFsExts_semOk/_sat`, `etcdFs_start`); D2 `GooseLang/Ext/Fs/TreeSharedSwitchE.lean`
+  (`wp_osShare_e`); D3 `storage/WalLayout.lean` (`walBase`, `walAreaOf`, `srvWalDirOf`, `srvWalDirOf_lit`); D4/D5
+  `storage/WalAreaFresh.lean` (`walAreaFresh`), `wal.bootRes` = dataDirFresh ∗ ⌜DedicatedWALDir = srvWalDirOf dd⌝ ∗
+  walAreaFresh, bootOk/restartOk/srvFiles/srvDataDir/bootstrapRestartContract/StopApi over the dedicated directory,
+  `config.walDirOf` deleted; D6 `lib/etcdstart/WalAreas.lean` (`etcdWalAreasInit`, `walAreasFresh_boot`,
+  `wp_walAreas`), `AdequacyMembers.progOk_walAreas`, `memberStartRes`/`memberFreshRes` carry `walAreaFresh`; D7 Go
+  (`etcdstart.WALBase`, `DedicatedWALDir` in common.go/auth.go/auth3.go/authkv.go; tests reset areas with
+  `examples/lib/walarea`); D8 every closed theorem gains `HWal` (script `/shared/tmp/wallink/p2/d8.py`).
+- **Next:** the caller's full timed build; tcb `--check --update` (opaque `config.walDirOf` gone); interfaces; Go tests of
+  the remaining examples (putget, putget3, restart1 passed); STATUS.
+- **Pitfalls:** `WalA` literals inside `iexists` do not parse (commas): use the `abbrev etcdWalArea`; `memberStartRes`
+  now depends on the heap instance: pass `(hG := heapWith hG lctx)` where a fun-bound `hG` is in scope.
+
+### START HERE (2026-11-19 w, Hm1 DONE (route B); next: P2)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`, head 3aff0a96c5 (+ this handoff); pin f551a1b46,
   `--packages=/shared/tmp/manifest-f55.json` (`.lake/package-overrides.json` its copy). No full build since

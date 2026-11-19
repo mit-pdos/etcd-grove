@@ -30,6 +30,7 @@ import (
 	"go.etcd.io/etcd/server/v3/etcdserver"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 const (
@@ -192,6 +193,7 @@ func TestProbe(t *testing.T) {
 		t.Skip("PROBE_CFG unset")
 	}
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, "p3-1", "p3-2", "p3-3") // the members' WAL areas (wal-link P2)
 	c := counts{mu: &sync.Mutex{}, restarted: new(bool), before: map[string]int{},
 		after: map[string]int{}, fields: map[string][]string{}}
 	lg := zap.New(c)

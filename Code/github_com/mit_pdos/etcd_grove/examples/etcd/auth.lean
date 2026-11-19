@@ -162,28 +162,29 @@ noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(go!"authkv"))
   (Let "$v1" (Val #(go!"authkv.etcd"))
-  (Let "$v2" (Let "$k0" (Val #(go!"authkv"))
+  (Let "$v2" (Val #(go!"/tmp/etcd-grove-wal/authkv.etcd/wal"))
+  (Let "$v3" (Let "$k0" (Val #(go!"authkv"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v1")))]))))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$v4" (Let "$v0" (Val #(go!"http"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
+  (Let "$v5" (Let "$v0" (Val #(go!"http"))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val clientAddr))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "$v5" (Val #(go!"authkv"))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (Val #(W64 100))
-  (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (Val #(W64 10000))
-  (Let "$v10" (Val #(W64 281474976710656))
-  (Let "$v11" (Val #(W64 128))
-  (Let "$v12" (Val #(W64 1572864))
-  (Let "$v13" (Val #(go!"simple"))
-  (Let "$v14" (Val #(W64 300))
-  (Let "$v15" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v16" (Let "$a0" (Val #(go!"authkv"))
+  (Let "$v6" (Val #(go!"authkv"))
+  (Let "$v7" (Val #true)
+  (Let "$v8" (Val #(W64 100))
+  (Let "$v9" (Val #(W64 10))
+  (Let "$v10" (Val #(W64 10000))
+  (Let "$v11" (Val #(W64 281474976710656))
+  (Let "$v12" (Val #(W64 128))
+  (Let "$v13" (Val #(W64 1572864))
+  (Let "$v14" (Val #(go!"simple"))
+  (Let "$v15" (Val #(W64 300))
+  (Let "$v16" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v17" (Let "$a0" (Val #(go!"authkv"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v7"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v8"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"AuthToken")) (ElementExpression go.string (Var "$v13"))), (KeyedElement (some (KeyField go!"TokenTTL")) (ElementExpression go.uint (Var "$v14"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v15"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v16")))])))))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"DedicatedWALDir")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v8"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v13"))), (KeyedElement (some (KeyField go!"AuthToken")) (ElementExpression go.string (Var "$v14"))), (KeyedElement (some (KeyField go!"TokenTTL")) (ElementExpression go.uint (Var "$v15"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v16"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v17")))]))))))))))))))))))))
   (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
@@ -236,7 +237,7 @@ noncomputable def startServer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newUserClient connects a client of addr that authenticates as user name with password pw
     (clientv3.New calls Authenticate when it dials, and the token is sent with every request).
 
-    go: authkv.go:123:6 -/
+    go: authkv.go:124:6 -/
 noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "name"
@@ -275,7 +276,7 @@ noncomputable def newUserClient.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- InRange reports whether key k is in [lo, hi), the range role r is granted.
 
-    go: authkv.go:136:6 -/
+    go: authkv.go:137:6 -/
 noncomputable def InRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -292,7 +293,7 @@ noncomputable def InRange.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Permitted reports whether the auth state lets principal who read or write key k: u, through
     role r, on [lo, hi); nobody else, anywhere.
 
-    go: authkv.go:142:6 -/
+    go: authkv.go:143:6 -/
 noncomputable def Permitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "k"
@@ -311,7 +312,7 @@ noncomputable def Permitted.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- keyOf is the key x/<who>/<n>: once auth is on, written and deleted only by who.
 
-    go: authkv.go:147:6 -/
+    go: authkv.go:148:6 -/
 noncomputable def keyOf.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "who"
@@ -331,7 +332,7 @@ noncomputable def keyOf.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- reqCtx is a request's context, with the request timeout; the bad principal's carries its token.
 
-    go: authkv.go:152:6 -/
+    go: authkv.go:153:6 -/
 noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.context.Context.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.context.Context.ty))) (Val #())))
@@ -385,7 +386,7 @@ noncomputable def reqCtx.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- refused panics if err is nil: a request the auth state refuses who returned no error.
 
-    go: authkv.go:161:6 -/
+    go: authkv.go:162:6 -/
 noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "what"
@@ -404,7 +405,7 @@ noncomputable def refused.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- checkKVs panics unless every key-value of a reply who received is one who may read.
 
-    go: authkv.go:168:6 -/
+    go: authkv.go:169:6 -/
 noncomputable def checkKVs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "kvs"
@@ -435,7 +436,7 @@ noncomputable def checkKVs.impl [GooseExts] [GoGlobalContext] : val :=
 /-- checkTxnReads panics unless every range response among the transaction reply's ops holds only
     keys who may read (one level: the workload's transactions that may succeed nest none).
 
-    go: authkv.go:178:6 -/
+    go: authkv.go:179:6 -/
 noncomputable def checkTxnReads.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "who"
   (Lam "ops"
@@ -472,7 +473,7 @@ noncomputable def checkTxnReads.impl [GooseExts] [GoGlobalContext] : val :=
     each branch and a nested transaction reaching outside. A permitted request may fail (a
     timeout): only its reply, if any, is checked.
 
-    go: authkv.go:191:6 -/
+    go: authkv.go:192:6 -/
 noncomputable def Work.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Lam "who"
@@ -1044,7 +1045,7 @@ noncomputable def Work.impl [GooseExts] [GoGlobalContext] : val :=
     user root with the root role, role r granted READWRITE on [lo, hi), user u with role r and user
     v with no role. It returns false if a step failed.
 
-    go: authkv.go:285:6 -/
+    go: authkv.go:286:6 -/
 noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cli"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1354,7 +1355,7 @@ noncomputable def SetUp.impl [GooseExts] [GoGlobalContext] : val :=
 /-- Writer is the principal whose key k is once auth is on: the who of x/<who>/... for x in a and
     c, "" if k has no such shape.
 
-    go: authkv.go:328:6 -/
+    go: authkv.go:329:6 -/
 noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "k"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -1417,7 +1418,7 @@ noncomputable def Writer.impl [GooseExts] [GoGlobalContext] : val :=
     client lets an attempt be applied more than once (SetUp gives each put a persistent update),
     so the check does not depend on where in the history the set-up's puts are.
 
-    go: authkv.go:345:6 -/
+    go: authkv.go:346:6 -/
 noncomputable def SetupWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
@@ -1471,7 +1472,7 @@ noncomputable def SetupWrite.impl [GooseExts] [GoGlobalContext] : val :=
 /-- CheckHistory panics unless every watched event but root's last write (key endKey) and the
     set-up's puts (SetupWrite) is a write its key's principal was permitted.
 
-    go: authkv.go:358:6 -/
+    go: authkv.go:359:6 -/
 noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Lam "endKey"
@@ -1503,7 +1504,7 @@ noncomputable def CheckHistory.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- LastIn is the revision of the last event of evs in [lo, hi) (0 if there is none).
 
-    go: authkv.go:367:6 -/
+    go: authkv.go:368:6 -/
 noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "evs"
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int64))) (App (Val (GoInstruction (GoZeroVal go.int64))) (Val #())))
@@ -1539,7 +1540,7 @@ noncomputable def LastIn.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- Main starts the member, then runs the set-up, the workloads and the checks through it (Run).
 
-    go: authkv.go:378:6 -/
+    go: authkv.go:379:6 -/
 noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
@@ -1589,7 +1590,7 @@ noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
     history through root's watch, and u's watch of [lo, hi). It is Main after the member's start,
     shared with examples/etcd/auth3, whose first member it runs on.
 
-    go: authkv.go:391:6 -/
+    go: authkv.go:392:6 -/
 noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"

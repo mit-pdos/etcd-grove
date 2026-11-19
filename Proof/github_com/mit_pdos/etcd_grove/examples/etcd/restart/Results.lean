@@ -38,7 +38,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
 variable [go_gctx : GoGlobalContext]
 
 /-- **The three-member restart example is safe, in the operational semantics.**
@@ -124,6 +124,8 @@ theorem etcd_restart3_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_restart.premises (GF := restart3GF) (hG := heapAtR3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -132,7 +134,7 @@ theorem etcd_restart3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_restart3_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs
+  etcd_restart3_adequate Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n Hprem σ g Hfs HWal
     Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **`etcd_restart3_safe` as a robustness statement** (`Robustness.Robust`,
@@ -154,12 +156,14 @@ theorem etcd_restart3_robust
     (HEnv : verifyEnvOff restart3Program)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restart3GF,
       ⊢ etcd_restart.premises (GF := restart3GF) (hG := heapAtR3 hG lctx) n id₁ id₂ id₃ ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [(etcd_restart.name₁ ++ go!".etcd"), (etcd_restart.name₂ ++ go!".etcd"), (etcd_restart.name₃ ++ go!".etcd")]) :
     Robustness.Robust [] [(restart3Program, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
     (etcd_restart3_safe
       Hctx id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hdbo HNs HAs HDs HEnv n (Hprem n (by omega)) σ g
-      Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
+      Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
 

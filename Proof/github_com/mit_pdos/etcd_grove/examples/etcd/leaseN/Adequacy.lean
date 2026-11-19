@@ -52,7 +52,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
 
 /-! ## The closed theorem -/
 
@@ -92,6 +92,8 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_leaseN.premises (GF := putgetNGF) (hG := heapAtN hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_leaseN.leaseNDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -100,7 +102,7 @@ theorem etcd_leaseN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
-  refine etcd_adequate_members (GF := putgetNGF) (hAsLit := etcd_leaseN.leaseNAddrs_lit k hk)
+  refine etcd_adequate_members (GF := putgetNGF) (hbody := rfl) (HWal := HWal) (hn := by omega) (hAsLit := etcd_leaseN.leaseNAddrs_lit k hk)
     (HEnv := HEnv) github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseN.Main) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) (etcd_leaseN.leaseNAddrs k)

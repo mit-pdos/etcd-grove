@@ -115,7 +115,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
 variable [go_gctx : GoGlobalContext]
 
 /-- **The Kubernetes etcd3 store's linearizability instance is safe, in the operational semantics** (`k8s_etcd3_adequate`,
@@ -149,6 +149,8 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8setcd3.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -158,7 +160,7 @@ theorem k8s_etcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0
-    Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 
 /-- **`k8s_etcd3_safe` as a robustness statement** (`Robustness.Robust`,
@@ -188,12 +190,14 @@ theorem k8s_etcd3_robust
     (HEnv : verifyEnvOff (k8setcd3Program clients ops watchers wops))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8setcd3.etcd"]) :
     Robustness.Robust [] [(k8setcd3Program clients ops watchers wops, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
     (k8s_etcd3_safe
       Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0 Hw0 Hc31 Hops
-      Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec
+      Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec
       (by omega)).2
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members is safe, in the
@@ -227,6 +231,8 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -236,7 +242,7 @@ theorem k8s_etcd3_cluster_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_cluster_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **`k8s_etcd3_cluster_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
@@ -265,12 +271,14 @@ theorem k8s_etcd3_cluster_robust
     (HEnv : verifyEnvOff (k8setcd3CProgram k clients ops watchers wops))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k)) :
     Robustness.Robust [] [(k8setcd3CProgram k clients ops watchers wops, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
     (k8s_etcd3_cluster_safe
       Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0
-      Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2
+      Hw0 Hc31 Hops Hwops Hmul HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2
       κs t2 σ2 hexec (by omega)).2
 
 /-- **The Kubernetes etcd3 store's linearizability instance over `k` members under any partition
@@ -308,6 +316,8 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -317,7 +327,7 @@ theorem k8s_etcd3_partition_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_etcd3_partition_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2
+    watchers wops Hc0 Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2
     Hsteps' Hn
 
 /-- **`k8s_etcd3_partition_safe` as a robustness statement** (`Robustness.Robust`,
@@ -349,12 +359,14 @@ theorem k8s_etcd3_partition_robust
     (HEnv : verifyEnvOff (k8setcd3PProgram k clients ops watchers wops steps))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8s_etcd3N.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (k8s_etcd3N.k8setcd3NDirs k)) :
     Robustness.Robust [] [(k8setcd3PProgram k clients ops watchers wops steps, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
     (k8s_etcd3_partition_safe
       Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops watchers wops Hc0
-      Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1
+      Hw0 Hc31 Hops Hwops Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1
       hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 end adequacy

@@ -17,6 +17,7 @@ import (
 
 	"github.com/mit-pdos/etcd-grove/examples/etcd/auth"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // maxMembers is the bound of etcd_authN_safe's member count.
@@ -101,6 +102,7 @@ func TestMainRun(t *testing.T) {
 	k := membersK(t)
 	t.Logf("authN: k=%d (rerun with AUTHN_MEMBERS=%d)", k, k)
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "authN") // the members' WAL areas (wal-link P2)
 	if r := Main(k); r != auth.Ok {
 		t.Fatalf("got %v", r)
 	}

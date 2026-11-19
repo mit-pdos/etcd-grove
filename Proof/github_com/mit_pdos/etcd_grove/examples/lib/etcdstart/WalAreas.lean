@@ -112,7 +112,6 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
       (∀ d ∈ Ds, ∃ j, (walAreaOf d, j) ∈ R ∧ j ∈ Js ∧
         ∀ b, WalFs.AreaSlot b → V.now.entry j b = none) →
       (∀ d ∈ Ds, M !! walAreaOf d = some ()) →
-      (∀ d ∈ Ds, (srvWalDirOf d).length < 2 ^ 59) →
     ⊢ Fs.osInv (L := hG.goose_localGS) -∗ Fs.osSharedInv (L := hG.goose_localGS) R -∗
       Fs.osAboveInv (L := hG.goose_localGS) -∗
       ([∗list] j ∈ Js, Fs.osNames (L := hG.goose_localGS) j (.except []) (DFrac.own 1)
@@ -122,12 +121,12 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
   intro Ds
   induction Ds with
   | nil =>
-    intro _ _ _ _ _ _
+    intro _ _ _ _ _
     iintro _ _ _ _ _
     imodintro
     iapply BigSepL.bigSepL_nil.2; iempintro
   | cons d Ds ih =>
-    intro Js M hnd hJ hM hlen
+    intro Js M hnd hJ hM
     obtain ⟨j, hrj, hjJ, hsl⟩ := hJ d List.mem_cons_self
     have hnd' := (List.nodup_cons.1 hnd)
     have hJ' : ∀ d' ∈ Ds, ∃ j', (walAreaOf d', j') ∈ R ∧ j' ∈ Js.erase j ∧
@@ -159,8 +158,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     icases (BigSepM.bigSepM_delete (M := GMap GoString)
       (Φ := fun (r' : GoString) (_u : Unit) => Fs.osCallPerm (L := hG.goose_localGS) r' 1)
       (hM d List.mem_cons_self)).1 $$ Hperms with ⟨Hpd, Hperms⟩
-    imod ih (Js.erase j) (GMap.delete (walAreaOf d) M) hnd'.2 hJ' hM'
-      (fun d' hd' => hlen d' (List.mem_cons_of_mem _ hd')) $$ Hos Hsh Hab Hrest Hperms with Hrest
+    imod ih (Js.erase j) (GMap.delete (walAreaOf d) M) hnd'.2 hJ' hM' $$ Hos Hsh Hab Hrest Hperms with Hrest
     ihave #Hdd := walDirDurable_boot0 (W := W) (walAreaOf d) $$ Hp
     imodintro
     iapply BigSepL.bigSepL_cons.2
@@ -169,8 +167,7 @@ theorem walAreasFresh_boot [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     iexists etcdWalArea W hsat R j (walAreaOf d) (srvWalDirOf d)
     isplitr
     · ipureintro
-      exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1),
-        hlen d List.mem_cons_self⟩
+      exact ⟨rfl, srvWalDirOf_inArea d, cleanAbsPath_of_rootForm ((hR.2.2 _ hrj).1)⟩
     dsimp only [etcdWalArea]
     rw [Fs.callKey_eq hR hrj (.inl rfl)]
     iframe Hok Hdd Hsp Hres Hpd Hu
@@ -189,7 +186,7 @@ directory's `walAreaFresh`. -/
 theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (hsat : Fs.FsStepSat (Fs.NoIoErr etcdIoAll)) (st : Fs.OsState) (hfs : Fs.FsInit st)
     (Ds : List GoString) (hDs : Ds.Nodup) (hW : etcdWalAreasInit st Ds)
-    (hlen : ∀ d ∈ Ds, (srvWalDirOf d).length < 2 ^ 59) (hrb : ReceiptBoundLe GF (2 ^ 62))
+    (hrb : ReceiptBoundLe GF (2 ^ 62))
     (e : Expr) (he : toVal e = none) (Φ : val → IProp GF) :
     ⊢ Fs.osInv (L := hG.goose_localGS) -∗
       Fs.osTree (L := hG.goose_localGS) (DFrac.own 1) st.fs.roots (st.fs.treeDur, []) -∗
@@ -224,7 +221,7 @@ theorem wp_walAreas [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
         | cons c cs => simp [joinPath] at hrc
       rw [GMap.lookup_delete_ne _ hne]
       exact Fs.permMap_lookup st.fs.roots _ (.inr ⟨j, hrj⟩))
-    hlen $$ Hinv Hsh Hab Hall Hperms with Hw
+    $$ Hinv Hsh Hab Hall Hperms with Hw
   iapply Hk $$ Hw
 
 end boot

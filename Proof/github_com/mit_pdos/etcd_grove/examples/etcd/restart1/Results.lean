@@ -38,7 +38,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
 variable [go_gctx : GoGlobalContext]
 
 /-- **The one-member restart example is safe, in the operational semantics.**
@@ -137,6 +137,8 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"restart1.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -145,7 +147,7 @@ theorem etcd_restart1_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_restart1_adequate Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n Hprem σ g Hfs Hlctx Hinit
+  etcd_restart1_adequate Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit
     Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **`etcd_restart1_safe` as a robustness statement** (`Robustness.Robust`,
@@ -165,11 +167,13 @@ theorem etcd_restart1_robust
     (HEnv : verifyEnvOff restart1Program)
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC restart1GF,
       ⊢ etcd_restart1.premises (GF := restart1GF) (hG := heapAtR1 hG lctx) n id ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"restart1.etcd"]) :
     Robustness.Robust [] [(restart1Program, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
     (etcd_restart1_safe
-      Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1
+      Hctx id ctxs boot Hbf Haf Hbuq Hdbo HNs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1
       hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy

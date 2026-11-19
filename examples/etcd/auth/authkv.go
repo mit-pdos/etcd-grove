@@ -94,6 +94,7 @@ func startServer(lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:                   "authkv",
 		DataDir:                "authkv.etcd",
+		DedicatedWALDir:        etcdstart.WALBase + "/" + "authkv.etcd" + "/wal",
 		InitialPeerURLsMap:     types.URLsMap{"authkv": peer},
 		PeerURLs:               peer,
 		ClientURLs:             types.URLs{{Scheme: "http", Host: clientAddr}},

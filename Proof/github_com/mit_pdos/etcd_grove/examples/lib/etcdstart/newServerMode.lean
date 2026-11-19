@@ -123,7 +123,7 @@ theorem newServerMode.wp_proof
     · iunfold memStorRegAuth; iexact Hreg
     -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
     isplitl [Hfresh]
-    · iapply memberFreshRes_boot _ _ _ rfl rfl; iexact Hfresh
+    · iapply memberFreshRes_boot _ _ _ rfl (srvWalDirOf_lit _); iexact Hfresh
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Haf
@@ -156,7 +156,7 @@ theorem newServerMode.wp_proof
   ihave #Httl' : leaseTTLRowR srv ps $$ []
   · rw [← hvs]; iexact Httl
   -- (R2c-5) the data directory, the slot's (the literal's fields)
-  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl rfl $$ Hkeep with ⟨#Hddir, Hkeep⟩
+  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl
@@ -229,7 +229,7 @@ theorem newServerMode.wp_proofRestart
       hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir)
       (raftNode.bootCfg_of _ rfl) (by rw [hvs]; exact Hdirps)
       (lease.bootCfg_of_run hslg (fun h => absurd h (by decide)))
-      (bootCfgOk_of _ rfl rfl rfl rfl) rfl rfl HwbN)
+      (bootCfgOk_of _ rfl rfl rfl rfl) rfl (srvWalDirOf_lit _) HwbN)
     $$ [Htok Himg Hids Hwtok Hidx Hcok Hrev Hnk] as %srv %err Hres
   · iframe
     iframe #
@@ -270,7 +270,7 @@ theorem newServerMode.wp_proofRestart
   ihave #Hlr : srvLeaseRd srv E .none $$ []
   · iapply srvLeaseRd_of_srvInvAt srv E false _ $$ Hlsrv
   -- the data directory, the slot's (the literal's fields)
-  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl rfl $$ Hkeep with ⟨#Hddir, Hkeep⟩
+  icases srvStop.dataDir srv _ E γrn γk (name ++ go!".etcd") rfl (srvWalDirOf_lit _) $$ Hkeep with ⟨#Hddir, Hkeep⟩
   iapply HΦ
   iright
   isplitr; · ipureintro; rfl

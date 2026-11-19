@@ -24,6 +24,7 @@ func StartMemberAuth(name string, peer types.URLs, peerAddr string, client strin
 	cfg := config.ServerConfig{
 		Name:                   name,
 		DataDir:                name + ".etcd",
+		DedicatedWALDir:        WALBase + "/" + name + ".etcd" + "/wal",
 		InitialPeerURLsMap:     cluster,
 		PeerURLs:               peer,
 		ClientURLs:             types.URLs{{Scheme: "http", Host: client}},

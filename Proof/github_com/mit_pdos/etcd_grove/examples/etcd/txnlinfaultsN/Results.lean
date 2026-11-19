@@ -68,7 +68,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
 variable [go_gctx : GoGlobalContext]
 
 /-- **txnlinfaultsN is safe, in the operational semantics, for every member count `1 ≤ k ≤ 1000` and every
@@ -101,6 +101,8 @@ theorem etcd_txnlinfaultsN_safe [lctx : GoLocalContext] [sem : go.Semantics]
       ⊢ etcd_txnlinfaultsN.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) k n ids ps ctxs boot)
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_txnlinfaultsN.txnlinfaultsNDirs k))
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -110,7 +112,7 @@ theorem etcd_txnlinfaultsN_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   etcd_txnlinfaultsN_adequate Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops
-    Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hc0 Hc31 Hops Hmul steps Hsteps HNs HAs HDs HEnv n Hprem σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **`etcd_txnlinfaultsN_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
@@ -139,12 +141,14 @@ theorem etcd_txnlinfaultsN_robust
     (HEnv : verifyEnvOff (txnlinfaultsNProgram k clients ops steps))
     (Hprem : ∀ n : Nat, n + 2 ≤ 2 ^ 28 → ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ etcd_txnlinfaultsN.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) k n ids ps ctxs boot)
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) (etcd_txnlinfaultsN.txnlinfaultsNDirs k)) :
     Robustness.Robust [] [(txnlinfaultsNProgram k clients ops steps, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
     (etcd_txnlinfaultsN_safe
       Hctx Hcec k hk1 hk ids ps ctxs boot Hlen Hbf Haf Hbuq Hrf Hdbo clients ops Hc0 Hc31 Hops
-      Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2
+      Hmul steps Hsteps HNs HAs HDs HEnv n (Hprem n (by omega)) σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2
       σ2 hexec (by omega)).2
 
 end adequacy

@@ -44,6 +44,7 @@ import (
 	"time"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc"
@@ -238,6 +239,7 @@ func freeAddr(t *testing.T) string {
 func startEtcd(t *testing.T, name string, extra ...grpc.ServerOption) (*grpc.Server, string) {
 	t.Helper()
 	t.Chdir(t.TempDir())
+	walarea.Reset(t, name) // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	caddr := freeAddr(t)
 	s, err := etcdstart.StartServer(name, freeAddr(t), caddr, lg)

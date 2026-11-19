@@ -74,6 +74,9 @@ attribute [irreducible] Writes.ty
 @[reducible] noncomputable def KeepAliveTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 6000000000)
 
+@[reducible] noncomputable def WALBase [GooseExts] [GoGlobalContext] : val :=
+  #(go!"/tmp/etcd-grove-wal")
+
 @[reducible] noncomputable def NoSnapCount [GooseExts] [GoGlobalContext] : val :=
   #(W64 10000)
 
@@ -181,26 +184,27 @@ noncomputable def StartMemberAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!".etcd"))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$v4" (Let "$v0" (Val #(go!"http"))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"/tmp/etcd-grove-wal/")) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))) (Val #(go!".etcd")))) (Val #(go!"/wal"))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
+  (Let "$v5" (Let "$v0" (Val #(go!"http"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "$v5" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (Val #(W64 100))
-  (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
-  (Let "$v10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
-  (Let "$v11" (Val #(W64 128))
-  (Let "$v12" (Val #(W64 1572864))
-  (Let "$v13" (Val #(go!"simple"))
-  (Let "$v14" (Val #(W64 300))
-  (Let "$v15" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v16" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (Let "$v7" (Val #true)
+  (Let "$v8" (Val #(W64 100))
+  (Let "$v9" (Val #(W64 10))
+  (Let "$v10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
+  (Let "$v11" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
+  (Let "$v12" (Val #(W64 128))
+  (Let "$v13" (Val #(W64 1572864))
+  (Let "$v14" (Val #(go!"simple"))
+  (Let "$v15" (Val #(W64 300))
+  (Let "$v16" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v17" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v7"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v8"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"AuthToken")) (ElementExpression go.string (Var "$v13"))), (KeyedElement (some (KeyField go!"TokenTTL")) (ElementExpression go.uint (Var "$v14"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v15"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v16")))])))))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"DedicatedWALDir")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v8"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v13"))), (KeyedElement (some (KeyField go!"AuthToken")) (ElementExpression go.string (Var "$v14"))), (KeyedElement (some (KeyField go!"TokenTTL")) (ElementExpression go.uint (Var "$v15"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v16"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v17")))]))))))))))))))))))))
   (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
@@ -289,7 +293,7 @@ noncomputable def StartMemberAuth.impl [GooseExts] [GoGlobalContext] : val :=
     started servers, in the members' order, or the first error (the members started before it keep
     running).
 
-    go: auth.go:62:6 -/
+    go: auth.go:63:6 -/
 noncomputable def StartMembersAuth.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ms"
   (Lam "token"
@@ -403,7 +407,7 @@ noncomputable def StartMembersAuth.impl [GooseExts] [GoGlobalContext] : val :=
     snapshot's index (etcd's --snapshot-count and --experimental-snapshot-catchup-entries; etcd also
     takes an in-memory snapshot, and compacts, every 100 applied entries).
 
-    go: common.go:59:6 -/
+    go: common.go:68:6 -/
 noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -454,7 +458,7 @@ noncomputable def newServer.impl [GooseExts] [GoGlobalContext] : val :=
 /-- newServerMode is newServer with the auto-compactor in mode (v3compactor.ModeRevision, retention
     revisions, or v3compactor.ModePeriodic, retention nanoseconds), or off if retention is zero.
 
-    go: common.go:67:6 -/
+    go: common.go:76:6 -/
 noncomputable def newServerMode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -481,26 +485,27 @@ noncomputable def newServerMode.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
   (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "name")) (Val #(go!".etcd"))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
-  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
-  (Let "$v4" (Let "$v0" (Val #(go!"http"))
+  (Let "$v2" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (Val #(go!"/tmp/etcd-grove-wal/")) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))) (Val #(go!".etcd")))) (Val #(go!"/wal"))))
+  (Let "$v3" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty))) (Var "cluster"))
+  (Let "$v4" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "peer"))
+  (Let "$v5" (Let "$v0" (Val #(go!"http"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "client"))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (LiteralValue [(KeyedElement none (ElementLiteralValue [(KeyedElement (some (KeyField go!"Scheme")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Host")) (ElementExpression go.string (Var "$v1")))]))]))))
-  (Let "$v5" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
-  (Let "$v6" (Val #true)
-  (Let "$v7" (Val #(W64 100))
-  (Let "$v8" (Val #(W64 10))
-  (Let "$v9" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
-  (Let "$v10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
-  (Let "$v11" (Val #(W64 128))
-  (Let "$v12" (Val #(W64 1572864))
-  (Let "$v13" (App (Val (GoInstruction (GoLoad go.string))) (Var "mode"))
-  (Let "$v14" (App (Val (GoInstruction (GoLoad go.int64))) (Var "retention"))
-  (Let "$v15" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
-  (Let "$v16" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (Let "$v6" (App (Val (GoInstruction (GoLoad go.string))) (Var "token"))
+  (Let "$v7" (Val #true)
+  (Let "$v8" (Val #(W64 100))
+  (Let "$v9" (Val #(W64 10))
+  (Let "$v10" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "snapCount"))
+  (Let "$v11" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "catchUp"))
+  (Let "$v12" (Val #(W64 128))
+  (Let "$v13" (Val #(W64 1572864))
+  (Let "$v14" (App (Val (GoInstruction (GoLoad go.string))) (Var "mode"))
+  (Let "$v15" (App (Val (GoInstruction (GoLoad go.int64))) (Var "retention"))
+  (Let "$v16" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v17" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_etcd_io.etcd.server.v3.features.NewDefaultServerFeatureGate []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v5"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v6"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v7"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v8"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"AutoCompactionMode")) (ElementExpression go.string (Var "$v13"))), (KeyedElement (some (KeyField go!"AutoCompactionRetention")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v14"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v15"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v16")))])))))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"DataDir")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"DedicatedWALDir")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"InitialPeerURLsMap")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLsMap.ty (Var "$v3"))), (KeyedElement (some (KeyField go!"PeerURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v4"))), (KeyedElement (some (KeyField go!"ClientURLs")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v5"))), (KeyedElement (some (KeyField go!"InitialClusterToken")) (ElementExpression go.string (Var "$v6"))), (KeyedElement (some (KeyField go!"NewCluster")) (ElementExpression go.bool (Var "$v7"))), (KeyedElement (some (KeyField go!"TickMs")) (ElementExpression go.uint (Var "$v8"))), (KeyedElement (some (KeyField go!"ElectionTicks")) (ElementExpression go.int (Var "$v9"))), (KeyedElement (some (KeyField go!"SnapshotCount")) (ElementExpression go.uint64 (Var "$v10"))), (KeyedElement (some (KeyField go!"SnapshotCatchUpEntries")) (ElementExpression go.uint64 (Var "$v11"))), (KeyedElement (some (KeyField go!"MaxTxnOps")) (ElementExpression go.uint (Var "$v12"))), (KeyedElement (some (KeyField go!"MaxRequestBytes")) (ElementExpression go.uint (Var "$v13"))), (KeyedElement (some (KeyField go!"AutoCompactionMode")) (ElementExpression go.string (Var "$v14"))), (KeyedElement (some (KeyField go!"AutoCompactionRetention")) (ElementExpression _root_.Perennial.time.Duration.ty (Var "$v15"))), (KeyedElement (some (KeyField go!"Logger")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v16"))), (KeyedElement (some (KeyField go!"ServerFeatureGate")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.FeatureGate.ty (Var "$v17")))]))))))))))))))))))))
   (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "__p" (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty))) (Var "cfg"))
@@ -525,7 +530,7 @@ noncomputable def newServerMode.impl [GooseExts] [GoGlobalContext] : val :=
     name, with the one peer URL http://peerAddr (not served: the cluster has no other member) and
     the one client URL http://clientAddr.
 
-    go: common.go:104:6 -/
+    go: common.go:115:6 -/
 noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -603,7 +608,7 @@ noncomputable def StartServer.impl [GooseExts] [GoGlobalContext] : val :=
     every compaction a client's (Kubernetes' deployment, whose API servers compact:
     examples/k8s/compactor).
 
-    go: common.go:120:6 -/
+    go: common.go:131:6 -/
 noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -682,7 +687,7 @@ noncomputable def StartCompactingServer.impl [GooseExts] [GoGlobalContext] : val
 /-- StartPeriodicServer is StartServer with the auto-compactor on, in periodic mode, keeping the
     revisions of the last period (period at least 10ns: a shorter one busy-loops).
 
-    go: common.go:134:6 -/
+    go: common.go:145:6 -/
 noncomputable def StartPeriodicServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peerAddr"
@@ -764,7 +769,7 @@ noncomputable def StartPeriodicServer.impl [GooseExts] [GoGlobalContext] : val :
     for an example that keeps its listeners, to close them when it stops the member
     (examples/etcd/restart).
 
-    go: common.go:151:6 -/
+    go: common.go:162:6 -/
 noncomputable def BuildServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -814,7 +819,7 @@ noncomputable def BuildServer.impl [GooseExts] [GoGlobalContext] : val :=
     http://client, with the snapshot settings snapCount and catchUp (newServer), and serves its raft
     handler on a listener at peerAddr; it does not start it.
 
-    go: common.go:160:6 -/
+    go: common.go:171:6 -/
 noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -922,7 +927,7 @@ noncomputable def NewMember.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- StartMember starts member name of a new cluster: NewMember, then the server started.
 
-    go: common.go:177:6 -/
+    go: common.go:188:6 -/
 noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
@@ -998,7 +1003,7 @@ noncomputable def StartMember.impl [GooseExts] [GoGlobalContext] : val :=
     refuses a ping more often than every 5 minutes, which would close a keepalive client's
     connection).
 
-    go: common.go:192:6 -/
+    go: common.go:203:6 -/
 noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "addr"
@@ -1060,7 +1065,7 @@ noncomputable def Serve.impl [GooseExts] [GoGlobalContext] : val :=
 /-- NewClient connects a client to the one endpoint addr (a plain host:port, clientv3.New's premise
     plainEndpoint): NewClients of it.
 
-    go: common.go:206:6 -/
+    go: common.go:217:6 -/
 noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "lg"
@@ -1093,7 +1098,7 @@ noncomputable def NewClient.impl [GooseExts] [GoGlobalContext] : val :=
     next endpoint; a write is retried only after a refusal (a learner's, an authentication error),
     which the examples' members never send, so it is sent at most once (notes/read-retry-plan.md).
 
-    go: common.go:215:6 -/
+    go: common.go:226:6 -/
 noncomputable def NewClients.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eps"
   (Lam "lg"

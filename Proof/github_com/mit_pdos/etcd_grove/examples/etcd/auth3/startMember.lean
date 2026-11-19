@@ -120,7 +120,7 @@ theorem startMember.wp_proof
     · iunfold memStorRegAuth; iexact Hreg
     -- the WAL's slot (`wal.bootRes`), from the member's fresh bundle
     isplitl [Hfresh]
-    · iapply etcdstart.memberFreshRes_boot _ _ _ rfl rfl; iexact Hfresh
+    · iapply etcdstart.memberFreshRes_boot _ _ _ rfl (srvWalDirOf_lit _); iexact Hfresh
     isplitr; · ipureintro; exact ⟨Hγn1, Hγn2⟩
     isplitr; · ipureintro; exact Hsloc
     isplitr; · ipureintro; exact Haf

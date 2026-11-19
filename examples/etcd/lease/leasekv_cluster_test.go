@@ -15,6 +15,7 @@ import (
 	"go.etcd.io/etcd/server/v3/lease/leasehttp"
 
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // TestClusterLeaseReads tests, on a three-member cluster, the two facts the lease specs claim and
@@ -31,6 +32,7 @@ import (
 // asked one).
 func TestClusterLeaseReads(t *testing.T) {
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "leasekv3") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	peers := []string{"127.0.0.1:23951", "127.0.0.1:23952", "127.0.0.1:23953"}
 	clients := []string{"127.0.0.1:23956", "127.0.0.1:23957", "127.0.0.1:23958"}

@@ -23,6 +23,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 )
 
 // The watch traffic's tests (stage 7f-0/7f-6, notes/k8s-7f6-scope.md): the check on hand-made
@@ -217,6 +218,7 @@ func singleWAt(t *testing.T, a int, clients, ops, watchers, wops int, hook func(
 		peer = fmt.Sprintf("127.0.0.1:%d", 23970+a)
 		cl = fmt.Sprintf("127.0.0.1:%d", 23980+a)
 	}
+	walarea.Reset(t, name) // the member's WAL area (wal-link P2)
 	srv, err := etcdstart.StartServer(name, peer, cl, lg)
 	if err != nil {
 		t.Fatal(err)

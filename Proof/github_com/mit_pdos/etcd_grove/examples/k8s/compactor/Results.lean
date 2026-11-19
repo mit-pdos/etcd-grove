@@ -66,7 +66,7 @@ end results
 
 section adequacy
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsExts_semOk
 variable [go_gctx : GoGlobalContext]
 
 /-- **The compactor example is safe, in the operational semantics** (`k8s_compactor_adequate`, see
@@ -97,6 +97,8 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8scompactor.etcd"])
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -106,7 +108,7 @@ theorem k8s_compactor_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_compactor_adequate Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n Hprem Hafter
-    σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
+    σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **`k8s_compactor_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
@@ -133,12 +135,14 @@ theorem k8s_compactor_robust
         go!"127.0.0.1:23986" go!"127.0.0.1:23976" n id ctxs boot)
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) [go!"k8scompactor.etcd"]) :
     Robustness.Robust [] [(k8scompactorProgram, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
     (k8s_compactor_safe
       Hctx Hcec id ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n (Hprem n (by omega)) Hafter
-      σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
+      σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 /-- **The compactor example on three members under partitions is safe, in the operational
 semantics** (`k8s_compactor_partition_adequate`, see the file header and `Adequacy.lean`). -/
@@ -170,6 +174,8 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
     (σ : state) (g : GlobalState)
     (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) k8scompactorPDataDirs)
     (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -179,7 +185,7 @@ theorem k8s_compactor_partition_safe [lctx : GoLocalContext] [sem : go.Semantics
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   k8s_compactor_partition_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo steps
-    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
+    Hsteps HNs HAs HDs HEnv n Hprem Hafter σ g Hfs HWal Hlctx Hinit Hthreads κs t2 σ2 Hsteps' Hn
 
 /-- **`k8s_compactor_partition_safe` as a robustness statement** (`Robustness.Robust`,
 `Robustness/Statement.lean`): the program alone on one machine that never crashes,
@@ -208,12 +214,14 @@ theorem k8s_compactor_partition_robust
         id₁ id₂ id₃ ps ctxs boot)
     (Hafter : ∀ hG : HeapGS .hasLC k8scompactorGF,
       EtcdGrove.clock.RealClock.After.spec (GF := k8scompactorGF) (hG := heapAtKc hG lctx))
-    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) :
+    (σ : state) (g : GlobalState) (Hfs : Fs.FsInit (extLocal Fs.fsExt σ.world))
+    -- (wal-link P2) the members' WAL areas exist at start and hold no WAL
+    (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) k8scompactorPDataDirs) :
     Robustness.Robust [] [(k8scompactorPProgram steps, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn hexec =>
     (k8s_compactor_partition_safe
       Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo steps Hsteps HNs HAs HDs HEnv n
-      (Hprem n (by omega)) Hafter σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
+      (Hprem n (by omega)) Hafter σ g Hfs HWal hf.1 hf.2.1 hf.2.2 κs t2 σ2 hexec (by omega)).2
 
 end adequacy
 

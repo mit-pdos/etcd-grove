@@ -65,15 +65,14 @@ data directory's fresh WAL area, over an initial state with the areas `etcdWalAr
 theorem progOk_walAreas [hG : HeapGS .hasLC GF] [go.BasicIntoValInj] (hPre : AbsDiskGpreS GF)
     (R B : IProp GF) (init : val) (body : Expr) (φ : val → Prop) (hbody : toVal body = none)
     (σ : state) (hfs : Fs.FsInit (extLocal Fs.fsExt σ.world)) (Ds : List GoString) (hDs : Ds.Nodup)
-    (hW : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
-    (hlen : ∀ d ∈ Ds, (srvWalDirOf d).length < 2 ^ 59) (hrb : receiptBound GF ≤ 2 ^ 62)
+    (hW : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds) (hrb : receiptBound GF ≤ 2 ^ 62)
     (h : progOk R iprop(B ∗ [∗list] d ∈ Ds, walAreaFresh (srvWalDirOf d)) init body φ) :
     progOk R iprop(B ∗ extsLocalStart (L := hG.goose_localGS) σ.world) init body φ := by
   obtain ⟨getInit, I, Hinit, Hbody⟩ := h
   refine ⟨getInit, I, Hinit, ?_⟩
   iintro HI Htok ⟨HB, Hl⟩
   imod etcdFs_start σ hfs $$ Hl with ⟨#Hinv, -, Ht⟩
-  iapply wp_walAreas hPre etcdFsExts_sat _ hfs Ds hDs hW hlen ⟨hrb⟩ body hbody _ $$ Hinv Ht
+  iapply wp_walAreas hPre etcdFsExts_sat _ hfs Ds hDs hW ⟨hrb⟩ body hbody _ $$ Hinv Ht
   iintro Hw
   iapply Hbody $$ HI Htok [HB Hw]
   iframe
@@ -83,8 +82,8 @@ theorem progOk_walAreas [hG : HeapGS .hasLC GF] [go.BasicIntoValInj] (hPre : Abs
 (`etcdstart.memberStartRes`) and the listen rights of the other addresses `Bs`, when the members'
 addresses and `Bs` are `As` up to order and the members' data directories are `Ds` up to order;
 (wal-link P2) the members' WAL areas as `etcdWalAreasInit` says at start (`HWal`), each allocated before
-the body's first step (`progOk_walAreas`), for a body that is not a value, an execution of fewer than
-`2 ^ 62` steps (the WAL's receipts' bound) and WAL directories shorter than `2 ^ 59` bytes. -/
+the body's first step (`progOk_walAreas`), for a body that is not a value and an execution of fewer
+than `2 ^ 62` steps (the WAL's receipts' bound). -/
 theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go.BasicIntoValInj]
     (init : val) (body : Expr) (φ : val → Prop) (hφ : ∀ p, ¬ φ (PanicV p))
     (hbody : toVal body = none)
@@ -101,7 +100,6 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (HEnv : verifyEnvOff (init #() ;; body))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
-    (hlen : ∀ d ∈ Ds, (srvWalDirOf d).length < 2 ^ 59)
     (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -115,7 +113,7 @@ theorem etcd_adequate_members [hPre : GooseGpreS GF] [lctx : GoLocalContext] [go
     n κs t2 σ2 Hsteps fun hG HN HT =>
       progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ (sep_reassoc5 _ _ _ _ _)
         (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
-          Hinitw.2.1 Ds hDs HWal hlen (by rw [HN]; exact hn)
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
           (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
             (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD) (Hprog hG HN HT)))
 
@@ -137,7 +135,6 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
     (HAs : addrsUnclaimed (init #() ;; body) As) (HDs : dataDirsAbsent (init #() ;; body) Ds)
     (HEnv : verifyEnvOff (init #() ;; body))
     (HWal : etcdWalAreasInit (extLocal Fs.fsExt σ.world) Ds)
-    (hlen : ∀ d ∈ Ds, (srvWalDirOf d).length < 2 ^ 59)
     (n : Nat) (hn : n + 1 ≤ 2 ^ 62) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([init #() ;; body], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hprog : ∀ hG : HeapGS .hasLC GF, receiptBound GF = n + 1 →
@@ -155,7 +152,7 @@ theorem etcd_adequate_alloc_members [hPre : GooseGpreS GF] [lctx : GoLocalContex
       exact ⟨X, T, Halloc, fun x => progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
         sep_assoc.2
         (progOk_walAreas (hG := heapWith hG lctx) ⟨hPre.goosePreGAllG⟩ _ _ init body φ hbody σ
-          Hinitw.2.1 Ds hDs HWal hlen (by rw [HN]; exact hn)
+          Hinitw.2.1 Ds hDs HWal (by rw [HN]; exact hn)
           (progOk_pre (hG := heapWith hG lctx) _ _ _ init body φ
             (sep_swap_right3 _ _ _ |>.trans
               (sep_mono_left (etcdstart.memberStartRes_intro (hG := heapWith hG lctx) ms Bs As Ds hA hD)))

@@ -24,6 +24,7 @@ import (
 	"github.com/mit-pdos/etcd-grove/examples/lib/cluster3"
 	"github.com/mit-pdos/etcd-grove/examples/lib/etcdstart"
 	"github.com/mit-pdos/etcd-grove/examples/lib/lintest"
+	"github.com/mit-pdos/etcd-grove/examples/lib/walarea"
 	"github.com/mit-pdos/etcd-grove/third_party/bridge"
 )
 
@@ -128,6 +129,7 @@ func TestMainRun(t *testing.T) {
 		return
 	}
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "linkv3p") // the members' WAL areas (wal-link P2)
 	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {
 		delay := time.Duration(0)
@@ -234,6 +236,7 @@ func cutSetup(t *testing.T, eps func(i int) []string) ([]*etcdserver.EtcdServer,
 	[]*clientv3.Client) {
 	t.Helper()
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "linkv3p") // the members' WAL areas (wal-link P2)
 	lg := zap.NewNop()
 	peer := []types.URLs{{{Scheme: "http", Host: peerAddr1}}, {{Scheme: "http", Host: peerAddr2}},
 		{{Scheme: "http", Host: peerAddr3}}}
@@ -920,6 +923,7 @@ func TestMainWatch(t *testing.T) {
 		return
 	}
 	t.Chdir(t.TempDir())
+	walarea.ResetFamily(t, "linkv3p") // the members' WAL areas (wal-link P2)
 	var sched []cluster3.Step
 	for m := 0; m < 3; m++ {
 		delay := time.Duration(0)

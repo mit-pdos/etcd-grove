@@ -28,5 +28,16 @@ def walAreaOf (dd : GoString) : GoString := walBase ++ go!"/" ++ dd
 /-- **The dedicated WAL directory of the member with data directory `dd`**: its area's `wal`. -/
 def srvWalDirOf (dd : GoString) : GoString := walAreaOf dd ++ go!"/wal"
 
+/-- **The examples' Go spelling of a member's WAL directory** (`etcdstart.WALBase + "/" + name +
+".etcd" + "/wal"`, goose folding the constant prefix) is `srvWalDirOf (name ++ ".etcd")`. -/
+theorem srvWalDirOf_lit (n : GoString) :
+    ((go!"/tmp/etcd-grove-wal/" ++ n) ++ go!".etcd") ++ go!"/wal" = srvWalDirOf (n ++ go!".etcd") := by
+  simp [srvWalDirOf, walAreaOf, walBase, List.append_assoc]
+
+/-- The same, for a literal data directory `dd` (goose folds the whole path). -/
+theorem srvWalDirOf_lit' (dd : GoString) :
+    (go!"/tmp/etcd-grove-wal/" ++ dd) ++ go!"/wal" = srvWalDirOf dd := by
+  simp [srvWalDirOf, walAreaOf, walBase]
+
 end EtcdGrove
 end Perennial

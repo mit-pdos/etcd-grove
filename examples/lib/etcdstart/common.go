@@ -41,6 +41,15 @@ const (
 	KeepAliveTimeout = 6 * time.Second
 )
 
+// WALBase is the directory of the members' WAL areas: member name's WAL is in the dedicated WAL
+// directory WALBase + "/" + name + ".etcd" + "/wal" (etcd's --wal-dir, ServerConfig.DedicatedWALDir),
+// alone in its area WALBase + "/" + name + ".etcd". The proofs model the WAL over the Linux file
+// extension, which resolves only absolute paths under its roots: each member's area is a root that
+// exists, empty, when the program starts (the closed theorems' premise etcdWalAreasInit; the tests
+// make it so, walAreaReset), and nothing but the WAL is in it. The data directory (name + ".etcd",
+// relative) holds the backend only.
+const WALBase = "/tmp/etcd-grove-wal"
+
 // The snapshot settings of the examples that do not exercise snapshots: etcd's default snapshot
 // count, and more catch-up entries than any run applies, so that raft's log is compacted at index
 // 1 only and a leader never has to send a follower a snapshot (NewServer's spec allows any values
@@ -70,6 +79,8 @@ func newServerMode(name string, peer types.URLs, client string, cluster types.UR
 	cfg := config.ServerConfig{
 		Name:    name,
 		DataDir: name + ".etcd",
+		// the WAL in its own area, under WALBase (see WALBase)
+		DedicatedWALDir: WALBase + "/" + name + ".etcd" + "/wal",
 		// the initial members: a new cluster
 		InitialPeerURLsMap:  cluster,
 		PeerURLs:            peer,
