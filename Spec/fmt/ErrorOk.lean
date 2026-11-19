@@ -25,9 +25,6 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-/-- The signature `() string` of `Error` and `String`, as goose writes it in method sets. -/
-def noArgStringSig : go.signature := go.signature.Signature [] false [go.string]
-
 /-- **`err` is an error value `fmt` formats by calling its `Error()`, needing nothing** (round 8,
 review 7 M4: the shared `fmt`-level predicate; it belongs in the repository's `Spec/fmt/`, beside
 `fmt.argOk`). Its dynamic type has `Error() string` (Go's `case error`, by signature) and no
@@ -75,6 +72,35 @@ theorem fmtErrorOk_of_errorf (err : GoInterfaceOk)
   isplitr
   · ipureintro; exact h
   · iexact H
+
+/-- A `fmtErrorOkOrNil` error is `fmt.argOk` (fmt soundness 2). -/
+theorem fmt.argOk_of_fmtErrorOkOrNil (err : GoInterface) :
+    fmtErrorOkOrNil (GF := GF) err ⊢ fmt.argOk err := by
+  cases err with
+  | nil => unfold fmt.argOk; iintro -; itrivial
+  | ok ii =>
+    unfold fmtErrorOkOrNil fmtErrorOk fmt.argOk
+    iintro ⟨%h, #H⟩
+    iright; ileft
+    isplitr
+    · iexact H
+    · ipureintro; exact h
+
+/-- A `fmtErrorOkOrNil` error is `fmt.argOkAt` any method-verb directive other than `%#v`/`%#w`,
+`%w` included (fmt soundness 2). -/
+theorem fmt.argOkAt_of_fmtErrorOkOrNil [_root_.Perennial.fmt.Assumptions] {mv : List w8} {d : fmt.Directive} (err : GoInterface) :
+    ⌜d.verb ∈ mv ∧ d.sharpV = false⌝ ∗ fmtErrorOkOrNil (GF := GF) err ⊢ fmt.argOkAt mv d err := by
+  cases err with
+  | nil => unfold fmt.argOkAt; iintro -; itrivial
+  | ok ii =>
+    unfold fmtErrorOkOrNil fmtErrorOk
+    iintro ⟨%hd, %h, #H⟩
+    iapply fmt.argOkAt_of_error
+    isplitr
+    · ipureintro; exact hd
+    isplitr
+    · iexact H
+    · ipureintro; exact h
 
 theorem fmtErrorOkOrNil_nil : ⊢ fmtErrorOkOrNil (GF := GF) GoInterface.nil := by
   unfold fmtErrorOkOrNil; iintro; itrivial

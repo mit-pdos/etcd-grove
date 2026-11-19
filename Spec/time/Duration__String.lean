@@ -49,7 +49,7 @@ theorem time.Duration.String.argOk (H : time.Duration.String.spec (GF := GF) (hG
     inext
     iintro %s -
     iapply HΦ
-  · ipureintro; fmt_method_none
+  · ipureintro; fmt_method_facts
 
 end spec
 
