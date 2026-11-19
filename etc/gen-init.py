@@ -123,6 +123,10 @@ ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccrand')
 # `True` (`Base.lean`), so no `SPECIAL`; its `PkgTable.lean` (`PROGRAMS`) is Prove's, for the closed
 # theorem
 ROOTS.append('github_com.mit_pdos.etcd_grove.examples.mvccfull')
+# (2026-11-19) Kubernetes' conditional authorization's driver (examples/k8s/authz), for its closed
+# theorem: it brings in `authorization/{authorizer,union}` (`SPECIAL` below), `authentication/user`
+# and `util/validation` (names only, facts `True`, `authorizer/Base.lean`)
+ROOTS.append('github_com.mit_pdos.etcd_grove.examples.k8s.authz')
 # (WAL W4c, 2026-11-12, until 2026-11-15) the WAL robustness tester was a root here; it is the part
 # `WalTester/`'s now (`wt_inits`), and the WAL reaches the closure through the server
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
@@ -308,6 +312,28 @@ literal frozen by `hbMsg_init`) are translated and set.''',
 
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
+
+# (2026-11-19) Kubernetes' conditional authorization (KEP-5681, project k8s-authz)
+SPECIAL['k8s_io.apiserver.pkg.authorization.authorizer'] = dict(
+    doc='''Its fact (`authorizerInit`, `authorizer/Base.lean`): `ErrorConditionEvaluationNotSupported`
+holds some error, read-only for good. Its initializer allocates it, initializes its imports and runs
+its translated initializers: the interface assertions `var _ Condition = GenericCondition{}` and
+`var _ Authorizer = AuthorizerFunc(nil)` (conversions to interfaces) and `errors.New(...)`
+(Perennial's `errors.wp_New`, `interfaces.go`).''',
+    imports=['Perennial.Proof.errors.Link'],
+    alloc_types={'ErrorConditionEvaluationNotSupported': 'GoInterface'},
+    before={'$end': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New as %xE -',
+                     'try wp_auto']},
+    finish=['ipersist HErrorConditionEvaluationNotSupported'] + FIN_PRE[:6] +
+           ['imodintro', 'unfold authorizerInit',
+            'iexists _; iexact HErrorConditionEvaluationNotSupported'],
+)
+SPECIAL['k8s_io.apiserver.pkg.authorization.union'] = dict(
+    doc='''Its fact is `True`. Its initializer initializes its imports and runs its translated
+initializer, the interface assertion `var _ = authorizer.Authorizer(unionAuthzHandler{})` (a
+conversion to an interface, `union.go`).''',
+    before={'$end': ['try wp_auto']},
+)
 
 # bbolt (project bbolt, translated with bodies, 2026-11-03; facts in
 # `Proof/go_etcd_io/bbolt/PkgInit.lean`)
@@ -2925,6 +2951,9 @@ PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccrand'] = \
 # (F1 Prove, 2026-11-10) mvcc's full tester, for its closed theorem (`mvccfull_adequate`)
 PROGRAMS['github_com.mit_pdos.etcd_grove.examples.mvccfull'] = \
     'Proof/github_com/mit_pdos/etcd_grove/examples/mvccfull/PkgTable.lean'
+# (2026-11-19) Kubernetes' conditional authorization's driver, for its closed theorem
+PROGRAMS['github_com.mit_pdos.etcd_grove.examples.k8s.authz'] = \
+    'Proof/github_com/mit_pdos/etcd_grove/examples/k8s/authz/PkgTable.lean'
 
 TABLE_DOC = """/-
 The package table of the program of `{p}`
