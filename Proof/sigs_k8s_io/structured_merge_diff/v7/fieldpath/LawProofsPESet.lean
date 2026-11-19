@@ -192,6 +192,22 @@ theorem bs_transfer {E : Type} (es : List E) (xs : List PE) (pe : PE) (m : E →
       obtain ⟨a, ha, rfl⟩ := back _ x hx
       exact ⟨a, ha, hc⟩
 
+theorem ofList_insert (xs : List PE) (k : Nat) (pe : PE) :
+    FSet.ofList (xs.take k ++ [pe] ++ xs.drop k) = FSet.union (FSet.ofList xs) (FSet.ofList [pe]) := by
+  apply FSet.ext'; intro x
+  rw [FSet.mem_union', FSet.mem_ofList', FSet.mem_ofList', FSet.mem_ofList']
+  conv => rhs; rw [← List.take_append_drop k xs]
+  simp only [List.mem_append, List.mem_singleton]
+  constructor
+  · rintro ((h | h) | h)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inr h
+    · exact Or.inl (Or.inr h)
+  · rintro ((h | h) | h)
+    · exact Or.inl (Or.inl h)
+    · exact Or.inr h
+    · exact Or.inl (Or.inr h)
+
 section rep
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -208,6 +224,20 @@ theorem peset_members_acc (l : Loc) (v : fieldpath.PathElementSet) (dq : DFrac) 
   iStructNamed Hl
   iframe members
   iintro Hm
+  iapply typedPointsto_combine _ _ _ hn
+  simp only [TypedPointsto.typedPointstoDef]
+  iframe Hm
+
+/-- A `PathElementSet`'s one field, and the way back with any new value. -/
+theorem peset_members_upd (l : Loc) (v : fieldpath.PathElementSet) (dq : DFrac) :
+    (l ↦{dq} v : IProp GF) ⊢ l.[fieldpath.PathElementSet, go!"members"] ↦{dq} v.members' ∗
+      (∀ w, l.[fieldpath.PathElementSet, go!"members"] ↦{dq} w -∗
+        l ↦{dq} ({ members' := w } : fieldpath.PathElementSet)) := by
+  iintro Hl
+  icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %hn⟩
+  iStructNamed Hl
+  iframe members
+  iintro %w Hm
   iapply typedPointsto_combine _ _ _ hn
   simp only [TypedPointsto.typedPointstoDef]
   iframe Hm
@@ -239,6 +269,21 @@ theorem isPEL_mdl (es : List fieldpath.PathElement) (xs : Path) (d : PE) :
     intro _
     unfold mdl; rw [h2, h1, he]; rfl
   · ipureintro; intro h; exact absurd h hk
+
+theorem isPEL_insert (es : List fieldpath.PathElement) (xs : Path) (k : Nat)
+    (e : fieldpath.PathElement) (pe : PE) :
+    isPEL (GF := GF) es xs ∗ isPE e pe ⊢
+      isPEL (es.take k ++ [e] ++ es.drop k) (xs.take k ++ [pe] ++ xs.drop k) := by
+  iintro ⟨H, He⟩
+  ihave %hl := fpL.isPEL_length es xs $$ H
+  icases fpL.isPEL_take_drop es xs k $$ H with ⟨H1, H2⟩
+  iapply (fpL.isPEL_app (es.take k ++ [e]) (es.drop k) (xs.take k ++ [pe]) (xs.drop k)
+    (by simp [hl])).2
+  iframe H2
+  iapply (fpL.isPEL_app (es.take k) [e] (xs.take k) [pe] (by simp [hl])).2
+  iframe H1
+  rw [fpL.isPEL_cons_eq, fpL.isPEL_nil_eq]
+  iframe He
 
 end rep
 
