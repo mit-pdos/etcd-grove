@@ -14,7 +14,10 @@
   collections authkv/auth3/authN +6 axioms, server +2 (committed); interfaces `--check` clean (all six); gen-link
   --server/--authkv/--backend/--mvcc: no change. Then lean (per-heap, 1e4cb38613) merged again (e6993af3bb): rebuild,
   re-checked: full timed build green (`20261119-143502-174164`), tcb `--check` matches (886 axioms, 4 sorries), all
-  collections match, interfaces and Links unchanged, tier-check ok. **At the land stop** (no commits until the land finishes).
+  collections match, interfaces and Links unchanged, tier-check ok. Isolation plan ACCEPTED (etcd-grove-03).
+- **BLOCKER (questions.md "BLOCKER: merging lean e95ce79ce9")**: lean moved to e95ce79ce9 (pin 3afd77e35, bbolt-integrate);
+  the merge conflicts in 16 Lean files of the backend (both sides redesigned its invariants) and lean removed the `_kv`
+  layer this branch's A2 ForEach axioms belong to. Merge aborted; awaiting the coordinator's decision.
 - Land: `LAKE_PACKAGES=/shared/tmp/manifest-f55.json PERENNIAL_CHECKOUT=/shared/perennial-f551a1b46
   PERENNIAL_DIR=/shared/perennial-f551a1b46 etc/land.sh` (GOWORK unset), only when the coordinator says go.
 - Pitfalls: (0)-(42) as before (History); (43) the TCB tool's statement scan must skip `:=` inside parentheses
