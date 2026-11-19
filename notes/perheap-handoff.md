@@ -1,25 +1,40 @@
 # perheap handoff
 
-## START HERE (2026-11-19, at the C1 land stop: C1a + 1b done, full build green, NOT landed)
+## START HERE (2026-11-19, at the C1 land stop, lean df37bd5157 merged; NOT landed)
 
-- Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`).
-  lean `1b298c1e70` (fmt soundness) merged (`8893c1e11b`). Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`).
-- **Done:** C1a (the auth chain by token; see History); the watch chain by token (`4a569036bf`); 1b: the grpc contracts over
-  `ctxInMD` (`grpcSpecAt`/`grpcStreamSpecAt`, `grpcAccepted` with `∃ md`), `incomingOf` + its two axioms + `ctxTokenOf` deleted,
-  `WithValue`'s conjunct dropped (`aba91cb5a3`); v3rpc/client Results, LeaseServer handlers, examples auth §4.3 (`ed4fcd3eaa`…);
-  full build green after the merge (`/shared/tmp/perheap/s/full-c1-3.log`); tcb `--check --update`: only the two intended
-  axioms gone, baseline + 22 collections (`f9c59967d3`); attack of 1b's trusted text SOUND (`/shared/tmp/perheap/attack-accepted.md`;
-  `notes/axiom-review/perheap-incoming.md`); gen-init/gen-raft-tla `--check` ok (gen-init needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`).
-- **Next:** interfaces regenerated (check `git status interface/`, commit); the land stop report (Q9 list, tcb delta); after the
-  coordinator's go: gates via etc/land.sh (the coordinator runs it).
-- **Open (the user's, Q9):** see `notes/perheap-questions.md` and the land-stop report.
-- Pitfalls: `$$ [$H]` framing is syntactic (`E.authOn` ≠ `E.authMode.isOn`); `iapply lemma $$ [$A $B]` on a lemma with
-  explicit binders misassigns (give the binders); a handler's spec is `grpcSpecAt …`: `iunfold grpcSpecAt at H; icases H with
-  ⟨%md, #Hmd, H⟩`, then `auth.ctxToken_of_ctxInMD ci md $$ Hmd` gives the token `auth.mdTokenOf md`; a plain spec's
-  (`GrpcSpec.md`) from `grpcRunCtx` via `grpcSpecAt_md_intro`/`_elim`; callers with no run md take a token from `libCtxOk`
-  (`auth.ctxToken_of_libCtxOk`).
+- Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), pin **f551a1b46**: `--packages=/shared/tmp/manifest-f55.json`
+  (`.lake/package-overrides.json` = a copy). Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`).
+- **Done:** C1a + 1b (see the previous START HERE in History); lean `df37bd5157` merged (`472199503c`: conflicts AuthSrv.lean,
+  `authSrvTP_on` moved by lean to `AuthSrvLinked.lean`, perheap's `hCtxLb` removal applied there; InvAuth imports union; notes).
+  Full timed build green (`20261119-034111-1643293`, log `/shared/tmp/perheap/build-f55-1.log`); `tcb-report --check` matches the
+  baseline (882 axioms, 4 sorries; the two incomingOf axioms gone); interfaces `--check --layout` 0 new; `tier-check --check` ok;
+  errorf gate ok; gen-init (`PERENNIAL_DIR=/shared/perennial-f551a1b46`), gen-raft-tla, goose `--check` ok.
+- **Next:** the coordinator runs etc/land.sh (`LAKE_PACKAGES=/shared/tmp/manifest-f55.json PERENNIAL_CHECKOUT=/shared/perennial-f551a1b46
+  PERENNIAL_DIR=/shared/perennial-f551a1b46`, GOWORK unset). No commits to this branch until the land finishes.
+- **Open (the user's, Q9):** see `notes/perheap-questions.md`.
+- Pitfalls: as in the previous START HERE (History).
 
 ## History
+
+- C1 land stop START HERE before the f551 merge:
+
+  - Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`), pin 6d365ee1a (`--packages=/shared/tmp/manifest-6d3.json`).
+    lean `1b298c1e70` (fmt soundness) merged (`8893c1e11b`). Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`).
+  - **Done:** C1a (the auth chain by token; see History); the watch chain by token (`4a569036bf`); 1b: the grpc contracts over
+    `ctxInMD` (`grpcSpecAt`/`grpcStreamSpecAt`, `grpcAccepted` with `∃ md`), `incomingOf` + its two axioms + `ctxTokenOf` deleted,
+    `WithValue`'s conjunct dropped (`aba91cb5a3`); v3rpc/client Results, LeaseServer handlers, examples auth §4.3 (`ed4fcd3eaa`…);
+    full build green after the merge (`/shared/tmp/perheap/s/full-c1-3.log`); tcb `--check --update`: only the two intended
+    axioms gone, baseline + 22 collections (`f9c59967d3`); attack of 1b's trusted text SOUND (`/shared/tmp/perheap/attack-accepted.md`;
+    `notes/axiom-review/perheap-incoming.md`); gen-init/gen-raft-tla `--check` ok (gen-init needs `PERENNIAL_DIR=/shared/perennial-6d365ee1a`).
+  - **Next:** interfaces regenerated (check `git status interface/`, commit); the land stop report (Q9 list, tcb delta); after the
+    coordinator's go: gates via etc/land.sh (the coordinator runs it).
+  - **Open (the user's, Q9):** see `notes/perheap-questions.md` and the land-stop report.
+  - Pitfalls: `$$ [$H]` framing is syntactic (`E.authOn` ≠ `E.authMode.isOn`); `iapply lemma $$ [$A $B]` on a lemma with
+    explicit binders misassigns (give the binders); a handler's spec is `grpcSpecAt …`: `iunfold grpcSpecAt at H; icases H with
+    ⟨%md, #Hmd, H⟩`, then `auth.ctxToken_of_ctxInMD ci md $$ Hmd` gives the token `auth.mdTokenOf md`; a plain spec's
+    (`GrpcSpec.md`) from `grpcRunCtx` via `grpcSpecAt_md_intro`/`_elim`; callers with no run md take a token from `libCtxOk`
+    (`auth.ctxToken_of_libCtxOk`).
+
 
 - C1a checkpoint START HERE (2026-11-18): - Branch `perheap-scope` (worktree `/shared/etcd-grove-incomingof`). Pin 6d365ee1a: `--packages=/shared/tmp/manifest-6d3.json`.
     Builds only via `/shared/tmp/build-slot.sh` (`LEAN_NUM_THREADS=4`). Post-merge full build of `cd350b3c75`: GREEN
