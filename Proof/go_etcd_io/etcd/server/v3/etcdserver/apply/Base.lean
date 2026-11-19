@@ -70,11 +70,14 @@ variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 `Is` method (`*errorString` has only `Error`; the model's method sets are uninterpreted, so this
 is stated, not derived; as the recipes' `errNewLeaf`), nor a `GRPCStatus` method (k8s etcd3 7c,
 HS-6: grpc's `status.FromError` accepts it, `statusErrOk`), nor a `Format` method (premise-fixes-4,
-2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`). -/
+2026-11-10: `fmt` prints it with its `Error`, `statusErrOk`), and its `Error` is `Error() string`
+(fmt soundness 2, 2026-11-18: `statusErrOk`). -/
 def errLeaf (e : GoInterfaceOk) : Prop :=
   _root_.Perennial.errors.IsPointerError e ∧ _root_.Perennial.errors.isLeafError e ∧
     methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]) ∧
-    methodSet e.ty !! go!"GRPCStatus" = none ∧ methodSet e.ty !! go!"Format" = none
+    methodSet e.ty !! go!"GRPCStatus" = none ∧
+    (methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string]))
 
 /-- `errLeaf` without the `Format` conjunct (premise-fixes-4): what the premise
 `EtcdGrove.ContextReadErrs` states of `context.Canceled` (`errVarLeafW`), unchanged; the `Format`
@@ -246,7 +249,9 @@ theorem applyErrIs_srvErrOk (err : GoInterface) :
 accepts** (k8s etcd3 7c, HS-6). -/
 theorem statusErrOk_of_leafMsg (e : GoInterfaceOk) (hl : _root_.Perennial.errors.isLeafError e)
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
     errMsgOk (GF := GF) e ⊢ go_etcd_io.etcd.cache.v3.statusErrOk (GoInterface.ok e) := by
   iintro #Hm
   unfold go_etcd_io.etcd.cache.v3.statusErrOk
@@ -340,7 +345,9 @@ theorem applyErrIs_valLeaf [_root_.Perennial.errors.Assumptions] (e : GoInterfac
     (hIs : methodSet e.ty !! go!"Is" ≠ some (go.Signature [go.error] false [go.bool]))
     (hty : ∀ T, e.ty ≠ go.GoType.PointerType T)
     (hkey : SafeMapKey (GF := GF) go.error (GoInterface.ok e))
-    (hG : methodSet e.ty !! go!"GRPCStatus" = none) (hF : methodSet e.ty !! go!"Format" = none) :
+    (hG : methodSet e.ty !! go!"GRPCStatus" = none)
+    (hF : methodSet e.ty !! go!"Format" = none ∧
+      methodSet e.ty !! go!"Error" = some (go.signature.Signature [] false [go.string])) :
     errMsgOk (GF := GF) e ⊢ applyErrIs (GoInterface.ok e) := by
   iintro #Hm
   iunfold applyErrIs

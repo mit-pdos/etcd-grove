@@ -90,7 +90,11 @@ theorem klog.argOkAt_of_argOk {d : fmt.Directive} {a : GoInterface} :
     iintro ⟨%h, H⟩
     ileft; iright; iright
     isplitr
-    · ipureintro; exact h
+    · ipureintro
+      refine ⟨h.1, h.2, fun hw => ?_⟩
+      have h1 := h.1
+      rw [hw] at h1
+      exact absurd h1 (by decide)
     · iexact H
 
 /-- A `string` argument is `klog.argOkAt` any directive. -/

@@ -646,7 +646,7 @@ theorem errorString_argOk (x : Loc) (msg : GoString) :
   icases Hok with ⟨%h, #Hs⟩
   iright; ileft
   iframe Hs
-  ipureintro; exact h.1
+  ipureintro; exact h
 
 end errStr
 
