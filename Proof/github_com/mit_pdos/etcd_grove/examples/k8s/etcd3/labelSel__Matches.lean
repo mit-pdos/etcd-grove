@@ -7,6 +7,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.labelSel__Matches
 public import Spec.k8s_io.apimachinery.pkg.labels.Set__Get
 public import Spec.k8s_io.apimachinery.pkg.labels.Set__Has
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

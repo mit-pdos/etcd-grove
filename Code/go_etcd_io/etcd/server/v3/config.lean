@@ -89,7 +89,7 @@ noncomputable def ServerConfig.MaxRequestBytesWithOverhead.impl [GooseExts] [GoG
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.config where
   pkgImportedPkgs := [pkg_id.time, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.bbolt, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3discovery]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

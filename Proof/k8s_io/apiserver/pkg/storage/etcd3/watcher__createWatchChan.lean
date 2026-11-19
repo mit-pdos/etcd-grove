@@ -11,6 +11,7 @@ public import Spec.k8s_io.apiserver.pkg.storage.etcd3.watcher__createWatchChan
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.newBlockLogger
 public import Spec.k8s_io.utils.clock.RealClock__Now
 public import Proof.context.LibKeysChain
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

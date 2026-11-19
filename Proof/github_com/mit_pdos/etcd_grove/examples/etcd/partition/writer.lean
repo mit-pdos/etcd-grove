@@ -10,6 +10,7 @@ public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.WatchWritesLinked
 
 @[expose] public section
 

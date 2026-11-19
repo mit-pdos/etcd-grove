@@ -25,6 +25,7 @@ public import Proof.os.File__Fd
 public import Proof.os.File__Close
 public import Proof.syscall.Fdatasync
 public import GooseLang.Ext.Fs.Adequacy
+public import Robustness.Statement
 
 @[expose] public section
 
@@ -156,6 +157,24 @@ theorem seglog_crash_safety [lctx : GoLocalContext] [sem : go.Semantics] [packag
       (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   seglog_crash_safety_bounded (GF := fsGF) Hinit_wp (n + 1) (n + 2) σ g dir Hlctx Hpkgs Hinit Hdir
     n κs t2 σ2 b Hsteps (by omega) Hthreads (RealCrashThreadsBelow.of_single Hthreads)
+
+/-- **`seglog_crash_safety` as a robustness statement** (`Robustness.Robust`,
+`Robustness/Statement.lean`): the program alone on one machine that may crash at any step and restart,
+a fresh Go process (`Robust`'s premise), under `seglog_crash_safety`'s other hypotheses: in every
+execution of fewer than `bound` steps no thread is stuck and none has an unrecovered panic. -/
+theorem seglog_crash_robust
+    [lctx : GoLocalContext] [sem : go.Semantics] [package_sem : Assumptions] [os.Assumptions]
+    [os.file.FieldAssumptions] [golang_org.x.sys.unix.Assumptions]
+    (Hinit_wp : ∀ [hG : HeapGS .hasLC fsGF],
+      {{ ownGoState (hG := hG.goose_localGS.goose_go_stateGS) ∅ }}
+        (App (Val initialize') (Val #()))
+      {{ RET #(); True }})
+    (σ : state) (g : GlobalState) (dir : GoString) (Hinit : FsInit (extLocal fsExt σ.world))
+    (Hdir : ∃ j, (dir, j) ∈ (extLocal fsExt σ.world).fs.roots) (bound : Nat) :
+    Robustness.Robust [(bootLog dir, σ)] [] g bound :=
+  Robustness.Robust.of_single_crashing fun hf n κs t2 σ2 b _ Hsteps =>
+    (seglog_crash_safety
+      Hinit_wp σ g dir hf.1 hf.2.1 Hinit Hdir hf.2.2 n κs t2 σ2 b Hsteps).2
 
 end adequacy
 

@@ -55,100 +55,100 @@ noncomputable def timestampedSample.ty [GooseExts] [GoGlobalContext] : go.GoType
 
 attribute [irreducible] timestampedSample.ty
 
-axiom Monitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque Monitor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom monitorCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque monitorCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom OperationLatencyTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque OperationLatencyTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timestampedResourceGaugeCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timestampedResourceGaugeCollector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom timestampedSample.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque timestampedSample.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
 noncomputable def ErrTransactionConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.ErrTransactionConflict"
 
-axiom ErrTransactionConflict.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTransactionConflict.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdRequestLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestLatency"
 
-axiom etcdRequestLatency.init [GooseExts] [GoGlobalContext] : val
+opaque etcdRequestLatency.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdRequestCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestCounts"
 
-axiom etcdRequestCounts.init [GooseExts] [GoGlobalContext] : val
+opaque etcdRequestCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdRequestErrorCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdRequestErrorCounts"
 
-axiom etcdRequestErrorCounts.init [GooseExts] [GoGlobalContext] : val
+opaque etcdRequestErrorCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def objectCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.objectCounts"
 
-axiom objectCounts.init [GooseExts] [GoGlobalContext] : val
+opaque objectCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resourceSizeEstimateDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimateDesc"
 
-axiom resourceSizeEstimateDesc.init [GooseExts] [GoGlobalContext] : val
+opaque resourceSizeEstimateDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resourceSizeEstimate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceSizeEstimate"
 
-axiom resourceSizeEstimate.init [GooseExts] [GoGlobalContext] : val
+opaque resourceSizeEstimate.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def resourceObjectsDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.resourceObjectsDesc"
 
-axiom resourceObjectsDesc.init [GooseExts] [GoGlobalContext] : val
+opaque resourceObjectsDesc.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newObjectCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.newObjectCounts"
 
-axiom newObjectCounts.init [GooseExts] [GoGlobalContext] : val
+opaque newObjectCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def storageSizeDescription [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageSizeDescription"
 
-axiom storageSizeDescription.init [GooseExts] [GoGlobalContext] : val
+opaque storageSizeDescription.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def storageMonitor [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.storageMonitor"
 
-axiom storageMonitor.init [GooseExts] [GoGlobalContext] : val
+opaque storageMonitor.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdEventsReceivedCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdEventsReceivedCounts"
 
-axiom etcdEventsReceivedCounts.init [GooseExts] [GoGlobalContext] : val
+opaque etcdEventsReceivedCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdBookmarkCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkCounts"
 
-axiom etcdBookmarkCounts.init [GooseExts] [GoGlobalContext] : val
+opaque etcdBookmarkCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdBookmarkTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdBookmarkTotal"
 
-axiom etcdBookmarkTotal.init [GooseExts] [GoGlobalContext] : val
+opaque etcdBookmarkTotal.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def etcdLeaseObjectCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.etcdLeaseObjectCounts"
 
-axiom etcdLeaseObjectCounts.init [GooseExts] [GoGlobalContext] : val
+opaque etcdLeaseObjectCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def decodeErrorCounts [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.decodeErrorCounts"
 
-axiom decodeErrorCounts.init [GooseExts] [GoGlobalContext] : val
+opaque decodeErrorCounts.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def listLatency [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.listLatency"
 
-axiom listLatency.init [GooseExts] [GoGlobalContext] : val
+opaque listLatency.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.registerMetrics"
@@ -156,7 +156,7 @@ noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def sinceInSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.sinceInSeconds"
 
-axiom sinceInSeconds.init [GooseExts] [GoGlobalContext] : val
+opaque sinceInSeconds.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/etcd3/metrics.Register"
@@ -209,7 +209,7 @@ noncomputable def newTimestampedResourceGaugeCollector [GooseExts] [GoGlobalCont
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics where
   pkgImportedPkgs := []
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -272,8 +272,10 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrTransactionConflict.init) (Val #()))))))))
 
-axiom Monitor : Type
-axiom Monitor.zero_val : ZeroVal Monitor
+opaque Monitor.nonempty_type : NonemptyType.{0}
+def Monitor : Type := Monitor.nonempty_type.type
+instance Monitor.nonempty : Nonempty Monitor := Monitor.nonempty_type.property
+opaque Monitor.zero_val : ZeroVal Monitor := ⟨Classical.ofNonempty⟩
 attribute [instance] Monitor.zero_val
 
 class Monitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -324,8 +326,10 @@ attribute [instance] StorageMetrics.TypeAssumptions.type_repr
   StorageMetrics.TypeAssumptions.method_set
   StorageMetrics.TypeAssumptions.ptr_method_set
 
-axiom monitorCollector : Type
-axiom monitorCollector.zero_val : ZeroVal monitorCollector
+opaque monitorCollector.nonempty_type : NonemptyType.{0}
+def monitorCollector : Type := monitorCollector.nonempty_type.type
+instance monitorCollector.nonempty : Nonempty monitorCollector := monitorCollector.nonempty_type.property
+opaque monitorCollector.zero_val : ZeroVal monitorCollector := ⟨Classical.ofNonempty⟩
 attribute [instance] monitorCollector.zero_val
 
 class monitorCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -341,8 +345,10 @@ attribute [instance] monitorCollector.TypeAssumptions.type_repr
   monitorCollector.TypeAssumptions.method_set
   monitorCollector.TypeAssumptions.ptr_method_set
 
-axiom OperationLatencyTracker : Type
-axiom OperationLatencyTracker.zero_val : ZeroVal OperationLatencyTracker
+opaque OperationLatencyTracker.nonempty_type : NonemptyType.{0}
+def OperationLatencyTracker : Type := OperationLatencyTracker.nonempty_type.type
+instance OperationLatencyTracker.nonempty : Nonempty OperationLatencyTracker := OperationLatencyTracker.nonempty_type.property
+opaque OperationLatencyTracker.zero_val : ZeroVal OperationLatencyTracker := ⟨Classical.ofNonempty⟩
 attribute [instance] OperationLatencyTracker.zero_val
 
 class OperationLatencyTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -393,8 +399,10 @@ attribute [instance] EtcdMetricsTracker.TypeAssumptions.type_repr
   EtcdMetricsTracker.TypeAssumptions.method_set
   EtcdMetricsTracker.TypeAssumptions.ptr_method_set
 
-axiom timestampedResourceGaugeCollector : Type
-axiom timestampedResourceGaugeCollector.zero_val : ZeroVal timestampedResourceGaugeCollector
+opaque timestampedResourceGaugeCollector.nonempty_type : NonemptyType.{0}
+def timestampedResourceGaugeCollector : Type := timestampedResourceGaugeCollector.nonempty_type.type
+instance timestampedResourceGaugeCollector.nonempty : Nonempty timestampedResourceGaugeCollector := timestampedResourceGaugeCollector.nonempty_type.property
+opaque timestampedResourceGaugeCollector.zero_val : ZeroVal timestampedResourceGaugeCollector := ⟨Classical.ofNonempty⟩
 attribute [instance] timestampedResourceGaugeCollector.zero_val
 
 class timestampedResourceGaugeCollector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -410,8 +418,10 @@ attribute [instance] timestampedResourceGaugeCollector.TypeAssumptions.type_repr
   timestampedResourceGaugeCollector.TypeAssumptions.method_set
   timestampedResourceGaugeCollector.TypeAssumptions.ptr_method_set
 
-axiom timestampedSample : Type
-axiom timestampedSample.zero_val : ZeroVal timestampedSample
+opaque timestampedSample.nonempty_type : NonemptyType.{0}
+def timestampedSample : Type := timestampedSample.nonempty_type.type
+instance timestampedSample.nonempty : Nonempty timestampedSample := timestampedSample.nonempty_type.property
+opaque timestampedSample.zero_val : ZeroVal timestampedSample := ⟨Classical.ofNonempty⟩
 attribute [instance] timestampedSample.zero_val
 
 class timestampedSample.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

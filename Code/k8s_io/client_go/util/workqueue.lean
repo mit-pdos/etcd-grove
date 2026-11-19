@@ -3349,7 +3349,7 @@ noncomputable def rateLimitingType.Forget.impl [GooseExts] [GoGlobalContext] (T 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.workqueue where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync, pkg_id.time, pkg_id.golang_org.x.time.rate, pkg_id.container.heap, pkg_id.k8s_io.apimachinery.pkg.util.runtime, pkg_id.k8s_io.klog.v2, pkg_id.k8s_io.utils.clock, pkg_id.context, pkg_id.k8s_io.apimachinery.pkg.util.sets]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

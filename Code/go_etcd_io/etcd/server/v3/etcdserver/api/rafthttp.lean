@@ -276,87 +276,87 @@ noncomputable def RaftSnapshotPrefix [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def errIncompatibleVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errIncompatibleVersion"
 
-axiom errIncompatibleVersion.init [GooseExts] [GoGlobalContext] : val
+opaque errIncompatibleVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrClusterIDMismatch"
 
-axiom ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def activePeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activePeers"
 
-axiom activePeers.init [GooseExts] [GoGlobalContext] : val
+opaque activePeers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def disconnectedPeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.disconnectedPeers"
 
-axiom disconnectedPeers.init [GooseExts] [GoGlobalContext] : val
+opaque disconnectedPeers.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sentBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sentBytes"
 
-axiom sentBytes.init [GooseExts] [GoGlobalContext] : val
+opaque sentBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def receivedBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.receivedBytes"
 
-axiom receivedBytes.init [GooseExts] [GoGlobalContext] : val
+opaque receivedBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def sentFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sentFailures"
 
-axiom sentFailures.init [GooseExts] [GoGlobalContext] : val
+opaque sentFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def recvFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.recvFailures"
 
-axiom recvFailures.init [GooseExts] [GoGlobalContext] : val
+opaque recvFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotSend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSend"
 
-axiom snapshotSend.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotSend.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotSendInflights [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSendInflights"
 
-axiom snapshotSendInflights.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotSendInflights.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotSendFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSendFailures"
 
-axiom snapshotSendFailures.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotSendFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotSendSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSendSeconds"
 
-axiom snapshotSendSeconds.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotSendSeconds.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotReceive [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceive"
 
-axiom snapshotReceive.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotReceive.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotReceiveInflights [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceiveInflights"
 
-axiom snapshotReceiveInflights.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotReceiveInflights.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotReceiveFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceiveFailures"
 
-axiom snapshotReceiveFailures.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotReceiveFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapshotReceiveSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceiveSeconds"
 
-axiom snapshotReceiveSeconds.init [GooseExts] [GoGlobalContext] : val
+opaque snapshotReceiveSeconds.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def rttSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.rttSec"
 
-axiom rttSec.init [GooseExts] [GoGlobalContext] : val
+opaque rttSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def readBytesLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.readBytesLimit"
@@ -364,7 +364,7 @@ noncomputable def readBytesLimit [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ErrExceedSizeLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrExceedSizeLimit"
 
-axiom ErrExceedSizeLimit.init [GooseExts] [GoGlobalContext] : val
+opaque ErrExceedSizeLimit.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ConnReadTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnReadTimeout"
@@ -372,42 +372,42 @@ noncomputable def ConnReadTimeout [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def ConnWriteTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnWriteTimeout"
 
-axiom ConnWriteTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ConnWriteTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errStopped"
 
-axiom errStopped.init [GooseExts] [GoGlobalContext] : val
+opaque errStopped.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def proberInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.proberInterval"
 
-axiom proberInterval.init [GooseExts] [GoGlobalContext] : val
+opaque proberInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def statusMonitoringInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.statusMonitoringInterval"
 
-axiom statusMonitoringInterval.init [GooseExts] [GoGlobalContext] : val
+opaque statusMonitoringInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def statusErrorInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.statusErrorInterval"
 
-axiom statusErrorInterval.init [GooseExts] [GoGlobalContext] : val
+opaque statusErrorInterval.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def snapResponseReadTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapResponseReadTimeout"
 
-axiom snapResponseReadTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque snapResponseReadTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errUnsupportedStreamType [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errUnsupportedStreamType"
 
-axiom errUnsupportedStreamType.init [GooseExts] [GoGlobalContext] : val
+opaque errUnsupportedStreamType.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def supportedStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.supportedStream"
 
-axiom supportedStream.init [GooseExts] [GoGlobalContext] : val
+opaque supportedStream.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def linkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatMessage"
@@ -415,17 +415,17 @@ noncomputable def linkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString 
 noncomputable def linkHeartbeatSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatSize"
 
-axiom linkHeartbeatSize.init [GooseExts] [GoGlobalContext] : val
+opaque linkHeartbeatSize.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMemberRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberRemoved"
 
-axiom errMemberRemoved.init [GooseExts] [GoGlobalContext] : val
+opaque errMemberRemoved.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberNotFound"
 
-axiom errMemberNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque errMemberNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def newPipelineHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newPipelineHandler"

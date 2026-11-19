@@ -138,7 +138,7 @@ theorem kvreconf_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvreconfProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := kvrGF) github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.Main) #())
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩
@@ -181,7 +181,7 @@ theorem kvreconfN_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     (Hsteps : RealNsteps n ([kvreconfProgramN k], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
-    (∀ v, Val v ∈ t2 → v.isPanic = false) := by
+    (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) := by
   refine init_adequate (GF := kvrGF) github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.raft.kvreconf.MainN) #(W64 (k : Int)))
     (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩

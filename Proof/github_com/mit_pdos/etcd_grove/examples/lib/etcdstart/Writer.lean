@@ -9,6 +9,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.Writer
 public import Perennial.Proof.context.Link
 public import Perennial.Proof.sync.Link
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 
 @[expose] public section
 

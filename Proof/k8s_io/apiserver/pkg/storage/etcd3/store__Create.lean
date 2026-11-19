@@ -26,6 +26,7 @@ public import Spec.k8s_io.apiserver.pkg.audit.GetAuditIDTruncated
 public import Spec.k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker__Record
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticPut
 public import Perennial.Proof.time.Link
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

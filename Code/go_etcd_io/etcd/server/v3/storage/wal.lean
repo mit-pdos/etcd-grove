@@ -113,17 +113,17 @@ attribute [irreducible] WAL.ty
 noncomputable def walFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walFsyncSec"
 
-axiom walFsyncSec.init [GooseExts] [GoGlobalContext] : val
+opaque walFsyncSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def walWriteSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walWriteSec"
 
-axiom walWriteSec.init [GooseExts] [GoGlobalContext] : val
+opaque walWriteSec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def walWriteBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.walWriteBytes"
 
-axiom walWriteBytes.init [GooseExts] [GoGlobalContext] : val
+opaque walWriteBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errBadWALName [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/wal.errBadWALName"

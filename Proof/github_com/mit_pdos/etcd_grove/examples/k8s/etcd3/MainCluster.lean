@@ -22,6 +22,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.newStore
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchQ
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.WatchEnvN
 public import Spec.context.ErrAny
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 

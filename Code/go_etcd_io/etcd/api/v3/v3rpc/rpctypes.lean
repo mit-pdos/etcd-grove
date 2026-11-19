@@ -35,642 +35,642 @@ attribute [irreducible] TokenFieldNameGRPCKey.ty
 noncomputable def ErrGRPCEmptyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCEmptyKey"
 
-axiom ErrGRPCEmptyKey.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCEmptyKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCKeyNotFound"
 
-axiom ErrGRPCKeyNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCValueProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCValueProvided"
 
-axiom ErrGRPCValueProvided.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCValueProvided.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLeaseProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseProvided"
 
-axiom ErrGRPCLeaseProvided.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCLeaseProvided.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTooManyOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTooManyOps"
 
-axiom ErrGRPCTooManyOps.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCTooManyOps.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCDuplicateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDuplicateKey"
 
-axiom ErrGRPCDuplicateKey.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCDuplicateKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidClientAPIVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidClientAPIVersion"
 
-axiom ErrGRPCInvalidClientAPIVersion.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCInvalidClientAPIVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidSortOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidSortOption"
 
-axiom ErrGRPCInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCompacted"
 
-axiom ErrGRPCCompacted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCCompacted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCFutureRev"
 
-axiom ErrGRPCFutureRev.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCFutureRev.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoSpace"
 
-axiom ErrGRPCNoSpace.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCNoSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseNotFound"
 
-axiom ErrGRPCLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLeaseExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseExist"
 
-axiom ErrGRPCLeaseExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCLeaseExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaseTTLTooLarge"
 
-axiom ErrGRPCLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCWatchCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWatchCanceled"
 
-axiom ErrGRPCWatchCanceled.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCWatchCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberExist"
 
-axiom ErrGRPCMemberExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCMemberExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCPeerURLExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPeerURLExist"
 
-axiom ErrGRPCPeerURLExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCPeerURLExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberNotEnoughStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotEnoughStarted"
 
-axiom ErrGRPCMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberBadURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberBadURLs"
 
-axiom ErrGRPCMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotFound"
 
-axiom ErrGRPCMemberNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCMemberNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCMemberNotLearner"
 
-axiom ErrGRPCMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLearnerNotReady"
 
-axiom ErrGRPCLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTooManyLearners"
 
-axiom ErrGRPCTooManyLearners.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterIDMismatch"
 
-axiom ErrGRPCClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCClusterIdMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterIdMismatch"
 
-axiom ErrGRPCClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRequestTooLarge"
 
-axiom ErrGRPCRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRequestTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRequestTooManyRequests"
 
-axiom ErrGRPCRequestTooManyRequests.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRequestTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRootUserNotExist"
 
-axiom ErrGRPCRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRootRoleNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRootRoleNotExist"
 
-axiom ErrGRPCRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCUserAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserAlreadyExist"
 
-axiom ErrGRPCUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserEmpty"
 
-axiom ErrGRPCUserEmpty.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCUserEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUserNotFound"
 
-axiom ErrGRPCUserNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCUserNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRoleAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleAlreadyExist"
 
-axiom ErrGRPCRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRoleNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotFound"
 
-axiom ErrGRPCRoleNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRoleNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRoleEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleEmpty"
 
-axiom ErrGRPCRoleEmpty.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRoleEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCAuthFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthFailed"
 
-axiom ErrGRPCAuthFailed.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCAuthFailed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCPermissionNotGiven [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionNotGiven"
 
-axiom ErrGRPCPermissionNotGiven.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCPermissionNotGiven.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionDenied"
 
-axiom ErrGRPCPermissionDenied.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCPermissionDenied.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCRoleNotGranted"
 
-axiom ErrGRPCRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCPermissionNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCPermissionNotGranted"
 
-axiom ErrGRPCPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCAuthNotEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthNotEnabled"
 
-axiom ErrGRPCAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthToken"
 
-axiom ErrGRPCInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidAuthMgmt"
 
-axiom ErrGRPCInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCAuthOldRevision"
 
-axiom ErrGRPCAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoLeader"
 
-axiom ErrGRPCNoLeader.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCNoLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotLeader"
 
-axiom ErrGRPCNotLeader.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCNotLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCLeaderChanged"
 
-axiom ErrGRPCLeaderChanged.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotCapable"
 
-axiom ErrGRPCNotCapable.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCNotCapable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCStopped"
 
-axiom ErrGRPCStopped.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCStopped.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeout"
 
-axiom ErrGRPCTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutDueToLeaderFail"
 
-axiom ErrGRPCTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutDueToConnectionLost"
 
-axiom ErrGRPCTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCTimeoutWaitAppliedIndex"
 
-axiom ErrGRPCTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCUnhealthy"
 
-axiom ErrGRPCUnhealthy.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCorrupt"
 
-axiom ErrGRPCCorrupt.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCCorrupt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNotSupportedForLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNotSupportedForLearner"
 
-axiom ErrGRPCNotSupportedForLearner.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCNotSupportedForLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCBadLeaderTransferee"
 
-axiom ErrGRPCBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCWrongDowngradeVersionFormat"
 
-axiom ErrGRPCWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCInvalidDowngradeTargetVersion"
 
-axiom ErrGRPCInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCClusterVersionUnavailable"
 
-axiom ErrGRPCClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDowngradeInProcess"
 
-axiom ErrGRPCDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCNoInflightDowngrade"
 
-axiom ErrGRPCNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCCanceled"
 
-axiom ErrGRPCCanceled.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCCanceled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrGRPCDeadlineExceeded [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrGRPCDeadlineExceeded"
 
-axiom ErrGRPCDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
+opaque ErrGRPCDeadlineExceeded.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def errStringToError [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.errStringToError"
 
-axiom errStringToError.init [GooseExts] [GoGlobalContext] : val
+opaque errStringToError.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrEmptyKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrEmptyKey"
 
-axiom ErrEmptyKey.init [GooseExts] [GoGlobalContext] : val
+opaque ErrEmptyKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrKeyNotFound"
 
-axiom ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrValueProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrValueProvided"
 
-axiom ErrValueProvided.init [GooseExts] [GoGlobalContext] : val
+opaque ErrValueProvided.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseProvided [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseProvided"
 
-axiom ErrLeaseProvided.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaseProvided.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyOps"
 
-axiom ErrTooManyOps.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyOps.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDuplicateKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrDuplicateKey"
 
-axiom ErrDuplicateKey.init [GooseExts] [GoGlobalContext] : val
+opaque ErrDuplicateKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidSortOption [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidSortOption"
 
-axiom ErrInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidSortOption.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrCompacted"
 
-axiom ErrCompacted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrCompacted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrFutureRev"
 
-axiom ErrFutureRev.init [GooseExts] [GoGlobalContext] : val
+opaque ErrFutureRev.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoSpace"
 
-axiom ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseNotFound"
 
-axiom ErrLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaseNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseExist"
 
-axiom ErrLeaseExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaseExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaseTTLTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaseTTLTooLarge"
 
-axiom ErrLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaseTTLTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberExist"
 
-axiom ErrMemberExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrPeerURLExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPeerURLExist"
 
-axiom ErrPeerURLExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrPeerURLExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberNotEnoughStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotEnoughStarted"
 
-axiom ErrMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberNotEnoughStarted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberBadURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberBadURLs"
 
-axiom ErrMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberBadURLs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotFound"
 
-axiom ErrMemberNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberNotLearner [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberNotLearner"
 
-axiom ErrMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberNotLearner.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrMemberLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrMemberLearnerNotReady"
 
-axiom ErrMemberLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
+opaque ErrMemberLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyLearners [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyLearners"
 
-axiom ErrTooManyLearners.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyLearners.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRequestTooLarge"
 
-axiom ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTooManyRequests"
 
-axiom ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRootUserNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRootUserNotExist"
 
-axiom ErrRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRootUserNotExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRootRoleNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRootRoleNotExist"
 
-axiom ErrRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRootRoleNotExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUserAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserAlreadyExist"
 
-axiom ErrUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUserAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUserEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserEmpty"
 
-axiom ErrUserEmpty.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUserEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUserNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUserNotFound"
 
-axiom ErrUserNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUserNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRoleAlreadyExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleAlreadyExist"
 
-axiom ErrRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRoleAlreadyExist.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRoleNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleNotFound"
 
-axiom ErrRoleNotFound.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRoleNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRoleEmpty [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleEmpty"
 
-axiom ErrRoleEmpty.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRoleEmpty.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAuthFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthFailed"
 
-axiom ErrAuthFailed.init [GooseExts] [GoGlobalContext] : val
+opaque ErrAuthFailed.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrPermissionDenied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPermissionDenied"
 
-axiom ErrPermissionDenied.init [GooseExts] [GoGlobalContext] : val
+opaque ErrPermissionDenied.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrRoleNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrRoleNotGranted"
 
-axiom ErrRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrRoleNotGranted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrPermissionNotGranted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrPermissionNotGranted"
 
-axiom ErrPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
+opaque ErrPermissionNotGranted.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAuthNotEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthNotEnabled"
 
-axiom ErrAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
+opaque ErrAuthNotEnabled.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidAuthToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidAuthToken"
 
-axiom ErrInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidAuthToken.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrAuthOldRevision [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrAuthOldRevision"
 
-axiom ErrAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
+opaque ErrAuthOldRevision.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidAuthMgmt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidAuthMgmt"
 
-axiom ErrInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidAuthMgmt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterIDMismatch"
 
-axiom ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterIdMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterIdMismatch"
 
-axiom ErrClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
+opaque ErrClusterIdMismatch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoLeader"
 
-axiom ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNotLeader"
 
-axiom ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrLeaderChanged"
 
-axiom ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
+opaque ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNotCapable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNotCapable"
 
-axiom ErrNotCapable.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNotCapable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrStopped"
 
-axiom ErrStopped.init [GooseExts] [GoGlobalContext] : val
+opaque ErrStopped.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeout"
 
-axiom ErrTimeout.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeout.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutDueToLeaderFail"
 
-axiom ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutDueToConnectionLost"
 
-axiom ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrTimeoutWaitAppliedIndex"
 
-axiom ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
+opaque ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrUnhealthy"
 
-axiom ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrCorrupt"
 
-axiom ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
+opaque ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrBadLeaderTransferee"
 
-axiom ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
+opaque ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrClusterVersionUnavailable"
 
-axiom ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
+opaque ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrWrongDowngradeVersionFormat"
 
-axiom ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
+opaque ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidDowngradeTargetVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrInvalidDowngradeTargetVersion"
 
-axiom ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidDowngradeTargetVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrDowngradeInProcess [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrDowngradeInProcess"
 
-axiom ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
+opaque ErrDowngradeInProcess.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrNoInflightDowngrade [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.ErrNoInflightDowngrade"
 
-axiom ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
+opaque ErrNoInflightDowngrade.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetadataRequireLeaderKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataRequireLeaderKey"
 
-axiom MetadataRequireLeaderKey.init [GooseExts] [GoGlobalContext] : val
+opaque MetadataRequireLeaderKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetadataHasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataHasLeader"
 
-axiom MetadataHasLeader.init [GooseExts] [GoGlobalContext] : val
+opaque MetadataHasLeader.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def MetadataClientAPIVersionKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.MetadataClientAPIVersionKey"
 
-axiom MetadataClientAPIVersionKey.init [GooseExts] [GoGlobalContext] : val
+opaque MetadataClientAPIVersionKey.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def TokenFieldNameGRPC [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameGRPC"
 
-axiom TokenFieldNameGRPC.init [GooseExts] [GoGlobalContext] : val
+opaque TokenFieldNameGRPC.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def TokenFieldNameSwagger [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.TokenFieldNameSwagger"
 
-axiom TokenFieldNameSwagger.init [GooseExts] [GoGlobalContext] : val
+opaque TokenFieldNameSwagger.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/v3rpc/rpctypes.Error"
@@ -824,7 +824,7 @@ noncomputable def ErrorDesc.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

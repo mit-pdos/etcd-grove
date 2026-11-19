@@ -374,63 +374,63 @@ noncomputable def InternalEvent.ty [GooseExts] [GoGlobalContext] : go.GoType :=
 
 attribute [irreducible] InternalEvent.ty
 
-axiom FieldsV1Reader.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldsV1Reader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom FieldsV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque FieldsV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InternalEvent.underlying [GooseExts] [GoGlobalContext] : go.GoType
+opaque InternalEvent.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fieldsV1InvalidOrEmpty [GooseExts] [GoGlobalContext] : val
+opaque fieldsV1InvalidOrEmpty [GooseExts] [GoGlobalContext] : val
 
-axiom fieldsV1InvalidOrValidJSONObject [GooseExts] [GoGlobalContext] : val
+opaque fieldsV1InvalidOrValidJSONObject [GooseExts] [GoGlobalContext] : val
 
-axiom fieldsV1InvalidOrValidCBORObject [GooseExts] [GoGlobalContext] : val
+opaque fieldsV1InvalidOrValidCBORObject [GooseExts] [GoGlobalContext] : val
 
-axiom RFC3339Micro [GooseExts] [GoGlobalContext] : val
+opaque RFC3339Micro [GooseExts] [GoGlobalContext] : val
 
-axiom GroupName [GooseExts] [GoGlobalContext] : val
+opaque GroupName [GooseExts] [GoGlobalContext] : val
 
-axiom WatchEventKind [GooseExts] [GoGlobalContext] : val
+opaque WatchEventKind [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def ObjectNameField [GooseExts] [GoGlobalContext] : val :=
   #(go!"metadata.name")
 
-axiom FinalizerOrphanDependents [GooseExts] [GoGlobalContext] : val
+opaque FinalizerOrphanDependents [GooseExts] [GoGlobalContext] : val
 
-axiom FinalizerDeleteDependents [GooseExts] [GoGlobalContext] : val
+opaque FinalizerDeleteDependents [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceDefault [GooseExts] [GoGlobalContext] : val
+opaque NamespaceDefault [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def NamespaceAll [GooseExts] [GoGlobalContext] : val :=
   #(go!"")
 
-axiom NamespaceNone [GooseExts] [GoGlobalContext] : val
+opaque NamespaceNone [GooseExts] [GoGlobalContext] : val
 
-axiom NamespaceSystem [GooseExts] [GoGlobalContext] : val
+opaque NamespaceSystem [GooseExts] [GoGlobalContext] : val
 
-axiom NamespacePublic [GooseExts] [GoGlobalContext] : val
+opaque NamespacePublic [GooseExts] [GoGlobalContext] : val
 
-axiom InitialEventsAnnotationKey [GooseExts] [GoGlobalContext] : val
+opaque InitialEventsAnnotationKey [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceVersionMatchNotOlderThan [GooseExts] [GoGlobalContext] : val
+opaque ResourceVersionMatchNotOlderThan [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceVersionMatchExact [GooseExts] [GoGlobalContext] : val
+opaque ResourceVersionMatchExact [GooseExts] [GoGlobalContext] : val
 
-axiom DeletePropagationOrphan [GooseExts] [GoGlobalContext] : val
+opaque DeletePropagationOrphan [GooseExts] [GoGlobalContext] : val
 
-axiom DeletePropagationBackground [GooseExts] [GoGlobalContext] : val
+opaque DeletePropagationBackground [GooseExts] [GoGlobalContext] : val
 
-axiom DeletePropagationForeground [GooseExts] [GoGlobalContext] : val
+opaque DeletePropagationForeground [GooseExts] [GoGlobalContext] : val
 
-axiom DryRunAll [GooseExts] [GoGlobalContext] : val
+opaque DryRunAll [GooseExts] [GoGlobalContext] : val
 
-axiom FieldValidationIgnore [GooseExts] [GoGlobalContext] : val
+opaque FieldValidationIgnore [GooseExts] [GoGlobalContext] : val
 
-axiom FieldValidationWarn [GooseExts] [GoGlobalContext] : val
+opaque FieldValidationWarn [GooseExts] [GoGlobalContext] : val
 
-axiom FieldValidationStrict [GooseExts] [GoGlobalContext] : val
+opaque FieldValidationStrict [GooseExts] [GoGlobalContext] : val
 
-axiom StatusSuccess [GooseExts] [GoGlobalContext] : val
+opaque StatusSuccess [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def StatusFailure [GooseExts] [GoGlobalContext] : val :=
   #(go!"Failure")
@@ -495,90 +495,90 @@ axiom StatusSuccess [GooseExts] [GoGlobalContext] : val
 @[reducible] noncomputable def StatusReasonServiceUnavailable [GooseExts] [GoGlobalContext] : val :=
   #(go!"ServiceUnavailable")
 
-axiom CauseTypeFieldValueNotFound [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeFieldValueNotFound [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeFieldValueRequired [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeFieldValueRequired [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeFieldValueDuplicate [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeFieldValueDuplicate [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeFieldValueInvalid [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeFieldValueInvalid [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeFieldValueNotSupported [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeFieldValueNotSupported [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeForbidden [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeForbidden [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeTooLong [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeTooLong [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeTooShort [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeTooShort [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeTooMany [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeTooMany [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeTooFew [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeTooFew [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeInternal [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeInternal [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeTypeInvalid [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeTypeInvalid [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeUnexpectedServerResponse [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeUnexpectedServerResponse [GooseExts] [GoGlobalContext] : val
 
-axiom CauseTypeFieldManagerConflict [GooseExts] [GoGlobalContext] : val
+opaque CauseTypeFieldManagerConflict [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def CauseTypeResourceVersionTooLarge [GooseExts] [GoGlobalContext] : val :=
   #(go!"ResourceVersionTooLarge")
 
-axiom LabelSelectorOpIn [GooseExts] [GoGlobalContext] : val
+opaque LabelSelectorOpIn [GooseExts] [GoGlobalContext] : val
 
-axiom LabelSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
+opaque LabelSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
 
-axiom LabelSelectorOpExists [GooseExts] [GoGlobalContext] : val
+opaque LabelSelectorOpExists [GooseExts] [GoGlobalContext] : val
 
-axiom LabelSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
+opaque LabelSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
 
-axiom FieldSelectorOpIn [GooseExts] [GoGlobalContext] : val
+opaque FieldSelectorOpIn [GooseExts] [GoGlobalContext] : val
 
-axiom FieldSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
+opaque FieldSelectorOpNotIn [GooseExts] [GoGlobalContext] : val
 
-axiom FieldSelectorOpExists [GooseExts] [GoGlobalContext] : val
+opaque FieldSelectorOpExists [GooseExts] [GoGlobalContext] : val
 
-axiom FieldSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
+opaque FieldSelectorOpDoesNotExist [GooseExts] [GoGlobalContext] : val
 
-axiom ManagedFieldsOperationApply [GooseExts] [GoGlobalContext] : val
+opaque ManagedFieldsOperationApply [GooseExts] [GoGlobalContext] : val
 
-axiom ManagedFieldsOperationUpdate [GooseExts] [GoGlobalContext] : val
+opaque ManagedFieldsOperationUpdate [GooseExts] [GoGlobalContext] : val
 
-axiom RowCompleted [GooseExts] [GoGlobalContext] : val
+opaque RowCompleted [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionTrue [GooseExts] [GoGlobalContext] : val
+opaque ConditionTrue [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionFalse [GooseExts] [GoGlobalContext] : val
+opaque ConditionFalse [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionUnknown [GooseExts] [GoGlobalContext] : val
+opaque ConditionUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeNone [GooseExts] [GoGlobalContext] : val
+opaque IncludeNone [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeMetadata [GooseExts] [GoGlobalContext] : val
+opaque IncludeMetadata [GooseExts] [GoGlobalContext] : val
 
-axiom IncludeObject [GooseExts] [GoGlobalContext] : val
+opaque IncludeObject [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrInvalidLengthGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.ErrInvalidLengthGenerated"
 
-axiom ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrInvalidLengthGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrIntOverflowGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.ErrIntOverflowGenerated"
 
-axiom ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrIntOverflowGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ErrUnexpectedEndOfGroupGenerated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.ErrUnexpectedEndOfGroupGenerated"
 
-axiom ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
+opaque ErrUnexpectedEndOfGroupGenerated.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def cborNull [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.cborNull"
 
-axiom cborNull.init [GooseExts] [GoGlobalContext] : val
+opaque cborNull.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def schemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.schemeBuilder"
@@ -586,222 +586,222 @@ noncomputable def schemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def localSchemeBuilder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.localSchemeBuilder"
 
-axiom localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
+opaque localSchemeBuilder.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def SchemeGroupVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.SchemeGroupVersion"
 
-axiom SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
+opaque SchemeGroupVersion.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def Unversioned [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.Unversioned"
 
-axiom Unversioned.init [GooseExts] [GoGlobalContext] : val
+opaque Unversioned.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.scheme"
 
-axiom scheme.init [GooseExts] [GoGlobalContext] : val
+opaque scheme.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def ParameterCodec [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.ParameterCodec"
 
-axiom ParameterCodec.init [GooseExts] [GoGlobalContext] : val
+opaque ParameterCodec.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def optionsTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.optionsTypes"
 
-axiom optionsTypes.init [GooseExts] [GoGlobalContext] : val
+opaque optionsTypes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_APIGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIGroup"
 
-axiom map_APIGroup.init [GooseExts] [GoGlobalContext] : val
+opaque map_APIGroup.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_APIGroupList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIGroupList"
 
-axiom map_APIGroupList.init [GooseExts] [GoGlobalContext] : val
+opaque map_APIGroupList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_APIResource [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIResource"
 
-axiom map_APIResource.init [GooseExts] [GoGlobalContext] : val
+opaque map_APIResource.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_APIResourceList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIResourceList"
 
-axiom map_APIResourceList.init [GooseExts] [GoGlobalContext] : val
+opaque map_APIResourceList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_APIVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_APIVersions"
 
-axiom map_APIVersions.init [GooseExts] [GoGlobalContext] : val
+opaque map_APIVersions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ApplyOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ApplyOptions"
 
-axiom map_ApplyOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_ApplyOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Condition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Condition"
 
-axiom map_Condition.init [GooseExts] [GoGlobalContext] : val
+opaque map_Condition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_CreateOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_CreateOptions"
 
-axiom map_CreateOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_CreateOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_DeleteOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_DeleteOptions"
 
-axiom map_DeleteOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_DeleteOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_FieldSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_FieldSelectorRequirement"
 
-axiom map_FieldSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
+opaque map_FieldSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GetOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_GetOptions"
 
-axiom map_GetOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_GetOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_GroupVersionForDiscovery [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_GroupVersionForDiscovery"
 
-axiom map_GroupVersionForDiscovery.init [GooseExts] [GoGlobalContext] : val
+opaque map_GroupVersionForDiscovery.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LabelSelector [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_LabelSelector"
 
-axiom map_LabelSelector.init [GooseExts] [GoGlobalContext] : val
+opaque map_LabelSelector.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_LabelSelectorRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_LabelSelectorRequirement"
 
-axiom map_LabelSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
+opaque map_LabelSelectorRequirement.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_List [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_List"
 
-axiom map_List.init [GooseExts] [GoGlobalContext] : val
+opaque map_List.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ListMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ListMeta"
 
-axiom map_ListMeta.init [GooseExts] [GoGlobalContext] : val
+opaque map_ListMeta.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ListOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ListOptions"
 
-axiom map_ListOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_ListOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ManagedFieldsEntry [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ManagedFieldsEntry"
 
-axiom map_ManagedFieldsEntry.init [GooseExts] [GoGlobalContext] : val
+opaque map_ManagedFieldsEntry.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ObjectMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ObjectMeta"
 
-axiom map_ObjectMeta.init [GooseExts] [GoGlobalContext] : val
+opaque map_ObjectMeta.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_OwnerReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_OwnerReference"
 
-axiom map_OwnerReference.init [GooseExts] [GoGlobalContext] : val
+opaque map_OwnerReference.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PartialObjectMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_PartialObjectMetadata"
 
-axiom map_PartialObjectMetadata.init [GooseExts] [GoGlobalContext] : val
+opaque map_PartialObjectMetadata.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PartialObjectMetadataList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_PartialObjectMetadataList"
 
-axiom map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
+opaque map_PartialObjectMetadataList.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Patch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Patch"
 
-axiom map_Patch.init [GooseExts] [GoGlobalContext] : val
+opaque map_Patch.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_PatchOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_PatchOptions"
 
-axiom map_PatchOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_PatchOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Preconditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Preconditions"
 
-axiom map_Preconditions.init [GooseExts] [GoGlobalContext] : val
+opaque map_Preconditions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_RootPaths [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_RootPaths"
 
-axiom map_RootPaths.init [GooseExts] [GoGlobalContext] : val
+opaque map_RootPaths.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ServerAddressByClientCIDR [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ServerAddressByClientCIDR"
 
-axiom map_ServerAddressByClientCIDR.init [GooseExts] [GoGlobalContext] : val
+opaque map_ServerAddressByClientCIDR.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_ShardInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_ShardInfo"
 
-axiom map_ShardInfo.init [GooseExts] [GoGlobalContext] : val
+opaque map_ShardInfo.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Status [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Status"
 
-axiom map_Status.init [GooseExts] [GoGlobalContext] : val
+opaque map_Status.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatusCause [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_StatusCause"
 
-axiom map_StatusCause.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatusCause.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_StatusDetails [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_StatusDetails"
 
-axiom map_StatusDetails.init [GooseExts] [GoGlobalContext] : val
+opaque map_StatusDetails.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_Table [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_Table"
 
-axiom map_Table.init [GooseExts] [GoGlobalContext] : val
+opaque map_Table.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TableColumnDefinition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableColumnDefinition"
 
-axiom map_TableColumnDefinition.init [GooseExts] [GoGlobalContext] : val
+opaque map_TableColumnDefinition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TableOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableOptions"
 
-axiom map_TableOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_TableOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TableRow [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableRow"
 
-axiom map_TableRow.init [GooseExts] [GoGlobalContext] : val
+opaque map_TableRow.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TableRowCondition [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TableRowCondition"
 
-axiom map_TableRowCondition.init [GooseExts] [GoGlobalContext] : val
+opaque map_TableRowCondition.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_TypeMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_TypeMeta"
 
-axiom map_TypeMeta.init [GooseExts] [GoGlobalContext] : val
+opaque map_TypeMeta.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def map_UpdateOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.map_UpdateOptions"
 
-axiom map_UpdateOptions.init [GooseExts] [GoGlobalContext] : val
+opaque map_UpdateOptions.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def IsControlledBy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.IsControlledBy"
@@ -1584,7 +1584,7 @@ noncomputable def Time.Equal.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.time]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
@@ -1802,8 +1802,10 @@ attribute [instance] Duration.TypeAssumptions.type_repr
   Duration.TypeAssumptions.method_set
   Duration.TypeAssumptions.ptr_method_set
 
-axiom FieldsV1Reader : Type
-axiom FieldsV1Reader.zero_val : ZeroVal FieldsV1Reader
+opaque FieldsV1Reader.nonempty_type : NonemptyType.{0}
+def FieldsV1Reader : Type := FieldsV1Reader.nonempty_type.type
+instance FieldsV1Reader.nonempty : Nonempty FieldsV1Reader := FieldsV1Reader.nonempty_type.property
+opaque FieldsV1Reader.zero_val : ZeroVal FieldsV1Reader := ⟨Classical.ofNonempty⟩
 attribute [instance] FieldsV1Reader.zero_val
 
 class FieldsV1Reader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -1819,8 +1821,10 @@ attribute [instance] FieldsV1Reader.TypeAssumptions.type_repr
   FieldsV1Reader.TypeAssumptions.method_set
   FieldsV1Reader.TypeAssumptions.ptr_method_set
 
-axiom FieldsV1 : Type
-axiom FieldsV1.zero_val : ZeroVal FieldsV1
+opaque FieldsV1.nonempty_type : NonemptyType.{0}
+def FieldsV1 : Type := FieldsV1.nonempty_type.type
+instance FieldsV1.nonempty : Nonempty FieldsV1 := FieldsV1.nonempty_type.property
+opaque FieldsV1.zero_val : ZeroVal FieldsV1 := ⟨Classical.ofNonempty⟩
 attribute [instance] FieldsV1.zero_val
 
 class FieldsV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
@@ -4604,8 +4608,10 @@ attribute [instance] WatchEvent.TypeAssumptions.type_repr
   WatchEvent.TypeAssumptions.method_set
   WatchEvent.TypeAssumptions.ptr_method_set
 
-axiom InternalEvent : Type
-axiom InternalEvent.zero_val : ZeroVal InternalEvent
+opaque InternalEvent.nonempty_type : NonemptyType.{0}
+def InternalEvent : Type := InternalEvent.nonempty_type.type
+instance InternalEvent.nonempty : Nonempty InternalEvent := InternalEvent.nonempty_type.property
+opaque InternalEvent.zero_val : ZeroVal InternalEvent := ⟨Classical.ofNonempty⟩
 attribute [instance] InternalEvent.zero_val
 
 class InternalEvent.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

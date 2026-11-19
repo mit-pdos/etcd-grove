@@ -7,7 +7,6 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/k8s_io/client_go/tools/cache/Link\.lean$
-axiom clock.RealClock.Now.wp_proof
 axiom errors.Join.wp_proof
 axiom fmt.Errorf.wp_proof
 axiom schema.GroupVersionResource.Empty_ptr.wp_proof

@@ -221,7 +221,7 @@ attribute [irreducible] serverWatchStream.ty
 @[reducible] noncomputable def snapshotMethod [GooseExts] [GoGlobalContext] : val :=
   #(go!"/etcdserverpb.Maintenance/Snapshot")
 
-axiom snapshotSendBufferSize [GooseExts] [GoGlobalContext] : val
+opaque snapshotSendBufferSize [GooseExts] [GoGlobalContext] : val
 
 @[reducible] noncomputable def minWatchProgressInterval [GooseExts] [GoGlobalContext] : val :=
   #(W64 100000000)
@@ -238,47 +238,47 @@ noncomputable def metricsServerCached [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def sentBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.sentBytes"
 
-axiom sentBytes.init [GooseExts] [GoGlobalContext] : val
+opaque sentBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def receivedBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.receivedBytes"
 
-axiom receivedBytes.init [GooseExts] [GoGlobalContext] : val
+opaque receivedBytes.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def streamFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.streamFailures"
 
-axiom streamFailures.init [GooseExts] [GoGlobalContext] : val
+opaque streamFailures.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def clientRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.clientRequests"
 
-axiom clientRequests.init [GooseExts] [GoGlobalContext] : val
+opaque clientRequests.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watchSendLoopWatchStreamDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.watchSendLoopWatchStreamDuration"
 
-axiom watchSendLoopWatchStreamDuration.init [GooseExts] [GoGlobalContext] : val
+opaque watchSendLoopWatchStreamDuration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watchSendLoopWatchStreamDurationPerEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.watchSendLoopWatchStreamDurationPerEvent"
 
-axiom watchSendLoopWatchStreamDurationPerEvent.init [GooseExts] [GoGlobalContext] : val
+opaque watchSendLoopWatchStreamDurationPerEvent.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watchSendLoopControlStreamDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.watchSendLoopControlStreamDuration"
 
-axiom watchSendLoopControlStreamDuration.init [GooseExts] [GoGlobalContext] : val
+opaque watchSendLoopControlStreamDuration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watchSendLoopProgressDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.watchSendLoopProgressDuration"
 
-axiom watchSendLoopProgressDuration.init [GooseExts] [GoGlobalContext] : val
+opaque watchSendLoopProgressDuration.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def toGRPCErrorMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.toGRPCErrorMap"
 
-axiom toGRPCErrorMap.init [GooseExts] [GoGlobalContext] : val
+opaque toGRPCErrorMap.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def progressReportInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3rpc.progressReportInterval"
@@ -6655,7 +6655,7 @@ noncomputable def FiltersFromRequest.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.crypto.tls, pkg_id.math, pkg_id.sync, pkg_id.github_com.grpc_ecosystem.go_grpc_middleware.providers.prometheus, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.health, pkg_id.google_golang_org.grpc.health.grpc_health_v1, pkg_id.go_etcd_io.etcd.client.v3.credentials, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.time, pkg_id.unicode.utf8, pkg_id.google_golang_org.grpc.metadata, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.v3rpc.rpctypes, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.raft.v3, pkg_id.google_golang_org.grpc.codes, pkg_id.google_golang_org.grpc.status, pkg_id.go_etcd_io.etcd.pkg.v3.adt, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn, pkg_id.errors, pkg_id.io, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.version, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.math.rand, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil]
 
-axiom «_».init [GooseExts] [GoGlobalContext] : val
+opaque «_».init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon

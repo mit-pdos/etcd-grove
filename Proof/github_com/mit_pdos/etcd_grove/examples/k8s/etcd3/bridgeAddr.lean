@@ -6,6 +6,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.bridgeAddr
 public import Spec.strconv.FormatUint
+public import Proof.github_com.mit_pdos.etcd_grove.PkgInitMemo
 
 @[expose] public section
 
