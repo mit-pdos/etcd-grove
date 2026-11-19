@@ -40,7 +40,7 @@ contract alone, at the auth mode `on` (until then the auth-off `raftLessor s E S
 C5′ merge, of which only the revocation is called), with the client's `Q` and the server's permit at the request
 context's token, handed through, and on success the client's result `leaseRevokeResT`.) (Auth-lease S4, Freeze §7 R4-1, D-h) For the caller's lower bound `n` of the published auth index, a
 success also carries `requireAuthInfo`'s check at the request context's token relative to `n`
-(`leaseCheckT … n (fun _ => True)`). -/
+(`leaseCheckFrom … n (fun _ => True)`). -/
 abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) (ci : GoInterfaceOk) (tok : Option GoString) (cd : context.ContextDesc (IProp GF)) (r : Loc) (m : w64)
@@ -54,7 +54,7 @@ abbrev v3rpc.LeaseServer.LeaseRevoke.spec : Prop :=
       (Val #(GoInterface.ok ci))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); S ∗ v3rpc.leaseRevokeOut E cid mid resp err ∗
       (⌜err ≠ GoInterface.nil⌝ ∨ (v3rpc.leaseRevokeResT on s E ρ tok m Q ∗
-        v3rpc.leaseCheckT s E tok n (fun _ => iprop(True)))) ∗
+        leaseCheckFrom s E tok n (fun _ => iprop(True)))) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

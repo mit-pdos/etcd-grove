@@ -84,7 +84,7 @@ theorem grant_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl
     (hout : metadata.outgoingOf c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ v3rpc.leaseCheckT s E tok n K -∗ Φ m) ∗
+          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ∗
       □ (∀ id : w64, clientOpAuOn s E ρ conn c (.leaseGrant id ttl) (Q id)) ⊢
     □ ▷ attemptPre conn c (etcdLeaseGrantSpecOn s E ρ γl) (ttl, W64 0) Φ := by
   iintro ⟨#Htok, #Hn, #Hno, #Hau⟩
@@ -118,7 +118,7 @@ theorem revoke_attempt (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (conn : Loc
     auth.authPubLbM E.authMode n ∗ □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ∗
       □ (∀ (md : GrpcMd) (m : LeaseRevokeRespM), ⌜clientAttemptMd conn c md⌝ -∗
           v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
+          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗ Φ m) ⊢
     □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn s E ρ) id Φ := by
   iintro ⟨#Hn, #Hau, #HΦ⟩
   imodintro
@@ -147,7 +147,7 @@ theorem revoke_attempt_refuted (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γ
     (hout : metadata.outgoingOf c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ v3rpc.leaseCheckT s E tok n K -∗ Φ m) ∗
+          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ∗
       □ clientOpAuOn s E ρ conn c (.leaseRevoke id) Q ⊢
     □ ▷ attemptPre conn c (etcdLeaseRevokeSpecOn s E ρ) id Φ := by
   iintro ⟨#Htok, #Hn, #Hno, #Hau⟩
@@ -177,7 +177,7 @@ theorem ttl_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : auth
     (Φ : LeaseTTLRespM → IProp GF) (hout : metadata.outgoingOf c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (r : LeaseTTLRespM) (tok : Option GoString), akTokSeen γa who tok -∗
-          v3rpc.leaseCheckT s E tok n (fun info => if req.2 then
+          leaseCheckFrom s E tok n (fun info => if req.2 then
             leaseKeysVerdictFrom E.authMode n info γl m req.1 .read else iprop(True)) -∗ Φ r) ⊢
     □ ▷ attemptPre conn c (etcdLeaseTTLSpecMd s E γl) req Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #HΦ⟩
@@ -202,7 +202,7 @@ theorem ttl_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
     (hout : metadata.outgoingOf c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ v3rpc.leaseCheckT s E tok n K -∗ Φ m) ⊢
+          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ⊢
     □ ▷ attemptPre conn c (etcdLeaseTTLSpecMd s E γl) req Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #Hno⟩
   imodintro
@@ -227,7 +227,7 @@ theorem leases_attempt_seen (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa : a
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (r : LeaseLeasesRespM) (tok : Option GoString) (i : Nat), ⌜m ≤ i⌝ -∗ akTokSeen γa who tok -∗
           lease.leaseIdsAt γl i r.ids -∗
-          v3rpc.leaseCheckT s E tok n (fun info => iprop([∗list] id ∈ r.ids,
+          leaseCheckFrom s E tok n (fun info => iprop([∗list] id ∈ r.ids,
             leaseKeysVerdictFrom E.authMode n info γl i id .read)) -∗ Φ r) ⊢
     □ ▷ attemptPre conn c (etcdLeaseLeasesSpecMd s E γl) () Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #HΦ⟩
@@ -252,7 +252,7 @@ theorem leases_attempt_refuted (s : Loc) (E : apply.AEnv GF) (γl : GName) (γa 
     (hout : metadata.outgoingOf c = akOut who) :
     attemptTokOk conn (akTokP γa who) ∗ auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) m,
-          akTokSeen γa who tok -∗ v3rpc.leaseCheckT s E tok n K -∗ Φ m) ⊢
+          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K -∗ Φ m) ⊢
     □ ▷ attemptPre conn c (etcdLeaseLeasesSpecMd s E γl) () Φ := by
   iintro ⟨#Htok, #Hn, #Hm, #Hno⟩
   imodintro

@@ -1743,9 +1743,9 @@ theorem EtcdServer.wp_LeaderChanged :
     EtcdServer.LeaderChanged.spec (GF := GF) (hG := hG) :=
   EtcdServer.LeaderChanged.wp_proof notify.Notifier.wp_Receive
 
-theorem EtcdServer.wp_requireAuthInfo :
-    EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
+theorem EtcdServer.wp_requireAuthInfoC :
+    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
+  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_LeaseGrant :
     EtcdServer.LeaseGrant.spec (GF := GF) (hG := hG) :=
@@ -1822,10 +1822,6 @@ theorem EtcdServer.wp_LeaseTimeToLive :
 theorem EtcdServer.wp_LinearizableReadNotify :
     EtcdServer.LinearizableReadNotify.spec (GF := GF) (hG := hG) :=
   EtcdServer.LinearizableReadNotify.wp_proof
-
-theorem EtcdServer.wp_requireAuthInfoC :
-    EtcdServer.requireAuthInfo.specC (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proofC EtcdServer.wp_AuthInfoFromCtx
 
 theorem EtcdServer.wp_MemberList :
     EtcdServer.MemberList.spec (GF := GF) (hG := hG) :=
@@ -2637,7 +2633,7 @@ theorem EtcdServer.wp_Watchable :
 
 theorem EtcdServer.wp_requireAuthInfo :
     EtcdServer.requireAuthInfo.spec (GF := GF) (hG := hG) :=
-  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtxLb
+  EtcdServer.requireAuthInfo.wp_proof EtcdServer.wp_AuthInfoFromCtx
 
 theorem v3alarm.wp_NewAlarmStore :
     v3alarm.NewAlarmStore.spec (GF := GF) (hG := hG) :=

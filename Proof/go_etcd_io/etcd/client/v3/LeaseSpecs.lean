@@ -42,7 +42,7 @@ variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- (Auth-lease S4, Freeze §4.1, rev 2's R1/R2) **etcd's `LeaseTimeToLive` at the lessor `γl`, metadata-indexed**
 (new; the one spec of the handler, any auth mode): a reply's lease is the request's; its TTL row fact
 (`etcdLeaseTTLSpecLive`'s, kept so that this text subsumes `etcdLeaseTTLSpec`/`…Live`); the check passed
-at the token (`leaseCheckT`: auth off at `≥ n`, or a principal bound to the token that is an admin or,
+at the token (`leaseCheckFrom`: auth off at `≥ n`, or a principal bound to the token that is an admin or,
 with keys, has read on every key the lease holds from `m` on; without keys, `True`: `requireAuthInfo`'s
 authentication alone, R1). An error carries nothing. -/
 def etcdLeaseTTLSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
@@ -53,7 +53,7 @@ def etcdLeaseTTLSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
         □ (leaseTTLRow s γl -∗
             (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseTTLAt γl i r.id r.grantedTtl) ∨
             lease.leaseAbsentFrom γl m r.id) -∗
-        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n
+        leaseCheckFrom s E (auth.mdTokenOf md) n
           (fun info => if req.2 then leaseKeysVerdictFrom E.authMode n info γl m req.1 .read
             else iprop(True)) -∗
         Φ r)
@@ -67,7 +67,7 @@ def etcdLeaseLeasesSpecMd (s : Loc) (E : apply.AEnv GF) (γl : GName) :
     iprop((□ ∀ d, Ψe d) ∗ ∃ n m : Nat, auth.authPubLbM E.authMode n ∗ lease.lessorLb γl m ∗
       ∀ r : LeaseLeasesRespM, ⌜r.ids.Nodup⌝ -∗
         (∃ i : Nat, ⌜m ≤ i⌝ ∗ lease.leaseIdsAt γl i r.ids ∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n
+          leaseCheckFrom s E (auth.mdTokenOf md) n
             (fun info => iprop([∗list] id ∈ r.ids, leaseKeysVerdictFrom E.authMode n info γl i id .read))) -∗
         Φ r)
 
@@ -89,7 +89,7 @@ the request's TTL (`etcdLeaseGrantSpecLive`'s fact), and the caller's result at 
 (`v3rpc.leaseGrantResT`: with auth on, the grant published at a log and `Q` of the model's state
 after it). An error carries nothing (`□ ∀ d, Ψe d`, `etcdPutSpecOn`'s HS-4). (Auth-lease S4, D-h) For a
 caller holding a lower bound `n` of the published auth index, the reply also carries `requireAuthInfo`'s
-check at the attempt's token relative to `n` (`leaseCheckT … n (fun _ => True)`: auth disabled at a state no
+check at the attempt's token relative to `n` (`leaseCheckFrom … n (fun _ => True)`: auth disabled at a state no
 older than `n`, or a principal bound to the token); `Q` is of the model's state **before** the grant. -/
 def etcdLeaseGrantSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName) :
     GrpcSpecMd (GF := GF) pbLeaseGrantRequest pbLeaseGrantResponse :=
@@ -101,7 +101,7 @@ def etcdLeaseGrantSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GN
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
         (∃ (i : Nat) (l : Loc), lease.leaseLiveFrom γl i m.id l ∗ lease.leaseReqIs γl m.id req.1) -∗
         v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) req.1 m.id Q -∗
-        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
+        leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
         Φ m)
 
 /-- **etcd's `LeaseRevoke` with auth on** (auth-lease S3c, Draft §7.2; as `etcdLeaseGrantSpecOn`):
@@ -117,7 +117,7 @@ def etcdLeaseRevokeSpecOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
       leaseRevokePermitM E.authOn ρ.raft ρ.kv (v3rpc.hdrBoundT s E.authMode (auth.mdTokenOf md)) id Q ∗
       ∀ m : LeaseRevokeRespM, etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision -∗
         v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q -∗
-        v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
+        leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True)) -∗
         Φ m)
 
 end specsOn

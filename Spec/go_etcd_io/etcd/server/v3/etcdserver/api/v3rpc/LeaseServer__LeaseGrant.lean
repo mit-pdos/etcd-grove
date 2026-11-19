@@ -43,7 +43,7 @@ id only). (E3, 2026-11-04) The request is one the contract's filter `R` covers. 
 and the server's permit at the request context's token, handed through unchanged, and on success the
 client's result `leaseGrantResT`; at `on = false` the permit and the result are `True`.) (Auth-lease S4, Freeze §7 R4-1, D-h) For the caller's lower bound `n` of the published auth index, a
 success also carries `requireAuthInfo`'s check at the request context's token relative to `n`
-(`leaseCheckT … n (fun _ => True)`). -/
+(`leaseCheckFrom … n (fun _ => True)`). -/
 abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
   ∀ (p s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64) (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames)
     (S : IProp GF) (G : w64 × w64 → w64 → IProp GF) (R : w64 × w64 → Prop) (ci : GoInterfaceOk) (tok : Option GoString)
@@ -60,7 +60,7 @@ abbrev v3rpc.LeaseServer.LeaseGrant.spec : Prop :=
       (⌜err ≠ GoInterface.nil⌝ ∨ ∃ id : w64,
         structFieldRef etcdserverpb.LeaseGrantResponse go!"ID" resp ↦□ id ∗ G m id ∗
         v3rpc.leaseGrantResT on s E ρ tok m.1 id Q ∗
-        v3rpc.leaseCheckT s E tok n (fun _ => iprop(True))) ∗
+        leaseCheckFrom s E tok n (fun _ => iprop(True))) ∗
       go_etcd_io.etcd.cache.v3.srvErrOk err }}
 
 end spec

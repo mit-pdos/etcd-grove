@@ -472,7 +472,7 @@ caller's lower bound `n` of the published auth index, and, for every id the leas
 update told the grant (`clientOpAuOn`, persistent: the call may be retried); `nil` with the response's
 fields, its lease id not `NoLease`, its revision reached, the lease live in the lessor's history with the
 request's TTL, and at the token of some attempt's metadata the caller's result (`leaseGrantResT`) and
-`requireAuthInfo`'s check relative to `n` (`leaseCheckT`); or an error. -/
+`requireAuthInfo`'s check relative to `n` (`leaseCheckFrom`); or an error. -/
 theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γl : GName)
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (n : Nat) (ttl : w64)
     (Q : w64 → KVState → IProp GF) :
@@ -493,7 +493,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : ap
         (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
         ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
           v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
         go_etcd_io.etcd.cache.v3.statusErrOk err) }} := by
   iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hctx, #Hce, #Hau⟩ HΦ
@@ -503,7 +503,7 @@ theorem client_lease_grant_on (l conn : Loc) (addr : GoString) (s : Loc) (E : ap
         (∃ (i : Nat) (lo : Loc), lease.leaseLiveFrom γl i m.id lo ∗ lease.leaseReqIs γl m.id ttl) ∗
         ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
           v3rpc.leaseGrantResT E.authOn s E ρ (auth.mdTokenOf md) ttl m.id Q ∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
+          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
     ci cd ttl) $$ [] HΦ
   iframe Pc Hrem Hreg Hctx Hce
   iintro !>
@@ -552,7 +552,7 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (s : Loc) (E : a
         etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
           v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
+          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))) ∨
       (⌜err ≠ GoInterface.nil ∧ clientErr err ∧ resp = null⌝ ∗
         go_etcd_io.etcd.cache.v3.statusErrOk err) }} := by
   iintro %Φ ⟨#Pc, #Hrem, #Hn, #Hreg, #Hctx, #Hce, #Hau⟩ HΦ
@@ -560,7 +560,7 @@ theorem client_lease_revoke_on (l conn : Loc) (addr : GoString) (s : Loc) (E : a
     (fun m => iprop(etcdReached (EM := v3rpc.etcdModelOfServer E ρ.rd E.authOn) m.hdr.revision ∗
         ∃ md, ⌜clientAttemptMd conn (GoInterface.ok ci) md⌝ ∗
           v3rpc.leaseRevokeResT E.authOn s E ρ (auth.mdTokenOf md) id Q ∗
-          v3rpc.leaseCheckT s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
+          leaseCheckFrom s E (auth.mdTokenOf md) n (fun _ => iprop(True))))
     ci cd id) $$ [] HΦ
   iframe Pc Hrem Hreg Hctx Hce
   iintro !>

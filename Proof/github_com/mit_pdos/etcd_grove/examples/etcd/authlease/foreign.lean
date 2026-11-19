@@ -101,7 +101,7 @@ theorem foreign.wp_proof
   (try wp_auto)
   wp_apply (wp_TimeToLive lp conn [addr] (etcdLeaseTTLSpecMd s E (mvcc.api.mvccLeases E.γ))
       (fun _ => iprop(∃ tok : Option GoString, akTokSeen γa who tok ∗
-        v3rpc.leaseCheckT s E tok n (fun info =>
+        leaseCheckFrom s E tok n (fun info =>
           leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) m id .read))) ci cd id _ [fun _ => true])
     as %r %err Hr
   · iframe #
@@ -129,7 +129,7 @@ theorem foreign.wp_proof
   wp_apply (wp_Leases lp conn [addr] (etcdLeaseLeasesSpecMd s E (mvcc.api.mvccLeases E.γ))
       (fun r => iprop(∃ (tok : Option GoString) (i : Nat), ⌜m ≤ i⌝ ∗ akTokSeen γa who tok ∗
         lease.leaseIdsAt (mvcc.api.mvccLeases E.γ) i r.ids ∗
-        v3rpc.leaseCheckT s E tok n (fun info => iprop([∗list] id' ∈ r.ids,
+        leaseCheckFrom s E tok n (fun info => iprop([∗list] id' ∈ r.ids,
           leaseKeysVerdictFrom E.authMode n info (mvcc.api.mvccLeases E.γ) i id' .read)))) ci cd) as %r %err Hr
   · iframe #
     iapply (leases_attempt_seen s E (mvcc.api.mvccLeases E.γ) γa who conn _ n m _ hout)

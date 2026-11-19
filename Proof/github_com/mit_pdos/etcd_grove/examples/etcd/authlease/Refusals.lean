@@ -82,14 +82,14 @@ theorem fixed_state (γa : auth.AuthNames) (ρ : ReqNames) (Lset : List EntryMod
   have hmask : authTieReadMask ⊆ (⊤ : CoPset) ∧ n ≤ m := ⟨fun _ _ => CoPset.mem_full, hm⟩
   iapply Hfx $$ %⊤ %m %st %hmask Hst
 
-/-- **The principal of a lease check of `who`** (`principalBoundT` at an attempt's token): `who`, for u
+/-- **The principal of a lease check of `who`** (`principalBound` at an attempt's token): `who`, for u
 and v; the TLS fallback is off. -/
 theorem princ_who (s : Loc) (γa : auth.AuthNames) (who : GoString) (tok : Option GoString)
     (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) :
-    v3rpc.principalBoundT (GF := GF) s (.on γa) tok info ∗ akTokSeen γa who tok ∗
+    principalBound (GF := GF) s (.on γa) tok (some info) ∗ akTokSeen γa who tok ∗
       □ (srvTLSId s -∗ False) ⊢ ⌜info.Username' = who ∧ (who = go!"u" ∨ who = go!"v")⌝ := by
   iintro ⟨#Hb, #Ht, #Htls⟩
-  unfold v3rpc.principalBoundT
+  unfold principalBound
   icases Hb with (⟨%token, %Htok, #Hok⟩ | #Hs)
   · unfold auth.tokOk
     iunfold akTokSeen at Ht
@@ -107,10 +107,10 @@ theorem noAuth_refutes (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthNames) (ρ 
     (hwho : who = go!"anon" ∨ who = go!"bad") :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ⊢
       □ (∀ (tok : Option GoString) (K : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF),
-          akTokSeen γa who tok -∗ v3rpc.leaseCheckT s E tok n K ={⊤}=∗ False) := by
+          akTokSeen γa who tok -∗ leaseCheckFrom s E tok n K ={⊤}=∗ False) := by
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
   iintro ⟨#Hf, #Htls⟩ !> %tok %K #Hs Hck
-  iunfold v3rpc.leaseCheckT at Hck
+  iunfold leaseCheckFrom at Hck
   rw [hγa]
   icases Hck with (Hen | ⟨%info, #Hpb, -⟩)
   · unfold auth.enabledVerdictFrom
@@ -136,11 +136,11 @@ theorem foreign_check_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
     (hwho : (who = go!"u" ∧ ¬ inRangeK k) ∨ who = go!"v") :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ∗ akTokSeen γa who tok ∗
       □ (∀ info, K info -∗ leaseKeysVerdictFrom E.authMode n info γl m id .read) ∗
-      holdsFrom γc γl m id k ∗ v3rpc.leaseCheckT s E tok n K ∗
+      holdsFrom γc γl m id k ∗ leaseCheckFrom s E tok n K ∗
       monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False := by
   have hon : E.authOn = true := by unfold apply.AEnv.authOn; rw [hγa]; rfl
   iintro ⟨#Hf, #Htls, #Hs, #HK, #Hh, Hck, Ham⟩
-  iunfold v3rpc.leaseCheckT at Hck
+  iunfold leaseCheckFrom at Hck
   icases Hck with (Hen | ⟨%info, #Hpb, Hv⟩)
   · rw [hγa]
     unfold auth.enabledVerdictFrom
@@ -202,11 +202,11 @@ theorem foreign_reads_refuted (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
     (hwho : (who = go!"u" ∧ ¬ inRangeK k) ∨ who = go!"v") :
     akAuthFixed (GF := GF) γa ρ Lset n ∗ □ (srvTLSId s -∗ False) ∗ holdsFrom γc γl m id k ⊢
       □ (∀ tok : Option GoString, akTokSeen γa who tok -∗
-          v3rpc.leaseCheckT s E tok n (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read) -∗
+          leaseCheckFrom s E tok n (fun info => leaseKeysVerdictFrom E.authMode n info γl m id .read) -∗
           monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False) ∗
       □ (∀ (tok : Option GoString) (i : Nat) (ids : List w64), ⌜m ≤ i⌝ -∗ akTokSeen γa who tok -∗
           lease.leaseIdsAt γl i ids -∗
-          v3rpc.leaseCheckT s E tok n (fun info => iprop([∗list] id' ∈ ids,
+          leaseCheckFrom s E tok n (fun info => iprop([∗list] id' ∈ ids,
             leaseKeysVerdictFrom E.authMode n info γl i id' .read)) -∗
           monoNatAuthOwn γc.a (1 : Qp).half 0 ={⊤}=∗ False) := by
   iintro ⟨#Hf, #Htls, #Hh⟩

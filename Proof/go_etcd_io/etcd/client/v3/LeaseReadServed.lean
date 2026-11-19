@@ -477,7 +477,7 @@ theorem etcd_leaseReadMethodsOk (lp q s : Loc) (A : v3rpc.KVAns GF) (cid mid : w
 Freeze §4.1, any auth mode), over the lease-read contract at the run resource `S` and the revision
 reader `A.revR`: the call is made at the caller's lower bounds `n`, `m`; `LeaseServer.LeaseTimeToLive`'s
 answer (`leaseTTLOut`) carries the check relative to `n` on both arms (Freeze §10 T1), at the request
-context's token, which is the attempt's metadata's (`auth.ctxTokenOf_md`). -/
+context's token, which is the attempt's metadata's (`auth.ctxToken_of_ctxInMD`). -/
 theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64)
     (E : apply.AEnv GF) (γl : GName) (S : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
@@ -486,8 +486,11 @@ theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseTimeToLive")
         iprop(S ∗ A.revR) (etcdLeaseTTLSpecMd s E γl) := by
   iintro ⟨#Pv, #Hat, #HL⟩
-  unfold grpcHandlerOkMd etcdLeaseTTLSpecMd
-  iintro %req %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, #Hr, ⟨#HΨe, %n, %m, #Hn, #Hm, Hk⟩⟩ HΨ
+  unfold grpcHandlerOkMd grpcSpecAt etcdLeaseTTLSpecMd
+  iintro %req %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, #Hr, %md, #Hmd, ⟨#HΨe, %n, %m, #Hn, #Hm, Hk⟩⟩ HΨ
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   rw [show (pbLeaseTimeToLiveRequest (GF := GF)).recv r req =
       iprop(∃ v : etcdserverpb.LeaseTimeToLiveRequest, r ↦□ v ∗ ⌜(v.ID', v.Keys') = req⌝) from rfl]
   icases Hr with ⟨%v, #Hv, %Hvm⟩
@@ -496,7 +499,7 @@ theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
   ihave #Hnetc := netCtxOk_of_runCtx ci $$ Hrc
   ihave #Hcausec := ctxCauseOk_of_runCtx ci $$ Hrc
-  iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd r DFrac.discard v n m)
+  iapply (v3rpc.LeaseServer.wp_LeaseTimeToLive lp s A cid mid E γl S ci cd (auth.mdTokenOf md) r DFrac.discard v n m)
     $$ [HS Hrev]
   · iframe; iframe #
   inext
@@ -527,7 +530,6 @@ theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64
     ipersist TTL_f
     ipersist GrantedTTL_f
     ipersist Keys_f
-    ihave #HcT := v3rpc.leaseCheckT_of_from s E (GoInterface.ok ci) n _ $$ Hchk
     imodintro
     iapply HΨ
     iframe HS Hrev HSe
@@ -550,8 +552,7 @@ theorem etcdLeaseTTLHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : w64
         · simp only
           rw [Hid]
           iexact Hf
-        · rw [← auth.ctxTokenOf_md]
-          iexact HcT
+        · iexact Hchk
     · iintro -
       iapply HΨe
   · imodintro
@@ -575,11 +576,14 @@ theorem etcdLeaseLeasesHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
           go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.LeaseServer.ty @!! go!"LeaseLeases")
         iprop(S ∗ A.revR) (etcdLeaseLeasesSpecMd s E γl) := by
   iintro ⟨#Pv, #Hat, #HL⟩
-  unfold grpcHandlerOkMd etcdLeaseLeasesSpecMd
-  iintro %req %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, ⟨#HΨe, %n, %m, #Hn, #Hm, Hk⟩⟩ HΨ
+  unfold grpcHandlerOkMd grpcSpecAt etcdLeaseLeasesSpecMd
+  iintro %req %Φ %Ψe %ci %cd %r !> %Ψ ⟨⟨HS, Hrev⟩, #Hctx, #Hrc, -, %md, #Hmd, ⟨#HΨe, %n, %m, #Hn, #Hm, Hk⟩⟩ HΨ
+  ihave #HtokC0 := auth.ctxToken_of_ctxInMD ci md $$ Hmd
+  ihave #HtokC : iprop(□ (⌜E.authOn = true⌝ → auth.ctxToken (GoInterface.ok ci) (auth.mdTokenOf md))) $$ []
+  · iintro !> -; iexact HtokC0
   iapply wp_fupd
   ihave #Hlibc := libCtxOk_of_runCtx ci $$ Hrc
-  iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd r n m) $$ [HS Hrev]
+  iapply (v3rpc.LeaseServer.wp_LeaseLeases lp s A cid mid E γl S ci cd (auth.mdTokenOf md) r n m) $$ [HS Hrev]
   · iframe; iframe #
   inext
   iintro %resp %err ⟨HS, Hrev, Hout, #HSe⟩
@@ -607,7 +611,6 @@ theorem etcdLeaseLeasesHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
     · iapply BigSepL.bigSepL_bupd
       iapply (BigSepL.bigSepL_mono (fun {k x} _ => leaseStatus_persist x ids k)) $$ Hps
     imod Hps' with #Hps'
-    ihave #HcT := v3rpc.leaseCheckT_of_from s E (GoInterface.ok ci) n _ $$ Hchk
     imodintro
     iapply HΨ
     iframe HS Hrev HSe
@@ -627,8 +630,7 @@ theorem etcdLeaseLeasesHandlerOkMd (lp s : Loc) (A : v3rpc.KVAns GF) (cid mid : 
         iframe Hids
         isplitr
         · ipureintro; exact Hmi
-        rw [← auth.ctxTokenOf_md]
-        iexact HcT
+        iexact Hchk
     · iintro -
       iapply HΨe
   · imodintro
