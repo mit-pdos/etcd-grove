@@ -451,6 +451,25 @@ theorem lt_rest {ys : List PE} (hw : AllWf ys) (hs : PE.Sorted ys) (j : Nat) (hj
   · exact lt_trans' hx (hw _ (List.getElem_mem hj)) (hw b (List.mem_of_mem_drop hb)) hlt
       (sorted_drop_lt hs j hj b hb)
 
+theorem sorted_app {os rest : List PE} (hs : PE.Sorted os) (hr : PE.Sorted rest)
+    (h : ∀ o ∈ os, ∀ b ∈ rest, PE.lt o b) : PE.Sorted (os ++ rest) := by
+  unfold PE.Sorted at *
+  rw [List.pairwise_append]; exact ⟨hs, hr, h⟩
+
+theorem sorted_drop {xs : List PE} (hs : PE.Sorted xs) (i : Nat) : PE.Sorted (xs.drop i) :=
+  List.Pairwise.sublist (List.drop_sublist i xs) hs
+
+/-- Appending a left element after the consumed ones keeps the output sorted. -/
+theorem sorted_snoc_front {xs ys os : List PE} {i j : Nat} (hf : Front xs ys i j)
+    (hs : PE.Sorted os) (hsub : ∀ o ∈ os, o ∈ xs.take i ++ ys.take j) (e : PE)
+    (he : e ∈ xs.drop i ++ ys.drop j) : PE.Sorted (os ++ [e]) :=
+  sorted_app hs (List.pairwise_singleton _ _) (fun o ho b hb => by
+    simp only [List.mem_singleton] at hb; subst hb; exact hf o (hsub o ho) b he)
+
+theorem getElem_mem_drop {α : Type} (xs : List α) (i : Nat) (h : i < xs.length) :
+    xs[i] ∈ xs.drop i := by
+  rw [drop_cons' xs i h]; exact List.mem_cons_self
+
 /-- A consumed element is not left. -/
 theorem front_not_left {xs ys : List PE} {i j : Nat} (hf : Front xs ys i j) (hwx : AllWf xs)
     (hwy : AllWf ys) (a : PE) (ha : a ∈ xs.take i ++ ys.take j)
