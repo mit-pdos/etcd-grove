@@ -210,7 +210,11 @@ theorem genFrom.wp_proof (wp_workloadKeys : workloadKeys.spec (GF := GF) (hG := 
   load_elem wapD asl hal (n / W64 100 / W64 4 / W64 3 / W64 3 % W64 3) Ha as ap hap
   (try wp_auto)
   try isimp only at «in»
-  repeat' (first | (wp_if_destruct <;> try isimp only at «in») | (wp_apply wp_withPre; (try wp_auto); try isimp only at «in»))
+  -- the short-circuit tests before `withPre`, the call, then the tests after it (not one `first`
+  -- loop: its last round, where both alternatives fail on every leaf, was half of its time)
+  repeat' (wp_if_destruct <;> try isimp only at «in»)
+  all_goals (wp_apply wp_withPre; (try wp_auto); try isimp only at «in»)
+  repeat' (wp_if_destruct <;> try isimp only at «in»)
   all_goals (try (load_elem wndD nsl hnl (n / W64 100 / W64 4 / W64 3 / W64 3 / W64 3 / W64 5 / W64 5 / W64 100 / W64 100 / W64 100 / W64 4 % W64 3) Hn as r hr))
   all_goals ((try wp_auto); iapply HΦ; ipureintro)
   all_goals (try cases hasC) <;> (
