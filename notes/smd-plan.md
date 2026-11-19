@@ -944,3 +944,9 @@ the Prove phase's. To do before the walkers' proofs.
   listOfO o).isSome⌝` (their error branch calls the out-of-scope `errorf`; callers' sides conform).
 - `typed` walkers' `prepareDescent` post `⌜sp' ≠ null⌝`, `finishDescent` pre `⌜sp ≠ null⌝`
   (`finishDescent` dereferences `*w.spareWalkers`); same for toFieldSet/validating walkers (D1).
+- `typed` `listValue`/`mapValue`: premise that the value is null or a list (resp. map); their only
+  callers (`derefList`/`derefMap`) carry it; the `fmt.Errorf` branch is out of scope (coordinator).
+- `schema` law added (not a spec change): `isMapRep_nonnull` (`m ≠ null`, from the points-to), for
+  typed's `handleAtom`/`resolveSchema` nil-map branch.
+- `typed` package fact is `typedPoolsAt` (the pools at the translation's own closures; the frozen
+  `typedPools`' existential `New` admitted nil) (D1).
