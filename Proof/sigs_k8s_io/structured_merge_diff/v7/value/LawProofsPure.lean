@@ -263,6 +263,28 @@ theorem zipKeys_swap_none (kvs : List (GoString × UVal)) :
   simp only [zipKeys, kvsOrEmpty, Option.getD_some, Option.getD_none, List.length_nil]
   rw [zipLexical_left, zipLexical_right]
 
+/-! ## Equal sorted maps from their lookups -/
+
+theorem kvs_eq_of_lookups {α : Type} (kvs kvs' : List (GoString × α))
+    (hs : keysSorted kvs = true) (hs' : keysSorted kvs' = true) (hlen : kvs.length = kvs'.length)
+    (h : ∀ k ∈ kvKeys kvs', lookupKV k kvs = lookupKV k kvs') : kvs = kvs' := by
+  have hsub : kvKeys kvs' ⊆ kvKeys kvs := by
+    intro k hk
+    rw [← lookupKV_isSome_iff, h k hk, lookupKV_isSome_iff]; exact hk
+  have hperm : (kvKeys kvs').Perm (kvKeys kvs) :=
+    (List.subperm_of_subset (keysSorted_nodup kvs' hs') hsub).perm_of_length_le (by simp [kvKeys, hlen])
+  apply sorted_ext kvs kvs' hs hs'
+  intro k
+  by_cases hk : k ∈ kvKeys kvs'
+  · exact h k hk
+  · have hk2 : k ∉ kvKeys kvs := fun hm => hk (hperm.mem_iff.2 hm)
+    have e1 : (lookupKV k kvs).isSome = false := by
+      rw [Bool.eq_false_iff]; intro hh; exact hk2 ((lookupKV_isSome_iff k kvs).1 hh)
+    have e2 : (lookupKV k kvs').isSome = false := by
+      rw [Bool.eq_false_iff]; intro hh; exact hk ((lookupKV_isSome_iff k kvs').1 hh)
+    rw [Option.isSome_eq_false_iff, Option.isNone_iff_eq_none] at e1 e2
+    rw [e1, e2]
+
 /-! ## The constructor tests -/
 
 theorem isIntB_true {x : UVal} (h : true = x.isIntB) : ∃ n, x = .int n := by
