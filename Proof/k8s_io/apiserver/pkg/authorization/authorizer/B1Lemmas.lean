@@ -125,6 +125,26 @@ theorem len_pos_iff {V : Type} (vs : List V) (len : w64) (h1 : vs.length = sint.
 
 end pure
 
+section defs
+open Iris Iris.BI Iris.ProofMode k8s_io.apiserver.pkg.authorization.authorizer
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.apiserver.pkg.authorization.authorizer.Assumptions]
+
+/-- A conditions map decision's Deny and Allow conditions' slices (read-only). -/
+theorem isDecision_cmap_slices (d : ConditionsAwareDecision) (dn no al : List GoInterface) :
+    isDecision (GF := GF) d (.cmap dn no al) ⊢
+      d.conditionsMap'.denyConditions' ↦*□ dn ∗ d.conditionsMap'.allowConditions' ↦*□ al := by
+  iintro #Hd
+  ihave #Hcm := isDecision_cmap d dn no al $$ Hd
+  unfold isConditionsMap condsOk
+  icases Hcm with ⟨⟨#Hdn, -⟩, -, ⟨#Hal, -⟩⟩
+  iframe Hdn Hal
+
+end defs
+
 end authorizer
 end EtcdGrove
 end Perennial
