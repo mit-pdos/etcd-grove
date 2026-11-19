@@ -329,6 +329,21 @@ theorem isListV_iface (l : GoSlice) (vs : List UVal) :
     iexact Hi
   · simp [value.listUnstructured.ty] at Heq
 
+theorem isListV_ptr_intro (p : Loc) (sl : GoSlice) (vs : List UVal) :
+    p ↦□ sl ∗ isListV (GF := GF) (interface.mkOk value.listUnstructured.ty #sl) vs ⊢
+      isListV (GF := GF) (interface.mkOk (go.GoType.PointerType value.listUnstructured.ty) #p) vs := by
+  iintro ⟨#Hp, #Hl⟩
+  ihave #Hi := isListV_iface $$ Hl
+  iunfold isListV
+  iexists sl
+  isplitr
+  · iexact Hi
+  iright
+  iexists p
+  isplitr
+  · ipureintro; rfl
+  iexact Hp
+
 theorem isListV_ptr (p : Loc) (vs : List UVal) :
     isListV (GF := GF) (interface.mkOk (go.GoType.PointerType value.listUnstructured.ty) #p) vs ⊢
       ∃ sl : GoSlice, p ↦□ sl ∗ isListV (GF := GF) (interface.mkOk value.listUnstructured.ty #sl) vs := by

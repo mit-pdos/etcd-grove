@@ -5,6 +5,8 @@ projection of the cluster's (its body is `listUnstructured__EqualsUsing_ptrBody.
 module
 
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__EqualsUsing_ptrBody
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofs
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.value.LawProofsRec
 
 @[expose] public section
 
@@ -28,7 +30,18 @@ variable [package_sem : value.Assumptions]
 
 theorem value.listUnstructured.EqualsUsing_ptr.wp_proofBody :
     value.listUnstructured.EqualsUsing_ptr.specBody (GF := GF) := by
-  sorry
+  iintro #IH
+  iunfold value.listUnstructured.EqualsUsing_ptr.specI
+  iintro %p %vs %ws %al %o
+  wp_start as ⟨Hl, Ho, Ha⟩
+  icases isListV_ptr $$ Hl with ⟨%sl, #Hp, Hl⟩
+  iunfold value.EqualsUsingRec.specI at IH
+  icases IH with ⟨-, -, #HLE, -, -⟩
+  iunfold value.listUnstructured.EqualsUsing.specI at HLE
+  wp_auto
+  wp_apply HLE $$ %sl %vs %ws %al %o [Hl Ho Ha] as %b Hb
+  · iframe
+  wp_end
 
 end proof
 
