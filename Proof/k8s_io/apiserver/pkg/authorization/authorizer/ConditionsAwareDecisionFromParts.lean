@@ -39,7 +39,53 @@ theorem ConditionsAwareDecisionFromParts.wp_proof
     (wp_NewAggregate : EtcdGrove.utilerrors.NewAggregate.spec (GF := GF) (hG := hG))
     (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG)) :
     ConditionsAwareDecisionFromParts.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro k r e
+  wp_start
+  wp_auto
+  unfold Dec.ofWord
+  by_cases h1 : k = W64 1
+  · rw [decide_eq_true h1]; simp only [h1, ↓reduceIte]
+    wp_auto
+    wp_apply (wp_ConditionsAwareDecisionAllow r e) as %d #Hd
+    iapply HΦ
+    iexact Hd
+  · rw [decide_eq_false h1]; simp only [h1, ↓reduceIte]
+    wp_auto
+    by_cases h2 : k = W64 2
+    · rw [decide_eq_true h2]; simp only [h2, ↓reduceIte]
+      wp_auto
+      wp_apply (wp_ConditionsAwareDecisionNoOpinion r e) as %d #Hd
+      iapply HΦ
+      iexact Hd
+    · rw [decide_eq_false h2]; simp only [h2, ↓reduceIte]
+      wp_auto
+      by_cases h0 : k = W64 0
+      · rw [decide_eq_true h0]
+        wp_auto
+        wp_apply (wp_ConditionsAwareDecisionDeny r e) as %d #Hd
+        iapply HΦ
+        iexact Hd
+      · rw [decide_eq_false h0]
+        wp_auto
+        wp_apply wp_slice_literal (V := GoAny) [_]
+        isplitr
+        · ipureintro; rfl
+        iintro %asl ⟨Hasl, -⟩
+        try wp_auto
+        wp_apply wp_ErrorfAny _ _ _ _ $$ [Hasl] as %ef ⟨-, -⟩
+        · iexact Hasl
+        try wp_auto
+        wp_apply wp_slice_literal (V := GoInterface) [_, _]
+        isplitr
+        · ipureintro; rfl
+        iintro %esl ⟨Hesl, -⟩
+        try wp_auto
+        wp_apply wp_NewAggregate _ (DFrac.own 1) [e, ef] $$ [Hesl] as %a -
+        · iexact Hesl
+        try wp_auto
+        wp_apply (wp_ConditionsAwareDecisionDeny r a) as %d #Hd
+        iapply HΦ
+        iexact Hd
 
 end proof
 
