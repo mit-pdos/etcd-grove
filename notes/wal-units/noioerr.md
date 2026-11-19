@@ -491,3 +491,27 @@ Then the user split the work: these go to the follow-up branch `wal-fsfix` (brie
 - **A1 as "outside IoCovers"** (trusted, `Premises.lean`): `PathFits p` (`p.length < 4096`, every 256-byte infix holds
   a `/`); the path calls are covered only on paths that fit (both of `rename`'s). No stuck, no premise on the WP
   specs; the no-error specs will need the WAL paths to fit.
+
+### The independent attack on the branch's trusted text (2026-11-19 w, read-only subagent, axiom skill): STOPPED
+
+Programs and logs `/shared/tmp/walfsfix-attack4/`; target d1b49ad308 (read-only worktree `/shared/tmp/walfsfix-attack4-ro`).
+- **F1', refutation (pre-existing on `lean`):** a blocking lock request (`flock(LOCK_EX)`, `F_OFD_SETLKW`) waiting on a
+  conflict holds its own reference to the description (`fdget`); another thread `close`s the fd (returns 0), then the
+  conflict is released: the waiting call returns **0** (4/4 cases, `closewait/`). The model's `Flock`/`OfdLock` is one
+  atomic step needing `FdOpen` and no conflict: excluded. Variant: with a live mapping, the lock lands on the
+  `MapDesc.held` description and outlives the fd. No current proof reaches it (`wp_osFlock`/`wp_osOfdLock`/`wp_osClose`
+  each take the whole fd). Proposed fixes: blocking lock as begin/end steps with `Close` stuck while one is in flight;
+  or an environment clause "no fd is closed while a lock call on it is in flight".
+- **F2', false text:** `FdFree` has no upper bound, so `Open` always has a success and `NoIoErr` excludes Linux's `EMFILE`
+  at `RLIMIT_NOFILE` (measured with the soft limit at 64); "does not exclude EMFILE with no free fd" is false. Fix: an
+  environment clause "fewer than RLIMIT_NOFILE fds" (NoIoErr, env_config.go), or bound `FdFree`.
+- **F3', false text:** "ENAMETOOLONG whatever the tree holds": an earlier missing/non-directory component gives
+  ENOENT/ENOTDIR first (the check is in `ext4_lookup`). Soundness unaffected (not covered). Fix the wording.
+- **Nits:** "short reference" (a `pidfd_getfd` copy can live indefinitely; a blocking request then waits indefinitely);
+  "no other process locks them" → "locks or unlocks them, through any description"; `TestNoIoErrProtectedSymlinks`
+  could skip on EOVERFLOW (idmapped mounts); `TestLocksMmapKeepsDescription`'s no-mapping control can flake under an
+  fdinfo reader.
+- Holding: LockStep without the EAGAIN clause (no text/proof relies on it; EDEADLK impossible; EINTR/ENOLCK in the
+  failure arm), the blocking-only coverage, `PathFits` (exactly PATH_MAX/NAME_MAX for canonical absolute paths),
+  the permission list (ETXTBSY gone on 7.0; leases/inotify only wait; others outside C), MapDesc; the new tests pass
+  (but the noted skips).
