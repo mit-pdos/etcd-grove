@@ -13,8 +13,10 @@
   `etcdstart/common.go`, `auth.go`, `auth3.go`, `authkv.go`, `walarea.Reset/ResetFamily` reset data dirs; goose
   regenerated (`common`, `authkv`, `auth3`).
 - **Checked:** lean-check 0 errors: WalLayout, WalAreaFresh, WalAreas, StartRes, WalApi, the snapdir files (z3);
-  Go tests pass: putget, putget3, auth, auth3. Targeted build `/shared/tmp/wallink/run-b3.sh` (log `sd-b3.log`,
+  Go tests pass: putget, putget3, auth, auth3; restartN twice back to back (`/shared/tmp/wallink/restartN-b2b.log`:
+  the P2 flake is gone with the data directories reset by `walarea.Reset`). Targeted build `/shared/tmp/wallink/run-b3.sh` (log `sd-b3.log`,
   targets `sd-b3.targets`: server cone + etcdstart + putget3/putget/restartN/auth Results) queued at commit.
+- **Stopped here for context budget (the agent's), not for a decision.** sd-b3 was still waiting for a slot.
 - **Next:** fix what sd-b3 breaks (expect `Dir.lean` `rw [show ... memberDataDir ∘ ...]`, `hD` Perm proofs, cfgOk
   `rfl`s); then re-attack (brief `/shared/tmp/wallink/attack-sd-brief.md`, extend to the data dirs); merge lean;
   the land list below (full timed build, tcb, collections, interfaces, gen-link modes, tier, Go suite, STATUS).
