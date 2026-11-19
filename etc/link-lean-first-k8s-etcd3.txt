@@ -6,6 +6,7 @@
 tracing_Start:
 Span__AddEvent:
 Span__End:
+# (proved over their real bodies since 2026-11-18)
 attribute_String:
 attribute_Int:
 GetAuditIDTruncated:

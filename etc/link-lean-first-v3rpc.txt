@@ -66,9 +66,11 @@ LeaseServer__LeaseLeases: =_root_.Perennial.errors.wp_Is togRPCError header__fil
 # cluster's). Trust boundary (axioms): the apply package's
 # `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
 # `api.IsCapabilityEnabled`, grpc's
-# `metadata.FromIncomingContext`/`MD.Get`, prometheus's `CounterVec.WithLabelValues`, and
+# `metadata.FromIncomingContext`, prometheus's `CounterVec.WithLabelValues`, and
 # `logUnaryRequestStats` (zap, peer, proto.Size). `utf8.ValidString` is proved (2026-10-26; until
-# then an axiom), over `utf8.word`.
+# then an axiom), over `utf8.word`; `metadata.MD.Get` (2026-11-18; until then an axiom), over
+# `strings.ToLower`'s (an axiom). otel's `trace.WithAttributes` and `attribute.{String,Int64,Bool}`
+# below are proved over their real bodies (2026-11-18).
 _KV_Put_Handler:
 _KV_Range_Handler:
 _KV_Compact_Handler:
@@ -100,7 +102,8 @@ storage_NewBackendQuota:
 EtcdServer__IsMemberExist: @
 EtcdServer__IsLearner: @
 api_IsCapabilityEnabled:
-metadata_MD__Get:
+metadata_MD__Get: strings_ToLower
+strings_ToLower:
 utf8_word:
 utf8_ValidString: utf8_word
 prometheus_CounterVec__WithLabelValues:

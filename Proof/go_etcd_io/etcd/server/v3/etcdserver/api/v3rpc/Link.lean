@@ -159,6 +159,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.serverWatchSt
 public import Proof.google_golang_org.grpc.status.Error
 public import Proof.google_golang_org.grpc.status.Errorf
 public import Proof.go_etcd_io.etcd.server.v3.storage.NewBackendQuota
+public import Proof.strings.ToLower
 public import Proof.time.Duration__Seconds
 public import Proof.time.Duration__Seconds_ptr
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.togRPCError
@@ -273,9 +274,13 @@ theorem metadata.wp_FromIncomingContext :
     EtcdGrove.metadata.FromIncomingContext.spec (GF := GF) (hG := hG) :=
   EtcdGrove.metadata.FromIncomingContext.wp_proof
 
+theorem strings.wp_ToLower :
+    EtcdGrove.strings.ToLower.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.strings.ToLower.wp_proof
+
 theorem metadata.MD.wp_Get :
     EtcdGrove.metadata.MD.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.metadata.MD.Get.wp_proof
+  EtcdGrove.metadata.MD.Get.wp_proof strings.wp_ToLower
 
 theorem utf8.wp_word :
     EtcdGrove.utf8.word.spec (GF := GF) (hG := hG) :=
