@@ -309,7 +309,7 @@ theorem runner.restore.wp_proof
     -- `newbe := x.openBackend(b.path)`: a fresh registration, the builder's file
     imod halloc with ⟨%gx, Hreg, HW⟩
     wp_apply (wp_openBackend x ks cfg wr h γ.h vb'.path D (fun _ => mvccW gx) (fun _ => iprop(True))
-        backend.bFresh hdbo hlim) $$ [Hfile Htok HW] as %rnb ⟨Htok, %bnb, %γB, %Hrnb, Hnew, Hbfn⟩
+        backend.bFresh hdbo hlim) $$ [Hfile Htok HW] as %rnb ⟨Htok, %bnb, %γB, %Hrnb, Hnew, Hbfn, Hbpn⟩
     · iframe #; iframe
       iintro %γ ⟨-, Hf⟩
       imodintro
@@ -322,7 +322,7 @@ theorem runner.restore.wp_proof
       rw [backend.wbInit_val]; omega
     imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) vb'.path D
         (σOf ks ops vb'.ops).log (σOf ks ops vb'.ops).crev u ((sint.Z cfg.Ops').toNat + 1) hk
-      $$ [Hreg Himg Hbfn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
+      $$ [Hreg Himg Hbfn Hbpn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
     · iframe #; iframe
     -- `f.le.Recover(newbe, func() lease.TxnDelete { return kv.Write(traceutil.TODO()) })`
     obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := HrecD
@@ -330,7 +330,7 @@ theorem runner.restore.wp_proof
     icases Hles1 with ⟨%rd0, %r1, #Hlpkg, #Hlinv, #Hlcfg, #Hguard, #Hrevoc, #HapplyOk,
       Hlrd, HlOwn, HlRevk, HlEver, #HreqU, HrdOwn, -, HbeOn, -, -, Hstop1, #Hpool⟩
     iunfold bkKeep at Hbkn
-    icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
+    icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnbp, Hnoh, HnRT, Hntoks, Hncen⟩
     simp only [mvccrand.rcKB_P]
     ihave Hwb2' : ownToks γB.wb 2 $$ [Hwb1 Hwb2]
     · ihave Hwb1 := (backend.wbTok_toks γB).1 $$ Hwb1
@@ -464,7 +464,7 @@ theorem runner.restore.wp_proof
     (try wp_auto)
     -- the old backend: its census (`Restore` gave the store's rest back), `Close`
     iunfold bkKeep at Hbk1
-    icases Hbk1 with ⟨%HoP, #Hoisb, #Hosc, -, Hooh, HoRT, -, Hocen⟩
+    icases Hbk1 with ⟨%HoP, #Hoisb, #Hosc, -, -, Hooh, HoRT, -, Hocen⟩
     icases (apply.bkRT_eq _).1 $$ HoRT with ⟨-, Hoor⟩
     iunfold bkCensus at Hocen
     imod Hocen $$ Hoor Hooh Hrest0 with Hone
@@ -618,7 +618,7 @@ theorem runner.restore.wp_proof
     ihave Hc1n : memCore ks γ.h ops 1 mp1 γ.m1 f1
         ⟨vb'.path, v1.lp, v1.kv, v0.ops, mvccrand.rcKB γB bnb gx (limOf cfg), v1.ι, U', b4⟩ qw1 nw1
         (sint.Z cfg.Ops').toNat $$ [Hpath1 Hbe1 Hle1 Hkv1 Hrev1 Hcmp1 Hlf1 Hlsln Hlcapn Hret1 Hσw1
-          Hbw1 Hopen1 Hback1 Hrdrs1 Hr1 Hnbf Hnoh HnRT Hntoks Hncen Hlrd HlOwn HlRevk HEvU HrdOwn
+          Hbw1 Hopen1 Hback1 Hrdrs1 Hr1 Hnbf Hnbp Hnoh HnRT Hntoks Hncen Hlrd HlOwn HlRevk HEvU HrdOwn
           HbeOn Hrbn' Hstop1]
     · iunfold memCore
       dsimp only
@@ -636,7 +636,7 @@ theorem runner.restore.wp_proof
       · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact HhkRO
       isplitl [Hrdrs1 Hr1]
       · iapply hR1'.2; iframe
-      isplitl [Hnbf Hnoh HnRT Hntoks Hncen]
+      isplitl [Hnbf Hnbp Hnoh HnRT Hntoks Hncen]
       · iunfold bkKeep
         isplitr
         · ipureintro; exact HnP

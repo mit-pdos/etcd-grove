@@ -1,7 +1,7 @@
 # etcd's backend over bbolt, with bodies: the write and read buffers (tx_buffer.go), the read
 # transactions (read_tx.go), the batch transaction (batch_tx.go), the hooks (hooks.go) and the
 # backend's core (backend.go: the constructor, the transactions it hands out, the periodic
-# commit, Close); the snapshot, the hash and defragmentation are names only, as are the lock
+# commit, Close); the snapshot (since S4b, 2026-11-18, with its goroutine), the hash and defragmentation are names only, as are the lock
 # checks (verify.go: they read the goroutine's stack) and the metrics (metrics.go).
 translate = ["!*",
   # tx_buffer.go
@@ -34,7 +34,7 @@ translate = ["!*",
   "backend.ReadTx", "backend.ConcurrentReadTx", "backend.ForceCommit", "backend.Size",
   "backend.SizeInUse", "backend.run", "backend.Close", "backend.Commits", "backend.begin",
   "backend.unsafeBegin", "backend.OpenReadTxN", "backend.LockForSafeRangeDelete",
-  "backend.UnlockForSafeRangeDelete", "snapshot.Close",
+  "backend.UnlockForSafeRangeDelete", "backend.Snapshot", "snapshot.Close",
   # config_linux.go (boltOpenOptions names only: it is syscall's MAP_POPULATE, which Perennial
   # does not translate)
   "BackendConfig.mmapSize",
@@ -46,11 +46,13 @@ translate = ["!*",
   "batchTxBuffered.Lock", "batchTxBuffered.lock", "batchTxBuffered.LockInsideApply",
   "batchTxBuffered.LockOutsideApply", "batchTxBuffered.UnsafeCreateBucket",
   "batchTxBuffered.UnsafeRange", "batchTxBuffered.UnsafeForEach",
-  "batchTxBuffered.safePending", "batchTxBuffered.TryLock"]
+  "batchTxBuffered.safePending", "batchTxBuffered.TryLock",
+  # snapshot's *bolt.Tx
+  "snapshot.WriteTo", "snapshot.Size"]
 imports = ["!*", "bytes", "encoding/hex", "errors", "fmt", "io", "math", "sort", "sync", "sync/atomic", "time",
   "go.uber.org/zap", "go.etcd.io/bbolt", "go.etcd.io/bbolt/errors",
   "go.etcd.io/etcd/client/pkg/v3/verify",
-  "github.com/prometheus/client_golang/prometheus"]
+  "github.com/prometheus/client_golang/prometheus", "github.com/dustin/go-humanize"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

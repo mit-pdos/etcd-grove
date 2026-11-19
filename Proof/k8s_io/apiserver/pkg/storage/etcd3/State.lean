@@ -104,7 +104,7 @@ def getStateOk (c : StoreCfg GF Obj) (key : GoString) (ign : Bool)
       kvReadAu x.γr.kv (R R0 m)) -∗
     ▷ (∀ (st : Loc) (err : GoInterface),
         (unkErr c err ∨ ∃ σ, □ R (W64 (σ.rev : Int)) (kubernetes.modAt key σ) σ ∗
-          ⌜∀ v ∈ σ.kvs, v.value.length ≤ 2 ^ 27⌝ ∗ stAt c key ign σ st err) -∗ Ψ (PairV #st #err)) -∗
+          ⌜∀ v ∈ σ.kvs, v.value.length ≤ etcdKeyMax⌝ ∗ stAt c key ign σ st err) -∗ Ψ (PairV #st #err)) -∗
     WP (App (Val #f) (Val #())) {{ Ψ }})
 
 instance getStateOk_persistent (c : StoreCfg GF Obj) (key : GoString) (ign : Bool)

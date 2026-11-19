@@ -49,6 +49,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.TrivialExt
 public import Robustness.Statement
+public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.TopLevelDefs
 
 @[expose] public section
 
@@ -106,11 +107,6 @@ instance logkvrwGF_naInvG : NaInvG logkvrwGF := ⟨⟨11, rfl⟩⟩
 section adequacy
 variable [go_gctx : GoGlobalContext]
 
-/-- The register's program: the package's initialization, then `Main()`. -/
-def logkvrwProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Main) #()
-
 /-- **Porcupine accepts every trace of the log-applied register.** Every real execution of
 `logkvrwProgram` (the logkvrw package's initialization, then `Main()`) from a fresh state --
 no package initialized (`IsInit`), one live thread -- of `n < 2^30 - 1` steps: if the main thread
@@ -154,19 +150,6 @@ theorem logkvrw_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe #
   ipureintro
   rfl
-
-/-- **`logkvrw_adequate` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `logkvrw_adequate`'s other hypotheses: in every
-execution of fewer than `2 ^ 30 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem logkvrw_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.lib.lintest.logkvrw.Assumptions]
-    (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(logkvrwProgram, σ)] g (2 ^ 30 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (logkvrw_adequate
-      σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
 
 end adequacy
 

@@ -57,7 +57,9 @@ def runCfgOk (cfg : Config) (wr : List w64) : Prop :=
   readMixOk (wr.map sint.Z) ∧ 0 ≤ sint.Z cfg.Ops' ∧ sint.Z cfg.Ops' < 2 ^ 38 ∧
   2 * max 0 (sint.Z cfg.Readers') + 4 * max 0 (sint.Z cfg.Streams') + 3 ≤ 2 ^ 28 ∧
   sint.Z (limOf cfg) ≤ 2 ^ 57 ∧ batchLimitOk (cblOf cfg) ∧
-  (keysOf (sint.nat (normalizeM cfg).Depth')).length < 2 ^ 60
+  (keysOf (sint.nat (normalizeM cfg).Depth')).length < 2 ^ 60 ∧
+  -- (S1b, 2026-11-17) the values' padding and the keys within what a store holds (`etcdKeyMax`)
+  sint.Z cfg.MaxVal' ≤ 2 ^ 20 ∧ sint.nat (normalizeM cfg).Depth' ≤ 2 ^ 20
 
 /-- See the file header. -/
 abbrev Run.spec : Prop :=

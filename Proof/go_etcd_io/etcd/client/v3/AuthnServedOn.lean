@@ -28,6 +28,7 @@ public import Proof.context.ReqKeys
 public import Proof.go_etcd_io.etcd.client.v3.ClientUser
 public import Proof.go_etcd_io.etcd.client.v3.LeaseGrantServed
 public import Proof.go_etcd_io.etcd.client.v3.AuthnSpec
+public import Proof.go_etcd_io.etcd.client.v3.ServeLaws
 
 @[expose] public section
 
@@ -68,6 +69,9 @@ theorem authTokReg_of (addr u pw : GoString) (γa : auth.AuthNames) :
     unfold etcdAuthenticateSpec
     iintro %t #Ht !>
     iexact Ht
+
+theorem authTokReg_of_law_holds : authTokReg_of.law (GF := GF) (hG := hG) :=
+  authTokReg_of
 
 /-- **`Authenticate`'s run slot** (`EtcdServer.Authenticate`'s readers: of `s.leadTimeMu`, `s.lgMu`,
 the read loop's lock, and the server's reader resource), given back. -/

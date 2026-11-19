@@ -37,6 +37,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.PkgTabl
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.TopLevelDefs
 
 @[expose] public section
 
@@ -52,23 +53,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (putget3's `putget3GF`). -/
-def putgetNGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def putgetNGF_allG : AllG putgetNGF := ⟨⟨0, rfl⟩⟩
@@ -81,22 +68,10 @@ instance putgetNGF_gooseGpreS : GooseGpreS putgetNGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetNGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`**. -/
-abbrev heapAtN (hG : HeapGS .hasLC putgetNGF) (lctx : GoLocalContext) : HeapGS .hasLC putgetNGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `putgetN`'s initialization, then `Main(k)`. -/
-def putgetNProgram [GoSemanticsFunctions] (k : Nat) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.putgetN.Main) #(W64 (k : Int))
-
-/-- The read package's two metric names (putget3's). -/
-def putgetNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **putgetN is safe** (see the file header): for every member count `1 ≤ k ≤ 1000`, every real
 execution of `putgetNProgram k` from a fresh state with one thread, of `n` steps: if the main thread

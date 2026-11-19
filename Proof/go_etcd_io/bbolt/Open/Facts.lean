@@ -19,6 +19,8 @@ open Fs
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 /-- **The opened file's facts** (`fileHolds_decode`'s, or `initImg_ok`'s): the file's bytes `xs`
 (`OsMeta` `m`) are an image of `C`, which holds `D`. -/
@@ -61,11 +63,15 @@ theorem openOK_meta (C : CommitSt) (D : Data) (m : OsMeta) (xs : List ByteG)
 /-- **`loadFreelist`'s facts** at `Open`, from the opened file's and the mapping's. -/
 theorem openOK_lfOK (N : Namespace) (db : Loc) (C : CommitSt) (D : Data) (m : OsMeta)
     (xs : List ByteG) (b : Loc) (L : Nat) (h : openOK C D m xs) (hl : xs.length = m.size)
-    (hsz : m.size < 2 ^ 62) (hL : m.size ≤ L) (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null) :
+    (hsz : m.size < 2 ^ 62 ∧ m.size % 4096 = 0) (hL : m.size ≤ L) (hL47 : L ≤ 0x800000000000)
+    (hN : (↑N : CoPset) ## ↑osN) (hdb : db ≠ null) :
     lfOK N db C b L { m with maps := GMap.singleton b L } xs := by
   have h12 := openOK_size C D m xs h
   obtain ⟨h1, h2, h3, h4, h5, h6, h7, -⟩ := h
-  exact ⟨h1, h2, h3, h4, by omega, by omega, hl, hL, by simp only; omega, rfl, h6, h7, hN, hdb⟩
+  refine ⟨h1, h2, h3, h4, by omega, by omega, hl, hL, ⟨?_, ?_, fun _ => ?_⟩, rfl, h6, h7, hN, hdb⟩
+  · simp only; omega
+  · simp only [mapLen]; exact hL47
+  · simp only; exact hsz.2
 
 end pure
 

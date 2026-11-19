@@ -399,13 +399,12 @@ SPECIAL['go_etcd_io.bbolt'] = dict(
 `DB.grow`, `DB.mmap` and `DB.allocate`, and its loggers format both). Its initializer allocates its variables, initializes its imports and
 runs their translated initializers: `trySolo` (an `errors.New` call, `db.go`; Perennial's
 `errors.wp_New_errorString`), the deprecated aliases of
-`errors`' variables (loads of them), and `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
-which the fact records: a `*nopLogger`).
-And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type,
-`Code/go_etcd_io/bbolt.toml`), which the trust-boundary axiom `opaqueInitsOk` says runs.''',
+`errors`' variables (loads of them), `discardLogger` (`&nopLogger{}`, the fork's no-op logger,
+which the fact records: a `*nopLogger`), and `DefaultOptions` (`&Options{...}`, an allocation;
+translated since 2026-11-17, `Code/go_etcd_io/bbolt.toml`).''',
     imports=['Perennial.Proof.errors.NewVar'],
     alloc_types=dict({x: 'GoInterface' for x in _BBOLT_ROOT_ERRS}, trySolo='GoInterface',
-                     discardLogger='GoInterface'),
+                     discardLogger='GoInterface', DefaultOptions='Loc'),
     before={'trySolo': ['try wp_auto', 'wp_apply _root_.Perennial.errors.wp_New_errorString as %xS #MS'],
             # the deprecated aliases load `errors`' variables: its fact's `bboltErrorsVars`
             'ErrDatabaseNotOpen': ['try wp_auto',
@@ -413,6 +412,8 @@ And `DefaultOptions`' untranslated initializer (`Options` is an axiomatized type
                 '· iapply isPkgInit_access $$ {Hd:go_etcd_io.bbolt.errors}',
                 'unfold go_etcd_io.bbolt.errors.bboltErrorsInit go_etcd_io.bbolt.errors.bboltErrorsVars go_etcd_io.bbolt.errors.bboltErrVar',
                 'icases Hev with ⟨%_, #HvErrBucketNotFound, %_, ' + ', '.join(f'⟨%v{x}, #Hv{x}, %_, #-⟩' for x in _BBOLT_VARS) + ', -⟩'],
+            # `&Options{...}`: a literal of the translated struct, allocated (2026-11-17)
+            'DefaultOptions': ['try wp_auto'],
             # `&nopLogger{}`: an allocation (of a zero-size struct), which `wp_auto` leaves
             'discardLogger': ['try wp_auto', 'wp_alloc lg as Hlg', 'try wp_auto'],
             '$end': ['try wp_auto']},
@@ -1717,8 +1718,8 @@ _E['finish'] = ([f'ipersist H{x}' for x in _E['newvars']] + FIN_PRE[:6] +
 
 _B = SPECIAL['go_etcd_io.etcd.server.v3.storage.backend']
 _B['custom']['boltOpenOptions'] = dict(
-    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems): read-write options with the default page size and `OpenFile`. -/',
-    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ (⌜p = Loc.null⌝ ∨ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok⌝)',
+    doc='/-- `boltOpenOptions = &bolt.Options{MmapFlags: syscall.MAP_POPULATE, NoFreelistSync: true}` (`config_linux.go`; nil on other systems, but the file model is Linux\'s, configuration C): read-write options with the default page size and `OpenFile`, `NoFreelistSync`, no `Timeout`. (S3e, 2026-11-18: until then possibly nil.) -/',
+    post='∃ p : Loc, globalAddr boltOpenOptions ↦ p ∗ ∃ o : EtcdGrove.backend.OptsM, EtcdGrove.backend.optsAt p DFrac.discard o ∗ ⌜o.ok ∧ o.noFreelistSync = true ∧ o.timeout = W64 0⌝',
     pat='⟨%p@, H@, #S@⟩')
 _B['doc'] = _B['doc'].replace("hold `Histogram`s whose `Observe` returns.", "hold `Histogram`s whose `Observe` returns, and `boltOpenOptions` (`boltOpenOptionsOk`).")
 # (2026-11-07, R10) the defaults `DefaultBackendConfig` loads (translated stores of constants)
@@ -2084,7 +2085,7 @@ package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), in
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
 reads `raftStatus` under the mutex). (revoke-open, 2026-11-06) And the counter `leaseExpired`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
-axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), which
+axiom `NewCounter.wp_proof`), which
 `revokeExpiredLeases` increments.""",
     imports=['Proof.github_com.prometheus.client_golang.prometheus.NewCounter'],
     custom=_srv_custom,
@@ -2092,8 +2093,7 @@ axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), whic
                  'leaseExpired': 'GoInterface'},
     # (revoke-open, 2026-11-06) `leaseExpired`'s translated initializer: the literal, `NewCounter`
     before={'leaseExpired': [
-        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %oLE %HoLE', 'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ HoLE (by decide) as %cLE ⟨#CLE, -⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %cLE ⟨#CLE, -⟩',
         'try wp_auto']},
     finish=([f'ipersist H{x}' for x in _srv_custom] + ['ipersist HleaseExpired'] +
             ['imod sync.init_Mutex (iprop(∃ f : GoFunc, globalAddr raftStatus ↦ f)) ⊤ (globalAddr raftStatusMu) $$ HraftStatusMu [HraftStatus] with #HRSM',
@@ -2317,7 +2317,7 @@ _RD_PROM = 'EtcdGrove.prometheus'
 SPECIAL[_RD] = dict(
     doc="""Its fact (`readInit`, `BaseApply.lean`): its counters `slowReadIndex` and `readIndexFailed`
 (`metrics.go`, translated: `prometheus.NewCounter` of a `CounterOpts` literal, the trust-boundary
-axioms `EtcdGrove.prometheus.wp_counterOptsLit` and `NewCounter.wp_proof`), `readIndexRetryTime`,
+axiom `NewCounter.wp_proof`), `readIndexRetryTime`,
 the error variables it returns or compares with, from their packages' facts (`etcdserver/errors`'
 and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
 (`EtcdGrove.ContextReadErrs`, a premise: Perennial's `context` fact lacks them). Its translated
@@ -2333,11 +2333,9 @@ and raft's, leaf errors by `EtcdGrove.ErrorStringLeaf`), and `context`'s
     alloc_types={'slowReadIndex': 'GoInterface', 'readIndexFailed': 'GoInterface',
                  'readIndexRetryTime': '_root_.Perennial.time.Duration'},
     before={'$inits': [
-        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %o1 %Ho1', 'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ Ho1 (by decide) as %c1 ⟨#C1, %N1⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c1 ⟨#C1, %N1⟩',
         'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.wp_counterOptsLit as %o2 %Ho2', 'try wp_auto',
-        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ Ho2 (by decide) as %c2 ⟨#C2, %N2⟩',
+        'wp_apply EtcdGrove.prometheus.NewCounter.wp_proof _ _ _ _ _ rfl (by decide) as %c2 ⟨#C2, %N2⟩',
         'try wp_auto'], '$end': [
         'iunfold EtcdGrove.read.readRegPerm at HR',
         'icases HR with ⟨HR1, HR2⟩',
@@ -2466,7 +2464,7 @@ def exec_order(p):
             items.append(('import', m.group(1)))
         elif m.group(2):
             # an axiom of the translation, or a trusted variable's model (in `TrustedCode/`)
-            kind = 'opaque' if f'axiom {m.group(2)}.init ' in t else 'trusted'
+            kind = 'opaque' if (f'axiom {m.group(2)}.init ' in t or f'opaque {m.group(2)}.init ' in t) else 'trusted'
             items.append((kind, m.group(2)))
         elif m.group(3):
             items.append(('alloc', m.group(3)))

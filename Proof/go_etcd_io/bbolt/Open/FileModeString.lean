@@ -1,19 +1,14 @@
 /-
-`fs.FileMode.String` (`Open` logs the file mode with `%s`, `db.go`'s `lg.Infof("Opening db file
-(%s) with mode %s and with options: %s", path, mode, options)`): its spec, and the `logArgOk` it
-gives the mode under a method verb.
-
-**Not proved here.** `Code/io/fs.lean` translates `FileMode`'s type and method set only
-(`Code/io/fs.toml`'s `translate` list names `FileMode`, not `FileMode.String`), so the method has no
-`MethodUnfold` to prove the spec from: `Open.wp_proof` takes it as a hypothesis. Adding
-`"FileMode.String"` to `Code/io/fs.toml` and regenerating (project `bboltfs`) gives the body, a
-loop over the mode's bits writing into a `[32]byte` (`io/fs/fileinfo.go`), and the spec a proof.
-The spec itself is true of Go's `FileMode.String`: it reads only its receiver, never panics (its
-buffer is large enough for every mode: 19 type letters, a hyphen or not, 9 permission letters).
+`fs.FileMode.String` under a method verb (`Open` logs the file mode with `%s`, `db.go`'s
+`lg.Infof("Opening db file (%s) with mode %s and with options: %s", path, mode, options)`): the
+`logArgOk` its spec gives the mode. The spec is `Spec/io/fs/FileMode__String.lean`, proved from its
+translation (`Proof/io/fs/FileMode__String.lean`; translated with its body since 2026-11-18, session
+S3g of `notes/bbolt-integration-plan.md`), which bbolt's `Link` gives `Open`.
 -/
 module
 
 public import Spec.go_etcd_io.bbolt.Logger
+public import Spec.io.fs.FileMode__String
 
 @[expose] public section
 
@@ -33,13 +28,6 @@ variable [go_gctx : GoGlobalContext]
 variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
-
-/-- **`mode.String()`** returns some string, needing nothing. -/
-abbrev fs.FileMode.String.spec : Prop :=
-  ∀ (mode : w32),
-  {{ (True : IProp GF) }}
-    (App (Val #(methods io.fs.FileMode.ty go!"String" #mode)) (Val #()))
-  {{ (s : GoString), RET #s; True }}
 
 omit hos in
 /-- **The mode, under a method verb**, is an argument a `boltLogger` accepts (a Stringer: no

@@ -26,6 +26,8 @@ open Iris go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
 
 section pure
 variable [GooseExts]
+variable [ExtSemantics Fs.fsExt] [Fs.FsSemOk]
+set_option linter.unusedSectionVars false
 
 theorem cm_write_part_err' (fr : Bool) (w : WDb) (m' : OsMeta) (SB : List Nat) (l : Nat)
     (wb' : Nat → List w8) (hok : wdbOK' fr w)

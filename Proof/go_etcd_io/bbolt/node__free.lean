@@ -203,6 +203,7 @@ theorem node.free.wp_proof (hTxid : internal.common.Meta.Txid.spec (GF := GF) (h
   try unfold wdbW wdbLive wdbCoreG
   simp only [WDb.withFl]
   rw [htxid]
+  rw [flxS_free_tree w _ rn.nv.pgid' _ pg Hwok.1 (by rw [hCpg]; exact hpg) rfl hcan.2.1]
   iframe; iframe #
   isplitr
   · ipureintro; exact ⟨⟨trivial, Hr.2.1, Hr.2.2.1, by unfold WX.setNode; split <;> exact Hr.2.2.2.1, Hr.2.2.2.2.1,

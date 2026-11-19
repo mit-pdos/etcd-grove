@@ -488,7 +488,7 @@ theorem Tx.write.wp_proof (hLogger : DB.Logger.spec (GF := GF) (hG := hG))
         iexact Hwr
       | nil =>
         have hjj : jj = cs := by
-          rcases hres with ⟨h1, -, -⟩ | ⟨-, h2⟩
+          rcases hres with ⟨h1, -, -⟩ | ⟨-, h2, -⟩
           · rw [hcl] at h1; exact h1
           · exact absurd rfl h2
         subst jj

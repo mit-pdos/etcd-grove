@@ -57,6 +57,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Pkg
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.TopLevelDefs
 
 @[expose] public section
 
@@ -72,24 +73,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def leaseexpiryGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def leaseexpiryGF_allG : AllG leaseexpiryGF := ⟨⟨0, rfl⟩⟩
@@ -102,24 +88,10 @@ instance leaseexpiryGF_gooseGpreS : GooseGpreS leaseexpiryGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := leaseexpiryGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAtLex (hG : HeapGS .hasLC leaseexpiryGF) (lctx : GoLocalContext) : HeapGS .hasLC leaseexpiryGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: `leaseexpiry`'s initialization, then `Main()`. -/
-def leaseexpiryProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.etcd.leaseexpiry.Main) #()
-
-/-- The read package's two metric names, which `leaseexpiry`'s initialization registers (`readRegPerm`,
-D16). -/
-def leaseexpiryNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The adequacy example is safe** (see the file header): every real execution of
 `leaseexpiryProgram` from a fresh state with one thread, of `n` steps: if the main thread has finished,

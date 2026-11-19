@@ -5,9 +5,10 @@ counterpart).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.unsafeRange
-public import Spec.go_etcd_io.bbolt.Cursor__Seek_kv
-public import Spec.go_etcd_io.bbolt.Cursor__Next_kv
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.ReadLemmas
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Spec.go_etcd_io.bbolt.Cursor__Seek
+public import Spec.go_etcd_io.bbolt.Cursor__Next
 
 @[expose] public section
 
@@ -26,6 +27,56 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Cursor.Seek_kv`). -/
+private theorem bbolt.kvGlue_Cursor__Seek_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG)) :
+  ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (pos : Option Nat) (q : Qp)
+    (key : GoSlice) (kb : GoString) (dk : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es pos ∗ txLive tx γ q T ∗ key ↦*{dk} kb }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.bbolt.Cursor.ty @!! go!"Seek")) (Val #key))
+  {{ (k v : GoSlice), RET (PairV #k #v); ownCur tx γ c T es (some (backend.seekIdx es kb)) ∗
+      txLive tx γ q T ∗ key ↦*{dk} kb ∗ backend.curAt tx γ es (backend.seekIdx es kb) k v }} := by
+  intro tx c γ T es pos q key kb dk
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, Hc, Hl, Hk⟩ HΦ
+    have h' := h tx c γ q T es pos key kb dk
+    wp_apply h' $$ [$Hl $Hc $Hk] as %k %v ⟨Hl, Hk, Hc, #Ha⟩
+    iapply HΦ; iframe Hl Hk Hc; iexact Ha
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Cursor.Next_kv`). -/
+private theorem bbolt.kvGlue_Cursor__Next_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
+  ∀ (tx c : Loc) (γ : DBNames) (T : bbolt.TxView) (es : List Ent) (i : Nat) (q : Qp),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownCur tx γ c T es (some i) ∗ txLive tx γ q T }}
+    (App (Val (c @!! go.GoType.PointerType go_etcd_io.bbolt.Cursor.ty @!! go!"Next")) (Val #()))
+  {{ (k v : GoSlice), RET (PairV #k #v);
+      ownCur tx γ c T es (some (if i + 1 < es.length then i + 1 else i)) ∗
+      txLive tx γ q T ∗ backend.curAt tx γ es (i + 1) k v }} := by
+  intro tx c γ T es i q
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, Hc, Hl⟩ HΦ
+    have h' := h tx c γ q T es (some i)
+    wp_apply h' $$ [$Hl $Hc] as %k %v ⟨Hl, Hc, #Ha⟩
+    iapply HΦ; iframe Hl Hc; iexact Ha
 
 /-- `cursorRange` as the loop computes it: the entries from the seek position matching
 `isMatch`, at most the effective limit. -/
@@ -60,10 +111,14 @@ theorem backend.cursorRange_take (es : List Ent) (kb eb : GoString) (limit : w64
   exact takeWhile_take_eq _ _ _ _ hall hle hend
 
 theorem backend.unsafeRange.wp_proof
-    (hSeek : bbolt.Cursor.Seek_kv.spec (GF := GF) (hG := hG))
-    (hNext : bbolt.Cursor.Next_kv.spec (GF := GF) (hG := hG)) :
+    (hSeek : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Seek.spec (GF := GF) (hG := hG))
+    (hNext : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Cursor.Next.spec (GF := GF) (hG := hG)) :
     backend.unsafeRange.spec (GF := GF) (hG := hG) := by
-  intro tx c es pos q key endKey kb eb dk de limit
+  replace hSeek := bbolt.kvGlue_Cursor__Seek_kv hSeek
+  replace hNext := bbolt.kvGlue_Cursor__Next_kv hNext
+  intro tx c γd T es pos q key endKey kb eb dk de limit
   wp_start as ⟨Hcur, Hlive, Hk, He⟩
   wp_auto
   wp_join iprop(limit_ptr ↦ (if sint.Z limit ≤ 0 then W64 (2 ^ 63 - 1) else limit))
@@ -127,27 +182,28 @@ theorem backend.unsafeRange.wp_proof
   ihave Hn1c := ownSliceCap_nil (GF := GF) (V := GoSlice)
   ihave Hn2 := ownSlice_nil (GF := GF) (V := GoSlice) (DFrac.own 1)
   ihave Hn2c := ownSliceCap_nil (GF := GF) (V := GoSlice)
-  ihave Hr1 := rdSlices_nil (GF := GF) tx
-  ihave Hr2 := rdSlices_nil (GF := GF) tx
-  ihave HI : (∃ (i : Nat) (ck cv ks vs : GoSlice) (kl vl : List GoSlice),
+  ihave Hr1 := rdSlices_nil (GF := GF) γd tx
+  ihave Hr2 := rdSlices_nil (GF := GF) γd tx
+  ihave HI : (∃ (i p : Nat) (ck cv ks vs : GoSlice) (kl vl : List GoSlice),
       "ck" ∷ ck_ptr ↦ ck ∗ "cv" ∷ cv_ptr ↦ cv ∗ "keys" ∷ keys_ptr ↦ ks ∗ "vs" ∷ vs_ptr ↦ vs ∗
       "Hks" ∷ ks ↦* kl ∗ "Hksc" ∷ ownSliceCap GoSlice ks (DFrac.own 1) ∗
       "Hvs" ∷ vs ↦* vl ∗ "Hvsc" ∷ ownSliceCap GoSlice vs (DFrac.own 1) ∗
-      "Hka" ∷ rdSlices tx kl (((es.drop (seekIdx es kb)).take i).map Prod.fst) ∗
-      "Hva" ∷ rdSlices tx vl (((es.drop (seekIdx es kb)).take i).map Prod.snd) ∗
-      "Hcur" ∷ ownCur tx c es (some (seekIdx es kb + i)) ∗
-      "#Hat" ∷ curAt tx es (seekIdx es kb + i) ck cv ∗
+      "Hka" ∷ rdSlices γd tx kl (((es.drop (seekIdx es kb)).take i).map Prod.fst) ∗
+      "Hva" ∷ rdSlices γd tx vl (((es.drop (seekIdx es kb)).take i).map Prod.snd) ∗
+      "Hcur" ∷ ownCur tx γd c T es (some p) ∗
+      "%Hp" ∷ ⌜seekIdx es kb + i < es.length → p = seekIdx es kb + i⌝ ∗
+      "#Hat" ∷ curAt tx γd es (seekIdx es kb + i) ck cv ∗
       "%Hall" ∷ ⌜∀ (k : Nat) (x : Ent), k < i → (es.drop (seekIdx es kb))[k]? = some x →
         mt x.1 = true⌝ ∗
       "%Hi" ∷ ⌜(i : Int) < sint.Z lim1 ∧ seekIdx es kb + i ≤ es.length⌝ : IProp GF)
     $$ [ck cv keys vs Hn1 Hn1c Hn2 Hn2c Hr1 Hr2 Hcur Hat]
-  · iexists 0, ck0, cv0, slice.nil, slice.nil, [], []
+  · iexists 0, seekIdx es kb, ck0, cv0, slice.nil, slice.nil, [], []
     simp only [List.take_zero, List.map_nil, Nat.add_zero]
     rw [show (zero_val GoSlice) = slice.nil from rfl]
     iframe
     iframe #
     ipureintro
-    refine ⟨fun k x hk _ => absurd hk (Nat.not_lt_zero _), by push_cast; word, Hseek_le⟩
+    refine ⟨fun _ => trivial, fun k x hk _ => absurd hk (Nat.not_lt_zero _), by push_cast; word, Hseek_le⟩
   wp_for HI
   ihave %Hksl := ownSlice_len _ _ _ $$ Hks
   ihave %Hkal := rdSlices_length _ _ _ $$ Hka
@@ -159,7 +215,7 @@ theorem backend.unsafeRange.wp_proof
   | none =>
     -- the end of the bucket: `ck` is nil
     iclear Hf
-    icases curAt_none _ _ _ _ _ he $$ Hat with %Hnil
+    icases curAt_none _ _ _ _ _ _ he $$ Hat with %Hnil
     obtain ⟨rfl, rfl⟩ := Hnil
     wp_auto
     cleanup_bool_decide
@@ -173,12 +229,12 @@ theorem backend.unsafeRange.wp_proof
     iexists kl, vl
     iframe
   | some e =>
-    icases curAt_some _ _ _ _ _ _ he $$ Hat with ⟨%Hnn, #Hek, #Hev⟩
+    icases curAt_some _ _ _ _ _ _ _ he $$ Hat with ⟨%Hnn, #Hek, #Hev⟩
     have hrest : (es.drop (seekIdx es kb))[i]? = some e := by
       rw [List.getElem?_drop]; exact he
     rw [_root_.decide_eq_false Hnn]
     wp_auto
-    icases txBytes_acc tx ck e.1 q $$ [$Hek $Hlive] with ⟨%dq, Hck, Hlive⟩
+    icases txBytes_acc tx γd ck e.1 q T $$ [$Hek $Hlive] with ⟨%dq, Hck, Hlive⟩
     wp_apply Hf $$ [$key $endKey $Hk $He $Hck] as ⟨key, endKey, Hk, He, Hck⟩
     ihave Hlive := Hlive $$ Hck
     cases hm : mt e.1 with
@@ -206,9 +262,9 @@ theorem backend.unsafeRange.wp_proof
       wp_apply (wp_slice_append ks kl _ [ck] (DFrac.own 1)) $$ [Hks Hksc Hlk] as %ks' ⟨Hks, Hksc, -⟩
       · iframe
       ihave %Hksl' := ownSlice_len _ _ _ $$ Hks
-      ihave Hka := rdSlices_snoc tx _ _ ck e.1 $$ [Hka]
+      ihave Hka := rdSlices_snoc γd tx _ _ ck e.1 $$ [Hka]
       · iframe Hka; unfold rdB; iright; iexact Hek
-      ihave Hva := rdSlices_snoc tx _ _ cv e.2 $$ [Hva]
+      ihave Hva := rdSlices_snoc γd tx _ _ cv e.2 $$ [Hva]
       · iframe Hva; unfold rdB; iright; iexact Hev
       have htake : ((es.drop (seekIdx es kb)).take (i + 1)) =
           (es.drop (seekIdx es kb)).take i ++ [e] := by
@@ -241,17 +297,19 @@ theorem backend.unsafeRange.wp_proof
         wp_auto
         wp_for_post
         have hlt : seekIdx es kb + i < es.length := (List.getElem?_eq_some_iff.1 he).1
+        have hp := Hp hlt
+        subst hp
         wp_apply hNext $$ [$Hcur $Hlive] as %ck2 %cv2 ⟨Hcur, Hlive, #Hat2⟩
-        rw [show min (seekIdx es kb + i + 1) es.length = seekIdx es kb + (i + 1) by omega]
         iframe
-        iexists i + 1, ck2, cv2, ks', vs', kl ++ [ck], vl ++ [cv]
+        iexists i + 1, (if seekIdx es kb + i + 1 < es.length then seekIdx es kb + i + 1
+          else seekIdx es kb + i), ck2, cv2, ks', vs', kl ++ [ck], vl ++ [cv]
         rw [show seekIdx es kb + i + 1 = seekIdx es kb + (i + 1) by omega] at *
         rw [htake]
         simp only [List.map_append, List.map_cons, List.map_nil]
         iframe
         iframe #
         ipureintro
-        refine ⟨Hall', ?_, by omega⟩
+        refine ⟨fun h => by rw [if_pos (by omega)], Hall', ?_, by omega⟩
         have : sint.Z lim1 ≠ (i : Int) + 1 := by
           intro h; apply hlim; apply BitVec.eq_of_toInt_eq; rw [← Hlenk] at h; exact h
         push_cast; omega

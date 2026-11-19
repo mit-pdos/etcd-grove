@@ -49,7 +49,8 @@ abbrev txn.Put.spec : Prop :=
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ zapLoggerOrNil lg ∗
       txn.kvBackend γ q B P f ∗ txn.csA P f Pre Q Post ∗
       (if decide (o.leaseID = W64 0 ∨ o.leaseID ∈ L) then txn.putAU γ o L I R
-       else iprop(True)) }}
+       else iprop(True)) ∗
+      ⌜o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax⌝ }}
     (App (App (App (App (App (Val (@! txn.Put)) (Val #(GoInterface.ok ctx))) (Val #lg)) (Val #le))
       (Val #kv)) (Val #p))
   {{ (resp trace : Loc) (err : GoInterface), RET (PairV (PairV #resp #trace) #err);

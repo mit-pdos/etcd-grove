@@ -28,9 +28,9 @@ abbrev backend.batchTx.UnsafeDelete.spec : Prop :=
   ∀ (γ : BNames) (P : BParams) (W Pk : IProp GF) (b : Loc) (t : Loc) (st : BSess) (bk : GoInterface) (bi : BucketInfo) (key : GoSlice) (kb : GoString) (dk : DFrac)
     (own : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗ isBackend γ P W Pk b ∗ bF go!"batchTx" b ↦□ t ∗ btW γ t st ∗ isBucket bk bi ∗
-      (if own then key ↦*{dk} kb else txBytes st.tx key kb) }}
+      (if own then key ↦*{dk} kb else txBytes st.tx γ.db key kb) }}
     (App (App (Val (btOf t @!! go.GoType.PointerType batchTx.ty @!! go!"UnsafeDelete")) (Val #bk)) (Val #key))
-  {{ RET #(); btW γ t (st.del bi kb) ∗ (if own then key ↦*{dk} kb else txBytes st.tx key kb) }}
+  {{ RET #(); btW γ t (st.del bi kb) ∗ (if own then key ↦*{dk} kb else txBytes st.tx γ.db key kb) }}
 
 end spec
 

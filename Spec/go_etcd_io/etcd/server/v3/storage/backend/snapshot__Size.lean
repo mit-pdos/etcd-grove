@@ -1,8 +1,9 @@
 /-
 `Size` (the backend's `snapshot`, `backend.go`: the method its embedded `*bolt.Tx` promotes; names
-only). `s.Size()`: the size of the database the snapshot's read transaction sees (bbolt's
-`Tx.Size`: its high-water page id times the page size). The trust boundary (D22 S-h, 2026-10-20; an
-axiom in `Proof/go_etcd_io/etcd/server/v3/storage/backend/snapshot__Size.lean`). Lean-first (no Rocq
+only until S4b, 2026-11-18). `s.Size()`: the size of the database the snapshot's read transaction
+sees (bbolt's `Tx.Size`: its high-water page id times the page size). Until S4b the trust boundary
+(D22 S-h, 2026-10-20, an axiom); now proved over bbolt's `Tx.Size`
+(`Proof/go_etcd_io/etcd/server/v3/storage/backend/snapshot__Size.lean`). Lean-first (no Rocq
 counterpart); the vocabulary is `InvSnapshot.lean`.
 -/
 module
@@ -23,12 +24,12 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- `s.Size()` of a share of an open snapshot: some number in `[0, 2^62)` (sweep repairs 1, S2,
-2026-11-08: the database's file size bound, `fileHolds`; see the axiom's docstring) (the merged message's size field, which
+2026-11-08: the database's file size bound; S4b: bbolt's `Tx.Size` of a read transaction) (the merged message's size field, which
 the sender only logs and the transport's exact-size reader checks the stream against), the share
 given back (`Size` only reads; after `Close` it would dereference the transaction's nil `meta`). -/
 abbrev backend.snapshot.Size.spec : Prop :=

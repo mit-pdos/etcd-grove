@@ -6,8 +6,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.encodeV0
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.setItem
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.splitKey
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Calls
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Perennial.Proof.context.Link
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -33,7 +33,8 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8s.etcd3.Assump
 theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
     (wp_storeKey : storeKey.spec (GF := GF) (hG := hG))
     (wp_encodeV0 : encodeV0.spec (GF := GF) (hG := hG))
-    (wp_setItem : setItem.spec (GF := GF) (hG := hG)) :
+    (wp_setItem : setItem.spec (GF := GF) (hG := hG))
+    (h_client_Put_st : client.client_Put_st.law (GF := GF) (hG := hG)) :
     seedOne.spec (GF := GF) (hG := hG) := by
   intro _ _ cl ms V γs s0 g k rv σ hAs hms hk hg
   wp_start as ⟨#Hnc, #Hwo, #Hregs, #Hsi, Hs, #Hst⟩
@@ -59,7 +60,7 @@ theorem seedOne.wp_proof (wp_splitKey : splitKey.spec (GF := GF) (hG := hG))
       $$ [Hs]
   · iframe Hsi Hs
   ihave #Hput := client.kvRegs_put ms $$ Hregs
-  wp_apply (client.client_Put_st cl ms V context.backgroundCtxVal cd
+  wp_apply (h_client_Put_st cl ms V context.backgroundCtxVal cd
       (go!"/registry" ++ storeKeyL k)
       (encodeWith tagV0 ⟨(splitKeyL k).1, (splitKeyL k).2, go!"", go!"x", go!"", go!"", 0, false⟩)
       slice.nil

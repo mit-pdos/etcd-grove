@@ -39,6 +39,7 @@ module
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.AdequacyMembers
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.StartRes
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.partition.TopLevelDefs
 
 @[expose] public section
 
@@ -54,18 +55,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The watch run: `linkv3p`'s initialization, then `MainWatch(nw, nops, sched)` with the schedule
-built as a slice literal. -/
-def linkv3pWatchProgram [GoSemanticsFunctions] (nw nops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.partition.initialize' #() ;;
-  App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.partition.MainWatch)) (Val #nw))
-    (Val #nops)) (schedLit steps)
 
 /-- **The watch run over the partitioned cluster is safe** (see the file header): every real
 execution of `linkv3pWatchProgram nw nops steps` from a fresh state with one thread, of `n` steps:

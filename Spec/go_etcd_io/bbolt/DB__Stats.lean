@@ -34,7 +34,7 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `db.Stats()`: some statistics. It read-locks `statlock`, whose reader slot the caller pays
 for (`statSlot`), given back. -/
 abbrev DB.Stats.spec : Prop :=
-  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) (o : Option (Loc × Data)),
+  ∀ [ExtSemantics fsExt] [FsSemOk] [HasExt fsExt] (db : Loc) (γ : BoltName) (o : Option (Loc × TxView)),
   {{ isBolt (GF := GF) db γ ∗ statSlot γ o }}
     (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"Stats")) (Val #()))
   {{ (s : Stats), RET #s; statSlot γ o }}

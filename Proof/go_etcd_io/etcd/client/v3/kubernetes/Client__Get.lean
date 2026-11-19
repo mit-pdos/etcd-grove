@@ -12,12 +12,13 @@ response's.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__Get
 public import Spec.go_etcd_io.etcd.client.v3.WithRev
 public import Spec.go_etcd_io.etcd.client.v3.WithLimit
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.Proph
 public import Perennial.Proof.github_com.goose_lang.primitive.Link
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.InvOpLemmas
 
 @[expose] public section
 
@@ -43,7 +44,8 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.kubernetes.Assumptions]
 
 theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
-    (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG)) :
+    (wp_WithLimit : WithLimit.spec (GF := GF) (hG := hG))
+    (h_range_any : client.client_range_any.law (GF := GF) (hG := hG)) :
     Client.Get.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd key opts Q0 hrev hk
   wp_start as ⟨#Hcl, #Hregs, #Hctx, #Hce, Hau0⟩
@@ -96,7 +98,7 @@ theorem Client.Get.wp_proof (wp_WithRev : WithRev.spec (GF := GF) (hG := hG))
       · iright; iframe h; ipureintro; rfl
   ihave #Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
   wp_auto
-  wp_apply (client.client_range_any api ms (W64 0) ci cd key optsSl
+  wp_apply (h_range_any api ms (W64 0) ci cd key optsSl
       [withRevM opts.Revision', withLimitM (W64 1)] iprop(True) Q []
       (opSizeOk_opGetModel (K := 2 ^ 27) (E := 0) (V := 0)
         (optsKeep_cons (withRevM_keep _) (optsKeep_cons (withLimitM_keep _) (optsKeep_nil _ _ _)))

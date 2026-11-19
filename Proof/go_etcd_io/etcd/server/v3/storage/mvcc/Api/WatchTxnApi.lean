@@ -285,7 +285,7 @@ theorem watchableStore.Write.wp_api (hW : mvcc.store.Write.spec (GF := GF) (hG :
   iexists mw, st, p, (W64 0), (W64 0), (W64 0)
   iframe Htx Hfree'
   isplitr
-  · ipureintro; exact ⟨hpn, hre⟩
+  · ipureintro; exact ⟨hpn, hre, ChPutsLe.nil _⟩
   isplitl [Hback]
   · rw [show tokBack (GF := GF) st (γw.st.withPhys p) = tokBack st γw.st from rfl]; iexact Hback
   iunfold wrWrap
@@ -315,7 +315,7 @@ theorem watchableStoreTxnWrite.End.wp_api
   | write σ₀ pend =>
     simp only [mvccTxnI]
     icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
-    obtain ⟨Hpn, -⟩ := Hk0
+    obtain ⟨Hpn, -, Hpl⟩ := Hk0
     icases wrWrap_pt t0 _ s mw σ₀.log $$ Hwrap with ⟨%sw, %γw, %hγw, Hwrap⟩
     icases Hk with ⟨HB, HP, Hau⟩
     -- the backend share, at the transaction's names
@@ -338,7 +338,7 @@ theorem watchableStoreTxnWrite.End.wp_api
       iprop(True) $$ [$Hwrap $Htx]
     -- the steps from the client's update
     iunfold mvccState at Hau
-    have hcb := wsEndCbY_of_au (GF := GF) γw σ₀ pend Q Hwq Hpn
+    have hcb := wsEndCbY_of_au (GF := GF) γw σ₀ pend Q Hwq Hpn Hpl
     have ha : γw.st.api = γ.api := by rw [hγw]; rfl
     simp only [endAU, ha] at hcb
     ihave Hcb := hcb $$ Hau

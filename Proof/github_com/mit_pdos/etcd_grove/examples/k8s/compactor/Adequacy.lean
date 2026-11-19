@@ -78,6 +78,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.TopLevelDefs
 
 @[expose] public section
 
@@ -93,24 +94,9 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 /-! ## The ghost-state bundle -/
-
-/-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
-def k8scompactorGF : BundledGFunctors := fun i =>
-  match i with
-  | 0 => ⟨AllURF, inferInstance⟩
-  | 1 => ⟨InvMapF, inferInstance⟩
-  | 2 => ⟨constOF CoPsetDisjL, inferInstance⟩
-  | 3 => ⟨constOF (DisjointLeibnizSet PosSet), inferInstance⟩
-  | 4 => ⟨Auth.AuthURF (constOF Credit), inferInstance⟩
-  | 5 => ⟨constOF (NaHeapUR Loc val), inferInstance⟩
-  | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
-          inferInstance⟩
-  | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def k8scompactorGF_allG : AllG k8scompactorGF := ⟨⟨0, rfl⟩⟩
@@ -123,24 +109,10 @@ instance k8scompactorGF_gooseGpreS : GooseGpreS k8scompactorGF where
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := k8scompactorGF_allG
 
-/-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
-every instance of the ghost state whose Go local context is the semantics' own). -/
-abbrev heapAtKc (hG : HeapGS .hasLC k8scompactorGF) (lctx : GoLocalContext) : HeapGS .hasLC k8scompactorGF :=
-  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
-
 /-! ## The closed theorem -/
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: the compactor example's initialization, then `Main()`. -/
-def k8scompactorProgram [GoSemanticsFunctions] : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize' #() ;;
-  (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Main) #()
-
-/-- The read package's two metric names, which the example's initialization registers
-(`readRegPerm`, D16). -/
-def k8scompactorNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **The compactor example is safe** (see the file header): every real execution of
 `k8scompactorProgram` from a fresh state with one thread, of `n` steps: if the main thread has
@@ -207,28 +179,6 @@ theorem k8s_compactor_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe; iframe #
   ipureintro
   rfl
-
-/-- The program with three members: the compactor example's initialization, then
-`MainPartition(sched)` with the schedule built as a slice literal. -/
-def k8scompactorPProgram [GoSemanticsFunctions]
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.k8s.compactor.initialize' #() ;;
-  App (Val (@! github_com.mit_pdos.etcd_grove.examples.k8s.compactor.MainPartition)) (schedLit steps)
-
-/-- The program's addresses: the three members' peer addresses, their client addresses, and the
-bridges' addresses (`clusterCfg`'s). -/
-def k8scompactorPAddrs : List GoString :=
-  [k8s_compactor.clusterCfg.Peer1', k8s_compactor.clusterCfg.Peer2', k8s_compactor.clusterCfg.Peer3',
-    k8s_compactor.clusterCfg.Client1', k8s_compactor.clusterCfg.Client2',
-    k8s_compactor.clusterCfg.Client3',
-    k8s_compactor.clusterCfg.Bridge1', k8s_compactor.clusterCfg.Bridge2',
-    k8s_compactor.clusterCfg.Bridge3']
-
-/-- The members' data directories `<name>.etcd` (sweep repairs 1, W3/W4: until then their WAL directories). -/
-def k8scompactorPDataDirs : List GoString :=
-  [(k8s_compactor.clusterCfg.Name1' ++ go!".etcd"),
-    (k8s_compactor.clusterCfg.Name2' ++ go!".etcd"),
-    (k8s_compactor.clusterCfg.Name3' ++ go!".etcd")]
 
 /-- **The compactor example on three members under partitions is safe** (see the file header):
 every real execution of `k8scompactorPProgram steps` from a fresh state with one thread, of `n`

@@ -156,8 +156,8 @@ abbrev DB.getPageSizeFromFirstMeta.spec_own : Prop :=
           sz = W64 ((metaOf (bytesAt (xs.map Prod.fst) 0 4096)).pageSize'.toNat : Int)⌝) ∨
        (globalAddr go_etcd_io.bbolt.errors.ErrInvalid ↦□ err ∗
           ⌜¬ metaValid (metaOf (bytesAt (xs.map Prod.fst) 0 4096))⌝) ∨
-       (⌜∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe⌝ ∗
-          fmtErrorOk err)) }}
+       (⌜(∃ pe : Loc, err = interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe) ∧
+          ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.getPageSizeFromFirstMeta.wp_proof_own
     (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
@@ -188,14 +188,14 @@ theorem DB.getPageSizeFromFirstMeta.wp_proof_own
     show W64 (4096 : Int) = W64 4096 from rfl] at *
   simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
     show W64 4096 - W64 0 = W64 4096 from rfl]
-  wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
+  wp_apply os.File.ReadAt.wp_heldW hRead f fd pp dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
     (List.replicate 4096 (W8 0)) (W64 0) dq dqb d xs _ hrd
     (by decide) (by rw [List.length_replicate]; omega)
     (by rw [List.length_replicate, show (W64 0).toNat = 0 from rfl]; omega) hx $$ [Hfo Hsl Hfd Hb] as %n %err
     ⟨Hfo, Hfd, Hb, %vs', Hsl, %hr, #Hek⟩
   · iframe; iframe #; rw [← fileOwn_eq]; iexact Hfo
   rw [List.length_replicate, show (W64 0).toNat = 0 from rfl, List.drop_zero] at hr
-  rcases hr with ⟨rfl, rfl, rfl⟩ | ⟨pe, rfl⟩
+  rcases hr with ⟨rfl, rfl, rfl⟩ | ⟨pe, rfl, hne⟩
   · wp_auto
     have hX : (List.take 4096 (List.map Prod.fst xs)).length = 4096 := by simp; omega
     ihave %Hp := ownSlice_ptr_pos _ _ _ (by intro h; rw [h] at hX; simp at hX) $$ Hsl
@@ -255,7 +255,7 @@ theorem DB.getPageSizeFromFirstMeta.wp_proof_own
     iframe
     iright; iright
     isplitr
-    · ipureintro; exact ⟨pe, rfl⟩
+    · ipureintro; exact ⟨⟨pe, rfl⟩, hne⟩
     · iapply fmtErrorOkOrNil_ne (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)
         (by intro h; cases h) $$ Hek
 
@@ -279,7 +279,7 @@ abbrev DB.getPageSizeFromSecondMeta.spec_own : Prop :=
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
       fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs ∗
       ((⌜err = interface.nil ∧ sz = W64 4096⌝) ∨
-       (⌜err ≠ interface.nil ∧ errPtrTyped err⌝ ∗ fmtErrorOk err)) }}
+       (⌜err ≠ interface.nil ∧ errPtrTyped err ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.getPageSizeFromSecondMeta.wp_proof_own
     (hRead : os.File.ReadAt.specRacyLt (GF := GF) (hG := hG))
@@ -337,14 +337,14 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
     simp only [show sint.Z (W64 0) = 0 from rfl, go.arrayIndexRef_0,
       show W64 4096 - W64 0 = W64 4096 from rfl]
     have hPn : (W64 (P : Int)).toNat = P := by word
-    wp_apply os.File.ReadAt.wp_held hRead f fd pp dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
+    wp_apply os.File.ReadAt.wp_heldW hRead f fd pp dqf (slice.mk buf_ptr (W64 4096) (W64 4096))
       (List.replicate 4096 (W8 0)) (W64 (P : Int)) dq dqb d xs _ hrd
       (by word) (by rw [List.length_replicate]; omega)
       (by rw [List.length_replicate, hPn]; omega) (by omega) $$ [Hfo Hsl Hfd Hb] as %n %err
       ⟨Hfo, Hfd, Hb, %vs', Hsl, %hr, #Hek2⟩
     · iframe; iframe #
     rw [List.length_replicate, hPn] at hr
-    rcases hr with ⟨rfl, rfl, rfl⟩ | ⟨pe, rfl⟩
+    rcases hr with ⟨rfl, rfl, rfl⟩ | ⟨pe, rfl, hne⟩
     · wp_auto
       have hX : (List.take 4096 (List.drop P (List.map Prod.fst xs))).length = 4096 := by
         simp; omega
@@ -419,10 +419,10 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
       iframe
       iright
       isplitr
-      · ipureintro; exact ⟨(by intro h; cases h), errPtrTyped_mkOk _ _⟩
+      · ipureintro; exact ⟨(by intro h; cases h), errPtrTyped_mkOk _ _, hne⟩
       · iapply fmtErrorOkOrNil_ne (interface.mkOk (go.GoType.PointerType io.fs.PathError.ty) #pe)
           (by intro h; cases h) $$ Hek2
-  · obtain ⟨hne, rfl⟩ := Hfs
+  · obtain ⟨hne, rfl, hfs⟩ := Hfs
     cases err with
     | nil => exact absurd rfl hne
     | ok ii =>
@@ -435,7 +435,7 @@ theorem DB.getPageSizeFromSecondMeta.wp_proof_own
       iframe
       iright
       iframe Hek
-      ipureintro; exact ⟨hne, Hpt⟩
+      ipureintro; exact ⟨hne, Hpt, hfs⟩
 
 /-- **`ErrInvalid` is an `errors.New` error** (`*errorString`): what `getPageSize`'s
 `err != ErrInvalid` needs to tell a read's `*PathError` from it. bbolt's `errors` package facts say
@@ -462,7 +462,8 @@ abbrev DB.getPageSize.spec_own : Prop :=
   {{ (sz : w64) (err : GoInterface), RET (PairV #sz #err);
       db.[DB, go!"file"] ↦{dqdb} f ∗ db.[DB, go!"pageSize"] ↦{dqdb} W64 4096 ∗
       fileOwn f fd p.path dqf ∗ osFd fd dq d ∗ osMeta p.ino dqm m ∗ osBytes p.ino 0 dqb xs ∗
-      ((⌜err = interface.nil ∧ sz = W64 4096⌝) ∨ (⌜err ≠ interface.nil⌝ ∗ fmtErrorOk err)) }}
+      ((⌜err = interface.nil ∧ sz = W64 4096⌝) ∨
+       (⌜err ≠ interface.nil ∧ ¬ FsNoErr⌝ ∗ fmtErrorOk err)) }}
 
 theorem DB.getPageSize.wp_proof_own
     (hFirst : DB.getPageSizeFromFirstMeta.spec_own (GF := GF) (hG := hG))
@@ -516,7 +517,7 @@ theorem DB.getPageSize.wp_proof_own
       iframe
       ileft
       ipureintro; exact ⟨rfl, rfl⟩
-    · obtain ⟨hne2, hpt2⟩ := Hr2
+    · obtain ⟨hne2, hpt2, hfs2⟩ := Hr2
       cases err2 with
       | nil => exact absurd rfl hne2
       | ok ii =>
@@ -531,28 +532,28 @@ theorem DB.getPageSize.wp_proof_own
           cases cr <;> cases cr2 <;> wp_auto <;> iapply HΦ <;> iframe <;>
             first
             | (ileft; ipureintro; exact ⟨rfl, rfl⟩)
-            | (iright; iframe HEiOk; ipureintro; intro h; cases h)
+            | (iright; iframe HEiOk; ipureintro; exact ⟨(fun h => by cases h), hfs2⟩)
         · rw [decide_eq_false hll]
           wp_auto
           iapply HΦ
           iframe
           iright
           iframe Hek2
-          ipureintro; exact hne2
+          ipureintro; exact ⟨hne2, hfs2⟩
       · rw [if_neg hty]
         wp_auto
         iapply HΦ
         iframe
         iright
         iframe Hek2
-        ipureintro; exact hne2
-  · obtain ⟨pe, rfl⟩ := Hr
+        ipureintro; exact ⟨hne2, hfs2⟩
+  · obtain ⟨⟨pe, rfl⟩, hfs⟩ := Hr
     wp_auto
     iapply HΦ
     iframe
     iright
     iframe Hek
-    ipureintro; intro h; cases h
+    ipureintro; exact ⟨(fun h => by cases h), hfs⟩
 
 end spec
 

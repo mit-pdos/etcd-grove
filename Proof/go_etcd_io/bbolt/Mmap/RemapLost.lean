@@ -29,7 +29,7 @@ the leaked mapping `j`), the `W` slots those inside the file. -/
 def WDb.lost [GooseExts] (w : WDb) (m' : OsMeta) (j : Option (Loc × Nat)) : WDb :=
   { w with ms := none, m := m', W := wSlots (w.m.size / 4096) w.C w.fl, junk := j }
 
-theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
+theorem wdbOK'_lost [GooseExts] [ExtSemantics Fs.fsExt] [Fs.FsSemOk] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : OsMeta)
     (j : Option (Loc × Nat)) (hsz : m'.size = w.m.size)
     (hmaps : m'.maps = ∅ ∨ ∃ jb jl, j = some (jb, jl) ∧ m'.maps = GMap.singleton jb jl) :
     wdbOK' fr (w.lost m' j) := by
@@ -44,7 +44,8 @@ theorem wdbOK'_lost [GooseExts] (fr : Bool) (w : WDb) (hok : wdbOK' fr w) (m' : 
     exact mem_W_of_wSlots _ _ _ s
   · intro b l h; simp [WDb.lost] at h
   · intro b l h; simp [WDb.lost] at h
-  · simp only [WDb.lost]; rw [hsz]; exact hk13
+  · obtain ⟨a1, -, a3⟩ := hk13
+    refine ⟨?_, ?_, ?_⟩ <;> simp only [WDb.lost, mapLen, hsz] <;> first | exact a1 | exact a3 | omega
   · intro b l h; simp [WDb.lost] at h
   · intro s hs hle
     simp only [WDb.lost, hsz] at hs hle ⊢
@@ -73,11 +74,79 @@ theorem wtxCore_rebase (K : BC) (tx : Loc) (r : TxReg) (m : Bool) (X : WX) (b : 
   iframe
   ipureintro; exact Hp
 
-/-- The junk mapping's cells. -/
-def junkRes (j : Option (Loc × Nat)) : IProp GF :=
+/-- The junk mapping's cells, and the file-given-up flag `nf` (session bbolt-inv): discarded at
+`true` once a mapping leaked, `false` at 1 while none did (`wdbCoreG`'s last clause); a leak records
+that the file system can fail (session S3f: a remap's `munmap`, or `madvise` after its `mmap`, failed,
+which the premises `FsNoErr` names exclude). -/
+def junkRes (B : BNs) (j : Option (Loc × Nat)) : IProp GF :=
   match j with
-  | some (jb, jl) => iprop(∃ vf, cellsR jb 0 jl vf)
-  | none => iprop(emp)
+  | some (jb, jl) => iprop((∃ vf, cellsR jb 0 jl vf) ∗ dghostVar B.nf DFrac.discard true ∗
+      ⌜¬ FsNoErr⌝)
+  | none => iprop(dghostVar B.nf (DFrac.own 1) false)
+
+/-- **A mapping leaks** (a failed remap's `munmap`, or `madvise` after its `mmap`): the old junk
+clause's flag set to `true` (or kept, if a mapping leaked before), the leaked mapping's cells. -/
+theorem junkRes_leak (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) (jb : Loc) (jl : Nat)
+    (hfs : ¬ FsNoErr) :
+    junkRes (GF := GF) B jo ∗ (∃ vf, cellsR jb 0 jl vf) ⊢ |={E}=> junkRes B (some (jb, jl)) := by
+  iintro ⟨Hj, Hc⟩
+  rcases jo with _ | ⟨jb', jl'⟩
+  · simp only [junkRes]
+    imod dghostVar_update (GF := GF) true B.nf false $$ Hj with Hj
+    imod dghostVar_persist (GF := GF) B.nf 1 true $$ Hj with #Hj
+    imodintro
+    iframe Hc Hj
+    ipureintro; exact hfs
+  · simp only [junkRes]
+    icases Hj with ⟨-, #Hj, -⟩
+    imodintro
+    iframe Hc Hj
+    ipureintro; exact hfs
+
+/-- **The file given up** (`DB.Close`, which does not give it back): the junk clause's flag set to
+`true`, discarded (kept, if a mapping leaked before); the leaked mapping's cells dropped. -/
+theorem junkRes_shut (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) :
+    junkRes (GF := GF) B jo ⊢ |={E}=> dghostVar B.nf DFrac.discard true := by
+  iintro Hj
+  rcases jo with _ | ⟨jb', jl'⟩
+  · simp only [junkRes]
+    imod dghostVar_update (GF := GF) true B.nf false $$ Hj with Hj
+    imod dghostVar_persist (GF := GF) B.nf 1 true $$ Hj with #Hj
+    imodintro; iexact Hj
+  · simp only [junkRes]
+    icases Hj with ⟨-, #Hj, -⟩
+    imodintro; iexact Hj
+
+/-- **A failed remap's outcome with the junk clause**: no leak (`P`), the old clause kept; a
+leaked mapping `x` (its cells), the clause at the leak (`junkRes_leak`). Taken while the remap's
+WP is open, before its failure path's steps (the ghost update needs a modality). -/
+theorem junkRes_leak_or (E : CoPset) (B : BNs) (jo : Option (Loc × Nat)) (P : IProp GF) {X : Type}
+    (Q : X → IProp GF) (jb : X → Loc) (jl : X → Nat) (hfs : ¬ FsNoErr) :
+    junkRes (GF := GF) B jo ∗ (P ∨ ∃ x, Q x ∗ ∃ vf, cellsR (jb x) 0 (jl x) vf) ⊢
+      |={E}=> (P ∗ junkRes B jo) ∨ ∃ x, Q x ∗ junkRes B (some (jb x, jl x)) := by
+  iintro ⟨Hj, (HP | ⟨%x, HQ, Hc⟩)⟩
+  · imodintro; ileft; iframe
+  · imod junkRes_leak E B jo (jb x) (jl x) hfs $$ [Hj Hc] with Hj
+    · iframe
+    imodintro; iright; iexists x; iframe
+
+/-- A leaked mapping's junk clause holds the file-given-up flag at `true`. -/
+theorem junkRes_some_nf (B : BNs) (j : Option (Loc × Nat)) (jb : Loc) (jl : Nat)
+    (hj : j = some (jb, jl)) :
+    junkRes (GF := GF) B j ⊢ dghostVar B.nf DFrac.discard true := by
+  subst hj
+  simp only [junkRes]
+  iintro ⟨-, #H, -⟩
+  iexact H
+
+/-- A leaked mapping's junk clause records that the file system can fail (session S3f). -/
+theorem junkRes_some_fs (B : BNs) (j : Option (Loc × Nat)) (jb : Loc) (jl : Nat)
+    (hj : j = some (jb, jl)) :
+    junkRes (GF := GF) B j ⊢ ⌜¬ FsNoErr⌝ := by
+  subst hj
+  simp only [junkRes]
+  iintro ⟨-, -, %h⟩
+  ipureintro; exact h
 
 /-- **The writer side after a failed remap**, from its pieces (batch 44.1: flagged, with the
 writer's `fbTok`). -/
@@ -92,13 +161,15 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
       K.db.[DB, go!"opened"] ↦{DFrac.own (1 : Qp).half} true -∗
       (K.db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦{DFrac.own (1 : Qp).half}
         methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #w.f -∗
-      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦ w.f -∗ dbPathLk K.db K.p w.fd -∗
+      K.db.[DB, go!"rwtx"] ↦ tx -∗ K.db.[DB, go!"file"] ↦{DFrac.own (1 : Qp).half} w.f -∗
+      dbPathLk K.db K.p w.fd -∗
       K.db.[DB, go!"datasz"] ↦ W64 0 -∗
       mapFields K.db (DFrac.own (1 : Qp).half.half) (none : MapSt) -∗
-      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own 1) -∗
-      osFd w.fd (DFrac.own 1) (dbFd K.p.ino) -∗
-      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗ wBytes K.p w.W w.wb w.m.size -∗
-      junkRes j -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
+      osMeta K.p.ino (DFrac.own 1) m' -∗ fileOwn w.f w.fd K.p.path (DFrac.own (1 : Qp).half) -∗
+      osFd w.fd (DFrac.own (1 : Qp).half) (dbFd K.p.ino) -∗
+      metaOsBytes K.p (DFrac.own (1 : Qp).half) w.C -∗
+      wBytesX K.p w.W (flxS w.C w.fl w.wb) w.wb w.m.size -∗
+      junkRes K.B j -∗ flPgOwn w.fli w.fl -∗ sparePair K.B K.db K.sp -∗ receipt (w.C.txid - K.t0) -∗
       fbTok K.B w.C w.fl (wLive v0 w.C) F -∗
       wdbLost' fr K tx v (w.lost m' j) := by
   iintro Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmob Hwb Hj
@@ -112,7 +183,7 @@ theorem wdbLost'_intro (fr : Bool) (K : BC) (tx : Loc) (v : View) (w : WDb) (hok
     obtain ⟨h1, h2, h3⟩ := (mem_wSlots _ _ _ s).1 hs
     exact (wdbOK'_mem_W fr w hok s).2 ⟨h1, Nat.lt_of_lt_of_le h2
       (Nat.div_le_div_right (Nat.le_max_right _ _)), h3⟩
-  ihave Hwb := wBytes_restrict K.p w.W (w.lost m' j).W w.wb w.m.size (wSlots_nodup _ _ _)
+  ihave Hwb := wBytesX_restrict K.p w.W (w.lost m' j).W _ w.wb w.m.size (wSlots_nodup _ _ _)
     (by simpa [WDb.lost, hsz] using hW) $$ Hwb
   isplitl [Hcur Hfl Hmap Hout Hwv Hfli Hopen Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hmob Hwb Hj
     Hflo Hrd Hrc]

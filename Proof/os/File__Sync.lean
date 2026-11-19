@@ -6,6 +6,7 @@ module
 
 public import Proof.os.ErrorOk
 public import Spec.os.File__Sync
+public import GooseLang.Ext.Fs.NoErrSpecsOpen
 
 @[expose] public section
 
@@ -69,7 +70,28 @@ theorem os.File.Sync.wp_proof : os.File.Sync.spec (GF := GF) (hG := hG) := by
     iframe
     ipureintro; intro h; cases h
 
-theorem os.File.Sync.wp_proofB : os.File.Sync.specB (GF := GF) (hG := hG) := by
+/-- `os.File.Sync.specB` without the error witness (session S6: a helper of the proof below). -/
+private abbrev os.File.Sync.tripleOldB : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m : OsMeta),
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
+      osMeta (GF := GF) d.ino (DFrac.own 1) m }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
+  {{ (err : GoInterface), RET #err; os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ((⌜err = interface.nil⌝ ∗ ∃ c, osMeta d.ino (DFrac.own 1) (m.bsynced c)) ∨
+       (⌜err ≠ interface.nil⌝ ∗ osMeta d.ino (DFrac.own 1) m)) ∗
+      fmtErrorOkOrNil err }}
+
+/-- `os.File.Sync.specB` over a semantics with no errors (the former `os.File.Sync.specBNoErr`). -/
+private abbrev os.File.Sync.tripleNEB : Prop :=
+  ∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)], (∀ st i, Sio.ino st i) →
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf dq : DFrac) (d : OsFd) (m : OsMeta),
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ osFd (GF := GF) fd dq d ∗
+      osMeta (GF := GF) d.ino (DFrac.own 1) m }}
+    (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"Sync")) (Val #()))
+  {{ RET #(interface.nil : GoInterface); os.ownFile f fd name dqf ∗ osFd fd dq d ∗
+      ∃ c, osMeta d.ino (DFrac.own 1) (m.bsynced c) }}
+
+private theorem os.File.Sync.wp_oldB : os.File.Sync.tripleOldB (GF := GF) (hG := hG) := by
   intro f fd name dqf dq d m
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
@@ -113,6 +135,48 @@ theorem os.File.Sync.wp_proofB : os.File.Sync.specB (GF := GF) (hG := hG) := by
     iright
     iframe
     ipureintro; intro h; cases h
+
+private theorem os.File.Sync.wp_NEB : os.File.Sync.tripleNEB (GF := GF) (hG := hG) := by
+  intro Sio _ hS f fd name dqf dq d m
+  unfold os.ownFile
+  wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hosfd, Hm⟩
+  unfold os.model.inner
+  rw [os.file_ty_eq, os.File_ty_eq]
+  ihave #Hf2 := Hf
+  iStructNamed Hf2
+  wp_auto
+  wp_apply wp_osFdKind fd dq d CoPset.subseteq_top $$ Hinv Hosfd as Hosfd
+  wp_apply wp_osFsyncBNE hS fd dq d m CoPset.subseteq_top $$ Hinv Hosfd Hm as %c Hm Hosfd
+  iapply HΦ
+  iframe
+  isplitl [] <;> iassumption
+
+/-- **`specB`**: by cases on `FsNoErr`, the error-free triple or the one without the witness, whose
+error arm then has `¬ FsNoErr`. -/
+theorem os.File.Sync.wp_proofB : os.File.Sync.specB (GF := GF) (hG := hG) := by
+  intro f fd name dqf dq d m
+  iintro %Φ Hpre HΦ
+  by_cases hne : FsNoErr
+  · obtain ⟨Sio, hSio, hs1, hs2, hsp⟩ := hne
+    haveI := hs1
+    iapply os.File.Sync.wp_NEB Sio hSio f fd name dqf dq d m $$ Hpre
+    inext
+    iintro ⟨Hfo, Hfd, %c, Hm⟩
+    iapply HΦ
+    iframe Hfo Hfd
+    isplitl [Hm]
+    · ileft; isplitr
+      · ipureintro; rfl
+      iexists c; iexact Hm
+    · simp only [fmtErrorOkOrNil]; itrivial
+  · iapply os.File.Sync.wp_oldB f fd name dqf dq d m $$ Hpre
+    inext
+    iintro %err ⟨Hfo, Hfd, Hr, #Hok⟩
+    iapply HΦ
+    iframe Hfo Hfd Hok
+    icases Hr with (H | ⟨%he, Hm⟩)
+    · ileft; iexact H
+    · iright; iframe Hm; ipureintro; exact ⟨he, hne⟩
 
 end proof
 

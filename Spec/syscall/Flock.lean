@@ -4,13 +4,18 @@
 `LOCK_EX` or `LOCK_UN`, with or without `LOCK_NB` (`flockReq`: the request `req`), with the whole fd
 and the token of its `flock` lock if exclusive (a lock only on a description with no `flock` lock):
 `lockOut` (on success the request done, an exclusive lock with its token `osLock .flock d.ino fd`;
-a lock's failure changes nothing; an unlock's failure may have released it). Proved in
+a lock's failure changes nothing; an unlock's failure may have released it). A non-blocking request
+or an unlock (`req = none ∨ nb = true`) returns 0, `EAGAIN` (a lock held elsewhere), or an error
+that witnesses that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr`
+names, `flock` fails with nothing else; session S6 folded the former `specNoErr`/`specW` into it,
+`notes/bbolt-integration-plan.md`). Proved in
 `Proof/syscall/Flock.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.syscall.Base
 public import GooseLang.Ext.Fs.Locks
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -35,7 +40,9 @@ abbrev syscall.Flock.spec : Prop :=
   flockReq how.toNat = some (req, nb) → (req ≠ none → d.flk = none) →
   {{ osInv (GF := GF) ∗ osFd (GF := GF) fd (DFrac.own 1) d ∗ lockTok (GF := GF) .flock fd d }}
     (App (App (Val (@! syscall.Flock)) (Val #fd)) (Val #how))
-  {{ (e : w64), RET #(errnoErr e); lockOut (GF := GF) .flock fd d req e }}
+  {{ (e : w64), RET #(errnoErr e);
+      ⌜(req = none ∨ nb = true) → e = 0 ∨ (req ≠ none ∧ e = EAGAIN) ∨ ¬ FsNoErr⌝ ∗
+      lockOut (GF := GF) .flock fd d req e }}
 
 end spec
 

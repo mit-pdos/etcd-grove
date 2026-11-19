@@ -8,7 +8,6 @@ fields (`failure_resps`, `kvFromTxnResponse`).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.Client__OptimisticPut
 public import Spec.go_etcd_io.etcd.client.v3.kubernetes.kvFromTxnResponse
 public import Spec.go_etcd_io.etcd.client.v3.WithLease
@@ -16,8 +15,11 @@ public import Spec.go_etcd_io.etcd.client.v3.ModRevision
 public import Spec.go_etcd_io.etcd.client.v3.Compare
 public import Spec.go_etcd_io.etcd.client.v3.OpPut
 public import Spec.go_etcd_io.etcd.client.v3.OpGet
-public import Proof.go_etcd_io.etcd.client.v3.TxnPlain
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
+public import Proof.go_etcd_io.etcd.client.v3.TxnPlainSpec
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLaws
+public import Spec.go_etcd_io.etcd.client.v3.kv__Txn
+public import Spec.go_etcd_io.etcd.client.v3.txn__If
 
 @[expose] public section
 
@@ -46,7 +48,12 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     (wp_OpPut : OpPut.spec (GF := GF) (hG := hG)) (wp_OpGet : OpGet.spec (GF := GF) (hG := hG))
     (wp_ModRevision : EtcdGrove.ModRevision.spec (GF := GF) (hG := hG))
     (wp_Compare : EtcdGrove.Compare.spec (GF := GF) (hG := hG))
-    (wp_kvFromTxnResponse : kvFromTxnResponse.spec (GF := GF) (hG := hG)) :
+    (wp_kvFromTxnResponse : kvFromTxnResponse.spec (GF := GF) (hG := hG))
+    (wp_Txn : EtcdGrove.kv.Txn.spec (GF := GF) (hG := hG))
+    (wp_If : EtcdGrove.txn.If.spec (GF := GF) (hG := hG))
+    (wp_Then : EtcdGrove.txn.Then.spec (GF := GF) (hG := hG))
+    (wp_Else : EtcdGrove.txn.Else.spec (GF := GF) (hG := hG))
+    (h_txn_Commit_st : etcd_txnlin.txn_Commit_st.law (GF := GF) (hG := hG)) :
     Client.OptimisticPut.spec (GF := GF) (hG := hG) := by
   intro _ _ kc ms V ci cd key vsl val rev opts Q hlease hk hv
   wp_start as ⟨#Hcl, #Hone, #Hregs, #Hctx, #Hce, #Hv, Hau⟩
@@ -123,7 +130,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
   ihave #Hwo := client.clientWriteOnce_api kc.Client' api _ $$ [Hkvf Hone]
   · iframe #
   wp_auto
-  wp_apply (client.v3.kv.wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
+  wp_apply (wp_Txn api (ms.map client.SrvAt.addr) ci cd) as %t ⟨%tp, %Ht, Hobj, #Hkt⟩
   · iframe #
   subst Ht
   ihave Htwo : client.txnWriteOnce tp (ms.map client.SrvAt.addr) $$ []
@@ -131,13 +138,13 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     iunfold client.writeOnce at Hwo
     iexact Hwo
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_If tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty csl
+  wp_apply (wp_If tp (ms.map client.SrvAt.addr) ci cd TxnBuild.empty csl
       [compareM (cmpKeyM .mod key) .eq (.num rev)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
     ipureintro; simp [TxnBuild.empty]
   (try wp_auto)
-  wp_apply (client.v3.txn.wp_Then_plain tp (ms.map client.SrvAt.addr) ci cd _ tsl
+  wp_apply ((EtcdGrove.txn.Then.spec_plain wp_Then) tp (ms.map client.SrvAt.addr) ci cd _ tsl
       [opPutModel key val [withLeaseM (W64 0)]] [.put key val (W64 0)]) $$ [Hobj] as Hobj
   · iframe #
     iframe Hobj
@@ -151,7 +158,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     · iExactEq Hobj
       simp [TxnModel.empty, clientTxn, linkv.cmpOf, compareM, cmpKeyM, clientTOp]
     (try wp_auto)
-    wp_apply (txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.put key val] [], true, true, false⟩
+    wp_apply (h_txn_Commit_st tp ms ci cd ⟨clientTxn [.mod key rev] [.put key val] [], true, true, false⟩
         Q [.mod key rev] [.put key val] [] rfl (by simp)
         (clientTxn_size rev rfl (Or.inl rfl) (Or.inl rfl) hk hv)) $$ [Hobj Hau Htwo]
       as %resp %err Hout
@@ -218,7 +225,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       rcases i with _ | i
       · cases Ho; cases Hm; iexact Hop2
       · simp at Ho
-    wp_apply (client.v3.txn.wp_Else_plain tp (ms.map client.SrvAt.addr) ci cd _ esl
+    wp_apply ((EtcdGrove.txn.Else.spec_plain wp_Else) tp (ms.map client.SrvAt.addr) ci cd _ esl
         [opGetModel key []] [.get (opGetModel key [])]) $$ [Hobj] as Hobj
     · iframe #
       iframe Hobj
@@ -229,7 +236,7 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
     · iExactEq Hobj
       simp [TxnModel.empty, clientTxn, linkv.cmpOf, compareM, cmpKeyM, clientTOp]
     (try wp_auto)
-    wp_apply (txn_Commit_st tp ms ci cd
+    wp_apply (h_txn_Commit_st tp ms ci cd
         ⟨clientTxn [.mod key rev] [.put key val] [.get key], true, true, true⟩
         Q [.mod key rev] [.put key val] [.get key] rfl (by simp)
         (clientTxn_size rev rfl (Or.inl rfl) (Or.inr rfl) hk hv)) $$ [Hobj Hau Htwo]

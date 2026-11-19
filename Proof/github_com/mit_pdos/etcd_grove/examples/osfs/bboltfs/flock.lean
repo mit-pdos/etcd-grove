@@ -41,9 +41,9 @@ theorem flock.wp_proof (wp_Fd : os.File.Fd.spec (GF := GF) (hG := hG))
     ihave Ht := lockTok_none (GF := GF) .flock fd d (by simp [OsFd.lk, hfree])
     first
     | wp_apply wp_Flock fd (W64 4 ||| W64 2) d (some true) true (by rfl) (fun _ => hfree)
-        $$ [Hinv Hfd Ht] as %e Hout
+        $$ [Hinv Hfd Ht] as %e ⟨-, Hout⟩
     | wp_apply wp_Flock fd (W64 4 ||| W64 1) d (some false) true (by rfl) (fun _ => hfree)
-        $$ [Hinv Hfd Ht] as %e Hout
+        $$ [Hinv Hfd Ht] as %e ⟨-, Hout⟩
     · iframe; isplitl []; iexact Hinv; iexact Ht
     unfold lockOut
     icases Hout with ⟨%d', Hfd, Ht, %hd⟩

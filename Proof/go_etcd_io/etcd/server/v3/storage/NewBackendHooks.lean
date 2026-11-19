@@ -40,6 +40,7 @@ theorem storage.NewBackendHooks.wp_proof : storage.NewBackendHooks.spec (GF := G
     iunfold csInv
     iexists null, false
     iframe confState confStateDirty
+    iunfold csOkN; ileft; ipureintro; rfl
   imodintro
   iapply HΦ
   iunfold isBackendHooks

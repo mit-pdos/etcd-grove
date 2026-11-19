@@ -38,6 +38,7 @@ public import Proof.runtime.Start
 public import Proof.runtime.Threads
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.etcdstart.FsExts
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lib.cluster3.SchedLit
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.TopLevelDefs
 
 @[expose] public section
 
@@ -53,21 +54,10 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
 attribute [local instance] etcdFsExts etcdFsExtsSemantics etcdFsExtsInterp etcdFsExts_hasIdIssue
-  etcdFsExts_hasFs
+  etcdFsExts_hasFs etcdFsSem etcdFsSemOk etcdFsNoErr
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
-
-/-- The program: the package's initialization, then `Main(k, clients, ops, sched)` with the schedule
-built as a slice literal. -/
-def txnlinfaultsNProgram [GoSemanticsFunctions] (k : Nat) (clients ops : w64)
-    (steps : List github_com.mit_pdos.etcd_grove.examples.lib.cluster3.Step) : Expr :=
-  github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.initialize' #() ;;
-  App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.etcd.txnlinfaultsN.Main))
-    (Val #(W64 (k : Int)))) (Val #clients)) (Val #ops)) (schedLit steps)
-
-/-- The read package's two metric names (partition's). -/
-def txnlinfaultsNNames : List GoString := [read.slowReadIndexName, read.readIndexFailedName]
 
 /-- **txnlinfaultsN is safe** (see the file header): for every member count `1 ≤ k ≤ 1000` and every
 schedule, every real execution of `txnlinfaultsNProgram k clients ops steps` from a fresh state with one

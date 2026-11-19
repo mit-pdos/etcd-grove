@@ -35,7 +35,7 @@ theorem rdTxK_halves (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (
     iintro ⟨%r, %c, %mv, %k, %Hc, #Hreg, #Hpk, #Hcore, Hv, Hex, Hw, Hpool⟩
     icases (ghostVar_split_half r.n.v q.half (c, TxX.rd v mv k)).1 $$ Hv with ⟨Hv1, Hv2⟩
     icases (ghostVar_split_half r.n.ex q ()).1 $$ Hex with ⟨He1, He2⟩
-    have hf := (rtxFrac_fractional (GF := GF) K.B tx r T v mv).fractional q.half q.half
+    have hf := (rtxFrac_fractional (GF := GF) K.B tx r T v mv k).fractional q.half q.half
     rw [Qp.half_add_half] at hf
     icases hf.1 $$ Hw with ⟨Hw1, Hw2⟩
     ihave Hp2 : (if src = .loan then threadPool.isThreadPool (poolN K.N) K.B.pool
@@ -69,7 +69,7 @@ theorem rdTxK_halves (K : BC) (tx : Loc) (src : PairSrc) (q : Qp) (T : TxView) (
     isplitr
     · iunfold reg; iexact Hreg
 
-    have hf := (rtxFrac_fractional (GF := GF) K.B tx r T v mv).fractional q.half q.half
+    have hf := (rtxFrac_fractional (GF := GF) K.B tx r T v mv k).fractional q.half q.half
     rw [Qp.half_add_half] at hf
     isplitl [Hv Hv2]
     · iapply (ghostVar_split_half r.n.v q.half (c, TxX.rd v mv k)).2; iframe

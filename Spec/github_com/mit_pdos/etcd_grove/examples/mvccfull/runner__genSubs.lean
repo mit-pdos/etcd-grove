@@ -34,6 +34,8 @@ abbrev runner.genSubs.spec : Prop :=
   ∀ (x : Loc) (ks : List GoString) (cfg : Config) (mp : Loc) (rv c : w64) (sl : GoSlice)
     (L : List w64) (nv : w64),
   0 ≤ sint.Z nv → sint.Z nv + 3 < 2 ^ 63 → sint.Z rv + 1 < 2 ^ 63 →
+  -- (S1b, 2026-11-17) the keys and the values' padding within a store's bound
+  (∀ k ∈ ks, k.length ≤ etcdKeyMax) → 0 ≤ sint.Z cfg.MaxVal' → sint.Z cfg.MaxVal' ≤ 2 ^ 20 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.mvccfull ∗ runnerKeys x ks ∗ runnerRangeMix x cfg ∗ mF go!"rev" mp ↦ rv ∗ mF go!"cmp" mp ↦ c ∗
       mF go!"leases" mp ↦ sl ∗ sl ↦* L ∗ rF go!"vals" x ↦ nv }}
     (App (x @!! go.GoType.PointerType runner.ty @!! go!"genSubs") (Val #mp))

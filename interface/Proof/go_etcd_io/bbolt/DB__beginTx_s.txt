@@ -45,6 +45,14 @@ theorem bbolt.txsInv.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] 
     (e_B : B = B✝) (p p✝ : bbolt.BFile) (e_p : p = p✝) (sp sp✝ : Loc) (e_sp : sp = sp✝) (t0 t0✝ :
     Nat) (e_t0 : t0 = t0✝) : bbolt.txsInv B p sp t0 = bbolt.txsInv B✝ p✝ sp✝ t0✝
 
+theorem bbolt.pmFile.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (B B✝ : bbolt.BNs)
+    (e_B : B = B✝) (db db✝ : Loc) (e_db : db = db✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (ms ms✝ :
+    bbolt.MapSt) (e_ms : ms = ms✝) : bbolt.pmFile B db dq ms = bbolt.pmFile B✝ db✝ dq✝ ms✝
+
+theorem bbolt.Pm.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (B B✝ : bbolt.BNs) (e_B
+    : B = B✝) (db db✝ : Loc) (e_db : db = db✝) (q q✝ : Qp) (e_q : q = q✝) : bbolt.Pm B db q =
+    bbolt.Pm B✝ db✝ q✝
+
 theorem bbolt.metaOsBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ :
     bbolt.BFile) (e_p : p = p✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C
     = C✝) : bbolt.metaOsBytes p dq C = bbolt.metaOsBytes p✝ dq✝ C✝

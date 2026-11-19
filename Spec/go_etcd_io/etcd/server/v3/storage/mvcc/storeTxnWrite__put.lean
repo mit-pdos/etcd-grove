@@ -34,7 +34,7 @@ abbrev mvcc.storeTxnWrite.put.spec : Prop :=
     (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
       mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ value ↦*□ v ∗
-      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+      ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ v.length ≤ etcdKeyMax⌝ ∗
       lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
       traceutil.ownTrace trace te }}
     (App (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"put")) (Val #key))
