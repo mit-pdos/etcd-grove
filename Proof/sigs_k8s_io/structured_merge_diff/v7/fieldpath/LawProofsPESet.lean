@@ -343,6 +343,17 @@ theorem peMap_hasCard {α : Type} (M : PEMap α) (xs : List (PE × α))
     have := (kvFind_none xs k).2 hk
     rw [this] at hs; exact absurd hs (by simp)
 
+/-- An index below a slice's length, as a `Nat`. -/
+theorem idx_lt (i n : w64) (len : Nat) (h : len = sint.nat n) (hi : 0 ≤ sint.Z i)
+    (hlt : sint.Z i < sint.Z n) :
+    (sint.Z i).toNat < len := by
+  subst h; simp only [sint.nat, sint.Z] at *; omega
+
+/-- An index at most a slice's length, as a `Nat`. -/
+theorem idx_le (i n : w64) (len : Nat) (h : len = sint.nat n) (hlt : sint.Z i ≤ sint.Z n) :
+    (sint.Z i).toNat ≤ len := by
+  subst h; simp only [sint.nat, sint.Z] at *; omega
+
 /-! ## The merge loops (`Union`, `Intersection`, `Difference`) -/
 
 theorem take_succ' {α : Type} (xs : List α) (i : Nat) (h : i < xs.length) :
