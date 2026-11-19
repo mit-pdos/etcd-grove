@@ -3,32 +3,37 @@
 ## START HERE
 
 **2026-11-19 (night 16; for etcd-grove-03). 03 accepted night 15 (questions.md "Step 5 night 15: decided"; findings
-in k8s-7g-trust.md §7). Closure pins done (`5acda50d4c`): realCheck in progress. build-n15 was killed while still
-queued (slots full; rerun it inside the next build).**
+in k8s-7g-trust.md §7). realCheck's foundations done, lean-checked (`-a`, not `--fast`): closure pins (`5acda50d4c`),
+RealModel + RealAgree (`5569275b5b`), RealAgreeReq (`b989613346`). NO build this night: df 36 GB (< 40) and slots
+full; targets for the next build: `/shared/tmp/k8s7g/targets-n16.txt` (night 15's + the new modules + call/mdelete;
+`k8s.etcd3.Check`/`Link` fail as expected until realCheck is wired).**
 
-- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`).
-- realCheck PLAN (decision 1; nothing below written yet unless marked):
-  1. `ClosPin` (DONE): `validatePin`/`tryUpdatePin`, stronger posts of validateFor/tryUpdateFor (validateD/tryUpdateD
-     are WP specs: no pure agreement otherwise). Callers mdelete/call patterns `⟨-, #H, -⟩` (call.lean not re-checked).
-  2. Pure: `isLinearization_map` (same calls/rets, `M.step s o.val = M'.step s o'.val`, same init); `decR L io` = view
-     of the first entry of `L : List (OpV × (Input × RResp))` with value `io`; `realM L init` (step via decR + realS).
-  3. Agreement: `respRep ro r1 ∗ respRep ro r2 ⊢ ⌜r1 = r2⌝` (errs not `.other`; deepRep induction, points-to
-     agree); `reqRep rq x1 ∗ reqRep rq x2 ∗ pins ⊢ ⌜∀ m r, realS.step m (x1,r) = realS.step m (x2,r)⌝` (list:
-     listOptsV projections; create: `op ↦□ createObjL`; delete: preAt agree + validatePin; update: tryUpdatePin
-     gives x1 = x2; get: key/MinRV/IgnoreNotFound).
+- Branch `k8s-7g`, pin f551a1b46 (`--packages=/shared/tmp/manifest-f55.json`). Build when df ≥ 40 GB:
+  `/shared/tmp/build-slot.sh lake --packages=/shared/tmp/manifest-f55.json build $(cat /shared/tmp/k8s7g/targets-n16.txt)`.
+- realCheck PLAN (decision 1). DONE:
+  1. `ClosPin`: `validatePin`/`tryUpdatePin` (stronger posts of validateFor/tryUpdateFor; callers mdelete/call drop
+     them, call.lean NOT re-checked: in the build). Form, recorded (questions.md night 16).
+  2. `RealModel`: `isLinearization_map`, `decR L io`, `realM L init`, `StepAgree L`, `realM_step` (on an entry, realM
+     steps as realS on the entry's own view, given StepAgree).
+  3. `RealAgree`: `deepRep_agree`, `errRep_agree`, `respRep_agree` (errs ≠ `.other`). `RealAgreeReq`: `reqPin r x`
+     (validatePin for Kind 1, tryUpdatePin for Kind 2), **`reqRep_agree`**: reqRep/reqPin of x1 and x2 on one
+     `Request` ⊢ ⌜∀ m out, rstepL x1 m out = rstepL x2 m out⌝. So StepAgree follows from the entries' reps.
+  NEXT, in order:
   4. ModelSpec `realMS L init`: rep k v m := ∃ mp, v = box mp ∧ itemsFitL m, modelAt mp m (persistent; Init's
      Clone gives modelOwn: `modelOwn_freeze` under wp_fupd); ioOk i o := ∃ rq ro x r, boxes ∧ decR L (i,o) = some
-     (x,r) ∧ opPre-like facts (Model.Step's premises; `(rexecL x m).1.err ≠ .other` needs a lemma from keyOkL /
-     prepareKeyM / listConsL, encOkL by scope) ∗ reqRep rq x ∗ respRep ro r. Step's spec: call Model.Step with the
-     decR view (no agreement needed there); agreement only for the M ↔ realS transfer.
-  5. Discharge gaps found: RunLin2.spec's post lacks `HistOk lops` (porcupine needs `HistOk pOps`): stronger post
-     (form; RunLin2's proof has it at its own porcupine call). k8setcd3S.ioOk must gain OpOk's request facts and
-     wInPre (decision 2), proved in Apply from kInOk. NewReplay needs `ReplayPre` (stepPre along the replay:
-     itemsFitL invariant + per-op facts): no lemma yet.
-  6. Go specs: failureFree, realRequest (reqRep + pins), realEvents, initialModel (modelAt (absR st0)),
-     toPorcupineModel (isModel (realMS L init)), orderByLinearization, realCheck; then Check (new proof).
-- Pitfalls (new): `#l` for a Loc is abstract (only `go.intoVal_inj`): pins index the closure body's value list
-  (`exprVals`), found by tracing the goal with `set_option pp.deepTerms true`.
+     (x,r) ∧ Model.Step's pure premises ∗ reqRep rq x ∗ respRep ro r. Step's spec calls Model.Step with the decR view.
+     Needs a lemma `(rexecL x m).1.err ≠ .other` from keyOkL / prepareKeyM / listConsL (encOkL by scope, cf.
+     RealBridge `encOkL_loop`) and `itemsFitL_exec` for the next state.
+  5. Discharge gaps: RunLin2.spec's post lacks `HistOk lops` (stronger post, form); k8setcd3S.ioOk must gain OpOk's
+     request facts and wInPre (decision 2), proved in Apply from kInOk; NewReplay's `ReplayPre` (stepPre along the
+     replay) has no lemma yet.
+  6. Go specs: failureFree, realRequest (reqRep + reqPin), realEvents, initialModel (modelAt (absR st0)),
+     toPorcupineModel (isModel (realMS L init)), orderByLinearization, realCheck; Check's new proof; gen-link.
+- Pitfalls (new): `#l` for a Loc is abstract (only `go.intoVal_inj`, needs `include sem in` and `(sem := sem)` at
+  use sites): pins index the closure body's value list (`exprVals`), found by tracing with `set_option
+  pp.deepTerms true`. `iframe` does not close a goal of two persistent hyps: `isplit; iexact`. `simp only [h]` with
+  `h : x.Kind' = W64 0` leaves `W64 0 = W64 4` undecided: use `rw [if_neg n, if_pos h]` (helpers
+  `rstepL_list_eq`/`rstepL_get_eq`/`rstepL_write_congr`). Struct-value injectivity: the `proj_eq` pattern (MDefs).
 
 ### Superseded (night 15)
 
