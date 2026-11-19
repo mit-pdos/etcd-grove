@@ -219,7 +219,40 @@ theorem realCheck.wp_proof
       rw [boxH_Lof_snoc _ _ _ _ Holen, github_com.anishathalye.porcupine.histOf, List.map_append, ← Hj.2.2]
       rfl
   · -- the loop's end
-    sorry
+    have hjl : sint.nat j = lops.length := by
+      have := Hj.2.1; have := Hl.1; have := Hl.2
+      have : ¬ sint.Z j < sint.Z sl.len := by first | exact Hif | exact dec_false Hif
+      word
+    rw [hjl, Uj_full lops vs Hvs.1] at Hj
+    rw [hjl, Uj_full lops vs Hvs.1]
+    ihave %Holen := BigSepL2.bigSepL2_length $$ Hor
+    obtain ⟨⟨π2, hπ2⟩, hfit, hstepU, hrep⟩ :=
+      realCheck_pure (sem := sem) (package_sem := package_sem) g0 lops vs Hvs hlin hrun0 hn
+    obtain ⟨hhps, hpsl⟩ := histOk_ps lops vs Hvs.1 hhist os ps Holen Hj.2.2
+    ihave %hag := stepAgree_of (sem := sem) (package_sem := package_sem) os _ hstepU $$ Hor
+    wp_apply wp_initialModel s0 g0.st (storeKeys_nodup g0.st hrun0.1.1) $$ [$Hs0] as %mp Hm
+    · solve_pkg_init
+    ihave Hmf := modelOwn_freeze (GF := GF) mp (absR g0.st) $$ Hm
+    imod Hmf with #Hm
+    (try wp_auto)
+    have hLlen := Lof_length os _ Holen
+    have hLval : ∀ (k : Nat) (e : github_com.anishathalye.porcupine.OpV × (Input × RResp))
+        (u : Op (Input × RResp)), (Lof os (fmapH unaryOf (histR lops vs)))[k]? = some e →
+        (fmapH unaryOf (histR lops vs))[k]? = some u → e.2 = u.val := by
+      intro k e u he hu
+      obtain ⟨c, u', -, hu', rfl⟩ := Lof_getElem? os _ k e he
+      rw [hu] at hu'; cases hu'; rfl
+    ihave %Hpsl := ownSlice_len $$ Hps
+    wp_if_destruct
+    · -- some unary operations: porcupine
+      wp_apply wp_toPorcupineModel mp (absR g0.st) (Lof os (fmapH unaryOf (histR lops vs))) hfit $$ [$Hm] as %m #Hmodel
+      ihave #Hio2 := realMS_opsIoOk (sem := sem) (package_sem := package_sem) (absR g0.st) os _ ps Hj.2.2
+        hstepU $$ Hor
+      wp_apply wp_CheckOperationsVerbose _ (realMS (Lof os (fmapH unaryOf (histR lops vs))) (absR g0.st)) m
+        psl ps (DFrac.own 1) dur $$ [$Hps] as %r %info ⟨%Hr, Hinfo⟩
+      · iframe #; ipureintro; exact hhps
+      sorry
+    · sorry
 
 end proof
 
