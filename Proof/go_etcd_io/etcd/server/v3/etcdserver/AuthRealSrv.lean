@@ -15,7 +15,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthRealNew
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthRealRd
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
+
 
 @[expose] public section
 

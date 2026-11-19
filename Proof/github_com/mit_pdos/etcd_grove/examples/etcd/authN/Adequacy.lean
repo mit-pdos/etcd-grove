@@ -20,8 +20,8 @@ the program's `2k` addresses and `k` data directories (`authN/Dir.lean`), from `
 
 **Its hypotheses** are auth3's at `k` members: putgetN's `BootFacts ids ps ctxs boot`, the size facts,
 the program start's names, addresses and data directories unclaimed, `ETCD_VERIFY` off, the execution's
-length, the trust-boundary contracts `etcd_authN.premises` at every ghost-state instance, and authkv's
-**`hD22`** (D22's `authSchemaSrv`, trusted text as a named hypothesis: `auth/Adequacy.lean`'s header).
+length and the trust-boundary contracts `etcd_authN.premises` at every ghost-state instance (authkv's
+`hD22`, D22's `authSchemaSrv`, is proved since auth-schema-srv A7: `auth/Adequacy.lean`'s header).
 
 **Over Linux files** (2026-11-16, the user's decision (A) on `wal-lean`, applied on the merge of `lean`):
 the program's extensions are `[idIssueExt, fsExt]` (`lib/etcdstart/FsExts.lean`: the file extension's own
@@ -79,8 +79,6 @@ theorem etcd_authN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (k : Nat) (hk1 : 1 ≤ k) (hk : k ≤ 1000)
     (ids : List w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hlen : ids.length = k) (Hbf : etcd_putgetN.BootFacts ids ps ctxs boot)
@@ -126,7 +124,7 @@ theorem etcd_authN_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Hms, -⟩
   unfold etcd_authN.startAddrs
   rw [BigSepL.bigSepL_map]
-  have hM := etcd_authN.wp_Main (GF := putgetGF) (hD22 hG) k n ids ps ctxs boot hk1 hk Hlen Hbf
+  have hM := etcd_authN.wp_Main (GF := putgetGF) k n ids ps ctxs boot hk1 hk Hlen Hbf
     (by rw [HT]; word) (srvLevels_of_max HT) (by rw [HN]; omega) (by rw [HN]; omega)
     (by unfold bootWB backend.wbInit; omega) Haf Hbuq Hrf Hdbo inferInstance
     EtcdGrove.rpctypesEtcdError_asTarget

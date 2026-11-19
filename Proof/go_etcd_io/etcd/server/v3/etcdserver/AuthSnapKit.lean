@@ -106,6 +106,83 @@ instance authSnapKitM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF)
     Persistent (authSnapKitM (GF := GF) M stl RD) := by
   cases M <;> unfold authSnapKitM <;> infer_instance
 
+/-- **`authSchemaSrv`, restated** (the premise of `NewServer.specM true`; one trusted premise for
+boot and every snapshot): for any auth names, given what `NewAuthStore`'s axiom takes of the
+server's backend, its open share `authOpenQ`, the batch lock's share of the history at the boot
+state and **half the published index's authority** (decision 2), schema's auth backend `abl` over
+`d` meets, for fresh names `γc`: the guarded read contract at a reader resource `R`, with the whole
+currency; the write contract at every schema auth backend on `d` at its frozen hook, at the write
+token `authWTok γc`; the boot write contract (with the hook `P f`) and `CreateAuthBuckets` at the boot
+write token `T_b := authWTok γc ∗ plHook d.γB func.nil`, which it gives back; the publication quarter
+and the lifecycle (its realization keeping the open share and a quarter of the published index's
+authority); `authRdN - 1` copies of `R` (tickets, backed by the store's share of the backend's reader
+slots, `authRdSlots`, taken; N4; A6.1b's option (b), decided by etcd-grove-03 2026-11-17: one slot fewer
+than the share, which the realization keeps for the write token's reads, `authBackendReads`, which take
+no ticket); the constructor's critical section, whose `Post`
+gives back the open share; and the snapshot clause at `R`. It takes the client's idle
+half of the (empty) auth buckets (decision 1: their write authority stays with the realization; the
+client keeps the others') and the succession right (one live backend).
+
+**Write-back** (auth-schema-fix F1, decided by etcd-grove-81, 2026-11-12): the realization owns no
+backend write-back tokens and makes none; each write spends the server's (`Wb := backend.wbTok d.γB`,
+paid from the apply loop's receipts and, at boot, `NewServer`'s): a batch `Unlock` two (schema's
+`authBatchTx.Unlock` is the backend batch's `Unlock` then `Commit`), `ForceCommit` one,
+`CreateAuthBuckets` one, `GetAllRoles` two (a batch). Until F1 the premise handed it a bag of two
+tokens (`ownToks d.γB.wb 2`) for every batch it would ever commit.
+**The boot write token carries the unset hook** (auth-schema-srv A6's fix (A), decided by etcd-grove-03,
+2026-11-18): until then the boot write contract was at `authWTok γc` and `Post` gave back the hook
+(`plHook d.γB func.nil`), after which the caller may set the hook; the contract, persistent, then
+promised a `Lock` (schema's `LockInsideApply`, which runs the hook) at `f` with no share of the hook
+left: false for `f = nil` (a client sets the hook to a panicking function and calls the boot `Lock`
+with a trivial contract; `notes/auth-schema-srv-refuted.md`, the third refutation). Now the boot
+contract serves only the holder of the unset hook, which nobody can set meanwhile.
+**The lend** (`authBkLend`, F2): a read-only observation of the auth buckets (an abstract `RL` with a
+law against the batch lock's `rbOwn`), with no write authority; until F2 it lent the buckets'
+`rbPart`, through which a client could write them.
+**The write contract's text** (`auth.authBatchTxLkR`): `GetAllRoles` lists only `auth.roleListed`
+names (F3: Go's range `[0x00, 0xff)`), and all of them only when fewer than `2 ^ 63 - 1` are listed (A6 (R-c),
+2026-11-19: the range's implicit limit); `UnsafePutUser` takes valid UTF-8 roles (F4: a proto3
+`string`); both puts take a non-empty name of a message without unknown fields (the axiom
+re-review's m1 and M1, 2026-11-13).
+
+Refutations fixed against earlier texts: S0's four (`notes/auth-schema-srv-refuted.md`, F1-F4, the
+four above); before them, five: (1) the latest clause took `T`; (2) the published index's authority
+was shared with the realization, publication needed `T`; (3) no `rbOwn` of the auth buckets came
+back; (4) `Cu`/`T` stood for an open share the realization keeps until both are surrendered; (5) `T`
+and `Cu` were functions of `γc`, which `beP` and the apply thread share. Review rounds A1/A2: the
+auth buckets taken idle (no pending write: the readers see `r`); the succession right taken (one
+live backend). -/
+def authSchemaSrv : IProp GF :=
+  iprop(□ ∀ (γa : auth.AuthNames) (lg abl : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
+      (r : GMap GoString backend.BktData),
+    ⌜lg ≠ null⌝ -∗
+    ⌜(r.lookup go!"auth").getD ∅ = ∅ ∧ (r.lookup go!"authUsers").getD ∅ = ∅ ∧
+      (r.lookup go!"authRoles").getD ∅ = ∅⌝ -∗
+    ablOn abl d.be lg -∗
+    ⌜d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI⌝ -∗
+    backend.isBackend d.γB d.P W Pk d.be -∗ backend.bOpen d.γB qo -∗
+    backend.bOpen d.γB authOpenQ -∗ authRdSlots d -∗
+    backend.plHook d.γB func.nil -∗ backend.rbOwnIn d.γB authBkts r -∗
+    auth.authSucc γa -∗
+    auth.authLockI (.on γa) auth.bootState -∗ auth.authPubQ γa (1 : Qp).half 0 -∗
+    |={⊤}=> ∃ (R P : IProp GF) (f : GoFunc) (Pre Q Post : IProp GF) (γc : auth.AuthBkNames),
+      auth.authBackendOk (authBkIface abl) R (.on γa) γc ∗ auth.authCur γc 1 ∗
+      auth.authWBackendOkR (authBkIface abl) (.on γa) P f
+        iprop(auth.authWTok γc ∗ backend.plHook d.γB func.nil) (backend.wbTok d.γB) ∗
+      authWAtHook γa d γc ∗ authBkLend γa γc d ∗
+      □ ({{ (auth.authWTok γc ∗ backend.plHook d.γB func.nil) ∗ backend.wbTok d.γB }} (App (Val #(methods
+          (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
+          go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); auth.authWTok γc ∗ backend.plHook d.γB func.nil }}) ∗
+      (auth.authWTok γc ∗ backend.plHook d.γB func.nil) ∗ auth.authPubTok γa ∗
+      auth.authBkLife γa γc (backend.bOpen d.γB authOpenQ) ∗
+      srvApi.csContractA P f Pre Q Post ∗
+      ([∗list] _x ∈ List.replicate (backend.authRdN - 1) (), R) ∗
+      (Post -∗ backend.bOpen d.γB qo) ∗
+      authSchemaSnap γa R)
+
+instance authSchemaSrv_persistent : Persistent (authSchemaSrv (GF := GF)) := by
+  unfold authSchemaSrv; infer_instance
+
 end defs
 
 end EtcdGrove

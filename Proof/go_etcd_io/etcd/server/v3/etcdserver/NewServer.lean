@@ -989,8 +989,13 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       #HstL, #HstLb, #HstPub, #HbBk, HAres, HcapM, #HAb, #HauR, #HauC, #HauSK, #Hbc⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa HrbA HkIn Hzlg
+    -- (auth-schema-srv A7) the realization's package initialization
+    isplitr
+    · iPkgInit
+    isplitr
+    · iPkgInit
     ipureintro
-    refine ⟨Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
+    refine ⟨by omega, Htpnn, Haufit, Hab, ⟨?_, ?_, ?_⟩, HauB, HauUB, HauRB⟩
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact Or.inl (hDl go!"auth" (by decide))
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)

@@ -10,8 +10,8 @@ plan"). Lean-first (no Rocq counterpart).
 * The program's auth state and verdicts: `Model.lean`.
 
 These premises are those of the server's start as watchkv states them; `Main`'s proof (`Main.lean`,
-done 2026-10-31) needed no other, and the auth-enabled server's start takes D22's `authSchemaSrv`
-as its own named premise (`Results.lean`'s `authkv_startServer`, `Adequacy.lean`).
+done 2026-10-31) needed no other (the auth-enabled server's start took D22's `authSchemaSrv` as its own named
+premise until auth-schema-srv A7, which proved it).
 -/
 module
 

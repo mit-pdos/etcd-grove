@@ -36,13 +36,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.etcd.auth3.Assumptions]
 
-/-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_auth3.wp_Main`), at D22's named
-hypothesis. -/
+/-- **`Main` does not panic** (`MainLinked.lean`'s `etcd_auth3.wp_Main`). -/
 theorem auth3_Main [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [EtcdGrove.ErrorStringLeaf]
-    (hD22 : ⊢ authSchemaSrv (GF := GF)) :
+    [EtcdGrove.ErrorStringLeaf] :
     etcd_auth3.Main.spec (GF := GF) (hG := hG) :=
-  etcd_auth3.wp_Main hD22
+  etcd_auth3.wp_Main
 
 end results
 
@@ -93,8 +91,6 @@ theorem etcd_auth3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    -- (D22) the auth store's backend with auth on: trusted text, a named hypothesis
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs boot)
     (Haf : authRecordsFit)
@@ -116,7 +112,7 @@ theorem etcd_auth3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
-  etcd_auth3_adequate Hctx Hcec hD22 id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
+  etcd_auth3_adequate Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs
     HEnv n Hprem σ g Hfs Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn
 
 /-- **`etcd_auth3_safe` as a robustness statement** (`Robustness.Robust`,
@@ -131,7 +127,6 @@ theorem etcd_auth3_robust
     [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (hD22 : ∀ hG : HeapGS .hasLC putgetGF, ⊢ authSchemaSrv (GF := putgetGF) (hG := heapAt hG lctx))
     (id₁ id₂ id₃ : w64) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (Hbf : etcd_putget3.BootFacts id₁ id₂ id₃ ps ctxs boot) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hrf : grpcRepliesFit) (Hdbo : storage.diskOk)
@@ -145,7 +140,7 @@ theorem etcd_auth3_robust
     Robustness.Robust [] [(auth3Program, σ)] g (2 ^ 28 - 1) :=
   Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
     (etcd_auth3_safe
-      Hctx Hcec hD22 id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n
+      Hctx Hcec id₁ id₂ id₃ ps ctxs boot Hbf Haf Hbuq Hrf Hdbo HNs HAs HDs HEnv n
       (Hprem n (by omega)) σ g Hfs hf.1 hf.2.1 hf.2.2 κs t2 σ2 Hsteps (by omega)).2
 
 end adequacy
