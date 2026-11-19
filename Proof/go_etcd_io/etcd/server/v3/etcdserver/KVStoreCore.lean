@@ -121,7 +121,7 @@ theorem reach_prefix (σ : MvccState) (h : MvccReachable σ) :
     mvccStart.log <+: σ.log ∧ σ.log <+: σ.notifiedLog := by
   induction h with
   | start => exact ⟨List.prefix_refl _, by simp [MvccState.notifiedLog, mvccStart]⟩
-  | notify σ pend _ _ _ ih =>
+  | notify σ pend _ _ _ _ ih =>
     refine ⟨by simpa [MvccState.notify] using ih.1, ?_⟩
     rw [MvccState.notify_notifiedLog]
     simp only [MvccState.notify]
@@ -146,7 +146,7 @@ theorem reach_len_logCh (σ : MvccState) (h : MvccReachable σ) :
     σ.log.length ≤ mvcc.logCh σ.log + 2 ∧ ∀ p, σ.pending = some p → p ≠ [] := by
   induction h with
   | start => exact ⟨by simp [mvccStart], fun p hp => by simp [mvccStart] at hp⟩
-  | notify σ pend _ _ _ ih =>
+  | notify σ pend _ _ _ _ ih =>
     refine ⟨by simpa [MvccState.notify] using ih.1, fun p hp => ?_⟩
     simp only [MvccState.notify] at hp
     split at hp

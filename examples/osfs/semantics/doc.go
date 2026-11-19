@@ -70,6 +70,15 @@
 //	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit (unchanged)
 //	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
 //
+// Mappings:
+//
+//	map_mmap_no_room.go           no room in (0, maxAddr]: mmap      MmapRoom, MmapStall, FsStep, FsStepV
+//	                              does not return, as an allocation  (Specs.lean: wp_osMmapG)
+//	                              (pending review, 2026-11-17)
+//	map_madvise.go                madvise (a paging hint): a step,   Madvise (IsFsStep), unix.lean: Madvise.impl
+//	                              no change, any errno               (Madvise.lean: wp_osMadvise)
+//	                              (pending review, 2026-11-17)
+//
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
 // models_test.go holds their measurements, run on C by run-models-on-c.sh):
 //
@@ -95,4 +104,10 @@
 //	premise_p1.go                 no torn meta validates (minibolt)  P1 (bboltfs/BootP1.lean), valAt
 //	premise_no_io_err.go          no I/O error on chosen files       NoIoErr, IoSet, IoCovers, ErrnoZero
 //	                              (assumed; user, 2026-11-15)        (NoIoErr.lean: noIoErr_keeps)
+//	premise_no_map_lock_err.go    no flock/mmap/munmap/madvise error NoMapLockErr, MapLockCovers, MapLockOk
+//	                              on chosen files (mmap: a mapping,  (NoMapLockErr.lean: noMapLockErr_keeps,
+//	                              or no return with no room left);   isFsStep_open_eintr)
+//	                              open with no free fd does not
+//	                              return (EINTR, retried)
+//	                              (assumed; pending review)
 package semantics

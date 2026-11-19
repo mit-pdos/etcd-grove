@@ -537,7 +537,7 @@ theorem reach_pending_ne_nil : ∀ σ : MvccState, MvccReachable σ → σ.pendi
   intro σ h
   induction h with
   | start => simp [mvccStart]
-  | notify σ pend _ _ _ _ =>
+  | notify σ pend _ _ _ _ _ =>
     simp only [MvccState.notify]
     split <;> simp_all
   | commit σ _ _ => simp [MvccState.commitPending]

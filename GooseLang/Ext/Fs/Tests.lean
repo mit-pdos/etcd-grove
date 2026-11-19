@@ -786,6 +786,8 @@ theorem cacheOk_step [GooseExts] [GoGlobalContext] {op : String} {v : val} {st s
     rcases lockStep_cases hl with rfl | ⟨x, rfl⟩
     · exact h
     · exact cacheOk_setProc h _ rfl
+  next => -- Madvise
+    obtain ⟨-, -, -, -, -, -, rfl, -⟩ := hs; exact h
   next => exact hs.elim
 
 /-- The invariant holds at the start: every file is on disk, nothing is in flight. -/

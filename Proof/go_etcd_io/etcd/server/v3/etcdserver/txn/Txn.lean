@@ -38,6 +38,19 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.txn.Assumptions]
 
 
+/-- (S1b) A get puts nothing. -/
+theorem txn.putsLe_of_get {N : Nat} (op : TxnOp) (h : opIsGet op = true) : op.putsLe N := by
+  cases op <;> simp_all [opIsGet, TxnOp.putsLe]
+
+/-- (S1b) A transaction's chosen branch puts within the bound when the transaction does. -/
+theorem txn.putsLe_branch {N : Nat} (t : TxnModel) (h : t.putsLe N) (b : Bool) :
+    ∀ op ∈ t.branch b, op.putsLe N := by
+  intro op hop
+  unfold TxnModel.branch at hop
+  split at hop
+  · exact (TxnOp.opsPutsLe_iff _).1 h.1 op hop
+  · exact (TxnOp.opsPutsLe_iff _).1 h.2 op hop
+
 /-- A branch of gets meets the run's premises when each get does at the state. -/
 theorem txn.opsOk_gets (w : Bool) (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) :
     ∀ ops : List TxnOp, (∀ op ∈ ops, opIsGet op = true) →
@@ -183,7 +196,7 @@ theorem txn.Txn_sole
   wp_auto
   wp_apply (hStep trace false _ _) $$ [$Htrc] as Htrc
   · iapply traceutil.ownFields_nil
-  have hoks := opsOk_strong _ _ _ _ Hpre Hign
+  have hoks := opsOk_strong _ _ _ _ Hpre.1 Hign
   ihave #Hnd' : mvcc.neverDone { cd with Values := vs } $$ []
   · iunfold mvcc.neverDone at Hnd; iunfold mvcc.neverDone; iexact Hnd
   cases isW
@@ -201,7 +214,8 @@ theorem txn.Txn_sole
     · isplitl []; · itrivial
       isplitl []; · ileft; itrivial
       ipureintro
-      exact ⟨⟨Hreachr, (by simp), hoks, Or.inl trivial, fun _ => hro, fun h => absurd h (by simp)⟩, trivial⟩
+      exact ⟨⟨Hreachr, (by simp), hoks, Or.inl trivial, fun _ => hro, fun h => absurd h (by simp),
+        txn.putsLe_branch t Hpre.2 _⟩, trivial⟩
     icases Hres with (⟨⟨%Herr, %Hch⟩, Hro, #Hresp, Hhdr, -, -⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -276,7 +290,8 @@ theorem txn.Txn_sole
     · isplitl [Hown]
       · iright; iexact Hown
       ipureintro
-      exact ⟨⟨Hreachw.1, fun _ => Hreachw.2, hoks, Or.inr Hwinp, fun h => h.elim, fun h => absurd h (by simp)⟩, trivial⟩
+      exact ⟨⟨Hreachw.1, fun _ => Hreachw.2, hoks, Or.inr Hwinp, fun h => h.elim, fun h => absurd h (by simp),
+        txn.putsLe_branch t Hpre.2 _⟩, trivial⟩
     icases Hres with (⟨⟨%Herr, -⟩, Htw, #Hresp, Hhdr, #Hk2, Hown⟩ | ⟨%Hc, -⟩)
     rotate_left
     · cases Hc
@@ -450,7 +465,8 @@ theorem txn.Txn_read
     isplitl []; · ileft; itrivial
     isplitr
     · ipureintro
-      exact ⟨Hreachr, (by simp), hoks, Or.inl trivial, fun _ => hro, fun _ => trivial⟩
+      exact ⟨Hreachr, (by simp), hoks, Or.inl trivial, fun _ => hro, fun _ => trivial,
+        fun op hop => txn.putsLe_of_get op (readonly_branch t hro _ op hop)⟩
     iexact Hlg0
   -- the read transaction ends; the response's fields for the trace
   ihave ⟨Hro, #Hshell, Hout⟩ : (mvcc.api.mvccTxn (interface.mkOk wty wv) γ trace (.read σr) ∗

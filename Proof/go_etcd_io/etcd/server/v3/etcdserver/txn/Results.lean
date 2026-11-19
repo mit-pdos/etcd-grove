@@ -218,7 +218,7 @@ theorem txn_runTxn (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (
         traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗
         zapLoggerOrNil lg ∗ leasesKnown L (mvcc.stateAfter log) ∗
         lease.lessorUser (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
-        ⌜TxnPreA log t⌝ ∗
+        ⌜TxnPreA log t ∧ t.putsLe etcdKeyMax⌝ ∗
         csA P f Pre Q Post ∗
         readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
         (if txnReadonly t then iprop(True)

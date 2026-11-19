@@ -299,7 +299,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
-    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗ alarmBeOn al d'.be ∗
+    backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗ alarmBeOn al d'.be ∗
     -- (2026-11-01, J8a) the old KV's reader resource of the auth store (`NewUberApplier` takes none)
     E.RD ∗
     (∀ E1 : apply.AEnv GF, apply.backendOptsOk E1 opts' -∗
@@ -344,7 +344,7 @@ def srvSnapAppliedG (on : Bool) (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) 
     -- apply thread's `mvccOpen` (`srvApplyKVM`'s `cmpOwn`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (srvOpenQ E'.authMode) ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1) ∗
-    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
+    backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ mvcc.api.isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝))
 

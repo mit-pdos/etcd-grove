@@ -253,22 +253,6 @@ theorem raft_tracecheck_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ e2, e2 ∈ t2 → ¬ UnrecoveredPanic e2) :=
   raft_tracecheck_safe_of harnessOpen boot Hbf Hprem σ g Hlctx Hinit Hthreads n Hn κs t2 σ2 Hsteps
 
-/-- **`raft_tracecheck_safe` as a robustness statement** (`Robustness.Robust`,
-`Robustness/Statement.lean`): the program alone on one machine that never crashes,
-a fresh Go process (`Robust`'s premise), under `raft_tracecheck_safe`'s other hypotheses: in every
-execution of fewer than `2 ^ 31 - 1` steps no thread is stuck and none has an unrecovered panic. -/
-theorem raft_tracecheck_robust
-    [lctx : GoLocalContext] [sem : go.Semantics]
-    [package_sem : github_com.mit_pdos.etcd_grove.examples.raft.tracecheck.Assumptions]
-    [hLog : log.NewModel] (boot : List LogEntry) (Hbf : tracecheck.BootLogFacts boot)
-    (Hprem : ∀ hG : HeapGS .hasLC tcGF,
-      ⊢ tracecheck.premises (GF := tcGF) (hG := heapWith hG lctx) boot)
-    (σ : state) (g : GlobalState) :
-    Robustness.Robust [] [(tracecheckProgram, σ)] g (2 ^ 31 - 1) :=
-  Robustness.Robust.of_single fun hf n κs t2 σ2 hn Hsteps =>
-    (raft_tracecheck_safe
-      boot Hbf Hprem σ g hf.1 hf.2.1 hf.2.2 n (by omega) κs t2 σ2 Hsteps).2
-
 end closed
 
 #print axioms tracecheck_Events_traceAccepts

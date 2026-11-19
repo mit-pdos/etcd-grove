@@ -54,7 +54,7 @@ abbrev txn.executeTxn.spec : Prop :=
         txn.OpsOk false s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops ∧
         (txn.MTxn.isRead k = true ∨ txn.WinOps w s0 (W64 (k.state.log.length : Int)) (txn.mstate k) ops) ∧
         (txn.MTxn.isRead k = true → ∀ op ∈ ops, txn.opIsGet op = true) ∧
-        (nd = false → txn.MTxn.isRead k = true)⌝ }}
+        (nd = false → txn.MTxn.isRead k = true) ∧ (∀ op ∈ ops, op.putsLe etcdKeyMax)⌝ }}
     (App (App (App (App (App (App (App (Val (@! txn.executeTxn)) (Val #(GoInterface.ok ctx)))
       (Val #lg)) (Val #tw)) (Val #rt)) (Val #pl)) (Val #tresp)) (Val #skip))
   {{ (n : w64) (err : GoInterface), RET (PairV #n #err); traceutil.ownTrace trace te ∗

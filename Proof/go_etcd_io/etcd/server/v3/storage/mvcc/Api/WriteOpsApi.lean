@@ -46,7 +46,7 @@ theorem metricsTxnWrite_PutT (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG 
       (L : List w64) (crev : Int) (te : Bool) (w : Option lease.LWin),
     {{ pkgInit ∗ isTxnWriteT mw s γ trace ilog pend puts deletes putSize crev iprop(True) false
           iprop(True) ∗ traceutil.ownTrace trace te ∗ key ↦*□ k ∗ value ↦*□ v ∗
-        ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+        ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ v.length ≤ etcdKeyMax⌝ ∗
         lease.leaseOwnW γ.leases L (pendItems ilog pend) w ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
         ⌜lease.winMove w (pendItems ilog pend) (pendItems ilog (pend ++ [.put k v leaseID]))⌝ }}
       (App (App (App (Val (mw @!! go.GoType.PointerType metricsTxnWrite.ty @!! go!"Put")) (Val #key))
@@ -57,13 +57,13 @@ theorem metricsTxnWrite_PutT (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG 
         traceutil.ownTrace trace te ∗
         lease.leaseOwnW γ.leases L (pendItems ilog (pend ++ [.put k v leaseID])) w }} := by
   intro trace mw s γ ilog pend puts deletes putSize key value k v leaseID L crev te w
-  wp_start as ⟨Htx, Hte, #Hkey, #Hval, %Hklen, Hown, %Hlease, %Hwm⟩
+  wp_start as ⟨Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, %Hwm⟩
   iunfold isTxnWriteT at Htx
   iNamed Htx
   (try wp_auto)
   wp_apply (hPut trace tw s γ ilog pend key value k v leaseID L te crev iprop(True) w)
     $$ [$Htw $Hkey $Hval $Hown $Hte] as ⟨Htw, Hown, Hte⟩
-  · ipureintro; exact ⟨Hklen, Hlease, Hwm⟩
+  · ipureintro; exact ⟨Hklen, Hkvb, Hlease, Hwm⟩
   (try wp_auto)
   iapply HΦ
   iframe Hown Hte
@@ -75,7 +75,7 @@ theorem metricsTxnWrite_PutT (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG 
 theorem metricsTxnWrite.Put.wp_api (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF) (hG := hG)) :
     metricsTxnWrite.Put.spec (GF := GF) := by
   intro t0 (γ : mvcc.StoreNames) trace te σ pend key value k vv leaseID L w
-  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, Hown, %Hlease, %Hwm⟩ HΦ
+  iintro %Φ ⟨#Hpkg, Htx, Hte, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, %Hwm⟩ HΦ
   iunfold mvccTxn at Htx
   simp only [mvccTxnI]
   icases Htx with ⟨%mw, %s, %p, %puts, %deletes, %putSize, %Hk0, Htx, Hback, #Hfree, Hwrap⟩
@@ -87,7 +87,7 @@ theorem metricsTxnWrite.Put.wp_api (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF
   iapply (metricsTxnWrite_PutT hPut trace t0 s (γ.withPhys p) σ.log pend puts deletes putSize key value
       k vv leaseID L σ.crev te w) $$ [Htx Hte Hown] [HΦ Hback]
   · iframe Hpkg Htx Hte Hkey Hval Hown
-    ipureintro; exact ⟨Hklen, Hlease, Hwm⟩
+    ipureintro; exact ⟨Hklen, Hkvb, Hlease, Hwm⟩
   inext
   iintro ⟨Htx, Hte, Hown⟩
   iapply HΦ
@@ -97,7 +97,7 @@ theorem metricsTxnWrite.Put.wp_api (hPut : mvcc.storeTxnWrite.Put.spec (GF := GF
   iexists t0, s, p, (puts + W64 1), deletes, (putSize + (key.len + value.len))
   iframe Htx Hback Hfree
   isplitr
-  · ipureintro; exact Hk0
+  · ipureintro; exact ⟨Hk0.1, Hk0.2.1, Hk0.2.2.append_put leaseID Hkvb.1 Hkvb.2⟩
   iunfold wrWrap; ileft; ipureintro; exact ⟨rfl, Hwq⟩
 
 /-- **`Txn.DeleteRange.contract` at `*metricsTxnWrite`.** -/
@@ -117,7 +117,7 @@ theorem metricsTxnWrite.DeleteRange.wp_api
   iapply (hDel trace t0 s (γ.withPhys p) σ.log pend puts deletes putSize key endk k e L σ.crev
       iprop(True) iprop(True) w) $$ [Htx Hown] [HΦ Hback]
   · iframe Hpkg Htx Hkey Hend Hown
-    ipureintro; exact winMove_dels_of_drops Hwm
+    ipureintro; exact ⟨winMove_dels_of_drops Hwm, (reach_putsLe σ Hk0.2.1).1, Hk0.2.2⟩
   inext
   iintro %n %rev ⟨Htx, Hown, %Hnr⟩
   ihave %Hsm := isTxnWriteT_small _ _ _ _ _ _ _ _ _ _ _ _ _ $$ [$Htx]
@@ -129,7 +129,7 @@ theorem metricsTxnWrite.DeleteRange.wp_api
     iexists t0, s, p, puts, (deletes + W64 1), putSize
     iframe Htx Hback Hfree
     isplitr
-    · ipureintro; exact Hk0
+    · ipureintro; exact ⟨Hk0.1, Hk0.2.1, Hk0.2.2.append_dels _⟩
     iunfold wrWrap; ileft; ipureintro; exact ⟨rfl, Hwq⟩
   ipureintro
   exact ⟨by rw [List.length_map]; exact Hnr, Hsm.1, Hsm.2.2.1⟩

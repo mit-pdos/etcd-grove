@@ -42,6 +42,8 @@ public import Proof.go_etcd_io.etcd.pkg.v3.notify.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.BackendBridge
+public import Proof.go_etcd_io.etcd.server.v3.storage.InvHooks
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVKeys
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.CindexBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVStoreCore
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.WinTieApply
@@ -129,14 +131,18 @@ theorem entryOk_of_false (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel) 
 
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
-small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
+small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`; S1b, 2026-11-17:
+with the request's puts short, `entryPutsOk`, the KV invariant's). -/
 theorem entryOk_of_shape [GooseExts] (lm : lease.Mode) (x : apply.ApplyKV) (m : EntryModel)
     (hs : entryShape lm m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk lm x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) (hk : entryPutsOk m) : entryOk lm x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
-  · exact Or.inr ⟨rq, hdec, hid, hsh.2 x.log (rqSmall_of_small x.log rq hl hc), hsh.1 _⟩
+  · by_cases hdn : m.data = []
+    · exact Or.inl hdn
+    exact Or.inr ⟨rq, hdec, hid,
+      hsh.2 x.log (rqSmall_of_small x.log rq hl hc (hk ht hdn rq hdec)), hsh.1 _⟩
 
 /-- **What `applyEntryNormal` does to the KV** with the normal entry `m` (`v3`: above `ci`): no
 data, nothing (`skipped`); else its decoded request through `apply.Apply` (`applyStep`). -/
@@ -431,23 +437,43 @@ theorem lastTermIs_append {A es : List EntryModel} {t t' : w64} (h1 : lastTermIs
 -- (`apply/InvUber.lean`), the same definition, which `apply.Apply`'s spec returns.
 
 /-- (D19i part 1) `ep.confState`: `nil`, or a `*pb.ConfState` read-only for good (raft's
-`ApplyConfChange` answer, or the start snapshot's), as `CreateSnapshot` reads it (persistent). -/
+`ApplyConfChange` answer, or the start snapshot's), as `CreateSnapshot` reads it (persistent); (S1b
+of `notes/bbolt-integration-plan.md`, 2026-11-17) of at most `storage.csIdMax` ids, as the backend
+hooks keep it (`SetConfState`'s premise: what bounds the bytes their save puts). -/
 def epCsOk (cs : Loc) : IProp GF :=
-  iprop(⌜cs = null⌝ ∨ ∃ c : ConfStateM, csPts cs DFrac.discard c false)
+  iprop(⌜cs = null⌝ ∨ ∃ c : ConfStateM, csPts cs DFrac.discard c false ∗
+    ⌜storage.csIdCount c ≤ storage.csIdMax⌝)
+
+/-- (S1b) **The voters' conf state lists the voters only**: as many ids as voters. -/
+theorem csIdCount_simple (c : ConfStateM) (cfg : GSet w64)
+    (h : confStateIs c (Membership.simple cfg)) : storage.csIdCount c = GMap.size cfg := by
+  obtain ⟨h1, h2, h3, h4, -⟩ := h
+  unfold storage.csIdCount
+  rw [h1.length_eq, h2.length_eq, h3.length_eq, h4.length_eq]
+  simp only [Membership.simple, GMap.length_elements, GMap.size_empty, Nat.add_zero]
+
+/-- (S1b) The voters' conf state, at most `2 ^ 20` voters, fits the hooks' bound. -/
+theorem csIdCount_simple_le (c : ConfStateM) (cfg : GSet w64)
+    (h : confStateIs c (Membership.simple cfg)) (hs : GMap.size cfg ≤ 2 ^ 20) :
+    storage.csIdCount c ≤ storage.csIdMax := by
+  rw [csIdCount_simple c cfg h]; unfold storage.csIdMax; exact hs
 
 instance epCsOk_persistent (cs : Loc) : Persistent (epCsOk (GF := GF) cs) := by
   unfold epCsOk; infer_instance
 
 /-- A snapshot's conf state, read-only (`csOptA` at `□`), is a valid `ep.confState`. -/
-theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) :
+theorem epCsOk_of_csOptA (p : Loc) (c : ConfStateM) (hc : storage.csIdCount c ≤ storage.csIdMax) :
     ⊢ csOptA (GF := GF) p DFrac.discard c -∗ epCsOk p := by
   iintro H
   iunfold csOptA at H
   iunfold epCsOk
   icases H with (⟨%Hn, -⟩ | #H | #H)
   · ileft; ipureintro; exact Hn
-  · iright; iexists c; iexact H
+  · iright; iexists c; iframe H; ipureintro; exact hc
   · iright; iexists c
+    isplitl [H]
+    rotate_left
+    · ipureintro; exact hc
     iunfold csPts at H
     icases H with ⟨%sv, %sl, %so, %sn, %pa, H⟩
     iNamed H
@@ -1213,7 +1239,7 @@ theorem idClaim_agree_entry (γi : IdNames) (id : w64) (d1 d2 : List w8) (γ1 γ
 def srvWTN : Namespace := nroot .@ "srvWT"
 
 -- (S7b) for a later over an existential backend in the budget's invariant
-deriving instance Inhabited for backend.DBNames
+-- (S1) `backend.DBNames` is bbolt's `BoltName`, which derives `Inhabited`
 deriving instance Inhabited for backend.BNames
 deriving instance Inhabited for backend.BParams
 deriving instance Inhabited for mvcc.KBReal

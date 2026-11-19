@@ -225,10 +225,10 @@ theorem Tx.rollback_f.wp_proof
     imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms
       (some v, some (w.C.txid + 1), false, false) (w.C.txid + 1) F rfl rfl
       $$ [Hpi Hcur Hgfl Hgmap Hgwv Htok]
-      with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, %Hrec⟩
+      with ⟨%S, %XS, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, HsoH, %HS, %HXc, %Hbs, %Hrec⟩
     · iframe; iframe #
-    icases wdb_rollback_f K.p fr w _ S bs F hwok hF rfl (flBelow_wtx_alloctx w.fl w.C _ hbl) HS (pendSlots_two _ hwf) Hbs Hrec
-      $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
+    icases wdb_rollback_f K.p fr w _ S XS bs F hwok hF rfl (flBelow_wtx_alloctx w.fl w.C _ hbl) HS HXc (pendSlots_two _ hwf) Hbs Hrec
+      $$ [Hwc Hwb Hso HsoH] with ⟨%w', %Hw', Hwc, Hwb⟩
     · iframe
     obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
     ihave Hw := Hback $$ Hdb Hwr Hme Hmv
@@ -293,10 +293,10 @@ theorem Tx.rollback_f.wp_proof
       imod store_rollback K.B K.N K.p ⊤ CoPset.subseteq_top w.C w.fl w.ms
         (some v, some (w.C.txid + 1), false, wl) (w.C.txid + 1) F rfl rfl
         $$ [Hpi Hcur Hgfl Hgmap Hgwv Htok]
-        with ⟨%S, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, %HS, %Hbs, %Hrec⟩
+        with ⟨%S, %XS, %bs, Hcur, Hgfl, Hgmap, Hgwv, Hso, HsoH, %HS, %HXc, %Hbs, %Hrec⟩
       · iframe; iframe #
-      icases wdb_rollback_f K.p fr w _ S bs F hwok hF rfl (flBelow_wtx_alloctx w.fl w.C _ hbl) HS (pendSlots_two _ hwf) Hbs Hrec
-        $$ [Hwc Hwb Hso] with ⟨%w', %Hw', Hwc, Hwb⟩
+      icases wdb_rollback_f K.p fr w _ S XS bs F hwok hF rfl (flBelow_wtx_alloctx w.fl w.C _ hbl) HS HXc (pendSlots_two _ hwf) Hbs Hrec
+        $$ [Hwc Hwb Hso HsoH] with ⟨%w', %Hw', Hwc, Hwb⟩
       · iframe
       obtain ⟨hC', hfl', hms', hm', hfli', hjunk', hf', hfd', hok'⟩ := Hw'
       imod store_cfacts K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ w.ms _
@@ -334,8 +334,15 @@ theorem Tx.rollback_f.wp_proof
           $$ [Hflo Hs] as ⟨Hflo, -⟩
         · iframe
         obtain ⟨hids, hnd⟩ := nsr_store_ids w.C (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))) hhwm
-        imod store_reload K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ _ hids hnd $$ [Hpi Hcur Hgfl]
-          with ⟨Hcur, Hgfl⟩
+        have hX0 : flxS w.C (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))) w'.wb = [] := by
+          unfold flxS; rw [hfp]
+        ihave HX : [∗list] s ∈ flxS w.C (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))) w'.wb,
+            osSlotH K.p s (w'.wb s) $$ []
+        · rw [hX0]; iapply BigSepL.bigSepL_nil.2; iempintro
+        imod store_reload K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ _
+          (some v, some (w.C.txid + 1), false, wl) w'.wb hids hnd (by simp)
+          (fun f hf => by rw [hfp] at hf; cases hf) $$ [Hpi Hcur Hgfl Hgwv HX]
+          with ⟨Hcur, Hgfl, Hgwv, -⟩
         · iframe; iframe #
         ihave Hw := Hback $$ Hdb Hwr Hme Hmv
         ihave Hmfw : mapFields K.db (DFrac.own (1 : Qp).half.half) w.ms $$ [Hmf2]
@@ -351,6 +358,7 @@ theorem Tx.rollback_f.wp_proof
             exact ⟨this.2.1, this.2.2⟩)
         rw [← hfl']
         rw [← hC', ← hms', ← hm', ← hfli', ← hjunk', ← hf', ← hfd']
+        try rw [show flxS w'.C (w'.fl.reload (freeIdsOf w'.C)) w'.wb = flxS w'.C w'.fl w'.wb from rfl]
         wp_apply wp_close K tx r X _ { w' with fl := w'.fl.reload (freeIdsOf w'.C) }
           ⟨v, w'.C.txid + 1, false, wl, rfl,
             Or.inr (by simp only; rw [hfl', hC']; exact FLPg.rollback_pending_none _ _),
@@ -395,14 +403,24 @@ theorem Tx.rollback_f.wp_proof
         · rw [← hbl', ← hms']; iexact Hwc
         icases wCells_ext b l w'.W _ hnd' (fun s hs => (hextW s hs).1)
           (fun s hs => (hextW s hs).2.2.1 b l (by rw [hms']; exact hbl')) $$ Hwc with ⟨Hec, Hwc⟩
-        icases wBytes_ext K.p w'.W _ w'.wb w'.m.size hnd' (fun s hs => (hextW s hs).1)
-          (fun s hs => (hextW s hs).2.1) $$ Hwb with ⟨Heb, Hwb⟩
+        have hfnp : f ∉ pendSlots w'.fl := fun h =>
+          ((hok'.2.2.2.1 f).1 (hextW f (List.mem_range'_1.2 ⟨Nat.le_refl _, by omega⟩)).1).2.2.2 h
+        have hXw : flxS w'.C w'.fl w'.wb = List.range' f (1 + pageOverflow (w'.wb f)) := by
+          unfold flxS; rw [hfp']; simp only [hfnp, ↓reduceIte]; rfl
+        iunfold wBytesX at Hwb
+        icases Hwb with ⟨Hwb, Heb⟩
+        rw [hXw]
+        ihave Heb : [∗list] s ∈ List.range' f (1 + pageOverflow (w'.wb f)),
+            ∃ xs : List ByteG, osBytes K.p.ino (4096 * s) (DFrac.own (1 : Qp).half) xs ∗
+              ⌜xs.map Prod.fst = w'.wb s⌝ $$ [Heb]
+        · iapply BigSepL.bigSepL_mono (Φ := fun _ s => osSlotH (GF := GF) K.p s (w'.wb s)) ?_ $$ Heb
+          intro k x _; unfold osSlotH; exact .rfl
         have hmaps : w.m.maps !! b = some l := by rw [hwok.1 b l hbl']; simp
         ihave Hosm : osMeta K.p.ino (DFrac.own 1) w'.m $$ [Hosm]
         · rw [hm']; iexact Hosm
         rw [← hm'] at hmaps
         iapply ext_agree _ rfl K.p (DFrac.own 1) w'.m b l hmaps (by simp) _ w'.wb
-          (1 + pageOverflow (w'.wb f)) f (fun s h1 h2 => by
+          (DFrac.own (1 : Qp).half) (1 + pageOverflow (w'.wb f)) f (fun s h1 h2 => by
             have := hextW s (List.mem_range'_1.2 ⟨h1, h2⟩)
             exact ⟨this.2.2.1 b l (by rw [hms']; exact hbl'), this.2.2.2⟩) $$ Hos Hosm Heb Hec
         iintro Hosm Heb Hpg
@@ -430,12 +448,35 @@ theorem Tx.rollback_f.wp_proof
         ihave Hec := ext_cells_back b w'.wb _ f
           (fun s h1 h2 => (hextW s (List.mem_range'_1.2 ⟨h1, h2⟩)).2.2.2) $$ Hpg
         ihave Hwc := Hwc $$ Hec
-        ihave Hwb := Hwb $$ Heb
         have hids := reload_store_ids w' f hok' hfp' (by rw [hC']; exact hhwm)
-        rw [hC', hfl'] at hids
-        imod store_reload K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ _ hids hnd $$ [Hpi Hcur Hgfl]
-          with ⟨Hcur, Hgfl⟩
+        have hwb8 : ∀ x ∈ flIds (extentBytes w'.wb f), x.toNat ∉ flExt w'.wb f := by
+          have h16 := wb_header w' hok' f hfp'
+          obtain ⟨-, -, -, -, -, -, -, h8, -⟩ := hok'.2.2.2.2.2.1 f hfp' f hfp'
+          intro x hx hm
+          rw [mem_flExt] at hm
+          rw [pageOverflow_extentBytes _ _ h16] at h8
+          exact h8 x hx hm
+        have hwbO : ∀ f', w'.C.flpg = some f' → f' ∉ pendSlots w'.fl →
+            (∀ s ∈ flExt w'.wb f', (w'.wb s).length = 4096) ∧
+            ∀ x ∈ flIds (extentBytes w'.wb f), x.toNat ∉ flExt w'.wb f' := by
+          intro f' hf' _
+          rw [hfp'] at hf'; cases hf'
+          exact ⟨fun s hs => (hextW s hs).2.2.2, hwb8⟩
+        have hXw' : flxS w.C (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))) w'.wb =
+            List.range' f (1 + pageOverflow (w'.wb f)) := by rw [← hfl', ← hC', hXw]
+        ihave HX : [∗list] s ∈ flxS w.C (w.fl.rollback (W64 ((w.C.txid + 1 : Nat) : Int))) w'.wb,
+            osSlotH K.p s (w'.wb s) $$ [Heb]
+        · rw [hXw']
+          iapply BigSepL.bigSepL_mono (Ψ := fun _ s => osSlotH (GF := GF) K.p s (w'.wb s)) ?_ $$ Heb
+          intro k x _; unfold osSlotH; exact .rfl
+        rw [hC', hfl'] at hids hwbO
+        imod store_reload K.B K.N K.p ⊤ CoPset.subseteq_top w.C _ _
+          (some v, some (w.C.txid + 1), false, wl) w'.wb hids hnd (by simp) hwbO
+          $$ [Hpi Hcur Hgfl Hgwv HX] with ⟨Hcur, Hgfl, Hgwv, HX⟩
         · iframe; iframe #
+        rw [hXw']
+        ihave Hwb : wBytesX K.p w'.W (flxS w'.C w'.fl w'.wb) w'.wb w'.m.size $$ [Hwb HX]
+        · unfold wBytesX; rw [hXw]; iframe Hwb; iexact HX
         ihave Hw := Hback $$ Hdb Hwr Hme Hmv
         ihave Hmfw : mapFields K.db (DFrac.own (1 : Qp).half.half) w.ms $$ [Hdr Hdata Hm0 Hm1]
         · rw [hbl']; simp only [mapFields]; iframe; ipureintro; exact hmfp
@@ -446,6 +487,8 @@ theorem Tx.rollback_f.wp_proof
         have hok'' := wdbOK_reload_synced w' f hok' hfp'
         rw [← hfl']
         rw [← hC', ← hms', ← hfli', ← hjunk', ← hf', ← hfd']
+        try rw [show flxS w'.C (w'.fl.reload (flIds (extentBytes w'.wb f))) w'.wb =
+          flxS w'.C w'.fl w'.wb from rfl]
         wp_auto
         wp_apply wp_close K tx r X _ { w' with fl := w'.fl.reload (flIds (extentBytes w'.wb f)) }
           ⟨v, w'.C.txid + 1, false, wl, rfl,

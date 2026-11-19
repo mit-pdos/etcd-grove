@@ -43,7 +43,7 @@ theorem txn.Put.wp_proof
     txn.Put.spec (GF := GF) (hG := hG) := by
   intro ctx cd lg le kv γ p o q B P Pre Q Post f L I ot te R wn
   haveI := hpers.1 kv γ
-  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau⟩
+  wp_start as ⟨#Hkv, Hrd, #Hle, Hu, #Hp, #Hctx, #Hct, Hto, #Hlg, Hbk, Hcs, Hau, %Hob⟩
   iunfold txn.kvBackend at Hbk
   icases Hbk with ⟨Hbk, #Hhook⟩
   iunfold txn.csA at Hcs
@@ -203,7 +203,7 @@ theorem txn.Put.wp_proof
     as %resp ⟨Htx, Htrc, #Hresp, Hhdr, Hown⟩
   · isplitl []
     · ipureintro; exact Hn
-    ipureintro; exact hwp
+    ipureintro; exact ⟨hwp, Hob.1, fun _ => Hob.2⟩
   (try wp_auto)
   -- the deferred `txnWrite.End()`: the put committed
   have hpp : txn.putPend o σ₀ = [txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter σ₀.log))] := by

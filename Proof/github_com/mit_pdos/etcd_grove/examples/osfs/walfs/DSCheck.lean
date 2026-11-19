@@ -277,7 +277,7 @@ theorem wp_check (wp_ReadAt : os.File.ReadAt.spec (GF := GF) (hG := hG))
     iapply HΦ
     itrivial
   · cases err with
-    | nil => exact absurd rfl hne
+    | nil => exact absurd rfl (by first | exact hne | exact hne.1)
     | ok ie =>
     (try wp_auto)
     iapply HΦ

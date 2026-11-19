@@ -209,6 +209,8 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watchChan__transform
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__createWatchChan
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.watcher__getStartWatchResourceVersion
 public import Perennial.Proof.time.Link
+public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
+public import Proof.go_etcd_io.etcd.client.v3.LinkMembers
 public import Spec.k8s_io.utils.clock.RealClock__After
 public import Proof.fmt.Link
 public import Proof.go_etcd_io.etcd.client.v3.Link
@@ -451,7 +453,7 @@ theorem klog.Verbose.wp_Infof :
 
 theorem wp_Compact :
     EtcdGrove.k8s.Compact.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.Compact.wp_proof v3.wp_Version v3.wp_Compare v3.wp_OpPut v3.wp_OpGet strconv.wp_FormatInt strconv.wp_ParseInt ResponseOp.wp_GetResponseRange v3.Client.wp_Endpoints klog.wp_V klog.Verbose.wp_Infof
+  EtcdGrove.k8s.Compact.wp_proof v3.wp_Version v3.wp_Compare v3.wp_OpPut v3.wp_OpGet strconv.wp_FormatInt strconv.wp_ParseInt ResponseOp.wp_GetResponseRange v3.Client.wp_Endpoints klog.wp_V klog.Verbose.wp_Infof client.v3.kv.wp_Txn client.v3.txn.wp_If client.v3.txn.wp_Then client.v3.txn.wp_Else client.v3.txn.wp_CommitM client.client_Compact_kv_law_holds
 
 theorem wait.wp_ContextForChannel :
     EtcdGrove.wait.ContextForChannel.spec (GF := GF) (hG := hG) :=
@@ -539,7 +541,7 @@ theorem klog.wp_Errorf :
 
 theorem compactor.wp_getCompactRev :
     EtcdGrove.k8s.compactor.getCompactRev.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.compactor.getCompactRev.wp_proof strconv.wp_ParseInt fmt.wp_Errorf
+  EtcdGrove.k8s.compactor.getCompactRev.wp_proof strconv.wp_ParseInt fmt.wp_Errorf client.v3.kv.wp_Get
 
 theorem compactor.wp_fromWatchResponse :
     EtcdGrove.k8s.compactor.fromWatchResponse.spec (GF := GF) (hG := hG) :=
@@ -851,7 +853,7 @@ theorem watchChan.wp_queueEvent :
 
 theorem watchChan.wp_syncPaginated :
     EtcdGrove.k8s.watchChan.syncPaginated.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.k8s.watchChan.syncPaginated.wp_proof errors.wp_AsLeafTy rpctypes.EtcdError.wp_Code status.Status.wp_Code v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd metrics.wp_RecordEtcdRequest fmt.wp_ErrorfPlain wp_interpretListError wp_parseKV watchChan.wp_queueEvent
+  EtcdGrove.k8s.watchChan.syncPaginated.wp_proof errors.wp_AsLeafTy rpctypes.EtcdError.wp_Code status.Status.wp_Code v3.wp_WithRev v3.wp_WithLimit v3.wp_WithRange v3.wp_GetPrefixRangeEnd metrics.wp_RecordEtcdRequest fmt.wp_ErrorfPlain wp_interpretListError wp_parseKV watchChan.wp_queueEvent client.client_range_any_law_holds
 
 theorem watchChan.wp_sync :
     EtcdGrove.k8s.watchChan.sync.spec (GF := GF) (hG := hG) :=

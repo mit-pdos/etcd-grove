@@ -185,12 +185,13 @@ theorem EtcdServer.apply.wp_proofOff
   -- replayed conf changes (the binders only the `v3` case reads at placeholders)
   have hACCR := fun s cc ep m cs E γs γB cl rs d al st lp lg bh ix lgh tl lid prs lgc cid
       (e : LogEntry) (hok : ccApplyOkM γs m) hro (hp : m.nodeId ≠ lid → m.nodeId ∈ prs)
-      (hsz : GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62) =>
+      (hsz : GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62)
+      (hcfg : GMap.size γs.raft.cfg ≤ 2 ^ 20) =>
     hACC s cc ep m cs false null GoInterface.nil E γs iprop(True) iprop(True) iprop(True)
       iprop(True) (W64 0) (W64 0) γB cl rs d al st lp none [] ⟨0, Membership.empty⟩ 0 Membership.empty e lg bh ix
       lgh tl lid prs lgc cid hok hro (fun _ => hp)
       (fun h => absurd (hok.1.symm.trans h) (by decide : ¬ (W32 0 : w32) = W32 1)) (fun _ => hsz)
-      (fun h => absurd h Bool.false_ne_true)
+      hcfg (fun h => absurd h Bool.false_ne_true)
   simp only [Bool.false_eq_true, ↓reduceIte] at hACCR
   -- (swap batch 1) `applyConfChange.spec`'s `v3` case
   have hACC := fun s cc ep m cs => hACC s cc ep m cs true
@@ -199,7 +200,7 @@ theorem EtcdServer.apply.wp_proofOff
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa (hm : E.authMode = .off)
-    hRB hne hfrom hok hEok hdv
+    hRB hne hfrom hok hEok hEpk hdv
   -- the mode off: the rows at `false` (`isServer`, `srvApplyKV`, `kvApplied`), the lessor's and the
   -- token rights' rows `True`
   have hoff : E.authOn = false := by rw [apply.AEnv.authOn_eq, hm]; rfl
@@ -211,6 +212,7 @@ theorem EtcdServer.apply.wp_proofOff
     srvRunH_apply_spec, srvRestRM_false]
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, #Hcv0, Hlr, Hgr, Hrdk, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, %Hg0, Hdv, #Hdvr, Hrun, HAR, -⟩
+  icases srvApRes_cfg_size s γr (ghostOf rp A) $$ HAR with ⟨HAR, %hsz20⟩
   -- the post in the off rows (the token rights `True`, the auth state unconstrained)
   ihave HΦ : ∀ (appliedt appliedi : w64) (shouldStop : Bool),
       (srvFS s ∗ dvView ρ.raft dv (ghostOf rp (A ++ ms)) ∗ srvRunH ρ.raft dv ∗
@@ -369,7 +371,7 @@ theorem EtcdServer.apply.wp_proofOff
     -- the entry's premise at the KV's log, from its shape and the log's smallness (D19c's move)
     imod srvApplyKV_small hPers hReach hRB s E γr ρ.wait xj $$ Hkvi HKV with ⟨%Hsmall, HKV⟩
     have hOk1 : m.typ = W32 0 → entryOk E.lm xj m := fun ht =>
-      entryOk_of_shape E.lm xj m (hEok m hmem) ht Hsmall.1 Hsmall.2
+      entryOk_of_shape E.lm xj m (hEok m hmem) ht Hsmall.1 Hsmall.2 (hEpk m hmem)
     have hjn' : ((sint.nat j : Nat) : Int) = sint.Z j := by
       unfold sint.nat; exact Int.toNat_of_nonneg Hj.1
     have hlenA : (A ++ ms.take (sint.nat j)).length = A.length + sint.nat j := by
@@ -723,6 +725,7 @@ theorem EtcdServer.apply.wp_proofOff
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
           (Hcb cm Hdec) HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (by first | exact hsz20 | (rw [hρr]; exact hsz20) | (rw [← hρr]; exact hsz20))
           (fun _ => ⟨hkbB, hgbB, fun h => hdv.1 h m hmem h1,
             fun γn h => (by
               obtain ⟨-, hrule, -, -⟩ := hdv.2 γn h
@@ -1028,7 +1031,7 @@ theorem EtcdServer.apply.wp_proofOff
             ⟨%rsR, HRO, %HrsR, HRSk⟩
           wp_apply (hACCR s cc_ptr ep cm csl E γr.raft γB sv.cluster rsR dB alB stB lpB
               sv.lg bh ix lgh tl lid prs lgc cid m.toLE hokc HROeq Hpeer
-              (Hszk rsR.mem (fun k => by rw [HrsR]; exact restReplay_memKeys γr rp _ k)))
+              (Hszk rsR.mem (fun k => by rw [HrsR]; exact restReplay_memKeys γr rp _ k)) hsz20)
               $$ [Hcc Hcs Hlr Hmr HRO]
             as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr, HRO⟩
           · iframe Hlg Hlr Hcl Hclg Hcid Hcc Hcs Hbh Hbhi Htr Hmid Hmr HRO
@@ -1235,12 +1238,13 @@ theorem EtcdServer.apply.wp_proofOn
   -- replayed conf changes (the binders only the `v3` case reads at placeholders)
   have hACCR := fun s cc ep m cs E γs γB cl rs d al st lp lg bh ix lgh tl lid prs lgc cid
       (e : LogEntry) (hok : ccApplyOkM γs m) hro (hp : m.nodeId ≠ lid → m.nodeId ∈ prs)
-      (hsz : GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62) =>
+      (hsz : GMap.size (GMap.insert m.nodeId (membership.ccMemberAt m) rs.mem) ≤ 2 ^ 62)
+      (hcfg : GMap.size γs.raft.cfg ≤ 2 ^ 20) =>
     hACC s cc ep m cs false null GoInterface.nil E γs iprop(True) iprop(True) iprop(True)
       iprop(True) (W64 0) (W64 0) γB cl rs d al st lp none [] ⟨0, Membership.empty⟩ 0 Membership.empty e lg bh ix
       lgh tl lid prs lgc cid hok hro (fun _ => hp)
       (fun h => absurd (hok.1.symm.trans h) (by decide : ¬ (W32 0 : w32) = W32 1)) (fun _ => hsz)
-      (fun h => absurd h Bool.false_ne_true)
+      hcfg (fun h => absurd h Bool.false_ne_true)
   simp only [Bool.false_eq_true, ↓reduceIte] at hACCR
   -- (swap batch 1) `applyConfChange.spec`'s `v3` case
   have hACC := fun s cc ep m cs => hACC s cc ep m cs true
@@ -1249,7 +1253,7 @@ theorem EtcdServer.apply.wp_proofOn
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
   intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr rp A γp dv w g sa hP hRB hne hfrom
-    hok hEok hdv
+    hok hEok hEpk hdv
   obtain ⟨γa, hM⟩ := hP
   have hAuthOn : E.authOn = true := by rw [apply.AEnv.authOn_eq, hM]; rfl
   -- the mode on: the rows at `true` (`srvApplyKVOn`, `kvAppliedOn`)
@@ -1258,6 +1262,7 @@ theorem EtcdServer.apply.wp_proofOn
   simp only [srvApplyKVM_true, kvAppliedM_true, srvRunH_apply_spec]
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, #Hcv0, Hlr, Hgr, Hrdk, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, %Hg0, Hdv, #Hdvr, Hrun, HAR, HtokR⟩
+  icases srvApRes_cfg_size s γr (ghostOf rp A) $$ HAR with ⟨HAR, %hsz20⟩
   ihave #Hsrv0 := Hsrv
   ihave #Pmem : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
@@ -1390,7 +1395,7 @@ theorem EtcdServer.apply.wp_proofOn
     imod srvApplyKVOn_small hPers hReach hRB s E γr srvAuthSt0 ρ.wait xj saj $$ Hkvi HKV with ⟨%Hsmall, HKV⟩
     icases srvApplyKVOn_authOn s E ρ.wait xj saj $$ HKV with ⟨HKV, %HaOnj⟩
     have hOk1 : m.typ = W32 0 → entryOkOn E.lm xj m := fun ht =>
-      entryOkOn_of_shape xj m (hEok m hmem) ht Hsmall.1 Hsmall.2 (HaOnj.trans hAuthOn)
+      entryOkOn_of_shape xj m (hEok m hmem) ht Hsmall.1 Hsmall.2 (HaOnj.trans hAuthOn) (hEpk m hmem)
     have hjn' : ((sint.nat j : Nat) : Int) = sint.Z j := by
       unfold sint.nat; exact Int.toNat_of_nonneg Hj.1
     have hlenA : (A ++ ms.take (sint.nat j)).length = A.length + sint.nat j := by
@@ -1800,6 +1805,7 @@ theorem EtcdServer.apply.wp_proofOn
           (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
           (Hcb cm Hdec) HROeq Hpeer Hloc (by rw [apply.restLeasesWith_mem]; exact Hsz)
+          (by first | exact hsz20 | (rw [hρr]; exact hsz20) | (rw [← hρr]; exact hsz20))
           (fun _ => ⟨hkbB, hgbB, fun h => hdv.1 h m hmem h1,
             fun γn h => (by
               obtain ⟨-, hrule, -, -⟩ := hdv.2 γn h
@@ -2117,7 +2123,7 @@ theorem EtcdServer.apply.wp_proofOn
             ⟨%rsR, HRO, %HrsR, HRSk⟩
           wp_apply (hACCR s cc_ptr ep cm csl E γr.raft γB sv.cluster rsR dB alB stB lpB
               sv.lg bh ix lgh tl lid prs lgc cid m.toLE hokc HROeq Hpeer
-              (Hszk rsR.mem (fun k => by rw [HrsR]; exact restReplay_memKeys γr rp _ k)))
+              (Hszk rsR.mem (fun k => by rw [HrsR]; exact restReplay_memKeys γr rp _ k)) hsz20)
               $$ [Hcc Hcs Hlr Hmr HRO]
             as %removed %err ⟨%Hrem, Hlr, ⟨%cm', Hcc, %hIdEq⟩, Hcs, Hmr, HRO⟩
           · iframe Hlg Hlr Hcl Hclg Hcid Hcc Hcs Hbh Hbhi Htr Hmid Hmr HRO

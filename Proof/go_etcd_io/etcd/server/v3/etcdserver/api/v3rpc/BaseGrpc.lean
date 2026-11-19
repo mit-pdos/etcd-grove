@@ -10,6 +10,7 @@ package initialization, not proved from `initialize'`.
 module
 
 public import Proof.go_etcd_io.etcd.cache.v3.Base
+public import Proof.github_com.prometheus.client_golang.prometheus.PkgInit
 public import GeneratedProof.google_golang_org.grpc.health
 public import GeneratedProof.google_golang_org.grpc.health.grpc_health_v1
 public import GeneratedProof.google_golang_org.grpc.reflection
@@ -32,17 +33,17 @@ variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 
-instance grpc_health_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.health :=
-  define_is_pkg_init iprop(True)
-instance grpc_health_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.health :=
-  build_get_is_pkg_init_wf
-
 instance grpc_health_v1_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 :=
   define_is_pkg_init iprop(True)
 instance grpc_health_v1_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.health.grpc_health_v1 :=
+  build_get_is_pkg_init_wf
+
+instance grpc_health_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.google_golang_org.grpc.health :=
+  define_is_pkg_init iprop(True)
+instance grpc_health_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.google_golang_org.grpc.health :=
   build_get_is_pkg_init_wf
 
 instance grpc_reflection_is_pkg_init_inst :

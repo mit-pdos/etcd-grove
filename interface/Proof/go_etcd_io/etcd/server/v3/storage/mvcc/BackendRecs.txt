@@ -12,7 +12,7 @@ theorem mvcc.rt_metaRecs [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ backend.fkRd γ P rv ∗ backend.fkFlag γ n ∗
     backend.fkOpen γ n (mvcc.recsVals r) ⊢ backend.fkFlag γ n ∗ mvcc.metaReadSpecR { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } (some r)
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv qo)
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv qo)
 
 theorem mvcc.fkAt_recsVals (r : mvcc.CmpRecs) {kn : GoString} (h : mvcc.metaCompactKey kn) :
     backend.fkAt (mvcc.recsVals r) kn = Option.map (fun x => mvcc.revBytes { main := x, sub := W64 0
@@ -29,7 +29,7 @@ theorem mvcc.rt_lockedR [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.A
     (backend.bF go!"readTx" b) rt DFrac.discard ∗ mvcc.keySized γ P b ∗ backend.fkRd γ P rv ⊢
     mvcc.keyReadLockedR (mvcc.bkRTx γ P b) (mvcc.bkRecs γ r) r true { ty :=
     go_etcd_io.etcd.server.v3.storage.backend.readTx.ty.PointerType, v := intoVal rt } m
-    (backend.rdB rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) true
+    (backend.rdB γ.db rtx) (mvcc.rtTok γ P b rtx rv backend.rdOpen) true
 
 def mvcc.bkRecs (γ : backend.BNames) (r : mvcc.CmpRecs) : IProp GF :=
   if r = mvcc.CmpRecs.empty then mvcc.bkNoCmpF γ

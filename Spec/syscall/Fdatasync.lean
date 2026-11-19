@@ -7,12 +7,16 @@ byte its value alone, `durB`); on failure, which is never `EINTR`, nothing chang
 writeback: the semantics' rule).
 `syscall.Fdatasync.specB` is the byte-less variant (`wp_osFsyncB`), for a client that holds none
 of the bytes (bbolt's `fdatasync`): on success the `OsMeta` is `m.bsynced c` for some change
-number `c` (size and mappings unchanged), on failure nothing changes.
+number `c` (size and mappings unchanged), on failure nothing changes, and the failure witnesses
+that **the file system can fail** (`⌜¬ FsNoErr⌝`: under the premises `FsNoErr` names, the steps
+satisfy no I/O error on every inode, and `fsync` returns 0; session S6 folded the former
+`specBNoErr`/`specBW` into it, `notes/bbolt-integration-plan.md`).
 Proved in `Proof/syscall/Fdatasync.lean`. Lean-first (no Rocq counterpart).
 -/
 module
 
 public import Proof.syscall.Base
+public import GooseLang.Ext.Fs.FsNoErr
 
 @[expose] public section
 
@@ -53,7 +57,7 @@ abbrev syscall.Fdatasync.specB : Prop :=
     (App (Val (@! syscall.Fdatasync)) (Val #fd))
   {{ (e : w64), RET #(errnoErr e); osFd fd dq d ∗
       ((⌜e = 0⌝ ∗ ∃ c, osMeta d.ino (DFrac.own 1) (m.bsynced c)) ∨
-       (⌜e ≠ 0 ∧ e ≠ EINTR⌝ ∗ osMeta d.ino (DFrac.own 1) m)) }}
+       (⌜e ≠ 0 ∧ e ≠ EINTR ∧ ¬ FsNoErr⌝ ∗ osMeta d.ino (DFrac.own 1) m)) }}
 
 end spec
 

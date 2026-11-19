@@ -3,7 +3,7 @@
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.Base
 
 @[expose] public section
 

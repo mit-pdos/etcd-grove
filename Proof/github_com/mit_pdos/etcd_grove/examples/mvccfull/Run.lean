@@ -169,7 +169,7 @@ theorem Run.wp_proof
     · ipureintro; exact ⟨rfl, rfl⟩
     iapply ownSliceCap_nil
   -- the configuration, normalized, and its facts
-  obtain ⟨hmixN, hops0, hopsB, hthr, hlimN, hcblN, hkl⟩ := hcfg
+  obtain ⟨hmixN, hops0, hopsB, hthr, hlimN, hcblN, hkl, hmv, hdp⟩ := hcfg
   have hks := keysOf_bounds (sint.nat (normalizeM cfg).Depth')
   rw [show sint.nat (if sint.Z cfg.Depth' < 1 then W64 1 else cfg.Depth') - ([] : GoString).length =
     sint.nat (normalizeM cfg).Depth' from by simp only [List.length_nil, Nat.sub_zero]; rfl,
@@ -195,6 +195,15 @@ theorem Run.wp_proof
   have hPfx : cfg.Prefix' = cfgN.Prefix' := by rw [← hN]; rfl
   have hksn : ∀ k ∈ ks, (k.length : Int) < 2 ^ 63 - 1 := by
     intro k hk; have := hks.2 k hk; have := hks.1; omega
+  have hkeyl : ∀ k ∈ ks, k.length ≤ etcdKeyMax := by
+    intro k hk; have := hks.2 k hk; unfold etcdKeyMax; omega
+  have hmvN : 0 ≤ sint.Z cfgN.MaxVal' ∧ sint.Z cfgN.MaxVal' ≤ 2 ^ 20 := by
+    rw [← hN]
+    show 0 ≤ sint.Z (if sint.Z cfg.MaxVal' < 0 then W64 0 else cfg.MaxVal') ∧
+      sint.Z (if sint.Z cfg.MaxVal' < 0 then W64 0 else cfg.MaxVal') ≤ 2 ^ 20
+    split
+    · exact ⟨by decide, by decide⟩
+    · exact ⟨by omega, hmv⟩
   -- the history's lock, with a reader slot for the writer, `n` for the readers, `ns` per member for
   -- its streams' receivers
   let nR := 2 * (sint.Z cfgN.Readers').toNat
@@ -270,7 +279,7 @@ theorem Run.wp_proof
     · iPkgInit
     isplitl
     · iPkgInit
-    ipureintro; exact ⟨hksn, hopsN.1, hopsN.2, hkl⟩
+    ipureintro; exact ⟨hksn, hopsN.1, hopsN.2, hkl, hkeyl, hmvN.1, hmvN.2⟩
   -- the members' files
   rw [show filePathsM cfgN = memberPathM cfgN.Prefix' 0 :: memberPathM cfgN.Prefix' 1 ::
     (List.range' 1 (sint.nat cfgN.Ops')).map (buildPathM cfgN.Prefix') from rfl]

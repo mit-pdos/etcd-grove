@@ -46,7 +46,8 @@ abbrev txn.put.spec : Prop :=
       txn.leaseOk L (txn.putLeaseOf o (mvcc.findKey o.key (txn.pendState σ.log pend))) ∗
       lease.leaseOwnW (mvccLeases γ) L (mvcc.pendItems σ.log pend) w ∗
       ⌜lease.winMove w (mvcc.pendItems σ.log pend) (mvcc.pendItems σ.log
-        (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))]))⌝ }}
+        (pend ++ [txn.putChangeOf o (mvcc.findKey o.key (txn.pendState σ.log pend))]))⌝ ∗
+      ⌜o.key.length ≤ etcdKeyMax ∧ (o.ignoreValue = false → o.val.length ≤ etcdKeyMax)⌝ }}
     (App (App (App (App (Val (@! txn.put)) (Val #(GoInterface.ok ctx))) (Val #tw)) (Val #p))
       (Val #prev))
   {{ (resp : Loc), RET #resp;

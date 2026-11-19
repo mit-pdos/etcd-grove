@@ -1952,6 +1952,40 @@ theorem runIds_mem_toNat (id : w64) (n : Nat) (hn : id.toNat + n < 2 ^ 64) (x : 
 theorem toNat_W64_of_lt (s : Nat) (h : s < 2 ^ 64) : (W64 (s : Int)).toNat = s :=
   W64_toNat_of_lt' s h
 
+/-! ## Exports for the synced freelist page's facts (`Model/StoreFlOK.lean`, session S4) -/
+
+theorem mem_pendSlots_iff (fl : FLPg) (s : Nat) :
+    s ∈ pendSlots fl ↔ ∃ t pd x, fl.pending !! t = some pd ∧ x ∈ pd.ids ∧ x.toNat = s :=
+  mem_pendSlots fl s
+
+theorem rollbackEntry_allocs (fl : FLPg) (T k a : w64)
+    (h : (fl.rollbackEntry T).allocs !! k = some a) :
+    a ≠ T ∧ (fl.allocs !! k = some a ∨ ∃ (pd : Pending) (i : Nat), fl.pending !! T = some pd ∧
+      pd.ids[i]? = some k ∧ pd.alloctx[i]? = some a) :=
+  rollback_allocs fl T k a h
+
+theorem rollbackEntry_pending (fl : FLPg) (T t : w64) (pd : Pending)
+    (h : (fl.rollbackEntry T).pending !! t = some pd) : t ≠ T ∧ fl.pending !! t = some pd :=
+  rollback_pending fl T t pd h
+
+/-- `ReleasePendingPages`' facts (`relOK` of `relSafe`): `allocs` unchanged, a new free id was
+free or pending with an allocating transaction no reader lies in `[alloc, txid)` of, every
+remaining pending id was pending in the same entry with the same allocating transaction, the ids
+a permutation. -/
+theorem releasePending_facts (fl : FLPg) (ro : List w64)
+    (hro : ∀ t ∈ ro, 1 ≤ t.toNat ∧ t.toNat + 1 < 2 ^ 64)
+    (hwf : ∀ t p, fl.pending !! t = some p → p.ids.length = p.alloctx.length) :
+    (fl.releasePending ro).allocs = fl.allocs ∧
+    (∀ x ∈ (fl.releasePending ro).free, x ∈ fl.free ∨ ∃ t pd i, fl.pending !! t = some pd ∧
+      pd.ids[i]? = some x ∧
+      ∀ T ∈ ro, ¬ ((pd.alloctx.getD i 0).toNat ≤ T.toNat ∧ T.toNat < t.toNat)) ∧
+    (∀ t pd' i x, (fl.releasePending ro).pending !! t = some pd' → pd'.ids[i]? = some x →
+      ∃ pd j, fl.pending !! t = some pd ∧ pd.ids[j]? = some x ∧
+        pd.alloctx.getD j 0 = pd'.alloctx.getD i 0) ∧
+    (fl.releasePending ro).allIds.Perm fl.allIds := by
+  obtain ⟨r1, r2, r3, r4, -, -⟩ := relOK_releasePending fl ro hro hwf
+  exact ⟨r1, r2, r3, r4⟩
+
 end store
 
 end bbolt

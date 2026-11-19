@@ -31,7 +31,8 @@ abbrev mvcc.storeTxnWrite.delete.spec : Prop :=
       mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗
       lease.leaseOwnW γ.leases L (mvcc.pendItems ilog pend) w ∗
       ⌜(mvcc.findKey k (mvcc.applyChanges (W64 ilog.length) (mvcc.stateAfter ilog) pend)).isSome⌝ ∗
-      ⌜lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ [.del k]))⌝ }}
+      ⌜lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ [.del k]))⌝ ∗
+      ⌜k.length ≤ etcdKeyMax⌝ }}
     (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"delete")) (Val #key))
   {{ RET #(); mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [.del k]) crev Z ∗
       lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ [.del k])) w }}

@@ -129,7 +129,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
         wp_apply (hDel trace tw s γ ilog (pend ++ (ks.take j).map .del) kw kj L crev Z w)
           $$ [$(frameH `Htx) $(frameH `Hkj) $(frameH `Hown)] as ⟨Htx, Hown⟩
         · ipureintro
-          refine ⟨?_, mvcc.winMove_dels_take Hwm hkj⟩
+          refine ⟨?_, mvcc.winMove_dels_take Hwm hkj, mvcc.findKey_key_le _ Hfit.1 Hfit.2 (hpres kj hmem)⟩
           rw [show mvcc.applyChanges (W64 (ilog.length : Int)) (mvcc.stateAfter ilog)
               (pend ++ (ks.take j).map .del) =
             mvcc.applyChanges (W64 (ilog.length : Int))
@@ -168,7 +168,7 @@ theorem mvcc.storeTxnWrite.deleteRange.wp_proof
     (hDel : mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.deleteRange.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key endk k e L crev Z w
-  wp_start as ⟨Htw, #Hkey, #Hend, Hown, %Hwm⟩
+  wp_start as ⟨Htw, #Hkey, #Hend, Hown, %Hwm, %Hfit⟩
   generalize hks : mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e = ks at *
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

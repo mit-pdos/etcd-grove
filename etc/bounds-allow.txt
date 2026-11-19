@@ -18,7 +18,7 @@ stock ^Proof/go_etcd_io/etcd/server/v3/lease/RdPool\.lean$
 # for `NewServer`'s error path, whose `b.Close()` takes the whole open token; `wsCloseRes` names what
 # `Close` returns, for `Cleanup` (R2b-3d stage 5c).
 stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/(ReaderRetire|InvWatchSync|WsCloserR)\.lean$
-stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__Close\.lean$
+stock ^(Spec|Proof)/go_etcd_io/etcd/server/v3/storage/mvcc/watchableStore__Close(Lemmas)?\.lean$
 # The store's readers, by their owner, mvcc's constructor (B3, mvccfull F1, 2026-11-10): `NewStore`
 # over an image builds the readers' pool and the locks' reader slots from the backend's counted
 # tokens (`NewStoreR`), and `s.mu`'s lock is made from its write-locked memory with every slot
@@ -45,7 +45,7 @@ stock ^Proof/go_etcd_io/etcd/server/v3/etcdserver/InvWatchBuilt\.lean$
 # build the pool (`RdSupply`'s `rdkPool`) from them at construction (`NewStoreApi`, `NewApi` over `ImageBridge`), and give them back
 # at `Restore` and at the close (`RestoreApi`, `ClosedLaw`).
 stock ^Spec/go_etcd_io/etcd/server/v3/storage/mvcc/(Api|EtcdBackend)\.lean$
-stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|RestoreApi|ClosedLaw|ImageBridge)\.lean$
+stock ^Proof/go_etcd_io/etcd/server/v3/storage/mvcc/Api/(RdSupply|NewStoreApi|NewStoreApiLemmas|RestoreApi|ClosedLaw|ImageBridge)\.lean$
 # The randomized mvcc test's history lock, by its owner, the test (`examples/mvccrand`, 2026-11-07):
 # `RunChecksWorld` allocates the history's `RWMutex` and makes its reader handles (`histRd`, at most
 # the lock's slots), `runChecks` hands one to each reader goroutine it forks.

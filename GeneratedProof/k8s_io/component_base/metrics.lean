@@ -871,25 +871,6 @@ noncomputable instance Metric_into_val_typed :
 end def_
 end Metric
 
-namespace CounterMetric
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
-
-noncomputable instance CounterMetric_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.CounterMetric :=
-  sorry -- axiomatized type
-
-noncomputable instance CounterMetric_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.CounterMetric k8s_io.component_base.metrics.CounterMetric.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end CounterMetric
-
 namespace CounterVecMetric
 section def_
 
@@ -946,25 +927,6 @@ noncomputable instance GaugeVecMetric_into_val_typed :
 
 end def_
 end GaugeVecMetric
-
-namespace ObserverMetric
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.component_base.metrics.Assumptions]
-
-noncomputable instance ObserverMetric_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.component_base.metrics.ObserverMetric :=
-  sorry -- axiomatized type
-
-noncomputable instance ObserverMetric_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.component_base.metrics.ObserverMetric k8s_io.component_base.metrics.ObserverMetric.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ObserverMetric
 
 namespace PromRegistry
 section def_

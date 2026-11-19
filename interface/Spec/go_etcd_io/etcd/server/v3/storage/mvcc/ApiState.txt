@@ -66,6 +66,9 @@ structure mvcc.api.WInfo : Type where
   k : Nat
   live : Bool
 
+theorem mvcc.api.reach_putsLe (σ : mvcc.api.MvccState) (h : mvcc.api.MvccReachable σ) :
+    mvcc.LogPutsLe etcdKeyMax σ.log ∧ mvcc.LogPutsLe etcdKeyMax σ.notifiedLog
+
 def mvcc.api.onceUpTo (L : mvcc.Log) (lo : Nat) (c : Int) : Prop :=
   ∀ (r : Nat), lo ≤ r → ↑r ≤ c → (List.map mvcc.Change.key (List.getD L r [])).Nodup
 
@@ -83,8 +86,8 @@ structure mvcc.api.StreamState : Type where
 inductive mvcc.api.MvccReachable : mvcc.api.MvccState → Prop
   | mvcc.api.MvccReachable.start : mvcc.api.MvccReachable mvcc.api.mvccStart
   | mvcc.api.MvccReachable.notify (σ : mvcc.api.MvccState) (pend : List mvcc.Change) :
-      mvcc.api.MvccReachable σ → σ.pending = none → mvcc.LogWf (σ.log ++ [pend]) →
-      mvcc.api.MvccReachable (σ.notify pend)
+      mvcc.api.MvccReachable σ → σ.pending = none → mvcc.LogWf (σ.log ++ [pend]) → mvcc.ChPutsLe
+      etcdKeyMax pend → mvcc.api.MvccReachable (σ.notify pend)
   | mvcc.api.MvccReachable.commit (σ : mvcc.api.MvccState) : mvcc.api.MvccReachable σ →
       mvcc.api.MvccReachable σ.commitPending
   | mvcc.api.MvccReachable.compact (σ : mvcc.api.MvccState) (r : Int) : mvcc.api.MvccReachable σ →

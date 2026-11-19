@@ -90,7 +90,7 @@ theorem runner.open.wp_proof
   wp_auto
   imod halloc with ⟨%gx, Hreg, HW⟩
   wp_apply (wp_openBackend x ks cfg wr h γh path D (fun _ => mvccW gx) (fun _ => iprop(True))
-      backend.bFresh hdbo hlim) $$ [Hfile Htok HW] as %rnb ⟨Htok, %bnb, %γB, %Hrnb, Hnew, Hbfn⟩
+      backend.bFresh hdbo hlim) $$ [Hfile Htok HW] as %rnb ⟨Htok, %bnb, %γB, %Hrnb, Hnew, Hbfn, Hbpn⟩
   · iframe #; iframe
     iintro %γ ⟨-, Hf⟩
     imodintro
@@ -102,7 +102,7 @@ theorem runner.open.wp_proof
     rw [backend.wbInit_val]; omega
   imod inc_open_backend hopen hrest hCR γB bnb gx (limOf cfg) path D σ.log σ.crev u
       (sint.Z cfg.Ops').toNat hk
-    $$ [Hreg Himg Hbfn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
+    $$ [Hreg Himg Hbfn Hbpn Hnew] with ⟨Hsf, Hbkn, Hplh, Hrbn, Hwb1, Hwb2⟩
   · iframe #; iframe
   -- `m.le = lease.NewLessor(x.lg, m.be, noCluster{}, lease.LessorConfig{MinLeaseTTL: 1})`
   ihave #Hcl : lease.clusterOk (GF := GF) (interface.mkOk noCluster.ty #(noCluster.mk)) $$ []
@@ -116,7 +116,7 @@ theorem runner.open.wp_proof
     ileft; ipureintro; exact Hv
   obtain ⟨recs, hrecs1, hrecs2, hrecs3⟩ := Hrec
   iunfold bkKeep at Hbkn
-  icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnoh, HnRT, Hntoks, Hncen⟩
+  icases Hbkn with ⟨%HnP, #Hnisb, #Hnsc, Hnbf, Hnbp, Hnoh, HnRT, Hntoks, Hncen⟩
   simp only [mvccrand.rcKB_P]
   have hreq : ∀ x ∈ recs, sint.Z ((fun _ : w64 => W64 3600) x.1) ≤ sint.Z x.2.1 := by
     intro x hx; have := hrecs3 x hx
@@ -298,7 +298,7 @@ theorem runner.open.wp_proof
         go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsl, n,
         mvccrand.rcKB γB bnb gx (limOf cfg), ι, recs.map (·.1), b⟩ 1 mvccReaderN
         (sint.Z cfg.Ops').toNat $$ [HhookOk Hpath Hbe Hle Hkv Hrev Hcmp Hleases Hret Hσw Hbw Hopn Hmb
-          Hrdrs Hr1 Hnbf Hnoh HnRT Hntoks Hncen Hlrd Hlown Hrvk Hever Hrdo Hdel Hbeon Hrbp Hstop]
+          Hrdrs Hr1 Hnbf Hnbp Hnoh HnRT Hntoks Hncen Hlrd Hlown Hrvk Hever Hrdo Hdel Hbeon Hrbp Hstop]
     · iunfold memCore
       dsimp only
       try simp only [mvccrand.rcKB_be]
@@ -311,7 +311,7 @@ theorem runner.open.wp_proof
       · rw [etcdStorage_hookIs]; simp only [mvccrand.rcKB_γB]; iexact HhkRO
       isplitl [Hrdrs Hr1]
       · iapply hR1.2; iframe
-      isplitl [Hnbf Hnoh HnRT Hntoks Hncen]
+      isplitl [Hnbf Hnbp Hnoh HnRT Hntoks Hncen]
       · iunfold bkKeep
         isplitr
         · ipureintro; exact HnP

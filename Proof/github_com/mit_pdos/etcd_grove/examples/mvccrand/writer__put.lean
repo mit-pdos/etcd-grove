@@ -223,7 +223,10 @@ theorem writer.put.wp_proof
     as ⟨Htx, Htrc, Hlo⟩
   · iframe
     ipureintro
-    refine ⟨by omega, ?_, lease.winMove_none _ _⟩
+    have h63 : sint.Z (n + W64 1) < 2 ^ 63 := by word
+    have hvl := newVal_short (sint.nat (n + W64 1)) (by
+      show (sint.Z (n + W64 1)).toNat < 2 ^ 64; omega)
+    refine ⟨by omega, ⟨by unfold etcdKeyMax; omega, by unfold etcdKeyMax; omega⟩, ?_, lease.winMove_none _ _⟩
     rcases Hl with h | h
     · exact Or.inl h
     · exact Or.inr ((HLm l).1 h)

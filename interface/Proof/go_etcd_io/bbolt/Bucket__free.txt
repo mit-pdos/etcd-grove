@@ -2,6 +2,10 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem bbolt.sparePair.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (B B✝ :
+    bbolt.BNs) (e_B : B = B✝) (db db✝ : Loc) (e_db : db = db✝) (sp sp✝ : Loc) (e_sp : sp = sp✝) :
+    bbolt.sparePair B db sp = bbolt.sparePair B✝ db✝ sp✝
+
 theorem bbolt.forEachPageNode_tree [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fsExt] (hpn
     : bbolt.Bucket.pageNode_w.spec) (hRP : bbolt.internal.common.InBucket.RootPage.spec) (hIB :
     bbolt.internal.common.Page.IsBranchPage.spec) (hCnt : bbolt.internal.common.Page.Count.spec)
@@ -52,6 +56,11 @@ theorem bbolt.wdbW.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (K
     : K = K✝) (tx tx✝ : Loc) (e_tx : tx = tx✝) (v v✝ : bbolt.View) (e_v : v = v✝) (w w✝ : bbolt.WDb)
     (e_w : w = w✝) : bbolt.wdbW K tx v w = bbolt.wdbW K✝ tx✝ v✝ w✝
 
+theorem bbolt.wBytesX.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ :
+    bbolt.BFile) (e_p : p = p✝) (W W✝ : List Nat) (e_W : W = W✝) (X X✝ : List Nat) (e_X : X = X✝)
+    (wb wb✝ : Nat → List w8) (e_wb : wb = wb✝) (size size✝ : Nat) (e_size : size = size✝) :
+    bbolt.wBytesX p W X wb size = bbolt.wBytesX p✝ W✝ X✝ wb✝ size✝
+
 theorem bbolt.dbPathLk.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (db db✝ : Loc)
     (e_db : db = db✝) (p p✝ : bbolt.BFile) (e_p : p = p✝) (fd fd✝ : w64) (e_fd : fd = fd✝) :
     bbolt.dbPathLk db p fd = bbolt.dbPathLk db✝ p✝ fd✝
@@ -61,10 +70,6 @@ theorem bbolt.freeI_acc [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [hos : HasExt Fs.fs
     bbolt.BRec) (txp : Loc) (hB : X.t.bs !! bl = some B) (hl : bl ∈ X.liveB) (hlive : ∀ (l : Loc) (r
     : bbolt.NRec), B.ns !! l = some r → l ∈ X.live) : ⊢ bbolt.Write.walkAcc K tx r m X bl B
     (bbolt.freeI K tx r m X w bl B txp)
-
-theorem bbolt.wBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ : bbolt.BFile)
-    (e_p : p = p✝) (W W✝ : List Nat) (e_W : W = W✝) (wb wb✝ : Nat → List w8) (e_wb : wb = wb✝) (size
-    size✝ : Nat) (e_size : size = size✝) : bbolt.wBytes p W wb size = bbolt.wBytes p✝ W✝ wb✝ size✝
 
 theorem bbolt.metaOsBytes.congr_simp [ExtSemantics Fs.fsExt] [hos : HasExt Fs.fsExt] (p p✝ :
     bbolt.BFile) (e_p : p = p✝) (dq dq✝ : DFrac) (e_dq : dq = dq✝) (C C✝ : bbolt.CommitSt) (e_C : C

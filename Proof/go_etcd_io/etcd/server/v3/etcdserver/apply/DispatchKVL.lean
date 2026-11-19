@@ -751,7 +751,7 @@ theorem apply.uberApplier.dispatch.wp_kvL
       isplitl [Hmp]
       · iunfold apply.putPreW
         isplitr
-        · ipureintro; exact ⟨hs, hk, hok⟩
+        · ipureintro; exact ⟨hs, hk, hok.1, hok.2 x hs⟩
         ihave #HcpK := apply.certPreW_mono E c rq log _ _
           (fun oc (h : _ ∧ apply.leaseExactL Lm rq log oc) => ⟨by simp only [apply.kvOutL, hk]; exact ⟨x, hs, h.1⟩,
             fun hlg => HLm hlg ▸ h.2⟩) $$ Hcp

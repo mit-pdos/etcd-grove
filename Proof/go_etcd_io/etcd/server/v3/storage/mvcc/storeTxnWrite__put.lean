@@ -130,7 +130,7 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
         { key := k, createRev := $cr, modRev := W64 ilog.length,
           version := $vr, value := v, lease := leaseID }
         DFrac.discard DFrac.discard) $$ [$(frameH `«$r0») $(frameH `Hkey) $(frameH `Hval)]
-      as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap⟩
+      as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap, %Hdlen⟩
     · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
     (try wp_auto)
     -- `if err != nil { Fatal }`: not taken (resolved by `wp_auto`)
@@ -150,7 +150,8 @@ local macro "tw_write" cr:term:max vr:term:max : tactic => `(tactic| (
           $(frameH `Hd)] as ⟨Hlocked, Hbv⟩
     · ipureintro
       exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
-        (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb)
+        (mvcc.storePutOk_next γ ilog pend false _ (by omega) Hcs Hb
+          (by simp only at Hdlen; unfold etcdKeyMax at Hkvb; unfold bbolt.bboltEntryMax; omega))
     ihave Hbv : mvcc.bucketViewL γ mvcc.txQ ilog $$ [Hbv]
     · iunfold mvcc.bucketViewL; iexists m; iframe Hbv; iexact Hbl
     icases mvcc.muHeld_idx s γ crev ti $$ Hmu with ⟨Hidxf, HmuI⟩
@@ -227,7 +228,7 @@ theorem mvcc.storeTxnWrite.put.wp_proof
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.put.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key value k v leaseID L te crev Z w
-  wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, Hown, %Hlease, Htrc, %Hwm⟩
+  wp_start as ⟨Htw, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, Htrc, %Hwm⟩
   try simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw

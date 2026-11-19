@@ -9,7 +9,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.WAL__syncNoErr
 public import Spec.go_etcd_io.etcd.server.v3.storage.wal.encoder__encodeTailNoErr
-public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshot
+public import Proof.go_etcd_io.etcd.server.v3.storage.wal.WAL__SaveSnapshotLemmas
 
 @[expose] public section
 

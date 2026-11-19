@@ -61,6 +61,14 @@ theorem txn.opOk_put_et (s0 : List EtcdKv) (r : w64) (s : List EtcdKv) (o : OpFu
     simp only [hv, hl, Bool.false_eq_true, ↓reduceIte, Bool.or_false, Bool.or_self] at h hn <;>
     simp only [txn.OpOk, txn.IgnOk, Bool.false_eq_true, false_and, or_false] at h <;> exact h
 
+/-- (S1b) A put of the run within the bound: its key, and its value unless it keeps the stored one. -/
+theorem txn.putTxnOp_putsLe {N : Nat} (o : OpFull) (h : (txn.putTxnOp o).putsLe N) :
+    o.key.length ≤ N ∧ (o.ignoreValue = false → o.val.length ≤ N) := by
+  unfold txn.putTxnOp at h
+  cases hv : o.ignoreValue <;> cases hl : o.ignoreLease <;>
+    simp only [hv, hl, Bool.false_eq_true, ↓reduceIte, TxnOp.putsLe] at h <;>
+    first | exact ⟨h.1, fun _ => h.2⟩ | exact ⟨h, fun h' => by cases h'⟩
+
 theorem txn.responseOpIs_put_et (skip : Bool) (p w r : Loc) (o : OpFull) :
     ⊢ ⌜p ≠ null⌝ -∗
       structFieldRef etcdserverpb.ResponseOp go!"Response" p ↦□
@@ -188,7 +196,7 @@ theorem txn.executeTxn.wp_proof
   wp_start as ⟨Htw, Htrc, #Hctx, #Hct, #Hnd, #Hrt, #Hpl, Hskel, #Hleases, #Hknown, Hown, %Hpre⟩
   icases txn.mvccTxn_shape hsh tw γ trace kt $$ Htw with ⟨%Hsh, Htw⟩
   obtain ⟨tyX, vX, rfl, hRevC, -, -, -, -, hChC, -⟩ := Hsh
-  obtain ⟨hreach, hpre1, hwin, hpre3, hpre4⟩ := Hpre
+  obtain ⟨hreach, hpre1, hwin, hpre3, hpre4, hfit⟩ := Hpre
   have Hpre := And.intro hpre1 (And.intro True.intro (And.intro hpre3 hpre4))
   iunfold txn.txnRequestIs at Hrt
   icases Hrt with ⟨%Hrtn, #Hrt⟩
@@ -642,9 +650,16 @@ theorem txn.executeTxn.wp_proof
           apply opsLeases_mem s0 ops _ hmem
           rw [txn.opLeases_txn_et]; exact hl
         ipureintro
-        refine ⟨hreach, hokT, Or.inr (txn.winOp_txn wn s0 r stn cs ts es (hwinn hro).1), ?_, ?_⟩
+        refine ⟨hreach, hokT, Or.inr (txn.winOp_txn wn s0 r stn cs ts es (hwinn hro).1), ?_, ?_, ?_⟩
         · intro hro; cases hro
         · intro h; cases h
+        · intro op hop
+          have hb := hfit _ hmem
+          simp only [TxnOp.putsLe] at hb
+          unfold TxnModel.branch at hop
+          split at hop
+          · exact (TxnOp.opsPutsLe_iff _).1 hb.1 op hop
+          · exact (TxnOp.opsPutsLe_iff _).1 hb.2 op hop
       icases Hres with (⟨%Hres, Htw, #Hresps, #Hknown', Hown⟩ | ⟨%Hc, -⟩)
       rotate_left
       · cases Hc
@@ -789,7 +804,7 @@ theorem txn.executeTxn.wp_proof
         isplitl []
         · ipureintro
           exact txn.opOk_put_et s0 r stn o hokn.1
-        ipureintro; exact hwp
+        ipureintro; exact ⟨hwp, txn.putTxnOp_putsLe o (hfit _ hmem)⟩
       rw [hps]
       ipersist Hw
       wp_apply (hStop trace te slice.nil) $$ [$Htrc] as Htrc

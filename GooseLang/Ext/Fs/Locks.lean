@@ -383,12 +383,12 @@ theorem wp_osLockStep (o : String) (v : val) (k : LockKind) (fd : w64) (d : OsFd
     (hex : ∀ st e' st', st.proc.fds !! fd = some d → LockStep st k fd d req nb e' st' →
       IsFsStep o v st e' st')
     (hst : ∀ st e' st', st.proc.fds !! fd = some d → IsFsStep o v st e' st' →
-      LockStep st k fd d req nb e' st') (Φ : val → IProp GF) :
+      LockStep st k fd d req nb e' st') (Φ : val → IProp GF) (hM : o ≠ "Mmap" := by decide) :
     ⊢ osInv (L := L) -∗ osFd (L := L) fd (DFrac.own 1) d -∗ lockTok (L := L) k fd d -∗
       (∀ e : w64, lockOut (L := L) k fd d req e -∗ Φ (#e)) -∗
       WP (ExternalOp fsExt.name o (Val v)) @ s; E {{ Φ }} := by
   iintro #Hinv Hfd Ht HΦ
-  iapply wp_os_stepL o v Φ hv hE ho $$ Hinv
+  iapply wp_os_stepL o v Φ hv hE ho hM $$ Hinv
   iintro %st %Γb %Γm %Γf %Γt %h Hw Hlk
   unfold osWorld
   icases Hw with ⟨%Hwc, HAb, HAm, HAf, HAt, Htok, Hcells, Hσ⟩

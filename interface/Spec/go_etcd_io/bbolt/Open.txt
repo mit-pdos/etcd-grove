@@ -4,26 +4,36 @@
 
 def bbolt.Open.spec : Prop :=
   ∀ [inst : ExtSemantics Fs.fsExt] [inst_1 : Fs.FsSemOk] [inst_2 : HasExt Fs.fsExt] [ThreadBoundLe GF (2 ^ 29)]
-    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (path : GoString) (mode : w32) (opts : Loc) (dq : DFrac)
-    (o : bbolt.OptsM) (D : bbolt.Data) (R : Fs.Roots) (V : Fs.Hist),
-    ⊢
-      ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.bbolt ∗
-            Fs.osInv ∗
-              ⌜N ## Fs.osN⌝ ∗
-                Fs.osTree (DFrac.own 1) R V ∗
-                  bbolt.pathHolds R V path D ∗
-                    bbolt.optsAt opts dq o ∗ ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ bbolt.boltLogger o.logger) -∗
-          (▷
-              ∀ db err,
-                (bbolt.optsAt opts dq o ∗
-                    ∃ V',
-                      Fs.osTree (DFrac.own 1) R V' ∗
-                        ⌜V' = V ∨ ∃ e, V' = V.push e⌝ ∗
-                          ((⌜err = GoInterface.nil⌝ ∗
-                              ∃ γ i,
-                                ⌜γ.ns = N ∧ Fs.lookupH R V' path = some (Fs.Node.file i)⌝ ∗
-                                  bbolt.isBolt db γ ∗ bbolt.boltState γ 1 D) ∨
-                            ⌜err ≠ GoInterface.nil⌝)) -∗
-                  Φ (intoVal db, intoVal err)) -∗
-            WP ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal path)) (intoVal mode)) (intoVal opts)) {{ Φ }}
+    [ReceiptBoundLe GF (2 ^ 62)] (N : Namespace) (R : Fs.Roots) (d b : GoString) (dq : DFrac) (j : Fs.Ino) (qc : Qp)
+    (h : Fs.NamesH) (mode : w32) (opts : Loc) (dqo : DFrac) (o : bbolt.OptsM) (D : bbolt.Data),
+    NameOk b →
+      ⊢
+        ∀ Φ,
+          isPkgInit pkg_id.go_etcd_io.bbolt ∗
+              Fs.osInv ∗
+                ⌜N ## Fs.osN⌝ ∗
+                  Fs.osSharedInv R ∗
+                    Fs.osPathS R d dq j ∗
+                      Fs.osCallPerm qc ∗
+                        Fs.osNames j (Fs.NameSet.only [b]) (DFrac.own 1) h ∗
+                          bbolt.nameHolds h b D ∗
+                            bbolt.optsAtNoErr opts dqo o ∗
+                              ⌜o.ok⌝ ∗ (⌜o.logger = GoInterface.nil⌝ ∨ bbolt.boltLogger o.logger) -∗
+            (▷
+                ∀ db err,
+                  (bbolt.optsAtNoErr opts dqo o ∗
+                      Fs.osPathS R d dq j ∗
+                        Fs.osCallPerm qc ∗
+                          ∃ oc,
+                            crOut j b h (DFrac.own 1) oc ∗
+                              ((⌜err = GoInterface.nil⌝ ∗
+                                  ∃ γ i,
+                                    ⌜γ.ns = N ∧ crIno b h oc i⌝ ∗
+                                      bbolt.isBolt db γ ∗
+                                        bbolt.boltIno γ i ∗ bbolt.boltState γ 1 D ∗ bbolt.boltCloser γ) ∨
+                                ⌜err ≠ GoInterface.nil ∧ ¬Fs.FsNoErr⌝)) -∗
+                    Φ (intoVal db, intoVal err)) -∗
+              WP
+                ((((intoVal (functions go_etcd_io.bbolt.Open [])) (intoVal (Fs.child d b))) (intoVal mode))
+                  (intoVal opts))
+                {{ Φ }}

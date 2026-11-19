@@ -48,11 +48,12 @@ local macro "send_drop" : tactic => `(tactic| (
   repeat' (first_callee
     | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [] as -; iframe #)
     | "GetFrom" => (wp_apply hGetFrom.1 ml _ _ _ st $$ [] as -; iframe #)
-    | "String" => (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
-                   iunfold fmt.stringMethodSpec at HT
-                   wp_apply HT as %_)
-    | "String" => (wp_apply hIDString as %_ -)
-    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "MessageType.String" =>
+      (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
+       iunfold fmt.stringMethodSpec at HT
+       wp_apply HT as %_)
+    | "ID.String" => (wp_apply hIDString as %_ -)
+    | "*ID.String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
     | "isActive" => (wp_apply hIsActive ps $$ [] as %_ -; iframe #)
     | "zap.String" => (wp_apply hZString as %_ -)
     | "zap.Bool" => (wp_apply hZBool as %_ -)

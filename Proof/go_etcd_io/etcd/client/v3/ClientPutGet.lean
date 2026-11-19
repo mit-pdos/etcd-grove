@@ -35,6 +35,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvClientNewResult
 public import Proof.go_etcd_io.etcd.client.v3.ReplyValues
 public import Proof.go_etcd_io.etcd.client.v3.ReadUpds
 public import Proof.go_etcd_io.etcd.client.v3.Results
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -319,15 +320,11 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     · ipureintro; exact Herr.1
     · iexact Hke
 
-/-- A write through `New`'s client sent at most once (D29): its `*kv`'s (`KV` field's). -/
-theorem clientWriteOnce_api (cl api : Loc) (addrs : List GoString) :
-    clientF cl go!"KV" ↦□
-        interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.kv.ty) #api ∗
-      clientWriteOnce (GF := GF) cl addrs ⊢ writeOnce api addrs := by
-  iintro ⟨-, #Hw⟩
-  iunfold clientWriteOnce at Hw
-  iunfold writeOnce
-  iexact Hw
+theorem client_Get_st_law_holds : client_Get_st.law (GF := GF) (hG := hG) :=
+  client_Get_st
+
+theorem client_range_any_law_holds : client_range_any.law (GF := GF) (hG := hG) :=
+  client_range_any
 
 /-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` that sends a write at most
 once, with an update fired at most once, one per member (see the file header): `nil`, the reply's
@@ -453,6 +450,9 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     · ipureintro; exact Herr
     · iexact Hke
 
+theorem client_Put_st_law_holds : client_Put_st.law (GF := GF) (hG := hG) :=
+  client_Put_st
+
 /-- `cli.Delete(ctx, key)` by `New`'s client of the members `ms` that sends a write at most once,
 with an update fired at most once, one per member (see the file header). -/
 theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
@@ -516,6 +516,9 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     · ipureintro; exact Herr.1
     · iexact Hke
 
+theorem client_Delete_st_law_holds : client_Delete_st.law (GF := GF) (hG := hG) :=
+  client_Delete_st
+
 /-- `cli.Txn(ctx)` by `New`'s client of the members `ms`: the builder, empty, made from the
 client's `*kv` (which sends a write at most once: `txnWriteOnce`). -/
 theorem client_Txn_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
@@ -547,6 +550,9 @@ theorem client_Txn_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   iunfold txnWriteOnce
   iunfold writeOnce at Hwo
   iexact Hwo
+
+theorem client_Txn_st_law_holds : client_Txn_st.law (GF := GF) (hG := hG) :=
+  client_Txn_st
 
 end family
 
@@ -608,6 +614,9 @@ theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
     · ipureintro; exact Herr.1
     · iexact Hke
 
+theorem client_Put_kv_law_holds : client_Put_kv.law (GF := GF) (hG := hG) :=
+  client_Put_kv
+
 /-- **`cli.Compact(ctx, rev)` by `New`'s client `cl`** (the client's `kv.Compact`, 2026-11-01;
 `kv.Compact` through the `KV` field, as `client_Put_kv`): on a compacting cluster, at a revision
 past `0` at least the cluster's retention behind a revision the KV has reached (`kvRevLbZ`; at
@@ -632,41 +641,8 @@ theorem client_Compact_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInt
   iapply HΦ
   iexact Hout
 
-/-- The get of one key at revision `rev` selects the key's key-values of the store it reads, as
-the get at the latest (pure; `srvRangeOk_getKey`: the selection does not read the revision). -/
-theorem srvRangeOk_getKeyRev (key : GoString) (rev : w64) (s kvs : List EtcdKv) (more : Bool)
-    (h : txn.srvRangeOk (rangeWireOf (opGetModel key [withRevM rev])) s kvs more) :
-    kvs = s.filter (fun v => decide (v.key = key)) := by
-  generalize ho : rangeWireOf (opGetModel key [withRevM rev]) = o at h
-  have ho' : o = { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } := by
-    rw [← ho]; rfl
-  subst ho'
-  obtain ⟨L, hsort, hmore, hkvs⟩ := h
-  have hpre : txn.srvPre { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } s =
-      s.filter (fun v => decide (v.key = key)) := by
-    have hr : txn.kvRead false = id := by funext v; simp [txn.kvRead]
-    unfold txn.srvPre
-    simp [txn.rangeLimitOf, txn.hasRevFilters, mvcc.limitOf, mvcc.takeLimit, txn.fastKeysOnly,
-      rangeIn, inRange, hr]
-    apply List.filter_congr
-    intro v _
-    simp [kvFilterOk]
-  have hord : ({ getKeyOp key with base := { (getKeyOp key).base with rev := rev } } :
-      OpFull).effSortOrder = W64 0 := by
-    simp [OpFull.effSortOrder]
-  have hL : L = txn.srvPre { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } s := by
-    obtain ⟨-, -, -, h4⟩ := hsort
-    exact h4 (by rw [hord]; decide) (by rw [hord]; decide)
-  have hm : txn.srvMore { getKeyOp key with base := { (getKeyOp key).base with rev := rev } } L =
-      false := by
-    simp [txn.srvMore]
-  rw [hkvs]
-  unfold txn.srvTrunc
-  rw [hm, hL, hpre]
-  have hresp : ∀ o : OpFull, o.keysOnly = false → txn.respKv o = id := fun o h => by
-    funext v; simp [txn.respKv, h]
-  rw [hresp _ rfl]
-  simp
+theorem client_Compact_kv_law_holds : client_Compact_kv.law (GF := GF) (hG := hG) :=
+  client_Compact_kv
 
 /-- **`cli.Get(ctx, key, WithRev(rev))` by a client whose `KV` field is a `*kv` of etcd's KV `γ`**
 (`isKv`; `kv.Get.spec` through the field, as `client_Put_kv`), with a read update: `nil` and the
@@ -728,6 +704,9 @@ theorem client_Get_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfa
   · iright
     iframe Hke
     ipureintro; exact Herr
+
+theorem client_Get_kv_law_holds : client_Get_kv.law (GF := GF) (hG := hG) :=
+  client_Get_kv
 
 end kv_api
 

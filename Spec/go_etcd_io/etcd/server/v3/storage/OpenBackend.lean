@@ -6,7 +6,7 @@ takes over 10 s). The trust boundary (D22 S-f, 2026-10-19; an axiom in
 `Proof/go_etcd_io/etcd/server/v3/storage/OpenBackend.lean`: the goroutine can panic, see
 `InvOpen.lean`'s `dbOpensOk`). Lean-first (no Rocq counterpart).
 
-The pre: the file holding `D` (`fileHolds`) and `openPre` (`InvOpen.lean`; since 2026-10-29 with
+The pre: the file holding `D` (`fileHolds`, S5: the concrete claim on the name, what `backend.New` takes; until then the abstract `srvFileHolds`) and `openPre` (`InvOpen.lean`; since 2026-10-29 with
 `openMmapOk cfg`, a quota whose mmap size bbolt can map: `newBackend` panics otherwise,
 `notes/axiom-review/openbackend.md`). The post: what
 `backend.New` gives (`newPostK`: D22 receiver epochs, S8a, 2026-10-24, the creator's batch-lock
@@ -25,6 +25,8 @@ separate wand
 (2026-11-06, branch `begin-tok`, the user's approval: `notes/begin-tok-plan.md`, Q2) Under
 `[ThreadBoundLe GF (2 ^ 29)]`, which `backend.New` (through `bbolt.Open_kv`) now takes; the triple
 is unchanged: `OpenBackend`'s goroutine pays `New`'s `threadTok` with its own.
+(S5, 2026-11-18) The pre is the concrete `fileHolds` (`backend.New`'s), the post `New`'s with the
+claim on the name (`bPath γ.db`): the axiom creates nothing (`notes/bbolt-integration-plan.md`, S5).
 -/
 module
 
@@ -60,7 +62,9 @@ abbrev storage.OpenBackend.spec : Prop :=
       newPostK γ P W Pk K b D ∗ hooksAt b h ∗
       -- (2026-11-04, R2b-3c part 2, the user's approval) the backend's file is the configuration's
       -- backend path
-      bFile γ (config.backendPathOf cfg.DataDir') }}
+      bFile γ (config.backendPathOf cfg.DataDir') ∗
+      -- (S5, 2026-11-18) and the claim on its name, `backend.New`'s (`bPath`)
+      bPath γ.db (config.backendPathOf cfg.DataDir') }}
 
 end spec
 

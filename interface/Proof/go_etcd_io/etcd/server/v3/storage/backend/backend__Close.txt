@@ -2,8 +2,12 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+theorem backend.dbRestF.congr_simp [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] (γ γ✝ :
+    backend.DBNames) (e_γ : γ = γ✝) : backend.dbRestF γ = backend.dbRestF γ✝
+
 theorem backend.backend.Close.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
-    [time.Assumptions] (hClose : bbolt.DB.Close_kv.spec) : backend.backend.Close.spec
+    [time.Assumptions] (hClose : ∀ [os.file.FieldAssumptions] [os.fileStat.FieldAssumptions],
+    bbolt.DB.Close.spec) : backend.backend.Close.spec
   -- `Perennial.EtcdGrove.backend.backend.Close.spec`, unfolded:
   ∀ (γ : backend.BNames) (P : backend.BParams) (W Pk : IProp GF) (b : Loc) (X Y : IProp GF),
     ⊢
@@ -16,8 +20,7 @@ theorem backend.backend.Close.wp_proof [go_etcd_io.bbolt.Assumptions] [go_uber_o
                 (Y ∗
                     ∃ D,
                       backend.bStopView γ P W Pk D ∗
-                        ((⌜err = GoInterface.nil⌝ ∗ ∃ path, backend.bFile γ path ∗ backend.fileHolds path D) ∨
-                          ⌜¬backend.dbCloseOk⌝)) -∗
+                        (⌜err = GoInterface.nil⌝ ∗ backend.bClosed γ.db D ∨ ⌜¬backend.dbCloseOk⌝)) -∗
                   Φ (intoVal err)) -∗
             WP
               ((intoVal

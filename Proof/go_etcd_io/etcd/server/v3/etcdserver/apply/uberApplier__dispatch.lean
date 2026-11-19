@@ -488,7 +488,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     have hok := Hok.1
     simp only [rqOk, hk] at hok
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
-    ihave ⟨Hmp, HLt⟩ := apply.putPre_of_mPre E c _ info lPu rq x log Pre Q Post T Hwin.1 Hwin.2 ⟨hs, hk, hok⟩
+    ihave ⟨Hmp, HLt⟩ := apply.putPre_of_mPre E c _ info lPu rq x log Pre Q Post T Hwin.1 Hwin.2 ⟨hs, hk, hok.1, hok.2 _ hs⟩
       $$ [$HR $Hcp $Hmp $HLt]
     wp_apply HPut $$ %lPu %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     · iframe Htt HF Hmp
@@ -538,7 +538,7 @@ theorem apply.uberApplier.dispatch.wp_proof
     simp only [rqOk, hk] at hok
     ihave ⟨Hmp, Hrt⟩ := apply.kvOwnPre_mPre E c _ info log Pre Q Post $$ [$Hkv $Hres]
     ihave ⟨Hmp, HLt⟩ := apply.txnPre_of_mPre E c _ info lTx rq x log Pre Q Post T Hwin.1 Hwin.2
-      (hok x hs).2.2 ⟨hs, hk, (hok x hs).1, (hok x hs).2.1⟩ $$ [$HR $Hcp $Hmp $HLt]
+      (hok x hs).2.2.1 ⟨hs, hk, (hok x hs).1, (hok x hs).2.1, (hok x hs).2.2.2⟩ $$ [$HR $Hcp $Hmp $HLt]
     wp_apply HTxn $$ %lTx %skip %rq %x %log %F %Pre %Q %Post %info [Htt Hmp] as %resp %trace %err ⟨Hpost, Htrc, Htt⟩
     · iframe Htt HF Hmp
     iunfold apply.kvPostF at Hpost

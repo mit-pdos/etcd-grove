@@ -6,7 +6,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Spec.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Spec.go_etcd_io.etcd.pkg.v3.adt.NewBytesAffineInterval
-public import Proof.go_etcd_io.etcd.pkg.v3.adt.Link
+public import Spec.go_etcd_io.etcd.pkg.v3.adt.intervalTree__Contains_bytes
 @[expose] public section
 
 set_option linter.unusedSectionVars false
@@ -48,7 +48,8 @@ theorem auth.checkKeyInterval.range_case (L : List adt.Entry) (k e : GoString) (
 
 theorem auth.checkKeyInterval.wp_proof
     (h_isOpenEnded : auth.isOpenEnded.spec (GF := GF) (hG := hG))
-    (h_NewBytesAffineInterval : adt.NewBytesAffineInterval.spec (GF := GF) (hG := hG)) :
+    (h_NewBytesAffineInterval : adt.NewBytesAffineInterval.spec (GF := GF) (hG := hG))
+    (h_Contains_bytes : adt.intervalTree.Contains_bytes.spec (GF := GF) (hG := hG)) :
     auth.checkKeyInterval.spec (GF := GF) (hG := hG) := by
   intro lg p Lr Lw key re k e dk de pt
   wp_start as ⟨#Hp, Hk, He, %Hpt⟩
@@ -68,7 +69,7 @@ theorem auth.checkKeyInterval.wp_proof
     rcases Hpt with rfl | rfl
     · wp_if_destruct
       · (try wp_auto)
-        wp_apply (adt.intervalTree.wp_Contains_bytes tr Lr key slice.nil k [] dk (DFrac.own 1)
+        wp_apply (h_Contains_bytes tr Lr key slice.nil k [] dk (DFrac.own 1)
           .discard) $$ [$Htr $Hk] as %r ⟨-, Hk, -, %Hres⟩
         · iapply ownSlice_nil (V := w8) (DFrac.own 1)
         first | (iapply HΦ; iframe Hk He) | iframe Hk He
@@ -80,7 +81,7 @@ theorem auth.checkKeyInterval.wp_proof
     · wp_if_destruct
       · exfalso; revert Hif; word
       · (try wp_auto)
-        wp_apply (adt.intervalTree.wp_Contains_bytes tw Lw key slice.nil k [] dk (DFrac.own 1)
+        wp_apply (h_Contains_bytes tw Lw key slice.nil k [] dk (DFrac.own 1)
           .discard) $$ [$Htw $Hk] as %r ⟨-, Hk, -, %Hres⟩
         · iapply ownSlice_nil (V := w8) (DFrac.own 1)
         first | (iapply HΦ; iframe Hk He) | iframe Hk He
@@ -95,7 +96,7 @@ theorem auth.checkKeyInterval.wp_proof
     rcases Hpt with rfl | rfl
     · wp_if_destruct
       · (try wp_auto)
-        wp_apply (adt.intervalTree.wp_Contains_bytes tr Lr key re k e dk de .discard)
+        wp_apply (h_Contains_bytes tr Lr key re k e dk de .discard)
           $$ [$Htr $Hk $He] as %r ⟨-, Hk, He, %Hres⟩
         first | (iapply HΦ; iframe Hk He) | iframe Hk He
         ipureintro
@@ -108,7 +109,7 @@ theorem auth.checkKeyInterval.wp_proof
     · wp_if_destruct
       · exfalso; revert Hif; word
       · (try wp_auto)
-        wp_apply (adt.intervalTree.wp_Contains_bytes tw Lw key re k e dk de .discard)
+        wp_apply (h_Contains_bytes tw Lw key re k e dk de .discard)
           $$ [$Htw $Hk $He] as %r ⟨-, Hk, He, %Hres⟩
         first | (iapply HΦ; iframe Hk He) | iframe Hk He
         ipureintro

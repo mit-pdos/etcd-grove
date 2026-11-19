@@ -5,7 +5,9 @@ sealed `mvccTxn` as `mvccTxnI`.
 
 A transaction of the API is the internal transaction (`isTxnReadT`, `isTxnWriteT`) **without its
 trace** (`Tr := True`: `KV.Read`/`Write` give the trace back to the caller, which lends it to `Range`
-and `Put`), at the state it began at (`σ.log`, `σ.crev`; nothing pending, reachable), with the
+and `Put`), at the state it began at (`σ.log`, `σ.crev`; nothing pending, reachable; a write's
+pending puts of at most `etcdKeyMax` bytes, S1b 2026-11-17, what its commit's `MvccReachable.notify`
+takes), with the
 reader token's way back (`storeReaderC s γ ={⊤}=∗ ownToks γ.api.rdk 1`: the readers' pool's loan,
 whatever the pool is; `End` gives the reader back through it), as an interface value of one of three types:
 * a read transaction is `*metricsTxnWrite` (`store.Read`'s), or `NewReadOnlyTxnWrite`'s
@@ -78,7 +80,7 @@ def mvccTxnI (t : GoInterface) (γ : StoreNames) (trace : Loc) (k : MTxn) : IPro
       isTxnReadT mw s γ trace σ.log (W64 ((σ.log.length : Int) - 1)) σ.crev iprop(True) iprop(True) ∗
       tokBack s γ ∗ roWrap n t mw)
   | .write σ pend => iprop(∃ (mw s : Loc) (p : PhysNames) (puts deletes putSize : w64),
-      ⌜σ.pending = none ∧ MvccReachable σ⌝ ∗
+      ⌜σ.pending = none ∧ MvccReachable σ ∧ ChPutsLe etcdKeyMax pend⌝ ∗
       isTxnWriteT mw s (γ.withPhys p) trace σ.log pend puts deletes putSize σ.crev iprop(True) false
         iprop(True) ∗
       tokBack s (γ.withPhys p) ∗ certFree (γ.withPhys p) ∗ wrWrap t (γ.withPhys p) s mw σ.log)

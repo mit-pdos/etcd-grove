@@ -9,7 +9,7 @@ public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__checkPrevCompac
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__updateCompactRev
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.TODO
 public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__compact
-public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpCb
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Api.CmpCbDefs
 
 @[expose] public section
 

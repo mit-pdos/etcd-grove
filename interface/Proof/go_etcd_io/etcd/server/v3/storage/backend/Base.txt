@@ -17,15 +17,16 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.get_isPkgInit_wf_inst : 
               GetIsPkgInitProp pkg_id.sync get_is_pkg_init ∧
                 GetIsPkgInitProp pkg_id.sync.atomic get_is_pkg_init ∧
                   GetIsPkgInitProp pkg_id.time get_is_pkg_init ∧
-                    GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧
-                      GetIsPkgInitProp pkg_id.go_etcd_io.bbolt get_is_pkg_init ∧
-                        GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.verify get_is_pkg_init ∧
-                          GetIsPkgInitProp pkg_id.errors get_is_pkg_init ∧
-                            GetIsPkgInitProp pkg_id.math get_is_pkg_init ∧
-                              GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.errors get_is_pkg_init ∧
-                                GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus get_is_pkg_init ∧
-                                  GetIsPkgInitProp pkg_id.encoding.hex get_is_pkg_init ∧
-                                    GetIsPkgInitProp pkg_id.sort get_is_pkg_init ∧ True }
+                    GetIsPkgInitProp pkg_id.github_com.dustin.go_humanize get_is_pkg_init ∧
+                      GetIsPkgInitProp pkg_id.go_uber_org.zap get_is_pkg_init ∧
+                        GetIsPkgInitProp pkg_id.go_etcd_io.bbolt get_is_pkg_init ∧
+                          GetIsPkgInitProp pkg_id.go_etcd_io.etcd.client.pkg.v3.verify get_is_pkg_init ∧
+                            GetIsPkgInitProp pkg_id.errors get_is_pkg_init ∧
+                              GetIsPkgInitProp pkg_id.math get_is_pkg_init ∧
+                                GetIsPkgInitProp pkg_id.go_etcd_io.bbolt.errors get_is_pkg_init ∧
+                                  GetIsPkgInitProp pkg_id.github_com.prometheus.client_golang.prometheus get_is_pkg_init ∧
+                                    GetIsPkgInitProp pkg_id.encoding.hex get_is_pkg_init ∧
+                                      GetIsPkgInitProp pkg_id.sort get_is_pkg_init ∧ True }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.isPkgInit_inst : IsPkgInit (IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.storage.backend :=
@@ -37,14 +38,15 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.isPkgInit_inst : IsPkgIn
               isPkgInit pkg_id.sync ∗
                 isPkgInit pkg_id.sync.atomic ∗
                   isPkgInit pkg_id.time ∗
-                    isPkgInit pkg_id.go_uber_org.zap ∗
-                      isPkgInit pkg_id.go_etcd_io.bbolt ∗
-                        isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗
-                          isPkgInit pkg_id.errors ∗
-                            isPkgInit pkg_id.math ∗
-                              isPkgInit pkg_id.go_etcd_io.bbolt.errors ∗
-                                isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∗
-                                  isPkgInit pkg_id.encoding.hex ∗ isPkgInit pkg_id.sort ∗ True),
+                    isPkgInit pkg_id.github_com.dustin.go_humanize ∗
+                      isPkgInit pkg_id.go_uber_org.zap ∗
+                        isPkgInit pkg_id.go_etcd_io.bbolt ∗
+                          isPkgInit pkg_id.go_etcd_io.etcd.client.pkg.v3.verify ∗
+                            isPkgInit pkg_id.errors ∗
+                              isPkgInit pkg_id.math ∗
+                                isPkgInit pkg_id.go_etcd_io.bbolt.errors ∗
+                                  isPkgInit pkg_id.github_com.prometheus.client_golang.prometheus ∗
+                                    isPkgInit pkg_id.encoding.hex ∗ isPkgInit pkg_id.sort ∗ True),
     isPkgInitDef := go_etcd_io.etcd.server.v3.storage.backend.backendInit }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF :=
@@ -70,6 +72,16 @@ def Perennial.go_etcd_io.etcd.server.v3.storage.backend.backendInit : IProp GF :
                     DFrac.discard ∗
                   typedPointsto (globalAddr go_etcd_io.etcd.server.v3.storage.backend.InitialMmapSize) (W64 10737418240)
                     DFrac.discard)
+
+def Perennial.github_com.dustin.go_humanize.get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF)
+    pkg_id.github_com.dustin.go_humanize :=
+  {
+    get_is_pkg_init_prop_def := fun get_is_pkg_init =>
+      get_is_pkg_init pkg_id.github_com.dustin.go_humanize = isPkgInit pkg_id.github_com.dustin.go_humanize ∧ True }
+
+def Perennial.github_com.dustin.go_humanize.isPkgInit_inst : IsPkgInit (IProp GF)
+    pkg_id.github_com.dustin.go_humanize :=
+  { isPkgInitDeps := iprop(True), isPkgInitDef := iprop(True) }
 
 def Perennial.go_etcd_io.etcd.server.v3.storage.backend.histSpec (h : GoInterfaceOk) : IProp GF :=
   iprop(□

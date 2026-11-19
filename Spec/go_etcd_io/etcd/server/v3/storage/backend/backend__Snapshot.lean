@@ -1,5 +1,5 @@
 /-
-`Snapshot` (the backend, `backend.go`; names only). `b.Snapshot()`: the batch transaction
+`Snapshot` (the backend, `backend.go`; translated since S4b, 2026-11-18, still the trust boundary). `b.Snapshot()`: the batch transaction
 committed (`b.batchTx.Commit()`), then, under `b.mu`'s reader side, a bbolt read transaction
 begun (`b.db.Begin(false)`, `lg.Fatal` on an error) and a goroutine started that warns while the
 snapshot stays open; the `*snapshot` returned. The trust boundary (D22 S-f, 2026-10-19; an axiom
@@ -61,7 +61,7 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.backend backend
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 

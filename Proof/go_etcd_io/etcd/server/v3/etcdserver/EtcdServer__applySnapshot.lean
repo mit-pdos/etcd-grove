@@ -113,7 +113,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
     (hWA : mvcc.api.mvccW_alloc.law (GF := GF)) (hOpen : mvcc.api.etcdStorage_open.law (GF := GF))
     (hRest : mvcc.api.backendRest_open.law (GF := GF)) :
     EtcdServer.applySnapshot.specSnapM (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hmmap tI hmeta st b hle al ast lp cl x A r0 hRO A' u hxA hst hnl hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc hns
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi hcsz d D lgh hkb hdbo hsop hP hmmap tI hmeta st b hle al ast lp cl x A r0 hRO A' u hxA hst hnl hbr hlp γp hrbw stp γd γt img nt hstp hnt halarm halbi hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad hbuq hAA' hA' hleaseI hpre0 hlmk hany hauthI γnc hns
     iintro %Φ Hpre HΦ
     icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hrcv, Hai, Hat, Hdsi, Hlr, Hbr, Htk, #Hcfg, #Hcfgl, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hvoff, #Hbh, Hst, Hab, HKV, HRS, #HAlb, #Hlinv, #Hlpf, #Hlrev, #Hkvf, #Him, HCp, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Hclgz, #Htrf, Htlive, #Hmidf, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HoSC, HoOh, HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, #HmetaB⟩
     -- (the lease-expiry plan's S2–S4, 2026-11-05) a cluster that grants leases restores the image's
@@ -290,7 +290,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
         intro _ p hp
         obtain ⟨x, hx, hx1⟩ := List.mem_map.1 (hperm'.mem_iff.2 (List.mem_map.2 ⟨p, hp, rfl⟩))
         exact ⟨x, hx, hx1, by rw [hx1, tableReq_of_mem hnT' hp]⟩
-      ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg Hp s ep sv γ ci TM E ρ γr cfg ss hk d D ⟨hP.2.2.1, hP.2.2.2⟩ al ast lp cl x A hlp γp γt memI γn t c rs idm quota wad A' hxA.1 hAA' (fun k id h => by rw [hsI]; exact hnlW k id h) hA'.2 hany (srvIds E (appliedTableM E.authOn γr A').ids) recs U
+      ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg Hp s ep sv hcsz γ ci TM E ρ γr cfg ss hk d D ⟨hP.2.2.1, hP.2.2.2⟩ al ast lp cl x A hlp γp γt memI γn t c rs idm quota wad A' hxA.1 hAA' (fun k id h => by rw [hsI]; exact hnlW k id h) hA'.2 hany (srvIds E (appliedTableM E.authOn γr A').ids) recs U
         (tableReq (appliedTableM E.authOn γr A')) f rfl hUok' hbkG (fun _ => hfT) hreqT) $$ [Hw]
       · iframe #
         iframe Hw
@@ -395,7 +395,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snapM
       isplitr; · iintro !> -; iapply BigSepL.bigSepL_nil; iempintro
       iintro !>; iapply BigSepL.bigSepL_nil; iempintro
     iintro !> ⟨Hw, Hrcv, Htk⟩
-    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg Hp s ep sv γ ci TM E ρ γr cfg ss hk d D ⟨hP.2.2.1, hP.2.2.2⟩ al ast lp cl x A hlp γp γt memI γn t c rs idm quota wad A' hxA.1 hAA' (fun k id h => by rw [hids]; exact hnlE k id h) hA'.2 hany [] [] [] (fun _ => 0) (fun _ => 0) hLr hUok hbkG
+    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hRv hMID hLead hTerm hFS hCIg Hp s ep sv hcsz γ ci TM E ρ γr cfg ss hk d D ⟨hP.2.2.1, hP.2.2.2⟩ al ast lp cl x A hlp γp γt memI γn t c rs idm quota wad A' hxA.1 hAA' (fun k id h => by rw [hids]; exact hnlE k id h) hA'.2 hany [] [] [] (fun _ => 0) (fun _ => 0) hLr hUok hbkG
       (fun h => by rw [hlgE] at h; cases h) (fun h => by rw [hlgE] at h; cases h)) $$ [Hw]
     · iframe #
       iframe Hw

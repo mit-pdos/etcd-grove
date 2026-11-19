@@ -333,10 +333,10 @@ arm also has the transaction's keys distinct (`txn.txnKeysNodup`, the gRPC layer
 applier turns into the lessor window's premise (`txn.winOps_txn_of_nodup`). -/
 def rqOk (lm : lease.Mode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
   match dispatchKind rq with
-  | .put => putOk log
+  | .put => putOk log ∧ ∀ o, rq.put = some o → o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax
   | .deleteRange => ∀ o, rq.deleteRange = some o → delOk log o
   | .range => ∀ o, rq.range = some o → rangeOk log o
-  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log ∧ txn.txnKeysNodup t
+  | .txn => ∀ t, rq.txn = some t → txn.TxnPreA log t ∧ putOk log ∧ txn.txnKeysNodup t ∧ t.putsLe etcdKeyMax
   | .leaseGrant => match lm with
     | .none => False
     | _ => grantKindOk rq
@@ -1861,7 +1861,8 @@ def kvPostF (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.
 lease-exact at the live set `T` of the method's resources (`certPreT`, `mPreAt`), the caller picking `T`. -/
 def putPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (o : OpFull) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log⌝ ∗ txn.putRequestIs r o ∗
+  iprop(⌜rq.put = some o ∧ dispatchKind rq = .put ∧ putOk log ∧
+      o.key.length ≤ etcdKeyMax ∧ o.val.length ≤ etcdKeyMax⌝ ∗ txn.putRequestIs r o ∗
     ∃ T : List w64, ⌜winTgt E.win rq log T⌝ ∗ certPreT E c rq log T ∗ mPreAt E c a info log T Pre Q Post)
 
 /-- `DeleteRange(r)`'s precondition. -/
@@ -1886,7 +1887,8 @@ def rangePost (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etc
 /-- `Txn(r, skip)`'s precondition (auth-lease S3a2: the certificate at the live set, as `putPre`). -/
 def txnPre (E : AEnv GF) (c : Chain) (a : GoInterface) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
     (r : Loc) (rq : IRRModel) (t : TxnModel) (log : mvcc.Log) (Pre Q Post : IProp GF) : IProp GF :=
-  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log⌝ ∗
+  iprop(⌜rq.txn = some t ∧ dispatchKind rq = .txn ∧ txn.TxnPreA log t ∧ putOk log ∧
+      t.putsLe etcdKeyMax⌝ ∗
     txn.txnRequestIs r t ∗ ∃ T : List w64, ⌜winTgt E.win rq log T ∧ txn.txnKeysNodup t⌝ ∗ certPreT E c rq log T ∗
       mPreAt E c a info log T Pre Q Post)
 

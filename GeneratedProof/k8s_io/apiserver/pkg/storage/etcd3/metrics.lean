@@ -2,6 +2,8 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
+public import GeneratedProof.k8s_io.component_base.metrics
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apiserver.pkg.storage.etcd3.metrics
 
@@ -103,12 +105,84 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apiserver.pkg.storage.etcd3.metrics.Assumptions]
 
 noncomputable instance OperationLatencyTracker_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker where
+  typedPointstoDef l v dq := iprop(
+    "verb" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' dq ∗
+    "groupResource" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' dq ∗
+    "latency" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' dq ∗
+    "requests" ∷ typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance OperationLatencyTracker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance OperationLatencyTracker_access_load_verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_store_verb (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (verb' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) v.verb' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"verb" l) verb' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with verb' := verb' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_load_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_store_groupResource (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (groupResource' : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) v.groupResource' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"groupResource" l) groupResource' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with groupResource' := groupResource' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_load_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_store_latency (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (latency' : k8s_io.component_base.metrics.ObserverMetric) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) v.latency' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"latency" l) latency' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with latency' := latency' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_load_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' dq)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance OperationLatencyTracker_access_store_requests (l : Loc) (v : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (requests' : k8s_io.component_base.metrics.CounterMetric) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) v.requests' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker go!"requests" l) requests' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with requests' := requests' } : k8s_io.apiserver.pkg.storage.etcd3.metrics.OperationLatencyTracker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end OperationLatencyTracker

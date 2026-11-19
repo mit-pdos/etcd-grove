@@ -13,7 +13,7 @@ public import Spec.go_etcd_io.etcd.client.pkg.v3.fileutil.IsDirWriteableFile
 public import Proof.os.MkdirAllDir
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Warn
-public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAll
+public import Proof.go_etcd_io.etcd.client.pkg.v3.fileutil.TouchDirAllLemmas
 
 @[expose] public section
 

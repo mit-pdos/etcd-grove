@@ -8,19 +8,19 @@ theorem mvcc.storeTxnWrite.delete.wp_proof [go_etcd_io.etcd.cache.v3.Assumptions
     zap.Error.spec) (hLogErr : zap.Logger.Error.spec) : mvcc.storeTxnWrite.delete.spec
   -- `Perennial.EtcdGrove.mvcc.storeTxnWrite.delete.spec`, unfolded:
   ∀ (trace tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (key : GoSlice) (k : GoString)
-    (L : List w64) (crev : Int) (Z : IProp GF) (w : Option lease.LWin),
+    (L : List w64) (crev : Int) (Z : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗
               ownSlice key k DFrac.discard ∗
-                lease.leaseOwnW γ.leases L (mvcc.pendItems ilog pend) w ∗
+                lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗
                   ⌜(mvcc.findKey k (mvcc.applyChanges (W64 ↑(List.length ilog)) (mvcc.stateAfter ilog) pend)).isSome =
                         true⌝ ∗
-                    ⌜lease.winMove w (mvcc.pendItems ilog pend) (mvcc.pendItems ilog (pend ++ [mvcc.Change.del k]))⌝ -∗
+                    ⌜List.length k ≤ etcdKeyMax⌝ -∗
           ▷
               (mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [mvcc.Change.del k]) crev Z ∗
-                  lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ [mvcc.Change.del k])) w -∗
+                  lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [mvcc.Change.del k])) -∗
                 Φ (intoVal ())) -∗
             WP
               ((intoVal

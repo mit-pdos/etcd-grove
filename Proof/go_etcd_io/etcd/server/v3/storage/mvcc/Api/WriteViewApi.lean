@@ -203,7 +203,7 @@ theorem writeView_Put_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (P Pre Q' Post : IProp GF) (f : GoFunc) (Q : MvccState → IProp GF) :
     {{ pkgInit ∗ wv.[writeView, go!"kv"] ↦□ (interface.mkOk kty kv : GoInterface) ∗
         isMvcc (interface.mkOk kty kv) γ ∗ mvccReaders γ 1 ∗ key ↦*□ k ∗ value ↦*□ vv ∗
-        ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗
+        ⌜(k.length : Int) < 2 ^ 63 - 1⌝ ∗ ⌜k.length ≤ etcdKeyMax ∧ vv.length ≤ etcdKeyMax⌝ ∗
         lease.leaseOwn (mvccLeases γ) L I ∗ ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
         mvccBackend γ q B P ∗ hookIs B f ∗ Pre ∗ hookRun P f Pre Q' ∗ (Q' ={⊤}=∗ P ∗ Post) ∗
         opAU γ I (fun _ => [.put k vv leaseID]) Q }}
@@ -213,7 +213,7 @@ theorem writeView_Put_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
         ∃ σ : MvccState, Q σ ∗
         lease.leaseOwn (mvccLeases γ) L (pendItems σ.log [.put k vv leaseID]) ∗
         ⌜rev = W64 (σ.log.length : Int)⌝ }} := by
-  wp_start as ⟨#Hkv, #Hmv, Hrt, #Hkey, #Hval, %Hklen, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd,
+  wp_start as ⟨#Hkv, #Hmv, Hrt, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd,
     Hau⟩
   ihave #Htu : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
   · iPkgInit
@@ -239,7 +239,7 @@ theorem writeView_Put_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
   wp_apply (hPut γ t true σ [] key value k vv leaseID L) $$ [Htx Htrc Hown]
     as ⟨Htx, Htrc, Hown⟩
   · iframe Htx Htrc Hkey Hval Hown
-    ipureintro; exact ⟨Hklen, Hlease, lease.winMove_none _ _⟩
+    ipureintro; exact ⟨Hklen, Hkvb, Hlease, lease.winMove_none _ _⟩
   (try wp_auto)
   -- the deferred `tw.End()`: the client's update, at the begin state
   rw [List.nil_append] at *
@@ -357,7 +357,7 @@ theorem watchableStore.Put.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG :=
     (hTx : wtxnHyp (GF := GF)) :
     watchableStore.Put.spec (GF := GF) := by
   intro s γ key value k vv leaseID L I q B P Pre Q' Post f Q
-  wp_start as ⟨#Hmv, Hrt, #Hkey, #Hval, %Hklen, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd, Hau⟩
+  wp_start as ⟨#Hmv, Hrt, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd, Hau⟩
   icases isMvcc_watchable s γ $$ Hmv with ⟨%st, %γw, %hγ, #Hws⟩
   icases watchable_writeView s st γw $$ Hws with ⟨%wv, #HWV, #Hwvkv⟩
   ihave #Hws' := Hws
@@ -369,7 +369,7 @@ theorem watchableStore.Put.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG :=
   wp_apply (writeView_Put_api hTODO _ _ (hW s) hTx wv γ key value k vv leaseID L I q B P Pre Q' Post
       f Q) $$ [Hrt Hown HB Hpre Hrun Hupd Hau] as %rev Hr
   · iframe Hwvkv Hmv Hrt Hkey Hval Hown HB Hhk Hpre Hrun Hupd Hau
-    ipureintro; exact ⟨Hklen, Hlease⟩
+    ipureintro; exact ⟨Hklen, Hkvb, Hlease⟩
   iapply HΦ; iexact Hr
 
 /-- **`KV.DeleteRange.contract` at `*watchableStore`** (as `Put`). -/
@@ -424,13 +424,13 @@ theorem store.Put.wp_api (hTODO : traceutil.TODO.spec (GF := GF) (hG := hG))
     (hTx : wtxnHyp (GF := GF)) :
     store.Put.spec (GF := GF) := by
   intro s γ key value k vv leaseID L I q B P Pre Q' Post f Q
-  wp_start as ⟨#Hmv, Hrt, #Hkey, #Hval, %Hklen, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd, Hau⟩
+  wp_start as ⟨#Hmv, Hrt, #Hkey, #Hval, %Hklen, %Hkvb, Hown, %Hlease, HB, #Hhk, Hpre, Hrun, Hupd, Hau⟩
   icases isMvcc_plainW s γ $$ Hmv with ⟨%wv, #HWV, #Hwvkv⟩
   (try wp_auto)
   wp_apply (writeView_Put_api hTODO _ _ (hW s) hTx wv γ key value k vv leaseID L I q B P Pre Q' Post
       f Q) $$ [Hrt Hown HB Hpre Hrun Hupd Hau] as %rev Hr
   · iframe Hwvkv Hmv Hrt Hkey Hval Hown HB Hhk Hpre Hrun Hupd Hau
-    ipureintro; exact ⟨Hklen, Hlease⟩
+    ipureintro; exact ⟨Hklen, Hkvb, Hlease⟩
   iapply HΦ; iexact Hr
 
 /-- **`KV.DeleteRange.contract` at `*store`** (as `Put`). -/

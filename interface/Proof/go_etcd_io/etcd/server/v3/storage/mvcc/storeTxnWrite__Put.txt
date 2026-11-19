@@ -6,7 +6,7 @@ theorem mvcc.storeTxnWrite.Put.wp_proof (hput : mvcc.storeTxnWrite.put.spec) :
     mvcc.storeTxnWrite.Put.spec
   -- `Perennial.EtcdGrove.mvcc.storeTxnWrite.Put.spec`, unfolded:
   ∀ (trace tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change) (key value : GoSlice)
-    (k v : GoString) (leaseID : w64) (L : List w64) (te : Bool) (crev : Int) (Z : IProp GF) (w : Option lease.LWin),
+    (k v : GoString) (leaseID : w64) (L : List w64) (te : Bool) (crev : Int) (Z : IProp GF),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -14,14 +14,12 @@ theorem mvcc.storeTxnWrite.Put.wp_proof (hput : mvcc.storeTxnWrite.put.spec) :
               ownSlice key k DFrac.discard ∗
                 ownSlice value v DFrac.discard ∗
                   ⌜↑(List.length k) < 2 ^ 63 - 1⌝ ∗
-                    lease.leaseOwnW γ.leases L (mvcc.pendItems ilog pend) w ∗
-                      ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
-                        traceutil.ownTrace trace te ∗
-                          ⌜lease.winMove w (mvcc.pendItems ilog pend)
-                              (mvcc.pendItems ilog (pend ++ [mvcc.Change.put k v leaseID]))⌝ -∗
+                    ⌜List.length k ≤ etcdKeyMax ∧ List.length v ≤ etcdKeyMax⌝ ∗
+                      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) ∗
+                        ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗ traceutil.ownTrace trace te -∗
           ▷
               (mvcc.storeTxnWriteIs tw s γ trace ilog (pend ++ [mvcc.Change.put k v leaseID]) crev Z ∗
-                  lease.leaseOwnW γ.leases L (mvcc.pendItems ilog (pend ++ [mvcc.Change.put k v leaseID])) w ∗
+                  lease.leaseOwn γ.leases L (mvcc.pendItems ilog (pend ++ [mvcc.Change.put k v leaseID])) ∗
                     traceutil.ownTrace trace te -∗
                 Φ (intoVal (W64 ↑(List.length ilog)))) -∗
             WP

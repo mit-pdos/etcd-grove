@@ -471,12 +471,15 @@ chain's mode (`authEnable` dispatchable only with auth on). -/
 theorem entryOkOn_of_shape {lm : lease.Mode} (x : apply.ApplyKV) (m : EntryModel)
     (hs : entryShapeOn lm m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
-    (hc : mvcc.logCh x.log < 2 ^ 48) (ha : x.chain.authOn = true) : entryOkOn lm x m := by
+    (hc : mvcc.logCh x.log < 2 ^ 48) (ha : x.chain.authOn = true) (hk : entryPutsOk m) :
+    entryOkOn lm x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
   · exact Or.inl hd
-  · refine Or.inr ⟨rq, hdec, hid, ?_⟩
+  · by_cases hdn : m.data = []
+    · exact Or.inl hdn
+    refine Or.inr ⟨rq, hdec, hid, ?_⟩
     rcases hsh with hsh | hadm
-    · exact ⟨Or.inl (hsh.2 x.log (rqSmall_of_small x.log rq hl hc)), hsh.1 _⟩
+    · exact ⟨Or.inl (hsh.2 x.log (rqSmall_of_small x.log rq hl hc (hk ht hdn rq hdec))), hsh.1 _⟩
     · refine ⟨Or.inr hadm, ?_, fun _ => ha⟩
       intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
 

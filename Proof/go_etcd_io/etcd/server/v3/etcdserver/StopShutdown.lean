@@ -704,12 +704,12 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   icases Hdd with ⟨#Hdd1, -⟩
   icombine Hdd1 Hdd2 gives %hddeq
   subst hddeq
-  icases Hfile with (⟨%path, #Hbf2, Hfh⟩ | %hbad)
+  icases Hfile with (Hcd | %hbad)
   rotate_left
   · exact absurd hdisk.2.1.2.2.2 hbad
-  ihave %hpath := backend.bFile_agree d.γB (config.backendPathOf dd) path $$ [Hbf Hbf2]
-  · iframe Hbf Hbf2
-  subst hpath
+  -- (S5) the closed backend's inode, at the claim on the backend path: the file there
+  ihave Hfh := backend.bPath_join d.γB.db (config.backendPathOf dd) D $$ [Hpath Hcd]
+  · iframe Hpath Hcd
   -- the image
   imodintro
   iapply HΦ
@@ -726,7 +726,7 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   ihave Hσc := wal.stopImage_intro _ S σ ai hσ.1 (by simp at h2; omega) (by simp at h3; omega)
     $$ [Hσc Hdag]
   · iframe Hσc Hdag
-  iframe Hvac Hrst HA HM Hpath Hfh Hconf Hw Hσc
+  iframe Hvac Hrst HA HM Hfh Hconf Hw Hσc
   isplitr
   · ipureintro; exact ⟨rfl, hc0'⟩
   isplitr

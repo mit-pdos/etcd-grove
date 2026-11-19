@@ -29,7 +29,7 @@ variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions]
 theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
     (hBT : backend.batchTx.UnsafeDeleteBucket.spec (GF := GF) (hG := hG)) :
     backend.batchTxBuffered.UnsafeDeleteBucket.spec (GF := GF) (hG := hG) := by
-  intro γ P W Pk b t st bk bi Hhas Hp Hsb Hhk Hfk
+  intro γ P W Pk b t st bk bi Hhas Hne Hp Hsb Hhk Hfk
   wp_start as ⟨#Hb, #Ht, Hl, #Hbk, Hrbp⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
     ⟨%db0, %lg, %h, #Hbe, #Hlg, #Hlgn, #Hlim, #Hh, #Hhs, #Hm, #Hdb, %HP⟩
@@ -46,7 +46,7 @@ theorem backend.batchTxBuffered.UnsafeDeleteBucket.wp_proof
     (rbData_delBucket_other st bi) (fkOkG_delBucket Hfk) (fkVals_delBucket Hfk) (fun _ => ⟨bi.id, Hhas⟩)
     (BSess.delBucket_S_other st bi) rfl (fun L _ hd => dlsW_step (dlsS_delBucket Hsb) (dlsOk_delBucket Hsb) rfl rfl hd) $$ Hg Hrbp
     with ⟨Hg, Hrbp⟩
-  wp_apply (hBT γ P W Pk b t st bk bi) $$ [Htxf Hpend Hwtx] as Hw
+  wp_apply (hBT γ P W Pk b t st bk bi Hne) $$ [Htxf Hpend Hwtx] as Hw
   · iframe #
     unfold btW
     iframe

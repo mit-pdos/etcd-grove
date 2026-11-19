@@ -39,7 +39,8 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 
 /-- **`flock(db, exclusive, timeout)`**: the file is given back; on `nil` the descriptor holds
 `flock`'s lock (exclusive if `ex`), with its token (`lockTok`), else it is as it was; an error is
-one `fmt` formats (`fmtErrorOkOrNil`). -/
+one `fmt` formats (`fmtErrorOkOrNil`), and witnesses that the file system can fail or that a
+timeout was set (session S3f: the `flock` loop retries `EWOULDBLOCK` forever without one). -/
 abbrev flock.spec : Prop :=
   ∀ (db f : Loc) (fd : w64) (p : BFile) (d : OsFd) (dqf : DFrac) (ex : Bool)
     (tmo : time.Duration),
@@ -51,7 +52,7 @@ abbrev flock.spec : Prop :=
       fmtErrorOkOrNil err ∗
       ((⌜err = GoInterface.nil⌝ ∗ osFd fd (DFrac.own 1) (d.setLk .flock (some ex)) ∗
           lockTok .flock fd (d.setLk .flock (some ex))) ∨
-        (⌜err ≠ GoInterface.nil⌝ ∗ osFd fd (DFrac.own 1) d)) }}
+        (⌜err ≠ GoInterface.nil ∧ (¬ FsNoErr ∨ tmo ≠ W64 0)⌝ ∗ osFd fd (DFrac.own 1) d)) }}
 
 end spec
 
@@ -114,7 +115,8 @@ theorem flock.wp_proof [syscall.Assumptions]
       try simp only [_root_.decide_true, ↓reduceIte]
       try rw [if_pos rfl]
       try wp_auto
-      wp_apply hFlock fd fl d (some exv) true Hreq (fun _ => hd) $$ [Hfd] as %e Hout
+      wp_apply hFlock fd fl d (some exv) true Hreq (fun _ => hd) $$ [Hfd]
+        as %e ⟨%hW, Hout⟩
       · iframe #; iframe; iapply lockTok_none; simp [OsFd.lk, hd]
       unfold lockOut
       icases Hout with ⟨%d', Hfd, Htk, %hd'⟩
@@ -152,7 +154,12 @@ theorem flock.wp_proof [syscall.Assumptions]
         iframe
         isplitr
         · iapply fmtErrorOkOrNil_of $$ HeS
-        iright; iframe; ipureintro; exact fun h => nomatch h
+        iright; iframe; ipureintro
+        refine ⟨(fun h => nomatch h), Or.inl ?_⟩
+        rcases hW (Or.inr rfl) with h | h | h
+        · exact absurd h he
+        · exact absurd h.2 h11
+        · exact h
       subst h11
       rw [decide_eq_true (rfl : W64 11 = W64 11)]
       simp only [Bool.not_true, Bool.false_eq_true, ↓reduceIte]
@@ -185,7 +192,7 @@ theorem flock.wp_proof [syscall.Assumptions]
           iframe
           isplitr
           · iapply fmtErrorOkOrNil_of $$ Hfe
-          iright; iframe; ipureintro; exact fun h => nomatch h
+          iright; iframe; ipureintro; exact ⟨(fun h => nomatch h), Or.inr htmo'⟩
         rw [decide_eq_false hgt]
         try wp_auto
       all_goals

@@ -11,21 +11,7 @@ An internal spec of this unit (not in `Spec/`: `loadFreelist` is called only by 
 -/
 module
 
-public import Proof.go_etcd_io.bbolt.Open.LoadFL
-public import Proof.go_etcd_io.bbolt.Open.Carve
-public import Proof.go_etcd_io.bbolt.Open.OnceOwn
-public import Proof.go_etcd_io.bbolt.Open.MutexOwn
-public import Proof.go_etcd_io.bbolt.internal.freelist.Lemmas.SliceLen
-public import Spec.go_etcd_io.bbolt.newFreelist
-public import Spec.go_etcd_io.bbolt.DB__hasSyncedFreelist
-public import Spec.go_etcd_io.bbolt.DB__meta
-public import Spec.go_etcd_io.bbolt.DB__page
-public import Spec.go_etcd_io.bbolt.DB__freepages
-public import Spec.go_etcd_io.bbolt.internal.common.Meta__Freelist
-public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Read
-public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__Init
-public import Spec.go_etcd_io.bbolt.internal.freelist.Interface__FreeCount
-public import Proof.go_etcd_io.bbolt.internal.common.Lemmas.Layout
+public import Proof.go_etcd_io.bbolt.DB__loadFreelistSpec
 
 @[expose] public section
 
@@ -40,77 +26,6 @@ namespace bbolt
 open Fs
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt go_etcd_io.bbolt.internal.common
-
-section spec
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable [ExtSemantics fsExt] [FsSemOk] [hos : HasExt fsExt]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.bbolt.Assumptions]
-
-/-- The slots' bytes of the opened file `xs`. -/
-def openWb (xs : List ByteG) : Nat → List w8 :=
-  fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096
-
-/-- The pure facts `loadFreelist` needs of the opened file `xs` (`fileHolds_decode`'s, the
-mapping `(b, L)`'s, `Open`'s namespace and database). -/
-def lfOK (N : Namespace) (db : Loc) (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta)
-    (xs : List ByteG) : Prop :=
-  fileImage (xs.map Prod.fst) C ∧ C.metaOk ∧ treeOK C ∧ flFileOK (xs.map Prod.fst) C ∧
-    C.hwm * 4096 ≤ xs.length ∧ 8192 ≤ xs.length ∧ xs.length = m.size ∧ m.size ≤ L ∧
-    m.size < 2 ^ 63 ∧ m.maps = GMap.singleton b L ∧ 1 ≤ C.txid ∧ C.txid < 2 ^ 62 ∧
-    (↑N : CoPset) ## ↑osN ∧ db ≠ null
-
-/-- **What `loadFreelist` takes at `Open`**: `open_core`'s inputs, the mapping's client halves
-not yet carved (the file's bytes at a half, the rest any cells). -/
-def lfPre (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile) (b : Loc)
-    (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
-  iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ osInv ∗ dbFixed γbq N db sp ∗
-      ghostVar γbq 1 () ∗
-      db.[DB, go!"metalock"] ↦ (zero_val sync.Mutex) ∗
-      db.[DB, go!"mmaplock"] ↦ (zero_val sync.RWMutex) ∗
-      db.[DB, go!"statlock"] ↦ (zero_val sync.RWMutex) ∗
-      db.[DB, go!"opened"] ↦ true ∗ db.[DB, go!"freelist"] ↦ interface.nil ∗
-      (db.[DB, go!"ops"]).[dbOps, go!"writeAt"] ↦
-        methods (go.GoType.PointerType os.File.ty) go!"WriteAt" #f ∗
-      db.[DB, go!"rwtx"] ↦ null ∗ db.[DB, go!"file"] ↦ f ∗ dbPathLk db p fd ∗
-      db.[DB, go!"datasz"] ↦ W64 (L : Int) ∗
-      mapFields db (DFrac.own 1) (some (b, L)) ∗
-      osMeta p.ino (DFrac.own 1) m ∗ fileOwn f fd p.path (DFrac.own 1) ∗
-      osFd fd (DFrac.own 1) (dbFd p.ino) ∗ Ps sp 1 ∗
-      osBytes p.ino 0 (DFrac.own 1) xs ∗
-      bytesPointsto b (DFrac.own (1 : Qp).half) (xs.map Prod.fst) ∗
-      ∃ vf, cellsR b xs.length (L - xs.length) vf)
-
-/-- The writer side after `loadFreelist`. -/
-def lfW (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG) (f : Loc)
-    (fd : w64) (fl : FLPg) (fli : GoInterface) : WDb :=
-  { openW C b L m (openWb xs) f fd with fl := fl, fli := fli }
-
-/-- **What `loadFreelist` gives at `Open`**: `open_writer`'s inputs but `rwlock`. -/
-def lfPost (γbq : GName) (N : Namespace) (db sp f : Loc) (fd : w64) (p : BFile)
-    (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG) : IProp GF :=
-  iprop(∃ (B : BNs) (fl : FLPg) (fli : GoInterface),
-    isBoltCoreP B N db p sp C.txid ∗
-    threadPool.isThreadPool (poolN N) B.pool (rdPair B db sp) ∗
-    wdbCore B db p (lfW C b L m xs f fd fl fli) ∗ ghostVar B.st (1 : Qp).half.half (treeData C) ∗
-    flPgOwn fli fl ∗ sparePair B db sp ∗ ghostVar B.cls (1 : Qp).half false ∗
-    boltStateDef B 1 (treeData C) ∗ dghostVar B.opn (DFrac.own 1) false ∗
-    ⌜wdbOK (lfW C b L m xs f fd fl fli) ∧ B.bq = γbq⌝)
-
-/-- **`db.loadFreelist()` at `Open`**. -/
-abbrev DB.loadFreelist.spec_open : Prop :=
-  ∀ [ThreadBoundLe GF (2 ^ 29)] [ReceiptBoundLe GF (2 ^ 62)] (γbq : GName) (N : Namespace)
-    (db sp f : Loc) (fd : w64) (p : BFile)
-    (C : CommitSt) (b : Loc) (L : Nat) (m : OsMeta) (xs : List ByteG),
-  lfOK N db C b L m xs → 0 ≤ fd.toInt →
-  {{ lfPre (GF := GF) γbq N db sp f fd p b L m xs ∗
-      db.[DB, go!"freelistLoad"] ↦ (zero_val sync.Once) }}
-    (App (Val (db @!! go.GoType.PointerType DB.ty @!! go!"loadFreelist")) (Val #()))
-  {{ RET #(); lfPost γbq N db sp f fd p C b L m xs }}
-
-end spec
 
 section proof
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -188,7 +103,7 @@ theorem pt_join_lf {V : Type} [TypedPointsto (GF := GF) V] (l : Loc) (v : V) :
 omit package_sem in
 /-- The idle writer side's parts `loadFreelist` touches (for `freepages` and the publish), and
 the side back with any freelist. -/
-theorem wdbCore_lf (B : BNs) (db : Loc) (p : BFile) (w : WDb) :
+theorem wdbCore_lf (B : BNs) (db : Loc) (p : BFile) (w : WDb) (hnone : w.C.flpg = none) :
     wdbCore (GF := GF) B db p w ⊢
       ghostVar B.cur (1 : Qp).half.half w.C ∗ ghostVar B.fl (1 : Qp).half w.fl ∗
       ghostVar B.map (1 : Qp).half w.ms ∗ ghostVar B.wv (1 : Qp).half wIdle ∗
@@ -207,6 +122,8 @@ theorem wdbCore_lf (B : BNs) (db : Loc) (p : BFile) (w : WDb) :
     Hrest⟩
   iframe Hcur Hfl Hmap Hwv Hfli Hop Hmq
   iintro %fl %fli ⟨Hcur, Hfl, Hmap, Hwv, Hfli, Hop, Hmq⟩
+  have hx : ∀ fl', flxS w.C fl' w.wb = [] := by intro fl'; simp [flxS, hnone]
+  simp only [hx]
   iframe
 
 /-- The loaded freelist `FLPg.ofInit ids`'s facts (`Model/Store.storeOK_setFl`'s premise). -/
@@ -258,7 +175,7 @@ theorem DB.loadFreelist.wp_proof_open
     (hFP : DB.freepages.spec (GF := GF) (hG := hG)) :
     DB.loadFreelist.spec_open (GF := GF) (hG := hG) := by
   intro _ _ γbq N db sp f fd p C b L m xs hok hfd
-  wp_start as ⟨Hpre, Honce⟩
+  wp_start as ⟨Hpre, Honce, #Hrcm⟩
   iunfold lfPre at Hpre
   icases Hpre with ⟨#Hpkg, Hpre⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -271,7 +188,8 @@ theorem DB.loadFreelist.wp_proof_open
     isplitl [Hpre db]
     · iframe db; iunfold lfPre; iframe Hpkg Hpre
     iintro !> %Φ' ⟨db, Hpre⟩ HΦ'
-    obtain ⟨himg, hmeta, htree, hflf, hhwm, h8, hxm, hL, hsz, hmaps, htx1, htx2, hN, hdb⟩ := hok
+    obtain ⟨himg, hmeta, htree, hflf, hhwm, h8, hxm, hL, hszw, hmaps, htx1, htx2, hN, hdb⟩ := hok
+    have hsz := hszw.lt
     iunfold lfPre at Hpre
     icases Hpre with ⟨-, #Hos, #Hfix, Hbqv, Hml, Hmm, Hsl, Hop, Hfli, Hwa, Hrw, Hfile, Hpath, Hdsz, Hmf,
       Hosm, Hfo, Hfd, Hps, Hxs, Hb, %vf, Hc⟩
@@ -303,18 +221,22 @@ theorem DB.loadFreelist.wp_proof_open
           (by rw [hysl]; omega) (by rw [hysl]; omega) htx2
       ihave Hrop : flRoOpt (GF := GF) interface.nil ∅ $$ []
       · unfold flRoOpt; simp only [↓reduceIte]; iempintro
+      have hfx := open_flx (xs.map Prod.fst) C b L m FLPg.empty hflf (by rw [hysl]; exact hhwm)
+        (by rw [hysl]; exact hxm) (by rw [hysl]; omega) hL rfl rfl
+        (fun _ _ x hx => by simp [FLPg.empty] at hx)
+      have hhwmM : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF := by have := hszw.1; omega
       imod open_core_fl ⊤ N db sp f fd p C b L m
         (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
-        FLPg.empty interface.nil rfl hok' ⟨htx1, htx2⟩ hN hdb γbq $$
+        FLPg.empty interface.nil rfl hok' hfx.1 hfx.2 hhwmM ⟨htx1, htx2⟩ hN hdb γbq $$
         [Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
-          HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn⟩
-      · iframe Hpkg Hos Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+          HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn, Hclo⟩
+      · iframe Hpkg Hos Hrcm Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
         iframe
       ihave Hcore' := Hcore
       iunfold isBoltCoreP at Hcore'
       icases Hcore' with ⟨-, -, -, -, -, -, #Hmlk, -, -, #Hpinv, -⟩
       -- `freepages`, on the spare reader pair
-      icases wdbCore_lf _ _ _ _ $$ Hw with ⟨Hcur, Hgfl, Hmap, Hwv, Hfl2, Hop2, Hmq, Hwb⟩
+      icases wdbCore_lf _ _ _ _ hfp $$ Hw with ⟨Hcur, Hgfl, Hmap, Hwv, Hfl2, Hop2, Hmq, Hwb⟩
       have hhwm62 : C.hwm ≤ 2 ^ 62 := by omega
       wp_auto
       wp_apply hFP ⟨B, N, db, p, sp, C.txid⟩ C b L hmeta htree hhwm62 $$
@@ -328,7 +250,7 @@ theorem DB.loadFreelist.wp_proof_open
       wp_apply sync.Mutex.wp_Lock $$ [$Hsync $Hmlk] as ⟨Hlk, HR⟩
       iunfold metaR at HR
       icases HR with ⟨%C', %F, %cl, %fli', %wa, Hcur', Hst', Hcls', Hop', Hfl', Hwa', Hob, Hmlk',
-        Hfa, Hro', %Hok, %HF⟩
+        Hfa, Hro', #Hrcm, %Hok, %HF⟩
       icombine Hcur Hcur' gives % ⟨_, hC⟩
       subst hC
       icombine Hcls Hcls' gives % ⟨_, hcl⟩
@@ -368,8 +290,15 @@ theorem DB.loadFreelist.wp_proof_open
       have hld := ofInit_loadOK C (freeIdsOf C) hnd hidsF.2.1
         (fun x hx => (freeIdsOf_bounds C (by omega) x hx).1) (freeIdsOf_cov C (by omega))
         (by omega) htx2
-      imod store_setFl B N p ⊤ CoPset.subseteq_top C _ hld $$ [Hcur Hgfl Hwv Hsp Hopn] with
-        ⟨Hcur, Hgfl, Hwv, Hsp, Hopn⟩
+      have hx0 : flxS C FLPg.empty (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096) = [] := by
+        simp [flxS, hfp]
+      ihave Hflx0 : [∗list] s ∈ flxS C FLPg.empty (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096),
+          osSlotH p s (bytesAt (xs.map Prod.fst) (4096 * s) 4096) $$ []
+      · rw [hx0]; iapply BigSepL.bigSepL_nil.2; iempintro
+      imod store_setFl B N p ⊤ CoPset.subseteq_top C _
+        (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096) hld
+        (fun f hf => by rw [hfp] at hf; cases hf) $$ [Hcur Hgfl Hwv Hsp Hopn Hcls Hflx0] with
+        ⟨Hcur, Hgfl, Hwv, Hsp, Hopn, Hcls, -⟩
       · iframe; iexact Hpinv
       ihave Hsp : sparePair (GF := GF) B db sp $$ [Hrdp Hsp]
       · unfold sparePair; iframe
@@ -377,6 +306,7 @@ theorem DB.loadFreelist.wp_proof_open
         [$Hsync $Hmlk $Hlk Hcur' Hst' Hcls' Hop' Hfl' Hwa' Hob Hmlk' Hfa Hro]
       · iunfold metaR
         iexists C, ∅, false, fli, wa
+        iframe Hrcm
         simp only [Bool.not_false, Bool.false_eq_true, ↓reduceIte]
         iframe
         isplitl [Hro]
@@ -388,7 +318,7 @@ theorem DB.loadFreelist.wp_proof_open
       have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) := by
         unfold lfW openWb
         refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
-          (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
+          (by rw [hysl]; exact hxm) hL hszw htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
         · intro x hx; exact freeIdsOf_bounds C (by omega) x ((mem_sortPgids_lf _ x).1 hx)
         · intro g' hg'; rw [hfp] at hg'; cases hg'
       ihave Hw : wdbCore B db p (lfW C b L m xs f fd (FLPg.ofInit (freeIdsOf C)) fli) $$ [Hw]
@@ -500,16 +430,22 @@ theorem DB.loadFreelist.wp_proof_open
       (fun x hx => (hids x hx).1) (fun x hx => (hids x hx).2) (fun x hx => (hown x hx).2)
     ihave Hrop : flRoOpt fli ∅ $$ [Hro]
     · unfold flRoOpt; simp only [hfli, ↓reduceIte]; iexists []; iframe; ipureintro; simp
+    have hfx := open_flx (xs.map Prod.fst) C b L m (FLPg.ofInit (flIds pg)) hflf
+      (by rw [hysl]; exact hhwm) (by rw [hysl]; exact hxm) (by rw [hysl]; omega) hL rfl rfl
+      (fun f' hf' x hx => by
+        rw [hfp] at hf'; cases hf'
+        rw [← hpg]; exact (mem_sortPgids_lf _ x).1 hx)
+    have hhwmM : C.hwm * 4096 ≤ 0xFFFFFFFFFFFF := by have := hszw.1; omega
     imod open_core_fl ⊤ N db sp f fd p C b L m (fun s => bytesAt (xs.map Prod.fst) (4096 * s) 4096)
-      (FLPg.ofInit (flIds pg)) fli rfl hok' ⟨htx1, htx2⟩ hN hdb γbq $$
+      (FLPg.ofInit (flIds pg)) fli rfl hok' hfx.1 hfx.2 hhwmM ⟨htx1, htx2⟩ hN hdb γbq $$
       [Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps Hmo1 Hmo2 HSo
-        HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn⟩
-    · iframe Hpkg Hos Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
+        HWo Hq1 Hq2 HSc HWc] with ⟨%B, %HB, #Hcore, Hw, Hst, Hcls, Hsp, #Hpool, Hstate, Hopn, Hclo⟩
+    · iframe Hpkg Hos Hrcm Hfix Hbqv Hml Hmm Hsl Hop Hfli Hrop Hwa Hrw Hfile Hpath Hdsz Hmf Hosm Hfo Hfd Hps
       iframe
     have hwok : wdbOK (lfW C b L m xs f fd (FLPg.ofInit (flIds pg)) fli) := by
       unfold lfW openWb
       refine wdbOK_open (xs.map Prod.fst) C b L m f fd _ fli htree (by rw [hysl]; exact hhwm)
-        (by rw [hysl]; exact hxm) hL hsz htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
+        (by rw [hysl]; exact hxm) hL hszw htx2 hmaps (ofInit_pending _) ?_ ?_ hfd
       · intro x hx; rw [hpg] at hx; exact flIds_facts _ C g hfp hflf x hx
       · intro g' hg'; rw [hfp] at hg'; cases hg'
         rw [extentBytes_filePage, ← hpg]

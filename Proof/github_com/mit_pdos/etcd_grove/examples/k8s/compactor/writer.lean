@@ -10,8 +10,8 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.writer
 public import Spec.strconv.Itoa
 public import Perennial.Spec.context.Background
-public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.compactor.Aus
+public import Proof.go_etcd_io.etcd.client.v3.ClientCallLaws
 
 @[expose] public section
 
@@ -40,7 +40,8 @@ theorem writer.wp_proof
     (wp_Background : context.Background.spec (GF := GF) (hG := hG))
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
-    (wp_Itoa : EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG)) :
+    (wp_Itoa : EtcdGrove.strconv.Itoa.spec (GF := GF) (hG := hG))
+    (h_client_Put_kv : client.client_Put_kv.law (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
   intro _ _ _ _ cl γk γ
   wp_start as ⟨#Hko, #Hinv⟩
@@ -77,7 +78,7 @@ theorem writer.wp_proof
     wp_apply (wp_Itoa n) as %str %Hstr
     subst Hstr
     (try wp_auto)
-    wp_apply (client.client_Put_kv cl api γk dup ctx cd writeKeyS (fmtInt n (W64 10)) slice.nil
+    wp_apply (h_client_Put_kv cl api γk dup ctx cd writeKeyS (fmtInt n (W64 10)) slice.nil
         (fun _ => iprop(True))
         (opSizeOk_opPutModel (K := 16) (E := 0) (V := 66) (optsKeep_nil _ _ _) (by decide)
           (fmtInt_length_le _ _) (by decide))) $$ [] as %resp %err -

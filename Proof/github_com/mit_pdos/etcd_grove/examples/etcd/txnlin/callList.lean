@@ -11,7 +11,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.withKVs
 public import Spec.go_etcd_io.etcd.client.v3.WithRange
 public import Perennial.Proof.context.Link
 public import Proof.go_etcd_io.etcd.client.v3.TimeoutCtx
-public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLinked
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.txnlin.CallsLaws
 
 @[expose] public section
 
@@ -40,7 +40,8 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_kvsFrom : kvsFrom.spec (GF := GF) (hG := hG))
     (wp_withKVs : withKVs.spec (GF := GF) (hG := hG))
-    (wp_WithRange : EtcdGrove.WithRange.spec (GF := GF) (hG := hG)) :
+    (wp_WithRange : EtcdGrove.WithRange.spec (GF := GF) (hG := hG))
+    (h_client_List_st : client_List_st.law (GF := GF) (hG := hG)) :
     callList.spec (GF := GF) (hG := hG) := by
   intro _ CRE CEC cl ms V hAs Q
   wp_start as ⟨#Hcl, #Hregs, #Hau⟩
@@ -72,7 +73,7 @@ theorem callList.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (
     · simp only [List.getElem?_cons_zero, Option.some.injEq] at Hf' Hg; subst Hf' Hg; iexact Hf
     · simp at Hf'
   (try wp_auto)
-  wp_apply (client_List_st cl ms V cctx ccd _ Q
+  wp_apply (h_client_List_st cl ms V cctx ccd _ Q
       (opSizeOk_opGetModel (K := inMax) (E := inMax) (V := 0)
         (optsKeep_cons (withRangeM_keep (by decide)) (optsKeep_nil _ _ _)) (by decide) (by decide))) $$ []
     as %resp %err Hout

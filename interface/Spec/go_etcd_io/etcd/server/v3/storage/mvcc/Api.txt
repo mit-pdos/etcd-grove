@@ -158,6 +158,11 @@ def mvcc.api.wrespIs (v : go_etcd_io.etcd.server.v3.storage.mvcc.WatchResponse) 
         ownSlice v.Events' ps DFrac.discard ∗
           ⌜ps.length = r.evs.length⌝ ∗ [∗list] x ∈ ps.zip r.evs, mvcc.evOwn x.fst x.snd)
 
+theorem mvcc.api.mvccTxn_write_putsLe (t : GoInterface) (γ : mvcc.api.MvccName) (trace : Loc) (σ :
+    mvcc.api.MvccState) (pend : List mvcc.Change) : mvcc.api.mvccTxn t γ trace (mvcc.api.MTxn.write
+    σ pend) ⊢ mvcc.api.mvccTxn t γ trace (mvcc.api.MTxn.write σ pend) ∗ ⌜mvcc.api.MvccReachable σ ∧
+    mvcc.ChPutsLe etcdKeyMax pend⌝
+
 def mvcc.api.shapes.law : Prop :=
   (∀ (kv : GoInterface) (γ : mvcc.api.MvccName),
       mvcc.api.isMvcc kv γ ⊢ ⌜∃ ty v, kv = interface.mkOk ty v ∧ mvcc.api.isKV ty v⌝) ∧
@@ -727,21 +732,18 @@ def mvcc.api.reach_logWf.law : Prop :=
 
 def mvcc.api.Txn.DeleteRange.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (trace : Loc) (σ : mvcc.api.MvccState) (pend : List mvcc.Change) (key endk : GoSlice)
-    (k e : GoString) (L : List w64) (w : Option lease.LWin),
+    (k e : GoString) (L : List w64),
     have ds := List.map mvcc.Change.del (mvcc.delKeys σ.log pend (decide (endk = slice.nil)) k e);
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
             mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (mvcc.api.MTxn.write σ pend) ∗
               ownSlice key k DFrac.discard ∗
-                ownSlice endk e DFrac.discard ∗
-                  lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log pend) w ∗
-                    ⌜lease.winDrops w (mvcc.pendItems σ.log pend) fun it =>
-                        mvcc.delSel (decide (endk = slice.nil)) k e it.Key'⌝ -∗
+                ownSlice endk e DFrac.discard ∗ lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log pend) -∗
           (▷
               ∀ n rev,
                 mvcc.api.mvccTxn (interface.mkOk ty v) γ trace (mvcc.api.MTxn.write σ (pend ++ ds)) ∗
-                    lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log (pend ++ ds)) w ∗
+                    lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log (pend ++ ds)) ∗
                       ⌜n = W64 ↑ds.length ∧ rev = W64 ↑(mvcc.writeRev σ.log (pend ++ ds))⌝ ∗
                         ⌜mvcc.LogWf' (σ.log ++ [pend ++ ds]) ∧
                             ∀ (cs : List mvcc.Change), cs ∈ σ.log ++ [pend ++ ds] → cs.length < 2 ^ 63⌝ -∗
@@ -800,7 +802,7 @@ def (sealed) mvcc.api.mvccState (γ : mvcc.api.MvccName) (σ : mvcc.api.MvccStat
 
 def mvcc.api.Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
   ∀ (γ : mvcc.api.MvccName) (trace : Loc) (te : Bool) (σ : mvcc.api.MvccState) (pend : List mvcc.Change)
-    (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64) (w : Option lease.LWin),
+    (key value : GoSlice) (k vv : GoString) (leaseID : w64) (L : List w64),
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
@@ -809,16 +811,15 @@ def mvcc.api.Txn.Put.contract (ty : go.GoType) (v : val) : Prop :=
                 ownSlice key k DFrac.discard ∗
                   ownSlice value vv DFrac.discard ∗
                     ⌜↑(List.length k) < 2 ^ 63 - 1⌝ ∗
-                      lease.leaseOwnW (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log pend) w ∗
-                        ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
-                          ⌜lease.winMove w (mvcc.pendItems σ.log pend)
-                              (mvcc.pendItems σ.log (pend ++ [mvcc.Change.put k vv leaseID]))⌝ -∗
+                      ⌜List.length k ≤ etcdKeyMax ∧ List.length vv ≤ etcdKeyMax⌝ ∗
+                        lease.leaseOwn (mvcc.api.mvccLeases γ) L (mvcc.pendItems σ.log pend) ∗
+                          ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ -∗
           ▷
               (mvcc.api.mvccTxn (interface.mkOk ty v) γ trace
                     (mvcc.api.MTxn.write σ (pend ++ [mvcc.Change.put k vv leaseID])) ∗
                   traceutil.ownTrace trace te ∗
-                    lease.leaseOwnW (mvcc.api.mvccLeases γ) L
-                      (mvcc.pendItems σ.log (pend ++ [mvcc.Change.put k vv leaseID])) w -∗
+                    lease.leaseOwn (mvcc.api.mvccLeases γ) L
+                      (mvcc.pendItems σ.log (pend ++ [mvcc.Change.put k vv leaseID])) -∗
                 Φ (intoVal (W64 ↑(List.length σ.log)))) -∗
             WP ((((intoVal (methods ty go!"Put" v)) (intoVal key)) (intoVal value)) (intoVal leaseID)) {{ Φ }}
 
@@ -966,23 +967,24 @@ def mvcc.api.KV.Put.contract (ty : go.GoType) (v : val) : Prop :=
                 ownSlice key k DFrac.discard ∗
                   ownSlice value vv DFrac.discard ∗
                     ⌜↑(List.length k) < 2 ^ 63 - 1⌝ ∗
-                      lease.leaseOwn (mvcc.api.mvccLeases γ) L I ∗
-                        ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
-                          mvcc.api.mvccBackend γ q B P ∗
-                            mvcc.api.hookIs B f ∗
-                              Pre ∗
-                                mvcc.api.hookRun P f Pre Q' ∗
-                                  (Q' ={⊤}=∗ P ∗ Post) ∗
-                                    AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ }> @
-                                        ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                        ⌜σ.pending = none⌝ ∗
-                                          mvcc.api.mvccState γ (σ.notify [mvcc.Change.put k vv leaseID]) ∗
-                                            ⧖(mvcc.logCh (σ.log ++ [[mvcc.Change.put k vv leaseID]])),
-                                        COMM
-                                        AU <{ ∃∃ σ', mvcc.api.mvccState γ σ' }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
-                                            ⌜σ' = σ.notify [mvcc.Change.put k vv leaseID]⌝ ∗
-                                              mvcc.api.mvccState γ σ'.commitPending,
-                                            COMM Q σ }> }> -∗
+                      ⌜List.length k ≤ etcdKeyMax ∧ List.length vv ≤ etcdKeyMax⌝ ∗
+                        lease.leaseOwn (mvcc.api.mvccLeases γ) L I ∗
+                          ⌜leaseID = W64 0 ∨ leaseID ∈ L⌝ ∗
+                            mvcc.api.mvccBackend γ q B P ∗
+                              mvcc.api.hookIs B f ∗
+                                Pre ∗
+                                  mvcc.api.hookRun P f Pre Q' ∗
+                                    (Q' ={⊤}=∗ P ∗ Post) ∗
+                                      AU <{ ∃∃ σ, mvcc.api.mvccState γ σ ∗ ⌜mvcc.pendItems σ.log [] = I⌝ }> @
+                                          ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                          ⌜σ.pending = none⌝ ∗
+                                            mvcc.api.mvccState γ (σ.notify [mvcc.Change.put k vv leaseID]) ∗
+                                              ⧖(mvcc.logCh (σ.log ++ [[mvcc.Change.put k vv leaseID]])),
+                                          COMM
+                                          AU <{ ∃∃ σ', mvcc.api.mvccState γ σ' }> @ ⊤ \ ↑mvcc.api.mvccN, ∅ <{
+                                              ⌜σ' = σ.notify [mvcc.Change.put k vv leaseID]⌝ ∗
+                                                mvcc.api.mvccState γ σ'.commitPending,
+                                              COMM Q σ }> }> -∗
           (▷
               ∀ rev,
                 (mvcc.api.mvccReaders γ 1 ∗

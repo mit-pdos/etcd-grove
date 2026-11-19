@@ -59,7 +59,7 @@ abbrev txn.Txn.specSole : Prop :=
       traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ mvcc.neverDone cd ∗ zapLoggerOrNil lg ∗
       txn.leasesKnown L (mvcc.stateAfter log) ∗
       lease.lessorUserW (mvccLeases γ) L (mvcc.leaseItemsOf (mvcc.stateAfter log)) w ∗
-      ⌜txn.TxnPreA log t⌝ ∗
+      ⌜txn.TxnPreA log t ∧ t.putsLe etcdKeyMax⌝ ∗
       txn.csA P f Pre Q Post ∗
       txn.readAU γ (fun σ => iprop(⌜σ.log = log⌝ ∗ Qr σ)) ∗
       (if txn.txnReadonly t then iprop(True)

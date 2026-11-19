@@ -7,6 +7,7 @@ module
 
 public import Proof.os.ErrorOk
 public import Spec.os.File__WriteAt
+public import GooseLang.Ext.Fs.NoErrSpecsOpen
 
 @[expose] public section
 
@@ -232,8 +233,62 @@ theorem pwCut_short (off len nn k : Nat) (hk0 : 0 < k) (hfull : nn + k ≠ len)
   · omega
   · right; rw [← Nat.add_assoc]; exact h0
 
-theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
-  intro f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hbig hn hn2 hxl
+/-- **`WriteAt.spec`, generic in its `pwrite`s' errnos**: a failure only with an errno `e ≠ 0`
+with `Pe e`, over a semantics whose `pwrite` ends at an offset below `B` return an errno with `Pe`
+(`hpost`, a strengthening of their weakest preconditions as `wp_ext_postS` gives), for a write
+ending by `B`. `spec` (any errno, `B = 2 ^ 63`) and `specNoErr` (errno 0 below `maxBytes`: no
+failure) are its instances. -/
+theorem os.File.WriteAt.wp_proofQ (B : Nat) (Pe : w64 → Prop)
+    (hpost : ∀ (t : Nat) (p : Ino) (o : Nat) (dt : List w8) (m : OsMeta) (xs : List ByteG) (n : Nat)
+      (Φ : val → IProp GF), o < B →
+      ⊢ pwTok (GF := GF) t p o dt m xs n -∗
+        (pwTok (GF := GF) t p o dt m xs n -∗
+          WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t)))
+            {{ r, ⌜∀ r0 (e : w64), r = PairV r0 (#e) → Pe e⌝ -∗ Φ r }}) -∗
+        WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) {{ Φ }})
+    (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG)
+    (hwr : d.writable = true) (hoff : 0 ≤ off.toInt) (hgap : off.toNat ≤ m.size)
+    (hbig : off.toNat + data.length < 2 ^ 63) (hn : 0 < data.length)
+    (hn2 : data.length ≤ 0x40000000)
+    (hxl : xs.length = min (off.toNat + data.length) m.size - off.toNat)
+    (hB : off.toNat + data.length ≤ B) :
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+      osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
+      ∃ (j : Nat) (ys : List ByteG),
+        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧ PwCut off.toNat data.length j ∧
+          ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
+           (n = W64 0 ∧ err ≠ interface.nil ∧ ∃ e : w64, Pe e ∧ e ≠ W64 0))⌝ ∗
+        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
+        osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗
+      fmtErrorOkOrNil err }} := by
+  have hfin : ∀ (t : Nat) (p : Ino) (o : Nat) (dt : List w8) (m : OsMeta) (xs : List ByteG) (n : Nat)
+      (Φ : val → IProp GF), o < B →
+      ⊢ osInv (GF := GF) -∗ pwTok (GF := GF) t p o dt m xs n -∗
+        (∀ k : Nat, ∀ e : w64, ∀ zs : List Cands,
+          ⌜k ≤ dt.length ∧ ((k = dt.length ∨ 0 < k) ∧ e = 0 ∨ e ≠ 0) ∧
+            zs.length = pwSize m.size o k - m.size ∧
+            ∀ j z, m.zf = some z → z ≤ m.size + j → j < zs.length → zs[j]? = some [(0, 0)]⌝ -∗
+          ⌜PwCut o dt.length k⌝ -∗ ⌜Pe e⌝ -∗
+          osMeta (GF := GF) p (DFrac.own 1) (pwPost m o dt.length k) -∗
+          osBytes (GF := GF) p o (DFrac.own 1) (pwBytes m.size o dt k n xs zs) -∗
+          mcells (GF := GF) m.maps o (o + dt.length) (pwCell m.size o dt k xs) -∗
+          Φ (PairV (#(W64 k)) (#e))) -∗
+        WP (ExternalOp fsExt.name "PWriteFinish" (Val (osTokV t))) {{ Φ }} := by
+    intro t p o dt m xs n Φ hoB
+    iintro #Hinv Ht HΦ
+    iapply hpost t p o dt m xs n Φ hoB $$ Ht
+    iintro Ht
+    iapply wp_osPWriteFinish t p o dt m xs n CoPset.subseteq_top _ $$ Hinv Ht
+    iintro %k %e %zs %h1 %h2 Hm Hbs Hc %hP
+    iapply HΦ $$ %k %e %zs %h1 %h2 %(hP _ _ rfl) Hm Hbs Hc
   have hmin0 : min off.toNat m.size = off.toNat := Nat.min_eq_left hgap
   unfold os.ownFile
   wp_start as ⟨#Hinv, ⟨%inner, #Hf, Hfd, #Hn⟩, Hsl, Hosfd, Hm, Hbs, Hc⟩
@@ -339,8 +394,8 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
     $$ Hinv Hosfd Hm [Hbs2] [Hc2] as %t %nst %- Hosfd Ht
   · rw [hoffv]; iexact Hbs2
   · rw [hoffv, hdl, hend, hmaps]; iexact Hc2
-  wp_apply wp_osPWriteFinish t d.ino (off + nnv).toNat (data.drop nnv.toNat) mj
-    (ys.drop nnv.toNat) nst CoPset.subseteq_top $$ Hinv Ht as %k %e %zs %hke %hpc Hm Hbs2 Hc2
+  wp_apply hfin t d.ino (off + nnv).toNat (data.drop nnv.toNat) mj
+    (ys.drop nnv.toNat) nst _ (by rw [hoffv]; omega) $$ Hinv Ht as %k %e %zs %hke %hpc %hPe Hm Hbs2 Hc2
   obtain ⟨hk, hke, -, -⟩ := hke
   rw [hdl] at hk
   have hpc' : PwCut (off.toNat + nnv.toNat) (data.length - nnv.toNat) k := by
@@ -422,7 +477,7 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', hcj', .inr ⟨rfl, (by intro h; cases h), e, hPe, he0⟩⟩
     · rw [decide_eq_false hfull]
       wp_auto
       by_cases he0 : e = W64 0
@@ -463,7 +518,131 @@ theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) :=
         isplitl []
         · isplitl [] <;> iassumption
         · ipureintro
-          exact ⟨hj', hys', hcj', .inr ⟨rfl, by intro h; cases h⟩⟩
+          exact ⟨hj', hys', hcj', .inr ⟨rfl, (by intro h; cases h), e, hPe, he0⟩⟩
+
+/-- `os.File.WriteAt.spec` as it was without the error witness (session S6: a helper of the proof below). -/
+private abbrev os.File.WriteAt.tripleOld : Prop :=
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG),
+  d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length < 2 ^ 63 →
+  0 < data.length → data.length ≤ 0x40000000 →
+  xs.length = min (off.toNat + data.length) m.size - off.toNat →
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+      osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
+      (Val #off))
+  {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
+      ∃ (j : Nat) (ys : List ByteG),
+        ⌜j ≤ data.length ∧ os.PwOut m off.toNat data j xs ys ∧ PwCut off.toNat data.length j ∧
+          ((j = data.length ∧ n = W64 data.length ∧ err = interface.nil) ∨
+           (n = W64 0 ∧ err ≠ interface.nil))⌝ ∗
+        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length j) ∗
+        osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (off.toNat) (off.toNat + data.length) ∗
+      fmtErrorOkOrNil err }}
+
+/-- `os.File.WriteAt.spec` over a semantics with no errors on every inode (the former `os.File.WriteAt.specNoErr`). -/
+private abbrev os.File.WriteAt.tripleNE : Prop :=
+  ∀ (Sio : IoSet) [FsStepSat (NoIoErr Sio)], (∀ st i, Sio.ino st i) →
+  ∀ (f : Loc) (fd : w64) (name : GoString) (dqf : DFrac) (sl : GoSlice) (data : List w8)
+    (dqs : DFrac) (off : w64) (dq : DFrac) (d : OsFd) (m : OsMeta) (xs : List ByteG),
+  d.writable = true → 0 ≤ off.toInt → off.toNat ≤ m.size → off.toNat + data.length ≤ maxBytes →
+  0 < data.length → data.length ≤ 0x40000000 →
+  xs.length = min (off.toNat + data.length) m.size - off.toNat →
+  {{ osInv (GF := GF) ∗ os.ownFile (GF := GF) f fd name dqf ∗ sl ↦*{dqs} data ∗
+      osFd (GF := GF) fd dq d ∗ osMeta (GF := GF) d.ino (DFrac.own 1) m ∗
+      osBytes (GF := GF) d.ino (off.toNat) (DFrac.own 1) xs ∗
+      mcellsAny (GF := GF) m.maps (off.toNat) (off.toNat + data.length) }}
+    (App (App (Val (f @!! go.GoType.PointerType os.File.ty @!! go!"WriteAt")) (Val #sl))
+      (Val #off))
+  {{ RET (PairV #(W64 data.length) #(interface.nil : GoInterface));
+      os.ownFile f fd name dqf ∗ sl ↦*{dqs} data ∗ osFd fd dq d ∗
+      ∃ ys : List ByteG, ⌜os.PwOut m off.toNat data data.length xs ys⌝ ∗
+        osMeta d.ino (DFrac.own 1) (pwPost m off.toNat data.length data.length) ∗
+        osBytes d.ino (off.toNat) (DFrac.own 1) ys ∗
+        mcellsAny m.maps (off.toNat) (off.toNat + data.length) }}
+
+private theorem os.File.WriteAt.wp_old : os.File.WriteAt.tripleOld (GF := GF) (hG := hG) := by
+  intro f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hbig hn hn2 hxl
+  iintro %Φ Hpre HΦ
+  iapply os.File.WriteAt.wp_proofQ (2 ^ 63) (fun _ => True)
+    (fun _ _ _ _ _ _ _ _ _ => by
+      iintro Ht H
+      iapply wp_wand $$ [Ht H]
+      · iapply H $$ Ht
+      iintro %r H; iapply H; ipureintro; intros; trivial)
+    f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hbig hn hn2 hxl (by omega) $$ Hpre
+  inext
+  iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %h, Hm, Hbs, Hc, Hok⟩
+  iapply HΦ
+  iframe Hfo Hsl Hfd Hok
+  iexists j, ys
+  iframe Hm Hbs Hc
+  ipureintro
+  obtain ⟨h1, h2, h3, h4⟩ := h
+  exact ⟨h1, h2, h3, h4.imp id (fun h => ⟨h.1, h.2.1⟩)⟩
+
+private theorem maxBytes_lt : maxBytes < 2 ^ 63 := by unfold maxBytes; omega
+
+private theorem os.File.WriteAt.wp_NE : os.File.WriteAt.tripleNE (GF := GF) (hG := hG) := by
+  intro Sio _ hS f fd name dqf sl data dqs off dq d m xs hwr hoff hgap hB hn hn2 hxl
+  have := maxBytes_lt
+  iintro %Φ Hpre HΦ
+  iapply os.File.WriteAt.wp_proofQ maxBytes (· = 0)
+    (fun t p o dt m xs n Φ ho => wp_pwFinish_postNE hS t o dt ho _ (pwTok_inflight t p o dt m xs n) Φ)
+    f fd name dqf sl data dqs off dq d m xs hwr hoff hgap (by omega) hn hn2 hxl hB $$ Hpre
+  inext
+  iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %h, Hm, Hbs, Hc, -⟩
+  obtain ⟨-, h2, -, h4⟩ := h
+  rcases h4 with ⟨rfl, rfl, rfl⟩ | ⟨-, -, e, he, hne⟩
+  · iapply HΦ
+    iframe Hfo Hsl Hfd
+    iexists ys
+    iframe Hm Hbs Hc
+    ipureintro; exact h2
+  · subst he; exact absurd rfl hne
+
+/-- **`os.File.WriteAt.spec`**: by cases on `FsNoErr`, the error-free triple (`FsNoErr`'s set of inodes, its
+step premises) or the triple without the witness, whose error arm then has `¬ FsNoErr`. -/
+theorem os.File.WriteAt.wp_proof : os.File.WriteAt.spec (GF := GF) (hG := hG) := by
+  have hW := os.File.WriteAt.wp_old (GF := GF) (hG := hG)
+  have hNE := os.File.WriteAt.wp_NE (GF := GF) (hG := hG)
+  intro f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs
+  iintro %Φ Hpre HΦ
+  by_cases hne : FsNoErr ∧ off.toNat + data.length ≤ maxBytes
+  · obtain ⟨⟨Sio, hSio, hs1, hs2, hsp⟩, hmb⟩ := hne
+    haveI := hs1
+    iapply hNE Sio hSio f fd name dqf sl data dqs off dq d m xs hw hoff hsz hmb hpos hlen hxs
+      $$ Hpre
+    inext
+    iintro ⟨Hfo, Hsl, Hfd, %ys, %hys, Hm, Hb, Hc⟩
+    iapply HΦ
+    iframe Hfo Hsl Hfd
+    iexists data.length, ys
+    iframe Hm Hb Hc
+    isplitr
+    · ipureintro
+      exact ⟨Nat.le_refl _, hys, ⟨Or.inr (Or.inl rfl), Or.inr hmb⟩, Or.inl ⟨rfl, rfl, rfl⟩⟩
+    · iapply fmtErrorOkOrNil_nil
+  · have hw' : ¬ FsNoErr ∨ maxBytes < off.toNat + data.length := by
+      by_cases hf : FsNoErr
+      · exact Or.inr (Nat.lt_of_not_le (fun h2 => hne ⟨hf, h2⟩))
+      · exact Or.inl hf
+    iapply hW f fd name dqf sl data dqs off dq d m xs hw hoff hsz hend hpos hlen hxs $$ Hpre
+    inext
+    iintro %n %err ⟨Hfo, Hsl, Hfd, %j, %ys, %h, Hm, Hb, Hc, #Hok⟩
+    iapply HΦ
+    iframe Hfo Hsl Hfd
+    iexists j, ys
+    iframe Hm Hb Hc Hok
+    ipureintro
+    refine ⟨h.1, h.2.1, h.2.2.1, ?_⟩
+    rcases h.2.2.2 with h4 | h4
+    · exact Or.inl h4
+    · exact Or.inr ⟨h4.1, h4.2, hw'⟩
 
 end proof
 

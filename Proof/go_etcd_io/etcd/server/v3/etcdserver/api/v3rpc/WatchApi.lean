@@ -677,7 +677,7 @@ theorem reach_rev1 {σ : mvcc.api.MvccState} (h : mvcc.api.MvccReachable σ) :
     1 < σ.log.length ∧ σ.log.getD 1 [] = [] := by
   induction h with
   | start => exact ⟨by decide, rfl⟩
-  | notify σ pend _ _ _ ih => exact ih
+  | notify σ pend _ _ _ _ ih => exact ih
   | commit σ _ ih =>
     show 1 < (mvcc.commitLog σ.log (σ.pending.getD [])).length ∧
       (mvcc.commitLog σ.log (σ.pending.getD [])).getD 1 [] = []

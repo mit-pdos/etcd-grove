@@ -371,18 +371,18 @@ theorem snapDirInv_ss_congr {ss ss' : Loc} (h : snap.snapDBPath ss = snap.snapDB
 removal counter `c` (restart S6a: `c ≤ ai + 1 ≤ i` at the applied index `ai < i`) is present, its
 removal fact (`snapRmM γm i`, the counter past `i`) refuted by the counter's authority; the counter
 raised to `i + 1` gives that fact, so the file leaves the directory, with its certificate. A later
-credit strips the invariant's later (`fileHolds` is not timeless). -/
+credit strips the invariant's later (`fileAt` is not timeless: its claims are under invariants). -/
 theorem snapDir_take (ss : Loc) (γd γm : GName)
     (img : w64 → backend.Data → IProp GF) (i : w64) (c : Nat) (hc : c ≤ uint.nat i) :
     ⊢ £ 1 -∗ inv snapDirN (snapDirInv ss γd img (snapRmM γm)) -∗ snapSaved γd i -∗
       monoNatAuthOwn γm 1 c ={⊤}=∗
       monoNatAuthOwn γm 1 (uint.nat i + 1) ∗
-      ∃ D : backend.Data, backend.fileHolds (snap.snapDBPath ss i) D ∗ □ img i D := by
+      ∃ D : backend.Data, backend.fileAt (snap.snapDBPath ss i) D ∗ □ img i D := by
   iintro Hlc #Hinv #Hsv Hγm
   iinv Hinv with Hi Hclose
   imod (lc_fupd_elim_later (P := snapDirInv ss γd img (snapRmM γm))) $$ Hlc Hi with Hi
   iunfold snapDirInv at Hi
-  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, #HEs, #HRm⟩
+  icases Hi with ⟨#Hdi, %M, %Es, Ha, %HME, HM, HF, #HEs, #HRm⟩
   iunfold snapSaved at Hsv
   ihave %HEi := ghost_map_lookup $$ Ha Hsv
   cases hMi : M.lookup i with
@@ -394,14 +394,14 @@ theorem snapDir_take (ss : Loc) (γd γm : GName)
     exfalso; omega
   | some D =>
     imod (mono_nat_own_update (uint.nat i + 1) (by omega)) $$ Hγm with ⟨Hγm, #Htk⟩
-    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileHolds
+    icases (BigSepM.bigSepM_delete (Φ := fun (j : w64) (D : backend.Data) => iprop(backend.fileAt
       (snap.snapDBPath ss j) D ∗ □ img j D)) hMi).1 $$ HM with ⟨⟨Hf, #Himg⟩, HM⟩
-    imod Hclose $$ [Ha HM] with -
+    imod Hclose $$ [Ha HM HF] with -
     · inext
       iunfold snapDirInv
       iframe Hdi
       iexists GMap.delete i M, Es
-      iframe Ha HM HEs
+      iframe Ha HM HF HEs
       isplitr
       · ipureintro
         intro j hj
@@ -606,7 +606,8 @@ its open token (`srvOpenQ`: the constructors' half, a quarter in the mode `on`, 
 backend's `Close` goroutine takes them), the alarm store's field (until 2026-11-01, J8a-5, also its
 `Get` under a resource `Tal`, `zal`: `specSnapM` now gets `Get` with no alarm from `Recover`'s
 `alarmEmpty`); and the backend file's directory entry at the configuration's data directory
-(`pathOwn (backendPathOf dd)`, `OpenSnapshotBackend`'s rename target, one for every install), and
+(`backend.bPath d.γB.db (backendPathOf dd)`, the claim on its name, naming the backend's file:
+`OpenSnapshotBackend`'s rename target, one for every install; S5, until then the opaque `pathOwn`), and
 (2026-11-04, the restart plan's R2b-3d) the backend's file there. (Until strict M1, 2026-11-06,
 also the KV's closer, `srvKVCloserW`, for `store.Restore`: over the API, `Restore` takes mvcc's
 open token, the apply thread's `apply.cmpOwn`.) -/
@@ -617,7 +618,7 @@ def srvSnapRes (s : Loc) (E : apply.AEnv GF) (γA : ApplyNames) : IProp GF :=
     srvStopChans γA d ∗ backend.bOpen d.γB (srvOpenQ E.authMode) ∗
     srvAlarmStoreAddr s ↦□ al ∗
     -- MERGE-TODO(close): `lean`'s `srvKVCloserW s E` was here (see above)
-    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.pathOwn (config.backendPathOf dd) ∗
+    srvCfgFieldAddr s go!"DataDir" ↦□ dd ∗ backend.bPath d.γB.db (config.backendPathOf dd) ∗
     -- (2026-11-04, the restart plan's R2b-3d) the backend's file is there (the stop image's)
     backend.bFile d.γB (config.backendPathOf dd))
 
@@ -732,7 +733,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     -- apply thread's `mvccOpen E'.γ` in `srvApplyKV`)
     srvStopChans γ' d' ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γm 1 (uint.nat sv.Metadata'.Index' + 1) ∗
-    backend.pathOwn bp ∗ backend.bFile d'.γB bp ∗
+    backend.bPath d'.γB.db bp ∗ backend.bFile d'.γB bp ∗
     trLive γn t c L ∗
     (∃ kv : GoInterface, srvKVAddr s ↦□ kv ∗ □ isMvcc kv E'.γ ∗ ⌜kv = E'.kv⌝))
 

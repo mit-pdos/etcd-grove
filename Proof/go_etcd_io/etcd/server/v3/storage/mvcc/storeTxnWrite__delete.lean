@@ -41,7 +41,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
     (hLogErr : zap.Logger.Error.spec (GF := GF) (hG := hG)) :
     mvcc.storeTxnWrite.delete.spec (GF := GF) (hG := hG) := by
   intro trace tw s γ ilog pend key k L crev Z w
-  wp_start as ⟨Htw, #Hkey, Hown, %Hpresent, %Hwm⟩
+  wp_start as ⟨Htw, #Hkey, Hown, %Hpresent, %Hwm, %Hkvb⟩
   try simp only [go_etcd_io.etcd.server.v3.lease.NoLease]
   iunfold mvcc.storeTxnWriteIs at Htw
   iNamed Htw
@@ -120,7 +120,7 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   -- `kv := &mvccpb.KeyValue{Key: key}`; `d, err := proto.Marshal(kv)`
   wp_apply (hMarshal «$r0_ptr» _ ({ key := k, createRev := 0, modRev := 0, version := 0, value := [], lease := 0 } : EtcdKv) DFrac.discard DFrac.discard)
     $$ [$«$r0» $Hkey $Hnil]
-    as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap⟩
+    as %d ⟨⟨%sc, Hkv⟩, -, -, Hd, Hdcap, %Hdlen⟩
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   (try wp_auto)
   -- `if err != nil { Fatal }`: not taken (`err` is `nil`: resolved by `wp_auto`)
@@ -140,7 +140,9 @@ theorem mvcc.storeTxnWrite.delete.wp_proof
   · iframe Hlocked Hbv HKeyG Hib Hd
     ipureintro
     exact mvcc.storePutOk_mono γ _ m _ _ _ Hmsub
-      (mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm)
+      (mvcc.storePutOk_next γ ilog pend true _ (by omega) Hcs Hbm
+        (by simp only [List.length_nil] at Hdlen; unfold etcdKeyMax at Hkvb;
+            unfold bbolt.bboltEntryMax; omega))
   inext
   iintro ⟨Hlocked, Hbv⟩
   ihave Hbv : mvcc.bucketViewL γ mvcc.txQ ilog $$ [Hbv]

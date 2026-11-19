@@ -8,6 +8,7 @@ module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.WorkCalls
 public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.ClientOn
+public import Proof.github_com.mit_pdos.etcd_grove.examples.etcd.auth.CallLaws
 
 @[expose] public section
 
@@ -61,6 +62,9 @@ theorem work_put (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     ipureintro; intro _; exact Hq
   · ipureintro; intro h; exact absurd h Herr
 
+theorem work_put_law_holds : work_put.law (GF := GF) (hG := hG) :=
+  work_put
+
 /-- **`cli.Delete(ctx, k)` of `who`'s**: a reply with no error was granted to `who`. -/
 theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (cid mid : w64) (γa : auth.AuthNames) (Lset : List EntryModel) (n : Nat) (who : GoString)
@@ -90,6 +94,9 @@ theorem work_delete (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.A
   · ihave %Hq := deleteReplied_Q _ _ _ _ _ _ _ _ $$ Hr
     ipureintro; intro _; exact Hq
   · ipureintro; intro h; exact absurd h Herr.1
+
+theorem work_delete_law_holds : work_delete.law (GF := GF) (hG := hG) :=
+  work_delete
 
 /-- **`cli.Get(ctx, key, opts...)` of `who`'s** (no sort, no panic): a reply with no error was
 granted at `setupSt` to a user of `who`'s, for the request's range (`akRead_granted`), and its
@@ -166,6 +173,9 @@ theorem work_get (cl api conn : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv
     ileft
     ipureintro; exact Herr.1
 
+theorem work_get_law_holds : work_get.law (GF := GF) (hG := hG) :=
+  work_get
+
 /-- **`t.Commit()` of `who`'s writing transaction** (plain, no range end `[0]`, of the shape the
 permission cache decides): a reply with no error was granted to `who` (`hop`: a granted
 transaction keeps the history). -/
@@ -234,6 +244,9 @@ theorem work_commit (cl api conn tp : Loc) (addr : GoString) (s : Loc) (E : appl
   · isplitl []
     · ipureintro; intro h; exact absurd h Herr.1
     ileft; ipureintro; exact Herr.1
+
+theorem work_commit_law_holds : work_commit.law (GF := GF) (hG := hG) :=
+  work_commit
 
 /-- **T4, a nested transaction putting outside `[a, b)`, is refused**: `t.Then(OpTxn(nil,
 [OpPut(c/who/t3, "vt")], nil))` returns the builder, whose `Commit` replies with an error (no
@@ -330,6 +343,9 @@ theorem then_commit_nested_refused (cl api conn tp : Loc) (addr : GoString) (s :
     exact absurd Hq hng
   · iapply HΦ'
     ipureintro; exact Herr.1
+
+theorem then_commit_nested_refused_law_holds : then_commit_nested_refused.law (GF := GF) (hG := hG) :=
+  then_commit_nested_refused
 
 end calls
 

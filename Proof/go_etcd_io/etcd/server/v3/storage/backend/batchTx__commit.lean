@@ -7,11 +7,12 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.batchTx__commit
 public import Spec.go_etcd_io.etcd.server.v3.storage.backend.backend__begin
-public import Spec.go_etcd_io.bbolt.Tx__Commit_kv
-public import Spec.go_etcd_io.bbolt.Tx__Stats_kv
 public import Spec.time.Duration__Seconds
 public import Spec.go_uber_org.zap.Error
 public import Spec.go_uber_org.zap.Logger__Fatal
+public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Spec.go_etcd_io.bbolt.Tx__Commit
+public import Spec.go_etcd_io.bbolt.Tx__Stats
 
 @[expose] public section
 
@@ -32,14 +33,74 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 variable [go_etcd_io.bbolt.Assumptions] [go_uber_org.zap.Assumptions] [_root_.Perennial.time.Assumptions]
 
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Tx.Commit_kv`). -/
+private theorem bbolt.kvGlue_Tx__Commit_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec (GF := GF) (hG := hG)) :
+  ∀ (db tx : Loc) (γ : DBNames) (D S : backend.Data),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownDB db γ D ∗ backend.txDB tx γ db ∗ ownWTx tx γ D S }}
+    (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Commit")) (Val #()))
+  {{ (err : GoInterface), RET #err; backend.txDone tx ∗
+      ((⌜err = GoInterface.nil⌝ ∗ ownDB db γ S ∗ wrTok γ) ∨ ⌜err ≠ GoInterface.nil⌝) }} := by
+  intro db tx γ D S
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, ⟨H, -⟩⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, ⟨#Hdb, Hs, Hrest⟩, #Hd, ⟨%G, Hl⟩⟩ HΦ
+    ihave Hau := bbolt.boltState_commit_au γ D S $$ Hs
+    have h' := h tx γ (wView D S G) (bbolt.boltState γ 1 S)
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+    wp_apply h' $$ [$Hl $Hau] as %err ⟨#Hdn, Hr⟩
+    all_goals try (ipureintro; first | trivial | rfl)
+    iapply HΦ; iframe Hdn
+    icases Hr with (⟨%He, Hs⟩ | ⟨%He, -⟩)
+    · ileft; isplitr; · ipureintro; exact He
+      iframe Hs Hdb Hrest
+      unfold wrTok; itrivial
+    · iright; ipureintro; exact He
+
+open Iris Iris.BI Iris.ProofMode go_etcd_io.bbolt backend Fs in
+/-- (S3e) bbolt's canonical spec in the backend's vocabulary, at `theFs` (until then the
+`_kv` spec `Tx.Stats_kv`). -/
+private theorem bbolt.kvGlue_Tx__Stats_kv (h : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Stats.spec (GF := GF) (hG := hG)) :
+  ∀ (tx : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ backend.txDone tx }}
+    (App (Val (tx @!! go.GoType.PointerType go_etcd_io.bbolt.Tx.ty @!! go!"Stats")) (Val #()))
+  {{ (s : TxStats), RET #s; True }} := by
+  intro tx
+  rcases hfs : theFs GF with _ | ⟨Sx, okx, hasx, fax, fsax, nex⟩
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, onFs_none hfs]
+    iintro %Φ ⟨-, H⟩ HΦ
+    iexfalso; iexact H
+  · simp only [backend.ownDB, backend.isDB, backend.txLive, backend.txBytes, backend.ownWTx, backend.ownWTxG,
+      backend.wBkt, backend.ownCur, backend.txDone, backend.txDB, backend.curAt_eq, backend.bktEnts_eq, backend.seekIdx_eq,
+      onFs_some hfs]
+    iintro %Φ ⟨-, #Hd⟩ HΦ
+    have h' := h tx
+    try simp only [wView.proj_rw, wView.proj_base, wView.proj_cur, wView.proj_gen, TxView.ro.proj_rw, TxView.ro.proj_base, TxView.ro.proj_cur, TxView.ro.proj_gen, wView_setBkt, wView_dropBkt] at h'
+    wp_apply h' $$ [$Hd] as %s -
+    iapply HΦ; itrivial
+
 theorem backend.batchTx.commit.wp_proof
-    (hCommit : bbolt.Tx.Commit_kv.spec (GF := GF) (hG := hG))
-    (hStats : bbolt.Tx.Stats_kv.spec (GF := GF) (hG := hG))
+    (hCommit : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Commit.spec (GF := GF) (hG := hG))
+    (hStats : ∀ [ExtSemantics Fs.fsExt] [Fs.FsSemOk] [HasExt Fs.fsExt] [os.file.FieldAssumptions]
+      [os.fileStat.FieldAssumptions], bbolt.Tx.Stats.spec (GF := GF) (hG := hG))
     (hSeconds : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hError : zap.Error.spec (GF := GF) (hG := hG))
     (hFatal : zap.Logger.Fatal.spec (GF := GF) (hG := hG))
     (hBegin : backend.backend.begin.spec (GF := GF) (hG := hG)) :
     backend.batchTx.commit.spec (GF := GF) (hG := hG) := by
+  replace hCommit := bbolt.kvGlue_Tx__Commit_kv hCommit
+  replace hStats := bbolt.kvGlue_Tx__Stats_kv hStats
   intro γ P W Pk b t db st stop
   wp_start as ⟨#Hb, #Ht, Hw, Hown, #Htxdb, Hmu⟩
   icases isBackend_bt γ P W Pk b t $$ [Hb Ht] with
@@ -53,8 +114,8 @@ theorem backend.batchTx.commit.wp_proof
   unfold histSpec
   unfold btW
   icases Hw with ⟨Htxf, Hpend, Hwtx⟩
-  icases ownWTx_live st.tx γ.db st.C st.S $$ Hwtx with ⟨Hlive, Hback⟩
-  ihave %Hnn := txLive_nonnull st.tx 1 $$ Hlive
+  icases ownWTx_live st.tx γ.db st.C st.S $$ Hwtx with ⟨%Tw, Hlive, Hback⟩
+  icases persistent_entails_right (txLive_nonnull st.tx γ.db 1 Tw) $$ Hlive with ⟨%Hnn, Hlive⟩
   ihave Hwtx := Hback $$ Hlive
   wp_auto
   rw [decide_eq_false Hnn]
