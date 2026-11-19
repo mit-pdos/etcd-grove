@@ -401,3 +401,29 @@ spec takes any `d`). The WAL closes locked files (`LockedFile.Close`) with no ev
 no `osMeta` of them there), so the stuck form also needs a resource in `wp_osClose`'s precondition ("no
 mapping of the inode": the whole `osMeta` with no maps, or no lock) threaded through ~25 WAL/os proofs.
 Options in the session-u report.
+
+### The independent attack on item 3 (`PathErrno`) and on the bbolt claim (2026-11-19 u, read-only subagent, axiom skill)
+
+Measured on this machine (kernel 7.0.0-1014-aws, `/shared` ext4 `idmapped,discard,commit=30`, uid 0: not C);
+program `/shared/tmp/wallink-attack2/prog/main.go`.
+- **A1, premise false of real runs (also of `NoIoErr` before item 3):** the model bounds neither name nor path
+  length (`NameOk`, `CanonBelow`, `TreeName`, `lookup`). A 256-byte name or a path over `PATH_MAX` gets
+  `ENAMETOOLONG` (measured: unlink/rmdir/mkdir of a 256-byte name, `36`), where `PathErrno` asks `ENOENT` and the
+  existing `succ → ErrnoZero` asks errno 0 (`Mkdir`, `Open` `O_CREAT`, `Rename` succeed in the model). Fix: bound
+  names (≤ 255 bytes) and paths (< 4096) in `NameOk`/`TreeName` (longer is misuse, stuck), or leave such paths out
+  of `IoCovers`; with a Go example.
+- **A2, text inaccuracy:** permissions come first in `may_delete`: `EACCES` (no write on the parent), `EPERM` (sticky
+  parent, immutable/append-only attributes, LSM path hooks), measured as uid 65534. Neither `NoIoErr`'s docstring nor
+  `Impl.lean`'s Environment states "the process may search and write every covered directory; no sticky denial; no
+  immutable/append-only attribute; no LSM denies the path calls" (only the Go example does). Fix: state it in both.
+- **A3, nit:** the Go example's "RemoveAll returns nil for an absent path only when rmdir answers ENOENT" is too
+  strong (a later `ENOENT` from the parent's open or `unlinkat` also gives nil); "only `ENOENT` guarantees nil".
+- Checked, holding: errno order on ext4 (lookup `ENOENT`, then `EISDIR`, then `ENOTEMPTY`); the cases disjoint;
+  concurrent-race and dead-directory attacks fail; `noIoErr_keeps` proved; doc.go row and citations accurate.
+- **B (the bbolt claim), confirmed:** the model run munmap fails keeping the map → `flock(LOCK_UN)` fails keeping
+  the lock → `Close` stuck exists; `spec_owned` also takes any `d` (an OFD lock), and with `ms = none` nothing shows
+  the inode unmapped. Whether the run is real Linux: probably not (medium certainty, from memory: a whole-mapping
+  munmap fails only with a fatal signal pending; `flock(LOCK_UN)` allocates nothing on recent kernels, so fails only
+  via `security_file_lock`/`EBADF`; OFD `F_UNLCK` can fail with `ENOLCK`). The reviewer's route: `flock` unlock
+  always drops the lock (to be checked against 7.0's `fs/locks.c` and measured), plus `d.ofd = none` in
+  `spec_owned`, or a "no lock or no mapping" resource in the new `Close` spec.
