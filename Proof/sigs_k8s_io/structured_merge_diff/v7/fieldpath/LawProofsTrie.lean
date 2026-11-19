@@ -170,6 +170,55 @@ theorem paths_mk (ms : List PE) (cs : List (PE × Trie)) (q : Path) :
     Trie.paths (.mk ms cs) q ↔ (∃ e, q = [e] ∧ e ∈ ms) ∨ Trie.pathsC cs q := by
   simp only [Trie.paths]
 
+/-! ## Membership in the vocabulary's sets (the laws, as simp lemmas) -/
+
+theorem mem_tops (S : PathSet) (e : PE) : e ∈ S.tops ↔ [e] ∈ S := PathSet_mem_tops_law_holds S e
+theorem mem_deep (S : PathSet) (q : Path) : q ∈ S.deep ↔ q ∈ S ∧ 2 ≤ q.length :=
+  PathSet_mem_deep_law_holds S q
+theorem mem_heads (S : PathSet) (e : PE) : e ∈ S.heads ↔ ∃ q, q ≠ [] ∧ (e :: q) ∈ S :=
+  PathSet_mem_heads_law_holds S e
+theorem mem_under (S : PathSet) (e : PE) (q : Path) : q ∈ S.under e ↔ q ≠ [] ∧ (e :: q) ∈ S :=
+  PathSet_mem_under_law_holds S e q
+theorem mem_rdiff (A B : PathSet) (q : Path) :
+    q ∈ PathSet.rdiff A B ↔ q ∈ A ∧ ∀ r ∈ q.nePrefixes, r ∉ B := PathSet_mem_rdiff_law_holds A B q
+theorem mem_punion (A B : PathSet) (q : Path) : q ∈ PathSet.union A B ↔ q ∈ A ∨ q ∈ B :=
+  FSet.mem_union' A B q
+theorem mem_pinter (A B : PathSet) (q : Path) : q ∈ PathSet.inter A B ↔ q ∈ A ∧ q ∈ B :=
+  FSet.mem_inter' A B q
+theorem mem_pdiff (A B : PathSet) (q : Path) : q ∈ PathSet.diff A B ↔ q ∈ A ∧ q ∉ B :=
+  FSet.mem_diff' A B q
+
+/-! ## Emptiness -/
+
+theorem isEmpty_iff (S : PathSet) : S.IsEmpty ↔ ∀ q, q ∉ S := FSet.isEmpty_iff' S
+
+/-- A set without the empty path is empty iff its members and its children are. -/
+theorem isEmpty_split (S : PathSet) (hne : [] ∉ S) :
+    S.IsEmpty ↔ (∀ e, e ∉ S.tops) ∧ S.deep.IsEmpty := by
+  rw [isEmpty_iff, isEmpty_iff]
+  simp only [mem_tops, mem_deep]
+  constructor
+  · intro h; exact ⟨fun e => h [e], fun q hq => h q hq.1⟩
+  · rintro ⟨h1, h2⟩ q hq
+    match q with
+    | [] => exact hne hq
+    | [e] => exact h1 e hq
+    | e :: e' :: r => exact h2 _ ⟨hq, by simp⟩
+
+/-- A well-formed node list's paths are empty iff it has no node. -/
+theorem nl_isEmpty (l : NL) (hl : NLok l) (D : PathSet) (hD : ∀ q, q ∈ D ↔ q ∈ nlPaths l) :
+    D.IsEmpty ↔ l = [] := by
+  rw [isEmpty_iff]
+  constructor
+  · intro h
+    match l, hl with
+    | [], _ => rfl
+    | (k, S) :: l', hl =>
+      obtain ⟨-, ⟨r, hr⟩, -⟩ := hl.2 k S (List.mem_cons_self ..)
+      exact absurd ((hD _).2 ((mem_nlPaths _ _).2 ⟨k, S, r, List.mem_cons_self .., hr, rfl⟩))
+        (h (k :: r))
+  · rintro rfl q hq; exact mem_nlPaths_nil q ((hD q).1 hq)
+
 end fpC
 
 /-! ## The representation, viewed as members and node lists -/
