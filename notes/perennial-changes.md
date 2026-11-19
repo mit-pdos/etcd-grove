@@ -309,6 +309,16 @@ classes of names-only and types-only packages: `mvccpb.Event_EventType`'s `Strin
 `Enum`, ...); no proof changes, since a new instance only unsticks calls. Not yet proposed upstream
 (through etcd-grove-81; no Perennial edit here).
 
+Also met (2026-11-19, k8s-authz, branch `k8s-authz-b2`): `authorizer.validateConditions` returns
+`errs.ToAggregate()` on its local `errs` (a `field.ErrorList`, addressable, so Go calls it through
+`*ErrorList`); `field` is names-only, so `ptr_ToAggregate_unfold` is missing and the call is stuck.
+Workaround here, this time a local trust-boundary axiom (the call is on the closed theorem's path):
+`field.ErrorList.ToAggregate_ptr.wp_proof` (`Proof/k8s_io/apimachinery/pkg/util/validation/field/
+ErrorList__ToAggregate_ptr.lean`, spec beside it under `Spec/`), stated over the value method's spec
+as a hypothesis: "load `*l` (any fraction, kept), then `ErrorList.ToAggregate.spec`", which is exactly
+the omitted `ptr_M_unfold`. It becomes a lemma (like `sets.Set.wp_ptr_Has_of`) when goose takes the
+change above; then delete the axiom.
+
 ### `sort.Sort`'s spec as a function of its input (2026-11-09, specs-only batch 3b)
 
 Perennial's `sort.Sort`/`sort.Slice` specs say only that the result is some sorted permutation of
@@ -1458,6 +1468,12 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
 - **Workaround here.** Persistent structs are stated field by field (the model's `cfgAt`); a
   fractional one is split by `iStructNamed` and recombined with `typedPointsto_combine` around the
   loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
+- **Also met (2026-11-19, k8s-authz batches 1 and 3).** `wp_load`/`wp_auto` load a field through
+  `p ↦ u` but not through `p ↦{dq} u` with a variable `dq` (the methods of
+  `ConditionsAwareDecision`/`ConditionsAwareDecisionUnion`, whose receivers are read at any
+  fraction). Workaround: apply the generated access instance by hand,
+  `icases (T.T_access_load_<field> p u dq).access_strict ...` (e.g.
+  `ConditionsAwareDecisionUnion__hasConditionalAuthorizerName.lean`).
 - **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
 
 ### `strconv.Itoa` has no spec (2026-11-11, trace-check S7 part 2)
@@ -2068,6 +2084,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   2026-11-09: `Role.String()` on the constant `Leader`).
 - **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
   `PostLifting.lean`, beside the composite ones.
+- **Also met (2026-11-19, k8s-authz batch 1): `go.NotInterface go.int`.** A method call on a named
+  type over `int` (`authorizer.Decision`, `type Decision int`: `d.String()`) is stuck without it.
+  Workaround: the local instance `b1_notInterface_int` (`⟨trivial⟩`,
+  `Proof/k8s_io/apiserver/pkg/authorization/authorizer/PtrMethodsB1.lean`). The proposed change
+  covers it (`int` among the basic types).
 
 ### `wp_apply` of a hypothesis triple with no binders in its post drops the continuation
 

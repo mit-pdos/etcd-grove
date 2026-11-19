@@ -11,7 +11,7 @@ public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Insert
 public import Spec.fmt.ErrorfAny
 public import Spec.k8s_io.apimachinery.pkg.util.validation.field.NewPath
 public import Spec.k8s_io.apimachinery.pkg.util.validation.IsDomainPrefixedKey
-public import Spec.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate
+public import Spec.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.sets.PtrMethods
 public import Perennial.Proof.github_com.mit_pdos.perennial.goose.model.strings.Base
 public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.B2Lemmas
@@ -43,7 +43,7 @@ theorem validateConditions.wp_proof
     (wp_ErrorfAny : EtcdGrove.fmt.ErrorfAny.spec (GF := GF) (hG := hG))
     (wp_NewPath : EtcdGrove.field.NewPath.spec (GF := GF) (hG := hG))
     (wp_IsDomainPrefixedKey : EtcdGrove.validation.IsDomainPrefixedKey.spec (GF := GF) (hG := hG))
-    (wp_ErrorList_ToAggregate : EtcdGrove.field.ErrorList.ToAggregate.spec (GF := GF) (hG := hG)) :
+    (wp_ErrorList_ToAggregate_ptr : EtcdGrove.field.ErrorList.ToAggregate_ptr.spec (GF := GF) (hG := hG)) :
     validateConditions.spec (GF := GF) (hG := hG) := by
   intro seen S s dq cs
   wp_start as ⟨Hseen, Hs, #Hcs⟩
@@ -106,11 +106,19 @@ theorem validateConditions.wp_proof
     by_cases he1 : sint.Z (W64 0) < sint.Z el1.len
     · simp only [he1, _root_.decide_true]
       wp_auto
-      -- BLOCKED: `errs.ToAggregate()` on the addressable local `errs` goes through the `*ErrorList`
-      -- method set, which the names-only `field` translation does not unfold (no
-      -- `ptr_ToAggregate_unfold`) and no spec covers (`ErrorList.ToAggregate.spec` is the value
-      -- receiver's)
-      sorry
+      wp_apply wp_ErrorList_ToAggregate_ptr errs_ptr (DFrac.own 1) el1 (DFrac.own 1) errs1
+        $$ [$errs $Hel1] as %agg -
+      (try wp_auto)
+      wp_apply wp_slice_literal
+      try (isplitr; (ipureintro; rfl))
+      iintro %sla ⟨Hargs, -⟩
+      (try wp_auto)
+      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
+      · iexact Hargs
+      (try wp_auto)
+      wp_for_post
+      iapply HΦ
+      iframe
     simp only [he1, _root_.decide_false]
     wp_auto
     wp_apply HgetCond' as %cnd -
@@ -168,8 +176,19 @@ theorem validateConditions.wp_proof
     by_cases he2 : sint.Z (W64 0) < sint.Z el2.len
     · simp only [he2, _root_.decide_true]
       wp_auto
-      -- BLOCKED: as above (`errs.ToAggregate()` through the `*ErrorList` method set)
-      sorry
+      wp_apply wp_ErrorList_ToAggregate_ptr errs_ptr (DFrac.own 1) el2 (DFrac.own 1) errs2
+        $$ [$errs $Hel2] as %agg -
+      (try wp_auto)
+      wp_apply wp_slice_literal
+      try (isplitr; (ipureintro; rfl))
+      iintro %sla ⟨Hargs, -⟩
+      (try wp_auto)
+      wp_apply wp_ErrorfAny _ _ _ _ $$ [Hargs] as %ef -
+      · iexact Hargs
+      (try wp_auto)
+      wp_for_post
+      iapply HΦ
+      iframe
     simp only [he2, _root_.decide_false]
     wp_auto
     wp_apply HgetDesc' as %dsc -

@@ -6,7 +6,8 @@
   driver. Proved from its callees' specs (`Main.lean`, `twoPhase.lean`: C1-C3 follow from the
   specs of `PossibleDecisions`, `FailureDecision` and the union authorizer's
   `EvaluateConditions`, through the invariant of decisions `authorizer.Dec.WF`), the rest of the
-  call graph linked (`Link.lean`; unfinished proofs are `sorry`s).
+  call graph proved and linked (`Link.lean`; no `sorry`: over trust-boundary specs of the opaque
+  callees only).
 * **`k8s_authz_safe`**: the closed theorem. Every real execution of `n` steps of the driver's
   initialization followed by `Main()` (`authzProgram`), from a fresh state (no package initialized,
   one thread): if the main thread has finished, its result is `#()`; no thread is stuck; no thread

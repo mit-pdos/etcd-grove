@@ -82,6 +82,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.newChain
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.authz.twoPhase
 public import Proof.k8s_io.apimachinery.pkg.util.errors.NewAggregate
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate
+public import Proof.k8s_io.apimachinery.pkg.util.validation.field.ErrorList__ToAggregate_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.validation.field.NewPath
 public import Proof.fmt.ErrorfAny
 public import Proof.fmt.SprintfDecisions
@@ -229,9 +230,13 @@ theorem field.ErrorList.wp_ToAggregate :
     EtcdGrove.field.ErrorList.ToAggregate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.field.ErrorList.ToAggregate.wp_proof
 
+theorem field.ErrorList.wp_ToAggregate_ptr :
+    EtcdGrove.field.ErrorList.ToAggregate_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.field.ErrorList.ToAggregate_ptr.wp_proof field.ErrorList.wp_ToAggregate
+
 theorem authorizer.wp_validateConditions :
     EtcdGrove.authorizer.validateConditions.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.authorizer.validateConditions.wp_proof sets.Set.wp_Has sets.Set.wp_Insert fmt.wp_ErrorfAny field.wp_NewPath validation.wp_IsDomainPrefixedKey field.ErrorList.wp_ToAggregate
+  EtcdGrove.authorizer.validateConditions.wp_proof sets.Set.wp_Has sets.Set.wp_Insert fmt.wp_ErrorfAny field.wp_NewPath validation.wp_IsDomainPrefixedKey field.ErrorList.wp_ToAggregate_ptr
 
 theorem slices.wp_Clone :
     EtcdGrove.slices.Clone.spec (GF := GF) (hG := hG) :=
