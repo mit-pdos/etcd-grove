@@ -221,7 +221,8 @@ theorem wp_Apply_some (wp_Apply : smd.merge.Updater.Apply.spec (GF := GF))
   rw [h] at H
   exact H
 
-set_option maxHeartbeats 2000000 in
+set_option maxHeartbeats 4000000 in
+set_option maxRecDepth 20000 in
 theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
     (wp_newSchema : newSchema.spec (GF := GF))
     (wp_Convert : identityConverter.Convert.spec (GF := GF))
@@ -416,7 +417,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply (wp_container go!"a1" go!"x") as %mc5 Hmc5
   ihave #Hmc5 := isUMap_persistent hL _ _ $$ Hmc5
   unfold isUMap
-  wp_apply wp_slice_literal
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc5]))
   isplitr
   · ipureintro; rfl
   iintro %sl6 ⟨Hsl6, -⟩
@@ -442,6 +443,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply wp_mapInsert $$ Hmm12 as Hmm12
   imod (isUMap_lit hL mm12 _ obj2 _ rfl (by decide) (by lit_keys)) $$ Hmm12 [] with #Hmp13
   · lit_vals
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [HaP1 HaPs1] as %vs14 ⟨-, Hvs14⟩
   · iframe HaP1 HaPs1
   ihave #Hvs14 := hL.vsetP _ _ $$ Hvs14
@@ -454,6 +456,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   · iapply isPaths_lit hL _ _ rfl
     simp only [List.zip_cons_cons, List.zip_nil_right, sepL, List.foldr_cons, List.foldr_nil]
     iframe
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [Hps16 Hpaths17] as %vs18 ⟨-, Hvs18⟩
   · iframe Hps16 Hpaths17
   ihave #Hvs18 := hL.vsetP _ _ $$ Hvs18
@@ -489,7 +492,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply (wp_container go!"a1" go!"x") as %mc25 Hmc25
   ihave #Hmc25 := isUMap_persistent hL _ _ $$ Hmc25
   unfold isUMap
-  wp_apply wp_slice_literal
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc25]))
   isplitr
   · ipureintro; rfl
   iintro %sl26 ⟨Hsl26, -⟩
@@ -515,6 +518,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply wp_mapInsert $$ Hmm32 as Hmm32
   imod (isUMap_lit hL mm32 _ obj2 _ rfl (by decide) (by lit_keys)) $$ Hmm32 [] with #Hmp33
   · lit_vals
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [HaP1 HaPs1] as %vs34 ⟨-, Hvs34⟩
   · iframe HaP1 HaPs1
   ihave #Hvs34 := hL.vsetP _ _ $$ Hvs34
@@ -528,6 +532,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   · iapply isPaths_lit hL _ _ rfl
     simp only [List.zip_cons_cons, List.zip_nil_right, sepL, List.foldr_cons, List.foldr_nil]
     iframe
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [Hps37 Hpaths38] as %vs39 ⟨-, Hvs39⟩
   · iframe Hps37 Hpaths38
   ihave #Hvs39 := hL.vsetP _ _ $$ Hvs39
@@ -599,7 +604,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply (wp_container go!"a1" go!"x") as %mc46 Hmc46
   ihave #Hmc46 := isUMap_persistent hL _ _ $$ Hmc46
   unfold isUMap
-  wp_apply wp_slice_literal
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc46]))
   isplitr
   · ipureintro; rfl
   iintro %sl47 ⟨Hsl47, -⟩
@@ -625,6 +630,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply wp_mapInsert $$ Hmm53 as Hmm53
   imod (isUMap_lit hL mm53 _ obj2 _ rfl (by decide) (by lit_keys)) $$ Hmm53 [] with #Hmp54
   · lit_vals
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [HaP1 HaPs1] as %vs55 ⟨-, Hvs55⟩
   · iframe HaP1 HaPs1
   ihave #Hvs55 := hL.vsetP _ _ $$ Hvs55
@@ -638,6 +644,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   · iapply isPaths_lit hL _ _ rfl
     simp only [List.zip_cons_cons, List.zip_nil_right, sepL, List.foldr_cons, List.foldr_nil]
     iframe
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [Hps58 Hpaths59] as %vs60 ⟨-, Hvs60⟩
   · iframe Hps58 Hpaths59
   ihave #Hvs60 := hL.vsetP _ _ $$ Hvs60
@@ -718,7 +725,7 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply (wp_container go!"a1" go!"x") as %mc77 Hmc77
   ihave #Hmc77 := isUMap_persistent hL _ _ $$ Hmc77
   unfold isUMap
-  wp_apply wp_slice_literal
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc77]))
   isplitr
   · ipureintro; rfl
   iintro %sl78 ⟨Hsl78, -⟩
@@ -744,9 +751,11 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
   wp_apply wp_mapInsert $$ Hmm84 as Hmm84
   imod (isUMap_lit hL mm84 _ obj5 _ rfl (by decide) (by lit_keys)) $$ Hmm84 [] with #Hmp85
   · lit_vals
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [Hcc70 Hpaths71] as %vs86 ⟨-, Hvs86⟩
   · iframe Hcc70 Hpaths71
   ihave #Hvs86 := hL.vsetP _ _ $$ Hvs86
+  try wp_auto
   wp_apply (wp_applied _ _ _ _) $$ [Hps75 Hpaths76] as %vs87 ⟨-, Hvs87⟩
   · iframe Hps75 Hpaths76
   ihave #Hvs87 := hL.vsetP _ _ $$ Hvs87
@@ -760,6 +769,284 @@ theorem Main.wp_proof_of (hL : MainLaws (GF := GF))
     unfold isUMap
     rw [show UVal.map (kvsU obj5) = obj5 from rfl]
     iframe Hmp85
+    ipureintro; exact ⟨rfl, rfl⟩
+  -- 6. A applies again without labels.app and image
+  wp_apply (wp_container go!"a1" go!"x") as %mc90 Hmc90
+  ihave #Hmc90 := isUMap_persistent hL _ _ $$ Hmc90
+  unfold isUMap
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc90]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sl91 ⟨Hsl91, -⟩
+  try wp_auto
+  imod (isIface_lit_list hL _ _ [container go!"a1" go!"x"] rfl) $$ Hsl91 [] with #Hli92
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm93 Hmm93
+  wp_apply wp_mapInsert $$ Hmm93 as Hmm93
+  wp_apply wp_mapInsert $$ Hmm93 as Hmm93
+  imod (isUMap_lit hL mm93 _ (UVal.ofMap [(go!"k", str go!"v1"), (go!"m", str go!"x")]) _ rfl (by decide) (by lit_keys)) $$ Hmm93 [] with #Hmp94
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm95 Hmm95
+  wp_apply wp_mapInsert $$ Hmm95 as Hmm95
+  wp_apply wp_mapInsert $$ Hmm95 as Hmm95
+  wp_apply wp_mapInsert $$ Hmm95 as Hmm95
+  imod (isUMap_lit hL mm95 _ cfg6 _ rfl (by decide) (by lit_keys)) $$ Hmm95 [] with #Hmp96
+  · lit_vals
+  wp_apply (wp_apply_some wp_apply «$r0_ptr» sc obj5 mf5 mm95 (kvsU cfg6) go!"A" _ obj6 mf6) $$ [Hst] as Hst
+  · iframe Hst
+    isplitr
+    · unfold isUMap
+      rw [show UVal.map (kvsU cfg6) = cfg6 from rfl]
+      iexact Hmp96
+    ipureintro
+    exact ⟨conforms_all cfg6 (by simp), mf_premise hL.kwi mf5 (version_all _ (by simp)) (kwi_all _ (by simp)), small_all.2.2.2.2.1, step6⟩
+  wp_apply wp_field as %p97 Hp97
+  wp_apply wp_field as %p98 Hp98
+  wp_apply (wp_slice_literal (l := [p97, p98]))
+  isplitr
+  · ipureintro; rfl
+  iintro %ps99 ⟨Hps99, -⟩
+  ihave Hpaths100 : isPaths [p97, p98] [field go!"name", field go!"selector"] $$ [Hp97 Hp98]
+  · iapply isPaths_lit hL _ _ rfl
+    simp only [List.zip_cons_cons, List.zip_nil_right, sepL, List.foldr_cons, List.foldr_nil]
+    iframe
+  wp_apply wp_containerPaths as %cp101 ⟨%csscp101, Hcp101, Hscp101⟩
+  wp_apply wp_concat $$ [Hps99 Hcp101] as %cc102 ⟨-, -, Hcc102⟩
+  · iframe Hps99 Hcp101
+  ihave Hpaths103 := isPaths_concat hL _ _ _ _ $$ Hpaths100 Hscp101
+  imod ownSlice_persist $$ Hcc102 with #Hcc102
+  ihave #Hpaths103 := hL.pathsP _ _ $$ Hpaths103
+  try wp_auto
+  wp_apply (wp_container go!"a1" go!"x") as %mc104 Hmc104
+  ihave #Hmc104 := isUMap_persistent hL _ _ $$ Hmc104
+  unfold isUMap
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc104]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sl105 ⟨Hsl105, -⟩
+  try wp_auto
+  imod (isIface_lit_list hL _ _ [container go!"a1" go!"x"] rfl) $$ Hsl105 [] with #Hli106
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm107 Hmm107
+  wp_apply wp_mapInsert $$ Hmm107 as Hmm107
+  imod (isUMap_lit hL mm107 _ (UVal.ofMap [(go!"team", str go!"t")]) _ rfl (by decide) (by lit_keys)) $$ Hmm107 [] with #Hmp108
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm109 Hmm109
+  wp_apply wp_mapInsert $$ Hmm109 as Hmm109
+  wp_apply wp_mapInsert $$ Hmm109 as Hmm109
+  imod (isUMap_lit hL mm109 _ (UVal.ofMap [(go!"k", str go!"v1"), (go!"m", str go!"x")]) _ rfl (by decide) (by lit_keys)) $$ Hmm109 [] with #Hmp110
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm111 Hmm111
+  wp_apply wp_mapInsert $$ Hmm111 as Hmm111
+  wp_apply wp_mapInsert $$ Hmm111 as Hmm111
+  wp_apply wp_mapInsert $$ Hmm111 as Hmm111
+  wp_apply wp_mapInsert $$ Hmm111 as Hmm111
+  wp_apply wp_mapInsert $$ Hmm111 as Hmm111
+  wp_apply wp_mapInsert $$ Hmm111 as Hmm111
+  imod (isUMap_lit hL mm111 _ obj6 _ rfl (by decide) (by lit_keys)) $$ Hmm111 [] with #Hmp112
+  · lit_vals
+  try wp_auto
+  wp_apply (wp_applied _ _ _ _) $$ [Hcc102 Hpaths103] as %vs113 ⟨-, Hvs113⟩
+  · iframe Hcc102 Hpaths103
+  ihave #Hvs113 := hL.vsetP _ _ $$ Hvs113
+  try wp_auto
+  wp_apply (wp_applied _ _ _ _) $$ [Hps75 Hpaths76] as %vs114 ⟨-, Hvs114⟩
+  · iframe Hps75 Hpaths76
+  ihave #Hvs114 := hL.vsetP _ _ $$ Hvs114
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mf115 Hmf115
+  wp_apply wp_mapInsert $$ Hmf115 as Hmf115
+  wp_apply wp_mapInsert $$ Hmf115 as Hmf115
+  imod (isMF_lit hL mf115 _ mf6 _ rfl (by decide) (by lit_keys)) $$ Hmf115 [] with #Hmf116
+  · lit_vals
+  wp_apply (wp_check «$r0_ptr» sc ⟨obj6, mf6⟩ mm111 (kvsU obj6) mf115 mf6 _) $$ [Hst] as Hst
+  · iframe Hst Hmf116
+    unfold isUMap
+    rw [show UVal.map (kvsU obj6) = obj6 from rfl]
+    iframe Hmp112
+    ipureintro; exact ⟨rfl, rfl⟩
+  -- 7. B adds a list item
+  wp_apply (wp_container go!"b1" go!"y") as %mc117 Hmc117
+  ihave #Hmc117 := isUMap_persistent hL _ _ $$ Hmc117
+  unfold isUMap
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc117]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sl118 ⟨Hsl118, -⟩
+  try wp_auto
+  imod (isIface_lit_list hL _ _ [container go!"b1" go!"y"] rfl) $$ Hsl118 [] with #Hli119
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm120 Hmm120
+  wp_apply wp_mapInsert $$ Hmm120 as Hmm120
+  imod (isUMap_lit hL mm120 _ (UVal.ofMap [(go!"team", str go!"t")]) _ rfl (by decide) (by lit_keys)) $$ Hmm120 [] with #Hmp121
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm122 Hmm122
+  wp_apply wp_mapInsert $$ Hmm122 as Hmm122
+  wp_apply wp_mapInsert $$ Hmm122 as Hmm122
+  wp_apply wp_mapInsert $$ Hmm122 as Hmm122
+  wp_apply wp_mapInsert $$ Hmm122 as Hmm122
+  imod (isUMap_lit hL mm122 _ cfg7a _ rfl (by decide) (by lit_keys)) $$ Hmm122 [] with #Hmp123
+  · lit_vals
+  wp_apply (wp_apply_some wp_apply «$r0_ptr» sc obj6 mf6 mm122 (kvsU cfg7a) go!"B" _ obj7a mf7a) $$ [Hst] as Hst
+  · iframe Hst
+    isplitr
+    · unfold isUMap
+      rw [show UVal.map (kvsU cfg7a) = cfg7a from rfl]
+      iexact Hmp123
+    ipureintro
+    exact ⟨conforms_all cfg7a (by simp), mf_premise hL.kwi mf6 (version_all _ (by simp)) (kwi_all _ (by simp)), small_all.2.2.2.2.2.1, step7a⟩
+  wp_apply wp_containerPaths as %cp124 ⟨%csscp124, Hcp124, Hscp124⟩
+  wp_apply wp_concat $$ [Hps75 Hcp124] as %cc125 ⟨-, -, Hcc125⟩
+  · iframe Hps75 Hcp124
+  ihave Hpaths126 := isPaths_concat hL _ _ _ _ $$ Hpaths76 Hscp124
+  imod ownSlice_persist $$ Hcc125 with #Hcc125
+  ihave #Hpaths126 := hL.pathsP _ _ $$ Hpaths126
+  try wp_auto
+  wp_apply (wp_container go!"a1" go!"x") as %mc127 Hmc127
+  ihave #Hmc127 := isUMap_persistent hL _ _ $$ Hmc127
+  unfold isUMap
+  wp_apply (wp_container go!"b1" go!"y") as %mc128 Hmc128
+  ihave #Hmc128 := isUMap_persistent hL _ _ $$ Hmc128
+  unfold isUMap
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc127, interface.mkOk mapStrIfaceTy #mc128]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sl129 ⟨Hsl129, -⟩
+  try wp_auto
+  imod (isIface_lit_list hL _ _ [container go!"a1" go!"x", container go!"b1" go!"y"] rfl) $$ Hsl129 [] with #Hli130
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm131 Hmm131
+  wp_apply wp_mapInsert $$ Hmm131 as Hmm131
+  imod (isUMap_lit hL mm131 _ (UVal.ofMap [(go!"team", str go!"t")]) _ rfl (by decide) (by lit_keys)) $$ Hmm131 [] with #Hmp132
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm133 Hmm133
+  wp_apply wp_mapInsert $$ Hmm133 as Hmm133
+  wp_apply wp_mapInsert $$ Hmm133 as Hmm133
+  imod (isUMap_lit hL mm133 _ (UVal.ofMap [(go!"k", str go!"v1"), (go!"m", str go!"x")]) _ rfl (by decide) (by lit_keys)) $$ Hmm133 [] with #Hmp134
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm135 Hmm135
+  wp_apply wp_mapInsert $$ Hmm135 as Hmm135
+  wp_apply wp_mapInsert $$ Hmm135 as Hmm135
+  wp_apply wp_mapInsert $$ Hmm135 as Hmm135
+  wp_apply wp_mapInsert $$ Hmm135 as Hmm135
+  wp_apply wp_mapInsert $$ Hmm135 as Hmm135
+  wp_apply wp_mapInsert $$ Hmm135 as Hmm135
+  imod (isUMap_lit hL mm135 _ obj7a _ rfl (by decide) (by lit_keys)) $$ Hmm135 [] with #Hmp136
+  · lit_vals
+  try wp_auto
+  wp_apply (wp_applied _ _ _ _) $$ [Hcc102 Hpaths103] as %vs137 ⟨-, Hvs137⟩
+  · iframe Hcc102 Hpaths103
+  ihave #Hvs137 := hL.vsetP _ _ $$ Hvs137
+  try wp_auto
+  wp_apply (wp_applied _ _ _ _) $$ [Hcc125 Hpaths126] as %vs138 ⟨-, Hvs138⟩
+  · iframe Hcc125 Hpaths126
+  ihave #Hvs138 := hL.vsetP _ _ $$ Hvs138
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mf139 Hmf139
+  wp_apply wp_mapInsert $$ Hmf139 as Hmf139
+  wp_apply wp_mapInsert $$ Hmf139 as Hmf139
+  imod (isMF_lit hL mf139 _ mf7a _ rfl (by decide) (by lit_keys)) $$ Hmf139 [] with #Hmf140
+  · lit_vals
+  wp_apply (wp_check «$r0_ptr» sc ⟨obj7a, mf7a⟩ mm135 (kvsU obj7a) mf139 mf7a _) $$ [Hst] as Hst
+  · iframe Hst Hmf140
+    unfold isUMap
+    rw [show UVal.map (kvsU obj7a) = obj7a from rfl]
+    iframe Hmp136
+    ipureintro; exact ⟨rfl, rfl⟩
+  -- 7. A replaces its item a1 by a2
+  wp_apply (wp_container go!"a2" go!"z") as %mc141 Hmc141
+  ihave #Hmc141 := isUMap_persistent hL _ _ $$ Hmc141
+  unfold isUMap
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc141]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sl142 ⟨Hsl142, -⟩
+  try wp_auto
+  imod (isIface_lit_list hL _ _ [container go!"a2" go!"z"] rfl) $$ Hsl142 [] with #Hli143
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm144 Hmm144
+  wp_apply wp_mapInsert $$ Hmm144 as Hmm144
+  wp_apply wp_mapInsert $$ Hmm144 as Hmm144
+  imod (isUMap_lit hL mm144 _ (UVal.ofMap [(go!"k", str go!"v1"), (go!"m", str go!"x")]) _ rfl (by decide) (by lit_keys)) $$ Hmm144 [] with #Hmp145
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm146 Hmm146
+  wp_apply wp_mapInsert $$ Hmm146 as Hmm146
+  wp_apply wp_mapInsert $$ Hmm146 as Hmm146
+  wp_apply wp_mapInsert $$ Hmm146 as Hmm146
+  imod (isUMap_lit hL mm146 _ cfg7b _ rfl (by decide) (by lit_keys)) $$ Hmm146 [] with #Hmp147
+  · lit_vals
+  wp_apply (wp_apply_some wp_apply «$r0_ptr» sc obj7a mf7a mm146 (kvsU cfg7b) go!"A" _ obj7b mf7b) $$ [Hst] as Hst
+  · iframe Hst
+    isplitr
+    · unfold isUMap
+      rw [show UVal.map (kvsU cfg7b) = cfg7b from rfl]
+      iexact Hmp147
+    ipureintro
+    exact ⟨conforms_all cfg7b (by simp), mf_premise hL.kwi mf7a (version_all _ (by simp)) (kwi_all _ (by simp)), small_all.2.2.2.2.2.2.1, step7b⟩
+  wp_apply wp_field as %p148 Hp148
+  wp_apply wp_field as %p149 Hp149
+  wp_apply (wp_slice_literal (l := [p148, p149]))
+  isplitr
+  · ipureintro; rfl
+  iintro %ps150 ⟨Hps150, -⟩
+  ihave Hpaths151 : isPaths [p148, p149] [field go!"name", field go!"selector"] $$ [Hp148 Hp149]
+  · iapply isPaths_lit hL _ _ rfl
+    simp only [List.zip_cons_cons, List.zip_nil_right, sepL, List.foldr_cons, List.foldr_nil]
+    iframe
+  wp_apply wp_containerPaths as %cp152 ⟨%csscp152, Hcp152, Hscp152⟩
+  wp_apply wp_concat $$ [Hps150 Hcp152] as %cc153 ⟨-, -, Hcc153⟩
+  · iframe Hps150 Hcp152
+  ihave Hpaths154 := isPaths_concat hL _ _ _ _ $$ Hpaths151 Hscp152
+  imod ownSlice_persist $$ Hcc153 with #Hcc153
+  ihave #Hpaths154 := hL.pathsP _ _ $$ Hpaths154
+  try wp_auto
+  wp_apply (wp_container go!"b1" go!"y") as %mc155 Hmc155
+  ihave #Hmc155 := isUMap_persistent hL _ _ $$ Hmc155
+  unfold isUMap
+  wp_apply (wp_container go!"a2" go!"z") as %mc156 Hmc156
+  ihave #Hmc156 := isUMap_persistent hL _ _ $$ Hmc156
+  unfold isUMap
+  wp_apply (wp_slice_literal (l := [interface.mkOk mapStrIfaceTy #mc155, interface.mkOk mapStrIfaceTy #mc156]))
+  isplitr
+  · ipureintro; rfl
+  iintro %sl157 ⟨Hsl157, -⟩
+  try wp_auto
+  imod (isIface_lit_list hL _ _ [container go!"b1" go!"y", container go!"a2" go!"z"] rfl) $$ Hsl157 [] with #Hli158
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm159 Hmm159
+  wp_apply wp_mapInsert $$ Hmm159 as Hmm159
+  imod (isUMap_lit hL mm159 _ (UVal.ofMap [(go!"team", str go!"t")]) _ rfl (by decide) (by lit_keys)) $$ Hmm159 [] with #Hmp160
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm161 Hmm161
+  wp_apply wp_mapInsert $$ Hmm161 as Hmm161
+  wp_apply wp_mapInsert $$ Hmm161 as Hmm161
+  imod (isUMap_lit hL mm161 _ (UVal.ofMap [(go!"k", str go!"v1"), (go!"m", str go!"x")]) _ rfl (by decide) (by lit_keys)) $$ Hmm161 [] with #Hmp162
+  · lit_vals
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mm163 Hmm163
+  wp_apply wp_mapInsert $$ Hmm163 as Hmm163
+  wp_apply wp_mapInsert $$ Hmm163 as Hmm163
+  wp_apply wp_mapInsert $$ Hmm163 as Hmm163
+  wp_apply wp_mapInsert $$ Hmm163 as Hmm163
+  wp_apply wp_mapInsert $$ Hmm163 as Hmm163
+  wp_apply wp_mapInsert $$ Hmm163 as Hmm163
+  imod (isUMap_lit hL mm163 _ obj7b _ rfl (by decide) (by lit_keys)) $$ Hmm163 [] with #Hmp164
+  · lit_vals
+  try wp_auto
+  wp_apply (wp_applied _ _ _ _) $$ [Hcc153 Hpaths154] as %vs165 ⟨-, Hvs165⟩
+  · iframe Hcc153 Hpaths154
+  ihave #Hvs165 := hL.vsetP _ _ $$ Hvs165
+  try wp_auto
+  wp_apply (wp_applied _ _ _ _) $$ [Hcc125 Hpaths126] as %vs166 ⟨-, Hvs166⟩
+  · iframe Hcc125 Hpaths126
+  ihave #Hvs166 := hL.vsetP _ _ $$ Hvs166
+  wp_apply (wp_map_make1 (K := GoString) (V := GoInterface)) as %mf167 Hmf167
+  wp_apply wp_mapInsert $$ Hmf167 as Hmf167
+  wp_apply wp_mapInsert $$ Hmf167 as Hmf167
+  imod (isMF_lit hL mf167 _ mf7b _ rfl (by decide) (by lit_keys)) $$ Hmf167 [] with #Hmf168
+  · lit_vals
+  wp_apply (wp_check «$r0_ptr» sc ⟨obj7b, mf7b⟩ mm163 (kvsU obj7b) mf167 mf7b _) $$ [Hst] as Hst
+  · iframe Hst Hmf168
+    unfold isUMap
+    rw [show UVal.map (kvsU obj7b) = obj7b from rfl]
+    iframe Hmp164
     ipureintro; exact ⟨rfl, rfl⟩
   trace_state
   sorry
