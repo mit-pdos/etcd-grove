@@ -40,7 +40,7 @@ abbrev EtcdServer.applySnapshot.specEmpty : Prop :=
 
 /-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot, in the server's auth mode** (D22 receiver epochs, S8d, 2026-10-26;
 `notes/snapshot-s8-plan.md`): the snapshot `sv` newer than the applied index `ai` (Go panics
-otherwise), its backend file `snapDBPath ss i` holding the image `D` (its metadata, `metaIs`, at the
+otherwise), its backend file `snapDBPath (config.snapDirOf cfg.DataDir) i` holding the image `D` (its metadata, `metaIs`, at the
 snapshot's index and the image's stored term `tI`, D22 J7b: until then the snapshot's
 `Metadata.Term`, which the image's certificate does not give and the proof does not need, the term
 only naming the consistent index's protocol at the new backend), the apply thread's resources
@@ -99,9 +99,6 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
-    -- (wal-link, 2026-11-19, B1) the snapshotter's files the data directory's (`srvSnapRO`'s, from
-    -- `bootOk`'s `Hssp`): `OpenSnapshotBackend`'s rename stays in the snapshot directory
-    (hssp : snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir')
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
@@ -191,9 +188,9 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- logger a zap logger (`OpenSnapshotBackend`'s `openPre`)
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗
+       snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
        -- (wal-link L2, T1) the file taken from the directory with the removal counter sealed in
-       storage.snapHeld (snap.snapDBPath ss sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
+       storage.snapHeld (snap.snapDBPath (config.snapDirOf cfg.DataDir') sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
        backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
@@ -227,7 +224,7 @@ abbrev EtcdServer.applySnapshot.specSnapM : Prop :=
        -- (2026-11-01, J8a-1, item 8) the directory's removal fact `srvSnapRm`, as the server's
        -- bundle (`srvSnapRO`) has it (until then `snapTakenLb γt`, its first disjunct); (restart
        -- S6a) the member's removal counter `γt` (`snapRmM`), its authority at most the index plus one
-       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗
+       inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd img (snapRmM γt)) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗

@@ -70,7 +70,6 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
     (d : mvcc.KBReal) (D : backend.Data) (lgh : Loc)
     (hkb : E.BkTie = srvBkTie d)
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
-    (hssp : snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir')
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hmmap : storage.openMmapOk cfg)
     (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
@@ -162,9 +161,9 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
        srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
        srvCfgAddr s ↦□ cfg ∗ zapLoggerOk cfg.Logger' ∗ structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
        structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
-       snap.isSnapshotter ss ∗
+       snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
        -- (wal-link L2, T1) the file taken from the directory with the removal counter sealed in
-       storage.snapHeld (snap.snapDBPath ss sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
+       storage.snapHeld (snap.snapDBPath (config.snapDirOf cfg.DataDir') sv.Metadata'.Index') D (monoNatAuthOwn γt 1 nt) ∗
        backend.bPath d.γB.db (config.backendPathOf cfg.DataDir') ∗
        (⌜cfg.ServerFeatureGate' = GoInterface.nil⌝ ∨ isFeatureGate cfg.ServerFeatureGate') ∗
        -- (sweep repairs 1, B4) `ETCD_VERIFY` off (`OpenSnapshotBackend`'s `openPre`)
@@ -194,7 +193,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
        (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
-       inv snapDirN (snapDirInv ss γd img (snapRmM γt)) ∗
+       inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd img (snapRmM γt)) ∗
        srvAlarmStoreAddr s ↦□ al ∗ isAlarmStore al ∗
        srvAuthStoreAddr s ↦□ auth.authIface ast ∗ srvClusterAddr s ↦□ cl ∗
        membership.isRaftCluster cl ∗
@@ -339,8 +338,6 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
       (snapOpenK γ π0 d.P) d.γB.db (monoNatAuthOwn γt 1 nt) $$ [Hfile Hpath Hcreate]
     as %be %err ⟨-, -, Hres⟩
   · iframe #; iframe Hfile Hpath
-    isplitr
-    · ipureintro; exact hssp
     iunfold storage.openPre
     iframe Hfg Hhooks Hvoff Hcfgl
     isplitr
@@ -753,7 +750,7 @@ theorem applySnapshot_walk [mvccSem : go_etcd_io.etcd.server.v3.storage.mvcc.Ass
   obtain ⟨si, Hsieq⟩ := Hsok
   ihave HRAU := rnDur_read_au γw.node.cl γw.wal γw.wal.h $$ Hdur Hwap
   ihave #HRel := walRelease_spec _ γw.wal.h γw.ss _ Hsieq q sn smp DFrac.discard DFrac.discard
-      sv.Metadata' γd img (snapRmM γt) iw mw (token γw.wal.app) Hmw $$ Hsave
+      sv.Metadata' (config.snapDirOf cfg.DataDir') γd img (snapRmM γt) iw mw (token γw.wal.app) Hmw $$ Hsave
   have Hsieq0 := Hsieq
   simp only [interface.mkOk, GoInterface.ok.injEq] at Hsieq
   subst Hsieq

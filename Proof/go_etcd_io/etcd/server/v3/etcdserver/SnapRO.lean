@@ -415,11 +415,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
       (d.P.has mvcc.alarmBI ∧
         d.P.has mvcc.authBI ∧ d.P.has mvcc.authUsersBI ∧ d.P.has mvcc.authRolesBI) ∧
       E.RO = srvRestOwnH E.authMode d.γB cl (srvObjsOn al ast lp cl d.be) ∧
-      receiptBound GF ≤ backend.wbInit - 6 ∧
-      -- (restart S6a-2) the snapshotter's paths, the data directory's (`bootOk`'s `Hssp`): what the
-      -- stop hands to the image (`srvDiskImage`), so that a restarted incarnation's snapshotter,
-      -- at the same data directory, finds this directory's invariant
-      snap.snapDBPath ss = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+      receiptBound GF ≤ backend.wbInit - 6⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     -- (premise-fixes-6: until then `cfg.Logger' ≠ null` in the pure part) a zap logger
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ zapLoggerOk cfg.Logger' ∗
@@ -431,7 +427,12 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     srvCfgFieldAddr s go!"QuotaBackendBytes" ↦□ cfg.QuotaBackendBytes' ∗
     srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ cfg.WarningApplyDuration' ∗
     -- the snapshotter, the backend hooks over the consistent index, the storage over the snapshotter
-    structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗ snap.isSnapshotter ss ∗
+    structFieldRef EtcdServer go!"snapshotter" s ↦□ ss ∗
+    -- (restart S6a-2) of the data directory's snapshot directory (`bootOk`'s; wal-link, 2026-11-19:
+    -- the snapshotter's `dir` field, until then the equation `snapDBPath ss = snapDBPathOf
+    -- cfg.DataDir`): what the stop hands to the image (`srvDiskImage`), so that a restarted
+    -- incarnation's snapshotter, at the same data directory, finds this directory's invariant
+    snap.isSnapshotter ss (config.snapDirOf cfg.DataDir') ∗
     structFieldRef EtcdServer go!"beHooks" s ↦□ hk ∗
     storage.isBackendHooks hk
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #ci⟩ lgh ∗
@@ -440,7 +441,8 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm : GName) :
     -- the member's snapshot directory, at raft's names for the member (D22 J2), its images'
     -- certificate the cluster's auth mode's (the auth-on pair's F8, `srvNet`'s)
     srvMemberIDAddr s ↦□ idm ∗
-    inv snapDirN (snapDirInv ss γd (srvImageM γr.raft.raft.authOn γr.raft.raft) (snapRmM γm)) ∗
+    inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImageM γr.raft.raft.authOn γr.raft.raft)
+      (snapRmM γm)) ∗
     -- the stores and their contracts on whichever backend
     srvAlarmStoreAddr s ↦□ al ∗ srvAuthStoreAddr s ↦□ auth.authIface ast ∗
     srvLessorAddr s ↦□ lease.lessorIface lp ∗ srvClusterAddr s ↦□ cl ∗

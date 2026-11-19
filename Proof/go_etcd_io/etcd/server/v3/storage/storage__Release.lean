@@ -35,7 +35,7 @@ theorem storage.storage.Release.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     (wp_ReleaseLockTo : go_etcd_io.etcd.server.v3.storage.wal.WAL.ReleaseLockTo.spec (Sio := Sio) P Mr)
     (wp_ReleaseSnapDBs : snap.Snapshotter.ReleaseSnapDBs.spec (GF := GF) (hG := hG)) :
     storage.storage.Release.spec (Sio := Sio) P Mr := by
-  intro p ss R jr r w dir γ q sn mp dq dq' md γd img Rm t i n cs Q
+  intro p ss R jr r w dir γ q sn mp dq dq' md sd γd img Rm t i n cs Q
   wp_start as ⟨#Hover, Hrd, #Hss, HM, Hsm, #Hinv, #HRm, #Harea, Hws, #Hsyn, HAU⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -57,7 +57,7 @@ theorem storage.storage.Release.wp_proof (P : WalPbIn GF) (Mr : WalMarshal)
     as %err ⟨%Herr, Hws, HQ⟩
   subst Herr
   (try wp_auto)
-  wp_apply (wp_ReleaseSnapDBs ss sn mp dq dq' md γd img Rm) $$ [$Hsnp $Hss $HM $Hsm $Hinv $HRm]
+  wp_apply (wp_ReleaseSnapDBs ss sn mp sd dq dq' md γd img Rm) $$ [$Hsnp $Hss $HM $Hsm $Hinv $HRm]
     as %err ⟨HM, Hsm, %Herr⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl HP]

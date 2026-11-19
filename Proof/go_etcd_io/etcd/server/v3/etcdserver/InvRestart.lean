@@ -159,8 +159,9 @@ the stopped incarnation at `γ.snapLoc id` (`srvSnapRO`'s), and the removal coun
 (`snapRmM γm`, written out: this module does not import `SnapRO`), at most `i + 1`, from the apply
 thread's `srvSnapOwn` at the graceful stop's ghost applied index (route (C), 2026-11-13: `i` itself,
 so a restart's `srvBuiltRestartR` row at `ai₀ + |A| = i` follows); (S6a-2) `ssₒ`'s paths are `dd`'s
-(`snap.snapDBPathOf dd`, from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the
-invariant at its own snapshotter, `snapDirInv_ss_congr` with `bootOkR`'s equation.) -/
+(from `srvSnapRO`, `bootOk`'s `Hssp`), so that the restart reuses the invariant at its own
+snapshotter.) (wal-link, 2026-11-19, approved by the user via etcd-grove-03: the invariant over the
+directory `config.snapDirOf dd`, no snapshotter in it: `notes/snapdir-crossworld.md`.) -/
 def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S : RaftState)
     (σ : StorContents) (i : w64) (A : List EntryModel) (D : backend.Data) (m : Membership)
     (M : GMap Loc MemStorNamesRec) : IProp GF :=
@@ -181,9 +182,10 @@ def srvDiskImageAt (γ : SrvRaft) (ρ : ReqNames) (id : w64) (dd : GoString) (S 
     -- (at raft's names for the member, its images' certificate the cluster's auth mode's), and the
     -- member's removal counter, at most one past the image's index; (S6a-2) the invariant's
     -- snapshotter's paths the data directory `dd`'s, which a restarted snapshotter's are (`bootOkR`)
-    (∃ (ssₒ : Loc) (γd γm : GName) (c : Nat),
-      ⌜γ.snapLoc id = some γd ∧ snap.snapDBPath ssₒ = snap.snapDBPathOf dd ∧ c ≤ uint.nat i + 1⌝ ∗
-      inv snapDirN (snapDirInv ssₒ γd (srvImageM γ.authOn γ)
+    -- (wal-link, 2026-11-19: the invariant of the directory `config.snapDirOf dd` itself)
+    (∃ (γd γm : GName) (c : Nat),
+      ⌜γ.snapLoc id = some γd ∧ c ≤ uint.nat i + 1⌝ ∗
+      inv snapDirN (snapDirInv (config.snapDirOf dd) γd (srvImageM γ.authOn γ)
         (fun j => monoNatLbOwn γm (uint.nat j + 1))) ∗
       monoNatAuthOwn γm 1 c))
 
@@ -434,11 +436,14 @@ def bootOkR (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft)
     "Hwal" ∷ wal.restartOk cfg id cid bw.w' σ ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
-    "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- (restart S6a, approved by the user 2026-11-13 via etcd-grove-81) in the data directory's
-    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
-    -- restart's snapshotter writes the files of the first start's
-    "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `config.snapDirOf`), so that a
+    -- restart's snapshotter writes the files of the first start's (wal-link, 2026-11-19, approved
+    -- by the user via etcd-grove-03: the directory is the snapshotter's `dir` field, inside
+    -- `isSnapshotter`; until then the opaque `snap.snapDBPath bs.ss'` and an equation `Hssp`, a pure
+    -- function of the run's location, which made the premise of a cluster of several members
+    -- unsatisfiable: `notes/snapdir-crossworld.md`)
+    "#Hss" ∷ snap.isSnapshotter bs.ss' (config.snapDirOf cfg.DataDir') ∗
     -- `b.raft`: the raft configuration (as `bootOk`'s, but `RestartNode`'s path: no peers)
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`) the heartbeat as Go computes it
     -- (`bootstrap.go:574`, wrapping)

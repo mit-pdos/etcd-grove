@@ -62,7 +62,7 @@ theorem raftNode_of_StartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpec (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs ν pv ps ctxs issued
+  intro γr E b ss wal cl sd dq bv cv lok γs ν pv ps ctxs issued
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
@@ -77,7 +77,7 @@ theorem raftNode_of_StartNode
     iintro %K Hi Hm
     iframe Hi Hm
   icases Hboot with ⟨#Hnboot, HrS, Hvac⟩
-  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv ps ctxs
+  wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv ps ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗
       memStorMeta bv.storage' γs (HardStateM.mk (W64 0) (W64 0) (W64 0)))) .fresh)
     $$ [Hb Hc Hbs Hpeers HrS Hvac]
@@ -244,7 +244,7 @@ theorem raftNode_of_RestartNode
     (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
       node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     NodeStartSpecR (GF := GF) := by
-  intro γr E b ss wal cl dq bv cv lok γs ν pv ctxs issued σ cs S m A₀
+  intro γr E b ss wal cl sd dq bv cv lok γs ν pv ctxs issued σ cs S m A₀
   letI : MemStorReg GF := ⟨γr.reg⟩
   letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
@@ -283,7 +283,7 @@ theorem raftNode_of_RestartNode
       iframe Hfresh Hmeta Hcp He0 Hsn Hents Hend
     iintro %K Hi Hm Hn
     iframe Hi Hm Hn
-  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] ν pv [] ctxs
+  wp_apply (wp_bnr E γr b ss wal cl sd dq bv cv lok γs [] ν pv [] ctxs
     (fun K => iprop(memStorInv bv.storage' γs γr.cl K ∗ memStorMeta bv.storage' γs σ.hs ∗
       memSnapNone γs (walSnapCS σ cs)))
     (.restart σ cs S A₀.length (Membership.simple γr.cfg) A₀))

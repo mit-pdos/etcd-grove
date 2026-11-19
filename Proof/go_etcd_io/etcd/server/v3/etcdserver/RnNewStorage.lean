@@ -298,14 +298,15 @@ theorem walSaveSnap_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (sized 
 /-- **`Release`'s law** from the storage's `Release` (the records read, layer 1's lock update at the
 snapshot record the witness names, `walRecs_releaseAU`). -/
 theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp) (sn mp : Loc)
-    (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName) (img : w64 → backend.Data → IProp GF)
+    (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
+    (img : w64 → backend.Data → IProp GF)
     (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM) (Q : IProp GF) (hm : m.Index' = md.Index') :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ∗
-        snap.isSnapshotter ss ⊢
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗ storage.storageOver p h.w ss ⊢
       {{ storage.walOpen h q ∗
           walStorRd (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -319,8 +320,8 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
   obtain ⟨-, -, -, -, hRel⟩ := hS
   have hau := walRecs_releaseAU h i m Q
   rw [hm] at hau
-  iintro ⟨#Hpkg, #Hover, #Hss⟩
-  iintro !> %Φ ⟨Ho, Hrd, Hsn, Hsm, #Hinv, #HRm, #Hw, HAU⟩ HΦ
+  iintro ⟨#Hpkg, #Hover⟩
+  iintro !> %Φ ⟨Ho, Hrd, Hsn, Hsm, #Hss, #Hinv, #HRm, #Hw, HAU⟩ HΦ
   iunfold storage.walOpen at Ho
   icases Ho with ⟨Hws, #Harea, #Hlen⟩
   iunfold walStorRd at Hrd
@@ -332,7 +333,7 @@ theorem walRelease_law (h : WalH GF) (hS : walStorSpecs h) (p ss : Loc) (q : Qp)
   ihave #Hsy := walSnapRec_synced h i m $$ Hw
   ihave HAU := hau $$ [HAU]
   · iframe Hw HAU
-  wp_apply (hRel p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq dq' md γd img Rm m.Term' i (i + 1)
+  wp_apply (hRel p' ss h.R h.jr h.r h.w h.dir h.γ q sn mp dq dq' md sd γd img Rm m.Term' i (i + 1)
       m.ConfState' (fun _ => Q)) $$ [Hrd Hws HAU Hsn Hsm] as %err ⟨Hrd, Hsn, Hsm, Hws, ⟨%d, HQ⟩, %he⟩
   · iframe Hover Hrd Hss Hsn Hsm Hinv HRm Harea Hws Hsy HAU
   iapply HΦ
@@ -383,14 +384,14 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ⊢ rnNewStorageOk := by
   iintro #Hpkg
   unfold rnNewStorageOk
-  iintro !> %lg %ss %h
+  iintro !> %lg %ss %sd %h
   iintro !> %Φ #Hss HΦ
   wp_apply (wpNew lg h.w ss) as %p ⟨#Hover, Hr1, Hr2⟩
   iapply HΦ
   isplitr
   · iapply (isWalStorage_intro
       iprop(isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage ∗
-        storage.storageOver p h.w ss ∗ snap.isSnapshotter ss)
+        storage.storageOver p h.w ss ∗ snap.isSnapshotter ss sd)
       _ h ss (interface.mk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p) rfl p rfl
       (by iintro ⟨-, #H2, -⟩; iunfold storage.storageOver at H2; icases H2 with ⟨#Hs, -⟩; iexact Hs)
       (fun sized q hp hs sl esL cs Q => by
@@ -405,10 +406,10 @@ theorem rnNewStorageOk_holds (wpNew : storage.NewStorage.spec (GF := GF) (hG := 
         iintro ⟨#H1, #H2, -⟩
         iapply (walSync_law h (hS h) p ss q)
         iframe H1 H2)
-      (fun q sn mp dq dq' md γd img Rm i m Q => by
-        iintro ⟨#H1, #H2, #H3⟩ %hm
-        iapply (walRelease_law h (hS h) p ss q sn mp dq dq' md γd img Rm i m Q hm)
-        iframe H1 H2 H3)
+      (fun q sn mp dq dq' md sd' γd img Rm i m Q => by
+        iintro ⟨#H1, #H2, -⟩ %hm
+        iapply (walRelease_law h (hS h) p ss q sn mp dq dq' md sd' γd img Rm i m Q hm)
+        iframe H1 H2)
       (fun sized σ id cid => by
         iintro ⟨#H1, #H2, -⟩
         iapply (walClose_law h (hS h) p ss sized σ id cid)

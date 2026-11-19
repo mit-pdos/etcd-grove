@@ -75,7 +75,7 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
   intro γn t c m ml rc
   wp_start as ⟨#Hst, #Hmsg, Hb⟩
   iunfold trState at Hst
-  icases Hst with ⟨#Hfix, #Hprb, #Hstp, #Hgd, %sst, %Rm, #Hssf, #Hss, #Hdir⟩
+  icases Hst with ⟨#Hfix, #Hprb, #Hstp, #Hgd, %sst, %ssd, %Rm, #Hssf, #Hss, #Hdir⟩
   ihave ⟨#HfM, -, %rd, %ri, -, -, -, -⟩ := hFields m ml rc $$ Hmsg
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg

@@ -477,7 +477,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     icases Hcl0 with ⟨-, -, -, -, -, -, -, -, -, -, %H⟩
     ipureintro; simpa [HρRaft] using H.1
   wp_apply (hNS γ (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk) (srvTrStopK γk)) bs.raft'
-    bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
+    bs.ss' bw.w' bc.cl' (config.snapDirOf cfg.DataDir') (DFrac.own 1) bv cv lok γs νw pv ps ctxs ρ.ids.issued)
     $$ [Hbv Hc Hfresh Hmsmeta Hend Hpeers Hnboot' Hwview Hwok]
     as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, #Hsfresh, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv, Hmsmeta, Hrsc⟩
   · ihave #Hdurν : rnDurInv γ.cl νw νw.h $$ []
@@ -1181,7 +1181,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
   -- `srvSnapRm` until then), over the member's removal counter `γt`, allocated here at `0`
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γt, Hγt, -⟩
   -- (restart S6a, M1) its ghost map named by the directory's right (`bootOk`'s `Hsdo`)
-  imod (snapDir_init bs.ss' cfg.DataDir' Hssp γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsfree Hsdir
+  imod (snapDir_init (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt) ⊤) $$ Hsdo Hsfree Hsdir
     with #Hsdir
   ihave #Hnro := srv_netRaftOk h90 h91 h92 h93 γn γd s id $$ [$Hpkg $Hprocok]
   generalize htr : «$r0_ptr» = t
@@ -1200,7 +1200,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
     intro f; simp [List.mem_filter]
   have Hturls : trURLsOk (netRh γn) id U.peer :=
     trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
-  wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) U.peer (ps.filter (· ≠ id)))
+  wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) (config.snapDirOf cfg.DataDir') U.peer (ps.filter (· ≠ id)))
     $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
     simp only
@@ -1716,7 +1716,7 @@ theorem NewServer.wp_proofG (on cmp : Bool)
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hssp⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

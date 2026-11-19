@@ -2918,3 +2918,16 @@ One entry for the frozen, exported and hub texts S3c changes (Draft §10's table
   `SetHardState` still take `hsOpt`). No closed statement's text changes; no trust-base change.
 - **Decision.** Decided by etcd-grove-03, 2026-11-17 (conditions: no premise added, no closed etcd/k8s statement text
   changed, RaftTla regenerated); made by the wal-link agent on `wal-link`.
+## 2026-11-19: the snapshotter's directory per execution (`isSnapshotter ss sd`; wal-link)
+- **Specs.** `snap.Snapshotter.{DBFilePath,SaveDBFrom,ReleaseSnapDBs}.spec` (axioms), `storage.storage.Release.spec`,
+  `isWalStorage`'s Release law and `rnNewStorageOk`, `storage.OpenSnapshotBackend.spec`, `EtcdServer.applySnapshot`'s
+  `specSnapM`, `rafthttp.{Transport.Start,newSnapshotHandler}.spec`, `snapHandlerOk`, `bootstrappedRaft.newRaftNode.spec`;
+  the vocabulary `snap.isSnapshotter`, `snap.snapDBPath`, `snapDirInv`; the bootstrap contracts' `bootOk`/`bootOkR`.
+- **Defect.** `snap.snapDBPath : Loc → w64 → GoString` was opaque and pinned per run by `bootOk`'s `Hssp`: across runs
+  every member's paths had to be one function, so the members' exclusive name claims (`Hsfree`, S5; `Hpath`, B1)
+  collided and the multi-member boot premise was unsatisfiable (`notes/snapdir-crossworld.md`).
+- **Evidence.** /shared/tmp/wallink/attack-b1.md §3 (the B1 attack).
+- **Change.** `isSnapshotter ss sd` holds the `dir` field's cell `snapDirAddr ss ↦□ sd` and `⌜∃ dd, sd = snapDirOf dd⌝`;
+  `snapDBPath sd i := sd ++ "/" ++ snapDBName i` (a definition); every spec over `sd`. Converges with `SpecPlan`'s
+  `snap/Api.lean` (`isSnapshotter ss sd`, paths `dbPathOf sd i` over the directory).
+- **Decision.** Approved by the user, 2026-11-19, via etcd-grove-03; made on `wal-link`.

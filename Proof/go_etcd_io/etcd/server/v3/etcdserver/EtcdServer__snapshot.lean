@@ -349,7 +349,7 @@ theorem EtcdServer.snapshot.wp_proof
       icases Hdisk with ⟨%stp, #Hstf⟩
       -- (restart S6a) `Release`'s directory, at the same storage
       iunfold srvSnapDir at Hsdir
-      icases Hsdir with ⟨%stp', %ss, %γd, %img, %Rm, ⟨%hd, #Hsws⟩, #Hstf', #Hdinv, #Hrm⟩
+      icases Hsdir with ⟨%stp', %ss, %sd, %γd, %img, %Rm, ⟨%hd, #Hsws⟩, #Hstf', #Hssd, #Hdinv, #Hrm⟩
       icombine Hstf Hstf' gives %Hstpeq
       have Hstpeq' : stp = stp' := by
         simp only [interface.mkOk, GoInterface.ok.injEq] at Hstpeq
@@ -441,10 +441,10 @@ theorem EtcdServer.snapshot.wp_proof
       -- (wal-link L3) `Release`, the WAL contract's law: the records read (`rnDur_read_au`)
       ihave HRAU := rnDur_read_au γn.node.cl γn.wal γn.wal.h $$ Hdur Hwap
       ihave #HRel := walRelease_spec _ γn.wal.h γn.ss _ Hsieq0 q snap' pm DFrac.discard DFrac.discard
-          (memSnapMade ai at' c []).Metadata' γd img Rm iw (memSnapMade ai at' c []).Metadata'
+          (memSnapMade ai at' c []).Metadata' sd γd img Rm iw (memSnapMade ai at' c []).Metadata'
           (token γn.wal.app) rfl $$ Hsave
       wp_apply HRel $$ [Hwo Hrdw HRAU] as %rerr ⟨Hwo, Hrdw, -, -, Hwap, %Hrerr⟩
-      · iframe Hwo Hrdw HRAU Hm' Hdinv Hwrec; iframe #
+      · iframe Hwo Hrdw HRAU Hm' Hssd Hdinv Hwrec; iframe #
         iintro !> %j %hj
         iapply Hrm
         iapply monoNatLbOwn_le (uint.nat j + 1) (by

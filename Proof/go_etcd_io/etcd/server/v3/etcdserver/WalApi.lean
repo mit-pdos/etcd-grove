@@ -117,13 +117,14 @@ snapshotter to the storage, `isWalStorage_ss_agree`, as `rnStorageOf` did until 
     □ (∀ q : Qp, {{ storage.walOpen h q ∗ walStorRd st h }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }}) ∗
-    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
+    □ (∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
         (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM)
         (Q : IProp GF),
       ⌜m.Index' = md.Index'⌝ -∗
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -176,13 +177,14 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
       {{ storage.walOpen h q ∗ walStorRd st h }}
         (App (Val #(methods si.ty go!"Sync" si.v)) (Val #()))
       {{ (err : GoInterface), RET #err; storage.walOpen h q ∗ walStorRd st h }})
-    (hRel : ∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
+    (hRel : ∀ (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (sd : GoString) (γd : GName)
         (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat) (m : SnapshotMetadataM)
         (Q : IProp GF), R ⊢
       ⌜m.Index' = md.Index'⌝ -∗
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -222,8 +224,8 @@ theorem isWalStorage_intro (R : IProp GF) [Persistent R] (st : GoInterface) (h :
     iexact HR
   isplitr
   · iintro !>
-    iintro %q %sn %mp %dq %dq' %md %γd %img %Rm %i %m %Q
-    iapply (hRel q sn mp dq dq' md γd img Rm i m Q)
+    iintro %q %sn %mp %dq %dq' %md %sd %γd %img %Rm %i %m %Q
+    iapply (hRel q sn mp dq dq' md sd γd img Rm i m Q)
     iexact HR
   iintro !>
   iintro %sized %σ %id %cid
@@ -439,12 +441,13 @@ them) and the snapshotter's older `.snap.db` files removed; `nil`, or the snapsh
 failed. -/
 theorem walRelease_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInterfaceOk)
     (hst : st = GoInterface.ok si) (q : Qp) (sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM)
-    (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat)
+    (sd : GoString) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF) (i : Nat)
     (m : SnapshotMetadataM) (Q : IProp GF) (hm : m.Index' = md.Index') :
     isWalStorage st h ss ⊢
       {{ storage.walOpen h q ∗ walStorRd st h ∗
           sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-          inv snapDirN (snapDirInv ss γd img Rm) ∗ □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
+          snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
+          □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) ∗
           walSnapRec h i m ∗
           AU <{ ∃∃ (σ : StorContents) (s : Bool), walRecs h σ s }> @ WalFs.walAuMask, ∅
             <{ walRecs h σ s, COMM Q }> }}
@@ -455,7 +458,7 @@ theorem walRelease_spec (st : GoInterface) (h : WalH GF) (ss : Loc) (si : GoInte
   unfold isWalStorage
   iintro ⟨-, %si', %Heq, -, -, -, #HR, -⟩
   rw [hst] at Heq; cases Heq
-  ispecialize HR $$ %q %sn %mp %dq %dq' %md %γd %img %Rm %i %m %Q
+  ispecialize HR $$ %q %sn %mp %dq %dq' %md %sd %γd %img %Rm %i %m %Q
   iapply HR
   ipureintro; exact hm
 
@@ -479,7 +482,7 @@ loop's and the apply thread's). (wal-link L3, 2026-11-19: proved, `rnNewStorageO
 and the storage methods' specs over the real WAL; until then a premise of every closed theorem, over a WAL
 location with the opaque `walReady w` and `walOf st = w`, and the snapshotter's opaque `storageSnap`.) -/
 def rnNewStorageOk : IProp GF :=
-  iprop(□ ∀ (lg ss : Loc) (h : WalH GF), {{ snap.isSnapshotter ss }}
+  iprop(□ ∀ (lg ss : Loc) (sd : GoString) (h : WalH GF), {{ snap.isSnapshotter ss sd }}
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #h.w))
       (Val #ss))
     {{ (st : GoInterface), RET #st; isWalStorage st h ss ∗ walStorRd st h ∗ walStorRd st h }})

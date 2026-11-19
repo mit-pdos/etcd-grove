@@ -687,7 +687,7 @@ and the trust boundary provide, yields the wrapper's struct value, the tokens, t
 peers' slice back, and the installer of `isRaftNode` at the address the server copies the struct
 to (which takes the server's names and raft invariant in `rnEnvOk`). -/
 abbrev NodeStartSpec : Prop :=
-  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (ν : WalNames GF)
     (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
@@ -736,7 +736,7 @@ abbrev NodeStartSpec : Prop :=
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
-        "#Hssi" ∷ snap.isSnapshotter ss ∗
+        "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- (2026-11-03, R2b-1 stage 3c) the WAL's durability (`wal.bootOk_start`): its invariant, the
         -- loop's view at the start and its token
         "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗ "Hwview" ∷ ghostVar ν.view (1 : Qp).half walView0 ∗
@@ -801,7 +801,7 @@ snapshot valid by `walSnapCS_valid`), the WAL's durability at the view `⟨S, σ
 `snap0` the restored commit and base), and the installer. (restart3 A1, 2026-11-15: until then the
 installer took the restart-only premise `rnSnapTermAbove`, row 4, for `isRaftNode`'s `rnRestartOk`.) -/
 abbrev NodeStartSpecR : Prop :=
-  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (sd : GoString) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (ν : WalNames GF) (pv : List Peer) (ctxs : List (List w8)) (issued : GName)
     (σ : StorContents) (cs : ConfStateM) (S : RaftState) (m : Membership) (A₀ : List EntryModel),
@@ -842,7 +842,7 @@ abbrev NodeStartSpecR : Prop :=
         "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
         -- (wal-link L3) the snapshotter (`NewStorage`'s precondition)
-        "#Hssi" ∷ snap.isSnapshotter ss ∗
+        "#Hssi" ∷ snap.isSnapshotter ss sd ∗
         -- the WAL's durability at the restart's view (`rnDur_alloc_view`)
         "#Hdur" ∷ rnDurInv γr.cl ν ν.h ∗
         "Hwview" ∷ ghostVar ν.view (1 : Qp).half

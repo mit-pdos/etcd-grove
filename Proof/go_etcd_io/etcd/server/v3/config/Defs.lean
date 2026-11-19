@@ -15,8 +15,8 @@ filepath.Join(ToMemberDir(dataDir), "snap")`; `config.go`: `SnapDir() = filepath
 cleaned path ending in the element `snap` does not end in `/`, so joining it with the clean name `db`
 appends `/db`. The Go test `examples/etcd/snappaths/snappaths_test.go` checks it on data directories
 relative, absolute, empty, `/`, with `.`, `..` and repeated or trailing slashes. Until 2026-11-19
-`backendPathOf` was opaque, unrelated to the snapshot files' paths (`snap.snapDBPathOf`, now
-`snapDirOf dd ++ "/" ++ <i>.snap.db`), so the model could not see that `OpenSnapshotBackend`'s rename
+`backendPathOf` was opaque, unrelated to the snapshot files' paths (until 2026-11-19 `snap.snapDBPathOf`, now
+`snap.snapDBPath (snapDirOf dd) i`, `snapDirOf dd ++ "/" ++ <i>.snap.db`), so the model could not see that `OpenSnapshotBackend`'s rename
 stays in one directory.
 -/
 module

@@ -38,7 +38,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
       RestartNode.spec (GF := GF) (hG := hG))
     (wp_newRaftNode : _root_.Perennial.EtcdGrove.newRaftNode.spec (GF := GF) (hG := hG)) :
     bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG) := by
-  intro E γr b ss wal cl dq bv cv lok γs pre ν pv ps ctxs Q bt
+  intro E γr b ss wal cl sd dq bv cv lok γs pre ν pv ps ctxs Q bt
   letI := srvStor (GF := GF) γr
   wp_start as Hpre
   iNamed Hpre
@@ -208,7 +208,7 @@ theorem bootstrappedRaft.newRaftNode.wp_proof
   -- `serverstorage.NewStorage(b.lg, wal, ss)`
   iunfold rnNewStorageOk at Hns
   subst Hwal
-  wp_apply Hns $$ %bv.lg' %ss %ν.h [] as %st ⟨#Hst, Hrd1, Hrd2⟩
+  wp_apply Hns $$ %bv.lg' %ss %sd %ν.h [] as %st ⟨#Hst, Hrd1, Hrd2⟩
   · iexact Hssi
   (try wp_auto)
   -- `newRaftNode(cfg)`

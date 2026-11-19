@@ -33,8 +33,8 @@ theorem snapDBName_nameOk (i : w64) : NameOk (snapDBName i) := by
 
 /-- **The snapshot's file and the backend's file are in one directory** (`os.Rename.spec`'s
 premise): both names of `config.snapDirOf dd`. -/
-theorem snapDBPathOf_parent [GooseExts] (dd : GoString) (i : w64) :
-    parentOf (snapDBPathOf dd i) = parentOf (config.backendPathOf dd) := by
+theorem snapDBPath_parent [GooseExts] (dd : GoString) (i : w64) :
+    parentOf (snapDBPath (config.snapDirOf dd) i) = parentOf (config.backendPathOf dd) := by
   have hdb : NameOk go!"db" := by unfold NameOk; decide
   show parentOf (Fs.child (config.snapDirOf dd) (snapDBName i)) =
     parentOf (Fs.child (config.snapDirOf dd) go!"db")

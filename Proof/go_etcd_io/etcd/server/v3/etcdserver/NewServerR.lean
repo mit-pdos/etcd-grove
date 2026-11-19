@@ -428,7 +428,7 @@ theorem NewServer.wp_proofRG
   ihave #Hctx : peersCtx pv ([] : List (List w8)) $$ []
   · rw [Hrcfg.peersNil]; iunfold peersCtx; iapply BigSepL2.bigSepL2_nil.2; itrivial
   wp_apply (hNS γ (srvErM false ρ E₀ (W64 0) (W64 0) (restartKV ρ.rd.kv A) id (srvTrKey γn γk)
-      (srvTrStopK γk)) bs.raft' bs.ss' bw.w' bc.cl' (DFrac.own 1) bv cv lok γs νw pv [] ρ.ids.issued
+      (srvTrStopK γk)) bs.raft' bs.ss' bw.w' bc.cl' (config.snapDirOf cfg.DataDir') (DFrac.own 1) bv cv lok γs νw pv [] ρ.ids.issued
       σ cs S mb A)
     $$ [Hbv Hc Hrest Hpeers Hvac HrS Hwview Hwok]
     as %r ⟨%γrn, %rvr, %Hrnames, #Hsws, Hrd1, Hrd2, Hr, Hrtm, #HstepI, Hloop, Happly, Hrunh, Hinst, Hbv, -, #Hminv,
@@ -1148,13 +1148,14 @@ theorem NewServer.wp_proofRG
   ipersist beHooks
   ipersist stats
   -- (restart) the member's snapshot directory: the image's invariant (its first start's, at raft's
-  -- names for the member), reused through the paths (`snapDirInv_ss_congr`, `Hssp`), and the
-  -- member's removal counter, at most one past the image's index (in place of `snapDir_init` and a
-  -- fresh counter at `0`)
-  icases Hsdimg with ⟨%ssₒ, %γd, %γt, %ct, %Hsd, #Hsdir, Hγt⟩
-  obtain ⟨Hsloc, Hssₒ, Hct⟩ := Hsd
-  ihave #Hsdir : inv snapDirN (snapDirInv bs.ss' γd γn.N.img (snapRmM γt)) $$ []
-  · rw [← snapDirInv_ss_congr (Hssₒ.trans Hssp.symm), Hγn.1]; iExactEq Hsdir; rfl
+  -- names for the member), the data directory's snapshot directory's (wal-link, 2026-11-19: the
+  -- invariant over the directory string, which the snapshotter's `isSnapshotter` names; until then
+  -- reused through the paths, `snapDirInv_ss_congr` and `Hssp`), and the member's removal counter, at
+  -- most one past the image's index (in place of `snapDir_init` and a fresh counter at `0`)
+  icases Hsdimg with ⟨%γd, %γt, %ct, %Hsd, #Hsdir, Hγt⟩
+  obtain ⟨Hsloc, Hct⟩ := Hsd
+  ihave #Hsdir : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd γn.N.img (snapRmM γt)) $$ []
+  · rw [Hγn.1]; iExactEq Hsdir; rfl
   ihave #Hprocok : srvProcOk γn s id γd $$ []
   · iunfold srvProcOk
     iexists cfg.Logger', bc.cl', sstats, γrn
@@ -1180,7 +1181,7 @@ theorem NewServer.wp_proofRG
     intro f; simp [List.mem_filter]
   have Hturls : trURLsOk (netRh γn) id U.peer :=
     trURLsOk_of_dir γn dir Hγn.2 Hdirok ps Hdirps.1 id (Hrid ▸ Hrmem) U.peer HpU
-  wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) U.peer (ps.filter (· ≠ id)))
+  wp_apply (h38 γn t _ (srvLgReader s) γd (snapRmM γt) (config.snapDirOf cfg.DataDir') U.peer (ps.filter (· ≠ id)))
     $$ [«$r0» Hlsf] as %terr Htres
   · iframe «$r0»
     simp only
@@ -1701,7 +1702,7 @@ theorem NewServer.wp_proofRG
       isplitr
       · ipureintro
         refine ⟨trivial, Hdisk.1, Hmmap, Hbuq, ?_, Hdirps.1, Hdisk.2, HbP,
-          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega, Hssp⟩
+          Hci0, HhP, HPwf, HPlim, HlP, ⟨HalB, HauB, HauUB, HauRB⟩, trivial, by omega⟩
         rw [HρRaft, Hid]; exact Hsloc
       isplitr
       · iExactEq Hsdir

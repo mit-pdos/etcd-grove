@@ -115,7 +115,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
       #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg, #Hclgz, #Hsws⟩
     obtain ⟨hkb, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
-      halbi, hRO, hrb, hssp⟩ := Hp
+      halbi, hRO, hrb⟩ := Hp
     -- (the lease-expiry plan's S2–S4 Probe, 2026-11-05: in either lease mode; until then the
     -- revocable lessor refuted the rest's leased arm, a cluster that grants none) the lessor at the
     -- environment's mode
@@ -139,11 +139,11 @@ theorem EtcdServer.applyAll.wp_proofSnapM
       have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
       omega
     wp_auto_lc 1
-    ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImage γr.raft.raft) (snapRmM γt)) $$ []
+    ihave #Hdinv' : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImage γr.raft.raft) (snapRmM γt)) $$ []
     · rw [← srvImageM_off, ← hao]; iexact Hdinv
     ihave Htake := snapRmM_take (GF := GF) γt sv.Metadata'.Index' nt hnt'
     icases Htake with ⟨Hno, Hup⟩
-    imod snapDir_take ss γd (srvImage γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
+    imod snapDir_take (config.snapDirOf cfg.DataDir') γd (srvImage γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
         (monoNatAuthOwn γt 1 nt) (monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1))
         $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup with ⟨%D, Hfile, #Himg⟩
     -- the image's facts (`snapRecv_image`): its committed log `A'` extending `A`
@@ -198,7 +198,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     imod snap_csIdCount γr.raft sv hposS hi61 hsz20 $$ Hrli Hcert with %hcsz
     have hS := (hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
         { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai hcsz d D lgh hkb
-        hdbo hsop hssp ⟨hwf, hlim, hci, hhk⟩ hmm tI hmeta st b (by omega)
+        hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm tI hmeta st b (by omega)
         al ast lp cl x A r0 hRO A' u (by rw [Hoff]; exact HxA) (by rw [Hoff]; exact Hif.hst)
         (by rw [Hoff]; exact Hif.nolease) hbr hlp γp
         hrb stp γd γt
@@ -641,7 +641,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     #Hdinv, #Half, #Hauf, #Hlpf, #Hclf, #Hal, #HalOk, #HauOk, #HauR, #HauSK, #HlpOk, #HlpCfg, #HlpL, #Hrc,
     #HclOk, #Hvc, #Hmd, #Hks, #HlpI, #HlpM, ⟨#Hkvaddr, #Hkvm⟩, #Hcfg, #Hclgz, #Hsws⟩
   obtain ⟨hkb, hdbo, hmm, hbuq, hsl, hdirps, hsop, hbr, hci, hhk, hwf, hlim, hlp,
-    halbi, hRO, hrb, hssp⟩ := Hp
+    halbi, hRO, hrb⟩ := Hp
   -- (auth-lease S3a §5) the lessor's mode the KV names' (`Hmo`), any lease mode
   icases HlpM with ⟨%Hmo, #HlpM⟩
   icombine Hnid Hidm gives %Hidn
@@ -663,11 +663,11 @@ theorem EtcdServer.applyAll.wp_proofSnapM
     have : uint.nat ag < uint.nat sv.Metadata'.Index' := by word  -- (route (C)) the ghost index
     omega
   wp_auto_lc 1
-  ihave #Hdinv' : inv snapDirN (snapDirInv ss γd (srvImageOn γr.raft.raft) (snapRmM γt)) $$ []
+  ihave #Hdinv' : inv snapDirN (snapDirInv (config.snapDirOf cfg.DataDir') γd (srvImageOn γr.raft.raft) (snapRmM γt)) $$ []
   · rw [← srvImageM_on, ← hao]; iexact Hdinv
   ihave Htake := snapRmM_take (GF := GF) γt sv.Metadata'.Index' nt hnt'
   icases Htake with ⟨Hno, Hup⟩
-  imod snapDir_take ss γd (srvImageOn γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
+  imod snapDir_take (config.snapDirOf cfg.DataDir') γd (srvImageOn γr.raft.raft) (snapRmM γt) sv.Metadata'.Index'
       (monoNatAuthOwn γt 1 nt) (monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index' + 1))
       $$ Hlc1 Hdinv' Hsaved Hγt Hno Hup with ⟨%D, Hfile, #Himg⟩
   -- the image's facts (`snapRecv_imageOn`): its committed log `A'` extending `A`
@@ -733,7 +733,7 @@ theorem EtcdServer.applyAll.wp_proofSnapM
   imod snap_csIdCount γr.raft sv hposS hi61 hsz20 $$ Hrli Hcert with %hcsz
   have hS := hASnap s ep ap sn sv γ ci TM E ρ γr ai at0 sd0 nc
       { cfg with SnapshotCount' := sc, SnapshotCatchUpEntries' := scu } ss hk hai hcsz d D lgh hkb
-      hdbo hsop hssp ⟨hwf, hlim, hci, hhk⟩ hmm tI hmeta st b (by omega)
+      hdbo hsop ⟨hwf, hlim, hci, hhk⟩ hmm tI hmeta st b (by omega)
       al ast lp cl x A r0 hRO A' u (by rw [hon]; exact HxA) (by rw [hon]; exact Hif.hst)
       (by rw [hon]; exact Hif.nolease) hbr hlp γp hrb stp γd γt
       (srvImageOn γr.raft.raft) (uint.nat sv.Metadata'.Index' + 1) (Nat.le_refl _) Hif.halarm

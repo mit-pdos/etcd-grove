@@ -95,15 +95,16 @@ instance srvSnapDisk_persistent (s : Loc) (γr : ReadNames) :
 
 /-- **The disk snapshot's directory** (persistent; restart S6a, see the file header) of the server
 `s` at the member's removal counter `γm`: the raft wrapper's storage over the snapshotter `ss`, and
-`ss`'s directory's invariant at a removal fact the counter past `j` gives. (wal-link L3: the storage over
+`ss`'s directory `sd`'s invariant at a removal fact the counter past `j` gives. (wal-link L3: the storage over
 `ss` as the WAL contract's, `isWalStorage_ss_agree`; until then the opaque `storage.storageSnap stp ss`.) -/
 def srvSnapDir (s : Loc) (γm : GName) : IProp GF :=
-  iprop(∃ (stp ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
+  iprop(∃ (stp ss : Loc) (sd : GoString) (γd : GName) (img : w64 → backend.Data → IProp GF)
+      (Rm : w64 → IProp GF),
     (∃ h : WalH GF, isWalStorage (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp) h ss) ∗
     rnStorageAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.storage.ty) #stp : GoInterface) ∗
-    inv snapDirN (snapDirInv ss γd img Rm) ∗
+    snap.isSnapshotter ss sd ∗ inv snapDirN (snapDirInv sd γd img Rm) ∗
     □ (∀ j : w64, monoNatLbOwn γm (uint.nat j + 1) -∗ Rm j))
 
 instance srvSnapDir_persistent (s : Loc) (γm : GName) :

@@ -36,7 +36,8 @@ name ends in `.snap.db` and whose prefix parses as a base-16 `uint64` below `i`
 (`strconv.ParseUint(prefix, 16, 64)`), canonical or not, an empty directory of such a name included;
 a failed removal (a non-empty directory, I/O) is logged and skipped, not returned
 (`examples/axiomcx/releasesnapdbs`, `TestAttackNames`). Why the statement is true of it:
-* A canonical name is `snapDBPath ss j`. Such a file is in the invariant's `M`, or held by a taker
+* A canonical name is `snapDBPath sd j` (`sd` the snapshotter's `dir`, `isSnapshotter ss sd`;
+  wal-link, 2026-11-19, until then the opaque `snapDBPath ss`, `notes/snapdir-crossworld.md`). Such a file is in the invariant's `M`, or held by a taker
   (`snapDir_take`, `rafthttp/Net.lean`: it hands out no `fileHolds`, only the sealed token
   `storage.snapHeld` that `OpenSnapshotBackend` consumes at its rename, the seal gated by
   `etc/import-all.txt`), whose premise refutes `Rm j` and which keeps the resource it could make
@@ -56,12 +57,12 @@ a failed removal (a non-empty directory, I/O) is logged and skipped, not returne
 The post does not say that the files below `i` are gone (a removal may fail silently): the caller
 gets nothing but the invariant kept. -/
 abbrev snap.Snapshotter.ReleaseSnapDBs.spec : Prop :=
-  ∀ (ss sn mp : Loc) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
+  ∀ (ss sn mp : Loc) (sd : GoString) (dq dq' : DFrac) (md : SnapshotMetadataM) (γd : GName)
     (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap ∗
-      isSnapshotter ss ∗
+      isSnapshotter ss sd ∗
       sn.[raftpb.Snapshot, go!"Metadata"] ↦{dq} mp ∗ smOpt mp dq' md ∗
-      inv snapDirN (snapDirInv ss γd img Rm) ∗
+      inv snapDirN (snapDirInv sd γd img Rm) ∗
       □ (∀ j : w64, ⌜uint.Z j < uint.Z md.Index'⌝ -∗ Rm j) }}
     (App (Val (ss @!! go.GoType.PointerType
         _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty @!!

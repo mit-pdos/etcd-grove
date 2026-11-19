@@ -257,20 +257,23 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) 
     "Hwal" ∷ wal.bootOk cfg id cid bw.w' ∗
     -- (D22 S-i, 2026-10-19) the snapshotter (`bootstrapSnapshot`'s `snap.New(lg, cfg.SnapDir())`,
     -- its fields set once), which the transport's snapshot handler and `applySnapshot` use
-    "#Hss" ∷ snap.isSnapshotter bs.ss' ∗
     -- (restart S6a, approved by the user 2026-11-13 via etcd-grove-81) in the data directory's
-    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `snap.snapDBPathOf`), so that a
-    -- restart's snapshotter writes the files of the first start's
-    "%Hssp" ∷ ⌜snap.snapDBPath bs.ss' = snap.snapDBPathOf cfg.DataDir'⌝ ∗
+    -- snapshot directory (`cfg.SnapDir()`, a function of `DataDir`: `config.snapDirOf`), so that a
+    -- restart's snapshotter writes the files of the first start's (wal-link, 2026-11-19, approved
+    -- by the user via etcd-grove-03: the directory is the snapshotter's `dir` field, inside
+    -- `isSnapshotter`; until then the opaque `snap.snapDBPath bs.ss'` and an equation `Hssp`, a pure
+    -- function of the run's location, which made the premise of a cluster of several members
+    -- unsatisfiable: `notes/snapdir-crossworld.md`)
+    "#Hss" ∷ snap.isSnapshotter bs.ss' (config.snapDirOf cfg.DataDir') ∗
     -- (restart S6a, M1, approved by the user 2026-11-13 via etcd-grove-81; the first start only,
     -- not `bootOkR`) the right to that snapshot directory: it holds no `.snap.db` file, and nothing
     -- outside the server's snapshotters writes `.snap.db` files there (`snap.snapDirOwn`), which
     -- names the one ghost map of its files (`snapDir_init`)
-    "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPathOf cfg.DataDir') ∗
+    "Hsdo" ∷ snap.snapDirOwn (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
     -- (S5, 2026-11-18) and the claims on that directory's snapshot names, every index's, free
     -- (`snapFreeAll`: the shared mode's claims on the names `bootstrap`'s new snapshot directory has,
     -- none of them a file), which the directory's invariant keeps for `SaveDBFrom`
-    "Hsfree" ∷ snapFreeAll (snap.snapDBPathOf cfg.DataDir') ∗
+    "Hsfree" ∷ snapFreeAll (snap.snapDBPath (config.snapDirOf cfg.DataDir')) ∗
     -- `b.raft`: `NodeStartSpec`'s premises
     -- (2026-11-03, S2: until then `heartbeat ≠ 0`, false at `TickMs = 2 ^ 58`) the heartbeat as Go
     -- computes it (`time.Duration(cfg.TickMs) * time.Millisecond`, `bootstrap.go:563`, wrapping)

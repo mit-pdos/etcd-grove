@@ -753,14 +753,12 @@ theorem stop_cleanup_image (hCl : EtcdServer.Cleanup.spec (GF := GF) (hG := hG))
   -- (restart S6a-2) its paths the data directory's: the snapshotter's (`srvSnapRO`'s, from
   -- `bootOk`'s `Hssp`) at the configuration's `DataDir`, which is the stop's `dd`
   icombine Hdd1 Hddo gives %hddo
-  have hsp : snap.snapDBPath sso = snap.snapDBPathOf dd := by
-    rw [hddo]; exact Hsrop.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2
-  iexists sso, γdo, γm, cm
+  iexists γdo, γm, cm
   isplitr
-  · ipureintro; exact ⟨hloc, hsp, by omega⟩
+  · ipureintro; exact ⟨hloc, by omega⟩
   isplitr
   · rw [show (fun j : w64 => monoNatLbOwn (GF := GF) γm (uint.nat j + 1)) = snapRmM γm from rfl]
-    iexact Hsdinv
+    first | (rw [hddo]; iexact Hsdinv) | (rw [← hddo]; iexact Hsdinv)
   iexact Hγm
 
 end proof

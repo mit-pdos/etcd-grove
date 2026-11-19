@@ -1,6 +1,30 @@
 # WAL link: handoff
 
-## START HERE (2026-11-19 z2, B1 written, UNBUILT; STOPPED: cross-world finding on `snap.snapDBPath`)
+## START HERE (2026-11-19 z3, snapshotter-directory fix WRITTEN; STOPPED: new soundness finding, relative data dirs)
+
+- **Branch** `wal-link` (this commit), pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`.
+- **Done (this commit):** the user-approved fix of the cross-world finding (`notes/snapdir-crossworld.md`):
+  `snap.isSnapshotter ss sd` holds the `dir` field's cell (`snapDirAddr ss ↦□ sd`) and `⌜∃ dd, sd = snapDirOf dd⌝`;
+  `snapDBPath sd i := sd ++ "/" ++ snapDBName i` (definition; the opaque `snapDBPath : Loc → …` and `snapDBPathOf`
+  gone); `snapDirInv sd …` (`snapDirInv_ss_congr` gone, `snapDir_init sd`); `DBFilePath`/`SaveDBFrom`/
+  `ReleaseSnapDBs`/`storage.Release`/`isWalStorage`'s Release law (takes `isSnapshotter ss sd`)/`rnNewStorageOk`
+  (`∀ sd`)/`OpenSnapshotBackend` (no `Hssp` premise)/`applySnapshot` (`hssp` gone)/rafthttp specs/`newRaftNode` over
+  `sd`; `bootOk`/`bootOkR`: `Hss` at `config.snapDirOf cfg.DataDir`, `Hssp` gone; `srvSnapRO` (last pure conjunct
+  gone), `srvSnapDir` (`∃ sd`), `srvDiskImageAt` (no `ssₒ`). Ledger entry, audit rows, `notes/axiom-review/snapdir.md`.
+- **Checked:** lean-check 0 errors: snap `Defs`, `Net`, `OpenSnapshotBackendLemmas`, `OpenSnapshotBackend`,
+  `storage__Release`, `WalApi`, `RnNewStorage`, `newSnapshotHandler`, `snapshotHandler__ServeHTTP`. NOT built:
+  the server cone (`NewServer`, `NewServerR`, `ApplyAllSnap`, `SnapApplyWalk`, `EtcdServer__snapshot`,
+  `StopShutdown`, `NodeStartLinked`, `TransportFull`, ...): targeted build `/shared/tmp/wallink/sd-b2.log`
+  (targets `sd-b2.targets`) was queued for a slot at the stop.
+- **Re-attack** (`notes/axiom-review/snapdir.md`): cross-world ok, axioms over `sd` ok, the k-member collision
+  fixed (assignment over absolute data dirs). **NEW finding (pre-existing since S5):** the examples' `DataDir =
+  name ++ ".etcd"` is relative, the file claims (`bPath`/`fileFree`/`fileHolds`) need absolute paths (`RootForm`),
+  so `bootOk`'s `Hpath`/`Hsfree` are unsatisfiable for EVERY member; absolute dirs break `HWal` (`walAreaOf`).
+  `notes/datadir-relative-unsat.md`. Awaiting 03's decision (proposed: absolute data dirs under an fsExt root,
+  `walAreaOf` of the member's name).
+- **Next after the decision:** the fix if approved; finish the server-cone build; then the land list (z below).
+
+### START HERE (2026-11-19 z2, B1 written, UNBUILT; STOPPED: cross-world finding on `snap.snapDBPath`)
 
 - **Branch** `wal-link` (this commit), pin 3afd77e35, `--packages=/shared/tmp/manifest-3af.json`; 03's decisions
   (merge, forms, proved-statement changes ACCEPTED; os.Rename option B1) recorded in questions.md.

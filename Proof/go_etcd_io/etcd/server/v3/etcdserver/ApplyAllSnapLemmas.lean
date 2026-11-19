@@ -374,8 +374,8 @@ theorem srvSnapDir_of_RO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γm
     #HL, #Hzl, #HD, #HF, #HFg, #Hvo, #HQ, #HW, #HSs, #HSi, #HH, #HHi, #HSt, #HM, #Hinv,
     -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #Hsws⟩
   iunfold srvSnapDir
-  iexists stp, ss, γd, srvImageM γr.raft.raft.authOn γr.raft.raft, snapRmM γm
-  iframe HSt Hinv Hsws
+  iexists stp, ss, config.snapDirOf cfg.DataDir', γd, srvImageM γr.raft.raft.authOn γr.raft.raft, snapRmM γm
+  iframe HSt HSi Hinv Hsws
   iintro !> %j #Hj
   iunfold snapRmM
   iexact Hj
