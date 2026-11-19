@@ -11,6 +11,8 @@ public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAware
 public import Spec.k8s_io.apiserver.pkg.authorization.authorizer.ConditionsAwareDecision__FailureDecision
 public import Spec.k8s_io.apimachinery.pkg.util.sets.Set__Has
 public import Spec.k8s_io.apiserver.pkg.authorization.union.unionAuthzHandler__EvaluateConditions
+public import Proof.k8s_io.apiserver.pkg.authorization.authorizer.PtrMethods
+public import Proof.k8s_io.apimachinery.pkg.util.sets.PtrMethods
 
 @[expose] public section
 
@@ -39,7 +41,58 @@ theorem twoPhase.wp_proof
     (wp_Set__Has : EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG))
     (wp_unionAuthzHandler_EvaluateConditions : EtcdGrove.union.unionAuthzHandler.EvaluateConditions.spec (GF := GF) (hG := hG)) :
     twoPhase.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro ctx h d m
+  wp_start as ⟨#Hu, #Hd, %Hwf⟩
+  icases isDecision_tag d m $$ Hd with %Htag
+  wp_auto
+  wp_apply (ConditionsAwareDecision.wp_ptr_PossibleDecisions_of
+    wp_ConditionsAwareDecision_PossibleDecisions d_ptr (DFrac.own 1) d m) $$ [$d]
+    as %s ⟨⟨%S, HS, %HSm⟩, Hdp⟩
+  · iexact Hd
+  (try wp_auto)
+  wp_apply (ConditionsAwareDecision.wp_ptr_IsAllow_of wp_ConditionsAwareDecision_IsAllow
+    d_ptr (DFrac.own 1) d) $$ [$Hdp] as Hdp
+  rw [Htag, Dec.tag_allow]
+  cases hA : m.isAllow
+  · wp_auto
+    wp_apply (ConditionsAwareDecision.wp_ptr_FailureDecision_of
+      wp_ConditionsAwareDecision_FailureDecision d_ptr (DFrac.own 1) d m) $$ [$Hdp] as Hdp
+    · iexact Hd
+    (try wp_auto)
+    wp_apply (sets.Set.wp_ptr_Has_of wp_Set__Has pd_ptr (DFrac.own 1) s (DFrac.own 1) S
+      m.pd.failure) $$ [$pd $HS] as ⟨pd, HS⟩
+    rw [HSm, Dec.failure_mem m Hwf hA]
+    wp_auto
+    wp_apply (sets.Set.wp_ptr_Has_of wp_Set__Has pd_ptr (DFrac.own 1) s (DFrac.own 1) S
+      (W64 1)) $$ [$pd $HS] as ⟨pd, HS⟩
+    rw [HSm]
+    cases hAl : m.pd.has (W64 1)
+    · wp_auto
+      iapply HΦ
+      itrivial
+    · wp_auto
+      wp_apply (wp_unionAuthzHandler_EvaluateConditions h ctx d m _) as %dec %r %e %Hdec
+      · iframe #
+        ipureintro; exact Hwf
+      -- C2: the decision is possible (its failure decision is, by C3)
+      have Hpd : m.pd.has dec = true := by
+        rcases Hdec with Hdec | Hdec
+        · exact Hdec
+        · rw [Hdec]; exact Dec.failure_mem m Hwf hA
+      -- C1: so it is Deny, Allow or NoOpinion
+      have H3 := PD.has_valid m.pd dec Hpd
+      rcases H3 with rfl | rfl | rfl
+      all_goals
+        wp_auto
+        wp_apply (sets.Set.wp_ptr_Has_of wp_Set__Has pd_ptr (DFrac.own 1) s (DFrac.own 1) S _)
+          $$ [$pd $HS] as ⟨pd, HS⟩
+        rw [HSm, Hpd]
+        wp_auto
+        iapply HΦ
+        itrivial
+  · wp_auto
+    iapply HΦ
+    itrivial
 
 end proof
 

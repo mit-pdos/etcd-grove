@@ -36,7 +36,30 @@ theorem Main.wp_proof
     (wp_unionAuthzHandler_ConditionsAwareAuthorize : EtcdGrove.union.unionAuthzHandler.ConditionsAwareAuthorize.spec (GF := GF) (hG := hG))
     (wp_twoPhase : EtcdGrove.k8s_authz.twoPhase.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  sorry
+  wp_start
+  wp_apply wp_Background
+  (try wp_auto)
+  wp_apply wp_newChain as %a %err Hres
+  icases Hres with (%Hne | ⟨%Heq, %h, %Ha, #Hu⟩)
+  · cases err with
+    | nil => exact absurd rfl Hne
+    | ok ei =>
+      wp_auto
+      iapply HΦ
+      itrivial
+  · subst Heq Ha
+    wp_auto
+    wp_apply wp_unionAuthzHandler_ConditionsAwareAuthorize as %d Hwfd
+    · iexact Hu
+    iunfold isWFDecision at Hwfd
+    icases Hwfd with ⟨%m, #Hd, %Hwf⟩
+    (try wp_auto)
+    wp_apply (wp_twoPhase _ h d m)
+    · iframe #
+      ipureintro; exact Hwf
+    (try wp_auto)
+    iapply HΦ
+    itrivial
 
 end proof
 
