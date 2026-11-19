@@ -319,42 +319,26 @@ opaque defaultCompactionSleepInterval.init [GooseExts] [GoGlobalContext] : val
 noncomputable def rangeCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.rangeCounter"
 
-opaque rangeCounter.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def putCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.putCounter"
-
-opaque putCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def deleteCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.deleteCounter"
 
-opaque deleteCounter.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def txnCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.txnCounter"
-
-opaque txnCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def keysGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.keysGauge"
 
-opaque keysGauge.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def watchStreamGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchStreamGauge"
-
-opaque watchStreamGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def watcherGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherGauge"
 
-opaque watcherGauge.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def slowWatcherGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.slowWatcherGauge"
-
-opaque slowWatcherGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def totalEventsCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalEventsCounter"
@@ -364,32 +348,20 @@ opaque totalEventsCounter.init [GooseExts] [GoGlobalContext] : val
 noncomputable def pendingEventsGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.pendingEventsGauge"
 
-opaque pendingEventsGauge.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def indexCompactionPauseMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.indexCompactionPauseMs"
-
-opaque indexCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbCompactionPauseMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionPauseMs"
 
-opaque dbCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def dbCompactionTotalMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionTotalMs"
-
-opaque dbCompactionTotalMs.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbCompactionLast [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionLast"
 
-opaque dbCompactionLast.init [GooseExts] [GoGlobalContext] : val
-
 noncomputable def dbCompactionKeysCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionKeysCounter"
-
-opaque dbCompactionKeysCounter.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def dbTotalSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbTotalSize"
@@ -458,8 +430,6 @@ noncomputable def reportCompactRev [GooseExts] [GoGlobalContext] : GoString :=
 
 noncomputable def totalPutSizeGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalPutSizeGauge"
-
-opaque totalPutSizeGauge.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable def chanBufLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.chanBufLen"
@@ -9337,6 +9307,21 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$a0" (Val #(go!"mvcc: revision not found"))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.errors.New []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9350,20 +9335,116 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"range_total"))
+  (Let "$v3" (Val #(go!"Total number of ranges seen by this member."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"put_total"))
+  (Let "$v3" (Val #(go!"Total number of puts seen by this member."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"delete_total"))
+  (Let "$v3" (Val #(go!"Total number of deletes seen by this member."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"txn_total"))
+  (Let "$v3" (Val #(go!"Total number of txns seen by this member."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"keys_total"))
+  (Let "$v3" (Val #(go!"Total number of keys."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"watch_stream_total"))
+  (Let "$v3" (Val #(go!"Total number of watch streams."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"watcher_total"))
+  (Let "$v3" (Val #(go!"Total number of watchers."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"slow_watcher_total"))
+  (Let "$v3" (Val #(go!"Total number of unsynced slow watchers."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"pending_events_total"))
+  (Let "$v3" (Val #(go!"Total number of pending events to be sent."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"index_compaction_pause_duration_milliseconds"))
+  (Let "$v3" (Val #(go!"Bucketed histogram of index compaction pause duration."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4602678819172646912))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"db_compaction_pause_duration_milliseconds"))
+  (Let "$v3" (Val #(go!"Bucketed histogram of db compaction pause duration."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4607182418800017408))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 13))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"db_compaction_total_duration_milliseconds"))
+  (Let "$v3" (Val #(go!"Bucketed histogram of db compaction total duration."))
+  (Let "$v4" (Let "$a0" (Val #(W64 4636737291354636288))
+  (Let "$a1" (Val #(W64 4611686018427387904))
+  (Let "$a2" (Val #(W64 14))
+  (App (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.ExponentialBuckets []))) (Val #())) (Var "$a0")) (Var "$a1")) (Var "$a2")))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.HistogramOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Buckets")) (ElementExpression (go.GoType.SliceType go.float64) (Var "$v4")))])))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewHistogram []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"db_compaction_last"))
+  (Let "$v3" (Val #(go!"The unix time of the last db compaction. Resets to 0 on start."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"db_compaction_keys_total"))
+  (Let "$v3" (Val #(go!"Total number of db keys compacted."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.CounterOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewCounter []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam BAnon
   (Let "$res0" (App (Val (GoInstruction (GoAlloc go.float64))) (App (Val (GoInstruction (GoZeroVal go.float64))) (Val #())))
@@ -9427,6 +9508,12 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.float64))) (Var "$res0")))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (Let "$v0" (Val #(go!"etcd_debugging"))
+  (Let "$v1" (Val #(go!"mvcc"))
+  (Let "$v2" (Val #(go!"total_put_size_in_bytes"))
+  (Let "$v3" (Val #(go!"The total size of put kv pairs seen by this member."))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.prometheus.client_golang.prometheus.GaugeOpts.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Namespace")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Subsystem")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"Name")) (ElementExpression go.string (Var "$v2"))), (KeyedElement (some (KeyField go!"Help")) (ElementExpression go.string (Var "$v3")))]))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.NewGauge []))) (Val #())) (Var "$a0")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W64 128))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -9465,7 +9552,7 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (GlobalVarAddr chanBufLen))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val totalPutSizeGauge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr totalPutSizeGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val compactRev.init) (Val #()))))))
   (App (Val doExecute)
@@ -9491,35 +9578,35 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [] false [go.float64]))))) (Pair (App (Val (GoInstruction (GlobalVarAddr reportDbTotalSizeInBytes))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val dbCompactionKeysCounter.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr dbCompactionKeysCounter))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val dbCompactionLast.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr dbCompactionLast))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val dbCompactionTotalMs.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr dbCompactionTotalMs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val dbCompactionPauseMs.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr dbCompactionPauseMs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val indexCompactionPauseMs.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr indexCompactionPauseMs))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val pendingEventsGauge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr pendingEventsGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val totalEventsCounter.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val slowWatcherGauge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr slowWatcherGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val watcherGauge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr watcherGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val watchStreamGauge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr watchStreamGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val keysGauge.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr keysGauge))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val txnCounter.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr txnCounter))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val deleteCounter.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr deleteCounter))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val putCounter.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr putCounter))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val rangeCounter.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr rangeCounter))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val defaultCompactionSleepInterval.init) (Val #()))))))
   (App (Val doExecute)
@@ -9589,6 +9676,34 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc restoreChunkKeys go.int)) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc rangeCounter _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc putCounter _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc deleteCounter _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc txnCounter _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc keysGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc watchStreamGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc watcherGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc slowWatcherGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc pendingEventsGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc indexCompactionPauseMs _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc dbCompactionPauseMs _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc dbCompactionTotalMs _root_.Perennial.github_com.prometheus.client_golang.prometheus.Histogram.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc dbCompactionLast _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc dbCompactionKeysCounter _root_.Perennial.github_com.prometheus.client_golang.prometheus.Counter.ty)) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc reportDbTotalSizeInBytesMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc reportDbTotalSizeInBytes (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
@@ -9608,6 +9723,8 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc reportCompactRevMu _root_.Perennial.sync.RWMutex.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc reportCompactRev (go.GoType.FunctionType (go.signature.Signature [] false [go.float64])))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc totalPutSizeGauge _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc chanBufLen go.int)) (Val #()))))))
   (App (Val doExecute)

@@ -49,6 +49,12 @@ translate = ["!*",
   "reportDbTotalSizeInUseInBytesMu", "reportDbTotalSizeInUseInBytes",
   "reportDbOpenReadTxNMu", "reportDbOpenReadTxN", "reportCurrentRevMu", "reportCurrentRev",
   "reportCompactRevMu", "reportCompactRev",
+  # (metric-inits, 2026-11-19) the metrics the KV core uses (metrics.go): `prometheus.NewCounter`,
+  # `NewGauge` and `NewHistogram` of an options literal, over prometheus's constructor specs
+  "rangeCounter", "putCounter", "deleteCounter", "txnCounter", "dbCompactionKeysCounter",
+  "keysGauge", "watchStreamGauge", "watcherGauge", "slowWatcherGauge", "pendingEventsGauge",
+  "totalPutSizeGauge", "dbCompactionLast",
+  "indexCompactionPauseMs", "dbCompactionPauseMs", "dbCompactionTotalMs",
   # kvstore_compaction.go
   "store.scheduleCompaction",
   # store.go
