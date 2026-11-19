@@ -1,6 +1,14 @@
 # auth-schema-srv: handoff
 
-## START HERE (2026-11-19 e, A7 linked; LAND STOP)
+## START HERE (2026-11-19 f, PORT SCOPE STOP)
+
+- Decided by etcd-grove-03 (questions.md "BLOCKER ... decided"): port this branch's backend onto lean's (bbolt-integrate),
+  prove bbolt's `Bucket.ForEach` (canonical, no twin; A2's two `_kv` axioms leave), A7's statement change after the port.
+- **Done**: the Scope, `notes/auth-schema-srv-port-scope.md` (trial merge only: `git merge-tree`, conflicts in
+  `/shared/tmp/auth-schema-srv/mt.txt`). STOP for its independent review; branch otherwise unchanged (99a71018a7 + this).
+- Next after the review: Scope §6 P1-P6 (staging branch `auth-schema-port`, pin manifest-3af, PERENNIAL_DIR=/shared/perennial-3afd77e35).
+
+## History (START HERE of 2026-11-19 e, A7 linked; LAND STOP, superseded)
 
 - Branch `auth-schema-srv`, worktree `/shared/etcd-grove-authschema`; pin f551a1b46: `--packages=/shared/tmp/manifest-f55.json`
   everywhere (`.lake/package-overrides.json` = that manifest); gen-init with `PERENNIAL_DIR=/shared/perennial-f551a1b46`.
