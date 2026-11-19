@@ -80,7 +80,7 @@ variable [schema_sem : go_etcd_io.etcd.server.v3.storage.schema.Assumptions]
 /-- A slice of bbolt's write transaction `bs.tx` is readable under the batch lock at `bs` (with anything). -/
 theorem bt_rdCap (γ : BNames) (P : BParams) (b : Loc) (bs : BSess) (c : Bool) (Z : IProp GF) (s : GoSlice)
     (v : GoString) :
-    rdB bs.tx s v ⊢ schema.rdCap (iprop(batchLocked γ P b bs c ∗ Z)) s v := by
+    rdB γ.db bs.tx s v ⊢ schema.rdCap (iprop(batchLocked γ P b bs c ∗ Z)) s v := by
   iintro #Hr
   iunfold schema.rdCap
   iintro !> ⟨Hl, HZ⟩
@@ -94,7 +94,7 @@ theorem bt_rdCap (γ : BNames) (P : BParams) (b : Loc) (bs : BSess) (c : Bool) (
 
 theorem bt_rdCapL (γ : BNames) (P : BParams) (b : Loc) (bs : BSess) (c : Bool) (Z : IProp GF) :
     ∀ (ss : List GoSlice) (es : List Ent),
-    ([∗list] x ∈ ss.zip (es.map Prod.snd), rdB (GF := GF) bs.tx x.1 x.2) ⊢
+    ([∗list] x ∈ ss.zip (es.map Prod.snd), rdB (GF := GF) γ.db bs.tx x.1 x.2) ⊢
       [∗list] x ∈ ss.zip es, schema.rdCap (iprop(batchLocked γ P b bs c ∗ Z)) x.1 x.2.2
   | [], es => by
     simp only [List.zip_nil_left]
@@ -137,7 +137,7 @@ theorem bt_point (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
   cases hv : (bktOf bs.S bi.name).lookup kb with
   | none =>
     iintro Hout
-    imod kvsOutRd_nil _ bs.tx ks vs $$ Hout with ⟨#Hks, #Hvs⟩
+    imod kvsOutRd_nil _ γ.db bs.tx ks vs $$ Hout with ⟨#Hks, #Hvs⟩
     imodintro
     iapply HΦ
     iframe Hkey Hl HZ
@@ -145,7 +145,7 @@ theorem bt_point (hUR : backend.batchTxBuffered.UnsafeRange.spec (GF := GF) (hG 
     iexact Hvs
   | some v =>
     iintro Hout
-    imod kvsOutRd_single _ bs.tx ks vs kb v $$ Hout with ⟨%ksl, %vsl, -, -, #Hvs, #Hrv⟩
+    imod kvsOutRd_single _ γ.db bs.tx ks vs kb v $$ Hout with ⟨%ksl, %vsl, -, -, #Hvs, #Hrv⟩
     imodintro
     iapply HΦ
     iframe Hkey Hl HZ
@@ -178,7 +178,7 @@ theorem bt_forEach (hFE : backend.batchTxBuffered.UnsafeForEach.spec (GF := GF) 
     $$ [$Hb $Ht $Hl $Hbk HI] as %err ⟨Hl, Hr⟩
   · isplitl [HI]
     · simp only [List.take_zero]; iexact HI
-    iintro !> %i %e %k %v %Hi !> %Ψ ⟨HI, Hlive, -, -, #Hv⟩ HΨ
+    iintro !> %G %i %e %k %v %Hi !> %Ψ ⟨HI, Hlive, -, -, #Hv⟩ HΨ
     ihave #Hc := bt_rdCap γ P b bs c Z v e.2 $$ [Hv]
     · iunfold rdB; iright; iexact Hv
     have ht : (bktEnts (bktOf bs.S mvcc.authUsersBI.name)).take (i + 1) =
@@ -1302,7 +1302,7 @@ theorem lk_del (hDel : backend.batchTxBuffered.UnsafeDelete.spec (GF := GF) (hG 
   ihave Hrbp := (rbPut_true d.γB d.P bi.name bs.S).2 $$ [Hn]
   · iframe Hn; ipureintro; exact rb_auth d _ hbi
   ihave Hdl := dlPut_other (hG := hG) d.γB d.P bi.name (sb_auth d _ hbi)
-  ihave Hkey : (if true then key ↦*{DFrac.own 1} kb else txBytes bs.tx key kb : IProp GF) $$ [Hkey]
+  ihave Hkey : (if true then key ↦*{DFrac.own 1} kb else txBytes bs.tx d.γB.db key kb : IProp GF) $$ [Hkey]
   · simp only [↓reduceIte]; iexact Hkey
   wp_apply (@hDel d.γB d.P W Pk d.be t bs bk bi key kb (DFrac.own 1) true hhas hpend
       (hkb_auth d _ kb hbi) (fk_auth _ kb hbi) (fun h => absurd h (by rw [sb_auth d _ hbi]; decide))
@@ -2107,7 +2107,7 @@ def garLk (γp : GName) (γB : BNames) (P : BParams) (b : Loc) (Z : BSess → IP
 theorem gar_rdCapL (γp : GName) (γB : BNames) (P : BParams) (b : Loc) (Z : BSess → IProp GF) (m : BktData)
     (tx : Loc) :
     ∀ (ss : List GoSlice) (es : List Ent),
-    dghostVar γp DFrac.discard tx ∗ ([∗list] x ∈ ss.zip (es.map Prod.snd), rdB (GF := GF) tx x.1 x.2) ⊢
+    dghostVar γp DFrac.discard tx ∗ ([∗list] x ∈ ss.zip (es.map Prod.snd), rdB (GF := GF) γB.db tx x.1 x.2) ⊢
       [∗list] x ∈ ss.zip es, schema.rdCap (garLk γp γB P b Z m) x.1 x.2.2
   | [], es => by
     simp only [List.zip_nil_left]

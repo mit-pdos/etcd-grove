@@ -252,14 +252,14 @@ def heldR (γ : BNames) (P : BParams) (b : Loc) (Y : RView → IProp GF) (x : Lo
 /-- A held read lends a quarter of bbolt's transaction. -/
 theorem rtHeld_lendQ (γ : BNames) (P : BParams) (b x : Loc) (rv : RView) :
     rtHeld (GF := GF) γ P b x rv ⊢
-      rtHeldF γ P b x rv sync.rfrac.half.half ∗ txLive x sync.rfrac.half.half := by
+      rtHeldF γ P b x rv sync.rfrac.half.half ∗ txLive x γ.db sync.rfrac.half.half (bbolt.TxView.ro rv.1) := by
   rw [rtHeld_eq]
   conv => lhs; rw [← Qp.half_add_half sync.rfrac.half]
   exact rtHeldF_lend' γ P b x rv _ _
 
 /-- The lent quarter back. -/
 theorem rtHeld_returnQ (γ : BNames) (P : BParams) (b x : Loc) (rv : RView) :
-    rtHeldF (GF := GF) γ P b x rv sync.rfrac.half.half ∗ txLive x sync.rfrac.half.half ⊢
+    rtHeldF (GF := GF) γ P b x rv sync.rfrac.half.half ∗ txLive x γ.db sync.rfrac.half.half (bbolt.TxView.ro rv.1) ⊢
       rtHeld γ P b x rv := by
   rw [rtHeld_eq]
   conv => rhs; rw [← Qp.half_add_half sync.rfrac.half]
@@ -269,14 +269,14 @@ theorem rtHeld_returnQ (γ : BNames) (P : BParams) (b x : Loc) (rv : RView) :
 that session** (`rdCap`): the token lends a quarter of bbolt's transaction (`rdB_acc`). -/
 theorem heldR_rdCap (γ : BNames) (P : BParams) (b : Loc) (Y : RView → IProp GF) (x : Loc)
     (D : AuthData) (s : GoSlice) (v : GoString) :
-    rdB x s v ⊢ rdCap (heldR γ P b Y x D) s v := by
+    rdB γ.db x s v ⊢ rdCap (heldR γ P b Y x D) s v := by
   iintro #Hr
   iunfold rdCap
   iintro !> Hh
   iunfold heldR at Hh
   icases Hh with ⟨%rv, %Hrv, Hh, HY⟩
   icases rtHeld_lendQ γ P b x rv $$ Hh with ⟨Hh, Hl⟩
-  icases rdB_acc x s v _ $$ [$Hr $Hl] with ⟨%dq, Hs, Hcl⟩
+  icases rdB_acc γ.db x s v _ _ $$ [$Hr $Hl] with ⟨%dq, Hs, Hcl⟩
   iexists dq
   iframe Hs
   iintro Hs
@@ -326,7 +326,7 @@ theorem heldR_point (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
   cases hv : vOf P rv bi.name kb with
   | none =>
     iintro Hout
-    imod kvsOutRd_nil _ x ks vs $$ Hout with ⟨#Hks, #Hvs⟩
+    imod kvsOutRd_nil _ γ.db x ks vs $$ Hout with ⟨#Hks, #Hvs⟩
     imodintro
     iapply HΦ
     iframe Hkey
@@ -339,7 +339,7 @@ theorem heldR_point (hUR : backend.readTx.UnsafeRange.spec (GF := GF) (hG := hG)
     iexact Hvs
   | some v =>
     iintro Hout
-    imod kvsOutRd_single _ x ks vs kb v $$ Hout with ⟨%ksl, %vsl, -, -, #Hvs, #Hrv⟩
+    imod kvsOutRd_single _ γ.db x ks vs kb v $$ Hout with ⟨%ksl, %vsl, -, -, #Hvs, #Hrv⟩
     imodintro
     iapply HΦ
     iframe Hkey
