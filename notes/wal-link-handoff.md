@@ -3,7 +3,7 @@
 ## START HERE (2026-11-19 p, clients in progress: raft-loop side done, snapshot/apply/boot side next)
 
 - **Branch** `wal-link` in `/shared/etcd-grove-wallink`; pin 6d365ee1a, `/shared/tmp/manifest-6d3.json` everywhere
-  (lean had not moved to f551 at this stop). Full builds: `/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>`.
+  (lean now HAS the f551 merge, df37bd5157: merge it next, then manifest-f55 + package-overrides, full timed rebuild). Full builds: `/shared/tmp/build-slot.sh etc/timed-build.py --packages=<manifest>`.
 - **Done this session (lean-check 0 errors each unless noted):** specs+proofs `newRaftNode` (`ss` param, `γ.ss = ss`),
   `bootstrappedRaft.newRaftNode` (`wal = ν.h.w`, `isSnapshotter ss`, post `isWalStorage st γw.wal.h γw.ss ∗ walStorRd ∗
   walStorRd`), `raftNode.onStop` (premise `walCloseOk` gone), `raftNode.stop`, `raftNode.start` (premises gone; both
