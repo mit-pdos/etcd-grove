@@ -62,11 +62,11 @@ def walStorRd (st : GoInterface) (h : WalH GF) : IProp GF :=
     storage.storageRd p h.w)
 
 /-- **What `Save` takes of an entry content `c`, into a WAL of flag `sized`** (wal-link L3): valid unknown
-fields, a non-empty encoding below Go's allocation limit (what the server's codec writes as the wrap
-`walEntW c`, `walEntInW`), at `sized` of bounded size (`entSizeOk`), and an index below the largest
+fields, a non-empty encoding below layer 1's record bound `2 ^ 40` (what the server's codec writes as the
+wrap `walEntW c`, `walEntInW`), at `sized` of bounded size (`entSizeOk`), and an index below the largest
 (layer 1's `Save` premise; raft's room `σ.last ≤ 2^61-1` gives it). -/
 def walSaveEntOk (sized : Bool) (c : EntryC) : Prop :=
-  ufWire entrySchema c.uf ∧ 0 < entrySize c ∧ entrySize c < 2 ^ 48 ∧ (sized = true → entSizeOk c) ∧
+  ufWire entrySchema c.uf ∧ 0 < entrySize c ∧ entrySize c < 2 ^ 40 ∧ (sized = true → entSizeOk c) ∧
     uint.nat c.model.Index' < 2 ^ 64 - 1
 
 /-- **The WAL contract** (sealed; proved, wal-link L3, 2026-11-19: `rnNewStorageOk` from `NewStorage` and the
