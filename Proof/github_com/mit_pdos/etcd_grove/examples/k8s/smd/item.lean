@@ -9,6 +9,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameEleme
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.KeyElement
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
 
 @[expose] public section
 
@@ -91,7 +92,8 @@ theorem item.wp_proof
     (wp_NewValueInterface : smd.value.NewValueInterface.spec (GF := GF))
     (wp_KeyElement : smd.fieldpath.KeyElement.spec (GF := GF)) :
     item.spec (GF := GF) :=
-  item.wp_proof_of sorry sorry sorry sorry wp_FieldNameElement wp_NewValueInterface wp_KeyElement
+  item.wp_proof_of isPath_intro_law_holds isIface_scalar_law_holds isFieldList_intro_law_holds
+    isValF_persist_law_holds wp_FieldNameElement wp_NewValueInterface wp_KeyElement
 
 end proof
 

@@ -6,6 +6,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.mapKey
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameElement
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
 
 @[expose] public section
 
@@ -35,7 +36,7 @@ theorem mapKey.wp_proof_of (hPath : isPath_intro.law (GF := GF))
   wp_auto
   wp_apply wp_FieldNameElement as %e1 He1
   wp_apply wp_FieldNameElement as %e2 He2
-  wp_apply wp_slice_literal
+  wp_apply (wp_slice_literal (l := [e1, e2]))
   isplitr
   · ipureintro; rfl
   iintro %sp ⟨Hs, -⟩
@@ -51,7 +52,7 @@ theorem mapKey.wp_proof_of (hPath : isPath_intro.law (GF := GF))
 theorem mapKey.wp_proof
     (wp_FieldNameElement : smd.fieldpath.FieldNameElement.spec (GF := GF)) :
     mapKey.spec (GF := GF) :=
-  mapKey.wp_proof_of sorry wp_FieldNameElement
+  mapKey.wp_proof_of isPath_intro_law_holds wp_FieldNameElement
 
 end proof
 

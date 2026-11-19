@@ -11,6 +11,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.Equals
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.ManagedFields__Equals_ptr
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Persist
 
 @[expose] public section
 
@@ -76,7 +77,7 @@ theorem state.check.wp_proof
     (wp_Equals : smd.value.Equals.spec (GF := GF))
     (wp_MFEquals_ptr : smd.fieldpath.ManagedFields.Equals_ptr.spec (GF := GF)) :
     state.check.spec (GF := GF) :=
-  state.check.wp_proof_of sorry sorry wp_AsValue_ptr wp_NewValueInterface wp_Equals wp_MFEquals_ptr
+  state.check.wp_proof_of isTV_persistent_law_holds isMF_persistent_law_holds wp_AsValue_ptr wp_NewValueInterface wp_Equals wp_MFEquals_ptr
 
 end proof
 

@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.updated
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewSet
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.NewVersionedSet
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Sets
 
 @[expose] public section
 
@@ -48,7 +49,7 @@ theorem updated.wp_proof
     (wp_NewSet : smd.fieldpath.NewSet.spec (GF := GF))
     (wp_NewVersionedSet : smd.fieldpath.NewVersionedSet.spec (GF := GF)) :
     updated.spec (GF := GF) :=
-  updated.wp_proof_of sorry wp_NewSet wp_NewVersionedSet
+  updated.wp_proof_of ownSet_persist_law_holds wp_NewSet wp_NewVersionedSet
 
 end proof
 

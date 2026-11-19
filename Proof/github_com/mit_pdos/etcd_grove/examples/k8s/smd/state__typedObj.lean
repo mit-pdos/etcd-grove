@@ -10,6 +10,7 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.NewValueInterface
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.typed.AsTyped
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8s.smd.Steps
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
 
 @[expose] public section
 
@@ -57,7 +58,7 @@ theorem state.typedObj.wp_proof
     (wp_NewValueInterface : smd.value.NewValueInterface.spec (GF := GF))
     (wp_AsTyped : smd.typed.AsTyped.spec (GF := GF)) :
     state.typedObj.spec (GF := GF) :=
-  state.typedObj.wp_proof_of sorry sorry wp_NewValueInterface wp_AsTyped
+  state.typedObj.wp_proof_of isValF_persist_law_holds isTypeRef_intro_law_holds wp_NewValueInterface wp_AsTyped
 
 end proof
 

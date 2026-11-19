@@ -6,6 +6,8 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.container
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Maps
 
 @[expose] public section
 
@@ -58,7 +60,7 @@ theorem container.wp_proof_of (hScalar : isIface_scalar.law (GF := GF))
   itrivial
 
 theorem container.wp_proof : container.spec (GF := GF) :=
-  container.wp_proof_of sorry sorry
+  container.wp_proof_of isIface_scalar_law_holds isIface_ofMap_law_holds
 
 end proof
 

@@ -6,6 +6,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.field
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.fieldpath.FieldNameElement
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
 
 @[expose] public section
 
@@ -49,7 +50,7 @@ theorem field.wp_proof_of (hPath : isPath_intro.law (GF := GF))
 
 theorem field.wp_proof (wp_FieldNameElement : smd.fieldpath.FieldNameElement.spec (GF := GF)) :
     field.spec (GF := GF) :=
-  field.wp_proof_of sorry wp_FieldNameElement
+  field.wp_proof_of isPath_intro_law_holds wp_FieldNameElement
 
 end proof
 

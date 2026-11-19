@@ -10,6 +10,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.state__typedO
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.merge.Updater__Apply
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.WalkerLaws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Persist
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.typed.LawProofsA
 
 @[expose] public section
 
@@ -92,7 +94,9 @@ theorem state.apply.wp_proof
     (wp_typedObj : state.typedObj.spec (GF := GF))
     (wp_Apply : smd.merge.Updater.Apply.spec (GF := GF)) :
     state.apply.spec (GF := GF) :=
-  state.apply.wp_proof_of sorry sorry sorry sorry sorry sorry wp_typedObj wp_Apply
+  state.apply.wp_proof_of isSchema_persistent_law_holds isTV_persistent_law_holds
+    isMF_persistent_law_holds isUpdater_persistent_law_holds isIdentityConverter_persistent_law_holds
+    isTV_isTVv_law_holds wp_typedObj wp_Apply
 
 end proof
 

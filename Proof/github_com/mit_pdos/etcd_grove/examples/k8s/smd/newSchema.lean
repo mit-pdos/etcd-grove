@@ -7,6 +7,8 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.newSchema
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Schema
 
 @[expose] public section
 
@@ -196,7 +198,9 @@ theorem newSchema.wp_proof_of (hTR : isTypeRef_intro.law (GF := GF))
   iexact Hsch
 
 theorem newSchema.wp_proof : newSchema.spec (GF := GF) :=
-  newSchema.wp_proof_of sorry sorry sorry sorry sorry sorry
+  newSchema.wp_proof_of isTypeRef_intro_law_holds freshAtom_scalar_law_holds
+    freshAtom_list_law_holds freshAtom_map_law_holds freshSchema_intro_law_holds
+    isSchema_intro_law_holds
 
 end proof
 

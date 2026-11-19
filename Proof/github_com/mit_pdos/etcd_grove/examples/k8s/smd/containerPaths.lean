@@ -8,6 +8,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.containerPath
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.item
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8s.smd.itemField
 public import Proof.sigs_k8s_io.structured_merge_diff.v7.Laws
+public import Proof.sigs_k8s_io.structured_merge_diff.v7.LawProofs.Intro
 
 @[expose] public section
 
@@ -61,7 +62,7 @@ theorem containerPaths.wp_proof
     (wp_item : item.spec (GF := GF))
     (wp_itemField : itemField.spec (GF := GF)) :
     containerPaths.spec (GF := GF) :=
-  containerPaths.wp_proof_of sorry sorry wp_item wp_itemField
+  containerPaths.wp_proof_of isPaths_nil_law_holds isPaths_cons_law_holds wp_item wp_itemField
 
 end proof
 
