@@ -19,8 +19,6 @@ axiom WithRequireLeader.wp_proof
 axiom apierrors.HasStatusCause.wp_proof
 axiom apierrors.IsTimeout.wp_proof
 axiom apierrors.NewInternalError.wp_proof
-axiom attribute.Int.wp_proof
-axiom attribute.String.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof

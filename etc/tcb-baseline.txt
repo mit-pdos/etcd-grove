@@ -271,6 +271,8 @@ axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate_init
 axiom Perennial.k8s_io.apiserver.pkg.util.flowcontrol.opaqueInitsOk
 axiom Perennial.k8s_io.component_base.featuregate.opaqueInitsOk
+axiom Perennial.k8s_io.component_base.metrics.initFuncsOk
+axiom Perennial.k8s_io.component_base.metrics.opaqueInitsOk
 axiom Perennial.k8s_io.klog.v2.initFuncsOk
 axiom Perennial.k8s_io.klog.v2.opaqueInitsOk
 axiom Perennial.k8s_io.utils.clock.opaqueInitsOk
@@ -303,10 +305,6 @@ axiom apply.memberKey_inj
 axiom appsv1.ControllerRevision.DeepCopyObject.wp_proof
 axiom appsv1.DaemonSet.DeepCopyObject.wp_proof
 axiom appsv1.Resource.wp_proof
-axiom attribute.Bool.wp_proof
-axiom attribute.Int.wp_proof
-axiom attribute.Int64.wp_proof
-axiom attribute.String.wp_proof
 axiom audit.GetAuditIDTruncated.wp_proof
 axiom auth.NewAuthStore.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
@@ -533,7 +531,6 @@ axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.FromOutgoingContext.wp_proof
-axiom metadata.MD.Get.wp_proof
 axiom metrics.NewEtcdMetricsTracker.wp_proof
 axiom metrics.OperationLatencyTracker.Record.wp_proof
 axiom metrics.RecordEtcdBookmark.wp_proof
@@ -735,7 +732,6 @@ axiom time.Unix.wp_proof
 axiom trace.New.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
-axiom trace.WithAttributes.wp_proof
 axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
