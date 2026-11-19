@@ -113,7 +113,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.etcd.server.v3.storage.Assumptions]
 
 /-- **A WAL area and directory** (see the section header): what a closed WAL's files are named by. -/
 structure WalA (GF : BundledGFunctors) where
@@ -136,6 +135,9 @@ structure WalH (GF : BundledGFunctors) extends WalA GF where
   γ : WalFs.WalShN
   md : List w8
   γh : GName
+
+section walOpen
+variable [wal_sem : go_etcd_io.etcd.server.v3.storage.wal.Assumptions]
 
 /-- **A share `q` of the open WAL `h`** (persistent area facts, the shared handle's share): every share
 lets the storages over `h.w` write it (`Save`, `SaveSnap`, `Sync`, `Release`), the whole closes it
@@ -165,6 +167,8 @@ instance storage.walOpen_as_fractional (h : WalH GF) (q : Qp) :
     AsFractional (storage.walOpen (GF := GF) h q) ioΦ (fun q => storage.walOpen h q) ioq q where
   as_fractional := .rfl
   as_fractional_fractional := storage.walOpen_fractional h
+
+end walOpen
 
 /-- **The WAL `h`'s records are `σ`** (sealed; exclusive, timeless): the WAL's durable state `d`
 (`WalFs.walDiskAt`), whose history folds, unwrapped, to `σ` (`walFoldChkFrom walFresh`, the eager model

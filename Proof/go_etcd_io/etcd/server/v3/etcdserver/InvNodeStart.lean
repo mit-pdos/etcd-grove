@@ -228,27 +228,6 @@ def rnRaftStatusOk : IProp GF :=
 instance rnRaftStatusOk_persistent : Persistent (rnRaftStatusOk (GF := GF)) := by
   unfold rnRaftStatusOk; infer_instance
 
-/-- (D22 J1a, 2026-10-26) **The storage `st` is a `*storage` made over the snapshotter `ss`**
-(`storage.storageSnap`): what `storage.Release`'s axiom names the snapshot directory by. -/
-def rnStorageOf (st : GoInterface) (ss : Loc) : Prop :=
-  ∃ p : Loc, st = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.storage.ty) #p ∧
-    storage.storageSnap p ss
-
-/-- **`serverstorage.NewStorage(lg, w, ss)`** (names-only): the WAL as the raft loop uses it
-(`isRNWal`); (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`NewStorage` returns
-`&storage{lg: lg, w: w, s: s}`, `storage.go`). (2026-10-31, `notes/axiom-review/savesnap.md`) Over a WAL ready to write
-(`storage.walReady`): until then over any `w`, false for a nil one (`isRNWal`'s `Close` panics on
-it). The storage is over `w`'s open token (`storage.walOpen w`, shared by every storage over `w`;
-2026-10-31, the user's decision), which `bootstrap`'s contract gives. -/
-def rnNewStorageOk : IProp GF :=
-  iprop(□ ∀ (lg w ss : Loc), {{ ⌜storage.walReady w⌝ }}
-    (App (App (App (Val (@! go_etcd_io.etcd.server.v3.storage.NewStorage)) (Val #lg)) (Val #w))
-      (Val #ss))
-    {{ (st : GoInterface), RET #st; isWalStorage st ∗ ⌜rnStorageOf st ss ∧ storage.walOf st = w⌝ }})
-
-instance rnNewStorageOk_persistent : Persistent (rnNewStorageOk (GF := GF)) := by
-  unfold rnNewStorageOk; infer_instance
-
 /-- **`cl.IsIDRemoved(id)`** of the cluster `cl` (`membership.RaftCluster`): some boolean.
 (premise-fixes-4: until then this said names-only; `IsIDRemoved` is translated and proved, and this
 triple follows from its spec, `membership.RaftCluster.IsIDRemoved.spec_static`, under the cluster's
