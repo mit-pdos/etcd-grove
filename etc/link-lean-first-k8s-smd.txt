@@ -10,5 +10,39 @@ reflect_DeepEqual+Nil:
 slices_BinarySearchFunc:
 slices_Insert:
 sort_SliceStable:
-# `Main`: not proved yet (`sorry`); its callees, SMD's API, once specified
-smd_Main:
+# Structured-merge-diff's API the driver calls (2026-11-19, notes/smd-robustness.md): specified
+# over the pure model (Proof/sigs_k8s_io/structured_merge_diff/v7/Model/, Own.lean); proofs `sorry`
+# but FieldNameElement, NewVersionedSet and TypedValue.AsValue (the next stage's worklist)
+value_NewValueInterface:
+value_Equals:
+typed_AsTyped:
+typed_TypedValue__AsValue:
+typed_TypedValue__AsValue_ptr:
+fieldpath_ManagedFields__Equals:
+fieldpath_ManagedFields__Equals_ptr:
+fieldpath_FieldNameElement:
+fieldpath_KeyElement:
+fieldpath_NewSet:
+fieldpath_NewVersionedSet:
+merge_UpdaterBuilder__BuildUpdater:
+merge_Updater__Apply:
+merge_Updater__Update:
+merge_Conflicts__Equals:
+merge_Conflicts__Equals_ptr:
+# The driver's own functions
+smd_identityConverter__Convert:
+smd_identityConverter__IsMissingVersionError:
+smd_newSchema:
+smd_field: fieldpath_FieldNameElement
+smd_mapKey: fieldpath_FieldNameElement
+smd_item: fieldpath_FieldNameElement value_NewValueInterface fieldpath_KeyElement
+smd_itemField: fieldpath_FieldNameElement value_NewValueInterface fieldpath_KeyElement
+smd_containerPaths: smd_item smd_itemField
+smd_applied: fieldpath_NewSet fieldpath_NewVersionedSet
+smd_updated: fieldpath_NewSet fieldpath_NewVersionedSet
+smd_container:
+smd_concat:
+smd_state__typedObj: value_NewValueInterface typed_AsTyped
+smd_state__apply: smd_state__typedObj merge_Updater__Apply
+smd_state__check: typed_TypedValue__AsValue_ptr value_NewValueInterface value_Equals fieldpath_ManagedFields__Equals_ptr
+smd_Main: smd_newSchema smd_identityConverter__Convert smd_identityConverter__IsMissingVersionError merge_UpdaterBuilder__BuildUpdater smd_state__typedObj smd_state__apply smd_state__check smd_field smd_mapKey smd_containerPaths smd_concat smd_applied smd_updated smd_container merge_Updater__Apply merge_Updater__Update merge_Conflicts__Equals_ptr
