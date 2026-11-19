@@ -44,6 +44,30 @@ theorem osCoh_fds {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf 
     meta_some := fun p m h => by
       obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h; exact ⟨f, hf, hm.fds X⟩ }
 
+/-- `close(fd)`'s state (`IsFsStep`'s `"Close"`): the fd gone, the mappings' descriptions closed. -/
+abbrev OsState.closeFd (st : OsState) (fd : w64) (d : OsFd) : OsState :=
+  st.setProc { st.proc with
+    fds := GMap.delete fd st.proc.fds,
+    mapDesc := GMap.fmap (MapDesc.close fd d) st.proc.mapDesc }
+
+theorem osWf_closeFd {st : OsState} (hwf : OsWf st) (fd : w64) (d : OsFd) : OsWf (st.closeFd fd d) :=
+  { hwf with fds := fun fd' d' h => hwf.fds fd' d' (by
+      change (GMap.delete fd st.proc.fds) !! fd' = some d' at h
+      rw [GMap.lookup_delete_iff] at h; split at h
+      · cases h
+      · exact h) }
+
+theorem MetaOk.closeFd {st : OsState} {p : Ino} {m : OsMeta} {f : OsFile} (fd : w64) (d : OsFd)
+    (h : MetaOk st p m f) : MetaOk (st.closeFd fd d) p m f :=
+  ⟨h.size, h.lo, h.hi, h.maps, h.targets, h.dur, h.zf, h.tail, h.cz, h.rz, h.zc, h.ce⟩
+
+theorem osCoh_closeFd {st : OsState} {Γb Γm Γf Γt} (hcoh : OsCoh st Γb Γm Γf Γt) (fd : w64) (d : OsFd) :
+    OsCoh (st.closeFd fd d) Γb Γm (GMap.delete fd st.proc.fds) Γt :=
+  { hcoh with
+    fds := rfl
+    meta_some := fun p m h => by
+      obtain ⟨f, hf, hm⟩ := hcoh.meta_some p m h; exact ⟨f, hf, hm.closeFd fd d⟩ }
+
 /-- A read that returns all it reached: a successful outcome. -/
 theorem full_read (r : List w8) : ∃ k, k ≤ r.length ∧ (0 < k ∨ r = []) ∧
     osRes (#r) 0 = osRes (#(r.take k)) 0 := by
@@ -1025,7 +1049,7 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
       fun k hk => ⟨base, ⟨d.ino, n⟩, by rw [hst']; exact GMap.lookup_insert _ _ _, rfl, hk, rfl⟩
     let vf : Nat → val := fun i => toCellVal f.contents[i]?
     have hcb : ∀ i, cellByte st' d.ino i = f.contents[i]? := fun i => by
-      subst hst'; exact cellByte_noinfl (st := (st.setProc { st.proc with maps := _ })) hf (hnoI i)
+      subst hst'; exact cellByte_noinfl (st := (st.setProc { st.proc with maps := _, mapDesc := _ })) hf (hnoI i)
     imod cells_step st st' h h' _ ∅ (mkCellsR base vf 0 n) hwf hwf' Hr Hfr
       (fun b m0 hb => by
         simp only [hst', OsState.setProc, GMap.lookup_insert_eq_iff] at hb
@@ -1079,7 +1103,7 @@ theorem wp_osMmap (fd off len prot fl : w64) (dq : DFrac) (d : OsFd) (m : OsMeta
     · ipureintro
       rw [hst']
       refine ⟨hst' ▸ hwf', osCoh_setMaps hcoh _ _ ?_ ?_ (fun t ti hti => by
-        rw [GMap.lookup_insert_ne _ _ (Ne.symm (Hnt t ti hti))]; exact hcoh.tok_meta t ti hti)⟩
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm (Hnt t ti hti))]; exact hcoh.tok_meta t ti hti) (M := _)⟩
       · intro q; simp only [OsState.setProc, GMap.lookup_insert_eq_iff]; split
         · subst_vars; simp [Hml]
         · rfl
@@ -1168,7 +1192,8 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : Ino) (m : OsMeta) (n : Nat
   cases go.intoVal_inj h1
   rw [hbase] at hm0; cases hm0
   -- the state without the mapping
-  have hunmap : ∀ st1 : OsState, st1 = (st.setProc { st.proc with maps := GMap.delete base st.proc.maps }) →
+  have hunmap : ∀ st1 : OsState, st1 = (st.setProc { st.proc with
+      maps := GMap.delete base st.proc.maps, mapDesc := GMap.delete base st.proc.mapDesc }) →
       OsWf st1 ∧ OsCoh st1 Γb (<[p := { m with maps := GMap.delete base m.maps }]> Γm) Γf Γt ∧
       (HeapRendered st st1 h h' → MapsFresh st st1 h →
         (naHeapCtx tls h ∗ cellsRes (GF := GF) (cellView st) ∗ cellsR base 0 n vf ⊢
@@ -1206,7 +1231,7 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : Ino) (m : OsMeta) (n : Nat
     refine ⟨hwf1, ?_, fun Hr Hfr => ?_⟩
     · rw [hst1]
       refine osCoh_setMaps hcoh _ _ ?_ ?_ (fun t ti hti => by
-        rw [GMap.lookup_insert_ne _ _ (Ne.symm (Hnt t ti hti))]; exact hcoh.tok_meta t ti hti)
+        rw [GMap.lookup_insert_ne _ _ (Ne.symm (Hnt t ti hti))]; exact hcoh.tok_meta t ti hti) (M := _)
       · intro q; simp only [OsState.setProc, GMap.lookup_insert_eq_iff]; split
         · subst_vars; simp [Hml]
         · rfl
@@ -1276,7 +1301,8 @@ theorem wp_osMunmap (base : Loc) (len cap : w64) (p : Ino) (m : OsMeta) (n : Nat
         $$ [Hσ Hcells Hc] with ⟨Hσ, Hcells, -⟩
       · iframe
       imodintro; iframe
-  have hdone : ∀ e : w64, ∀ st1 : OsState, st1 = (st.setProc { st.proc with maps := GMap.delete base st.proc.maps }) →
+  have hdone : ∀ e : w64, ∀ st1 : OsState, st1 = (st.setProc { st.proc with
+      maps := GMap.delete base st.proc.maps, mapDesc := GMap.delete base st.proc.mapDesc }) →
       HeapRendered st st1 h h' → MapsFresh st st1 h →
       (gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γb Γb ∗
         gAuth (gooseOsGS (L := L)) (gooseOsGS (L := L)).γm Γm ∗

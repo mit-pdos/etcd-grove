@@ -39,6 +39,14 @@ import (
 //     (security_file_lock, called by flock(2) and fcntl's lock commands
 //     before any lock; 2026-11-19): a lock request that the lock rule lets
 //     succeed is refused only by an error NoIoErr names (premise_no_io_err.go).
+//   - permissions (2026-11-19, the user's approval via etcd-grove-03): the
+//     process may search and write every directory of the roots' trees; no
+//     directory's sticky bit denies a removal or rename in it; no entry has
+//     the immutable or append-only attribute; and no Linux security module
+//     denies a path call on them (may_delete, may_create, inode_permission
+//     and the LSM path hooks return no EPERM/EACCES): the errnos PathErrno
+//     names come from the lookup, not from a permission check that precedes
+//     it (premise_no_io_err.go; contrast measured: TestNoIoErrPermissions).
 //
 // Outside C (xfs, data=journal, 1-2 KiB blocks, other kernels): not
 // described until tested on their own.

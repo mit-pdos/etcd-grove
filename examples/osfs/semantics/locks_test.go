@@ -310,3 +310,64 @@ func TestLocksPosixPerProcess(t *testing.T) {
 		t.Fatalf("OFD after closing a: %v, want nil", err)
 	}
 }
+
+// locks_mmap_close.go: a live mapping keeps its description, and its OFD and flock locks, after
+// the fd's close; the locks go with the last mapping made through it. For each kind: a locks
+// exclusively, maps the file twice, closes; b's non-blocking exclusive request gets EAGAIN while a
+// mapping is live (after one munmap too) and succeeds after the second. Without a mapping (the
+// control), b's request succeeds right after the close.
+func TestLocksMmapKeepsDescription(t *testing.T) {
+	name := extDir(t) + "/f"
+	if err := os.WriteFile(name, []byte("hello"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	type kind struct {
+		name   string
+		lock   func(*os.File) error
+		unlock func(*os.File) error
+	}
+	kinds := []kind{
+		{"ofd", func(f *os.File) error { return ofdLk(f, unix.F_OFD_SETLK, syscall.F_WRLCK) },
+			func(f *os.File) error { return ofdLk(f, unix.F_OFD_SETLK, syscall.F_UNLCK) }},
+		{"flock", func(f *os.File) error { return syscall.Flock(int(f.Fd()), syscall.LOCK_EX|syscall.LOCK_NB) },
+			func(f *os.File) error { return syscall.Flock(int(f.Fd()), syscall.LOCK_UN) }},
+	}
+	for _, k := range kinds {
+		for _, nmaps := range []int{0, 1, 2} {
+			a := openRW(t, name)
+			if err := k.lock(a); err != nil {
+				t.Fatalf("%s: a's lock: %v", k.name, err)
+			}
+			var ms [][]byte
+			for i := 0; i < nmaps; i++ {
+				m, err := syscall.Mmap(int(a.Fd()), 0, 5, syscall.PROT_READ, syscall.MAP_SHARED)
+				if err != nil {
+					t.Fatalf("%s: mmap: %v", k.name, err)
+				}
+				ms = append(ms, m)
+			}
+			if err := a.Close(); err != nil {
+				t.Fatalf("%s: close: %v", k.name, err)
+			}
+			b := openRW(t, name)
+			for i := 0; i < nmaps; i++ {
+				if err := k.lock(b); err != syscall.EAGAIN {
+					t.Fatalf("%s, %d maps, %d unmapped: b's lock: %v, want EAGAIN", k.name, nmaps, i, err)
+				}
+				if string(ms[i]) != "hello" {
+					t.Fatalf("%s: mapping reads %q", k.name, ms[i])
+				}
+				if err := syscall.Munmap(ms[i]); err != nil {
+					t.Fatalf("%s: munmap: %v", k.name, err)
+				}
+			}
+			if err := k.lock(b); err != nil {
+				t.Fatalf("%s, %d maps, all unmapped: b's lock: %v, want nil", k.name, nmaps, err)
+			}
+			if err := k.unlock(b); err != nil {
+				t.Fatal(err)
+			}
+			b.Close()
+		}
+	}
+}

@@ -427,3 +427,35 @@ program `/shared/tmp/wallink-attack2/prog/main.go`.
   via `security_file_lock`/`EBADF`; OFD `F_UNLCK` can fail with `ENOLCK`). The reviewer's route: `flock` unlock
   always drops the lock (to be checked against 7.0's `fs/locks.c` and measured), plus `d.ofd = none` in
   `spec_owned`, or a "no lock or no mapping" resource in the new `Close` spec.
+
+## Session 6 (2026-11-19 v, branch `wal-fsfix`, off `wal-link` e6a0c0a811): F1 by option (a), A2, A3; A1 not implemented
+
+**Approved by the user (via etcd-grove-03)**, replacing the stuck-Close form: F1 (a), A1 (stuck), A2, A3.
+Then the user split the work: these go to the follow-up branch `wal-fsfix` (brief `notes/wal-fsfix-brief.md`);
+`wal-link` lands L3 without any new trusted file-model text.
+
+- **F1 (a), done (trusted, `Impl.lean`):** `MapDesc` (`live fd` / `held d`), `ProcState.mapDesc` (default `∅`),
+  `Mmap` adds `.live fd`, `Munmap` deletes it with the mapping, `Close` maps `MapDesc.close fd d` over it (never
+  stuck), `LockConflict` gains a disjunct for held descriptions; header/`OsFd` texts. Untrusted repairs: `Locks.lean`
+  (`.inl` at four conflict constructions; `wp_osClose` over `OsState.closeFd`, its statement unchanged: the tokens
+  are spent), `Specs.lean` (`OsState.closeFd`, `osWf_closeFd`, `MetaOk.closeFd`, `osCoh_closeFd`; Mmap/Munmap state
+  shapes), `World.lean` (`treeFrame_maps`/`treeFrame_fds_delete` take the new `mapDesc`), `Facts.lean`
+  (`osCoh_setMaps` takes it). The ghost locks (`LockWf`, `LockCoh`, `lockCtx`) stay fd-only: held descriptions only
+  make more lock requests fail. All of `GooseLang/Ext/Fs/*` builds (`/shared/tmp/wallink/b-f1f.log`); bbolt and WAL
+  NOT yet rebuilt over it (nothing there names `"Close"`'s state; to check with the follow-up's build).
+  Consequence for later no-error lock specs: proving no conflict now also needs "no held description of the
+  inode" (e.g. from the file's whole `osMeta` with no maps plus an invariant tying `mapDesc` keys to `maps`).
+  Go example `locks_mmap_close.go`, measurement `TestLocksMmapKeepsDescription` (passes here; not yet on C);
+  `locks_close_crash.go`'s false "Excluded" fixed; doc.go row.
+- **A2, done (trusted text only):** C's permissions in `Impl.lean`'s Environment, `NoIoErr`'s docstring,
+  `env_config.go`, `premise_no_io_err.go`; contrast measurement `TestNoIoErrPermissions` (EACCES as nobody, measured
+  here; immutable/append-only EPERM where `FS_IOC_SETFLAGS` is permitted, not here).
+- **A3, done:** "only ENOENT guarantees that os.RemoveAll returns nil".
+- **A1, NOT implemented (cost):** "stuck" for names > 255 / paths ≥ 4096 puts a length premise on every path WP
+  spec (`treeName_child` cannot bound `child d b` from `lookup d`), hence on every caller (WAL, bbolt, fileutil, os
+  models, walfs/bboltfs/crashlog). Cheaper sound alternative to put to the user: leave such paths out of `IoCovers`
+  (and so of `PathErrno`): the plain semantics already lets them fail; the extra success outcomes on long paths are
+  an over-approximation; only the no-error specs then need a length premise (a WAL-dir length bound). Measurement
+  written: `TestNoIoErrNameTooLong` (ENAMETOOLONG for 256-byte names and 4096-byte paths, passes here).
+- **Attack:** an independent read-only attack on F1 (a), A2, A3 was launched from `wal-link`'s working tree
+  (programs under `/shared/tmp/wallink-attack3/`); its result belongs to this branch.

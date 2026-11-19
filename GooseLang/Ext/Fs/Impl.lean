@@ -29,7 +29,12 @@ effect; `PathKind`; the program never removes, renames or replaces one either, a
 filesystem has no error or shutdown event (then an `fsync` may return 0 without committing); the
 tree at boot is their trees' entries. No Linux security module denies a file lock on them
 (`security_file_lock`, which `flock(2)` and `fcntl`'s lock commands call before any lock is taken;
-2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). The journal (jbd2) commits whole transactions, in order; a
+2026-11-19, decided by etcd-grove-03 after the attack on `NoIoErr`'s lock coverage). **Permissions**: the process
+may search and write every directory of the roots' trees (no `EACCES` from `inode_permission`); no
+directory's sticky bit denies a removal or a rename in it; no entry has the immutable or append-only
+attribute; and no Linux security module denies a path call on them (`may_delete`, `may_create` and the
+LSM path hooks return no `EPERM`/`EACCES`) (2026-11-19, the user's approval via etcd-grove-03, after the
+attack A2 on `PathErrno`; `examples/osfs/semantics/env_config.go`). The journal (jbd2) commits whole transactions, in order; a
 metadata call joins a transaction no earlier than those of the calls that returned before it
 began (measured, `notes/axiom-review/fs-v2-r5.md`, B1); an `fsync` of a directory commits the
 whole journal (`ext4_force_commit` for a file that is not regular, `fs/ext4/fsync.c`).
@@ -113,9 +118,13 @@ with no claim on what that makes durable, and closes).
 **Locks** (2026-11-15, the user's approval of lock state; **pending the user's review**,
 `notes/wal-units/locks.md`). Whole-file OFD (`fcntl(F_OFD_SETLK[W])`) and `flock` locks, held per
 open file description (`OsFd.ofd`, `OsFd.flk`), so two opens in one process conflict; the two kinds
-are independent; a lock goes with its description at its `close` and at a crash. A request succeeds
-only with no conflicting lock on another description (a blocking one waits for that), and may fail
-with any errno and no change, `EAGAIN` from a non-blocking one only on a conflict (`LockStep`).
+are independent; a lock goes with its description at a crash, and at its fd's `close` unless a live
+mapping made through that fd keeps the description open: then the description, with the locks it
+holds at the `close`, lives until the last such mapping is unmapped (`MapDesc`; 2026-11-19, the
+user's approval via etcd-grove-03, after the attack F1 on `NoIoErr`). A request succeeds only with no
+conflicting lock on another description, an fd's or one a mapping keeps (a blocking one waits for
+that), and may fail with any errno and no change, `EAGAIN` from a non-blocking one only on a conflict
+(`LockStep`).
 Classic per-process POSIX locks (`F_SETLK[W]`) are not modelled (the trusted models panic).
 
 **Heap.** The steps never touch user memory except through `HeapRendered`: after every step, the
@@ -252,7 +261,9 @@ def valAt (l : Cands) (n : Nat) : w8 := ((l.filter (·.2 ≤ n)).getLast?.map (�
 offset of `Seek`/`Write`/`Read` is the Go model's, `TrustedCode/os.lean`: every step here is
 positional.) No step duplicates an fd (no `dup`, `fork` or fd passing), so each fd is its own
 description, and the description's locks live in it: its `close` releases them (`Close` removes the
-entry) and a crash does (the process's state is gone). **Locks** (2026-11-15, the user's approval of
+entry), unless a live mapping made through the fd holds the description (then the mapping keeps it,
+locks included, until the last such mapping goes: `MapDesc`), and a crash does (the process's state is
+gone). **Locks** (2026-11-15, the user's approval of
 lock state, I5; the semantics **pending the user's review**, `notes/wal-units/locks.md`): `ofd`, its
 OFD lock (`fcntl(F_OFD_SETLK[W])`), and `flk`, its `flock` lock, each `none`, `some false` (shared)
 or `some true` (exclusive); the two kinds are independent (Linux keeps them on separate lists:
@@ -306,6 +317,23 @@ structure OsMap where
   ino : Ino
   len : Nat
 
+/-- The open file description a mapping holds (Linux's `vma->vm_file`, a reference on the `struct
+file` taken by `mmap`, dropped by the `munmap` that removes the mapping; the description, and its OFD
+and `flock` locks, go at the last reference's drop, `__fput` → `locks_remove_file`): while the fd it
+was made through is open, that fd's (`live fd`: the fd's entry is the description, locks and all);
+once that fd is closed, the description as it was at the `close` (`held d`), which no step can change
+any more (no fd reaches it), whose locks still conflict (`LockConflict`) until the mapping goes.
+Several mappings of one description each hold it: its locks live until the last goes. Measured on C:
+`examples/osfs/semantics/locks_mmap_close.go`, `locks_test.go`'s `TestLocksMmapKeepsDescription`. -/
+inductive MapDesc where
+  | live (fd : w64)
+  | held (d : OsFd)
+
+/-- A mapping's description after `close(fd)` of the fd whose description is `d`. -/
+def MapDesc.close (fd : w64) (d : OsFd) : MapDesc → MapDesc
+  | .live fd' => if fd' = fd then .held d else .live fd'
+  | .held d' => .held d'
+
 /-- Where a directory fd's `Readdirnames` is: not begun; begun, with the names that were there when
 it began and that no operation has touched since (`untouched`), the names there at some point since
 it began (`seen`), and those it has returned (`returned`); or done (a second read is stuck). -/
@@ -339,7 +367,8 @@ structure FsState where
 outside them, at or above a root's parent, `ofds`; all with distinct numbers), its changes in flight
 (by the token their first step returned, `osTokV`), its mappings (by base address), and its calls on
 paths in flight (by the token `CallBegin` returned: the length of the log when the call began, and
-the path the call's step names). The two kinds of token are distinct. -/
+the path the call's step names). The two kinds of token are distinct. Each mapping also holds an
+open file description (`mapDesc`, by the same base address: `MapDesc`). -/
 structure ProcState where
   fds : GMap w64 OsFd
   dfds : GMap w64 OsDirFd
@@ -349,10 +378,12 @@ structure ProcState where
   /-- The fds of directories outside the roots' trees (a strict ancestor of a root, `Open`'s
   outside case, 2026-11-13): the model knows nothing of them but that they are open. -/
   ofds : GMap w64 Unit := ∅
+  /-- The description each mapping holds (`MapDesc`; added with the mapping, removed with it). -/
+  mapDesc : GMap Loc MapDesc := ∅
 
 /-- A process with nothing open or in flight. -/
 def ProcState.empty : ProcState :=
-  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, calls := ∅, ofds := ∅ }
+  { fds := ∅, dfds := ∅, inflight := ∅, maps := ∅, calls := ∅, ofds := ∅, mapDesc := ∅ }
 
 /-- A node's state: the machine's and the process's. -/
 structure OsState where
@@ -754,12 +785,15 @@ def OsState.setFd (st : OsState) (fd : w64) (d : OsFd) : OsState :=
   st.setProc { st.proc with fds := <[fd := d]> st.proc.fds }
 
 /-- A lock request of kind `k` through the fd `fd`, on the file `i`, exclusive iff `ex`, conflicts:
-another fd (another description) of the file holds a lock of the same kind that is exclusive, or
-any lock of that kind if the request is exclusive. The kinds are independent
+another description of the file holds a lock of the same kind that is exclusive, or any lock of that
+kind if the request is exclusive; that description is another fd's, or one a live mapping holds after
+its fd's close (`MapDesc.held`, `locks_mmap_close.go`). The kinds are independent
 (`examples/osfs/semantics/locks_flock_vs_ofd.go`). -/
 def LockConflict (st : OsState) (k : LockKind) (fd : w64) (i : Ino) (ex : Bool) : Prop :=
-  ∃ fd' d', st.proc.fds !! fd' = some d' ∧ fd' ≠ fd ∧ d'.ino = i ∧
-    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true)
+  (∃ fd' d', st.proc.fds !! fd' = some d' ∧ fd' ≠ fd ∧ d'.ino = i ∧
+    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true)) ∨
+  (∃ base d', st.proc.mapDesc !! base = some (.held d') ∧ d'.ino = i ∧
+    ∃ x, d'.lk k = some x ∧ (ex = true ∨ x = true))
 
 /-- **The lock rule**, of a request of kind `k` through the fd `fd` (description `d`): `req` is
 `some ex` for a lock, exclusive iff `ex`, `none` for an unlock; `nb`: non-blocking.
@@ -919,25 +953,36 @@ def IsFsStep (op : String) (v : val) (st : OsState) (e' : Expr) (st' : OsState) 
   | "Flock" => ∃ (fd how : w64) (d : OsFd) (req : Option Bool) (nb : Bool),
       v = PairV (#fd) (#how) ∧ FdOpen st fd d ∧ flockReq how.toNat = some (req, nb) ∧
       LockStep st .flock fd d req nb e' st'
-  /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno. -/
+  /- `close(fd)` of a file: `#fd ↦ #errno`. The fd is freed whatever the errno; never stuck. A live
+  mapping made through `fd` keeps its description, as it is now, locks included (`MapDesc.close`;
+  `locks_mmap_close.go`); otherwise the description and its locks go. -/
   | "Close" => ∃ (fd e : w64) (d : OsFd), v = #fd ∧ FdOpen st fd d ∧
-      st' = st.setProc { st.proc with fds := GMap.delete fd st.proc.fds } ∧ e' = Val (#e)
+      st' = st.setProc { st.proc with
+        fds := GMap.delete fd st.proc.fds,
+        mapDesc := GMap.fmap (MapDesc.close fd d) st.proc.mapDesc } ∧ e' = Val (#e)
   /- `mmap(nil, len, prot, flags, fd, off)`: `(#fd, #off, #len, #prot, #flags) ↦ (#base, #errno)`.
-  The cells are fresh and page-aligned; `HeapRendered` creates them. -/
+  The cells are fresh and page-aligned; `HeapRendered` creates them. The mapping holds `fd`'s
+  description (`MapDesc.live`). -/
   | "Mmap" => ∃ (fd off len prot fl : w64) (d : OsFd),
       v = PairV (#fd) (PairV (#off) (PairV (#len) (PairV (#prot) (#fl)))) ∧
       FdOpen st fd d ∧ d.readable ∧ off = 0 ∧ 0 < len.toInt ∧ prot.toNat = PROT_READ ∧
       (fl.toNat = MAP_SHARED ∨ fl.toNat = MAP_SHARED + MAP_POPULATE) ∧
       ((∃ base : Loc, 0 < base.addr ∧ (osPageSize : Int) ∣ base.addr ∧
           st.proc.maps !! base = none ∧
-          st' = st.setProc { st.proc with maps := <[base := ⟨d.ino, len.toNat⟩]> st.proc.maps } ∧
+          st' = st.setProc { st.proc with
+            maps := <[base := ⟨d.ino, len.toNat⟩]> st.proc.maps,
+            mapDesc := <[base := .live fd]> st.proc.mapDesc } ∧
           e' = osRes (#base) 0) ∨
        (∃ e : w64, e ≠ 0 ∧ st' = st ∧ e' = osRes (#null) e))
-  /- `munmap` of a whole mapping, as Go's `unix.Munmap(b)` takes it: `(#ptr, #len, #cap) ↦ #errno`. -/
+  /- `munmap` of a whole mapping, as Go's `unix.Munmap(b)` takes it: `(#ptr, #len, #cap) ↦ #errno`.
+  The mapping goes with the description it holds (`mapDesc`): the last one to go releases a closed
+  description's locks. -/
   | "Munmap" => ∃ (base : Loc) (len cap : w64) (m : OsMap),
       v = PairV (#base) (PairV (#len) (#cap)) ∧
       st.proc.maps !! base = some m ∧ len.toNat = m.len ∧ cap.toNat = m.len ∧
-      let st1 := st.setProc { st.proc with maps := GMap.delete base st.proc.maps }
+      let st1 := st.setProc { st.proc with
+        maps := GMap.delete base st.proc.maps,
+        mapDesc := GMap.delete base st.proc.mapDesc }
       (st' = st1 ∧ e' = Val (#(0 : w64)) ∨
        ∃ e : w64, e ≠ 0 ∧ e' = Val (#e) ∧ (st' = st ∨ st' = st1))
   /- What `fd` is: `#fd ↦ #0` for a file's fd, `#1` for a directory's, `#2` for a directory's

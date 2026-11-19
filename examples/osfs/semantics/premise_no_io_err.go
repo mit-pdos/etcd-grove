@@ -36,7 +36,8 @@ import (
 // resolves as the call needs; a free fd for open). Since 2026-11-19 also: a
 // lock request on a covered file (flock LOCK_SH/LOCK_EX, with or without
 // LOCK_NB, or fcntl F_OFD_SETLK/F_OFD_SETLKW with F_RDLCK/F_WRLCK) failing
-// although no other fd of the process holds a conflicting lock (ENOLCK,
+// although no other description holds a conflicting lock (another fd's, or
+// one a live mapping keeps after its fd's close, locks_mmap_close.go; ENOLCK,
 // EINTR, ...), an unlock (LOCK_UN, F_UNLCK) failing; a step of Readdirnames
 // (getdents64) on a covered directory failing with an errno other than ENOENT
 // (EIO, ...) while the directory has a name left to return or is at its end.
@@ -48,7 +49,7 @@ import (
 // at or past maxBytes (data_maxbytes.go), EMFILE with no free fd, the failures
 // of a path call that cannot succeed in the state it is made in (ENOENT,
 // EEXIST, ENOTEMPTY, EISDIR, ...), a lock request that conflicts with a lock
-// another fd of the process holds (EAGAIN, or for a blocking request any
+// another description holds (another fd's, or a mapping's: EAGAIN, or for a blocking request any
 // errno: locks_blocking.go), ENOENT from a read of a removed directory, and
 // anything on a call the premise does not name: mmap/munmap, fallocate with
 // KEEP_SIZE, lstat (LstatDir: its outcome does not tell a failed lstat of a
@@ -72,7 +73,18 @@ import (
 // covered files (the lock rule already takes the roots' files to be the
 // process's own, locks_ofd.go), and no fatal signal is pending (iterate_dir's
 // killable lock, EINTR). An uncontended request does not sleep, so no signal
-// can interrupt it (fs/locks.c: the wait is only on a conflict). Measured on
+// can interrupt it (fs/locks.c: the wait is only on a conflict). And
+// configuration C's permissions (Impl.lean's "Environment", 2026-11-19, the
+// user's approval after the attack A2 on PathErrno): the process may search
+// and write every covered directory (no EACCES); no directory's sticky bit
+// denies a removal or a rename; no covered file or directory has the
+// immutable or append-only attribute (EPERM from may_delete, fs/namei.c, even
+// for root); and no Linux security module denies a path call on them
+// (security_path_*/security_inode_* hooks). Measured as a contrast
+// (TestNoIoErrPermissions): a child running as nobody gets EACCES from unlink
+// in a directory it may not write; with the immutable or append-only
+// attribute (where the attribute can be set: CAP_LINUX_IMMUTABLE), unlink and
+// rename get EPERM. Measured on
 // C, as support only (premise_no_io_err_test.go, run by run-models-on-c.sh):
 // uncontended OFD (F_OFD_SETLKW) and flock (LOCK_EX) locks and their unlocks,
 // and the Readdirnames of a small directory, succeed every time over many
@@ -89,16 +101,21 @@ import (
 // asked by NoIoErr only where the semantics has no outcome with errno 0;
 // NoIoErr.lean: noIoErr_good keeps a step; NoIoErrSpecs.lean: noIoErr_pathErrno.
 // Still allowed: every other failing case (an rmdir of a file, ENOTDIR; a
-// missing parent; ...). Why: os.RemoveAll returns nil for an absent path only
-// when rmdir answers ENOENT (or ENOTDIR after unlink's ENOENT), and walks a
+// missing parent; ...). Why: of the errnos rmdir may give for an absent path,
+// only ENOENT guarantees that os.RemoveAll returns nil (another, such as
+// ENOTDIR after unlink's ENOENT, makes it open the parent and try again, which
+// may also end in nil or not), and it walks a
 // directory only after unlink's EISDIR (or EPERM/EACCES); wal.Create's
 // renameWAL starts with RemoveAll(w.dir) of a directory that does not exist at
 // a first start, and RemoveAll of a crash's leftover dir.tmp meets EISDIR and
 // ENOTEMPTY: with any errno allowed, Create's error (on which etcd panics) was
 // not excluded. Evidence: measured on C as support (premise_no_io_err_test.go,
 // TestNoIoErrPathErrno); the further assumptions are the premise's (the
-// process may write the covered directories: a permission check comes first,
+// permissions above: a permission check comes before the lookup's ENOENT,
 // EACCES/EPERM; no memory pressure, no I/O error on the directory's blocks).
+// Not covered by this decision (finding A1 of the attack, pending): a name
+// longer than 255 bytes or a path of 4096 bytes or more fails with
+// ENAMETOOLONG whatever the tree holds (TestNoIoErrNameTooLong).
 //
 // Why the locks and the reads (2026-11-19): wal.Create locks its first segment
 // (fileutil.LockFile: F_OFD_SETLKW) and reads its fresh temporary directory

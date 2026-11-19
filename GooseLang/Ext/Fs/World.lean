@@ -293,12 +293,12 @@ theorem treeFrame_inflight (st : OsState) (X : GMap Nat OsChange) :
     TreeFrame st (st.setProc { st.proc with inflight := X }) :=
   treeFrame_proc st _ rfl rfl (fun _ h => Or.inl h)
 
-theorem treeFrame_maps (st : OsState) (X : GMap Loc OsMap) :
-    TreeFrame st (st.setProc { st.proc with maps := X }) :=
+theorem treeFrame_maps (st : OsState) (X : GMap Loc OsMap) (M : GMap Loc MapDesc := st.proc.mapDesc) :
+    TreeFrame st (st.setProc { st.proc with maps := X, mapDesc := M }) :=
   treeFrame_proc st _ rfl rfl (fun _ h => Or.inl h)
 
-theorem treeFrame_fds_delete (st : OsState) (fd : w64) :
-    TreeFrame st (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds }) := by
+theorem treeFrame_fds_delete (st : OsState) (fd : w64) (M : GMap Loc MapDesc := st.proc.mapDesc) :
+    TreeFrame st (st.setProc { st.proc with fds := GMap.delete fd st.proc.fds, mapDesc := M }) := by
   refine treeFrame_proc st _ rfl rfl (fun fd' h => Or.inl ?_)
   intro h'; apply h; show (GMap.delete fd st.proc.fds) !! fd' = none
   rw [GMap.lookup_delete_iff]; split
@@ -382,18 +382,18 @@ theorem treeFrame_data [GooseExts] [GoGlobalContext] {o : String} (ho : DataOp o
   · -- Flock
     obtain ⟨_, _, _, _, _, -, hd, -, hl⟩ := h; exact treeFrame_lockStep hd hl
   · -- Close
-    obtain ⟨fd, _, _, -, -, rfl, -⟩ := h; exact treeFrame_fds_delete _ _
+    obtain ⟨fd, _, _, -, -, rfl, -⟩ := h; exact treeFrame_fds_delete _ _ _
   · -- Mmap
     obtain ⟨_, _, _, _, _, _, -, -, -, -, -, -, -, hres⟩ := h
     rcases hres with ⟨_, -, -, -, rfl, -⟩ | ⟨_, -, rfl, -⟩
-    · exact treeFrame_maps _ _
+    · exact treeFrame_maps _ _ _
     · exact TreeFrame.refl _
   · -- Munmap
     obtain ⟨_, _, _, _, -, -, -, -, hres⟩ := h
     rcases hres with ⟨rfl, -⟩ | ⟨_, -, -, rfl | rfl⟩
-    · exact treeFrame_maps _ _
+    · exact treeFrame_maps _ _ _
     · exact TreeFrame.refl _
-    · exact treeFrame_maps _ _
+    · exact treeFrame_maps _ _ _
   · -- FdKind
     obtain ⟨_, -, rfl, -⟩ := h; exact TreeFrame.refl _
   · -- FallocStart

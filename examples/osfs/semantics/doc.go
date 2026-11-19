@@ -68,7 +68,9 @@
 //	locks_flock.go                flock locks per description        OsFd.flk, LockStep, flockReq, Flock
 //	locks_flock_vs_ofd.go         the two kinds are independent      LockKind, OsFd.lk, LockConflict
 //	locks_blocking.go             blocking requests wait (or fail)   LockStep (nb)
-//	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit (unchanged)
+//	locks_close_crash.go          released at close and at a crash   Close, MachineCrash, FsInit
+//	locks_mmap_close.go           a mapping keeps them past close    MapDesc, ProcState.mapDesc, Close,
+//	                              until its munmap (2026-11-19)      Mmap, Munmap, LockConflict
 //	locks_posix_not_modelled.go   F_SETLK/F_SETLKW: not modelled     syscall.lean, unix.lean: FcntlFlock.impl
 //
 // Trusted models of the Go wrappers (drafts of 2026-11-13, pending review;
@@ -103,5 +105,10 @@
 //	                              + errnos of a failing unlink/rmdir PathErrno (ENOENT, EISDIR, ENOTEMPTY;
 //	                              (assumed, measured as support:     NoIoErr.lean: noIoErr_good)
 //	                              TestNoIoErrPathErrno; user,
+//	                              2026-11-19)
+//	                              + C's permissions: search/write,   NoIoErr's docstring, Impl.lean's
+//	                              no sticky, immutable, append-only  "Environment" (env_config.go)
+//	                              or LSM denial (assumed; contrast:
+//	                              TestNoIoErrPermissions; user,
 //	                              2026-11-19)
 package semantics

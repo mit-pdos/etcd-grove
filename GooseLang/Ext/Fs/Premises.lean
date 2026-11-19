@@ -149,15 +149,16 @@ of at least one byte could land (its offset below `maxBytes`, or no data); a fai
 `fsync`/`close` of a covered directory; and a failing `open`, `rename`, `mkdir`, `unlink` or `rmdir`
 on a covered path where the call can succeed (the path resolves as the call needs, a free fd for
 `open`). Since 2026-11-19 also: a failing lock request (`flock`, or `fcntl` with `F_OFD_SETLK`/
-`F_OFD_SETLKW`) on a covered file that no other fd of the process conflicts with (`LockConflict`;
-`ENOLCK`, `EINTR`, ...), and a failing unlock; a directory read (`getdents64`, a step of
+`F_OFD_SETLKW`) on a covered file that no other description conflicts with (`LockConflict`: another
+fd's, or one a live mapping holds after its fd's close, `MapDesc`; `ENOLCK`, `EINTR`, ...), and a failing unlock; a directory read (`getdents64`, a step of
 `Readdirnames`) of a covered directory ending with an errno other than `ENOENT` (`EIO`, `EINTR`, ...)
 while the directory has a name to return or is at its end.
 
 What it does **not** exclude, because the semantics then has no success: `EFBIG` at `maxBytes`
 (ext4's `s_maxbytes`), `EMFILE` with no free fd, the failures of a path call that cannot succeed
 in that state (`ENOENT`, `EEXIST`, `ENOTEMPTY`, `EISDIR`, ...), and the failure of a lock request
-that conflicts with a lock another fd of the process holds (`EAGAIN`, ...); `ENOENT` from a read of
+that conflicts with a lock another description holds (another fd's, or one a live mapping keeps
+after its fd's close: `EAGAIN`, ...); `ENOENT` from a read of
 a directory (the semantics gives it only for a removed one); and nothing about a call `IoCovers`
 does not name (`mmap`, `lstat`, ...). But the errno of a failing `unlink`/`rmdir` of a covered path
 that cannot succeed is Linux's (since 2026-11-19, `PathErrno`, asked only where the semantics has no outcome with errno 0): `ENOENT` for an absent entry in an
@@ -168,7 +169,12 @@ An environment assumption, not a property of Linux (evidence: assumed): the devi
 error, the filesystem has room for these files, the kernel has memory for their locks and reads, and
 no signal interrupts these calls; and no other process locks them (as the semantics' lock rule
 already takes the roots' files to be the process's own, `examples/osfs/semantics/locks_ofd.go`)
-(`examples/osfs/semantics/premise_no_io_err.go`).
+(`examples/osfs/semantics/premise_no_io_err.go`). **Permissions** (configuration C's environment,
+`Impl.lean`'s "Environment"; 2026-11-19, the user's approval via etcd-grove-03): the process may search
+and write every covered directory (no `EACCES`), no covered directory's sticky bit denies a removal or
+rename, no covered file or directory has the immutable or append-only attribute, and no Linux security
+module denies a path call on them (no `EPERM`/`EACCES` from `may_delete`, `may_create`, `inode_permission`
+or an LSM hook); measured as a contrast in `premise_no_io_err_test.go`'s `TestNoIoErrPermissions`.
 It is the condition under which etcd's server is shown not to panic where it calls `lg.Panic` on a
 WAL error (`Create`, `SaveSnapshot`, `ReleaseLockTo`, `Close`, ...): approved by the user
 2026-11-15 (`notes/decisions.md`, "fsExt: no I/O errors on chosen files"). It never leaves a state
