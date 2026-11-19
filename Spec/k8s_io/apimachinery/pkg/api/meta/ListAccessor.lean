@@ -8,7 +8,8 @@ What the code does, for a typed list of the model (`*v1.PodList`, ...): the type
 (`List`, `metav1.ListInterface`, which the list implements through its embedded `ListMeta`) returns
 the list itself and no error; its `GetResourceVersion()` and `GetContinue()` (promoted from
 `*ListMeta`, names-only) read the list's metadata: the version `rv` and the continue token, `""`
-(`typedListAt`). Stated for that case (the reflector's lists are those) and, in a second row, for
+(`typedListAt`; Go returns a typed-nil `*PodList`, ..., unchanged too, which `typedListAt`, implying
+`q ≠ null`, excludes: the joint attack's m1, 2026-11-19). Stated for that case (the reflector's lists are those) and, in a second row, for
 the k8s driver's `*ObjList` (`examples/k8s/etcd3`, the maintainers' checker's `Model.list` results:
 `listResponseRV`, `equalListResponse`, `validateList`; k8s 7g step 3 STOP 2b, option (B), decided by
 etcd-grove-03): `*ObjList` has the methods of `metav1.ListInterface` (`GetResourceVersion`,

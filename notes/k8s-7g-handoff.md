@@ -2,6 +2,21 @@
 
 ## START HERE
 
+**2026-11-19 (night 22; for etcd-grove-03). STOPPED for the Freeze (the user's). Both pending specs are axioms
+(option A, §11 of `notes/k8s-7g-trust.md`); links regenerated (7g Link: no `links_pending`); full timed build
+`20261119-185706-1563670` green; tcb baseline +10 (the 7g axioms), collections updated; joint attack: no
+refutation (§12, the Freeze section).**
+
+- Branch `k8s-7g`, pin 3afd77e35 (`--packages=/shared/tmp/manifest-3af.json`). Check: `/shared/tmp/k8s7g/lc.sh -a FILE`.
+- Done night 22: `e106522bf5` (the two axioms, both lists without `?`, Link regen), the tcb/collection update and the
+  Freeze section (next commit). questions.md "Night 22" (local file) has the decisions' reasoning.
+- NEXT: the user's Freeze review of §12. Then land (coordinator says when). Follow-up: (B') for ListAccessor
+  (§11; translation patch at /shared/tmp/k8s7g/goose-la.patch).
+- Pitfall: a proof of a spec whose rows mention `k8s.io/api/{core,apps}/v1` types' methods needs their `Assumptions`,
+  which the driver's and the cache's Links do not reach.
+
+### Superseded (night 21)
+
 **2026-11-19 (night 21; for etcd-grove-03). lean e95ce79ce9 merged (pin 3afd77e35); timed full build
 20261119-162949-742427 (only `Check` failed, expected). realCheck and Check proved, no sorry. STOPPED at the
 link step: two named hypotheses are reached (below).**

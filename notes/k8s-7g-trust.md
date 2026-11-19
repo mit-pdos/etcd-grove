@@ -312,3 +312,62 @@ would take the two specs as hypotheses.
 
 Both lists (`etc/link-lean-first-k8setcd3.txt`, `-k8scache.txt`) drop the `?`: the 7g Link has no `links_pending`
 any more; client-go's cache results lose the two hypotheses `h_errors_IsTooManyRequests`, `h_meta_ListAccessor`.
+
+## 12. Freeze (step 6 prep, night 22; for the user, via etcd-grove-03)
+
+Branch `k8s-7g` (lean `e95ce79ce9` merged, pin Perennial 3afd77e35); full timed build `20261119-185706-1563670`
+(incremental after night 21's full build `20261119-162949-742427`, the first full timed report on this pin): 0
+errors, no `sorry` in the 7g roots.
+
+**Closed statements** (`Proof/github_com/mit_pdos/etcd_grove/examples/k8s/etcd3/Results.lean`, textually unchanged
+from lean `e95ce79ce9`; `Adequacy.lean` unchanged too): `k8s_etcd3_safe` (l.123, one member), `k8s_etcd3_cluster_safe`
+(l.166, `k` members, `1 ≤ k ≤ 1000`), `k8s_etcd3_partition_safe` (l.210, `k` members under any partition schedule),
+and the triples `k8setcd3_Main`/`k8setcd3_MainCluster`/`k8setcd3_MainPartition` (l.97-113). Conclusion of each: every
+finished thread's value is `"Ok"` or `"Unknown"`, no thread stuck, no unrecovered panic. What changed under the same
+text is the program (`k8setcd3Program`/`k8setcd3CProgram`: the driver's Go code), whose `Main*` now run the
+maintainers' checker (`Check`: `failureFree` then `realCheck`, the copy of Kubernetes' `correctness` package with
+`etc/k8s-correctness/d30g.patch`) on every failure-free `Ok` history, and record a failed precondition's message
+(option (C)). `Check.spec` gained `RunOk g0`, proved for the seed (`SeedRun.lean`) inside the Link: no premise of a
+closed theorem changed.
+
+**Trusted text of 7g** (each with its Go tests; all attacked):
+| Text | Kind | Attack |
+|---|---|---|
+| `reflect.DeepEqual.spec_k8s` (4 clauses), `Deep.lean` vocabulary | new axiom | step 1 review; clause 4: attack2 |
+| `cmp.Diff.spec_eventRefs`; cmp's generated `opaqueInitsOk` | new axioms | step 1 review |
+| `maps.Keys.spec_objMap` (post `GoFunc`, STOP 2a), `maps.Clone.spec_strBool`, `maps.Equal.spec_strBool` | new axioms | step 1 review |
+| `meta.SetList.spec_objList` | new axiom | step 1 review |
+| `apierrors.SuggestsClientDelay.spec` | new axiom | attack 1 (18 Go attacks) |
+| `apierrors.IsTooManyRequests.spec` (restated by apierrors-fix) | new axiom (night 22, §11) | joint attack |
+| `apimeta.ListAccessor.spec` (`*ObjList` row, STOP 2b) | new axiom (night 22, §11) | joint attack |
+| View V: `plainLeaf`, `.plain`'s one-level `Unwrap` wrapper (changes `IsTimeout`/`HasStatusCause`'s meaning) | changed existing | attack 1 |
+| `reflect.MakeSlice.spec`: `s ≠ slice.nil` | changed existing | makeslice-attack |
+| `reflect.Value.IsNil.spec`: `b = false → s ≠ slice.nil` | changed existing | isnil-attack |
+| `apierrors.tooLargeErrIs` gains `Code = 504 ∧ RetryAfterSeconds = 0`; `NewTooLargeResourceVersionError.spec`'s `retry = 0 →` (b1) | changed 7e-frozen | joint attack (C2) |
+| The driver's option (C) (`Output.ErrMsg`, `invalidObj`, `preMsg`, `outEqual`) and the store vocabulary carrying the message (`KErr.invalidObj key msg`, `KPreF`, `preF`, `respIs`) | program / frozen vocabulary | joint attack (C11) |
+| `listIs`/`finalizeList` posts `s ≠ slice.nil`; `listContractOk`'s `UpdateList` clause (premise of 7e-frozen `GetList.spec`); `outEqual.spec` restated | frozen-vocabulary changes (proved) | n/a |
+| Injectivity lemmas from `TypeAssumptions` (§9) | internal lemmas, no trust | n/a |
+
+**Trust-base delta** (`etc/tcb-report.py --check --update`, `etc/tcb-baseline.txt` +10, no `sorry`): the axioms
+`reflect.DeepEqual.wp_proof_k8s`, `cmp.Diff.wp_proof_eventRefs`, `Perennial.github_com.google.go_cmp.cmp.opaqueInitsOk`,
+`maps.Keys.wp_proof_objMap`, `maps.Clone.wp_proof_strBool`, `maps.Equal.wp_proof_strBool`,
+`meta.SetList.wp_proof_objList`, `apierrors.SuggestsClientDelay.wp_proof`, `apierrors.IsTooManyRequests.wp_proof`,
+`apimeta.ListAccessor.wp_proof`. Collections: `k8setcd3.txt` +10 (0 sorries), `clientgo-cache.txt` +2
+(IsTooManyRequests, ListAccessor: no longer hypotheses there); every other collection matches.
+
+**Joint independent attack** (night 22; fresh read-only reviewer with the axiom skill, texts and Go code, 12
+combinations; Go tests `TestJ1`-`TestJ7` in `/shared/tmp/k8s7g-joint-attack/etcd3/joint_attack_test.go`, output
+`/shared/tmp/k8s7g-joint-attack/joint.out`, PASS): **no refutation; every text survives alone and in combination; no
+major.** Combinations: IsTooManyRequests + DeepEqual clause 4 in `Model.Step`; the too-large error read by
+NewTooLargeResourceVersionError/SuggestsClientDelay/IsTimeout/HasStatusCause/IsTooManyRequests; the `.plain`
+wrapper's `□ WP` with `deepRep` of the same `*StorageError`; DeepEqual clauses 2/4 with shared pointers; DeepEqual's
+visited-pair shortcut; ListAccessor row 2 + ObjList methods + DeepEqual; maps.* + Sorted + DeepEqual clause 3;
+SetList + MakeSlice + IsNil + DeepEqual nil-ness; cmp.Diff + DeepEqual; fmt.Errorf's model + DeepEqual clause 1
+(blocked by `etc/errorf-wrap-check.py`); option (C); the view's four readers. Cross-world check: none applies.
+Minors: m1 (ListAccessor header: typed-nil `*PodList` also returned unchanged, excluded by `typedListAt`) APPLIED;
+m2 (`maps.Clone(nil)`, `maps.Equal(nil, nil)` outside the specs; unreachable in 7g) recorded; m3 (retry 2^32 also
+gives `RetryAfterSeconds` 0; `tooLargeErrIs` only at retry 0, which every 7g producer passes: harmless weakening)
+recorded; m4 (suggested line in `etc/errorf-wrap-check.py`'s REVIEWED guidance: a reviewed Errorf step must never
+give `deepRep (.errString _)` of the model's error outside the disjunction with Go's error) for the coordinator.
+
+**Follow-up after the Freeze**: (B') for `ListAccessor` (§11) would remove one axiom from the 7g closed theorems.
