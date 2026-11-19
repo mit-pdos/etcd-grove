@@ -67,17 +67,18 @@ local macro "dl_dropped" : tactic => `(tactic| (
     | "GetType" => (wp_apply hGetType.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
     | "GetFrom" => (wp_apply hGetFrom.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
     | "GetTo" => (wp_apply hGetTo.1 ml _ _ _ st $$ [Hm] as Hm; iframe)
-    | "String" => (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
-                   iunfold fmt.stringMethodSpec at HT
-                   wp_apply HT as %_)
-    | "String" => (wp_apply hIDString as %ids %Hids)
-    | "String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
+    | "MessageType.String" =>
+      (ihave #HT := fmt.stringMethodSpec_of_wp _ _ _ _ hTypeString st.msg.Type' $$ Hpb
+       iunfold fmt.stringMethodSpec at HT
+       wp_apply HT as %_)
+    | "ID.String" => (wp_apply hIDString as %ids %Hids)
+    | "*ID.String" => (wp_apply hIDStringPtr _ DFrac.discard _ $$ [] as %_ -; iframe #)
     | "isActive" => (wp_apply hIsActive ps $$ [] as %_ -; iframe #)
     | "zap.String" => (wp_apply hZString as %_ -)
     | "zap.Bool" => (wp_apply hZBool as %_ -)
+    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | (wp_apply wp_slice_literal (V := go_uber_org.zap.zapcore.Field); isplitr; (ipureintro; rfl);
        iintro %_ ⟨-, -⟩)
-    | "Warn" => (wp_apply hWarn lg _ _ $$ []; (iframe #))
     | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
     | wp_auto)))
 
