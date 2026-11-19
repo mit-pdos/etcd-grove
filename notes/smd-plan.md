@@ -808,3 +808,22 @@ None proved in this step. After the freeze, the glue (callers that only pass sta
 callees): `state.apply`, `state.check`, `state.typedObj`, `applied`, `updated`, `field`, `mapKey`,
 `item`, `itemField`, `containerPaths`, `Main` (whose steps' facts about `applyResult`/
 `updateResult` on the scenario's values are now proved by `decide`: `Steps.lean`).
+
+## Decisions taken (2026-11-19, the coordinator, by the user's delegation)
+
+The user (2026-11-19): "I don't care about intermediate iris specs, I just want the robustness test
+proved. Try to make decisions about internal proof details yourself instead of posing them to me."
+So the decisions above, and the freeze, are the coordinator's; the target is `smd_driver_robust`
+proved (`Main.wp_proof` and every SMD proof it links), with the trust base unchanged but for the four
+standard-library axioms already listed.
+
+- D1 accepted: `prune` stays SMD's three passes.
+- D2 accepted: the three-clause `keysWithItems` premise (the driver meets it; proved by `decide`).
+- D3: no widening. The scope is what `smd_driver_robust` needs; Kubernetes' `structuredmerge.go`
+  stays out of scope (one version, identity converter, no ignore filter, no floats or reflection
+  values, `Schema.WF`).
+- D4, D6, D7, D8 accepted as drafted.
+- D5 accepted: the driver's proofs are redone over the new vocabulary in Prove.
+- Freeze: the coordinator tags `smd-stage1-frozen` once the internal drafts and review round 2's
+  first-tier findings are repaired; proofs start after the tag. Later spec changes found by proofs
+  are made by the coordinator without asking, recorded here.
