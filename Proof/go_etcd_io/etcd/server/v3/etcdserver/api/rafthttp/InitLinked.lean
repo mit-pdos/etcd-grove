@@ -188,6 +188,8 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   simp only [DefaultConnReadTimeout]
   try wp_auto
   -- translated initializer of ConnWriteTimeout))
+  simp only [DefaultConnWriteTimeout]
+  try wp_auto
   wp_apply (errorsNewVarsInit errStopped.init errStopped go!"stopped" (by mem_tac))
     as ⟨%xerrStopped, HerrStopped, #MerrStopped, #CerrStopped⟩
   -- translated initializer of proberInterval))
@@ -338,8 +340,12 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · iexact HRaftSnapshotPrefix
   simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]
   iframe #
-  try (imodintro; iintro %k %sl %Hk; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty] at Hk; split_ifs at Hk <;> (try simp at Hk) <;> subst_vars <;> iexists _ <;> iassumption)
-  try (ipureintro; exact BlinkHeartbeatSize)
+  isplitl []
+  · ipureintro; exact BlinkHeartbeatSize
+  imodintro
+  iintro %k %sl %Hk
+  repeat' (rcases EtcdGrove.lookup_insert_some _ _ _ _ _ Hk with rfl | Hk)
+  all_goals (first | (iexists _; iassumption) | simp at Hk)
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

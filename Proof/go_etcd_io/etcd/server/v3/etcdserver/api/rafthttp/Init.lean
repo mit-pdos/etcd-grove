@@ -196,4 +196,10 @@ axiom snapshotReceiveSeconds_init :
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
 
+/-- A lookup in `<[k := v]> m` finds `v` or one of `m`'s values. -/
+theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k' : K) (v w : V)
+    (h : (<[k := v]> m) !! k' = some w) : w = v ∨ m !! k' = some w := by
+  rw [GMap.lookup_insert_eq_iff] at h
+  by_cases hk : k = k' <;> simp [hk] at h <;> simp [h]
+
 end Perennial

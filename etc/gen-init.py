@@ -273,6 +273,7 @@ literal frozen by `hbMsg_init`) are translated and set.''',
     # `ConnReadTimeout = DefaultConnReadTimeout`: the constant's value, for the store to step;
     # (2026-10-24, rafthttp stage 6d) the three subpaths of `RaftPrefix`: `path.Join` (proved)
     before={'ConnReadTimeout': ['simp only [DefaultConnReadTimeout]', 'try wp_auto'],
+            'ConnWriteTimeout': ['simp only [DefaultConnWriteTimeout]', 'try wp_auto'],
             'ProbingPrefix': raft_subpath('probing', 'P'),
             'RaftStreamPrefix': raft_subpath('stream', 'S'),
             'RaftSnapshotPrefix': raft_subpath('snapshot', 'N'),
@@ -296,6 +297,12 @@ literal frozen by `hbMsg_init`) are translated and set.''',
                 'try wp_auto',
                 'imod (EtcdGrove.hbMsg_init _ _ ⊤) $$ [HlinkHeartbeatMessage Hphb] with #HlinkHeartbeatMessage',
                 '· iframe HlinkHeartbeatMessage Hphb']},
+    # (const-inits, 2026-11-19) a lookup in a map literal finds one of its values
+    pre=['/-- A lookup in `<[k := v]> m` finds `v` or one of `m`\'s values. -/',
+         'theorem EtcdGrove.lookup_insert_some {K V : Type} [DecidableEq K] (m : GMap K V) (k k\' : K) (v w : V)',
+         '    (h : (<[k := v]> m) !! k\' = some w) : w = v ∨ m !! k\' = some w := by',
+         '  rw [GMap.lookup_insert_eq_iff] at h',
+         '  by_cases hk : k = k\' <;> simp [hk] at h <;> simp [h]', ''],
     imports=['Proof.path.Join', 'Proof.path.Clean', 'Proof.path.lazybuf__index',
              'Proof.path.lazybuf__append', 'Proof.path.lazybuf__string',
              'Spec.go_etcd_io.raft.v3.raftpb.MessageType__Enum',
@@ -318,8 +325,10 @@ literal frozen by `hbMsg_init`) are translated and set.''',
             'simp only [EtcdGrove.errorsNewVar, EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
             'iframe #',
             # `supportedStream`'s slices: each entry one of the 13 literals
-            'try (imodintro; iintro %k %sl %Hk; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty] at Hk; split_ifs at Hk <;> (try simp at Hk) <;> subst_vars <;> iexists _ <;> iassumption)',
-            'try (ipureintro; exact BlinkHeartbeatSize)'],
+            'isplitl []', '· ipureintro; exact BlinkHeartbeatSize',
+            'imodintro', 'iintro %k %sl %Hk',
+            'repeat\' (rcases EtcdGrove.lookup_insert_some _ _ _ _ _ Hk with rfl | Hk)',
+            'all_goals (first | (iexists _; iassumption) | simp at Hk)'],
 )
 
 
@@ -1841,9 +1850,13 @@ def _PB_DOM(n):
     """The name map's domain, keys `0` to `n`: the literal's lookups, case by case."""
     ks = ' ∨ '.join(f'k = W32 {i}' for i in range(n + 1))
     pats = ' | '.join(['rfl'] * (n + 1))
-    return ('ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; constructor; '
-            '(· intro h; repeat\' (split at h); all_goals (first | (subst_vars; decide) | simp at h)); '
-            f'(· intro h; rcases (show {ks} from (by word)) with {pats} <;> simp (config := {{decide := true}}))')
+    nes = ', '.join(f'if_neg (show ¬(W32 {i} = k) from fun h => hk (by subst h; simp))' for i in reversed(range(n + 1)))
+    return ('ipureintro; intro k; simp only [GMap.lookup_insert_eq_iff, GMap.lookup_empty]; '
+            f'by_cases hk : {ks}; '
+            f'(· rcases hk with {pats} <;> simp (config := {{decide := true}})); '
+            f'(· have hr : ¬ (0 ≤ sint.Z k ∧ sint.Z k ≤ {n}) := fun hr => hk (by word); '
+            'simp only [hr, iff_false, Bool.not_eq_true, Option.isSome_eq_false_iff, Option.isNone_iff_eq_none]; '
+            f'rw [{nes}])')
 _P['finish'] = ([f'ipersist S{t}' for t in _PB_SL] +
                 [f'ipersist H{d}_ServiceDesc' for d in _PB_DESCS] +
                 [f'iStructNamedSuffix H{d}_ServiceDesc "{d}"' for d in _PB_DESCS] +
