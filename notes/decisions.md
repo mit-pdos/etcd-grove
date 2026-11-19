@@ -40842,7 +40842,8 @@ and operations table, `Tests.lean` examples, and its transcription in the confor
   importers), `ParseIP` and `IP.String` go through `net/netip`, whose `Addr` holds a
   `unique.Handle` made by `unique.Make` at netip's initialization (runtime internals): names only.
 - **The review's F1** (`notes/axiom-review/tcp-semantics.md`, v3.3): Go panics past 2^20 calls
-  waiting on one socket's lock (`fdMutex`), where the model waits. Kept as a stated deployment
-  assumption (D13, prose: "fewer than 2^20 concurrent calls on one socket"), as the closed world is,
-  rather than a per-end waiter count with a `Panic` outcome: no program here comes near it, and a
-  count would be state that only that panic observes. Revisit with the bounds plan's thread tokens.
+  waiting on one socket's lock (`fdMutex`), where the model waits. **The user's decision
+  (2026-11-19): a known limitation, not in the semantics** ("keep the semantics simple ... it would
+  require more than 2^20 goroutines waiting"): recorded in `Impl.lean`'s header, not as a D13
+  assumption and not as a per-end waiter count with a `Panic` outcome. Revisit with the bounds
+  plan's thread tokens.

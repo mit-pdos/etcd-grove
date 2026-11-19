@@ -966,8 +966,9 @@ changed definitions of `Impl.lean`, the trusted models of `Net/TrustedCode/net.l
   each calling `Write` on the end: Go panics (the reviewer's program `ov`, measured); the model lets
   them wait, a stutter. Not new in v3.3 (concurrent `Read`s and `Accept`s hit the same bound) but
   D25 models the waiters, and the waiting step's having no outcome is what excludes the panic.
-  **Fixed (documentation):** a deployment assumption in D13, "fewer than 2^20 concurrent calls on
-  one socket", stated in prose as the closed world is; `doc.go` row "(2^20 waiters)", assumed.
+  **Not fixed: a known limitation** (the user, 2026-11-19: keep the semantics simple; reaching it
+  needs more than 2^20 goroutines waiting on one socket): stated in `Impl.lean`'s header ("Known
+  limitation") and the `doc.go` row "(2^20 waiters)"; not an assumption of the theorems.
   (Modeling it exactly would count waiters per end, and add a `Panic` outcome; the bounds plan,
   `notes/bounds-plan.md`, could later make it a premise over thread tokens.)
 - **F2 (imprecise, harmless).** Go's `Close` returns only after the lock holder's `Write` dropped
