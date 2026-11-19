@@ -2,6 +2,20 @@
 
 ## START HERE
 
+**2026-11-19 (night 23; for etcd-grove-03). AT THE LAND STOP. Freeze approved by the user (trust §12).**
+
+- Branch `k8s-7g`, pin 3afd77e35 (`--packages=/shared/tmp/manifest-3af.json`).
+- Done night 23: merge lean `5f94c44bee` (`d09dae09e7`; conflict only notes/perennial-changes.md, both kept);
+  approval recorded, m4 line in `etc/errorf-wrap-check.py`, (B') brief `notes/k8s-7g-listaccessor-bprime.md`
+  (`4a44433909`); full timed build `20261119-193112-1637411` green; tcb-report --check matches (795 axioms = lean's
+  785 + the 10 of 7g, 2 sorries; no update needed), 69 collections, interfaces --check --layout, 59 gen-link modes +
+  btree, api/import-all/tier/gen-k8s-deep/bounds/gen-init/gen-raft-tla, errorf gate; closed statements identical to lean.
+- NEXT: land (coordinator's go): `LAKE_PACKAGES=/shared/tmp/manifest-3af.json PERENNIAL_CHECKOUT=/shared/perennial-3afd77e35
+  PERENNIAL_DIR=/shared/perennial-3afd77e35 etc/land.sh` (GOWORK unset). Then the (B') follow-up (brief, not started).
+- Pitfall: `etc/gen-init.py --check` needs `PERENNIAL_DIR=/shared/perennial-3afd77e35` (else KeyError 'strings').
+
+### Superseded (night 22)
+
 **2026-11-19 (night 22; for etcd-grove-03). STOPPED for the Freeze (the user's). Both pending specs are axioms
 (option A, §11 of `notes/k8s-7g-trust.md`); links regenerated (7g Link: no `links_pending`); full timed build
 `20261119-185706-1563670` green; tcb baseline +10 (the 7g axioms), collections updated; joint attack: no
