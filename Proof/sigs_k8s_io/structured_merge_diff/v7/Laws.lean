@@ -269,7 +269,7 @@ def keysWithItemsB_iff.law : Prop :=
 version, keep items with their key fields and have nothing below a key field (so a client can
 chain applies). -/
 def applyResult_premise.law : Prop :=
-  ∀ S t rion live config ver mf mgr force obj mf', S.WF → conforms S t live → conforms S t config →
+  ∀ S t rion live config ver (mf : MF) mgr force obj mf', S.WF → conforms S t live → conforms S t config →
     keysSorted mf = true →
     (∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set) →
     applyResult S t rion live config ver mf mgr force = .ok obj mf' →
@@ -278,7 +278,7 @@ def applyResult_premise.law : Prop :=
 
 /-- `Update` likewise (its result's managers are at `ver` if the input's are). -/
 def updateResult_premise.law : Prop :=
-  ∀ S t live new ver mf mgr, S.WF → conforms S t live → conforms S t new →
+  ∀ S t live new ver (mf : MF) mgr, S.WF → conforms S t live → conforms S t new →
     keysSorted mf = true →
     (∀ m e, mf.get m = some e → e.version = ver ∧ keysWithItems S t e.set) →
     keysSorted (updateResult S t live new ver mf mgr) = true ∧
