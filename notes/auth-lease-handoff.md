@@ -1,6 +1,32 @@
 # auth-lease handoff (`etcd_authlease_safe`)
 
-## START HERE (S4, 2026-11-18 late, item 9: thaw 1 done; Cell in progress)
+## START HERE (S4, 2026-11-19, item 9: Cell compiles; helpers' specs written; absent proved (unbuilt))
+
+- Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
+  `.lake/package-overrides.json` its copy). lean's f551a1b46 merge ("Merge origin/lean (d52bb9be66)") NOT on lean yet: when it
+  is, merge it, switch to manifest-f55 + overrides, expect a full timed rebuild.
+- **Done this session:** `3c6350254d` Cell compiles; `0d44cd6d22` CellModel's `CellHist` (z/lease kept on Lz from its first
+  attachment, a/lease on Lu until the revocation; `CellOk := CellOk0 ∧ CellHist`, old lemmas renamed `cellOk0_*`, wrappers
+  `cellOk_*` with the old signatures); `ad5dc2fdaa` `Holds.lean` (`cell_holds`: the lessor law through the cell →
+  `holdsFrom γc γl m id k`, for (Lz, z/lease) and (Lu, a/lease), needs the main thread's `monoNatAuthOwn γc.a ½ 0`;
+  `holds_refutes_keys` (TTL verdict), `holds_listed` (a listing at i ≥ m lists the lease)); `cellSeen γc ps1 d1 σ` records
+  `ps1 <+: ps ∧ d1 ≤ d` (`cell_readAu` takes the reader's lbs). All checked with `lean-check --fast -a` (0 errors).
+- **Written, NOT yet built** (next commit): `authlease/Env.lean` (`grantTTLv`, `BArgs`, `barrierPre`, `barrierPost`), Specs
+  `barriers`, `grantPut`, `noAuth`, `foreign`, `absent` (designs in their headers: updates as `□ ∀ conn ctx, … clientOpAuOn`,
+  refutations as caller premises, `R` threaded through `foreign`/`grantPut`'s `Fix` ghost step = `cell_fix`), proof
+  `authlease/absent.lean`. Build: `/shared/tmp/auth-lease-s4/specs-build1.log`.
+- **Next, in order:** fix those; proofs `grantPut` (pattern: `leasecatchup/grant.lean` for `cli.Lease.Grant` through wp_auto,
+  `client_lease_grant_on`; one-option slice as `txnlin/Calls.lean`'s `optsAt sl [withRangeM …]`; `cli.Put` via `client_put_on`
+  + `Client.ptr_Put_unfold` as `auth/ClientOn.lean` `client_Put_onG`; `leasePut_wire`), `noAuth`, `foreign` (TTL/Leases via
+  `lessor.TimeToLive/Leases.spec` with `etcdLeaseTTLSpecMd`/`…LeasesSpecMd`: choose `n`, `m` in attemptPre; refutation premises
+  discharged in `run` by `holds_refutes_keys`/`holds_listed` + `akAuthFixed`), `barriers` (authN run's barrier loop), then
+  `run` (authN's skeleton + the lease steps; cell alloc after SetUp via `cell_alloc`), `Main` (`allocNOnM … .revocable …
+  (ns := true)`). STOP at Main.wp_proof as the brief says.
+- **Pitfalls:** lean-check on a file whose imports are not built sits at "line 1" with an idle worker: `lake build` the imports
+  in a slot first. Commands > 180 s get backgrounded: wait with `until grep -q '^rc=' LOG`. `id` as a term in `refine` may
+  resolve to a local `id : w64`: write `_root_.id`. Iris `False` pattern is `⟨⟩` (not `[]`).
+
+## Previous START HERE (S4, 2026-11-18 late, item 9: thaw 1 done; Cell in progress)
 
 - Branch `auth-lease-s4`, worktree `/shared/etcd-grove-rs56`. Pin **6d365ee1a** (`--packages=/shared/tmp/manifest-6d3.json`,
   `.lake/package-overrides.json` its copy). A merge bringing pin f551a1b46 / manifest-f55 is coming: switch when merged.
