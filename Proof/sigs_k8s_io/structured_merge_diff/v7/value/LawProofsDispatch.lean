@@ -14,6 +14,14 @@ public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__all
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocValueUnstructured
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.heapAllocator__allocListUnstructuredRange
 public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.freelistAllocator__allocListUnstructuredRange
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__Length_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructured__RangeUsing_ptr
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructuredRange__Item
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.listUnstructuredRange__Next
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.emptyRange__Item
+public import Spec.sigs_k8s_io.structured_merge_diff.v7.value.emptyRange__Next
 
 @[expose] public section
 
@@ -121,6 +129,102 @@ theorem isAlloc_allocR
     iapply hFR p $$ [Ha] [HΦ]
     · iframe; iexact Hpkg
     · iexact HΦ
+
+/-- A list view's `Length` and `RangeUsing`, from the concrete specs of its two dynamic types. -/
+theorem isListV_dispatch
+    (hL : value.listUnstructured.Length.spec (GF := GF))
+    (hLP : value.listUnstructured.Length_ptr.spec (GF := GF))
+    (hR : value.listUnstructured.RangeUsing.spec (GF := GF))
+    (hRP : value.listUnstructured.RangeUsing_ptr.spec (GF := GF))
+    (l : value.List') (vs : List UVal) :
+    isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ isListV l vs ⊢
+      ∃ i, ⌜l = .ok i⌝ ∗
+        □ ({{ True }} (App (Val #(methods i.ty go!"Length" i.v)) (Val #()))
+            {{ (r : w64), RET #r; ⌜r.toInt = vs.length⌝ }}) ∗
+        □ (∀ (a : value.Allocator), {{ isAlloc a }}
+            (App (Val #(methods i.ty go!"RangeUsing" i.v)) (Val #a))
+            {{ (r : value.ListRange), RET #r; isAlloc a ∗ ownRange r vs (-1) }}) := by
+  iintro ⟨#Hpkg, #Hl⟩
+  ihave %Hc := isListV_concrete_law_holds l vs $$ Hl
+  rcases Hc with ⟨sl, rfl⟩ | ⟨p, rfl⟩
+  · iexists _
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · imodintro
+      iintro %Φ !> - HΦ
+      iapply hL sl vs $$ [] [HΦ]
+      · isplitr
+        · iexact Hpkg
+        · iexact Hl
+      · iexact HΦ
+    · imodintro
+      iintro %a %Φ !> Ha HΦ
+      iapply hR sl vs a $$ [Ha] [HΦ]
+      · iframe; isplitr
+        · iexact Hpkg
+        · iexact Hl
+      · iexact HΦ
+  · iexists _
+    isplitr
+    · ipureintro; rfl
+    isplitr
+    · imodintro
+      iintro %Φ !> - HΦ
+      iapply hLP p vs $$ [] [HΦ]
+      · isplitr
+        · iexact Hpkg
+        · iexact Hl
+      · iexact HΦ
+    · imodintro
+      iintro %a %Φ !> Ha HΦ
+      iapply hRP p vs a $$ [Ha] [HΦ]
+      · iframe; isplitr
+        · iexact Hpkg
+        · iexact Hl
+      · iexact HΦ
+
+/-- A list range's `Next` and `Item`, from the concrete specs of its two dynamic types. -/
+theorem ownRange_dispatch
+    (hIL : value.listUnstructuredRange.Item.spec (GF := GF))
+    (hIE : value.emptyRange.Item.spec (GF := GF))
+    (hNL : value.listUnstructuredRange.Next.spec (GF := GF))
+    (hNE : value.emptyRange.Next.spec (GF := GF))
+    (r : value.ListRange) (vs : List UVal) (n : Int) :
+    isPkgInit (PROP := IProp GF) pkg_id.sigs_k8s_io.structured_merge_diff.v7.value ∗ ownRange r vs n ⊢
+      ownRange r vs n ∗ ∃ i, ⌜r = .ok i⌝ ∗ □ rangeIfaceM i := by
+  iintro ⟨#Hpkg, Hr⟩
+  icases ownRange_concrete_law_holds r vs n $$ Hr with ⟨Hr, (⟨%q, %rfl⟩ | ⟨%q, %rfl⟩)⟩
+  · iframe
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    iunfold rangeIfaceM
+    imodintro
+    isplitr
+    · iintro %vs' %n' %Φ !> Hr HΦ
+      iapply hNE q vs' n' $$ [Hr] [HΦ]
+      · iframe; iexact Hpkg
+      · iexact HΦ
+    · iintro %vs' %n' %x %Φ !> Hr HΦ
+      iapply hIE q vs' n' x $$ [Hr] [HΦ]
+      · iframe; iexact Hpkg
+      · iexact HΦ
+  · iframe
+    iexists _
+    isplitr
+    · ipureintro; rfl
+    iunfold rangeIfaceM
+    imodintro
+    isplitr
+    · iintro %vs' %n' %Φ !> Hr HΦ
+      iapply hNL q vs' n' $$ [Hr] [HΦ]
+      · iframe; iexact Hpkg
+      · iexact HΦ
+    · iintro %vs' %n' %x %Φ !> Hr HΦ
+      iapply hIL q vs' n' x $$ [Hr] [HΦ]
+      · iframe; iexact Hpkg
+      · iexact HΦ
 
 end lemmas
 

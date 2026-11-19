@@ -435,6 +435,77 @@ theorem isMapO_cases (m : value.Map) (o : Option (List (GoString × UVal))) :
     ipureintro
     exact Or.inr ⟨kvs, gm, rfl, h⟩
 
+theorem ownRange_freeable_law_holds : ownRange_freeable.law (GF := GF) := by
+  intro r vs n
+  iintro Hr
+  iunfold ownRange at Hr
+  icases Hr with (⟨%q, %h⟩ | ⟨%q, %sl, %w, %iw, %h, Hq, -, Hw⟩)
+  · obtain ⟨rfl, -, -⟩ := h
+    iunfold freeable
+    simp [value.emptyRange.ty, value.valueUnstructured.ty, value.listUnstructuredRange.ty,
+      value.valueReflect.ty, value.mapReflect.ty, value.structReflect.ty, value.listReflect.ty,
+      value.listReflectRange.ty]
+    itrivial
+  · obtain ⟨rfl, -⟩ := h
+    iunfold freeable
+    have hne : ¬ (go.GoType.PointerType value.listUnstructuredRange.ty =
+        go.GoType.PointerType value.valueUnstructured.ty) := by
+      simp [value.valueUnstructured.ty, value.listUnstructuredRange.ty]
+    simp only [hne, ↓reduceIte]
+    iexists q
+    isplitr
+    · ipureintro; rfl
+    iunfold rangeOwn
+    iexists _
+    iframe
+    iexact Hw
+
+theorem isValF_freeable_law_holds : isValF_freeable.law (GF := GF) := by
+  intro v x
+  iintro Hv
+  iunfold isValF at Hv
+  icases Hv with ⟨%p, %i, %rfl, Hp, -⟩
+  iunfold freeable
+  simp only [↓reduceIte]
+  iexists p
+  isplitr
+  · ipureintro; rfl
+  iunfold wrapperOwn
+  iexists i
+  iexact Hp
+
+theorem freeable_view_law_holds : freeable_view.law (GF := GF) := by
+  refine ⟨?_, ?_, ?_⟩
+  · intro m kvs
+    iintro #Hm
+    isplitr
+    · iexact Hm
+    ihave %Hc := isMapV_concrete_law_holds m kvs $$ Hm
+    obtain ⟨gm, rfl⟩ := Hc
+    iunfold freeable
+    simp [value.mapUnstructuredString.ty, value.valueUnstructured.ty, value.listUnstructuredRange.ty,
+      value.valueReflect.ty, value.mapReflect.ty, value.structReflect.ty, value.listReflect.ty,
+      value.listReflectRange.ty]
+    itrivial
+  · intro l vs
+    iintro #Hl
+    isplitr
+    · iexact Hl
+    ihave %Hc := isListV_concrete_law_holds l vs $$ Hl
+    rcases Hc with ⟨sl, rfl⟩ | ⟨p, rfl⟩
+    · iunfold freeable
+      simp [value.listUnstructured.ty, value.valueUnstructured.ty, value.listUnstructuredRange.ty,
+        value.valueReflect.ty, value.mapReflect.ty, value.structReflect.ty, value.listReflect.ty,
+        value.listReflectRange.ty]
+      itrivial
+    · iunfold freeable
+      simp [value.listUnstructured.ty, value.valueUnstructured.ty, value.listUnstructuredRange.ty,
+        value.valueReflect.ty, value.mapReflect.ty, value.structReflect.ty, value.listReflect.ty,
+        value.listReflectRange.ty]
+      itrivial
+  · iunfold freeable
+    itrivial
+
 theorem isAlloc_concrete_law_holds : isAlloc_concrete.law (GF := GF) := by
   intro a
   iintro Ha
