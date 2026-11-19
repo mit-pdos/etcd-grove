@@ -9,7 +9,7 @@
   back to its statement, post + `leaseReady`; authlease `serve_member_lease` = `serve_member` then `lease_served_on`;
   `srvdWL`. Collections/interfaces/RaftNoAx/bounds (`1219f3e196`). authN.txt = lean e95's; authlease 624 axioms.
   Full timed build green; tcb --check, collections, links, interfaces, tier, bounds, copy-part, gen-init, gen-raft-tla, errorf ok.
-- **Next:** land (coordinator's go; `LAKE_PACKAGES=/shared/tmp/manifest-3af.json PERENNIAL_CHECKOUT=/shared/perennial-3afd77e35
+- **Next:** land (the coordinator runs land.sh). lean `5f94c44bee` merged (`8f49a1a9a4`, PkgTable `bb16c127c7`); build `20261119-220053-2199127` green; authlease 616 axioms.
   PERENNIAL_DIR=/shared/perennial-3afd77e35 etc/land.sh`, GOWORK unset). lean has moved again (`5f94c44bee`, merge-origin5):
   merge it first (init axioms proved: expect collection lines to drop in authlease.txt as in authN.txt).
 - **Pitfalls:** gen-init/copy-part need `PERENNIAL_DIR`. `Scratch/` moved to `/shared/tmp/auth-lease-s4/Scratch-rs56`.
